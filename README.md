@@ -39,9 +39,16 @@ pak::pak("uaipedro/trama/collections/trama.multi")     # análise multivariada
 pak::pak("uaipedro/trama/collections/trama.sampling")  # amostragem
 ```
 
-Para fixar uma versão, acrescente a tag: `"uaipedro/trama@v0.1.0"`. Com
-`remotes`, o equivalente é
-`remotes::install_github("uaipedro/trama", subdir = "collections/trama.data")`.
+Para fixar uma versão, acrescente a tag: `"uaipedro/trama@v0.1.0"`.
+
+Com `remotes`, instale na ordem das dependências — núcleo, `trama.data`,
+`trama.view` e só então as demais:
+
+```r
+remotes::install_github("uaipedro/trama")
+remotes::install_github("uaipedro/trama", subdir = "collections/trama.data")
+remotes::install_github("uaipedro/trama", subdir = "collections/trama.view")
+```
 
 ## Primeiro fluxo
 
