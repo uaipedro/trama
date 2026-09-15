@@ -1,0 +1,34 @@
+Package: trama.view
+Title: Plotting Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes that draw ggplot2 graphics inside a trama graph. Each node
+    renders one HD image at a user-chosen aspect ratio.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports:
+    trama,
+    trama.data,
+    ggplot2 (>= 4.0.0),
+    ragg,
+    rlang,
+    scales
+Suggests:
+    stats,
+    utils,
+    testthat (>= 3.0.0),
+    tibble,
+    png,
+    datasets
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama,
+    uaipedro/trama/collections/trama.data

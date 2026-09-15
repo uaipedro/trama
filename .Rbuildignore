@@ -1,0 +1,14 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.git$
+^\.gitignore$
+^\.Rbuildignore$
+^LICENSE\.md$
+^README\.md$
+^docs$
+^collections$
+^exemplos$
+^insumo$
+^tools$
+^\.claude$
+^tests/js$

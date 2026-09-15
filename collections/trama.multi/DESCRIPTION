@@ -1,0 +1,51 @@
+Package: trama.multi
+Title: Multivariate Analysis Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for multivariate analysis in a trama graph: principal
+    component analysis with scree, biplot and correlation circle; factor
+    analysis by maximum likelihood or principal axis, with orthogonal
+    (varimax, quartimax, equamax) and oblique (promax, oblimin) rotations;
+    linear and quadratic discriminant analysis with cross-validated
+    confusion matrices; logistic regression (binary and multinomial) as a
+    classifier, with leave-one-out predictions and ROC curves; jackknife
+    bias, standard errors and pseudovalues for component, factor,
+    discriminant and logistic statistics; and the diagnostics that come
+    first (KMO, Bartlett's sphericity, Horn's parallel analysis, Box's M).
+    Ships example data with known structure. Builds on trama.data for
+    tables and trama.view for plots.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    trama,
+    trama.data,
+    trama.view,
+    MASS,
+    nnet,
+    ggplot2 (>= 4.0.0),
+    rlang,
+    tibble,
+    datasets,
+    grid,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    png,
+    GPArotation,
+    psych,
+    withr
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama,
+    uaipedro/trama/collections/trama.data,
+    uaipedro/trama/collections/trama.view

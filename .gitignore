@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+_wmcache/
+.blockflow/
+.trama/
+.nodus/
+node_modules/
+*.Rcheck/
+trama_*.tar.gz
+
+/.quarto/

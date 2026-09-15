@@ -1,0 +1,44 @@
+/* O card de teste, a régua e as estrelas são do núcleo (`trama.css`). Aqui só
+   o que é da coleção: o card do modelo (`tr-mf-`) e os quadros de efeitos
+   (`tr-me-`, `tr-sig-`, `tr-quadro`). A folha carrega DEPOIS do trama.css e na
+   mesma especificidade, e classe genérica aqui refinaria o núcleo sem querer. */
+
+.tr-mf{height:100%;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0}
+.tr-mf-formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;
+               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-mf-destaques{display:flex;gap:12px}
+.tr-mf-dest{min-width:0}
+.tr-mf-dest-valor{font-size:17px;line-height:1.1;font-variant-numeric:tabular-nums}
+.tr-mf-dest-trilho{height:3px;width:44px;border-radius:2px;background:var(--tr-field);
+                   box-shadow:inset 0 0 0 1px var(--tr-line);margin:2px 0 1px;overflow:hidden}
+.tr-mf-dest-barra{height:100%;background:var(--tr-accent)}
+.tr-mf-global{display:flex;flex-direction:column;gap:2px}
+
+.tr-me{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tr-sig{display:flex;flex-direction:column;gap:2px}
+.tr-sig-linha{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(40px,1fr) 44px 26px;
+              align-items:center;gap:6px;font-size:10.5px;min-height:15px}
+.tr-sig-termo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-sig-p{text-align:right;font-variant-numeric:tabular-nums}
+.tr-sig-e{text-align:left}
+.tr-sig-apagada{color:var(--tr-dim)}
+.tr-sig-rodape{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:9.5px;color:var(--tr-dim);
+               border-top:1px solid var(--tr-line);padding-top:3px;margin-top:1px}
+.tr-sig-rodape b{font-weight:600;color:var(--tr-fg)}
+.tr-sig-nota{font-size:9px;color:var(--tr-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* O quadro completo. Números à direita e tabulares, para as casas decimais se
+   alinharem na coluna — é o que deixa conferir SQ e QM de olho. */
+.tr-quadro-wrap{overflow-x:auto}
+.tr-quadro{border-collapse:collapse;width:100%;font-size:10.5px;font-variant-numeric:tabular-nums}
+.tr-quadro th{color:var(--tr-dim);font-weight:600;text-align:left;padding:1px 5px 3px;
+              border-bottom:1px solid var(--tr-line);white-space:nowrap;position:sticky;top:0;
+              background:var(--tr-panel)}
+.tr-quadro td{padding:2px 5px;white-space:nowrap;
+              border-bottom:1px solid color-mix(in srgb,var(--tr-line) 50%,transparent)}
+.tr-quadro .tr-q-num{text-align:right}
+.tr-quadro .tr-q-fv{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.tr-quadro .tr-q-regua{width:54px;min-width:40px;padding-left:2px;padding-right:2px}
+.tr-quadro .tr-q-est{width:22px;padding-left:2px}
+.tr-q-residuo td{color:var(--tr-dim)}
+.tr-q-total td{border-top:1px solid var(--tr-edge);font-weight:600;border-bottom:0}

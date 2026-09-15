@@ -1,0 +1,679 @@
+/* Tokens de cor do app. Superfície, texto, borda e sombra moram SÓ aqui: o tema
+   claro redefine estes nomes e nada mais, então um hex solto numa regra abaixo
+   seria um pedaço do app que não troca de tema. Ficam de fora as cores de DADO
+   (paleta dos frames, cor de categoria e de tipo que vêm do catálogo): elas
+   identificam coisas, e mudar de tema não pode mudar o que identificam.
+   `--tr-ink` é a tinta escura sobre essas cores de dado (cabeçalho do card,
+   faixa do frame) — continua escura no claro porque o fundo dela não muda. */
+:root{--tr-bg:#0f1115;--tr-panel:#171a21;--tr-line:#262b36;--tr-fg:#e6e9ef;--tr-dim:#8b93a7;
+      --tr-accent:#5b8def;--tr-err:#ef4444;--tr-ok:#22c55e;
+      --tr-field:#0d1016;--tr-edge:#3b4252;--tr-hover:#222733;--tr-dots:#91919a;
+      --tr-accent-fg:#fff;--tr-ink:#0b0e13;--tr-accent-ink:#0b0e13;
+      --tr-shadow:rgba(0,0,0,.35);--tr-shadow-hi:rgba(0,0,0,.5);
+      --tr-backdrop:rgba(6,8,12,.88);--tr-err-bg:#3a1d1d;--tr-err-fg:#fecaca;
+      color-scheme:dark}
+/* Tema claro: só redefine tokens. `data-tema` é resolvido no <head> antes do
+   primeiro paint (R/app.R) e mantido pelo editor; `color-scheme` acompanha para
+   barra de rolagem e controles nativos não ficarem escuros num app claro.
+   `--tr-ink`, `--tr-accent-fg`, `--tr-err` e `--tr-ok` não mudam: os fundos
+   deles (cor de dado, destaque, estado) são saturados nos dois temas. A exceção
+   é `--tr-accent-ink`, o texto do hover do menu: o destaque claro é mais escuro,
+   e tinta escura sobre ele não chega a 4,5:1 — lá o texto vira branco. */
+:root[data-tema="claro"]{--tr-bg:#f6f7f9;--tr-panel:#ffffff;--tr-line:#dfe3ea;--tr-fg:#1b2130;
+      --tr-dim:#5f6b7f;--tr-accent:#3b6fd8;--tr-accent-ink:#fff;
+      --tr-field:#f1f3f6;--tr-edge:#b6bdc9;--tr-hover:#eef1f5;--tr-dots:#c3c9d3;
+      --tr-shadow:rgba(20,30,50,.12);--tr-shadow-hi:rgba(20,30,50,.22);
+      --tr-backdrop:rgba(20,26,38,.55);--tr-err-bg:#fdecec;--tr-err-fg:#991b1b;
+      color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
+     font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.tr-app{position:fixed;inset:0;display:grid;grid-template-columns:1fr 260px}
+.tr-canvas{position:relative;min-width:0}
+.tr-loading{padding:24px;color:var(--tr-dim)}
+.react-flow__background{background:var(--tr-bg)}
+/* Os pontos do fundo e a linha de conexão em arraste são do xyflow, com cor padrão
+   fixa; as variáveis deixam o tema trocá-las. */
+.react-flow{--xy-background-pattern-dots-color-default:var(--tr-dots);
+  --xy-connectionline-stroke-default:var(--tr-dim)}
+.react-flow__edge-path{stroke:var(--tr-edge);stroke-width:2}
+.react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-accent)}
+
+/* --- nó --- */
+/* O piso de tamanho mora aqui, e não no servidor: 240x132 é política de
+   apresentação, e o `min-` protege também o documento escrito à mão (ou por um
+   LLM) que traga `ui.sizes` absurdo — card de 10px não é card. */
+/* `position:relative` ancora a alça de redimensionar no canto do card. */
+.tr-node{position:relative;width:var(--tr-w,240px);min-width:240px;background:var(--tr-panel);
+         border:1px solid var(--tr-line);
+         border-radius:10px;overflow:hidden;box-shadow:0 6px 20px var(--tr-shadow)}
+.tr-node-sel{border-color:var(--tr-accent)}
+.tr-state-running{border-color:var(--tr-accent)}
+.tr-state-failed{border-color:var(--tr-err)}
+.tr-node-orphan{padding:10px;border:1px dashed var(--tr-err);color:var(--tr-err);
+                background:var(--tr-panel);border-radius:10px;width:240px}
+.tr-node-head{position:relative;display:flex;align-items:center;gap:6px;padding:6px 9px;
+              font-weight:600;color:var(--tr-ink);font-size:12px}
+.tr-fold-btn{background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
+  padding:0;display:inline-flex;line-height:1}
+.tr-fold-btn:hover{opacity:1}
+/* A faixa do cabeçalho já é a cor da categoria; o alerta ganha um disco claro
+   pra ler em cima de qualquer uma delas. */
+.tr-head-alert{display:inline-flex;color:#b91c1c;background:#fef2f2;border-radius:50%;padding:1px}
+/* O trilho escurece a cor da categoria que está por baixo — é relativo ao dado,
+   não ao tema, daí o preto translúcido fixo. */
+.tr-head-progress{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(0,0,0,.25);
+  overflow:hidden}
+.tr-head-progress>div{height:100%;background:var(--tr-ink);transition:width .15s}
+/* Sem fração conhecida, um trecho vai e volta: barra parada em 0% leria como
+   travado. Só `transform`, então nada remede o card. Quem pede menos movimento
+   ganha a barra inteira pulsando — o sinal de vida fica, o deslocamento não. */
+.tr-head-progress.tr-indet>div{width:30%;transition:none;animation:tr-indet 1.1s ease-in-out infinite}
+@keyframes tr-indet{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+@media (prefers-reduced-motion:reduce){
+  .tr-head-progress.tr-indet>div{width:100%;animation:tr-pulse 1.4s ease-in-out infinite}
+  @keyframes tr-pulse{50%{opacity:.35}}}
+.tr-params-fold{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--tr-line);color:var(--tr-dim);font:inherit;font-size:11px;
+  padding:5px 9px;cursor:pointer}
+.tr-params-fold:hover{color:var(--tr-fg)}
+.tr-node-icon{width:13px;height:13px;flex:none;stroke:currentColor;fill:none;
+              stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tr-node-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-dur{font-weight:500;opacity:.75;font-size:10px}
+.tr-dot{width:7px;height:7px;border-radius:50%;background:var(--tr-ink);opacity:.5}
+
+/* Altura DECLARADA, nunca derivada do conteúdo. Não é só estética: se o card
+   muda de tamanho quando o preview chega, o React Flow remede, emite mudança de
+   dimensão, o estado atualiza, o card redecora — e o laço não fecha,
+   congelando o renderizador. Que a altura venha de `--tr-h` não afrouxa isso:
+   é um número que o usuário arrastou e o documento guarda, fixo do ponto de
+   vista do React Flow. O que continua proibido é qualquer altura que o
+   conteúdo escolha. Sem `ui.sizes`, o padrão é o 132px de sempre. */
+.tr-preview{height:var(--tr-h,132px);min-height:132px;overflow:auto;padding:6px 9px;
+            border-bottom:1px solid var(--tr-line);font-size:11px}
+/* Estes são MODIFICADORES de estado, e por isso não declaram `height`: eles
+   entram na mesma div do `.tr-preview`, com a mesma especificidade e mais
+   abaixo no arquivo, então um `height` aqui vence o `var(--tr-h)` de lá. Foi
+   exatamente esse o bug: card redimensionado ficava em 132px enquanto vazio e
+   saltava pra altura declarada quando o resultado chegava — altura em função
+   do que chegou, o laço que este arquivo passa o tempo todo evitando. O
+   `.tr-preview` é o dono da altura em TODOS os estados; aqui só se centraliza
+   o que está dentro. */
+.tr-busy,.tr-empty,.tr-blocked{color:var(--tr-dim);display:flex;align-items:center;
+                               justify-content:center}
+.tr-busy{color:var(--tr-accent)}
+.tr-preview-error{color:var(--tr-err);align-items:flex-start}
+.tr-err-msg{white-space:pre-wrap;word-break:break-word}
+
+/* Altura FIXA pelo mesmo motivo do preview: a faixa é reservada desde o primeiro
+   quadro, mesmo sem resultado, pra que a chegada do preview nunca mude a altura
+   do card. */
+/* `overflow-x` porque `.tr-node` é `overflow:hidden` e as abas não encolhem: da
+   quinta em diante elas sumiriam sem aviso, num recurso cuja premissa é N
+   vistas. Rolar na horizontal é seguro — a altura está pinada, então a barra
+   não pode mudar o tamanho do card. */
+.tr-tabs{display:flex;align-items:center;gap:2px;height:18px;padding:0 7px;
+         overflow-x:auto;scrollbar-width:none;
+         background:var(--tr-field);border-bottom:1px solid var(--tr-line)}
+.tr-tabs::-webkit-scrollbar{display:none}
+.tr-tab{background:none;border:0;color:var(--tr-dim);font:inherit;font-size:10px;
+        padding:0 5px;height:100%;cursor:pointer;border-bottom:2px solid transparent;
+        flex:none;white-space:nowrap}
+.tr-tab:hover{color:var(--tr-fg)}
+.tr-tab-on{color:var(--tr-fg);border-bottom-color:var(--tr-accent)}
+.tr-tab-only,.tr-tab-idle{font-size:10px;color:var(--tr-dim)}
+
+.tr-table{border-collapse:collapse;width:100%;font-size:10.5px}
+.tr-table th{text-align:left;color:var(--tr-dim);font-weight:600;
+             border-bottom:1px solid var(--tr-line);padding:2px 5px 3px;position:sticky;top:0;
+             background:var(--tr-panel)}
+.tr-table td{padding:2px 5px;border-bottom:1px solid color-mix(in srgb,var(--tr-line) 50%,transparent);white-space:nowrap}
+.tr-na{color:var(--tr-dim);font-style:italic}
+.tr-kv{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;margin:0}
+.tr-kv dt{color:var(--tr-dim)} .tr-kv dd{margin:0}
+.tr-text{margin:0;white-space:pre-wrap;font-size:10.5px}
+.tr-img-wrap{height:100%;display:flex;align-items:center;justify-content:center}
+/* `contain` é o que faz a PROPORÇÃO da imagem mandar dentro da caixa do card:
+   a imagem nunca distorce quando o usuário arrasta a alça, sobra faixa. */
+.tr-img{max-width:100%;max-height:100%;object-fit:contain;display:block;
+        cursor:zoom-in}
+/* `z-index:60` passa folgado do maior do arquivo (o menu de contexto, 20): o
+   lightbox é modal, tem que cobrir toolbar, banner e menu. */
+.tr-lightbox{position:fixed;inset:0;z-index:60;display:flex;align-items:center;
+             justify-content:center;background:var(--tr-backdrop);cursor:zoom-out}
+.tr-lightbox-img{max-width:94vw;max-height:94vh;object-fit:contain;
+                 box-shadow:0 8px 40px var(--tr-shadow-hi)}
+.tr-lightbox-close{position:absolute;top:10px;right:14px;background:none;border:0;
+                   color:var(--tr-fg);font-size:26px;line-height:1;cursor:pointer;
+                   opacity:.7}
+.tr-lightbox-close:hover{opacity:1}
+
+/* O `zoom-out` do lightbox anuncia "clique e eu fecho", e este não fecha. */
+.tr-modal{cursor:default}
+/* Diálogo de projeto: mora dentro do `.tr-lightbox`, que já dá o fundo e o
+   `inset:0`. Altura máxima em vh e a lista rolando: a pasta com duzentos
+   subdiretórios não pode empurrar os botões para fora da tela. */
+/* O teto de 160px é contra o banner: ele fica em `bottom:14px` e um aviso de
+   três linhas em janela baixa cobria justamente a linha de ações (Abrir /
+   nome / Criar aqui) — que é o que a recusa pede para corrigir. Centrado, o
+   diálogo fica com pelo menos 80px de folga embaixo. */
+.tr-dialog{background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:10px;
+           width:min(560px,92vw);max-height:min(76vh,calc(100vh - 160px));
+           display:flex;flex-direction:column;
+           box-shadow:0 10px 40px var(--tr-shadow-hi)}
+.tr-dialog-path{display:flex;align-items:center;gap:8px;
+                padding:10px 12px;border-bottom:1px solid var(--tr-line);
+                color:var(--tr-dim);font-size:12px;word-break:break-all}
+.tr-dialog-path>span{flex:1;min-width:0}
+.tr-dialog-close{background:none;border:0;color:var(--tr-fg);font-size:20px;line-height:1;
+                 cursor:pointer;opacity:.7;padding:0}
+.tr-dialog-close:hover{opacity:1}
+.tr-dialog-list{flex:1;overflow:auto;padding:6px}
+.tr-dialog-row{display:block;width:100%;text-align:left;background:none;border:0;
+               color:var(--tr-fg);padding:5px 8px;border-radius:5px;cursor:pointer;font:inherit}
+.tr-dialog-row:hover{background:var(--tr-bg)}
+/* O ponto é o `projeto: true` do listing: sem ele, toda pasta parece igual e
+   descobrir qual é abrível vira tentativa e erro. */
+.tr-dialog-row.tr-is-project::before{content:"●";color:var(--tr-ok);margin-right:7px}
+.tr-dialog-actions{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--tr-line)}
+.tr-dialog-name{flex:1;min-width:0;background:var(--tr-bg);color:var(--tr-fg);
+                border:1px solid var(--tr-line);border-radius:5px;padding:4px 7px;font:inherit}
+.tr-dialog-actions button{background:var(--tr-bg);color:var(--tr-fg);
+                          border:1px solid var(--tr-line);border-radius:5px;
+                          padding:4px 10px;cursor:pointer;font:inherit}
+.tr-dialog-actions button:disabled{opacity:.4;cursor:default}
+
+.tr-params{padding:5px 9px;display:grid;gap:4px}
+.tr-param{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:6px;font-size:11px}
+.tr-param>span{color:var(--tr-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-param input,.tr-param select,.tr-param textarea{background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:5px;padding:2px 5px;
+  width:100%;min-width:0}
+/* A fonte do textarea entra por `:where`, com especificidade de um tipo só:
+   um widget de coleção que escolhe a própria fonte com uma classe (o `.tr-expr`
+   da coleção data, monoespaçado) vence, e o `font` abreviado daqui não zera
+   família, corpo e entrelinha dele. Textarea sem classe herda a do card. */
+.tr-param input,.tr-param select,:where(.tr-param) textarea{font:inherit;font-size:11px}
+/* Primitivas de `runtime.js`. */
+.tr-seg{display:flex;min-width:0;border:1px solid var(--tr-line);border-radius:5px;overflow:hidden}
+.tr-seg>button{flex:1 1 0;min-width:0;padding:2px 4px;border:0;border-left:1px solid var(--tr-line);
+  background:var(--tr-field);color:var(--tr-dim);font:inherit;font-size:11px;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-seg>button:first-child{border-left:0}
+.tr-seg>button:hover{color:var(--tr-fg)}
+.tr-seg>button.tr-seg-on{background:var(--tr-accent);color:var(--tr-accent-fg)}
+/* Enum "wide" ocupa a linha: rótulo em cima, opções embaixo. `:has` evita que o
+   editor precise saber qual widget desenhou a linha. */
+.tr-param:has(.tr-seg-wide){grid-template-columns:1fr}
+.tr-toggle{justify-self:end;width:26px;height:14px;border-radius:7px;border:0;padding:0;position:relative;
+  background:var(--tr-line);cursor:pointer}
+.tr-toggle::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+  background:var(--tr-dim);transition:transform .12s}
+.tr-toggle.tr-toggle-on{background:var(--tr-accent)}
+.tr-toggle.tr-toggle-on::after{transform:translateX(12px);background:var(--tr-accent-fg)}
+.tr-numf{display:grid;gap:2px;min-width:0}
+.tr-param input.tr-invalid{border-color:var(--tr-err)}
+.tr-field-err{color:var(--tr-err);font-size:10px;line-height:1.2}
+
+/* O respiro de baixo é 14px, e não 7px, por causa da alça: com 7px ela cobria
+   4 dos 9 pixels de alvo do handle da última porta de saída — que é a porta que
+   todo bloco de uma saída tem. */
+.tr-ports{display:flex;justify-content:space-between;padding:5px 0 14px;font-size:10.5px}
+.tr-in,.tr-out{display:grid;gap:3px}
+.tr-port{position:relative;height:15px;display:flex;align-items:center;padding:0 10px;
+         color:var(--tr-dim)}
+.tr-port-out{justify-content:flex-end}
+.react-flow__handle{width:9px;height:9px;border:2px solid var(--tr-panel)}
+
+/* Canto inferior-direito, abaixo da última porta: as laterais são das portas, e
+   o respiro extra em `.tr-ports` é o que mantém a alça fora do alvo delas.
+   Some quando o card não está sob o cursor nem selecionado, pra não poluir um
+   canvas com dezenas de blocos. */
+.tr-grip{position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;
+  background:linear-gradient(135deg,transparent 50%,var(--tr-line) 50%);opacity:0;
+  transition:opacity .12s}
+.tr-node:hover .tr-grip,.tr-node-sel .tr-grip{opacity:1}
+
+/* --- frame --- */
+/* O wrapper do React Flow recebe `pointer-events:all` INLINE, e só
+   `!important` vence. Sem isto, arrastar no miolo de um frame o selecionaria
+   em vez de andar pela tela, e o Shift + arrasto não começaria a caixa de
+   seleção por cima dos cards que ele contém.
+   Cabeçalho e alças pegam os eventos de volta. */
+.react-flow__node-trFrame{pointer-events:none !important}
+.tr-frame-head,.react-flow__node-trFrame .react-flow__resize-control{pointer-events:all}
+.tr-frame{--tr-fc:#7aa2f7;position:relative;width:100%;height:100%;
+  border:2px solid var(--tr-fc);border-radius:12px;
+  background:color-mix(in srgb,var(--tr-fc) 8%,transparent)}
+.tr-frame-azul{--tr-fc:#7aa2f7} .tr-frame-verde{--tr-fc:#9ece6a}
+.tr-frame-amarelo{--tr-fc:#e0af68} .tr-frame-laranja{--tr-fc:#ff9e64}
+.tr-frame-rosa{--tr-fc:#f7768e} .tr-frame-roxo{--tr-fc:#bb9af7}
+.tr-frame-cinza{--tr-fc:#8b93a7}
+.tr-frame-sel{box-shadow:0 0 0 2px var(--tr-accent)}
+/* Alças e bordas de pegar com tamanho fixo NA TELA, qualquer que seja o zoom
+   (`--tr-z` vem de `FrameNode`). A linha fica invisível e larga: é só a área
+   de pegar da borda; o contorno visível continua sendo o do próprio frame. */
+.tr-frame .react-flow__resize-control.handle{width:calc(10px / var(--tr-z,1));
+  height:calc(10px / var(--tr-z,1));border-width:calc(1px / var(--tr-z,1));
+  border-radius:calc(2px / var(--tr-z,1))}
+.tr-frame .react-flow__resize-control.line{border-color:transparent}
+.tr-frame .react-flow__resize-control.line.left,
+.tr-frame .react-flow__resize-control.line.right{width:calc(8px / var(--tr-z,1))}
+.tr-frame .react-flow__resize-control.line.top,
+.tr-frame .react-flow__resize-control.line.bottom{height:calc(8px / var(--tr-z,1))}
+/* Título DENTRO do retângulo: é o que faz ele sair no PNG do slide. */
+.tr-frame-head{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
+  gap:8px;padding:8px 14px;cursor:grab;color:var(--tr-fc);font-weight:600;font-size:15px}
+.tr-frame-order{flex:none;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
+  display:inline-flex;align-items:center;justify-content:center;font-size:11px;
+  background:var(--tr-fc);color:var(--tr-ink)}
+.tr-frame-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-frame-aspect{flex:none;font-size:10px;font-weight:500;opacity:.7}
+.tr-frame-input{flex:1;min-width:0;background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-fc);border-radius:5px;padding:2px 6px;font:inherit}
+.tr-framedraw{position:absolute;inset:0;z-index:4;cursor:crosshair}
+.tr-framedraw-box{position:absolute;pointer-events:none;border:2px dashed var(--tr-accent);
+  border-radius:10px;background:color-mix(in srgb,var(--tr-accent) 8%,transparent)}
+.tr-toolbar button.tr-on{border-color:var(--tr-accent);color:var(--tr-accent)}
+.tr-menu-row{display:flex;flex-wrap:wrap;gap:3px;padding:3px}
+.tr-menu .tr-menu-row button{width:auto;padding:3px 6px;font-size:11px}
+.tr-menu .tr-menu-on,.tr-prancheta .tr-menu-on{outline:1px solid var(--tr-accent)}
+/* Com `.tr-menu-row` no seletor para empatar em especificidade com o botão da
+   fileira acima e vencer pela ordem; sem ele, o `width:auto;padding:3px 6px`
+   daquele achatava a amostra em ~12x18. */
+.tr-menu .tr-menu-row .tr-swatch,.tr-menu .tr-menu-row .tr-swatch:hover,
+.tr-prancheta .tr-swatch{width:18px;height:18px;
+  padding:0;border:0;border-radius:4px;background:var(--tr-fc);cursor:pointer}
+.tr-menu .tr-menu-row .tr-swatch:hover,.tr-prancheta .tr-swatch:hover{outline:1px solid var(--tr-fg)}
+
+/* --- painel de frames --- */
+.tr-frames{background:var(--tr-panel);border-left:1px solid var(--tr-line);
+  display:flex;flex-direction:column;overflow:hidden}
+.tr-frames-body{flex:1;overflow:auto;padding:4px 12px 12px}
+.tr-frames-empty{color:var(--tr-dim);font-size:12px}
+.tr-frames-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);border-radius:6px;
+  padding:6px 9px;margin-bottom:4px;font:inherit;font-size:12px;cursor:pointer;user-select:none}
+.tr-frames-item:hover{border-color:var(--tr-accent)}
+/* O item é `div` (ver `FramePanel`): o anel de foco de botão não vem de graça,
+   e o `user-select` acima impede que o clique que começa um arrasto selecione
+   o texto. */
+.tr-frames-item:focus-visible{outline:2px solid var(--tr-accent);outline-offset:1px}
+.tr-frames-drag{opacity:.45}
+.tr-frames-n{width:18px;flex:none;color:var(--tr-dim);font-variant-numeric:tabular-nums}
+.tr-frames-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Os dois campos do item (título em edição e proporção) no tom do painel:
+   fundo escuro, borda de linha, letra miúda. */
+.tr-frames-input{flex:1;min-width:0;background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-accent);border-radius:4px;padding:1px 5px;font:inherit;font-size:11px}
+.tr-frames-aspect{flex:none;background:var(--tr-field);color:var(--tr-dim);border:1px solid var(--tr-line);
+  border-radius:4px;padding:1px 2px;font:inherit;font-size:10px;cursor:pointer}
+.tr-frames-aspect:hover,.tr-frames-aspect:focus{border-color:var(--tr-accent);color:var(--tr-fg)}
+.tr-frames-foot{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--tr-line)}
+.tr-frames-foot button{flex:1;background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
+  border-radius:6px;padding:6px 9px;font:inherit;font-size:11.5px;cursor:pointer}
+.tr-frames-foot button:hover:not(:disabled){border-color:var(--tr-accent)}
+.tr-frames-foot button:disabled{opacity:.45;cursor:default}
+
+/* --- painel de configurações (temas do projeto) --- */
+/* Mesma casca do painel de frames; as cores dos TEMAS (miniatura, amostras) vêm
+   do dado, inline — são o conteúdo editado, não a pele do app. */
+.tr-settings{background:var(--tr-panel);border-left:1px solid var(--tr-line);
+  display:flex;flex-direction:column;overflow:hidden}
+.tr-settings-body{flex:1;overflow:auto;padding:4px 12px 16px;font-size:12px}
+.tr-settings-body h4{margin:10px 0 6px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--tr-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-settings-empty{color:var(--tr-dim)}
+.tr-settings-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);border-radius:6px;
+  padding:5px 8px;margin-bottom:4px;font:inherit;font-size:12px;cursor:pointer}
+.tr-settings-item:hover{border-color:var(--tr-accent)}
+.tr-settings-item-on{border-color:var(--tr-accent);box-shadow:inset 3px 0 0 var(--tr-accent)}
+.tr-settings-name,.tr-settings-grow{flex:1;min-width:0}
+.tr-settings-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-settings-star{flex:none;color:var(--tr-accent)}
+.tr-settings-thumb{flex:none;width:22px;height:22px;border-radius:4px;border:1px solid var(--tr-line);
+  display:grid;grid-template-columns:1fr 1fr;place-items:center;padding:3px;box-sizing:border-box}
+.tr-settings-thumb i{width:5px;height:5px;border-radius:50%}
+.tr-settings-actions{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 4px}
+.tr-settings-actions button{flex:1 1 auto;background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:6px;padding:4px 7px;font:inherit;font-size:11px;
+  cursor:pointer;white-space:nowrap}
+.tr-settings-actions button:hover:not(:disabled){border-color:var(--tr-accent)}
+.tr-settings-actions button:disabled{opacity:.45;cursor:default}
+.tr-settings-editor{border-top:1px solid var(--tr-line);margin-top:8px;padding-top:2px}
+.tr-settings-field{display:grid;grid-template-columns:62px minmax(0,1fr);gap:4px 8px;
+  align-items:center;margin-bottom:7px}
+/* Contínua em segmentado largo ganha a linha inteira, como o enum no card:
+   cinco nomes em ~260px cortariam "divergente". */
+.tr-settings-field:has(.tr-seg-wide){grid-template-columns:1fr}
+.tr-settings-label{color:var(--tr-dim);font-size:11px}
+.tr-settings input[type=text],.tr-settings select{min-width:0;box-sizing:border-box;width:100%;
+  background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);border-radius:4px;
+  padding:2px 5px;font:inherit;font-size:11px}
+.tr-settings input[type=text]:focus,.tr-settings select:focus{outline:none;border-color:var(--tr-accent)}
+.tr-settings input.tr-invalid,.tr-prancheta input.tr-invalid{border-color:var(--tr-err)}
+.tr-settings-hex{font-family:ui-monospace,monospace}
+.tr-settings-corrow{display:grid;grid-template-columns:30px minmax(0,1fr);gap:6px;align-items:start}
+.tr-settings-cor{width:30px;height:22px;padding:0;border:1px solid var(--tr-line);border-radius:4px;
+  background:var(--tr-field);cursor:pointer}
+.tr-settings-cor::-webkit-color-swatch-wrapper{padding:2px}
+.tr-settings-cor::-webkit-color-swatch{border:0;border-radius:2px}
+.tr-settings-cor::-moz-color-swatch{border:0;border-radius:2px}
+.tr-settings-paleta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tr-settings-sw{position:relative;display:inline-flex}
+/* O × fica sobre o canto da amostra, e só aparece ao passar o mouse ou com
+   foco: numa paleta de oito cores, oito × fixos seriam mais ruído que cor. */
+.tr-settings-swx{position:absolute;top:-6px;right:-6px;width:14px;height:14px;padding:0;
+  border-radius:50%;border:1px solid var(--tr-line);background:var(--tr-panel);color:var(--tr-fg);
+  font-size:10px;line-height:1;cursor:pointer;opacity:0}
+.tr-settings-sw:hover .tr-settings-swx,.tr-settings-swx:focus-visible{opacity:1}
+.tr-settings-swx:disabled{display:none}
+.tr-settings-add{width:30px;height:22px;padding:0;border:1px dashed var(--tr-line);border-radius:4px;
+  background:none;color:var(--tr-dim);font:inherit;font-size:13px;cursor:pointer}
+.tr-settings-add:hover{border-color:var(--tr-accent);color:var(--tr-fg)}
+
+/* --- exportação e apresentação --- */
+/* A mesma lista nos dois modos: ferramenta de EDIÇÃO não aparece em slide nem
+   em PNG. `.tr-exporting` vai no <body> só durante a captura; `.tr-presenting`
+   fica na raiz do app enquanto a apresentação durar. */
+.tr-exporting .tr-grip,.tr-presenting .tr-grip,
+.tr-exporting .tr-help-btn,.tr-presenting .tr-help-btn,
+.tr-exporting .tr-fold-btn,.tr-presenting .tr-fold-btn,
+.tr-exporting .tr-dur,.tr-presenting .tr-dur,
+.tr-exporting .tr-dot,.tr-presenting .tr-dot,
+.tr-exporting .react-flow__resize-control,
+.tr-exporting .react-flow__nodesselection{display:none}
+/* Handles SOMEM, mas continuam ocupando lugar. O xyflow remede as bordas dos
+   handles com `getBoundingClientRect` quando o card muda de tamanho; com
+   `display:none` elas mediam 0x0 na origem, a ligação ancorava num ponto
+   falso, e o erro ficava depois de sair do modo, até a próxima remedição. */
+.tr-exporting .react-flow__handle,.tr-presenting .react-flow__handle{visibility:hidden}
+/* Card com falha guarda a borda vermelha no PNG: a falha é informação do slide,
+   a seleção não. */
+.tr-exporting .tr-node-sel:not(.tr-state-failed){border-color:var(--tr-line)}
+.tr-exporting .tr-frame-sel{box-shadow:none}
+.tr-exporting .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-edge)}
+/* Duas classes, pra vencer `.tr-app-help` quando o painel estava aberto. */
+.tr-app.tr-presenting{grid-template-columns:1fr}
+.tr-presenting .tr-palette,.tr-presenting .tr-help,.tr-presenting .tr-frames,
+.tr-presenting .tr-settings,
+.tr-presenting .tr-toolbar,.tr-presenting .tr-selbar,
+.tr-presenting .react-flow__minimap,.tr-presenting .react-flow__controls,
+.tr-presenting .react-flow__background{display:none}
+/* Slide somente leitura também para o clique: sem isto, duplo clique no
+   título abria o editor e os parâmetros e abas dos cards respondiam. O
+   `!important` vence o `pointer-events` inline do wrapper (ver `--- frame ---`);
+   o cabeçalho do frame declara `all` por conta própria e precisa da sua. */
+.tr-presenting .react-flow__node{pointer-events:none !important}
+.tr-presenting .tr-frame-head{pointer-events:none}
+/* O preview volta a ouvir o ponteiro: tabela longa precisa rolar no slide, e o
+   clique na imagem abre o lightbox, que só OLHA. Filho com `auto` recebe
+   evento mesmo sob pai `none`. Nada dentro do `.tr-preview` muda o documento;
+   abas, params e alça ficam fora dele e continuam mudos. Arrastar, selecionar
+   e o menu já estão desligados no `ReactFlow` durante a apresentação. */
+.tr-presenting .tr-preview{pointer-events:auto}
+.tr-present-ind{position:absolute;right:18px;bottom:14px;z-index:5;pointer-events:none;
+  font-size:12px;color:var(--tr-dim);background:color-mix(in srgb,var(--tr-bg) 70%,transparent);padding:3px 9px;
+  border-radius:10px;animation:tr-fade 2.4s forwards}
+@keyframes tr-fade{0%,80%{opacity:1}100%{opacity:0}}
+
+/* --- paleta --- */
+.tr-palette{background:var(--tr-panel);border-left:1px solid var(--tr-line);
+            display:flex;flex-direction:column;min-height:0}
+/* Aba com a MESMA forma do .tr-palette-item, e não por economia: fileira de
+   aba com sublinhado contínuo não sobrevive a quebrar em duas linhas, e
+   quebrar é o que a paleta faz quando o projeto carrega cinco coleções.
+
+   Nome próprio, e não `.tr-tab`: aquele já é a tira de vistas dentro do card
+   de nó (linha 62), que é o oposto disto — altura pinada em 18px e rolagem
+   horizontal, justamente pra NÃO quebrar linha. Duas fileiras de aba com
+   regras opostas não podem dividir o mesmo nome. */
+.tr-palette-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:9px 9px 0}
+.tr-palette-tab{background:var(--tr-field);color:var(--tr-dim);border:1px solid var(--tr-line);
+  border-radius:6px;padding:4px 9px;font:inherit;font-size:11.5px;cursor:pointer}
+.tr-palette-tab:hover{border-color:var(--tr-accent)}
+.tr-palette-tab-on{background:var(--tr-panel);color:var(--tr-fg);border-color:var(--tr-accent)}
+.tr-search{margin:9px;padding:6px 9px;background:var(--tr-field);color:var(--tr-fg);
+           border:1px solid var(--tr-line);border-radius:6px;font:inherit}
+.tr-filter{margin:0 9px 6px;font-size:10.5px;color:var(--tr-accent)}
+.tr-count{margin:0 9px 6px;font-size:10.5px;color:var(--tr-dim)}
+.tr-palette-body{overflow:auto;padding:0 9px 12px}
+.tr-palette h4{display:flex;align-items:center;gap:6px;margin:12px 0 5px;font-size:10.5px;
+               text-transform:uppercase;letter-spacing:.5px;color:var(--tr-dim)}
+.tr-palette h4 i{width:7px;height:7px;border-radius:2px;display:inline-block}
+/* Sem `justify-content`: o rótulo é quem estica (`.tr-palette-label{flex:1}`), e
+   por isso o selo encosta na direita SEM que uma linha sem selo espalhe a calha
+   e o rótulo para as pontas opostas. `space-between` fazia isso quando a linha
+   tinha dois filhos; com a calha são três. */
+.tr-palette-item{display:flex;align-items:center;
+  gap:8px;width:100%;text-align:left;background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:6px;padding:5px 9px;margin-bottom:4px;
+  font:inherit;font-size:11.5px;cursor:grab}
+.tr-palette-item:hover{border-color:var(--tr-accent)}
+.tr-palette-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-palette-seal{flex:none;font-size:10px;color:var(--tr-dim)}
+/* Ícone e bolinha dividem a MESMA calha e a mesma largura: a lista não pode
+   desalinhar entre um bloco que declara ícone e o de baixo que não.
+
+   `stroke`/`fill` explícitos porque o sprite do Lucide não traz traço nenhum —
+   quem pinta é quem usa. Dez símbolos (entre eles `chart-scatter`) trazem
+   `fill="currentColor"` no próprio `<circle>`, e isso é intencional: atributo
+   de apresentação no filho vence o `fill:none` herdado daqui, então as bolas
+   deles continuam cheias, que é o desenho certo. */
+.tr-palette-icon{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;
+                 stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* 7x7 como a bolinha do título de seção logo acima — a mesma informação não
+   pode ter duas formas na mesma coluna. A margem centra esse chip na calha de
+   14px do ícone, que é o que mantém os rótulos alinhados nas duas linhas. O
+   cinza é a cor de reserva de categoria desconhecida (a mesma do editor.js):
+   dado, não tema. */
+.tr-palette-dot{width:7px;height:7px;margin:0 3.5px;flex:none;border-radius:2px;
+                background:#64748b}
+
+/* --- toolbar / banner --- */
+.tr-toolbar{position:absolute;top:12px;left:12px;display:flex;gap:6px;z-index:5}
+.tr-toolbar button{background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line);
+  border-radius:6px;padding:5px 11px;font:inherit;font-size:11.5px;cursor:pointer}
+.tr-toolbar button:hover{border-color:var(--tr-accent)}
+/* A proporção dos frames novos, colada no "▭ Frame": o segmentado do card
+   com a altura e o fundo dos botões da toolbar. Seletores com `.tr-toolbar`
+   na frente porque `.tr-toolbar button` vem depois de `.tr-seg>button` com a
+   mesma especificidade e daria borda e cantos próprios a cada opção. */
+.tr-toolbar .tr-seg{flex:none;margin-left:-3px;border-radius:6px;background:var(--tr-panel)}
+.tr-toolbar .tr-seg>button{flex:none;border:0;border-left:1px solid var(--tr-line);border-radius:0;
+  padding:5px 7px;background:var(--tr-panel);color:var(--tr-dim);font-size:11px}
+.tr-toolbar .tr-seg>button:first-child{border-left:0}
+.tr-toolbar .tr-seg>button:hover{color:var(--tr-fg);border-color:var(--tr-line)}
+.tr-toolbar .tr-seg>button.tr-seg-on{background:var(--tr-accent);color:var(--tr-accent-fg)}
+.tr-toolbar-tema{display:flex}
+.tr-toolbar-tema .tr-seg{margin-left:0}
+/* O rótulo é o nome da pasta do projeto, que não tem tamanho máximo: sem o
+   teto, um nome longo esticava a toolbar para fora da tela. O caminho inteiro
+   continua na dica. */
+.tr-toolbar-proj{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* `z-index:6` é o valor de repouso: acima da toolbar (5) e ABAIXO do menu de
+   contexto (20) — elevado sempre, um menu aberto na faixa de baixo à esquerda
+   ficava parcialmente coberto, e o clique que escolheria um item só dispensava
+   o banner. */
+.tr-banner{position:absolute;bottom:14px;left:12px;right:280px;background:var(--tr-err-bg);
+  border:1px solid var(--tr-err);color:var(--tr-err-fg);padding:7px 11px;border-radius:6px;
+  font-size:11.5px;cursor:pointer;z-index:6}
+/* Só com o diálogo de projeto na tela o banner sobe acima do lightbox (60): a
+   recusa de abrir ou criar chega como aviso COM o diálogo ainda aberto, e um
+   banner atrás do overlay seria a mensagem mais importante da tela sendo a
+   única invisível. Não há menu de contexto com o diálogo aberto. */
+.tr-app-dialog .tr-banner{z-index:61}
+.tr-boot-error{margin:24px;padding:14px;background:var(--tr-err-bg);border:1px solid var(--tr-err);
+  color:var(--tr-err-fg);border-radius:8px;white-space:pre-wrap;font-size:12px}
+.react-flow__minimap{background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:8px}
+.react-flow__controls-button{background:var(--tr-panel);border-bottom:1px solid var(--tr-line);
+  fill:var(--tr-fg)}
+.react-flow__controls-button:hover{background:var(--tr-hover)}
+.react-flow__attribution{display:none}
+
+/* --- progresso e preview parcial --- */
+.tr-progress{position:relative;width:100%;height:14px;background:var(--tr-field);border-radius:3px;overflow:hidden}
+.tr-progress-fill{position:absolute;inset:0 auto 0 0;background:var(--tr-accent);opacity:.45;transition:width .15s}
+.tr-progress-msg{position:relative;font-size:10px;padding:0 6px;line-height:14px;color:var(--tr-fg)}
+.tr-partial{opacity:.75}
+.tr-partial .tr-progress{margin-bottom:4px}
+
+/* --- ajuda --- */
+/* O painel toma a coluna da paleta e a alarga: página de ajuda pede linha mais
+   longa que uma lista de botões. */
+.tr-app-help{grid-template-columns:1fr 360px}
+/* O banner é posicionado contra a largura da paleta; com o painel aberto a
+   coluna é mais larga, e sem isto a faixa de erro passa por baixo dele. */
+.tr-app-help .tr-banner{right:380px}
+.tr-help{background:var(--tr-panel);border-left:1px solid var(--tr-line);
+  display:flex;flex-direction:column;overflow:hidden}
+.tr-help-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px 4px;font-size:13px}
+.tr-help-close{background:none;border:0;color:var(--tr-fg);font-size:16px;cursor:pointer}
+.tr-help-id{padding:0 12px 8px;font-size:10.5px;opacity:.6}
+.tr-help-body{overflow:auto;padding:0 12px 16px;font-size:12px;line-height:1.55}
+.tr-help-body h4{margin:14px 0 4px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;opacity:.7}
+.tr-help-body p{margin:0 0 8px}
+.tr-help-body ul{margin:0 0 8px;padding-left:16px}
+.tr-help-body li{margin-bottom:3px}
+.tr-help-body pre{background:var(--tr-field);border:1px solid var(--tr-line);border-radius:4px;
+  padding:8px;overflow-x:auto;font-size:11px}
+.tr-help-body code{font-size:11px}
+.tr-help-btn{background:none;border:0;color:inherit;opacity:.65;cursor:pointer;
+  font-size:11px;padding:0 4px;line-height:1}
+.tr-help-btn:hover{opacity:1}
+
+/* Prancheta: popover sob a toolbar. Mesmo fundo e borda do menu de contexto;
+   campos e botões com a cara dos do painel de configurações. */
+.tr-prancheta{position:absolute;top:48px;left:12px;z-index:21;width:252px;padding:10px;box-sizing:border-box;
+  display:flex;flex-direction:column;gap:8px;background:var(--tr-panel);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:8px;box-shadow:0 8px 24px var(--tr-shadow);font-size:12px}
+.tr-prancheta-tit{font-weight:600}
+.tr-prancheta-linha{display:flex;gap:6px}
+.tr-prancheta-campo{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;color:var(--tr-dim);font-size:11px}
+.tr-prancheta-ext{flex-direction:row;align-items:center;justify-content:space-between}
+.tr-prancheta-campo input{width:100%;min-width:0;box-sizing:border-box;background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:4px;padding:2px 5px;font:inherit}
+.tr-prancheta-campo input:focus{outline:none;border-color:var(--tr-accent)}
+/* Depois do foco: campo inválido continua vermelho enquanto se digita nele. */
+.tr-prancheta-campo input.tr-invalid{border-color:var(--tr-err)}
+.tr-prancheta-cores{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.tr-prancheta-mini{position:relative;align-self:center;border:1px dashed var(--tr-line);border-radius:4px}
+.tr-prancheta-mini-f{position:absolute;box-sizing:border-box;background:color-mix(in srgb,var(--tr-fc) 35%,transparent);
+  border:1px solid var(--tr-fc)}
+.tr-prancheta-mini-ext{background:transparent;border-style:dashed}
+.tr-prancheta-acoes{display:flex;justify-content:flex-end;gap:6px}
+.tr-prancheta-acoes button,.tr-prancheta-rodizio{background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:5px;padding:3px 10px;font:inherit;cursor:pointer}
+.tr-prancheta-rodizio{padding:2px 6px;font-size:11px}
+.tr-prancheta-acoes button:hover:not(:disabled),.tr-prancheta-rodizio:hover{border-color:var(--tr-accent)}
+.tr-prancheta-acoes button.tr-on{background:var(--tr-accent);border-color:var(--tr-accent);color:var(--tr-accent-fg)}
+.tr-prancheta-acoes button:disabled{opacity:.45;cursor:default}
+
+/* Menu de contexto (botão direito no bloco ou na ligação). Filho de
+   `.tr-canvas`, que é `position:relative` — daí as coordenadas serem do
+   wrapper e não da tela. */
+.tr-menu{position:absolute;z-index:20;background:var(--tr-panel);
+  border:1px solid var(--tr-line);border-radius:5px;padding:3px;
+  box-shadow:0 6px 20px var(--tr-shadow-hi);min-width:130px}
+.tr-menu button{display:block;width:100%;text-align:left;background:none;
+  border:0;color:var(--tr-fg);font:inherit;font-size:12px;padding:5px 9px;
+  border-radius:3px;cursor:pointer}
+.tr-menu button:hover{background:var(--tr-accent);color:var(--tr-accent-ink)}
+
+/* Barra de seleção: aparece com mais de um item selecionado e é onde as ações
+   em massa moram (cada botão diz o atalho no `title`). Segunda linha, logo
+   abaixo da toolbar: no centro da primeira ela cobria os botões da toolbar em
+   tela de notebook. Com a largura limitada ao canvas e quebra de linha, ela
+   nunca sai pelas bordas; nada mais do canvas mora nessa altura. O
+   `max-content` é o que deixa o teto valer: absoluta com `left:50%`, a largura
+   encolheria até a METADE do canvas e a barra quebraria cedo demais. */
+.tr-selbar{position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:5;
+  width:max-content;max-width:calc(100% - 24px);flex-wrap:wrap;
+  display:flex;align-items:center;gap:6px;background:var(--tr-panel);
+  border:1px solid var(--tr-accent);border-radius:8px;padding:4px 6px 4px 11px;
+  box-shadow:0 6px 20px var(--tr-shadow);font-size:11.5px}
+.tr-selbar-n{color:var(--tr-dim);margin-right:4px;white-space:nowrap}
+.tr-selbar button{background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
+  border-radius:5px;padding:3px 9px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.tr-selbar button:hover{border-color:var(--tr-accent)}
+.react-flow__selection,.react-flow__nodesselection-rect{
+  background:color-mix(in srgb,var(--tr-accent) 8%,transparent);border:1px solid var(--tr-accent)}
+/* Depois de uma seleção por caixa o xyflow cobre os cards escolhidos com este
+   retângulo, e ele captura o ponteiro: não dava pra digitar num param nem
+   clicar num card dentro do contorno. Sem ponteiro, o clique cai no card.
+   Arrastar um card selecionado continua levando a seleção inteira (é o padrão
+   do xyflow), e o botão direito chega em `onNodeContextMenu`. */
+.react-flow__nodesselection-rect{pointer-events:none}
+
+/* ---- Card de teste de hipótese (`trama/test`) ------------------------------
+   No núcleo porque o teste atravessa coleções (`series`, `models`). Prefixos
+   `tr-mt-`, `tr-regua`, `tr-ponto`: nenhuma classe genérica. */
+
+/* A intensidade da cor por faixa de estrela: 0 = ns (cinza), 4 = ***. */
+.tr-faixa-0{--tr-sig:var(--tr-dim);--tr-sig-a:.45}
+.tr-faixa-1{--tr-sig:var(--tr-dim);--tr-sig-a:.85}
+.tr-faixa-2{--tr-sig:var(--tr-accent);--tr-sig-a:.6}
+.tr-faixa-3{--tr-sig:var(--tr-accent);--tr-sig-a:.8}
+.tr-faixa-4{--tr-sig:var(--tr-accent);--tr-sig-a:1}
+
+.tr-mt{height:100%;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0}
+.tr-mt-topo{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+.tr-mt-nome{font-size:10px;color:var(--tr-dim);text-transform:uppercase;letter-spacing:.04em;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-mt-h0{font-size:9.5px;color:var(--tr-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-mt-h0 b{font-weight:600;color:var(--tr-fg);opacity:.7}
+.tr-mt-meio{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tr-mt-num{min-width:0}
+.tr-mt-valor{font-size:22px;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+             white-space:nowrap}
+.tr-mt-valor-sig{color:var(--tr-accent)}
+.tr-mt-rotulo{font-size:9px;color:var(--tr-dim);white-space:nowrap}
+.tr-mt-conclusao{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.tr-estrelas{font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--tr-sig);
+             opacity:var(--tr-sig-a);font-variant-numeric:tabular-nums}
+.tr-estrelas.tr-faixa-0{font-weight:500;font-size:10px}
+
+.tr-selo{flex:none;font-size:9.5px;font-weight:600;padding:2px 8px;border-radius:999px;
+         border:1px solid var(--tr-edge);color:var(--tr-dim);white-space:nowrap}
+.tr-selo-on{background:var(--tr-accent);border-color:var(--tr-accent);color:var(--tr-accent-ink)}
+
+.tr-regua{position:relative;width:100%}
+.tr-regua-trilho{position:relative;height:7px;border-radius:4px;background:var(--tr-field);
+                 box-shadow:inset 0 0 0 1px var(--tr-line);overflow:hidden}
+.tr-regua-barra{position:absolute;inset:0 auto 0 0;background:var(--tr-sig);opacity:var(--tr-sig-a);
+                border-radius:4px 0 0 4px}
+.tr-regua-marca{position:absolute;top:0;bottom:0;width:1px;background:var(--tr-edge);opacity:.9}
+.tr-regua-marca-5{background:var(--tr-fg);opacity:.55}
+.tr-regua-ponta{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--tr-sig);
+                border-radius:1px;box-shadow:0 0 0 1px var(--tr-panel)}
+.tr-regua-rotulos{position:relative;height:10px;font-size:8px;color:var(--tr-dim)}
+.tr-regua-rotulos span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.tr-regua-mini .tr-regua-trilho{height:5px}
+.tr-regua-mini .tr-regua-ponta{width:2px;margin-left:-1px}
+
+/* Os pontinhos dos testes sem p-valor, com o nível embaixo de cada um. */
+.tr-pontos{display:flex;gap:14px;align-items:flex-start}
+.tr-ponto-nivel{display:flex;flex-direction:column;align-items:center;gap:1px}
+.tr-ponto{width:9px;height:9px;border-radius:50%;border:1px solid var(--tr-dim);opacity:.55}
+.tr-ponto-on{background:var(--tr-accent);border-color:var(--tr-accent);opacity:1}
+.tr-ponto-fraco{background:var(--tr-dim);border-color:var(--tr-dim);opacity:.8}
+.tr-ponto-rot{font-size:8px;color:var(--tr-dim)}
+
+.tr-mt-detalhe{font-size:10.5px;display:flex;flex-direction:column;gap:6px}
+.tr-mt-secao h5{margin:0 0 2px;font-size:9px;font-weight:600;color:var(--tr-dim);text-transform:uppercase;
+                letter-spacing:.05em;border-bottom:1px solid var(--tr-line);padding-bottom:1px}
+.tr-mt-efeito{display:flex;flex-direction:column;gap:4px}
+.tr-mt-efeito-valor{font-size:15px;font-variant-numeric:tabular-nums}
+.tr-mt-efeito-eixo{position:relative;height:22px;margin:0 6px}
+.tr-mt-efeito-ref{position:absolute;top:0;height:14px;width:0;border-left:1px dashed var(--tr-dim)}
+.tr-mt-efeito-ref i{position:absolute;top:13px;transform:translateX(-50%);font-style:normal;font-size:8px;
+                    color:var(--tr-dim)}
+.tr-mt-efeito-ic{position:absolute;top:6px;height:2px;background:var(--tr-accent);border-radius:1px}
+.tr-mt-efeito-ponto{position:absolute;top:3px;width:8px;height:8px;margin-left:-4px;border-radius:50%;
+                    background:var(--tr-accent)}
+.tr-mt-efeito-cruza .tr-mt-efeito-ic,.tr-mt-efeito-cruza .tr-mt-efeito-ponto{background:var(--tr-dim)}

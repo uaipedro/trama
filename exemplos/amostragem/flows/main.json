@@ -1,0 +1,661 @@
+{
+  "format": 1,
+  "rev": 59,
+  "collections": {
+    "sampling": "0.1.0",
+    "data": "0.1.0"
+  },
+  "nodes": {
+    "estratos": {
+      "type": "sampling/example",
+      "type_version": 1,
+      "label": "Estratos das fazendas",
+      "params": {
+        "dataset": "estratos_fazendas"
+      },
+      "seed": 107135080
+    },
+    "plano_estr": {
+      "type": "sampling/size_stratified",
+      "type_version": 1,
+      "label": "Plano estratificado (Neyman)",
+      "params": {
+        "estrato": "regiao",
+        "tamanho": "N",
+        "desvio": "desvio_producao",
+        "custo": "custo",
+        "alocacao": "neyman",
+        "erro": 60,
+        "taxa_resposta": 0.9
+      },
+      "seed": 79350496
+    },
+    "plano_prop": {
+      "type": "sampling/size_proportion",
+      "type_version": 1,
+      "label": "Plano para proporção",
+      "params": {
+        "erro": 0.05,
+        "populacao": 7860
+      },
+      "seed": 114929865
+    },
+    "curva": {
+      "type": "sampling/size_curve",
+      "type_version": 1,
+      "label": "Curva do tamanho",
+      "params": {},
+      "seed": 74999279
+    },
+    "plano_cong": {
+      "type": "sampling/size_cluster",
+      "type_version": 1,
+      "label": "Plano por escolas",
+      "params": {
+        "tamanho_conglomerado": 10,
+        "icc": 0.25,
+        "conglomerados": 200
+      },
+      "seed": 76503961
+    },
+    "fazendas": {
+      "type": "sampling/example",
+      "type_version": 1,
+      "label": "Fazendas (população)",
+      "params": {
+        "dataset": "fazendas"
+      },
+      "seed": 231943773
+    },
+    "aas": {
+      "type": "sampling/srs",
+      "type_version": 1,
+      "label": "AAS",
+      "params": {
+        "n": 300
+      },
+      "seed": 157325312
+    },
+    "estr": {
+      "type": "sampling/stratified",
+      "type_version": 1,
+      "label": "Estratificada pelo plano",
+      "params": {
+        "estrato": "regiao"
+      },
+      "seed": 147160103
+    },
+    "pps": {
+      "type": "sampling/pps",
+      "type_version": 1,
+      "label": "PPS pela área",
+      "params": {
+        "tamanho": "area_ha",
+        "n": 100
+      },
+      "seed": 264481306
+    },
+    "media_aas": {
+      "type": "sampling/mean",
+      "type_version": 1,
+      "label": "Produção média (AAS)",
+      "params": {
+        "variavel": "producao_t"
+      },
+      "seed": 151821933
+    },
+    "media_estr": {
+      "type": "sampling/mean",
+      "type_version": 1,
+      "label": "Produção média (estratificada)",
+      "params": {
+        "variavel": "producao_t"
+      },
+      "seed": 124370503
+    },
+    "irrigadas": {
+      "type": "sampling/proportion",
+      "type_version": 1,
+      "label": "Irrigadas por região",
+      "params": {
+        "variavel": "irrigada",
+        "nivel": "sim",
+        "por": "regiao"
+      },
+      "seed": 180483518
+    },
+    "graf_irr": {
+      "type": "sampling/plot_estimates",
+      "type_version": 1,
+      "label": "Gráfico das irrigadas",
+      "params": {
+        "titulo": "Fazendas irrigadas por região"
+      },
+      "seed": 115442179
+    },
+    "total_pps": {
+      "type": "sampling/total",
+      "type_version": 1,
+      "label": "Produção total (PPS)",
+      "params": {
+        "variavel": "producao_t"
+      },
+      "seed": 238022348
+    },
+    "produtividade": {
+      "type": "sampling/ratio",
+      "type_version": 1,
+      "label": "Produtividade (t/ha)",
+      "params": {
+        "numerador": "producao_t",
+        "denominador": "area_ha",
+        "por": "regiao"
+      },
+      "seed": 23857355
+    },
+    "cong": {
+      "type": "sampling/cluster",
+      "type_version": 1,
+      "label": "Conglomerados (municípios)",
+      "params": {
+        "conglomerado": "municipio",
+        "conglomerados": 15
+      },
+      "seed": 169717395
+    },
+    "sim_aas": {
+      "type": "sampling/simulate",
+      "type_version": 1,
+      "label": "Simular AAS",
+      "params": {
+        "variavel": "producao_t",
+        "repeticoes": 300
+      },
+      "seed": 159503878
+    },
+    "sim_estr": {
+      "type": "sampling/simulate",
+      "type_version": 1,
+      "label": "Simular estratificada",
+      "params": {
+        "variavel": "producao_t",
+        "repeticoes": 300
+      },
+      "seed": 79118299
+    },
+    "sim_cong": {
+      "type": "sampling/simulate",
+      "type_version": 1,
+      "label": "Simular conglomerados",
+      "params": {
+        "variavel": "producao_t",
+        "repeticoes": 300
+      },
+      "seed": 41712936
+    },
+    "comparar": {
+      "type": "sampling/plot_simulation",
+      "type_version": 1,
+      "label": "Comparar desenhos",
+      "params": {
+        "titulo": "Mesma população, três desenhos"
+      },
+      "seed": 58867181
+    },
+    "resumos": {
+      "type": "data/bind_rows",
+      "type_version": 1,
+      "label": "Resumo das simulações",
+      "params": {},
+      "seed": 259340160
+    },
+    "escolas": {
+      "type": "sampling/example",
+      "type_version": 1,
+      "label": "Escolas (população)",
+      "params": {
+        "dataset": "escolas"
+      },
+      "seed": 235928979
+    },
+    "dois": {
+      "type": "sampling/two_stage",
+      "type_version": 1,
+      "label": "Escolas e alunos",
+      "params": {
+        "conglomerado": "escola"
+      },
+      "seed": 16879471
+    },
+    "reprov": {
+      "type": "sampling/proportion",
+      "type_version": 1,
+      "label": "Reprovação",
+      "params": {
+        "variavel": "reprovado",
+        "nivel": "sim"
+      },
+      "seed": 142446981
+    },
+    "domicilios": {
+      "type": "sampling/example",
+      "type_version": 1,
+      "label": "Pesquisa de domicílios",
+      "params": {
+        "dataset": "domicilios"
+      },
+      "seed": 30128178
+    },
+    "desenho": {
+      "type": "sampling/design",
+      "type_version": 1,
+      "label": "Desenho da pesquisa",
+      "params": {
+        "pesos": "peso",
+        "estrato": "estrato",
+        "conglomerado": "setor",
+        "populacao": "setores_estrato"
+      },
+      "seed": 149436131
+    },
+    "renda": {
+      "type": "sampling/mean",
+      "type_version": 1,
+      "label": "Renda média",
+      "params": {
+        "variavel": "renda",
+        "por": "estrato"
+      },
+      "seed": 68247846
+    },
+    "per_capita": {
+      "type": "sampling/ratio",
+      "type_version": 1,
+      "label": "Renda per capita",
+      "params": {
+        "numerador": "renda",
+        "denominador": "moradores"
+      },
+      "seed": 137263259
+    },
+    "internet": {
+      "type": "sampling/proportion",
+      "type_version": 1,
+      "label": "Domicílios com internet",
+      "params": {
+        "variavel": "internet",
+        "nivel": "sim"
+      },
+      "seed": 204727186
+    }
+  },
+  "edges": [
+    {
+      "from": {
+        "node": "estratos",
+        "port": "out"
+      },
+      "to": {
+        "node": "plano_estr",
+        "port": "estratos"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "plano_prop",
+        "port": "out"
+      },
+      "to": {
+        "node": "curva",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "plano_prop",
+        "port": "out"
+      },
+      "to": {
+        "node": "plano_cong",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "fazendas",
+        "port": "out"
+      },
+      "to": {
+        "node": "aas",
+        "port": "populacao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "fazendas",
+        "port": "out"
+      },
+      "to": {
+        "node": "estr",
+        "port": "populacao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "plano_estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "estr",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "fazendas",
+        "port": "out"
+      },
+      "to": {
+        "node": "pps",
+        "port": "populacao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "aas",
+        "port": "out"
+      },
+      "to": {
+        "node": "media_aas",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "media_estr",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "irrigadas",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "irrigadas",
+        "port": "out"
+      },
+      "to": {
+        "node": "graf_irr",
+        "port": "estimativa"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pps",
+        "port": "out"
+      },
+      "to": {
+        "node": "total_pps",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "produtividade",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "fazendas",
+        "port": "out"
+      },
+      "to": {
+        "node": "cong",
+        "port": "populacao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "aas",
+        "port": "out"
+      },
+      "to": {
+        "node": "sim_aas",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "sim_estr",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cong",
+        "port": "out"
+      },
+      "to": {
+        "node": "sim_cong",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sim_aas",
+        "port": "out"
+      },
+      "to": {
+        "node": "comparar",
+        "port": "simulacoes"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sim_estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "comparar",
+        "port": "simulacoes"
+      },
+      "index": 2
+    },
+    {
+      "from": {
+        "node": "sim_cong",
+        "port": "out"
+      },
+      "to": {
+        "node": "comparar",
+        "port": "simulacoes"
+      },
+      "index": 3
+    },
+    {
+      "from": {
+        "node": "sim_aas",
+        "port": "out"
+      },
+      "to": {
+        "node": "resumos",
+        "port": "tabelas"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sim_estr",
+        "port": "out"
+      },
+      "to": {
+        "node": "resumos",
+        "port": "tabelas"
+      },
+      "index": 2
+    },
+    {
+      "from": {
+        "node": "sim_cong",
+        "port": "out"
+      },
+      "to": {
+        "node": "resumos",
+        "port": "tabelas"
+      },
+      "index": 3
+    },
+    {
+      "from": {
+        "node": "escolas",
+        "port": "out"
+      },
+      "to": {
+        "node": "dois",
+        "port": "populacao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "plano_cong",
+        "port": "out"
+      },
+      "to": {
+        "node": "dois",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "dois",
+        "port": "out"
+      },
+      "to": {
+        "node": "reprov",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "domicilios",
+        "port": "out"
+      },
+      "to": {
+        "node": "desenho",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "desenho",
+        "port": "out"
+      },
+      "to": {
+        "node": "renda",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "desenho",
+        "port": "out"
+      },
+      "to": {
+        "node": "per_capita",
+        "port": "amostra"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "desenho",
+        "port": "out"
+      },
+      "to": {
+        "node": "internet",
+        "port": "amostra"
+      },
+      "index": 1
+    }
+  ],
+  "ui": {
+    "positions": {
+      "estratos": [40, 40],
+      "plano_estr": [400, 40],
+      "plano_prop": [760, 40],
+      "curva": [1120, 40],
+      "plano_cong": [1480, 40],
+      "fazendas": [40, 510],
+      "aas": [400, 510],
+      "estr": [760, 510],
+      "pps": [1120, 510],
+      "media_aas": [400, 980],
+      "media_estr": [760, 980],
+      "irrigadas": [1480, 510],
+      "graf_irr": [1840, 510],
+      "total_pps": [1120, 980],
+      "produtividade": [1480, 980],
+      "cong": [40, 1450],
+      "sim_aas": [400, 1450],
+      "sim_estr": [760, 1450],
+      "sim_cong": [1120, 1450],
+      "comparar": [1480, 1450],
+      "resumos": [1840, 1450],
+      "escolas": [1840, 40],
+      "dois": [2200, 40],
+      "reprov": [2560, 40],
+      "domicilios": [40, 1920],
+      "desenho": [400, 1920],
+      "renda": [760, 1920],
+      "per_capita": [1120, 1920],
+      "internet": [1480, 1920]
+    },
+    "sizes": {},
+    "views": {},
+    "frames": {},
+    "folds": {}
+  }
+}

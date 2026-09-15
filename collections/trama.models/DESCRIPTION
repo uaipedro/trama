@@ -1,0 +1,50 @@
+Package: trama.models
+Title: Statistical Models Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for statistical models in a trama graph: linear and
+    generalized linear models from columns or a typed formula; analysis of
+    variance for the classical experimental designs (completely randomized,
+    randomized blocks, latin square, factorial and split plot) with type I, II
+    and III sums of squares; linear mixed models with lme4 and lmerTest;
+    estimated marginal means, compact letter displays and pairwise or
+    Dunnett comparisons with emmeans; residual diagnostics and assumption
+    tests; and the classical hypothesis tests. Every p-value is shown on a
+    logarithmic gauge with significance stars. Builds on trama.data for
+    tables and trama.view for plots.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    trama,
+    trama.data,
+    trama.view,
+    car,
+    emmeans,
+    lme4,
+    reformulas,
+    lmerTest,
+    MASS,
+    agricolae,
+    ggplot2 (>= 4.0.0),
+    rlang,
+    tibble,
+    datasets,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    png
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama,
+    uaipedro/trama/collections/trama.data,
+    uaipedro/trama/collections/trama.view

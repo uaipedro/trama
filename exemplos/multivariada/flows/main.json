@@ -1,0 +1,541 @@
+{
+  "format": 1,
+  "rev": 38,
+  "collections": {
+    "multi": "0.1.0"
+  },
+  "nodes": {
+    "estados": {
+      "type": "multi/example",
+      "type_version": 1,
+      "label": "Estados dos EUA",
+      "params": {
+        "dataset": "estados"
+      },
+      "seed": 248886589
+    },
+    "cor_est": {
+      "type": "multi/plot_correlation",
+      "type_version": 1,
+      "label": "Correlações",
+      "params": {},
+      "seed": 43312777
+    },
+    "pca": {
+      "type": "multi/pca",
+      "type_version": 1,
+      "label": "PCA",
+      "params": {},
+      "seed": 167904049
+    },
+    "var": {
+      "type": "multi/pca_variance",
+      "type_version": 1,
+      "label": "Variância explicada",
+      "params": {},
+      "seed": 165230747
+    },
+    "biplot": {
+      "type": "multi/biplot",
+      "type_version": 1,
+      "label": "Biplot",
+      "params": {
+        "cor": "regiao",
+        "rotulo": "nome"
+      },
+      "seed": 197098180
+    },
+    "circulo": {
+      "type": "multi/correlation_circle",
+      "type_version": 1,
+      "label": "Círculo de correlações",
+      "params": {},
+      "seed": 196920339
+    },
+    "quest": {
+      "type": "multi/example",
+      "type_version": 1,
+      "label": "Questionário",
+      "params": {
+        "dataset": "questionario"
+      },
+      "seed": 1454266
+    },
+    "kmo": {
+      "type": "multi/kmo_bartlett",
+      "type_version": 1,
+      "label": "KMO e Bartlett",
+      "params": {},
+      "seed": 206200592
+    },
+    "paralela": {
+      "type": "multi/parallel",
+      "type_version": 1,
+      "label": "Análise paralela",
+      "params": {},
+      "seed": 237765841
+    },
+    "af_vari": {
+      "type": "multi/factor_analysis",
+      "type_version": 1,
+      "label": "AF varimax",
+      "params": {
+        "fatores": 3,
+        "rotacao": "varimax"
+      },
+      "seed": 243616815
+    },
+    "af_obli": {
+      "type": "multi/factor_analysis",
+      "type_version": 1,
+      "label": "AF oblimin",
+      "params": {
+        "fatores": 3,
+        "rotacao": "oblimin"
+      },
+      "seed": 258106541
+    },
+    "cargas": {
+      "type": "multi/fa_loadings",
+      "type_version": 1,
+      "label": "Cargas (padrão)",
+      "params": {},
+      "seed": 244716905
+    },
+    "phi": {
+      "type": "multi/fa_loadings",
+      "type_version": 1,
+      "label": "Correlação entre fatores",
+      "params": {
+        "matriz": "correlação entre fatores"
+      },
+      "seed": 115778071
+    },
+    "vinhos": {
+      "type": "multi/example",
+      "type_version": 1,
+      "label": "Vinhos",
+      "params": {
+        "dataset": "vinhos"
+      },
+      "seed": 19361768
+    },
+    "boxm": {
+      "type": "multi/box_m",
+      "type_version": 1,
+      "label": "M de Box",
+      "params": {
+        "grupo": "cultivar"
+      },
+      "seed": 53918986
+    },
+    "cov_vinhos": {
+      "type": "multi/correlation_matrix",
+      "type_version": 1,
+      "label": "Covariâncias por cultivar",
+      "params": {
+        "matriz": "covariância",
+        "grupo": "cultivar"
+      },
+      "seed": 141166798
+    },
+    "lda": {
+      "type": "multi/discriminant",
+      "type_version": 1,
+      "label": "LDA",
+      "params": {
+        "grupo": "cultivar"
+      },
+      "seed": 92654865
+    },
+    "funcoes": {
+      "type": "multi/discriminant_functions",
+      "type_version": 1,
+      "label": "Funções discriminantes",
+      "params": {},
+      "seed": 41035884
+    },
+    "confusao": {
+      "type": "multi/confusion",
+      "type_version": 1,
+      "label": "Confusão (validação cruzada)",
+      "params": {},
+      "seed": 145114738
+    },
+    "plano": {
+      "type": "multi/plot_discriminant",
+      "type_version": 1,
+      "label": "Plano discriminante",
+      "params": {},
+      "seed": 133363806
+    },
+    "pima": {
+      "type": "multi/example",
+      "type_version": 1,
+      "label": "Pima (diabetes)",
+      "params": {
+        "dataset": "pima"
+      },
+      "seed": 310455871
+    },
+    "logit": {
+      "type": "multi/logistic",
+      "type_version": 1,
+      "label": "Logística",
+      "params": {
+        "grupo": "diabetes"
+      },
+      "seed": 528813407
+    },
+    "lda_pima": {
+      "type": "multi/discriminant",
+      "type_version": 1,
+      "label": "LDA",
+      "params": {
+        "grupo": "diabetes"
+      },
+      "seed": 91736442
+    },
+    "rc": {
+      "type": "multi/logistic_coefficients",
+      "type_version": 1,
+      "label": "Razões de chances",
+      "params": {
+        "escala": "desvio padrão"
+      },
+      "seed": 774120953
+    },
+    "roc_logit": {
+      "type": "multi/roc",
+      "type_version": 1,
+      "label": "ROC da logística",
+      "params": {},
+      "seed": 206583117
+    },
+    "conf_logit": {
+      "type": "multi/confusion",
+      "type_version": 1,
+      "label": "Confusão (logística)",
+      "params": {},
+      "seed": 639201584
+    },
+    "conf_lda": {
+      "type": "multi/confusion",
+      "type_version": 1,
+      "label": "Confusão (LDA)",
+      "params": {},
+      "seed": 452877310
+    },
+    "jk_pca": {
+      "type": "multi/jackknife_pca",
+      "type_version": 1,
+      "label": "Jackknife das cargas",
+      "params": {
+        "estatistica": "cargas"
+      },
+      "seed": 187364925
+    }
+  },
+  "edges": [
+    {
+      "from": {
+        "node": "estados",
+        "port": "out"
+      },
+      "to": {
+        "node": "cor_est",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "estados",
+        "port": "out"
+      },
+      "to": {
+        "node": "pca",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pca",
+        "port": "out"
+      },
+      "to": {
+        "node": "var",
+        "port": "pca"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pca",
+        "port": "out"
+      },
+      "to": {
+        "node": "biplot",
+        "port": "pca"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pca",
+        "port": "out"
+      },
+      "to": {
+        "node": "circulo",
+        "port": "pca"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "quest",
+        "port": "out"
+      },
+      "to": {
+        "node": "kmo",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "quest",
+        "port": "out"
+      },
+      "to": {
+        "node": "paralela",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "quest",
+        "port": "out"
+      },
+      "to": {
+        "node": "af_vari",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "quest",
+        "port": "out"
+      },
+      "to": {
+        "node": "af_obli",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "af_obli",
+        "port": "out"
+      },
+      "to": {
+        "node": "cargas",
+        "port": "fa"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "af_obli",
+        "port": "out"
+      },
+      "to": {
+        "node": "phi",
+        "port": "fa"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "vinhos",
+        "port": "out"
+      },
+      "to": {
+        "node": "boxm",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "vinhos",
+        "port": "out"
+      },
+      "to": {
+        "node": "cov_vinhos",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "vinhos",
+        "port": "out"
+      },
+      "to": {
+        "node": "lda",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "lda",
+        "port": "out"
+      },
+      "to": {
+        "node": "funcoes",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "lda",
+        "port": "out"
+      },
+      "to": {
+        "node": "confusao",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "lda",
+        "port": "out"
+      },
+      "to": {
+        "node": "plano",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pima",
+        "port": "out"
+      },
+      "to": {
+        "node": "logit",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pima",
+        "port": "out"
+      },
+      "to": {
+        "node": "lda_pima",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "logit",
+        "port": "out"
+      },
+      "to": {
+        "node": "rc",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "logit",
+        "port": "out"
+      },
+      "to": {
+        "node": "roc_logit",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "logit",
+        "port": "out"
+      },
+      "to": {
+        "node": "conf_logit",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "lda_pima",
+        "port": "out"
+      },
+      "to": {
+        "node": "conf_lda",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pca",
+        "port": "out"
+      },
+      "to": {
+        "node": "jk_pca",
+        "port": "pca"
+      },
+      "index": 1
+    }
+  ],
+  "ui": {
+    "positions": {
+      "estados": [40, 40],
+      "cor_est": [380, 40],
+      "pca": [720, 40],
+      "var": [1060, 40],
+      "biplot": [1400, 40],
+      "circulo": [1740, 40],
+      "quest": [40, 610],
+      "kmo": [380, 420],
+      "paralela": [380, 800],
+      "af_vari": [720, 420],
+      "af_obli": [720, 800],
+      "cargas": [1060, 800],
+      "phi": [1400, 800],
+      "vinhos": [40, 1370],
+      "boxm": [380, 1180],
+      "cov_vinhos": [380, 1940],
+      "lda": [380, 1560],
+      "funcoes": [720, 1180],
+      "confusao": [720, 1560],
+      "plano": [1060, 1370],
+      "pima": [40, 2520],
+      "logit": [380, 2330],
+      "lda_pima": [380, 2710],
+      "rc": [720, 2330],
+      "roc_logit": [1060, 2330],
+      "conf_logit": [1400, 2330],
+      "conf_lda": [720, 2710],
+      "jk_pca": [1060, 420]
+    },
+    "sizes": {},
+    "views": {},
+    "frames": {},
+    "folds": {}
+  }
+}

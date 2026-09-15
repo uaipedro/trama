@@ -1,0 +1,8 @@
+{
+  "name": "trama-vendor", "private": true,
+  "devDependencies": { "esbuild": "0.24.0" },
+  "dependencies": {
+    "react": "18.3.1", "react-dom": "18.3.1",
+    "@xyflow/react": "12.3.5", "@dagrejs/dagre": "1.1.4", "html-to-image": "1.11.13"
+  }
+}

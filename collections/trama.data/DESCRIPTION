@@ -1,0 +1,34 @@
+Package: trama.data
+Title: Data Wrangling Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for loading, reshaping and summarising tabular data in a
+    trama graph. Thin wrappers over readr, dplyr and tidyr.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports:
+    trama,
+    janitor,
+    dplyr (>= 1.1.0),
+    readr,
+    tidyr,
+    rlang,
+    tibble,
+    datasets,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    arrow,
+    readxl
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama

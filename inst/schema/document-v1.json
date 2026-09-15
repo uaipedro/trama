@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/uaipedro/trama/schema/document-v1.json",
+  "title": "trama document",
+  "description": "Grafo de computação do trama. Formato canônico e estável: pensado para ser escrito e editado à mão ou por um LLM. `ui` é apresentação pura e nunca afeta o resultado do cálculo.",
+  "type": "object",
+  "required": ["format", "nodes", "edges"],
+  "properties": {
+    "format": { "const": 1 },
+    "rev": { "type": "integer", "minimum": 0, "description": "Revisão do documento; usada pelo protocolo de ops para detectar edição concorrente." },
+    "collections": {
+      "type": "object",
+      "description": "Manifesto: coleções que este documento exige, e em que versão foram usadas.",
+      "additionalProperties": { "type": "string" }
+    },
+    "nodes": {
+      "type": "object",
+      "description": "Chave = id de instância, imutável e sem significado. Nunca derivado de rótulo, posição ou ordem.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_.-]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*/[a-z_][a-z0-9_]*$" },
+          "type_version": { "type": "integer", "minimum": 1 },
+          "label": { "type": "string", "description": "Rótulo visível. Editável; não é identidade." },
+          "params": { "type": "object" },
+          "seed": { "type": "integer", "description": "Materializada na criação. Estável sob renome, cópia e agrupamento." }
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "object", "required": ["node", "port"],
+            "properties": { "node": { "type": "string" }, "port": { "type": "string" } },
+            "additionalProperties": false
+          },
+          "to": {
+            "type": "object", "required": ["node", "port"],
+            "properties": { "node": { "type": "string" }, "port": { "type": "string" } },
+            "additionalProperties": false
+          },
+          "index": { "type": "integer", "minimum": 1, "description": "Ordena as entradas de uma porta variádica. Ignorado em porta comum." }
+        },
+        "additionalProperties": false
+      }
+    },
+    "ui": {
+      "type": "object",
+      "description": "Apresentação pura. Nunca entra na chave de cache. `positions` é opcional: sem ela, o editor faz auto-layout — é o que permite escrever um documento à mão sem inventar coordenadas.",
+      "properties": {
+        "positions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2
+          }
+        },
+        "sizes": {
+          "description": "Largura do card e altura do preview, em pixels. Ausente = talhe padrão.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2
+          }
+        },
+        "views": {
+          "description": "Id da vista escolhida por nó. Id, nunca índice: índice quebra em silêncio quando a coleção reordena as vistas. Vista ausente no renderer cai na primeira.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "frames": {
+          "description": "Frames: retângulos de apresentação, com título e ordem de slide. Chave = id do frame. O pertencimento de um card a um frame é GEOMÉTRICO (card inteiro dentro do retângulo) e nunca é gravado.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["x", "y", "w", "h"],
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "w": { "type": "number", "exclusiveMinimum": 0 },
+              "h": { "type": "number", "exclusiveMinimum": 0 },
+              "title": { "type": "string" },
+              "aspect": { "type": "string", "description": "livre, 16:9, 4:3, 1:1 ou A4. Valor desconhecido é tratado como livre pelo editor." },
+              "color": { "type": "string", "description": "Nome do tom (azul, verde, amarelo, laranja, rosa, roxo, cinza), nunca hex." },
+              "order": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "folds": {
+          "description": "Partes recolhidas de cada card. Chave ausente = tudo aberto.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "preview": { "type": "boolean" },
+              "params": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

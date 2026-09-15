@@ -1,0 +1,44 @@
+Package: trama.sampling
+Title: Survey Sampling Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for survey sampling in a trama graph: sample size for means
+    and proportions with finite population correction, design effect and
+    non-response; stratified sample size with proportional, Neyman, cost
+    optimal and equal allocation; cluster sample size from the intraclass
+    correlation; selection of simple random, systematic, stratified,
+    probability proportional to size, one-stage and two-stage cluster samples;
+    declared designs and post-stratification; design-based estimation of
+    means, totals, proportions and ratios, in domains, with the ultimate
+    cluster variance estimator; and Monte Carlo simulation of a design against
+    a known population. The selected sample carries its design, so estimation
+    never asks for it again. Builds on trama.data for tables and trama.view
+    for plots.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    trama,
+    trama.data,
+    trama.view,
+    ggplot2 (>= 4.0.0),
+    rlang,
+    tibble,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    jsonlite
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama,
+    uaipedro/trama/collections/trama.data,
+    uaipedro/trama/collections/trama.view

@@ -1,0 +1,1965 @@
+// inst/www/editor.js — o editor. Dirigido por catálogo: não conhece nenhum
+// tipo de nó, nenhum tipo de dado, nenhuma categoria. Tudo — portas, cores,
+// widgets de param, renderers de preview — vem do catálogo e dos registros do
+// runtime. É a propriedade do insumo que mais se provou, e a única herdada
+// sem repensar.
+//
+// Sem bundler, sem JSX: `React.createElement` direto. O custo é a verbosidade;
+// o ganho é que uma coleção nova é um `.js` solto, sem toolchain.
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  ReactFlow, Background, BackgroundVariant, MiniMap, Controls,
+  Handle, Position, applyNodeChanges, applyEdgeChanges, SelectionMode,
+  useReactFlow, ReactFlowProvider,
+} from "@xyflow/react";
+import { h, getRenderer, getWidget, getViews, Segmented, setThemes } from "trama";
+import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
+         containedCards, containedFrames, fitAspect, FramePanel, exportFramePng,
+         dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO } from "./frames.js";
+import { SettingsPanel } from "./settings.js";
+
+const NODE_W = 240, NODE_H = 190;
+
+// --- Ponte com o Shiny -----------------------------------------------------
+// UM canal pra cima (input `tr_op`), UM pra baixo (`tr_event`). `seq` existe
+// porque `input$x` do Shiny descarta valores idênticos consecutivos — duas ops
+// iguais em sequência sumiriam sem um campo que muda sempre.
+
+let seqCounter = 0;
+
+// `window.Shiny` existe assim que shiny.js carrega, mas `setInputValue` só
+// depois que a sessão CONECTA. O editor é um módulo ESM que resolve imports de
+// CDN, então a ordem entre as duas coisas não é garantida — chamar cedo demais
+// lança "setInputValue is not a function" de dentro de um efeito do React,
+// derruba a árvore e deixa a página em branco. Foi exatamente esta a
+// armadilha que o insumo documentava ao esperar `shiny:connected`.
+function shinyReady() {
+  return !!(window.Shiny && typeof window.Shiny.setInputValue === "function");
+}
+// Polling, e não `addEventListener("shiny:connected")`: o Shiny dispara esse
+// evento pelo jQuery, e um listener nativo pode simplesmente nunca ser
+// chamado — a página fica em "carregando…" para sempre, sem erro nenhum.
+// Poderíamos depender de `window.$`, mas amarrar o editor ao jQuery só pra
+// isso é pior que um laço de 50ms que morre no primeiro acerto.
+function onShinyReady(fn, tries = 200) {
+  if (shinyReady()) return fn();
+  if (tries <= 0) return console.error("[trama] Shiny não ficou pronto.");
+  setTimeout(() => onShinyReady(fn, tries - 1), 50);
+}
+
+function sendOp(op, baseRev) {
+  if (!shinyReady()) return null;
+  const seq = ++seqCounter;
+  window.Shiny.setInputValue("tr_op", { seq, base_rev: baseRev, op },
+                             { priority: "event" });
+  return seq;
+}
+function sendInput(name, value) {
+  if (shinyReady()) window.Shiny.setInputValue(name, value, { priority: "event" });
+}
+
+const assetUrl = (rel) => `trama-store/${rel}`;
+
+// --- Layout ----------------------------------------------------------------
+// Posições são OPCIONAIS no documento (o schema diz isso de propósito: é o que
+// permite escrever um grafo à mão ou com um LLM sem inventar coordenadas).
+// Quem não tem posição recebe uma do dagre.
+
+// O botão "Organizar" não passa por aqui: ele trata frame como bloco
+// (`organizar`, em frames.js). Os dois dividem o grafo do dagre (`dagrePos`).
+function autoLayout(nodes, edges) {
+  const pos = dagrePos(nodes.map((n) => ({
+    id: n.id, w: n.measured?.width || NODE_W, h: n.measured?.height || NODE_H })),
+    edges.map((e) => [e.source, e.target]));
+  return nodes.map((n) => ({ ...n, position: pos[n.id] }));
+}
+
+// --- Documento -> React Flow ----------------------------------------------
+
+function docToFlow(doc, catalog) {
+  const byId = catalog ? Object.fromEntries(catalog.nodes.map((n) => [n.id, n])) : {};
+  let missing = 0;
+  const nodes = Object.entries(doc.nodes || {}).map(([id, n]) => {
+    const pos = (doc.ui && doc.ui.positions && doc.ui.positions[id]) || null;
+    if (!pos) missing++;
+    return {
+      id, type: "ndNode",
+      position: pos ? { x: pos[0], y: pos[1] } : { x: 0, y: 0 },
+      // `seed` vem junto porque o card de nó `stochastic` a mostra e a troca.
+      // É semântica (entra na chave de cache), não `ui.*`: mora no nó, não no
+      // bloco de apresentação do documento.
+      data: { nodeType: n.type, label: n.label, params: n.params || {}, spec: byId[n.type],
+              seed: n.seed,
+              view: (doc.ui && doc.ui.views && doc.ui.views[id]) || null,
+              size: (doc.ui && doc.ui.sizes && doc.ui.sizes[id]) || null,
+              fold: (doc.ui && doc.ui.folds && doc.ui.folds[id]) || null },
+    };
+  });
+  const edges = (doc.edges || []).map((e) => ({
+    id: edgeId(e), source: e.from.node, sourceHandle: e.from.port,
+    target: e.to.node, targetHandle: e.to.port, data: { index: e.index },
+  }));
+  // Frames vêm primeiro no array e com `zIndex: -1`: ficam atrás de cards e
+  // ligações. A ordem de exibição (`index`) sai do `order`, e proporção que o
+  // editor não conhece (documento escrito à mão) vira `livre`, mesma
+  // doutrina da vista ausente.
+  const frames = Object.entries((doc.ui && doc.ui.frames) || {})
+    .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0))
+    .map(([id, f], i) => ({
+      id, type: "trFrame", position: { x: f.x, y: f.y }, width: f.w, height: f.h,
+      zIndex: -1, dragHandle: ".tr-frame-head",
+      data: { title: f.title ?? "", aspect: Object.hasOwn(ASPECTS, f.aspect) ? f.aspect : "livre",
+              color: f.color, order: f.order, index: i + 1 },
+    }));
+  return { nodes: [...frames, ...(missing ? autoLayout(nodes, edges) : nodes)],
+           edges, needsLayout: missing > 0 };
+}
+
+const edgeId = (e) =>
+  `${e.from.node}:${e.from.port}->${e.to.node}:${e.to.port}#${e.index ?? 1}`;
+
+// --- Preview ---------------------------------------------------------------
+
+// A vista escolhida chega de fora (`view`): quem resolve a lista é o `NdNode`,
+// que precisa dela pra montar a faixa de abas. Aqui só se repete a mesma
+// escolha, pra que aba acesa e desenho não possam divergir.
+function pickView(handle, view) {
+  const views = getViews(handle.preview.renderer, handle);
+  // Vista salva que não existe mais (coleção atualizada, renderer trocado) cai
+  // na primeira — nunca em card vazio, mesma doutrina do renderer ausente.
+  return views.find((x) => x.id === view) || views[0] || null;
+}
+
+function Preview({ state, handle, error, progress, partial, view }) {
+  if (error) {
+    return h("div", { className: "tr-preview tr-preview-error", title: error.traceback || "" },
+      [h("div", { key: "m", className: "tr-err-msg" }, error.message)]);
+  }
+  if (state === "running") {
+    const bar = h("div", { key: "bar", className: "tr-progress" }, [
+      h("div", { key: "f", className: "tr-progress-fill",
+                 style: { width: `${Math.round(((progress && progress.fraction) || 0) * 100)}%` } }),
+      h("span", { key: "m", className: "tr-progress-msg" },
+        (progress && progress.message) || "computando…"),
+    ]);
+    if (partial && handle && handle.preview) {
+      // Prévia parcial respeita a MESMA vista do resultado final: trocar de aba
+      // no meio da execução e ver a vista antiga voltar sozinha quando o
+      // parcial chega seria a aba mentindo sobre o que está na tela.
+      const v = pickView(handle, view);
+      return h("div", { className: "tr-preview tr-partial" },
+        [bar, v ? h(v.component, { key: "p", artifact: handle.preview, handle, assetUrl }) : null]);
+    }
+    return h("div", { className: "tr-preview tr-busy" }, bar);
+  }
+  if (state === "pending") return h("div", { className: "tr-preview tr-busy" }, "na fila");
+  if (state === "blocked") return h("div", { className: "tr-preview tr-blocked" }, "bloqueado");
+  if (state === "invalid") return h("div", { className: "tr-preview tr-blocked" }, "incompleto");
+  if (!handle || !handle.preview) return h("div", { className: "tr-preview tr-empty" }, "sem preview");
+
+  const art = handle.preview;
+  if (!getRenderer(art.renderer)) {
+    // Renderer não carregado é INFORMAÇÃO, não erro: mostra o id pra o autor
+    // da coleção saber exatamente o que registrar. A pergunta é feita ao
+    // `getRenderer`, e NÃO a `getViews(...).length`: um handle com `summary`
+    // ganha a vista `resumo` mesmo sem renderer, e o diagnóstico sumiria
+    // atrás de um card que parece funcionar.
+    return h("div", { className: "tr-preview tr-empty", title: art.renderer },
+      `renderer ausente: ${art.renderer}`);
+  }
+  const v = pickView(handle, view);
+  return h("div", { className: "tr-preview" },
+    h(v.component, { artifact: art, handle, assetUrl }));
+}
+
+// --- Markdown --------------------------------------------------------------
+// Só o subconjunto que as páginas de ajuda usam: `## título`, parágrafo, lista
+// com `-` (com continuação indentada), bloco de código com crases triplas,
+// `**negrito**` e `código`. Escrito à mão, e não vendorizado: uma biblioteca de
+// markdown seria mais um pacote pra manter em sincronia dentro de `vendor/`,
+// pelo mesmo resultado. Monta nós React em vez de `innerHTML` — o texto vem do
+// catálogo, que é do próprio projeto, mas montar nó a nó é mais barato que
+// sanitizar e não abre superfície nova.
+
+function mdInline(t) {
+  const parts = []; const re = /\*\*([^*]+)\*\*|`([^`]+)`/g;
+  let last = 0, m, k = 0;
+  while ((m = re.exec(t))) {
+    if (m.index > last) parts.push(t.slice(last, m.index));
+    parts.push(m[1] ? h("strong", { key: k++ }, m[1]) : h("code", { key: k++ }, m[2]));
+    last = re.lastIndex;
+  }
+  if (last < t.length) parts.push(t.slice(last));
+  return parts;
+}
+
+function md(text) {
+  const lines = (text || "").split("\n"); const out = [];
+  let i = 0, k = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (l.startsWith("```")) {
+      const buf = []; i++;
+      while (i < lines.length && !lines[i].startsWith("```")) buf.push(lines[i++]);
+      i++;
+      out.push(h("pre", { key: k++ }, h("code", null, buf.join("\n"))));
+    } else if (l.startsWith("## ")) {
+      out.push(h("h4", { key: k++ }, l.slice(3))); i++;
+    } else if (l.startsWith("- ")) {
+      const items = [];
+      while (i < lines.length && lines[i].startsWith("- ")) {
+        let t = lines[i++].slice(2);
+        // Item de lista quebrado em várias linhas: a continuação vem indentada
+        // e pertence ao item anterior, não a um parágrafo novo.
+        while (i < lines.length && /^\s+\S/.test(lines[i])) t += " " + lines[i++].trim();
+        items.push(t);
+      }
+      out.push(h("ul", { key: k++ }, items.map((t, j) => h("li", { key: j }, mdInline(t)))));
+    } else if (!l.trim()) {
+      i++;
+    } else {
+      const buf = [];
+      while (i < lines.length && lines[i].trim() && !/^(## |- |```)/.test(lines[i])) buf.push(lines[i++]);
+      out.push(h("p", { key: k++ }, mdInline(buf.join(" "))));
+    }
+  }
+  return out;
+}
+
+// --- Nó genérico -----------------------------------------------------------
+
+// Piso e grade do redimensionamento. `GRID` é o mesmo `gap` do `<Background/>`:
+// não alinha o card aos pontos do fundo (a posição não é snapada, e a altura
+// total do card não é múltipla de 16), mas quantiza o tamanho na mesma unidade
+// do fundo — mata o tremor sub-pixel e faz dois cards arrastados "no olho"
+// darem exatamente a mesma largura. O piso repete o que o CSS já trava em
+// `min-width`/`min-height`, pra alça não deixar arrastar abaixo do que o
+// estilo aceitaria.
+const GRID = 16;
+const MIN_W = 240, MIN_H = 132;
+const snap = (v) => Math.round(v / GRID) * GRID;
+
+// Alça própria em vez do `NodeResizer`/`NodeResizeControl` do xyflow: eles
+// escrevem largura E altura no nó do store, e aqui a altura que cresce é a do
+// PREVIEW, não a do card — abaixo dele vêm params e portas, em quantidade que
+// varia por tipo de bloco.
+//
+// Durante o arrasto as variáveis são escritas DIRETO no DOM, sem estado React:
+// cada quadro passaria por setNodes, remedição e redecoração de todos os cards
+// — o laço que trama.css documenta. O estado (e a op) só entram no `pointerup`,
+// mesma disciplina do `move`, que só emite com `dragging === false`.
+function Grip({ nodeId, onResize }) {
+  // Desmontar no meio do arrasto é alcançável: Delete com o nó selecionado e o
+  // ponteiro pressionado. Sem isto o `up` ainda rodaria e emitiria `resize` pra
+  // um nó que não existe mais, voltando como `op_rejected` — barulho por nada.
+  const fim = useRef(null);
+  useEffect(() => () => { if (fim.current) fim.current(false); }, []);
+  // O ponteiro anda em pixels de TELA; a largura do card é em pixels de
+  // layout, e entre os dois está o zoom do canvas. Sem dividir por ele, o
+  // `fitView` da abertura (que abre abaixo de 1) faz a alça descolar do
+  // cursor: o card cresce o dobro do que a mão pediu. `getZoom()` lê sob
+  // demanda e não assina o viewport, então não redesenha card nenhum.
+  const rf = useReactFlow();
+
+  const onDown = (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const card = ev.currentTarget.closest(".tr-node");
+    const pv = card && card.querySelector(".tr-preview");
+    if (!pv) return;
+    // Captura de ponteiro: sem ela, soltar o botão FORA da janela nunca entrega
+    // o `pointerup` e os listeners ficariam pendurados, arrastando o card
+    // sozinho no próximo movimento do mouse.
+    try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (_) {}
+    const x0 = ev.clientX, y0 = ev.clientY;
+    const w0 = card.offsetWidth, h0 = pv.offsetHeight;
+    // Lido uma vez, no começo: o zoom não muda no meio de um arrasto, e reler
+    // por quadro só daria a chance de o card pular se mudasse.
+    const z = rf.getZoom() || 1;
+    let w = w0, hgt = h0;
+    const move = (e) => {
+      w = Math.max(MIN_W, snap(w0 + (e.clientX - x0) / z));
+      hgt = Math.max(MIN_H, snap(h0 + (e.clientY - y0) / z));
+      card.style.setProperty("--tr-w", `${w}px`);
+      card.style.setProperty("--tr-h", `${hgt}px`);
+    };
+    // `commit = false` é saída sem confirmar: o arrasto foi cancelado (ponteiro
+    // perdido, nó desmontado) e o card volta ao tamanho em que começou.
+    const encerrar = (commit) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancelar);
+      fim.current = null;
+      if (!commit) {
+        card.style.setProperty("--tr-w", `${w0}px`);
+        card.style.setProperty("--tr-h", `${h0}px`);
+        return;
+      }
+      // Clique seco na alça não é redimensionamento: emitir a op mesmo assim
+      // sujaria o documento e gastaria um passo do desfazer sem mudar nada.
+      if (w !== w0 || hgt !== h0) onResize(nodeId, w, hgt);
+    };
+    const up = () => encerrar(true);
+    const cancelar = () => encerrar(false);
+    fim.current = encerrar;
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancelar);
+  };
+  return h("div", { className: "tr-grip nodrag", title: "redimensionar",
+                    onPointerDown: onDown });
+}
+
+function NdNode({ id, data, selected }) {
+  const spec = data.spec;
+  if (!spec) {
+    // Tipo desconhecido vira nó ÓRFÃO visível, nunca documento que não abre.
+    return h("div", { className: "tr-node tr-node-orphan" },
+      `coleção ausente para: ${data.nodeType}`);
+  }
+  const cat = data.categories?.[spec.category];
+  const fold = data.fold || {};
+  const semPreview = fold.preview === false, semParams = fold.params === false;
+  const nParams = (spec.params || []).length;
+  const falhou = data.state === "failed" || data.state === "invalid";
+  const frac = data.progress?.fraction;
+  const cls = ["tr-node", selected ? "tr-node-sel" : "", `tr-state-${data.state || "idle"}`]
+    .filter(Boolean).join(" ");
+
+  // A faixa é SEMPRE reservada, inclusive com uma vista só. As vistas dependem do
+  // renderer, que só se sabe quando o preview chega; faixa que aparecesse junto
+  // com o resultado mudaria a altura do card no meio do caminho — o laço de
+  // remedição que trama.css documenta. Com uma vista só ela exibe o nome dela,
+  // que é o indicador de tipo de saída que o card não tinha.
+  const views = data.handle && data.handle.preview
+    ? getViews(data.handle.preview.renderer, data.handle) : [];
+  const cur = views.find((v) => v.id === data.view) || views[0] || null;
+
+  // Só o preview cresce em altura: abaixo dele vêm params e portas, em número
+  // que varia por bloco, então altura total explícita cortaria os cards
+  // cheios. `--tr-w` dimensiona o card, `--tr-h` só a faixa de preview.
+  // Ausente, cada variável some do `style` e o padrão do CSS vale.
+  const [w, hgt] = data.size || [];
+  return h("div", { className: cls, style: {
+    "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined } }, [
+    h("div", { key: "hd", className: "tr-node-head",
+               style: { background: cat?.color || "#64748b" } }, [
+      // Sem `color`: aqui o ícone herda a cor de FRENTE da faixa, porque a
+      // faixa já É a cor da categoria (o background logo acima). Mesmo
+      // componente, contexto invertido.
+      spec.icon ? h(Icon, { key: "i", icon: spec.icon, className: "tr-node-icon" }) : null,
+      h("span", { key: "l", className: "tr-node-title" }, data.label || spec.label),
+      // Com o preview recolhido, o estado de execução muda pro cabeçalho: um
+      // preview escondido não pode esconder uma falha. O preview NÃO reabre
+      // sozinho, porque isso desfaria a arrumação que o usuário escolheu.
+      semPreview && falhou
+        ? h("span", { key: "al", className: "tr-head-alert",
+                      title: data.error?.message || "falhou" },
+            h(Icon, { icon: { kind: "set", value: "triangle-alert" }, className: "tr-node-icon" }))
+        : null,
+      h("button", { key: "fv", className: "tr-fold-btn nodrag",
+                    title: semPreview ? "mostrar preview (P)" : "recolher preview (P)",
+                    onClick: (e) => { e.stopPropagation(); data.onFold(id, { preview: semPreview }); } },
+        h(Icon, { icon: { kind: "set", value: semPreview ? "chevron-right" : "chevron-down" },
+                  className: "tr-node-icon" })),
+      // Só para nó declarado `stochastic`: é a ÚNICA forma de re-sortear pela
+      // tela, porque a semente não é param e portanto não tem campo no corpo
+      // do card. Sem ele, um gerador aberto no editor ficaria preso à amostra
+      // com que nasceu — reproduzível, o que é o ponto, mas irreversivelmente.
+      spec.stochastic
+        ? h("button", { key: "sd", className: "tr-fold-btn nodrag",
+                        title: `re-sortear (semente ${data.seed ?? "?"})`,
+                        onClick: (e) => { e.stopPropagation(); data.onReseed(id); } },
+            h(Icon, { icon: { kind: "set", value: "dices" }, className: "tr-node-icon" }))
+        : null,
+      h("button", { key: "?", className: "tr-help-btn", title: "ajuda deste bloco",
+                    onClick: (e) => { e.stopPropagation(); data.onHelp(data.nodeType); } }, "?"),
+      data.duration != null
+        ? h("span", { key: "d", className: "tr-dur", title: "última execução real" },
+            fmtDur(data.duration)) : null,
+      data.state === "cached" ? h("span", { key: "c", className: "tr-dot", title: "cache" }) : null,
+      // Absoluta, por cima da borda de baixo do cabeçalho: uma barra que
+      // entrasse no fluxo mudaria a altura do card quando a execução começa,
+      // e altura em função do que chegou é o laço que trama.css evita. Sem
+      // fração, a barra fica indeterminada em vez de parada em 0%: é o único
+      // sinal de vida do card recolhido. `== null`, não falsy: 0 explícito
+      // é progresso de verdade e mostra 0%.
+      semPreview && data.state === "running"
+        ? h("div", { key: "hp", className: "tr-head-progress" + (frac == null ? " tr-indet" : "") },
+            h("div", { style: frac == null ? undefined : { width: `${Math.round(frac * 100)}%` } }))
+        : null,
+    ]),
+    semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
+                 progress: data.progress, partial: data.partial, view: cur?.id }),
+    semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
+      views.length === 0
+        ? h("span", { key: "-", className: "tr-tab-idle" }, "—")
+        : views.length === 1
+          ? h("span", { key: "1", className: "tr-tab-only" }, views[0].label)
+          : views.map((v) => h("button", {
+              key: v.id,
+              className: "tr-tab nodrag" + (cur && v.id === cur.id ? " tr-tab-on" : ""),
+              title: v.label,
+              onClick: (e) => { e.stopPropagation(); data.onView(id, v.id); },
+            }, v.label))),
+    // Recolhidos, os parâmetros viram uma linha que diz QUANTOS são: o card
+    // nunca esconde que tem configuração.
+    semParams
+      ? (nParams ? h("button", { key: "pm", className: "tr-params-fold nodrag",
+                                 title: "mostrar parâmetros (O)",
+                                 onClick: (e) => { e.stopPropagation(); data.onFold(id, { params: true }); } },
+                     `${nParams} parâmetro${nParams > 1 ? "s" : ""} ▸`) : null)
+      : h("div", { key: "pm", className: "tr-params" }, (spec.params || []).map((p) => {
+          const W = getWidget(p.kind);
+          // `div`, e não `label`: o `<label>` repassa o clique ao primeiro
+          // controle rotulável de dentro, e com botões ali (segmentado, chave)
+          // clicar no texto "Tipo" escolhia a primeira opção. Sem `htmlFor`
+          // de propósito: os widgets não recebem `id`, e manter a API
+          // `(spec, value, onChange)` das coleções vale mais que focar o
+          // campo clicando no rótulo.
+          return h("div", { key: p.name, className: "tr-param" }, [
+            h("span", { key: "n", title: p.name }, p.label || p.name),
+            // O widget entra num Fragment com `key` porque vai num array ao lado
+            // do rótulo, e o elemento que a coleção devolve não tem chave.
+            W ? h(React.Fragment, { key: "w" }, W(p, data.params[p.name], (v) => data.onParam(id, p.name, v)))
+              : h("input", { key: "w", className: "nodrag", type: "text",
+                             defaultValue: JSON.stringify(data.params[p.name] ?? p.default),
+                             onBlur: (e) => { try { data.onParam(id, p.name, JSON.parse(e.target.value)); }
+                                              catch (_) {} } }),
+          ]);
+        })),
+    h("div", { key: "po", className: "tr-ports" }, [
+      h("div", { key: "in", className: "tr-in" }, (spec.inputs || []).map((p) =>
+        h("div", { key: p.name, className: "tr-port" }, [
+          h(Handle, { key: "h", type: "target", position: Position.Left, id: p.name,
+                      style: { background: data.typeColors?.[p.type] || "#64748b" } }),
+          h("span", { key: "n", title: p.type },
+            p.name + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
+        ]))),
+      h("div", { key: "out", className: "tr-out" }, (spec.outputs || []).map((p) =>
+        h("div", { key: p.name, className: "tr-port tr-port-out" }, [
+          h("span", { key: "n", title: p.type }, p.name),
+          h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
+                      style: { background: data.typeColors?.[p.type] || "#64748b" } }),
+        ]))),
+    ]),
+    semPreview ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
+  ]);
+}
+
+const nodeTypes = { ndNode: NdNode, trFrame: FrameNode };
+
+function fmtDur(s) {
+  if (s < 1) return `${Math.round(s * 1000)}ms`;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  return `${Math.floor(s / 60)}min`;
+}
+
+// --- Ícones ---------------------------------------------------------------
+// O sprite é referenciado por fragmento, nunca embutido: o navegador busca o
+// arquivo uma vez e só os ícones que a tela usa entram no DOM — não os 1834.
+// `import.meta.url` já carrega o prefixo versionado que o htmlDependency serve
+// (`trama-0.0.0.9000/`), o mesmo problema que R/app.R:35-37 documenta ter tido
+// com o importmap, e que aqui se resolve sozinho.
+const SPRITE = new URL("vendor/lucide.svg", import.meta.url).href;
+
+// Os `kind` que este front sabe desenhar. É constante porque DUAS decisões a
+// consultam — `Icon` para desenhar, e a calha da paleta para escolher entre
+// ícone e bolinha — e elas discordarem deixa a linha sem nenhum dos dois,
+// desalinhando a coluna de rótulos. Ambas leem DAQUI: acrescentar um `kind`
+// aqui sem ensinar o `Icon` a desenhá-lo devolve `null`, que a calha já trata.
+const ICON_KINDS = new Set(["set", "svg"]);
+
+function Icon({ icon, className, color }) {
+  // `kind` que este front não conhece é um catálogo mais novo que o editor.
+  // Sai aqui, antes de qualquer ramo: cair no de innerHTML faria um `kind`
+  // futuro injetar como markup um valor que ninguém prometeu que fosse markup.
+  // E é a MESMA pergunta que a calha da paleta faz, por construção.
+  if (!icon || !ICON_KINDS.has(icon.kind)) return null;
+  const props = { className, viewBox: "0 0 24 24", "aria-hidden": "true",
+                  style: color ? { color } : undefined };
+  if (icon.kind === "set") {
+    return h("svg", props, h("use", { href: `${SPRITE}#${icon.value}` }));
+  }
+  if (icon.kind === "svg") {
+    // A coleção entrega GEOMETRIA, não documento: o <svg> e o viewBox são
+    // nossos. Não é barreira de confiança — uma coleção é um pacote R
+    // instalado e já roda JS próprio (R/app.R:131-142) — é o que faz o ícone
+    // de terceiro herdar cor e tamanho como os do conjunto.
+    return h("svg", { ...props, dangerouslySetInnerHTML: { __html: icon.value } });
+  }
+  return null;
+}
+
+// --- Paleta ----------------------------------------------------------------
+
+// Dois modos. NAVEGAR: uma aba por coleção, e dentro dela as seções de
+// categoria — a mesma renderização de sempre, recortada. ACHAR (busca digitada
+// ou arrasto de porta): a aba não manda, porque quem procura quer "o que
+// serve", não "de que coleção veio" — as abas somem e a lista vira global, com
+// o selo dizendo de onde cada bloco vem.
+function Palette({ catalog, filterType, onPick }) {
+  const [q, setQ] = useState("");
+  const [tab, setTab] = useState(null);
+  const cols = catalog.collections || [];
+  // Derivar em vez de guardar: se a coleção da aba ativa sumir entre duas
+  // cargas de catálogo, cai na primeira em vez de deixar a paleta vazia.
+  const active = cols.some((c) => c.id === tab) ? tab : cols[0]?.id;
+  const achando = q.trim() !== "" || !!filterType;
+
+  const hits = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (catalog.nodes || []).filter((n) => {
+      if (term && !`${n.label} ${n.description || ""} ${n.id}`.toLowerCase().includes(term)) return false;
+      // Filtro por compatibilidade: arrastando de uma porta, só o que conecta.
+      // O catálogo carrega os adaptadores justamente pra o front responder
+      // isso sozinho, sem round-trip — o servidor continua validando.
+      if (filterType && !(n.inputs || []).some((p) => compatible(catalog, filterType, p.type))) return false;
+      return true;
+    });
+  }, [catalog, q, filterType]);
+
+  // A coleção sai do prefixo do id, que o R garante estar sob o namespace da
+  // coleção (R/collection.R:19-22). Repetir o campo em cada nó só engordaria o
+  // catálogo com um dado que já viaja.
+  const groups = useMemo(() => {
+    const m = {};
+    hits.forEach((n) => {
+      if (n.id.split("/")[0] !== active) return;
+      (m[n.category || "outros"] ||= []).push(n);
+    });
+    return m;
+  }, [hits, active]);
+
+  const achados = useMemo(
+    () => [...hits].sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id, "pt")),
+    [hits]);
+
+  const rotulo = (id) => cols.find((c) => c.id === id)?.label || id;
+
+  const catColor = (n) =>
+    (catalog.categories || []).find((c) => c.id === n.category)?.color || "#64748b";
+
+  const item = (n, selo) => h("button", {
+    key: n.id, className: "tr-palette-item", title: n.description || n.id,
+    draggable: true,
+    onDragStart: (e) => {
+      e.dataTransfer.setData("application/trama-type", n.id);
+      e.dataTransfer.effectAllowed = "copy";
+    },
+    onClick: () => onPick(n.id),
+  }, [
+    // Calha de largura fixa: ícone quando o bloco declara um, bolinha da cor
+    // da categoria quando não. Nunca vazia, senão a lista desalinha entre um
+    // bloco com ícone e o de baixo sem.
+    n.icon && ICON_KINDS.has(n.icon.kind)
+      ? h(Icon, { key: "i", icon: n.icon, className: "tr-palette-icon",
+                  color: catColor(n) })
+      : h("i", { key: "i", className: "tr-palette-dot",
+                 style: { background: catColor(n) } }),
+    h("span", { key: "l", className: "tr-palette-label" }, n.label),
+    selo ? h("span", { key: "s", className: "tr-palette-seal" }, selo) : null,
+  ]);
+
+  return h("aside", { className: "tr-palette" }, [
+    // Uma coleção só não tem o que escolher: a fileira some inteira em vez de
+    // mostrar uma aba órfã sempre ativa.
+    achando || cols.length < 2 ? null
+      : h("div", { key: "tabs", className: "tr-palette-tabs" },
+          cols.map((c) => h("button", {
+            key: c.id,
+            className: c.id === active ? "tr-palette-tab tr-palette-tab-on" : "tr-palette-tab",
+            onClick: () => setTab(c.id),
+          }, c.label || c.id))),
+    h("input", { key: "q", className: "tr-search", placeholder: "buscar nó…",
+                 value: q, onChange: (e) => setQ(e.target.value) }),
+    filterType ? h("div", { key: "f", className: "tr-filter" }, `aceita ${filterType}`) : null,
+    achando ? h("div", { key: "c", className: "tr-count" },
+      achados.length === 1 ? "1 resultado" : `${achados.length} resultados`) : null,
+    h("div", { key: "b", className: "tr-palette-body" },
+      achando
+        // O selo responde "de que coleção veio?", pergunta que não existe
+        // quando só há uma — mesma razão de a fileira de abas sumir ali.
+        ? achados.map((n) => item(n, cols.length < 2 ? null : rotulo(n.id.split("/")[0])))
+        : Object.entries(groups).map(([cid, items]) => {
+            const meta = (catalog.categories || []).find((c) => c.id === cid);
+            return h("section", { key: cid }, [
+              h("h4", { key: "t" }, [
+                h("i", { key: "d", style: { background: meta?.color || "#64748b" } }),
+                meta?.label || cid,
+              ]),
+              items.map((n) => item(n, null)),
+            ]);
+          })),
+  ]);
+}
+
+// --- Ajuda -----------------------------------------------------------------
+// Toma o lugar da paleta, na mesma coluna: é o `?funcao` do R dentro do canvas,
+// sem tirar ninguém de onde estava.
+
+function Help({ catalog, typeId, onClose }) {
+  const spec = (catalog.nodes || []).find((n) => n.id === typeId);
+  if (!spec) return null;
+  return h("aside", { className: "tr-help" }, [
+    h("div", { key: "hd", className: "tr-help-head" }, [
+      h("strong", { key: "t" }, spec.label || spec.id),
+      h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
+                    onClick: onClose }, "×"),
+    ]),
+    h("code", { key: "id", className: "tr-help-id" }, spec.id),
+    h("div", { key: "b", className: "tr-help-body" },
+      spec.help ? md(spec.help) : h("p", null, spec.description || "sem ajuda")),
+  ]);
+}
+
+function compatible(catalog, from, to) {
+  if (from === to) return true;
+  return (catalog.adapters || []).some((a) => a.from === from && a.to === to);
+}
+
+// --- Diálogo de projeto ----------------------------------------------------
+
+// Navegador de pastas do SERVIDOR. O navegador não tem como escolher pasta do
+// disco do R (`webkitdirectory` manda os arquivos, não o caminho), então cada
+// passo é uma ida ao servidor: `tr_browse` sobe, `listing` desce. Até a
+// primeira resposta `listagem` é `null` — daí o caminho reticente e a lista
+// vazia, e não uma tela que só aparece depois.
+//
+// Não fecha ao clicar fora, ao contrário do lightbox de imagem: lá o clique
+// errado custa reabrir a imagem, aqui custa o nome digitado e a pasta
+// navegada. Sai pelo × ou pelo Esc, que são gestos deliberados.
+function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onClose }) {
+  const [nome, setNome] = useState("");
+  const fundoRef = useRef(null);
+  const caixaRef = useRef(null);
+  const l = listagem;
+  // `path` da raiz do disco é "/", e concatenar daria "//sub". `normalizePath`
+  // do R pode preservar a barra dupla, e aí o caminho que sobe não é o mesmo
+  // que desceu — o "../" deixaria de bater com a pasta de onde se veio.
+  // O separador aqui é `/` e só: quem valida caminho é o R
+  // (`.tr_project_path` recusa `/` e `\` no nome da pasta nova, e o teste da
+  // raiz tem skip no Windows). O front não tenta adivinhar separador de
+  // outro sistema — é escolha, não descuido.
+  const descer = (n) => onBrowse(`${l.path.replace(/\/+$/, "")}/${n}`);
+  const criar = () => onNew(l.path, nome.trim());
+  // `enviando` trava as DUAS ações enquanto o pedido está em voo: a resposta
+  // demora (abrir um projeto carrega o flow, valida o documento e dispara
+  // `run_now`), nada na tela mudava nesse intervalo, e um segundo Enter —
+  // garantido com a tecla em auto-repetição — mandava um segundo
+  // `tr_project_new` que voltava "já tem trama.json" DEPOIS do sucesso do
+  // primeiro. A navegação não é travada de propósito: descer uma pasta é uma
+  // ida barata, e um bloqueio ali deixaria a lista morta se uma resposta se
+  // perdesse.
+  const podeCriar = !!l && !!nome.trim() && !enviando;
+  const podeAbrir = !!l?.project && l.path !== atual && !enviando;
+
+  useEffect(() => {
+    const esc = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+
+  // Armadilha de foco por `inert` nos irmãos. Sem ela, Shift+Tab a partir do ×
+  // saía do overlay e caía em "↶ Desfazer", na toolbar: invisível sob o
+  // overlay, e um Enter ali desfaz a última edição sem nada na tela dizer —
+  // Enter é ativação nativa de botão, não passa pela tabela de atalhos, então
+  // a guarda de teclado do App não pega. `inert` foi preferido a um ciclo de
+  // Tab mantido à mão porque não exige lista de elementos focáveis (que
+  // envelhece a cada botão novo) e mata de quebra o clique e o foco em tudo
+  // que está atrás. O banner fica de fora: ele aparece POR CIMA do diálogo, e
+  // o clique que o dispensa tem que continuar funcionando.
+  useEffect(() => {
+    const fundo = fundoRef.current;
+    const irmaos = Array.from(fundo?.parentElement?.children || [])
+      .filter((el) => el !== fundo && !el.classList.contains("tr-banner"));
+    irmaos.forEach((el) => { el.inert = true; });
+    // Foco na caixa, e não no primeiro botão: o × acionado por um Enter
+    // distraído fecharia o diálogo, e a lista ainda nem respondeu.
+    caixaRef.current?.focus();
+    return () => irmaos.forEach((el) => { el.inert = false; });
+  }, []);
+
+  return h("div", { className: "tr-lightbox tr-modal", ref: fundoRef },
+    h("div", { className: "tr-dialog", role: "dialog", "aria-modal": "true",
+               tabIndex: -1, ref: caixaRef }, [
+      h("div", { key: "p", className: "tr-dialog-path" }, [
+        h("span", { key: "c" }, l ? l.path : "…"),
+        h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)",
+                      onClick: onClose }, "×"),
+      ]),
+      h("div", { key: "ls", className: "tr-dialog-list" }, [
+        l && l.parent
+          ? h("button", { key: "..", className: "tr-dialog-row",
+                          onClick: () => onBrowse(l.parent) }, "../")
+          : null,
+        ...((l?.entries || []).map((e) => h("button", {
+          key: e.nome, className: "tr-dialog-row" + (e.projeto ? " tr-is-project" : ""),
+          onClick: () => descer(e.nome) }, e.nome))),
+      ]),
+      h("div", { key: "ac", className: "tr-dialog-actions" }, [
+        h("button", { key: "o", disabled: !podeAbrir,
+                      title: !l?.project ? "esta pasta não é um projeto"
+                        : l.path === atual ? "este projeto já está aberto"
+                        : "abrir este projeto",
+                      onClick: () => onOpen(l.path) },
+          enviando === "abrir" ? "abrindo…" : "Abrir"),
+        // Enter grava, como no título do frame e nos widgets de texto do
+        // runtime: quem digitou o nome já disse o que queria.
+        h("input", { key: "n", className: "tr-dialog-name", placeholder: "nome do projeto novo",
+                     value: nome, onChange: (e) => setNome(e.target.value),
+                     onKeyDown: (e) => { if (e.key === "Enter" && podeCriar) criar(); } }),
+        h("button", { key: "c", disabled: !podeCriar, onClick: criar },
+          enviando === "criar" ? "criando…" : "Criar aqui"),
+      ]),
+    ]));
+}
+
+// --- App -------------------------------------------------------------------
+
+// Espelha `.tr_presentation_ops` (R/document.R): op cosmética não recomputa
+// nada, então não pode pintar o canvas inteiro de "na fila". Batch é cosmético
+// só se TODA op dentro dele for, a mesma regra de `tr_op_semantic()`.
+const COSMETICAS = new Set(["move", "rename", "resize", "set_view",
+  "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_fold"]);
+const cosmetica = (op) =>
+  op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);
+
+function App() {
+  const [catalog, setCatalog] = useState(null);
+  // Temas do projeto: a fonte que o widget `theme` lê é o estado de módulo do
+  // runtime (`setThemes`); este espelho existe só pra entrar no `data` dos nós
+  // e fazer os cards re-renderizarem quando a lista muda.
+  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null });
+  const [doc, setDoc] = useState(null);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [dragType, setDragType] = useState(null);
+  const [banner, setBanner] = useState(null);
+  const [helpFor, setHelpFor] = useState(null);
+  const [menu, setMenu] = useState(null);   // {kind, id, x, y}
+  const [ferramenta, setFerramenta] = useState(null);   // "frame" | null
+  const [editFrame, setEditFrame] = useState(null);     // id do frame com título em edição
+  const [painelFrames, setPainelFrames] = useState(false);
+  // Painel ⚙ (temas do projeto). Os três painéis laterais dividem a mesma
+  // coluna e abrir um fecha os outros: com dois estados ligados, o botão do
+  // escondido ficaria aceso sem nada na tela que corresponda a ele.
+  const [painelConfig, setPainelConfig] = useState(false);
+  const [present, setPresent] = useState(null);         // {i, volta} | null
+  const [exportando, setExportando] = useState(false);
+  const [projeto, setProjeto] = useState(null);   // {root, flow} do que está aberto
+  const [listagem, setListagem] = useState(null); // resposta do último tr_browse
+  const [abrindo, setAbrindo] = useState(false);  // diálogo visível
+  const [enviando, setEnviando] = useState(null); // "abrir" | "criar" | null: pedido em voo
+  // Proporção dos frames NOVOS (F e Ctrl+G). É preferência de quem usa este
+  // navegador, e não estado do documento: não vira op, não entra no desfazer,
+  // e abrir o mesmo projeto em outra máquina não herda a escolha. Cada frame
+  // continua guardando a própria proporção no documento. `localStorage` pode
+  // lançar (armazenamento bloqueado), e um valor gravado que não é mais uma
+  // proporção conhecida cai no padrão.
+  const [aspectoNovo, setAspectoNovo] = useState(() => {
+    try {
+      const a = localStorage.getItem("trama.aspectoNovo");
+      if (a && Object.hasOwn(ASPECTS, a)) return a;
+    } catch (_) {}
+    return "16:9";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trama.aspectoNovo", aspectoNovo); } catch (_) {}
+  }, [aspectoNovo]);
+  // Prancheta: popover aberto e o último pedido feito, como preferência do
+  // navegador (mesma doutrina da proporção acima). A proporção NÃO é guardada
+  // aqui: é a mesma `aspectoNovo` da toolbar, pra as duas nunca discordarem.
+  // Só as chaves conhecidas voltam, e só de um objeto: `null`, lista ou número
+  // gravados por outra versão caem no padrão. Número inválido passa: o popover
+  // marca o campo e desliga o Criar. `externo` e `cor` não têm campo que
+  // mostre erro, então tipo errado neles cai no padrão aqui.
+  // `prancheta` é `null` (fechado) ou os valores iniciais do popover, tirados
+  // UMA vez ao abrir: o popover só os lê ao montar, e reler o `localStorage`
+  // a cada render com ele aberto era trabalho jogado fora.
+  const [prancheta, setPrancheta] = useState(null);
+  const pranchetaSalva = () => {
+    let g = null;
+    try { g = JSON.parse(localStorage.getItem("trama.prancheta") || "{}"); } catch (_) {}
+    const ok = g && typeof g === "object" && !Array.isArray(g);
+    const o = { ...PRANCHETA_PADRAO };
+    if (ok) Object.keys(PRANCHETA_PADRAO).forEach((k) => {
+      if (k !== "aspect" && Object.hasOwn(g, k)) o[k] = g[k];
+    });
+    if (typeof o.externo !== "boolean") o.externo = PRANCHETA_PADRAO.externo;
+    if (o.cor !== "rodízio" && !FRAME_COLORS.includes(o.cor)) o.cor = PRANCHETA_PADRAO.cor;
+    return o;
+  };
+  // Estável: é dependência do efeito que monta o Esc do popover.
+  const fecharPrancheta = useCallback(() => setPrancheta(null), []);
+  // Clique fora fecha. Na fase de CAPTURA e com teste de alvo, e não confiando
+  // em quem para a propagação: o d3-zoom do xyflow dá
+  // `stopImmediatePropagation` no `mousedown` do vazio, e um listener de bolha
+  // na `window` nunca via o clique no canvas. O botão da toolbar fica de fora
+  // pelo mesmo teste, senão o clique fecharia e o `onClick` reabriria.
+  useEffect(() => {
+    if (!prancheta) return;
+    const fora = (e) => {
+      if (e.target instanceof Element && e.target.closest(".tr-prancheta, [data-prancheta]")) return;
+      setPrancheta(null);
+    };
+    window.addEventListener("mousedown", fora, true);
+    return () => window.removeEventListener("mousedown", fora, true);
+  }, [prancheta]);
+  // Tema do app: preferência do navegador, como a proporção acima. O <head>
+  // (R/app.R) já resolveu `data-tema` antes do primeiro paint com a mesma
+  // regra; aqui ela é reaplicada a cada troca. Em "sistema" o efeito escuta o
+  // SO — trocar o tema do sistema com o app aberto não pode exigir recarga — e
+  // a limpeza solta o listener quando a escolha passa a ser fixa.
+  const [temaApp, setTemaApp] = useState(() => {
+    try {
+      const t = localStorage.getItem("trama.temaApp");
+      if (t === "claro" || t === "escuro" || t === "sistema") return t;
+    } catch (_) {}
+    return "sistema";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trama.temaApp", temaApp); } catch (_) {}
+    const root = document.documentElement;
+    if (temaApp !== "sistema") { root.dataset.tema = temaApp; return undefined; }
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const aplica = () => { root.dataset.tema = mq.matches ? "claro" : "escuro"; };
+    aplica();
+    mq.addEventListener("change", aplica);
+    return () => mq.removeEventListener("change", aplica);
+  }, [temaApp]);
+  // `tick` força redecoração quando só o estado de execução muda. Agrupado por
+  // quadro: uma execução emite um evento POR NÓ, e re-renderizar a cada
+  // mensagem não muda nada visualmente — só gasta.
+  const [tick, setTick] = useState(0);
+  const tickPending = useRef(false);
+  const revRef = useRef(0);
+  const stateRef = useRef({});      // por nó: state, handle, error, duration
+  const paramsRef = useRef({});     // params editados localmente, antes do eco
+  const viewsRef = useRef({});      // vista escolhida localmente, antes do eco
+  const sizesRef = useRef({});      // tamanho arrastado localmente, antes do eco
+  const foldsRef = useRef({});      // recolhimento local, antes do eco
+  const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
+  const projetoRef = useRef(null);  // raiz do projeto aberto, pro handler de `project`
+  const catalogRef = useRef(null);
+  const wrapRef = useRef(null);
+  const arrastoRef = useRef(null);  // por frame arrastado: {x0, y0, itens:[{id,x,y}]}
+  const caixaRef = useRef(null);    // canto inicial da caixa de seleção, em coords do fluxo
+  const rf = useReactFlow();
+  // Espelho do estado pra callbacks estáveis: eles leem nós e arestas atuais
+  // sem pôr `nodes`/`edges` nas deps, porque callback que muda de identidade a
+  // cada render realimenta o laço de remedição (ver `onParam`).
+  const nodesRef = useRef([]); nodesRef.current = nodes;
+  const edgesRef = useRef([]); edgesRef.current = edges;
+
+  // Nós com a medida ATUAL de cada card, lida do DOM. O `measured` do React
+  // Flow não é confiável na hora da geometria: o store o refaz a partir do nó
+  // do estado a cada `setNodes`, e só volta a tê-lo quando o ResizeObserver
+  // entrega — o que fica pra depois (ou nunca, com a aba sem renderizar), e
+  // até lá o `rectOf` cai na ESTIMATIVA pelo tamanho do preview. Visto no
+  // navegador: store com `measured` vazio pra todos os cards e o DOM certo;
+  // o Organizar arrumava pela estimativa (pedidos 678 contra 787 reais) e os
+  // cards altos vazavam pela borda do frame. `offsetWidth/offsetHeight` é o
+  // tamanho de layout, sem o zoom do viewport, na mesma unidade das posições,
+  // e está sempre em dia. Card fora do DOM (ou com 0x0, em `display:none`)
+  // fica com o que já tinha. Frame fica de fora: o tamanho dele é o do
+  // documento. Serve a toda geometria que decide pertencimento — Organizar,
+  // Ctrl+G, contenção do arrasto de frame — e à medida preservada no eco.
+  const comMedidas = useCallback((ns) => ns.map((n) => {
+    if (n.type !== "ndNode") return n;
+    const raiz = wrapRef.current || document;
+    const el = raiz.querySelector(`.react-flow__node[data-id="${CSS.escape(n.id)}"]`);
+    const width = el?.offsetWidth, height = el?.offsetHeight;
+    if (!width || !height) return n;
+    if (n.measured?.width === width && n.measured?.height === height) return n;
+    return { ...n, measured: { width, height } };
+  }), []);
+
+  const bumpTick = useCallback(() => {
+    if (tickPending.current) return;
+    tickPending.current = true;
+    requestAnimationFrame(() => { tickPending.current = false; setTick((t) => t + 1); });
+  }, []);
+
+  const typeColors = useMemo(() => Object.fromEntries(
+    (catalog?.types || []).map((t) => [t.id, t.color])), [catalog]);
+  const categories = useMemo(() => Object.fromEntries(
+    (catalog?.categories || []).map((c) => [c.id, c])), [catalog]);
+
+  // `onParam` precisa ser ESTÁVEL. Como ele entra em `data` de cada nó, uma
+  // função nova a cada render faz todo nó ser um objeto novo; o React Flow
+  // remede, emite mudança de dimensão, chama setNodes, e o ciclo não fecha —
+  // o renderizador congela. É o mesmo laço que o insumo documenta em
+  // `onNodesChange`, aqui pela outra ponta.
+  const onParam = useCallback((nodeId, name, value) => {
+    // Atualiza o param NO REF de estado, não recriando o array de nós — o
+    // objetivo é o mesmo laço de realimentação: cada `setNodes` faz o React
+    // Flow remedir todos os cards.
+    paramsRef.current[nodeId] = { ...(paramsRef.current[nodeId] || {}), [name]: value };
+    bumpTick();
+    pushOp({ op: "set_param", node: nodeId, name, value });
+  }, [bumpTick]);
+
+  // Estável pelo mesmo motivo que `onParam`: entra em `data` de cada nó, e uma
+  // função nova a cada render realimentaria o mesmo laço de remedição.
+  const onHelp = useCallback((typeId) => {
+    setPainelFrames(false); setPainelConfig(false); setHelpFor(typeId);
+  }, []);
+
+  // Estável e otimista pelos mesmos motivos de `onView`: quem sorteia é o
+  // cliente, então ele já sabe o número, e `set_seed` não devolve o documento
+  // (não é op de estrutura) — sem o ref a dica do botão mostraria a semente
+  // ANTERIOR até o próximo eco do documento inteiro. Se o servidor recusar,
+  // `tr_server` ressincroniza com o documento e o ref é zerado junto.
+  //
+  // Limite em 2^31-1 porque a semente vira `as.integer()` no R: um número
+  // maior viraria `NA` com um mero warning, e o documento levaria uma semente
+  // vazia (é o que `.tr_check_seed` existe pra impedir).
+  const onReseed = useCallback((nodeId) => {
+    const value = Math.floor(Math.random() * 2147483647);
+    seedsRef.current[nodeId] = value;
+    bumpTick();
+    pushOp({ op: "set_seed", node: nodeId, value });
+  }, [bumpTick]);
+
+  // Estável pelo mesmo motivo, e pelo ref pelo mesmo motivo que `onParam`: a
+  // escolha vale só até o eco do documento trazer a vista persistida.
+  const onView = useCallback((nodeId, viewId) => {
+    viewsRef.current[nodeId] = viewId;
+    bumpTick();
+    pushOp({ op: "set_view", node: nodeId, view: viewId });
+  }, [bumpTick]);
+
+  // Estável pelos mesmos motivos. Só chega aqui no fim do arrasto: durante ele
+  // o `Grip` mexe nas variáveis CSS do card e não toca em estado nenhum.
+  const onResize = useCallback((nodeId, w, hgt) => {
+    sizesRef.current[nodeId] = [w, hgt];
+    bumpTick();
+    pushOp({ op: "resize", node: nodeId, w, h: hgt });
+  }, [bumpTick]);
+
+  // Estáveis pelo mesmo motivo de `onParam`. Frame não tem ref de otimismo
+  // como params e tamanhos: ele já é nó do React Flow, e o gesto (arrasto,
+  // alça) atualiza o estado local sozinho; aqui só sai a op. Título,
+  // proporção e cor mudam por `setNodes`, que em frame é raro e barato.
+  const onFrameRect = useCallback((id, p) => {
+    pushOp({ op: "update_frame", frame: id, x: Math.round(p.x), y: Math.round(p.y),
+             w: Math.round(p.width), h: Math.round(p.height) });
+  }, []);
+  const onFrameEdit = useCallback((id, patch) => {
+    setNodes((ns) => ns.map((n) => (n.id !== id ? n : {
+      ...n, data: { ...n.data, ...patch }, ...(patch.h != null ? { height: patch.h } : {}) })));
+    pushOp({ op: "update_frame", frame: id, ...patch });
+  }, []);
+  // Um lugar só pra trocar a proporção: menu do frame e painel de frames.
+  // Mantém a LARGURA e recalcula a altura; `livre` só troca o nome e deixa o
+  // retângulo como está. O frame é lido pelo ref, e não pelo `nodes` do
+  // render: o retângulo pode ter acabado de mudar num arrasto ou na alça.
+  // Troca que não muda nada (mesma proporção, mesma altura) não sai: seria um
+  // passo vazio no desfazer.
+  const mudarProporcao = useCallback((id, a) => {
+    const f = nodesRef.current.find((n) => n.id === id);
+    if (!f) return;
+    const r = ratioOf(a);
+    const patch = r ? { aspect: a, h: Math.round(rectOf(f).w / r) } : { aspect: a };
+    if (a === f.data.aspect && (patch.h == null || patch.h === rectOf(f).h)) return;
+    onFrameEdit(id, patch);
+  }, [onFrameEdit]);
+  const onFrameEditStart = useCallback((id) => setEditFrame(id), []);
+  const onFrameEditEnd = useCallback(() => setEditFrame(null), []);
+
+  // Estável pelos mesmos motivos de `onParam`. `set_fold` não devolve o
+  // documento, então o ref segura o recolhimento até o próximo documento
+  // chegar (e ele já vem com o valor gravado).
+  const onFold = useCallback((nodeId, patch) => {
+    const n = nodesRef.current.find((x) => x.id === nodeId);
+    foldsRef.current[nodeId] = { ...((foldsRef.current[nodeId] ?? n?.data.fold) || {}), ...patch };
+    bumpTick();
+    pushOp({ op: "set_fold", node: nodeId, ...patch });
+  }, [bumpTick]);
+
+  // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
+  // quando algo de verdade mudou.
+  const decorated = useMemo(() => nodes.map((n) => (n.type === "trFrame"
+    ? { ...n, data: { ...n.data, editing: editFrame === n.id,
+                      onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } }
+    : { ...n, data: { ...n.data, ...(stateRef.current[n.id] || {}),
+                      params: { ...n.data.params, ...(paramsRef.current[n.id] || {}) },
+                      view: viewsRef.current[n.id] ?? n.data.view,
+                      size: sizesRef.current[n.id] ?? n.data.size,
+                      fold: foldsRef.current[n.id] ?? n.data.fold,
+                      seed: seedsRef.current[n.id] ?? n.data.seed,
+                      typeColors, categories, onParam, onHelp, onView, onResize, onFold,
+                      onReseed, temas } })),
+    // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
+    // raro o bastante pra não realimentar o laço de remedição.
+    [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onFold, onReseed, tick, temas,
+     editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd]);
+
+  // --- Recepção ---
+  useEffect(() => {
+    if (!window.Shiny || !window.Shiny.addCustomMessageHandler) return;
+    window.Shiny.addCustomMessageHandler("tr_event", (m) => {
+      if (m.type === "catalog") { catalogRef.current = m.catalog; setCatalog(m.catalog); return; }
+      // Módulo antes do estado: o re-render disparado por `setTemas` já encontra
+      // `getThemes()` atualizado.
+      if (m.type === "themes") {
+        setThemes(m); setTemas({ temas: m.temas || {}, tema_padrao: m.tema_padrao ?? null });
+        return;
+      }
+
+      if (m.type === "document") {
+        revRef.current = m.doc.rev || 0;
+        // Params locais já foram pro servidor e voltam no documento — o ref só
+        // existia pro intervalo entre digitar e o eco chegar.
+        paramsRef.current = {};
+        viewsRef.current = {};
+        sizesRef.current = {};
+        foldsRef.current = {};
+        seedsRef.current = {};
+        setDoc(m.doc);
+        const { nodes: novos, edges: e, needsLayout } = docToFlow(m.doc, catalogRef.current);
+        // `docToFlow` refaz cada card sem `measured`, e até o React Flow medir
+        // de novo o `rectOf` via o card como 0x0: Ctrl+G enquadrava errado e o
+        // frame arrastado não levava card nenhum (com a janela escondida, sem
+        // prazo pra medir). A medida anterior vai junto, pelo id; é só palpite
+        // — o ResizeObserver do xyflow a sobrescreve se o card mudou de
+        // tamanho, e medida igual não emite mudança nenhuma, então não há laço.
+        // Frame fica de fora: a largura e a altura dele vêm do documento.
+        // A medida vem do DOM (`comMedidas`), e não do `nodesRef` nem do store:
+        // o ref só anda no render, e o store pode estar sem medida nenhuma
+        // esperando o ResizeObserver.
+        const medidas = new Map(comMedidas(nodesRef.current)
+          .filter((x) => x.type === "ndNode" && x.measured)
+          .map((x) => [x.id, x.measured]));
+        const n = novos.map((x) => (x.type === "ndNode" && medidas.has(x.id)
+          ? { ...x, measured: medidas.get(x.id) } : x));
+        setNodes(n); setEdges(e);
+        // Documento sem posições (escrito à mão ou por LLM): o dagre resolve e
+        // as posições sobem como `move`, que é apresentação pura e não
+        // recomputa nada.
+        if (needsLayout) {
+          const mv = n.filter((x) => x.type === "ndNode").map((x) => ({
+            op: "move", node: x.id, x: x.position.x, y: x.position.y }));
+          if (mv.length) sendOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv }, revRef.current);
+        }
+        if (m.problems?.length) {
+          setBanner(m.problems.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
+        }
+        return;
+      }
+
+      if (m.type === "op_applied") {
+        revRef.current = m.rev;
+        return;
+      }
+
+      if (m.type === "op_rejected") {
+        // A corrida do insumo (documento antigo, cache servido, preview
+        // parado, sem erro) aqui é sempre explícita.
+        revRef.current = m.rev ?? revRef.current;
+        setBanner(m.message);
+        return;
+      }
+
+      // O diálogo fica aberto até o projeto TROCAR de verdade. Fechar ao
+      // clicar "Abrir"/"Criar aqui" seria otimista: a recusa (nome inválido,
+      // coleção que falta, pasta sem manifesto) volta como `warning`, e o
+      // banner sozinho no canto não diz de qual pasta se falava nem deixa
+      // corrigir o nome — só sobra recomeçar a navegação. Este é o único
+      // evento de sucesso: reabrir o projeto JÁ aberto também o emite (o
+      // servidor reconfirma onde o editor está, sem trocar nada — ver a guarda
+      // no início de `abrir()`, em R/transport.R), e é por isso que fechar o
+      // diálogo aqui nunca o deixa preso. "Abrir" é desabilitado na pasta
+      // atual porque reabrir não faz nada, não porque não responderia.
+      if (m.type === "project") {
+        // Estado de execução é indexado por ID DE NÓ, e id de fluxo escrito à
+        // mão é palavra ("ler", "filtrar", "total"): dois projetos colidem.
+        // Sem zerar, um nó do projeto novo que chega `blocked` herdaria o
+        // handle do homônimo do anterior — e `unitState` não limpa `handle` em
+        // `blocked`/`failed` de propósito, pra o card guardar o último valor
+        // bom DENTRO de um projeto. O preview do outro projeto ficaria na tela
+        // pra sempre, sem erro nenhum. Aqui e não no eco de `document`: aquele
+        // também desce em op estrutural e em op recusada, onde limpar apagaria
+        // o preview de todos os cards a cada nó adicionado. Só quando a raiz
+        // MUDA porque a reconfirmação do mesmo projeto não refaz o run: zerar
+        // ali esvaziaria os cards sem nada para repovoá-los.
+        if (projetoRef.current !== m.root) stateRef.current = {};
+        projetoRef.current = m.root;
+        setProjeto({ root: m.root, flow: m.flow });
+        setAbrindo(false);
+        setEnviando(null);
+        // A recusa da tentativa anterior ("nome inválido") não pode ficar na
+        // tela depois do acerto: o aviso passaria a falar de um projeto que
+        // não é mais o aberto.
+        setBanner(null);
+        return;
+      }
+
+      if (m.type === "listing") { setListagem(m); return; }
+
+      // Toda recusa de abrir ou criar chega por aqui: é ela que devolve as
+      // ações do diálogo: sem isto um `warning` deixaria os botões
+      // desabilitados até fechar e reabrir.
+      if (m.type === "warning") { setEnviando(null); setBanner(m.message); return; }
+
+      if (m.type === "unit") { applyUnit(m); return; }
+
+      if (m.type === "run_finished") {
+        // Unidade que ficou "na fila" e nunca recebeu evento volta ao repouso —
+        // o card nunca fica preso num spinner eterno.
+        Object.keys(stateRef.current).forEach((k) => {
+          if (stateRef.current[k].state === "pending") stateRef.current[k].state = "idle";
+        });
+        bumpTick();
+        return;
+      }
+    });
+    onShinyReady(() => sendInput("tr_ready", Date.now()));
+  }, []);
+
+  function applyUnit(m) {
+    // Estado de execução vive no ref, não no array de nós: assim uma rajada de
+    // eventos (um por nó, por execução) não reconstrói o grafo inteiro a cada
+    // mensagem. O `tick` avisa a memoização que precisa redecorar.
+    stateRef.current[m.node] = { ...(stateRef.current[m.node] || {}), ...unitState(m) };
+    bumpTick();
+  }
+
+  function unitState(m) {
+    const k = m.unit_type;
+    const out = {};
+    if (k === "running") { out.state = "running"; out.error = null; out.progress = null; out.partial = false; }
+    else if (k === "done") {
+      out.state = "done"; out.error = null; out.duration = m.duration;
+      out.handle = firstHandle(m.handles); out.partial = false; out.progress = null;
+    } else if (k === "cached") {
+      out.state = "cached"; out.error = null; out.handle = firstHandle(m.handles);
+      out.partial = false; out.progress = null;
+    } else if (k === "failed") { out.state = "failed"; out.error = { message: m.message, traceback: m.traceback }; }
+    else if (k === "blocked") { out.state = "blocked"; out.error = null; }
+    else if (k === "invalid") { out.state = "invalid"; out.error = { message: m.reason }; }
+    else if (k === "progress") { out.state = "running"; out.progress = { fraction: m.fraction, message: m.message }; }
+    else if (k === "partial") { out.state = "running"; out.handle = m.handle; out.partial = true; }
+    else if (k === "cancelled") { out.state = "idle"; out.progress = null; }
+    return out;
+  }
+
+  const firstHandle = (hs) => (hs && (hs.out || Object.values(hs)[0])) || null;
+
+  // --- Envio ---
+  function pushOp(op) {
+    // "Na fila" na hora, antes de qualquer resposta: sem isso os cards ficam
+    // em branco em silêncio até a primeira mensagem chegar. O servidor manda
+    // o estado real conforme roda; aqui é só feedback imediato.
+    if (!cosmetica(op)) {
+      Object.keys(stateRef.current).forEach((k) => {
+        stateRef.current[k] = { ...stateRef.current[k], state: "pending" };
+      });
+      bumpTick();
+    }
+    sendOp(op, revRef.current);
+  }
+
+  // Várias ops de um gesto viajam num `batch`: uma revisão, um passo de undo.
+  // Soltas, a segunda já sairia com `base_rev` velho (o front só avança a
+  // revisão no eco) e o servidor recusaria todas menos a primeira, que é o
+  // que "Organizar" fazia até aqui.
+  function pushMany(ops) {
+    if (ops.length === 0) return;
+    pushOp(ops.length === 1 ? ops[0] : { op: "batch", ops });
+  }
+
+  const onNodesChange = useCallback((ch) => {
+    // Frame arrastado leva junto os cards e frames que estavam INTEIROS dentro
+    // dele quando o gesto começou (lista congelada em `onNodeDragStart`). O mesmo
+    // delta do frame vira mudança de posição de cada um, com o mesmo
+    // `dragging`, e cai no mesmo batch do fim do gesto.
+    const levar = arrastoRef.current || {};
+    const extra = [];
+    ch.forEach((c) => {
+      const l = c.type === "position" && c.position && levar[c.id];
+      if (!l) return;
+      const dx = c.position.x - l.x0, dy = c.position.y - l.y0;
+      l.itens.forEach((k) => extra.push({ id: k.id, type: "position", dragging: c.dragging,
+                                          position: { x: k.x + dx, y: k.y + dy } }));
+    });
+    const todas = extra.length ? [...ch, ...extra] : ch;
+    setNodes((ns) => applyNodeChanges(todas, ns));
+    // `dimensions` e `select` não têm significado pro documento e chegam a
+    // cada remedição; emitir op por elas realimentaria o laço. Remoção não
+    // passa por aqui: `onBeforeDelete` intercepta antes (ver `apagar`). As
+    // posições finais de um arrasto chegam todas na MESMA chamada, então o
+    // gesto inteiro (frames e os cards que eles levam) vira um batch só.
+    const fim = todas.filter((c) => c.type === "position" && c.dragging === false && c.position);
+    if (fim.length === 0) return;
+    arrastoRef.current = null;
+    const tipo = Object.fromEntries(nodesRef.current.map((n) => [n.id, n.type]));
+    pushMany(fim.map((c) => {
+      const x = Math.round(c.position.x), y = Math.round(c.position.y);
+      return tipo[c.id] === "trFrame" ? { op: "update_frame", frame: c.id, x, y }
+                                      : { op: "move", node: c.id, x, y };
+    }));
+  }, []);
+
+  const onNodeDragStart = useCallback((e, _n, dragged) => {
+    // Alt: ajuste fino do retângulo, sem levar nada. Só o que está
+    // selecionado anda, que é o comportamento de um nó comum. `e` é o evento
+    // de origem do d3-drag (mouse ou toque), que carrega `altKey`.
+    if (e?.altKey) { arrastoRef.current = null; return; }
+    // Medida do DOM: com a estimativa, card alto que cabe no frame parecia
+    // vazar e ficava pra trás no arrasto.
+    const ns = comMedidas(nodesRef.current);
+    const byId = Object.fromEntries(ns.map((n) => [n.id, n]));
+    // Item já arrastado pela seleção, ou dentro de dois frames arrastados
+    // juntos, entra uma vez só: senão receberia dois deltas. Todos os itens
+    // de um mesmo gesto andam o mesmo delta, então tanto faz qual frame
+    // arrastado reivindica o item primeiro. A contenção já é transitiva
+    // (o externo pega as células e os cards delas), e só o frame ARRASTADO
+    // distribui delta: frame levado não leva ninguém.
+    const vistos = new Set(dragged.map((d) => d.id));
+    const levar = {};
+    dragged.filter((d) => d.type === "trFrame").forEach((f) => {
+      const alvo = byId[f.id] || f;
+      const itens = [...containedFrames(alvo, ns), ...containedCards(alvo, ns)]
+        .filter((id) => !vistos.has(id));
+      itens.forEach((id) => vistos.add(id));
+      levar[f.id] = { x0: f.position.x, y0: f.position.y,
+                      itens: itens.map((id) => ({ id, x: byId[id].position.x, y: byId[id].position.y })) };
+    });
+    arrastoRef.current = levar;
+  }, []);
+
+  // Com `SelectionMode.Partial`, uma caixa desenhada DENTRO de um frame o
+  // selecionaria também. Cards continuam por interseção; frames só ficam
+  // selecionados se couberem inteiros na caixa.
+  const onSelectionStart = useCallback((e) => {
+    caixaRef.current = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+  }, [rf]);
+  const onSelectionEnd = useCallback((e) => {
+    const a = caixaRef.current; caixaRef.current = null;
+    if (!a) return;
+    const b = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const caixa = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
+                    w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
+    // Clique seco no vazio também passa por aqui: sem frame a soltar, o array
+    // fica o mesmo, e o React Flow não tem o que remedir.
+    setNodes((ns) => {
+      const soltar = (n) => n.type === "trFrame" && n.selected && !inside(rectOf(n), caixa);
+      return ns.some(soltar) ? ns.map((n) => (soltar(n) ? { ...n, selected: false } : n)) : ns;
+    });
+  }, [rf]);
+
+  // A seleção de aresta precisa entrar no estado, senão o Delete nunca a vê.
+  // Remoção também não chega aqui (ver `onBeforeDelete`).
+  const onEdgesChange = useCallback((ch) => setEdges((es) => applyEdgeChanges(ch, es)), []);
+
+  // Menu de contexto. Posição em coordenadas do wrapper, não da tela: o menu é
+  // filho de `.tr-canvas`, que é `position:relative`.
+  const abrirMenu = useCallback((ev, kind, id) => {
+    ev.preventDefault();
+    const box = wrapRef.current?.getBoundingClientRect();
+    if (!box) return;
+    setMenu({ kind, id, x: ev.clientX - box.left, y: ev.clientY - box.top });
+  }, []);
+
+  // Todo apagar passa por aqui: tecla, menu e barra de seleção. Sai UM batch.
+  // `remove_node` já leva as arestas do nó no servidor (`.tr_op_remove_node`),
+  // então `disconnect` sai só pra aresta pedida cujas DUAS pontas sobrevivem.
+  // Mandar os dois faria o segundo falhar com "aresta que não existe", e o
+  // lote inteiro seria recusado.
+  const apagar = useCallback((nodeIds, edgeIds = []) => {
+    const alvo = new Set(nodeIds);
+    const pedidas = new Set(edgeIds);
+    const tipo = Object.fromEntries(nodesRef.current.map((n) => [n.id, n.type]));
+    const ops = [];
+    nodeIds.forEach((id) => {
+      if (!tipo[id]) return;
+      ops.push(tipo[id] === "trFrame" ? { op: "remove_frame", frame: id }
+                                      : { op: "remove_node", node: id });
+    });
+    edgesRef.current.forEach((e) => {
+      if (!pedidas.has(e.id) || alvo.has(e.source) || alvo.has(e.target)) return;
+      ops.push({ op: "disconnect", from_node: e.source, from_port: e.sourceHandle,
+                 to_node: e.target, to_port: e.targetHandle, index: e.data?.index });
+    });
+    setNodes((ns) => ns.filter((n) => !alvo.has(n.id)));
+    setEdges((es) => es.filter((e) => !pedidas.has(e.id) && !alvo.has(e.source) && !alvo.has(e.target)));
+    pushMany(ops);
+    setMenu(null);
+  }, []);
+
+  // `false` cancela a remoção do próprio React Flow, que emitiria um `remove`
+  // por nó E por aresta ligada — a colisão de ops que `apagar` evita.
+  const onBeforeDelete = useCallback(async ({ nodes: ns, edges: es }) => {
+    // O xyflow chama isto a CADA Delete/Backspace, mesmo sem nada escolhido.
+    // Sem a guarda, cada tecla solta recriaria os arrays de nós e arestas (o
+    // `filter` de `apagar` sempre devolve array novo, e o React Flow remede
+    // tudo) e fecharia o menu, sem apagar nada.
+    if (!ns.length && !es.length) return false;
+    apagar(ns.map((n) => n.id), es.map((e) => e.id));
+    return false;
+  }, [apagar]);
+
+  // Menu num card que faz parte de uma seleção múltipla age sobre a seleção
+  // inteira, o gesto de Miro/Figma. Num card fora dela, só nele.
+  const alvoMenu = (id) => {
+    const sel = nodes.filter((n) => n.selected).map((n) => n.id);
+    return sel.length > 1 && sel.includes(id) ? sel : [id];
+  };
+
+  const onConnect = useCallback((c) => {
+    pushOp({ op: "connect", from_node: c.source, from_port: c.sourceHandle,
+             to_node: c.target, to_port: c.targetHandle });
+  }, []);
+
+  const isValidConnection = useCallback((c) => {
+    const cat = catalogRef.current; if (!cat) return false;
+    const byId = Object.fromEntries(cat.nodes.map((n) => [n.id, n]));
+    const s = nodes.find((n) => n.id === c.source), t = nodes.find((n) => n.id === c.target);
+    if (!s || !t) return false;
+    const op = byId[s.data.nodeType]?.outputs.find((p) => p.name === c.sourceHandle);
+    const ip = byId[t.data.nodeType]?.inputs.find((p) => p.name === c.targetHandle);
+    return !!(op && ip) && compatible(cat, op.type, ip.type);
+  }, [nodes]);
+
+  const addAt = useCallback((typeId, pos) => {
+    pushOp({ op: "add_node", type: typeId, position: [Math.round(pos.x), Math.round(pos.y)] });
+  }, []);
+
+  // Clicar na paleta cai numa cascata a partir do canto visível, em vez de um
+  // ponto fixo: sem isso todo nó novo nasce exatamente em cima do anterior.
+  const addPicked = useCallback((typeId) => {
+    const box = wrapRef.current?.getBoundingClientRect();
+    const origin = rf.screenToFlowPosition({
+      x: (box?.left ?? 0) + 90, y: (box?.top ?? 0) + 90 });
+    const k = nodes.length;
+    addAt(typeId, { x: origin.x + (k % 4) * 275, y: origin.y + Math.floor(k / 4) * 230 });
+  }, [rf, addAt, nodes.length]);
+
+  const onDrop = useCallback((ev) => {
+    ev.preventDefault();
+    const t = ev.dataTransfer.getData("application/trama-type");
+    if (!t) return;
+    addAt(t, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY }));
+  }, [rf, addAt]);
+
+  const onConnectStart = useCallback((_e, p) => {
+    const cat = catalogRef.current;
+    const n = nodes.find((x) => x.id === p.nodeId);
+    if (!cat || !n || p.handleType !== "source") return;
+    const byId = Object.fromEntries(cat.nodes.map((x) => [x.id, x]));
+    setDragType(byId[n.data.nodeType]?.outputs.find((o) => o.name === p.handleId)?.type || null);
+  }, [nodes]);
+
+  // O log de undo é do servidor: aqui só se pede. Log no cliente, montado com
+  // os ecos, desfazia o passo errado quando havia op em voo — o R bloqueia
+  // computando, o eco ainda não chegou, e o Ctrl+Z tirava do log uma op que
+  // não era a última aplicada. O valor não carrega nada: `Date.now()` só
+  // garante que cada Ctrl+Z seja um evento distinto.
+  const desfazer = () => sendInput("tr_undo", Date.now());
+
+  const selecionar = (sim) => {
+    setNodes((ns) => ns.map((n) => (!!n.selected === sim ? n : { ...n, selected: sim })));
+    if (!sim) setEdges((es) => es.map((e) => (e.selected ? { ...e, selected: false } : e)));
+  };
+
+  // Título padrão mandado daqui, e não deixado ao servidor: o servidor numera
+  // por max(order)+1, e o selo do frame mostra a POSIÇÃO na lista ordenada.
+  // Depois de apagar o frame 2 de 3, o novo teria selo 3 e título "Frame 4".
+  const tituloNovo = () =>
+    `Frame ${nodesRef.current.filter((n) => n.type === "trFrame").length + 1}`;
+
+  const criarFrame = (r) => {
+    setFerramenta(null);
+    if (!r) return;
+    pushOp({ op: "add_frame", x: Math.round(r.x), y: Math.round(r.y),
+             w: Math.round(r.w), h: Math.round(r.h), aspect: aspectoNovo, title: tituloNovo() });
+  };
+
+  const frameDaSelecao = () => {
+    const sel = comMedidas(nodesRef.current.filter((n) => n.selected && n.type === "ndNode"));
+    if (sel.length === 0) return;
+    // Bbox pelo mesmo `rectOf` do pertencimento: a medida que decide "está
+    // dentro" é a mesma que desenha o frame, então o frame da seleção
+    // sempre contém a seleção.
+    const rs = sel.map(rectOf);
+    const x0 = Math.min(...rs.map((r) => r.x)), y0 = Math.min(...rs.map((r) => r.y));
+    const x1 = Math.max(...rs.map((r) => r.x + r.w)), y1 = Math.max(...rs.map((r) => r.y + r.h));
+    const f = fitAspect({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, aspectoNovo);
+    pushOp({ op: "add_frame", ...f, aspect: aspectoNovo, title: tituloNovo() });
+  };
+
+  // O pack inteiro é UM batch: uma revisão, um passo de desfazer, e a ordem
+  // das ops vira a ordem de slide (externo primeiro). Centro da área visível
+  // pelo wrapper do canvas, e não pela janela: a paleta e o painel ocupam a
+  // coluna da direita. `add_frame` num batch faz o servidor devolver o
+  // documento, como o frame solto: os ids e a ordem chegam por lá.
+  const criarPrancheta = (o) => {
+    const { aspect, ...resto } = o;
+    try { localStorage.setItem("trama.prancheta", JSON.stringify(resto)); } catch (_) {}
+    if (aspect !== aspectoNovo) setAspectoNovo(aspect);
+    const b = wrapRef.current.getBoundingClientRect();
+    const centro = rf.screenToFlowPosition({ x: b.left + b.width / 2, y: b.top + b.height / 2 });
+    const existentes = nodesRef.current.filter((n) => n.type === "trFrame").length;
+    const fs = gradeDeFrames(o, centro, existentes);
+    pushMany(fs.map((f) => ({ op: "add_frame", ...f })));
+    setPrancheta(null);
+    // Pacote maior que a tela (um 3×3 de 1600px no zoom 1) nasceria quase todo
+    // fora dela e pareceria que nada aconteceu: afasta a câmera. Como a grade
+    // é centrada no meio da tela, é só um zoom-out mantendo o centro. No
+    // quadro seguinte, como no `organizarTudo`, pra não brigar com o eco.
+    const x = Math.min(...fs.map((f) => f.x)), y = Math.min(...fs.map((f) => f.y));
+    const width = Math.max(...fs.map((f) => f.x + f.w)) - x;
+    const height = Math.max(...fs.map((f) => f.y + f.h)) - y;
+    const zoom = rf.getViewport().zoom;
+    if (width * zoom > b.width || height * zoom > b.height)
+      requestAnimationFrame(() => rf.fitBounds({ x, y, width, height }, { padding: 0.1, duration: 300 }));
+  };
+
+  // Frame é bloco: o layout (`organizar`) mexe em cards e frames juntos, e
+  // tudo sobe num batch só, um passo de desfazer. Só vai o que mudou: sem
+  // isso, apertar duas vezes deixaria um passo vazio na pilha. `update_frame`
+  // não devolve o documento, então o tamanho novo do frame entra no estado
+  // aqui mesmo, como no arrasto.
+  const organizarTudo = () => {
+    // Medida do card lida do DOM (`comMedidas`): card mais baixo do que é
+    // deixava o frame pequeno demais, o card vazava pela borda e, no
+    // Organizar seguinte, já tinha outro dono. A mesma lista serve pro
+    // "mudou?" abaixo, pra comparar com a régua do layout.
+    const ns = comMedidas(nodesRef.current);
+    const { cards, frames } = organizar(ns, edgesRef.current);
+    const ops = [];
+    ns.forEach((n) => {
+      const f = frames[n.id], c = cards[n.id];
+      if (f) {
+        const r = rectOf(n);
+        const op = { op: "update_frame", frame: n.id };
+        if (f.x !== r.x || f.y !== r.y) Object.assign(op, { x: f.x, y: f.y });
+        if (f.w !== r.w) op.w = f.w;
+        if (f.h !== r.h) op.h = f.h;
+        if (Object.keys(op).length > 2) ops.push(op);
+      } else if (c && (c.x !== n.position.x || c.y !== n.position.y)) {
+        ops.push({ op: "move", node: n.id, x: c.x, y: c.y });
+      }
+    });
+    setNodes((atual) => atual.map((n) => {
+      const f = frames[n.id], c = cards[n.id];
+      if (f) return { ...n, position: { x: f.x, y: f.y }, width: f.w, height: f.h };
+      return c ? { ...n, position: c } : n;
+    }));
+    // O dagre não sabe onde a câmera está: o grafo arrumado pode nascer
+    // fora da tela. Enquadra no quadro seguinte, depois de o React Flow
+    // já ter as posições novas.
+    requestAnimationFrame(() => rf.fitView({ maxZoom: 1, padding: 0.25, duration: 300 }));
+    pushMany(ops);
+  };
+
+  // Frames na ordem de slide, com o retângulo atual (que o gesto local pode
+  // ter mudado antes de qualquer eco).
+  const framesOrd = useMemo(() => nodes.filter((n) => n.type === "trFrame")
+    .sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0))
+    .map((n) => ({ id: n.id, title: n.data.title, aspect: n.data.aspect, ...rectOf(n) })), [nodes]);
+  const framesOrdRef = useRef([]); framesOrdRef.current = framesOrd;
+  const presentRef = useRef(null); presentRef.current = present;
+  const abrindoRef = useRef(false); abrindoRef.current = abrindo;
+  // Estável porque é dependência do efeito que monta o Esc do diálogo: nova a
+  // cada render, o listener seria trocado a cada tecla digitada no nome.
+  const fecharDialogo = useCallback(() => { setAbrindo(false); setEnviando(null); }, []);
+
+  const enquadrar = (f, duration = 400, padding = 0.1) =>
+    rf.fitBounds({ x: f.x, y: f.y, width: f.w, height: f.h }, { padding, duration });
+
+  const apresentar = () => {
+    if (framesOrd.length === 0) return;
+    selecionar(false); setMenu(null); setFerramenta(null); setPrancheta(null);
+    setPresent({ i: 0, volta: rf.getViewport() });
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+
+  const sairApresentacao = () => {
+    const p = presentRef.current;
+    if (!p) return;
+    // Zera o ref na hora: sair da tela cheia dispara `fullscreenchange`, que
+    // chamaria isto de novo antes do próximo render.
+    presentRef.current = null;
+    setPresent(null);
+    rf.setViewport(p.volta, { duration: 300 });
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  };
+  const sairRef = useRef(null); sairRef.current = sairApresentacao;
+
+  const passo = (d) => setPresent((p) => p && {
+    ...p, i: Math.max(0, Math.min(framesOrdRef.current.length - 1, p.i + d)) });
+
+  // O id do frame da vez também está nas deps: se um frame ANTERIOR sai no meio
+  // da apresentação (eco de outra aba), `present.i` fica igual mas aponta pro
+  // slide seguinte, e a tela tem que ir atrás dele.
+  const idDaVez = present ? framesOrd[present.i]?.id : undefined;
+  useEffect(() => {
+    if (!present) return;
+    const f = framesOrdRef.current[present.i];
+    if (f) enquadrar(f, 400, 0);
+  }, [present?.i, !!present, idDaVez]);
+
+  // Frames podem sumir durante a apresentação: ela não edita nada, mas o
+  // documento pode chegar mudado de outra aba. Sem frame nenhum não há o que
+  // mostrar; com menos frames, o slide da vez passa a ser o último que
+  // sobrou, em vez de um índice além do fim.
+  useEffect(() => {
+    const p = presentRef.current;
+    if (!p) return;
+    if (framesOrd.length === 0) sairApresentacao();
+    else if (p.i >= framesOrd.length) setPresent((q) => q && { ...q, i: framesOrd.length - 1 });
+  }, [framesOrd.length]);
+
+  useEffect(() => {
+    if (!present) return;
+    // Entrar em tela cheia muda o tamanho do canvas DEPOIS do primeiro
+    // enquadramento, então reenquadra. E sair dela pelo Esc do navegador (que
+    // engole a tecla antes da página) tem que encerrar a apresentação.
+    const refit = () => {
+      const f = framesOrdRef.current[presentRef.current?.i];
+      if (f) enquadrar(f, 0, 0);
+    };
+    const fsc = () => { if (!document.fullscreenElement) sairRef.current(); else refit(); };
+    window.addEventListener("resize", refit);
+    document.addEventListener("fullscreenchange", fsc);
+    return () => {
+      window.removeEventListener("resize", refit);
+      document.removeEventListener("fullscreenchange", fsc);
+    };
+  }, [!!present]);
+
+  // Na apresentação a roda sobre um preview fica com o navegador (ver
+  // `noWheelClassName`), e o xyflow sai do handler dele sem `preventDefault`.
+  // Ctrl+roda, e a pinça do trackpad que chega como Ctrl+roda, viraria então
+  // zoom da PÁGINA, que o Chrome ainda lembra por site depois. O `onWheel` do
+  // React é passivo e não pode cancelar nada: daí o listener nativo com
+  // `passive: false`. O wrapper só existe depois do "carregando…", por isso
+  // as deps: o efeito roda de novo quando catálogo e documento chegam.
+  //
+  // Editando, o mesmo listener faz Ctrl+roda ROLAR a tela (a roda sozinha é
+  // zoom, e o xyflow não tem "rolar com modificador"): na vertical, e com
+  // Shift também, na horizontal. Registrado na fase de CAPTURA do wrapper, que
+  // é ancestral do pane onde o d3-zoom escuta: roda antes dele, e o
+  // `stopPropagation` impede que o mesmo evento ainda vire zoom lá embaixo.
+  // Custo aceito: a pinça do trackpad chega como Ctrl+roda e passa a rolar a
+  // tela em vez de dar zoom; a roda sozinha continua dando zoom.
+  const pronto = !!catalog && !!doc;
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (presentRef.current) { if (e.ctrlKey) e.preventDefault(); return; }
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault(); e.stopPropagation();
+      // `deltaMode` 1 é em linhas e 2 em páginas; o viewport anda em pixels.
+      // A página é a tela na direção em que se anda: largura na horizontal,
+      // altura na vertical.
+      const kx = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientWidth : 1;
+      const ky = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientHeight : 1;
+      // Com Shift, há navegador que já entrega a roda vertical como `deltaX`
+      // (é o Shift+roda nativo); os outros mandam `deltaY`, que vira horizontal
+      // aqui. Aceitar os dois é o que faz Ctrl+Shift+roda rolar de lado em ambos.
+      const dx = (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * kx;
+      const dy = e.shiftKey ? 0 : e.deltaY * ky;
+      const vp = rf.getViewport();
+      rf.setViewport({ x: vp.x - dx, y: vp.y - dy, zoom: vp.zoom });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => el.removeEventListener("wheel", onWheel, { capture: true });
+  }, [pronto]);
+
+  // Um PNG por frame, em sequência. Falha num frame vira banner e os outros
+  // seguem; o número do arquivo é a posição na sequência de slides.
+  const exportar = async (fs) => {
+    const vp = wrapRef.current?.querySelector(".react-flow__viewport");
+    if (!vp || fs.length === 0) return;
+    setExportando(true);
+    const falhas = [];
+    try {
+      for (const f of fs) {
+        const i = framesOrdRef.current.findIndex((x) => x.id === f.id) + 1;
+        // A lista `fs` foi tirada no clique e a exportação é assíncrona: um
+        // frame apagado no meio do caminho não tem mais posição na sequência,
+        // e sairia como "00-…". Some da leva em vez de ganhar número falso.
+        if (i === 0) continue;
+        try { await exportFramePng(vp, f, i); }
+        catch (err) { falhas.push(`'${f.title || "sem título"}': ${err?.message || err}`); }
+      }
+    } finally { setExportando(false); }
+    if (falhas.length) setBanner(`Não foi possível exportar ${falhas.join(" · ")}`);
+  };
+
+  // Ações em massa agem na seleção; sem seleção, no canvas inteiro. Frames
+  // ficam de fora: não têm preview, parâmetro nem tamanho de card. O canvas
+  // inteiro só vale quando NADA está selecionado, nem nó nem ligação: com só
+  // frames ou só ligações selecionados, cair nos cards todos agiria longe de
+  // onde o usuário apontou, e a ação vira nada.
+  const alvos = () => {
+    const todos = nodesRef.current;
+    const cards = todos.filter((n) => n.type === "ndNode");
+    const sel = cards.filter((n) => n.selected);
+    if (sel.length) return sel;
+    const algo = todos.some((n) => n.selected) || edgesRef.current.some((e) => e.selected);
+    return algo ? [] : cards;
+  };
+
+  // Regra do Figma: se ALGUM alvo está aberto, todos fecham; senão, todos
+  // abrem. Inverter card a card deixaria metade aberta e metade fechada.
+  // Só entra quem TEM o que recolher: card sem parâmetro nenhum, e órfão (sem
+  // spec, sem preview), nunca fecham de fato, então contariam como abertos para
+  // sempre e o alternar ficaria preso em "fechar" sem mudar nada na tela.
+  const alternarFold = (parte) => {
+    const tem = parte === "params"
+      ? (n) => (n.data.spec?.params || []).length > 0
+      : (n) => !!n.data.spec;
+    const alvo = alvos().filter(tem);
+    if (alvo.length === 0) return;
+    const foldDe = (n) => (foldsRef.current[n.id] ?? n.data.fold) || {};
+    const aberto = (n) => foldDe(n)[parte] !== false;
+    const valor = !alvo.some(aberto);
+    const muda = alvo.filter((n) => aberto(n) !== valor);
+    muda.forEach((n) => { foldsRef.current[n.id] = { ...foldDe(n), [parte]: valor }; });
+    bumpTick();
+    pushMany(muda.map((n) => ({ op: "set_fold", node: n.id, [parte]: valor })));
+  };
+
+  // Um lugar só pra restaurar: atalho, barra de seleção e menu do card. Quem
+  // chama passa ids de CARD: `resize` é op de nó e aborta num id de frame, e
+  // isso derrubaria o batch inteiro. O ref recebe o padrão em vez de `null`:
+  // `resize` não é op estrutural, então o servidor não devolve o documento e o
+  // eco não vem; limpar a entrada deixaria o card no tamanho ANTIGO, que é o
+  // que `n.data.size` ainda diz. O par escrito aqui é o mesmo que a op grava lá.
+  const restaurarTamanhos = (ids) => {
+    if (ids.length === 0) return;
+    ids.forEach((id) => { sizesRef.current[id] = [MIN_W, MIN_H]; });
+    bumpTick();
+    pushMany(ids.map((id) => ({ op: "resize", node: id, w: MIN_W, h: MIN_H })));
+  };
+  const restaurarAlvos = () => restaurarTamanhos(alvos().map((n) => n.id));
+
+  // Tabela refeita a cada render e lida pelo listener via ref: o listener é
+  // registrado uma vez só, e as ações sempre enxergam o estado atual. As
+  // chaves são `mod+` (Ctrl ou Cmd), `shift+`, e `e.key` em minúsculas.
+  const atalhosRef = useRef({});
+  atalhosRef.current = present ? {
+    "arrowright": () => passo(1), "pagedown": () => passo(1), " ": () => passo(1),
+    "arrowleft": () => passo(-1), "pageup": () => passo(-1),
+    "home": () => setPresent((p) => p && { ...p, i: 0 }),
+    "end": () => setPresent((p) => p && { ...p, i: framesOrdRef.current.length - 1 }),
+    "escape": sairApresentacao,
+  } : {
+    "mod+z": desfazer,
+    "mod+a": () => selecionar(true),
+    "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); },
+    "f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
+    "mod+g": frameDaSelecao,
+    "p": () => alternarFold("preview"),
+    "o": () => alternarFold("params"),
+    "shift+r": restaurarAlvos,
+  };
+  useEffect(() => {
+    const onKey = (e) => {
+      const t = e.target;
+      // O diálogo de projeto é dono do teclado enquanto está aberto, e a
+      // guarda vem ANTES de tudo. O guarda de `INPUT|TEXTAREA|SELECT` abaixo
+      // cobre o campo de nome, mas o foco do diálogo vive nos BOTÕES dele —
+      // cada pasta listada é um — e ali um "f" abria a ferramenta de frame e
+      // um "p" recolhia o preview dos cards atrás do overlay, sem nada na tela
+      // explicando o que mudou. Antes do `blur` de espaço logo abaixo porque
+      // aquele desarma o espaço em QUALQUER botão, e aqui o espaço é a
+      // segunda forma legítima de acionar a linha de pasta pelo teclado —
+      // atrás do overlay não há tela para o espaço andar. O Esc daqui também
+      // sai: quem o fecha é o listener do próprio diálogo.
+      if (abrindoRef.current) return;
+      // Espaço é o gesto de andar pela tela, e o navegador CLICA o botão com
+      // foco quando o espaço é solto: depois de "↶ Desfazer", andar desfazia de
+      // novo; depois de um item da paleta, nascia outro card. `preventDefault`
+      // não resolve (o xyflow já o chama no keydown, e há navegador que clica
+      // no keyup mesmo assim); tirar o foco resolve. Custo aceito: espaço
+      // deixa de acionar botão pelo teclado — Enter continua acionando.
+      if (e.key === " " && t && t.tagName === "BUTTON") t.blur();
+      // Digitar um parâmetro não pode apagar card nem disparar atalho.
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      // Imagem ampliada por cima do slide é dona do teclado: seta e espaço
+      // trocariam o slide escondido atrás dela, e o Esc que a fecha também
+      // encerraria a apresentação. O lightbox tem o próprio listener.
+      if (presentRef.current && document.querySelector(".tr-lightbox")) return;
+      const nome = (e.ctrlKey || e.metaKey ? "mod+" : "") + (e.shiftKey ? "shift+" : "")
+        + e.key.toLowerCase();
+      const fn = atalhosRef.current[nome];
+      if (!fn) return;
+      e.preventDefault();
+      fn();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  if (!catalog || !doc) return h("div", { className: "tr-loading" }, "carregando…");
+
+  function menuItens(m) {
+    if (m.kind === "aresta") {
+      return [h("button", { key: "d", onClick: () => apagar([], [m.id]) }, "Apagar ligação")];
+    }
+    if (m.kind === "frame") {
+      const f = nodes.find((n) => n.id === m.id);
+      if (!f) return [];
+      const fechar = (fn) => () => { fn(); setMenu(null); };
+      return [
+        h("button", { key: "rn", onClick: fechar(() => setEditFrame(m.id)) }, "Renomear"),
+        // Trocar a proporção mantém a LARGURA e recalcula a altura.
+        h("div", { key: "ar", className: "tr-menu-row", title: "proporção" },
+          Object.keys(ASPECTS).map((a) => h("button", {
+            key: a, className: a === f.data.aspect ? "tr-menu-on" : "",
+            onClick: fechar(() => mudarProporcao(m.id, a)),
+          }, a))),
+        // Sem cor (ou com nome desconhecido) o frame é desenhado azul
+        // (`FrameNode`), então é a amostra azul que aparece marcada.
+        h("div", { key: "cr", className: "tr-menu-row", title: "cor" },
+          FRAME_COLORS.map((c) => h("button", {
+            key: c, title: c,
+            className: `tr-swatch tr-frame-${c}` +
+              (c === (FRAME_COLORS.includes(f.data.color) ? f.data.color : "azul") ? " tr-menu-on" : ""),
+            onClick: fechar(() => onFrameEdit(m.id, { color: c })),
+          }))),
+        h("button", { key: "ex", disabled: exportando,
+                      onClick: fechar(() => exportar(framesOrd.filter((x) => x.id === m.id))) },
+          "Exportar PNG"),
+        h("button", { key: "d", onClick: () => apagar([m.id]) }, "Apagar frame"),
+      ];
+    }
+    const alvo = alvoMenu(m.id);
+    // Restaurar age sobre a mesma seleção que Apagar — dois itens do mesmo
+    // menu com alcances diferentes enganam. Frame fica de fora (ver
+    // `restaurarTamanhos`).
+    const frame = new Set(nodes.filter((n) => n.type === "trFrame").map((n) => n.id));
+    const cards = alvo.filter((id) => !frame.has(id));
+    // Agindo sobre a seleção, as ligações escolhidas vão junto — é o que a
+    // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
+    const ligacoes = alvo.length > 1 ? edges.filter((e) => e.selected).map((e) => e.id) : [];
+    return [
+      h("button", { key: "d", onClick: () => apagar(alvo, ligacoes) },
+        alvo.length > 1 ? `Apagar ${alvo.length} selecionados` : "Apagar bloco"),
+      cards.length ? h("button", { key: "rs", onClick: () => {
+        restaurarTamanhos(cards);
+        setMenu(null);
+      } }, cards.length > 1 ? `Restaurar tamanho (${cards.length})` : "Restaurar tamanho") : null,
+    ];
+  }
+
+  const selecionados = nodes.filter((n) => n.selected);
+
+  // O painel de frames usa a mesma coluna larga da Ajuda.
+  // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
+  // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
+  // não há (ver `.tr-banner` no CSS).
+  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig ? "tr-app-help" : "",
+                                present ? "tr-presenting" : "",
+                                abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" ") }, [
+    h("div", { key: "canvas", className: "tr-canvas", ref: wrapRef,
+               onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
+               onDrop },
+      h(ReactFlow, {
+        nodes: decorated, edges, nodeTypes,
+        onNodesChange, onEdgesChange, onConnect, isValidConnection,
+        onNodeDragStart, onSelectionStart, onSelectionEnd,
+        onConnectStart, onConnectEnd: () => setDragType(null),
+        onBeforeDelete,
+        // Na apresentação o menu também some: ele traz "Apagar", e o slide é
+        // somente leitura.
+        onNodeContextMenu: (ev, n) => (present ? ev.preventDefault()
+          : abrirMenu(ev, n.type === "trFrame" ? "frame" : "no", n.id)),
+        onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
+        onPaneClick: () => setMenu(null), onNodeClick: () => setMenu(null),
+        onMoveStart: () => setMenu(null),
+        // Gestos: arrastar no vazio (botão principal ou do meio, ou com espaço)
+        // ANDA pela tela; Shift + arrasto desenha a caixa de seleção, e
+        // Shift+clique soma à seleção. A roda dá zoom; Ctrl+roda rola a tela,
+        // e isso não é do xyflow: é o listener nativo mais abaixo (ver
+        // `onWheel`). Com o Shift apertado o xyflow tira o `panOnDrag` do
+        // d3-zoom sozinho, por isso os dois gestos não brigam pelo mesmo arrasto.
+        // Apresentação é somente leitura: nada arrasta, liga, seleciona nem apaga.
+        nodesDraggable: !present, nodesConnectable: !present, elementsSelectable: !present,
+        selectionOnDrag: false, selectionKeyCode: "Shift", selectionMode: SelectionMode.Partial,
+        // O `Space` sai junto com o diálogo pelo mesmo motivo do `deleteKeyCode`
+        // logo abaixo: o `useKeyPress` que o observa dá `preventDefault` no
+        // keydown, e com isso o espaço deixava de ACIONAR a linha de pasta que
+        // está com o foco — a tela atrás nem anda, está inerte.
+        panOnDrag: present ? false : [0, 1],
+        panActivationKeyCode: present || abrindo ? null : "Space",
+        // Com o botão principal no `panOnDrag`, quem pega o mousedown no vazio
+        // é o d3-zoom, e com a distância padrão (0) qualquer tremida de 1px
+        // já conta como arrasto: o `onPaneClick` não vinha, e o menu não
+        // fechava nem a seleção limpava. 4px de folga ainda é clique.
+        paneClickDistance: 4,
+        panOnScroll: false, zoomOnScroll: !present, zoomOnDoubleClick: !present,
+        zoomOnPinch: !present,
+        multiSelectionKeyCode: "Shift",
+        // A guarda de atalhos do App não alcança esta tecla: o `useKeyPress` do
+        // xyflow escuta no `document` por conta própria, e o guarda interno
+        // dele só ignora `INPUT|SELECT|TEXTAREA|contenteditable|.nokey` — o
+        // foco no BOTÃO de uma linha de pasta passa batido. Com o diálogo
+        // aberto, o Backspace que em Finder/Explorer sobe uma pasta (logo, a
+        // tecla que se TENTA) apagava a seleção atrás do overlay: os nós
+        // sumiam, `remove_node` subia, o autosave gravava, e o Ctrl+Z que
+        // consertaria está bloqueado pela mesma guarda. (O campo de nome
+        // escapava por sorte: a versão embarcada do xyflow monta ESTE
+        // `useKeyPress` com `actInsideInputWithModifier: false`, então
+        // Shift+Backspace ali não age. Não é contrato nosso, e desligar a
+        // tecla não depende disso.)
+        deleteKeyCode: present || abrindo ? null : ["Delete", "Backspace"],
+        // Sem isto um frame selecionado subiria por cima dos cards.
+        elevateNodesOnSelect: false,
+        fitView: true, fitViewOptions: { maxZoom: 1, padding: 0.25 },
+        // `fitBounds` respeita o `maxZoom` do store (2, o padrão): um frame
+        // pequeno parava no dobro e sobrava tela em volta do slide. O teto só
+        // sobe durante a apresentação; editando, 2 continua sendo o limite do
+        // zoom à mão. A troca chega a tempo do enquadramento: o `StoreUpdater`
+        // do xyflow aplica a prop num efeito de um FILHO do `ReactFlow`, e
+        // efeitos de filho rodam antes dos do `App` no mesmo commit. O piso
+        // desce pelo mesmo motivo: com 0.2, frame maior que ~5 telas não cabia.
+        minZoom: present ? 0.05 : 0.2, maxZoom: present ? 8 : 2,
+        proOptions: { hideAttribution: true },
+        // A roda fica com o navegador sobre um preview na apresentação: lá a
+        // roda não anda nem dá zoom, e sem isto o xyflow a engoliria
+        // (`preventDefault`) antes de a tabela longa poder rolar. Editando, a
+        // roda sobre o card continua dando zoom na tela.
+        noWheelClassName: present ? "tr-preview" : "nowheel",
+      }, [
+        h(Background, { key: "bg", variant: BackgroundVariant.Dots, gap: 16 }),
+        h(Controls, { key: "ct" }),
+        // Máscara e contorno são cromo do app e seguem o tema: o xyflow joga a
+        // máscara numa variável CSS e o nó em `style.fill/stroke`, e os dois
+        // aceitam `var()`. A cor do nó é dado (categoria), e o cinza de reserva
+        // é o mesmo `#64748b` de categoria desconhecida no resto do editor.
+        h(MiniMap, { key: "mm", maskColor: "var(--tr-shadow)", nodeStrokeWidth: 6,
+          // Frame só como contorno: cheio, ele cobriria os cards do minimapa.
+          nodeColor: (n) => (n.type === "trFrame" ? "transparent"
+            : categories[n.data?.spec?.category]?.color || "#64748b"),
+          nodeStrokeColor: (n) => (n.type === "trFrame" ? "var(--tr-dim)" : "transparent") }),
+      ]),
+      menu ? h("div", { key: "menu", className: "tr-menu",
+                        style: { left: menu.x, top: menu.y } }, menuItens(menu)) : null,
+      selecionados.length > 1 ? h("div", { key: "sel", className: "tr-selbar" }, [
+        h("span", { key: "n", className: "tr-selbar-n" }, `${selecionados.length} selecionados`),
+        // Só com algum card na seleção: com só frames (e ligações) os quatro
+        // agiriam sobre nada, e botão que não faz nada é botão que mente.
+        ...(selecionados.some((n) => n.type === "ndNode") ? [
+          h("button", { key: "pv", title: "P", onClick: () => alternarFold("preview") }, "Preview"),
+          h("button", { key: "pm", title: "O", onClick: () => alternarFold("params") }, "Parâmetros"),
+          h("button", { key: "rs", title: "Shift+R", onClick: restaurarAlvos }, "Tamanho"),
+          h("button", { key: "fr", title: "Ctrl+G", onClick: frameDaSelecao }, "Frame"),
+        ] : []),
+        h("button", { key: "del", title: "Delete",
+                      // Mesmo alcance da tecla Delete: cards E ligações escolhidas.
+                      onClick: () => apagar(selecionados.map((n) => n.id),
+                                            edges.filter((e) => e.selected).map((e) => e.id)) },
+          "Apagar"),
+      ]) : null,
+      ferramenta === "frame"
+        ? h(FrameDraw, { key: "fd", toFlow: rf.screenToFlowPosition, onDone: criarFrame,
+                         aspect: aspectoNovo }) : null,
+      // `key` muda a cada slide: remonta o indicador e reinicia o fade.
+      // O número passa pelo mesmo teto do efeito que corrige `present.i`: no
+      // render em que a lista encolhe, o efeito ainda não rodou, e o
+      // indicador mostraria "3 / 2" por um quadro.
+      present ? h("div", { key: `pi${present.i}`, className: "tr-present-ind" },
+        `${Math.min(present.i, framesOrd.length - 1) + 1} / ${framesOrd.length}`) : null),
+    helpFor
+      ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null) })
+      : painelConfig
+        ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
+            // `seq` porque o input do Shiny ignora valor idêntico ao anterior:
+            // voltar a um estado já enviado (desfazer uma cor à mão) não
+            // chegaria ao servidor.
+            onSave: (m) => sendInput("tr_themes", { temas: m.temas, tema_padrao: m.tema_padrao,
+                                                    seq: Date.now() }),
+            onClose: () => setPainelConfig(false) })
+      : painelFrames
+        ? h(FramePanel, { key: "frames", frames: framesOrd, exportando,
+            onGo: (id) => { const f = framesOrd.find((x) => x.id === id); if (f) enquadrar(f); },
+            onReorder: (ids) => pushOp({ op: "reorder_frames", frames: ids }),
+            onRename: (id, title) => onFrameEdit(id, { title }), onAspect: mudarProporcao,
+            onPresent: apresentar, onExport: () => exportar(framesOrd),
+            onClose: () => setPainelFrames(false) })
+        : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked }),
+    h("div", { key: "tb", className: "tr-toolbar" }, [
+      h("button", { key: "l", onClick: organizarTudo }, "⇶ Organizar"),
+      h("button", { key: "f", title: "F", className: ferramenta === "frame" ? "tr-on" : "",
+                    onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },
+        "▭ Frame"),
+      // Segmentado, e não `<select>`: as cinco proporções cabem à vista e
+      // trocam num clique. O botão que fica com o foco não prende o teclado —
+      // o listener de atalhos só ignora campos de texto e `<select>`, então o
+      // F seguinte ainda abre a ferramenta, e dígito nenhum troca a proporção
+      // por busca por letra.
+      h(Segmented, { key: "fa", options: Object.keys(ASPECTS), value: aspectoNovo,
+                     onChange: setAspectoNovo, title: "proporção dos frames novos" }),
+      h("button", { key: "pr", className: prancheta ? "tr-on" : "",
+                    title: "grade de frames de uma vez", "data-prancheta": "",
+                    onClick: () => setPrancheta((v) => v ? null
+                      : { ...pranchetaSalva(), aspect: aspectoNovo }) }, "⊞ Prancheta"),
+      h("button", { key: "fp", className: painelFrames ? "tr-on" : "",
+                    onClick: () => { setHelpFor(null); setPainelConfig(false);
+                                     setPainelFrames((v) => !v); } }, "▦ Frames"),
+      h("button", { key: "cfg", title: "configurações", className: painelConfig ? "tr-on" : "",
+                    onClick: () => { setHelpFor(null); setPainelFrames(false);
+                                     setPainelConfig((v) => !v); } }, "⚙"),
+      h("button", { key: "u", onClick: desfazer, title: "Ctrl+Z" }, "↶ Desfazer"),
+      h("button", { key: "r", onClick: () => sendInput("tr_rerun", Date.now()) }, "↻ Recalcular"),
+      // Embrulhado: o segmentado da toolbar nasce colado no botão anterior (o da
+      // proporção pertence ao "▭ Frame"), e o do tema é um grupo à parte.
+      h("div", { key: "ta", className: "tr-toolbar-tema" },
+        h(Segmented, { value: temaApp, onChange: setTemaApp, title: "tema do app",
+                       options: [{ value: "claro", label: "☀", title: "tema claro" },
+                                 { value: "sistema", label: "◐", title: "seguir o sistema" },
+                                 { value: "escuro", label: "☾", title: "tema escuro" }] })),
+      // Só o nome da pasta cabe na barra; o caminho inteiro fica na dica. Até
+      // aqui nada na tela respondia "em que projeto eu estou" — o título da
+      // janela é do Shiny e o canvas não diz de onde o grafo veio.
+      // A navegação começa onde o projeto está, não na pasta de trabalho do R:
+      // quem troca de projeto quase sempre vai para uma vizinha.
+      // Limpar `listagem` ao abrir: ela é estado do App e sobrevive ao
+      // fechamento, então o diálogo pintava NA HORA o caminho e as pastas da
+      // navegação anterior — linhas clicáveis, e "Abrir" podendo estar
+      // habilitado para uma pasta que o usuário não escolheu — até o
+      // `tr_browse` da raiz responder. Com `null`, o componente mostra "…",
+      // que é a verdade. O banner some pelo mesmo motivo: a recusa da sessão
+      // passada não fala do que está na tela agora.
+      // A raiz cai em `projeto.root` quando ele é "/" — `filter(Boolean).pop()`
+      // devolve `undefined` numa string só de barras, e o rótulo virava
+      // "📁 undefined". Nome comprido é aparado pelo CSS, não aqui.
+      h("button", { key: "pj", className: "tr-toolbar-proj",
+                    title: projeto ? projeto.root : "projeto",
+                    onClick: () => { setBanner(null); setListagem(null); setEnviando(null);
+                                     setAbrindo(true);
+                                     sendInput("tr_browse", { seq: ++seqCounter,
+                                                              path: projeto?.root || "." }); } },
+        `📁 ${projeto ? (projeto.root.split("/").filter(Boolean).pop() || projeto.root)
+                      : "projeto"}`),
+    ]),
+    // Irmão da toolbar, no mesmo `.tr-app`: o CSS o põe logo abaixo dela.
+    // `inicial` só é lido ao montar; é o retrato tirado ao abrir, com a
+    // proporção da toolbar daquele momento.
+    prancheta ? h(PranchetaPopover, { key: "prancheta",
+      inicial: prancheta,
+      existentes: nodes.filter((n) => n.type === "trFrame").length,
+      onCriar: criarPrancheta, onFechar: fecharPrancheta }) : null,
+    banner ? h("div", { key: "bn", className: "tr-banner", onClick: () => setBanner(null) },
+      banner) : null,
+    abrindo ? h(ProjectDialog, { key: "pd", listagem, atual: projeto?.root, enviando,
+      onBrowse: (p) => sendInput("tr_browse", { seq: ++seqCounter, path: p }),
+      onOpen: (p) => { setEnviando("abrir");
+                       sendInput("tr_project_open", { seq: ++seqCounter, path: p }); },
+      onNew: (p, nome) => { setEnviando("criar");
+                            sendInput("tr_project_new", { seq: ++seqCounter, path: p, nome }); },
+      onClose: fecharDialogo }) : null,
+  ]);
+}
+
+createRoot(document.getElementById("tr-root"))
+  .render(h(ReactFlowProvider, null, h(App)));

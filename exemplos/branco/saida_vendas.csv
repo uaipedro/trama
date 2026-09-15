@@ -1,0 +1,17 @@
+regiao,produto,contagem,valor
+leste,cafe,19,7806.94
+norte,farinha,17,7625.11
+oeste,cafe,17,7516.67
+sul,cafe,15,6147.7
+leste,cha,12,7806.94
+norte,acucar,12,7625.11
+norte,cafe,11,7625.11
+norte,cha,11,7625.11
+oeste,acucar,11,7516.67
+oeste,cha,11,7516.67
+sul,farinha,11,6147.7
+leste,farinha,10,7806.94
+oeste,farinha,10,7516.67
+leste,acucar,9,7806.94
+sul,acucar,8,6147.7
+sul,cha,7,6147.7

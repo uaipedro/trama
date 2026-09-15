@@ -1,0 +1,44 @@
+Package: trama.series
+Title: Time Series Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for time series in a trama graph: operators (differencing,
+    lags, transforms, windows, moving averages, aggregation), classical and
+    STL decomposition, ARIMA, ETS and Holt-Winters models with forecasts and
+    benchmarks, stationarity and white-noise tests, and series-specific plots
+    such as correlograms, seasonal and lag plots. Builds on trama.data for
+    tables and on trama.view for plots, without duplicating either.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    trama,
+    trama.data,
+    trama.view,
+    forecast (>= 8.0),
+    urca,
+    ggplot2 (>= 4.0.0),
+    rlang,
+    tibble,
+    datasets,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    png,
+    randtests,
+    trend
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama,
+    uaipedro/trama/collections/trama.data,
+    uaipedro/trama/collections/trama.view

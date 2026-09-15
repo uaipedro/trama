@@ -1,0 +1,460 @@
+{
+  "format": 1,
+  "rev": 40,
+  "collections": {
+    "series": "0.1.0",
+    "data": "0.1.0"
+  },
+  "nodes": {
+    "pax": {
+      "type": "series/example",
+      "type_version": 1,
+      "label": "Passageiros aéreos",
+      "params": {
+        "dataset": "AirPassengers"
+      },
+      "seed": 70479718
+    },
+    "sazonal": {
+      "type": "series/seasonal_plot",
+      "type_version": 1,
+      "label": "Gráfico sazonal",
+      "params": {},
+      "seed": 207966861
+    },
+    "stl": {
+      "type": "series/stl",
+      "type_version": 1,
+      "label": "STL",
+      "params": {},
+      "seed": 114583917
+    },
+    "dessaz": {
+      "type": "series/component",
+      "type_version": 1,
+      "label": "Componente",
+      "params": {
+        "componente": "dessazonalizada"
+      },
+      "seed": 147234122
+    },
+    "log": {
+      "type": "series/transform",
+      "type_version": 1,
+      "label": "Transformar",
+      "params": {
+        "metodo": "log"
+      },
+      "seed": 216054599
+    },
+    "d12": {
+      "type": "series/diff",
+      "type_version": 1,
+      "label": "Diferença sazonal",
+      "params": {
+        "tipo": "sazonal"
+      },
+      "seed": 164109057
+    },
+    "d1": {
+      "type": "series/diff",
+      "type_version": 1,
+      "label": "Diferença simples",
+      "params": {},
+      "seed": 258635110
+    },
+    "acf": {
+      "type": "series/acf",
+      "type_version": 1,
+      "label": "Correlograma (ACF)",
+      "params": {
+        "defasagens": 36
+      },
+      "seed": 36229276
+    },
+    "pacf": {
+      "type": "series/pacf",
+      "type_version": 1,
+      "label": "Autocorrelação parcial (PACF)",
+      "params": {
+        "defasagens": 36
+      },
+      "seed": 104506666
+    },
+    "adf": {
+      "type": "series/adf",
+      "type_version": 1,
+      "label": "ADF",
+      "params": {},
+      "seed": 18762628
+    },
+    "kpss": {
+      "type": "series/kpss",
+      "type_version": 1,
+      "label": "KPSS",
+      "params": {},
+      "seed": 87215403
+    },
+    "pp": {
+      "type": "series/phillips_perron",
+      "type_version": 1,
+      "label": "Phillips-Perron",
+      "params": {},
+      "seed": 231904417
+    },
+    "treino": {
+      "type": "series/window",
+      "type_version": 1,
+      "label": "Treino até 1958",
+      "params": {
+        "fim": "1958"
+      },
+      "seed": 170543994
+    },
+    "ets": {
+      "type": "series/ets",
+      "type_version": 1,
+      "label": "ETS",
+      "params": {},
+      "seed": 214115988
+    },
+    "prev": {
+      "type": "series/forecast",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {
+        "horizonte": 24
+      },
+      "seed": 29975223
+    },
+    "erro_ets": {
+      "type": "series/accuracy",
+      "type_version": 1,
+      "label": "Acurácia ETS",
+      "params": {},
+      "seed": 149034324
+    },
+    "ref": {
+      "type": "series/baseline",
+      "type_version": 1,
+      "label": "Previsão de referência",
+      "params": {
+        "metodo": "ingênuo sazonal",
+        "horizonte": 24
+      },
+      "seed": 256605114
+    },
+    "erro_ref": {
+      "type": "series/accuracy",
+      "type_version": 1,
+      "label": "Acurácia referência",
+      "params": {},
+      "seed": 196038535
+    },
+    "comparar": {
+      "type": "data/bind_rows",
+      "type_version": 1,
+      "label": "ETS contra referência",
+      "params": {},
+      "seed": 117866564
+    },
+    "res": {
+      "type": "series/residuals",
+      "type_version": 1,
+      "label": "Resíduos",
+      "params": {},
+      "seed": 256075498
+    },
+    "lb": {
+      "type": "series/ljung_box",
+      "type_version": 1,
+      "label": "Resíduos são ruído?",
+      "params": {},
+      "seed": 260978183
+    }
+  },
+  "edges": [
+    {
+      "from": {
+        "node": "pax",
+        "port": "out"
+      },
+      "to": {
+        "node": "sazonal",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pax",
+        "port": "out"
+      },
+      "to": {
+        "node": "stl",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "stl",
+        "port": "out"
+      },
+      "to": {
+        "node": "dessaz",
+        "port": "decomposicao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pax",
+        "port": "out"
+      },
+      "to": {
+        "node": "log",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "log",
+        "port": "out"
+      },
+      "to": {
+        "node": "d12",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "d12",
+        "port": "out"
+      },
+      "to": {
+        "node": "d1",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "d1",
+        "port": "out"
+      },
+      "to": {
+        "node": "acf",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "d1",
+        "port": "out"
+      },
+      "to": {
+        "node": "pacf",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "d1",
+        "port": "out"
+      },
+      "to": {
+        "node": "adf",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "d1",
+        "port": "out"
+      },
+      "to": {
+        "node": "kpss",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "d1",
+        "port": "out"
+      },
+      "to": {
+        "node": "pp",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pax",
+        "port": "out"
+      },
+      "to": {
+        "node": "treino",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "treino",
+        "port": "out"
+      },
+      "to": {
+        "node": "ets",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "ets",
+        "port": "out"
+      },
+      "to": {
+        "node": "prev",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "prev",
+        "port": "out"
+      },
+      "to": {
+        "node": "erro_ets",
+        "port": "previsao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pax",
+        "port": "out"
+      },
+      "to": {
+        "node": "erro_ets",
+        "port": "real"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "treino",
+        "port": "out"
+      },
+      "to": {
+        "node": "ref",
+        "port": "serie"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "ref",
+        "port": "out"
+      },
+      "to": {
+        "node": "erro_ref",
+        "port": "previsao"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "pax",
+        "port": "out"
+      },
+      "to": {
+        "node": "erro_ref",
+        "port": "real"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "erro_ets",
+        "port": "out"
+      },
+      "to": {
+        "node": "comparar",
+        "port": "tabelas"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "erro_ref",
+        "port": "out"
+      },
+      "to": {
+        "node": "comparar",
+        "port": "tabelas"
+      },
+      "index": 2
+    },
+    {
+      "from": {
+        "node": "ets",
+        "port": "out"
+      },
+      "to": {
+        "node": "res",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "res",
+        "port": "out"
+      },
+      "to": {
+        "node": "lb",
+        "port": "serie"
+      },
+      "index": 1
+    }
+  ],
+  "ui": {
+    "positions": {
+      "pax": [40, 800],
+      "sazonal": [380, 40],
+      "stl": [380, 420],
+      "dessaz": [720, 420],
+      "log": [380, 800],
+      "d12": [720, 800],
+      "d1": [1060, 800],
+      "acf": [1400, 610],
+      "pacf": [1400, 990],
+      "adf": [1740, 800],
+      "kpss": [2080, 800],
+      "pp": [2420, 800],
+      "treino": [380, 1370],
+      "ets": [720, 1370],
+      "prev": [1060, 1370],
+      "erro_ets": [1400, 1370],
+      "ref": [720, 1750],
+      "erro_ref": [1400, 1750],
+      "comparar": [1740, 1560],
+      "res": [1060, 2130],
+      "lb": [1400, 2130]
+    },
+    "sizes": {},
+    "views": {},
+    "frames": {},
+    "folds": {}
+  }
+}

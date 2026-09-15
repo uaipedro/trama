@@ -1,0 +1,41 @@
+Package: trama
+Title: Interactive Node-Graph Computation with Live Previews
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Build and run computation graphs interactively. Nodes are typed R
+    functions with declared ports and parameters; a flow is a plain JSON
+    document; execution is pull-based, content-addressed and incremental, so
+    editing a parameter recomputes only what depends on it. Every node renders
+    its own result in the canvas with a registered renderer, making each step
+    of a pipeline visible rather than implied. Domain knowledge lives entirely
+    in registrable collections, never in the core, so new domains are added
+    without modifying the package.
+License: MIT + file LICENSE
+URL: https://github.com/uaipedro/trama
+BugReports: https://github.com/uaipedro/trama/issues
+Copyright: file inst/COPYRIGHTS
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1)
+Imports:
+    stats,
+    rlang,
+    jsonlite,
+    htmltools,
+    shiny,
+    later
+Suggests:
+    testthat (>= 3.0.0),
+    withr,
+    mirai,
+    pkgload
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
