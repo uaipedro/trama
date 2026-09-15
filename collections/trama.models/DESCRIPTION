@@ -46,5 +46,5 @@ Suggests:
 Config/testthat/edition: 3
 Remotes:
     uaipedro/trama,
-    uaipedro/trama/collections/trama.data,
-    uaipedro/trama/collections/trama.view
+    trama.data=github::uaipedro/trama/collections/trama.data,
+    trama.view=github::uaipedro/trama/collections/trama.view
