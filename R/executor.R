@@ -54,8 +54,8 @@ tr_executor_pool <- function(n = 2L, registry = .tr_default_registry, setup = NU
   # unidade despachada, muito depois e sem relação com a causa.
   orphan <- Filter(function(c) is.null(c$package), registry$collections)
   if (length(orphan) > 0) {
-    rlang::abort(sprintf(
-      "Coleção(ões) %s não vieram de um pacote e não podem ser despachadas para daemons. Use tr_executor_sequential().",
+    rlang::abort(.tr_msg(
+      "executor.collection_not_dispatchable",
       paste(vapply(orphan, function(c) c$id, ""), collapse = ", ")),
       class = "tr_error_collection_not_dispatchable")
   }

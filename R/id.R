@@ -62,7 +62,7 @@
 .tr_check_node_id <- function(id) {
   if (!is.character(id) || length(id) != 1L || is.na(id) || !nzchar(id) ||
       grepl("[^A-Za-z0-9_.-]", id)) {
-    rlang::abort(sprintf("Id de nó inválido: '%s'. Use apenas [A-Za-z0-9_.-].", id),
+    rlang::abort(.tr_msg("id.invalid_node_id", id),
                  class = "tr_error_bad_id")
   }
   invisible(id)

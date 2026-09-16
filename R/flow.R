@@ -69,9 +69,7 @@ tr_add <- function(flow, id, type, ..., from = NULL, label = NULL, seed = NULL, 
   ambiguos <- setdiff(ambiguos, passados)
   if (length(ambiguos)) {
     rlang::abort(
-      sprintf(paste0("Em '%s', %s é param do nó E argumento de tr_add(): o valor ",
-                     "foi para o argumento da DSL, não para o param. Use tr_set() ",
-                     "para preencher o param."),
+      .tr_msg("flow.param_name_collision",
               type, paste(sprintf("'%s'", ambiguos), collapse = " e ")),
       class = "tr_error_param_shadow")
   }

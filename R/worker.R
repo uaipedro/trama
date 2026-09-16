@@ -52,7 +52,7 @@
   if (is.null(ref$adapter)) return(v)
   ad <- tr_adapter_for(ref$adapter$from, ref$adapter$to, registry)
   if (is.null(ad)) {
-    rlang::abort(sprintf("Adaptador %s -> %s não está registrado neste worker.",
+    rlang::abort(.tr_msg("worker.adapter_not_registered",
                          ref$adapter$from, ref$adapter$to),
                  class = "tr_error_unknown_adapter")
   }
@@ -81,7 +81,7 @@
   # falharia com "chave ausente", longe da causa.
   if (!is.list(value) || !all(ports %in% names(value))) {
     rlang::abort(
-      sprintf("'%s' declara as saídas %s mas devolveu %s.", unit$node_type,
+      .tr_msg("worker.output_mismatch", unit$node_type,
               paste(ports, collapse = ", "),
               if (is.list(value)) paste(names(value), collapse = ", ") else class(value)[1]),
       class = "tr_error_bad_output"

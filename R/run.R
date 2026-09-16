@@ -58,12 +58,12 @@ tr_value <- function(doc, node, registry = .tr_default_registry, store,
                 settings = settings)
   u <- res$plan$units[[node]]
   if (length(u$output_types) == 0) {
-    rlang::abort(sprintf("Nó '%s' (%s) não tem porta de saída.", node, u$node_type),
+    rlang::abort(.tr_msg("run.no_output_port", node, u$node_type),
                  class = "tr_error_no_output")
   }
   port <- port %||% names(u$output_types)[[1]]
   if (is.null(u$outputs[[port]])) {
-    rlang::abort(sprintf("Porta de saída desconhecida em '%s': '%s'.", u$node_type, port),
+    rlang::abort(.tr_msg("run.unknown_output_port", u$node_type, port),
                  class = "tr_error_unknown_port")
   }
   tr_store_get(store, u$outputs[[port]], tr_get_type(u$output_types[[port]], registry))

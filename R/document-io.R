@@ -58,7 +58,7 @@ tr_doc_write <- function(doc, path) {
 tr_doc_parse <- function(txt) {
   doc <- jsonlite::fromJSON(txt, simplifyVector = FALSE)
   if (!identical(as.integer(doc$format %||% NA_integer_), 1L)) {
-    rlang::abort(sprintf("Formato de documento não suportado: %s.", doc$format %||% "ausente"),
+    rlang::abort(.tr_msg("document_io.unsupported_format", doc$format %||% "ausente"),
                  class = "tr_error_bad_format")
   }
   doc$format <- 1L

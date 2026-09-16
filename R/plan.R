@@ -32,7 +32,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     if (id %in% visiting) rlang::abort(sprintf("Ciclo no plano: %s.", id), class = "tr_error_cycle")
     visiting <<- c(visiting, id)
     node <- doc$nodes[[id]]
-    if (is.null(node)) rlang::abort(sprintf("Nó '%s' não existe.", id), class = "tr_error_unknown_node")
+    if (is.null(node)) rlang::abort(.tr_msg("plan.node_not_found", id), class = "tr_error_unknown_node")
     spec <- tr_get_node(node$type, registry)
 
     incoming <- by_target[[id]] %||% list()

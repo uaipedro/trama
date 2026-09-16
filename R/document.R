@@ -65,10 +65,10 @@ tr_op_semantic <- function(op) {
 
 .tr_node_or_abort <- function(doc, id) {
   if (!is.character(id) || length(id) != 1L) {
-    rlang::abort("Op sem referência de nó válida.", class = "tr_error_bad_op")
+    rlang::abort(.tr_msg("document.op_no_ref_node"), class = "tr_error_bad_op")
   }
   n <- doc$nodes[[id]]
-  if (is.null(n)) rlang::abort(sprintf("Nó '%s' não existe.", id), class = "tr_error_unknown_node")
+  if (is.null(n)) rlang::abort(.tr_msg("document.node_not_found", id), class = "tr_error_unknown_node")
   n
 }
 
@@ -80,12 +80,11 @@ tr_op_semantic <- function(op) {
 #' @noRd
 .tr_require <- function(op, fields) {
   if (!is.list(op) || is.null(op$op) || !is.character(op$op) || length(op$op) != 1L) {
-    rlang::abort("Op malformada: campo 'op' ausente ou inválido.", class = "tr_error_bad_op")
+    rlang::abort(.tr_msg("document.bad_op_missing_field"), class = "tr_error_bad_op")
   }
   missing <- fields[vapply(fields, function(f) is.null(op[[f]]), logical(1))]
   if (length(missing) > 0) {
-    rlang::abort(sprintf("Op '%s' sem campo(s) obrigatório(s): %s.",
-                         op$op, paste(missing, collapse = ", ")),
+    rlang::abort(.tr_msg("document.op_missing_fields", op$op, paste(missing, collapse = ", ")),
                  class = "tr_error_bad_op")
   }
   invisible(TRUE)
@@ -93,7 +92,7 @@ tr_op_semantic <- function(op) {
 
 .tr_scalar_num <- function(x, what) {
   if (length(x) != 1L || !is.numeric(x) || is.na(x)) {
-    rlang::abort(sprintf("%s deve ser um número.", what), class = "tr_error_bad_op")
+    rlang::abort(.tr_msg("document.not_numeric", what), class = "tr_error_bad_op")
   }
   as.numeric(x)
 }
@@ -124,7 +123,7 @@ tr_op_semantic <- function(op) {
 #' @noRd
 .tr_op_fn <- function(name) {
   if (!is.character(name) || length(name) != 1L || is.na(name)) {
-    rlang::abort("Op malformada: campo 'op' ausente ou inválido.", class = "tr_error_bad_op")
+    rlang::abort(.tr_msg("document.bad_op_missing_field"), class = "tr_error_bad_op")
   }
   switch(name,
     add_node = .tr_op_add_node, remove_node = .tr_op_remove_node,
@@ -158,16 +157,16 @@ tr_op_semantic <- function(op) {
   # Três defeitos distintos, três mensagens: juntá-los fazia `ops = "move"`
   # dizer "Batch vazio." e `ops = list(1, 2)` falar de batch aninhado.
   if (!is.list(ops) || length(ops) == 0L) {
-    rlang::abort("'ops' deve ser uma lista não vazia.", class = "tr_error_bad_op")
+    rlang::abort(.tr_msg("document.ops_empty"), class = "tr_error_bad_op")
   }
   n <- length(ops)
   for (i in seq_len(n)) {
     inner <- ops[[i]]
     if (!is.list(inner)) {
-      rlang::abort(sprintf("op %d de %d não é um objeto.", i, n), class = "tr_error_bad_op")
+      rlang::abort(.tr_msg("document.op_not_object", i, n), class = "tr_error_bad_op")
     }
     if (identical(inner$op, "batch")) {
-      rlang::abort(sprintf("op %d de %d: batch não pode conter batch.", i, n),
+      rlang::abort(.tr_msg("document.nested_batch", i, n),
                    class = "tr_error_bad_op")
     }
     # O nome só entra na mensagem se for um texto: o handler que reembala o
@@ -198,7 +197,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   id <- op$id %||% .tr_new_id()
   .tr_check_node_id(id)
   if (!is.null(doc$nodes[[id]])) {
-    rlang::abort(sprintf("Id de nó já existe: '%s'.", id), class = "tr_error_duplicate_id")
+    rlang::abort(.tr_msg("document.node_id_duplicate", id), class = "tr_error_duplicate_id")
   }
   unknown <- setdiff(names(op$params %||% list()), names(spec$params))
   if (length(unknown) > 0) {
@@ -263,7 +262,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   spec <- tr_get_node(n$type, registry)
   pspec <- spec$params[[op$name]]
   if (is.null(pspec)) {
-    rlang::abort(sprintf("Param '%s' não existe em '%s'.", op$name, n$type),
+    rlang::abort(.tr_msg("document.param_not_found", op$name, n$type),
                  class = "tr_error_unknown_param")
   }
   doc$nodes[[op$node]]$params[[op$name]] <- .tr_check_param_value(pspec, op$value, op$name)
@@ -334,10 +333,10 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
 
 .tr_frame_or_abort <- function(doc, id) {
   if (!is.character(id) || length(id) != 1L) {
-    rlang::abort("Op sem referência de frame válida.", class = "tr_error_bad_op")
+    rlang::abort(.tr_msg("document.op_no_ref_frame"), class = "tr_error_bad_op")
   }
   f <- doc$ui$frames[[id]]
-  if (is.null(f)) rlang::abort(sprintf("Frame '%s' não existe.", id), class = "tr_error_unknown_frame")
+  if (is.null(f)) rlang::abort(.tr_msg("document.frame_not_found", id), class = "tr_error_unknown_frame")
   f
 }
 
@@ -357,8 +356,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
 .tr_check_aspect <- function(x) {
   x <- .tr_scalar_chr(x, "aspect")
   if (!x %in% .tr_aspects) {
-    rlang::abort(sprintf("Proporção desconhecida: '%s'. Use uma de: %s.",
-                         x, paste(.tr_aspects, collapse = ", ")),
+    rlang::abort(.tr_msg("document.unknown_proportion", x, paste(.tr_aspects, collapse = ", ")),
                  class = "tr_error_bad_op")
   }
   x
@@ -380,7 +378,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   id <- op$id %||% .tr_new_id()
   .tr_check_node_id(id)
   if (!is.null(doc$ui$frames[[id]])) {
-    rlang::abort(sprintf("Id de frame já existe: '%s'.", id), class = "tr_error_duplicate_id")
+    rlang::abort(.tr_msg("document.frame_id_duplicate", id), class = "tr_error_duplicate_id")
   }
   orders <- vapply(doc$ui$frames, function(f) as.numeric(f$order %||% 0), numeric(1))
   order <- if (is.null(op$order)) {
@@ -455,7 +453,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   for (k in given) {
     v <- op[[k]]
     if (length(v) != 1L || !is.logical(v) || is.na(v)) {
-      rlang::abort(sprintf("%s deve ser lógico.", k), class = "tr_error_bad_op")
+      rlang::abort(.tr_msg("document.not_logical", k), class = "tr_error_bad_op")
     }
     fold[[k]] <- v
   }
@@ -476,7 +474,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
                  class = "tr_error_unknown_port")
   }
   if (!tr_compatible(out_port$type, in_port$type, registry)) {
-    rlang::abort(sprintf("Tipos incompatíveis: %s (%s) -> %s (%s).",
+    rlang::abort(.tr_msg("document.type_mismatch_detailed",
                          op$from_port, out_port$type, op$to_port, in_port$type),
                  class = "tr_error_type_mismatch")
   }
@@ -499,7 +497,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   edge <- list(from = list(node = op$from_node, port = op$from_port),
                to = list(node = op$to_node, port = op$to_port), index = index)
   if (any(vapply(doc$edges, function(e) identical(.tr_edge_key(e), .tr_edge_key(edge)), logical(1)))) {
-    rlang::abort("Aresta já existe.", class = "tr_error_duplicate_edge")
+    rlang::abort(.tr_msg("document.edge_duplicate"), class = "tr_error_duplicate_edge")
   }
   .tr_check_no_cycle(doc, op$from_node, op$to_node)
   doc$edges <- c(doc$edges, list(edge))
@@ -517,7 +515,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   n_before <- length(doc$edges)
   doc$edges <- Filter(function(e) !matches(e), doc$edges)
   if (length(doc$edges) == n_before) {
-    rlang::abort("Aresta não existe.", class = "tr_error_unknown_edge")
+    rlang::abort(.tr_msg("document.edge_not_found"), class = "tr_error_unknown_edge")
   }
   list(doc = doc, op = op)
 }
@@ -612,7 +610,7 @@ tr_doc_terminals <- function(doc) {
 
 #' @export
 print.tr_doc <- function(x, ...) {
-  cat(sprintf("<tr_doc> rev %d | %d nó(s), %d aresta(s)\n", x$rev, length(x$nodes), length(x$edges)))
+  cat(.tr_msg("document.print_doc", x$rev, length(x$nodes), length(x$edges)))
   if (length(x$collections)) {
     cat("  coleções:", paste(sprintf("%s@%s", names(x$collections), unlist(x$collections)), collapse = ", "), "\n")
   }
@@ -625,7 +623,7 @@ print.tr_doc <- function(x, ...) {
 
 #' @export
 print.tr_registry <- function(x, ...) {
-  cat(sprintf("<tr_registry> %d coleção(ões), %d tipo(s), %d nó(s), %d adaptador(es)\n",
+  cat(.tr_msg("document.print_registry",
               length(x$collections), length(x$types), length(x$nodes), length(x$adapters)))
   for (c in x$collections) cat(sprintf("  %s@%s\n", c$id, c$version))
   invisible(x)

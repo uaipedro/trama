@@ -23,11 +23,11 @@ tr_submit <- function(doc, envelope, registry = .tr_default_registry) {
   # que ela mais importa: cliente com bug, payload truncado, JSON malformado.
   if (length(base_rev) != 1L || !is.numeric(base_rev) || is.na(base_rev)) {
     return(list(ok = FALSE, doc = doc, seq = envelope$seq, reason = "malformed",
-                message = "Envelope sem 'base_rev' válido."))
+                message = .tr_msg("session.missing_base_rev")))
   }
   if (!identical(as.integer(base_rev), doc$rev)) {
     return(list(ok = FALSE, doc = doc, seq = envelope$seq, reason = "stale_rev",
-                message = sprintf("Revisão defasada: cliente em %s, servidor em %s.", base_rev, doc$rev)))
+                message = .tr_msg("session.outdated_revision", base_rev, doc$rev)))
   }
   tryCatch({
     res <- .tr_apply(doc, envelope$op, registry)
