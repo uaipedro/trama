@@ -57,6 +57,23 @@ tr_value <- function(doc, node, registry = .tr_default_registry, store,
   res <- tr_run(doc, targets = node, registry = registry, store = store, executor = executor,
                 settings = settings)
   u <- res$plan$units[[node]]
+  # Membro INTERIOR de região não tem unidade própria: a região é uma unidade
+  # só, nomeada pelo colapso. Sem este ramo `u` era NULL,
+  # `length(u$output_types)` dava 0, e o `sprintf` com `u$node_type = NULL`
+  # devolvia `character(0)` — o abort saía com a mensagem VAZIA, e quem pedisse
+  # o valor de um nó de dentro da região não recebia pista nenhuma. É pra isto
+  # que `plan$region_of` existe; era o único lugar do pacote que devia lê-lo.
+  if (is.null(u)) {
+    rid <- res$plan$region_of[[node]]
+    if (!is.null(rid)) {
+      rlang::abort(sprintf(
+        paste0("'%s' é nó interior da região de fluxo executada por '%s' e não grava ",
+               "artefato próprio: dentro da região ele só tem o valor do ponto da vez. ",
+               "Peça o valor de '%s', que é onde o histórico da região vai pro store."),
+        node, rid, rid), class = "tr_error_no_output")
+    }
+    rlang::abort(sprintf("Nó '%s' não está no plano.", node), class = "tr_error_unknown_node")
+  }
   if (length(u$output_types) == 0) {
     rlang::abort(sprintf("Nó '%s' (%s) não tem porta de saída.", node, u$node_type),
                  class = "tr_error_no_output")

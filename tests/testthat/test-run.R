@@ -454,3 +454,32 @@ test_that(".ctx$path resolve contra a raiz do projeto, e o fingerprint olha o me
     expect_equal(tr_value(doc, "r", registry = reg, store = s)$v, 8)
   })
 })
+
+test_that("tr_value de nó INTERIOR de região erra nomeando a região", {
+  # `plan$units[[node]]` é NULL para um membro interior — a região é uma unidade
+  # só, nomeada pelo colapso. Sem consultar `plan$region_of`,
+  # `length(u$output_types)` dava 0, o `sprintf` com `u$node_type = NULL`
+  # devolvia `character(0)`, e o abort saía com mensagem VAZIA: quem pedisse o
+  # valor de um nó de dentro da região não recebia pista nenhuma de por quê.
+  # Regressão: em `9d9b9b3` cada nó interior tinha unidade própria.
+  reg <- stream_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("acumula", "s/acumula", from = "fonte") |>
+    tr_add("colapsa", "s/colapsa", from = "acumula"))
+
+  err <- tryCatch(tr_value(doc, "acumula", reg, s), error = function(e) e)
+  expect_s3_class(err, "tr_error_no_output")
+  msg <- conditionMessage(err)
+  expect_true(nzchar(msg))
+  # A mensagem nomeia o nó pedido, a unidade que o executa, e o que pedir no
+  # lugar: é o que transforma "não tem saída" em algo acionável.
+  expect_match(msg, "'acumula'")
+  expect_match(msg, "'colapsa'")
+
+  # Nó que não está no plano de jeito nenhum tem mensagem própria, e não a
+  # mensagem vazia de antes.
+  err2 <- tryCatch(tr_value(doc, "fonte", reg, s), error = function(e) e)
+  expect_s3_class(err2, "tr_error_no_output")
+  expect_match(conditionMessage(err2), "'fonte'")
+})
