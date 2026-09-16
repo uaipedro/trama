@@ -97,7 +97,18 @@ stream_collection <- function() {
               description = "Nunca cacheia entre execuções."),
       tr_node("s/contexto", fn = function(x, .ctx) x,
               inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
-              description = "Precisa do contexto da unidade.")
+              description = "Precisa do contexto da unidade."),
+      # Nó com memória que ACUMULA os três motivos de "não elevável". Existe pra
+      # provar que a isenção do `online` na validação é o que decide: sem ela,
+      # um nó que roda por `init`/`step` — contrato próprio, não elevação —
+      # seria recusado por ser impuro, e nenhum outro nó da coleção exercita
+      # esse caminho.
+      tr_node("s/acumula_impuro", fn = function(x, .ctx) x,
+              inputs = list(x = ponto()), outputs = list(out = ponto()),
+              pure = FALSE, volatile = TRUE, fingerprint = function(params) "eeee",
+              init = function() list(n = 0),
+              step = function(state, x) list(state = state, out = x),
+              description = "Acumula lendo o mundo fora do grafo.")
     )
   )
 }

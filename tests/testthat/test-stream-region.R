@@ -173,8 +173,84 @@ test_that("fonte que alimenta outra fonte não reprocessa nem duplica ninguém",
   expect_equal(r$source, c("f1", "f2"))
   expect_equal(r$nodes, c("f1", "f2", "fim"))
   expect_equal(r$collapse, "fim")
-  # A aresta f1 -> f2 é INTERNA: não pode aparecer como entrada de fora.
+  # A aresta f1 -> f2 é INTERNA: não pode aparecer como entrada de fora. Sai de
+  # uma porta DECLARADA como fluxo, e é isso que a distingue do colapso ligado
+  # numa fonte, que dá duas regiões — ali a aresta não transporta fluxo.
   expect_length(r$external, 0L)
+})
+
+test_that("colapso de uma região que alimenta a fonte da outra dá DUAS regiões", {
+  # Documento SAUDÁVEL, e o que o desenho quer: a primeira região colapsa de
+  # volta no ecossistema (`c1` grava artefato no store) e a segunda reparte esse
+  # artefato em pontos outra vez. Enquanto a componente conexa era calculada com
+  # TODA aresta entre membros, `c1:out -> f2:dados` fundia as duas numa região
+  # só e o documento era recusado por "mais de uma fonte" — dizendo ao autor que
+  # colapsasse um fluxo antes de ligá-lo no outro, que é exatamente o que ele
+  # fez. Só aresta que TRANSPORTA fluxo liga componentes.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("c1", "s/colapsa", from = "f1") |>
+    tr_add("f2", "s/fonte", from = "c1") |>
+    tr_add("c2", "s/colapsa", from = "f2")
+
+  rs <- regioes(f)
+  expect_length(rs, 2L)
+  expect_named(rs, c("f1", "f2"))
+  expect_equal(rs[["f1"]]$nodes, c("f1", "c1"))
+  expect_equal(rs[["f1"]]$source, "f1")
+  expect_equal(rs[["f2"]]$nodes, c("f2", "c2"))
+  expect_equal(rs[["f2"]]$source, "f2")
+
+  # E a aresta do colapso pra fonte seguinte NÃO desaparece: ela é entrada
+  # comum da segunda região, e é ela que a Fase 3 tem que resolver pra saber em
+  # qual porta o artefato de `c1` entra. Classificada como interna, sumia.
+  ext <- rs[["f2"]]$external
+  expect_length(ext, 1L)
+  expect_equal(paste0(ext[[1]]$from$node, ":", ext[[1]]$from$port), "c1:out")
+  expect_equal(paste0(ext[[1]]$to$node, ":", ext[[1]]$to$port), "f2:dados")
+  # A primeira região não recebe nada de fora.
+  expect_length(rs[["f1"]]$external, 0L)
+})
+
+test_that("colapso que alimenta porta comum de nó com memória de outra região não funde", {
+  # O caso de validação do desenho — "o modelo treinado entra na região por
+  # entrada comum" — quando o tal upstream é o colapso de OUTRA região. Mesma
+  # fusão indevida, por uma porta comum em vez da porta de dados da fonte.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("c1", "s/colapsa", from = "f1") |>
+    tr_add("f2", "s/fonte") |>
+    tr_add("acc", "s/acumula", from = "f2") |>
+    tr_link("c1:out", "acc:k") |>
+    tr_add("c2", "s/colapsa", from = "acc")
+
+  rs <- regioes(f)
+  expect_length(rs, 2L)
+  expect_equal(rs[["f1"]]$nodes, c("f1", "c1"))
+  expect_equal(rs[["f2"]]$nodes, c("f2", "acc", "c2"))
+  destinos <- vapply(rs[["f2"]]$external, function(e) paste0(e$to$node, ":", e$to$port), "")
+  expect_setequal(destinos, "acc:k")
+})
+
+test_that("saída comum que alimenta a fonte de outra região escapa, não funde", {
+  # `fonte:resumo` é saída COMUM de um nó que emite fluxo: não transporta fluxo,
+  # logo não liga componentes. Duas regiões — e a recusa certa é `escapes`, que
+  # aponta o valor parcial sendo consumido fora, não `multi_source`, que mandaria
+  # o autor separar regiões que já estão separadas.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte_dupla") |>
+    tr_add("fim", "s/colapsa") |>
+    tr_link("fonte:fluxo", "fim:x") |>
+    tr_add("f2", "s/fonte") |>
+    tr_link("fonte:resumo", "f2:dados") |>
+    tr_add("fim2", "s/colapsa", from = "f2")
+
+  rs <- detecta(f)
+  expect_length(rs, 2L)
+  expect_named(rs, c("f2", "fonte"))
+  expect_equal(rs[["fonte"]]$nodes, c("fonte", "fim"))
+  expect_equal(rs[["f2"]]$nodes, c("f2", "fim2"))
+  expect_error(regioes(f), class = "tr_error_stream_escapes")
 })
 
 test_that("aresta que entra de fora da região vira `external`", {
@@ -295,6 +371,70 @@ test_that("nó impuro, volátil ou que pede '.ctx' não pode ser elevado", {
     tr_add("fim", "s/colapsa", from = "fonte") |>
     tr_add("depois", "s/impuro", from = "fim")
   expect_equal(regioes(fora)[["fonte"]]$nodes, c("fonte", "fim"))
+})
+
+test_that("nó com memória impuro e volátil NÃO é recusado: ele roda por declaração", {
+  # A isenção do `online` na validação da elevação, que nenhum outro nó da
+  # coleção exercita. Um nó com `init`/`step` não é elevado ponto a ponto — o
+  # driver chama `step` com o estado — então impureza, volatilidade e `.ctx` não
+  # são defeito nele. Sem a isenção, declarar memória num nó que lê o mundo
+  # fora do grafo (ler um arquivo a cada ponto é o caso de uso, não o bug)
+  # abortaria o documento.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("acc", "s/acumula_impuro", from = "fonte") |>
+    tr_add("fim", "s/colapsa", from = "acc")
+
+  expect_no_error(regioes(f))
+  expect_equal(regioes(f)[["fonte"]]$nodes, c("fonte", "acc", "fim"))
+
+  # O contraste: o MESMO defeito num nó SEM memória é recusado. É a prova de que
+  # a isenção é do contrato `init`/`step`, não do nó.
+  sem_memoria <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("meio", "s/impuro", from = "fonte") |>
+    tr_add("fim", "s/colapsa", from = "meio")
+  expect_error(regioes(sem_memoria), class = "tr_error_not_liftable")
+})
+
+test_that("fonte com nada ligado é recusada por `regioes()`, não só devolvida pela detecção", {
+  # O par do teste de detecção lá em cima, contra a entrada pública: a região de
+  # um nó só existe no resultado da detecção, mas não sobrevive à validação.
+  f <- tr_flow(stream_registry()) |> tr_add("fonte", "s/fonte")
+  expect_error(regioes(f), class = "tr_error_stream_not_collected")
+  expect_error(regioes(f), "fonte")
+})
+
+test_that("com mais de um defeito, a recusa estrutural vem antes da recusa de nó", {
+  # A ordem é contrato, não acidente da escrita: defeito da REGIÃO (não tem uma
+  # fonte só, não fecha) vem antes de defeito de NÓ (escapa, não é elevável),
+  # porque o autor precisa primeiro de uma região bem formada pra que nomear um
+  # nó dentro dela signifique algo. Sem este teste, um refactor troca a ordem em
+  # silêncio e a primeira mensagem passa a ser a menos útil.
+
+  # Sem uma fonte só E sem colapso: ganha `multi_source`.
+  duas_fontes <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("f2", "s/fonte") |>
+    tr_link("f1:out", "f2:dados")
+  expect_error(regioes(duas_fontes), class = "tr_error_stream_multi_source")
+
+  # Sem colapso E com nó impuro elevado: ganha `not_collected`.
+  sem_fecho <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("meio", "s/impuro", from = "fonte")
+  expect_error(regioes(sem_fecho), class = "tr_error_stream_not_collected")
+
+  # Valor parcial escapando E nó impuro elevado: ganha `escapes`.
+  escapa <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte_dupla") |>
+    tr_add("fim", "s/colapsa") |>
+    tr_link("fonte:fluxo", "fim:x") |>
+    tr_add("meio", "s/impuro") |>
+    tr_link("fonte:fluxo", "meio:x") |>
+    tr_add("res", "s/mostra") |>
+    tr_link("fonte:resumo", "res:x")
+  expect_error(regioes(escapa), class = "tr_error_stream_escapes")
 })
 
 test_that("região saudável passa pela validação intacta", {

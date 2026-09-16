@@ -53,7 +53,7 @@
   # passo (o diamante), e reemitia a fonte que outra fonte alimenta — ela está
   # na fila inicial E é descoberta como membro. Com a fila, cada nó emite no
   # máximo uma vez e a corretude não depende de deduplicar nada depois.
-  membros <- fontes; colapsos <- character()
+  membros <- fontes; colapsos <- character(); arestas_fluxo <- list()
   fila <- fontes; emitiu <- character()
   while (length(fila) > 0) {
     atual <- fila[[1]]; fila <- fila[-1]
@@ -64,6 +64,16 @@
       # Só a porta DECLARADA como fluxo propaga, na fonte e no nó com memória;
       # num nó elevado não há declaração, e todas as saídas propagam.
       if (declara_saida_fluxo(sp_from) && !isTRUE(sp_from$outputs[[e$from$port]]$stream)) next
+      # Chegou aqui: esta aresta TRANSPORTA fluxo. Anotar acontece neste ponto
+      # porque é aqui que o predicado mora, e é este conjunto — não "toda aresta
+      # entre membros" — que liga as componentes em `.tr_stream_split()`. Com
+      # todas as arestas, o colapso de uma região ligado na fonte da outra (uma
+      # região colapsa de volta no ecossistema, a seguinte reparte o artefato)
+      # fundia as duas numa componente só: documento saudável recusado por "mais
+      # de uma fonte", mandando o autor fazer o que ele já tinha feito.
+      # Saída de colapso não entra aqui de graça: colapso nunca vai pra fila,
+      # então este laço nunca percorre as saídas dele.
+      arestas_fluxo <- c(arestas_fluxo, list(e))
       alvo <- e$to$node
       if (!(alvo %in% membros)) membros <- c(membros, alvo)
       if (eh_colapso(spec_of(alvo))) {
@@ -77,7 +87,7 @@
     }
   }
 
-  .tr_stream_split(doc, membros, fontes, colapsos)
+  .tr_stream_split(doc, membros, fontes, colapsos, arestas_fluxo)
 }
 
 #' Recusa toda região que não tem execução definida. Cinco recusas, e cada uma
@@ -86,6 +96,11 @@
 #'
 #' A mensagem sempre nomeia o nó (ou a região) e diz o que fazer: quem lê é o
 #' autor do documento no editor, não quem escreveu este arquivo.
+#'
+#' A ORDEM das recusas é parte do contrato (e tem teste): defeito ESTRUTURAL da
+#' região — não tem uma fonte só, não fecha — vem antes de defeito de NÓ —
+#' escapa, não é elevável — porque o autor precisa primeiro de uma região bem
+#' formada pra que nomear um nó dentro dela signifique alguma coisa.
 #' @noRd
 .tr_stream_validate <- function(region, doc, registry) {
   spec_of <- function(id) tr_get_node(doc$nodes[[id]]$type, registry)
@@ -116,15 +131,16 @@
   }
 
   # Saída COMUM de nó interior consumida fora da região. Pelas regras de
-  # propagação, quem come fluxo entra na região — então o único jeito de
-  # escapar é uma porta não declarada como fluxo num nó que também emite fluxo.
+  # propagação, quem come fluxo entra na região — e entra na MESMA componente,
+  # porque é a aresta de fluxo que liga componentes. Então o único jeito de
+  # escapar é uma porta não declarada como fluxo num nó que também emite fluxo;
+  # porta de fluxo apontando pra fora daqui não existe, e não há o que testar.
   # Dentro da região essa porta só tem o valor parcial do ponto da vez, e nada
   # dela vai pro store (só o colapso vai): sem recusar, o consumidor de fora
   # falharia com "chave ausente", longe da causa.
   for (e in doc$edges) {
     if (!(e$from$node %in% region$nodes) || e$to$node %in% region$nodes) next
     if (e$from$node %in% region$collapse) next
-    if (isTRUE(spec_of(e$from$node)$outputs[[e$from$port]]$stream)) next
     rlang::abort(sprintf(
       paste0("A porta '%s:%s' está dentro da região de fluxo '%s' mas alimenta '%s', ",
              "fora dela. Dentro da região ela só tem o valor parcial do ponto da vez, ",
@@ -165,24 +181,29 @@
   invisible(region)
 }
 
-#' Parte os nós de fluxo nas componentes conexas ligadas por arestas internas:
-#' dois `to_stream` independentes no mesmo documento são duas regiões, que
-#' executam separadamente.
+#' Parte os nós de fluxo nas componentes conexas ligadas pelas arestas que
+#' TRANSPORTAM fluxo (`fluxo`, anotado na propagação): dois `to_stream`
+#' independentes no mesmo documento são duas regiões, que executam
+#' separadamente.
+#'
+#' Só as arestas de fluxo ligam componentes. Uma aresta comum entre dois
+#' membros de regiões DIFERENTES — o colapso de uma alimentando a fonte ou a
+#' entrada comum da outra — não é ligação: é entrada de fora, e tem que sair em
+#' `external` pra Fase 3 resolver. Ligar por ela fundia as duas regiões e
+#' recusava um documento saudável por "mais de uma fonte".
 #'
 #' O `id` da região é o id da fonte — determinístico, legível na mensagem de
 #' erro e estável sob renome de qualquer OUTRO nó. Com mais de uma fonte na
 #' mesma componente (patologia que a checagem recusa) vale a menor em ordem
 #' alfabética, pra mensagem de erro não trocar de nome entre duas chamadas.
 #' @noRd
-.tr_stream_split <- function(doc, membros, fontes, colapsos) {
-  internas <- Filter(function(e) e$from$node %in% membros && e$to$node %in% membros, doc$edges)
-
+.tr_stream_split <- function(doc, membros, fontes, colapsos, fluxo) {
   # União-busca sem estrutura dedicada: o rótulo da componente é um vetor
   # nomeado e a união reescreve todos os que tinham o rótulo antigo. Posto e
   # compressão de caminho seriam código a mais sem ganho medível numa região de
   # dezenas de nós.
   comp <- stats::setNames(membros, membros)
-  for (e in internas) {
+  for (e in fluxo) {
     novo <- comp[[e$from$node]]; velho <- comp[[e$to$node]]
     if (identical(novo, velho)) next
     comp[comp == velho] <- novo
@@ -193,7 +214,11 @@
     fs <- sort(intersect(fontes, nos))
     list(
       id = fs[[1]], source = fs,
-      nodes = .tr_stream_topo(nos, Filter(function(e) e$from$node %in% nos, internas)),
+      # A ordem topológica usa TODA aresta interna à região, não só as de
+      # fluxo: uma aresta comum entre dois nós da MESMA região é dependência de
+      # dados de verdade, e quem a ignora roda o consumidor antes do produtor.
+      nodes = .tr_stream_topo(nos, Filter(function(e) e$from$node %in% nos && e$to$node %in% nos,
+                                          doc$edges)),
       collapse = sort(intersect(colapsos, nos)),
       # As entradas comuns da unidade-região na Fase 3: o modelo treinado, a
       # tabela que a fonte reparte. Guardamos a ARESTA inteira porque é ela que
