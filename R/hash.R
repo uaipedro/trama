@@ -202,9 +202,17 @@
 #'   - os adaptadores das arestas internas, que rodam ponto a ponto e cujo
 #'     resultado é o histórico gravado no store.
 #'
-#' Cadência (`tempo`, `publish_every`) NÃO é excluída: por decisão de desenho ela
-#' é estado de sessão e não vive no documento, então não há param a tirar.
-#' Excluir por nome quebraria no dia em que um nó tiver um param `tempo`.
+#' Cadência (`tempo`, `publish_every`, `checkpoint_every`) NÃO é excluída: por
+#' decisão de desenho ela é estado de sessão, chega por `ctx_extra` (`run.R`) e
+#' não vive no documento, então não há param a tirar. Excluir por nome quebraria
+#' no dia em que um nó tiver um param `tempo`.
+#'
+#' Isso é o que a ausência de `ctx_extra` em `tr_plan()` garante por construção —
+#' a chave é calculada antes de haver ajuste de run pra olhar. O teste "cadência
+#' NÃO entra na chave" (`test-stream-driver.R`) mede pelo lado de fora: dois runs
+#' com cadências diferentes, e o segundo vem do cache. Existe porque o caminho
+#' provável pra perder isso é pôr a cadência na unidade e hasheá-la aqui, e aí o
+#' botão que protege um fluxo de dez mil pontos passaria a recomputá-lo.
 #'
 #' A ordem é estável por construção: os membros vêm na ordem topológica da
 #' região (com empate alfabético) e os mapas nomeados são ordenados com

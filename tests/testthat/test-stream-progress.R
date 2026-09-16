@@ -273,3 +273,40 @@ test_that("o scheduler limpa o mapa de nós ao concluir, e não lê o de um run 
   expect_false(any(vapply(ev, function(x) identical(x$type, "partial"), logical(1))))
   expect_false(file.exists(file.path(s$root, "progress", paste0(u$key, ".json"))))
 })
+
+# --- `publish_every` do ponto de entrada PÚBLICO ----------------------------
+#
+# O furo que esta seção fecha: a cadência chegava ao driver só por chamada direta
+# a `.tr_run_unit()`, isto é, só de dentro dos testes. Nenhum executor passava
+# `ctx_extra`, e `.tr_capture_unit()` não tinha o parâmetro — em TODO run de
+# verdade a cadência era o default, nos dois executores. O botão existia no
+# comentário e não na mão de ninguém.
+
+test_that("`publish_every` pelo tr_run() muda a cadência de verdade, nos dois sentidos", {
+  # Medido pelo espião de dentro do laço (`g/dobro`), e por `tr_run()` — não por
+  # `.tr_run_unit()`: é justamente o caminho de `tr_run()` que não tinha como
+  # entregar o valor.
+  doc_de <- function(reg) tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "g/fonte", n = 6L) |>
+    tr_add("du", "g/dobro", from = "fo") |>
+    tr_add("co", "g/colapsa", from = "du"))
+
+  vistos_com <- function(ctx_extra) {
+    e <- new.env(parent = emptyenv()); reg <- progresso_registry(e); s <- tmp_store()
+    doc <- doc_de(reg)
+    e$store <- s; e$key <- tr_plan(doc, registry = reg, store = s)$units$co$key
+    tr_run(doc, registry = reg, store = s, ctx_extra = ctx_extra)
+    # O passo 1 publica DEPOIS do `fn`, então o primeiro espiado é sempre NULL;
+    # os cinco seguintes dizem qual passo foi o último publicado.
+    vapply(e$vistos[-1], function(p) p$nodes$fo$preview$data$v, 0)
+  }
+
+  # Sem estrangulamento: todo passo publica, e cada passo vê o anterior.
+  expect_equal(vistos_com(list(publish_every = 0)), 1:5)
+  # Estrangulado: só o passo 1 (o piso), e os cinco seguintes veem sempre ele.
+  expect_equal(vistos_com(list(publish_every = 3600)), rep(1, 5))
+  # E o DEFAULT, sem passar nada: seis pontos triviais cabem folgados em 0.1s,
+  # então o comportamento é o do estrangulado. Aqui pra que a fiação nova não
+  # possa mudar em silêncio o que já acontecia.
+  expect_equal(vistos_com(NULL), rep(1, 5))
+})

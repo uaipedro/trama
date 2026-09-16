@@ -11,7 +11,8 @@ tr_value(
   store,
   port = NULL,
   executor = tr_executor_sequential(),
-  settings = NULL
+  settings = NULL,
+  ctx_extra = NULL
 )
 }
 \description{
@@ -27,4 +28,9 @@ consultada não seria a que acabou de ser gravada.
 \code{settings} é o \code{project$settings}: tema entra no hash, e sem ele o console
 resolveria o tema pelos embutidos e calcularia chave diferente da sessão —
 recomputando o que já está no cache, ou pior, mostrando outro gráfico.
+
+\code{ctx_extra} está aqui porque pedir o valor de um nó no console RODA o grafo, e
+uma região de dez mil pontos é justamente o que alguém pede assim: sem o
+argumento, o único jeito de baixar a cadência de checkpoint num run de console
+seria não usar \code{tr_value()}.
 }

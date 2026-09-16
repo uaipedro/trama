@@ -6,12 +6,25 @@
 #' interativo nunca bloqueie.
 #'
 #' Contrato:
-#'   $submit(unit, registry, store) -> token
+#'   $submit(unit, registry, store, ctx_extra = NULL) -> token
 #'   $collect(token)                -> NULL enquanto não terminou, senão
 #'                                     list(ok=, handles=|error=)
 #'   $capacity()                    -> quantas unidades em voo ao mesmo tempo
 #'   $cancel(tokens)                -> descarta trabalho em andamento
 #'   $shutdown()
+#'
+#' `ctx_extra` são as CONFIGURAÇÕES DO RUN que o worker precisa e que não estão
+#' na unidade — hoje a cadência de publicação do parcial e a do checkpoint da
+#' região (`worker.R`, `stream-driver.R`). Atravessa como dado, o que o contrato
+#' deste arquivo já exige de tudo: é lista de escalares, sem função nem
+#' ambiente, e por isso serializa para o daemon como a unidade serializa.
+#'
+#' Não confundir com o `control.json` de `stream-control.R`: lá vão COMANDOS
+#' VIVOS (o clique de pausa, o arrasto do controle de velocidade enquanto a
+#' região roda), que mudam durante o run; aqui vão AJUSTES DO RUN, fixos quando
+#' ele começa. Juntá-los num arquivo só faria um comando `tempo` poder mexer no
+#' checkpoint em silêncio, e poria política de durabilidade no mesmo arquivo de
+#' um gesto de interface.
 
 #' Executor sequencial: roda no próprio processo, na hora.
 #'
@@ -24,8 +37,8 @@ tr_executor_sequential <- function() {
   structure(list(
     kind = "sequential",
     capacity = function() 1L,
-    submit = function(unit, registry, store) {
-      list(unit = unit, result = .tr_capture_unit(unit, registry, store))
+    submit = function(unit, registry, store, ctx_extra = NULL) {
+      list(unit = unit, result = .tr_capture_unit(unit, registry, store, ctx_extra))
     },
     collect = function(token) token$result,
     cancel = function(tokens) invisible(FALSE),
@@ -70,16 +83,19 @@ tr_executor_pool <- function(n = 2L, registry = .tr_default_registry, setup = NU
   structure(list(
     kind = "pool",
     capacity = function() n,
-    submit = function(unit, registry, store) {
-      # Só dado atravessa: a unidade é serializável (não carrega `fn` nem
-      # ambiente — ver plan.R) e o worker resolve o nó no registro dele.
+    submit = function(unit, registry, store, ctx_extra = NULL) {
       # Só dado atravessa: a unidade é serializável (não carrega `fn` nem
       # ambiente — ver plan.R) e o worker reconstrói o registro a partir dos
       # PACOTES de origem. O id da coleção não serve pra isso: id e nome de
       # pacote só coincidem por acidente (`trama.terrain` traz `terrain`).
+      #
+      # `ctx_extra` entra na chamada COMO ARGUMENTO nomeado, e não capturado do
+      # ambiente: o `mirai::mirai()` serializa o que vem por `...` e mais nada —
+      # uma referência solta na expressão seria "objeto não encontrado" dentro do
+      # daemon, e só na região que usa o botão.
       mirai::mirai(
-        { trama:::.tr_capture_unit(unit, trama::tr_registry_for(pkgs), store) },
-        unit = unit, store = store,
+        { trama:::.tr_capture_unit(unit, trama::tr_registry_for(pkgs), store, ctx_extra) },
+        unit = unit, store = store, ctx_extra = ctx_extra,
         pkgs = unname(vapply(registry$collections, function(c) c$package, ""))
       )
     },
@@ -121,8 +137,13 @@ tr_registry_for <- function(packages) {
 #'
 #' A condição atravessa a fronteira de processo com classe e traceback
 #' preservados — desenhado aqui, não descoberto depois.
+#'
+#' `ctx_extra` é APENDADO e com default, e vai ficar: a chamada do
+#' `mirai::mirai()` acima nomeia os argumentos dela explicitamente, então
+#' reordenar os formais daqui quebraria o pool — e só o pool, que é a metade da
+#' suíte que precisa de daemon pra rodar.
 #' @noRd
-.tr_capture_unit <- function(unit, registry, store) {
+.tr_capture_unit <- function(unit, registry, store, ctx_extra = NULL) {
   # `trace_back()` DENTRO do handler do tryCatch roda depois do desempilhamento
   # — os frames do `fn` já não existem, e o que se captura é o caminho interno
   # do próprio trama. `withCallingHandlers` roda ANTES de desempilhar, que é o
@@ -131,7 +152,7 @@ tr_registry_for <- function(packages) {
   tr <- NULL
   tryCatch(
     withCallingHandlers(
-      list(ok = TRUE, handles = .tr_run_unit(unit, registry, store)),
+      list(ok = TRUE, handles = .tr_run_unit(unit, registry, store, ctx_extra)),
       error = function(e) tr <<- rlang::trace_back(bottom = 0)
     ),
     error = function(e) {

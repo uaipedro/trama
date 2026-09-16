@@ -58,3 +58,46 @@ test_that("handoff cancela unidade em voo no pool e o progresso chega como event
   expect_lt(as.numeric(Sys.time() - t0, units = "secs"), 3)   # não esperou os 3s do cancelado
   expect_equal(tr_store_get(s, s2$result()$results$z$out$key, tr_get_type("slow/x", reg)), 0.1)
 })
+
+test_that("`ctx_extra` atravessa a fronteira de processo: a cadência de checkpoint vale no pool", {
+  # A propriedade que o resto da suíte não alcança. `tr_executor_pool()$submit`
+  # SERIALIZA o que manda; um botão que funciona no sequencial e não no pool é o
+  # mesmo defeito desta tarefa uma camada abaixo — e era exatamente o estado
+  # anterior, com nenhum dos dois executores passando `ctx_extra`.
+  #
+  # Medido pelo CHECKPOINT no disco, e não por evento: o store é sistema de
+  # arquivos compartilhado, então o que o daemon gravou é legível aqui. Com a
+  # cadência 2 e a morte no ponto 7, o que sobra é o passo 6; com o default (100)
+  # e dez pontos, nada é gravado. A asserção distingue "o valor atravessou" de
+  # "checkpoint existe".
+  skip_if_not_installed("mirai")
+  skip_if_not_installed("pkgload")
+  core <- normalizePath("../.."); slowp <- normalizePath("fixtures/trama.slow")
+  reg <- tr_registry()
+  pkgload::load_all(slowp, quiet = TRUE, attach = FALSE); tr_use("trama.slow", registry = reg)
+  ex <- tr_executor_pool(1L, registry = reg, setup = bquote({
+    pkgload::load_all(.(core), quiet = TRUE, attach = FALSE)
+    pkgload::load_all(.(slowp), quiet = TRUE, attach = FALSE)
+  }))
+  on.exit(ex$shutdown(), add = TRUE)
+
+  doc <- build(reg, list(
+    list(op = "add_node", type = "slow/pontos", id = "fo", params = list(n = 10L)),
+    list(op = "add_node", type = "slow/morre", id = "mo", params = list(em = 7)),
+    list(op = "add_node", type = "slow/junta", id = "co"),
+    list(op = "connect", from_node = "fo", from_port = "out", to_node = "mo", to_port = "x"),
+    list(op = "connect", from_node = "mo", from_port = "out", to_node = "co", to_port = "x")))
+
+  s <- tmp_store(); u <- tr_plan(doc, registry = reg, store = s)$units$co
+  expect_equal(u$kind, "stream_region")
+  r <- tr_run(doc, registry = reg, store = s, executor = ex,
+              ctx_extra = list(checkpoint_every = 2))
+  expect_true("co" %in% r$skipped)
+  expect_equal(readRDS(file.path(s$root, "stream", u$key, "ckpt.rds"))$i, 6L)
+
+  # O contraste, no mesmo pool: sem passar nada, o default de 100 não escreve
+  # nada em dez pontos.
+  s2 <- tmp_store(); u2 <- tr_plan(doc, registry = reg, store = s2)$units$co
+  tr_run(doc, registry = reg, store = s2, executor = ex)
+  expect_false(file.exists(file.path(s2$root, "stream", u2$key, "ckpt.rds")))
+})

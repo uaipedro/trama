@@ -215,7 +215,7 @@ test_that("pool exige mirai e falha classificado quando ausente", {
 fake_async <- function(cap = 2L, delay = 2L) {
   structure(list(
     kind = "fake", capacity = function() cap,
-    submit = function(unit, registry, store) {
+    submit = function(unit, registry, store, ctx_extra = NULL) {
       # `force(unit)` NÃO é enfeite: `unit` chega como PROMESSA presa à
       # variável `u` do while de despacho do scheduler, que é reatribuída a
       # cada unidade pronta dentro da MESMA chamada (duas unidades do mesmo
@@ -225,7 +225,8 @@ fake_async <- function(cap = 2L, delay = 2L) {
       # laço, e as duas closures acabam rodando a MESMA unidade errada.
       force(unit)
       e <- new.env(parent = emptyenv()); e$left <- delay
-      e$run <- function() .tr_capture_unit(unit, registry, store)
+      force(ctx_extra)
+      e$run <- function() .tr_capture_unit(unit, registry, store, ctx_extra)
       e
     },
     collect = function(token) {

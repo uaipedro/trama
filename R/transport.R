@@ -13,7 +13,8 @@
 #' servia do cache e o preview não atualizava — sem erro, em silêncio.
 #' @export
 tr_server <- function(project, flow = "main",
-                      executor = tr_executor_sequential(), autosave = TRUE) {
+                      executor = tr_executor_sequential(), autosave = TRUE,
+                      ctx_extra = NULL) {
   force(project); force(executor)
 
   function(input, output, session) {
@@ -81,8 +82,15 @@ tr_server <- function(project, flow = "main",
       if (!is.null(exec$sched) && !exec$sched$finished()) inherit <- exec$sched$handoff(unlist(plan$keys))
       if (!is.null(exec$logger)) exec$logger$close()
       exec$logger <- tr_run_logger(file.path(proj$root, ".trama", "runs"), as.character(run_seq()))
+      # `ctx_extra` é AJUSTE DO RUN, fixado quando o editor sobe: quem abre o app
+      # com uma região de dez mil pontos e acumulador grande passa
+      # `checkpoint_every` aqui. Os botões de pause/step/tempo do front NÃO vêm
+      # por aqui — são comando vivo, e vão pelo `control.json`
+      # (`tr_stream_command()`). Misturar os dois faria o controle de velocidade
+      # poder mexer no checkpoint sem ninguém pedir.
       exec$sched <- tr_scheduler(plan, proj$registry, proj$store, executor, on_event = forward,
-                                 run_id = as.character(run_seq()), inherit = inherit)
+                                 run_id = as.character(run_seq()), inherit = inherit,
+                                 ctx_extra = ctx_extra)
       pump()
     }
 

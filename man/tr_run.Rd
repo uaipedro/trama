@@ -12,7 +12,8 @@ tr_run(
   executor = tr_executor_sequential(),
   on_event = function(ev) invisible(NULL),
   run_id = NULL,
-  settings = NULL
+  settings = NULL,
+  ctx_extra = NULL
 )
 }
 \description{
@@ -25,4 +26,22 @@ execução: o coordenador não calcula fila nenhuma, só emite o que acontece.
 \code{blocked}, \code{running}, \code{done}; e um \code{run_finished} no fim. É o contrato que
 o transporte (E5) traduz pra mensagem de front — o motor não sabe o que é
 Shiny.
+
+\code{ctx_extra} é a PORTA DOS AJUSTES DO RUN: uma lista de escalares que desce
+inteira até o \code{.ctx} do worker (\code{.tr_make_ctx()}), pelo scheduler e pelo
+executor, e vale igual nos dois executores. Hoje é lida por:
+\code{publish_every}    — segundos entre publicações de parcial (default 0.1)
+\code{checkpoint_every} — passos entre checkpoints da região (default 100; \code{0}
+desliga a serialização periódica do acumulador)
+
+Não é \code{settings}, e a distinção é de desenho: \code{settings} é conteúdo do projeto
+e ENTRA no hash (o tema muda o gráfico), enquanto \code{ctx_extra} é ajuste de
+sessão e não toca documento nem chave (Decisão 9) — se tocasse, baixar a
+cadência de checkpoint recomputaria o fluxo inteiro que ela existe pra
+proteger. Também não é \code{tr_stream_command()}: lá vão comandos VIVOS, que
+mudam durante o run; aqui vão ajustes fixados quando o run começa.
+
+Existe como argumento explícito, e não como opção global, porque duas sessões
+sobre o mesmo store são o caso normal (é como os testes encenam o segundo
+processo) e um \code{options()} faria a cadência de uma vazar na outra.
 }

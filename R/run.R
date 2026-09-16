@@ -8,13 +8,32 @@
 #' `blocked`, `running`, `done`; e um `run_finished` no fim. É o contrato que
 #' o transporte (E5) traduz pra mensagem de front — o motor não sabe o que é
 #' Shiny.
+#'
+#' `ctx_extra` é a PORTA DOS AJUSTES DO RUN: uma lista de escalares que desce
+#' inteira até o `.ctx` do worker (`.tr_make_ctx()`), pelo scheduler e pelo
+#' executor, e vale igual nos dois executores. Hoje é lida por:
+#'   `publish_every`    — segundos entre publicações de parcial (default 0.1)
+#'   `checkpoint_every` — passos entre checkpoints da região (default 100; `0`
+#'                        desliga a serialização periódica do acumulador)
+#'
+#' Não é `settings`, e a distinção é de desenho: `settings` é conteúdo do projeto
+#' e ENTRA no hash (o tema muda o gráfico), enquanto `ctx_extra` é ajuste de
+#' sessão e não toca documento nem chave (Decisão 9) — se tocasse, baixar a
+#' cadência de checkpoint recomputaria o fluxo inteiro que ela existe pra
+#' proteger. Também não é `tr_stream_command()`: lá vão comandos VIVOS, que
+#' mudam durante o run; aqui vão ajustes fixados quando o run começa.
+#'
+#' Existe como argumento explícito, e não como opção global, porque duas sessões
+#' sobre o mesmo store são o caso normal (é como os testes encenam o segundo
+#' processo) e um `options()` faria a cadência de uma vazar na outra.
 #' @export
 tr_run <- function(doc, targets = NULL, registry = .tr_default_registry, store,
                    executor = tr_executor_sequential(),
-                   on_event = function(ev) invisible(NULL), run_id = NULL, settings = NULL) {
+                   on_event = function(ev) invisible(NULL), run_id = NULL, settings = NULL,
+                   ctx_extra = NULL) {
   doc <- .tr_as_doc(doc)
   plan <- tr_plan(doc, targets, registry, store, settings = settings)
-  tr_run_plan(plan, registry, store, executor, on_event, run_id)
+  tr_run_plan(plan, registry, store, executor, on_event, run_id, ctx_extra)
 }
 
 #' Executa um plano já montado — separado de `tr_run()` porque o coordenador
@@ -23,8 +42,10 @@ tr_run <- function(doc, targets = NULL, registry = .tr_default_registry, store,
 #' @export
 tr_run_plan <- function(plan, registry = .tr_default_registry, store,
                         executor = tr_executor_sequential(),
-                        on_event = function(ev) invisible(NULL), run_id = NULL) {
-  s <- tr_scheduler(plan, registry, store, executor, on_event, run_id)
+                        on_event = function(ev) invisible(NULL), run_id = NULL,
+                        ctx_extra = NULL) {
+  s <- tr_scheduler(plan, registry, store, executor, on_event, run_id,
+                    ctx_extra = ctx_extra)
   # Headless: bombeia até acabar. Dorme só quando há algo em voo e nada
   # progrediu — o executor sequencial termina dentro de `submit`, então nunca
   # dorme; o pool dorme 5ms entre coletas.
@@ -51,11 +72,17 @@ tr_run_plan <- function(plan, registry = .tr_default_registry, store,
 #' `settings` é o `project$settings`: tema entra no hash, e sem ele o console
 #' resolveria o tema pelos embutidos e calcularia chave diferente da sessão —
 #' recomputando o que já está no cache, ou pior, mostrando outro gráfico.
+#'
+#' `ctx_extra` está aqui porque pedir o valor de um nó no console RODA o grafo, e
+#' uma região de dez mil pontos é justamente o que alguém pede assim: sem o
+#' argumento, o único jeito de baixar a cadência de checkpoint num run de console
+#' seria não usar `tr_value()`.
 #' @export
 tr_value <- function(doc, node, registry = .tr_default_registry, store,
-                     port = NULL, executor = tr_executor_sequential(), settings = NULL) {
+                     port = NULL, executor = tr_executor_sequential(), settings = NULL,
+                     ctx_extra = NULL) {
   res <- tr_run(doc, targets = node, registry = registry, store = store, executor = executor,
-                settings = settings)
+                settings = settings, ctx_extra = ctx_extra)
   u <- res$plan$units[[node]]
   # Membro INTERIOR de região não tem unidade própria: a região é uma unidade
   # só, nomeada pelo colapso. Sem este ramo `u` era NULL,

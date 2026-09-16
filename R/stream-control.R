@@ -37,6 +37,21 @@
 #' sequencial, os botões não respondem. Está escrito aqui porque é exatamente o
 #' tipo de coisa que alguém relata como bug.
 #'
+#' ## Comando VIVO não é ajuste do RUN
+#'
+#' Aqui mora só o que muda ENQUANTO a região roda, por gesto de quem está
+#' olhando: play, pause, step, tempo, stop. Os ajustes fixados quando o run
+#' começa — `publish_every` e `checkpoint_every` — NÃO moram aqui: chegam por
+#' `ctx_extra`, de `tr_run()`/`tr_server()` até o driver (ver `executor.R`).
+#'
+#' Foi decisão, e a alternativa era real: com a cadência de checkpoint neste
+#' arquivo, a fiação de `ctx_extra` seria dispensável. Custaria duas coisas. Um
+#' comando `tempo` reescreve o arquivo INTEIRO, então mandar "mais devagar"
+#' passaria a mexer no checkpoint em silêncio — e a política de durabilidade
+#' ficaria no mesmo arquivo que um gesto de interface, com um escritor que é o
+#' front. Separados, cada arquivo quer dizer uma coisa só: este é a descida de
+#' comando, `ctx_extra` é a configuração do run.
+#'
 #' ## Comando não é op de documento
 #'
 #' Pause/step/tempo/stop não entram no log de undo, não mexem em `rev` e não

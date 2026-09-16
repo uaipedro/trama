@@ -14,12 +14,25 @@ interativo nunca bloqueie.
 }
 \details{
 Contrato:
-$submit(unit, registry, store) -> token
+$submit(unit, registry, store, ctx_extra = NULL) -> token
 $collect(token)                -> NULL enquanto não terminou, senão
 list(ok=, handles=|error=)
 $capacity()                    -> quantas unidades em voo ao mesmo tempo
 $cancel(tokens)                -> descarta trabalho em andamento
 $shutdown()
+
+\code{ctx_extra} são as CONFIGURAÇÕES DO RUN que o worker precisa e que não estão
+na unidade — hoje a cadência de publicação do parcial e a do checkpoint da
+região (\code{worker.R}, \code{stream-driver.R}). Atravessa como dado, o que o contrato
+deste arquivo já exige de tudo: é lista de escalares, sem função nem
+ambiente, e por isso serializa para o daemon como a unidade serializa.
+
+Não confundir com o \code{control.json} de \code{stream-control.R}: lá vão COMANDOS
+VIVOS (o clique de pausa, o arrasto do controle de velocidade enquanto a
+região roda), que mudam durante o run; aqui vão AJUSTES DO RUN, fixos quando
+ele começa. Juntá-los num arquivo só faria um comando \code{tempo} poder mexer no
+checkpoint em silêncio, e poria política de durabilidade no mesmo arquivo de
+um gesto de interface.
 Executor sequencial: roda no próprio processo, na hora.
 
 \code{cancel()} é honesto sobre não fazer nada: cancelamento cooperativo em R

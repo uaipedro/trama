@@ -8,7 +8,8 @@ tr_server(
   project,
   flow = "main",
   executor = tr_executor_sequential(),
-  autosave = TRUE
+  autosave = TRUE,
+  ctx_extra = NULL
 )
 }
 \description{

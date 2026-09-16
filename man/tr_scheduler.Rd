@@ -11,7 +11,8 @@ tr_scheduler(
   executor = tr_executor_sequential(),
   on_event = function(ev) invisible(NULL),
   run_id = NULL,
-  inherit = list()
+  inherit = list(),
+  ctx_extra = NULL
 )
 }
 \description{

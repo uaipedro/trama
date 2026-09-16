@@ -22,7 +22,7 @@
 tr_scheduler <- function(plan, registry = .tr_default_registry, store,
                          executor = tr_executor_sequential(),
                          on_event = function(ev) invisible(NULL),
-                         run_id = NULL, inherit = list()) {
+                         run_id = NULL, inherit = list(), ctx_extra = NULL) {
   run_id <- run_id %||% .tr_entropy_hex(12L)
   st <- new.env(parent = emptyenv())
   st$done <- character(); st$skipped <- character(); st$results <- list()
@@ -128,7 +128,11 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
       # Consequência que vale dizer: um comando escrito ANTES do despacho é
       # perdido de propósito — o botão comanda o run em voo, não o próximo.
       .tr_control_clear(store, u$key)
-      st$inflight[[u$node]] <- list(unit = u, token = executor$submit(u, registry, store),
+      # `ctx_extra` desce até o `.ctx` do worker (`.tr_make_ctx()`), e é o único
+      # caminho por onde os botões de cadência (parcial e checkpoint) chegam a um
+      # run de verdade: quem chama `.tr_run_unit()` direto é só o teste.
+      st$inflight[[u$node]] <- list(unit = u,
+                                    token = executor$submit(u, registry, store, ctx_extra),
                                     t0 = Sys.time(), last_progress = NULL)
     }
     if (length(st$inflight) == 0 && length(st$pending) > 0) {

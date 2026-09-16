@@ -53,10 +53,14 @@ fake_async_executor <- function(ticks = 2L, capacity = 2L, on_run = NULL) {
   structure(list(
     kind = "fake", log = log,
     capacity = function() capacity,
-    submit = function(unit, registry, store) {
+    # `ctx_extra` guardado no token e devolvido no `collect()`: um executor falso
+    # que o engolisse esconderia, de todo teste que passa por ele, exatamente o
+    # defeito da Tarefa 5.4 (executor que recebe o ajuste do run e não o repassa).
+    submit = function(unit, registry, store, ctx_extra = NULL) {
       log$submitted <- c(log$submitted, unit$node)
       tok <- new.env(parent = emptyenv()); tok$left <- ticks; tok$unit <- unit
       tok$registry <- registry; tok$store <- store; tok$dead <- FALSE
+      tok$ctx_extra <- ctx_extra
       tok
     },
     collect = function(tok) {
@@ -64,7 +68,7 @@ fake_async_executor <- function(ticks = 2L, capacity = 2L, on_run = NULL) {
       tok$left <- tok$left - 1L
       if (tok$left > 0L) return(NULL)
       if (!is.null(on_run)) on_run(tok$unit)
-      .tr_capture_unit(tok$unit, tok$registry, tok$store)
+      .tr_capture_unit(tok$unit, tok$registry, tok$store, tok$ctx_extra)
     },
     cancel = function(toks) { for (t in toks) { t$dead <- TRUE; log$cancelled <- c(log$cancelled, t$unit$node) }; invisible(TRUE) },
     shutdown = function() invisible(TRUE)

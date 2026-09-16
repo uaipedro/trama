@@ -153,8 +153,17 @@
   #
   # Não é param do documento de propósito (Decisão 9): cadência é estado de
   # sessão e não conteúdo do grafo — se entrasse no documento, mudar a cadência
-  # mudaria a chave da região e recomputaria o fluxo inteiro. Chega por
-  # `ctx_extra`, que atravessa a fronteira de processo junto com a chamada.
+  # mudaria a chave da região e recomputaria o fluxo inteiro.
+  #
+  # Chega por `ctx_extra`, e a porta é `tr_run(ctx_extra = )` /
+  # `tr_value(ctx_extra = )` / `tr_server(ctx_extra = )`: dali desce pelo
+  # scheduler e pelo executor até aqui, atravessando a fronteira de processo
+  # junto com a chamada (`executor.R`). Ficou escrito antes de existir — por duas
+  # tarefas, nenhum executor repassava `ctx_extra` e `.tr_capture_unit()` não
+  # tinha o parâmetro, então em todo run de verdade isto era o default e o botão
+  # era alcançável só por `.tr_run_unit()` direto, isto é, só de dentro dos
+  # testes. Se a fiação for cortada em qualquer salto, é
+  # `test-stream-progress.R` ("`publish_every` pelo tr_run()") que cai.
   #
   # NÃO é o mesmo botão que o `tempo` do arquivo de controle (`stream-control.R`),
   # e conflatá-los seria bug nos dois sentidos: `publish_every` é DE QUANTO EM
@@ -174,7 +183,12 @@
   # Chega por `ctx_extra` pelo mesmo motivo de `publish_every` (Decisão 9): é
   # botão operacional, não conteúdo do grafo — como param do documento, mudar a
   # cadência mudaria a chave e recomputaria o fluxo inteiro, que é exatamente o
-  # que esta tarefa existe pra evitar.
+  # que esta tarefa existe pra evitar. A porta é a mesma:
+  # `tr_run(ctx_extra = list(checkpoint_every = ))`, e `tr_server()` pro editor.
+  # `test-stream-driver.R` ("`checkpoint_every` pelo tr_run()") mede a cadência
+  # pelo run completo, e `test-pool.R` mede que o valor atravessa pro daemon —
+  # medir só por `.tr_run_unit()` foi o que deixou o botão documentado e
+  # inalcançável por duas tarefas.
   #
   # Default 100, e o que isso custa: cada checkpoint serializa o acumulador
   # INTEIRO (o histórico até aqui), então o custo é `n/100` escritas de um
@@ -183,7 +197,9 @@
   # de dez megabytes é meio gigabyte de escrita; num de um gigabyte é cinquenta,
   # e aí o número tem que subir. O outro lado é o que a Fase 4 mediu: sem
   # checkpoint, morrer no passo 9.999 custa os 9.999. 100 é o meio honesto, e
-  # `checkpoint_every = 0` desliga.
+  # `checkpoint_every = 0` desliga — a válvula de quem tem acumulador grande, e
+  # por isso ela tem que ser alcançável do lugar em que o run começa, e não só
+  # daqui.
   #
   # Valor torto (NA, texto, negativo) DESLIGA em vez de abortar, pelo mesmo
   # motivo do `tryCatch` no tipo do parcial mais abaixo: uma região que roda hoje

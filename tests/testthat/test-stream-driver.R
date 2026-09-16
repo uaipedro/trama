@@ -1030,7 +1030,10 @@ test_that("pelo run completo: morre, o handle de erro é bustado, e a retomada n
   # O caminho de verdade — plano, scheduler, executor, store. O executor
   # sequencial não tem daemon a matar, então a morte aqui é o erro injetado no
   # membro; o que fica sem medida é o kill de processo do `tr_executor_pool()`,
-  # que a coleção `d/*` não alcança (sem `package`, o pool a recusa).
+  # que a coleção `d/*` não alcança (sem `package`, o pool a recusa). A região
+  # em si JÁ roda no pool desde a Tarefa 5.4, pela fixture `trama.slow` (que é
+  # pacote de verdade) em `test-pool.R` — o que falta é matar o daemon no meio,
+  # não chegar até ele.
   #
   # `tr_bust()` no meio não é decoração: o `collect()` grava o erro sob as
   # chaves de saída da região, e nenhum `tr_plan()` recalcula um handle que
@@ -1113,6 +1116,69 @@ test_that("`checkpoint_every` torto desliga o checkpoint, e não derruba a regi�
     expect_equal(hist$v, cumsum(1:10) / seq_len(10))
     expect_false(dir.exists(dirname(ckpt_path(s, u$key))))
   }
+})
+
+# --- Os botões operacionais, pelo ponto de entrada PÚBLICO -------------------
+#
+# O furo que esta seção fecha: `publish_every` e `checkpoint_every` chegavam ao
+# driver só por chamada direta a `.tr_run_unit()` — isto é, só de dentro dos
+# testes. Nenhum dos dois executores passava `ctx_extra`, e `.tr_capture_unit()`
+# não tinha o parâmetro: em TODO run de verdade os dois valiam o default, e a
+# válvula `checkpoint_every = 0` (a de quem tem acumulador grande) não era
+# acionável por ninguém. Os testes acima passavam e o botão não existia — é por
+# isso que estes medem por `tr_run()`, e não pelo driver.
+
+test_that("`checkpoint_every` pelo tr_run() muda a cadência, e `0` desliga de verdade", {
+  e <- diario(); reg <- driver_registry(e)
+  doc <- doc_ckpt(reg)   # 250 pontos, e a morte no 180
+
+  # Cadência 25: o que sobra é o último múltiplo de 25 antes do 180. Com o
+  # default de 100 seria 100 — a asserção distingue "chegou" de "não chegou".
+  s <- tmp_store(); u <- tr_plan(doc, registry = reg, store = s)$units$co
+  e$morre_em <- 180
+  tr_run(doc, registry = reg, store = s, ctx_extra = list(checkpoint_every = 25))
+  expect_equal(readRDS(ckpt_path(s, u$key))$i, 175L)
+
+  # A VÁLVULA: `0` não paga serialização periódica nenhuma, e não deixa rastro.
+  s2 <- tmp_store(); u2 <- tr_plan(doc, registry = reg, store = s2)$units$co
+  tr_run(doc, registry = reg, store = s2, ctx_extra = list(checkpoint_every = 0))
+  expect_false(file.exists(ckpt_path(s2, u2$key)))
+
+  # E o DEFAULT, sem passar nada: 100, como antes desta fiação. Sem esta
+  # asserção, a fiação nova poderia mudar em silêncio o que já acontecia.
+  s3 <- tmp_store(); u3 <- tr_plan(doc, registry = reg, store = s3)$units$co
+  tr_run(doc, registry = reg, store = s3)
+  expect_equal(readRDS(ckpt_path(s3, u3$key))$i, 100L)
+})
+
+test_that("cadência NÃO entra na chave: trocá-la entre runs serve o cache, não recomputa", {
+  # A asserção que impede alguém de, um dia, pôr `ctx_extra` na unidade e
+  # hasheá-lo. Cadência é estado de SESSÃO (Decisão 9): se entrasse na chave,
+  # baixar o checkpoint de 100 pra 25 recomputaria o fluxo inteiro — o oposto do
+  # que o botão existe pra fazer, e caro na exata medida do fluxo que ele
+  # pretendia proteger.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- doc_ckpt(reg, n = 10L)
+  k1 <- tr_plan(doc, registry = reg, store = s)$units$co$key
+  r1 <- tr_run(doc, registry = reg, store = s,
+               ctx_extra = list(checkpoint_every = 1, publish_every = 0))
+  expect_true("co" %in% r1$done)
+  antes <- length(e$puros)
+
+  ev <- list()
+  tr_run(doc, registry = reg, store = s,
+         ctx_extra = list(checkpoint_every = 7, publish_every = 2),
+         on_event = function(x) ev[[length(ev) + 1L]] <<- x)
+  # A chave que o RUN usou, lida do evento — e não a de um `tr_plan()` chamado
+  # aqui sem `ctx_extra`: essa passaria intacta mesmo se a cadência tivesse
+  # entrado no hash, porque o teste não a teria passado. É pelo evento que a
+  # asserção morde.
+  evs_co <- Filter(function(x) identical(x$node, "co"), ev)
+  expect_identical(unique(vapply(evs_co, function(x) x$key, "")), k1)
+  tipos <- vapply(evs_co, function(x) x$type, "")
+  expect_true("cached" %in% tipos)
+  expect_false("running" %in% tipos)
+  expect_equal(length(e$puros) - antes, 0L)   # o laço não rodou de novo
 })
 
 # --- `.seed` dentro da região ------------------------------------------------

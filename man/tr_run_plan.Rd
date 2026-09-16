@@ -12,7 +12,8 @@ tr_run_plan(
   store,
   executor = tr_executor_sequential(),
   on_event = function(ev) invisible(NULL),
-  run_id = NULL
+  run_id = NULL,
+  ctx_extra = NULL
 )
 }
 \description{

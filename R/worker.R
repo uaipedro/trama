@@ -6,6 +6,13 @@
 #'
 #' Nada de valor pesado atravessa fronteira de processo: entra chave, sai
 #' chave. É a tese inteira do desenho num lugar só.
+#'
+#' `ctx_extra` são os ajustes do run (cadência de parcial e de checkpoint), e
+#' este é o FIM de uma fiação que começa em `tr_run()`/`tr_server()` e passa por
+#' `tr_scheduler()` -> `executor$submit()` -> `.tr_capture_unit()`. Vale lembrar
+#' porque o default aqui é inócuo e mentiroso: com qualquer salto daquela cadeia
+#' cortado, tudo continua rodando com o valor de fábrica e nenhum teste que chame
+#' esta função direto percebe.
 #' @noRd
 .tr_run_unit <- function(unit, registry, store, ctx_extra = NULL) {
   # Região de fluxo é uma unidade como qualquer outra do ponto de vista do
@@ -116,6 +123,13 @@
 #' store é o protocolo") em vez de abrir um segundo caminho de comunicação.
 #' Custo: o coordenador descobre por polling, não por push — latência de
 #' fração de segundo, irrelevante pra barra de progresso.
+#'
+#' `extra` são os AJUSTES DO RUN, e é o `ctx_extra` que veio de
+#' `tr_run()`/`tr_server()` pelo scheduler e pelo executor. Ele é CONCATENADO ao
+#' `.ctx` (no fim, de propósito: assim um campo do chamador não pode sobrescrever
+#' `progress`/`partial`/`path` e deixar um nó chamando algo que não é função).
+#' Quem o lê hoje é a região (`publish_every`, `checkpoint_every`, em
+#' `stream-driver.R`); pra um nó comum, o que estiver ali aparece no `.ctx` dele.
 #' @noRd
 .tr_make_ctx <- function(unit, store, extra = NULL) {
   dir <- file.path(store$root, "progress")
