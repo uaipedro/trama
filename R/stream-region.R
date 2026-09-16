@@ -13,11 +13,23 @@
 #'   pertence — nó com ao menos uma aresta de entrada que transporta fluxo,
 #'              mais a própria fonte.
 #'
-#' Só DETECÇÃO: nenhuma patologia é recusada aqui. Região sem colapso, ramo que
-#' não fecha, duas fontes na mesma região — tudo sai no resultado, porque é
-#' exatamente disso que a checagem precisa pra dizer QUAL fonte está aberta.
+#' Detecta E valida: toda região devolvida por aqui tem execução definida. A
+#' recusa mora na mesma chamada porque `tr_plan()` vai chamar esta função na
+#' Fase 3 — grafo de fluxo malformado aborta o planejamento, alto e cedo, como
+#' `tr_error_cycle` e `tr_error_unknown_node` já fazem lá.
 #' @noRd
 .tr_stream_regions <- function(doc, registry) {
+  doc <- .tr_as_doc(doc)
+  regioes <- .tr_stream_detect(doc, registry)
+  for (r in regioes) .tr_stream_validate(r, doc, registry)
+  regioes
+}
+
+#' Só DETECÇÃO: nenhuma patologia é recusada aqui. Região sem colapso, ramo que
+#' não fecha, duas fontes na mesma região — tudo sai no resultado, porque é
+#' exatamente disso que a validação precisa pra dizer QUAL fonte está aberta.
+#' @noRd
+.tr_stream_detect <- function(doc, registry) {
   doc <- .tr_as_doc(doc)
   spec_of <- function(id) tr_get_node(doc$nodes[[id]]$type, registry)
 
@@ -66,6 +78,91 @@
   }
 
   .tr_stream_split(doc, membros, fontes, colapsos)
+}
+
+#' Recusa toda região que não tem execução definida. Cinco recusas, e cada uma
+#' impede um fluxo que rodaria fazendo OUTRA coisa, calado — é por isso que a
+#' régua aqui é "erro alto e cedo" e não "melhor esforço".
+#'
+#' A mensagem sempre nomeia o nó (ou a região) e diz o que fazer: quem lê é o
+#' autor do documento no editor, não quem escreveu este arquivo.
+#' @noRd
+.tr_stream_validate <- function(region, doc, registry) {
+  spec_of <- function(id) tr_get_node(doc$nodes[[id]]$type, registry)
+
+  # Duas fontes na mesma região é lockstep de dois fluxos de tamanhos
+  # diferentes, e isso não tem semântica definida. Sem recusar, o driver
+  # andaria com um dos dois e o outro seria truncado ou reciclado em silêncio —
+  # a decisão de QUAL ficaria escondida na ordem das arestas. YAGNI: uma fonte
+  # por região.
+  if (length(region$source) > 1) {
+    rlang::abort(sprintf(
+      paste0("A região de fluxo '%s' tem mais de uma fonte: %s. ",
+             "Uma região executa uma fonte só — separe os fluxos em regiões ",
+             "independentes, ou colapse um antes de ligá-lo no outro."),
+      region$id, paste(sprintf("'%s'", region$source), collapse = ", ")),
+      class = "tr_error_stream_multi_source")
+  }
+
+  # Região sem colapso não produz artefato nenhum: o run não teria o que
+  # gravar e o nó nunca sairia de "computando…", porque não existe ponto em que
+  # ele termine.
+  if (length(region$collapse) == 0) {
+    rlang::abort(sprintf(
+      paste0("A região de fluxo de '%s' não fecha: nenhum nó colapsa o fluxo num valor. ",
+             "Ligue a ponta da região num nó que receba fluxo e devolva valor comum."),
+      region$id),
+      class = "tr_error_stream_not_collected")
+  }
+
+  # Saída COMUM de nó interior consumida fora da região. Pelas regras de
+  # propagação, quem come fluxo entra na região — então o único jeito de
+  # escapar é uma porta não declarada como fluxo num nó que também emite fluxo.
+  # Dentro da região essa porta só tem o valor parcial do ponto da vez, e nada
+  # dela vai pro store (só o colapso vai): sem recusar, o consumidor de fora
+  # falharia com "chave ausente", longe da causa.
+  for (e in doc$edges) {
+    if (!(e$from$node %in% region$nodes) || e$to$node %in% region$nodes) next
+    if (e$from$node %in% region$collapse) next
+    if (isTRUE(spec_of(e$from$node)$outputs[[e$from$port]]$stream)) next
+    rlang::abort(sprintf(
+      paste0("A porta '%s:%s' está dentro da região de fluxo '%s' mas alimenta '%s', ",
+             "fora dela. Dentro da região ela só tem o valor parcial do ponto da vez, ",
+             "e não grava artefato: '%s' não teria o que ler. ",
+             "Consuma esse valor depois do colapso, ou traga '%s' para dentro da região."),
+      e$from$node, e$from$port, region$id, e$to$node, e$to$node, e$to$node),
+      class = "tr_error_stream_escapes")
+  }
+
+  # Nó elevado ponto a ponto: nem fonte, nem colapso, nem nó com memória (esse
+  # tem contrato próprio, `init`/`step`, e roda por declaração). O que sobra é
+  # o nó comum, que a região passa a chamar uma vez por ponto.
+  for (id in setdiff(region$nodes, c(region$source, region$collapse))) {
+    spec <- spec_of(id)
+    if (isTRUE(spec$online)) next
+    motivo <- if (!isTRUE(spec$pure)) {
+      # Impuro elevado = o efeito colateral (ler arquivo, chamar API) acontece
+      # N mil vezes, uma por ponto, em vez de uma por execução.
+      "é impuro"
+    } else if (isTRUE(spec$volatile)) {
+      # Volátil nunca reaproveita resultado: recomputa do zero a cada ponto, e
+      # a região inteira reexecutaria a cada run sem nunca acertar o cache.
+      "é volátil"
+    } else if (".ctx" %in% names(formals(spec$fn))) {
+      # `.ctx` é o contexto da UNIDADE (raiz do projeto, store, run). Pedir ele
+      # pressupõe ser a unidade, não um passo dentro dela.
+      "pede '.ctx'"
+    } else {
+      next
+    }
+    rlang::abort(sprintf(
+      paste0("Nó '%s' está dentro de uma região de fluxo mas %s. ",
+             "Nós elevados ponto a ponto precisam ser puros e não pedir '.ctx'. ",
+             "Se ele precisa guardar estado entre pontos, declare 'init'/'step'."),
+      id, motivo), class = "tr_error_not_liftable")
+  }
+
+  invisible(region)
 }
 
 #' Parte os nós de fluxo nas componentes conexas ligadas por arestas internas:

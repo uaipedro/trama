@@ -4,6 +4,13 @@
 
 regioes <- function(flow) .tr_stream_regions(tr_flow_doc(flow), flow$registry)
 
+# Detecção crua, sem a validação que `.tr_stream_regions()` aplica por cima.
+# Os testes que montam PATOLOGIA (duas fontes, região que não fecha, saída
+# comum consumida fora) usam esta: a recusa é testada mais abaixo, e aqui o que
+# está sob teste é a propagação — que tem que acertar a composição da região
+# justamente pra mensagem de erro poder nomear quem está errado.
+detecta <- function(flow) .tr_stream_detect(tr_flow_doc(flow), flow$registry)
+
 test_that("fonte -> colapsa: uma região de dois nós, com fonte e colapso identificados", {
   f <- tr_flow(stream_registry()) |>
     tr_add("fonte", "s/fonte") |>
@@ -111,7 +118,7 @@ test_that("duas fontes que se encontram num nó elevado são UMA região", {
     tr_link("f2:out", "encontro:b") |>
     tr_add("fim", "s/colapsa", from = "encontro")
 
-  rs <- regioes(f)
+  rs <- detecta(f)
   expect_length(rs, 1L)
   expect_named(rs, "f1")
   expect_equal(rs[["f1"]]$source, c("f1", "f2"))
@@ -141,7 +148,7 @@ test_that("num nó que declara fluxo, só a saída declarada propaga", {
     tr_link("fonte:fluxo", "fim:x") |>
     tr_link("fonte:resumo", "res:x")
 
-  r <- regioes(f)[["fonte"]]
+  r <- detecta(f)[["fonte"]]
   # `res` come do MESMO nó, por uma saída comum: recebe tabela, não pontos.
   # Sem a checagem por porta, toda saída de quem emite arrastaria o consumidor
   # pra dentro da região e ele seria elevado por engano.
@@ -159,7 +166,7 @@ test_that("fonte que alimenta outra fonte não reprocessa nem duplica ninguém",
     tr_link("f1:out", "f2:dados") |>
     tr_add("fim", "s/colapsa", from = "f2")
 
-  rs <- regioes(f)
+  rs <- detecta(f)
   expect_length(rs, 1L)
   r <- rs[["f1"]]
   expect_equal(r$id, "f1")
@@ -207,8 +214,128 @@ test_that("fonte com nada ligado ainda é uma região de um nó", {
   # trabalho da checagem — que precisa desta região em mãos pra dizer qual
   # fonte não fecha.
   f <- tr_flow(stream_registry()) |> tr_add("fonte", "s/fonte")
-  r <- regioes(f)[["fonte"]]
+  r <- detecta(f)[["fonte"]]
   expect_equal(r$nodes, "fonte")
   expect_equal(r$source, "fonte")
   expect_length(r$collapse, 0L)
+})
+
+# --- Validação: as cinco recusas ---------------------------------------------
+# Cada uma impede um fluxo que rodaria fazendo OUTRA coisa, calado. Os testes
+# de detecção acima chamam `.tr_stream_detect()` justamente porque montam as
+# patologias que estas recusas rejeitam.
+
+test_that("duas fontes na mesma região: recusa nas duas formas em que isso acontece", {
+  # Forma 1: uma fonte alimentando a entrada comum da outra.
+  cascata <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("f2", "s/fonte") |>
+    tr_link("f1:out", "f2:dados") |>
+    tr_add("fim", "s/colapsa", from = "f2")
+  expect_error(regioes(cascata), class = "tr_error_stream_multi_source")
+  # A mensagem nomeia as duas fontes: sem isso, "mais de uma fonte" num
+  # documento de 40 nós não diz onde mexer.
+  expect_error(regioes(cascata), "f1.*f2")
+
+  # Forma 2: duas fontes que se encontram num nó elevado.
+  encontro <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("f2", "s/fonte") |>
+    tr_add("encontro", "s/junta", from = "f1") |>
+    tr_link("f2:out", "encontro:b") |>
+    tr_add("fim", "s/colapsa", from = "encontro")
+  expect_error(regioes(encontro), class = "tr_error_stream_multi_source")
+})
+
+test_that("região sem colapso é recusada, nomeando a fonte que não fecha", {
+  f <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("meio", "s/puro", from = "fonte")
+  expect_error(regioes(f), class = "tr_error_stream_not_collected")
+  expect_error(regioes(f), "fonte")
+})
+
+test_that("saída comum de nó interior consumida fora da região é recusada", {
+  # `s/fonte_dupla` emite pontos por uma porta e um resumo comum pela outra.
+  # Dentro da região o resumo é parcial, ponto a ponto: não vira artefato no
+  # store. Sem a recusa, `res` falharia com "chave ausente" longe da causa.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte_dupla") |>
+    tr_add("fim", "s/colapsa") |>
+    tr_add("res", "s/puro") |>
+    tr_link("fonte:fluxo", "fim:x") |>
+    tr_link("fonte:resumo", "res:x")
+
+  expect_error(regioes(f), class = "tr_error_stream_escapes")
+  expect_error(regioes(f), "res")
+})
+
+test_that("nó impuro, volátil ou que pede '.ctx' não pode ser elevado", {
+  com_meio <- function(tipo) {
+    tr_flow(stream_registry()) |>
+      tr_add("fonte", "s/fonte") |>
+      tr_add("meio", tipo, from = "fonte") |>
+      tr_add("fim", "s/colapsa", from = "meio")
+  }
+
+  # Impuro elevado = efeito colateral N mil vezes, um por ponto.
+  expect_error(regioes(com_meio("s/impuro")), class = "tr_error_not_liftable")
+  expect_error(regioes(com_meio("s/impuro")), "impuro")
+  # Volátil elevado nunca reaproveita nada: recomputa a cada ponto.
+  expect_error(regioes(com_meio("s/volatil")), class = "tr_error_not_liftable")
+  expect_error(regioes(com_meio("s/volatil")), "volátil")
+  # `.ctx` pressupõe ser a unidade, não um passo dela.
+  expect_error(regioes(com_meio("s/contexto")), class = "tr_error_not_liftable")
+  expect_error(regioes(com_meio("s/contexto")), "\\.ctx")
+
+  # O MESMO nó impuro fora do caminho do fluxo não é problema de ninguém: é a
+  # prova de que a recusa é da elevação, não do nó.
+  fora <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("fim", "s/colapsa", from = "fonte") |>
+    tr_add("depois", "s/impuro", from = "fim")
+  expect_equal(regioes(fora)[["fonte"]]$nodes, c("fonte", "fim"))
+})
+
+test_that("região saudável passa pela validação intacta", {
+  # Uma validação que recusa demais é pior que nenhuma: os grafos legítimos da
+  # detecção continuam saindo iguais, com nó elevado, nó com memória,
+  # ramificação e entrada comum de fora.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("tab", "s/tabela") |>
+    tr_add("fonte", "s/fonte", from = "tab") |>
+    tr_add("b", "s/puro", from = "fonte") |>
+    tr_add("a", "s/acumula", from = "fonte") |>
+    tr_link("tab:out", "a:k") |>
+    tr_add("junta", "s/junta", from = "a") |>
+    tr_link("b:out", "junta:b") |>
+    tr_add("fim", "s/colapsa", from = "junta") |>
+    tr_add("depois", "s/mostra", from = "fim")
+
+  rs <- regioes(f)
+  expect_length(rs, 1L)
+  expect_equal(rs[["fonte"]]$nodes, c("fonte", "a", "b", "junta", "fim"))
+  expect_equal(rs[["fonte"]]$collapse, "fim")
+
+  # Duas regiões saudáveis no mesmo documento também passam — a validação é
+  # por região, não do documento inteiro.
+  duas <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("fim1", "s/colapsa", from = "f1") |>
+    tr_add("f2", "s/fonte") |>
+    tr_add("fim2", "s/colapsa", from = "f2")
+  expect_named(regioes(duas), c("f1", "f2"))
+})
+
+test_that("ponto que chega numa porta comum de nó com memória é permitido", {
+  # NÃO é recusa, e é decisão: a aresta de fluxo que cai na porta `k` de um nó
+  # com memória é bem definida — é um fluxo só, e o mesmo ponto chega nas duas
+  # portas. Recusar isso cortaria um grafo que executa.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("acc", "s/acumula", from = "fonte") |>
+    tr_link("fonte:out", "acc:k") |>
+    tr_add("fim", "s/colapsa", from = "acc")
+
+  expect_equal(regioes(f)[["fonte"]]$nodes, c("fonte", "acc", "fim"))
 })

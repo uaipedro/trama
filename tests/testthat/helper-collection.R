@@ -84,7 +84,20 @@ stream_collection <- function() {
               inputs = list(x = ponto()), outputs = list(out = "s/tab"),
               description = "Junta os pontos num histórico."),
       tr_node("s/mostra", fn = function(x) invisible(x), inputs = list(x = "s/tab"),
-              description = "Mostra a tabela recebida.")
+              description = "Mostra a tabela recebida."),
+      # Os três motivos de "não elevável", um por nó: a validação da região
+      # recusa cada um separadamente, e a mensagem nomeia qual é.
+      tr_node("s/impuro", fn = function(x) x,
+              inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
+              pure = FALSE, fingerprint = function(params) "ffff",
+              description = "Lê o mundo fora do grafo."),
+      tr_node("s/volatil", fn = function(x) x,
+              inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
+              volatile = TRUE,
+              description = "Nunca cacheia entre execuções."),
+      tr_node("s/contexto", fn = function(x, .ctx) x,
+              inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
+              description = "Precisa do contexto da unidade.")
     )
   )
 }
