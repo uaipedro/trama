@@ -83,7 +83,12 @@ tr_ui <- function(project) {
       htmltools::tags$link(rel = "apple-touch-icon", sizes = "180x180",
                            href = paste0("./", base, "/icon-180.png"))
     ),
-    htmltools::div(id = "tr-root"),
+    # A versão vem no `data-` do nó raiz porque o front não tem como perguntar
+    # a versão do pacote: não há chamada ao R antes de o editor montar, e o
+    # prefixo versionado dos assets (`trama-0.1.0/`) é detalhe de como o
+    # htmlDependency serve arquivo — caminho, não contrato. Extrair a versão
+    # dali amarraria o editor a esse detalhe.
+    htmltools::div(id = "tr-root", `data-versao` = ver),
     # Elemento do binding de op. O id é o nome do input no Shiny.
     htmltools::div(id = "tr_op", class = "tr-op-binding",
                    style = "display:none", `data-value` = ""),
