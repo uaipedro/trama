@@ -121,36 +121,75 @@
   dir <- file.path(store$root, "progress")
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
   path <- file.path(dir, paste0(unit$key, ".json"))
+  # Um único escritor do arquivo de progresso. Três cópias da mesma chamada de
+  # `write_json` divergiriam na primeira mudança de flag — e `auto_unbox` num
+  # deles e não nos outros muda a FORMA do JSON que o front consome.
+  escreve <- function(cur) {
+    cur$at <- as.numeric(Sys.time())
+    jsonlite::write_json(cur, path, auto_unbox = TRUE, null = "null", digits = NA)
+    invisible(TRUE)
+  }
   c(list(
     node = unit$node, key = unit$key, seed = unit$seed,
     root = store$project_root,
     path = function(p) tr_store_path(store, p),
     progress = function(fraction, msg = NULL) {
       cur <- tr_progress(store, unit$key) %||% list()
-      cur$fraction <- fraction; cur$message <- msg; cur$at <- as.numeric(Sys.time())
-      jsonlite::write_json(cur, path, auto_unbox = TRUE, null = "null", digits = NA)
-      invisible(TRUE)
+      cur$fraction <- fraction; cur$message <- msg
+      escreve(cur)
     },
     partial = function(value) {
       # Parcial NÃO vai para a chave real: lá, `tr_store_has()` diria "pronto"
       # e o plano seguinte pularia a unidade. Vai como campo do progresso,
       # já em forma de preview (o worker tem o tipo; o coordenador não tem o
       # valor), e o handle final substitui quando o nó termina.
-      ty <- unit$partial_type
-      art <- if (is.null(ty) || is.null(ty$preview)) NULL else
-        tryCatch(ty$preview(value, list(file = function(e) file.path(store$root, "tmp", paste0(unit$key, "-partial.", e)))),
-                 error = function(e) list(renderer = "trama/error", data = list(message = conditionMessage(e))))
+      art <- .tr_partial_preview(value, unit$partial_type, store, unit$key)
       cur <- tr_progress(store, unit$key) %||% list(fraction = NULL, message = NULL)
       cur$partial <- list(key = unit$key, preview = art, partial = TRUE)
-      cur$at <- as.numeric(Sys.time())
-      jsonlite::write_json(cur, path, auto_unbox = TRUE, null = "null", digits = NA)
-      invisible(TRUE)
+      escreve(cur)
+    },
+    partial_node = function(node, value, type = NULL) {
+      # Parcial de UM nó de dentro da unidade: é a região de fluxo publicando o
+      # valor do passo de cada membro, que não tem chave nem unidade própria.
+      # Vai no MESMO arquivo do parcial da unidade, sob `nodes`, e não em canal
+      # novo: o `collect()` já lê este arquivo por polling.
+      art <- .tr_partial_preview(value, type, store, paste0(unit$key, "-", node))
+      cur <- tr_progress(store, unit$key) %||% list(fraction = NULL, message = NULL)
+      # `nodes[[node]] <- list(...)` com valor NULL REMOVERIA a entrada, e um nó
+      # cujo valor do passo é legitimamente NULL (filtro sem linha) sumiria do
+      # mapa — o card dele ficaria exibindo o parcial do passo ANTERIOR, calado.
+      # `nodes[node] <- list(x)` atribui. E o mapa é LISTA NOMEADA de propósito:
+      # `write_json(auto_unbox = TRUE)` desembrulha vetor de comprimento 1 e
+      # joga o nome fora (ver o comentário longo de `store.R`), e um mapa de um
+      # nó só é justamente o caso comum — o front receberia um parcial sem saber
+      # de quem é, e o card ficaria em branco sem erro nenhum.
+      nodes <- cur$nodes %||% list()
+      nodes[node] <- list(list(key = unit$key, node = node, preview = art, partial = TRUE))
+      cur$nodes <- nodes
+      escreve(cur)
     },
     file = function(ext) file.path(store$root, "tmp", paste0(.tr_entropy_hex(12L), ".", ext))
   ), extra)
 }
 
-#' Lê o progresso publicado por `.ctx$progress()`/`.ctx$partial()` pra uma chave, ou `NULL` se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).
+#' O preview de um valor PARCIAL, pelo `preview` do TIPO.
+#'
+#' O mesmo caminho do parcial da unidade e do parcial de nó: renderização nova
+#' pra parcial faria o card mostrar uma coisa enquanto roda e outra ao terminar.
+#' Tipo sem `preview` devolve NULL — é ausência de preview, não erro, e o front
+#' já trata card sem preview. `stem` separa os arquivos de preview de cada nó:
+#' com um nome só, dois nós escreveriam no mesmo arquivo e o card de um
+#' mostraria a imagem do outro.
+#' @noRd
+.tr_partial_preview <- function(value, type, store, stem) {
+  if (is.null(type) || is.null(type$preview)) return(NULL)
+  ctx <- list(file = function(e) file.path(store$root, "tmp", paste0(stem, "-partial.", e)))
+  tryCatch(type$preview(value, ctx),
+           error = function(e) list(renderer = "trama/error",
+                                    data = list(message = conditionMessage(e))))
+}
+
+#' Lê o progresso publicado por `.ctx$progress()`/`.ctx$partial()`/`.ctx$partial_node()` pra uma chave, ou `NULL` se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).
 #' @export
 tr_progress <- function(store, key) {
   p <- file.path(store$root, "progress", paste0(key, ".json"))

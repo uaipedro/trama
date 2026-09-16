@@ -92,15 +92,29 @@
   specs <- lapply(stats::setNames(rg$order, rg$order),
                   function(id) tr_get_node(rg$nodes[[id]]$node_type, registry))
 
-  # `.ctx` da região: a unidade pede (`wants_ctx = TRUE` em `plan.R`), e nada
-  # honra o pedido — o despacho de `.tr_run_unit()` vem pra cá ANTES do bloco
-  # que constrói o ctx, e este driver não constrói nenhum. Nenhum membro o
-  # receberia de todo jeito: nó elevado tem `.ctx` PROIBIDO (Fase 2) e
-  # `init`/`step` não o tomam. Quem vai usá-lo é o driver, na Fase 5, pra
-  # publicar o parcial de cada nó e ler comandos pelo store; até lá, a região
-  # não publica progresso e `tr_progress()` na chave dela devolve NULL. O
-  # `ctx_extra` entra na assinatura mesmo sem uso porque descartá-lo no despacho
-  # de `.tr_run_unit()` seria uma perda silenciosa quando a Fase 5 o usar.
+  # `.ctx` da região: a unidade pede (`wants_ctx = TRUE` em `plan.R`) e quem
+  # honra é ESTE driver, não o bloco de `.tr_run_unit()` — o despacho pra cá
+  # continua sendo a primeira coisa lá, por um motivo que não mudou (ver
+  # `worker.R`). Nenhum membro recebe este ctx: nó elevado tem `.ctx` PROIBIDO
+  # (Fase 2) e `init`/`step` não o tomam. O usuário é o laço, que publica
+  # progresso e o parcial de cada nó pelo store — o mesmo canal, e o mesmo
+  # arquivo, de um nó longo comum.
+  ctx <- if (isTRUE(unit$wants_ctx)) .tr_make_ctx(unit, store, ctx_extra) else NULL
+
+  # Cadência de publicação, em segundos. O laço roda uma vez por PONTO: publicar
+  # em todo passo de uma região de dez mil pontos escreveria o JSON de progresso
+  # dez mil vezes, e o coordenador só o lê a cada ~50ms — a maioria esmagadora
+  # das escritas nunca seria lida. Com o estrangulamento o custo é no máximo
+  # `1/publish_every` publicações por segundo (cada uma: uma escrita do JSON por
+  # membro publicável), INDEPENDENTE do número de pontos.
+  #
+  # Não é param do documento de propósito (Decisão 9): cadência é estado de
+  # sessão e não conteúdo do grafo — se entrasse no documento, mudar a cadência
+  # mudaria a chave da região e recomputaria o fluxo inteiro. Chega por
+  # `ctx_extra`, que atravessa a fronteira de processo junto com a chamada; a
+  # Tarefa 5.3 é que a põe no arquivo de controle do store, e até lá o default
+  # vale sem que arquivo nenhum precise existir.
+  cadencia <- ctx_extra$publish_every %||% 0.1
 
   # 1. As entradas COMUNS da região, lidas UMA vez. `.tr_load_ref()` é o mesmo
   # de um nó qualquer: o adaptador da aresta roda lá, e a impressão dele já
@@ -221,6 +235,34 @@
     for (pn in portas) acc[[cid]][pn] <- list(vector("list", n))
   }
 
+  # Quem tem parcial pra publicar, e com QUAL tipo. O colapso não entra: o `fn`
+  # dele só roda depois do laço, e o artefato dele sai por chave de store como o
+  # de qualquer nó. O tipo é o da PRIMEIRA porta de saída do membro no registro
+  # — é o valor que ele acabou de produzir, e é o mesmo critério que
+  # `.tr_run_unit()` usa pra `unit$partial_type`. Vem do registro, e não de
+  # `region$nodes`, porque é o registro que tem `preview`; o plano só carrega o
+  # id do tipo.
+  #
+  # `tryCatch` no tipo: tipo de porta interna nunca foi exigido no registro
+  # local (a chave da região não guarda a impressão dele, justamente porque nada
+  # dela vai ao disco), e abortar aqui faria uma região que RODA hoje parar de
+  # rodar por causa da barra de progresso. Sem tipo, o nó publica sem preview.
+  publicaveis <- list()
+  for (id in if (is.null(ctx)) character() else rg$order) {
+    if (identical(rg$nodes[[id]]$role, "collapse")) next
+    pn <- names(specs[[id]]$outputs)
+    if (length(pn) == 0) next
+    publicaveis[[length(publicaveis) + 1L]] <- list(
+      id = id, de = paste0(id, ":", pn[[1]]),
+      tipo = tryCatch(tr_get_type(specs[[id]]$outputs[[pn[[1]]]]$type, registry),
+                      error = function(e) NULL))
+  }
+  # `-Inf` e não `Sys.time()`: o piso é o passo 1. Com o relógio de agora, uma
+  # região de poucos pontos rápidos terminaria sem publicar nada e o card
+  # ficaria em branco do começo ao fim, que é exatamente o sintoma que esta
+  # tarefa existe pra tirar.
+  ultima <- -Inf
+
   for (i in seq_len(n)) {
     # Os valores DO PASSO, por `nó:porta`. Zerado a cada passo de propósito: um
     # membro que lesse o valor do passo anterior (porque o produtor não rodou
@@ -274,6 +316,25 @@
       }
       saidas <- .tr_region_route(valor, id, spec)
       for (pn in names(saidas)) cur[paste0(id, ":", pn)] <- list(saidas[[pn]])
+    }
+
+    # Publicado DEPOIS do passo inteiro, e nunca no meio: no meio, o mapa
+    # misturaria o valor deste passo nos nós que já correram com o do passo
+    # anterior nos que não — um retrato que nunca existiu, e plausível.
+    #
+    # O valor do nó é o do PASSO, e é o mesmo para nó elevado e nó com memória:
+    # o que o membro acabou de emitir (`out`, no caso do com memória — não o
+    # `state`). É o que desce pra jusante naquele passo, então é o que o card
+    # tem que mostrar; o histórico não existe antes do colapso.
+    # `is.null(ctx)` PRIMEIRO, e o relógio só depois: sem ctx não se paga nem o
+    # `Sys.time()` por ponto num laço que roda dez mil vezes.
+    if (!is.null(ctx)) {
+      agora <- as.numeric(Sys.time())
+      if (agora - ultima >= cadencia) {
+        ultima <- agora
+        ctx$progress(i / n, sprintf("ponto %d de %d", i, n))
+        for (pb in publicaveis) ctx$partial_node(pb$id, cur[[pb$de]], pb$tipo)
+      }
     }
   }
 

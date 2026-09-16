@@ -237,14 +237,12 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       # `.ctx` é contrato da UNIDADE, não de `fn` membro nenhum: nó elevado tem
       # `.ctx` proibido (Fase 2) e `init`/`step` não o recebem.
       #
-      # DECLARADO E AINDA NÃO HONRADO: o despacho de `.tr_run_unit()` desvia pra
-      # `.tr_run_region()` antes do bloco que lê `wants_ctx`, então nenhum ctx é
-      # construído e `tr_progress(store, <chave da região>)` é sempre NULL.
-      # Consequência: a região é a unidade mais demorada do grafo — dez mil
-      # pontos — e é a única que não publica progresso nem parcial nenhum; o
-      # scheduler faz o poll e não encontra arquivo. A Fase 5 fecha isso (o
-      # driver passa a usar o ctx) e leva o teste de que `tr_progress()` devolve
-      # algo durante a região.
+      # Quem honra o pedido é `.tr_run_region()`, e não o bloco de
+      # `.tr_run_unit()` que lê este campo nos nós comuns: o despacho pra o
+      # driver é a primeira coisa lá (e continua sendo, pelo motivo escrito em
+      # `worker.R`), então é o driver que constrói o ctx. Ele publica a fração do
+      # passo e o parcial de cada membro sob a chave DESTA unidade, que é onde o
+      # `collect()` do scheduler faz o poll.
       wants_ctx = TRUE,
       # Não existe "a seed da região": cada membro leva a sua em `region$nodes`.
       wants_seed = FALSE,

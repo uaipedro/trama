@@ -2,10 +2,10 @@
 % Please edit documentation in R/worker.R
 \name{tr_progress}
 \alias{tr_progress}
-\title{Lê o progresso publicado por \code{.ctx$progress()}/\code{.ctx$partial()} pra uma chave, ou \code{NULL} se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).}
+\title{Lê o progresso publicado por \code{.ctx$progress()}/\code{.ctx$partial()}/\code{.ctx$partial_node()} pra uma chave, ou \code{NULL} se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).}
 \usage{
 tr_progress(store, key)
 }
 \description{
-Lê o progresso publicado por \code{.ctx$progress()}/\code{.ctx$partial()} pra uma chave, ou \code{NULL} se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).
+Lê o progresso publicado por \code{.ctx$progress()}/\code{.ctx$partial()}/\code{.ctx$partial_node()} pra uma chave, ou \code{NULL} se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).
 }

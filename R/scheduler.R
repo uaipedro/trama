@@ -29,8 +29,17 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
   st$inflight <- list(); st$finished <- FALSE
 
   emit <- function(type, u, ...) {
-    on_event(c(list(type = type, run_id = run_id, node = u$node,
-                    node_type = u$node_type, key = u$key, outputs = u$outputs), list(...)))
+    ev <- list(type = type, run_id = run_id, node = u$node,
+               node_type = u$node_type, key = u$key, outputs = u$outputs)
+    extra <- list(...)
+    # SOBRESCREVE, em vez de concatenar: o parcial de um nó INTERIOR da região
+    # sai com `node = <id do membro>`, e com `c()` o evento teria DUAS chaves
+    # "node" — JSON de chave repetida, do qual o front lê a primeira (a do
+    # colapso) e pinta o parcial do membro no card errado. `ev[nomes] <- extra`
+    # preserva elemento NULL (o `fraction`/`message` de um progresso sem
+    # fração), que é o que `ev[[nome]] <- NULL` apagaria.
+    if (length(extra)) ev[names(extra)] <- extra
+    on_event(ev)
   }
 
   # Os ids desta unidade que o RESTO DO GRAFO consome. Numa região são TODOS os
@@ -102,6 +111,14 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
       if (is.null(i) || is.na(i)) break
       u <- st$pending[[i]]; st$pending[[i]] <- NULL
       emit("running", u)
+      # Progresso ÓRFÃO da mesma chave sai ANTES de submeter: a chave é
+      # determinística, e um run anterior morto sem limpar (worker morto, sessão
+      # fechada) deixa o arquivo no lugar. O primeiro poll deste run leria o
+      # parcial daquele e o emitiria como se fosse deste — dado velho com a
+      # autoridade de dado novo, que é o modo de falha que o store inteiro
+      # evita. Aqui, e não na adoção: unidade adotada está EM VOO, e apagar o
+      # progresso dela perderia o que o worker vivo acabou de publicar.
+      .tr_clear_progress(store, u$key)
       st$inflight[[u$node]] <- list(unit = u, token = executor$submit(u, registry, store),
                                     t0 = Sys.time(), last_progress = NULL)
     }
@@ -124,6 +141,20 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
         if (!is.null(p) && !identical(p, job$last_progress)) {
           st$inflight[[nm]]$last_progress <- p
           if (!is.null(p$partial)) emit("partial", u, handle = p$partial)
+          # Um `partial` por NÓ que mudou. `ni`, e não `nm`: reusar o nome do
+          # laço de fora trocaria a unidade em voo no `st$inflight` pelo id do
+          # membro no resto da iteração. Só o que mudou, porque a região
+          # republica o mapa INTEIRO a cada passo: sem o filtro, uma região de
+          # dez membros emitiria dez eventos por poll, cada um redesenhando um
+          # card que não mudou.
+          #
+          # O `node` do evento é um nó INTERIOR da região, que não tem unidade
+          # nem chave própria — o front resolve pelo id do documento, que é a
+          # chave com que ele já indexa o estado dos cards.
+          for (ni in names(p$nodes)) {
+            if (identical(p$nodes[[ni]], job$last_progress$nodes[[ni]])) next
+            emit("partial", u, node = ni, handle = p$nodes[[ni]])
+          }
           emit("progress", u, fraction = p$fraction, message = p$message)
         }
         next
