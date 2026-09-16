@@ -8,6 +8,14 @@
 \description{
 Build and run computation graphs interactively. Nodes are typed R functions with declared ports and parameters; a flow is a plain JSON document; execution is pull-based, content-addressed and incremental, so editing a parameter recomputes only what depends on it. Every node renders its own result in the canvas with a registered renderer, making each step of a pipeline visible rather than implied. Domain knowledge lives entirely in registrable collections, never in the core, so new domains are added without modifying the package.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/uaipedro/trama}
+  \item Report bugs at \url{https://github.com/uaipedro/trama/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Pedro Mambelli Fernandes \email{pedromambelli@gmail.com} (\href{https://orcid.org/0009-0001-1695-279X}{ORCID})
 
