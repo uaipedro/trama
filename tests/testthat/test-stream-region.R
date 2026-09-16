@@ -505,3 +505,13 @@ test_that("ponto que chega numa porta comum de nó com memória é permitido", {
 
   expect_equal(regioes(f)[["fonte"]]$nodes, c("fonte", "acc", "fim"))
 })
+
+test_that("nenhum nó de `stream_collection()` tem porta opcional sem default no formal", {
+  # A classe de defeito que já quebrou `s/fonte` e `s/fonte_dupla`, e que ficou
+  # em `s/acumula`: formal que corresponde a porta `required = FALSE` e não tem
+  # default. Porta opcional solta não é passada (é assim que o `fn` cai no
+  # próprio default), então o nó aborta "argumento ausente, sem padrão" no
+  # instante em que o corpo tocar o argumento. Fica latente enquanto o corpo o
+  # ignora, que é exatamente por que os três nasceram juntos e só dois doeram.
+  expect_equal(portas_opcionais_sem_default(stream_collection()), character())
+})

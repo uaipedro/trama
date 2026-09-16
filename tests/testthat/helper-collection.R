@@ -98,7 +98,13 @@ stream_collection <- function() {
       tr_node("s/puro", fn = function(x) x,
               inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
               description = "Nó comum: fora da região recebe tabela, dentro é elevado."),
-      tr_node("s/acumula", fn = function(x, k) x,
+      # `k = NULL` no formal pela mesma razão de `s/fonte` acima: `k` é porta
+      # OPCIONAL, e porta opcional solta não é passada. Sem o default, o nó
+      # aborta "argumento ausente, sem padrão" no instante em que o corpo do
+      # `fn` tocar `k` — hoje não toca (o corpo é `x`), e é só isso que separa
+      # este nó dos dois que já quebraram. `portas_opcionais_sem_default()`
+      # guarda a invariante pra que o próximo nó da coleção não nasça assim.
+      tr_node("s/acumula", fn = function(x, k = NULL) x,
               inputs = list(x = ponto(), k = tr_port("s/tab", required = FALSE)),
               outputs = list(out = ponto()),
               params = list(peso = tr_param_num(1)),
@@ -143,4 +149,30 @@ stream_collection <- function() {
 
 stream_registry <- function() {
   reg <- tr_registry(); tr_use(stream_collection(), registry = reg); reg
+}
+
+# Os formais de `fn`/`init`/`step` que correspondem a porta `required = FALSE` e
+# NÃO têm default — devolvidos como "<nó> <função> <formal>".
+#
+# É uma classe de defeito, e não um caso isolado: porta opcional solta não é
+# passada (`.tr_run_unit()` e `.tr_region_args()` param de propósito, pra que o
+# `fn` caia no próprio default), então o formal sem default aborta "argumento
+# ausente, sem padrão" no instante em que o corpo tocar nele — longe da causa, e
+# só num grafo que a validação ACEITA. Nasce calado porque um corpo que ignora o
+# argumento nunca o força: a coleção parece sadia até alguém editar o corpo.
+# Guardado nas coleções de TESTE porque foi lá que os três instances moraram.
+portas_opcionais_sem_default <- function(col) {
+  out <- character()
+  for (nd in col$nodes) {
+    opt <- names(Filter(function(p) !isTRUE(p$required), nd$inputs))
+    for (fname in c("fn", "init", "step")) {
+      f <- nd[[fname]]
+      if (!is.function(f)) next
+      fo <- formals(f)
+      for (a in intersect(names(fo), opt)) {
+        if (identical(fo[[a]], quote(expr = ))) out <- c(out, paste(nd$id, fname, a))
+      }
+    }
+  }
+  out
 }
