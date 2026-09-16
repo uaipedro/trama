@@ -305,8 +305,24 @@ test_that("`publish_every` pelo tr_run() muda a cadência de verdade, nos dois s
   expect_equal(vistos_com(list(publish_every = 0)), 1:5)
   # Estrangulado: só o passo 1 (o piso), e os cinco seguintes veem sempre ele.
   expect_equal(vistos_com(list(publish_every = 3600)), rep(1, 5))
-  # E o DEFAULT, sem passar nada: seis pontos triviais cabem folgados em 0.1s,
-  # então o comportamento é o do estrangulado. Aqui pra que a fiação nova não
-  # possa mudar em silêncio o que já acontecia.
-  expect_equal(vistos_com(NULL), rep(1, 5))
+  # E o DEFAULT, sem passar nada. A versão anterior argumentava "seis pontos
+  # triviais cabem folgados em 0.1s", o que mede a velocidade da máquina, não a
+  # cadência. Com o relógio CONGELADO na costura do motor, `agora - ultima` é
+  # sempre 0, então o default de 0.1s estrangula por aritmética e não por sorte
+  # — e o teste passa a afirmar o que ele diz afirmar.
+  congelados <- testthat::with_mocked_bindings(
+    vistos_com(NULL),
+    .tr_now = function() as.POSIXct(0, origin = "1970-01-01", tz = "UTC"),
+    .package = "trama")
+  expect_equal(congelados, rep(1, 5))
+
+  # E o outro lado da mesma aritmética: relógio que anda um segundo por leitura
+  # passa de qualquer estrangulamento, então TODO passo publica — sem depender
+  # de a máquina ser lenta.
+  t <- 0
+  andando <- testthat::with_mocked_bindings(
+    vistos_com(list(publish_every = 0.5)),
+    .tr_now = function() { t <<- t + 1; as.POSIXct(t, origin = "1970-01-01", tz = "UTC") },
+    .package = "trama")
+  expect_equal(andando, 1:5)
 })

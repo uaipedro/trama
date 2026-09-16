@@ -1,3 +1,20 @@
+#' O relógio do motor, numa costura só.
+#'
+#' Existe para ser mockável. `Sys.time()` é função base, e
+#' `testthat::local_mocked_bindings()` só substitui binding que o pacote define
+#' ou importa — então os testes de cadência e de `duration` só podiam ser
+#' escritos com sono de verdade e limite de parede. Isso mede a velocidade da
+#' máquina em vez da aritmética, e piscou vermelho uma vez em cinco execuções
+#' numa suíte de mil e quinhentos testes: vermelho intermitente sem nome queima
+#' o tempo de quem investiga e, pior, ensina a ignorar vermelho.
+#'
+#' Só o driver da região usa esta costura, porque é lá que o tempo é LÓGICA
+#' (estrangulamento de publicação, `duration` que exclui as leituras de fora) e
+#' não só registro. O resto do pacote segue chamando `Sys.time()` direto: um
+#' `created` de handle não decide nada.
+#' @noRd
+.tr_now <- function() Sys.time()
+
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 #' Ids são sempre qualificados por coleção (`coleção/nome`).

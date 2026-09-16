@@ -42,6 +42,9 @@ driver_collection <- function(e = diario()) {
                  store = function(x, path) saveRDS(x, path),
                  restore = function(path) {
                    e$restores <- e$restores + 1L
+      # Relógio roteirizado do teste de `duration`: a leitura externa "custa"
+      # 1000s de relógio, sem custar 1000s de parede.
+      if (!is.null(e$avanca)) e$avanca$t <- e$avanca$t + 1000
                    if (e$sono > 0) Sys.sleep(e$sono)
                    readRDS(path)
                  })
@@ -766,19 +769,28 @@ test_that("o `duration` da região NÃO inclui a leitura dos artefatos de fora",
   p <- tr_plan(doc, registry = reg, store = s)
   .tr_run_unit(p$units$k, reg, s)   # antes do sono: `k` não lê nada
 
-  e$sono <- 0.4
-  t0 <- Sys.time()
-  hs <- .tr_run_unit(p$units$co, reg, s)
-  parede <- as.numeric(Sys.time() - t0, units = "secs")
-  e$sono <- 0
+  # Relógio ROTEIRIZADO, e não sono de verdade. A versão anterior dormia 0.4s
+  # na leitura e exigia `duration < 0.3`: mede a velocidade da máquina, não a
+  # aritmética, e piscou vermelho uma vez em cinco execuções. Aqui a leitura
+  # externa avança o relógio em 1000s, então `duration` sai 0 com o `t0` no
+  # lugar certo e 1000 com ele antes das leituras — separação de mil vezes, sem
+  # depender de carga.
+  relogio <- new.env(parent = emptyenv()); relogio$t <- 0
+  e$avanca <- relogio    # o `restore` da coleção de teste avança o relógio
+  testthat::local_mocked_bindings(
+    .tr_now = function() as.POSIXct(relogio$t, origin = "1970-01-01", tz = "UTC"),
+    .package = "trama")
 
-  # A leitura lenta ACONTECEU dentro da execução da região — sem isto o teste
-  # passaria por não ter medido nada.
+  hs <- .tr_run_unit(p$units$co, reg, s)
+
+  # A leitura externa ACONTECEU dentro da execução da região — sem isto o teste
+  # passaria por não ter medido nada. E agora a prova é o relógio ter andado,
+  # não o cronômetro de parede.
   expect_equal(e$restores, 1L)
-  expect_gte(parede, 0.4)
+  expect_equal(relogio$t, 1000)
   # E o `duration` gravado ficou de fora dela.
-  expect_lt(hs$out$duration, 0.3)
-  expect_lt(tr_store_handle(s, p$units$co$outputs$out)$duration, 0.3)
+  expect_lt(hs$out$duration, 1)
+  expect_lt(tr_store_handle(s, p$units$co$outputs$out)$duration, 1)
 })
 
 test_that("nenhum nó das coleções de teste tem porta opcional sem default no formal", {

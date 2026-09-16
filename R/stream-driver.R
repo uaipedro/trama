@@ -18,8 +18,8 @@
 #'
 #' O driver não fatia nada: não sabe o que é uma linha de uma tabela, de um
 #' raster ou de um `sf`, e não vai saber. Quem fatia é a fonte, que é o nó de
-#' domínio — `data/to_stream` (Fase 6) lê os params `por`, coluna de ordenação
-#' e tamanho do lote e devolve a lista já fatiada. Pôr o fatiamento aqui
+#' domínio — `data/to_stream` lê os params `lote` (tamanho do lote),
+#' `ordenar_por` e `max_passos`, e devolve a lista já fatiada. Pôr o fatiamento aqui
 #' significaria o núcleo conhecendo `data/table`, que é exatamente o que a
 #' Decisão 4 do desenho evitou.
 #'
@@ -229,7 +229,7 @@
   # `test-stream-driver.R`, com um `restore` lento: sem ele, a região passaria a
   # medir a leitura do artefato de fora — o modelo treinado — e o card diria que
   # o laço de dez mil pontos levou o tempo de carregar um arquivo.
-  t0 <- Sys.time()
+  t0 <- .tr_now()
 
   # 2. A fonte roda uma vez e entrega os pontos.
   fonte <- rg$source[[1]]
@@ -288,8 +288,10 @@
     #
     # A versão anterior usava `is.object()`, e isso recusava fatiamento
     # LEGÍTIMO: `dplyr::group_split()` — a forma mais idiomática de partir uma
-    # tabela por coluna, que é exatamente o que `data/to_stream(por = )` faz —
-    # devolve um `vctrs_list_of`, que tem classe e não tem `dim`. A fonte havia
+    # tabela por coluna — devolve um `vctrs_list_of`, que tem classe e não tem
+    # `dim`. (O `data/to_stream` que a Fase 6 escreveu fatia por TAMANHO de
+    # lote, com indexação simples, então não é ele quem cai aqui; é a próxima
+    # fonte que alguém escrever agrupando por coluna.) A fonte havia
     # fatiado certo e ouvia "quem fatia é a fonte". Recusar o certo com a
     # mensagem errada é pior que não recusar.
     if (!is.list(vals[[pn]]) || !is.null(dim(vals[[pn]]))) {
@@ -549,7 +551,7 @@
     # `is.null(ctx)` PRIMEIRO, e o relógio só depois: sem ctx não se paga nem o
     # `Sys.time()` por ponto num laço que roda dez mil vezes.
     if (!is.null(ctx)) {
-      agora <- as.numeric(Sys.time())
+      agora <- as.numeric(.tr_now())
       if (agora - ultima >= cadencia) {
         ultima <- agora
         ctx$progress(i / n, sprintf("ponto %d de %d", i, n))
@@ -613,7 +615,7 @@
   # cronometra ("quanto durou este `fn`"), e somar as tentativas exigiria pôr
   # tempo acumulado no checkpoint: aí `duration` passaria a significar duas
   # coisas diferentes na região e no nó comum.
-  duration <- as.numeric(Sys.time() - t0, units = "secs")
+  duration <- as.numeric(.tr_now() - t0, units = "secs")
 
   # Gravar por `.tr_store_outputs()` é o que faz o `store`/`preview`/`summary` do
   # tipo ser o mesmo caminho de um nó comum. Um caminho paralelo aqui faria o
