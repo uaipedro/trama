@@ -116,3 +116,122 @@ test_that(".ctx$partial publica preview parcial e o handle final substitui", {
   expect_equal(p$handle$preview$data$v, 0.5)
   expect_true(which(types == "done") > which(types == "partial")[[1]])
 })
+
+# --- A região de fluxo vista pelo scheduler ---------------------------------
+# A Fase 3 testou a região só pelo PLANO. Estes testes a atravessam pelo
+# scheduler, que é onde o plano vira execução — e onde o fato de uma unidade
+# ter mais de um id consumível aparece.
+
+# fonte -> c1 ; fonte -> c2 ; c2 -> d2. Dois colapsos na MESMA região, e um
+# consumidor do SEGUNDO: o grafo mínimo em que `u$node` (só o primeiro colapso)
+# não basta.
+regiao_dois_colapsos <- function(reg) {
+  tr_flow_doc(
+    tr_flow(reg) |>
+      tr_add("fonte", "s/fonte") |>
+      tr_add("c1", "s/colapsa", from = "fonte") |>
+      tr_add("c2", "s/colapsa") |>
+      tr_link("fonte:out", "c2:x") |>
+      tr_add("d2", "s/mostra", from = "c2"))
+}
+
+test_that("região em cache libera o consumidor de QUALQUER colapso", {
+  # `st$done` só recebia `u$node`, que numa região é o PRIMEIRO colapso. Quem
+  # consome outro colapso esperava por um id que nunca chegava, ficava sem
+  # ninguém em voo e saía com `blocked_by = "unreachable"` — motivo não
+  # acionável, fora de `tr_plan_blocked()`, e o artefato dele nunca calculado
+  # apesar de a região estar inteira no store.
+  reg <- stream_registry(); s <- tmp_store()
+  doc <- regiao_dois_colapsos(reg)
+  u <- tr_plan(doc, registry = reg, store = s)$units[["c1"]]
+  for (k in unlist(u$outputs)) {
+    tr_store_put(s, k, 1, tr_get_type("s/tab", reg),
+                 node_type = u$node_type, collections = u$collections)
+  }
+
+  p <- tr_plan(doc, registry = reg, store = s)
+  expect_true(p$units$c1$cached)
+  ev <- list()
+  r <- tr_run_plan(p, reg, s, on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  expect_setequal(r$done, c("c1", "c2", "d2"))
+  expect_length(r$skipped, 0L)
+  expect_false("unreachable" %in% unlist(lapply(ev, function(e) e$blocked_by)))
+})
+
+# Executor que falha sempre, sem resolver nó nenhum: é o que permite exercitar
+# o `prune()` sobre uma unidade-região na Fase 3, em que a região ainda não roda.
+executor_que_falha <- function() structure(list(
+  kind = "fake",
+  capacity = function() 1L,
+  submit = function(unit, registry, store) unit$node,
+  collect = function(tok) list(ok = FALSE,
+                               error = list(message = "explodiu", class = "tr_error_teste")),
+  cancel = function(toks) invisible(TRUE),
+  shutdown = function() invisible(TRUE)), class = "tr_executor")
+
+test_that("região que falha poda o consumidor de QUALQUER colapso", {
+  # O simétrico do cache: a poda andava pelos NOMES das unidades derrubadas, e o
+  # nome da região é só o primeiro colapso — `d2` ficava pendente pra sempre
+  # esperando por `c2`, e saía com "unreachable".
+  #
+  # O `kind` da unidade é trocado de propósito: é o único jeito de fazer a
+  # região CHEGAR ao executor enquanto o andaime da Fase 3 a recusa antes do
+  # despacho. O que está sob teste é o contrato do scheduler — unidade com
+  # `region$collapse` pula e poda por TODOS os colapsos — e esse contrato não
+  # depende de quem executa.
+  reg <- stream_registry(); s <- tmp_store()
+  p <- tr_plan(regiao_dois_colapsos(reg), registry = reg, store = s)
+  p$units$c1$kind <- "node"
+
+  ev <- list()
+  r <- tr_run_plan(p, reg, s, executor_que_falha(),
+                   on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  expect_setequal(r$skipped, c("c1", "c2", "d2"))
+  expect_length(r$done, 0L)
+  expect_false("unreachable" %in% unlist(lapply(ev, function(e) e$blocked_by)))
+  bloqueio <- Filter(function(e) identical(e$node, "d2"), ev)[[1]]
+  expect_equal(bloqueio$type, "blocked")
+  expect_true("c2" %in% as.character(bloqueio$blocked_by))
+})
+
+test_that("região é recusada até o driver existir (REMOVER na Fase 4)", {
+  # ANDAIME. A Fase 4 escreve o driver e apaga a guarda de `tr_scheduler()`;
+  # este teste tem que morrer com ela. Se ele começar a falhar porque a região
+  # rodou, a guarda saiu — apague o teste, não o conserte.
+  reg <- stream_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("c1", "s/colapsa", from = "fonte") |>
+    tr_add("d1", "s/mostra", from = "c1"))
+  ev <- list()
+  tr_run(doc, registry = reg, store = s, on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  regiao <- Filter(function(e) identical(e$node, "c1"), ev)[[1]]
+  expect_equal(regiao$type, "invalid")
+  # A frase é lida pelo autor do documento: tem que dizer que falta feature no
+  # trama, não que falta algo no grafo dele.
+  expect_match(regiao$reason, "está correta")
+  expect_match(regiao$reason, "ainda não sabe executá-la")
+})
+
+test_that("rodar um documento com região não deixa handle nenhum no store", {
+  # A INVARIANTE, e ela vale depois da Fase 4 também: nada pode gravar um
+  # handle sob a chave da região sem que a região tenha rodado de verdade.
+  # `.tr_run_unit()` não acha `trama/stream_region` no registro, e o `collect()`
+  # gravava esse erro sob TODA chave de saída dela. A chave não muda quando o
+  # driver chegar: o `failed = TRUE` envenenado sobrevivia à feature que faltava
+  # e o primeiro uso do driver reportaria, do cache, um erro de quando ele não
+  # existia. Para sempre — nenhum `tr_plan()` recalcula um handle que existe.
+  reg <- stream_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "s/fonte") |>
+    tr_add("c1", "s/colapsa", from = "fonte") |>
+    tr_add("d1", "s/mostra", from = "c1"))
+  u <- tr_plan(doc, registry = reg, store = s)$units[["c1"]]
+  tr_run(doc, registry = reg, store = s)
+
+  for (k in unlist(u$outputs)) expect_null(tr_store_handle(s, k))
+  # E o plano seguinte continua limpo: nada de `failed` vindo do cache.
+  p2 <- tr_plan(doc, registry = reg, store = s)
+  expect_false(isTRUE(p2$units$c1$failed))
+  expect_null(p2$units$c1$handles)
+})

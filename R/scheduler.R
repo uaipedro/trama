@@ -33,18 +33,27 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
                     node_type = u$node_type, key = u$key, outputs = u$outputs), list(...)))
   }
 
+  # Os ids desta unidade que o RESTO DO GRAFO consome. Numa região são TODOS os
+  # colapsos, e não só `u$node` (que é apenas o primeiro deles): o consumidor de
+  # um segundo colapso esperava por um id que nunca entrava em `done`, ficava
+  # sem ninguém em voo, e saía como "blocked_by = unreachable" pelo quebra-
+  # -impasse do `dispatch()` — motivo não acionável, fora de `tr_plan_blocked()`,
+  # e um artefato que o plano dizia estar em cache simplesmente não era lido.
+  saidas_de <- function(u) u$region$collapse %||% u$node
+
+  st$pending <- tr_plan_pending(plan)
+
   # Classificação inicial — idêntica à antiga, movida para o construtor.
   for (u in plan$units) {
-    if (isTRUE(u$cached)) { emit("cached", u, handles = u$handles); st$done <- c(st$done, u$node); next }
+    if (isTRUE(u$cached)) { emit("cached", u, handles = u$handles); st$done <- c(st$done, saidas_de(u)); next }
     if (isTRUE(u$failed)) {
       h <- u$handles[[1]]
       emit("failed", u, message = h$error$message, class = h$error$class, from_cache = TRUE)
-      st$skipped <- c(st$skipped, u$node); next
+      st$skipped <- c(st$skipped, saidas_de(u)); next
     }
-    if (length(u$invalid) > 0) { emit("invalid", u, reason = paste(u$invalid, collapse = ", ")); st$skipped <- c(st$skipped, u$node); next }
-    if (length(u$blocked_by) > 0) { emit("blocked", u, blocked_by = I(as.character(u$blocked_by))); st$skipped <- c(st$skipped, u$node); next }
+    if (length(u$invalid) > 0) { emit("invalid", u, reason = paste(u$invalid, collapse = ", ")); st$skipped <- c(st$skipped, saidas_de(u)); next }
+    if (length(u$blocked_by) > 0) { emit("blocked", u, blocked_by = I(as.character(u$blocked_by))); st$skipped <- c(st$skipped, saidas_de(u)); next }
   }
-  st$pending <- tr_plan_pending(plan)
 
   # Adoção: unidades em voo de um run SUPERADO cuja chave continua no plano
   # novo. Sem isto, digitar `4`, `40`, `400` num param faria o run de `400`
@@ -60,17 +69,38 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
 
   ready_of <- function(u) all(.tr_upstream_nodes(u) %in% st$done)
 
-  prune <- function(bad_node) {
-    frontier <- bad_node
+  prune <- function(bad_nodes) {
+    frontier <- bad_nodes
     repeat {
       hit <- names(Filter(function(p) any(.tr_upstream_nodes(p) %in% frontier), st$pending))
       if (length(hit) == 0) break
+      # A fronteira seguinte são as SAÍDAS do que acabou de cair, não os nomes
+      # das unidades: quem consome o segundo colapso de uma região podada não
+      # seria alcançado, e ficaria pendente pra sempre esperando por ele.
+      seguinte <- character()
       for (nm in hit) {
-        emit("blocked", st$pending[[nm]], blocked_by = I(as.character(bad_node)))
-        st$skipped <- c(st$skipped, nm); st$pending[[nm]] <- NULL
+        u <- st$pending[[nm]]
+        emit("blocked", u, blocked_by = I(as.character(bad_nodes)))
+        st$skipped <- c(st$skipped, saidas_de(u)); seguinte <- c(seguinte, saidas_de(u))
+        st$pending[[nm]] <- NULL
       }
-      frontier <- hit
+      frontier <- seguinte
     }
+  }
+
+  # TODO(fase-4): APAGAR este bloco inteiro — é o driver da região que o
+  # substitui. Sem ele, `.tr_run_unit()` não acha `trama/stream_region` no
+  # registro e o `collect()` grava esse erro sob TODA chave de saída da região.
+  # A chave NÃO muda quando o driver chegar: o handle envenenado sobreviveria à
+  # feature que faltava, e o primeiro uso do driver reportaria, do cache, um
+  # erro de quando ele não existia — e nenhum `tr_plan()` recalcula um handle
+  # que existe. Recusar aqui pula a unidade SEM gravar nada. Roda depois de
+  # `prune()` porque o plano não sabe deste andaime: sem podar, quem consome a
+  # região sairia com "unreachable", que não diz nada a ninguém.
+  for (u in Filter(function(x) identical(x$kind, "stream_region"), st$pending)) {
+    emit("invalid", u, reason = .tr_stream_sem_driver(u$region$id))
+    st$skipped <- c(st$skipped, saidas_de(u)); st$pending[[u$node]] <- NULL
+    prune(saidas_de(u))
   }
 
   finish <- function() {
@@ -92,7 +122,8 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
     }
     if (length(st$inflight) == 0 && length(st$pending) > 0) {
       for (nm in names(st$pending)) emit("blocked", st$pending[[nm]], blocked_by = I("unreachable"))
-      st$skipped <- c(st$skipped, names(st$pending)); st$pending <- list()
+      st$skipped <- c(st$skipped, unlist(lapply(st$pending, saidas_de), use.names = FALSE))
+      st$pending <- list()
     }
   }
 
@@ -115,16 +146,17 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
       progressed <- TRUE
       st$inflight[[nm]] <- NULL
       if (isTRUE(res$ok)) {
-        st$done <- c(st$done, u$node); st$results[[u$node]] <- res$handles
+        st$done <- c(st$done, saidas_de(u)); st$results[[u$node]] <- res$handles
         emit("done", u, duration = as.numeric(Sys.time() - job$t0, units = "secs"), handles = res$handles)
       } else {
         for (k in unlist(u$outputs)) {
           tr_store_put_error(store, k, res$error$message, class = res$error$class,
-                             traceback = res$error$traceback, node_type = u$node_type)
+                             traceback = res$error$traceback, node_type = u$node_type,
+                             collections = u$collections)
         }
         emit("failed", u, message = res$error$message, class = res$error$class)
-        st$skipped <- c(st$skipped, u$node)
-        prune(u$node)
+        st$skipped <- c(st$skipped, saidas_de(u))
+        prune(saidas_de(u))
       }
       .tr_clear_progress(store, u$key)
     }
