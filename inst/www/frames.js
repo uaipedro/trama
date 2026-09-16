@@ -13,7 +13,7 @@ import dagre from "@dagrejs/dagre";
 
 import { ASPECTS, ratioOf, FRAME_COLORS, rectOf, inside, containedCards, fitAspect,
          containedFrames, FRAME_HEAD, FRAME_PAD, donos, unidades, crescerExterno, abrirEspaco,
-         gradeDeFrames, validarPrancheta, PRANCHETA_PADRAO } from "./geometria.js";
+         gradeDeFrames, validarPrancheta, PRANCHETA_PADRAO, marcaDaAgua } from "./geometria.js";
 // Reexportados: o editor importa tudo de `./frames.js` e não precisa saber que
 // a geometria mudou de arquivo.
 export { ASPECTS, ratioOf, FRAME_COLORS, rectOf, inside, containedCards, fitAspect,
@@ -322,6 +322,9 @@ export function FrameDraw({ toFlow, onDone, aspect }) {
 const SVG_NS = "http://www.w3.org/2000/svg";
 // A mesma URL que o `Icon` do editor usa: os dois módulos estão na mesma pasta.
 const SPRITE = new URL("vendor/lucide.svg", import.meta.url).href;
+// Mesmo motivo do sprite: `./marca.svg` num `src` seria relativo ao DOCUMENTO,
+// que o Shiny serve na raiz, e cairia fora do prefixo versionado.
+const MARCA = new URL("marca.svg", import.meta.url).href;
 // Só o sucesso fica guardado: uma falha (rede, 404) não pode envenenar as
 // exportações seguintes, que tentam de novo.
 let spriteDoc = null;
@@ -380,27 +383,70 @@ function inlineEdges(root) {
 const slug = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+const carregar = (src) => new Promise((ok, erro) => {
+  const img = new Image();
+  img.onload = () => ok(img);
+  img.onerror = () => erro(new Error(`imagem não carregou: ${src}`));
+  img.src = src;
+});
+
+// Carimba o hexágono no canto do PNG. Desenha o blob num canvas e devolve
+// outro blob — o `html-to-image` não tem gancho de "depois de desenhar", e o
+// SVG da marca não está no DOM capturado de propósito: ele não é conteúdo do
+// frame, é assinatura.
+//
+// Falha ao carregar a marca NÃO derruba a exportação: devolve o blob original.
+// Perder a assinatura é menos grave que perder a imagem que o usuário pediu.
+async function carimbar(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    // Em paralelo porque são duas buscas independentes, e a da marca costuma
+    // vir do cache do navegador depois da primeira exportação.
+    const [img, marca] = await Promise.all([carregar(url), carregar(MARCA)]);
+    const cv = document.createElement("canvas");
+    cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const ctx = cv.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    // A geometria sai do tamanho do PNG, não do frame: o PNG vem em 2x, e
+    // medir no frame daria uma marca com metade do tamanho pedido na imagem
+    // que o usuário abre. A margem maior (32) é pelo mesmo motivo — é a folga
+    // de 16 do frame, contada em pixels da imagem.
+    const p = marcaDaAgua(cv.width, cv.height, 32);
+    // O SVG da marca só tem viewBox, sem width/height: por isso as medidas de
+    // destino do `drawImage` são explícitas, e não vêm do `naturalWidth` dele.
+    ctx.globalAlpha = 0.55;
+    ctx.drawImage(marca, p.x, p.y, p.w, p.h);
+    return await new Promise((ok) => cv.toBlob((b) => ok(b || blob), "image/png"));
+  } catch (e) {
+    console.warn("marca d'água não aplicada:", e);
+    return blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 // Um frame vira um PNG em 2x. O viewport do React Flow é capturado com um
 // `transform` que leva o retângulo do frame à origem em escala 1. O fundo
 // pontilhado é IRMÃO do viewport e fica de fora sozinho; o resto do "limpo"
 // (alças, `?`, seleção, badges, handles) é `.tr-exporting`, no <body> só
 // durante a captura e removido no `finally`, pra uma falha não deixar o editor
 // sem alças.
-export async function exportFramePng(viewportEl, f, index) {
+export async function exportFramePng(viewportEl, f, index, marca = true) {
   const volta = await inlineIcons(viewportEl);
   document.body.classList.add("tr-exporting");
   let voltaLigacoes = () => {};
   try {
     voltaLigacoes = inlineEdges(viewportEl);
     const bg = getComputedStyle(document.documentElement).getPropertyValue("--tr-bg").trim();
-    const blob = await toBlob(viewportEl, {
+    const bruto = await toBlob(viewportEl, {
       width: f.w, height: f.h, pixelRatio: 2, backgroundColor: bg || "#0f1115",
       // O editor não usa fonte web; pular a varredura de @font-face só poupa tempo.
       skipFonts: true,
       style: { width: `${f.w}px`, height: `${f.h}px`,
                transform: `translate(${-f.x}px, ${-f.y}px) scale(1)` },
     });
-    if (!blob) throw new Error("a captura não gerou imagem");
+    if (!bruto) throw new Error("a captura não gerou imagem");
+    const blob = marca ? await carimbar(bruto) : bruto;
     // Blob, e não data: URL: um frame grande em 2x dá um PNG de megabytes, e
     // como texto base64 no `href` ele pesa um terço a mais e há navegador que
     // recusa baixar URL desse tamanho. A URL do blob é revogada depois de o
