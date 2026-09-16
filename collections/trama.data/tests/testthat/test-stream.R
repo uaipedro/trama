@@ -157,3 +157,56 @@ test_that("fora de região, a tabela inteira vale como histórico de um ponto", 
   expect_equal(nrow(h), 10L)
   expect_true(all(h$passo == 1L))
 })
+
+# ---- a região inteira, pelo grafo --------------------------------------
+
+test_that("data/filter e data/mutate elevados dão o MESMO resultado que em lote", {
+  # A prova da Decisão 7: a elevação não é teoria. Nenhum dos dois nós mudou
+  # uma linha, e nenhum dos dois sabe que está dentro de uma região.
+  reg <- data_registry(); s <- trama::tr_store(tempfile())
+  flow <- trama::tr_flow(reg) |>
+    trama::tr_add("carros", "data/example", dataset = "mtcars") |>
+    trama::tr_add("entra", "data/to_stream", lote = 1L, from = "carros") |>
+    trama::tr_add("grandes", "data/filter", expr = "hp > 100", from = "entra") |>
+    trama::tr_add("kpl", "data/mutate", name = "kpl", expr = "mpg * 0.425",
+                  from = "grandes") |>
+    trama::tr_add("sai", "data/from_stream", passo = FALSE, from = "kpl")
+
+  hist <- trama::tr_value(flow, "sai", reg, s)
+
+  lote <- tr_mutate(tr_filter(tr_example("mtcars"), "hp > 100"), "kpl", "mpg * 0.425")
+  expect_equal(hist, lote)
+})
+
+test_that("região de zero pontos produz histórico vazio, e o run não falha", {
+  reg <- data_registry(); s <- trama::tr_store(tempfile())
+  flow <- trama::tr_flow(reg) |>
+    trama::tr_add("carros", "data/example", dataset = "mtcars") |>
+    trama::tr_add("nenhum", "data/filter", expr = "hp > 1e6", from = "carros") |>
+    trama::tr_add("entra", "data/to_stream", lote = 1L, from = "nenhum") |>
+    trama::tr_add("sai", "data/from_stream", from = "entra")
+
+  hist <- trama::tr_value(flow, "sai", reg, s)
+  expect_true(is.data.frame(hist))
+  expect_equal(nrow(hist), 0L)
+})
+
+test_that("mudar 'lote' muda a chave da região e o artefato recomputa", {
+  # É a propriedade que faz a região ser confiável: os params da fonte mudam o
+  # RESULTADO, então têm de entrar na chave. Sem isso o segundo run serviria do
+  # cache o histórico do primeiro — e a única coisa que denuncia é a coluna
+  # `passo`, que é justamente o que se compara aqui.
+  reg <- data_registry(); s <- trama::tr_store(tempfile())
+  monta <- function(lote) trama::tr_flow(reg) |>
+    trama::tr_add("carros", "data/example", dataset = "mtcars") |>
+    trama::tr_add("entra", "data/to_stream", lote = lote, from = "carros") |>
+    trama::tr_add("sai", "data/from_stream", from = "entra")
+
+  um <- trama::tr_value(monta(1L), "sai", reg, s)
+  tres <- trama::tr_value(monta(3L), "sai", reg, s)
+
+  expect_equal(nrow(um), 32L)
+  expect_equal(nrow(tres), 32L)
+  expect_equal(max(um$passo), 32L)
+  expect_equal(max(tres$passo), 11L)
+})
