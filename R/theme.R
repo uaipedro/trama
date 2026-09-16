@@ -74,6 +74,21 @@
   t[names(.TR_TEMA_CAMPOS)]
 }
 
+#' `marca` é booleano e mais nada.
+#'
+#' A recusa mora aqui, e não solta em cada chamador, porque são três: a leitura
+#' do manifesto, o verbo que grava e o transporte — este precisa recusar o
+#' pedido do painel ANTES de gravar os temas, já que os dois campos chegam no
+#' mesmo gesto. `NA` cai junto com o resto: "talvez carimbe" não é resposta que
+#' a exportação saiba usar.
+#' @noRd
+.tr_check_marca <- function(marca, onde = "") {
+  if (!(is.logical(marca) && length(marca) == 1L && !is.na(marca)))
+    rlang::abort(paste0("marca precisa ser true ou false", onde, "."),
+                 class = "tr_error_bad_theme")
+  marca
+}
+
 #' Settings do projeto a partir do manifesto lido.
 #'
 #' `temas` presente substitui os embutidos (não soma): o projeto que declara
@@ -97,13 +112,9 @@
     rlang::abort(sprintf("tema_padrao '%s' não está entre os temas de trama.json.",
                          paste(padrao, collapse = ",")), class = "tr_error_bad_theme")
   # Ausente vale TRUE: projeto feito antes deste campo continua exportando com
-  # a marca, que é o padrão anunciado. `NA` não passa junto com os booleanos —
-  # "talvez carimbe" não é resposta que a exportação saiba usar.
-  marca <- cfg$marca %||% TRUE
-  if (!(is.logical(marca) && length(marca) == 1L && !is.na(marca)))
-    rlang::abort("marca precisa ser true ou false em trama.json.",
-                 class = "tr_error_bad_theme")
-  list(temas = temas, tema_padrao = padrao, marca = marca)
+  # a marca, que é o padrão anunciado.
+  list(temas = temas, tema_padrao = padrao,
+       marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"))
 }
 
 #' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
@@ -216,13 +227,23 @@ tr_project_set_themes <- function(root, temas, padrao) {
 tr_project_set_marca <- function(root, marca) {
   .tr_check_project(root)
   cfg_path <- file.path(normalizePath(root, mustWork = TRUE), "trama.json")
-  if (!(is.logical(marca) && length(marca) == 1L && !is.na(marca)))
-    rlang::abort("marca precisa ser TRUE ou FALSE.", class = "tr_error_bad_theme")
+  .tr_check_marca(marca)
   .tr_cfg_rewrite(cfg_path, "a marca", function(cfg) { cfg$marca <- marca; cfg })
   # Relê o manifesto em vez de devolver só a marca: os temas gravados antes
   # fazem parte dos settings que quem chamou vai guardar, e devolver uma lista
   # montada aqui seria uma segunda verdade sobre o mesmo arquivo.
-  invisible(.tr_settings(jsonlite::fromJSON(cfg_path, simplifyVector = FALSE)))
+  invisible(.tr_settings_at(root))
+}
+
+#' Settings como estão NO ARQUIVO, e não como a sessão acha que estão.
+#'
+#' Existe para quem acabou de gravar (ou tentou gravar) e precisa devolver a
+#' verdade do disco: depois de uma recusa no meio de duas escritas, o que vale
+#' é o manifesto, não o que a sessão tinha em memória.
+#' @noRd
+.tr_settings_at <- function(root) {
+  cfg_path <- file.path(root, "trama.json")
+  .tr_settings(jsonlite::fromJSON(cfg_path, simplifyVector = FALSE))
 }
 
 #' Settings no formato que o front recebe.

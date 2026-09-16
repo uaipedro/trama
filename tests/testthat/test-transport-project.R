@@ -248,7 +248,8 @@ test_that("tr_themes grava no manifesto e reenvia; tema inválido não toca o ar
     expect_true("themes" %in% tipos())
 
     msgs <- list()
-    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "#ffffff")), tema_padrao = "rel", seq = 1))
+    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "#ffffff")), tema_padrao = "rel",
+                                       marca = TRUE, seq = 1))
     expect_equal(rv_project()$settings$tema_padrao, "rel")
     expect_equal(jsonlite::fromJSON(f)$tema_padrao, "rel")
     temas <- Filter(function(m) identical(m$type, "themes"), msgs)
@@ -256,7 +257,8 @@ test_that("tr_themes grava no manifesto e reenvia; tema inválido não toca o ar
 
     antes <- readBin(f, "raw", file.size(f))
     msgs <- list()
-    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "azul")), tema_padrao = "rel", seq = 2))
+    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "azul")), tema_padrao = "rel",
+                                       marca = TRUE, seq = 2))
     expect_identical(readBin(f, "raw", file.size(f)), antes)
     expect_true(all(c("warning", "themes") %in% tipos()))
     expect_equal(rv_project()$settings$temas$rel$fundo, "#ffffff")
@@ -264,9 +266,56 @@ test_that("tr_themes grava no manifesto e reenvia; tema inválido não toca o ar
     # Sem `tema_padrao` (formato antigo `padrao` incluso) é recusa, não padrão
     # escolhido calado.
     msgs <- list()
-    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "#000000")), padrao = "rel", seq = 3))
+    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "#000000")), padrao = "rel",
+                                       marca = TRUE, seq = 3))
     expect_identical(readBin(f, "raw", file.size(f)), antes)
     expect_true(all(c("warning", "themes") %in% tipos()))
     expect_equal(rv_project()$settings$temas$rel$fundo, "#ffffff")
+  })
+})
+
+test_that("tr_themes grava a marca junto; recusa não deixa o pedido pela metade", {
+  p1 <- projeto_falso()
+  f <- file.path(p1$root, "trama.json")
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+    ultimo <- function() {
+      t <- Filter(function(m) identical(m$type, "themes"), msgs)
+      t[[length(t)]]
+    }
+
+    session$setInputs(tr_ready = 1)
+    expect_true(ultimo()$marca)
+
+    msgs <- list()
+    session$setInputs(tr_themes = list(temas = list(rel = list()), tema_padrao = "rel",
+                                       marca = FALSE, seq = 1))
+    expect_false(rv_project()$settings$marca)
+    expect_false(jsonlite::fromJSON(f)$marca)
+    expect_false(ultimo()$marca)
+
+    # Tema inválido no mesmo gesto: nem o tema nem a marca entram. Religar a
+    # marca por causa de um tema recusado seria gravar metade do pedido.
+    antes <- readBin(f, "raw", file.size(f))
+    msgs <- list()
+    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "azul")), tema_padrao = "rel",
+                                       marca = TRUE, seq = 2))
+    expect_identical(readBin(f, "raw", file.size(f)), antes)
+    expect_true("warning" %in% tipos())
+    expect_false(rv_project()$settings$marca)
+    expect_false(ultimo()$marca)
+
+    # Sem `marca` é recusa, como sem `tema_padrao`: o painel sempre sabe em que
+    # posição a chave está, e assumir "ligada" religaria a marca de quem a
+    # desligou.
+    msgs <- list()
+    session$setInputs(tr_themes = list(temas = list(rel = list(fundo = "#000000")), tema_padrao = "rel",
+                                       seq = 3))
+    expect_identical(readBin(f, "raw", file.size(f)), antes)
+    expect_true("warning" %in% tipos())
+    expect_false(ultimo()$marca)
   })
 })

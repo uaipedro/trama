@@ -17,9 +17,16 @@ export const TEMA_BASE = { base: "minimal", tamanho: 13, fonte: "sans", fundo: "
   paleta: ["#5b8def", "#f59e0b", "#10b981", "#ef4444", "#a855f7", "#06b6d4", "#f472b6", "#84cc16"],
   continua: "viridis" };
 
+// `marca` anda junto dos temas porque o rascunho do painel é o PEDIDO inteiro
+// que vai pro servidor de uma vez. Se cada operação (duplicar, renomear,
+// apagar) tivesse que recolocá-la, a esquecida sairia como "religar a marca"
+// num salvamento que só renomeou um tema. `?? true` é o mesmo padrão do
+// servidor, pro rascunho não inventar um terceiro estado antes da primeira
+// mensagem.
 export function copiar(estado) {
   return { temas: JSON.parse(JSON.stringify((estado && estado.temas) || {})),
-           tema_padrao: estado?.tema_padrao ?? null };
+           tema_padrao: estado?.tema_padrao ?? null,
+           marca: estado?.marca ?? true };
 }
 
 // "novo tema", "novo tema 2", … — o primeiro sem número porque quase sempre
@@ -55,7 +62,9 @@ export function renomear(estado, de, para) {
   const e = copiar(estado);
   const temas = {};
   for (const [k, v] of Object.entries(e.temas)) temas[k === de ? para : k] = v;
-  return { temas, tema_padrao: e.tema_padrao === de ? para : e.tema_padrao };
+  // `...e` e não um objeto novo com as duas chaves: aqui só a lista de temas
+  // muda, e o que mais estiver no rascunho (a marca) tem que atravessar.
+  return { ...e, temas, tema_padrao: e.tema_padrao === de ? para : e.tema_padrao };
 }
 
 // Apagar o padrão promove o primeiro que sobra: o servidor exige que
