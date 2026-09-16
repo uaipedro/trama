@@ -125,13 +125,11 @@
   c(list(nome = nome), s$temas[[nome]], if (ausente) list(ausente = TRUE))
 }
 
-#' Grava os temas no manifesto — o único verbo que escreve `temas`.
+#' Reescreve o manifesto mexendo só no que `muda` mexeu.
 #'
-#' Valida ANTES de abrir o arquivo: manifesto com tema quebrado não abre o
-#' projeto (`tr_project_at()` recusa), então gravar e validar depois deixaria o
-#' usuário trancado fora do próprio projeto. Preserva toda outra chave:
-#' `tr_project()` não escreve o manifesto de propósito, e este verbo não pode
-#' virar a porta dos fundos disso.
+#' Lê o arquivo inteiro e devolve o arquivo inteiro: `tr_project()` não escreve
+#' o manifesto de propósito, e nenhum verbo daqui pode virar a porta dos fundos
+#' disso apagando chave que não é dele.
 #'
 #' Grava num temporário da MESMA pasta e renomeia, como `.tr_atomic` no store:
 #' disco cheio no meio do `writeLines` deixaria um `trama.json` truncado, que é
@@ -139,10 +137,41 @@
 #' conferência. Os bytes saem por `writeBin` em UTF-8: o nome embutido
 #' "clássico" não pode depender da locale de quem grava.
 #'
-#' `paleta` e `collections` vão com `I()` porque o JSON sai com `auto_unbox`
-#' (é o que deixa `tema_padrao` e as cores escalares legíveis) e um vetor de um
-#' item viraria string — a leitura aceita as duas formas, mas quem edita o
-#' arquivo à mão veria dois formatos pra mesma coisa.
+#' `collections` vai com `I()` porque o JSON sai com `auto_unbox` (é o que
+#' deixa `tema_padrao` e as cores escalares legíveis) e um vetor de um item
+#' viraria string — a leitura aceita as duas formas, mas quem edita o arquivo à
+#' mão veria dois formatos pra mesma coisa.
+#'
+#' `oque` entra na mensagem de falha ("os temas", "a marca"): quem não
+#' conseguiu gravar precisa saber o que se perdeu, não só o caminho.
+#' @noRd
+.tr_cfg_rewrite <- function(cfg_path, oque, muda) {
+  cfg <- muda(jsonlite::fromJSON(cfg_path, simplifyVector = FALSE))
+  if (!is.null(cfg$collections)) cfg$collections <- I(as.character(unlist(cfg$collections)))
+  json <- enc2utf8(as.character(jsonlite::toJSON(cfg, auto_unbox = TRUE, pretty = TRUE, digits = NA)))
+  tmp <- tempfile(".trama-", tmpdir = dirname(cfg_path), fileext = ".part")
+  on.exit(unlink(tmp), add = TRUE)
+  ok <- tryCatch({
+    writeBin(charToRaw(paste0(json, "\n")), tmp)
+    file.rename(tmp, cfg_path)
+  }, error = function(e) e)
+  if (!isTRUE(ok)) {
+    rlang::abort(sprintf(
+      "Não foi possível gravar %s em '%s'. Verifique a permissão de escrita e o espaço em disco.",
+      oque, cfg_path), class = "tr_error_project_write", parent = if (inherits(ok, "error")) ok)
+  }
+  invisible(NULL)
+}
+
+#' Grava os temas no manifesto — o único verbo que escreve `temas`.
+#'
+#' Valida ANTES de abrir o arquivo: manifesto com tema quebrado não abre o
+#' projeto (`tr_project_at()` recusa), então gravar e validar depois deixaria o
+#' usuário trancado fora do próprio projeto.
+#'
+#' `paleta` vai com `I()` pelo mesmo motivo de `collections` em
+#' `.tr_cfg_rewrite()`: uma cor só não pode sair como string onde oito saem
+#' como array.
 #' `padrao` é obrigatório aqui, ao contrário da leitura: escolher o padrão
 #' calado só serve pra manifesto antigo ou editado à mão. Quem GRAVA (o painel)
 #' sabe qual escolheu, e mensagem sem o campo é bug do front — gravar "escuro"
@@ -162,23 +191,38 @@ tr_project_set_themes <- function(root, temas, padrao) {
     rlang::abort("Escolha o tema padrão: tema_padrao precisa ser o nome de um tema.",
                  class = "tr_error_bad_theme")
   settings <- .tr_settings(list(temas = temas, tema_padrao = padrao))
-  cfg <- jsonlite::fromJSON(cfg_path, simplifyVector = FALSE)
-  cfg$temas <- lapply(settings$temas, function(t) { t$paleta <- I(t$paleta); t })
-  cfg$tema_padrao <- settings$tema_padrao
-  if (!is.null(cfg$collections)) cfg$collections <- I(as.character(unlist(cfg$collections)))
-  json <- enc2utf8(as.character(jsonlite::toJSON(cfg, auto_unbox = TRUE, pretty = TRUE, digits = NA)))
-  tmp <- tempfile(".trama-", tmpdir = dirname(cfg_path), fileext = ".part")
-  on.exit(unlink(tmp), add = TRUE)
-  ok <- tryCatch({
-    writeBin(charToRaw(paste0(json, "\n")), tmp)
-    file.rename(tmp, cfg_path)
-  }, error = function(e) e)
-  if (!isTRUE(ok)) {
-    rlang::abort(sprintf(
-      "Não foi possível gravar os temas em '%s'. Verifique a permissão de escrita e o espaço em disco.",
-      cfg_path), class = "tr_error_project_write", parent = if (inherits(ok, "error")) ok)
-  }
+  .tr_cfg_rewrite(cfg_path, "os temas", function(cfg) {
+    cfg$temas <- lapply(settings$temas, function(t) { t$paleta <- I(t$paleta); t })
+    cfg$tema_padrao <- settings$tema_padrao
+    cfg
+  })
   invisible(settings)
+}
+
+#' Liga ou desliga a marca d'água dos frames exportados.
+#'
+#' Verbo separado de `tr_project_set_themes()` porque a escolha é separada: o
+#' painel salva as duas coisas no mesmo gesto, mas quem chama do console quer
+#' desligar a marca sem ter que reescrever a lista de temas inteira para isso.
+#'
+#' Valida ANTES de abrir o arquivo, pelo mesmo motivo dos temas: `marca` com
+#' valor que `.tr_settings()` recusa tranca o projeto fora do editor. Mexe só
+#' na chave `marca`; o resto do manifesto volta como estava.
+#' @param root Pasta do projeto (precisa ter `trama.json`).
+#' @param marca `TRUE` para carimbar o PNG exportado, `FALSE` para não
+#'   carimbar.
+#' @return Os settings do projeto já com a marca nova, invisível.
+#' @export
+tr_project_set_marca <- function(root, marca) {
+  .tr_check_project(root)
+  cfg_path <- file.path(normalizePath(root, mustWork = TRUE), "trama.json")
+  if (!(is.logical(marca) && length(marca) == 1L && !is.na(marca)))
+    rlang::abort("marca precisa ser TRUE ou FALSE.", class = "tr_error_bad_theme")
+  .tr_cfg_rewrite(cfg_path, "a marca", function(cfg) { cfg$marca <- marca; cfg })
+  # Relê o manifesto em vez de devolver só a marca: os temas gravados antes
+  # fazem parte dos settings que quem chamou vai guardar, e devolver uma lista
+  # montada aqui seria uma segunda verdade sobre o mesmo arquivo.
+  invisible(.tr_settings(jsonlite::fromJSON(cfg_path, simplifyVector = FALSE)))
 }
 
 #' Settings no formato que o front recebe.
