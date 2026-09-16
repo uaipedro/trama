@@ -1,8 +1,9 @@
-<!-- Variante clara da marca completa, para o README. O GitHub serve o SVG por
-     <img>, onde não há herança de cor: `currentColor` resolveria para preto,
-     não para a cor do tema. Por isso o traço e o texto são o #24292f do tema
-     claro do GitHub, e o tema escuro tem arquivo próprio (logo-dark.svg) —
-     os dois entram num <picture> no README. -->
+<!-- Variante escura da marca completa: o par de logo.svg, escolhida pelo
+     <picture> do README. Mesmo motivo do outro arquivo — servido por <img> o
+     SVG não herda cor nenhuma, então cada tema precisa da sua cópia com a cor
+     já fixa. Aqui traço e texto são o #e6edf3 do tema escuro do GitHub. As
+     três cores dos nós e o `r` azul não mudam: são a identidade, e têm
+     contraste nos dois fundos. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 545 200" fill="none" role="img" aria-labelledby="tituloMarca">
   <!-- aria-labelledby e não só o <title> filho: leitor de tela lê o <title>
        de um role="img" de forma irregular, a referência explícita é o que
@@ -11,7 +12,7 @@
   <!-- hexágono idêntico ao de inst/www/marca.svg: a marca completa é o mesmo
        desenho com o wordmark ao lado, não um redesenho -->
   <path d="M86.5 3 170.5 51.5 170.5 148.5 86.5 197 2.5 148.5 2.5 51.5Z"
-        stroke="#24292f" stroke-width="6"
+        stroke="#e6edf3" stroke-width="6"
         stroke-linejoin="round" />
   <!-- as ligações vêm antes dos nós para que os nós cubram as pontas do traço -->
   <g stroke-width="7" stroke-linecap="round">
@@ -38,5 +39,5 @@
   <text x="255" y="128" textLength="270" lengthAdjust="spacingAndGlyphs"
         font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
         font-size="92" font-weight="400" letter-spacing="2"
-        fill="#24292f">t<tspan fill="#2f80ed">r</tspan>ama</text>
+        fill="#e6edf3">t<tspan fill="#2f80ed">r</tspan>ama</text>
 </svg>

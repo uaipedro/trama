@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" role="img">
-  <title>trama</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" role="img" aria-labelledby="tituloMarca">
+  <!-- aria-labelledby e não só o <title> filho: leitor de tela lê o <title>
+       de um role="img" de forma irregular, a referência explícita é o que
+       funciona nos três grandes -->
+  <title id="tituloMarca">trama</title>
   <!-- viewBox quadrado porque o uso é favicon (16–32 px), que é quadrado: o
        hexágono fica centrado e ocupa quase toda a altura, sem faixa vazia -->
   <!-- contorno mais fino que na marca cheia para a cor dos nós dominar sobre
