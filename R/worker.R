@@ -8,6 +8,17 @@
 #' chave. É a tese inteira do desenho num lugar só.
 #' @noRd
 .tr_run_unit <- function(unit, registry, store, ctx_extra = NULL) {
+  # Região de fluxo é uma unidade como qualquer outra do ponto de vista do
+  # executor — o que muda é só quem sabe executá-la (`R/stream-driver.R`). O
+  # despacho é a PRIMEIRA coisa porque `unit$node_type` de uma região é
+  # "trama/stream_region", que não é nó de coleção nenhuma: `tr_get_node()`
+  # abortaria aqui e o `collect()` gravaria esse erro sob TODA chave de saída da
+  # região. A chave não muda depois, e nenhum `tr_plan()` recalcula um handle
+  # que existe — o erro sobreviveria pra sempre.
+  if (identical(unit$kind, "stream_region")) {
+    return(.tr_run_region(unit, registry, store, ctx_extra))
+  }
+
   spec <- tr_get_node(unit$node_type, registry)
 
   args <- list()

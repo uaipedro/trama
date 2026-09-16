@@ -25,25 +25,6 @@
   regioes
 }
 
-#' Razão da recusa TEMPORÁRIA da região no `tr_scheduler()`, enquanto o driver
-#' não existe.
-#'
-#' A frase é lida pelo AUTOR do documento, no card do editor: o `reason` do
-#' evento `invalid` vira a mensagem de erro do nó (`editor.js`). Então ela diz
-#' que falta feature no trama, e não que falta algo no documento — sem isso,
-#' quem montou uma região correta sai procurando defeito num grafo que não tem
-#' nenhum.
-#'
-#' TODO(fase-4): apagar esta função junto com a guarda que a usa em
-#' `R/scheduler.R`.
-#' @noRd
-.tr_stream_sem_driver <- function(region_id) {
-  sprintf(paste0(
-    "A região de fluxo de '%s' está correta, mas esta versão do trama ainda não ",
-    "sabe executá-la: falta o motor que roda uma região ponto a ponto. Não há o ",
-    "que corrigir no documento — só não há como rodar esta parte ainda."), region_id)
-}
-
 #' Só DETECÇÃO: nenhuma patologia é recusada aqui. Região sem colapso, ramo que
 #' não fecha, duas fontes na mesma região — tudo sai no resultado, porque é
 #' exatamente disso que a validação precisa pra dizer QUAL fonte está aberta.

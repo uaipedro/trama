@@ -88,25 +88,6 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
     }
   }
 
-  # TODO(fase-4): APAGAR este bloco inteiro — é o driver da região que o
-  # substitui. Sem ele, `.tr_run_unit()` não acha `trama/stream_region` no
-  # registro e o `collect()` grava esse erro sob TODA chave de saída da região.
-  # A chave NÃO muda quando o driver chegar: o handle envenenado sobreviveria à
-  # feature que faltava, e o primeiro uso do driver reportaria, do cache, um
-  # erro de quando ele não existia — e nenhum `tr_plan()` recalcula um handle
-  # que existe. Recusar aqui pula a unidade SEM gravar nada. Roda depois de
-  # `prune()` porque o plano não sabe deste andaime: sem podar, quem consome a
-  # região sairia com "unreachable", que não diz nada a ninguém.
-  for (u in Filter(function(x) identical(x$kind, "stream_region"), st$pending)) {
-    # `Filter` vê um retrato: a poda da região anterior pode já ter derrubado
-    # esta (região a jusante de região é legítimo), e sem esta linha ela sairia
-    # duas vezes — "blocked" e depois "invalid", com `skipped` duplicado.
-    if (is.null(st$pending[[u$node]])) next
-    emit("invalid", u, reason = .tr_stream_sem_driver(u$region$id))
-    st$skipped <- c(st$skipped, saidas_de(u)); st$pending[[u$node]] <- NULL
-    prune(saidas_de(u))
-  }
-
   finish <- function() {
     st$finished <- TRUE
     on_event(list(type = "run_finished", run_id = run_id,

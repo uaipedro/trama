@@ -59,14 +59,42 @@ stream_collection <- function() {
               description = "Tabela comum, sem nada de fluxo."),
       # Espelha `data/to_stream`: recebe uma tabela por entrada COMUM (a aresta
       # que vira `external` da região) e emite pontos.
-      tr_node("s/fonte", fn = function(dados) dados,
+      #
+      # `dados = NULL` no formal, e não `function(dados)`: a porta é OPCIONAL, e
+      # porta opcional solta não é passada — o `fn` cai no próprio default
+      # (`.tr_run_unit()`). Sem o default, o nó falhava com "argumento ausente,
+      # sem padrão" assim que alguém o executasse com a porta solta, que é
+      # exatamente o grafo dos testes de região. Até a Fase 3 nada executava
+      # esses nós e o defeito ficou latente; o driver o encontrou.
+      tr_node("s/fonte", fn = function(dados = NULL) dados,
               inputs = list(dados = tr_port("s/tab", required = FALSE)),
               outputs = list(out = ponto()),
               description = "Parte a tabela em pontos."),
-      tr_node("s/fonte_dupla", fn = function(dados) dados,
+      tr_node("s/fonte_dupla", fn = function(dados = NULL) dados,
               inputs = list(dados = tr_port("s/tab", required = FALSE)),
               outputs = list(fluxo = ponto(), resumo = "s/tab"),
               description = "Emite pontos por uma saída e um resumo comum pela outra."),
+      # Fonte que gera os PRÓPRIOS pontos. `s/fonte` com a entrada solta devolve
+      # NULL, que é zero pontos — e num fluxo de zero pontos `step` nunca roda.
+      # Testar "membro que explode num passo" exige fluxo não-vazio sem depender
+      # de um nó de fora da região.
+      tr_node("s/pontos", fn = function(n) as.list(seq_len(n)),
+              outputs = list(out = ponto()),
+              params = list(n = tr_param_int(3L)),
+              description = "Emite n pontos."),
+      # Falha DENTRO do laço, e não na montagem: é a falha da unidade-região que
+      # o scheduler tem que propagar por TODOS os colapsos dela.
+      tr_node("s/acumula_explode", fn = function(x) x,
+              inputs = list(x = ponto()), outputs = list(out = ponto()),
+              init = function() list(i = 0L),
+              step = function(state, x) rlang::abort("explodiu no passo",
+                                                     class = "tr_error_teste"),
+              description = "Acumula até explodir."),
+      # Nó COMUM que falha, a montante de uma região: é o que faz a região cair
+      # como vítima da poda, em vez de ser ela a falhar.
+      tr_node("s/explode", fn = function() rlang::abort("explodiu", class = "tr_error_teste"),
+              outputs = list(out = "s/tab"),
+              description = "Tabela que não sai."),
       tr_node("s/puro", fn = function(x) x,
               inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
               description = "Nó comum: fora da região recebe tabela, dentro é elevado."),

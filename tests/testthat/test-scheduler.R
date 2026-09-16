@@ -158,38 +158,34 @@ test_that("região em cache libera o consumidor de QUALQUER colapso", {
   expect_false("unreachable" %in% unlist(lapply(ev, function(e) e$blocked_by)))
 })
 
-# Executor que falha sempre, sem resolver nó nenhum: é o que permite exercitar
-# o `prune()` sobre uma unidade-região na Fase 3, em que a região ainda não roda.
-executor_que_falha <- function() structure(list(
-  kind = "fake",
-  capacity = function() 1L,
-  submit = function(unit, registry, store) unit$node,
-  collect = function(tok) list(ok = FALSE,
-                               error = list(message = "explodiu", class = "tr_error_teste")),
-  cancel = function(toks) invisible(TRUE),
-  shutdown = function() invisible(TRUE)), class = "tr_executor")
-
 test_that("região que falha poda o consumidor de QUALQUER colapso", {
   # O simétrico do cache: a poda andava pelos NOMES das unidades derrubadas, e o
   # nome da região é só o primeiro colapso — `d2` ficava pendente pra sempre
   # esperando por `c2`, e saía com "unreachable".
   #
-  # TODO(fase-4): trocar esta montagem branca pelo driver de verdade, com um
-  # membro cujo `step` explode — mesmo contrato, sem ficção.
-  # O `kind` da unidade é trocado de propósito: é o único jeito de fazer a
-  # região CHEGAR ao executor enquanto o andaime da Fase 3 a recusa antes do
-  # despacho. O que está sob teste é o contrato do scheduler — unidade com
-  # `region$collapse` pula e poda por TODOS os colapsos — e esse contrato não
-  # depende de quem executa.
+  # Quem falha é o `step` de um membro, no driver de verdade e no executor de
+  # verdade: a falha da unidade-região é o caminho que o usuário percorre.
   reg <- stream_registry(); s <- tmp_store()
-  p <- tr_plan(regiao_dois_colapsos(reg), registry = reg, store = s)
-  p$units$c1$kind <- "node"
+  # fo -> ac -> c1 ; ac -> c2 ; c2 -> d2. Dois colapsos na MESMA região e um
+  # consumidor do SEGUNDO — o grafo mínimo em que `u$node` não basta.
+  doc <- tr_flow_doc(
+    tr_flow(reg) |>
+      tr_add("fo", "s/pontos") |>
+      tr_add("ac", "s/acumula_explode", from = "fo") |>
+      tr_add("c1", "s/colapsa", from = "ac") |>
+      tr_add("c2", "s/colapsa") |>
+      tr_link("ac:out", "c2:x") |>
+      tr_add("d2", "s/mostra", from = "c2"))
 
   ev <- list()
-  r <- tr_run_plan(p, reg, s, executor_que_falha(),
+  r <- tr_run_plan(tr_plan(doc, registry = reg, store = s), reg, s,
                    on_event = function(e) ev[[length(ev) + 1]] <<- e)
   expect_setequal(r$skipped, c("c1", "c2", "d2"))
   expect_length(r$done, 0L)
+  # A falha é do passo, e a mensagem que chega ao front diz onde.
+  falha <- Filter(function(e) identical(e$type, "failed"), ev)[[1]]
+  expect_equal(falha$node, "c1")
+  expect_match(falha$message, "passo 1")
   expect_false("unreachable" %in% unlist(lapply(ev, function(e) e$blocked_by)))
   bloqueio <- Filter(function(e) identical(e$node, "d2"), ev)[[1]]
   expect_equal(bloqueio$type, "blocked")
@@ -207,45 +203,24 @@ test_that("poda ACUMULADA pela região: o consumidor do segundo colapso a dois s
   # quebra-impasse com "unreachable". A perda era silenciosa: nenhum teste
   # falhava, porque nos grafos cobertos a região era a primeira a cair e o
   # frontier inicial já vinha certo.
+  # Quem falha é `tab`, nó comum a montante: a região não é a causa, é vítima.
   reg <- stream_registry(); s <- tmp_store()
   doc <- tr_flow_doc(
     tr_flow(reg) |>
-      tr_add("tab", "s/tabela") |>
+      tr_add("tab", "s/explode") |>
       tr_add("fonte", "s/fonte", from = "tab") |>
       tr_add("c1", "s/colapsa", from = "fonte") |>
       tr_add("c2", "s/colapsa") |>
       tr_link("fonte:out", "c2:x") |>
       tr_add("d2", "s/mostra", from = "c2"))
-  p <- tr_plan(doc, registry = reg, store = s)
-  p$units$c1$kind <- "node"   # mesma razão do teste acima: passar pelo andaime
 
   ev <- list()
-  r <- tr_run_plan(p, reg, s, executor_que_falha(),
+  r <- tr_run_plan(tr_plan(doc, registry = reg, store = s), reg, s,
                    on_event = function(e) ev[[length(ev) + 1]] <<- e)
   expect_setequal(r$skipped, c("tab", "c1", "c2", "d2"))
   expect_false("unreachable" %in% unlist(lapply(ev, function(e) e$blocked_by)))
   bloqueio <- Filter(function(e) identical(e$node, "d2"), ev)[[1]]
   expect_equal(bloqueio$type, "blocked")
-})
-
-test_that("região é recusada até o driver existir (REMOVER na Fase 4)", {
-  # ANDAIME — TODO(fase-4). A Fase 4 escreve o driver e apaga a guarda de
-  # `tr_scheduler()`;
-  # este teste tem que morrer com ela. Se ele começar a falhar porque a região
-  # rodou, a guarda saiu — apague o teste, não o conserte.
-  reg <- stream_registry(); s <- tmp_store()
-  doc <- tr_flow_doc(tr_flow(reg) |>
-    tr_add("fonte", "s/fonte") |>
-    tr_add("c1", "s/colapsa", from = "fonte") |>
-    tr_add("d1", "s/mostra", from = "c1"))
-  ev <- list()
-  tr_run(doc, registry = reg, store = s, on_event = function(e) ev[[length(ev) + 1]] <<- e)
-  regiao <- Filter(function(e) identical(e$node, "c1"), ev)[[1]]
-  expect_equal(regiao$type, "invalid")
-  # A frase é lida pelo autor do documento: tem que dizer que falta feature no
-  # trama, não que falta algo no grafo dele.
-  expect_match(regiao$reason, "está correta")
-  expect_match(regiao$reason, "ainda não sabe executá-la")
 })
 
 test_that("handle sob chave de região existe se, e só se, a região rodou", {
@@ -287,22 +262,4 @@ test_that("handle sob chave de região existe se, e só se, a região rodou", {
     expect_false(isTRUE(p2$units$c1$failed))
     expect_null(p2$units$c1$handles)
   }
-})
-
-test_that("região a jusante de região sai UMA vez em skipped (REMOVER na Fase 4)", {
-  # ANDAIME — TODO(fase-4), junto com a guarda de `tr_scheduler()`. A segunda região é podada
-  # pela primeira e depois revisitada pelo retrato do `Filter`: sem a checagem
-  # de `st$pending`, ela saía como "blocked" e de novo como "invalid", com o id
-  # duplicado em `skipped` — o front acenderia e apagaria o mesmo card.
-  reg <- stream_registry(); s <- tmp_store()
-  doc <- tr_flow_doc(tr_flow(reg) |>
-    tr_add("f1", "s/fonte") |>
-    tr_add("c1", "s/colapsa", from = "f1") |>
-    tr_add("f2", "s/fonte", from = "c1") |>
-    tr_add("c2", "s/colapsa", from = "f2"))
-  ev <- list()
-  r <- tr_run_plan(tr_plan(doc, registry = reg, store = s), reg, s,
-                   on_event = function(e) ev[[length(ev) + 1]] <<- e)
-  expect_equal(sort(r$skipped), c("c1", "c2"))
-  expect_equal(sum(vapply(ev, function(e) identical(e$node, "c2"), TRUE)), 1L)
 })
