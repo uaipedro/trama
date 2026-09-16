@@ -39,6 +39,7 @@ tr_catalog <- function(registry = .tr_default_registry) {
   port_json <- function(nm, p) {
     out <- list(name = nm, type = p$type, required = p$required)
     if (isTRUE(p$multiple)) out$multiple <- TRUE
+    if (isTRUE(p$stream)) out$stream <- TRUE
     out
   }
   list(

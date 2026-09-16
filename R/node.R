@@ -3,10 +3,15 @@
 #' `multiple = TRUE` (porta variádica) existe desde o início porque afeta o
 #' schema da aresta (`index`): acrescentar depois seria mudança de formato de
 #' documento, não de API. "Combinar N entradas" aparece em todo domínio.
+#'
+#' `stream = TRUE` marca porta de fluxo: o dado chega ponto a ponto. Ao
+#' contrário de `multiple`, não guarda nada por aresta — logo não toca no
+#' schema do documento.
 #' @export
-tr_port <- function(type, required = TRUE, multiple = FALSE) {
+tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
   .tr_check_id(type, "tipo de porta")
-  structure(list(type = type, required = isTRUE(required), multiple = isTRUE(multiple)),
+  structure(list(type = type, required = isTRUE(required), multiple = isTRUE(multiple),
+                 stream = isTRUE(stream)),
             class = "tr_port")
 }
 
