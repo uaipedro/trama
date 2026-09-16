@@ -281,6 +281,9 @@ test_that("tr_project_set_themes preserva a marca já gravada", {
   # E pelo caminho da leitura, que é o que o projeto reaberto enxerga.
   expect_false(.tr_settings(cfg)$marca)
   expect_equal(cfg$tema_padrao, "claro")
+  # O retorno do verbo também fala do disco: montado só a partir dos temas
+  # recebidos, ele diria "marca ligada" num projeto que a tem desligada.
+  expect_false(tr_project_set_themes(root, list(), "claro")$marca)
 })
 
 test_that("mensagens de tema apontam pro trama.json", {

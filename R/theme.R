@@ -207,7 +207,11 @@ tr_project_set_themes <- function(root, temas, padrao) {
     cfg$tema_padrao <- settings$tema_padrao
     cfg
   })
-  invisible(settings)
+  # Relido do disco, e não o `settings` acima: aquele foi montado só com os
+  # temas recebidos, então a `marca` dele vale sempre o padrão TRUE, e este
+  # verbo devolveria "marca ligada" para um projeto que a tem desligada no
+  # arquivo. O arquivo é que manda.
+  invisible(.tr_settings_at(dirname(cfg_path)))
 }
 
 #' Liga ou desliga a marca d'água dos frames exportados.

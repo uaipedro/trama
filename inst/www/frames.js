@@ -389,12 +389,16 @@ const slug = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 // `dim` é `[largura, altura]` opcional, e existe por causa de SVG.
 //
 // `marca.svg` declara só `viewBox`, sem `width`/`height` — ou seja, não tem
-// dimensão INTRÍNSECA. Firefox e Safari se recusam a desenhar uma imagem
-// assim em canvas, e o pior é COMO recusam: sem exceção. O `try/catch` do
-// `carimbar` não dispara, o `toBlob` devolve o PNG re-codificado e sem
-// assinatura, e a exportação sai calada e errada — bug que só aparece fora do
-// Chrome. Dar `width`/`height` ao objeto `Image` ANTES do `src` supre a
-// dimensão que falta e os três navegadores desenham igual.
+// dimensão INTRÍNSECA. Navegador que não aplica o sizing padrão a uma imagem
+// assim desenha nada em canvas, e o modo de falhar é o problema: sem exceção.
+// O `try/catch` do `carimbar` não dispara, o `toBlob` devolve o PNG
+// re-codificado e sem assinatura, e a exportação sai calada e errada.
+// Dar `width`/`height` ao `Image` ANTES do `src` supre a dimensão que falta.
+//
+// É defesa, não conserto de bug observado: no Chrome e no Firefox 155 daqui o
+// desenho sai IGUAL com e sem `dim` (medido, contando pixels pintados). O
+// relato é de Firefox/Safari antigos, que não temos como testar — como o custo
+// é uma linha e o modo de falha seria mudo, a defesa fica.
 //
 // A correção mora aqui, e não no SVG: o mesmo arquivo serve de favicon, de
 // marca da barra e de entrada do `tools/marca/rasterizar.sh`, que depende de
