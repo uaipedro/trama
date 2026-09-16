@@ -38,6 +38,7 @@ tr_errors <- function() {
     tr_error_missing_description = .tr_msg("errors.tr_error_missing_description"),
     tr_error_missing_fingerprint = .tr_msg("errors.tr_error_missing_fingerprint"),
     tr_error_missing_key = .tr_msg("errors.tr_error_missing_key"),
+    tr_error_missing_message = .tr_msg("errors.tr_error_missing_message"),
     tr_error_missing_mirai = .tr_msg("errors.tr_error_missing_mirai"),
     tr_error_missing_object = .tr_msg("errors.tr_error_missing_object"),
     tr_error_name_collision = .tr_msg("errors.tr_error_name_collision"),

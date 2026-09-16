@@ -28,6 +28,7 @@
   "errors.tr_error_missing_description": "tr_node() sem 'description'",
   "errors.tr_error_missing_fingerprint": "nó impuro sem fingerprint",
   "errors.tr_error_missing_key": "chave ausente no store",
+  "errors.tr_error_missing_message": "mensagem do trama sem entrada no catálogo (bug do pacote)",
   "errors.tr_error_missing_mirai": "tr_executor_pool() sem o pacote mirai",
   "errors.tr_error_missing_object": "handle sem objeto no store",
   "errors.tr_error_name_collision": "mesmo nome usado como input e param",
