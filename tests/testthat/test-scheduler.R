@@ -174,6 +174,8 @@ test_that("região que falha poda o consumidor de QUALQUER colapso", {
   # nome da região é só o primeiro colapso — `d2` ficava pendente pra sempre
   # esperando por `c2`, e saía com "unreachable".
   #
+  # TODO(fase-4): trocar esta montagem branca pelo driver de verdade, com um
+  # membro cujo `step` explode — mesmo contrato, sem ficção.
   # O `kind` da unidade é trocado de propósito: é o único jeito de fazer a
   # região CHEGAR ao executor enquanto o andaime da Fase 3 a recusa antes do
   # despacho. O que está sob teste é o contrato do scheduler — unidade com
@@ -194,8 +196,41 @@ test_that("região que falha poda o consumidor de QUALQUER colapso", {
   expect_true("c2" %in% as.character(bloqueio$blocked_by))
 })
 
+test_that("poda ACUMULADA pela região: o consumidor do segundo colapso a dois saltos", {
+  # O teste irmão acima cobre o frontier INICIAL da poda (a região é quem
+  # falha). Este cobre o ACUMULADO: quem falha é um nó comum a montante, a
+  # região entra na poda como vítima, e a rodada seguinte do `prune()` tem que
+  # sair pelas SAÍDAS dela — todos os colapsos — pra alcançar `d2`.
+  #
+  # Sem isso a frente acumulava o NOME da unidade (só `c1`), `d2` consome `c2`,
+  # não era alcançado, ficava pendente sem ninguém em voo e saía pelo
+  # quebra-impasse com "unreachable". A perda era silenciosa: nenhum teste
+  # falhava, porque nos grafos cobertos a região era a primeira a cair e o
+  # frontier inicial já vinha certo.
+  reg <- stream_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(
+    tr_flow(reg) |>
+      tr_add("tab", "s/tabela") |>
+      tr_add("fonte", "s/fonte", from = "tab") |>
+      tr_add("c1", "s/colapsa", from = "fonte") |>
+      tr_add("c2", "s/colapsa") |>
+      tr_link("fonte:out", "c2:x") |>
+      tr_add("d2", "s/mostra", from = "c2"))
+  p <- tr_plan(doc, registry = reg, store = s)
+  p$units$c1$kind <- "node"   # mesma razão do teste acima: passar pelo andaime
+
+  ev <- list()
+  r <- tr_run_plan(p, reg, s, executor_que_falha(),
+                   on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  expect_setequal(r$skipped, c("tab", "c1", "c2", "d2"))
+  expect_false("unreachable" %in% unlist(lapply(ev, function(e) e$blocked_by)))
+  bloqueio <- Filter(function(e) identical(e$node, "d2"), ev)[[1]]
+  expect_equal(bloqueio$type, "blocked")
+})
+
 test_that("região é recusada até o driver existir (REMOVER na Fase 4)", {
-  # ANDAIME. A Fase 4 escreve o driver e apaga a guarda de `tr_scheduler()`;
+  # ANDAIME — TODO(fase-4). A Fase 4 escreve o driver e apaga a guarda de
+  # `tr_scheduler()`;
   # este teste tem que morrer com ela. Se ele começar a falhar porque a região
   # rodou, a guarda saiu — apague o teste, não o conserte.
   reg <- stream_registry(); s <- tmp_store()
@@ -213,9 +248,13 @@ test_that("região é recusada até o driver existir (REMOVER na Fase 4)", {
   expect_match(regiao$reason, "ainda não sabe executá-la")
 })
 
-test_that("rodar um documento com região não deixa handle nenhum no store", {
-  # A INVARIANTE, e ela vale depois da Fase 4 também: nada pode gravar um
-  # handle sob a chave da região sem que a região tenha rodado de verdade.
+test_that("handle sob chave de região existe se, e só se, a região rodou", {
+  # A INVARIANTE, escrita para sobreviver à Fase 4. A primeira versão afirmava
+  # "nenhum handle, nunca" — verdade só enquanto o driver não existe, e o
+  # implementador da Fase 4 encontraria um teste vermelho que se anuncia como
+  # permanente. A reação mais barata a teste vermelho é enfraquecê-lo, e aí a
+  # invariante morria justamente quando passava a valer. O que é permanente é a
+  # CORRELAÇÃO: handle sob a chave da região se e só se a região emitiu `done`.
   # `.tr_run_unit()` não acha `trama/stream_region` no registro, e o `collect()`
   # gravava esse erro sob TODA chave de saída dela. A chave não muda quando o
   # driver chegar: o `failed = TRUE` envenenado sobrevivia à feature que faltava
@@ -227,17 +266,31 @@ test_that("rodar um documento com região não deixa handle nenhum no store", {
     tr_add("c1", "s/colapsa", from = "fonte") |>
     tr_add("d1", "s/mostra", from = "c1"))
   u <- tr_plan(doc, registry = reg, store = s)$units[["c1"]]
-  tr_run(doc, registry = reg, store = s)
+  ev <- list()
+  tr_run(doc, registry = reg, store = s, on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  rodou <- any(vapply(ev, function(e) identical(e$node, "c1") &&
+                        e$type %in% c("done", "cached"), logical(1)))
 
-  for (k in unlist(u$outputs)) expect_null(tr_store_handle(s, k))
-  # E o plano seguinte continua limpo: nada de `failed` vindo do cache.
-  p2 <- tr_plan(doc, registry = reg, store = s)
-  expect_false(isTRUE(p2$units$c1$failed))
-  expect_null(p2$units$c1$handles)
+  for (k in unlist(u$outputs)) {
+    if (rodou) expect_false(is.null(tr_store_handle(s, k)))
+    else       expect_null(tr_store_handle(s, k))
+  }
+  # E, quando não rodou, o plano seguinte não pode vir envenenado do cache. Era
+  # este o estrago: `.tr_run_unit()` não achava `trama/stream_region` no
+  # registro e o `collect()` gravava esse erro sob TODA chave de saída da
+  # região. A chave não muda quando o driver chegar, então o `failed = TRUE`
+  # sobreviveria à feature que faltava, e o primeiro uso do driver reportaria,
+  # do cache, um erro de quando ele não existia. Para sempre — nenhum
+  # `tr_plan()` recalcula um handle que já existe.
+  if (!rodou) {
+    p2 <- tr_plan(doc, registry = reg, store = s)
+    expect_false(isTRUE(p2$units$c1$failed))
+    expect_null(p2$units$c1$handles)
+  }
 })
 
 test_that("região a jusante de região sai UMA vez em skipped (REMOVER na Fase 4)", {
-  # ANDAIME, junto com a guarda de `tr_scheduler()`. A segunda região é podada
+  # ANDAIME — TODO(fase-4), junto com a guarda de `tr_scheduler()`. A segunda região é podada
   # pela primeira e depois revisitada pelo retrato do `Filter`: sem a checagem
   # de `st$pending`, ela saía como "blocked" e de novo como "invalid", com o id
   # duplicado em `skipped` — o front acenderia e apagaria o mesmo card.

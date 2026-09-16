@@ -477,8 +477,9 @@ test_that("tr_value de nó INTERIOR de região erra nomeando a região", {
   expect_match(msg, "'acumula'")
   expect_match(msg, "'colapsa'")
 
-  # Nó que não está no plano de jeito nenhum tem mensagem própria, e não a
-  # mensagem vazia de antes.
+  # A FONTE da região também é membro interior: ela não grava artefato próprio,
+  # e cai no mesmo ramo do `region_of`. (Não é o caso "nó fora do plano" — esse
+  # nem chega aqui: `tr_plan()` aborta antes com `tr_error_unknown_node`.)
   err2 <- tryCatch(tr_value(doc, "fonte", reg, s), error = function(e) e)
   expect_s3_class(err2, "tr_error_no_output")
   expect_match(conditionMessage(err2), "'fonte'")
