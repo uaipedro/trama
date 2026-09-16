@@ -37,8 +37,7 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
   for (d in c(file.path(root, "flows"), file.path(root, ".trama", "store"))) {
     dir.create(d, recursive = TRUE, showWarnings = FALSE)
     if (!dir.exists(d)) {
-      rlang::abort(sprintf(
-        "Não foi possível criar a pasta '%s'. Verifique a permissão de escrita e o espaço em disco.", d),
+      rlang::abort(.tr_msg("project.mkdir_failed", d),
         class = "tr_error_project_write")
     }
   }
@@ -71,7 +70,7 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
 .tr_check_dir <- function(path) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !dir.exists(path)) {
     alvo <- paste(as.character(path), collapse = ", ")
-    rlang::abort(sprintf("Não é uma pasta: %s.", if (nzchar(alvo)) alvo else "<vazio>"),
+    rlang::abort(.tr_msg("project.not_dir", if (nzchar(alvo)) alvo else ""),
                  class = "tr_error_bad_root")
   }
   invisible(path)
@@ -98,9 +97,7 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
 .tr_check_project <- function(root) {
   .tr_check_dir(root)
   if (!.tr_eh_projeto(root)) {
-    rlang::abort(sprintf(
-      "'%s' não é um projeto trama: não tem trama.json. Escolha uma pasta de projeto, ou crie um projeto novo.",
-      root), class = "tr_error_not_project")
+    rlang::abort(.tr_msg("project.not_project", root), class = "tr_error_not_project")
   }
   invisible(root)
 }
@@ -123,9 +120,7 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
   escapa <- limpo %in% c(".", "..") ||
     any(vapply(seps, function(s) grepl(s, limpo, fixed = TRUE), TRUE))
   if (!ok || !nzchar(limpo) || escapa) {
-    rlang::abort(paste0(
-      "Nome de projeto inválido. Digite o nome da pasta a criar dentro de '", base,
-      "': um nome só, sem barras e sem ser '.' ou '..'."),
+    rlang::abort(.tr_msg("project.bad_name", base),
       class = "tr_error_bad_name")
   }
   file.path(base, limpo)
@@ -154,7 +149,7 @@ tr_project_at <- function(root, registry) {
   # `tr_project` sem registro, que só quebra lá na frente, ao executar — longe
   # daqui, e sem dizer que a chamada é que estava errada.
   if (!inherits(registry, "tr_registry")) {
-    rlang::abort("tr_project_at() precisa do registry da página, o de tr_registry().",
+    rlang::abort(.tr_msg("project.needs_registry"),
                  class = "tr_error_bad_root")
   }
   root <- normalizePath(root, mustWork = TRUE)
@@ -166,8 +161,7 @@ tr_project_at <- function(root, registry) {
   disponiveis <- .tr_registry_packages(registry)
   faltando <- setdiff(cols, disponiveis)
   if (length(faltando)) {
-    rlang::abort(sprintf(
-      "Este editor não tem a(s) coleção(ões) %s, que o projeto pede. Suba o trama com ela(s) para abrir '%s'.",
+    rlang::abort(.tr_msg("project.missing_collections",
       paste(faltando, collapse = ", "), basename(root)),
       class = "tr_error_missing_collection")
   }
@@ -197,7 +191,7 @@ tr_project_new <- function(root, collections = character()) {
   root <- normalizePath(root, mustWork = FALSE)
   cfg_path <- file.path(root, "trama.json")
   if (file.exists(cfg_path)) {
-    rlang::abort(sprintf("Já existe um projeto em '%s'. Escolha outra pasta ou outro nome.", root),
+    rlang::abort(.tr_msg("project.exists", root),
                  class = "tr_error_project_exists")
   }
   .tr_project_dirs(root)
@@ -213,9 +207,7 @@ tr_project_new <- function(root, collections = character()) {
     writeLines(jsonlite::toJSON(list(collections = as.character(collections)),
                                 auto_unbox = FALSE, pretty = TRUE), cfg_path),
     error = function(e) {
-      rlang::abort(sprintf(
-        "Não foi possível gravar o manifesto em '%s'. Verifique a permissão de escrita e o espaço em disco.",
-        cfg_path), class = "tr_error_project_write", parent = e)
+      rlang::abort(.tr_msg("project.write_failed", cfg_path), class = "tr_error_project_write", parent = e)
     })
   invisible(root)
 }
@@ -236,7 +228,7 @@ tr_project_save <- function(project, doc, name = "main") {
 
 #' @export
 print.tr_project <- function(x, ...) {
-  cat(sprintf("<tr_project> %s\n  coleções: %s\n", x$root,
+  cat(sprintf(.tr_msg("project.print"), x$root,
               paste(x$collections, collapse = ", ")))
   invisible(x)
 }

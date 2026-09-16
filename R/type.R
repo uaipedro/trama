@@ -22,11 +22,11 @@ tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
                     preview = NULL, summary = NULL) {
   .tr_check_id(id, "id de tipo")
   if (!is.null(store) && !is.function(store)) {
-    rlang::abort(sprintf("'store' de '%s' não é função.", id), class = "tr_error_bad_type")
+    rlang::abort(.tr_msg("type.bad_store", id), class = "tr_error_bad_type")
   }
   if (is.null(store) != is.null(restore)) {
     rlang::abort(
-      sprintf("Tipo '%s': 'store' e 'restore' andam juntos — declare os dois ou nenhum.", id),
+      .tr_msg("type.store_restore_pair", id),
       class = "tr_error_bad_type"
     )
   }
@@ -56,6 +56,6 @@ tr_preview <- function(renderer, data = NULL, files = NULL) {
 #' @export
 tr_adapter <- function(from, to, fn) {
   .tr_check_id(from, "tipo de origem"); .tr_check_id(to, "tipo de destino")
-  if (!is.function(fn)) rlang::abort("'fn' de adaptador não é função.", class = "tr_error_bad_adapter")
+  if (!is.function(fn)) rlang::abort(.tr_msg("type.bad_adapter"), class = "tr_error_bad_adapter")
   structure(list(from = from, to = to, fn = fn), class = "tr_adapter")
 }

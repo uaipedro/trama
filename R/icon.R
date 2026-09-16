@@ -30,9 +30,7 @@
   ids <- sub('^<symbol id="', "", unlist(ids, use.names = FALSE))
   nomes <- sub('"$', "", ids)
   if (!length(nomes)) {
-    rlang::abort(sprintf(paste0("Sprite de ícones ilegível: '%s' existe mas nenhum <symbol id> foi ",
-                                "encontrado. O formato do arquivo mudou e .tr_icon_parse() precisa ",
-                                "acompanhar."), path),
+    rlang::abort(.tr_msg("icon.bad_sprite", path),
                  class = "tr_error_bad_sprite")
   }
   nomes
@@ -65,15 +63,14 @@ tr_icon <- function(name = NULL, svg = NULL) {
   }
   x <- if (is.null(name)) svg else name
   if (!is.character(x) || length(x) != 1L || is.na(x) || !nzchar(trimws(x))) {
-    rlang::abort(sprintf("tr_icon(): '%s' tem que ser uma string única e não vazia.",
-                         if (is.null(name)) "svg" else "name"),
+    rlang::abort(.tr_msg("icon.bad_arg", if (is.null(name)) "svg" else "name"),
                  class = "tr_error_bad_icon")
   }
   if (!is.null(svg)) return(structure(list(kind = "svg", value = svg), class = "tr_icon"))
 
   conhecidos <- .tr_icon_names()
   if (length(conhecidos) && !(name %in% conhecidos)) {
-    rlang::abort(sprintf("Ícone desconhecido: '%s'. Veja os nomes em https://lucide.dev/icons.", name),
+    rlang::abort(.tr_msg("icon.unknown", name),
                  class = "tr_error_unknown_icon")
   }
   structure(list(kind = "set", value = name), class = "tr_icon")

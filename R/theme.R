@@ -35,7 +35,7 @@
 #' problema está no manifesto e não no documento.
 #' @noRd
 .tr_bad_theme <- function(nome, campo, esperado) {
-  rlang::abort(sprintf("Tema '%s' em trama.json: campo '%s' espera %s.", nome, campo, esperado),
+  rlang::abort(.tr_msg("theme.bad_field", nome, campo, esperado),
                class = "tr_error_bad_theme")
 }
 
@@ -51,7 +51,7 @@
 .tr_theme_validate <- function(tema, nome) {
   if (!is.list(tema) || (length(tema) && is.null(names(tema)))) .tr_bad_theme(nome, "(tema)", "um objeto")
   extra <- setdiff(names(tema), names(.TR_TEMA_CAMPOS))
-  if (length(extra)) .tr_bad_theme(nome, extra[[1]], sprintf("não existir (campos: %s)",
+  if (length(extra)) .tr_bad_theme(nome, extra[[1]], .tr_msg("theme.field_values",
                                    paste(names(.TR_TEMA_CAMPOS), collapse = ", ")))
   t <- .TR_TEMA_CAMPOS
   for (cp in names(tema)) t[cp] <- list(tema[[cp]])
@@ -69,7 +69,7 @@
   if (!um_de(t$fonte, .TR_TEMA_FONTES)) .tr_bad_theme(nome, "fonte", paste(.TR_TEMA_FONTES, collapse = ", "))
   if (!um_de(t$continua, .TR_TEMA_CONTINUAS)) .tr_bad_theme(nome, "continua", paste(.TR_TEMA_CONTINUAS, collapse = ", "))
   if (!(is.numeric(t$tamanho) && length(t$tamanho) == 1L && !is.na(t$tamanho) && t$tamanho > 0))
-    .tr_bad_theme(nome, "tamanho", "um número positivo")
+    .tr_bad_theme(nome, "tamanho", .tr_msg("theme.expect_number"))
   t$tamanho <- as.numeric(t$tamanho)
   t[names(.TR_TEMA_CAMPOS)]
 }
@@ -109,8 +109,7 @@
   # Mensagem própria: `tema_padrao` não é campo de um tema, e encaixá-lo no
   # molde "Tema 'x': campo 'y'" apontaria pra um tema que nem existe.
   if (!(is.character(padrao) && length(padrao) == 1L && padrao %in% names(temas)))
-    rlang::abort(sprintf("tema_padrao '%s' não está entre os temas de trama.json.",
-                         paste(padrao, collapse = ",")), class = "tr_error_bad_theme")
+    rlang::abort(.tr_msg("theme.default_not_found", paste(padrao, collapse = ",")), class = "tr_error_bad_theme")
   # Ausente vale TRUE: projeto feito antes deste campo continua exportando com
   # a marca, que é o padrão anunciado.
   list(temas = temas, tema_padrao = padrao,
@@ -167,9 +166,7 @@
     file.rename(tmp, cfg_path)
   }, error = function(e) e)
   if (!isTRUE(ok)) {
-    rlang::abort(sprintf(
-      "Não foi possível gravar %s em '%s'. Verifique a permissão de escrita e o espaço em disco.",
-      oque, cfg_path), class = "tr_error_project_write", parent = if (inherits(ok, "error")) ok)
+    rlang::abort(.tr_msg("theme.write_failed", oque, cfg_path), class = "tr_error_project_write", parent = if (inherits(ok, "error")) ok)
   }
   invisible(NULL)
 }
@@ -199,7 +196,7 @@ tr_project_set_themes <- function(root, temas, padrao) {
   .tr_check_project(root)
   cfg_path <- file.path(normalizePath(root, mustWork = TRUE), "trama.json")
   if (!(is.character(padrao) && length(padrao) == 1L && !is.na(padrao) && nzchar(padrao)))
-    rlang::abort("Escolha o tema padrão: tema_padrao precisa ser o nome de um tema.",
+    rlang::abort(.tr_msg("theme.choose_default"),
                  class = "tr_error_bad_theme")
   settings <- .tr_settings(list(temas = temas, tema_padrao = padrao))
   .tr_cfg_rewrite(cfg_path, "os temas", function(cfg) {

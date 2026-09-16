@@ -5,7 +5,7 @@
 #' documento, não de API. "Combinar N entradas" aparece em todo domínio.
 #' @export
 tr_port <- function(type, required = TRUE, multiple = FALSE) {
-  .tr_check_id(type, "tipo de porta")
+  .tr_check_id(type, .tr_msg("port.check_id_what"))
   structure(list(type = type, required = isTRUE(required), multiple = isTRUE(multiple)),
             class = "tr_port")
 }
@@ -40,7 +40,7 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),
                     params = list(), pure = TRUE, fingerprint = NULL,
                     volatile = FALSE, stochastic = FALSE, icon = NULL) {
-  .tr_check_id(id, "id de nó")
+  .tr_check_id(id, .tr_msg("node.check_id_what"))
 
   # Um nó sem uma linha dizendo o que faz é um nó que ninguém vai saber
   # escolher na paleta — e o catálogo é lido por máquina também, então a
@@ -52,24 +52,24 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
   # pra impedir, só que sem erro nenhum.
   if (missing(description) || !is.character(description) || length(description) != 1L ||
       is.na(description) || !nzchar(trimws(description))) {
-    rlang::abort(sprintf("Nó '%s' sem 'description'.", id), class = "tr_error_missing_description")
+    rlang::abort(.tr_msg("node.missing_description", id), class = "tr_error_missing_description")
   }
 
   # `help` é renderizado como markdown no painel lateral: se um número passar,
   # ele viaja como número no JSON do catálogo e quebra do outro lado.
   if (!is.null(help) && (!is.character(help) || length(help) != 1L || is.na(help))) {
-    rlang::abort(sprintf("'help' de '%s' não é uma string única.", id), class = "tr_error_bad_help")
+    rlang::abort(.tr_msg("node.bad_help", id), class = "tr_error_bad_help")
   }
 
   # Um `icon` que não veio de `tr_icon()` chegaria ao catálogo como uma lista
   # qualquer e viraria erro no front, longe daqui.
   if (!is.null(icon) && !inherits(icon, "tr_icon")) {
-    rlang::abort(sprintf("Nó '%s': 'icon' tem que vir de tr_icon().", id),
+    rlang::abort(.tr_msg("node.bad_icon", id),
                  class = "tr_error_bad_icon")
   }
 
   if (!is.function(fn)) {
-    rlang::abort(sprintf("'fn' de '%s' não é função.", id), class = "tr_error_fn_not_function")
+    rlang::abort(.tr_msg("node.bad_fn", id), class = "tr_error_fn_not_function")
   }
 
   inputs  <- lapply(inputs, .tr_as_port)
@@ -87,7 +87,7 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
   }
   for (nm in names(params)) {
     if (!inherits(params[[nm]], "tr_param")) {
-      rlang::abort(sprintf("Param '%s' de '%s' não veio de tr_param().", nm, id), class = "tr_error_bad_param")
+      rlang::abort(.tr_msg("node.bad_param", nm, id), class = "tr_error_bad_param")
     }
   }
 
@@ -105,7 +105,7 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
   }
   if (!isTRUE(pure) && is.null(fingerprint)) {
     rlang::abort(
-      sprintf("Nó '%s' é impuro mas não declara 'fingerprint'.", id),
+      .tr_msg("node.missing_fingerprint", id),
       class = "tr_error_missing_fingerprint"
     )
   }

@@ -227,7 +227,7 @@ tr_server <- function(project, flow = "main",
       # o log tem que continuar descrevendo ele. E o usuário fica sabendo — um
       # Ctrl+Z que não faz nada, sem aviso, parece tecla quebrada.
       if (is.null(doc)) {
-        send("warning", list(message = paste0("Não foi possível desfazer: ", erro)))
+        send("warning", list(message = paste0(.tr_msg("transport.undo_failed"), erro)))
         return(invisible())
       }
       log <<- novo

@@ -28,11 +28,11 @@ tr_use <- function(collection, registry = .tr_default_registry) {
     collection <- fn()
   }
   if (!inherits(collection, "tr_collection")) {
-    rlang::abort("'collection' não é uma tr_collection.", class = "tr_error_bad_collection")
+    rlang::abort(.tr_msg("registry.bad_collection"), class = "tr_error_bad_collection")
   }
   col <- collection
   if (!is.null(registry$collections[[col$id]])) {
-    rlang::abort(sprintf("Coleção '%s' já carregada.", col$id), class = "tr_error_duplicate_collection")
+    rlang::abort(.tr_msg("registry.duplicate_collection", col$id), class = "tr_error_duplicate_collection")
   }
 
   # Monta tudo num staging e só commita no fim.
@@ -62,7 +62,7 @@ tr_use <- function(collection, registry = .tr_default_registry) {
   for (n in col$nodes) {
     for (p in c(n$inputs, n$outputs)) {
       if (is.null(types[[p$type]])) {
-        rlang::abort(sprintf("Nó '%s' usa tipo desconhecido: '%s'.", n$id, p$type),
+        rlang::abort(.tr_msg("registry.node_unknown_type", n$id, p$type),
                      class = "tr_error_unknown_type")
       }
     }
@@ -107,7 +107,7 @@ tr_use <- function(collection, registry = .tr_default_registry) {
 #' @export
 tr_get_node <- function(id, registry = .tr_default_registry) {
   spec <- registry$nodes[[id]]
-  if (is.null(spec)) rlang::abort(sprintf("Nó desconhecido: '%s'.", id), class = "tr_error_unknown_node")
+  if (is.null(spec)) rlang::abort(.tr_msg("registry.unknown_node", id), class = "tr_error_unknown_node")
   spec
 }
 
@@ -115,7 +115,7 @@ tr_get_node <- function(id, registry = .tr_default_registry) {
 #' @export
 tr_get_type <- function(id, registry = .tr_default_registry) {
   spec <- registry$types[[id]]
-  if (is.null(spec)) rlang::abort(sprintf("Tipo desconhecido: '%s'.", id), class = "tr_error_unknown_type")
+  if (is.null(spec)) rlang::abort(.tr_msg("registry.unknown_type", id), class = "tr_error_unknown_type")
   spec
 }
 

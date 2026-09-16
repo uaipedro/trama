@@ -14,7 +14,7 @@
   }
   if (!grepl("^[a-z][a-z0-9_]*/[a-z_][a-z0-9_]*$", id)) {
     rlang::abort(
-      sprintf("%s inválido: '%s'. Formato esperado: 'colecao/nome' (minúsculas, _ e dígitos).", what, id),
+      .tr_msg("utils.bad_id_format", what, id),
       class = "tr_error_bad_id"
     )
   }

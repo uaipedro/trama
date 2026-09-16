@@ -43,7 +43,10 @@ tr_param_enum <- function(default, choices, label = NULL) tr_param("enum", defau
 #' DEFINIÇÃO resolvida (ver `.tr_theme_resolve`), nunca o nome — é a definição
 #' que entra na chave de cache, então editar um tema invalida só quem o usa.
 #' @export
-tr_param_theme <- function(default = "padrão", label = "Tema") tr_param("theme", default, label)
+tr_param_theme <- function(default, label = "Tema") {
+  if (missing(default)) default <- .tr_msg("param.theme_default")
+  tr_param("theme", default, label)
+}
 
 #' Valida o valor de um param contra o `kind` declarado.
 #'
@@ -64,31 +67,31 @@ tr_param_theme <- function(default = "padrão", label = "Tema") tr_param("theme"
 
   switch(pspec$kind,
     number = {
-      if (!scalar(value) || !is.numeric(value)) bad("um número")
+      if (!scalar(value) || !is.numeric(value)) bad(.tr_msg("param.expect_number"))
       value <- as.numeric(value)
-      if (!is.na(pspec$min) && value < pspec$min) bad(sprintf("um número >= %s", pspec$min))
-      if (!is.na(pspec$max) && value > pspec$max) bad(sprintf("um número <= %s", pspec$max))
+      if (!is.na(pspec$min) && value < pspec$min) bad(.tr_msg("param.expect_number_min", pspec$min))
+      if (!is.na(pspec$max) && value > pspec$max) bad(.tr_msg("param.expect_number_max", pspec$max))
     },
     integer = {
-      if (!scalar(value) || !is.numeric(value)) bad("um inteiro")
+      if (!scalar(value) || !is.numeric(value)) bad(.tr_msg("param.expect_integer"))
       value <- as.integer(value)
-      if (!is.na(pspec$min) && value < pspec$min) bad(sprintf("um inteiro >= %s", pspec$min))
-      if (!is.na(pspec$max) && value > pspec$max) bad(sprintf("um inteiro <= %s", pspec$max))
+      if (!is.na(pspec$min) && value < pspec$min) bad(.tr_msg("param.expect_integer_min", pspec$min))
+      if (!is.na(pspec$max) && value > pspec$max) bad(.tr_msg("param.expect_integer_max", pspec$max))
     },
     boolean = {
-      if (!scalar(value) || !is.logical(value)) bad("TRUE ou FALSE")
+      if (!scalar(value) || !is.logical(value)) bad(.tr_msg("param.expect_boolean"))
     },
     text = {
-      if (!scalar(value) || !is.character(value)) bad("um texto")
+      if (!scalar(value) || !is.character(value)) bad(.tr_msg("param.expect_text"))
     },
     # Só a forma: o documento não conhece o projeto, e nome que não existe
     # cai no padrão na resolução (`.tr_theme_resolve`) em vez de travar a op.
     theme = {
-      if (!scalar(value) || !is.character(value) || !nzchar(value)) bad("o nome de um tema")
+      if (!scalar(value) || !is.character(value) || !nzchar(value)) bad(.tr_msg("param.expect_theme"))
     },
     enum = {
       if (!scalar(value) || !as.character(value) %in% pspec$choices) {
-        bad(sprintf("um de: %s", paste(pspec$choices, collapse = ", ")))
+        bad(.tr_msg("param.expect_enum", paste(pspec$choices, collapse = ", ")))
       }
       value <- as.character(value)
     },
