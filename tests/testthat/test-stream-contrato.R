@@ -61,3 +61,34 @@ test_that("nó com estado válido nasce com online = TRUE", {
   expect_true(n$online)
   expect_false(tr_node("x/f", fn = function() NULL, description = "d")$online)
 })
+
+test_that("formal de step que não é input nem param é recusado, e .seed é aceito", {
+  base <- function(step) {
+    tr_node("x/g", fn = function() NULL, description = "d",
+            inputs = list(x = tr_port("data/table", stream = TRUE)),
+            init = function() list(), step = step)
+  }
+  expect_error(base(function(state, x, zzz) list(state = state, out = x)),
+               class = "tr_error_bad_step")
+  # `.seed` é permitido em `step` pelo mesmo motivo que em `fn`. Este teste
+  # existe porque tirar `.seed` da lista de permitidos passaria a recusar nó
+  # VÁLIDO, e nenhum outro teste quebraria.
+  expect_true(base(function(state, x, .seed) list(state = state, out = x))$online)
+})
+
+test_that("online aparece no catálogo, e o campo some no nó comum", {
+  com_memoria <- tr_node("t/online", fn = function() NULL, description = "Acumula ponto a ponto.",
+                         inputs = list(x = tr_port("t/num", stream = TRUE)),
+                         init = function() list(soma = 0),
+                         step = function(state, x) list(state = state, out = x))
+  comum <- tr_node("t/comum", fn = function(x) x, description = "Passa adiante.",
+                   inputs = list(x = "t/num"), outputs = list(out = "t/num"))
+  col <- tr_collection(id = "t", types = list(tr_type("t/num")),
+                       nodes = list(com_memoria, comum))
+  reg <- tr_registry(); tr_use(col, registry = reg)
+  cat_nodes <- tr_catalog(reg)$nodes
+  by_id <- function(id) Filter(function(n) identical(n$id, id), cat_nodes)[[1]]
+
+  expect_true(by_id("t/online")$online)
+  expect_false("online" %in% names(by_id("t/comum")))
+})

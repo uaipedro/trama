@@ -4,10 +4,15 @@
 \alias{tr_port}
 \title{Declara uma porta.}
 \usage{
-tr_port(type, required = TRUE, multiple = FALSE)
+tr_port(type, required = TRUE, multiple = FALSE, stream = FALSE)
 }
 \description{
 \code{multiple = TRUE} (porta variádica) existe desde o início porque afeta o
 schema da aresta (\code{index}): acrescentar depois seria mudança de formato de
 documento, não de API. "Combinar N entradas" aparece em todo domínio.
+}
+\details{
+\code{stream = TRUE} marca porta de fluxo: o dado chega ponto a ponto. Ao
+contrário de \code{multiple}, não guarda nada por aresta — logo não toca no
+schema do documento.
 }

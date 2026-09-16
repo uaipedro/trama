@@ -19,7 +19,9 @@ tr_node(
   fingerprint = NULL,
   volatile = FALSE,
   stochastic = FALSE,
-  icon = NULL
+  icon = NULL,
+  init = NULL,
+  step = NULL
 )
 }
 \description{
@@ -45,4 +47,9 @@ duas vezes.
 chave de cache (mtime+tamanho de arquivo, ETag de URL). Sem isso, um nó que
 lê um CSV serviria dado velho em silêncio quando o arquivo muda, porque
 nada no hash teria mudado. \code{volatile = TRUE} nunca cacheia entre execuções.
+
+\code{init}/\code{step} declaram o nó COM MEMÓRIA: \verb{init(<params>)} devolve o estado
+inicial, e \verb{step(state, <inputs/params>)} devolve \code{list(state = , out = )} —
+sempre essa forma, sem atalho, porque duas formas de retorno obrigariam o
+driver, o preview e os testes a tratar as duas.
 }
