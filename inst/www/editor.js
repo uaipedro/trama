@@ -464,6 +464,12 @@ function fmtDur(s) {
 // com o importmap, e que aqui se resolve sozinho.
 const SPRITE = new URL("vendor/lucide.svg", import.meta.url).href;
 
+// A marca da barra resolve pelo mesmo caminho, e pelo mesmo motivo: um
+// `./marca.svg` escrito num atributo `src` seria relativo ao DOCUMENTO, que o
+// Shiny serve na raiz — viraria `/marca.svg`, fora do prefixo versionado, e
+// 404. Só `import.meta.url` sabe de onde ESTE módulo foi servido.
+const MARCA = new URL("marca.svg", import.meta.url).href;
+
 // Os `kind` que este front sabe desenhar. É constante porque DUAS decisões a
 // consultam — `Icon` para desenhar, e a calha da paleta para escolher entre
 // ícone e bolinha — e elas discordarem deixa a linha sem nenhum dos dois,
@@ -1888,6 +1894,14 @@ function App() {
             onClose: () => setPainelFrames(false) })
         : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked }),
     h("div", { key: "tb", className: "tr-toolbar" }, [
+      // `img`, e não botão: a marca é assinatura, não controle. Não clica, não
+      // abre nada e — por não ser elemento focável — não entra na ordem de
+      // tabulação, então quem navega pelo teclado cai direto no "⇶ Organizar".
+      // A versão só existe do lado do R; ela chega aqui pelo `data-versao` que
+      // `tr_ui()` põe na raiz, e some da dica se por algum motivo não vier.
+      h("img", { key: "marca", className: "tr-marca", src: MARCA, alt: "trama",
+                 draggable: false,
+                 title: `trama ${document.getElementById("tr-root")?.dataset.versao || ""}`.trim() }),
       h("button", { key: "l", onClick: organizarTudo }, "⇶ Organizar"),
       h("button", { key: "f", title: "F", className: ferramenta === "frame" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },

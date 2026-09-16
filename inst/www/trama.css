@@ -477,6 +477,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-toolbar button{background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line);
   border-radius:6px;padding:5px 11px;font:inherit;font-size:11.5px;cursor:pointer}
 .tr-toolbar button:hover{border-color:var(--tr-accent)}
+/* A marca é assinatura, não controle: sem hover, sem cursor de clique. A
+   altura fixa (com `width:auto`) preserva a proporção do SVG e a mantém um
+   pouco menor que os botões vizinhos, que é o que a faz ler como marca e não
+   como mais um item da barra. */
+.tr-marca{height:18px;width:auto;opacity:.75;margin-right:4px;
+  user-select:none}
 /* A proporção dos frames novos, colada no "▭ Frame": o segmentado do card
    com a altura e o fundo dos botões da toolbar. Seletores com `.tr-toolbar`
    na frente porque `.tr-toolbar button` vem depois de `.tr-seg>button` com a
