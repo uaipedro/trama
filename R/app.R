@@ -109,7 +109,11 @@ tr_ui <- function(project) {
 }
 
 #' Dependência Shiny que injeta o importmap e a captura de erro de boot, antes de qualquer módulo.
-#' @export
+#'
+#' Interna: quem usa o pacote chama `tr_ui()`, e a forma exata do importmap é
+#' detalhe do boot do editor — muda junto com o bundle vendorizado, então
+#' publicá-la congelaria uma decisão que não é contrato.
+#' @noRd
 tr_dependency_importmap <- function(base) {
   htmltools::htmlDependency(
     name = "trama-importmap", version = "1",
@@ -152,7 +156,10 @@ tr_dependency_importmap <- function(base) {
 }
 
 #' Dependência Shiny com os assets do núcleo (CSS do core e do xyflow, `runtime.js`, `editor.js`).
-#' @export
+#'
+#' Interna pelo mesmo motivo de `tr_dependency_importmap()`: a lista de assets
+#' do núcleo é montada por `tr_ui()`, não pelo usuário.
+#' @noRd
 tr_dependency_core <- function(ver = as.character(utils::packageVersion("trama"))) {
   htmltools::htmlDependency(
     name = "trama", version = ver,

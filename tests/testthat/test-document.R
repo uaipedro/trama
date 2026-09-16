@@ -12,16 +12,18 @@ test_that("add_node materializa seed e id, e registra a coleção usada", {
   expect_match(ids, "^[0-9A-Z]{16}$")
 })
 
+# `trama:::` daqui pra baixo: `tr_op_semantic()` deixou de ser pública (é
+# critério interno de invalidação), mas continua sendo o que se quer checar.
 test_that("renomear e mover NÃO são semânticos; param e seed são", {
-  expect_false(tr_op_semantic(list(op = "rename")))
-  expect_false(tr_op_semantic(list(op = "move")))
-  expect_true(tr_op_semantic(list(op = "set_param")))
-  expect_true(tr_op_semantic(list(op = "set_seed")))
-  expect_true(tr_op_semantic(list(op = "connect")))
+  expect_false(trama:::tr_op_semantic(list(op = "rename")))
+  expect_false(trama:::tr_op_semantic(list(op = "move")))
+  expect_true(trama:::tr_op_semantic(list(op = "set_param")))
+  expect_true(trama:::tr_op_semantic(list(op = "set_seed")))
+  expect_true(trama:::tr_op_semantic(list(op = "connect")))
 })
 
 test_that("resize é cosmético e guarda o tamanho no ui", {
-  expect_false(tr_op_semantic(list(op = "resize")))
+  expect_false(trama:::tr_op_semantic(list(op = "resize")))
   x <- mk(); d0 <- add(x$doc, x$reg, "t/const", id = "a")
   doc <- tr_doc_apply(d0, list(op = "resize", node = "a", w = 480, h = 300), x$reg)
   expect_equal(doc$ui$sizes[["a"]], c(480, 300))
@@ -34,7 +36,7 @@ test_that("resize em nó inexistente aborta", {
 })
 
 test_that("set_view é cosmético e guarda o id da vista", {
-  expect_false(tr_op_semantic(list(op = "set_view")))
+  expect_false(trama:::tr_op_semantic(list(op = "set_view")))
   x <- mk(); d0 <- add(x$doc, x$reg, "t/const", id = "a")
   doc <- tr_doc_apply(d0, list(op = "set_view", node = "a", view = "resumo"), x$reg)
   expect_equal(doc$ui$views[["a"]], "resumo")
@@ -219,13 +221,13 @@ test_that("campo 'op' que não é um texto é op malformada, não despacho por p
 })
 
 test_that("batch é semântico se QUALQUER op dentro dele for", {
-  expect_false(tr_op_semantic(list(op = "batch", ops = list(list(op = "move"), list(op = "resize")))))
-  expect_true(tr_op_semantic(list(op = "batch", ops = list(list(op = "move"), list(op = "remove_node")))))
+  expect_false(trama:::tr_op_semantic(list(op = "batch", ops = list(list(op = "move"), list(op = "resize")))))
+  expect_true(trama:::tr_op_semantic(list(op = "batch", ops = list(list(op = "move"), list(op = "remove_node")))))
 })
 
 test_that("ops de frame e set_fold são cosméticas", {
   for (o in c("add_frame", "update_frame", "remove_frame", "reorder_frames", "set_fold")) {
-    expect_false(tr_op_semantic(list(op = o)), info = o)
+    expect_false(trama:::tr_op_semantic(list(op = o)), info = o)
   }
 })
 

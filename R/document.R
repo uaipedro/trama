@@ -32,7 +32,11 @@ tr_doc <- function() {
                           "reorder_frames", "set_fold")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
-#' @export
+#'
+#' Interna: é o critério de invalidação que `R/session.R` usa para decidir se
+#' revisa o documento. A lista de ops cosméticas é detalhe do núcleo, não algo
+#' que quem escreve coleção ou app precise consultar.
+#' @noRd
 tr_op_semantic <- function(op) {
   if (identical(op$op, "batch")) return(any(vapply(op$ops, tr_op_semantic, logical(1))))
   !(op$op %in% .tr_presentation_ops)
