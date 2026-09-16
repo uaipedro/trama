@@ -68,6 +68,13 @@ driver_collection <- function(e = diario()) {
       tr_node("d/fonte_tabela", fn = function() data.frame(a = 1:100, b = 101:200, c = 201:300),
               outputs = list(out = ponto()),
               description = "Devolve a tabela inteira, sem fatiar em pontos."),
+      # Fatiou CERTO, e a lista de pontos tem classe própria — é a forma do
+      # `dplyr::group_split()`, que devolve `vctrs_list_of`. Tem que passar.
+      tr_node("d/fonte_classe", fn = function(n = 3L) structure(as.list(seq_len(n)),
+                                                                class = "vctrs_list_of"),
+              params = list(n = tr_param_num(3)),
+              outputs = list(out = ponto()),
+              description = "Fatia em pontos, devolvendo lista com classe própria."),
       # Espelha `s/fonte_dupla` e a forma real de `data/to_stream` com resumo:
       # DUAS saídas e a entrada opcional solta, então o `fn` devolve NULL. É a
       # fonte em que "NULL vale como zero pontos" tem que continuar valendo.
@@ -353,13 +360,36 @@ test_that("fonte que devolve a TABELA inteira erra alto, em vez de andar nas col
   expect_equal(length(e$colapsos), 0L)
 })
 
-test_that("o contrato da fonte é a lista NUA: `list()` passa, objeto list-like não", {
-  # A guarda é `is.object()`, e não uma lista de classes proibidas: ela pega
-  # `tbl_df` e `sf` sem o núcleo conhecer tipo de domínio nenhum. O preço é que
-  # a lista de pontos tem que ser nua — e é o que o contrato já pede.
-  expect_false(is.object(list(1, 2)))
-  expect_true(is.object(data.frame(a = 1)))
-  expect_true(is.object(structure(list(1, 2), class = "minha_lista")))
+test_that("a guarda da fonte pergunta se é RETÂNGULO, não se tem classe", {
+  # `dim()`, e não `is.object()`: pega `data.frame`/`tbl_df`/`sf`/`data.table`
+  # sem o núcleo conhecer tipo de domínio nenhum, e deixa passar lista de pontos
+  # COM classe própria. Essa última linha é a que importa: `dplyr::group_split()`
+  # devolve `vctrs_list_of`, e é a forma mais idiomática de fatiar uma tabela por
+  # coluna — o que `data/to_stream(por = )` vai fazer na Fase 6. Com
+  # `is.object()` a fonte fatiava certo e era recusada.
+  retangulo <- function(v) !is.list(v) || !is.null(dim(v))
+
+  expect_false(retangulo(list(1, 2)))
+  expect_false(retangulo(structure(list(1, 2), class = "vctrs_list_of")))
+  expect_false(retangulo(list(data.frame(a = 1), data.frame(a = 2))))
+  expect_true(retangulo(data.frame(a = 1)))
+  expect_true(retangulo(42))
+  expect_true(retangulo(matrix(1:4, 2)))
+})
+
+test_that("fonte que fatiou com classe própria (group_split) é ACEITA", {
+  # A prova de ponta a ponta do parágrafo acima: a lista de pontos tem classe,
+  # e a região roda.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte_classe", n = 3L) |>
+    tr_add("pu", "d/puro", from = "fo") |>
+    tr_add("co", "d/colapsa", from = "pu"))
+
+  roda_regiao(doc, reg, s)
+  expect_equal(length(e$puros), 3L)           # um por ponto, não um pela lista
+  expect_equal(unlist(e$puros), 1:3)          # e cada um com o ponto da vez
+  expect_equal(unlist(e$colapsos[[1]]), c(2, 4, 6))   # `d/puro` dobra
 })
 
 test_that("o colapso recebe o fluxo INTEIRO, numa chamada só", {

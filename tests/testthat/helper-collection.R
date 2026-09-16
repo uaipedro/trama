@@ -165,6 +165,11 @@ portas_opcionais_sem_default <- function(col) {
   out <- character()
   for (nd in col$nodes) {
     opt <- names(Filter(function(p) !isTRUE(p$required), nd$inputs))
+    # `init` está aqui por cinto-e-suspensório, não por necessidade: hoje
+    # `tr_node()` já recusa formal de `init` que não seja param
+    # (`tr_error_bad_init`), e input e param não podem dividir nome
+    # (`tr_error_name_collision`), então este braço não dispara. Fica para o dia
+    # em que alguém afrouxar aquela validação.
     for (fname in c("fn", "init", "step")) {
       f <- nd[[fname]]
       if (!is.function(f)) next

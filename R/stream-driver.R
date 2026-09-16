@@ -43,8 +43,19 @@
 #' ## O contrato do COLAPSO
 #'
 #' O colapso NÃO é elevado ponto a ponto: o `fn` dele roda **uma vez, depois do
-#' laço**, e recebe em cada porta de fluxo a lista com o valor de todos os
-#' passos. O artefato que ele devolve é o histórico (Decisão 6).
+#' laço**, e recebe a lista com o valor de todos os passos em cada porta
+#' alimentada de DENTRO da região. O artefato que ele devolve é o histórico
+#' (Decisão 6).
+#'
+#' "Alimentada de dentro", e não "porta de fluxo": o que decide é de onde vem a
+#' aresta, não como a porta foi declarada. Uma porta COMUM do colapso ligada a
+#' um nó da região também acumula — se a fonte devolve `resumo = "x"` numa porta
+#' comum e o colapso a consome, ele recebe `list("x", "x", "x")`, uma cópia por
+#' passo, e não a constante. É consistente (a mesma regra do laço, aplicada ao
+#' colapso), mas se lê ao contrário do parágrafo da fonte acima, e quem escreve
+#' um `from_stream(x, resumo)` cai nisso primeiro: pega `n` cópias e ou quebra,
+#' ou faz `resumo[[1]]` e esconde o mal-entendido. Só porta vinda de FORA da
+#' região é constante.
 #'
 #' O esboço do plano fazia o contrário — aplicava o colapso por ponto e o driver
 #' acumulava os retornos. Não fecha: o driver teria que juntar N pedaços num
@@ -149,7 +160,7 @@
     # `NULL` -> zero pontos (ver o cabeçalho). Normalizado AQUI e uma vez só,
     # pra que o laço e o colapso não tenham que saber que existem duas formas.
     if (is.null(vals[[pn]])) vals[pn] <- list(list())
-    # `is.object()` além de `!is.list()` porque um `data.frame` É uma lista: com
+    # `!is.null(dim())` além de `!is.list()` porque um `data.frame` É uma lista: com
     # `!is.list()` sozinho, a fonte que esquece de fatiar e devolve a TABELA
     # INTEIRA passa pela guarda, e o driver anda nela como uma lista de colunas
     # — três colunas viram um fluxo de três pontos, o `fn` elevado recebe o
@@ -158,15 +169,22 @@
     # mais provável do autor de uma fonte, e é o modo de falha calado contra o
     # qual este arquivo inteiro foi escrito.
     #
-    # `is.object()` pega `tbl_df` e `sf` pelo mesmo teste, SEM o núcleo conhecer
-    # tipo de domínio nenhum — é essa a propriedade que importa, e é por isso
-    # que a guarda não é uma lista de classes proibidas. `is.object(list(1, 2))`
-    # é FALSE, então a lista de pontos legítima continua passando.
-    if (!is.list(vals[[pn]]) || is.object(vals[[pn]])) {
+    # O teste é "isto é um RETÂNGULO?", não "isto tem classe?". `dim()` pega
+    # `data.frame`, `tbl_df`, `sf` e `data.table` pelo mesmo caminho, SEM o
+    # núcleo conhecer tipo de domínio nenhum — é essa a propriedade que importa,
+    # e é por isso que a guarda não é uma lista de classes proibidas.
+    #
+    # A versão anterior usava `is.object()`, e isso recusava fatiamento
+    # LEGÍTIMO: `dplyr::group_split()` — a forma mais idiomática de partir uma
+    # tabela por coluna, que é exatamente o que `data/to_stream(por = )` faz —
+    # devolve um `vctrs_list_of`, que tem classe e não tem `dim`. A fonte havia
+    # fatiado certo e ouvia "quem fatia é a fonte". Recusar o certo com a
+    # mensagem errada é pior que não recusar.
+    if (!is.list(vals[[pn]]) || !is.null(dim(vals[[pn]]))) {
       rlang::abort(sprintf(
         paste0("A fonte '%s' (%s) devolveu %s na porta de fluxo '%s', e o driver espera uma ",
                "LISTA de pontos — um elemento por passo, `list()` ou NULL se não houver nenhum. ",
-               "A lista de pontos é uma lista nua; quem fatia é a fonte."),
+               "Uma lista de pontos não tem dimensão; quem fatia é a fonte."),
         fonte, fs$id, class(vals[[pn]])[[1]], pn),
         class = "tr_error_stream_bad_source")
     }
