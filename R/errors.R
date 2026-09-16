@@ -16,6 +16,7 @@ tr_errors <- function() {
     tr_error_bad_help = "'help' de tr_node() não é uma string única",
     tr_error_bad_icon = "tr_icon() sem 'name' nem 'svg', com os dois, ou com valor que não é string única",
     tr_error_bad_id = "id de tipo, nó ou coleção fora do formato 'colecao/nome'",
+    tr_error_bad_init = "formal de 'init' de tr_node() que não é param do nó",
     tr_error_bad_name = "nome de projeto vazio, com separador de caminho, ou que não é uma string única",
     tr_error_bad_op = "op malformada, ou valor de op inválido (seed, posição)",
     tr_error_bad_output = "fn não devolveu todas as portas de saída declaradas",
@@ -23,6 +24,7 @@ tr_errors <- function() {
     tr_error_bad_param_value = "valor de param incompatível com o kind declarado",
     tr_error_bad_root = "abertura de projeto com argumento inválido: caminho que não existe ou não é diretório, ou registry que não é tr_registry",
     tr_error_bad_sprite = "sprite de ícones existe mas nenhum <symbol id> foi encontrado nele",
+    tr_error_bad_step = "'step' de tr_node() sem 'state' como primeiro formal, ou com formal sem input/param",
     tr_error_bad_theme = "tema de gráfico do trama.json inválido: campo desconhecido, valor fora do vocabulário, nome reservado ou tema_padrao inexistente",
     tr_error_bad_type = "tr_type() mal declarado (store sem restore, etc.)",
     tr_error_cancelled = "unidade cancelada pelo coordenador (handoff, ou stop_mirai no pool)",
@@ -34,6 +36,7 @@ tr_errors <- function() {
     tr_error_failed_key = "chave guarda um erro, não um valor",
     tr_error_fn_not_function = "fn de tr_node() não é função",
     tr_error_foreign_id = "coleção declarou id fora do próprio namespace",
+    tr_error_incomplete_online = "tr_node() com 'init' sem 'step' (ou vice-versa), ou com um dos dois não sendo função",
     tr_error_missing_collection =
       "projeto pede coleção que não está carregada nesta página do editor",
     tr_error_missing_description = "tr_node() sem 'description'",
@@ -44,6 +47,7 @@ tr_errors <- function() {
     tr_error_name_collision = "mesmo nome usado como input e param",
     tr_error_no_output = "nó sem porta de saída consultado por tr_value()",
     tr_error_not_project = "pedido de ABRIR apontado para pasta sem trama.json",
+    tr_error_online_without_stream = "nó declara 'step' mas nenhuma entrada de fluxo",
     tr_error_param_no_default = "tr_param() sem default",
     tr_error_param_shadow =
       "param de nó com nome de argumento de tr_add() REALMENTE passado (from, label, seed, position)",

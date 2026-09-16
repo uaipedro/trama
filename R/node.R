@@ -40,11 +40,17 @@ tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
 #' chave de cache (mtime+tamanho de arquivo, ETag de URL). Sem isso, um nó que
 #' lê um CSV serviria dado velho em silêncio quando o arquivo muda, porque
 #' nada no hash teria mudado. `volatile = TRUE` nunca cacheia entre execuções.
+#'
+#' `init`/`step` declaram o nó COM MEMÓRIA: `init(<params>)` devolve o estado
+#' inicial, e `step(state, <inputs/params>)` devolve `list(state = , out = )` —
+#' sempre essa forma, sem atalho, porque duas formas de retorno obrigariam o
+#' driver, o preview e os testes a tratar as duas.
 #' @export
 tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),
                     params = list(), pure = TRUE, fingerprint = NULL,
-                    volatile = FALSE, stochastic = FALSE, icon = NULL) {
+                    volatile = FALSE, stochastic = FALSE, icon = NULL,
+                    init = NULL, step = NULL) {
   .tr_check_id(id, "id de nó")
 
   # Um nó sem uma linha dizendo o que faz é um nó que ninguém vai saber
@@ -115,11 +121,52 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     )
   }
 
+  # `init`/`step` é o contrato do nó COM MEMÓRIA. Validar aqui é o mesmo
+  # princípio do `unknown` de `fn` logo acima: erro de declaração que, sem
+  # esta checagem, só apareceria no meio de um fluxo de 10 mil passos, com o
+  # card preso em "computando…" e a mensagem escondida.
+  online <- !is.null(init) || !is.null(step)
+  if (online) {
+    if (is.null(init) || is.null(step)) {
+      rlang::abort(sprintf("Nó '%s': 'init' e 'step' andam juntos — declare os dois ou nenhum.", id),
+                   class = "tr_error_incomplete_online")
+    }
+    if (!is.function(init) || !is.function(step)) {
+      rlang::abort(sprintf("Nó '%s': 'init' e 'step' têm que ser funções.", id),
+                   class = "tr_error_incomplete_online")
+    }
+    # Sem entrada de fluxo, `step` nunca é chamado: o nó nasceria morto e o
+    # driver não teria como saber que o autor quis um nó com memória.
+    if (!any(vapply(inputs, function(p) isTRUE(p$stream), logical(1)))) {
+      rlang::abort(sprintf("Nó '%s' declara 'step' mas nenhuma entrada de fluxo.", id),
+                   class = "tr_error_online_without_stream")
+    }
+    sf <- names(formals(step))
+    if (length(sf) < 1L || !identical(sf[[1]], "state")) {
+      rlang::abort(sprintf("Nó '%s': o primeiro formal de 'step' tem que ser 'state'.", id),
+                   class = "tr_error_bad_step")
+    }
+    desconhecidos <- setdiff(sf[-1], c(names(inputs), names(params), ".seed"))
+    if (length(desconhecidos) > 0) {
+      rlang::abort(sprintf("Nó '%s': formais de 'step' sem input/param: %s.", id,
+                           paste(desconhecidos, collapse = ", ")),
+                   class = "tr_error_bad_step")
+    }
+    # `init` recebe params, e só params: ele roda ANTES do primeiro ponto.
+    di <- setdiff(names(formals(init)), names(params))
+    if (length(di) > 0) {
+      rlang::abort(sprintf("Nó '%s': formais de 'init' que não são params: %s.", id,
+                           paste(di, collapse = ", ")),
+                   class = "tr_error_bad_init")
+    }
+  }
+
   structure(list(
     id = id, fn = fn, version = as.integer(version), label = label %||% id,
     description = description, help = help, category = category,
     inputs = inputs, outputs = outputs, params = params,
     pure = isTRUE(pure), fingerprint = fingerprint,
-    volatile = isTRUE(volatile), stochastic = isTRUE(stochastic), icon = icon
+    volatile = isTRUE(volatile), stochastic = isTRUE(stochastic), icon = icon,
+    init = init, step = step, online = online
   ), class = "tr_node")
 }
