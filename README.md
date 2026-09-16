@@ -1,4 +1,4 @@
-# trama
+# trama <picture><source media="(prefers-color-scheme: dark)" srcset="man/figures/logo-dark.svg"><img src="man/figures/logo.svg" align="right" height="120" alt=""></picture>
 
 O pacote trama é uma ferramenta em R pra construir fluxos lógicos com
 visualização interativa. Tem coleções prontas pra fluxos comuns e é
