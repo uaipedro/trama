@@ -66,6 +66,16 @@ tr_ui <- function(project) {
       htmltools::tags$title("trama"),
       # O ícone mora em `inst/www`, servido pela dependência do núcleo sob o
       # prefixo VERSIONADO — daí o `base`, e não "trama/".
+      #
+      # A ORDEM destes candidatos É o mecanismo de fallback: o navegador fica
+      # com o PRIMEIRO cujo tipo ele sabe desenhar. Com o SVG na frente, quem
+      # o entende ganha uma marca nítida em qualquer densidade de tela; quem
+      # não entende simplesmente o ignora e cai nos PNGs abaixo. Inverter a
+      # ordem entregaria o bitmap a todo mundo, inclusive a quem podia ter
+      # coisa melhor. É a variante de 3 nós, e não a marca cheia: na aba o
+      # ícone tem 16 px, tamanho em que a marca inteira vira borrão.
+      htmltools::tags$link(rel = "icon", type = "image/svg+xml",
+                           href = paste0("./", base, "/marca-min.svg")),
       htmltools::tags$link(rel = "icon", type = "image/png", sizes = "32x32",
                            href = paste0("./", base, "/favicon-32.png")),
       htmltools::tags$link(rel = "icon", type = "image/png", sizes = "512x512",
