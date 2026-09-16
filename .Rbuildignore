@@ -12,3 +12,5 @@
 ^tools$
 ^\.claude$
 ^tests/js$
+^claude-remotion-skill$
+^cran-comments\.md$

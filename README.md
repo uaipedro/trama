@@ -18,19 +18,21 @@ extensível pra blocos novos, escritos em R base ou pacotes terceiros.
 Requer R ≥ 4.1. Enquanto o pacote não está no CRAN, instale do GitHub com
 [pak](https://pak.r-lib.org):
 
+A **ordem importa**: as coleções dependem do núcleo e umas das outras, e nenhuma
+delas declara de onde buscar as irmãs — esse atalho (o campo `Remotes`) não é
+aceito no CRAN, para onde o pacote está indo. Instale de baixo para cima:
+
 ```r
 install.packages("pak")
 
-# núcleo + coleções de dados e gráficos (o ponto de partida recomendado)
-pak::pak(c(
-  "uaipedro/trama",
-  "uaipedro/trama/collections/trama.data",
-  "uaipedro/trama/collections/trama.view"
-))
+# núcleo, depois dados, depois gráficos — o ponto de partida recomendado
+pak::pak("uaipedro/trama")
+pak::pak("uaipedro/trama/collections/trama.data")
+pak::pak("uaipedro/trama/collections/trama.view")
 ```
 
-As outras coleções são opcionais — instale só as que for usar. Cada uma puxa
-as dependências (inclusive `trama.data`/`trama.view`) sozinha:
+As outras coleções são opcionais e todas se apoiam nessas duas. Instale só as
+que for usar, depois das de cima:
 
 ```r
 pak::pak("uaipedro/trama/collections/trama.series")    # séries temporais
@@ -39,10 +41,8 @@ pak::pak("uaipedro/trama/collections/trama.multi")     # análise multivariada
 pak::pak("uaipedro/trama/collections/trama.sampling")  # amostragem
 ```
 
-Para fixar uma versão, acrescente a tag: `"uaipedro/trama@v0.1.0"`.
-
-Com `remotes`, instale na ordem das dependências — núcleo, `trama.data`,
-`trama.view` e só então as demais:
+Para fixar uma versão, acrescente a tag: `"uaipedro/trama@v0.1.0"`. Com
+`remotes`, a mesma ordem vale:
 
 ```r
 remotes::install_github("uaipedro/trama")

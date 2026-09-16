@@ -7,16 +7,32 @@ Authors@R: c(
            comment = c(ORCID = "0009-0001-1695-279X")),
     person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
            role = "aut",
-           comment = c(ORCID = "0009-0009-2335-8391"))
+           comment = c(ORCID = "0009-0009-2335-8391")),
+    person("Meta Platforms, Inc. and affiliates", role = "cph",
+           comment = "React and ReactDOM libraries, in inst/www/vendor/"),
+    person("webkid GmbH", role = "cph",
+           comment = "xyflow library, in inst/www/vendor/"),
+    person("Chris Pettitt", role = "cph",
+           comment = "dagre library, in inst/www/vendor/"),
+    person("Mike Bostock", role = "cph",
+           comment = "d3 libraries bundled with xyflow, in inst/www/vendor/"),
+    person("Lucide Icons and Contributors", role = "cph",
+           comment = "lucide icon sprite, in inst/www/vendor/"),
+    person("W.Y.", role = "cph",
+           comment = "html-to-image library, in inst/www/vendor/"),
+    person("Paul Henschel", role = "cph",
+           comment = "zustand library, bundled with xyflow")
   )
 Description: Build and run computation graphs interactively. Nodes are typed R
-    functions with declared ports and parameters; a flow is a plain JSON
+    functions with declared ports and parameters; a flow is a plain 'JSON'
     document; execution is pull-based, content-addressed and incremental, so
     editing a parameter recomputes only what depends on it. Every node renders
     its own result in the canvas with a registered renderer, making each step
     of a pipeline visible rather than implied. Domain knowledge lives entirely
     in registrable collections, never in the core, so new domains are added
-    without modifying the package.
+    without modifying the package. The editor runs on 'Shiny' with a 'React'
+    front end; third-party 'JavaScript' components are bundled under
+    inst/www/vendor/ and documented in inst/COPYRIGHTS.
 License: MIT + file LICENSE
 URL: https://github.com/uaipedro/trama
 BugReports: https://github.com/uaipedro/trama/issues
