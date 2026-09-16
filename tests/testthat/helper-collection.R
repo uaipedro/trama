@@ -42,3 +42,53 @@ mk <- function() list(doc = tr_doc(), reg = test_registry())
 add <- function(doc, reg, type, id = NULL, ...) {
   tr_doc_apply(doc, list(op = "add_node", type = type, id = id, ...), reg)
 }
+
+# Coleção de fluxo: os quatro papéis da região no menor formato possível —
+# fonte, nó puro elevado, nó com memória e colapso. Mora aqui, e não no topo de
+# um test-*.R, porque a detecção da região e o driver precisam dos MESMOS nós:
+# duplicar a declaração deixaria os dois testarem grafos parecidos mas não
+# iguais.
+stream_collection <- function() {
+  ponto <- function(...) tr_port("s/tab", stream = TRUE, ...)
+
+  tr_collection(
+    id = "s", version = "1.0.0", label = "Fluxo de teste",
+    types = list(tr_type("s/tab", label = "Tabela")),
+    nodes = list(
+      tr_node("s/tabela", fn = function() NULL, outputs = list(out = "s/tab"),
+              description = "Tabela comum, sem nada de fluxo."),
+      # Espelha `data/to_stream`: recebe uma tabela por entrada COMUM (a aresta
+      # que vira `external` da região) e emite pontos.
+      tr_node("s/fonte", fn = function(dados) dados,
+              inputs = list(dados = tr_port("s/tab", required = FALSE)),
+              outputs = list(out = ponto()),
+              description = "Parte a tabela em pontos."),
+      tr_node("s/fonte_dupla", fn = function(dados) dados,
+              inputs = list(dados = tr_port("s/tab", required = FALSE)),
+              outputs = list(fluxo = ponto(), resumo = "s/tab"),
+              description = "Emite pontos por uma saída e um resumo comum pela outra."),
+      tr_node("s/puro", fn = function(x) x,
+              inputs = list(x = "s/tab"), outputs = list(out = "s/tab"),
+              description = "Nó comum: fora da região recebe tabela, dentro é elevado."),
+      tr_node("s/acumula", fn = function(x, k) x,
+              inputs = list(x = ponto(), k = tr_port("s/tab", required = FALSE)),
+              outputs = list(out = ponto()),
+              params = list(peso = tr_param_num(1)),
+              init = function(peso) list(soma = 0, peso = peso),
+              step = function(state, x) list(state = state, out = x),
+              description = "Acumula ponto a ponto."),
+      tr_node("s/junta", fn = function(a, b) a,
+              inputs = list(a = "s/tab", b = "s/tab"), outputs = list(out = "s/tab"),
+              description = "Combina duas tabelas — ou dois pontos, se elevado."),
+      tr_node("s/colapsa", fn = function(x) x,
+              inputs = list(x = ponto()), outputs = list(out = "s/tab"),
+              description = "Junta os pontos num histórico."),
+      tr_node("s/mostra", fn = function(x) invisible(x), inputs = list(x = "s/tab"),
+              description = "Mostra a tabela recebida.")
+    )
+  )
+}
+
+stream_registry <- function() {
+  reg <- tr_registry(); tr_use(stream_collection(), registry = reg); reg
+}
