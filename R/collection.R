@@ -17,11 +17,11 @@
 #' @examples
 #' minha <- tr_collection(
 #'   id = "exemplo", version = "1.0.0", label = "Exemplo",
-#'   categories = list(tr_category("basico", "Basico")),
-#'   types = list(tr_type("exemplo/num", label = "Numero")),
+#'   categories = list(tr_category("basico", "Básico")),
+#'   types = list(tr_type("exemplo/num", label = "Número")),
 #'   nodes = list(
 #'     tr_node("exemplo/dobro", fn = function(x) x * 2,
-#'             description = "Dobra o numero de entrada.",
+#'             description = "Dobra o número de entrada.",
 #'             category = "basico",
 #'             inputs = list(x = "exemplo/num"),
 #'             outputs = list(out = "exemplo/num"))

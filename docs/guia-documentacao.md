@@ -130,7 +130,9 @@ pergunte** em vez de escrever algo plausível.
 19. O exemplo **roda em menos de 5 segundos**, não acessa rede e não escreve
     fora de `tempdir()`. O que criar arquivo limpa com `unlink()` no fim.
 
-20. O exemplo usa a coleção `demo`, que vem com o pacote. Não invente coleção,
+20. O exemplo usa a coleção `demo`, que vem no próprio pacote e se registra por
+   `tr_use("trama")` — o argumento é o nome do PACOTE, e o id da coleção é
+   `demo`. Não invente coleção,
     não dependa de `trama.data`.
 
 21. O que sobe app Shiny (`tr_app()`, `tr_ui()`, `tr_server()`) vai dentro de
@@ -281,7 +283,7 @@ pergunte** em vez de escrever algo plausível.
 ```r
 #' @examples
 #' reg <- tr_registry()
-#' tr_use("demo", registry = reg)
+#' tr_use("trama", registry = reg)
 #'
 #' fluxo <- tr_flow(reg) |>
 #'   tr_add("a", "demo/const", value = 2) |>
@@ -295,7 +297,7 @@ pergunte** em vez de escrever algo plausível.
 ```r
 #' @examples
 #' pasta <- file.path(tempdir(), "meu-projeto")
-#' projeto <- tr_project(pasta, collections = "demo")
+#' projeto <- tr_project(pasta, collections = "trama")
 #' tr_project_save(projeto, tr_doc(), "main")
 #' list.files(file.path(pasta, "flows"))
 #' unlink(pasta, recursive = TRUE)
@@ -306,6 +308,6 @@ pergunte** em vez de escrever algo plausível.
 ```r
 #' @examples
 #' if (interactive()) {
-#'   tr_app(tr_project(tempdir(), collections = "demo"))
+#'   tr_app(tr_project(tempdir(), collections = "trama"))
 #' }
 ```

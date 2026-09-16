@@ -47,7 +47,7 @@ lê um CSV serviria dado velho em silêncio quando o arquivo muda, porque
 nada no hash teria mudado. \code{volatile = TRUE} nunca cacheia entre execuções.
 }
 \examples{
-# Especificacao, sem efeito colateral: `fn` continua uma funcao R comum.
+# Especificação, sem efeito colateral: `fn` continua uma função R comum.
 triplo <- tr_node("exemplo/triplo", fn = function(x, fator) x * fator,
                   description = "Multiplica a entrada pelo fator.",
                   inputs = list(x = "exemplo/num"),

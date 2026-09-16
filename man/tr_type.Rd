@@ -37,7 +37,7 @@ comum (data.frame, lista, escalar).
 }
 \examples{
 # Sem `store`/`restore` o artefato cai em RDS, que basta para um escalar.
-num <- tr_type("exemplo/num", label = "Numero", color = "#818cf8",
+num <- tr_type("exemplo/num", label = "Número", color = "#818cf8",
                preview = function(x, ctx) {
                  tr_preview("trama/keyvalue", data = list(valor = x))
                },

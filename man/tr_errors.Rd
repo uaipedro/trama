@@ -21,7 +21,7 @@ erros <- tr_errors()
 nrow(erros)
 erros[erros$class == "tr_error_unknown_node", ]
 
-# A classe viaja no condition, e e por ela que se captura.
+# A classe viaja no condition, e é por ela que se captura.
 reg <- tr_registry()
 tr_use("trama", registry = reg)
 tryCatch(tr_get_node("demo/inexistente", reg),
