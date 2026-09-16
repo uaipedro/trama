@@ -8,8 +8,16 @@ tr_app(
   project = tr_project("."),
   flow = "main",
   executor = tr_executor_sequential(),
+  port = getOption("trama.port", tr_port_default()),
   ...
 )
+}
+\arguments{
+\item{port}{Porta em que o editor sobe. O padrão é fixo (e não sorteado pelo
+Shiny) para que a URL do editor seja sempre a mesma; se estiver ocupada,
+\code{tr_app()} procura a próxima livre e anuncia no console. Mude o padrão da
+sessão com \code{options(trama.port = ...)}, ou passe \code{port = NULL} para deixar
+o Shiny sortear.}
 }
 \description{
 Os assets do front vêm de \code{inst/www} via \code{htmltools::htmlDependency()}, e

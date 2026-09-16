@@ -107,3 +107,22 @@ test_that("no <head>, o CSS da coleção vem DEPOIS do trama.css do núcleo", {
   expect_true(core > 0 && col > 0)
   expect_true(col > core)
 })
+
+test_that("tr_port_free devolve a própria porta quando está livre", {
+  p <- tr_port_free(tr_port_default())
+  expect_true(p >= tr_port_default())
+})
+
+test_that("tr_port_free pula a porta ocupada", {
+  livre <- tr_port_free(tr_port_default())
+  con <- serverSocket(livre)
+  on.exit(close(con))
+  expect_gt(tr_port_free(livre), livre)
+})
+
+test_that("tr_port_free falha quando não há porta na janela", {
+  livre <- tr_port_free(tr_port_default())
+  con <- serverSocket(livre)
+  on.exit(close(con))
+  expect_error(tr_port_free(livre, tentativas = 1L), "nenhuma porta livre")
+})

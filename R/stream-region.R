@@ -217,6 +217,10 @@
       # A ordem topológica usa TODA aresta interna à região, não só as de
       # fluxo: uma aresta comum entre dois nós da MESMA região é dependência de
       # dados de verdade, e quem a ignora roda o consumidor antes do produtor.
+      # O `to %in% nos` é higiene, não necessidade: `.tr_stream_topo()` só lê
+      # `preds` de quem está na região, então aresta que sai para outra região
+      # seria inerte. Medido, não suposto — afrouxar a condição mantém a suíte
+      # verde e a ordem correta.
       nodes = .tr_stream_topo(nos, Filter(function(e) e$from$node %in% nos && e$to$node %in% nos,
                                           doc$edges)),
       collapse = sort(intersect(colapsos, nos)),

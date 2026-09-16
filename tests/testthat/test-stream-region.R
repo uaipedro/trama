@@ -232,6 +232,32 @@ test_that("colapso que alimenta porta comum de nó com memória de outra região
   expect_setequal(destinos, "acc:k")
 })
 
+test_that("duas regiões alimentando uma terceira: external com dois montantes distintos", {
+  # A única forma em que o `external` de UMA região carrega entradas de duas
+  # regiões de montante diferentes, e pelas duas formas de entrada ao mesmo
+  # tempo: a porta de dados da fonte e a porta comum de um nó da região. É o
+  # diamante que a união-busca por aresta de fluxo tem que deixar em paz — três
+  # regiões, não uma.
+  f <- tr_flow(stream_registry()) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("c1", "s/colapsa", from = "f1") |>
+    tr_add("f2", "s/fonte") |>
+    tr_add("c2", "s/colapsa", from = "f2") |>
+    tr_add("f3", "s/fonte", from = "c1") |>
+    tr_add("j", "s/acumula", from = "f3") |>
+    tr_link("c2:out", "j:k") |>
+    tr_add("c3", "s/colapsa", from = "j")
+
+  rs <- regioes(f)
+  expect_length(rs, 3L)
+  expect_named(rs, c("f1", "f2", "f3"))
+  expect_equal(rs[["f3"]]$nodes, c("f3", "j", "c3"))
+  origens <- vapply(rs[["f3"]]$external, function(e) paste0(e$from$node, ":", e$from$port), "")
+  destinos <- vapply(rs[["f3"]]$external, function(e) paste0(e$to$node, ":", e$to$port), "")
+  expect_setequal(origens, c("c1:out", "c2:out"))
+  expect_setequal(destinos, c("f3:dados", "j:k"))
+})
+
 test_that("saída comum que alimenta a fonte de outra região escapa, não funde", {
   # `fonte:resumo` é saída COMUM de um nó que emite fluxo: não transporta fluxo,
   # logo não liga componentes. Duas regiões — e a recusa certa é `escapes`, que

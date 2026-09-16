@@ -4,15 +4,60 @@
 #' cada coleção carregada publica os próprios em `tr-<id>/`. A ordem de carga
 #' é determinística e importa: `runtime.js` cria `window.tr` (os registros),
 #' as coleções registram renderers e widgets, e só então o editor monta.
+#'
+#' @param port Porta em que o editor sobe. O padrão é fixo (e não sorteado pelo
+#'   Shiny) para que a URL do editor seja sempre a mesma; se estiver ocupada,
+#'   `tr_app()` procura a próxima livre e anuncia no console. Mude o padrão da
+#'   sessão com `options(trama.port = ...)`, ou passe `port = NULL` para deixar
+#'   o Shiny sortear.
 #' @export
 tr_app <- function(project = tr_project("."), flow = "main",
-                   executor = tr_executor_sequential(), ...) {
+                   executor = tr_executor_sequential(),
+                   port = getOption("trama.port", tr_port_default()), ...) {
   # Desligar aqui, não em `tr_server`: `onStop` roda uma vez por PROCESSO
   # (quando o app inteiro encerra), enquanto `onSessionEnded` roda por
   # SESSÃO. Um pool de daemons pertence ao processo, não à sessão — matar os
   # daemons no fim de uma sessão derrubaria outras abas ainda abertas.
   shiny::onStop(function() executor$shutdown())
-  shiny::shinyApp(ui = tr_ui(project), server = tr_server(project, flow, executor), ...)
+
+  dots <- list(...)
+  if (!is.null(port) && is.null(dots$options$port)) {
+    livre <- tr_port_free(port)
+    if (livre != port) {
+      message(sprintf("trama: porta %d ocupada, subindo em %d.", port, livre))
+    }
+    dots$options <- utils::modifyList(dots$options %||% list(), list(port = livre))
+  }
+
+  do.call(shiny::shinyApp,
+          c(list(ui = tr_ui(project), server = tr_server(project, flow, executor)), dots))
+}
+
+#' Porta padrão do editor: 8726, que é "TRAM" no teclado do telefone.
+#'
+#' Fora das faixas que costumam dar conflito — abaixo dos portos efêmeros do
+#' Linux (32768–60999, sorteados pelo kernel) e longe dos padrões de ferramenta
+#' de dev (3000, 3838, 5173, 8000, 8080, 8787).
+#' @export
+tr_port_default <- function() 8726L
+
+#' Primeira porta livre a partir de `port`.
+#'
+#' O teste é abrir um socket servidor e fechar: é o mesmo recurso que o Shiny
+#' vai pedir, então não há falso negativo por protocolo. Sobra a corrida entre
+#' o fechamento aqui e o bind do Shiny — improvável em uso interativo, e o
+#' preço de não manter o socket aberto enquanto o app sobe.
+#' @export
+tr_port_free <- function(port, tentativas = 20L) {
+  for (p in seq.int(port, min(port + tentativas - 1L, 65535L))) {
+    con <- tryCatch(serverSocket(p), error = function(e) NULL)
+    if (!is.null(con)) {
+      close(con)
+      return(as.integer(p))
+    }
+  }
+  stop(sprintf("trama: nenhuma porta livre entre %d e %d.",
+               port, port + tentativas - 1L), call. = FALSE)
 }
 
 #' Monta a UI Shiny do editor: importmap, dependências e o `<div>` onde o React monta.
