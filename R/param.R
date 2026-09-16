@@ -43,10 +43,7 @@ tr_param_enum <- function(default, choices, label = NULL) tr_param("enum", defau
 #' DEFINIÇÃO resolvida (ver `.tr_theme_resolve`), nunca o nome — é a definição
 #' que entra na chave de cache, então editar um tema invalida só quem o usa.
 #' @export
-tr_param_theme <- function(default, label = "Tema") {
-  if (missing(default)) default <- .tr_msg("param.theme_default")
-  tr_param("theme", default, label)
-}
+tr_param_theme <- function(default = "padr\u00e3o", label = "Tema") tr_param("theme", default, label)
 
 #' Valida o valor de um param contra o `kind` declarado.
 #'

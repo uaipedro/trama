@@ -112,7 +112,6 @@
   "param.expect_number_min": "um número >= %s",
   "param.expect_text": "um texto",
   "param.expect_theme": "o nome de um tema",
-  "param.theme_default": "padrão",
   "project.bad_name": "Nome de projeto inválido. Digite o nome da pasta a criar dentro de '%s': um nome só, sem barras e sem ser '.' ou '..'.",
   "project.exists": "Já existe um projeto em '%s'. Escolha outra pasta ou outro nome.",
   "project.mkdir_failed": "Não foi possível criar a pasta '%s'. Verifique a permissão de escrita e o espaço em disco.",
