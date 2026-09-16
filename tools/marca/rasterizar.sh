@@ -1,11 +1,15 @@
 #!/bin/sh
 # Gera os PNGs do favicon a partir dos SVGs da marca (inst/www/marca*.svg).
 #
-# Por que Chrome headless e não rsvg-convert/ImageMagick: nenhum dos dois está
-# instalado nesta máquina (nem `rsvg-convert`, nem `convert`, nem `inkscape`),
-# e o Chrome já é dependência de fato do fluxo de trabalho. Como bônus, o
-# rasterizador é o mesmo que os navegadores usam para exibir a marca, então o
-# PNG e o SVG não divergem.
+# Por que Chrome headless e não rsvg-convert/ImageMagick: o rasterizador passa
+# a ser o MESMO motor que exibe a marca no navegador, então o PNG e o SVG não
+# divergem. Um conversor externo reinterpreta o desenho por conta própria
+# (arredondamento de traço, hinting, resolução de currentColor) e o favicon
+# deixaria de bater com o que o app mostra.
+#
+# Precisa também de python3, só com a stdlib: a captura sai maior que o
+# pedido (ver mais abaixo) e o recorte para o tamanho final é feito em Python,
+# lendo e reescrevendo o PNG RGBA com zlib + struct.
 #
 # Por que --default-background-color=00000000: sem esse flag o Chrome pinta o
 # canvas de branco antes de desenhar e o PNG sai com fundo opaco. Os dois
@@ -36,11 +40,26 @@ WWW="$RAIZ/inst/www"
 CHROME=${CHROME:-google-chrome}
 FOLGA=300
 
+# As duas dependências são verificadas aqui porque as falhas delas são mudas:
+# a chamada do Chrome silencia stderr (para não poluir a saída com os avisos
+# do headless) e engoliria junto o "not found", e o python3 ausente só
+# apareceria no meio do recorte. Sem isso o script sai 127 sem dizer nada.
+command -v "$CHROME" >/dev/null 2>&1 || {
+  echo "rasterizar: '$CHROME' não encontrado. Instale o Google Chrome ou use CHROME=/caminho/do/chrome" >&2
+  exit 1
+}
+command -v python3 >/dev/null 2>&1 || {
+  echo "rasterizar: python3 não encontrado — é o que recorta a captura do Chrome" >&2
+  exit 1
+}
+
 # O contorno do hexágono usa `currentColor`, que num PNG precisa virar cor
 # fixa. Cinza médio porque o favicon aparece tanto em barra de abas clara
 # quanto escura: um contorno quase preto sumiria no tema escuro e um quase
-# branco sumiria no claro.
-COR_CONTORNO='#6e7681'
+# branco sumiria no claro. O PNG fica preso a esse cinza; o marca.svg servido
+# dentro do app continua seguindo a cor do tema, e essa diferença é de
+# propósito — quem tem tema é o app, o favicon não.
+COR_CONTORNO=${COR_CONTORNO:-'#6e7681'}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -69,7 +88,10 @@ renderizar() {
 
   # `sed '1d;$d'` tira a linha do <svg> raiz e a do </svg>: sobra o corpo do
   # desenho, que entra no <g> já posicionado. O `style` na raiz é o que
-  # resolve o `currentColor` do contorno.
+  # resolve o `currentColor` do contorno. A premissa é que os SVGs da marca
+  # tenham a tag de abertura inteira na primeira linha e o </svg> na última —
+  # vale hoje e vale para quem editar à mão, mas um formatador que quebrasse
+  # a raiz em duas linhas produziria XML malformado sem erro visível aqui.
   quadro="$TMP/quadro.svg"
   {
     printf '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s" fill="none" style="color:%s">\n' \
@@ -88,6 +110,14 @@ renderizar() {
     --window-size="$lado,$((lado + FOLGA))" \
     --screenshot="$bruto" \
     "file://$quadro" >/dev/null 2>&1
+
+  # O Chrome pode sair 0 sem escrever nada (perfil bloqueado, sandbox, display
+  # ausente). Sem esta checagem o erro só apareceria como FileNotFoundError do
+  # open() lá no recorte, apontando para o lugar errado.
+  [ -s "$bruto" ] || {
+    echo "rasterizar: o Chrome não produziu $bruto" >&2
+    exit 1
+  }
 
   recortar "$bruto" "$lado" "$saida"
   echo "gerado $saida (${lado}x${lado})"
