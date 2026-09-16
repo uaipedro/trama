@@ -612,7 +612,7 @@ tr_doc_terminals <- function(doc) {
 print.tr_doc <- function(x, ...) {
   cat(.tr_msg("document.print_doc", x$rev, length(x$nodes), length(x$edges)))
   if (length(x$collections)) {
-    cat("  coleções:", paste(sprintf("%s@%s", names(x$collections), unlist(x$collections)), collapse = ", "), "\n")
+    cat(.tr_msg("document.print_colecoes"), paste(sprintf("%s@%s", names(x$collections), unlist(x$collections)), collapse = ", "), "\n")
   }
   for (id in names(x$nodes)) {
     n <- x$nodes[[id]]

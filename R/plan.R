@@ -172,7 +172,9 @@ print.tr_plan <- function(x, ...) {
               x$doc_rev, length(x$units), sum(vapply(x$units, function(u) isTRUE(u$cached), TRUE)),
               length(tr_plan_pending(x)), length(tr_plan_blocked(x))))
   for (u in x$units) {
-    st <- if (isTRUE(u$failed)) "erro" else if (length(u$invalid)) "inválido"
+    # Só "inválido" sai do código: o catálogo existe para tirar ACENTO de
+    # string, e os outros quatro estados já são ASCII.
+    st <- if (isTRUE(u$failed)) "erro" else if (length(u$invalid)) .tr_msg("plan.status_invalido")
           else if (length(u$blocked_by)) "bloqueado" else if (isTRUE(u$cached)) "cache" else "rodar"
     cat(sprintf("  %-10s %-18s %-22s %s\n", st, u$node, u$node_type, substr(u$key, 1, 12)))
   }
