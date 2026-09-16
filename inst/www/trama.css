@@ -482,9 +482,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    pouco menor que os botões vizinhos, que é o que a faz ler como marca e não
    como mais um item da barra. */
 /* `align-self:center` porque a barra é flex com `align-items:stretch` por
-   padrão: sendo mais baixa que os botões (18 px contra ~24 px), a marca era
-   ancorada no topo e ficava ~3 px acima do centro deles. */
-.tr-marca{height:18px;width:auto;opacity:.75;margin-right:4px;
+   padrão: sendo mais baixa que os botões (24 px contra ~28 px), a marca era
+   ancorada no topo e ficava ~3 px acima do centro deles.
+   24 px e opacidade cheia vieram de olhar no navegador: em 18 px com `.75` os
+   cinco nós somavam uma mancha cinza, sem cor legível. Conferido nos dois
+   temas — abaixo desta escala o desenho não se lê. */
+.tr-marca{height:24px;width:auto;margin-right:4px;
   align-self:center;user-select:none}
 /* A proporção dos frames novos, colada no "▭ Frame": o segmentado do card
    com a altura e o fundo dos botões da toolbar. Seletores com `.tr-toolbar`
