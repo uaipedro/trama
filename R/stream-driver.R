@@ -694,8 +694,44 @@
 #' 0xFFFFFFF), e `set.seed()` aceita um inteiro único.
 #' @noRd
 .tr_region_step_seed <- function(id, seed, i) {
-  h <- rlang::hash(list(id, as.integer(seed), as.integer(i)))
-  as.integer(strtoi(substr(h, 1L, 7L), base = 16L))
+  # Mistura PRÓPRIA, e não `rlang::hash()`, por uma assimetria que só existe
+  # aqui. A chave de cache também sai de um hash, mas lá uma mudança de hash
+  # muda a CHAVE: todo mundo recomputa, e isso é desperdício, não erro. Aqui
+  # seria o contrário — a chave ficaria idêntica e o HISTÓRICO mudaria, ou seja
+  # o artefato cacheado passaria a discordar do que o mesmo documento produz
+  # agora. É o único ponto do sistema em que trocar de hash serve resultado
+  # errado em silêncio, e é justamente a promessa que o tempo de passo existe
+  # para sustentar ("replayável amanhã e por outra pessoa", Decisão 1).
+  #
+  # Mesmo precedente do `codetools`, que saiu por licença e virou implementação
+  # própria (`hash.R`): quando a estabilidade de terceiro é condição de
+  # correção, a conta é nossa. Aqui o custo é seis linhas de inteiro.
+  #
+  # Mistura de 32 bits em aritmética EXATA. R não tem inteiro sem sinal, e as
+  # duas saídas óbvias falham: `bitwAnd`/`bitwShiftR` coagem para inteiro de 32
+  # bits com sinal e devolvem NA acima de 2^31, e multiplicar dois valores de 32
+  # bits em `double` estoura os 2^53 de exatidão. Então tudo passa por
+  # `mult32()`, que parte um dos fatores em metades de 16 bits para que nenhum
+  # produto intermediário passe de 2^48 — exato em dupla precisão, e idêntico em
+  # qualquer plataforma, versão de R ou locale.
+  M <- 4294967296             # 2^32
+  mult32 <- function(a, b) {
+    ah <- a %/% 65536; al <- a %% 65536
+    ((ah * b) %% 65536 * 65536 + al * b) %% M
+  }
+  mistura <- function(x) {
+    x <- mult32(x, 3432918353)
+    x <- (x %/% 131072 + x %% 131072 * 32768) %% M   # >>17 e <<15, aritmético
+    mult32(x, 461845907)
+  }
+  acc <- 2166136261           # semente FNV, só para não começar em zero
+  # O id entra byte a byte: é o que separa `A` com seed 1 no passo 2 de `B` com
+  # seed 2 no passo 1 — a colisão que `seed + i` produz.
+  for (b in utf8ToInt(id)) acc <- mistura((acc + b) %% M)
+  acc <- mistura((acc + as.integer(seed) %% M) %% M)
+  acc <- mistura((acc + as.integer(i)) %% M)
+  # Sete dígitos hex de largura, como `.tr_new_seed()`: cabe em inteiro de R.
+  as.integer(acc %% 268435456)
 }
 
 #' Roteia o valor devolvido por um membro para as portas dele — a mesma regra de

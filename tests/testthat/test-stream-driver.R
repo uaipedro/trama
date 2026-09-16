@@ -1294,3 +1294,28 @@ test_that("membro que declara `.seed` e não o força não roda mais com o RNG g
   expect_equal(length(e$faltou), 4L)
   expect_false(any(e$faltou))
 })
+
+test_that("a derivação da seed do passo é ESTÁVEL: valores fixados", {
+  # Valores dourados, e o motivo é a razão de a mistura ser própria em vez de
+  # `rlang::hash()`. Em toda outra parte do sistema, trocar de hash muda a
+  # CHAVE e o pior que acontece é recomputar. Aqui a chave fica igual e o
+  # HISTÓRICO muda: o artefato cacheado passa a discordar do que o mesmo
+  # documento produz agora, e a promessa do tempo de passo ("replayável amanhã
+  # e por outra pessoa") cai sem ninguém ver. Se alguém "otimizar" a mistura,
+  # é aqui que dói — e é de propósito.
+  f <- .tr_region_step_seed
+  expect_identical(f("ru", 99L, 1L), 191557269L)
+  expect_identical(f("ru", 99L, 2L), 66390258L)
+  expect_identical(f("ru", 99L, 3L), 209658703L)
+
+  # E as propriedades que a derivação tem que ter, medidas e não supostas.
+  expect_identical(f("ru", 99L, 3L), f("ru", 99L, 3L))            # determinística
+  expect_false(f("a", 1L, 2L) == f("b", 2L, 1L))                  # o furo de `seed + i`
+  expect_false(f("a", 1L, 1L) == f("b", 1L, 1L))                  # id separa
+  expect_false(f("a", 1L, 1L) == f("a", 2L, 1L))                  # seed separa
+  # Inteiro válido para `set.seed()`, e bem espalhado: sem dispersão, dois
+  # passos vizinhos sorteariam parecido e o "ruído" teria estrutura.
+  v <- vapply(1:2000, function(i) f("no", 7L, i), 1L)
+  expect_true(all(!is.na(v) & v >= 0L & v < 268435456L))
+  expect_identical(length(unique(v)), 2000L)
+})
