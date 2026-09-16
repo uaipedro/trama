@@ -216,23 +216,32 @@ tr_project_set_themes <- function(root, temas, padrao) {
 #' painel salva as duas coisas no mesmo gesto, mas quem chama do console quer
 #' desligar a marca sem ter que reescrever a lista de temas inteira para isso.
 #'
-#' Valida ANTES de abrir o arquivo, pelo mesmo motivo dos temas: `marca` com
-#' valor que `.tr_settings()` recusa tranca o projeto fora do editor. Mexe só
-#' na chave `marca`; o resto do manifesto volta como estava.
+#' Valida ANTES de abrir o arquivo, pelo mesmo motivo dos temas: valor que
+#' `.tr_settings()` recusa tranca o projeto fora do editor. Mexe só na chave
+#' `marca`; o resto do manifesto volta como estava.
 #' @param root Pasta do projeto (precisa ter `trama.json`).
-#' @param marca `TRUE` para carimbar o PNG exportado, `FALSE` para não
-#'   carimbar.
+#' @param mostrar `TRUE` para carimbar o PNG exportado, `FALSE` para não
+#'   carimbar. Chama-se `mostrar`, e não `marca`, porque é assim que se lê no
+#'   chamador: `tr_project_set_marca(root, mostrar = FALSE)`.
 #' @return Os settings do projeto já com a marca nova, invisível.
 #' @export
-tr_project_set_marca <- function(root, marca) {
+tr_project_set_marca <- function(root, mostrar) {
   .tr_check_project(root)
-  cfg_path <- file.path(normalizePath(root, mustWork = TRUE), "trama.json")
-  .tr_check_marca(marca)
-  .tr_cfg_rewrite(cfg_path, "a marca", function(cfg) { cfg$marca <- marca; cfg })
+  # UM root normalizado, usado pelas duas coisas que precisam dele — o caminho
+  # do manifesto e a releitura do fim. Resolver o caminho por duas regras na
+  # mesma função é como o arquivo lido deixa de ser o arquivo escrito quando o
+  # `root` é relativo ou passa por um link.
+  raiz <- normalizePath(root, mustWork = TRUE)
+  cfg_path <- file.path(raiz, "trama.json")
+  # `onde` nomeia o argumento porque do console a recusa chegaria solta:
+  # "marca precisa ser true ou false." não diz o que foi recusado nem onde
+  # mexer, enquanto as mensagens de tema sempre apontam o campo ou o arquivo.
+  .tr_check_marca(mostrar, " no argumento 'mostrar'")
+  .tr_cfg_rewrite(cfg_path, "a marca", function(cfg) { cfg$marca <- mostrar; cfg })
   # Relê o manifesto em vez de devolver só a marca: os temas gravados antes
   # fazem parte dos settings que quem chamou vai guardar, e devolver uma lista
   # montada aqui seria uma segunda verdade sobre o mesmo arquivo.
-  invisible(.tr_settings_at(root))
+  invisible(.tr_settings_at(raiz))
 }
 
 #' Settings como estão NO ARQUIVO, e não como a sessão acha que estão.

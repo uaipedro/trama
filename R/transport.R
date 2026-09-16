@@ -273,10 +273,13 @@ tr_server <- function(project, flow = "main",
       ok <- tryCatch({
         .tr_check_marca(m$marca)
         tr_project_set_themes(raiz, m$temas, m$tema_padrao)
-        tr_project_set_marca(raiz, m$marca)
+        tr_project_set_marca(raiz, mostrar = m$marca)
         TRUE
       }, error = avisar(FALSE))
-      s <- tryCatch(.tr_settings_at(raiz), error = function(e) NULL)
+      # Falha na RELEITURA também vira aviso, e não silêncio: sem isto o painel
+      # receberia de volta os settings velhos da memória sem uma palavra —
+      # exatamente a discordância painel/disco que este bloco existe pra evitar.
+      s <- tryCatch(.tr_settings_at(raiz), error = avisar())
       if (!is.null(s)) { p <- rv_project(); p$settings <- s; rv_project(p) }
       enviar_temas()
       if (isTRUE(ok)) run_now(rv_doc())

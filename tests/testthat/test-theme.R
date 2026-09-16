@@ -246,7 +246,7 @@ test_that("tr_project_set_marca grava sem perder o resto do manifesto", {
   root <- withr::local_tempdir()
   tr_project_new(root, collections = "trama.data")
   tr_project_set_themes(root, list(), "claro")
-  devolvido <- tr_project_set_marca(root, FALSE)
+  devolvido <- tr_project_set_marca(root, mostrar = FALSE)
   cfg <- jsonlite::fromJSON(file.path(root, "trama.json"), simplifyVector = FALSE)
   expect_false(cfg$marca)
   expect_equal(unlist(cfg$collections), "trama.data")
@@ -261,7 +261,26 @@ test_that("tr_project_set_marca grava sem perder o resto do manifesto", {
 
 test_that("tr_project_set_marca recusa valor que não é booleano", {
   root <- withr::local_tempdir(); tr_project_new(root)
-  expect_error(tr_project_set_marca(root, "sim"), class = "tr_error_bad_theme")
+  err <- expect_error(tr_project_set_marca(root, mostrar = "sim"), class = "tr_error_bad_theme")
+  # A recusa nomeia o argumento: do console, "marca precisa ser true ou false."
+  # solto não diz o que foi recusado nem onde mexer.
+  expect_match(conditionMessage(err), "'mostrar'", fixed = TRUE)
+})
+
+# O simétrico do teste dos temas: são dois verbos sobre o MESMO arquivo, e cada
+# um só pode mexer na chave que é dele. Gravar temas depois de desligar a marca
+# é o gesto comum (o painel salva os dois), e religar a marca calado seria o
+# jeito mais fácil de desfazer a escolha de quem já a tinha desligado.
+test_that("tr_project_set_themes preserva a marca já gravada", {
+  root <- withr::local_tempdir()
+  tr_project_new(root)
+  tr_project_set_marca(root, mostrar = FALSE)
+  tr_project_set_themes(root, list(), "claro")
+  cfg <- jsonlite::fromJSON(file.path(root, "trama.json"), simplifyVector = FALSE)
+  expect_false(cfg$marca)
+  # E pelo caminho da leitura, que é o que o projeto reaberto enxerga.
+  expect_false(.tr_settings(cfg)$marca)
+  expect_equal(cfg$tema_padrao, "claro")
 })
 
 test_that("mensagens de tema apontam pro trama.json", {

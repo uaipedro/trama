@@ -4,13 +4,14 @@
 \alias{tr_project_set_marca}
 \title{Liga ou desliga a marca d'água dos frames exportados.}
 \usage{
-tr_project_set_marca(root, marca)
+tr_project_set_marca(root, mostrar)
 }
 \arguments{
 \item{root}{Pasta do projeto (precisa ter \code{trama.json}).}
 
-\item{marca}{\code{TRUE} para carimbar o PNG exportado, \code{FALSE} para não
-carimbar.}
+\item{mostrar}{\code{TRUE} para carimbar o PNG exportado, \code{FALSE} para não
+carimbar. Chama-se \code{mostrar}, e não \code{marca}, porque é assim que se lê no
+chamador: \code{tr_project_set_marca(root, mostrar = FALSE)}.}
 }
 \value{
 Os settings do projeto já com a marca nova, invisível.
@@ -21,7 +22,7 @@ painel salva as duas coisas no mesmo gesto, mas quem chama do console quer
 desligar a marca sem ter que reescrever a lista de temas inteira para isso.
 }
 \details{
-Valida ANTES de abrir o arquivo, pelo mesmo motivo dos temas: \code{marca} com
-valor que \code{.tr_settings()} recusa tranca o projeto fora do editor. Mexe só
-na chave \code{marca}; o resto do manifesto volta como estava.
+Valida ANTES de abrir o arquivo, pelo mesmo motivo dos temas: valor que
+\code{.tr_settings()} recusa tranca o projeto fora do editor. Mexe só na chave
+\code{marca}; o resto do manifesto volta como estava.
 }
