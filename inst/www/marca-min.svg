@@ -1,17 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 173 200" fill="none" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" role="img">
   <title>trama</title>
+  <!-- viewBox quadrado porque o uso é favicon (16–32 px), que é quadrado: o
+       hexágono fica centrado e ocupa quase toda a altura, sem faixa vazia -->
+  <!-- contorno mais fino que na marca cheia para a cor dos nós dominar sobre
+       a moldura nessa escala -->
+  <path d="M100 3 184 51.5 184 148.5 100 197 16 148.5 16 51.5Z"
+        stroke="currentColor" stroke-width="5"
+        stroke-linejoin="round" />
   <!-- versão para 16–32 px: menos nós e traço mais grosso, porque nessa
        escala detalhe some e só sobra a silhueta -->
-  <path d="M86.5 3 170.5 51.5 170.5 148.5 86.5 197 2.5 148.5 2.5 51.5Z"
-        stroke="currentColor" stroke-width="6"
-        stroke-linejoin="round" />
-  <g stroke-width="8" stroke-linecap="round">
-    <path d="M54 79C54 110 86.5 105 86.5 127" stroke="#2f80ed" />
-    <path d="M119 79C119 110 86.5 105 86.5 127" stroke="#9b51e0" />
+  <g stroke-width="11" stroke-linecap="round">
+    <path d="M60 82C60 106 100 112 100 134" stroke="#2f80ed" />
+    <path d="M140 82C140 106 100 112 100 134" stroke="#9b51e0" />
   </g>
+  <!-- nós de 38 px = 19% do viewBox: renderizado a 32 px cada nó vira um
+       bloco de ~6 px, ainda claramente colorido -->
   <g>
-    <rect x="39" y="49" width="30" height="30" rx="8" fill="#2f80ed" />
-    <rect x="104" y="49" width="30" height="30" rx="8" fill="#9b51e0" />
-    <rect x="71.5" y="127" width="30" height="30" rx="8" fill="#27ae60" />
+    <rect x="41" y="44" width="38" height="38" rx="10" fill="#2f80ed" />
+    <rect x="121" y="44" width="38" height="38" rx="10" fill="#9b51e0" />
+    <rect x="81" y="134" width="38" height="38" rx="10" fill="#27ae60" />
   </g>
 </svg>
