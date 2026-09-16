@@ -235,3 +235,21 @@ test_that("rodar um documento com região não deixa handle nenhum no store", {
   expect_false(isTRUE(p2$units$c1$failed))
   expect_null(p2$units$c1$handles)
 })
+
+test_that("região a jusante de região sai UMA vez em skipped (REMOVER na Fase 4)", {
+  # ANDAIME, junto com a guarda de `tr_scheduler()`. A segunda região é podada
+  # pela primeira e depois revisitada pelo retrato do `Filter`: sem a checagem
+  # de `st$pending`, ela saía como "blocked" e de novo como "invalid", com o id
+  # duplicado em `skipped` — o front acenderia e apagaria o mesmo card.
+  reg <- stream_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("f1", "s/fonte") |>
+    tr_add("c1", "s/colapsa", from = "f1") |>
+    tr_add("f2", "s/fonte", from = "c1") |>
+    tr_add("c2", "s/colapsa", from = "f2"))
+  ev <- list()
+  r <- tr_run_plan(tr_plan(doc, registry = reg, store = s), reg, s,
+                   on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  expect_equal(sort(r$skipped), c("c1", "c2"))
+  expect_equal(sum(vapply(ev, function(e) identical(e$node, "c2"), TRUE)), 1L)
+})

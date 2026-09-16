@@ -98,6 +98,10 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
   # `prune()` porque o plano não sabe deste andaime: sem podar, quem consome a
   # região sairia com "unreachable", que não diz nada a ninguém.
   for (u in Filter(function(x) identical(x$kind, "stream_region"), st$pending)) {
+    # `Filter` vê um retrato: a poda da região anterior pode já ter derrubado
+    # esta (região a jusante de região é legítimo), e sem esta linha ela sairia
+    # duas vezes — "blocked" e depois "invalid", com `skipped` duplicado.
+    if (is.null(st$pending[[u$node]])) next
     emit("invalid", u, reason = .tr_stream_sem_driver(u$region$id))
     st$skipped <- c(st$skipped, saidas_de(u)); st$pending[[u$node]] <- NULL
     prune(saidas_de(u))
