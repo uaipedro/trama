@@ -6,7 +6,17 @@
 \alias{trama-package}
 \title{trama: Interactive Node-Graph Computation with Live Previews}
 \description{
-Build and run computation graphs interactively. Nodes are typed R functions with declared ports and parameters; a flow is a plain JSON document; execution is pull-based, content-addressed and incremental, so editing a parameter recomputes only what depends on it. Every node renders its own result in the canvas with a registered renderer, making each step of a pipeline visible rather than implied. Domain knowledge lives entirely in registrable collections, never in the core, so new domains are added without modifying the package.
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
+
+Build and run computation graphs interactively. Nodes are typed R functions with declared ports and parameters; a flow is a plain 'JSON' document; execution is pull-based, content-addressed and incremental, so editing a parameter recomputes only what depends on it. Every node renders its own result in the canvas with a registered renderer, making each step of a pipeline visible rather than implied. Domain knowledge lives entirely in registrable collections, never in the core, so new domains are added without modifying the package. The editor runs on 'Shiny' with a 'React' front end; third-party 'JavaScript' components are bundled under inst/www/vendor/ and documented in inst/COPYRIGHTS.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/uaipedro/trama}
+  \item Report bugs at \url{https://github.com/uaipedro/trama/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Pedro Mambelli Fernandes \email{pedromambelli@gmail.com} (\href{https://orcid.org/0009-0001-1695-279X}{ORCID})
@@ -15,6 +25,17 @@ Authors:
 \itemize{
   \item Pedro Mambelli Fernandes \email{pedromambelli@gmail.com} (\href{https://orcid.org/0009-0001-1695-279X}{ORCID})
   \item João Paulo Assis Bonifácio \email{jpab.27@hotmail.com} (\href{https://orcid.org/0009-0009-2335-8391}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Meta Platforms, Inc. and affiliates (React and ReactDOM libraries, in inst/www/vendor/) [copyright holder]
+  \item webkid GmbH (xyflow library, in inst/www/vendor/) [copyright holder]
+  \item Chris Pettitt (dagre library, in inst/www/vendor/) [copyright holder]
+  \item Mike Bostock (d3 libraries bundled with xyflow, in inst/www/vendor/) [copyright holder]
+  \item Lucide Icons and Contributors (lucide icon sprite, in inst/www/vendor/) [copyright holder]
+  \item W.Y. (html-to-image library, in inst/www/vendor/) [copyright holder]
+  \item Paul Henschel (zustand library, bundled with xyflow) [copyright holder]
 }
 
 }

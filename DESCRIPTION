@@ -43,6 +43,7 @@ Depends:
     R (>= 4.1)
 Imports:
     stats,
+    utils,
     rlang,
     jsonlite,
     htmltools,
