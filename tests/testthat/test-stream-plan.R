@@ -523,3 +523,136 @@ test_that("tr_flow_code continua reconstruindo um documento com região", {
   expect_equal(tr_plan(tr_flow_doc(novo), registry = reg)$units[["colapsa"]]$key,
                tr_plan(doc, registry = reg)$units[["colapsa"]]$key)
 })
+
+# --- A superfície do plano: GC, pendente, bloqueada, impressão ---------------
+
+test_that("tr_plan_keys inclui as saídas do colapso e nada do interior", {
+  # Nó interior não tem artefato — só parcial. Se a chave dele entrasse no
+  # `keep`, o GC guardaria lixo para sempre; se a do colapso ficasse fora, o GC
+  # apagaria o artefato que o documento aberto está mostrando. Este teste faz a
+  # volta completa pelo `tr_store_gc()` de verdade, e não só olha a lista: é o
+  # único jeito de provar o contrato de ponta a ponta.
+  reg <- mem_registry(); s <- tmp_store()
+  tipo <- tr_get_type("m/tab", reg)
+  f <- mem_flow(reg)
+  p <- mem_plan(reg, f, store = s)
+
+  # Artefato de uma versão ANTIGA da mesma região (outro `peso`): é justamente
+  # o que o GC existe pra recolher.
+  velha <- mem_plan(reg, tr_set(f, "acumula", peso = 2), store = s)$units$colapsa$outputs$out
+  tr_store_put(s, velha, 1, tipo, node_type = "trama/stream_region")
+  tr_store_put(s, p$units$colapsa$outputs$out, 2, tipo, node_type = "trama/stream_region")
+  tr_store_put(s, p$units$tab$outputs$out, 3, tipo, node_type = "m/tabela")
+
+  # `max_age_days = 0` é obrigatório aqui: com o corte padrão de 7 dias nada
+  # que o teste acabou de gravar seria coletável, e um `keep` errado passaria
+  # pela idade sem aparecer.
+  expect_equal(tr_store_gc(s, keep = tr_plan_keys(p), max_age_days = 0), 1L)
+  expect_true(tr_store_has(s, p$units$colapsa$outputs$out))
+  # O montante externo é artefato vivo — a região o consome, e o GC não pode
+  # apagá-lo por não ser de nenhum nó "de dentro".
+  expect_true(tr_store_has(s, p$units$tab$outputs$out))
+  expect_false(tr_store_has(s, velha))
+
+  # E o plano reaberto depois do GC continua vendo cache: o que sobreviveu é
+  # exatamente o que o documento aberto está mostrando.
+  expect_true(mem_plan(reg, f, store = s)$units$colapsa$cached)
+})
+
+test_that("com dois colapsos o GC preserva os DOIS artefatos da região", {
+  # A saída do segundo colapso é o artefato que fica mais fácil de perder: ela
+  # só entra no `keep` porque o nome dela é qualificado pelo nó. Fora do `keep`,
+  # o GC a apagaria embaixo do consumidor que já a está mostrando.
+  reg <- mem_registry(); s <- tmp_store()
+  tipo <- tr_get_type("m/tab", reg)
+  f <- tr_flow(reg) |>
+    tr_add("fonte", "m/fonte") |>
+    tr_add("c1", "m/colapsa", from = "fonte") |>
+    tr_add("c2", "m/colapsa") |>
+    tr_link("fonte:out", "c2:x") |>
+    tr_add("d1", "m/mostra", from = "c1") |>
+    tr_add("d2", "m/mostra", from = "c2")
+
+  u <- mem_plan(reg, f, store = s)$units[["c1"]]
+  for (k in unlist(u$outputs)) tr_store_put(s, k, 1, tipo, node_type = "trama/stream_region")
+  tr_store_put(s, "lixo", 1, tipo, node_type = "trama/stream_region")
+
+  expect_equal(tr_store_gc(s, keep = tr_plan_keys(mem_plan(reg, f, store = s)),
+                           max_age_days = 0), 1L)
+  expect_true(tr_store_has(s, u$outputs[["c1:out"]]))
+  expect_true(tr_store_has(s, u$outputs[["c2:out"]]))
+  expect_false(tr_store_has(s, "lixo"))
+})
+
+test_that("tr_plan_blocked e tr_plan_pending tratam a região como uma unidade", {
+  # Uma vez, não uma por membro (a região rodaria três vezes) e não zero vezes
+  # (o scheduler nunca a enfileiraria, e o nó ficaria em "computando…" pra
+  # sempre).
+  reg <- mem_registry(); s <- tmp_store()
+  f <- mem_flow(reg)
+  p <- mem_plan(reg, f, store = s)
+
+  nos <- unname(vapply(tr_plan_pending(p), function(u) u$node, ""))
+  expect_equal(sum(nos == "colapsa"), 1L)
+  expect_false(any(c("fonte", "acumula") %in% nos))
+  expect_setequal(nos, c("tab", "colapsa", "depois"))
+  expect_length(tr_plan_blocked(p), 0L)
+
+  # Com o artefato do colapso no store a região sai da fila inteira: é o cache
+  # hit que a fase existe pra preservar.
+  tr_store_put(s, p$units$colapsa$outputs$out, 1, tr_get_type("m/tab", reg),
+               node_type = "trama/stream_region")
+  p2 <- mem_plan(reg, f, store = s)
+  expect_true(p2$units$colapsa$cached)
+  expect_named(p2$units$colapsa$handles, "out")
+  expect_setequal(unname(vapply(tr_plan_pending(p2), function(u) u$node, "")),
+                  c("tab", "depois"))
+})
+
+test_that("a região bloqueia por montante externo quebrado", {
+  # Modelo que falhou a montante: a região não pode rodar, e tem que aparecer
+  # como bloqueada nomeando o nó de fora — não como "inválida" (que manda o
+  # autor procurar defeito dentro da região) e não como executável.
+  reg <- mem_registry(); s <- tmp_store()
+  f <- tr_flow(reg) |>
+    tr_add("tab", "m/tabela") |>
+    tr_add("fonte", "m/fonte", from = "tab") |>
+    tr_add("c1", "m/colapsa", from = "fonte") |>
+    tr_add("c2", "m/colapsa") |>
+    tr_link("fonte:out", "c2:x") |>
+    tr_add("d1", "m/mostra", from = "c1") |>
+    tr_add("d2", "m/mostra", from = "c2")
+
+  p <- mem_plan(reg, f, store = s)
+  tr_store_put_error(s, p$units$tab$outputs$out, "explodiu", node_type = "m/tabela")
+  p2 <- mem_plan(reg, f, store = s)
+
+  u <- p2$units[["c1"]]
+  expect_equal(u$blocked_by, "tab")
+  expect_length(u$invalid, 0L)
+  expect_false(u$failed)
+  expect_false("c1" %in% vapply(tr_plan_pending(p2), function(x) x$node, ""))
+
+  # TODOS os colapsos entram em `bad`, e não só o que dá nome à unidade: é pelo
+  # id de cada colapso que o jusante calcula `blocked_by`. Sem `c2` lá, `d2`
+  # rodaria lendo uma chave que ninguém vai gravar.
+  expect_equal(p2$units$d1$blocked_by, "c1")
+  expect_equal(p2$units$d2$blocked_by, "c2")
+  expect_setequal(vapply(tr_plan_blocked(p2), function(x) x$node, ""),
+                  c("tab", "c1", "d1", "d2"))
+})
+
+test_that("print.tr_plan mostra a unidade-região sem quebrar o alinhamento", {
+  reg <- mem_registry()
+  out <- capture.output(print(mem_plan(reg)))
+  expect_match(out[[1]], "3 unidade\\(s\\)")
+
+  linha <- grep("trama/stream_region", out, value = TRUE)
+  expect_length(linha, 1L)
+  expect_match(linha, "^  rodar +colapsa +trama/stream_region +[0-9a-f]{12}$")
+  # `trama/stream_region` tem 19 caracteres e a coluna de tipo tem 22: a chave
+  # começa na MESMA coluna que nas outras linhas. Se um dia o rótulo crescer, o
+  # alinhamento quebra aqui e não na tela de quem está usando.
+  cols <- vapply(out[-1], function(l) regexpr("[0-9a-f]{12}$", l)[[1]], 0L)
+  expect_length(unique(cols), 1L)
+})
