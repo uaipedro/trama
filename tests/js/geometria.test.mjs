@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { containedFrames, donos, envolver, unidades, crescerExterno, abrirEspaco, FRAME_PAD, gradeDeFrames, validarPrancheta,
-         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside } from "../../inst/www/geometria.js";
+         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua } from "../../inst/www/geometria.js";
 
 const frame = (id, x, y, w, hh) => ({ id, type: "trFrame", position: { x, y }, width: w, height: hh, data: {} });
 const card = (id, x, y) => ({ id, type: "ndNode", position: { x, y }, measured: { width: 240, height: 190 }, data: {} });
@@ -159,4 +159,20 @@ test("abrirEspaco: card solto à direita anda com a célula; à esquerda, não",
                          mb("esq", 0, 100, 240, 190)]);
   assert.deepEqual(r.dir, { dx: 80, dy: 0 });
   assert.deepEqual(r.esq, { dx: 0, dy: 0 });
+});
+
+test("marcaDaAgua escala com a imagem e respeita os limites", () => {
+  const p = marcaDaAgua(1000, 600);
+  assert.equal(Math.round(p.h), 19);              // 3,2% de 600
+  assert.ok(p.x + p.w <= 1000 - p.margem);
+  assert.ok(p.y + p.h <= 600 - p.margem);
+  const pequena = marcaDaAgua(200, 120);
+  assert.equal(pequena.h, 14);                     // piso
+  const grande = marcaDaAgua(4000, 3000);
+  assert.equal(grande.h, 32);                      // teto
+});
+
+test("marcaDaAgua mantém a proporção do hexágono", () => {
+  const p = marcaDaAgua(1000, 600);
+  assert.ok(Math.abs(p.w / p.h - 173 / 200) < 1e-9);
 });

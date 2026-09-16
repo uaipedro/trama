@@ -260,3 +260,13 @@ export function crescerExterno(atual, membros, aspect) {
   } else { w = Math.ceil(w); hh = Math.ceil(hh); }
   return { x: atual.x, y: atual.y, w, h: hh };
 }
+
+// Onde o hexágono da marca entra num PNG exportado. Fica aqui, e não no
+// desenho, porque é conta com limites: em imagem pequena a marca não pode
+// comer o conteúdo, e em imagem grande não pode virar cartaz.
+export const MARCA_RAZAO = 173 / 200;
+export function marcaDaAgua(w, hh, margem = 16) {
+  const h = Math.min(32, Math.max(14, hh * 0.032));
+  return { w: h * MARCA_RAZAO, h, margem,
+           x: w - margem - h * MARCA_RAZAO, y: hh - margem - h };
+}
