@@ -11,7 +11,8 @@
 mem_collection <- function(init = function(peso) list(soma = 0, peso = peso),
                            step = function(state, x) list(state = state, out = x),
                            adapter = function(x) x,
-                           preview = function(x, ctx) tr_preview("m/tab", data = list(v = 1))) {
+                           preview = function(x, ctx) tr_preview("m/tab", data = list(v = 1)),
+                           versao_acc = 1L) {
   ponto <- function(...) tr_port("m/tab", stream = TRUE, ...)
 
   tr_collection(
@@ -33,12 +34,29 @@ mem_collection <- function(init = function(peso) list(soma = 0, peso = peso),
       tr_node("m/junta", fn = function(a, b) a,
               inputs = list(a = "m/tab", b = "m/tab"), outputs = list(out = "m/tab"),
               description = "Combina dois pontos — a ordem das portas importa."),
-      tr_node("m/acc", fn = function(x, k) x,
+      tr_node("m/acc", fn = function(x, k) x, version = versao_acc,
               inputs = list(x = ponto(), k = tr_port("m/tab", required = FALSE)),
               outputs = list(out = ponto()),
               params = list(peso = tr_param_num(1)),
               init = init, step = step,
               description = "Acumula ponto a ponto."),
+      # Entrada COMUM de tipo "m/pt" num membro da região: a aresta que vem de
+      # fora (que produz "m/tab") passa pelo adaptador, e a impressão dele entra
+      # na chave por `ext_prints`. Nenhum outro nó desta coleção põe adaptador
+      # numa aresta EXTERNA — só nas internas.
+      tr_node("m/acc_pt", fn = function(x, k) x,
+              inputs = list(x = ponto(), k = tr_port("m/pt", required = FALSE)),
+              outputs = list(out = ponto()),
+              init = function() list(n = 0),
+              step = function(state, x) list(state = state, out = x),
+              description = "Acumula com um insumo comum de outro tipo."),
+      # Membro ESTOCÁSTICO e elevável: a seed dele tem que entrar na chave, e a
+      # de `m/puro` (determinístico) não. Sem um nó estocástico na coleção,
+      # nenhuma das duas direções era exercitada.
+      tr_node("m/puro_estoc", fn = function(x) x,
+              inputs = list(x = "m/tab"), outputs = list(out = "m/tab"),
+              stochastic = TRUE,
+              description = "Nó elevado que sorteia — a seed muda o resultado."),
       tr_node("m/acc_impuro", fn = function(x, path) x,
               inputs = list(x = ponto()), outputs = list(out = ponto()),
               params = list(path = tr_param_text("")),
@@ -341,6 +359,63 @@ test_that("adaptador de aresta INTERNA entra na chave da região", {
   expect_equal(p1$units$colapsa$region$nodes$colapsa$inputs$x[[1]]$adapter,
                list(from = "m/tab", to = "m/pt"))
   expect_false(identical(chave(r1, f(r1)), chave(r2, f(r2))))
+})
+
+test_that("adaptador de aresta EXTERNA entra na chave da região", {
+  # A aresta que vem de FORA passa pelo adaptador antes de o valor entrar na
+  # região, e o histórico cacheado é o resultado dessa conversão. Sem a
+  # impressão do adaptador na chave (`ext_prints`), mudar o corpo dele serve o
+  # histórico convertido pela regra antiga — e nenhum teste da fase cobria a
+  # aresta externa: o único adaptador testado era de aresta interna.
+  f <- function(reg) {
+    tr_flow(reg) |>
+      tr_add("tab", "m/tabela") |>
+      tr_add("fonte", "m/fonte", from = "tab") |>
+      tr_add("acumula", "m/acc_pt", from = "fonte") |>
+      tr_link("tab:out", "acumula:k") |>
+      tr_add("colapsa", "m/colapsa", from = "acumula")
+  }
+  r1 <- mem_registry(adapter = function(x) x)
+  r2 <- mem_registry(adapter = function(x) rev(x))
+  # A entrada externa REALMENTE passa por adaptador: sem isso o teste passaria
+  # por acidente, medindo outra coisa.
+  ref <- mem_plan(r1, f(r1))$units$colapsa$inputs[["acumula:k"]]
+  expect_equal(ref$adapter, list(from = "m/tab", to = "m/pt"))
+  expect_false(identical(chave(r1, f(r1)), chave(r2, f(r2))))
+})
+
+test_that("a versão do nó membro entra na chave da região", {
+  # Mesma régua do nó solto: bumpar `version` é o jeito declarado de dizer "este
+  # nó calcula outra coisa agora", inclusive quando o corpo não mudou (a
+  # dependência externa mudou, e `fn_print` não vê dependência). Sem a versão na
+  # chave, a região serve o histórico da versão anterior.
+  r1 <- mem_registry(versao_acc = 1L)
+  r2 <- mem_registry(versao_acc = 2L)
+  expect_false(identical(chave(r1, mem_flow(r1)), chave(r2, mem_flow(r2))))
+})
+
+test_that("a seed entra na chave só pelo membro ESTOCÁSTICO", {
+  # As duas direções, porque as duas custam: sem a seed do estocástico, sortear
+  # de novo serve o histórico do sorteio anterior; com a seed do
+  # determinístico, um `set_seed` num nó que não sorteia invalidaria a região
+  # inteira e recomputaria dez mil pontos por nada.
+  reg <- mem_registry()
+  estoc <- function(seed) {
+    tr_flow(reg) |>
+      tr_add("fonte", "m/fonte") |>
+      tr_add("p", "m/puro_estoc", from = "fonte", seed = seed) |>
+      tr_add("colapsa", "m/colapsa", from = "p")
+  }
+  expect_equal(mem_plan(reg, estoc(1L))$units$colapsa$region$nodes$p$seed, 1L)
+  expect_false(identical(chave(reg, estoc(1L)), chave(reg, estoc(2L))))
+
+  determ <- function(seed) {
+    tr_flow(reg) |>
+      tr_add("fonte", "m/fonte") |>
+      tr_add("p", "m/puro", from = "fonte", seed = seed) |>
+      tr_add("colapsa", "m/colapsa", from = "p")
+  }
+  expect_equal(chave(reg, determ(1L)), chave(reg, determ(2L)))
 })
 
 test_that("mudar o preview do TIPO da saída do colapso invalida a chave", {
@@ -687,6 +762,22 @@ test_that("a unidade-região carrega o conjunto de coleções dos membros", {
                node_type = u$node_type, collections = u$collections)
   expect_equal(tr_bust(s, "trama"), 0L)
   expect_true(tr_store_has(s, u$outputs$out))
+})
+
+test_that("colapso ÚNICO sem porta de saída tem chave de saída de verdade", {
+  # `outs[[""]] <- k` grava, mas `outs[[""]]` devolve NULL em R: o mapa que o
+  # jusante consulta saía `list(NULL)`. Hoje é inofensivo só porque um colapso
+  # sem porta de saída não pode ter consumidor — nenhuma aresta sai dele. O
+  # teste fixa o que é observável (chave real sob a porta vazia, no plano e no
+  # `keep` do GC) pra que a armadilha não volte por outro caminho.
+  reg <- mem_registry()
+  f <- tr_flow(reg) |> tr_add("fonte", "m/fonte") |> tr_add("ex", "m/exibe", from = "fonte")
+  p <- mem_plan(reg, f)
+  u <- p$units[["ex"]]
+  expect_equal(names(u$outputs), "")
+  expect_length(unlist(u$outputs), 1L)
+  expect_match(unlist(u$outputs), "^[0-9a-f]{32}$")
+  expect_true(unlist(u$outputs) %in% tr_plan_keys(p))
 })
 
 test_that("print.tr_plan mostra a unidade-região sem quebrar o alinhamento", {

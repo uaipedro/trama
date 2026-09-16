@@ -209,6 +209,16 @@
 #' A ordem é estável por construção: os membros vêm na ordem topológica da
 #' região (com empate alfabético) e os mapas nomeados são ordenados com
 #' `method = "radix"`, pela razão de locale já documentada acima.
+#'
+#' CONDIÇÃO desta chave, e o dia em que ela deixa de valer: `type_prints` cobre
+#' só as portas de saída dos COLAPSOS. A impressão digital do tipo das portas
+#' INTERNAS fica fora de propósito, e isso é correto exatamente enquanto nenhum
+#' valor de dentro da região atravessar o `store`/`restore` de um tipo. No
+#' momento em que o driver despejar estado interior em disco por `type$store` —
+#' em vez de um RDS cru do estado, ou do caminho em memória de `.ctx$partial` —
+#' o código daquele tipo passa a ser INSUMO do histórico gravado sob esta chave,
+#' e tem que entrar aqui: sem isso, editar o `store`/`restore` de um tipo
+#' interno serve, do cache, um histórico que aquele código não produziria mais.
 #' @noRd
 .tr_region_key <- function(region, members, specs, registry, ext_keys, ext_prints,
                            type_prints, externals, nonce = NULL) {
@@ -228,6 +238,10 @@
 
   # `seed` só de quem é estocástico, a mesma regra do nó solto: `set_seed` num
   # membro determinístico não pode invalidar a região inteira.
+  # `m$node_version` É o mesmo `spec$version` que já entrou em `code` acima —
+  # redundância conhecida, e por isso nenhum teste consegue distinguir a remoção
+  # de um dos dois (só a dos dois juntos falha). Fica como está porque tirar um
+  # mudaria a chave de TODA região sem fechar furo nenhum.
   membros <- lapply(region$nodes, function(id) {
     m <- members[[id]]
     list(id, m$node_type, m$node_version, m$online, m$role, m$params,

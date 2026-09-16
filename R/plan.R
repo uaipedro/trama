@@ -87,6 +87,16 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     inputs <- list(); ext_keys <- list(); ext_prints <- list()
     upstream <- character(); invalid <- character(); members <- list()
 
+    # `region$external` (da detecção) é a ÚNICA verdade sobre qual aresta entra
+    # de fora. Re-derivar aqui com `!(e$from$node %in% region$nodes)` criava um
+    # SEGUNDO predicado de "externa", que pode divergir do da detecção — é
+    # exatamente a classe de bug do Crítico da Fase 2, quando o `external`
+    # perdeu uma aresta e este lado, que a derivava sozinho, não viu diferença.
+    # `external` preserva a ordem de `doc$edges`, então agrupar por `nó:porta` e
+    # ordenar por `index` continua sendo trabalho daqui.
+    de_fora_keys <- vapply(region$external, .tr_edge_key, "")
+    eh_de_fora <- function(e) .tr_edge_key(e) %in% de_fora_keys
+
     for (id in region$nodes) {
       spec <- specs[[id]]; node <- doc$nodes[[id]]
       incoming <- by_target[[id]] %||% list()
@@ -105,7 +115,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
         es <- es[order(vapply(es, function(e) as.integer(e$index %||% 1L), integer(1)))]
         if (!isTRUE(port$multiple)) es <- es[1]
         nm <- paste0(id, ":", pn)
-        de_fora <- Filter(function(e) !(e$from$node %in% region$nodes), es)
+        de_fora <- Filter(eh_de_fora, es)
         if (length(de_fora) > 0) {
           g <- resolve_group(de_fora, port)
           upstream <- c(upstream, vapply(g$refs, function(r) r$node, ""))
@@ -121,13 +131,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
         }
         pos <- 0L
         sources[[pn]] <- lapply(es, function(e) {
-          if (e$from$node %in% region$nodes) {
-            out_type <- specs[[e$from$node]]$outputs[[e$from$port]]$type
-            ad <- if (identical(out_type, port$type)) NULL
-                  else tr_adapter_for(out_type, port$type, registry)
-            list(from = "internal", node = e$from$node, port = e$from$port, type = out_type,
-                 adapter = if (is.null(ad)) NULL else list(from = ad$from, to = ad$to))
-          } else {
+          if (eh_de_fora(e)) {
             # A referência de fora mora em `inputs`, não aqui: repeti-la criaria
             # duas verdades sobre de qual chave o valor vem. `pos` é a posição
             # dela entre as externas da MESMA porta, que é o que permite
@@ -135,6 +139,12 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
             # meio externa.
             pos <<- pos + 1L
             list(from = "external", input = nm, pos = pos)
+          } else {
+            out_type <- specs[[e$from$node]]$outputs[[e$from$port]]$type
+            ad <- if (identical(out_type, port$type)) NULL
+                  else tr_adapter_for(out_type, port$type, registry)
+            list(from = "internal", node = e$from$node, port = e$from$port, type = out_type,
+                 adapter = if (is.null(ad)) NULL else list(from = ad$from, to = ad$to))
           }
         })
       }
@@ -189,12 +199,17 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       # porta vazia, como qualquer nó terminal em `tr_plan()`.
       if (length(ports) == 0) ports <- ""
       nms <- vapply(ports, function(p) .tr_region_out_name(cid, p, multi), "", USE.NAMES = FALSE)
+      # As chaves saem de `.tr_out_key()`, não de reler `outs[[n]]`: no colapso
+      # sem porta de saída o nome é `""`, e `outs[[""]]` devolve NULL em R mesmo
+      # tendo sido gravado por `outs[[""]] <- k`. `out_keys[[cid]]` virava
+      # `list(NULL)` — inofensivo só porque esse colapso não tem consumidor.
+      ks <- vapply(nms, function(n) .tr_out_key(unit_key, n), "", USE.NAMES = FALSE)
       for (i in seq_along(ports)) {
-        outs[[nms[[i]]]] <- .tr_out_key(unit_key, nms[[i]])
+        outs[[nms[[i]]]] <- ks[[i]]
         if (nzchar(ports[[i]])) out_types[[nms[[i]]]] <- specs[[cid]]$outputs[[ports[[i]]]]$type
       }
       omap[[cid]] <- stats::setNames(nms, ports)
-      out_keys[[cid]] <<- stats::setNames(lapply(nms, function(n) outs[[n]]), ports)
+      out_keys[[cid]] <<- stats::setNames(as.list(ks), ports)
     }
 
     handles <- if (is.null(store)) list() else lapply(outs, function(k) tr_store_handle(store, k))
