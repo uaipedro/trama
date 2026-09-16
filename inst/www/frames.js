@@ -386,12 +386,31 @@ function inlineEdges(root) {
 const slug = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-const carregar = (src) => new Promise((ok, erro) => {
+// `dim` é `[largura, altura]` opcional, e existe por causa de SVG.
+//
+// `marca.svg` declara só `viewBox`, sem `width`/`height` — ou seja, não tem
+// dimensão INTRÍNSECA. Firefox e Safari se recusam a desenhar uma imagem
+// assim em canvas, e o pior é COMO recusam: sem exceção. O `try/catch` do
+// `carimbar` não dispara, o `toBlob` devolve o PNG re-codificado e sem
+// assinatura, e a exportação sai calada e errada — bug que só aparece fora do
+// Chrome. Dar `width`/`height` ao objeto `Image` ANTES do `src` supre a
+// dimensão que falta e os três navegadores desenham igual.
+//
+// A correção mora aqui, e não no SVG: o mesmo arquivo serve de favicon, de
+// marca da barra e de entrada do `tools/marca/rasterizar.sh`, que depende de
+// ele NÃO ter dimensão pra renderizar em 512 px.
+const carregar = (src, dim) => new Promise((ok, erro) => {
   const img = new Image();
   img.onload = () => ok(img);
   img.onerror = () => erro(new Error(`imagem não carregou: ${src}`));
+  if (dim) { img.width = dim[0]; img.height = dim[1]; }
   img.src = src;
 });
+
+// O `viewBox` de `marca.svg`, que é o que o `carregar` precisa passar ao
+// `Image`. Só a razão entre os dois importa (o destino do `drawImage` é
+// explícito); os números em si são os do arquivo pra não inventar um terceiro.
+const MARCA_DIM = [173, 200];
 
 // Carimba o hexágono no canto do PNG. Desenha o blob num canvas e devolve
 // outro blob — o `html-to-image` não tem gancho de "depois de desenhar", e o
@@ -402,29 +421,27 @@ const carregar = (src) => new Promise((ok, erro) => {
 // Perder a assinatura é menos grave que perder a imagem que o usuário pediu.
 //
 // `f` é o retângulo do frame, em unidades de CSS, e não decoração: a conta da
-// posição é feita NELE, e só o resultado é multiplicado pela escala da captura.
+// posição é feita NELE, com a escala da captura passada junto.
 async function carimbar(blob, f) {
   const url = URL.createObjectURL(blob);
   try {
     // Em paralelo porque são duas buscas independentes, e a da marca costuma
     // vir do cache do navegador depois da primeira exportação.
-    const [img, marca] = await Promise.all([carregar(url), carregar(MARCA)]);
+    const [img, marca] = await Promise.all([carregar(url), carregar(MARCA, MARCA_DIM)]);
     const cv = document.createElement("canvas");
     cv.width = img.naturalWidth; cv.height = img.naturalHeight;
     const ctx = cv.getContext("2d");
     ctx.drawImage(img, 0, 0);
-    // A geometria é calculada no tamanho do FRAME e depois escalada, e não
-    // direto no tamanho do PNG. O PNG sai em 2x: medido nele, o teto de 48 é
-    // alcançado com metade da altura de frame, e a marca fica com METADE da
-    // fração pretendida da imagem — num frame 16:9 grande vira um ponto
-    // invisível no canto. A escala vem da imagem de verdade (e não de um `2`
-    // escrito à mão) pra continuar certa se o `pixelRatio` da captura mudar.
-    const escala = cv.width / f.w;
-    const p = marcaDaAgua(f.w, f.h);
-    // O SVG da marca só tem viewBox, sem width/height: por isso as medidas de
-    // destino do `drawImage` são explícitas, e não vêm do `naturalWidth` dele.
+    // A geometria é calculada no tamanho do FRAME e a escala entra como
+    // PARÂMETRO dela (ver `marcaDaAgua`): medir direto no PNG, que sai em 2x,
+    // daria uma marca com metade da fração pretendida. A escala vem da imagem
+    // de verdade (e não de um `2` escrito à mão) pra continuar certa se o
+    // `pixelRatio` da captura mudar.
+    const p = marcaDaAgua(f.w, f.h, 16, cv.width / f.w);
+    // Medidas de destino explícitas, e não o `naturalWidth` da marca: o SVG
+    // não tem dimensão intrínseca (ver `carregar`), e o que vale é a conta.
     ctx.globalAlpha = 0.7;
-    ctx.drawImage(marca, p.x * escala, p.y * escala, p.w * escala, p.h * escala);
+    ctx.drawImage(marca, p.x, p.y, p.w, p.h);
     return await new Promise((ok) => cv.toBlob((b) => ok(b || blob), "image/png"));
   } catch (e) {
     console.warn("marca d'água não aplicada:", e);

@@ -175,4 +175,30 @@ test("marcaDaAgua escala com a imagem e respeita os limites", () => {
 test("marcaDaAgua mantém a proporção do hexágono", () => {
   const p = marcaDaAgua(1000, 600);
   assert.ok(Math.abs(p.w / p.h - 173 / 200) < 1e-9);
+  // A proporção não pode depender da escala: o hexágono esticado é o erro que
+  // ninguém vê no código e todo mundo vê no PNG.
+  const dobro = marcaDaAgua(1000, 600, 16, 2);
+  assert.ok(Math.abs(dobro.w / dobro.h - 173 / 200) < 1e-9);
+});
+
+// A regressão que este teste tranca: a marca precisa ocupar a MESMA fração da
+// imagem qualquer que seja a escala da captura. Medir a geometria direto nos
+// pixels do PNG (que sai em 2x) parece igual e não é — o piso e o teto são
+// absolutos, então dobrar a entrada não dobra o resultado. Como a escala agora
+// é parâmetro da função pura, o Node consegue cobrir isso; enquanto ela morava
+// no `frames.js`, o bug passava com a suíte verde.
+test("marcaDaAgua ocupa a mesma fração da imagem em qualquer escala", () => {
+  for (const [w, hh] of [[960, 540], [4000, 3000], [200, 120], [1600, 900]]) {
+    const um = marcaDaAgua(w, hh, 16, 1);
+    for (const escala of [2, 3, 0.5]) {
+      const e = marcaDaAgua(w, hh, 16, escala);
+      const perto = (a, b) => assert.ok(Math.abs(a - b) < 1e-9,
+        `escala ${escala} em ${w}x${hh}: ${a} != ${b}`);
+      perto(e.h / (hh * escala), um.h / hh);
+      perto(e.w / (w * escala), um.w / w);
+      perto(e.x / (w * escala), um.x / w);
+      perto(e.y / (hh * escala), um.y / hh);
+      perto(e.margem / (w * escala), um.margem / w);
+    }
+  }
 });
