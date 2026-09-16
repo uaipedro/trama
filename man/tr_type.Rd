@@ -35,3 +35,16 @@ um id de string resolvido no front. Dispatch por id, nunca por \code{inherits()}
 Sem \code{store}/\code{restore}, cai em RDS — suficiente pra tipo que é objeto R
 comum (data.frame, lista, escalar).
 }
+\examples{
+# Sem `store`/`restore` o artefato cai em RDS, que basta para um escalar.
+num <- tr_type("exemplo/num", label = "Numero", color = "#818cf8",
+               preview = function(x, ctx) {
+                 tr_preview("trama/keyvalue", data = list(valor = x))
+               },
+               summary = function(x) list(valor = x))
+num$summary(7)
+
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+tr_get_type("demo/num", reg)$label
+}

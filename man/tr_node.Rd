@@ -46,3 +46,17 @@ chave de cache (mtime+tamanho de arquivo, ETag de URL). Sem isso, um nó que
 lê um CSV serviria dado velho em silêncio quando o arquivo muda, porque
 nada no hash teria mudado. \code{volatile = TRUE} nunca cacheia entre execuções.
 }
+\examples{
+# Especificacao, sem efeito colateral: `fn` continua uma funcao R comum.
+triplo <- tr_node("exemplo/triplo", fn = function(x, fator) x * fator,
+                  description = "Multiplica a entrada pelo fator.",
+                  inputs = list(x = "exemplo/num"),
+                  outputs = list(out = "exemplo/num"),
+                  params = list(fator = tr_param_num(3)))
+triplo$fn(7, triplo$params$fator$default)
+
+# Registrado, o no e chamavel pelo id — o nivel 1 da API.
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+tr_fn("demo/soma", reg)(2, 3, 10)
+}

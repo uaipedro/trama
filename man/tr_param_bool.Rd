@@ -9,3 +9,19 @@ tr_param_bool(default = FALSE, label = NULL)
 \description{
 Param booleano.
 }
+\examples{
+decrescente <- tr_param_bool(TRUE, label = "Decrescente")
+no <- tr_node("exemplo/ordenar",
+              fn = function(data, decrescente) {
+                ordem <- order(data$area, decreasing = decrescente)
+                data[ordem, , drop = FALSE]
+              },
+              description = "Ordena a tabela pela area.",
+              inputs = list(data = "demo/tabela"),
+              outputs = list(out = "demo/tabela"),
+              params = list(decrescente = decrescente))
+
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+no$fn(tr_fn("demo/tabela", reg)(), TRUE)$area
+}

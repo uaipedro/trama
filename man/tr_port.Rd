@@ -11,3 +11,15 @@ tr_port(type, required = TRUE, multiple = FALSE)
 schema da aresta (\code{index}): acrescentar depois seria mudança de formato de
 documento, não de API. "Combinar N entradas" aparece em todo domínio.
 }
+\examples{
+# Porta variadica: uma entrada que aceita varias ligacoes, com `index`.
+valores <- tr_port("demo/num", multiple = TRUE)
+
+somar <- tr_node("exemplo/somar_tudo",
+                 fn = function(valores) sum(unlist(valores)),
+                 description = "Soma todas as entradas ligadas.",
+                 inputs = list(valores = valores),
+                 outputs = list(out = tr_port("demo/num")))
+somar$inputs$valores$multiple
+somar$fn(list(1, 2, 3))
+}

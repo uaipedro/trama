@@ -9,3 +9,16 @@ tr_set(flow, id, ...)
 \description{
 Aplica \code{set_param} para cada \code{...} nomeado, um por um.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+
+f <- tr_flow(reg) |>
+  tr_add("t", "demo/tabela") |>
+  tr_add("f", "demo/filtrar", from = "t") |>
+  tr_set("f", column = "lados", limit = 4)
+
+s <- tr_store(file.path(tempdir(), "store-set"))
+nrow(tr_value(tr_flow_doc(f), "f", reg, s))
+unlink(file.path(tempdir(), "store-set"), recursive = TRUE)
+}

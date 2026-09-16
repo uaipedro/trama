@@ -12,3 +12,14 @@ payload (dado já reduzido — downsample, bins, head); \code{files} são caminh
 relativos no store, pra quando o dado não cabe (imagem raster).
 Regra: \strong{arquivo só quando o dado não cabe.}
 }
+\examples{
+tr_preview("trama/keyvalue", data = list(valor = 7))
+
+# O preview de um tipo registrado sai pronto para virar JSON.
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+tabela <- tr_fn("demo/tabela", reg)()
+p <- tr_get_type("demo/tabela", reg)$preview(tabela, NULL)
+p$renderer
+p$data$columns
+}

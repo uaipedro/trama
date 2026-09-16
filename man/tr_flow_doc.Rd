@@ -9,3 +9,18 @@ tr_flow_doc(flow)
 \description{
 O \code{tr_doc} por trás de um \code{tr_flow} — a saída pronta pra \code{tr_run()}, \code{tr_doc_write()} etc.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+
+f <- tr_flow(reg) |>
+  tr_add("t", "demo/tabela") |>
+  tr_add("r", "demo/resumo", from = "t")
+
+doc <- tr_flow_doc(f)
+names(doc$nodes)
+
+s <- tr_store(file.path(tempdir(), "store-doc"))
+tr_value(doc, "r", reg, s)
+unlink(file.path(tempdir(), "store-doc"), recursive = TRUE)
+}

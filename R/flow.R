@@ -11,6 +11,19 @@
 #' Referência a porta: `"no:porta"`. Os dois pontos são proibidos em id de nó
 #' (`.tr_check_node_id`), então a separação é inequívoca; `"."` não serviria,
 #' porque id pode conter ponto.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#'
+#' f <- tr_flow(reg) |>
+#'   tr_add("dois", "demo/const", value = 2) |>
+#'   tr_add("tres", "demo/const", value = 3) |>
+#'   tr_add("soma", "demo/soma", from = c("dois", "tres"), k = 10)
+#' f
+#'
+#' s <- tr_store(file.path(tempdir(), "store-flow"))
+#' tr_value(tr_flow_doc(f), "soma", reg, s)
+#' unlink(file.path(tempdir(), "store-flow"), recursive = TRUE)
 #' @export
 tr_flow <- function(registry = .tr_default_registry, doc = tr_doc()) {
   structure(list(doc = doc, registry = registry), class = "tr_flow")
@@ -25,6 +38,18 @@ tr_flow <- function(registry = .tr_default_registry, doc = tr_doc()) {
 #' Acrescenta um nó. `...` são params (nomeados). `from` liga a saída de um ou
 #' mais nós existentes às portas de entrada obrigatórias ainda livres deste,
 #' na ordem declarada — o caso comum de "encadeia" sem precisar nomear porta.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#'
+#' # `from` liga a saida do no citado a primeira entrada livre compativel.
+#' f <- tr_flow(reg) |>
+#'   tr_add("t", "demo/tabela") |>
+#'   tr_add("f", "demo/filtrar", from = "t", column = "lados", limit = 4)
+#'
+#' s <- tr_store(file.path(tempdir(), "store-add"))
+#' nrow(tr_value(tr_flow_doc(f), "f", reg, s))
+#' unlink(file.path(tempdir(), "store-add"), recursive = TRUE)
 #' @export
 tr_add <- function(flow, id, type, ..., from = NULL, label = NULL, seed = NULL, position = NULL) {
   params <- list(...)
@@ -82,6 +107,21 @@ tr_add <- function(flow, id, type, ..., from = NULL, label = NULL, seed = NULL, 
 }
 
 #' Liga `from` a `to`. Porta omitida = primeira saída / primeira entrada.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#'
+#' # Porta nomeada quando a ordem importa: `a` e `b` do demo/soma.
+#' f <- tr_flow(reg) |>
+#'   tr_add("dois", "demo/const", value = 2) |>
+#'   tr_add("tres", "demo/const", value = 3) |>
+#'   tr_add("soma", "demo/soma", k = 0) |>
+#'   tr_link("dois:out", "soma:a") |>
+#'   tr_link("tres:out", "soma:b")
+#'
+#' s <- tr_store(file.path(tempdir(), "store-link"))
+#' tr_value(tr_flow_doc(f), "soma", reg, s)
+#' unlink(file.path(tempdir(), "store-link"), recursive = TRUE)
 #' @export
 tr_link <- function(flow, from, to, index = NULL) {
   f <- .tr_split_ref(from); t <- .tr_split_ref(to)
@@ -116,6 +156,18 @@ tr_link <- function(flow, from, to, index = NULL) {
 }
 
 #' Aplica `set_param` para cada `...` nomeado, um por um.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#'
+#' f <- tr_flow(reg) |>
+#'   tr_add("t", "demo/tabela") |>
+#'   tr_add("f", "demo/filtrar", from = "t") |>
+#'   tr_set("f", column = "lados", limit = 4)
+#'
+#' s <- tr_store(file.path(tempdir(), "store-set"))
+#' nrow(tr_value(tr_flow_doc(f), "f", reg, s))
+#' unlink(file.path(tempdir(), "store-set"), recursive = TRUE)
 #' @export
 tr_set <- function(flow, id, ...) {
   vals <- list(...)
@@ -124,6 +176,20 @@ tr_set <- function(flow, id, ...) {
 }
 
 #' O `tr_doc` por trás de um `tr_flow` — a saída pronta pra `tr_run()`, `tr_doc_write()` etc.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#'
+#' f <- tr_flow(reg) |>
+#'   tr_add("t", "demo/tabela") |>
+#'   tr_add("r", "demo/resumo", from = "t")
+#'
+#' doc <- tr_flow_doc(f)
+#' names(doc$nodes)
+#'
+#' s <- tr_store(file.path(tempdir(), "store-doc"))
+#' tr_value(doc, "r", reg, s)
+#' unlink(file.path(tempdir(), "store-doc"), recursive = TRUE)
 #' @export
 tr_flow_doc <- function(flow) flow$doc
 
@@ -148,6 +214,16 @@ print.tr_flow <- function(x, ...) { cat("<tr_flow>\n"); print(x$doc); invisible(
 #' encadeado — o caminho que o próprio guard manda usar — e, quando o param
 #' sombreado é `from`, as arestas do nó saem por `tr_link()` explícito, porque
 #' o formal `from` continua vedado para aquele `tr_add()`.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#'
+#' f <- tr_flow(reg) |>
+#'   tr_add("dois", "demo/const", value = 2) |>
+#'   tr_add("tres", "demo/const", value = 3) |>
+#'   tr_add("soma", "demo/soma", from = c("dois", "tres"), k = 10)
+#'
+#' cat(tr_flow_code(tr_flow_doc(f), reg), sep = "\n")
 #' @export
 tr_flow_code <- function(doc, registry = .tr_default_registry, registry_expr = "reg") {
   doc <- .tr_as_doc(doc)

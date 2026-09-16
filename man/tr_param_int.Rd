@@ -9,3 +9,16 @@ tr_param_int(default, min = NA, max = NA, label = NULL)
 \description{
 Param inteiro.
 }
+\examples{
+n <- tr_param_int(3, min = 1, max = 10, label = "Linhas")
+no <- tr_node("exemplo/primeiras",
+              fn = function(data, n) utils::head(data, n),
+              description = "Primeiras linhas da tabela.",
+              inputs = list(data = "demo/tabela"),
+              outputs = list(out = "demo/tabela"),
+              params = list(n = n))
+
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+no$fn(tr_fn("demo/tabela", reg)(), n$default)
+}

@@ -25,3 +25,12 @@ pedindo execução em paralelo, sem garantia de ordem. Quando a ordem não
 valia, a engine rodava contra o documento antigo, via que nada mudou,
 servia do cache e o preview não atualizava — sem erro, em silêncio.
 }
+\examples{
+if (interactive()) {
+  pasta <- file.path(tempdir(), "projeto-server")
+  tr_project_new(pasta, collections = "trama")
+  projeto <- tr_project(pasta)
+  shiny::shinyApp(ui = tr_ui(projeto),
+                  server = tr_server(projeto, flow = "main"))
+}
+}

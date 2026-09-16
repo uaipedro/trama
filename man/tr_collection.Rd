@@ -36,3 +36,21 @@ visualização nova sem tocar no núcleo.
 \code{label} é o nome que a coleção mostra na aba da paleta; sem ele, a aba
 escreve o \code{id}, que serve mas não explica.
 }
+\examples{
+minha <- tr_collection(
+  id = "exemplo", version = "1.0.0", label = "Exemplo",
+  categories = list(tr_category("basico", "Basico")),
+  types = list(tr_type("exemplo/num", label = "Numero")),
+  nodes = list(
+    tr_node("exemplo/dobro", fn = function(x) x * 2,
+            description = "Dobra o numero de entrada.",
+            category = "basico",
+            inputs = list(x = "exemplo/num"),
+            outputs = list(out = "exemplo/num"))
+  )
+)
+
+reg <- tr_registry()
+tr_use(minha, registry = reg)
+names(reg$nodes)
+}

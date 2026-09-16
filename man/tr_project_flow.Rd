@@ -9,3 +9,18 @@ tr_project_flow(project, name = "main")
 \description{
 Lê o flow \code{name} do projeto; documento vazio se o arquivo ainda não existe.
 }
+\examples{
+pasta <- file.path(tempdir(), "projeto-leitura")
+tr_project_new(pasta, collections = "trama")
+projeto <- tr_project(pasta)
+
+# Fluxo que nunca foi gravado devolve documento vazio, sem erro.
+length(tr_project_flow(projeto, "main")$nodes)
+
+f <- tr_flow(projeto$registry) |>
+  tr_add("t", "demo/tabela") |>
+  tr_add("r", "demo/resumo", from = "t")
+tr_project_save(projeto, tr_flow_doc(f), "main")
+names(tr_project_flow(projeto, "main")$nodes)
+unlink(pasta, recursive = TRUE)
+}

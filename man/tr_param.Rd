@@ -17,3 +17,11 @@ porque são universais, não porque o núcleo os privilegia.
 todo param de todo nó pra ser interpretável, e um nó recém-criado não teria
 estado válido.
 }
+\examples{
+tr_param("number", default = 1, label = "Valor")
+
+# O param que o demo/soma declara, do registro.
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+tr_get_node("demo/soma", reg)$params$k$default
+}

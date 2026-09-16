@@ -16,6 +16,18 @@
 #'
 #' Sem `store`/`restore`, cai em RDS — suficiente pra tipo que é objeto R
 #' comum (data.frame, lista, escalar).
+#' @examples
+#' # Sem `store`/`restore` o artefato cai em RDS, que basta para um escalar.
+#' num <- tr_type("exemplo/num", label = "Numero", color = "#818cf8",
+#'                preview = function(x, ctx) {
+#'                  tr_preview("trama/keyvalue", data = list(valor = x))
+#'                },
+#'                summary = function(x) list(valor = x))
+#' num$summary(7)
+#'
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' tr_get_type("demo/num", reg)$label
 #' @export
 tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
                     store = NULL, restore = NULL, ext = "rds",
@@ -43,6 +55,16 @@ tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
 #' payload (dado já reduzido — downsample, bins, head); `files` são caminhos
 #' relativos no store, pra quando o dado não cabe (imagem raster).
 #' Regra: **arquivo só quando o dado não cabe.**
+#' @examples
+#' tr_preview("trama/keyvalue", data = list(valor = 7))
+#'
+#' # O preview de um tipo registrado sai pronto para virar JSON.
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' tabela <- tr_fn("demo/tabela", reg)()
+#' p <- tr_get_type("demo/tabela", reg)$preview(tabela, NULL)
+#' p$renderer
+#' p$data$columns
 #' @export
 tr_preview <- function(renderer, data = NULL, files = NULL) {
   list(renderer = renderer, data = data, files = files)

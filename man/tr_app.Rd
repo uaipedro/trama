@@ -17,3 +17,10 @@ cada coleção carregada publica os próprios em \verb{tr-<id>/}. A ordem de car
 é determinística e importa: \code{runtime.js} cria \code{window.tr} (os registros),
 as coleções registram renderers e widgets, e só então o editor monta.
 }
+\examples{
+if (interactive()) {
+  pasta <- file.path(tempdir(), "projeto-app")
+  tr_project_new(pasta, collections = "trama")
+  tr_app(tr_project(pasta))
+}
+}

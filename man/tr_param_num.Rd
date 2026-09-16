@@ -16,3 +16,12 @@ tr_param_num(
 \description{
 Param numérico (ponto flutuante).
 }
+\examples{
+escala <- tr_param_num(1, min = 0, max = 10, step = 0.5, label = "Escala")
+no <- tr_node("exemplo/escalar", fn = function(x, escala) x * escala,
+              description = "Multiplica a entrada pela escala.",
+              inputs = list(x = "demo/num"),
+              outputs = list(out = "demo/num"),
+              params = list(escala = escala))
+no$fn(4, no$params$escala$default)
+}

@@ -4,6 +4,12 @@
 #' cada coleção carregada publica os próprios em `tr-<id>/`. A ordem de carga
 #' é determinística e importa: `runtime.js` cria `window.tr` (os registros),
 #' as coleções registram renderers e widgets, e só então o editor monta.
+#' @examples
+#' if (interactive()) {
+#'   pasta <- file.path(tempdir(), "projeto-app")
+#'   tr_project_new(pasta, collections = "trama")
+#'   tr_app(tr_project(pasta))
+#' }
 #' @export
 tr_app <- function(project = tr_project("."), flow = "main",
                    executor = tr_executor_sequential(), ...) {
@@ -16,6 +22,13 @@ tr_app <- function(project = tr_project("."), flow = "main",
 }
 
 #' Monta a UI Shiny do editor: importmap, dependências e o `<div>` onde o React monta.
+#' @examples
+#' if (interactive()) {
+#'   pasta <- file.path(tempdir(), "projeto-ui")
+#'   tr_project_new(pasta, collections = "trama")
+#'   projeto <- tr_project(pasta)
+#'   shiny::shinyApp(ui = tr_ui(projeto), server = tr_server(projeto))
+#' }
 #' @export
 tr_ui <- function(project) {
   # Previews com arquivo (imagem, etc.) são servidos direto do store — o

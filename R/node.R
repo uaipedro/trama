@@ -3,6 +3,17 @@
 #' `multiple = TRUE` (porta variádica) existe desde o início porque afeta o
 #' schema da aresta (`index`): acrescentar depois seria mudança de formato de
 #' documento, não de API. "Combinar N entradas" aparece em todo domínio.
+#' @examples
+#' # Porta variadica: uma entrada que aceita varias ligacoes, com `index`.
+#' valores <- tr_port("demo/num", multiple = TRUE)
+#'
+#' somar <- tr_node("exemplo/somar_tudo",
+#'                  fn = function(valores) sum(unlist(valores)),
+#'                  description = "Soma todas as entradas ligadas.",
+#'                  inputs = list(valores = valores),
+#'                  outputs = list(out = tr_port("demo/num")))
+#' somar$inputs$valores$multiple
+#' somar$fn(list(1, 2, 3))
 #' @export
 tr_port <- function(type, required = TRUE, multiple = FALSE) {
   .tr_check_id(type, .tr_msg("port.check_id_what"))
@@ -35,6 +46,19 @@ tr_port <- function(type, required = TRUE, multiple = FALSE) {
 #' chave de cache (mtime+tamanho de arquivo, ETag de URL). Sem isso, um nó que
 #' lê um CSV serviria dado velho em silêncio quando o arquivo muda, porque
 #' nada no hash teria mudado. `volatile = TRUE` nunca cacheia entre execuções.
+#' @examples
+#' # Especificacao, sem efeito colateral: `fn` continua uma funcao R comum.
+#' triplo <- tr_node("exemplo/triplo", fn = function(x, fator) x * fator,
+#'                   description = "Multiplica a entrada pelo fator.",
+#'                   inputs = list(x = "exemplo/num"),
+#'                   outputs = list(out = "exemplo/num"),
+#'                   params = list(fator = tr_param_num(3)))
+#' triplo$fn(7, triplo$params$fator$default)
+#'
+#' # Registrado, o no e chamavel pelo id — o nivel 1 da API.
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' tr_fn("demo/soma", reg)(2, 3, 10)
 #' @export
 tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),

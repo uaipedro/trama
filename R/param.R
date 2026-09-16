@@ -8,6 +8,13 @@
 #' `default` é obrigatório: sem ele o documento teria que carregar valor de
 #' todo param de todo nó pra ser interpretável, e um nó recém-criado não teria
 #' estado válido.
+#' @examples
+#' tr_param("number", default = 1, label = "Valor")
+#'
+#' # O param que o demo/soma declara, do registro.
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' tr_get_node("demo/soma", reg)$params$k$default
 #' @export
 tr_param <- function(kind, default, label = NULL, ...) {
   if (missing(default)) {
@@ -18,22 +25,78 @@ tr_param <- function(kind, default, label = NULL, ...) {
 }
 
 #' Param numérico (ponto flutuante).
+#' @examples
+#' escala <- tr_param_num(1, min = 0, max = 10, step = 0.5, label = "Escala")
+#' no <- tr_node("exemplo/escalar", fn = function(x, escala) x * escala,
+#'               description = "Multiplica a entrada pela escala.",
+#'               inputs = list(x = "demo/num"),
+#'               outputs = list(out = "demo/num"),
+#'               params = list(escala = escala))
+#' no$fn(4, no$params$escala$default)
 #' @export
 tr_param_num  <- function(default, min = NA, max = NA, step = NULL, label = NULL, unit = NA_character_)
   tr_param("number", default, label, min = min, max = max, step = step, unit = unit)
 
 #' Param inteiro.
+#' @examples
+#' n <- tr_param_int(3, min = 1, max = 10, label = "Linhas")
+#' no <- tr_node("exemplo/primeiras",
+#'               fn = function(data, n) utils::head(data, n),
+#'               description = "Primeiras linhas da tabela.",
+#'               inputs = list(data = "demo/tabela"),
+#'               outputs = list(out = "demo/tabela"),
+#'               params = list(n = n))
+#'
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' no$fn(tr_fn("demo/tabela", reg)(), n$default)
 #' @export
 tr_param_int  <- function(default, min = NA, max = NA, label = NULL)
   tr_param("integer", as.integer(default), label, min = min, max = max)
 
 #' Param de texto livre.
+#' @examples
+#' titulo <- tr_param_text("sem titulo", label = "Titulo")
+#' no <- tr_node("exemplo/rotular",
+#'               fn = function(data, titulo) cbind(titulo = titulo, data),
+#'               description = "Acrescenta uma coluna com o titulo.",
+#'               inputs = list(data = "demo/tabela"),
+#'               outputs = list(out = "demo/tabela"),
+#'               params = list(titulo = titulo))
+#'
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' names(no$fn(tr_fn("demo/tabela", reg)(), "figuras"))
 #' @export
 tr_param_text <- function(default = "", label = NULL) tr_param("text", default, label)
 #' Param booleano.
+#' @examples
+#' decrescente <- tr_param_bool(TRUE, label = "Decrescente")
+#' no <- tr_node("exemplo/ordenar",
+#'               fn = function(data, decrescente) {
+#'                 ordem <- order(data$area, decreasing = decrescente)
+#'                 data[ordem, , drop = FALSE]
+#'               },
+#'               description = "Ordena a tabela pela area.",
+#'               inputs = list(data = "demo/tabela"),
+#'               outputs = list(out = "demo/tabela"),
+#'               params = list(decrescente = decrescente))
+#'
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' no$fn(tr_fn("demo/tabela", reg)(), TRUE)$area
 #' @export
 tr_param_bool <- function(default = FALSE, label = NULL) tr_param("boolean", isTRUE(default), label)
 #' Param de escolha única entre `choices`.
+#' @examples
+#' coluna <- tr_param_enum("area", choices = c("lados", "area"),
+#'                         label = "Coluna")
+#' coluna$choices
+#'
+#' # O enum do demo/filtrar: valor fora de `choices` e recusado na op.
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' tr_get_node("demo/filtrar", reg)$params$column$choices
 #' @export
 tr_param_enum <- function(default, choices, label = NULL) tr_param("enum", default, label, choices = choices)
 

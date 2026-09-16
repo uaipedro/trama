@@ -9,3 +9,17 @@ tr_project_save(project, doc, name = "main")
 \description{
 Grava o flow \code{name} do projeto em \verb{flows/<name>.json}.
 }
+\examples{
+pasta <- file.path(tempdir(), "projeto-flows")
+tr_project_new(pasta, collections = "trama")
+projeto <- tr_project(pasta)
+
+f <- tr_flow(projeto$registry) |>
+  tr_add("dois", "demo/const", value = 2) |>
+  tr_add("tres", "demo/const", value = 3) |>
+  tr_add("soma", "demo/soma", from = c("dois", "tres"), k = 10)
+
+tr_project_save(projeto, tr_flow_doc(f), "main")
+list.files(file.path(pasta, "flows"))
+unlink(pasta, recursive = TRUE)
+}

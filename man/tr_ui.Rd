@@ -9,3 +9,11 @@ tr_ui(project)
 \description{
 Monta a UI Shiny do editor: importmap, dependências e o \verb{<div>} onde o React monta.
 }
+\examples{
+if (interactive()) {
+  pasta <- file.path(tempdir(), "projeto-ui")
+  tr_project_new(pasta, collections = "trama")
+  projeto <- tr_project(pasta)
+  shiny::shinyApp(ui = tr_ui(projeto), server = tr_server(projeto))
+}
+}

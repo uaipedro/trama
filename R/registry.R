@@ -4,6 +4,14 @@
 #' (a) impede virar pacote e (b) faz todo teste compartilhar o mesmo estado —
 #' um registro por teste é o que permite testar coleções em isolamento.
 #' O registro default do processo existe só pra conveniência interativa.
+#' @examples
+#' # Um registro por sessao de trabalho, nunca estado global.
+#' reg <- tr_registry()
+#' length(reg$nodes)
+#'
+#' tr_use("trama", registry = reg)
+#' names(reg$nodes)
+#' names(reg$types)
 #' @export
 tr_registry <- function() {
   reg <- new.env(parent = emptyenv())
@@ -19,6 +27,18 @@ tr_registry <- function() {
 #' Aceita o objeto `tr_collection` direto, ou o nome de um pacote que exporte
 #' `trama_collection()`. Colisão de id é erro alto e cedo — mas agora é
 #' improvável por construção, já que id é qualificado por coleção.
+#' @examples
+#' reg <- tr_registry()
+#' tr_use("trama", registry = reg)
+#' names(reg$collections)
+#'
+#' # `package` e o nome pelo qual a colecao foi carregada; `id` e o
+#' # namespace dos blocos.
+#' reg$collections$demo$package
+#'
+#' # A mesma colecao duas vezes no mesmo registro e recusada.
+#' tryCatch(tr_use("trama", registry = reg),
+#'          tr_error_duplicate_collection = function(e) conditionMessage(e))
 #' @export
 tr_use <- function(collection, registry = .tr_default_registry) {
   pkg <- NULL

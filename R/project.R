@@ -9,6 +9,13 @@
 #'     trama.json        coleções, executor
 #'     flows/*.json      documentos
 #'     .trama/store/     artefatos (gitignore)
+#' @examples
+#' # Um projeto e uma pasta: o manifesto, os fluxos e o store.
+#' pasta <- file.path(tempdir(), "projeto-demo")
+#' projeto <- tr_project(pasta, collections = "trama")
+#' list.files(pasta, recursive = TRUE, include.dirs = TRUE)
+#' names(projeto$registry$nodes)
+#' unlink(pasta, recursive = TRUE)
 #' @export
 tr_project <- function(root = ".", collections = character(), create = TRUE) {
   root <- normalizePath(root, mustWork = FALSE)
@@ -186,6 +193,15 @@ tr_project_at <- function(root, registry) {
 #' `collections` são nomes de PACOTE, como no manifesto. Quem chama pela
 #' interface passa as coleções que a página tem — é a única escolha que produz
 #' projeto abrível ali mesmo, sem recarregar.
+#' @examples
+#' pasta <- file.path(tempdir(), "projeto-novo")
+#' tr_project_new(pasta, collections = "trama")
+#' cat(readLines(file.path(pasta, "trama.json")), sep = "\n")
+#'
+#' # Com o manifesto no disco, abrir dispensa repetir as colecoes.
+#' projeto <- tr_project(pasta)
+#' projeto$collections
+#' unlink(pasta, recursive = TRUE)
 #' @export
 tr_project_new <- function(root, collections = character()) {
   root <- normalizePath(root, mustWork = FALSE)
@@ -213,6 +229,20 @@ tr_project_new <- function(root, collections = character()) {
 }
 
 #' Lê o flow `name` do projeto; documento vazio se o arquivo ainda não existe.
+#' @examples
+#' pasta <- file.path(tempdir(), "projeto-leitura")
+#' tr_project_new(pasta, collections = "trama")
+#' projeto <- tr_project(pasta)
+#'
+#' # Fluxo que nunca foi gravado devolve documento vazio, sem erro.
+#' length(tr_project_flow(projeto, "main")$nodes)
+#'
+#' f <- tr_flow(projeto$registry) |>
+#'   tr_add("t", "demo/tabela") |>
+#'   tr_add("r", "demo/resumo", from = "t")
+#' tr_project_save(projeto, tr_flow_doc(f), "main")
+#' names(tr_project_flow(projeto, "main")$nodes)
+#' unlink(pasta, recursive = TRUE)
 #' @export
 tr_project_flow <- function(project, name = "main") {
   p <- file.path(project$flows_dir, paste0(name, ".json"))
@@ -220,6 +250,19 @@ tr_project_flow <- function(project, name = "main") {
 }
 
 #' Grava o flow `name` do projeto em `flows/<name>.json`.
+#' @examples
+#' pasta <- file.path(tempdir(), "projeto-flows")
+#' tr_project_new(pasta, collections = "trama")
+#' projeto <- tr_project(pasta)
+#'
+#' f <- tr_flow(projeto$registry) |>
+#'   tr_add("dois", "demo/const", value = 2) |>
+#'   tr_add("tres", "demo/const", value = 3) |>
+#'   tr_add("soma", "demo/soma", from = c("dois", "tres"), k = 10)
+#'
+#' tr_project_save(projeto, tr_flow_doc(f), "main")
+#' list.files(file.path(pasta, "flows"))
+#' unlink(pasta, recursive = TRUE)
 #' @export
 tr_project_save <- function(project, doc, name = "main") {
   dir.create(project$flows_dir, recursive = TRUE, showWarnings = FALSE)

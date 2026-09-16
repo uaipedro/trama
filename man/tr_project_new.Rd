@@ -18,3 +18,13 @@ acaso lhe passaram, em silêncio. Criar é outro verbo.
 interface passa as coleções que a página tem — é a única escolha que produz
 projeto abrível ali mesmo, sem recarregar.
 }
+\examples{
+pasta <- file.path(tempdir(), "projeto-novo")
+tr_project_new(pasta, collections = "trama")
+cat(readLines(file.path(pasta, "trama.json")), sep = "\n")
+
+# Com o manifesto no disco, abrir dispensa repetir as colecoes.
+projeto <- tr_project(pasta)
+projeto$collections
+unlink(pasta, recursive = TRUE)
+}

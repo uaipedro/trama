@@ -16,3 +16,14 @@ mostrar e a um modelo corrigir o próprio documento sem ler código. Esta
 tabela é a referência; um teste garante que toda classe usada no código
 está aqui, então ela não envelhece em silêncio.
 }
+\examples{
+erros <- tr_errors()
+nrow(erros)
+erros[erros$class == "tr_error_unknown_node", ]
+
+# A classe viaja no condition, e e por ela que se captura.
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+tryCatch(tr_get_node("demo/inexistente", reg),
+         tr_error_unknown_node = function(e) conditionMessage(e))
+}

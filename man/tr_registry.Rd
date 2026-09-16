@@ -12,3 +12,12 @@ tr_registry()
 um registro por teste é o que permite testar coleções em isolamento.
 O registro default do processo existe só pra conveniência interativa.
 }
+\examples{
+# Um registro por sessao de trabalho, nunca estado global.
+reg <- tr_registry()
+length(reg$nodes)
+
+tr_use("trama", registry = reg)
+names(reg$nodes)
+names(reg$types)
+}

@@ -18,3 +18,11 @@ trama.json        coleções, executor
 flows/*.json      documentos
 .trama/store/     artefatos (gitignore)
 }
+\examples{
+# Um projeto e uma pasta: o manifesto, os fluxos e o store.
+pasta <- file.path(tempdir(), "projeto-demo")
+projeto <- tr_project(pasta, collections = "trama")
+list.files(pasta, recursive = TRUE, include.dirs = TRUE)
+names(projeto$registry$nodes)
+unlink(pasta, recursive = TRUE)
+}

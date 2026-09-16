@@ -9,3 +9,13 @@ tr_param_enum(default, choices, label = NULL)
 \description{
 Param de escolha única entre \code{choices}.
 }
+\examples{
+coluna <- tr_param_enum("area", choices = c("lados", "area"),
+                        label = "Coluna")
+coluna$choices
+
+# O enum do demo/filtrar: valor fora de `choices` e recusado na op.
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+tr_get_node("demo/filtrar", reg)$params$column$choices
+}

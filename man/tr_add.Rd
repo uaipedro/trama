@@ -22,3 +22,16 @@ Acrescenta um nó. \code{...} são params (nomeados). \code{from} liga a saída 
 mais nós existentes às portas de entrada obrigatórias ainda livres deste,
 na ordem declarada — o caso comum de "encadeia" sem precisar nomear porta.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+
+# `from` liga a saida do no citado a primeira entrada livre compativel.
+f <- tr_flow(reg) |>
+  tr_add("t", "demo/tabela") |>
+  tr_add("f", "demo/filtrar", from = "t", column = "lados", limit = 4)
+
+s <- tr_store(file.path(tempdir(), "store-add"))
+nrow(tr_value(tr_flow_doc(f), "f", reg, s))
+unlink(file.path(tempdir(), "store-add"), recursive = TRUE)
+}

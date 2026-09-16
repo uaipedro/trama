@@ -11,3 +11,16 @@ Aceita o objeto \code{tr_collection} direto, ou o nome de um pacote que exporte
 \code{trama_collection()}. Colisão de id é erro alto e cedo — mas agora é
 improvável por construção, já que id é qualificado por coleção.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+names(reg$collections)
+
+# `package` e o nome pelo qual a colecao foi carregada; `id` e o
+# namespace dos blocos.
+reg$collections$demo$package
+
+# A mesma colecao duas vezes no mesmo registro e recusada.
+tryCatch(tr_use("trama", registry = reg),
+         tr_error_duplicate_collection = function(e) conditionMessage(e))
+}

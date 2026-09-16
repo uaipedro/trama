@@ -9,3 +9,19 @@ tr_link(flow, from, to, index = NULL)
 \description{
 Liga \code{from} a \code{to}. Porta omitida = primeira saída / primeira entrada.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+
+# Porta nomeada quando a ordem importa: `a` e `b` do demo/soma.
+f <- tr_flow(reg) |>
+  tr_add("dois", "demo/const", value = 2) |>
+  tr_add("tres", "demo/const", value = 3) |>
+  tr_add("soma", "demo/soma", k = 0) |>
+  tr_link("dois:out", "soma:a") |>
+  tr_link("tres:out", "soma:b")
+
+s <- tr_store(file.path(tempdir(), "store-link"))
+tr_value(tr_flow_doc(f), "soma", reg, s)
+unlink(file.path(tempdir(), "store-link"), recursive = TRUE)
+}

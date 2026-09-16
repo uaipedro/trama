@@ -20,3 +20,17 @@ Referência a porta: \code{"no:porta"}. Os dois pontos são proibidos em id de n
 (\code{.tr_check_node_id}), então a separação é inequívoca; \code{"."} não serviria,
 porque id pode conter ponto.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+
+f <- tr_flow(reg) |>
+  tr_add("dois", "demo/const", value = 2) |>
+  tr_add("tres", "demo/const", value = 3) |>
+  tr_add("soma", "demo/soma", from = c("dois", "tres"), k = 10)
+f
+
+s <- tr_store(file.path(tempdir(), "store-flow"))
+tr_value(tr_flow_doc(f), "soma", reg, s)
+unlink(file.path(tempdir(), "store-flow"), recursive = TRUE)
+}

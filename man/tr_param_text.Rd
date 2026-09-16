@@ -9,3 +9,16 @@ tr_param_text(default = "", label = NULL)
 \description{
 Param de texto livre.
 }
+\examples{
+titulo <- tr_param_text("sem titulo", label = "Titulo")
+no <- tr_node("exemplo/rotular",
+              fn = function(data, titulo) cbind(titulo = titulo, data),
+              description = "Acrescenta uma coluna com o titulo.",
+              inputs = list(data = "demo/tabela"),
+              outputs = list(out = "demo/tabela"),
+              params = list(titulo = titulo))
+
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+names(no$fn(tr_fn("demo/tabela", reg)(), "figuras"))
+}

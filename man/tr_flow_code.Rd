@@ -25,3 +25,14 @@ encadeado — o caminho que o próprio guard manda usar — e, quando o param
 sombreado é \code{from}, as arestas do nó saem por \code{tr_link()} explícito, porque
 o formal \code{from} continua vedado para aquele \code{tr_add()}.
 }
+\examples{
+reg <- tr_registry()
+tr_use("trama", registry = reg)
+
+f <- tr_flow(reg) |>
+  tr_add("dois", "demo/const", value = 2) |>
+  tr_add("tres", "demo/const", value = 3) |>
+  tr_add("soma", "demo/soma", from = c("dois", "tres"), k = 10)
+
+cat(tr_flow_code(tr_flow_doc(f), reg), sep = "\n")
+}
