@@ -23,7 +23,9 @@ tr_data_errors <- function() {
     tr_data_error_not_a_table =
       "o nó produziu um objeto que não é tabela, e o tipo data/table recusa guardá-lo",
     tr_data_error_missing_file =
-      "caminho de .rds aponta pra arquivo (leitura) ou pasta (gravação) que não existe"
+      "caminho de .rds aponta pra arquivo (leitura) ou pasta (gravação) que não existe",
+    tr_data_error_stream_columns =
+      "passo do fluxo com colunas diferentes do primeiro: empilhar preencheria faltante em silêncio"
   )
   data.frame(class = names(e), when = unname(e), stringsAsFactors = FALSE)
 }
@@ -191,4 +193,20 @@ tr_data_errors <- function() {
                          nodo, pkg, pkg),
                  class = "tr_data_error_missing_package")
   }
+}
+
+#' Param inteiro conferido no NÍVEL 1, onde não existe widget.
+#'
+#' O `min` do `tr_param_int` protege pelo card, mas estes `fn` são função R
+#' comum e é por elas que a coleção se testa. Sem isto, `lote = 0` chegava ao
+#' `seq.int(by = 0)` e voltava como erro cru do R — sem classe e sem dizer qual
+#' campo do card estava errado. Reaproveita `tr_data_error_bad_option` porque a
+#' pergunta é a mesma de um enum: o valor está fora do conjunto aceito.
+#' @noRd
+.tr_data_inteiro <- function(valor, param, min = 0L) {
+  v <- suppressWarnings(as.integer(valor))
+  if (length(v) != 1L || is.na(v) || v < min) {
+    .tr_data_option(param, valor, sprintf("inteiro >= %d", min))
+  }
+  v
 }

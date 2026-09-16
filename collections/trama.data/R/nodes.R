@@ -907,3 +907,152 @@ tr_replace_na <- function(data, cols, value = "0") {
   # justamente o modo de falha que ela não quer ter.
   ruim(sprintf("do tipo '%s'", class(v)[[1]]))
 }
+
+# ---- A fronteira da região de fluxo ------------------------------------
+#
+# Um par de nós, e não uma aresta especial (Decisão 5): os dois têm params, e
+# param nenhum tem onde morar numa aresta. Quem fatia é a FONTE, porque o
+# driver do núcleo não sabe o que é uma linha de uma tabela e não vai saber
+# (Decisão 4) — é aqui que `data/table` conhece a si mesmo.
+
+#' Reparte a tabela na sequência finita de pontos que a região vai percorrer.
+#'
+#' O contrato do driver em duas frases: este `fn` roda UMA vez, antes do laço,
+#' e devolve uma LISTA NUA — um elemento por passo, na ordem em que o driver
+#' vai andar. Devolver a tabela inteira é o esquecimento mais provável de quem
+#' escreve uma fonte, e ele não erra alto por conta própria: um `data.frame` É
+#' uma lista, então o laço andaria nas COLUNAS e o histórico sairia plausível e
+#' errado. O driver tem guarda contra isso (`tr_error_stream_bad_source`); aqui
+#' o que garante a forma é o `lapply`, que nunca devolve retângulo.
+#'
+#' O ponto é uma TABELA de `lote` linhas (a última, parcial), e é essa a
+#' decisão que dispensa tipo novo: o tipo do ponto é `data/table`, o mesmo de
+#' sempre, e por isso TODO nó que já aceita uma tabela funciona dentro da
+#' região sem mudar uma linha. Um ponto de uma linha continua sendo uma tabela
+#' de uma linha — não um vetor, não uma lista —, porque é `data[i, ]` com
+#' `drop = FALSE`; sem o `drop = FALSE` uma tabela de uma coluna viraria vetor
+#' e o `data/filter` elevado morreria com erro cru de dplyr no primeiro ponto.
+#'
+#' `ordenar_por` ordena ANTES de lotear, e a ordem é a única coisa que o param
+#' pode significar: ordenar depois do corte ordenaria dentro de cada lote e a
+#' sequência de PONTOS continuaria a da tabela — o param ficaria sem efeito
+#' observável, que é pior que não existir.
+#'
+#' Zero pontos NÃO é erro. É o que uma tabela vazia produz, e tabela vazia é o
+#' que um filtro sem resultado a montante produz — recusar aqui pintaria de
+#' vermelho um fluxo saudável, e a região de zero passos tem semântica
+#' definida (o colapso roda uma vez, com o histórico vazio).
+#' @export
+tr_to_stream <- function(data = NULL, lote = 1L, ordenar_por = "", max_passos = 0L) {
+  # Porta opcional solta: card recém-arrastado da paleta, ou nível 1 sem
+  # tabela. Zero pontos é a leitura honesta — a região não tem o que percorrer.
+  if (is.null(data)) return(list())
+
+  lote <- .tr_data_inteiro(lote, "lote", min = 1L)
+  max_passos <- .tr_data_inteiro(max_passos, "max_passos", min = 0L)
+
+  ordem <- .as_cols(ordenar_por)
+  if (length(ordem)) {
+    .tr_data_cols(data, ordem, "ordenar_por")
+    # `order()` e não `dplyr::arrange()` porque a ordenação aqui não é do
+    # domínio do usuário (não há expressão a avaliar): são colunas nomeadas, e
+    # `method = "radix"` é o que torna a sequência de pontos — logo o
+    # histórico — independente da locale de quem roda o fluxo.
+    data <- data[do.call(order, c(unname(as.list(data[ordem])),
+                                  list(method = "radix"))), , drop = FALSE]
+  }
+
+  n <- nrow(data)
+  if (n == 0L) return(list())
+  inicios <- seq.int(1L, n, by = lote)
+  # `0 = todos` é a forma inteira do "vazio é desligado" da coleção, e vem
+  # declarado no label do param — sem isso o número zero num campo chamado
+  # "máximo de passos" leria como "nenhum passo".
+  if (max_passos > 0L) inicios <- utils::head(inicios, max_passos)
+
+  lapply(inicios, function(i) data[seq.int(i, min(i + lote - 1L, n)), , drop = FALSE])
+}
+
+#' Empilha o histórico da região num valor comum: é aqui que a região colapsa
+#' de volta no ecossistema (Decisão 6).
+#'
+#' O contrato do colapso: este `fn` roda UMA vez, DEPOIS do laço, e `data` é a
+#' lista com o valor de todos os passos. O driver entrega a lista inteira de
+#' uma vez justamente porque juntar N pedaços num valor do tipo declarado é
+#' conhecimento de domínio — `rbind` de tabela, `c()` de vetor, mosaico de
+#' raster —, e o núcleo não o tem.
+#'
+#' Por isso também o nó tem UMA porta só. Uma segunda porta comum, ligada a um
+#' nó de dentro da região, também acumularia: um `resumo = "x"` constante
+#' chegaria como `list("x", "x", "x")`, uma cópia por passo, e quem lesse
+#' `resumo[[1]]` esconderia o mal-entendido em vez de ver o erro. Quem precisar
+#' de uma constante junto do histórico a consome DEPOIS do colapso, onde ela é
+#' uma constante de verdade.
+#'
+#' As colunas do resultado são as do PRIMEIRO ponto, e passo com conjunto
+#' diferente de colunas para ALTO nomeando o passo. `rbind`/`bind_rows` cru
+#' preencheria `NA` na coluna que falta — histórico verde, com um buraco cuja
+#' causa está em um passo que a mensagem não diria qual.
+#' @export
+tr_from_stream <- function(data = NULL, passo = TRUE) {
+  pontos <- if (is.null(data)) {
+    list()
+  } else if (!is.null(dim(data))) {
+    # Retângulo, não lista de pontos: `data/from_stream` ligado direto numa
+    # tabela é grafo aceito (sem fonte não há região), e aí o `fn` recebe a
+    # tabela inteira. Percorrê-la como lista andaria nas COLUNAS — o mesmo erro
+    # calado que a guarda do driver evita do outro lado da fronteira. Uma
+    # tabela é o histórico de UM ponto, que é a única leitura sensata.
+    list(data)
+  } else {
+    as.list(data)
+  }
+
+  # Zero pontos: não há ponto de onde aprender as colunas da tabela, e este nó
+  # não vê a entrada da fonte — dentro da região só o que passa pelas arestas
+  # chega aqui. O que ele sabe declarar é a coluna que é DELE, o índice do
+  # passo. Devolver `NULL` seria pior: o tipo `data/table` recusaria guardar, e
+  # um fluxo que só ficou sem resultado apareceria como fluxo quebrado.
+  if (!length(pontos)) {
+    return(if (isTRUE(passo)) tibble::tibble(passo = integer()) else tibble::tibble())
+  }
+
+  cols <- names(pontos[[1]])
+  for (i in seq_along(pontos)) {
+    p <- pontos[[i]]
+    if (!is.data.frame(p)) {
+      rlang::abort(sprintf(
+        "Passo %d do fluxo não é uma tabela, e sim '%s'. Só tabela empilha aqui.",
+        i, class(p)[[1]]), class = "tr_data_error_stream_columns")
+    }
+    if (!setequal(names(p), cols)) {
+      faltando <- setdiff(cols, names(p)); sobrando <- setdiff(names(p), cols)
+      rlang::abort(sprintf(
+        paste0("Passo %d do fluxo tem colunas diferentes do passo 1.%s%s ",
+               "Empilhar assim preencheria faltante em silêncio."),
+        i,
+        if (length(faltando)) sprintf(" Falta(m): %s.", paste(faltando, collapse = ", ")) else "",
+        if (length(sobrando)) sprintf(" Sobra(m): %s.", paste(sobrando, collapse = ", ")) else ""),
+        class = "tr_data_error_stream_columns")
+    }
+    # Na ordem do primeiro ponto: com as mesmas colunas em outra ordem,
+    # `bind_rows` casa por nome e o resultado sai certo, mas a ordem das
+    # colunas passaria a depender de qual ponto veio primeiro.
+    pontos[[i]] <- p[cols]
+  }
+
+  if (isTRUE(passo)) {
+    # `passo` PRIMEIRO, e é ele que vence uma coluna de mesmo nome vinda do
+    # ponto: um nó de dentro da região que já emite o próprio `passo` (o
+    # caso previsto) daria duas colunas de mesmo nome, que quebra todo verbo de
+    # dplyr a jusante. O índice vem de `seq_along`, nunca de contar linhas —
+    # um ponto VAZIO (o `data/filter` elevado que não achou nada) é um passo
+    # que contribui zero linhas, e contar linhas deslocaria o índice de todos
+    # os pontos seguintes.
+    pontos <- lapply(seq_along(pontos), function(i) {
+      p <- pontos[[i]][setdiff(cols, "passo")]
+      dplyr::bind_cols(tibble::tibble(passo = rep(i, nrow(p))), p)
+    })
+  }
+  dplyr::bind_rows(pontos)
+}
