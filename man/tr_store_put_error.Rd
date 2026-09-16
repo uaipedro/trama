@@ -10,7 +10,8 @@ tr_store_put_error(
   message,
   class = NULL,
   traceback = NULL,
-  node_type = NULL
+  node_type = NULL,
+  collections = NULL
 )
 }
 \description{

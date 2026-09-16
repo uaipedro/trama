@@ -111,8 +111,16 @@ tr_store_handle <- function(store, key) {
 #' Grava valor + handle (+ preview). O handle é escrito POR ÚLTIMO: é ele que
 #' marca a chave como presente (`tr_store_has`), então um worker morto no meio
 #' deixa no máximo um objeto órfão — nunca um handle apontando pra nada.
+#'
+#' `collections` é o conjunto de coleções que produziram o artefato. Existe
+#' porque `tr_bust(store, coleção)` deriva a coleção de `node_type`, e isso não
+#' funciona quando a unidade não é um nó: a região de fluxo grava sob
+#' `node_type = "trama/stream_region"` — que lê como coleção "trama" — e mistura
+#' coleções de verdade. Ausente (todo nó comum), `tr_bust()` cai no `node_type`,
+#' que é onde a informação sempre esteve.
 #' @export
-tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duration = NA_real_) {
+tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duration = NA_real_,
+                         collections = NULL) {
   ext <- type_spec$ext %||% "rds"
   obj <- .tr_obj_path(store, key, ext)
   .tr_atomic(store, obj, function(tmp) {
@@ -146,7 +154,11 @@ tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duratio
 
   handle <- list(
     key = key, type = type_spec$id, type_version = type_spec$version,
-    node_type = node_type, ext = ext,
+    # `as.list()` pela mesma razão de `art$files` abaixo: `auto_unbox = TRUE`
+    # desembrulharia um vetor de UMA coleção em escalar, e o campo mudaria de
+    # forma conforme o número de coleções.
+    node_type = node_type,
+    collections = if (length(collections)) as.list(collections) else NULL, ext = ext,
     bytes = as.numeric(file.info(obj)$size),
     summary = if (is.null(type_spec$summary)) NULL else
       tryCatch(type_spec$summary(value), error = function(e) NULL),
@@ -164,8 +176,11 @@ tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duratio
 #' cada edição — reexecutando o mundo por causa de uma ponta quebrada. Com o
 #' handle de erro, o plano marca o jusante como bloqueado e não roda nada.
 #' @export
-tr_store_put_error <- function(store, key, message, class = NULL, traceback = NULL, node_type = NULL) {
-  handle <- list(key = key, node_type = node_type, error = list(
+tr_store_put_error <- function(store, key, message, class = NULL, traceback = NULL,
+                               node_type = NULL, collections = NULL) {
+  handle <- list(key = key, node_type = node_type,
+                 collections = if (length(collections)) as.list(collections) else NULL,
+                 error = list(
     message = message, class = class, traceback = traceback
   ), created = as.numeric(Sys.time()))
   .tr_write_handle(store, key, handle)

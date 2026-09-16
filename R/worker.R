@@ -68,13 +68,15 @@
     # presença no store e o plano possa dizer "já rodou".
     ty <- tr_type("trama/marker")
     return(list(tr_store_put(store, unit$outputs[[1]], TRUE, ty,
-                             node_type = unit$node_type, duration = duration)))
+                             node_type = unit$node_type, collections = unit$collections,
+                             duration = duration)))
   }
   if (length(ports) == 1L) {
     ty <- tr_get_type(unit$output_types[[ports]], registry)
     return(stats::setNames(list(
       tr_store_put(store, unit$outputs[[ports]], value, ty,
-                   node_type = unit$node_type, duration = duration)), ports))
+                   node_type = unit$node_type, collections = unit$collections,
+                   duration = duration)), ports))
   }
   # Múltiplas saídas: o `fn` devolve uma lista nomeada pelas portas. Erro alto
   # e cedo se faltar alguma — senão a porta ficaria sem artefato e o consumidor
@@ -90,7 +92,8 @@
   stats::setNames(lapply(ports, function(pn) {
     ty <- tr_get_type(unit$output_types[[pn]], registry)
     tr_store_put(store, unit$outputs[[pn]], value[[pn]], ty,
-                 node_type = unit$node_type, duration = duration)
+                 node_type = unit$node_type, collections = unit$collections,
+                 duration = duration)
   }), ports)
 }
 

@@ -7,5 +7,10 @@
 tr_bust(store, collection = NULL)
 }
 \description{
-Invalida por prefixo de coleção — válvula para o gap de dependência externa.
+Casa se QUALQUER coleção que produziu o artefato for a pedida. Nó comum tem
+uma só, derivada do \code{node_type}. A região de fluxo tem o conjunto dos membros,
+gravado no handle, porque o \code{node_type} dela é \code{trama/stream_region} e lia
+como coleção "trama": \code{tr_bust(store, "minha_colecao")} não a alcançava, todo
+nó comum recomputava, e o histórico de dez mil pontos continuava vindo do
+código de antes do upgrade — calado, pra sempre.
 }

@@ -12,11 +12,15 @@ tr_store_put(
   value,
   type_spec,
   node_type = NULL,
-  duration = NA_real_
+  duration = NA_real_,
+  collections = NULL
 )
 }
 \description{
-Grava valor + handle (+ preview). O handle é escrito POR ÚLTIMO: é ele que
-marca a chave como presente (\code{tr_store_has}), então um worker morto no meio
-deixa no máximo um objeto órfão — nunca um handle apontando pra nada.
+\code{collections} é o conjunto de coleções que produziram o artefato. Existe
+porque \code{tr_bust(store, coleção)} deriva a coleção de \code{node_type}, e isso não
+funciona quando a unidade não é um nó: a região de fluxo grava sob
+\code{node_type = "trama/stream_region"} — que lê como coleção "trama" — e mistura
+coleções de verdade. Ausente (todo nó comum), \code{tr_bust()} cai no \code{node_type},
+que é onde a informação sempre esteve.
 }

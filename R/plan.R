@@ -206,6 +206,17 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     units[[region$collapse[[1]]]] <<- list(
       kind = "stream_region", node = region$collapse[[1]],
       node_type = "trama/stream_region",
+      # As coleções de TODOS os membros, e não só a do colapso. `tr_bust()` é a
+      # válvula documentada do gap "atualizar dependência externa não muda a
+      # chave", e ela filtra por coleção lendo `node_type` do handle: com
+      # "trama/stream_region" a região lia como coleção "trama", e
+      # `tr_bust(store, "minha_colecao")` não a alcançava — recomputava todo nó
+      # comum e servia o histórico de dez mil pontos do código de antes do
+      # upgrade, calado, pra sempre. É um CONJUNTO porque uma região mistura
+      # coleções de verdade (colapso `data/*` com membro `models/*`), e bustar
+      # `models` tem que alcançá-la.
+      collections = sort(unique(vapply(region$nodes,
+                                       function(id) .tr_collection_of(doc$nodes[[id]]$type), ""))),
       key = unit_key, outputs = outs, output_types = out_types,
       inputs = inputs, params = list(), seed = NULL,
       # `.ctx` é contrato da UNIDADE, não de `fn` membro nenhum: nó elevado tem

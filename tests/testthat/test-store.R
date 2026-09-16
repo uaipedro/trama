@@ -119,6 +119,28 @@ test_that("tr_bust invalida por coleção e remove handle ilegível", {
   expect_true(tr_store_has(s, "b"))
 })
 
+test_that("tr_bust casa por QUALQUER coleção do handle", {
+  # A unidade que não é um nó — a região de fluxo — não tem uma coleção só, e o
+  # `node_type` dela ("trama/stream_region") lê como coleção "trama". Sem o
+  # conjunto no handle, `tr_bust()` pela coleção que de fato produziu o artefato
+  # não o alcança, e o cache sobrevive ao upgrade que a válvula existe pra
+  # invalidar.
+  s <- tmp_store(); reg <- store_registry(); ty <- tr_get_type("t/box", reg)
+  tr_store_put(s, "regiao", list(v = 1), ty, node_type = "trama/stream_region",
+               collections = c("dados", "modelos"))
+  expect_equal(tr_bust(s, collection = "trama"), 0L)
+  expect_true(tr_store_has(s, "regiao"))
+  # Qualquer uma das duas alcança: uma região mistura coleções, e bustar a do
+  # membro tem que valer tanto quanto bustar a do colapso.
+  expect_equal(tr_bust(s, collection = "modelos"), 1L)
+  expect_false(tr_store_has(s, "regiao"))
+
+  # E o handle de ERRO leva o conjunto pelo mesmo caminho.
+  tr_store_put_error(s, "ruim", "explodiu", node_type = "trama/stream_region",
+                     collections = c("dados", "modelos"))
+  expect_equal(tr_bust(s, collection = "dados"), 1L)
+})
+
 test_that("regravar a mesma chave é idempotente", {
   s <- tmp_store(); reg <- store_registry(); ty <- tr_get_type("t/box", reg)
   tr_store_put(s, "k", list(v = 1), ty)

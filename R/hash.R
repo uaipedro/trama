@@ -270,6 +270,13 @@
 .tr_out_key <- function(unit_key, port) rlang::hash(list(unit_key, port))
 
 #' Invalida por prefixo de coleção — válvula para o gap de dependência externa.
+#'
+#' Casa se QUALQUER coleção que produziu o artefato for a pedida. Nó comum tem
+#' uma só, derivada do `node_type`. A região de fluxo tem o conjunto dos membros,
+#' gravado no handle, porque o `node_type` dela é `trama/stream_region` e lia
+#' como coleção "trama": `tr_bust(store, "minha_colecao")` não a alcançava, todo
+#' nó comum recomputava, e o histórico de dez mil pontos continuava vindo do
+#' código de antes do upgrade — calado, pra sempre.
 #' @export
 tr_bust <- function(store, collection = NULL) {
   n <- 0L
@@ -278,8 +285,12 @@ tr_bust <- function(store, collection = NULL) {
     meta <- tryCatch(jsonlite::fromJSON(h, simplifyVector = FALSE), error = function(e) NULL)
     if (is.null(meta)) { .tr_drop_key(store, key); n <- n + 1L; next }
     if (!is.null(collection)) {
-      nt <- meta$node_type
-      if (is.null(nt) || .tr_collection_of(nt) != collection) next
+      cols <- unlist(meta$collections)
+      if (is.null(cols)) {
+        nt <- meta$node_type
+        cols <- if (is.null(nt)) NULL else .tr_collection_of(nt)
+      }
+      if (!(collection %in% cols)) next
     }
     .tr_drop_key(store, key); n <- n + 1L
   }

@@ -642,6 +642,53 @@ test_that("a região bloqueia por montante externo quebrado", {
                   c("tab", "c1", "d1", "d2"))
 })
 
+# Segunda coleção no MESMO registro: uma região mistura coleções de verdade (um
+# colapso `data/*` com um membro `models/*`), e é isso que `tr_bust()` precisa
+# alcançar por QUALQUER uma delas.
+outra_collection <- function() {
+  tr_collection(
+    id = "n", version = "1.0.0", label = "Outra coleção",
+    nodes = list(
+      tr_node("n/colapsa", fn = function(x) x,
+              inputs = list(x = tr_port("m/tab", stream = TRUE)),
+              outputs = list(out = "m/tab"),
+              description = "Colapsa o fluxo, mas mora em outra coleção.")))
+}
+
+test_that("a unidade-região carrega o conjunto de coleções dos membros", {
+  # `tr_bust(store, coleção)` é a válvula documentada do gap "atualizar
+  # dependência externa não muda a chave", e ela filtra por coleção. A região
+  # grava sob `node_type = "trama/stream_region"`, que lê como coleção "trama":
+  # sem este conjunto no handle, `tr_bust(store, "m")` não a alcança, todo nó
+  # comum recomputa, e o histórico continua vindo do código de antes do upgrade.
+  reg <- mem_registry(); tr_use(outra_collection(), registry = reg)
+  f <- tr_flow(reg) |>
+    tr_add("fonte", "m/fonte") |>
+    tr_add("colapsa", "n/colapsa", from = "fonte")
+  u <- mem_plan(reg, f)$units[["colapsa"]]
+  # As DUAS, e não só a do colapso: bustar `m` (dono da fonte) tem que alcançar
+  # a região tanto quanto bustar `n` (dono do colapso).
+  expect_equal(u$collections, c("m", "n"))
+  expect_equal(u$node_type, "trama/stream_region")
+
+  for (col in c("m", "n")) {
+    s <- tmp_store()
+    for (k in unlist(u$outputs)) {
+      tr_store_put(s, k, 1, tr_get_type("m/tab", reg),
+                   node_type = u$node_type, collections = u$collections)
+    }
+    expect_equal(tr_bust(s, col), 1L)
+    expect_false(tr_store_has(s, u$outputs$out))
+  }
+  # E "trama" não é coleção de ninguém: o `node_type` da unidade deixou de ser
+  # o que decide.
+  s <- tmp_store()
+  tr_store_put(s, u$outputs$out, 1, tr_get_type("m/tab", reg),
+               node_type = u$node_type, collections = u$collections)
+  expect_equal(tr_bust(s, "trama"), 0L)
+  expect_true(tr_store_has(s, u$outputs$out))
+})
+
 test_that("print.tr_plan mostra a unidade-região sem quebrar o alinhamento", {
   reg <- mem_registry()
   out <- capture.output(print(mem_plan(reg)))
