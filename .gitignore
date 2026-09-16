@@ -14,3 +14,6 @@ trama_*.tar.gz
 
 # Planos e desenhos de trabalho: locais, nunca publicados.
 docs/plans/
+
+# Artefato do reporter de testes (testthat), nunca versionado.
+tests/testthat/_problems/

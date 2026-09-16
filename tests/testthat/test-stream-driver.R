@@ -575,3 +575,49 @@ test_that("erro no colapso nomeia o COLAPSO, não a região inteira", {
   expect_match(conditionMessage(err), "'c2'")
   expect_match(conditionMessage(err), "não juntou")
 })
+
+# --- Ponta a ponta: a região pelo scheduler, não pelo worker ----------------
+
+test_that("tr_run grava o histórico da região, e a segunda vez vem do cache", {
+  # Os testes acima chamam `.tr_run_unit()` direto, porque o que estava sob
+  # teste era o driver. Este é o único que passa pelo caminho de verdade —
+  # plano, scheduler, executor, store — e é ele que prova a fase.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 6L) |>
+    tr_add("ac", "d/media", from = "fo") |>
+    tr_add("co", "d/colapsa", from = "ac") |>
+    tr_add("ver", "d/mostra", from = "co"))
+
+  ev1 <- list()
+  tr_run(doc, registry = reg, store = s,
+         on_event = function(x) ev1[[length(ev1) + 1]] <<- x)
+
+  # 1. O artefato existe, é o histórico, e tem uma linha por ponto.
+  u <- tr_plan(doc, registry = reg, store = s)$units[["co"]]
+  hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(nrow(hist), 6L)
+  expect_equal(hist$v, cumsum(1:6) / seq_len(6))
+
+  # 2. A região rodou uma vez, com um `step` por ponto, e o consumidor a
+  #    jusante do colapso rodou depois dela — grafo comum, como sempre.
+  tipos <- function(ev, no) vapply(Filter(function(x) identical(x$node, no), ev),
+                                   function(x) x$type, "")
+  expect_equal(tipos(ev1, "co"), c("running", "done"))
+  expect_true("done" %in% tipos(ev1, "ver"))
+  expect_equal(length(e$steps), 6L)
+
+  # 3. Rodar de novo NÃO roda o driver: a chave é a mesma, o artefato está lá,
+  #    e o plano decide o cache hit sem acordar worker nenhum. O contador de
+  #    `step` é a prova que um `expect_equal` de handle não daria — handle
+  #    igual seria igual mesmo se tudo tivesse recomputado.
+  p2 <- tr_plan(doc, registry = reg, store = s)
+  expect_true(isTRUE(p2$units[["co"]]$cached))
+  expect_length(tr_plan_pending(p2), 0L)
+
+  ev2 <- list()
+  tr_run(doc, registry = reg, store = s,
+         on_event = function(x) ev2[[length(ev2) + 1]] <<- x)
+  expect_equal(tipos(ev2, "co"), "cached")
+  expect_equal(length(e$steps), 6L)   # continua 6: nenhum passo novo
+})
