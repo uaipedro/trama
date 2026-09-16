@@ -360,7 +360,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       output_types = vapply(spec$outputs, function(p) p$type, ""),
       inputs = inputs, params = .tr_effective_params(spec, node, settings), seed = node$seed,
       wants_ctx = ".ctx" %in% names(formals(spec$fn)),
-      wants_seed = ".seed" %in% names(formals(spec$fn)),
+      wants_seed = .tr_wants_seed(spec$fn),
       cached = cached, failed = failed,
       # Handles ficam na unidade: ao reabrir um documento TUDO é cache, e sem
       # isso o front receberia zero preview e zero summary. Já foram lidos

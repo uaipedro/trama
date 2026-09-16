@@ -153,6 +153,14 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
                    class = "tr_error_bad_step")
     }
     # `init` recebe params, e só params: ele roda ANTES do primeiro ponto.
+    #
+    # `.seed` fica de fora desta lista de propósito, e não por esquecimento: o
+    # driver da região NÃO chama `init` num run retomado de checkpoint — o
+    # estado volta do disco (`stream-driver.R`). Um `init` que sorteasse
+    # produziria estado inicial diferente do original a cada retomada, e o
+    # histórico retomado divergiria do ininterrupto sob a MESMA chave. Quem
+    # precisa de aleatoriedade com memória põe o sorteio no `step`, que recebe a
+    # seed do passo e é refeito ponto a ponto.
     di <- setdiff(names(formals(init)), names(params))
     if (length(di) > 0) {
       rlang::abort(sprintf("Nó '%s': formais de 'init' que não são params: %s.", id,
@@ -170,3 +178,14 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     init = init, step = step, online = online
   ), class = "tr_node")
 }
+
+#' Esta função quer a seed desta invocação?
+#'
+#' A regra é uma só, e mora aqui porque é `tr_node()` que define `.seed` como
+#' formal reservado: quem DECLARA `.seed` recebe, quem não declara não. Vale
+#' para o `fn` de um nó solto (`plan.R` decide no plano), e para o `fn`/`step`
+#' de um membro de região (`stream-driver.R` decide no worker). Duas cópias da
+#' regra divergiriam, e a que ficasse atrás daria um nó que recebe a seed fora
+#' da região e não dentro.
+#' @noRd
+.tr_wants_seed <- function(f) is.function(f) && ".seed" %in% names(formals(f))

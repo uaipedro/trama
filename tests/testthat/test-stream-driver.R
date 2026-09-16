@@ -21,6 +21,10 @@ diario <- function() {
   e$restores <- 0L       # leituras de artefato do store, do tipo inteiro
   e$sono <- 0            # segundos que cada leitura de artefato demora
   e$morre_em <- NULL     # ponto em que `d/puro_morre` explode (NULL = nunca)
+  e$seeds <- list()      # o `.seed` de cada chamada de `fn` elevado
+  e$seeds_step <- list() # o `.seed` de cada chamada de `step`
+  e$seed_fonte <- NULL   # o `.seed` da fonte, que roda uma vez
+  e$faltou <- logical()  # `.seed` chegou AUSENTE nesta chamada?
   e
 }
 
@@ -203,6 +207,59 @@ driver_collection <- function(e = diario()) {
               inputs = list(xs = tr_port("d/v", multiple = TRUE)),
               outputs = list(out = "d/v"),
               description = "Três fontes variádicas, na ordem do índice."),
+      # --- Os nós de `.seed` ------------------------------------------------
+      #
+      # O sorteio é a SAÍDA do nó, e não `x + runif(1)`: com o ponto somado, um
+      # histórico de valores diferentes sairia igual mesmo se o sorteio fosse o
+      # mesmo nos n passos (1+u, 2+u, 3+u), e o teste de "sorteia diferente em
+      # cada passo" passaria sem medir nada.
+      tr_node("d/sorteia", fn = function(x, .seed) {
+                set.seed(.seed)
+                v <- stats::runif(1)
+                e$seeds <- c(e$seeds, list(.seed))
+                v
+              },
+              inputs = list(x = "d/v"), outputs = list(out = "d/v"),
+              stochastic = TRUE,
+              description = "Sorteia um número a partir do .seed do passo."),
+      # Declara `.seed` e NUNCA o força — o corpo só sorteia. Era o caso CALADO:
+      # a avaliação preguiçosa do R esconde o argumento ausente, o nó roda com o
+      # RNG global do daemon e o histórico sai plausível sob uma chave que
+      # promete depender da seed. `missing()` é o que distingue os dois mundos
+      # sem forçar: ele responde "o chamador passou?", que é exatamente a
+      # pergunta que ninguém estava fazendo.
+      tr_node("d/sorteia_frouxo", fn = function(x, .seed) {
+                e$faltou <- c(e$faltou, missing(.seed))
+                stats::runif(1)
+              },
+              inputs = list(x = "d/v"), outputs = list(out = "d/v"),
+              stochastic = TRUE,
+              description = "Declara .seed e nunca o força."),
+      # Nó COM MEMÓRIA cujo `step` declara `.seed` (`node.R` já permitia). A
+      # soma corrente dos sorteios é o que faz a retomada morder: se a seed do
+      # passo não fosse pura, o histórico retomado divergiria do inteiro.
+      tr_node("d/soma_sorteios", fn = function(x) x,
+              inputs = list(x = ponto()), outputs = list(out = ponto()),
+              init = function() list(soma = 0),
+              step = function(state, x, .seed) {
+                set.seed(.seed)
+                e$seeds_step <- c(e$seeds_step, list(.seed))
+                state$soma <- state$soma + stats::runif(1)
+                list(state = state, out = state$soma)
+              },
+              stochastic = TRUE,
+              description = "Soma corrente de sorteios, um por passo."),
+      # A FONTE que declara `.seed`: roda UMA vez, antes do laço, e por isso
+      # recebe a própria seed do documento — não uma derivada. Nó nenhum pode se
+      # comportar diferente dentro e fora de uma região.
+      tr_node("d/fonte_seed", fn = function(n, .seed) {
+                e$seed_fonte <- .seed
+                as.list(seq_len(n))
+              },
+              outputs = list(out = ponto()),
+              params = list(n = tr_param_int(3L)),
+              stochastic = TRUE,
+              description = "Emite n pontos e registra o .seed que recebeu."),
       tr_node("d/mostra", fn = function(x) invisible(x), inputs = list(x = "d/v"),
               description = "Consome o histórico, fora da região.")
     )
@@ -1056,4 +1113,184 @@ test_that("`checkpoint_every` torto desliga o checkpoint, e não derruba a regi�
     expect_equal(hist$v, cumsum(1:10) / seq_len(10))
     expect_false(dir.exists(dirname(ckpt_path(s, u$key))))
   }
+})
+
+# --- `.seed` dentro da região ------------------------------------------------
+#
+# O furo que esta seção fecha: `.tr_region_args()` montava só entradas e params,
+# e `.seed` NUNCA chegava a membro nenhum. Um membro que não forçava o argumento
+# rodava calado, com o RNG global do daemon; um que o forçava morria com
+# "argumento '.seed' ausente, sem padrão".
+#
+# Calado é o pior dos dois, e é por isso que isto é furo de CORREÇÃO e não
+# funcionalidade que falta: `.tr_region_key()` JÁ inclui a seed de um membro
+# estocástico (`hash.R`), então a chave promete que o histórico depende dela
+# enquanto o histórico dependia, de fato, do RNG do processo que pegou a
+# unidade. A mesma chave podia servir dois históricos diferentes — e uma região
+# do cache discordar de uma recomputada.
+#
+# A regra implementada: o membro elevado (e o `step` do membro com memória)
+# recebe uma seed DERIVADA de (id do membro, seed dele, índice do passo); a
+# FONTE e o COLAPSO, que rodam uma vez, recebem a própria seed do documento.
+#
+# `seed = ` explícito em todo `tr_add()` daqui pra baixo: `.tr_new_seed()` é
+# baseado em entropia, então sem isso dois documentos "iguais" teriam seeds
+# diferentes e nenhum teste de reprodutibilidade mediria o que promete.
+
+test_that("membro elevado estocástico sorteia DIFERENTE em cada passo", {
+  # A falha plausível que o desenho da seed derivada existe pra evitar: com a
+  # seed CRUA do membro em todos os passos, `set.seed()` reiniciaria o RNG a
+  # cada ponto e os n sorteios sairiam idênticos — um "ruído" que é uma
+  # constante, e um histórico que nada denuncia.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 5L) |>
+    tr_add("so", "d/sorteia", from = "fo", seed = 11L) |>
+    tr_add("co", "d/colapsa", from = "so"))
+
+  r <- roda_regiao(doc, reg, s)
+  hist <- tr_store_get(s, r$unit$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(nrow(hist), 5L)
+  expect_equal(length(unique(hist$v)), 5L)
+  # E as cinco seeds são cinco, não a mesma cinco vezes — nem a seed do nó.
+  seeds <- unlist(e$seeds)
+  expect_equal(length(unique(seeds)), 5L)
+  expect_false(any(seeds == 11L))
+})
+
+test_that("o MESMO documento produz o MESMO histórico, duas vezes", {
+  # A propriedade inteira. Dois stores, dois runs, nenhum `set.seed()` externo:
+  # se a seed do passo viesse do RNG do processo, os dois históricos divergiriam
+  # sob a MESMA chave de região.
+  reg1 <- driver_registry(diario()); reg2 <- driver_registry(diario())
+  doc <- tr_flow_doc(tr_flow(reg1) |>
+    tr_add("fo", "d/fonte", n = 20L) |>
+    tr_add("so", "d/sorteia", from = "fo", seed = 4242L) |>
+    tr_add("co", "d/colapsa", from = "so"))
+
+  s1 <- tmp_store(); u1 <- tr_plan(doc, registry = reg1, store = s1)$units$co
+  set.seed(1); .tr_run_unit(u1, reg1, s1)
+  h1 <- tr_store_get(s1, u1$outputs$out, tr_get_type("d/v", reg1))
+
+  s2 <- tmp_store(); u2 <- tr_plan(doc, registry = reg2, store = s2)$units$co
+  # RNG global em OUTRO estado de propósito: é ele que não pode aparecer no
+  # histórico.
+  set.seed(999); .tr_run_unit(u2, reg2, s2)
+  h2 <- tr_store_get(s2, u2$outputs$out, tr_get_type("d/v", reg2))
+
+  expect_identical(u1$key, u2$key)
+  expect_identical(h1, h2)
+})
+
+test_that("dois membros no mesmo passo sorteiam diferente, e o mesmo membro em dois passos também", {
+  # A propriedade de NÃO-COLISÃO, e é por ela que `seed + i` não serve: o membro
+  # A com seed 1 no passo 2 colidiria com o membro B com seed 2 no passo 1, e os
+  # dois sorteariam igual — dois detectores "independentes" vendo o mesmo ruído.
+  # Aqui os dois membros levam a MESMA seed de documento, então o que os separa
+  # só pode ser a identidade deles.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 4L) |>
+    tr_add("s1", "d/sorteia", from = "fo", seed = 7L) |>
+    tr_add("s2", "d/sorteia", from = "s1", seed = 7L) |>
+    tr_add("co", "d/colapsa", from = "s2"))
+
+  roda_regiao(doc, reg, s)
+  seeds <- unlist(e$seeds)
+  # Oito chamadas: dois membros por passo, quatro passos, na ordem do laço.
+  expect_equal(length(seeds), 8L)
+  # Mesmo passo, membros diferentes.
+  expect_false(seeds[[1]] == seeds[[2]])
+  # Mesmo membro, passos diferentes.
+  expect_false(seeds[[1]] == seeds[[3]])
+  # E nenhum par dos oito coincide.
+  expect_equal(length(unique(seeds)), 8L)
+})
+
+test_that("o `step` de um membro COM MEMÓRIA recebe `.seed`, um por passo", {
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 6L) |>
+    tr_add("ac", "d/soma_sorteios", from = "fo", seed = 5L) |>
+    tr_add("co", "d/colapsa", from = "ac"))
+
+  r <- roda_regiao(doc, reg, s)
+  seeds <- unlist(e$seeds_step)
+  expect_equal(length(seeds), 6L)
+  expect_true(is.integer(seeds))
+  expect_false(anyNA(seeds))
+  expect_equal(length(unique(seeds)), 6L)
+  # A soma corrente cresce: seis sorteios distintos, não seis vezes o mesmo.
+  hist <- tr_store_get(s, r$unit$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(length(unique(diff(hist$v))), 5L)
+})
+
+test_that("a FONTE recebe a PRÓPRIA seed do documento, não uma derivada", {
+  # O `fn` da fonte roda UMA vez, antes do laço — dentro da região ou solto no
+  # nível 1 da API. Passar outra coisa que não `node$seed` faria o MESMO nó se
+  # comportar diferente nos dois lugares, e "a seed desta invocação" não tem o
+  # que variar quando há uma invocação só.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte_seed", n = 3L, seed = 31337L) |>
+    tr_add("pu", "d/puro", from = "fo") |>
+    tr_add("co", "d/colapsa", from = "pu"))
+
+  roda_regiao(doc, reg, s)
+  expect_identical(e$seed_fonte, 31337L)
+})
+
+test_that("retomada com membro estocástico sai IDÊNTICA ao run sem interrupção", {
+  # O teste importante. O checkpoint da Tarefa 5.2 NÃO guarda o estado do RNG,
+  # de propósito: restaurar `.Random.seed` num daemon vazaria para a próxima
+  # unidade que rodasse ali. Com a seed derivada por passo isso não custa nada —
+  # a seed de cada passo é função pura de (membro, passo), e não do histórico do
+  # RNG —, e é essa pureza que este `expect_identical` mede. Se ele falhar, a
+  # derivação não é pura e o desenho tem que voltar à mesa.
+  e <- diario(); reg <- driver_registry(e)
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 250L) |>
+    tr_add("mo", "d/puro_morre", from = "fo") |>
+    tr_add("so", "d/sorteia", from = "mo", seed = 2024L) |>
+    tr_add("ac", "d/soma_sorteios", from = "so", seed = 808L) |>
+    tr_add("co", "d/colapsa", from = "ac"))
+
+  s0 <- tmp_store()
+  u0 <- tr_plan(doc, registry = reg, store = s0)$units$co
+  .tr_run_unit(u0, reg, s0, ctx_extra = list(checkpoint_every = 100))
+  ref <- tr_store_get(s0, u0$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(nrow(ref), 250L)
+
+  s <- tmp_store()
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  expect_identical(u$key, u0$key)
+  e$morre_em <- 180
+  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100)),
+               class = "tr_error_stream_step")
+  expect_equal(readRDS(ckpt_path(s, u$key))$i, 100L)
+
+  e$morre_em <- NULL
+  antes <- length(e$seeds)
+  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100))
+  hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_identical(hist, ref)
+  # E retomou de verdade: 150 sorteios no segundo run, não 250.
+  expect_equal(length(e$seeds) - antes, 150L)
+})
+
+test_that("membro que declara `.seed` e não o força não roda mais com o RNG global", {
+  # O sintoma medido era o SILÊNCIO: a avaliação preguiçosa do R nunca reclama
+  # de um argumento que o corpo não toca, então um teste que só "roda" não
+  # distingue nada aqui. `missing()` pergunta se o CHAMADOR passou, sem forçar —
+  # antes desta tarefa era TRUE em todos os passos, e o nó sorteava do RNG do
+  # daemon sob uma chave que promete depender da seed.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 4L) |>
+    tr_add("so", "d/sorteia_frouxo", from = "fo", seed = 3L) |>
+    tr_add("co", "d/colapsa", from = "so"))
+
+  roda_regiao(doc, reg, s)
+  expect_equal(length(e$faltou), 4L)
+  expect_false(any(e$faltou))
 })

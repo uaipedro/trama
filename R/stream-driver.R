@@ -86,6 +86,49 @@
 #'
 #' No colapso a mesma distinção decide o que é acumulado: porta alimentada de
 #' dentro acumula (é fluxo), porta alimentada de fora é constante.
+#'
+#' ## O que `.seed` significa dentro da região
+#'
+#' A regra de QUEM recebe é a mesma de um nó solto: recebe quem DECLARA `.seed`
+#' entre os formais (`.tr_wants_seed()`, em `node.R`) — e a função relevante é o
+#' `fn` do membro elevado, da fonte e do colapso, e o `step` do membro com
+#' memória. O que MUDA é o valor:
+#'
+#'   - FONTE e COLAPSO recebem a própria seed do documento
+#'     (`region$nodes[[id]]$seed`), sem derivação. O `fn` dos dois roda UMA vez,
+#'     antes e depois do laço, e é o mesmo `fn` que roda solto no nível 1 da API:
+#'     passar outra coisa faria o MESMO nó se comportar diferente dentro e fora
+#'     de uma região. "A seed desta invocação" não tem o que variar quando existe
+#'     uma invocação só.
+#'   - MEMBRO ELEVADO e `step` de membro COM MEMÓRIA recebem uma seed DERIVADA de
+#'     (id do membro, seed do membro, índice do passo) — `.tr_region_step_seed()`.
+#'     Aí sim há uma invocação por ponto, e é a elevação que cria a pergunta "a
+#'     seed de qual invocação?". Com a seed crua repetida em todos os passos, um
+#'     nó de ruído no meio do fluxo faria `set.seed()` reiniciar o RNG a cada
+#'     ponto e sortearia o MESMO valor n vezes: um ruído que é uma constante, e
+#'     um histórico que nada denuncia.
+#'   - `init` NÃO recebe `.seed`, e `node.R` recusa o formal na declaração: ele
+#'     não roda num run retomado (o estado vem do checkpoint), então um `init`
+#'     que sorteasse daria história diferente na retomada.
+#'
+#' Por que derivar por HASH e não por `seed + i`: a chave da região já inclui a
+#' seed de um membro estocástico (`.tr_region_key()`), então a chave promete que
+#' o histórico depende dela — e antes desta derivação o histórico dependia, de
+#' fato, do RNG global do processo que pegou a unidade. Com `seed + i` a promessa
+#' voltaria a ser falsa de outro jeito: o membro A com seed 1 no passo 2 colide
+#' com o membro B com seed 2 no passo 1, e dois membros que o autor do fluxo
+#' escreveu como independentes sorteiam idêntico. A identidade do membro entra no
+#' hash exatamente por isso.
+#'
+#' E por que a derivação tem que ser PURA e estável: o checkpoint (Tarefa 5.2)
+#' não guarda o estado do RNG de propósito — restaurar `.Random.seed` num daemon
+#' vazaria para a próxima unidade que rodasse ali. A seed de cada passo sendo
+#' função só de (membro, passo), o run retomado refaz cada passo com a mesma seed
+#' que o ininterrupto usaria, e o histórico sai byte a byte igual. Pelo mesmo
+#' motivo ela não pode depender de locale nem de ordem de iteração: a derivação
+#' roda no DAEMON, e uma que divergisse entre coordenador e daemon faria adoção e
+#' retomada produzirem outra história sob a mesma chave (é a razão de
+#' `sort(method = "radix")` em `hash.R`, aplicada aqui).
 #' @noRd
 .tr_run_region <- function(unit, registry, store, ctx_extra = NULL) {
   rg <- unit$region
@@ -178,7 +221,12 @@
              "A fonte roda antes do laço e não tem passo de onde ler."), fonte, rg$id),
       class = "tr_error_stream_bad_source")
   }
-  saida <- do.call(fs$fn, .tr_region_args(fonte, rg, specs, registry, ext, list()))
+  # A seed da fonte é a DELA, sem derivação: o `fn` roda uma vez (ver o
+  # cabeçalho). Uma fonte que sorteia quais pontos emitir tem que emitir os
+  # mesmos dentro e fora da região.
+  saida <- do.call(fs$fn, .tr_region_args(
+    fonte, rg, specs, registry, ext, list(),
+    seed = if (.tr_wants_seed(fs$fn)) rg$nodes[[fonte]]$seed))
   # "NULL vale como zero pontos" (ver o cabeçalho) só valia para a fonte de UMA
   # saída: com mais de uma, `.tr_region_route()` exige a lista nomeada pelas
   # portas e abortava `tr_error_bad_output` ANTES da normalização lá embaixo.
@@ -337,7 +385,17 @@
     for (id in rg$order) {
       if (identical(id, fonte)) next
       m <- rg$nodes[[id]]; spec <- specs[[id]]
-      args <- .tr_region_args(id, rg, specs, registry, ext, cur)
+      # A seed DESTE passo, para quem declara `.seed`. A função relevante é o
+      # `step` do membro com memória e o `fn` do elevado — no colapso esta
+      # chamada só ACUMULA portas, e o `fn` dele (que leva a seed crua) roda
+      # depois do laço. Sem isto, um membro que força `.seed` morria com
+      # "argumento ausente" e um que só o declara rodava calado com o RNG global
+      # do daemon, sob uma chave que promete depender da seed.
+      f_seed <- if (identical(m$role, "collapse")) NULL
+                else if (isTRUE(m$online)) spec$step else spec$fn
+      args <- .tr_region_args(
+        id, rg, specs, registry, ext, cur,
+        seed = if (.tr_wants_seed(f_seed)) .tr_region_step_seed(id, m$seed, i))
 
       if (identical(m$role, "collapse")) {
         # O colapso só ACUMULA aqui; o `fn` dele roda depois do laço.
@@ -416,7 +474,10 @@
 
   # 5. Cada colapso roda UMA vez, com o fluxo inteiro.
   valores <- lapply(stats::setNames(rg$collapse, rg$collapse), function(cid) {
-    args <- .tr_region_args(cid, rg, specs, registry, ext, list(), acc = acc[[cid]])
+    # Seed crua, como a da fonte e pelo mesmo motivo: o `fn` do colapso roda uma
+    # vez, com o fluxo inteiro, e é o mesmo `fn` de fora da região.
+    args <- .tr_region_args(cid, rg, specs, registry, ext, list(), acc = acc[[cid]],
+                            seed = if (.tr_wants_seed(specs[[cid]]$fn)) rg$nodes[[cid]]$seed)
     # O colapso é nomeado no erro porque o evento `failed` da região sai sob
     # `u$node` — o PRIMEIRO colapso. Numa região de dois, a falha do segundo
     # apareceria no card do primeiro sem uma palavra sobre de quem foi.
@@ -565,8 +626,14 @@
 #' `acc` presente = é o colapso, depois do laço: a porta alimentada de dentro
 #' recebe a lista de TODOS os passos em vez do valor de um. É o único ponto em
 #' que interna e externa mudam de significado, e é o contrato do colapso.
+#'
+#' `seed` é o valor de `.seed` desta invocação, ou `NULL` para não passar o
+#' argumento. QUEM decide é o chamador, porque a função relevante muda com o
+#' papel do membro (o `step` do com memória, o `fn` dos outros) e o valor muda
+#' com ele também (derivado por passo no elevado, cru na fonte e no colapso) —
+#' ver o cabeçalho. Aqui só se monta a lista de argumentos.
 #' @noRd
-.tr_region_args <- function(id, rg, specs, registry, ext, cur, acc = NULL) {
+.tr_region_args <- function(id, rg, specs, registry, ext, cur, acc = NULL, seed = NULL) {
   m <- rg$nodes[[id]]; spec <- specs[[id]]
   args <- list()
   for (pn in names(spec$inputs)) {
@@ -601,7 +668,34 @@
     args[pn] <- list(v)
   }
   for (nm in names(m$params)) args[nm] <- list(m$params[[nm]])
+  # Depois dos params, e nunca antes: `.seed` é nome reservado (`node.R`), então
+  # param nenhum pode sobrescrevê-lo.
+  if (!is.null(seed)) args$.seed <- seed
   args
+}
+
+#' A seed de UMA invocação de um membro elevado: derivada do membro e do passo.
+#'
+#' Três propriedades, e cada uma fecha um furo (o raciocínio está no cabeçalho
+#' deste arquivo):
+#'   - DETERMINÍSTICA: `rlang::hash()` dos mesmos três valores dá o mesmo dígito
+#'     em qualquer processo, sem tocar em `.Random.seed`. É o mesmo hash com que
+#'     o plano monta a chave da região, então "estável entre coordenador e
+#'     daemon" já é condição de vida do pacote inteiro — não é suposição nova.
+#'     Nada aqui depende de locale nem de ordem de iteração: a lista é posicional
+#'     e o id de nó é restrito a `[A-Za-z0-9_.-]` (`.tr_check_node_id()`).
+#'   - PURA no passo: função só de (id, seed, i), e não do histórico do RNG. É o
+#'     que faz a retomada de checkpoint sair idêntica ao run ininterrupto.
+#'   - SEM COLISÃO entre pares (membro, passo): a identidade do membro entra no
+#'     hash, então `A` com seed 1 no passo 2 e `B` com seed 2 no passo 1 não
+#'     caem no mesmo valor — que é o que `seed + i` faria.
+#'
+#' Sete dígitos hex como em `.tr_new_seed()`: cabe em inteiro de R (máximo
+#' 0xFFFFFFF), e `set.seed()` aceita um inteiro único.
+#' @noRd
+.tr_region_step_seed <- function(id, seed, i) {
+  h <- rlang::hash(list(id, as.integer(seed), as.integer(i)))
+  as.integer(strtoi(substr(h, 1L, 7L), base = 16L))
 }
 
 #' Roteia o valor devolvido por um membro para as portas dele — a mesma regra de
