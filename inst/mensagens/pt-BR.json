@@ -139,5 +139,6 @@
   "port.check_id_what": "tipo de porta",
   "theme.field_values": "não existir (campos: %s)",
   "theme.expect_number": "um número positivo",
-  "theme.choose_default": "Escolha o tema padrão: tema_padrao precisa ser o nome de um tema."
+  "theme.choose_default": "Escolha o tema padrão: tema_padrao precisa ser o nome de um tema.",
+  "theme.expect_name_not_reserved": "um nome que não seja o reservado 'padrão'"
 }

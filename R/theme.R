@@ -22,12 +22,19 @@
 .tr_temas_embutidos <- function() {
   claro_paleta <- c("#2563eb", "#d97706", "#059669", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d")
   sobre <- function(...) { t <- .TR_TEMA_CAMPOS; v <- list(...); t[names(v)] <- v; t }
-  list(
-    escuro = .TR_TEMA_CAMPOS,
-    claro = sobre(fundo = "#ffffff", texto = "#1f2937", eixos = "#4b5563",
-                  grade = "#e5e7eb", paleta = claro_paleta),
-    `clássico` = sobre(base = "bw", fundo = "#ffffff", texto = "#000000",
-                       eixos = "#333333", grade = "#d9d9d9", paleta = claro_paleta))
+  # O nome do terceiro tema sai por `setNames`, e não como `\u` entre crases:
+  # escape Unicode não é aceito em nome de elemento (é sintaxe, não string), e
+  # escrever o acento direto aqui deixaria o arquivo fora do ASCII que o
+  # `R CMD check` cobra. O nome que chega ao usuário continua "classico" com
+  # acento.
+  stats::setNames(
+    list(
+      .TR_TEMA_CAMPOS,
+      sobre(fundo = "#ffffff", texto = "#1f2937", eixos = "#4b5563",
+            grade = "#e5e7eb", paleta = claro_paleta),
+      sobre(base = "bw", fundo = "#ffffff", texto = "#000000",
+            eixos = "#333333", grade = "#d9d9d9", paleta = claro_paleta)),
+    c("escuro", "claro", "cl\u00e1ssico"))
 }
 
 #' Erro nomeia tema, campo e o arquivo: quem edita o `trama.json` à mão
@@ -92,7 +99,7 @@
 #' Settings do projeto a partir do manifesto lido.
 #'
 #' `temas` presente substitui os embutidos (não soma): o projeto que declara
-#' seus temas quer controlar a lista que aparece no card. `"padrão"` é
+#' seus temas quer controlar a lista que aparece no card. `"padr\u00e3o"` é
 #' reservado porque é o valor que o param guarda pra "siga o projeto".
 #'
 #' Nem tudo aqui é tema: `marca` decide se o PNG exportado sai carimbado. Mora
@@ -103,7 +110,7 @@
   temas <- if (length(cfg$temas)) cfg$temas else .tr_temas_embutidos()
   if (!is.list(temas) || is.null(names(temas)) || any(!nzchar(names(temas))))
     .tr_bad_theme("?", "(nome)", "um nome")
-  if ("padrão" %in% names(temas)) .tr_bad_theme("padrão", "(nome)", "um nome que não seja o reservado 'padrão'")
+  if ("padr\u00e3o" %in% names(temas)) .tr_bad_theme("padr\u00e3o", "(nome)", .tr_msg("theme.expect_name_not_reserved"))
   temas <- stats::setNames(Map(.tr_theme_validate, temas, names(temas)), names(temas))
   padrao <- cfg$tema_padrao %||% if ("escuro" %in% names(temas)) "escuro" else names(temas)[[1]]
   # Mensagem própria: `tema_padrao` não é campo de um tema, e encaixá-lo no
@@ -116,7 +123,7 @@
        marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"))
 }
 
-#' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
+#' `"padr\u00e3o"` ou nome -> definição. Nome que sumiu (tema apagado, documento
 #' de outro projeto) cai no padrão marcado `ausente`: documento não quebra por
 #' causa de cosmético, mas o card tem como avisar. Settings `NULL` (sessão sem
 #' projeto) usa os embutidos.
@@ -124,11 +131,11 @@
 .tr_theme_resolve <- function(valor, settings) {
   s <- settings %||% .tr_settings(list())
   ok <- is.character(valor) && length(valor) == 1L && !is.na(valor)
-  nome <- if (!ok || identical(valor, "padrão")) s$tema_padrao else valor
+  nome <- if (!ok || identical(valor, "padr\u00e3o")) s$tema_padrao else valor
   ausente <- !nome %in% names(s$temas)
   if (ausente) nome <- s$tema_padrao
   # `nome` e `ausente` entram de propósito na lista (e portanto no hash): um
-  # card em "padrão" e outro fixado no mesmo tema ganham chaves diferentes, e
+  # card em "padr\u00e3o" e outro fixado no mesmo tema ganham chaves diferentes, e
   # nome sumido difere do padrão explícito. O custo é só um cache miss; em
   # troca, `fn` e o card recebem o nome e a flag pra avisar. Não "otimizar"
   # tirando esses campos.
@@ -280,12 +287,12 @@ tr_project_set_marca <- function(root, mostrar) {
 #' seria o mesmo silêncio que o manifesto recusa. Nome desconhecido não é erro
 #' aqui, pelo mesmo motivo do plano (documento não quebra por cosmético): volta
 #' o padrão marcado `ausente`, e quem chama decide se isso é erro.
-#' @param tema Nome de um tema, `"padrão"`, ou a definição já resolvida (lista).
+#' @param tema Nome de um tema, `"padr\u00e3o"`, ou a definição já resolvida (lista).
 #' @param settings Settings do projeto; `NULL` usa os temas embutidos.
 #' @return Lista com `nome`, os campos do tema e, se o nome não existe,
 #'   `ausente = TRUE`.
 #' @export
-tr_theme <- function(tema = "padrão", settings = NULL) {
+tr_theme <- function(tema = "padr\u00e3o", settings = NULL) {
   if (is.list(tema)) {
     campos <- tema[setdiff(names(tema), c("nome", "ausente"))]
     t <- .tr_theme_validate(campos, tema$nome %||% "?")
