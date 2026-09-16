@@ -326,8 +326,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 // A mesma URL que o `Icon` do editor usa: os dois módulos estão na mesma pasta.
 const SPRITE = new URL("vendor/lucide.svg", import.meta.url).href;
 // Mesmo motivo do sprite: `./marca.svg` num `src` seria relativo ao DOCUMENTO,
-// que o Shiny serve na raiz, e cairia fora do prefixo versionado.
-const MARCA = new URL("marca.svg", import.meta.url).href;
+// que o Shiny serve na raiz, e cairia fora do prefixo versionado. Exportada
+// porque o editor põe a mesma marca na barra — duas cópias desta linha foi o
+// que duas fases desta feature escreveram sem saber uma da outra.
+export const MARCA = new URL("marca.svg", import.meta.url).href;
 // Só o sucesso fica guardado: uma falha (rede, 404) não pode envenenar as
 // exportações seguintes, que tentam de novo.
 let spriteDoc = null;

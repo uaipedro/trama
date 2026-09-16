@@ -17,7 +17,8 @@ import {
 import { h, getRenderer, getWidget, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, fitAspect, FramePanel, exportFramePng,
-         dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO } from "./frames.js";
+         dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
+         MARCA } from "./frames.js";
 import { SettingsPanel } from "./settings.js";
 
 const NODE_W = 240, NODE_H = 190;
@@ -463,12 +464,6 @@ function fmtDur(s) {
 // (`trama-0.0.0.9000/`), o mesmo problema que R/app.R:35-37 documenta ter tido
 // com o importmap, e que aqui se resolve sozinho.
 const SPRITE = new URL("vendor/lucide.svg", import.meta.url).href;
-
-// A marca da barra resolve pelo mesmo caminho, e pelo mesmo motivo: um
-// `./marca.svg` escrito num atributo `src` seria relativo ao DOCUMENTO, que o
-// Shiny serve na raiz — viraria `/marca.svg`, fora do prefixo versionado, e
-// 404. Só `import.meta.url` sabe de onde ESTE módulo foi servido.
-const MARCA = new URL("marca.svg", import.meta.url).href;
 
 // Os `kind` que este front sabe desenhar. É constante porque DUAS decisões a
 // consultam — `Icon` para desenhar, e a calha da paleta para escolher entre

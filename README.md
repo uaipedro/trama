@@ -263,6 +263,11 @@ O `trama.json` do projeto pode trazer `temas` e `tema_padrao` — os temas dos
 gráficos (base, fonte, cores, paleta). Sem eles valem os embutidos `escuro`,
 `claro` e `clássico`; o painel ⚙ do editor os grava por `tr_project_set_themes()`.
 
+Pode trazer também `marca`: os frames exportados saem com o hexágono do trama
+carimbado no canto, discreto, e este campo desliga isso por projeto. Vem
+ligado; a chave está no mesmo painel ⚙, e `tr_project_set_marca(root, mostrar
+= FALSE)` faz o mesmo pelo console.
+
 ## Estender
 
 Uma coleção declara tipos e blocos — `?tr_collection`, `?tr_type`, `?tr_node`
