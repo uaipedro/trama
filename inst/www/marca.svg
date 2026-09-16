@@ -3,10 +3,14 @@
        de um role="img" de forma irregular, a referência explícita é o que
        funciona nos três grandes -->
   <title id="tituloMarca">trama</title>
-  <!-- o hexágono é a única forma que segue o tema: currentColor o deixa
-       legível no claro e no escuro sem precisar de duas versões do arquivo -->
+  <!-- contorno em cor fixa, e não `currentColor`: este arquivo é consumido de
+       fora do DOM da página — como <img> na barra e como favicon —, e aí o SVG
+       é documento isolado, não herda o `color` de ninguém e `currentColor`
+       cairia no preto inicial, sumindo em fundo escuro. O cinza é neutro de
+       propósito: a marca é assinatura e é deliberadamente a MESMA nos dois
+       temas, no README e no PNG exportado, onde tema nenhum alcança. -->
   <path d="M86.5 3 170.5 51.5 170.5 148.5 86.5 197 2.5 148.5 2.5 51.5Z"
-        stroke="currentColor" stroke-width="6"
+        stroke="#6e7681" stroke-width="6"
         stroke-linejoin="round" />
   <!-- as ligações vêm antes dos nós para que os nós cubram as pontas do traço -->
   <g stroke-width="7" stroke-linecap="round">

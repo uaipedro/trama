@@ -7,8 +7,12 @@
        hexágono fica centrado e ocupa quase toda a altura, sem faixa vazia -->
   <!-- contorno mais fino que na marca cheia para a cor dos nós dominar sobre
        a moldura nessa escala -->
+  <!-- cor fixa, e não `currentColor`: como favicon o SVG é documento isolado,
+       não herda o `color` de ninguém, e `currentColor` cairia no preto inicial
+       — invisível em barra de abas escura. O cinza é neutro de propósito: a
+       marca é assinatura e é deliberadamente a mesma nos dois temas. -->
   <path d="M100 3 184 51.5 184 148.5 100 197 16 148.5 16 51.5Z"
-        stroke="currentColor" stroke-width="5"
+        stroke="#6e7681" stroke-width="5"
         stroke-linejoin="round" />
   <!-- versão para 16–32 px: menos nós e traço mais grosso, porque nessa
        escala detalhe some e só sobra a silhueta -->

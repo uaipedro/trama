@@ -4,8 +4,8 @@
 # Por que Chrome headless e não rsvg-convert/ImageMagick: o rasterizador passa
 # a ser o MESMO motor que exibe a marca no navegador, então o PNG e o SVG não
 # divergem. Um conversor externo reinterpreta o desenho por conta própria
-# (arredondamento de traço, hinting, resolução de currentColor) e o favicon
-# deixaria de bater com o que o app mostra.
+# (arredondamento de traço, hinting) e o favicon deixaria de bater com o que
+# o app mostra.
 #
 # Precisa também de python3, só com a stdlib: a captura sai maior que o
 # pedido (ver mais abaixo) e o recorte para o tamanho final é feito em Python,
@@ -53,14 +53,6 @@ command -v python3 >/dev/null 2>&1 || {
   exit 1
 }
 
-# O contorno do hexágono usa `currentColor`, que num PNG precisa virar cor
-# fixa. Cinza médio porque o favicon aparece tanto em barra de abas clara
-# quanto escura: um contorno quase preto sumiria no tema escuro e um quase
-# branco sumiria no claro. O PNG fica preso a esse cinza; o marca.svg servido
-# dentro do app continua seguindo a cor do tema, e essa diferença é de
-# propósito — quem tem tema é o app, o favicon não.
-COR_CONTORNO=${COR_CONTORNO:-'#6e7681'}
-
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
@@ -87,15 +79,18 @@ renderizar() {
   desloca_y=$(echo "$geo" | cut -d' ' -f3)
 
   # `sed '1d;$d'` tira a linha do <svg> raiz e a do </svg>: sobra o corpo do
-  # desenho, que entra no <g> já posicionado. O `style` na raiz é o que
-  # resolve o `currentColor` do contorno. A premissa é que os SVGs da marca
-  # tenham a tag de abertura inteira na primeira linha e o </svg> na última —
-  # vale hoje e vale para quem editar à mão, mas um formatador que quebrasse
-  # a raiz em duas linhas produziria XML malformado sem erro visível aqui.
+  # desenho, que entra no <g> já posicionado. Nenhuma cor é injetada aqui: os
+  # SVGs da marca já trazem TODAS as cores fixas, inclusive a do contorno, para
+  # que o PNG saia idêntico ao que o navegador mostra — e é justamente por isso
+  # que não há mais um `style="color:..."` na raiz do quadro. A premissa é que
+  # os SVGs da marca tenham a tag de abertura inteira na primeira linha e o
+  # </svg> na última — vale hoje e vale para quem editar à mão, mas um
+  # formatador que quebrasse a raiz em duas linhas produziria XML malformado
+  # sem erro visível aqui.
   quadro="$TMP/quadro.svg"
   {
-    printf '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s" fill="none" style="color:%s">\n' \
-      "$lado" "$lado" "$lado" "$lado" "$COR_CONTORNO"
+    printf '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s" fill="none">\n' \
+      "$lado" "$lado" "$lado" "$lado"
     printf '<g transform="translate(%s %s) scale(%s)">\n' "$desloca_x" "$desloca_y" "$escala"
     sed '1d;$d' "$svg"
     printf '</g>\n</svg>\n'
