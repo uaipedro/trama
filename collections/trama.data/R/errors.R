@@ -21,11 +21,13 @@ tr_data_errors <- function() {
     tr_data_error_duplicate_key =
       "a chave do espalhar se repete: uma célula receberia mais de um valor",
     tr_data_error_not_a_table =
-      "o nó produziu um objeto que não é tabela, e o tipo data/table recusa guardá-lo",
+      paste("o nó recebeu ou produziu um objeto que não é tabela; o tipo data/table",
+            "recusa guardá-lo"),
     tr_data_error_missing_file =
       "caminho de .rds aponta pra arquivo (leitura) ou pasta (gravação) que não existe",
     tr_data_error_stream_columns =
-      "passo do fluxo com colunas diferentes do primeiro: empilhar preencheria faltante em silêncio"
+      paste("passo do fluxo que não é tabela, ou com colunas diferentes do primeiro:",
+            "empilhar preencheria faltante em silêncio")
   )
   data.frame(class = names(e), when = unname(e), stringsAsFactors = FALSE)
 }

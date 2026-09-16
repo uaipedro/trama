@@ -175,7 +175,9 @@ test_that("data/filter e data/mutate elevados dão o MESMO resultado que em lote
   hist <- trama::tr_value(flow, "sai", reg, s)
 
   lote <- tr_mutate(tr_filter(tr_example("mtcars"), "hp > 100"), "kpl", "mpg * 0.425")
-  expect_equal(hist, lote)
+  # `identical`, e não `equal`: o que este teste existe pra pegar é justamente
+  # deriva de tipo ou de atributo entre o caminho em lote e o ponto a ponto.
+  expect_identical(hist, lote)
 })
 
 test_that("região de zero pontos produz histórico vazio, e o run não falha", {
@@ -209,4 +211,17 @@ test_that("mudar 'lote' muda a chave da região e o artefato recomputa", {
   expect_equal(nrow(tres), 32L)
   expect_equal(max(um$passo), 32L)
   expect_equal(max(tres$passo), 11L)
+})
+
+test_that("param torto erra ANTES de ter tabela, e vetor no lugar dela se nomeia", {
+  # A validação ficava atrás do retorno antecipado de `data = NULL`: um card com
+  # `lote = 0` e nada ligado lia como sadio, e só ficava vermelho quando o
+  # usuário conectasse a tabela — o erro chegando um passo depois do engano.
+  expect_error(tr_to_stream(NULL, lote = 0L), class = "tr_data_error_bad_option")
+  expect_error(tr_to_stream(NULL, max_passos = -1L), class = "tr_data_error_bad_option")
+  # E o nível 1 com um vetor: antes morria com "argumento tem comprimento zero",
+  # que não nomeia nem o argumento nem o problema.
+  err <- expect_error(tr_to_stream(1:10), class = "tr_data_error_not_a_table")
+  expect_match(conditionMessage(err), "'data'")
+  expect_match(conditionMessage(err), "integer")
 })

@@ -19,7 +19,6 @@ diario <- function() {
   e$inits <- list()      # os params que cada `init` recebeu
   e$colapsos <- list()   # o que cada chamada do colapso recebeu
   e$restores <- 0L       # leituras de artefato do store, do tipo inteiro
-  e$sono <- 0            # segundos que cada leitura de artefato demora
   e$morre_em <- NULL     # ponto em que `d/puro_morre` explode (NULL = nunca)
   e$seeds <- list()      # o `.seed` de cada chamada de `fn` elevado
   e$seeds_step <- list() # o `.seed` de cada chamada de `step`
@@ -35,8 +34,9 @@ driver_collection <- function(e = diario()) {
   # uma por passo. Um contador dentro do `fn` do produtor não serviria — ele
   # roda uma vez de qualquer jeito; quem conta leitura é o lado que lê.
   #
-  # E `e$sono` faz a leitura DEMORAR, o que é a única forma de medir que o
-  # `duration` da região não inclui as leituras: com o cronômetro no lugar
+  # E `e$avanca` faz a leitura CUSTAR 1000s de RELÓGIO, sem custar 1000s de
+  # parede: é assim que se mede que o `duration` da região não inclui as
+  # leituras, sem depender da velocidade da máquina. Com o cronômetro no lugar
   # errado a região sai com o resultado certo e o tempo do arquivo pesado.
   val <- tr_type("d/v", label = "Valor",
                  store = function(x, path) saveRDS(x, path),
@@ -45,7 +45,6 @@ driver_collection <- function(e = diario()) {
       # Relógio roteirizado do teste de `duration`: a leitura externa "custa"
       # 1000s de relógio, sem custar 1000s de parede.
       if (!is.null(e$avanca)) e$avanca$t <- e$avanca$t + 1000
-                   if (e$sono > 0) Sys.sleep(e$sono)
                    readRDS(path)
                  })
 
@@ -756,8 +755,9 @@ test_that("o `duration` da região NÃO inclui a leitura dos artefatos de fora",
   # justamente o artefato mais pesado do fluxo (o modelo treinado), então com o
   # cronômetro acima das leituras o card diria que o laço demorou o tempo de
   # carregar um arquivo — e nenhum teste de resultado percebe, porque o
-  # histórico sai idêntico. `e$sono` faz a leitura demorar pra que a diferença
-  # seja mensurável.
+  # histórico sai idêntico. O relógio roteirizado (`e$avanca`) põe 1000s na
+  # leitura pra que a diferença seja mensurável por aritmética, e não por
+  # cronômetro de parede.
   e <- diario(); reg <- driver_registry(e); s <- tmp_store()
   doc <- tr_flow_doc(tr_flow(reg) |>
     tr_add("k", "d/const", v = 7) |>
@@ -767,7 +767,7 @@ test_that("o `duration` da região NÃO inclui a leitura dos artefatos de fora",
     tr_add("co", "d/colapsa", from = "ac"))
 
   p <- tr_plan(doc, registry = reg, store = s)
-  .tr_run_unit(p$units$k, reg, s)   # antes do sono: `k` não lê nada
+  .tr_run_unit(p$units$k, reg, s)   # antes de armar o relógio: `k` não lê nada
 
   # Relógio ROTEIRIZADO, e não sono de verdade. A versão anterior dormia 0.4s
   # na leitura e exigia `duration < 0.3`: mede a velocidade da máquina, não a

@@ -38,7 +38,7 @@ trama_collection <- function() {
       # nome próprio é o mínimo. Vem depois dos verbos e antes da saída porque é
       # essa a ordem do trabalho: primeiro se sabe montar a transformação,
       # depois se decide assisti-la acontecer.
-      trama::tr_category("stream",    "Fluxo",       "#f97316"),
+      trama::tr_category("stream",    "Fluxo",       "#84cc16"),
       trama::tr_category("sink",      "Saída",       "#22c55e")
     ),
     nodes = list(
@@ -1473,6 +1473,141 @@ tr_flow(reg) |>
 `data/join` quando as tabelas devem ficar LADO a lado; `data/distinct` para a
 sobreposição que o empilhamento costuma produzir."),
 
+      trama::tr_node("data/to_stream", fn = tr_to_stream, label = "Entrar em fluxo",
+        category = "stream",
+        description = "Reparte a tabela em pontos e abre a região de fluxo: daqui até o 'Sair de fluxo', o grafo roda ponto a ponto.",
+        icon = trama::tr_icon("chevrons-right"),
+        inputs = list(data = trama::tr_port(T, required = FALSE)),
+        outputs = list(out = trama::tr_port(T, stream = TRUE)),
+        params = list(
+          lote = trama::tr_param_int(1, min = 1, label = "Linhas por passo"),
+          ordenar_por = P("cols", "", label = "Ordenar por", example = "data, regiao"),
+          max_passos = trama::tr_param_int(0, min = 0,
+                                           label = "Máximo de passos (0 = todos)")),
+        help = "## Descrição
+
+É aqui que a região de fluxo COMEÇA. Este nó reparte a tabela numa sequência de
+pontos, e tudo que estiver ligado entre ele e um **Sair de fluxo** passa a rodar
+uma vez por ponto, em ordem, como uma execução só.
+
+Cada ponto é uma TABELA — as mesmas colunas da entrada, **Linhas por passo**
+linhas. É por isso que os nós que você já conhece funcionam dentro da região sem
+nenhum ajuste: um **Filtrar** dentro do fluxo recebe uma tabela, como sempre
+recebeu, só que menor e uma vez por passo.
+
+O último lote é PARCIAL, nunca descartado: dez linhas em lotes de três são
+quatro passos, de 3, 3, 3 e 1 linha. Descartar o resto perderia linha da tabela
+sem dizer nada.
+
+Tabela VAZIA não é erro: dá zero passos, e o **Sair de fluxo** devolve um
+histórico vazio. É o que acontece quando um filtro mais acima não achou nada, e
+um fluxo saudável não deve ficar vermelho por isso.
+
+A velocidade, o pause e o \"um passo\" NÃO são parâmetros deste card: são botões
+da sessão, não conteúdo do fluxo, e mexer neles não recalcula nada. Os três
+parâmetros abaixo são o contrário — mudam o RESULTADO, e por isso mudar qualquer
+um deles faz a região inteira recomputar.
+
+## Parâmetros
+
+- **Linhas por passo** — quantas linhas cada ponto carrega. 1 é uma linha por
+  passo, que é o caso de quem quer ver o fluxo andar; lote maior é o caso de
+  quem quer velocidade, ou de quem precisa de mais de uma linha por cálculo.
+- **Ordenar por** — colunas que definem a ORDEM dos pontos, separadas por
+  vírgula. Vazio mantém a ordem da tabela. A ordenação acontece ANTES do corte
+  em lotes, e é o que faz um fluxo temporal andar no tempo. Nome de coluna
+  inexistente para o nó e lista as colunas disponíveis.
+- **Máximo de passos** — para a sequência depois de N passos, contados em
+  PASSOS e não em linhas. `0` quer dizer todos. Serve para experimentar um fluxo
+  longo sem esperar por ele inteiro.
+
+## Valor
+
+A sequência de pontos que a região percorre. Não é uma tabela: é o fluxo, e só
+faz sentido ligado a um nó dentro da região. O resultado que vai para o disco é
+o do **Sair de fluxo**, na outra ponta.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"entra\", \"data/to_stream\", lote = 1L, ordenar_por = \"data\",
+         from = \"ler\") |>
+  tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"entra\") |>
+  tr_add(\"sai\", \"data/from_stream\", from = \"grandes\")
+```
+
+## Veja também
+
+`data/from_stream` fecha a região — sem ele o fluxo não tem onde terminar, e o
+documento é recusado no planejamento, dizendo isso."),
+
+      trama::tr_node("data/from_stream", fn = tr_from_stream, label = "Sair de fluxo",
+        category = "stream",
+        description = "Empilha os pontos do fluxo numa tabela só — o histórico da região — e fecha a região.",
+        icon = trama::tr_icon("layers"),
+        inputs = list(data = trama::tr_port(T, stream = TRUE)),
+        outputs = list(out = T),
+        params = list(passo = trama::tr_param_bool(TRUE, label = "Coluna do passo")),
+        help = "## Descrição
+
+É aqui que a região de fluxo TERMINA. Este nó recebe o que cada passo produziu e
+empilha tudo numa tabela só — o HISTÓRICO da região —, que é o que fica guardado
+e é dado comum a partir daqui: qualquer nó de gráfico plota essa tabela sem saber
+que ela veio de um fluxo.
+
+O histórico é o resultado da região porque é ele que responde às perguntas que se
+fazem de um fluxo (\"em que passo virou\", \"a curva estabilizou\"), e não o valor
+do último passo.
+
+As colunas do resultado são as do PRIMEIRO passo. Passo com conjunto diferente de
+colunas para o nó, dizendo QUAL passo — empilhar de qualquer jeito preencheria
+faltante nas colunas ausentes, e o histórico sairia verde, com buracos cuja causa
+ninguém acharia.
+
+Passo que produziu ZERO linhas — um **Filtrar** dentro do fluxo que não achou
+nada — é um passo que contribui zero linhas, e não um passo que deixou de
+existir: o índice dos passos seguintes não muda por causa dele.
+
+Fluxo de zero passos devolve uma tabela de zero linhas, com a coluna do passo e
+mais nada. Sem nenhum passo não há de onde saber que colunas o fluxo teria — este
+nó só vê o que passou pelas arestas.
+
+O nó tem uma ENTRADA SÓ, e isso é deliberado. Toda porta dele alimentada de
+DENTRO da região acumula um valor por passo, inclusive uma que não fosse
+declarada como fluxo: uma \"constante\" produzida lá dentro chegaria aqui como N
+cópias dela, uma por passo. Constante que precisa acompanhar o histórico se liga
+DEPOIS da região, onde ela é constante de verdade.
+
+## Parâmetros
+
+- **Coluna do passo** — acrescenta a coluna `passo`, com o índice do passo que
+  produziu cada linha, na primeira posição. É o eixo x de praticamente todo
+  gráfico que se faz de um histórico, e por isso vem ligada. Se os pontos já
+  trazem uma coluna chamada `passo`, a do nó substitui a deles: duas colunas de
+  mesmo nome quebrariam todo verbo ligado adiante.
+
+## Valor
+
+Uma tabela — os pontos empilhados, na ordem dos passos, com as colunas do
+primeiro passo e a coluna `passo` na frente.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"entra\", \"data/to_stream\", lote = 1L, from = \"ler\") |>
+  tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"entra\") |>
+  tr_add(\"sai\", \"data/from_stream\", from = \"grandes\")
+```
+
+## Veja também
+
+`data/to_stream` abre a região; os nós de gráfico consomem o histórico como
+qualquer outra tabela."),
+
       trama::tr_node("data/write_csv", fn = tr_write_csv, label = "Gravar CSV",
         category = "sink", description = "Grava a tabela no disco e a repassa adiante.",
         icon = trama::tr_icon("save"),
@@ -1640,142 +1775,8 @@ tr_flow(reg) |>
 
 `data/read_parquet` lê de volta; `data/write_rds` quando a tabela precisa voltar
 idêntica; `data/write_csv` quando o arquivo será aberto num editor de
-planilha."),
+planilha.")
 
-      trama::tr_node("data/to_stream", fn = tr_to_stream, label = "Entrar em fluxo",
-        category = "stream",
-        description = "Reparte a tabela em pontos e abre a região de fluxo: daqui até o 'Sair de fluxo', o grafo roda ponto a ponto.",
-        icon = trama::tr_icon("chevrons-right"),
-        inputs = list(data = trama::tr_port(T, required = FALSE)),
-        outputs = list(out = trama::tr_port(T, stream = TRUE)),
-        params = list(
-          lote = trama::tr_param_int(1, min = 1, label = "Linhas por passo"),
-          ordenar_por = P("cols", "", label = "Ordenar por", example = "data, regiao"),
-          max_passos = trama::tr_param_int(0, min = 0,
-                                           label = "Máximo de passos (0 = todos)")),
-        help = "## Descrição
-
-É aqui que a região de fluxo COMEÇA. Este nó reparte a tabela numa sequência de
-pontos, e tudo que estiver ligado entre ele e um **Sair de fluxo** passa a rodar
-uma vez por ponto, em ordem, como uma execução só.
-
-Cada ponto é uma TABELA — as mesmas colunas da entrada, **Linhas por passo**
-linhas. É por isso que os nós que você já conhece funcionam dentro da região sem
-nenhum ajuste: um **Filtrar** dentro do fluxo recebe uma tabela, como sempre
-recebeu, só que menor e uma vez por passo.
-
-O último lote é PARCIAL, nunca descartado: dez linhas em lotes de três são
-quatro passos, de 3, 3, 3 e 1 linha. Descartar o resto perderia linha da tabela
-sem dizer nada.
-
-Tabela VAZIA não é erro: dá zero passos, e o **Sair de fluxo** devolve um
-histórico vazio. É o que acontece quando um filtro mais acima não achou nada, e
-um fluxo saudável não deve ficar vermelho por isso.
-
-A velocidade, o pause e o \"um passo\" NÃO são parâmetros deste card: são botões
-da sessão, não conteúdo do fluxo, e mexer neles não recalcula nada. Os três
-parâmetros abaixo são o contrário — mudam o RESULTADO, e por isso mudar qualquer
-um deles faz a região inteira recomputar.
-
-## Parâmetros
-
-- **Linhas por passo** — quantas linhas cada ponto carrega. 1 é uma linha por
-  passo, que é o caso de quem quer ver o fluxo andar; lote maior é o caso de
-  quem quer velocidade, ou de quem precisa de mais de uma linha por cálculo.
-- **Ordenar por** — colunas que definem a ORDEM dos pontos, separadas por
-  vírgula. Vazio mantém a ordem da tabela. A ordenação acontece ANTES do corte
-  em lotes, e é o que faz um fluxo temporal andar no tempo. Nome de coluna
-  inexistente para o nó e lista as colunas disponíveis.
-- **Máximo de passos** — para a sequência depois de N passos, contados em
-  PASSOS e não em linhas. `0` quer dizer todos. Serve para experimentar um fluxo
-  longo sem esperar por ele inteiro.
-
-## Valor
-
-A sequência de pontos que a região percorre. Não é uma tabela: é o fluxo, e só
-faz sentido ligado a um nó dentro da região. O resultado que vai para o disco é
-o do **Sair de fluxo**, na outra ponta.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
-  tr_add(\"entra\", \"data/to_stream\", lote = 1L, ordenar_por = \"data\",
-         from = \"ler\") |>
-  tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"entra\") |>
-  tr_add(\"sai\", \"data/from_stream\", from = \"grandes\")
-```
-
-## Veja também
-
-`data/from_stream` fecha a região — sem ele o fluxo não tem onde terminar, e o
-documento é recusado no planejamento, dizendo isso."),
-
-      trama::tr_node("data/from_stream", fn = tr_from_stream, label = "Sair de fluxo",
-        category = "stream",
-        description = "Empilha os pontos do fluxo numa tabela só — o histórico da região — e fecha a região.",
-        icon = trama::tr_icon("layers"),
-        inputs = list(data = trama::tr_port(T, stream = TRUE)),
-        outputs = list(out = T),
-        params = list(passo = trama::tr_param_bool(TRUE, label = "Coluna do passo")),
-        help = "## Descrição
-
-É aqui que a região de fluxo TERMINA. Este nó recebe o que cada passo produziu e
-empilha tudo numa tabela só — o HISTÓRICO da região —, que é o que fica guardado
-e é dado comum a partir daqui: qualquer nó de gráfico plota essa tabela sem saber
-que ela veio de um fluxo.
-
-O histórico é o resultado da região porque é ele que responde às perguntas que se
-fazem de um fluxo (\"em que passo virou\", \"a curva estabilizou\"), e não o valor
-do último passo.
-
-As colunas do resultado são as do PRIMEIRO passo. Passo com conjunto diferente de
-colunas para o nó, dizendo QUAL passo — empilhar de qualquer jeito preencheria
-faltante nas colunas ausentes, e o histórico sairia verde, com buracos cuja causa
-ninguém acharia.
-
-Passo que produziu ZERO linhas — um **Filtrar** dentro do fluxo que não achou
-nada — é um passo que contribui zero linhas, e não um passo que deixou de
-existir: o índice dos passos seguintes não muda por causa dele.
-
-Fluxo de zero passos devolve uma tabela de zero linhas, com a coluna do passo e
-mais nada. Sem nenhum passo não há de onde saber que colunas o fluxo teria — este
-nó só vê o que passou pelas arestas.
-
-O nó tem uma ENTRADA SÓ, e isso é deliberado. Toda porta dele alimentada de
-DENTRO da região acumula um valor por passo, inclusive uma que não fosse
-declarada como fluxo: uma \"constante\" produzida lá dentro chegaria aqui como N
-cópias dela, uma por passo. Constante que precisa acompanhar o histórico se liga
-DEPOIS da região, onde ela é constante de verdade.
-
-## Parâmetros
-
-- **Coluna do passo** — acrescenta a coluna `passo`, com o índice do passo que
-  produziu cada linha, na primeira posição. É o eixo x de praticamente todo
-  gráfico que se faz de um histórico, e por isso vem ligada. Se os pontos já
-  trazem uma coluna chamada `passo`, a do nó substitui a deles: duas colunas de
-  mesmo nome quebrariam todo verbo ligado adiante.
-
-## Valor
-
-Uma tabela — os pontos empilhados, na ordem dos passos, com as colunas do
-primeiro passo e a coluna `passo` na frente.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
-  tr_add(\"entra\", \"data/to_stream\", lote = 1L, from = \"ler\") |>
-  tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"entra\") |>
-  tr_add(\"sai\", \"data/from_stream\", from = \"grandes\")
-```
-
-## Veja também
-
-`data/to_stream` abre a região; os nós de gráfico consomem o histórico como
-qualquer outra tabela.")
     )
   )
 }

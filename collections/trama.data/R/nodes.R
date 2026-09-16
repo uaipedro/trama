@@ -944,12 +944,24 @@ tr_replace_na <- function(data, cols, value = "0") {
 #' definida (o colapso roda uma vez, com o histórico vazio).
 #' @export
 tr_to_stream <- function(data = NULL, lote = 1L, ordenar_por = "", max_passos = 0L) {
+  # Params ANTES do retorno antecipado: com a validação depois, um card com
+  # `lote = 0` e nada ligado lia como sadio e só ficava vermelho quando o
+  # usuário conectasse a tabela — o erro chegando um passo depois do engano.
+  lote <- .tr_data_inteiro(lote, "lote", min = 1L)
+  max_passos <- .tr_data_inteiro(max_passos, "max_passos", min = 0L)
+
   # Porta opcional solta: card recém-arrastado da paleta, ou nível 1 sem
   # tabela. Zero pontos é a leitura honesta — a região não tem o que percorrer.
   if (is.null(data)) return(list())
 
-  lote <- .tr_data_inteiro(lote, "lote", min = 1L)
-  max_passos <- .tr_data_inteiro(max_passos, "max_passos", min = 0L)
+  # Nível 1 com um vetor no lugar da tabela: sem isto, `nrow()` devolve NULL e
+  # o `if (n == 0L)` morre com "argumento tem comprimento zero", que não nomeia
+  # nem o argumento nem o problema. A porta e o `store` do tipo é que impõem
+  # tipo no grafo; aqui é só a chamada de função R comum que merece a frase.
+  if (is.null(nrow(data))) {
+    rlang::abort(sprintf("'data' não é uma tabela, e sim '%s'.", class(data)[[1]]),
+                 class = "tr_data_error_not_a_table")
+  }
 
   ordem <- .as_cols(ordenar_por)
   if (length(ordem)) {
