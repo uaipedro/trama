@@ -154,9 +154,16 @@
   # Não é param do documento de propósito (Decisão 9): cadência é estado de
   # sessão e não conteúdo do grafo — se entrasse no documento, mudar a cadência
   # mudaria a chave da região e recomputaria o fluxo inteiro. Chega por
-  # `ctx_extra`, que atravessa a fronteira de processo junto com a chamada; a
-  # Tarefa 5.3 é que a põe no arquivo de controle do store, e até lá o default
-  # vale sem que arquivo nenhum precise existir.
+  # `ctx_extra`, que atravessa a fronteira de processo junto com a chamada.
+  #
+  # NÃO é o mesmo botão que o `tempo` do arquivo de controle (`stream-control.R`),
+  # e conflatá-los seria bug nos dois sentidos: `publish_every` é DE QUANTO EM
+  # QUANTO TEMPO um parcial é escrito (contra escrita que ninguém lê), e `tempo`
+  # é LENTIDÃO DELIBERADA do passo, pra dar pra assistir. Se `tempo` mexesse na
+  # cadência, pedir mais devagar mudaria o que se vê; se a cadência engolisse o
+  # passo pedido a dedo, apertar "um passo" não atualizaria o card. Eles se
+  # compõem sem se conhecer: com `tempo` de meio segundo, todo passo demora mais
+  # que a cadência e todo passo publica.
   cadencia <- ctx_extra$publish_every %||% 0.1
 
   # Cadência do CHECKPOINT, em PASSOS (não em segundos, ao contrário da de
@@ -368,10 +375,77 @@
   # tarefa existe pra tirar.
   ultima <- -Inf
 
+  # O diretório da região passa a existir ENQUANTO ela roda, e não só quando há
+  # checkpoint: é ele que faz `tr_stream_command()` saber que existe laço pra
+  # comandar, e é o que torna o comando pra chave morta um no-op silencioso em
+  # vez de um `dir.create` de cortesia que encheria o store de diretórios de
+  # chaves que nunca rodaram. É a mesma presença em voo do
+  # `progress/<chave>.json`, na direção contrária.
+  #
+  # `n > 0` porque região de zero pontos não tem passo nenhum a comandar — e o
+  # diretório dela não deve nascer só pra ser apagado no fim.
+  if (n > 0) dir.create(.tr_stream_dir(store, unit$key), recursive = TRUE, showWarnings = FALSE)
+  # O último `seq` de comando que este laço já obedeceu — a memória que faz
+  # `step` valer UM passo (ver `stream-control.R`) — e o atraso por passo em
+  # vigor, que dura entre passos porque o comando que o mudou pode não vir mais.
+  seq_ctl <- 0L
+  tempo <- 0
+
   # `seq.int(inicio + 1L, n)` só quando há passo a dar: com `inicio == n` (o run
   # morreu DEPOIS do laço, num colapso) ele contaria para trás e o laço rodaria
   # o fluxo ao contrário. `integer()` é "nada a fazer", e o colapso roda direto.
   for (i in if (inicio < n) seq.int(inicio + 1L, n) else integer()) {
+    # O CONTROLE, ENTRE PASSOS — o mesmo lugar em que se checaria interrupção, e
+    # o único lugar em que "pausar" tem significado: no meio de um passo, metade
+    # dos membros teria corrido e metade não, e o retrato publicado seria um que
+    # nunca existiu (o mesmo argumento que põe o parcial e o checkpoint depois do
+    # passo inteiro).
+    #
+    # SEM estrangulamento de relógio, ao contrário da publicação da Tarefa 5.1 —
+    # e a assimetria é a decisão, não um esquecimento. O parcial estrangulado
+    # existe contra escrita que ninguém lê; o comando é o contrário: lido tarde,
+    # é botão que parece quebrado. Com um estrangulamento de 50ms, um `stop` numa
+    # região de pontos rápidos só seria notado centenas de passos depois — e numa
+    # região curta o run acabaria antes de alguém ler o arquivo, o que se relata
+    # como "o botão de parar não funciona".
+    #
+    # O que a leitura em TODO passo custa, medido: `file.exists` de arquivo
+    # ausente são ~2.7µs, ou seja 27ms ao longo de dez mil pontos — que é o caso
+    # de todo run em que ninguém comanda nada, e é por isso que a cancela começa
+    # por ele. O `fromJSON` (~73µs) só acontece quando o arquivo EXISTE, isto é
+    # quando alguém está de fato assistindo aquela região: 0.7s em dez mil
+    # pontos, pagos por quem pediu para olhar passo a passo.
+    #
+    # Por isso também a cancela não pode ser estrangulada por outro motivo: sob
+    # controle manual, TODO passo tem que passar por ela, senão o passo seguinte
+    # a um `step` rápido escaparia sem permissão e "um passo" seriam dois.
+    g <- .tr_control_gate(store, unit$key, seq_ctl)
+    seq_ctl <- g$seq; tempo <- g$tempo
+    # Publica o passo que o usuário pediu a dedo, custe o que custar à cadência:
+    # é justamente essa escrita que ele está esperando na tela.
+    if (isTRUE(g$esperou)) ultima <- -Inf
+    if (identical(g$acao, "para")) {
+      # PARAR NÃO É TERMINAR. O checkpoint do último passo COMPLETO vai pro
+      # disco e a unidade sobe como erro classificado — que o `collect()` do
+      # scheduler trata como cancelamento, sem gravar handle. Gravar o
+      # artefato final aqui poria o histórico truncado sob a chave VÁLIDA da
+      # região, e `tr_plan()` o serviria do cache pra sempre: é o erro falso
+      # cacheado da Fase 3 chegando por outra estrada, e é o modo de falha
+      # contra o qual esta tarefa inteira foi escrita.
+      #
+      # O checkpoint é gravado mesmo com `checkpoint_every = 0`, e é a única
+      # escrita que aquele zero não suprime: "0" quer dizer "não pague
+      # serialização periódica", e aqui é UMA escrita, num gesto explícito de
+      # quem pretende continuar depois. A alternativa era jogar fora o trabalho
+      # que o usuário acabou de assistir acontecer.
+      if (i > 1L) .tr_ckpt_write(store, unit$key, i - 1L, n, estado, acc)
+      rlang::abort(sprintf(
+        paste0("A região de fluxo '%s' foi PARADA no passo %d de %d. O trabalho até o passo %d ",
+               "está no checkpoint e o próximo run retoma dali; nada foi gravado na chave de ",
+               "saída, porque parar não é terminar."),
+        rg$id, i, n, i - 1L), class = "tr_error_stream_stopped")
+    }
+
     # Os valores DO PASSO, por `nó:porta`. Zerado a cada passo de propósito: um
     # membro que lesse o valor do passo anterior (porque o produtor não rodou
     # neste) andaria com dado velho em silêncio, e a porta ausente erra alto no
@@ -470,6 +544,16 @@
     if (ckpt_cada > 0 && i < n && i %% ckpt_cada == 0) {
       .tr_ckpt_write(store, unit$key, i, n, estado, acc)
     }
+
+    # O `tempo`, POR ÚLTIMO: lentidão deliberada pra dar pra assistir. Depois de
+    # publicar e de gravar o checkpoint, e não antes — dormir primeiro atrasaria
+    # o parcial do passo que já aconteceu, e o card mostraria o ponto meio
+    # segundo depois de o fluxo já ter andado. O valor vem aparado de
+    # `.tr_control_read()` (0 a 5s): um `tempo` gigante dormiria o daemon por
+    # horas com o card aceso e ninguém entendendo por quê, e acima de poucos
+    # segundos por passo não se está assistindo — quem quer um ponto de cada vez
+    # usa `step`, que não tem teto.
+    if (tempo > 0) Sys.sleep(tempo)
   }
 
   # 5. Cada colapso roda UMA vez, com o fluxo inteiro.
@@ -543,8 +627,9 @@
 #' Pela chave da UNIDADE, que é a mesma com que `.tr_make_ctx()` nomeia o
 #' arquivo de progresso e com que o `collect()` do scheduler faz o poll — e não
 #' pelas chaves de SAÍDA, que são `hash(chave da unidade, porta)` e são várias
-#' por região. Um diretório por unidade é o que a Tarefa 5.3 vai encontrar para
-#' pôr o arquivo de controle (pause/step/tempo) ao lado do checkpoint.
+#' por região. Um diretório por unidade é o que faz o arquivo de controle
+#' (pause/step/tempo, `stream-control.R`) morar ao lado do checkpoint: é o mesmo
+#' assunto — o estado em voo de uma unidade que dura minutos.
 #' @noRd
 .tr_stream_dir <- function(store, key) file.path(store$root, "stream", key)
 .tr_ckpt_path  <- function(store, key) file.path(.tr_stream_dir(store, key), "ckpt.rds")

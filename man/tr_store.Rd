@@ -16,6 +16,13 @@ Layout:
 objects/\if{html}{\out{<chave>}}.\if{html}{\out{<ext>}}    o valor, gravado pelo \code{store} do TIPO
 handles/\if{html}{\out{<chave>}}.json     metadados: tipo, tamanho, resumo, preview, erro
 previews/\if{html}{\out{<chave>}}.\if{html}{\out{<ext>}}   artefato de preview, quando tem arquivo
+progress/\if{html}{\out{<chave>}}.json    progresso e parcial de uma unidade EM VOO
+stream/\if{html}{\out{<chave>}}/ckpt.rds  checkpoint de uma região de fluxo em andamento
+stream/\if{html}{\out{<chave>}}/control.json  pause/step/tempo da região em voo
+
+\verb{progress/} e \verb{stream/} são de trabalho em voo, não de artefato: nascem quando
+a unidade começa e saem quando ela conclui. \verb{stream/} é por chave de UNIDADE
+(não de saída), criado pelo driver quando o laço começa.
 
 \strong{Escrita atômica} (temp + rename) não é refinamento: o contrato do
 executor é que o worker pode morrer a qualquer momento (cancelar = matar o

@@ -119,6 +119,15 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
       # evita. Aqui, e não na adoção: unidade adotada está EM VOO, e apagar o
       # progresso dela perderia o que o worker vivo acabou de publicar.
       .tr_clear_progress(store, u$key)
+      # E o COMANDO órfão, pelo mesmo argumento e no mesmo lugar: a chave é
+      # determinística, e um run morto sem limpar deixa o `control.json` de uma
+      # região pausada no disco. O run novo nasceria pausado, com o card parado e
+      # nada pra investigar. Aqui, e não na adoção: unidade adotada está EM VOO,
+      # e pode estar legitimamente pausada neste instante.
+      #
+      # Consequência que vale dizer: um comando escrito ANTES do despacho é
+      # perdido de propósito — o botão comanda o run em voo, não o próximo.
+      .tr_control_clear(store, u$key)
       st$inflight[[u$node]] <- list(unit = u, token = executor$submit(u, registry, store),
                                     t0 = Sys.time(), last_progress = NULL)
     }
@@ -164,6 +173,22 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
       if (isTRUE(res$ok)) {
         st$done <- c(st$done, saidas_de(u)); st$results[[u$node]] <- res$handles
         emit("done", u, duration = as.numeric(Sys.time() - job$t0, units = "secs"), handles = res$handles)
+      } else if (identical(res$error$class, "tr_error_stream_stopped")) {
+        # PARAR não é falhar: o usuário mandou a região parar, o driver deixou o
+        # checkpoint e a chave de saída continua VAZIA. Cair no ramo de falha
+        # abaixo gravaria `tr_store_put_error` sob toda chave de saída da região
+        # — um erro FALSO cacheado sob chave válida, que nenhum `tr_plan()`
+        # recalcula: exatamente o modo de falha que a Fase 3 fechou, chegando
+        # por outra estrada. `cancelled` é o evento que o `handoff()` já usa, e
+        # ele não pinta card de vermelho.
+        #
+        # O jusante sai como BLOQUEADO (via `prune`), e não como falho: ele não
+        # tem o que ler, mas ninguém errou. Sem o `prune` ele seria despachado,
+        # morreria com "chave ausente" e o erro falso reapareceria um salto
+        # adiante, agora sob a chave DELE.
+        emit("cancelled", u, message = res$error$message)
+        st$skipped <- c(st$skipped, saidas_de(u))
+        prune(saidas_de(u))
       } else {
         for (k in unlist(u$outputs)) {
           tr_store_put_error(store, k, res$error$message, class = res$error$class,

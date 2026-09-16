@@ -212,6 +212,24 @@ tr_server <- function(project, flow = "main",
 
     shiny::observeEvent(input$tr_rerun, { run_now(rv_doc()) })
 
+    # Comandar a região em voo: pause, um passo, velocidade, parar. Decodifica e
+    # chama o motor, sem lógica própria — como o resto do arquivo.
+    #
+    # Não é op de documento, e é aí que está a decisão: não entra no log de undo,
+    # não mexe em `rev` e não volta como `document`. É o precedente de
+    # `sinks-ricos.md` ("rode este nó agora" é COMANDO, não op) — um Ctrl+Z
+    # depois de pausar tem que desfazer a última EDIÇÃO, e um `rev` novo faria o
+    # front ressincronizar o grafo por causa de um botão de velocidade.
+    #
+    # A `key` é a da UNIDADE, e o front já a tem: ela vem em todo evento de
+    # unidade (`emit()`, em `scheduler.R`). Resolver o id do nó para a chave aqui
+    # seria conhecimento de plano dentro do barramento.
+    shiny::observeEvent(input$tr_stream_cmd, {
+      m <- input$tr_stream_cmd
+      tryCatch(tr_stream_command(rv_project()$store, m$key, m$cmd, tempo = m$tempo),
+               error = avisar())
+    })
+
     shiny::observeEvent(input$tr_undo, {
       # Undo por REPLAY do log sem a última op, sobre o `base_doc` desta sessão
       # e não sobre o vazio — ver `.tr_undo_doc()`. O valor do input não

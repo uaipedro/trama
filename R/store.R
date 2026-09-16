@@ -10,10 +10,11 @@
 #'   previews/<chave>.<ext>   artefato de preview, quando tem arquivo
 #'   progress/<chave>.json    progresso e parcial de uma unidade EM VOO
 #'   stream/<chave>/ckpt.rds  checkpoint de uma região de fluxo em andamento
+#'   stream/<chave>/control.json  pause/step/tempo da região em voo
 #'
-#' As duas últimas são de trabalho em voo, não de artefato: nascem quando a
-#' unidade começa e saem quando ela conclui. `stream/` é por chave de UNIDADE
-#' (não de saída), criada sob demanda pelo driver.
+#' `progress/` e `stream/` são de trabalho em voo, não de artefato: nascem quando
+#' a unidade começa e saem quando ela conclui. `stream/` é por chave de UNIDADE
+#' (não de saída), criado pelo driver quando o laço começa.
 #'
 #' **Escrita atômica** (temp + rename) não é refinamento: o contrato do
 #' executor é que o worker pode morrer a qualquer momento (cancelar = matar o
@@ -269,9 +270,9 @@ tr_store_gc <- function(store, keep = character(), max_age_days = 7) {
   if (!dir.exists(raiz)) return(invisible(0L))
   n <- 0L
   for (d in list.dirs(raiz, recursive = FALSE)) {
-    # A idade é do `ckpt.rds`, e não do diretório: a Tarefa 5.3 põe o arquivo de
-    # controle neste mesmo diretório, e um `pause` de hoje num checkpoint de
-    # semanas não é sinal de trabalho vivo.
+    # A idade é do `ckpt.rds`, e não do diretório: o arquivo de controle mora
+    # neste mesmo diretório, e um `pause` de hoje num checkpoint de semanas não
+    # é sinal de trabalho vivo.
     p <- file.path(d, "ckpt.rds")
     mt <- as.numeric(file.info(if (file.exists(p)) p else d)$mtime)
     if (!is.na(mt) && mt > cutoff) next
