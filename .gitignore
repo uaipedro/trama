@@ -11,3 +11,7 @@ node_modules/
 trama_*.tar.gz
 
 /.quarto/
+
+# Saídas geradas pelos fluxos de exemplo.
+exemplos/branco/resumo.csv
+exemplos/branco/saida_vendas.csv
