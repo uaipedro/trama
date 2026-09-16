@@ -154,7 +154,10 @@ print.tr_flow <- function(x, ...) { cat("<tr_flow>\n"); print(x$doc); invisible(
 tr_flow_code <- function(doc, registry = .tr_default_registry, registry_expr = "reg") {
   doc <- .tr_as_doc(doc)
   plan <- tr_plan(doc, targets = names(doc$nodes), registry = registry)
-  order <- names(plan$units)
+  # Nós, não unidades: a região de fluxo é UMA unidade, e `names(plan$units)`
+  # deixaria de fora todos os membros dela — o código gerado reconstruiria um
+  # documento com o colapso e sem o fluxo.
+  order <- .tr_plan_node_order(plan)
   dep <- function(x) if (is.numeric(x) || is.logical(x)) paste(deparse(x), collapse = "") else deparse(x)
   # Tirado dos formais de `tr_add()`, e não de uma lista à parte, pra não haver
   # duas verdades: um formal novo passa a ser reservado aqui no mesmo commit.

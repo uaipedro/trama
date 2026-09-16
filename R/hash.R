@@ -168,6 +168,99 @@
   ))
 }
 
+#' Impressão digital do adaptador de UMA aresta, memoizada como as outras.
+#'
+#' Mora aqui, e não inline em `plan.R`, porque a região precisa da MESMA
+#' impressão para as arestas internas dela: duas cópias divergiriam, e a que
+#' ficasse atrás daria chave diferente pra mesma conversão.
+#' @noRd
+.tr_adapter_print <- function(registry, adapter) {
+  if (is.null(adapter)) return(NULL)
+  .tr_print_cached(registry, paste0("ad:", adapter$from, "->", adapter$to), 1L,
+                   tr_adapter_for(adapter$from, adapter$to, registry)$fn)
+}
+
+#' Chave de conteúdo de uma REGIÃO de fluxo — a região inteira como uma
+#' computação só.
+#'
+#' Irmã de `.tr_unit_key()`, e mora ao lado dela pelo mesmo motivo: se as duas
+#' morassem em arquivos diferentes, "tudo o que pode mudar o resultado entra na
+#' chave?" deixaria de ser pergunta que se responde lendo um lugar.
+#'
+#' Quatro coisas entram aqui que não entram na chave de um nó solto, e cada uma
+#' fecha um furo conhecido:
+#'   - `init` e `step`: `fn_print` sai só de `spec$fn`, e nó com memória não roda
+#'     por `fn`. Sem eles, editar o corpo do acumulador serve o histórico velho
+#'     do cache, em silêncio, para sempre.
+#'   - `nonce` se algum membro é VOLÁTIL e o `fingerprint()` de cada membro
+#'     IMPURO: a liftabilidade isenta nó `online` por completo, então os dois
+#'     passam pela validação. Volátil cacheado nunca recomputa; impuro sem
+#'     fingerprint serve dado velho quando o mundo externo muda.
+#'   - a FIAÇÃO interna (dentro de `members[[id]]$inputs`): `junta(a =, b =)` com
+#'     as portas trocadas é outra computação, e não há param nem código que
+#'     registre isso.
+#'   - os adaptadores das arestas internas, que rodam ponto a ponto e cujo
+#'     resultado é o histórico gravado no store.
+#'
+#' Cadência (`tempo`, `publish_every`) NÃO é excluída: por decisão de desenho ela
+#' é estado de sessão e não vive no documento, então não há param a tirar.
+#' Excluir por nome quebraria no dia em que um nó tiver um param `tempo`.
+#'
+#' A ordem é estável por construção: os membros vêm na ordem topológica da
+#' região (com empate alfabético) e os mapas nomeados são ordenados com
+#' `method = "radix"`, pela razão de locale já documentada acima.
+#' @noRd
+.tr_region_key <- function(region, members, specs, registry, ext_keys, ext_prints,
+                           type_prints, externals, nonce = NULL) {
+  ord <- function(x) if (length(x)) x[order(names(x), method = "radix")] else x
+
+  code <- lapply(region$nodes, function(id) {
+    spec <- specs[[id]]
+    list(spec$id, spec$version,
+         .tr_print_cached(registry, spec$id, spec$version, spec$fn),
+         if (is.function(spec$init)) {
+           .tr_print_cached(registry, paste0(spec$id, "#init"), spec$version, spec$init)
+         },
+         if (is.function(spec$step)) {
+           .tr_print_cached(registry, paste0(spec$id, "#step"), spec$version, spec$step)
+         })
+  })
+
+  # `seed` só de quem é estocástico, a mesma regra do nó solto: `set_seed` num
+  # membro determinístico não pode invalidar a região inteira.
+  membros <- lapply(region$nodes, function(id) {
+    m <- members[[id]]
+    list(id, m$node_type, m$node_version, m$online, m$role, m$params,
+         if (isTRUE(m$stochastic)) m$seed else NULL, m$inputs)
+  })
+
+  rlang::hash(list(
+    "trama/stream_region", region$source, region$nodes, region$collapse,
+    code, membros, .tr_region_adapter_prints(members, registry),
+    ord(ext_keys), ord(ext_prints), type_prints, ord(externals), nonce
+  ))
+}
+
+#' Impressões dos adaptadores das arestas INTERNAS da região, por par de tipos.
+#'
+#' Por par, e não por aresta, porque é o par que determina a função: duas
+#' arestas com a mesma conversão têm a mesma impressão, e a fiação (qual aresta
+#' usa qual par) já entrou na chave por `members[[id]]$inputs`.
+#' @noRd
+.tr_region_adapter_prints <- function(members, registry) {
+  pares <- character()
+  for (m in members) for (srcs in m$inputs) for (s in srcs) {
+    if (identical(s$from, "internal") && !is.null(s$adapter)) {
+      pares <- c(pares, paste0(s$adapter$from, "\r", s$adapter$to))
+    }
+  }
+  pares <- sort(unique(pares), method = "radix")
+  lapply(stats::setNames(pares, pares), function(p) {
+    tp <- strsplit(p, "\r", fixed = TRUE)[[1]]
+    .tr_adapter_print(registry, list(from = tp[[1]], to = tp[[2]]))
+  })
+}
+
 #' Chave de UMA SAÍDA. O store guarda um artefato por porta de saída, não por
 #' nó — sem isso, um nó com duas saídas produziria a mesma chave para as duas,
 #' e conectar `split.treino` ou `split.teste` a jusante daria resultado
