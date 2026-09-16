@@ -5,6 +5,10 @@
 skip_if_no_data <- function() {
   skip_if_not(dir.exists("../../collections/trama.data"), "coleção trama.data ausente")
   skip_if_not_installed("dplyr"); skip_if_not_installed("readr")
+  # `pkgload` está em Suggests, e a política do CRAN manda usar sugerido de
+  # forma condicional: `etl_registry()` carrega a coleção com `load_all()`
+  # (ela não é um pacote instalado), então sem pkgload não há o que testar.
+  skip_if_not_installed("pkgload")
 }
 
 etl_registry <- function() {

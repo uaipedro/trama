@@ -4,6 +4,9 @@
 
 skip_pool <- function() {
   skip_if_not_installed("mirai"); skip_if_not_installed("dplyr"); skip_if_not_installed("readr")
+  # `pkgload` também é Suggests: é ele que põe o núcleo e a coleção dentro do
+  # daemon (ver `pool_setup()`), e sem pacote instalado não há outro caminho.
+  skip_if_not_installed("pkgload")
   skip_if_not(dir.exists("../../collections/trama.data"), "coleção trama.data ausente")
 }
 
