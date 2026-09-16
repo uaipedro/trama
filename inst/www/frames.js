@@ -160,7 +160,10 @@ export function organizar(nodes, edges) {
   const vistas = new Set();
   const arestas = [];
   edges.forEach((e) => {
-    const a = bloco(e.source), b = bloco(e.target), k = `${a} ${b}`;
+    // Separador NUL: id de nó nunca contém \0, então a chave do par não colide
+    // com nenhum id. Escrito como escape (mesmo caractere pro JS) porque o byte
+    // cru faz git e grep tratarem o arquivo inteiro como binário.
+    const a = bloco(e.source), b = bloco(e.target), k = `${a}\0${b}`;
     if (a === b || vistas.has(k)) return;
     vistas.add(k); arestas.push([a, b]);
   });
