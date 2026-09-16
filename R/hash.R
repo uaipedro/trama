@@ -328,6 +328,11 @@ tr_bust <- function(store, collection = NULL) {
   # Todos, e não só os da coleção, porque não há como ir da chave de saída (que
   # é o que o handle guarda) para a chave da unidade, que é o nome do diretório.
   # Errar pra este lado custa recomputação; errar pro outro custa correção.
+  # Efeito colateral medido, e aceito: isto apaga também o `control.json` de uma
+  # região PAUSADA em outra sessão, e o portão, sem arquivo, segue. Ou seja um
+  # bust despausa a região de outra pessoa além de destruir o checkpoint vivo
+  # dela. O argumento "errar para o lado da recomputação" cobre o checkpoint;
+  # não cobre o despausar, e está aqui escrito em vez de descoberto.
   unlink(file.path(store$root, "stream"), recursive = TRUE)
   invisible(n)
 }

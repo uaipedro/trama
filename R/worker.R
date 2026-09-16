@@ -203,6 +203,32 @@
                                     data = list(message = conditionMessage(e))))
 }
 
+#' Avisa sobre nome de campo QUASE certo em `ctx_extra`.
+#'
+#' `ctx_extra` é extensão genérica do `.ctx`: qualquer nó pode ler um campo
+#' próprio dali, então validar com lista branca fecharia a porta que a lista
+#' existe para abrir. O preço é silêncio — `list(checkpoint_ever = 0)` roda até
+#' o fim com o valor de fábrica e ninguém avisa, que é o único modo de falha
+#' calado que a porta dos ajustes introduziu.
+#'
+#' O meio: não recusar nada, e avisar quando o nome erra por pouco JUSTAMENTE
+#' nos dois campos que o núcleo é dono. Aviso na porta onde o erro foi digitado,
+#' e não dentro do daemon, que é onde ninguém lê.
+#' @noRd
+.tr_warn_ctx_extra <- function(ctx_extra) {
+  nossos <- c("publish_every", "checkpoint_every")
+  nomes <- setdiff(names(ctx_extra), nossos)
+  for (nm in nomes) {
+    d <- utils::adist(nm, nossos)[1, ]
+    if (min(d) <= 2L) {
+      rlang::warn(sprintf(
+        "Campo '%s' em ctx_extra: você quis dizer '%s'? Como está, o núcleo o ignora e usa o valor de fábrica.",
+        nm, nossos[[which.min(d)]]), class = "tr_warn_ctx_extra_typo")
+    }
+  }
+  invisible(ctx_extra)
+}
+
 #' Lê o progresso publicado por `.ctx$progress()`/`.ctx$partial()`/`.ctx$partial_node()` pra uma chave, ou `NULL` se a unidade não publicou nada (ou já terminou — o scheduler limpa ao concluir).
 #' @export
 tr_progress <- function(store, key) {

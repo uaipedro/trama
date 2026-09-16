@@ -455,3 +455,68 @@ test_that("`tr_stream_cmd` chama o motor e NÃO toca no documento", {
     expect_true("warning" %in% vapply(msgs, function(m) m$type, ""))
   })
 })
+
+test_that("`stop` com checkpoint_every = 0: a retomada USA o checkpoint que o stop gravou", {
+  # A incoerência que este teste fecha, achada na revisão da Fase 5: o caminho
+  # do `stop` grava um checkpoint mesmo com a válvula em 0 — de propósito, é o
+  # trabalho que o usuário acabou de assistir acontecer. Mas a LEITURA estava
+  # gateada pela mesma válvula, então o run seguinte, com o mesmo 0, jogava
+  # aquele arquivo fora e refazia tudo. A escrita não comprava nada, e o
+  # prejuízo caía no público exato da válvula: quem a liga é quem tem
+  # acumulador grande e não quer pagar serialização periódica.
+  #
+  # O teste de `checkpoint_every = 0` em test-stream-driver.R NÃO pega isto: lá
+  # o run morre por erro de passo, que não grava checkpoint nenhum, então uma
+  # leitura desgateada também não encontra arquivo.
+  zero <- list(checkpoint_every = 0)
+  x <- cenario(n = 10L)
+  dir.create(dirname(ctl_path(x$s, x$u$key)), recursive = TRUE, showWarnings = FALSE)
+  x$e$comandos <- list("4" = list(cmd = "stop"))
+
+  expect_error(.tr_run_unit(x$u, x$reg, x$s, ctx_extra = zero),
+               class = "tr_error_stream_stopped")
+  ck <- readRDS(ckpt_path2(x$s, x$u$key))
+  expect_equal(ck$i, 4L)   # último passo COMPLETO antes do comando
+
+  # Retomada com a MESMA válvula: sete passos novos, não dez.
+  x$e$comandos <- list()
+  unlink(ctl_path(x$s, x$u$key))
+  antes <- length(x$e$vistos)
+  .tr_run_unit(x$u, x$reg, x$s, ctx_extra = zero)
+  expect_equal(length(x$e$vistos) - antes, 6L)
+  hist <- tr_store_get(x$s, x$u$outputs$out, tr_get_type("c/v", x$reg))
+  expect_equal(hist$v, cumsum(1:10) / seq_len(10))
+})
+
+test_that("`stop` no passo 1 não promete checkpoint que não existe", {
+  # A mensagem dizia "o trabalho até o passo 0 está no checkpoint e o próximo
+  # run retoma dali" — e no passo 1 não há passo COMPLETO, então não há arquivo.
+  # Prometer retomada sem arquivo no disco é mandar o usuário esperar por algo
+  # que não vai acontecer.
+  # O comando tem que estar no disco ANTES do laço: emitido de dentro do passo
+  # 1, o portão só o vê antes do passo 2, e aí já há um passo completo.
+  x <- cenario(n = 10L)
+  dir.create(dirname(ctl_path(x$s, x$u$key)), recursive = TRUE, showWarnings = FALSE)
+  tr_stream_command(x$s, x$u$key, "stop")
+
+  err <- expect_error(.tr_run_unit(x$u, x$reg, x$s), class = "tr_error_stream_stopped")
+  expect_match(conditionMessage(err), "Nada havia a guardar")
+  expect_no_match(conditionMessage(err), "está no checkpoint")
+  expect_false(file.exists(ckpt_path2(x$s, x$u$key)))
+})
+
+test_that("nome QUASE certo em ctx_extra avisa; campo alheio passa calado", {
+  # O único modo de falha calado que a porta dos ajustes introduziu:
+  # `checkpoint_ever = 0` roda até o fim com o valor de fábrica e ninguém avisa.
+  # Validar com lista branca fecharia a porta que `ctx_extra` existe pra abrir
+  # (qualquer nó pode ler um campo próprio dali), então o meio é avisar só nos
+  # dois campos de que o núcleo é dono, e na porta onde o erro foi digitado.
+  expect_warning(.tr_warn_ctx_extra(list(checkpoint_ever = 0)),
+                 class = "tr_warn_ctx_extra_typo")
+  expect_warning(.tr_warn_ctx_extra(list(publish_ever = 1)),
+                 class = "tr_warn_ctx_extra_typo")
+  # Campo de um nó qualquer não é erro de digitação: passa sem ruído.
+  expect_silent(.tr_warn_ctx_extra(list(meu_campo_de_dominio = 1)))
+  expect_silent(.tr_warn_ctx_extra(list(publish_every = 1, checkpoint_every = 10)))
+  expect_silent(.tr_warn_ctx_extra(NULL))
+})

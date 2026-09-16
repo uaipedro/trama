@@ -1379,8 +1379,12 @@ test_that("a derivação da seed do passo é ESTÁVEL: valores fixados", {
   expect_false(f("a", 1L, 2L) == f("b", 2L, 1L))                  # o furo de `seed + i`
   expect_false(f("a", 1L, 1L) == f("b", 1L, 1L))                  # id separa
   expect_false(f("a", 1L, 1L) == f("a", 2L, 1L))                  # seed separa
-  # Inteiro válido para `set.seed()`, e bem espalhado: sem dispersão, dois
-  # passos vizinhos sorteariam parecido e o "ruído" teria estrutura.
+  # Inteiro válido para `set.seed()`, e uniforme na MARGINAL — que é o que estas
+  # duas linhas medem, e só isso. As seeds em si têm correlação serial (a
+  # mistura é multiplicação-e-rotação, quase afim: lag-1 medido em −0.36), e a
+  # independência do ruído visto pelo usuário vem do `set.seed()` do R, não
+  # daqui: depois dele, `runif`/`rnorm` saem com lag-1 ~0.02. Afirmar
+  # independência das seeds seria afirmar o que este teste não mede.
   v <- vapply(1:2000, function(i) f("no", 7L, i), 1L)
   expect_true(all(!is.na(v) & v >= 0L & v < 268435456L))
   expect_identical(length(unique(v)), 2000L)

@@ -33,6 +33,7 @@ tr_run <- function(doc, targets = NULL, registry = .tr_default_registry, store,
                    ctx_extra = NULL) {
   doc <- .tr_as_doc(doc)
   plan <- tr_plan(doc, targets, registry, store, settings = settings)
+  .tr_warn_ctx_extra(ctx_extra)
   tr_run_plan(plan, registry, store, executor, on_event, run_id, ctx_extra)
 }
 
@@ -82,7 +83,7 @@ tr_value <- function(doc, node, registry = .tr_default_registry, store,
                      port = NULL, executor = tr_executor_sequential(), settings = NULL,
                      ctx_extra = NULL) {
   res <- tr_run(doc, targets = node, registry = registry, store = store, executor = executor,
-                settings = settings, ctx_extra = ctx_extra)
+                settings = settings, ctx_extra = .tr_warn_ctx_extra(ctx_extra))
   u <- res$plan$units[[node]]
   # Membro INTERIOR de região não tem unidade própria: a região é uma unidade
   # só, nomeada pelo colapso. Sem este ramo `u` era NULL,

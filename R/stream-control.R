@@ -15,6 +15,15 @@
 #'
 #' ## Um escritor só, e é por isso que existe `seq`
 #'
+#' A ressalva medida: `tr_stream_command()` é ler-modificar-escrever do arquivo
+#' inteiro, então "um escritor" vale POR SESSÃO. Com duas sessões sobre o mesmo
+#' store, a segunda pode estar segurando uma leitura anterior à escrita da
+#' primeira — e aí ela não perde só o incremento do `seq`: ela RESSUSCITA o
+#' estado velho, despausando em silêncio uma região que a outra pausou. Raro, e
+#' se cura no clique seguinte (que lê o `seq` atual e o avança), mas não é
+#' "no máximo um clique perdido". Fechar de verdade exigiria o `seq` esperado
+#' viajar no comando e a escrita ser recusada quando não casa.
+#'
 #' O coordenador ESCREVE, o driver LÊ. O driver nunca escreve aqui, e isso não é
 #' economia: com dois escritores, "consumir" um `step` (apagar o pedido depois de
 #' honrá-lo) apagaria também o comando que o usuário mandou no mesmo intervalo, e

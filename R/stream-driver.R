@@ -320,7 +320,13 @@
   # Um checkpoint de um run cuja chave MUDOU nunca é lido, por construção: o
   # diretório se chama pela chave, e chave diferente é caminho diferente. O que
   # sobra é o diretório órfão, e disso cuida a varredura de `tr_store_gc()`.
-  ck <- if (ckpt_cada > 0) .tr_ckpt_read(store, unit$key, n) else NULL
+  # A LEITURA não é gateada por `ckpt_cada`, e a assimetria é de propósito. O
+  # zero quer dizer "não pague serialização periódica", não "ignore trabalho já
+  # bancado" — e o caminho do `stop` grava um checkpoint mesmo com zero. Gatear
+  # a leitura junto fazia aquela escrita não comprar nada: o run seguinte, com o
+  # mesmo zero, jogava fora os passos que o usuário acabou de assistir e refazia
+  # tudo. Pior no público exato da válvula, que é quem tem acumulador grande.
+  ck <- .tr_ckpt_read(store, unit$key, n)
   inicio <- if (is.null(ck)) 0L else ck$i
 
   # `init` roda UMA vez, antes do laço, e recebe só os params que declara —
@@ -454,12 +460,18 @@
       # serialização periódica", e aqui é UMA escrita, num gesto explícito de
       # quem pretende continuar depois. A alternativa era jogar fora o trabalho
       # que o usuário acabou de assistir acontecer.
-      if (i > 1L) .tr_ckpt_write(store, unit$key, i - 1L, n, estado, acc)
+      guardou <- i > 1L
+      if (guardou) .tr_ckpt_write(store, unit$key, i - 1L, n, estado, acc)
       rlang::abort(sprintf(
-        paste0("A região de fluxo '%s' foi PARADA no passo %d de %d. O trabalho até o passo %d ",
-               "está no checkpoint e o próximo run retoma dali; nada foi gravado na chave de ",
-               "saída, porque parar não é terminar."),
-        rg$id, i, n, i - 1L), class = "tr_error_stream_stopped")
+        paste0("A região de fluxo '%s' foi PARADA no passo %d de %d. %s Nada foi gravado na ",
+               "chave de saída, porque parar não é terminar."),
+        rg$id, i, n,
+        # Parada no passo 1 não tem passo COMPLETO a guardar, e prometer
+        # retomada sem arquivo no disco é mandar o usuário esperar por algo que
+        # não vai acontecer.
+        if (guardou) sprintf("O trabalho até o passo %d está no checkpoint e o próximo run retoma dali.", i - 1L)
+        else "Nada havia a guardar ainda, então o próximo run começa do passo 1."),
+        class = "tr_error_stream_stopped")
     }
 
     # Os valores DO PASSO, por `nó:porta`. Zerado a cada passo de propósito: um
@@ -779,12 +791,16 @@
 #'
 #' Três propriedades, e cada uma fecha um furo (o raciocínio está no cabeçalho
 #' deste arquivo):
-#'   - DETERMINÍSTICA: `rlang::hash()` dos mesmos três valores dá o mesmo dígito
-#'     em qualquer processo, sem tocar em `.Random.seed`. É o mesmo hash com que
-#'     o plano monta a chave da região, então "estável entre coordenador e
-#'     daemon" já é condição de vida do pacote inteiro — não é suposição nova.
-#'     Nada aqui depende de locale nem de ordem de iteração: a lista é posicional
-#'     e o id de nó é restrito a `[A-Za-z0-9_.-]` (`.tr_check_node_id()`).
+#'   - DETERMINÍSTICA: os mesmos três valores dão o mesmo inteiro em qualquer
+#'     processo, plataforma ou locale, sem tocar em `.Random.seed` — aritmética
+#'     exata abaixo de 2^53, e o id de nó restrito a `[A-Za-z0-9_.-]`
+#'     (`.tr_check_node_id()`), então não há colação envolvida.
+#'
+#'     A mistura é NOSSA, e não `rlang::hash()`. O corpo da função explica a
+#'     assimetria que obriga a isso; o que importa aqui é a consequência: a
+#'     estabilidade deixou de ser condição emprestada de um pacote de terceiro
+#'     e passou a ser promessa deste, sustentada pelos valores dourados do
+#'     teste. Trocar a mistura é decisão consciente, não refactor.
 #'   - PURA no passo: função só de (id, seed, i), e não do histórico do RNG. É o
 #'     que faz a retomada de checkpoint sair idêntica ao run ininterrupto.
 #'   - SEM COLISÃO entre pares (membro, passo): a identidade do membro entra no

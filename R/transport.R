@@ -17,6 +17,8 @@ tr_server <- function(project, flow = "main",
                       ctx_extra = NULL) {
   force(project); force(executor)
 
+  .tr_warn_ctx_extra(ctx_extra)
+
   function(input, output, session) {
     # O projeto é reativo porque ele TROCA com o editor em pé (abrir/criar). O
     # registry dentro dele não muda — trocar coleção exigiria trocar o JS da
