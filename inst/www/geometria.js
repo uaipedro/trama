@@ -264,9 +264,15 @@ export function crescerExterno(atual, membros, aspect) {
 // Onde o hexágono da marca entra num PNG exportado. Fica aqui, e não no
 // desenho, porque é conta com limites: em imagem pequena a marca não pode
 // comer o conteúdo, e em imagem grande não pode virar cartaz.
+//
+// O piso e o teto estão em unidades de CSS — as do FRAME, não as do PNG. Quem
+// chama mede o frame, faz esta conta e só então multiplica pela escala da
+// captura. Chamar isto direto com os pixels do PNG, que sai em 2x, dá uma
+// marca com METADE da fração pretendida da imagem: a altura dobra, o teto
+// não, e o hexágono vira um ponto no canto de um frame grande.
 export const MARCA_RAZAO = 173 / 200;
 export function marcaDaAgua(w, hh, margem = 16) {
-  const h = Math.min(32, Math.max(14, hh * 0.032));
+  const h = Math.min(48, Math.max(14, hh * 0.032));
   return { w: h * MARCA_RAZAO, h, margem,
            x: w - margem - h * MARCA_RAZAO, y: hh - margem - h };
 }

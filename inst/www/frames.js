@@ -397,7 +397,10 @@ const carregar = (src) => new Promise((ok, erro) => {
 //
 // Falha ao carregar a marca NÃO derruba a exportação: devolve o blob original.
 // Perder a assinatura é menos grave que perder a imagem que o usuário pediu.
-async function carimbar(blob) {
+//
+// `f` é o retângulo do frame, em unidades de CSS, e não decoração: a conta da
+// posição é feita NELE, e só o resultado é multiplicado pela escala da captura.
+async function carimbar(blob, f) {
   const url = URL.createObjectURL(blob);
   try {
     // Em paralelo porque são duas buscas independentes, e a da marca costuma
@@ -407,15 +410,18 @@ async function carimbar(blob) {
     cv.width = img.naturalWidth; cv.height = img.naturalHeight;
     const ctx = cv.getContext("2d");
     ctx.drawImage(img, 0, 0);
-    // A geometria sai do tamanho do PNG, não do frame: o PNG vem em 2x, e
-    // medir no frame daria uma marca com metade do tamanho pedido na imagem
-    // que o usuário abre. A margem maior (32) é pelo mesmo motivo — é a folga
-    // de 16 do frame, contada em pixels da imagem.
-    const p = marcaDaAgua(cv.width, cv.height, 32);
+    // A geometria é calculada no tamanho do FRAME e depois escalada, e não
+    // direto no tamanho do PNG. O PNG sai em 2x: medido nele, o teto de 48 é
+    // alcançado com metade da altura de frame, e a marca fica com METADE da
+    // fração pretendida da imagem — num frame 16:9 grande vira um ponto
+    // invisível no canto. A escala vem da imagem de verdade (e não de um `2`
+    // escrito à mão) pra continuar certa se o `pixelRatio` da captura mudar.
+    const escala = cv.width / f.w;
+    const p = marcaDaAgua(f.w, f.h);
     // O SVG da marca só tem viewBox, sem width/height: por isso as medidas de
     // destino do `drawImage` são explícitas, e não vêm do `naturalWidth` dele.
-    ctx.globalAlpha = 0.55;
-    ctx.drawImage(marca, p.x, p.y, p.w, p.h);
+    ctx.globalAlpha = 0.7;
+    ctx.drawImage(marca, p.x * escala, p.y * escala, p.w * escala, p.h * escala);
     return await new Promise((ok) => cv.toBlob((b) => ok(b || blob), "image/png"));
   } catch (e) {
     console.warn("marca d'água não aplicada:", e);
@@ -446,7 +452,7 @@ export async function exportFramePng(viewportEl, f, index, marca = true) {
                transform: `translate(${-f.x}px, ${-f.y}px) scale(1)` },
     });
     if (!bruto) throw new Error("a captura não gerou imagem");
-    const blob = marca ? await carimbar(bruto) : bruto;
+    const blob = marca ? await carimbar(bruto, f) : bruto;
     // Blob, e não data: URL: um frame grande em 2x dá um PNG de megabytes, e
     // como texto base64 no `href` ele pesa um terço a mais e há navegador que
     // recusa baixar URL desse tamanho. A URL do blob é revogada depois de o

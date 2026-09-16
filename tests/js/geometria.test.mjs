@@ -169,7 +169,7 @@ test("marcaDaAgua escala com a imagem e respeita os limites", () => {
   const pequena = marcaDaAgua(200, 120);
   assert.equal(pequena.h, 14);                     // piso
   const grande = marcaDaAgua(4000, 3000);
-  assert.equal(grande.h, 32);                      // teto
+  assert.equal(grande.h, 48);                      // teto
 });
 
 test("marcaDaAgua mantém a proporção do hexágono", () => {
