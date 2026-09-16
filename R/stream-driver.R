@@ -37,6 +37,8 @@
 #'   - porta comum → um valor só, CONSTANTE em todos os passos.
 #' Duas portas de fluxo com contagens de pontos diferentes não têm semântica de
 #' lockstep, e param aqui — é o mesmo motivo de `tr_error_stream_multi_source`.
+#' E `NULL` vale como zero pontos aqui também: numa fonte de várias saídas ele
+#' é lido como "todas as portas vazias", e não como lista de portas faltando.
 #'
 #' ## O contrato do COLAPSO
 #'
@@ -79,10 +81,13 @@
   specs <- lapply(stats::setNames(rg$order, rg$order),
                   function(id) tr_get_node(rg$nodes[[id]]$node_type, registry))
 
-  # `.ctx` da região: a unidade já pede (`wants_ctx = TRUE`), mas nenhum membro
-  # o recebe — nó elevado tem `.ctx` PROIBIDO (Fase 2) e `init`/`step` não o
-  # tomam. Quem vai usá-lo é o driver, na Fase 5, pra publicar o parcial de cada
-  # nó e ler comandos pelo store. Construí-lo agora seria código morto. O
+  # `.ctx` da região: a unidade pede (`wants_ctx = TRUE` em `plan.R`), e nada
+  # honra o pedido — o despacho de `.tr_run_unit()` vem pra cá ANTES do bloco
+  # que constrói o ctx, e este driver não constrói nenhum. Nenhum membro o
+  # receberia de todo jeito: nó elevado tem `.ctx` PROIBIDO (Fase 2) e
+  # `init`/`step` não o tomam. Quem vai usá-lo é o driver, na Fase 5, pra
+  # publicar o parcial de cada nó e ler comandos pelo store; até lá, a região
+  # não publica progresso e `tr_progress()` na chave dela devolve NULL. O
   # `ctx_extra` entra na assinatura mesmo sem uso porque descartá-lo no despacho
   # de `.tr_run_unit()` seria uma perda silenciosa quando a Fase 5 o usar.
 
@@ -100,7 +105,12 @@
 
   # `t0` só agora: `.tr_run_unit()` cronometra o `do.call` do `fn` e não a
   # leitura dos inputs, e o `duration` do handle tem que significar a mesma
-  # coisa nos dois — é o número que o front mostra no card.
+  # coisa nos dois — é o número que o front mostra no card. Subir esta linha
+  # para antes do `ext` não quebra teste nenhum de resultado (o histórico sai
+  # idêntico), então o que a mantém no lugar é o teste de `duration` em
+  # `test-stream-driver.R`, com um `restore` lento: sem ele, a região passaria a
+  # medir a leitura do artefato de fora — o modelo treinado — e o card diria que
+  # o laço de dez mil pontos levou o tempo de carregar um arquivo.
   t0 <- Sys.time()
 
   # 2. A fonte roda uma vez e entrega os pontos.
@@ -116,19 +126,47 @@
              "A fonte roda antes do laço e não tem passo de onde ler."), fonte, rg$id),
       class = "tr_error_stream_bad_source")
   }
-  vals <- .tr_region_route(
-    do.call(fs$fn, .tr_region_args(fonte, rg, specs, registry, ext, list())),
-    fonte, fs)
+  saida <- do.call(fs$fn, .tr_region_args(fonte, rg, specs, registry, ext, list()))
+  # "NULL vale como zero pontos" (ver o cabeçalho) só valia para a fonte de UMA
+  # saída: com mais de uma, `.tr_region_route()` exige a lista nomeada pelas
+  # portas e abortava `tr_error_bad_output` ANTES da normalização lá embaixo.
+  # Quem paga é justamente a fonte que o contrato prevê — `data/to_stream` com a
+  # tabela desligada devolve o próprio default, que é NULL —, e a região morria
+  # com um erro sobre "não devolveu as portas" num grafo que a validação ACEITA.
+  # NULL da fonte é "todas as portas vazias", que é a única leitura sensata: a
+  # porta de fluxo fica sem pontos e a porta comum fica sem valor.
+  #
+  # Normalizado AQUI e não dentro de `.tr_region_route()` porque lá a regra vale
+  # também para os MEMBROS, e um membro de duas saídas que devolve NULL num
+  # passo é erro de verdade: aceitá-lo daria NULL calado em cada porta.
+  if (is.null(saida) && length(fs$outputs) > 1L) {
+    saida <- stats::setNames(vector("list", length(fs$outputs)), names(fs$outputs))
+  }
+  vals <- .tr_region_route(saida, fonte, fs)
 
   fluxos <- names(fs$outputs)[vapply(fs$outputs, function(p) isTRUE(p$stream), logical(1))]
   for (pn in fluxos) {
     # `NULL` -> zero pontos (ver o cabeçalho). Normalizado AQUI e uma vez só,
     # pra que o laço e o colapso não tenham que saber que existem duas formas.
     if (is.null(vals[[pn]])) vals[pn] <- list(list())
-    if (!is.list(vals[[pn]])) {
+    # `is.object()` além de `!is.list()` porque um `data.frame` É uma lista: com
+    # `!is.list()` sozinho, a fonte que esquece de fatiar e devolve a TABELA
+    # INTEIRA passa pela guarda, e o driver anda nela como uma lista de colunas
+    # — três colunas viram um fluxo de três pontos, o `fn` elevado recebe o
+    # vetor inteiro de cada coluna e a região TERMINA, com um histórico de três
+    # linhas que vai pro store e é servido do cache pra sempre. É o esquecimento
+    # mais provável do autor de uma fonte, e é o modo de falha calado contra o
+    # qual este arquivo inteiro foi escrito.
+    #
+    # `is.object()` pega `tbl_df` e `sf` pelo mesmo teste, SEM o núcleo conhecer
+    # tipo de domínio nenhum — é essa a propriedade que importa, e é por isso
+    # que a guarda não é uma lista de classes proibidas. `is.object(list(1, 2))`
+    # é FALSE, então a lista de pontos legítima continua passando.
+    if (!is.list(vals[[pn]]) || is.object(vals[[pn]])) {
       rlang::abort(sprintf(
         paste0("A fonte '%s' (%s) devolveu %s na porta de fluxo '%s', e o driver espera uma ",
-               "LISTA de pontos — um elemento por passo, `list()` ou NULL se não houver nenhum."),
+               "LISTA de pontos — um elemento por passo, `list()` ou NULL se não houver nenhum. ",
+               "A lista de pontos é uma lista nua; quem fatia é a fonte."),
         fonte, fs$id, class(vals[[pn]])[[1]], pn),
         class = "tr_error_stream_bad_source")
     }
@@ -234,6 +272,12 @@
         class = "tr_error_stream_collapse", parent = cnd)
     })
   })
+  # `duration` é o tempo da REGIÃO INTEIRA — fonte, laço e todos os colapsos —,
+  # e é o MESMO número gravado no handle de cada saída de cada colapso. Numa
+  # região de dois colapsos o front mostra o mesmo tempo nos dois cards, e isso
+  # é de propósito: a região é uma unidade e rodou uma vez, então não existe "o
+  # tempo do colapso 2" para atribuir a ele. Fica escrito aqui porque o card não
+  # diz, e sem isto alguém somaria os dois e concluiria o dobro do tempo real.
   duration <- as.numeric(Sys.time() - t0, units = "secs")
 
   # Gravar por `.tr_store_outputs()` é o que faz o `store`/`preview`/`summary` do

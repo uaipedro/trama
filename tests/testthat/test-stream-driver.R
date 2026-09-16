@@ -19,6 +19,7 @@ diario <- function() {
   e$inits <- list()      # os params que cada `init` recebeu
   e$colapsos <- list()   # o que cada chamada do colapso recebeu
   e$restores <- 0L       # leituras de artefato do store, do tipo inteiro
+  e$sono <- 0            # segundos que cada leitura de artefato demora
   e
 }
 
@@ -28,9 +29,17 @@ driver_collection <- function(e = diario()) {
   # `restore` que conta: é a prova de que a entrada comum é lida UMA vez, e não
   # uma por passo. Um contador dentro do `fn` do produtor não serviria — ele
   # roda uma vez de qualquer jeito; quem conta leitura é o lado que lê.
+  #
+  # E `e$sono` faz a leitura DEMORAR, o que é a única forma de medir que o
+  # `duration` da região não inclui as leituras: com o cronômetro no lugar
+  # errado a região sai com o resultado certo e o tempo do arquivo pesado.
   val <- tr_type("d/v", label = "Valor",
                  store = function(x, path) saveRDS(x, path),
-                 restore = function(path) { e$restores <- e$restores + 1L; readRDS(path) })
+                 restore = function(path) {
+                   e$restores <- e$restores + 1L
+                   if (e$sono > 0) Sys.sleep(e$sono)
+                   readRDS(path)
+                 })
 
   tr_collection(
     id = "d", version = "1.0.0", label = "Driver de fluxo",
@@ -51,6 +60,21 @@ driver_collection <- function(e = diario()) {
       tr_node("d/fonte_torta", fn = function() 42,
               outputs = list(out = ponto()),
               description = "Devolve um escalar onde o driver espera a lista de pontos."),
+      # A fonte que ESQUECEU DE FATIAR: devolve a tabela inteira. É list-like,
+      # então a guarda ingênua (`!is.list()`) a deixa passar e o driver anda nas
+      # COLUNAS — um fluxo de três pontos, cada ponto um vetor de cem. Nada erra:
+      # o histórico sai com três linhas plausíveis. É o erro mais provável de
+      # quem escreve uma fonte, e o único do arquivo que termina em silêncio.
+      tr_node("d/fonte_tabela", fn = function() data.frame(a = 1:100, b = 101:200, c = 201:300),
+              outputs = list(out = ponto()),
+              description = "Devolve a tabela inteira, sem fatiar em pontos."),
+      # Espelha `s/fonte_dupla` e a forma real de `data/to_stream` com resumo:
+      # DUAS saídas e a entrada opcional solta, então o `fn` devolve NULL. É a
+      # fonte em que "NULL vale como zero pontos" tem que continuar valendo.
+      tr_node("d/fonte_dupla", fn = function(dados = NULL) dados,
+              inputs = list(dados = tr_port("d/v", required = FALSE)),
+              outputs = list(fluxo = ponto(), resumo = "d/v"),
+              description = "Pontos por uma saída, resumo comum pela outra."),
       # Espelha `data/to_stream`: os pontos vêm de uma tabela ligada por
       # entrada COMUM, e com a entrada solta o `fn` devolve o próprio default.
       tr_node("d/fonte_ext", fn = function(dados = NULL) dados,
@@ -75,7 +99,11 @@ driver_collection <- function(e = diario()) {
       # Média corrente: o nó COM MEMÓRIA mínimo que prova o encadeamento do
       # estado. Se `state` não atravessar o passo, `n` fica em 1 e a média vira
       # o último ponto — plausível e errado.
-      tr_node("d/media", fn = function(x, k) x,
+      # `k = NULL` no formal do `fn`: `k` é porta OPCIONAL, e porta opcional
+      # solta não é passada — sem o default o nó aborta "argumento ausente, sem
+      # padrão" assim que o corpo tocar `k`. O `step` já traz `k = NA_real_` pela
+      # mesma razão; era só o `fn` que faltava.
+      tr_node("d/media", fn = function(x, k = NULL) x,
               inputs = list(x = ponto(), k = tr_port("d/v", required = FALSE)),
               outputs = list(out = ponto()),
               params = list(peso = tr_param_num(1)),
@@ -300,6 +328,40 @@ test_that("fonte que não devolve a lista de pontos erra alto, nomeando a fonte"
   expect_match(conditionMessage(err), "'fo'")
 })
 
+test_that("fonte que devolve a TABELA inteira erra alto, em vez de andar nas colunas", {
+  # O caso que a guarda de `!is.list()` sozinha não pega: `data.frame` É uma
+  # lista, então a tabela não fatiada passava e o driver andava nela como lista
+  # de COLUNAS. Três colunas viravam três pontos, o `fn` elevado recebia o vetor
+  # inteiro de cada coluna, e a região TERMINAVA — histórico de três linhas
+  # plausível, gravado no store e servido do cache pra sempre. É o esquecimento
+  # mais provável de quem escreve uma fonte (`data/to_stream`, Fase 6).
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte_tabela") |>
+    tr_add("pu", "d/puro", from = "fo") |>
+    tr_add("co", "d/colapsa", from = "pu"))
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+
+  err <- expect_error(.tr_run_unit(u, reg, s), class = "tr_error_stream_bad_source")
+  expect_match(conditionMessage(err), "'fo'")
+  # A CLASSE do que veio entra na mensagem: sem ela o autor da fonte lê "espera
+  # uma lista", olha o próprio `data.frame` (que é uma lista) e não vê o erro.
+  expect_match(conditionMessage(err), "data.frame")
+  expect_match(conditionMessage(err), "quem fatia é a fonte")
+  # E nada rodou: nenhuma chamada do nó elevado, nenhum colapso.
+  expect_equal(length(e$puros), 0L)
+  expect_equal(length(e$colapsos), 0L)
+})
+
+test_that("o contrato da fonte é a lista NUA: `list()` passa, objeto list-like não", {
+  # A guarda é `is.object()`, e não uma lista de classes proibidas: ela pega
+  # `tbl_df` e `sf` sem o núcleo conhecer tipo de domínio nenhum. O preço é que
+  # a lista de pontos tem que ser nua — e é o que o contrato já pede.
+  expect_false(is.object(list(1, 2)))
+  expect_true(is.object(data.frame(a = 1)))
+  expect_true(is.object(structure(list(1, 2), class = "minha_lista")))
+})
+
 test_that("o colapso recebe o fluxo INTEIRO, numa chamada só", {
   e <- diario(); reg <- driver_registry(e); s <- tmp_store()
   doc <- tr_flow_doc(tr_flow(reg) |>
@@ -363,6 +425,29 @@ test_that("fonte com a entrada solta devolve NULL, e NULL é zero pontos", {
   r <- roda_regiao(doc, reg, s)
   expect_equal(length(e$colapsos), 1L)
   expect_equal(length(e$colapsos[[1]]), 0L)
+  hist <- tr_store_get(s, r$unit$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(nrow(hist), 0L)
+})
+
+test_that("NULL é zero pontos também na fonte de VÁRIAS saídas", {
+  # `d/fonte_dupla` é a forma de `data/to_stream` com resumo: duas saídas, e com
+  # a tabela desligada o `fn` devolve o próprio default, NULL. A checagem de
+  # "devolveu todas as portas declaradas" rodava ANTES da normalização de NULL e
+  # a região morria com `tr_error_bad_output` — "declara as saídas fluxo, resumo
+  # mas devolveu NULL" —, num grafo que a validação da região ACEITA (a porta é
+  # opcional). E o erro ia pra chave da região, que nenhum `tr_plan()` recalcula.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte_dupla") |>
+    tr_add("co", "d/colapsa") |>
+    tr_link("fo:fluxo", "co:x"))
+
+  r <- roda_regiao(doc, reg, s)
+  # Zero pontos, o colapso chamado UMA vez com a lista vazia, histórico vazio —
+  # o mesmo comportamento da fonte de uma saída só.
+  expect_equal(length(e$colapsos), 1L)
+  expect_equal(e$colapsos[[1]], list())
+  expect_equal(length(e$puros), 0L)
   hist <- tr_store_get(s, r$unit$outputs$out, tr_get_type("d/v", reg))
   expect_equal(nrow(hist), 0L)
 })
@@ -557,6 +642,50 @@ test_that("os handles do `done` são nomeados como as saídas da REGIÃO", {
   p2 <- tr_plan(doc, registry = reg, store = s)
   expect_true(p2$units$c1$cached)
   expect_setequal(names(p2$units$c1$handles), names(r$handles))
+})
+
+test_that("o `duration` da região NÃO inclui a leitura dos artefatos de fora", {
+  # `duration` é o número que o front mostra no card, e tem que significar nos
+  # dois executores a mesma coisa que significa num nó comum: o tempo do
+  # trabalho, não o da leitura dos inputs. O que vem de fora da região é
+  # justamente o artefato mais pesado do fluxo (o modelo treinado), então com o
+  # cronômetro acima das leituras o card diria que o laço demorou o tempo de
+  # carregar um arquivo — e nenhum teste de resultado percebe, porque o
+  # histórico sai idêntico. `e$sono` faz a leitura demorar pra que a diferença
+  # seja mensurável.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("k", "d/const", v = 7) |>
+    tr_add("fo", "d/fonte", n = 3L) |>
+    tr_add("ac", "d/media", from = "fo") |>
+    tr_link("k:out", "ac:k") |>
+    tr_add("co", "d/colapsa", from = "ac"))
+
+  p <- tr_plan(doc, registry = reg, store = s)
+  .tr_run_unit(p$units$k, reg, s)   # antes do sono: `k` não lê nada
+
+  e$sono <- 0.4
+  t0 <- Sys.time()
+  hs <- .tr_run_unit(p$units$co, reg, s)
+  parede <- as.numeric(Sys.time() - t0, units = "secs")
+  e$sono <- 0
+
+  # A leitura lenta ACONTECEU dentro da execução da região — sem isto o teste
+  # passaria por não ter medido nada.
+  expect_equal(e$restores, 1L)
+  expect_gte(parede, 0.4)
+  # E o `duration` gravado ficou de fora dela.
+  expect_lt(hs$out$duration, 0.3)
+  expect_lt(tr_store_handle(s, p$units$co$outputs$out)$duration, 0.3)
+})
+
+test_that("nenhum nó das coleções de teste tem porta opcional sem default no formal", {
+  # A classe de defeito que já quebrou `s/fonte` e `s/fonte_dupla`: formal que
+  # corresponde a porta `required = FALSE` e não tem default. Porta opcional
+  # solta não é passada, então o nó aborta "argumento ausente, sem padrão" no
+  # instante em que o corpo tocar o argumento — e fica latente até lá, porque um
+  # corpo que ignora o argumento nunca o força.
+  expect_equal(portas_opcionais_sem_default(driver_collection(diario())), character())
 })
 
 test_that("erro no colapso nomeia o COLAPSO, não a região inteira", {
