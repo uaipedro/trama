@@ -116,6 +116,33 @@
   # vale sem que arquivo nenhum precise existir.
   cadencia <- ctx_extra$publish_every %||% 0.1
 
+  # Cadência do CHECKPOINT, em PASSOS (não em segundos, ao contrário da de
+  # publicação): o que o checkpoint protege é trabalho, e trabalho aqui se conta
+  # em pontos. "Perdi no máximo 99 passos" é uma garantia que o autor do fluxo
+  # entende; "perdi no máximo 2 segundos" depende de quanto cada ponto demora.
+  #
+  # Chega por `ctx_extra` pelo mesmo motivo de `publish_every` (Decisão 9): é
+  # botão operacional, não conteúdo do grafo — como param do documento, mudar a
+  # cadência mudaria a chave e recomputaria o fluxo inteiro, que é exatamente o
+  # que esta tarefa existe pra evitar.
+  #
+  # Default 100, e o que isso custa: cada checkpoint serializa o acumulador
+  # INTEIRO (o histórico até aqui), então o custo é `n/100` escritas de um
+  # acumulador que cresce — em dez mil pontos, 100 escritas, e ~50 vezes o
+  # tamanho do histórico final em bytes no disco ao longo do run. Num histórico
+  # de dez megabytes é meio gigabyte de escrita; num de um gigabyte é cinquenta,
+  # e aí o número tem que subir. O outro lado é o que a Fase 4 mediu: sem
+  # checkpoint, morrer no passo 9.999 custa os 9.999. 100 é o meio honesto, e
+  # `checkpoint_every = 0` desliga.
+  #
+  # Valor torto (NA, texto, negativo) DESLIGA em vez de abortar, pelo mesmo
+  # motivo do `tryCatch` no tipo do parcial mais abaixo: uma região que roda hoje
+  # não pode parar de rodar por causa de um botão de operação. Desligado é o
+  # comportamento de antes desta tarefa, que é o pior aceitável; abortar o laço
+  # de dez mil pontos por causa de um `checkpoint_every` mal digitado não é.
+  ckpt_cada <- suppressWarnings(as.integer(ctx_extra$checkpoint_every %||% 100L))
+  if (length(ckpt_cada) != 1L || is.na(ckpt_cada) || ckpt_cada < 0L) ckpt_cada <- 0L
+
   # 1. As entradas COMUNS da região, lidas UMA vez. `.tr_load_ref()` é o mesmo
   # de um nó qualquer: o adaptador da aresta roda lá, e a impressão dele já
   # entrou na chave da região (plan.R). Escrever um segundo carregador aqui
@@ -213,16 +240,41 @@
   }
   n <- if (length(ns)) ns[[1]] else 0L
 
-  # 3. `init` roda UMA vez, antes do laço, e recebe só os params que declara —
+  # 3. O CHECKPOINT, se houver um sob esta chave. Lido aqui — depois de `n` e
+  # ANTES de `init` — por duas razões: `n` é o que valida o checkpoint (ver
+  # `.tr_ckpt_read()`), e retomar não pode rodar `init`, cujo resultado seria
+  # descartado em seguida pelo estado gravado. Um `init` que aloca caro pagaria
+  # duas vezes por run retomado.
+  #
+  # Um checkpoint de um run cuja chave MUDOU nunca é lido, por construção: o
+  # diretório se chama pela chave, e chave diferente é caminho diferente. O que
+  # sobra é o diretório órfão, e disso cuida a varredura de `tr_store_gc()`.
+  ck <- if (ckpt_cada > 0) .tr_ckpt_read(store, unit$key, n) else NULL
+  inicio <- if (is.null(ck)) 0L else ck$i
+
+  # `init` roda UMA vez, antes do laço, e recebe só os params que declara —
   # `node.R` valida `init` como função de params, e só de params.
   estado <- list()
-  for (id in rg$order) {
-    if (!isTRUE(rg$nodes[[id]]$online)) next
-    ini <- specs[[id]]$init
-    # `estado[id] <- list(v)`, e não `estado[[id]] <- v`: um `init` que devolve
-    # NULL (estado que só nasce no primeiro passo) REMOVERIA a entrada, e o
-    # `step` receberia o estado de outro nó — ou nenhum.
-    estado[id] <- list(do.call(ini, rg$nodes[[id]]$params[names(formals(ini))]))
+  if (is.null(ck)) {
+    for (id in rg$order) {
+      if (!isTRUE(rg$nodes[[id]]$online)) next
+      ini <- specs[[id]]$init
+      # `estado[id] <- list(v)`, e não `estado[[id]] <- v`: um `init` que devolve
+      # NULL (estado que só nasce no primeiro passo) REMOVERIA a entrada, e o
+      # `step` receberia o estado de outro nó — ou nenhum.
+      estado[id] <- list(do.call(ini, rg$nodes[[id]]$params[names(formals(ini))]))
+    }
+  } else {
+    # É aqui que a Decisão 8 se paga: o estado é explícito e serializável porque
+    # `init`/`step` o devolvem como VALOR. Uma closure com o estado no ambiente
+    # não teria como voltar do disco, e este arquivo inteiro teria que recomeçar
+    # do passo 1 a cada morte do worker.
+    #
+    # Contrapartida que o autor do nó carrega: estado que não sobrevive a um
+    # `saveRDS` (ponteiro externo, conexão aberta, ambiente com referência a
+    # processo) volta quebrado, e o driver não tem como detectar isso. Estado de
+    # nó com memória é valor de R, não recurso.
+    estado <- ck$estado
   }
 
   # 4. O laço. O histórico de cada porta de colapso alimentada de dentro cresce
@@ -234,6 +286,11 @@
                      names(rg$nodes[[cid]]$inputs))
     for (pn in portas) acc[[cid]][pn] <- list(vector("list", n))
   }
+  # O acumulado do checkpoint substitui a pré-alocação. A FORMA casa por
+  # construção — quais colapsos, quais portas e de onde cada porta é alimentada
+  # entraram todos na chave da região —, e o COMPRIMENTO é o que
+  # `.tr_ckpt_read()` confere contra `n`.
+  if (!is.null(ck)) acc <- ck$hist
 
   # Quem tem parcial pra publicar, e com QUAL tipo. O colapso não entra: o `fn`
   # dele só roda depois do laço, e o artefato dele sai por chave de store como o
@@ -263,7 +320,10 @@
   # tarefa existe pra tirar.
   ultima <- -Inf
 
-  for (i in seq_len(n)) {
+  # `seq.int(inicio + 1L, n)` só quando há passo a dar: com `inicio == n` (o run
+  # morreu DEPOIS do laço, num colapso) ele contaria para trás e o laço rodaria
+  # o fluxo ao contrário. `integer()` é "nada a fazer", e o colapso roda direto.
+  for (i in if (inicio < n) seq.int(inicio + 1L, n) else integer()) {
     # Os valores DO PASSO, por `nó:porta`. Zerado a cada passo de propósito: um
     # membro que lesse o valor do passo anterior (porque o produtor não rodou
     # neste) andaria com dado velho em silêncio, e a porta ausente erra alto no
@@ -336,6 +396,22 @@
         for (pb in publicaveis) ctx$partial_node(pb$id, cur[[pb$de]], pb$tipo)
       }
     }
+
+    # O checkpoint, DEPOIS do passo inteiro: gravar no meio guardaria um
+    # `estado` de alguns membros já no passo `i` e de outros ainda no `i-1`, e a
+    # retomada continuaria de um retrato que nunca existiu — plausível, e errado
+    # em silêncio. O `i` gravado é sempre um passo COMPLETO, e é isso que faz o
+    # checkpoint nunca envenenar a retomada de um run que falhou: o passo que
+    # quebrou não está nele, e é refeito.
+    #
+    # `i < n` porque o último passo não vale uma escrita do acumulador inteiro:
+    # o colapso roda em seguida e o diretório sai. Se o colapso é que falha, a
+    # retomada volta ao último múltiplo da cadência e refaz no máximo
+    # `ckpt_cada` passos — barato, contra uma serialização do histórico inteiro
+    # em TODO run que termina bem.
+    if (ckpt_cada > 0 && i < n && i %% ckpt_cada == 0) {
+      .tr_ckpt_write(store, unit$key, i, n, estado, acc)
+    }
   }
 
   # 5. Cada colapso roda UMA vez, com o fluxo inteiro.
@@ -357,6 +433,13 @@
   # é de propósito: a região é uma unidade e rodou uma vez, então não existe "o
   # tempo do colapso 2" para atribuir a ele. Fica escrito aqui porque o card não
   # diz, e sem isto alguém somaria os dois e concluiria o dobro do tempo real.
+  #
+  # Numa região RETOMADA de checkpoint isto mede só a tentativa que terminou —
+  # os passos vindos do disco não estão aqui, e o card vai dizer menos tempo do
+  # que o fluxo custou de fato. É a leitura certa do número que o executor
+  # cronometra ("quanto durou este `fn`"), e somar as tentativas exigiria pôr
+  # tempo acumulado no checkpoint: aí `duration` passaria a significar duas
+  # coisas diferentes na região e no nó comum.
   duration <- as.numeric(Sys.time() - t0, units = "secs")
 
   # Gravar por `.tr_store_outputs()` é o que faz o `store`/`preview`/`summary` do
@@ -377,7 +460,88 @@
     nomes <- if (is.null(names(hs))) unname(mapa) else unname(mapa)[match(names(hs), names(mapa))]
     handles <- c(handles, stats::setNames(hs, nomes))
   }
+
+  # A unidade concluiu: o diretório sai, e o artefato final o substitui. DEPOIS
+  # dos handles, e não antes: entre apagar o checkpoint e gravar o artefato há
+  # uma janela em que a chave não tem nem um nem outro, e um worker morto nela
+  # custaria o run inteiro. Nesta ordem o pior caso é um diretório órfão.
+  #
+  # É o ÚNICO caminho que apaga. Falha no `step`, falha no colapso e worker
+  # morto guardam o checkpoint de propósito: o que está nele são passos
+  # completos de uma computação determinística sob uma chave que não mudou —
+  # jogá-lo fora custaria os 9.999 pontos bons por causa do erro no 10.000º, que
+  # é a situação que esta tarefa existe pra atender. Quem apaga o que sobra é
+  # `tr_store_gc()` (por idade) e `tr_bust()` (porque lá o código mudou sem a
+  # chave mudar, e retomar serviria um histórico metade velho).
+  .tr_ckpt_clear(store, unit$key)
   handles
+}
+
+#' O diretório da região no store: `<store>/stream/<chave-da-unidade>/`.
+#'
+#' Pela chave da UNIDADE, que é a mesma com que `.tr_make_ctx()` nomeia o
+#' arquivo de progresso e com que o `collect()` do scheduler faz o poll — e não
+#' pelas chaves de SAÍDA, que são `hash(chave da unidade, porta)` e são várias
+#' por região. Um diretório por unidade é o que a Tarefa 5.3 vai encontrar para
+#' pôr o arquivo de controle (pause/step/tempo) ao lado do checkpoint.
+#' @noRd
+.tr_stream_dir <- function(store, key) file.path(store$root, "stream", key)
+.tr_ckpt_path  <- function(store, key) file.path(.tr_stream_dir(store, key), "ckpt.rds")
+
+#' Grava o checkpoint por RDS CRU — e essa palavra é a condição inteira.
+#'
+#' A chave da região NÃO inclui a impressão digital dos tipos das portas
+#' INTERNAS (ver `.tr_region_key()` em `hash.R`), e o raciocínio que autoriza
+#' isso é: nada de dentro da região atravessa o `store`/`restore` de um tipo. No
+#' instante em que este arquivo gravar estado interior PELO TIPO, o código
+#' daquele tipo passa a ser insumo do histórico que sai sob esta chave, e tem
+#' que entrar na chave no MESMO commit — senão editar o `store` de um tipo
+#' interno serve, do cache, um histórico que aquele código não produziria mais.
+#' `saveRDS` do estado e do acumulado mantém a condição de pé.
+#'
+#' `.tr_atomic()` pela mesma razão do artefato (`store.R`): o worker pode morrer
+#' no meio da escrita, e meio `ckpt.rds` sob uma chave válida é
+#' indistinguível de um bom — para sempre. Aqui é pior que no artefato, porque a
+#' retomada leria estado truncado e seguiria como se fosse estado.
+#'
+#' Dois workers na mesma chave (duas sessões sobre o mesmo store) não se
+#' corrompem: cada escrita é atômica e cada checkpoint é um PREFIXO da mesma
+#' computação determinística, então qualquer um dos dois serve para retomar.
+#' @noRd
+.tr_ckpt_write <- function(store, key, i, n, estado, hist) {
+  dir.create(.tr_stream_dir(store, key), recursive = TRUE, showWarnings = FALSE)
+  .tr_atomic(store, .tr_ckpt_path(store, key), function(tmp) {
+    saveRDS(list(i = i, n = n, estado = estado, hist = hist), tmp)
+  })
+  invisible(TRUE)
+}
+
+#' Lê o checkpoint da chave, ou `NULL` se não houver um utilizável.
+#'
+#' Ilegível conta como AUSENTE, nunca como exceção — o mesmo argumento de
+#' `tr_store_handle()`: um arquivo truncado não pode deixar uma região
+#' permanentemente não-rodável, e o custo de cair aqui é um run do zero.
+#'
+#' `n` é conferido porque a FONTE é isenta da liftabilidade e pode ser impura:
+#' um `to_stream` que lê arquivo devolve 300 pontos hoje e 250 amanhã sob a
+#' mesma chave. Retomar com um acumulador de outro tamanho misturaria duas
+#' leituras num histórico do tamanho certo — plausível, e errado.
+#' @noRd
+.tr_ckpt_read <- function(store, key, n) {
+  p <- .tr_ckpt_path(store, key)
+  if (!file.exists(p)) return(NULL)
+  ck <- tryCatch(readRDS(p), error = function(e) NULL)
+  if (!is.list(ck) || !all(c("i", "n", "estado", "hist") %in% names(ck))) return(NULL)
+  if (!identical(as.integer(ck$n), as.integer(n))) return(NULL)
+  if (!is.numeric(ck$i) || ck$i < 1L || ck$i > n) return(NULL)
+  ck$i <- as.integer(ck$i)
+  ck
+}
+
+#' @noRd
+.tr_ckpt_clear <- function(store, key) {
+  unlink(.tr_stream_dir(store, key), recursive = TRUE)
+  invisible(TRUE)
 }
 
 #' Chama o `fn`/`step` de um membro e, se ele explodir, nomeia o nó e o PASSO.

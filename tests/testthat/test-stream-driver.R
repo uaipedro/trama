@@ -20,6 +20,7 @@ diario <- function() {
   e$colapsos <- list()   # o que cada chamada do colapso recebeu
   e$restores <- 0L       # leituras de artefato do store, do tipo inteiro
   e$sono <- 0            # segundos que cada leitura de artefato demora
+  e$morre_em <- NULL     # ponto em que `d/puro_morre` explode (NULL = nunca)
   e
 }
 
@@ -96,6 +97,20 @@ driver_collection <- function(e = diario()) {
               },
               inputs = list(x = "d/v"), outputs = list(out = "d/v"),
               description = "Nó comum, elevado ponto a ponto."),
+      # Morre num ponto ESCOLHIDO, e a escolha vem do diário — não de um param.
+      # É essa diferença que faz o teste de retomada medir o que promete: o run
+      # que morre e o run que retoma têm que ter a MESMA chave de região, senão
+      # o checkpoint não é achado. Um param `em` entraria na chave (e é certo
+      # que entre — é conteúdo do grafo); `e$morre_em` é estado do processo de
+      # teste, e o corpo do `fn` é o mesmo nos dois runs.
+      tr_node("d/puro_morre", fn = function(x) {
+                if (!is.null(e$morre_em) && isTRUE(as.numeric(x) == e$morre_em)) {
+                  rlang::abort("worker morto", class = "tr_error_teste")
+                }
+                e$puros <- c(e$puros, list(x)); x
+              },
+              inputs = list(x = "d/v"), outputs = list(out = "d/v"),
+              description = "Passa o ponto adiante, e morre no ponto escolhido."),
       # Duas entradas: uma que vem de dentro (ponto) e uma comum, de fora. É o
       # "constante vinda de fora da região" do desenho.
       tr_node("d/puro_comum", fn = function(x, k) {
@@ -779,4 +794,266 @@ test_that("tr_run grava o histórico da região, e a segunda vez vem do cache", 
          on_event = function(x) ev2[[length(ev2) + 1]] <<- x)
   expect_equal(tipos(ev2, "co"), "cached")
   expect_equal(length(e$steps), 6L)   # continua 6: nenhum passo novo
+})
+
+# --- Checkpoint e retomada --------------------------------------------------
+#
+# `R/executor.R` diz, com essas palavras: "Projete o nó para o worker morrer a
+# qualquer momento". Cancelar é MATAR o daemon, porque cancelamento cooperativo
+# em R não existe, e a revisão da Fase 4 mediu que todo o trabalho em voo se
+# perde no kill. A região é a unidade mais longa que o trama vai ter: morrer no
+# passo 9.999 de 10.000 não pode custar o run inteiro.
+#
+# É também o teste que paga a Decisão 8 (estado explícito e serializável, por
+# `init`/`step`, em vez de closure). Se o checkpoint não funciona, aquela decisão
+# não comprou nada.
+
+# O documento dos testes de retomada: 250 pontos, um nó que pode morrer no ponto
+# escolhido, um nó COM MEMÓRIA (média corrente) e o colapso. A média corrente é
+# o que faz o `expect_identical` morder: sem `estado` no checkpoint, a média
+# recomeça no passo 101 e o histórico sai plausível e errado.
+doc_ckpt <- function(reg, n = 250L) {
+  tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = n) |>
+    tr_add("mo", "d/puro_morre", from = "fo") |>
+    tr_add("ac", "d/media", from = "mo") |>
+    tr_add("co", "d/colapsa", from = "ac"))
+}
+
+ckpt_path <- function(store, key) file.path(store$root, "stream", key, "ckpt.rds")
+
+test_that("run morto no passo 180 retoma do passo 100, e o histórico sai IDÊNTICO", {
+  # Este `expect_identical` é a tarefa inteira: retomada que produz resultado
+  # diferente é pior que retomada nenhuma — o histórico errado vai pro store sob
+  # uma chave válida e é servido do cache pra sempre.
+  e <- diario(); reg <- driver_registry(e)
+  doc <- doc_ckpt(reg)
+
+  # 1. A referência: sem interrupção nenhuma, em store próprio.
+  s0 <- tmp_store()
+  u0 <- tr_plan(doc, registry = reg, store = s0)$units$co
+  .tr_run_unit(u0, reg, s0, ctx_extra = list(checkpoint_every = 100))
+  ref <- tr_store_get(s0, u0$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(nrow(ref), 250L)
+
+  # 2. O run que morre no ponto 180.
+  s <- tmp_store()
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  # A chave é a MESMA dos dois lados — é ela que faz o checkpoint ser achado, e
+  # é por construção que um checkpoint de chave diferente nunca é lido.
+  expect_identical(u$key, u0$key)
+  e$morre_em <- 180
+  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100)),
+               class = "tr_error_stream_step")
+
+  # O checkpoint sobreviveu à falha, no último múltiplo de 100 antes de 180.
+  expect_true(file.exists(ckpt_path(s, u$key)))
+  expect_equal(readRDS(ckpt_path(s, u$key))$i, 100L)
+
+  # 3. A retomada, com a mesma chave.
+  e$morre_em <- NULL
+  antes <- length(e$puros)
+  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100))
+  hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_identical(hist, ref)
+
+  # E retomou de VERDADE: 150 pontos no segundo run, não 250. Sem isto o
+  # `expect_identical` passaria com um run do zero, que é justamente o que esta
+  # tarefa existe pra evitar.
+  expect_equal(length(e$puros) - antes, 150L)
+
+  # 4. Concluída a unidade, o diretório sai: o artefato final o substitui.
+  expect_false(dir.exists(dirname(ckpt_path(s, u$key))))
+})
+
+test_that("sem `estado` no checkpoint a retomada mentiria: a média corrente não reinicia", {
+  # A metade do `expect_identical` acima que um checkpoint só de `hist` deixaria
+  # passar sem ruído: os 250 pontos estariam lá, e a média a partir do 101 seria
+  # a média dos ÚLTIMOS 150 — curva plausível, gravada no store, servida do
+  # cache. Aqui a asserção é sobre o VALOR, ponto a ponto.
+  e <- diario(); reg <- driver_registry(e)
+  doc <- doc_ckpt(reg)
+  s <- tmp_store()
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+
+  e$morre_em <- 180
+  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100)),
+               class = "tr_error_stream_step")
+  e$morre_em <- NULL
+  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100))
+
+  hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(hist$v, cumsum(1:250) / seq_len(250))
+})
+
+test_that("`checkpoint_every = 0` desliga o checkpoint, e nada é gravado", {
+  # A válvula de quem tem histórico gigante: cada checkpoint serializa o
+  # acumulador inteiro, e num fluxo cujo ponto é pesado isso é a maior escrita
+  # do run. Desligar tem que ser possível — e tem que não deixar rastro.
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  u <- tr_plan(doc_ckpt(reg), registry = reg, store = s)$units$co
+  e$morre_em <- 180
+  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 0)),
+               class = "tr_error_stream_step")
+  expect_false(file.exists(ckpt_path(s, u$key)))
+
+  # E sem checkpoint a retomada é o run do zero: 250 pontos de novo.
+  e$morre_em <- NULL
+  antes <- length(e$puros)
+  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 0))
+  expect_equal(length(e$puros) - antes, 250L)
+})
+
+test_that("checkpoint ilegível conta como ausente, nunca como exceção", {
+  # O mesmo argumento de `tr_store_handle()`: um único arquivo truncado não pode
+  # deixar uma região PERMANENTEMENTE não-rodável. `.tr_atomic()` é que impede o
+  # truncado de existir; esta é a rede embaixo dela, e o custo de cair nela é um
+  # run do zero — não um erro.
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  u <- tr_plan(doc_ckpt(reg, n = 10L), registry = reg, store = s)$units$co
+  dir.create(dirname(ckpt_path(s, u$key)), recursive = TRUE, showWarnings = FALSE)
+  writeLines("isto não é um RDS", ckpt_path(s, u$key))
+
+  expect_silent(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 5)))
+  hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(hist$v, cumsum(1:10) / seq_len(10))
+})
+
+test_that("checkpoint com outra contagem de pontos é descartado", {
+  # A fonte é isenta da liftabilidade, então ela PODE ser impura: um
+  # `data/to_stream` que lê arquivo devolve 300 pontos hoje e 250 amanhã sob a
+  # MESMA chave. Retomar com o acumulador do tamanho errado misturaria dois
+  # fluxos — e sairia um histórico plausível, do tamanho certo, com valores de
+  # duas leituras diferentes.
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  u <- tr_plan(doc_ckpt(reg, n = 10L), registry = reg, store = s)$units$co
+  dir.create(dirname(ckpt_path(s, u$key)), recursive = TRUE, showWarnings = FALSE)
+  saveRDS(list(i = 5L, n = 999L, estado = list(), hist = list()),
+          ckpt_path(s, u$key))
+
+  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 5))
+  hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_equal(hist$v, cumsum(1:10) / seq_len(10))
+  expect_equal(length(e$puros), 10L)   # rodou do zero, e não do passo 6
+})
+
+test_that("região de zero pontos não deixa checkpoint nem diretório", {
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 0L) |>
+    tr_add("co", "d/colapsa", from = "fo"))
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 1))
+  expect_false(dir.exists(dirname(ckpt_path(s, u$key))))
+})
+
+test_that("falha no COLAPSO guarda o checkpoint do último múltiplo, e o laço não roda de novo inteiro", {
+  # O laço terminou e o colapso explodiu: perder o checkpoint aqui custaria os
+  # 250 pontos por causa de um erro que aconteceu DEPOIS deles. O que sobra é o
+  # último múltiplo da cadência, porque o passo final não gasta uma escrita do
+  # acumulador inteiro (ver o comentário do driver).
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 250L) |>
+    tr_add("mo", "d/puro_morre", from = "fo") |>
+    tr_add("co", "d/colapsa_explode", from = "mo"))
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+
+  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100)),
+               class = "tr_error_stream_collapse")
+  expect_equal(readRDS(ckpt_path(s, u$key))$i, 200L)
+})
+
+test_that("pelo run completo: morre, o handle de erro é bustado, e a retomada não repete o laço", {
+  # O caminho de verdade — plano, scheduler, executor, store. O executor
+  # sequencial não tem daemon a matar, então a morte aqui é o erro injetado no
+  # membro; o que fica sem medida é o kill de processo do `tr_executor_pool()`,
+  # que a coleção `d/*` não alcança (sem `package`, o pool a recusa).
+  #
+  # `tr_bust()` no meio não é decoração: o `collect()` grava o erro sob as
+  # chaves de saída da região, e nenhum `tr_plan()` recalcula um handle que
+  # existe — sem bustar, o segundo run não despacharia nada. É também a razão de
+  # `tr_bust()` apagar `stream/`: bustar é dizer "o código mudou sem a chave
+  # mudar", e retomar de um checkpoint feito pelo código de antes serviria um
+  # histórico metade velho, metade novo.
+  e <- diario(); reg <- driver_registry(e)
+  doc <- doc_ckpt(reg)
+  s0 <- tmp_store()
+  u0 <- tr_plan(doc, registry = reg, store = s0)$units$co
+  tr_run(doc, registry = reg, store = s0)
+  ref <- tr_store_get(s0, u0$outputs$out, tr_get_type("d/v", reg))
+
+  s <- tmp_store()
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  e$morre_em <- 180
+  r1 <- tr_run(doc, registry = reg, store = s)
+  expect_true("co" %in% r1$skipped)
+  expect_true(file.exists(ckpt_path(s, u$key)))
+  ck <- readRDS(ckpt_path(s, u$key))
+  expect_equal(ck$i, 100L)
+
+  # Só os handles de erro saem; o checkpoint fica onde está.
+  for (k in unlist(u$outputs)) unlink(file.path(s$root, "handles", paste0(k, ".json")))
+  e$morre_em <- NULL
+  antes <- length(e$puros)
+  r2 <- tr_run(doc, registry = reg, store = s)
+  expect_true("co" %in% r2$done)
+  expect_identical(tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg)), ref)
+  expect_equal(length(e$puros) - antes, 150L)
+})
+
+test_that("tr_bust apaga os checkpoints: retomar com o código novo é pior que recomputar", {
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  u <- tr_plan(doc_ckpt(reg), registry = reg, store = s)$units$co
+  e$morre_em <- 180
+  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 100)),
+               class = "tr_error_stream_step")
+  expect_true(file.exists(ckpt_path(s, u$key)))
+
+  tr_bust(s)
+  expect_false(file.exists(ckpt_path(s, u$key)))
+})
+
+test_that("tr_store_gc varre `stream/` por IDADE, e não pelo `keep`", {
+  # `keep` são as chaves de SAÍDA (`tr_plan_keys()`), e o checkpoint mora sob a
+  # chave da UNIDADE — que nunca aparece lá. A idade é o critério melhor de
+  # qualquer forma: um checkpoint vivo é reescrito a cada cadência, então só o
+  # morto fica velho. Sem esta varredura cada região abandonada deixa no disco o
+  # acumulador inteiro dela, num store que já cresce sem limite por construção.
+  s <- tmp_store()
+  d <- file.path(s$root, "stream", "chave_morta")
+  dir.create(d, recursive = TRUE)
+  saveRDS(list(i = 1L), file.path(d, "ckpt.rds"))
+  novo <- file.path(s$root, "stream", "chave_viva")
+  dir.create(novo, recursive = TRUE)
+  saveRDS(list(i = 1L), file.path(novo, "ckpt.rds"))
+  # Só o velho envelhece.
+  Sys.setFileTime(file.path(d, "ckpt.rds"), Sys.time() - 10 * 86400)
+  Sys.setFileTime(d, Sys.time() - 10 * 86400)
+
+  tr_store_gc(s, max_age_days = 7)
+  expect_false(dir.exists(d))
+  expect_true(dir.exists(novo))
+})
+
+test_that("`checkpoint_every` torto desliga o checkpoint, e não derruba a região", {
+  # Mesma régua do `tryCatch` no tipo do parcial: uma região que roda hoje não
+  # pode parar de rodar por causa de um botão de operação. Desligado é o
+  # comportamento de antes desta tarefa; abortar o laço de dez mil pontos por
+  # causa de um `checkpoint_every` mal digitado não é.
+  e <- diario(); reg <- driver_registry(e)
+  for (torto in list(NA, "cem", -5L, c(10L, 20L))) {
+    s <- tmp_store()
+    u <- tr_plan(doc_ckpt(reg, n = 10L), registry = reg, store = s)$units$co
+    .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = torto))
+    hist <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+    expect_equal(hist$v, cumsum(1:10) / seq_len(10))
+    expect_false(dir.exists(dirname(ckpt_path(s, u$key))))
+  }
 })

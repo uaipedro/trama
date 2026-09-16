@@ -308,5 +308,18 @@ tr_bust <- function(store, collection = NULL) {
     }
     .tr_drop_key(store, key); n <- n + 1L
   }
+  # Os checkpoints de região saem TODOS, e não só os da coleção pedida.
+  #
+  # `tr_bust()` significa "o código mudou sem a chave mudar" — é a válvula
+  # documentada desse gap. Um checkpoint é justamente estado computado por
+  # código cuja impressão digital não mudou: deixá-lo aqui faria a região
+  # retomar do passo 5.000 produzido pelo código de ANTES do upgrade e terminar
+  # com o de depois — um histórico metade velho, metade novo, gravado sob uma
+  # chave válida e servido do cache pra sempre.
+  #
+  # Todos, e não só os da coleção, porque não há como ir da chave de saída (que
+  # é o que o handle guarda) para a chave da unidade, que é o nome do diretório.
+  # Errar pra este lado custa recomputação; errar pro outro custa correção.
+  unlink(file.path(store$root, "stream"), recursive = TRUE)
   invisible(n)
 }

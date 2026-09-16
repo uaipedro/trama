@@ -8,6 +8,12 @@
 #'   objects/<chave>.<ext>    o valor, gravado pelo `store` do TIPO
 #'   handles/<chave>.json     metadados: tipo, tamanho, resumo, preview, erro
 #'   previews/<chave>.<ext>   artefato de preview, quando tem arquivo
+#'   progress/<chave>.json    progresso e parcial de uma unidade EM VOO
+#'   stream/<chave>/ckpt.rds  checkpoint de uma região de fluxo em andamento
+#'
+#' As duas últimas são de trabalho em voo, não de artefato: nascem quando a
+#' unidade começa e saem quando ela conclui. `stream/` é por chave de UNIDADE
+#' (não de saída), criada sob demanda pelo driver.
 #'
 #' **Escrita atômica** (temp + rename) não é refinamento: o contrato do
 #' executor é que o worker pode morrer a qualquer momento (cancelar = matar o
@@ -239,7 +245,39 @@ tr_store_gc <- function(store, keep = character(), max_age_days = 7) {
     .tr_drop_key(store, key); removed <- removed + 1L
   }
   unlink(list.files(file.path(store$root, "tmp"), full.names = TRUE))
+  .tr_gc_stream(store, cutoff)
   removed
+}
+
+#' Varre os checkpoints de região (`<store>/stream/<chave>/`) por IDADE.
+#'
+#' Por idade, e NÃO pelo `keep`: `keep` são as chaves de SAÍDA
+#' (`tr_plan_keys()`), e o checkpoint mora sob a chave da UNIDADE, que nunca
+#' aparece lá. A idade também é o critério melhor — um checkpoint vivo é
+#' reescrito a cada cadência, então só o morto fica velho.
+#'
+#' Sem esta varredura, cada região abandonada (worker morto, param editado, run
+#' fechado) deixa no disco o acumulador INTEIRO dela — o maior vazamento único
+#' que o store pode ter, num store que já cresce sem limite por construção.
+#'
+#' Fora do `removed`: aquele número é de CHAVES do store, e um checkpoint não é
+#' uma chave — somar os dois faria `tr_store_gc()` relatar mais artefatos
+#' removidos do que removeu.
+#' @noRd
+.tr_gc_stream <- function(store, cutoff) {
+  raiz <- file.path(store$root, "stream")
+  if (!dir.exists(raiz)) return(invisible(0L))
+  n <- 0L
+  for (d in list.dirs(raiz, recursive = FALSE)) {
+    # A idade é do `ckpt.rds`, e não do diretório: a Tarefa 5.3 põe o arquivo de
+    # controle neste mesmo diretório, e um `pause` de hoje num checkpoint de
+    # semanas não é sinal de trabalho vivo.
+    p <- file.path(d, "ckpt.rds")
+    mt <- as.numeric(file.info(if (file.exists(p)) p else d)$mtime)
+    if (!is.na(mt) && mt > cutoff) next
+    unlink(d, recursive = TRUE); n <- n + 1L
+  }
+  invisible(n)
 }
 
 #' @export
