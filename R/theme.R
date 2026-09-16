@@ -99,7 +99,7 @@
 #' Settings do projeto a partir do manifesto lido.
 #'
 #' `temas` presente substitui os embutidos (não soma): o projeto que declara
-#' seus temas quer controlar a lista que aparece no card. `"padr\u00e3o"` é
+#' seus temas quer controlar a lista que aparece no card. `"padrão"` é
 #' reservado porque é o valor que o param guarda pra "siga o projeto".
 #'
 #' Nem tudo aqui é tema: `marca` decide se o PNG exportado sai carimbado. Mora
@@ -123,7 +123,7 @@
        marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"))
 }
 
-#' `"padr\u00e3o"` ou nome -> definição. Nome que sumiu (tema apagado, documento
+#' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
 #' de outro projeto) cai no padrão marcado `ausente`: documento não quebra por
 #' causa de cosmético, mas o card tem como avisar. Settings `NULL` (sessão sem
 #' projeto) usa os embutidos.
@@ -287,7 +287,7 @@ tr_project_set_marca <- function(root, mostrar) {
 #' seria o mesmo silêncio que o manifesto recusa. Nome desconhecido não é erro
 #' aqui, pelo mesmo motivo do plano (documento não quebra por cosmético): volta
 #' o padrão marcado `ausente`, e quem chama decide se isso é erro.
-#' @param tema Nome de um tema, `"padr\u00e3o"`, ou a definição já resolvida (lista).
+#' @param tema Nome de um tema, `"padrão"`, ou a definição já resolvida (lista).
 #' @param settings Settings do projeto; `NULL` usa os temas embutidos.
 #' @return Lista com `nome`, os campos do tema e, se o nome não existe,
 #'   `ausente = TRUE`.
