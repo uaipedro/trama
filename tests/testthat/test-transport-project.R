@@ -270,3 +270,32 @@ test_that("tr_themes grava no manifesto e reenvia; tema inválido não toca o ar
     expect_equal(rv_project()$settings$temas$rel$fundo, "#ffffff")
   })
 })
+
+test_that("`ctx_extra` de tr_server() chega ao executor do run", {
+  # A outra porta dos ajustes do run (`tr_run()` é a primeira). O salto é de uma
+  # linha, e é justamente por isso que ele precisa de teste: sem `ctx_extra` aqui
+  # o editor roda com o default calado, que é o defeito que a Tarefa 5.4
+  # conserta — um botão que existe na assinatura e não no caminho.
+  root <- withr::local_tempdir("proj")
+  tr_project_new(root, character())
+  proj <- tr_project_at(root, store_registry())
+
+  visto <- new.env(parent = emptyenv())
+  espia <- tr_executor_sequential()
+  submit0 <- espia$submit
+  espia$submit <- function(unit, registry, store, ctx_extra = NULL) {
+    visto$ctx_extra <- ctx_extra
+    submit0(unit, registry, store, ctx_extra)
+  }
+
+  shiny::testServer(tr_server(proj, autosave = FALSE, executor = espia,
+                              ctx_extra = list(checkpoint_every = 7)), {
+    session$sendCustomMessage <- function(type, message) invisible(NULL)
+    session$setInputs(tr_ready = 1)
+    session$setInputs(tr_op = list(
+      seq = 1, base_rev = rv_doc()$rev,
+      op = list(op = "add_node", type = "t/const", id = "c", params = list(v = 1))))
+  })
+
+  expect_equal(visto$ctx_extra$checkpoint_every, 7)
+})
