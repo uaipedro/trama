@@ -23,7 +23,7 @@ tr_errors <- function() {
     tr_error_bad_param_value = "valor de param incompatível com o kind declarado",
     tr_error_bad_root = "abertura de projeto com argumento inválido: caminho que não existe ou não é diretório, ou registry que não é tr_registry",
     tr_error_bad_sprite = "sprite de ícones existe mas nenhum <symbol id> foi encontrado nele",
-    tr_error_bad_theme = "tema de gráfico do trama.json inválido: campo desconhecido, valor fora do vocabulário, nome reservado ou tema_padrao inexistente",
+    tr_error_bad_theme = "configuração do trama.json inválida: tema com campo desconhecido, valor fora do vocabulário ou nome reservado, tema_padrao inexistente, marca que não é booleana",
     tr_error_bad_type = "tr_type() mal declarado (store sem restore, etc.)",
     tr_error_cancelled = "unidade cancelada pelo coordenador (handoff, ou stop_mirai no pool)",
     tr_error_collection_not_dispatchable = "coleção sem pacote não pode ir para daemon",

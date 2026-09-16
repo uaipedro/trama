@@ -79,6 +79,10 @@
 #' `temas` presente substitui os embutidos (não soma): o projeto que declara
 #' seus temas quer controlar a lista que aparece no card. `"padrão"` é
 #' reservado porque é o valor que o param guarda pra "siga o projeto".
+#'
+#' Nem tudo aqui é tema: `marca` decide se o PNG exportado sai carimbado. Mora
+#' nos settings, e não numa preferência da máquina, pelo mesmo motivo dos
+#' temas — a mesma pasta tem que exportar igual em qualquer lugar.
 #' @noRd
 .tr_settings <- function(cfg) {
   temas <- if (length(cfg$temas)) cfg$temas else .tr_temas_embutidos()
@@ -92,7 +96,14 @@
   if (!(is.character(padrao) && length(padrao) == 1L && padrao %in% names(temas)))
     rlang::abort(sprintf("tema_padrao '%s' não está entre os temas de trama.json.",
                          paste(padrao, collapse = ",")), class = "tr_error_bad_theme")
-  list(temas = temas, tema_padrao = padrao)
+  # Ausente vale TRUE: projeto feito antes deste campo continua exportando com
+  # a marca, que é o padrão anunciado. `NA` não passa junto com os booleanos —
+  # "talvez carimbe" não é resposta que a exportação saiba usar.
+  marca <- cfg$marca %||% TRUE
+  if (!(is.logical(marca) && length(marca) == 1L && !is.na(marca)))
+    rlang::abort("marca precisa ser true ou false em trama.json.",
+                 class = "tr_error_bad_theme")
+  list(temas = temas, tema_padrao = padrao, marca = marca)
 }
 
 #' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
@@ -178,7 +189,8 @@ tr_project_set_themes <- function(root, temas, padrao) {
 #' @noRd
 .tr_settings_json <- function(settings) {
   list(temas = lapply(settings$temas, function(t) { t$paleta <- I(t$paleta); t }),
-       tema_padrao = settings$tema_padrao)
+       tema_padrao = settings$tema_padrao,
+       marca = settings$marca)
 }
 
 #' Resolve um tema pelo nome, fora de um projeto.

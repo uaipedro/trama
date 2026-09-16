@@ -55,6 +55,16 @@ test_that("padrão que não existe é erro", {
                class = "tr_error_bad_theme")
 })
 
+test_that("marca vale TRUE quando o manifesto não fala dela", {
+  expect_true(.tr_settings(list())$marca)
+})
+
+test_that("marca aceita FALSE e recusa o que não é booleano", {
+  expect_false(.tr_settings(list(marca = FALSE))$marca)
+  expect_error(.tr_settings(list(marca = "sim")), class = "tr_error_bad_theme")
+  expect_error(.tr_settings(list(marca = list(TRUE, FALSE))), class = "tr_error_bad_theme")
+})
+
 test_that("resolver: padrão, nome, inexistente", {
   s <- .tr_settings(list())
   expect_equal(.tr_theme_resolve("padrão", s)$nome, "escuro")
