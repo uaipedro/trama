@@ -157,5 +157,20 @@ tr_doc_validate <- function(doc, registry = .tr_default_registry) {
   cyc <- .tr_find_cycle(doc)
   if (!is.null(cyc)) add("cycle", edge = paste(cyc, collapse = " -> "))
 
+  # As cinco recusas de região de fluxo (Decisão 7 do desenho: "erro na
+  # validação de aresta, alto e cedo") — antes só apareciam como ABORT de
+  # `tr_plan()`, e um `to_stream` sem colapso poisonava o documento inteiro em
+  # silêncio (autosave grava, `tr_plan()` aborta, e nem o card errado nem os
+  # outros cards do MESMO documento davam pista nenhuma). `.tr_stream_problems()`
+  # é só um GRAFO WALK (`.tr_stream_detect()`, a metade não-abortante da
+  # detecção) — sem fingerprint, sem disco — então cabe custar aqui, em toda
+  # op. `tryCatch`: um tipo de nó desconhecido já virou `unknown_node_type`
+  # acima, mas `.tr_stream_detect()` não sabe disso e chama `tr_get_node()`
+  # (que ABORTA pra tipo desconhecido) por dentro — sem a guarda, um documento
+  # com um nó órfão E uma região faria `tr_doc_validate()` em si abortar, que é
+  # exatamente o modo de falha que esta função existe pra evitar em quem a
+  # chama.
+  problems <- c(problems, tryCatch(.tr_stream_problems(doc, registry), error = function(e) list()))
+
   problems
 }

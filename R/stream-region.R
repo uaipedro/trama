@@ -107,9 +107,18 @@
   .tr_stream_split(doc, membros, fontes, colapsos, arestas_fluxo)
 }
 
-#' Recusa toda região que não tem execução definida. Cinco recusas, e cada uma
-#' impede um fluxo que rodaria fazendo OUTRA coisa, calado — é por isso que a
-#' régua aqui é "erro alto e cedo" e não "melhor esforço".
+#' A PRIMEIRA recusa que uma região viola, ou `NULL` se ela tem execução
+#' definida. Cinco recusas, e cada uma impede um fluxo que rodaria fazendo
+#' OUTRA coisa, calado.
+#'
+#' Única fonte de verdade das cinco recusas — `.tr_stream_validate()` (aborta,
+#' backstop de `tr_plan()`) e `.tr_stream_problems()` (devolve como `problems`
+#' de `tr_doc_validate()`, Decisão 7 do desenho) chamam ESTA função e só
+#' escolhem o que fazer com o resultado. Duplicar as cinco condições em dois
+#' lugares é como a mensagem de uma diverge silenciosamente da outra — este
+#' arquivo já tem um comentário longo (`.tr_stream_detect()`, acima) sobre o
+#' preço de duas verdades que podem divergir; aqui a mesma lição vale para a
+#' RECUSA, não só a detecção.
 #'
 #' A mensagem sempre nomeia o nó (ou a região) e diz o que fazer: quem lê é o
 #' autor do documento no editor, não quem escreveu este arquivo.
@@ -117,9 +126,13 @@
 #' A ORDEM das recusas é parte do contrato (e tem teste): defeito ESTRUTURAL da
 #' região — não tem uma fonte só, não fecha — vem antes de defeito de NÓ —
 #' escapa, não é elevável — porque o autor precisa primeiro de uma região bem
-#' formada pra que nomear um nó dentro dela signifique alguma coisa.
+#' formada pra que nomear um nó dentro dela signifique alguma coisa. Por isso
+#' esta função devolve só a PRIMEIRA violação: nem `tr_plan()` aborta com mais
+#' de uma causa ao mesmo tempo, nem o card mostra duas explicações que talvez
+#' se contradigam (ex.: "não fecha" E "nó X escapa" quando o nó X só escapa
+#' PORQUE a região não fechou).
 #' @noRd
-.tr_stream_validate <- function(region, doc, registry) {
+.tr_stream_region_problem <- function(region, doc, registry) {
   spec_of <- function(id) tr_get_node(doc$nodes[[id]]$type, registry)
 
   # Duas fontes na mesma região é lockstep de dois fluxos de tamanhos
@@ -128,23 +141,25 @@
   # a decisão de QUAL ficaria escondida na ordem das arestas. YAGNI: uma fonte
   # por região.
   if (length(region$source) > 1) {
-    rlang::abort(sprintf(
-      paste0("A região de fluxo '%s' tem mais de uma fonte: %s. ",
-             "Uma região executa uma fonte só — separe os fluxos em regiões ",
-             "independentes, ou colapse um antes de ligá-lo no outro."),
-      region$id, paste(sprintf("'%s'", region$source), collapse = ", ")),
-      class = "tr_error_stream_multi_source")
+    return(list(
+      class = "tr_error_stream_multi_source", node = region$id,
+      message = sprintf(
+        paste0("A região de fluxo '%s' tem mais de uma fonte: %s. ",
+               "Uma região executa uma fonte só — separe os fluxos em regiões ",
+               "independentes, ou colapse um antes de ligá-lo no outro."),
+        region$id, paste(sprintf("'%s'", region$source), collapse = ", "))))
   }
 
   # Região sem colapso não produz artefato nenhum: o run não teria o que
   # gravar e o nó nunca sairia de "computando…", porque não existe ponto em que
   # ele termine.
   if (length(region$collapse) == 0) {
-    rlang::abort(sprintf(
-      paste0("A região de fluxo de '%s' não fecha: nenhum nó colapsa o fluxo num valor. ",
-             "Ligue a ponta da região num nó que receba fluxo e devolva valor comum."),
-      region$id),
-      class = "tr_error_stream_not_collected")
+    return(list(
+      class = "tr_error_stream_not_collected", node = region$id,
+      message = sprintf(
+        paste0("A região de fluxo de '%s' não fecha: nenhum nó colapsa o fluxo num valor. ",
+               "Ligue a ponta da região num nó que receba fluxo e devolva valor comum."),
+        region$id)))
   }
 
   # Saída COMUM de nó interior consumida fora da região. Pelas regras de
@@ -158,13 +173,14 @@
   for (e in doc$edges) {
     if (!(e$from$node %in% region$nodes) || e$to$node %in% region$nodes) next
     if (e$from$node %in% region$collapse) next
-    rlang::abort(sprintf(
-      paste0("A porta '%s:%s' está dentro da região de fluxo '%s' mas alimenta '%s', ",
-             "fora dela. Dentro da região ela só tem o valor parcial do ponto da vez, ",
-             "e não grava artefato: '%s' não teria o que ler. ",
-             "Consuma esse valor depois do colapso, ou traga '%s' para dentro da região."),
-      e$from$node, e$from$port, region$id, e$to$node, e$to$node, e$to$node),
-      class = "tr_error_stream_escapes")
+    return(list(
+      class = "tr_error_stream_escapes", node = e$from$node,
+      message = sprintf(
+        paste0("A porta '%s:%s' está dentro da região de fluxo '%s' mas alimenta '%s', ",
+               "fora dela. Dentro da região ela só tem o valor parcial do ponto da vez, ",
+               "e não grava artefato: '%s' não teria o que ler. ",
+               "Consuma esse valor depois do colapso, ou traga '%s' para dentro da região."),
+        e$from$node, e$from$port, region$id, e$to$node, e$to$node, e$to$node)))
   }
 
   # Nó elevado ponto a ponto: nem fonte, nem colapso, nem nó com memória (esse
@@ -188,14 +204,52 @@
     } else {
       next
     }
-    rlang::abort(sprintf(
-      paste0("Nó '%s' está dentro de uma região de fluxo mas %s. ",
-             "Nós elevados ponto a ponto precisam ser puros e não pedir '.ctx'. ",
-             "Se ele precisa guardar estado entre pontos, declare 'init'/'step'."),
-      id, motivo), class = "tr_error_not_liftable")
+    return(list(
+      class = "tr_error_not_liftable", node = id,
+      message = sprintf(
+        paste0("Nó '%s' está dentro de uma região de fluxo mas %s. ",
+               "Nós elevados ponto a ponto precisam ser puros e não pedir '.ctx'. ",
+               "Se ele precisa guardar estado entre pontos, declare 'init'/'step'."),
+        id, motivo)))
   }
 
+  NULL
+}
+
+#' Recusa toda região que não tem execução definida — backstop de `tr_plan()`.
+#' Aborta com a PRIMEIRA violação (`.tr_stream_region_problem()`); um grafo
+#' malformado nunca deveria chegar aqui, porque `tr_doc_validate()` já mostrou
+#' a mesma recusa como `problem` no card, alto e cedo (Decisão 7) — mas é o
+#' backstop, e continua sendo a autoridade final.
+#' @noRd
+.tr_stream_validate <- function(region, doc, registry) {
+  p <- .tr_stream_region_problem(region, doc, registry)
+  if (!is.null(p)) rlang::abort(p$message, class = p$class)
   invisible(region)
+}
+
+#' As cinco recusas de região, como `problems` — não como abort. É o que
+#' `tr_doc_validate()` chama (Decisão 7 do desenho: "erro na validação de
+#' aresta, alto e cedo"). Só um GRAFO WALK: `.tr_stream_detect()` (a metade
+#' NÃO-abortante da detecção, existente desde a Fase 2 pra justamente testar
+#' região patológica sem exceção) mais `.tr_stream_region_problem()` por
+#' região — nenhum fingerprint, nenhum disco, e roda em TODO `tr_doc_validate()`
+#' (cada op), então o custo tem que ficar aqui.
+#'
+#' Uma `problem` por região malformada (a primeira violação, mesma ordem do
+#' backstop) — não uma por violação: duas explicações que podem se contradizer
+#' (ver comentário de `.tr_stream_region_problem()`) seriam pior que uma.
+#' @noRd
+.tr_stream_problems <- function(doc, registry) {
+  regioes <- .tr_stream_detect(doc, registry)
+  problems <- list()
+  for (r in regioes) {
+    p <- .tr_stream_region_problem(r, doc, registry)
+    if (is.null(p)) next
+    problems[[length(problems) + 1L]] <- list(
+      kind = sub("^tr_error_", "", p$class), node = p$node, region = r$id, message = p$message)
+  }
+  problems
 }
 
 #' Parte os nós de fluxo nas componentes conexas ligadas pelas arestas que

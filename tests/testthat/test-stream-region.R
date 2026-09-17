@@ -548,3 +548,70 @@ test_that("nó com memória SEM porta de saída não é lido como o colapso da r
   expect_equal(r$collapse, "fe")
   expect_setequal(r$nodes, c("fo", "co", "fe"))
 })
+
+# --- `.tr_stream_problems()` / `tr_doc_validate()` (Blocker 2-b) -----------
+# Decisão 7 do desenho ("erro na validação de aresta, alto e cedo") — as
+# mesmas cinco recusas de `.tr_stream_validate()`, agora como `problems`
+# alcançáveis SEM abortar, e sem passar por `tr_plan()`.
+
+test_that("um 'to_stream' solto (sem colapso) vira PROBLEM de tr_doc_validate(), não abort", {
+  reg <- stream_registry()
+  doc <- tr_flow_doc(tr_flow(reg) |> tr_add("fonte", "s/fonte"))
+  # A PROVA do Blocker 2: `tr_doc_validate()` não aborta e REPORTA — ao
+  # contrário de `tr_plan()`, que continua abortando (é o backstop).
+  probs <- tr_doc_validate(doc, reg)
+  hit <- Filter(function(p) identical(p$kind, "stream_not_collected"), probs)
+  expect_length(hit, 1L)
+  expect_equal(hit[[1]]$node, "fonte")
+  expect_error(tr_plan(doc, registry = reg), class = "tr_error_stream_not_collected")
+})
+
+test_that("a asymmetria do revisor desaparece: to_stream solto TAMBÉM reporta problem, como from_stream", {
+  # A tabela do revisor (B2): `data/to_stream` sozinho tinha `tr_doc_validate
+  # = 0 problemas` (a porta é `required = FALSE` DE PROPÓSITO, pra não acusar
+  # "input obrigatório" só por estar solto) enquanto qualquer outro defeito de
+  # documento reporta. Com `.tr_stream_problems()` cablada, a fonte solta
+  # também reporta — a MESMA garantia que uma porta obrigatória desconectada
+  # já tinha.
+  reg <- stream_registry()
+  doc <- tr_flow_doc(tr_flow(reg) |> tr_add("fonte", "s/fonte"))
+  expect_gte(length(tr_doc_validate(doc, reg)), 1L)
+})
+
+test_that("documento com região SAUDÁVEL não ganha problem nenhum de fluxo", {
+  reg <- stream_registry()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "s/pontos", n = 3L) |>
+    tr_add("ac", "s/acumula", from = "fonte") |>
+    tr_add("fim", "s/colapsa", from = "ac"))
+  probs <- tr_doc_validate(doc, reg)
+  expect_length(Filter(function(p) grepl("^stream_|^not_liftable", p$kind), probs), 0L)
+})
+
+test_that("tipo de nó desconhecido NÃO derruba tr_doc_validate() mesmo com região no mesmo documento", {
+  # `.tr_stream_detect()` chama `tr_get_node()`, que ABORTA pra tipo
+  # desconhecido — e um nó órfão (tipo que sumiu do catálogo) já é normal
+  # (vira `unknown_node_type`, não trava o editor). Sem o `tryCatch` em
+  # `tr_doc_validate()`, um documento com os dois — órfão E região — faria a
+  # PRÓPRIA validação abortar, que é o oposto do que ela existe pra evitar.
+  reg <- stream_registry()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "s/pontos", n = 3L) |>
+    tr_add("ac", "s/acumula", from = "fonte") |>
+    tr_add("fim", "s/colapsa", from = "ac"))
+  doc$nodes[["orfao"]] <- list(id = "orfao", type = "s/sumiu", params = list())
+  probs <- expect_no_error(tr_doc_validate(doc, reg))
+  expect_true(any(vapply(probs, function(p) identical(p$kind, "unknown_node_type"), TRUE)))
+})
+
+# PROVA DE MUTAÇÃO 8: comentando a linha `problems <- c(problems,
+# tryCatch(.tr_stream_problems(doc, registry), error = function(e) list()))`
+# em `tr_doc_validate()` (R/document-io.R), rodando só este arquivo:
+#
+#   -- Failure (test-stream-region.R): um 'to_stream' solto (sem colapso)... --
+#   `hit` tem comprimento 0, não 1.
+#
+# E a suíte inteira (`test_dir()`) continua verde com a linha comentada — é a
+# lacuna medida pelo revisor (`to_stream` solto: `tr_doc_validate = 0
+# problemas`). A mudança foi desfeita depois de confirmar a queda — não fica
+# no código.
