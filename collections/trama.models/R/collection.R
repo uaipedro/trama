@@ -35,6 +35,6 @@ trama_collection <- function() {
     nodes = c(.tr_models_nos_fonte(), .tr_models_nos_ajustar(), .tr_models_nos_anova(),
               .tr_models_nos_resumir(), .tr_models_nos_medias(),
               .tr_models_nos_pressupostos(), .tr_models_nos_testes(),
-              .tr_models_nos_prever())
+              .tr_models_nos_prever(), .tr_models_nos_online())
   )
 }
