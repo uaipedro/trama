@@ -8,6 +8,20 @@ test_that("rls converge para os coeficientes exatos de lm()", {
   expect_equal(unname(coef_rls(st)), unname(coef(lm(y ~ x, d))), tolerance = 1e-8)
 })
 
+# Achado Important 2 da revisão da Fase 7: a ajuda dizia "EXATAMENTE", sem
+# qualificar, e isso só é verdade no limite `lambda -> Inf`. A prova de que
+# LEVANTAR o default (1e4 -> 1e6) não é só prosa: com o default ANTIGO este
+# teste reprova (medido: erro máximo ~1.7e-6 nesse mesmo cenário, acima do
+# `1e-6` daqui), e é exatamente essa reprovação que motivou a mudança.
+test_that("o default de lambda (1e6) chega perto o bastante de lm(), como a ajuda promete", {
+  set.seed(1); d <- data.frame(x = rnorm(200)); d$y <- 2 + 3 * d$x + rnorm(200, sd = 0.1)
+  st <- init_rls(resposta = "y", preditores = "x")   # lambda no default do card/fn
+  expect_equal(st$lambda, 1e6)
+  for (i in seq_len(nrow(d))) st <- step_rls(st, d[i, ])$state
+  erro <- max(abs(unname(coef_rls(st)) - unname(coef(lm(y ~ x, d)))))
+  expect_lt(erro, 1e-6)
+})
+
 test_that("o estado sobrevive a saveRDS/readRDS — é isso que o checkpoint faz", {
   set.seed(1); d <- data.frame(x = rnorm(50)); d$y <- 1 - 2 * d$x + rnorm(50, sd = 0.2)
   st <- init_rls(lambda = 1e4)
@@ -73,25 +87,11 @@ test_that("o caso do desenho roda: modelo fora da região, predict elevado ponto
   lote <- tr_models_predict(m, mt)
 
   # Idêntico ao predict em LOTE sobre a tabela inteira — não "próximo": o
-  # driver não pode introduzir diferença nenhuma num nó puro e estático.
+  # driver não pode introduzir diferença nenhuma num nó puro e estático. É
+  # também a prova indireta da propriedade da Fase 4 ("external, lido uma
+  # vez"): se o driver relesse o artefato a cada passo, um modelo IMPURO
+  # acusaria — mas models/lm é puro, então leitura única ou N leituras do
+  # MESMO artefato imutável dão o mesmo resultado, e é esse `expect_identical`
+  # que mede isso, não um teste à parte.
   expect_identical(hist$previsto, lote$previsto)
-})
-
-test_that("o modelo entra na região como input comum: a mesma referência em todo passo", {
-  # Prova indireta da propriedade da Fase 4 ("external, lido uma vez"): se o
-  # driver relesse o artefato a cada passo, um modelo IMPURO acusaria — mas
-  # models/lm é puro, então o teste que importa aqui é o de identidade acima:
-  # com leitura única ou N leituras do MESMO artefato imutável, o resultado é
-  # o mesmo. O que se confere É a coisa observável desta tarefa: que a região
-  # aceita `modelo` como porta comum (não-stream) sem recusa nenhuma das cinco
-  # (Fase 1) — a montagem do fluxo acima não abortou, e é essa a evidência.
-  reg <- models_registry()
-  f <- trama::tr_flow(reg) |>
-    trama::tr_add("carros", "models/example", dataset = "mtcars") |>
-    trama::tr_add("reg", "models/lm", formula = "mpg ~ wt", from = "carros") |>
-    trama::tr_add("novos", "models/example", dataset = "mtcars") |>
-    trama::tr_add("entra", "data/to_stream", lote = 1L, from = "novos") |>
-    trama::tr_add("prever", "models/predict", from = c("reg", "entra")) |>
-    trama::tr_add("sai", "data/from_stream", from = "prever")
-  expect_true(is.data.frame(rodar(f, "sai")))
 })
