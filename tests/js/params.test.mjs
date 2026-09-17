@@ -51,10 +51,16 @@ test("milhar pontua de três em três, à brasileira", () => {
   assert.equal(milhar(-2500), "-2.500");
 });
 
-test("contagemDoPasso lê a mensagem que o driver publica", () => {
-  // A frase exata de `ctx$progress()` em R/stream-driver.R: sprintf("ponto
-  // %d de %d", i, n). Mudar essa frase sem tocar aqui é o modo de falha que
-  // este teste existe pra travar — ver o contrato em test-stream-transport.R.
+test("contagemDoPasso extrai dois números de uma mensagem no formato do driver", () => {
+  // Este arquivo só importa `params.js` — um harness `node --test` não roda
+  // R, então NADA aqui lê `R/stream-driver.R` nem trava a frase exata que o
+  // driver publica (`sprintf("ponto %d de %d", i, n)`). O que este teste
+  // prova é só que `contagemDoPasso()` extrai os dois grupos de dígitos de
+  // uma string escrita à mão nesse formato. Quem de fato casa a regex do
+  // front contra uma mensagem PUBLICADA PELO DRIVER REAL é o teste R
+  // "mensagem de 'progress' de uma região bate no formato que
+  // contagemDoPasso() (params.js) espera", em test-stream-transport.R — ele
+  // roda `.tr_run_unit()` de verdade e lê o `progress.json` que saiu.
   assert.equal(contagemDoPasso("ponto 500 de 10000"), "passo 500 / 10.000");
   assert.equal(contagemDoPasso("ponto 1 de 3"), "passo 1 / 3");
 });

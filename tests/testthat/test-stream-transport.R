@@ -36,7 +36,12 @@ test_that("plan_regions expõe exatamente os campos que App.jsx lê da mensagem 
   # `unit` é o nó que carrega os eventos: o PRIMEIRO colapso, em ordem de
   # `region$collapse` (que já sai ordenado — ver `.tr_stream_split()`).
   expect_equal(r$unit, "c1")
-  expect_setequal(r$members, c("fo", "ac", "c1", "c2"))
+  # `expect_equal`, não `expect_setequal`: `members` é `region$order`, ordem
+  # TOPOLÓGICA (comentário de `.tr_plan_regions()` acima), e é nessa ordem que
+  # o contorno do card e o front em geral confiam implicitamente. Com
+  # `expect_setequal` a suíte inteira passava mesmo invertendo a ordem
+  # topológica — achado auditando este arquivo (Fase 8, revisão).
+  expect_equal(unclass(r$members), c("fo", "ac", "c1", "c2"))
   expect_equal(r$roles$fo, "source")
   expect_equal(r$roles$ac, "lifted")
   expect_equal(r$roles$c1, "collapse")
@@ -200,28 +205,138 @@ test_that("mensagem de 'progress' de uma região bate no formato que contagemDoP
   # texto vem de `sprintf("ponto %d de %d", i, n)` em R/stream-driver.R — se
   # ele mudar de forma (por exemplo pra "%d/%d" sem "de", ou pra só uma
   # fração), a extração do front não quebra alto: ela devolve `null` e o
-  # contador do card da fonte simplesmente some, calado. Este teste casa a
-  # REGEX do front contra uma mensagem de verdade, publicada pelo driver real.
+  # contador do card da fonte simplesmente some, calado.
+  #
+  # ANTES este teste construía a string ele mesmo (`sprintf("ponto %d de %d",
+  # 2L, 4L)`) e injetava via `ctx$progress()` direto — o comentário dizia
+  # "publicada pelo driver real", mas não era: mutar `R/stream-driver.R:557`
+  # pra "calculando" não derrubava nada aqui. Agora quem publica é o driver de
+  # verdade (`.tr_run_unit()`, o mesmo caminho de produção, com
+  # `publish_every = 0` pra não depender de relógio), e o teste só LÊ o que
+  # sobrou em `progress/<chave>.json` — a mesma leitura que `tr_progress()`
+  # documenta e que o scheduler faz por polling.
   reg <- stream_registry(); s <- tmp_store()
   doc <- regiao_dupla_doc(reg)
   plan <- tr_plan(doc, registry = reg, store = s)
   u <- plan$units$c1
 
-  ex <- fake_async_executor(ticks = 3L)
-  ev <- list()
-  sch <- tr_scheduler(plan, reg, s, ex, function(e) ev[[length(ev) + 1L]] <<- e)
-  sch$step()
-  ctx <- .tr_make_ctx(u, s)
-  ctx$progress(0.5, sprintf("ponto %d de %d", 2L, 4L))
-  while (!sch$step()) NULL
-
-  prog <- Filter(function(x) identical(x$type, "progress"), ev)
-  expect_true(length(prog) >= 1L)
-  msg <- prog[[1]]$message
+  .tr_run_unit(u, reg, s, ctx_extra = list(publish_every = 0))
+  prog <- tr_progress(s, u$key)
+  expect_false(is.null(prog))
+  msg <- prog$message
   # A MESMA regex de `contagemDoPasso()`, em R: dois grupos de dígitos.
   m <- regmatches(msg, regexec("(\\d+)\\D+(\\d+)", msg))[[1]]
   expect_length(m, 3L)
-  expect_equal(m[2], "2"); expect_equal(m[3], "4")
-  expect_true("fraction" %in% names(prog[[1]]))
-  expect_equal(prog[[1]]$fraction, 0.5)
+  # A fonte (`s/pontos`, n = 4L via `regiao_dupla_doc()`) publica um progresso
+  # por passo com `publish_every = 0`; o último gravado é o do passo final.
+  expect_equal(m[3], "4")
+  expect_true("fraction" %in% names(prog))
 })
+
+# PROVA DE MUTAÇÃO 3: mutando `R/stream-driver.R:557` de
+# `sprintf("ponto %d de %d", i, n)` pra `sprintf("calculando")` (mensagem sem
+# dígito nenhum), rodando só este arquivo:
+#
+#   -- Failure (test-stream-transport.R): mensagem de 'progress'... --
+#   `m <- regmatches(...)` tem comprimento 0, não 3.
+#   Expected `length(m)` to equal 3.
+#   actual:   0
+#   expected: 3
+#
+# — o teste antigo (que fabricava a própria string) continuava verde com essa
+# mesma mutação. A troca foi desfeita depois de confirmar a queda — não fica
+# no código.
+
+# --- O SERVIDOR manda o que R/plan.R calcula (cobertura de `run_now()`) -----
+
+test_that("run_now() manda a mensagem 'regions' pelo barramento de verdade", {
+  # Zero cobertura até aqui: nenhum teste passava por `tr_server()`/`run_now()`
+  # pra ver se `send(\"regions\", ...)` (R/transport.R:103) de fato sai. Deletar
+  # aquela linha quebraria toda a Fase 8 no navegador e a suíte inteira
+  # continuaria verde — é a lacuna que o relatório de revisão aponta.
+  reg <- stream_registry()
+  root <- withr::local_tempdir("proj-regions")
+  tr_project_new(root, character())
+  proj <- tr_project_at(root, reg)
+  tr_project_save(proj, regiao_dupla_doc(reg))
+
+  shiny::testServer(tr_server(proj, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+
+    regioes <- Filter(function(m) identical(m$type, "regions"), msgs)
+    expect_length(regioes, 1L)
+    rs <- regioes[[1]]$regions
+    expect_length(rs, 1L)
+    expect_equal(rs[[1]]$unit, "c1")
+  })
+})
+
+# PROVA DE MUTAÇÃO 4: comentando a linha `send("regions", list(regions =
+# .tr_plan_regions(plan)))` em `run_now()` (R/transport.R:103), rodando só
+# este arquivo:
+#
+#   -- Failure (test-stream-transport.R): run_now() manda a mensagem... --
+#   `regioes` tem comprimento 0, não 1.
+#   Expected `length(regioes)` to equal 1.
+#   actual:   0
+#   expected: 1
+#
+# E o RESTO da suíte (`test_dir()` inteiro) continua 100% verde com a linha
+# comentada — exatamente o achado do relatório de revisão ("deletar a linha
+# quebra todo o front e a suíte inteira passa"). A mudança foi desfeita depois
+# de confirmar a queda — não fica no código.
+
+test_that("eventos de unidade chegam com 'unit_type' — o rótulo de que unitState() (editor.js) depende", {
+  # Zero cobertura: `forward()` (R/transport.R:58) renomeia `ev$type` original
+  # pra `ev$unit_type` e sobrescreve `ev$type` com "unit"/"run_finished". Anular
+  # `unit_type` ali muda a FORMA que sai pro front (todo `switch` de
+  # `unitState()` em editor.js lê `m.unit_type`) e nenhum teste do núcleo
+  # percebe, porque nenhum olha pro campo.
+  reg <- test_registry()
+  root <- withr::local_tempdir("proj-unittype")
+  tr_project_new(root, character())
+  proj <- tr_project_at(root, reg)
+  doc <- add(tr_doc(), reg, "t/const", id = "c1", value = 3)
+  tr_project_save(proj, doc)
+
+  shiny::testServer(tr_server(proj, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+
+    # `pump()` some agenda via `later::later()`; aqui o scheduler é acessível
+    # direto (mesmo objeto, `exec$sched`, no ambiente do servidor) — driblar o
+    # laço do `later` e avançar sincronamente é o mesmo padrão de
+    # test-scheduler.R ("step() avança um passo por vez").
+    sched <- session$env$exec$sched
+    expect_false(is.null(sched))
+    n <- 0L
+    while (!sched$step()) { n <- n + 1L; expect_lt(n, 200L) }
+
+    unidades <- Filter(function(m) identical(m$type, "unit"), msgs)
+    expect_true(length(unidades) >= 1L)
+    expect_true(all(vapply(unidades, function(m) "unit_type" %in% names(m), logical(1))))
+    tipos <- vapply(unidades, function(m) m$unit_type, "")
+    expect_true("done" %in% tipos || "cached" %in% tipos)
+    # E `type` nunca é o tipo cru do motor ("done"/"running"/...) — sempre
+    # "unit" (ou "run_finished"), que é o que separa os dois `if` em
+    # `applyUnit()` (editor.js).
+    expect_true(all(vapply(unidades, function(m) m$type, "") == "unit"))
+  })
+})
+
+# PROVA DE MUTAÇÃO 5: em `forward()` (R/transport.R:58), trocando
+#
+#   - ev$unit_type <- ev$type
+#   + # (linha removida — unit_type nunca é gravado)
+#
+# rodando só este arquivo:
+#
+#   -- Failure (test-stream-transport.R): eventos de unidade chegam com... --
+#   `all(vapply(unidades, function(m) "unit_type" %in% names(m), ...))` não é TRUE.
+#
+# E de novo, o resto da suíte passa inteiro com a mutação — nenhum outro teste
+# olha pro campo `unit_type`. A mudança foi desfeita depois de confirmar a
+# queda — não fica no código.
