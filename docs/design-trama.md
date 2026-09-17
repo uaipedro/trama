@@ -327,6 +327,15 @@ pelo caminho da interface esses dois ficam no default. Checkpoint em
 lote no mesmo diretório, e `tr_retry()` é o gesto que limpa o handle de erro
 preservando o checkpoint, porque `tr_bust()` apaga os dois de propósito.
 
+**Um gap de interface, conhecido:** as cinco recusas voltam de
+`tr_doc_validate()` como `problems`, e o front hoje só as renderiza como
+**banner do documento**, não como marca no card — porque marca de card vem de
+evento de run, e um `data/to_stream` solto aborta o plano antes de existir
+unidade. Consequência medida: o card fica indistinguível de um nó sadio, e o
+banner nomeia o nó pelo id gerado, que nenhum card mostra — com dois cards de
+mesmo rótulo não se sabe qual apagar. A sessão sobrevive, o documento reabre e o
+texto do banner diz o que fazer; o que falta é a marca no lugar certo.
+
 **Dois gaps conhecidos e aceitos:**
 
 1. **Nós da região não paralelizam entre si.** E a razão é de implementação, não

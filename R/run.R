@@ -5,7 +5,9 @@
 #' execução: o coordenador não calcula fila nenhuma, só emite o que acontece.
 #'
 #' `on_event(ev)` recebe, por unidade: `cached`, `failed`, `invalid`,
-#' `blocked`, `running`, `done`; e um `run_finished` no fim. É o contrato que
+#' `blocked`, `running`, `done`, `cancelled` (unidade superada por um run novo,
+#' ou região PARADA por comando); mais `progress` e `partial` de quem publica
+#' pelo `.ctx`; e um `run_finished` no fim. É o contrato que
 #' o transporte (E5) traduz pra mensagem de front — o motor não sabe o que é
 #' Shiny.
 #'

@@ -181,9 +181,9 @@ abas no card — é o que evita plantar um bloco extra só pra olhar o mesmo dad
 outro jeito. Cada vista recebe `{artifact, handle, assetUrl}`. Todo tipo que
 declare `summary=` no `tr_type()` ganha uma vista `resumo` sem pedir.
 
-`trama.data` (em `collections/`) é a coleção de referência: 28 blocos em sete
+`trama.data` (em `collections/`) é a coleção de referência: 30 blocos em oito
 categorias — fonte (CSV, RDS, Parquet, Excel, dados de exemplo, gerador), conhecer,
-limpar, transformar, reformatar, agregar e gravar. Todo bloco tem ajuda; todo erro de usuário tem
+limpar, transformar, reformatar, agregar, fluxo (entrar e sair de região) e gravar. Todo bloco tem ajuda; todo erro de usuário tem
 classe (`tr_data_errors()`); a suíte é dela.
 
 `trama.view` é a segunda: dezenove gráficos ggplot2 em três categorias
@@ -254,10 +254,20 @@ nos dois executores. A ressalva é o Shiny, não o executor: com
 está mostrando a tela, então enquanto o laço anda não sobra ninguém ali pra
 CLICAR o botão — é o processo da interface que fica preso, não o mecanismo do
 comando. Rodar num console separado, ou apontar duas sessões pro mesmo store,
-já mostra os três respondendo em qualquer executor. Velocidade é estado de
-sessão, não param — arrastar o controle não recomputa o fluxo. Se o run
-morrer no meio, o trabalho fica num checkpoint e `tr_retry()` retoma de onde
-parou.
+já mostra os três respondendo em qualquer executor.
+
+A chave que o `tr_stream_command()` pede é a da UNIDADE, e ela sai de
+`tr_plan(doc, registry = reg, store = store)$units[["<nó do colapso>"]]$key` —
+NÃO de `tr_plan_keys()`, que devolve chaves de artefato. Numa segunda sessão é
+assim que se obtém; pela interface não há botão de `stop` hoje. Velocidade é estado de
+sessão, não param — arrastar o controle não recomputa o fluxo.
+
+Se o run morrer no meio, o trabalho fica num checkpoint e o run SEGUINTE retoma
+de onde parou. `tr_retry()` não roda nada: ele limpa o handle de erro que a
+falha deixou (preservando o checkpoint, ao contrário do `tr_bust()`, que apaga
+os dois), e é o `tr_run()`/`tr_value()` depois dele que retoma. Depois de um
+processo morto à força não há handle de erro nenhum, então o `tr_retry()`
+devolve `FALSE` e o run seguinte retoma sozinho.
 
 Detalhes de desenho em `docs/design-trama.md`, seção 5.8.
 

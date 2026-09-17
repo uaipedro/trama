@@ -23,7 +23,9 @@ execução: o coordenador não calcula fila nenhuma, só emite o que acontece.
 }
 \details{
 \code{on_event(ev)} recebe, por unidade: \code{cached}, \code{failed}, \code{invalid},
-\code{blocked}, \code{running}, \code{done}; e um \code{run_finished} no fim. É o contrato que
+\code{blocked}, \code{running}, \code{done}, \code{cancelled} (unidade superada por um run novo,
+ou região PARADA por comando); mais \code{progress} e \code{partial} de quem publica
+pelo \code{.ctx}; e um \code{run_finished} no fim. É o contrato que
 o transporte (E5) traduz pra mensagem de front — o motor não sabe o que é
 Shiny.
 
