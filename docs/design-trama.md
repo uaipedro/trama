@@ -309,10 +309,21 @@ que sabe juntar N pontos de um tipo, porque juntar é conhecimento de domínio
 colapsa de volta em dado trama comum: terminou o run, os nós de gráfico que já
 existem plotam a curva.
 
-Cadência (velocidade de apresentação), pausa, um passo e parar são **comandos**,
-não ops de documento: viajam por `<store>/stream/<chave>/control.json`, lidos
-pelo driver entre passos. Nenhum deles entra na chave — mudar a velocidade não
-pode recomputar dez mil pontos (é a razão de nenhum ser param). Checkpoint em
+Pausa, um passo, velocidade (`tempo`) e parar são **comandos**, não ops de
+documento: viajam por `<store>/stream/<chave>/control.json`, escritos por
+`tr_stream_command()` e lidos pelo driver entre passos. Nenhum deles entra na
+chave — mudar a velocidade não pode recomputar dez mil pontos (é a razão de
+nenhum ser param).
+
+Os outros dois botões de operação NÃO vão por ali, e a distinção é deliberada:
+`publish_every` (de quantos em quantos segundos se publica parcial) e
+`checkpoint_every` (de quantos em quantos passos se grava checkpoint) são
+**ajuste do run**, fixados quando ele começa, e descem pelo argumento
+`ctx_extra` de `tr_run()`/`tr_value()`/`tr_server()`. O `control.json` carrega
+gesto AO VIVO — alguém clicando enquanto a região roda —, e juntar os dois
+faria um arrasto no controle de velocidade reescrever a política de
+durabilidade. Consequência conhecida: `tr_app()` não repassa `ctx_extra`, então
+pelo caminho da interface esses dois ficam no default. Checkpoint em
 lote no mesmo diretório, e `tr_retry()` é o gesto que limpa o handle de erro
 preservando o checkpoint, porque `tr_bust()` apaga os dois de propósito.
 

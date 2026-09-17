@@ -240,7 +240,9 @@ guardar estado entre os pontos declara `init`/`step`, como o `models/rls`, que
 depois de *n* pontos chega aos mesmos coeficientes que um `lm()` nos mesmos *n*
 pontos.
 
-O resultado é o **histórico**: uma tabela com uma linha por passo, que os nós de
+O resultado é o **histórico**: uma tabela com uma linha por observação — com
+`lote = 1` isso é uma linha por passo, e com lote maior um passo contribui
+várias —, que os nós de
 gráfico que já existem plotam. E porque é dado comum, o resto do pacote
 funciona depois dela sem saber que houve fluxo.
 
