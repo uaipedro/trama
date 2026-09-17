@@ -1,0 +1,42 @@
+Package: trama.ml
+Title: Interpretable and Classical Machine Learning for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Supervised learning nodes for trama workflows, from linear
+    baselines and interpretable CART and FIGS models to random forests,
+    support vector machines and gradient boosted trees. Provides reproducible
+    training and test splits, prediction, evaluation and model inspection.
+    Learning engines are optional and loaded only for the selected model.
+    Neural networks are deliberately outside the scope of this collection.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends: R (>= 4.1)
+Imports:
+    trama,
+    trama.data,
+    tibble,
+    rlang,
+    stats,
+    utils,
+    datasets
+Suggests:
+    figsr (>= 0.1.1),
+    rpart,
+    ranger,
+    e1071,
+    xgboost (>= 3.0.0),
+    testthat (>= 3.0.0),
+    pkgload
+Config/testthat/edition: 3
+Remotes:
+    uaipedro/trama,
+    trama.data=github::uaipedro/trama/collections/trama.data
+Config/roxygen2/version: 8.0.0

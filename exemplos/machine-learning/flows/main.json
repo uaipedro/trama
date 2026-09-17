@@ -1,0 +1,488 @@
+{
+  "format": 1,
+  "rev": 45,
+  "collections": {
+    "ml": "0.1.0"
+  },
+  "nodes": {
+    "dados": {
+      "type": "ml/example",
+      "type_version": 1,
+      "label": "Dados para aprender",
+      "params": {
+        "nome": "iris_binaria"
+      },
+      "seed": 247075137
+    },
+    "divisao": {
+      "type": "ml/split",
+      "type_version": 1,
+      "label": "Separar treino / teste",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 266292228
+    },
+    "linear": {
+      "type": "ml/linear",
+      "type_version": 1,
+      "label": "Linear / logística",
+      "params": {
+        "alvo": "Species",
+        "cols": ""
+      },
+      "seed": 108510550
+    },
+    "linear_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 225062009
+    },
+    "linear_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 223342254
+    },
+    "cart": {
+      "type": "ml/cart",
+      "type_version": 1,
+      "label": "CART · árvore de decisão",
+      "params": {
+        "alvo": "Species",
+        "cols": ""
+      },
+      "seed": 101876763
+    },
+    "cart_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 117514221
+    },
+    "cart_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 176672245
+    },
+    "figs": {
+      "type": "ml/figs",
+      "type_version": 1,
+      "label": "FIGS · soma de árvores",
+      "params": {
+        "alvo": "Species",
+        "cols": ""
+      },
+      "seed": 133858971
+    },
+    "figs_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 5659416
+    },
+    "figs_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 105942658
+    },
+    "forest": {
+      "type": "ml/forest",
+      "type_version": 1,
+      "label": "Random forest",
+      "params": {
+        "alvo": "Species",
+        "cols": ""
+      },
+      "seed": 256804838
+    },
+    "forest_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 81696437
+    },
+    "forest_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 192915269
+    },
+    "svm": {
+      "type": "ml/svm",
+      "type_version": 1,
+      "label": "SVM · vetores de suporte",
+      "params": {
+        "alvo": "Species",
+        "cols": ""
+      },
+      "seed": 208173421
+    },
+    "svm_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 232124912
+    },
+    "svm_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 13476495
+    },
+    "xgboost": {
+      "type": "ml/xgboost",
+      "type_version": 1,
+      "label": "XGBoost",
+      "params": {
+        "alvo": "Species",
+        "cols": ""
+      },
+      "seed": 263704389
+    },
+    "xgboost_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 247760725
+    },
+    "xgboost_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 46573447
+    }
+  },
+  "edges": [
+    {
+      "from": {
+        "node": "dados",
+        "port": "out"
+      },
+      "to": {
+        "node": "divisao",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "linear",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "linear",
+        "port": "out"
+      },
+      "to": {
+        "node": "linear_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "linear_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "linear_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "linear_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "cart",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cart",
+        "port": "out"
+      },
+      "to": {
+        "node": "cart_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "cart_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cart_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "cart_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "figs",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "figs",
+        "port": "out"
+      },
+      "to": {
+        "node": "figs_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "figs_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "figs_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "figs_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "forest",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "forest",
+        "port": "out"
+      },
+      "to": {
+        "node": "forest_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "forest_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "forest_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "forest_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "svm",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "svm",
+        "port": "out"
+      },
+      "to": {
+        "node": "svm_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "svm_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "svm_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "svm_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "xgboost",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "xgboost",
+        "port": "out"
+      },
+      "to": {
+        "node": "xgboost_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "xgboost_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "xgboost_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "xgboost_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    }
+  ],
+  "ui": {
+    "positions": {
+      "dados": [0, 300],
+      "divisao": [320, 300],
+      "linear": [680, 0],
+      "linear_prever": [1040, 0],
+      "linear_avaliar": [1400, 0],
+      "cart": [680, 320],
+      "cart_prever": [1040, 320],
+      "cart_avaliar": [1400, 320],
+      "figs": [680, 640],
+      "figs_prever": [1040, 640],
+      "figs_avaliar": [1400, 640],
+      "forest": [680, 960],
+      "forest_prever": [1040, 960],
+      "forest_avaliar": [1400, 960],
+      "svm": [680, 1280],
+      "svm_prever": [1040, 1280],
+      "svm_avaliar": [1400, 1280],
+      "xgboost": [680, 1600],
+      "xgboost_prever": [1040, 1600],
+      "xgboost_avaliar": [1400, 1600]
+    },
+    "sizes": {},
+    "views": {},
+    "frames": {},
+    "folds": {}
+  }
+}

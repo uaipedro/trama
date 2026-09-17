@@ -37,9 +37,16 @@ pak::pak("uaipedro/trama/collections/trama.series")    # séries temporais
 pak::pak("uaipedro/trama/collections/trama.models")    # modelos estatísticos
 pak::pak("uaipedro/trama/collections/trama.multi")     # análise multivariada
 pak::pak("uaipedro/trama/collections/trama.sampling")  # amostragem
+pak::pak("uaipedro/trama/collections/trama.ml")        # machine learning sem redes neurais
 ```
 
 Para fixar uma versão, acrescente a tag: `"uaipedro/trama@v0.1.0"`.
+
+A coleção [`trama.ml`](collections/trama.ml/README.md) traz CART, FIGS
+(via `figsr`), random forest, SVM e XGBoost, além da referência linear/logística,
+divisão treino/teste, avaliação e regras interpretáveis. Os motores são
+opcionais; instale os que usar. Há [fluxos de exemplo](exemplos/machine-learning)
+para classificação e regressão, com [referências dos métodos e pacotes](collections/trama.ml/REFERENCES.md).
 
 Com `remotes`, instale na ordem das dependências — núcleo, `trama.data`,
 `trama.view` e só então as demais:
