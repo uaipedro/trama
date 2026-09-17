@@ -11,6 +11,11 @@
       --tr-accent-fg:#fff;--tr-ink:#0b0e13;--tr-accent-ink:#0b0e13;
       --tr-shadow:rgba(0,0,0,.35);--tr-shadow-hi:rgba(0,0,0,.5);
       --tr-backdrop:rgba(6,8,12,.88);--tr-err-bg:#3a1d1d;--tr-err-fg:#fecaca;
+      /* Cor de REGIÃO DE FLUXO — deliberadamente distinta de `--tr-accent`
+         (seleção, foco, run em andamento): um card selecionado que também é
+         membro de uma região precisa mostrar as duas coisas ao mesmo tempo,
+         sem uma apagar a outra. */
+      --tr-stream:#2dd4bf;
       color-scheme:dark}
 /* Tema claro: só redefine tokens. `data-tema` é resolvido no <head> antes do
    primeiro paint (R/app.R) e mantido pelo editor; `color-scheme` acompanha para
@@ -24,6 +29,7 @@
       --tr-field:#f1f3f6;--tr-edge:#b6bdc9;--tr-hover:#eef1f5;--tr-dots:#c3c9d3;
       --tr-shadow:rgba(20,30,50,.12);--tr-shadow-hi:rgba(20,30,50,.22);
       --tr-backdrop:rgba(20,26,38,.55);--tr-err-bg:#fdecec;--tr-err-fg:#991b1b;
+      --tr-stream:#0d9488;
       color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
@@ -38,6 +44,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   --xy-connectionline-stroke-default:var(--tr-dim)}
 .react-flow__edge-path{stroke:var(--tr-edge);stroke-width:2}
 .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-accent)}
+/* Aresta de FLUXO (`animated: true`, decidido em `docToFlow` pelo campo
+   `stream` do catálogo — Tarefa 8.1). O xyflow já anima o traço tracejado de
+   toda aresta `animated`; aqui só se troca a COR, pra ela não se confundir com
+   uma aresta comum selecionada (que usa `--tr-accent`). */
+.react-flow__edge.animated .react-flow__edge-path{stroke:var(--tr-stream);stroke-width:2.5}
 
 /* --- nó --- */
 /* O piso de tamanho mora aqui, e não no servidor: 240x132 é política de
@@ -50,6 +61,13 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-node-sel{border-color:var(--tr-accent)}
 .tr-state-running{border-color:var(--tr-accent)}
 .tr-state-failed{border-color:var(--tr-err)}
+/* Contorno sutil de MEMBRO DE REGIÃO (Tarefa 8.1) — `outline`, não `border`:
+   não disputa espaço com a borda que já conta o estado (rodando/falhou) nem
+   com o `box-shadow` da seleção, então as três marcas convivem no mesmo card
+   sem se apagarem. Tracejado, e não sólido, porque sólido igualaria visualmente
+   "está selecionado" (que também usa cor cheia noutro token) e "é membro de
+   região" — o tracejado é a única pista livre. */
+.tr-node-region{outline:2px dashed var(--tr-stream);outline-offset:3px}
 .tr-node-orphan{padding:10px;border:1px dashed var(--tr-err);color:var(--tr-err);
                 background:var(--tr-panel);border-radius:10px;width:240px}
 .tr-node-head{position:relative;display:flex;align-items:center;gap:6px;padding:6px 9px;

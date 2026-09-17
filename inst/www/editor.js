@@ -97,9 +97,40 @@ function docToFlow(doc, catalog) {
               fold: (doc.ui && doc.ui.folds && doc.ui.folds[id]) || null },
     };
   });
+  // Aresta de FLUXO: a porta de SAÍDA de onde ela sai, OU a porta de ENTRADA
+  // aonde ela chega, declara `stream` no catálogo. O front decide isso
+  // sozinho, sem perguntar ao servidor — é a propriedade que `tr_catalog()`
+  // existe pra preservar (`R/catalog.R`: "adapters viaja... pro front poder
+  // responder... sem round-trip").
+  //
+  // As DUAS pontas, e não só a origem: `.tr_stream_detect()`
+  // (`R/stream-region.R`) só faz a fonte e o nó com memória DECLARAREM —
+  // um nó elevado (a maioria dos membros de uma região: um `data/filter`
+  // comum, usado dentro e fora dela) não declara NADA, e mesmo assim toda
+  // saída dele propaga fluxo enquanto estiver dentro da região. Sem checar
+  // a entrada também, a aresta que sai de um elevado e entra no COLAPSO
+  // (`data/from_stream`, cuja porta de entrada É declarada) ficava sem
+  // traço — exatamente a aresta que fecha a região, que é a mais
+  // importante de mostrar como fluxo. O que ainda escapa por este critério:
+  // uma aresta entre DOIS elevados em sequência dentro da mesma região (nem
+  // origem nem destino declara) — só a região inteira (via mensagem
+  // `regions`) resolveria isso, e essa mensagem chega depois do documento,
+  // de forma assíncrona; marcar a aresta por ela faria o traço aparecer um
+  // instante depois do resto do grafo, pior que a lacuna.
+  const portaFluxo = (nodeId, port, lado) => {
+    const n = doc.nodes?.[nodeId];
+    const spec = n && byId[n.type];
+    const portas = spec?.[lado]?.find((p) => p.name === port);
+    return !!portas?.stream;
+  };
+  const ehFluxo = (e) =>
+    portaFluxo(e.from.node, e.from.port, "outputs") || portaFluxo(e.to.node, e.to.port, "inputs");
   const edges = (doc.edges || []).map((e) => ({
     id: edgeId(e), source: e.from.node, sourceHandle: e.from.port,
     target: e.to.node, targetHandle: e.to.port, data: { index: e.index },
+    // `animated` é o traço tracejado do próprio React Flow — nenhum CSS novo
+    // pra manter em sincronia com a versão da biblioteca.
+    animated: ehFluxo(e),
   }));
   // Frames vêm primeiro no array e com `zIndex: -1`: ficam atrás de cards e
   // ligações. A ordem de exibição (`index`) sai do `order`, e proporção que o
@@ -324,7 +355,15 @@ function NdNode({ id, data, selected }) {
   const nParams = (spec.params || []).length;
   const falhou = data.state === "failed" || data.state === "invalid";
   const frac = data.progress?.fraction;
-  const cls = ["tr-node", selected ? "tr-node-sel" : "", `tr-state-${data.state || "idle"}`]
+  // Contorno sutil pra todo card que é MEMBRO de uma região de fluxo —
+  // fonte, elevado ou colapso, os três (`data.emRegiao` vem do índice reverso
+  // montado no handler de `regions`, em App). Não é um retângulo por cima de
+  // vários cards (isso seguiria posição e arrasto de cada um, como o Frame já
+  // faz por outro motivo, e duplicaria aquela maquinaria pra um sinal que só
+  // precisa dizer "isto roda dentro de um laço"); é uma marca POR CARD, que
+  // continua certa se o autor arrastar os nós pra qualquer lugar do canvas.
+  const cls = ["tr-node", selected ? "tr-node-sel" : "", `tr-state-${data.state || "idle"}`,
+              data.emRegiao ? "tr-node-region" : ""]
     .filter(Boolean).join(" ");
 
   // A faixa é SEMPRE reservada, inclusive com uma vista só. As vistas dependem do
@@ -842,6 +881,14 @@ function App() {
   const foldsRef = useRef({});      // recolhimento local, antes do eco
   const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
   const projetoRef = useRef(null);  // raiz do projeto aberto, pro handler de `project`
+  // Regiões de fluxo do plano ATUAL, por id do nó que carrega os eventos de
+  // unidade (o primeiro colapso — `u$node`, em `R/transport.R`). É o mapa que
+  // fecha o buraco herdado da Fase 5: sem ele, um membro interior ou um
+  // segundo colapso nunca recebiam evento nenhum, porque o motor só emite sob
+  // `u$node`. Mora em ref, e não em estado: chega numa mensagem própria
+  // (`regions`), e usá-la é trabalho de `applyUnit`, que já roda fora do ciclo
+  // de render (ver o comentário de `stateRef`).
+  const regionsRef = useRef({});
   const catalogRef = useRef(null);
   const wrapRef = useRef(null);
   const arrastoRef = useRef(null);  // por frame arrastado: {x0, y0, itens:[{id,x,y}]}
@@ -990,6 +1037,10 @@ function App() {
                       size: sizesRef.current[n.id] ?? n.data.size,
                       fold: foldsRef.current[n.id] ?? n.data.fold,
                       seed: seedsRef.current[n.id] ?? n.data.seed,
+                      // Membro de QUALQUER região: contorno do card (8.1) — lido
+                      // do ref, então não precisa de estado próprio além do
+                      // `tick` que a rajada de eventos já pede.
+                      emRegiao: !!regionsRef.current._nodes?.has(n.id),
                       typeColors, categories, onParam, onHelp, onView, onResize, onFold,
                       onReseed, temas } })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
@@ -1099,6 +1150,26 @@ function App() {
 
       if (m.type === "listing") { setListagem(m); return; }
 
+      // Regiões do plano ATUAL. Chega a cada `run_now` (R/transport.R) —
+      // documento novo, ou só um param que mudou — então é sempre a lista
+      // certa pro run em voo. Indexado por `unit` (o id do nó que carrega os
+      // eventos), que é a chave de busca de `applyUnit`.
+      if (m.type === "regions") {
+        const mapa = {};
+        (m.regions || []).forEach((r) => { mapa[r.unit] = r; });
+        // `_nodes`: todo id que pertence a QUALQUER região, pro contorno do
+        // card (Tarefa 8.1). Não é uma região a mais no mapa — é o índice
+        // reverso que `decorated` (App) lê pra decidir a classe CSS, sem
+        // varrer `regions` a cada card a cada render.
+        mapa._nodes = new Set((m.regions || []).flatMap((r) => r.members));
+        regionsRef.current = mapa;
+        // `regions` não muda `stateRef`, então sem isto o contorno só
+        // apareceria no próximo evento de unidade — perceptível quando a
+        // região tem cache (roda zero unidade, evento nenhum chega).
+        bumpTick();
+        return;
+      }
+
       // Toda recusa de abrir ou criar chega por aqui: é ela que devolve as
       // ações do diálogo: sem isto um `warning` deixaria os botões
       // desabilitados até fechar e reabrir.
@@ -1119,12 +1190,72 @@ function App() {
     onShinyReady(() => sendInput("tr_ready", Date.now()));
   }, []);
 
+  // Estados terminais: quem chega aqui não vai mudar mais sozinho até o
+  // próximo run — é o momento de desligar o "computando…" de quem só vivia
+  // de parcial (a região inteira acabou, e cada membro interior não tem
+  // evento PRÓPRIO de fim — ver o comentário longo em `regionMemberPatch`).
+  const TERMINAL = new Set(["done", "cached", "failed", "blocked", "invalid", "cancelled"]);
+
   function applyUnit(m) {
     // Estado de execução vive no ref, não no array de nós: assim uma rajada de
     // eventos (um por nó, por execução) não reconstrói o grafo inteiro a cada
     // mensagem. O `tick` avisa a memoização que precisa redecorar.
-    stateRef.current[m.node] = { ...(stateRef.current[m.node] || {}), ...unitState(m) };
+    const patch = unitState(m);
+    const regiao = regionsRef.current[m.node];
+    if (!regiao) {
+      // Caminho de sempre: nó comum, ou o parcial de um MEMBRO interior, que
+      // já chega com `m.node` = id do próprio membro (`scheduler.R` sobrescreve
+      // `node` no evento `partial` da região) — não precisa de região nenhuma
+      // pra saber em qual card pintar.
+      stateRef.current[m.node] = { ...(stateRef.current[m.node] || {}), ...patch };
+      bumpTick();
+      return;
+    }
+    // Evento DE UNIDADE de uma região (running/done/cached/failed/blocked/
+    // invalid/progress/cancelled): `m.node` é só o PRIMEIRO colapso, mas o
+    // evento é de TODA a região. Propaga pra cada membro — é o fechamento do
+    // buraco herdado da Fase 5, e também o que desliga o card de um membro
+    // interior que só tinha vivido de `partial` (Hole 2): ao chegar aqui um
+    // estado TERMINAL, o `partial`/"running" que o parcial ligou apaga.
+    regiao.members.forEach((id) => {
+      stateRef.current[id] = { ...(stateRef.current[id] || {}), ...regionMemberPatch(m, patch, id, regiao) };
+    });
     bumpTick();
+  }
+
+  // O patch de UM membro da região, a partir do evento da unidade inteira.
+  //
+  // Três papéis, três leituras do mesmo evento:
+  //   - o PRÓPRIO `m.node` (o colapso que carrega o evento): o patch vale
+  //     como está — é o card que sempre funcionou.
+  //   - outro COLAPSO (`role === "collapse"`, id diferente de `m.node`): tem
+  //     artefato PRÓPRIO, só que o handle dele mora em `m.handles` sob um nome
+  //     QUALIFICADO (`region$outputs`, via a mensagem `regions`) — nunca sob
+  //     "out" like o primeiro. Sem isto o segundo colapso de uma região nunca
+  //     mostrava resultado, mesmo tendo rodado.
+  //   - SOURCE ou membro LIFTED: não tem chave própria (`R/plan.R` documenta:
+  //     "nó interior... não grava artefato"). Só existe enquanto a região
+  //     roda — então um estado TERMINAL não herda handle nenhum do evento
+  //     (não tem um), mas TEM que apagar o `partial`/"running" que o próprio
+  //     parcial ligou, senão o card fica pra sempre com a última prévia
+  //     girando (o Hole 2 da Fase 8).
+  function regionMemberPatch(m, patch, id, regiao) {
+    if (id === m.node) return patch;
+    if (regiao.roles[id] === "collapse") {
+      if (!m.handles) return patch;
+      const nomes = regiao.outputs[id] || [];
+      const handle = nomes.map((n) => m.handles[n]).find(Boolean) || null;
+      return { ...patch, handle };
+    }
+    // Source ou lifted. `progress` e `running` propagam como estão (mostra a
+    // região andando no card dele também); um estado TERMINAL some com o
+    // "rodando" e CONGELA o último parcial — não toca no `handle` que já está
+    // no card (a última prévia que o usuário estava vendo), só desliga o
+    // spinner. O ESTADO em si espelha o da região (falhou/bloqueou junto),
+    // porque um membro interior de uma região que não terminou bem também não
+    // terminou bem — só não tem mensagem própria pra mostrar.
+    if (!TERMINAL.has(m.unit_type)) return patch;
+    return { ...patch, error: null, progress: null, partial: false };
   }
 
   function unitState(m) {

@@ -93,6 +93,14 @@ tr_server <- function(project, flow = "main",
       exec$sched <- tr_scheduler(plan, proj$registry, proj$store, executor, on_event = forward,
                                  run_id = as.character(run_seq()), inherit = inherit,
                                  ctx_extra = ctx_extra)
+      # Quais nós formam cada região — a Fase 8 fecha o buraco herdado (todo
+      # evento de unidade chega com `node` = primeiro colapso; membro interior
+      # e segundo colapso em diante nunca recebiam nada). Mandado a CADA
+      # `run_now`: o plano acabou de ser recalculado aqui mesmo, e a lista de
+      # regiões pode ter mudado (nó entrou ou saiu da região) desde o run
+      # anterior. `.tr_plan_regions()` só relê o plano já calculado — nenhuma
+      # regra de região nova mora no barramento.
+      send("regions", list(regions = .tr_plan_regions(plan)))
       pump()
     }
 

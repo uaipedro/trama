@@ -417,6 +417,61 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
   }), use.names = FALSE)
 }
 
+#' O plano, na forma que o FRONT precisa pra saber quais nós formam uma
+#' região — sem reimplementar `.tr_stream_regions()` em JavaScript.
+#'
+#' Fase 8 herdou um buraco: o front não sabia nada sobre regiões, então todo
+#' evento de unidade (`running`, `done`, `cached`, `failed`, `blocked`,
+#' `invalid`, `progress`) chega com `node` = o PRIMEIRO colapso — e é só ele
+#' que o front atualizava. Um membro interior ou um segundo colapso na mesma
+#' região nunca recebia evento nenhum.
+#'
+#' A alternativa era o front DERIVAR a região sozinho (catálogo + documento,
+#' repetindo a propagação de `.tr_stream_regions()` numa segunda linguagem) —
+#' rejeitada pelo mesmo motivo que já matou outras segundas verdades no
+#' projeto (`.tr_adapter`, `region$external`, `.tr_wants_seed()`): a regra já
+#' mora aqui, em R, e `tr_plan()` já a calcula. Duplicá-la em JS arrisca as
+#' duas divergirem — a classe de bug que o Crítico da Fase 2 mediu quando
+#' `region$external` e uma segunda derivação de "é de fora" discordaram.
+#'
+#' Cada elemento descreve UMA região:
+#'   `id`      — a chave da UNIDADE (`u$key`), a mesma que `tr_stream_command()`
+#'               espera e a mesma sob a qual `progress`/`partial` chegam.
+#'   `unit`    — o id do nó que carrega os eventos de unidade (`u$node`, o
+#'               PRIMEIRO colapso). É a chave de busca no lado do front.
+#'   `members` — todo nó da região, em ordem topológica (`region$order`).
+#'   `roles`   — de cada membro, "source", "lifted" ou "collapse"
+#'               (`region$nodes[[id]]$role`) — é o que diz ao front se o
+#'               membro tem ARTEFATO PRÓPRIO (só o colapso tem) ou só existe
+#'               enquanto a região roda.
+#'   `outputs` — de cada colapso, os nomes de saída DELE dentro de
+#'               `u$outputs`/`u$handles` (`region$outputs[[cid]]`) — é o que
+#'               permite ao front achar o handle do SEGUNDO colapso em diante
+#'               dentro do mapa de handles do evento `done`, que vem
+#'               nomeado pela região inteira, não por colapso.
+#' @noRd
+.tr_plan_regions <- function(plan) {
+  # `unname()`: `plan$units` é lista NOMEADA (pelo id da unidade), e `Filter()`
+  # preserva os nomes. Sem tirá-los, `jsonlite::toJSON()` lê uma lista nomeada
+  # de listas como OBJETO (`{"c1": {...}}`), não como ARRAY (`[{...}]`) — e o
+  # front, que faz `(m.regions || []).forEach(...)` (`editor.js`), morre com
+  # "forEach is not a function" assim que uma região existe. Achado rodando o
+  # app de verdade (Tarefa 8.1) — é a MESMA classe de bug que o comentário
+  # longo de `store.R` documenta pro `files` sem nome, só que ao contrário: lá
+  # o problema era perder o nome que devia sobrar; aqui é sobrar o nome que
+  # tinha que sumir.
+  regs <- unname(Filter(function(u) identical(u$kind, "stream_region"), plan$units))
+  lapply(regs, function(u) list(
+    id = u$key, unit = u$node,
+    members = I(as.character(u$region$order)),
+    roles = stats::setNames(as.list(vapply(u$region$order,
+      function(id) u$region$nodes[[id]]$role, "")), u$region$order),
+    outputs = stats::setNames(
+      lapply(u$region$collapse, function(cid) I(unname(u$region$outputs[[cid]]))),
+      u$region$collapse)
+  ))
+}
+
 .tr_fp_ctx <- function(store) list(
   root = if (is.null(store)) NULL else store$project_root,
   path = function(p) if (is.null(store)) p else tr_store_path(store, p))
