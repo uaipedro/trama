@@ -224,7 +224,9 @@ gráfico que já existem plotam. E porque é dado comum, o resto do pacote
 funciona depois dela sem saber que houve fluxo.
 
 Enquanto roda, cada card mostra o próprio passo, e o card da fonte tem pausa,
-um passo e velocidade. Velocidade é estado de sessão, não param — arrastar o
+um passo e velocidade — os três só respondem com `tr_executor_pool()`, porque no
+executor sequencial o processo fica ocupado computando e não há quem receba o
+comando. Velocidade é estado de sessão, não param — arrastar o
 controle não recomputa o fluxo. Se o run morrer no meio, o trabalho fica num
 checkpoint e `tr_retry()` retoma de onde parou.
 

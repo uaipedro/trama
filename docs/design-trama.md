@@ -318,8 +318,15 @@ preservando o checkpoint, porque `tr_bust()` apaga os dois de propósito.
 
 **Dois gaps conhecidos e aceitos:**
 
-1. **Nós da região não paralelizam entre si.** O ponto *n* depende do estado em
-   *n-1*; é sequencial por natureza, não por implementação.
+1. **Nós da região não paralelizam entre si.** E a razão é de implementação, não
+   de natureza — a primeira versão desta linha dizia "sequencial por natureza" e
+   isso é falso na maioria dos casos. Com um nó COM MEMÓRIA a dependência é real
+   (o ponto *n* precisa do estado em *n-1*), mas região sem nó com memória é o
+   caso comum — `models/rls` é o único `online` do repositório inteiro —, e ali
+   cada ponto é independente de todos os outros. Mesmo com memória, dois ramos
+   elevados independentes DENTRO de um ponto poderiam rodar concorrentes. O
+   driver percorre um ponto por vez porque ninguém pagou para ele fazer
+   diferente, e é isso que esta linha registra.
 2. **A região reexecuta inteira quando qualquer nó dela muda.** A chave é sobre
    todos os nós, então editar um param de um membro invalida o histórico todo.
    O checkpoint mitiga a morte no meio, não a edição.
