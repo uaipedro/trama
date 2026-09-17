@@ -86,14 +86,37 @@ tr_value <- function(doc, node, registry = .tr_default_registry, store,
                 settings = settings, ctx_extra = .tr_warn_ctx_extra(ctx_extra))
   u <- res$plan$units[[node]]
   # Membro INTERIOR de região não tem unidade própria: a região é uma unidade
-  # só, nomeada pelo colapso. Sem este ramo `u` era NULL,
-  # `length(u$output_types)` dava 0, e o `sprintf` com `u$node_type = NULL`
-  # devolvia `character(0)` — o abort saía com a mensagem VAZIA, e quem pedisse
-  # o valor de um nó de dentro da região não recebia pista nenhuma. É pra isto
-  # que `plan$region_of` existe; era o único lugar do pacote que devia lê-lo.
+  # só, nomeada pelo PRIMEIRO colapso (`tr_plan()`, `region$collapse[[1]]`).
+  # Sem este ramo `u` era NULL, `length(u$output_types)` dava 0, e o `sprintf`
+  # com `u$node_type = NULL` devolvia `character(0)` — o abort saía com a
+  # mensagem VAZIA, e quem pedisse o valor de um nó de dentro da região não
+  # recebia pista nenhuma. É pra isto que `plan$region_of` existe; era o único
+  # lugar do pacote que devia lê-lo.
   if (is.null(u)) {
     rid <- res$plan$region_of[[node]]
     if (!is.null(rid)) {
+      # MAS `region_of[[node]]` não distinguia um membro INTERIOR de um
+      # SEGUNDO COLAPSO da mesma região: os dois batem em `u == NULL`, porque
+      # só o primeiro colapso vira entrada de `plan$units`. Uma região com
+      # dois colapsos GRAVA artefato para os dois (`tr_plan()`: "cada saída de
+      # cada colapso derivada da MESMA chave de unidade") — só que o segundo
+      # mora em `ru$outputs`, sob o nome que `region$outputs` (Fase 3) dá a
+      # ele, não em `plan$units[[node]]`. Sem checar isso primeiro, todo
+      # segundo colapso caía na mensagem de "nó interior", que é FALSA para
+      # ele (ele grava, sim) e redireciona pro primeiro colapso — cujo
+      # artefato pode ter colunas diferentes (é OUTRO valor).
+      ru <- res$plan$units[[rid]]
+      om <- ru$region$outputs[[node]]
+      if (!is.null(om)) {
+        p <- port %||% names(om)[[1]]
+        idx <- match(p, names(om))
+        if (is.na(idx)) {
+          rlang::abort(sprintf("Porta de saída desconhecida em '%s': '%s'.", node, p),
+                       class = "tr_error_unknown_port")
+        }
+        nm <- om[[idx]]
+        return(tr_store_get(store, ru$outputs[[nm]], tr_get_type(ru$output_types[[nm]], registry)))
+      }
       rlang::abort(sprintf(
         paste0("'%s' é nó interior da região de fluxo executada por '%s' e não grava ",
                "artefato próprio: dentro da região ele só tem o valor do ponto da vez. ",

@@ -485,3 +485,95 @@ test_that("tr_value de nó INTERIOR de região erra nomeando a região", {
   expect_s3_class(err2, "tr_error_no_output")
   expect_match(conditionMessage(err2), "'fonte'")
 })
+
+# ---- Blocker B3: tr_value() de um SEGUNDO colapso da mesma região ----------
+#
+# `plan$units[[node]]` é NULL tanto para um membro INTERIOR quanto para um
+# colapso NÃO-PRIMÁRIO — só o primeiro colapso vira entrada de `plan$units`
+# (`tr_plan()`: "a unidade é nomeada pelo PRIMEIRO colapso"). Antes do fix,
+# `tr_value()` tratava os dois casos do mesmo jeito: `is.null(u)` caía direto
+# na mensagem "'%s' é nó interior [...] não grava artefato próprio", que é
+# FALSA para um segundo colapso — ele GRAVA, sob `region$outputs[[node]]`
+# (Fase 3), só que a chave mora na unidade do PRIMEIRO colapso. Medido: pedir
+# o segundo colapso abortava e mandava pedir o primeiro — cujo artefato é OUTRO
+# valor (aqui, o dobro; no caso relatado, colunas diferentes: `passo,x,y`
+# contra `x,y`), então seguir o redirecionamento entregava dado errado.
+b3_registry <- function() {
+  boxed <- trama::tr_type("b3/box", version = 1L,
+    store = function(x, path) saveRDS(x, path), restore = function(path) readRDS(path),
+    ext = "rds", preview = function(x, ctx) trama::tr_preview("b3/box", data = list(v = x$v)),
+    summary = function(x) list(v = x$v))
+  ponto <- function(...) trama::tr_port("b3/box", stream = TRUE, ...)
+  reg <- trama::tr_registry()
+  trama::tr_use(trama::tr_collection(id = "b3", version = "1.0.0", types = list(boxed),
+    nodes = list(
+      trama::tr_node("b3/fonte", fn = function(n) lapply(seq_len(n), function(i) list(v = i)),
+              outputs = list(out = ponto()), params = list(n = trama::tr_param_int(3L)),
+              description = "Emite n pontos, v = 1..n."),
+      # Membro interior comum: dobra o valor do ponto — o que faz o segundo
+      # colapso divergir de verdade do primeiro, e não só de nome.
+      trama::tr_node("b3/dobra", fn = function(x) x, inputs = list(x = ponto()),
+              outputs = list(out = ponto()),
+              init = function() list(), step = function(state, x) list(state = state, out = list(v = x$v * 2)),
+              description = "Dobra cada ponto."),
+      trama::tr_node("b3/colapsa", fn = function(x) x, inputs = list(x = ponto()),
+              outputs = list(out = "b3/box"),
+              description = "Junta os pontos: devolve a LISTA de pontos vista.")
+    )), registry = reg)
+  reg
+}
+
+test_that("tr_value() de um segundo colapso: grava artefato próprio, não redireciona pro primeiro", {
+  reg <- b3_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "b3/fonte", n = 3L) |>
+    tr_add("meio", "b3/dobra", from = "fonte") |>
+    tr_add("c1", "b3/colapsa", from = "fonte") |>
+    tr_add("c2", "b3/colapsa", from = "meio"))
+
+  # ANTES do fix, esta segunda chamada abortava com `tr_error_no_output`
+  # dizendo que 'c2' "não grava artefato próprio" — falso: ela grava.
+  v1 <- tr_value(doc, "c1", reg, s)
+  v2 <- tr_value(doc, "c2", reg, s)
+
+  expect_equal(vapply(v1, function(p) p$v, 0), c(1, 2, 3))
+  expect_equal(vapply(v2, function(p) p$v, 0), c(2, 4, 6))
+  # Os dois artefatos são DIFERENTES: seguir o redirecionamento da mensagem
+  # antiga (pedir c1 no lugar de c2) entregaria o valor errado.
+  expect_false(identical(v1, v2))
+
+  # `tr_store_has()` confirma que as DUAS chaves estão gravadas (a alegação
+  # do reviewer: o GC já mantém as duas — a lacuna era só de alcance).
+  p <- tr_plan(doc, registry = reg, store = s)
+  u <- p$units[["c1"]]
+  expect_true(tr_store_has(s, u$outputs[["c1:out"]]))
+  expect_true(tr_store_has(s, u$outputs[["c2:out"]]))
+  expect_true(all(unlist(u$outputs) %in% tr_plan_keys(p)))
+})
+
+test_that("MUTAÇÃO: reverter tr_value() pra não checar region$outputs derruba o teste acima", {
+  # Prova direta: reproduzindo aqui a busca ANTIGA (só `is.null(u)` ->
+  # mensagem de nó interior, sem checar `region$outputs`), pedir 'c2' tem que
+  # abortar com `tr_error_no_output` — se `tr_value()` de verdade não tivesse
+  # sido corrigido, o teste anterior estaria testando este comportamento.
+  reg <- b3_registry(); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fonte", "b3/fonte", n = 3L) |>
+    tr_add("meio", "b3/dobra", from = "fonte") |>
+    tr_add("c1", "b3/colapsa", from = "fonte") |>
+    tr_add("c2", "b3/colapsa", from = "meio"))
+
+  tr_value_antigo <- function(doc, node, registry, store) {
+    res <- tr_run(doc, targets = node, registry = registry, store = store)
+    u <- res$plan$units[[node]]
+    if (is.null(u)) {
+      rid <- res$plan$region_of[[node]]
+      if (!is.null(rid)) {
+        rlang::abort(sprintf("'%s' nao grava artefato proprio, peca '%s'.", node, rid),
+                     class = "tr_error_no_output")
+      }
+    }
+    "nao deveria chegar aqui para c2"
+  }
+  expect_error(tr_value_antigo(doc, "c2", reg, s), class = "tr_error_no_output")
+})
