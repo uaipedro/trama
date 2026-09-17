@@ -177,7 +177,17 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
       if (isTRUE(res$ok)) {
         st$done <- c(st$done, saidas_de(u)); st$results[[u$node]] <- res$handles
         emit("done", u, duration = as.numeric(Sys.time() - job$t0, units = "secs"), handles = res$handles)
-      } else if (identical(res$error$class, "tr_error_stream_stopped")) {
+      } else if (isTRUE(res$error$stopped)) {
+        # `res$error$stopped` vem de `inherits(e, "tr_error_stream_stopped")`,
+        # calculado em `.tr_capture_unit()` (executor.R) sobre a condição
+        # VIVA — não `identical(res$error$class, "tr_error_stream_stopped")`
+        # sobre `class(e)[1]`, que só vê a classe mais ESPECÍFICA. Uma
+        # subclasse de parada (ou qualquer classe terminal nova que não seja
+        # falha) tem `class(e)[1]` diferente de "tr_error_stream_stopped"
+        # mesmo herdando dela, e cairia no `else` de baixo por acidente — erro
+        # FALSO gravado sob TODA chave de saída da região, permanente, porque
+        # nenhum `tr_plan()` recomputa um erro já cacheado.
+        #
         # PARAR não é falhar: o usuário mandou a região parar, o driver deixou o
         # checkpoint e a chave de saída continua VAZIA. Cair no ramo de falha
         # abaixo gravaria `tr_store_put_error` sob toda chave de saída da região

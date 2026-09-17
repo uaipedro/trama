@@ -66,6 +66,37 @@ test_that("handoff cancela unidade em voo cuja chave saiu do plano", {
   expect_true("cancelled" %in% vapply(ev, function(e) e$type, ""))
 })
 
+test_that("uma SUBCLASSE de tr_error_stream_stopped ainda é reconhecida como parada, não falha", {
+  # Prova do `inherits()` de R/executor.R + R/scheduler.R: antes, o scheduler
+  # comparava `identical(res$error$class, "tr_error_stream_stopped")` contra
+  # `class(e)[1]` — só a classe MAIS ESPECÍFICA. Uma variante de parada como
+  # esta (imagine "parou porque o usuário mandou parar" vs. "parou porque
+  # atingiu max_passos", ambas subclasses de `tr_error_stream_stopped`) tinha
+  # `class(e)[1]` diferente da string comparada, mesmo herdando dela — caía no
+  # ramo de FALHA por acidente: `tr_store_put_error` gravado sob a chave de
+  # saída, PERMANENTE, porque nenhum `tr_plan()` recomputa erro cacheado.
+  reg <- tr_registry()
+  tr_use(tr_collection(id = "t", types = list(tr_type("t/box")),
+    nodes = list(tr_node("t/para_subclasse", fn = function() {
+      rlang::abort("parou (subclasse)",
+                   class = c("tr_error_stream_stopped_por_limite", "tr_error_stream_stopped"))
+    }, description = "Levanta uma SUBCLASSE de tr_error_stream_stopped.",
+    outputs = list(out = "t/box")))), registry = reg)
+  s <- tmp_store(); ev <- list()
+  ex <- fake_async_executor(ticks = 2L)
+  doc <- build(reg, list(list(op = "add_node", type = "t/para_subclasse", id = "p")))
+  plan <- tr_plan(doc, registry = reg, store = s)
+  sch <- tr_scheduler(plan, reg, s, ex, function(e) ev[[length(ev) + 1]] <<- e)
+  while (!sch$step()) NULL
+  types <- vapply(ev, function(e) e$type, "")
+  expect_true("cancelled" %in% types)
+  expect_false("failed" %in% types)
+  # Nada gravado no store sob a chave de saída — é exatamente o que o ramo de
+  # falha faria de errado (erro falso cacheado, permanente).
+  chave <- plan$units$p$outputs$out
+  expect_false(file.exists(.tr_handle_path(s, chave)))
+})
+
 test_that("progresso publicado pelo .ctx vira evento durante o run", {
   reg <- tr_registry()
   tr_use(tr_collection(id = "t", types = list(tr_type("t/box")),

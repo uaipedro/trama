@@ -167,6 +167,17 @@ tr_registry_for <- function(packages) {
       list(ok = FALSE, error = list(
         message = conditionMessage(e),
         class = class(e)[1],
+        # `inherits(e, ...)` na condição VIVA, não `identical(class(e)[1], ...)`
+        # depois que ela já virou string: `class(e)[1]` é só a classe MAIS
+        # ESPECÍFICA, e um `tr_error_stream_stopped` filho (uma variante futura,
+        # por exemplo por MOTIVO de parada) teria `class(e)[1]` diferente mesmo
+        # herdando de `tr_error_stream_stopped` — `identical()` no scheduler
+        # deixaria de reconhecer a parada como parada e caía no ramo de FALHA,
+        # gravando `tr_store_put_error` sob toda chave de saída da região
+        # (permanente: nenhum `tr_plan()` recomputa um erro cacheado). Calculado
+        # aqui, onde `e` ainda é a condição — depois de `class(e)[1]` a
+        # informação já foi perdida e não tem como recuperar no scheduler.
+        stopped = inherits(e, "tr_error_stream_stopped"),
         traceback = if (is.null(tr)) NULL
                     else paste(utils::capture.output(print(tr)), collapse = "\n")
       ))
