@@ -112,12 +112,18 @@ function docToFlow(doc, catalog) {
   // a entrada também, a aresta que sai de um elevado e entra no COLAPSO
   // (`data/from_stream`, cuja porta de entrada É declarada) ficava sem
   // traço — exatamente a aresta que fecha a região, que é a mais
-  // importante de mostrar como fluxo. O que ainda escapa por este critério:
-  // uma aresta entre DOIS elevados em sequência dentro da mesma região (nem
+  // importante de mostrar como fluxo. O que este critério NÃO alcança: uma
+  // aresta entre DOIS elevados em sequência dentro da mesma região (nem
   // origem nem destino declara) — só a região inteira (via mensagem
-  // `regions`) resolveria isso, e essa mensagem chega depois do documento,
-  // de forma assíncrona; marcar a aresta por ela faria o traço aparecer um
-  // instante depois do resto do grafo, pior que a lacuna.
+  // `regions`) resolve isso, porque só ela sabe que os dois nós são membros.
+  // Essa mensagem chega depois do `document`, de forma assíncrona — o traço
+  // dessa aresta específica aparece um instante depois do resto do grafo — e
+  // é o handler de `regions` (mais abaixo, junto de `regionNodesRef`) quem
+  // completa: recomputa `edges` marcando `animated: true` em toda aresta cujas
+  // DUAS pontas são membros da mesma região. Preferimos essa lacuna de um
+  // instante a deixar a aresta cinza pra sempre: um traço sólido bem no meio
+  // de um contorno tracejado contradiz a própria moldura, e "diz a verdade um
+  // pouco atrasado" é menos ruim que "mente sobre a forma do grafo".
   const portaFluxo = (nodeId, port, lado) => {
     const n = doc.nodes?.[nodeId];
     const spec = n && byId[n.type];
@@ -360,8 +366,39 @@ function Grip({ nodeId, onResize }) {
 // hipótese (sequencial) ele só chega tarde demais pro servidor honrar.
 function StreamControls({ region, ctl, onCmd, progress }) {
   const rodando = ctl?.estado !== "paused";
-  const tempo = ctl?.tempo ?? 0;
-  const passo = contagemDoPasso(progress?.message);
+  const tempoRemoto = ctl?.tempo ?? 0;
+  // Eco LOCAL do slider, separado de `ctl.tempo` (o eco otimista do último
+  // COMANDO mandado — `onStreamCmd`, em App). Sem isto o `onInput` de baixo
+  // não teria onde escrever sem já mandar `tr_stream_cmd`: `value` do input
+  // tem que vir de algum estado pra a alça se mover sob o dedo, e não podia
+  // ser `tempoRemoto` porque esse só muda quando o comando É mandado — exatamente
+  // o que estamos adiando até soltar.
+  const [tempoLocal, setTempoLocal] = useState(tempoRemoto);
+  // Ressincroniza quando o eco do comando muda por FORA de um arrasto em
+  // andamento (outra sessão, ou o clique de play/pause que também escreve
+  // `ctl.tempo` como está — não altera). Guardado por um ref, e não por
+  // comparar valores, porque `tempoLocal` já É o valor mais recente durante o
+  // arrasto: um `useEffect` sem a guarda faria o slider "voltar" pro valor
+  // remoto no meio do gesto, brigando com o dedo do usuário.
+  const arrastandoRef = useRef(false);
+  useEffect(() => { if (!arrastandoRef.current) setTempoLocal(tempoRemoto); }, [tempoRemoto]);
+
+  // ANTES: um `onChange` só, que o React entrega como o `input` nativo do
+  // DOM — dispara a CADA pixel do arrasto, não só ao soltar (é a semântica
+  // que o React usa pra tudo que chama `onChange`, diferente do HTML puro
+  // onde `change` só dispara na soltura). Um arrasto sintético de 8 passos
+  // media 7 comandos (`seq` 2→8); um arrasto de mouse de verdade é uma ordem
+  // de grandeza pior. Cada um é um read-modify-write INTEIRO de
+  // `control.json` (`R/stream-control.R` documenta: já é a escrita não
+  // atômica que a corrida entre vários escritores não fecha) — mandar um por
+  // pixel multiplica a janela da corrida por nada.
+  //
+  // AGORA: `onInput` só atualiza o eco local (a alça se move, o número ao
+  // lado acompanha), sem tocar no barramento. O COMANDO só sai na soltura do
+  // gesto (`onPointerUp`) ou, pra quem mexe pelo teclado (setas, sem
+  // ponteiro nenhum), no `onKeyUp` — as duas únicas formas de "arrasto
+  // terminou" que um `<input type=range>` tem.
+  const mandar = (e) => onCmd(region.id, "tempo", Number(e.target.value));
   return h("div", { key: "stream", className: "tr-stream nodrag" }, [
     h("button", { key: "pp", className: "tr-stream-btn",
                  title: rodando ? "pausar" : "retomar",
@@ -370,9 +407,12 @@ function StreamControls({ region, ctl, onCmd, progress }) {
     h("button", { key: "st", className: "tr-stream-btn", title: "um passo",
                  onClick: (e) => { e.stopPropagation(); onCmd(region.id, "step"); } }, "⏭"),
     h("input", { key: "tp", className: "tr-stream-tempo nodrag", type: "range",
-                min: 0, max: 5, step: 0.1, value: tempo, title: `${tempo.toFixed(1)}s por passo`,
+                min: 0, max: 5, step: 0.1, value: tempoLocal, title: `${tempoLocal.toFixed(1)}s por passo`,
                 onClick: (e) => e.stopPropagation(),
-                onChange: (e) => onCmd(region.id, "tempo", Number(e.target.value)) }),
+                onPointerDown: () => { arrastandoRef.current = true; },
+                onInput: (e) => setTempoLocal(Number(e.target.value)),
+                onPointerUp: (e) => { arrastandoRef.current = false; mandar(e); },
+                onKeyUp: (e) => { if (!arrastandoRef.current) mandar(e); } }),
     h("span", { key: "ct", className: "tr-stream-count" },
       passo || "aguardando…"),
     h("span", { key: "hint", className: "tr-stream-hint",
@@ -468,10 +508,19 @@ function NdNode({ id, data, selected }) {
             h("div", { style: frac == null ? undefined : { width: `${Math.round(frac * 100)}%` } }))
         : null,
     ]),
-    // Sempre visível, dobrado ou não — é comando vivo, não preview: esconder
-    // com o preview recolhido tiraria justamente o botão de pausa de quem
-    // recolheu o card pra caber mais fluxo na tela.
-    data.streamSource
+    // Visível enquanto a região RODA (dobrado ou não — esconder com o preview
+    // recolhido tiraria justamente o botão de pausa de quem recolheu o card
+    // pra caber mais fluxo na tela). ANTES disto era incondicional em
+    // `data.streamSource`: uma região que ainda não rodou nenhuma vez (idle)
+    // e uma que já terminou (done/cached/failed/...) mostravam ⏸
+    // "aguardando…" do mesmo jeito que uma rodando de verdade — um botão de
+    // pausa pra um laço que não está rodando é o convite errado (clicar não
+    // faz nada visível, porque não há nada em voo pra pausar). `data.state`
+    // do card da FONTE espelha o da região inteira (`regionMemberPatch`
+    // propaga "running" pro papel source/lifted como está, e o estado
+    // TERMINAL também) — é o mesmo sinal que já pinta a borda do card, então
+    // gatear por ele não pede estado novo nenhum.
+    data.streamSource && data.state === "running"
       ? h(StreamControls, { key: "sc", region: data.streamSource,
                             ctl: (data.streamCtl || {})[data.streamSource.id],
                             onCmd: data.onStreamCmd, progress: data.progress })
@@ -936,6 +985,26 @@ function App() {
   // (`regions`), e usá-la é trabalho de `applyUnit`, que já roda fora do ciclo
   // de render (ver o comentário de `stateRef`).
   const regionsRef = useRef({});
+  // Índice reverso: todo id que pertence a QUALQUER região, pro contorno do
+  // card (Tarefa 8.1). REF PRÓPRIA, e não uma chave a mais dentro de
+  // `regionsRef.current` (que é indexado por ID DE NÓ — `u$node`, o primeiro
+  // colapso): id de fluxo é palavra livre, casada só contra
+  // `^[A-Za-z0-9_.-]+$` (`inst/schema/document-v1.json`), documento é
+  // escrito à mão ou por LLM (`tr_doc_validate` é quem barra o resto, não o
+  // editor), e "_nodes" é um id LEGAL. Achado rodando o app de verdade com um
+  // nó gerador chamado `_nodes`: `regionsRef.current._nodes` deixava de ser o
+  // Set e virava a região daquele nó (objeto `{unit, members, roles,
+  // outputs}`), e `applyUnit` (que busca `regionsRef.current[m.node]`) lia
+  // esse objeto torto pra QUALQUER evento de nó chamado `_nodes` — o `.has`
+  // que o contorno esperava não existe num objeto de região, e
+  // `regiao.members.forEach` explodia (`TypeError: Cannot read properties of
+  // undefined`) dentro do ÚNICO `addCustomMessageHandler("tr_event", ...)` da
+  // página: matava o handler pra TODO evento seguinte, de qualquer nó. Uma
+  // ref separada não pode colidir com uma chave de mapa, e ficou mais barata
+  // que guardar toda vez com uma checagem (`regiaoFonte`, logo abaixo, tem a
+  // checagem — `r && r.roles` — só porque sobrou de antes desta ref existir;
+  // é redundante agora, não faz mal manter).
+  const regionNodesRef = useRef(new Set());
   // Comando vivo (play/pause/tempo) da FONTE de cada região, só na tela: o
   // barramento não tem eco de `tr_stream_cmd` (R/transport.R, "comando não é
   // op de documento"), então o único jeito de o botão mostrar o próprio
@@ -1123,7 +1192,7 @@ function App() {
                       // UMA região: controles de fluxo (8.2) — os dois lidos do
                       // ref, então não precisam de estado próprio nem de `tick` na
                       // lista de deps além do que a rajada de eventos já pede.
-                      emRegiao: !!regionsRef.current._nodes?.has(n.id),
+                      emRegiao: regionNodesRef.current.has(n.id),
                       streamSource: regiaoFonte(n.id),
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
@@ -1243,12 +1312,24 @@ function App() {
       if (m.type === "regions") {
         const mapa = {};
         (m.regions || []).forEach((r) => { mapa[r.unit] = r; });
-        // `_nodes`: todo id que pertence a QUALQUER região, pro contorno do
-        // card (Tarefa 8.1). Não é uma região a mais no mapa — é o índice
-        // reverso que `decorated` (App) lê pra decidir a classe CSS, sem
-        // varrer `regions` a cada card a cada render.
-        mapa._nodes = new Set((m.regions || []).flatMap((r) => r.members));
         regionsRef.current = mapa;
+        // Índice reverso pro contorno do card (Tarefa 8.1) — em REF PRÓPRIA,
+        // não como chave dentro de `mapa` (ver o comentário de
+        // `regionNodesRef`, onde declarada: um id de fluxo pode legalmente
+        // SER "_nodes", e colidia com essa chave).
+        regionNodesRef.current = new Set((m.regions || []).flatMap((r) => r.members));
+        // Aresta entre dois membros ELEVADOS da mesma região só se sabe que é
+        // de fluxo quando a mensagem `regions` chega (nenhuma das duas pontas
+        // declara `stream` sozinha — ver `ehFluxo`/`portaFluxo`, em
+        // `docToFlow`). Recalcular aqui, e não só em `document`, é o que fecha
+        // a lacuna que o comentário de `docToFlow` documentava como aceita:
+        // a mensagem chega depois, mas ela BATE — sem isto o traço tracejado
+        // do contorno da região emolduraria uma aresta cinza sólida por
+        // dentro, contradizendo o próprio contorno.
+        setEdges((es) => es.map((e) => {
+          const dentro = regionNodesRef.current.has(e.source) && regionNodesRef.current.has(e.target);
+          return dentro && !e.animated ? { ...e, animated: true } : e;
+        }));
         // `regions` não muda `stateRef`, então sem isto o contorno só
         // apareceria no próximo evento de unidade — perceptível quando a
         // região tem cache (roda zero unidade, evento nenhum chega).
@@ -1311,22 +1392,46 @@ function App() {
 
   // O patch de UM membro da região, a partir do evento da unidade inteira.
   //
-  // Três papéis, três leituras do mesmo evento:
-  //   - o PRÓPRIO `m.node` (o colapso que carrega o evento): o patch vale
-  //     como está — é o card que sempre funcionou.
-  //   - outro COLAPSO (`role === "collapse"`, id diferente de `m.node`): tem
-  //     artefato PRÓPRIO, só que o handle dele mora em `m.handles` sob um nome
-  //     QUALIFICADO (`region$outputs`, via a mensagem `regions`) — nunca sob
-  //     "out" like o primeiro. Sem isto o segundo colapso de uma região nunca
-  //     mostrava resultado, mesmo tendo rodado.
+  // Dois papéis, duas leituras do mesmo evento:
+  //   - COLAPSO (`role === "collapse"`, o PRÓPRIO `m.node` incluído): tem
+  //     artefato PRÓPRIO, e o handle dele mora em `m.handles` sob um nome
+  //     QUALIFICADO (`region$outputs`, via a mensagem `regions`) — INCLUSIVE
+  //     o primeiro. `.tr_region_out_name()` (`R/plan.R`) qualifica TODA saída
+  //     assim que a região tem mais de um colapso — não só a do segundo em
+  //     diante. Resolver o primeiro por posição (`Object.values(hs)[0]` em
+  //     `firstHandle`) só dava certo porque `u$outputs` HOJE é construído na
+  //     ordem de `region$collapse` e `unit === collapse[[1]]` — acoplamento
+  //     que nada testava. Agora os dois resolvem pelo NOME, simetricamente;
+  //     `firstHandle`/`unitState` continua como o palpite de fora de região
+  //     (nó comum, sem `regiao` nenhuma em `applyUnit`).
   //   - SOURCE ou membro LIFTED: não tem chave própria (`R/plan.R` documenta:
   //     "nó interior... não grava artefato"). Só existe enquanto a região
   //     roda — então um estado TERMINAL não herda handle nenhum do evento
-  //     (não tem um), mas TEM que apagar o `partial`/"running" que o próprio
-  //     parcial ligou, senão o card fica pra sempre com a última prévia
-  //     girando (o Hole 2 da Fase 8).
+  //     (não tem um: por isso ele é REMOVIDO do patch aqui, e não só deixado
+  //     como estava — `patch` vem de `unitState()`, que para "done"/"cached"
+  //     já grava `handle` do PRÓPRIO evento, e essa é a chave errada pra um
+  //     card que não produziu nada. Sem remover, o card de um elevado ou da
+  //     fonte repintava com o handle do primeiro colapso — o histórico
+  //     inteiro de OUTRO nó, às vezes sem nem as colunas certas). TEM que
+  //     apagar o `partial`/"running" que o próprio parcial ligou, senão o
+  //     card fica pra sempre com a última prévia girando (o Hole 2 da Fase
+  //     8). O ERRO, ao contrário do handle, fica: se a região falhou, cada
+  //     membro interior mostra a MESMA mensagem que os colapsos mostram — é
+  //     a decisão da revisão da Fase 8 (Important 7): espelhar o estado
+  //     terminal está certo (um nó elevado dentro de uma região que falhou
+  //     realmente não produziu nada, e um card cinza do lado de um colapso
+  //     vermelho sugeriria "esta parte deu certo"), mas apagar justamente o
+  //     `error` tirava o único diagnóstico da tela — o card do nó que de fato
+  //     falhou (`entra`/`filt`/`mut`) ficava vermelho e MUDO, e só as saídas
+  //     mostravam a causa. O mínimo que resolve isso sem inventar um segundo
+  //     canal: não apagar `error`, e todo membro passa a mostrar a mesma
+  //     mensagem — que pelo menos é verdadeira sobre TODOS eles. (A engine já
+  //     nomeia o nó que falhou dentro do TEXTO da mensagem —
+  //     `.tr_region_call()`, R/stream-driver.R — mas extrair esse nome por
+  //     regex pra rotear a mensagem SÓ pro card certo é frágil: quebra se o
+  //     texto mudar de forma, e ainda deixaria os outros cards mudos de novo.
+  //     Preferimos a garantia que não depende de parsear prosa.)
   function regionMemberPatch(m, patch, id, regiao) {
-    if (id === m.node) return patch;
     if (regiao.roles[id] === "collapse") {
       if (!m.handles) return patch;
       const nomes = regiao.outputs[id] || [];
@@ -1335,13 +1440,14 @@ function App() {
     }
     // Source ou lifted. `progress` e `running` propagam como estão (mostra a
     // região andando no card dele também); um estado TERMINAL some com o
-    // "rodando" e CONGELA o último parcial — não toca no `handle` que já está
-    // no card (a última prévia que o usuário estava vendo), só desliga o
-    // spinner. O ESTADO em si espelha o da região (falhou/bloqueou junto),
-    // porque um membro interior de uma região que não terminou bem também não
-    // terminou bem — só não tem mensagem própria pra mostrar.
+    // "rodando" e CONGELA o último parcial — E descarta o `handle` que o
+    // patch trouxe (não é dele: ver o comentário acima), só desliga o
+    // spinner. O ESTADO e o ERRO em si espelham os da região (falhou/bloqueou
+    // junto, com a MESMA mensagem), porque um membro interior de uma região
+    // que não terminou bem também não terminou bem.
     if (!TERMINAL.has(m.unit_type)) return patch;
-    return { ...patch, error: null, progress: null, partial: false };
+    const { handle: _descartado, ...resto } = patch;
+    return { ...resto, progress: null, partial: false };
   }
 
   function unitState(m) {
