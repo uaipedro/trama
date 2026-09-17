@@ -13,7 +13,8 @@
 #' @export
 tr_models_errors <- function() {
   e <- c(
-    tr_models_error_unknown_column = "param nomeia coluna que não existe na tabela de entrada",
+    tr_models_error_unknown_column =
+      "param nomeia coluna que não existe na tabela de entrada, ou o modelo precisa de uma coluna que a tabela não tem",
     tr_models_error_blank_param = "param obrigatório deixado em branco no card",
     tr_models_error_bad_option = "param de escolha ou número fora do conjunto aceito",
     tr_models_error_bad_formula = "a fórmula digitada não parseia, não tem resposta ou cita coluna inexistente",
@@ -25,7 +26,8 @@ tr_models_errors <- function() {
     tr_models_error_not_applicable = "o bloco não se aplica a esse tipo de modelo",
     tr_models_error_two_groups = "o teste compara dois grupos, e a coluna do grupo não tem dois",
     tr_models_error_not_nested = "os dois modelos comparados não são da mesma família ou não usam as mesmas linhas",
-    tr_models_error_unknown_level = "nível citado (o controle do Dunnett) não existe no fator",
+    tr_models_error_unknown_level =
+      "nível citado (o controle do Dunnett, ou um nível novo em 'newdata') não existe no fator do ajuste",
     tr_models_error_not_a_fit = "o nó produziu um objeto que não é modelo, e o tipo models/fit o recusa",
     tr_models_error_not_effects =
       "o nó produziu um objeto que não é quadro de efeitos, e o tipo models/effects o recusa",
