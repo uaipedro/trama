@@ -27,6 +27,21 @@ test_that("tr_link com porta explícita e tr_set", {
   expect_equal(tr_value(f, "b", registry = reg, store = s)$v, 42)
 })
 
+test_that("tr_set() denuncia nome que o partial matching desviaria pra flow/id", {
+  # Achado da pauta pós-região de fluxo, repro exato: `f` é prefixo único de
+  # `flow`, e o R o casa por partial matching ANTES de distribuir os
+  # argumentos posicionais — sem a guarda, `tr_set(f, "b", f = 41)` devolvia
+  # `41` em vez de um fluxo, sem erro em lugar nenhum.
+  reg <- store_registry(); s <- tmp_store()
+  f <- tr_flow(reg) |> tr_add("a", "t/const", v = 1) |> tr_add("b", "t/inc") |>
+    tr_link("a:out", "b:x")
+  expect_error(tr_set(f, "b", f = 41), class = "tr_error_param_shadow")
+  expect_error(tr_set(f, "b", i = 41), class = "tr_error_param_shadow")
+
+  # nome que não é prefixo de flow/id continua funcionando normalmente
+  expect_equal(tr_value(tr_set(f, "b", by = 41), "b", registry = reg, store = s)$v, 42)
+})
+
 test_that("from sem porta compatível é erro alto, não ligação silenciosa", {
   reg <- store_registry()
   # `t/const` não tem porta de entrada nenhuma — não há como `from` encontrar

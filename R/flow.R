@@ -120,9 +120,54 @@ tr_link <- function(flow, from, to, index = NULL) {
 #' Aplica `set_param` para cada `...` nomeado, um por um.
 #' @export
 tr_set <- function(flow, id, ...) {
+  .tr_check_dots_partial_shadow(sys.call(), setdiff(names(formals(tr_set)), "..."))
   vals <- list(...)
   for (nm in names(vals)) flow <- .tr_flow_apply(flow, list(op = "set_param", node = id, name = nm, value = vals[[nm]]))
   flow
+}
+
+#' Nome passado a `tr_set()` que o partial matching do R desviaria para
+#' `flow` ou `id` em vez de virar param.
+#'
+#' `tr_add()` tem `.tr_check_param_shadow()` para o caso do nome EXATO colidir
+#' com um formal depois de `...` (`from`/`label`/`seed`/`position`) — ali só o
+#' nome inteiro importa, porque formal depois de `...` só casa por nome
+#' completo. Em `tr_set(flow, id, ...)`, `flow` e `id` vêm ANTES de `...`, e o
+#' R casa nome ABREVIADO por prefixo contra formal antes de `...` — numa fase
+#' que roda antes até de tentar posição.
+#'
+#' `tr_set(fl, "n", f = 9)` denuncia: `f` é prefixo único de `flow`, o R liga
+#' `flow = 9` na fase de partial matching, e os dois argumentos posicionais
+#' que sobram avançam um formal (`id <- fl`, o próprio `tr_flow`) — a chamada
+#' devolve `9`, não um fluxo, sem erro em lugar nenhum.
+#'
+#' Roda ANTES de qualquer leitura de `flow`/`id`, porque depois da colisão os
+#' dois já podem estar errados — não dá pra buscar o spec do nó a partir de um
+#' `id` que virou outra coisa. Por isso a checagem é sintática, sobre a
+#' CHAMADA como foi escrita (`sys.call()`), não sobre valor já resolvido, e
+#' não depende do registro: ao contrário de `from`/`label` no `tr_add()`, não
+#' existe uso legítimo de abreviar `flow`/`id` — qualquer prefixo único que
+#' colida é sempre engano. Uso do nome exato (`flow =`/`id =`) fica de fora:
+#' se colidir com posição, o próprio R já falha alto com "argumento casado
+#' múltiplas vezes".
+#' @noRd
+.tr_check_dots_partial_shadow <- function(call, formais) {
+  nomes <- names(call)
+  if (is.null(nomes)) return(invisible(NULL))
+  nomes <- nomes[nzchar(nomes)]
+  for (nm in nomes) {
+    if (nm %in% formais) next
+    alvo <- formais[startsWith(formais, nm)]
+    if (length(alvo) == 1L) {
+      rlang::abort(
+        sprintf(paste0("Em tr_set(), '%s' é prefixo único de '%s': o partial matching do R ",
+                       "liga esse valor ao argumento da DSL, não a um param — e desloca os ",
+                       "argumentos posicionais seguintes. Escreva o nome do param por extenso."),
+                nm, alvo),
+        class = "tr_error_param_shadow")
+    }
+  }
+  invisible(NULL)
 }
 
 #' O `tr_doc` por trás de um `tr_flow` — a saída pronta pra `tr_run()`, `tr_doc_write()` etc.
