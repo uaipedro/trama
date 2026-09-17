@@ -22,6 +22,33 @@ export function layoutEnum(choices) {
   return "select";
 }
 
+// Milhar com ponto, à brasileira: "10000" -> "10.000". `toLocaleString`
+// existiria e faria o mesmo, mas dependeria do locale do NAVEGADOR — um
+// usuário com o SO em inglês veria "10,000" no meio de uma interface que só
+// fala português no resto. Escrito à mão pra ser determinístico independente
+// de onde roda.
+export function milhar(n) {
+  const s = String(Math.trunc(Math.abs(n)));
+  const partes = [];
+  for (let i = s.length; i > 0; i -= 3) partes.unshift(s.slice(Math.max(0, i - 3), i));
+  return (n < 0 ? "-" : "") + partes.join(".");
+}
+
+// O contador "passo 500 / 10.000" do card da fonte de uma região — extraído
+// da MESMA mensagem que já anda na barra de progresso (`ctx$progress()`, em
+// `R/stream-driver.R`, publica `sprintf("ponto %d de %d", i, n)`). Não é um
+// campo estruturado à parte: o motor já manda essa frase pra barra comum de
+// todo nó longo, e duplicar o dado como {passo, total} só pro card da fonte
+// entortaria o mesmo evento em dois formatos. Se a frase não bate no formato
+// esperado (mensagem de outro tipo de nó, ou ausente), devolve `null` — é
+// ausência de contador, não um "passo NaN / NaN" na tela.
+const RE_PASSO = /(\d+)\D+(\d+)/;
+export function contagemDoPasso(mensagem) {
+  const m = RE_PASSO.exec(String(mensagem ?? ""));
+  if (!m) return null;
+  return `passo ${milhar(Number(m[1]))} / ${milhar(Number(m[2]))}`;
+}
+
 // Vírgula decimal é aceita: a interface fala português e "2,5" é o que se
 // digita. `Number("")` dá 0, por isso o vazio é tratado antes.
 export function validarNumero(spec, texto) {

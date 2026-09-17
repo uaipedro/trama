@@ -1,7 +1,7 @@
 // tests/js/params.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { layoutEnum, validarNumero } from "../../inst/www/params.js";
+import { layoutEnum, validarNumero, milhar, contagemDoPasso } from "../../inst/www/params.js";
 
 test("proporção cabe ao lado do rótulo", () => {
   assert.equal(layoutEnum(["16:9", "4:3", "1:1", "3:4", "2:1"]), "inline");
@@ -41,4 +41,26 @@ test("limites", () => {
 });
 test("min/max nulos são ignorados", () => {
   assert.equal(validarNumero({ kind: "number", min: null, max: null }, "-5").ok, true);
+});
+
+test("milhar pontua de três em três, à brasileira", () => {
+  assert.equal(milhar(10000), "10.000");
+  assert.equal(milhar(500), "500");
+  assert.equal(milhar(1234567), "1.234.567");
+  assert.equal(milhar(0), "0");
+  assert.equal(milhar(-2500), "-2.500");
+});
+
+test("contagemDoPasso lê a mensagem que o driver publica", () => {
+  // A frase exata de `ctx$progress()` em R/stream-driver.R: sprintf("ponto
+  // %d de %d", i, n). Mudar essa frase sem tocar aqui é o modo de falha que
+  // este teste existe pra travar — ver o contrato em test-stream-transport.R.
+  assert.equal(contagemDoPasso("ponto 500 de 10000"), "passo 500 / 10.000");
+  assert.equal(contagemDoPasso("ponto 1 de 3"), "passo 1 / 3");
+});
+
+test("contagemDoPasso sem número reconhecível não inventa passo", () => {
+  assert.equal(contagemDoPasso("computando…"), null);
+  assert.equal(contagemDoPasso(null), null);
+  assert.equal(contagemDoPasso(undefined), null);
 });

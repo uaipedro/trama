@@ -538,6 +538,18 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-partial{opacity:.75}
 .tr-partial .tr-progress{margin-bottom:4px}
 
+/* --- controles de fluxo (Tarefa 8.2) — só no card da FONTE de uma região --- */
+.tr-stream{display:flex;align-items:center;gap:6px;padding:4px 9px;
+           border-top:1px solid var(--tr-line);border-bottom:1px solid var(--tr-line);
+           background:var(--tr-field)}
+.tr-stream-btn{flex:none;width:22px;height:22px;border-radius:5px;border:1px solid var(--tr-line);
+               background:var(--tr-panel);color:var(--tr-fg);font-size:11px;line-height:1;cursor:pointer}
+.tr-stream-btn:hover{border-color:var(--tr-stream)}
+.tr-stream-tempo{flex:1;min-width:0;accent-color:var(--tr-stream)}
+.tr-stream-count{flex:none;font-size:10px;color:var(--tr-dim);font-variant-numeric:tabular-nums;
+                  white-space:nowrap}
+.tr-stream-hint{flex:none;font-size:10px;color:var(--tr-dim);cursor:help}
+
 /* --- ajuda --- */
 /* O painel toma a coluna da paleta e a alarga: página de ajuda pede linha mais
    longa que uma lista de botões. */

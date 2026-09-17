@@ -19,6 +19,7 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO } from "./frames.js";
 import { SettingsPanel } from "./settings.js";
+import { contagemDoPasso } from "./params.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -342,6 +343,44 @@ function Grip({ nodeId, onResize }) {
                     onPointerDown: onDown });
 }
 
+// --- Controles de fluxo (Tarefa 8.2) ---------------------------------------
+//
+// Só no card da FONTE de uma região (Decisão 5: `data/to_stream` é o âncora).
+// `tr_stream_cmd` é COMANDO, não op — `data.onStreamCmd` (montado em App) só
+// chama `sendInput`, nunca `pushOp`: não entra no log de desfazer, não mexe
+// em `rev`, e a velocidade não é param (Decisão 9) — arrastar o slider não
+// pode mudar a CHAVE da região e reexecutar dez mil pontos.
+//
+// Sob o executor SEQUENCIAL os botões ficam mortos por construção — o processo
+// R está preso dentro do laço e não há quem leia `control.json` até a região
+// terminar (`R/stream-control.R` documenta) — e não há como o front SABER
+// qual executor está em uso. Em vez de fingir que funciona ou escondê-los,
+// eles ficam sempre visíveis enquanto a região roda, com uma legenda que diz
+// a condição; o clique nunca é ignorado em silêncio no navegador — na pior
+// hipótese (sequencial) ele só chega tarde demais pro servidor honrar.
+function StreamControls({ region, ctl, onCmd, progress }) {
+  const rodando = ctl?.estado !== "paused";
+  const tempo = ctl?.tempo ?? 0;
+  const passo = contagemDoPasso(progress?.message);
+  return h("div", { key: "stream", className: "tr-stream nodrag" }, [
+    h("button", { key: "pp", className: "tr-stream-btn",
+                 title: rodando ? "pausar" : "retomar",
+                 onClick: (e) => { e.stopPropagation(); onCmd(region.id, rodando ? "pause" : "play"); } },
+      rodando ? "⏸" : "▶"),
+    h("button", { key: "st", className: "tr-stream-btn", title: "um passo",
+                 onClick: (e) => { e.stopPropagation(); onCmd(region.id, "step"); } }, "⏭"),
+    h("input", { key: "tp", className: "tr-stream-tempo nodrag", type: "range",
+                min: 0, max: 5, step: 0.1, value: tempo, title: `${tempo.toFixed(1)}s por passo`,
+                onClick: (e) => e.stopPropagation(),
+                onChange: (e) => onCmd(region.id, "tempo", Number(e.target.value)) }),
+    h("span", { key: "ct", className: "tr-stream-count" },
+      passo || "aguardando…"),
+    h("span", { key: "hint", className: "tr-stream-hint",
+               title: "play/pause/passo só respondem com execução em pool; " +
+                      "no executor sequencial o processo fica ocupado com a região inteira" }, "ⓘ"),
+  ]);
+}
+
 function NdNode({ id, data, selected }) {
   const spec = data.spec;
   if (!spec) {
@@ -429,6 +468,14 @@ function NdNode({ id, data, selected }) {
             h("div", { style: frac == null ? undefined : { width: `${Math.round(frac * 100)}%` } }))
         : null,
     ]),
+    // Sempre visível, dobrado ou não — é comando vivo, não preview: esconder
+    // com o preview recolhido tiraria justamente o botão de pausa de quem
+    // recolheu o card pra caber mais fluxo na tela.
+    data.streamSource
+      ? h(StreamControls, { key: "sc", region: data.streamSource,
+                            ctl: (data.streamCtl || {})[data.streamSource.id],
+                            onCmd: data.onStreamCmd, progress: data.progress })
+      : null,
     semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
                  progress: data.progress, partial: data.partial, view: cur?.id }),
     semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
@@ -889,6 +936,12 @@ function App() {
   // (`regions`), e usá-la é trabalho de `applyUnit`, que já roda fora do ciclo
   // de render (ver o comentário de `stateRef`).
   const regionsRef = useRef({});
+  // Comando vivo (play/pause/tempo) da FONTE de cada região, só na tela: o
+  // barramento não tem eco de `tr_stream_cmd` (R/transport.R, "comando não é
+  // op de documento"), então o único jeito de o botão mostrar o próprio
+  // estado é lembrar o que ele mesmo mandou. Por `key` da região, não por id
+  // de nó: sobrevive a um documento com duas fontes.
+  const streamCtlRef = useRef({});
   const catalogRef = useRef(null);
   const wrapRef = useRef(null);
   const arrastoRef = useRef(null);  // por frame arrastado: {x0, y0, itens:[{id,x,y}]}
@@ -1026,6 +1079,35 @@ function App() {
     pushOp({ op: "set_fold", node: nodeId, ...patch });
   }, [bumpTick]);
 
+  // Comando vivo pra fonte de uma região: play, pause, um passo, tempo. Não é
+  // op — não passa por `pushOp` nem carrega `base_rev` — é o precedente de
+  // `sinks-ricos.md` que `R/transport.R` já documenta pro lado do servidor
+  // (`tr_stream_cmd`, sem entrar no log de undo nem mexer em `rev`). O eco
+  // otimista fica só no `streamCtlRef`, porque o barramento não devolve nada:
+  // clicar "pausar" e nunca saber se pegou seria pior que não ter o botão.
+  const onStreamCmd = useCallback((key, cmd, tempo) => {
+    const atual = streamCtlRef.current[key] || { estado: "running", tempo: 0 };
+    const novo = cmd === "play" ? { estado: "running", tempo: atual.tempo }
+               : cmd === "pause" ? { estado: "paused", tempo: atual.tempo }
+               : cmd === "tempo" ? { estado: atual.estado, tempo }
+               : atual; // "step" não muda estado nenhum pra mostrar
+    streamCtlRef.current[key] = novo;
+    bumpTick();
+    sendInput("tr_stream_cmd", { key, cmd, tempo: tempo ?? null, seq: ++seqCounter });
+  }, [bumpTick]);
+
+  // Acha, se houver, a região da qual `id` é a FONTE — é o único card que
+  // ganha os controles (Decisão 5: `data/to_stream` é o âncora). Varre as
+  // poucas regiões do plano, não os nós: um documento tem no máximo umas
+  // poucas regiões, então isto é mais barato que manter mais um índice
+  // reverso só pra um papel.
+  const regiaoFonte = useCallback((id) => {
+    for (const r of Object.values(regionsRef.current)) {
+      if (r && r.roles && r.roles[id] === "source") return r;
+    }
+    return null;
+  }, []);
+
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
   const decorated = useMemo(() => nodes.map((n) => (n.type === "trFrame"
@@ -1037,16 +1119,20 @@ function App() {
                       size: sizesRef.current[n.id] ?? n.data.size,
                       fold: foldsRef.current[n.id] ?? n.data.fold,
                       seed: seedsRef.current[n.id] ?? n.data.seed,
-                      // Membro de QUALQUER região: contorno do card (8.1) — lido
-                      // do ref, então não precisa de estado próprio além do
-                      // `tick` que a rajada de eventos já pede.
+                      // Membro de QUALQUER região: contorno do card (8.1). Fonte de
+                      // UMA região: controles de fluxo (8.2) — os dois lidos do
+                      // ref, então não precisam de estado próprio nem de `tick` na
+                      // lista de deps além do que a rajada de eventos já pede.
                       emRegiao: !!regionsRef.current._nodes?.has(n.id),
+                      streamSource: regiaoFonte(n.id),
+                      streamCtl: streamCtlRef.current,
+                      onStreamCmd,
                       typeColors, categories, onParam, onHelp, onView, onResize, onFold,
                       onReseed, temas } })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onFold, onReseed, tick, temas,
-     editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd]);
+     editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte]);
 
   // --- Recepção ---
   useEffect(() => {
