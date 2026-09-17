@@ -37,10 +37,22 @@
   declara_saida_fluxo   <- function(sp) any(vapply(sp$outputs, function(p) isTRUE(p$stream), logical(1)))
   # Colapso: recebe fluxo por declaração e devolve valor comum. É o único nó
   # da região cuja saída tem artefato no store.
-  # `!online` faz parte do predicado, e não é redundância com a validação de
-  # `tr_node()`: um colapso roda `fn` UMA vez depois do laço, um nó com memória
+  # `!online` faz parte do predicado por duas razões, e a segunda foi MEDIDA
+  # depois de eu a ter escrito como se fosse só elegância.
+  #
+  # A primeira: um colapso roda `fn` UMA vez depois do laço, um nó com memória
   # roda `step` a cada passo. São coisas distintas por construção, e a detecção
   # tem que dizer isso em vez de acertar por acidente de declaração.
+  #
+  # A segunda, e é ela que torna esta linha indispensável: `tr_node()` recusa nó
+  # com memória que tenha saída e nenhuma seja fluxo, mas PERMITE de propósito o
+  # nó com memória sem porta de saída nenhuma (terminal que só acumula e publica
+  # parcial — a forma de um detector de drift com contador). Nessa forma,
+  # `declara_saida_fluxo()` avalia `any(logical(0))`, que é FALSE, e a entrada de
+  # fluxo é TRUE: sem o `!online` o predicado classificaria justamente o caso
+  # permitido como o colapso da região. Ou seja, as duas guardas são
+  # complementares, e não cinto-e-suspensório: `tr_node()` fecha "tem saída,
+  # nenhuma é fluxo" e esta fecha "não tem saída".
   eh_colapso <- function(sp) !isTRUE(sp$online) &&
     declara_entrada_fluxo(sp) && !declara_saida_fluxo(sp)
 

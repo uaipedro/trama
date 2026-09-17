@@ -515,3 +515,36 @@ test_that("nenhum nó de `stream_collection()` tem porta opcional sem default no
   # ignora, que é exatamente por que os três nasceram juntos e só dois doeram.
   expect_equal(portas_opcionais_sem_default(stream_collection()), character())
 })
+
+test_that("nó com memória SEM porta de saída não é lido como o colapso da região", {
+  # É a forma que `tr_node()` permite de propósito — terminal que só acumula e
+  # publica parcial, a cara de um detector de drift com contador — e é
+  # exatamente a que o predicado de colapso pegaria sem o `!online`:
+  # `declara_saida_fluxo()` avalia `any(logical(0))` = FALSE, e a entrada de
+  # fluxo é TRUE. Sem a guarda, a região terminaria no detector e o colapso de
+  # verdade nunca entraria nela.
+  col <- tr_collection(
+    id = "t", types = list(tr_type("t/v")),
+    nodes = list(
+      tr_node("t/fonte", fn = function() list(1, 2, 3), description = "Fonte.",
+              outputs = list(out = tr_port("t/v", stream = TRUE))),
+      tr_node("t/conta", fn = function() NULL, description = "Conta e não devolve nada.",
+              inputs = list(x = tr_port("t/v", stream = TRUE)),
+              init = function() list(n = 0L),
+              step = function(state, x) { state$n <- state$n + 1L; list(state = state, out = NULL) }),
+      tr_node("t/fecha", fn = function(x) length(x), description = "Colapsa.",
+              inputs = list(x = tr_port("t/v", stream = TRUE)),
+              outputs = list(out = "t/v"))))
+  reg <- tr_registry(); tr_use(col, registry = reg)
+
+  f <- tr_flow(reg) |>
+    tr_add("fo", "t/fonte") |>
+    tr_add("co", "t/conta", from = "fo") |>
+    tr_add("fe", "t/fecha")
+  f <- tr_link(f, "fo:out", "fe:x")
+
+  r <- .tr_stream_regions(tr_flow_doc(f), reg)[["fo"]]
+  # O colapso é `fe`, e não `co`: os três nós estão na região.
+  expect_equal(r$collapse, "fe")
+  expect_setequal(r$nodes, c("fo", "co", "fe"))
+})
