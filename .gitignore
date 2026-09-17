@@ -17,3 +17,7 @@ docs/plans/
 
 # Artefato do reporter de testes (testthat), nunca versionado.
 tests/testthat/_problems/
+
+# Saídas geradas pelos fluxos de exemplo.
+exemplos/branco/resumo.csv
+exemplos/branco/saida_vendas.csv

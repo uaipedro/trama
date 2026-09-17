@@ -1,4 +1,5 @@
-// inst/www/settings.js — painel ⚙: os temas do projeto (trama.json).
+// inst/www/settings.js — painel ⚙: as configurações do projeto (trama.json):
+// os temas e a marca d'água dos frames exportados.
 //
 // O painel edita um RASCUNHO local e manda o conjunto inteiro a cada edição
 // concluída; quem decide o que vale é o servidor, que valida, grava e devolve
@@ -8,7 +9,7 @@
 // renomear) moram em `temas.js`, testadas sem DOM.
 
 import React from "react";
-import { h, Segmented, NumberField } from "trama";
+import { h, Segmented, NumberField, Toggle } from "trama";
 import { layoutEnum } from "./params.js";
 import { HEX, copiar, erroNome, duplicar, renomear, apagar } from "./temas.js";
 
@@ -86,8 +87,8 @@ function Campo({ rotulo, children }) {
 
 const primeiro = (e) => e.tema_padrao ?? Object.keys(e.temas)[0] ?? null;
 
-export function SettingsPanel({ temas, padrao, onSave, onClose }) {
-  const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao }));
+export function SettingsPanel({ temas, padrao, marca, onSave, onClose }) {
+  const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca }));
   // O ref anda junto do estado e é lido nos callbacks: o `change` da cor chega
   // depois de uma rajada de `input`, e o fechamento do render anterior veria
   // um rascunho velho.
@@ -95,16 +96,16 @@ export function SettingsPanel({ temas, padrao, onSave, onClose }) {
   const [sel, setSel] = React.useState(() => primeiro(rascunho));
   const [renome, setRenome] = React.useState(null);   // {texto, erro} ou null
 
-  const servidor = JSON.stringify({ temas: temas || {}, tema_padrao: padrao ?? null });
+  const servidor = JSON.stringify(copiar({ temas, tema_padrao: padrao, marca }));
   const servRef = React.useRef(servidor);
   servRef.current = servidor;
 
   React.useEffect(() => {
-    const r = copiar({ temas, tema_padrao: padrao });
+    const r = copiar({ temas, tema_padrao: padrao, marca });
     rascRef.current = r;
     setRascunho(r);
     setSel((s) => (s != null && Object.hasOwn(r.temas, s) ? s : primeiro(r)));
-  }, [temas, padrao]);
+  }, [temas, padrao, marca]);
 
   const aplicar = (r, salvar) => {
     rascRef.current = r;
@@ -246,6 +247,17 @@ export function SettingsPanel({ temas, padrao, onSave, onClose }) {
                        onChange: (v) => campo("continua", v) })),
   ]) : null;
 
+  // Fora do editor de tema, e depois dele: a marca não é campo de tema nenhum,
+  // é uma escolha do projeto. Sai pelo mesmo `onSave` dos temas porque é a
+  // mesma mensagem — o servidor grava as duas coisas num gesto só.
+  const exportacao = h("div", { key: "ex", className: "tr-settings-editor" }, [
+    h("h4", { key: "t" }, "Exportação"),
+    h(Campo, { key: "m", rotulo: "marca d'água nos frames exportados" },
+      h(Toggle, { value: rascunho.marca,
+                  title: "carimba o hexágono do trama no canto do PNG",
+                  onChange: (v) => aplicar({ ...copiar(rascRef.current), marca: v }, true) })),
+  ]);
+
   return h("aside", { className: "tr-settings" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t" }, "Configurações"),
@@ -257,6 +269,7 @@ export function SettingsPanel({ temas, padrao, onSave, onClose }) {
       nomes.length ? lista : h("p", { key: "l", className: "tr-settings-empty" }, "carregando temas…"),
       acoes,
       editor,
+      exportacao,
     ]),
   ]);
 }

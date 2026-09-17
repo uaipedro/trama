@@ -40,6 +40,15 @@ test("apagar o padrão promove o primeiro que sobra", () => {
   assert.equal(r.tema_padrao, "claro");
   assert.equal(apagar(est(), "sepia").tema_padrao, "escuro");
 });
+test("a marca atravessa as operações da lista de temas", () => {
+  const s = { ...est(), marca: false };
+  assert.equal(duplicar(s, "sepia").estado.marca, false);
+  assert.equal(renomear(s, "escuro", "noite").marca, false);
+  assert.equal(apagar(s, "escuro").marca, false);
+  // Rascunho sem a chave (antes da primeira mensagem `themes`) vale ligada,
+  // como no servidor — nunca `undefined`, que o servidor recusaria.
+  assert.equal(apagar(est(), "escuro").marca, true);
+});
 test("hex só aceita #rrggbb", () => {
   assert.ok(HEX.test("#a1B2c3"));
   assert.ok(!HEX.test("#abc"));

@@ -366,6 +366,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* Contínua em segmentado largo ganha a linha inteira, como o enum no card:
    cinco nomes em ~260px cortariam "divergente". */
 .tr-settings-field:has(.tr-seg-wide){grid-template-columns:1fr}
+/* Pelo motivo inverso: o rótulo da chave é uma frase ("marca d'água nos
+   frames exportados") e em 62px quebra em quatro linhas. Aqui ele toma o
+   espaço livre e a chave fica na ponta, que é onde se procura. */
+.tr-settings-field:has(>.tr-toggle){grid-template-columns:minmax(0,1fr) auto}
 .tr-settings-label{color:var(--tr-dim);font-size:11px}
 .tr-settings input[type=text],.tr-settings select{min-width:0;box-sizing:border-box;width:100%;
   background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);border-radius:4px;
@@ -495,6 +499,18 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-toolbar button{background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line);
   border-radius:6px;padding:5px 11px;font:inherit;font-size:11.5px;cursor:pointer}
 .tr-toolbar button:hover{border-color:var(--tr-accent)}
+/* A marca é assinatura, não controle: sem hover, sem cursor de clique. A
+   altura fixa (com `width:auto`) preserva a proporção do SVG e a mantém um
+   pouco menor que os botões vizinhos, que é o que a faz ler como marca e não
+   como mais um item da barra. */
+/* `align-self:center` porque a barra é flex com `align-items:stretch` por
+   padrão: sendo mais baixa que os botões (24 px contra ~28 px), a marca era
+   ancorada no topo e ficava ~3 px acima do centro deles.
+   24 px e opacidade cheia vieram de olhar no navegador: em 18 px com `.75` os
+   cinco nós somavam uma mancha cinza, sem cor legível. Conferido nos dois
+   temas — abaixo desta escala o desenho não se lê. */
+.tr-marca{height:24px;width:auto;margin-right:4px;
+  align-self:center;user-select:none}
 /* A proporção dos frames novos, colada no "▭ Frame": o segmentado do card
    com a altura e o fundo dos botões da toolbar. Seletores com `.tr-toolbar`
    na frente porque `.tr-toolbar button` vem depois de `.tr-seg>button` com a

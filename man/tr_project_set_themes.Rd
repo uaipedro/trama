@@ -22,21 +22,12 @@ Os settings normalizados, invisível.
 \description{
 Valida ANTES de abrir o arquivo: manifesto com tema quebrado não abre o
 projeto (\code{tr_project_at()} recusa), então gravar e validar depois deixaria o
-usuário trancado fora do próprio projeto. Preserva toda outra chave:
-\code{tr_project()} não escreve o manifesto de propósito, e este verbo não pode
-virar a porta dos fundos disso.
+usuário trancado fora do próprio projeto.
 }
 \details{
-Grava num temporário da MESMA pasta e renomeia, como \code{.tr_atomic} no store:
-disco cheio no meio do \code{writeLines} deixaria um \code{trama.json} truncado, que é
-pior que não gravar. \code{file.rename} devolve \code{FALSE} em vez de errar, por isso a
-conferência. Os bytes saem por \code{writeBin} em UTF-8: o nome embutido
-"clássico" não pode depender da locale de quem grava.
-
-\code{paleta} e \code{collections} vão com \code{I()} porque o JSON sai com \code{auto_unbox}
-(é o que deixa \code{tema_padrao} e as cores escalares legíveis) e um vetor de um
-item viraria string — a leitura aceita as duas formas, mas quem edita o
-arquivo à mão veria dois formatos pra mesma coisa.
+\code{paleta} vai com \code{I()} pelo mesmo motivo de \code{collections} em
+\code{.tr_cfg_rewrite()}: uma cor só não pode sair como string onde oito saem
+como array.
 \code{padrao} é obrigatório aqui, ao contrário da leitura: escolher o padrão
 calado só serve pra manifesto antigo ou editado à mão. Quem GRAVA (o painel)
 sabe qual escolheu, e mensagem sem o campo é bug do front — gravar "escuro"

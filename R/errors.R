@@ -28,7 +28,7 @@ tr_errors <- function() {
       "'step' mal declarado em tr_node() (sem 'state' como primeiro formal, ou com formal ",
       "sem input/param), ou 'step' que num passo da região de fluxo devolveu outra coisa ",
       "que não list(state = , out = )"),
-    tr_error_bad_theme = "tema de gráfico do trama.json inválido: campo desconhecido, valor fora do vocabulário, nome reservado ou tema_padrao inexistente",
+    tr_error_bad_theme = "configuração do trama.json inválida: tema com campo desconhecido, valor fora do vocabulário ou nome reservado, tema_padrao inexistente, marca que não é booleana",
     tr_error_bad_type = "tr_type() mal declarado (store sem restore, etc.)",
     tr_error_cancelled = "unidade cancelada pelo coordenador (handoff, ou stop_mirai no pool)",
     tr_error_collection_not_dispatchable = "coleção sem pacote não pode ir para daemon",

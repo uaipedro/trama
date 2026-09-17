@@ -260,3 +260,31 @@ export function crescerExterno(atual, membros, aspect) {
   } else { w = Math.ceil(w); hh = Math.ceil(hh); }
   return { x: atual.x, y: atual.y, w, h: hh };
 }
+
+// Onde o hexágono da marca entra num PNG exportado. Fica aqui, e não no
+// desenho, porque é conta com limites: em imagem pequena a marca não pode
+// comer o conteúdo, e em imagem grande não pode virar cartaz.
+//
+// O piso e o teto estão em unidades de CSS — as do FRAME, não as do PNG. Por
+// isso a escala da captura é PARÂMETRO daqui, e não uma multiplicação feita
+// depois por quem desenha: com ela do lado de fora, nada impede alguém de
+// passar os pixels do PNG (que sai em 2x) como se fossem os do frame, e aí a
+// altura dobra mas o teto não — a marca fica com METADE da fração pretendida
+// da imagem e o hexágono vira um ponto no canto de um frame grande. Foi o bug
+// de 0a4dc3a, e ele passava pelos testes justamente porque a escala morava no
+// `frames.js`, que o `node --test` não roda. Aqui dentro, o teste de
+// invariância cobre isso.
+//
+// `w`/`hh`/`margem` entram em unidades do frame; o retângulo devolvido já sai
+// em pixels de DESTINO (multiplicado pela escala), pronto pro `drawImage`.
+
+// `173/200` é o `viewBox` de `inst/www/marca.svg`: é dele que vem a proporção
+// do hexágono. Mudar o desenho (outro `viewBox`) sem mudar este número estica
+// ou achata a marca no PNG, e em silêncio — nada aqui lê o SVG pra conferir.
+export const MARCA_RAZAO = 173 / 200;
+export function marcaDaAgua(w, hh, margem = 16, escala = 1) {
+  const h = Math.min(48, Math.max(14, hh * 0.032));
+  const larg = h * MARCA_RAZAO;
+  return { w: larg * escala, h: h * escala, margem: margem * escala,
+           x: (w - margem - larg) * escala, y: (hh - margem - h) * escala };
+}

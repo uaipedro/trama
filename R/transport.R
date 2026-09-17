@@ -320,14 +320,37 @@ tr_server <- function(project, flow = "main",
     # `tr_browse`: salvar duas vezes igual não dispararia de novo. Tema entra
     # no hash, então quem aceitou re-roda — o GC e o próximo plano leem os
     # settings novos via `rv_project()`. A mensagem tem o MESMO formato que o
-    # servidor manda (`temas`, `tema_padrao`): um formato só evita o front
-    # renomear campo na ida e na volta — foi assim que `padrao` escapou antes.
+    # servidor manda (`temas`, `tema_padrao`, `marca`): um formato só evita o
+    # front renomear campo na ida e na volta — foi assim que `padrao` escapou
+    # antes.
     shiny::observeEvent(input$tr_themes, {
       m <- input$tr_themes
-      s <- tryCatch(tr_project_set_themes(rv_project()$root, m$temas, m$tema_padrao), error = avisar())
+      raiz <- rv_project()$root
+      # Um gesto do painel, dois verbos: os temas e a marca d'água. A marca é
+      # conferida ANTES de qualquer escrita (e não só dentro do verbo que a
+      # grava) porque ela é a SEGUNDA a escrever — recusá-la depois dos temas
+      # deixaria gravada metade do que o usuário pediu. `marca` ausente é
+      # recusa, como `tema_padrao`: assumir "ligada" religaria a marca de quem
+      # acabou de desligá-la.
+      #
+      # Sobra a falha de DISCO entre as duas escritas, que dois verbos sobre o
+      # mesmo arquivo não têm como evitar. Por isso a volta é sempre RELIDA do
+      # manifesto, e não a lista devolvida pelo verbo: depois de uma recusa no
+      # meio, o painel tem que mostrar o que está NO ARQUIVO — senão a chave
+      # fica ligada na tela e desligada no disco.
+      ok <- tryCatch({
+        .tr_check_marca(m$marca)
+        tr_project_set_themes(raiz, m$temas, m$tema_padrao)
+        tr_project_set_marca(raiz, mostrar = m$marca)
+        TRUE
+      }, error = avisar(FALSE))
+      # Falha na RELEITURA também vira aviso, e não silêncio: sem isto o painel
+      # receberia de volta os settings velhos da memória sem uma palavra —
+      # exatamente a discordância painel/disco que este bloco existe pra evitar.
+      s <- tryCatch(.tr_settings_at(raiz), error = avisar())
       if (!is.null(s)) { p <- rv_project(); p$settings <- s; rv_project(p) }
       enviar_temas()
-      if (!is.null(s)) run_now(rv_doc())
+      if (isTRUE(ok)) run_now(rv_doc())
     })
 
     shiny::observeEvent(input$tr_project_open, abrir(input$tr_project_open$path))

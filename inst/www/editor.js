@@ -17,7 +17,8 @@ import {
 import { h, getRenderer, getWidget, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, fitAspect, FramePanel, exportFramePng,
-         dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO } from "./frames.js";
+         dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
+         MARCA } from "./frames.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 
@@ -873,8 +874,10 @@ function App() {
   const [catalog, setCatalog] = useState(null);
   // Temas do projeto: a fonte que o widget `theme` lê é o estado de módulo do
   // runtime (`setThemes`); este espelho existe só pra entrar no `data` dos nós
-  // e fazer os cards re-renderizarem quando a lista muda.
-  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null });
+  // e fazer os cards re-renderizarem quando a lista muda. `marca` vem na mesma
+  // mensagem e mora aqui, e não no runtime: quem a usa é a exportação de
+  // frame, não o card.
+  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null, marca: true });
   const [doc, setDoc] = useState(null);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -1219,7 +1222,11 @@ function App() {
       // Módulo antes do estado: o re-render disparado por `setTemas` já encontra
       // `getThemes()` atualizado.
       if (m.type === "themes") {
-        setThemes(m); setTemas({ temas: m.temas || {}, tema_padrao: m.tema_padrao ?? null });
+        setThemes(m);
+        setTemas({ temas: m.temas || {}, tema_padrao: m.tema_padrao ?? null,
+                   // `?? true` pro servidor velho (ou uma mensagem que perdeu
+                   // o campo) não desligar a marca sem ninguém ter pedido.
+                   marca: m.marca ?? true });
         return;
       }
 
@@ -1917,7 +1924,7 @@ function App() {
         // frame apagado no meio do caminho não tem mais posição na sequência,
         // e sairia como "00-…". Some da leva em vez de ganhar número falso.
         if (i === 0) continue;
-        try { await exportFramePng(vp, f, i); }
+        try { await exportFramePng(vp, f, i, temas.marca); }
         catch (err) { falhas.push(`'${f.title || "sem título"}': ${err?.message || err}`); }
       }
     } finally { setExportando(false); }
@@ -2204,11 +2211,12 @@ function App() {
       ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null) })
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
+            marca: temas.marca,
             // `seq` porque o input do Shiny ignora valor idêntico ao anterior:
             // voltar a um estado já enviado (desfazer uma cor à mão) não
             // chegaria ao servidor.
             onSave: (m) => sendInput("tr_themes", { temas: m.temas, tema_padrao: m.tema_padrao,
-                                                    seq: Date.now() }),
+                                                    marca: m.marca, seq: Date.now() }),
             onClose: () => setPainelConfig(false) })
       : painelFrames
         ? h(FramePanel, { key: "frames", frames: framesOrd, exportando,
@@ -2219,6 +2227,14 @@ function App() {
             onClose: () => setPainelFrames(false) })
         : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked }),
     h("div", { key: "tb", className: "tr-toolbar" }, [
+      // `img`, e não botão: a marca é assinatura, não controle. Não clica, não
+      // abre nada e — por não ser elemento focável — não entra na ordem de
+      // tabulação, então quem navega pelo teclado cai direto no "⇶ Organizar".
+      // A versão só existe do lado do R; ela chega aqui pelo `data-versao` que
+      // `tr_ui()` põe na raiz, e some da dica se por algum motivo não vier.
+      h("img", { key: "marca", className: "tr-marca", src: MARCA, alt: "trama",
+                 draggable: false,
+                 title: `trama ${document.getElementById("tr-root")?.dataset.versao || ""}`.trim() }),
       h("button", { key: "l", onClick: organizarTudo }, "⇶ Organizar"),
       h("button", { key: "f", title: "F", className: ferramenta === "frame" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },

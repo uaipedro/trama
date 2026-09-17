@@ -55,6 +55,16 @@ test_that("padrão que não existe é erro", {
                class = "tr_error_bad_theme")
 })
 
+test_that("marca vale TRUE quando o manifesto não fala dela", {
+  expect_true(.tr_settings(list())$marca)
+})
+
+test_that("marca aceita FALSE e recusa o que não é booleano", {
+  expect_false(.tr_settings(list(marca = FALSE))$marca)
+  expect_error(.tr_settings(list(marca = "sim")), class = "tr_error_bad_theme")
+  expect_error(.tr_settings(list(marca = list(TRUE, FALSE))), class = "tr_error_bad_theme")
+})
+
 test_that("resolver: padrão, nome, inexistente", {
   s <- .tr_settings(list())
   expect_equal(.tr_theme_resolve("padrão", s)$nome, "escuro")
@@ -230,6 +240,50 @@ test_that("tr_project_set_themes exige padrao e não escolhe um calado", {
   expect_error(tr_project_set_themes(root, list(rel = list()), ""), class = "tr_error_bad_theme")
   expect_error(tr_project_set_themes(root, list(rel = list()), NA_character_), class = "tr_error_bad_theme")
   expect_identical(readBin(f, "raw", file.size(f)), antes)
+})
+
+test_that("tr_project_set_marca grava sem perder o resto do manifesto", {
+  root <- withr::local_tempdir()
+  tr_project_new(root, collections = "trama.data")
+  tr_project_set_themes(root, list(), "claro")
+  devolvido <- tr_project_set_marca(root, mostrar = FALSE)
+  cfg <- jsonlite::fromJSON(file.path(root, "trama.json"), simplifyVector = FALSE)
+  expect_false(cfg$marca)
+  expect_equal(unlist(cfg$collections), "trama.data")
+  expect_equal(cfg$tema_padrao, "claro")
+  # Pelo caminho da leitura (o mesmo que `tr_project_at()` usa), e não só pelo
+  # JSON cru: o que importa é o projeto reaberto trazer a marca desligada.
+  # `tr_project_at()` não serve aqui porque pediria a coleção instalada.
+  expect_false(.tr_settings(cfg)$marca)
+  expect_false(devolvido$marca)
+  expect_equal(devolvido$tema_padrao, "claro")
+})
+
+test_that("tr_project_set_marca recusa valor que não é booleano", {
+  root <- withr::local_tempdir(); tr_project_new(root)
+  err <- expect_error(tr_project_set_marca(root, mostrar = "sim"), class = "tr_error_bad_theme")
+  # A recusa nomeia o argumento: do console, "marca precisa ser true ou false."
+  # solto não diz o que foi recusado nem onde mexer.
+  expect_match(conditionMessage(err), "'mostrar'", fixed = TRUE)
+})
+
+# O simétrico do teste dos temas: são dois verbos sobre o MESMO arquivo, e cada
+# um só pode mexer na chave que é dele. Gravar temas depois de desligar a marca
+# é o gesto comum (o painel salva os dois), e religar a marca calado seria o
+# jeito mais fácil de desfazer a escolha de quem já a tinha desligado.
+test_that("tr_project_set_themes preserva a marca já gravada", {
+  root <- withr::local_tempdir()
+  tr_project_new(root)
+  tr_project_set_marca(root, mostrar = FALSE)
+  tr_project_set_themes(root, list(), "claro")
+  cfg <- jsonlite::fromJSON(file.path(root, "trama.json"), simplifyVector = FALSE)
+  expect_false(cfg$marca)
+  # E pelo caminho da leitura, que é o que o projeto reaberto enxerga.
+  expect_false(.tr_settings(cfg)$marca)
+  expect_equal(cfg$tema_padrao, "claro")
+  # O retorno do verbo também fala do disco: montado só a partir dos temas
+  # recebidos, ele diria "marca ligada" num projeto que a tem desligada.
+  expect_false(tr_project_set_themes(root, list(), "claro")$marca)
 })
 
 test_that("mensagens de tema apontam pro trama.json", {

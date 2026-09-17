@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { containedFrames, donos, envolver, unidades, crescerExterno, abrirEspaco, FRAME_PAD, gradeDeFrames, validarPrancheta,
-         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside } from "../../inst/www/geometria.js";
+         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua } from "../../inst/www/geometria.js";
 
 const frame = (id, x, y, w, hh) => ({ id, type: "trFrame", position: { x, y }, width: w, height: hh, data: {} });
 const card = (id, x, y) => ({ id, type: "ndNode", position: { x, y }, measured: { width: 240, height: 190 }, data: {} });
@@ -159,4 +159,46 @@ test("abrirEspaco: card solto à direita anda com a célula; à esquerda, não",
                          mb("esq", 0, 100, 240, 190)]);
   assert.deepEqual(r.dir, { dx: 80, dy: 0 });
   assert.deepEqual(r.esq, { dx: 0, dy: 0 });
+});
+
+test("marcaDaAgua escala com a imagem e respeita os limites", () => {
+  const p = marcaDaAgua(1000, 600);
+  assert.equal(Math.round(p.h), 19);              // 3,2% de 600
+  assert.ok(p.x + p.w <= 1000 - p.margem);
+  assert.ok(p.y + p.h <= 600 - p.margem);
+  const pequena = marcaDaAgua(200, 120);
+  assert.equal(pequena.h, 14);                     // piso
+  const grande = marcaDaAgua(4000, 3000);
+  assert.equal(grande.h, 48);                      // teto
+});
+
+test("marcaDaAgua mantém a proporção do hexágono", () => {
+  const p = marcaDaAgua(1000, 600);
+  assert.ok(Math.abs(p.w / p.h - 173 / 200) < 1e-9);
+  // A proporção não pode depender da escala: o hexágono esticado é o erro que
+  // ninguém vê no código e todo mundo vê no PNG.
+  const dobro = marcaDaAgua(1000, 600, 16, 2);
+  assert.ok(Math.abs(dobro.w / dobro.h - 173 / 200) < 1e-9);
+});
+
+// A regressão que este teste tranca: a marca precisa ocupar a MESMA fração da
+// imagem qualquer que seja a escala da captura. Medir a geometria direto nos
+// pixels do PNG (que sai em 2x) parece igual e não é — o piso e o teto são
+// absolutos, então dobrar a entrada não dobra o resultado. Como a escala agora
+// é parâmetro da função pura, o Node consegue cobrir isso; enquanto ela morava
+// no `frames.js`, o bug passava com a suíte verde.
+test("marcaDaAgua ocupa a mesma fração da imagem em qualquer escala", () => {
+  for (const [w, hh] of [[960, 540], [4000, 3000], [200, 120], [1600, 900]]) {
+    const um = marcaDaAgua(w, hh, 16, 1);
+    for (const escala of [2, 3, 0.5]) {
+      const e = marcaDaAgua(w, hh, 16, escala);
+      const perto = (a, b) => assert.ok(Math.abs(a - b) < 1e-9,
+        `escala ${escala} em ${w}x${hh}: ${a} != ${b}`);
+      perto(e.h / (hh * escala), um.h / hh);
+      perto(e.w / (w * escala), um.w / w);
+      perto(e.x / (w * escala), um.x / w);
+      perto(e.y / (hh * escala), um.y / hh);
+      perto(e.margem / (w * escala), um.margem / w);
+    }
+  }
 });
