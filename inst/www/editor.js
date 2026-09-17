@@ -414,7 +414,15 @@ function StreamControls({ region, ctl, onCmd, progress }) {
                 onPointerUp: (e) => { arrastandoRef.current = false; mandar(e); },
                 onKeyUp: (e) => { if (!arrastandoRef.current) mandar(e); } }),
     h("span", { key: "ct", className: "tr-stream-count" },
-      passo || "aguardando…"),
+      // `passo` (variável) NÃO existe aqui — é local a `App()`, lá embaixo.
+      // Em módulo ES (strict mode) referenciar um nome inexistente é
+      // ReferenceError na hora, não `undefined`: todo card com região RODANDO
+      // quebrava o render assim que `StreamControls` entrava em cena.
+      // `contagemDoPasso` já vem importado (`./params.js`) pra extrair
+      // "passo N / M" da MESMA mensagem que a barra de progresso usa
+      // (`progress.message`, formato `{fraction, message}` — ver `Preview`
+      // logo acima, que lê os dois campos do mesmo jeito).
+      contagemDoPasso(progress?.message) || "aguardando…"),
     h("span", { key: "hint", className: "tr-stream-hint",
                title: "play/pause/passo só respondem com execução em pool; " +
                       "no executor sequencial o processo fica ocupado com a região inteira" }, "ⓘ"),
