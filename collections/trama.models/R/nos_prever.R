@@ -26,6 +26,13 @@ torno de uma observação nova (mais largo, porque soma a variância do erro). O
 GLM não tem intervalo fechado em `predict.glm()`, e o misto não tem erro
 padrão de predição fechado — os dois recusam com **confiança**/**predição**.
 
+Em `models/glm`, `previsto` sai na escala da RESPOSTA (probabilidade,
+contagem) — não na escala da ligação (log-odds, log), que é o default de
+`predict.glm()`. É uma escolha deste card, para não exigir que quem lê a
+tabela desfaça o `logit`/`log` de cabeça. Não há um param para pedir a escala
+da ligação: se você precisa dela, chame `predict.glm()` diretamente sobre
+`modelo$ajuste`.
+
 ### Dentro de uma região de fluxo
 
 Este nó não sabe nada sobre fluxo — é um nó comum, de dois inputs, puro. Ligado
