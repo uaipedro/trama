@@ -1577,3 +1577,37 @@ test_that("a derivação da seed do passo é ESTÁVEL: valores fixados", {
   expect_true(all(!is.na(v) & v >= 0L & v < 268435456L))
   expect_identical(length(unique(v)), 2000L)
 })
+
+test_that("tr_retry() é TRANSACIONAL: recusa de uma porta não apaga a outra", {
+  # A roxygen e a mensagem de commit afirmam "confere TODAS as portas antes de
+  # apagar qualquer uma", e nenhum teste cobria isso: a revisão mediu que uma
+  # variante NÃO transacional (apaga cada chave à medida que confere) passa a
+  # suíte inteira. Numa região de dois colapsos com um artefato bom e um erro,
+  # a variante apagaria o bom e SÓ ENTÃO abortaria — deixando o usuário sem o
+  # resultado que ele tinha e sem o retry que ele pediu.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 5L) |>
+    tr_add("c1", "d/colapsa", from = "fo") |>
+    tr_add("c2", "d/colapsa") |>
+    tr_link("fo:out", "c2:x"))
+
+  tr_run(doc, registry = reg, store = s)
+  u <- tr_plan(doc, registry = reg, store = s)$units[["c1"]]
+  chaves <- unlist(u$outputs)
+  expect_length(chaves, 2L)
+
+  # Estado misto, e a ORDEM é o teste: o erro na PRIMEIRA porta que o laço
+  # confere, o artefato bom na segunda. Com o erro na segunda, o laço abortaria
+  # na primeira antes de apagar coisa alguma, e uma variante não transacional
+  # passaria — foi assim que a primeira versão deste teste não pegou a mutação.
+  tr_store_put_error(s, chaves[[1]], "explodiu", class = "tr_error_teste")
+  expect_true(tr_handle_failed(tr_store_handle(s, chaves[[1]])))
+  expect_false(tr_handle_failed(tr_store_handle(s, chaves[[2]])))
+
+  # A recusa vem do artefato bom da SEGUNDA porta — e o handle de erro da
+  # primeira, já conferido, tem que continuar lá.
+  expect_error(tr_retry(doc, "c1", reg, s), class = "tr_error_retry_good_artifact")
+  expect_true(tr_handle_failed(tr_store_handle(s, chaves[[1]])))
+  expect_false(is.null(tr_store_handle(s, chaves[[2]])))
+})

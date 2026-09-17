@@ -42,8 +42,7 @@
 #' medido, `lambda = 1e-6` (valor que o bound ACEITA) já devolve um modelo
 #' inútil — coeficientes na casa de 1e-4 onde o `lm()` dá 2 e 3 —, e `P0 =
 #' 1e-6 * I` não é "perto de singular": o número de condição dele é 1, ele é só
-#' pequeno. Prior pequena demais não é instabilidade numérica, é viés enorme, e
-#' o valor a partir do qual o modelo passa a ser usável fica perto de 1e2.
+#' pequeno. Prior pequena demais não é instabilidade numérica, é viés enorme,.
 #' @noRd
 init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
   list(theta = NULL, P = NULL, preditores = .tr_models_split(preditores),
@@ -69,24 +68,42 @@ init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
 #' removendo a linha de propósito.
 #'
 #' A assimetria NÃO cresce com os passos: mesma ordem de grandeza em 1000 e em
-#' 10000, entre 6e-18 (um preditor) e 1e-10 (três). Não é zero — `ganho` é
+#' 10000, entre 6e-18 (um preditor) e 1e-10 (três) a `lambda = 1e6`; a `1e4` o piso é mais baixo ainda. Não é zero — `ganho` é
 #' `Px/denom`, arredondado ELEMENTO A ELEMENTO antes de multiplicar, então a
 #' célula `(i, j)` é `fl(Px_i/denom) * Px_j` e a `(j, i)` é
 #' `fl(Px_j/denom) * Px_i`: dois produtos diferentes, e sem a linha
 #' `identical(P, t(P))` é FALSE. O que a forma de posto 1 garante é assimetria
 #' LIMITADA, não ausente — e é a não-acumulação que importa aqui.
 #'
-#' E a linha não é só seguro para o futuro: ela resgata o presente num caso
-#' medido. Com um preditor na escala de 1e6, SEM a linha o menor autovalor de
-#' `P` termina em -23.8 depois de mil passos (ou seja, `P` deixa de ser
-#' positiva definida); COM a linha, +3.3e-16. Então "os autovalores são os
-#' mesmos com ou sem" vale nos casos bem escalados e é falso justamente no caso
-#' que estressa o algoritmo.
+#' E a linha não é só seguro para o futuro — mas aqui o que se pode afirmar é
+#' menos do que três rodadas de comentário tentaram afirmar, e vale registrar o
+#' porquê, porque é o tipo de número que parece fácil de medir e não é.
 #'
-#' Resumo honesto: mantida porque custa uma linha, porque a assimetria existe
-#' (pequena e não crescente), porque ela conserta o caso mal escalado, e porque
-#' uma mudança futura na forma da atualização — reparametrização, fator de
-#' esquecimento — pode remover a limitação que hoje segura o erro.
+#' Três medições independentes do "menor autovalor de `P` sem a linha" deram
+#' três respostas: −23.8 (configuração não registrada), negativo em 32 de 40
+#' sementes com três preditoras na escala de 1e6, e ZERO negativos em 40
+#' sementes na mesma escala, num desenho de dados um pouco diferente. Não é
+#' desleixo de ninguém: a quantidade depende do desenho de um jeito que nenhuma
+#' das três mediu o bastante para fixar.
+#'
+#' E há uma razão técnica para a divergência ser fácil: SEM a linha `P` não é
+#' simétrica, e aí "o menor autovalor" nem é bem definido — `eigen(symmetric =
+#' TRUE)` (o natural de se escrever para uma covariância) usa só um triângulo,
+#' isto é, mede a matriz SIMETRIZADA, exatamente o que a linha produziria; com
+#' assimetria grande, `eigen(symmetric = FALSE)` pode devolver valores
+#' complexos. Dois medidores podem estar medindo objetos diferentes sem notar.
+#'
+#' O que as três medições CONCORDAM, e é o que fica aqui:
+#'   - sem a linha, `identical(P, t(P))` é FALSE (assimetria real, medida por
+#'     todos);
+#'   - a assimetria não cresce com os passos;
+#'   - com a linha, `P` é simétrica bit a bit por construção (a soma em IEEE é
+#'     comutativa), e isso é garantia, não sorte.
+#'
+#' A linha fica por isso: custa uma operação, torna `P` simétrica por definição
+#' em vez de por acidente, e remove de vez a pergunta ambígua "o menor autovalor
+#' de uma matriz que não é simétrica". Se alguém quiser afirmar um número de
+#' autovalor aqui, meça-o antes, e diga em que configuração.
 #' @noRd
 step_rls <- function(state, dados) {
   if (is.null(state$theta)) {
@@ -117,7 +134,7 @@ step_rls <- function(state, dados) {
 
   theta <- theta + ganho * residuo
   P <- P - outer(ganho, Px)
-  P <- (P + t(P)) / 2  # ver o cabeçalho: proteção contra mudança futura na forma, não contra deriva observada
+  P <- (P + t(P)) / 2  # ver o cabeçalho: `P` simétrica por definição, não por acidente
 
   state$theta <- theta; state$P <- P; state$n <- state$n + 1L
   list(state = state, out = data.frame(previsto = previsto, real = y, residuo = residuo))
@@ -191,7 +208,7 @@ PERMANECE, não só demora a sumir.
 
 Maior é melhor **até um ponto que depende dos seus dados**, e o default não é
 esse ponto: é um valor seguro. Medido com 3 preditoras bem escaladas, o erro
-continua caindo de `1e6` até algo entre `1e7` e `1e8` (chegou a ~7e-11, cem
+continua caindo de `1e6` até algo em torno de `1e8` (chegou a ~7e-11, cem
 vezes melhor que o default) e só então o condicionamento numérico de
 `P0 = lambda * I` passa a dominar — a `1e12` o erro voltou a ser dezenas de
 vezes PIOR que a `1e6`. Onde exatamente fica o ótimo muda com os dados, e é
@@ -199,8 +216,9 @@ por isso que o default é conservador em vez de agressivo.
 
 **A exceção que inverte o conselho:** com preditoras em escalas muito
 diferentes entre si, subir `lambda` PIORA. Medido, uma coluna na escala de 1e5
-contra as outras em torno de 1: erro de 1e-6 a `lambda = 1e4` e de 6e-5 a
-`lambda = 1e6` — cinquenta vezes pior no valor maior. Se as colunas não estão
+contra as outras em torno de 1: erro da ordem de 1e-6 a `lambda = 1e4` e de 1e-5 a 1e-4 a
+`lambda = 1e6` — dezenas de vezes pior no valor maior na mediana, e em algumas
+amostras o sinal chega a inverter. Se as colunas não estão
 na mesma ordem de grandeza, o conserto é escalá-las (`data/mutate`), não mexer
 no `lambda`.
 
@@ -216,7 +234,7 @@ tabela ganhasse uma coluna.
 - **Preditores** — em branco, todas as outras colunas do ponto.
 - **Prior difusa (lambda)** — menor deixa um viés permanente nos coeficientes;
   maior aproxima do `lm()` batch até um ótimo que depende dos dados (medido
-  entre 1e7 e 1e8 com preditoras bem escaladas), e daí em diante o
+  em torno de 1e8 com preditoras bem escaladas, e o lugar muda com os dados), e daí em diante o
   condicionamento piora. Com colunas em escalas muito diferentes, subir
   `lambda` piora: escale as colunas em vez disso.
 ]---", r"---[

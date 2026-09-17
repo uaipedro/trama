@@ -9,6 +9,19 @@ tr_retry(doc, node, registry = .tr_default_registry, store, settings = NULL)
 \value{
 \code{invisible(TRUE)} se limpou pelo menos um handle de erro;
 \code{invisible(FALSE)} se não havia nada a limpar (nó sem handle).
+Vale em nó COMUM também, e não só em região: ali limpa o erro cacheado e o
+nó roda de novo — só não há de onde retomar, porque nó comum não tem
+checkpoint. É por isso que a recusa não fala de checkpoint: o \code{tr_bust()} que
+ela indica serve para os dois casos, e o que ele apaga a mais (o diretório
+\verb{stream/}) só existe num deles.
+
+SEM entrada no barramento do Shiny, de propósito: \code{transport.R} só decodifica
+comando VIVO cuja chave o front já tem em mão (pause, step, stop). Retentar
+precisa de \code{doc} + \code{registry} + \code{settings} para resolver um id de nó numa
+unidade, que é conhecimento de plano dentro do barramento — o que aquele
+arquivo recusa por desenho. Consequência a registrar em vez de descobrir: um
+botão de retentar no front precisa de mensagem nova ou de um caminho por
+chave, e isso é trabalho da fase da interface.
 }
 \description{
 O gesto explícito que faltou depois da Fase 5. Uma falha grava handle de

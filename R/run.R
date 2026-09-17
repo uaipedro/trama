@@ -165,6 +165,20 @@ tr_value <- function(doc, node, registry = .tr_default_registry, store,
 #' `R/stream-control.R`.
 #' @return `invisible(TRUE)` se limpou pelo menos um handle de erro;
 #'   `invisible(FALSE)` se não havia nada a limpar (nó sem handle).
+#' Vale em nó COMUM também, e não só em região: ali limpa o erro cacheado e o
+#' nó roda de novo — só não há de onde retomar, porque nó comum não tem
+#' checkpoint. É por isso que a recusa não fala de checkpoint: o `tr_bust()` que
+#' ela indica serve para os dois casos, e o que ele apaga a mais (o diretório
+#' `stream/`) só existe num deles.
+#'
+#' SEM entrada no barramento do Shiny, de propósito: `transport.R` só decodifica
+#' comando VIVO cuja chave o front já tem em mão (pause, step, stop). Retentar
+#' precisa de `doc` + `registry` + `settings` para resolver um id de nó numa
+#' unidade, que é conhecimento de plano dentro do barramento — o que aquele
+#' arquivo recusa por desenho. Consequência a registrar em vez de descobrir: um
+#' botão de retentar no front precisa de mensagem nova ou de um caminho por
+#' chave, e isso é trabalho da fase da interface.
+#'
 #' @export
 tr_retry <- function(doc, node, registry = .tr_default_registry, store, settings = NULL) {
   doc <- .tr_as_doc(doc)
@@ -189,8 +203,7 @@ tr_retry <- function(doc, node, registry = .tr_default_registry, store, settings
       rlang::abort(sprintf(
         paste0("Nó '%s' tem artefato BOM sob a chave '%s': tr_retry() só limpa handle de ",
                "ERRO, nunca um resultado válido. Se a intenção é forçar recomputação porque o ",
-               "código mudou sem a chave mudar, o comando certo é tr_bust() — que também apaga ",
-               "o checkpoint, de propósito."),
+               "código mudou sem a chave mudar, o comando certo é tr_bust()."),
         node, k), class = "tr_error_retry_good_artifact")
     }
     a_limpar <- c(a_limpar, k)
