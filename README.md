@@ -117,6 +117,16 @@ idêntico JSON escrevendo R. `tr_flow_code()` faz o caminho de volta — o ETL d
 `exemplos/vendas` vira:
 
 ```r
+library(trama)
+
+# `reg` é o REGISTRO: onde os blocos de cada coleção instalada ficam
+# disponíveis para `tr_add()` achar pelo id ("data/read_csv" etc.).
+# `tr_app()`/`tr_project()` montam um por trás dos panos; no console é
+# explícito — `tr_registry()` cria um vazio, `tr_use()` carrega uma coleção
+# nele.
+reg <- tr_registry()
+tr_use("trama.data", registry = reg)
+
 tr_flow(reg) |>
   tr_add("ler", "data/read_csv", path = "vendas.csv") |>
   tr_add("filtrar", "data/filter", expr = "valor > 180", from = "ler") |>
@@ -205,6 +215,17 @@ esses, um sub-grafo pode ser uma **região de fluxo** — ela executa ponto a
 ponto e você vê cada passo acontecer.
 
 ```r
+library(trama)
+
+# `models/rls` mora na coleção `trama.models`, que depende de `trama.data`
+# (dá `data/read_csv`/`data/to_stream`/`data/from_stream`) e de `trama.view`
+# (os gráficos de diagnóstico dos modelos) — as três entram no mesmo
+# registro, na ordem das dependências.
+reg <- tr_registry()
+tr_use("trama.data", registry = reg)
+tr_use("trama.view", registry = reg)
+tr_use("trama.models", registry = reg)
+
 tr_flow(reg) |>
   tr_add("dados", "data/read_csv", path = "serie.csv") |>
   tr_add("entra", "data/to_stream", lote = 1L, from = "dados") |>
@@ -224,11 +245,17 @@ gráfico que já existem plotam. E porque é dado comum, o resto do pacote
 funciona depois dela sem saber que houve fluxo.
 
 Enquanto roda, cada card mostra o próprio passo, e o card da fonte tem pausa,
-um passo e velocidade — os três só respondem com `tr_executor_pool()`, porque no
-executor sequencial o processo fica ocupado computando e não há quem receba o
-comando. Velocidade é estado de sessão, não param — arrastar o
-controle não recomputa o fluxo. Se o run morrer no meio, o trabalho fica num
-checkpoint e `tr_retry()` retoma de onde parou.
+um passo e velocidade — os comandos vão pelo STORE (`tr_stream_command()`,
+lido por polling a cada passo, executor nenhum sabe disso) e por isso valem
+nos dois executores. A ressalva é o Shiny, não o executor: com
+`tr_executor_sequential()`, `tr_run()` roda a região no PRÓPRIO processo que
+está mostrando a tela, então enquanto o laço anda não sobra ninguém ali pra
+CLICAR o botão — é o processo da interface que fica preso, não o mecanismo do
+comando. Rodar num console separado, ou apontar duas sessões pro mesmo store,
+já mostra os três respondendo em qualquer executor. Velocidade é estado de
+sessão, não param — arrastar o controle não recomputa o fluxo. Se o run
+morrer no meio, o trabalho fica num checkpoint e `tr_retry()` retoma de onde
+parou.
 
 Detalhes de desenho em `docs/design-trama.md`, seção 5.8.
 
