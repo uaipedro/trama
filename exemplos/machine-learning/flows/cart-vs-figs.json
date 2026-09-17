@@ -1,0 +1,232 @@
+{
+  "format": 1,
+  "rev": 21,
+  "collections": {
+    "ml": "0.1.0"
+  },
+  "nodes": {
+    "dados": {
+      "type": "ml/example",
+      "type_version": 1,
+      "label": "Dados para aprender",
+      "params": {
+        "nome": "iris_binaria"
+      },
+      "seed": 142056223
+    },
+    "divisao": {
+      "type": "ml/split",
+      "type_version": 1,
+      "label": "Separar treino / teste",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 80248118
+    },
+    "cart": {
+      "type": "ml/cart",
+      "type_version": 1,
+      "label": "CART · árvore de decisão",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 153561746
+    },
+    "cart_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 31846989
+    },
+    "cart_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 59728939
+    },
+    "cart_regras": {
+      "type": "ml/rules",
+      "type_version": 1,
+      "label": "Ler regras das árvores",
+      "params": {},
+      "seed": 14047180
+    },
+    "figs": {
+      "type": "ml/figs",
+      "type_version": 1,
+      "label": "FIGS · soma de árvores",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 214423081
+    },
+    "figs_prever": {
+      "type": "ml/predict",
+      "type_version": 1,
+      "label": "Prever",
+      "params": {},
+      "seed": 77653016
+    },
+    "figs_avaliar": {
+      "type": "ml/evaluate",
+      "type_version": 1,
+      "label": "Avaliar previsões",
+      "params": {
+        "alvo": "Species"
+      },
+      "seed": 93337636
+    },
+    "figs_regras": {
+      "type": "ml/rules",
+      "type_version": 1,
+      "label": "Ler regras das árvores",
+      "params": {},
+      "seed": 176588702
+    }
+  },
+  "edges": [
+    {
+      "from": {
+        "node": "dados",
+        "port": "out"
+      },
+      "to": {
+        "node": "divisao",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "cart",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cart",
+        "port": "out"
+      },
+      "to": {
+        "node": "cart_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "cart_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cart_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "cart_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cart",
+        "port": "out"
+      },
+      "to": {
+        "node": "cart_regras",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "treino"
+      },
+      "to": {
+        "node": "figs",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "figs",
+        "port": "out"
+      },
+      "to": {
+        "node": "figs_prever",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "divisao",
+        "port": "teste"
+      },
+      "to": {
+        "node": "figs_prever",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "figs_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "figs_avaliar",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "figs",
+        "port": "out"
+      },
+      "to": {
+        "node": "figs_regras",
+        "port": "modelo"
+      },
+      "index": 1
+    }
+  ],
+  "ui": {
+    "positions": {
+      "dados": [0, 150],
+      "divisao": [320, 150],
+      "cart": [680, 0],
+      "cart_prever": [1040, 0],
+      "cart_avaliar": [1400, 0],
+      "cart_regras": [1400, 160],
+      "figs": [680, 400],
+      "figs_prever": [1040, 400],
+      "figs_avaliar": [1400, 400],
+      "figs_regras": [1400, 560]
+    },
+    "sizes": {},
+    "views": {},
+    "frames": {},
+    "folds": {}
+  }
+}

@@ -22,9 +22,34 @@ comparar <- function(nome, alvo, cols = "") {
   }
   f
 }
+# Só os dois métodos interpretáveis (uma árvore vs. soma de poucas árvores),
+# com as regras expostas — o comparativo de `comparar()` acima é sobre
+# métrica; este é sobre LEITURA do modelo, por isso cada método ganha
+# `ml/rules` além de prever/avaliar.
+cart_vs_figs <- function() {
+  f <- trama::tr_flow(reg) |>
+    trama::tr_add("dados", "ml/example", nome = "iris_binaria", position = c(0, 150)) |>
+    trama::tr_add("divisao", "ml/split", alvo = "Species", from = "dados", position = c(320, 150))
+  metodos <- c("cart", "figs")
+  for (i in seq_along(metodos)) {
+    id <- metodos[[i]]
+    f <- trama::tr_add(f, id, paste0("ml/", id), alvo = "Species",
+                      from = "divisao:treino", position = c(680, (i - 1) * 400))
+    f <- trama::tr_add(f, paste0(id, "_prever"), "ml/predict",
+                      from = c(id, "divisao:teste"), position = c(1040, (i - 1) * 400))
+    f <- trama::tr_add(f, paste0(id, "_avaliar"), "ml/evaluate", alvo = "Species",
+                      from = paste0(id, "_prever"), position = c(1400, (i - 1) * 400))
+    f <- trama::tr_add(f, paste0(id, "_regras"), "ml/rules",
+                      from = id, position = c(1400, (i - 1) * 400 + 160))
+  }
+  f
+}
+
 destino <- "exemplos/machine-learning/flows"
 dir.create(destino, recursive = TRUE, showWarnings = FALSE)
 trama::tr_doc_write(trama::tr_flow_doc(comparar("iris_binaria", "Species")),
                     file.path(destino, "main.json"))
 trama::tr_doc_write(trama::tr_flow_doc(comparar("mtcars", "mpg", "wt, hp, disp")),
                     file.path(destino, "regressao.json"))
+trama::tr_doc_write(trama::tr_flow_doc(cart_vs_figs()),
+                    file.path(destino, "cart-vs-figs.json"))
