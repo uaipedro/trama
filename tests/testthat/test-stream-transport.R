@@ -340,3 +340,128 @@ test_that("eventos de unidade chegam com 'unit_type' — o rótulo de que unitSt
 # E de novo, o resto da suíte passa inteiro com a mutação — nenhum outro teste
 # olha pro campo `unit_type`. A mudança foi desfeita depois de confirmar a
 # queda — não fica no código.
+
+# --- ORDEM de 'regions' contra os eventos de unidade (Blocker 2-c) ---------
+
+test_that("'regions' chega ANTES dos eventos de unidade — caso comum: projeto reaberto com região em cache", {
+  # `tr_scheduler()` classifica cada unidade no PRÓPRIO construtor e emite
+  # `cached`/`failed`/`invalid`/`blocked` SINCRONAMENTE por `on_event`, antes
+  # de `run_now()` voltar. `send("regions", ...)` mandado DEPOIS de construir
+  # o scheduler (ordem antiga) significa que, numa região CACHED — o caso
+  # comum ao reabrir um projeto —, o front recebe o evento `unit(cached, c1)`
+  # sem ainda saber que aquele nó pertence a uma região: o handler de
+  # `regions` só faz `bumpTick()`, não REPLAYA eventos já entregues. A fonte,
+  # cada membro elevado e o segundo colapso em diante ficam em branco.
+  #
+  # Medido com `shiny::testServer` ANTES do fix (ordem real):
+  #   document / unit(cached,c1) / regions / run_finished
+  reg <- stream_registry()
+  root <- withr::local_tempdir("proj-regions-ordem")
+  tr_project_new(root, character())
+  proj <- tr_project_at(root, reg)
+  doc <- regiao_dupla_doc(reg)
+  tr_project_save(proj, doc)
+
+  # Primeira sessão: popula o cache do store (roda a região de ponta a ponta).
+  shiny::testServer(tr_server(proj, autosave = FALSE), {
+    session$setInputs(tr_ready = 1)
+    sched <- session$env$exec$sched
+    n <- 0L
+    while (!is.null(sched) && !sched$finished() && !sched$step()) { n <- n + 1L; expect_lt(n, 500L) }
+  })
+
+  # Segunda sessão, mesmo store: a região agora é CACHED, e a classificação
+  # inicial do scheduler emite `unit(cached, c1)` no PRÓPRIO construtor —
+  # síncrono, dentro de `run_now()`.
+  shiny::testServer(tr_server(proj, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+
+    tipos <- vapply(msgs, function(m) m$type, "")
+    i_regions <- which(tipos == "regions")
+    i_unit <- which(tipos == "unit")
+    expect_length(i_regions, 1L)
+    expect_true(length(i_unit) >= 1L)
+    # A PROVA: 'regions' antes de QUALQUER evento de unidade — não só presente.
+    expect_true(i_regions[[1]] < min(i_unit))
+  })
+})
+
+# PROVA DE MUTAÇÃO 6: devolvendo `send("regions", ...)` pra depois de
+# `exec$sched <- tr_scheduler(...)` em `run_now()` (R/transport.R), rodando só
+# este arquivo:
+#
+#   -- Failure (test-stream-transport.R): 'regions' chega ANTES dos eventos... --
+#   `i_regions[[1]] < min(i_unit)` não é TRUE.
+#
+# E o resto da suíte passa inteiro com a mutação (o teste anterior, "run_now()
+# manda a mensagem 'regions'", só checava PRESENÇA, não ordem — é a lacuna que
+# a Tarefa B2-c aponta). A mudança foi desfeita depois de confirmar a queda —
+# não fica no código.
+
+# --- Backstop de run_now(): tr_plan() abortando vira aviso, não sessão morta (Blocker 2-a) ---
+
+test_that("um 'to_stream' solto (sem colapso) vira BANNER, não sessão travada — e o card dá pra apagar", {
+  # Reprodução do que o revisor mediu: um card de fonte de fluxo arrastado da
+  # paleta e ainda não ligado a um 'Sair de fluxo'. A porta de entrada é
+  # `required = FALSE` de propósito (pra não acusar "input obrigatório" só por
+  # estar solto) — mas sem colapso a região não fecha, e ANTES do fix
+  # `tr_plan()` abortava (`tr_error_stream_not_collected`) direto de dentro de
+  # `run_now()`, chamado sem `tryCatch` de um `observeEvent` do Shiny. Em
+  # produção isso silencia a sessão inteira: nenhum evento seguinte é
+  # processado, sem banner — e como o autosave já rodou (`tr_op`, antes de
+  # `run_now`), reabrir bate no MESMO abort no observer de `ready`. Projeto
+  # que não abre mais sem editar o JSON à mão.
+  reg <- stream_registry()
+  root <- withr::local_tempdir("proj-solto")
+  tr_project_new(root, character())
+  proj <- tr_project_at(root, reg)
+  # Fonte solta (sem 'from', sem colapso) + um nó comum não relacionado — o
+  # segundo card é o que prova que o abort de `tr_plan()` derruba o PLANO
+  # INTEIRO, não só a região malformada (a asymmetria que o revisor mediu).
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("solto", "s/fonte") |>
+    tr_add("outro", "s/tabela"))
+  tr_project_save(proj, doc)
+
+  shiny::testServer(tr_server(proj, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    # ANTES do fix, esta linha propagava o abort de `tr_plan()` pra fora do
+    # observer — a chamada de teste (que roda o mesmo caminho que uma sessão
+    # real) falhava aqui, e não com um banner.
+    session$setInputs(tr_ready = 1)
+
+    tipos <- vapply(msgs, function(m) m$type, "")
+    expect_true("warning" %in% tipos)
+    aviso <- msgs[[which(tipos == "warning")[[1]]]]
+    expect_match(aviso$message, "não fecha|colapso")
+
+    # A sessão continua VIVA: um op comum (apagar o card que quebrou o plano)
+    # ainda é aceito e processado — é o que "dá pra apagar o card" promete.
+    session$setInputs(tr_op = list(seq = 1, base_rev = rv_doc()$rev,
+                                   op = list(op = "remove_node", node = "solto")))
+    tipos2 <- vapply(msgs, function(m) m$type, "")
+    expect_true("op_applied" %in% tipos2)
+    expect_false("solto" %in% names(rv_doc()$nodes))
+  })
+})
+
+# PROVA DE MUTAÇÃO 7: tirando o `tryCatch`/`if (is.null(plan)) return(...)` em
+# `run_now()` (R/transport.R) — voltando a `plan <- tr_plan(...)` cru —,
+# rodando só este arquivo (saída real, medida):
+#
+#   WARNING: 'test-stream-transport.R:434:5' ----------
+#   Error in .tr_stream_validate: A região de fluxo de 'solto' não fecha:
+#   nenhum nó colapsa o fluxo num valor. Ligue a ponta da região num nó que
+#   receba fluxo e devolva valor comum.
+#   ...
+#   ERROR: 'test-stream-transport.R:438:5' ------------
+#   Error in `which(tipos == "warning")[[1]]`: subscript out of bounds
+#
+# O abort de `tr_plan()` escapa do `observeEvent` (Shiny converte em WARNING
+# de teste, não em evento `tr_event` nenhum) — nenhuma mensagem "warning" sai
+# pelo barramento, e a asserção seguinte quebra com um erro de R cru. É
+# exatamente "a sessão para de reagir sem banner" que o Blocker 2 descreve. A
+# mudança foi desfeita depois de confirmar a queda — não fica no código.

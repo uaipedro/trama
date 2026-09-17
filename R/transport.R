@@ -76,7 +76,47 @@ tr_server <- function(project, flow = "main",
     run_now <- function(doc) {
       run_seq(run_seq() + 1L)
       proj <- rv_project()
-      plan <- tr_plan(doc, registry = proj$registry, store = proj$store, settings = proj$settings)
+      # `tr_plan()` ABORTA em grafo malformado — ciclo, nó desconhecido, e as
+      # recusas de região de fluxo (`.tr_stream_validate()`, chamada de dentro
+      # do planejamento). Isso é o backstop CERTO (a maioria das recusas de
+      # região agora também vira `problems` de `tr_doc_validate()`, alto e
+      # cedo, antes de chegar aqui — mas `tr_error_cycle`,
+      # `tr_error_unknown_node` e qualquer recusa que escapar da validação
+      # continuam batendo aqui). Sem o `tryCatch`, o abort subia cru de dentro
+      # de um `observeEvent` do Shiny: a sessão inteira parava de reagir a
+      # QUALQUER evento seguinte — sem banner, sem pista — e o documento já
+      # tinha sido salvo (autosave roda ANTES de `run_now`, em `tr_op`), então
+      # reabrir o projeto batia no MESMO abort no observer de `ready`. Um
+      # `to_stream` solto na tela virava projeto que não abre mais sem editar o
+      # JSON à mão — é o Blocker 2 medido pelo revisor. Com o `tryCatch`, vira
+      # aviso — o mesmo idioma de `avisar()` acima — e `exec$sched` do run
+      # anterior (ou `NULL`, se este é o primeiro) fica como estava: a tela
+      # continua reagindo, e dá pra apagar o card que quebrou o plano.
+      plan <- tryCatch(
+        tr_plan(doc, registry = proj$registry, store = proj$store, settings = proj$settings),
+        error = avisar())
+      if (is.null(plan)) return(invisible())
+      # Quais nós formam cada região — a Fase 8 fecha o buraco herdado (todo
+      # evento de unidade chega com `node` = primeiro colapso; membro interior
+      # e segundo colapso em diante nunca recebiam nada). Mandado a CADA
+      # `run_now`: o plano acabou de ser recalculado aqui mesmo, e a lista de
+      # regiões pode ter mudado (nó entrou ou saiu da região) desde o run
+      # anterior. `.tr_plan_regions()` só relê o plano já calculado — nenhuma
+      # regra de região nova mora no barramento.
+      #
+      # ANTES de `tr_scheduler()`, não depois: o construtor do scheduler
+      # classifica cada unidade e já emite `cached`/`failed`/`invalid`/
+      # `blocked` SINCRONAMENTE por `on_event = forward` — o caso comum de
+      # abrir um projeto cuja região está em cache. O handler de `regions` no
+      # front só faz `bumpTick()`; não REPLAYA eventos de unidade já
+      # recebidos. Com `regions` depois do scheduler (ordem medida com
+      # `shiny::testServer`: `document / unit(cached,c1) / regions /
+      # run_finished`), todo evento de unidade chegava ANTES de o front saber
+      # que aquele nó pertence a uma região — a fonte, cada membro elevado e
+      # todo colapso além do primeiro ficavam em branco. Mandar `regions`
+      # primeiro garante que o front já sabe "isto é região" quando o
+      # primeiro evento de unidade chega.
+      send("regions", list(regions = .tr_plan_regions(plan)))
       # Run anterior ainda em voo: entrega. O que continua no plano novo é
       # adotado; o que saiu é cancelado. Isto SUBSTITUI o debounce de
       # recomputação: digitar 4, 40, 400 gera três planos e só o último vive.
@@ -93,14 +133,6 @@ tr_server <- function(project, flow = "main",
       exec$sched <- tr_scheduler(plan, proj$registry, proj$store, executor, on_event = forward,
                                  run_id = as.character(run_seq()), inherit = inherit,
                                  ctx_extra = ctx_extra)
-      # Quais nós formam cada região — a Fase 8 fecha o buraco herdado (todo
-      # evento de unidade chega com `node` = primeiro colapso; membro interior
-      # e segundo colapso em diante nunca recebiam nada). Mandado a CADA
-      # `run_now`: o plano acabou de ser recalculado aqui mesmo, e a lista de
-      # regiões pode ter mudado (nó entrou ou saiu da região) desde o run
-      # anterior. `.tr_plan_regions()` só relê o plano já calculado — nenhuma
-      # regra de região nova mora no barramento.
-      send("regions", list(regions = .tr_plan_regions(plan)))
       pump()
     }
 
