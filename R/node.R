@@ -189,12 +189,21 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     }
   }
 
+  # `.seed` no `fn`/`step` implica `stochastic`, mesmo que o autor não tenha
+  # marcado: sem isso a seed chega ao nó e muda o resultado, mas não entra na
+  # chave de conteúdo (`hash.R`) nem sobrevive ao round-trip por
+  # `tr_flow_code()` (`flow.R`) — `tr_set_seed()` mudaria o resultado sem
+  # invalidar o cache, em silêncio, pra sempre. Inferir aqui é o único lugar
+  # que basta: chave, codegen e catálogo leem `stochastic` daqui, nunca
+  # recalculam a condição por conta própria.
+  stochastic <- isTRUE(stochastic) || .tr_wants_seed(fn) || .tr_wants_seed(step)
+
   structure(list(
     id = id, fn = fn, version = as.integer(version), label = label %||% id,
     description = description, help = help, category = category,
     inputs = inputs, outputs = outputs, params = params,
     pure = isTRUE(pure), fingerprint = fingerprint,
-    volatile = isTRUE(volatile), stochastic = isTRUE(stochastic), icon = icon,
+    volatile = isTRUE(volatile), stochastic = stochastic, icon = icon,
     init = init, step = step, online = online
   ), class = "tr_node")
 }

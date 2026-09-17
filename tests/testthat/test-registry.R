@@ -22,6 +22,23 @@ test_that("argumento de fn sem input/param correspondente é erro alto e cedo", 
   )
 })
 
+test_that(".seed no fn (ou no step) infere stochastic, mesmo sem marcar", {
+  # Achado da pauta pós-região de fluxo: `.seed` sem `stochastic = TRUE`
+  # deixava a seed mudar o resultado sem entrar na chave de cache.
+  n <- tr_node("t/n", fn = function(a, .seed) a, description = "x", inputs = list(a = "t/num"))
+  expect_true(n$stochastic)
+
+  n2 <- tr_node("t/n", fn = function(a) a, description = "x", inputs = list(a = "t/num"))
+  expect_false(n2$stochastic)
+
+  n3 <- tr_node("t/n", fn = function(fluxo) fluxo,
+                inputs = list(fluxo = tr_port("t/num", stream = TRUE)),
+                outputs = list(out = tr_port("t/num", stream = TRUE)),
+                description = "x",
+                init = function() NULL, step = function(state, fluxo, .seed) list(state = state, out = fluxo))
+  expect_true(n3$stochastic)
+})
+
 test_that("nome não pode ser input e param ao mesmo tempo", {
   expect_error(
     tr_node("t/n", fn = function(a) a, description = "x", inputs = list(a = "t/num"),

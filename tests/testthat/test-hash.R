@@ -32,3 +32,24 @@ test_that("params efetivos misturam default do registro com o documento", {
   expect_equal(.tr_effective_params(spec, list(params = list()))$by, 1)
   expect_equal(.tr_effective_params(spec, list(params = list(by = 9)))$by, 9)
 })
+
+test_that(".seed sem stochastic explícito ainda muda a chave quando a seed muda", {
+  # Achado da pauta pós-região de fluxo, repro exato: um nó que declara
+  # `.seed` no `fn` mas deixa `stochastic` no default (FALSE) servia o mesmo
+  # handle pra sempre depois de `tr_set_seed()`, porque a seed nunca entrava
+  # na chave. Com a inferência em `tr_node()`, `tr_set_seed()` (op
+  # `set_seed`) tem que mudar a chave.
+  reg <- tr_registry()
+  tr_use(tr_collection(
+    id = "t", types = list(tr_type("t/num")),
+    nodes = list(tr_node("t/sorteia", fn = function(.seed) .seed,
+                         description = "Sorteia algo a partir da seed.",
+                         outputs = list(out = "t/num")))
+  ), registry = reg)
+
+  doc <- build(reg, list(list(op = "add_node", type = "t/sorteia", id = "a")))
+  key1 <- tr_plan(doc, registry = reg)$keys[["a"]]
+  doc2 <- tr_doc_apply(doc, list(op = "set_seed", node = "a", value = doc$nodes[["a"]]$seed + 1L), reg)
+  key2 <- tr_plan(doc2, registry = reg)$keys[["a"]]
+  expect_false(identical(key1, key2))
+})
