@@ -125,7 +125,7 @@ init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
 #' memória de verdade no meio — e a ajuda de `data/to_stream` já recomenda
 #' lote > 1 para quem "precisa de mais de uma linha por cálculo", uma
 #' recomendação que só faz sentido se o nó de memória souber lidar com isso.
-#' Laçar é a leitura mathematicamente honesta (RLS é per-observação) e a que
+#' Laçar é a leitura matematicamente honesta (RLS é per-observação) e a que
 #' mantém as duas ajudas — a deste nó e a de `data/to_stream` — consistentes
 #' entre si.
 #'
