@@ -6,6 +6,8 @@
 \alias{trama-package}
 \title{trama: Interactive Node-Graph Computation with Live Previews}
 \description{
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
+
 Build and run computation graphs interactively. Nodes are typed R functions with declared ports and parameters; a flow is a plain JSON document; execution is pull-based, content-addressed and incremental, so editing a parameter recomputes only what depends on it. Every node renders its own result in the canvas with a registered renderer, making each step of a pipeline visible rather than implied. Domain knowledge lives entirely in registrable collections, never in the core, so new domains are added without modifying the package.
 }
 \seealso{
