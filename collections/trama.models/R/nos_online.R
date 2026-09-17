@@ -50,11 +50,13 @@ init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
        n = 0L)
 }
 
-#' Um passo do RLS: atualiza `theta`/`P` com UM ponto, na forma Sherman-Morrison.
+#' Um passo do RLS: atualiza `theta`/`P` com UM ponto, na forma Sherman-Morrison
+#' — uma linha do ponto por vez (ver o comentário logo abaixo sobre `lote`).
 #'
-#' `out` é `data.frame(previsto, real, residuo)` — o previsto é o valor que o
-#' modelo ANTES deste ponto já daria para ele (a predição a priori, o que se
-#' pede de um filtro online); `residuo = real - previsto`.
+#' `out` é `data.frame(previsto, real, residuo)`, uma linha por linha do
+#' ponto — o previsto é o valor que o modelo ANTES daquela linha já daria para
+#' ela (a predição a priori, o que se pede de um filtro online); `residuo =
+#' real - previsto`.
 #'
 #' Sem `passo`: `data/from_stream` (Fase 6) ACRESCENTA uma coluna `passo` — o
 #' índice do ponto, o eixo x de todo gráfico — e, se o ponto já trouxer uma
@@ -104,6 +106,36 @@ init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
 #' em vez de por acidente, e remove de vez a pergunta ambígua "o menor autovalor
 #' de uma matriz que não é simétrica". Se alguém quiser afirmar um número de
 #' autovalor aqui, meça-o antes, e diga em que configuração.
+#'
+#' `dados` pode chegar com MAIS de uma linha — `data/to_stream(lote > 1)`
+#' entrega um ponto que é a tabela inteira do lote, não uma linha (Fase 6:
+#' "cada ponto é uma TABELA"). RLS é definido por OBSERVAÇÃO, uma atualização
+#' de Sherman-Morrison por vez: então este `step` LAÇA sobre as linhas de
+#' `dados`, na ordem em que chegam, atualizando `theta`/`P` uma linha por vez
+#' — exatamente a mesma sequência de atualizações que `lote = 1L` faria linha
+#' a linha, só que dentro de UM passo em vez de vários. É por isso que `lote`
+#' continua sendo um knob de VELOCIDADE (menos passos, menos overhead de
+#' driver) e não de SEMÂNTICA — testado em `test-rls.R`: o mesmo dado entregue
+#' em lotes de 3 ou em lotes de 1 chega aos MESMOS coeficientes.
+#'
+#' A alternativa considerada foi recusar `nrow(dados) > 1L` com erro
+#' classificado, nomeando `lote`. Foi descartada: `models/rls` é o ÚNICO nó
+#' com memória que a coleção embarca, então recusar lote > 1 tornaria o
+#' parâmetro `lote` do `data/to_stream` inútil sempre que o fluxo tem uma
+#' memória de verdade no meio — e a ajuda de `data/to_stream` já recomenda
+#' lote > 1 para quem "precisa de mais de uma linha por cálculo", uma
+#' recomendação que só faz sentido se o nó de memória souber lidar com isso.
+#' Laçar é a leitura mathematicamente honesta (RLS é per-observação) e a que
+#' mantém as duas ajudas — a deste nó e a de `data/to_stream` — consistentes
+#' entre si.
+#'
+#' `out` ganha UMA linha por linha de `dados` (não uma linha por passo): é o
+#' mesmo padrão que `data/from_stream` já suporta para um passo que contribui
+#' MENOS de uma linha (`data/filter` elevado, ver `nodes.R`) — aqui é o
+#' espelho, um passo que contribui MAIS de uma. `from_stream` repete o índice
+#' do passo (`passo = rep(i, nrow(p))`) para todas as linhas de um mesmo
+#' passo, então o histórico final tem uma linha por OBSERVAÇÃO, com `passo`
+#' marcando de qual lote ela veio — não um índice por observação.
 #' @noRd
 step_rls <- function(state, dados) {
   if (is.null(state$theta)) {
@@ -122,22 +154,29 @@ step_rls <- function(state, dados) {
                      paste(faltam, collapse = "', '"), paste(names(dados), collapse = ", "))
   }
 
-  x <- c(1, as.numeric(unlist(dados[1L, state$preditores, drop = TRUE])))
-  y <- as.numeric(dados[[state$resposta]][[1L]])
+  theta <- state$theta; P <- state$P
+  n <- nrow(dados)
+  previsto <- numeric(n); real <- numeric(n); residuo <- numeric(n)
 
-  P <- state$P; theta <- state$theta
-  previsto <- as.numeric(sum(x * theta))
-  Px <- as.vector(P %*% x)
-  denom <- 1 + as.numeric(sum(x * Px))
-  ganho <- Px / denom
-  residuo <- y - previsto
+  for (i in seq_len(n)) {
+    x <- c(1, as.numeric(unlist(dados[i, state$preditores, drop = TRUE])))
+    y <- as.numeric(dados[[state$resposta]][[i]])
 
-  theta <- theta + ganho * residuo
-  P <- P - outer(ganho, Px)
-  P <- (P + t(P)) / 2  # ver o cabeçalho: `P` simétrica por definição, não por acidente
+    p_i <- as.numeric(sum(x * theta))
+    Px <- as.vector(P %*% x)
+    denom <- 1 + as.numeric(sum(x * Px))
+    ganho <- Px / denom
+    r_i <- y - p_i
 
-  state$theta <- theta; state$P <- P; state$n <- state$n + 1L
-  list(state = state, out = data.frame(previsto = previsto, real = y, residuo = residuo))
+    theta <- theta + ganho * r_i
+    P <- P - outer(ganho, Px)
+    P <- (P + t(P)) / 2  # ver o cabeçalho: `P` simétrica por definição, não por acidente
+
+    previsto[i] <- p_i; real[i] <- y; residuo[i] <- r_i
+  }
+
+  state$theta <- theta; state$P <- P; state$n <- state$n + n
+  list(state = state, out = data.frame(previsto = previsto, real = real, residuo = residuo))
 }
 
 #' Os coeficientes do estado atual, nomeados como `coef(lm())`.
@@ -229,6 +268,15 @@ em branco usa as demais colunas do ponto, na ordem em que chegam — é assim
 porque o ponto já vem do `data/to_stream` com as colunas da tabela de origem,
 e repetir a lista aqui só criaria uma segunda lista para desatualizar quando a
 tabela ganhasse uma coluna.
+
+### `data/to_stream` com Linhas por passo > 1
+
+Um ponto pode chegar com MAIS de uma linha (**Linhas por passo** do
+`data/to_stream`), e nenhuma delas é ignorada: este nó atualiza os
+coeficientes uma linha por vez, na ordem em que chegam dentro do ponto — a
+mesma sequência de atualizações que **Linhas por passo = 1** faria, só que num
+passo só. O resultado é IDÊNTICO nos dois casos; o que muda é quantos passos o
+driver dá para o mesmo dado, não o que o modelo aprende.
 ]---", r"---[
 - **Resposta** — a coluna-alvo, no ponto.
 - **Preditores** — em branco, todas as outras colunas do ponto.
@@ -238,9 +286,11 @@ tabela ganhasse uma coluna.
   condicionamento piora. Com colunas em escalas muito diferentes, subir
   `lambda` piora: escale as colunas em vez disso.
 ]---", r"---[
-Uma tabela (`data/table`) de UMA linha por passo: `previsto` (antes de ver o
-ponto), `real` e `residuo`. Ligado a `data/from_stream`, vira o histórico —
-uma linha por ponto, com a coluna `passo`.
+Uma tabela (`data/table`) de UMA linha por OBSERVAÇÃO do ponto — `previsto`
+(antes de ver aquela linha), `real` e `residuo`. Com **Linhas por passo = 1**
+é uma linha por passo; com lote maior, um passo contribui várias linhas.
+Ligado a `data/from_stream`, vira o histórico — uma linha por observação, com
+a coluna `passo` marcando de qual passo (não de qual linha) ela veio.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "mtcars") |>

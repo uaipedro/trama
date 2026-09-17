@@ -1512,7 +1512,14 @@ um deles faz a região inteira recomputar.
 
 - **Linhas por passo** — quantas linhas cada ponto carrega. 1 é uma linha por
   passo, que é o caso de quem quer ver o fluxo andar; lote maior é o caso de
-  quem quer velocidade, ou de quem precisa de mais de uma linha por cálculo.
+  quem quer velocidade — menos passos, menos overhead do driver por linha.
+  Um nó COM MEMÓRIA (como `models/rls`) processa cada linha do ponto em
+  ordem, uma atualização por linha: o resultado com lote 3 é IDÊNTICO ao
+  mesmo dado entregue em lotes de 1, e nenhuma linha do lote é descartada —
+  é o contrato que todo nó de memória desta coleção tem que cumprir (ver
+  `models/rls`, \"o mesmo resultado do lm(), no limite\"). Um nó SEM memória
+  (`data/filter`, por exemplo) já recebe o lote inteiro como tabela e não
+  perde linha nenhuma de qualquer jeito.
 - **Ordenar por** — colunas que definem a ORDEM dos pontos, separadas por
   vírgula. Vazio mantém a ordem da tabela. A ordenação acontece ANTES do corte
   em lotes, e é o que faz um fluxo temporal andar no tempo. Nome de coluna
