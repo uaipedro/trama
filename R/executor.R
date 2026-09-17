@@ -79,6 +79,14 @@ tr_executor_pool <- function(n = 2L, registry = .tr_default_registry, setup = NU
   # basta. Sem isto, o pool só era testável depois de `R CMD INSTALL`, ou
   # seja, nunca no ciclo rápido — e foi por isso que ficou "validado só por
   # leitura" até aqui.
+  #
+  # O sintoma quando se esquece disto, porque ele NÃO se parece com a causa:
+  # `argumento não utilizado (ctx_extra)`, num nó comum que não tem nada a ver
+  # com o assunto. O daemon resolveu `trama:::.tr_capture_unit` na BIBLIOTECA
+  # (uma versão antiga, com menos parâmetros) enquanto o coordenador usa o
+  # fonte do worktree. Já foi diagnosticado uma vez como "o pool está
+  # inutilizável"; não está — com as duas versões iguais, região roda no pool
+  # de ponta a ponta (medido). `setup` é a saída, ou instalar antes de rodar.
   if (!is.null(setup)) mirai::everywhere(.expr = setup)
   structure(list(
     kind = "pool",

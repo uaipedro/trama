@@ -197,6 +197,39 @@ meio; e os gráficos saem no tipo `view/plot`, pela costura que a `view` exporta
 (`tr_view_props()`, `tr_view_finish()`, `tr_view_render()`). Carrega depois
 das duas.
 
+## Fluxos que se desenrolam
+
+Tem algoritmo cujo valor está no caminho, não no resultado: treinar a cada novo
+ponto, detectar drift a cada novo ponto, ordenar mostrando as trocas. Para
+esses, um sub-grafo pode ser uma **região de fluxo** — ela executa ponto a
+ponto e você vê cada passo acontecer.
+
+```r
+tr_flow(reg) |>
+  tr_add("dados", "data/read_csv", path = "serie.csv") |>
+  tr_add("entra", "data/to_stream", lote = 1L, from = "dados") |>
+  tr_add("modelo", "models/rls", resposta = "y", from = "entra") |>
+  tr_add("sai",    "data/from_stream", from = "modelo")
+```
+
+`data/to_stream` abre a região, `data/from_stream` a fecha, e entre as duas os
+nós recebem um ponto por vez. Nó comum funciona ali dentro sem mudança nenhuma
+— `data/filter` e `data/mutate` são aplicados ponto a ponto. Nó que precisa
+guardar estado entre os pontos declara `init`/`step`, como o `models/rls`, que
+depois de *n* pontos chega aos mesmos coeficientes que um `lm()` nos mesmos *n*
+pontos.
+
+O resultado é o **histórico**: uma tabela com uma linha por passo, que os nós de
+gráfico que já existem plotam. E porque é dado comum, o resto do pacote
+funciona depois dela sem saber que houve fluxo.
+
+Enquanto roda, cada card mostra o próprio passo, e o card da fonte tem pausa,
+um passo e velocidade. Velocidade é estado de sessão, não param — arrastar o
+controle não recomputa o fluxo. Se o run morrer no meio, o trabalho fica num
+checkpoint e `tr_retry()` retoma de onde parou.
+
+Detalhes de desenho em `docs/design-trama.md`, seção 5.8.
+
 ## Estado
 
 Em construção, e já funcional de ponta a ponta para ETL tabular.

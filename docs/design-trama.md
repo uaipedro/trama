@@ -43,7 +43,8 @@ Tudo que não é um destes é coleção, ou é v2.
 1. **Tipo** — identidade, persistência, preview, compatibilidade.
 2. **Catálogo** — o que existe e como se declara.
 3. **Documento** — o grafo, e as ops que o mudam.
-4. **Execução** — plano, chaves, fila, status, cancelamento.
+4. **Execução** — plano, chaves, fila, status, cancelamento. A região de fluxo
+   (5.8) mora AQUI: é um modo de execução, não um contrato a mais.
 5. **Renderização** — como um valor vira pixel/SVG/tabela.
 
 ---
@@ -240,8 +241,12 @@ fn <- function(x, epochs, .ctx) {
 ```
 
 `.ctx$partial()` grava um handle parcial com preview; o card mostra; o handle
-final substitui. Nó que não usa `.ctx` não paga nada. É o **único** mecanismo
-de streaming — não existe porta que emite N valores ao longo do tempo.
+final substitui. Nó que não usa `.ctx` não paga nada.
+
+Este era o **único** mecanismo de streaming, e a versão anterior desta seção
+dizia que "não existe porta que emite N valores ao longo do tempo". Existe
+desde a região de fluxo (5.8): o parcial por nó daqui é o canal que ela reusa
+para mostrar cada passo, e a porta que emite N valores é a `stream = TRUE`.
 
 Implementado em `R/worker.R` (`.tr_make_ctx()`) e `R/scheduler.R` (`collect()`,
 que lê `tr_progress()` e emite `progress`/`partial` como evento).
@@ -272,6 +277,58 @@ teste se satisfaz sozinho e passaria com o pacote inteiro apagado. Conte só
 ocorrência de uso — entre aspas, no `abort()`.
 
 ---
+
+### 5.8 Região de fluxo
+
+Um sub-grafo que se desenrola ponto a ponto: fonte finita, nós que processam
+cada ponto, colapso que junta o histórico. Serve ao algoritmo cujo valor está
+no caminho e não no resultado — treino incremental, detecção de drift, um
+ordenador mostrando as trocas.
+
+**Não é um sexto contrato.** É um MODO DE EXECUÇÃO dentro do contrato de
+execução que já existia. O plano detecta a região (fecho transitivo a partir das
+portas `stream = TRUE`) e emite **uma unidade**, com chave determinística sobre
+todos os nós dela. Do ponto de vista do executor, do store e do GC, é uma
+unidade como qualquer outra: entra chave, sai chave. Por dentro, um driver
+percorre a ordem topológica em lockstep.
+
+Dois tipos de nó, e a distinção é a única coisa que exigiu contrato novo:
+
+| | o que faz | o que declara |
+|---|---|---|
+| sem memória | um ponto entra, um ponto sai | nada — é nó comum, ELEVADO ponto a ponto |
+| com memória | guarda estado entre pontos | `init` + `step`, com `step` devolvendo `list(state =, out =)` |
+
+A elevação automática é o que faz `data/filter` e `data/mutate` funcionarem
+dentro de uma região sem mudar uma linha: `map` e `reduce` ficam separados, e
+nó puro não precisa saber que fluxo existe.
+
+O artefato é o **histórico**, produzido pelo colapso — e é ele, não o driver,
+que sabe juntar N pontos de um tipo, porque juntar é conhecimento de domínio
+(`rbind` para tabela, `c()` para vetor, mosaico para raster). Por isso a região
+colapsa de volta em dado trama comum: terminou o run, os nós de gráfico que já
+existem plotam a curva.
+
+Cadência (velocidade de apresentação), pausa, um passo e parar são **comandos**,
+não ops de documento: viajam por `<store>/stream/<chave>/control.json`, lidos
+pelo driver entre passos. Nenhum deles entra na chave — mudar a velocidade não
+pode recomputar dez mil pontos (é a razão de nenhum ser param). Checkpoint em
+lote no mesmo diretório, e `tr_retry()` é o gesto que limpa o handle de erro
+preservando o checkpoint, porque `tr_bust()` apaga os dois de propósito.
+
+**Dois gaps conhecidos e aceitos:**
+
+1. **Nós da região não paralelizam entre si.** O ponto *n* depende do estado em
+   *n-1*; é sequencial por natureza, não por implementação.
+2. **A região reexecuta inteira quando qualquer nó dela muda.** A chave é sobre
+   todos os nós, então editar um param de um membro invalida o histórico todo.
+   O checkpoint mitiga a morte no meio, não a edição.
+
+Implementado em `R/stream-region.R` (detecção e as cinco recusas),
+`R/plan.R` (`resolve_region`, `region_of`), `R/hash.R` (`.tr_region_key`),
+`R/stream-driver.R` (o driver e os contratos de fonte e colapso),
+`R/stream-control.R` (os comandos) e `R/run.R` (`tr_retry`). A fronteira é
+`data/to_stream`/`data/from_stream`, em `trama.data`.
 
 ## 6. Tipos
 
