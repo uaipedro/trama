@@ -59,6 +59,7 @@ tr_errors <- function() {
       "param de nó com nome de argumento de tr_add() REALMENTE passado (from, label, seed, position)",
     tr_error_project_exists = "tr_project_new() apontado para pasta que já tem trama.json",
     tr_error_project_write = "falha ao criar as pastas ou o manifesto de um projeto (disco, permissão)",
+    tr_error_retry_good_artifact = "tr_retry() pedido sobre porta de saída que guarda artefato bom, não erro",
     tr_error_store_write = "falha de escrita no store (disco, permissão)",
     tr_error_stream_bad_command = "comando de região de fluxo que não é play, pause, step, tempo nem stop",
     tr_error_stream_bad_source = "fonte de região de fluxo que não devolveu a lista de pontos",

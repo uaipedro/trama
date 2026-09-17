@@ -1193,6 +1193,182 @@ test_that("cadência NÃO entra na chave: trocá-la entre runs serve o cache, n�
   expect_equal(length(e$puros) - antes, 0L)   # o laço não rodou de novo
 })
 
+# --- tr_retry(): o gesto explícito que falta depois do checkpoint -----------
+#
+# O furo que este comando fecha, medido pela API PÚBLICA: um erro grava handle
+# sob toda porta de saída da unidade (`collect()` em `R/scheduler.R`),
+# `tr_plan()` marca a unidade `failed`, e o scheduler a serve direto de
+# `skipped`/`from_cache` — `tr_run()` sozinho, no MESMO store, nunca
+# redespacha, mesmo com um `ckpt.rds` bom esperando no disco. O único jeito
+# público de tirar o handle de erro era `tr_bust()`, que apaga
+# `<store>/stream/` junto: os pontos bons do checkpoint iam pro lixo pela
+# mesma chamada que limpava o erro do último ponto. `tr_retry()` tira só o
+# handle de erro e nunca toca `<store>/stream/<chave da unidade>/`.
+
+test_that("tr_retry() reabre o caminho que tr_run() sozinho não reabre: 0 passos sem gesto, retomada só do resto com o gesto", {
+  e <- diario(); reg <- driver_registry(e)
+  doc <- doc_ckpt(reg)   # 250 pontos, morte no ponto escolhido por e$morre_em
+
+  # Referência: run sem interrupção nenhuma, em store próprio.
+  s0 <- tmp_store()
+  u0 <- tr_plan(doc, registry = reg, store = s0)$units$co
+  tr_run(doc, registry = reg, store = s0)
+  ref <- tr_store_get(s0, u0$outputs$out, tr_get_type("d/v", reg))
+
+  # O run que morre no ponto 180.
+  s <- tmp_store()
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  e$morre_em <- 180
+  r1 <- tr_run(doc, registry = reg, store = s)
+  expect_true("co" %in% r1$skipped)
+  expect_true(file.exists(ckpt_path(s, u$key)))
+  expect_equal(readRDS(ckpt_path(s, u$key))$i, 100L)
+  expect_true(tr_handle_failed(tr_store_handle(s, u$outputs$out)))
+
+  # METADE 1 DO FURO: tr_run() de novo, mesmo store, sem gesto nenhum. Zero
+  # passos — o handle de erro cacheado manda a unidade direto pra
+  # `skipped`/`from_cache`, e o checkpoint bom nunca é lido.
+  e$morre_em <- NULL
+  antes_sem_retry <- length(e$puros)
+  r_sem_retry <- tr_run(doc, registry = reg, store = s)
+  expect_true("co" %in% r_sem_retry$skipped)
+  expect_equal(length(e$puros) - antes_sem_retry, 0L)
+
+  # O GESTO.
+  ret <- tr_retry(doc, "co", registry = reg, store = s)
+  expect_true(isTRUE(ret))
+  expect_null(tr_store_handle(s, u$outputs$out))
+  # O checkpoint sobrevive ao retry — é o ponto inteiro do comando.
+  expect_true(file.exists(ckpt_path(s, u$key)))
+  expect_equal(readRDS(ckpt_path(s, u$key))$i, 100L)
+
+  # Agora tr_run() RETOMA: só os 150 passos que faltavam rodam, e o histórico
+  # final é idêntico ao de um run sem interrupção.
+  antes <- length(e$puros)
+  r2 <- tr_run(doc, registry = reg, store = s)
+  expect_true("co" %in% r2$done)
+  expect_equal(length(e$puros) - antes, 150L)
+  expect_identical(tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg)), ref)
+  # E o diretório de fluxo sai ao concluir, como em qualquer run bem sucedido.
+  expect_false(dir.exists(dirname(ckpt_path(s, u$key))))
+})
+
+test_that("tr_retry() não toca ckpt.rds: mesmo conteúdo, mesmo mtime", {
+  e <- diario(); reg <- driver_registry(e)
+  s <- tmp_store()
+  doc <- doc_ckpt(reg)
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  e$morre_em <- 180
+  tr_run(doc, registry = reg, store = s)
+
+  conteudo_antes <- readRDS(ckpt_path(s, u$key))
+  # `Sys.setFileTime` força uma diferença detectável: sem isto, retry() e a
+  # leitura do mtime poderiam cair no mesmo segundo e o teste passaria mesmo
+  # se `tr_retry()` reescrevesse o arquivo.
+  Sys.setFileTime(ckpt_path(s, u$key), Sys.time() - 3600)
+  mtime_antes <- file.info(ckpt_path(s, u$key))$mtime
+
+  tr_retry(doc, "co", registry = reg, store = s)
+
+  expect_true(file.exists(ckpt_path(s, u$key)))
+  expect_identical(readRDS(ckpt_path(s, u$key)), conteudo_antes)
+  expect_equal(file.info(ckpt_path(s, u$key))$mtime, mtime_antes)
+})
+
+test_that("tr_retry() recusa apagar artefato BOM, com erro classificado, e o artefato sobrevive", {
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 3L) |>
+    tr_add("co", "d/colapsa", from = "fo"))
+  tr_run(doc, registry = reg, store = s)
+  u <- tr_plan(doc, registry = reg, store = s)$units$co
+  antes <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+
+  expect_error(tr_retry(doc, "co", registry = reg, store = s),
+               class = "tr_error_retry_good_artifact")
+
+  depois <- tr_store_get(s, u$outputs$out, tr_get_type("d/v", reg))
+  expect_identical(depois, antes)
+  expect_false(tr_handle_failed(tr_store_handle(s, u$outputs$out)))
+})
+
+test_that("tr_retry() num nó interior da região tem o MESMO efeito que no colapso", {
+  e <- diario(); reg <- driver_registry(e)
+  doc <- doc_ckpt(reg)
+
+  roda_ate_falhar <- function() {
+    s <- tmp_store()
+    u <- tr_plan(doc, registry = reg, store = s)$units$co
+    e$morre_em <- 180
+    tr_run(doc, registry = reg, store = s)
+    e$morre_em <- NULL
+    list(s = s, u = u)
+  }
+
+  x1 <- roda_ate_falhar()
+  tr_retry(doc, "co", registry = reg, store = x1$s)   # pelo colapso
+
+  x2 <- roda_ate_falhar()
+  # "ac" é o nó de média corrente, INTERIOR à região: não tem unidade nem
+  # chave de saída própria (resolvido só por `plan$region_of`).
+  tr_retry(doc, "ac", registry = reg, store = x2$s)
+
+  tr_run(doc, registry = reg, store = x1$s)
+  tr_run(doc, registry = reg, store = x2$s)
+
+  h1 <- tr_store_get(x1$s, x1$u$outputs$out, tr_get_type("d/v", reg))
+  h2 <- tr_store_get(x2$s, x2$u$outputs$out, tr_get_type("d/v", reg))
+  expect_identical(h1, h2)
+})
+
+test_that("tr_retry() num nó sem handle nenhum é no-op silencioso, devolvendo FALSE", {
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 3L) |>
+    tr_add("co", "d/colapsa", from = "fo"))
+  # A região nunca rodou: nenhuma chave de saída tem handle.
+  expect_silent(ret <- tr_retry(doc, "co", registry = reg, store = s))
+  expect_false(isTRUE(ret))
+})
+
+test_that("tr_retry() numa região de DOIS colapsos limpa os erros dos dois, não só do primeiro", {
+  # Phases 3, 4 e 5 encontraram defeito exatamente aqui — código que só olhava
+  # `region$collapse[[1]]` e deixava o segundo colapso intocado.
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 250L) |>
+    tr_add("mo", "d/puro_morre", from = "fo") |>
+    tr_add("c1", "d/colapsa", from = "mo") |>
+    tr_add("c2", "d/colapsa", from = "mo"))
+  u <- tr_plan(doc, registry = reg, store = s)$units$c1
+  e$morre_em <- 180
+  tr_run(doc, registry = reg, store = s)
+  expect_true(tr_handle_failed(tr_store_handle(s, u$outputs[["c1:out"]])))
+  expect_true(tr_handle_failed(tr_store_handle(s, u$outputs[["c2:out"]])))
+
+  # Chamado pelo SEGUNDO colapso, que nem tem unidade própria em `plan$units`
+  # (só o primeiro tem) — prova que a resolução por `region_of` também cobre
+  # colapso não-primário, e que os dois handles saem na mesma chamada.
+  ret <- tr_retry(doc, "c2", registry = reg, store = s)
+  expect_true(isTRUE(ret))
+  expect_null(tr_store_handle(s, u$outputs[["c1:out"]]))
+  expect_null(tr_store_handle(s, u$outputs[["c2:out"]]))
+  expect_true(file.exists(ckpt_path(s, u$key)))
+
+  e$morre_em <- NULL
+  r2 <- tr_run(doc, registry = reg, store = s)
+  expect_true(all(c("c1", "c2") %in% r2$done))
+})
+
+test_that("tr_retry() num nó desconhecido aborta como nó fora do plano", {
+  e <- diario(); reg <- driver_registry(e); s <- tmp_store()
+  doc <- tr_flow_doc(tr_flow(reg) |>
+    tr_add("fo", "d/fonte", n = 3L) |>
+    tr_add("co", "d/colapsa", from = "fo"))
+  expect_error(tr_retry(doc, "nao_existe", registry = reg, store = s),
+               class = "tr_error_unknown_node")
+})
+
 # --- `.seed` dentro da região ------------------------------------------------
 #
 # O furo que esta seção fecha: `.tr_region_args()` montava só entradas e params,

@@ -113,3 +113,91 @@ tr_value <- function(doc, node, registry = .tr_default_registry, store,
   }
   tr_store_get(store, u$outputs[[port]], tr_get_type(u$output_types[[port]], registry))
 }
+
+#' Comando: limpa SÓ o(s) handle(s) de erro de um nó, preservando o checkpoint.
+#'
+#' O gesto explícito que faltou depois da Fase 5. Uma falha grava handle de
+#' ERRO sob toda porta de saída da unidade (`R/scheduler.R`, o ramo de falha de
+#' `collect()`, via `tr_store_put_error`); `tr_plan()` marca a unidade
+#' `failed`, e o scheduler a serve direto de `skipped`/`from_cache` —
+#' `tr_run()` sozinho, no MESMO store, nunca redespacha, mesmo com um
+#' `ckpt.rds` bom esperando no disco (`R/stream-driver.R`: falha no `step`,
+#' falha no colapso e worker morto guardam o checkpoint DE PROPÓSITO). O único
+#' jeito público de tirar o handle de erro era `tr_bust()` — que apaga
+#' `<store>/stream/` inteiro (`R/hash.R`), porque bustar significa "o código
+#' mudou sem a chave mudar", e aí retomar serviria um histórico metade velho,
+#' metade novo. Usado contra um erro comum, `tr_bust()` jogaria fora os pontos
+#' bons do checkpoint pela mesma chamada que limpa o erro do último ponto —
+#' exatamente o custo que a retenção do checkpoint existe pra evitar.
+#'
+#' `tr_retry()` faz só a metade que falta: tira o(s) handle(s) de erro da
+#' unidade e NUNCA toca `<store>/stream/<chave da unidade>/`. Não é
+#' `tr_bust()` com um filtro a mais — é o oposto dele: um preserva o
+#' checkpoint de propósito, o outro apaga de propósito, e os dois precisam
+#' continuar existindo porque servem casos diferentes ("o ponto 10.000 errou,
+#' quero retomar dali" vs. "mudei o código, o checkpoint velho não presta
+#' mais").
+#'
+#' Recusa apagar um handle BOM (`tr_handle_failed()` falso): um artefato
+#' válido não é candidato a retry — apagá-lo seria um `tr_bust()` disfarçado,
+#' silencioso, sem o comentário que explica a perda do checkpoint. A recusa é
+#' TRANSACIONAL: se qualquer porta de saída da unidade guarda um artefato bom,
+#' a chamada aborta ANTES de apagar qualquer handle de erro das outras portas
+#' — uma região de dois colapsos não pode sair com um retry parcial.
+#'
+#' Nó sem handle nenhum (nunca rodou, ou já foi limpo) é NO-OP silencioso: a
+#' mesma forma que `tr_stream_command()` escolheu pra chave sem diretório
+#' (`R/stream-control.R`) — clique perdido não é erro.
+#'
+#' Membro INTERIOR de uma região não tem unidade nem chave de saída própria
+#' (ver o comentário de `tr_value()` acima, e `plan$region_of`): pedir retry
+#' dele significa "retry a região", resolvida pelo mesmo mapa que `tr_value()`
+#' já usa pra leitura — o efeito observável é o de pedir retry por qualquer um
+#' dos colapsos dela.
+#'
+#' `settings` existe pelo mesmo motivo que em `tr_value()`: sem ele o plano
+#' calcularia a chave com o tema embutido, e talvez não achasse a MESMA
+#' unidade (nem as MESMAS chaves de saída) que o run de verdade usou.
+#'
+#' Não roda nada — só planeja, pra achar a unidade e as chaves, e mexe no
+#' store. É COMANDO, não op de documento: não toca `doc`, `rev` nem o log de
+#' undo (Decisão 10), do mesmo jeito que pause/step/stop de
+#' `R/stream-control.R`.
+#' @return `invisible(TRUE)` se limpou pelo menos um handle de erro;
+#'   `invisible(FALSE)` se não havia nada a limpar (nó sem handle).
+#' @export
+tr_retry <- function(doc, node, registry = .tr_default_registry, store, settings = NULL) {
+  doc <- .tr_as_doc(doc)
+  plan <- tr_plan(doc, targets = node, registry = registry, store = store, settings = settings)
+  u <- plan$units[[node]]
+  if (is.null(u)) {
+    rid <- plan$region_of[[node]]
+    if (!is.null(rid)) u <- plan$units[[rid]]
+  }
+  if (is.null(u)) {
+    rlang::abort(sprintf("Nó '%s' não está no plano.", node), class = "tr_error_unknown_node")
+  }
+
+  # Primeiro passo: só CONFERE. Nada é apagado aqui — é o que torna a recusa
+  # abaixo transacional (ver o roxygen).
+  keys <- unlist(u$outputs)
+  a_limpar <- character()
+  for (k in keys) {
+    h <- tr_store_handle(store, k)
+    if (is.null(h)) next
+    if (!tr_handle_failed(h)) {
+      rlang::abort(sprintf(
+        paste0("Nó '%s' tem artefato BOM sob a chave '%s': tr_retry() só limpa handle de ",
+               "ERRO, nunca um resultado válido. Se a intenção é forçar recomputação porque o ",
+               "código mudou sem a chave mudar, o comando certo é tr_bust() — que também apaga ",
+               "o checkpoint, de propósito."),
+        node, k), class = "tr_error_retry_good_artifact")
+    }
+    a_limpar <- c(a_limpar, k)
+  }
+
+  # Segundo passo: agora que nenhuma porta é boa, apaga os handles de erro.
+  # `<store>/stream/<chave>/` nunca é tocado aqui — é o ponto do comando.
+  for (k in a_limpar) .tr_drop_key(store, k)
+  invisible(length(a_limpar) > 0)
+}
