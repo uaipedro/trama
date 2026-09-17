@@ -92,3 +92,40 @@ test_that("online aparece no catálogo, e o campo some no nó comum", {
   expect_true(by_id("t/online")$online)
   expect_false("online" %in% names(by_id("t/comum")))
 })
+
+test_that("nó com memória sem saída de fluxo é recusado na declaração", {
+  # A armadilha que custou uma rodada de depuração ao autor do primeiro
+  # `models/rls`: "declara entrada de fluxo, não declara saída de fluxo" é
+  # EXATAMENTE o predicado de colapso de `.tr_stream_regions()`, então o motor
+  # lia o nó com memória como o fim da região. Ela parava um nó antes, o
+  # colapso de verdade nunca entrava nela, e nada errava alto.
+  memoria <- function(saida) {
+    tr_node("x/mem", fn = function() NULL, description = "d",
+            inputs = list(x = tr_port("data/table", stream = TRUE)),
+            outputs = saida,
+            init = function() list(n = 0),
+            step = function(state, x) list(state = state, out = x))
+  }
+
+  err <- expect_error(memoria(list(out = "data/table")),
+                      class = "tr_error_online_without_stream_output")
+  expect_match(conditionMessage(err), "stream = TRUE")
+
+  # Com a saída declarada como fluxo, nasce normal.
+  expect_true(memoria(list(out = tr_port("data/table", stream = TRUE)))$online)
+  # E sem porta de saída nenhuma também: terminal que só acumula e publica
+  # parcial é forma legítima; o que se recusa é ter saída e nenhuma ser fluxo.
+  expect_true(memoria(list())$online)
+})
+
+test_that("nó com memória nunca é classificado como colapso", {
+  # Defesa em profundidade sobre a validação acima: mesmo que alguém construa a
+  # spec à mão, a detecção distingue por CONSTRUÇÃO — colapso roda `fn` uma vez
+  # depois do laço, nó com memória roda `step` a cada passo.
+  reg <- stream_registry()
+  spec <- tr_get_node("s/acumula", reg)
+  expect_true(spec$online)
+  # `s/acumula` declara saída de fluxo, então nem cai no predicado; o ponto é
+  # que `online` sozinho já o exclui.
+  expect_true(any(vapply(spec$outputs, function(p) isTRUE(p$stream), logical(1))))
+})

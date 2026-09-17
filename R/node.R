@@ -141,6 +141,26 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
       rlang::abort(sprintf("Nó '%s' declara 'step' mas nenhuma entrada de fluxo.", id),
                    class = "tr_error_online_without_stream")
     }
+    # Nó com memória emite `out` A CADA PASSO, então a saída dele É um fluxo —
+    # não existe nó com memória cuja saída seja valor comum. Sem esta checagem
+    # a forma "declara entrada de fluxo, não declara saída de fluxo" é
+    # exatamente o predicado de COLAPSO de `.tr_stream_regions()`, e o núcleo
+    # classificava o nó com memória como o fim da região: ela parava um nó
+    # antes, o colapso de verdade nunca entrava, e nada errava alto. Custou uma
+    # rodada de depuração ao autor do primeiro `models/rls`.
+    #
+    # Nó com memória SEM porta de saída nenhuma continua válido (terminal que
+    # só acumula e publica parcial) — o que se recusa é ter saída e nenhuma
+    # delas ser fluxo.
+    if (length(outputs) > 0 &&
+        !any(vapply(outputs, function(p) isTRUE(p$stream), logical(1)))) {
+      rlang::abort(sprintf(
+        paste0("Nó '%s' tem memória ('init'/'step') mas nenhuma saída de fluxo. ",
+               "O `out` de `step` sai a cada passo, então declare a saída com ",
+               "tr_port(..., stream = TRUE) — como está, o motor o leria como o ",
+               "COLAPSO da região e ela terminaria aqui."),
+        id), class = "tr_error_online_without_stream_output")
+    }
     sf <- names(formals(step))
     if (length(sf) < 1L || !identical(sf[[1]], "state")) {
       rlang::abort(sprintf("Nó '%s': o primeiro formal de 'step' tem que ser 'state'.", id),

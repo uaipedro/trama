@@ -37,7 +37,12 @@
   declara_saida_fluxo   <- function(sp) any(vapply(sp$outputs, function(p) isTRUE(p$stream), logical(1)))
   # Colapso: recebe fluxo por declaração e devolve valor comum. É o único nó
   # da região cuja saída tem artefato no store.
-  eh_colapso <- function(sp) declara_entrada_fluxo(sp) && !declara_saida_fluxo(sp)
+  # `!online` faz parte do predicado, e não é redundância com a validação de
+  # `tr_node()`: um colapso roda `fn` UMA vez depois do laço, um nó com memória
+  # roda `step` a cada passo. São coisas distintas por construção, e a detecção
+  # tem que dizer isso em vez de acertar por acidente de declaração.
+  eh_colapso <- function(sp) !isTRUE(sp$online) &&
+    declara_entrada_fluxo(sp) && !declara_saida_fluxo(sp)
 
   fontes <- Filter(function(id) declara_saida_fluxo(spec_of(id)) && !declara_entrada_fluxo(spec_of(id)),
                    names(doc$nodes))

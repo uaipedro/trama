@@ -52,6 +52,8 @@ tr_errors <- function() {
     tr_error_not_liftable = "nó impuro, volátil ou que pede '.ctx' dentro de uma região de fluxo",
     tr_error_not_project = "pedido de ABRIR apontado para pasta sem trama.json",
     tr_error_online_without_stream = "nó declara 'step' mas nenhuma entrada de fluxo",
+    tr_error_online_without_stream_output =
+      "nó com 'init'/'step' cuja saída não é fluxo: o motor o leria como o colapso da região",
     tr_error_param_no_default = "tr_param() sem default",
     tr_error_param_shadow =
       "param de nó com nome de argumento de tr_add() REALMENTE passado (from, label, seed, position)",
