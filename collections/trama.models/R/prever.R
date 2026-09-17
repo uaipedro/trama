@@ -1,0 +1,104 @@
+# A predição: um nó COMUM, de dois inputs, sem nada sobre fluxo.
+#
+# É o achado da validação do desenho (Fase 7): o caso que motivou a região de
+# fluxo inteira — um modelo ajustado fora, aplicado ponto a ponto — não
+# precisava de uma peça NOVA de fluxo. Precisava desta, que já é útil fora de
+# qualquer região: aplicar um `models/fit` a uma tabela nova. Dentro de uma
+# região ela funciona sem mudar uma linha, porque é pura e não toma `.ctx` — a
+# elevação automática (Fase 2) faz o resto.
+
+.TR_MODELS_PREVER_INTERVALOS <- c("nenhum", "confianca", "predicao")
+
+#' Prevê a resposta de um modelo ajustado em dados novos.
+#'
+#' Confere as colunas ANTES de chamar `predict()`, e é essa ordem que muda a
+#' mensagem: `predict.lm()` já recusa coluna faltando ou nível de fator novo,
+#' mas com o erro cru do R — "'newdata' had 1 rows but variables found have 32
+#' rows" numa coluna esquecida, ou uma mensagem sobre contrastes/matriz de
+#' design num nível novo. Nenhum dos dois nomeia a coluna. Aqui sim: o que o
+#' modelo espera está em `modelo$dados` (as linhas USADAS no ajuste, com os
+#' fatores já convertidos — o mesmo campo que `models/coefficients` e o SQ
+#' tipo III reencontram, porque o ambiente da fórmula não sobrevive ao RDS),
+#' então conferir as colunas de `dados` contra ele não exige reajustar nada.
+#'
+#' @param modelo Um `models/fit`. Não a parcela subdividida — o ajuste dela é
+#'   uma LISTA de modelos (`aovlist`, um por estrato de erro), sem um único
+#'   `predict()` que valha; o card diz para usar o misto equivalente.
+#' @param dados A tabela nova.
+#' @param intervalo `"nenhum"`, `"confianca"` (em torno da média prevista) ou
+#'   `"predicao"` (em torno de uma observação nova, mais largo porque soma a
+#'   variância do erro) — só em `models/lm`. O GLM não tem `interval` em
+#'   `predict.glm()` (dar o de `lm` exigiria linearizar a variância na escala
+#'   da ligação, que o card não faz sozinho) e o misto não tem erro padrão de
+#'   predição fechado — os dois recusam.
+#' @return `dados` com `previsto` (e `li`, `ls` com intervalo) anexadas.
+#' @export
+tr_models_predict <- function(modelo, dados, intervalo = "nenhum") {
+  .tr_models_fit_conferir(modelo)
+  if (modelo$classe == "split") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'models/predict' não se aplica à parcela subdividida: o ajuste é uma ",
+                            "lista de modelos (aovlist, um por estrato de erro), sem um predict() só. ",
+                            "Ajuste o misto equivalente em 'models/lmer' para prever."))
+  }
+  intervalo <- .tr_models_enum(intervalo, .TR_MODELS_PREVER_INTERVALOS, "intervalo")
+  if (intervalo != "nenhum" && modelo$classe != "lm") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'models/predict': intervalo só está disponível em 'models/lm'. '%s' não ",
+                            "tem um predict() com intervalo fechado — deixe 'intervalo' em 'nenhum'."),
+                     modelo$classe)
+  }
+
+  d <- as.data.frame(dados, stringsAsFactors = FALSE)
+  # As preditoras que a fórmula usa, pelo NOME da variável — `all.vars()` do
+  # lado direito pega `x` dentro de `poly(x, 2)` ou `log(x)` sem confundir a
+  # função com a coluna, o mesmo que `.tr_models_categoricas()` já faz em
+  # `ajustar.R` para achar quem vira fator.
+  f <- stats::as.formula(modelo$formula)
+  preditoras <- all.vars(f[[3]])
+
+  faltam <- setdiff(preditoras, names(d))
+  if (length(faltam)) {
+    .tr_models_abort("tr_models_error_unknown_column",
+                     "'models/predict': 'dados' não tem a coluna '%s', que o modelo usa como preditora. Colunas de 'dados': %s.",
+                     paste(faltam, collapse = "', '"), paste(names(d), collapse = ", "))
+  }
+
+  # Nível de fator que o ajuste nunca viu: `predict.lm()` recusaria dentro da
+  # montagem da matriz de design, com uma mensagem sobre "factor ... has new
+  # levels" que já nomeia a coluna — mas só a PRIMEIRA que encontra, e depois
+  # de já ter tentado montar a matriz inteira. Aqui a checagem é explícita e
+  # roda para todas as colunas antes de chamar predict() uma vez sequer.
+  for (v in preditoras) {
+    niveis_ajuste <- levels(modelo$dados[[v]])
+    if (is.null(niveis_ajuste)) next  # não é fator no ajuste: número é número
+    vistos <- as.character(d[[v]])
+    novos <- setdiff(unique(vistos[!is.na(vistos)]), niveis_ajuste)
+    if (length(novos)) {
+      .tr_models_abort("tr_models_error_unknown_level",
+                       "'models/predict': a coluna '%s' tem o nível '%s', que não apareceu no ajuste. Níveis do ajuste: %s.",
+                       v, paste(novos, collapse = "', '"), paste(niveis_ajuste, collapse = ", "))
+    }
+    # Fatorada com os MESMOS níveis do ajuste, na mesma ordem: sem isto,
+    # `predict()` monta a matriz de design pelos níveis que aparecem em
+    # `dados`, e um subconjunto delas (só dois dos três tratamentos, por
+    # exemplo) desloca qual coluna é o nível de referência.
+    d[[v]] <- factor(vistos, levels = niveis_ajuste)
+  }
+
+  args <- list(object = modelo$ajuste, newdata = d)
+  # GLM: sem isto, o default de `predict.glm()` é a escala da LIGAÇÃO (log,
+  # logit), e o card mostraria log-odds ou log-contagem como "previsto" sem
+  # avisar — plausível e ilegível.
+  if (modelo$classe == "glm") args$type <- "response"
+  if (intervalo != "nenhum") args$interval <- if (intervalo == "confianca") "confidence" else "prediction"
+
+  pred <- .tr_models_ajustar(do.call(stats::predict, args), "models/predict")
+
+  saida <- if (is.matrix(pred)) {
+    tibble::tibble(previsto = unname(pred[, "fit"]), li = unname(pred[, "lwr"]), ls = unname(pred[, "upr"]))
+  } else {
+    tibble::tibble(previsto = as.numeric(pred))
+  }
+  dplyr::bind_cols(tibble::as_tibble(dados), saida)
+}
