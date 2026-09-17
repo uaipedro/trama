@@ -8,11 +8,17 @@ test_that("rls converge para os coeficientes exatos de lm()", {
   expect_equal(unname(coef_rls(st)), unname(coef(lm(y ~ x, d))), tolerance = 1e-8)
 })
 
-# Achado Important 2 da revisão da Fase 7: a ajuda dizia "EXATAMENTE", sem
-# qualificar, e isso só é verdade no limite `lambda -> Inf`. A prova de que
-# LEVANTAR o default (1e4 -> 1e6) não é só prosa: com o default ANTIGO este
-# teste reprova (medido: erro máximo ~1.7e-6 nesse mesmo cenário, acima do
-# `1e-6` daqui), e é exatamente essa reprovação que motivou a mudança.
+# A ajuda dizia "EXATAMENTE", sem qualificar, e isso só vale no limite
+# `lambda -> Inf`. Duas asserções aqui, com papéis diferentes, porque uma sem a
+# outra engana:
+#
+# `expect_equal(st$lambda, 1e6)` é a guarda do DEFAULT. É ela que pega uma
+# regressão silenciosa do valor — o bound numérico abaixo não pegaria: medido,
+# um default de 1e5 erra 1.7e-7 e passaria folgado.
+#
+# `expect_lt(erro, 1e-6)` é a guarda da PROMESSA da ajuda: que o default chega
+# perto o bastante. Margem medida em 20 sementes: erro máximo 1.8e-8, ou seja
+# ~55x de folga, e com o default antigo (1e4) as 20 reprovam.
 test_that("o default de lambda (1e6) chega perto o bastante de lm(), como a ajuda promete", {
   set.seed(1); d <- data.frame(x = rnorm(200)); d$y <- 2 + 3 * d$x + rnorm(200, sd = 0.1)
   st <- init_rls(resposta = "y", preditores = "x")   # lambda no default do card/fn
@@ -40,7 +46,10 @@ test_that("P não degenera em 1000 passos: continua simétrica e positiva defini
   set.seed(2); d <- data.frame(x = rnorm(1000)); d$y <- 1 - 0.5 * d$x + rnorm(1000, sd = 1)
   st <- init_rls(lambda = 1e4)
   for (i in seq_len(nrow(d))) st <- step_rls(st, d[i, ])$state
-  expect_equal(st$P, t(st$P))  # simétrica, exatamente — é o que a simetrização garante
+  # Exatamente simétrica, e é a linha de simetrização que garante isso: sem
+  # ela `identical(P, t(P))` é FALSE (assimetria medida entre 6e-18 e 1e-10,
+  # pequena e não crescente). Ver o cabeçalho de `step_rls()`.
+  expect_identical(st$P, t(st$P))
   expect_true(all(eigen(st$P, symmetric = TRUE, only.values = TRUE)$values > 0))
 })
 

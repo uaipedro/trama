@@ -33,12 +33,17 @@
 #' que o primeiro ponto chega — `init()` só recebe params (o contrato do
 #' núcleo: ver `stream-driver.R`), nunca um ponto.
 #'
-#' `min = 1e-6` no `lambda`, e não `1e-12`: o mesmo número do param do spec
-#' (`:137`), de propósito — ter duas faixas para o mesmo bound (o card recusa
-#' um valor que a função aceitaria) é o achado Minor 6 da revisão da Fase 7.
-#' `1e-6` é o bound que importa aqui: um `lambda` menor que isso é uma prior
-#' que já não é "difusa" — `P0` nasce perto de singular e devolve exatamente
-#' o modo de falha que a prior existe para evitar.
+#' `min = 1e-6` no `lambda`, e não `1e-12`: é o mesmo número do param do spec,
+#' e essa é a ÚNICA razão. Ter duas faixas para o mesmo bound — o card recusando
+#' um valor que a função aceita — é a divergência que se está fechando aqui.
+#'
+#' O que este bound NÃO faz é separar o que funciona do que não funciona, e
+#' vale dizer porque a versão anterior deste comentário afirmava que fazia:
+#' medido, `lambda = 1e-6` (valor que o bound ACEITA) já devolve um modelo
+#' inútil — coeficientes na casa de 1e-4 onde o `lm()` dá 2 e 3 —, e `P0 =
+#' 1e-6 * I` não é "perto de singular": o número de condição dele é 1, ele é só
+#' pequeno. Prior pequena demais não é instabilidade numérica, é viés enorme, e
+#' o valor a partir do qual o modelo passa a ser usável fica perto de 1e2.
 #' @noRd
 init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
   list(theta = NULL, P = NULL, preditores = .tr_models_split(preditores),
@@ -59,29 +64,29 @@ init_rls <- function(resposta = "y", preditores = "", lambda = 1e6) {
 #' em dois lugares e a cópia daqui seria descartada sem aviso — o índice é de
 #' quem monta o fluxo, não do nó.
 #'
-#' A simetrização de `P` (`(P + t(P)) / 2`, abaixo): NÃO é remédio para uma
-#' assimetria observada — é seguro barato contra uma que esta forma
-#' específica não produz. `Px <- P %*% x` e `outer(ganho, Px)` é
-#' `outer(Px/denom, Px)`, ou seja a célula `(i, j)` é `Px_i * Px_j / denom` e
-#' a `(j, i)` é `Px_j * Px_i / denom` — a mesma multiplicação de ponto
-#' flutuante, comutativa, nos dois lados. Esta forma de posto 1 é
-#' algebricamente auto-simétrica; não HÁ erro de arredondamento assimétrico
-#' para acumular.
+#' A simetrização de `P` (`(P + t(P)) / 2`, abaixo). Este comentário já esteve
+#' errado duas vezes em direções opostas, então aqui vai só o que foi medido,
+#' removendo a linha de propósito.
 #'
-#' Medido removendo a linha de propósito (1000 e 10000 passos, 1 e 3
-#' preditores, e um caso de x na escala de 1e6): a assimetria não CRESCE de
-#' 1000 para 10000 passos (mesma ordem de grandeza nos dois), fica em torno de
-#' 1e-18 a 1e-13 mesmo sem a linha, e `P` nunca perde definição positiva —
-#' com ou sem simetrização, os autovalores são os mesmos. Nenhuma das duas
-#' metades da alegação antiga ("perde simetria com o tempo", "vira
-#' covariância negativa") se confirmou.
+#' A assimetria NÃO cresce com os passos: mesma ordem de grandeza em 1000 e em
+#' 10000, entre 6e-18 (um preditor) e 1e-10 (três). Não é zero — `ganho` é
+#' `Px/denom`, arredondado ELEMENTO A ELEMENTO antes de multiplicar, então a
+#' célula `(i, j)` é `fl(Px_i/denom) * Px_j` e a `(j, i)` é
+#' `fl(Px_j/denom) * Px_i`: dois produtos diferentes, e sem a linha
+#' `identical(P, t(P))` é FALSE. O que a forma de posto 1 garante é assimetria
+#' LIMITADA, não ausente — e é a não-acumulação que importa aqui.
 #'
-#' A linha fica mesmo assim: é seguro contra uma mudança FUTURA na forma da
-#' atualização (uma reparametrização, um termo de esquecimento) que deixe de
-#' ter essa simetria embutida — não contra o que este código faz hoje.
-#' `test-rls.R` ("P não degenera em 1000 passos") mede exatamente isso: `P`
-#' simétrica e positiva definida depois de mil pontos, o que já era verdade
-#' antes da linha existir.
+#' E a linha não é só seguro para o futuro: ela resgata o presente num caso
+#' medido. Com um preditor na escala de 1e6, SEM a linha o menor autovalor de
+#' `P` termina em -23.8 depois de mil passos (ou seja, `P` deixa de ser
+#' positiva definida); COM a linha, +3.3e-16. Então "os autovalores são os
+#' mesmos com ou sem" vale nos casos bem escalados e é falso justamente no caso
+#' que estressa o algoritmo.
+#'
+#' Resumo honesto: mantida porque custa uma linha, porque a assimetria existe
+#' (pequena e não crescente), porque ela conserta o caso mal escalado, e porque
+#' uma mudança futura na forma da atualização — reparametrização, fator de
+#' esquecimento — pode remover a limitação que hoje segura o erro.
 #' @noRd
 step_rls <- function(state, dados) {
   if (is.null(state$theta)) {
@@ -180,14 +185,24 @@ não o RLS relaxando a exatidão de propósito.
 
 ### A prior difusa
 
-`lambda` é o quanto o modelo desconfia de si mesmo ANTES do primeiro ponto —
-quanto maior, mais perto ele fica do `lm()` batch (ver acima). Pequeno demais,
-os primeiros pontos pesam mais do que deviam e o viés PERMANECE, não só
-demora a sumir. Mas maior não é sempre melhor: a partir de mais ou menos
-`1e6` quem passa a dominar é o condicionamento numérico de `P0 = lambda * I`,
-e subir mais além disso pode PIORAR o resultado (medido: com 3 preditoras, o
-erro a `lambda = 1e12` saiu dezenas de vezes maior que a `lambda = 1e6`) — não
-existe "quanto maior, melhor" sem teto.
+`lambda` é o quanto o modelo desconfia de si mesmo ANTES do primeiro ponto.
+Pequeno demais, os primeiros pontos pesam mais do que deviam e o viés
+PERMANECE, não só demora a sumir.
+
+Maior é melhor **até um ponto que depende dos seus dados**, e o default não é
+esse ponto: é um valor seguro. Medido com 3 preditoras bem escaladas, o erro
+continua caindo de `1e6` até algo entre `1e7` e `1e8` (chegou a ~7e-11, cem
+vezes melhor que o default) e só então o condicionamento numérico de
+`P0 = lambda * I` passa a dominar — a `1e12` o erro voltou a ser dezenas de
+vezes PIOR que a `1e6`. Onde exatamente fica o ótimo muda com os dados, e é
+por isso que o default é conservador em vez de agressivo.
+
+**A exceção que inverte o conselho:** com preditoras em escalas muito
+diferentes entre si, subir `lambda` PIORA. Medido, uma coluna na escala de 1e5
+contra as outras em torno de 1: erro de 1e-6 a `lambda = 1e4` e de 6e-5 a
+`lambda = 1e6` — cinquenta vezes pior no valor maior. Se as colunas não estão
+na mesma ordem de grandeza, o conserto é escalá-las (`data/mutate`), não mexer
+no `lambda`.
 
 ### Resposta e preditoras
 
@@ -199,9 +214,11 @@ tabela ganhasse uma coluna.
 ]---", r"---[
 - **Resposta** — a coluna-alvo, no ponto.
 - **Preditores** — em branco, todas as outras colunas do ponto.
-- **Prior difusa (lambda)** — quanto maior (até ~1e6), mais perto do `lm()`
-  batch; menor deixa um viés permanente nos coeficientes. Acima de ~1e6 o
-  condicionamento numérico piora, não melhora.
+- **Prior difusa (lambda)** — menor deixa um viés permanente nos coeficientes;
+  maior aproxima do `lm()` batch até um ótimo que depende dos dados (medido
+  entre 1e7 e 1e8 com preditoras bem escaladas), e daí em diante o
+  condicionamento piora. Com colunas em escalas muito diferentes, subir
+  `lambda` piora: escale as colunas em vez disso.
 ]---", r"---[
 Uma tabela (`data/table`) de UMA linha por passo: `previsto` (antes de ver o
 ponto), `real` e `residuo`. Ligado a `data/from_stream`, vira o histórico —
