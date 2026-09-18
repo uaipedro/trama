@@ -1,12 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>launcher</title>
+    <title>trama launcher</title>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+    <div id="screen-checking" data-screen>
+        <p>Checando ambiente…</p>
+        <progress id="checking-progress"></progress>
+    </div>
+
+    <div id="screen-collections" data-screen hidden>
+        <h2>Escolha as coleções</h2>
+        <label><input type="checkbox" value="trama.ml"> Machine learning</label>
+        <label><input type="checkbox" value="trama.series"> Séries temporais</label>
+        <label><input type="checkbox" value="trama.models"> Modelos estatísticos</label>
+        <label><input type="checkbox" value="trama.multi"> Multivariada</label>
+        <label><input type="checkbox" value="trama.sampling"> Amostragem</label>
+        <button id="btn-install">Instalar</button>
+        <pre id="install-log"></pre>
+    </div>
+
+    <div id="screen-ready" data-screen hidden>
+        <p>Tudo pronto.</p>
+        <button id="btn-open">Abrir trama</button>
+    </div>
+</div>
 <script src="./src/main.js" type="module"></script>
 </body>
 </html>
