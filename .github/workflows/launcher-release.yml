@@ -40,10 +40,15 @@ jobs:
             platform: windows/amd64
             wails-bin: launcher.exe
             artifact: trama-launcher-windows-amd64.exe
+            build-tags: ""
           - os: ubuntu-latest
             platform: linux/amd64
             wails-bin: launcher
             artifact: trama-launcher-linux-amd64
+            # Ubuntu 24.04 (ubuntu-latest) only ships libwebkit2gtk-4.1-dev
+            # (4.0 was dropped); Wails needs this build tag to link against
+            # webkit2gtk-4.1 instead of its 4.0 default.
+            build-tags: "-tags webkit2_41"
 
     steps:
       - name: Checkout
@@ -69,7 +74,7 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
 
       - name: Build launcher
-        run: wails build -platform ${{ matrix.platform }} -clean
+        run: wails build -platform ${{ matrix.platform }} -clean ${{ matrix.build-tags }}
 
       - name: Rename binary
         shell: bash
