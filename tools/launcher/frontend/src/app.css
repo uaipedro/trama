@@ -1,6 +1,35 @@
+#app-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.5rem 0 0;
+}
+
+#app-header img {
+    display: block;
+    height: 40px;
+}
+
+#app-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+#app-footer {
+    position: fixed;
+    bottom: 0.75rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.75rem;
+    opacity: 0.55;
+}
+
 [data-screen] {
     max-width: 480px;
-    margin: 10% auto 0;
+    margin: 6% auto 0;
     padding: 0 1.5rem;
 }
 
