@@ -1,0 +1,30 @@
+/* src/video.css — os ajustes que só o VÍDEO precisa, aplicados depois das
+   folhas copiadas do pacote.
+
+   Transição e animação de CSS correm no relógio de parede, e um render quadro a
+   quadro não tem relógio de parede: o Chromium é fotografado em cada quadro com
+   o tempo congelado, então uma `transition:width .15s` sai ou pela metade ou
+   não sai — não determinística entre rodadas, e invisível numa inspeção por
+   amostragem. Tudo que se move neste vídeo se move como função do quadro; então
+   aqui o CSS do app é desarmado, e não corrigido caso a caso. */
+*,
+*::before,
+*::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* O canvas do editor é `position:fixed;inset:0`; dentro da composição quem manda
+   no enquadramento é a cena. */
+body {
+  background: transparent;
+  overflow: hidden;
+}
+
+/* Barra de rolagem some: no app ela é informação ("tem mais tabela aí"), no
+   vídeo é sujeira em cima de um card de 240px que já está no enquadramento
+   certo. Nenhum preview do vídeo é cortado — as tabelas foram dimensionadas
+   para caber. */
+::-webkit-scrollbar {
+  display: none;
+}

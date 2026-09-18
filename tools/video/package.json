@@ -1,0 +1,27 @@
+{
+  "name": "trama-video",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Vídeo de demonstração do trama, renderizado com Remotion.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "npm run render:demo && npm run render:modelos",
+    "render:demo": "remotion render src/index.ts TramaDemo out/bruto-demo.mp4 --codec h264 --crf 17 --overwrite && sh scripts/masterizar.sh out/bruto-demo.mp4 out/trama-demo.mp4",
+    "render:modelos": "remotion render src/index.ts TramaModelos out/bruto-modelos.mp4 --codec h264 --crf 17 --overwrite && sh scripts/masterizar.sh out/bruto-modelos.mp4 out/trama-modelos.mp4",
+    "verificar": "sh scripts/verificar.sh out/trama-demo.mp4 && sh scripts/verificar.sh out/trama-modelos.mp4",
+    "sfx": "node scripts/sfx.mjs",
+    "sincronizar": "sh scripts/sincronizar.sh",
+    "tipos": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.242",
+    "@remotion/motion-blur": "4.0.242",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.242"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}
