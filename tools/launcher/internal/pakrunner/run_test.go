@@ -2,6 +2,8 @@ package pakrunner
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -41,5 +43,24 @@ func TestRun(t *testing.T) {
 	}
 	if len(events) != 1 {
 		t.Fatalf("esperava 1 evento, got %d: %+v", len(events), events)
+	}
+}
+
+func TestRun_FailureIncludesOutputTail(t *testing.T) {
+	// Stand-in de Rscript que imprime uma linha e sai com erro — simula um
+	// `pak::pak()` que falha (ex: pak não instalado, pacote não encontrado).
+	// Sem a captura de tail, o erro retornado seria só "exit status 1".
+	fakeRscript := filepath.Join(t.TempDir(), "fake-rscript.sh")
+	script := "#!/bin/sh\necho \"$2\"\nexit 1\n"
+	if err := os.WriteFile(fakeRscript, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := Run(context.Background(), fakeRscript, "Error: não há nenhum pacote chamado 'pak'", func(Event) {})
+	if err == nil {
+		t.Fatal("esperava erro")
+	}
+	if !strings.Contains(err.Error(), "não há nenhum pacote chamado") {
+		t.Fatalf("erro deveria incluir a saída do R, got: %v", err)
 	}
 }

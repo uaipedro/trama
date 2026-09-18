@@ -3,6 +3,7 @@ package pakrunner
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"os/exec"
 	"strings"
@@ -44,9 +45,16 @@ func ParseProgress(r io.Reader, onEvent func(Event)) error {
 	return scanner.Err()
 }
 
+// maxErrorTail é quantas linhas finais de output do R mantemos pra anexar
+// à mensagem de erro se o processo sair com falha — sem isso, um erro do R
+// (pacote não encontrado, falha de rede, etc.) vira só "exit status 1" pro
+// usuário, sem pista nenhuma do que realmente deu errado.
+const maxErrorTail = 20
+
 // Run executa rscriptPath -e script, transmitindo cada linha de
 // stdout+stderr pra onEvent via ParseProgress. Bloqueia até o processo
-// terminar ou ctx ser cancelado.
+// terminar ou ctx ser cancelado. Se o processo sair com erro, a mensagem
+// retornada inclui as últimas linhas de output do R, não só o exit status.
 func Run(ctx context.Context, rscriptPath, script string, onEvent func(Event)) error {
 	cmd := exec.CommandContext(ctx, rscriptPath, "-e", script)
 	stdout, err := cmd.StdoutPipe()
@@ -58,8 +66,23 @@ func Run(ctx context.Context, rscriptPath, script string, onEvent func(Event)) e
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	if err := ParseProgress(stdout, onEvent); err != nil {
+
+	var tail []string
+	if err := ParseProgress(stdout, func(e Event) {
+		tail = append(tail, e.Text)
+		if len(tail) > maxErrorTail {
+			tail = tail[len(tail)-maxErrorTail:]
+		}
+		onEvent(e)
+	}); err != nil {
 		return err
 	}
-	return cmd.Wait()
+
+	if err := cmd.Wait(); err != nil {
+		if len(tail) > 0 {
+			return fmt.Errorf("%w:\n%s", err, strings.Join(tail, "\n"))
+		}
+		return err
+	}
+	return nil
 }

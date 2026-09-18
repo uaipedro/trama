@@ -20,6 +20,9 @@ func BuildInstallScript(pkgs []string, lib string) string {
 	pkgList := strings.Join(quoted, ", ")
 
 	return fmt.Sprintf(`options(repos = c(P3M = %q))
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak")
+}
 lib <- %q
 dir.create(lib, showWarnings = FALSE, recursive = TRUE)
 pak::pak(c(%s), lib = lib)

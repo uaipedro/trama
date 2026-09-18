@@ -7,6 +7,8 @@ func TestBuildInstallScript(t *testing.T) {
 
 	want := []string{
 		`options(repos = c(P3M = "https://packagemanager.posit.co/cran/latest"))`,
+		`if (!requireNamespace("pak", quietly = TRUE)) {`,
+		`install.packages("pak")`,
 		`lib <- "/home/user/.trama-launcher/lib"`,
 		`pak::pak(c("uaipedro/trama", "uaipedro/trama/collections/trama.data"), lib = lib)`,
 	}

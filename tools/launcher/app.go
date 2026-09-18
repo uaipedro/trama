@@ -17,8 +17,9 @@ import (
 
 const rVersion = "4.4.1"
 
-// shinyPort é a porta padrão que o Shiny usa localmente pro app trama.
-const shinyPort = 3838
+// shinyPort é a porta padrão do editor trama (tr_port_default(), R/app.R) —
+// 8726 ("TRAM" no teclado do telefone), não a porta genérica do Shiny.
+const shinyPort = 8726
 
 // portTimeout é quanto tempo esperamos a porta do Shiny responder após subir o processo.
 const portTimeout = 30 * time.Second
