@@ -7,6 +7,9 @@
 tr_ml_tree_plot(
   modelo,
   arvore = 1L,
+  mostrar_n = TRUE,
+  mostrar_impureza = FALSE,
+  casas = 3L,
   aspecto = "16:9",
   tema = "padrão",
   titulo = "",
@@ -18,12 +21,28 @@ tr_ml_tree_plot(
 \arguments{
 \item{modelo}{Modelo \code{tr_ml_fit} CART ou FIGS.}
 
-\item{arvore}{Árvore do FIGS a mostrar.}
+\item{arvore}{Índice positivo da árvore do FIGS. Ignorado pelo CART.}
 
-\item{aspecto, tema, titulo, rotulo_x, rotulo_y, legenda}{Aparência do gráfico.}
+\item{mostrar_n}{Inclui em cada nó o número de observações que o alcançam.}
+
+\item{mostrar_impureza}{Inclui a impureza do CART ou o ganho do FIGS.}
+
+\item{casas}{Número inteiro, de zero a seis, de casas decimais nos rótulos.}
+
+\item{aspecto}{Proporção do gráfico, como \code{"16:9"} ou \code{"1:1"}.}
+
+\item{tema}{Nome de um tema registrado no projeto.}
+
+\item{titulo}{Título do gráfico. Vazio omite o título.}
+
+\item{rotulo_x}{Rótulo do eixo X. Vazio mantém o rótulo gerado.}
+
+\item{rotulo_y}{Rótulo do eixo Y. Vazio mantém o rótulo gerado.}
+
+\item{legenda}{Posição da legenda. \code{"nenhuma"} a omite.}
 }
 \value{
-Um \code{ggplot} editável.
+Objeto \code{ggplot} com os nós, ramos e folhas da árvore selecionada.
 }
 \description{
 Visualizar uma árvore CART ou uma das árvores do FIGS

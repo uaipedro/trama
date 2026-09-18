@@ -18,25 +18,39 @@ tr_ml_tune(
 )
 }
 \arguments{
-\item{dados}{Tabela de treino.}
+\item{dados}{Tabela de treino com pelo menos duas linhas.}
 
-\item{alvo, cols, modelo, tarefa}{Argumentos de \code{\link[=tr_ml_fit]{tr_ml_fit()}}.}
+\item{alvo}{Nome de uma coluna existente em \code{dados}.}
 
-\item{metrica}{\code{auto}, uma métrica de regressão ou classificação.}
+\item{cols}{Preditores numéricos separados por vírgula. Vazio usa todos os
+numéricos, exceto \code{alvo}.}
 
-\item{tentativas}{Número de configurações avaliadas.}
+\item{modelo}{Família com hiperparâmetros: \code{"cart"}, \code{"figs"}, \code{"forest"},
+\code{"svm"} ou \code{"xgboost"}.}
 
-\item{folds}{Número de folds da validação cruzada.}
+\item{tarefa}{Uma de \code{"auto"}, \code{"regressao"} ou \code{"classificacao"}. \code{"auto"}
+interpreta resposta numérica como regressão.}
 
-\item{amplitude}{Espaço \code{conservadora} ou \code{ampla}.}
+\item{metrica}{Métrica compatível com a tarefa. \code{"auto"} usa \code{"rmse"} em
+regressão e \code{"macro_f1"} em classificação.}
 
-\item{seed}{Semente local e reprodutível.}
+\item{tentativas}{Número inteiro positivo de configurações avaliadas.}
+
+\item{folds}{Número inteiro de partições, a partir de dois. Não pode superar
+o número de linhas nem o tamanho da menor classe.}
+
+\item{amplitude}{Limites \code{"conservadora"} ou \code{"ampla"} para a busca.}
+
+\item{seed}{Inteiro entre zero e 2147483647. Controla folds, configurações e
+ajustes sem alterar o estado aleatório da sessão.}
 }
 \value{
-\code{tr_ml_tuning}, com \code{modelo} e \code{historico}.
+Objeto \code{tr_ml_tuning}: lista com o \code{modelo} vencedor reajustado,
+\code{historico} por tentativa e fold, índice \code{melhor_tentativa}, \code{metrica},
+direção \code{minimizar}, número de \code{folds} e \code{seed}.
 }
 \description{
 O conjunto recebido é usado para validação interna; após escolher a melhor
-configuração, o modelo é reajustado em todas as linhas. Mantenha o teste
-final fora deste nó.
+configuração, o modelo é reajustado em todas as linhas. O conjunto de teste
+final fica fora deste nó.
 }

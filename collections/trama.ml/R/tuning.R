@@ -33,7 +33,7 @@
   grupos <- if (is.factor(y) || is.character(y) || is.logical(y)) split(seq_along(y), y) else
     list(todos = seq_along(y))
   if (any(lengths(grupos) < k))
-    .tr_ml_abort("tr_ml_error_bad_folds", "Cada classe precisa ter pelo menos 'folds' observações.")
+    .tr_ml_abort("tr_ml_error_bad_folds", "Cada classe precisa ter pelo menos 'folds' observa\u{E7}\u{F5}es.")
   ids <- integer(length(y))
   for (g in grupos) ids[g] <- sample(rep(seq_len(k), length.out = length(g)))
   lapply(seq_len(k), function(i) which(ids == i))
@@ -42,36 +42,47 @@
 .tr_ml_tune_metric <- function(pred, alvo, tarefa, metrica) {
   z <- tr_ml_evaluate(pred, alvo, tarefa = tarefa)
   i <- match(metrica, z$metrica)
-  if (is.na(i)) .tr_ml_abort("tr_ml_error_bad_param", sprintf("Métrica '%s' não serve para esta tarefa.", metrica))
+  if (is.na(i)) .tr_ml_abort("tr_ml_error_bad_param", sprintf("M\u{E9}trica '%s' n\u{E3}o serve para esta tarefa.", metrica))
   z$valor[[i]]
 }
 
 #' Ajustar hiperparâmetros por validação cruzada
 #'
 #' O conjunto recebido é usado para validação interna; após escolher a melhor
-#' configuração, o modelo é reajustado em todas as linhas. Mantenha o teste
-#' final fora deste nó.
-#' @param dados Tabela de treino.
-#' @param alvo,cols,modelo,tarefa Argumentos de [tr_ml_fit()].
-#' @param metrica `auto`, uma métrica de regressão ou classificação.
-#' @param tentativas Número de configurações avaliadas.
-#' @param folds Número de folds da validação cruzada.
-#' @param amplitude Espaço `conservadora` ou `ampla`.
-#' @param seed Semente local e reprodutível.
-#' @return `tr_ml_tuning`, com `modelo` e `historico`.
+#' configuração, o modelo é reajustado em todas as linhas. O conjunto de teste
+#' final fica fora deste nó.
+#' @param dados Tabela de treino com pelo menos duas linhas.
+#' @param alvo Nome de uma coluna existente em `dados`.
+#' @param cols Preditores numéricos separados por vírgula. Vazio usa todos os
+#'   numéricos, exceto `alvo`.
+#' @param modelo Família com hiperparâmetros: `"cart"`, `"figs"`, `"forest"`,
+#'   `"svm"` ou `"xgboost"`.
+#' @param tarefa Uma de `"auto"`, `"regressao"` ou `"classificacao"`. `"auto"`
+#'   interpreta resposta numérica como regressão.
+#' @param metrica Métrica compatível com a tarefa. `"auto"` usa `"rmse"` em
+#'   regressão e `"macro_f1"` em classificação.
+#' @param tentativas Número inteiro positivo de configurações avaliadas.
+#' @param folds Número inteiro de partições, a partir de dois. Não pode superar
+#'   o número de linhas nem o tamanho da menor classe.
+#' @param amplitude Limites `"conservadora"` ou `"ampla"` para a busca.
+#' @param seed Inteiro entre zero e 2147483647. Controla folds, configurações e
+#'   ajustes sem alterar o estado aleatório da sessão.
+#' @return Objeto `tr_ml_tuning`: lista com o `modelo` vencedor reajustado,
+#'   `historico` por tentativa e fold, índice `melhor_tentativa`, `metrica`,
+#'   direção `minimizar`, número de `folds` e `seed`.
 #' @export
 tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
                        metrica = "auto", tentativas = 20L, folds = 5L,
                        amplitude = "conservadora", seed = 42L) {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   if (identical(modelo, "linear"))
-    .tr_ml_abort("tr_ml_error_not_tunable", "O modelo linear não possui hiperparâmetros nesta coleção.")
+    .tr_ml_abort("tr_ml_error_not_tunable", "O modelo linear n\u{E3}o possui hiperpar\u{E2}metros nesta cole\u{E7}\u{E3}o.")
   tentativas <- .tr_ml_int(tentativas, "tentativas", 1L)
   folds <- .tr_ml_int(folds, "folds", 2L)
   seed <- .tr_ml_int(seed, "seed", 0L)
   amplitude <- .tr_ml_enum(amplitude, c("conservadora", "ampla"), "amplitude")
   d <- .tr_ml_dados(dados, alvo, cols, tarefa)
-  if (folds > d$n) .tr_ml_abort("tr_ml_error_bad_folds", "'folds' não pode superar o número de linhas.")
+  if (folds > d$n) .tr_ml_abort("tr_ml_error_bad_folds", "'folds' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
   tarefa <- d$tarefa
   if (identical(metrica, "auto")) metrica <- if (tarefa == "regressao") "rmse" else "macro_f1"
   validas <- if (tarefa == "regressao") c("mae", "rmse", "r2") else
@@ -87,30 +98,38 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
     linhas <- vector("list", tentativas)
     for (i in seq_len(tentativas)) {
       cfg <- configs[[i]]; valores <- numeric()
-      erro <- NULL
+      erro <- NULL; avisos <- character(); inicio <- proc.time()[["elapsed"]]
       for (validacao in partes) {
         treino <- dados[-validacao, , drop = FALSE]
         teste <- dados[validacao, , drop = FALSE]
         args <- c(list(dados = treino, alvo = alvo, cols = cols, modelo = modelo,
                        tarefa = tarefa, seed = as.integer((as.double(seed) + i) %% .Machine$integer.max)), cfg)
-        valor <- tryCatch({
-          fit <- do.call(tr_ml_fit, args)
-          pred <- tr_ml_predict(fit, teste)
-          .tr_ml_tune_metric(pred, alvo, tarefa, metrica)
-        }, error = function(e) { erro <<- conditionMessage(e); NA_real_ })
+        valor <- tryCatch(withCallingHandlers({
+            fit <- do.call(tr_ml_fit, args)
+            pred <- tr_ml_predict(fit, teste)
+            .tr_ml_tune_metric(pred, alvo, tarefa, metrica)
+          }, warning = function(w) {
+            avisos <<- c(avisos, conditionMessage(w)); invokeRestart("muffleWarning")
+          }), error = function(e) { erro <<- conditionMessage(e); NA_real_ })
         valores <- c(valores, valor)
         if (!is.null(erro)) break
       }
-      linha <- c(list(tentativa = i), cfg,
+      por_fold <- stats::setNames(as.list(c(valores, rep(NA_real_, folds - length(valores)))),
+                                  paste0("fold_", seq_len(folds)))
+      linha <- c(list(tentativa = i), cfg, por_fold,
                   list(media = if (all(is.finite(valores))) mean(valores) else NA_real_,
                        desvio = if (length(valores) > 1L && all(is.finite(valores))) stats::sd(valores) else NA_real_,
+                       segundos = proc.time()[["elapsed"]] - inicio,
                        status = if (is.null(erro)) "ok" else "erro",
+                       avisos = paste(unique(avisos), collapse = " | "),
                        erro = erro %||% ""))
       linhas[[i]] <- linha
     }
     historico <- tibble::as_tibble(do.call(rbind.data.frame, c(linhas, stringsAsFactors = FALSE)))
     historico$tentativa <- as.integer(historico$tentativa)
-    historico$media <- as.numeric(historico$media); historico$desvio <- as.numeric(historico$desvio)
+    numericas <- c(names(space)[vapply(space, is.numeric, logical(1))],
+      paste0("fold_", seq_len(folds)), "media", "desvio", "segundos")
+    for (nm in numericas) historico[[nm]] <- as.numeric(historico[[nm]])
     boas <- which(historico$status == "ok" & is.finite(historico$media))
     if (!length(boas)) .tr_ml_abort("tr_ml_error_tuning_failed", "Todas as tentativas de tuning falharam.")
     melhor <- boas[[if (minimizar) which.min(historico$media[boas]) else which.max(historico$media[boas])]]

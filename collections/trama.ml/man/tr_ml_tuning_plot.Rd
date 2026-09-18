@@ -6,6 +6,7 @@
 \usage{
 tr_ml_tuning_plot(
   dados,
+  hiperparametro = "",
   aspecto = "16:9",
   tema = "padrão",
   titulo = "",
@@ -17,10 +18,24 @@ tr_ml_tuning_plot(
 \arguments{
 \item{dados}{Histórico devolvido por \code{\link[=tr_ml_tune]{tr_ml_tune()}}.}
 
-\item{aspecto, tema, titulo, rotulo_x, rotulo_y, legenda}{Aparência do gráfico.}
+\item{hiperparametro}{Nome de uma coluna numérica do histórico. Vazio mostra
+a evolução das tentativas e do melhor valor acumulado.}
+
+\item{aspecto}{Proporção do gráfico, como \code{"16:9"} ou \code{"1:1"}.}
+
+\item{tema}{Nome de um tema registrado no projeto.}
+
+\item{titulo}{Título do gráfico. Vazio omite o título.}
+
+\item{rotulo_x}{Rótulo do eixo X. Vazio mantém o rótulo gerado.}
+
+\item{rotulo_y}{Rótulo do eixo Y. Vazio mantém \code{"Métrica média"}.}
+
+\item{legenda}{Posição da legenda. \code{"nenhuma"} a omite.}
 }
 \value{
-Um \code{ggplot} editável.
+Objeto \code{ggplot} da evolução do tuning ou da relação entre um
+hiperparâmetro e a métrica média.
 }
 \description{
 Visualizar o histórico de uma busca de hiperparâmetros

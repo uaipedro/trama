@@ -6,10 +6,26 @@ test_that("tuning escolhe por validação cruzada e reajusta em todo treino", {
   expect_s3_class(a, "tr_ml_tuning")
   expect_s3_class(a$modelo, "tr_ml_fit")
   expect_equal(a$modelo$n, nrow(d))
-  expect_equal(a$historico, b$historico)
+  expect_equal(a$historico[names(a$historico) != "segundos"],
+               b$historico[names(b$historico) != "segundos"])
   expect_equal(nrow(a$historico), 3L)
   expect_true(all(a$historico$status == "ok"))
+  expect_true(all(c("fold_1", "fold_2", "fold_3", "segundos", "avisos") %in%
+                  names(a$historico)))
+  expect_true(all(a$historico$segundos >= 0))
   expect_equal(a$melhor_tentativa, which.min(a$historico$media))
+})
+
+test_that("tuning percorre todos os motores disponíveis", {
+  d <- subset(iris, Species != "virginica")
+  pacotes <- c(figs = "figsr", forest = "ranger", svm = "e1071", xgboost = "xgboost")
+  for (modelo in names(pacotes)) {
+    if (!requireNamespace(pacotes[[modelo]], quietly = TRUE)) next
+    z <- tr_ml_tune(d, "Species", modelo = modelo, tentativas = 1, folds = 2, seed = 31)
+    expect_s3_class(z$modelo, "tr_ml_fit")
+    expect_equal(nrow(z$historico), 1L, info = modelo)
+    expect_equal(z$historico$status, "ok", info = modelo)
+  }
 })
 
 test_that("tuning maximiza classificação sem tocar no RNG do chamador", {

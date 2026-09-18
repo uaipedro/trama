@@ -26,10 +26,21 @@ tr_ml_roc(
 
 \item{positiva}{Classe tratada como positiva; vazio usa a segunda observada.}
 
-\item{aspecto, tema, titulo, rotulo_x, rotulo_y, legenda}{Aparência do gráfico.}
+\item{aspecto}{Proporção do gráfico, como \code{"16:9"} ou \code{"1:1"}.}
+
+\item{tema}{Nome de um tema registrado no projeto.}
+
+\item{titulo}{Título do gráfico. Vazio omite o título.}
+
+\item{rotulo_x}{Rótulo do eixo X. Vazio mantém o rótulo gerado.}
+
+\item{rotulo_y}{Rótulo do eixo Y. Vazio mantém o rótulo gerado.}
+
+\item{legenda}{Posição da legenda. \code{"nenhuma"} a omite.}
 }
 \value{
-Um \code{ggplot} editável com a AUC em \code{data$auc}.
+Objeto \code{ggplot} da curva ROC. A coluna \code{auc} dos dados do gráfico
+contém a área sob a curva.
 }
 \description{
 Curva ROC para classificação binária

@@ -23,10 +23,20 @@ tr_ml_residuals(
 
 \item{predito}{Nome da coluna prevista.}
 
-\item{aspecto, tema, titulo, rotulo_x, rotulo_y, legenda}{Aparência do gráfico.}
+\item{aspecto}{Proporção do gráfico, como \code{"16:9"} ou \code{"1:1"}.}
+
+\item{tema}{Nome de um tema registrado no projeto.}
+
+\item{titulo}{Título do gráfico. Vazio omite o título.}
+
+\item{rotulo_x}{Rótulo do eixo X. Vazio mantém \code{"Previsão"}.}
+
+\item{rotulo_y}{Rótulo do eixo Y. Vazio mantém o rótulo de resíduo.}
+
+\item{legenda}{Posição da legenda. \code{"nenhuma"} a omite.}
 }
 \value{
-Um \code{ggplot} editável.
+Objeto \code{ggplot} dos resíduos contra as previsões recebidas.
 }
 \description{
 Gráfico de resíduos de regressão
