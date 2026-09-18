@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 // Download baixa url pra dest, validando sha256 contra checksum. Tenta até
@@ -41,6 +42,13 @@ func downloadOnce(url, dest string) error {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status HTTP %d", resp.StatusCode)
+	}
+
+	// Garante que o diretório pai de dest existe: em uma máquina nova o
+	// diretório base do launcher (e seu subdiretório cache/) pode não ter
+	// sido criado ainda, e os.Create falha com ENOENT se o pai não existir.
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
 	}
 
 	f, err := os.Create(dest)

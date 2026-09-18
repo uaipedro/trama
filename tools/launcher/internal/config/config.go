@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
 // Config é o estado persistido do launcher entre execuções.
@@ -30,9 +31,15 @@ func Load(path string) (Config, error) {
 }
 
 // Save grava cfg em path formatado (fácil de inspecionar/debugar à mão).
+// Cria o diretório pai de path se ainda não existir (ex.: diretório base do
+// launcher em uma instalação nova), já que os.WriteFile falha com ENOENT
+// se o pai não existir.
 func Save(path string, cfg Config) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 	return os.WriteFile(path, data, 0o644)

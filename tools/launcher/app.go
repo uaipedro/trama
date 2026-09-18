@@ -40,6 +40,13 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.base = resolveBaseDir()
+	if err := os.MkdirAll(a.base, 0o755); err != nil {
+		// Não podemos abortar o startup (o hook do Wails não retorna erro),
+		// e uma falha aqui só vai se manifestar de forma mais específica
+		// quando uma operação concreta precisar do diretório (download,
+		// gravação de config.json etc). Registramos pra facilitar debug.
+		println("trama-launcher: falha ao criar diretório base", a.base, ":", err.Error())
+	}
 }
 
 // resolveBaseDir determina o diretório de dados do launcher: R portátil,
@@ -69,7 +76,11 @@ func (a *App) EnsureRPortable() error {
 	if err != nil {
 		return err
 	}
-	archive := filepath.Join(a.base, "cache", "r-download")
+	cacheDir := filepath.Join(a.base, "cache")
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+		return err
+	}
+	archive := filepath.Join(cacheDir, "r-download")
 	if err := rfetch.Download(src.URL, src.Checksum, archive, 2); err != nil {
 		return err
 	}
@@ -109,7 +120,7 @@ func (a *App) OpenTrama() error {
 		projectDir = filepath.Join(a.base, "projects", "default")
 	}
 
-	if _, err := applauncher.StartTramaApp(a.ctx, st.RscriptPath, projectDir); err != nil {
+	if _, err := applauncher.StartTramaApp(a.ctx, st.RscriptPath, st.LibPath, projectDir); err != nil {
 		return err
 	}
 	if err := applauncher.WaitForPort("127.0.0.1", shinyPort, portTimeout); err != nil {
