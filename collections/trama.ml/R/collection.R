@@ -13,7 +13,7 @@ trama_collection <- function() {
       trama::tr_category("ml_margem", "Vetores de suporte", "#7c3aed"),
       trama::tr_category("ml_avaliar", "Prever e avaliar", "#2563eb"),
       trama::tr_category("ml_inspecionar", "Inspecionar", "#be123c")),
-    nodes = c(.tr_ml_workflow_nodes(), .tr_ml_model_nodes()))
+    nodes = c(.tr_ml_workflow_nodes(), .tr_ml_model_nodes(), .tr_ml_analysis_nodes()))
 }
 
 .tr_ml_workflow_nodes <- function() {

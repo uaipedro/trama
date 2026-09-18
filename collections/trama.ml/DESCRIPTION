@@ -22,8 +22,10 @@ Depends: R (>= 4.1)
 Imports:
     trama,
     trama.data,
+    trama.view,
     tibble,
     rlang,
+    ggplot2,
     stats,
     utils,
     datasets
@@ -38,5 +40,6 @@ Suggests:
 Config/testthat/edition: 3
 Remotes:
     uaipedro/trama,
-    trama.data=github::uaipedro/trama/collections/trama.data
+    trama.data=github::uaipedro/trama/collections/trama.data,
+    trama.view=github::uaipedro/trama/collections/trama.view
 Config/roxygen2/version: 8.0.0

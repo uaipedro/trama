@@ -127,3 +127,63 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         paste(cfg$ref, "Ver `ml/split`, `ml/predict` e `ml/evaluate`.")))
   })
 }
+
+.tr_ml_analysis_nodes <- function() {
+  T <- "data/table"; G <- "view/plot"; M <- "ml/fit"
+  visual <- function(...) trama.view::tr_view_props(...)
+  list(
+    trama::tr_node("ml/tune", tr_ml_tune, label = "Ajustar hiperparâmetros",
+      description = "Seleciona hiperparâmetros por validação cruzada e reajusta o vencedor no treino completo.",
+      category = "ml_avaliar", inputs = list(dados = T),
+      outputs = list(modelo = M, historico = T),
+      params = list(alvo = .tr_ml_target_param(), cols = .tr_ml_cols_param(),
+        modelo = trama::tr_param_enum("cart", c("cart", "figs", "forest", "svm", "xgboost"), label = "Modelo"),
+        tarefa = .tr_ml_task_param(),
+        metrica = trama::tr_param_enum("auto", c("auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1"), label = "Métrica"),
+        tentativas = trama::tr_param_int(20L, min = 1L, label = "Tentativas"),
+        folds = trama::tr_param_int(5L, min = 2L, label = "Folds"),
+        amplitude = trama::tr_param_enum("conservadora", c("conservadora", "ampla"), label = "Espaço de busca"),
+        seed = .tr_ml_seed_param()),
+      help = .tr_ml_help("Avalia configurações nos mesmos folds, escolhe pela média e reajusta o vencedor em todas as linhas recebidas. Conecte somente treino; preserve o teste para a avaliação final.",
+        "`modelo`: família a ajustar. `metrica`: auto usa RMSE em regressão e macro F1 em classificação. `tentativas`: orçamento da busca aleatória. `folds`: partições internas. `amplitude`: limites conservadores ou amplos. `seed`: reproduz folds, configurações e ajustes.",
+        "Duas saídas: o melhor `ml/fit` reajustado e uma tabela com todas as tentativas.",
+        "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, alvo = 'Species', tentativas = 3, folds = 3)",
+        "`ml/tuning_plot`, `ml/predict`, `ml/evaluate`.")),
+    trama::tr_node("ml/tree_plot", tr_ml_tree_plot, label = "Visualizar árvores",
+      description = "Desenha a árvore CART ou uma árvore da soma FIGS.",
+      category = "ml_inspecionar", inputs = list(modelo = M), outputs = list(out = G),
+      params = visual(arvore = trama::tr_param_int(1L, min = 1L, label = "Árvore FIGS")),
+      help = .tr_ml_help("No CART, mostra a árvore de decisão completa. No FIGS, mostra uma árvore por vez; a previsão final continua sendo a soma das contribuições.",
+        "`arvore`: índice da árvore no FIGS; é ignorado pelo CART.", "Um gráfico `view/plot`.",
+        "m <- trama.ml::tr_ml_cart(mtcars, alvo = 'mpg', cols = 'wt, hp')\ntrama.ml::tr_ml_tree_plot(m)",
+        paste("`ml/rules`, `ml/cart`, `ml/figs`.", trama.view::tr_view_help_appearance()))),
+    trama::tr_node("ml/tuning_plot", tr_ml_tuning_plot, label = "Visualizar tuning",
+      description = "Mostra cada tentativa e a evolução do melhor resultado.",
+      category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
+      params = visual(),
+      help = .tr_ml_help("Leia a dispersão das tentativas e se o melhor valor ainda melhora perto do fim do orçamento.",
+        "Entrada: saída histórico de Ajustar hiperparâmetros.", "Um gráfico `view/plot`.",
+        "z <- trama.ml::tr_ml_tune(mtcars, 'mpg', tentativas = 3, folds = 3)\ntrama.ml::tr_ml_tuning_plot(z$historico)",
+        paste("`ml/tune`.", trama.view::tr_view_help_appearance()))),
+    trama::tr_node("ml/residuals", tr_ml_residuals, label = "Analisar resíduos",
+      description = "Compara resíduos de regressão com os valores previstos.",
+      category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
+      params = visual(alvo = .tr_ml_target_param(),
+        predito = trama::tr_param("text", ".pred", label = "Coluna prevista", example = ".pred")),
+      help = .tr_ml_help("Padrões, curvas ou abertura dos resíduos sugerem erros sistemáticos ou variância desigual. É um diagnóstico, não uma prova isolada.",
+        "`alvo`: resposta observada. `predito`: previsão numérica.", "Um gráfico `view/plot`.",
+        "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
+        paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
+    trama::tr_node("ml/roc", tr_ml_roc, label = "Curva ROC",
+      description = "Mostra sensibilidade contra falsos positivos em classificação binária.",
+      category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
+      params = visual(alvo = .tr_ml_target_param(),
+        probabilidade = trama::tr_param("text", "", label = "Probabilidade", example = ".prob_sim"),
+        positiva = trama::tr_param("text", "", label = "Classe positiva", example = "sim")),
+      help = .tr_ml_help("Ordena as linhas pela probabilidade da classe positiva e exibe a curva ROC com sua AUC. Use somente classificação binária.",
+        "`alvo`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada.",
+        "Um gráfico `view/plot`.",
+        "d <- data.frame(y = factor(c('nao','sim','nao','sim')), .prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_roc(d, 'y', '.prob_sim', 'sim')",
+        paste("`ml/predict`, `ml/confusion`.", trama.view::tr_view_help_appearance())))
+  )
+}

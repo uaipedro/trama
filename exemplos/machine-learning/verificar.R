@@ -2,9 +2,11 @@
 # Execute da raiz do repositório, com os motores instalados.
 pkgload::load_all(".", quiet = TRUE)
 pkgload::load_all("collections/trama.data", quiet = TRUE, attach = FALSE)
+pkgload::load_all("collections/trama.view", quiet = TRUE, attach = FALSE)
 pkgload::load_all("collections/trama.ml", quiet = TRUE, attach = FALSE)
 reg <- trama::tr_registry()
 trama::tr_use("trama.data", registry = reg)
+trama::tr_use("trama.view", registry = reg)
 trama::tr_use("trama.ml", registry = reg)
 for (arquivo in c("main", "regressao")) {
   doc <- trama::tr_doc_read(paste0("exemplos/machine-learning/flows/", arquivo, ".json"))

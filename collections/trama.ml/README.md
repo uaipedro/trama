@@ -19,7 +19,7 @@ pak::pak("uaipedro/trama/collections/trama.ml")
 # Instale apenas os motores que vai usar:
 install.packages(c("rpart", "figsr", "ranger", "e1071", "xgboost"))
 library(trama)
-tr_app(tr_project("meu-ml", collections = c("trama.data", "trama.ml")))
+tr_app(tr_project("meu-ml", collections = c("trama.data", "trama.view", "trama.ml")))
 ```
 
 Na paleta: **Dados para aprender → Separar treino / teste**. Ligue treino ao
@@ -48,8 +48,13 @@ em `m$ajuste`; motor, versão e hiperparâmetros ficam em `m$extras`.
 
 ## Escopo e avaliação
 
-São 13 blocos: dados, divisão, seis modelos, previsão, avaliação, confusão,
-regras e importância. A primeira versão aceita preditores numéricos. Para
+São 18 blocos: dados, divisão, seis modelos, tuning, previsão, avaliação,
+confusão, regras, importância e quatro visualizadores. **Ajustar
+hiperparâmetros** usa validação cruzada somente nas linhas recebidas, devolve o
+modelo vencedor reajustado e o histórico completo; preserve o teste para a
+avaliação final. **Visualizar árvores** desenha CART ou uma árvore do FIGS;
+há também histórico do tuning, resíduos e curva ROC. A primeira versão aceita
+preditores numéricos. Para
 classes codificadas com números, converta a fator ou escolha
 `tarefa = "classificacao"`. FIGS e logística suportam duas classes.
 

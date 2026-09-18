@@ -1,14 +1,15 @@
 ml_registry <- function() {
   r <- trama::tr_registry()
   trama::tr_use("trama.data", registry = r)
+  trama::tr_use("trama.view", registry = r)
   trama::tr_use(trama_collection(), registry = r)
   r
 }
 
-test_that("catálogo registra os 13 blocos e contratos consistentes", {
+test_that("catálogo registra os 18 blocos e contratos consistentes", {
   reg <- ml_registry()
   nodes <- trama_collection()$nodes
-  expect_length(nodes, 13L)
+  expect_length(nodes, 18L)
   for (n in nodes) {
     for (sec in c("Descrição", "Parâmetros", "Valor", "Exemplos", "Veja também"))
       expect_match(n$help, paste0("## ", sec), fixed = TRUE, info = n$id)
@@ -39,6 +40,20 @@ test_that("fluxo real calcula teste separado, preserva e restaura modelos", {
   expect_equal(val("avaliar")$n, rep(26L, 3L))
   expect_equal(val("prever"), p)
   expect_equal(tr_ml_predict(m, val("divisao", "teste")), p)
+})
+
+test_that("fluxo real ajusta tuning e expõe modelo e histórico", {
+  reg <- ml_registry()
+  f <- trama::tr_flow(reg) |>
+    trama::tr_add("dados", "ml/example", nome = "mtcars") |>
+    trama::tr_add("ajuste", "ml/tune", alvo = "mpg", cols = "wt, hp",
+                  tentativas = 2L, folds = 2L, from = "dados")
+  store <- trama::tr_store(tempfile())
+  doc <- trama::tr_flow_doc(f)
+  modelo <- trama::tr_value(doc, "ajuste", port = "modelo", registry = reg, store = store)
+  historico <- trama::tr_value(doc, "ajuste", port = "historico", registry = reg, store = store)
+  expect_s3_class(modelo, "tr_ml_fit")
+  expect_equal(nrow(historico), 2L)
 })
 
 test_that("todos os motores persistem com previsões iguais", {
