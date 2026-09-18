@@ -1,5 +1,6 @@
 export(trama_collection)
 export(tr_read_csv)
+export(tr_read_json)
 export(tr_read_rds)
 export(tr_read_parquet)
 export(tr_read_excel)

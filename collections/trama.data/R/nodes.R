@@ -7,7 +7,7 @@
 #' O hash de conteúdo do trama cobre código e params, mas não o mundo. Sem
 #' isso, editar o arquivo no disco não muda a chave e o grafo inteiro serve
 #' dado velho — em silêncio, que é o pior modo de falha possível numa
-#' ferramenta de análise. Um helper só pra não haver quatro versões disso.
+#' ferramenta de análise. Um helper só pra não haver cinco versões disso.
 #'
 #' Roda ANTES do `fn`, inclusive com `path = ""` (card recém-arrastado da
 #' paleta) e com arquivo inexistente. Nos dois casos `file.info()` devolve NA
@@ -42,6 +42,28 @@ tr_read_csv <- function(path, delim = ",", na = "NA", .ctx = NULL) {
   if (!is.null(.ctx)) path <- .ctx$path(path)
   readr::read_delim(path, delim = delim, na = unique(c("", .as_cols(na))),
                     show_col_types = FALSE, progress = FALSE)
+}
+
+#' Lê um JSON tabular.
+#'
+#' O formato natural é um array de objetos, em que cada objeto vira uma linha.
+#' `jsonlite` também aceita um objeto de vetores com o mesmo comprimento. O
+#' resultado é normalizado como tibble para cumprir o contrato `data/table`.
+#' @export
+tr_read_json <- function(path, .ctx = NULL) {
+  .tr_data_obrigatorio(path, "path")
+  if (!is.null(.ctx)) path <- .ctx$path(path)
+  x <- jsonlite::fromJSON(path, simplifyDataFrame = TRUE)
+  tabular <- is.data.frame(x) ||
+    (is.list(x) && length(x) > 0L && !is.null(names(x)) && all(nzchar(names(x))))
+  if (!tabular) {
+    rlang::abort("O JSON não representa uma tabela: use um array de objetos ou um objeto de vetores.",
+                 class = "tr_data_error_not_a_table")
+  }
+  tryCatch(tibble::as_tibble(x), error = function(e) {
+    rlang::abort("O JSON não representa uma tabela: as colunas têm tamanhos incompatíveis.",
+                 class = "tr_data_error_not_a_table", parent = e)
+  })
 }
 
 #' Leitores de formato binário. A regra é classificar o que a coleção mesma

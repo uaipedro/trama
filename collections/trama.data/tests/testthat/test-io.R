@@ -74,6 +74,33 @@ test_that("leitores voltam o que foi gravado", {
   expect_equal(names(tr_read_parquet(q)), names(d))
 })
 
+test_that("read_json lê array de objetos como tibble", {
+  p <- tempfile(fileext = ".json"); on.exit(unlink(p), add = TRUE)
+  writeLines('[{"nome":"Ana","valor":10},{"nome":"Bia","valor":null}]', p)
+
+  out <- tr_read_json(p)
+  expect_s3_class(out, "tbl_df")
+  expect_equal(out$nome, c("Ana", "Bia"))
+  expect_equal(out$valor, c(10L, NA_integer_))
+})
+
+test_that("read_json aceita objeto de vetores", {
+  p <- tempfile(fileext = ".json"); on.exit(unlink(p), add = TRUE)
+  writeLines('{"nome":["Ana","Bia"],"valor":[10,20]}', p)
+
+  expect_equal(tr_read_json(p), tibble::tibble(
+    nome = c("Ana", "Bia"), valor = c(10L, 20L)))
+})
+
+test_that("read_json recusa raiz que não representa tabela", {
+  for (json in c("1", '"texto"', "[1,2]", "null")) {
+    p <- tempfile(fileext = ".json"); on.exit(unlink(p), add = TRUE)
+    writeLines(json, p)
+    err <- tryCatch(tr_read_json(p), error = identity)
+    expect_equal(class(err)[[1]], "tr_data_error_not_a_table", info = json)
+  }
+})
+
 test_that("pacote de Suggests ausente vira erro classificado, em primeira ordem", {
   expect_error(.tr_data_need("pacote_que_nao_existe_xyz", "data/read_parquet"),
                class = "tr_data_error_missing_package")
@@ -86,7 +113,8 @@ test_that("cada leitor declara fingerprint sensível ao arquivo", {
   reg <- data_registry()
   ctx <- list(path = function(p) p)
   p <- tempfile(fileext = ".rds"); saveRDS(df_exemplo(), p)
-  for (id in c("data/read_csv", "data/read_rds", "data/read_parquet", "data/read_excel")) {
+  for (id in c("data/read_csv", "data/read_json", "data/read_rds",
+               "data/read_parquet", "data/read_excel")) {
     fp <- reg$nodes[[id]]$fingerprint
     expect_true(is.function(fp), info = id)
     antes <- fp(list(path = p), ctx)
@@ -99,14 +127,15 @@ test_that("cada leitor declara fingerprint sensível ao arquivo", {
 # que ser a mesma. Se `.tr_data_file_print` devolvesse algo aleatório (ou se o
 # `expect_false` passasse por qualquer motivo que não a mtime), este teste
 # quebraria.
-test_that("fingerprint é estável quando o arquivo não muda, e igual nos quatro", {
+test_that("fingerprint é estável quando o arquivo não muda, e igual nos cinco", {
   ctx <- list(path = function(p) p)
   p <- tempfile(fileext = ".rds"); saveRDS(df_exemplo(), p)
   expect_identical(.tr_data_file_print(list(path = p), ctx),
                    .tr_data_file_print(list(path = p), ctx))
 
   reg <- data_registry()
-  ids <- c("data/read_csv", "data/read_rds", "data/read_parquet", "data/read_excel")
+  ids <- c("data/read_csv", "data/read_json", "data/read_rds",
+           "data/read_parquet", "data/read_excel")
   chaves <- vapply(ids, function(id) reg$nodes[[id]]$fingerprint(list(path = p), ctx), "")
   expect_equal(length(unique(chaves)), 1L)
 })
@@ -130,7 +159,8 @@ test_that("path em branco não quebra o fingerprint e aborta classificado no ver
   expect_silent(branco <- .tr_data_file_print(list(path = ""), ctx))
   expect_identical(branco, .tr_data_file_print(list(path = ""), ctx))
 
-  for (f in list(tr_read_csv, tr_read_rds, tr_read_parquet, tr_read_excel)) {
+  for (f in list(tr_read_csv, tr_read_json, tr_read_rds, tr_read_parquet,
+                 tr_read_excel)) {
     expect_error(f(""), class = "tr_data_error_blank_param")
     expect_equal(class(tryCatch(f(""), error = identity))[[1]],
                  "tr_data_error_blank_param")

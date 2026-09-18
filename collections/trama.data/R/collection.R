@@ -105,6 +105,49 @@ tr_flow(reg) |>
 `data/summary` para conferir o que veio; `data/convert` para as colunas que
 chegaram como texto; `data/write_csv` para gravar de volta."),
 
+      trama::tr_node("data/read_json", fn = tr_read_json, label = "Ler JSON",
+        category = "source", description = "Lê dados tabulares de um arquivo JSON.",
+        icon = trama::tr_icon("braces"),
+        outputs = list(out = T),
+        params = list(path = P("path", "", label = "Arquivo", example = "vendas.json")),
+        pure = FALSE, fingerprint = .tr_data_file_print,
+        help = "## Descrição
+
+Lê um arquivo JSON tabular e devolve uma tabela. O formato mais comum é um
+array de objetos, em que cada objeto representa uma linha e cada chave vira
+uma coluna. Um objeto de vetores com o mesmo comprimento também é aceito.
+
+Valores `null` viram valores faltantes. Objetos ou arrays aninhados podem virar
+colunas compostas, conforme a simplificação feita pelo pacote `jsonlite`.
+
+Caminho relativo é resolvido a partir da pasta do projeto; caminho absoluto
+passa direto. Como todo leitor, o nó é impuro e declara uma impressão digital
+do arquivo — caminho, tamanho e data de modificação —, então editar o JSON faz
+o fluxo recomputar.
+
+## Parâmetros
+
+- **Arquivo** — caminho do `.json`, relativo à pasta do projeto. Campo
+  obrigatório.
+
+## Valor
+
+Uma tabela no formato `tibble`. JSON que não representa dados tabulares falha
+em vez de produzir um card verde com um objeto incompatível.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"ler\", \"data/read_json\", path = \"vendas.json\") |>
+  tr_add(\"olhar\", \"data/summary\", from = \"ler\")
+```
+
+## Veja também
+
+`data/read_csv` para arquivos delimitados; `data/summary` para conferir a
+estrutura que foi lida."),
+
       trama::tr_node("data/read_rds", fn = tr_read_rds, label = "Ler RDS",
         category = "source", description = "Lê um objeto R gravado em .rds.",
         icon = trama::tr_icon("file-box"),
