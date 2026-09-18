@@ -92,6 +92,28 @@
             "additionalProperties": false
           }
         },
+        "notes": {
+          "description": "Blocos de apresentação: markdown e imagem. Igual aos frames, são apresentação pura e nunca afetam o cálculo. Não têm porta nem execução. `src` é relativo à pasta `imagens/` do projeto, que é a única servida ao navegador.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["x", "y", "w", "h", "kind"],
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "w": { "type": "number", "exclusiveMinimum": 0 },
+              "h": { "type": "number", "exclusiveMinimum": 0 },
+              "kind": { "enum": ["markdown", "imagem"] },
+              "text": { "type": "string", "description": "Markdown. Só em kind=markdown." },
+              "escala": { "enum": ["letreiro", "nota"], "description": "Função do bloco no diagrama: letreiro sai grande e centralizado; nota, em tamanho de texto corrido." },
+              "fundo": { "enum": ["nenhum", "cartao"] },
+              "color": { "type": "string", "description": "Nome do tom (os mesmos do frame) ou 'nenhuma'. Nunca hex. Nome desconhecido é tratado como 'nenhuma' pelo editor." },
+              "src": { "type": "string", "description": "Caminho relativo a `imagens/`, sem '..'. Só em kind=imagem." },
+              "fit": { "enum": ["contain", "cover"] }
+            },
+            "additionalProperties": false
+          }
+        },
         "folds": {
           "description": "Partes recolhidas de cada card. Chave ausente = tudo aberto.",
           "type": "object",
