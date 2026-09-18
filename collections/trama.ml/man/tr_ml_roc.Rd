@@ -26,7 +26,8 @@ tr_ml_roc(
 
 \item{positiva}{Classe tratada como positiva; vazio usa a segunda observada.}
 
-\item{aspecto}{Proporção do gráfico, como \code{"16:9"} ou \code{"1:1"}.}
+\item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
+ou \code{"2:1"}.}
 
 \item{tema}{Nome de um tema registrado no projeto.}
 
@@ -36,7 +37,7 @@ tr_ml_roc(
 
 \item{rotulo_y}{Rótulo do eixo Y. Vazio mantém o rótulo gerado.}
 
-\item{legenda}{Posição da legenda. \code{"nenhuma"} a omite.}
+\item{legenda}{Posição \code{"direita"} ou \code{"abaixo"}. \code{"nenhuma"} a omite.}
 }
 \value{
 Objeto \code{ggplot} da curva ROC. A coluna \code{auc} dos dados do gráfico

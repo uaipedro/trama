@@ -19,7 +19,7 @@ tr_ml_tree_plot(
 )
 }
 \arguments{
-\item{modelo}{Modelo \code{tr_ml_fit} CART ou FIGS.}
+\item{modelo}{Modelo CART ou FIGS devolvido por \code{\link[=tr_ml_fit]{tr_ml_fit()}}.}
 
 \item{arvore}{Índice positivo da árvore do FIGS. Ignorado pelo CART.}
 
@@ -29,7 +29,8 @@ tr_ml_tree_plot(
 
 \item{casas}{Número inteiro, de zero a seis, de casas decimais nos rótulos.}
 
-\item{aspecto}{Proporção do gráfico, como \code{"16:9"} ou \code{"1:1"}.}
+\item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
+ou \code{"2:1"}.}
 
 \item{tema}{Nome de um tema registrado no projeto.}
 
@@ -39,7 +40,7 @@ tr_ml_tree_plot(
 
 \item{rotulo_y}{Rótulo do eixo Y. Vazio mantém o rótulo gerado.}
 
-\item{legenda}{Posição da legenda. \code{"nenhuma"} a omite.}
+\item{legenda}{Posição \code{"direita"} ou \code{"abaixo"}. \code{"nenhuma"} a omite.}
 }
 \value{
 Objeto \code{ggplot} com os nós, ramos e folhas da árvore selecionada.

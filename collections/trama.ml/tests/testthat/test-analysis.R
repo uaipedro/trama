@@ -5,6 +5,9 @@ test_that("visualizador desenha CART e recusa modelos sem árvore legível", {
   expect_gt(nrow(p$data), 1L)
   expect_equal(attr(p, "tr_view_dim"), c(8, 4.5))
   expect_true(any(grepl("sim|não", ggplot2::layer_data(p, 2)$label)))
+  raiz <- p$data[p$data$id == 1L, ]
+  operador <- if (m$ajuste$splits[1, "ncat"] < 0) " < " else " >= "
+  expect_match(raiz$decisao, operador, fixed = TRUE)
 
   compacto <- tr_ml_tree_plot(m, mostrar_n = FALSE, mostrar_impureza = TRUE, casas = 2)
   expect_false(any(grepl("n =", compacto$data$label, fixed = TRUE)))

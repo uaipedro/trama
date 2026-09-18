@@ -53,7 +53,9 @@ NULL
     } else {
       sp <- modelo$ajuste$splits[pos, , drop = FALSE]
       variavel <- modelo$preditores[match(row.names(modelo$ajuste$splits)[[pos]], modelo$internos)]
-      decisao[[i]] <- paste0(variavel, " < ", format(unname(sp[1L, "index"]), digits = 17L))
+      operador <- if (unname(sp[1L, "ncat"]) < 0) " < " else " >= "
+      decisao[[i]] <- paste0(variavel, operador,
+                             format(unname(sp[1L, "index"]), digits = 17L))
       pos <- pos + 1L + fr$ncompete[[i]] + fr$nsurrogate[[i]]
     }
   }
@@ -94,17 +96,18 @@ NULL
 }
 
 #' Visualizar uma árvore CART ou uma das árvores do FIGS
-#' @param modelo Modelo `tr_ml_fit` CART ou FIGS.
+#' @param modelo Modelo CART ou FIGS devolvido por [tr_ml_fit()].
 #' @param arvore Índice positivo da árvore do FIGS. Ignorado pelo CART.
 #' @param mostrar_n Inclui em cada nó o número de observações que o alcançam.
 #' @param mostrar_impureza Inclui a impureza do CART ou o ganho do FIGS.
 #' @param casas Número inteiro, de zero a seis, de casas decimais nos rótulos.
-#' @param aspecto Proporção do gráfico, como `"16:9"` ou `"1:1"`.
+#' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
+#'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
 #' @param titulo Título do gráfico. Vazio omite o título.
 #' @param rotulo_x Rótulo do eixo X. Vazio mantém o rótulo gerado.
 #' @param rotulo_y Rótulo do eixo Y. Vazio mantém o rótulo gerado.
-#' @param legenda Posição da legenda. `"nenhuma"` a omite.
+#' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @return Objeto `ggplot` com os nós, ramos e folhas da árvore selecionada.
 #' @export
 tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
@@ -153,12 +156,13 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
 #' @param dados Tabela com valores observados e previstos.
 #' @param alvo Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
-#' @param aspecto Proporção do gráfico, como `"16:9"` ou `"1:1"`.
+#' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
+#'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
 #' @param titulo Título do gráfico. Vazio omite o título.
 #' @param rotulo_x Rótulo do eixo X. Vazio mantém `"Previsão"`.
 #' @param rotulo_y Rótulo do eixo Y. Vazio mantém o rótulo de resíduo.
-#' @param legenda Posição da legenda. `"nenhuma"` a omite.
+#' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @return Objeto `ggplot` dos resíduos contra as previsões recebidas.
 #' @export
 tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9",
@@ -183,12 +187,13 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @param alvo Nome da coluna observada.
 #' @param probabilidade Coluna com a probabilidade da classe positiva.
 #' @param positiva Classe tratada como positiva; vazio usa a segunda observada.
-#' @param aspecto Proporção do gráfico, como `"16:9"` ou `"1:1"`.
+#' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
+#'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
 #' @param titulo Título do gráfico. Vazio omite o título.
 #' @param rotulo_x Rótulo do eixo X. Vazio mantém o rótulo gerado.
 #' @param rotulo_y Rótulo do eixo Y. Vazio mantém o rótulo gerado.
-#' @param legenda Posição da legenda. `"nenhuma"` a omite.
+#' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @return Objeto `ggplot` da curva ROC. A coluna `auc` dos dados do gráfico
 #'   contém a área sob a curva.
 #' @export
@@ -225,12 +230,13 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
 #' @param dados Histórico devolvido por [tr_ml_tune()].
 #' @param hiperparametro Nome de uma coluna numérica do histórico. Vazio mostra
 #'   a evolução das tentativas e do melhor valor acumulado.
-#' @param aspecto Proporção do gráfico, como `"16:9"` ou `"1:1"`.
+#' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
+#'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
 #' @param titulo Título do gráfico. Vazio omite o título.
 #' @param rotulo_x Rótulo do eixo X. Vazio mantém o rótulo gerado.
 #' @param rotulo_y Rótulo do eixo Y. Vazio mantém `"Métrica média"`.
-#' @param legenda Posição da legenda. `"nenhuma"` a omite.
+#' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @return Objeto `ggplot` da evolução do tuning ou da relação entre um
 #'   hiperparâmetro e a métrica média.
 #' @export
