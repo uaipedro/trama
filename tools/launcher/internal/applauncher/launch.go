@@ -38,11 +38,19 @@ func OpenBrowser(url string) error {
 	return cmd.Start()
 }
 
-// StartTramaApp sobe `Rscript -e "trama::tr_app(trama::tr_project(projectDir))"`
+// buildTramaAppExpr monta a expressão R executada por StartTramaApp. Prepende
+// libPath a .libPaths() explicitamente, em vez de depender de R_LIBS_USER/
+// variáveis de ambiente, porque isso é determinístico e não depende de como
+// o R do usuário (ou seu .Rprofile) trata o ambiente herdado do processo pai.
+func buildTramaAppExpr(libPath, projectDir string) string {
+	return fmt.Sprintf(`.libPaths(c(%q, .libPaths())); trama::tr_app(trama::tr_project(%q))`, libPath, projectDir)
+}
+
+// StartTramaApp sobe `Rscript -e ".libPaths(...); trama::tr_app(trama::tr_project(projectDir))"`
 // como processo filho e retorna o *exec.Cmd (já em execução) pro chamador
 // decidir quando encerrar.
-func StartTramaApp(ctx context.Context, rscriptPath, projectDir string) (*exec.Cmd, error) {
-	expr := fmt.Sprintf(`trama::tr_app(trama::tr_project(%q))`, projectDir)
+func StartTramaApp(ctx context.Context, rscriptPath, libPath, projectDir string) (*exec.Cmd, error) {
+	expr := buildTramaAppExpr(libPath, projectDir)
 	cmd := exec.CommandContext(ctx, rscriptPath, "-e", expr)
 	if err := cmd.Start(); err != nil {
 		return nil, err
