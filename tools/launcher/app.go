@@ -85,6 +85,9 @@ func (a *App) EnsureRPortable() error {
 		return err
 	}
 	dest := filepath.Join(a.base, "r", rVersion)
+	if runtime.GOOS == "windows" {
+		return rfetch.ExtractZip(archive, dest)
+	}
 	return rfetch.ExtractTarGz(archive, dest)
 }
 
