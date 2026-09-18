@@ -1,25 +1,18 @@
 {
   "format": 1,
-  "rev": 45,
+  "rev": 93,
   "collections": {
-    "ml": "0.1.0"
+    "ml": "0.1.0",
+    "data": "0.1.0"
   },
   "nodes": {
-    "dados": {
-      "type": "ml/example",
-      "type_version": 1,
-      "label": "Dados para aprender",
-      "params": {
-        "nome": "iris_binaria"
-      },
-      "seed": 247075137
-    },
     "divisao": {
       "type": "ml/split",
       "type_version": 1,
       "label": "Separar treino / teste",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "estratificar": true
       },
       "seed": 266292228
     },
@@ -28,8 +21,9 @@
       "type_version": 1,
       "label": "Linear / logística",
       "params": {
-        "alvo": "Species",
-        "cols": ""
+        "alvo": "HeartDisease",
+        "cols": "",
+        "tarefa": "classificacao"
       },
       "seed": 108510550
     },
@@ -45,7 +39,8 @@
       "type_version": 1,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "tarefa": "classificacao"
       },
       "seed": 223342254
     },
@@ -54,8 +49,9 @@
       "type_version": 1,
       "label": "CART · árvore de decisão",
       "params": {
-        "alvo": "Species",
-        "cols": ""
+        "alvo": "HeartDisease",
+        "cols": "",
+        "tarefa": "classificacao"
       },
       "seed": 101876763
     },
@@ -71,7 +67,8 @@
       "type_version": 1,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "tarefa": "classificacao"
       },
       "seed": 176672245
     },
@@ -80,8 +77,9 @@
       "type_version": 1,
       "label": "FIGS · soma de árvores",
       "params": {
-        "alvo": "Species",
-        "cols": ""
+        "alvo": "HeartDisease",
+        "cols": "",
+        "tarefa": "classificacao"
       },
       "seed": 133858971
     },
@@ -97,7 +95,8 @@
       "type_version": 1,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "tarefa": "classificacao"
       },
       "seed": 105942658
     },
@@ -106,8 +105,9 @@
       "type_version": 1,
       "label": "Random forest",
       "params": {
-        "alvo": "Species",
-        "cols": ""
+        "alvo": "HeartDisease",
+        "cols": "",
+        "tarefa": "classificacao"
       },
       "seed": 256804838
     },
@@ -123,7 +123,8 @@
       "type_version": 1,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "tarefa": "classificacao"
       },
       "seed": 192915269
     },
@@ -132,8 +133,9 @@
       "type_version": 1,
       "label": "SVM · vetores de suporte",
       "params": {
-        "alvo": "Species",
-        "cols": ""
+        "alvo": "HeartDisease",
+        "cols": "",
+        "tarefa": "classificacao"
       },
       "seed": 208173421
     },
@@ -149,7 +151,8 @@
       "type_version": 1,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "tarefa": "classificacao"
       },
       "seed": 13476495
     },
@@ -158,8 +161,9 @@
       "type_version": 1,
       "label": "XGBoost",
       "params": {
-        "alvo": "Species",
-        "cols": ""
+        "alvo": "HeartDisease",
+        "cols": "",
+        "tarefa": "classificacao"
       },
       "seed": 263704389
     },
@@ -175,23 +179,31 @@
       "type_version": 1,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "alvo": "HeartDisease",
+        "tarefa": "classificacao"
       },
       "seed": 46573447
+    },
+    "01M2RPCXVC0349CC": {
+      "type": "data/read_csv",
+      "type_version": 1,
+      "label": "Ler CSV",
+      "params": {
+        "path": "heart.csv"
+      },
+      "seed": 117261368
+    },
+    "01M2RPV4RQC28673": {
+      "type": "ml/confusion",
+      "type_version": 1,
+      "label": "Matriz de confusão",
+      "params": {
+        "alvo": "HeartDisease"
+      },
+      "seed": 76927338
     }
   },
   "edges": [
-    {
-      "from": {
-        "node": "dados",
-        "port": "out"
-      },
-      "to": {
-        "node": "divisao",
-        "port": "dados"
-      },
-      "index": 1
-    },
     {
       "from": {
         "node": "divisao",
@@ -455,12 +467,33 @@
         "port": "dados"
       },
       "index": 1
+    },
+    {
+      "from": {
+        "node": "01M2RPCXVC0349CC",
+        "port": "out"
+      },
+      "to": {
+        "node": "divisao",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cart_prever",
+        "port": "out"
+      },
+      "to": {
+        "node": "01M2RPV4RQC28673",
+        "port": "dados"
+      },
+      "index": 1
     }
   ],
   "ui": {
     "positions": {
-      "dados": [0, 300],
-      "divisao": [320, 300],
+      "divisao": [293, 249],
       "linear": [680, 0],
       "linear_prever": [1040, 0],
       "linear_avaliar": [1400, 0],
@@ -470,7 +503,7 @@
       "figs": [680, 640],
       "figs_prever": [1040, 640],
       "figs_avaliar": [1400, 640],
-      "forest": [680, 960],
+      "forest": [682, 1046],
       "forest_prever": [1040, 960],
       "forest_avaliar": [1400, 960],
       "svm": [680, 1280],
@@ -478,10 +511,16 @@
       "svm_avaliar": [1400, 1280],
       "xgboost": [680, 1600],
       "xgboost_prever": [1040, 1600],
-      "xgboost_avaliar": [1400, 1600]
+      "xgboost_avaliar": [1400, 1600],
+      "01M2RPCXVC0349CC": [-186, 127],
+      "01M2RPV4RQC28673": [1829, 304]
     },
-    "sizes": {},
-    "views": {},
+    "sizes": {
+      "01M2RPCXVC0349CC": [320, 224]
+    },
+    "views": {
+      "figs": "tabela"
+    },
     "frames": {},
     "folds": {}
   }
