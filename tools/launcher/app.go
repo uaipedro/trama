@@ -21,8 +21,12 @@ const rVersion = "4.4.1"
 // 8726 ("TRAM" no teclado do telefone), não a porta genérica do Shiny.
 const shinyPort = 8726
 
-// portTimeout é quanto tempo esperamos a porta do Shiny responder após subir o processo.
-const portTimeout = 30 * time.Second
+// portTimeout é quanto tempo esperamos a porta do Shiny responder após subir
+// o processo. Generoso de propósito: carregar shiny/httpuv/ragg num Windows
+// "frio" (com antivírus escaneando cada DLL na primeira vez) pode passar
+// fácil de 30s. Seguro aumentar porque WaitForAppReady detecta um processo
+// que morre cedo na hora, sem esperar esse prazo inteiro.
+const portTimeout = 90 * time.Second
 
 // App struct
 type App struct {
@@ -124,10 +128,11 @@ func (a *App) OpenTrama() error {
 		projectDir = filepath.Join(a.base, "projects", "default")
 	}
 
-	if _, err := applauncher.StartTramaApp(a.ctx, st.RscriptPath, st.LibPath, projectDir); err != nil {
+	cmd, capture, err := applauncher.StartTramaApp(a.ctx, st.RscriptPath, st.LibPath, projectDir)
+	if err != nil {
 		return err
 	}
-	if err := applauncher.WaitForPort("127.0.0.1", shinyPort, portTimeout); err != nil {
+	if err := applauncher.WaitForAppReady(cmd, capture, "127.0.0.1", shinyPort, portTimeout); err != nil {
 		return err
 	}
 	return applauncher.OpenBrowser(fmt.Sprintf("http://127.0.0.1:%d", shinyPort))
