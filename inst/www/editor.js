@@ -799,7 +799,8 @@ function exportFlowJson(doc, nomeArquivo) {
 // Não fecha ao clicar fora, ao contrário do lightbox de imagem: lá o clique
 // errado custa reabrir a imagem, aqui custa o nome digitado e a pasta
 // navegada. Sai pelo × ou pelo Esc, que são gestos deliberados.
-function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onImport, onClose }) {
+function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onImport, onClose,
+                         arquivoInicial }) {
   const [nome, setNome] = useState("");
   const [arquivo, setArquivo] = useState(null); // { nomeArquivo, conteudo } | null
   const [arrastando, setArrastando] = useState(false);
@@ -842,6 +843,18 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
   const importar = () => { if (arquivo && nome.trim()) onImport(l.path, nome.trim(), arquivo.conteudo); };
   const podeImportar = !!l && !!arquivo && !!nome.trim() && !enviando;
 
+  // Arquivo solto na PÁGINA (fora deste diálogo) chega aqui já lido — o
+  // diálogo mal montou e o gesto do usuário já aconteceu. Sem dependência de
+  // `nome`: o efeito roda uma vez, ao montar, com o valor que `App` tinha na
+  // hora do drop (ver `onDropGlobal`); ler `nome` de novo depois recriaria o
+  // efeito a cada tecla digitada no campo.
+  useEffect(() => {
+    if (arquivoInicial) {
+      setArquivo(arquivoInicial);
+      setNome((n) => n.trim() ? n : arquivoInicial.nomeArquivo.replace(/\.json$/i, ""));
+    }
+  }, []);
+
   useEffect(() => {
     const esc = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", esc);
@@ -881,10 +894,13 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
         onDragOver: (e) => { e.preventDefault(); setArrastando(true); },
         onDragLeave: () => setArrastando(false),
         onDrop: (e) => {
-          e.preventDefault(); setArrastando(false);
+          e.preventDefault(); e.stopPropagation(); setArrastando(false);
           const f = e.dataTransfer.files?.[0];
           // Só `.json`: soltar qualquer outra coisa aqui hoje não tem onde ir,
           // e tentar interpretar (imagem? pasta?) é escopo que ninguém pediu.
+          // `stopPropagation`: sem isto, o drop borbulhava até o listener
+          // global da página (`onDropGlobal`, em `App`) e reabria o diálogo
+          // do zero por cima do que o usuário já estava fazendo aqui dentro.
           if (f && /\.json$/i.test(f.name)) lerArquivo(f);
         },
       }, [
@@ -969,6 +985,7 @@ function App() {
   const [imagens, setImagens] = useState([]);
   const [abrindo, setAbrindo] = useState(false);  // diálogo visível
   const [enviando, setEnviando] = useState(null); // "abrir" | "criar" | "importar" | null: pedido em voo
+  const [arquivoSolto, setArquivoSolto] = useState(null); // {nomeArquivo, conteudo} | null — drop na página, fora do diálogo
   // Proporção dos frames NOVOS (F e Ctrl+G). É preferência de quem usa este
   // navegador, e não estado do documento: não vira op, não entra no desfazer,
   // e abrir o mesmo projeto em outra máquina não herda a escolha. Cada frame
@@ -1942,7 +1959,9 @@ function App() {
   const abrindoRef = useRef(false); abrindoRef.current = abrindo;
   // Estável porque é dependência do efeito que monta o Esc do diálogo: nova a
   // cada render, o listener seria trocado a cada tecla digitada no nome.
-  const fecharDialogo = useCallback(() => { setAbrindo(false); setEnviando(null); }, []);
+  const fecharDialogo = useCallback(() => {
+    setAbrindo(false); setEnviando(null); setArquivoSolto(null);
+  }, []);
 
   const enquadrar = (f, duration = 400, padding = 0.1) =>
     rf.fitBounds({ x: f.x, y: f.y, width: f.w, height: f.h }, { padding, duration });
@@ -2267,13 +2286,44 @@ function App() {
   const primeiroBloco = (catalog.nodes || []).find((n) =>
     (n.inputs || []).length === 0 && (n.outputs || []).length > 0);
 
+  // Arrastar um `.json` de flow em QUALQUER lugar da página — não só dentro
+  // do diálogo já aberto — abre o diálogo de projeto com o arquivo já lido.
+  // Sem isto, "arrastar pra importar" só funcionava depois de abrir o 📁
+  // manualmente primeiro, um passo que ninguém adivinha sozinho.
+  //
+  // `dataTransfer.types.includes("Files")` distingue arquivo do SO do drag
+  // interno de tipo de nó (`application/trama-type`, ver `onDrop` do
+  // canvas): só o primeiro tem "Files", e só esse deve ter o padrão
+  // (abrir o navegador) bloqueado — senão soltar um bloco da paleta fora do
+  // canvas também dispararia isto à toa.
+  const onDragOverGlobal = (e) => {
+    if ((e.dataTransfer?.types || []).includes("Files")) e.preventDefault();
+  };
+  const onDropGlobal = (e) => {
+    // Diálogo já aberto tem sua PRÓPRIA zona de importação (dentro da lista
+    // de pastas, com `stopPropagation`); soltar fora dela (título, ações) não
+    // deve reabrir a navegação do zero por baixo do que já está na tela.
+    if (abrindo) return;
+    const f = e.dataTransfer?.files?.[0];
+    if (!f || !/\.json$/i.test(f.name)) return;
+    e.preventDefault();
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      setArquivoSolto({ nomeArquivo: f.name, conteudo: leitor.result });
+      setBanner(null); setListagem(null); setEnviando(null); setAbrindo(true);
+      sendInput("tr_browse", { seq: ++seqCounter, path: projeto?.root || "." });
+    };
+    leitor.readAsText(f);
+  };
+
   // O painel de frames usa a mesma coluna larga da Ajuda.
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
   return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "",
-                                abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" ") }, [
+                                abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
+                    onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
     h("div", { key: "canvas", className: "tr-canvas", ref: wrapRef,
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
@@ -2500,6 +2550,9 @@ function App() {
       h("button", { key: "pj", className: "tr-toolbar-proj",
                     title: projeto ? projeto.root : "projeto",
                     onClick: () => { setBanner(null); setListagem(null); setEnviando(null);
+                                     // Abrir pelo clique é gesto NOVO: um arquivo solto numa
+                                     // visita anterior não pode reaparecer pré-carregado aqui.
+                                     setArquivoSolto(null);
                                      setAbrindo(true);
                                      sendInput("tr_browse", { seq: ++seqCounter,
                                                               path: projeto?.root || "." }); } },
@@ -2515,7 +2568,7 @@ function App() {
       onCriar: criarPrancheta, onFechar: fecharPrancheta }) : null,
     banner ? h("div", { key: "bn", className: "tr-banner", onClick: () => setBanner(null) },
       banner) : null,
-    abrindo ? h(ProjectDialog, { key: "pd", listagem, atual: projeto?.root, enviando,
+    abrindo ? h(ProjectDialog, { key: "pd", listagem, atual: projeto?.root, enviando, arquivoInicial: arquivoSolto,
       onBrowse: (p) => sendInput("tr_browse", { seq: ++seqCounter, path: p }),
       onOpen: (p) => { setEnviando("abrir");
                        sendInput("tr_project_open", { seq: ++seqCounter, path: p }); },
