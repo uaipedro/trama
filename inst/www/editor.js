@@ -19,6 +19,7 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
          MARCA } from "./frames.js";
+import { NotaNode, NotaDraw } from "./notas.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 
@@ -152,7 +153,13 @@ function docToFlow(doc, catalog) {
       data: { title: f.title ?? "", aspect: Object.hasOwn(ASPECTS, f.aspect) ? f.aspect : "livre",
               color: f.color, order: f.order, index: i + 1 },
     }));
-  return { nodes: [...frames, ...(missing ? autoLayout(nodes, edges) : nodes)],
+  const notes = Object.entries((doc.ui && doc.ui.notes) || {})
+    .map(([id, n]) => ({
+      id, type: "trNota", position: { x: n.x, y: n.y }, width: n.w, height: n.h,
+      data: { kind: n.kind, text: n.text, src: n.src, fit: n.fit,
+              escala: n.escala, fundo: n.fundo, color: n.color },
+    }));
+  return { nodes: [...frames, ...notes, ...(missing ? autoLayout(nodes, edges) : nodes)],
            edges, needsLayout: missing > 0 };
 }
 
@@ -592,7 +599,7 @@ function NdNode({ id, data, selected }) {
   ]);
 }
 
-const nodeTypes = { ndNode: NdNode, trFrame: FrameNode };
+const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode };
 
 function fmtDur(s) {
   if (s < 1) return `${Math.round(s * 1000)}ms`;
@@ -937,6 +944,7 @@ function App() {
   const [menu, setMenu] = useState(null);   // {kind, id, x, y}
   const [ferramenta, setFerramenta] = useState(null);   // "frame" | null
   const [editFrame, setEditFrame] = useState(null);     // id do frame com título em edição
+  const [editNota, setEditNota] = useState(null);        // id da nota com textarea aberto
   const [painelFrames, setPainelFrames] = useState(false);
   // Painel ⚙ (temas do projeto). Os três painéis laterais dividem a mesma
   // coluna e abrir um fecha os outros: com dois estados ligados, o botão do
@@ -1199,6 +1207,22 @@ function App() {
   const onFrameEditStart = useCallback((id) => setEditFrame(id), []);
   const onFrameEditEnd = useCallback(() => setEditFrame(null), []);
 
+  // Equivalentes de nota. `resolverSrc` monta a URL da rota nova, criada na
+  // Phase 4 (Task 4.1: `addResourcePath("trama-imagens", ...)`) — por
+  // enquanto a rota ainda não existe no R, mas o front já pode referenciá-la;
+  // o bloco de imagem só fica visível de verdade a partir da Phase 4.
+  const resolverSrc = useCallback((rel) => `trama-imagens/${rel}`, []);
+  const onNotaRect = useCallback((id, p) => {
+    pushOp({ op: "update_note", note: id, x: Math.round(p.x), y: Math.round(p.y),
+             w: Math.round(p.width), h: Math.round(p.height) });
+  }, []);
+  const onNotaEdit = useCallback((id, patch) => {
+    setNodes((ns) => ns.map((n) => (n.id !== id ? n : { ...n, data: { ...n.data, ...patch } })));
+    pushOp({ op: "update_note", note: id, ...patch });
+  }, []);
+  const onNotaEditStart = useCallback((id) => setEditNota(id), []);
+  const onNotaEditEnd = useCallback(() => setEditNota(null), []);
+
   // Estável pelos mesmos motivos de `onParam`. `set_fold` não devolve o
   // documento, então o ref segura o recolhimento até o próximo documento
   // chegar (e ele já vem com o valor gravado).
@@ -1240,10 +1264,16 @@ function App() {
 
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
-  const decorated = useMemo(() => nodes.map((n) => (n.type === "trFrame"
-    ? { ...n, data: { ...n.data, editing: editFrame === n.id,
-                      onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } }
-    : { ...n, data: { ...n.data, ...(stateRef.current[n.id] || {}),
+  const decorated = useMemo(() => nodes.map((n) => {
+    if (n.type === "trFrame") {
+      return { ...n, data: { ...n.data, editing: editFrame === n.id,
+                              onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } };
+    }
+    if (n.type === "trNota") {
+      return { ...n, data: { ...n.data, editing: editNota === n.id, resolverSrc,
+                              onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd } };
+    }
+    return { ...n, data: { ...n.data, ...(stateRef.current[n.id] || {}),
                       params: { ...n.data.params, ...(paramsRef.current[n.id] || {}) },
                       view: viewsRef.current[n.id] ?? n.data.view,
                       size: sizesRef.current[n.id] ?? n.data.size,
@@ -1258,11 +1288,13 @@ function App() {
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
                       typeColors, categories, onParam, onHelp, onView, onResize, onFold,
-                      onReseed, temas } })),
+                      onReseed, temas } };
+  }),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onFold, onReseed, tick, temas,
-     editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte]);
+     editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
+     editNota, resolverSrc, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
   // --- Recepção ---
   useEffect(() => {
@@ -1586,8 +1618,9 @@ function App() {
     const tipo = Object.fromEntries(nodesRef.current.map((n) => [n.id, n.type]));
     pushMany(fim.map((c) => {
       const x = Math.round(c.position.x), y = Math.round(c.position.y);
-      return tipo[c.id] === "trFrame" ? { op: "update_frame", frame: c.id, x, y }
-                                      : { op: "move", node: c.id, x, y };
+      if (tipo[c.id] === "trFrame") return { op: "update_frame", frame: c.id, x, y };
+      if (tipo[c.id] === "trNota") return { op: "update_note", note: c.id, x, y };
+      return { op: "move", node: c.id, x, y };
     }));
   }, []);
 
@@ -1664,8 +1697,9 @@ function App() {
     const ops = [];
     nodeIds.forEach((id) => {
       if (!tipo[id]) return;
-      ops.push(tipo[id] === "trFrame" ? { op: "remove_frame", frame: id }
-                                      : { op: "remove_node", node: id });
+      if (tipo[id] === "trFrame") ops.push({ op: "remove_frame", frame: id });
+      else if (tipo[id] === "trNota") ops.push({ op: "remove_note", note: id });
+      else ops.push({ op: "remove_node", node: id });
     });
     edgesRef.current.forEach((e) => {
       if (!pedidas.has(e.id) || alvo.has(e.source) || alvo.has(e.target)) return;
@@ -1764,6 +1798,13 @@ function App() {
     if (!r) return;
     pushOp({ op: "add_frame", x: Math.round(r.x), y: Math.round(r.y),
              w: Math.round(r.w), h: Math.round(r.h), aspect: aspectoNovo, title: tituloNovo() });
+  };
+
+  const criarNota = (kind, r) => {
+    setFerramenta(null);
+    if (!r) return;
+    pushOp({ op: "add_note", kind, x: Math.round(r.x), y: Math.round(r.y),
+             w: Math.round(r.w), h: Math.round(r.h) });
   };
 
   const frameDaSelecao = () => {
@@ -2044,6 +2085,8 @@ function App() {
     "mod+a": () => selecionar(true),
     "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); },
     "f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
+    "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
+    "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
     "mod+g": frameDaSelecao,
     "p": () => alternarFold("preview"),
     "o": () => alternarFold("params"),
@@ -2120,11 +2163,44 @@ function App() {
         h("button", { key: "d", onClick: () => apagar([m.id]) }, "Apagar frame"),
       ];
     }
+    if (m.kind === "nota") {
+      const n = nodes.find((x) => x.id === m.id);
+      if (!n) return [];
+      const fechar = (fn) => () => { fn(); setMenu(null); };
+      const itens = [
+        h("div", { key: "cr", className: "tr-menu-row", title: "cor" },
+          ["nenhuma", ...FRAME_COLORS].map((c) => h("button", {
+            key: c, title: c,
+            className: `tr-swatch ${c === "nenhuma" ? "tr-swatch-nenhuma" : `tr-frame-${c}`}` +
+              (c === (n.data.color || "nenhuma") ? " tr-menu-on" : ""),
+            onClick: fechar(() => onNotaEdit(m.id, { color: c })),
+          }))),
+        h("div", { key: "fu", className: "tr-menu-row", title: "fundo" },
+          ["cartao", "nenhum"].map((f) => h("button", {
+            key: f, className: f === n.data.fundo ? "tr-menu-on" : "",
+            onClick: fechar(() => onNotaEdit(m.id, { fundo: f })),
+          }, f))),
+        h("div", { key: "es", className: "tr-menu-row", title: "escala" },
+          ["nota", "letreiro"].map((e) => h("button", {
+            key: e, className: e === n.data.escala ? "tr-menu-on" : "",
+            onClick: fechar(() => onNotaEdit(m.id, { escala: e })),
+          }, e))),
+      ];
+      if (n.data.kind === "imagem") {
+        itens.push(h("div", { key: "ft", className: "tr-menu-row", title: "ajuste" },
+          ["contain", "cover"].map((f) => h("button", {
+            key: f, className: f === n.data.fit ? "tr-menu-on" : "",
+            onClick: fechar(() => onNotaEdit(m.id, { fit: f })),
+          }, f))));
+      }
+      itens.push(h("button", { key: "d", onClick: () => apagar([m.id]) }, "Apagar bloco"));
+      return itens;
+    }
     const alvo = alvoMenu(m.id);
     // Restaurar age sobre a mesma seleção que Apagar — dois itens do mesmo
     // menu com alcances diferentes enganam. Frame fica de fora (ver
     // `restaurarTamanhos`).
-    const frame = new Set(nodes.filter((n) => n.type === "trFrame").map((n) => n.id));
+    const frame = new Set(nodes.filter((n) => n.type === "trFrame" || n.type === "trNota").map((n) => n.id));
     const cards = alvo.filter((id) => !frame.has(id));
     // Agindo sobre a seleção, as ligações escolhidas vão junto — é o que a
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
@@ -2160,7 +2236,7 @@ function App() {
         // Na apresentação o menu também some: ele traz "Apagar", e o slide é
         // somente leitura.
         onNodeContextMenu: (ev, n) => (present ? ev.preventDefault()
-          : abrirMenu(ev, n.type === "trFrame" ? "frame" : "no", n.id)),
+          : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
         onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
         onPaneClick: () => setMenu(null), onNodeClick: () => setMenu(null),
         onMoveStart: () => setMenu(null),
@@ -2251,6 +2327,9 @@ function App() {
       ferramenta === "frame"
         ? h(FrameDraw, { key: "fd", toFlow: rf.screenToFlowPosition, onDone: criarFrame,
                          aspect: aspectoNovo }) : null,
+      (ferramenta === "markdown" || ferramenta === "imagem")
+        ? h(NotaDraw, { key: "nd", toFlow: rf.screenToFlowPosition,
+                        onDone: (r) => criarNota(ferramenta, r) }) : null,
       // `key` muda a cada slide: remonta o indicador e reinicia o fade.
       // O número passa pelo mesmo teto do efeito que corrige `present.i`: no
       // render em que a lista encolhe, o efeito ainda não rodou, e o
@@ -2289,6 +2368,12 @@ function App() {
       h("button", { key: "f", title: "F", className: ferramenta === "frame" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },
         "▭ Frame"),
+      h("button", { key: "m", title: "M", className: ferramenta === "markdown" ? "tr-on" : "",
+                    onClick: () => setFerramenta((t) => (t === "markdown" ? null : "markdown")) },
+        "▤ Markdown"),
+      h("button", { key: "i", title: "I", className: ferramenta === "imagem" ? "tr-on" : "",
+                    onClick: () => setFerramenta((t) => (t === "imagem" ? null : "imagem")) },
+        "▥ Imagem"),
       // Segmentado, e não `<select>`: as cinco proporções cabem à vista e
       // trocam num clique. O botão que fica com o foco não prende o teclado —
       // o listener de atalhos só ignora campos de texto e `<select>`, então o
