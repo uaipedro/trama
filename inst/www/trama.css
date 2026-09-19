@@ -296,6 +296,100 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-framedraw{position:absolute;inset:0;z-index:4;cursor:crosshair}
 .tr-framedraw-box{position:absolute;pointer-events:none;border:2px dashed var(--tr-accent);
   border-radius:10px;background:color-mix(in srgb,var(--tr-accent) 8%,transparent)}
+
+/* --- nota (Task 3.4) --- */
+/* Ao contrário do frame, a nota não devolve o clique pra nada por baixo: não
+   tem cabeçalho separado nem cards por dentro pra selecionar através dela, o
+   bloco inteiro É a área de arrasto. Por isso NÃO existe aqui o par
+   `.react-flow__node-trNota{pointer-events:none !important}` +
+   `algo{pointer-events:all}` que `.tr-frame` precisa — o wrapper do xyflow
+   fica com pointer-events normal, e o `textarea.nodrag` de edição continua
+   clicável/focável do jeito de sempre (a classe `nodrag` já impede o arrasto
+   do xyflow por conta própria, não é uma questão de pointer-events daqui). */
+.tr-nota{--tr-fc:var(--tr-line);position:relative;width:100%;height:100%;
+  display:flex;flex-direction:column;overflow:hidden;color:var(--tr-fg);
+  border-radius:10px;cursor:grab}
+/* Mesmos 7 tons hex de `.tr-frame-<tom>` (ver ali) — mesmo conjunto nomeado
+   de cores do projeto, não uma paleta nova. `--tr-fc` cai em `--tr-line`
+   (tom neutro de tema) quando nenhuma `.tr-nota-<tom>` está presente: é o
+   estado "nenhuma" que `NotaNode` documenta (nenhuma classe extra, ver
+   `notas.js`). */
+.tr-nota-azul{--tr-fc:#7aa2f7} .tr-nota-verde{--tr-fc:#9ece6a}
+.tr-nota-amarelo{--tr-fc:#e0af68} .tr-nota-laranja{--tr-fc:#ff9e64}
+.tr-nota-rosa{--tr-fc:#f7768e} .tr-nota-roxo{--tr-fc:#bb9af7}
+.tr-nota-cinza{--tr-fc:#8b93a7}
+.tr-nota-cartao{border:2px solid var(--tr-fc);
+  background:color-mix(in srgb,var(--tr-fc) 8%,transparent)}
+.tr-nota-nenhum{border:2px solid transparent;background:transparent}
+.tr-nota-sel{box-shadow:0 0 0 2px var(--tr-accent)}
+/* Alças do resizer em tamanho fixo simples, SEM o truque `calc(Npx /
+   var(--tr-z,1))` do frame: `NotaNode` nunca define `--tr-z` (confirmado em
+   `notas.js`), então essa variável ficaria sempre no fallback e o calc não
+   faria nada — escrever direto em px é o mesmo resultado, sem variável
+   morta. As alças (e só elas) ficam de tamanho fixo em unidade de fluxo;
+   o CONTEÚDO abaixo escala normalmente com o zoom do canvas, que é a
+   diferença deliberada em relação ao cabeçalho do frame (ver plano). */
+.tr-nota .react-flow__resize-control.handle{width:8px;height:8px;border-radius:2px}
+.tr-nota .react-flow__resize-control.line{border-color:transparent}
+/* Corpo: rola por dentro em vez de vazar por cima do card vizinho quando o
+   texto é maior que o retângulo. */
+.tr-nota-corpo{flex:1 1 auto;min-width:0;min-height:0;overflow:auto;padding:10px 14px}
+.tr-nota-letreiro .tr-nota-corpo{display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center}
+/* Imagem e o convite vazio já preenchem o card sozinhos — o padding do corpo
+   só sobraria como faixa cinza ao redor da foto. */
+.tr-nota-img .tr-nota-corpo{padding:0}
+.tr-nota-input{width:100%;height:100%;resize:none;border:0;background:transparent;
+  color:inherit;font:inherit;font-size:13px;line-height:1.5;outline:none;padding:0}
+.tr-nota-vazia{display:flex;align-items:center;justify-content:center;height:100%;
+  text-align:center;color:var(--tr-dim);font-size:12px;line-height:1.4;
+  border:1px dashed var(--tr-line);border-radius:8px;padding:16px}
+.tr-nota-img-wrap{width:100%;height:100%;display:flex;align-items:center;
+  justify-content:center;overflow:hidden}
+/* `width`/`height:100%` só pra dar área ao `object-fit` inline (`contain`/
+   `cover`) que `notas.js` já escreve via `style` — o CSS não repete isso. */
+.tr-nota-imgtag{width:100%;height:100%;display:block;cursor:zoom-in}
+
+/* Tipografia do `.tr-nota-md`: subconjunto que `markdown.js` de fato produz
+   (h1-h3, p, strong/em, code/pre, ul/ol/li, blockquote, hr, table, a, img,
+   span de fallback literal) — nada além disso, herdando cor do tema. */
+.tr-nota-md h1,.tr-nota-md h2,.tr-nota-md h3{margin:.35em 0 .25em;line-height:1.25;
+  font-weight:700}
+.tr-nota-md h1{font-size:1.6em} .tr-nota-md h2{font-size:1.3em} .tr-nota-md h3{font-size:1.1em}
+.tr-nota-md p{margin:.4em 0}
+.tr-nota-md strong{font-weight:700}
+.tr-nota-md em{font-style:italic}
+.tr-nota-md code{font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
+  font-size:.9em;background:var(--tr-field);border:1px solid var(--tr-line);
+  border-radius:4px;padding:.05em .35em}
+.tr-nota-md pre{margin:.5em 0;padding:8px 10px;background:var(--tr-field);
+  border:1px solid var(--tr-line);border-radius:6px;overflow:auto}
+.tr-nota-md pre code{background:none;border:0;padding:0}
+.tr-nota-md ul,.tr-nota-md ol{margin:.4em 0;padding-left:1.3em}
+.tr-nota-md li{margin:.15em 0}
+.tr-nota-md blockquote{margin:.5em 0;padding:2px 12px;border-left:3px solid var(--tr-fc);
+  color:var(--tr-dim)}
+.tr-nota-md hr{border:0;border-top:1px solid var(--tr-line);margin:.7em 0}
+.tr-nota-md table{border-collapse:collapse;width:100%;margin:.5em 0;font-size:.9em}
+.tr-nota-md th,.tr-nota-md td{border:1px solid var(--tr-line);padding:3px 7px;text-align:left}
+.tr-nota-md thead th{background:var(--tr-field);font-weight:600}
+.tr-nota-md a{color:var(--tr-accent);text-decoration:underline}
+.tr-nota-md img{max-width:100%;display:block;border-radius:4px}
+.tr-nota-md span{white-space:pre-wrap;overflow-wrap:break-word}
+/* Letreiro: o "#" do bloco sobe de tamanho e centraliza — é o título chamativo
+   do diagrama. Nota: tamanho de texto corrido, discreto. */
+.tr-nota-letreiro.tr-nota-md h1{font-size:2.1em}
+.tr-nota-letreiro.tr-nota-md h2{font-size:1.6em}
+.tr-nota-letreiro.tr-nota-md h3{font-size:1.3em}
+.tr-nota-letreiro.tr-nota-md p{font-size:1.05em}
+.tr-nota-nota.tr-nota-md h1{font-size:1.3em}
+.tr-nota-nota.tr-nota-md h2{font-size:1.12em}
+.tr-nota-nota.tr-nota-md h3{font-size:1em}
+.tr-nota-nota.tr-nota-md p{font-size:.95em}
+
+.tr-notadraw{position:absolute;inset:0;z-index:4;cursor:crosshair}
+.tr-notadraw-box{position:absolute;pointer-events:none;border:2px dashed var(--tr-accent);
+  border-radius:8px;background:color-mix(in srgb,var(--tr-accent) 8%,transparent)}
 .tr-toolbar button.tr-on{border-color:var(--tr-accent);color:var(--tr-accent)}
 .tr-menu-row{display:flex;flex-wrap:wrap;gap:3px;padding:3px}
 .tr-menu .tr-menu-row button{width:auto;padding:3px 6px;font-size:11px}
@@ -307,6 +401,15 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-prancheta .tr-swatch{width:18px;height:18px;
   padding:0;border:0;border-radius:4px;background:var(--tr-fc);cursor:pointer}
 .tr-menu .tr-menu-row .tr-swatch:hover,.tr-prancheta .tr-swatch:hover{outline:1px solid var(--tr-fg)}
+/* Amostra "nenhuma" (nota sem tom, Task 3.4): fora de `.tr-frame`/`.tr-nota`,
+   `--tr-fc` não existe, então `background:var(--tr-fc)` do `.tr-swatch` base
+   cairia em transparente puro — invisível contra o painel. Um xadrez com as
+   MESMAS variáveis de tema (nunca hex novo) marca "sem cor" sem inventar
+   tom nenhum. */
+.tr-swatch-nenhuma{background-image:
+    linear-gradient(45deg,var(--tr-line) 25%,transparent 25%,transparent 75%,var(--tr-line) 75%),
+    linear-gradient(45deg,var(--tr-line) 25%,transparent 25%,transparent 75%,var(--tr-line) 75%);
+  background-size:8px 8px;background-position:0 0,4px 4px;background-color:var(--tr-field)}
 
 /* --- painel de frames --- */
 .tr-frames{background:var(--tr-panel);border-left:1px solid var(--tr-line);
