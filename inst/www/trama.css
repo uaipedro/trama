@@ -550,6 +550,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* --- paleta --- */
 .tr-palette{background:var(--tr-panel);border-left:1px solid var(--tr-line);
             display:flex;flex-direction:column;min-height:0}
+.tr-palette-head{display:flex;flex-direction:column;gap:2px;padding:18px 14px 6px}
+.tr-palette-head strong{font-size:14px;letter-spacing:-.02em}
+.tr-palette-head span{color:var(--tr-dim);font-size:10.5px;line-height:1.35}
 /* Aba com a MESMA forma do .tr-palette-item, e não por economia: fileira de
    aba com sublinhado contínuo não sobrevive a quebrar em duas linhas, e
    quebrar é o que a paleta faz quando o projeto carrega cinco coleções.
@@ -602,6 +605,21 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 
 /* --- toolbar / banner --- */
 .tr-toolbar{position:absolute;top:12px;left:12px;display:flex;gap:6px;z-index:5}
+.tr-toolbar{right:272px;align-items:center;gap:8px;min-width:0}
+.tr-toolbar-tools{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;
+  gap:4px;padding:4px;background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:10px;
+  box-shadow:0 4px 16px var(--tr-shadow)}
+.tr-toolbar-tools button{border-color:transparent;white-space:nowrap}
+.tr-toolbar-tools button:hover{background:var(--tr-hover)}
+.tr-toolbar-proj{order:-1}
+.tr-toolbar-tema{margin-left:auto;order:2}
+.tr-toolbar-more{order:3}
+.tr-toolbar-more{font-size:20px!important;line-height:17px;min-width:32px}
+.tr-toolbar-actions{position:absolute;right:0;top:42px;display:flex;flex-direction:column;gap:3px;
+  min-width:172px;padding:5px;background:var(--tr-panel);border:1px solid var(--tr-line);
+  border-radius:9px;box-shadow:0 8px 24px var(--tr-shadow-hi)}
+.tr-toolbar .tr-toolbar-actions button{text-align:left;border:0;padding:7px 9px}
+.tr-toolbar .tr-toolbar-actions button:hover{background:var(--tr-hover)}
 .tr-toolbar button{background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line);
   border-radius:6px;padding:5px 11px;font:inherit;font-size:11.5px;cursor:pointer}
 .tr-toolbar button:hover{border-color:var(--tr-accent)}
@@ -633,6 +651,49 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    teto, um nome longo esticava a toolbar para fora da tela. O caminho inteiro
    continua na dica. */
 .tr-toolbar-proj{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-welcome{position:absolute;top:50%;left:calc((100% - 260px)/2);transform:translate(-50%,-50%);z-index:4;
+  width:min(490px,calc(100% - 48px));padding:32px;background:var(--tr-panel);
+  border:1px solid var(--tr-line);border-radius:14px;box-shadow:0 12px 40px var(--tr-shadow)}
+.tr-welcome-mark{display:block;width:auto;height:32px;margin-bottom:26px}
+.tr-welcome-eyebrow{display:block;color:var(--tr-accent);font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase}
+.tr-welcome h1{margin:5px 0 9px;font-size:27px;line-height:1.16;letter-spacing:-.04em}
+.tr-welcome p{margin:0;color:var(--tr-dim);font-size:13px;line-height:1.6;max-width:42ch}
+.tr-welcome-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:25px}
+.tr-welcome-actions button{border:1px solid var(--tr-line);background:var(--tr-field);color:var(--tr-fg);
+  border-radius:7px;padding:9px 13px;font:inherit;font-weight:600;cursor:pointer}
+.tr-welcome-actions button:hover{border-color:var(--tr-accent)}
+.tr-welcome-actions .tr-welcome-primary{background:var(--tr-accent);border-color:var(--tr-accent);
+  color:var(--tr-accent-fg)}
+.tr-welcome-steps{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;padding-top:16px;
+  border-top:1px solid var(--tr-line);color:var(--tr-dim);font-size:10.5px}
+.tr-next-step{position:absolute;bottom:18px;left:calc((100% - 260px)/2);transform:translateX(-50%);
+  z-index:4;max-width:min(500px,calc(100% - 300px));padding:9px 14px;background:var(--tr-panel);
+  border:1px solid var(--tr-line);border-radius:8px;color:var(--tr-dim);font-size:11.5px;
+  box-shadow:0 4px 16px var(--tr-shadow)}
+@media(max-width:1200px){
+  .tr-toolbar{right:272px}
+  .tr-toolbar-tools{position:static;transform:none;margin-left:auto;max-width:50%;overflow-x:auto}
+  .tr-toolbar-tema{display:none}
+}
+@media(max-width:850px){
+  .tr-app,.tr-app-help{grid-template-columns:minmax(0,1fr) 220px}
+  .tr-toolbar{right:232px}
+  .tr-marca{display:none}
+  .tr-toolbar-proj{max-width:110px}
+  .tr-welcome{padding:24px}
+  .tr-welcome{left:calc((100% - 220px)/2)}
+  .tr-next-step{left:calc((100% - 220px)/2);max-width:calc(100% - 250px)}
+}
+@media(max-width:600px){
+  .tr-app,.tr-app-help{grid-template-columns:minmax(0,1fr)}
+  .tr-palette,.tr-help,.tr-frames{position:absolute;right:0;bottom:0;top:auto;width:100%;height:36%;z-index:3;border-top:1px solid var(--tr-line)}
+  .tr-toolbar{right:12px}
+  .tr-toolbar-tools{margin-left:auto;max-width:43%}
+  .tr-welcome{top:32%;left:50%;width:calc(100% - 28px)}
+  .tr-welcome-steps{display:none}
+  .tr-next-step{bottom:38%;left:50%;max-width:calc(100% - 28px)}
+}
 /* `z-index:6` é o valor de repouso: acima da toolbar (5) e ABAIXO do menu de
    contexto (20) — elevado sempre, um menu aberto na faixa de baixo à esquerda
    ficava parcialmente coberto, e o clique que escolheria um item só dispensava
@@ -676,6 +737,18 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* O painel toma a coluna da paleta e a alarga: página de ajuda pede linha mais
    longa que uma lista de botões. */
 .tr-app-help{grid-template-columns:1fr 360px}
+.tr-app-help .tr-toolbar{right:372px}
+.tr-app-help .tr-welcome,.tr-app-help .tr-next-step{left:calc((100% - 360px)/2)}
+@media(max-width:850px){
+  .tr-app-help{grid-template-columns:minmax(0,1fr) 220px}
+  .tr-app-help .tr-toolbar{right:232px}
+  .tr-app-help .tr-welcome,.tr-app-help .tr-next-step{left:calc((100% - 220px)/2)}
+}
+@media(max-width:600px){
+  .tr-app-help{grid-template-columns:minmax(0,1fr)}
+  .tr-app-help .tr-toolbar{right:12px}
+  .tr-app-help .tr-welcome,.tr-app-help .tr-next-step{left:50%}
+}
 /* O banner é posicionado contra a largura da paleta; com o painel aberto a
    coluna é mais larga, e sem isto a faixa de erro passa por baixo dele. */
 .tr-app-help .tr-banner{right:380px}

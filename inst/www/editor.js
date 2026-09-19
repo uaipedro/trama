@@ -714,6 +714,10 @@ function Palette({ catalog, filterType, onPick }) {
   ]);
 
   return h("aside", { className: "tr-palette" }, [
+    h("div", { key: "head", className: "tr-palette-head" }, [
+      h("strong", { key: "title" }, "Blocos"),
+      h("span", { key: "hint" }, "Clique para adicionar ou arraste para a tela"),
+    ]),
     // Uma coleção só não tem o que escolher: a fileira some inteira em vez de
     // mostrar uma aba órfã sempre ativa.
     achando || cols.length < 2 ? null
@@ -723,7 +727,7 @@ function Palette({ catalog, filterType, onPick }) {
             className: c.id === active ? "tr-palette-tab tr-palette-tab-on" : "tr-palette-tab",
             onClick: () => setTab(c.id),
           }, c.label || c.id))),
-    h("input", { key: "q", className: "tr-search", placeholder: "buscar nó…",
+    h("input", { key: "q", className: "tr-search", placeholder: "Buscar blocos…", "aria-label": "Buscar blocos",
                  value: q, onChange: (e) => setQ(e.target.value) }),
     filterType ? h("div", { key: "f", className: "tr-filter" }, `aceita ${filterType}`) : null,
     achando ? h("div", { key: "c", className: "tr-count" },
@@ -950,6 +954,7 @@ function App() {
   // coluna e abrir um fecha os outros: com dois estados ligados, o botão do
   // escondido ficaria aceso sem nada na tela que corresponda a ele.
   const [painelConfig, setPainelConfig] = useState(false);
+  const [menuAcoes, setMenuAcoes] = useState(false);
   const [present, setPresent] = useState(null);         // {i, volta} | null
   const [exportando, setExportando] = useState(false);
   const [projeto, setProjeto] = useState(null);   // {root, flow} do que está aberto
@@ -2125,7 +2130,7 @@ function App() {
   } : {
     "mod+z": desfazer,
     "mod+a": () => selecionar(true),
-    "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); },
+    "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); setMenuAcoes(false); },
     "f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
@@ -2258,6 +2263,9 @@ function App() {
   }
 
   const selecionados = nodes.filter((n) => n.selected);
+  const vazio = nodes.length === 0 && !present;
+  const primeiroBloco = (catalog.nodes || []).find((n) =>
+    (n.inputs || []).length === 0 && (n.outputs || []).length > 0);
 
   // O painel de frames usa a mesma coluna larga da Ajuda.
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
@@ -2280,7 +2288,7 @@ function App() {
         onNodeContextMenu: (ev, n) => (present ? ev.preventDefault()
           : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
         onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
-        onPaneClick: () => setMenu(null), onNodeClick: () => setMenu(null),
+        onPaneClick: () => { setMenu(null); setMenuAcoes(false); }, onNodeClick: () => setMenu(null),
         onMoveStart: () => setMenu(null),
         // Gestos: arrastar no vazio (botão principal ou do meio, ou com espaço)
         // ANDA pela tela; Shift + arrasto desenha a caixa de seleção, e
@@ -2378,6 +2386,26 @@ function App() {
       // indicador mostraria "3 / 2" por um quadro.
       present ? h("div", { key: `pi${present.i}`, className: "tr-present-ind" },
         `${Math.min(present.i, framesOrd.length - 1) + 1} / ${framesOrd.length}`) : null),
+    vazio ? h("section", { key: "welcome", className: "tr-welcome", "aria-label": "Comece seu fluxo" }, [
+      h("img", { key: "logo", src: MARCA, alt: "", className: "tr-welcome-mark" }),
+      h("span", { key: "eyebrow", className: "tr-welcome-eyebrow" }, "Seu espaço de trabalho"),
+      h("h1", { key: "title" }, "Comece com um bloco"),
+      h("p", { key: "body" }, "Escolha uma fonte de dados, conecte outros blocos e acompanhe o resultado em cada etapa."),
+      h("div", { key: "actions", className: "tr-welcome-actions" }, [
+        primeiroBloco ? h("button", { key: "first", className: "tr-welcome-primary",
+          onClick: () => addPicked(primeiroBloco.id) }, `Adicionar ${primeiroBloco.label.toLowerCase()}`) : null,
+        h("button", { key: "browse", onClick: () => document.querySelector(".tr-search")?.focus() },
+          "Explorar blocos →"),
+      ]),
+      h("div", { key: "steps", className: "tr-welcome-steps" }, [
+        h("span", { key: "a" }, "1  Adicione um bloco"),
+        h("span", { key: "b" }, "2  Configure os parâmetros"),
+        h("span", { key: "c" }, "3  Conecte e veja o resultado"),
+      ]),
+    ]) : null,
+    nodes.length === 1 && nodes[0].type === "ndNode" && !present
+      ? h("div", { key: "next", className: "tr-next-step", role: "status" },
+          "Agora configure o bloco. Depois, arraste de uma porta para conectar o próximo.") : null,
     helpFor
       ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null) })
       : painelConfig
@@ -2406,6 +2434,7 @@ function App() {
       h("img", { key: "marca", className: "tr-marca", src: MARCA, alt: "trama",
                  draggable: false,
                  title: `trama ${document.getElementById("tr-root")?.dataset.versao || ""}`.trim() }),
+      h("div", { key: "tools", className: "tr-toolbar-tools", role: "group", "aria-label": "Ferramentas" }, [
       h("button", { key: "l", onClick: organizarTudo }, "⇶ Organizar"),
       h("button", { key: "f", title: "F", className: ferramenta === "frame" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },
@@ -2430,15 +2459,22 @@ function App() {
       h("button", { key: "fp", className: painelFrames ? "tr-on" : "",
                     onClick: () => { setHelpFor(null); setPainelConfig(false);
                                      setPainelFrames((v) => !v); } }, "▦ Frames"),
+      ]),
+      h("button", { key: "more", className: "tr-toolbar-more", title: "Mais ações",
+        "aria-label": "Mais ações", "aria-expanded": menuAcoes,
+        onClick: () => setMenuAcoes((v) => !v) }, "⋯"),
+      menuAcoes ? h("div", { key: "actions", className: "tr-toolbar-actions",
+        onClick: () => setMenuAcoes(false) }, [
       h("button", { key: "cfg", title: "configurações", className: painelConfig ? "tr-on" : "",
                     onClick: () => { setHelpFor(null); setPainelFrames(false);
-                                     setPainelConfig((v) => !v); } }, "⚙"),
+                                     setPainelConfig((v) => !v); setMenuAcoes(false); } }, "⚙ Configurações"),
       h("button", { key: "u", onClick: desfazer, title: "Ctrl+Z" }, "↶ Desfazer"),
       h("button", { key: "r", onClick: () => sendInput("tr_rerun", Date.now()) }, "↻ Recalcular"),
       h("button", { key: "ex-flow", disabled: !doc,
                     onClick: () => exportFlowJson(doc,
                       `${(projeto?.root || "flow").split("/").filter(Boolean).pop()}-${projeto?.flow || "main"}.json`) },
         "⇩ Exportar flow"),
+      ]) : null,
       // Embrulhado: o segmentado da toolbar nasce colado no botão anterior (o da
       // proporção pertence ao "▭ Frame"), e o do tema é um grupo à parte.
       h("div", { key: "ta", className: "tr-toolbar-tema" },
