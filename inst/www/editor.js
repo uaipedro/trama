@@ -1215,10 +1215,9 @@ function App() {
   const onFrameEditStart = useCallback((id) => setEditFrame(id), []);
   const onFrameEditEnd = useCallback(() => setEditFrame(null), []);
 
-  // Equivalentes de nota. `resolverSrc` monta a URL da rota nova, criada na
-  // Phase 4 (Task 4.1: `addResourcePath("trama-imagens", ...)`) — por
-  // enquanto a rota ainda não existe no R, mas o front já pode referenciá-la;
-  // o bloco de imagem só fica visível de verdade a partir da Phase 4.
+  // Equivalentes de nota. `resolverSrc` monta a URL da rota `trama-imagens`,
+  // registrada em `tr_ui()`/`R/transport.R` e servindo a pasta `imagens/` do
+  // projeto — `src` gravado no documento é o caminho relativo a ela.
   const resolverSrc = useCallback((rel) => `trama-imagens/${rel}`, []);
   const onNotaRect = useCallback((id, p) => {
     pushOp({ op: "update_note", note: id, x: Math.round(p.x), y: Math.round(p.y),
