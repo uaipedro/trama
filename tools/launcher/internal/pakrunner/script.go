@@ -36,7 +36,7 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 lib <- %q
 dir.create(lib, showWarnings = FALSE, recursive = TRUE)
 for (pkg in c(%s)) {
-  remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = TRUE)
+  remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA)
 }
 `, p3mRepo, lib, pkgList)
 }

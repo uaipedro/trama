@@ -11,7 +11,7 @@ func TestBuildInstallScript(t *testing.T) {
 		`install.packages("remotes")`,
 		`lib <- "/home/user/.trama-launcher/lib"`,
 		`for (pkg in c("uaipedro/trama", "uaipedro/trama/collections/trama.data")) {`,
-		`remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = TRUE)`,
+		`remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA)`,
 	}
 	for _, w := range want {
 		if !contains(script, w) {
