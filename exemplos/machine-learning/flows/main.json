@@ -1,9 +1,10 @@
 {
   "format": 1,
-  "rev": 93,
+  "rev": 190,
   "collections": {
     "ml": "0.1.0",
-    "data": "0.1.0"
+    "data": "0.1.0",
+    "view": "0.1.0"
   },
   "nodes": {
     "divisao": {
@@ -15,34 +16,6 @@
         "estratificar": true
       },
       "seed": 266292228
-    },
-    "linear": {
-      "type": "ml/linear",
-      "type_version": 1,
-      "label": "Linear / logística",
-      "params": {
-        "alvo": "HeartDisease",
-        "cols": "",
-        "tarefa": "classificacao"
-      },
-      "seed": 108510550
-    },
-    "linear_prever": {
-      "type": "ml/predict",
-      "type_version": 1,
-      "label": "Prever",
-      "params": {},
-      "seed": 225062009
-    },
-    "linear_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
-      "label": "Avaliar previsões",
-      "params": {
-        "alvo": "HeartDisease",
-        "tarefa": "classificacao"
-      },
-      "seed": 223342254
     },
     "cart": {
       "type": "ml/cart",
@@ -100,90 +73,6 @@
       },
       "seed": 105942658
     },
-    "forest": {
-      "type": "ml/forest",
-      "type_version": 1,
-      "label": "Random forest",
-      "params": {
-        "alvo": "HeartDisease",
-        "cols": "",
-        "tarefa": "classificacao"
-      },
-      "seed": 256804838
-    },
-    "forest_prever": {
-      "type": "ml/predict",
-      "type_version": 1,
-      "label": "Prever",
-      "params": {},
-      "seed": 81696437
-    },
-    "forest_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
-      "label": "Avaliar previsões",
-      "params": {
-        "alvo": "HeartDisease",
-        "tarefa": "classificacao"
-      },
-      "seed": 192915269
-    },
-    "svm": {
-      "type": "ml/svm",
-      "type_version": 1,
-      "label": "SVM · vetores de suporte",
-      "params": {
-        "alvo": "HeartDisease",
-        "cols": "",
-        "tarefa": "classificacao"
-      },
-      "seed": 208173421
-    },
-    "svm_prever": {
-      "type": "ml/predict",
-      "type_version": 1,
-      "label": "Prever",
-      "params": {},
-      "seed": 232124912
-    },
-    "svm_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
-      "label": "Avaliar previsões",
-      "params": {
-        "alvo": "HeartDisease",
-        "tarefa": "classificacao"
-      },
-      "seed": 13476495
-    },
-    "xgboost": {
-      "type": "ml/xgboost",
-      "type_version": 1,
-      "label": "XGBoost",
-      "params": {
-        "alvo": "HeartDisease",
-        "cols": "",
-        "tarefa": "classificacao"
-      },
-      "seed": 263704389
-    },
-    "xgboost_prever": {
-      "type": "ml/predict",
-      "type_version": 1,
-      "label": "Prever",
-      "params": {},
-      "seed": 247760725
-    },
-    "xgboost_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
-      "label": "Avaliar previsões",
-      "params": {
-        "alvo": "HeartDisease",
-        "tarefa": "classificacao"
-      },
-      "seed": 46573447
-    },
     "01M2RPCXVC0349CC": {
       "type": "data/read_csv",
       "type_version": 1,
@@ -193,61 +82,47 @@
       },
       "seed": 117261368
     },
-    "01M2RPV4RQC28673": {
-      "type": "ml/confusion",
+    "01M2TC7PSZF96B49": {
+      "type": "ml/tree_plot",
       "type_version": 1,
-      "label": "Matriz de confusão",
+      "label": "Visualizar árvores",
       "params": {
-        "alvo": "HeartDisease"
+        "tema": "claro"
       },
-      "seed": 76927338
+      "seed": 79618316
+    },
+    "01M2TC9D5V41DAAE": {
+      "type": "ml/tree_plot",
+      "type_version": 1,
+      "label": "Visualizar árvores",
+      "params": {
+        "tema": "claro"
+      },
+      "seed": 17085427
+    },
+    "01M2TCB8RR1871B1": {
+      "type": "ml/importance",
+      "type_version": 1,
+      "label": "Importância de variáveis",
+      "params": {},
+      "seed": 97890486
+    },
+    "01M2TEP2RAC5C185": {
+      "type": "view/bars",
+      "type_version": 1,
+      "label": "Barras",
+      "params": {
+        "x": "variavel",
+        "y": "importancia",
+        "ordenar": true,
+        "deitar": true,
+        "tema": "claro",
+        "titulo": "Importância das Variáveis"
+      },
+      "seed": 82994007
     }
   },
   "edges": [
-    {
-      "from": {
-        "node": "divisao",
-        "port": "treino"
-      },
-      "to": {
-        "node": "linear",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "linear",
-        "port": "out"
-      },
-      "to": {
-        "node": "linear_prever",
-        "port": "modelo"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "divisao",
-        "port": "teste"
-      },
-      "to": {
-        "node": "linear_prever",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "linear_prever",
-        "port": "out"
-      },
-      "to": {
-        "node": "linear_avaliar",
-        "port": "dados"
-      },
-      "index": 1
-    },
     {
       "from": {
         "node": "divisao",
@@ -338,133 +213,34 @@
     },
     {
       "from": {
-        "node": "divisao",
-        "port": "treino"
-      },
-      "to": {
-        "node": "forest",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "forest",
+        "node": "figs",
         "port": "out"
       },
       "to": {
-        "node": "forest_prever",
+        "node": "01M2TC7PSZF96B49",
         "port": "modelo"
       },
       "index": 1
     },
     {
       "from": {
-        "node": "divisao",
-        "port": "teste"
-      },
-      "to": {
-        "node": "forest_prever",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "forest_prever",
+        "node": "cart",
         "port": "out"
       },
       "to": {
-        "node": "forest_avaliar",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "divisao",
-        "port": "treino"
-      },
-      "to": {
-        "node": "svm",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "svm",
-        "port": "out"
-      },
-      "to": {
-        "node": "svm_prever",
+        "node": "01M2TC9D5V41DAAE",
         "port": "modelo"
       },
       "index": 1
     },
     {
       "from": {
-        "node": "divisao",
-        "port": "teste"
-      },
-      "to": {
-        "node": "svm_prever",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "svm_prever",
+        "node": "figs",
         "port": "out"
       },
       "to": {
-        "node": "svm_avaliar",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "divisao",
-        "port": "treino"
-      },
-      "to": {
-        "node": "xgboost",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "xgboost",
-        "port": "out"
-      },
-      "to": {
-        "node": "xgboost_prever",
+        "node": "01M2TCB8RR1871B1",
         "port": "modelo"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "divisao",
-        "port": "teste"
-      },
-      "to": {
-        "node": "xgboost_prever",
-        "port": "dados"
-      },
-      "index": 1
-    },
-    {
-      "from": {
-        "node": "xgboost_prever",
-        "port": "out"
-      },
-      "to": {
-        "node": "xgboost_avaliar",
-        "port": "dados"
       },
       "index": 1
     },
@@ -481,11 +257,11 @@
     },
     {
       "from": {
-        "node": "cart_prever",
+        "node": "01M2TCB8RR1871B1",
         "port": "out"
       },
       "to": {
-        "node": "01M2RPV4RQC28673",
+        "node": "01M2TEP2RAC5C185",
         "port": "dados"
       },
       "index": 1
@@ -493,35 +269,37 @@
   ],
   "ui": {
     "positions": {
-      "divisao": [293, 249],
-      "linear": [680, 0],
-      "linear_prever": [1040, 0],
-      "linear_avaliar": [1400, 0],
-      "cart": [680, 320],
-      "cart_prever": [1040, 320],
-      "cart_avaliar": [1400, 320],
-      "figs": [680, 640],
-      "figs_prever": [1040, 640],
-      "figs_avaliar": [1400, 640],
-      "forest": [682, 1046],
-      "forest_prever": [1040, 960],
-      "forest_avaliar": [1400, 960],
-      "svm": [680, 1280],
-      "svm_prever": [1040, 1280],
-      "svm_avaliar": [1400, 1280],
-      "xgboost": [680, 1600],
-      "xgboost_prever": [1040, 1600],
-      "xgboost_avaliar": [1400, 1600],
-      "01M2RPCXVC0349CC": [-186, 127],
-      "01M2RPV4RQC28673": [1829, 304]
+      "divisao": [117, 84],
+      "cart": [448, 67],
+      "cart_prever": [719, 82],
+      "cart_avaliar": [1015, 77],
+      "figs": [461, 515],
+      "figs_prever": [1122, 566],
+      "figs_avaliar": [1400, 557],
+      "01M2RPCXVC0349CC": [-649, -6],
+      "01M2TC7PSZF96B49": [1670, 602],
+      "01M2TC9D5V41DAAE": [1313, 18],
+      "01M2TCB8RR1871B1": [2338, 664],
+      "01M2TEP2RAC5C185": [2752, 634]
     },
     "sizes": {
-      "01M2RPCXVC0349CC": [320, 224]
+      "01M2RPCXVC0349CC": [640, 400],
+      "01M2TC7PSZF96B49": [656, 320],
+      "01M2TC9D5V41DAAE": [640, 368],
+      "01M2TCB8RR1871B1": [288, 288],
+      "figs": [624, 256]
     },
     "views": {
       "figs": "tabela"
     },
     "frames": {},
-    "folds": {}
+    "folds": {
+      "01M2TC7PSZF96B49": {
+        "params": false
+      },
+      "01M2TC9D5V41DAAE": {
+        "params": false
+      }
+    }
   }
 }

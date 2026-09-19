@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "rev": 233,
+  "rev": 286,
   "collections": {
     "models": "0.1.0",
     "view": "0.1.0",
@@ -616,6 +616,20 @@
         "intervalo": "IC 95%"
       },
       "seed": 197440478
+    },
+    "01M2TF81V21B51CE": {
+      "type": "models/bartlett",
+      "type_version": 1,
+      "label": "Bartlett",
+      "params": {},
+      "seed": 218638371
+    },
+    "01M2TFAFRPF37784": {
+      "type": "models/plot_diagnostics",
+      "type_version": 1,
+      "label": "Diagnóstico dos resíduos",
+      "params": {},
+      "seed": 22763776
     }
   },
   "edges": [
@@ -1311,79 +1325,103 @@
         "port": "modelo"
       },
       "index": 1
+    },
+    {
+      "from": {
+        "node": "cont_anova",
+        "port": "out"
+      },
+      "to": {
+        "node": "01M2TF81V21B51CE",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "cont_glm",
+        "port": "out"
+      },
+      "to": {
+        "node": "01M2TFAFRPF37784",
+        "port": "modelo"
+      },
+      "index": 1
     }
   ],
   "ui": {
     "positions": {
-      "dic_dados": [40, 90],
-      "dic_box": [40, 519],
-      "dic": [370, 90],
-      "dic_sw": [700, 90],
-      "dic_lev": [700, 519],
-      "dic_quadro": [1030, 90],
-      "dic_medias": [1610, 90],
-      "dic_dunnett": [1940, 90],
-      "dic_kw": [370, 519],
-      "dic_contr": [1030, 519],
-      "dbc_dados": [40, 1210],
-      "dbc": [370, 1210],
-      "dbc_medidas": [370, 1639],
-      "dbc_sw": [700, 1210],
-      "dbc_bart": [700, 1540],
-      "dbc_adit": [700, 1870],
-      "dbc_quadro": [1030, 1210],
-      "dbc_medias": [1610, 1210],
-      "dbc_contr": [1030, 1639],
-      "dbc_graf": [1940, 1210],
-      "dbc_tabela": [1940, 1705],
-      "dbc_duncan": [2270, 1210],
-      "dbc_waller": [2270, 1705],
-      "dql_dados": [40, 2330],
-      "dql": [370, 2330],
-      "dql_sw": [700, 2330],
-      "dql_quadro": [1030, 2330],
-      "dql_medias": [1610, 2330],
-      "fat_dados": [40, 3450],
-      "fat_box": [40, 3879],
-      "fat": [370, 3450],
-      "fat_diag": [700, 3450],
-      "fat_quadro": [1030, 3450],
-      "fat_dose_supp": [1610, 3450],
-      "fat_supp_dose": [1610, 3879],
-      "fat_graf": [1940, 3450],
-      "npk_dados": [40, 4570],
-      "npk": [370, 4570],
-      "npk_sw": [700, 4570],
-      "npk_quadro": [1030, 4570],
-      "npk_n": [1610, 4570],
-      "npk_k": [1610, 4999],
-      "sp_dados": [40, 5690],
-      "sp": [370, 5690],
-      "sp_sw": [700, 5690],
-      "sp_var": [700, 6119],
-      "sp_quadro": [1030, 5690],
-      "sp_contr": [1030, 6119],
-      "sp_n": [1610, 5690],
-      "sp_v": [1610, 6119],
-      "sp_dose": [40, 6119],
-      "sp_linear": [1940, 5690],
-      "sp_quad": [1940, 6020],
-      "sp_cmp": [1940, 6350],
-      "cont_dados": [40, 6810],
-      "cont_anova": [370, 6810],
-      "cont_diag": [700, 6810],
-      "cont_lev": [370, 7239],
-      "cont_glm": [1030, 6810],
-      "cont_quadro": [1610, 6810],
-      "cont_medias": [2237, 6810],
-      "rep_dados": [40, 7930],
-      "rep_graf": [40, 8359],
-      "rep_int": [370, 7930],
-      "rep_incl": [370, 8359],
-      "rep_cmp": [700, 7930],
-      "rep_var": [1030, 7930],
-      "rep_coef": [1610, 7930],
-      "rep_lagarta": [1940, 7930]
+      "dic_dados": [515, 697],
+      "dic_box": [845, 347],
+      "dic": [865, 697],
+      "dic_sw": [1333, 76],
+      "dic_lev": [1365, 331],
+      "dic_quadro": [1215, 613],
+      "dic_medias": [1365, 1063],
+      "dic_dunnett": [1845, 1063],
+      "dic_kw": [865, 979],
+      "dic_contr": [1365, 1345],
+      "dbc_dados": [515, 2839],
+      "dbc": [845, 2839],
+      "dbc_medidas": [1325, 1735],
+      "dbc_sw": [1325, 1990],
+      "dbc_bart": [1325, 2245],
+      "dbc_adit": [1325, 2500],
+      "dbc_quadro": [1175, 2755],
+      "dbc_medias": [1305, 3205],
+      "dbc_contr": [1325, 3555],
+      "dbc_graf": [1805, 3047],
+      "dbc_tabela": [1825, 3397],
+      "dbc_duncan": [1305, 3837],
+      "dbc_waller": [1305, 4187],
+      "dql_dados": [700, 4984],
+      "dql": [1030, 4984],
+      "dql_sw": [1510, 4645],
+      "dql_quadro": [1360, 4900],
+      "dql_medias": [1490, 5350],
+      "fat_dados": [495, 6364],
+      "fat_box": [825, 6172],
+      "fat": [845, 6522],
+      "fat_diag": [1325, 5808],
+      "fat_quadro": [1195, 6238],
+      "fat_dose_supp": [1325, 6688],
+      "fat_supp_dose": [1325, 7038],
+      "fat_graf": [1825, 6688],
+      "npk_dados": [700, 8078],
+      "npk": [1030, 8078],
+      "npk_sw": [1510, 7496],
+      "npk_quadro": [1360, 7751],
+      "npk_n": [1510, 8281],
+      "npk_k": [1510, 8563],
+      "sp_dados": [535, 10328],
+      "sp": [865, 9730],
+      "sp_sw": [1345, 8953],
+      "sp_var": [1345, 9208],
+      "sp_quadro": [1195, 9463],
+      "sp_contr": [1345, 9913],
+      "sp_n": [1325, 10195],
+      "sp_v": [1345, 10545],
+      "sp_dose": [865, 10968],
+      "sp_linear": [1345, 10827],
+      "sp_quad": [1345, 11109],
+      "sp_cmp": [1825, 10973],
+      "cont_dados": [700, 12448],
+      "cont_anova": [1030, 11932],
+      "cont_diag": [1490, 11499],
+      "cont_lev": [1510, 11929],
+      "cont_glm": [1030, 12916],
+      "cont_quadro": [1360, 12481],
+      "cont_medias": [1490, 12931],
+      "rep_dados": [702, 14260],
+      "rep_graf": [1032, 13850],
+      "rep_int": [1052, 14200],
+      "rep_incl": [1052, 14680],
+      "rep_cmp": [1530, 14274],
+      "rep_var": [1402, 14616],
+      "rep_coef": [1410, 14871],
+      "rep_lagarta": [1500, 15165],
+      "01M2TF81V21B51CE": [1510, 12216],
+      "01M2TFAFRPF37784": [1510, 13281]
     },
     "sizes": {
       "dic_box": [280, 200],
@@ -1408,85 +1446,93 @@
       "fat_quadro": [540, 300],
       "npk_quadro": [540, 380],
       "sp_quadro": [540, 300],
-      "cont_quadro": [540, 300]
+      "cont_quadro": [540, 300],
+      "dic_sw": [304, 132],
+      "rep_coef": [480, 144],
+      "rep_var": [496, 132]
     },
-    "views": {},
+    "views": {
+      "cont_dados": "tabela",
+      "cont_lev": "veredito",
+      "rep_var": "tabela",
+      "rep_incl": "ajuste"
+    },
     "frames": {
       "01M2H8P18HDD41DD": {
-        "x": 10,
-        "y": 20,
+        "x": 165,
+        "y": 0,
         "w": 2270,
-        "h": 1040,
+        "h": 1619,
         "title": "1 · DIC — peso seco de plantas (PlantGrowth)",
         "aspect": "livre",
         "color": "verde",
         "order": 1
       },
       "01M2H8P19A3A7997": {
-        "x": 10,
-        "y": 1140,
+        "x": 0,
+        "y": 1659,
         "w": 2600,
-        "h": 1040,
+        "h": 2870,
         "title": "2 · DBC — híbridos de milho em blocos (simulado: H3 plantado acima)",
         "aspect": "livre",
         "color": "azul",
         "order": 2
       },
       "01M2H8P19A763FCB": {
-        "x": 10,
-        "y": 2260,
+        "x": 330,
+        "y": 4569,
         "w": 1940,
-        "h": 1040,
+        "h": 1123,
         "title": "3 · DQL — rações em períodos × lotes (simulado: R5 plantada acima)",
         "aspect": "livre",
         "color": "amarelo",
         "order": 3
       },
       "01M2H8P19AC9004D": {
-        "x": 10,
-        "y": 3380,
+        "x": 165,
+        "y": 5732,
         "w": 2270,
-        "h": 1040,
+        "h": 1648,
         "title": "4 · Fatorial 2 × 3 com interação — suplemento × dose (ToothGrowth)",
         "aspect": "livre",
         "color": "laranja",
         "order": 4
       },
       "01M2H8P19B85F6AB": {
-        "x": 10,
-        "y": 4500,
+        "x": 330,
+        "y": 7420,
         "w": 1940,
-        "h": 1040,
+        "h": 1417,
         "title": "5 · Fatorial 2³ em blocos — N, P e K em ervilha (npk)",
         "aspect": "livre",
         "color": "roxo",
         "order": 5
       },
       "01M2H8P19B8C980C": {
-        "x": 10,
-        "y": 5620,
+        "x": 165,
+        "y": 8877,
         "w": 2270,
-        "h": 1040,
+        "h": 2506,
         "title": "6 · Parcela subdividida — variedade na parcela, nitrogênio na subparcela (Yates)",
         "aspect": "livre",
         "color": "rosa",
         "order": 6
       },
       "01M2H8P19B25F3EB": {
-        "x": 10,
-        "y": 6740,
+        "x": 0,
+        "y": 11423,
         "w": 2600,
-        "h": 1040,
+        "h": 2311,
         "title": "7 · Contagem — quando a ANOVA não serve e o GLM resolve (InsectSprays)",
         "aspect": "livre",
         "color": "cinza",
         "order": 7
       },
       "01M2H8P19B65F8F5": {
-        "x": 10,
-        "y": 7860,
+        "x": 165,
+        "y": 13774,
         "w": 2270,
-        "h": 1040,
+        "h": 1933,
         "title": "8 · Medidas repetidas — modelo misto (sleepstudy)",
         "aspect": "livre",
         "color": "verde",
@@ -1665,12 +1711,6 @@
       "cont_diag": {
         "params": false
       },
-      "cont_lev": {
-        "params": false
-      },
-      "cont_glm": {
-        "params": false
-      },
       "cont_quadro": {
         "params": false
       },
@@ -1681,12 +1721,6 @@
         "params": false
       },
       "rep_graf": {
-        "params": false
-      },
-      "rep_int": {
-        "params": false
-      },
-      "rep_incl": {
         "params": false
       },
       "rep_cmp": {
