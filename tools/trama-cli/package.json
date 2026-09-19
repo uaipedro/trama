@@ -1,0 +1,31 @@
+{
+  "name": "trama-cli",
+  "version": "0.1.0",
+  "description": "Instala e roda o trama (editor de fluxos em R) sem precisar já ter R instalado.",
+  "type": "module",
+  "bin": {
+    "trama": "dist/bin.js"
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "@clack/prompts": "^0.8.2",
+    "tar": "^7.4.3",
+    "extract-zip": "^2.0.1",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsup": "^8.3.5",
+    "vitest": "^2.1.5",
+    "@types/node": "^22.9.0"
+  }
+}
