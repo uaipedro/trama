@@ -86,6 +86,28 @@ test_that("browse devolve a listagem, marcando o que é projeto", {
   })
 })
 
+# Mesmo padrão do teste de `tr_browse` acima: o handler só embrulha
+# `.tr_list_imagens()` (já testada sozinha em test-project.R) no formato de
+# mensagem que o front espera.
+test_that("tr_list_imagens devolve os arquivos da pasta imagens/ do projeto", {
+  p1 <- projeto_falso()
+  dir.create(file.path(p1$root, "imagens"), showWarnings = FALSE)
+  file.create(file.path(p1$root, "imagens", "logo.png"))
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+
+    msgs <- list()
+    session$setInputs(tr_list_imagens = list(seq = 1))
+
+    m <- Filter(function(m) identical(m$type, "imagens"), msgs)
+    expect_length(m, 1L)
+    expect_equal(unlist(m[[1]]$files), "logo.png")
+  })
+})
+
 test_that("criar projeto grava no disco e abre em seguida", {
   p1 <- projeto_falso()
   base <- withr::local_tempdir("base")

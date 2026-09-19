@@ -954,6 +954,14 @@ function App() {
   const [exportando, setExportando] = useState(false);
   const [projeto, setProjeto] = useState(null);   // {root, flow} do que está aberto
   const [listagem, setListagem] = useState(null); // resposta do último tr_browse
+  // Lista de imagens de `<projeto>/imagens/`, pro estado vazio do bloco de
+  // imagem escolher. Pedida sob demanda, mesmo desenho de `tr_browse` acima:
+  // uma vez quando o app fica pronto (documento aberto pode já ter notas de
+  // imagem vazias esperando escolha) e de novo sempre que a ferramenta "I" é
+  // ativada (o gesto mais provável de precisar da lista fresca, e barato
+  // — a pasta raramente muda no meio de uma sessão, mas quando muda é
+  // justamente porque alguém acabou de largar um arquivo lá pra usar agora).
+  const [imagens, setImagens] = useState([]);
   const [abrindo, setAbrindo] = useState(false);  // diálogo visível
   const [enviando, setEnviando] = useState(null); // "abrir" | "criar" | "importar" | null: pedido em voo
   // Proporção dos frames NOVOS (F e Ctrl+G). É preferência de quem usa este
@@ -1270,7 +1278,17 @@ function App() {
                               onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } };
     }
     if (n.type === "trNota") {
-      return { ...n, data: { ...n.data, editing: editNota === n.id, resolverSrc,
+      // `n.data.src` nasce em `docToFlow` como o caminho CRU do documento
+      // (`n.src`, ex. "figuras/logo.png") — `docToFlow` é função pura, sem
+      // acesso a `resolverSrc`, então não é ela quem resolve. Aqui, junto dos
+      // outros campos injetados por prop (como o próprio `resolverSrc`, usado
+      // por `Markdown` pra imagem embutida no corpo do texto), é o ponto certo:
+      // é aqui que a nota ganha tudo que só o componente sabe. Sem isto,
+      // `NotaImagem` recebia o caminho relativo cru como `src` do `<img>`,
+      // furando o contrato documentado no topo de notas.js ("src — a URL já
+      // resolvida da imagem").
+      return { ...n, data: { ...n.data, src: n.data.src ? resolverSrc(n.data.src) : n.data.src,
+                              editing: editNota === n.id, resolverSrc, imagens,
                               onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd } };
     }
     return { ...n, data: { ...n.data, ...(stateRef.current[n.id] || {}),
@@ -1294,7 +1312,7 @@ function App() {
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onFold, onReseed, tick, temas,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
-     editNota, resolverSrc, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
+     editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
   // --- Recepção ---
   useEffect(() => {
@@ -1402,6 +1420,8 @@ function App() {
 
       if (m.type === "listing") { setListagem(m); return; }
 
+      if (m.type === "imagens") { setImagens(m.files || []); return; }
+
       // Regiões do plano ATUAL. Chega a cada `run_now` (R/transport.R) —
       // documento novo, ou só um param que mudou — então é sempre a lista
       // certa pro run em voo. Indexado por `unit` (o id do nó que carrega os
@@ -1451,8 +1471,18 @@ function App() {
         return;
       }
     });
-    onShinyReady(() => sendInput("tr_ready", Date.now()));
+    onShinyReady(() => {
+      sendInput("tr_ready", Date.now());
+      sendInput("tr_list_imagens", { seq: ++seqCounter });
+    });
   }, []);
+
+  // Ferramenta "I" ativada: pede a lista de novo, pelo mesmo motivo do
+  // comentário acima de `imagens` — é o gesto mais provável de precisar dela
+  // fresca (alguém acabou de largar um arquivo em `imagens/` pra usar agora).
+  useEffect(() => {
+    if (ferramenta === "imagem") sendInput("tr_list_imagens", { seq: ++seqCounter });
+  }, [ferramenta]);
 
   // Estados terminais: quem chega aqui não vai mudar mais sozinho até o
   // próximo run — é o momento de desligar o "computando…" de quem só vivia

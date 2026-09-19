@@ -276,3 +276,26 @@ print.tr_project <- function(x, ...) {
     entries = lapply(dirs, function(d) list(nome = d, projeto = .tr_eh_projeto(file.path(path, d))))
   )
 }
+
+# As imagens que o bloco de imagem oferece para escolher, quando a nota ainda
+# não tem `src`. `root` é a RAIZ do projeto — a mesma pasta que `tr_project()`
+# recebe — e não a pasta `imagens/` em si; é aqui dentro que ela é montada.
+# Os caminhos voltam relativos a `imagens/`, com '/' como separador: é esse o
+# formato que `.tr_check_src()` (R/document.R) aceita e que a rota
+# `trama-imagens` (`shiny::addResourcePath`) serve ao navegador.
+#
+# Pasta ausente não é erro, no mesmo espírito de `.tr_dir_listing()`: um
+# projeto recém-criado por uma versão antiga do trama (antes da Tarefa 4.1)
+# não tem `imagens/`, e isso é "nenhuma imagem ainda", não uma falha.
+.tr_list_imagens <- function(root) {
+  dir_imagens <- file.path(root, "imagens")
+  if (!dir.exists(dir_imagens)) return(character(0))
+
+  arquivos <- list.files(dir_imagens, recursive = TRUE, full.names = FALSE)
+  extensoes <- "\\.(png|jpe?g|svg|gif|webp)$"
+  arquivos <- arquivos[grepl(extensoes, arquivos, ignore.case = TRUE)]
+  # `list.files()` já devolve '/' como separador de subpasta neste ambiente
+  # (Linux); em Windows ele devolveria '\\', por isso a normalização — barato
+  # o bastante para manter mesmo sem um CI Windows rodando este teste.
+  sort(gsub("\\\\", "/", arquivos))
+}

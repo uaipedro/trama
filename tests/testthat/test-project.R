@@ -93,6 +93,24 @@ test_that("projeto novo nasce com a pasta de imagens", {
   expect_true(dir.exists(file.path(d, "imagens")))
 })
 
+# `.tr_list_imagens()` alimenta o bloco de imagem: a lista que aparece quando
+# a nota está vazia. `d` aqui é a RAIZ do projeto, não a pasta imagens/ em si
+# — a função monta `file.path(d, "imagens")` por dentro e devolve caminhos
+# relativos A ELA, com '/' como separador (mesmo padrão de `.tr_check_src()`
+# em R/document.R, que é quem valida esse caminho do outro lado).
+test_that("listagem de imagens filtra por extensão e devolve caminho relativo", {
+  d <- withr::local_tempdir()
+  dir.create(file.path(d, "imagens", "figuras"), recursive = TRUE)
+  file.create(file.path(d, "imagens", "logo.png"))
+  file.create(file.path(d, "imagens", "notas.txt"))
+  file.create(file.path(d, "imagens", "figuras", "fluxo.svg"))
+  expect_equal(.tr_list_imagens(d), c("figuras/fluxo.svg", "logo.png"))
+})
+
+test_that("projeto sem pasta de imagens lista vazio, sem erro", {
+  expect_equal(.tr_list_imagens(withr::local_tempdir()), character(0))
+})
+
 test_that("o projeto criado abre no registry que o criou", {
   raiz <- file.path(tempfile(), "novo")
   tr_project_new(raiz, "trama.data")

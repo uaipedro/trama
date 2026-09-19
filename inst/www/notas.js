@@ -7,11 +7,19 @@
 //   kind         — "markdown" | "imagem"
 //   text         — o markdown (kind "markdown")
 //   src          — a URL já resolvida da imagem (kind "imagem"), "" se vazia
+//                  (resolvida pelo `editor.js`, no ramo `trNota` de
+//                  `decorated` — ver o comentário lá; aqui dentro NUNCA se
+//                  aplica `resolverSrc` de novo)
 //   fit          — "contain" | "cover" (object-fit da imagem)
 //   escala       — "letreiro" | "nota" (tamanho de letra/moldura)
 //   fundo        — "cartao" | "nenhum" (com ou sem fundo/moldura)
 //   color        — um de FRAME_COLORS, ou "nenhuma" (ver decisão abaixo)
 //   resolverSrc  — função (caminho) => URL, repassada ao `Markdown`
+//   imagens      — array de caminhos (relativos a `imagens/`) pra escolher,
+//                  no estado vazio do bloco de imagem (kind "imagem", sem
+//                  `src` ainda). Vem de `editor.js`, que pediu ao servidor
+//                  via `tr_list_imagens`/`"imagens"` (mesmo desenho de
+//                  `tr_browse`/`"listing"`, sob demanda).
 //   editing      — bool: bloco em edição (textarea aberto)
 //   onNotaEditStart(id)      — chamado no duplo clique
 //   onNotaEditEnd(id)        — chamado ao sair da edição (blur/commit/Esc)
@@ -107,7 +115,8 @@ export function NotaNode({ id, data, selected }) {
       },
     });
   } else if (data.kind === "imagem") {
-    corpo = h(NotaImagem, { key: "img", src: data.src, fit: data.fit });
+    corpo = h(NotaImagem, { key: "img", src: data.src, fit: data.fit, imagens: data.imagens,
+                            onEscolher: (rel) => data.onNotaEdit(id, { src: rel }) });
   } else {
     corpo = h(Markdown, { key: "md", texto: data.text, resolverSrc: data.resolverSrc, h });
   }
@@ -120,13 +129,23 @@ export function NotaNode({ id, data, selected }) {
 }
 
 // O corpo de uma nota de imagem: sem `src` (string vazia, o estado inicial do
-// bloco antes de escolher uma imagem) é um convite, não um quadrado quebrado
-// — a lista de imagens de verdade pra escolher é da Task 4.2; aqui é só o
-// estado vazio, sem funcionalidade de escolha nenhuma ainda. Com `src`, abre
+// bloco antes de escolher uma imagem) mostra a lista de `imagens/` — um botão
+// por arquivo, sem UI sofisticada nenhuma (a correção, não o design, é o que
+// esta task pede). `imagens` vazio (pasta sem nada, ou lista ainda não
+// chegou do servidor) cai no convite de texto que já existia. Com `src`, abre
 // o lightbox compartilhado ao clicar (ver `useLightbox` em `runtime.js`).
-function NotaImagem({ src, fit }) {
+function NotaImagem({ src, fit, imagens, onEscolher }) {
   const { abrir, node } = useLightbox(src || null);
   if (!src) {
+    if (imagens && imagens.length > 0) {
+      return h("div", { className: "tr-nota-vazia tr-nota-imglista" }, [
+        h("p", { key: "t" }, "escolher de imagens/:"),
+        ...imagens.map((rel) => h("button", {
+          key: rel, type: "button", className: "nodrag tr-nota-imgopc",
+          onClick: (e) => { e.stopPropagation(); onEscolher(rel); },
+        }, rel)),
+      ]);
+    }
     return h("div", { className: "tr-nota-vazia" }, "clique duas vezes para escolher uma imagem");
   }
   return h("div", { className: "tr-nota-img-wrap" }, [

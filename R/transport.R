@@ -317,6 +317,19 @@ tr_server <- function(project, flow = "main",
       if (!is.null(l)) send("listing", l)
     })
 
+    # Mesmo desenho de `tr_browse`/`listing`, sob demanda: o front pede quando
+    # precisa (estado vazio de uma nota-imagem, ou ao abrir a ferramenta), em
+    # vez do servidor empurrar a lista sem ser pedida — a pasta `imagens/` pode
+    # crescer a qualquer momento fora do editor, e reler no gesto certo é mais
+    # simples que inventar um observador de disco. `seq` é aceito mas ignorado
+    # aqui, pelo mesmo motivo do `tr_browse`: pedir duas vezes a MESMA lista
+    # (`input$x` não dispara em valor idêntico consecutivo) é o caso comum, não
+    # a exceção — reabrir o mesmo bloco duas vezes manda o mesmo pedido.
+    shiny::observeEvent(input$tr_list_imagens, {
+      arquivos <- tryCatch(.tr_list_imagens(rv_project()$root), error = avisar())
+      if (!is.null(arquivos)) send("imagens", list(files = as.list(arquivos)))
+    })
+
     # Salvar temas do painel. Recusa (tema inválido, disco) reenvia os temas
     # REAIS: o painel volta ao estado verdadeiro em vez de mostrar um tema que
     # não foi gravado. O front manda `seq` (ignorado aqui) pelo mesmo motivo do
