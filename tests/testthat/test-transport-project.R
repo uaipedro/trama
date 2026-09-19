@@ -348,3 +348,74 @@ test_that("tr_themes grava a marca junto; recusa não deixa o pedido pela metade
     expect_false(ultimo()$marca)
   })
 })
+
+test_that("importar cria projeto com o conteudo enviado e abre", {
+  p1 <- projeto_falso()
+  destino <- withr::local_tempdir("import-dest")
+
+  flow_json <- jsonlite::toJSON(list(
+    format = 1L, rev = 0L, nodes = list(), edges = list(),
+    collections = list(), ui = list()
+  ), auto_unbox = TRUE)
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_project_import = list(
+      seq = 1, path = destino, nome = "importado", conteudo = as.character(flow_json)))
+
+    novo_root <- normalizePath(file.path(destino, "importado"))
+    expect_equal(normalizePath(rv_project()$root), novo_root)
+    expect_true(all(c("project", "document") %in% tipos()))
+    expect_true(file.exists(file.path(novo_root, "flows", "main.json")))
+  })
+})
+
+test_that("importar com JSON invalido avisa e NAO cria a pasta", {
+  p1 <- projeto_falso()
+  destino <- withr::local_tempdir("import-dest-bad")
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_project_import = list(
+      seq = 1, path = destino, nome = "quebrado", conteudo = "{ isso nao e json"))
+
+    expect_equal(normalizePath(rv_project()$root), p1$root)
+    avisos <- Filter(function(m) identical(m$type, "warning"), msgs)
+    expect_length(avisos, 1L)
+    expect_false(dir.exists(file.path(destino, "quebrado")))
+  })
+})
+
+test_that("importar em pasta ja ocupada avisa nomeando o motivo", {
+  p1 <- projeto_falso()
+  ocupada <- projeto_falso()
+
+  flow_json <- jsonlite::toJSON(list(format = 1L, rev = 0L, nodes = list(),
+                                     edges = list(), collections = list(), ui = list()),
+                                auto_unbox = TRUE)
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_project_import = list(
+      seq = 1, path = dirname(ocupada$root), nome = basename(ocupada$root),
+      conteudo = as.character(flow_json)))
+
+    expect_equal(normalizePath(rv_project()$root), p1$root)
+    avisos <- Filter(function(m) identical(m$type, "warning"), msgs)
+    expect_length(avisos, 1L)
+    expect_match(avisos[[1]]$message, "Já existe um projeto", fixed = TRUE)
+  })
+})

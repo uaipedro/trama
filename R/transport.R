@@ -368,6 +368,24 @@ tr_server <- function(project, flow = "main",
       if (!is.null(raiz)) abrir(raiz)
     })
 
+    # Importar é "criar" + "gravar o flow recebido" antes de abrir — mesma
+    # forma de `tr_project_new`, só que o `flows/main.json` não nasce vazio.
+    # O conteúdo já chega como TEXTO (o front lê o arquivo com FileReader):
+    # o servidor nunca recebe um caminho de disco do cliente pra isso, só
+    # bytes — é a mesma razão do navegador de pastas em `.tr_dir_listing()`
+    # existir (`webkitdirectory` não entrega path real).
+    shiny::observeEvent(input$tr_project_import, {
+      req <- input$tr_project_import
+      raiz <- tryCatch({
+        r <- .tr_project_path(req$path, req$nome)
+        doc <- tr_doc_parse(req$conteudo)
+        tr_project_new(r, .tr_registry_packages(rv_project()$registry) %||% character())
+        tr_doc_write(doc, file.path(r, "flows", "main.json"))
+        r
+      }, error = avisar())
+      if (!is.null(raiz)) abrir(raiz)
+    })
+
     session$onSessionEnded(function() {
       if (!is.null(exec$sched) && !exec$sched$finished()) exec$sched$handoff(character())
       if (!is.null(exec$logger)) exec$logger$close()
