@@ -10,6 +10,15 @@
 #
 # You can also run this workflow manually (workflow_dispatch) to test the
 # build on both platforms without creating a real GitHub Release.
+#
+# Assinatura de código (Windows): pra parar de aparecer "Publicador
+# desconhecido" no SmartScreen, inscreva o projeto no programa gratuito de
+# assinatura pra open source da SignPath (signpath.io) e cadastre estes
+# segredos no repo (Settings → Secrets and variables → Actions):
+#   SIGNPATH_API_TOKEN, SIGNPATH_ORG_ID, SIGNPATH_PROJECT_SLUG,
+#   SIGNPATH_SIGNING_POLICY_SLUG
+# Sem eles, o passo de assinatura é pulado e o binário sai sem assinatura,
+# exatamente como hoje — nada muda até esses segredos existirem.
 
 name: Launcher Release
 
@@ -32,6 +41,13 @@ jobs:
   build:
     name: Build (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Preparado pra assinatura de código do binário Windows via SignPath
+      # (programa gratuito de assinatura pra projetos open source,
+      # signpath.io) — inerte até existirem os segredos SIGNPATH_* no repo.
+      # Sem eles, o passo de assinatura é pulado e o binário sai sem
+      # assinatura, igual a hoje. Ver "Sign Windows binary" abaixo.
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -92,6 +108,35 @@ jobs:
           else
             mv "build/bin/${{ matrix.wails-bin }}" "dist/${{ matrix.artifact }}"
           fi
+
+      - name: Upload unsigned Windows binary
+        if: matrix.os == 'windows-latest' && env.SIGNPATH_API_TOKEN != ''
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-${{ matrix.artifact }}
+          path: tools/launcher/dist/${{ matrix.artifact }}
+
+      # Assina o .exe via SignPath, só roda quando os segredos SIGNPATH_*
+      # existirem no repo (ver comentário no env: do job). Até lá, este
+      # passo (e o próximo) são pulados silenciosamente e o binário
+      # publicado continua sem assinatura, exatamente como hoje.
+      - name: Sign Windows binary (SignPath)
+        if: matrix.os == 'windows-latest' && env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: tools/launcher/dist-signed
+
+      - name: Usar binário assinado quando disponível
+        if: matrix.os == 'windows-latest' && env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        run: mv "dist-signed/${{ matrix.artifact }}" "dist/${{ matrix.artifact }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
