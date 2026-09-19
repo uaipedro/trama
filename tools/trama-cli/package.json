@@ -6,7 +6,9 @@
   "bin": {
     "trama": "dist/bin.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -16,16 +18,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "commander": "^12.1.0",
     "@clack/prompts": "^0.8.2",
-    "tar": "^7.4.3",
+    "commander": "^12.1.0",
     "extract-zip": "^2.0.1",
-    "open": "^10.1.0"
+    "open": "^10.1.0",
+    "tar": "^7.4.3"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0",
+    "@types/yazl": "^3.3.1",
     "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
     "vitest": "^2.1.5",
-    "@types/node": "^22.9.0"
+    "yazl": "^3.3.1"
   }
 }
