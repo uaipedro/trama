@@ -64,6 +64,7 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
   expect_match(as.character(tr_doc_json(back)), '"sizes"\\s*:\\s*\\{\\}')
   expect_identical(back$ui$frames, stats::setNames(list(), character(0)))
   expect_identical(back$ui$folds, stats::setNames(list(), character(0)))
+  expect_identical(back$ui$notes, stats::setNames(list(), character(0)))
 })
 
 # Documento recém-criado nunca passou pelo parse, e é o único caminho que
@@ -71,7 +72,7 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
 # três linhas de `tr_doc_json` passa despercebido pela suíte inteira.
 test_that("documento novo serializa os mapas de ui como objeto", {
   j <- as.character(tr_doc_json(tr_doc()))
-  for (k in c("positions", "sizes", "views", "frames", "folds")) {
+  for (k in c("positions", "sizes", "views", "frames", "folds", "notes")) {
     expect_match(j, sprintf('"%s"\\s*:\\s*\\{\\}', k))
   }
 })
@@ -86,4 +87,19 @@ test_that("frames e folds sobrevivem à ida e volta pelo JSON", {
                list(x = -10, y = 5.5, w = 1600, h = 900, title = "Leitura",
                     aspect = "16:9", color = "azul", order = 1L))
   expect_identical(back$ui$folds$a, list(preview = FALSE))
+})
+
+test_that("notas sobrevivem à ida e volta pelo JSON", {
+  m <- mk()
+  d <- tr_doc_apply(m$doc, list(op = "add_note", id = "n", x = -10, y = 5.5,
+                                w = 320, h = 120, kind = "markdown",
+                                text = "# Método\n\n- um\n- dois", color = "rosa",
+                                escala = "letreiro", fundo = "nenhum"), m$reg)
+  d <- tr_doc_apply(d, list(op = "add_note", id = "i", x = 0, y = 0, w = 400, h = 300,
+                            kind = "imagem", src = "figuras/logo.png", fit = "cover"), m$reg)
+  back <- tr_doc_parse(tr_doc_json(d))
+  expect_equal(back$ui$notes$n[c("x", "y", "w", "h", "kind", "text", "escala", "fundo", "color")],
+               d$ui$notes$n[c("x", "y", "w", "h", "kind", "text", "escala", "fundo", "color")])
+  expect_equal(back$ui$notes$i$src, "figuras/logo.png")
+  expect_equal(back$ui$notes$i$fit, "cover")
 })
