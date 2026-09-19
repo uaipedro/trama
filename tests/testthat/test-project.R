@@ -87,6 +87,12 @@ test_that("cria as pastas e grava o manifesto", {
   expect_equal(unlist(cfg$collections), c("trama.data", "trama.view"))
 })
 
+test_that("projeto novo nasce com a pasta de imagens", {
+  d <- withr::local_tempdir()
+  p <- tr_project(d)
+  expect_true(dir.exists(file.path(d, "imagens")))
+})
+
 test_that("o projeto criado abre no registry que o criou", {
   raiz <- file.path(tempfile(), "novo")
   tr_project_new(raiz, "trama.data")

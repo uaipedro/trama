@@ -34,7 +34,8 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
 #' (ver `.tr_atomic`): disco cheio e permissão são reais.
 #' @noRd
 .tr_project_dirs <- function(root) {
-  for (d in c(file.path(root, "flows"), file.path(root, ".trama", "store"))) {
+  for (d in c(file.path(root, "flows"), file.path(root, ".trama", "store"),
+              file.path(root, "imagens"))) {
     dir.create(d, recursive = TRUE, showWarnings = FALSE)
     if (!dir.exists(d)) {
       rlang::abort(sprintf(

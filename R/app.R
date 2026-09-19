@@ -66,6 +66,10 @@ tr_ui <- function(project) {
   # Previews com arquivo (imagem, etc.) são servidos direto do store — o
   # handle carrega caminho RELATIVO, e é aqui que ele vira URL.
   shiny::addResourcePath("trama-store", project$store$root)
+  # A outra pasta do projeto servida ao navegador: `imagens/`, escolhida na
+  # lista pelo bloco de imagem. `src` de uma nota-imagem é relativo a ela, não
+  # à raiz do projeto — é este prefixo que o transforma em URL.
+  shiny::addResourcePath("trama-imagens", file.path(project$root, "imagens"))
 
   ver  <- as.character(utils::packageVersion("trama"))
   base <- paste0("trama-", ver)

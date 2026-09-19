@@ -152,13 +152,15 @@ tr_server <- function(project, flow = "main",
     #    aborta nomeando a coleção que falta) ANTES de mexer em qualquer coisa —
     #    estado meio-trocado seria pior que não trocar;
     # 2. encerra o run em voo, como o fim de sessão já faz;
-    # 3. re-aponta o store. `addResourcePath` sobrescreve o mesmo prefixo, então
-    #    as URLs de preview com arquivo passam a resolver no store novo sem
-    #    recarregar a página. Limitação conhecida: o prefixo é do PROCESSO, não
-    #    da sessão — com duas abas do mesmo app abertas, trocar de projeto numa
-    #    re-aponta `trama-store` da outra também, e lá os previews com arquivo
-    #    passam a dar 404 em silêncio (imagem quebrada, sem erro). Aceitável
-    #    porque trama é local-first e de um usuário só;
+    # 3. re-aponta o store E a pasta de imagens. `addResourcePath` sobrescreve o
+    #    mesmo prefixo, então as URLs de preview com arquivo e as do bloco de
+    #    imagem passam a resolver no projeto novo sem recarregar a página.
+    #    Limitação conhecida: o prefixo é do PROCESSO, não da sessão — com duas
+    #    abas do mesmo app abertas, trocar de projeto numa re-aponta
+    #    `trama-store` e `trama-imagens` da outra também, e lá os previews com
+    #    arquivo e as imagens do documento passam a dar 404 em silêncio (imagem
+    #    quebrada, sem erro). Aceitável porque trama é local-first e de um
+    #    usuário só;
     # 4. zera `base_doc` e `log`: reaplicar o log de um projeto sobre o documento
     #    de outro é o que `.tr_undo_doc()` existe para impedir;
     # 5. volta para o flow padrão. Trocar de FLUXO é outro gesto, fora do escopo
@@ -193,6 +195,7 @@ tr_server <- function(project, flow = "main",
                error = function(e) message("trama: GC falhou: ", conditionMessage(e)))
 
       shiny::addResourcePath("trama-store", novo$store$root)
+      shiny::addResourcePath("trama-imagens", file.path(novo$root, "imagens"))
       rv_project(novo)
       rv_flow(padrao)
 
