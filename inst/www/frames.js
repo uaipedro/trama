@@ -12,12 +12,12 @@ import { toBlob } from "html-to-image";
 import dagre from "@dagrejs/dagre";
 
 import { ASPECTS, ratioOf, FRAME_COLORS, rectOf, inside, containedCards, fitAspect,
-         containedFrames, FRAME_HEAD, FRAME_PAD, donos, unidades, crescerExterno, abrirEspaco,
+         containedFrames, containedNotes, FRAME_HEAD, FRAME_PAD, donos, unidades, crescerExterno, abrirEspaco,
          gradeDeFrames, validarPrancheta, PRANCHETA_PADRAO, marcaDaAgua } from "./geometria.js";
 // Reexportados: o editor importa tudo de `./frames.js` e não precisa saber que
 // a geometria mudou de arquivo.
 export { ASPECTS, ratioOf, FRAME_COLORS, rectOf, inside, containedCards, fitAspect,
-         containedFrames, gradeDeFrames, PRANCHETA_PADRAO };
+         containedFrames, containedNotes, gradeDeFrames, PRANCHETA_PADRAO };
 
 // --- Organizar ---------------------------------------------------------------
 

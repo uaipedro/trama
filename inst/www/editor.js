@@ -16,7 +16,7 @@ import {
 } from "@xyflow/react";
 import { h, getRenderer, getWidget, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
-         containedCards, containedFrames, fitAspect, FramePanel, exportFramePng,
+         containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
          MARCA } from "./frames.js";
 import { NotaNode, NotaDraw } from "./notas.js";
@@ -1643,7 +1643,7 @@ function App() {
     const levar = {};
     dragged.filter((d) => d.type === "trFrame").forEach((f) => {
       const alvo = byId[f.id] || f;
-      const itens = [...containedFrames(alvo, ns), ...containedCards(alvo, ns)]
+      const itens = [...containedFrames(alvo, ns), ...containedCards(alvo, ns), ...containedNotes(alvo, ns)]
         .filter((id) => !vistos.has(id));
       itens.forEach((id) => vistos.add(id));
       levar[f.id] = { x0: f.position.x, y0: f.position.y,

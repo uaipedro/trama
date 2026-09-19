@@ -48,6 +48,16 @@ export function containedCards(frame, nodes) {
   return nodes.filter((n) => n.type === "ndNode" && inside(rectOf(n), r)).map((n) => n.id);
 }
 
+// Notas INTEIRAMENTE dentro do frame, mesma régua de `containedCards`. Duas
+// funções, e não um parâmetro de tipo, porque os dois chamadores querem
+// coisas diferentes: o arrasto quer as duas listas juntas (cards e notas), e
+// o "Organizar" (Phase 5) quer só os cards — o dagre não teria onde pôr uma
+// nota, que não tem ligação nenhuma.
+export function containedNotes(frame, nodes) {
+  const r = rectOf(frame);
+  return nodes.filter((n) => n.type === "trNota" && inside(rectOf(n), r)).map((n) => n.id);
+}
+
 // Folga em volta de uma bbox; depois a dimensão curta cresce até a proporção
 // pedida, mantendo o centro. Só cresce, nunca encolhe: o frame da seleção
 // nunca corta um card da seleção.

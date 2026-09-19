@@ -2,10 +2,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { containedFrames, donos, envolver, unidades, crescerExterno, abrirEspaco, FRAME_PAD, gradeDeFrames, validarPrancheta,
-         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua } from "../../inst/www/geometria.js";
+         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua, containedCards, containedNotes } from "../../inst/www/geometria.js";
 
 const frame = (id, x, y, w, hh) => ({ id, type: "trFrame", position: { x, y }, width: w, height: hh, data: {} });
 const card = (id, x, y) => ({ id, type: "ndNode", position: { x, y }, measured: { width: 240, height: 190 }, data: {} });
+const nota = (id, x, y, w, hh) => ({ id, type: "trNota", position: { x, y },
+                                     width: w, height: hh, data: {} });
+
+test("containedNotes devolve só notas inteiras dentro do frame", () => {
+  const f = frame("F", 0, 0, 500, 500);
+  const ns = [f, nota("n1", 10, 10, 100, 50), nota("n2", 450, 450, 100, 50), card("c", 20, 20)];
+  assert.deepEqual(containedNotes(f, ns), ["n1"]);
+});
+
+test("containedCards não devolve nota, e containedNotes não devolve card", () => {
+  const f = frame("F", 0, 0, 500, 500);
+  const ns = [f, nota("n1", 10, 10, 100, 50), card("c", 20, 20)];
+  assert.deepEqual(containedCards(f, ns), ["c"]);
+  assert.deepEqual(containedNotes(f, ns), ["n1"]);
+});
 
 test("containedFrames devolve só frames inteiros, nunca o próprio", () => {
   const ext = frame("E", 0, 0, 1000, 1000);
