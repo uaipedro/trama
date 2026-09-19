@@ -1898,10 +1898,10 @@ function App() {
     // Organizar seguinte, já tinha outro dono. A mesma lista serve pro
     // "mudou?" abaixo, pra comparar com a régua do layout.
     const ns = comMedidas(nodesRef.current);
-    const { cards, frames } = organizar(ns, edgesRef.current);
+    const { cards, frames, notes } = organizar(ns, edgesRef.current);
     const ops = [];
     ns.forEach((n) => {
-      const f = frames[n.id], c = cards[n.id];
+      const f = frames[n.id], c = cards[n.id], nt = notes[n.id];
       if (f) {
         const r = rectOf(n);
         const op = { op: "update_frame", frame: n.id };
@@ -1911,12 +1911,15 @@ function App() {
         if (Object.keys(op).length > 2) ops.push(op);
       } else if (c && (c.x !== n.position.x || c.y !== n.position.y)) {
         ops.push({ op: "move", node: n.id, x: c.x, y: c.y });
+      } else if (nt && (nt.x !== n.position.x || nt.y !== n.position.y)) {
+        ops.push({ op: "update_note", note: n.id, x: nt.x, y: nt.y });
       }
     });
     setNodes((atual) => atual.map((n) => {
-      const f = frames[n.id], c = cards[n.id];
+      const f = frames[n.id], c = cards[n.id], nt = notes[n.id];
       if (f) return { ...n, position: { x: f.x, y: f.y }, width: f.w, height: f.h };
-      return c ? { ...n, position: c } : n;
+      if (c) return { ...n, position: c };
+      return nt ? { ...n, position: nt } : n;
     }));
     // O dagre não sabe onde a câmera está: o grafo arrumado pode nascer
     // fora da tela. Enquadra no quadro seguinte, depois de o React Flow

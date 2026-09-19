@@ -271,6 +271,42 @@ export function crescerExterno(atual, membros, aspect) {
   return { x: atual.x, y: atual.y, w, h: hh };
 }
 
+// A nota anda com o bloco que a contém, mas NUNCA é arranjada pelo dagre (ela
+// não tem ligação, e o dagre a jogaria num canto, destruindo a composição
+// feita à mão). Do MENOR frame que a contém inteira (mesma régua de `donos`:
+// empate de área não importa aqui, uma nota não decide dono de card), ela
+// herda o delta que ESSE frame andou: `framesNovos[container].{x,y} -
+// rect[container].{x,y}`, usando o retângulo ORIGINAL (`rect`, o snapshot de
+// antes do Organizar) e a posição NOVA (`framesNovos`, o `out.frames` do
+// Organizar) — ela anda o MESMO tanto, não escala com o crescimento do frame.
+// Sem frame contêiner, ou contêiner que não está em `framesNovos` (não fez
+// parte do dagre, então não se moveu), a nota fica onde está: não entra no
+// resultado.
+//
+// Pura: não sabe nada de dagre, card ou unidade. É por isso que mora AQUI, e
+// não dentro de `organizar` (`inst/www/frames.js`): `organizar` chama
+// `dagrePos`, que importa o pacote `@dagrejs/dagre` — indisponível sob
+// `node --test` NESTE repositório (confirmado por experimento: nem
+// `frames.js` nem um import isolado de `@dagrejs/dagre` resolvem fora do
+// navegador, sem `node_modules` na raiz; só o importmap do navegador os acha).
+// Isolando o cálculo da nota aqui, ele continua com teste direto sob Node; o
+// resto do Organizar (dagre) segue sem teste sob Node, como já era antes
+// desta task — nenhum teste existente importa `frames.js`.
+export function notasComFrame(nodes, rect, framesNovos) {
+  const frames = nodes.filter((n) => n.type === "trFrame");
+  const area = (id) => rect[id].w * rect[id].h;
+  const out = {};
+  nodes.filter((n) => n.type === "trNota").forEach((n) => {
+    const container = frames.filter((f) => inside(rect[n.id], rect[f.id]))
+      .sort((a, b) => area(a.id) - area(b.id))[0];
+    if (!container || !framesNovos[container.id]) return;
+    const dx = framesNovos[container.id].x - rect[container.id].x;
+    const dy = framesNovos[container.id].y - rect[container.id].y;
+    out[n.id] = { x: n.position.x + dx, y: n.position.y + dy };
+  });
+  return out;
+}
+
 // Onde o hexágono da marca entra num PNG exportado. Fica aqui, e não no
 // desenho, porque é conta com limites: em imagem pequena a marca não pode
 // comer o conteúdo, e em imagem grande não pode virar cartaz.

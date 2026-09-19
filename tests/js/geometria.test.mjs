@@ -2,7 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { containedFrames, donos, envolver, unidades, crescerExterno, abrirEspaco, FRAME_PAD, gradeDeFrames, validarPrancheta,
-         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua, containedCards, containedNotes } from "../../inst/www/geometria.js";
+         PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua, containedCards, containedNotes,
+         rectOf, notasComFrame } from "../../inst/www/geometria.js";
 
 const frame = (id, x, y, w, hh) => ({ id, type: "trFrame", position: { x, y }, width: w, height: hh, data: {} });
 const card = (id, x, y) => ({ id, type: "ndNode", position: { x, y }, measured: { width: 240, height: 190 }, data: {} });
@@ -216,4 +217,49 @@ test("marcaDaAgua ocupa a mesma fração da imagem em qualquer escala", () => {
       perto(e.margem / (w * escala), um.margem / w);
     }
   }
+});
+
+// --- notasComFrame -----------------------------------------------------------
+// A metade "pura" da regra de notas no Organizar (a outra metade, o dagre que
+// decide `framesNovos`, mora em `organizar`/`frames.js`, que precisa do pacote
+// `@dagrejs/dagre` e por isso não roda sob `node --test` — ver `organizar.test.mjs`).
+
+test("notasComFrame: a nota anda o MESMO delta do menor frame que a contém", () => {
+  const f = frame("F", 0, 0, 1000, 1000);
+  const n = nota("n", 100, 100, 200, 100);
+  const rect = Object.fromEntries([f, n].map((x) => [x.id, rectOf(x)]));
+  // F andou (dx, dy) = (500, -200); n não escala, só anda o mesmo tanto.
+  const framesNovos = { F: { x: 500, y: -200, w: 1000, h: 1000 } };
+  const out = notasComFrame([f, n], rect, framesNovos);
+  assert.deepEqual(out, { n: { x: 600, y: -100 } });
+});
+
+test("notasComFrame: nota no MENOR de dois frames aninhados usa o delta dele, não o do externo", () => {
+  const ext = frame("E", 0, 0, 2000, 2000);
+  const inr = frame("I", 100, 100, 500, 500);
+  const n = nota("n", 150, 150, 100, 100);
+  const nodes = [ext, inr, n];
+  const rect = Object.fromEntries(nodes.map((x) => [x.id, rectOf(x)]));
+  const framesNovos = { E: { x: 1000, y: 1000, w: 2000, h: 2000 }, I: { x: 300, y: 300, w: 500, h: 500 } };
+  const out = notasComFrame(nodes, rect, framesNovos);
+  // Delta de I é (200, 200); delta de E seria (1000, 1000) — teria que ser o de I.
+  assert.deepEqual(out, { n: { x: 350, y: 350 } });
+});
+
+test("notasComFrame: nota fora de qualquer frame não entra no resultado", () => {
+  const f = frame("F", 0, 0, 1000, 1000);
+  const n = nota("solta", 2000, 2000, 100, 50);
+  const nodes = [f, n];
+  const rect = Object.fromEntries(nodes.map((x) => [x.id, rectOf(x)]));
+  const out = notasComFrame(nodes, rect, { F: { x: 500, y: 500, w: 1000, h: 1000 } });
+  assert.deepEqual(out, {});
+});
+
+test("notasComFrame: contêiner que não se moveu (fora de framesNovos) também não entra", () => {
+  const f = frame("F", 0, 0, 1000, 1000);
+  const n = nota("n", 100, 100, 200, 100);
+  const nodes = [f, n];
+  const rect = Object.fromEntries(nodes.map((x) => [x.id, rectOf(x)]));
+  const out = notasComFrame(nodes, rect, {});
+  assert.deepEqual(out, {});
 });

@@ -13,7 +13,7 @@ import dagre from "@dagrejs/dagre";
 
 import { ASPECTS, ratioOf, FRAME_COLORS, rectOf, inside, containedCards, fitAspect,
          containedFrames, containedNotes, FRAME_HEAD, FRAME_PAD, donos, unidades, crescerExterno, abrirEspaco,
-         gradeDeFrames, validarPrancheta, PRANCHETA_PADRAO, marcaDaAgua } from "./geometria.js";
+         gradeDeFrames, validarPrancheta, PRANCHETA_PADRAO, marcaDaAgua, notasComFrame } from "./geometria.js";
 // Reexportados: o editor importa tudo de `./frames.js` e não precisa saber que
 // a geometria mudou de arquivo.
 export { ASPECTS, ratioOf, FRAME_COLORS, rectOf, inside, containedCards, fitAspect,
@@ -69,7 +69,16 @@ export function dagrePos(items, arestas) {
 //
 // Sem frames, só há cards soltos no segundo dagre: é o layout de sempre; sem
 // prancheta, não há unidade, e é o layout de frames de antes dela.
-// Volta `{cards: {id: {x, y}}, frames: {id: {x, y, w, h}}}`, tudo inteiro.
+//
+// Nota nunca entra em NADA disto: não é card nem frame, não tem ligação e não
+// vira nó do dagre nenhum (nem do interno de bloco, nem do externo). No fim,
+// `notasComFrame` (geometria.js) só olha `rect` (o snapshot ORIGINAL, tirado
+// no topo, antes de qualquer layout) e `out.frames` (a posição NOVA de todo
+// frame que passou pelo dagre) pra fazer cada nota andar o delta exato do
+// frame que a contém — ver o comentário lá pra regra completa e o porquê de
+// morar em `geometria.js`, e não aqui.
+// Volta `{cards: {id: {x, y}}, frames: {id: {x, y, w, h}}, notes: {id: {x, y}}}`,
+// tudo inteiro.
 export function organizar(nodes, edges) {
   const { externos, dono } = donos(nodes);
   const { unidades: us, unidadeDe } = unidades(nodes);
@@ -171,7 +180,7 @@ export function organizar(nodes, edges) {
                         ...livres.map((b) => ({ id: b.id, w: b.w, h: b.h })),
                         ...us.map((u) => ({ id: u.id, w: fixo[u.id].w, h: fixo[u.id].h }))], arestas);
 
-  const out = { cards: {}, frames: {} };
+  const out = { cards: {}, frames: {}, notes: {} };
   soltos.forEach((c) => { out.cards[c.id] = pos[c.id]; });
   livres.forEach((b) => {
     const p = pos[b.id];
@@ -188,6 +197,7 @@ export function organizar(nodes, edges) {
     });
     u.membros.cards.forEach((id) => { out.cards[id] = { x: fixo[id].x + dx, y: fixo[id].y + dy }; });
   });
+  out.notes = notasComFrame(nodes, rect, out.frames);
   return out;
 }
 
