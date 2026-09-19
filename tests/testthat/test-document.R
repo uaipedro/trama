@@ -363,6 +363,82 @@ test_that("set_fold valida o que recebe", {
                class = "tr_error_unknown_node")
 })
 
+test_that("ops de nota são cosméticas", {
+  for (o in c("add_note", "update_note", "remove_note")) {
+    expect_false(tr_op_semantic(list(op = o)), info = o)
+  }
+})
+
+test_that("add_note materializa id e padrões, e o replay reconstrói a mesma nota", {
+  m <- mk()
+  res <- tr_submit(m$doc, list(seq = 1, base_rev = 0,
+                               op = list(op = "add_note", x = 0, y = 0, w = 320, h = 120,
+                                         kind = "markdown")), m$reg)
+  id <- res$op$id
+  expect_match(id, "^[0-9A-Z]{16}$")
+  n <- res$doc$ui$notes[[id]]
+  expect_equal(n$kind, "markdown")
+  expect_equal(n$escala, "nota")
+  expect_equal(n$fundo, "cartao")
+  expect_equal(n$color, "nenhuma")
+  expect_equal(n$text, "")
+  back <- tr_replay(list(res$op), m$reg)
+  expect_identical(back$ui$notes, res$doc$ui$notes)
+})
+
+test_that("add_note de imagem nasce com fit e sem texto", {
+  m <- mk()
+  d <- tr_doc_apply(m$doc, list(op = "add_note", x = 0, y = 0, w = 400, h = 300,
+                                kind = "imagem", src = "logo.png"), m$reg)
+  n <- d$ui$notes[[1]]
+  expect_equal(n$fit, "contain")
+  expect_equal(n$src, "logo.png")
+  expect_null(n$text)
+})
+
+test_that("add_note valida retângulo, enums e caminho", {
+  m <- mk()
+  bad <- function(...) {
+    expect_error(tr_doc_apply(m$doc, list(op = "add_note", ...), m$reg),
+                 class = "tr_error_bad_op")
+  }
+  bad(x = 0, y = 0, w = 0, h = 10, kind = "markdown")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "grafico")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "markdown", escala = "gigante")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "markdown", fundo = "vidro")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "imagem", fit = "esticar")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "imagem", src = "../segredo.png")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "imagem", src = "/etc/passwd")
+  bad(x = 0, y = 0, w = 10, h = 10, kind = "imagem", src = "pasta\\logo.png")
+  expect_error(tr_doc_apply(m$doc, list(op = "add_note", x = 0, y = 0, w = 10, h = 10), m$reg),
+               class = "tr_error_bad_op")   # sem kind
+})
+
+test_that("update_note é patch parcial e exige nota existente", {
+  m <- mk()
+  d <- tr_doc_apply(m$doc, list(op = "add_note", id = "n1", x = 0, y = 0, w = 320, h = 120,
+                                kind = "markdown", text = "# Um"), m$reg)
+  d <- tr_doc_apply(d, list(op = "update_note", note = "n1", x = 40, y = 50), m$reg)
+  expect_equal(d$ui$notes$n1$x, 40)
+  expect_equal(d$ui$notes$n1$text, "# Um")
+  d <- tr_doc_apply(d, list(op = "update_note", note = "n1", text = "# Dois"), m$reg)
+  expect_equal(d$ui$notes$n1$text, "# Dois")
+  expect_error(tr_doc_apply(d, list(op = "update_note", note = "n1"), m$reg),
+               class = "tr_error_bad_op")
+  expect_error(tr_doc_apply(d, list(op = "update_note", note = "zzz", x = 1), m$reg),
+               class = "tr_error_unknown_note")
+})
+
+test_that("remove_note apaga e recusa id que não existe", {
+  m <- mk()
+  d <- tr_doc_apply(m$doc, list(op = "add_note", id = "n1", x = 0, y = 0, w = 1, h = 1,
+                                kind = "markdown"), m$reg)
+  d <- tr_doc_apply(d, list(op = "remove_note", note = "n1"), m$reg)
+  expect_length(d$ui$notes, 0L)
+  expect_error(tr_doc_apply(d, list(op = "remove_note", note = "n1"), m$reg),
+               class = "tr_error_unknown_note")
+})
+
 test_that("o documento volta ao front quando a estrutura muda, inclusive dentro de batch", {
   expect_true(.tr_op_echoes_doc(list(op = "remove_node")))
   expect_true(.tr_op_echoes_doc(list(op = "add_frame")))

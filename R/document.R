@@ -16,7 +16,7 @@ tr_doc <- function() {
     collections = list(),
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
-              frames = list(), folds = list())
+              frames = list(), folds = list(), notes = list())
   ), class = "tr_doc")
 }
 
@@ -29,7 +29,8 @@ tr_doc <- function() {
 #' esquecer vira "recomputou à toa" — barulhento e inofensivo.
 .tr_presentation_ops <- c("rename", "move", "resize", "set_view",
                           "add_frame", "update_frame", "remove_frame",
-                          "reorder_frames", "set_fold")
+                          "reorder_frames", "set_fold",
+                          "add_note", "update_note", "remove_note")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
 #' @export
@@ -47,7 +48,8 @@ tr_op_semantic <- function(op) {
 #' e recolher ficam de fora: o gesto já atualizou a tela.
 #' @noRd
 .tr_doc_echo_ops <- c("add_node", "remove_node", "connect", "disconnect",
-                      "add_frame", "remove_frame", "reorder_frames")
+                      "add_frame", "remove_frame", "reorder_frames",
+                      "add_note", "remove_note")
 
 .tr_op_echoes_doc <- function(op) {
   if (identical(op$op, "batch")) return(any(vapply(op$ops, .tr_op_echoes_doc, logical(1))))
@@ -130,6 +132,8 @@ tr_op_semantic <- function(op) {
     add_frame = .tr_op_add_frame, update_frame = .tr_op_update_frame,
     remove_frame = .tr_op_remove_frame, reorder_frames = .tr_op_reorder_frames,
     set_fold = .tr_op_set_fold,
+    add_note = .tr_op_add_note, update_note = .tr_op_update_note,
+    remove_note = .tr_op_remove_note,
     connect = .tr_op_connect, disconnect = .tr_op_disconnect,
     batch = .tr_op_batch,
     rlang::abort(sprintf("Op desconhecida: '%s'.", name),
@@ -436,6 +440,133 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
                  class = "tr_error_bad_op")
   }
   for (i in seq_along(ids)) doc$ui$frames[[ids[[i]]]]$order <- i
+  list(doc = doc, op = op)
+}
+
+# --- Notas -----------------------------------------------------------------
+# Blocos de apresentação, irmãos do frame: retângulo, sem porta e sem execução.
+# Moram em `ui.notes`, fora da chave de cache, e as ops são cosméticas — mudar
+# o texto de uma nota não pode invalidar o cache de gráfico nenhum. Não há
+# `reorder_notes`: frame tem ordem porque é slide, e nota não é slide, ela
+# ENTRA num (pelo mesmo pertencimento geométrico dos cards).
+
+.tr_note_kinds   <- c("markdown", "imagem")
+.tr_note_escalas <- c("letreiro", "nota")
+.tr_note_fundos  <- c("nenhum", "cartao")
+.tr_note_fits    <- c("contain", "cover")
+.tr_note_fields  <- c("x", "y", "w", "h", "kind", "text", "escala", "fundo",
+                      "color", "src", "fit")
+
+.tr_note_or_abort <- function(doc, id) {
+  if (!is.character(id) || length(id) != 1L) {
+    rlang::abort("Op sem referência de nota válida.", class = "tr_error_bad_op")
+  }
+  n <- doc$ui$notes[[id]]
+  if (is.null(n)) {
+    rlang::abort(sprintf("Nota '%s' não existe.", id), class = "tr_error_unknown_note")
+  }
+  n
+}
+
+.tr_check_enum <- function(x, what, vals) {
+  x <- .tr_scalar_chr(x, what)
+  if (!x %in% vals) {
+    rlang::abort(sprintf("%s desconhecido: '%s'. Use um de: %s.",
+                         what, x, paste(vals, collapse = ", ")),
+                 class = "tr_error_bad_op")
+  }
+  x
+}
+
+# `src` é relativo à pasta `imagens/` do projeto, que é a ÚNICA servida ao
+# navegador (`tr_ui()`). As três recusas são as mesmas de `.tr_check_asset()`
+# em R/collection.R, pelos mesmos motivos: `..` sai da pasta pensada pra isso;
+# caminho absoluto funcionaria numa máquina e em nenhuma outra; e a barra
+# invertida é separador só no Windows, então o mesmo documento acharia
+# arquivos diferentes conforme quem o abre.
+.tr_check_src <- function(x) {
+  x <- .tr_scalar_chr(x, "src")
+  if (grepl("^(/|~|[A-Za-z]:)", x)) {
+    rlang::abort(sprintf("src tem que ser relativo à pasta imagens/ do projeto (\"%s\" é absoluto).", x),
+                 class = "tr_error_bad_op")
+  }
+  if (any(strsplit(x, "/", fixed = TRUE)[[1]] == "..")) {
+    rlang::abort(sprintf("src não pode ter '..' (\"%s\").", x), class = "tr_error_bad_op")
+  }
+  if (grepl("\\", x, fixed = TRUE)) {
+    rlang::abort(sprintf("src usa barra invertida (\"%s\"); separe as pastas com '/'.", x),
+                 class = "tr_error_bad_op")
+  }
+  x
+}
+
+.tr_note_field <- function(k, v) {
+  switch(k,
+    x = , y = .tr_scalar_num(v, k),
+    w = , h = .tr_pos_num(v, k),
+    text = , color = .tr_scalar_chr(v, k),
+    kind   = .tr_check_enum(v, "kind", .tr_note_kinds),
+    escala = .tr_check_enum(v, "escala", .tr_note_escalas),
+    fundo  = .tr_check_enum(v, "fundo", .tr_note_fundos),
+    fit    = .tr_check_enum(v, "fit", .tr_note_fits),
+    src    = .tr_check_src(v))
+}
+
+# `id`, `kind`, `escala`, `fundo`, `color` e `fit` são materializados E ecoados,
+# como em `add_frame`: o undo por replay tem que reconstruir a mesma nota.
+# `color = "nenhuma"` é o padrão porque bloco de texto quer ser texto, e não
+# um retângulo colorido: a cor é acento que se escolhe, não ponto de partida.
+.tr_op_add_note <- function(doc, op, registry) {
+  .tr_require(op, c("x", "y", "w", "h", "kind"))
+  id <- op$id %||% .tr_new_id()
+  .tr_check_node_id(id)
+  if (!is.null(doc$ui$notes[[id]])) {
+    rlang::abort(sprintf("Id de nota já existe: '%s'.", id), class = "tr_error_duplicate_id")
+  }
+  kind <- .tr_note_field("kind", op$kind)
+  n <- list(
+    x = .tr_note_field("x", op$x), y = .tr_note_field("y", op$y),
+    w = .tr_note_field("w", op$w), h = .tr_note_field("h", op$h),
+    kind = kind,
+    escala = if (is.null(op$escala)) "nota" else .tr_note_field("escala", op$escala),
+    fundo = if (is.null(op$fundo)) "cartao" else .tr_note_field("fundo", op$fundo),
+    color = if (is.null(op$color)) "nenhuma" else .tr_note_field("color", op$color)
+  )
+  # Campo de um kind não existe no outro: nota de markdown com `fit` (ou
+  # imagem com `text`) guardaria valor que ninguém lê e que a próxima pessoa
+  # a ler o JSON tentaria entender.
+  if (kind == "markdown") {
+    n$text <- if (is.null(op$text)) "" else .tr_note_field("text", op$text)
+  } else {
+    n$src <- if (is.null(op$src)) "" else .tr_note_field("src", op$src)
+    n$fit <- if (is.null(op$fit)) "contain" else .tr_note_field("fit", op$fit)
+  }
+  doc$ui$notes[[id]] <- n
+  op$id <- id; op$kind <- kind
+  op$escala <- n$escala; op$fundo <- n$fundo; op$color <- n$color
+  if (kind == "markdown") op$text <- n$text else { op$src <- n$src; op$fit <- n$fit }
+  list(doc = doc, op = op)
+}
+
+# Patch parcial, como `update_frame`: arrastar manda `x, y`; redimensionar
+# manda os quatro; editar manda `text`; o menu manda `color`, `fundo`,
+# `escala` ou `fit`. `kind` NÃO entra: trocar o tipo de um bloco existente
+# trocaria também quais campos ele tem, e o caminho honesto é apagar e criar.
+.tr_op_update_note <- function(doc, op, registry) {
+  .tr_require(op, "note")
+  n <- .tr_note_or_abort(doc, op$note)
+  given <- setdiff(intersect(.tr_note_fields, names(op)), "kind")
+  if (length(given) == 0L) {
+    rlang::abort("update_note sem nenhum campo para mudar.", class = "tr_error_bad_op")
+  }
+  for (k in given) n[[k]] <- .tr_note_field(k, op[[k]])
+  doc$ui$notes[[op$note]] <- n
+  list(doc = doc, op = op)
+}
+
+.tr_op_remove_note <- function(doc, op, registry) {
+  .tr_require(op, "note"); .tr_note_or_abort(doc, op$note)
+  doc$ui$notes[[op$note]] <- NULL
   list(doc = doc, op = op)
 }
 
