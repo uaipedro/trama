@@ -110,6 +110,40 @@ function Text({ artifact }) {
   return h("pre", { className: "tr-text" }, String((artifact.data && artifact.data.text) ?? ""));
 }
 
+// A PARTE REUTILIZÁVEL do lightbox: estado `aberto`, o listener de Escape e o
+// portal com overlay+img+botão fechar. Extraída daqui (e não copiada) porque
+// `notas.js` (bloco de imagem, Task 3.1) precisa do mesmo comportamento sobre
+// um `src` já resolvido — a nota não tem `artifact.files`, só uma string de
+// `src` —, e as duas formas de dado convergem pro mesmo `src` de string antes
+// de chegar aqui. `Image` abaixo passa a usar esta função também, então não há
+// duas cópias da lógica de portal/Escape/overlay a manter em sincronia.
+// Devolve `{ aberto, abrir, node }`: `node` é o portal (ou `null` fechado),
+// pronto pra entrar como filho de quem chama.
+export function useLightbox(src) {
+  const [aberto, setAberto] = React.useState(false);
+  // Listener montado só quando aberto: um global permanente por card seria N
+  // listeners num canvas com N gráficos.
+  React.useEffect(() => {
+    if (!aberto) return;
+    const onKey = (e) => { if (e.key === "Escape") setAberto(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [aberto]);
+  // O overlay é irmão da imagem, não filho: dentro do card ele herdaria o
+  // `overflow:auto` do `.tr-preview` e o `transform` do canvas do React Flow,
+  // e `position:fixed` deixaria de ser relativo à janela — o lightbox abriria
+  // recortado dentro do card, que é o modo de falha mais difícil de
+  // diagnosticar aqui. `createPortal` para o `<body>` resolve de vez.
+  const node = aberto ? ReactDOM.createPortal(
+    h("div", { key: "lb", className: "tr-lightbox", role: "dialog",
+               onClick: () => setAberto(false) }, [
+      h("img", { key: "big", className: "tr-lightbox-img", src }),
+      h("button", { key: "x", className: "tr-lightbox-close",
+                    title: "fechar (Esc)" }, "×"),
+    ]), document.body) : null;
+  return { aberto, abrir: () => setAberto(true), node };
+}
+
 // O preview de imagem cabe no card, mas o card é pequeno e a imagem é HD: o
 // clique abre o MESMO arquivo em tela cheia, sem segunda requisição e sem
 // segundo artefato. Mora no núcleo, e não numa coleção, porque toda coleção
@@ -122,34 +156,15 @@ function Text({ artifact }) {
 // distorce, sobra faixa. É a tradução visual da regra de que proporção é param
 // (semântico, na chave de cache) e tamanho do card é cosmético.
 function Image({ artifact, assetUrl }) {
-  const [aberto, setAberto] = React.useState(false);
-  // Listener montado só quando aberto: um global permanente por card seria N
-  // listeners num canvas com N gráficos.
-  React.useEffect(() => {
-    if (!aberto) return;
-    const onKey = (e) => { if (e.key === "Escape") setAberto(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [aberto]);
   const f = artifact.files && (artifact.files.png || Object.values(artifact.files)[0]);
+  const src = f ? assetUrl(f) : null;
+  const { abrir, node } = useLightbox(src);
   if (!f) return h("div", { className: "tr-empty" }, "sem imagem");
-  const src = assetUrl(f);
   return h("div", { className: "tr-img-wrap" }, [
     h("img", { key: "i", className: "tr-img nodrag", src, loading: "lazy",
                title: "clique para ampliar",
-               onClick: (e) => { e.stopPropagation(); setAberto(true); } }),
-    // O overlay é irmão da imagem, não filho: dentro do card ele herdaria o
-    // `overflow:auto` do `.tr-preview` e o `transform` do canvas do React
-    // Flow, e `position:fixed` deixaria de ser relativo à janela — o lightbox
-    // abriria recortado dentro do card, que é o modo de falha mais difícil de
-    // diagnosticar aqui. `createPortal` para o `<body>` resolve de vez.
-    aberto ? ReactDOM.createPortal(
-      h("div", { key: "lb", className: "tr-lightbox", role: "dialog",
-                 onClick: () => setAberto(false) }, [
-        h("img", { key: "big", className: "tr-lightbox-img", src }),
-        h("button", { key: "x", className: "tr-lightbox-close",
-                      title: "fechar (Esc)" }, "×"),
-      ]), document.body) : null,
+               onClick: (e) => { e.stopPropagation(); abrir(); } }),
+    node,
   ]);
 }
 
