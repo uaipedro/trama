@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -118,9 +119,25 @@ func (a *App) InstallCollections(collections []string) error {
 	return config.Save(cfgPath, cfg)
 }
 
+// errTramaMissing é retornado quando os pacotes não estão mais em disco no
+// momento de abrir o app, mesmo depois de uma instalação aparentemente bem
+// sucedida — o suspeito mais comum é antivírus/Windows Defender colocando
+// em quarentena os pacotes R recém-compilados/baixados, que costumam disparar
+// falso positivo de heurística. Checamos isso ANTES de tentar subir o R, em
+// vez de deixar o usuário ver um traceback críptico de "loadNamespace".
+var errTramaMissing = errors.New(
+	"os pacotes do trama não foram encontrados — algo os removeu depois da " +
+		"instalação (suspeito comum: antivírus colocando em quarentena os " +
+		"pacotes recém-instalados). Adicione uma exclusão pra pasta do " +
+		"launcher no seu antivírus e instale as coleções de novo.",
+)
+
 // OpenTrama sobe o app e abre o navegador quando a porta responder.
 func (a *App) OpenTrama() error {
 	st := envcheck.Status(a.base, rVersion)
+	if !st.TramaInstalled {
+		return errTramaMissing
+	}
 	cfgPath := filepath.Join(a.base, "config.json")
 	cfg, _ := config.Load(cfgPath)
 	projectDir := cfg.DefaultProjectDir
