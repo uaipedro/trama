@@ -41,6 +41,7 @@ npx esbuild src/react-jsx-runtime.js --bundle --format=esm --minify --external:r
 npx esbuild src/xyflow.js           --bundle --format=esm --minify $EXT --outfile=$OUT/xyflow.js
 npx esbuild src/dagre.js            --bundle --format=esm --minify --outfile=$OUT/dagre.js
 npx esbuild src/html-to-image.js    --bundle --format=esm --minify --outfile=$OUT/html-to-image.js
+npx esbuild src/marked.js           --bundle --format=esm --minify --outfile=$OUT/marked.js
 cp node_modules/@xyflow/react/dist/style.css "$OUT/xyflow.css"
 ls -la "$OUT"
 

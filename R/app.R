@@ -188,6 +188,7 @@ tr_dependency_importmap <- function(base) {
     "@xyflow/react" = v("xyflow.js"),
     "@dagrejs/dagre" = v("dagre.js"),
     "html-to-image" = v("html-to-image.js"),
+    "marked" = v("marked.js"),
     # `./` é OBRIGATÓRIO: num importmap o endereço tem que ser URL absoluta ou
     # começar com "/", "./" ou "../". Um caminho relativo nu é descartado em
     # silêncio — a entrada some, `import from "trama"` falha, e o navegador

@@ -67,3 +67,9 @@ html-to-image (inst/www/vendor/html-to-image.js)
   html-to-image 1.11.13
   MIT — Copyright (c) 2017-2025 W.Y.
   inst/licenses/html-to-image-MIT.txt
+
+
+marked (inst/www/vendor/marked.js)
+  marked 14.1.4
+  MIT — Copyright (c) 2018+, MarkedJS; Copyright (c) 2011-2018, Christopher Jeffrey
+  inst/licenses/marked-MIT.txt
