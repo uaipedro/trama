@@ -763,6 +763,20 @@ function compatible(catalog, from, to) {
   return (catalog.adapters || []).some((a) => a.from === from && a.to === to);
 }
 
+// Espelha exportFramePng (frames.js): Blob, e não data: URL, pelo mesmo
+// motivo — um flow grande em base64 pesa um terço a mais no href. Revogado
+// depois de dar tempo ao clique iniciar o download.
+function exportFlowJson(doc, nomeArquivo) {
+  const texto = JSON.stringify(doc, null, 2);
+  const blob = new Blob([texto], { type: "application/json" });
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = u;
+  a.download = nomeArquivo;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(u), 1000);
+}
+
 // --- Diálogo de projeto ----------------------------------------------------
 
 // Navegador de pastas do SERVIDOR. O navegador não tem como escolher pasta do
@@ -2294,6 +2308,10 @@ function App() {
                                      setPainelConfig((v) => !v); } }, "⚙"),
       h("button", { key: "u", onClick: desfazer, title: "Ctrl+Z" }, "↶ Desfazer"),
       h("button", { key: "r", onClick: () => sendInput("tr_rerun", Date.now()) }, "↻ Recalcular"),
+      h("button", { key: "ex-flow", disabled: !doc,
+                    onClick: () => exportFlowJson(doc,
+                      `${(projeto?.root || "flow").split("/").filter(Boolean).pop()}-${projeto?.flow || "main"}.json`) },
+        "⇩ Exportar flow"),
       // Embrulhado: o segmentado da toolbar nasce colado no botão anterior (o da
       // proporção pertence ao "▭ Frame"), e o do tema é um grupo à parte.
       h("div", { key: "ta", className: "tr-toolbar-tema" },
