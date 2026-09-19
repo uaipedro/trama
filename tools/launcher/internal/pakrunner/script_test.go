@@ -7,10 +7,11 @@ func TestBuildInstallScript(t *testing.T) {
 
 	want := []string{
 		`options(repos = c(P3M = "https://packagemanager.posit.co/cran/latest"))`,
-		`if (!requireNamespace("pak", quietly = TRUE)) {`,
-		`install.packages("pak")`,
+		`if (!requireNamespace("remotes", quietly = TRUE)) {`,
+		`install.packages("remotes")`,
 		`lib <- "/home/user/.trama-launcher/lib"`,
-		`pak::pak(c("uaipedro/trama", "uaipedro/trama/collections/trama.data"), lib = lib)`,
+		`for (pkg in c("uaipedro/trama", "uaipedro/trama/collections/trama.data")) {`,
+		`remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = TRUE)`,
 	}
 	for _, w := range want {
 		if !contains(script, w) {
