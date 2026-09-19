@@ -188,6 +188,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
                  cursor:pointer;opacity:.7;padding:0}
 .tr-dialog-close:hover{opacity:1}
 .tr-dialog-list{flex:1;overflow:auto;padding:6px}
+/* Realce de "solte aqui" enquanto um arquivo é arrastado sobre a lista —
+   sem isto o `.json` some no drag e a área de soltar não fica óbvia. */
+.tr-dialog-list.tr-dialog-drop-on{outline:2px dashed var(--tr-ok);outline-offset:-2px}
 .tr-dialog-row{display:block;width:100%;text-align:left;background:none;border:0;
                color:var(--tr-fg);padding:5px 8px;border-radius:5px;cursor:pointer;font:inherit}
 .tr-dialog-row:hover{background:var(--tr-bg)}

@@ -774,10 +774,13 @@ function compatible(catalog, from, to) {
 // Não fecha ao clicar fora, ao contrário do lightbox de imagem: lá o clique
 // errado custa reabrir a imagem, aqui custa o nome digitado e a pasta
 // navegada. Sai pelo × ou pelo Esc, que são gestos deliberados.
-function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onClose }) {
+function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onImport, onClose }) {
   const [nome, setNome] = useState("");
+  const [arquivo, setArquivo] = useState(null); // { nomeArquivo, conteudo } | null
+  const [arrastando, setArrastando] = useState(false);
   const fundoRef = useRef(null);
   const caixaRef = useRef(null);
+  const fileRef = useRef(null);
   const l = listagem;
   // `path` da raiz do disco é "/", e concatenar daria "//sub". `normalizePath`
   // do R pode preservar a barra dupla, e aí o caminho que sobe não é o mesmo
@@ -798,6 +801,21 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onC
   // perdesse.
   const podeCriar = !!l && !!nome.trim() && !enviando;
   const podeAbrir = !!l?.project && l.path !== atual && !enviando;
+
+  // Nome sugerido é o do arquivo sem extensão — o usuário ainda pode trocar
+  // antes de confirmar, mas datilografar de novo o que já está no nome do
+  // arquivo seria atrito sem motivo.
+  const lerArquivo = (file) => {
+    if (!file) return;
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      setArquivo({ nomeArquivo: file.name, conteudo: leitor.result });
+      if (!nome.trim()) setNome(file.name.replace(/\.json$/i, ""));
+    };
+    leitor.readAsText(file);
+  };
+  const importar = () => { if (arquivo && nome.trim()) onImport(l.path, nome.trim(), arquivo.conteudo); };
+  const podeImportar = !!l && !!arquivo && !!nome.trim() && !enviando;
 
   useEffect(() => {
     const esc = (e) => { if (e.key === "Escape") onClose(); };
@@ -833,7 +851,18 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onC
         h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)",
                       onClick: onClose }, "×"),
       ]),
-      h("div", { key: "ls", className: "tr-dialog-list" }, [
+      h("div", {
+        key: "ls", className: "tr-dialog-list" + (arrastando ? " tr-dialog-drop-on" : ""),
+        onDragOver: (e) => { e.preventDefault(); setArrastando(true); },
+        onDragLeave: () => setArrastando(false),
+        onDrop: (e) => {
+          e.preventDefault(); setArrastando(false);
+          const f = e.dataTransfer.files?.[0];
+          // Só `.json`: soltar qualquer outra coisa aqui hoje não tem onde ir,
+          // e tentar interpretar (imagem? pasta?) é escopo que ninguém pediu.
+          if (f && /\.json$/i.test(f.name)) lerArquivo(f);
+        },
+      }, [
         l && l.parent
           ? h("button", { key: "..", className: "tr-dialog-row",
                           onClick: () => onBrowse(l.parent) }, "../")
@@ -856,6 +885,13 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onC
                      onKeyDown: (e) => { if (e.key === "Enter" && podeCriar) criar(); } }),
         h("button", { key: "c", disabled: !podeCriar, onClick: criar },
           enviando === "criar" ? "criando…" : "Criar aqui"),
+        h("input", { key: "fi", type: "file", accept: ".json,application/json",
+                     ref: fileRef, style: { display: "none" },
+                     onChange: (e) => lerArquivo(e.target.files?.[0]) }),
+        h("button", { key: "fb", onClick: () => fileRef.current?.click() },
+          arquivo ? `📄 ${arquivo.nomeArquivo}` : "Escolher arquivo…"),
+        h("button", { key: "im", disabled: !podeImportar, onClick: importar },
+          enviando === "importar" ? "importando…" : "Importar aqui"),
       ]),
     ]));
 }
@@ -897,7 +933,7 @@ function App() {
   const [projeto, setProjeto] = useState(null);   // {root, flow} do que está aberto
   const [listagem, setListagem] = useState(null); // resposta do último tr_browse
   const [abrindo, setAbrindo] = useState(false);  // diálogo visível
-  const [enviando, setEnviando] = useState(null); // "abrir" | "criar" | null: pedido em voo
+  const [enviando, setEnviando] = useState(null); // "abrir" | "criar" | "importar" | null: pedido em voo
   // Proporção dos frames NOVOS (F e Ctrl+G). É preferência de quem usa este
   // navegador, e não estado do documento: não vira op, não entra no desfazer,
   // e abrir o mesmo projeto em outra máquina não herda a escolha. Cada frame
@@ -2304,6 +2340,8 @@ function App() {
                        sendInput("tr_project_open", { seq: ++seqCounter, path: p }); },
       onNew: (p, nome) => { setEnviando("criar");
                             sendInput("tr_project_new", { seq: ++seqCounter, path: p, nome }); },
+      onImport: (p, nome, conteudo) => { setEnviando("importar");
+                            sendInput("tr_project_import", { seq: ++seqCounter, path: p, nome, conteudo }); },
       onClose: fecharDialogo }) : null,
   ]);
 }
