@@ -44,7 +44,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux/amd64
             wails-bin: launcher
-            artifact: trama-launcher-linux-amd64
+            artifact: trama-launcher-linux-amd64.tar.gz
             # Ubuntu 24.04 (ubuntu-latest) only ships libwebkit2gtk-4.1-dev
             # (4.0 was dropped); Wails needs this build tag to link against
             # webkit2gtk-4.1 instead of its 4.0 default.
@@ -76,11 +76,22 @@ jobs:
       - name: Build launcher
         run: wails build -platform ${{ matrix.platform }} -clean ${{ matrix.build-tags }}
 
-      - name: Rename binary
+      - name: Package binary
         shell: bash
         run: |
           mkdir -p dist
-          mv "build/bin/${{ matrix.wails-bin }}" "dist/${{ matrix.artifact }}"
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            # Empacota em tar.gz (não sobe o binário cru): um download direto
+            # do navegador não preserva o bit de execução, então um binário
+            # ELF baixado puro aparece pro usuário como "não sei com o que
+            # abrir isso". tar.gz preserva permissões Unix na extração, então
+            # o binário já sai executável.
+            mv "build/bin/${{ matrix.wails-bin }}" "build/bin/trama-launcher-linux-amd64"
+            chmod +x "build/bin/trama-launcher-linux-amd64"
+            tar -czf "dist/${{ matrix.artifact }}" -C build/bin trama-launcher-linux-amd64
+          else
+            mv "build/bin/${{ matrix.wails-bin }}" "dist/${{ matrix.artifact }}"
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -107,9 +118,13 @@ jobs:
         with:
           files: |
             artifacts/trama-launcher-windows-amd64.exe/trama-launcher-windows-amd64.exe
-            artifacts/trama-launcher-linux-amd64/trama-launcher-linux-amd64
+            artifacts/trama-launcher-linux-amd64.tar.gz/trama-launcher-linux-amd64.tar.gz
           body: |
             Automated release of the Trama Launcher (${{ github.ref_name }}).
 
             Downloads R portable at runtime; these binaries are the launcher only.
+
+            **Linux:** baixe o `.tar.gz`, extraia (`tar -xzf trama-launcher-linux-amd64.tar.gz`
+            ou "Extrair aqui" no gerenciador de arquivos) e abra o binário — já sai
+            com permissão de execução.
           generate_release_notes: true
