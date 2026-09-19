@@ -1,27 +1,23 @@
-# trama <picture><source media="(prefers-color-scheme: dark)" srcset="man/figures/logo-dark.svg"><img src="man/figures/logo.svg" align="right" height="120" alt=""></picture>
+# trama
 
-O pacote trama é uma ferramenta em R pra construir fluxos lógicos com
-visualização interativa. Tem coleções prontas pra fluxos comuns e é
-extensível pra blocos novos, escritos em R base ou pacotes terceiros.
+![Identidade visual do trama: R em blocos, diagramas que rodam](tools/video/out/ab_full.png)
 
-> **In English.** trama is an R package for building computation graphs in an
-> interactive node editor (Shiny + React). Every node renders its own result —
-> a table, a plot, a model summary — right on the canvas, and editing a
-> parameter recomputes only what depends on it (content-addressed, incremental,
-> pull-based execution). Flows are plain JSON and can also be written in R.
-> Domain logic lives in installable collections: data wrangling, plots, time
-> series, statistical models, multivariate analysis and survey sampling.
-> Documentation is in Portuguese; installation is below.
+O `trama` é um pacote R para construir e executar fluxos de computação em um editor visual interativo. Cada bloco exibe o próprio resultado e somente os blocos afetados são recalculados após uma alteração.
+
+Os fluxos são documentos JSON que também podem ser escritos em R. As operações são fornecidas por coleções instaláveis.
+
+As coleções abrangem manipulação de dados, gráficos, séries temporais, modelos estatísticos, análise multivariada, amostragem e aprendizado de máquina.
+
+> **In English.** `trama` is an R package for building and running computation graphs in an interactive node editor based on Shiny and React. Flows are stored as JSON and can also be written in R. Documentation is in Portuguese.
 
 ## Instalação
 
-Requer R ≥ 4.1. Enquanto o pacote não está no CRAN, instale do GitHub com
-[pak](https://pak.r-lib.org):
+O pacote requer R 4.1 ou versão posterior. Enquanto não estiver disponível no CRAN, a instalação pode ser feita pelo GitHub com o [`pak`](https://pak.r-lib.org):
 
 ```r
 install.packages("pak")
 
-# núcleo + coleções de dados e gráficos (o ponto de partida recomendado)
+# Núcleo e coleções recomendadas para iniciar
 pak::pak(c(
   "uaipedro/trama",
   "uaipedro/trama/collections/trama.data",
@@ -29,27 +25,19 @@ pak::pak(c(
 ))
 ```
 
-As outras coleções são opcionais — instale só as que for usar. Cada uma puxa
-as dependências (inclusive `trama.data`/`trama.view`) sozinha:
+As demais coleções são opcionais e instalam suas próprias dependências:
 
 ```r
 pak::pak("uaipedro/trama/collections/trama.series")    # séries temporais
 pak::pak("uaipedro/trama/collections/trama.models")    # modelos estatísticos
 pak::pak("uaipedro/trama/collections/trama.multi")     # análise multivariada
 pak::pak("uaipedro/trama/collections/trama.sampling")  # amostragem
-pak::pak("uaipedro/trama/collections/trama.ml")        # machine learning sem redes neurais
+pak::pak("uaipedro/trama/collections/trama.ml")        # aprendizado de máquina
 ```
 
-Para fixar uma versão, acrescente a tag: `"uaipedro/trama@v0.1.0"`.
+Uma versão específica pode ser fixada pela tag, como em `"uaipedro/trama@v0.1.0"`.
 
-A coleção [`trama.ml`](collections/trama.ml/README.md) traz CART, FIGS
-(via `figsr`), random forest, SVM e XGBoost, além da referência linear/logística,
-divisão treino/teste, avaliação e regras interpretáveis. Os motores são
-opcionais; instale os que usar. Há [fluxos de exemplo](exemplos/machine-learning)
-para classificação e regressão, com [referências dos métodos e pacotes](collections/trama.ml/REFERENCES.md).
-
-Com `remotes`, instale na ordem das dependências — núcleo, `trama.data`,
-`trama.view` e só então as demais:
+Com o `remotes`, os pacotes devem ser instalados na ordem das dependências: núcleo, `trama.data`, `trama.view` e, em seguida, as demais coleções.
 
 ```r
 remotes::install_github("uaipedro/trama")
@@ -59,78 +47,72 @@ remotes::install_github("uaipedro/trama", subdir = "collections/trama.view")
 
 ## Primeiro fluxo
 
-```r
-library(trama)
-
-# cria a pasta do projeto se ela não existir e abre o editor
-tr_app(tr_project("meu-projeto", collections = c("trama.data", "trama.view")))
-```
-
-O editor abre no navegador. Arraste blocos da paleta (por exemplo, *dados de
-exemplo* → *filtrar* → um gráfico), ligue as portas e edite parâmetros: cada
-card mostra o próprio resultado. O fluxo é salvo em `meu-projeto/flows/main.json`.
-
-## Conceitos
-
-O fluxo é um documento que organiza funções em um diagrama de blocos
-conectados, exibindo o resultado de cada etapa. Alterar um parâmetro,
-adicionar um bloco novo ou uma nova conexão recalcula apenas os blocos
-afetados por essa mudança.
-
-Os blocos vêm agrupados em coleções — pacotes R que registram um conjunto de
-tipos, blocos e a forma de exibir cada resultado. Um bloco novo é uma função
-R comum, declarada com as próprias entradas, saídas e parâmetros.
-
-Cada bloco declara portas de entrada e saída, configuráveis com tipo,
-obrigatoriedade e multiplicidade. As portas de saída de um bloco se conectam
-às entradas dos seguintes.
-
-## Para quê
-
-Enxergar, editar, produzir e analisar fluxos lógicos de funções e
-transformações — com uma coleção ampla, mas não exaustiva, de peças prontas, e
-com o custo de acrescentar as que faltam mantido baixo.
-
-O que distingue: você não vê um diagrama do que o código *faria*, vê o dado
-que ele **produziu**, em cada etapa. E mudar um parâmetro recomputa só o que
-depende dele.
-
-O [manifesto](docs/manifesto.md) tem o objetivo completo, o horizonte de longo
-prazo e os não-objetivos.
-
-## Como funciona
-
-```
-comando → documento → plano (hash por nó) → fila → workers
-                                                     ↓
-                                store: <hash>.artefato + <hash>.preview
-                                                     ↓
-                                              eventos → front
-```
-
-O **store endereçado por conteúdo é o protocolo**, não um cache. O worker
-computa, grava artefato e preview sob a chave, e devolve só o handle —
-nenhum valor pesado atravessa fronteira de processo. É isso que permite rodar
-as funções pesadas fora do processo da interface sem serializar objeto vivo.
-
-Cinco contratos no núcleo — tipo, catálogo, documento, execução, renderização.
-Tudo que não é um deles é coleção.
-
-## Escrever o fluxo em R
-
-O documento é o mesmo, visto pela interface ou pelo console: montar na tela
-arrastando blocos produz o JSON; `tr_flow()`/`tr_add()`/`tr_link()` produzem o
-idêntico JSON escrevendo R. `tr_flow_code()` faz o caminho de volta — o ETL de
-`exemplos/vendas` vira:
+O código a seguir cria a pasta do projeto e abre o editor no navegador:
 
 ```r
 library(trama)
 
-# `reg` é o REGISTRO: onde os blocos de cada coleção instalada ficam
-# disponíveis para `tr_add()` achar pelo id ("data/read_csv" etc.).
-# `tr_app()`/`tr_project()` montam um por trás dos panos; no console é
-# explícito — `tr_registry()` cria um vazio, `tr_use()` carrega uma coleção
-# nele.
+tr_app(tr_project(
+  "meu-projeto",
+  collections = c("trama.data", "trama.view")
+))
+```
+
+No editor, os blocos são arrastados da paleta, conectados pelas portas e configurados pelos parâmetros. Cada card apresenta o resultado da respectiva operação.
+
+O fluxo é salvo em `meu-projeto/flows/main.json`.
+
+## Conceitos centrais
+
+Um fluxo organiza funções em um diagrama de blocos conectados. Alterações em parâmetros, blocos ou conexões recalculam somente os resultados que dependem da parte modificada.
+
+Cada bloco declara entradas, saídas e parâmetros. As portas possuem tipo, obrigatoriedade e multiplicidade, o que permite validar as conexões antes da execução.
+
+Os blocos são agrupados em **coleções**, que são pacotes R responsáveis por registrar tipos, operações e formas de apresentação dos resultados.
+
+O editor visual, o documento JSON e a DSL em R representam o mesmo fluxo.
+
+![O mesmo fluxo representado no editor visual, em JSON e em R](tools/video/out/v2_740.png)
+
+O objetivo do projeto é permitir a construção, a inspeção e a execução de fluxos de funções e transformações. Os resultados intermediários permanecem visíveis, e novas operações podem ser acrescentadas como funções R comuns.
+
+O [manifesto](docs/manifesto.md) registra o objetivo completo, o horizonte de desenvolvimento e os não objetivos do projeto.
+
+## Coleções disponíveis
+
+![Coleções de blocos disponíveis no trama](tools/video/out/leg_4.9.png)
+
+As coleções separam a infraestrutura de execução dos diferentes domínios de análise:
+
+| Coleção | Conteúdo |
+|---|---|
+| `trama.data` | Importação, inspeção, limpeza, transformação, agregação e gravação de dados |
+| `trama.view` | Gráficos de relação, distribuição e comparação com `ggplot2` |
+| `trama.series` | Operadores, decomposição, modelos, testes e gráficos para séries temporais |
+| `trama.models` | Modelos estatísticos e diagnósticos |
+| `trama.multi` | Análise multivariada |
+| `trama.sampling` | Procedimentos de amostragem |
+| `trama.ml` | Classificação, regressão, avaliação e regras interpretáveis |
+
+`trama.data` é a coleção de referência. Seus blocos abrangem fontes, inspeção, limpeza, transformação, reformatação, agregação, regiões de fluxo e gravação.
+
+`trama.view` fornece gráficos em `ggplot2` sem JavaScript próprio. O `preview` do tipo `view/plot` grava um PNG, exibido pelo renderizador de imagens do núcleo.
+
+`trama.series` reúne operadores, decomposição clássica e STL, ARIMA, ETS, Holt-Winters, testes e gráficos específicos. Adaptadores convertem `series/ts` em `data/table` nas arestas, sem bloco intermediário.
+
+A coleção [`trama.ml`](collections/trama.ml/README.md) inclui CART, FIGS, random forest, SVM e XGBoost, além de referências lineares e logísticas, divisão treino/teste, avaliação e extração de regras.
+
+Os motores de aprendizado de máquina são opcionais. A coleção possui [fluxos de classificação e regressão](exemplos/machine-learning) e uma lista de [referências dos métodos e pacotes](collections/trama.ml/REFERENCES.md).
+
+## Construção de fluxos em R
+
+`tr_flow()`, `tr_add()` e `tr_link()` produzem o mesmo documento gerado pelo editor. `tr_flow_code()` realiza a conversão do documento para código R.
+
+O fluxo de ETL em `exemplos/vendas` pode ser escrito da seguinte forma:
+
+```r
+library(trama)
+
 reg <- tr_registry()
 tr_use("trama.data", registry = reg)
 
@@ -143,91 +125,73 @@ tr_flow(reg) |>
   tr_add("ranking", "data/arrange", cols = "receita_total", desc = TRUE, from = "porregiao")
 ```
 
-`from` liga a primeira saída à primeira entrada obrigatória livre e
-compatível — o caso comum de "encadeia". `tr_link()` fica para ligações que
-não são a canônica, e `tr_set()` para editar parâmetro depois de montado — e
-também para preencher param cujo nome colide com um argumento do próprio
-`tr_add()` (`flow`, `id`, `type`, `from`, `label`, `seed`, `position`), que ali iria
-para o argumento da DSL. Nos quatro primeiros isso é recusado com erro, nunca
-aceito em silêncio.
+O registro criado por `tr_registry()` armazena os blocos das coleções carregadas por `tr_use()`. `tr_app()` e `tr_project()` criam esse registro automaticamente para o editor.
 
-## Domínio nenhum mora no núcleo
+O argumento `from` liga a primeira saída à primeira entrada obrigatória, livre e compatível. `tr_link()` atende às demais ligações, e `tr_set()` altera parâmetros após a criação do bloco.
 
-Uma coleção é um pacote R que registra tipos, categorias, blocos, renderizadores
-de preview, editores de parâmetro e fluxos de exemplo. Sem bundler e sem
-toolchain: R comum mais um `.js` solto (e, se quiser, um `.css`).
+`tr_set()` também define parâmetros cujos nomes coincidem com argumentos de `tr_add()`: `flow`, `id`, `type`, `from`, `label`, `seed` e `position`. Os quatro primeiros são recusados por `tr_add()` para evitar ambiguidade.
+
+## Criação de coleções e blocos
+
+Uma coleção registra tipos, categorias, blocos, renderizadores, editores de parâmetros e fluxos de exemplo. Sua implementação utiliza R e, quando necessário, arquivos JavaScript e CSS, sem bundler obrigatório.
 
 ```r
-tr_node("data/filter", fn = nd_filter, label = "Filtrar",
+tr_node(
+  "data/filter",
+  fn = nd_filter,
+  label = "Filtrar",
   description = "Mantém as linhas em que a condição é verdadeira.",
-  help    = "## Descrição\n\nCondição em branco é nó desligado…",  # markdown
-  inputs  = list(data = "data/table"),
-  outputs = list(out  = "data/table"),
-  params  = list(expr = tr_param("expr", "", label = "Condição",
-                                 example = "valor > 100")))
+  help = "## Descrição\n\nCondição em branco é nó desligado…",
+  inputs = list(data = "data/table"),
+  outputs = list(out = "data/table"),
+  params = list(
+    expr = tr_param("expr", "", label = "Condição", example = "valor > 100")
+  )
+)
 ```
 
-`description` é **obrigatória** — bloco sem uma linha dizendo o que faz não
-compila, e é essa régua que faz coleção nova nascer documentada. `help` é
-markdown e vira o painel lateral de ajuda; `example` num param vira o
-placeholder do campo. O catálogo já era legível por máquina; agora ele carrega
-também para que serve cada bloco e o que se digita em cada campo, que é a metade
-que faltava para a tese "AI-friendly" do [manifesto](docs/manifesto.md).
+`description` é obrigatória e descreve a finalidade do bloco. `help` fornece o conteúdo do painel lateral, e `example` define o texto de exemplo do campo.
+
+Um renderizador pode fornecer uma ou mais vistas para o mesmo artefato:
 
 ```js
 import { registerRenderer, registerWidget } from "trama";
-registerRenderer("data/table", MinhaTabela);            // uma vista
-registerRenderer("data/table", { views: [               // ou várias
+
+registerRenderer("data/table", MinhaTabela);
+
+registerRenderer("data/table", { views: [
   { id: "tabela",  label: "tabela",  component: MinhaTabela },
   { id: "colunas", label: "colunas", component: MinhasColunas },
 ]});
 ```
 
-Um renderer é um conjunto de vistas do mesmo artefato, alternáveis numa faixa de
-abas no card — é o que evita plantar um bloco extra só pra olhar o mesmo dado de
-outro jeito. Cada vista recebe `{artifact, handle, assetUrl}`. Todo tipo que
-declare `summary=` no `tr_type()` ganha uma vista `resumo` sem pedir.
+As vistas são alternadas no card e recebem `{artifact, handle, assetUrl}`. Todo tipo que declara `summary` em `tr_type()` recebe automaticamente a vista `resumo`.
 
-`trama.data` (em `collections/`) é a coleção de referência: 30 blocos em oito
-categorias — fonte (CSV, RDS, Parquet, Excel, dados de exemplo, gerador), conhecer,
-limpar, transformar, reformatar, agregar, fluxo (entrar e sair de região) e gravar. Todo bloco tem ajuda; todo erro de usuário tem
-classe (`tr_data_errors()`); a suíte é dela.
+O worker chama a função do bloco com entradas e parâmetros nomeados. Quando declarados, `.ctx` fornece `progress()`, `partial()`, `path()` e `file()`, e `.seed` recebe a semente estável da instância.
 
-`trama.view` é a segunda: dezenove gráficos ggplot2 em três categorias
-(relação, distribuição e comparação — do disperso ao violino, à acumulada, às
-médias com intervalo de confiança, ao pareamento e ao Pareto), e
-**nenhum JavaScript** — o `preview` do tipo `view/plot` grava um PNG e aponta
-para o renderer `trama/image` do núcleo, que já sabe desenhar imagem e ampliar
-no clique. Ela usa o tipo `data/table` da `trama.data`, então carrega depois
-dela.
+Os contratos completos estão documentados em `?tr_collection`, `?tr_type` e `?tr_node`. `tr_errors()` lista os erros classificados do núcleo; cada coleção pode manter um catálogo equivalente para seu domínio.
 
-`trama.series` é a terceira, e a que prova que coleção se apoia em coleção:
-séries temporais em 30 blocos — operadores (diferença, defasagem, Box-Cox,
-janela, média móvel, agregação por calendário, interpolação), decomposição
-clássica e STL, ARIMA, ETS e Holt-Winters com previsão, referências e
-acurácia, testes (ADF, KPSS, Phillips-Perron, Ljung-Box) e os gráficos que só
-existem para série (correlograma, PACF, sazonal, subséries, defasagens). Não
-repete nada das outras duas: traz o tipo `series/ts` (a série carrega a
-frequência) com **adaptadores** para `data/table`, de modo que uma série ligada
-num `data/filter` ou num `view/histogram` vira tabela na aresta, sem bloco no
-meio; e os gráficos saem no tipo `view/plot`, pela costura que a `view` exporta
-(`tr_view_props()`, `tr_view_finish()`, `tr_view_render()`). Carrega depois
-das duas.
+## Arquitetura de execução
 
-## Fluxos que se desenrolam
+```text
+comando → documento → plano (hash por nó) → fila → workers
+                                                     ↓
+                                store: <hash>.artefato + <hash>.preview
+                                                     ↓
+                                              eventos → front
+```
 
-Tem algoritmo cujo valor está no caminho, não no resultado: treinar a cada novo
-ponto, detectar drift a cada novo ponto, ordenar mostrando as trocas. Para
-esses, um sub-grafo pode ser uma **região de fluxo** — ela executa ponto a
-ponto e você vê cada passo acontecer.
+O armazenamento endereçado por conteúdo constitui o protocolo entre os processos. O worker grava o artefato e o `preview` sob uma chave e devolve somente o identificador correspondente.
+
+Esse protocolo permite executar funções fora do processo da interface sem transferir objetos R ativos. O núcleo é formado por cinco contratos: tipo, catálogo, documento, execução e renderização.
+
+## Regiões de fluxo
+
+Algoritmos iterativos podem ser executados em uma **região de fluxo**, na qual um subgrafo processa os dados em passos sucessivos. Esse mecanismo atende, por exemplo, a modelos atualizados a cada observação.
 
 ```r
 library(trama)
 
-# `models/rls` mora na coleção `trama.models`, que depende de `trama.data`
-# (dá `data/read_csv`/`data/to_stream`/`data/from_stream`) e de `trama.view`
-# (os gráficos de diagnóstico dos modelos) — as três entram no mesmo
-# registro, na ordem das dependências.
 reg <- tr_registry()
 tr_use("trama.data", registry = reg)
 tr_use("trama.view", registry = reg)
@@ -237,160 +201,95 @@ tr_flow(reg) |>
   tr_add("dados", "data/read_csv", path = "serie.csv") |>
   tr_add("entra", "data/to_stream", lote = 1L, from = "dados") |>
   tr_add("modelo", "models/rls", resposta = "y", from = "entra") |>
-  tr_add("sai",    "data/from_stream", from = "modelo")
+  tr_add("sai", "data/from_stream", from = "modelo")
 ```
 
-`data/to_stream` abre a região, `data/from_stream` a fecha, e entre as duas os
-nós recebem um ponto por vez. Nó comum funciona ali dentro sem mudança nenhuma
-— `data/filter` e `data/mutate` são aplicados ponto a ponto. Nó que precisa
-guardar estado entre os pontos declara `init`/`step`, como o `models/rls`, que
-depois de *n* pontos chega aos mesmos coeficientes que um `lm()` nos mesmos *n*
-pontos.
+`data/to_stream` inicia a região, e `data/from_stream` a encerra. Blocos comuns são aplicados a cada passo; blocos com estado declaram `init` e `step`.
 
-O resultado é o **histórico**: uma tabela com uma linha por observação — com
-`lote = 1` isso é uma linha por passo, e com lote maior um passo contribui
-várias —, que os nós de
-gráfico que já existem plotam. E porque é dado comum, o resto do pacote
-funciona depois dela sem saber que houve fluxo.
+O resultado é um histórico tabular com uma linha por observação. Como a saída utiliza um tipo comum, os blocos de visualização e transformação podem ser conectados sem tratamento específico.
 
-Enquanto roda, cada card mostra o próprio passo, e o card da fonte tem pausa,
-um passo e velocidade — os comandos vão pelo STORE (`tr_stream_command()`,
-lido por polling a cada passo, executor nenhum sabe disso) e por isso valem
-nos dois executores. A ressalva é o Shiny, não o executor: com
-`tr_executor_sequential()`, `tr_run()` roda a região no PRÓPRIO processo que
-está mostrando a tela, então enquanto o laço anda não sobra ninguém ali pra
-CLICAR o botão — é o processo da interface que fica preso, não o mecanismo do
-comando. Rodar num console separado, ou apontar duas sessões pro mesmo store,
-já mostra os três respondendo em qualquer executor.
+Durante a execução, os cards apresentam o passo atual. Pausa, avanço e velocidade são enviados pelo armazenamento com `tr_stream_command()` e funcionam nos executores sequencial e em pool.
 
-A chave que o `tr_stream_command()` pede é a da UNIDADE, e ela sai de
-`tr_plan(doc, registry = reg, store = store)$units[["<nó do colapso>"]]$key` —
-NÃO de `tr_plan_keys()`, que devolve chaves de artefato. Numa segunda sessão é
-assim que se obtém; pela interface não há botão de `stop` hoje. Velocidade é estado de
-sessão, não param — arrastar o controle não recomputa o fluxo.
+No executor sequencial, a interface Shiny e a região ocupam o mesmo processo. Os controles interativos exigem uma segunda sessão ou um executor em pool enquanto o laço estiver em execução.
 
-Se o run morrer no meio, o trabalho fica num checkpoint e o run SEGUINTE retoma
-de onde parou. `tr_retry()` não roda nada: ele limpa o handle de erro que a
-falha deixou (preservando o checkpoint, ao contrário do `tr_bust()`, que apaga
-os dois), e é o `tr_run()`/`tr_value()` depois dele que retoma. Depois de um
-processo morto à força não há handle de erro nenhum, então o `tr_retry()`
-devolve `FALSE` e o run seguinte retoma sozinho.
+A chave usada por `tr_stream_command()` corresponde à unidade retornada por `tr_plan(...)$units[["<nó do colapso>"]]$key`. `tr_plan_keys()` retorna chaves de artefatos e não atende a esse comando.
 
-Detalhes de desenho em `docs/design-trama.md`, seção 5.8.
+Execuções interrompidas mantêm um checkpoint. Após uma falha registrada, `tr_retry()` remove o erro e preserva o checkpoint; a retomada ocorre no próximo `tr_run()` ou `tr_value()`.
 
-## Estado
+Quando o processo é encerrado sem produzir um erro, `tr_retry()` retorna `FALSE`, e a execução seguinte retoma diretamente o checkpoint. O desenho completo consta da seção 5.8 de [design-trama.md](docs/design-trama.md).
 
-Em construção, e já funcional de ponta a ponta para ETL tabular.
+## Estado do projeto
 
-| Etapa | O que é | Estado |
-|---|---|---|
-| E1 | registro, tipos, blocos, params, catálogo | ✅ |
-| E2 | documento, ops, identidade, JSON | ✅ |
-| E3 | store, plano, chaves de conteúdo | ✅ |
-| E4 | executor (sequencial e pool), erro como valor | ✅ |
-| E5 | transporte Shiny e front | ✅ |
-| E6 | coleção `trama.data` e o ETL de aceite | ✅ |
-| Coordenador assíncrono | `tr_scheduler()`, cancelamento por handoff, progresso e parcial | ✅ |
-| Pool validado | `mirai` de ponta a ponta, cancelamento classificado | ✅ |
-| DSL | `tr_flow()`/`tr_add()`/`tr_link()`/`tr_set()` e `tr_flow_code()` | ✅ |
-| Vendor | front offline em `inst/www/vendor/` | ✅ |
-| Coleção `data` redonda | 28 blocos, erros classificados, ajuda por bloco | ✅ |
+O projeto está em desenvolvimento e possui execução completa para fluxos tabulares.
 
-Verificado no navegador: montar um fluxo do zero pela paleta, cabear
-arrastando, editar parâmetro e ver só o que depende recomputar; editar três
-vezes seguido e ver só o último valor sobreviver, sem travar a interface; a
-mesma edição com o executor `pool` (`mirai`), com daemons de verdade; e o
-editor de ponta a ponta com a rede desligada — os módulos ESM (`inst/www/vendor/`)
-são vendorizados, o pacote instalado funciona offline.
+| Componente | Estado |
+|---|---|
+| Registro, tipos, blocos, parâmetros e catálogo | ✅ |
+| Documento, operações, identidade e JSON | ✅ |
+| Armazenamento, plano e chaves de conteúdo | ✅ |
+| Executores sequencial e em pool; erro como valor | ✅ |
+| Transporte Shiny e interface | ✅ |
+| Coleção `trama.data` e fluxo de ETL de aceite | ✅ |
+| Coordenador assíncrono, cancelamento, progresso e resultados parciais | ✅ |
+| Pool com `mirai` e cancelamento classificado | ✅ |
+| DSL em R e conversão por `tr_flow_code()` | ✅ |
+| Dependências da interface disponíveis para uso offline | ✅ |
 
-## Experimentar
+Foram verificados no navegador a montagem de fluxos, a edição de parâmetros, a recomputação seletiva, o descarte de edições superadas, a execução em pool e o funcionamento da interface sem acesso à rede.
 
-Os projetos de `exemplos/` rodam a partir de um clone do repositório (carregam
-núcleo e coleções direto do código-fonte, via `pkgload`):
+## Projetos de exemplo
+
+Os projetos em `exemplos/` podem ser executados a partir de um clone do repositório. O núcleo e as coleções são carregados do código-fonte com `pkgload`.
 
 ```sh
-git clone https://github.com/uaipedro/trama.git && cd trama
-cd exemplos/vendas && Rscript -e 'shiny::runApp("app.R")'   # ETL pronto
-cd exemplos/branco && Rscript -e 'shiny::runApp("app.R")'   # projeto vazio
-cd exemplos/series && Rscript -e 'shiny::runApp("app.R")'   # séries temporais
-cd exemplos/experimentos && Rscript -e 'shiny::runApp("app.R")'   # delineamentos agronômicos
+git clone https://github.com/uaipedro/trama.git
+cd trama
+
+cd exemplos/vendas && Rscript -e 'shiny::runApp("app.R")'
+cd exemplos/branco && Rscript -e 'shiny::runApp("app.R")'
+cd exemplos/series && Rscript -e 'shiny::runApp("app.R")'
+cd exemplos/experimentos && Rscript -e 'shiny::runApp("app.R")'
 ```
 
+Os exemplos correspondem, respectivamente, a um ETL completo, um projeto vazio, uma análise de séries temporais e delineamentos agronômicos.
+
 ## Desenvolvimento
+
+Os testes do núcleo são executados sem coleções de domínio:
 
 ```r
 pkgload::load_all(".")
 testthat::test_dir("tests/testthat")
 ```
 
-A suíte do núcleo roda **sem nenhuma coleção real** — é a guarda contra
-acoplamento a domínio. Se um teste do núcleo precisar de tidyverse ou de
-raster, alguma suposição vazou. Cada coleção traz a própria suíte:
+Cada coleção mantém sua própria suíte. Para `trama.data`:
 
 ```r
-pkgload::load_all("."); pkgload::load_all("collections/trama.data")
+pkgload::load_all(".")
+pkgload::load_all("collections/trama.data")
 testthat::test_dir("collections/trama.data/tests/testthat")
 ```
 
-A ordem de carga importa: `view` depende de `data`, e `series`/`multi`/`models` de
-`data` e `view`. As regras puras do front (layout dos seletores, validação de
-número, temas, o card de teste de hipótese) têm testes em Node:
+A ordem de carga segue as dependências. `trama.view` depende de `trama.data`; `trama.series`, `trama.multi` e `trama.models` dependem de ambas.
+
+As regras puras da interface possuem testes em Node:
 
 ```sh
 node --test 'tests/js/*.test.mjs'
 ```
 
-O `trama.json` do projeto pode trazer `temas` e `tema_padrao` — os temas dos
-gráficos (base, fonte, cores, paleta). Sem eles valem os embutidos `escuro`,
-`claro` e `clássico`; o painel ⚙ do editor os grava por `tr_project_set_themes()`.
+O arquivo `trama.json` pode definir `temas` e `tema_padrao` para gráficos. Na ausência dessas opções, são usados os temas `escuro`, `claro` e `clássico`.
 
-Pode trazer também `marca`: os frames exportados saem com o hexágono do trama
-carimbado no canto, discreto, e este campo desliga isso por projeto. Vem
-ligado; a chave está no mesmo painel ⚙, e `tr_project_set_marca(root, mostrar
-= FALSE)` faz o mesmo pelo console.
+O mesmo arquivo pode definir `marca`, que controla a inclusão do símbolo do `trama` nos frames exportados. As opções também podem ser alteradas no editor ou por `tr_project_set_themes()` e `tr_project_set_marca()`.
 
-## Blocos de apresentação
+## Documentação complementar
 
-Além de nós, a prancheta aceita dois blocos que não computam nada: markdown
-(atalho `m`) e imagem (atalho `i`). Servem pra anotar o fluxo — um título de
-seção, uma nota de contexto, uma captura de tela — e por isso entram e saem
-de frames e do PNG exportado junto com o resto do que estiver dentro da
-moldura, mas não têm porta, não entram em cache e não são insumo de nó
-nenhum: quem procura texto que ALIMENTE um nó não vai encontrar isso aqui
-(não existe hoje). O markdown aceita um subconjunto fechado — título
-(`#`/`##`/`###`), negrito, itálico, código inline, lista, bloco de código,
-citação, régua, tabela e link/imagem — não é markdown completo, e o que não
-é suportado aparece literal na tela em vez de sumir. A imagem vem da pasta
-`imagens/` do projeto.
-
-## Estender
-
-Uma coleção declara tipos e blocos — `?tr_collection`, `?tr_type`, `?tr_node`
-cobrem o contrato inteiro, com exemplos.
-
-O worker chama o `fn` de um bloco com os inputs e params como argumentos
-nomeados; `.ctx` (quando o `fn` o declara) dá `progress()`, `partial()`,
-`path()` e `file()` — ver o comentário de `.tr_make_ctx()` em `R/worker.R`.
-`.seed` (quando declarado) é a seed materializada da instância, estável sob
-renome.
-
-Todo erro do núcleo é classificado; `tr_errors()` lista as classes e quando
-cada uma acontece. Coleção faz o mesmo com os erros do domínio dela —
-`trama.data` tem `tr_data_errors()`, e um teste confere o catálogo contra o
-código nas duas direções.
-
-## Documentos
-
-- [manifesto](docs/manifesto.md) — objetivo, horizonte, não-objetivos
-- [design](docs/design-trama.md) — arquitetura alvo e as decisões de fundação
-
-O núcleo nasceu de uma prova de conceito anterior (chamada de "insumo" nos
-comentários do código), cujas decisões que funcionaram foram herdadas e cujos
-furos estão documentados onde foram corrigidos.
+- [Manifesto](docs/manifesto.md): objetivo, horizonte de desenvolvimento e não objetivos.
+- [Documento de projeto](docs/design-trama.md): arquitetura e decisões de fundação.
+- [Guia de documentação](docs/guia-documentacao.md): convenções para a documentação do projeto.
 
 ## Licença
 
-MIT. Todas as dependências do front são MIT (React, ReactDOM, xyflow, dagre).
-No R, a única dependência GPL restante é `htmltools`, que vem junto com o
-Shiny e é incontornável — a ressalva está registrada no
-[manifesto](docs/manifesto.md#licença-e-abertura).
+O `trama` é distribuído sob a licença MIT. As dependências da interface também utilizam essa licença.
+
+No código R, `htmltools` utiliza GPL e integra a pilha do Shiny. Essa condição está registrada no [manifesto](docs/manifesto.md#licença-e-abertura).
