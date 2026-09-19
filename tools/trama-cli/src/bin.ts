@@ -12,38 +12,58 @@ program
   .description("Instala e roda o trama sem precisar já ter R instalado.")
   .version("0.1.0");
 
+// Envolve o handler de cada comando para transformar erros/rejeições não
+// tratadas em uma mensagem de erro limpa, em vez de um stack trace cru
+// (o commander não captura automaticamente exceções em .action() async).
+function runAction<Args extends unknown[]>(
+  fn: (...args: Args) => Promise<void>,
+): (...args: Args) => Promise<void> {
+  return async (...args: Args) => {
+    try {
+      await fn(...args);
+    } catch (err) {
+      console.error(`Erro: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    }
+  };
+}
+
 program
   .command("install")
   .description("Baixa o R portátil e instala o núcleo do trama")
-  .action(async () => {
-    await ensureInstalled((msg) => console.log(msg));
-    console.log("Pronto.");
-  });
+  .action(
+    runAction(async () => {
+      await ensureInstalled((msg) => console.log(msg));
+      console.log("Pronto.");
+    }),
+  );
 
 program
   .command("create <nome>")
   .description("Cria um novo projeto e instala as coleções escolhidas")
-  .action(async (nome: string) => {
+  .action(runAction(async (nome: string) => {
     await createCommand(nome);
-  });
+  }));
 
 program
   .command("add <colecao>")
   .description("Instala uma coleção adicional (ex: trama.ml)")
-  .action(async (colecao: string) => {
+  .action(runAction(async (colecao: string) => {
     await addCollection(colecao, (msg) => console.log(msg));
     console.log("Pronto.");
-  });
+  }));
 
 program
   .command("open")
   .description("Abre o editor no projeto da pasta atual")
-  .action(async () => {
-    if (!isProjectDir(process.cwd())) {
-      console.error("Essa pasta não parece um projeto trama (sem flows/main.json).");
-      process.exit(1);
-    }
-    await openProject(process.cwd());
-  });
+  .action(
+    runAction(async () => {
+      if (!isProjectDir(process.cwd())) {
+        console.error("Essa pasta não parece um projeto trama (sem flows/main.json).");
+        process.exit(1);
+      }
+      await openProject(process.cwd());
+    }),
+  );
 
 program.parse();
