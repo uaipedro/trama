@@ -78,6 +78,7 @@ tr_errors <- function() {
     tr_error_unknown_frame = "op de frame com id de frame inexistente",
     tr_error_unknown_icon = "nome de ícone que não existe no sprite do Lucide",
     tr_error_unknown_node = "tipo de nó não registrado, ou id de instância inexistente",
+    tr_error_unknown_note = "op de nota com id de nota inexistente",
     tr_error_unknown_op = "op não reconhecida",
     tr_error_unknown_param = "param não declarado no tipo de nó",
     tr_error_unknown_port = "porta inexistente no tipo de nó",
