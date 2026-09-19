@@ -1406,7 +1406,17 @@ function App() {
         // o preview de todos os cards a cada nó adicionado. Só quando a raiz
         // MUDA porque a reconfirmação do mesmo projeto não refaz o run: zerar
         // ali esvaziaria os cards sem nada para repovoá-los.
-        if (projetoRef.current !== m.root) stateRef.current = {};
+        // Mesma guarda de "raiz mudou": a lista de `imagens/` é da pasta do
+        // projeto ANTERIOR até aqui, e sem refazer o pedido ela ficaria
+        // oferecendo nomes que não existem no projeto novo — diferente do
+        // preview de um card (que só fica com URL quebrada em silêncio),
+        // aqui escolher um nome obsoleto GRAVA um `src` inválido no documento
+        // novo. `tr_ready` só pede a lista uma vez, no boot; a troca de
+        // projeto é o outro caminho que precisa dela fresca.
+        if (projetoRef.current !== m.root) {
+          stateRef.current = {};
+          sendInput("tr_list_imagens", { seq: ++seqCounter });
+        }
         projetoRef.current = m.root;
         setProjeto({ root: m.root, flow: m.flow });
         setAbrindo(false);
