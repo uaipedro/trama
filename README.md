@@ -349,6 +349,20 @@ carimbado no canto, discreto, e este campo desliga isso por projeto. Vem
 ligado; a chave está no mesmo painel ⚙, e `tr_project_set_marca(root, mostrar
 = FALSE)` faz o mesmo pelo console.
 
+## Blocos de apresentação
+
+Além de nós, a prancheta aceita dois blocos que não computam nada: markdown
+(atalho `m`) e imagem (atalho `i`). Servem pra anotar o fluxo — um título de
+seção, uma nota de contexto, uma captura de tela — e por isso entram e saem
+de frames e do PNG exportado junto com o resto do que estiver dentro da
+moldura, mas não têm porta, não entram em cache e não são insumo de nó
+nenhum: quem procura texto que ALIMENTE um nó não vai encontrar isso aqui
+(não existe hoje). O markdown aceita um subconjunto fechado — título
+(`#`/`##`/`###`), negrito, itálico, código inline, lista, bloco de código,
+citação, régua, tabela e link/imagem — não é markdown completo, e o que não
+é suportado aparece literal na tela em vez de sumir. A imagem vem da pasta
+`imagens/` do projeto.
+
 ## Estender
 
 Uma coleção declara tipos e blocos — `?tr_collection`, `?tr_type`, `?tr_node`
