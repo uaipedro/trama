@@ -353,6 +353,14 @@ test_that("set_fold guarda só o que está recolhido", {
   expect_null(d$ui$folds$a)
 })
 
+test_that("set_fold guarda 'mini' só quando desvia do padrão (desligado)", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", mini = TRUE), m$reg)
+  expect_equal(d$ui$folds$a, list(mini = TRUE))
+  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", mini = FALSE), m$reg)
+  expect_null(d$ui$folds$a)
+})
+
 test_that("set_fold valida o que recebe", {
   m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
   expect_error(tr_doc_apply(d, list(op = "set_fold", node = "a"), m$reg),

@@ -570,13 +570,17 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   list(doc = doc, op = op)
 }
 
-# Aberto é o padrão, e a ausência já diz isso: guardar `TRUE` só engordaria o
-# documento. O card que volta a ficar todo aberto some do mapa.
+# Cada chave tem seu próprio padrão (preview e params começam abertos, mini
+# começa desligado), e a ausência já diz isso: guardar o valor que já é o
+# padrão só engordaria o documento. O card que volta a ficar todo padrão
+# some do mapa.
+.tr_fold_defaults <- c(preview = TRUE, params = TRUE, mini = FALSE)
+
 .tr_op_set_fold <- function(doc, op, registry) {
   .tr_require(op, "node"); .tr_node_or_abort(doc, op$node)
-  given <- intersect(c("preview", "params"), names(op))
+  given <- intersect(names(.tr_fold_defaults), names(op))
   if (length(given) == 0L) {
-    rlang::abort("set_fold sem 'preview' nem 'params'.", class = "tr_error_bad_op")
+    rlang::abort("set_fold sem 'preview', 'params' nem 'mini'.", class = "tr_error_bad_op")
   }
   fold <- doc$ui$folds[[op$node]] %||% list()
   for (k in given) {
@@ -586,7 +590,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
     }
     fold[[k]] <- v
   }
-  fold <- Filter(isFALSE, fold)
+  fold <- fold[vapply(names(fold), function(k) fold[[k]] != .tr_fold_defaults[[k]], logical(1))]
   doc$ui$folds[[op$node]] <- if (length(fold)) fold else NULL
   list(doc = doc, op = op)
 }
