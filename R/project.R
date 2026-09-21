@@ -132,6 +132,28 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
   file.path(base, limpo)
 }
 
+#' Caminho de destino de um upload de dado, dentro de `data/` do projeto.
+#'
+#' Mesma disciplina de `.tr_project_path()`, mas pra ARQUIVO em vez de pasta:
+#' `nome` vem do cliente (o nome do arquivo solto no canvas, lido do SO), e
+#' cru ele deixaria `"../trama.json"` escrever fora de `data/` e `""` virar
+#' a própria pasta `data/`. A extensão não é checada aqui — quem decide que
+#' tipo de nó nasce (e portanto que extensão faz sentido) é o front; este
+#' helper só garante que o NOME não escapa da pasta.
+#' @noRd
+.tr_data_upload_path <- function(root, nome) {
+  ok <- is.character(nome) && length(nome) == 1L && !is.na(nome)
+  limpo <- if (ok) trimws(nome) else ""
+  seps <- unique(c("/", "\\", .Platform$file.sep))
+  escapa <- limpo %in% c(".", "..") ||
+    any(vapply(seps, function(s) grepl(s, limpo, fixed = TRUE), TRUE))
+  if (!ok || !nzchar(limpo) || escapa) {
+    rlang::abort(paste0("Nome de arquivo inválido: '", limpo, "'."),
+                 class = "tr_error_bad_name")
+  }
+  file.path(root, "data", limpo)
+}
+
 #' Abre um projeto REUSANDO um registry já carregado.
 #'
 #' É o que permite trocar de projeto com o editor em pé. `tr_project()` monta um

@@ -441,3 +441,88 @@ test_that("importar em pasta ja ocupada avisa nomeando o motivo", {
     expect_match(avisos[[1]]$message, "Já existe um projeto", fixed = TRUE)
   })
 })
+
+# Upload de dado (CSV/JSON solto no canvas): o servidor só grava bytes em
+# `data/` e devolve o caminho — quem decide nó e posição é o front. `id` é do
+# cliente e só volta na resposta, pra casar com o pendente.
+test_that("upload de dado grava em data/ e responde com o caminho", {
+  p1 <- projeto_falso()
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_data_upload = list(
+      seq = 1, id = "c1", nome = "vendas.csv", conteudo = "a,b\n1,2", overwrite = FALSE))
+
+    expect_true("data_upload_ok" %in% tipos())
+    m <- msgs[[which(tipos() == "data_upload_ok")]]
+    expect_equal(m$id, "c1")
+    expect_equal(m$path, "data/vendas.csv")
+    expect_equal(readLines(file.path(p1$root, "data", "vendas.csv")), c("a,b", "1,2"))
+  })
+})
+
+test_that("upload de dado com nome existente avisa conflito sem sobrescrever", {
+  p1 <- projeto_falso()
+  dir.create(file.path(p1$root, "data"))
+  writeLines("original", file.path(p1$root, "data", "vendas.csv"))
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_data_upload = list(
+      seq = 1, id = "c2", nome = "vendas.csv", conteudo = "novo", overwrite = FALSE))
+
+    expect_true("data_upload_conflict" %in% tipos())
+    m <- msgs[[which(tipos() == "data_upload_conflict")]]
+    expect_equal(m$id, "c2")
+    expect_equal(m$nome, "vendas.csv")
+    expect_equal(readLines(file.path(p1$root, "data", "vendas.csv")), "original")
+  })
+})
+
+test_that("upload de dado com overwrite sobrescreve o arquivo existente", {
+  p1 <- projeto_falso()
+  dir.create(file.path(p1$root, "data"))
+  writeLines("original", file.path(p1$root, "data", "vendas.csv"))
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_data_upload = list(
+      seq = 1, id = "c3", nome = "vendas.csv", conteudo = "novo", overwrite = TRUE))
+
+    expect_true("data_upload_ok" %in% tipos())
+    expect_equal(readLines(file.path(p1$root, "data", "vendas.csv")), "novo")
+  })
+})
+
+test_that("upload de dado com nome invalido avisa e nao grava", {
+  p1 <- projeto_falso()
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+
+    session$setInputs(tr_ready = 1)
+    msgs <- list()
+    session$setInputs(tr_data_upload = list(
+      seq = 1, id = "c4", nome = "../fora.csv", conteudo = "x", overwrite = FALSE))
+
+    expect_true("warning" %in% tipos())
+    expect_false(file.exists(file.path(dirname(p1$root), "fora.csv")))
+  })
+})

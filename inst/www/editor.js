@@ -166,6 +166,13 @@ function docToFlow(doc, catalog) {
 const edgeId = (e) =>
   `${e.from.node}:${e.from.port}->${e.to.node}:${e.to.port}#${e.index ?? 1}`;
 
+// Id de cópia/colagem: gerado no cliente (o servidor aceita `id` explícito em
+// `add_node`/`add_frame`/`add_note`, ver `.tr_op_add_node`), pra poder montar
+// as ligações internas da cópia no MESMO batch — esperar o eco do servidor
+// pra saber os ids novos deixaria connect correndo atrás de nó que ainda não
+// existe do lado de cá. Alfabeto restrito a `[A-Za-z0-9_.-]` (`.tr_check_node_id`).
+const novoId = () => `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+
 // --- Preview ---------------------------------------------------------------
 
 // A vista escolhida chega de fora (`view`): quem resolve a lista é o `NdNode`,
@@ -1110,6 +1117,8 @@ function App() {
   const sizesRef = useRef({});      // tamanho arrastado localmente, antes do eco
   const foldsRef = useRef({});      // recolhimento local, antes do eco
   const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
+  const clipboardRef = useRef(null); // último Ctrl+C: snapshot de blocos/frames/notas
+  const colagensRef = useRef(0);     // colagens seguidas do mesmo clipboard, pro deslocamento em cascata
   const projetoRef = useRef(null);  // raiz do projeto aberto, pro handler de `project`
   // Regiões de fluxo do plano ATUAL, por id do nó que carrega os eventos de
   // unidade (o primeiro colapso — `u$node`, em `R/transport.R`). É o mapa que
@@ -2377,6 +2386,28 @@ function App() {
       if (presentRef.current && document.querySelector(".tr-lightbox")) return;
       const nome = (e.ctrlKey || e.metaKey ? "mod+" : "") + (e.shiftKey ? "shift+" : "")
         + e.key.toLowerCase();
+      // Ctrl+C/Ctrl+V ficam FORA da tabela de `atalhosRef`, de propósito: ela
+      // dá `preventDefault` incondicional em qualquer tecla que tenha função,
+      // e Ctrl+C é também o atalho do navegador pra copiar texto selecionado
+      // (mensagem de erro, label). Bloqueando aquele sempre que HÁ nó
+      // selecionado no canvas, um Ctrl+C sobre texto de verdade nunca
+      // funcionaria enquanto um card estivesse selecionado ao fundo. A
+      // checagem de seleção de TEXTO vem antes de decidir o que fazer.
+      if (nome === "mod+c") {
+        const selecaoDeTexto = window.getSelection?.().toString();
+        if (selecaoDeTexto) return;
+        const sel = nodesRef.current.filter((n) => n.selected);
+        if (!sel.length) return;
+        e.preventDefault();
+        copiar();
+        return;
+      }
+      if (nome === "mod+v") {
+        if (!clipboardRef.current) return;
+        e.preventDefault();
+        colar();
+        return;
+      }
       const fn = atalhosRef.current[nome];
       if (!fn) return;
       e.preventDefault();
@@ -2416,6 +2447,7 @@ function App() {
         h("button", { key: "ex", disabled: exportando,
                       onClick: fechar(() => exportar(framesOrd.filter((x) => x.id === m.id))) },
           "Exportar PNG"),
+        h("button", { key: "du", onClick: fechar(() => duplicar([m.id])) }, "Duplicar"),
         h("button", { key: "d", onClick: () => apagar([m.id]) }, "Apagar frame"),
       ];
     }
@@ -2449,6 +2481,7 @@ function App() {
             onClick: fechar(() => onNotaEdit(m.id, { fit: f })),
           }, f))));
       }
+      itens.push(h("button", { key: "du", onClick: fechar(() => duplicar([m.id])) }, "Duplicar"));
       itens.push(h("button", { key: "d", onClick: () => apagar([m.id]) }, "Apagar bloco"));
       return itens;
     }
@@ -2462,6 +2495,8 @@ function App() {
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
     const ligacoes = alvo.length > 1 ? edges.filter((e) => e.selected).map((e) => e.id) : [];
     return [
+      h("button", { key: "du", onClick: () => { duplicar(alvo); setMenu(null); } },
+        alvo.length > 1 ? `Duplicar ${alvo.length} selecionados` : "Duplicar"),
       h("button", { key: "d", onClick: () => apagar(alvo, ligacoes) },
         alvo.length > 1 ? `Apagar ${alvo.length} selecionados` : "Apagar bloco"),
       cards.length ? h("button", { key: "rs", onClick: () => {
@@ -2767,6 +2802,29 @@ function App() {
       onImport: (p, nome, conteudo) => { setEnviando("importar");
                             sendInput("tr_project_import", { seq: ++seqCounter, path: p, nome, conteudo }); },
       onClose: fecharDialogo }) : null,
+    // Só aparece quando o pendente do conflito ainda existe — servidor lento
+    // ou uma segunda resposta perdida não deixam o diálogo preso sem ação
+    // nenhuma fazer sentido.
+    conflitoUpload && uploadsPendentesRef.current[conflitoUpload.id]
+      ? h(UploadConflictDialog, { key: "cu", nome: conflitoUpload.nome,
+          onOverwrite: () => {
+            const pend = uploadsPendentesRef.current[conflitoUpload.id];
+            sendInput("tr_data_upload", { seq: ++seqCounter, id: conflitoUpload.id,
+                                          nome: pend.nome, conteudo: pend.conteudo, overwrite: true });
+            setConflitoUpload(null);
+          },
+          onRename: (novoNome) => {
+            const pend = uploadsPendentesRef.current[conflitoUpload.id];
+            pend.nome = novoNome;
+            sendInput("tr_data_upload", { seq: ++seqCounter, id: conflitoUpload.id,
+                                          nome: novoNome, conteudo: pend.conteudo, overwrite: false });
+            setConflitoUpload(null);
+          },
+          onCancel: () => {
+            delete uploadsPendentesRef.current[conflitoUpload.id];
+            setConflitoUpload(null);
+          } })
+      : null,
   ]);
 }
 

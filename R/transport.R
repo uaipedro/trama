@@ -330,6 +330,34 @@ tr_server <- function(project, flow = "main",
       if (!is.null(arquivos)) send("imagens", list(files = as.list(arquivos)))
     })
 
+    # Arquivo solto no CANVAS (CSV/JSON), pra virar nó de leitura. O conteúdo
+    # já chega como TEXTO, mesmo motivo do `tr_project_import`: o front lê com
+    # `FileReader`, o servidor nunca recebe caminho de disco do navegador. `id`
+    # é do CLIENTE (gerado no drop) e só volta na resposta — é o que casa o
+    # pedido com a posição/tipo de nó pendentes do lado de lá; este handler não
+    # sabe nada de canvas, só grava bytes em `data/` e devolve o caminho.
+    #
+    # Colisão de nome NÃO sobrescreve sozinha: um segundo drop do mesmo
+    # arquivo, ou um nome repetido por coincidência, apagaria dado de quem
+    # nem sabe que houve conflito. `overwrite` é o cliente confirmando, depois
+    # de perguntar ao usuário.
+    shiny::observeEvent(input$tr_data_upload, {
+      req <- input$tr_data_upload
+      alvo <- tryCatch(.tr_data_upload_path(rv_project()$root, req$nome), error = avisar())
+      if (is.null(alvo)) return(invisible())
+      if (file.exists(alvo) && !isTRUE(req$overwrite)) {
+        send("data_upload_conflict", list(id = req$id, nome = req$nome))
+        return(invisible())
+      }
+      ok <- tryCatch({
+        dir.create(dirname(alvo), recursive = TRUE, showWarnings = FALSE)
+        writeLines(req$conteudo, alvo, useBytes = TRUE)
+        TRUE
+      }, error = avisar(FALSE))
+      if (!isTRUE(ok)) return(invisible())
+      send("data_upload_ok", list(id = req$id, path = paste0("data/", req$nome)))
+    })
+
     # Salvar temas do painel. Recusa (tema inválido, disco) reenvia os temas
     # REAIS: o painel volta ao estado verdadeiro em vez de mostrar um tema que
     # não foi gravado. O front manda `seq` (ignorado aqui) pelo mesmo motivo do
