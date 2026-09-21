@@ -75,7 +75,7 @@ tr_app(tr_project(
 ))
 ```
 
-Também se pode construir o documento por `tr_flow()`, `tr_add()` e `tr_link()`. `tr_add()` insere o bloco e pode conectar automaticamente a primeira entrada obrigatória livre e compatível; `tr_link()` explicita outras ligações, e `tr_set()` altera parâmetros após a criação. `tr_flow_code()` converte um documento de fluxo para código R. Essa interface serve à construção por script e à revisão textual de documentos gerados no editor.
+Também se pode construir o documento por `tr_flow()`, `tr_add()` e `tr_link()`. `tr_add()` insere o bloco e pode conectar automaticamente a primeira entrada obrigatória livre e compatível; `tr_link()` explicita outras ligações, e `tr_set()` altera parâmetros após a criação. `tr_flow_code()` converte um documento de fluxo para a DSL do pacote, enquanto `tr_export_code()` produz um script R comum, com chamadas diretas às funções das coleções, ou um documento Quarto. Essa interface serve à construção por script, à revisão textual de documentos gerados no editor e à exportação para fora da plataforma.
 
 O ciclo de edição distingue a revisão do documento da execução. Um comando altera o documento; o plano subsequente identifica as unidades necessárias aos alvos solicitados e consulta o armazenamento. As unidades cujo conteúdo já está disponível não são executadas novamente. Uma edição em parâmetro afeta o bloco correspondente e seus descendentes; os ramos independentes conservam seus artefatos. Essa propriedade aparece em testes do núcleo que alteram parâmetros e conferem a recomputação seletiva.
 
@@ -245,4 +245,3 @@ R-LIB. *Hashing: rlang reference*. Disponível em: <https://rlang.r-lib.org/refe
 SANDVE, G. K. et al. Ten simple rules for reproducible computational research. *PLOS Computational Biology*, v. 9, n. 10, e1003285, 2013. DOI: [10.1371/journal.pcbi.1003285](https://doi.org/10.1371/journal.pcbi.1003285).
 
 WICKHAM, H. *ggplot2: Elegant Graphics for Data Analysis*. New York: Springer, 2016. Disponível em: <https://ggplot2.tidyverse.org/authors.html>. Acesso em: 19 set. 2026. {#ref-ggplot2}
-

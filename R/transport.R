@@ -265,6 +265,20 @@ tr_server <- function(project, flow = "main",
 
     shiny::observeEvent(input$tr_rerun, { run_now(rv_doc()) })
 
+    # Código é gerado no servidor porque só o registro conhece as funções R e
+    # os adaptadores por trás de cada nó. O navegador continua responsável
+    # apenas pelo download, como já faz para o JSON do flow.
+    shiny::observeEvent(input$tr_export_code, {
+      req <- input$tr_export_code
+      formato <- if (identical(req$format, "quarto")) "quarto" else "r"
+      titulo <- paste0(basename(rv_project()$root), " — ", rv_flow())
+      code <- tryCatch(
+        tr_export_code(rv_doc(), rv_project()$registry, format = formato, title = titulo),
+        error = avisar()
+      )
+      if (!is.null(code)) send("export_code", list(format = formato, code = code))
+    })
+
     # Comandar a região em voo: pause, um passo, velocidade, parar. Decodifica e
     # chama o motor, sem lógica própria — como o resto do arquivo.
     #

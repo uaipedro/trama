@@ -164,3 +164,35 @@ test_that("tr_undo desfaz a última op aplicada, pelo log do servidor", {
     expect_false("document" %in% tipos())
   })
 })
+
+test_that("o editor recebe código R ou Quarto para baixar", {
+  reg <- store_registry()
+  root <- withr::local_tempdir("proj")
+  dir.create(file.path(root, "flows"), recursive = TRUE)
+  s <- tr_store(file.path(root, ".trama", "store"), project_root = root)
+  project <- structure(list(root = root, registry = reg, store = s,
+                            flows_dir = file.path(root, "flows")), class = "tr_project")
+  doc <- build(reg, list(list(op = "add_node", type = "t/const", id = "origem",
+                              params = list(v = 7))))
+  tr_doc_write(doc, file.path(root, "flows", "main.json"))
+
+  shiny::testServer(tr_server(project, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+
+    msgs <- list()
+    session$setInputs(tr_export_code = list(format = "r", seq = 1))
+    export <- Filter(function(m) identical(m$type, "export_code"), msgs)
+    expect_length(export, 1L)
+    expect_identical(export[[1]]$format, "r")
+    expect_no_match(export[[1]]$code, "tr_flow")
+
+    msgs <- list()
+    session$setInputs(tr_export_code = list(format = "quarto", seq = 2))
+    export <- Filter(function(m) identical(m$type, "export_code"), msgs)
+    expect_length(export, 1L)
+    expect_identical(export[[1]]$format, "quarto")
+    expect_match(export[[1]]$code, "```\\{r\\}")
+  })
+})

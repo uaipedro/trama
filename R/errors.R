@@ -36,6 +36,8 @@ tr_errors <- function() {
     tr_error_duplicate_collection = "coleção já carregada neste registro",
     tr_error_duplicate_edge = "aresta já existe",
     tr_error_duplicate_id = "id já existe (registro ou documento)",
+    tr_error_export_context = "nó exige '.ctx' sem default e não pode virar script R independente",
+    tr_error_export_stream = "fluxo ponto a ponto não pode virar script R independente",
     tr_error_failed_key = "chave guarda um erro, não um valor",
     tr_error_fn_not_function = "fn de tr_node() não é função",
     tr_error_foreign_id = "coleção declarou id fora do próprio namespace",

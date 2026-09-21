@@ -106,7 +106,7 @@ Os motores de aprendizado de máquina são opcionais. A coleção possui [fluxos
 
 ## Construção de fluxos em R
 
-`tr_flow()`, `tr_add()` e `tr_link()` produzem o mesmo documento gerado pelo editor. `tr_flow_code()` realiza a conversão do documento para código R.
+`tr_flow()`, `tr_add()` e `tr_link()` produzem o mesmo documento gerado pelo editor. `tr_flow_code()` converte o documento para essa DSL; `tr_export_code()` gera um script R comum, com chamadas diretas às funções das coleções, ou um documento Quarto. No editor, as opções **Exportar R** e **Exportar Quarto** ficam no menu **Mais ações**.
 
 O fluxo de ETL em `exemplos/vendas` pode ser escrito da seguinte forma:
 
@@ -232,7 +232,7 @@ O projeto está em desenvolvimento e possui execução completa para fluxos tabu
 | Coleção `trama.data` e fluxo de ETL de aceite | ✅ |
 | Coordenador assíncrono, cancelamento, progresso e resultados parciais | ✅ |
 | Pool com `mirai` e cancelamento classificado | ✅ |
-| DSL em R e conversão por `tr_flow_code()` | ✅ |
+| DSL em R, exportação R comum e Quarto | ✅ |
 | Dependências da interface disponíveis para uso offline | ✅ |
 
 Foram verificados no navegador a montagem de fluxos, a edição de parâmetros, a recomputação seletiva, o descarte de edições superadas, a execução em pool e o funcionamento da interface sem acesso à rede.

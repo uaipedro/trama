@@ -138,3 +138,46 @@ test_that("tr_flow_code manda param de nome reservado pra tr_set, e o gerado rod
                tr_plan(doc, registry = reg)$keys[names(doc$nodes)])
   expect_equal(tr_flow_code(doc2, reg), code)
 })
+
+test_that("tr_export_code gera um script R executável sem a DSL do trama", {
+  reg <- tr_registry()
+  tr_use(tr_collection("e", types = list(tr_type("e/num"), tr_type("e/txt")), nodes = list(
+    tr_node("e/fonte", fn = function(valor) valor, description = "Fonte.",
+            outputs = list(out = "e/num"), params = list(valor = tr_param_num(1))),
+    tr_node("e/divide", fn = function(x) list(esquerda = x, direita = x + 1),
+            description = "Duas saídas.", inputs = list(x = "e/num"),
+            outputs = list(esquerda = "e/num", direita = "e/num")),
+    tr_node("e/soma", fn = function(a, b, extra) a + b + extra, description = "Soma.",
+            inputs = list(a = "e/num", b = "e/num"), outputs = list(out = "e/num"),
+            params = list(extra = tr_param_num(0))),
+    tr_node("e/texto", fn = function(x) x, description = "Texto.",
+            inputs = list(x = "e/txt"), outputs = list(out = "e/txt"))
+  ), adapters = list(tr_adapter("e/num", "e/txt", function(x) paste0("n=", x)))), registry = reg)
+
+  doc <- tr_flow(reg) |>
+    tr_add("origem", "e/fonte", valor = 4) |>
+    tr_add("partes", "e/divide", from = "origem") |>
+    tr_add("total", "e/soma", extra = 2) |>
+    tr_link("partes:esquerda", "total:a") |>
+    tr_link("partes:direita", "total:b") |>
+    tr_add("rotulo", "e/texto") |>
+    tr_link("total", "rotulo") |>
+    tr_flow_doc()
+
+  code <- tr_export_code(doc, reg)
+  expect_no_match(code, "trama::")
+  expect_no_match(code, "tr_flow")
+  env <- new.env(parent = globalenv())
+  eval(parse(text = code), envir = env)
+  expect_equal(env$rotulo, "n=11")
+})
+
+test_that("tr_export_code embrulha o mesmo script em um documento Quarto", {
+  reg <- test_registry()
+  doc <- tr_flow(reg) |> tr_add("origem", "t/const", value = 2) |> tr_flow_doc()
+
+  quarto <- tr_export_code(doc, reg, format = "quarto", title = "Minha análise")
+  expect_match(quarto, "^---\\ntitle: \\\"Minha análise\\\"")
+  expect_match(quarto, "```\\{r\\}")
+  expect_no_match(quarto, "trama::")
+})

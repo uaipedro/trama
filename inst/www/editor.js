@@ -786,7 +786,11 @@ function compatible(catalog, from, to) {
 // depois de dar tempo ao clique iniciar o download.
 function exportFlowJson(doc, nomeArquivo) {
   const texto = JSON.stringify(doc, null, 2);
-  const blob = new Blob([texto], { type: "application/json" });
+  exportText(texto, nomeArquivo, "application/json");
+}
+
+function exportText(texto, nomeArquivo, tipo = "text/plain;charset=utf-8") {
+  const blob = new Blob([texto], { type: tipo });
   const u = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = u;
@@ -1446,6 +1450,12 @@ function App() {
         // parado, sem erro) aqui é sempre explícita.
         revRef.current = m.rev ?? revRef.current;
         setBanner(m.message);
+        return;
+      }
+
+      if (m.type === "export_code") {
+        const nome = `${(projetoRef.current || "flow").split("/").filter(Boolean).pop() || "flow"}-${m.format === "quarto" ? "analise.qmd" : "analise.R"}`;
+        exportText(m.code, nome, "text/plain;charset=utf-8");
         return;
       }
 
@@ -2749,6 +2759,12 @@ function App() {
                     onClick: () => exportFlowJson(doc,
                       `${(projeto?.root || "flow").split("/").filter(Boolean).pop()}-${projeto?.flow || "main"}.json`) },
         "⇩ Exportar flow"),
+      h("button", { key: "ex-r", disabled: !doc,
+                    onClick: () => sendInput("tr_export_code", { format: "r", seq: ++seqCounter }) },
+        "⇩ Exportar R"),
+      h("button", { key: "ex-qmd", disabled: !doc,
+                    onClick: () => sendInput("tr_export_code", { format: "quarto", seq: ++seqCounter }) },
+        "⇩ Exportar Quarto"),
       ]) : null,
       // Embrulhado: o segmentado da toolbar nasce colado no botão anterior (o da
       // proporção pertence ao "▭ Frame"), e o do tema é um grupo à parte.
