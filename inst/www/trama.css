@@ -101,6 +101,30 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-dur{font-weight:500;opacity:.75;font-size:10px}
 .tr-dot{width:7px;height:7px;border-radius:50%;background:var(--tr-ink);opacity:.5}
 
+/* Modo mini (Fase 3): card compacto estilo n8n — ícone grande e rótulo, sem
+   preview/params/portas com texto visível. `width:auto` porque o card não
+   precisa mais caber linha de parâmetro nem abas; `min-width` cai junto, só o
+   bastante pra caber o rótulo quebrado em duas linhas. O cabeçalho vira
+   coluna (ícone acima, título abaixo) em vez da linha do card normal. */
+.tr-node-mini{width:auto;min-width:76px}
+.tr-node-mini .tr-node-head{flex-direction:column;gap:4px;padding:10px 8px 8px}
+.tr-node-mini .tr-node-icon{width:28px;height:28px}
+.tr-node-mini .tr-node-title{flex:none;white-space:normal;text-align:center;
+  max-width:84px;overflow:visible;text-overflow:clip}
+/* Botões de fold/ajuda só aparecem no hover — em repouso o card mostra só
+   ícone e rótulo, sem faixa de controles competindo com eles. Posicionados
+   em absoluto pra não empurrar o ícone/título quando aparecem. */
+.tr-node-mini .tr-fold-btn,.tr-node-mini .tr-help-btn{position:absolute;top:3px;
+  opacity:0;transition:opacity .12s;background:var(--tr-panel);border-radius:4px}
+.tr-node-mini .tr-fold-btn{right:3px}
+/* Segundo botão de fold da faixa (preview e mini se sobrepondo, ou o `sd` de
+   re-sortear num bloco estocástico) desloca pra não empilhar em cima do
+   primeiro — ainda não é uma fileira de verdade, mas os dois ficam clicáveis. */
+.tr-node-mini .tr-fold-btn+.tr-fold-btn{right:22px}
+.tr-node-mini .tr-help-btn{left:3px}
+.tr-node-mini:hover .tr-fold-btn,.tr-node-mini:hover .tr-help-btn{opacity:.6}
+.tr-node-mini .tr-fold-btn:hover,.tr-node-mini .tr-help-btn:hover{opacity:1}
+
 /* Altura DECLARADA, nunca derivada do conteúdo. Não é só estética: se o card
    muda de tamanho quando o preview chega, o React Flow remede, emite mudança de
    dimensão, o estado atualiza, o card redecora — e o laço não fecha,

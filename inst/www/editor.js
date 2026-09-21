@@ -454,6 +454,7 @@ function NdNode({ id, data, selected }) {
   const cat = data.categories?.[spec.category];
   const fold = data.fold || {};
   const semPreview = fold.preview === false, semParams = fold.params === false;
+  const mini = fold.mini === true;
   const nParams = (spec.params || []).length;
   const falhou = data.state === "failed" || data.state === "invalid";
   const frac = data.progress?.fraction;
@@ -465,7 +466,7 @@ function NdNode({ id, data, selected }) {
   // precisa dizer "isto roda dentro de um laço"); é uma marca POR CARD, que
   // continua certa se o autor arrastar os nós pra qualquer lugar do canvas.
   const cls = ["tr-node", selected ? "tr-node-sel" : "", `tr-state-${data.state || "idle"}`,
-              data.emRegiao ? "tr-node-region" : ""]
+              data.emRegiao ? "tr-node-region" : "", mini ? "tr-node-mini" : ""]
     .filter(Boolean).join(" ");
 
   // A faixa é SEMPRE reservada, inclusive com uma vista só. As vistas dependem do
@@ -504,6 +505,11 @@ function NdNode({ id, data, selected }) {
                     onClick: (e) => { e.stopPropagation(); data.onFold(id, { preview: semPreview }); } },
         h(Icon, { icon: { kind: "set", value: semPreview ? "chevron-right" : "chevron-down" },
                   className: "tr-node-icon" })),
+      h("button", { key: "mn", className: "tr-fold-btn nodrag",
+                    title: mini ? "expandir card (Shift+P)" : "modo mini (Shift+P)",
+                    onClick: (e) => { e.stopPropagation(); data.onFold(id, { mini: !mini }); } },
+        h(Icon, { icon: { kind: "set", value: mini ? "maximize-2" : "minimize-2" },
+                  className: "tr-node-icon" })),
       // Só para nó declarado `stochastic`: é a ÚNICA forma de re-sortear pela
       // tela, porque a semente não é param e portanto não tem campo no corpo
       // do card. Sem ele, um gerador aberto no editor ficaria preso à amostra
@@ -526,7 +532,7 @@ function NdNode({ id, data, selected }) {
       // fração, a barra fica indeterminada em vez de parada em 0%: é o único
       // sinal de vida do card recolhido. `== null`, não falsy: 0 explícito
       // é progresso de verdade e mostra 0%.
-      semPreview && data.state === "running"
+      !mini && semPreview && data.state === "running"
         ? h("div", { key: "hp", className: "tr-head-progress" + (frac == null ? " tr-indet" : "") },
             h("div", { style: frac == null ? undefined : { width: `${Math.round(frac * 100)}%` } }))
         : null,
@@ -548,9 +554,9 @@ function NdNode({ id, data, selected }) {
                             ctl: (data.streamCtl || {})[data.streamSource.id],
                             onCmd: data.onStreamCmd, progress: data.progress })
       : null,
-    semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
+    mini || semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
                  progress: data.progress, partial: data.partial, view: cur?.id }),
-    semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
+    mini || semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
       views.length === 0
         ? h("span", { key: "-", className: "tr-tab-idle" }, "—")
         : views.length === 1
@@ -562,8 +568,10 @@ function NdNode({ id, data, selected }) {
               onClick: (e) => { e.stopPropagation(); data.onView(id, v.id); },
             }, v.label))),
     // Recolhidos, os parâmetros viram uma linha que diz QUANTOS são: o card
-    // nunca esconde que tem configuração.
-    semParams
+    // nunca esconde que tem configuração. Em modo mini some por completo — nem
+    // a contagem — porque é o próprio modo compacto quem já diz "há mais aqui
+    // dentro, expanda pra ver".
+    mini ? null : semParams
       ? (nParams ? h("button", { key: "pm", className: "tr-params-fold nodrag",
                                  title: "mostrar parâmetros (O)",
                                  onClick: (e) => { e.stopPropagation(); data.onFold(id, { params: true }); } },
@@ -592,17 +600,17 @@ function NdNode({ id, data, selected }) {
         h("div", { key: p.name, className: "tr-port" }, [
           h(Handle, { key: "h", type: "target", position: Position.Left, id: p.name,
                       style: { background: data.typeColors?.[p.type] || "#64748b" } }),
-          h("span", { key: "n", title: p.type },
+          mini ? null : h("span", { key: "n", title: p.type },
             p.name + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
         ]))),
       h("div", { key: "out", className: "tr-out" }, (spec.outputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port tr-port-out" }, [
-          h("span", { key: "n", title: p.type }, p.name),
+          mini ? null : h("span", { key: "n", title: p.type }, p.name),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
                       style: { background: data.typeColors?.[p.type] || "#64748b" } }),
         ]))),
     ]),
-    semPreview ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
+    mini || semPreview ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
   ]);
 }
 
@@ -2217,6 +2225,11 @@ function App() {
   // Só entra quem TEM o que recolher: card sem parâmetro nenhum, e órfão (sem
   // spec, sem preview), nunca fecham de fato, então contariam como abertos para
   // sempre e o alternar ficaria preso em "fechar" sem mudar nada na tela.
+  // Espelha `.tr_fold_defaults` do lado R (R/document.R): ausência de
+  // `fold.preview`/`fold.params` conta como ABERTO, mas ausência de
+  // `fold.mini` conta como DESLIGADO — os dois lados têm que concordar em
+  // "aberto" pro mesmo card, senão o atalho e o documento persistido discordam.
+  const FOLD_DEFAULTS = { preview: true, params: true, mini: false };
   const alternarFold = (parte) => {
     const tem = parte === "params"
       ? (n) => (n.data.spec?.params || []).length > 0
@@ -2224,7 +2237,7 @@ function App() {
     const alvo = alvos().filter(tem);
     if (alvo.length === 0) return;
     const foldDe = (n) => (foldsRef.current[n.id] ?? n.data.fold) || {};
-    const aberto = (n) => foldDe(n)[parte] !== false;
+    const aberto = (n) => foldDe(n)[parte] ?? FOLD_DEFAULTS[parte];
     const valor = !alvo.some(aberto);
     const muda = alvo.filter((n) => aberto(n) !== valor);
     muda.forEach((n) => { foldsRef.current[n.id] = { ...foldDe(n), [parte]: valor }; });
@@ -2293,6 +2306,7 @@ function App() {
         const patch = {};
         if (fold.preview === false) patch.preview = false;
         if (fold.params === false) patch.params = false;
+        if (fold.mini === true) patch.mini = true;
         if (Object.keys(patch).length) depois.push({ op: "set_fold", node: id, ...patch });
       } else if (n.type === "trFrame") {
         criam.push({ op: "add_frame", id, x, y, w: n.width, h: n.height,
@@ -2365,6 +2379,7 @@ function App() {
     "mod+g": frameDaSelecao,
     "p": () => alternarFold("preview"),
     "o": () => alternarFold("params"),
+    "shift+p": () => alternarFold("mini"),
     "shift+r": restaurarAlvos,
   };
   useEffect(() => {
