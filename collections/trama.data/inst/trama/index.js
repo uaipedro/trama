@@ -21,10 +21,13 @@ registerWidget("expr", (spec, value, onChange) =>
     onBlur: (e) => { if (e.target.value !== (value ?? spec.default)) onChange(e.target.value); },
   }));
 
-// `cols`: lista de colunas separada por vírgula.
+// `cols`: lista de colunas separada por vírgula. Textarea pelo mesmo motivo do
+// `expr` acima: listas de colunas de tabelas largas (ex.: renomear dezenas de
+// colunas) não cabem numa linha só, e o `resize:vertical` do `.tr-expr` deixa
+// o usuário abrir o campo até caber tudo.
 registerWidget("cols", (spec, value, onChange) =>
-  h("input", {
-    type: "text", className: "nodrag", spellCheck: false,
+  h("textarea", {
+    className: "nodrag tr-expr", rows: 2, spellCheck: false,
     defaultValue: value ?? spec.default,
     placeholder: spec.example ?? "col1, col2",
     title: spec.example ? `ex.: ${spec.example}` : undefined,

@@ -149,10 +149,16 @@ function NotaImagem({ src, fit, imagens, onEscolher }) {
     return h("div", { className: "tr-nota-vazia" }, "clique duas vezes para escolher uma imagem");
   }
   return h("div", { className: "tr-nota-img-wrap" }, [
-    h("img", { key: "i", className: "tr-nota-imgtag nodrag", src, loading: "lazy",
+    // Mesma decisão do `Image` de `runtime.js`: sem `nodrag`, clique normal
+    // arrasta a nota; ctrl/⌘+clique abre o lightbox.
+    h("img", { key: "i", className: "tr-nota-imgtag", src, loading: "lazy",
                style: { objectFit: fit === "cover" ? "cover" : "contain" },
-               title: "clique para ampliar",
-               onClick: (e) => { e.stopPropagation(); abrir(); } }),
+               title: "ctrl/⌘+clique para ampliar",
+               onClick: (e) => {
+                 if (!e.ctrlKey && !e.metaKey) return;
+                 e.stopPropagation();
+                 abrir();
+               } }),
     node,
   ]);
 }

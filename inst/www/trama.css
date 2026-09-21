@@ -154,8 +154,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-img-wrap{height:100%;display:flex;align-items:center;justify-content:center}
 /* `contain` é o que faz a PROPORÇÃO da imagem mandar dentro da caixa do card:
    a imagem nunca distorce quando o usuário arrasta a alça, sobra faixa. */
-.tr-img{max-width:100%;max-height:100%;object-fit:contain;display:block;
-        cursor:zoom-in}
+.tr-img{max-width:100%;max-height:100%;object-fit:contain;display:block}
 /* `z-index:60` passa folgado do maior do arquivo (o menu de contexto, 20): o
    lightbox é modal, tem que cobrir toolbar, banner e menu. */
 .tr-lightbox{position:fixed;inset:0;z-index:60;display:flex;align-items:center;
@@ -166,6 +165,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
                    color:var(--tr-fg);font-size:26px;line-height:1;cursor:pointer;
                    opacity:.7}
 .tr-lightbox-close:hover{opacity:1}
+/* Ao lado do fechar, não embaixo: os dois topo-direita ficam no primeiro
+   lugar que o olho varre saindo da imagem, sem disputar espaço com ela. */
+.tr-lightbox-save{position:absolute;top:10px;right:52px;color:var(--tr-fg);
+                  font-size:20px;line-height:1;text-decoration:none;
+                  cursor:pointer;opacity:.7}
+.tr-lightbox-save:hover{opacity:1}
 
 /* O `zoom-out` do lightbox anuncia "clique e eu fecho", e este não fecha. */
 .tr-modal{cursor:default}
@@ -348,7 +353,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   justify-content:center;overflow:hidden}
 /* `width`/`height:100%` só pra dar área ao `object-fit` inline (`contain`/
    `cover`) que `notas.js` já escreve via `style` — o CSS não repete isso. */
-.tr-nota-imgtag{width:100%;height:100%;display:block;cursor:zoom-in}
+.tr-nota-imgtag{width:100%;height:100%;display:block}
 
 /* Tipografia do `.tr-nota-md`: subconjunto que `markdown.js` de fato produz
    (h1-h3, p, strong/em, code/pre, ul/ol/li, blockquote, hr, table, a, img,

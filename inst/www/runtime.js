@@ -134,10 +134,20 @@ export function useLightbox(src) {
   // e `position:fixed` deixaria de ser relativo à janela — o lightbox abriria
   // recortado dentro do card, que é o modo de falha mais difícil de
   // diagnosticar aqui. `createPortal` para o `<body>` resolve de vez.
+  // Nome do arquivo baixado: o final do `src` sem query string. Genérico
+  // (`preview.png` pro mesmo nome em todo gráfico) mas é só o nome SUGERIDO —
+  // "salvar como" do navegador deixa o usuário trocar antes de gravar.
+  const nome = String(src ?? "").split("/").pop().split("?")[0] || "imagem.png";
   const node = aberto ? ReactDOM.createPortal(
     h("div", { key: "lb", className: "tr-lightbox", role: "dialog",
                onClick: () => setAberto(false) }, [
       h("img", { key: "big", className: "tr-lightbox-img", src }),
+      // `download` (não `onClick` com fetch+blob) porque o arquivo já é
+      // servido pelo mesmo host do editor — o navegador salva direto, sem
+      // round-trip extra nem CORS pra se preocupar.
+      h("a", { key: "s", className: "tr-lightbox-save", href: src, download: nome,
+                title: "salvar imagem como…",
+                onClick: (e) => e.stopPropagation() }, "⭳"),
       h("button", { key: "x", className: "tr-lightbox-close",
                     title: "fechar (Esc)" }, "×"),
     ]), document.body) : null;
@@ -161,9 +171,19 @@ function Image({ artifact, assetUrl }) {
   const { abrir, node } = useLightbox(src);
   if (!f) return h("div", { className: "tr-empty" }, "sem imagem");
   return h("div", { className: "tr-img-wrap" }, [
-    h("img", { key: "i", className: "tr-img nodrag", src, loading: "lazy",
-               title: "clique para ampliar",
-               onClick: (e) => { e.stopPropagation(); abrir(); } }),
+    // Sem `nodrag`: clique normal arrasta o CARD, como em qualquer outro
+    // ponto dele — uma imagem grande cobrindo o card inteiro não pode ser um
+    // buraco onde arrastar vira "abrir em tela cheia" sem querer. Ctrl/⌘+clique
+    // é o gesto de abrir; um clique com o modificador não gera arrasto de
+    // verdade (sem deslocamento, o xyflow nunca inicia o drag), então não há
+    // disputa entre os dois.
+    h("img", { key: "i", className: "tr-img", src, loading: "lazy",
+               title: "ctrl/⌘+clique para ampliar",
+               onClick: (e) => {
+                 if (!e.ctrlKey && !e.metaKey) return;
+                 e.stopPropagation();
+                 abrir();
+               } }),
     node,
   ]);
 }
