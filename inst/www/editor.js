@@ -2564,6 +2564,9 @@ function App() {
                onDrop },
       h(ReactFlow, {
         nodes: decorated, edges, nodeTypes,
+        // Conectores em ângulo reto com cantos arredondados (em vez da
+        // curva bezier padrão do xyflow).
+        defaultEdgeOptions: { type: "smoothstep", pathOptions: { borderRadius: 12 } },
         onNodesChange, onEdgesChange, onConnect, isValidConnection,
         onNodeDragStart, onSelectionStart, onSelectionEnd,
         onConnectStart, onConnectEnd: () => setDragType(null),
