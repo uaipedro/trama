@@ -966,12 +966,29 @@ tr_flow(reg) |>
                       by   = P("cols", "", label = "Por grupo", example = "regiao")),
         help = "## Descrição
 
-Acrescenta uma coluna à tabela, ou substitui a coluna de mesmo nome. A
-expressão é avaliada com as colunas da entrada visíveis como variáveis.
+Acrescenta uma ou mais colunas à tabela, ou substitui a coluna de mesmo nome.
+Cada expressão é avaliada com as colunas da entrada visíveis como variáveis.
 
-Com **Por grupo** preenchido, a expressão é avaliada dentro de cada grupo e o
-número de linhas é preservado — é assim que se obtém posição, defasagem, soma
-acumulada e participação no total.
+Para várias colunas, separe por vírgula nos DOIS campos — os nomes casam com
+as expressões pela POSIÇÃO, como no nó **Renomear**:
+
+```
+Nome:       dobro, participacao
+Expressão:  valor * 2, valor / sum(valor)
+```
+
+Listas de tamanhos diferentes param o nó dizendo os dois números, em vez de
+casar o nome de uma coluna com a conta de outra em silêncio. Nome repetido —
+ou igual a uma coluna de **Por grupo** — também para, porque sobrescreveria a
+coluna anterior (ou o próprio grupo) sem avisar.
+
+A vírgula DENTRO de uma chamada não separa coluna nenhuma: `sum(valor, na.rm =
+TRUE)` é uma única expressão. Quem decide isso é o parser do R, então
+parêntese, colchete e aspas valem como você espera.
+
+Com **Por grupo** preenchido, cada expressão é avaliada dentro de cada grupo e
+o número de linhas é preservado — é assim que se obtém posição, defasagem,
+soma acumulada e participação no total.
 
 Com **Expressão** em branco o nó está desligado e a tabela passa inteira: um
 card recém-arrastado ainda não calcula nada. Com **Nome** em branco, não: não
@@ -980,16 +997,18 @@ devolver a tabela intacta fingindo que trabalhou.
 
 ## Parâmetros
 
-- **Nome** — nome da coluna criada. Campo obrigatório quando há expressão.
-- **Expressão** — expressão R avaliada sobre as colunas da entrada.
+- **Nome** — nome da coluna criada, ou vários separados por vírgula. Campo
+  obrigatório quando há expressão.
+- **Expressão** — expressão R avaliada sobre as colunas da entrada, ou várias
+  separadas por vírgula, na mesma ordem dos nomes.
 - **Por grupo** — colunas que definem os grupos, separadas por vírgula. Vazio
   significa sem agrupamento. Nome inexistente para o nó e lista as colunas
   disponíveis.
 
 ## Valor
 
-A tabela de entrada com a coluna acrescentada ou substituída. O número de
-linhas nunca muda.
+A tabela de entrada com a(s) coluna(s) acrescentada(s) ou substituída(s). O
+número de linhas nunca muda.
 
 ## Exemplos
 
@@ -998,7 +1017,8 @@ tr_flow(reg) |>
   tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
   tr_add(\"parte\", \"data/mutate\", name = \"participacao\",
          expr = \"valor / sum(valor)\", by = \"regiao\", from = \"ler\") |>
-  tr_add(\"pos\", \"data/mutate\", name = \"posicao\", expr = \"rank(-valor)\",
+  tr_add(\"pos\", \"data/mutate\", name = \"posicao, participacao\",
+         expr = \"rank(-valor), valor / sum(valor)\",
          by = \"regiao\", from = \"parte\")
 ```
 

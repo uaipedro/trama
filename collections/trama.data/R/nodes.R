@@ -306,13 +306,38 @@ tr_filter <- function(data, expr, by = "") {
 #' A ordem importa: a checagem do nome vem DEPOIS do desligado, senão um card
 #' novo com o nome apagado pintaria de vermelho por um campo que ele ainda nem
 #' vai usar.
+#'
+#' Vírgula separa colunas, com nomes casados pela POSIÇÃO — mesmo contrato de
+#' `tr_group_summarise()`. `name` passa por `.as_cols()`; `expr` NÃO pode,
+#' porque a vírgula de `sum(valor, na.rm = TRUE)` não separa coluna nenhuma —
+#' quem sabe disso é `.tr_data_parse_exprs()`. Nome repetido, ou igual a uma
+#' coluna de `by`, sobrescreveria uma coluna nova (ou o próprio grupo) em
+#' silêncio — daí a mesma checagem de colisão do resumir.
 #' @export
 tr_mutate <- function(data, name, expr, by = "") {
   if (!nzchar(trimws(expr))) return(data)
   .tr_data_obrigatorio(name, "name")
   g <- .tr_data_by(data, by)
-  e <- .tr_data_parse(expr, "expr")
-  .tr_data_eval(dplyr::mutate(data, !!name := !!e, .by = dplyr::all_of(g)), "expr", data)
+  nomes <- .as_cols(name)
+  es <- .tr_data_parse_exprs(expr, "expr")
+  .tr_data_obrigatorio(nomes, "name")
+  if (!length(es)) .tr_data_obrigatorio(character(), "expr")
+  if (length(nomes) != length(es)) {
+    rlang::abort(sprintf("Criar coluna: %d nome(s) para %d expressão(ões).",
+                         length(nomes), length(es)),
+                 class = "tr_data_error_mismatched_names")
+  }
+  colide <- unique(c(nomes[duplicated(nomes)], intersect(nomes, g)))
+  if (length(colide)) {
+    rlang::abort(
+      sprintf(paste0("Criar coluna: o nome de coluna se repete: %s. ",
+                     "Cada coluna nova precisa do seu."),
+              paste(colide, collapse = ", ")),
+      class = "tr_data_error_name_collision")
+  }
+  .tr_data_eval(
+    dplyr::mutate(data, !!!stats::setNames(es, nomes), .by = dplyr::all_of(g)),
+    "expr", data)
 }
 
 #' Manter as colunas escolhidas, ou jogá-las fora.

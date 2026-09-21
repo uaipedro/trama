@@ -763,3 +763,58 @@ test_that("resumo com sintaxe quebrada culpa o campo e ecoa o texto do usuário"
   expect_match(conditionMessage(err), "sum(valor", fixed = TRUE)
   expect_false(grepl("list(", conditionMessage(err), fixed = TRUE))
 })
+
+# ---- Várias colunas no mesmo mutate ---------------------------------------
+# Mesmo contrato do resumir: vírgula separa, nomes casam pela POSIÇÃO. O risco
+# que estes testes guardam é o mesmo — desalinho calado entre nome e conta.
+
+test_that("mutate cria várias colunas, casadas pela posição", {
+  d <- df_exemplo()
+  out <- tr_mutate(d, "dobro, metade", "valor * 2, valor / 2")
+  expect_equal(out$dobro, d$valor * 2)
+  expect_equal(out$metade, d$valor / 2)
+  expect_equal(nrow(out), nrow(d))
+})
+
+# O motivo de `expr` não passar por `.as_cols()`: partir na vírgula crua
+# quebraria esta expressão no meio.
+test_that("vírgula dentro de chamada não separa coluna nova", {
+  d <- df_exemplo()
+  d$valor[1] <- NA
+  out <- tr_mutate(d, "soma", "sum(valor, na.rm = TRUE)")
+  expect_equal(names(out), c(names(d), "soma"))
+  expect_equal(out$soma, rep(sum(d$valor, na.rm = TRUE), nrow(d)))
+
+  dois <- tr_mutate(d, "soma, n", "sum(valor, na.rm = TRUE), dplyr::n()")
+  expect_equal(names(dois), c(names(d), "soma", "n"))
+})
+
+test_that("listas de tamanhos diferentes param o mutate, dizendo os dois números", {
+  d <- df_exemplo()
+  err <- tryCatch(tr_mutate(d, "dobro, metade", "valor * 2"), error = identity)
+  expect_equal(class(err)[[1]], "tr_data_error_mismatched_names")
+  expect_match(conditionMessage(err), "2 nome\\(s\\) para 1 express")
+
+  expect_error(tr_mutate(d, "dobro", "valor * 2, valor / 2"),
+               class = "tr_data_error_mismatched_names")
+})
+
+# Nome repetido sobrescreveria a primeira coluna nova em silêncio; igual à
+# coluna de `by`, sobrescreveria o próprio grupo.
+test_that("nome de coluna nova repetido, ou igual à coluna de by, aborta", {
+  d <- df_exemplo()
+  expect_error(tr_mutate(d, "x, x", "valor * 2, valor / 2"),
+               class = "tr_data_error_name_collision")
+  expect_error(tr_mutate(d, "regiao", "toupper(regiao)", by = "regiao"),
+               class = "tr_data_error_name_collision")
+})
+
+test_that("vírgula sobrando é ignorada em mutate; campo só de vírgula é branco", {
+  d <- df_exemplo()
+  out <- tr_mutate(d, "dobro, ", "valor * 2, ")
+  expect_equal(names(out), c(names(d), "dobro"))
+
+  err <- tryCatch(tr_mutate(d, " , ", "valor * 2"), error = identity)
+  expect_equal(class(err)[[1]], "tr_data_error_blank_param")
+  expect_match(conditionMessage(err), "name")
+})
