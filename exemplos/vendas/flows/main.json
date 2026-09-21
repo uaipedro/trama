@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "rev": 12,
+  "rev": 24,
   "collections": {
     "data": "0.1.0"
   },
@@ -131,6 +131,11 @@
       "porregiao": [910, 80],
       "porproduto": [910, 300],
       "ranking": [1200, 80]
-    }
+    },
+    "sizes": {},
+    "views": {},
+    "frames": {},
+    "folds": {},
+    "notes": {}
   }
 }
