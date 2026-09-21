@@ -937,6 +937,34 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
     ]));
 }
 
+// Nome de arquivo já existe em `data/` (drop de CSV/JSON no canvas): pergunta
+// o que fazer em vez de sobrescrever sozinho. Mesmo estilo visual do
+// `ProjectDialog` (`tr-lightbox`/`tr-dialog`), sem a árvore de pastas — só a
+// pergunta e três botões.
+function UploadConflictDialog({ nome, onOverwrite, onRename, onCancel }) {
+  const [renomeando, setRenomeando] = useState(false);
+  const [novoNome, setNovoNome] = useState(nome);
+  return h("div", { className: "tr-lightbox tr-modal" },
+    h("div", { className: "tr-dialog", role: "dialog", "aria-modal": "true" }, [
+      h("p", { key: "msg" }, `Já existe um arquivo chamado "${nome}" em data/. O que fazer?`),
+      h("div", { key: "ac", className: "tr-dialog-actions" },
+        renomeando
+          ? [
+              h("input", { key: "n", className: "tr-dialog-name", value: novoNome, autoFocus: true,
+                           onChange: (e) => setNovoNome(e.target.value),
+                           onKeyDown: (e) => { if (e.key === "Enter" && novoNome.trim()) onRename(novoNome.trim()); } }),
+              h("button", { key: "ok", disabled: !novoNome.trim(),
+                            onClick: () => onRename(novoNome.trim()) }, "Confirmar"),
+              h("button", { key: "cancel", onClick: onCancel }, "Cancelar"),
+            ]
+          : [
+              h("button", { key: "ow", onClick: onOverwrite }, "Sobrescrever"),
+              h("button", { key: "rn", onClick: () => setRenomeando(true) }, "Renomear"),
+              h("button", { key: "cancel", onClick: onCancel }, "Cancelar"),
+            ]),
+    ]));
+}
+
 // --- App -------------------------------------------------------------------
 
 // Espelha `.tr_presentation_ops` (R/document.R): op cosmética não recomputa
@@ -986,6 +1014,13 @@ function App() {
   const [abrindo, setAbrindo] = useState(false);  // diálogo visível
   const [enviando, setEnviando] = useState(null); // "abrir" | "criar" | "importar" | null: pedido em voo
   const [arquivoSolto, setArquivoSolto] = useState(null); // {nomeArquivo, conteudo} | null — drop na página, fora do diálogo
+  // Drop de CSV/JSON no CANVAS (vira nó de leitura). `uploadsPendentesRef` é
+  // ref (não state): guarda posição/tipo/conteúdo por `id` enquanto a
+  // resposta do servidor não chega — reler não precisa re-renderizar nada.
+  // `conflitoUpload` é o único pedaço visível na tela (o diálogo de nome
+  // repetido), por isso é state.
+  const uploadsPendentesRef = useRef({});
+  const [conflitoUpload, setConflitoUpload] = useState(null); // {id, nome} | null
   // Proporção dos frames NOVOS (F e Ctrl+G). É preferência de quem usa este
   // navegador, e não estado do documento: não vira op, não entra no desfazer,
   // e abrir o mesmo projeto em outra máquina não herda a escolha. Cada frame
@@ -1453,6 +1488,25 @@ function App() {
 
       if (m.type === "imagens") { setImagens(m.files || []); return; }
 
+      // Arquivo de dado (CSV/JSON) gravado com sucesso: o pendente guardava
+      // ONDE soltar o nó (posição do drop) e QUE tipo — o servidor só sabia o
+      // caminho. `id` casa a resposta com o pendente certo.
+      if (m.type === "data_upload_ok") {
+        const pend = uploadsPendentesRef.current[m.id];
+        delete uploadsPendentesRef.current[m.id];
+        if (pend) addAt(pend.tipo, pend.pos, { params: { path: m.path } });
+        setConflitoUpload((c) => (c?.id === m.id ? null : c));
+        return;
+      }
+
+      // Nome já existe em `data/`: o pendente continua guardado (a resposta
+      // "ok" ainda pode chegar depois de Sobrescrever/Renomear), só abre o
+      // diálogo perguntando o que fazer.
+      if (m.type === "data_upload_conflict") {
+        setConflitoUpload({ id: m.id, nome: m.nome });
+        return;
+      }
+
       // Regiões do plano ATUAL. Chega a cada `run_now` (R/transport.R) —
       // documento novo, ou só um param que mudou — então é sempre a lista
       // certa pro run em voo. Indexado por `unit` (o id do nó que carrega os
@@ -1807,8 +1861,9 @@ function App() {
     return !!(op && ip) && compatible(cat, op.type, ip.type);
   }, [nodes]);
 
-  const addAt = useCallback((typeId, pos) => {
-    pushOp({ op: "add_node", type: typeId, position: [Math.round(pos.x), Math.round(pos.y)] });
+  const addAt = useCallback((typeId, pos, extra) => {
+    pushOp({ op: "add_node", type: typeId, position: [Math.round(pos.x), Math.round(pos.y)],
+             ...extra });
   }, []);
 
   // Clicar na paleta cai numa cascata a partir do canto visível, em vez de um
@@ -1821,12 +1876,48 @@ function App() {
     addAt(typeId, { x: origin.x + (k % 4) * 275, y: origin.y + Math.floor(k / 4) * 230 });
   }, [rf, addAt, nodes.length]);
 
+  // Extensão do arquivo solto -> tipo de nó de leitura. Só os dois formatos
+  // que os leitores tratam como texto puro: o transporte (`tr_data_upload`,
+  // ver R/transport.R) manda o conteúdo como STRING, lido no navegador com
+  // `FileReader.readAsText`. Excel/Parquet/RDS são binários e exigiriam um
+  // caminho de transporte à parte (base64) — fora de escopo por ora.
+  const EXT_NODE_LEITURA = { csv: "data/read_csv", json: "data/read_json" };
+
+  // Lê o arquivo e manda pro servidor gravar em `data/`; a posição e o tipo
+  // de nó ficam pendentes (por `id`) até a resposta (`data_upload_ok` ou
+  // `data_upload_conflict`) chegar — ver o handler de `tr_event`. Devolve
+  // `false` sem tocar em nada quando a extensão não é reconhecida, pro
+  // chamador saber que não deve interceptar o drop (deixa borbulhar).
+  const iniciarUploadDado = useCallback((file, pos) => {
+    const ext = (file.name.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
+    const tipo = EXT_NODE_LEITURA[ext];
+    if (!tipo) return false;
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      const id = novoId();
+      uploadsPendentesRef.current[id] = { tipo, pos, nome: file.name, conteudo: leitor.result };
+      sendInput("tr_data_upload",
+        { seq: ++seqCounter, id, nome: file.name, conteudo: leitor.result, overwrite: false });
+    };
+    leitor.readAsText(file);
+    return true;
+  }, []);
+
   const onDrop = useCallback((ev) => {
     ev.preventDefault();
     const t = ev.dataTransfer.getData("application/trama-type");
-    if (!t) return;
-    addAt(t, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY }));
-  }, [rf, addAt]);
+    if (t) { addAt(t, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })); return; }
+    // Arquivo do SO (não o drag interno da paleta, tratado acima). Soltar
+    // `.json` aqui passa a significar "quero ler isto como dado" — diferente
+    // de soltar fora do canvas, que continua abrindo o diálogo de importar
+    // projeto (`onDropGlobal`). `stopPropagation` é o que separa os dois: sem
+    // ele, este mesmo evento borbulharia até lá e abriria os dois ao mesmo
+    // tempo.
+    const f = ev.dataTransfer.files?.[0];
+    if (f && iniciarUploadDado(f, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY }))) {
+      ev.stopPropagation();
+    }
+  }, [rf, addAt, iniciarUploadDado]);
 
   const onConnectStart = useCallback((_e, p) => {
     const cat = catalogRef.current;
@@ -2135,6 +2226,105 @@ function App() {
     pushMany(ids.map((id) => ({ op: "resize", node: id, w: MIN_W, h: MIN_H })));
   };
   const restaurarAlvos = () => restaurarTamanhos(alvos().map((n) => n.id));
+
+  // Deslocamento de cada cópia/colagem, em coordenadas do canvas: o suficiente
+  // pra cópia nunca nascer exatamente em cima do original (ninguém enxergaria
+  // que algo mudou) e pouco o bastante pra não fugir da tela numa seleção
+  // grande.
+  const DESLOCA_COPIA = 48;
+
+  // Retrato do que existe AGORA nesses ids: cards, frames e notas com os
+  // campos que uma cópia precisa recriar, e só as ligações com as DUAS pontas
+  // dentro do grupo (uma ligação que sai do grupo não faz sentido duplicada:
+  // o outro lado é o original, que já tem sua própria ligação). Tirado do
+  // `nodesRef`/`edgesRef` (não do `doc`) porque é o que a tela mostra AGORA,
+  // já com posição e tamanho arrastados que ainda não ecoaram.
+  const retratoDoGrupo = (ids) => {
+    const alvo = new Set(ids);
+    const ns = nodesRef.current.filter((n) => alvo.has(n.id));
+    if (ns.length === 0) return null;
+    const es = edgesRef.current.filter((e) => alvo.has(e.source) && alvo.has(e.target));
+    return {
+      nodes: ns.map((n) => ({ id: n.id, type: n.type, position: { ...n.position },
+                              width: n.width, height: n.height, data: { ...n.data } })),
+      edges: es.map((e) => ({ source: e.source, sourceHandle: e.sourceHandle,
+                              target: e.target, targetHandle: e.targetHandle })),
+    };
+  };
+
+  // Um retrato -> as ops que recriam o grupo deslocado. Ids novos nascem AQUI,
+  // no cliente (e não esperam o eco): é o que permite ligar as cópias entre si
+  // no MESMO batch, como op de `connect` apontando pra um id que só existe
+  // dentro deste lote. Tamanho e recolhimento de card são ops PARTE de
+  // `add_node` — só entram se o original tinha algo fora do padrão, senão
+  // colar 50 cards mandaria 100 ops à toa.
+  const opsDoGrupo = (retrato, dx, dy) => {
+    const novoDe = {};
+    const criam = [];
+    const depois = [];
+    retrato.nodes.forEach((n) => {
+      const id = novoId();
+      novoDe[n.id] = id;
+      const x = Math.round(n.position.x + dx), y = Math.round(n.position.y + dy);
+      if (n.type === "ndNode") {
+        criam.push({ op: "add_node", id, type: n.data.nodeType, position: [x, y],
+                    label: n.data.label, params: n.data.params || {}, seed: n.data.seed });
+        if (n.data.size) depois.push({ op: "resize", node: id, w: n.data.size[0], h: n.data.size[1] });
+        const fold = n.data.fold || {};
+        const patch = {};
+        if (fold.preview === false) patch.preview = false;
+        if (fold.params === false) patch.params = false;
+        if (Object.keys(patch).length) depois.push({ op: "set_fold", node: id, ...patch });
+      } else if (n.type === "trFrame") {
+        criam.push({ op: "add_frame", id, x, y, w: n.width, h: n.height,
+                    title: n.data.title, aspect: n.data.aspect, color: n.data.color });
+      } else if (n.type === "trNota") {
+        const base = { op: "add_note", id, x, y, w: n.width, h: n.height, kind: n.data.kind,
+                       escala: n.data.escala, fundo: n.data.fundo, color: n.data.color };
+        if (n.data.kind === "markdown") base.text = n.data.text;
+        else { base.src = n.data.src; base.fit = n.data.fit; }
+        criam.push(base);
+      }
+    });
+    retrato.edges.forEach((e) => {
+      if (!novoDe[e.source] || !novoDe[e.target]) return;
+      depois.push({ op: "connect", from_node: novoDe[e.source], from_port: e.sourceHandle,
+                   to_node: novoDe[e.target], to_port: e.targetHandle });
+    });
+    return [...criam, ...depois];
+  };
+
+  // Ctrl+C: guarda o retrato da seleção. Sem seleção não há o que copiar — ao
+  // contrário de `alvos()` (ações em massa), aqui NADA selecionado não quer
+  // dizer "a tela inteira": copiar o canvas todo por engano seria surpresa
+  // grande demais pra um atalho tão comum.
+  const copiar = () => {
+    const sel = nodesRef.current.filter((n) => n.selected).map((n) => n.id);
+    const retrato = retratoDoGrupo(sel);
+    if (!retrato) return;
+    clipboardRef.current = retrato;
+    colagensRef.current = 0;
+  };
+
+  // Ctrl+V: cola o último Ctrl+C, deslocado. Colagens seguidas (sem novo
+  // Ctrl+C no meio) escalam o deslocamento — a cascata do Figma — pra cada
+  // colagem ficar visível, e não empilhada exatamente sobre a anterior.
+  const colar = () => {
+    const retrato = clipboardRef.current;
+    if (!retrato) return;
+    colagensRef.current += 1;
+    const off = DESLOCA_COPIA * colagensRef.current;
+    pushMany(opsDoGrupo(retrato, off, off));
+  };
+
+  // Duplicar (menu de contexto): copiar + colar num só passo, sem tocar o
+  // clipboard — um Ctrl+V depois de duplicar continua colando o que o
+  // usuário copiou por último, não o bloco duplicado.
+  const duplicar = (ids) => {
+    const retrato = retratoDoGrupo(ids);
+    if (!retrato) return;
+    pushMany(opsDoGrupo(retrato, DESLOCA_COPIA, DESLOCA_COPIA));
+  };
 
   // Tabela refeita a cada render e lida pelo listener via ref: o listener é
   // registrado uma vez só, e as ações sempre enxergam o estado atual. As

@@ -6,7 +6,7 @@ ter R instalado.
 ## Instalação
 
 ```bash
-npm install -g trama-cli
+npm install -g @uaipedro/trama-cli
 ```
 
 ## Uso
@@ -15,6 +15,7 @@ npm install -g trama-cli
 trama install            # baixa o R portátil e instala o núcleo do trama
 trama create meu-fluxo   # cria um projeto, escolhe coleções, abre o editor
 trama add trama.ml       # instala uma coleção adicional no projeto atual
+trama update             # atualiza o núcleo e as coleções instaladas
 trama open               # abre o editor no projeto da pasta atual
 ```
 

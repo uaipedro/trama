@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 export const R_VERSION = "4.4.1";
-const CORE_PACKAGES = ["uaipedro/trama", "uaipedro/trama/collections/trama.data", "uaipedro/trama/collections/trama.view"];
+export const CORE_PACKAGES = ["uaipedro/trama", "uaipedro/trama/collections/trama.data", "uaipedro/trama/collections/trama.view"];
 
 interface Config {
   rVersion?: string;

@@ -3,6 +3,7 @@ import { ensureInstalled } from "./commands/install.js";
 import { addCollection } from "./commands/add.js";
 import { openProject } from "./commands/open.js";
 import { createCommand } from "./commands/create.js";
+import { updateCommand } from "./commands/update.js";
 import { isProjectDir } from "./project.js";
 
 const program = new Command();
@@ -10,7 +11,7 @@ const program = new Command();
 program
   .name("trama")
   .description("Instala e roda o trama sem precisar já ter R instalado.")
-  .version("0.1.0");
+  .version("0.2.0");
 
 // Envolve o handler de cada comando para transformar erros/rejeições não
 // tratadas em uma mensagem de erro limpa, em vez de um stack trace cru
@@ -52,6 +53,16 @@ program
     await addCollection(colecao, (msg) => console.log(msg));
     console.log("Pronto.");
   }));
+
+program
+  .command("update")
+  .description("Atualiza o núcleo do trama e as coleções instaladas para a versão mais recente")
+  .action(
+    runAction(async () => {
+      await updateCommand((msg) => console.log(msg));
+      console.log("Pronto.");
+    }),
+  );
 
 program
   .command("open")
