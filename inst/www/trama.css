@@ -108,7 +108,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    coluna (ícone acima, título abaixo) em vez da linha do card normal. */
 .tr-node-mini{width:auto;min-width:76px}
 .tr-node-mini .tr-node-head{flex-direction:column;gap:4px;padding:10px 8px 8px}
-.tr-node-mini .tr-node-icon{width:28px;height:28px}
+.tr-node-mini .tr-node-icon-main{width:28px;height:28px}
 .tr-node-mini .tr-node-title{flex:none;white-space:normal;text-align:center;
   max-width:84px;overflow:visible;text-overflow:clip}
 /* Botões de fold/ajuda só aparecem no hover — em repouso o card mostra só
@@ -117,10 +117,15 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-node-mini .tr-fold-btn,.tr-node-mini .tr-help-btn{position:absolute;top:3px;
   opacity:0;transition:opacity .12s;background:var(--tr-panel);border-radius:4px}
 .tr-node-mini .tr-fold-btn{right:3px}
-/* Segundo botão de fold da faixa (preview e mini se sobrepondo, ou o `sd` de
-   re-sortear num bloco estocástico) desloca pra não empilhar em cima do
-   primeiro — ainda não é uma fileira de verdade, mas os dois ficam clicáveis. */
+/* Cada botão de fold da faixa (`fv`, `mn` e, em bloco estocástico, `sd`)
+   desloca pra não empilhar em cima do anterior. O combinador `+` sozinho
+   colocaria 2º e 3º no mesmo `right`, porque cada um é adjacente ao
+   precedente — por isso a regra de 3 encadeados, mais específica, dá ao
+   terceiro botão (`sd`) um deslocamento próprio. Ícones de botão ficam em
+   13px (não usam `tr-node-icon-main`), então 19px de passo já evita
+   sobreposição das faixas clicáveis. */
 .tr-node-mini .tr-fold-btn+.tr-fold-btn{right:22px}
+.tr-node-mini .tr-fold-btn+.tr-fold-btn+.tr-fold-btn{right:41px}
 .tr-node-mini .tr-help-btn{left:3px}
 .tr-node-mini:hover .tr-fold-btn,.tr-node-mini:hover .tr-help-btn{opacity:.6}
 .tr-node-mini .tr-fold-btn:hover,.tr-node-mini .tr-help-btn:hover{opacity:1}

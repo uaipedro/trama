@@ -490,7 +490,7 @@ function NdNode({ id, data, selected }) {
       // Sem `color`: aqui o ícone herda a cor de FRENTE da faixa, porque a
       // faixa já É a cor da categoria (o background logo acima). Mesmo
       // componente, contexto invertido.
-      spec.icon ? h(Icon, { key: "i", icon: spec.icon, className: "tr-node-icon" }) : null,
+      spec.icon ? h(Icon, { key: "i", icon: spec.icon, className: "tr-node-icon tr-node-icon-main" }) : null,
       h("span", { key: "l", className: "tr-node-title" }, data.label || spec.label),
       // Com o preview recolhido, o estado de execução muda pro cabeçalho: um
       // preview escondido não pode esconder uma falha. O preview NÃO reabre
