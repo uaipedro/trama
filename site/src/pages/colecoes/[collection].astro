@@ -1,0 +1,52 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import CollectionHero from "../../components/CollectionHero.astro";
+
+export async function getStaticPaths() {
+  return ["dados", "visualizacao"].map((collection) => ({ params: { collection } }));
+}
+
+const collection = Astro.params.collection as "dados" | "visualizacao";
+const entries = (await getCollection("docs", ({ data }) => data.collection === collection))
+  .sort((a, b) => a.data.order - b.data.order);
+const info = collection === "dados"
+  ? {
+      title: "Dados", eyebrow: "Coleção trama.data",
+      description: "Traga uma tabela para o fluxo, confira o que ela contém e transforme apenas o que a pergunta pede.",
+      steps: [
+        { label: "Ler", tone: "source" }, { label: "Conhecer", tone: "inspect" },
+        { label: "Limpar", tone: "clean" }, { label: "Transformar", tone: "transform" },
+        { label: "Agregar", tone: "aggregate" }, { label: "Gravar", tone: "sink" }
+      ] as const
+    }
+  : {
+      title: "Visualização", eyebrow: "Coleção trama.view",
+      description: "Escolha uma forma de mostrar os dados a partir da pergunta que a análise precisa responder.",
+      steps: [
+        { label: "Pergunta", tone: "inspect" }, { label: "Tabela", tone: "transform" },
+        { label: "Gráfico", tone: "aggregate" }, { label: "Leitura", tone: "sink" }
+      ] as const
+    };
+---
+
+<Base title={info.title} description={info.description}>
+  <div class="doc-shell">
+    <CollectionHero {...info} />
+    <section class="catalogue" aria-labelledby="catalogue-title">
+      <div class="section-intro">
+        <p class="eyebrow">Catálogo inicial</p>
+        <h2 id="catalogue-title">Blocos e guias para este começo.</h2>
+      </div>
+      <div class="catalogue-list">
+        {entries.map((entry) => (
+          <a class="catalogue-entry" href={`/trama/${entry.id}/`}>
+            <span class="catalogue-entry__meta">{entry.data.node ?? "guia"}</span>
+            <span class="catalogue-entry__main"><strong>{entry.data.title}</strong><em>{entry.data.description}</em></span>
+            <span class="catalogue-entry__arrow" aria-hidden="true">→</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+</Base>

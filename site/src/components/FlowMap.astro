@@ -1,0 +1,18 @@
+---
+interface Step {
+  label: string;
+  tone: "source" | "inspect" | "clean" | "transform" | "reshape" | "aggregate" | "sink";
+  href?: string;
+}
+
+const { steps, active } = Astro.props as { steps: Step[]; active?: string };
+---
+
+<ol class="flow-map" aria-label="Caminho de trabalho">
+  {steps.map((step, index) => (
+    <li class:list={[`flow-step flow-step--${step.tone}`, { "is-active": step.label === active }]}>
+      {step.href ? <a href={step.href}>{step.label}</a> : <span>{step.label}</span>}
+      {index < steps.length - 1 && <span class="flow-link" aria-hidden="true">→</span>}
+    </li>
+  ))}
+</ol>

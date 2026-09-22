@@ -26,8 +26,16 @@
 }
 
 .tr_view_aplicar_ajuda_curta <- function(colecao) {
+  guias <- c(
+    "view/points" = "https://uaipedro.github.io/trama/colecoes/visualizacao/disperso/",
+    "view/histogram" = "https://uaipedro.github.io/trama/colecoes/visualizacao/histograma/"
+  )
   colecao$nodes <- lapply(colecao$nodes, function(no) {
     no$help <- .tr_view_help_curto(no$id)
+    guia <- guias[no$id]
+    if (!is.na(guia)) {
+      no$help <- paste0(no$help, "\n\n## Guia completo\n\n[Ver no site do trama](", guia, ").")
+    }
     no
   })
   colecao

@@ -1,0 +1,83 @@
+---
+import "../styles/site.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "R em blocos executáveis." } = Astro.props;
+const pageTitle = title === "trama" ? title : `${title} · trama`;
+---
+
+<!doctype html>
+<html lang="pt-BR" data-facilitador="on">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#eef2f4" />
+    <link rel="icon" href="/trama/favicon.svg" type="image/svg+xml" />
+    <title>{pageTitle}</title>
+    <script is:inline>
+      document.documentElement.dataset.js = "true";
+      document.documentElement.dataset.facilitador =
+        localStorage.getItem("trama-camada-facilitadora") ?? "on";
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header class="site-header">
+      <a class="brand" href="/trama/" aria-label="trama — página inicial">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path class="mark-frame" d="M24 2.5 43 13.5v21L24 45.5 5 34.5v-21Z" />
+          <path class="mark-line mark-line-a" d="M13 18c0 7 11 6 11 14" />
+          <path class="mark-line mark-line-b" d="M35 18c0 7-11 6-11 14" />
+          <rect class="mark-node mark-node-a" x="9" y="11" width="8" height="8" rx="2" />
+          <rect class="mark-node mark-node-b" x="31" y="11" width="8" height="8" rx="2" />
+          <rect class="mark-node mark-node-c" x="20" y="29" width="8" height="8" rx="2" />
+        </svg>
+        <span>trama</span>
+      </a>
+      <nav aria-label="Navegação principal">
+        <a href="/trama/comece/primeiro-fluxo/">Comece</a>
+        <a href="/trama/colecoes/dados/">Dados</a>
+        <a href="/trama/colecoes/visualizacao/">Visualização</a>
+      </nav>
+      <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle>
+        <span class="toggle-orbit" aria-hidden="true"></span>
+        <span class="toggle-copy">Mostrar contexto</span>
+      </button>
+    </header>
+    <main id="conteudo">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <p><strong>trama</strong> — R em blocos executáveis.</p>
+      <p>Documentação em construção, começando por Dados e Visualização.</p>
+    </footer>
+    <script is:inline>
+      const key = "trama-camada-facilitadora";
+      const root = document.documentElement;
+      const button = document.querySelector("[data-depth-toggle]");
+      const updateToggle = () => {
+        const enabled = root.dataset.facilitador !== "off";
+        button?.setAttribute("aria-pressed", String(enabled));
+        const copy = button?.querySelector(".toggle-copy");
+        if (copy) copy.textContent = enabled ? "Mostrar contexto" : "Ocultar contexto";
+      };
+      document.querySelectorAll(".prose blockquote").forEach((quote) => {
+        const lead = quote.querySelector("strong");
+        if (lead?.textContent?.trim() === "Antes de continuar") {
+          quote.classList.add("facilitador");
+        }
+      });
+      updateToggle();
+      button?.addEventListener("click", () => {
+        root.dataset.facilitador = root.dataset.facilitador === "off" ? "on" : "off";
+        localStorage.setItem(key, root.dataset.facilitador);
+        updateToggle();
+      });
+    </script>
+  </body>
+</html>

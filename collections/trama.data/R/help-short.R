@@ -39,8 +39,17 @@
 }
 
 .tr_data_aplicar_ajuda_curta <- function(colecao) {
+  guias <- c(
+    "data/read_csv" = "https://uaipedro.github.io/trama/colecoes/dados/ler-csv/",
+    "data/summary" = "https://uaipedro.github.io/trama/colecoes/dados/resumo/",
+    "data/group_summarise" = "https://uaipedro.github.io/trama/colecoes/dados/agrupar-e-resumir/"
+  )
   colecao$nodes <- lapply(colecao$nodes, function(no) {
     no$help <- .tr_data_help_curto(no$id)
+    guia <- guias[no$id]
+    if (!is.na(guia)) {
+      no$help <- paste0(no$help, "\n\n## Guia completo\n\n[Ver no site do trama](", guia, ").")
+    }
     no
   })
   colecao
