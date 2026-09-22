@@ -86,6 +86,26 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-fold-btn{background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
   padding:0;display:inline-flex;line-height:1}
 .tr-fold-btn:hover{opacity:1}
+/* Seletor de modo: quatro ícones. */
+.tr-modo-picker{display:inline-flex;gap:1px;border-radius:6px;padding:1px}
+.tr-modo-btn{background:none;border:0;color:inherit;opacity:.55;cursor:pointer;
+  padding:2px 3px;border-radius:4px;display:inline-flex}
+.tr-modo-btn:hover{opacity:1}
+.tr-modo-btn.tr-on{opacity:1;background:rgba(255,255,255,.22)}
+/* Card aberto: sempre visível, na ponta direita do cabeçalho — onde ficavam
+   os botões de fold. Card mini não tem espaço: aparece acima dele em
+   hover/seleção. */
+.tr-node .tr-modo-picker{margin-left:auto}
+.tr-node-mini .tr-modo-picker{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
+  margin:0;opacity:0;transition:opacity .12s;
+  background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line)}
+.tr-node-mini:hover .tr-modo-picker,.tr-node-mini.tr-node-sel .tr-modo-picker{opacity:1}
+/* Estado de execução no card mini, que não tem preview pra mostrar falha. */
+.tr-mini-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;
+  background:var(--tr-dim)}
+.tr-mini-dot.tr-failed,.tr-mini-dot.tr-invalid{background:#dc2626}
+.tr-mini-dot.tr-running,.tr-mini-dot.tr-pending{background:#f59e0b}
+.tr-mini-dot.tr-done,.tr-mini-dot.tr-cached{background:#16a34a}
 /* A faixa do cabeçalho já é a cor da categoria; o alerta ganha um disco claro
    pra ler em cima de qualquer uma delas. */
 .tr-head-alert{display:inline-flex;color:#b91c1c;background:#fef2f2;border-radius:50%;padding:1px}
