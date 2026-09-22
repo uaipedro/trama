@@ -201,6 +201,24 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
                   cursor:pointer;opacity:.7}
 .tr-lightbox-save:hover{opacity:1}
 
+/* Painel ABNT: usa o MESMO backdrop/fechar do lightbox de imagem (`.tr-lightbox`,
+   `.tr-lightbox-close`), com `.tr-modal` pra não fechar ao clicar dentro — o
+   mesmo padrão do diálogo de projeto (`.tr-dialog`) logo abaixo. */
+.tr-abnt-panel{background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:10px;
+              padding:20px 24px;max-width:90vw;max-height:88vh;overflow:auto;
+              box-shadow:0 8px 40px var(--tr-shadow-hi)}
+.tr-abnt-title{font-size:13px;font-weight:600;margin:0 0 10px}
+/* Três linhas horizontais (topo, sob o cabeçalho, base) e NENHUMA vertical —
+   é a regra de apresentação tabular do IBGE que distingue tabela de quadro. */
+.tr-abnt{border-collapse:collapse;border-top:2px solid var(--tr-fg);
+        border-bottom:2px solid var(--tr-fg)}
+.tr-abnt th{text-align:left;font-weight:600;padding:5px 14px;
+           border-bottom:1px solid var(--tr-fg);white-space:nowrap}
+.tr-abnt td{padding:4px 14px;white-space:nowrap}
+/* Número alinha à direita pelo separador decimal — convenção do Ferreira
+   (Estatística Básica) pra tabela de resultado; texto continua à esquerda. */
+.tr-abnt td.tr-abnt-num{text-align:right;font-variant-numeric:tabular-nums}
+
 /* O `zoom-out` do lightbox anuncia "clique e eu fecho", e este não fecha. */
 .tr-modal{cursor:default}
 /* Diálogo de projeto: mora dentro do `.tr-lightbox`, que já dá o fundo e o
