@@ -15,7 +15,7 @@ describe("buildInstallScript", () => {
     expect(script).toContain('if (!requireNamespace("remotes", quietly = TRUE))');
     expect(script).toContain('lib <- "/home/user/.trama-cli/lib"');
     expect(script).toContain(
-      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA)'
+      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = FALSE)'
     );
     expect(script).toContain('"uaipedro/trama"');
     expect(script).toContain('"uaipedro/trama/collections/trama.data"');
@@ -24,6 +24,13 @@ describe("buildInstallScript", () => {
   it("escapa aspas duplas num path (JSON.stringify cobre isso)", () => {
     const script = buildInstallScript(["uaipedro/trama"], 'C:\\Users\\Nome "Estranho"\\lib');
     expect(script).toContain('lib <- "C:\\\\Users\\\\Nome \\"Estranho\\"\\\\lib"');
+  });
+
+  it("passa force = TRUE quando pedido (reinstalação de pacote incompleto)", () => {
+    const script = buildInstallScript(["uaipedro/trama"], "/lib", undefined, true);
+    expect(script).toContain(
+      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = TRUE)'
+    );
   });
 });
 

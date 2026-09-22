@@ -54,8 +54,23 @@ export function resolveRepoUrl(
  *
  * `dependencies = NA` (não TRUE) evita puxar Suggests (testthat, pkgbuild
  * etc) que o usuário final não precisa.
+ *
+ * `force`: por padrão remotes pula a instalação se o DESCRIPTION já
+ * presente na lib tiver o mesmo RemoteSha do HEAD atual — mas DESCRIPTION
+ * é copiado logo no início da instalação, então uma instalação que ficou
+ * pela metade (rede caiu, antivírus travou um arquivo no Windows etc) tem
+ * o SHA "certo" registrado mesmo sem o pacote ter terminado de instalar.
+ * Nesse caso o skip-by-SHA do remotes reproduz o mesmo pacote quebrado pra
+ * sempre. Quem chama isso já sabe que o pacote está ausente/incompleto
+ * (ver checkEnv em envcheck.ts) — passa `force = true` pra pular essa
+ * checagem e reinstalar de verdade.
  */
-export function buildInstallScript(pkgs: string[], lib: string, repoUrl: string = P3M_REPO): string {
+export function buildInstallScript(
+  pkgs: string[],
+  lib: string,
+  repoUrl: string = P3M_REPO,
+  force = false
+): string {
   const pkgList = pkgs.map((p) => JSON.stringify(p)).join(", ");
   return `options(repos = c(P3M = ${JSON.stringify(repoUrl)}))
 if (!requireNamespace("remotes", quietly = TRUE)) {
@@ -64,7 +79,7 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 lib <- ${JSON.stringify(lib)}
 dir.create(lib, showWarnings = FALSE, recursive = TRUE)
 for (pkg in c(${pkgList})) {
-  remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA)
+  remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = ${force ? "TRUE" : "FALSE"})
 }
 `;
 }

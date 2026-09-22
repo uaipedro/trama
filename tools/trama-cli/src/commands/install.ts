@@ -10,6 +10,13 @@ import { join } from "node:path";
 export const R_VERSION = "4.4.1";
 export const CORE_PACKAGES = ["uaipedro/trama", "uaipedro/trama/collections/trama.data", "uaipedro/trama/collections/trama.view"];
 
+/** Nome do pacote R a partir de uma ref do remotes ("owner/repo/subdir" -> "subdir"). */
+export function pkgNameFromRef(ref: string): string {
+  return ref.split("/").pop()!;
+}
+
+export const CORE_PACKAGE_NAMES = CORE_PACKAGES.map(pkgNameFromRef);
+
 interface Config {
   rVersion?: string;
   installedCollections?: string[];
@@ -47,7 +54,7 @@ function reportDownloadProgress(label: string): (fraction: number) => void {
 export async function ensureInstalled(onProgress: (msg: string) => void = () => {}): Promise<void> {
   const base = baseDir();
   mkdirSync(base, { recursive: true });
-  let status = checkEnv(base, R_VERSION);
+  let status = checkEnv(base, R_VERSION, CORE_PACKAGE_NAMES);
 
   if (!status.rPortableInstalled) {
     onProgress("Baixando R portátil...");
@@ -60,12 +67,12 @@ export async function ensureInstalled(onProgress: (msg: string) => void = () => 
     onProgress("Extraindo R portátil...");
     if (src.format === "zip") await extractZip(archive, dest);
     else await extractTarGz(archive, dest);
-    status = checkEnv(base, R_VERSION);
+    status = checkEnv(base, R_VERSION, CORE_PACKAGE_NAMES);
   }
 
   if (!status.coreInstalled) {
     onProgress("Instalando núcleo do trama...");
-    const script = buildInstallScript(CORE_PACKAGES, libDir(base), resolveRepoUrl());
+    const script = buildInstallScript(CORE_PACKAGES, libDir(base), resolveRepoUrl(), true);
     await runInstall(rscriptPath(base, R_VERSION), script);
     const cfg = readConfig(base);
     writeConfig(base, { ...cfg, rVersion: R_VERSION, installedCollections: cfg.installedCollections ?? [] });
