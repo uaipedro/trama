@@ -78,6 +78,17 @@ const pageTitle = title === "trama" ? title : `${title} · trama`;
         localStorage.setItem(key, root.dataset.facilitador);
         updateToggle();
       });
+
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const syncFlowVideos = () => {
+        document.querySelectorAll("[data-flow-video]").forEach((video) => {
+          if (!(video instanceof HTMLVideoElement)) return;
+          if (motionQuery.matches) video.pause();
+          else video.play().catch(() => undefined);
+        });
+      };
+      syncFlowVideos();
+      motionQuery.addEventListener("change", syncFlowVideos);
     </script>
   </body>
 </html>

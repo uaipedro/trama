@@ -2,11 +2,10 @@
 import Base from "../layouts/Base.astro";
 import FlowMap from "../components/FlowMap.astro";
 
-const dataSteps = [
-  { label: "Ler", tone: "source" },
-  { label: "Conhecer", tone: "inspect" },
-  { label: "Transformar", tone: "transform" },
-  { label: "Mostrar", tone: "sink" }
+const firstFlowSteps = [
+  { label: "Dados de exemplo", tone: "source" },
+  { label: "Resumo", tone: "inspect" },
+  { label: "Disperso", tone: "sink" }
 ] as const;
 ---
 
@@ -14,30 +13,47 @@ const dataSteps = [
   <section class="home-hero">
     <div class="home-hero__copy">
       <p class="eyebrow">R em blocos executáveis</p>
-      <h1>O caminho da análise não precisa ficar escondido no código.</h1>
+      <h1>Seu raciocínio, visível.</h1>
       <p class="lede">O trama organiza funções R em fluxos que você monta, executa e inspeciona etapa por etapa.</p>
       <div class="home-hero__actions">
         <a class="button button--primary" href="/trama/comece/primeiro-fluxo/">Monte um primeiro fluxo <span aria-hidden="true">→</span></a>
         <a class="text-link" href="/trama/colecoes/dados/">Explore a coleção Dados</a>
       </div>
     </div>
-    <div class="hero-canvas" aria-label="Fluxo de exemplo: ler dados, resumir, agrupar e mostrar gráfico">
-      <div class="canvas-caption"><span class="status-dot"></span> fluxo executável</div>
-      <div class="canvas-grid" aria-hidden="true"></div>
-      <div class="wire wire-a"></div><div class="wire wire-b"></div><div class="wire wire-c"></div>
-      <div class="node node--source"><small>fonte</small><strong>Ler CSV</strong><span>vendas.csv</span></div>
-      <div class="node node--inspect"><small>conhecer</small><strong>Resumo</strong><span>8 colunas</span></div>
-      <div class="node node--aggregate"><small>agregar</small><strong>Por região</strong><span>receita total</span></div>
-      <div class="node node--view"><small>visualizar</small><strong>Barras</strong><span>resultado</span></div>
-    </div>
+    <figure class="flow-reel flow-reel--hero">
+      <div class="flow-reel__meta"><span><i aria-hidden="true"></i> montagem real</span><span>Dados</span></div>
+      <video data-flow-video autoplay muted loop playsinline preload="metadata" poster="/trama/montagens/fluxo-em-montagem.jpg">
+        <source src="/trama/montagens/fluxo-em-montagem.mp4" type="video/mp4" />
+        Seu navegador não consegue mostrar esta demonstração em vídeo.
+      </video>
+      <figcaption>Os cards entram, mostram o resultado e se conectam no mesmo fluxo.</figcaption>
+    </figure>
   </section>
 
   <section class="home-path" aria-labelledby="caminho-title">
     <div>
-      <p class="eyebrow">Comece pelo trabalho</p>
-      <h2 id="caminho-title">Do dado ao resultado, com cada transformação à vista.</h2>
+      <p class="eyebrow">Comece aqui</p>
+      <h2 id="caminho-title">Monte um primeiro fluxo em três blocos.</h2>
+      <p class="home-path__lede">Use uma tabela de exemplo para reconhecer a sequência: dado, inspeção e gráfico. Depois, troque o dado — não a forma de pensar.</p>
+      <a class="text-link home-path__link" href="/trama/comece/primeiro-fluxo/">Abrir o primeiro fluxo <span aria-hidden="true">→</span></a>
     </div>
-    <FlowMap steps={dataSteps} />
+    <FlowMap steps={firstFlowSteps} />
+  </section>
+
+  <section class="home-evidence" aria-labelledby="evidencia-title">
+    <div class="home-evidence__copy">
+      <p class="eyebrow">A estrutura continua visível</p>
+      <h2 id="evidencia-title">Quando o fluxo cresce, o caminho ainda está ali.</h2>
+      <p>Você pode voltar a qualquer bloco, conferir o que entrou e saiu dele e continuar a partir de uma etapa concreta.</p>
+    </div>
+    <figure class="flow-reel flow-reel--wide">
+      <div class="flow-reel__meta"><span><i aria-hidden="true"></i> fluxo conectado</span><span>Dados</span></div>
+      <video data-flow-video autoplay muted loop playsinline preload="metadata" poster="/trama/montagens/fluxo-amplo.jpg">
+        <source src="/trama/montagens/fluxo-amplo.mp4" type="video/mp4" />
+        Seu navegador não consegue mostrar esta demonstração em vídeo.
+      </video>
+      <figcaption>Um fluxo real: ler, conhecer, filtrar, agregar e juntar.</figcaption>
+    </figure>
   </section>
 
   <section class="home-collections" aria-labelledby="collections-title">
