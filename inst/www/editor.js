@@ -15,7 +15,7 @@ import {
   useReactFlow, ReactFlowProvider,
   BaseEdge, getSmoothStepPath, useInternalNode,
 } from "@xyflow/react";
-import { h, getRenderer, getWidget, getViews, Segmented, setThemes } from "trama";
+import { h, getRenderer, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
@@ -23,8 +23,8 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
-import { MODOS, modoDe, mostraPreview, mostraParams, nomeDaTecla, dica } from "./modos.js";
-import { ModoPicker } from "./modos-ui.js";
+import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica } from "./modos.js";
+import { ModoPicker, ParamsList, ParamsDock } from "./modos-ui.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -572,26 +572,11 @@ function NdNode({ id, data, selected }) {
     // Sem parâmetros no card (modo mini ou preview): não há mais pílula pra
     // reabri-los ali — quem escondeu os parâmetros edita pelo painel à
     // esquerda (Fase 3). Aqui só resta decidir se desenha a lista ou nada.
+    // O corpo da lista (o porquê do `div` em vez de `label`, o Fragment com
+    // `key`, o fallback de `input` sem widget) mora em `ParamsList`
+    // (modos-ui.js), reaproveitado aqui e no `ParamsDock`.
     semParams ? null
-      : h("div", { key: "pm", className: "tr-params" }, (spec.params || []).map((p) => {
-          const W = getWidget(p.kind);
-          // `div`, e não `label`: o `<label>` repassa o clique ao primeiro
-          // controle rotulável de dentro, e com botões ali (segmentado, chave)
-          // clicar no texto "Tipo" escolhia a primeira opção. Sem `htmlFor`
-          // de propósito: os widgets não recebem `id`, e manter a API
-          // `(spec, value, onChange)` das coleções vale mais que focar o
-          // campo clicando no rótulo.
-          return h("div", { key: p.name, className: "tr-param" }, [
-            h("span", { key: "n", title: p.name }, p.label || p.name),
-            // O widget entra num Fragment com `key` porque vai num array ao lado
-            // do rótulo, e o elemento que a coleção devolve não tem chave.
-            W ? h(React.Fragment, { key: "w" }, W(p, data.params[p.name], (v) => data.onParam(id, p.name, v)))
-              : h("input", { key: "w", className: "nodrag", type: "text",
-                             defaultValue: JSON.stringify(data.params[p.name] ?? p.default),
-                             onBlur: (e) => { try { data.onParam(id, p.name, JSON.parse(e.target.value)); }
-                                              catch (_) {} } }),
-          ]);
-        })),
+      : h(ParamsList, { key: "pm", id, spec, params: data.params, onParam: data.onParam }),
     h("div", { key: "po", className: "tr-ports" }, [
       h("div", { key: "in", className: "tr-in" }, (spec.inputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port" }, [
@@ -1181,6 +1166,15 @@ function App() {
     try { localStorage.setItem("trama.modoNovo", modoNovo); } catch (_) {}
   }, [modoNovo]);
   const modoNovoRef = useRef(modoNovo); modoNovoRef.current = modoNovo;
+  // Painel de parâmetros recolhido ou não: preferência de como trabalhar,
+  // global a todos os cards e guardada no navegador — recolher e sair
+  // clicando em outros cards não pode reabrir o painel a cada clique.
+  const [painelRecolhido, setPainelRecolhido] = useState(() => {
+    try { return localStorage.getItem("trama.painelParams") === "recolhido"; } catch (_) { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trama.painelParams", painelRecolhido ? "recolhido" : "aberto"); } catch (_) {}
+  }, [painelRecolhido]);
   // Prancheta: popover aberto e o último pedido feito, como preferência do
   // navegador (mesma doutrina da proporção acima). A proporção NÃO é guardada
   // aqui: é a mesma `aspectoNovo` da toolbar, pra as duas nunca discordarem.
@@ -1513,6 +1507,16 @@ function App() {
     [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onModo, onReseed, tick, temas,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
+
+  // Card do painel de parâmetros à esquerda (Fase 3): existe fora da
+  // apresentação, com exatamente UM card selecionado, que não mostra os
+  // próprios parâmetros (mini ou só preview — `precisaPainel`). Mais de um
+  // selecionado já tem a barra de seleção pra modo em massa; o painel é por
+  // card, então não tenta decidir qual dos vários mostrar.
+  const selDecorado = decorated.filter((n) => n.selected);
+  const noDoPainel = !present && selDecorado.length === 1 && selDecorado[0].type === "ndNode"
+    && selDecorado[0].data.spec && precisaPainel(modoDe(selDecorado[0].data))
+    ? selDecorado[0] : null;
 
   // --- Recepção ---
   useEffect(() => {
@@ -2795,6 +2799,10 @@ function App() {
                                             edges.filter((e) => e.selected).map((e) => e.id)) },
           "Apagar"),
       ]) : null,
+      noDoPainel
+        ? h(ParamsDock, { key: "dock", node: noDoPainel, recolhido: painelRecolhido,
+                          onRecolher: setPainelRecolhido, categories })
+        : null,
       ferramenta === "frame"
         ? h(FrameDraw, { key: "fd", toFlow: rf.screenToFlowPosition, onDone: criarFrame,
                          aspect: aspectoNovo }) : null,
