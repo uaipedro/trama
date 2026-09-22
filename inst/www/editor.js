@@ -773,7 +773,7 @@ function Icon({ icon, className, color }) {
 // ou arrasto de porta): a aba não manda, porque quem procura quer "o que
 // serve", não "de que coleção veio" — as abas somem e a lista vira global, com
 // o selo dizendo de onde cada bloco vem.
-function Palette({ catalog, filterType, onPick }) {
+function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState(null);
   const cols = catalog.collections || [];
@@ -840,6 +840,10 @@ function Palette({ catalog, filterType, onPick }) {
     h("div", { key: "head", className: "tr-palette-head" }, [
       h("strong", { key: "title" }, "Blocos"),
       h("span", { key: "hint" }, "Clique para adicionar ou arraste para a tela"),
+      h("div", { key: "modo", className: "tr-palette-modo" }, [
+        h("span", { key: "l" }, "entra como"),
+        h(ModoPicker, { key: "p", value: modoNovo, onChange: onModoNovo }),
+      ]),
     ]),
     // Uma coleção só não tem o que escolher: a fileira some inteira em vez de
     // mostrar uma aba órfã sempre ativa.
@@ -1164,6 +1168,19 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem("trama.aspectoNovo", aspectoNovo); } catch (_) {}
   }, [aspectoNovo]);
+  // Modo com que os blocos da paleta entram no canvas. Preferência do
+  // navegador, como a proporção dos frames novos: não é do documento.
+  const [modoNovo, setModoNovo] = useState(() => {
+    try {
+      const m = localStorage.getItem("trama.modoNovo");
+      if (MODOS.includes(m)) return m;
+    } catch (_) {}
+    return "completo";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trama.modoNovo", modoNovo); } catch (_) {}
+  }, [modoNovo]);
+  const modoNovoRef = useRef(modoNovo); modoNovoRef.current = modoNovo;
   // Prancheta: popover aberto e o último pedido feito, como preferência do
   // navegador (mesma doutrina da proporção acima). A proporção NÃO é guardada
   // aqui: é a mesma `aspectoNovo` da toolbar, pra as duas nunca discordarem.
@@ -1994,9 +2011,17 @@ function App() {
     return !!(op && ip) && compatible(cat, op.type, ip.type);
   }, [nodes]);
 
+  // O modo da paleta ("entra como") vai no MESMO batch do `add_node`, com id
+  // do cliente — o mesmo truque de `opsDoGrupo`: `set_mode` referenciando um
+  // id que só existe dentro deste lote. Ausência de extra ops quando o modo é
+  // o padrão evita mandar um `set_mode` inútil a cada bloco novo.
   const addAt = useCallback((typeId, pos, extra) => {
-    pushOp({ op: "add_node", type: typeId, position: [Math.round(pos.x), Math.round(pos.y)],
-             ...extra });
+    const add = { op: "add_node", type: typeId,
+                  position: [Math.round(pos.x), Math.round(pos.y)], ...extra };
+    const modo = modoNovoRef.current;
+    if (modo === "completo") { pushOp(add); return; }
+    const id = add.id || novoId();
+    pushMany([{ ...add, id }, { op: "set_mode", node: id, modo }]);
   }, []);
 
   // Clicar na paleta cai numa cascata a partir do canto visível, em vez de um
@@ -2326,29 +2351,16 @@ function App() {
     return algo ? [] : cards;
   };
 
-  // Regra do Figma: se ALGUM alvo está aberto, todos fecham; senão, todos
-  // abrem. Inverter card a card deixaria metade aberta e metade fechada.
-  // Só entra quem TEM o que recolher: card sem parâmetro nenhum, e órfão (sem
-  // spec, sem preview), nunca fecham de fato, então contariam como abertos para
-  // sempre e o alternar ficaria preso em "fechar" sem mudar nada na tela.
-  // Espelha `.tr_fold_defaults` do lado R (R/document.R): ausência de
-  // `fold.preview`/`fold.params` conta como ABERTO, mas ausência de
-  // `fold.mini` conta como DESLIGADO — os dois lados têm que concordar em
-  // "aberto" pro mesmo card, senão o atalho e o documento persistido discordam.
-  const FOLD_DEFAULTS = { preview: true, params: true, mini: false };
-  const alternarFold = (parte) => {
-    const tem = parte === "params"
-      ? (n) => (n.data.spec?.params || []).length > 0
-      : (n) => !!n.data.spec;
-    const alvo = alvos().filter(tem);
-    if (alvo.length === 0) return;
-    const foldDe = (n) => (foldsRef.current[n.id] ?? n.data.fold) || {};
-    const aberto = (n) => foldDe(n)[parte] ?? FOLD_DEFAULTS[parte];
-    const valor = !alvo.some(aberto);
-    const muda = alvo.filter((n) => aberto(n) !== valor);
-    muda.forEach((n) => { foldsRef.current[n.id] = { ...foldDe(n), [parte]: valor }; });
+  // W/A/S/D e a barra de seleção levam DIRETO a um modo — não é alternar: o
+  // mesmo gesto repetido não desfaz. Órfão (sem spec) fica de fora: não tem
+  // preview nem parâmetro pra mostrar ou esconder.
+  const definirModo = (modo) => {
+    const muda = alvos().filter((n) => n.data.spec
+      && (modosRef.current[n.id] ?? modoDe(n.data)) !== modo);
+    if (muda.length === 0) return;
+    muda.forEach((n) => { modosRef.current[n.id] = modo; });
     bumpTick();
-    pushMany(muda.map((n) => ({ op: "set_fold", node: n.id, [parte]: valor })));
+    pushMany(muda.map((n) => ({ op: "set_mode", node: n.id, modo })));
   };
 
   // Um lugar só pra restaurar: atalho, barra de seleção e menu do card. Quem
@@ -2482,9 +2494,10 @@ function App() {
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
     "mod+g": frameDaSelecao,
-    "p": () => alternarFold("preview"),
-    "o": () => alternarFold("params"),
-    "shift+p": () => alternarFold("mini"),
+    "w": () => definirModo("preview"),
+    "a": () => definirModo("mini"),
+    "s": () => definirModo("params"),
+    "d": () => definirModo("completo"),
     "shift+r": restaurarAlvos,
   };
   useEffect(() => {
@@ -2494,7 +2507,7 @@ function App() {
       // guarda vem ANTES de tudo. O guarda de `INPUT|TEXTAREA|SELECT` abaixo
       // cobre o campo de nome, mas o foco do diálogo vive nos BOTÕES dele —
       // cada pasta listada é um — e ali um "f" abria a ferramenta de frame e
-      // um "p" recolhia o preview dos cards atrás do overlay, sem nada na tela
+      // um "s" trocava o modo dos cards atrás do overlay, sem nada na tela
       // explicando o que mudou. Antes do `blur` de espaço logo abaixo porque
       // aquele desarma o espaço em QUALQUER botão, e aqui o espaço é a
       // segunda forma legítima de acionar a linha de pasta pelo teclado —
@@ -2514,8 +2527,7 @@ function App() {
       // trocariam o slide escondido atrás dela, e o Esc que a fecha também
       // encerraria a apresentação. O lightbox tem o próprio listener.
       if (presentRef.current && document.querySelector(".tr-lightbox")) return;
-      const nome = (e.ctrlKey || e.metaKey ? "mod+" : "") + (e.shiftKey ? "shift+" : "")
-        + e.key.toLowerCase();
+      const nome = nomeDaTecla(e);
       // Ctrl+C/Ctrl+V ficam FORA da tabela de `atalhosRef`, de propósito: ela
       // dá `preventDefault` incondicional em qualquer tecla que tenha função,
       // e Ctrl+C é também o atalho do navegador pra copiar texto selecionado
@@ -2773,10 +2785,9 @@ function App() {
         // Só com algum card na seleção: com só frames (e ligações) os quatro
         // agiriam sobre nada, e botão que não faz nada é botão que mente.
         ...(selecionados.some((n) => n.type === "ndNode") ? [
-          h("button", { key: "pv", title: "P", onClick: () => alternarFold("preview") }, "Preview"),
-          h("button", { key: "pm", title: "O", onClick: () => alternarFold("params") }, "Parâmetros"),
-          h("button", { key: "rs", title: "Shift+R", onClick: restaurarAlvos }, "Tamanho"),
-          h("button", { key: "fr", title: "Ctrl+G", onClick: frameDaSelecao }, "Frame"),
+          h(ModoPicker, { key: "md", value: null, onChange: definirModo, className: "tr-selbar-modos" }),
+          h("button", { key: "rs", title: dica("tamanho"), onClick: restaurarAlvos }, "Tamanho"),
+          h("button", { key: "fr", title: dica("frame-sel"), onClick: frameDaSelecao }, "Frame"),
         ] : []),
         h("button", { key: "del", title: "Delete",
                       // Mesmo alcance da tecla Delete: cards E ligações escolhidas.
@@ -2834,7 +2845,8 @@ function App() {
             onRename: (id, title) => onFrameEdit(id, { title }), onAspect: mudarProporcao,
             onPresent: apresentar, onExport: () => exportar(framesOrd),
             onClose: () => setPainelFrames(false) })
-        : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked }),
+        : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked,
+                       modoNovo, onModoNovo: setModoNovo }),
     h("div", { key: "tb", className: "tr-toolbar" }, [
       // `img`, e não botão: a marca é assinatura, não controle. Não clica, não
       // abre nada e — por não ser elemento focável — não entra na ordem de

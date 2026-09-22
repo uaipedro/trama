@@ -636,6 +636,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-palette-head{display:flex;flex-direction:column;gap:2px;padding:18px 14px 6px}
 .tr-palette-head strong{font-size:14px;letter-spacing:-.02em}
 .tr-palette-head span{color:var(--tr-dim);font-size:10.5px;line-height:1.35}
+/* "Entra como": o modo que a paleta aplica a todo bloco novo (clicado ou
+   arrastado). Mesmo seletor de 4 ícones do card, com fundo próprio pra se
+   destacar do painel (que já usa `--tr-panel` de base). */
+.tr-palette-modo{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--tr-dim)}
+.tr-palette-modo .tr-modo-picker{border:1px solid var(--tr-line);color:var(--tr-fg)}
+.tr-palette-modo .tr-modo-btn.tr-on,.tr-selbar .tr-modo-btn.tr-on{background:var(--tr-line)}
 /* Aba com a MESMA forma do .tr-palette-item, e não por economia: fileira de
    aba com sublinhado contínuo não sobrevive a quebrar em duas linhas, e
    quebrar é o que a paleta faz quando o projeto carrega cinco coleções.
