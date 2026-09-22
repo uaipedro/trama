@@ -30,9 +30,11 @@ const widgets = {};
 // A vista recebe o mesmo `{artifact, handle, assetUrl}` de sempre: vistas são
 // leituras diferentes do que JÁ trafega, não payloads paralelos. Uma vista que
 // precise de dado novo é escolha explícita do `preview` do tipo.
+// `expand` é a leitura em tela cheia do artefato (tecla V). Opcional: sem
+// ele, a vista em tela cheia usa a própria vista do card, maior.
 function normalizeRenderer(id, def) {
   if (typeof def === "function") {
-    return { views: [{ id: "preview", label: id.split("/").pop(), component: def }] };
+    return { views: [{ id: "preview", label: id.split("/").pop(), component: def }], expand: null };
   }
   const vs = (def && def.views) || [];
   if (!vs.length) throw new Error(`[trama] renderer '${id}' sem vistas.`);
@@ -45,7 +47,7 @@ function normalizeRenderer(id, def) {
       throw new Error(`[trama] renderer '${id}': vista precisa de 'id' e 'component'.`);
     }
     return { id: v.id, label: v.label || v.id, component: v.component };
-  }) };
+  }), expand: typeof def.expand === "function" ? def.expand : null };
 }
 
 export function registerRenderer(id, def) { renderers[id] = normalizeRenderer(id, def); }
@@ -192,12 +194,22 @@ function ErrorView({ artifact }) {
   return h("div", { className: "tr-err" }, (artifact.data && artifact.data.message) || "erro");
 }
 
+// A vista em tela cheia (V) da imagem: mesmo arquivo do card, só que sem o
+// recorte do `.tr-preview`. Não reusa `Image` (que embute o gesto de
+// ctrl/⌘+clique do lightbox) — aqui quem abre e fecha é a `Vista` de
+// `modos-ui.js`, então o corpo é só a `<img>`.
+function ImagemGrande({ artifact, assetUrl }) {
+  const f = artifact.files && (artifact.files.png || Object.values(artifact.files)[0]);
+  return f ? h("img", { className: "tr-lightbox-img", src: assetUrl(f) })
+           : h("div", { className: "tr-empty" }, "sem imagem");
+}
+
 // Rótulo em português explícito: o fallback `id.split("/").pop()` daria
 // "table"/"image" numa interface que fala português.
 registerRenderer("trama/table", { views: [{ id: "tabela", label: "tabela", component: Table }] });
 registerRenderer("trama/keyvalue", { views: [{ id: "campos", label: "campos", component: KeyValue }] });
 registerRenderer("trama/text", { views: [{ id: "texto", label: "texto", component: Text }] });
-registerRenderer("trama/image", { views: [{ id: "imagem", label: "imagem", component: Image }] });
+registerRenderer("trama/image", { views: [{ id: "imagem", label: "imagem", component: Image }], expand: ImagemGrande });
 registerRenderer("trama/error", { views: [{ id: "erro", label: "erro", component: ErrorView }] });
 
 // --- O card de teste de hipótese ---------------------------------------------

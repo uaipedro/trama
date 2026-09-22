@@ -126,4 +126,8 @@ function Table({ artifact, label }) {
 // Renderer próprio (não mais o passthrough pro núcleo): a coleção ganha
 // ordenação zero-esforço de manter, e o Ctrl/⌘+clique abre a vista no padrão
 // ABNT (IBGE, 1993) que uma tabela compacta de card não comporta.
-registerRenderer("data/table", Table);
+//
+// `id: "preview"` e rótulo "table" são o que a forma de função gerava: o
+// documento grava o id da vista, e mudar quebraria a vista salva.
+registerRenderer("data/table", { views: [{ id: "preview", label: "table", component: Table }],
+                                 expand: AbntTable });
