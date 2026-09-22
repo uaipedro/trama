@@ -143,7 +143,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    mora fora do cabeçalho neste card (regra acima, `.tr-node-mini
    .tr-modo-picker`). Só aparece no hover, em absoluto pra não empurrar
    ícone/título quando aparece. */
-.tr-node-mini .tr-fold-btn{position:absolute;top:3px;right:3px;
+.tr-node-mini .tr-fold-btn{position:absolute;top:3px;left:3px;
   opacity:0;transition:opacity .12s;background:var(--tr-panel);border-radius:4px}
 .tr-node-mini:hover .tr-fold-btn{opacity:.6}
 .tr-node-mini .tr-fold-btn:hover{opacity:1}
@@ -920,9 +920,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   border:1px solid var(--tr-accent);border-radius:8px;padding:4px 6px 4px 11px;
   box-shadow:0 6px 20px var(--tr-shadow);font-size:11.5px}
 .tr-selbar-n{color:var(--tr-dim);margin-right:4px;white-space:nowrap}
-.tr-selbar button{background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
+.tr-selbar>button{background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
   border-radius:5px;padding:3px 9px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
-.tr-selbar button:hover{border-color:var(--tr-accent)}
+.tr-selbar>button:hover{border-color:var(--tr-accent)}
 /* Painel de parâmetros: borda esquerda do canvas, largura fixa, rolagem
    própria. `nowheel` no elemento deixa a roda rolar a lista em vez de dar zoom.
    `top:50px`, e não 12px: a toolbar ocupa a mesma faixa esquerda no topo
