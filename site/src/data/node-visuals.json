@@ -1,0 +1,1238 @@
+{
+  "data/arrange": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "arrow-up-down"
+  },
+  "data/bind_rows": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers"
+  },
+  "data/clean_names": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "case-sensitive"
+  },
+  "data/convert": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "arrow-right-left"
+  },
+  "data/distinct": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "copy-x"
+  },
+  "data/drop_na": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "circle-slash"
+  },
+  "data/example": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "flask-conical"
+  },
+  "data/filter": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-filter"
+  },
+  "data/from_stream": {
+    "accent": "#84cc16",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers"
+  },
+  "data/generate": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "dices"
+  },
+  "data/get_dupes": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "copy"
+  },
+  "data/group_summarise": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sigma"
+  },
+  "data/join": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "combine"
+  },
+  "data/mutate": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "square-plus"
+  },
+  "data/pivot_longer": {
+    "accent": "#ec4899",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "unfold-vertical"
+  },
+  "data/pivot_wider": {
+    "accent": "#ec4899",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "unfold-horizontal"
+  },
+  "data/read_csv": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "file-spreadsheet"
+  },
+  "data/read_excel": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "sheet"
+  },
+  "data/read_json": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "braces"
+  },
+  "data/read_parquet": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "file-digit"
+  },
+  "data/read_rds": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "file-box"
+  },
+  "data/remove_empty": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "eraser"
+  },
+  "data/rename": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "pencil-line"
+  },
+  "data/replace_na": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "paint-bucket"
+  },
+  "data/select": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "columns-3"
+  },
+  "data/slice_head": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-start"
+  },
+  "data/summary": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "clipboard-list"
+  },
+  "data/to_stream": {
+    "accent": "#84cc16",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chevrons-right"
+  },
+  "data/write_csv": {
+    "accent": "#22c55e",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "save"
+  },
+  "data/write_parquet": {
+    "accent": "#22c55e",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "hard-drive-download"
+  },
+  "data/write_rds": {
+    "accent": "#22c55e",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "archive"
+  },
+  "ml/cart": {
+    "accent": "#65a30d",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/confusion": {
+    "accent": "#2563eb",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/evaluate": {
+    "accent": "#2563eb",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/example": {
+    "accent": "#0891b2",
+    "hasInput": false,
+    "hasOutput": true
+  },
+  "ml/figs": {
+    "accent": "#65a30d",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/forest": {
+    "accent": "#d97706",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/importance": {
+    "accent": "#be123c",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/linear": {
+    "accent": "#65a30d",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/predict": {
+    "accent": "#2563eb",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/residuals": {
+    "accent": "#be123c",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/roc": {
+    "accent": "#be123c",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/rules": {
+    "accent": "#be123c",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/split": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/svm": {
+    "accent": "#7c3aed",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/tree_plot": {
+    "accent": "#be123c",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/tune": {
+    "accent": "#2563eb",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/tuning_plot": {
+    "accent": "#be123c",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "ml/xgboost": {
+    "accent": "#d97706",
+    "hasInput": true,
+    "hasOutput": true
+  },
+  "models/anova_dbc": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grid-3x3"
+  },
+  "models/anova_dic": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layout-grid"
+  },
+  "models/anova_dql": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "columns-3"
+  },
+  "models/anova_factorial": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grid-2x2"
+  },
+  "models/anova_split_plot": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "square-split-horizontal"
+  },
+  "models/anova_table": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sheet"
+  },
+  "models/bartlett": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "scale"
+  },
+  "models/breusch_pagan": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-spline"
+  },
+  "models/chisq": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table"
+  },
+  "models/coefficients": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "variable"
+  },
+  "models/compare": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "git-compare"
+  },
+  "models/cor_test": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up"
+  },
+  "models/duncan": {
+    "accent": "#8b5cf6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-column"
+  },
+  "models/emmeans": {
+    "accent": "#8b5cf6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-column"
+  },
+  "models/example": {
+    "accent": "#10b981",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "database"
+  },
+  "models/fisher_exact": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table"
+  },
+  "models/fit_stats": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "gauge"
+  },
+  "models/glm": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-spline"
+  },
+  "models/kruskal": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-ordered"
+  },
+  "models/levene": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "scale"
+  },
+  "models/linear_hypothesis": {
+    "accent": "#8b5cf6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "divide"
+  },
+  "models/lm": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-scatter"
+  },
+  "models/lmer": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers"
+  },
+  "models/one_sample_t": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "target"
+  },
+  "models/paired_t": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "link"
+  },
+  "models/pairwise": {
+    "accent": "#8b5cf6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "git-compare"
+  },
+  "models/plot_caterpillar": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-ordered"
+  },
+  "models/plot_diagnostics": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "microscope"
+  },
+  "models/plot_means": {
+    "accent": "#8b5cf6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-no-axes-column"
+  },
+  "models/predict": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "target"
+  },
+  "models/random_effects": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "dices"
+  },
+  "models/random_test": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "shuffle"
+  },
+  "models/residuals": {
+    "accent": "#eab308",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-scatter"
+  },
+  "models/rls": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "activity"
+  },
+  "models/shapiro": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-area"
+  },
+  "models/shapiro_residuals": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-area"
+  },
+  "models/t_test": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "equal-not"
+  },
+  "models/tukey_additivity": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "equal"
+  },
+  "models/waller_duncan": {
+    "accent": "#8b5cf6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-column"
+  },
+  "models/wilcoxon": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-ordered"
+  },
+  "multi/biplot": {
+    "accent": "#818cf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-scatter"
+  },
+  "multi/box_m": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "scale"
+  },
+  "multi/classify": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "tags"
+  },
+  "multi/confusion": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grid-3x3"
+  },
+  "multi/correlation_circle": {
+    "accent": "#818cf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "orbit"
+  },
+  "multi/correlation_matrix": {
+    "accent": "#38bdf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table-2"
+  },
+  "multi/discriminant": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "split"
+  },
+  "multi/discriminant_functions": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sigma"
+  },
+  "multi/example": {
+    "accent": "#10b981",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "database"
+  },
+  "multi/fa_loadings": {
+    "accent": "#c084fc",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table-2"
+  },
+  "multi/factor_analysis": {
+    "accent": "#c084fc",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers"
+  },
+  "multi/jackknife_discriminant": {
+    "accent": "#94a3b8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "repeat"
+  },
+  "multi/jackknife_fa": {
+    "accent": "#94a3b8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "repeat"
+  },
+  "multi/jackknife_logistic": {
+    "accent": "#94a3b8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "repeat"
+  },
+  "multi/jackknife_pca": {
+    "accent": "#94a3b8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "repeat"
+  },
+  "multi/kmo_bartlett": {
+    "accent": "#38bdf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "stethoscope"
+  },
+  "multi/logistic": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-spline"
+  },
+  "multi/logistic_coefficients": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sigma"
+  },
+  "multi/parallel": {
+    "accent": "#38bdf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "dices"
+  },
+  "multi/pca": {
+    "accent": "#818cf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "axis-3d"
+  },
+  "multi/pca_loadings": {
+    "accent": "#818cf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table-2"
+  },
+  "multi/pca_variance": {
+    "accent": "#818cf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-bar-decreasing"
+  },
+  "multi/plot_correlation": {
+    "accent": "#38bdf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grid-3x3"
+  },
+  "multi/plot_discriminant": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-scatter"
+  },
+  "multi/plot_loadings": {
+    "accent": "#c084fc",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grid-3x3"
+  },
+  "multi/plot_odds": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-bar"
+  },
+  "multi/roc": {
+    "accent": "#fb923c",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-line"
+  },
+  "multi/scree": {
+    "accent": "#818cf8",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-no-axes-combined"
+  },
+  "sampling/cluster": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "group"
+  },
+  "sampling/design": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table-properties"
+  },
+  "sampling/detectable_difference": {
+    "accent": "#4f46e5",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "git-compare"
+  },
+  "sampling/example": {
+    "accent": "#10b981",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "database"
+  },
+  "sampling/margin": {
+    "accent": "#4f46e5",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "ruler"
+  },
+  "sampling/margin_levels": {
+    "accent": "#4f46e5",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers-plus"
+  },
+  "sampling/mean": {
+    "accent": "#0e7490",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sigma"
+  },
+  "sampling/plot_estimates": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "crosshair"
+  },
+  "sampling/plot_margins": {
+    "accent": "#4f46e5",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-no-axes-column"
+  },
+  "sampling/plot_simulation": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-candlestick"
+  },
+  "sampling/poststratify": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "weight"
+  },
+  "sampling/pps": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "scale"
+  },
+  "sampling/proportion": {
+    "accent": "#0e7490",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-pie"
+  },
+  "sampling/question_margins": {
+    "accent": "#4f46e5",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-checks"
+  },
+  "sampling/rake": {
+    "accent": "#14b8a6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sliders-horizontal"
+  },
+  "sampling/ratio": {
+    "accent": "#0e7490",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "divide"
+  },
+  "sampling/referral": {
+    "accent": "#4f46e5",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "network"
+  },
+  "sampling/simulate": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "dices"
+  },
+  "sampling/size_cluster": {
+    "accent": "#6366f1",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "boxes"
+  },
+  "sampling/size_curve": {
+    "accent": "#6366f1",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-spline"
+  },
+  "sampling/size_domains": {
+    "accent": "#6366f1",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "users"
+  },
+  "sampling/size_mean": {
+    "accent": "#6366f1",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "calculator"
+  },
+  "sampling/size_proportion": {
+    "accent": "#6366f1",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "percent"
+  },
+  "sampling/size_stratified": {
+    "accent": "#6366f1",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers"
+  },
+  "sampling/srs": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "shuffle"
+  },
+  "sampling/stratified": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers-2"
+  },
+  "sampling/systematic": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "list-ordered"
+  },
+  "sampling/total": {
+    "accent": "#0e7490",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "square-sigma"
+  },
+  "sampling/two_stage": {
+    "accent": "#0891b2",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "git-fork"
+  },
+  "series/accuracy": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "square-sigma"
+  },
+  "series/acf": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-column"
+  },
+  "series/adf": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "test-tube"
+  },
+  "series/aggregate": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "calendar-days"
+  },
+  "series/arima": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sigma"
+  },
+  "series/baseline": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "repeat"
+  },
+  "series/box_pierce": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "activity"
+  },
+  "series/component": {
+    "accent": "#84cc16",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "square-split-horizontal"
+  },
+  "series/cox_stuart": {
+    "accent": "#e11d48",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "arrow-up-down"
+  },
+  "series/decompose": {
+    "accent": "#84cc16",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers-2"
+  },
+  "series/diff": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "diff"
+  },
+  "series/ets": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "waves-horizontal"
+  },
+  "series/example": {
+    "accent": "#10b981",
+    "hasInput": false,
+    "hasOutput": true,
+    "icon": "activity"
+  },
+  "series/f_global": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "sigma"
+  },
+  "series/f_sazonal": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "calendar-range"
+  },
+  "series/f_tendencia": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up-down"
+  },
+  "series/fisher": {
+    "accent": "#db2777",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "signal"
+  },
+  "series/forecast": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up"
+  },
+  "series/from_table": {
+    "accent": "#10b981",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "table-rows-split"
+  },
+  "series/holt_winters": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up-down"
+  },
+  "series/interpolate": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "pipette"
+  },
+  "series/kpss": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "test-tubes"
+  },
+  "series/kruskal_wallis": {
+    "accent": "#db2777",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "calendar-days"
+  },
+  "series/lag": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "move-right"
+  },
+  "series/lag_plot": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-scatter"
+  },
+  "series/ljung_box": {
+    "accent": "#f97316",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "audio-waveform"
+  },
+  "series/mann_kendall": {
+    "accent": "#e11d48",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up"
+  },
+  "series/moving_average": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "spline"
+  },
+  "series/ndiffs": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "hash"
+  },
+  "series/pacf": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-bar"
+  },
+  "series/pettitt": {
+    "accent": "#e11d48",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "milestone"
+  },
+  "series/phillips_perron": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "flask-conical"
+  },
+  "series/plot": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-line"
+  },
+  "series/plot_decomposition": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "file-chart-line"
+  },
+  "series/plot_forecast": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-area"
+  },
+  "series/regression": {
+    "accent": "#84cc16",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up"
+  },
+  "series/residuals": {
+    "accent": "#f59e0b",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "scan-line"
+  },
+  "series/runs": {
+    "accent": "#e11d48",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "shuffle"
+  },
+  "series/seasonal_plot": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-spline"
+  },
+  "series/stl": {
+    "accent": "#84cc16",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layers"
+  },
+  "series/subseries": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-no-axes-combined"
+  },
+  "series/transform": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "square-function"
+  },
+  "series/window": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "calendar-range"
+  },
+  "series/zivot_andrews": {
+    "accent": "#ef4444",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "split"
+  },
+  "view/area": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-area"
+  },
+  "view/bars": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-bar"
+  },
+  "view/bin2d": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grid-3x3"
+  },
+  "view/boxplot": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-candlestick"
+  },
+  "view/density": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-spline"
+  },
+  "view/dotplot": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "lollipop"
+  },
+  "view/dumbbell": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "dumbbell"
+  },
+  "view/ecdf": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-no-axes-combined"
+  },
+  "view/heatmap": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "layout-grid"
+  },
+  "view/histogram": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-column"
+  },
+  "view/labels": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "tags"
+  },
+  "view/line": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-line"
+  },
+  "view/means": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "git-commit-vertical"
+  },
+  "view/paired": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "git-compare-arrows"
+  },
+  "view/pareto": {
+    "accent": "#0ea5e9",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-column-decreasing"
+  },
+  "view/points": {
+    "accent": "#f472b6",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "chart-scatter"
+  },
+  "view/qq": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "trending-up"
+  },
+  "view/strip": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "grip-vertical"
+  },
+  "view/violin": {
+    "accent": "#a855f7",
+    "hasInput": true,
+    "hasOutput": true,
+    "icon": "audio-waveform"
+  }
+}

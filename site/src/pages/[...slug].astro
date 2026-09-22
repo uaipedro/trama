@@ -2,6 +2,7 @@
 import { getCollection, render } from "astro:content";
 import Base from "../layouts/Base.astro";
 import NodeMini from "../components/NodeMini.astro";
+import { getNodeVisual } from "../data/node-visuals";
 
 export async function getStaticPaths() {
   const entries = await getCollection("docs");
@@ -12,13 +13,6 @@ const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
 const related = (await getCollection("docs"))
   .filter((item) => entry.data.related.includes(item.data.node ?? item.id));
-const relatedVisuals: Record<string, { accent: string; icon: "sheet" | "summary" | "sigma" | "scatter" | "histogram"; hasInput?: boolean }> = {
-  "data/read_csv": { accent: "#6366f1", icon: "sheet", hasInput: false },
-  "data/summary": { accent: "#f59e0b", icon: "summary" },
-  "data/group_summarise": { accent: "#a855f7", icon: "sigma" },
-  "view/points": { accent: "#f472b6", icon: "scatter" },
-  "view/histogram": { accent: "#a855f7", icon: "histogram" }
-};
 ---
 
 <Base title={entry.data.title} description={entry.data.description}>
@@ -46,7 +40,7 @@ const relatedVisuals: Record<string, { accent: string; icon: "sheet" | "summary"
           <h2 id="related-title">Veja também</h2>
           <div class="related__links">
             {related.map((item) => {
-              const visual = item.data.node ? relatedVisuals[item.data.node] : undefined;
+              const visual = item.data.node ? getNodeVisual(item.data.node) : undefined;
               return <a href={`/trama/${item.id}/`}>
                 {visual && <NodeMini label={item.data.title} {...visual} />}
                 <strong>{item.data.title}</strong><span>{item.data.description}</span><b aria-hidden="true">→</b>

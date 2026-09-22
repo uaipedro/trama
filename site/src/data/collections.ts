@@ -2,6 +2,8 @@ export const collections = [
   {
     id: "dados",
     title: "Dados",
+    packageName: "trama.data",
+    icon: "database",
     eyebrow: "Coleção trama.data",
     description: "Leia, inspecione, prepare, transforme e grave tabelas.",
     steps: [
@@ -16,6 +18,8 @@ export const collections = [
   {
     id: "visualizacao",
     title: "Visualização",
+    packageName: "trama.view",
+    icon: "chart-scatter",
     eyebrow: "Coleção trama.view",
     description: "Escolha gráficos a partir da pergunta e da estrutura da tabela.",
     steps: [
@@ -28,6 +32,8 @@ export const collections = [
   {
     id: "aprendizado",
     title: "Aprendizado de máquina",
+    packageName: "trama.ml",
+    icon: "brain-circuit",
     eyebrow: "Coleção trama.ml",
     description: "Prepare dados, treine modelos, faça previsões e avalie resultados.",
     steps: [
@@ -40,6 +46,8 @@ export const collections = [
   {
     id: "modelos",
     title: "Modelos",
+    packageName: "trama.models",
+    icon: "sigma",
     eyebrow: "Coleção trama.models",
     description: "Ajuste modelos estatísticos, examine efeitos e confira pressupostos.",
     steps: [
@@ -52,6 +60,8 @@ export const collections = [
   {
     id: "multivariada",
     title: "Multivariada",
+    packageName: "trama.multi",
+    icon: "chart-network",
     eyebrow: "Coleção trama.multi",
     description: "Explore relações entre variáveis, reduza dimensões e classifique observações.",
     steps: [
@@ -64,6 +74,8 @@ export const collections = [
   {
     id: "amostragem",
     title: "Amostragem",
+    packageName: "trama.sampling",
+    icon: "scan-search",
     eyebrow: "Coleção trama.sampling",
     description: "Planeje amostras, selecione unidades e estime medidas da população.",
     steps: [
@@ -76,6 +88,8 @@ export const collections = [
   {
     id: "series-temporais",
     title: "Séries temporais",
+    packageName: "trama.series",
+    icon: "activity",
     eyebrow: "Coleção trama.series",
     description: "Prepare séries, investigue padrões, ajuste modelos e avalie previsões.",
     steps: [

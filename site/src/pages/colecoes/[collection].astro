@@ -4,6 +4,7 @@ import Base from "../../layouts/Base.astro";
 import CollectionHero from "../../components/CollectionHero.astro";
 import NodeMini from "../../components/NodeMini.astro";
 import { collections } from "../../data/collections";
+import { getNodeVisual } from "../../data/node-visuals";
 
 export async function getStaticPaths() {
   return collections.map(({ id }) => ({ params: { collection: id } }));
@@ -16,13 +17,6 @@ const entries = (await getCollection("docs", ({ data }) => data.collection === c
     a.data.order - b.data.order ||
     a.data.title.localeCompare(b.data.title, "pt-BR")
   );
-const nodeVisuals: Record<string, { accent: string; icon: "sheet" | "summary" | "sigma" | "scatter" | "histogram"; hasInput?: boolean }> = {
-  "data/read_csv": { accent: "#6366f1", icon: "sheet", hasInput: false },
-  "data/summary": { accent: "#f59e0b", icon: "summary" },
-  "data/group_summarise": { accent: "#a855f7", icon: "sigma" },
-  "view/points": { accent: "#f472b6", icon: "scatter" },
-  "view/histogram": { accent: "#a855f7", icon: "histogram" }
-};
 const info = collections.find(({ id }) => id === collection)!;
 ---
 
@@ -36,12 +30,12 @@ const info = collections.find(({ id }) => id === collection)!;
       </div>
       <div class="catalogue-list">
         {entries.map((entry) => {
-          const visual = entry.data.node ? nodeVisuals[entry.data.node] : undefined;
+          const visual = entry.data.node ? getNodeVisual(entry.data.node) : undefined;
           return (
-            <a class:list={["catalogue-entry", { "catalogue-entry--guide": !visual }]} href={`/trama/${entry.id}/`}>
+            <a class:list={["catalogue-entry", { "catalogue-entry--guide": !entry.data.node }]} href={`/trama/${entry.id}/`}>
               {visual
                 ? <NodeMini label={entry.data.title} {...visual} />
-                : <span class="catalogue-entry__guide">{entry.data.node ? "bloco" : "guia"}</span>}
+                : <span class="catalogue-entry__guide">guia</span>}
               <span class="catalogue-entry__meta">{entry.data.node ?? "visão geral"}</span>
               <span class="catalogue-entry__main"><strong>{entry.data.title}</strong><em>{entry.data.description}</em></span>
               <span class="catalogue-entry__arrow" aria-hidden="true">→</span>
