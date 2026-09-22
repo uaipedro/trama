@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">trama — R em blocos executáveis</title>
+  <desc id="desc">A marca do trama ao lado da frase R em blocos executáveis.</desc>
+  <rect width="1200" height="630" fill="#eef2f4"/>
+  <path d="M0 486H1200V630H0Z" fill="#e1ebef"/>
+  <g fill="none" stroke="#b8cad3" stroke-width="2" opacity=".72">
+    <path d="M0 102H119M216 102H372M491 102H714M830 102H1053M1110 102H1200"/>
+    <path d="M0 228H208M348 228H550M669 228H853M980 228H1200"/>
+    <path d="M0 426H152M253 426H472M595 426H744M891 426H1088M1153 426H1200"/>
+  </g>
+  <g transform="translate(132 188)">
+    <path d="M118 3 230 67v128l-112 64L6 195V67Z" fill="none" stroke="#41516c" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M52 91c0 38 66 33 66 77M184 91c0 38-66 33-66 77" fill="none" stroke-linecap="round" stroke-width="12"/>
+    <path d="M52 91c0 38 66 33 66 77" fill="none" stroke="#287fd3"/>
+    <path d="M184 91c0 38-66 33-66 77" fill="none" stroke="#8759d5"/>
+    <rect x="38" y="57" width="30" height="30" rx="7" fill="#287fd3"/>
+    <rect x="168" y="57" width="30" height="30" rx="7" fill="#8759d5"/>
+    <rect x="103" y="154" width="30" height="30" rx="7" fill="#2eaa6a"/>
+  </g>
+  <g fill="#172333" font-family="Arial, Helvetica, sans-serif">
+    <text x="440" y="282" font-size="128" font-weight="700" letter-spacing="-7">trama</text>
+    <text x="446" y="359" font-size="38" font-weight="700" letter-spacing="1">R EM BLOCOS EXECUTÁVEIS</text>
+    <text x="446" y="412" font-size="29" fill="#52657b">Seu raciocínio, visível.</text>
+  </g>
+  <g fill="#287fd3"><rect x="446" y="470" width="156" height="12" rx="6"/></g>
+  <g fill="#8759d5"><rect x="622" y="470" width="84" height="12" rx="6"/></g>
+  <g fill="#2eaa6a"><rect x="726" y="470" width="118" height="12" rx="6"/></g>
+</svg>
