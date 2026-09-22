@@ -127,3 +127,26 @@ export function Vista({ node, assetUrl, onClose }) {
       conteudo,
     ]), document.body);
 }
+
+// Painel de atalhos (H), mesma família visual do `Help` de editor.js
+// (`aside.tr-help`, cabeçalho com título + ×): agrupado por `grupo` na ordem
+// em que `ATALHOS` os declara, que é a mesma fonte que `dica()` usa nos
+// botões — os dois nunca discordam porque leem a mesma tabela.
+export function AtalhosPanel({ onClose }) {
+  const grupos = [...new Set(ATALHOS.map((a) => a.grupo))];
+  return h("aside", { className: "tr-help tr-atalhos" }, [
+    h("div", { key: "hd", className: "tr-help-head" }, [
+      h("strong", { key: "t" }, "Atalhos"),
+      h("button", { key: "x", className: "tr-help-close", title: "fechar (H)",
+                    onClick: onClose }, "×"),
+    ]),
+    h("div", { key: "b", className: "tr-help-body" },
+      grupos.map((g) => h("section", { key: g }, [
+        h("h4", { key: "t" }, g),
+        h("dl", { key: "l" }, ATALHOS.filter((a) => a.grupo === g).flatMap((a) => [
+          h("dt", { key: a.id + "k" }, a.teclas.map((t) => h("kbd", { key: t }, t))),
+          h("dd", { key: a.id + "d" }, a.rotulo),
+        ])),
+      ]))),
+  ]);
+}
