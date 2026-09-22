@@ -42,6 +42,17 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    fixa; as variáveis deixam o tema trocá-las. */
 .react-flow{--xy-background-pattern-dots-color-default:var(--tr-dots);
   --xy-connectionline-stroke-default:var(--tr-dim)}
+/* O xyflow desenha a camada de arestas ANTES da de nós (mesmo `z-index` que
+   `.react-flow__nodes`, então quem vem depois no DOM — os nós — cobre); um
+   card arrastado pra baixo/dentro do caminho de uma aresta some por trás
+   dele, em vez de a linha contornar por cima. Explicitar aqui um `z-index`
+   maior que o dos nós (que ficam em `auto`, ou seja nível 0) inverte a
+   pilha: a aresta sempre desenha por cima do corpo dos cards. O traço é fino
+   e o resto da aresta é transparente (pointer-events do xyflow já limita a
+   `visibleStroke`), então não atrapalha clicar em botão de card por baixo,
+   exceto no pixel exato onde a linha passa — troca aceitável pela aresta
+   nunca mais sumir. */
+.react-flow__edges{z-index:5}
 .react-flow__edge-path{stroke:var(--tr-edge);stroke-width:2}
 .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-accent)}
 /* Aresta de FLUXO (`animated: true`, decidido em `docToFlow` pelo campo
@@ -129,6 +140,19 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-node-mini .tr-help-btn{left:3px}
 .tr-node-mini:hover .tr-fold-btn,.tr-node-mini:hover .tr-help-btn{opacity:.6}
 .tr-node-mini .tr-fold-btn:hover,.tr-node-mini .tr-help-btn:hover{opacity:1}
+/* `.tr-ports` normal reserva uma FAIXA (padding-bottom 14px) pro nome da
+   porta, que o mini já esconde (JS omite o `<span>`) — sobrava só a faixa
+   branca vazia, colada embaixo do cabeçalho colorido, com o pontinho perdido
+   dentro dela. Em vez disso, a porta vira ponto colado na borda do próprio
+   card, sobreposto ao cabeçalho, do jeito que o n8n desenha nó compacto:
+   `position:absolute` tira a faixa do fluxo (não sobra altura reservada) e
+   `inset:0` + `align-items:center` centraliza o ponto na altura toda do
+   card. `pointer-events:none` no contêiner e `:all` de volta no ponto, senão
+   a camada transparente por cima do cabeçalho engoliria clique de
+   fold/ajuda/duplo-clique que estão embaixo dela na pilha. */
+.tr-node-mini .tr-ports{position:absolute;inset:0;padding:0;align-items:center;
+  pointer-events:none}
+.tr-node-mini .tr-port,.tr-node-mini .react-flow__handle{pointer-events:all}
 
 /* Altura DECLARADA, nunca derivada do conteúdo. Não é só estética: se o card
    muda de tamanho quando o preview chega, o React Flow remede, emite mudança de
