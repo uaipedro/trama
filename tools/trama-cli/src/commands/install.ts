@@ -26,6 +26,23 @@ export function writeConfig(base: string, cfg: Config): void {
   writeFileSync(configPath(base), JSON.stringify(cfg, null, 2));
 }
 
+/**
+ * Reporta o progresso de um download em % direto no stdout via \r (sobrescreve a
+ * mesma linha em vez de imprimir uma linha por tick). Fora do onProgress(msg) genérico
+ * porque esse é feito pra marcos discretos (uma linha por etapa) — um "% baixado" a cada
+ * chunk de rede geraria dezenas de linhas se passasse por ali. Baixa a % arredondada, não a
+ * cada chunk, senão pisca a cada poucos KB numa conexão rápida.
+ */
+function reportDownloadProgress(label: string): (fraction: number) => void {
+  let lastPercent = -1;
+  return (fraction: number) => {
+    const percent = Math.min(100, Math.round(fraction * 100));
+    if (percent === lastPercent) return;
+    lastPercent = percent;
+    process.stdout.write(`\r${label} ${percent}%${percent === 100 ? "\n" : ""}`);
+  };
+}
+
 /** Garante R portátil + núcleo instalados. Idempotente. */
 export async function ensureInstalled(onProgress: (msg: string) => void = () => {}): Promise<void> {
   const base = baseDir();
@@ -38,7 +55,7 @@ export async function ensureInstalled(onProgress: (msg: string) => void = () => 
     const cacheDir = join(base, "cache");
     mkdirSync(cacheDir, { recursive: true });
     const archive = join(cacheDir, `r-download.${src.format === "zip" ? "zip" : "tar.gz"}`);
-    await download(src.url, src.checksum, archive, 2);
+    await download(src.url, src.checksum, archive, 2, reportDownloadProgress("Baixando R portátil..."));
     const dest = rDir(base, R_VERSION);
     onProgress("Extraindo R portátil...");
     if (src.format === "zip") await extractZip(archive, dest);

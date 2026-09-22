@@ -53,4 +53,40 @@ describe("download", () => {
     await expect(download(url, "checksum-que-nunca-bate", dest, 2)).rejects.toThrow();
     await close();
   });
+
+  it("chama onProgress com a fração baixada quando o servidor manda content-length", async () => {
+    const good = Buffer.from("x".repeat(10_000));
+    const checksum = createHash("sha256").update(good).digest("hex");
+    const { url, close } = await withServer((_req, res) => {
+      res.setHeader("content-length", good.length);
+      // Escreve em pedaços pra garantir mais de um evento "data" no stream.
+      res.write(good.subarray(0, 5000));
+      setTimeout(() => res.end(good.subarray(5000)), 10);
+    });
+
+    const dest = join(mkdtempSync(join(tmpdir(), "trama-cli-dl-")), "out.bin");
+    const fractions: number[] = [];
+    await download(url, checksum, dest, 2, (f) => fractions.push(f));
+    await close();
+
+    expect(fractions.length).toBeGreaterThan(0);
+    expect(fractions.at(-1)).toBe(1);
+    expect(fractions.every((f) => f > 0 && f <= 1)).toBe(true);
+  });
+
+  it("nunca chama onProgress quando o servidor não manda content-length", async () => {
+    const good = Buffer.from("sem-tamanho-declarado");
+    const checksum = createHash("sha256").update(good).digest("hex");
+    const { url, close } = await withServer((_req, res) => {
+      res.removeHeader("content-length");
+      res.end(good);
+    });
+
+    const dest = join(mkdtempSync(join(tmpdir(), "trama-cli-dl-")), "out.bin");
+    const fractions: number[] = [];
+    await download(url, checksum, dest, 2, (f) => fractions.push(f));
+    await close();
+
+    expect(fractions).toEqual([]);
+  });
 });
