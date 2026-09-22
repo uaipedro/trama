@@ -1,0 +1,47 @@
+# Ajuda curta para o painel lateral. A referência extensa fica em
+# `docs/colecao-dados.md`, onde exemplos e ressalvas não disputam espaço com a
+# configuração do nó.
+.tr_data_help_curto <- function(id) {
+  ajuda <- c(
+    "data/read_csv" = "## Uso principal\n\nLê uma tabela CSV para iniciar um fluxo. `delim` define o separador e `na` identifica marcas de faltante.\n\n## Exemplo curto\n\n`Arquivo: dados/vendas.csv`\n\n## Usos relacionados\n\n`data/summary` descreve o resultado lido; `data/read_excel` é adotado para planilhas Excel.",
+    "data/read_json" = "## Uso principal\n\nLê um arquivo JSON que representa uma tabela.\n\n## Exemplo curto\n\n`Arquivo: dados/clientes.json`\n\n## Usos relacionados\n\n`data/summary` permite verificar as colunas obtidas; `data/read_csv` lê tabelas delimitadas.",
+    "data/read_rds" = "## Uso principal\n\nLê um objeto RDS gravado no R, preservando classes e atributos compatíveis.\n\n## Exemplo curto\n\n`Arquivo: dados/modelados.rds`\n\n## Usos relacionados\n\n`data/write_rds` grava a tabela neste formato; `data/read_parquet` atende a tabelas portáveis e grandes.",
+    "data/read_parquet" = "## Uso principal\n\nLê uma tabela Parquet, formato colunar indicado para dados grandes.\n\n## Exemplo curto\n\n`Arquivo: dados/vendas.parquet`\n\n## Usos relacionados\n\n`data/write_parquet` grava Parquet; `data/summary` verifica tipos e faltantes.",
+    "data/read_excel" = "## Uso principal\n\nLê uma planilha Excel. `Planilha` pode ser o número ou o nome da aba.\n\n## Exemplo curto\n\n`Arquivo: dados/vendas.xlsx`; `Planilha: vendas`\n\n## Usos relacionados\n\n`data/clean_names` padroniza os nomes recebidos; `data/summary` inspeciona a tabela.",
+    "data/example" = "## Uso principal\n\nCarrega um conjunto de dados incluído no R para explorar um fluxo sem arquivo externo.\n\n## Exemplo curto\n\n`Conjunto: mtcars`\n\n## Usos relacionados\n\n`data/generate` produz dados simulados; `data/summary` descreve as colunas carregadas.",
+    "data/generate" = "## Uso principal\n\nGera uma tabela a partir de expressões R, com semente para reprodução.\n\n## Exemplo curto\n\n`n: 100`; `x = rnorm(n)`\n\n## Usos relacionados\n\n`data/summary` descreve o resultado; `view/points` mostra duas variáveis geradas.",
+    "data/summary" = "## Uso principal\n\nDescreve cada coluna: tipo, faltantes, distintos, mínimo, máximo e exemplo. É usado após a fonte para inspecionar a tabela.\n\n## Exemplo curto\n\n`Ler CSV → Resumo → Ordenar por faltantes`\n\n## Usos relacionados\n\n`data/get_dupes` localiza linhas repetidas; `data/convert` corrige tipos inadequados.",
+    "data/get_dupes" = "## Uso principal\n\nMostra as linhas repetidas nas colunas indicadas, com a contagem de ocorrências.\n\n## Exemplo curto\n\n`Colunas: cliente, pedido`\n\n## Usos relacionados\n\n`data/distinct` remove duplicadas; `data/summary` inspeciona a tabela antes da limpeza.",
+    "data/clean_names" = "## Uso principal\n\nPadroniza nomes de colunas em minúsculas, sem espaços ou acentos.\n\n## Exemplo curto\n\n`Valor Total` torna-se `valor_total`.\n\n## Usos relacionados\n\n`data/rename` define nomes específicos; `data/read_excel` costuma ser seguido por esta operação.",
+    "data/remove_empty" = "## Uso principal\n\nRemove linhas, colunas ou ambas que estejam inteiramente vazias.\n\n## Exemplo curto\n\n`Remover: ambos`\n\n## Usos relacionados\n\n`data/drop_na` remove faltantes apenas em colunas selecionadas; `data/summary` quantifica faltantes.",
+    "data/distinct" = "## Uso principal\n\nMantém uma ocorrência de cada combinação das colunas selecionadas.\n\n## Exemplo curto\n\n`Colunas: cliente, pedido`\n\n## Usos relacionados\n\n`data/get_dupes` permite examinar repetidas antes da remoção; `data/group_summarise` conta ocorrências por grupo.",
+    "data/rename" = "## Uso principal\n\nAltera nomes de colunas sem modificar os valores.\n\n## Exemplo curto\n\n`De: vlr`; `Para: valor`\n\n## Usos relacionados\n\n`data/clean_names` aplica uma padronização geral; `data/select` mantém ou remove colunas.",
+    "data/drop_na" = "## Uso principal\n\nRemove linhas com faltantes nas colunas indicadas.\n\n## Exemplo curto\n\n`Colunas: valor, regiao`\n\n## Usos relacionados\n\n`data/replace_na` preenche faltantes; `data/summary` informa onde eles ocorrem.",
+    "data/replace_na" = "## Uso principal\n\nSubstitui faltantes nas colunas selecionadas por um valor informado.\n\n## Exemplo curto\n\n`Colunas: desconto`; `Valor: 0`\n\n## Usos relacionados\n\n`data/drop_na` exclui linhas faltantes; `data/convert` ajusta o tipo antes do preenchimento.",
+    "data/convert" = "## Uso principal\n\nConverte colunas para número, texto, data, hora, lógico ou fator.\n\n## Exemplo curto\n\n`Colunas: valor`; `Tipo: número`; `Decimal: ,`\n\n## Usos relacionados\n\n`data/summary` identifica o tipo atual; `data/clean_names` trata nomes, não tipos.",
+    "data/filter" = "## Uso principal\n\nMantém linhas que satisfazem uma expressão R. `Por grupo` avalia a condição dentro de cada grupo.\n\n## Exemplo curto\n\n`valor > 100 & regiao == 'Sul'`\n\n## Usos relacionados\n\n`data/mutate` calcula uma coluna; `data/arrange` apenas ordena as linhas.",
+    "data/mutate" = "## Uso principal\n\nCria ou substitui colunas sem reduzir o número de linhas. `Por grupo` calcula dentro de cada grupo.\n\n## Exemplo curto\n\n`Nome: margem`; `Expressão: receita - custo`\n\n## Usos relacionados\n\n`data/group_summarise` reduz para uma linha por grupo; `data/convert` altera o tipo de colunas existentes.",
+    "data/select" = "## Uso principal\n\nMantém ou remove as colunas indicadas.\n\n## Exemplo curto\n\n`Colunas: data, regiao, valor`\n\n## Usos relacionados\n\n`data/rename` altera nomes; `data/pivot_longer` reorganiza colunas em linhas.",
+    "data/arrange" = "## Uso principal\n\nOrdena a tabela pelas colunas indicadas.\n\n## Exemplo curto\n\n`Colunas: receita`; `Decrescente: ligado`\n\n## Usos relacionados\n\n`data/slice_head` retém as primeiras linhas após a ordenação; `data/filter` restringe linhas por condição.",
+    "data/slice_head" = "## Uso principal\n\nMantém as primeiras `N` linhas da tabela ou de cada grupo.\n\n## Exemplo curto\n\n`N: 10`; `Por grupo: regiao`\n\n## Usos relacionados\n\n`data/arrange` define a ordem antes do recorte; `data/filter` seleciona por condição.",
+    "data/pivot_longer" = "## Uso principal\n\nEmpilha várias colunas em duas: uma para o nome e outra para o valor.\n\n## Exemplo curto\n\n`Colunas: jan, fev, mar`; `Valores: vendas`\n\n## Usos relacionados\n\n`data/pivot_wider` realiza a transformação inversa; `data/group_summarise` resume a tabela empilhada.",
+    "data/pivot_wider" = "## Uso principal\n\nEspalha valores de uma coluna em várias colunas, uma para cada nível do nome.\n\n## Exemplo curto\n\n`Nomes: mes`; `Valores: vendas`\n\n## Usos relacionados\n\n`data/pivot_longer` empilha colunas; `data/group_summarise` resolve chaves repetidas antes do espalhamento.",
+    "data/group_summarise" = "## Uso principal\n\nProduz uma linha por grupo com métricas calculadas. Sem agrupamento, produz uma linha para a tabela inteira.\n\n## Exemplo curto\n\n`Agrupar por: regiao`; `Nome: receita, pedidos`; `Resumo: sum(valor), dplyr::n()`\n\n## Usos relacionados\n\n`data/summary` apenas descreve colunas; `data/mutate` mantém as linhas ao calcular uma medida.",
+    "data/join" = "## Uso principal\n\nCombina duas tabelas pelas colunas-chave selecionadas.\n\n## Exemplo curto\n\n`Por: cliente_id`; `Tipo: esquerda`\n\n## Usos relacionados\n\n`data/bind_rows` empilha tabelas com as mesmas colunas; `data/get_dupes` permite verificar chaves repetidas.",
+    "data/bind_rows" = "## Uso principal\n\nEmpilha tabelas com colunas compatíveis, acrescentando suas linhas.\n\n## Exemplo curto\n\n`Janeiro + Fevereiro + Março`\n\n## Usos relacionados\n\n`data/join` combina colunas por chave; `data/select` prepara colunas compatíveis.",
+    "data/to_stream" = "## Uso principal\n\nConverte uma tabela em sequência de lotes para processamento em fluxo.\n\n## Exemplo curto\n\n`Lote: 100`; `Ordenar por: data`\n\n## Usos relacionados\n\n`data/from_stream` recompõe uma tabela; a documentação detalhada descreve os contratos de fluxo.",
+    "data/from_stream" = "## Uso principal\n\nRecompõe em tabela os lotes recebidos de um fluxo.\n\n## Exemplo curto\n\n`Passo: ligado` mantém o resultado por etapa.\n\n## Usos relacionados\n\n`data/to_stream` inicia o processamento em fluxo.",
+    "data/write_csv" = "## Uso principal\n\nGrava a tabela em CSV e a repassa para o restante do fluxo.\n\n## Exemplo curto\n\n`Arquivo: saida/vendas.csv`\n\n## Usos relacionados\n\n`data/write_parquet` atende a tabelas grandes; `data/write_rds` preserva objetos do R.",
+    "data/write_rds" = "## Uso principal\n\nGrava a tabela em RDS e a repassa para o restante do fluxo.\n\n## Exemplo curto\n\n`Arquivo: saida/vendas.rds`\n\n## Usos relacionados\n\n`data/read_rds` lê o arquivo; `data/write_csv` produz formato aberto para planilhas.",
+    "data/write_parquet" = "## Uso principal\n\nGrava a tabela em Parquet, formato colunar indicado para dados grandes, e a repassa.\n\n## Exemplo curto\n\n`Arquivo: saida/vendas.parquet`\n\n## Usos relacionados\n\n`data/read_parquet` lê o arquivo; `data/write_rds` preserva objetos específicos do R."
+  )
+  unname(ajuda[[id]])
+}
+
+.tr_data_aplicar_ajuda_curta <- function(colecao) {
+  colecao$nodes <- lapply(colecao$nodes, function(no) {
+    no$help <- .tr_data_help_curto(no$id)
+    no
+  })
+  colecao
+}

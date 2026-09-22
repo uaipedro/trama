@@ -24,7 +24,9 @@ Copyright: file inst/COPYRIGHTS
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
-    R (>= 4.1)
+    R (>= 4.1),
+    dplyr,
+    lubridate
 Imports:
     stats,
     rlang,

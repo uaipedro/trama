@@ -47,7 +47,7 @@ trama_collection <- function() {
   G <- "view/plot"
   P <- trama::tr_param
   PAINEL <- .tr_view_painel_param()
-  trama::tr_collection(
+  .tr_view_aplicar_ajuda_curta(trama::tr_collection(
     id = "view", version = "0.1.0", label = "Gráficos",
     types = list(view_plot_type()),
     categories = list(
@@ -653,5 +653,5 @@ número só; `view/line` quando a categoria do eixo tem ordem e o interesse é a
 evolução; `data/filter` para reduzir o número de barras;
 `data/convert` quando a altura veio como texto.", .TR_VIEW_AJUDA_APARENCIA))),
     .tr_view_nos_comparacao(P, PAINEL, G))
-  )
+  ))
 }

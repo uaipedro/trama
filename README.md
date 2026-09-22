@@ -287,6 +287,8 @@ O mesmo arquivo pode definir `marca`, que controla a inclusão do símbolo do `t
 - [Manifesto](docs/manifesto.md): objetivo, horizonte de desenvolvimento e não objetivos.
 - [Documento de projeto](docs/design-trama.md): arquitetura e decisões de fundação.
 - [Guia de documentação](docs/guia-documentacao.md): convenções para a documentação do projeto.
+- [Coleção Dados](docs/colecao-dados.md): operações de leitura, transformação e resumo de tabelas.
+- [Coleção Gráficos](docs/colecao-graficos.md): escolha e preparação de gráficos.
 
 ## Licença
 

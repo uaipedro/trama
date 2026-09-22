@@ -13,7 +13,7 @@
 trama_collection <- function() {
   T <- "data/table"
   P <- trama::tr_param
-  trama::tr_collection(
+  .tr_data_aplicar_ajuda_curta(trama::tr_collection(
     id = "data", version = "0.1.0", label = "Dados", js = "trama/index.js",
     types = list(data_table_type()),
     categories = list(
@@ -1848,5 +1848,5 @@ idêntica; `data/write_csv` quando o arquivo será aberto num editor de
 planilha.")
 
     )
-  )
+  ))
 }
