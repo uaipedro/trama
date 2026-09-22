@@ -1,7 +1,42 @@
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const P3M_REPO = "https://packagemanager.posit.co/cran/latest";
 const MAX_ERROR_TAIL_LINES = 40;
+
+/**
+ * URL do repo P3M pra instalar dependências (dplyr, ggplot2 etc, puxadas
+ * via `dependencies = NA` em buildInstallScript).
+ *
+ * No Linux, a URL genérica só serve pacotes fonte — P3M decide
+ * fonte-vs-binário pelo User-Agent, e o R portátil não se identifica como
+ * nenhuma distro conhecida. Isso fazia pacotes com código compilado
+ * (dplyr, ggplot2 e toda a árvore de deps deles) compilarem do zero a cada
+ * instalação: minutos por pacote, inviável pra um instalador end-user.
+ * Apontando pra URL com a distro (`__linux__/<codename>/`) explícita, o
+ * mesmo endpoint devolve `Content-Type: binary/octet-stream` e o R instala
+ * `*binary*` — verificado batendo install.packages("dplyr") direto: sem
+ * `__linux__/noble/` compila (via gcc), com ele baixa binário e instala em
+ * segundos. Detecta a distro via /etc/os-release (ID + VERSION_CODENAME,
+ * como Ubuntu/Debian relatam); se o arquivo não existir ou a distro não
+ * usar codename (RHEL/CentOS/etc), cai pra URL genérica — mesmo
+ * comportamento (fonte) de antes, não piora nada.
+ */
+export function resolveRepoUrl(
+  platform: NodeJS.Platform = process.platform,
+  osReleasePath = "/etc/os-release"
+): string {
+  if (platform !== "linux") return P3M_REPO;
+  try {
+    const osRelease = readFileSync(osReleasePath, "utf8");
+    const id = /^ID=(.*)$/m.exec(osRelease)?.[1]?.trim().replace(/^"|"$/g, "");
+    const codename = /^VERSION_CODENAME=(.*)$/m.exec(osRelease)?.[1]?.trim().replace(/^"|"$/g, "");
+    if (!id || !codename) return P3M_REPO;
+    return `https://packagemanager.posit.co/cran/__linux__/${codename}/latest`;
+  } catch {
+    return P3M_REPO;
+  }
+}
 
 /**
  * Gera o script R que instala pkgs (refs no formato do remotes, ex.
@@ -20,9 +55,9 @@ const MAX_ERROR_TAIL_LINES = 40;
  * `dependencies = NA` (não TRUE) evita puxar Suggests (testthat, pkgbuild
  * etc) que o usuário final não precisa.
  */
-export function buildInstallScript(pkgs: string[], lib: string): string {
+export function buildInstallScript(pkgs: string[], lib: string, repoUrl: string = P3M_REPO): string {
   const pkgList = pkgs.map((p) => JSON.stringify(p)).join(", ");
-  return `options(repos = c(P3M = ${JSON.stringify(P3M_REPO)}))
+  return `options(repos = c(P3M = ${JSON.stringify(repoUrl)}))
 if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
@@ -35,6 +70,19 @@ for (pkg in c(${pkgList})) {
 }
 
 /**
+ * Env do processo R com TAR corrigido: o Renviron do R portátil (build da
+ * Posit) defaulta TAR pra /usr/bin/gtar, que só existe em macOS/BSD. Sem
+ * isso, remotes::install_github quebra em qualquer Linux ao tentar
+ * descompactar o tarball do GitHub (untar chama esse TAR via system()).
+ * "tar" sem path resolve pelo PATH do processo — não hardcoda localização,
+ * que varia entre distros (/bin/tar, /usr/bin/tar).
+ */
+export function rEnv(): NodeJS.ProcessEnv {
+  if (process.platform === "win32") return process.env;
+  return { ...process.env, TAR: process.env.TAR || "tar" };
+}
+
+/**
  * Roda `rscriptPath -e script`, capturando stdout+stderr. Se o processo
  * sair com erro, a mensagem inclui as últimas linhas de saída do R — sem
  * isso, uma falha (pacote não encontrado, erro de rede etc) vira só um
@@ -42,7 +90,7 @@ for (pkg in c(${pkgList})) {
  */
 export function runInstall(rscriptPath: string, script: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(rscriptPath, ["-e", script]);
+    const proc = spawn(rscriptPath, ["-e", script], { env: rEnv() });
     const tail: string[] = [];
 
     const onData = (chunk: Buffer) => {

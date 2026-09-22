@@ -3,7 +3,7 @@ import { checkEnv } from "../core/envcheck.js";
 import { resolveSource } from "../core/sources.js";
 import { download } from "../core/download.js";
 import { extractTarGz, extractZip } from "../core/extract.js";
-import { buildInstallScript, runInstall } from "../core/installer.js";
+import { buildInstallScript, resolveRepoUrl, runInstall } from "../core/installer.js";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -48,7 +48,7 @@ export async function ensureInstalled(onProgress: (msg: string) => void = () => 
 
   if (!status.coreInstalled) {
     onProgress("Instalando núcleo do trama...");
-    const script = buildInstallScript(CORE_PACKAGES, libDir(base));
+    const script = buildInstallScript(CORE_PACKAGES, libDir(base), resolveRepoUrl());
     await runInstall(rscriptPath(base, R_VERSION), script);
     const cfg = readConfig(base);
     writeConfig(base, { ...cfg, rVersion: R_VERSION, installedCollections: cfg.installedCollections ?? [] });

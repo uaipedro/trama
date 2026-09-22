@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildInstallScript, runInstall } from "../src/core/installer.js";
+import { buildInstallScript, resolveRepoUrl, runInstall } from "../src/core/installer.js";
 import { writeFileSync, mkdtempSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -24,6 +24,32 @@ describe("buildInstallScript", () => {
   it("escapa aspas duplas num path (JSON.stringify cobre isso)", () => {
     const script = buildInstallScript(["uaipedro/trama"], 'C:\\Users\\Nome "Estranho"\\lib');
     expect(script).toContain('lib <- "C:\\\\Users\\\\Nome \\"Estranho\\"\\\\lib"');
+  });
+});
+
+describe("resolveRepoUrl", () => {
+  it("mantém a URL genérica do P3M fora do Linux (win32/darwin já recebem binário por padrão)", () => {
+    expect(resolveRepoUrl("win32")).toBe("https://packagemanager.posit.co/cran/latest");
+    expect(resolveRepoUrl("darwin")).toBe("https://packagemanager.posit.co/cran/latest");
+  });
+
+  it("usa a URL de binários da distro no Linux quando /etc/os-release tem ID e VERSION_CODENAME", () => {
+    const osRelease = join(mkdtempSync(join(tmpdir(), "trama-cli-osrelease-")), "os-release");
+    writeFileSync(osRelease, 'ID=ubuntu\nVERSION_CODENAME=noble\nPRETTY_NAME="Ubuntu 24.04.4 LTS"\n');
+
+    expect(resolveRepoUrl("linux", osRelease)).toBe(
+      "https://packagemanager.posit.co/cran/__linux__/noble/latest"
+    );
+  });
+
+  it("cai pra URL genérica quando /etc/os-release não existe ou não tem VERSION_CODENAME", () => {
+    expect(resolveRepoUrl("linux", "/caminho/que/nao/existe")).toBe(
+      "https://packagemanager.posit.co/cran/latest"
+    );
+
+    const osRelease = join(mkdtempSync(join(tmpdir(), "trama-cli-osrelease-")), "os-release");
+    writeFileSync(osRelease, 'ID=rhel\nVERSION_ID="9.3"\n');
+    expect(resolveRepoUrl("linux", osRelease)).toBe("https://packagemanager.posit.co/cran/latest");
   });
 });
 

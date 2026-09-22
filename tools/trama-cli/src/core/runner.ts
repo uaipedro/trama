@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { rEnv } from "./installer.js";
 
 /**
  * Monta a expressão R que abre o editor. Prepende libPath a .libPaths()
@@ -29,7 +30,7 @@ export interface RunResult {
  */
 export function runApp(rscriptPath: string, expr: string): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(rscriptPath, ["-e", expr]);
+    const proc = spawn(rscriptPath, ["-e", expr], { env: rEnv() });
     const tail: string[] = [];
     let settled = false;
 
