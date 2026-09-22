@@ -202,8 +202,8 @@ export function organizar(nodes, edges) {
 }
 
 // Largura e altura mínimas de um frame: piso da alça e do desenho com a
-// ferramenta F (a altura só conta no desenho `livre`; travado, ela sai da
-// largura).
+// ferramenta de frame (Shift+F; a altura só conta no desenho `livre`,
+// travado, ela sai da largura).
 const FRAME_MIN_W = 160, FRAME_MIN_H = 90;
 
 // Chave de um retângulo do resizer arredondado como a op o grava: é nessa
@@ -607,7 +607,7 @@ export function FramePanel({ frames, exportando, onGo, onReorder, onRename, onAs
     ]),
     h("div", { key: "b", className: "tr-frames-body" }, vazio
       ? h("p", { className: "tr-frames-empty" },
-          "Nenhum frame ainda. Use F, ou Ctrl+G com cards selecionados.")
+          "Nenhum frame ainda. Use Shift+F, ou Ctrl+G com cards selecionados.")
       // `div` com papel de botão, e não `<button draggable>`: o Firefox não
       // começa arrasto em botão. Por isso o teclado é ensinado à mão (Tab chega
       // pelo `tabIndex`, Enter e Espaço enquadram). O `stopPropagation` segura
@@ -669,7 +669,7 @@ export function FramePanel({ frames, exportando, onGo, onReorder, onRename, onAs
           }, Object.keys(ASPECTS).map((a) => h("option", { key: a, value: a }, a))),
         ]))),
     h("div", { key: "ft", className: "tr-frames-foot" }, [
-      h("button", { key: "p", disabled: vazio, onClick: onPresent }, "▶ Apresentar"),
+      h("button", { key: "p", disabled: vazio, title: "Apresentar (F)", onClick: onPresent }, "▶ Apresentar"),
       h("button", { key: "e", disabled: vazio || exportando, onClick: onExport },
         exportando ? "exportando…" : "⤓ Exportar PNGs"),
     ]),

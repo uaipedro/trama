@@ -23,7 +23,8 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
-import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica } from "./modos.js";
+import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica,
+         frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock } from "./modos-ui.js";
 
 const NODE_W = 240, NODE_H = 190;
@@ -1137,7 +1138,7 @@ function App() {
   // repetido), por isso é state.
   const uploadsPendentesRef = useRef({});
   const [conflitoUpload, setConflitoUpload] = useState(null); // {id, nome} | null
-  // Proporção dos frames NOVOS (F e Ctrl+G). É preferência de quem usa este
+  // Proporção dos frames NOVOS (Shift+F e Ctrl+G). É preferência de quem usa este
   // navegador, e não estado do documento: não vira op, não entra no desfazer,
   // e abrir o mesmo projeto em outra máquina não herda a escolha. Cada frame
   // continua guardando a própria proporção no documento. `localStorage` pode
@@ -2219,10 +2220,34 @@ function App() {
   const enquadrar = (f, duration = 400, padding = 0.1) =>
     rf.fitBounds({ x: f.x, y: f.y, width: f.w, height: f.h }, { padding, duration });
 
+  // Último frame para onde se navegou (número, `,`/`.`, clique no painel). Fora
+  // da apresentação é o ponto de partida de `,`/`.`; sem ele, vale o frame mais
+  // perto do centro da tela (`frameVizinho`).
+  const frameAtualRef = useRef(null);
+  const centroDaTela = () => {
+    const b = wrapRef.current?.getBoundingClientRect();
+    return b ? rf.screenToFlowPosition({ x: b.left + b.width / 2, y: b.top + b.height / 2 })
+             : { x: 0, y: 0 };
+  };
+  const irAoFrame = (i) => {
+    const fs = framesOrdRef.current;
+    if (i < 0 || i >= fs.length) return;
+    frameAtualRef.current = fs[i].id;
+    if (presentRef.current) setPresent((p) => p && { ...p, i });
+    else enquadrar(fs[i]);
+  };
+  const passoFrame = (d) => {
+    if (presentRef.current) { passo(d); return; }
+    irAoFrame(frameVizinho(framesOrdRef.current, frameAtualRef.current, d, centroDaTela()));
+  };
+
   const apresentar = () => {
     if (framesOrd.length === 0) return;
     selecionar(false); setMenu(null); setFerramenta(null); setPrancheta(null);
-    setPresent({ i: 0, volta: rf.getViewport() });
+    // Começa no frame ATUAL (o último navegado), não sempre no primeiro: F
+    // depois de já ter ido ao slide 4 no modo edição entra apresentando dali.
+    const i0 = Math.max(0, framesOrd.findIndex((f) => f.id === frameAtualRef.current));
+    setPresent({ i: i0, volta: rf.getViewport() });
     document.documentElement.requestFullscreen?.().catch(() => {});
   };
 
@@ -2248,7 +2273,7 @@ function App() {
   useEffect(() => {
     if (!present) return;
     const f = framesOrdRef.current[present.i];
-    if (f) enquadrar(f, 400, 0);
+    if (f) { enquadrar(f, 400, 0); frameAtualRef.current = f.id; }
   }, [present?.i, !!present, idDaVez]);
 
   // Frames podem sumir durante a apresentação: ela não edita nada, mas o
@@ -2484,17 +2509,28 @@ function App() {
   // registrado uma vez só, e as ações sempre enxergam o estado atual. As
   // chaves são `mod+` (Ctrl ou Cmd), `shift+`, e `e.key` em minúsculas.
   const atalhosRef = useRef({});
+  // 1…9/0 vão direto ao frame N; `,`/`.` andam um frame por vez a partir do
+  // atual. As duas tabelas (apresentação e edição) compartilham essa base —
+  // navegar entre frames é o mesmo gesto nos dois modos — e cada uma só
+  // acrescenta o que muda (F sai de um jeito ou do outro, o resto é só delas).
+  const numeros = Object.fromEntries(
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((k, i) => [k, () => irAoFrame(i)]));
+  const navFrames = { ...numeros, ",": () => passoFrame(-1), ".": () => passoFrame(1) };
   atalhosRef.current = present ? {
+    ...navFrames,
     "arrowright": () => passo(1), "pagedown": () => passo(1), " ": () => passo(1),
     "arrowleft": () => passo(-1), "pageup": () => passo(-1),
     "home": () => setPresent((p) => p && { ...p, i: 0 }),
     "end": () => setPresent((p) => p && { ...p, i: framesOrdRef.current.length - 1 }),
     "escape": sairApresentacao,
+    "f": sairApresentacao,
   } : {
+    ...navFrames,
     "mod+z": desfazer,
     "mod+a": () => selecionar(true),
     "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); setMenuAcoes(false); },
-    "f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
+    "f": apresentar,
+    "shift+f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
     "mod+g": frameDaSelecao,
@@ -2848,7 +2884,7 @@ function App() {
             onClose: () => setPainelConfig(false) })
       : painelFrames
         ? h(FramePanel, { key: "frames", frames: framesOrd, exportando,
-            onGo: (id) => { const f = framesOrd.find((x) => x.id === id); if (f) enquadrar(f); },
+            onGo: (id) => irAoFrame(framesOrd.findIndex((x) => x.id === id)),
             onReorder: (ids) => pushOp({ op: "reorder_frames", frames: ids }),
             onRename: (id, title) => onFrameEdit(id, { title }), onAspect: mudarProporcao,
             onPresent: apresentar, onExport: () => exportar(framesOrd),
@@ -2866,20 +2902,20 @@ function App() {
                  title: `trama ${document.getElementById("tr-root")?.dataset.versao || ""}`.trim() }),
       h("div", { key: "tools", className: "tr-toolbar-tools", role: "group", "aria-label": "Ferramentas" }, [
       h("button", { key: "l", onClick: organizarTudo }, "⇶ Organizar"),
-      h("button", { key: "f", title: "F", className: ferramenta === "frame" ? "tr-on" : "",
+      h("button", { key: "f", title: dica("frame"), className: ferramenta === "frame" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },
         "▭ Frame"),
-      h("button", { key: "m", title: "M", className: ferramenta === "markdown" ? "tr-on" : "",
+      h("button", { key: "m", title: dica("markdown"), className: ferramenta === "markdown" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "markdown" ? null : "markdown")) },
         "▤ Markdown"),
-      h("button", { key: "i", title: "I", className: ferramenta === "imagem" ? "tr-on" : "",
+      h("button", { key: "i", title: dica("imagem"), className: ferramenta === "imagem" ? "tr-on" : "",
                     onClick: () => setFerramenta((t) => (t === "imagem" ? null : "imagem")) },
         "▥ Imagem"),
       // Segmentado, e não `<select>`: as cinco proporções cabem à vista e
       // trocam num clique. O botão que fica com o foco não prende o teclado —
       // o listener de atalhos só ignora campos de texto e `<select>`, então o
-      // F seguinte ainda abre a ferramenta, e dígito nenhum troca a proporção
-      // por busca por letra.
+      // Shift+F seguinte ainda abre a ferramenta, e dígito nenhum troca a
+      // proporção por busca por letra (dígito virou navegação de frame).
       h(Segmented, { key: "fa", options: Object.keys(ASPECTS), value: aspectoNovo,
                      onChange: setAspectoNovo, title: "proporção dos frames novos" }),
       h("button", { key: "pr", className: prancheta ? "tr-on" : "",
