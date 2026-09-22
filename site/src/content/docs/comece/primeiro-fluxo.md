@@ -6,6 +6,30 @@ order: 1
 related: [data/read_csv, data/summary, view/points]
 ---
 
+## Instalação
+
+### Antes de instalar
+
+O caminho mais simples usa o `trama-cli`. Ele precisa do **Node.js 20 ou
+superior**; confira no terminal com `node --version`. Se o comando não existir
+ou mostrar uma versão anterior, instale uma versão atual pelo
+[site do Node.js](https://nodejs.org/).
+
+Você não precisa instalar R separadamente: o `trama-cli` baixa uma versão
+portátil e prepara o núcleo do Trama junto com as coleções Dados e
+Visualização.
+
+### Instale e crie um projeto
+
+```bash
+npm install -g @uaipedro/trama-cli
+trama create meu-primeiro-fluxo
+```
+
+O segundo comando cria a pasta do projeto, pergunta se você quer acrescentar
+outras coleções e abre o editor no navegador. Para este guia, siga sem marcar
+coleções extras: Dados e Visualização já estão disponíveis.
+
 ## Finalidade
 
 Um fluxo organiza operações em uma sequência explícita. Cada bloco recebe um
@@ -19,18 +43,8 @@ resultado, produz outro e deixa esse resultado disponível para inspeção.
 
 ## Um primeiro caminho
 
-Abra o Trama com as coleções `trama.data` e `trama.view`. Na paleta, acrescente
-os blocos **Dados de exemplo**, **Resumo** e **Disperso**. Ligue a saída de um
-bloco à entrada do próximo.
-
-```r
-library(trama)
-
-tr_app(tr_project(
-  "meu-projeto",
-  collections = c("trama.data", "trama.view")
-))
-```
+No editor que acabou de abrir, acrescente os blocos **Dados de exemplo**,
+**Resumo** e **Disperso**. Ligue a saída de um bloco à entrada do próximo.
 
 Escolha `mtcars` em **Dados de exemplo**. Em **Disperso**, use `wt` no eixo X,
 `mpg` no eixo Y e `cyl` em **Cor por**. O gráfico mostra uma marca por linha da

@@ -2,6 +2,7 @@
 import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import CollectionHero from "../../components/CollectionHero.astro";
+import NodeMini from "../../components/NodeMini.astro";
 
 export async function getStaticPaths() {
   return ["dados", "visualizacao"].map((collection) => ({ params: { collection } }));
@@ -10,6 +11,13 @@ export async function getStaticPaths() {
 const collection = Astro.params.collection as "dados" | "visualizacao";
 const entries = (await getCollection("docs", ({ data }) => data.collection === collection))
   .sort((a, b) => a.data.order - b.data.order);
+const nodeVisuals: Record<string, { accent: string; icon: "sheet" | "summary" | "sigma" | "scatter" | "histogram"; hasInput?: boolean }> = {
+  "data/read_csv": { accent: "#6366f1", icon: "sheet", hasInput: false },
+  "data/summary": { accent: "#f59e0b", icon: "summary" },
+  "data/group_summarise": { accent: "#a855f7", icon: "sigma" },
+  "view/points": { accent: "#f472b6", icon: "scatter" },
+  "view/histogram": { accent: "#a855f7", icon: "histogram" }
+};
 const info = collection === "dados"
   ? {
       title: "Dados", eyebrow: "Coleção trama.data",
@@ -39,13 +47,19 @@ const info = collection === "dados"
         <h2 id="catalogue-title">Blocos e guias para este começo.</h2>
       </div>
       <div class="catalogue-list">
-        {entries.map((entry) => (
-          <a class="catalogue-entry" href={`/trama/${entry.id}/`}>
-            <span class="catalogue-entry__meta">{entry.data.node ?? "guia"}</span>
-            <span class="catalogue-entry__main"><strong>{entry.data.title}</strong><em>{entry.data.description}</em></span>
-            <span class="catalogue-entry__arrow" aria-hidden="true">→</span>
-          </a>
-        ))}
+        {entries.map((entry) => {
+          const visual = entry.data.node ? nodeVisuals[entry.data.node] : undefined;
+          return (
+            <a class:list={["catalogue-entry", { "catalogue-entry--guide": !visual }]} href={`/trama/${entry.id}/`}>
+              {visual
+                ? <NodeMini label={entry.data.title} {...visual} />
+                : <span class="catalogue-entry__guide">guia</span>}
+              <span class="catalogue-entry__meta">{entry.data.node ?? "visão geral"}</span>
+              <span class="catalogue-entry__main"><strong>{entry.data.title}</strong><em>{entry.data.description}</em></span>
+              <span class="catalogue-entry__arrow" aria-hidden="true">→</span>
+            </a>
+          );
+        })}
       </div>
     </section>
   </div>
