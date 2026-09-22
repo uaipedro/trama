@@ -13,6 +13,7 @@ import {
   ReactFlow, Background, BackgroundVariant, MiniMap, Controls,
   Handle, Position, applyNodeChanges, applyEdgeChanges, SelectionMode,
   useReactFlow, ReactFlowProvider,
+  BaseEdge, getSmoothStepPath, useInternalNode,
 } from "@xyflow/react";
 import { h, getRenderer, getWidget, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
@@ -616,6 +617,117 @@ function NdNode({ id, data, selected }) {
 }
 
 const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode };
+
+// As portas (`Handle`) ficam sempre declaradas Left/Right — o PONTO e o LADO
+// de entrada/saída da aresta nunca mudam aqui, só a rota até lá. O problema
+// que esta aresta resolve: o smoothstep padrão do xyflow não sabe onde os
+// cards estão — ele calcula a curva só a partir dos dois pontos de porta, e
+// quando o card vizinho fica no meio do caminho (por exemplo dois cards
+// empilhados, saída à direita de um entrando pela esquerda do outro), a
+// curva "reta" atravessa o corpo do card pra alinhar os eixos.
+//
+// Aqui, se sobra um vão livre de verdade entre os dois retângulos no eixo
+// PERPENDICULAR ao das portas (ex.: espaço vertical entre dois cards com
+// portas Left/Right), a curva sai reto da porta, contorna por FORA dos dois
+// retângulos (com folga `MARGEM_ARESTA`) atravessando só esse vão livre, e
+// entra reto pelo mesmo lado de sempre no destino. Sem vão livre claro —
+// cards lado a lado, o caso comum — cai de volta no smoothstep padrão, que
+// já não tem obstáculo pra cruzar.
+const MARGEM_ARESTA = 16;
+
+function pontoParaFora(pos, x, y, d) {
+  switch (pos) {
+    case Position.Left: return { x: x - d, y };
+    case Position.Right: return { x: x + d, y };
+    case Position.Top: return { x, y: y - d };
+    case Position.Bottom: return { x, y: y + d };
+    default: return { x, y };
+  }
+}
+
+function retanguloDoNo(n) {
+  const w = n.measured?.width ?? n.width ?? 0;
+  const h = n.measured?.height ?? n.height ?? 0;
+  const { x, y } = n.internals.positionAbsolute;
+  return { x1: x, y1: y, x2: x + w, y2: y + h };
+}
+
+// Uma "L"/"Z" ortogonal: sai da porta, atravessa o vão livre entre os dois
+// cards por fora dos dois retângulos, entra na porta de destino. `null`
+// quando não há vão livre claro nesse eixo — quem chama cai no smoothstep
+// padrão.
+function caminhoContornando(sourceX, sourceY, sourcePosition,
+                             targetX, targetY, targetPosition,
+                             origem, destino) {
+  const eixoHorizontal = sourcePosition === Position.Left || sourcePosition === Position.Right;
+  const sFora = pontoParaFora(sourcePosition, sourceX, sourceY, MARGEM_ARESTA);
+  const tFora = pontoParaFora(targetPosition, targetX, targetY, MARGEM_ARESTA);
+
+  if (eixoHorizontal) {
+    // Vão livre no eixo Y (um card empilhado sobre o outro).
+    let vaoTopo, vaoBase;
+    if (destino.y1 - origem.y2 >= MARGEM_ARESTA) { vaoTopo = origem.y2; vaoBase = destino.y1; }
+    else if (origem.y1 - destino.y2 >= MARGEM_ARESTA) { vaoTopo = destino.y2; vaoBase = origem.y1; }
+    else return null;
+    const meioY = (vaoTopo + vaoBase) / 2;
+    return [
+      { x: sourceX, y: sourceY }, { x: sFora.x, y: sourceY },
+      { x: sFora.x, y: meioY }, { x: tFora.x, y: meioY },
+      { x: tFora.x, y: targetY }, { x: targetX, y: targetY },
+    ];
+  }
+  // Vão livre no eixo X (dois cards lado a lado, portas Top/Bottom).
+  let vaoEsq, vaoDir;
+  if (destino.x1 - origem.x2 >= MARGEM_ARESTA) { vaoEsq = origem.x2; vaoDir = destino.x1; }
+  else if (origem.x1 - destino.x2 >= MARGEM_ARESTA) { vaoEsq = destino.x2; vaoDir = origem.x1; }
+  else return null;
+  const meioX = (vaoEsq + vaoDir) / 2;
+  return [
+    { x: sourceX, y: sourceY }, { x: sourceX, y: sFora.y },
+    { x: meioX, y: sFora.y }, { x: meioX, y: tFora.y },
+    { x: targetX, y: tFora.y }, { x: targetX, y: targetY },
+  ];
+}
+
+// Cantos arredondados na polilinha, no mesmo espírito do `borderRadius` do
+// xyflow: cada vértice interno vira um arco curto (`Q`) em vez de bico.
+function caminhoComCantos(pontos, raio) {
+  let d = `M${pontos[0].x},${pontos[0].y}`;
+  for (let i = 1; i < pontos.length - 1; i++) {
+    const p0 = pontos[i - 1], p1 = pontos[i], p2 = pontos[i + 1];
+    const l1x = p0.x - p1.x, l1y = p0.y - p1.y, len1 = Math.hypot(l1x, l1y);
+    const l2x = p2.x - p1.x, l2y = p2.y - p1.y, len2 = Math.hypot(l2x, l2y);
+    const r = Math.min(raio, len1 / 2, len2 / 2);
+    if (r <= 0 || len1 === 0 || len2 === 0) { d += `L${p1.x},${p1.y}`; continue; }
+    const a = { x: p1.x + (l1x / len1) * r, y: p1.y + (l1y / len1) * r };
+    const b = { x: p1.x + (l2x / len2) * r, y: p1.y + (l2y / len2) * r };
+    d += `L${a.x},${a.y}Q${p1.x},${p1.y} ${b.x},${b.y}`;
+  }
+  const fim = pontos[pontos.length - 1];
+  return d + `L${fim.x},${fim.y}`;
+}
+
+function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
+                     targetX, targetY, targetPosition, style, markerEnd }) {
+  const noOrigem = useInternalNode(source);
+  const noDestino = useInternalNode(target);
+  let path;
+  if (noOrigem && noDestino) {
+    const pontos = caminhoContornando(sourceX, sourceY, sourcePosition,
+      targetX, targetY, targetPosition,
+      retanguloDoNo(noOrigem), retanguloDoNo(noDestino));
+    if (pontos) path = caminhoComCantos(pontos, 12);
+  }
+  if (!path) {
+    [path] = getSmoothStepPath({
+      sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
+      borderRadius: 12,
+    });
+  }
+  return h(BaseEdge, { id, path, style, markerEnd });
+}
+
+const edgeTypes = { trAresta: TrAresta };
 
 function fmtDur(s) {
   if (s < 1) return `${Math.round(s * 1000)}ms`;
@@ -2579,10 +2691,12 @@ function App() {
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
       h(ReactFlow, {
-        nodes: decorated, edges, nodeTypes,
-        // Conectores em ângulo reto com cantos arredondados (em vez da
-        // curva bezier padrão do xyflow).
-        defaultEdgeOptions: { type: "smoothstep", pathOptions: { borderRadius: 12 } },
+        nodes: decorated, edges, nodeTypes, edgeTypes,
+        // Conectores em ângulo reto com cantos arredondados; a direção da
+        // curva (TrAresta) é recalculada por par de cards a cada render,
+        // pra nunca cortar por cima do card vizinho quando o arranjo foge
+        // do fluxo horizontal padrão.
+        defaultEdgeOptions: { type: "trAresta" },
         onNodesChange, onEdgesChange, onConnect, isValidConnection,
         onNodeDragStart, onSelectionStart, onSelectionEnd,
         onConnectStart, onConnectEnd: () => setDragType(null),
