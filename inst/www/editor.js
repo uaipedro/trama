@@ -185,7 +185,7 @@ function pickView(handle, view) {
   return views.find((x) => x.id === view) || views[0] || null;
 }
 
-function Preview({ state, handle, error, progress, partial, view }) {
+function Preview({ state, handle, error, progress, partial, view, label }) {
   if (error) {
     return h("div", { className: "tr-preview tr-preview-error", title: error.traceback || "" },
       [h("div", { key: "m", className: "tr-err-msg" }, error.message)]);
@@ -203,7 +203,7 @@ function Preview({ state, handle, error, progress, partial, view }) {
       // parcial chega seria a aba mentindo sobre o que está na tela.
       const v = pickView(handle, view);
       return h("div", { className: "tr-preview tr-partial" },
-        [bar, v ? h(v.component, { key: "p", artifact: handle.preview, handle, assetUrl }) : null]);
+        [bar, v ? h(v.component, { key: "p", artifact: handle.preview, handle, assetUrl, label }) : null]);
     }
     return h("div", { className: "tr-preview tr-busy" }, bar);
   }
@@ -224,7 +224,7 @@ function Preview({ state, handle, error, progress, partial, view }) {
   }
   const v = pickView(handle, view);
   return h("div", { className: "tr-preview" },
-    h(v.component, { artifact: art, handle, assetUrl }));
+    h(v.component, { artifact: art, handle, assetUrl, label }));
 }
 
 // --- Markdown --------------------------------------------------------------
@@ -555,7 +555,8 @@ function NdNode({ id, data, selected }) {
                             onCmd: data.onStreamCmd, progress: data.progress })
       : null,
     mini || semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
-                 progress: data.progress, partial: data.partial, view: cur?.id }),
+                 progress: data.progress, partial: data.partial, view: cur?.id,
+                 label: data.label || spec.label }),
     mini || semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
       views.length === 0
         ? h("span", { key: "-", className: "tr-tab-idle" }, "—")
