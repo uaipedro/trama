@@ -25,7 +25,7 @@ import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
-import { ModoPicker, ParamsList, ParamsDock, Vista } from "./modos-ui.js";
+import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -1107,6 +1107,7 @@ function App() {
   const [banner, setBanner] = useState(null);
   const [helpFor, setHelpFor] = useState(null);
   const [vista, setVista] = useState(null); // id do card aberto em tela cheia (V)
+  const [painelAtalhos, setPainelAtalhos] = useState(false);
   const [menu, setMenu] = useState(null);   // {kind, id, x, y}
   const [ferramenta, setFerramenta] = useState(null);   // "frame" | null
   const [editFrame, setEditFrame] = useState(null);     // id do frame com título em edição
@@ -1346,12 +1347,6 @@ function App() {
     pushOp({ op: "set_param", node: nodeId, name, value });
   }, [bumpTick]);
 
-  // Estável pelo mesmo motivo que `onParam`: entra em `data` de cada nó, e uma
-  // função nova a cada render realimentaria o mesmo laço de remedição.
-  const onHelp = useCallback((typeId) => {
-    setPainelFrames(false); setPainelConfig(false); setHelpFor(typeId);
-  }, []);
-
   // V: card selecionado em tela cheia (`Vista`, modos-ui.js). Só com exatamente
   // UM card — mais de um não tem um óbvio pra mostrar, e frame/nota não têm
   // preview de renderer pra ampliar.
@@ -1360,6 +1355,16 @@ function App() {
     if (sel.length === 1) setVista(sel[0].id);
   };
   const fecharVista = useCallback(() => setVista(null), []);
+
+  // H: com UM card selecionado, a ajuda dele (o que era o "?" do cabeçalho);
+  // sem isso, a lista de atalhos. H de novo fecha o que estiver aberto.
+  const ajuda = () => {
+    if (helpFor || painelAtalhos) { setHelpFor(null); setPainelAtalhos(false); return; }
+    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+    setPainelFrames(false); setPainelConfig(false);
+    if (sel.length === 1) setHelpFor(sel[0].data.nodeType);
+    else setPainelAtalhos(true);
+  };
 
   // Estável e otimista pelos mesmos motivos de `onView`: quem sorteia é o
   // cliente, então ele já sabe o número, e `set_seed` não devolve o documento
@@ -1510,12 +1515,12 @@ function App() {
                       streamSource: regiaoFonte(n.id),
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
-                      typeColors, categories, onParam, onHelp, onView, onResize, onModo,
+                      typeColors, categories, onParam, onView, onResize, onModo,
                       onReseed, temas } };
   }),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
-    [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onModo, onReseed, tick, temas,
+    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
@@ -2555,6 +2560,7 @@ function App() {
     "d": () => definirModo("completo"),
     "shift+r": restaurarAlvos,
     "v": abrirVista,
+    "h": ajuda,
   };
   useEffect(() => {
     const onKey = (e) => {
@@ -2745,7 +2751,7 @@ function App() {
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
-  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig ? "tr-app-help" : "",
+  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "",
                                 abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
@@ -2890,7 +2896,9 @@ function App() {
     nodes.length === 1 && nodes[0].type === "ndNode" && !present
       ? h("div", { key: "next", className: "tr-next-step", role: "status" },
           "Agora configure o bloco. Depois, arraste de uma porta para conectar o próximo.") : null,
-    helpFor
+    painelAtalhos
+      ? h(AtalhosPanel, { key: "atalhos", onClose: () => setPainelAtalhos(false) })
+      : helpFor
       ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null) })
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
@@ -2942,8 +2950,11 @@ function App() {
                     onClick: () => setPrancheta((v) => v ? null
                       : { ...pranchetaSalva(), aspect: aspectoNovo }) }, "⊞ Prancheta"),
       h("button", { key: "fp", className: painelFrames ? "tr-on" : "",
-                    onClick: () => { setHelpFor(null); setPainelConfig(false);
+                    onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
                                      setPainelFrames((v) => !v); } }, "▦ Frames"),
+      h("button", { key: "aj", title: dica("ajuda"),
+                    className: painelAtalhos || helpFor ? "tr-on" : "",
+                    onClick: ajuda }, "?"),
       ]),
       h("button", { key: "more", className: "tr-toolbar-more", title: "Mais ações",
         "aria-label": "Mais ações", "aria-expanded": menuAcoes,
@@ -2951,9 +2962,9 @@ function App() {
       menuAcoes ? h("div", { key: "actions", className: "tr-toolbar-actions",
         onClick: () => setMenuAcoes(false) }, [
       h("button", { key: "cfg", title: "configurações", className: painelConfig ? "tr-on" : "",
-                    onClick: () => { setHelpFor(null); setPainelFrames(false);
+                    onClick: () => { setHelpFor(null); setPainelFrames(false); setPainelAtalhos(false);
                                      setPainelConfig((v) => !v); setMenuAcoes(false); } }, "⚙ Configurações"),
-      h("button", { key: "u", onClick: desfazer, title: "Ctrl+Z" }, "↶ Desfazer"),
+      h("button", { key: "u", onClick: desfazer, title: dica("desfazer") }, "↶ Desfazer"),
       h("button", { key: "r", onClick: () => sendInput("tr_rerun", Date.now()) }, "↻ Recalcular"),
       h("button", { key: "ex-flow", disabled: !doc,
                     onClick: () => exportFlowJson(doc,

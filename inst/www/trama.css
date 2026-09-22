@@ -860,6 +860,15 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   padding:8px;overflow-x:auto;font-size:11px}
 .tr-help-body code{font-size:11px}
 
+/* Painel de atalhos (H) */
+.tr-atalhos section{padding:8px 16px}
+.tr-atalhos dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0}
+.tr-atalhos dt{display:flex;gap:4px}
+.tr-atalhos kbd{font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;font-size:12px;line-height:1;
+  padding:3px 6px;border:1px solid var(--tr-line);border-bottom-width:2px;border-radius:4px;
+  background:var(--tr-panel)}
+.tr-atalhos dd{margin:0;color:var(--tr-dim)}
+
 /* Prancheta: popover sob a toolbar. Mesmo fundo e borda do menu de contexto;
    campos e botões com a cara dos do painel de configurações. */
 .tr-prancheta{position:absolute;top:48px;left:12px;z-index:21;width:252px;padding:10px;box-sizing:border-box;
