@@ -1,8 +1,9 @@
 // Peças de interface dos modos do card. Separadas de `editor.js` (já grande)
 // e de `modos.js` (puro, testado em Node): aqui entra React.
 import React from "react";
-import { h, getWidget } from "trama";
-import { MODOS, dica, modoDe } from "./modos.js";
+import ReactDOM from "react-dom";
+import { h, getWidget, getRenderer, getViews } from "trama";
+import { MODOS, ATALHOS, dica, modoDe } from "./modos.js";
 
 // Dois retângulos empilhados, cheio = parte visível. O mini é um quadradinho
 // só, porque o card mini não tem nenhuma das duas partes.
@@ -77,4 +78,52 @@ export function ParamsDock({ node, recolhido, onRecolher, categories }) {
                         onParam: node.data.onParam })
       : h("div", { key: "e", className: "tr-empty" }, "este bloco não tem parâmetros"),
   ]);
+}
+
+// Tela cheia do card selecionado (V). Mesmo overlay do lightbox de imagem
+// (`.tr-lightbox`), pra o Esc e o clique fora terem o mesmo sentido. O
+// conteúdo vem do renderer: `expand` quando ele declara, senão a vista atual
+// do card, maior. Funciona com o card em mini, porque não depende do preview
+// estar montado no card.
+export function Vista({ node, assetUrl, onClose }) {
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape" || e.key === "v" || e.key === "V") { e.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const hd = node.data.handle;
+  const art = hd?.preview;
+  const r = art && getRenderer(art.renderer);
+  const label = node.data.label || node.data.spec?.label;
+
+  let corpo;
+  if (!r) {
+    corpo = h("div", { className: "tr-empty" }, "sem preview");
+  } else if (r.expand) {
+    corpo = h(r.expand, { artifact: art, handle: hd, assetUrl, label });
+  } else {
+    const views = getViews(art.renderer, hd);
+    const v = views.find((v) => v.id === node.data.view) || views[0];
+    corpo = h("div", { className: "tr-vista-corpo" },
+      v ? h(v.component, { artifact: art, handle: hd, assetUrl, label }) : null);
+  }
+
+  // Imagem crua (renderer `trama/image`) já vem com a classe `tr-lightbox-img`
+  // do lightbox — empacotar de novo num painel ABNT poria fundo e rolagem
+  // onde a imagem já cuida de proporção sozinha (`object-fit`). Todo outro
+  // renderer entra no mesmo painel do overlay ABNT (`tr-abnt-panel`), que já
+  // dá fundo e rolagem a uma vista maior que o card.
+  const conteudo = art?.renderer === "trama/image"
+    ? h("div", { key: "c", className: "tr-modal", onClick: (e) => e.stopPropagation() }, corpo)
+    : h("div", { key: "c", className: "tr-abnt-panel tr-modal", onClick: (e) => e.stopPropagation() }, corpo);
+
+  return ReactDOM.createPortal(
+    h("div", { className: "tr-lightbox", role: "dialog", onClick: onClose }, [
+      h("button", { key: "x", className: "tr-lightbox-close", title: "fechar (Esc ou V)",
+                    onClick: (e) => { e.stopPropagation(); onClose(); } }, "×"),
+      conteudo,
+    ]), document.body);
 }
