@@ -25,7 +25,7 @@ import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
-import { ModoPicker, ParamsList, ParamsDock } from "./modos-ui.js";
+import { ModoPicker, ParamsList, ParamsDock, Vista } from "./modos-ui.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -1106,6 +1106,7 @@ function App() {
   const [dragType, setDragType] = useState(null);
   const [banner, setBanner] = useState(null);
   const [helpFor, setHelpFor] = useState(null);
+  const [vista, setVista] = useState(null); // id do card aberto em tela cheia (V)
   const [menu, setMenu] = useState(null);   // {kind, id, x, y}
   const [ferramenta, setFerramenta] = useState(null);   // "frame" | null
   const [editFrame, setEditFrame] = useState(null);     // id do frame com título em edição
@@ -1351,6 +1352,15 @@ function App() {
     setPainelFrames(false); setPainelConfig(false); setHelpFor(typeId);
   }, []);
 
+  // V: card selecionado em tela cheia (`Vista`, modos-ui.js). Só com exatamente
+  // UM card — mais de um não tem um óbvio pra mostrar, e frame/nota não têm
+  // preview de renderer pra ampliar.
+  const abrirVista = () => {
+    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+    if (sel.length === 1) setVista(sel[0].id);
+  };
+  const fecharVista = useCallback(() => setVista(null), []);
+
   // Estável e otimista pelos mesmos motivos de `onView`: quem sorteia é o
   // cliente, então ele já sabe o número, e `set_seed` não devolve o documento
   // (não é op de estrutura) — sem o ref a dica do botão mostraria a semente
@@ -1518,6 +1528,11 @@ function App() {
   const noDoPainel = !present && selDecorado.length === 1 && selDecorado[0].type === "ndNode"
     && selDecorado[0].data.spec && precisaPainel(modoDe(selDecorado[0].data))
     ? selDecorado[0] : null;
+
+  // Card aberto em `Vista` (V). Se ele for apagado enquanto aberto, some daqui
+  // sozinho — `vista` fica com um id obsoleto, inofensivo (só reabriria se o
+  // mesmo id voltasse a existir, o que undo pode fazer, e aí reabrir é certo).
+  const noDaVista = vista && decorated.find((n) => n.id === vista);
 
   // --- Recepção ---
   useEffect(() => {
@@ -2539,6 +2554,7 @@ function App() {
     "s": () => definirModo("params"),
     "d": () => definirModo("completo"),
     "shift+r": restaurarAlvos,
+    "v": abrirVista,
   };
   useEffect(() => {
     const onKey = (e) => {
@@ -2563,10 +2579,12 @@ function App() {
       if (e.key === " " && t && t.tagName === "BUTTON") t.blur();
       // Digitar um parâmetro não pode apagar card nem disparar atalho.
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      // Imagem ampliada por cima do slide é dona do teclado: seta e espaço
-      // trocariam o slide escondido atrás dela, e o Esc que a fecha também
-      // encerraria a apresentação. O lightbox tem o próprio listener.
-      if (presentRef.current && document.querySelector(".tr-lightbox")) return;
+      // Lightbox — imagem ampliada, `Vista` (V) ou o painel ABNT — é dono do
+      // teclado em QUALQUER modo: W/A/S/D e números mexeriam no canvas
+      // escondido atrás dele, e o Esc que o fecha também limparia a seleção
+      // (ou, em apresentação, encerraria o slide). Cada overlay tem o próprio
+      // listener; este aqui só recua.
+      if (document.querySelector(".tr-lightbox")) return;
       const nome = nomeDaTecla(e);
       // Ctrl+C/Ctrl+V ficam FORA da tabela de `atalhosRef`, de propósito: ela
       // dá `preventDefault` incondicional em qualquer tecla que tenha função,
@@ -2839,6 +2857,7 @@ function App() {
         ? h(ParamsDock, { key: "dock", node: noDoPainel, recolhido: painelRecolhido,
                           onRecolher: setPainelRecolhido, categories })
         : null,
+      noDaVista ? h(Vista, { key: "vista", node: noDaVista, assetUrl, onClose: fecharVista }) : null,
       ferramenta === "frame"
         ? h(FrameDraw, { key: "fd", toFlow: rf.screenToFlowPosition, onDone: criarFrame,
                          aspect: aspectoNovo }) : null,

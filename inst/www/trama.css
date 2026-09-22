@@ -250,6 +250,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    (Estatística Básica) pra tabela de resultado; texto continua à esquerda. */
 .tr-abnt td.tr-abnt-num{text-align:right;font-variant-numeric:tabular-nums}
 
+/* Vista em tela cheia (V): corpo dentro do painel ABNT/lightbox existente. */
+.tr-vista-corpo{min-width:60vw;max-height:88vh;overflow:auto}
+
 /* O `zoom-out` do lightbox anuncia "clique e eu fecho", e este não fecha. */
 .tr-modal{cursor:default}
 /* Diálogo de projeto: mora dentro do `.tr-lightbox`, que já dá o fundo e o
