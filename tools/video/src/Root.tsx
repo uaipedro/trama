@@ -5,6 +5,7 @@ import "./estilos";
 import { carregarFontes } from "./fontes";
 import { DURACAO_TOTAL, TramaDemo } from "./Video";
 import { DURACAO_TOTAL as DURACAO_MODELOS, TramaModelos } from "./VideoModelos";
+import { DURACAO_TOTAL as DURACAO_VINHETA, TramaVinheta } from "./VideoVinheta";
 
 carregarFontes();
 
@@ -24,6 +25,14 @@ export const Root: React.FC = () => (
       id="TramaModelos"
       component={TramaModelos}
       durationInFrames={DURACAO_MODELOS}
+      fps={30}
+      width={1920}
+      height={1080}
+    />
+    <Composition
+      id="TramaVinheta"
+      component={TramaVinheta}
+      durationInFrames={DURACAO_VINHETA}
       fps={30}
       width={1920}
       height={1080}

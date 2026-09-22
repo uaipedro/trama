@@ -57,22 +57,11 @@ export const Abertura: React.FC = () => {
                 trama
               </div>
             </Entrada>
-            {/* Duas linhas em dois blocos, e não uma frase longa com
-                `maxWidth`: deixar o flex quebrar sozinho fazia a segunda linha
-                quebrar TAMBÉM, e a frase saía em três pedaços de comprimento
-                aleatório. Aqui a quebra é onde o sentido quebra, e a segunda
-                linha entra depois da primeira. */}
             <Palavras
-              texto="R em blocos"
+              texto="R em blocos executáveis"
               atraso={32}
               porPalavra={2}
-              estilo={LINHA_APOIO}
-            />
-            <Palavras
-              texto="diagramas que rodam"
-              atraso={44}
-              porPalavra={2}
-              destacar={["rodam"]}
+              destacar={["blocos"]}
               estilo={LINHA_APOIO}
             />
           </div>
