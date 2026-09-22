@@ -6,29 +6,34 @@ collection: visualizacao
 node: view/histogram
 category: distribuicao
 order: 3
-related: [data/summary, view/points]
+related: [view/density, view/ecdf, view/boxplot]
 ---
 
-## Finalidade
+## O que o bloco faz
 
-`view/histogram` agrupa valores numéricos em faixas e mostra quantas observações
-caem em cada uma delas. Ele é usado para examinar concentração, assimetria,
-lacunas e valores extremos.
+`view/histogram` divide uma medida numérica em faixas e mostra a contagem de observações em cada faixa. Cada barra representa uma faixa, não uma categoria agregada.
+
+## Quando usar
+
+Use para examinar concentração, assimetria, lacunas e possíveis valores extremos numa medida. Para comparar grupos, preencha **Separar por**; para comparar a forma sem contagens por faixa, considere `view/density` ou `view/ecdf`.
 
 ## Configuração
 
-**Eixo X** recebe a medida numérica. **Classes** controla a quantidade de
-faixas: poucas classes suavizam a forma; muitas classes podem produzir
-contagens instáveis em bases pequenas.
+**Eixo X** é obrigatório. **Classes** define o número de faixas (padrão 30). Poucas faixas escondem detalhes; muitas podem deixar contagens pequenas e instáveis. **Separar por** colore distribuições por grupo. **Posição** aceita `empilhar` ou `sobrepor`; sobrepor usa transparência. **Eixo em log** requer valores positivos e constrói faixas de largura igual na escala transformada. **Painéis por** separa grupos em painéis de escala comum.
 
-> **Antes de continuar**
->
-> A altura de uma barra é uma contagem de observações na faixa, não uma medida
-> calculada por categoria. Para comparar médias por grupo, use um resumo antes
-> e escolha um gráfico de comparação.
+## Exemplo
 
-## Condições de leitura
+```r
+library(trama.view)
+dados <- data.frame(valor = c(4, 5, 5, 6, 7, 8, 8, 9, 11, 12),
+                    grupo = rep(c("A", "B"), each = 5))
+tr_histogram(dados, x = "valor", classes = 5L, cor = "grupo", posicao = "sobrepor")
+```
 
-Trocar a quantidade de classes altera as faixas e pode alterar a forma aparente
-da distribuição. A interpretação deve considerar essa escolha e a quantidade
-de observações disponível.
+## Como interpretar
+
+A altura de cada barra é a contagem de linhas dentro da faixa. Alterar Classes muda os limites e pode mudar a forma aparente. Nuvens de grupos sobrepostas podem ocultar diferenças; painéis ou a curva acumulada tornam a comparação mais legível.
+
+## Veja também
+
+`view/density` suaviza a forma; `view/ecdf` mostra proporções acumuladas sem escolher classes; `view/boxplot` compara resumos entre grupos.

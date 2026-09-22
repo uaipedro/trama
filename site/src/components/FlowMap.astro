@@ -5,7 +5,7 @@ interface Step {
   href?: string;
 }
 
-const { steps, active } = Astro.props as { steps: Step[]; active?: string };
+const { steps, active } = Astro.props as { steps: readonly Step[]; active?: string };
 ---
 
 <ol class="flow-map" aria-label="Caminho de trabalho">

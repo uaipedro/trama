@@ -1,32 +1,27 @@
 ---
 title: Escolher um gráfico
-description: Comece pela pergunta e pela estrutura da tabela, não pelo tipo de gráfico mais familiar.
+description: Escolha a forma pela pergunta e pela unidade representada em cada marca.
 section: colecoes
 collection: visualizacao
 order: 1
-related: [view/points, view/histogram]
+related: [view/points, view/histogram, view/bars]
 ---
 
 ## A pergunta orienta a forma
 
-A coleção Visualização produz gráficos `ggplot2` a partir de tabelas. O bloco
-adequado depende da pergunta que a análise precisa responder e de como uma
-linha da tabela deve aparecer no gráfico.
+A coleção Visualização transforma tabelas em gráficos. Antes de escolher a forma, identifique o que cada linha representa e se o gráfico deve preservar cada observação ou resumir grupos.
 
-| Pergunta | Bloco | Uma linha representa |
+| Pergunta | Nós | Leitura principal |
 | --- | --- | --- |
-| Duas medidas variam juntas? | `view/points` | Uma observação |
-| Como uma medida se distribui? | `view/histogram` | Uma observação em uma faixa |
-| Grupos diferem? | `view/boxplot` | Uma observação dentro de um grupo |
-| Qual categoria tem maior valor? | `view/bars` | Uma categoria ou medida agregada |
-
-> **Antes de continuar**
->
-> Um gráfico não corrige a estrutura dos dados. Se cada barra deve representar
-> uma média por região, essa média é calculada antes com `data/group_summarise`.
+| Duas medidas variam juntas? | `view/points`, `view/labels`, `view/bin2d` | Uma marca por linha, uma linha rotulada ou contagens numa grade |
+| Como uma medida se distribui? | `view/histogram`, `view/density`, `view/ecdf`, `view/qq` | Contagens em faixas, curva suavizada, proporção acumulada ou comparação com a normal |
+| Como a distribuição varia entre grupos? | `view/boxplot`, `view/violin`, `view/strip` | Quartis, forma ou observações individuais |
+| Como séries evoluem ou compõem um total? | `view/line`, `view/area` | Trajetórias ou composição empilhada em eixo ordenado |
+| Como categorias se comparam? | `view/bars`, `view/means`, `view/dotplot`, `view/dumbbell`, `view/paired`, `view/pareto` | Contagens e somas, médias e incerteza, ranking, condições ou acumulado |
+| Como dois grupos de categorias se relacionam? | `view/heatmap` | Contagem ou soma em cada par de categorias |
 
 ## Dados antes da aparência
 
-Título, rótulos e tema melhoram a leitura, mas a decisão principal é o vínculo
-entre uma linha da tabela e uma marca no gráfico. Confira a tabela de entrada
-antes de configurar cor, tamanho ou legenda.
+Os gráficos que contam, somam ou calculam médias declaram essa agregação na página do bloco. Para médias por grupo, use `view/means` com as observações originais; para uma estatística diferente, calcule-a antes com `data/group_summarise`. Em `view/points`, cada linha vira uma marca, então a sobreposição pode esconder observações; `view/bin2d` conta pontos em células quando a nuvem é grande.
+
+Eixo em log exige valores positivos. Em eixos ordenados, confirme que a ordem das categorias corresponde à pergunta; fatores permitem definir essa ordem. Título, rótulos e tema ajudam a ler o resultado, mas não substituem a escolha da unidade e da transformação.

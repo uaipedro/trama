@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import FlowMap from "../components/FlowMap.astro";
+import { collections } from "../data/collections";
 
 const firstFlowSteps = [
   { label: "Dados de exemplo", tone: "source" },
@@ -58,18 +59,19 @@ const firstFlowSteps = [
     </figure>
   </section>
 
-  <section class="home-collections" aria-labelledby="collections-title">
+  <section id="colecoes" class="home-collections" aria-labelledby="collections-title">
     <div class="section-intro">
-      <p class="eyebrow">Coleções iniciais</p>
+      <p class="eyebrow">Coleções</p>
       <h2 id="collections-title">Aprenda pelo que você quer fazer.</h2>
     </div>
     <div class="collection-links">
-      <a class="collection-link collection-link--data" href="/trama/colecoes/dados/">
-        <span class="collection-link__index">01</span><span><strong>Dados</strong><em>Leia, conheça, limpe, transforme e agregue tabelas.</em></span><b aria-hidden="true">→</b>
-      </a>
-      <a class="collection-link collection-link--view" href="/trama/colecoes/visualizacao/">
-        <span class="collection-link__index">02</span><span><strong>Visualização</strong><em>Escolha gráficos a partir da pergunta e da estrutura da tabela.</em></span><b aria-hidden="true">→</b>
-      </a>
+      {collections.map((collection, index) => (
+        <a class="collection-link" href={`/trama/colecoes/${collection.id}/`}>
+          <span class="collection-link__index">{String(index + 1).padStart(2, "0")}</span>
+          <span><strong>{collection.title}</strong><em>{collection.description}</em></span>
+          <b aria-hidden="true">→</b>
+        </a>
+      ))}
     </div>
   </section>
 </Base>

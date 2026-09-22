@@ -8,7 +8,7 @@ const docs = defineCollection({
     title: z.string(),
     description: z.string(),
     section: z.enum(["comece", "conceitos", "colecoes", "receitas"]),
-    collection: z.enum(["dados", "visualizacao"]).optional(),
+    collection: z.enum(["dados", "visualizacao", "aprendizado", "modelos", "multivariada", "amostragem", "series-temporais"]).optional(),
     node: z.string().optional(),
     category: z.string().optional(),
     order: z.number().default(99),

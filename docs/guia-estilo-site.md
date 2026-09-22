@@ -19,19 +19,33 @@ não reconta a página e não presume incapacidade.
 
 ## Arquitetura da explicação
 
-Cada página responde, nesta ordem, ao que a pessoa precisa decidir:
+Cada página de bloco segue esta ordem, ajustando os títulos ao conteúdo:
 
-1. **Finalidade** — qual pergunta ou transformação o bloco atende.
-2. **Quando se aplica** — forma esperada da tabela, entradas e condição de uso.
-3. **Como configurar** — parâmetros em ordem de consequência, não de ordem
-   interna.
-4. **Resultado** — o que sai do bloco e como ele se conecta ao próximo passo.
-5. **Condições e limites** — o que altera o resultado, explicitamente ligado à
-   consequência.
-6. **Exemplo verificável** — fluxo pequeno, completo e compatível com o
-   comportamento real da coleção.
-7. **Próximos caminhos** — operações relacionadas por motivo, não por lista
-   automática.
+1. **O que o bloco faz** — verbo, entrada, transformação e forma do resultado.
+2. **Quando usar** — pergunta analítica ou situação de trabalho que o bloco
+   atende.
+3. **Configuração** — parâmetros na ordem em que mudam a decisão da pessoa,
+   com os nomes usados na interface.
+4. **Exemplo** — fluxo curto, completo e executável, com dados plausíveis.
+5. **Como interpretar** — significado das colunas, medidas, opções e
+   condições que alteram a leitura.
+6. **Veja também** — blocos relacionados por sequência ou pergunta, exibidos
+   pelo site com título, descrição e ícone.
+
+As seções podem ser combinadas quando a página for curta. A ordem das ideias
+deve permanecer: ação, escolha, configuração, exemplo e leitura do resultado.
+
+### Regra de foco
+
+Descreva primeiro o que o bloco produz e como a pessoa usa esse resultado.
+Não organize a página em torno de proibições ou de uma lista do que o bloco
+não faz. Uma distinção necessária entra como consequência positiva da escolha:
+“cada linha resume uma região” é melhor que “o bloco não mantém as linhas”.
+
+O contexto adicional explica um conceito indispensável naquele ponto. Ele pode
+definir uma medida, mostrar como uma opção muda a saída ou explicar o formato
+da tabela. Não deve repetir a seção principal nem transformar a página em aula
+genérica.
 
 Guias de tarefa seguem o fluxo de trabalho real (por exemplo, ler, inspecionar,
 limpar e transformar); catálogo e referência preservam a estrutura do produto
@@ -118,3 +132,43 @@ não reproduz todos os valores.
 5. A camada facilitadora acrescenta repertório, em vez de resumir o principal?
 6. Há frase que poderia caber em qualquer produto de dados? Se houver, ela é
    removida ou concretizada.
+
+## Execução por coleção
+
+Use este roteiro ao delegar uma coleção a outro agente:
+
+1. Leia `docs/guia-estilo-site.md`, a página de visão geral da coleção e todas
+   as páginas de bloco já revisadas.
+2. Para cada bloco, leia o registro em `collection.R`, a implementação em
+   `R/` e os testes que exercitam o comportamento. A documentação sai do
+   código, dos testes e dos exemplos reais; não complete lacunas por intuição.
+3. Revise a página em `site/src/content/docs/colecoes/<colecao>/`. Preserve o
+   frontmatter e o identificador `node`; atualize `title`, `description` e
+   `related` apenas quando isso melhorar a navegação.
+4. Use a estrutura “O que o bloco faz / Quando usar / Configuração / Exemplo /
+   Como interpretar”. Inclua `Antes de continuar` somente quando houver
+   contexto necessário para entender a decisão.
+5. Escreva exemplos compatíveis com a assinatura real. Mostre o fluxo em R;
+   quando houver um mockup estático de cards disponível, use o mesmo fluxo e os
+   mesmos valores para que a representação visual e o código coincidam.
+6. Relacione no mínimo dois blocos próximos quando existirem. Prefira a
+   sequência real da coleção a uma lista genérica.
+7. Não altere implementação, testes, catálogo ou contratos para acomodar a
+   redação. Se o comportamento estiver ambíguo, registre a dúvida para quem
+   coordena a rodada.
+8. Ao entregar, relate páginas tocadas, comportamento conferido no código e
+   testes consultados. Rode `git diff --check`; não rode geradores globais ou
+   `roxygenise()` em paralelo com outros agentes.
+
+### Prompt curto para o agente
+
+> Revise a documentação da coleção `<coleção>` seguindo
+> `docs/guia-estilo-site.md`. Leia a implementação, o registro do bloco, os
+> testes e os exemplos antes de editar. Atualize somente as páginas Markdown
+> em `site/src/content/docs/colecoes/<coleção>/`. Para cada bloco, explique o
+> que produz, quando usar, como configurar, um exemplo executável e como ler o
+> resultado. Mantenha o foco no comportamento positivo do bloco. Use o contexto
+> adicional apenas para conceitos necessários. Preserve frontmatter, nomes de
+> parâmetros e contratos. Relacione blocos próximos em `related`. Não invente
+> comportamento, não altere código e não rode geradores globais. Entregue um
+> resumo dos arquivos alterados, evidências consultadas e dúvidas restantes.

@@ -1,0 +1,57 @@
+---
+title: Componente
+description: "Tira um componente da decomposição como série."
+section: colecoes
+collection: series-temporais
+node: series/component
+category: Decompor
+order: 2
+related: [series/stl, series/decompose, series/regression]
+---
+
+## O que o bloco faz
+
+Devolve um dos componentes de uma decomposição como série, para seguir
+adiante: modelar a dessazonalizada, testar se o resto é ruído branco, desenhar
+só a tendência.
+
+**dessazonalizada** é a série sem o efeito sazonal — o número que se publica
+quando se diz "descontado o efeito do mês". Na decomposição multiplicativa ela
+é a série DIVIDIDA pelo sazonal (subtrair um fator de 1,2 de um valor na casa
+das centenas não tiraria sazonalidade nenhuma); na aditiva, a série menos o
+sazonal. O nó sabe qual das duas pela decomposição que recebeu.
+
+Da clássica, tendência e resto chegam com NA nas pontas.
+
+## Quando usar
+
+Extraia tendência, sazonalidade, resto ou série dessazonalizada para inspecionar ou usar em outra etapa. A entrada deve ser uma decomposição compatível.
+
+## Configuração
+
+- **Componente** — `tendencia`, `sazonal`, `resto` ou `dessazonalizada`.
+
+## Exemplo
+
+```r
+library(trama)
+
+reg <- tr_registry()
+tr_use("trama.series", registry = reg)
+
+tr_flow(reg) |>
+  tr_add("pax", "series/example") |>
+  tr_add("stl", "series/stl", from = "pax") |>
+  tr_add("resto", "series/component", componente = "resto", from = "stl") |>
+  tr_add("rb", "series/ljung_box", from = "resto")
+```
+
+## Como interpretar
+
+Uma série (`series/ts`) do mesmo tamanho da original.
+
+## Veja também
+
+`series/stl` e `series/decompose`, que produzem a decomposição;
+`series/regression`, que também produz uma — estimada, com coeficiente e
+p-valor por componente; `series/ljung_box` para testar o resto.

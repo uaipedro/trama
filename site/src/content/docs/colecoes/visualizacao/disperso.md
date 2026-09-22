@@ -6,35 +6,34 @@ collection: visualizacao
 node: view/points
 category: relacao
 order: 2
-related: [data/summary, data/group_summarise, view/histogram]
+related: [view/line, view/bin2d, view/labels, data/group_summarise]
 ---
 
-## Finalidade
+## O que o bloco faz
 
-`view/points` mostra a relação entre duas medidas. Cada linha da tabela produz
-uma marca; cor, forma e tamanho podem distinguir grupos ou outra medida.
+`view/points` representa cada linha da tabela como um ponto nas coordenadas de duas colunas. Cor por distingue grupos sem alterar a quantidade de pontos. O nó não agrega as observações.
+
+## Quando usar
+
+Use para examinar associação, concentração e observações afastadas entre duas medidas. Cada ponto representa a unidade descrita por uma linha; identifique essa unidade antes de interpretar a nuvem.
 
 ## Configuração
 
-Escolha uma coluna para **Eixo X** e outra para **Eixo Y**. **Cor por** separa
-grupos sem alterar o número de marcas. Uma linha de tendência pode ser adicionada
-quando a relação precisa ser resumida por um modelo simples.
+**Eixo X** e **Eixo Y** são obrigatórios. **Cor por** é opcional: texto ou fator produz grupos discretos, enquanto número produz uma escala contínua. **Tendência** aceita `nenhuma`, `linear` ou `suave`; ambas as linhas de tendência incluem uma faixa de confiança de 95%, não uma faixa que contenha as observações. **Eixo em log** aceita `nenhum`, `X`, `Y` ou `ambos` e exige valores positivos. **Painéis por** divide os grupos em painéis com a mesma escala.
+
+## Exemplo
 
 ```r
-tr_flow(reg) |>
-  tr_add("nuvem", "view/points", x = "idade", y = "renda",
-         cor = "regiao", tendencia = "linear", from = "dados")
+library(trama.view)
+dados <- data.frame(qtd = c(2, 4, 5, 7, 9, 10), valor = c(8, 12, 11, 18, 21, 24),
+                    regiao = c("Norte", "Sul", "Norte", "Sul", "Norte", "Sul"))
+tr_points(dados, x = "qtd", y = "valor", cor = "regiao", tendencia = "linear")
 ```
 
-> **Antes de continuar**
->
-> Um ponto representa uma linha, não necessariamente uma pessoa. Ele pode
-> representar município, experimento, medição ou qualquer unidade que uma linha
-> da tabela descreva. Essa unidade precisa ser conhecida antes de interpretar a
-> nuvem.
+## Como interpretar
 
-## Quando escolher outra forma
+A posição mostra os valores das duas medidas para cada linha. Sobreposição intensa impede distinguir quantas observações ocupam uma região; `view/bin2d` conta essas observações por célula. `linear` ajusta uma reta e `suave` uma curva local; são resumos visuais, não testes de hipótese. Com dezenas de milhares de linhas, agregue ou use a grade antes de interpretar densidade.
 
-Se muitos pontos se sobrepõem, `view/bin2d` revela densidade em uma grade. Se o
-eixo X representa tempo ou outra ordem explícita, `view/line` geralmente torna
-a evolução mais legível.
+## Veja também
+
+`view/line` conecta observações quando X tem ordem; `view/labels` identifica pontos; `view/bin2d` mostra densidade em nuvens grandes; `data/group_summarise` agrega antes do gráfico quando cada marca deve representar um grupo.
