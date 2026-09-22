@@ -89,6 +89,25 @@ const pageTitle = title === "trama" ? title : `${title} · trama`;
       };
       syncFlowVideos();
       motionQuery.addEventListener("change", syncFlowVideos);
+
+      const fullscreenButtons = document.querySelectorAll("[data-flow-fullscreen]");
+      const updateFullscreenButtons = () => {
+        fullscreenButtons.forEach((button) => {
+          const reel = button.closest(".flow-reel");
+          const active = document.fullscreenElement === reel;
+          button.setAttribute("aria-label", active ? "Sair da tela cheia" : "Abrir demonstração em tela cheia");
+          button.innerHTML = active ? 'Sair <span aria-hidden="true">×</span>' : 'Tela cheia <span aria-hidden="true">↗</span>';
+        });
+      };
+      fullscreenButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const reel = button.closest(".flow-reel");
+          if (!(reel instanceof HTMLElement)) return;
+          if (document.fullscreenElement === reel) document.exitFullscreen();
+          else reel.requestFullscreen?.().catch(() => undefined);
+        });
+      });
+      document.addEventListener("fullscreenchange", updateFullscreenButtons);
     </script>
   </body>
 </html>
