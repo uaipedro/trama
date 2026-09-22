@@ -1,0 +1,165 @@
+{
+  "format": 1,
+  "rev": 1,
+  "collections": {
+    "data": "0.1.0",
+    "view": "0.1.0"
+  },
+  "nodes": {
+    "ler_caixa": {
+      "type": "data/read_csv",
+      "type_version": 1,
+      "label": "Livro-caixa da Ecovila",
+      "params": { "path": "dados/lancamentos_financeiros.csv" },
+      "seed": 20260921
+    },
+    "somente_receitas": {
+      "type": "data/filter",
+      "type_version": 2,
+      "label": "Manter receitas",
+      "params": { "expr": "tipo == \"receita\"" },
+      "seed": 20260922
+    },
+    "criar_semana": {
+      "type": "data/mutate",
+      "type_version": 2,
+      "label": "Criar semana",
+      "params": { "name": "semana", "expr": "as.Date(cut(as.Date(data), \"week\", start.on.monday = TRUE))" },
+      "seed": 20260923
+    },
+    "criar_ano": {
+      "type": "data/mutate",
+      "type_version": 2,
+      "label": "Criar ano",
+      "params": { "name": "ano", "expr": "format(semana, \"%Y\")" },
+      "seed": 20260924
+    },
+    "receita_semanal": {
+      "type": "data/group_summarise",
+      "type_version": 1,
+      "label": "Receita por semana",
+      "params": {
+        "by": "ano, semana",
+        "name": "receita_semana, vendas_na_semana",
+        "expr": "sum(valor_total), dplyr::n()"
+      },
+      "seed": 20260925
+    },
+    "histograma": {
+      "type": "view/histogram",
+      "type_version": 1,
+      "label": "Distribuição semanal",
+      "params": {
+        "x": "receita_semana",
+        "classes": 28,
+        "titulo": "Como se distribui a receita semanal?"
+      },
+      "seed": 20260926
+    },
+    "resumo_geral": {
+      "type": "data/group_summarise",
+      "type_version": 1,
+      "label": "Resumo estatístico",
+      "params": {
+        "by": "",
+        "name": "semanas, media, mediana, variancia, desvio_padrao, minimo, maximo",
+        "expr": "dplyr::n(), mean(receita_semana), median(receita_semana), var(receita_semana), sd(receita_semana), min(receita_semana), max(receita_semana)"
+      },
+      "seed": 20260927
+    },
+    "boxplot_anos": {
+      "type": "view/boxplot",
+      "type_version": 1,
+      "label": "Semanas por ano",
+      "params": {
+        "x": "ano",
+        "y": "receita_semana",
+        "pontos": true,
+        "titulo": "O prêmio de 2019 muda a distribuição, não só a média"
+      },
+      "seed": 20260928
+    },
+    "resumo_por_ano": {
+      "type": "data/group_summarise",
+      "type_version": 1,
+      "label": "Resumo por ano",
+      "params": {
+        "by": "ano",
+        "name": "semanas, media, mediana, desvio_padrao, maximo",
+        "expr": "dplyr::n(), mean(receita_semana), median(receita_semana), sd(receita_semana), max(receita_semana)"
+      },
+      "seed": 20260929
+    }
+  },
+  "edges": [
+    { "from": { "node": "ler_caixa", "port": "out" }, "to": { "node": "somente_receitas", "port": "data" }, "index": 1 },
+    { "from": { "node": "somente_receitas", "port": "out" }, "to": { "node": "criar_semana", "port": "data" }, "index": 1 },
+    { "from": { "node": "criar_semana", "port": "out" }, "to": { "node": "criar_ano", "port": "data" }, "index": 1 },
+    { "from": { "node": "criar_ano", "port": "out" }, "to": { "node": "receita_semanal", "port": "data" }, "index": 1 },
+    { "from": { "node": "receita_semanal", "port": "out" }, "to": { "node": "histograma", "port": "dados" }, "index": 1 },
+    { "from": { "node": "receita_semanal", "port": "out" }, "to": { "node": "resumo_geral", "port": "data" }, "index": 1 },
+    { "from": { "node": "receita_semanal", "port": "out" }, "to": { "node": "boxplot_anos", "port": "dados" }, "index": 1 },
+    { "from": { "node": "receita_semanal", "port": "out" }, "to": { "node": "resumo_por_ano", "port": "data" }, "index": 1 }
+  ],
+  "ui": {
+    "positions": {
+      "ler_caixa": [40, 490],
+      "somente_receitas": [390, 490],
+      "criar_semana": [740, 490],
+      "criar_ano": [1080, 490],
+      "receita_semanal": [1420, 490],
+      "histograma": [1820, 280],
+      "resumo_geral": [1820, 700],
+      "boxplot_anos": [2300, 270],
+      "resumo_por_ano": [2300, 760]
+    },
+    "sizes": {
+      "ler_caixa": [300, 210],
+      "somente_receitas": [290, 210],
+      "criar_semana": [300, 220],
+      "criar_ano": [280, 210],
+      "receita_semanal": [340, 250],
+      "histograma": [480, 420],
+      "resumo_geral": [490, 300],
+      "boxplot_anos": [620, 450],
+      "resumo_por_ano": [550, 300]
+    },
+    "views": {},
+    "frames": {
+      "f_pergunta": { "x": -30, "y": -70, "w": 1720, "h": 920, "title": "1 · Da movimentação ao número que faz sentido", "aspect": "livre", "color": "azul", "order": 1 },
+      "f_distribuicao": { "x": 1740, "y": -70, "w": 590, "h": 780, "title": "2 · Antes do resumo: enxergar a distribuição", "aspect": "livre", "color": "verde", "order": 2 },
+      "f_interpretar": { "x": 1740, "y": 720, "w": 590, "h": 550, "title": "3 · Centro e espalhamento", "aspect": "livre", "color": "amarelo", "order": 3 },
+      "f_contexto": { "x": 2250, "y": -70, "w": 720, "h": 1340, "title": "4 · O contexto evita uma média enganosa", "aspect": "livre", "color": "rosa", "order": 4 }
+    },
+    "folds": {
+      "histograma": { "params": false },
+      "boxplot_anos": { "params": false }
+    },
+    "notes": {
+      "n_abertura": {
+        "x": 30, "y": 20, "w": 760, "h": 240, "kind": "markdown", "escala": "letreiro", "fundo": "cartao", "color": "azul",
+        "text": "# Estatística-resumo\n\n**Estatística-resumo transforma muitas observações em poucos números legíveis.** Ela ajuda a descrever uma pergunta — mas não substitui olhar os dados.\n\nNesta aula, a unidade é a **receita total por semana** da Ecovila Serra das Águas."
+      },
+      "n_unidade": {
+        "x": 805, "y": 25, "w": 790, "h": 235, "kind": "markdown", "escala": "nota", "fundo": "cartao", "color": "azul",
+        "text": "## Primeiro: qual é uma observação?\n\nO livro-caixa tem vendas individuais: uma cesta, uma saca, uma muda. Somá-las por semana cria uma unidade comparável para responder: **quanto a ecovila costuma receber em uma semana?**\n\n> Não some `sacas + kg + cestas`. Some **reais** quando a pergunta é receita."
+      },
+      "n_histograma": {
+        "x": 1770, "y": 25, "w": 520, "h": 180, "kind": "markdown", "escala": "nota", "fundo": "cartao", "color": "verde",
+        "text": "## Veja a forma antes de resumir\n\nO histograma revela onde estão as semanas comuns, se há cauda e se existem semanas raras muito grandes. É isso que decide se a média conta bem a história."
+      },
+      "n_media": {
+        "x": 1770, "y": 1040, "w": 520, "h": 185, "kind": "markdown", "escala": "nota", "fundo": "cartao", "color": "amarelo",
+        "text": "## Média, variância e desvio padrão\n\n- **Média**: o centro calculado por todas as semanas.\n- **Variância**: espalhamento em `R$²`; é útil para cálculo, mas difícil de comunicar.\n- **Desvio padrão**: raiz da variância, volta a `R$`. Mostra quão longe as semanas costumam ficar da média."
+      },
+      "n_mediana": {
+        "x": 2340, "y": 25, "w": 570, "h": 205, "kind": "markdown", "escala": "nota", "fundo": "cartao", "color": "rosa",
+        "text": "## Média não é a semana típica\n\nA **mediana** deixa metade das semanas abaixo e metade acima dela. Quando poucas semanas têm vendas extraordinárias, ela costuma descrever melhor uma semana típica.\n\nO prêmio de café de 2019 foi feito para criar exatamente essa conversa."
+      },
+      "n_atividade": {
+        "x": 2350, "y": 1110, "w": 540, "h": 115, "kind": "markdown", "escala": "nota", "fundo": "cartao", "color": "rosa",
+        "text": "## Perguntas para a turma\n\n1. Em qual ano média e mediana mais divergem?\n2. O maior desvio significa um ano pior?\n3. Que evento do contexto explica o pico?"
+      }
+    }
+  }
+}

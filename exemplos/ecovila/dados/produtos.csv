@@ -1,0 +1,9 @@
+"produto_id","produto","grupo_produto","atividade","unidade_padrao","principal"
+"CAF_SACA","Cafe verde especial","Cafe","cafeicultura","saca_60kg",TRUE
+"CAF_TORRADO","Cafe torrado e moido","Cafe","beneficiamento","pacote_250g",FALSE
+"HORTA_CESTA","Cesta de hortalicas","Horta","horta","cesta",FALSE
+"HORTA_AVULSO","Hortalicas avulsas","Horta","horta","kg",FALSE
+"BANANA_CAIXA","Caixa de banana","Banana","agrofloresta","caixa",FALSE
+"MEL_POTE","Pote de mel","Mel","meliponicultura","pote_300g",FALSE
+"MUDA","Muda agroflorestal","Mudas","viveiro","unidade",FALSE
+"OFICINA","Oficina ou visita","Servicos","formacao","participacao",FALSE

@@ -1,0 +1,8 @@
+"arquivo","chave","granularidade","descricao"
+"talhoes.csv","talhao_id","um talhao","Cadastro espacial e covariaveis"
+"lancamentos_financeiros.csv","lancamento_id","uma movimentacao","Entradas e saidas do livro-caixa"
+"producao_talhao_safra.csv","talhao_id + ano_safra","talhao por safra","Producao observacional de cafe"
+"solo_talhao.csv","amostra_solo_id","amostra de solo","Analises de solo a 0-20 cm"
+"microclima_talhao_mes.csv","talhao_id + ano_mes","talhao por mes","Sensores consolidados"
+"drone_termico.csv","talhao_id + data_campanha","talhao por voo","Termografia de superficie"
+"qualidade_agua.csv","ponto_agua_id + data_coleta","ponto por coleta","Monitoramento do corrego"

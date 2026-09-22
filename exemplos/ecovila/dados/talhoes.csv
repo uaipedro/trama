@@ -1,0 +1,37 @@
+"talhao_id","nome","area_ha","longitude","latitude","altitude_m","declividade_pct","orientacao_encosta","distancia_rio_m","distancia_sede_m","faixa_paisagem","solo_base","historico_uso","area_app"
+"T01","Talhao T01",0.82,-44.128901,-21.122429,960,22.5,"nordeste",470,792,"alta_seca","faixa_1_mais_arenosa","pomar antigo",FALSE
+"T02","Talhao T02",0.85,-44.128513,-21.12433,964,21.1,"nordeste",598,804,"alta_seca","faixa_1_mais_arenosa","pomar antigo",FALSE
+"T03","Talhao T03",0.53,-44.128089,-21.12557,966,21.3,"sudeste",548,326,"alta_seca","faixa_1_mais_arenosa","pomar antigo",FALSE
+"T04","Talhao T04",0.81,-44.128426,-21.126651,967,19.5,"sudeste",598,113,"alta_seca","faixa_1_mais_arenosa","pousio e capoeira",FALSE
+"T05","Talhao T05",0.53,-44.127778,-21.126122,954,20.1,"sudeste",559,391,"alta_seca","faixa_1_mais_arenosa","pastagem ate 2008",FALSE
+"T06","Talhao T06",0.8,-44.129863,-21.127773,966,18.1,"sul",568,681,"alta_seca","faixa_1_mais_arenosa","pastagem ate 2008",FALSE
+"T07","Talhao T07",0.77,-44.128251,-21.129083,980,16.8,"leste",579,624,"alta_seca","faixa_1_mais_arenosa","cafe convencional ate 2012",FALSE
+"T08","Talhao T08",0.7,-44.128665,-21.130618,963,26.5,"leste",576,244,"alta_seca","faixa_1_mais_arenosa","cafe convencional ate 2012",FALSE
+"T09","Talhao T09",0.72,-44.129226,-21.131167,965,17.8,"sudeste",565,767,"alta_seca","faixa_1_mais_arenosa","cafe convencional ate 2012",FALSE
+"T10","Talhao T10",0.75,-44.130232,-21.132018,975,14.6,"sudeste",575,508,"alta_seca","faixa_1_mais_arenosa","pastagem ate 2008",FALSE
+"T11","Talhao T11",0.39,-44.128634,-21.132216,958,15.3,"leste",559,131,"alta_seca","faixa_1_mais_arenosa","pousio e capoeira",FALSE
+"T12","Talhao T12",0.63,-44.127726,-21.133194,970,18.7,"sudeste",518,481,"alta_seca","faixa_1_mais_arenosa","pastagem ate 2008",FALSE
+"T13","Talhao T13",0.73,-44.122236,-21.123844,919,9.1,"leste",329,545,"intermediaria","faixa_2_argilosa","pomar antigo",FALSE
+"T14","Talhao T14",0.65,-44.121748,-21.123346,939,15.1,"sudeste",376,355,"intermediaria","faixa_2_argilosa","pastagem ate 2008",FALSE
+"T15","Talhao T15",0.85,-44.123814,-21.125661,925,13.9,"leste",248,332,"intermediaria","faixa_2_argilosa","pomar antigo",FALSE
+"T16","Talhao T16",0.61,-44.123485,-21.126377,918,9.2,"sul",298,574,"intermediaria","faixa_2_argilosa","pastagem ate 2008",FALSE
+"T17","Talhao T17",0.85,-44.123988,-21.127492,914,15.9,"sudeste",293,511,"intermediaria","faixa_2_argilosa","pastagem ate 2008",FALSE
+"T18","Talhao T18",0.56,-44.123871,-21.12721,906,14.4,"sudeste",263,483,"intermediaria","faixa_2_argilosa","pousio e capoeira",FALSE
+"T19","Talhao T19",0.69,-44.122517,-21.129512,924,10.2,"leste",307,235,"intermediaria","faixa_2_argilosa","pomar antigo",FALSE
+"T20","Talhao T20",0.91,-44.122594,-21.129972,927,11.9,"sul",292,791,"intermediaria","faixa_2_argilosa","cafe convencional ate 2012",FALSE
+"T21","Talhao T21",0.79,-44.123827,-21.130022,920,10.3,"nordeste",384,520,"intermediaria","faixa_2_argilosa","pastagem ate 2008",FALSE
+"T22","Talhao T22",0.58,-44.12327,-21.132604,941,12.7,"sul",204,435,"intermediaria","faixa_2_argilosa","cafe convencional ate 2012",FALSE
+"T23","Talhao T23",0.83,-44.122119,-21.133801,930,12.5,"sudeste",312,401,"intermediaria","faixa_2_argilosa","pomar antigo",FALSE
+"T24","Talhao T24",0.89,-44.122833,-21.134884,921,10.2,"nordeste",407,211,"intermediaria","faixa_2_argilosa","cafe convencional ate 2012",FALSE
+"T25","Talhao T25",0.85,-44.11764,-21.122168,899,4.2,"sul",35,173,"baixa_umida","faixa_3_organica","pastagem ate 2008",FALSE
+"T26","Talhao T26",0.64,-44.115822,-21.123295,882,3,"leste",112,815,"baixa_umida","faixa_3_organica","pomar antigo",FALSE
+"T27","Talhao T27",0.79,-44.116833,-21.125697,888,2.4,"nordeste",167,642,"baixa_umida","faixa_3_organica","pomar antigo",FALSE
+"T28","Talhao T28",0.84,-44.117689,-21.125345,878,6.2,"sudeste",97,297,"baixa_umida","faixa_3_organica","cafe convencional ate 2012",FALSE
+"T29","Talhao T29",0.69,-44.116655,-21.126145,898,6.2,"leste",146,742,"baixa_umida","faixa_3_organica","pomar antigo",FALSE
+"T30","Talhao T30",0.92,-44.115544,-21.128487,879,4.7,"nordeste",100,679,"baixa_umida","faixa_3_organica","pastagem ate 2008",FALSE
+"T31","Talhao T31",0.45,-44.118094,-21.128206,883,3,"nordeste",35,732,"baixa_umida","faixa_3_organica","pastagem ate 2008",FALSE
+"T32","Talhao T32",0.72,-44.117794,-21.130225,886,7,"nordeste",110,173,"baixa_umida","faixa_3_organica","pomar antigo",FALSE
+"T33","Talhao T33",0.86,-44.116798,-21.130252,879,1.9,"leste",48,837,"baixa_umida","faixa_3_organica","pousio e capoeira",FALSE
+"T34","Talhao T34",0.67,-44.115742,-21.131597,892,4.1,"sul",59,447,"baixa_umida","faixa_3_organica","pastagem ate 2008",FALSE
+"T35","Talhao T35",0.71,-44.116865,-21.132896,885,2,"sul",86,774,"baixa_umida","faixa_3_organica","pousio e capoeira",FALSE
+"T36","Talhao T36",0.89,-44.116029,-21.134672,882,1,"sul",133,140,"baixa_umida","faixa_3_organica","pousio e capoeira",FALSE
