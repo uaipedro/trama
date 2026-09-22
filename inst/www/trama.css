@@ -122,10 +122,6 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 @media (prefers-reduced-motion:reduce){
   .tr-head-progress.tr-indet>div{width:100%;animation:tr-pulse 1.4s ease-in-out infinite}
   @keyframes tr-pulse{50%{opacity:.35}}}
-.tr-params-fold{display:block;width:100%;text-align:left;background:none;border:0;
-  border-bottom:1px solid var(--tr-line);color:var(--tr-dim);font:inherit;font-size:11px;
-  padding:5px 9px;cursor:pointer}
-.tr-params-fold:hover{color:var(--tr-fg)}
 .tr-node-icon{width:13px;height:13px;flex:none;stroke:currentColor;fill:none;
               stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tr-node-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -142,24 +138,15 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-node-mini .tr-node-icon-main{width:28px;height:28px}
 .tr-node-mini .tr-node-title{flex:none;white-space:normal;text-align:center;
   max-width:84px;overflow:visible;text-overflow:clip}
-/* Botões de fold/ajuda só aparecem no hover — em repouso o card mostra só
-   ícone e rótulo, sem faixa de controles competindo com eles. Posicionados
-   em absoluto pra não empurrar o ícone/título quando aparecem. */
-.tr-node-mini .tr-fold-btn,.tr-node-mini .tr-help-btn{position:absolute;top:3px;
+/* O único `tr-fold-btn` que sobra no mini é o de re-sortear (`sd`, bloco
+   estocástico) — os de fold de preview/mini viraram o seletor de modo, que
+   mora fora do cabeçalho neste card (regra acima, `.tr-node-mini
+   .tr-modo-picker`). Só aparece no hover, em absoluto pra não empurrar
+   ícone/título quando aparece. */
+.tr-node-mini .tr-fold-btn{position:absolute;top:3px;right:3px;
   opacity:0;transition:opacity .12s;background:var(--tr-panel);border-radius:4px}
-.tr-node-mini .tr-fold-btn{right:3px}
-/* Cada botão de fold da faixa (`fv`, `mn` e, em bloco estocástico, `sd`)
-   desloca pra não empilhar em cima do anterior. O combinador `+` sozinho
-   colocaria 2º e 3º no mesmo `right`, porque cada um é adjacente ao
-   precedente — por isso a regra de 3 encadeados, mais específica, dá ao
-   terceiro botão (`sd`) um deslocamento próprio. Ícones de botão ficam em
-   13px (não usam `tr-node-icon-main`), então 19px de passo já evita
-   sobreposição das faixas clicáveis. */
-.tr-node-mini .tr-fold-btn+.tr-fold-btn{right:22px}
-.tr-node-mini .tr-fold-btn+.tr-fold-btn+.tr-fold-btn{right:41px}
-.tr-node-mini .tr-help-btn{left:3px}
-.tr-node-mini:hover .tr-fold-btn,.tr-node-mini:hover .tr-help-btn{opacity:.6}
-.tr-node-mini .tr-fold-btn:hover,.tr-node-mini .tr-help-btn:hover{opacity:1}
+.tr-node-mini:hover .tr-fold-btn{opacity:.6}
+.tr-node-mini .tr-fold-btn:hover{opacity:1}
 /* `.tr-ports` normal reserva uma FAIXA (padding-bottom 14px) pro nome da
    porta, que o mini já esconde (JS omite o `<span>`) — sobrava só a faixa
    branca vazia, colada embaixo do cabeçalho colorido, com o pontinho perdido
@@ -603,8 +590,8 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    em PNG. `.tr-exporting` vai no <body> só durante a captura; `.tr-presenting`
    fica na raiz do app enquanto a apresentação durar. */
 .tr-exporting .tr-grip,.tr-presenting .tr-grip,
-.tr-exporting .tr-help-btn,.tr-presenting .tr-help-btn,
 .tr-exporting .tr-fold-btn,.tr-presenting .tr-fold-btn,
+.tr-exporting .tr-modo-picker,.tr-presenting .tr-modo-picker,
 .tr-exporting .tr-dur,.tr-presenting .tr-dur,
 .tr-exporting .tr-dot,.tr-presenting .tr-dot,
 .tr-exporting .react-flow__resize-control,
@@ -863,9 +850,6 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-help-body pre{background:var(--tr-field);border:1px solid var(--tr-line);border-radius:4px;
   padding:8px;overflow-x:auto;font-size:11px}
 .tr-help-body code{font-size:11px}
-.tr-help-btn{background:none;border:0;color:inherit;opacity:.65;cursor:pointer;
-  font-size:11px;padding:0 4px;line-height:1}
-.tr-help-btn:hover{opacity:1}
 
 /* Prancheta: popover sob a toolbar. Mesmo fundo e borda do menu de contexto;
    campos e botões com a cara dos do painel de configurações. */

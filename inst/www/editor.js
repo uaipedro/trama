@@ -23,6 +23,8 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
+import { MODOS, modoDe, mostraPreview, mostraParams, nomeDaTecla, dica } from "./modos.js";
+import { ModoPicker } from "./modos-ui.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -98,7 +100,7 @@ function docToFlow(doc, catalog) {
               seed: n.seed,
               view: (doc.ui && doc.ui.views && doc.ui.views[id]) || null,
               size: (doc.ui && doc.ui.sizes && doc.ui.sizes[id]) || null,
-              fold: (doc.ui && doc.ui.folds && doc.ui.folds[id]) || null },
+              modo: (doc.ui && doc.ui.modes && doc.ui.modes[id]) || null },
     };
   });
   // Aresta de FLUXO: a porta de SAÍDA de onde ela sai, OU a porta de ENTRADA
@@ -453,10 +455,9 @@ function NdNode({ id, data, selected }) {
       `coleção ausente para: ${data.nodeType}`);
   }
   const cat = data.categories?.[spec.category];
-  const fold = data.fold || {};
-  const semPreview = fold.preview === false, semParams = fold.params === false;
-  const mini = fold.mini === true;
-  const nParams = (spec.params || []).length;
+  const modo = modoDe(data);
+  const mini = modo === "mini";
+  const semPreview = !mostraPreview(modo), semParams = !mostraParams(modo);
   const falhou = data.state === "failed" || data.state === "invalid";
   const frac = data.progress?.fraction;
   // Contorno sutil pra todo card que é MEMBRO de uma região de fluxo —
@@ -493,24 +494,21 @@ function NdNode({ id, data, selected }) {
       // componente, contexto invertido.
       spec.icon ? h(Icon, { key: "i", icon: spec.icon, className: "tr-node-icon tr-node-icon-main" }) : null,
       h("span", { key: "l", className: "tr-node-title" }, data.label || spec.label),
-      // Com o preview recolhido, o estado de execução muda pro cabeçalho: um
-      // preview escondido não pode esconder uma falha. O preview NÃO reabre
-      // sozinho, porque isso desfaria a arrumação que o usuário escolheu.
-      semPreview && falhou
+      // Mini não tem preview pra denunciar falha: a bolinha de estado, logo
+      // depois do título, é quem fala por ele.
+      mini
+        ? h("span", { key: "dot", className: `tr-mini-dot tr-${data.state || "idle"}`,
+                      title: data.error?.message || data.state || "" })
+        : null,
+      // Com o preview recolhido (e fora do mini, que já tem a bolinha acima),
+      // o estado de execução muda pro cabeçalho: um preview escondido não pode
+      // esconder uma falha. O preview NÃO reabre sozinho, porque isso desfaria
+      // a arrumação que o usuário escolheu.
+      !mini && semPreview && falhou
         ? h("span", { key: "al", className: "tr-head-alert",
                       title: data.error?.message || "falhou" },
             h(Icon, { icon: { kind: "set", value: "triangle-alert" }, className: "tr-node-icon" }))
         : null,
-      h("button", { key: "fv", className: "tr-fold-btn nodrag",
-                    title: semPreview ? "mostrar preview (P)" : "recolher preview (P)",
-                    onClick: (e) => { e.stopPropagation(); data.onFold(id, { preview: semPreview }); } },
-        h(Icon, { icon: { kind: "set", value: semPreview ? "chevron-right" : "chevron-down" },
-                  className: "tr-node-icon" })),
-      h("button", { key: "mn", className: "tr-fold-btn nodrag",
-                    title: mini ? "expandir card (Shift+P)" : "modo mini (Shift+P)",
-                    onClick: (e) => { e.stopPropagation(); data.onFold(id, { mini: !mini }); } },
-        h(Icon, { icon: { kind: "set", value: mini ? "maximize-2" : "minimize-2" },
-                  className: "tr-node-icon" })),
       // Só para nó declarado `stochastic`: é a ÚNICA forma de re-sortear pela
       // tela, porque a semente não é param e portanto não tem campo no corpo
       // do card. Sem ele, um gerador aberto no editor ficaria preso à amostra
@@ -521,8 +519,6 @@ function NdNode({ id, data, selected }) {
                         onClick: (e) => { e.stopPropagation(); data.onReseed(id); } },
             h(Icon, { icon: { kind: "set", value: "dices" }, className: "tr-node-icon" }))
         : null,
-      h("button", { key: "?", className: "tr-help-btn", title: "ajuda deste bloco",
-                    onClick: (e) => { e.stopPropagation(); data.onHelp(data.nodeType); } }, "?"),
       data.duration != null
         ? h("span", { key: "d", className: "tr-dur", title: "última execução real" },
             fmtDur(data.duration)) : null,
@@ -537,6 +533,10 @@ function NdNode({ id, data, selected }) {
         ? h("div", { key: "hp", className: "tr-head-progress" + (frac == null ? " tr-indet" : "") },
             h("div", { style: frac == null ? undefined : { width: `${Math.round(frac * 100)}%` } }))
         : null,
+      // Sempre visível, na ponta direita — onde ficavam os botões de fold. O
+      // `?` de ajuda saiu do cabeçalho junto com eles: a ajuda do bloco agora
+      // é o H (Fase 2.3).
+      h(ModoPicker, { key: "md", value: modo, onChange: (m) => data.onModo(id, m) }),
     ]),
     // Visível enquanto a região RODA (dobrado ou não — esconder com o preview
     // recolhido tiraria justamente o botão de pausa de quem recolheu o card
@@ -555,10 +555,10 @@ function NdNode({ id, data, selected }) {
                             ctl: (data.streamCtl || {})[data.streamSource.id],
                             onCmd: data.onStreamCmd, progress: data.progress })
       : null,
-    mini || semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
+    semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
                  progress: data.progress, partial: data.partial, view: cur?.id,
                  label: data.label || spec.label }),
-    mini || semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
+    semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
       views.length === 0
         ? h("span", { key: "-", className: "tr-tab-idle" }, "—")
         : views.length === 1
@@ -569,15 +569,10 @@ function NdNode({ id, data, selected }) {
               title: v.label,
               onClick: (e) => { e.stopPropagation(); data.onView(id, v.id); },
             }, v.label))),
-    // Recolhidos, os parâmetros viram uma linha que diz QUANTOS são: o card
-    // nunca esconde que tem configuração. Em modo mini some por completo — nem
-    // a contagem — porque é o próprio modo compacto quem já diz "há mais aqui
-    // dentro, expanda pra ver".
-    mini ? null : semParams
-      ? (nParams ? h("button", { key: "pm", className: "tr-params-fold nodrag",
-                                 title: "mostrar parâmetros (O)",
-                                 onClick: (e) => { e.stopPropagation(); data.onFold(id, { params: true }); } },
-                     `${nParams} parâmetro${nParams > 1 ? "s" : ""} ▸`) : null)
+    // Sem parâmetros no card (modo mini ou preview): não há mais pílula pra
+    // reabri-los ali — quem escondeu os parâmetros edita pelo painel à
+    // esquerda (Fase 3). Aqui só resta decidir se desenha a lista ou nada.
+    semParams ? null
       : h("div", { key: "pm", className: "tr-params" }, (spec.params || []).map((p) => {
           const W = getWidget(p.kind);
           // `div`, e não `label`: o `<label>` repassa o clique ao primeiro
@@ -612,7 +607,7 @@ function NdNode({ id, data, selected }) {
                       style: { background: data.typeColors?.[p.type] || "#64748b" } }),
         ]))),
     ]),
-    mini || semPreview ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
+    semPreview ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
   ]);
 }
 
@@ -1103,7 +1098,7 @@ function UploadConflictDialog({ nome, onOverwrite, onRename, onCancel }) {
 // nada, então não pode pintar o canvas inteiro de "na fila". Batch é cosmético
 // só se TODA op dentro dele for, a mesma regra de `tr_op_semantic()`.
 const COSMETICAS = new Set(["move", "rename", "resize", "set_view",
-  "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_fold"]);
+  "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode"]);
 const cosmetica = (op) =>
   op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);
 
@@ -1240,7 +1235,7 @@ function App() {
   const paramsRef = useRef({});     // params editados localmente, antes do eco
   const viewsRef = useRef({});      // vista escolhida localmente, antes do eco
   const sizesRef = useRef({});      // tamanho arrastado localmente, antes do eco
-  const foldsRef = useRef({});      // recolhimento local, antes do eco
+  const modosRef = useRef({});      // modo escolhido localmente, antes do eco
   const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
   const clipboardRef = useRef(null); // último Ctrl+C: snapshot de blocos/frames/notas
   const colagensRef = useRef(0);     // colagens seguidas do mesmo clipboard, pro deslocamento em cascata
@@ -1421,14 +1416,12 @@ function App() {
   const onNotaEditStart = useCallback((id) => setEditNota(id), []);
   const onNotaEditEnd = useCallback(() => setEditNota(null), []);
 
-  // Estável pelos mesmos motivos de `onParam`. `set_fold` não devolve o
-  // documento, então o ref segura o recolhimento até o próximo documento
-  // chegar (e ele já vem com o valor gravado).
-  const onFold = useCallback((nodeId, patch) => {
-    const n = nodesRef.current.find((x) => x.id === nodeId);
-    foldsRef.current[nodeId] = { ...((foldsRef.current[nodeId] ?? n?.data.fold) || {}), ...patch };
+  // Estável pelos mesmos motivos de `onParam`. `set_mode` não devolve o
+  // documento, então o ref segura o modo até o próximo documento chegar.
+  const onModo = useCallback((nodeId, modo) => {
+    modosRef.current[nodeId] = modo;
     bumpTick();
-    pushOp({ op: "set_fold", node: nodeId, ...patch });
+    pushOp({ op: "set_mode", node: nodeId, modo });
   }, [bumpTick]);
 
   // Comando vivo pra fonte de uma região: play, pause, um passo, tempo. Não é
@@ -1485,7 +1478,7 @@ function App() {
                       params: { ...n.data.params, ...(paramsRef.current[n.id] || {}) },
                       view: viewsRef.current[n.id] ?? n.data.view,
                       size: sizesRef.current[n.id] ?? n.data.size,
-                      fold: foldsRef.current[n.id] ?? n.data.fold,
+                      modo: modosRef.current[n.id] ?? n.data.modo,
                       seed: seedsRef.current[n.id] ?? n.data.seed,
                       // Membro de QUALQUER região: contorno do card (8.1). Fonte de
                       // UMA região: controles de fluxo (8.2) — os dois lidos do
@@ -1495,12 +1488,12 @@ function App() {
                       streamSource: regiaoFonte(n.id),
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
-                      typeColors, categories, onParam, onHelp, onView, onResize, onFold,
+                      typeColors, categories, onParam, onHelp, onView, onResize, onModo,
                       onReseed, temas } };
   }),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
-    [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onFold, onReseed, tick, temas,
+    [nodes, typeColors, categories, onParam, onHelp, onView, onResize, onModo, onReseed, tick, temas,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
@@ -1527,7 +1520,7 @@ function App() {
         paramsRef.current = {};
         viewsRef.current = {};
         sizesRef.current = {};
-        foldsRef.current = {};
+        modosRef.current = {};
         seedsRef.current = {};
         setDoc(m.doc);
         const { nodes: novos, edges: e, needsLayout } = docToFlow(m.doc, catalogRef.current);
@@ -2391,7 +2384,11 @@ function App() {
     const es = edgesRef.current.filter((e) => alvo.has(e.source) && alvo.has(e.target));
     return {
       nodes: ns.map((n) => ({ id: n.id, type: n.type, position: { ...n.position },
-                              width: n.width, height: n.height, data: { ...n.data } })),
+                              width: n.width, height: n.height,
+                              // O modo pode ter mudado localmente (W/A/S/D, paleta)
+                              // antes do eco: `nodesRef` ainda mostra o antigo, então
+                              // o retrato sempre confere `modosRef` primeiro.
+                              data: { ...n.data, modo: modosRef.current[n.id] ?? n.data.modo } })),
       edges: es.map((e) => ({ source: e.source, sourceHandle: e.sourceHandle,
                               target: e.target, targetHandle: e.targetHandle })),
     };
@@ -2400,9 +2397,9 @@ function App() {
   // Um retrato -> as ops que recriam o grupo deslocado. Ids novos nascem AQUI,
   // no cliente (e não esperam o eco): é o que permite ligar as cópias entre si
   // no MESMO batch, como op de `connect` apontando pra um id que só existe
-  // dentro deste lote. Tamanho e recolhimento de card são ops PARTE de
-  // `add_node` — só entram se o original tinha algo fora do padrão, senão
-  // colar 50 cards mandaria 100 ops à toa.
+  // dentro deste lote. Tamanho e modo de card são ops PARTE de `add_node` —
+  // só entram se o original tinha algo fora do padrão, senão colar 50 cards
+  // mandaria 100 ops à toa.
   const opsDoGrupo = (retrato, dx, dy) => {
     const novoDe = {};
     const criam = [];
@@ -2415,12 +2412,7 @@ function App() {
         criam.push({ op: "add_node", id, type: n.data.nodeType, position: [x, y],
                     label: n.data.label, params: n.data.params || {}, seed: n.data.seed });
         if (n.data.size) depois.push({ op: "resize", node: id, w: n.data.size[0], h: n.data.size[1] });
-        const fold = n.data.fold || {};
-        const patch = {};
-        if (fold.preview === false) patch.preview = false;
-        if (fold.params === false) patch.params = false;
-        if (fold.mini === true) patch.mini = true;
-        if (Object.keys(patch).length) depois.push({ op: "set_fold", node: id, ...patch });
+        if (n.data.modo && n.data.modo !== "completo") depois.push({ op: "set_mode", node: id, modo: n.data.modo });
       } else if (n.type === "trFrame") {
         criam.push({ op: "add_frame", id, x, y, w: n.width, h: n.height,
                     title: n.data.title, aspect: n.data.aspect, color: n.data.color });
