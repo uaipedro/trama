@@ -63,7 +63,7 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
   expect_identical(back$ui$sizes, stats::setNames(list(), character(0)))
   expect_match(as.character(tr_doc_json(back)), '"sizes"\\s*:\\s*\\{\\}')
   expect_identical(back$ui$frames, stats::setNames(list(), character(0)))
-  expect_identical(back$ui$folds, stats::setNames(list(), character(0)))
+  expect_identical(back$ui$modes, stats::setNames(list(), character(0)))
   expect_identical(back$ui$notes, stats::setNames(list(), character(0)))
 })
 
@@ -72,21 +72,43 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
 # três linhas de `tr_doc_json` passa despercebido pela suíte inteira.
 test_that("documento novo serializa os mapas de ui como objeto", {
   j <- as.character(tr_doc_json(tr_doc()))
-  for (k in c("positions", "sizes", "views", "frames", "folds", "notes")) {
+  for (k in c("positions", "sizes", "views", "frames", "modes", "notes")) {
     expect_match(j, sprintf('"%s"\\s*:\\s*\\{\\}', k))
   }
 })
 
-test_that("frames e folds sobrevivem à ida e volta pelo JSON", {
+test_that("frames e modes sobrevivem à ida e volta pelo JSON", {
   m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
   d <- tr_doc_apply(d, list(op = "add_frame", id = "f", x = -10, y = 5.5, w = 1600, h = 900,
                             title = "Leitura"), m$reg)
-  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", preview = FALSE), m$reg)
+  d <- tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "params"), m$reg)
   back <- tr_doc_parse(tr_doc_json(d))
   expect_equal(back$ui$frames$f[c("x", "y", "w", "h", "title", "aspect", "color", "order")],
                list(x = -10, y = 5.5, w = 1600, h = 900, title = "Leitura",
                     aspect = "16:9", color = "azul", order = 1L))
-  expect_identical(back$ui$folds$a, list(preview = FALSE))
+  expect_identical(back$ui$modes$a, "params")
+})
+
+test_that("folds antigos viram modes na leitura", {
+  js <- '{"format":1,"nodes":{},"edges":[],"ui":{"folds":{
+    "a":{"mini":true},
+    "b":{"preview":false},
+    "c":{"params":false},
+    "d":{"preview":false,"params":false},
+    "e":{}
+  }}}'
+  d <- tr_doc_parse(js)
+  expect_identical(d$ui$modes$a, "mini")
+  expect_identical(d$ui$modes$b, "params")
+  expect_identical(d$ui$modes$c, "preview")
+  expect_identical(d$ui$modes$d, "mini")
+  expect_null(d$ui$modes$e)
+  expect_null(d$ui$folds)
+})
+
+test_that("modes explícito vence folds antigo do mesmo nó", {
+  js <- '{"format":1,"nodes":{},"edges":[],"ui":{"folds":{"a":{"mini":true}},"modes":{"a":"preview"}}}'
+  expect_identical(tr_doc_parse(js)$ui$modes$a, "preview")
 })
 
 test_that("notas sobrevivem à ida e volta pelo JSON", {

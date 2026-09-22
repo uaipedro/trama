@@ -23,7 +23,7 @@ tr_doc_json <- function(doc) {
   out$ui$sizes <- .tr_empty_obj(out$ui$sizes)
   out$ui$views <- .tr_empty_obj(out$ui$views)
   out$ui$frames <- .tr_empty_obj(out$ui$frames)
-  out$ui$folds <- .tr_empty_obj(out$ui$folds)
+  out$ui$modes <- .tr_empty_obj(out$ui$modes)
   out$ui$notes <- .tr_empty_obj(out$ui$notes)
   out$edges <- unname(out$edges)
   jsonlite::toJSON(out, auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)
@@ -79,7 +79,17 @@ tr_doc_parse <- function(txt) {
   doc$ui$sizes <- .tr_empty_obj(lapply(doc$ui$sizes %||% list(), .tr_resimplify))
   doc$ui$views <- .tr_empty_obj(lapply(doc$ui$views %||% list(), function(v) as.character(v)[[1]]))
   doc$ui$frames <- .tr_empty_obj(doc$ui$frames %||% list())
-  doc$ui$folds <- .tr_empty_obj(doc$ui$folds %||% list())
+  # `folds` é o formato de antes dos modos: vira `modes` aqui e não é mais
+  # gravado. `modes` explícito vence, pra um documento já migrado que alguém
+  # tenha editado à mão com as duas chaves não voltar atrás.
+  modes <- lapply(doc$ui$modes %||% list(), function(v) as.character(v)[[1]])
+  for (id in names(doc$ui$folds %||% list())) {
+    if (!is.null(modes[[id]])) next
+    m <- .tr_mode_from_fold(doc$ui$folds[[id]])
+    if (!identical(m, "completo")) modes[[id]] <- m
+  }
+  doc$ui$folds <- NULL
+  doc$ui$modes <- .tr_empty_obj(modes)
   doc$ui$notes <- .tr_empty_obj(doc$ui$notes %||% list())
   structure(doc, class = "tr_doc")
 }

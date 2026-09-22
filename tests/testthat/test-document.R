@@ -122,12 +122,12 @@ test_that("remover nó leva junto o estado cosmético dele", {
   x <- mk(); d0 <- add(x$doc, x$reg, "t/const", id = "a")
   doc <- tr_doc_apply(d0, list(op = "resize", node = "a", w = 480, h = 300), x$reg)
   doc <- tr_doc_apply(doc, list(op = "set_view", node = "a", view = "resumo"), x$reg)
-  doc <- tr_doc_apply(doc, list(op = "set_fold", node = "a", preview = FALSE), x$reg)
+  doc <- tr_doc_apply(doc, list(op = "set_mode", node = "a", modo = "mini"), x$reg)
   doc <- tr_doc_apply(doc, list(op = "remove_node", node = "a"), x$reg)
   expect_null(doc$ui$positions[["a"]])
   expect_null(doc$ui$sizes[["a"]])
   expect_null(doc$ui$views[["a"]])
-  expect_null(doc$ui$folds[["a"]])
+  expect_null(doc$ui$modes[["a"]])
 })
 
 test_that("param desconhecido é recusado", {
@@ -223,8 +223,8 @@ test_that("batch é semântico se QUALQUER op dentro dele for", {
   expect_true(tr_op_semantic(list(op = "batch", ops = list(list(op = "move"), list(op = "remove_node")))))
 })
 
-test_that("ops de frame e set_fold são cosméticas", {
-  for (o in c("add_frame", "update_frame", "remove_frame", "reorder_frames", "set_fold")) {
+test_that("ops de frame e set_mode são cosméticas", {
+  for (o in c("add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode")) {
     expect_false(tr_op_semantic(list(op = o)), info = o)
   }
 })
@@ -343,31 +343,23 @@ test_that("reorder_frames reescreve a ordem e exige a lista completa", {
   }
 })
 
-test_that("set_fold guarda só o que está recolhido", {
+test_that("set_mode guarda só o que desvia de 'completo'", {
   m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
-  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", preview = FALSE), m$reg)
-  expect_equal(d$ui$folds$a, list(preview = FALSE))
-  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", params = FALSE), m$reg)
-  expect_equal(d$ui$folds$a, list(preview = FALSE, params = FALSE))
-  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", preview = TRUE, params = TRUE), m$reg)
-  expect_null(d$ui$folds$a)
+  d <- tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "mini"), m$reg)
+  expect_identical(d$ui$modes$a, "mini")
+  d <- tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "preview"), m$reg)
+  expect_identical(d$ui$modes$a, "preview")
+  d <- tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "completo"), m$reg)
+  expect_null(d$ui$modes$a)
 })
 
-test_that("set_fold guarda 'mini' só quando desvia do padrão (desligado)", {
+test_that("set_mode valida o que recebe", {
   m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
-  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", mini = TRUE), m$reg)
-  expect_equal(d$ui$folds$a, list(mini = TRUE))
-  d <- tr_doc_apply(d, list(op = "set_fold", node = "a", mini = FALSE), m$reg)
-  expect_null(d$ui$folds$a)
-})
-
-test_that("set_fold valida o que recebe", {
-  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
-  expect_error(tr_doc_apply(d, list(op = "set_fold", node = "a"), m$reg),
+  expect_error(tr_doc_apply(d, list(op = "set_mode", node = "a"), m$reg),
                class = "tr_error_bad_op")
-  expect_error(tr_doc_apply(d, list(op = "set_fold", node = "a", preview = "não"), m$reg),
+  expect_error(tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "gigante"), m$reg),
                class = "tr_error_bad_op")
-  expect_error(tr_doc_apply(d, list(op = "set_fold", node = "zzz", preview = FALSE), m$reg),
+  expect_error(tr_doc_apply(d, list(op = "set_mode", node = "zzz", modo = "mini"), m$reg),
                class = "tr_error_unknown_node")
 })
 
@@ -452,7 +444,7 @@ test_that("o documento volta ao front quando a estrutura muda, inclusive dentro 
   expect_true(.tr_op_echoes_doc(list(op = "add_frame")))
   expect_true(.tr_op_echoes_doc(list(op = "reorder_frames")))
   expect_false(.tr_op_echoes_doc(list(op = "update_frame")))
-  expect_false(.tr_op_echoes_doc(list(op = "set_fold")))
+  expect_false(.tr_op_echoes_doc(list(op = "set_mode")))
   expect_false(.tr_op_echoes_doc(list(op = "batch", ops = list(list(op = "move"), list(op = "update_frame")))))
   expect_true(.tr_op_echoes_doc(list(op = "batch", ops = list(list(op = "move"), list(op = "remove_node")))))
 })

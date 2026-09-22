@@ -16,7 +16,7 @@ tr_doc <- function() {
     collections = list(),
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
-              frames = list(), folds = list(), notes = list())
+              frames = list(), modes = list(), notes = list())
   ), class = "tr_doc")
 }
 
@@ -29,7 +29,7 @@ tr_doc <- function() {
 #' esquecer vira "recomputou à toa" — barulhento e inofensivo.
 .tr_presentation_ops <- c("rename", "move", "resize", "set_view",
                           "add_frame", "update_frame", "remove_frame",
-                          "reorder_frames", "set_fold",
+                          "reorder_frames", "set_mode",
                           "add_note", "update_note", "remove_note")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
@@ -131,7 +131,7 @@ tr_op_semantic <- function(op) {
     set_view = .tr_op_set_view,
     add_frame = .tr_op_add_frame, update_frame = .tr_op_update_frame,
     remove_frame = .tr_op_remove_frame, reorder_frames = .tr_op_reorder_frames,
-    set_fold = .tr_op_set_fold,
+    set_mode = .tr_op_set_mode,
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
     connect = .tr_op_connect, disconnect = .tr_op_disconnect,
@@ -234,7 +234,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   doc$ui$positions[[op$node]] <- NULL
   doc$ui$sizes[[op$node]] <- NULL
   doc$ui$views[[op$node]] <- NULL
-  doc$ui$folds[[op$node]] <- NULL
+  doc$ui$modes[[op$node]] <- NULL
   doc$edges <- Filter(function(e) e$from$node != op$node && e$to$node != op$node, doc$edges)
   # Sem isto o documento continuaria declarando dependência de uma coleção
   # cujo último nó acabou de sair — e exigiria instalá-la pra abrir.
@@ -570,29 +570,29 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   list(doc = doc, op = op)
 }
 
-# Cada chave tem seu próprio padrão (preview e params começam abertos, mini
-# começa desligado), e a ausência já diz isso: guardar o valor que já é o
-# padrão só engordaria o documento. O card que volta a ficar todo padrão
-# some do mapa.
-.tr_fold_defaults <- c(preview = TRUE, params = TRUE, mini = FALSE)
+# Quatro modos de exibição do card, do menor pro maior. `completo` é o padrão
+# e a ausência já diz isso: só entra no documento o card que desvia dele.
+.tr_modes <- c("mini", "params", "preview", "completo")
 
-.tr_op_set_fold <- function(doc, op, registry) {
-  .tr_require(op, "node"); .tr_node_or_abort(doc, op$node)
-  given <- intersect(names(.tr_fold_defaults), names(op))
-  if (length(given) == 0L) {
-    rlang::abort("set_fold sem 'preview', 'params' nem 'mini'.", class = "tr_error_bad_op")
+.tr_op_set_mode <- function(doc, op, registry) {
+  .tr_require(op, c("node", "modo")); .tr_node_or_abort(doc, op$node)
+  m <- op$modo
+  if (!is.character(m) || length(m) != 1L || !m %in% .tr_modes) {
+    rlang::abort(sprintf("modo deve ser um de: %s.", paste(.tr_modes, collapse = ", ")),
+                 class = "tr_error_bad_op")
   }
-  fold <- doc$ui$folds[[op$node]] %||% list()
-  for (k in given) {
-    v <- op[[k]]
-    if (length(v) != 1L || !is.logical(v) || is.na(v)) {
-      rlang::abort(sprintf("%s deve ser lógico.", k), class = "tr_error_bad_op")
-    }
-    fold[[k]] <- v
-  }
-  fold <- fold[vapply(names(fold), function(k) fold[[k]] != .tr_fold_defaults[[k]], logical(1))]
-  doc$ui$folds[[op$node]] <- if (length(fold)) fold else NULL
+  doc$ui$modes[[op$node]] <- if (identical(m, "completo")) NULL else m
   list(doc = doc, op = op)
+}
+
+# Documento gravado antes dos modos guardava três chaves soltas por card.
+# `mini` manda sobre as outras (era assim que o card desenhava); sem ele, o
+# que sobra aberto decide, e os dois recolhidos davam um card só com cabeçalho,
+# que é o mini de agora.
+.tr_mode_from_fold <- function(f) {
+  if (isTRUE(f$mini)) return("mini")
+  pv <- !isFALSE(f$preview); pm <- !isFALSE(f$params)
+  if (pv && pm) "completo" else if (pv) "preview" else if (pm) "params" else "mini"
 }
 
 .tr_op_connect <- function(doc, op, registry) {

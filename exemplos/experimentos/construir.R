@@ -203,7 +203,7 @@ doc <- tr_flow_doc(f)
 # Params RECOLHIDOS em todo card: o projeto é para ler a análise, e um card com
 # cinco campos abertos ocupa o dobro da altura do resultado que importa. Um
 # clique na barra do card os abre.
-for (no in names(doc$nodes)) ops[[length(ops) + 1L]] <- list(op = "set_fold", node = no, params = FALSE)
+for (no in names(doc$nodes)) ops[[length(ops) + 1L]] <- list(op = "set_mode", node = no, modo = "preview")
 for (op in ops) doc <- tr_doc_apply(doc, op, pr$registry)
 tr_project_save(pr, doc)
 cat(sprintf("flows/main.json: %d nós, %d frames\n", length(doc$nodes), length(doc$ui$frames)))
