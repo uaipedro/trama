@@ -307,7 +307,10 @@ const snap = (v) => Math.round(v / GRID) * GRID;
 // cada quadro passaria por setNodes, remedição e redecoração de todos os cards
 // — o laço que trama.css documenta. O estado (e a op) só entram no `pointerup`,
 // mesma disciplina do `move`, que só emite com `dragging === false`.
-function Grip({ nodeId, onResize }) {
+// Sem preview (modo `params`) a alça só mexe na largura: a altura do card vem
+// da lista de parâmetros, e `hGuardada` é a altura de preview que o documento
+// já tinha, reenviada intacta pra ela sobreviver à volta ao modo completo.
+function Grip({ nodeId, onResize, hGuardada }) {
   // Desmontar no meio do arrasto é alcançável: Delete com o nó selecionado e o
   // ponteiro pressionado. Sem isto o `up` ainda rodaria e emitiria `resize` pra
   // um nó que não existe mais, voltando como `op_rejected` — barulho por nada.
@@ -323,22 +326,23 @@ function Grip({ nodeId, onResize }) {
   const onDown = (ev) => {
     ev.preventDefault(); ev.stopPropagation();
     const card = ev.currentTarget.closest(".tr-node");
-    const pv = card && card.querySelector(".tr-preview");
-    if (!pv) return;
+    if (!card) return;
+    const pv = card.querySelector(".tr-preview");
     // Captura de ponteiro: sem ela, soltar o botão FORA da janela nunca entrega
     // o `pointerup` e os listeners ficariam pendurados, arrastando o card
     // sozinho no próximo movimento do mouse.
     try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (_) {}
     const x0 = ev.clientX, y0 = ev.clientY;
-    const w0 = card.offsetWidth, h0 = pv.offsetHeight;
+    const w0 = card.offsetWidth, h0 = pv ? pv.offsetHeight : (hGuardada || MIN_H);
     // Lido uma vez, no começo: o zoom não muda no meio de um arrasto, e reler
     // por quadro só daria a chance de o card pular se mudasse.
     const z = rf.getZoom() || 1;
     let w = w0, hgt = h0;
     const move = (e) => {
       w = Math.max(MIN_W, snap(w0 + (e.clientX - x0) / z));
-      hgt = Math.max(MIN_H, snap(h0 + (e.clientY - y0) / z));
       card.style.setProperty("--tr-w", `${w}px`);
+      if (!pv) return;
+      hgt = Math.max(MIN_H, snap(h0 + (e.clientY - y0) / z));
       card.style.setProperty("--tr-h", `${hgt}px`);
     };
     // `commit = false` é saída sem confirmar: o arrasto foi cancelado (ponteiro
@@ -350,7 +354,7 @@ function Grip({ nodeId, onResize }) {
       fim.current = null;
       if (!commit) {
         card.style.setProperty("--tr-w", `${w0}px`);
-        card.style.setProperty("--tr-h", `${h0}px`);
+        if (pv) card.style.setProperty("--tr-h", `${h0}px`);
         return;
       }
       // Clique seco na alça não é redimensionamento: emitir a op mesmo assim
@@ -364,7 +368,8 @@ function Grip({ nodeId, onResize }) {
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancelar);
   };
-  return h("div", { className: "tr-grip nodrag", title: "redimensionar",
+  return h("div", { className: "tr-grip nodrag" + (hGuardada === undefined ? "" : " tr-grip-w"),
+                    title: hGuardada === undefined ? "redimensionar" : "ajustar largura",
                     onPointerDown: onDown });
 }
 
@@ -593,7 +598,9 @@ function NdNode({ id, data, selected }) {
                       style: { background: data.typeColors?.[p.type] || "#64748b" } }),
         ]))),
     ]),
-    semPreview ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
+    // O mini tem largura automática, então fica sem alça.
+    mini ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize,
+                            hGuardada: semPreview ? (hgt || MIN_H) : undefined }),
   ]);
 }
 

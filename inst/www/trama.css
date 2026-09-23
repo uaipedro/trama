@@ -334,6 +334,8 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   background:linear-gradient(135deg,transparent 50%,var(--tr-line) 50%);opacity:0;
   transition:opacity .12s}
 .tr-node:hover .tr-grip,.tr-node-sel .tr-grip{opacity:1}
+/* Card sem preview: a alça só ajusta a largura (`Grip`, editor.js). */
+.tr-grip-w{cursor:ew-resize}
 
 /* --- frame --- */
 /* O wrapper do React Flow recebe `pointer-events:all` INLINE, e só
