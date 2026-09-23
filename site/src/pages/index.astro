@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import FlowMap from "../components/FlowMap.astro";
+import CollectionCard from "../components/CollectionCard.astro";
 import { collections } from "../data/collections";
 import { control } from "../data/copy-variants";
 
@@ -65,20 +66,7 @@ const firstFlowSteps = [
       <h2 id="collections-title">Escolha por onde começar.</h2>
     </div>
     <div class="collection-cards">
-      {collections.map((collection) => (
-        <a class="collection-card" href={`/trama/colecoes/${collection.id}/`}>
-          <span class="collection-card__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><use href={`/trama/icons/lucide.svg#${collection.icon}`} /></svg>
-          </span>
-          <span class="collection-card__text">
-            <strong>{collection.packageName}</strong>
-            <span>{collection.title}</span>
-            <em>{collection.description}</em>
-            <FlowMap steps={collection.steps} />
-          </span>
-          <span class="collection-card__arrow" aria-hidden="true">↗</span>
-        </a>
-      ))}
+      {collections.map((collection) => <CollectionCard collection={collection} />)}
     </div>
   </section>
 </Base>
