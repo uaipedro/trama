@@ -94,6 +94,10 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     <main id="conteudo">
       <slot />
     </main>
+    <dialog class="search-dialog" data-search-dialog>
+      <button type="button" class="search-dialog__close" data-search-close aria-label="Fechar a busca">×</button>
+      <div id="search"></div>
+    </dialog>
     <footer class="site-footer">
       <p><strong>trama</strong> — R em blocos executáveis.</p>
       <p>Documentação das coleções do trama.</p>
@@ -163,6 +167,55 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           }
         });
       }
+
+      const searchDialog = document.querySelector("[data-search-dialog]");
+      let pagefindReady = null;
+      const loadPagefind = () => {
+        if (pagefindReady) return pagefindReady;
+        pagefindReady = Promise.all([
+          new Promise((resolve, reject) => {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "/trama/pagefind/pagefind-ui.css";
+            link.onload = resolve;
+            link.onerror = reject;
+            document.head.appendChild(link);
+          }),
+          import("/trama/pagefind/pagefind-ui.js")
+        ]).then(() => {
+          new window.PagefindUI({
+            element: "#search",
+            showSubResults: true,
+            translations: { placeholder: "Buscar blocos e páginas" }
+          });
+        });
+        return pagefindReady;
+      };
+      const openSearch = () => {
+        if (!(searchDialog instanceof HTMLDialogElement)) return;
+        loadPagefind().then(() => {
+          searchDialog.showModal();
+          searchDialog.querySelector("input")?.focus();
+        });
+      };
+      const closeSearch = () => {
+        if (searchDialog instanceof HTMLDialogElement) searchDialog.close();
+      };
+      document.querySelectorAll("[data-search-open]").forEach((btn) => btn.addEventListener("click", openSearch));
+      document.querySelector("[data-search-close]")?.addEventListener("click", closeSearch);
+      searchDialog?.addEventListener("click", (event) => {
+        if (event.target === searchDialog) closeSearch();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "/" && !searchDialog?.open) {
+          const target = event.target;
+          const isTyping = target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+          if (!isTyping) {
+            event.preventDefault();
+            openSearch();
+          }
+        }
+      });
 
       const abKey = "trama-variante";
       const params = new URLSearchParams(location.search);

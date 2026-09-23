@@ -19,7 +19,7 @@ const related = (await getCollection("docs"))
   <div class="doc-page">
     <aside class="doc-rail" aria-label="Nesta página">
       <a class="doc-rail__back" href={entry.data.collection ? `/trama/colecoes/${entry.data.collection}/` : "/trama/"}>← Voltar</a>
-      {entry.data.node && <code>{entry.data.node}</code>}
+      {entry.data.node && <code data-pagefind-meta="bloco">{entry.data.node}</code>}
       <nav>
         <p>Na página</p>
         <ol>
@@ -27,7 +27,7 @@ const related = (await getCollection("docs"))
         </ol>
       </nav>
     </aside>
-    <article class="doc-article">
+    <article class="doc-article" data-pagefind-body>
       <header class="doc-article__header">
         <p class="eyebrow">{entry.data.collection ? `Coleção ${entry.data.collection}` : entry.data.section === "por-dentro" ? "Por dentro do trama" : "Comece aqui"}</p>
         <h1>{entry.data.title}</h1>
