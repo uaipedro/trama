@@ -1,3 +1,10 @@
+# DEPRECATED (2026-09-23): tools/launcher/ (Go+Wails) no longer receives
+# releases — see tools/launcher/DEPRECATED.md. The current "click and it
+# just works" installer is tools/installer/ (Trama-Setup.exe via Inno
+# Setup on Windows, install.sh on Linux), built and E2E-tested by
+# .github/workflows/installer.yml. Left as-is, not deleted or disabled,
+# purely as a reference in case it's needed again.
+#
 # Trama Launcher — release build
 #
 # Builds the Go+Wails desktop launcher (tools/launcher/) for Windows and

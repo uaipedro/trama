@@ -59,6 +59,18 @@ atuais e só centralizou os tons do `FlowMap` em tokens CSS
 
 ## (b) Instalador avulso que já traz o R
 
+> **Resolvido em 2026-09-23** pelo instalador nativo em `tools/installer/`
+> (`Trama-Setup.exe` no Windows via Inno Setup, `install.sh` no Linux).
+> Design: `docs/plans/2026-09-23-instalador-windows-design.md`; plano de
+> implementação: `docs/plans/2026-09-23-instalador-fast-plan.md`; checklist
+> de release: `docs/instalador-release.md`. A ideia abaixo é o registro
+> histórico da lacuna antes dessa decisão — o resumo do que foi decidido,
+> em vez do que estava em aberto: nem Go/Wails revivido nem bundle
+> offline; o exe não embute nenhum executável nosso, só baixa e roda o
+> instalador oficial do R e chama `Rscript` (motor todo em R, pacote novo
+> `trama.launcher`). Assinatura de código (SignPath) segue pendente, como
+> registrado abaixo.
+
 Hoje existem dois caminhos de instalação, nenhum deles "clique e pronto"
 sem pré-requisito:
 

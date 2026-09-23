@@ -1,9 +1,38 @@
 ---
 title: Instalação
-description: Instalar o trama no R com pak ou remotes, e usar o trama-cli quando ainda não há R na máquina.
+description: Instalar o trama sem saber programar, no R com pak ou remotes, e pelo trama-cli quando ainda não há R na máquina.
 section: por-dentro
 order: 2
 ---
+
+## Instalar sem saber programar
+
+Quem nunca abriu um terminal também instala o trama. No **Windows**, baixe e
+rode o instalador — ele não exige nada instalado antes (nem R, nem
+Node): baixa o R oficial sozinho, silenciosamente, e depois monta o atalho
+"Trama" no menu Iniciar.
+
+<a class="button button--primary" href="https://github.com/uaipedro/trama/releases/latest/download/Trama-Setup.exe">Baixar Trama-Setup.exe</a>
+
+> O Windows vai mostrar um aviso azul ("O Windows protegeu o computador"),
+> porque o instalador ainda não tem assinatura digital paga — não porque
+> ele contém algo malicioso (o instalador não embute nenhum executável
+> nosso; ele só baixa o instalador oficial do R e roda scripts). Clique em
+> **"Mais informações"** e depois em **"Executar assim mesmo"**.
+
+Depois de instalado, abra o atalho **Trama** no menu Iniciar: ele abre uma
+tela local no navegador com as versões instaladas, as coleções disponíveis
+e o botão para abrir o editor.
+
+No **Linux**, um único comando faz a mesma coisa (baixa um R portátil e
+instala o núcleo do trama, sem precisar de privilégio de administrador):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/uaipedro/trama/main/tools/installer/linux/install.sh | bash
+```
+
+Ao final, o trama aparece no menu de aplicativos como **Trama**. Rodar o
+comando de novo atualiza para a versão mais recente.
 
 ## Pelo R, com pak
 
@@ -69,8 +98,6 @@ trama open               # abre o editor no projeto da pasta atual
 além de Dados e Visualização e abre o editor no navegador ao final. Rodado
 dentro de uma pasta de projeto já existente (com `trama.json`), `trama open`
 abre o editor sem passar pelas perguntas de criação.
-
-Um instalador avulso, com o R já embutido, está em preparação.
 
 ## Primeiro fluxo
 
