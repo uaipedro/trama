@@ -29,7 +29,7 @@ describe("updateCommand", () => {
     const rscript = rscriptPath(base, R_VERSION);
     mkdirSync(join(rscript, ".."), { recursive: true });
     const logPath = join(home, "last-script.txt");
-    writeFileSync(rscript, `#!/bin/sh\necho "$2" > "${logPath}"\nexit 0\n`);
+    writeFileSync(rscript, `#!/bin/sh\ncat "$1" > "${logPath}"\nexit 0\n`);
     chmodSync(rscript, 0o755);
 
     mkdirSync(base, { recursive: true });

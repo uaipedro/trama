@@ -65,7 +65,7 @@ describe("resolveRepoUrl", () => {
 describe("runInstall", () => {
   it("inclui a saída do processo na mensagem de erro em vez de só o exit code", async () => {
     const fakeRscript = join(mkdtempSync(join(tmpdir(), "trama-cli-fakescript-")), "fake.sh");
-    writeFileSync(fakeRscript, "#!/bin/sh\necho \"$2\"\nexit 1\n");
+    writeFileSync(fakeRscript, "#!/bin/sh\ncat \"$1\"\nexit 1\n");
     chmodSync(fakeRscript, 0o755);
 
     await expect(

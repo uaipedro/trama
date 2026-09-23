@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const P3M_REPO = "https://packagemanager.posit.co/cran/latest";
 const MAX_ERROR_TAIL_LINES = 40;
@@ -87,6 +89,10 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 }
 for (pkg in c(${pkgList})) {
   remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = ${force ? "TRUE" : "FALSE"})
+  name <- basename(pkg)
+  if (!file.exists(file.path(lib, name, "Meta", "package.rds"))) {
+    stop("instalação de '", name, "' terminou sem erro mas o pacote não está completo em ", lib, call. = FALSE)
+  }
 }
 `;
 }
@@ -127,8 +133,13 @@ export function runInstall(
   script: string,
   onPackage: (pkg: string) => void = () => {}
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(rscriptPath, ["-e", script], { env: rEnv() });
+  // Script vai por arquivo: no Windows `Rscript -e` com várias linhas só
+  // executa a primeira e sai com código 0, sem instalar nada.
+  const dir = mkdtempSync(join(tmpdir(), "trama-install-"));
+  const file = join(dir, "install.R");
+  writeFileSync(file, script);
+  return new Promise<void>((resolve, reject) => {
+    const proc = spawn(rscriptPath, [file], { env: rEnv() });
     const tail: string[] = [];
 
     const onData = (chunk: Buffer) => {
@@ -145,6 +156,7 @@ export function runInstall(
 
     proc.on("error", reject);
     proc.on("close", (code) => {
+      rmSync(dir, { recursive: true, force: true });
       if (code === 0) {
         resolve();
       } else {
