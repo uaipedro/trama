@@ -61,14 +61,20 @@ tl_state_write <- function(s) {
   desc$Version
 }
 
-#' Status completo da instalação: o que a tela de início lê para desenhar
-#' versões, botão de atualizar, coleções e o aviso de troca de linha do R.
-#' Nunca lança erro — mesmo sem instalação e sem rede, devolve uma resposta
-#' coerente (a página tem que conseguir se desenhar nesse estado).
+#' Status da instalação local
+#'
+#' O que a tela de início lê para desenhar versões, botão de atualizar,
+#' coleções e o aviso de troca de linha do R. Nunca lança erro — mesmo sem
+#' instalação e sem rede, devolve uma resposta coerente (a página tem que
+#' conseguir se desenhar nesse estado).
 #'
 #' @param m Manifesto (de `tl_manifest_fetch()`) ou `NULL` se offline.
 #' @param s Estado local (de `tl_state_read()`).
-#' @noRd
+#' @return Lista com `release_instalada`, `release_disponivel`,
+#'   `atualizar`, `r_instalado`, `r_exigido`, `troca_de_r`, `pacotes`
+#'   (data.frame nome/instalada/disponível) e `colecoes` (data.frame
+#'   nome/titulo/instalada/disponivel/requires).
+#' @export
 tl_status <- function(m = tl_manifest_fetch(), s = tl_state_read()) {
   lib_atual <- tl_lib_dir(s$atual)
 

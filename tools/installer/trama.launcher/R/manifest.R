@@ -8,11 +8,16 @@ NULL
 
 .tl_manifest_chaves_obrigatorias <- c("trama", "r", "cran_snapshot", "core")
 
+#' Lê e valida o manifesto de release
+#'
 #' Lê e valida o manifesto de `src` (URL ou caminho local). Lança erro com
 #' classe `tl_error_manifesto` e mensagem em português se faltar alguma
 #' chave obrigatória, se `cran_snapshot` não for uma data ISO (`AAAA-MM-DD`)
 #' ou se `r` não estiver no formato `x.y.z`.
-#' @noRd
+#'
+#' @param src URL ou caminho local do manifesto (`release.json`).
+#' @return Lista com o manifesto validado.
+#' @export
 tl_manifest_read <- function(src = tl_manifest_url()) {
   m <- .tl_manifest_ler_bruto(src)
 

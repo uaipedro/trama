@@ -26,6 +26,8 @@ tl_remove_pkgs <- function(pkgs, lib) {
   utils::remove.packages(pkgs, lib = lib)
 }
 
+#' Instala uma release numa biblioteca isolada
+#'
 #' Instala a release descrita em `m` (mais as `colecoes` pedidas) numa
 #' biblioteca isolada `tl_lib_dir(m$trama)`, só com pacotes binários.
 #'
@@ -36,7 +38,8 @@ tl_remove_pkgs <- function(pkgs, lib) {
 #' @param m Manifesto de release (`tl_manifest_read()`/`tl_manifest_fetch()`).
 #' @param colecoes Nomes de coleções a instalar junto com o núcleo.
 #' @param progresso Função chamada com uma mensagem a cada pacote (`message()` por padrão).
-#' @noRd
+#' @return (Invisível) o novo estado gravado.
+#' @export
 tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso = message) {
   lib <- tl_lib_dir(m$trama)
   dir.create(lib, recursive = TRUE, showWarnings = FALSE)
@@ -89,10 +92,14 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
   invisible(novo_estado)
 }
 
+#' Volta para a release anterior
+#'
 #' Volta a release atual para a anterior mais recente (a lib da release
 #' atual continua no disco, só não é mais a apontada pelo estado — assim dá
 #' para avançar de novo sem reinstalar).
-#' @noRd
+#'
+#' @return (Invisível) o novo estado gravado.
+#' @export
 tl_rollback <- function() {
   s <- tl_state_read()
   if (!length(s$anteriores)) {
@@ -108,10 +115,17 @@ tl_rollback <- function() {
   invisible(novo_estado)
 }
 
+#' Instala uma coleção na release atual
+#'
 #' Instala uma coleção na lib da release atual e a acrescenta ao estado.
 #' Recusa qualquer coleção que não conste no manifesto — o manifesto é a
 #' única fonte de verdade sobre o que é instalável nesta release.
-#' @noRd
+#'
+#' @param m Manifesto de release.
+#' @param nome Nome da coleção a instalar.
+#' @param progresso Função chamada com uma mensagem de progresso.
+#' @return (Invisível) o novo estado gravado.
+#' @export
 tl_collection_add <- function(m, nome, progresso = message) {
   if (!nome %in% names(m$collections)) {
     .tl_erro_instalacao(sprintf(
@@ -135,8 +149,14 @@ tl_collection_add <- function(m, nome, progresso = message) {
   invisible(s)
 }
 
+#' Remove uma coleção da release atual
+#'
 #' Remove uma coleção da lib da release atual e a tira do estado.
-#' @noRd
+#'
+#' @param nome Nome da coleção a remover.
+#' @param progresso Função chamada com uma mensagem de progresso.
+#' @return (Invisível) o novo estado gravado.
+#' @export
 tl_collection_remove <- function(nome, progresso = message) {
   s <- tl_state_read()
   lib <- tl_lib_dir(s$atual)
