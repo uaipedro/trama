@@ -93,3 +93,36 @@ test_that("tl_repos sem codename cai na URL genérica do P3M", {
 
   expect_equal(unname(repos["P3M"]), "https://packagemanager.posit.co/cran/2026-10-01")
 })
+
+test_that("tl_repos prepende TRAMA_EXTRA_REPOS na frente dos repos normais", {
+  withr::local_envvar(c(TRAMA_EXTRA_REPOS = "file:///tmp/pacotes"))
+  testthat::local_mocked_bindings(tl_os = function() list(tipo = "windows"))
+  m <- tl_manifest_read(fixture())
+
+  repos <- tl_repos(m)
+
+  expect_equal(unname(repos[1]), "file:///tmp/pacotes")
+  expect_equal(names(repos)[1], "local")
+  expect_equal(unname(repos["P3M"]), "https://packagemanager.posit.co/cran/2026-10-01")
+})
+
+test_that("tl_repos aceita várias URLs em TRAMA_EXTRA_REPOS separadas por ;", {
+  withr::local_envvar(c(TRAMA_EXTRA_REPOS = "file:///tmp/a;file:///tmp/b"))
+  testthat::local_mocked_bindings(tl_os = function() list(tipo = "windows"))
+  m <- tl_manifest_read(fixture())
+
+  repos <- tl_repos(m)
+
+  expect_equal(unname(repos[1:2]), c("file:///tmp/a", "file:///tmp/b"))
+  expect_equal(names(repos)[1:2], c("local", "local"))
+})
+
+test_that("tl_repos sem TRAMA_EXTRA_REPOS não altera o comportamento normal", {
+  withr::local_envvar(c(TRAMA_EXTRA_REPOS = NA))
+  testthat::local_mocked_bindings(tl_os = function() list(tipo = "windows"))
+  m <- tl_manifest_read(fixture())
+
+  repos <- tl_repos(m)
+
+  expect_equal(unname(repos[1]), "https://uaipedro.r-universe.dev")
+})

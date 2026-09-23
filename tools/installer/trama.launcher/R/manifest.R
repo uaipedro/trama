@@ -130,6 +130,13 @@ tl_os <- function() {
 #' Repositórios do manifesto mais o P3M preso na data do `cran_snapshot`,
 #' em binário. No Windows a URL é genérica; no Linux leva o codename da
 #' distro quando dá para descobrir (senão cai na URL genérica também).
+#'
+#' Se `TRAMA_EXTRA_REPOS` estiver setada (uma ou mais URLs `file:///...`
+#' separadas por `;`), essas URLs entram NA FRENTE dos repositórios normais,
+#' com o nome `"local"` — é assim que `--local <dir>` do bootstrap.R vira um
+#' repositório extra com os nossos pacotes em vez de um caminho de
+#' instalação separado (ver `bootstrap.R`, que replica esta mesma lógica
+#' porque roda antes de o trama.launcher existir).
 #' @noRd
 tl_repos <- function(m) {
   os <- tl_os()
@@ -139,5 +146,13 @@ tl_repos <- function(m) {
     sprintf("https://packagemanager.posit.co/cran/__linux__/%s/%s", os$codename, m$cran_snapshot)
   }
   repos <- if (is.null(m$repos)) character(0) else unlist(m$repos, use.names = FALSE)
+
+  extra <- Sys.getenv("TRAMA_EXTRA_REPOS")
+  if (nzchar(extra)) {
+    extra_repos <- strsplit(extra, ";", fixed = TRUE)[[1]]
+    names(extra_repos) <- rep_len("local", length(extra_repos))
+    repos <- c(extra_repos, repos)
+  }
+
   c(repos, P3M = snapshot)
 }

@@ -55,7 +55,16 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
   repos <- tl_repos(m)
   options(repos = repos)
   if (.Platform$OS.type == "windows" || identical(Sys.info()[["sysname"]], "Darwin")) {
-    options(pkgType = "binary", install.packages.compile.from.source = "never")
+    if (nzchar(Sys.getenv("TRAMA_EXTRA_REPOS"))) {
+      # Repositório extra (--local): os nossos pacotes são R puro em
+      # source (write_PACKAGES(type = "source")), então "binary" puro
+      # faria install.packages() ignorá-los. "both" deixa install.packages()
+      # escolher fonte quando só há tarball de source disponível (os nossos
+      # pacotes) e continuar preferindo binário para as dependências do CRAN.
+      options(pkgType = "both", install.packages.compile.from.source = "never")
+    } else {
+      options(pkgType = "binary", install.packages.compile.from.source = "never")
+    }
   }
 
   pacotes <- unique(c(names(m$core), colecoes))

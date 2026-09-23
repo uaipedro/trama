@@ -7,10 +7,18 @@
 # script só faz o suficiente para conseguir chamá-la: garante jsonlite,
 # lê o manifesto, instala trama.launcher na lib da release e delega.
 #
-# `--local <dir>`: em vez de baixar de repositórios, instala jsonlite,
-# trama.launcher e os pacotes do núcleo a partir de tarballs em <dir>
-# (formato `<pacote>_<versão>.tar.gz`, o que `R CMD build` produz). Existe
-# para o CI testar o caminho inteiro antes de o r-universe existir
+# `--local <dir>`: em vez de baixar os NOSSOS pacotes (trama.launcher e o
+# núcleo) de um repositório remoto, usa <dir> como um repositório CRAN extra
+# (índice `<dir>/src/contrib/PACKAGES` via `tools::write_PACKAGES()`,
+# exposto via `TRAMA_EXTRA_REPOS`), na FRENTE dos repositórios normais — os
+# tarballs soltos em <dir> (formato `<pacote>_<versão>.tar.gz`, o que
+# `R CMD build` produz) precisam ser só dos nossos pacotes; as dependências
+# deles (shiny, dplyr, lubridate...) continuam vindo do P3M normalmente.
+# Fora isso o fluxo de instalação é idêntico ao caminho sem `--local`:
+# `install.packages("trama.launcher", repos = ...)` e depois
+# `trama.launcher::tl_install_release()` resolvem tudo (o próprio
+# `tl_repos()` do trama.launcher lê `TRAMA_EXTRA_REPOS`, ver R/manifest.R).
+# Existe para o CI testar o caminho inteiro antes de o r-universe existir
 # (task 4.1 do plano), e para quem quiser reproduzir isso localmente.
 
 .bs_arg_local <- function(args) {
@@ -71,15 +79,6 @@ sink(.bs_log_con, type = "output", split = TRUE)
   quit(save = "no", status = 1)
 }
 
-.bs_tarball <- function(dir, pacote) {
-  candidatos <- Sys.glob(file.path(dir, sprintf("%s_*.tar.gz", pacote)))
-  if (!length(candidatos)) {
-    .bs_erro("--local '%s' não tem um tarball de '%s' (esperava '%s_<versão>.tar.gz').",
-             dir, pacote, pacote)
-  }
-  candidatos[[1]]
-}
-
 .bs_codename_linux <- function() {
   arquivo <- "/etc/os-release"
   if (!file.exists(arquivo)) return(NA_character_)
@@ -89,10 +88,12 @@ sink(.bs_log_con, type = "output", split = TRUE)
   gsub('^VERSION_CODENAME="?|"?$', "", alvo[[1]])
 }
 
-# Repositórios do manifesto + P3M preso no snapshot. Reimplementado aqui
-# (é uma cópia de `tl_repos()`, ver R/manifest.R) porque, neste ponto do
-# bootstrap, o trama.launcher ainda não está instalado — é ele quem
-# normalmente calcula isso.
+# Repositórios do manifesto + P3M preso no snapshot (+ TRAMA_EXTRA_REPOS na
+# frente, quando setada). Reimplementado aqui (é uma cópia de `tl_repos()`,
+# ver R/manifest.R) porque, neste ponto do bootstrap, o trama.launcher
+# ainda não está instalado — é ele quem normalmente calcula isso. As duas
+# funções precisam ficar em sincronia; qualquer mudança aqui tem que ser
+# espelhada lá (e vice-versa).
 .bs_repos <- function(m) {
   codename <- if (.Platform$OS.type == "windows") NA_character_ else .bs_codename_linux()
   snapshot <- if (.Platform$OS.type == "windows" || is.na(codename) || !nzchar(codename)) {
@@ -101,6 +102,14 @@ sink(.bs_log_con, type = "output", split = TRUE)
     sprintf("https://packagemanager.posit.co/cran/__linux__/%s/%s", codename, m$cran_snapshot)
   }
   repos_manifesto <- if (is.null(m$repos)) character(0) else unlist(m$repos, use.names = FALSE)
+
+  extra <- Sys.getenv("TRAMA_EXTRA_REPOS")
+  if (nzchar(extra)) {
+    extra_repos <- strsplit(extra, ";", fixed = TRUE)[[1]]
+    names(extra_repos) <- rep_len("local", length(extra_repos))
+    repos_manifesto <- c(extra_repos, repos_manifesto)
+  }
+
   c(repos_manifesto, P3M = snapshot)
 }
 
@@ -119,27 +128,55 @@ sink(.bs_log_con, type = "output", split = TRUE)
 # (as de install.packages() inclusive) no log, sem abafar o console. ------
 withCallingHandlers(
   {
+    # --- 0. `--local <dir>`: transforma <dir> num repositório CRAN extra
+    # (um índice PACKAGES via `write_PACKAGES()`) e o expõe via
+    # TRAMA_EXTRA_REPOS, na URL `file:///...` que `tl_repos()`/`.bs_repos()`
+    # prependem aos repositórios normais. Daqui pra frente, com ou sem
+    # `--local`, o fluxo é EXATAMENTE o mesmo — jsonlite sempre vem do P3M
+    # (não precisa estar em <dir>), e os nossos pacotes (trama.launcher,
+    # núcleo) são resolvidos por `install.packages()`/`tl_install_release()`
+    # normalmente, só que com <dir> na frente da lista de repositórios.
+    if (!is.null(local_dir)) {
+      # install.packages()/contrib.url() sempre montam a URL de um repo
+      # "source" como "<repos>/src/contrib" — não dá para apontar
+      # TRAMA_EXTRA_REPOS direto para <dir> e ter os tarballs soltos nele.
+      # Então <dir>/src/contrib é o índice de verdade (write_PACKAGES() vai
+      # lá); TRAMA_EXTRA_REPOS aponta para <dir> (o pai), que é o que os
+      # outros repositórios (P3M, r-universe) também esperam.
+      contrib_dir <- file.path(local_dir, "src", "contrib")
+      dir.create(contrib_dir, recursive = TRUE, showWarnings = FALSE)
+      tarballs <- Sys.glob(file.path(local_dir, "*.tar.gz"))
+      if (!length(tarballs)) {
+        .bs_erro("--local '%s' não tem nenhum tarball (*.tar.gz).", local_dir)
+      }
+      destinos <- file.path(contrib_dir, basename(tarballs))
+      ainda_nao_copiados <- !file.exists(destinos)
+      if (any(ainda_nao_copiados)) {
+        file.copy(tarballs[ainda_nao_copiados], contrib_dir, overwrite = TRUE)
+      }
+      tools::write_PACKAGES(contrib_dir, type = "source")
+
+      # normalizePath(dir, "/") também troca `\` por `/` no Windows — sem
+      # isso a URL file:// ficaria malformada lá.
+      Sys.setenv(TRAMA_EXTRA_REPOS = paste0("file:///", normalizePath(local_dir, winslash = "/")))
+    }
+
     # --- 1. jsonlite: precisa dele para ler o manifesto. Se não estiver
-    # disponível, instala numa lib temporária. Sem `--local`, usa o
-    # espelho "latest" do P3M em vez do snapshot do manifesto: nesse ponto
-    # o manifesto ainda não foi lido (é jsonlite quem lê JSON), e jsonlite
-    # não precisa estar preso a uma data — só precisa ser binário.
+    # disponível, instala numa lib temporária a partir do espelho "latest"
+    # do P3M: nesse ponto o manifesto ainda não foi lido (é jsonlite quem lê
+    # JSON), e jsonlite não precisa estar preso a uma data — só precisa ser
+    # binário. jsonlite nunca vem de `--local` (não é um pacote nosso).
     if (!requireNamespace("jsonlite", quietly = TRUE)) {
       lib_tmp <- file.path(tempdir(), "trama-bootstrap-lib")
       dir.create(lib_tmp, recursive = TRUE, showWarnings = FALSE)
       .libPaths(c(lib_tmp, .libPaths()))
 
-      if (!is.null(local_dir)) {
-        utils::install.packages(.bs_tarball(local_dir, "jsonlite"),
-                                 lib = lib_tmp, repos = NULL, type = "source")
-      } else {
-        if (.bs_so_binario()) {
-          options(pkgType = "binary", install.packages.compile.from.source = "never")
-        }
-        utils::install.packages("jsonlite", lib = lib_tmp,
-                                 repos = "https://packagemanager.posit.co/cran/latest",
-                                 dependencies = NA)
+      if (.bs_so_binario()) {
+        options(pkgType = "binary", install.packages.compile.from.source = "never")
       }
+      utils::install.packages("jsonlite", lib = lib_tmp,
+                               repos = "https://packagemanager.posit.co/cran/latest",
+                               dependencies = NA)
 
       if (!requireNamespace("jsonlite", quietly = TRUE)) {
         .bs_erro("Não consegui instalar o jsonlite; sem ele não dá para ler o manifesto de release.")
@@ -179,60 +216,39 @@ withCallingHandlers(
     }
 
     # --- 3. trama.launcher, na lib da própria release (mesma lib do
-    # núcleo: é lá que `abrir()` espera encontrá-lo, via .libPaths()).
+    # núcleo: é lá que `abrir()` espera encontrá-lo, via .libPaths()). Com
+    # `--local`, `.bs_repos(m)` já tem o repositório extra na frente (passo
+    # 0), então isto é o MESMO código do caminho sem `--local`.
     lib_release <- file.path(trama_home, "lib", m$trama)
     dir.create(lib_release, recursive = TRUE, showWarnings = FALSE)
     .libPaths(c(lib_release, .libPaths()))
 
-    if (!is.null(local_dir)) {
-      utils::install.packages(.bs_tarball(local_dir, "trama.launcher"),
-                               lib = lib_release, repos = NULL, type = "source", dependencies = NA)
-    } else {
-      repos <- .bs_repos(m)
-      if (.bs_so_binario()) options(pkgType = "binary", install.packages.compile.from.source = "never")
-      utils::install.packages("trama.launcher", lib = lib_release, repos = repos, dependencies = NA)
+    repos <- .bs_repos(m)
+    if (.bs_so_binario()) {
+      if (nzchar(Sys.getenv("TRAMA_EXTRA_REPOS"))) {
+        # Os nossos pacotes (no repositório extra) são R puro em source;
+        # "both" deixa install.packages() cair para source só para eles,
+        # mantendo binário para as dependências do CRAN/P3M.
+        options(pkgType = "both", install.packages.compile.from.source = "never")
+      } else {
+        options(pkgType = "binary", install.packages.compile.from.source = "never")
+      }
     }
+    utils::install.packages("trama.launcher", lib = lib_release, repos = repos, dependencies = NA)
 
     if (!dir.exists(file.path(lib_release, "trama.launcher"))) {
       .bs_erro("Não consegui instalar o trama.launcher. Veja acima o motivo do install.packages().")
     }
 
-    # --- 4. A release inteira (núcleo + eventuais coleções). Sem
-    # `--local`, delega para o motor de verdade, que já sabe rotacionar
-    # libs antigas, gravar o estado só em caso de sucesso etc. Com
-    # `--local`, o trama.launcher recém-instalado ainda não pode instalar
-    # a si mesmo nem ler tarballs locais (isso é o próprio bootstrap.R
-    # fazendo o papel do r-universe para o CI), então instala o resto do
-    # núcleo manualmente e grava o estado do mesmo jeito que
-    # `tl_install_release()` faria.
-    if (is.null(local_dir)) {
-      tryCatch(
-        trama.launcher::tl_install_release(m, colecoes = character()),
-        error = function(e) .bs_erro("Falhou a instalação da release: %s", conditionMessage(e))
-      )
-    } else {
-      pacotes <- setdiff(names(m$core), "trama.launcher")
-      for (p in pacotes) {
-        utils::install.packages(.bs_tarball(local_dir, p),
-                                 lib = lib_release, repos = NULL, type = "source", dependencies = NA)
-      }
-      todos <- names(m$core)
-      faltando_pkgs <- todos[!vapply(todos, function(p) dir.exists(file.path(lib_release, p)), logical(1))]
-      if (length(faltando_pkgs)) {
-        .bs_erro("Falhou a instalação de: %s.", paste(faltando_pkgs, collapse = ", "))
-      }
-
-      estado_arquivo <- file.path(trama_home, "estado.json")
-      anteriores <- character(0)
-      if (file.exists(estado_arquivo)) {
-        antigo <- tryCatch(jsonlite::fromJSON(estado_arquivo, simplifyVector = TRUE), error = function(e) NULL)
-        if (!is.null(antigo) && !is.null(antigo$anteriores)) anteriores <- as.character(antigo$anteriores)
-      }
-      novo_estado <- list(atual = m$trama, anteriores = anteriores, colecoes = character(0), recentes = character(0))
-      tmp <- tempfile(pattern = "estado-", tmpdir = trama_home, fileext = ".json.tmp")
-      writeLines(jsonlite::toJSON(novo_estado, auto_unbox = TRUE), tmp)
-      invisible(file.rename(tmp, estado_arquivo))
-    }
+    # --- 4. A release inteira (núcleo + eventuais coleções), sempre via
+    # trama.launcher::tl_install_release() — com `--local` isso já inclui o
+    # repositório extra (é `tl_repos()`, dentro do próprio trama.launcher,
+    # quem lê TRAMA_EXTRA_REPOS; ver R/manifest.R). tl_install_release() já
+    # sabe rotacionar libs antigas e só grava o estado em caso de sucesso.
+    tryCatch(
+      trama.launcher::tl_install_release(m, colecoes = character()),
+      error = function(e) .bs_erro("Falhou a instalação da release: %s", conditionMessage(e))
+    )
 
     message(sprintf("trama %s instalado.", m$trama))
   },

@@ -114,7 +114,7 @@ function PrecisaInstalarR(): Boolean;
 var
   RscriptPath: String;
   ResultCode: Integer;
-  VersaoOutput: String;
+  VersaoOutput: AnsiString;
   TmpFile: String;
   CmdLine: String;
 begin
@@ -131,9 +131,12 @@ begin
     TmpFile + '" 2>&1"';
   if Exec(ExpandConstant('{cmd}'), CmdLine, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
   begin
+    // LoadStringFromFile exige AnsiString no Inno Unicode (senão "Type
+    // mismatch" na compilação) — VersaoOutput é AnsiString e convertido
+    // para String (via String(...)) só na hora de comparar/usar.
     if (ResultCode = 0) and FileExists(TmpFile) and LoadStringFromFile(TmpFile, VersaoOutput) then
     begin
-      if RMajorMinor(Trim(VersaoOutput)) = '{#RVersionLinha}' then
+      if RMajorMinor(Trim(String(VersaoOutput))) = '{#RVersionLinha}' then
         Result := False;
     end;
   end;
