@@ -1,6 +1,6 @@
 {
   "name": "@uaipedro/trama-cli",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Instala e roda o trama (editor de fluxos em R) sem precisar já ter R instalado.",
   "type": "module",
   "bin": {

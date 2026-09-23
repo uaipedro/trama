@@ -6,13 +6,14 @@ import { createCommand } from "./commands/create.js";
 import { updateCommand } from "./commands/update.js";
 import { isProjectDir } from "./project.js";
 import { printMascote } from "./mascote.js";
+import pkg from "../package.json" with { type: "json" };
 
 const program = new Command();
 
 program
   .name("trama")
   .description("Instala e roda o trama sem precisar já ter R instalado.")
-  .version("0.2.4");
+  .version(pkg.version);
 
 // Envolve o handler de cada comando para transformar erros/rejeições não
 // tratadas em uma mensagem de erro limpa, em vez de um stack trace cru
