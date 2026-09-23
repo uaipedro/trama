@@ -1,0 +1,265 @@
+# Trama Installer — build & E2E
+#
+# Constrói os tarballs do núcleo (trama, trama.data, trama.view,
+# trama.launcher), compila o Trama-Setup.exe (Inno Setup) e testa a
+# instalação limpa de ponta a ponta no Windows e no Linux: o instalador
+# nativo (Trama-Setup.exe / install.sh) até o launcher respondendo na porta
+# 8725, em modo headless. Publica os artefatos (Setup, install.sh,
+# release.json) numa GitHub Release quando o gatilho é uma tag `trama-*`.
+#
+# Os pacotes ainda não estão no r-universe (uaipedro.r-universe.dev) em
+# todo release — ver tools/installer/r-universe/README.md — então os jobs
+# `windows` e `linux` instalam a partir dos tarballs do job `pacotes`
+# (artefato "pacotes"), via `--local <pasta>`, repassado ao bootstrap.R pela
+# variável de ambiente TRAMA_BOOTSTRAP_ARGS (lida por Trama-Setup.iss no
+# Windows e por install.sh no Linux). Quando os pacotes estiverem sempre
+# publicados no r-universe, essa variável pode ser removida e os jobs
+# passam a baixar de lá, como a instalação real faz.
+
+name: Instalador
+
+on:
+  push:
+    tags:
+      - "trama-*"
+  workflow_dispatch: {}
+
+jobs:
+  pacotes:
+    name: Construir tarballs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar o R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "release"
+          use-public-rspm: true
+
+      - name: Construir os tarballs do núcleo
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/pacotes
+          R CMD build --no-build-vignettes --no-manual .
+          mv trama_*.tar.gz dist/pacotes/
+          R CMD build --no-build-vignettes --no-manual collections/trama.data
+          mv trama.data_*.tar.gz dist/pacotes/
+          R CMD build --no-build-vignettes --no-manual collections/trama.view
+          mv trama.view_*.tar.gz dist/pacotes/
+          R CMD build --no-build-vignettes --no-manual tools/installer/trama.launcher
+          mv trama.launcher_*.tar.gz dist/pacotes/
+          ls -la dist/pacotes
+
+      - name: Publicar os tarballs
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacotes
+          path: dist/pacotes
+          if-no-files-found: error
+
+  windows:
+    name: Windows — instalação limpa
+    needs: pacotes
+    runs-on: windows-latest
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v4
+
+      - name: Baixar os tarballs do job "pacotes"
+        uses: actions/download-artifact@v4
+        with:
+          name: pacotes
+          path: pacotes
+
+      - name: Preparar variáveis
+        shell: pwsh
+        run: |
+          "TRAMA_HOME_WIN=$env:LOCALAPPDATA\Trama" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Instalar o Inno Setup (se preciso)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            choco install innosetup -y --no-progress
+          }
+          "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Compilar o Trama-Setup.exe
+        shell: pwsh
+        run: iscc tools\installer\windows\Trama-Setup.iss
+
+      - name: Rodar o Setup silenciosamente (com os pacotes do job "pacotes")
+        shell: pwsh
+        env:
+          TRAMA_MANIFEST_URL: ${{ github.workspace }}\tools\installer\release.json
+          TRAMA_BOOTSTRAP_ARGS: --local "${{ github.workspace }}\pacotes"
+        run: |
+          $processo = Start-Process -FilePath "dist\Trama-Setup.exe" `
+            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" `
+            -Wait -PassThru
+          if ($processo.ExitCode -ne 0) {
+            throw "Trama-Setup.exe terminou com código $($processo.ExitCode)"
+          }
+
+      - name: Conferir a instalação
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:TRAMA_HOME_WIN\R\bin\Rscript.exe")) {
+            throw "Rscript.exe não encontrado em $env:TRAMA_HOME_WIN\R\bin"
+          }
+          if (-not (Test-Path "$env:TRAMA_HOME_WIN\estado.json")) {
+            throw "estado.json não encontrado em $env:TRAMA_HOME_WIN"
+          }
+
+      - name: Subir o launcher em modo headless e checar a porta 8725
+        shell: pwsh
+        env:
+          TRAMA_HEADLESS: "1"
+        run: |
+          Start-Process -FilePath "$env:TRAMA_HOME_WIN\R\bin\Rscript.exe" `
+            -ArgumentList "`"$env:TRAMA_HOME_WIN\abrir.R`"" `
+            -RedirectStandardOutput "$env:TRAMA_HOME_WIN\logs\abrir-stdout.log" `
+            -RedirectStandardError "$env:TRAMA_HOME_WIN\logs\abrir-stderr.log"
+
+          $ok = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            try {
+              $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8725" -UseBasicParsing -TimeoutSec 2
+              if ($resp.StatusCode -eq 200) { $ok = $true; break }
+            } catch {}
+            Start-Sleep -Seconds 2
+          }
+          if (-not $ok) {
+            throw "o launcher não respondeu em http://127.0.0.1:8725 depois de 180s"
+          }
+
+      - name: Conferir que nada foi compilado da fonte
+        shell: pwsh
+        run: |
+          $log = Get-ChildItem "$env:TRAMA_HOME_WIN\logs\bootstrap-*.log" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($log) {
+            $conteudo = Get-Content $log.FullName -Raw
+            if ($conteudo -match '(?i)gcc |g\+\+ |R CMD SHLIB|Compilation used') {
+              throw "o log de bootstrap indica compilação a partir do código-fonte: $($log.FullName)"
+            }
+          }
+
+      - name: Publicar os logs (sempre, mesmo se algo falhou acima)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-e2e-logs
+          path: ${{ env.TRAMA_HOME_WIN }}\logs
+          if-no-files-found: warn
+
+      - name: Publicar o Trama-Setup.exe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trama-Setup.exe
+          path: dist\Trama-Setup.exe
+          if-no-files-found: warn
+
+  linux:
+    name: Linux — instalação limpa
+    needs: pacotes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v4
+
+      - name: Baixar os tarballs do job "pacotes"
+        uses: actions/download-artifact@v4
+        with:
+          name: pacotes
+          path: pacotes
+
+      - name: Rodar o install.sh (com os pacotes do job "pacotes")
+        env:
+          TRAMA_HOME: ${{ github.workspace }}/trama-home
+          TRAMA_MANIFEST_URL: ${{ github.workspace }}/tools/installer/release.json
+          TRAMA_BOOTSTRAP_ARGS: --local ${{ github.workspace }}/pacotes
+        run: |
+          set -euo pipefail
+          chmod +x tools/installer/linux/install.sh
+          tools/installer/linux/install.sh
+
+      - name: Conferir a instalação
+        env:
+          TRAMA_HOME: ${{ github.workspace }}/trama-home
+        run: |
+          set -euo pipefail
+          test -x "$TRAMA_HOME/R/bin/Rscript" || { echo "Rscript não encontrado em $TRAMA_HOME/R/bin"; exit 1; }
+          test -f "$TRAMA_HOME/estado.json" || { echo "estado.json não encontrado em $TRAMA_HOME"; exit 1; }
+          test -x "$TRAMA_HOME/abrir.sh" || { echo "abrir.sh não encontrado em $TRAMA_HOME"; exit 1; }
+
+      - name: Subir o launcher em modo headless e checar a porta 8725
+        env:
+          TRAMA_HOME: ${{ github.workspace }}/trama-home
+          TRAMA_HEADLESS: "1"
+        run: |
+          set -euo pipefail
+          "$TRAMA_HOME/abrir.sh" > "$TRAMA_HOME/logs/abrir-stdout.log" 2> "$TRAMA_HOME/logs/abrir-stderr.log" &
+
+          ok=""
+          for _ in $(seq 1 90); do
+            if curl -fsS -o /dev/null "http://127.0.0.1:8725"; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$ok" ]; then
+            echo "o launcher não respondeu em http://127.0.0.1:8725 depois de 180s" >&2
+            exit 1
+          fi
+
+      - name: Conferir que nada foi compilado da fonte
+        env:
+          TRAMA_HOME: ${{ github.workspace }}/trama-home
+        run: |
+          set -euo pipefail
+          log="$(ls -t "$TRAMA_HOME"/logs/bootstrap-*.log 2>/dev/null | head -n1 || true)"
+          if [ -n "$log" ] && grep -qiE 'gcc |g\+\+ |R CMD SHLIB|Compilation used' "$log"; then
+            echo "o log de bootstrap indica compilação a partir do código-fonte: $log" >&2
+            exit 1
+          fi
+
+      - name: Publicar os logs (sempre, mesmo se algo falhou acima)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-e2e-logs
+          path: ${{ github.workspace }}/trama-home/logs
+          if-no-files-found: warn
+
+  release:
+    name: Publicar release
+    if: startsWith(github.ref, 'refs/tags/trama-')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Obter o repositório
+        uses: actions/checkout@v4
+
+      - name: Baixar o Trama-Setup.exe
+        uses: actions/download-artifact@v4
+        with:
+          name: Trama-Setup.exe
+          path: dist
+
+      - name: Criar a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Trama-Setup.exe
+            tools/installer/linux/install.sh
+            tools/installer/release.json
+          make_latest: "true"
+          generate_release_notes: true

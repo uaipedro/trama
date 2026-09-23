@@ -6,6 +6,7 @@
 ^LICENSE\.md$
 ^README\.md$
 ^docs$
+^site$
 ^collections$
 ^exemplos$
 ^insumo$

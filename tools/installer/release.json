@@ -1,0 +1,15 @@
+{
+  "trama": "2026.10",
+  "r": "4.5.1",
+  "cran_snapshot": "2026-09-20",
+  "repos": ["https://uaipedro.r-universe.dev"],
+  "core": {
+    "trama": "0.1.0",
+    "trama.data": "0.1.0",
+    "trama.view": "0.1.0",
+    "trama.launcher": "0.1.0"
+  },
+  "collections": {
+    "trama.ml": {"version": "0.1.0", "title": "Aprendizado de máquina", "requires": []}
+  }
+}

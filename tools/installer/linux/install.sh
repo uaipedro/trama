@@ -86,7 +86,12 @@ else
   curl -fsSL "$BOOTSTRAP_URL" -o "$BOOTSTRAP_LOCAL" || erro "não consegui baixar bootstrap.R em $BOOTSTRAP_URL"
 fi
 
-"$TRAMA_HOME/R/bin/Rscript" "$BOOTSTRAP_LOCAL" || erro "a instalação do trama falhou (veja o motivo acima; logs em $TRAMA_HOME/logs quando existirem)."
+# TRAMA_BOOTSTRAP_ARGS (opcional, sem aspas de propósito para permitir mais
+# de um argumento): argumentos extras repassados a bootstrap.R, hoje só
+# usado pelo CI (job `linux` de .github/workflows/installer.yml) para passar
+# `--local <pasta>` e instalar os tarballs do job `pacotes` em vez de baixar
+# do r-universe. Mesma variável que Trama-Setup.iss lê no Windows.
+"$TRAMA_HOME/R/bin/Rscript" "$BOOTSTRAP_LOCAL" ${TRAMA_BOOTSTRAP_ARGS:-} || erro "a instalação do trama falhou (veja o motivo acima; logs em $TRAMA_HOME/logs quando existirem)."
 
 # --- 3. Ícone ----------------------------------------------------------------
 ICON_LOCAL="$TRAMA_HOME/trama.png"

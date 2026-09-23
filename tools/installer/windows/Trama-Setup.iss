@@ -214,19 +214,30 @@ begin
 end;
 
 // -- Roda bootstrap.R (instala trama.launcher + a release do manifesto) ----
+// TRAMA_BOOTSTRAP_ARGS (variável de ambiente, opcional): argumentos extras
+// repassados a bootstrap.R sem mudar este .iss — hoje só usado pelo CI
+// (job `windows` de .github/workflows/installer.yml) para passar
+// `--local <pasta>` e instalar os tarballs do job `pacotes` em vez de
+// baixar do r-universe, que ainda não existe/está vazio em alguns
+// releases. Fica vazia (comportamento normal) fora do CI.
 function RodarBootstrap(): Boolean;
 var
   ResultCode: Integer;
-  RscriptPath, LogPath: String;
+  RscriptPath, LogPath, ExtraArgs, Params: String;
 begin
   Result := False;
   RscriptPath := ExpandConstant('{app}\R\bin\Rscript.exe');
   LogPath := ExpandConstant('{localappdata}\Trama\logs');
 
+  Params := '"' + ExpandConstant('{app}\bootstrap.R') + '"';
+  ExtraArgs := GetEnvironmentVariable('TRAMA_BOOTSTRAP_ARGS');
+  if ExtraArgs <> '' then
+    Params := Params + ' ' + ExtraArgs;
+
   WizardForm.StatusLabel.Caption := 'Instalando o trama (pode levar alguns minutos)...';
   WizardForm.ProgressGauge.Style := npbstMarquee;
   try
-    if not Exec(RscriptPath, '"' + ExpandConstant('{app}\bootstrap.R') + '"',
+    if not Exec(RscriptPath, Params,
         ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     begin
       MsgBox('Não consegui rodar o instalador do trama (bootstrap.R). ' +
