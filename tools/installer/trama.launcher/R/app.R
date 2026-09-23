@@ -113,6 +113,21 @@ tl_ui <- function() {
         ),
         shiny::div(
           class = "tl-secao",
+          shiny::tags$h2("Projetos"),
+          shiny::uiOutput("tl_projetos"),
+          shiny::div(
+            class = "tl-linha",
+            shiny::textInput("tl_novo_projeto_nome", "Nome do projeto novo", value = ""),
+            shiny::uiOutput("tl_btn_novo_projeto")
+          ),
+          shiny::div(
+            class = "tl-linha",
+            shiny::textInput("tl_abrir_pasta", "Ou abrir uma pasta existente", value = ""),
+            shiny::uiOutput("tl_btn_abrir_pasta")
+          )
+        ),
+        shiny::div(
+          class = "tl-secao",
           shiny::tags$h2("Abrir editor"),
           shiny::textInput("tl_projeto", "Pasta do projeto", value = .tl_ultimo_projeto_ler()),
           shiny::uiOutput("tl_btn_abrir")
@@ -256,6 +271,69 @@ tl_server <- function(input, output, session) {
       })
     })
   }
+
+  projetos <- shiny::reactiveVal(tl_projects())
+  atualizar_projetos <- function() projetos(tl_projects())
+
+  output$tl_projetos <- shiny::renderUI({
+    pr <- projetos()
+    if (!nrow(pr)) return(shiny::tags$p(class = "tl-dim", "Nenhum projeto ainda."))
+
+    linhas <- lapply(seq_len(nrow(pr)), function(i) {
+      p <- pr[i, ]
+      rotulo <- if (isTRUE(p$aberto)) shiny::tags$span(class = "tl-dim", " (aberto)") else NULL
+      shiny::tags$tr(
+        shiny::tags$td(p$nome, rotulo),
+        shiny::tags$td(shiny::tags$button(
+          class = "tl-btn", disabled = if (ocupado()) NA else NULL,
+          onclick = sprintf(
+            "Shiny.setInputValue('tl_abrir_projeto', %s, {priority: 'event'})",
+            jsonlite::toJSON(p$caminho, auto_unbox = TRUE)
+          ),
+          "Abrir"
+        ))
+      )
+    })
+    shiny::tags$table(class = "tl-tabela", linhas)
+  })
+
+  shiny::observeEvent(input$tl_abrir_projeto, {
+    rodar_acao("Abrindo projeto…", function(progresso) {
+      progresso("Abrindo…")
+      tl_project_open(input$tl_abrir_projeto)
+    })
+    atualizar_projetos()
+  })
+
+  output$tl_btn_novo_projeto <- shiny::renderUI({
+    .tl_botao("tl_novo_projeto", "Criar projeto", desabilitado = ocupado())
+  })
+
+  shiny::observeEvent(input$tl_novo_projeto, {
+    tryCatch({
+      tl_project_new(input$tl_novo_projeto_nome)
+      atualizar_projetos()
+      shiny::updateTextInput(session, "tl_novo_projeto_nome", value = "")
+      shiny::showNotification(sprintf("Projeto '%s' criado.", input$tl_novo_projeto_nome), type = "message")
+    }, error = function(e) shiny::showNotification(conditionMessage(e), type = "error"))
+  })
+
+  output$tl_btn_abrir_pasta <- shiny::renderUI({
+    .tl_botao("tl_abrir_pasta_btn", "Abrir pasta…", desabilitado = ocupado())
+  })
+
+  shiny::observeEvent(input$tl_abrir_pasta_btn, {
+    caminho <- input$tl_abrir_pasta
+    if (!nzchar(caminho) || !dir.exists(caminho)) {
+      shiny::showNotification("Pasta não encontrada.", type = "error")
+      return(invisible(NULL))
+    }
+    rodar_acao("Abrindo projeto…", function(progresso) {
+      progresso("Abrindo…")
+      tl_project_open(caminho)
+    })
+    atualizar_projetos()
+  })
 
   output$tl_btn_abrir <- shiny::renderUI({
     .tl_botao(

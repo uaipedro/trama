@@ -31,6 +31,8 @@ body{margin:0;background:var(--tr-bg,#0f1115);color:var(--tr-fg,#e6e9ef);
 .tl-btn-primario{background:var(--tr-accent,#5b8def);border-color:var(--tr-accent,#5b8def);
                   color:var(--tr-accent-fg,#fff)}
 .tl-btn-primario:hover:not(:disabled){filter:brightness(1.08)}
+.tl-linha{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.tl-linha .shiny-input-container{flex:1;min-width:180px}
 .shiny-input-container{width:100%;margin-bottom:12px}
 .shiny-input-container label{display:block;font-size:12px;color:var(--tr-dim,#8b93a7);margin-bottom:4px}
 .shiny-input-container input[type="text"]{width:100%;background:var(--tr-field,#0d1016);

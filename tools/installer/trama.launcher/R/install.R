@@ -87,7 +87,7 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
     anteriores <- anteriores[1:2]
   }
 
-  novo_estado <- list(atual = m$trama, anteriores = anteriores, colecoes = colecoes)
+  novo_estado <- list(atual = m$trama, anteriores = anteriores, colecoes = colecoes, recentes = s$recentes)
   tl_state_write(novo_estado)
   invisible(novo_estado)
 }
@@ -109,7 +109,8 @@ tl_rollback <- function() {
   novo_estado <- list(
     atual = s$anteriores[[1]],
     anteriores = c(s$atual, s$anteriores[-1]),
-    colecoes = s$colecoes
+    colecoes = s$colecoes,
+    recentes = s$recentes
   )
   tl_state_write(novo_estado)
   invisible(novo_estado)

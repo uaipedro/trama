@@ -8,7 +8,7 @@ NULL
 #' de instalar o launcher e ainda não tenho release" é um estado normal.
 #' @noRd
 .tl_estado_vazio <- function() {
-  list(atual = "", anteriores = character(0), colecoes = character(0))
+  list(atual = "", anteriores = character(0), colecoes = character(0), recentes = character(0))
 }
 
 #' Lê `estado.json`. Devolve o estado vazio se o arquivo não existir.
@@ -21,7 +21,8 @@ tl_state_read <- function() {
   list(
     atual = if (is.null(bruto$atual)) "" else as.character(bruto$atual),
     anteriores = if (is.null(bruto$anteriores)) character(0) else as.character(bruto$anteriores),
-    colecoes = if (is.null(bruto$colecoes)) character(0) else as.character(bruto$colecoes)
+    colecoes = if (is.null(bruto$colecoes)) character(0) else as.character(bruto$colecoes),
+    recentes = if (is.null(bruto$recentes)) character(0) else as.character(bruto$recentes)
   )
 }
 
