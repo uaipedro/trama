@@ -21,7 +21,7 @@ const info = collections.find(({ id }) => id === collection)!;
 ---
 
 <Base title={info.title} description={info.description}>
-  <div class="doc-shell">
+  <div class="doc-shell" data-pagefind-body>
     <CollectionHero {...info} />
     <section class="catalogue" aria-labelledby="catalogue-title">
       <div class="section-intro">

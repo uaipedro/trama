@@ -5,6 +5,7 @@ export interface NodeVisual {
   icon?: string;
   hasInput: boolean;
   hasOutput: boolean;
+  label?: string;
 }
 
 const nodeVisuals: Record<string, NodeVisual> = visuals;

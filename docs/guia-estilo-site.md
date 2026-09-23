@@ -26,7 +26,19 @@ Cada página de bloco segue esta ordem, ajustando os títulos ao conteúdo:
    atende.
 3. **Configuração** — parâmetros na ordem em que mudam a decisão da pessoa,
    com os nomes usados na interface.
-4. **Exemplo** — fluxo curto, completo e executável, com dados plausíveis.
+4. **Exemplo** — fluxo curto, completo e executável, com dados plausíveis. Todo
+   bloco ```r que usa `tr_add` vira automaticamente um mini-canvas (cards
+   ligados por setas) com uma aba "Código R" ao lado; não há mockup separado
+   para manter. Ao escrever o exemplo:
+   - o id curto passado a `tr_add("id", "tipo", ...)` só aparece no `<code>`
+     do card — o título vem do rótulo do bloco no catálogo, então não repita o
+     nome do bloco no id;
+   - cada bloco do qual o exemplo depende precisa também aparecer como um
+     `tr_add` no mesmo trecho, na ordem em que é usado; um bloco citado só em
+     prosa não entra no canvas;
+   - o `from` tem que ser explícito em todo `tr_add` que não é a raiz do fluxo
+     (`from = "id"` ou `from = c("id1", "id2")` para vários pais) — sem ele a
+     aresta não é desenhada.
 5. **Como interpretar** — significado das colunas, medidas, opções e
    condições que alteram a leitura.
 6. **Veja também** — blocos relacionados por sequência ou pergunta, exibidos
@@ -122,6 +134,32 @@ primeira ocorrência; não é usado para criar ritmo visual em frases inteiras.
 Tabela e figura devem se sustentar: título, unidades, variáveis e condições
 necessárias à leitura ficam nelas ou na legenda. O texto interpreta o padrão;
 não reproduz todos os valores.
+
+## Paleta semântica de tons
+
+O `FlowMap` (o "caminho de trabalho" mostrado nos cards de coleção e na
+navegação por etapas) colore cada passo por `tone`, não por bloco individual.
+Os sete tons ficam centralizados em `site/src/styles/site.css`, em `:root`,
+como `--tone-source` … `--tone-sink`; `.flow-step--*` aponta para eles. Não
+há cor solta redeclarada fora desses tokens — para mudar uma cor de tom,
+muda-se o token.
+
+| Tom (`tone`) | Significado no fluxo | Token CSS | Cor |
+| --- | --- | --- | --- |
+| `source` | Entrada: ler ou apontar a origem dos dados | `--tone-source` | `oklch(48% .14 285)` (roxo) |
+| `inspect` | Inspeção: conhecer, diagnosticar, avaliar precisão | `--tone-inspect` | `oklch(50% .12 80)` (âmbar) |
+| `clean` | Limpeza: corrigir, remover, padronizar | `--tone-clean` | `oklch(48% .1 182)` (verde-azulado) |
+| `transform` | Transformação: reorganizar, ajustar, treinar, modelar | `--tone-transform` | `var(--blue-dark)` (azul escuro) |
+| `reshape` | Remodelagem: mudar o formato da tabela ou estrutura | `--tone-reshape` | `oklch(50% .14 345)` (rosa) |
+| `aggregate` | Agregação: resumir, estimar, produzir gráfico ou resultado | `--tone-aggregate` | `oklch(46% .13 305)` (violeta) |
+| `sink` | Saída: gravar, exportar, encerrar o fluxo | `--tone-sink` | `oklch(46% .12 145)` (verde) |
+
+Essa paleta é do site (navegação e narrativa), independente da cor de
+categoria (`category$color`) que o registry atribui a cada bloco e que
+aparece nos cards do canvas de exemplo (`--node-accent`, ver
+`site/src/lib/flow-canvas-html.ts`). As duas paletas hoje não se comunicam;
+a proposta de aproximá-las está em
+`docs/future-ideas/paleta-semantica-e-instalador.md`.
 
 ## Revisão antes de publicar
 

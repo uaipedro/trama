@@ -1,5 +1,7 @@
 ---
 import "../styles/site.css";
+import { variants } from "../data/copy-variants";
+import { collections } from "../data/collections";
 
 interface Props {
   title: string;
@@ -39,12 +41,37 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     <meta name="twitter:image" content={socialImage} />
     <title>{pageTitle}</title>
     <script is:inline>
+      const store = {
+        get(key) {
+          try { return localStorage.getItem(key); } catch { return null; }
+        },
+        set(key, value) {
+          try { localStorage.setItem(key, value); } catch {}
+        },
+        remove(key) {
+          try { localStorage.removeItem(key); } catch {}
+        }
+      };
       document.documentElement.dataset.js = "true";
-      document.documentElement.dataset.facilitador =
-        localStorage.getItem("trama-camada-facilitadora") ?? "on";
+      document.documentElement.dataset.facilitador = store.get("trama-camada-facilitadora") ?? "on";
+
+      const pendingAbOn = store.get("trama-ab") === "1";
+      const pendingVariant = store.get("trama-variante");
+      if (pendingAbOn && pendingVariant && pendingVariant !== "controle") {
+        document.documentElement.setAttribute("data-copy-pending", "");
+      }
     </script>
   </head>
   <body>
+    <div class="ab-bar" hidden data-ab-bar>
+      <span>modo comparação — só você vê</span>
+      <label>Variante
+        <select data-ab-select>
+          {variants.map((variant) => <option value={variant.id}>{variant.name}</option>)}
+        </select>
+      </label>
+    </div>
+    <script type="application/json" id="ab-variants" set:html={JSON.stringify(variants)} />
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <header class="site-header">
       <a class="brand" href="/trama/" aria-label="trama — página inicial">
@@ -58,9 +85,22 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         </svg>
         <span>trama</span>
       </a>
-      <nav aria-label="Navegação principal">
-        <a href="/trama/comece/primeiro-fluxo/">Comece</a>
-        <a href="/trama/#colecoes">Coleções</a>
+      <nav aria-label="Navegação principal" class="main-nav">
+        <a href="/trama/">Início</a>
+        <details class="nav-menu">
+          <summary>Coleções</summary>
+          <div class="nav-menu__panel">
+            {collections.map((c) => (
+              <a href={`/trama/colecoes/${c.id}/`}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href={`/trama/icons/lucide.svg#${c.icon}`} /></svg>
+                <span><strong>{c.title}</strong><em>{c.description}</em></span>
+              </a>
+            ))}
+            <a class="nav-menu__all" href="/trama/colecoes/">Ver todas as coleções →</a>
+          </div>
+        </details>
+        <a href="/trama/por-dentro/">Por dentro do trama</a>
+        <button type="button" class="search-trigger" data-search-open>Buscar <kbd>/</kbd></button>
       </nav>
       <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle>
         <span class="toggle-orbit" aria-hidden="true"></span>
@@ -70,6 +110,10 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     <main id="conteudo">
       <slot />
     </main>
+    <dialog class="search-dialog" data-search-dialog>
+      <button type="button" class="search-dialog__close" data-search-close aria-label="Fechar a busca">×</button>
+      <div id="search"></div>
+    </dialog>
     <footer class="site-footer">
       <p><strong>trama</strong> — R em blocos executáveis.</p>
       <p>Documentação das coleções do trama.</p>
@@ -93,7 +137,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       updateToggle();
       button?.addEventListener("click", () => {
         root.dataset.facilitador = root.dataset.facilitador === "off" ? "on" : "off";
-        localStorage.setItem(key, root.dataset.facilitador);
+        store.set(key, root.dataset.facilitador);
         updateToggle();
       });
 
@@ -126,6 +170,155 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         });
       });
       document.addEventListener("fullscreenchange", updateFullscreenButtons);
+
+      const navMenu = document.querySelector(".nav-menu");
+      if (navMenu instanceof HTMLDetailsElement) {
+        document.addEventListener("click", (event) => {
+          if (navMenu.open && !navMenu.contains(event.target)) navMenu.open = false;
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && navMenu.open) {
+            navMenu.open = false;
+            navMenu.querySelector("summary")?.focus();
+          }
+        });
+      }
+
+      const searchDialog = document.querySelector("[data-search-dialog]");
+      let pagefindReady = null;
+      const loadPagefind = () => {
+        if (pagefindReady) return pagefindReady;
+        pagefindReady = Promise.all([
+          new Promise((resolve, reject) => {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "/trama/pagefind/pagefind-ui.css";
+            link.onload = resolve;
+            link.onerror = reject;
+            document.head.appendChild(link);
+          }),
+          import("/trama/pagefind/pagefind-ui.js")
+        ]).then(() => {
+          new window.PagefindUI({
+            element: "#search",
+            showSubResults: true,
+            translations: { placeholder: "Buscar blocos e páginas" }
+          });
+        });
+        return pagefindReady;
+      };
+      const openSearch = () => {
+        if (!(searchDialog instanceof HTMLDialogElement)) return;
+        loadPagefind().then(() => {
+          searchDialog.showModal();
+          searchDialog.querySelector("input")?.focus();
+        });
+      };
+      const closeSearch = () => {
+        if (searchDialog instanceof HTMLDialogElement) searchDialog.close();
+      };
+      document.querySelectorAll("[data-search-open]").forEach((btn) => btn.addEventListener("click", openSearch));
+      document.querySelector("[data-search-close]")?.addEventListener("click", closeSearch);
+      searchDialog?.addEventListener("click", (event) => {
+        if (event.target === searchDialog) closeSearch();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "/" && !searchDialog?.open) {
+          const target = event.target;
+          const isTyping = target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+          if (!isTyping) {
+            event.preventDefault();
+            openSearch();
+          }
+        }
+      });
+
+      const abKey = "trama-variante";
+      const all = JSON.parse(document.getElementById("ab-variants")?.textContent ?? "[]");
+      const validIds = new Set(all.map((v) => v.id));
+      const params = new URLSearchParams(location.search);
+      if (params.get("ab") === "0") store.remove("trama-ab");
+      else if (params.has("ab")) store.set("trama-ab", "1");
+      const paramVariant = params.get("v");
+      if (paramVariant) {
+        store.set(abKey, validIds.has(paramVariant) ? paramVariant : "controle");
+      }
+      const abOn = store.get("trama-ab") === "1";
+      const applyVariant = (id) => {
+        const v = all.find((x) => x.id === id) ?? all[0];
+        if (!v) return;
+        document.querySelectorAll("[data-copy]").forEach((el) => {
+          const text = v.copy[el.dataset.copy];
+          if (text) el.textContent = text;
+        });
+        document.documentElement.dataset.variante = v.id;
+      };
+      if (abOn) {
+        const abBar = document.querySelector("[data-ab-bar]");
+        const abSelect = document.querySelector("[data-ab-select]");
+        abBar?.removeAttribute("hidden");
+        const stored = store.get(abKey);
+        const current = validIds.has(stored) ? stored : "controle";
+        if (current !== stored) store.set(abKey, current);
+        if (abSelect) abSelect.value = current;
+        applyVariant(current);
+        abSelect?.addEventListener("change", () => {
+          const next = validIds.has(abSelect.value) ? abSelect.value : "controle";
+          abSelect.value = next;
+          store.set(abKey, next);
+          applyVariant(next);
+        });
+      }
+      document.documentElement.removeAttribute("data-copy-pending");
+    </script>
+    <script is:inline>
+      // Abas Canvas | Código R dos exemplos das docs (canvas de exemplo).
+      const exemploAbaKey = "trama-exemplo-aba";
+      const lembrada = store.get(exemploAbaKey);
+      const selecionarAba = (exemplo, aba, focar) => {
+        const tabs = [...exemplo.querySelectorAll("[role='tab']")];
+        tabs.forEach((tab) => {
+          const selecionado = tab.dataset.tab === aba;
+          tab.setAttribute("aria-selected", String(selecionado));
+          tab.tabIndex = selecionado ? 0 : -1;
+          if (selecionado && focar) tab.focus();
+        });
+        exemplo.querySelectorAll("[role='tabpanel']").forEach((panel) => {
+          panel.classList.toggle("is-active", panel.dataset.panel === aba);
+        });
+      };
+      if (lembrada) {
+        document.querySelectorAll("[data-flow-example]").forEach((exemplo) => {
+          if (exemplo.querySelector(`[role='tab'][data-tab='${lembrada}']`)) {
+            selecionarAba(exemplo, lembrada, false);
+          }
+        });
+      }
+      document.addEventListener("click", (event) => {
+        const tab = event.target instanceof Element ? event.target.closest("[data-flow-example] [role='tab']") : null;
+        if (!tab) return;
+        const exemplo = tab.closest("[data-flow-example]");
+        if (!exemplo) return;
+        const aba = tab.dataset.tab;
+        selecionarAba(exemplo, aba, false);
+        store.set(exemploAbaKey, aba);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        const tab = event.target instanceof Element ? event.target.closest("[data-flow-example] [role='tab']") : null;
+        if (!tab) return;
+        const exemplo = tab.closest("[data-flow-example]");
+        if (!exemplo) return;
+        const tabs = [...exemplo.querySelectorAll("[role='tab']")];
+        const indiceAtual = tabs.indexOf(tab);
+        if (indiceAtual === -1) return;
+        const passo = event.key === "ArrowRight" ? 1 : -1;
+        const proxima = tabs[(indiceAtual + passo + tabs.length) % tabs.length];
+        const aba = proxima.dataset.tab;
+        selecionarAba(exemplo, aba, true);
+        store.set(exemploAbaKey, aba);
+        event.preventDefault();
+      });
     </script>
   </body>
 </html>

@@ -3,1236 +3,1445 @@
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Ordenar",
     "icon": "arrow-up-down"
   },
   "data/bind_rows": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Empilhar tabelas",
     "icon": "layers"
   },
   "data/clean_names": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Limpar nomes",
     "icon": "case-sensitive"
   },
   "data/convert": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Converter tipo",
     "icon": "arrow-right-left"
   },
   "data/distinct": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Remover duplicadas",
     "icon": "copy-x"
   },
   "data/drop_na": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Remover faltantes",
     "icon": "circle-slash"
   },
   "data/example": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Dados de exemplo",
     "icon": "flask-conical"
   },
   "data/filter": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Filtrar",
     "icon": "list-filter"
   },
   "data/from_stream": {
     "accent": "#84cc16",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Sair de fluxo",
     "icon": "layers"
   },
   "data/generate": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Gerar dados",
     "icon": "dices"
   },
   "data/get_dupes": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Duplicadas",
     "icon": "copy"
   },
   "data/group_summarise": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Agrupar e resumir",
     "icon": "sigma"
   },
   "data/join": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Juntar",
     "icon": "combine"
   },
   "data/mutate": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Criar coluna",
     "icon": "square-plus"
   },
   "data/pivot_longer": {
     "accent": "#ec4899",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Empilhar colunas",
     "icon": "unfold-vertical"
   },
   "data/pivot_wider": {
     "accent": "#ec4899",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Espalhar colunas",
     "icon": "unfold-horizontal"
   },
   "data/read_csv": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Ler CSV",
     "icon": "file-spreadsheet"
   },
   "data/read_excel": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Ler Excel",
     "icon": "sheet"
   },
   "data/read_json": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Ler JSON",
     "icon": "braces"
   },
   "data/read_parquet": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Ler Parquet",
     "icon": "file-digit"
   },
   "data/read_rds": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Ler RDS",
     "icon": "file-box"
   },
   "data/remove_empty": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Remover vazias",
     "icon": "eraser"
   },
   "data/rename": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Renomear",
     "icon": "pencil-line"
   },
   "data/replace_na": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Preencher faltantes",
     "icon": "paint-bucket"
   },
   "data/select": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Selecionar",
     "icon": "columns-3"
   },
   "data/slice_head": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Primeiras N",
     "icon": "list-start"
   },
   "data/summary": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Resumo",
     "icon": "clipboard-list"
   },
   "data/to_stream": {
     "accent": "#84cc16",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Entrar em fluxo",
     "icon": "chevrons-right"
   },
   "data/write_csv": {
     "accent": "#22c55e",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gravar CSV",
     "icon": "save"
   },
   "data/write_parquet": {
     "accent": "#22c55e",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gravar Parquet",
     "icon": "hard-drive-download"
   },
   "data/write_rds": {
     "accent": "#22c55e",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gravar RDS",
     "icon": "archive"
   },
   "ml/cart": {
     "accent": "#65a30d",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "CART · árvore de decisão"
   },
   "ml/confusion": {
     "accent": "#2563eb",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Matriz de confusão"
   },
   "ml/evaluate": {
     "accent": "#2563eb",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Avaliar previsões"
   },
   "ml/example": {
     "accent": "#0891b2",
     "hasInput": false,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Dados para aprender"
   },
   "ml/figs": {
     "accent": "#65a30d",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "FIGS · soma de árvores"
   },
   "ml/forest": {
     "accent": "#d97706",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Random forest"
   },
   "ml/importance": {
     "accent": "#be123c",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Importância de variáveis"
   },
   "ml/linear": {
     "accent": "#65a30d",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Linear / logística"
   },
   "ml/predict": {
     "accent": "#2563eb",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Prever"
   },
   "ml/residuals": {
     "accent": "#be123c",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Analisar resíduos"
   },
   "ml/roc": {
     "accent": "#be123c",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Curva ROC"
   },
   "ml/rules": {
     "accent": "#be123c",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Ler regras das árvores"
   },
   "ml/split": {
     "accent": "#0891b2",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Separar treino / teste"
   },
   "ml/svm": {
     "accent": "#7c3aed",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "SVM · vetores de suporte"
   },
   "ml/tree_plot": {
     "accent": "#be123c",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Visualizar árvores"
   },
   "ml/tune": {
     "accent": "#2563eb",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Ajustar hiperparâmetros"
   },
   "ml/tuning_plot": {
     "accent": "#be123c",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "Visualizar tuning"
   },
   "ml/xgboost": {
     "accent": "#d97706",
     "hasInput": true,
-    "hasOutput": true
+    "hasOutput": true,
+    "label": "XGBoost"
   },
   "models/anova_dbc": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ANOVA · DBC",
     "icon": "grid-3x3"
   },
   "models/anova_dic": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ANOVA · DIC",
     "icon": "layout-grid"
   },
   "models/anova_dql": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ANOVA · DQL",
     "icon": "columns-3"
   },
   "models/anova_factorial": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ANOVA · fatorial",
     "icon": "grid-2x2"
   },
   "models/anova_split_plot": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ANOVA · parcela subdividida",
     "icon": "square-split-horizontal"
   },
   "models/anova_table": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Quadro da ANOVA",
     "icon": "sheet"
   },
   "models/bartlett": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Bartlett",
     "icon": "scale"
   },
   "models/breusch_pagan": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Breusch-Pagan",
     "icon": "chart-spline"
   },
   "models/chisq": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Qui-quadrado",
     "icon": "table"
   },
   "models/coefficients": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Coeficientes",
     "icon": "variable"
   },
   "models/compare": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Comparar modelos",
     "icon": "git-compare"
   },
   "models/cor_test": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Teste de correlação",
     "icon": "trending-up"
   },
   "models/duncan": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Duncan",
     "icon": "chart-column"
   },
   "models/emmeans": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Médias ajustadas",
     "icon": "chart-column"
   },
   "models/example": {
     "accent": "#10b981",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Exemplo de modelos",
     "icon": "database"
   },
   "models/fisher_exact": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Exato de Fisher",
     "icon": "table"
   },
   "models/fit_stats": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Medidas de ajuste",
     "icon": "gauge"
   },
   "models/glm": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Modelo linear generalizado",
     "icon": "chart-spline"
   },
   "models/kruskal": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Kruskal-Wallis",
     "icon": "list-ordered"
   },
   "models/levene": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Levene",
     "icon": "scale"
   },
   "models/linear_hypothesis": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Contrastes (F)",
     "icon": "divide"
   },
   "models/lm": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Regressão linear",
     "icon": "chart-scatter"
   },
   "models/lmer": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Modelo misto",
     "icon": "layers"
   },
   "models/one_sample_t": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "t para uma amostra",
     "icon": "target"
   },
   "models/paired_t": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "t pareado",
     "icon": "link"
   },
   "models/pairwise": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Comparações de médias",
     "icon": "git-compare"
   },
   "models/plot_caterpillar": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico de lagarta",
     "icon": "list-ordered"
   },
   "models/plot_diagnostics": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Diagnóstico dos resíduos",
     "icon": "microscope"
   },
   "models/plot_means": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico de médias",
     "icon": "chart-no-axes-column"
   },
   "models/predict": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Prever",
     "icon": "target"
   },
   "models/random_effects": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Efeitos aleatórios",
     "icon": "dices"
   },
   "models/random_test": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Teste dos aleatórios",
     "icon": "shuffle"
   },
   "models/residuals": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Resíduos",
     "icon": "chart-scatter"
   },
   "models/rls": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "RLS online",
     "icon": "activity"
   },
   "models/shapiro": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Shapiro-Wilk",
     "icon": "chart-area"
   },
   "models/shapiro_residuals": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Normalidade dos resíduos",
     "icon": "chart-area"
   },
   "models/t_test": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "t para duas amostras",
     "icon": "equal-not"
   },
   "models/tukey_additivity": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Aditividade de Tukey",
     "icon": "equal"
   },
   "models/waller_duncan": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Waller-Duncan",
     "icon": "chart-column"
   },
   "models/wilcoxon": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Wilcoxon-Mann-Whitney",
     "icon": "list-ordered"
   },
   "multi/biplot": {
     "accent": "#818cf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Biplot",
     "icon": "chart-scatter"
   },
   "multi/box_m": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "M de Box",
     "icon": "scale"
   },
   "multi/classify": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Classificar",
     "icon": "tags"
   },
   "multi/confusion": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Matriz de confusão",
     "icon": "grid-3x3"
   },
   "multi/correlation_circle": {
     "accent": "#818cf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Círculo de correlações",
     "icon": "orbit"
   },
   "multi/correlation_matrix": {
     "accent": "#38bdf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Matriz de correlação",
     "icon": "table-2"
   },
   "multi/discriminant": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Discriminante",
     "icon": "split"
   },
   "multi/discriminant_functions": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Funções discriminantes",
     "icon": "sigma"
   },
   "multi/example": {
     "accent": "#10b981",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Exemplo multivariado",
     "icon": "database"
   },
   "multi/fa_loadings": {
     "accent": "#c084fc",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Cargas fatoriais",
     "icon": "table-2"
   },
   "multi/factor_analysis": {
     "accent": "#c084fc",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Análise fatorial",
     "icon": "layers"
   },
   "multi/jackknife_discriminant": {
     "accent": "#94a3b8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Jackknife da discriminante",
     "icon": "repeat"
   },
   "multi/jackknife_fa": {
     "accent": "#94a3b8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Jackknife da fatorial",
     "icon": "repeat"
   },
   "multi/jackknife_logistic": {
     "accent": "#94a3b8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Jackknife da logística",
     "icon": "repeat"
   },
   "multi/jackknife_pca": {
     "accent": "#94a3b8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Jackknife da PCA",
     "icon": "repeat"
   },
   "multi/kmo_bartlett": {
     "accent": "#38bdf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "KMO e Bartlett",
     "icon": "stethoscope"
   },
   "multi/logistic": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Regressão logística",
     "icon": "chart-spline"
   },
   "multi/logistic_coefficients": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Razões de chances",
     "icon": "sigma"
   },
   "multi/parallel": {
     "accent": "#38bdf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Análise paralela",
     "icon": "dices"
   },
   "multi/pca": {
     "accent": "#818cf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Componentes principais",
     "icon": "axis-3d"
   },
   "multi/pca_loadings": {
     "accent": "#818cf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Cargas da PCA",
     "icon": "table-2"
   },
   "multi/pca_variance": {
     "accent": "#818cf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Variância explicada",
     "icon": "chart-bar-decreasing"
   },
   "multi/plot_correlation": {
     "accent": "#38bdf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Mapa de correlações",
     "icon": "grid-3x3"
   },
   "multi/plot_discriminant": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Plano discriminante",
     "icon": "chart-scatter"
   },
   "multi/plot_loadings": {
     "accent": "#c084fc",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Mapa das cargas",
     "icon": "grid-3x3"
   },
   "multi/plot_odds": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico das razões de chances",
     "icon": "chart-bar"
   },
   "multi/roc": {
     "accent": "#fb923c",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Curva ROC",
     "icon": "chart-line"
   },
   "multi/scree": {
     "accent": "#818cf8",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Scree",
     "icon": "chart-no-axes-combined"
   },
   "sampling/cluster": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Conglomerados",
     "icon": "group"
   },
   "sampling/design": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Declarar desenho",
     "icon": "table-properties"
   },
   "sampling/detectable_difference": {
     "accent": "#4f46e5",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Diferença detectável",
     "icon": "git-compare"
   },
   "sampling/example": {
     "accent": "#10b981",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Exemplo de amostragem",
     "icon": "database"
   },
   "sampling/margin": {
     "accent": "#4f46e5",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Margem para n dado",
     "icon": "ruler"
   },
   "sampling/margin_levels": {
     "accent": "#4f46e5",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Margem por nível",
     "icon": "layers-plus"
   },
   "sampling/mean": {
     "accent": "#0e7490",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Média",
     "icon": "sigma"
   },
   "sampling/plot_estimates": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico de estimativas",
     "icon": "crosshair"
   },
   "sampling/plot_margins": {
     "accent": "#4f46e5",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico das margens",
     "icon": "chart-no-axes-column"
   },
   "sampling/plot_simulation": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Comparar simulações",
     "icon": "chart-candlestick"
   },
   "sampling/poststratify": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Pós-estratificar",
     "icon": "weight"
   },
   "sampling/pps": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
+    "label": "PPS",
     "icon": "scale"
   },
   "sampling/proportion": {
     "accent": "#0e7490",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Proporção",
     "icon": "chart-pie"
   },
   "sampling/question_margins": {
     "accent": "#4f46e5",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Margem por pergunta",
     "icon": "list-checks"
   },
   "sampling/rake": {
     "accent": "#14b8a6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Calibrar (raking)",
     "icon": "sliders-horizontal"
   },
   "sampling/ratio": {
     "accent": "#0e7490",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Razão",
     "icon": "divide"
   },
   "sampling/referral": {
     "accent": "#4f46e5",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Margem com indicação",
     "icon": "network"
   },
   "sampling/simulate": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Simular desenho",
     "icon": "dices"
   },
   "sampling/size_cluster": {
     "accent": "#6366f1",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Tamanho por conglomerados",
     "icon": "boxes"
   },
   "sampling/size_curve": {
     "accent": "#6366f1",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Curva do tamanho",
     "icon": "chart-spline"
   },
   "sampling/size_domains": {
     "accent": "#6366f1",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Tamanho por grupos",
     "icon": "users"
   },
   "sampling/size_mean": {
     "accent": "#6366f1",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Tamanho para média",
     "icon": "calculator"
   },
   "sampling/size_proportion": {
     "accent": "#6366f1",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Tamanho para proporção",
     "icon": "percent"
   },
   "sampling/size_stratified": {
     "accent": "#6366f1",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Tamanho estratificado",
     "icon": "layers"
   },
   "sampling/srs": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Aleatória simples",
     "icon": "shuffle"
   },
   "sampling/stratified": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Estratificada",
     "icon": "layers-2"
   },
   "sampling/systematic": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Sistemática",
     "icon": "list-ordered"
   },
   "sampling/total": {
     "accent": "#0e7490",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Total",
     "icon": "square-sigma"
   },
   "sampling/two_stage": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Dois estágios",
     "icon": "git-fork"
   },
   "series/accuracy": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Acurácia",
     "icon": "square-sigma"
   },
   "series/acf": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Correlograma (ACF)",
     "icon": "chart-column"
   },
   "series/adf": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ADF",
     "icon": "test-tube"
   },
   "series/aggregate": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Mudar frequência",
     "icon": "calendar-days"
   },
   "series/arima": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ARIMA",
     "icon": "sigma"
   },
   "series/baseline": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Previsão de referência",
     "icon": "repeat"
   },
   "series/box_pierce": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Box-Pierce",
     "icon": "activity"
   },
   "series/component": {
     "accent": "#84cc16",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Componente",
     "icon": "square-split-horizontal"
   },
   "series/cox_stuart": {
     "accent": "#e11d48",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Cox-Stuart",
     "icon": "arrow-up-down"
   },
   "series/decompose": {
     "accent": "#84cc16",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Decomposição clássica",
     "icon": "layers-2"
   },
   "series/diff": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Diferença",
     "icon": "diff"
   },
   "series/ets": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "ETS",
     "icon": "waves-horizontal"
   },
   "series/example": {
     "accent": "#10b981",
     "hasInput": false,
     "hasOutput": true,
+    "label": "Série de exemplo",
     "icon": "activity"
   },
   "series/f_global": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "F global",
     "icon": "sigma"
   },
   "series/f_sazonal": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "F do bloco sazonal",
     "icon": "calendar-range"
   },
   "series/f_tendencia": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "F do bloco de tendência",
     "icon": "trending-up-down"
   },
   "series/fisher": {
     "accent": "#db2777",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Fisher",
     "icon": "signal"
   },
   "series/forecast": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Prever",
     "icon": "trending-up"
   },
   "series/from_table": {
     "accent": "#10b981",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Tabela para série",
     "icon": "table-rows-split"
   },
   "series/holt_winters": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Holt-Winters",
     "icon": "trending-up-down"
   },
   "series/interpolate": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Interpolar faltantes",
     "icon": "pipette"
   },
   "series/kpss": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "KPSS",
     "icon": "test-tubes"
   },
   "series/kruskal_wallis": {
     "accent": "#db2777",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Kruskal-Wallis",
     "icon": "calendar-days"
   },
   "series/lag": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Defasar",
     "icon": "move-right"
   },
   "series/lag_plot": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico de defasagens",
     "icon": "chart-scatter"
   },
   "series/ljung_box": {
     "accent": "#f97316",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Ljung-Box",
     "icon": "audio-waveform"
   },
   "series/mann_kendall": {
     "accent": "#e11d48",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Mann-Kendall",
     "icon": "trending-up"
   },
   "series/moving_average": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Média móvel",
     "icon": "spline"
   },
   "series/ndiffs": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Diferenças necessárias",
     "icon": "hash"
   },
   "series/pacf": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Autocorrelação parcial (PACF)",
     "icon": "chart-bar"
   },
   "series/pettitt": {
     "accent": "#e11d48",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Pettitt",
     "icon": "milestone"
   },
   "series/phillips_perron": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Phillips-Perron",
     "icon": "flask-conical"
   },
   "series/plot": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Série no tempo",
     "icon": "chart-line"
   },
   "series/plot_decomposition": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico da decomposição",
     "icon": "file-chart-line"
   },
   "series/plot_forecast": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico da previsão",
     "icon": "chart-area"
   },
   "series/regression": {
     "accent": "#84cc16",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Regressão dos componentes",
     "icon": "trending-up"
   },
   "series/residuals": {
     "accent": "#f59e0b",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Resíduos",
     "icon": "scan-line"
   },
   "series/runs": {
     "accent": "#e11d48",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Run",
     "icon": "shuffle"
   },
   "series/seasonal_plot": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Gráfico sazonal",
     "icon": "chart-spline"
   },
   "series/stl": {
     "accent": "#84cc16",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Decomposição STL",
     "icon": "layers"
   },
   "series/subseries": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Subséries sazonais",
     "icon": "chart-no-axes-combined"
   },
   "series/transform": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Transformar",
     "icon": "square-function"
   },
   "series/window": {
     "accent": "#06b6d4",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Recortar período",
     "icon": "calendar-range"
   },
   "series/zivot_andrews": {
     "accent": "#ef4444",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Zivot-Andrews",
     "icon": "split"
   },
   "view/area": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Área",
     "icon": "chart-area"
   },
   "view/bars": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Barras",
     "icon": "chart-bar"
   },
   "view/bin2d": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Grade de densidade",
     "icon": "grid-3x3"
   },
   "view/boxplot": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Boxplot",
     "icon": "chart-candlestick"
   },
   "view/density": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Densidade",
     "icon": "chart-spline"
   },
   "view/dotplot": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Pontos ordenados",
     "icon": "lollipop"
   },
   "view/dumbbell": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Halteres",
     "icon": "dumbbell"
   },
   "view/ecdf": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Acumulada",
     "icon": "chart-no-axes-combined"
   },
   "view/heatmap": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Mapa de calor",
     "icon": "layout-grid"
   },
   "view/histogram": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Histograma",
     "icon": "chart-column"
   },
   "view/labels": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Disperso com rótulos",
     "icon": "tags"
   },
   "view/line": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Linha",
     "icon": "chart-line"
   },
   "view/means": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Médias com barras",
     "icon": "git-commit-vertical"
   },
   "view/paired": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Pareamento",
     "icon": "git-compare-arrows"
   },
   "view/pareto": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Pareto",
     "icon": "chart-column-decreasing"
   },
   "view/points": {
     "accent": "#f472b6",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Disperso",
     "icon": "chart-scatter"
   },
   "view/qq": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Quantil-quantil",
     "icon": "trending-up"
   },
   "view/strip": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Faixa de pontos",
     "icon": "grip-vertical"
   },
   "view/violin": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
+    "label": "Violino",
     "icon": "audio-waveform"
   }
 }

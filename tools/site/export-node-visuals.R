@@ -14,7 +14,8 @@ nodes <- lapply(registry$nodes[sort(names(registry$nodes))], function(node) {
   visual <- list(
     accent = category$color,
     hasInput = length(node$inputs) > 0L,
-    hasOutput = length(node$outputs) > 0L
+    hasOutput = length(node$outputs) > 0L,
+    label = node$label
   )
   if (!is.null(node$icon)) {
     if (node$icon$kind != "set") stop("Ícone SVG próprio requer suporte explícito: ", node$id)
