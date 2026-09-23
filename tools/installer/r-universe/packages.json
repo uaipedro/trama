@@ -1,0 +1,46 @@
+[
+  {
+    "package": "trama",
+    "url": "https://github.com/uaipedro/trama"
+  },
+  {
+    "package": "trama.data",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.data"
+  },
+  {
+    "package": "trama.view",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.view"
+  },
+  {
+    "package": "trama.ml",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.ml"
+  },
+  {
+    "package": "trama.models",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.models"
+  },
+  {
+    "package": "trama.multi",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.multi"
+  },
+  {
+    "package": "trama.sampling",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.sampling"
+  },
+  {
+    "package": "trama.series",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.series"
+  },
+  {
+    "package": "trama.launcher",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "tools/installer/trama.launcher"
+  }
+]
