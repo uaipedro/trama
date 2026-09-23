@@ -192,14 +192,13 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .flow-example [role="tab"] { padding: .45rem .8rem; border: 1px solid transparent; border-bottom: none; background: transparent; color: var(--ink-soft); font-family: var(--font-display); font-size: .82rem; font-weight: 650; cursor: pointer; }
 .flow-example [role="tab"][aria-selected="true"] { border-color: var(--line); background: var(--paper); color: var(--ink); }
 .flow-example [role="tabpanel"] { border-top: 1px solid var(--line); background: var(--paper); }
-.flow-example [role="tabpanel"][hidden] { display: none; }
 .flow-example [role="tabpanel"] pre { margin: 0; border: 0; box-shadow: none; }
 /* Sem JS: os dois painéis ficam visíveis (progressive enhancement, sem flash). */
 :root[data-js] .flow-example [role="tabpanel"] { display: none; }
 :root[data-js] .flow-example [role="tabpanel"].is-active { display: block; }
 .flow-canvas-label { margin: .6rem .5rem -.1rem; font-family: var(--font-display); font-size: .75rem; font-weight: 650; color: var(--ink-soft); }
 .flow-canvas-scroll { max-width: 100%; overflow-x: auto; }
-.flow-canvas { position: relative; overflow-x: auto; background-color: var(--paper); }
+.flow-canvas { position: relative; background-color: var(--paper); }
 .canvas-card { position: absolute; display: grid; gap: .35rem; padding: .55rem .6rem .6rem; border: 1px solid var(--line); border-top: 3px solid var(--node-accent, var(--blue)); background: var(--paper-strong); font-size: .78rem; box-shadow: 3px 3px 0 color-mix(in oklch, var(--ink) 8%, transparent); }
 .canvas-card__header { display: flex; align-items: center; gap: .4rem; font-family: var(--font-display); font-weight: 650; }
 .canvas-card__header svg { width: 1rem; height: 1rem; fill: none; stroke: var(--node-accent, var(--ink)); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }

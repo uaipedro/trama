@@ -274,7 +274,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     <script is:inline>
       // Abas Canvas | Código R dos exemplos das docs (canvas de exemplo).
       const exemploAbaKey = "trama-exemplo-aba";
-      const lembrada = localStorage.getItem(exemploAbaKey);
+      const lembrada = store.get(exemploAbaKey);
       const selecionarAba = (exemplo, aba, focar) => {
         const tabs = [...exemplo.querySelectorAll("[role='tab']")];
         tabs.forEach((tab) => {
@@ -301,7 +301,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         if (!exemplo) return;
         const aba = tab.dataset.tab;
         selecionarAba(exemplo, aba, false);
-        localStorage.setItem(exemploAbaKey, aba);
+        store.set(exemploAbaKey, aba);
       });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -316,7 +316,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         const proxima = tabs[(indiceAtual + passo + tabs.length) % tabs.length];
         const aba = proxima.dataset.tab;
         selecionarAba(exemplo, aba, true);
-        localStorage.setItem(exemploAbaKey, aba);
+        store.set(exemploAbaKey, aba);
         event.preventDefault();
       });
     </script>
