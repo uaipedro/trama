@@ -285,7 +285,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-dialog-actions button:disabled{opacity:.4;cursor:default}
 
 .tr-params{padding:5px 9px;display:grid;gap:4px}
-.tr-param{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:6px;font-size:11px}
+/* Rótulo com até 45% da linha (e nunca menos de 78px): com coluna fixa de
+   78px, "Proporção esperada" e afins viravam "Proporção es…". O valor do
+   campo é curto quase sempre, então é ele quem cede espaço. */
+.tr-param{display:grid;grid-template-columns:minmax(78px,45%) 1fr;align-items:center;gap:6px;font-size:11px}
 .tr-param>span{color:var(--tr-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-param input,.tr-param select,.tr-param textarea{background:var(--tr-field);color:var(--tr-fg);
   border:1px solid var(--tr-line);border-radius:5px;padding:2px 5px;
@@ -306,6 +309,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* Enum "wide" ocupa a linha: rótulo em cima, opções embaixo. `:has` evita que o
    editor precise saber qual widget desenhou a linha. */
 .tr-param:has(.tr-seg-wide){grid-template-columns:1fr}
+/* Rótulo longo (mais de 16 caracteres, decidido em `ParamsList`) também vai
+   pra cima, inteiro, em vez de virar "Proporção espera…". */
+.tr-param-longo{grid-template-columns:1fr;gap:2px}
+.tr-param-longo>span{white-space:normal;overflow:visible}
+.tr-param-longo .tr-toggle{justify-self:start}
 .tr-toggle{justify-self:end;width:26px;height:14px;border-radius:7px;border:0;padding:0;position:relative;
   background:var(--tr-line);cursor:pointer}
 .tr-toggle::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
@@ -931,6 +939,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-dock-head strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-dock-fechar,.tr-dock-alca{background:none;border:0;color:var(--tr-fg);cursor:pointer;font-size:18px}
 .tr-dock .tr-params{overflow:auto;padding:10px 12px}
+/* No painel há largura de sobra na vertical, não na horizontal: rótulo em
+   cima, inteiro e podendo quebrar linha, e o controle embaixo. */
+.tr-dock .tr-params{gap:9px}
+.tr-dock .tr-param{grid-template-columns:1fr;gap:3px}
+.tr-dock .tr-param>span{white-space:normal;overflow:visible}
+.tr-dock .tr-toggle{justify-self:start}
 .tr-dock-alca{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:8;
   background:var(--tr-panel);border:1px solid var(--tr-line);border-left:0;border-radius:0 8px 8px 0;
   padding:14px 4px}

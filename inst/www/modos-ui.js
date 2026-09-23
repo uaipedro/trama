@@ -41,8 +41,12 @@ export function ParamsList({ id, spec, params, onParam }) {
     // de propósito: os widgets não recebem `id`, e manter a API
     // `(spec, value, onChange)` das coleções vale mais que focar o
     // campo clicando no rótulo.
-    return h("div", { key: p.name, className: "tr-param" }, [
-      h("span", { key: "n", title: p.name }, p.label || p.name),
+    // Rótulo longo vai pra cima do campo (`.tr-param-longo`, trama.css). A
+    // conta é por caracteres, e não medindo o texto: medir mudaria a altura do
+    // card depois de montado, e 16 é o que cabe na coluna do card de 240px.
+    const rotulo = p.label || p.name;
+    return h("div", { key: p.name, className: "tr-param" + (rotulo.length > 16 ? " tr-param-longo" : "") }, [
+      h("span", { key: "n", title: p.label ? `${p.label} (${p.name})` : p.name }, rotulo),
       // O widget entra num Fragment com `key` porque vai num array ao lado
       // do rótulo, e o elemento que a coleção devolve não tem chave.
       W ? h(React.Fragment, { key: "w" }, W(p, params[p.name], (v) => onParam(id, p.name, v)))
