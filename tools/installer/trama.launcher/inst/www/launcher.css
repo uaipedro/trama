@@ -1,0 +1,38 @@
+/* CSS da tela de início do launcher. Usa os tokens de cor do trama.css
+   quando ele está disponível (ver R/app.R); os valores depois da vírgula em
+   cada var() são o fallback para quando só este arquivo carrega — mesma
+   paleta escura do editor, para a primeira tela que o pesquisador vê já
+   parecer com o app que ele vai abrir em seguida. */
+*{box-sizing:border-box}
+body{margin:0;background:var(--tr-bg,#0f1115);color:var(--tr-fg,#e6e9ef);
+     font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.tl-app{max-width:640px;margin:0 auto;padding:32px 24px 64px}
+.tl-header{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.tl-marca{height:28px;width:auto}
+.tl-header h1{font-size:18px;font-weight:600;margin:0}
+.tl-secao{background:var(--tr-panel,#171a21);border:1px solid var(--tr-line,#262b36);
+          border-radius:10px;padding:18px 20px;margin-bottom:16px}
+.tl-secao h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+             color:var(--tr-dim,#8b93a7);margin:0 0 12px}
+.tl-secao p{margin:0 0 10px;font-size:13px}
+.tl-dim{color:var(--tr-dim,#8b93a7)}
+.tl-aviso{color:var(--tr-err,#ef4444)}
+.tl-tabela{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px}
+.tl-tabela th,.tl-tabela td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--tr-line,#262b36)}
+.tl-tabela th{color:var(--tr-dim,#8b93a7);font-weight:500}
+.tl-tabela tr:last-child td{border-bottom:0}
+.tl-selo{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.tl-selo-ok{background:color-mix(in srgb, var(--tr-ok,#22c55e) 18%, transparent);color:var(--tr-ok,#22c55e)}
+.tl-btn{appearance:none;border:1px solid var(--tr-edge,#3b4252);background:var(--tr-field,#0d1016);
+        color:var(--tr-fg,#e6e9ef);padding:8px 14px;border-radius:8px;font-size:13px;
+        font-weight:500;cursor:pointer;margin:4px 8px 4px 0}
+.tl-btn:hover:not(:disabled){background:var(--tr-hover,#222733)}
+.tl-btn:disabled{opacity:.5;cursor:not-allowed}
+.tl-btn-primario{background:var(--tr-accent,#5b8def);border-color:var(--tr-accent,#5b8def);
+                  color:var(--tr-accent-fg,#fff)}
+.tl-btn-primario:hover:not(:disabled){filter:brightness(1.08)}
+.shiny-input-container{width:100%;margin-bottom:12px}
+.shiny-input-container label{display:block;font-size:12px;color:var(--tr-dim,#8b93a7);margin-bottom:4px}
+.shiny-input-container input[type="text"]{width:100%;background:var(--tr-field,#0d1016);
+     border:1px solid var(--tr-edge,#3b4252);color:var(--tr-fg,#e6e9ef);border-radius:8px;
+     padding:8px 10px;font-size:13px}
