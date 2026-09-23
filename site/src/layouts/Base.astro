@@ -271,5 +271,54 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       }
       document.documentElement.removeAttribute("data-copy-pending");
     </script>
+    <script is:inline>
+      // Abas Canvas | Código R dos exemplos das docs (canvas de exemplo).
+      const exemploAbaKey = "trama-exemplo-aba";
+      const lembrada = localStorage.getItem(exemploAbaKey);
+      const selecionarAba = (exemplo, aba, focar) => {
+        const tabs = [...exemplo.querySelectorAll("[role='tab']")];
+        tabs.forEach((tab) => {
+          const selecionado = tab.dataset.tab === aba;
+          tab.setAttribute("aria-selected", String(selecionado));
+          tab.tabIndex = selecionado ? 0 : -1;
+          if (selecionado && focar) tab.focus();
+        });
+        exemplo.querySelectorAll("[role='tabpanel']").forEach((panel) => {
+          panel.classList.toggle("is-active", panel.dataset.panel === aba);
+        });
+      };
+      if (lembrada) {
+        document.querySelectorAll("[data-flow-example]").forEach((exemplo) => {
+          if (exemplo.querySelector(`[role='tab'][data-tab='${lembrada}']`)) {
+            selecionarAba(exemplo, lembrada, false);
+          }
+        });
+      }
+      document.addEventListener("click", (event) => {
+        const tab = event.target instanceof Element ? event.target.closest("[data-flow-example] [role='tab']") : null;
+        if (!tab) return;
+        const exemplo = tab.closest("[data-flow-example]");
+        if (!exemplo) return;
+        const aba = tab.dataset.tab;
+        selecionarAba(exemplo, aba, false);
+        localStorage.setItem(exemploAbaKey, aba);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        const tab = event.target instanceof Element ? event.target.closest("[data-flow-example] [role='tab']") : null;
+        if (!tab) return;
+        const exemplo = tab.closest("[data-flow-example]");
+        if (!exemplo) return;
+        const tabs = [...exemplo.querySelectorAll("[role='tab']")];
+        const indiceAtual = tabs.indexOf(tab);
+        if (indiceAtual === -1) return;
+        const passo = event.key === "ArrowRight" ? 1 : -1;
+        const proxima = tabs[(indiceAtual + passo + tabs.length) % tabs.length];
+        const aba = proxima.dataset.tab;
+        selecionarAba(exemplo, aba, true);
+        localStorage.setItem(exemploAbaKey, aba);
+        event.preventDefault();
+      });
+    </script>
   </body>
 </html>

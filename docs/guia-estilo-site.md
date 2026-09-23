@@ -26,7 +26,19 @@ Cada página de bloco segue esta ordem, ajustando os títulos ao conteúdo:
    atende.
 3. **Configuração** — parâmetros na ordem em que mudam a decisão da pessoa,
    com os nomes usados na interface.
-4. **Exemplo** — fluxo curto, completo e executável, com dados plausíveis.
+4. **Exemplo** — fluxo curto, completo e executável, com dados plausíveis. Todo
+   bloco ```r que usa `tr_add` vira automaticamente um mini-canvas (cards
+   ligados por setas) com uma aba "Código R" ao lado; não há mockup separado
+   para manter. Ao escrever o exemplo:
+   - o id curto passado a `tr_add("id", "tipo", ...)` só aparece no `<code>`
+     do card — o título vem do rótulo do bloco no catálogo, então não repita o
+     nome do bloco no id;
+   - cada bloco do qual o exemplo depende precisa também aparecer como um
+     `tr_add` no mesmo trecho, na ordem em que é usado; um bloco citado só em
+     prosa não entra no canvas;
+   - o `from` tem que ser explícito em todo `tr_add` que não é a raiz do fluxo
+     (`from = "id"` ou `from = c("id1", "id2")` para vários pais) — sem ele a
+     aresta não é desenhada.
 5. **Como interpretar** — significado das colunas, medidas, opções e
    condições que alteram a leitura.
 6. **Veja também** — blocos relacionados por sequência ou pergunta, exibidos
