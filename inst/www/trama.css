@@ -42,17 +42,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    fixa; as variáveis deixam o tema trocá-las. */
 .react-flow{--xy-background-pattern-dots-color-default:var(--tr-dots);
   --xy-connectionline-stroke-default:var(--tr-dim)}
-/* O xyflow desenha a camada de arestas ANTES da de nós (mesmo `z-index` que
-   `.react-flow__nodes`, então quem vem depois no DOM — os nós — cobre); um
-   card arrastado pra baixo/dentro do caminho de uma aresta some por trás
-   dele, em vez de a linha contornar por cima. Explicitar aqui um `z-index`
-   maior que o dos nós (que ficam em `auto`, ou seja nível 0) inverte a
-   pilha: a aresta sempre desenha por cima do corpo dos cards. O traço é fino
-   e o resto da aresta é transparente (pointer-events do xyflow já limita a
-   `visibleStroke`), então não atrapalha clicar em botão de card por baixo,
-   exceto no pixel exato onde a linha passa — troca aceitável pela aresta
-   nunca mais sumir. */
-.react-flow__edges{z-index:5}
+/* Sem `z-index` na camada de arestas, de propósito: o xyflow a desenha antes
+   da de nós, então uma ligação que cruza um card passa POR BAIXO dele. Já
+   houve um `z-index:5` aqui pra aresta nunca sumir atrás de card, mas a linha
+   riscando o corpo de outro card ficava pior do que sumir por um trecho. */
 .react-flow__edge-path{stroke:var(--tr-edge);stroke-width:2}
 .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-accent)}
 /* Aresta de FLUXO (`animated: true`, decidido em `docToFlow` pelo campo
@@ -925,10 +918,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-selbar>button:hover{border-color:var(--tr-accent)}
 /* Painel de parâmetros: borda esquerda do canvas, largura fixa, rolagem
    própria. `nowheel` no elemento deixa a roda rolar a lista em vez de dar zoom.
-   `top:50px`, e não 12px: a toolbar ocupa a mesma faixa esquerda no topo
-   (`.tr-toolbar`, `top:12px;left:12px`) — mesmo ajuste que a `.tr-selbar` já
-   faz pra não empilhar em cima dela. */
-.tr-dock{position:absolute;left:12px;top:50px;max-height:calc(100% - 134px);width:280px;z-index:8;
+   Centrado na vertical, na mesma altura da alça (`.tr-dock-alca`) que o abre.
+   O `max-height` deixa 67px de folga em cima e embaixo, o que ainda livra a
+   toolbar (`.tr-toolbar`, `top:12px;left:12px`) quando a lista é longa. */
+.tr-dock{position:absolute;left:12px;top:50%;transform:translateY(-50%);max-height:calc(100% - 134px);width:280px;z-index:8;
   display:flex;flex-direction:column;background:var(--tr-panel);border:1px solid var(--tr-line);
   border-radius:10px;box-shadow:0 6px 24px var(--tr-shadow);overflow:hidden}
 .tr-dock-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-left:4px solid;
