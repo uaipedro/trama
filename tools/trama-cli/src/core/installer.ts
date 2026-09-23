@@ -63,9 +63,17 @@ export function resolveRepoUrl(
  * pela metade (rede caiu, antivírus travou um arquivo no Windows etc) tem
  * o SHA "certo" registrado mesmo sem o pacote ter terminado de instalar.
  * Nesse caso o skip-by-SHA do remotes reproduz o mesmo pacote quebrado pra
- * sempre. Quem chama isso já sabe que o pacote está ausente/incompleto
- * (ver checkEnv em envcheck.ts) — passa `force = true` pra pular essa
- * checagem e reinstalar de verdade.
+ * sempre. Por isso o script força, POR PACOTE, todo pacote sem
+ * `Meta/package.rds` (o que o R grava por último; ver envcheck.ts) — vale
+ * inclusive pro `update`, que não passa `force`: sem isso ele pularia o
+ * pacote pela metade e a checagem do fim falharia a cada update, pra
+ * sempre. `force = true` continua forçando todos.
+ *
+ * `00LOCK-*`: o `R CMD INSTALL` trava a lib criando essa pasta e só a
+ * apaga ao terminar. Instalação interrompida (Ctrl+C, janela fechada,
+ * antivírus) deixa ela lá, e toda instalação seguinte falha com "failed to
+ * lock directory". Nenhum outro R instala nessa lib ao mesmo tempo que o
+ * CLI, então apagar no começo é seguro.
  *
  * `.libPaths(c(lib, ...))`: sem isso o remotes só enxerga a biblioteca do
  * R portátil, conclui que trama e todas as dependências (dplyr, shiny...)
@@ -84,13 +92,15 @@ export function buildInstallScript(
 lib <- ${JSON.stringify(lib)}
 dir.create(lib, showWarnings = FALSE, recursive = TRUE)
 .libPaths(c(lib, .libPaths()))
+unlink(list.files(lib, pattern = "^00LOCK", full.names = TRUE), recursive = TRUE, force = TRUE)
+completo <- function(name) file.exists(file.path(lib, name, "Meta", "package.rds"))
 if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
 for (pkg in c(${pkgList})) {
-  remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = ${force ? "TRUE" : "FALSE"})
   name <- basename(pkg)
-  if (!file.exists(file.path(lib, name, "Meta", "package.rds"))) {
+  remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = ${force ? "TRUE" : "FALSE"} || !completo(name))
+  if (!completo(name)) {
     stop("instalação de '", name, "' terminou sem erro mas o pacote não está completo em ", lib, call. = FALSE)
   }
 }
@@ -154,7 +164,10 @@ export function runInstall(
     proc.stdout.on("data", onData);
     proc.stderr.on("data", onData);
 
-    proc.on("error", reject);
+    proc.on("error", (err) => {
+      rmSync(dir, { recursive: true, force: true });
+      reject(err);
+    });
     proc.on("close", (code) => {
       rmSync(dir, { recursive: true, force: true });
       if (code === 0) {

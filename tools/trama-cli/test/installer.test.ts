@@ -17,7 +17,7 @@ describe("buildInstallScript", () => {
     expect(script).toContain(".libPaths(c(lib, .libPaths()))");
     expect(script.indexOf(".libPaths(")).toBeLessThan(script.indexOf("install_github"));
     expect(script).toContain(
-      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = FALSE)'
+      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = FALSE || !completo(name))'
     );
     expect(script).toContain('"uaipedro/trama"');
     expect(script).toContain('"uaipedro/trama/collections/trama.data"');
@@ -31,7 +31,7 @@ describe("buildInstallScript", () => {
   it("passa force = TRUE quando pedido (reinstalação de pacote incompleto)", () => {
     const script = buildInstallScript(["uaipedro/trama"], "/lib", undefined, true);
     expect(script).toContain(
-      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = TRUE)'
+      'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = TRUE || !completo(name))'
     );
   });
 });
