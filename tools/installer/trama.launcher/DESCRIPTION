@@ -1,0 +1,29 @@
+Package: trama.launcher
+Title: Instalador e Launcher do trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Motor de instalação e atualização do trama: lê o manifesto de
+    release, calcula o status da instalação local, instala releases numa
+    biblioteca isolada (só pacotes binários) e serve a tela de início em
+    Shiny, de onde o editor é aberto.
+License: MIT + file LICENSE
+URL: https://github.com/uaipedro/trama
+BugReports: https://github.com/uaipedro/trama/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    jsonlite,
+    shiny,
+    utils,
+    tools
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
