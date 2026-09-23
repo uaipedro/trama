@@ -29,7 +29,7 @@ const related = (await getCollection("docs"))
     </aside>
     <article class="doc-article">
       <header class="doc-article__header">
-        <p class="eyebrow">{entry.data.collection ? `Coleção ${entry.data.collection}` : "Comece aqui"}</p>
+        <p class="eyebrow">{entry.data.collection ? `Coleção ${entry.data.collection}` : entry.data.section === "por-dentro" ? "Por dentro do trama" : "Comece aqui"}</p>
         <h1>{entry.data.title}</h1>
         <p class="lede">{entry.data.description}</p>
       </header>
