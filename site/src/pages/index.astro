@@ -62,7 +62,7 @@ const firstFlowSteps = [
   <section id="colecoes" class="home-collections" aria-labelledby="collections-title">
     <div class="section-intro">
       <p class="eyebrow">Coleções</p>
-      <h2 id="collections-title">Aprenda pelo que você quer fazer.</h2>
+      <h2 id="collections-title">Escolha por onde começar.</h2>
     </div>
     <div class="collection-cards">
       {collections.map((collection) => (
@@ -74,6 +74,7 @@ const firstFlowSteps = [
             <strong>{collection.packageName}</strong>
             <span>{collection.title}</span>
             <em>{collection.description}</em>
+            <FlowMap steps={collection.steps} />
           </span>
           <span class="collection-card__arrow" aria-hidden="true">↗</span>
         </a>

@@ -93,6 +93,8 @@ h3 { font-size: 1.5rem; }
 .home-collections .section-intro { max-width: 66rem; margin: 0 auto; text-align: center; }
 .collection-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; max-width: 66rem; margin: var(--space-2xl) auto 0; }
 .collection-card { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-md); min-height: 7rem; padding: 1rem 1.25rem; border: 1px solid var(--line); background: var(--paper-strong); text-decoration: none; transition: border-color 180ms var(--ease-out), background-color 180ms var(--ease-out), transform 180ms var(--ease-out); }
+.collection-card .flow-map { margin-top: .5rem; font-size: .78rem; flex-wrap: wrap; }
+.collection-card .flow-map .flow-step > :first-child { padding: .25rem .5rem; font-size: .74rem; }
 .collection-card:hover, .collection-card:focus-visible { border-color: var(--blue); background: var(--paper); transform: translateY(-2px); }
 .collection-card:first-child { grid-column: 1 / -1; }
 .collection-card__text em { margin-top: .3rem; color: var(--ink-soft); font-size: .88rem; font-style: normal; line-height: 1.45; }
