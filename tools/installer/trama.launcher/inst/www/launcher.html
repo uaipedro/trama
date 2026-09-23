@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trama</title>
+{{ headContent() }}
+<link rel="icon" href="tl-www/icon.png">
+<link rel="stylesheet" href="tl-www/launcher.css">
+</head>
+<body>
+<div class="tl-app">
+
+  <nav class="tl-sidebar" aria-label="Navegação principal">
+    <div class="tl-sidebar-marca" aria-hidden="true">
+      <img src="tl-www/marca-min.svg" alt="" width="26" height="26">
+    </div>
+    <ul class="tl-nav" role="tablist" aria-orientation="vertical">
+      <li role="presentation">
+        <button type="button" class="tl-nav-item" data-view="inicio" role="tab"
+                id="tl-tab-inicio" aria-controls="view-inicio" aria-selected="true">
+          <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>
+          <span>Início</span>
+        </button>
+      </li>
+      <li role="presentation">
+        <button type="button" class="tl-nav-item" data-view="projetos" role="tab"
+                id="tl-tab-projetos" aria-controls="view-projetos" aria-selected="false">
+          <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/></svg>
+          <span>Projetos</span>
+        </button>
+      </li>
+      <li role="presentation">
+        <button type="button" class="tl-nav-item" data-view="colecoes" role="tab"
+                id="tl-tab-colecoes" aria-controls="view-colecoes" aria-selected="false">
+          <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+          <span>Coleções</span>
+        </button>
+      </li>
+      <li role="presentation">
+        <button type="button" class="tl-nav-item" data-view="atualizacao" role="tab"
+                id="tl-tab-atualizacao" aria-controls="view-atualizacao" aria-selected="false">
+          <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.66-5.66L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.66 5.66L4 16"/><path d="M4 20v-4h4"/></svg>
+          <span>Atualização</span>
+          <span class="tl-nav-dot" id="tl-nav-dot-atualizacao" hidden aria-hidden="true"></span>
+        </button>
+      </li>
+    </ul>
+    <div class="tl-sidebar-footer">
+      <button type="button" class="tl-nav-item" data-view="ajuda" role="tab"
+              id="tl-tab-ajuda" aria-controls="view-ajuda" aria-selected="false">
+        <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.4 2.4 0 1 1 3.6 2.1c-.9.55-1.2.95-1.2 1.85"/><path d="M12 16.6h.01"/></svg>
+        <span>Ajuda</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="tl-shell">
+    <header class="tl-topbar">
+      <div class="tl-wordmark">
+        <img src="tl-www/marca-min.svg" class="tl-wordmark-mark" alt="">
+        <span>trama</span>
+      </div>
+      <button type="button" class="tl-status-pill" id="tl-status-pill" data-view="atualizacao"
+              aria-describedby="tl-status-texto">
+        <span class="tl-status-dot" id="tl-status-dot"></span>
+        <span id="tl-status-texto">Carregando…</span>
+      </button>
+    </header>
+
+    <main class="tl-content">
+
+      <section id="view-inicio" class="tl-view" data-view="inicio" role="tabpanel"
+               aria-labelledby="tl-tab-inicio" tabindex="-1">
+        <div class="tl-hero">
+          <img src="tl-www/marca.svg" class="tl-hero-marca" alt="trama">
+          <p class="tl-hero-sub">Ambiente de fluxos para pesquisa</p>
+          <div id="tl-hero-acao" class="tl-hero-acao"></div>
+        </div>
+
+        <div class="tl-toolbar-inicio">
+          <label class="tl-search" for="tl-busca">
+            <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.35-4.35"/></svg>
+            <input type="search" id="tl-busca" placeholder="Buscar projetos…" autocomplete="off">
+          </label>
+          <button type="button" class="tl-btn tl-btn-primario" id="tl-btn-novo-projeto-topo">
+            <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Novo projeto
+          </button>
+        </div>
+
+        <section aria-labelledby="tl-h-recentes" class="tl-secao-inicio">
+          <h2 id="tl-h-recentes">Projetos recentes</h2>
+          <div id="tl-recentes-lista" class="tl-recentes-row"></div>
+        </section>
+
+        <section aria-labelledby="tl-h-colecoes" class="tl-secao-inicio">
+          <h2 id="tl-h-colecoes">Coleções</h2>
+          <div id="tl-cards-colecoes" class="tl-cards"></div>
+        </section>
+      </section>
+
+      <section id="view-projetos" class="tl-view" data-view="projetos" role="tabpanel"
+               aria-labelledby="tl-tab-projetos" tabindex="-1" hidden>
+        <h2 class="tl-titulo-view">Projetos</h2>
+        <div class="tl-form-row">
+          <div class="tl-campo">
+            <label for="tl-novo-nome">Nome do projeto novo</label>
+            <input type="text" id="tl-novo-nome" autocomplete="off">
+          </div>
+          <button type="button" class="tl-btn tl-btn-primario" id="tl-btn-criar-projeto">Criar projeto</button>
+        </div>
+        <div class="tl-form-row">
+          <div class="tl-campo">
+            <label for="tl-pasta">Ou abrir uma pasta existente</label>
+            <input type="text" id="tl-pasta" autocomplete="off" placeholder="Caminho da pasta">
+          </div>
+          <button type="button" class="tl-btn" id="tl-btn-abrir-pasta">Abrir pasta…</button>
+        </div>
+        <div id="tl-lista-projetos-full" class="tl-lista-projetos"></div>
+      </section>
+
+      <section id="view-colecoes" class="tl-view" data-view="colecoes" role="tabpanel"
+               aria-labelledby="tl-tab-colecoes" tabindex="-1" hidden>
+        <h2 class="tl-titulo-view">Coleções</h2>
+        <p class="tl-dim">Pacotes opcionais do trama, instalados por cima do núcleo.</p>
+        <div id="tl-cards-colecoes-full" class="tl-cards"></div>
+      </section>
+
+      <section id="view-atualizacao" class="tl-view" data-view="atualizacao" role="tabpanel"
+               aria-labelledby="tl-tab-atualizacao" tabindex="-1" hidden>
+        <h2 class="tl-titulo-view">Atualização</h2>
+        <div id="tl-versao-corpo"></div>
+        <h3 class="tl-subtitulo-view">Utilitários</h3>
+        <div class="tl-utilitarios">
+          <button type="button" class="tl-btn" data-acao="tl_reparar">Reparar (reinstalar a versão atual)</button>
+          <button type="button" class="tl-btn" id="tl-btn-voltar-versao" data-acao="tl_voltar_versao">Voltar versão</button>
+          <button type="button" class="tl-btn" data-acao="tl_abrir_logs">Abrir pasta de logs</button>
+        </div>
+      </section>
+
+      <section id="view-ajuda" class="tl-view" data-view="ajuda" role="tabpanel"
+               aria-labelledby="tl-tab-ajuda" tabindex="-1" hidden>
+        <h2 class="tl-titulo-view">Ajuda</h2>
+        <p>O trama é um ambiente de fluxos para pesquisa: monte um fluxo com cartões, rode e veja o resultado, sem escrever código.</p>
+        <p>Dúvidas, sugestões ou problemas: abra uma questão em
+          <a href="https://github.com/uaipedro/trama/issues" target="_blank" rel="noopener">github.com/uaipedro/trama/issues</a>.
+        </p>
+        <p>Se algo deu errado numa instalação ou atualização, o log fica na pasta de logs (aba Atualização → Abrir pasta de logs).</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="tl-live" class="tl-sr-only" role="status" aria-live="polite"></div>
+
+<script src="tl-www/launcher.js"></script>
+</body>
+</html>
