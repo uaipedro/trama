@@ -64,6 +64,12 @@ export function resolveRepoUrl(
  * sempre. Quem chama isso já sabe que o pacote está ausente/incompleto
  * (ver checkEnv em envcheck.ts) — passa `force = true` pra pular essa
  * checagem e reinstalar de verdade.
+ *
+ * `.libPaths(c(lib, ...))`: sem isso o remotes só enxerga a biblioteca do
+ * R portátil, conclui que trama e todas as dependências (dplyr, shiny...)
+ * estão ausentes e reinstala tudo a cada chamada — era o `trama update`
+ * que "ficava instalando pra sempre". Com lib no caminho, o skip-by-SHA e a
+ * checagem de dependências funcionam e um update sem novidade é imediato.
  */
 export function buildInstallScript(
   pkgs: string[],
@@ -73,11 +79,12 @@ export function buildInstallScript(
 ): string {
   const pkgList = pkgs.map((p) => JSON.stringify(p)).join(", ");
   return `options(repos = c(P3M = ${JSON.stringify(repoUrl)}))
+lib <- ${JSON.stringify(lib)}
+dir.create(lib, showWarnings = FALSE, recursive = TRUE)
+.libPaths(c(lib, .libPaths()))
 if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
-lib <- ${JSON.stringify(lib)}
-dir.create(lib, showWarnings = FALSE, recursive = TRUE)
 for (pkg in c(${pkgList})) {
   remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = ${force ? "TRUE" : "FALSE"})
 }

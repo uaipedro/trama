@@ -14,6 +14,8 @@ describe("buildInstallScript", () => {
     expect(script).toContain('options(repos = c(P3M = "https://packagemanager.posit.co/cran/latest"))');
     expect(script).toContain('if (!requireNamespace("remotes", quietly = TRUE))');
     expect(script).toContain('lib <- "/home/user/.trama-cli/lib"');
+    expect(script).toContain(".libPaths(c(lib, .libPaths()))");
+    expect(script.indexOf(".libPaths(")).toBeLessThan(script.indexOf("install_github"));
     expect(script).toContain(
       'remotes::install_github(pkg, lib = lib, build = FALSE, upgrade = "never", dependencies = NA, force = FALSE)'
     );

@@ -5,13 +5,14 @@ import { openProject } from "./commands/open.js";
 import { createCommand } from "./commands/create.js";
 import { updateCommand } from "./commands/update.js";
 import { isProjectDir } from "./project.js";
+import { printMascote } from "./mascote.js";
 
 const program = new Command();
 
 program
   .name("trama")
   .description("Instala e roda o trama sem precisar já ter R instalado.")
-  .version("0.2.2");
+  .version("0.2.3");
 
 // Envolve o handler de cada comando para transformar erros/rejeições não
 // tratadas em uma mensagem de erro limpa, em vez de um stack trace cru
@@ -34,6 +35,7 @@ program
   .description("Baixa o R portátil e instala o núcleo do trama")
   .action(
     runAction(async () => {
+      printMascote();
       await ensureInstalled((msg) => console.log(msg));
       console.log("Pronto.");
     }),
