@@ -21,6 +21,11 @@
 ; linha (major.minor), não a versão do trama — é o manifesto quem versiona
 ; o trama (release.json), e o Setup só precisa mudar quando a linha do R
 ; muda (troca_de_r em tl_status()).
+; ATENÇÃO: bump RVersion/RVersionLinha aqui quando o campo "r" de
+; release.json mudar de linha (ex.: 4.5.x -> 4.6.x). O manifesto é a fonte
+; da verdade em runtime (bootstrap.R confere getRversion() contra ele e
+; falha com mensagem clara se não bater); estas duas constantes só
+; controlam qual R este .exe específico instala numa máquina limpa.
 #define RVersion "4.5.1"
 #define RVersionLinha "4.5"
 
@@ -83,15 +88,35 @@ Type: filesandordirs; Name: "{app}"
 [Code]
 var
   DownloadPage: TDownloadWizardPage;
-  RJaInstalado: Boolean;
 
-// -- R já instalado nesta {app} com a linha certa? -------------------------
+// -- "x.y.z" -> "x.y" (mesma regra de tl_status()/troca_de_r: um patch
+// novo do R, tipo 4.5.1 -> 4.5.2, não é uma linha diferente). -------------
+function RMajorMinor(Versao: String): String;
+var
+  P1, P2: Integer;
+begin
+  Result := Versao;
+  P1 := Pos('.', Versao);
+  if P1 = 0 then Exit;
+  P2 := Pos('.', Copy(Versao, P1 + 1, Length(Versao)));
+  if P2 = 0 then Exit;
+  Result := Copy(Versao, 1, P1 + P2 - 1);
+end;
+
+// -- R já instalado nesta {app}, e na linha certa? -------------------------
+// `Exec()` sozinho não captura stdout do processo filho; para conferir a
+// versão de verdade (não só "existe Rscript.exe") é preciso rodar via
+// cmd.exe /C com redirecionamento para um arquivo, e ler esse arquivo com
+// LoadStringFromFile — sem isso, um Rscript.exe de uma linha antiga (ex.:
+// de uma instalação manual anterior) seria erradamente considerado "já
+// instalado" e o Setup nunca atualizaria o R.
 function PrecisaInstalarR(): Boolean;
 var
   RscriptPath: String;
   ResultCode: Integer;
   VersaoOutput: String;
   TmpFile: String;
+  CmdLine: String;
 begin
   Result := True;
   RscriptPath := ExpandConstant('{app}\R\bin\Rscript.exe');
@@ -99,17 +124,22 @@ begin
     Exit;
 
   TmpFile := ExpandConstant('{tmp}\r-versao.txt');
-  if Exec(RscriptPath, '-e "cat(as.character(getRversion()))"', '',
-          SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  if FileExists(TmpFile) then
+    DeleteFile(TmpFile);
+
+  CmdLine := '/C ""' + RscriptPath + '" -e "cat(as.character(getRversion()))" > "' +
+    TmpFile + '" 2>&1"';
+  if Exec(ExpandConstant('{cmd}'), CmdLine, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
   begin
-    if ResultCode = 0 then
+    if (ResultCode = 0) and FileExists(TmpFile) and LoadStringFromFile(TmpFile, VersaoOutput) then
     begin
-      // Compara só major.minor (troca_de_r em tl_status()): um patch novo
-      // do R (4.5.1 -> 4.5.2) não obriga reinstalar.
-      LoadStringFromFile(TmpFile, VersaoOutput);
-      Result := False;
+      if RMajorMinor(Trim(VersaoOutput)) = '{#RVersionLinha}' then
+        Result := False;
     end;
   end;
+
+  if FileExists(TmpFile) then
+    DeleteFile(TmpFile);
 end;
 
 // -- Baixa e roda o instalador oficial do R, silencioso, por usuário -------
@@ -118,11 +148,13 @@ var
   ResultCode: Integer;
   InstaladorPath: String;
   UrlPrincipal, UrlFallback: String;
+  Baixou: Boolean;
 begin
   Result := False;
   InstaladorPath := ExpandConstant('{tmp}\R-{#RVersion}-win.exe');
   UrlPrincipal := 'https://cloud.r-project.org/bin/windows/base/old/{#RVersion}/R-{#RVersion}-win.exe';
   UrlFallback := 'https://cloud.r-project.org/bin/windows/base/R-{#RVersion}-win.exe';
+  Baixou := False;
 
   DownloadPage.Clear;
   DownloadPage.Add(UrlPrincipal, 'R-{#RVersion}-win.exe', '');
@@ -130,15 +162,32 @@ begin
   try
     try
       DownloadPage.Download;
+      Baixou := True;
     except
       // 404 na URL "old" (acontece quando {#RVersion} é a versão atual do
-      // R, que não fica no diretório /old/): tenta a URL genérica.
-      DownloadPage.Clear;
-      DownloadPage.Add(UrlFallback, 'R-{#RVersion}-win.exe', '');
-      DownloadPage.Download;
+      // R, que não fica no diretório /old/): tenta a URL genérica. O
+      // fallback tem o próprio try/except — se ele também falhar, o erro
+      // é tratado aqui mesmo (Baixou continua False) em vez de propagar
+      // como uma janela de erro de runtime crua.
+      try
+        DownloadPage.Clear;
+        DownloadPage.Add(UrlFallback, 'R-{#RVersion}-win.exe', '');
+        DownloadPage.Download;
+        Baixou := True;
+      except
+        Baixou := False;
+      end;
     end;
   finally
     DownloadPage.Hide;
+  end;
+
+  if not Baixou then
+  begin
+    MsgBox('Não consegui baixar o instalador do R (tentei ' + UrlPrincipal +
+      ' e ' + UrlFallback + '). Verifique sua conexão e rode o Setup de novo.',
+      mbError, MB_OK);
+    Exit;
   end;
 
   // Instalação oficial do R: silenciosa, por usuário (CURRENTUSER), sem

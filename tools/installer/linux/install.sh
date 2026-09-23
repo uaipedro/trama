@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — leva uma máquina Linux só com bash/curl/tar até o atalho
-# "Trama" funcionando: baixa um R portátil (build da Posit, mesma fonte que
+# "Trama" funcionando: lê o manifesto de release para saber qual R baixar
+# (um build portátil da Posit, mesma fonte que
 # tools/trama-cli/src/core/sources.ts usa para o R portátil do CLI), baixa
 # bootstrap.R e o roda (ele instala o trama.launcher e a release do
 # manifesto), e registra o atalho .desktop. Idempotente: rodar de novo
@@ -11,13 +12,7 @@ set -euo pipefail
 # --- Configuração, tudo sobrescrevível por env var (usado nos testes/CI) --
 TRAMA_HOME="${TRAMA_HOME:-$HOME/.local/share/trama}"
 
-# R portátil (build relocável da Posit, não um instalador): mesma versão e
-# mesma URL que tools/trama-cli/src/core/sources.ts usa para "linux"
-# (requer glibc >= 2.34, ou seja Ubuntu 22.04+/Debian 12+). Trocar aqui
-# junto com sources.ts se a versão catalogada lá mudar.
-R_VERSION="${TRAMA_R_VERSION:-4.4.1}"
-R_URL="${TRAMA_R_URL:-https://cdn.posit.co/r/manylinux_2_34/R-${R_VERSION}-manylinux_2_34.tar.gz}"
-
+MANIFEST_URL="${TRAMA_MANIFEST_URL:-https://github.com/uaipedro/trama/releases/latest/download/release.json}"
 REPO_RAW="${TRAMA_REPO_RAW:-https://raw.githubusercontent.com/uaipedro/trama/main}"
 BOOTSTRAP_URL="${TRAMA_BOOTSTRAP_URL:-$REPO_RAW/tools/installer/bootstrap.R}"
 ICON_URL="${TRAMA_ICON_URL:-$REPO_RAW/inst/www/icon.png}"
@@ -31,6 +26,32 @@ command -v curl >/dev/null 2>&1 || erro "precisa do 'curl' instalado."
 command -v tar >/dev/null 2>&1 || erro "precisa do 'tar' instalado."
 
 mkdir -p "$TRAMA_HOME"
+
+# --- 0. Versão do R: o manifesto (release.json, campo "r") é a fonte da
+# verdade — é o mesmo manifesto que bootstrap.R vai ler de novo depois (a
+# releitura aqui é só para saber qual R baixar antes dele existir).
+# `TRAMA_R_VERSION` ainda sobrescreve, para overrides manuais/testes.
+MANIFEST_LOCAL="$(mktemp)"
+trap 'rm -f "$MANIFEST_LOCAL"' EXIT
+if [ -f "$MANIFEST_URL" ]; then
+  # Caminho local (testes/CI apontando um arquivo em vez de uma URL).
+  cp "$MANIFEST_URL" "$MANIFEST_LOCAL"
+else
+  curl -fsSL "$MANIFEST_URL" -o "$MANIFEST_LOCAL" || erro "não consegui baixar o manifesto de release em $MANIFEST_URL"
+fi
+# Regex simples, só para o campo plano "r" do manifesto (não é um parser de
+# JSON de verdade — não lida com aninhamento; bootstrap.R usa jsonlite para
+# o resto).
+MANIFEST_R="$(sed -n 's/.*"r"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$MANIFEST_LOCAL" | head -n1)"
+[ -n "$MANIFEST_R" ] || erro "não consegui ler o campo 'r' do manifesto de release em $MANIFEST_URL."
+rm -f "$MANIFEST_LOCAL"
+trap - EXIT
+
+# R portátil (build relocável da Posit, não um instalador): mesma URL que
+# tools/trama-cli/src/core/sources.ts usa para "linux" (requer glibc >=
+# 2.34, ou seja Ubuntu 22.04+/Debian 12+), com a versão do manifesto.
+R_VERSION="${TRAMA_R_VERSION:-$MANIFEST_R}"
+R_URL="${TRAMA_R_URL:-https://cdn.posit.co/r/manylinux_2_34/R-${R_VERSION}-manylinux_2_34.tar.gz}"
 
 # --- 1. R portátil ----------------------------------------------------------
 R_MARKER="$TRAMA_HOME/R/.trama-r-version"
@@ -86,6 +107,8 @@ TRAMA_HOME="${TRAMA_HOME}"
 ESTADO="\$TRAMA_HOME/estado.json"
 ATUAL=""
 if [ -f "\$ESTADO" ]; then
+  # Regex simples, só para o campo plano "atual" do estado — não é um
+  # parser de JSON de verdade, não lida com aninhamento nem escapes.
   ATUAL="\$(sed -n 's/.*"atual"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' "\$ESTADO" | head -n1)"
 fi
 
@@ -107,7 +130,15 @@ if [ -f "$DESKTOP_TEMPLATE_URL" ]; then
 else
   curl -fsSL "$DESKTOP_TEMPLATE_URL" -o "$TEMPLATE_LOCAL" || erro "não consegui baixar o modelo do atalho em $DESKTOP_TEMPLATE_URL"
 fi
-sed "s#__TRAMA_HOME__#$TRAMA_HOME#g" "$TEMPLATE_LOCAL" > "$DESKTOP_DIR/trama.desktop"
+# Exec é quotado (o Desktop Entry Spec aceita aspas em "Exec", escapando
+# aspas/backtick/$/\\ dentro delas — sem nenhum desses caracteres aqui,
+# então a troca direta é segura). Icon é do tipo iconstring, que a spec NÃO
+# deixa quotar: espaço vira o escape "\s" em vez de aspas.
+TRAMA_HOME_ICON="${TRAMA_HOME// /\\s}"
+sed \
+  -e "s#__TRAMA_HOME__#$TRAMA_HOME#g" \
+  -e "s#__TRAMA_HOME_ICON__#$TRAMA_HOME_ICON#g" \
+  "$TEMPLATE_LOCAL" > "$DESKTOP_DIR/trama.desktop"
 rm -f "$TEMPLATE_LOCAL"
 chmod +x "$DESKTOP_DIR/trama.desktop"
 

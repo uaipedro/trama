@@ -64,12 +64,24 @@ tl_ui <- function() {
   }
 
   if (isTRUE(st$troca_de_r)) {
+    # O texto (só ele — Task de revisão da fase 3 pediu para não mexer no
+    # resto) muda conforme o SO: no Windows dá para baixar um novo
+    # Trama-Setup.exe; no Linux não tem instalador, é rodar o install.sh de
+    # novo (ele já lê a versão do R do manifesto e baixa a certa).
+    aviso <- if (identical(.Platform$OS.type, "unix")) {
+      sprintf(
+        "Esta versão do trama exige R %s. Rode o install.sh de novo para atualizar.",
+        .tl_texto(st$r_exigido)
+      )
+    } else {
+      sprintf(
+        "Esta versão do trama exige R %s. Baixe o novo instalador em:", .tl_texto(st$r_exigido)
+      )
+    }
     return(utils::modifyList(base, list(
       selo = "trocar_r",
       pill_texto = sprintf("R %s · trama %s · requer novo R", st$r_instalado, st$release_instalada),
-      aviso = sprintf(
-        "Esta versão do trama exige R %s. Baixe o novo instalador em:", .tl_texto(st$r_exigido)
-      ),
+      aviso = aviso,
       acao = list(
         tipo = "link", href = "https://github.com/uaipedro/trama/releases/latest",
         rotulo = "github.com/uaipedro/trama/releases/latest"
