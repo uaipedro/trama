@@ -154,7 +154,20 @@ withCallingHandlers(
       if (any(ainda_nao_copiados)) {
         file.copy(tarballs[ainda_nao_copiados], contrib_dir, overwrite = TRUE)
       }
-      tools::write_PACKAGES(contrib_dir, type = "source")
+
+      # write_PACKAGES() precisa extrair o DESCRIPTION de cada tarball, o
+      # que passa por `untar()`; se TAR (variável de ambiente) apontar para
+      # um `tar` externo que não existe no runner (ex.: "gtar", que alguns
+      # setups de R deixam configurado por padrão e não existe no Ubuntu),
+      # isso falha silenciosamente por pacote e o índice PACKAGES nem chega
+      # a ser escrito. O untar "internal" do R é portável e não depende de
+      # nenhum binário do sistema, então força ele só neste trecho.
+      tar_antigo <- Sys.getenv("TAR", unset = NA)
+      Sys.setenv(TAR = "internal")
+      tryCatch(
+        tools::write_PACKAGES(contrib_dir, type = "source"),
+        finally = if (is.na(tar_antigo)) Sys.unsetenv("TAR") else Sys.setenv(TAR = tar_antigo)
+      )
 
       # normalizePath(dir, "/") também troca `\` por `/` no Windows — sem
       # isso a URL file:// ficaria malformada lá.

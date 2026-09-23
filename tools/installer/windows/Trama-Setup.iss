@@ -233,7 +233,10 @@ begin
   LogPath := ExpandConstant('{localappdata}\Trama\logs');
 
   Params := '"' + ExpandConstant('{app}\bootstrap.R') + '"';
-  ExtraArgs := GetEnvironmentVariable('TRAMA_BOOTSTRAP_ARGS');
+  // GetEnv, não GetEnvironmentVariable (esse é o nome do Windows API/.NET;
+  // a função de Pascal Script do Inno Setup é GetEnv — "Unknown identifier"
+  // na compilação senão).
+  ExtraArgs := GetEnv('TRAMA_BOOTSTRAP_ARGS');
   if ExtraArgs <> '' then
     Params := Params + ' ' + ExtraArgs;
 
