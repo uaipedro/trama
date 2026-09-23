@@ -1,5 +1,6 @@
 ---
 import "../styles/site.css";
+import { variants } from "../data/copy-variants";
 
 interface Props {
   title: string;
@@ -45,6 +46,15 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </script>
   </head>
   <body>
+    <div class="ab-bar" hidden data-ab-bar>
+      <span>modo comparação — só você vê</span>
+      <label>Variante
+        <select data-ab-select>
+          {variants.map((variant) => <option value={variant.id}>{variant.name}</option>)}
+        </select>
+      </label>
+    </div>
+    <script type="application/json" id="ab-variants" set:html={JSON.stringify(variants)} />
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <header class="site-header">
       <a class="brand" href="/trama/" aria-label="trama — página inicial">
@@ -126,6 +136,35 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         });
       });
       document.addEventListener("fullscreenchange", updateFullscreenButtons);
+
+      const abKey = "trama-variante";
+      const params = new URLSearchParams(location.search);
+      if (params.get("ab") === "0") localStorage.removeItem("trama-ab");
+      else if (params.has("ab")) localStorage.setItem("trama-ab", "1");
+      if (params.get("v")) localStorage.setItem(abKey, params.get("v"));
+      const abOn = localStorage.getItem("trama-ab") === "1";
+      const all = JSON.parse(document.getElementById("ab-variants")?.textContent ?? "[]");
+      const applyVariant = (id) => {
+        const v = all.find((x) => x.id === id) ?? all[0];
+        if (!v) return;
+        document.querySelectorAll("[data-copy]").forEach((el) => {
+          const text = v.copy[el.dataset.copy];
+          if (text) el.textContent = text;
+        });
+        document.documentElement.dataset.variante = v.id;
+      };
+      if (abOn) {
+        const abBar = document.querySelector("[data-ab-bar]");
+        const abSelect = document.querySelector("[data-ab-select]");
+        abBar?.removeAttribute("hidden");
+        const current = localStorage.getItem(abKey) ?? "controle";
+        if (abSelect) abSelect.value = current;
+        applyVariant(current);
+        abSelect?.addEventListener("change", () => {
+          localStorage.setItem(abKey, abSelect.value);
+          applyVariant(abSelect.value);
+        });
+      }
     </script>
   </body>
 </html>
