@@ -48,6 +48,9 @@ export const Canvas: React.FC<{
   // do laço, sem apagar a grade de pontos — senão o último quadro do vídeo não
   // bateria com o primeiro, que já nasce vazio.
   opacidadeConteudo?: number;
+  // Quem está selecionado, quando a cena decide (o motor de roteiros). Sem
+  // isto, vale a regra de `idAtivo`.
+  ativo?: string | null;
 }> = ({
   camera,
   largura,
@@ -58,11 +61,12 @@ export const Canvas: React.FC<{
   fundo = tema.cor.fundo,
   corPontos = tema.cor.pontos,
   opacidadeConteudo = 1,
+  ativo: ativoDado,
 }) => {
   const { cx, cy, s } = camera;
   const ox = largura / 2 - cx * s;
   const oy = altura / 2 - cy * s;
-  const ativo = idAtivo(nos, quadro);
+  const ativo = ativoDado === undefined ? idAtivo(nos, quadro) : ativoDado;
   const passo = 20 * s;
   const porId = (id: string): NoFluxo => {
     const no = nos.find((n) => n.id === id);

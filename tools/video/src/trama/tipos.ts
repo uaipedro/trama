@@ -4,6 +4,7 @@
 // depender de QUAL vídeo está sendo renderizado: um importa o catálogo da
 // coleção `data`, o outro o da `models`, e os dois desenham com o mesmo código.
 import type { Tamanho } from "./metricas";
+import type { Modo } from "./modos-app.js";
 
 export type Porta = { nome: string; obrigatoria?: boolean };
 
@@ -112,6 +113,22 @@ export type NoFluxo = {
   digita?: number;
   // Quando o preview deixa de estar "executando" e mostra o resultado.
   resulta: number;
+
+  // --- A linha do tempo além da entrada. Tudo opcional: os vídeos antigos
+  // não passam nada e o card se comporta como antes (modo `completo`).
+  // Quadros no mesmo relógio de `entra`.
+  modo?: Modo;
+  // Trocas de modo, em ordem. A troca leva `TROCA_MODO` quadros (estado.ts).
+  modos?: { em: number; modo: Modo }[];
+  // Param mudado em cena. Campo de texto é digitado a partir de `em`; enum
+  // troca de uma vez.
+  trocas?: { em: number; param: string; valor: string }[];
+  // Execuções depois da primeira (param mudou → o bloco roda de novo). Sem
+  // `resultado`, repete o anterior.
+  rodadas?: { de: number; ate: number; resultado?: Resultado }[];
+  // O que está sendo mexido ganha um anel pulsante: `"modo"` (o seletor) ou
+  // `"param:<nome>"` (a linha do parâmetro, no card ou no painel).
+  destaques?: { de: number; ate: number; alvo: string }[];
 };
 
 export type ArestaFluxo = {

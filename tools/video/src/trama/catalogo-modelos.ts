@@ -155,7 +155,7 @@ export const SPECS: Record<string, Spec> = {
 
 // As cinco primeiras linhas do `milho_dbc`, como saem do R. Cinco porque é o
 // que cabe na faixa de preview de 132px sem cortar a sexta ao meio.
-const MILHO: Tabela = {
+export const MILHO: Tabela = {
   colunas: ["bloco", "hibrido", "producao"],
   linhas: [
     ["B1", "H1", 7.58],
@@ -168,7 +168,7 @@ const MILHO: Tabela = {
 
 // O card do modelo: `.tr_models_fit_preview`. Os quatro destaques saem na ordem
 // em que o R os acrescenta, e o renderer mostra os três primeiros.
-const FIT: CardDeModelo = {
+export const FIT: CardDeModelo = {
   rotulo: "ANOVA · DBC",
   formula: "producao ~ bloco + hibrido",
   n: 20,
@@ -183,7 +183,7 @@ const FIT: CardDeModelo = {
   global: { rotulo: "F de hibrido", p: 0.000188257884363411 },
 };
 
-const QUADRO_ANOVA: Quadro = {
+export const QUADRO_ANOVA: Quadro = {
   titulo: "Quadro da ANOVA · SQ tipo I",
   colunas: ["FV", "GL", "SQ", "QM", "Fc"],
   inteiras: [0],
@@ -198,7 +198,7 @@ const QUADRO_ANOVA: Quadro = {
   rodape: { CV: "3,7%", média: "8,202", n: "20" },
 };
 
-const MEDIAS: Medias = {
+export const MEDIAS: Medias = {
   fator: "hibrido",
   rotuloY: "producao (média ajustada e IC 95%)",
   pontos: [
@@ -213,7 +213,7 @@ const MEDIAS: Medias = {
 // As dez comparações, com o p já AJUSTADO por Tukey. O card mostra a vista
 // `significância`: dez linhas do quadro completo não caberiam legíveis, e é
 // esta vista que responde "quem difere de quem" de relance.
-const PARES: Quadro = {
+export const PARES: Quadro = {
   titulo: "Comparações entre pares",
   colunas: ["termo", "Estimativa", "EP", "GL", "t"],
   inteiras: [2],

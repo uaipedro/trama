@@ -35,6 +35,14 @@ export const tema = {
     reshape: "#ec4899",
     aggregate: "#a855f7",
     sink: "#22c55e",
+    // As da coleção `models` (`collections/trama.models/R/collection.R`).
+    modelo_fonte: "#10b981",
+    modelo_ajustar: "#14b8a6",
+    modelo_anova: "#0ea5e9",
+    modelo_resumir: "#eab308",
+    modelo_medias: "#8b5cf6",
+    modelo_pressupostos: "#f97316",
+    modelo_testes: "#ef4444",
   } as Record<string, string>,
   fonte: {
     display: '"Inter Display", ui-sans-serif, system-ui, sans-serif',

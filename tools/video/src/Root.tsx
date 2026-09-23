@@ -14,10 +14,15 @@ import {
   SiteVerticalDivulgacao,
 } from "./scenes/SiteVerticalDivulgacao";
 
+import { Composicoes } from "./motor/Composicoes";
+import { ROTEIROS } from "./roteiros";
+
 carregarFontes();
 
 export const Root: React.FC = () => (
   <>
+    {/* Os vídeos feitos por roteiro (`src/roteiros/`): 4:3, vertical e stills. */}
+    <Composicoes roteiros={ROTEIROS} />
     <Composition
       id="TramaDemo"
       component={TramaDemo}

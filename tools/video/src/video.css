@@ -28,3 +28,12 @@ body {
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* No app, `body` dá a pilha de sistema a tudo; aqui não há `body` do editor, e
+   o botão do segmentado — que só tem `font:inherit` — caía na serifada padrão
+   do Chromium em alguns contextos (o painel de parâmetros). */
+.tr-seg > button,
+.tr-dock,
+.tr-node {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}

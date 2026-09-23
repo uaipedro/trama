@@ -19,14 +19,29 @@ npm run studio            # pré-visualização interativa
 Fica fora do pacote R: `^tools$` está no `.Rbuildignore`, então nada daqui entra
 num `R CMD check` nem no tarball.
 
+## Vídeos por roteiro (4:3, vertical e stills)
+
+Vídeo novo não se escreve em JSX: escreve-se um **roteiro**, um arquivo de
+dados em `src/roteiros/` com os blocos e a lista de planos (`entra`, `liga`,
+`param`, `modo`, `foco`, `geral`, `espera`, `still`). O motor (`src/motor/`)
+decide tempo, câmera, som e quando o painel de parâmetros abre. Cada roteiro
+vira `<id>` (4:3, 1440×1080), `<id>-vertical` (9:16, o mesmo desenho
+recortado no meio) e um still por plano `still`.
+
+O foco fica sempre na **zona segura central** de 608px, a faixa que sobrevive
+ao recorte vertical. No vertical, o painel de parâmetros vira folha na base.
+O guia para escrever roteiros (feito para ser seguido por qualquer modelo)
+está em `.claude/skills/trama-video/SKILL.md`, e o exemplo é
+`src/roteiros/anova-modos.ts`.
+
 ## Os cards são os do editor, não uma maquete
 
 O canvas dos vídeos não é um desenho parecido com o trama — é o markup do editor
 com a folha de estilo do editor. `src/trama/NoCard.tsx` emite as mesmas classes
 que o `NdNode` de `inst/www/editor.js` emite (`.tr-node`, `.tr-preview`,
 `.tr-tabs`, `.tr-params`, `.tr-ports`), os previews emitem as dos renderers
-(`.tr-table`, `.tr-mf-*`, `.tr-quadro`, `.tr-sig-*`) e as arestas usam a bezier
-do xyflow com a mesma curvatura. A aparência vem de `src/trama-app.css`,
+(`.tr-table`, `.tr-mf-*`, `.tr-quadro`, `.tr-sig-*`) e as arestas usam a rota
+em ângulo reto da `TrAresta` do editor. A aparência vem de `src/trama-app.css`,
 `src/trama-data.css` e `src/trama-models.css`, que são **cópias** de
 `inst/www/trama.css`, `collections/trama.data/inst/trama/data.css` e
 `collections/trama.models/inst/trama/models.css`.
@@ -36,8 +51,13 @@ rótulo, categoria, ícone, portas e params, com o widget que `layoutEnum` escol
 para cada enum (por isso o `Separador` é segmentado inline, o `Tipo` do Juntar é
 segmentado largo e o `Conjunto` da `models`, com onze opções, é um `select`).
 
+O card desenha os quatro modos do editor (`completo`, `preview`, `params`,
+`mini`) decidindo o que mostrar com o próprio `modos.js` do app (copiado para
+`src/trama/modos-app.js`), e as arestas usam a rota em ângulo reto da
+`TrAresta`.
+
 **Mexeu no front do trama?** Rode `npm run sincronizar`. Ele recopia as três
-folhas de estilo, a marca e reextrai os ícones do sprite do lucide. Sem isso os
+folhas de estilo, a marca, o `modos.js` e reextrai os ícones do sprite do lucide. Sem isso os
 vídeos continuam mostrando a aparência antiga — um defeito que não aparece lendo
 o código do vídeo.
 

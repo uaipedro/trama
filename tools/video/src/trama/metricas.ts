@@ -8,7 +8,8 @@
 // (`.tr-preview`, `.tr-tabs`, `.tr-params`, `.tr-ports`), e o card recebe essas
 // alturas como estilo inline. Assim o desenho e a âncora não podem divergir —
 // os dois leem daqui.
-import type { Spec } from "./tipos";
+import type { Param, Spec } from "./tipos";
+import { mostraParams, mostraPreview, type Modo } from "./modos-app.js";
 
 export const M = {
   largura: 240,
@@ -49,7 +50,13 @@ export function alturaPreview(t?: Tamanho): number {
   return t?.preview ?? M.preview;
 }
 
-export function alturaLinhaParam(tipo: string): number {
+// Rótulo com mais de 16 caracteres vai pra cima do campo (`.tr-param-longo`,
+// decidido por contagem em `ParamsList`, modos-ui.js) — a linha cresce o rótulo
+// mais o gap de 2px.
+export const rotuloLongo = (p: Param) => p.rotulo.length > 16;
+
+export function alturaLinhaParam(tipo: string, p?: Param): number {
+  if (p && rotuloLongo(p) && tipo !== "enum-largo") return alturaLinhaParam(tipo) + 17;
   if (tipo === "expr") return M.linha.expr;
   if (tipo === "enum-largo") return M.linha.largo;
   return M.linha.campo;
@@ -58,7 +65,7 @@ export function alturaLinhaParam(tipo: string): number {
 export function alturaParams(spec: Spec): number {
   const n = spec.params.length;
   if (!n) return 0;
-  const linhas = spec.params.reduce((s, p) => s + alturaLinhaParam(p.tipo), 0);
+  const linhas = spec.params.reduce((s, p) => s + alturaLinhaParam(p.tipo, p), 0);
   return M.paramsPad * 2 + linhas + M.paramsGap * (n - 1);
 }
 
@@ -89,4 +96,65 @@ export function yPorta(spec: Spec, i: number, t?: Tamanho): number {
     i * (M.porta + M.portaGap) +
     M.porta / 2
   );
+}
+
+// --- Modos do card -----------------------------------------------------------
+//
+// O editor tem quatro modos (`inst/www/modos.js`): `completo` (preview +
+// params), `preview` (sem params), `params` (sem preview nem abas) e `mini`
+// (ícone grande e rótulo, portas coladas na borda). A geometria de cada um é
+// declarada aqui, pelas mesmas regras de `trama.css`, pra aresta e câmera
+// saberem onde o card está sem medir o DOM.
+
+// `.tr-node-mini .tr-node-title`: 12px/1.45, no máximo 84px por linha. A
+// largura do texto é ESTIMADA (7,4px por caractere a 12px semibold na pilha
+// de sistema) — o card recebe a largura inline, então o erro vira folga, não
+// desalinhamento.
+const PX_CHAR = 7.4;
+function linhasMini(rotulo: string): { linhas: number; maior: number } {
+  const palavras = rotulo.split(" ");
+  let linhas = 1, atual = 0, maior = 0;
+  for (const p of palavras) {
+    const w = p.length * PX_CHAR;
+    const com = atual ? atual + PX_CHAR + w : w;
+    if (com > 84 && atual) { maior = Math.max(maior, atual); linhas++; atual = w; }
+    else atual = com;
+  }
+  return { linhas, maior: Math.min(84, Math.max(maior, atual)) };
+}
+
+export function larguraMini(rotulo: string): number {
+  // padding 8px dos dois lados + borda de 1px.
+  return Math.max(76, Math.ceil(linhasMini(rotulo).maior) + 18);
+}
+
+export function alturaMini(rotulo: string): number {
+  // padding 10 + ícone 28 + gap 4 + linhas + padding 8 + bordas.
+  return 10 + 28 + 4 + Math.ceil(linhasMini(rotulo).linhas * 17.4) + 8 + 2;
+}
+
+export type Geometria = { w: number; h: number; portas: (lado: "in" | "out", i: number) => number };
+
+export function geometria(spec: Spec, modo: Modo, rotulo: string, t?: Tamanho): Geometria {
+  if (modo === "mini") {
+    const w = larguraMini(rotulo), h = alturaMini(rotulo);
+    // Portas centradas na altura toda do card (`.tr-node-mini .tr-ports`).
+    const n = (lado: "in" | "out") => (lado === "in" ? spec.entradas : spec.saidas).length;
+    return {
+      w, h,
+      portas: (lado, i) => {
+        const bloco = n(lado) * M.porta + (n(lado) - 1) * M.portaGap;
+        return h / 2 - bloco / 2 + i * (M.porta + M.portaGap) + M.porta / 2;
+      },
+    };
+  }
+  const corpo =
+    (mostraPreview(modo) ? alturaPreview(t) + 1 + M.abas : 0) +
+    (mostraParams(modo) ? alturaParams(spec) : 0);
+  const topoPortas = M.cabeca + corpo + M.portasTopo;
+  return {
+    w: larguraCard(t),
+    h: M.cabeca + corpo + alturaPortas(spec),
+    portas: (_lado, i) => topoPortas + i * (M.porta + M.portaGap) + M.porta / 2,
+  };
 }

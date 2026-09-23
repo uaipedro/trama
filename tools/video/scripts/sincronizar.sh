@@ -10,5 +10,6 @@ cp ../../collections/trama.data/inst/trama/data.css src/trama-data.css
 cp ../../collections/trama.models/inst/trama/models.css src/trama-models.css
 cp ../../inst/www/marca.svg public/marca.svg
 cp ../../inst/www/vendor/lucide.svg public/lucide.svg
+cp ../../inst/www/modos.js src/trama/modos-app.js
 node scripts/icones.mjs
 echo "sincronizado com inst/www, trama.data e trama.models."
