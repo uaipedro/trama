@@ -12,6 +12,8 @@
     "render:site": "npm run render:site-montagem && npm run render:site-amplo",
     "render:site-montagem": "remotion render src/index.ts SiteMontagem out/site-montagem-bruto.mp4 --codec h264 --crf 17 --overwrite && sh scripts/site-web.sh out/site-montagem-bruto.mp4 ../../site/public/montagens/fluxo-em-montagem.mp4 ../../site/public/montagens/fluxo-em-montagem.jpg 9.5",
     "render:site-amplo": "remotion render src/index.ts SiteFluxoAmplo out/site-amplo-bruto.mp4 --codec h264 --crf 17 --overwrite && sh scripts/site-web.sh out/site-amplo-bruto.mp4 ../../site/public/montagens/fluxo-amplo.mp4 ../../site/public/montagens/fluxo-amplo.jpg 0",
+    "render:site-vertical": "remotion render src/index.ts SiteVertical out/site-vertical-bruto.mp4 --codec h264 --crf 17 --overwrite && sh scripts/site-web.sh out/site-vertical-bruto.mp4 ../../site/public/montagens/fluxo-vertical.mp4 ../../site/public/montagens/fluxo-vertical.jpg 12.6",
+    "render:divulgacao-vertical": "remotion render src/index.ts SiteVerticalDivulgacao out/trama-vertical.mp4 --codec h264 --crf 18 --overwrite",
     "sfx": "node scripts/sfx.mjs",
     "sincronizar": "sh scripts/sincronizar.sh",
     "tipos": "tsc --noEmit"

@@ -8,6 +8,11 @@ import { DURACAO_TOTAL as DURACAO_MODELOS, TramaModelos } from "./VideoModelos";
 import { DURACAO_TOTAL as DURACAO_VINHETA, TramaVinheta } from "./VideoVinheta";
 import { DURACAO_TOTAL as DURACAO_SITE_MONTAGEM, SiteMontagem } from "./scenes/SiteMontagem";
 import { DURACAO_TOTAL as DURACAO_SITE_AMPLO, SiteFluxoAmplo } from "./scenes/SiteFluxoAmplo";
+import { DURACAO_TOTAL as DURACAO_SITE_VERTICAL, SiteVertical } from "./scenes/SiteVertical";
+import {
+  DURACAO_TOTAL as DURACAO_SITE_VERTICAL_DIVULGACAO,
+  SiteVerticalDivulgacao,
+} from "./scenes/SiteVerticalDivulgacao";
 
 carregarFontes();
 
@@ -58,6 +63,25 @@ export const Root: React.FC = () => (
       fps={30}
       width={1920}
       height={1080}
+    />
+    {/* Vertical (1080×1920): a coluna direita do hero em loop mudo, e a base
+        do vídeo pra compartilhar — ver `SiteVertical.tsx` e
+        `SiteVerticalDivulgacao.tsx`. */}
+    <Composition
+      id="SiteVertical"
+      component={SiteVertical}
+      durationInFrames={DURACAO_SITE_VERTICAL}
+      fps={30}
+      width={1080}
+      height={1920}
+    />
+    <Composition
+      id="SiteVerticalDivulgacao"
+      component={SiteVerticalDivulgacao}
+      durationInFrames={DURACAO_SITE_VERTICAL_DIVULGACAO}
+      fps={30}
+      width={1080}
+      height={1920}
     />
   </>
 );
