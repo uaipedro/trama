@@ -108,8 +108,11 @@ button{font:inherit}
 .tl-vazio{color:var(--tr-dim);font-size:13px;padding:6px 0}
 
 /* --- cards de coleção --- */
-.tl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;
-  max-width:960px;margin:0 auto}
+/* Sem max-width/margin:auto aqui: isso centralizava a grade dentro de
+   .tl-content quando ele é mais largo que 960px, deslocando a borda
+   esquerda dos cards para a direita do título da seção (.tl-secao-inicio
+   h2 / .tl-titulo-view), que não tem essa mesma centralização. */
+.tl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
 .tl-card{position:relative;background:var(--tr-panel);border:1px solid var(--tr-line);
   border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;text-align:left;
   color:var(--tr-fg);cursor:pointer;min-height:118px;box-shadow:0 6px 20px var(--tr-shadow)}
