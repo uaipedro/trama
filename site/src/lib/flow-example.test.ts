@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseFlowExample, layoutFlow } from "./flow-example.ts";
+import { renderFlowCanvas } from "./flow-canvas-html.ts";
 
 const acf = `tr_flow(reg) |>
   tr_add("pax", "series/example") |>
@@ -33,4 +34,12 @@ test("layout em colunas por profundidade", () => {
   assert.deepEqual(pos.get("a"), { col: 0, row: 0 });
   assert.deepEqual(pos.get("b"), { col: 1, row: 0 });
   assert.deepEqual(pos.get("c"), { col: 1, row: 1 });
+});
+
+test("canvas: um card por nó, aresta por par, escapa texto", () => {
+  const g = parseFlowExample(`tr_add("a","t/x", q = "<b>") |> tr_add("b","t/y", from = "a")`)!;
+  const html = renderFlowCanvas(g, {});
+  assert.equal(html.match(/class="canvas-card"/g)?.length, 2);
+  assert.equal(html.match(/<path /g)?.length, 1);
+  assert.ok(html.includes("&lt;b&gt;") && !html.includes("<b>"));
 });

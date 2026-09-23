@@ -127,5 +127,35 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       });
       document.addEventListener("fullscreenchange", updateFullscreenButtons);
     </script>
+    <script is:inline>
+      // Abas Canvas | Código R dos exemplos das docs (canvas de exemplo).
+      const exemploAbaKey = "trama-exemplo-aba";
+      const lembrada = localStorage.getItem(exemploAbaKey);
+      const selecionarAba = (exemplo, aba) => {
+        exemplo.querySelectorAll("[role='tab']").forEach((tab) => {
+          tab.setAttribute("aria-selected", String(tab.dataset.tab === aba));
+        });
+        exemplo.querySelectorAll("[role='tabpanel']").forEach((panel) => {
+          if (panel.dataset.panel === aba) panel.removeAttribute("hidden");
+          else panel.setAttribute("hidden", "");
+        });
+      };
+      if (lembrada) {
+        document.querySelectorAll("[data-flow-example]").forEach((exemplo) => {
+          if (exemplo.querySelector(`[role='tab'][data-tab='${lembrada}']`)) {
+            selecionarAba(exemplo, lembrada);
+          }
+        });
+      }
+      document.addEventListener("click", (event) => {
+        const tab = event.target instanceof Element ? event.target.closest("[data-flow-example] [role='tab']") : null;
+        if (!tab) return;
+        const exemplo = tab.closest("[data-flow-example]");
+        if (!exemplo) return;
+        const aba = tab.dataset.tab;
+        selecionarAba(exemplo, aba);
+        localStorage.setItem(exemploAbaKey, aba);
+      });
+    </script>
   </body>
 </html>
