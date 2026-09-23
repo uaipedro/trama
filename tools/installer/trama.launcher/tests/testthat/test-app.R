@@ -25,15 +25,16 @@ fake_install_ok <- function(pkgs, lib, repos) {
   }
 }
 
-test_that("ação Atualizar instala a release e atualiza o status", {
+test_that("ação Atualizar instala a nova release e atualiza o status", {
   local_home()
   testthat::local_mocked_bindings(
     tl_install_pkgs = fake_install_ok,
     tl_manifest_fetch = manifesto_teste
   )
+  tl_install_release(manifesto_teste("2026.09"), colecoes = character(0))
 
   shiny::testServer(tl_server, {
-    expect_equal(status()$release_instalada, "")
+    expect_equal(status()$release_instalada, "2026.09")
     session$setInputs(tl_atualizar = 1)
     expect_equal(status()$release_instalada, "2026.10")
     expect_false(status()$atualizar)
@@ -41,6 +42,79 @@ test_that("ação Atualizar instala a release e atualiza o status", {
 
   s <- tl_state_read()
   expect_equal(s$atual, "2026.10")
+})
+
+test_that("sem release nenhuma, o server dispara a primeira instalação sozinho", {
+  local_home()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+
+  shiny::testServer(tl_server, {
+    # Já instalado ao entrar na sessão, sem precisar de nenhum input —
+    # abrir() sobe a tela vazia e é o server quem dispara a instalação
+    # (revisão da fase 2: instalar antes do runApp() não tinha UI para
+    # mostrar progresso nem erro).
+    expect_equal(status()$release_instalada, "2026.10")
+  })
+
+  s <- tl_state_read()
+  expect_equal(s$atual, "2026.10")
+})
+
+test_that("sem release e sem internet, mostra aviso com botão de tentar de novo", {
+  local_home()
+  testthat::local_mocked_bindings(tl_manifest_fetch = function(...) NULL)
+
+  shiny::testServer(tl_server, {
+    expect_true(sem_internet())
+    expect_equal(status()$release_instalada, "")
+  })
+})
+
+test_that("Tentar de novo reinstala quando a internet volta", {
+  local_home()
+  chamadas <- 0
+  fetch_intermitente <- function(...) {
+    chamadas <<- chamadas + 1
+    if (chamadas == 1) NULL else manifesto_teste()
+  }
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = fetch_intermitente
+  )
+
+  shiny::testServer(tl_server, {
+    expect_true(sem_internet())
+    session$setInputs(tl_tentar_instalar = 1)
+    expect_false(sem_internet())
+    expect_equal(status()$release_instalada, "2026.10")
+  })
+})
+
+test_that("duplo clique fora do ciclo reativo é barrado por rodar_acao", {
+  local_home()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste("2026.09"), colecoes = character(0))
+
+  shiny::testServer(tl_server, {
+    # Chama rodar_acao() de dentro da ação de outra rodar_acao() — simula
+    # dois cliques que chegam antes do botão ser desabilitado na tela
+    # (a `ocupado()` reactiveVal só reflete na UI na próxima repintura; o
+    # flag síncrono do closure é o que barra isso de verdade). Se a trava
+    # falhar, a ação de dentro roda e o contador muda.
+    chamadas_internas <- 0
+    rodar_acao("Instalando…", function(progresso) {
+      rodar_acao("Instalando de novo…", function(p2) chamadas_internas <<- chamadas_internas + 1)
+      tl_install_release(manifesto(), progresso = progresso)
+    })
+
+    expect_equal(chamadas_internas, 0)
+  })
 })
 
 test_that("ação Instalar coleção chama o motor e reflete no status", {

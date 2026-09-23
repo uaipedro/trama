@@ -127,12 +127,22 @@ tl_project_new <- function(nome) {
 tl_project_open <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
                              abrir_janela = tl_open_window, executar = system2) {
   caminho <- normalizePath(caminho, mustWork = TRUE)
-  porta <- .tl_porta_livre(8726L)
 
   s <- tl_state_read()
   s$recentes <- utils::head(union(caminho, s$recentes), 10)
   tl_state_write(s)
 
+  # Já tem um editor de pé para este projeto (porta registrada e
+  # respondendo): só reabre a janela nela, sem subir outro processo por
+  # cima — revisão da fase 2, "Abrir" num projeto já aberto duplicava o
+  # `Rscript`.
+  if (tl_project_aberto(caminho)) {
+    porta <- tl_project_port(caminho)
+    abrir_janela(sprintf("http://127.0.0.1:%d", porta))
+    return(invisible(porta))
+  }
+
+  porta <- .tl_porta_livre(8726L)
   cmd <- sprintf(
     paste0(
       ".libPaths(c(%s, .libPaths())); ",

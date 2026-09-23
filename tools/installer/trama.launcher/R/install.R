@@ -66,6 +66,10 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
   sink(con, type = "output")
   on.exit({ sink(type = "output"); close(con) }, add = TRUE)
 
+  # Um `tl_install_pkgs()` por pacote, não um só pra `pacotes` inteiro: pedido
+  # na revisão da fase 1 pra `progresso()` acompanhar a instalação de verdade
+  # (pacote a pacote), em vez de despejar todas as mensagens de uma vez antes
+  # de qualquer coisa ser instalada.
   for (p in pacotes) {
     progresso(sprintf("Instalando %s…", p))
     tl_install_pkgs(p, lib = lib, repos = repos)

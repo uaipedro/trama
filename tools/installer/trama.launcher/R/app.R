@@ -147,9 +147,19 @@ tl_ui <- function() {
 #' verdade (task 2.1 do plano).
 #' @noRd
 tl_server <- function(input, output, session) {
-  manifesto <- shiny::reactiveVal(tl_manifest_fetch())
-  status <- shiny::reactiveVal(tl_status(m = manifesto(), s = tl_state_read()))
+  m0 <- tl_manifest_fetch()
+  manifesto <- shiny::reactiveVal(m0)
+  status <- shiny::reactiveVal(tl_status(m = m0, s = tl_state_read()))
   ocupado <- shiny::reactiveVal(FALSE)
+  sem_internet <- shiny::reactiveVal(is.null(m0) && !nzchar(status()$release_instalada))
+
+  # Trava de verdade contra duplo clique: um flag simples no closure de
+  # `tl_server`, checado de forma síncrona no primeiro passo de
+  # `rodar_acao()`. `ocupado` (reactiveVal) só desabilita o botão na
+  # próxima repintura — dois cliques rápidos ainda cabem antes dela rodar,
+  # e são esses dois cliques que este flag barra (não reage, é lido e
+  # escrito na hora, fora do ciclo reativo).
+  ocupado_flag <- FALSE
 
   atualizar_status <- function() status(tl_status(m = manifesto(), s = tl_state_read()))
 
@@ -157,8 +167,16 @@ tl_server <- function(input, output, session) {
   # `ocupado()`) e mostra o erro numa notificação com o caminho do log se
   # falhar. Sempre reatualiza o status ao final, com sucesso ou falha.
   rodar_acao <- function(titulo, acao) {
+    if (isTRUE(ocupado_flag)) {
+      shiny::showNotification("Aguarde a ação atual terminar.", type = "warning")
+      return(invisible(NULL))
+    }
+    ocupado_flag <<- TRUE
     ocupado(TRUE)
-    on.exit(ocupado(FALSE), add = TRUE)
+    on.exit({
+      ocupado_flag <<- FALSE
+      ocupado(FALSE)
+    }, add = TRUE)
     shiny::withProgress(message = titulo, value = 0, {
       tryCatch(
         acao(function(msg) shiny::incProgress(1 / 8, detail = msg)),
@@ -169,6 +187,30 @@ tl_server <- function(input, output, session) {
     })
     atualizar_status()
   }
+
+  # Primeira instalação: dispara sozinha quando a tela sobe sem release
+  # nenhuma (em vez de abrir() instalar antes do runApp — offline nesse
+  # ponto derrubava a sessão inteira antes de existir UI para avisar).
+  # Sem internet, não tenta instalar: mostra a mensagem com o botão
+  # "Tentar de novo" (`tl_tentar_instalar`, abaixo).
+  tentar_instalar <- function() {
+    m <- tl_manifest_fetch()
+    manifesto(m)
+    if (is.null(m)) {
+      sem_internet(TRUE)
+      return(invisible(NULL))
+    }
+    sem_internet(FALSE)
+    rodar_acao("Instalando…", function(progresso) tl_install_release(m, progresso = progresso))
+  }
+
+  # Usa o `m0` já buscado na inicialização (acima) em vez de chamar
+  # `tentar_instalar()` — que buscaria o manifesto de novo à toa.
+  if (!nzchar(status()$release_instalada) && !is.null(m0)) {
+    rodar_acao("Instalando…", function(progresso) tl_install_release(m0, progresso = progresso))
+  }
+
+  shiny::observeEvent(input$tl_tentar_instalar, tentar_instalar())
 
   output$tl_versao <- shiny::renderUI({
     st <- status()
@@ -187,7 +229,12 @@ tl_server <- function(input, output, session) {
       linhas
     )
 
-    acao_versao <- if (isTRUE(st$troca_de_r)) {
+    acao_versao <- if (!nzchar(st$release_instalada) && sem_internet()) {
+      shiny::tagList(
+        shiny::tags$p(class = "tl-aviso", "Sem internet para instalar. Verifique a conexão e tente de novo."),
+        .tl_botao("tl_tentar_instalar", "Tentar de novo", desabilitado = ocupado())
+      )
+    } else if (isTRUE(st$troca_de_r)) {
       shiny::tags$p(
         class = "tl-aviso",
         sprintf("Esta versão do trama exige R %s. Baixe o novo instalador em ", st$r_exigido),

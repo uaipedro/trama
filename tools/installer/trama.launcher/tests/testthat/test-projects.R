@@ -57,6 +57,30 @@ test_that("tl_project_open adiciona aos recentes e chama o motor de subir o edit
   expect_equal(tl_project_port(caminho), porta)
 })
 
+test_that("abrir um projeto já aberto só reabre a janela, sem subir outro processo", {
+  local_home_e_projetos()
+  caminho <- tl_project_new("já-aberto")
+
+  # Abre um socket de servidor de verdade na porta que vai registrar como
+  # "do editor" — é o que tl_project_aberto() testa (uma conexão de
+  # verdade), então o fake tem que responder a uma conexão de verdade.
+  porta <- .tl_porta_livre(8726L)
+  con <- serverSocket(porta)
+  withr::defer(close(con))
+  assign(normalizePath(caminho), porta, envir = .tl_processos_projeto)
+
+  chamadas <- list(executar = 0, janela = character(0))
+  porta_devolvida <- tl_project_open(
+    caminho, lib = tl_lib_dir("2026.10"),
+    abrir_janela = function(url) chamadas$janela[[length(chamadas$janela) + 1]] <<- url,
+    executar = function(...) chamadas$executar <<- chamadas$executar + 1
+  )
+
+  expect_equal(chamadas$executar, 0)
+  expect_equal(porta_devolvida, porta)
+  expect_match(chamadas$janela, sprintf("127.0.0.1:%d", porta))
+})
+
 test_that("tl_projects lista o recente mesmo se estiver fora da pasta padrão", {
   local_home_e_projetos()
   fora <- withr::local_tempdir()

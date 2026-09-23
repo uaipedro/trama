@@ -17,8 +17,11 @@ enquanto a tela de início está aberta.
 \description{
 Ponto de entrada chamado pelo atalho instalado (\code{Trama-Setup.exe} no
 Windows, \code{install.sh} no Linux): coloca a biblioteca da release atual na
-frente do \code{.libPaths()} e sobe a tela de início do launcher. Se ainda não
-houver nenhuma release instalada, instala a mais recente do manifesto
-antes de subir a tela — é o que faz a primeira abertura já mostrar o
-progresso da instalação em vez de uma tela vazia.
+frente do \code{.libPaths()} (se já houver uma) e sobe a tela de início do
+launcher. Se ainda não houver nenhuma release instalada, é a tela de
+início quem dispara a primeira instalação (\code{tl_server()}, em R/app.R) —
+\emph{depois} dela estar no ar, não antes: instalar antes do \code{runApp()}
+rodava \code{tl_manifest_read()} sem UI nenhuma para mostrar o progresso ou
+um erro (e lançava erro de verdade se estivesse offline, derrubando
+\code{abrir()} inteiro antes do pesquisador ver qualquer coisa).
 }
