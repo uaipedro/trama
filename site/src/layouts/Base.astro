@@ -1,6 +1,7 @@
 ---
 import "../styles/site.css";
 import { variants } from "../data/copy-variants";
+import { collections } from "../data/collections";
 
 interface Props {
   title: string;
@@ -68,9 +69,22 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         </svg>
         <span>trama</span>
       </a>
-      <nav aria-label="Navegação principal">
-        <a href="/trama/comece/primeiro-fluxo/">Comece</a>
-        <a href="/trama/#colecoes">Coleções</a>
+      <nav aria-label="Navegação principal" class="main-nav">
+        <a href="/trama/">Início</a>
+        <details class="nav-menu">
+          <summary>Coleções</summary>
+          <div class="nav-menu__panel">
+            {collections.map((c) => (
+              <a href={`/trama/colecoes/${c.id}/`}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href={`/trama/icons/lucide.svg#${c.icon}`} /></svg>
+                <span><strong>{c.title}</strong><em>{c.description}</em></span>
+              </a>
+            ))}
+            <a class="nav-menu__all" href="/trama/colecoes/">Ver todas as coleções →</a>
+          </div>
+        </details>
+        <a href="/trama/por-dentro/">Por dentro do trama</a>
+        <button type="button" class="search-trigger" data-search-open>Buscar <kbd>/</kbd></button>
       </nav>
       <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle>
         <span class="toggle-orbit" aria-hidden="true"></span>
@@ -136,6 +150,19 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         });
       });
       document.addEventListener("fullscreenchange", updateFullscreenButtons);
+
+      const navMenu = document.querySelector(".nav-menu");
+      if (navMenu instanceof HTMLDetailsElement) {
+        document.addEventListener("click", (event) => {
+          if (navMenu.open && !navMenu.contains(event.target)) navMenu.open = false;
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && navMenu.open) {
+            navMenu.open = false;
+            navMenu.querySelector("summary")?.focus();
+          }
+        });
+      }
 
       const abKey = "trama-variante";
       const params = new URLSearchParams(location.search);
