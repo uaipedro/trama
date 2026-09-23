@@ -104,7 +104,10 @@ export const SPECS: Record<string, Spec> = {
 // no DOM, rola dentro do card e no vídeo aparece cortada ao meio na borda de
 // baixo. No app isso é informação ("tem mais tabela aí"); num quadro de vídeo é
 // só um defeito.
-const VENDAS: Tabela = {
+// Exportadas porque `catalogo-site.ts` monta um recorte deste mesmo fluxo
+// (três blocos, não seis) para a montagem da home — mesmos dados, catálogo
+// diferente.
+export const VENDAS: Tabela = {
   colunas: ["regiao", "produto", "valor", "qtd", "mes"],
   linhas: [
     ["leste", "cafe", 98.69, 6, 2],
@@ -126,7 +129,7 @@ const RESUMO: Tabela = {
   ],
 };
 
-const CAFE: Tabela = {
+export const CAFE: Tabela = {
   colunas: ["regiao", "produto", "valor", "qtd", "mes"],
   linhas: [
     ["leste", "cafe", 98.69, 6, 2],
@@ -137,7 +140,7 @@ const CAFE: Tabela = {
   ],
 };
 
-const CONTAGEM: Tabela = {
+export const CONTAGEM: Tabela = {
   colunas: ["regiao", "n"],
   linhas: [
     ["leste", 37],

@@ -37,7 +37,28 @@ export const Canvas: React.FC<{
   quadro: number;
   nos: NoFluxo[];
   arestas: ArestaFluxo[];
-}> = ({ camera, largura, altura, quadro, nos, arestas }) => {
+  // As três a seguir só existem porque as composições do site (`SiteMontagem`,
+  // `SiteFluxoAmplo`) mostram o canvas sobre o papel claro da home, e o
+  // quase-preto do editor briga com ele. Om default reproduz exatamente o
+  // canvas do editor — os outros dois vídeos não passam nada aqui.
+  fundo?: string;
+  corPontos?: string;
+  // Multiplicador de opacidade da camada de nós+arestas (não do fundo): a
+  // `SiteMontagem` usa isto para desvanecer o fluxo até o canvas vazio no fim
+  // do laço, sem apagar a grade de pontos — senão o último quadro do vídeo não
+  // bateria com o primeiro, que já nasce vazio.
+  opacidadeConteudo?: number;
+}> = ({
+  camera,
+  largura,
+  altura,
+  quadro,
+  nos,
+  arestas,
+  fundo = tema.cor.fundo,
+  corPontos = tema.cor.pontos,
+  opacidadeConteudo = 1,
+}) => {
   const { cx, cy, s } = camera;
   const ox = largura / 2 - cx * s;
   const oy = altura / 2 - cy * s;
@@ -50,7 +71,7 @@ export const Canvas: React.FC<{
   };
 
   return (
-    <AbsoluteFill style={{ background: tema.cor.fundo, overflow: "hidden" }}>
+    <AbsoluteFill style={{ background: fundo, overflow: "hidden" }}>
       {/* Os pontos acompanham a câmera: sem isso o fundo fica parado enquanto
           os cards deslizam, e o movimento lê como cards voando em vez de
           câmera passeando. O módulo mantém a grade alinhada sem desenhar uma
@@ -59,6 +80,7 @@ export const Canvas: React.FC<{
         escala={s}
         dx={((ox % passo) + passo) % passo}
         dy={((oy % passo) + passo) % passo}
+        cor={corPontos}
       />
       <div
         style={{
@@ -67,6 +89,7 @@ export const Canvas: React.FC<{
           top: 0,
           transform: `translate(${ox}px, ${oy}px) scale(${s})`,
           transformOrigin: "0 0",
+          opacity: opacidadeConteudo,
         }}
       >
         {/* As arestas ficam ATRÁS dos cards, como no editor: a curva encosta na

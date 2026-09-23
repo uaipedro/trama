@@ -9,6 +9,9 @@
     "render:demo": "remotion render src/index.ts TramaDemo out/bruto-demo.mp4 --codec h264 --crf 17 --overwrite && sh scripts/masterizar.sh out/bruto-demo.mp4 out/trama-demo.mp4",
     "render:modelos": "remotion render src/index.ts TramaModelos out/bruto-modelos.mp4 --codec h264 --crf 17 --overwrite && sh scripts/masterizar.sh out/bruto-modelos.mp4 out/trama-modelos.mp4",
     "verificar": "sh scripts/verificar.sh out/trama-demo.mp4 && sh scripts/verificar.sh out/trama-modelos.mp4",
+    "render:site": "npm run render:site-montagem && npm run render:site-amplo",
+    "render:site-montagem": "remotion render src/index.ts SiteMontagem out/site-montagem-bruto.mp4 --codec h264 --crf 17 --overwrite && sh scripts/site-web.sh out/site-montagem-bruto.mp4 ../../site/public/montagens/fluxo-em-montagem.mp4 ../../site/public/montagens/fluxo-em-montagem.jpg 9.5",
+    "render:site-amplo": "remotion render src/index.ts SiteFluxoAmplo out/site-amplo-bruto.mp4 --codec h264 --crf 17 --overwrite && sh scripts/site-web.sh out/site-amplo-bruto.mp4 ../../site/public/montagens/fluxo-amplo.mp4 ../../site/public/montagens/fluxo-amplo.jpg 0",
     "sfx": "node scripts/sfx.mjs",
     "sincronizar": "sh scripts/sincronizar.sh",
     "tipos": "tsc --noEmit"

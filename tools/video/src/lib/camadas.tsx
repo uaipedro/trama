@@ -46,14 +46,15 @@ export const Malha: React.FC = () => {
 
 // Pontinhos do canvas do xyflow, na cor `--tr-dots`. É o que faz o plano de
 // fundo ser reconhecidamente o editor, e não uma tela preta qualquer.
-export const Pontos: React.FC<{ escala?: number; dx?: number; dy?: number }> = ({
-  escala = 1,
-  dx = 0,
-  dy = 0,
-}) => (
+export const Pontos: React.FC<{
+  escala?: number;
+  dx?: number;
+  dy?: number;
+  cor?: string;
+}> = ({ escala = 1, dx = 0, dy = 0, cor = tema.cor.pontos }) => (
   <AbsoluteFill
     style={{
-      backgroundImage: `radial-gradient(${tema.cor.pontos} 1px, transparent 1px)`,
+      backgroundImage: `radial-gradient(${cor} 1px, transparent 1px)`,
       backgroundSize: `${20 * escala}px ${20 * escala}px`,
       backgroundPosition: `${dx}px ${dy}px`,
       opacity: 0.22,

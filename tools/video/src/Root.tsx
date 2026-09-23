@@ -6,6 +6,8 @@ import { carregarFontes } from "./fontes";
 import { DURACAO_TOTAL, TramaDemo } from "./Video";
 import { DURACAO_TOTAL as DURACAO_MODELOS, TramaModelos } from "./VideoModelos";
 import { DURACAO_TOTAL as DURACAO_VINHETA, TramaVinheta } from "./VideoVinheta";
+import { DURACAO_TOTAL as DURACAO_SITE_MONTAGEM, SiteMontagem } from "./scenes/SiteMontagem";
+import { DURACAO_TOTAL as DURACAO_SITE_AMPLO, SiteFluxoAmplo } from "./scenes/SiteFluxoAmplo";
 
 carregarFontes();
 
@@ -33,6 +35,26 @@ export const Root: React.FC = () => (
       id="TramaVinheta"
       component={TramaVinheta}
       durationInFrames={DURACAO_VINHETA}
+      fps={30}
+      width={1920}
+      height={1080}
+    />
+    {/* As duas a seguir são os loops da home do site (`site/public/montagens`),
+        não cenas do vídeo de demonstração: duração curta, sem trilha, e
+        pensadas pra fechar em loop — ver `scenes/SiteMontagem.tsx` e
+        `scenes/SiteFluxoAmplo.tsx`. */}
+    <Composition
+      id="SiteMontagem"
+      component={SiteMontagem}
+      durationInFrames={DURACAO_SITE_MONTAGEM}
+      fps={30}
+      width={1920}
+      height={1080}
+    />
+    <Composition
+      id="SiteFluxoAmplo"
+      component={SiteFluxoAmplo}
+      durationInFrames={DURACAO_SITE_AMPLO}
       fps={30}
       width={1920}
       height={1080}
