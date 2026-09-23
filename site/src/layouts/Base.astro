@@ -41,9 +41,25 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     <meta name="twitter:image" content={socialImage} />
     <title>{pageTitle}</title>
     <script is:inline>
+      const store = {
+        get(key) {
+          try { return localStorage.getItem(key); } catch { return null; }
+        },
+        set(key, value) {
+          try { localStorage.setItem(key, value); } catch {}
+        },
+        remove(key) {
+          try { localStorage.removeItem(key); } catch {}
+        }
+      };
       document.documentElement.dataset.js = "true";
-      document.documentElement.dataset.facilitador =
-        localStorage.getItem("trama-camada-facilitadora") ?? "on";
+      document.documentElement.dataset.facilitador = store.get("trama-camada-facilitadora") ?? "on";
+
+      const pendingAbOn = store.get("trama-ab") === "1";
+      const pendingVariant = store.get("trama-variante");
+      if (pendingAbOn && pendingVariant && pendingVariant !== "controle") {
+        document.documentElement.setAttribute("data-copy-pending", "");
+      }
     </script>
   </head>
   <body>
@@ -121,7 +137,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       updateToggle();
       button?.addEventListener("click", () => {
         root.dataset.facilitador = root.dataset.facilitador === "off" ? "on" : "off";
-        localStorage.setItem(key, root.dataset.facilitador);
+        store.set(key, root.dataset.facilitador);
         updateToggle();
       });
 
@@ -218,12 +234,16 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       });
 
       const abKey = "trama-variante";
-      const params = new URLSearchParams(location.search);
-      if (params.get("ab") === "0") localStorage.removeItem("trama-ab");
-      else if (params.has("ab")) localStorage.setItem("trama-ab", "1");
-      if (params.get("v")) localStorage.setItem(abKey, params.get("v"));
-      const abOn = localStorage.getItem("trama-ab") === "1";
       const all = JSON.parse(document.getElementById("ab-variants")?.textContent ?? "[]");
+      const validIds = new Set(all.map((v) => v.id));
+      const params = new URLSearchParams(location.search);
+      if (params.get("ab") === "0") store.remove("trama-ab");
+      else if (params.has("ab")) store.set("trama-ab", "1");
+      const paramVariant = params.get("v");
+      if (paramVariant) {
+        store.set(abKey, validIds.has(paramVariant) ? paramVariant : "controle");
+      }
+      const abOn = store.get("trama-ab") === "1";
       const applyVariant = (id) => {
         const v = all.find((x) => x.id === id) ?? all[0];
         if (!v) return;
@@ -237,14 +257,19 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         const abBar = document.querySelector("[data-ab-bar]");
         const abSelect = document.querySelector("[data-ab-select]");
         abBar?.removeAttribute("hidden");
-        const current = localStorage.getItem(abKey) ?? "controle";
+        const stored = store.get(abKey);
+        const current = validIds.has(stored) ? stored : "controle";
+        if (current !== stored) store.set(abKey, current);
         if (abSelect) abSelect.value = current;
         applyVariant(current);
         abSelect?.addEventListener("change", () => {
-          localStorage.setItem(abKey, abSelect.value);
-          applyVariant(abSelect.value);
+          const next = validIds.has(abSelect.value) ? abSelect.value : "controle";
+          abSelect.value = next;
+          store.set(abKey, next);
+          applyVariant(next);
         });
       }
+      document.documentElement.removeAttribute("data-copy-pending");
     </script>
   </body>
 </html>

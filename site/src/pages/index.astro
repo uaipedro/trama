@@ -13,6 +13,7 @@ const firstFlowSteps = [
 ---
 
 <Base title="trama" description={control.copy.metaDescription}>
+  <div data-pagefind-body>
   <section class="home-hero">
     <div class="home-hero__copy">
       <p class="home-hero__subtitle" data-copy="subtitle">{control.copy.subtitle}</p>
@@ -69,4 +70,5 @@ const firstFlowSteps = [
       {collections.map((collection) => <CollectionCard collection={collection} />)}
     </div>
   </section>
+  </div>
 </Base>
