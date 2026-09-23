@@ -699,53 +699,55 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
                 background:#64748b}
 
 /* --- toolbar / banner --- */
-.tr-toolbar{position:absolute;top:12px;left:12px;display:flex;gap:6px;z-index:5}
-.tr-toolbar{right:272px;align-items:center;gap:8px;min-width:0}
-.tr-toolbar-tools{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;
-  gap:4px;padding:4px;background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:10px;
-  box-shadow:0 4px 16px var(--tr-shadow)}
-.tr-toolbar-tools button{border-color:transparent;white-space:nowrap}
-.tr-toolbar-tools button:hover{background:var(--tr-hover)}
-.tr-toolbar-proj{order:-1}
-.tr-toolbar-tema{margin-left:auto;order:2}
-.tr-toolbar-more{order:3}
-.tr-toolbar-more{font-size:20px!important;line-height:17px;min-width:32px}
-.tr-toolbar-actions{position:absolute;right:0;top:42px;display:flex;flex-direction:column;gap:3px;
-  min-width:172px;padding:5px;background:var(--tr-panel);border:1px solid var(--tr-line);
-  border-radius:9px;box-shadow:0 8px 24px var(--tr-shadow-hi)}
-.tr-toolbar .tr-toolbar-actions button{text-align:left;border:0;padding:7px 9px}
-.tr-toolbar .tr-toolbar-actions button:hover{background:var(--tr-hover)}
-.tr-toolbar button{background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line);
-  border-radius:6px;padding:5px 11px;font:inherit;font-size:11.5px;cursor:pointer}
-.tr-toolbar button:hover{border-color:var(--tr-accent)}
-/* A marca é assinatura, não controle: sem hover, sem cursor de clique. A
-   altura fixa (com `width:auto`) preserva a proporção do SVG e a mantém um
-   pouco menor que os botões vizinhos, que é o que a faz ler como marca e não
-   como mais um item da barra. */
-/* `align-self:center` porque a barra é flex com `align-items:stretch` por
-   padrão: sendo mais baixa que os botões (24 px contra ~28 px), a marca era
-   ancorada no topo e ficava ~3 px acima do centro deles.
-   24 px e opacidade cheia vieram de olhar no navegador: em 18 px com `.75` os
-   cinco nós somavam uma mancha cinza, sem cor legível. Conferido nos dois
-   temas — abaixo desta escala o desenho não se lê. */
-.tr-marca{height:24px;width:auto;margin-right:4px;
-  align-self:center;user-select:none}
-/* A proporção dos frames novos, colada no "▭ Frame": o segmentado do card
-   com a altura e o fundo dos botões da toolbar. Seletores com `.tr-toolbar`
-   na frente porque `.tr-toolbar button` vem depois de `.tr-seg>button` com a
-   mesma especificidade e daria borda e cantos próprios a cada opção. */
-.tr-toolbar .tr-seg{flex:none;margin-left:-3px;border-radius:6px;background:var(--tr-panel)}
-.tr-toolbar .tr-seg>button{flex:none;border:0;border-left:1px solid var(--tr-line);border-radius:0;
-  padding:5px 7px;background:var(--tr-panel);color:var(--tr-dim);font-size:11px}
-.tr-toolbar .tr-seg>button:first-child{border-left:0}
-.tr-toolbar .tr-seg>button:hover{color:var(--tr-fg);border-color:var(--tr-line)}
-.tr-toolbar .tr-seg>button.tr-seg-on{background:var(--tr-accent);color:var(--tr-accent-fg)}
-.tr-toolbar-tema{display:flex}
-.tr-toolbar-tema .tr-seg{margin-left:0}
-/* O rótulo é o nome da pasta do projeto, que não tem tamanho máximo: sem o
-   teto, um nome longo esticava a toolbar para fora da tela. O caminho inteiro
-   continua na dica. */
-.tr-toolbar-proj{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Uma pílula só, ancorada à esquerda: marca, projeto, ferramentas e o "⋯".
+   Só ícone — o nome e o atalho vão na dica. Em tela estreita a pílula não
+   quebra: ela encolhe o nome do projeto, que é o único texto. */
+.tr-toolbar{position:absolute;top:12px;left:12px;z-index:5;display:flex;align-items:center;gap:2px;
+  max-width:calc(100% - 284px);box-sizing:border-box;padding:5px 6px 5px 10px;
+  background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:999px;
+  box-shadow:0 6px 22px var(--tr-shadow)}
+.tr-toolbar button{font:inherit;color:var(--tr-fg);cursor:pointer}
+.tr-tb-btn{position:relative;flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;
+  background:none;border:0;border-radius:999px;color:var(--tr-dim)!important;transition:background .12s,color .12s}
+.tr-tb-btn:hover{background:var(--tr-hover);color:var(--tr-fg)!important}
+.tr-tb-btn.tr-on{background:var(--tr-accent);color:var(--tr-accent-fg)!important}
+.tr-toolbar button:focus-visible{outline:2px solid var(--tr-accent);outline-offset:1px}
+/* Triângulo no canto: este botão tem opções no clique direito. */
+.tr-tb-opcoes::after{content:"";position:absolute;right:6px;bottom:6px;border:3px solid transparent;
+  border-right-color:currentColor;border-bottom-color:currentColor;opacity:.6}
+.tr-ic{display:block}
+.tr-toolbar-sep{flex:none;width:1px;height:20px;margin:0 5px;background:var(--tr-line)}
+/* O projeto é o único texto da barra: o nome da pasta, aparado. O caminho
+   inteiro fica na dica. */
+.tr-toolbar-proj{display:flex;align-items:center;gap:7px;min-width:0;height:34px;padding:0 12px 0 9px;
+  background:var(--tr-field);border:0;border-radius:999px;font-size:12px!important;font-weight:600}
+.tr-toolbar-proj:hover{background:var(--tr-hover)}
+.tr-toolbar-proj .tr-ic{flex:none;width:16px;height:16px;color:var(--tr-dim)}
+.tr-toolbar-proj span{min-width:0;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A marca é assinatura, não controle: sem hover, sem cursor de clique. */
+.tr-marca-wide{flex:none;display:flex;align-items:center;gap:6px;margin-right:8px;user-select:none}
+.tr-marca{flex:none;height:22px;width:auto}
+.tr-marca-nome{font-size:16px;font-weight:700;letter-spacing:-.04em;line-height:1;color:var(--tr-fg)}
+/* Popovers da toolbar: menu "⋯" e opções do frame. */
+.tr-toolbar-pop{position:absolute;top:calc(100% + 8px);z-index:21;display:flex;flex-direction:column;gap:2px;
+  padding:6px;background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:12px;
+  box-shadow:0 10px 30px var(--tr-shadow-hi);font-size:12px}
+.tr-toolbar-actions{right:0;min-width:190px}
+.tr-frame-opcoes{left:120px;width:236px;gap:6px;padding:10px}
+.tr-pop-rot{color:var(--tr-dim);font-size:11px}
+.tr-pop-item{display:flex;align-items:center;gap:9px;padding:7px 9px;text-align:left;
+  background:none;border:0;border-radius:7px;font-size:12px!important}
+.tr-pop-item .tr-ic{width:16px;height:16px;color:var(--tr-dim)}
+.tr-pop-item:hover:not(:disabled){background:var(--tr-hover)}
+.tr-pop-item:disabled{opacity:.45;cursor:default}
+.tr-pop-item.tr-on{color:var(--tr-accent)}
+.tr-pop-sep{height:1px;margin:3px 4px;background:var(--tr-line)}
+.tr-pop-tema{padding:3px 3px 5px}
+.tr-toolbar-pop .tr-seg{border-radius:7px}
+.tr-toolbar-pop .tr-seg>button{padding:5px 4px;background:none;border:0;border-left:1px solid var(--tr-line);
+  color:var(--tr-dim);font-size:11.5px}
+.tr-toolbar-pop .tr-seg>button:first-child{border-left:0}
+.tr-toolbar-pop .tr-seg>button.tr-seg-on{background:var(--tr-accent);color:var(--tr-accent-fg)}
 .tr-welcome{position:absolute;top:50%;left:calc((100% - 260px)/2);transform:translate(-50%,-50%);z-index:4;
   width:min(490px,calc(100% - 48px));padding:32px;background:var(--tr-panel);
   border:1px solid var(--tr-line);border-radius:14px;box-shadow:0 12px 40px var(--tr-shadow)}
@@ -766,16 +768,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   z-index:4;max-width:min(500px,calc(100% - 300px));padding:9px 14px;background:var(--tr-panel);
   border:1px solid var(--tr-line);border-radius:8px;color:var(--tr-dim);font-size:11.5px;
   box-shadow:0 4px 16px var(--tr-shadow)}
-@media(max-width:1200px){
-  .tr-toolbar{right:272px}
-  .tr-toolbar-tools{position:static;transform:none;margin-left:auto;max-width:50%;overflow-x:auto}
-  .tr-toolbar-tema{display:none}
-}
 @media(max-width:850px){
   .tr-app,.tr-app-help{grid-template-columns:minmax(0,1fr) 220px}
-  .tr-toolbar{right:232px}
-  .tr-marca{display:none}
-  .tr-toolbar-proj{max-width:110px}
+  .tr-toolbar{max-width:calc(100% - 244px)}
+  .tr-marca-nome{display:none}
+  .tr-toolbar-proj span{max-width:110px}
   .tr-welcome{padding:24px}
   .tr-welcome{left:calc((100% - 220px)/2)}
   .tr-next-step{left:calc((100% - 220px)/2);max-width:calc(100% - 250px)}
@@ -783,8 +780,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 @media(max-width:600px){
   .tr-app,.tr-app-help{grid-template-columns:minmax(0,1fr)}
   .tr-palette,.tr-help,.tr-frames{position:absolute;right:0;bottom:0;top:auto;width:100%;height:36%;z-index:3;border-top:1px solid var(--tr-line)}
-  .tr-toolbar{right:12px}
-  .tr-toolbar-tools{margin-left:auto;max-width:43%}
+  .tr-toolbar{max-width:calc(100% - 24px)}
+  .tr-toolbar-proj span{max-width:70px}
+  .tr-tb-btn{width:30px;height:30px}
   .tr-welcome{top:32%;left:50%;width:calc(100% - 28px)}
   .tr-welcome-steps{display:none}
   .tr-next-step{bottom:38%;left:50%;max-width:calc(100% - 28px)}
@@ -832,16 +830,16 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* O painel toma a coluna da paleta e a alarga: página de ajuda pede linha mais
    longa que uma lista de botões. */
 .tr-app-help{grid-template-columns:1fr 360px}
-.tr-app-help .tr-toolbar{right:372px}
+.tr-app-help .tr-toolbar{max-width:calc(100% - 384px)}
 .tr-app-help .tr-welcome,.tr-app-help .tr-next-step{left:calc((100% - 360px)/2)}
 @media(max-width:850px){
   .tr-app-help{grid-template-columns:minmax(0,1fr) 220px}
-  .tr-app-help .tr-toolbar{right:232px}
+  .tr-app-help .tr-toolbar{max-width:calc(100% - 244px)}
   .tr-app-help .tr-welcome,.tr-app-help .tr-next-step{left:calc((100% - 220px)/2)}
 }
 @media(max-width:600px){
   .tr-app-help{grid-template-columns:minmax(0,1fr)}
-  .tr-app-help .tr-toolbar{right:12px}
+  .tr-app-help .tr-toolbar{max-width:calc(100% - 24px)}
   .tr-app-help .tr-welcome,.tr-app-help .tr-next-step{left:50%}
 }
 /* O banner é posicionado contra a largura da paleta; com o painel aberto a
@@ -874,7 +872,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 
 /* Prancheta: popover sob a toolbar. Mesmo fundo e borda do menu de contexto;
    campos e botões com a cara dos do painel de configurações. */
-.tr-prancheta{position:absolute;top:48px;left:12px;z-index:21;width:252px;padding:10px;box-sizing:border-box;
+.tr-prancheta{position:absolute;top:66px;left:12px;z-index:21;width:252px;padding:10px;box-sizing:border-box;
   display:flex;flex-direction:column;gap:8px;background:var(--tr-panel);color:var(--tr-fg);
   border:1px solid var(--tr-line);border-radius:8px;box-shadow:0 8px 24px var(--tr-shadow);font-size:12px}
 .tr-prancheta-tit{font-weight:600}

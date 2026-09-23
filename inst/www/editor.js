@@ -1099,6 +1099,39 @@ const COSMETICAS = new Set(["move", "rename", "resize", "set_view",
 const cosmetica = (op) =>
   op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);
 
+// Ícones da toolbar: traço de 1.75 em grade de 24, herdando `currentColor`
+// pra seguir o tema e o estado ligado sem CSS por ícone.
+const ICONES = {
+  pasta: "M3 7.5a2 2 0 0 1 2-2h3.6l2 2.2H19a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+  organizar: "M4 4h6v5H4zM14 15h6v5h-6zM4 15h6v5H4zM7 9v6M7 12h10v3",
+  frame: "M7 3v18M17 3v18M3 7h18M3 17h18",
+  texto: "M5 7V5h14v2M12 5v14M9 19h6",
+  imagem: "M4 5h16v14H4zM4 16l5-5 4 4 2-2 5 5M15.5 9.5h.01",
+  slides: "M3 4h18M5 4v10h14V4M12 14v3M8 21l4-4 4 4",
+  ajuda: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.6M12 17h.01",
+  mais: "M4 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M11 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M18 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0",
+  grade: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  config: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-1-3-2.2.2-1.3-1.5.3-2.2-3-1-1 2h-1.6l-1-2-3 1 .3 2.2L6.2 8.2 4 8l-1 3 2 1v0l-2 1 1 3 2.2-.2 1.3 1.5-.3 2.2 3 1 1-2h1.6l1 2 3-1-.3-2.2 1.3-1.5 2.2.2 1-3z",
+  desfazer: "M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3",
+  recalcular: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
+  baixar: "M12 4v11M7 10l5 5 5-5M5 20h14",
+};
+function Icone({ nome }) {
+  return h("svg", { className: "tr-ic", viewBox: "0 0 24 24", width: 18, height: 18, fill: "none",
+                    stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round",
+                    strokeLinejoin: "round", "aria-hidden": true },
+    h("path", { d: ICONES[nome] }));
+}
+// Botão só com ícone: o nome vai pra `aria-label` e pra dica, com o atalho
+// (`dica`) quando houver. `temOpcoes` desenha o triângulo de "tem mais aqui".
+function BotaoIcone({ icone, rotulo, dica: atalho, extra, on, temOpcoes, ...resto }) {
+  const titulo = [atalho || rotulo, extra].filter(Boolean).join(" · ");
+  return h("button", { ...resto, type: "button", "aria-label": rotulo, title: titulo,
+                       "aria-pressed": on ? true : undefined,
+                       className: "tr-tb-btn" + (on ? " tr-on" : "") + (temOpcoes ? " tr-tb-opcoes" : "") },
+    h(Icone, { nome: icone }));
+}
+
 function App() {
   const [catalog, setCatalog] = useState(null);
   // Temas do projeto: a fonte que o widget `theme` lê é o estado de módulo do
@@ -1125,6 +1158,18 @@ function App() {
   // escondido ficaria aceso sem nada na tela que corresponda a ele.
   const [painelConfig, setPainelConfig] = useState(false);
   const [menuAcoes, setMenuAcoes] = useState(false);
+  const [opcoesFrame, setOpcoesFrame] = useState(false);
+  // Clique fora fecha os popovers da toolbar; dentro deles ou no botão que os
+  // abre, não (o próprio botão alterna).
+  useEffect(() => {
+    if (!opcoesFrame && !menuAcoes) return;
+    const fora = (e) => {
+      if (e.target.closest?.(".tr-toolbar")) return;
+      setOpcoesFrame(false); setMenuAcoes(false);
+    };
+    window.addEventListener("pointerdown", fora);
+    return () => window.removeEventListener("pointerdown", fora);
+  }, [opcoesFrame, menuAcoes]);
   const [present, setPresent] = useState(null);         // {i, volta} | null
   const [exportando, setExportando] = useState(false);
   const [projeto, setProjeto] = useState(null);   // {root, flow} do que está aberto
@@ -2555,7 +2600,7 @@ function App() {
     ...navFrames,
     "mod+z": desfazer,
     "mod+a": () => selecionar(true),
-    "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); setMenuAcoes(false); },
+    "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); setMenuAcoes(false); setOpcoesFrame(false); },
     "f": apresentar,
     "shift+f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
@@ -2925,89 +2970,23 @@ function App() {
             onClose: () => setPainelFrames(false) })
         : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked,
                        modoNovo, onModoNovo: setModoNovo }),
-    h("div", { key: "tb", className: "tr-toolbar" }, [
+    h("div", { key: "tb", className: "tr-toolbar", role: "toolbar", "aria-label": "Ferramentas" }, [
       // `img`, e não botão: a marca é assinatura, não controle. Não clica, não
-      // abre nada e — por não ser elemento focável — não entra na ordem de
-      // tabulação, então quem navega pelo teclado cai direto no "⇶ Organizar".
-      // A versão só existe do lado do R; ela chega aqui pelo `data-versao` que
-      // `tr_ui()` põe na raiz, e some da dica se por algum motivo não vier.
-      h("img", { key: "marca", className: "tr-marca", src: MARCA, alt: "trama",
-                 draggable: false,
-                 title: `trama ${document.getElementById("tr-root")?.dataset.versao || ""}`.trim() }),
-      h("div", { key: "tools", className: "tr-toolbar-tools", role: "group", "aria-label": "Ferramentas" }, [
-      h("button", { key: "l", onClick: organizarTudo }, "⇶ Organizar"),
-      h("button", { key: "f", title: dica("frame"), className: ferramenta === "frame" ? "tr-on" : "",
-                    onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")) },
-        "▭ Frame"),
-      h("button", { key: "m", title: dica("markdown"), className: ferramenta === "markdown" ? "tr-on" : "",
-                    onClick: () => setFerramenta((t) => (t === "markdown" ? null : "markdown")) },
-        "▤ Markdown"),
-      h("button", { key: "i", title: dica("imagem"), className: ferramenta === "imagem" ? "tr-on" : "",
-                    onClick: () => setFerramenta((t) => (t === "imagem" ? null : "imagem")) },
-        "▥ Imagem"),
-      // Segmentado, e não `<select>`: as cinco proporções cabem à vista e
-      // trocam num clique. O botão que fica com o foco não prende o teclado —
-      // o listener de atalhos só ignora campos de texto e `<select>`, então o
-      // Shift+F seguinte ainda abre a ferramenta, e dígito nenhum troca a
-      // proporção por busca por letra (dígito virou navegação de frame).
-      h(Segmented, { key: "fa", options: Object.keys(ASPECTS), value: aspectoNovo,
-                     onChange: setAspectoNovo, title: "proporção dos frames novos" }),
-      h("button", { key: "pr", className: prancheta ? "tr-on" : "",
-                    title: "grade de frames de uma vez", "data-prancheta": "",
-                    onClick: () => setPrancheta((v) => v ? null
-                      : { ...pranchetaSalva(), aspect: aspectoNovo }) }, "⊞ Prancheta"),
-      h("button", { key: "fp", className: painelFrames ? "tr-on" : "",
-                    onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
-                                     setPainelFrames((v) => !v); } }, "▦ Frames"),
-      h("button", { key: "aj", title: dica("ajuda"),
-                    className: painelAtalhos || helpFor ? "tr-on" : "",
-                    onClick: ajuda }, "?"),
-      ]),
-      h("button", { key: "more", className: "tr-toolbar-more", title: "Mais ações",
-        "aria-label": "Mais ações", "aria-expanded": menuAcoes,
-        onClick: () => setMenuAcoes((v) => !v) }, "⋯"),
-      menuAcoes ? h("div", { key: "actions", className: "tr-toolbar-actions",
-        onClick: () => setMenuAcoes(false) }, [
-      h("button", { key: "cfg", title: "configurações", className: painelConfig ? "tr-on" : "",
-                    onClick: () => { setHelpFor(null); setPainelFrames(false); setPainelAtalhos(false);
-                                     setPainelConfig((v) => !v); setMenuAcoes(false); } }, "⚙ Configurações"),
-      h("button", { key: "u", onClick: desfazer, title: dica("desfazer") }, "↶ Desfazer"),
-      h("button", { key: "r", onClick: () => sendInput("tr_rerun", Date.now()) }, "↻ Recalcular"),
-      h("button", { key: "ex-flow", disabled: !doc,
-                    onClick: () => exportFlowJson(doc,
-                      `${(projeto?.root || "flow").split("/").filter(Boolean).pop()}-${projeto?.flow || "main"}.json`) },
-        "⇩ Exportar flow"),
-      h("button", { key: "ex-r", disabled: !doc,
-                    onClick: () => sendInput("tr_export_code", { format: "r", seq: ++seqCounter }) },
-        "⇩ Exportar R"),
-      h("button", { key: "ex-qmd", disabled: !doc,
-                    onClick: () => sendInput("tr_export_code", { format: "quarto", seq: ++seqCounter }) },
-        "⇩ Exportar Quarto"),
-      ]) : null,
-      // Embrulhado: o segmentado da toolbar nasce colado no botão anterior (o da
-      // proporção pertence ao "▭ Frame"), e o do tema é um grupo à parte.
-      h("div", { key: "ta", className: "tr-toolbar-tema" },
-        h(Segmented, { value: temaApp, onChange: setTemaApp, title: "tema do app",
-                       options: [{ value: "claro", label: "☀", title: "tema claro" },
-                                 { value: "sistema", label: "◐", title: "seguir o sistema" },
-                                 { value: "escuro", label: "☾", title: "tema escuro" }] })),
-      // Só o nome da pasta cabe na barra; o caminho inteiro fica na dica. Até
-      // aqui nada na tela respondia "em que projeto eu estou" — o título da
-      // janela é do Shiny e o canvas não diz de onde o grafo veio.
-      // A navegação começa onde o projeto está, não na pasta de trabalho do R:
-      // quem troca de projeto quase sempre vai para uma vizinha.
-      // Limpar `listagem` ao abrir: ela é estado do App e sobrevive ao
-      // fechamento, então o diálogo pintava NA HORA o caminho e as pastas da
-      // navegação anterior — linhas clicáveis, e "Abrir" podendo estar
-      // habilitado para uma pasta que o usuário não escolheu — até o
-      // `tr_browse` da raiz responder. Com `null`, o componente mostra "…",
-      // que é a verdade. O banner some pelo mesmo motivo: a recusa da sessão
-      // passada não fala do que está na tela agora.
-      // A raiz cai em `projeto.root` quando ele é "/" — `filter(Boolean).pop()`
-      // devolve `undefined` numa string só de barras, e o rótulo virava
-      // "📁 undefined". Nome comprido é aparado pelo CSS, não aqui.
+      // abre nada e não entra na ordem de tabulação. A versão só existe do
+      // lado do R; chega pelo `data-versao` que `tr_ui()` põe na raiz.
+      // Marca + nome, como logo largo. O nome já diz "trama", então a imagem
+      // fica muda pro leitor de tela.
+      h("span", { key: "marca", className: "tr-marca-wide",
+                  title: `trama ${document.getElementById("tr-root")?.dataset.versao || ""}`.trim() }, [
+        h("img", { key: "i", className: "tr-marca", src: MARCA, alt: "", draggable: false }),
+        h("span", { key: "t", className: "tr-marca-nome" }, "trama")]),
+      // Só o nome da pasta cabe na barra; o caminho inteiro fica na dica.
+      // A navegação começa onde o projeto está. `listagem` e banner zerados
+      // ao abrir: são estado do App e mostrariam a navegação anterior até o
+      // `tr_browse` responder. A raiz "/" cai em `projeto.root`, senão
+      // `filter(Boolean).pop()` dá `undefined`. Nome comprido: CSS apara.
       h("button", { key: "pj", className: "tr-toolbar-proj",
-                    title: projeto ? projeto.root : "projeto",
+                    title: projeto ? `abrir projeto (${projeto.root})` : "abrir projeto",
                     onClick: () => { setBanner(null); setListagem(null); setEnviando(null);
                                      // Abrir pelo clique é gesto NOVO: um arquivo solto numa
                                      // visita anterior não pode reaparecer pré-carregado aqui.
@@ -3015,8 +2994,72 @@ function App() {
                                      setAbrindo(true);
                                      sendInput("tr_browse", { seq: ++seqCounter,
                                                               path: projeto?.root || "." }); } },
-        `📁 ${projeto ? (projeto.root.split("/").filter(Boolean).pop() || projeto.root)
-                      : "projeto"}`),
+        [h(Icone, { key: "i", nome: "pasta" }),
+         h("span", { key: "t" }, projeto ? (projeto.root.split("/").filter(Boolean).pop() || projeto.root)
+                                         : "projeto")]),
+      h("span", { key: "s1", className: "tr-toolbar-sep", "aria-hidden": true }),
+      h(BotaoIcone, { key: "l", icone: "organizar", rotulo: "Organizar", onClick: organizarTudo }),
+      // Proporção e prancheta são opções do Frame, não ferramentas à parte:
+      // saem da barra e abrem no botão direito (ou no triângulo do canto).
+      h(BotaoIcone, { key: "f", icone: "frame", rotulo: "Frame", dica: dica("frame"),
+                      extra: "botão direito: proporção e prancheta",
+                      on: ferramenta === "frame", temOpcoes: true,
+                      onClick: () => setFerramenta((t) => (t === "frame" ? null : "frame")),
+                      onContextMenu: (e) => { e.preventDefault(); setOpcoesFrame((v) => !v); } }),
+      h(BotaoIcone, { key: "m", icone: "texto", rotulo: "Markdown", dica: dica("markdown"),
+                      on: ferramenta === "markdown",
+                      onClick: () => setFerramenta((t) => (t === "markdown" ? null : "markdown")) }),
+      h(BotaoIcone, { key: "i", icone: "imagem", rotulo: "Imagem", dica: dica("imagem"),
+                      on: ferramenta === "imagem",
+                      onClick: () => setFerramenta((t) => (t === "imagem" ? null : "imagem")) }),
+      h("span", { key: "s2", className: "tr-toolbar-sep", "aria-hidden": true }),
+      h(BotaoIcone, { key: "fp", icone: "slides", rotulo: "Painel de frames", on: painelFrames,
+                      onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
+                                       setPainelFrames((v) => !v); } }),
+      h(BotaoIcone, { key: "aj", icone: "ajuda", rotulo: "Ajuda e atalhos", dica: dica("ajuda"),
+                      on: painelAtalhos || !!helpFor, onClick: ajuda }),
+      h(BotaoIcone, { key: "more", icone: "mais", rotulo: "Mais ações", on: menuAcoes,
+                      "aria-expanded": menuAcoes, onClick: () => setMenuAcoes((v) => !v) }),
+      opcoesFrame ? h("div", { key: "fo", className: "tr-toolbar-pop tr-frame-opcoes",
+                               role: "dialog", "aria-label": "Opções do frame" }, [
+        h("div", { key: "t", className: "tr-pop-rot" }, "Proporção dos frames novos"),
+        // Segmentado, e não `<select>`: as cinco proporções cabem à vista.
+        // O listener de atalhos só ignora campos de texto e `<select>`.
+        h(Segmented, { key: "a", options: Object.keys(ASPECTS), value: aspectoNovo,
+                       onChange: (a) => { setAspectoNovo(a); setOpcoesFrame(false); } }),
+        h("button", { key: "p", className: "tr-pop-item", "data-prancheta": "",
+                      onClick: () => { setOpcoesFrame(false);
+                                       setPrancheta((v) => v ? null : { ...pranchetaSalva(), aspect: aspectoNovo }); } },
+          [h(Icone, { key: "i", nome: "grade" }), h("span", { key: "t" }, "Prancheta: grade de frames")]),
+      ]) : null,
+      menuAcoes ? h("div", { key: "actions", className: "tr-toolbar-pop tr-toolbar-actions",
+        onClick: () => setMenuAcoes(false) }, [
+      // O tema mora aqui: na barra ele só ocupava lugar, e some em tela estreita.
+      h("div", { key: "tema", className: "tr-pop-tema", onClick: (e) => e.stopPropagation() },
+        h(Segmented, { value: temaApp, onChange: setTemaApp, title: "tema do app",
+                       options: [{ value: "claro", label: "☀", title: "tema claro" },
+                                 { value: "sistema", label: "◐", title: "seguir o sistema" },
+                                 { value: "escuro", label: "☾", title: "tema escuro" }] })),
+      h("button", { key: "cfg", className: "tr-pop-item" + (painelConfig ? " tr-on" : ""),
+                    onClick: () => { setHelpFor(null); setPainelFrames(false); setPainelAtalhos(false);
+                                     setPainelConfig((v) => !v); } },
+        [h(Icone, { key: "i", nome: "config" }), h("span", { key: "t" }, "Configurações")]),
+      h("button", { key: "u", className: "tr-pop-item", onClick: desfazer, title: dica("desfazer") },
+        [h(Icone, { key: "i", nome: "desfazer" }), h("span", { key: "t" }, "Desfazer")]),
+      h("button", { key: "r", className: "tr-pop-item", onClick: () => sendInput("tr_rerun", Date.now()) },
+        [h(Icone, { key: "i", nome: "recalcular" }), h("span", { key: "t" }, "Recalcular")]),
+      h("div", { key: "sep", className: "tr-pop-sep" }),
+      h("button", { key: "ex-flow", className: "tr-pop-item", disabled: !doc,
+                    onClick: () => exportFlowJson(doc,
+                      `${(projeto?.root || "flow").split("/").filter(Boolean).pop()}-${projeto?.flow || "main"}.json`) },
+        [h(Icone, { key: "i", nome: "baixar" }), h("span", { key: "t" }, "Exportar flow")]),
+      h("button", { key: "ex-r", className: "tr-pop-item", disabled: !doc,
+                    onClick: () => sendInput("tr_export_code", { format: "r", seq: ++seqCounter }) },
+        [h(Icone, { key: "i", nome: "baixar" }), h("span", { key: "t" }, "Exportar R")]),
+      h("button", { key: "ex-qmd", className: "tr-pop-item", disabled: !doc,
+                    onClick: () => sendInput("tr_export_code", { format: "quarto", seq: ++seqCounter }) },
+        [h(Icone, { key: "i", nome: "baixar" }), h("span", { key: "t" }, "Exportar Quarto")]),
+      ]) : null,
     ]),
     // Irmão da toolbar, no mesmo `.tr-app`: o CSS o põe logo abaixo dela.
     // `inicial` só é lido ao montar; é o retrato tirado ao abrir, com a
