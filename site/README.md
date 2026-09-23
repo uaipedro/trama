@@ -44,3 +44,26 @@ oculta e preserva a escolha no navegador.
 
 O conteúdo principal deve continuar completo com o toggle desligado. Consulte
 `../docs/guia-estilo-site.md` antes de criar ou revisar uma página.
+
+## Exemplo como canvas
+
+Todo bloco ```r no corpo da página que usa `tr_add(...)` é convertido em build
+por um plugin rehype (`src/lib/rehype-flow-example.ts`) num componente com
+duas abas: Canvas (o grafo montado a partir do próprio código, com layout em
+colunas por profundidade) e Código R (o bloco original, sem alteração). Não é
+preciso — nem possível — desenhar o mockup à mão.
+
+Para o canvas sair correto:
+
+- o id curto de cada `tr_add("id", "tipo", ...)` só aparece como legenda
+  pequena (`<code>tipo</code>`) no card; o título do card vem de
+  `node-visuals.json` (campo `label`, exportado por
+  `tools/site/export-node-visuals.R`);
+- todo bloco do qual o exemplo depende tem de estar no próprio trecho `tr_add`
+  — um bloco só citado em prosa não aparece no canvas;
+- `from` é obrigatório em qualquer nó que não seja raiz do fluxo, como string
+  única ou `c(...)` para vários pais; sem `from` explícito não há aresta.
+
+A lógica de parsing (`src/lib/flow-example.ts`) e de renderização
+(`src/lib/flow-canvas-html.ts`) tem testes em `src/lib/flow-example.test.ts`
+(`npm test`).
