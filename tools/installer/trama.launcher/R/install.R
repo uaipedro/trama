@@ -63,8 +63,10 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
   sink(con, type = "output")
   on.exit({ sink(type = "output"); close(con) }, add = TRUE)
 
-  for (p in pacotes) progresso(sprintf("Instalando %s…", p))
-  tl_install_pkgs(pacotes, lib = lib, repos = repos)
+  for (p in pacotes) {
+    progresso(sprintf("Instalando %s…", p))
+    tl_install_pkgs(p, lib = lib, repos = repos)
+  }
 
   faltando <- pacotes[!vapply(pacotes, function(p) dir.exists(file.path(lib, p)), logical(1))]
   if (length(faltando)) {

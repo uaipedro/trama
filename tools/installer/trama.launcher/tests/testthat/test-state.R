@@ -30,7 +30,7 @@ test_that("escrita é atômica: grava em temp e renomeia", {
   tl_state_write(list(atual = "2026.10", anteriores = "2026.09", colecoes = "trama.ml"))
 
   expect_true(file.exists(tl_state_file()))
-  expect_equal(length(list.files(tl_home(), pattern = "^file")), 0)
+  expect_equal(length(list.files(tl_home(), pattern = "^estado-.*\\.json\\.tmp$")), 0)
 
   lido <- tl_state_read()
   expect_equal(lido$atual, "2026.10")
