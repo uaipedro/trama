@@ -8,7 +8,7 @@ export async function addCollection(collection: string, onProgress: (msg: string
   const base = baseDir();
   onProgress(`Instalando ${collection}...`);
   const script = buildInstallScript([`uaipedro/trama/collections/${collection}`], libDir(base), resolveRepoUrl());
-  await runInstall(rscriptPath(base, R_VERSION), script);
+  await runInstall(rscriptPath(base, R_VERSION), script, (pkg) => onProgress(`  instalando ${pkg}...`));
 
   const cfg = readConfig(base);
   const collections = new Set(cfg.installedCollections ?? []);

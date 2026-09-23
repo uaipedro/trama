@@ -17,7 +17,7 @@ export async function updateCommand(onProgress: (msg: string) => void = () => {}
 
   onProgress("Atualizando trama e coleções instaladas...");
   const script = buildInstallScript(pkgs, libDir(base), resolveRepoUrl());
-  await runInstall(rscriptPath(base, R_VERSION), script);
+  await runInstall(rscriptPath(base, R_VERSION), script, (pkg) => onProgress(`  instalando ${pkg}...`));
 
   writeConfig(base, { ...cfg, rVersion: R_VERSION, installedCollections: collections });
 }

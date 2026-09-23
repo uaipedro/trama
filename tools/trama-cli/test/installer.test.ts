@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildInstallScript, resolveRepoUrl, runInstall } from "../src/core/installer.js";
+import { buildInstallScript, installingPackage, resolveRepoUrl, runInstall } from "../src/core/installer.js";
 import { writeFileSync, mkdtempSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -79,5 +79,13 @@ describe("runInstall", () => {
     chmodSync(fakeRscript, 0o755);
 
     await expect(runInstall(fakeRscript, "qualquer coisa")).resolves.toBeUndefined();
+  });
+});
+
+describe("installingPackage", () => {
+  it("extrai o nome com aspas curvas ou retas", () => {
+    expect(installingPackage("* installing *binary* package ‘dplyr’ ...")).toBe("dplyr");
+    expect(installingPackage("* installing *source* package 'trama' ...")).toBe("trama");
+    expect(installingPackage("Downloading GitHub repo uaipedro/trama@HEAD")).toBeNull();
   });
 });

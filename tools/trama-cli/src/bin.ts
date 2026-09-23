@@ -12,7 +12,7 @@ const program = new Command();
 program
   .name("trama")
   .description("Instala e roda o trama sem precisar já ter R instalado.")
-  .version("0.2.3");
+  .version("0.2.4");
 
 // Envolve o handler de cada comando para transformar erros/rejeições não
 // tratadas em uma mensagem de erro limpa, em vez de um stack trace cru
@@ -72,7 +72,7 @@ program
   .action(
     runAction(async () => {
       if (!isProjectDir(process.cwd())) {
-        console.error("Essa pasta não parece um projeto trama (sem flows/main.json).");
+        console.error("Essa pasta não parece um projeto trama (sem trama.json).");
         process.exit(1);
       }
       await openProject(process.cwd());

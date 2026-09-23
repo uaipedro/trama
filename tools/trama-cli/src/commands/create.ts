@@ -1,6 +1,6 @@
 import * as clack from "@clack/prompts";
 import { createProject } from "../project.js";
-import { ensureInstalled } from "./install.js";
+import { ensureInstalled, CORE_PACKAGE_NAMES } from "./install.js";
 import { addCollection } from "./add.js";
 import { openProject } from "./open.js";
 
@@ -27,7 +27,9 @@ export async function createCommand(name: string): Promise<void> {
     process.exit(1);
   }
 
-  const dir = createProject(process.cwd(), name);
+  // trama (o núcleo) não é coleção; trama.data e trama.view são.
+  const collections = [...CORE_PACKAGE_NAMES.filter((p) => p !== "trama"), ...(selected as string[])];
+  const dir = createProject(process.cwd(), name, collections);
 
   for (const collection of selected as string[]) {
     await addCollection(collection, (msg) => clack.log.step(msg));

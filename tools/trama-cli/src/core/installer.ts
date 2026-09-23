@@ -110,7 +110,23 @@ export function rEnv(): NodeJS.ProcessEnv {
  * isso, uma falha (pacote não encontrado, erro de rede etc) vira só um
  * "exit code 1" sem pista nenhuma do que houve de verdade.
  */
-export function runInstall(rscriptPath: string, script: string): Promise<void> {
+/**
+ * Nome do pacote numa linha "* installing *binary* package 'x' ..." do
+ * R CMD INSTALL (aspas curvas ou retas, conforme o locale), ou null.
+ */
+export function installingPackage(line: string): string | null {
+  return /^\* installing \*\w+\* package [‘'](.+?)[’']/.exec(line)?.[1] ?? null;
+}
+
+/**
+ * `onPackage` recebe o nome de cada pacote quando o R começa a instalá-lo —
+ * sem isso uma instalação de minutos parece travada, só com "Atualizando...".
+ */
+export function runInstall(
+  rscriptPath: string,
+  script: string,
+  onPackage: (pkg: string) => void = () => {}
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn(rscriptPath, ["-e", script], { env: rEnv() });
     const tail: string[] = [];
@@ -120,6 +136,8 @@ export function runInstall(rscriptPath: string, script: string): Promise<void> {
         if (!line) continue;
         tail.push(line);
         if (tail.length > MAX_ERROR_TAIL_LINES) tail.shift();
+        const pkg = installingPackage(line);
+        if (pkg) onPackage(pkg);
       }
     };
     proc.stdout.on("data", onData);

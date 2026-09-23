@@ -5,14 +5,20 @@ import { join } from "node:path";
 import { createProject, isProjectDir } from "../src/project.js";
 
 describe("createProject", () => {
-  it("cria a pasta com flows/main.json válido", () => {
+  it("cria trama.json com as coleções e flows/ vazio (o flow é do pacote R)", () => {
     const parent = mkdtempSync(join(tmpdir(), "trama-cli-project-"));
-    const dir = createProject(parent, "meu-projeto");
+    const dir = createProject(parent, "meu-projeto", ["trama.data", "trama.view"]);
 
-    expect(existsSync(join(dir, "flows", "main.json"))).toBe(true);
-    const flow = JSON.parse(readFileSync(join(dir, "flows", "main.json"), "utf8"));
-    expect(flow.nodes).toEqual({});
-    expect(flow.edges).toEqual([]);
+    const cfg = JSON.parse(readFileSync(join(dir, "trama.json"), "utf8"));
+    expect(cfg.collections).toEqual(["trama.data", "trama.view"]);
+    expect(existsSync(join(dir, "flows"))).toBe(true);
+    expect(existsSync(join(dir, "flows", "main.json"))).toBe(false);
+  });
+
+  it("recusa sobrescrever um projeto existente", () => {
+    const parent = mkdtempSync(join(tmpdir(), "trama-cli-project-"));
+    createProject(parent, "p");
+    expect(() => createProject(parent, "p")).toThrow(/Já existe/);
   });
 
   it("isProjectDir detecta uma pasta de projeto existente", () => {

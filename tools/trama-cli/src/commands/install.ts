@@ -73,7 +73,7 @@ export async function ensureInstalled(onProgress: (msg: string) => void = () => 
   if (!status.coreInstalled) {
     onProgress("Instalando núcleo do trama...");
     const script = buildInstallScript(CORE_PACKAGES, libDir(base), resolveRepoUrl(), true);
-    await runInstall(rscriptPath(base, R_VERSION), script);
+    await runInstall(rscriptPath(base, R_VERSION), script, (pkg) => onProgress(`  instalando ${pkg}...`));
     const cfg = readConfig(base);
     writeConfig(base, { ...cfg, rVersion: R_VERSION, installedCollections: cfg.installedCollections ?? [] });
   }
