@@ -202,3 +202,94 @@ test_that("falha numa ação mostra notificação de erro e não derruba a sess�
     expect_equal(status()$release_instalada, "")
   })
 })
+
+local_home_e_projetos <- function(env = parent.frame()) {
+  home <- local_home(env)
+  projetos <- withr::local_tempdir(.local_envir = env)
+  withr::local_envvar(c(TRAMA_PROJECTS = projetos), .local_envir = env)
+  projetos
+}
+
+test_that("Novo projeto instala coleções pedidas que faltam e grava trama.json", {
+  base <- local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+
+  shiny::testServer(tl_server, {
+    session$setInputs(
+      tl_novo_projeto_nome = "meu-fluxo",
+      tl_novo_projeto_colecoes = list("trama.data", "trama.ml")
+    )
+    session$setInputs(tl_novo_projeto = 1)
+  })
+
+  caminho <- file.path(base, "meu-fluxo")
+  expect_true(dir.exists(caminho))
+  expect_equal(tl_project_collections(caminho), c("trama.data", "trama.ml"))
+  expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama.ml")))
+})
+
+test_that("abrir projeto que pede coleção não instalada manda a UI perguntar, sem abrir", {
+  base <- local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+  caminho <- tl_project_new("com-ml", colecoes = c("trama.data", "trama.ml"))
+
+  # tl_project_open não roda porque a checagem de coleção faltando barra
+  # antes: confirmado indiretamente pelo estado de "aberto" continuar
+  # falso (sem porta registrada) depois do input.
+  shiny::testServer(tl_server, {
+    session$setInputs(tl_abrir_projeto = caminho)
+  })
+  expect_false(tl_project_aberto(caminho))
+})
+
+test_that("Instalar e abrir instala a coleção faltante e abre o projeto", {
+  base <- local_home_e_projetos()
+  aberto_com <- NULL
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste,
+    # tl_project_open() de verdade subiria um Rscript e um navegador de
+    # verdade (efeito colateral indesejável num teste) — mockado, como o
+    # resto do motor de instalação nestes testes.
+    tl_project_open = function(caminho, ...) {
+      aberto_com <<- caminho
+      invisible(9999L)
+    }
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+  caminho <- tl_project_new("abrir-com-ml", colecoes = c("trama.data", "trama.ml"))
+
+  shiny::testServer(tl_server, {
+    session$setInputs(tl_instalar_e_abrir_projeto = caminho)
+  })
+
+  expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama.ml")))
+  expect_equal(aberto_com, caminho)
+})
+
+test_that("Salvar coleções de um projeto grava trama.json e instala o que falta", {
+  base <- local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+  caminho <- tl_project_new("editar")
+
+  shiny::testServer(tl_server, {
+    session$setInputs(
+      tl_salvar_colecoes_projeto = list(caminho = caminho, colecoes = list("trama.data", "trama.ml"))
+    )
+  })
+
+  expect_equal(tl_project_collections(caminho), c("trama.data", "trama.ml"))
+  expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama.ml")))
+})

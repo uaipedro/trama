@@ -94,10 +94,16 @@ button{font:inherit}
   color:var(--tr-dim);margin:0 0 12px}
 
 .tl-recentes-row{display:flex;gap:10px;flex-wrap:wrap}
-.tl-recente-card{display:flex;align-items:center;gap:10px;background:var(--tr-panel);
-  border:1px solid var(--tr-line);border-radius:10px;padding:10px 14px;min-width:180px;
-  cursor:pointer;text-align:left;color:var(--tr-fg)}
+.tl-recente-card{display:flex;align-items:center;gap:4px;background:var(--tr-panel);
+  border:1px solid var(--tr-line);border-radius:10px;padding:6px 8px 6px 14px;min-width:180px;
+  position:relative}
 .tl-recente-card:hover{border-color:var(--tr-accent)}
+.tl-recente-abrir{flex:1;display:flex;align-items:center;gap:10px;background:none;border:0;
+  padding:4px 0;cursor:pointer;text-align:left;color:var(--tr-fg);min-width:0}
+.tl-recente-colecoes{flex:none;width:26px;height:26px;border-radius:7px;background:none;
+  border:0;color:var(--tr-dim);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tl-recente-colecoes:hover{background:var(--tr-hover);color:var(--tr-fg)}
+.tl-recente-colecoes svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
 .tl-recente-ic{flex:none;width:30px;height:30px;border-radius:8px;background:var(--tr-field);
   display:flex;align-items:center;justify-content:center;color:var(--tr-dim)}
 .tl-recente-ic svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
@@ -178,6 +184,38 @@ button{font:inherit}
    cada um deles (ver launcher.js, mensagem "tl-ocupado"). */
 body.tl-ocupado [data-acao],body.tl-ocupado .tl-card:not(:disabled){opacity:.55;
   pointer-events:none}
+
+/* --- diálogos (novo projeto / coleções de um projeto) --- */
+.tl-projeto-acoes{display:flex;align-items:center;gap:8px}
+.tl-recente-card{position:relative}
+
+.tl-modal-camada{position:fixed;inset:0;background:rgba(6,8,12,.55);
+  display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.tl-modal-camada[hidden]{display:none}
+.tl-modal{background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:14px;
+  padding:22px 24px 20px;width:100%;max-width:420px;max-height:calc(100vh - 40px);
+  overflow:auto;box-shadow:0 20px 60px var(--tr-shadow-hi)}
+.tl-modal h2{font-size:15.5px;font-weight:600;margin:0 0 4px}
+.tl-modal-sub{font-size:12.5px;color:var(--tr-dim);margin:0 0 16px}
+.tl-modal-campo{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+.tl-modal-campo label{font-size:12px;color:var(--tr-dim)}
+.tl-modal-campo input[type="text"]{background:var(--tr-field);border:1px solid var(--tr-edge);
+  color:var(--tr-fg);border-radius:8px;padding:9px 11px;font-size:13px}
+.tl-modal-campo input:focus-visible{border-color:var(--tr-accent)}
+
+.tl-checklist{display:flex;flex-direction:column;gap:2px;margin:0 0 18px;padding:0;border:0}
+.tl-checklist legend{font-size:12px;color:var(--tr-dim);padding:0 0 6px;width:100%}
+.tl-check-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px}
+.tl-check-item:hover{background:var(--tr-hover)}
+.tl-check-item input[type="checkbox"]{width:16px;height:16px;flex:none;accent-color:var(--tr-accent)}
+.tl-check-item .tl-check-titulo{font-size:13px;flex:1}
+.tl-check-item .tl-check-nota{font-size:11px;color:var(--tr-dim)}
+
+.tl-modal-acoes{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+.tl-modal-fechar{position:absolute;top:14px;right:14px;background:none;border:0;
+  color:var(--tr-dim);cursor:pointer;padding:4px;border-radius:6px;line-height:0}
+.tl-modal-fechar:hover{color:var(--tr-fg);background:var(--tr-hover)}
+.tl-modal{position:relative}
 
 @media (max-width: 720px){
   .tl-app{grid-template-columns:60px 1fr}

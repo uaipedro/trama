@@ -159,7 +159,14 @@ tl_server <- function(input, output, session) {
   manifesto <- shiny::reactiveVal(m0)
   status <- shiny::reactiveVal(tl_status(m = m0, s = tl_state_read()))
   ocupado <- shiny::reactiveVal(FALSE)
-  sem_internet <- shiny::reactiveVal(is.null(m0) && !nzchar(status()$release_instalada))
+  # `shiny::isolate()`: mesmo motivo do `if` mais abaixo (que decide a
+  # primeira instalação) — este ponto do corpo do server roda antes de
+  # qualquer contexto reativo existir, e ler uma `reactiveVal` sem
+  # `isolate()` aqui lança "Operation not allowed without an active
+  # reactive context" a cada sessão nova de verdade. Só não aparecia nos
+  # testes porque `testServer()` embrulha tudo num contexto reativo — bug
+  # real, sem teste que subisse uma sessão de verdade para pegar.
+  sem_internet <- shiny::reactiveVal(is.null(m0) && !nzchar(shiny::isolate(status())$release_instalada))
   projetos <- shiny::reactiveVal(tl_projects())
 
   # Trava de verdade contra duplo clique: um flag simples no closure de
@@ -284,26 +291,45 @@ tl_server <- function(input, output, session) {
 
   atualizar_projetos <- function() projetos(tl_projects())
 
-  shiny::observeEvent(input$tl_abrir_projeto, {
-    rodar_acao("Abrindo projeto…", function(progresso) {
-      progresso("Abrindo…")
-      tl_project_open(input$tl_abrir_projeto)
-    })
-    atualizar_projetos()
-  })
+  # Coleções que `colecoes` pede e que faltam na lib atual — mesma conta
+  # usada tanto para "novo projeto" quanto para "editar coleções" quanto
+  # para o aviso de "abrir projeto que pede coleção não instalada".
+  colecoes_faltando <- function(colecoes) {
+    lib <- tl_lib_dir(tl_state_read()$atual)
+    colecoes[!vapply(colecoes, function(p) dir.exists(file.path(lib, p)), logical(1))]
+  }
 
-  shiny::observeEvent(input$tl_novo_projeto, {
-    tryCatch({
-      tl_project_new(input$tl_novo_projeto_nome)
-      atualizar_projetos()
-      shiny::showNotification(sprintf("Projeto '%s' criado.", input$tl_novo_projeto_nome), type = "message")
-    }, error = function(e) shiny::showNotification(conditionMessage(e), type = "error"))
-  })
+  # Instala, uma a uma, as coleções de `nomes` (progresso repassado) — usado
+  # tanto ao criar projeto quanto ao salvar coleções de um já existente.
+  # Lança erro (sem instalar nada offline) se `manifesto()` for `NULL`.
+  instalar_faltando <- function(nomes, progresso) {
+    if (!length(nomes)) return(invisible(NULL))
+    m <- manifesto()
+    if (is.null(m)) {
+      stop("Sem conexão para instalar a(s) coleção(ões) pedida(s). Conecte-se e tente de novo.", call. = FALSE)
+    }
+    for (nm in nomes) tl_collection_add(m, nm, progresso = progresso)
+    invisible(NULL)
+  }
 
-  shiny::observeEvent(input$tl_abrir_pasta_btn, {
-    caminho <- input$tl_abrir_pasta
+  # Tenta abrir `caminho`: se o projeto pede coleção que não está na lib
+  # atual, não abre — manda a UI perguntar "Instalar e abrir" (quando a
+  # coleção existe no manifesto) ou só avisar (quando não existe), em vez
+  # de deixar `trama::tr_project()` recusar lá na frente com um erro cru
+  # sem ação nenhuma para o usuário tomar.
+  tentar_abrir_projeto <- function(caminho) {
     if (!nzchar(caminho) || !dir.exists(caminho)) {
       shiny::showNotification("Pasta não encontrada.", type = "error")
+      return(invisible(NULL))
+    }
+    faltando <- tl_project_missing_collections(caminho, tl_lib_dir(tl_state_read()$atual))
+    if (length(faltando)) {
+      m <- manifesto()
+      disponiveis <- if (is.null(m)) character(0) else names(m$collections)
+      session$sendCustomMessage("tl-projeto-faltando", list(
+        caminho = caminho, nome = basename(caminho),
+        faltando = as.list(faltando), instalavel = all(faltando %in% disponiveis)
+      ))
       return(invisible(NULL))
     }
     rodar_acao("Abrindo projeto…", function(progresso) {
@@ -311,7 +337,66 @@ tl_server <- function(input, output, session) {
       tl_project_open(caminho)
     })
     atualizar_projetos()
+  }
+
+  shiny::observeEvent(input$tl_abrir_projeto, tentar_abrir_projeto(input$tl_abrir_projeto))
+
+  shiny::observeEvent(input$tl_instalar_e_abrir_projeto, {
+    caminho <- input$tl_instalar_e_abrir_projeto
+    faltando <- tl_project_missing_collections(caminho, tl_lib_dir(tl_state_read()$atual))
+    rodar_acao("Instalando…", function(progresso) {
+      instalar_faltando(faltando, progresso)
+      progresso("Abrindo…")
+      tl_project_open(caminho)
+    })
+    atualizar_projetos()
   })
+
+  shiny::observeEvent(input$tl_novo_projeto, {
+    nome <- input$tl_novo_projeto_nome
+    colecoes <- if (is.null(input$tl_novo_projeto_colecoes)) character(0) else unlist(input$tl_novo_projeto_colecoes)
+    faltando <- colecoes_faltando(colecoes)
+    rodar_acao("Criando projeto…", function(progresso) {
+      instalar_faltando(faltando, progresso)
+      progresso("Criando projeto…")
+      tl_project_new(nome, colecoes = colecoes)
+      shiny::showNotification(sprintf("Projeto '%s' criado.", nome), type = "message")
+    })
+    atualizar_projetos()
+  })
+
+  # Diálogo "Coleções" de um projeto: a UI não sabe quais coleções o
+  # projeto já tem (não vem no payload de `tl-projetos`, que é só
+  # nome/caminho/modificado/aberto) — pede aqui, no clique do botão.
+  shiny::observeEvent(input$tl_colecoes_projeto, {
+    caminho <- input$tl_colecoes_projeto
+    session$sendCustomMessage("tl-colecoes-projeto", list(
+      caminho = caminho, nome = basename(caminho),
+      colecoes = as.list(tl_project_collections(caminho))
+    ))
+  })
+
+  shiny::observeEvent(input$tl_salvar_colecoes_projeto, {
+    info <- input$tl_salvar_colecoes_projeto
+    caminho <- info$caminho
+    colecoes <- if (is.null(info$colecoes)) character(0) else unlist(info$colecoes)
+    faltando <- colecoes_faltando(colecoes)
+    rodar_acao("Salvando coleções…", function(progresso) {
+      instalar_faltando(faltando, progresso)
+      tl_project_set_collections(caminho, colecoes)
+      # Projeto aberto: o processo do editor já subiu o registry com as
+      # coleções antigas — reinicia para carregar as novas, em vez de
+      # deixar a mudança só valer na próxima vez que alguém reabrir.
+      if (tl_project_aberto(caminho)) {
+        progresso("Reiniciando editor…")
+        tl_project_restart(caminho)
+      }
+      shiny::showNotification("Coleções atualizadas.", type = "message")
+    })
+    atualizar_projetos()
+  })
+
+  shiny::observeEvent(input$tl_abrir_pasta_btn, tentar_abrir_projeto(input$tl_abrir_pasta))
 
   shiny::observeEvent(input$tl_reparar, {
     m <- manifesto()

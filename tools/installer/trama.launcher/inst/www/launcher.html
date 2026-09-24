@@ -104,11 +104,10 @@
                aria-labelledby="tl-tab-projetos" tabindex="-1" hidden>
         <h2 class="tl-titulo-view">Projetos</h2>
         <div class="tl-form-row">
-          <div class="tl-campo">
-            <label for="tl-novo-nome">Nome do projeto novo</label>
-            <input type="text" id="tl-novo-nome" autocomplete="off">
-          </div>
-          <button type="button" class="tl-btn tl-btn-primario" id="tl-btn-criar-projeto">Criar projeto</button>
+          <button type="button" class="tl-btn tl-btn-primario" id="tl-btn-criar-projeto">
+            <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Novo projeto
+          </button>
         </div>
         <div class="tl-form-row">
           <div class="tl-campo">
@@ -154,6 +153,60 @@
 </div>
 
 <div id="tl-live" class="tl-sr-only" role="status" aria-live="polite"></div>
+
+<div id="tl-modal-novo-projeto" class="tl-modal-camada" hidden>
+  <div class="tl-modal" role="dialog" aria-modal="true" aria-labelledby="tl-modal-novo-titulo">
+    <button type="button" class="tl-modal-fechar" data-fechar-modal aria-label="Fechar">
+      <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <h2 id="tl-modal-novo-titulo">Novo projeto</h2>
+    <p class="tl-modal-sub">Escolha o nome e as coleções que este projeto vai usar.</p>
+    <div class="tl-modal-campo">
+      <label for="tl-modal-novo-nome">Nome do projeto</label>
+      <input type="text" id="tl-modal-novo-nome" autocomplete="off">
+    </div>
+    <fieldset class="tl-checklist">
+      <legend>Coleções</legend>
+      <div id="tl-modal-novo-colecoes"></div>
+    </fieldset>
+    <div class="tl-modal-acoes">
+      <button type="button" class="tl-btn" data-fechar-modal>Cancelar</button>
+      <button type="button" class="tl-btn tl-btn-primario" id="tl-modal-novo-criar">Criar projeto</button>
+    </div>
+  </div>
+</div>
+
+<div id="tl-modal-colecoes-projeto" class="tl-modal-camada" hidden>
+  <div class="tl-modal" role="dialog" aria-modal="true" aria-labelledby="tl-modal-colecoes-titulo">
+    <button type="button" class="tl-modal-fechar" data-fechar-modal aria-label="Fechar">
+      <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <h2 id="tl-modal-colecoes-titulo">Coleções do projeto</h2>
+    <p class="tl-modal-sub" id="tl-modal-colecoes-sub"></p>
+    <fieldset class="tl-checklist">
+      <legend>Coleções</legend>
+      <div id="tl-modal-colecoes-lista"></div>
+    </fieldset>
+    <div class="tl-modal-acoes">
+      <button type="button" class="tl-btn" data-fechar-modal>Cancelar</button>
+      <button type="button" class="tl-btn tl-btn-primario" id="tl-modal-colecoes-salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="tl-modal-projeto-faltando" class="tl-modal-camada" hidden>
+  <div class="tl-modal" role="dialog" aria-modal="true" aria-labelledby="tl-modal-faltando-titulo">
+    <button type="button" class="tl-modal-fechar" data-fechar-modal aria-label="Fechar">
+      <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <h2 id="tl-modal-faltando-titulo">Coleção não instalada</h2>
+    <p class="tl-modal-sub" id="tl-modal-faltando-texto"></p>
+    <div class="tl-modal-acoes">
+      <button type="button" class="tl-btn" data-fechar-modal>Cancelar</button>
+      <button type="button" class="tl-btn tl-btn-primario" id="tl-modal-faltando-instalar" hidden>Instalar e abrir</button>
+    </div>
+  </div>
+</div>
 
 <script src="tl-www/launcher.js"></script>
 </body>

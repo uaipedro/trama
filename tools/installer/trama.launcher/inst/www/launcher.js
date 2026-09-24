@@ -96,10 +96,8 @@
     var item = estado.colecoes.filter(function (c) { return c.nome === nome; })[0];
     if (!item) return;
     if (item.instalada) {
-      mostrarView("projetos", { focoCampo: "tl-novo-nome" });
-      var campo = document.getElementById("tl-novo-nome");
-      if (campo && !campo.value) campo.value = item.titulo || item.nome;
-      anunciar("Escolha um nome e crie o projeto com " + (item.titulo || item.nome) + ".");
+      abrirModalNovoProjeto(item.nome);
+      anunciar("Novo projeto com " + (item.titulo || item.nome) + ": escolha um nome e confirme.");
       return;
     }
     if (item.disponivel) {
@@ -110,14 +108,21 @@
   // --- projetos ------------------------------------------------------
   var ICONE_PASTA =
     '<svg viewBox="0 0 24 24"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/></svg>';
+  var ICONE_ENGRENAGEM =
+    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a1.94 1.94 0 1 1-2.75 2.75l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47V21a1.94 1.94 0 1 1-3.88 0v-.09a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0-1.77.32l-.06.06a1.94 1.94 0 1 1-2.75-2.75l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-1H3a1.94 1.94 0 1 1 0-3.88h.09A1.6 1.6 0 0 0 4.56 10a1.6 1.6 0 0 0-.32-1.77l-.06-.06A1.94 1.94 0 1 1 6.93 5.4l.06.06a1.6 1.6 0 0 0 1.77.32H8.8a1.6 1.6 0 0 0 1-1.47V4a1.94 1.94 0 1 1 3.88 0v.09a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a1.94 1.94 0 1 1 2.75 2.75l-.06.06a1.6 1.6 0 0 0-.32 1.77V9.8a1.6 1.6 0 0 0 1.47 1H21a1.94 1.94 0 1 1 0 3.88h-.09a1.6 1.6 0 0 0-1.47 1Z"/></svg>';
 
   function projetoRecenteHtml(p) {
     return (
-      '<button type="button" class="tl-recente-card" data-abrir-caminho="' + esc(p.caminho) + '" data-nome="' + esc(p.nome.toLowerCase()) + '">' +
+      '<div class="tl-recente-card" data-nome="' + esc(p.nome.toLowerCase()) + '">' +
+      '<button type="button" class="tl-recente-abrir" data-abrir-caminho="' + esc(p.caminho) + '">' +
       '<span class="tl-recente-ic">' + ICONE_PASTA + "</span>" +
       '<span><span class="tl-recente-nome">' + esc(p.nome) + "</span><br>" +
       '<span class="tl-recente-meta">' + (p.aberto ? '<span class="tl-recente-aberto">Aberto</span>' : esc(p.modificado || "")) + "</span></span>" +
-      "</button>"
+      "</button>" +
+      '<button type="button" class="tl-recente-colecoes" title="Coleções" aria-label="Coleções de ' + esc(p.nome) + '" data-colecoes-caminho="' + esc(p.caminho) + '" data-colecoes-nome="' + esc(p.nome) + '">' +
+      ICONE_ENGRENAGEM +
+      "</button>" +
+      "</div>"
     );
   }
 
@@ -126,7 +131,10 @@
       '<div class="tl-projeto-item" data-nome="' + esc(p.nome.toLowerCase()) + '">' +
       '<div class="tl-projeto-info"><div class="tl-projeto-nome">' + esc(p.nome) + "</div>" +
       '<div class="tl-projeto-meta">' + (p.aberto ? '<span class="tl-recente-aberto">Aberto</span> · ' : "") + esc(p.modificado || "") + "</div></div>" +
+      '<div class="tl-projeto-acoes">' +
       '<button type="button" class="tl-btn tl-btn-sm" data-abrir-caminho="' + esc(p.caminho) + '">Abrir</button>' +
+      '<button type="button" class="tl-btn tl-btn-sm" data-colecoes-caminho="' + esc(p.caminho) + '" data-colecoes-nome="' + esc(p.nome) + '">Coleções</button>' +
+      "</div>" +
       "</div>"
     );
   }
@@ -152,6 +160,157 @@
     document.querySelectorAll("#tl-recentes-lista [data-nome], #tl-lista-projetos-full [data-nome]").forEach(function (el) {
       el.style.display = !termo || el.dataset.nome.indexOf(termo) !== -1 ? "" : "none";
     });
+  }
+
+  // --- diálogos (modais) -------------------------------------------------
+  var NUCLEO = [
+    { nome: "trama.data", titulo: "Dados", nucleo: true },
+    { nome: "trama.view", titulo: "Visualização", nucleo: true }
+  ];
+  var focoAnterior = null;
+  var colecoesProjetoAtual = null;
+
+  function opcoesColecoes() {
+    return NUCLEO.concat(
+      estado.colecoes.map(function (c) {
+        return { nome: c.nome, titulo: c.titulo || c.nome, instalada: c.instalada, disponivel: c.disponivel };
+      })
+    );
+  }
+
+  function checklistHtml(opcoes, marcadas) {
+    return opcoes
+      .map(function (o) {
+        var marcada = marcadas.indexOf(o.nome) !== -1;
+        var indisponivel = !o.nucleo && !o.disponivel && !o.instalada;
+        var nota = o.nucleo
+          ? ""
+          : o.instalada
+          ? ""
+          : o.disponivel
+          ? "Será instalada"
+          : "Indisponível nesta release";
+        return (
+          '<label class="tl-check-item">' +
+          '<input type="checkbox" data-colecao="' + esc(o.nome) + '"' +
+          (marcada ? " checked" : "") + (indisponivel ? " disabled" : "") + ">" +
+          '<span class="tl-check-titulo">' + esc(o.titulo) + "</span>" +
+          (nota ? '<span class="tl-check-nota">' + esc(nota) + "</span>" : "") +
+          "</label>"
+        );
+      })
+      .join("");
+  }
+
+  function colecoesMarcadas(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return [];
+    return Array.prototype.slice
+      .call(container.querySelectorAll('input[type="checkbox"][data-colecao]:checked'))
+      .map(function (el) { return el.dataset.colecao; });
+  }
+
+  function abrirModal(id, focoInicial) {
+    var camada = document.getElementById(id);
+    if (!camada) return;
+    focoAnterior = document.activeElement;
+    camada.hidden = false;
+    (focoInicial || camada.querySelector("input, button")).focus();
+  }
+
+  function fecharModal(camada) {
+    if (!camada || camada.hidden) return;
+    camada.hidden = true;
+    if (focoAnterior && typeof focoAnterior.focus === "function") focoAnterior.focus();
+  }
+
+  function modalAberta() {
+    return document.querySelector(".tl-modal-camada:not([hidden])");
+  }
+
+  // --- novo projeto ------------------------------------------------------
+  function abrirModalNovoProjeto(preMarcar) {
+    var marcadas = ["trama.data", "trama.view"];
+    if (preMarcar && marcadas.indexOf(preMarcar) === -1) marcadas.push(preMarcar);
+    document.getElementById("tl-modal-novo-colecoes").innerHTML = checklistHtml(opcoesColecoes(), marcadas);
+    var nomeInput = document.getElementById("tl-modal-novo-nome");
+    if (nomeInput) nomeInput.value = "";
+    abrirModal("tl-modal-novo-projeto", nomeInput);
+  }
+
+  function confirmarNovoProjeto() {
+    var nomeInput = document.getElementById("tl-modal-novo-nome");
+    var nome = nomeInput ? nomeInput.value : "";
+    if (!nome || !nome.trim()) {
+      if (nomeInput) nomeInput.focus();
+      anunciar("Digite um nome para o projeto.");
+      return;
+    }
+    var colecoes = colecoesMarcadas("tl-modal-novo-colecoes");
+    Shiny.setInputValue("tl_novo_projeto_nome", nome);
+    Shiny.setInputValue("tl_novo_projeto_colecoes", colecoes);
+    Shiny.setInputValue("tl_novo_projeto", Date.now(), { priority: "event" });
+    fecharModal(document.getElementById("tl-modal-novo-projeto"));
+  }
+
+  // --- coleções de um projeto existente -----------------------------------
+  function pedirColecoesProjeto(caminho, nome) {
+    colecoesProjetoAtual = { caminho: caminho, nome: nome };
+    Shiny.setInputValue("tl_colecoes_projeto", caminho, { priority: "event" });
+  }
+
+  function receberColecoesProjeto(msg) {
+    if (!colecoesProjetoAtual || colecoesProjetoAtual.caminho !== msg.caminho) return;
+    document.getElementById("tl-modal-colecoes-titulo").textContent = "Coleções de " + msg.nome;
+    document.getElementById("tl-modal-colecoes-sub").textContent =
+      "Ligue ou desligue coleções deste projeto. O que faltar é instalado ao salvar.";
+    var lista = document.getElementById("tl-modal-colecoes-lista");
+    lista.innerHTML = checklistHtml(opcoesColecoes(), msg.colecoes || []);
+    abrirModal("tl-modal-colecoes-projeto", lista.querySelector('input[type="checkbox"]'));
+  }
+
+  function confirmarColecoesProjeto() {
+    if (!colecoesProjetoAtual) return;
+    var colecoes = colecoesMarcadas("tl-modal-colecoes-lista");
+    Shiny.setInputValue(
+      "tl_salvar_colecoes_projeto",
+      { caminho: colecoesProjetoAtual.caminho, colecoes: colecoes },
+      { priority: "event" }
+    );
+    fecharModal(document.getElementById("tl-modal-colecoes-projeto"));
+  }
+
+  // --- projeto pede coleção que falta na lib ------------------------------
+  function receberProjetoFaltando(msg) {
+    var texto =
+      "'" + msg.nome + "' usa " + msg.faltando.join(", ") +
+      (msg.faltando.length > 1 ? ", que não estão instaladas" : ", que não está instalada") +
+      " nesta biblioteca.";
+    if (!msg.instalavel) {
+      texto += " Essa coleção não consta no manifesto desta release — não é possível instalar por aqui.";
+    }
+    document.getElementById("tl-modal-faltando-texto").textContent = texto;
+    // `style.display` direto, não o atributo `hidden`: `.tl-btn` já define
+    // `display:inline-flex` com a mesma especificidade de `[hidden]`, e
+    // como vem depois no CSS ganha do atributo — o botão ficava visível
+    // mesmo com `hidden = true`. Inline style sempre ganha da folha.
+    var botao = document.getElementById("tl-modal-faltando-instalar");
+    var mostrarBotao = !!msg.instalavel;
+    botao.style.display = mostrarBotao ? "" : "none";
+    if (mostrarBotao) {
+      botao.dataset.caminho = msg.caminho;
+    } else {
+      delete botao.dataset.caminho;
+    }
+    abrirModal("tl-modal-projeto-faltando", mostrarBotao ? botao : undefined);
+  }
+
+  function confirmarInstalarEAbrir() {
+    var botao = document.getElementById("tl-modal-faltando-instalar");
+    var caminho = botao ? botao.dataset.caminho : null;
+    if (!caminho) return;
+    Shiny.setInputValue("tl_instalar_e_abrir_projeto", caminho, { priority: "event" });
+    fecharModal(document.getElementById("tl-modal-projeto-faltando"));
   }
 
   // --- status / versão -------------------------------------------------
@@ -217,13 +376,8 @@
     Shiny.addCustomMessageHandler("tl-status", renderStatus);
     Shiny.addCustomMessageHandler("tl-colecoes", renderColecoes);
     Shiny.addCustomMessageHandler("tl-projetos", renderProjetos);
-  }
-
-  function criarProjeto() {
-    var campo = document.getElementById("tl-novo-nome");
-    var nome = campo ? campo.value : "";
-    Shiny.setInputValue("tl_novo_projeto_nome", nome);
-    Shiny.setInputValue("tl_novo_projeto", Date.now(), { priority: "event" });
+    Shiny.addCustomMessageHandler("tl-colecoes-projeto", receberColecoesProjeto);
+    Shiny.addCustomMessageHandler("tl-projeto-faltando", receberProjetoFaltando);
   }
 
   function abrirPastaExistente() {
@@ -259,17 +413,46 @@
         Shiny.setInputValue("tl_abrir_projeto", abrirBtn.dataset.abrirCaminho, { priority: "event" });
         return;
       }
-      if (e.target.id === "tl-btn-novo-projeto-topo") {
-        mostrarView("projetos", { focoCampo: "tl-novo-nome" });
+      var colecoesBtn = e.target.closest("[data-colecoes-caminho]");
+      if (colecoesBtn) {
+        pedirColecoesProjeto(colecoesBtn.dataset.colecoesCaminho, colecoesBtn.dataset.colecoesNome);
         return;
       }
-      if (e.target.id === "tl-btn-criar-projeto") {
-        criarProjeto();
+      if (e.target.id === "tl-btn-novo-projeto-topo" || e.target.id === "tl-btn-criar-projeto") {
+        abrirModalNovoProjeto();
         return;
       }
       if (e.target.id === "tl-btn-abrir-pasta") {
         abrirPastaExistente();
         return;
+      }
+      if (e.target.id === "tl-modal-novo-criar") {
+        confirmarNovoProjeto();
+        return;
+      }
+      if (e.target.id === "tl-modal-colecoes-salvar") {
+        confirmarColecoesProjeto();
+        return;
+      }
+      if (e.target.id === "tl-modal-faltando-instalar") {
+        confirmarInstalarEAbrir();
+        return;
+      }
+      var fecharBtn = e.target.closest("[data-fechar-modal]");
+      if (fecharBtn) {
+        fecharModal(fecharBtn.closest(".tl-modal-camada"));
+        return;
+      }
+      if (e.target.classList && e.target.classList.contains("tl-modal-camada")) {
+        fecharModal(e.target);
+        return;
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        var aberta = modalAberta();
+        if (aberta) fecharModal(aberta);
       }
     });
 
@@ -280,10 +463,10 @@
     var busca = document.getElementById("tl-busca");
     if (busca) busca.addEventListener("input", function () { filtrarProjetos(busca.value); });
 
-    var novoNome = document.getElementById("tl-novo-nome");
-    if (novoNome) {
-      novoNome.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") criarProjeto();
+    var modalNomeCampo = document.getElementById("tl-modal-novo-nome");
+    if (modalNomeCampo) {
+      modalNomeCampo.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") confirmarNovoProjeto();
       });
     }
     var pasta = document.getElementById("tl-pasta");
