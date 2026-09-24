@@ -199,11 +199,15 @@ withCallingHandlers(
       # de cima. Sem esse arquivo, a busca falha com um erro (não um 404
       # tratável: "cannot open compressed file ... No such file or
       # directory"/"cannot open the connection") que derruba o bootstrap
-      # inteiro, mesmo <dir> só tendo mesmo pacotes-fonte nossos de
-      # propósito. `write_PACKAGES()` com type = "win.binary" sobre um
-      # diretório sem nenhum .zip só produz um índice VÁLIDO e vazio — é o
-      # suficiente para available.packages() não quebrar, e install.packages()
-      # cai para o `src/contrib` normalmente para os nossos pacotes.
+      # inteiro, mesmo <dir> só tendo pacotes-fonte nossos de propósito.
+      # `write_PACKAGES()` NÃO escreve arquivo nenhum quando não encontra
+      # nenhum pacote do tipo pedido (testado: devolve 0 e não cria
+      # "PACKAGES") — não dá para confiar nele para produzir um índice
+      # vazio. Por isso o arquivo "PACKAGES" vazio é escrito manualmente:
+      # um DCF vazio é válido (read.dcf() devolve uma matriz 0x0, sem
+      # erro), suficiente para available.packages() não quebrar, e
+      # install.packages() cai para o `src/contrib` normalmente para os
+      # nossos pacotes.
       if (.bs_so_binario()) {
         bin_dir <- if (.Platform$OS.type == "windows") {
           file.path(local_dir, "bin", "windows", "contrib", .bs_r_major_minor(getRversion()))
@@ -211,10 +215,7 @@ withCallingHandlers(
           file.path(local_dir, "bin", "macosx", "contrib", .bs_r_major_minor(getRversion()))
         }
         dir.create(bin_dir, recursive = TRUE, showWarnings = FALSE)
-        tryCatch(
-          tools::write_PACKAGES(bin_dir, type = if (.Platform$OS.type == "windows") "win.binary" else "mac.binary"),
-          error = function(e) NULL
-        )
+        writeLines(character(0), file.path(bin_dir, "PACKAGES"))
       }
 
       # normalizePath(dir, "/") também troca `\` por `/` no Windows — sem
