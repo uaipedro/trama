@@ -5,7 +5,7 @@
 # instalação limpa de ponta a ponta no Windows e no Linux: o instalador
 # nativo (Trama-Setup.exe / install.sh) até o launcher respondendo na porta
 # 8725, em modo headless. Publica os artefatos (Setup, install.sh,
-# release.json) numa GitHub Release quando o gatilho é uma tag `trama-*`.
+# release.json) numa GitHub Release quando o gatilho é uma tag `v*` (ex.: `v0.1.1`).
 #
 # Os pacotes ainda não estão no r-universe (uaipedro.r-universe.dev) em
 # todo release — ver tools/installer/r-universe/README.md — então os jobs
@@ -21,7 +21,7 @@ name: Instalador
 on:
   push:
     tags:
-      - "trama-*"
+      - "v*"
   workflow_dispatch: {}
 
 jobs:
@@ -256,7 +256,7 @@ jobs:
 
   release:
     name: Publicar release
-    if: startsWith(github.ref, 'refs/tags/trama-')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [windows, linux]
     runs-on: ubuntu-latest
     permissions:

@@ -1,5 +1,5 @@
 {
-  "trama": "2026.10.1",
+  "trama": "0.1.1",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": ["https://uaipedro.r-universe.dev"],

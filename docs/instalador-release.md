@@ -67,7 +67,7 @@ cada commit.
 
 ## Publicando
 
-- Tag `trama-<versão>` (ex.: `trama-2026.10`) dispara `installer.yml`: os
+- Tag `v<versão>` (semver 0.x.y; ex.: `v0.1.1`, igual ao campo "trama" do release.json) dispara `installer.yml`: os
   jobs `pacotes`/`windows`/`linux` rodam e, se passarem, `release` publica
   `Trama-Setup.exe`, `install.sh` e `release.json` numa GitHub Release
   marcada como latest.
