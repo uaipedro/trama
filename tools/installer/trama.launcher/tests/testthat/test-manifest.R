@@ -94,6 +94,23 @@ test_that("tl_repos sem codename cai na URL genérica do P3M", {
   expect_equal(unname(repos["P3M"]), "https://packagemanager.posit.co/cran/2026-10-01")
 })
 
+test_that("tl_repos aborta em Linux de verdade sem UBUNTU_CODENAME nem VERSION_CODENAME", {
+  testthat::local_mocked_bindings(
+    tl_os = function() list(tipo = "unix", codename = NA_character_, sistema = "Linux")
+  )
+  m <- tl_manifest_read(fixture())
+
+  expect_error(tl_repos(m), class = "tl_error_manifesto")
+  expect_error(tl_repos(m), regexp = "não suportada")
+})
+
+test_that(".tl_campo_os_release lê o campo pedido, com ou sem aspas", {
+  linhas <- c('NAME="Ubuntu"', "VERSION_CODENAME=bookworm", 'UBUNTU_CODENAME="jammy"')
+  expect_equal(.tl_campo_os_release(linhas, "UBUNTU_CODENAME"), "jammy")
+  expect_equal(.tl_campo_os_release(linhas, "VERSION_CODENAME"), "bookworm")
+  expect_true(is.na(.tl_campo_os_release(linhas, "ID")))
+})
+
 test_that("tl_repos prepende TRAMA_EXTRA_REPOS na frente dos repos normais", {
   withr::local_envvar(c(TRAMA_EXTRA_REPOS = "file:///tmp/pacotes"))
   testthat::local_mocked_bindings(tl_os = function() list(tipo = "windows"))

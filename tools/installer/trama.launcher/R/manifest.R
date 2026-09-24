@@ -112,19 +112,36 @@ tl_manifest_fetch_erro <- function() .tl_estado_fetch$erro
 #' @noRd
 tl_os <- function() {
   if (.Platform$OS.type == "windows") return(list(tipo = "windows"))
-  list(tipo = "unix", codename = .tl_codename_linux())
+  sistema <- Sys.info()[["sysname"]]
+  if (!identical(sistema, "Linux")) {
+    return(list(tipo = "unix", codename = NA_character_, sistema = sistema))
+  }
+  list(tipo = "unix", codename = .tl_codename_linux(), sistema = sistema)
+}
+
+#' Campo `chave` de `/etc/os-release` (ex.: `UBUNTU_CODENAME`), ou `NA` se
+#' não existir.
+#' @noRd
+.tl_campo_os_release <- function(linhas, chave) {
+  alvo <- grep(sprintf("^%s=", chave), linhas, value = TRUE)
+  if (!length(alvo)) return(NA_character_)
+  gsub(sprintf('^%s="?|"?$', chave), "", alvo[[1]])
 }
 
 #' Codename da distro Linux (ex.: "jammy"), lido de `/etc/os-release`.
-#' Devolve `NA` se o arquivo não existir ou não tiver `VERSION_CODENAME`.
+#' Prefere `UBUNTU_CODENAME` a `VERSION_CODENAME` — no Ubuntu,
+#' `VERSION_CODENAME` às vezes reflete o Debian de base, e é o codename
+#' Ubuntu de verdade que o P3M (`__linux__/<codename>/...`) espera. Devolve
+#' `NA` se o arquivo não existir ou não tiver nenhum dos dois campos (mesma
+#' cópia sincronizada de `bootstrap.R`, `.bs_codename_linux()`).
 #' @noRd
 .tl_codename_linux <- function() {
   arquivo <- "/etc/os-release"
   if (!file.exists(arquivo)) return(NA_character_)
   linhas <- readLines(arquivo, warn = FALSE)
-  alvo <- grep("^VERSION_CODENAME=", linhas, value = TRUE)
-  if (!length(alvo)) return(NA_character_)
-  gsub('^VERSION_CODENAME="?|"?$', "", alvo[[1]])
+  ubuntu <- .tl_campo_os_release(linhas, "UBUNTU_CODENAME")
+  if (!is.na(ubuntu) && nzchar(ubuntu)) return(ubuntu)
+  .tl_campo_os_release(linhas, "VERSION_CODENAME")
 }
 
 #' Repositórios do manifesto mais o P3M preso na data do `cran_snapshot`,
@@ -140,7 +157,18 @@ tl_os <- function() {
 #' @noRd
 tl_repos <- function(m) {
   os <- tl_os()
-  snapshot <- if (identical(os$tipo, "windows") || is.na(os$codename) || !nzchar(os$codename)) {
+  sem_codename <- is.null(os$codename) || is.na(os$codename) || !nzchar(os$codename)
+
+  # Linux de verdade sem UBUNTU_CODENAME/VERSION_CODENAME: abortar (mensagem
+  # em português, classe `tl_error_manifesto` — mesma família de erro do
+  # resto deste arquivo) em vez de cair silenciosamente na URL genérica do
+  # P3M, que devolveria pacotes fonte em vez de binários. Outros "unix"
+  # (macOS) e Windows continuam caindo na URL genérica normalmente.
+  if (identical(os$tipo, "unix") && identical(os[["sistema"]], "Linux") && sem_codename) {
+    .tl_erro_manifesto("distribuição Linux não suportada ainda (sem UBUNTU_CODENAME nem VERSION_CODENAME em /etc/os-release).")
+  }
+
+  snapshot <- if (identical(os$tipo, "windows") || sem_codename) {
     sprintf("https://packagemanager.posit.co/cran/%s", m$cran_snapshot)
   } else {
     sprintf("https://packagemanager.posit.co/cran/__linux__/%s/%s", os$codename, m$cran_snapshot)
