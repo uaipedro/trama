@@ -192,6 +192,31 @@ withCallingHandlers(
         finally = if (is.na(tar_antigo)) Sys.unsetenv("TAR") else Sys.setenv(TAR = tar_antigo)
       )
 
+      # No Windows (e no Mac), install.packages() roda com pkgType = "both"
+      # para este repositório extra (adiante, passo 3) — o que faz
+      # available.packages() também procurar um índice BINÁRIO
+      # (`bin/windows/contrib/<r>/PACKAGES`) em <dir>, não só o `src/contrib`
+      # de cima. Sem esse arquivo, a busca falha com um erro (não um 404
+      # tratável: "cannot open compressed file ... No such file or
+      # directory"/"cannot open the connection") que derruba o bootstrap
+      # inteiro, mesmo <dir> só tendo mesmo pacotes-fonte nossos de
+      # propósito. `write_PACKAGES()` com type = "win.binary" sobre um
+      # diretório sem nenhum .zip só produz um índice VÁLIDO e vazio — é o
+      # suficiente para available.packages() não quebrar, e install.packages()
+      # cai para o `src/contrib` normalmente para os nossos pacotes.
+      if (.bs_so_binario()) {
+        bin_dir <- if (.Platform$OS.type == "windows") {
+          file.path(local_dir, "bin", "windows", "contrib", .bs_r_major_minor(getRversion()))
+        } else {
+          file.path(local_dir, "bin", "macosx", "contrib", .bs_r_major_minor(getRversion()))
+        }
+        dir.create(bin_dir, recursive = TRUE, showWarnings = FALSE)
+        tryCatch(
+          tools::write_PACKAGES(bin_dir, type = if (.Platform$OS.type == "windows") "win.binary" else "mac.binary"),
+          error = function(e) NULL
+        )
+      }
+
       # normalizePath(dir, "/") também troca `\` por `/` no Windows — sem
       # isso a URL file:// ficaria malformada lá.
       Sys.setenv(TRAMA_EXTRA_REPOS = paste0("file:///", normalizePath(local_dir, winslash = "/")))

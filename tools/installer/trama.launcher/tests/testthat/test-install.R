@@ -134,20 +134,42 @@ test_that("tl_collection_add instala e registra a coleção no estado", {
   expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama.ml")))
 })
 
-test_that("reinstalar a mesma release troca a lib atomicamente, sem apagar a antiga em caso de sucesso", {
+test_that("reinstalar a mesma release troca a lib atomicamente e limpa .tmp/.old", {
   local_home()
   testthat::local_mocked_bindings(tl_install_pkgs = fake_install_ok)
   m <- manifesto_teste("2026.10")
 
   tl_install_release(m, colecoes = character(0))
-  writeLines("marca-da-primeira-instalação", file.path(tl_lib_dir("2026.10"), "marca.txt"))
+  writeLines("marca-da-primeira-instalação", file.path(tl_lib_dir("2026.10"), "trama", "marca.txt"))
 
   tl_install_release(m, colecoes = character(0))
 
   expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama")))
-  expect_false(file.exists(file.path(tl_lib_dir("2026.10"), "marca.txt")))
+  # "trama" está em `pacotes` (m$core): é reinstalado do zero a cada
+  # chamada (a cópia da lib antiga é limpa dos pacotes pedidos ANTES do
+  # loop de instalação, ver tl_install_release()) — a marca da instalação
+  # anterior não sobrevive.
+  expect_false(file.exists(file.path(tl_lib_dir("2026.10"), "trama", "marca.txt")))
   expect_false(dir.exists(paste0(tl_lib_dir("2026.10"), ".tmp")))
   expect_false(dir.exists(paste0(tl_lib_dir("2026.10"), ".old")))
+})
+
+test_that("reinstalar a mesma release preserva um pacote que só existia na lib antiga (ex.: jsonlite, instalado fora de tl_install_release())", {
+  # Reproduz o cenário real: bootstrap.R instala trama.launcher (e, junto,
+  # jsonlite/shiny como dependência) DIRETO na lib da release, antes de
+  # chamar tl_install_release() — "jsonlite" nunca está em `pacotes`
+  # (nomes de m$core), então tl_install_pkgs() nunca é chamado para ele.
+  local_home()
+  testthat::local_mocked_bindings(tl_install_pkgs = fake_install_ok)
+  m <- manifesto_teste("2026.10")
+
+  tl_install_release(m, colecoes = character(0))
+  fake_install_ok("jsonlite", lib = tl_lib_dir("2026.10"), repos = NULL)
+
+  tl_install_release(m, colecoes = character(0))
+
+  expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "jsonlite")))
+  expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama")))
 })
 
 test_that("reinstalar a mesma release com falha parcial preserva a lib antiga funcional", {

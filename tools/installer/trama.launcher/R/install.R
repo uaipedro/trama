@@ -53,6 +53,30 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
   unlink(lib, recursive = TRUE, force = TRUE)
   dir.create(lib, recursive = TRUE, showWarnings = FALSE)
 
+  # Se já existe uma lib final (reinstalação da mesma release), parte dela:
+  # copia o conteúdo para dentro da `.tmp` ANTES de instalar. Sem isso, um
+  # pacote que só chegou na lib final por fora deste loop (ex.: jsonlite/
+  # shiny, dependências de trama.launcher que bootstrap.R instala direto em
+  # `lib_final` num passo anterior, fora de `pacotes`) sumiria:
+  # `tl_install_pkgs()` não o reinstalaria na `.tmp` (install.packages()
+  # já o vê como satisfeito em `.libPaths()`, que inclui a lib final
+  # antiga), e a troca atômica mais abaixo apagaria essa cópia ao remover
+  # a `.old` — a lib final nova ficaria sem uma dependência que a antiga
+  # tinha, quebrando o launcher/editor na primeira `library()`.
+  if (dir.exists(lib_final)) {
+    arquivos <- list.files(lib_final, full.names = TRUE)
+    if (length(arquivos)) file.copy(arquivos, lib, recursive = TRUE)
+
+    # Os pacotes que ESTE `tl_install_release()` vai instalar (abaixo) são
+    # removidos da cópia antes do loop: sem isso, a checagem de "instalou
+    # mesmo" (`faltando`, mais abaixo) veria a cópia antiga como "já está
+    # aí" mesmo se `tl_install_pkgs()` falhasse de verdade para um deles
+    # nesta rodada — uma falha real ficaria mascarada pela versão velha.
+    # Pacotes "de fora" (não pedidos aqui, ex.: jsonlite/shiny instalados
+    # direto na lib por bootstrap.R) continuam intactos na cópia.
+    unlink(file.path(lib, unique(c(names(m$core), colecoes))), recursive = TRUE, force = TRUE)
+  }
+
   repos_antigos <- getOption("repos")
   pkgtype_antigo <- getOption("pkgType")
   compilar_antigo <- getOption("install.packages.compile.from.source")
