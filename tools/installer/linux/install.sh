@@ -24,6 +24,21 @@ erro() { printf 'ERRO: %s\n' "$*" >&2; exit 1; }
 
 command -v curl >/dev/null 2>&1 || erro "precisa do 'curl' instalado."
 command -v tar >/dev/null 2>&1 || erro "precisa do 'tar' instalado."
+command -v ldd >/dev/null 2>&1 || erro "precisa do 'ldd' instalado (glibc)."
+
+# --- glibc >= 2.34: o R portátil da Posit (manylinux_2_34) exige essa
+# versão mínima da glibc (Ubuntu 22.04+/Debian 12+ têm). Confere ANTES de
+# baixar o tarball do R (centenas de MB) para falhar rápido e com uma
+# mensagem clara, em vez de instalar um R que não roda (erro de linker
+# indecifrável na hora de abrir o trama).
+GLIBC_VERSAO="$(ldd --version 2>&1 | head -n1 | grep -oE '[0-9]+\.[0-9]+$' || true)"
+if [ -z "$GLIBC_VERSAO" ]; then
+  erro "não consegui determinar a versão da glibc (saída de 'ldd --version' não reconhecida)."
+fi
+GLIBC_OK="$(awk -v v="$GLIBC_VERSAO" 'BEGIN { split(v, p, "."); exit !(p[1] > 2 || (p[1] == 2 && p[2] >= 34)) }' && echo 1 || echo 0)"
+if [ "$GLIBC_OK" != "1" ]; then
+  erro "glibc $GLIBC_VERSAO é antiga demais (precisa de 2.34+, ex.: Ubuntu 22.04+/Debian 12+). O R deste instalador não vai rodar nesta máquina."
+fi
 
 mkdir -p "$TRAMA_HOME"
 
@@ -91,7 +106,7 @@ fi
 # usado pelo CI (job `linux` de .github/workflows/installer.yml) para passar
 # `--local <pasta>` e instalar os tarballs do job `pacotes` em vez de baixar
 # do r-universe. Mesma variável que Trama-Setup.iss lê no Windows.
-"$TRAMA_HOME/R/bin/Rscript" "$BOOTSTRAP_LOCAL" ${TRAMA_BOOTSTRAP_ARGS:-} || erro "a instalação do trama falhou (veja o motivo acima; logs em $TRAMA_HOME/logs quando existirem)."
+"$TRAMA_HOME/R/bin/Rscript" --vanilla "$BOOTSTRAP_LOCAL" ${TRAMA_BOOTSTRAP_ARGS:-} || erro "a instalação do trama falhou (veja o motivo acima; logs em $TRAMA_HOME/logs quando existirem)."
 
 # --- 3. Ícone ----------------------------------------------------------------
 ICON_LOCAL="$TRAMA_HOME/trama.png"
@@ -119,11 +134,16 @@ fi
 
 LIBPATHS_R=".libPaths()"
 if [ -n "\$ATUAL" ] && [ -d "\$TRAMA_HOME/lib/\$ATUAL" ]; then
-  LIBPATHS_R=".libPaths(c('\$TRAMA_HOME/lib/\$ATUAL', .libPaths()))"
+  # O caminho vai por variável de ambiente (TRAMA_LIB_ATUAL), nunca
+  # interpolado direto num literal R entre aspas simples: se TRAMA_HOME
+  # tiver um apóstrofo (caminho de usuário no Windows/WSL, ex.:
+  # "C:/Users/O'Brien"), a interpolação direta quebraria a sintaxe R.
+  LIBPATHS_R='.libPaths(c(Sys.getenv("TRAMA_LIB_ATUAL"), .Library))'
 fi
 
 export TRAMA_HOME
-exec "\$TRAMA_HOME/R/bin/Rscript" -e "\$LIBPATHS_R; trama.launcher::abrir()"
+export TRAMA_LIB_ATUAL="\$TRAMA_HOME/lib/\$ATUAL"
+exec "\$TRAMA_HOME/R/bin/Rscript" --vanilla -e "\$LIBPATHS_R; trama.launcher::abrir()"
 ABRIR_SH
 chmod +x "$TRAMA_HOME/abrir.sh"
 

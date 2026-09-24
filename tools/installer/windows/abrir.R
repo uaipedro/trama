@@ -13,7 +13,7 @@ if (file.exists(estado_arquivo)) {
   } else ""
   if (nzchar(atual)) {
     lib <- file.path(Sys.getenv("LOCALAPPDATA"), "Trama", "lib", atual)
-    if (dir.exists(lib)) .libPaths(c(lib, .libPaths()))
+    if (dir.exists(lib)) .libPaths(c(lib, .Library))
   }
 }
 

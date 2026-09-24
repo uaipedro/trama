@@ -79,13 +79,26 @@ sink(.bs_log_con, type = "output", split = TRUE)
   quit(save = "no", status = 1)
 }
 
+.bs_campo_os_release <- function(linhas, chave) {
+  alvo <- grep(sprintf("^%s=", chave), linhas, value = TRUE)
+  if (!length(alvo)) return(NA_character_)
+  gsub(sprintf('^%s="?|"?$', chave), "", alvo[[1]])
+}
+
+# UBUNTU_CODENAME antes de VERSION_CODENAME: no Ubuntu, VERSION_CODENAME às
+# vezes reflete o codename do Debian de base (ou vem ausente em versões
+# derivadas), enquanto UBUNTU_CODENAME é sempre o codename Ubuntu de
+# verdade, que é o que o P3M (`__linux__/<codename>/...`) espera. Distros
+# sem nenhum dos dois campos (ou sem /etc/os-release) não são suportadas
+# ainda — falha aqui, cedo e claro, em vez de mandar bootstrap.R tentar
+# instalar contra um repositório binário errado.
 .bs_codename_linux <- function() {
   arquivo <- "/etc/os-release"
   if (!file.exists(arquivo)) return(NA_character_)
   linhas <- readLines(arquivo, warn = FALSE)
-  alvo <- grep("^VERSION_CODENAME=", linhas, value = TRUE)
-  if (!length(alvo)) return(NA_character_)
-  gsub('^VERSION_CODENAME="?|"?$', "", alvo[[1]])
+  ubuntu <- .bs_campo_os_release(linhas, "UBUNTU_CODENAME")
+  if (!is.na(ubuntu) && nzchar(ubuntu)) return(ubuntu)
+  .bs_campo_os_release(linhas, "VERSION_CODENAME")
 }
 
 # Repositórios do manifesto + P3M preso no snapshot (+ TRAMA_EXTRA_REPOS na
@@ -95,8 +108,18 @@ sink(.bs_log_con, type = "output", split = TRUE)
 # funções precisam ficar em sincronia; qualquer mudança aqui tem que ser
 # espelhada lá (e vice-versa).
 .bs_repos <- function(m) {
-  codename <- if (.Platform$OS.type == "windows") NA_character_ else .bs_codename_linux()
-  snapshot <- if (.Platform$OS.type == "windows" || is.na(codename) || !nzchar(codename)) {
+  eh_linux <- .Platform$OS.type == "unix" && identical(Sys.info()[["sysname"]], "Linux")
+  codename <- if (eh_linux) .bs_codename_linux() else NA_character_
+
+  # No Linux (só lá o P3M exige `__linux__/<codename>/`), sem UBUNTU_CODENAME
+  # nem VERSION_CODENAME não dá para montar a URL binária certa — abortar
+  # aqui é melhor que seguir com a URL genérica (que devolveria pacotes de
+  # source, não binários, e ia falhar de um jeito confuso mais adiante).
+  if (eh_linux && (is.na(codename) || !nzchar(codename))) {
+    .bs_erro("distribuição Linux não suportada ainda (sem UBUNTU_CODENAME nem VERSION_CODENAME em /etc/os-release).")
+  }
+
+  snapshot <- if (.Platform$OS.type == "windows" || !eh_linux) {
     sprintf("https://packagemanager.posit.co/cran/%s", m$cran_snapshot)
   } else {
     sprintf("https://packagemanager.posit.co/cran/__linux__/%s/%s", codename, m$cran_snapshot)
@@ -234,10 +257,11 @@ withCallingHandlers(
     # 0), então isto é o MESMO código do caminho sem `--local`.
     lib_release <- file.path(trama_home, "lib", m$trama)
     dir.create(lib_release, recursive = TRUE, showWarnings = FALSE)
-    # Tira a lib temporária do jsonlite do caminho: se ela ficasse, o
-    # install.packages() veria o jsonlite como "já instalado" e não o poria
-    # na lib da release — e o launcher, aberto depois, não o encontraria.
-    .libPaths(c(lib_release, setdiff(.libPaths(), normalizePath(file.path(tempdir(), "trama-bootstrap-lib"), "/", mustWork = FALSE))))
+    # Isolamento: só a lib da release + a lib base do R (.Library) — nunca
+    # as libs de usuário/site (.libPaths() "normais" poderiam ter versões
+    # incompatíveis de pacotes que o install.packages() encontraria antes
+    # das da release, ou a lib temporária do jsonlite do passo 1 acima).
+    .libPaths(c(lib_release, .Library))
 
     repos <- .bs_repos(m)
     if (.bs_so_binario()) {
