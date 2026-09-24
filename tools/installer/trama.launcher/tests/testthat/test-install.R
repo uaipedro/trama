@@ -134,6 +134,36 @@ test_that("tl_collection_add instala e registra a coleção no estado", {
   expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama.ml")))
 })
 
+test_that("reinstalar a mesma release troca a lib atomicamente, sem apagar a antiga em caso de sucesso", {
+  local_home()
+  testthat::local_mocked_bindings(tl_install_pkgs = fake_install_ok)
+  m <- manifesto_teste("2026.10")
+
+  tl_install_release(m, colecoes = character(0))
+  writeLines("marca-da-primeira-instalação", file.path(tl_lib_dir("2026.10"), "marca.txt"))
+
+  tl_install_release(m, colecoes = character(0))
+
+  expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama")))
+  expect_false(file.exists(file.path(tl_lib_dir("2026.10"), "marca.txt")))
+  expect_false(dir.exists(paste0(tl_lib_dir("2026.10"), ".tmp")))
+  expect_false(dir.exists(paste0(tl_lib_dir("2026.10"), ".old")))
+})
+
+test_that("reinstalar a mesma release com falha parcial preserva a lib antiga funcional", {
+  local_home()
+  testthat::local_mocked_bindings(tl_install_pkgs = fake_install_ok)
+  m <- manifesto_teste("2026.10")
+  tl_install_release(m, colecoes = character(0))
+  writeLines("marca-da-primeira-instalação", file.path(tl_lib_dir("2026.10"), "marca.txt"))
+
+  testthat::local_mocked_bindings(tl_install_pkgs = fake_install_parcial("trama.data"))
+  expect_error(tl_install_release(m, colecoes = character(0)), class = "tl_error_instalacao")
+
+  expect_true(file.exists(file.path(tl_lib_dir("2026.10"), "marca.txt")))
+  expect_false(dir.exists(paste0(tl_lib_dir("2026.10"), ".tmp")))
+})
+
 test_that("tl_collection_remove desinstala e tira do estado", {
   local_home()
   testthat::local_mocked_bindings(

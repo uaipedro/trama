@@ -41,7 +41,16 @@ tl_remove_pkgs <- function(pkgs, lib) {
 #' @return (Invisível) o novo estado gravado.
 #' @export
 tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso = message) {
-  lib <- tl_lib_dir(m$trama)
+  lib_final <- tl_lib_dir(m$trama)
+  # Instala numa lib temporária (`<release>.tmp`) e só troca pela final no
+  # sucesso: se já existir uma lib funcional para esta release (reinstalação
+  # do mesmo `m$trama`), ela continua servindo o launcher/editor até o fim
+  # da instalação nova — uma falha no meio não deixa a release corrente pela
+  # metade. A troca em si (mais abaixo) é a mais atômica que `file.rename()`
+  # permite: renomeia a antiga para `.old`, a nova para o nome final, depois
+  # apaga a `.old`.
+  lib <- paste0(lib_final, ".tmp")
+  unlink(lib, recursive = TRUE, force = TRUE)
   dir.create(lib, recursive = TRUE, showWarnings = FALSE)
 
   repos_antigos <- getOption("repos")
@@ -75,14 +84,25 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
   sink(con, type = "output")
   on.exit({ sink(type = "output"); close(con) }, add = TRUE)
 
-  # Um `tl_install_pkgs()` por pacote, não um só pra `pacotes` inteiro: pedido
-  # na revisão da fase 1 pra `progresso()` acompanhar a instalação de verdade
-  # (pacote a pacote), em vez de despejar todas as mensagens de uma vez antes
-  # de qualquer coisa ser instalada.
-  for (p in pacotes) {
-    progresso(sprintf("Instalando %s…", p))
-    tl_install_pkgs(p, lib = lib, repos = repos)
-  }
+  # `message()`/`warning()` (é como `install.packages()` relata a maioria
+  # dos problemas, ex.: pacote não encontrado) não passam por
+  # `sink(type = "output")` — só stdout de verdade (`cat`/`print`) passa.
+  # Sem isso o log ficava sem o motivo de uma falha, só com o efeito dela
+  # (mesma lógica de `bootstrap.R`, que tem o mesmo problema).
+  withCallingHandlers(
+    {
+      # Um `tl_install_pkgs()` por pacote, não um só pra `pacotes` inteiro:
+      # pedido na revisão da fase 1 pra `progresso()` acompanhar a
+      # instalação de verdade (pacote a pacote), em vez de despejar todas as
+      # mensagens de uma vez antes de qualquer coisa ser instalada.
+      for (p in pacotes) {
+        progresso(sprintf("Instalando %s…", p))
+        tl_install_pkgs(p, lib = lib, repos = repos)
+      }
+    },
+    message = function(cond) cat(conditionMessage(cond), file = con),
+    warning = function(cond) cat(sprintf("Aviso: %s\n", conditionMessage(cond)), file = con)
+  )
 
   faltando <- pacotes[!vapply(pacotes, function(p) dir.exists(file.path(lib, p)), logical(1))]
   if (length(faltando)) {
@@ -91,6 +111,24 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
       "Falhou a instalação de: %s. Veja o log em '%s'.", paste(faltando, collapse = ", "), log
     ))
   }
+
+  # Troca a lib "final" pela nova, só agora que TODOS os pacotes pedidos
+  # confirmaram instalados: se já havia uma lib funcional para esta release
+  # (reinstalação), ela vira `.old` até a nova assumir o nome final, e só
+  # depois é apagada — nunca há uma janela em que `lib_final` não exista ou
+  # esteja pela metade.
+  lib_old <- paste0(lib_final, ".old")
+  unlink(lib_old, recursive = TRUE, force = TRUE)
+  if (dir.exists(lib_final)) file.rename(lib_final, lib_old)
+  if (!file.rename(lib, lib_final)) {
+    # file.rename() pode falhar entre volumes/pontos de montagem diferentes
+    # (raro para {app}\lib, mas não impossível); copia como saída de
+    # segurança em vez de deixar a release nova presa em "<release>.tmp".
+    dir.create(lib_final, recursive = TRUE, showWarnings = FALSE)
+    file.copy(list.files(lib, full.names = TRUE), lib_final, recursive = TRUE)
+    unlink(lib, recursive = TRUE, force = TRUE)
+  }
+  unlink(lib_old, recursive = TRUE, force = TRUE)
 
   s <- tl_state_read()
   anteriores <- unique(c(s$atual, s$anteriores))
