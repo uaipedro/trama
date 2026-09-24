@@ -85,6 +85,14 @@ tl_install_release <- function(m, colecoes = tl_state_read()$colecoes, progresso
     install.packages.compile.from.source = compilar_antigo
   ), add = TRUE)
 
+  # Durante a instalação, só a lib nova e a base do R ficam visíveis: se a
+  # lib da release em uso (ex.: numa atualização 0.1.0 -> 0.1.1) ficasse em
+  # `.libPaths()`, install.packages() veria shiny/jsonlite/dplyr... como já
+  # satisfeitos e não os poria na lib nova — que abriria quebrada.
+  libpaths_antigos <- .libPaths()
+  on.exit(.libPaths(libpaths_antigos), add = TRUE)
+  .libPaths(c(lib, .Library))
+
   repos <- tl_repos(m)
   options(repos = repos)
   if (.Platform$OS.type == "windows" || identical(Sys.info()[["sysname"]], "Darwin")) {
