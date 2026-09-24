@@ -47,6 +47,11 @@ DefaultDirName={localappdata}\Trama
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 DisableWelcomePage=no
+; A instalação de verdade acontece em PrepareToInstall() (R + bootstrap.R),
+; ANTES da cópia de arquivos — mudar {app} depois disso não faz sentido
+; (o R já teria sido instalado no {app} escolhido no momento da leitura da
+; página), então a página de escolha de pasta fica desligada (F).
+DisableDirPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=commandline
 OutputBaseFilename=Trama-Setup
@@ -67,6 +72,12 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 ; Só scripts e o ícone — nenhum binário nosso. O instalador do R é baixado
 ; em tempo de instalação (ver [Code]), não embutido aqui.
 Source: "..\bootstrap.R"; DestDir: "{app}"; Flags: ignoreversion
+; Segunda cópia do MESMO arquivo, com "dontcopy": não é extraída para {app}
+; durante a cópia normal (que só acontece DEPOIS de PrepareToInstall), mas
+; fica disponível para ExtractTemporaryFile('bootstrap.R') dentro de
+; PrepareToInstall, que roda o bootstrap ali (precisa dele antes da cópia
+; normal existir).
+Source: "..\bootstrap.R"; DestDir: "{tmp}"; Flags: dontcopy
 Source: "abrir.R"; DestDir: "{app}"; Flags: ignoreversion
 Source: "trama.ico"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -74,11 +85,14 @@ Source: "trama.ico"; DestDir: "{app}"; Flags: ignoreversion
 Name: "desktopicon"; Description: "Criar um atalho na área de trabalho"; GroupDescription: "Atalhos adicionais:"; Flags: unchecked
 
 [Icons]
-Name: "{userprograms}\{#AppName}"; Filename: "{app}\R\bin\Rscript.exe"; Parameters: """{app}\abrir.R"""; IconFilename: "{app}\trama.ico"; WorkingDir: "{app}"
-Name: "{userdesktop}\{#AppName}"; Filename: "{app}\R\bin\Rscript.exe"; Parameters: """{app}\abrir.R"""; IconFilename: "{app}\trama.ico"; WorkingDir: "{app}"; Tasks: desktopicon
+; runminimized: Rscript.exe é um executável de console (não GUI) — sem essa
+; flag o atalho abre com uma janela de terminal preta visível por trás da
+; janela do app até o Shiny estar de pé.
+Name: "{userprograms}\{#AppName}"; Filename: "{app}\R\bin\Rscript.exe"; Parameters: "--vanilla ""{app}\abrir.R"""; IconFilename: "{app}\trama.ico"; WorkingDir: "{app}"; Flags: runminimized
+Name: "{userdesktop}\{#AppName}"; Filename: "{app}\R\bin\Rscript.exe"; Parameters: "--vanilla ""{app}\abrir.R"""; IconFilename: "{app}\trama.ico"; WorkingDir: "{app}"; Tasks: desktopicon; Flags: runminimized
 
 [Run]
-Filename: "{app}\R\bin\Rscript.exe"; Parameters: """{app}\abrir.R"""; Description: "Abrir o Trama agora"; Flags: postinstall nowait skipifsilent unchecked; WorkingDir: "{app}"
+Filename: "{app}\R\bin\Rscript.exe"; Parameters: "--vanilla ""{app}\abrir.R"""; Description: "Abrir o Trama agora"; Flags: postinstall nowait skipifsilent unchecked runminimized; WorkingDir: "{app}"
 
 [UninstallDelete]
 ; Remove {app} inteiro — R, libs por release, estado, logs — mas NUNCA a
@@ -88,6 +102,21 @@ Type: filesandordirs; Name: "{app}"
 [Code]
 var
   DownloadPage: TDownloadWizardPage;
+
+// -- Mensagem de erro que NÃO trava o modo silencioso -----------------------
+// MsgBox() comum ignora /SUPPRESSMSGBOXES (essa flag só suprime os MsgBox
+// internos do próprio Setup) e fica esperando um clique que nunca chega no
+// CI/instalação silenciosa — travando o processo até o timeout do runner.
+// SuppressibleMsgBox() é a API do Inno Setup para uma caixa que RESPEITA
+// /SUPPRESSMSGBOXES (some no silencioso, respondendo com o `Default`
+// passado, aqui IDOK) e continua aparecendo normalmente na instalação
+// interativa. Log() sempre grava a mensagem em Setup.log (--LOG=...),
+// então a causa do erro fica registrada mesmo quando a caixa não aparece.
+procedure ErroMsg(const Msg: String);
+begin
+  Log('ERRO: ' + Msg);
+  SuppressibleMsgBox(Msg, mbError, MB_OK, IDOK);
+end;
 
 // -- "x.y.z" -> "x.y" (mesma regra de tl_status()/troca_de_r: um patch
 // novo do R, tipo 4.5.1 -> 4.5.2, não é uma linha diferente). -------------
@@ -187,28 +216,40 @@ begin
 
   if not Baixou then
   begin
-    MsgBox('Não consegui baixar o instalador do R (tentei ' + UrlPrincipal +
-      ' e ' + UrlFallback + '). Verifique sua conexão e rode o Setup de novo.',
-      mbError, MB_OK);
+    ErroMsg('Não consegui baixar o instalador do R (tentei ' + UrlPrincipal +
+      ' e ' + UrlFallback + '). Verifique sua conexão e rode o Setup de novo.');
     Exit;
   end;
 
   // Instalação oficial do R: silenciosa, por usuário (CURRENTUSER), sem
   // reiniciar, só o componente principal (sem 32-bit, sem HTML/manuais
   // extras) — dentro de {app}\R, nunca no Program Files do sistema.
+  // /MERGETASKS="!desktopicon,!recordversion,!associate" desliga as tasks
+  // padrão do instalador oficial do R (atalho de área de trabalho, gravar a
+  // versão no registro, associar .RData ao R) — o Setup do trama tem o seu
+  // próprio atalho e não quer nenhum rastro do R "solto" fora de {app}\R;
+  // /NOICONS reforça isso para o grupo de atalhos do Menu Iniciar do R.
+  // ATENÇÃO: nomes de task confirmados no fonte do instalador do R (NSIS,
+  // `src/gnuwin32/installer/`) até a série 4.x — não foram checados contra
+  // o instalador de {#RVersion} especificamente; se o Setup do R mudar de
+  // task set numa versão futura, tasks desconhecidas em /MERGETASKS são
+  // ignoradas silenciosamente pelo NSIS (não quebram a instalação), mas
+  // deixam de fazer efeito — revisar se o R.exe instalado passar a criar
+  // atalhos/ícones de novo.
   if not Exec(InstaladorPath,
-    '/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /NORESTART ' +
+    '/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /NORESTART /NOICONS ' +
+    '/MERGETASKS="!desktopicon,!recordversion,!associate" ' +
     '/DIR="' + ExpandConstant('{app}') + '\R" /COMPONENTS="main,x64"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
   begin
-    MsgBox('Não consegui iniciar o instalador do R. Baixe manualmente em ' +
-      'cloud.r-project.org e tente de novo.', mbError, MB_OK);
+    ErroMsg('Não consegui iniciar o instalador do R. Baixe manualmente em ' +
+      'cloud.r-project.org e tente de novo.');
     Exit;
   end;
   if ResultCode <> 0 then
   begin
-    MsgBox('O instalador do R terminou com erro (código ' + IntToStr(ResultCode) +
-      '). Tente rodar o Setup de novo.', mbError, MB_OK);
+    ErroMsg('O instalador do R terminou com erro (código ' + IntToStr(ResultCode) +
+      '). Tente rodar o Setup de novo.');
     Exit;
   end;
 
@@ -223,37 +264,52 @@ end;
 // `--local <pasta>` e instalar os tarballs do job `pacotes` em vez de
 // baixar do r-universe, que ainda não existe/está vazio em alguns
 // releases. Fica vazia (comportamento normal) fora do CI.
-function RodarBootstrap(): Boolean;
+//
+// `BootstrapPath`: caminho de bootstrap.R já extraído (ver PrepareToInstall,
+// que usa ExtractTemporaryFile porque {app}\bootstrap.R ainda não existe
+// nesse ponto — a cópia normal do [Files] só acontece depois).
+//
+// stdout/stderr do Rscript vão para {localappdata}\Trama\logs\
+// bootstrap-console.log via `cmd /C ... > log 2>&1`, mesma técnica (e
+// mesmo aninhamento de aspas) de PrecisaInstalarR: o /C precisa de um único
+// par de aspas duplas envolvendo o comando inteiro quando ele já contém
+// caminhos entre aspas, senão cmd.exe interpreta tudo depois do primeiro
+// espaço fora de aspas como argumentos do próprio cmd, não do Rscript.
+function RodarBootstrap(BootstrapPath: String): Boolean;
 var
   ResultCode: Integer;
-  RscriptPath, LogPath, ExtraArgs, Params: String;
+  RscriptPath, LogDir, ConsoleLog, ExtraArgs, CmdLine: String;
 begin
   Result := False;
   RscriptPath := ExpandConstant('{app}\R\bin\Rscript.exe');
-  LogPath := ExpandConstant('{localappdata}\Trama\logs');
+  LogDir := ExpandConstant('{localappdata}\Trama\logs');
+  ForceDirectories(LogDir);
+  ConsoleLog := LogDir + '\bootstrap-console.log';
 
-  Params := '"' + ExpandConstant('{app}\bootstrap.R') + '"';
   // GetEnv, não GetEnvironmentVariable (esse é o nome do Windows API/.NET;
   // a função de Pascal Script do Inno Setup é GetEnv — "Unknown identifier"
   // na compilação senão).
   ExtraArgs := GetEnv('TRAMA_BOOTSTRAP_ARGS');
+
+  CmdLine := '/C ""' + RscriptPath + '" --vanilla "' + BootstrapPath + '"';
   if ExtraArgs <> '' then
-    Params := Params + ' ' + ExtraArgs;
+    CmdLine := CmdLine + ' ' + ExtraArgs;
+  CmdLine := CmdLine + ' > "' + ConsoleLog + '" 2>&1"';
 
   WizardForm.StatusLabel.Caption := 'Instalando o trama (pode levar alguns minutos)...';
   WizardForm.ProgressGauge.Style := npbstMarquee;
   try
-    if not Exec(RscriptPath, Params,
+    if not Exec(ExpandConstant('{cmd}'), CmdLine,
         ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     begin
-      MsgBox('Não consegui rodar o instalador do trama (bootstrap.R). ' +
-        'Veja o log em ' + LogPath, mbError, MB_OK);
+      ErroMsg('Não consegui rodar o instalador do trama (bootstrap.R). ' +
+        'Veja o log em ' + LogDir);
       Exit;
     end;
     if ResultCode <> 0 then
     begin
-      MsgBox('A instalação do trama falhou (código ' + IntToStr(ResultCode) + '). ' +
-        'Veja o log em ' + LogPath, mbError, MB_OK);
+      ErroMsg('A instalação do trama falhou (código ' + IntToStr(ResultCode) + '). ' +
+        'Veja o log em ' + LogDir);
       Exit;
     end;
   finally
@@ -269,23 +325,41 @@ begin
     SetupMessage(msgPreparingDesc), nil);
 end;
 
-// -- Depois dos arquivos copiados: garante o R e roda o bootstrap. A etapa
-// aparece como "instalando" na página de progresso padrão do Wizard.
-procedure CurStepChanged(CurStep: TSetupStep);
+// -- Instala o R (se preciso) e roda o bootstrap, ANTES da cópia normal dos
+// arquivos do [Files] — não em CurStepChanged(ssPostInstall) como antes:
+// no modo silencioso (/VERYSILENT /SUPPRESSMSGBOXES), qualquer MsgBox()
+// comum trava o processo esperando um clique que nunca vem (o
+// /SUPPRESSMSGBOXES só afeta os MsgBox INTERNOS do Setup, não os chamados
+// pelo nosso [Code]); e devolver uma string de erro não vazia aqui aborta o
+// Setup com código de saída != 0 no modo silencioso — o CI (e qualquer
+// script) consegue detectar a falha pelo ExitCode do processo, sem
+// depender de uma janela que nunca teria aparecido.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  BootstrapPath: String;
 begin
-  if CurStep = ssPostInstall then
-  begin
-    if PrecisaInstalarR() then
-    begin
-      if not InstalarR() then
-      begin
-        Abort;
-      end;
-    end;
+  Result := '';
+  NeedsRestart := False;
 
-    if not RodarBootstrap() then
+  ForceDirectories(ExpandConstant('{app}'));
+
+  if PrecisaInstalarR() then
+  begin
+    if not InstalarR() then
     begin
-      Abort;
+      Result := 'Não consegui instalar o R. Veja o log em ' +
+        ExpandConstant('{localappdata}\Trama\logs') + ' e tente rodar o Setup de novo.';
+      Exit;
     end;
+  end;
+
+  ExtractTemporaryFile('bootstrap.R');
+  BootstrapPath := ExpandConstant('{tmp}\bootstrap.R');
+
+  if not RodarBootstrap(BootstrapPath) then
+  begin
+    Result := 'A instalação do trama falhou. Veja o log em ' +
+      ExpandConstant('{localappdata}\Trama\logs') + '.';
+    Exit;
   end;
 end;

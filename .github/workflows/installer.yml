@@ -149,14 +149,28 @@ jobs:
             }
           }
 
+      - name: Reunir os logs num único diretório (sempre, mesmo se algo falhou acima)
+        # upload-artifact não mistura bem caminhos de drives diferentes
+        # (LOCALAPPDATA fica em C:, github.workspace em D: nos runners do
+        # Windows) — copia tudo para dentro do workspace antes de publicar,
+        # um único `path` no upload, sem depender de mais de um drive.
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}\logs-win" | Out-Null
+          if (Test-Path "$env:TRAMA_HOME_WIN\logs") {
+            Copy-Item "$env:TRAMA_HOME_WIN\logs" -Destination "${{ github.workspace }}\logs-win\logs" -Recurse -Force
+          }
+          if (Test-Path "${{ github.workspace }}\setup.log") {
+            Copy-Item "${{ github.workspace }}\setup.log" -Destination "${{ github.workspace }}\logs-win\setup.log" -Force
+          }
+
       - name: Publicar os logs (sempre, mesmo se algo falhou acima)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-e2e-logs
-          path: |
-            ${{ env.TRAMA_HOME_WIN }}\logs
-            ${{ github.workspace }}\setup.log
+          path: ${{ github.workspace }}\logs-win
           if-no-files-found: warn
 
       - name: Publicar o Trama-Setup.exe
