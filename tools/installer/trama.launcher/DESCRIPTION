@@ -1,6 +1,6 @@
 Package: trama.launcher
 Title: Instalador e Launcher do trama
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),

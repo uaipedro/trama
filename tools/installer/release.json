@@ -7,7 +7,7 @@
     "trama": "0.1.0",
     "trama.data": "0.1.0",
     "trama.view": "0.1.0",
-    "trama.launcher": "0.1.1"
+    "trama.launcher": "0.1.2"
   },
   "collections": {
     "trama.ml": {"version": "0.1.0", "title": "Aprendizado de máquina", "requires": []},
