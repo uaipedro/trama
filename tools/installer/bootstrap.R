@@ -234,7 +234,10 @@ withCallingHandlers(
     # 0), então isto é o MESMO código do caminho sem `--local`.
     lib_release <- file.path(trama_home, "lib", m$trama)
     dir.create(lib_release, recursive = TRUE, showWarnings = FALSE)
-    .libPaths(c(lib_release, .libPaths()))
+    # Tira a lib temporária do jsonlite do caminho: se ela ficasse, o
+    # install.packages() veria o jsonlite como "já instalado" e não o poria
+    # na lib da release — e o launcher, aberto depois, não o encontraria.
+    .libPaths(c(lib_release, setdiff(.libPaths(), normalizePath(file.path(tempdir(), "trama-bootstrap-lib"), "/", mustWork = FALSE))))
 
     repos <- .bs_repos(m)
     if (.bs_so_binario()) {

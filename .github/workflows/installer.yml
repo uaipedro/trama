@@ -93,12 +93,13 @@ jobs:
 
       - name: Rodar o Setup silenciosamente (com os pacotes do job "pacotes")
         shell: pwsh
+        timeout-minutes: 25
         env:
           TRAMA_MANIFEST_URL: ${{ github.workspace }}\tools\installer\release.json
           TRAMA_BOOTSTRAP_ARGS: --local "${{ github.workspace }}\pacotes"
         run: |
           $processo = Start-Process -FilePath "dist\Trama-Setup.exe" `
-            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" `
+            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=`"${{ github.workspace }}\setup.log`"" `
             -Wait -PassThru
           if ($processo.ExitCode -ne 0) {
             throw "Trama-Setup.exe terminou com código $($processo.ExitCode)"
@@ -153,7 +154,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-e2e-logs
-          path: ${{ env.TRAMA_HOME_WIN }}\logs
+          path: |
+            ${{ env.TRAMA_HOME_WIN }}\logs
+            ${{ github.workspace }}\setup.log
           if-no-files-found: warn
 
       - name: Publicar o Trama-Setup.exe
