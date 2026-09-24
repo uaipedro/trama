@@ -97,7 +97,7 @@ tl_status <- function(m = tl_manifest_fetch(), s = tl_state_read()) {
     stringsAsFactors = FALSE, row.names = NULL
   )
 
-  colecoes <- .tl_status_colecoes(m, s)
+  colecoes <- .tl_status_colecoes(m, s, lib_atual)
 
   list(
     release_instalada = s$atual,
@@ -119,17 +119,40 @@ tl_status <- function(m = tl_manifest_fetch(), s = tl_state_read()) {
   list.dirs(lib, recursive = FALSE, full.names = FALSE)
 }
 
+#' Título de exibição de uma coleção que não está (ou não está mais) no
+#' manifesto: tenta o `Title` do DESCRIPTION instalado em `lib` e, faltando
+#' isso também, cai para o nome do pacote sem o prefixo "trama.".
+#' @noRd
+.tl_titulo_colecao_instalada <- function(nome, lib) {
+  desc <- tryCatch(
+    suppressWarnings(utils::packageDescription(nome, lib.loc = lib)),
+    error = function(e) NA
+  )
+  titulo <- if (is.null(desc) || identical(desc, NA) || isTRUE(is.na(desc))) {
+    NA_character_
+  } else {
+    desc$Title
+  }
+  if (is.null(titulo) || is.na(titulo) || !nzchar(trimws(titulo))) {
+    sub("^trama\\.", "", nome)
+  } else {
+    titulo
+  }
+}
+
 #' Tabela de coleções: união das oferecidas pelo manifesto com as
 #' instaladas localmente, para nenhuma coleção instalada "sumir" da tela só
-#' porque ficou de fora de uma release nova.
+#' porque ficou de fora de uma release nova. O título mostrado é sempre o
+#' do manifesto quando existe; senão, o `Title` do DESCRIPTION instalado em
+#' `lib`; em último caso, o nome do pacote sem o prefixo "trama.".
 #' @noRd
-.tl_status_colecoes <- function(m, s) {
+.tl_status_colecoes <- function(m, s, lib) {
   ofertadas <- if (is.null(m)) character(0) else names(m$collections)
   nomes <- union(ofertadas, s$colecoes)
 
   titulo <- vapply(nomes, function(nm) {
     t <- if (!is.null(m)) m$collections[[nm]]$title else NULL
-    if (is.null(t)) NA_character_ else t
+    if (is.null(t)) .tl_titulo_colecao_instalada(nm, lib) else t
   }, character(1))
 
   requires <- lapply(nomes, function(nm) {

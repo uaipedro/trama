@@ -108,3 +108,32 @@ test_that("tl_status lista coleções instaladas e disponíveis", {
   expect_true(linha$instalada)
   expect_true(linha$disponivel)
 })
+
+test_that("tl_status usa o Title do DESCRIPTION instalado quando a coleção não está no manifesto", {
+  home <- local_home()
+  m <- manifesto_teste()
+  s <- list(atual = "2026.10", anteriores = character(0), colecoes = c("trama.ml", "trama.fora"))
+
+  lib <- tl_lib_dir("2026.10")
+  dir.create(file.path(lib, "trama.fora"), recursive = TRUE)
+  writeLines(
+    c("Package: trama.fora", "Title: Coleção Fora do Manifesto", "Version: 0.1.0"),
+    file.path(lib, "trama.fora", "DESCRIPTION")
+  )
+
+  st <- tl_status(m = m, s = s)
+
+  linha <- st$colecoes[st$colecoes$nome == "trama.fora", ]
+  expect_equal(linha$titulo, "Coleção Fora do Manifesto")
+  expect_false(linha$disponivel)
+})
+
+test_that("tl_status cai para o nome sem prefixo trama. quando não há manifesto nem DESCRIPTION instalado", {
+  local_home()
+  s <- list(atual = "2026.10", anteriores = character(0), colecoes = "trama.sem.descricao")
+
+  st <- tl_status(m = NULL, s = s)
+
+  linha <- st$colecoes[st$colecoes$nome == "trama.sem.descricao", ]
+  expect_equal(linha$titulo, "sem.descricao")
+})

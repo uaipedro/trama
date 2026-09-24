@@ -213,7 +213,10 @@ body.tl-ocupado [data-acao],body.tl-ocupado .tl-card:not(:disabled){opacity:.55;
 
 .tl-modal-acoes{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 .tl-modal-fechar{position:absolute;top:14px;right:14px;background:none;border:0;
-  color:var(--tr-dim);cursor:pointer;padding:4px;border-radius:6px;line-height:0}
+  color:var(--tr-dim);cursor:pointer;padding:6px;border-radius:6px;line-height:0;
+  display:flex;align-items:center;justify-content:center}
+.tl-modal-fechar .tl-ic{width:16px;height:16px;stroke:currentColor;fill:none;
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tl-modal-fechar:hover{color:var(--tr-fg);background:var(--tr-hover)}
 .tl-modal{position:relative}
 
