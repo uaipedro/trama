@@ -1,0 +1,510 @@
+---
+// Protótipo: ?variant=base|raw|brutal|hardware compara o card atual com a primeira alternativa.
+// A vitrine usa o CSS do editor; as variações ficam só nesta página.
+import "../../../../inst/www/trama.css";
+import LabCard from "../../components/LabCard.astro";
+
+// Família visual explícita: a cor original do editor não define o tipo.
+// O identificador exato continua no catálogo; a forma resume o que passa no fio.
+type FamiliaPorta = "tabela" | "serie" | "modelo" | "grafico" | "objeto";
+const familias: { id: FamiliaPorta; nome: string; exemplos: string }[] = [
+  { id: "tabela", nome: "Tabela", exemplos: "dados, data frame" },
+  { id: "serie", nome: "Série", exemplos: "observações no tempo" },
+  { id: "modelo", nome: "Modelo", exemplos: "ajuste, classificador" },
+  { id: "grafico", nome: "Gráfico", exemplos: "visualização" },
+  { id: "objeto", nome: "Objeto de análise", exemplos: "teste, previsão, plano" },
+];
+
+const modos = [
+  { id: "mini", nome: "Mini" },
+  { id: "params", nome: "Parâmetros" },
+  { id: "preview", nome: "Prévia" },
+  { id: "completo", nome: "Completo" },
+] as const;
+
+const exemplos = [
+  { titulo: "Dados de exemplo", icone: "flask-conical", categoria: "Fonte · Dados", cor: "#6366f1", saida: ["out", "#38bdf8", "tabela"], params: [{ nome: "Conjunto", valor: "ChickWeight" }], vista: "tabela", tipo: "tabela", estado: "done" },
+  { titulo: "Resumo", icone: "clipboard-list", categoria: "Conhecer · Dados", cor: "#f59e0b", entrada: ["data", "#38bdf8", "tabela"], saida: ["out", "#38bdf8", "tabela"], params: [], vista: "tabela", tipo: "resumo", estado: "done" },
+  { titulo: "Limpar nomes", icone: "case-lower", categoria: "Limpar · Dados", cor: "#14b8a6", entrada: ["data", "#38bdf8", "tabela"], saida: ["out", "#38bdf8", "tabela"], params: [], vista: "tabela", tipo: "limpeza", estado: "cached" },
+  { titulo: "Modelo misto", icone: "layers", categoria: "Ajustar · Modelos", cor: "#14b8a6", entrada: ["dados", "#38bdf8", "tabela"], saida: ["out", "#14b8a6", "modelo"], params: [{ nome: "Fórmula", valor: "weight ~ Time + (1|Chick)" }, { nome: "REML", valor: "sim" }], vista: "resumo", tipo: "modelo", estado: "done" },
+  { titulo: "Disperso", icone: "chart-scatter", categoria: "Relação · Visualização", cor: "#f472b6", entrada: ["dados", "#38bdf8", "tabela"], saida: ["out", "#f472b6", "grafico"], params: [{ nome: "Eixo X", valor: "Time" }, { nome: "Eixo Y", valor: "weight" }], vista: "imagem", tipo: "grafico", estado: "done" },
+  { titulo: "Gravar CSV", icone: "save", categoria: "Saída · Dados", cor: "#22c55e", entrada: ["data", "#38bdf8", "tabela"], saida: ["out", "#38bdf8", "tabela"], params: [{ nome: "Arquivo", valor: "saida/pintos.csv" }], vista: "tabela", tipo: "arquivo", estado: "done" },
+  { titulo: "ARIMA", icone: "activity", categoria: "Modelar · Séries temporais", cor: "#f59e0b", entrada: ["serie", "#34d399", "serie"], saida: ["out", "#f59e0b", "modelo"], params: [{ nome: "Automático", valor: "sim" }, { nome: "Parte sazonal", valor: "sim" }], vista: "resumo", tipo: "arima", estado: "running" },
+  { titulo: "Avaliar previsões", icone: "scan-search", categoria: "Prever e avaliar · Aprendizado", cor: "#2563eb", entrada: ["dados", "#38bdf8", "tabela"], saida: ["out", "#38bdf8", "tabela"], params: [{ nome: "Alvo", valor: "weight" }, { nome: "Predito", valor: ".pred" }], vista: "tabela", tipo: "avaliacao", estado: "failed" },
+  { titulo: "Série de exemplo", icone: "activity", categoria: "Fonte · Séries temporais", cor: "#34d399", saida: ["out", "#34d399", "serie"], params: [{ nome: "Série", valor: "AirPassengers" }], vista: "imagem", tipo: "serie", estado: "done" },
+  { titulo: "Teste dos aleatórios", icone: "shuffle", categoria: "Resumir · Modelos", cor: "#eab308", entrada: ["modelo", "#14b8a6", "modelo"], saida: ["out", "#eab308", "objeto"], params: [], vista: "tabela", tipo: "teste", estado: "done" },
+] as const;
+
+// Trama de exemplo: posições no canvas e fios (de → para), só para a variante hardware.
+const porTitulo = (titulo: string) => exemplos.find((e) => e.titulo === titulo)!;
+const nos = [
+  { id: "dados", exemplo: porTitulo("Dados de exemplo"), x: 30, y: 150 },
+  { id: "limpar", exemplo: porTitulo("Limpar nomes"), x: 350, y: 30 },
+  { id: "gravar", exemplo: porTitulo("Gravar CSV"), x: 350, y: 400 },
+  { id: "resumo", exemplo: porTitulo("Resumo"), x: 680, y: 10 },
+  { id: "modelo", exemplo: porTitulo("Modelo misto"), x: 680, y: 330 },
+  { id: "disperso", exemplo: porTitulo("Disperso"), x: 1010, y: 10 },
+  { id: "avaliar", exemplo: porTitulo("Avaliar previsões"), x: 1010, y: 360 },
+];
+const fios = [["dados", "limpar"], ["dados", "gravar"], ["limpar", "resumo"], ["limpar", "modelo"], ["resumo", "disperso"], ["modelo", "avaliar"]];
+
+const temas = [
+  { id: "claro", nome: "Claro" },
+  { id: "escuro", nome: "Escuro" },
+] as const;
+
+// Gramática das saídas (estudo): FORMA = papel da porta, COR = família do dado.
+// fluxo ▶ segue a linha principal; objeto ■ é a coisa ajustada, reaproveitável;
+// anexo ● é um derivado que se pendura embaixo do card, fora do fluxo.
+type Papel = "fluxo" | "objeto" | "anexo";
+type PortaG = [string, Papel, FamiliaPorta, boolean?];
+const gramatica: { titulo: string; icone: string; cor: string; entradas: PortaG[]; saidas: PortaG[]; anexos: PortaG[] }[] = [
+  { titulo: "Limpar nomes", icone: "ab", cor: "#14b8a6", entradas: [["dados", "fluxo", "tabela"]], saidas: [["out", "fluxo", "tabela"]], anexos: [] },
+  { titulo: "Separar treino/teste", icone: "⑂", cor: "#2563eb", entradas: [["dados", "fluxo", "tabela"]], saidas: [["treino", "fluxo", "tabela"], ["teste", "fluxo", "tabela"]], anexos: [] },
+  { titulo: "Modelo misto", icone: "≋", cor: "#14b8a6", entradas: [["dados", "fluxo", "tabela"]], saidas: [["resumo", "fluxo", "tabela"], ["modelo", "objeto", "modelo"]], anexos: [["resíduos", "anexo", "tabela", true], ["coeficientes", "anexo", "tabela"], ["aleatórios", "anexo", "tabela"]] },
+  { titulo: "Prever", icone: "→", cor: "#2563eb", entradas: [["modelo", "objeto", "modelo"], ["dados", "fluxo", "tabela"]], saidas: [["previsões", "fluxo", "tabela"]], anexos: [] },
+  { titulo: "ARIMA", icone: "∿", cor: "#f59e0b", entradas: [["série", "fluxo", "serie"]], saidas: [["previsão", "fluxo", "serie"], ["modelo", "objeto", "modelo"]], anexos: [["resíduos", "anexo", "serie"], ["diagnóstico", "anexo", "grafico"]] },
+  { titulo: "PCA", icone: "⊹", cor: "#a855f7", entradas: [["dados", "fluxo", "tabela"]], saidas: [["escores", "fluxo", "tabela"], ["pca", "objeto", "objeto"]], anexos: [["cargas", "anexo", "tabela"], ["variância", "anexo", "tabela"], ["biplot", "anexo", "grafico"]] },
+];
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/trama/favicon.svg" type="image/svg+xml" />
+    <title>Cards do editor · laboratório trama</title>
+  </head>
+  <body class="lab" data-variant="base">
+    <main class="lab__shell">
+      <header class="lab__topo">
+        <a href="/trama/" class="lab__marca">trama <span>/ laboratório</span></a>
+        <div class="lab__intro">
+          <div><h1>Cards do editor</h1><p>Compare o card atual com alternativas usando as mesmas amostras.</p></div>
+          <div class="lab__modos" role="group" aria-label="Modo de todos os cards">
+            {modos.map((modo) => <button type="button" data-modo-global={modo.id} aria-pressed={modo.id === "completo"}>{modo.nome}</button>)}
+          </div>
+        </div>
+      </header>
+
+      <section class="lab__portas-estudo" aria-label="Proposta de linguagem das portas">
+        <div class="lab__portas-intro"><strong>O que passa no fio</strong><span>A forma indica a família; o rótulo identifica a porta.</span></div>
+        <div class="lab__portas-familias">
+          {familias.map((familia) => <div class="lab__porta-item"><span class={`lab__porta-simbolo lab__porta-simbolo--${familia.id}`} aria-hidden="true"></span><span><strong>{familia.nome}</strong><small>{familia.exemplos}</small></span></div>)}
+        </div>
+        <div class="lab__portas-direcao"><span><i class="lab__porta-simbolo lab__porta-simbolo--tabela lab__porta-simbolo--vazada" aria-hidden="true"></i> entrada</span><span><i class="lab__porta-simbolo lab__porta-simbolo--tabela" aria-hidden="true"></i> saída</span></div>
+      </section>
+
+      <div class="lab__temas">
+        {temas.map((tema) => <section class={`lab__tema lab__tema--${tema.id}`} aria-labelledby={`tema-${tema.id}`}>
+          <header class="lab__tema-cabecalho"><h2 id={`tema-${tema.id}`}>{tema.nome}</h2><span>{tema.id === "claro" ? "tema claro do editor" : "tema escuro do editor"}</span></header>
+          <div class="lab__grade">
+            {exemplos.map((exemplo) => <div class="lab__amostra">
+              <LabCard exemplo={exemplo} modos={modos} />
+            </div>)}
+          </div>
+        </section>)}
+      </div>
+
+      <section class="lab__trama lab__tema lab__tema--claro" aria-labelledby="trama-titulo" data-trama>
+        <header class="lab__tema-cabecalho"><h2 id="trama-titulo">Trama</h2>
+          <div class="lab__trama-acoes"><span>arraste os cards para testar o cabo</span>
+<div class="lab__modos" role="group" aria-label="Tema da trama"><button type="button" data-trama-tema="claro" aria-pressed="true">Claro</button><button type="button" data-trama-tema="escuro" aria-pressed="false">Escuro</button></div>
+          </div>
+        </header>
+        <div class="lab__trama-canvas" data-trama-canvas>
+          <svg class="lab__cabos" data-cabos aria-hidden="true">
+            {fios.map(([de, para]) => <g class="lab__cabo" data-de={de} data-para={para}><path class="lab__cabo-trilho" /><path class="lab__cabo-pulso" /></g>)}
+            <g data-encaixes></g>
+          </svg>
+          {nos.map((no) => <div class="lab__amostra lab__no" data-no-id={no.id} style={`left:${no.x}px;top:${no.y}px`}><LabCard exemplo={no.exemplo} modos={modos} id={no.id} /></div>)}
+        </div>
+      </section>
+      <section class="gram" aria-labelledby="gram-titulo">
+        <header class="gram__cab">
+          <div><h2 id="gram-titulo">Gramática das saídas</h2><p>Forma diz o papel da porta; cor diz a família do dado. Passe o mouse numa porta para ver o nome; segure <kbd>Alt</kbd> para ver todos. Anexos só aparecem com o card selecionado (clique) ou quando ligados.</p></div>
+          <ul class="gram__legenda">
+            <li><i class="gp gp--fluxo" style="--c:var(--porta-tabela)"></i><b>Fluxo</b><small>o que segue a linha</small></li>
+            <li><i class="gp gp--objeto" style="--c:var(--porta-modelo)"></i><b>Objeto</b><small>a coisa ajustada, reaproveitável</small></li>
+            <li><i class="gp gp--anexo" style="--c:var(--porta-tabela)"></i><b>Anexo</b><small>derivado, pende embaixo</small></li>
+          </ul>
+        </header>
+        {temas.map((tema) => <div class={`gram__palco lab__tema--${tema.id}`}>
+          {gramatica.map((g) => <article class="gram__card" tabindex="0">
+            <div class="gram__head" style={`--cat:${g.cor}`}><span class="gram__ic">{g.icone}</span>{g.titulo}</div>
+            <div class="gram__portas">
+              <div>{g.entradas.map(([n, papel, fam]) => <button type="button" class="gram__porta gram__porta--in" aria-label={`entrada: ${n} (${fam})`}><i class={`gp gp--${papel}`} style={`--c:var(--porta-${fam})`}></i><span class="gram__dica gram__dica--esq">{n}<small>{fam}</small></span></button>)}</div>
+              <div>{g.saidas.map(([n, papel, fam]) => <button type="button" class="gram__porta gram__porta--out" aria-label={`saída: ${n} (${fam})`}><i class={`gp gp--${papel}`} style={`--c:var(--porta-${fam})`}></i><span class="gram__dica gram__dica--dir">{n}<small>{fam}</small></span></button>)}</div>
+            </div>
+            {g.anexos.length > 0 && <div class="gram__anexos">{g.anexos.map(([n, papel, fam, ligado]) => <button type="button" class:list={["gram__anexo", { "gram__anexo--ligado": ligado }]} aria-label={`anexo: ${n} (${fam})`}><i class={`gp gp--${papel}`} style={`--c:var(--porta-${fam})`}></i><span class="gram__dica">{n}<small>{fam}</small></span></button>)}</div>}
+          </article>)}
+        </div>)}
+      </section>
+    </main>
+    <nav class="lab__variantes" aria-label="Comparar alternativas do laboratório">
+      <button type="button" data-variant-step="-1" aria-label="Alternativa anterior">←</button>
+      <span data-variant-label aria-live="polite">Base · card atual</span>
+      <button type="button" data-variant-step="1" aria-label="Próxima alternativa">→</button>
+    </nav>
+    <script>
+      const variantes = [{ id: "base", label: "Base · card atual" }, { id: "raw", label: "A · Laboratório Raw" }, { id: "brutal", label: "B · Neo-brutalista" }, { id: "hardware", label: "C · Hardware tátil" }];
+      const aplicarVariante = (id: string) => {
+        const escolhida = variantes.find((v) => v.id === id) || variantes[0];
+        document.body.dataset.variant = escolhida.id;
+        const rotulo = document.querySelector<HTMLElement>("[data-variant-label]");
+        if (rotulo) rotulo.textContent = escolhida.label;
+        const url = new URL(window.location.href);
+        url.searchParams.set("variant", escolhida.id);
+        history.replaceState(null, "", url);
+      };
+      aplicarVariante(new URLSearchParams(location.search).get("variant") || "base");
+      const mudarVariante = (passo: number) => {
+        const indice = variantes.findIndex((v) => v.id === document.body.dataset.variant);
+        aplicarVariante(variantes[(indice + passo + variantes.length) % variantes.length].id);
+      };
+      document.querySelectorAll<HTMLButtonElement>("[data-variant-step]").forEach((botao) => botao.addEventListener("click", () => mudarVariante(Number(botao.dataset.variantStep))));
+      window.addEventListener("keydown", (evento) => {
+        const alvo = evento.target as HTMLElement;
+        if (alvo.closest("input, textarea, select, [contenteditable]")) return;
+        if (evento.key === "ArrowLeft" || evento.key === "ArrowRight") { evento.preventDefault(); mudarVariante(evento.key === "ArrowRight" ? 1 : -1); }
+      });
+      const ajustar = (card: HTMLElement, modo: string) => {
+        card.dataset.mode = modo;
+        card.classList.toggle("tr-node-mini", modo === "mini");
+        card.querySelectorAll<HTMLButtonElement>("[data-modo-card]").forEach((botao) => {
+          const ativo = botao.dataset.modoCard === modo;
+          botao.classList.toggle("tr-on", ativo);
+          botao.setAttribute("aria-pressed", String(ativo));
+        });
+      };
+      document.querySelectorAll<HTMLButtonElement>("[data-modo-global]").forEach((botao) => botao.addEventListener("click", () => {
+        document.querySelectorAll<HTMLElement>(".lab__amostra .tr-node").forEach((card) => ajustar(card, botao.dataset.modoGlobal || "completo"));
+        document.querySelectorAll<HTMLButtonElement>("[data-modo-global]").forEach((b) => b.setAttribute("aria-pressed", String(b === botao)));
+      }));
+      document.querySelectorAll<HTMLButtonElement>("[data-modo-card]").forEach((botao) => botao.addEventListener("click", () => {
+        const card = botao.closest<HTMLElement>(".tr-node");
+        if (card) ajustar(card, botao.dataset.modoCard || "completo");
+        document.querySelectorAll<HTMLButtonElement>("[data-modo-global]").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      }));
+      // Trama: fios entre tomadas; o fio fica tracejado em vermelho quando o destino falhou.
+      const canvas = document.querySelector<HTMLElement>("[data-trama-canvas]");
+      const desenharCabos = () => {
+        if (!canvas || !canvas.offsetParent) return;
+        const base = canvas.getBoundingClientRect();
+        const centro = (el: Element | null) => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2 - base.left, y: r.top + r.height / 2 - base.top }; };
+        const alcance = 19; // o fio começa depois do toco sólido que sai da tomada
+        const portas = new Map<Element, { x: number; y: number; lado: 1 | -1; cor: string; parado: boolean }>();
+        canvas.querySelectorAll<SVGGElement>(".lab__cabo").forEach((cabo) => {
+          const de = canvas.querySelector(`[data-no-id="${cabo.dataset.de}"] .lab__handle--out`);
+          const para = canvas.querySelector(`[data-no-id="${cabo.dataset.para}"] .lab__handle--in`);
+          const a = centro(de), b = centro(para);
+          if (!de || !para || !a || !b) return;
+          const cor = "var(--fio)";
+          const parado = !!canvas.querySelector(`[data-no-id="${cabo.dataset.para}"] .tr-state-failed`);
+          cabo.style.setProperty("--cabo-cor", cor);
+          cabo.classList.toggle("lab__cabo--parado", parado);
+          if (!portas.has(de)) portas.set(de, { ...a, lado: 1, cor, parado: false });
+          portas.set(para, { ...b, lado: -1, cor, parado });
+          const x1 = a.x + alcance, x2 = b.x - alcance;
+          const folga = Math.max(60, Math.abs(x2 - x1) * 0.5);
+          const d = `M${x1},${a.y} C${x1 + folga},${a.y} ${x2 - folga},${b.y} ${x2},${b.y}`;
+          cabo.querySelectorAll("path").forEach((p) => p.setAttribute("d", d));
+        });
+        // Um encaixe por porta: as saídas que se dividem partem do mesmo toco.
+        const camada = canvas.querySelector("[data-encaixes]");
+        if (camada) camada.innerHTML = [...portas.values()].map(({ x, y, lado, cor, parado }) =>
+          `<g class="lab__encaixe${parado ? " lab__encaixe--parado" : ""}" transform="translate(${x},${y}) scale(${lado},1)" style="--cabo-cor:${cor}">
+            <path class="lab__encaixe-toco" d="M7.5,0 H${alcance + 0.5}" />
+          </g>`).join("");
+      };
+      canvas?.querySelectorAll<HTMLElement>(".lab__no").forEach((no) => {
+        no.addEventListener("pointerdown", (evento) => {
+          const alvo = evento.target as HTMLElement;
+          if (!alvo.closest(".tr-node-head") || alvo.closest("button")) return;
+          evento.preventDefault();
+          const inicio = { x: evento.clientX, y: evento.clientY, left: no.offsetLeft, top: no.offsetTop };
+          no.classList.add("lab__no--pegando");
+          const mover = (e: PointerEvent) => { no.style.left = `${inicio.left + e.clientX - inicio.x}px`; no.style.top = `${inicio.top + e.clientY - inicio.y}px`; desenharCabos(); };
+          const soltar = () => { no.classList.remove("lab__no--pegando"); window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar); };
+          window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar);
+        });
+      });
+      document.querySelectorAll<HTMLButtonElement>("[data-trama-tema]").forEach((botao) => botao.addEventListener("click", () => {
+        const secao = document.querySelector<HTMLElement>("[data-trama]");
+        secao?.classList.toggle("lab__tema--claro", botao.dataset.tramaTema === "claro");
+        secao?.classList.toggle("lab__tema--escuro", botao.dataset.tramaTema === "escuro");
+        document.querySelectorAll<HTMLButtonElement>("[data-trama-tema]").forEach((b) => b.setAttribute("aria-pressed", String(b === botao)));
+      }));
+      new ResizeObserver(desenharCabos).observe(document.body);
+      document.querySelectorAll("[data-variant-step], [data-modo-global], [data-modo-card]").forEach((b) => b.addEventListener("click", () => requestAnimationFrame(desenharCabos)));
+      window.addEventListener("keydown", () => requestAnimationFrame(desenharCabos));
+      requestAnimationFrame(desenharCabos);
+    
+      // Alt segurado mostra o nome de todos os anexos da gramática.
+      const rotulos = (on: boolean) => document.body.classList.toggle("gram--rotulos", on);
+      addEventListener("keydown", (e) => { if (e.key === "Alt") { e.preventDefault(); rotulos(true); } });
+      addEventListener("keyup", (e) => { if (e.key === "Alt") rotulos(false); });
+      addEventListener("blur", () => rotulos(false));
+
+      // Selecionar card da gramática: clique alterna; clique fora limpa.
+      document.addEventListener("click", (e) => {
+        const card = (e.target as HTMLElement).closest(".gram__card");
+        document.querySelectorAll(".gram__card.is-sel").forEach((c) => { if (c !== card) c.classList.remove("is-sel"); });
+        card?.classList.toggle("is-sel");
+      });
+</script>
+  </body>
+</html>
+
+<style>
+  :global(body.lab){background:#e9ebee;color:#1b2130;font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .lab__shell{max-width:1550px;margin:auto;padding:26px clamp(18px,4vw,64px) 80px}
+  .lab__topo{display:grid;gap:24px;margin-bottom:28px}.lab__marca{width:max-content;color:#1b2130;font-size:16px;font-weight:700;text-decoration:none}.lab__marca span{font-weight:400;color:#5f6b7f}
+  .lab__intro{display:flex;align-items:end;justify-content:space-between;gap:24px;padding-top:22px;border-top:1px solid #bdc4cc}.lab__intro h1{margin:0 0 4px;font-size:29px;line-height:1.15;letter-spacing:-.04em}.lab__intro p{margin:0;color:#5f6b7f}
+  .lab__modos{display:flex;flex:none;border:1px solid #b6bdc9}.lab__modos button{padding:8px 11px;border:0;border-right:1px solid #b6bdc9;background:#f6f7f9;color:#1b2130;font:600 12px inherit;cursor:pointer}.lab__modos button:last-child{border-right:0}.lab__modos button[aria-pressed="true"]{background:#1b2130;color:#fff}
+  .lab__temas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.lab__tema{min-width:0;padding:20px 25px 30px}.lab__tema--claro{--tr-bg:#f6f7f9;--tr-panel:#ffffff;--tr-line:#dfe3ea;--tr-fg:#1b2130;--tr-dim:#5f6b7f;--tr-accent:#3b6fd8;--tr-accent-ink:#fff;--tr-field:#f1f3f6;--tr-edge:#b6bdc9;--tr-hover:#eef1f5;--tr-dots:#c3c9d3;--tr-shadow:rgba(20,30,50,.12);--tr-shadow-hi:rgba(20,30,50,.22);--tr-err-bg:#fdecec;--tr-err-fg:#991b1b;--tr-stream:#0d9488;background:var(--tr-bg);color:var(--tr-fg);color-scheme:light}
+  .lab__tema--escuro{background:var(--tr-bg);color:var(--tr-fg);color-scheme:dark}.lab__tema-cabecalho{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:15px;border-bottom:1px solid var(--tr-line)}.lab__tema-cabecalho h2{margin:0;font-size:20px}.lab__tema-cabecalho span{color:var(--tr-dim);font-size:11px}
+  .lab__grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 18px;justify-items:start;padding:26px 5px 0}.lab__amostra{min-width:0}
+  .lab__amostra :global(.lab__grafico){display:block;width:100%;max-height:100%;color:var(--tr-dim)}
+  .lab__amostra :global(.tr-node[data-mode="params"] .tr-preview),.lab__amostra :global(.tr-node[data-mode="params"] .tr-tabs),.lab__amostra :global(.tr-node[data-mode="preview"] .tr-params),.lab__amostra :global(.tr-node[data-mode="mini"] .tr-preview),.lab__amostra :global(.tr-node[data-mode="mini"] .tr-tabs),.lab__amostra :global(.tr-node[data-mode="mini"] .tr-params){display:none}
+  .lab__amostra :global(.tr-node[data-mode="mini"] .lab__nome-porta){display:none}.lab__amostra :global(.tr-node:not(.tr-node-mini) .tr-mini-dot){display:none}
+  .lab__amostra :global(.lab__handle--in),.lab__amostra :global(.lab__handle--out){position:absolute;top:3px;width:9px;height:9px;border-radius:50%}.lab__amostra :global(.lab__handle--in){left:-4px}.lab__amostra :global(.lab__handle--out){right:-4px}
+  .lab__amostra :global(.tr-node-mini){--tr-w:76px!important}.lab__amostra :global(.tr-node-mini .tr-ports){padding:0}.lab__amostra :global(.tr-node-mini .tr-port){padding:0}
+  .lab__variantes{position:fixed;z-index:30;left:50%;bottom:20px;display:flex;align-items:center;gap:0;transform:translateX(-50%);border:1px solid #18202b;background:#18202b;color:#f5f5f1;box-shadow:0 7px 20px #13192338;font:600 12px ui-sans-serif,system-ui,sans-serif}
+  .lab__variantes button{width:36px;height:34px;border:0;background:transparent;color:inherit;font:18px ui-sans-serif,system-ui,sans-serif;cursor:pointer}.lab__variantes button:hover,.lab__variantes button:focus-visible{background:#394456;outline:none}.lab__variantes span{min-width:175px;padding:0 11px;text-align:center;white-space:nowrap}
+  .lab__portas-estudo{display:none}
+  :global(body.lab[data-variant="raw"]){background:#e5e1d7;color:#282922}
+  :global(body.lab[data-variant="raw"]) .lab__portas-estudo{--porta-tabela:#346f87;--porta-serie:#955d33;--porta-modelo:#596e3e;--porta-grafico:#954e68;--porta-objeto:#66646f;display:grid;grid-template-columns:minmax(170px,1fr) auto;gap:15px 28px;margin:0 0 24px;padding:16px 18px;border:1px solid #77766e;background:#f8f5ec;box-shadow:3px 3px 0 #878679}
+  .lab__portas-intro{display:grid;align-content:center;gap:3px}.lab__portas-intro strong{font-size:13px}.lab__portas-intro span{color:#565b52;font-size:11px}
+  .lab__portas-familias{display:flex;flex-wrap:wrap;gap:12px 19px;align-items:center}.lab__porta-item{display:flex;align-items:center;gap:8px;min-width:105px}.lab__porta-item>span:last-child{display:grid;gap:1px}.lab__porta-item strong{font-size:11px;line-height:1.1}.lab__porta-item small{color:#565b52;font-size:10px;line-height:1.2}
+  .lab__porta-simbolo{display:inline-block;position:relative;flex:none;width:14px;height:14px;background:var(--porta-cor)}
+  .lab__porta-simbolo--tabela{--porta-cor:var(--porta-tabela);clip-path:polygon(0 0,100% 50%,0 100%)}
+  .lab__porta-simbolo--serie{--porta-cor:var(--porta-serie);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .lab__porta-simbolo--modelo{--porta-cor:var(--porta-modelo);clip-path:inset(1px round 2px)}
+  .lab__porta-simbolo--grafico{--porta-cor:var(--porta-grafico);border-radius:50%}
+  .lab__porta-simbolo--objeto{--porta-cor:var(--porta-objeto);clip-path:polygon(50% 0,100% 27%,100% 73%,50% 100%,0 73%,0 27%)}
+  .lab__porta-simbolo--vazada::after{content:"";position:absolute;inset:3px;background:#f8f5ec;clip-path:inherit;border-radius:inherit}
+  .lab__portas-direcao{grid-column:1/-1;display:flex;justify-content:flex-end;gap:24px;padding-top:9px;border-top:1px dotted #a9a69a;color:#565b52;font-size:11px}.lab__portas-direcao span{display:flex;align-items:center;gap:7px}.lab__portas-direcao i{font-style:normal}
+  :global(body.lab[data-variant="raw"]) .lab__tema--claro{--tr-bg:#eeeae0;--tr-panel:#f8f5ec;--tr-line:#77766e;--tr-fg:#262923;--tr-dim:#565b52;--tr-field:#ede9df;--tr-shadow:#8f8e80;--raw-shadow:#878679;--raw-head:#e6e1d5;--raw-error:#f3e2dc;background:var(--tr-bg)}
+  :global(body.lab[data-variant="raw"]) .lab__tema--escuro{--tr-bg:#171b1a;--tr-panel:#282d2a;--tr-line:#7b8179;--tr-fg:#f1eee4;--tr-dim:#b4baaf;--tr-field:#1c211e;--tr-shadow:#0b0e0b;--raw-shadow:#0b0e0b;--raw-head:#303631;--raw-error:#442b2b;--porta-tabela:#8dc9de;--porta-serie:#e2ad78;--porta-modelo:#b9d48e;--porta-grafico:#e3a1ba;--porta-objeto:#c7bfd6;background-color:var(--tr-bg);background-image:repeating-linear-gradient(0deg,#ffffff03 0,#ffffff03 1px,transparent 1px,transparent 5px)}
+  :global(body.lab[data-variant="raw"]) .lab__tema--claro{--porta-tabela:#346f87;--porta-serie:#955d33;--porta-modelo:#596e3e;--porta-grafico:#954e68;--porta-objeto:#66646f}
+  :global(body.lab[data-variant="raw"]) .lab__tema{border:1px solid var(--tr-line)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node){border-radius:1px;border-color:var(--tr-line);box-shadow:4px 4px 0 var(--raw-shadow)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node-head){background:var(--raw-head)!important;color:var(--tr-fg);border-bottom:1px solid var(--tr-line);font-weight:700}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node-icon-main){color:var(--amostra-cor)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-preview){border-bottom:0}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-table),:global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-kv),:global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-text),:global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-err-msg),:global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-param input){font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-table th){border-bottom:1px dashed var(--tr-line)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-table td){border-bottom:1px dotted color-mix(in srgb,var(--tr-line) 35%,transparent)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-tabs){background:transparent;border-bottom:1px dashed var(--tr-line)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-tab-only){font-family:ui-monospace,"SFMono-Regular",Consolas,monospace}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-param input){border-radius:0;border-color:var(--tr-line)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-modo-picker){border-radius:0}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-modo-btn){border-radius:0}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-modo-btn.tr-on){background:color-mix(in srgb,var(--tr-fg) 17%,transparent)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.react-flow__handle){top:1px;width:13px;height:13px;border:0;border-radius:0;background:var(--porta-cor)!important}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--in){left:-8px}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--out){right:-7px}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--tabela){--porta-cor:var(--porta-tabela)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--serie){--porta-cor:var(--porta-serie);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--modelo){--porta-cor:var(--porta-modelo);clip-path:polygon(50% 0,100% 100%,0 100%)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--grafico){--porta-cor:var(--porta-grafico);border-radius:50%}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--objeto){--porta-cor:var(--porta-objeto);clip-path:polygon(50% 0,100% 27%,100% 73%,50% 100%,0 73%,0 27%)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.lab__handle--in::after){content:"";position:absolute;inset:3px;background:var(--tr-panel);clip-path:inherit;border-radius:inherit}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node-mini){min-width:170px}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node-mini .tr-node-head){flex-direction:row;align-items:center;gap:7px;min-height:43px;padding:8px 17px}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node-mini .tr-node-icon-main){width:16px;height:16px}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-node-mini .tr-node-title){max-width:none;text-align:left;white-space:nowrap;font-size:11px}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-state-failed){background:var(--raw-error);border-color:var(--tr-err);box-shadow:4px 4px 0 var(--raw-shadow)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-state-failed .tr-node-head){background:var(--raw-error)!important;border-bottom-color:var(--tr-err)}
+  :global(body.lab[data-variant="raw"]) .lab__amostra :global(.tr-state-failed .tr-preview){background:var(--raw-error)}
+
+  /* B · Neo-brutalista: borda dura, sombra chapada, cabeçalho na cor da categoria, dados em mono, portas por forma. */
+  :global(body.lab[data-variant="brutal"]){background:#eceae4}
+  :global(body.lab[data-variant="brutal"]) .lab__portas-estudo{--porta-tabela:#6366f1;--porta-serie:#f59e0b;--porta-modelo:#14b8a6;--porta-grafico:#ec4899;--porta-objeto:#22c55e;display:grid;grid-template-columns:minmax(170px,1fr) auto;gap:15px 28px;margin:0 0 24px;padding:16px 18px;border:3px solid #111;background:#fff;box-shadow:5px 5px 0 #111}
+  :global(body.lab[data-variant="brutal"]) .lab__tema--claro{--tr-bg:#f4f3ef;--tr-panel:#fff;--tr-line:#111;--tr-fg:#111;--tr-dim:#4a4a4a;--tr-field:#f1f0ec;--br-sombra:#111;--br-ink:#111;--br-borda:3px;--br-erro:#f3a9a4;--br-erro-head:#e8625a}
+  :global(body.lab[data-variant="brutal"]) .lab__tema--escuro{--tr-bg:#1b1d24;--tr-panel:#23262f;--tr-line:#d9d9de;--tr-fg:#f1f1f3;--tr-dim:#a5a8b3;--tr-field:#15171d;--br-sombra:#000;--br-ink:#111;--br-borda:2px;--br-erro:#6d2f33;--br-erro-head:#e8625a}
+  :global(body.lab[data-variant="brutal"]) .lab__tema{--porta-tabela:#6366f1;--porta-serie:#f59e0b;--porta-modelo:#14b8a6;--porta-grafico:#ec4899;--porta-objeto:#22c55e;border:3px solid #111}
+  :global(body.lab[data-variant="brutal"]) .lab__tema-cabecalho h2{text-transform:uppercase;letter-spacing:.02em;font-weight:800}
+  :global(body.lab[data-variant="brutal"]) .lab__modos{border:2px solid #111;box-shadow:3px 3px 0 #111}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node){border-radius:0;border:var(--br-borda) solid var(--tr-line);box-shadow:5px 5px 0 var(--br-sombra)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node-head){background:var(--amostra-cor)!important;color:var(--br-ink);border-bottom:var(--br-borda) solid var(--tr-line);font-weight:700;border-radius:0}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node-head .tr-node-icon-main){color:var(--br-ink)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-preview){border-bottom:0}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-table),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-kv),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-text),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-err-msg),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-param input),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-tab-only),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__nome-porta){font-family:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-table th){border-bottom:2px solid var(--tr-line);font-weight:700}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-table td){border-bottom:1px solid color-mix(in srgb,var(--tr-line) 25%,transparent)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-tabs){background:transparent;border-top:1px dashed var(--tr-line);border-bottom:0}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-param input){border-radius:0;border:2px solid var(--tr-line);background:var(--tr-field)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-modo-picker),:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-modo-btn){border-radius:0}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-modo-btn){color:var(--br-ink)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-modo-btn.tr-on){background:#1112}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-progress){border:2px solid var(--tr-line);border-radius:0}:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-progress-fill){background:var(--amostra-cor);border-radius:0}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.react-flow__handle){display:block;top:0;width:15px!important;min-width:15px;height:15px!important;border:2px solid var(--tr-line);border-radius:0;background:var(--porta-cor)!important;box-sizing:border-box}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--in){left:-9px}:global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--out){right:-9px}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--tabela){--porta-cor:var(--porta-tabela)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--serie){--porta-cor:var(--porta-serie);border:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--modelo){--porta-cor:var(--porta-modelo);border:0;clip-path:polygon(0 0,100% 50%,0 100%)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--grafico){--porta-cor:var(--porta-grafico);border-radius:50%;background:repeating-conic-gradient(var(--porta-grafico) 0 25%,#fff 0 50%) 0 0/5px 5px!important}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--objeto){--porta-cor:var(--porta-objeto);border:0;clip-path:polygon(50% 0,100% 27%,100% 73%,50% 100%,0 73%,0 27%)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.lab__handle--in::after){content:"";position:absolute;inset:3px;background:var(--tr-panel);clip-path:inherit;border-radius:inherit}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-state-failed){background:var(--br-erro);border-color:var(--tr-line)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-state-failed .tr-node-head){background:var(--br-erro-head)!important}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-state-failed .tr-preview){background:transparent}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-state-failed .tr-err-msg){color:var(--tr-fg);font-weight:700}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node-mini){min-width:190px}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node-mini .tr-node-head){flex-direction:row;align-items:stretch;gap:0;min-height:40px;padding:0;background:var(--tr-panel)!important;color:var(--tr-fg);border-bottom:0}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node-mini .tr-node-icon-main){box-sizing:content-box;width:18px;height:18px;padding:10px;background:var(--amostra-cor);color:var(--br-ink);border-right:var(--br-borda) solid var(--tr-line)}
+  :global(body.lab[data-variant="brutal"]) .lab__amostra :global(.tr-node-mini .tr-node-title){align-self:center;max-width:none;padding:0 14px 0 10px;text-align:left;white-space:nowrap;font-size:13px;font-weight:800}
+
+  /* C · Hardware tátil: bancada texturizada, cards foscos arredondados, LED no cabeçalho, portas como jacks, mini como placa escovada. */
+  :global(body.lab[data-variant="hardware"]){background:#e8e7e3}
+  :global(body.lab[data-variant="hardware"]) .lab__portas-estudo{--porta-tabela:#6366f1;--porta-serie:#f59e0b;--porta-modelo:#14b8a6;--porta-grafico:#ec4899;--porta-objeto:#22c55e;display:grid;grid-template-columns:minmax(170px,1fr) auto;gap:15px 28px;margin:0 0 24px;padding:16px 18px;border-radius:10px;background:linear-gradient(#f7f6f2,#e9e7e1);box-shadow:inset 0 1px 0 #fff,0 2px 0 #c9c6be,0 8px 18px #0002}
+  :global(body.lab[data-variant="hardware"]) .lab__tema{--porta-tabela:#6366f1;--porta-serie:#f59e0b;--porta-modelo:#14b8a6;--porta-grafico:#ec4899;--porta-objeto:#22c55e;border-radius:6px;box-shadow:inset 0 0 0 1px #0003,0 10px 30px #0003}
+  :global(body.lab[data-variant="hardware"]) .lab__tema--claro{--tr-panel:#eeece6;--tr-line:#c9c5bb;--tr-fg:#1d1c19;--tr-dim:#5e5a52;--tr-field:#e2dfd7;--hw-led:#ff3b30;background:radial-gradient(circle at 30% 40%,#ffffff55 0 1px,transparent 1.5px) 0 0/6px 6px,radial-gradient(circle at 60% 70%,#0000000d 0 1px,transparent 1.5px) 0 0/9px 9px,linear-gradient(165deg,#d9d6cf,#c9c5bd)}
+  :global(body.lab[data-variant="hardware"]) .lab__tema--escuro{--tr-panel:#2a2c31;--tr-line:#43464d;--tr-fg:#eceae4;--tr-dim:#a4a39d;--tr-field:#1d1f23;--hw-led:#ff453a;background:radial-gradient(circle at 20% 30%,#ffffff10 0 1px,transparent 2px) 0 0/7px 7px,radial-gradient(circle at 70% 60%,#0000001a 0 1px,transparent 2px) 0 0/11px 11px,linear-gradient(160deg,#6c6f73,#4b4e53 50%,#3c3f44)}
+  :global(body.lab[data-variant="hardware"]) .lab__tema-cabecalho{border-bottom:0}
+  :global(body.lab[data-variant="hardware"]) .lab__tema-cabecalho h2{display:inline-block;padding:4px 10px;background:#111c;color:#f2efe8;text-transform:uppercase;letter-spacing:.03em;border-radius:3px}
+  :global(body.lab[data-variant="hardware"]) .lab__tema-cabecalho span{color:var(--tr-dim)}
+  :global(body.lab[data-variant="hardware"]) .lab__modos{border-radius:6px;overflow:hidden;box-shadow:0 2px 0 #b9b6ad}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node){border:0;border-radius:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--tr-panel) 100%,#fff 8%),var(--tr-panel));box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 3px 0 #0003,0 12px 22px #0006;overflow:visible}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-head){position:relative;border-radius:9px 9px 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--amostra-cor) 80%,#fff),var(--amostra-cor) 55%,color-mix(in srgb,var(--amostra-cor) 85%,#000))!important;color:#141414;box-shadow:inset 0 1px 0 #ffffff70,inset 0 -1px 0 #0003;font-weight:600;text-shadow:0 1px 0 #ffffff50}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-head .tr-node-icon-main){color:#141414}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-head::after){content:"";flex:none;width:9px;height:9px;margin-left:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bff5c9,#22c55e 55%,#146c33);box-shadow:0 0 6px #22c55e,inset 0 0 0 1px #0004}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-state-failed .tr-node-head::after){background:radial-gradient(circle at 35% 30%,#ffd0cc,var(--hw-led) 55%,#7a130d);box-shadow:0 0 8px var(--hw-led)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-state-running .tr-node-head::after){background:radial-gradient(circle at 35% 30%,#fff1c2,#f59e0b 55%,#7a4d05);box-shadow:0 0 8px #f59e0b}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-preview){border-bottom:0}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-table),:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-kv),:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-text),:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-param input){font-variant-numeric:tabular-nums}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-err-msg),:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-tab-only){font-family:ui-monospace,"SFMono-Regular",Consolas,monospace}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-table td){border-bottom:1px solid color-mix(in srgb,var(--tr-line) 60%,transparent)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-tabs){background:transparent;border-top:1px solid #0000001a;box-shadow:0 1px 0 #ffffff30 inset}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-param input){border:0;border-radius:4px;background:var(--tr-field);box-shadow:inset 0 2px 3px #0003,0 1px 0 #ffffff40}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-modo-btn){color:#141414}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-progress){border-radius:99px;background:var(--tr-field);box-shadow:inset 0 2px 3px #0004}:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-progress-fill){border-radius:99px;background:linear-gradient(#fcd34d,#f59e0b)}
+  /* Porta: a forma da família, na cor dela, metade para fora da borda; sem carcaça. */
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.react-flow__handle){display:block;top:0;width:15px!important;height:19px!important;margin-top:-2px;border:0;border-radius:0;background:transparent!important;box-shadow:none;filter:drop-shadow(0 2px 1.5px #000a) drop-shadow(0 0 .5px #0008)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.react-flow__handle::before){content:"";display:block;position:absolute;inset:0;width:auto;height:auto;margin:0;background:radial-gradient(ellipse 60% 50% at 38% 42%,#ffffff2e,#fff0 75%),linear-gradient(160deg,#ffffff85 0,#ffffff26 22%,#fff0 42%,#0000 58%,#00000070 100%),var(--porta-cor,#888);clip-path:var(--porta-forma,path("M1.2 3.2Q1.2 0.6 3.5 1.9L13.4 8.2Q15 9.5 13.4 10.8L3.5 17.1Q1.2 18.4 1.2 15.8Z"))}:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.react-flow__handle::after){display:none}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--out){right:-9px!important;left:auto!important}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--in){left:-3px!important;right:auto!important}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--tabela){--porta-cor:var(--porta-tabela)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--serie){--porta-cor:var(--porta-serie);--porta-forma:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--modelo){--porta-cor:var(--porta-modelo);--porta-forma:inset(1px round 2px)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--grafico){--porta-cor:var(--porta-grafico);--porta-forma:circle(46%)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.lab__handle--objeto){--porta-cor:var(--porta-objeto);--porta-forma:polygon(50% 0,100% 27%,100% 73%,50% 100%,0 73%,0 27%)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-in .lab__nome-porta){padding-left:13px}:global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-out .lab__nome-porta){padding-right:6px}
+
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-state-failed){background:linear-gradient(180deg,color-mix(in srgb,var(--hw-led) 18%,var(--tr-panel)),color-mix(in srgb,var(--hw-led) 28%,var(--tr-panel)))}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-state-failed .tr-node-head){background:linear-gradient(180deg,#f87171,#dc2626 60%,#b91c1c)!important}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-state-failed .tr-preview){background:transparent}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-state-failed .tr-err-msg){color:var(--tr-fg)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-mini){min-width:200px;border-radius:7px;background:linear-gradient(180deg,#f4f4f2,#c9c9c6 48%,#dededb 52%,#b8b8b4)}
+  :global(body.lab[data-variant="hardware"]) .lab__tema--escuro .lab__amostra :global(.tr-node-mini){background:linear-gradient(180deg,#44474d,#2c2e33 48%,#35383d 52%,#26282c)}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-mini .tr-node-head){flex-direction:row;align-items:stretch;gap:0;min-height:42px;padding:0;background:transparent!important;color:var(--tr-fg);box-shadow:none;border-radius:7px}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-mini .tr-node-head::after){align-self:center;width:22px;height:18px;margin:0 10px 0 auto;border-radius:0;box-shadow:none;background:radial-gradient(circle,#0005 0 1px,transparent 1.5px) 0 0/4px 4px}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-mini .tr-node-icon-main){box-sizing:content-box;width:18px;height:18px;padding:12px 11px;border-radius:7px 0 0 7px;background:linear-gradient(180deg,color-mix(in srgb,var(--amostra-cor) 75%,#fff),var(--amostra-cor));color:#141414;box-shadow:inset -1px 0 0 #0003}
+  :global(body.lab[data-variant="hardware"]) .lab__amostra :global(.tr-node-mini .tr-node-title){align-self:center;max-width:none;padding:0 8px 0 12px;text-align:left;white-space:nowrap;font-size:13px;font-weight:600}
+
+  /* Trama (só na variante hardware): canvas com cards posicionados e cabos. */
+  .lab__trama{display:none}
+  :global(body.lab[data-variant="hardware"]) .lab__trama{display:block;margin-top:24px}
+  .lab__trama-acoes{display:flex;align-items:center;gap:14px}
+  .lab__trama-canvas{position:relative;height:720px;margin-top:18px;overflow:auto}
+  .lab__cabos{position:absolute;inset:0;z-index:2;width:1300px;height:100%;pointer-events:none;overflow:visible}
+  .lab__no{position:absolute;z-index:1}.lab__no .tr-node-head,.lab__no :global(.tr-node-head){cursor:grab}
+  .lab__no--pegando{z-index:3}.lab__no--pegando :global(.tr-node){box-shadow:inset 0 1px 0 #ffffff40,0 6px 0 #0002,0 24px 40px #0007;transform:translateY(-2px)}
+  .lab__cabo path{fill:none;stroke-linecap:round}
+  /* Fio: uma cor neutra por tema, que some atrás das cores de categoria mas mantém o percurso legível. */
+  .lab__trama.lab__tema--claro{--fio:#4b4f57}
+  .lab__trama.lab__tema--escuro{--fio:#d6d3cb}
+  /* Foco fica só no card: ele sobe um pouco; os fios não mudam. */
+  .lab__no:hover :global(.tr-node){transform:translateY(-2px);box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 5px 0 #0002,0 18px 30px #0006}
+  .lab__no :global(.tr-node){transition:transform .15s,box-shadow .15s}
+  .lab__cabo{transition:opacity .15s}
+  .lab__cabo-trilho{stroke:color-mix(in srgb,var(--cabo-cor) 13%,transparent);stroke-width:7px}
+  .lab__cabo-pulso{stroke:var(--cabo-cor);stroke-width:2.2px}
+  .lab__cabo--parado{--cabo-cor:var(--tr-err,#dc2626)!important}
+  .lab__cabo--parado .lab__cabo-pulso{stroke-dasharray:5 5;stroke-width:2.2px;opacity:.75}
+  .lab__trama :global(.lab__encaixe-toco){fill:none;stroke:var(--cabo-cor);stroke-width:3px;stroke-linecap:round}
+  .lab__trama :global(.lab__encaixe--parado){--cabo-cor:var(--tr-err,#dc2626)!important}
+  .lab__trama :global(.lab__encaixe--parado .lab__encaixe-toco){stroke-dasharray:2 3}
+  @media(max-width:1180px){.lab__temas{grid-template-columns:1fr}.lab__grade{grid-template-columns:repeat(3,minmax(0,1fr))}.lab__portas-estudo{grid-template-columns:1fr!important}}
+  @media(max-width:800px){.lab__grade{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){.lab__intro{align-items:start;flex-direction:column}.lab__grade{grid-template-columns:1fr}.lab__tema{padding:16px 18px 25px}}
+
+  /* Gramática das saídas */
+  .gram__palco.lab__tema--claro{--tr-card:#fbfaf7;--tr-card-hi:#fff;--tr-card-line:#0000002b;--tr-fg:#1b2130;--tr-dim:#5f6b7f;--tr-line:#0000002b}
+  .gram{--porta-tabela:#6366f1;--porta-serie:#f59e0b;--porta-modelo:#14b8a6;--porta-grafico:#ec4899;--porta-objeto:#22c55e;margin:28px 0 60px}
+  .gram__cab{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:14px;margin-bottom:14px}
+  .gram__cab h2{margin:0;font-size:20px}.gram__cab p{margin:4px 0 0;font-size:12px;opacity:.7}
+  .gram__legenda{display:flex;gap:18px;list-style:none;margin:0;padding:0;font-size:12px}
+  .gram__legenda li{display:grid;grid-template-columns:auto auto;column-gap:7px;align-items:center}
+  .gram__legenda small{grid-column:2;opacity:.6;font-size:10.5px}
+  .gram__legenda .gp{grid-row:span 2;position:relative}
+  .gram__palco{display:flex;flex-wrap:wrap;gap:34px 44px;padding:26px 30px 40px;border-radius:6px;margin-bottom:14px;background:var(--tr-bancada,var(--tr-bg));color:var(--tr-fg)}
+  .gram__card{position:relative;width:210px;align-self:flex-start;border-radius:9px;background:linear-gradient(180deg,var(--tr-card-hi),var(--tr-card));border:1px solid var(--tr-card-line);box-shadow:inset 0 1px 0 #ffffff40,0 3px 0 #0003,0 12px 22px #0005;font-size:11.5px}
+  .gram__head{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:8px 8px 0 0;font-weight:600;font-size:12px;color:#0b0e13;background:linear-gradient(180deg,#ffffff40,#fff0 45%,#0000 60%,#00000026),var(--cat);box-shadow:inset 0 1px 0 #ffffff70}
+  .gram__ic{width:14px;text-align:center}
+  .gram__portas{display:flex;justify-content:space-between;padding:9px 0 10px}
+  .gram__portas>div{display:grid;gap:6px}
+  .gram__porta{position:relative;display:flex;align-items:center;height:17px;color:var(--tr-dim)}
+  .gram__porta--in{padding-left:17px}.gram__porta--out{padding-right:14px;justify-content:flex-end}
+  .gram__porta--in .gp{position:absolute;left:-3px}
+  .gram__porta--out .gp{position:absolute;right:-9px}
+  /* Anexos: pinos na borda de baixo, sem rótulo. O nome sai para FORA do card:
+     no hover (um de cada vez) ou com Alt segurado (todos). */
+  .gram__anexos{position:absolute;left:0;right:0;bottom:-6px;display:flex;justify-content:flex-end;gap:13px;padding:0 16px;pointer-events:none}
+  .gram__anexo{position:relative;display:grid;place-items:center;width:15px;height:13px;padding:0;border:0;background:none;cursor:help;pointer-events:all}
+  .gram__anexo:focus-visible{outline:2px solid var(--tr-accent,#3b6fd8);outline-offset:2px;border-radius:50%}
+  .gram__anexo .gp{transition:transform .12s}
+  .gram__anexo:hover .gp,.gram__anexo:focus-visible .gp{transform:scale(1.25)}
+  .gram__dica{position:absolute;top:calc(100% + 5px);left:50%;transform:translate(-50%,-3px);display:grid;justify-items:center;padding:3px 7px 4px;border-radius:5px;white-space:nowrap;font-size:10.5px;line-height:1.2;color:#f4f2ec;background:#1d1f23e6;box-shadow:0 4px 12px #0005;opacity:0;pointer-events:none;transition:opacity .12s,transform .12s;z-index:5}
+  .gram__dica small{opacity:.6;font-size:9.5px}
+  .gram__anexo:hover .gram__dica,.gram__anexo:focus-visible .gram__dica{opacity:1;transform:translate(-50%,0)}
+  /* Alt segurado: todos os nomes, em pé para não se atropelarem. */
+  :global(body.gram--rotulos) .gram__dica{opacity:1;transform:translate(-50%,0) ;top:calc(100% + 4px)}
+  :global(body.gram--rotulos) .gram__dica small{display:none}
+  :global(body.gram--rotulos) .gram__anexos{gap:9px}
+  :global(body.gram--rotulos) .gram__dica{padding:1px 5px 2px;font-size:10px;background:#1d1f23d9}
+  /* Vizinhos alternam de altura, ligados ao pino por um fio fino. */
+  :global(body.gram--rotulos) .gram__anexo:nth-child(even) .gram__dica{top:calc(100% + 22px)}
+  :global(body.gram--rotulos) .gram__anexo::after{content:"";position:absolute;top:100%;left:50%;width:1px;height:5px;background:currentColor;opacity:.5}
+  :global(body.gram--rotulos) .gram__anexo:nth-child(even)::after{height:22px}
+  .gram__card{margin-bottom:8px}
+  kbd{font:inherit;font-size:10.5px;padding:0 4px;border:1px solid currentColor;border-radius:3px;opacity:.8}
+  /* Portas laterais também sem nome: o balão sai para fora, à esquerda da
+     entrada e à direita da saída. */
+  .gram__porta{padding:0;border:0;background:none;font:inherit;cursor:help;width:10px}
+  .gram__porta--in{padding-left:0}.gram__porta--out{padding-right:0}
+  .gram__porta .gp{transition:transform .12s}
+  .gram__porta:hover .gp,.gram__porta:focus-visible .gp{transform:scale(1.2)}
+  .gram__porta:focus-visible{outline:none}.gram__porta:focus-visible .gp{outline:2px solid var(--tr-accent,#3b6fd8)}
+  .gram__dica--esq,.gram__dica--dir{top:50%;left:auto;right:auto;grid-auto-flow:column;gap:5px;align-items:baseline}
+  .gram__dica--esq{right:calc(100% + 10px);transform:translate(3px,-50%)}
+  .gram__dica--dir{left:calc(100% + 14px);transform:translate(-3px,-50%)}
+  .gram__porta:hover .gram__dica,.gram__porta:focus-visible .gram__dica,:global(body.gram--rotulos) .gram__porta .gram__dica{opacity:1;transform:translate(0,-50%)}
+  /* Com Alt, os rótulos laterais entram no card (o corpo ficou livre) para
+     não baterem nos vizinhos; viram texto discreto, sem balão. */
+  :global(body.gram--rotulos) .gram__porta .gram__dica{top:50%;padding:0;background:none;box-shadow:none;color:var(--tr-dim);font-size:10.5px}
+  :global(body.gram--rotulos) .gram__porta .gram__dica small{display:none}
+  :global(body.gram--rotulos) .gram__dica--esq{right:auto;left:calc(100% + 6px)}
+  :global(body.gram--rotulos) .gram__dica--dir{left:auto;right:calc(100% + 3px)}
+  .gram__portas{padding:9px 0 12px;min-height:20px}
+  /* Anexos centralizados e recolhidos: só aparecem com o card selecionado,
+     ou o pino que estiver ligado (este fica sempre, com o fio descendo). */
+  .gram__anexos{justify-content:center!important;padding:0!important}
+  .gram__anexo{opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s,transform .15s}
+  .gram__card:is(.is-sel,:focus-visible) .gram__anexo,.gram__anexo--ligado{opacity:1;transform:none;pointer-events:all}
+  .gram__card{cursor:pointer;outline:none}
+  .gram__card.is-sel{box-shadow:0 0 0 2px var(--tr-accent,#3b6fd8),inset 0 1px 0 #ffffff40,0 3px 0 #0003,0 12px 22px #0005}
+  .gram__anexo--ligado::before{content:"";position:absolute;top:10px;left:50%;width:2.2px;height:26px;margin-left:-1.1px;background:var(--tr-fio,#4b4f57);border-radius:2px;z-index:0}
+  .gram__anexo--ligado .gp{z-index:1}
+  :global(body.gram--rotulos) .gram__anexo{opacity:1;transform:none}
+  /* a peça: forma recortada no ::before, sombra no próprio elemento */
+  .gp{display:inline-block;width:15px;height:19px;flex:none;filter:drop-shadow(0 2px 1.5px #000a) drop-shadow(0 0 .5px #0008)}
+  .gp::before{content:"";display:block;width:100%;height:100%;background:radial-gradient(ellipse 60% 50% at 38% 42%,#ffffff2e,#fff0 75%),linear-gradient(160deg,#ffffff85 0,#ffffff26 22%,#fff0 42%,#0000 58%,#00000070 100%),var(--c);clip-path:var(--f)}
+  .gp--fluxo{--f:path("M1.2 3.2Q1.2 0.6 3.5 1.9L13.4 8.2Q15 9.5 13.4 10.8L3.5 17.1Q1.2 18.4 1.2 15.8Z")}
+  .gp--objeto{width:15px;height:15px;--f:inset(1px round 3.5px)}
+  .gp--anexo{width:11px;height:11px;--f:circle(48%)}
+</style>
