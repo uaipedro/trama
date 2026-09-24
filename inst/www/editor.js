@@ -7,7 +7,7 @@
 // Sem bundler, sem JSX: `React.createElement` direto. O custo é a verbosidade;
 // o ganho é que uma coleção nova é um `.js` solto, sem toolchain.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ReactFlow, Background, BackgroundVariant, MiniMap, Controls,
@@ -26,6 +26,7 @@ import { contagemDoPasso } from "./params.js";
 import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
+import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -492,9 +493,12 @@ function NdNode({ id, data, selected }) {
   // Ausente, cada variável some do `style` e o padrão do CSS vale.
   const [w, hgt] = data.size || [];
   return h("div", { className: cls, style: {
-    "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined } }, [
+    "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined,
+    // O mini pinta só o bloco do ícone com a cor da categoria; o resto é a
+    // placa do card.
+    "--tr-cat": corDaCategoria(cat, spec), "--tr-cat-ink": tintaDaCategoria(cat, spec) } }, [
     h("div", { key: "hd", className: "tr-node-head",
-               style: { background: cat?.color || "#64748b" } }, [
+               style: { background: corDaCategoria(cat, spec), color: tintaDaCategoria(cat, spec) } }, [
       // Sem `color`: aqui o ícone herda a cor de FRENTE da faixa, porque a
       // faixa já É a cor da categoria (o background logo acima). Mesmo
       // componente, contexto invertido.
@@ -587,7 +591,7 @@ function NdNode({ id, data, selected }) {
       h("div", { key: "in", className: "tr-in" }, (spec.inputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port" }, [
           h(Handle, { key: "h", type: "target", position: Position.Left, id: p.name,
-                      style: { background: data.typeColors?.[p.type] || "#64748b" } }),
+                      style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
           mini ? null : h("span", { key: "n", title: p.type },
             p.name + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
         ]))),
@@ -595,7 +599,7 @@ function NdNode({ id, data, selected }) {
         h("div", { key: p.name, className: "tr-port tr-port-out" }, [
           mini ? null : h("span", { key: "n", title: p.type }, p.name),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
-                      style: { background: data.typeColors?.[p.type] || "#64748b" } }),
+                      style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
         ]))),
     ]),
     // O mini tem largura automática, então fica sem alça.
@@ -712,7 +716,15 @@ function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
       borderRadius: 12,
     });
   }
-  return h(BaseEdge, { id, path, style, markerEnd });
+  // Trilho largo e translúcido por baixo do fio (só visual, sem clique). Destino
+  // falho deixa o fio tracejado em vermelho: dá pra ver onde a trama quebrou sem
+  // abrir o card.
+  const quebrou = ["failed", "invalid"].includes(noDestino?.data?.state);
+  return h(Fragment, null, [
+    h("path", { key: "t", d: path, className: "tr-fio-trilho" }),
+    h(BaseEdge, { key: "f", id, path, style, markerEnd,
+                  className: quebrou ? "tr-fio-quebrado" : undefined }),
+  ]);
 }
 
 const edgeTypes = { trAresta: TrAresta };
@@ -806,7 +818,7 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
   const rotulo = (id) => cols.find((c) => c.id === id)?.label || id;
 
   const catColor = (n) =>
-    (catalog.categories || []).find((c) => c.id === n.category)?.color || "#64748b";
+    corDaCategoria((catalog.categories || []).find((c) => c.id === n.category), n);
 
   const item = (n, selo) => h("button", {
     key: n.id, className: "tr-palette-item", title: n.description || n.id,
@@ -861,7 +873,7 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
             const meta = (catalog.categories || []).find((c) => c.id === cid);
             return h("section", { key: cid }, [
               h("h4", { key: "t" }, [
-                h("i", { key: "d", style: { background: meta?.color || "#64748b" } }),
+                h("i", { key: "d", style: { background: corDaCategoria(meta) } }),
                 meta?.label || cid,
               ]),
               items.map((n) => item(n, null)),
@@ -2891,7 +2903,7 @@ function App() {
         h(MiniMap, { key: "mm", maskColor: "var(--tr-shadow)", nodeStrokeWidth: 6,
           // Frame só como contorno: cheio, ele cobriria os cards do minimapa.
           nodeColor: (n) => (n.type === "trFrame" ? "transparent"
-            : categories[n.data?.spec?.category]?.color || "#64748b"),
+            : corDaCategoria(categories[n.data?.spec?.category], n.data?.spec)),
           nodeStrokeColor: (n) => (n.type === "trFrame" ? "var(--tr-dim)" : "transparent") }),
       ]),
       menu ? h("div", { key: "menu", className: "tr-menu",

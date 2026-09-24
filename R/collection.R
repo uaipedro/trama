@@ -79,9 +79,47 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
   invisible()
 }
 
-#' Categoria: só agrupamento visual na paleta. Cor e rótulo vêm daqui e o
-#' front nunca conhece nenhuma delas por nome.
+#' Categoria: agrupamento na paleta e cor do cabeçalho dos cards.
+#'
+#' A cor deve vir do PAPEL do bloco no fluxo, não da coleção: assim um ajuste
+#' de modelo e um ARIMA têm a mesma cor em qualquer coleção, e o tipo do que o
+#' bloco produz fica nas portas. Os papéis seguem a ordem em que o analista
+#' trabalha, e são genéricos, nada de domínio:
+#'
+#' - `origem`: traz dados para o fluxo (ler arquivo, dados de exemplo).
+#' - `preparacao`: limpa, transforma ou reorganiza.
+#' - `inspecao`: descreve o que chegou (resumo, gráfico do dado bruto).
+#' - `ajuste`: constrói o objeto de análise (modelo, decomposição, PCA).
+#' - `leitura`: lê um ajuste que já existe (quadro da ANOVA, coeficientes,
+#'   médias, previsões, cargas). São os mostradores do modelo, não um passo a
+#'   mais da sequência; por isso a cor é uma versão clara da do ajuste.
+#' - `avaliacao`: julga um resultado (teste, pressupostos, métricas).
+#' - `saida`: tira algo do fluxo (gravar arquivo).
+#'
+#' O papel da categoria é o padrão dos blocos dela; um bloco que faz outra
+#' coisa declara o próprio em [tr_node()]. A cor de cada papel é do editor e
+#' muda com o tema. `color` fica para quem não declara papel: vale nos dois
+#' temas, e a tinta do título é escura.
+#'
+#' @param id Identificador da categoria, único no registro.
+#' @param label Rótulo na paleta.
+#' @param color Cor fixa, usada só quando `role` não é dado.
+#' @param role Papel dos blocos da categoria no fluxo; um dos listados acima.
 #' @export
-tr_category <- function(id, label, color = "#6366f1") {
-  list(id = id, label = label, color = color)
+tr_category <- function(id, label, color = "#6366f1", role = NULL) {
+  if (is.null(role)) return(list(id = id, label = label, color = color))
+  .tr_check_role(role, sprintf("Categoria '%s'", id))
+  list(id = id, label = label, role = role)
+}
+
+tr_roles <- c("origem", "preparacao", "inspecao", "ajuste", "leitura", "avaliacao", "saida")
+
+.tr_check_role <- function(role, quem) {
+  if (!is.character(role) || length(role) != 1L || !role %in% tr_roles) {
+    rlang::abort(sprintf(
+      "%s: papel \"%s\" desconhecido; use um de: %s.",
+      quem, paste(role, collapse = ", "), paste(tr_roles, collapse = ", ")),
+      class = "tr_error_bad_role")
+  }
+  invisible(role)
 }

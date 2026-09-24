@@ -2,12 +2,40 @@
 % Please edit documentation in R/collection.R
 \name{tr_category}
 \alias{tr_category}
-\title{Categoria: só agrupamento visual na paleta. Cor e rótulo vêm daqui e o
-front nunca conhece nenhuma delas por nome.}
+\title{Categoria: agrupamento na paleta e cor do cabeçalho dos cards.}
 \usage{
-tr_category(id, label, color = "#6366f1")
+tr_category(id, label, color = "#6366f1", role = NULL)
+}
+\arguments{
+\item{id}{Identificador da categoria, único no registro.}
+
+\item{label}{Rótulo na paleta.}
+
+\item{color}{Cor fixa, usada só quando \code{role} não é dado.}
+
+\item{role}{Papel dos blocos da categoria no fluxo; um dos listados acima.}
 }
 \description{
-Categoria: só agrupamento visual na paleta. Cor e rótulo vêm daqui e o
-front nunca conhece nenhuma delas por nome.
+A cor deve vir do PAPEL do bloco no fluxo, não da coleção: assim um ajuste
+de modelo e um ARIMA têm a mesma cor em qualquer coleção, e o tipo do que o
+bloco produz fica nas portas. Os papéis seguem a ordem em que o analista
+trabalha, e são genéricos, nada de domínio:
+}
+\details{
+\itemize{
+\item \code{origem}: traz dados para o fluxo (ler arquivo, dados de exemplo).
+\item \code{preparacao}: limpa, transforma ou reorganiza.
+\item \code{inspecao}: descreve o que chegou (resumo, gráfico do dado bruto).
+\item \code{ajuste}: constrói o objeto de análise (modelo, decomposição, PCA).
+\item \code{leitura}: lê um ajuste que já existe (quadro da ANOVA, coeficientes,
+médias, previsões, cargas). São os mostradores do modelo, não um passo a
+mais da sequência; por isso a cor é uma versão clara da do ajuste.
+\item \code{avaliacao}: julga um resultado (teste, pressupostos, métricas).
+\item \code{saida}: tira algo do fluxo (gravar arquivo).
+}
+
+O papel da categoria é o padrão dos blocos dela; um bloco que faz outra
+coisa declara o próprio em \code{\link[=tr_node]{tr_node()}}. A cor de cada papel é do editor e
+muda com o tema. \code{color} fica para quem não declara papel: vale nos dois
+temas, e a tinta do título é escura.
 }

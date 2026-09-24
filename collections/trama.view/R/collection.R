@@ -51,9 +51,9 @@ trama_collection <- function() {
     id = "view", version = "0.1.0", label = "Gráficos",
     types = list(view_plot_type()),
     categories = list(
-      trama::tr_category("relacao",     "Relação",     "#f472b6"),
-      trama::tr_category("distribuicao", "Distribuição", "#a855f7"),
-      trama::tr_category("comparacao",  "Comparação",  "#0ea5e9")
+      trama::tr_category("relacao",     "Relação", role = "inspecao"),
+      trama::tr_category("distribuicao", "Distribuição", role = "inspecao"),
+      trama::tr_category("comparacao",  "Comparação", role = "inspecao")
     ),
     # Os nós que vieram depois moram por categoria em `R/catalogo.R`, e entram
     # logo depois dos irmãos da mesma categoria: é a ordem da paleta.

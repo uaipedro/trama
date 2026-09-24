@@ -4,6 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { h, getWidget, getRenderer, getViews } from "trama";
 import { MODOS, ATALHOS, dica, modoDe } from "./modos.js";
+import { corDaCategoria } from "./papeis.js";
 
 // Dois retângulos empilhados, cheio = parte visível. O mini é um quadradinho
 // só, porque o card mini não tem nenhuma das duas partes.
@@ -64,7 +65,7 @@ export function ParamsList({ id, spec, params, onParam }) {
 // cards, porque é uma preferência de como trabalhar, não de um bloco.
 export function ParamsDock({ node, recolhido, onRecolher, categories }) {
   const { spec } = node.data;
-  const cor = categories?.[spec.category]?.color || "#64748b";
+  const cor = corDaCategoria(categories?.[spec.category], spec);
   if (recolhido) {
     return h("button", { className: "tr-dock-alca nodrag", title: "mostrar parâmetros",
                          onClick: () => onRecolher(false) }, "›");

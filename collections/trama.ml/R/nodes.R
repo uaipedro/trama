@@ -132,7 +132,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
   T <- "data/table"; G <- "view/plot"; M <- "ml/fit"
   visual <- function(...) trama.view::tr_view_props(...)
   list(
-    trama::tr_node("ml/tune", tr_ml_tune, label = "Ajustar hiperpar\u{E2}metros",
+    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, label = "Ajustar hiperpar\u{E2}metros",
       description = "Seleciona hiperpar\u{E2}metros por valida\u{E7}\u{E3}o cruzada e reajusta o vencedor no treino completo.",
       category = "ml_avaliar", inputs = list(dados = T),
       outputs = list(modelo = M, historico = T),
@@ -177,7 +177,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         "`alvo`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
         paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/roc", tr_ml_roc, label = "Curva ROC",
+    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, label = "Curva ROC",
       description = "Mostra sensibilidade contra falsos positivos em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
       category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
       params = visual(alvo = .tr_ml_target_param(),

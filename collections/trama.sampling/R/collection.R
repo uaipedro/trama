@@ -25,13 +25,13 @@ trama_collection <- function() {
     # sortear, declarar ou calibrar o desenho, estimar, e avaliar o desenho
     # antes de ir a campo.
     categories = list(
-      trama::tr_category("amostra_fonte",      "Fonte",       "#10b981"),
-      trama::tr_category("amostra_planejar",   "Planejar",    "#6366f1"),
-      trama::tr_category("amostra_selecionar", "Selecionar",  "#0891b2"),
-      trama::tr_category("amostra_desenho",    "Desenho",     "#14b8a6"),
-      trama::tr_category("amostra_precisao",   "Precisão",    "#4f46e5"),
-      trama::tr_category("amostra_estimar",    "Estimar",     "#0e7490"),
-      trama::tr_category("amostra_avaliar",    "Avaliar",     "#a855f7")
+      trama::tr_category("amostra_fonte",      "Fonte", role = "origem"),
+      trama::tr_category("amostra_planejar",   "Planejar", role = "preparacao"),
+      trama::tr_category("amostra_selecionar", "Selecionar", role = "preparacao"),
+      trama::tr_category("amostra_desenho",    "Desenho", role = "preparacao"),
+      trama::tr_category("amostra_precisao",   "Precisão", role = "avaliacao"),
+      trama::tr_category("amostra_estimar",    "Estimar", role = "ajuste"),
+      trama::tr_category("amostra_avaliar",    "Avaliar", role = "avaliacao")
     ),
     nodes = c(.tr_sampling_nos_fonte(), .tr_sampling_nos_planejar(), .tr_sampling_nos_domains(), .tr_sampling_nos_precisao(), .tr_sampling_nos_perguntas(),
               .tr_sampling_nos_selecionar(), .tr_sampling_nos_desenho(), .tr_sampling_nos_rake(), .tr_sampling_nos_estimar(), .tr_sampling_nos_avaliar())

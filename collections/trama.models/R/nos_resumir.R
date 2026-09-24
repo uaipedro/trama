@@ -182,7 +182,7 @@ tr_flow(reg) |>
 `models/plot_diagnostics`; `models/shapiro_residuals`; `view/points`.
 ]---")),
 
-    trama::tr_node("models/plot_diagnostics", fn = tr_models_plot_diagnostics, label = "Diagnóstico dos resíduos",
+    trama::tr_node("models/plot_diagnostics", role = "avaliacao", fn = tr_models_plot_diagnostics, label = "Diagnóstico dos resíduos",
       category = "modelo_resumir", icon = trama::tr_icon("microscope"),
       description = "Quatro painéis: resíduos × ajustados, Q-Q normal, escala-locação e histograma.",
       inputs = list(modelo = Fm), outputs = list(out = "view/plot"),
@@ -276,7 +276,7 @@ tr_flow(reg) |>
 os termos; `models/lmer`.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("models/compare", fn = tr_models_compare, label = "Comparar modelos",
+    trama::tr_node("models/compare", role = "avaliacao", fn = tr_models_compare, label = "Comparar modelos",
       category = "modelo_resumir", icon = trama::tr_icon("git-compare"),
       description = "Dois modelos aninhados: os termos a mais melhoram o ajuste? (F ou razão de verossimilhança)",
       inputs = list(modelo = Fm, outro = Fm), outputs = list(out = TE),
@@ -310,7 +310,7 @@ tr_flow(reg) |>
 um misto; `models/anova_table` para os termos um a um.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/random_test", fn = tr_models_random_test, label = "Teste dos aleatórios",
+    trama::tr_node("models/random_test", role = "avaliacao", fn = tr_models_random_test, label = "Teste dos aleatórios",
       category = "modelo_resumir", icon = trama::tr_icon("shuffle"),
       description = "Razão de verossimilhança para cada termo aleatório de um modelo misto.",
       inputs = list(modelo = Fm), outputs = list(out = EF),

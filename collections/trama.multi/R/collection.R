@@ -23,13 +23,13 @@ trama_collection <- function() {
     # Os gráficos ficam na categoria da técnica, e não numa "Ver" à parte: quem
     # fez uma PCA procura o biplot ao lado dela.
     categories = list(
-      trama::tr_category("multi_fonte",         "Fonte",           "#10b981"),
-      trama::tr_category("multi_diagnostico",   "Diagnóstico",     "#38bdf8"),
-      trama::tr_category("multi_pca",           "Componentes",     "#818cf8"),
-      trama::tr_category("multi_fatorial",      "Fatorial",        "#c084fc"),
-      trama::tr_category("multi_discriminante", "Classificação",   "#fb923c"),
-      trama::tr_category("multi_logistica",     "Logística",       "#f59e0b"),
-      trama::tr_category("multi_jackknife",     "Jackknife",       "#94a3b8")
+      trama::tr_category("multi_fonte",         "Fonte", role = "origem"),
+      trama::tr_category("multi_diagnostico",   "Diagnóstico", role = "inspecao"),
+      trama::tr_category("multi_pca",           "Componentes", role = "ajuste"),
+      trama::tr_category("multi_fatorial",      "Fatorial", role = "ajuste"),
+      trama::tr_category("multi_discriminante", "Classificação", role = "ajuste"),
+      trama::tr_category("multi_logistica",     "Logística", role = "ajuste"),
+      trama::tr_category("multi_jackknife",     "Jackknife", role = "avaliacao")
     ),
     nodes = c(.tr_multi_nos_fonte(), .tr_multi_nos_diagnostico(), .tr_multi_nos_correlacao(),
               .tr_multi_nos_pca(),

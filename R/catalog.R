@@ -51,7 +51,7 @@ tr_catalog <- function(registry = .tr_default_registry) {
     categories = unname(lapply(registry$categories, function(k) k)),
     adapters = unname(lapply(registry$adapters, function(a) list(from = a$from, to = a$to))),
     nodes = unname(lapply(registry$nodes, function(n) .tr_json_drop_empty(list(
-      id = n$id, label = n$label, category = n$category, version = n$version,
+      id = n$id, label = n$label, category = n$category, role = n$role, version = n$version,
       description = n$description, help = n$help, stochastic = n$stochastic,
       online = if (isTRUE(n$online)) TRUE else NULL,
       icon = if (is.null(n$icon)) NULL else unclass(n$icon),

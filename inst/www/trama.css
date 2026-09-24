@@ -16,6 +16,25 @@
          membro de uma região precisa mostrar as duas coisas ao mesmo tempo,
          sem uma apagar a outra. */
       --tr-stream:#2dd4bf;
+      /* Visual "hardware" do canvas (padrão desde 23/09): card fosco em relevo sobre
+         uma bancada; fio numa cor neutra só, pra não disputar com as cores de
+         categoria e de tipo. */
+      --tr-card:#2a2c31;--tr-card-hi:#34373d;--tr-card-line:#ffffff1a;
+      --tr-fio:#d6d3cb;
+      /* Cor por PAPEL do bloco no fluxo (`tr_category(role=)`), comum a todas
+         as coleções. No escuro o tom é claro e a tinta escura; no claro, o
+         inverso. Os pares passam de 4,5:1. Avaliação é vinho, e não vermelho,
+         pra não ser lida como falha (que é `--tr-err`). */
+      --tr-papel-origem:#7ab5e4;--tr-papel-preparacao:#e4b66d;--tr-papel-inspecao:#bea2df;
+      --tr-papel-ajuste:#83c9a8;--tr-papel-avaliacao:#e39bc2;--tr-papel-saida:#b5c3cd;
+      --tr-papel-origem-ink:#0b0e13;--tr-papel-preparacao-ink:#0b0e13;--tr-papel-inspecao-ink:#0b0e13;
+      --tr-papel-ajuste-ink:#0b0e13;--tr-papel-avaliacao-ink:#0b0e13;--tr-papel-saida-ink:#0b0e13;
+      /* Leitura é o painel do ajuste: o mesmo verde, invertido (fundo escuro
+         esverdeado, tinta verde clara), pra ficar visivelmente ligado a ele. */
+      --tr-papel-leitura:#1f3b31;--tr-papel-leitura-ink:#a8dcc3;
+      --tr-bancada:radial-gradient(circle at 20% 30%,#ffffff10 0 1px,transparent 2px) 0 0/7px 7px,
+        radial-gradient(circle at 70% 60%,#0000001a 0 1px,transparent 2px) 0 0/11px 11px,
+        linear-gradient(160deg,#4a4d52,#3a3d42 50%,#2e3135);
       color-scheme:dark}
 /* Tema claro: só redefine tokens. `data-tema` é resolvido no <head> antes do
    primeiro paint (R/app.R) e mantido pelo editor; `color-scheme` acompanha para
@@ -24,12 +43,22 @@
    deles (cor de dado, destaque, estado) são saturados nos dois temas. A exceção
    é `--tr-accent-ink`, o texto do hover do menu: o destaque claro é mais escuro,
    e tinta escura sobre ele não chega a 4,5:1 — lá o texto vira branco. */
-:root[data-tema="claro"]{--tr-bg:#f6f7f9;--tr-panel:#ffffff;--tr-line:#dfe3ea;--tr-fg:#1b2130;
+:root[data-tema="claro"]{--tr-head-sombra:#0000002e;--tr-bg:#f6f7f9;--tr-panel:#ffffff;--tr-line:#dfe3ea;--tr-fg:#1b2130;
       --tr-dim:#5f6b7f;--tr-accent:#3b6fd8;--tr-accent-ink:#fff;
       --tr-field:#f1f3f6;--tr-edge:#b6bdc9;--tr-hover:#eef1f5;--tr-dots:#c3c9d3;
       --tr-shadow:rgba(20,30,50,.12);--tr-shadow-hi:rgba(20,30,50,.22);
       --tr-backdrop:rgba(20,26,38,.55);--tr-err-bg:#fdecec;--tr-err-fg:#991b1b;
       --tr-stream:#0d9488;
+      --tr-card:#fbfaf7;--tr-card-hi:#ffffff;--tr-card-line:#0000002b;
+      --tr-fio:#4b4f57;
+      --tr-papel-origem:#275d8c;--tr-papel-preparacao:#976523;--tr-papel-inspecao:#75539b;
+      --tr-papel-ajuste:#31765a;--tr-papel-avaliacao:#8b3a62;--tr-papel-saida:#59636b;
+      --tr-papel-origem-ink:#fff;--tr-papel-preparacao-ink:#fff;--tr-papel-inspecao-ink:#fff;
+      --tr-papel-ajuste-ink:#fff;--tr-papel-avaliacao-ink:#fff;--tr-papel-saida-ink:#fff;
+      --tr-papel-leitura:#d3e9de;--tr-papel-leitura-ink:#1d5a41;
+      --tr-bancada:radial-gradient(circle at 30% 40%,#ffffff80 0 1px,transparent 1.5px) 0 0/6px 6px,
+        radial-gradient(circle at 60% 70%,#0000000a 0 1px,transparent 1.5px) 0 0/9px 9px,
+        linear-gradient(165deg,#e8e5df,#dbd7cf);
       color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
@@ -37,7 +66,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-app{position:fixed;inset:0;display:grid;grid-template-columns:1fr 260px}
 .tr-canvas{position:relative;min-width:0}
 .tr-loading{padding:24px;color:var(--tr-dim)}
-.react-flow__background{background:var(--tr-bg)}
+/* Bancada no lugar dos pontos: textura fosca (claro) ou concreto (escuro). O
+   `Background` do xyflow continua montado; só a trama dele some. */
+.react-flow__background{background:var(--tr-bancada)}
+.react-flow__background pattern,.react-flow__background circle{display:none}
 /* Os pontos do fundo e a linha de conexão em arraste são do xyflow, com cor padrão
    fixa; as variáveis deixam o tema trocá-las. */
 .react-flow{--xy-background-pattern-dots-color-default:var(--tr-dots);
@@ -46,22 +78,30 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    da de nós, então uma ligação que cruza um card passa POR BAIXO dele. Já
    houve um `z-index:5` aqui pra aresta nunca sumir atrás de card, mas a linha
    riscando o corpo de outro card ficava pior do que sumir por um trecho. */
-.react-flow__edge-path{stroke:var(--tr-edge);stroke-width:2}
+.react-flow__edge-path{stroke:var(--tr-fio);stroke-width:2.2}
+/* Trilho: faixa larga e translúcida por baixo do fio, dá volume sem cor nova. */
+.tr-fio-trilho{fill:none;stroke:var(--tr-fio);stroke-opacity:.13;stroke-width:7;pointer-events:none}
+.react-flow__edge-path.tr-fio-quebrado{stroke:var(--tr-err);stroke-dasharray:5 5;opacity:.8}
 .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-accent)}
 /* Aresta de FLUXO (`animated: true`, decidido em `docToFlow` pelo campo
    `stream` do catálogo — Tarefa 8.1). O xyflow já anima o traço tracejado de
    toda aresta `animated`; aqui só se troca a COR, pra ela não se confundir com
    uma aresta comum selecionada (que usa `--tr-accent`). */
-.react-flow__edge.animated .react-flow__edge-path{stroke:var(--tr-stream);stroke-width:2.5}
+.react-flow__edge.animated .react-flow__edge-path{stroke:var(--tr-fio);stroke-width:2.2;
+  stroke-dasharray:6 5;animation:none}
 
 /* --- nó --- */
 /* O piso de tamanho mora aqui, e não no servidor: 240x132 é política de
    apresentação, e o `min-` protege também o documento escrito à mão (ou por um
    LLM) que traga `ui.sizes` absurdo — card de 10px não é card. */
 /* `position:relative` ancora a alça de redimensionar no canto do card. */
-.tr-node{position:relative;width:var(--tr-w,240px);min-width:240px;background:var(--tr-panel);
-         border:1px solid var(--tr-line);
-         border-radius:10px;overflow:hidden;box-shadow:0 6px 20px var(--tr-shadow)}
+/* Card fosco em relevo. `overflow:visible` porque as tomadas saem da borda; o
+   que precisava de recorte (preview, abas) já rola por conta própria, e o
+   cabeçalho arredonda os próprios cantos. */
+.tr-node{position:relative;width:var(--tr-w,240px);min-width:240px;
+         background:linear-gradient(180deg,var(--tr-card-hi),var(--tr-card));
+         border:1px solid var(--tr-card-line);border-radius:9px;
+         box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 3px 0 #0003,0 12px 22px #0006}
 .tr-node-sel{border-color:var(--tr-accent)}
 .tr-state-running{border-color:var(--tr-accent)}
 .tr-state-failed{border-color:var(--tr-err)}
@@ -74,8 +114,23 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-node-region{outline:2px dashed var(--tr-stream);outline-offset:3px}
 .tr-node-orphan{padding:10px;border:1px dashed var(--tr-err);color:var(--tr-err);
                 background:var(--tr-panel);border-radius:10px;width:240px}
+/* A cor de categoria chega inline em `background`; o gradiente de relevo vai
+   por cima como `background-image`, então não precisa conhecer a cor. */
 .tr-node-head{position:relative;display:flex;align-items:center;gap:6px;padding:6px 9px;
-              font-weight:600;color:var(--tr-ink);font-size:12px}
+              font-weight:600;color:var(--tr-ink);font-size:12px;border-radius:8px 8px 0 0;
+              background-image:linear-gradient(180deg,#ffffff40,#fff0 45%,#0000 60%,#00000026)!important;
+              box-shadow:inset 0 1px 0 #ffffff70,inset 0 -1px 0 #0003;text-shadow:0 1px 0 var(--tr-head-sombra,#ffffff50)}
+/* LED de estado na ponta do cabeçalho: apagado parado, âmbar rodando, verde
+   pronto, vermelho em falha. O mini já tem a bolinha própria. */
+.tr-node:not(.tr-node-mini) .tr-node-head::after{content:"";flex:none;width:9px;height:9px;margin-left:2px;
+  border-radius:50%;background:radial-gradient(circle at 35% 30%,#e5e5e5,#8a8a8a 55%,#4a4a4a);
+  box-shadow:inset 0 0 0 1px #0004}
+.tr-node.tr-state-done .tr-node-head::after,.tr-node.tr-state-cached .tr-node-head::after{
+  background:radial-gradient(circle at 35% 30%,#bff5c9,#22c55e 55%,#146c33);box-shadow:0 0 6px #22c55e,inset 0 0 0 1px #0004}
+.tr-node.tr-state-running .tr-node-head::after,.tr-node.tr-state-pending .tr-node-head::after{
+  background:radial-gradient(circle at 35% 30%,#fff1c2,#f59e0b 55%,#7a4d05);box-shadow:0 0 8px #f59e0b}
+.tr-node.tr-state-failed .tr-node-head::after,.tr-node.tr-state-invalid .tr-node-head::after{
+  background:radial-gradient(circle at 35% 30%,#ffd0cc,#ef4444 55%,#7a130d);box-shadow:0 0 8px #ef4444}
 .tr-fold-btn{background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
   padding:0;display:inline-flex;line-height:1}
 .tr-fold-btn:hover{opacity:1}
@@ -121,16 +176,31 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-dur{font-weight:500;opacity:.75;font-size:10px}
 .tr-dot{width:7px;height:7px;border-radius:50%;background:var(--tr-ink);opacity:.5}
 
-/* Modo mini (Fase 3): card compacto estilo n8n — ícone grande e rótulo, sem
-   preview/params/portas com texto visível. `width:auto` porque o card não
-   precisa mais caber linha de parâmetro nem abas; `min-width` cai junto, só o
-   bastante pra caber o rótulo quebrado em duas linhas. O cabeçalho vira
-   coluna (ícone acima, título abaixo) em vez da linha do card normal. */
-.tr-node-mini{width:auto;min-width:76px}
-.tr-node-mini .tr-node-head{flex-direction:column;gap:4px;padding:10px 8px 8px}
-.tr-node-mini .tr-node-icon-main{width:28px;height:28px}
-.tr-node-mini .tr-node-title{flex:none;white-space:normal;text-align:center;
-  max-width:84px;overflow:visible;text-overflow:clip}
+/* Modo mini: etiqueta de hardware. Uma placa horizontal na cor do card, com
+   o ícone num bloco na cor da categoria à esquerda, o rótulo no meio e uma
+   grade de ranhuras à direita (a "pegada" da etiqueta). O cabeçalho perde a
+   faixa colorida (`--tr-cat` chega inline do editor.js) e o card não tem
+   corpo, então a altura é a do cabeçalho. */
+.tr-node-mini{width:auto;min-width:0;border-radius:7px}
+.tr-node-mini .tr-node-head{flex-direction:row;gap:9px;padding:0 10px 0 0;height:38px;
+  border-radius:6px;color:var(--tr-fg);text-shadow:none;font-weight:500;font-size:13px;
+  background:transparent!important;background-image:none!important;box-shadow:none}
+.tr-node-mini .tr-node-icon-main{flex:none;box-sizing:content-box;width:18px;height:18px;
+  padding:9px 9px;margin:-1px 0 -1px -1px;border-radius:7px 0 0 7px;
+  background:var(--tr-cat) linear-gradient(180deg,#ffffff45,#fff0 45%,#0000 60%,#00000030);
+  color:var(--tr-cat-ink);box-shadow:inset 0 1px 0 #ffffff70,inset -1px 0 0 #0003,1px 0 0 #ffffff14}
+.tr-node-mini .tr-node-title{flex:none;white-space:nowrap;max-width:160px;
+  overflow:hidden;text-overflow:ellipsis}
+.tr-node-mini .tr-node-head::after{display:block;content:"";flex:none;width:14px;height:18px;
+  margin-left:4px;opacity:.6;
+  background:radial-gradient(circle,var(--tr-fg) 0 .9px,transparent 1.3px) 0 0/4.6px 4.6px}
+/* O LED de estado encosta na grade, no canto de cima. */
+.tr-node-mini .tr-mini-dot{top:4px;right:4px;width:6px;height:6px;box-shadow:0 0 5px currentColor}
+.tr-node-mini :is(.tr-mini-dot.tr-done,.tr-mini-dot.tr-cached){color:#22c55e;background:#22c55e}
+.tr-node-mini :is(.tr-mini-dot.tr-running,.tr-mini-dot.tr-pending){color:#f59e0b;background:#f59e0b}
+.tr-node-mini :is(.tr-mini-dot.tr-failed,.tr-mini-dot.tr-invalid){color:#ef4444;background:#ef4444}
+.tr-node-mini .tr-mini-dot:not([class*="tr-done"],[class*="tr-cached"],[class*="tr-running"],[class*="tr-pending"],[class*="tr-failed"],[class*="tr-invalid"]){box-shadow:inset 0 0 0 1px #0004}
+.tr-node-mini.tr-state-failed{box-shadow:inset 0 0 0 1px var(--tr-err),0 3px 0 #0003,0 12px 22px #0006}
 /* O único `tr-fold-btn` que sobra no mini é o de re-sortear (`sd`, bloco
    estocástico) — os de fold de preview/mini viraram o seletor de modo, que
    mora fora do cabeçalho neste card (regra acima, `.tr-node-mini
@@ -332,7 +402,20 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-port{position:relative;height:15px;display:flex;align-items:center;padding:0 10px;
          color:var(--tr-dim)}
 .tr-port-out{justify-content:flex-end}
-.react-flow__handle{width:9px;height:9px;border:2px solid var(--tr-panel)}
+/* Porta lateral: uma seta na cor do TIPO (`--porta-cor`, vinda do catálogo),
+   metade para fora da borda, apontando no sentido do fluxo — entrada e saída
+   apontam para a direita. Sem carcaça: a forma já é o objeto. O ponto de
+   ligação do xyflow é o centro do elemento, então o fio encosta na seta. */
+.react-flow__handle{width:15px;height:19px;min-width:0;min-height:0;border:0;border-radius:0;
+  background:transparent;filter:drop-shadow(0 2px 1.5px #000a) drop-shadow(0 0 .5px #0008)}
+/* A forma fica no pseudo-elemento: `clip-path` no próprio handle cortaria a
+   sombra junto. */
+.react-flow__handle::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 50% at 38% 42%,#ffffff2e,#fff0 75%),linear-gradient(160deg,#ffffff85 0,#ffffff26 22%,#fff0 42%,#0000 58%,#00000070 100%),var(--porta-cor,#64748b);clip-path:var(--porta-forma,path("M1.2 3.2Q1.2 0.6 3.5 1.9L13.4 8.2Q15 9.5 13.4 10.8L3.5 17.1Q1.2 18.4 1.2 15.8Z"))}
+.react-flow__handle-right{right:-9px;transform:translateY(-50%)}
+.react-flow__handle-left{left:-3px;transform:translateY(-50%)}
+/* A entrada fica quase toda dentro do card; o nome da porta abre espaço. */
+.tr-in .tr-port{padding-left:17px}
 
 /* Canto inferior-direito, abaixo da última porta: as laterais são das portas, e
    o respiro extra em `.tr-ports` é o que mantém a alça fora do alvo delas.

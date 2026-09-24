@@ -96,3 +96,19 @@ test_that("ícone sobrevive à serialização JSON", {
   expect_equal(round$nodes[[1]]$icon$kind, "set")
   expect_equal(round$nodes[[1]]$icon$value, "eraser")
 })
+
+test_that("categoria com papel manda o papel e não a cor", {
+  k <- tr_category("fit", "Ajustar", role = "ajuste")
+  expect_equal(k$role, "ajuste")
+  expect_null(k$color)
+  expect_equal(tr_category("x", "X", "#123456")$color, "#123456")
+  expect_error(tr_category("x", "X", role = "modelagem"), class = "tr_error_bad_role")
+})
+
+test_that("nó pode declarar o próprio papel, validado como o da categoria", {
+  n <- tr_node("t/prever", function() 1, description = "prevê", role = "leitura")
+  expect_equal(n$role, "leitura")
+  expect_null(tr_node("t/x", function() 1, description = "x")$role)
+  expect_error(tr_node("t/y", function() 1, description = "y", role = "analise"),
+               class = "tr_error_bad_role")
+})

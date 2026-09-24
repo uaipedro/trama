@@ -7,12 +7,12 @@ trama_collection <- function() {
   trama::tr_collection("ml", version = "0.1.0", label = "Machine learning",
     types = list(.tr_ml_model_type()),
     categories = list(
-      trama::tr_category("ml_dados", "Preparar", "#0891b2"),
-      trama::tr_category("ml_simples", "Interpret\u{E1}veis", "#65a30d"),
-      trama::tr_category("ml_ensembles", "Conjuntos de \u{E1}rvores", "#d97706"),
-      trama::tr_category("ml_margem", "Vetores de suporte", "#7c3aed"),
-      trama::tr_category("ml_avaliar", "Prever e avaliar", "#2563eb"),
-      trama::tr_category("ml_inspecionar", "Inspecionar", "#be123c")),
+      trama::tr_category("ml_dados", "Preparar", role = "preparacao"),
+      trama::tr_category("ml_simples", "Interpret\u{E1}veis", role = "ajuste"),
+      trama::tr_category("ml_ensembles", "Conjuntos de \u{E1}rvores", role = "ajuste"),
+      trama::tr_category("ml_margem", "Vetores de suporte", role = "ajuste"),
+      trama::tr_category("ml_avaliar", "Prever e avaliar", role = "avaliacao"),
+      trama::tr_category("ml_inspecionar", "Inspecionar", role = "leitura")),
     nodes = c(.tr_ml_workflow_nodes(), .tr_ml_model_nodes(), .tr_ml_analysis_nodes()))
 }
 
@@ -39,7 +39,7 @@ trama_collection <- function() {
         "Duas tabelas, treino e teste, sem duplicar nem perder linhas.",
         "trama.ml::tr_ml_split(trama.ml::tr_ml_example(), alvo = 'Species')",
         "`ml/cart`, `ml/figs`, `ml/predict`. Ajuste imputa\u{E7}\u{E3}o, sele\u{E7}\u{E3}o de vari\u{E1}veis e escalas somente no treino.")),
-    trama::tr_node("ml/predict", tr_ml_predict, label = "Prever",
+    trama::tr_node("ml/predict", role = "leitura", tr_ml_predict, label = "Prever",
       description = "Aplica o modelo a novas linhas, preservando a ordem e as colunas.",
       category = "ml_avaliar", inputs = list(modelo = "ml/fit", dados = "data/table"), outputs = list(out = "data/table"),
       help = .tr_ml_help("Use dados de teste ou dados novos com os mesmos preditores do treino. A resposta n\u{E3}o \u{E9} necess\u{E1}ria para prever. Colunas de sa\u{ED}da existentes s\u{E3}o recusadas para n\u{E3}o sobrescrever dados.",

@@ -436,6 +436,10 @@ A função é a função — chamável no console. **`tr_test_collection()` gera
 automaticamente, pra cada nó, o teste "console == grafo" [ind]**, então
 terceiros ganham a garantia de graça.
 
+A cor do card vem do **papel** do bloco no fluxo (`role` em `tr_category()` ou
+`tr_node()`), nunca da coleção nem do tipo. Os sete papéis, os casos de
+fronteira e as cores estão em [`linguagem-visual.md`](linguagem-visual.md).
+
 ### 7.2.1 Contrato de ajuda
 
 - **`description` é obrigatória.** Uma linha, no imperativo, dizendo o que o nó

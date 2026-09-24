@@ -45,13 +45,18 @@ tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
 #' inicial, e `step(state, <inputs/params>)` devolve `list(state = , out = )` —
 #' sempre essa forma, sem atalho, porque duas formas de retorno obrigariam o
 #' driver, o preview e os testes a tratar as duas.
+#'
+#' `role` é o papel do bloco no fluxo (ver [tr_category()]). Sem ele, vale o
+#' da categoria; declare só quando o bloco faz outra coisa que os vizinhos de
+#' paleta, como um "Prever" (leitura) dentro de "Modelar" (ajuste).
 #' @export
 tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),
                     params = list(), pure = TRUE, fingerprint = NULL,
                     volatile = FALSE, stochastic = FALSE, icon = NULL,
-                    init = NULL, step = NULL) {
+                    init = NULL, step = NULL, role = NULL) {
   .tr_check_id(id, "id de nó")
+  if (!is.null(role)) .tr_check_role(role, sprintf("Nó '%s'", id))
 
   # Um nó sem uma linha dizendo o que faz é um nó que ninguém vai saber
   # escolher na paleta — e o catálogo é lido por máquina também, então a
@@ -204,7 +209,7 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     inputs = inputs, outputs = outputs, params = params,
     pure = isTRUE(pure), fingerprint = fingerprint,
     volatile = isTRUE(volatile), stochastic = stochastic, icon = icon,
-    init = init, step = step, online = online
+    init = init, step = step, online = online, role = role
   ), class = "tr_node")
 }
 

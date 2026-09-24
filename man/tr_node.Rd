@@ -21,7 +21,8 @@ tr_node(
   stochastic = FALSE,
   icon = NULL,
   init = NULL,
-  step = NULL
+  step = NULL,
+  role = NULL
 )
 }
 \description{
@@ -52,4 +53,8 @@ nada no hash teria mudado. \code{volatile = TRUE} nunca cacheia entre execuçõe
 inicial, e \verb{step(state, <inputs/params>)} devolve \code{list(state = , out = )} —
 sempre essa forma, sem atalho, porque duas formas de retorno obrigariam o
 driver, o preview e os testes a tratar as duas.
+
+\code{role} é o papel do bloco no fluxo (ver \code{\link[=tr_category]{tr_category()}}). Sem ele, vale o
+da categoria; declare só quando o bloco faz outra coisa que os vizinhos de
+paleta, como um "Prever" (leitura) dentro de "Modelar" (ajuste).
 }

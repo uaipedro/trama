@@ -639,7 +639,7 @@ para Wilks e correlações canônicas; `multi/classify` para caso novo;
 comparar com o que se vê sem o grupo.
 ]---")),
 
-    trama::tr_node("multi/classify", fn = tr_multi_classify, label = "Classificar",
+    trama::tr_node("multi/classify", role = "leitura", fn = tr_multi_classify, label = "Classificar",
       category = "multi_discriminante", icon = trama::tr_icon("tags"),
       description = "Classe prevista e probabilidade de cada grupo, do treino ou de uma tabela nova.",
       inputs = list(modelo = "multi/classifier", novos = trama::tr_port(TB, required = FALSE)),
@@ -698,7 +698,7 @@ para ver os erros no plano discriminante; `data/filter` para separar os casos
 de probabilidade baixa.
 ]---")),
 
-    trama::tr_node("multi/confusion", fn = tr_multi_confusion, label = "Matriz de confusão",
+    trama::tr_node("multi/confusion", role = "avaliacao", fn = tr_multi_confusion, label = "Matriz de confusão",
       category = "multi_discriminante", icon = trama::tr_icon("grid-3x3"),
       description = "Grupo real × previsto e taxa de acerto, por validação cruzada ou resubstituição.",
       inputs = list(modelo = "multi/classifier"), outputs = list(out = TB),
@@ -746,7 +746,7 @@ erraram e com que probabilidade; `multi/roc` para a troca entre sensibilidade e
 especificidade; `multi/logistic` para o outro classificador.
 ]---")),
 
-    trama::tr_node("multi/discriminant_functions", fn = tr_multi_discriminant_functions,
+    trama::tr_node("multi/discriminant_functions", role = "leitura", fn = tr_multi_discriminant_functions,
       label = "Funções discriminantes",
       category = "multi_discriminante", icon = trama::tr_icon("sigma"),
       description = "Autovalor, % de separação, correlação canônica e lambda de Wilks de cada função; ou os coeficientes.",
@@ -811,7 +811,7 @@ tr_flow(reg) |>
 que é outra pergunta — funções significativas não garantem classificar bem.
 ]---")),
 
-    trama::tr_node("multi/box_m", fn = tr_multi_box_m, label = "M de Box",
+    trama::tr_node("multi/box_m", role = "avaliacao", fn = tr_multi_box_m, label = "M de Box",
       category = "multi_discriminante", icon = trama::tr_icon("scale"),
       description = "Testa se as matrizes de covariância dos grupos são iguais: linear ou quadrática?",
       inputs = list(dados = TB), outputs = list(out = TB),
@@ -862,7 +862,7 @@ tr_flow(reg) |>
 para compará-las pelo acerto.
 ]---")),
 
-    trama::tr_node("multi/plot_discriminant", fn = tr_multi_plot_discriminant,
+    trama::tr_node("multi/plot_discriminant", role = "leitura", fn = tr_multi_plot_discriminant,
       label = "Plano discriminante",
       category = "multi_discriminante", icon = trama::tr_icon("chart-scatter"),
       description = "Escores das funções discriminantes por grupo, com centróides e elipses.",

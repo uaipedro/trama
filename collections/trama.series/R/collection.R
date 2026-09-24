@@ -76,16 +76,16 @@ trama_collection <- function() {
     # pacote que o implementa: quem chega à aba sabe o que quer perguntar, não
     # de onde a função vem.
     categories = list(
-      trama::tr_category("serie_fonte",     "Fonte",          "#10b981"),
-      trama::tr_category("serie_operar",    "Operar",         "#06b6d4"),
-      trama::tr_category("serie_decompor",  "Decompor",       "#84cc16"),
-      trama::tr_category("serie_modelar",   "Modelar",        "#f59e0b"),
-      trama::tr_category("serie_raiz",      "Raiz unitária",  "#ef4444"),
-      trama::tr_category("serie_autocorr",  "Autocorrelação", "#f97316"),
-      trama::tr_category("serie_tendencia", "Tendência",      "#e11d48"),
-      trama::tr_category("serie_sazonal",   "Sazonalidade",   "#db2777"),
-      trama::tr_category("serie_regressao", "Regressão",      "#a855f7"),
-      trama::tr_category("serie_ver",       "Ver",            "#f472b6")
+      trama::tr_category("serie_fonte",     "Fonte", role = "origem"),
+      trama::tr_category("serie_operar",    "Operar", role = "preparacao"),
+      trama::tr_category("serie_decompor",  "Decompor", role = "ajuste"),
+      trama::tr_category("serie_modelar",   "Modelar", role = "ajuste"),
+      trama::tr_category("serie_raiz",      "Raiz unitária", role = "avaliacao"),
+      trama::tr_category("serie_autocorr",  "Autocorrelação", role = "avaliacao"),
+      trama::tr_category("serie_tendencia", "Tendência", role = "avaliacao"),
+      trama::tr_category("serie_sazonal",   "Sazonalidade", role = "avaliacao"),
+      trama::tr_category("serie_regressao", "Regressão", role = "avaliacao"),
+      trama::tr_category("serie_ver",       "Ver", role = "inspecao")
     ),
     nodes = list(
 
@@ -610,7 +610,7 @@ decompor o log; `series/component` para extrair um componente;
 `series/interpolate` quando a série tem faltantes.
 ]---")),
 
-      trama::tr_node("series/component", fn = tr_series_component, label = "Componente",
+      trama::tr_node("series/component", role = "leitura", fn = tr_series_component, label = "Componente",
         category = "serie_decompor", icon = icone("square-split-horizontal"),
         description = "Tira um componente da decomposição como série.",
         inputs = list(decomposicao = D), outputs = list(out = S),
@@ -884,7 +884,7 @@ tr_flow(reg) |>
 `series/ets`, a versão em espaço de estados; `series/forecast` para prever.
 ]---")),
 
-      trama::tr_node("series/forecast", fn = tr_series_forecast, label = "Prever",
+      trama::tr_node("series/forecast", role = "leitura", fn = tr_series_forecast, label = "Prever",
         category = "serie_modelar", icon = icone("trending-up"),
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
         inputs = list(modelo = M), outputs = list(out = F),
@@ -967,7 +967,7 @@ de um modelo ajustado; `data/bind_rows` para juntar as tabelas de erro de
 vários métodos numa só.
 ]---")),
 
-      trama::tr_node("series/residuals", fn = tr_series_residuals, label = "Resíduos",
+      trama::tr_node("series/residuals", role = "leitura", fn = tr_series_residuals, label = "Resíduos",
         category = "serie_modelar", icon = icone("scan-line"),
         description = "Os resíduos do modelo, como série, para diagnóstico.",
         inputs = list(modelo = M), outputs = list(out = S),
@@ -1002,7 +1002,7 @@ tr_flow(reg) |>
 a forma da distribuição.
 ]---")),
 
-      trama::tr_node("series/accuracy", fn = tr_series_accuracy, label = "Acurácia",
+      trama::tr_node("series/accuracy", role = "avaliacao", fn = tr_series_accuracy, label = "Acurácia",
         category = "serie_modelar", icon = icone("square-sigma"),
         description = "Medidas de erro da previsão: no treino e, com a série real, no teste.",
         inputs = list(previsao = F, real = trama::tr_port(S, required = FALSE)),
@@ -2416,7 +2416,7 @@ tr_flow(reg) |>
 frequência é alta demais.
 ]---", grafico = TRUE)),
 
-      trama::tr_node("series/plot_decomposition", fn = tr_series_plot_decomposition,
+      trama::tr_node("series/plot_decomposition", role = "leitura", fn = tr_series_plot_decomposition,
         label = "Gráfico da decomposição",
         category = "serie_ver", icon = icone("file-chart-line"),
         description = "Os quatro componentes da decomposição, empilhados.",
@@ -2449,7 +2449,7 @@ tr_flow(reg) |>
 um componente só.
 ]---", grafico = TRUE)),
 
-      trama::tr_node("series/plot_forecast", fn = tr_series_plot_forecast, label = "Gráfico da previsão",
+      trama::tr_node("series/plot_forecast", role = "leitura", fn = tr_series_plot_forecast, label = "Gráfico da previsão",
         category = "serie_ver", icon = icone("chart-area"),
         description = "O histórico e a previsão, com os leques de 80 e 95%.",
         inputs = list(previsao = F), outputs = list(out = G),

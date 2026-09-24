@@ -24,13 +24,13 @@ trama_collection <- function() {
     # conferir os pressupostos, testar sem modelo. Os delineamentos têm aba
     # própria porque quem planta um experimento procura "DBC", e não "lm".
     categories = list(
-      trama::tr_category("modelo_fonte",        "Fonte",        "#10b981"),
-      trama::tr_category("modelo_ajustar",      "Ajustar",      "#14b8a6"),
-      trama::tr_category("modelo_anova",        "ANOVA",        "#0ea5e9"),
-      trama::tr_category("modelo_resumir",      "Resumir",      "#eab308"),
-      trama::tr_category("modelo_medias",       "Médias",       "#8b5cf6"),
-      trama::tr_category("modelo_pressupostos", "Pressupostos", "#f97316"),
-      trama::tr_category("modelo_testes",       "Testes",       "#ef4444")
+      trama::tr_category("modelo_fonte",        "Fonte", role = "origem"),
+      trama::tr_category("modelo_ajustar",      "Ajustar", role = "ajuste"),
+      trama::tr_category("modelo_anova",        "ANOVA", role = "ajuste"),
+      trama::tr_category("modelo_resumir",      "Resumir", role = "leitura"),
+      trama::tr_category("modelo_medias",       "Médias", role = "leitura"),
+      trama::tr_category("modelo_pressupostos", "Pressupostos", role = "avaliacao"),
+      trama::tr_category("modelo_testes",       "Testes", role = "avaliacao")
     ),
     nodes = c(.tr_models_nos_fonte(), .tr_models_nos_ajustar(), .tr_models_nos_anova(),
               .tr_models_nos_resumir(), .tr_models_nos_medias(),

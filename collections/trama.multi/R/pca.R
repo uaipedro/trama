@@ -371,7 +371,7 @@ tr_flow(reg) |>
 `multi/pca_variance` para as tabelas; `multi/plot_correlation` antes de tudo.
 ]---")),
 
-    trama::tr_node("multi/pca_variance", fn = tr_multi_pca_variance, label = "Variância explicada",
+    trama::tr_node("multi/pca_variance", role = "leitura", fn = tr_multi_pca_variance, label = "Variância explicada",
       category = "multi_pca", icon = trama::tr_icon("chart-bar-decreasing"),
       description = "Autovalor, proporção e proporção acumulada da variância de cada componente.",
       inputs = pca, outputs = list(out = "data/table"),
@@ -412,7 +412,7 @@ tr_flow(reg) |>
 o de Kaiser.
 ]---")),
 
-    trama::tr_node("multi/pca_loadings", fn = tr_multi_pca_loadings, label = "Cargas da PCA",
+    trama::tr_node("multi/pca_loadings", role = "leitura", fn = tr_multi_pca_loadings, label = "Cargas da PCA",
       category = "multi_pca", icon = trama::tr_icon("table-2"),
       description = "A relação de cada variável com cada componente: correlações ou autovetores.",
       inputs = pca, outputs = list(out = "data/table"),
@@ -456,7 +456,7 @@ tr_flow(reg) |>
 `multi/correlation_circle`, as mesmas correlações em gráfico; `multi/biplot`.
 ]---")),
 
-    trama::tr_node("multi/scree", fn = tr_multi_scree, label = "Scree",
+    trama::tr_node("multi/scree", role = "leitura", fn = tr_multi_scree, label = "Scree",
       category = "multi_pca", icon = trama::tr_icon("chart-no-axes-combined"),
       description = "Variância explicada por componente, com a acumulada e a linha de Kaiser.",
       inputs = pca, outputs = G,
@@ -496,7 +496,7 @@ tr_flow(reg) |>
 `multi/pca_variance`, a mesma informação em tabela; `multi/parallel`.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("multi/biplot", fn = tr_multi_biplot, label = "Biplot",
+    trama::tr_node("multi/biplot", role = "leitura", fn = tr_multi_biplot, label = "Biplot",
       category = "multi_pca", icon = trama::tr_icon("chart-scatter"),
       description = "Observações e variáveis no plano de dois componentes.",
       inputs = pca, outputs = G,
@@ -562,7 +562,7 @@ tr_flow(reg) |>
 `view/points` para o gráfico de escores sem setas, ligado direto no `multi/pca`.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("multi/correlation_circle", fn = tr_multi_correlation_circle,
+    trama::tr_node("multi/correlation_circle", role = "leitura", fn = tr_multi_correlation_circle,
       label = "Círculo de correlações",
       category = "multi_pca", icon = trama::tr_icon("orbit"),
       description = "Correlação de cada variável com dois componentes, dentro do círculo unitário.",

@@ -389,7 +389,7 @@ fatores; `multi/plot_loadings` para o mapa de calor com outro corte;
 que se quer é resumir, e não achar construtos.
 ]---")),
 
-    trama::tr_node("multi/fa_loadings", fn = tr_multi_fa_loadings, label = "Cargas fatoriais",
+    trama::tr_node("multi/fa_loadings", role = "leitura", fn = tr_multi_fa_loadings, label = "Cargas fatoriais",
       category = "multi_fatorial", icon = trama::tr_icon("table-2"),
       description = "Tabela das cargas de padrão ou de estrutura, ou a correlação entre fatores.",
       inputs = list(fa = "multi/fa"), outputs = list(out = "data/table"),
@@ -448,7 +448,7 @@ tr_flow(reg) |>
 cargas como mapa de calor; `data/filter` para ficar só com as cargas altas.
 ]---")),
 
-    trama::tr_node("multi/plot_loadings", fn = tr_multi_plot_loadings, label = "Mapa das cargas",
+    trama::tr_node("multi/plot_loadings", role = "leitura", fn = tr_multi_plot_loadings, label = "Mapa das cargas",
       category = "multi_fatorial", icon = trama::tr_icon("grid-3x3"),
       description = "Mapa de calor das cargas fatoriais, com as pequenas apagadas.",
       inputs = list(fa = "multi/fa"), outputs = list(out = "view/plot"),

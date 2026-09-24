@@ -11,6 +11,7 @@ tr_errors <- function() {
   e <- c(
     tr_error_bad_adapter = "tr_adapter() sem função",
     tr_error_bad_asset = "'js' ou 'css' de tr_collection() não é caminho relativo único",
+    tr_error_bad_role = "papel de tr_category() fora da lista de papéis do editor",
     tr_error_bad_collection = "objeto não é tr_collection",
     tr_error_bad_format = "documento em formato não suportado",
     tr_error_bad_help = "'help' de tr_node() não é uma string única",

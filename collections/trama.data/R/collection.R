@@ -17,20 +17,20 @@ trama_collection <- function() {
     id = "data", version = "0.1.0", label = "Dados", js = "trama/index.js",
     types = list(data_table_type()),
     categories = list(
-      trama::tr_category("source",    "Fonte",       "#6366f1"),
+      trama::tr_category("source",    "Fonte", role = "origem"),
       # Conhecer vem logo depois de trazer: a ordem daqui é a ordem dos grupos
       # na paleta, e é ela que sugere o próximo passo a quem está montando.
-      trama::tr_category("inspect",   "Conhecer",    "#f59e0b"),
+      trama::tr_category("inspect",   "Conhecer", role = "inspecao"),
       # Limpar vem depois de conhecer e antes de transformar: só depois de ver
       # o resumo é que se sabe qual coluna veio como texto quando devia ser
       # número.
-      trama::tr_category("clean",     "Limpar",      "#14b8a6"),
-      trama::tr_category("transform", "Transformar", "#0ea5e9"),
+      trama::tr_category("clean",     "Limpar", role = "preparacao"),
+      trama::tr_category("transform", "Transformar", role = "preparacao"),
       # Reformatar vem depois de transformar e antes de agregar: mudar a FORMA
       # da tabela é o passo que costuma preceder o resumo — empilha primeiro,
       # agrupa depois.
-      trama::tr_category("reshape",   "Reformatar",  "#ec4899"),
-      trama::tr_category("aggregate", "Agregar",     "#a855f7"),
+      trama::tr_category("reshape",   "Reformatar", role = "preparacao"),
+      trama::tr_category("aggregate", "Agregar", role = "preparacao"),
       # "Fluxo" é grupo próprio, e não um canto de "Transformar": o par
       # `to_stream`/`from_stream` não muda a tabela — muda o MODO DE EXECUÇÃO
       # do pedaço de grafo entre os dois, que passa a rodar ponto a ponto, numa
@@ -38,8 +38,8 @@ trama_collection <- function() {
       # nome próprio é o mínimo. Vem depois dos verbos e antes da saída porque é
       # essa a ordem do trabalho: primeiro se sabe montar a transformação,
       # depois se decide assisti-la acontecer.
-      trama::tr_category("stream",    "Fluxo",       "#84cc16"),
-      trama::tr_category("sink",      "Saída",       "#22c55e")
+      trama::tr_category("stream",    "Fluxo", role = "preparacao"),
+      trama::tr_category("sink",      "Saída", role = "saida")
     ),
     nodes = list(
       trama::tr_node("data/read_csv", fn = tr_read_csv, label = "Ler CSV",

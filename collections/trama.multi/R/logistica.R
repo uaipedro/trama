@@ -352,7 +352,7 @@ escolher o corte; `multi/discriminant` para a comparação; models/glm para a
 logística como modelo de regressão, com desvio e contrastes.
 ]---")),
 
-    trama::tr_node("multi/logistic_coefficients", fn = tr_multi_logistic_coefficients,
+    trama::tr_node("multi/logistic_coefficients", role = "leitura", fn = tr_multi_logistic_coefficients,
       label = "Razões de chances",
       category = "multi_logistica", icon = trama::tr_icon("sigma"),
       description = "Coeficientes, erros padrão de Wald, p-valores e razões de chances com intervalo.",
@@ -399,7 +399,7 @@ tr_flow(reg) |>
 sem a aproximação de Wald; `multi/logistic` para o modelo.
 ]---")),
 
-    trama::tr_node("multi/plot_odds", fn = tr_multi_plot_odds, label = "Gráfico das razões de chances",
+    trama::tr_node("multi/plot_odds", role = "leitura", fn = tr_multi_plot_odds, label = "Gráfico das razões de chances",
       category = "multi_logistica", icon = trama::tr_icon("chart-bar"),
       description = "Razões de chances de cada preditor com intervalo de 95%, em escala log.",
       inputs = list(modelo = LG), outputs = list(out = "view/plot"),
