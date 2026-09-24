@@ -4,15 +4,27 @@
 \alias{abrir}
 \title{Abre o launcher do trama}
 \usage{
-abrir(porta = 8725L)
+abrir(
+  porta = 8725L,
+  ja_rodando = .tl_launcher_rodando,
+  abrir_janela = tl_open_window
+)
 }
 \arguments{
 \item{porta}{Porta onde a tela de início sobe; se ocupada, usa a
 primeira livre a partir daqui.}
+
+\item{ja_rodando}{Função que confere se já há um launcher respondendo em
+\code{porta} (padrão \code{.tl_launcher_rodando()}) — parâmetro só para os testes
+poderem mockar sem abrir um socket de verdade.}
+
+\item{abrir_janela}{Como abrir a janela quando o launcher já está de pé.
+Por padrão \code{tl_open_window()}.}
 }
 \value{
 Não retorna em uso normal — \code{shiny::runApp()} bloqueia a sessão
-enquanto a tela de início está aberta.
+enquanto a tela de início está aberta (a menos que já houvesse um
+launcher de pé, caso em que só abre a janela e retorna).
 }
 \description{
 Ponto de entrada chamado pelo atalho instalado (\code{Trama-Setup.exe} no

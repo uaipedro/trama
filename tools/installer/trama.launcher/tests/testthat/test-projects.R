@@ -14,6 +14,28 @@ test_that("tl_projects_dir respeita TRAMA_PROJECTS", {
   expect_equal(tl_projects_dir(), normalizePath(dir, mustWork = FALSE))
 })
 
+test_that(".tl_documentos_windows usa o valor literal do registro (OneDrive)", {
+  d <- .tl_documentos_windows(ler_registro = function() "C:/Users/pedro/OneDrive/Documentos")
+  expect_equal(d, "C:/Users/pedro/OneDrive/Documentos")
+})
+
+test_that(".tl_documentos_windows expande %VAR% quando o registro não veio expandido", {
+  withr::local_envvar(c(USERPROFILE = "C:/Users/pedro"))
+  d <- .tl_documentos_windows(ler_registro = function() "%USERPROFILE%\\Documents")
+  expect_equal(d, "C:/Users/pedro\\Documents")
+})
+
+test_that(".tl_documentos_windows cai para USERPROFILE\\Documents se o registro falhar", {
+  withr::local_envvar(c(USERPROFILE = "C:/Users/pedro"))
+  d <- .tl_documentos_windows(ler_registro = function() stop("sem registro"))
+  expect_equal(d, file.path("C:/Users/pedro", "Documents"))
+})
+
+test_that(".tl_expandir_env_windows expande mais de uma variável", {
+  withr::local_envvar(c(A = "1", B = "2"))
+  expect_equal(.tl_expandir_env_windows("%A%/x/%B%"), "1/x/2")
+})
+
 test_that("tl_projects lista vazio quando não há nada", {
   local_home_e_projetos()
   pr <- tl_projects()
@@ -51,7 +73,7 @@ test_that("tl_project_open adiciona aos recentes e chama o motor de subir o edit
   )
 
   expect_true(is.numeric(porta))
-  expect_true(porta >= 8726L)
+  expect_true(porta >= 8740L)
   expect_match(chamadas$janela, sprintf("127.0.0.1:%d", porta))
   expect_equal(tl_state_read()$recentes, normalizePath(caminho))
   expect_equal(tl_project_port(caminho), porta)
