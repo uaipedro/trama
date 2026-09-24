@@ -1,5 +1,5 @@
 {
-  "trama": "2026.10",
+  "trama": "2026.10.1",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": ["https://uaipedro.r-universe.dev"],
@@ -10,6 +10,10 @@
     "trama.launcher": "0.1.0"
   },
   "collections": {
-    "trama.ml": {"version": "0.1.0", "title": "Aprendizado de máquina", "requires": []}
+    "trama.ml": {"version": "0.1.0", "title": "Aprendizado de máquina", "requires": []},
+    "trama.models": {"version": "0.1.0", "title": "Modelos estatísticos", "requires": []},
+    "trama.multi": {"version": "0.1.0", "title": "Análise multivariada", "requires": []},
+    "trama.sampling": {"version": "0.1.0", "title": "Amostragem", "requires": []},
+    "trama.series": {"version": "0.1.0", "title": "Séries temporais", "requires": []}
   }
 }

@@ -140,10 +140,15 @@ tl_projects <- function(s = tl_state_read()) {
   )
 }
 
-#' Cria um projeto novo: valida o nome e cria a pasta dentro de
-#' `tl_projects_dir()`.
+#' Cria um projeto novo: valida o nome, cria a pasta dentro de
+#' `tl_projects_dir()` e grava `trama.json` com as coleções pedidas
+#' (núcleo `trama.data`/`trama.view` por padrão, mas desligável).
+#'
+#' `auto_unbox = FALSE` de propósito: uma coleção só tem que sair como array
+#' `["trama.data"]` no JSON, nunca como a string nua `"trama.data"` — mesmo
+#' motivo documentado em `R/project.R` (`tr_project_new()`, no pacote raiz).
 #' @noRd
-tl_project_new <- function(nome) {
+tl_project_new <- function(nome, colecoes = c("trama.data", "trama.view")) {
   if (.tl_projeto_nome_invalido(nome)) {
     stop(sprintf("'%s' não é um nome de projeto válido.", nome), call. = FALSE)
   }
@@ -156,7 +161,62 @@ tl_project_new <- function(nome) {
   }
 
   dir.create(caminho, recursive = TRUE)
+  .tl_trama_json_escrever(caminho, list(collections = as.character(colecoes)))
   caminho
+}
+
+#' Caminho do manifesto de projeto (`trama.json`) dentro de `caminho`.
+#' @noRd
+.tl_trama_json <- function(caminho) file.path(caminho, "trama.json")
+
+#' Lê `trama.json` de `caminho` como lista, ou lista vazia se o arquivo não
+#' existir ainda (projeto criado fora do launcher, por exemplo).
+#' @noRd
+.tl_trama_json_ler <- function(caminho) {
+  arquivo <- .tl_trama_json(caminho)
+  if (!file.exists(arquivo)) return(list())
+  jsonlite::fromJSON(arquivo, simplifyVector = FALSE)
+}
+
+#' Grava `cfg` (lista) em `trama.json` dentro de `caminho`, com
+#' `collections` sempre como array (`auto_unbox = FALSE`) mesmo com um só
+#' elemento — ver nota de `tl_project_new()`.
+#' @noRd
+.tl_trama_json_escrever <- function(caminho, cfg) {
+  writeLines(
+    jsonlite::toJSON(cfg, auto_unbox = FALSE, pretty = TRUE, null = "null"),
+    .tl_trama_json(caminho)
+  )
+  invisible(caminho)
+}
+
+#' Coleções (nomes de pacote) que o `trama.json` de `caminho` pede. Vetor
+#' vazio se o projeto não tiver manifesto ou não tiver `collections`.
+#' @noRd
+tl_project_collections <- function(caminho) {
+  cfg <- .tl_trama_json_ler(caminho)
+  if (is.null(cfg$collections)) character(0) else as.character(unlist(cfg$collections))
+}
+
+#' Grava `colecoes` no `trama.json` de `caminho`, preservando as demais
+#' chaves do manifesto (ex.: `settings`/executor) — só `collections` é
+#' sobrescrita.
+#' @noRd
+tl_project_set_collections <- function(caminho, colecoes) {
+  cfg <- .tl_trama_json_ler(caminho)
+  cfg$collections <- as.character(colecoes)
+  .tl_trama_json_escrever(caminho, cfg)
+  invisible(caminho)
+}
+
+#' Coleções que o projeto pede e que NÃO estão instaladas em `lib` (pasta
+#' do pacote não existe ali). Usado ao abrir um projeto para oferecer
+#' "Instalar e abrir" em vez de deixar `trama::tr_project()` recusar lá na
+#' frente com um erro cru.
+#' @noRd
+tl_project_missing_collections <- function(caminho, lib) {
+  pedidas <- tl_project_collections(caminho)
+  pedidas[!vapply(pedidas, function(p) dir.exists(file.path(lib, p)), logical(1))]
 }
 
 #' Abre um projeto: adiciona `caminho` aos recentes do estado e sobe o
@@ -192,17 +252,113 @@ tl_project_open <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
   }
 
   porta <- .tl_porta_livre(.tl_porta_projetos_inicial())
+  pid_file <- .tl_pid_file(caminho)
+  dir.create(dirname(pid_file), recursive = TRUE, showWarnings = FALSE)
+  unlink(pid_file)
   cmd <- sprintf(
     paste0(
+      "writeLines(as.character(Sys.getpid()), %s); ",
       ".libPaths(c(%s, .Library)); ",
       "trama::tr_app(trama::tr_project(%s), port = %d, options = list(launch.browser = FALSE))"
     ),
-    deparse(lib), deparse(caminho), porta
+    deparse(pid_file), deparse(lib), deparse(caminho), porta
   )
   rscript <- file.path(R.home("bin"), "Rscript")
   executar(rscript, c("--vanilla", "-e", shQuote(cmd)), wait = FALSE)
   assign(caminho, porta, envir = .tl_processos_projeto)
+  assign(caminho, pid_file, envir = .tl_pids_projeto)
 
   abrir_janela(sprintf("http://127.0.0.1:%d", porta))
   invisible(porta)
+}
+
+#' Pasta onde ficam os arquivos de PID dos editores de projeto (um por
+#' projeto aberto), dentro de `TRAMA_HOME`. Existe para
+#' `tl_project_restart()` conseguir matar o processo do editor sem depender
+#' de `processx`/`callr` (decisão já tomada em `tl_project_open()`):
+#' `system2(..., wait = FALSE)` não devolve o PID do filho de forma
+#' portável, então o próprio processo R do editor grava o `Sys.getpid()`
+#' dele nesse arquivo assim que sobe.
+#' @noRd
+.tl_run_dir <- function() file.path(tl_home(), "run")
+
+#' Slug estável (mesma pasta → mesmo nome de arquivo) a partir do caminho
+#' do projeto, só com caracteres seguros de nome de arquivo em qualquer SO.
+#' Não precisa ser criptográfico: só identifica "o pid file deste projeto",
+#' nunca é comparado entre sessões diferentes de forma sensível.
+#' @noRd
+.tl_slug <- function(caminho) {
+  soma <- sum(utf8ToInt(caminho)) %% 2147483647L
+  base <- gsub("[^A-Za-z0-9]+", "-", basename(caminho))
+  sprintf("%s-%x", base, soma)
+}
+
+#' Arquivo de PID do editor de `caminho`.
+#' @noRd
+.tl_pid_file <- function(caminho) file.path(.tl_run_dir(), paste0(.tl_slug(caminho), ".pid"))
+
+#' Registro em memória `caminho -> arquivo de pid`, espelho de
+#' `.tl_processos_projeto` (que guarda a porta) para o mesmo projeto.
+#' @noRd
+.tl_pids_projeto <- new.env(parent = emptyenv())
+
+#' PID do editor de `caminho`, lido do arquivo que o próprio processo
+#' gravou ao subir — `NA` se nunca foi registrado ou o arquivo ainda não
+#' foi escrito (processo subindo) ou está corrompido.
+#' @noRd
+tl_project_pid <- function(caminho) {
+  chave <- normalizePath(caminho, mustWork = FALSE)
+  if (!exists(chave, envir = .tl_pids_projeto, inherits = FALSE)) return(NA_integer_)
+  arquivo <- get(chave, envir = .tl_pids_projeto)
+  if (!file.exists(arquivo)) return(NA_integer_)
+  pid <- suppressWarnings(as.integer(trimws(readLines(arquivo, n = 1, warn = FALSE))))
+  if (length(pid) != 1 || is.na(pid)) return(NA_integer_)
+  pid
+}
+
+#' Mata o processo `pid` — `tools::pskill()` no Windows (mesma
+#' recomendação da task: sem adicionar `processx`), `tools::pskill()`
+#' também serve no Unix (mata com `SIGTERM`). Função à parte só para poder
+#' mockar nos testes, sem matar processo de verdade.
+#' @noRd
+.tl_matar_pid <- function(pid) {
+  if (is.na(pid)) return(invisible(FALSE))
+  invisible(tools::pskill(pid))
+}
+
+#' Reinicia o editor de um projeto já aberto: mata o processo registrado
+#' (pelo PID gravado em `.tl_pid_file()`) e sobe um novo, numa porta nova
+#' (a antiga pode continuar presa por um instante depois do `pskill`).
+#' Usado quando as coleções de um projeto mudam (task "Coleções" da UI) —
+#' o editor de pé continua com o registro antigo em memória até reiniciar.
+#'
+#' Se o projeto não estava aberto (`tl_project_aberto()` é `FALSE`), não
+#' faz nada além de limpar o registro: não sobe editor para um projeto que
+#' o usuário não tinha aberto.
+#'
+#' @param caminho Pasta do projeto.
+#' @param lib Biblioteca da release atual.
+#' @param abrir_janela Ver `tl_project_open()`.
+#' @param executar Ver `tl_project_open()`.
+#' @param matar Wrapper em torno de `tools::pskill()`, só para mockar nos testes.
+#' @noRd
+tl_project_restart <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
+                                abrir_janela = tl_open_window, executar = system2,
+                                matar = .tl_matar_pid) {
+  caminho <- normalizePath(caminho, mustWork = TRUE)
+  if (!tl_project_aberto(caminho)) return(invisible(NULL))
+
+  pid <- tl_project_pid(caminho)
+  matar(pid)
+  rm(list = caminho, envir = .tl_processos_projeto)
+  if (exists(caminho, envir = .tl_pids_projeto, inherits = FALSE)) {
+    rm(list = caminho, envir = .tl_pids_projeto)
+  }
+
+  # Dá um instante para a porta antiga soltar antes de checar de novo —
+  # sem isso, `tl_project_open()` acharia (por uma checagem de socket que
+  # ainda não caiu) que o projeto continua aberto na porta velha e só
+  # reabriria a janela nela, sem subir o editor novo.
+  Sys.sleep(0.2)
+  tl_project_open(caminho, lib = lib, abrir_janela = abrir_janela, executar = executar)
 }
