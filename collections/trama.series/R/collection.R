@@ -733,7 +733,10 @@ oscilação cresce com o nível.
 
 # ---- Modelar ----------------------------------------------------------------
 
-      trama::tr_node("series/arima", fn = tr_series_arima, label = "ARIMA",
+      trama::tr_node("series/arima",
+        pressupostos = .tr_series_doc("series/arima")$pressupostos,
+        referencias = .tr_series_doc("series/arima")$referencias,
+        fn = tr_series_arima, label = "ARIMA",
         category = "serie_modelar", icon = icone("sigma"),
         description = "Ajusta um ARIMA sazonal, automático ou com a ordem escolhida.",
         inputs = list(serie = S), outputs = list(out = M),
@@ -800,7 +803,10 @@ diagnosticar; `series/ndiffs`, `series/acf` e `series/pacf` para escolher a
 ordem à mão; `series/ets` para a alternativa por suavização exponencial.
 ]---")),
 
-      trama::tr_node("series/ets", fn = tr_series_ets, label = "ETS",
+      trama::tr_node("series/ets",
+        pressupostos = .tr_series_doc("series/ets")$pressupostos,
+        referencias = .tr_series_doc("series/ets")$referencias,
+        fn = tr_series_ets, label = "ETS",
         category = "serie_modelar", icon = icone("waves-horizontal"),
         description = "Suavização exponencial em espaço de estados (erro, tendência, sazonalidade).",
         inputs = list(serie = S), outputs = list(out = M),
@@ -850,7 +856,10 @@ tr_flow(reg) |>
 grande família; `series/baseline` para a referência que o modelo tem de bater.
 ]---")),
 
-      trama::tr_node("series/holt_winters", fn = tr_series_holt_winters, label = "Holt-Winters",
+      trama::tr_node("series/holt_winters",
+        pressupostos = .tr_series_doc("series/holt_winters")$pressupostos,
+        referencias = .tr_series_doc("series/holt_winters")$referencias,
+        fn = tr_series_holt_winters, label = "Holt-Winters",
         category = "serie_modelar", icon = icone("trending-up-down"),
         description = "Suavização exponencial clássica com nível, tendência e sazonalidade.",
         inputs = list(serie = S), outputs = list(out = M),
@@ -885,7 +894,10 @@ tr_flow(reg) |>
 `series/ets`, a versão em espaço de estados; `series/forecast` para prever.
 ]---")),
 
-      trama::tr_node("series/forecast", role = "leitura", fn = tr_series_forecast, label = "Prever",
+      trama::tr_node("series/forecast",
+        pressupostos = .tr_series_doc("series/forecast")$pressupostos,
+        referencias = .tr_series_doc("series/forecast")$referencias,
+        role = "leitura", fn = tr_series_forecast, label = "Prever",
         category = "serie_modelar", icon = icone("trending-up"),
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
         inputs = list(modelo = M), outputs = list(out = F),
@@ -901,8 +913,7 @@ de 12 para 24 recomputa só este card.
 Os intervalos são o ponto. Uma previsão sem leque diz "vai dar 450"; com o
 leque, diz "entre 390 e 520 com 95% de chance" — e o leque ABRE com o
 horizonte, que é a informação mais honesta que um modelo dá sobre o próprio
-limite. Eles supõem resíduos sem autocorrelação e com variância constante:
-confira com `series/residuals` → `series/ljung_box` antes de confiar.
+limite. O que eles supõem está em Pressupostos, logo abaixo.
 
 Os níveis são sempre 80 e 95, porque são os que o gráfico e a tabela nomeiam
 (`li_80`, `ls_95`); um fluxo que filtra por `ls_95` não quebra.
@@ -927,7 +938,10 @@ tr_flow(reg) |>
 para exportar.
 ]---")),
 
-      trama::tr_node("series/baseline", fn = tr_series_baseline, label = "Previsão de referência",
+      trama::tr_node("series/baseline",
+        pressupostos = .tr_series_doc("series/baseline")$pressupostos,
+        referencias = .tr_series_doc("series/baseline")$referencias,
+        fn = tr_series_baseline, label = "Previsão de referência",
         category = "serie_modelar", icon = icone("repeat"),
         description = "Média, ingênuo, ingênuo sazonal ou deriva: o que qualquer modelo tem de bater.",
         inputs = list(serie = S), outputs = list(out = F),
@@ -1003,7 +1017,10 @@ tr_flow(reg) |>
 a forma da distribuição.
 ]---")),
 
-      trama::tr_node("series/accuracy", role = "avaliacao", fn = tr_series_accuracy, label = "Acurácia",
+      trama::tr_node("series/accuracy",
+        pressupostos = .tr_series_doc("series/accuracy")$pressupostos,
+        referencias = .tr_series_doc("series/accuracy")$referencias,
+        role = "avaliacao", fn = tr_series_accuracy, label = "Acurácia",
         category = "serie_modelar", icon = icone("square-sigma"),
         description = "Medidas de erro da previsão: no treino e, com a série real, no teste.",
         inputs = list(previsao = F, real = trama::tr_port(S, required = FALSE)),
