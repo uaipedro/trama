@@ -21,6 +21,8 @@ Diversidade genética entre genótipos, tipologia de propriedades, qualquer perg
 - **Método** — `UPGMA` (ligação média, o mais usado em melhoramento), `Ward.D2`, `completo`, `simples` ou `k-means` (só a partir da tabela, com a semente do nó).
 - **Grupos** — o k do corte.
 
+Com Mahalanobis, o UPGMA usa o D² (como nas teses) e o Ward usa D, a raiz, porque o Ward já eleva ao quadrado. Com Gower, o Ward é aproximado: a Gower não é euclidiana.
+
 ## Exemplo
 
 ```r

@@ -9,7 +9,7 @@ related: [multi/distance, multi/cluster]
 
 ## O que o bloco faz
 
-O bloco `multi/tocher` aplica o método de otimização de Tocher (Rao, 1952; como em Cruz, Regazzi e Carneiro) a uma matriz do `multi/distance`. O limite θ é a maior das menores distâncias; cada grupo começa pelo par mais próximo que sobra e recebe indivíduos enquanto a distância média do candidato ao grupo não passar de θ.
+O bloco `multi/tocher` aplica o método de otimização de Tocher (Rao, 1952; como em Cruz, Regazzi e Carneiro) a uma matriz do `multi/distance`. O limite θ é a maior das menores distâncias; cada grupo começa pelo par mais próximo que sobra e recebe indivíduos enquanto a distância média do candidato ao grupo não passar de θ. Se o par de abertura já está acima de θ, cada indivíduo restante vira um grupo de um e o método termina (como o `tocher()` original do biotools).
 
 ## Exemplo
 

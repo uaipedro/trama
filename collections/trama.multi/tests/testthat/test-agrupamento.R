@@ -98,7 +98,7 @@ test_that("Tocher: exemplo resolvido à mão", {
   # → θ = max(1, 1, 2, 2, 2) = 2.
   # G1 começa em A–B (1). Candidatos: C soma 3+2 = 5 → média 2,5 > 2; D 9+8,
   # E 10+9: ninguém entra. G2 começa no par mais próximo que sobra, D–E (2).
-  # C: soma 6+7 = 13 → 6,5 > 2, fica fora. G3 = {C}.
+  # C: soma 6+7 = 13 → 6,5 > 2, fica fora. G3 = {C}, o último que sobra.
   D <- matrix(c(0, 1, 3, 9, 10,
                 1, 0, 2, 8, 9,
                 3, 2, 0, 6, 7,
@@ -110,6 +110,33 @@ test_that("Tocher: exemplo resolvido à mão", {
   # Com C mais perto de A e B (média 1,5 ≤ 2), entra no G1.
   D[3, 1:2] <- D[1:2, 3] <- c(1.5, 1.5)
   expect_equal(trama.multi:::.tr_multi_tocher(D)$grupos, c(1L, 1L, 1L, 2L, 2L))
+})
+
+test_that("Tocher: par de abertura acima de θ vira grupos de um (garlicdist do biotools)", {
+  # Valores do biotools::tocher(garlicdist) (algoritmo original), fixados aqui
+  # para o teste não depender do pacote: θ = 2,324152; o par 16–17 (d = 5,44)
+  # passa de θ e cada um fica sozinho.
+  skip_if_not_installed("biotools")
+  e <- new.env(); utils::data("garlicdist", package = "biotools", envir = e)
+  r <- trama.multi:::.tr_multi_tocher(as.matrix(e$garlicdist))
+  expect_equal(r$theta, 2.324152, tolerance = 1e-6)
+  esperado <- list(c(8, 9, 12, 4, 10, 2, 7, 15), c(1, 6, 14), c(11, 13), c(3, 5), 16, 17)
+  obtido <- lapply(seq_len(max(r$grupos)), function(k) which(r$grupos == k))
+  expect_equal(lapply(obtido, sort), lapply(esperado, function(v) sort(as.integer(v))))
+})
+
+test_that("Tocher no USArrests (D²): nenhum grupo com par acima de θ", {
+  d <- tr_multi_distance(usa(), metodo = "mahalanobis", rotulo = "nome")
+  t <- tr_multi_tocher(d)
+  expect_true(all(t$distancia_media[t$n == 2L] <= t$theta[1]))
+  expect_true(all(c("Alaska", "Vermont", "Florida", "Georgia") %in% t$membros[t$n == 1L]))
+})
+
+test_that("Ward sobre Mahalanobis usa D (a raiz do D²)", {
+  d <- tr_multi_distance(usa(), metodo = "mahalanobis", rotulo = "nome")
+  ag <- tr_multi_cluster(distancia = d, metodo = "Ward.D2")
+  expect_equal(ag$arvore$merge, stats::hclust(stats::as.dist(sqrt(d$d)), "ward.D2")$merge)
+  expect_equal(ag$arvore$height, stats::hclust(stats::as.dist(sqrt(d$d)), "ward.D2")$height)
 })
 
 test_that("Tocher no nó: tabela por grupo, todos os indivíduos uma vez", {

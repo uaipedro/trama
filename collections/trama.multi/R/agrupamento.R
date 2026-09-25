@@ -286,11 +286,16 @@ tr_multi_cluster <- function(dados = NULL, distancia = NULL, cols = "", padroniz
                                  cofenetica = NA_real_, distancia = dist))
   }
 
-  h <- stats::hclust(dist$d, method = .TR_MULTI_LIGACOES[[metodo]])
+  # O `ward.D2` eleva a distância ao quadrado por dentro; sobre o D² de
+  # Mahalanobis isso daria D⁴. Para Ward entra a raiz (D, a distância
+  # euclidiana nos dados transformados); os outros métodos usam o D², como nas
+  # teses. A cofenética compara com a matriz que de fato entrou.
+  dd <- if (metodo == "Ward.D2" && dist$metodo == "mahalanobis") sqrt(dist$d) else dist$d
+  h <- stats::hclust(dd, method = .TR_MULTI_LIGACOES[[metodo]])
   # Correlação cofenética: quanto a árvore preserva as distâncias originais.
   # Acima de 0,7 a árvore é considerada boa representação (Sokal e Rohlf 1962),
   # e é o número que toda tese de diversidade põe abaixo do dendrograma.
-  cof <- stats::cor(as.vector(stats::cophenetic(h)), as.vector(dist$d))
+  cof <- stats::cor(as.vector(stats::cophenetic(h)), as.vector(dd))
   g <- stats::cutree(h, k = k)
   g <- match(g, unique(g[h$order]))  # G1 é o grupo da esquerda do dendrograma
   .tr_multi_cluster_obj(metodo = metodo, arvore = h, kmeans = NULL, grupos = unname(g), k = k,
@@ -429,6 +434,14 @@ tr_multi_plot_dendrogram <- function(agrupamento, grupos = 0L, horizontal = FALS
     if (length(livres) == 1L) { g[livres] <- atual; break }
     sub <- D[livres, livres, drop = FALSE]
     par <- livres[arrayInd(which.min(sub), dim(sub))]
+    # Par de abertura mais distante que θ não forma grupo: se nem os dois mais
+    # próximos que sobraram cabem no critério, ninguém mais cabe, e cada um
+    # vira grupo de um (Rao 1952; o `tocher()` "original" do biotools). Juntá-los
+    # mesmo assim criava grupos com distância interna acima do próprio limite.
+    if (D[par[1], par[2]] > theta) {
+      g[livres] <- atual + seq_along(livres) - 1L
+      break
+    }
     membros <- par
     livres <- setdiff(livres, par)
     while (length(livres)) {
@@ -501,8 +514,8 @@ aqui.
   Só faz sentido com variáveis na mesma unidade.
 - **mahalanobis** — o D² generalizado, (xᵢ − xⱼ)' S⁻¹ (xᵢ − xⱼ), com S a
   covariância entre as variáveis nas próprias linhas. Desconta a CORRELAÇÃO: dois
-  caracteres que medem quase a mesma coisa não contam duas vezes. Sai o D² (e
-  não a raiz), que é o que se reporta em melhoramento. Em experimento com
+  caracteres que medem quase a mesma coisa não contam duas vezes. Sai como
+  **D²** (e não a raiz), que é o que se reporta em melhoramento. Em experimento com
   repetições, o livro usa a covariância RESIDUAL; aqui é a das médias, então
   ligue a tabela de médias por genótipo e leia como D² descritivo.
 - **gower** — para caracteres MISTOS: numéricos, fatores e texto juntos (cor da
@@ -513,7 +526,7 @@ aqui.
 
 A coluna com o nome de cada linha (o genótipo), escrita no mapa e no
 dendrograma. Precisa de um nome por linha, sem repetir: com repetições no
-experimento, resuma antes (`data/group_summarise` por genótipo) e ligue as médias.
+experimento, resuma antes (média por genótipo, na coleção de dados) e ligue as médias.
 
 ### O card
 
@@ -566,11 +579,14 @@ Junta os indivíduos em grupos de parecidos. Ligue UMA das duas entradas:
 Juntam, passo a passo, os dois grupos mais próximos, até sobrar um; a árvore
 (dendrograma) é o card. Diferem em como medir a distância entre GRUPOS:
 
-- **UPGMA** (ligação média) — a média das distâncias entre os membros. O mais
+- **UPGMA** (ligação média) — a média das distâncias entre os membros (sobre
+  Mahalanobis, a média dos D², como nas teses). O mais
   usado em diversidade genética, e o que costuma dar a maior correlação
   cofenética.
 - **Ward.D2** — junta os grupos que menos aumentam a soma de quadrados dentro
-  deles; grupos compactos e de tamanhos parecidos. Supõe distância euclidiana.
+  deles; grupos compactos e de tamanhos parecidos. Supõe distância euclidiana:
+  sobre Mahalanobis usa a raiz do D² (D), porque o Ward já eleva ao quadrado;
+  sobre Gower é só aproximado, porque a Gower não é euclidiana.
 - **completo** — a MAIOR distância entre membros: grupos compactos.
 - **simples** — a MENOR distância (vizinho mais próximo): encadeia, e serve
   mais para achar indivíduos isolados do que para formar grupos.
@@ -606,7 +622,7 @@ plano das duas primeiras componentes principais.
 Um agrupamento (`multi/cluster`), com o dendrograma de card. Ligado numa
 entrada de tabela, vira os dados com a coluna `grupo` (G1, G2...; G1 é o da
 esquerda do dendrograma) — pronta para um `view/points` com `cor = grupo` ou um
-`data/group_summarise` das médias por grupo.
+resumo das médias por grupo na coleção de dados.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("usa", "multi/example", dataset = "USArrests") |>
@@ -682,7 +698,8 @@ grupo não passe de um limite, θ.
    essa soma dividida pelo número de membros (a distância média dele ao grupo)
    não passar de θ. Repete-se até ninguém caber.
 4. O grupo fecha, e o próximo começa pelo par mais próximo entre os que
-   sobraram. Quem sobra sozinho é um grupo de um.
+   sobraram. Se a distância desse par já passa de θ, ninguém mais forma
+   grupo: cada restante vira um grupo de um, e o método termina.
 
 É o procedimento de Cruz, Regazzi e Carneiro (Modelos biométricos aplicados ao
 melhoramento genético), o mesmo do programa Genes.

@@ -18,7 +18,7 @@ O bloco `multi/distance` calcula a distância entre cada par de linhas (genótip
 ## Configuração
 
 - **Variáveis** — colunas numéricas; em branco, todas (na Gower, todas as colunas).
-- **Distância** — `euclidiana padronizada` (padrão, cada variável com desvio 1), `euclidiana`, `mahalanobis` (D², desconta a correlação entre caracteres) ou `gower` (caracteres mistos).
+- **Distância** — `euclidiana padronizada` (padrão, cada variável com desvio 1), `euclidiana`, `mahalanobis` (sai como D², não a raiz; desconta a correlação entre caracteres) ou `gower` (caracteres mistos).
 - **Rótulo das linhas** — coluna com o nome de cada linha, sem repetição.
 
 ## Exemplo
