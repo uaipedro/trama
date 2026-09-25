@@ -1328,6 +1328,7 @@ function App() {
   // mas o retrato evita depender disso.
   const [templateDlg, setTemplateDlg] = useState(null);
   const [painelTemplates, setPainelTemplates] = useState(false);
+  const painelTemplatesRef = useRef(false); painelTemplatesRef.current = painelTemplates;
   const [templates, setTemplates] = useState(null); // lista do servidor; null = ainda não veio
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [opcoesFrame, setOpcoesFrame] = useState(false);
@@ -1850,6 +1851,10 @@ function App() {
       // diálogo aqui nunca o deixa preso. "Abrir" é desabilitado na pasta
       // atual porque reabrir não faz nada, não porque não responderia.
       if (m.type === "project") {
+        // A lista de templates tem a seção "Este projeto": a do projeto
+        // anterior não vale mais. Painel aberto pede de novo.
+        setTemplates(null);
+        if (painelTemplatesRef.current) sendInput("tr_template_list", { seq: ++seqCounter });
         // Estado de execução é indexado por ID DE NÓ, e id de fluxo escrito à
         // mão é palavra ("ler", "filtrar", "total"): dois projetos colidem.
         // Sem zerar, um nó do projeto novo que chega `blocked` herdaria o
@@ -1893,7 +1898,9 @@ function App() {
       // o texto não pode se perder: vira download.
       if (m.type === "template_json") {
         const arq = `${slugArquivo(m.nome)}.template.json`;
-        setTemplateDlg(null);
+        // Só fecha o diálogo quando a resposta é DELE (mesmo `seq`): um
+        // Ctrl+Shift+C não fecha um diálogo de salvar aberto.
+        setTemplateDlg((d) => (d && d.seq === m.seq ? null : d));
         if (m.acao === "copiar") {
           const baixar = () => {
             exportText(m.texto, arq, "application/json");
@@ -1911,11 +1918,12 @@ function App() {
       }
       if (m.type === "templates") { setTemplates(m.templates || []); return; }
       if (m.type === "template_conflict") {
-        setTemplateDlg((d) => d && { ...d, conflito: { nome: m.nome, destino: d.destino }, enviando: false });
+        setTemplateDlg((d) => d && d.seq === m.seq
+          ? { ...d, conflito: { nome: m.nome, destino: d.destino }, enviando: false } : d);
         return;
       }
       if (m.type === "template_saved") {
-        setTemplateDlg(null);
+        setTemplateDlg((d) => (d && d.seq === m.seq ? null : d));
         setBanner(`Template "${m.nome}" salvo em ${m.destino === "biblioteca" ? "Minha biblioteca" : "Este projeto"}.`);
         return;
       }
@@ -3391,8 +3399,9 @@ function App() {
       destinoPadrao: projeto?.origem === "launcher" ? "biblioteca" : "projeto",
       conflito: templateDlg.conflito, enviando: templateDlg.enviando,
       onSave: ({ nome, descricao, destino, overwrite }) => {
-        setTemplateDlg((d) => d && { ...d, enviando: true, destino });
-        sendInput("tr_template_save", { seq: ++seqCounter, ids: templateDlg.ids, nome, descricao,
+        const seq = ++seqCounter;
+        setTemplateDlg((d) => d && { ...d, enviando: true, destino, seq });
+        sendInput("tr_template_save", { seq, ids: templateDlg.ids, nome, descricao,
                                         destino, overwrite });
       },
       onClose: () => setTemplateDlg(null) }) : null,
