@@ -18,6 +18,10 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `metodo` | escolha do método de estimação/cálculo do nó (enum) | — |
 | `operacao` | escolha da operação aritmética entre entradas (series/combine) | — |
 | `suavidade` | fração da amostra em cada ajuste local (loess, 0–1) | — |
+| `previsto` | coluna da previsão (classe na classificação, número na regressão); também o param que nomeia essa coluna no modo tabela | `.pred` (ml) |
+| `prob_<nivel>` | coluna da probabilidade de cada classe, nível saneado por `tr_models_clean_name()` | `.prob_<classe>` (ml) |
+| `validacao` | como prever o treino: `resubstituição` ou `cruzada` | — |
+| `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 
 ## Homônimos permitidos
 

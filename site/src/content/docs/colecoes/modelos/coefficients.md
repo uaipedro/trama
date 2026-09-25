@@ -1,6 +1,6 @@
 ---
 title: Coeficientes
-description: "Estimativa, erro padrão, estatística, p-valor e intervalo de 95% de cada coeficiente."
+description: "Estimativa, erro padrão, estatística, p-valor e intervalo de confiança de cada coeficiente."
 section: colecoes
 collection: modelos
 node: models/coefficients
@@ -18,7 +18,7 @@ Use para ler o tamanho e a incerteza de cada coeficiente; use médias ajustadas 
 
 ## Configuração
 
-Exponenciar transforma estimativas e intervalos; em GLM com ligação log ou logit, resulta em razões de taxas ou chances.
+Exponenciar transforma estimativas e intervalos; em GLM com ligação log ou logit, resulta em razões de taxas ou chances. Escala `desvio padrão` dá o efeito de subir um desvio padrão da preditora (t e p não mudam), o que compara preditoras em unidades diferentes. Confiança escolhe o nível do intervalo; as colunas levam o nível no nome (`li_95`, `li_90`).
 
 ## Exemplo
 
