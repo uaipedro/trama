@@ -46,13 +46,13 @@ const info = collections.find(({ id }) => id === collection)!;
           ))}
         </ul>
       )}
-      <ol class="catalogue-stages">
+      <ol class="catalogue-flow">
         {stages.map((stage) => (
           <li class="catalogue-stage" id={`etapa-${stage.id}`} style={`--node-accent: ${stage.accent}`}>
-            <h3>{stage.label} <span>{stage.blocks.length}</span></h3>
-            <ul>
-              {stage.blocks.map((entry) => (
+            <ul aria-label={stage.label}>
+              {stage.blocks.map((entry, i) => (
                 <li>
+                  {i === 0 && <h3>{stage.label}</h3>}
                   <a href={`/trama/${entry.id}/`} title={entry.data.description} aria-label={`${entry.data.title}: ${entry.data.description}`}>
                     <NodeMini label={entry.data.title} {...getNodeVisual(entry.data.node!)} />
                   </a>
