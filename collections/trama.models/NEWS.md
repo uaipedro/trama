@@ -2,6 +2,14 @@
 
 ## Mudanças de método
 
+- `models/levene` e `models/bartlett` (versão 3): recusam a parcela subdividida
+  com `tr_models_error_block_design`. Os resíduos do erro (b) vêm de um
+  delineamento em que o fator da parcela está confundido com a parcela, e a
+  correção de O'Neill & Mathews (2002) supõe um estrato de erro só; não há
+  correção publicada para os dois estratos. Em simulação sob H0 no desenho da
+  aveia (4000 réplicas), o Levene comum nesses resíduos rejeitava 10,5% a 5%
+  com centro na média e 2,5% na mediana. A mensagem aponta o painel
+  escala-locação do `models/plot_diagnostics` e o `models/lmer`.
 - `models/levene` (versão 2): nos delineamentos com bloco (DBC, fatorial em
   DBC, DQL) passa a ser o teste de O'Neill & Mathews (2002, *Biometrics*
   58:216-224, doi:10.1111/j.0006-341x.2002.00216.x): ANOVA dos |resíduos| de

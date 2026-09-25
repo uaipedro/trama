@@ -39,7 +39,7 @@ Um teste (`models/test`).
 `models/plot_diagnostics`; `models/levene`; `models/shapiro` para uma coluna.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/levene", version = 2L,
+    trama::tr_node("models/levene", version = 3L,
       pressupostos = .tr_models_doc("models/levene")$pressupostos,
       referencias = .tr_models_doc("models/levene")$referencias,
       fn = tr_models_levene, label = "Levene",
@@ -67,6 +67,10 @@ que só depende do delineamento. O centro, ali, é sempre o ajuste do modelo (a
 média), e o param **Centro** não muda o resultado. O delineamento precisa estar
 equilibrado (sem parcela perdida).
 
+Na parcela subdividida o bloco recusa: os resíduos vêm de dois estratos de
+erro, e a correção de O'Neill & Mathews supõe um só. Leia o painel
+escala-locação do `models/plot_diagnostics`.
+
 Não se aplica a GLM (a variância acompanha a média por construção) nem a misto.
 ]---", r"---[
 - **Centro** — `mediana` ou `média`.
@@ -76,7 +80,7 @@ Um teste (`models/test`).
 `models/bartlett`; `models/breusch_pagan`; `models/plot_diagnostics`.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/bartlett", version = 2L,
+    trama::tr_node("models/bartlett", version = 3L,
       pressupostos = .tr_models_doc("models/bartlett")$pressupostos,
       referencias = .tr_models_doc("models/bartlett")$referencias,
       fn = tr_models_bartlett, label = "Bartlett",
@@ -92,6 +96,7 @@ Testa a homogeneidade das variâncias entre os grupos (os mesmos do
 Não se aplica a delineamento com bloco (DBC, fatorial em DBC, DQL): nos
 resíduos correlacionados o Bartlett não tem correção publicada, e o bloco
 recusa. Use o `models/levene`, que ali aplica a correção de O'Neill & Mathews.
+Na parcela subdividida (dois estratos de erro) também recusa, como o Levene.
 ]---", r"---[
 Nenhum.
 ]---", r"---[

@@ -30,7 +30,9 @@
         indep("observações de cada grupo"),
         P(residuos_do_modelo, verificar = "models/plot_diagnostics"),
         P("Com bloco (DBC, fatorial em DBC, DQL), o delineamento é **equilibrado** (sem parcela perdida): a correção de O'Neill & Mathews é um fator do desenho que supõe o equilíbrio; o bloco recusa senão. Ali o centro é o ajuste de mínimos quadrados (a média), qualquer que seja o param Centro.",
-          se_falhar = "Leia o painel escala-locação do `models/plot_diagnostics`.")),
+          se_falhar = "Leia o painel escala-locação do `models/plot_diagnostics`."),
+        P("O modelo **não é parcela subdividida**: os resíduos de dois estratos de erro não têm correção publicada (a de O'Neill & Mathews supõe um estrato), e o bloco recusa.",
+          se_falhar = "Leia o painel escala-locação do `models/plot_diagnostics`; com variâncias diferentes, ajuste o misto no `models/lmer`.")),
       referencias = list(
         R(autores = c("O'Neill, M. E.", "Mathews, K. L."), ano = 2002,
           titulo = "Levene tests of homogeneity of variance for general block and treatment designs",
@@ -55,7 +57,7 @@
           verificar = c("models/shapiro_residuals", "models/plot_diagnostics"),
           se_falhar = "Use o `models/levene` (centro na mediana), robusto à falta de normalidade."),
         P("Os grupos têm **pelo menos duas observações** cada."),
-        P("O modelo **não tem bloco** (DIC, fatorial em DIC, modelos de fórmula): nos resíduos correlacionados de um DBC ou DQL o Bartlett não tem correção publicada, e o bloco recusa.",
+        P("O modelo **não tem bloco** (DIC, fatorial em DIC, modelos de fórmula): nos resíduos correlacionados de um DBC, DQL ou parcela subdividida o Bartlett não tem correção publicada, e o bloco recusa.",
           se_falhar = "Use o `models/levene`, que no delineamento com bloco aplica a correção de O'Neill & Mathews (2002)."),
         indep("observações de cada grupo")),
       referencias = list(

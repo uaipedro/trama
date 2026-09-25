@@ -212,3 +212,21 @@ test_that("Bartlett em delineamento com bloco recusa e aponta o Levene", {
   expect_error(tr_models_bartlett(tr_models_anova_dql(os, "decrease", "treatment", "rowpos", "colpos")),
                class = "tr_models_error_block_design")
 })
+
+test_that("Levene e Bartlett na parcela subdividida recusam (sem correção publicada para dois estratos)", {
+  # O'Neill & Mathews (2002) tratam um estrato de erro só. No erro (b) da
+  # parcela subdividida o fator da parcela está confundido com a parcela
+  # (o "bloco" daquele estrato), então a correção não testa a variância entre
+  # os níveis da parcela. Em simulação sob H0 no desenho da aveia (4000
+  # réplicas), o Levene comum nos resíduos (b) rejeita 10,5% a 5% (centro na
+  # média) e 2,5% (na mediana): sem correção validada, o bloco recusa.
+  sp <- tr_models_anova_split_plot(ex("aveia"), "producao", "variedade", "nitrogenio", "bloco")
+  for (f in list(tr_models_levene, tr_models_bartlett)) {
+    err <- tryCatch(f(sp), condition = identity)
+    expect_s3_class(err, "tr_models_error_block_design")
+    expect_match(conditionMessage(err), "parcela subdividida", fixed = TRUE)
+    expect_match(conditionMessage(err), "models/plot_diagnostics", fixed = TRUE)
+  }
+  # o Shapiro nos resíduos (b) continua valendo
+  expect_s3_class(tr_models_shapiro_residuals(sp), "tr_models_test")
+})

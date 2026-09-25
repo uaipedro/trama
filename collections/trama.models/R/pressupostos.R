@@ -118,6 +118,26 @@ tr_models_shapiro_residuals <- function(modelo) {
   list(f = f, glt = glt, glr = glr, m = m, p = stats::pf(f, glt, glr, lower.tail = FALSE), ctrl = ctrl)
 }
 
+#' Levene e Bartlett recusam a parcela subdividida.
+#'
+#' O'Neill & Mathews (2002) corrigem um estrato de erro só. Nos resíduos do
+#' erro (b) o fator da parcela está confundido com a própria parcela (o "bloco"
+#' desse estrato), e a correção deixaria de testar a variância entre os níveis
+#' da parcela; o teste comum nesses resíduos correlacionados sai liberal ou
+#' conservador conforme o centro (10,5% e 2,5% de rejeição a 5% sob H0 no
+#' desenho da aveia, em simulação). Sem correção validada, recusa.
+#' @noRd
+.tr_models_recusar_split <- function(modelo, no) {
+  if (identical(modelo$classe, "split")) {
+    .tr_models_abort("tr_models_error_block_design",
+                     paste0("'%s': na parcela subdividida os resíduos vêm de dois estratos de erro, e o teste ",
+                            "não tem correção publicada para eles (a de O'Neill & Mathews supõe um estrato só). ",
+                            "Leia o painel escala-locação do 'models/plot_diagnostics' e, se as variâncias ",
+                            "diferirem, ajuste o misto no 'models/lmer'."), no)
+  }
+  invisible(NULL)
+}
+
 #' Levene: as variâncias dos grupos são iguais?
 #'
 #' No DIC e nos modelos de fórmula, ANOVA dos desvios absolutos dos resíduos em
@@ -135,6 +155,7 @@ tr_models_levene <- function(modelo, centro = "mediana") {
   .tr_models_fit_conferir(modelo)
   no <- "models/levene"
   centro <- .tr_models_enum(centro, c("mediana", "média"), "centro")
+  .tr_models_recusar_split(modelo, no)
   r <- .tr_models_residuos(modelo, no, permitir_misto = FALSE)
   g <- .tr_models_grupos(modelo, no)
   h0 <- sprintf("as variâncias são iguais entre os níveis de %s", paste(g$fatores, collapse = " × "))
@@ -170,6 +191,7 @@ tr_models_levene <- function(modelo, centro = "mediana") {
 tr_models_bartlett <- function(modelo) {
   .tr_models_fit_conferir(modelo)
   no <- "models/bartlett"
+  .tr_models_recusar_split(modelo, no)
   if (!is.null(modelo$delineamento) && modelo$delineamento %in% .TR_MODELS_COM_BLOCO) {
     .tr_models_abort("tr_models_error_block_design",
                      paste0("'%s': %s tem bloco, e nos resíduos de um delineamento com bloco o Bartlett ",

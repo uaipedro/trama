@@ -25,7 +25,7 @@ tr_models_errors <- function() {
     tr_models_error_fit = "o ajuste ou o teste falhou dentro do R",
     tr_models_error_not_applicable = "o bloco não se aplica a esse tipo de modelo",
     tr_models_error_block_design =
-      "o teste não tem correção publicada para delineamento com bloco (DBC, DQL): use o models/levene",
+      "o teste não tem correção publicada para o delineamento: Bartlett com bloco (DBC, DQL; use o models/levene) ou Levene/Bartlett na parcela subdividida",
     tr_models_error_two_groups = "o teste compara dois grupos, e a coluna do grupo não tem dois",
     tr_models_error_not_nested = "os dois modelos comparados não são da mesma família ou não usam as mesmas linhas",
     tr_models_error_unknown_level =
