@@ -1932,11 +1932,14 @@ Dois modos, pelo campo preenchido (um OU outro):
 
 - **Níveis** — pares `de=para` separados por `;`. Valor não citado fica como
   está; valor citado que não existe na coluna para o nó (erro de digitação).
-  Fator continua fator, na mesma ordem.
+  Fator continua fator, na mesma ordem. Coluna numérica recodificada vira
+  TEXTO (`1=baixo` não é número); converta de volta num `data/convert` se os
+  valores novos forem números.
 - **Cortes** — limites das faixas de uma coluna numérica, separados por `;`
   (vírgula decimal aceita). Fechada à **direita**, `(10, 20]`; à **esquerda**,
-  `[10, 20)`. O primeiro corte (ou o último, à esquerda) entra na faixa da
-  ponta. Valor fora dos cortes para o nó — use `-Inf`/`Inf`. **Rótulos**, se
+  `[10, 20)`. As pontas entram: à direita, a primeira faixa fecha nos dois
+  lados (`[0, 10]`); à esquerda, é a ÚLTIMA que fecha nos dois lados
+  (`[10, 20]`), para o maior corte não cair fora. Valor fora dos cortes para o nó — use `-Inf`/`Inf`. **Rótulos**, se
   dados, são um por faixa (cortes − 1); a mais ou a menos é erro.
 
 ## Parâmetros
