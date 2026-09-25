@@ -263,9 +263,47 @@ tr_models_unserialize.default <- function(x) x
        # `x` dentro de `poly(x, 2)` sem confundir a função com a coluna (e, no
        # misto, o fator de agrupamento de `(1 | bloco)`, que `novos` precisa ter).
        preditores = all.vars(f[[3]]), niveis = NULL, n = nrow(x$dados), rotulo = x$rotulo,
-       # O GLM binomial fica "regressao" nesta fase: o que ele prevê é a
-       # probabilidade, numérica, e é o que `models/predict` sempre devolveu.
        familia = if (x$classe == "glm") stats::family(x$ajuste)$family else "gaussian")
+}
+
+#' Os dois níveis de um GLM binomial de resposta binária, ou NULL.
+#'
+#' Só é classificação quando a resposta É a classe: fator de dois níveis,
+#' lógica, ou número só com 0 e 1. Proporção com pesos ou `cbind(sucessos,
+#' fracassos)` continuam regressão — o que se prevê ali é uma taxa, e não há
+#' classe observada linha a linha contra a qual conferir. A ordem é a do
+#' `glm()`: o primeiro nível é o "fracasso", e a probabilidade prevista é a do
+#' SEGUNDO — a mesma convenção da logística da `multi`.
+#' @noRd
+.tr_models_glm_niveis <- function(x) {
+  if (x$classe != "glm" || stats::family(x$ajuste)$family != "binomial") return(NULL)
+  lhs <- stats::as.formula(x$formula)[[2]]
+  if (!is.name(lhs)) return(NULL)
+  y <- x$dados[[as.character(lhs)]]
+  if (is.factor(y)) return(if (nlevels(y) == 2L) levels(y) else NULL)
+  if (is.logical(y)) return(c("FALSE", "TRUE"))
+  if (is.numeric(y) && all(y[!is.na(y)] %in% c(0, 1))) return(c("0", "1"))
+  NULL
+}
+
+#' @export
+tr_models_info.tr_models_glm <- function(x) {
+  i <- .tr_models_info_proprio(x)
+  niv <- .tr_models_glm_niveis(x)
+  if (!is.null(niv)) { i$tarefa <- "classificacao"; i$niveis <- niv }
+  i
+}
+
+#' Probabilidade do segundo nível -> a lista do contrato de classificação.
+#'
+#' O corte é `x$corte` quando o modelo traz um (a logística da `multi` traz), e
+#' 0,5 nos daqui; `>=`, como na `multi`, para que as duas contem igual o empate.
+#' @noRd
+.tr_models_prev_binaria <- function(p2, niveis, corte = 0.5) {
+  classe <- ifelse(p2 >= corte, niveis[[2]], niveis[[1]])
+  prob <- cbind(1 - p2, p2)
+  colnames(prob) <- niveis
+  list(previsto = factor(classe, levels = niveis), prob = prob, extra = NULL)
 }
 
 .tr_models_card_proprio <- function(x, ctx) {
@@ -275,7 +313,7 @@ tr_models_unserialize.default <- function(x) x
 # Registro dos quatro de uma vez: os métodos comuns são os mesmos, e escrever
 # 4 × 3 funções idênticas só convidaria uma a divergir. O NAMESPACE declara os
 # `S3method()` apontando para estes nomes.
-tr_models_info.tr_models_lm <- tr_models_info.tr_models_glm <-
+tr_models_info.tr_models_lm <-
   tr_models_info.tr_models_lmer <- tr_models_info.tr_models_split <- .tr_models_info_proprio
 tr_models_card.tr_models_lm <- tr_models_card.tr_models_glm <-
   tr_models_card.tr_models_lmer <- tr_models_card.tr_models_split <- .tr_models_card_proprio
@@ -487,7 +525,11 @@ tr_models_resid.tr_models_lmer <- function(x) {
 #' @export
 tr_models_predict_raw.tr_models_lm <- function(x, novos, ...) .tr_models_predict_ajuste(x, novos, ...)
 #' @export
-tr_models_predict_raw.tr_models_glm <- function(x, novos, ...) .tr_models_predict_ajuste(x, novos, ...)
+tr_models_predict_raw.tr_models_glm <- function(x, novos, ...) {
+  p <- .tr_models_predict_ajuste(x, novos, ...)
+  niv <- .tr_models_glm_niveis(x)
+  if (is.null(niv)) p else .tr_models_prev_binaria(p$previsto, niv, x$corte %||% 0.5)
+}
 #' @export
 tr_models_predict_raw.tr_models_lmer <- function(x, novos, ...) .tr_models_predict_ajuste(x, novos, ...)
 #' @export
@@ -554,8 +596,10 @@ tr_models_predict_cv.tr_models_lm <- function(x, validacao = "resubstituição")
 }
 #' @export
 tr_models_predict_cv.tr_models_glm <- function(x, validacao = "resubstituição") {
-  if (.tr_models_validacao(validacao) == "cruzada") return(.tr_models_prev(.tr_models_loo_glm(x)))
-  .tr_models_prev(as.numeric(stats::fitted(x$ajuste)))  # `fitted.glm` já é a escala da resposta
+  p <- if (.tr_models_validacao(validacao) == "cruzada") .tr_models_loo_glm(x) else
+    as.numeric(stats::fitted(x$ajuste))  # `fitted.glm` já é a escala da resposta
+  niv <- .tr_models_glm_niveis(x)
+  if (is.null(niv)) .tr_models_prev(p) else .tr_models_prev_binaria(p, niv, x$corte %||% 0.5)
 }
 #' @export
 tr_models_predict_cv.tr_models_lmer <- function(x, validacao = "resubstituição") {

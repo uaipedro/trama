@@ -16,7 +16,9 @@ test_that("as classes da models saem com subclasse e cumprem o contrato", {
   g <- tr_models_glm(mt, formula = "am ~ wt", familia = "binomial")
   expect_equal(class(g), c("tr_models_glm", "tr_models_fit"))
   i <- tr_models_info(g)
-  expect_equal(i$tarefa, "regressao"); expect_equal(i$familia, "binomial")
+  # Binomial de resposta 0/1 é classificação desde a T2 da Fase 4.
+  expect_equal(i$tarefa, "classificacao"); expect_equal(i$niveis, c("0", "1"))
+  expect_equal(i$familia, "binomial")
   expect_equal(i$preditores, "wt"); expect_equal(i$n, nrow(mt))
   expect_identical(tr_models_stats(milho_dbc()), tr_models_fit_stats(milho_dbc()))
 })
@@ -88,7 +90,9 @@ test_that("predict_cv: resubstituição é o ajustado; a cruzada do lm é o LOO 
   loo_g <- vapply(seq_len(nrow(mt)), function(i) {
     unname(predict(glm(am ~ wt, binomial, data = mt[-i, ]), newdata = mt[i, ], type = "response"))
   }, numeric(1))
-  expect_equal(tr_models_predict_cv(g, "cruzada")$previsto, loo_g)
+  cv <- tr_models_predict_cv(g, "cruzada")
+  expect_equal(unname(cv$prob[, "1"]), loo_g)
+  expect_equal(cv$previsto, factor(ifelse(loo_g >= 0.5, "1", "0"), levels = c("0", "1")))
   expect_error(tr_models_predict_cv(m, "outra"), class = "tr_models_error_bad_option")
 })
 

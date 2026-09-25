@@ -32,8 +32,16 @@ test_that("GLM prevê na escala da resposta, não na do link", {
   novos <- data.frame(wt = c(2, 3, 4))
   p <- tr_models_predict(g, novos)
   ref <- stats::predict(g$ajuste, newdata = novos, type = "response")
-  expect_equal(p$previsto, unname(ref))
-  expect_true(all(p$previsto >= 0 & p$previsto <= 1))
+  # Binomial 0/1 é classificação: a probabilidade (escala da resposta) vai em
+  # `prob_1`, e `previsto` é a classe pelo corte 0,5.
+  expect_equal(p$prob_1, unname(ref))
+  expect_equal(p$prob_0, 1 - unname(ref))
+  expect_equal(p$previsto, factor(ifelse(unname(ref) >= 0.5, "1", "0"), levels = c("0", "1")))
+  # As outras famílias seguem com o número em `previsto`, na escala da resposta.
+  po <- tr_models_glm(ex("warpbreaks"), formula = "breaks ~ tension", familia = "poisson")
+  nt <- data.frame(tension = c("L", "M"))
+  expect_equal(tr_models_predict(po, nt)$previsto,
+               unname(stats::predict(po$ajuste, newdata = nt, type = "response")))
 })
 
 test_that("coluna preditora faltando em 'dados' erra alto, nomeando a coluna", {

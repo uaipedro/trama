@@ -30,12 +30,15 @@ trama_collection <- function() {
       trama::tr_category("modelo_resumir",      "Resumir", role = "leitura"),
       trama::tr_category("modelo_medias",       "Médias", role = "leitura"),
       trama::tr_category("modelo_pressupostos", "Pressupostos", role = "avaliacao"),
+      # Prever e medir a previsão: a pergunta é "quanto acerta num caso novo",
+      # que não é a do ajuste (Resumir) nem a dos pressupostos.
+      trama::tr_category("modelo_avaliar",      "Prever e avaliar", role = "avaliacao"),
       trama::tr_category("modelo_testes",       "Testes", role = "avaliacao")
     ),
     nodes = c(.tr_models_nos_fonte(), .tr_models_nos_ajustar(), .tr_models_nos_anova(),
               .tr_models_nos_resumir(), .tr_models_nos_medias(),
               .tr_models_nos_pressupostos(), .tr_models_nos_testes(),
-              .tr_models_nos_prever(), .tr_models_nos_online()),
+              .tr_models_nos_prever(), .tr_models_nos_avaliar(), .tr_models_nos_online()),
     # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
     # nomes antigos abrem já migrados. `alfa` vira `confianca` com o valor
     # complementar (alfa 0,05 -> confiança 0,95).

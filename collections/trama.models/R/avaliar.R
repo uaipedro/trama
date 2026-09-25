@@ -1,0 +1,410 @@
+# Avaliar a previsão: matriz de confusão, curva ROC, métricas e importância.
+#
+# Até a Fase 4 cada coleção tinha os seus: a `multi` lia o seu LDA/logit (com
+# validação cruzada), a `ml` lia uma TABELA com `.pred` (o teste da divisão). O
+# contrato junta os dois caminhos num bloco só, com as duas entradas
+# opcionais, porque as duas perguntas são legítimas:
+#
+# - só `modelo` → quanto ele acerta no TREINO, por `tr_models_predict_cv()`
+#   (a cruzada é a estimativa honesta sem separar teste);
+# - `modelo` + `dados` → quanto ele acerta numa tabela que não viu (o teste da
+#   `ml/split`), prevendo-a aqui mesmo;
+# - só `dados` → a tabela já tem real e previsto (de um `models/predict`, ou de
+#   fora do trama), e o bloco só conta.
+#
+# Os três modos terminam no MESMO par (real, previsto/probabilidade), e daí em
+# diante a conta é uma só — é o que garante que a confusão pela cruzada e a da
+# tabela que um `models/predict` cruzado gerou dão o mesmo número.
+
+.TR_MODELS_VALIDACAO_PADRAO <- "cruzada"
+
+#' Qual dos três modos, pelas entradas ligadas; nenhuma é erro com classe.
+#' @noRd
+.tr_models_modo <- function(modelo, dados, no) {
+  if (is.null(modelo) && is.null(dados)) {
+    .tr_models_abort("tr_models_error_no_input",
+                     paste0("'%s' precisa de uma entrada: ligue um modelo (avalia no treino, ou em ",
+                            "'dados' se ela também estiver ligada) ou uma tabela com a resposta e o ",
+                            "previsto (modo tabela)."), no)
+  }
+  if (is.null(modelo)) "tabela" else if (is.null(dados)) "treino" else "novos"
+}
+
+#' O par (real, previsão) de um modelo, no treino ou numa tabela nova.
+#'
+#' `real` sai como TEXTO na classificação (0/1 e lógico viram "0"/"TRUE", os
+#' mesmos rótulos de `info$niveis`), e número na regressão.
+#' @return list(real, previsto, prob, niveis, tarefa, corte, resposta, origem)
+#' @noRd
+.tr_models_par_modelo <- function(modelo, dados, validacao, no) {
+  .tr_models_modelo_conferir(modelo)
+  info <- tr_models_info(modelo)
+  if (is.null(dados)) {
+    validacao <- .tr_models_validacao(validacao)
+    real <- if (is.data.frame(modelo$dados)) modelo$dados[[info$resposta]] else NULL
+    if (is.null(real)) {
+      .tr_models_abort("tr_models_error_not_applicable",
+                       "'%s': o modelo de classe '%s' não guarda a tabela do ajuste ($dados), e sem ela não há o real do treino. Ligue também 'dados'.",
+                       no, class(modelo)[[1]])
+    }
+    p <- tr_models_predict_cv(modelo, validacao)
+    origem <- sprintf("validação %s", validacao)
+  } else {
+    if (!info$resposta %in% names(dados)) {
+      .tr_models_abort("tr_models_error_unknown_column",
+                       "'%s': 'dados' não tem a coluna '%s', a resposta do modelo — sem ela não há o que comparar com o previsto.",
+                       no, info$resposta)
+    }
+    real <- dados[[info$resposta]]
+    p <- tr_models_predict_raw(modelo, .tr_models_novos(modelo, dados, no))
+    origem <- "dados novos"
+  }
+  classif <- info$tarefa == "classificacao"
+  list(real = if (classif) as.character(real) else as.numeric(real),
+       previsto = if (classif) as.character(p$previsto) else as.numeric(p$previsto),
+       prob = p$prob, niveis = info$niveis, tarefa = info$tarefa,
+       corte = modelo$corte %||% 0.5, resposta = info$resposta, origem = origem)
+}
+
+#' Uma coluna da tabela, pelo nome do param, com a mensagem que nomeia o param.
+#' @noRd
+.tr_models_coluna_tabela <- function(dados, valor, param, no) {
+  nome <- .tr_models_obrigatorio(valor, param)
+  if (!nome %in% names(dados)) {
+    .tr_models_abort("tr_models_error_unknown_column",
+                     "'%s': param '%s' nomeia a coluna '%s', que 'dados' não tem. Colunas: %s.",
+                     no, param, nome, paste(names(dados), collapse = ", "))
+  }
+  nome
+}
+
+#' Os níveis de uma classe lida de tabela: os do fator, ou os valores em ordem.
+#' @noRd
+.tr_models_niveis_tabela <- function(...) {
+  xs <- list(...)
+  niv <- unlist(lapply(xs, function(x) if (is.factor(x)) levels(x) else sort(unique(as.character(x[!is.na(x)])))))
+  unique(niv)
+}
+
+#' Tira os pares com NA (a cruzada deixa NA onde um nível sumiu do treino).
+#' @noRd
+.tr_models_sem_na <- function(par) {
+  ok <- !is.na(par$real) & !is.na(par$previsto)
+  if (!is.null(par$prob)) ok <- ok & stats::complete.cases(par$prob)
+  par$real <- par$real[ok]; par$previsto <- par$previsto[ok]
+  if (!is.null(par$prob)) par$prob <- par$prob[ok, , drop = FALSE]
+  par
+}
+
+.tr_models_exigir_classif <- function(par, no) {
+  if (par$tarefa != "classificacao") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' é de classificação, e o modelo prevê um número (regressão). Para ",
+                            "medir o erro de uma regressão, use 'models/evaluate'."), no)
+  }
+  invisible(par)
+}
+
+# ---- Matriz de confusão -------------------------------------------------------
+
+#' A matriz no formato LARGO: real × uma coluna por previsto, total e acerto.
+#'
+#' O formato é o da `multi` (porte de `tr_multi_confusion`): lê-se como a
+#' matriz do livro, e a última linha (`real = "total"`) dá o acerto geral. O
+#' formato longo da `ml` (observado, previsto, n) é um `data/pivot_longer`
+#' daqui — o inverso exigiria o `pivot_wider` a todo mundo que só quer ler.
+#' @noRd
+.tr_models_matriz_larga <- function(real, previsto, niveis) {
+  m <- table(factor(real, levels = niveis), factor(previsto, levels = niveis))
+  cont <- matrix(as.integer(m), nrow(m), dimnames = list(NULL, niveis))
+  # Um nível chamado "total" colidiria com a coluna do total: ganha o sufixo.
+  reservados <- c("real", "total", "acertos", "taxa_acerto")
+  colnames(cont) <- ifelse(niveis %in% reservados, paste(niveis, "(previsto)"), niveis)
+  total <- as.integer(rowSums(cont))
+  acertos <- as.integer(diag(cont))
+  corpo <- data.frame(real = niveis, cont, total = total, acertos = acertos,
+                      taxa_acerto = acertos / total, check.names = FALSE)
+  ultima <- data.frame(real = "total", t(as.integer(colSums(cont))), total = sum(total),
+                       acertos = sum(acertos), taxa_acerto = sum(acertos) / sum(total),
+                       check.names = FALSE)
+  names(ultima) <- names(corpo)
+  tibble::as_tibble(rbind(corpo, ultima))
+}
+
+#' Matriz de confusão: classe real × classe prevista.
+#'
+#' @param modelo um `models/fit` de classificação, ou `NULL` (modo tabela).
+#' @param dados tabela: sem `modelo`, já com a resposta e o previsto; com
+#'   `modelo`, a tabela a prever (precisa da resposta do modelo).
+#' @param validacao só com `modelo` sem `dados`: `"cruzada"` (cada linha
+#'   prevista sem ela) ou `"resubstituição"`.
+#' @param resposta,predito só no modo tabela: as colunas da classe real e da
+#'   prevista.
+#' @return tibble: `real`, uma coluna de contagem por classe prevista, `total`,
+#'   `acertos`, `taxa_acerto`; a última linha, `real = "total"`, é o geral.
+#' @export
+tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
+                                predito = "previsto") {
+  no <- "models/confusion"
+  if (.tr_models_modo(modelo, dados, no) == "tabela") {
+    r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
+    pc <- .tr_models_coluna_tabela(dados, predito, "predito", no)
+    niv <- .tr_models_niveis_tabela(dados[[r]], dados[[pc]])
+    par <- list(real = as.character(dados[[r]]), previsto = as.character(dados[[pc]]))
+  } else {
+    par <- .tr_models_exigir_classif(.tr_models_par_modelo(modelo, dados, validacao, no), no)
+    niv <- par$niveis
+  }
+  par <- .tr_models_sem_na(par)
+  .tr_models_matriz_larga(par$real, par$previsto, niv)
+}
+
+# ---- ROC ----------------------------------------------------------------------
+
+#' Pontos da curva e AUC para um escore e um vetor lógico de positivos.
+#'
+#' Porte de `.tr_multi_roc_curva`: os cortes são os escores distintos, do
+#' maior ao menor; empates andam na diagonal. A AUC é a de Mann-Whitney com
+#' meio ponto por empate — exatamente a área trapezoidal dessa curva, que é a
+#' que a `ml/roc` somava; as duas coleções davam o mesmo número por contas
+#' diferentes, e agora é uma conta só.
+#' @noRd
+.tr_models_roc_curva <- function(score, positivo) {
+  n1 <- sum(positivo); n0 <- sum(!positivo)
+  if (n1 == 0L || n0 == 0L) {
+    .tr_models_abort("tr_models_error_one_level",
+                     "'models/roc': a curva pede casos das duas classes, e só há %s.",
+                     if (n1 == 0L) "negativos" else "positivos")
+  }
+  cortes <- sort(unique(score), decreasing = TRUE)
+  tpr <- vapply(cortes, function(k) sum(score >= k & positivo) / n1, 0)
+  fpr <- vapply(cortes, function(k) sum(score >= k & !positivo) / n0, 0)
+  auc <- (sum(rank(score)[positivo]) - n1 * (n1 + 1) / 2) / (n1 * n0)
+  list(pontos = data.frame(fpr = c(0, fpr), tpr = c(0, tpr)), auc = auc)
+}
+
+.tr_models_virgula <- function(x, d = 3L) formatC(x, format = "f", digits = d, decimal.mark = ",")
+
+#' As curvas: uma (binária, ou a `positiva` contra as outras) ou uma por classe.
+#'
+#' `corte` só marca ponto na binária: com três classes a regra é "a mais
+#' provável", e não um corte na probabilidade de uma delas.
+#' @return list(curvas = data.frame(fpr, tpr, classe, auc), ponto, positiva)
+#' @noRd
+.tr_models_roc_dados <- function(real, prob, niveis, positiva = "", corte = 0.5) {
+  binaria <- length(niveis) == 2L
+  if (.tr_models_preenchido(positiva)) {
+    positiva <- .tr_models_enum(trimws(positiva), niveis, "positiva")
+  } else if (binaria) {
+    positiva <- niveis[[2]]  # como na logística: o segundo nível é o "sucesso"
+  } else {
+    positiva <- ""
+  }
+  classes <- if (nzchar(positiva)) positiva else niveis
+  curvas <- lapply(classes, function(l) {
+    cur <- .tr_models_roc_curva(prob[, l], real == l)
+    cbind(cur$pontos, classe = l, auc = cur$auc)
+  })
+  ponto <- NULL
+  if (binaria) {
+    s <- prob[, positiva] >= corte
+    ponto <- data.frame(fpr = mean(s[real != positiva]), tpr = mean(s[real == positiva]))
+  }
+  list(curvas = do.call(rbind, curvas), ponto = ponto, positiva = positiva, corte = corte)
+}
+
+#' Curva ROC: sensibilidade × especificidade em todos os cortes, com a AUC.
+#'
+#' @inheritParams tr_models_confusion
+#' @param positiva a classe positiva; vazio = o segundo nível (binária) ou uma
+#'   curva por classe, cada uma contra as outras (três ou mais).
+#' @param probabilidade só no modo tabela: a coluna da probabilidade da
+#'   positiva; vazio = `prob_<positiva>` (ou todas as `prob_<nivel>` na
+#'   multiclasse).
+#' @inheritParams trama.view::tr_view_finish
+#' @return ggplot.
+#' @export
+tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
+                          probabilidade = "", positiva = "", aspecto = "1:1", tema = "padrão",
+                          titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  no <- "models/roc"
+  if (.tr_models_modo(modelo, dados, no) == "tabela") {
+    r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
+    niv <- .tr_models_niveis_tabela(dados[[r]])
+    if (length(niv) < 2L) {
+      .tr_models_abort("tr_models_error_one_level",
+                       "'%s': a coluna '%s' tem uma classe só (%s); a curva pede duas.", no, r, paste(niv, collapse = ""))
+    }
+    pos <- if (.tr_models_preenchido(positiva)) .tr_models_enum(trimws(positiva), niv, "positiva") else ""
+    if (.tr_models_preenchido(probabilidade) || length(niv) == 2L || nzchar(pos)) {
+      # Uma coluna só: a da positiva. Vazia, o nome que o `models/predict` dá.
+      if (!nzchar(pos)) {
+        if (length(niv) > 2L) {
+          .tr_models_abort("tr_models_error_blank_param",
+                           "'%s': com %d classes e uma coluna de probabilidade, diga em 'positiva' de qual classe ela é.",
+                           no, length(niv))
+        }
+        pos <- niv[[2]]
+      }
+      col <- if (.tr_models_preenchido(probabilidade)) probabilidade else .tr_models_colunas_prob(niv)[match(pos, niv)]
+      col <- .tr_models_coluna_tabela(dados, col, "probabilidade", no)
+      # A outra coluna é o complemento: a curva de `pos` só lê a dela.
+      prob <- matrix(0, nrow(dados), length(niv), dimnames = list(NULL, niv))
+      prob[, pos] <- as.numeric(dados[[col]])
+    } else {
+      cols <- .tr_models_colunas_prob(niv)
+      faltam <- setdiff(cols, names(dados))
+      if (length(faltam)) {
+        .tr_models_abort("tr_models_error_unknown_column",
+                         "'%s': a curva de cada classe lê as colunas %s, e faltam %s. Diga a 'positiva' e a 'probabilidade' para uma curva só.",
+                         no, paste(cols, collapse = ", "), paste(faltam, collapse = ", "))
+      }
+      prob <- as.matrix(as.data.frame(dados)[, cols, drop = FALSE])
+      colnames(prob) <- niv
+    }
+    par <- list(real = as.character(dados[[r]]), previsto = rep("", nrow(dados)), prob = prob,
+                niveis = niv, corte = 0.5, origem = "tabela", resposta = r)
+    positiva <- pos
+  } else {
+    par <- .tr_models_exigir_classif(.tr_models_par_modelo(modelo, dados, validacao, no), no)
+    if (is.null(par$prob)) {
+      .tr_models_abort("tr_models_error_not_applicable",
+                       "'%s': o modelo de classe '%s' prevê a classe sem probabilidade, e a curva precisa dela.",
+                       no, class(modelo)[[1]])
+    }
+  }
+  par <- .tr_models_sem_na(par)
+  rd <- .tr_models_roc_dados(par$real, par$prob, par$niveis, positiva, par$corte)
+  .tr_models_roc_grafico(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+.tr_models_roc_grafico <- function(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda) {
+  diag_df <- data.frame(x = c(0, 1), y = c(0, 1))
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_line(data = diag_df, ggplot2::aes(x = .data[["x"]], y = .data[["y"]]),
+                       colour = "#8b949e", linetype = "dashed")
+  cur <- rd$curvas
+  # geom_path, e não geom_step: um empate entre positivo e negativo anda na
+  # DIAGONAL até o próximo ponto — é essa a curva cuja área é a AUC.
+  if (length(unique(cur$classe)) == 1L) {
+    auc <- cur$auc[[1]]
+    p <- p + ggplot2::geom_path(data = cur, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]]),
+                                colour = .TR_MODELS_COR, linewidth = .9)
+    sub <- sprintf("AUC %s · %s · positivo: %s", .tr_models_virgula(auc), par$origem, rd$positiva)
+    if (!is.null(rd$ponto)) {
+      p <- p + ggplot2::geom_point(data = rd$ponto, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]]),
+                                   colour = .TR_MODELS_COR_2, size = 3)
+      sub <- paste(sub, "· ponto: corte", .tr_models_virgula(rd$corte, 2L))
+    }
+    p <- p + ggplot2::labs(subtitle = sub)
+  } else {
+    # O rótulo leva a AUC, e rótulo de texto sairia em ordem ALFABÉTICA na
+    # legenda; o fator nos níveis da classe a mantém.
+    aucs <- tapply(cur$auc, cur$classe, `[`, 1)[par$niveis]
+    rotulos <- sprintf("%s (AUC %s)", par$niveis, .tr_models_virgula(aucs))
+    cur$grupo <- factor(rotulos[match(cur$classe, par$niveis)], levels = rotulos)
+    p <- p + ggplot2::geom_path(data = cur, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]],
+                                                        colour = .data[["grupo"]], group = .data[["grupo"]]),
+                                linewidth = .8) +
+      ggplot2::labs(colour = par$resposta, subtitle = sprintf("Cada classe contra as outras · %s", par$origem))
+  }
+  p <- p + ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::labs(x = "1 − especificidade (falsos positivos)", y = "sensibilidade (verdadeiros positivos)")
+  trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+# ---- Métricas -----------------------------------------------------------------
+
+#' As métricas de classificação, com os nomes e as contas da `ml/evaluate`.
+#'
+#' `accuracy`, `balanced_accuracy` (média do recall por classe OBSERVADA) e
+#' `macro_f1` são porte literal de `.tr_ml_classification_metrics`, para que
+#' um fluxo que migrou de `ml/evaluate` veja os mesmos números. Somam-se o
+#' `kappa` de Cohen (o acerto descontado do que o acaso daria com essas
+#' margens) e, na binária, `sensitivity`/`specificity` da positiva.
+#' @noRd
+.tr_models_metricas_classif <- function(y, p, positiva = "") {
+  ys <- as.character(y); ps <- as.character(p)
+  classes <- unique(ys)
+  acc <- mean(ys == ps)
+  recalls <- vapply(classes, function(k) sum(ys == k & ps == k) / sum(ys == k), numeric(1))
+  f1 <- vapply(classes, function(k) {
+    tp <- sum(ys == k & ps == k); fp <- sum(ys != k & ps == k); fn <- sum(ys == k & ps != k)
+    if (tp == 0 || (2 * tp + fp + fn) == 0) 0 else 2 * tp / (2 * tp + fp + fn)
+  }, numeric(1))
+  todas <- union(classes, unique(ps))
+  pe <- sum(vapply(todas, function(k) mean(ys == k) * mean(ps == k), numeric(1)))
+  kappa <- if (pe == 1) NA_real_ else (acc - pe) / (1 - pe)
+  metrica <- c("accuracy", "balanced_accuracy", "macro_f1", "kappa")
+  valor <- c(acc, mean(recalls), mean(f1), kappa)
+  if (nzchar(positiva)) {
+    metrica <- c(metrica, "sensitivity", "specificity")
+    valor <- c(valor, sum(ys == positiva & ps == positiva) / sum(ys == positiva),
+               sum(ys != positiva & ps != positiva) / sum(ys != positiva))
+  }
+  tibble::tibble(metrica = metrica, valor = valor, n = length(ys))
+}
+
+#' As de regressão, idem: `mae`, `rmse`, `r2` (de PREVISÃO: 1 − SQE/SQT sobre
+#' as linhas avaliadas, que pode ser negativo quando o modelo prevê pior que a
+#' média — é o sinal a ler, e não um erro).
+#' @noRd
+.tr_models_metricas_regressao <- function(y, p) {
+  erro <- p - y
+  sst <- sum((y - mean(y))^2)
+  tibble::tibble(metrica = c("mae", "rmse", "r2"),
+                 valor = c(mean(abs(erro)), sqrt(mean(erro^2)),
+                           if (sst == 0) NA_real_ else 1 - sum(erro^2) / sst),
+                 n = length(y))
+}
+
+#' Métricas de previsão: o erro (regressão) ou o acerto (classificação).
+#'
+#' @inheritParams tr_models_confusion
+#' @param positiva classificação binária: a classe das `sensitivity` e
+#'   `specificity`; vazio = o segundo nível.
+#' @return tibble `metrica`, `valor`, `n` (as linhas que contaram).
+#' @export
+tr_models_evaluate <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
+                               predito = "previsto", positiva = "") {
+  no <- "models/evaluate"
+  if (.tr_models_modo(modelo, dados, no) == "tabela") {
+    r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
+    pc <- .tr_models_coluna_tabela(dados, predito, "predito", no)
+    y <- dados[[r]]; p <- dados[[pc]]
+    # A mesma regra do `tarefa = "auto"` da `ml/evaluate`: qualquer lado
+    # categórico faz classificação; dois números, regressão.
+    cat <- function(x) is.factor(x) || is.character(x) || is.logical(x)
+    tarefa <- if (cat(y) || cat(p)) "classificacao" else "regressao"
+    par <- list(real = if (tarefa == "regressao") as.numeric(y) else as.character(y),
+                previsto = if (tarefa == "regressao") as.numeric(p) else as.character(p),
+                tarefa = tarefa, niveis = if (tarefa == "classificacao") .tr_models_niveis_tabela(y, p))
+  } else {
+    par <- .tr_models_par_modelo(modelo, dados, validacao, no)
+    par$prob <- NULL
+  }
+  par <- .tr_models_sem_na(par)
+  if (!length(par$real)) {
+    .tr_models_abort("tr_models_error_too_few_rows", "'%s': nenhuma linha com real e previsto para avaliar.", no)
+  }
+  if (par$tarefa == "regressao") return(.tr_models_metricas_regressao(par$real, par$previsto))
+  pos <- if (.tr_models_preenchido(positiva)) {
+    .tr_models_enum(trimws(positiva), par$niveis, "positiva")
+  } else if (length(par$niveis) == 2L) par$niveis[[2]] else ""
+  .tr_models_metricas_classif(par$real, par$previsto, pos)
+}
+
+# ---- Importância ----------------------------------------------------------------
+
+#' Importância das preditoras, pelo contrato.
+#'
+#' Cada classe diz a sua medida (coluna `medida`): |t| nos modelos daqui,
+#' redução de impureza ou ganho nas árvores da `ml`. Não se compara entre
+#' medidas.
+#' @param modelo um `models/fit`.
+#' @return tibble `termo`, `importancia`, `medida`, do maior para o menor.
+#' @export
+tr_models_importance_table <- function(modelo) {
+  .tr_models_modelo_conferir(modelo)
+  tr_models_importance(modelo)
+}
