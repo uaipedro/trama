@@ -1639,7 +1639,8 @@ test_that("t_sig escolhe k em cada corte, como Zivot & Andrews (1992)", {
   for (cs in casos) {
     set.seed(cs$seed)
     x <- cumsum(stats::arima.sim(list(ar = cs$ar), cs$n))
-    t <- tr_series_zivot_andrews(stats::ts(x), mudanca = cs$m, defasagens = cs$kmax)
+    t <- tr_series_zivot_andrews(stats::ts(x), mudanca = cs$m, defasagens = cs$kmax,
+                                 selecao = "t_sig")
     ref <- za_bruto(as.numeric(x), cs$mod, cs$kmax)
     expect_equal(t$estatistica, unname(ref[["t"]]), tolerance = 1e-10, info = cs$m)
     expect_equal(t$extra$quebra, as.integer(ref[["q"]]), info = cs$m)
@@ -1651,7 +1652,7 @@ test_that("t_sig escolhe k em cada corte, como Zivot & Andrews (1992)", {
 test_that("ruído branco nas diferenças leva a seleção até k = 0", {
   set.seed(2)
   x <- stats::ts(cumsum(stats::rnorm(100)))
-  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 4L)
+  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 4L, selecao = "t_sig")
   # Nem sempre 0 (10% de chance por degrau), mas nesta semente sim, e a
   # estatística é a do ur.za com lag = 0.
   expect_equal(t$extra$defasagens, 0L)
@@ -1689,11 +1690,13 @@ test_that("fixa com defasagens = 0 é exatamente zero defasagens", {
 })
 
 test_that("teto de defasagens que não cabe é recusado também na seleção", {
-  e <- tryCatch(tr_series_zivot_andrews(stats::ts(stats::rnorm(20)), defasagens = 7L),
+  e <- tryCatch(tr_series_zivot_andrews(stats::ts(stats::rnorm(20)), defasagens = 7L,
+                                        selecao = "t_sig"),
                 condition = identity)
   expect_s3_class(e, "tr_series_error_bad_option")
   # O teto AUTOMÁTICO (Schwert) nunca é erro: é limitado ao que cabe.
-  expect_s3_class(tr_series_zivot_andrews(stats::ts(stats::rnorm(20))), "tr_series_test")
+  expect_s3_class(tr_series_zivot_andrews(stats::ts(stats::rnorm(20)), selecao = "t_sig"),
+                  "tr_series_test")
   expect_error(tr_series_zivot_andrews(serie_mensal(), selecao = "aic"),
                class = "tr_series_error_bad_option")
 })
@@ -1737,4 +1740,30 @@ test_that("com erro AR(1) o F de MQO é otimista e o do GLS chega perto do nomin
   })
   expect_gt(mean(rej[1, ]), 0.25)
   expect_lt(mean(rej[2, ]), 0.12)
+})
+
+# ---- Zivot-Andrews versão 4: padrão fixa com a regra l4 de Schwert ----------
+# Schwert (1989, NBER t0073, eq. 13a): l4 = int(4 (T/100)^(1/4)). Medido sob
+# passeio aleatório (modelo de nível, 1000 réplicas por n, 5%): ver NEWS 0.3.0.
+test_that("o padrão é fixa com l4 = trunc(4 (n/100)^(1/4)) defasagens", {
+  for (n in c(30L, 50L, 100L, 160L)) {
+    set.seed(n)
+    x <- cumsum(stats::rnorm(n))
+    t <- tr_series_zivot_andrews(stats::ts(x), mudanca = "nível")
+    k <- as.integer(trunc(4 * (n / 100)^(1 / 4)))
+    expect_equal(t$extra$defasagens, k, info = n)
+    z <- urca::ur.za(x, model = "intercept", lag = k)
+    lo <- ceiling(0.15 * n); hi <- min(floor(0.85 * n), n - 1)
+    expect_equal(t$estatistica, min(z@tstats[lo:hi]), tolerance = 1e-12, info = n)
+    expect_match(t$nota, "regra de Schwert", fixed = TRUE)
+  }
+})
+
+test_that("t_sig continua opção, com teto l12 automático e o aviso abaixo de 100", {
+  set.seed(9)
+  x <- stats::ts(cumsum(stats::rnorm(60)))
+  t <- tr_series_zivot_andrews(x, mudanca = "nível", selecao = "t_sig")
+  expect_match(t$nota, "teto 10", fixed = TRUE)
+  expect_match(t$nota, "rejeita bem acima do nível nominal", fixed = TRUE)
+  expect_error(tr_series_zivot_andrews(x, defasagens = -2L), class = "tr_series_error_bad_option")
 })

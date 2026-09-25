@@ -93,9 +93,9 @@
           se_falhar = "Na dúvida, `ambas`. Testes com duas quebras ainda sem bloco no trama."),
         P("A quebra está **longe das pontas** (entre 15% e 85% da série), e sob H0 a série tem raiz unitária **sem** quebra.",
           verificar = "series/plot"),
-        P("As **defasagens** bastam para deixar o erro da regressão sem autocorrelação. Com `t_sig` (padrão) o número é escolhido do geral para o específico em cada corte, como no artigo; com `fixa` vale o que foi dado (0 = nenhuma).",
+        P("As **defasagens** bastam para deixar o erro da regressão sem autocorrelação. Com `fixa` (padrão) vale o número dado, e `-1` é a regra l4 de Schwert (1989), trunc(4·(n/100)^(1/4)); com `t_sig` o número é escolhido do geral para o específico em cada corte, como no artigo, mas rejeita bem acima do nominal abaixo de 100 observações (medido: 29% a 5% com n = 30).",
           verificar = "series/pacf",
-          se_falhar = "Suba o teto em **Defasagens** (o bloco diz o máximo que cabe)."),
+          se_falhar = "Suba o número em **Defasagens** (o bloco diz o máximo que cabe)."),
         P("Série de **pelo menos 20** observações, e de preferência 40 ou mais: abaixo disso o teste rejeita mais que o nível nominal.")),
       referencias = list(
         R(autores = c("Zivot, E.", "Andrews, D. W. K."), ano = 1992,
@@ -109,7 +109,7 @@
           fonte = "Journal of Business & Economic Statistics, 7(2), 147-159",
           doi = "10.1080/07350015.1989.10509723"),
         L$morettin,
-        I("urca", "ur.za", "`model = \"intercept\"`, `\"trend\"` ou `\"both\"`, `lag` = k. Com `fixa`: `lag` = k dado (0 = nenhuma), mínimo do t do `ur.za` só nos cortes entre 15% e 85% da série. Com `t_sig`: cálculo próprio (`lm.fit`, a mesma regressão do `ur.za`, conferida a 1e-10), k do geral para o específico em CADA corte a partir do teto (0 = trunc(12·(n/100)^(1/4))), |t| da última defasagem ≥ 1,645, e mínimo dos t nos cortes; conferido contra a força bruta com a regressão do `ur.za` a 1e-10. Críticos de `z@cval`. Com k = 8 fixo, PNB real e nominal de Nelson-Plosser (`urca::nporg`): -5,576 e -5,824, 1929 (recalculados no `ur.za`)."))),
+        I("urca", "ur.za", "`model = \"intercept\"`, `\"trend\"` ou `\"both\"`, `lag` = k. Com `fixa`: `lag` = k dado (-1 = trunc(4·(n/100)^(1/4)), 0 = nenhuma), mínimo do t do `ur.za` só nos cortes entre 15% e 85% da série. Com `t_sig`: cálculo próprio (`lm.fit`, a mesma regressão do `ur.za`, conferida a 1e-10), k do geral para o específico em CADA corte a partir do teto (-1 = trunc(12·(n/100)^(1/4))), |t| da última defasagem ≥ 1,645, e mínimo dos t nos cortes; conferido contra a força bruta com a regressão do `ur.za` a 1e-10. Críticos de `z@cval`. Com k = 8 fixo, PNB real e nominal de Nelson-Plosser (`urca::nporg`): -5,576 e -5,824, 1929 (recalculados no `ur.za`)."))),
 
     "series/ljung_box" = box_teste("Ljung-Box",
       R(autores = c("Ljung, G. M.", "Box, G. E. P."), ano = 1978,

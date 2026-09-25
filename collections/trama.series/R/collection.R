@@ -1411,7 +1411,7 @@ pede.
       trama::tr_node("series/zivot_andrews",
         pressupostos = .tr_series_doc("series/zivot_andrews")$pressupostos,
         referencias = .tr_series_doc("series/zivot_andrews")$referencias,
-        fn = tr_series_zivot_andrews, version = 3L,
+        fn = tr_series_zivot_andrews, version = 4L,
         label = "Zivot-Andrews",
         category = "serie_raiz", icon = icone("split"),
         description = "Zivot-Andrews: raiz unitária, com a quebra achada pelo próprio teste?",
@@ -1419,8 +1419,8 @@ pede.
         params = list(
           mudanca = E("ambas", c("nível", "inclinação", "ambas"),
                       label = "O que quebra"),
-          defasagens = I(0L, min = 0L, max = 50L, label = "Defasagens"),
-          selecao = E("t_sig", c("t_sig", "fixa"), label = "Escolha das defasagens")),
+          defasagens = I(-1L, min = -1L, max = 50L, label = "Defasagens (-1 = regra de Schwert)"),
+          selecao = E("fixa", c("fixa", "t_sig"), label = "Escolha das defasagens")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem RAIZ UNITÁRIA admitindo que ela possa ter sofrido uma
 QUEBRA ESTRUTURAL — e achando a data da quebra sozinho.
@@ -1509,25 +1509,37 @@ p-valor a partir dela seria inventar precisão que o pacote não dá. A decisão
 chega ao número — é o que limpa a autocorrelação do erro, e a tabela de
 críticos supõe que ela foi limpa.
 
-- **Escolha das defasagens = t_sig** (padrão) — a regra do artigo: do geral
-  para o específico (Perron, 1989; Zivot & Andrews, 1992), EM CADA CORTE. Para
-  cada data candidata, parte do teto e, enquanto o t da ÚLTIMA diferença
-  defasada não for significativo a 10% (|t| < 1.645), tira uma; o t da raiz
-  unitária daquele corte é o da regressão com o número que sobrou, e o teste é
-  o menor t entre os cortes. **Defasagens** é o teto; `0` usa a regra de
-  Schwert (1989), trunc(12·(n/100)^(1/4)), limitada ao que a série comporta. A
-  `nota` diz quantas ficaram no corte vencedor e qual foi o teto. (Na versão 2
-  o corte era escolhido primeiro e o número depois, só nele; a versão 3 segue
-  o artigo.)
-- **fixa** — o número vale como foi dado, sem busca, e `0` é zero defasagens
-  (na versão 2, `0` caía na raiz cúbica de n - 1).
+- **Escolha das defasagens = fixa** (padrão desde a versão 4) — o número
+  vale como foi dado, sem busca. **Defasagens** = `-1` (padrão) usa a regra
+  l4 de Schwert (1989), trunc(4·(n/100)^(1/4)) — 2 defasagens com 30
+  observações, 3 com 50, 4 com 100 —, limitada ao que a série comporta;
+  `0` é zero defasagens.
+- **t_sig** — a regra do artigo: do geral para o específico (Perron, 1989;
+  Zivot & Andrews, 1992), EM CADA CORTE. Para cada data candidata, parte do
+  teto e, enquanto o t da ÚLTIMA diferença defasada não for significativo a
+  10% (|t| < 1.645), tira uma; o t da raiz unitária daquele corte é o da
+  regressão com o número que sobrou, e o teste é o menor t entre os cortes.
+  **Defasagens** é o teto; `-1` usa a regra l12 de Schwert (1989),
+  trunc(12·(n/100)^(1/4)). A `nota` diz quantas ficaram no corte vencedor e
+  qual foi o teto.
 
-O preço da regra do artigo é o nível em amostra finita: a busca em cada corte
-escolhe, entre muitos k, o que mais favorece a rejeição. Medido sob passeio
-aleatório (modelo de nível, 300 réplicas), `t_sig` rejeita a 5% em 31% das
-vezes com 30 observações, 27% com 50 e 13% com 100; `fixa` com a raiz cúbica
-de n - 1 defasagens, em 10%, 6% e 5%. Abaixo de 100 observações a `nota`
-avisa, e o resultado deve ser conferido com `fixa`.
+Por que o padrão deixou de ser a regra do artigo (versão 4): a busca em cada
+corte escolhe, entre muitos k, o que mais favorece a rejeição, e o nível em
+amostra finita sai muito acima do nominal. Medido sob passeio aleatório
+(modelo de nível, 1000 réplicas por tamanho; erro de Monte Carlo perto de 1
+ponto), rejeição a 5%:
+
+```
+n     t_sig (teto l12)   fixa l12      fixa l4 (padrão)
+30        29.3%          12.0% (k=8)    8.0% (k=2)
+50        19.8%           5.3% (k=10)   6.9% (k=3)
+100       14.6%           5.6% (k=12)   6.2% (k=4)
+```
+
+A l4 é a que menos erra na série curta; a l12 fica mais perto do nominal a
+partir de 50 observações, mas com 30 gasta oito defasagens e rejeita 12%. Com
+`t_sig` e menos de 100 observações a `nota` avisa; com `fixa` e menos de 40,
+também, porque nem a l4 chega aos 5% ali.
 
 Um teto (ou número fixo) grande demais para uma série curta deixa a regressão
 da quebra sem graus de liberdade, e nesse caso o bloco recusa dizendo qual é o
@@ -1565,9 +1577,10 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
 - **O que quebra** — `nível`, `inclinação` ou `ambas`; muda a regressão e a
   tabela de valores críticos junto.
-- **Defasagens** — com `t_sig`, o teto da busca (`0` = regra de Schwert);
-  com `fixa`, o número usado (`0` = nenhuma).
-- **Escolha das defasagens** — `t_sig` (padrão) ou `fixa`.
+- **Defasagens** — com `fixa`, o número usado; com `t_sig`, o teto da busca.
+  `-1` (padrão) = regra de Schwert (l4 com `fixa`, l12 com `t_sig`); `0` =
+  nenhuma.
+- **Escolha das defasagens** — `fixa` (padrão) ou `t_sig`.
 ]---", r"---[
 Um teste (`series/test`), com a posição da quebra e o rótulo do período em
 colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de relatório:

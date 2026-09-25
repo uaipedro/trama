@@ -1,3 +1,19 @@
+# trama.series 0.3.0
+
+## Rigor metodológico (fase 3, revisão)
+
+- `series/zivot_andrews` (versão 4): o padrão passa a ser `selecao = "fixa"`
+  com `defasagens = -1` = regra l4 de Schwert (1989; eq. 13a do NBER
+  Technical Working Paper 73, conferida no texto), trunc(4·(n/100)^(1/4));
+  `t_sig` continua opção, com teto l12 = trunc(12·(n/100)^(1/4)) quando
+  `defasagens = -1`, e o aviso abaixo de 100 observações. `0` é zero
+  defasagens nas duas escolhas (antes, com `t_sig`, `0` era o teto
+  automático). Medido sob passeio aleatório, modelo de nível, 1000 réplicas
+  por n (erro de Monte Carlo ≈ 1 ponto), rejeição a 5%: t_sig 29,3% / 19,8% /
+  14,6% (n = 30 / 50 / 100); fixa l12 12,0% / 5,3% / 5,6%; fixa l4 8,0% /
+  6,9% / 6,2%. A l4 é o padrão por errar menos na série curta; abaixo de 40
+  observações a `nota` segue avisando.
+
 # trama.series 0.2.0
 
 ## Rigor metodológico (fase 3)

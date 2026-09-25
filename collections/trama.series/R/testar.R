@@ -232,9 +232,9 @@ tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
 #' É o segundo bloco da coleção a publicar um ponto localizado na série, depois
 #' do `series/pettitt`, e usa o mesmo `.tr_series_rotulo_em()` para o rótulo.
 #' @export
-tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
-                                    selecao = "t_sig") {
-  selecao <- .tr_series_enum(selecao, c("t_sig", "fixa"), "selecao")
+tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = -1L,
+                                    selecao = "fixa") {
+  selecao <- .tr_series_enum(selecao, c("fixa", "t_sig"), "selecao")
   mud <- .tr_series_enum(mudanca, c("nível", "inclinação", "ambas"), "mudanca")
   # Eq. 3.35 (nível), 3.36 (inclinação) e 3.37 (ambas) da dissertação, nesta ordem.
   modelo <- switch(mud, "nível" = "intercept", "inclinação" = "trend", "ambas" = "both")
@@ -259,7 +259,13 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
   .tr_series_minimo(serie, 20L, "series/zivot_andrews", "a varredura da quebra")
   x <- as.numeric(serie)
   n <- length(x)
-  k <- .tr_series_int(defasagens, "defasagens", min = 0L)
+  # `defasagens = -1` (padrão, versão 4) é a regra de Schwert (1989, eq. 13a e
+  # 13b do NBER t0073): com `fixa`, l4 = trunc(4 (n/100)^(1/4)); com `t_sig`, o
+  # teto l12 = trunc(12 (n/100)^(1/4)). Qualquer k >= 0 vale como foi dado.
+  k <- .tr_series_int(defasagens, "defasagens", min = -1L)
+  auto <- k < 0L
+  k_cabe_auto <- function(k) min(k, max(0L, (n - 2L - (if (modelo == "both") 5L else 4L)) %/% 2L))
+  if (auto && selecao == "fixa") k <- k_cabe_auto(as.integer(trunc(4 * (n / 100)^(1 / 4))))
   # O `ur.za` ajusta, em CADA corte candidato, uma regressão com intercepto,
   # y_{t-1}, tendência, as k diferenças defasadas e a dummy da quebra — duas
   # dummies no modelo "ambas" —, sobre as n - 1 - k linhas que sobram depois das
@@ -279,8 +285,8 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
   if (selecao == "t_sig") {
     # Teto da busca: o dado, ou a regra de Schwert (1989), trunc(12 (n/100)^(1/4)),
     # limitada ao que cabe — o teto automático nunca é motivo de erro.
-    kmax <- if (k == 0L) as.integer(trunc(12 * (n / 100)^(1 / 4))) else k
-    if (kmax > k_cabe && k > 0L) {
+    kmax <- if (auto) as.integer(trunc(12 * (n / 100)^(1 / 4))) else k
+    if (kmax > k_cabe && !auto) {
       .tr_series_abort("tr_series_error_bad_option",
                        paste0("Param 'defasagens': %d defasagens não cabem numa série de %d ",
                               "observações neste modelo — a regressão da quebra ficaria sem ",
@@ -351,6 +357,8 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
                  "ambas" = "nível e inclinação")
   defs <- if (selecao == "t_sig") {
     sprintf("%d defasagens no corte vencedor, escolhidas em cada corte do geral para o específico (teto %d, t da última a 10%%)", k, kmax)
+  } else if (auto) {
+    sprintf("%d defasagens (regra de Schwert, trunc(4·(n/100)^(1/4)))", k)
   } else {
     sprintf("%d defasagens", k)
   }
@@ -364,11 +372,11 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
   # aprende a pular — que é como a ressalva do `series/phillips_perron` teria
   # morrido se o corte dela fosse 0,1 em vez da borda de verdade.
   if (selecao == "t_sig" && n < 100L) {
-    # Medido sob passeio aleatório (modelo de nível, 300 réplicas): escolher k
-    # em cada corte rejeita a 5% em 31% (n = 30), 27% (n = 50) e 13% (n = 100);
-    # com k fixo = trunc((n - 1)^(1/3)), 10%, 6% e 5%.
+    # Medido sob passeio aleatório (modelo de nível, 1000 réplicas por n, versão
+    # 4): escolher k em cada corte rejeita a 5% em 29,3% (n = 30), 19,8% (50) e
+    # 14,6% (100); o padrão `fixa` com l4 de Schwert, em 8,0%, 6,9% e 6,2%.
     nota <- paste0(nota, "; com a escolha das defasagens em cada corte e menos de 100 ",
-                   "observações o teste rejeita bem acima do nível nominal (medido: 31% a 5% ",
+                   "observações o teste rejeita bem acima do nível nominal (medido: 29% a 5% ",
                    "com 30 observações); confira com Escolha = fixa")
   } else if (n < 40L) {
     nota <- paste0(nota, "; série curta para este teste: com menos de 40 observações ",
