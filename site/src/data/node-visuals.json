@@ -1956,99 +1956,6 @@
     ],
     "icon": "layers"
   },
-  "ml/pr_curve": {
-    "accent": "#8b3a62",
-    "hasInput": true,
-    "hasOutput": true,
-    "label": "Curva precisão-revocação",
-    "category": "ml_inspecionar",
-    "categoryLabel": "Inspecionar",
-    "categoryOrder": 53,
-    "inputColor": "#38bdf8",
-    "outputColor": "#f472b6",
-    "role": "avaliacao",
-    "inputs": [
-      {
-        "name": "dados",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#f472b6",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "resposta",
-        "kind": "text",
-        "label": "Resposta",
-        "default": "",
-        "example": "Species"
-      },
-      {
-        "name": "probabilidade",
-        "kind": "text",
-        "label": "Probabilidade",
-        "default": "",
-        "example": "prob_sim"
-      },
-      {
-        "name": "positiva",
-        "kind": "text",
-        "label": "Classe positiva",
-        "default": "",
-        "example": "sim"
-      },
-      {
-        "name": "aspecto",
-        "kind": "enum",
-        "label": "Proporção",
-        "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
-      },
-      {
-        "name": "tema",
-        "kind": "theme",
-        "label": "Tema",
-        "default": "padrão"
-      },
-      {
-        "name": "titulo",
-        "kind": "text",
-        "label": "Título",
-        "default": "",
-        "example": "Receita por região"
-      },
-      {
-        "name": "rotulo_x",
-        "kind": "text",
-        "label": "Rótulo do X",
-        "default": "",
-        "example": "Região"
-      },
-      {
-        "name": "rotulo_y",
-        "kind": "text",
-        "label": "Rótulo do Y",
-        "default": "",
-        "example": "Receita (R$)"
-      },
-      {
-        "name": "legenda",
-        "kind": "enum",
-        "label": "Legenda",
-        "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
-      }
-    ],
-    "icon": "chart-line"
-  },
   "ml/residuals": {
     "accent": "#d3e9de",
     "hasInput": true,
@@ -3356,63 +3263,6 @@
       }
     ],
     "icon": "trending-up"
-  },
-  "models/dose_response": {
-    "accent": "#31765a",
-    "hasInput": true,
-    "hasOutput": true,
-    "label": "Regressão de doses",
-    "category": "modelo_anova",
-    "categoryLabel": "ANOVA",
-    "categoryOrder": 16,
-    "inputColor": "#14b8a6",
-    "outputColor": "#14b8a6",
-    "role": "ajuste",
-    "inputs": [
-      {
-        "name": "modelo",
-        "color": "#14b8a6",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "modelo",
-        "color": "#14b8a6",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "quadro",
-        "color": "#eab308",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "tratamento",
-        "kind": "cols",
-        "label": "Tratamento (doses)",
-        "default": "",
-        "example": "dose"
-      },
-      {
-        "name": "grau",
-        "kind": "enum",
-        "label": "Grau",
-        "default": "automático",
-        "choices": ["automático", "1", "2", "3"]
-      },
-      {
-        "name": "confianca",
-        "kind": "number",
-        "label": "Confiança",
-        "default": 0.95
-      }
-    ],
-    "icon": "chart-line"
   },
   "models/duncan": {
     "accent": "#d3e9de",
@@ -4887,7 +4737,7 @@
     "categoryLabel": "Médias",
     "categoryOrder": 18,
     "inputColor": "#14b8a6",
-    "outputColor": "#eab308",
+    "outputColor": "#14b8a6",
     "role": "leitura",
     "inputs": [
       {
@@ -4899,7 +4749,13 @@
     ],
     "outputs": [
       {
-        "name": "out",
+        "name": "modelo",
+        "color": "#14b8a6",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "quadro",
         "color": "#eab308",
         "required": true,
         "multiple": false
@@ -4909,14 +4765,21 @@
       {
         "name": "tratamento",
         "kind": "cols",
-        "label": "Tratamento (numérico)",
+        "label": "Tratamento (doses)",
         "default": "",
         "example": "dose"
       },
       {
         "name": "grau",
+        "kind": "enum",
+        "label": "Grau da curva",
+        "default": "automático",
+        "choices": ["automático", "1", "2", "3", "4", "5"]
+      },
+      {
+        "name": "grau_max",
         "kind": "number",
-        "label": "Maior grau",
+        "label": "Maior grau testado",
         "default": 3
       },
       {
@@ -4927,6 +4790,112 @@
       }
     ],
     "icon": "chart-spline"
+  },
+  "models/pr_curve": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Curva precisão-revocação",
+    "category": "modelo_avaliar",
+    "categoryLabel": "Prever e avaliar",
+    "categoryOrder": 20,
+    "inputColor": "#14b8a6",
+    "outputColor": "#f472b6",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#14b8a6",
+        "required": false,
+        "multiple": false
+      },
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": false,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "validacao",
+        "kind": "enum",
+        "label": "Validação (só modelo)",
+        "default": "cruzada",
+        "choices": ["resubstituição", "cruzada"]
+      },
+      {
+        "name": "positiva",
+        "kind": "text",
+        "label": "Classe positiva",
+        "default": "",
+        "example": "1"
+      },
+      {
+        "name": "resposta",
+        "kind": "cols",
+        "label": "Resposta (modo tabela)",
+        "default": "",
+        "example": "am"
+      },
+      {
+        "name": "probabilidade",
+        "kind": "cols",
+        "label": "Probabilidade (modo tabela)",
+        "default": "",
+        "example": "prob_sim"
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "16:9",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "chart-line"
   },
   "models/predict": {
     "accent": "#8b3a62",
