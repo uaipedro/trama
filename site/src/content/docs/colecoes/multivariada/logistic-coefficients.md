@@ -39,7 +39,7 @@ A tabela resume coeficientes e razões de chances da logística ajustada. No `pi
 
 ## Como interpretar
 
-Coeficiente está em log-chances; razão de chances é `exp(coeficiente)`. Valor 1 indica ausência de mudança na chance por unidade. Intervalo que inclui 1 corresponde a coeficiente compatível com 0.
+Coeficiente está em log-chances; razão de chances é `exp(coeficiente)`. Valor 1 indica ausência de mudança na chance por unidade. Intervalo que inclui 1 corresponde a coeficiente compatível com 0. O `z` é sempre de Wald (coeficiente / erro padrão); com o intervalo perfilado, o `p_valor` é o da razão de verossimilhanças (penalizadas no Firth), e os dois podem discordar em amostra pequena ou no Firth — leia o p e o intervalo, que são coerentes entre si.
 
 ## Veja também
 

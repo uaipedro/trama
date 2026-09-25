@@ -126,3 +126,10 @@ test_that("perfil difícil (vinhos B × C, quase separado): limites são cruzame
   expect_equal(t$coeficiente, c(-104.3051950103, 8.3512149518, -5.2263664230, 0.9716911897),
                tolerance = 1e-8)
 })
+
+test_that("ajuda da logistic_coefficients avisa que z é Wald e p é perfilado", {
+  h <- multi_registry()$nodes[["multi/logistic_coefficients"]]$help
+  h <- paste(unlist(h), collapse = " ")
+  expect_match(h, "z` é sempre de Wald", fixed = TRUE)
+  expect_match(h, "podem\\s+discordar")
+})

@@ -494,7 +494,16 @@ Uma linha por termo (e, na multinomial, por grupo contra a referência).
   "Wald"`, exp(b ± z·EP).
 - **p_valor** — com o perfilado, o da razão de verossimilhanças (desvio sem o
   termo menos o desvio com ele, contra χ²₁; penalizadas no Firth), coerente
-  com o intervalo; com Wald, 2Φ(−|z|).
+  com o intervalo; com Wald, 2Φ(−|z|). **O `z` é sempre de Wald** (b / EP):
+  com `perfilado`, z e p_valor vêm de aproximações diferentes e podem
+  discordar — z grande com p acima de 0,05, ou o contrário —, sobretudo no
+  Firth e em amostra pequena, onde a verossimilhança penalizada é
+  assimétrica. Heinze & Schemper (2002, resumo) dizem que os testes e
+  intervalos de Wald existem mas que os da razão de verossimilhanças
+  penalizadas "são muitas vezes preferíveis": leia o p_valor e o intervalo,
+  e o z só como tamanho do efeito em EPs. O EP do Firth é o da inversa da
+  informação de Fisher em β̂; não conferimos no texto do artigo (sem acesso
+  aberto) se é o que ele usa, e o `logistf` usa (X'W(1 + h)X)⁻¹, menor.
 - **intervalo** — `perfilado` ou `Wald`: o que foi calculado.
 
 ### Multinomial
