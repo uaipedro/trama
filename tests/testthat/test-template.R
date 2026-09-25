@@ -116,3 +116,34 @@ test_that("ops do template inserem com ids novos e na origem pedida", {
   expect_equal(unname(res3$ui$positions[setdiff(names(res3$nodes), "a")]),
                unname(res$ui$positions[novos]))
 })
+
+test_that("gravar e listar: biblioteca e projeto, sem sobrescrever calado", {
+  withr::local_envvar(R_USER_CONFIG_DIR = withr::local_tempdir())
+  root <- withr::local_tempdir()
+  reg <- test_registry()
+  tpl <- tr_template(doc_soma(reg), nome = "Soma Básica", descricao = "d", registry = reg)
+
+  path <- tr_template_save(tpl, tr_template_dir("biblioteca"))
+  expect_equal(basename(path), "soma-basica.json")
+  expect_error(tr_template_save(tpl, tr_template_dir("biblioteca")), class = "tr_error_template_exists")
+  expect_no_error(tr_template_save(tpl, tr_template_dir("biblioteca"), overwrite = TRUE))
+
+  tr_template_save(tpl, tr_template_dir("projeto", root))
+  # Arquivo inválido na pasta é ignorado, não derruba a listagem.
+  writeLines("{ quebrado", file.path(tr_template_dir("projeto", root), "ruim.json"))
+  writeLines('{"format":1,"nodes":{},"edges":[]}', file.path(tr_template_dir("projeto", root), "dados.json"))
+
+  lst <- tr_template_list(root, registry = reg)
+  expect_length(lst, 2)
+  expect_setequal(vapply(lst, `[[`, "", "escopo"), c("biblioteca", "projeto"))
+  expect_true(all(vapply(lst, function(x) x$escopo %in% c("colecao", "biblioteca", "projeto"), logical(1))))
+  expect_equal(lst[[1]]$nome, "Soma Básica")
+  expect_equal(lst[[1]]$descricao, "d")
+  expect_true(file.exists(lst[[1]]$arquivo))
+  expect_true(is.character(lst[[1]]$colecoes))
+})
+
+test_that("slug cai em 'template' quando o nome não tem nada aproveitável", {
+  expect_equal(.tr_slug("Ação & Reação!"), "acao-reacao")
+  expect_equal(.tr_slug("!!!"), "template")
+})

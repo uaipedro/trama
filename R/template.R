@@ -158,3 +158,64 @@ tr_template_op <- function(tpl, origin = c(0, 0)) {
          to_node = novo[[e$to$node]], to_port = e$to$port)
   list(op = "batch", ops = c(ops, depois))
 }
+
+#' Pasta de templates por escopo.
+#'
+#' `biblioteca` é pessoal (vale em qualquer projeto); `projeto` viaja junto
+#' com a pasta do projeto. Templates de coleção moram em `inst/templates` do
+#' pacote e não têm pasta gravável: só são listados.
+#' @export
+tr_template_dir <- function(escopo = c("biblioteca", "projeto"), root = ".") {
+  switch(match.arg(escopo),
+         biblioteca = file.path(tools::R_user_dir("trama", "config"), "templates"),
+         projeto = file.path(root, "templates"))
+}
+
+# Nome de arquivo a partir do nome do template: sem acento, sem espaço, sem
+# nada que um sistema de arquivos estranhe.
+.tr_slug <- function(x) {
+  s <- tolower(iconv(x, to = "ASCII//TRANSLIT", sub = ""))
+  s <- gsub("[^a-z0-9]+", "-", s); s <- gsub("^-|-$", "", s)
+  if (is.na(s) || !nzchar(s)) "template" else s
+}
+
+#' Grava o template em `dir`; nome de arquivo derivado do nome do template.
+#' @export
+tr_template_save <- function(tpl, dir, overwrite = FALSE) {
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  path <- file.path(dir, paste0(.tr_slug(tpl$nome), ".json"))
+  # Dois templates de nomes parecidos caem no mesmo slug: sobrescrever calado
+  # apagaria o trabalho de alguém.
+  if (file.exists(path) && !overwrite) {
+    rlang::abort(sprintf("Já existe um template chamado '%s' aqui.", tpl$nome),
+                 class = "tr_error_template_exists")
+  }
+  writeLines(tr_template_json(tpl), path)
+  invisible(path)
+}
+
+#' Templates disponíveis: coleções carregadas, biblioteca pessoal, projeto.
+#'
+#' Uma lista de registros (`escopo`, `nome`, `descricao`, `arquivo`,
+#' `colecoes`). Arquivo que não é template — dado solto, JSON quebrado — é
+#' ignorado: uma pasta suja não pode esconder os templates bons.
+#' @export
+tr_template_list <- function(root = ".", registry = .tr_default_registry) {
+  pkgs <- as.character(.tr_registry_packages(registry) %||% character())
+  pastas <- c(vapply(pkgs, function(p) system.file("templates", package = p), ""),
+              tr_template_dir("biblioteca"), tr_template_dir("projeto", root))
+  escopos <- c(rep("colecao", length(pkgs)), "biblioteca", "projeto")
+  out <- list()
+  for (i in seq_along(pastas)) {
+    d <- pastas[[i]]
+    if (!nzchar(d) || !dir.exists(d)) next
+    for (f in sort(list.files(d, "\\.json$", full.names = TRUE))) {
+      t <- tryCatch(tr_template_read(f), error = function(e) NULL)
+      if (is.null(t)) next
+      out[[length(out) + 1]] <- list(escopo = escopos[[i]], nome = t$nome,
+                                     descricao = t$descricao, arquivo = normalizePath(f),
+                                     colecoes = t$colecoes)
+    }
+  }
+  out
+}
