@@ -124,6 +124,55 @@ tr_flow(reg) |>
 `models/confusion` para o acerto num corte; `models/evaluate` para as métricas.
 ]---", grafico = TRUE)),
 
+    # Veio da `ml/pr_curve` (main) na 9.2, com os modos da `models/roc`. As
+    # contas e o oráculo são os de lá; a versão começa em 1 no id novo.
+    trama::tr_node("models/pr_curve",
+      pressupostos = .tr_models_doc("models/pr_curve")$pressupostos,
+      referencias = .tr_models_doc("models/pr_curve")$referencias,
+      fn = tr_models_pr_curve, label = "Curva precisão-revocação",
+      category = "modelo_avaliar", icon = trama::tr_icon("chart-line"),
+      description = "Precisão × revocação em todos os cortes, com a precisão média (AP).",
+      inputs = list(modelo = opc(Fm), dados = opc(T)), outputs = list(out = "view/plot"),
+      params = .tr_models_props(
+        validacao = validacao, positiva = positiva, resposta = resposta,
+        probabilidade = P("cols", "", label = "Probabilidade (modo tabela)", example = "prob_sim"),
+        .aspecto = "16:9"),
+      help = .tr_models_ajuda(paste0(r"---[
+Ordena as linhas pela probabilidade da classe positiva e mostra, em cada corte,
+a **precisão** (dos que a regra chama de positivos, quantos são) contra a
+**revocação** (dos positivos, quantos ela pega). Prefira à ROC quando a classe
+de interesse é rara: a ROC pode parecer boa enquanto a precisão na classe rara
+é baixa.
+
+A **AP** (precisão média) soma, nos cortes, o ganho de revocação vezes a
+precisão, sem interpolação — é a do `yardstick` e do scikit-learn. A **área**
+do subtítulo usa a interpolação de Davis & Goadrich, a do `PRROC`; ligar os
+pontos por reta superestimaria a área. A linha tracejada é a **prevalência**
+da positiva, a precisão de um classificador ao acaso.
+
+A classe positiva é a **Classe positiva**; vazia, o segundo nível (ou, no modo
+tabela, a classe do nome `prob_<classe>` da coluna). Com três ou mais classes
+ela é obrigatória, e a curva é ela contra as outras.
+]---", .tr_models_ajuda_modos(), r"---[
+No modo tabela a curva lê a coluna **Probabilidade**; vazia, a
+`prob_<positiva>` que o `models/predict` escreve.
+]---"), r"---[
+- **Validação (só modelo)** — `cruzada` (padrão) ou `resubstituição`.
+- **Classe positiva** — vazia = o segundo nível (ou a do nome da coluna).
+- **Resposta**, **Probabilidade** — só no modo tabela.
+]---", r"---[
+Um gráfico (`view/plot`), com a AP, a área e a prevalência. Os dados do
+gráfico trazem `limiar`, `recall`, `precision`, `ap`, `area` e `prevalencia`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carros", "models/example", dataset = "mtcars") |>
+  tr_add("logit", "models/glm", formula = "am ~ wt", familia = "binomial", from = "carros") |>
+  tr_add("pr", "models/pr_curve", validacao = "cruzada", from = "logit")
+]---", r"---[
+`models/roc`; `models/confusion` para o acerto num corte; `models/evaluate`
+para a acurácia balanceada e o F1.
+]---", grafico = TRUE)),
+
     # Versão 2: a tabela ganhou a coluna `classe` e as métricas ponderadas e por
     # classe (porte da `ml/evaluate` da main).
     trama::tr_node("models/evaluate", version = 2L,

@@ -34,19 +34,14 @@ trama_collection <- function() {
 .tr_ml_migracoes <- function() {
   resposta <- list(alvo = list(to = "resposta"))
   ajuste <- c(resposta, list(cols = list(to = "preditores")))
-  # `nested_cv` e `pr_curve` nasceram na main com `alvo`/`cols`; documentos
-  # gravados lá abrem com os nomes do glossário.
+  # `nested_cv` nasceu na main com `alvo`/`cols`; documentos gravados lá abrem
+  # com os nomes do glossário. (A `ml/pr_curve` foi para a `models` na 9.2, e
+  # a migração dela mora lá, com a das outras leitoras de previsão.)
   ajustes <- c("linear", "cart", "figs", "forest", "svm", "xgboost", "tune", "nested_cv")
   predito <- list(predito = list(to = "predito", when = function(v) identical(v, ".pred"),
                                  value = function(v) "previsto"))
-  # A PR lê a coluna de probabilidade da previsão: `.prob_<classe>` (ml/predict)
-  # vira `prob_<classe>` (models/predict), com a classe saneada como lá.
-  prob <- list(probabilidade = list(to = "probabilidade",
-    when = function(v) is.character(v) && length(v) == 1L && grepl("^\\.prob_", v),
-    value = function(v) paste0("prob_", trama.models::tr_models_clean_name(sub("^\\.prob_", "", v)))))
   c(stats::setNames(rep(list(ajuste), length(ajustes)), paste0("ml/", ajustes)),
-    list("ml/split" = resposta, "ml/residuals" = c(resposta, predito),
-         "ml/pr_curve" = c(resposta, prob)))
+    list("ml/split" = resposta, "ml/residuals" = c(resposta, predito)))
 }
 
 .tr_ml_workflow_nodes <- function() {

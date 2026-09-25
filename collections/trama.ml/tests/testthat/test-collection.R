@@ -7,7 +7,7 @@ fit_type <- function() {
 test_that("catálogo registra os 15 blocos e contratos consistentes", {
   reg <- ml_registry()
   nodes <- trama_collection()$nodes
-  expect_length(nodes, 15L)  # + ml/nested_cv e ml/pr_curve (main)
+  expect_length(nodes, 14L)  # + ml/nested_cv (main); ml/pr_curve foi para a models na 9.2
   ids <- vapply(nodes, `[[`, "", "id")
   # Prever, avaliar, confusão, ROC e importância são os blocos da models.
   expect_false(any(c("ml/predict", "ml/evaluate", "ml/confusion", "ml/roc", "ml/importance") %in% ids))

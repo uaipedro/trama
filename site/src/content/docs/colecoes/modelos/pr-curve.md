@@ -1,10 +1,11 @@
 ---
 section: colecoes
 title: Curva precisão-revocação
-description: Traça precisão contra revocação para classificação binária e calcula a precisão média.
-collection: aprendizado
-node: ml/pr_curve
-related: ["models/roc", "models/predict", "models/confusion"]
+description: "Precisão × revocação em todos os cortes, com a precisão média (AP)."
+collection: modelos
+node: models/pr_curve
+category: avaliar
+related: [models/roc, models/predict, models/confusion]
 ---
 
 ## O que o bloco faz
@@ -17,13 +18,13 @@ Quando a classe de interesse é rara. A ROC não muda com o desequilíbrio e pod
 
 ## Configuração
 
-`resposta` é a classe observada; `probabilidade` é a coluna `prob_<classe>` (de `models/predict`); `positiva` escolhe a classe positiva — vazia usa a do nome da coluna e, com coluna de nome livre, o bloco pede `positiva`.
+Como a `models/roc`, tem três modos: ligue só um modelo (a curva sai da validação, `cruzada` ou `resubstituição`), um modelo e uma tabela de teste em `dados`, ou só uma tabela com a classe e a probabilidade. No modo tabela, `resposta` é a classe observada e `probabilidade` a coluna `prob_<classe>` (de `models/predict`). `positiva` escolhe a classe de interesse: vazia, no modo tabela é a do nome da coluna (com coluna de nome livre o bloco pede `positiva`); com modelo, o segundo nível. Com três ou mais classes é obrigatória, e a curva é ela contra as outras.
 
 ## Exemplo
 
 ```r
 d <- data.frame(y = c("sim", "nao", "sim", "nao", "sim"), prob_sim = c(.9, .8, .7, .6, .2))
-p <- trama.ml::tr_ml_pr_curve(d, "y", "prob_sim")
+p <- trama.models::tr_models_pr_curve(dados = d, resposta = "y", probabilidade = "prob_sim")
 p$data
 ```
 

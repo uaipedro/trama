@@ -232,6 +232,102 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
                           probabilidade = "", positiva = "", aspecto = "1:1", tema = "padrão",
                           titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   no <- "models/roc"
+  par <- .tr_models_par_prob(modelo, dados, validacao, resposta, probabilidade, positiva, no)
+  positiva <- par$positiva
+  rd <- .tr_models_roc_dados(par$real, par$prob, par$niveis, positiva, par$corte)
+  .tr_models_roc_grafico(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+#' Curva precisão-revocação, com a precisão média (AP) e a área de Davis & Goadrich.
+#'
+#' Veio da `ml/pr_curve` (main) na integração 9.2, com os três modos da
+#' `models/roc`: modelo (validação no treino), modelo + dados novos, ou só a
+#' tabela com a probabilidade. As contas não mudaram (`.tr_models_pr_pontos`,
+#' a mesma da `ml`): um ponto por limiar distinto, empates num degrau; AP =
+#' Σ ΔR·P, sem interpolação; `area` com a interpolação não linear de Davis &
+#' Goadrich (2006), integrada em forma fechada (Keilwagen, Grosse & Grau 2014).
+#' A referência do acaso é a prevalência da positiva (Saito & Rehmsmeier 2015).
+#' @inheritParams tr_models_roc
+#' @param positiva classe de interesse. Vazia: no modo tabela, a do nome da
+#'   coluna `prob_<classe>` (ou o segundo nível sem coluna); com modelo, o
+#'   segundo nível. Com três ou mais classes é obrigatória (a curva é ela
+#'   contra as outras).
+#' @return ggplot; os dados trazem `limiar`, `recall`, `precision`, `ap`,
+#'   `area` e `prevalencia`.
+#' @export
+tr_models_pr_curve <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
+                               probabilidade = "", positiva = "", aspecto = "16:9", tema = "padrão",
+                               titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  no <- "models/pr_curve"
+  par <- .tr_models_par_prob(modelo, dados, validacao, resposta, probabilidade, positiva, no)
+  pos <- par$positiva
+  if (!nzchar(pos)) {
+    if (length(par$niveis) > 2L) {
+      .tr_models_abort("tr_models_error_blank_param",
+                       "'%s': com %d classes, diga em 'positiva' qual é a classe de interesse (a curva é ela contra as outras).",
+                       no, length(par$niveis))
+    }
+    pos <- par$niveis[[2]]
+  }
+  pos <- .tr_models_enum(pos, par$niveis, "positiva")
+  prob <- as.numeric(par$prob[, pos])
+  positivo <- par$real == pos
+  if (length(unique(positivo)) < 2L) {
+    .tr_models_abort("tr_models_error_one_level",
+                     "'%s': as linhas avaliadas têm uma classe só; a curva pede positivos e negativos.", no)
+  }
+  if (any(!is.finite(prob)) || any(prob < 0 | prob > 1)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     "'%s': a probabilidade tem de ser finita e entre 0 e 1.", no)
+  }
+  d <- .tr_models_pr_pontos(positivo, prob)
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$recall, y = .data$precision)) +
+    ggplot2::geom_hline(yintercept = d$prevalencia[[1]], linetype = 2, colour = "#94a3b8") +
+    ggplot2::geom_step(direction = "vh", linewidth = 1, colour = .TR_MODELS_COR) +
+    ggplot2::geom_point(size = 1.6, colour = .TR_MODELS_COR) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::annotate("text", x = .3, y = .08,
+                      label = sprintf("AP = %.3f  (acaso = %.3f)", d$ap[[1]], d$prevalencia[[1]])) +
+    ggplot2::labs(x = "Revocação", y = "Precisão",
+                  subtitle = sprintf("AP %s · área %s · %s · positivo: %s", .tr_models_virgula(d$ap[[1]]),
+                                     .tr_models_virgula(d$area[[1]]), par$origem, pos))
+  trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+#' Os pontos da curva PR: um por limiar distinto (decrescente), prevendo
+#' positivo quando prob >= limiar. Porte literal da `ml` (main).
+#' @noRd
+.tr_models_pr_pontos <- function(positivo, prob) {
+  ord <- order(prob, decreasing = TRUE)
+  positivo <- positivo[ord]; prob <- prob[ord]
+  grupos <- cumsum(c(TRUE, diff(prob) != 0))
+  tp <- cumsum(as.numeric(rowsum(as.integer(positivo), grupos)))
+  fp <- cumsum(as.numeric(rowsum(as.integer(!positivo), grupos)))
+  recall <- tp / sum(positivo); precision <- tp / (tp + fp)
+  ap <- sum(diff(c(0, recall)) * precision)
+  # Área com a interpolação de Davis & Goadrich (2006), contínua (Keilwagen,
+  # Grosse & Grau 2014): entre dois cortes, cada positivo a mais traz
+  # s = dFP/dTP falsos positivos, e a precisão (a + x)/(c + k x), com
+  # a = TP, c = TP + FP e k = 1 + s, é integrada em forma fechada.
+  a <- c(0, tp[-length(tp)]); b <- c(0, fp[-length(fp)])
+  dtp <- tp - a; dfp <- fp - b
+  area <- 0
+  for (i in which(dtp > 0)) {
+    k <- 1 + dfp[[i]] / dtp[[i]]; c0 <- a[[i]] + b[[i]]
+    area <- area + if (c0 == 0) dtp[[i]] / k else
+      dtp[[i]] / k + (a[[i]] - c0 / k) / k * log((c0 + k * dtp[[i]]) / c0)
+  }
+  tibble::tibble(limiar = prob[!duplicated(grupos)], recall = recall, precision = precision,
+                 ap = ap, area = area / sum(positivo), prevalencia = mean(positivo))
+}
+
+#' O par (real, probabilidades) das curvas (`models/roc`, `models/pr_curve`)
+#' nos três modos. No modo tabela, a classe positiva sai do param, do nome da
+#' coluna `prob_<classe>` ou do segundo nível; no de modelo fica como veio
+#' (vazia = decide quem chama).
+#' @return o par de `.tr_models_par_modelo`, com `positiva`.
+#' @noRd
+.tr_models_par_prob <- function(modelo, dados, validacao, resposta, probabilidade, positiva, no) {
   if (.tr_models_modo(modelo, dados, no) == "tabela") {
     r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
     niv <- .tr_models_niveis_tabela(dados[[r]])
@@ -274,18 +370,17 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
     }
     par <- list(real = as.character(dados[[r]]), previsto = rep("", nrow(dados)), prob = prob,
                 niveis = niv, corte = 0.5, origem = "tabela", resposta = r)
-    positiva <- pos
+    par$positiva <- pos
   } else {
     par <- .tr_models_exigir_classif(.tr_models_par_modelo(modelo, dados, validacao, no), no)
+    par$positiva <- if (.tr_models_preenchido(positiva)) trimws(positiva) else ""
     if (is.null(par$prob)) {
       .tr_models_abort("tr_models_error_not_applicable",
                        "'%s': o modelo de classe '%s' prevê a classe sem probabilidade, e a curva precisa dela.",
                        no, class(modelo)[[1]])
     }
   }
-  par <- .tr_models_sem_na(par)
-  rd <- .tr_models_roc_dados(par$real, par$prob, par$niveis, positiva, par$corte)
-  .tr_models_roc_grafico(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+  .tr_models_sem_na(par)
 }
 
 #' A classe que a coluna `prob_<classe>` nomeia (também `.prob_<classe>`, o

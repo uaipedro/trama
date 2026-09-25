@@ -69,9 +69,37 @@
           se_falhar = "Com uma coluna de nome livre, preencha `positiva` com a classe cuja probabilidade ela contém."),
         P("A AUC resume **todos os cortes**, inclusive os que ninguém usaria, e não muda com o desequilíbrio das classes — por isso mesmo pode parecer boa quando a classe rara é mal prevista.",
           verificar = c("models/confusion", "data/group_summarise"),
-          se_falhar = "Leia junto a matriz de confusão, a acurácia balanceada no `models/evaluate` e, com classe rara, a `ml/pr_curve`."),
+          se_falhar = "Leia junto a matriz de confusão, a acurácia balanceada no `models/evaluate` e, com classe rara, a `models/pr_curve`."),
         P("Com três ou mais classes, cada curva é **uma classe contra as outras**: a AUC de cada uma não soma nem resume o classificador inteiro.")),
       referencias = list(hanley, fawcett, saito,
-        I("trama.models", "tr_models_roc", "Cálculo próprio: um ponto por escore distinto (empates andam na diagonal) e AUC de Mann-Whitney com meio ponto por empate, igual à área trapezoidal da curva.")))
+        I("trama.models", "tr_models_roc", "Cálculo próprio: um ponto por escore distinto (empates andam na diagonal) e AUC de Mann-Whitney com meio ponto por empate, igual à área trapezoidal da curva."))),
+
+    "models/pr_curve" = list(
+      pressupostos = list(fora_amostra,
+        P("**A probabilidade é a **da classe positiva** — a classe de interesse, em geral a rara; com três ou mais classes, ela contra as outras. Com `positiva` vazia: no modo tabela a classe vem do nome da coluna (`prob_<classe>`), e com coluna de nome livre o bloco pede `positiva`; com modelo, é o segundo nível.",
+          se_falhar = "Preencha `positiva` com a classe cuja probabilidade a coluna contém."),
+        P("A referência do acaso é a **prevalência** da classe positiva, não 0,5: a AP só diz algo comparada a ela, e a curva de um conjunto com outra prevalência não é comparável (Saito & Rehmsmeier 2015).",
+          verificar = "data/group_summarise",
+          se_falhar = "Compare modelos no mesmo teste; para comparar populações diferentes, leia a ROC."),
+        P("A **AP** (soma de ganho de revocação × precisão) e a **área interpolada** de Davis & Goadrich são estimativas diferentes da mesma área; ligar os pontos por reta superestima a área e não é usado (Davis & Goadrich 2006).",
+          se_falhar = "Reporte uma delas nomeada; a AP é a do `yardstick` e do scikit-learn, a área é a do `PRROC`."),
+        P("Com **poucos positivos** a curva tem poucos degraus e a AP varia muito de um teste para outro.",
+          se_falhar = "Leia a quantidade de positivos (`prevalencia` × n) e repita a divisão com outras sementes.")),
+      referencias = list(
+        R(autores = c("Saito, T.", "Rehmsmeier, M."), ano = 2015,
+          titulo = "The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets",
+          fonte = "PLOS ONE, 10(3), e0118432", doi = "10.1371/journal.pone.0118432"),
+        R(autores = c("Davis, J.", "Goadrich, M."), ano = 2006,
+          titulo = "The relationship between Precision-Recall and ROC curves",
+          fonte = "Proceedings of the 23rd International Conference on Machine Learning (ICML), 233-240",
+          doi = "10.1145/1143844.1143874"),
+        R(autores = c("Keilwagen, J.", "Grosse, I.", "Grau, J."), ano = 2014,
+          titulo = "Area under Precision-Recall Curves for Weighted and Unweighted Data",
+          fonte = "PLoS ONE, 9(3), e92209", doi = "10.1371/journal.pone.0092209", papel = "complementar"),
+        R(autores = c("Su, W.", "Yuan, Y.", "Zhu, M."), ano = 2015,
+          titulo = "A Relationship between the Average Precision and the Area Under the ROC Curve",
+          fonte = "Proceedings of the 2015 International Conference on the Theory of Information Retrieval (ICTIR), 349-352",
+          doi = "10.1145/2808194.2809481", papel = "complementar"),
+        I("trama.models", "tr_models_pr_curve", "Cálculo próprio (porte da `ml/pr_curve` da main): um ponto por limiar distinto (empates num degrau); AP = Σ ΔR·P; área com a interpolação de Davis & Goadrich integrada em forma fechada. Conferido contra `yardstick::average_precision` e `PRROC::pr.curve` (`auc.integral`).")))
   )
 }

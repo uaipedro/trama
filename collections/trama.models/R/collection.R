@@ -111,13 +111,13 @@ trama_collection <- function() {
 
 #' As migrações dos leitores que vieram da `ml` (Fase 4).
 #'
-#' Nós: `ml/<x>` -> `models/<x>`. Params, pelo id NOVO: `alvo` -> `resposta`
+#' Nós: `ml/<x>` -> `models/<x>` (a `ml/pr_curve` entrou na 9.2). Params, pelo id NOVO: `alvo` -> `resposta`
 #' (o glossário que a ml aplicava), `.pred` -> `previsto` e `.prob_<classe>`
 #' -> `prob_<classe>` (a classe saneada como nas colunas daqui) convertidos no lugar, e `tarefa` removido
 #' (`drop = TRUE`): o evaluate da models lê a tarefa do modelo.
 #' @noRd
 .tr_models_migracoes_ml <- function() {
-  ids <- c("predict", "evaluate", "confusion", "roc", "importance")
+  ids <- c("predict", "evaluate", "confusion", "roc", "importance", "pr_curve")
   resposta <- list(alvo = list(to = "resposta"))
   predito <- list(predito = list(to = "predito", when = function(v) identical(v, ".pred"),
                                  value = function(v) "previsto"))
@@ -128,5 +128,8 @@ trama_collection <- function() {
   list(nodes = stats::setNames(as.list(paste0("models/", ids)), paste0("ml/", ids)),
        params = list("models/evaluate" = c(resposta, predito, tarefa),
                      "models/confusion" = c(resposta, predito),
-                     "models/roc" = c(resposta, prob)))
+                     "models/roc" = c(resposta, prob),
+                     # 9.2: a `ml/pr_curve` da main nasceu com `alvo` e lia a
+                     # `.prob_<classe>` da `ml/predict`, como a `ml/roc`.
+                     "models/pr_curve" = c(resposta, prob)))
 }

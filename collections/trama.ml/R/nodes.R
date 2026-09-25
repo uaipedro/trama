@@ -202,18 +202,7 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
       help = .tr_ml_help("Padr\u{F5}es, curvas ou abertura dos res\u{ED}duos sugerem erros sistem\u{E1}ticos ou vari\u{E2}ncia desigual. \u{C9} um diagn\u{F3}stico, n\u{E3}o uma prova isolada.",
         "`resposta`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica; o padr\u{E3}o `previsto` \u{E9} a coluna que `models/predict` escreve.", "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = 1:4, previsto = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
-        paste("`models/predict`, `models/evaluate`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/pr_curve", role = "avaliacao", tr_ml_pr_curve,
-      pressupostos = .tr_ml_doc("ml/pr_curve")$pressupostos, referencias = .tr_ml_doc("ml/pr_curve")$referencias, label = "Curva precis\u{E3}o-revoca\u{E7}\u{E3}o",
-      description = "Mostra precis\u{E3}o contra revoca\u{E7}\u{E3}o e a precis\u{E3}o m\u{E9}dia em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
-      category = "ml_inspecionar", icon = trama::tr_icon("chart-line"), inputs = list(dados = T), outputs = list(out = G),
-      params = visual(resposta = .tr_ml_target_param(),
-        probabilidade = trama::tr_param("text", "", label = "Probabilidade", example = "prob_sim"),
-        positiva = trama::tr_param("text", "", label = "Classe positiva", example = "sim")),
-      help = .tr_ml_help("Ordena as linhas pela probabilidade da classe positiva e mostra, em cada corte, a precis\u{E3}o contra a revoca\u{E7}\u{E3}o, com a precis\u{E3}o m\u{E9}dia (AP) e a preval\u{EA}ncia como linha do acaso. Prefira \u{E0} ROC quando a classe de interesse \u{E9} rara.",
-        "`resposta`: classe observada. `probabilidade`: coluna `prob_<classe>` criada por `models/predict`. `positiva`: classe correspondente; vazio deduz a classe do nome da coluna (`prob_<classe>`); se o nome não indicar uma classe observada, o bloco pede `positiva` em vez de adivinhar.",
-        "Um gr\u{E1}fico `view/plot`; os dados trazem limiar, revoca\u{E7}\u{E3}o, precis\u{E3}o, `ap`, `area` (interpola\u{E7}\u{E3}o de Davis & Goadrich) e `prevalencia`.",
-        "d <- data.frame(y = factor(c('nao','sim','nao','sim')), prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_pr_curve(d, 'y', 'prob_sim')",
-        paste("`models/roc`, `models/predict`, `models/confusion`.", trama.view::tr_view_help_appearance())))
+        paste("`models/predict`, `models/evaluate`.", trama.view::tr_view_help_appearance())))
+
   )
 }
