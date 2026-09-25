@@ -25,6 +25,11 @@
   do `nlme`, liberal com poucos grupos; alternativa, `models/lmer` com
   Satterthwaite. O `models/emmeans` no GLS fixa `mode = "satterthwaite"` (antes
   implícito no padrão do emmeans) e diz na nota que o quadro usa n − p.
+- `models/glm` (versão 2): a `quasibinomial` recusa resposta 0/1 não
+  agrupada (a dispersão não mede superdispersão numa tentativa por linha; use a
+  binomial); resposta de uma coluna fora de [0, 1] na binomial/quasibinomial
+  sai com erro de classe `tr_models_error_bad_option`, e não o do `stats::glm`.
+  Proporção em [0, 1] continua aceita na quasibinomial.
 - `models/friedman`: o pressuposto de bloco completo aponta o Skillings–Mack e
   o Durbin para blocos incompletos, ainda sem bloco no trama.
 - `models/gls` (versão 2): `correlacao = "car1"` (AR(1) em tempo contínuo,

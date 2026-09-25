@@ -30,10 +30,23 @@ test_that("quasibinomial bate com stats::glm: coeficientes, EP com dispersão, q
   expect_match(g$rotulo, "quasibinomial", fixed = TRUE)
 })
 
-test_that("quasibinomial com resposta 0/1 e recusa de proporção fora de [0, 1]", {
+test_that("quasibinomial recusa resposta 0/1 não agrupada e resposta fora de [0, 1]", {
   mt <- ex("mtcars")
-  g <- tr_models_glm(mt, formula = "am ~ wt", familia = "quasibinomial")
-  ref <- stats::glm(am ~ wt, family = stats::quasibinomial(), data = mt)
+  # 0/1: a dispersão não mede nada numa tentativa por linha.
+  expect_error(tr_models_glm(mt, formula = "am ~ wt", familia = "quasibinomial"),
+               "binomial", class = "tr_models_error_bad_option")
+  # A binomial 0/1 continua valendo.
+  g <- tr_models_glm(mt, formula = "am ~ wt", familia = "binomial")
+  ref <- stats::glm(am ~ wt, family = stats::binomial(), data = mt)
   expect_equal(unname(stats::coef(g$ajuste)), unname(stats::coef(ref)), tolerance = 1e-10)
-  expect_error(tr_models_glm(mt, formula = "mpg ~ wt", familia = "quasibinomial"))
+  # Resposta que não é binomial: erro com classe, não o do stats::glm.
+  expect_error(tr_models_glm(mt, formula = "mpg ~ wt", familia = "quasibinomial"),
+               class = "tr_models_error_bad_option")
+  expect_error(tr_models_glm(mt, formula = "mpg ~ wt", familia = "binomial"),
+               class = "tr_models_error_bad_option")
+  # Proporção em [0, 1] (quase-verossimilhança) é aceita e bate com o stats.
+  d <- cbpp_df(); d$prop <- d$incidence / d$size
+  gp <- tr_models_glm(d, formula = "prop ~ period", familia = "quasibinomial")
+  rp <- stats::glm(prop ~ period, family = stats::quasibinomial(), data = d)
+  expect_equal(unname(stats::coef(gp$ajuste)), unname(stats::coef(rp)), tolerance = 1e-10)
 })

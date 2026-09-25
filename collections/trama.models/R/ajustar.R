@@ -91,6 +91,25 @@ tr_models_glm <- function(dados, resposta = "", preditores = "", formula = "", f
   cats <- .tr_models_categoricas(p0$dados, all.vars(f[[3]]))
   p <- .tr_models_preparar(dados, vars, "models/glm", fatores = cats)
   if (!familia %in% c("binomial", "quasibinomial")) .tr_models_numerica(p$dados, resp, "resposta")
+  y <- p$dados[[resp]]
+  if (familia %in% c("binomial", "quasibinomial") && is.name(f[[2]])) {
+    if (is.numeric(y) && any(y < 0 | y > 1)) {
+      .tr_models_abort("tr_models_error_bad_option",
+                       paste0("'models/glm': na família %s, a resposta '%s' de uma coluna é 0/1 ou ",
+                              "proporção em [0, 1]; para sucessos em n tentativas, escreva ",
+                              "'cbind(sucessos, fracassos) ~ ...'."), familia, resp)
+    }
+    # Resposta 0/1 não agrupada: a dispersão da quasibinomial (X² de Pearson /
+    # gl) não mede superdispersão numa tentativa por linha — uma Bernoulli não
+    # tem variância extra identificável. Estimá-la só
+    # troca os EP da binomial por outros sem fundamento.
+    if (familia == "quasibinomial" && (!is.numeric(y) || all(y %in% c(0, 1)))) {
+      .tr_models_abort("tr_models_error_bad_option",
+                       paste0("'models/glm': a quasibinomial com resposta 0/1 (uma tentativa por linha) ",
+                              "não tem dispersão a estimar. Use a família 'binomial'; a quasibinomial é ",
+                              "para 'cbind(sucessos, fracassos)' ou proporções."))
+    }
+  }
   if (familia %in% c("poisson", "quasipoisson") && any(p$dados[[resp]] < 0)) {
     .tr_models_abort("tr_models_error_bad_option",
                      "'models/glm': a família %s é de contagem, e a resposta '%s' tem valor negativo.",

@@ -126,7 +126,7 @@ tr_flow(reg) |>
 contínua.
 ]---")),
 
-    trama::tr_node("models/glm", 
+    trama::tr_node("models/glm", version = 2L,
       pressupostos = .tr_models_doc("models/glm")$pressupostos,
       referencias = .tr_models_doc("models/glm")$referencias,
       fn = tr_models_glm, label = "Modelo linear generalizado",

@@ -40,7 +40,7 @@
           verificar = c("models/plot_diagnostics", "models/residuals")),
         P("Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (`desvio_por_gl` e `dispersao_pearson` do `models/fit_stats` perto de 1).",
           verificar = "models/fit_stats",
-          se_falhar = "Na Poisson, use a família `quasipoisson`; na binomial agregada (`cbind(sucessos, fracassos)`), a `quasibinomial`. As duas estimam a dispersão pelo X² de Pearson / gl, e os testes passam a F. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão."),
+          se_falhar = "Na Poisson, use a família `quasipoisson`; na binomial agregada (`cbind(sucessos, fracassos)`), a `quasibinomial`. As duas estimam a dispersão pelo X² de Pearson / gl, e os testes passam a F. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão, e a `quasibinomial` recusa essa resposta."),
         P("Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos.")),
       referencias = list(
         R(autores = c("Nelder, J. A.", "Wedderburn, R. W. M."), ano = 1972, titulo = "Generalized linear models",
