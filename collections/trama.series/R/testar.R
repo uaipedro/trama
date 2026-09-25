@@ -910,7 +910,8 @@ tr_series_kruskal_wallis <- function(serie) {
 #' bloco publica o PERÍODO junto com o veredito, e avisa na `nota` quando o pico
 #' não chega a se repetir dentro da série.
 #' @export
-tr_series_fisher <- function(serie) {
+tr_series_fisher <- function(serie, remover = "reta") {
+  remover <- .tr_series_enum(remover, c("reta", "media"), "remover")
   .tr_series_sem_na(serie, "series/fisher")
   # O piso NÃO saiu da conta que fixou os do `series/pettitt` e do
   # `series/cox_stuart`, e vale dizer por quê em vez de fingir que saiu: lá a
@@ -936,27 +937,32 @@ tr_series_fisher <- function(serie) {
   # medida. O preço é deixar entrar a leitura errada do `Nile`, e é por isso que o
   # período e o aviso de "não se repete" saem no resultado em vez de ficarem só na
   # documentação.
-  pg <- stats::spec.pgram(serie, taper = 0, detrend = TRUE, fast = FALSE, plot = FALSE)
+  # Convenções de Fisher (1929), conferidas contra `GeneCycle::fisher.g.test`
+  # (Wichert, Fokianos & Strimmer 2004), que é o oráculo dos testes:
+  #   - g é tomado sobre as m = floor((N - 1) / 2) ordenadas de Fourier j = 1..m.
+  #     A de Nyquist (N par) sai: ela é um qui-quadrado com UM grau, as outras
+  #     têm dois, e a distribuição de g supõe m ordenadas iguais em lei. Até a
+  #     versão 1 do nó ela entrava na soma.
+  #   - o p-valor é a série EXATA, com os floor(1/g) termos, e não só o primeiro
+  #     (versão 1): o primeiro termo é conservador e, em m pequeno e g baixo,
+  #     passa de 1.
+  #   - `remover = "media"` é a formulação original (ruído branco em torno de
+  #     uma média); `"reta"` (padrão, a da dissertação) tira antes uma reta de
+  #     mínimos quadrados — o mesmo teste aplicado aos resíduos da reta, que é
+  #     como o oráculo o confere.
+  pg <- stats::spec.pgram(serie, taper = 0, detrend = remover == "reta",
+                          demean = TRUE, fast = FALSE, plot = FALSE)
   I <- pg$spec
+  if (length(serie) %% 2L == 0L) I <- I[-length(I)]
   n <- length(I)
   pico <- which.max(I)
   # Eq. 3.41: a fração da potência total que o maior pico sozinho carrega.
   g <- max(I) / sum(I)
-  # Primeiro termo da série exata de Fisher. A série é alternada e os termos
-  # seguintes só existem quando g < 0.5 — medido: no `AirPassengers`, com
-  # g = 0.502, a soma exata tem UM termo só. Onde eles existem a correção é
-  # pequena e não move a decisão: no `lh`, o caso mais apertado da página, a soma
-  # completa leva o p de 0.051579 para 0.051447, 0.26% menos, e ele segue acima
-  # do corte. Ficar no primeiro termo é, além disso, o lado CONSERVADOR: ele
-  # superestima o p, então nunca rejeita onde a soma exata não rejeitaria.
-  # O `min(1, )` é o mesmo cuidado do `series/pettitt`: n * (1 - g)^(n - 1) passa
-  # de 1 quando o pico é raso, e um p-valor de 1,3 sairia do card como número.
-  p <- min(1, n * (1 - g)^(n - 1))
-  # Eq. 3.42, o corte que a dissertação escreve. Não é decoração: é a MESMA regra
-  # que o p-valor, escrita na moeda da estatística, e publicá-la como valor
-  # crítico é o que deixa quem veio pela dissertação conferir `g > zα` no card sem
-  # ter de acreditar na equivalência de palavra.
-  z_alfa <- 1 - (0.05 / n)^(1 / (n - 1))
+  p <- .tr_series_fisher_p(g, n)
+  # O corte zα agora é o quantil EXATO a 5% da mesma distribuição, e não a
+  # fórmula de primeiro termo da eq. 3.42: assim `g > zα` e `p < 0,05` são a
+  # mesma regra por construção, e não por aproximação.
+  z_alfa <- .tr_series_fisher_critico(n, 0.05)
   f <- stats::frequency(serie)
   # O período sai em OBSERVAÇÕES, e não na unidade de tempo da série, que é o que
   # `1 / pg$freq` daria. Num `AirPassengers` mensal aquilo vale 1 — a estação de
@@ -1006,5 +1012,34 @@ tr_series_fisher <- function(serie) {
     # O período porque é o que distingue uma estação de um artefato, e é o que a
     # página inteira gira em torno de; os ciclos porque são a leitura já feita
     # desse número, e um relatório com vários testes não tem onde fazer a conta.
-    extra = list(periodo = periodo, ciclos = ciclos))
+    extra = list(periodo = periodo, ciclos = ciclos, ordenadas = n))
+}
+
+#' P-valor exato do g de Fisher (1929) com m ordenadas.
+#'
+#' P(g > x) = sum_{j=1}^{floor(1/x)} (-1)^(j-1) choose(m, j) (1 - j x)^(m-1),
+#' somado em log para os binomiais grandes, como em `GeneCycle`. Preso em
+#' [0, 1]: a soma alternada pode sair um ulp fora.
+#' @noRd
+.tr_series_fisher_p <- function(g, m) {
+  if (g <= 0) return(1)
+  j <- seq_len(floor(1 / g))
+  termos <- (-1)^(j - 1) * exp(lchoose(m, j) + (m - 1) * log(pmax(1 - j * g, 0)))
+  min(1, max(0, sum(termos)))
+}
+
+#' Valor crítico exato de g ao nível alfa: resolve P(g > x) = alfa.
+#' @noRd
+.tr_series_fisher_critico <- function(m, alfa) {
+  # O limite de cima é a fórmula de primeiro termo, que superestima o crítico
+  # (a série é alternada). O de baixo parte da metade dele e desce enquanto o p
+  # não passar de alfa — perto de 1/m a soma alternada tem termos enormes e se
+  # cancela mal, então o intervalo não começa ali.
+  hi <- 1 - (alfa / m)^(1 / (m - 1))
+  # Acima de 1/2 a série exata tem um termo só: a fórmula fechada É o crítico.
+  if (hi >= 0.5) return(hi)
+  lo <- hi / 2
+  while (.tr_series_fisher_p(lo, m) < alfa) lo <- lo / 2
+  stats::uniroot(function(x) .tr_series_fisher_p(x, m) - alfa,
+                 c(lo, hi), tol = 1e-12)$root
 }

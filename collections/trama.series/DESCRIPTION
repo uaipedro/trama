@@ -33,6 +33,7 @@ Imports:
     utils
 Suggests:
     testthat (>= 3.0.0),
+    GeneCycle,
     png,
     randtests,
     trend

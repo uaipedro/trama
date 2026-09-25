@@ -93,10 +93,10 @@
 
     "series/fisher" = list(
       pressupostos = list(
-        P("Sob H0 a série é **ruído branco gaussiano** (independente, normal, variância constante) em torno de uma reta: é daí que sai a distribuição de g.",
+        P("Sob H0 a série é **ruído branco gaussiano** (independente, normal, variância constante) em torno de uma reta (`remover = reta`) ou de uma média (`media`, a formulação de Fisher 1929): é daí que sai a distribuição exata de g sobre as m = (N − 1) ÷ 2 ordenadas de Fourier, sem a de Nyquist.",
           verificar = c("series/acf", "series/ljung_box"),
           se_falhar = "Autocorrelação sem ciclo (um AR, por exemplo) já concentra potência nas frequências baixas e faz o teste rejeitar: leia o período do pico."),
-        P("A tendência é **no máximo linear** (o periodograma remove uma reta). Tendência curva ou estrutura de baixa frequência vira um pico no período da série inteira.",
+        P("A tendência é **no máximo linear** (com `reta`, o periodograma a remove; com `media`, nem isso). Tendência curva ou estrutura de baixa frequência vira um pico no período da série inteira.",
           verificar = "series/plot",
           se_falhar = "Diferencie antes (`series/diff`) e desconfie de pico que não se repete (a `nota` avisa)."),
         P("A periodicidade cai **na grade de Fourier** (período N/j) e há **uma** dominante: o teste olha só o maior pico.",
@@ -106,6 +106,9 @@
           fonte = "Proceedings of the Royal Society of London. Series A, 125(796), 54-59",
           doi = "10.1098/rspa.1929.0151"),
         L$morettin,
-        I("trama.series", "tr_series_fisher", "Cálculo próprio sobre `stats::spec.pgram(taper = 0, detrend = TRUE, fast = FALSE)`: g = maior ordenada / soma, p pelo primeiro termo da série exata de Fisher (conservador), zα publicado como crítico a 5%.")))
+        R(autores = c("Wichert, S.", "Fokianos, K.", "Strimmer, K."), ano = 2004,
+          titulo = "Identifying periodically expressed transcripts in microarray time series data",
+          fonte = "Bioinformatics, 20(1), 5-20", doi = "10.1093/bioinformatics/btg364"),
+        I("trama.series", "tr_series_fisher", "Cálculo próprio sobre `stats::spec.pgram(taper = 0, detrend = remover == \"reta\", fast = FALSE)`, sem a ordenada de Nyquist: g = maior ordenada / soma, p pela série exata de Fisher (todos os termos), zα = quantil exato a 5%. Conferido contra `GeneCycle::fisher.g.test` (igual a 1e-10).")))
   )
 }

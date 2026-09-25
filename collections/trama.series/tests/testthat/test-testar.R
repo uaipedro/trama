@@ -1310,11 +1310,11 @@ test_that("o Kruskal-Wallis atravessa o adaptador, e leva os graus como coluna",
 fisher_medido <- function() {
   tibble::tribble(
     ~serie,          ~g,        ~log10p,   ~periodo, ~ciclos, ~decisao,
-    "AirPassengers", 0.5017076,  -19.62129,      12,     12L, "rejeita H0",
-    "UKgas",         0.5530745,  -16.80515,       4,     27L, "rejeita H0",
-    "nottem",        0.9129985, -124.11714,      12,     20L, "rejeita H0",
-    "lh",            0.2343832,   -1.28753,       8,      6L, "não rejeita H0",
-    "Nile",          0.1780696,   -2.47411,     100,      1L, "rejeita H0")
+    "AirPassengers", 0.5018697,  -19.33473,      12,     12L, "rejeita H0",
+    "UKgas",         0.5530885,  -16.46421,       4,     27L, "rejeita H0",
+    "nottem",        0.9139844, -123.64436,      12,     20L, "rejeita H0",
+    "lh",            0.2357169,   -1.20811,       8,      6L, "não rejeita H0",
+    "Nile",          0.1833099,   -2.53111,     100,      1L, "rejeita H0")
 }
 
 test_that("o Fisher reproduz as cinco linhas medidas da página", {
@@ -1349,10 +1349,9 @@ test_that("o g contra zα e o p contra 5% decidem a mesma coisa nas cinco", {
   for (nm in fisher_medido()$serie) {
     s <- get(nm, envir = asNamespace("datasets"))
     t <- tr_series_fisher(s)
-    n <- length(stats::spec.pgram(s, taper = 0, detrend = TRUE, fast = FALSE,
-                                  plot = FALSE)$spec)
-    za <- 1 - (0.05 / n)^(1 / (n - 1))
-    expect_equal(unname(t$criticos[["5%"]]), za, info = nm)
+    # m ordenadas: sem a frequência zero e sem a de Nyquist (Fisher 1929).
+    expect_equal(t$extra$ordenadas, (length(s) - 1L) %/% 2L, info = nm)
+    za <- unname(t$criticos[["5%"]])
     expect_identical(t$estatistica > za, t$p_valor < 0.05, info = nm)
     expect_identical(t$decisao_5 == "rejeita H0", t$p_valor < 0.05, info = nm)
   }
@@ -1364,8 +1363,8 @@ test_that("o g contra zα e o p contra 5% decidem a mesma coisa nas cinco", {
   expect_lt(t$estatistica, za)
   expect_gt(t$p_valor, 0.05)
   expect_equal(t$decisao_5, "não rejeita H0")
-  # E por pouco: a folga entre os dois é de menos de um milésimo.
-  expect_lt(za - t$estatistica, 0.002)
+  # E por pouco: a folga entre os dois é de menos de um centésimo.
+  expect_lt(za - t$estatistica, 0.01)
 })
 
 test_that("o Nile rejeita, e o período publicado denuncia o artefato", {
@@ -1392,8 +1391,8 @@ test_that("um ciclo curto de verdade é achado no período certo", {
   # O contraponto do `Nile`: aqui a estação existe e é conhecida de antemão —
   # quatro trimestres —, e é nesse período que o pico tem de cair.
   t <- tr_series_fisher(serie_sazonal_aditiva())
-  expect_equal(t$estatistica, 0.7855865, tolerance = 1e-6)
-  expect_equal(log10(t$p_valor), -11.40518, tolerance = 1e-5)
+  expect_equal(t$estatistica, 0.9648497, tolerance = 1e-6)
+  expect_equal(log10(t$p_valor), -24.89451, tolerance = 1e-5)
   expect_equal(t$decisao_5, "rejeita H0")
   expect_equal(t$extra$periodo, 4)
   # Dez ciclos completos dentro das quarenta observações: o oposto do `Nile`.
@@ -1437,5 +1436,63 @@ test_that("o Fisher atravessa o adaptador, e leva o período como coluna", {
   # Diferente dos irmãos de sazonalidade, este bloco TEM tabela de críticos: o zα
   # da dissertação sai na coluna do valor crítico a 5%, que é o que deixa a regra
   # `g > zα` ser conferida no relatório sem refazer a conta.
-  expect_equal(tb$valor_critico_5, 0.0973570, tolerance = 1e-5)
+  expect_equal(tb$valor_critico_5, 0.0983575, tolerance = 1e-5)
+})
+
+# ---- Oráculo do Fisher (revisão metodológica, fase 1) -------------------------
+# Fisher (1929) define g sobre as m = floor((N - 1) / 2) ordenadas de Fourier
+# j = 1..m — sem a frequência zero e sem a de Nyquist, cuja ordenada é um
+# qui-quadrado com UM grau (as outras têm dois) — e dá o p-valor exato
+# P(g > x) = sum_{j=1}^{floor(1/x)} (-1)^(j-1) choose(m, j) (1 - j x)^(m-1).
+# A implementação de referência é `GeneCycle::fisher.g.test` (Wichert,
+# Fokianos & Strimmer 2004), que tira só a média, descarta a ordenada de Nyquist
+# e soma a série inteira.
+test_that("Fisher com remover = 'media' reproduz GeneCycle::fisher.g.test", {
+  skip_if_not_installed("GeneCycle")
+  for (nm in c("AirPassengers", "UKgas", "nottem", "lh", "Nile", "sunspot.year")) {
+    s <- get(nm, envir = asNamespace("datasets"))
+    t <- tr_series_fisher(s, remover = "media")
+    expect_equal(t$p_valor, GeneCycle::fisher.g.test(as.numeric(s)),
+                 tolerance = 1e-10, info = nm)
+  }
+  # Série ímpar: não há ordenada de Nyquist a descartar.
+  s <- stats::ts(datasets::lh[-1])
+  expect_equal(tr_series_fisher(s, remover = "media")$p_valor,
+               GeneCycle::fisher.g.test(as.numeric(s)), tolerance = 1e-10)
+})
+
+test_that("Fisher com remover = 'reta' (padrão) é o GeneCycle sobre os resíduos da reta", {
+  skip_if_not_installed("GeneCycle")
+  for (nm in c("AirPassengers", "UKgas", "nottem", "lh", "Nile")) {
+    s <- get(nm, envir = asNamespace("datasets"))
+    tt <- seq_along(s)
+    e <- stats::residuals(stats::lm(as.numeric(s) ~ tt))
+    expect_equal(tr_series_fisher(s)$p_valor, GeneCycle::fisher.g.test(e),
+                 tolerance = 1e-10, info = nm)
+  }
+})
+
+test_that("o crítico a 5% do Fisher é o quantil EXATO: p(zα) = 0,05", {
+  for (nm in c("AirPassengers", "lh", "Nile")) {
+    s <- get(nm, envir = asNamespace("datasets"))
+    t <- tr_series_fisher(s)
+    za <- unname(t$criticos[["5%"]])
+    m <- t$extra$ordenadas
+    j <- seq_len(floor(1 / za))
+    p_za <- sum((-1)^(j - 1) * choose(m, j) * (1 - j * za)^(m - 1))
+    expect_equal(p_za, 0.05, tolerance = 1e-8, info = nm)
+    expect_identical(t$estatistica > za, t$p_valor < 0.05, info = nm)
+  }
+  # Conferência analítica: quando o crítico passa de 1/2 a série exata tem um
+  # termo só, e ele é a fórmula fechada 1 - (alfa/m)^(1/(m-1)) (eq. 3.42 da
+  # dissertação). Com m = 5, 0,6838.
+  expect_equal(.tr_series_fisher_critico(5, 0.05), 1 - (0.05 / 5)^(1 / 4), tolerance = 1e-10)
+  expect_equal(round(.tr_series_fisher_critico(5, 0.05), 4), 0.6838)
+  # Abaixo de 1/2 o primeiro termo SUPERESTIMA o crítico (é conservador).
+  expect_lt(.tr_series_fisher_critico(50, 0.05), 1 - (0.05 / 50)^(1 / 49))
+})
+
+test_that("Fisher recusa opção de remoção desconhecida", {
+  expect_error(tr_series_fisher(serie_mensal(), remover = "nada"),
+               class = "tr_series_error_bad_option")
 })
