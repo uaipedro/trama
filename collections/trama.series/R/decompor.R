@@ -56,15 +56,22 @@ tr_series_stl <- function(serie, janela_sazonal = 0L, robusta = FALSE) {
 #' "o desemprego subiu em março, descontado o efeito do mês". Na
 #' multiplicativa é a divisão, e não a subtração: subtrair um fator de 1,08
 #' de um valor na casa das centenas não tira sazonalidade nenhuma.
+#'
+#' `sem_tendencia` é o espelho: a série sem a tendência, com a sazonalidade
+#' dentro (sazonal + resto, ou sazonal × resto). É o "estimo a tendência e
+#' subtraio" feito às claras, e a mesma regra da divisão vale — na
+#' multiplicativa a tendência é o NÍVEL, e a série sem ela é a razão.
 #' @export
 tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
   componente <- .tr_series_enum(componente,
-                                c("tendencia", "sazonal", "resto", "dessazonalizada"), "componente")
+                                c("tendencia", "sazonal", "resto", "dessazonalizada", "sem_tendencia"),
+                                "componente")
   d <- decomposicao
+  mult <- identical(d$tipo, "multiplicativa")
   out <- switch(componente,
     tendencia = d$tendencia, sazonal = d$sazonal, resto = d$resto,
-    dessazonalizada = if (identical(d$tipo, "multiplicativa")) d$observado / d$sazonal
-                      else d$observado - d$sazonal)
+    dessazonalizada = if (mult) d$observado / d$sazonal else d$observado - d$sazonal,
+    sem_tendencia = if (mult) d$observado / d$tendencia else d$observado - d$tendencia)
   .tr_series_uni(out)
 }
 

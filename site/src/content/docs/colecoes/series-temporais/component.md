@@ -21,15 +21,22 @@ quando se diz "descontado o efeito do mês". Na decomposição multiplicativa el
 das centenas não tiraria sazonalidade nenhuma); na aditiva, a série menos o
 sazonal. O nó sabe qual das duas pela decomposição que recebeu.
 
-Da clássica, tendência e resto chegam com NA nas pontas.
+**sem_tendencia** é o espelho: a série sem a tendência, com a sazonalidade
+dentro — `série − tendência` na aditiva, `série / tendência` na multiplicativa.
+É o "estimo a tendência e subtraio" às claras: com `series/regression` de grau 1
+na frente, é a série menos a reta ajustada por mínimos quadrados.
+
+Da clássica, tendência e resto (e, por isso, `sem_tendencia`) chegam com NA
+nas pontas.
 
 ## Quando usar
 
-Extraia tendência, sazonalidade, resto ou série dessazonalizada para inspecionar ou usar em outra etapa. A entrada deve ser uma decomposição compatível.
+Extraia tendência, sazonalidade, resto, série dessazonalizada ou série sem tendência para inspecionar ou usar em outra etapa. A entrada deve ser uma decomposição compatível.
 
 ## Configuração
 
-- **Componente** — `tendencia`, `sazonal`, `resto` ou `dessazonalizada`.
+- **Componente** — `tendencia`, `sazonal`, `resto`, `dessazonalizada` ou
+  `sem_tendencia`.
 
 ## Exemplo
 

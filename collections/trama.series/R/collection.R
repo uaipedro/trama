@@ -623,7 +623,8 @@ decompor o log; `series/component` para extrair um componente;
         description = "Tira um componente da decomposição como série.",
         inputs = list(decomposicao = D), outputs = list(out = S),
         params = list(componente = E("dessazonalizada",
-                                     c("tendencia", "sazonal", "resto", "dessazonalizada"),
+                                     c("tendencia", "sazonal", "resto", "dessazonalizada",
+                                       "sem_tendencia"),
                                      label = "Componente")),
         help = .tr_series_ajuda(r"---[
 Devolve um dos componentes de uma decomposição como série, para seguir
@@ -636,9 +637,16 @@ quando se diz "descontado o efeito do mês". Na decomposição multiplicativa el
 das centenas não tiraria sazonalidade nenhuma); na aditiva, a série menos o
 sazonal. O nó sabe qual das duas pela decomposição que recebeu.
 
-Da clássica, tendência e resto chegam com NA nas pontas.
+**sem_tendencia** é o espelho: a série sem a tendência, com a sazonalidade
+dentro — `série − tendência` na aditiva, `série / tendência` na multiplicativa.
+É o "estimo a tendência e subtraio" às claras: com `series/regression` de grau 1
+na frente, é a série menos a reta ajustada por mínimos quadrados.
+
+Da clássica, tendência e resto (e, por isso, `sem_tendencia`) chegam com NA
+nas pontas.
 ]---", r"---[
-- **Componente** — `tendencia`, `sazonal`, `resto` ou `dessazonalizada`.
+- **Componente** — `tendencia`, `sazonal`, `resto`, `dessazonalizada` ou
+  `sem_tendencia`.
 ]---", r"---[
 Uma série (`series/ts`) do mesmo tamanho da original.
 ]---", r"---[

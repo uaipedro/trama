@@ -106,3 +106,26 @@ test_that("regressão recusa modelo vazio, série anual com sazonal, faltante e 
   expect_error(tr_series_regression(x, grau = 4L), class = "tr_series_error_bad_option")
   expect_error(tr_series_regression(x, contraste = "meio"), class = "tr_series_error_bad_option")
 })
+
+test_that("sem_tendencia: série menos a tendência na aditiva, dividida na multiplicativa", {
+  x <- serie_mensal()
+  for (d in list(tr_series_decompose(x), tr_series_stl(x),
+                 .tr_series_reg_decomp(tr_series_regression(x)))) {
+    st <- tr_series_component(d, "sem_tendencia")
+    expect_true(stats::is.ts(st))
+    expect_equal(stats::tsp(st), stats::tsp(x))
+    # Somar a tendência de volta reconstrói a série (NA das pontas da clássica
+    # ficam NA dos dois lados).
+    expect_equal(as.numeric(st + d$tendencia), as.numeric(ifelse(is.na(d$tendencia), NA, x)))
+  }
+  # Regressão de grau 1: é a série menos a reta de mínimos quadrados em t,
+  # com a sazonalidade dentro.
+  r <- .tr_series_reg_decomp(tr_series_regression(x, grau = 1L))
+  st <- tr_series_component(r, "sem_tendencia")
+  expect_equal(as.numeric(st), as.numeric(r$sazonal + r$resto))
+  m <- tr_series_decompose(x, "multiplicativa")
+  sm <- tr_series_component(m, "sem_tendencia")
+  expect_equal(as.numeric(sm * m$tendencia), as.numeric(ifelse(is.na(m$tendencia), NA, x)))
+  # Fator em torno de 1, e não de zero: a divisão, e não a subtração.
+  expect_equal(mean(sm, na.rm = TRUE), 1, tolerance = .02)
+})
