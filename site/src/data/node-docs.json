@@ -13,7 +13,7 @@
       {
         "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
         "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
-        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o teste de Friedman para DBC — ainda sem bloco no trama."
       },
       {
         "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
@@ -65,7 +65,7 @@
       {
         "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
         "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
-        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal`."
       },
       {
         "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
@@ -118,7 +118,7 @@
       {
         "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
         "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
-        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o teste de Friedman para DBC — ainda sem bloco no trama."
       },
       {
         "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
@@ -170,7 +170,7 @@
       {
         "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
         "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
-        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o teste de Friedman para DBC — ainda sem bloco no trama."
       },
       {
         "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
@@ -228,6 +228,10 @@
       {
         "texto": "Dados **balanceados** (todo bloco com todas as combinações): o quadro com `Error()` só é o dos livros assim.",
         "se_falhar": "No desbalanceado, ajuste o misto `(1 | bloco:parcela)` no `models/lmer`."
+      },
+      {
+        "texto": "Se a subparcela é **tempo** ou medida repetida (não sorteada dentro da parcela), a análise com dois erros supõe **esfericidade** (simetria composta): a correlação entre duas medidas da mesma parcela é igual para qualquer par de tempos.",
+        "se_falhar": "Sem esfericidade (tempos próximos mais correlacionados que distantes), o F da subparcela fica liberal. O `models/lmer` só aceita efeitos aleatórios, não uma estrutura de correlação no erro (como AR(1)); é lacuna registrada na revisão metodológica."
       }
     ],
     "referencias": [
@@ -398,7 +402,7 @@
       },
       {
         "texto": "Contagens **esperadas** de pelo menos 5 em (quase) todas as caselas: com mais de 20% abaixo disso, a aproximação qui-quadrado falha.",
-        "se_falhar": "Use o `models/fisher_exact`, ou junte categorias raras num `data/mutate`."
+        "se_falhar": "A própria nota do bloco avisa quando há esperados abaixo de 5 e sugere o `models/fisher_exact`; outra saída é juntar categorias raras num `data/mutate`."
       }
     ],
     "referencias": [
@@ -487,7 +491,7 @@
         "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
       },
       {
-        "texto": "**Pearson**: a relação é **linear**, e o teste supõe normalidade bivariada.",
+        "texto": "**Pearson**: a relação é **linear**, e o teste supõe normalidade bivariada. O `models/shapiro` só confere a normalidade de cada variável sozinha (marginal): passar nas duas não garante a bivariada; olhe também a nuvem no `view/points`.",
         "verificar": ["view/points", "models/shapiro"],
         "se_falhar": "Use `spearman` ou `kendall` (relação monotônica, por postos)."
       },
@@ -694,7 +698,7 @@
       {
         "texto": "Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (desvio residual perto dos gl do resíduo).",
         "verificar": ["models/fit_stats"],
-        "se_falhar": "Use a família `quasipoisson`, que estima a dispersão."
+        "se_falhar": "Na Poisson, use a família `quasipoisson`, que estima a dispersão. Na binomial agregada (sucessos em n tentativas) o trama ainda não tem família quasi nem GLM misto (o `models/lmer` é só gaussiano); é lacuna registrada na revisão metodológica. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão."
       },
       {
         "texto": "Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos."
@@ -925,8 +929,8 @@
         "verificar": ["models/random_effects", "models/plot_caterpillar"]
       },
       {
-        "texto": "Os **erros** condicionais são normais e de variância constante.",
-        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"]
+        "texto": "Os **erros** condicionais (resíduos depois de descontar os efeitos aleatórios) são normais e de variância constante. Levene e Breusch-Pagan não se aplicam a esses resíduos; a conferência é visual.",
+        "verificar": ["models/plot_diagnostics"]
       },
       {
         "texto": "Os **grupos** (sujeitos, blocos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
@@ -982,7 +986,7 @@
         "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
       },
       {
-        "texto": "A coluna é **aproximadamente normal** (com amostras grandes, o teorema central do limite alivia).",
+        "texto": "A coluna é **aproximadamente normal** (com amostras grandes, o teorema central do limite alivia). Se a coluna mistura grupos, filtre cada grupo (`data/filter`) e rode o `models/shapiro`, ou olhe o `view/qq`.",
         "verificar": ["models/shapiro", "view/qq"]
       }
     ],
@@ -1157,7 +1161,7 @@
         "se_falhar": "Para relação que muda com o tempo, ajuste por janelas, ou use o `models/lm` em cada período."
       },
       {
-        "texto": "Os preditores estão em **escalas parecidas**: a prior difusa `lambda · I` fica mal condicionada com colunas de ordens de grandeza diferentes.",
+        "texto": "Os preditores estão em **escalas parecidas**: a prior difusa `lambda · I` (a matriz inicial `P0`, que diz ao RLS \"ainda não sei nada\" sobre os coeficientes) fica mal condicionada com colunas de ordens de grandeza diferentes.",
         "se_falhar": "Escale as colunas num `data/mutate` antes."
       },
       {
@@ -1250,7 +1254,7 @@
         "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
       },
       {
-        "texto": "A resposta é **aproximadamente normal** em cada grupo (com amostras grandes, o teorema central do limite alivia).",
+        "texto": "A resposta é **aproximadamente normal** em cada grupo (com amostras grandes, o teorema central do limite alivia). O `models/shapiro` lê uma coluna só: para conferir por grupo, filtre cada grupo (`data/filter`) e rode `models/shapiro`, ou olhe o `view/qq`.",
         "verificar": ["models/shapiro", "view/qq"],
         "se_falhar": "Use o `models/wilcoxon`."
       },
@@ -1590,7 +1594,7 @@
         "autores": ["Horvitz, D. G.", "Thompson, D. J."],
         "ano": 1952,
         "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
-        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "fonte": "Journal of the American Statistical Association, 47(260), 663-685",
         "doi": "10.1080/01621459.1952.10483446"
       },
       {
@@ -1598,7 +1602,7 @@
         "autores": ["Woodruff, R. S."],
         "ano": 1971,
         "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
-        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "fonte": "Journal of the American Statistical Association, 66(334), 411-414",
         "doi": "10.1080/01621459.1971.10482279"
       },
       {
@@ -1646,7 +1650,7 @@
         "autores": ["Deville, J.-C.", "Särndal, C.-E."],
         "ano": 1992,
         "titulo": "Calibration Estimators in Survey Sampling",
-        "fonte": "Journal of the American Statistical Association, 87(418)",
+        "fonte": "Journal of the American Statistical Association, 87(418), 376-382",
         "doi": "10.1080/01621459.1992.10475217"
       },
       {
@@ -1709,7 +1713,7 @@
         "autores": ["Horvitz, D. G.", "Thompson, D. J."],
         "ano": 1952,
         "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
-        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "fonte": "Journal of the American Statistical Association, 47(260), 663-685",
         "doi": "10.1080/01621459.1952.10483446"
       },
       {
@@ -1717,7 +1721,7 @@
         "autores": ["Woodruff, R. S."],
         "ano": 1971,
         "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
-        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "fonte": "Journal of the American Statistical Association, 66(334), 411-414",
         "doi": "10.1080/01621459.1971.10482279"
       },
       {
@@ -1778,7 +1782,7 @@
         "autores": ["Thompson, S. K."],
         "ano": 1987,
         "titulo": "Sample Size for Estimating Multinomial Proportions",
-        "fonte": "The American Statistician, 41(1)",
+        "fonte": "The American Statistician, 41(1), 42-46",
         "doi": "10.1080/00031305.1987.10475440"
       },
       {
@@ -1827,7 +1831,7 @@
         "autores": ["Deville, J.-C.", "Särndal, C.-E."],
         "ano": 1992,
         "titulo": "Calibration Estimators in Survey Sampling",
-        "fonte": "Journal of the American Statistical Association, 87(418)",
+        "fonte": "Journal of the American Statistical Association, 87(418), 376-382",
         "doi": "10.1080/01621459.1992.10475217"
       },
       {
@@ -1883,7 +1887,7 @@
         "autores": ["Horvitz, D. G.", "Thompson, D. J."],
         "ano": 1952,
         "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
-        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "fonte": "Journal of the American Statistical Association, 47(260), 663-685",
         "doi": "10.1080/01621459.1952.10483446"
       },
       {
@@ -1891,7 +1895,7 @@
         "autores": ["Woodruff, R. S."],
         "ano": 1971,
         "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
-        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "fonte": "Journal of the American Statistical Association, 66(334), 411-414",
         "doi": "10.1080/01621459.1971.10482279"
       },
       {
@@ -2162,7 +2166,7 @@
       },
       {
         "texto": "A alocação **ótima** supõe custo linear por entrevista (c_h constante dentro do estrato).",
-        "se_falhar": "Com custo fixo por estrato, ajuste o n total à mão e use a alocação de Neyman."
+        "se_falhar": "Custo fixo por estrato não muda as proporções da alocação ótima; desconte-o do orçamento antes de fixar o n total."
       },
       {
         "texto": "A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.",
@@ -2175,7 +2179,7 @@
         "autores": ["Neyman, J."],
         "ano": 1934,
         "titulo": "On the Two Different Aspects of the Representative Method: The Method of Stratified Sampling and the Method of Purposive Selection",
-        "fonte": "Journal of the Royal Statistical Society, 97(4)",
+        "fonte": "Journal of the Royal Statistical Society, 97(4), 558-625",
         "doi": "10.2307/2342192"
       },
       {
@@ -2237,7 +2241,7 @@
         "autores": ["Horvitz, D. G.", "Thompson, D. J."],
         "ano": 1952,
         "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
-        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "fonte": "Journal of the American Statistical Association, 47(260), 663-685",
         "doi": "10.1080/01621459.1952.10483446"
       },
       {
@@ -2245,7 +2249,7 @@
         "autores": ["Woodruff, R. S."],
         "ano": 1971,
         "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
-        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "fonte": "Journal of the American Statistical Association, 66(334), 411-414",
         "doi": "10.1080/01621459.1971.10482279"
       },
       {
