@@ -93,6 +93,9 @@
 #'   numéricos, exceto `alvo`.
 #' @param modelo Família com hiperparâmetros: `"cart"`, `"figs"`, `"forest"`,
 #'   `"svm"` ou `"xgboost"`.
+#'   Com `"cart"`, cada ajuste inclui a poda 1-EP de [tr_ml_fit()], com sua
+#'   própria validação cruzada interna (até 10 ajustes extras); `cp` não entra
+#'   na busca porque a poda já o escolhe.
 #' @param tarefa Uma de `"auto"`, `"regressao"` ou `"classificacao"`. `"auto"`
 #'   interpreta resposta numérica como regressão.
 #' @param metrica Métrica compatível com a tarefa. `"auto"` usa `"rmse"` em

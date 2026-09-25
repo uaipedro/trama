@@ -30,7 +30,10 @@ tr_ml_nested_cv(
 numéricos, exceto \code{alvo}.}
 
 \item{modelo}{Família com hiperparâmetros: \code{"cart"}, \code{"figs"}, \code{"forest"},
-\code{"svm"} ou \code{"xgboost"}.}
+\code{"svm"} ou \code{"xgboost"}.
+Com \code{"cart"}, cada ajuste inclui a poda 1-EP de \code{\link[=tr_ml_fit]{tr_ml_fit()}}, com sua
+própria validação cruzada interna (até 10 ajustes extras); \code{cp} não entra
+na busca porque a poda já o escolhe.}
 
 \item{tarefa}{Uma de \code{"auto"}, \code{"regressao"} ou \code{"classificacao"}. \code{"auto"}
 interpreta resposta numérica como regressão.}
