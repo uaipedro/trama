@@ -111,6 +111,11 @@ tr_models_breusch_pagan <- function(modelo) {
   .tr_models_fit_conferir(modelo)
   no <- "models/breusch_pagan"
   r <- .tr_models_residuos(modelo, no, permitir_misto = FALSE)
+  if (is.null(r$ajuste)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' regride os resíduos nos preditores de um modelo linear, e %s não tem matriz ",
+                            "de preditores. Olhe os resíduos × ajustados em 'models/plot_diagnostics'."), no, modelo$rotulo)
+  }
   x <- stats::model.matrix(r$ajuste)
   e2 <- r$residuo^2
   aux <- stats::lm.fit(x, e2)

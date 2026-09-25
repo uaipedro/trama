@@ -161,7 +161,7 @@ equação e o R². Lê a curva de dois blocos:
   ajustada a elas), o R² é SQ da regressão / SQ de tratamentos, e na parábola a
   linha tracejada marca a dose de máxima eficiência técnica (MET) quando ela
   cai dentro das doses testadas.
-- **a regressão não linear** — os pontos são as observações, o R² é o pseudo R², e no
+- **`models/nls`** — os pontos são as observações, o R² é o pseudo R², e no
   linear-platô a linha tracejada marca o início do platô.
 
 A equação sai com vírgula decimal e quatro algarismos significativos, pronta
@@ -181,7 +181,7 @@ tr_flow(reg) |>
   tr_add("graf", "models/plot_regression", titulo = "Produção por dose de N",
          from = "reg")
 ]---", r"---[
-`models/dose_response`; a regressão não linear; `models/plot_means` quando o tratamento
+`models/dose_response`; `models/nls`; `models/plot_means` quando o tratamento
 é qualitativo.
 ]---", grafico = TRUE)),
 

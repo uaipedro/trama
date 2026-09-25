@@ -39,6 +39,9 @@ delineamento ou modelo.
   longo de 10 dias de privação de sono (`Days`). O exemplo do `lme4`.
 - **InsectSprays** — contagem de insetos (`count`) sob 6 inseticidas (`spray`).
   Contagem com variância que cresce com a média: GLM Poisson.
+- **Puromycin** — velocidade de reação (`rate`) pela concentração de substrato
+  (`conc`), em células tratadas ou não (`state`). A curva de Michaelis-Menten do
+  `models/nls`.
 - **mtcars** — 32 carros, consumo (`mpg`) e 10 características, com o nome em
   `modelo`. Regressão múltipla; `am` e `vs` servem para GLM binomial.
 - **cars** — distância de frenagem (`dist`) pela velocidade (`speed`).
@@ -221,6 +224,64 @@ tr_flow(reg) |>
 ]---", r"---[
 `models/random_effects` para as variâncias; `models/random_test` para testar os
 termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos.
+]---")),
+
+    trama::tr_node("models/nls", fn = tr_models_nls, label = "Regressão não linear",
+      category = "modelo_ajustar", icon = trama::tr_icon("chart-spline"),
+      description = "Ajusta uma curva não linear pronta (logística, Michaelis-Menten, Gompertz, platô...) sem pedir chute.",
+      inputs = list(dados = T), outputs = list(out = Fm),
+      params = list(
+        resposta = P("cols", "", label = "Resposta", example = "rate"),
+        preditor = P("cols", "", label = "Preditor", example = "conc"),
+        modelo = E("logístico", .TR_MODELS_NLS, label = "Modelo")),
+      help = .tr_models_ajuda(paste0(r"---[
+Ajusta por mínimos quadrados não lineares (`stats::nls`) uma das curvas que as
+ciências agrárias usam para crescimento, absorção e resposta a dose:
+
+| modelo | curva | parâmetros |
+|---|---|---|
+| `logístico` | S simétrico: crescimento de planta, fruto, população | `Asym` assíntota, `xmid` x do ponto de inflexão, `scal` escala (o tempo para ir de metade a ~73% da assíntota) |
+| `Michaelis-Menten` | sobe de zero e satura: absorção de nutriente, cinética de enzima | `Vm` máximo, `K` o x em que se chega à metade do máximo |
+| `exponencial assintótico` | aproxima-se de um teto: resposta a adubo pela lei de Mitscherlich | `Asym` assíntota, `R0` o valor em x = 0, `lrc` log da taxa |
+| `Gompertz` | S assimétrico, que acelera devagar e freia rápido | `Asym` assíntota, `b2`, `b3` (forma) |
+| `linear-platô` | reta que vira platô: dose a partir da qual não há ganho | `a`, `b` da reta, `x0` o início do platô |
+
+### Sem chute
+
+O que trava um ajuste não linear é o valor inicial dos parâmetros. Os quatro
+primeiros usam os self-starters do R (`SSlogis`, `SSmicmen`, `SSasymp`,
+`SSgompertz`), que chutam a partir dos dados; o linear-platô procura o ponto de
+quebra que deixa a menor soma de quadrados e parte dele.
+
+Quando mesmo assim não converge, o card fica vermelho dizendo que forma o
+modelo espera: quase sempre os dados não têm essa forma (um logístico sem a
+parte de cima do S), ou faltam pontos de um dos lados da mudança.
+
+### R² de um modelo não linear
+
+O `R²` das medidas é 1 − SQ do resíduo / SQ total, um pseudo R²: fora do
+linear ele não é a fração explicada. Para comparar modelos na mesma resposta,
+leia o AIC e o `rmse` (raiz do erro quadrático médio).
+
+Uma curva por grupo (um logístico por cultivar) não é feita aqui: filtre a
+tabela e ajuste cada uma.
+]---", .tr_models_ajuda_faltantes()), r"---[
+- **Resposta** — coluna numérica.
+- **Preditor** — a coluna numérica do eixo x (tempo, dose, concentração).
+- **Modelo** — a curva (tabela acima).
+]---", r"---[
+Um modelo (`models/fit`). O card é o gráfico dos pontos com a curva, a equação
+e o R²; a tabela, pelo adaptador, são os parâmetros com erro padrão e IC de
+Wald.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("puro", "models/example", dataset = "Puromycin") |>
+  tr_add("mm", "models/nls", resposta = "rate", preditor = "conc", modelo = "Michaelis-Menten",
+         from = "puro")
+]---", r"---[
+`models/coefficients` para os parâmetros; `models/plot_regression` para a
+figura com título e rótulos; `models/predict` para a curva em novos x;
+`models/fit_stats` para comparar modelos.
 ]---"))
   )
 }
@@ -494,7 +555,7 @@ tr_flow(reg) |>
   tr_add("reg", "models/dose_response", tratamento = "dose", from = "dbc")
 ]---", r"---[
 `models/plot_regression` para a figura com título e rótulos;
-`models/coefficients`; `models/anova_dbc`; a regressão não linear quando a curva não é
+`models/coefficients`; `models/anova_dbc`; `models/nls` quando a curva não é
 um polinômio (platô, Mitscherlich).
 ]---", teste = TRUE))
   )

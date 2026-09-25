@@ -7,7 +7,7 @@
 # hoje é o de amanhã, em qualquer computador.
 
 .TR_MODELS_EXEMPLOS <- c("PlantGrowth", "milho_dbc", "racao_dql", "adubo_dbc", "ToothGrowth", "warpbreaks",
-                         "npk", "aveia", "sleepstudy", "InsectSprays", "mtcars", "cars")
+                         "npk", "aveia", "sleepstudy", "InsectSprays", "Puromycin", "mtcars", "cars")
 
 #' Roda `expr` com semente própria, sem mexer na do usuário.
 #' @noRd
@@ -93,6 +93,7 @@ tr_models_example <- function(dataset = "PlantGrowth") {
     },
     sleepstudy = tibble::as_tibble(lme4::sleepstudy),
     InsectSprays = tibble::as_tibble(datasets::InsectSprays),
+    Puromycin = tibble::as_tibble(datasets::Puromycin),
     mtcars = tibble::as_tibble(cbind(modelo = rownames(datasets::mtcars), datasets::mtcars)),
     cars = tibble::as_tibble(datasets::cars))
 }

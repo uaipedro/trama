@@ -380,6 +380,11 @@ tr_models_random_effects <- function(modelo) {
                      paste0("'%s' não se aplica a %s: os pressupostos são os da ANOVA de origem (%s). ",
                             "Ligue o teste ao modelo da ANOVA."), no, fit$rotulo, fit$origem)
   }
+  if (fit$classe == "nls") {
+    aj <- fit$ajuste
+    return(list(ajustado = as.numeric(stats::fitted(aj)), residuo = as.numeric(stats::residuals(aj)),
+                padronizado = as.numeric(stats::residuals(aj)) / stats::sigma(aj), ajuste = NULL))
+  }
   if (fit$classe %in% c("glm", "glmer")) {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'%s' não se aplica a %s: num GLM a variância acompanha a média e os ",

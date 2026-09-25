@@ -5,12 +5,12 @@ section: colecoes
 collection: modelos
 node: models/plot_regression
 category: resumir
-related: [models/dose_response, models/plot_means]
+related: [models/dose_response, models/nls, models/plot_means]
 ---
 
 ## O que o bloco faz
 
-`models/plot_regression` desenha a curva ajustada por `models/dose_response` ou a regressão não linear com os pontos, a equação e o R². A saída é `view/plot`.
+`models/plot_regression` desenha a curva ajustada por `models/dose_response` ou `models/nls` com os pontos, a equação e o R². A saída é `view/plot`.
 
 ## Quando usar
 

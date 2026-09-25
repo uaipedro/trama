@@ -21,6 +21,7 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `previsto` | coluna da previsão (classe na classificação, número na regressão); também o param que nomeia essa coluna no modo tabela | `.pred` (ml) |
 | `prob_<nivel>` | coluna da probabilidade de cada classe, nível saneado por `tr_models_clean_name()` | `.prob_<classe>` (ml) |
 | `validacao` | como prever o treino: `resubstituição` ou `cruzada` | — |
+| `preditor` | a coluna explicativa única de um modelo de uma preditora (models/nls) | — (não usar `preditores` quando só cabe uma) |
 | `grau` | grau de um polinômio (models/dose_response): número ou `automático` | — |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 
