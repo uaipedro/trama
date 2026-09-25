@@ -1,5 +1,21 @@
 # trama.models (desenvolvimento)
 
+## Integração 9.2 (coesão das coleções)
+
+- `models/scott_knott` (versão 2): um partidor só, com s² = média de QM / rᵢ
+  do grupo em partição (como `ScottKnott:::MaxValue`); aceita o DIC com
+  repetições desiguais e continua recusando termo não ortogonal ao
+  tratamento. Balanceado: grupos iguais aos da versão 1. Conferido contra
+  `ScottKnott::SK` 1.4-0 (DIC desbalanceado, CRD1, CRD2, RCBD, milho_dbc,
+  InsectSprays).
+- `models/polinomial` (versão 2) absorve o `models/dose_response`: duas saídas
+  (`quadro` e `modelo`, a curva), `grau` = `automático` ou 1 a 5, `grau_max`
+  (o antigo `grau` numérico), DQL, falta de ajuste do grau escolhido, MET e
+  curva de grau 0 quando nada é significativo. Fluxos antigos migram (id,
+  params e a porta `out` → `quadro`).
+- `models/pr_curve`: a curva precisão-revocação da `ml/pr_curve` (main), com os
+  modos da `models/roc`; `ml/pr_curve` migra para ela.
+
 ## Blocos novos
 
 - `models/friedman`: teste de Friedman (1937, doi:10.1080/01621459.1937.10503522)

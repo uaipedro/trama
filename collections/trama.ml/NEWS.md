@@ -1,5 +1,9 @@
 # trama.ml 0.2.0
 
+- Integração 9.2: a `ml/pr_curve` foi para a `trama.models` como
+  `models/pr_curve` (com modelo ou tabela, como a `models/roc`); fluxos com o
+  id antigo migram, e as contas não mudaram.
+
 Versão sobe de 0.1.0: mudam padrões e resultados de `ml/roc` (classe
 positiva) e `ml/cart` (poda), com os nós em versão 2.
 
