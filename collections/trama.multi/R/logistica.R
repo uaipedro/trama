@@ -469,6 +469,12 @@ logística como modelo de regressão, com desvio e contrastes.
         escala = trama::tr_param_enum("unidade", .TR_MULTI_ESCALAS_OR, label = "Escala"),
         confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança do intervalo"),
         intervalo = trama::tr_param_enum("perfilado", .TR_MULTI_INTERVALOS_OR, label = "Intervalo")),
+      # v3 renomeou `nivel` para `confianca`: flow salvo antes abre migrado.
+      migracoes = list(`3` = function(params) {
+        if (!is.null(params$nivel)) params$confianca <- params$nivel
+        params$nivel <- NULL
+        params
+      }),
       help = .tr_multi_ajuda(r"---[
 Uma linha por termo (e, na multinomial, por grupo contra a referência).
 

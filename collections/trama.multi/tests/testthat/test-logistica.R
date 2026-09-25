@@ -159,3 +159,15 @@ test_that("logistic_coefficients: param `confianca` (versão 3); `nivel` saiu", 
   expect_error(tr_multi_logistic_coefficients(m, nivel = 0.9), "unused argument|argumento não usado")
   expect_error(tr_multi_logistic_coefficients(m, confianca = 2), class = "tr_multi_error_bad_option")
 })
+
+test_that("flow salvo com `nivel` (v2) abre migrado para `confianca`", {
+  reg <- multi_registry()
+  doc <- trama::tr_doc_parse(paste0(
+    '{"format":1,"rev":1,"nodes":{"rc":{"type":"multi/logistic_coefficients",',
+    '"type_version":2,"params":{"escala":"unidade","nivel":0.9}}},"edges":[]}'))
+  mig <- trama::tr_doc_migrate(doc, reg)
+  expect_equal(mig$nodes$rc$params, list(escala = "unidade", confianca = 0.9))
+  expect_identical(mig$nodes$rc$type_version, 4L)
+  kinds <- vapply(trama::tr_doc_validate(doc, reg), function(p) p$kind, "")
+  expect_false(any(c("unknown_param", "version_drift") %in% kinds))
+})

@@ -63,9 +63,9 @@
 
 * `multi/logistic_coefficients` (versão 3): o param do nível do intervalo passa
   de `nivel` a `confianca`, a convenção da coleção (`multi/roc`) e das irmãs.
-  O núcleo não tem migração de params: um fluxo salvo com `nivel` acusa
-  `unknown_param` (e `version_drift`) ao ser validado e precisa do param
-  renomeado. Sem alias: o nó exige que o `fn` seja a função exportada e que
+  Fluxo salvo com `nivel` abre migrado: o nó declara a migração da v3
+  (`tr_node(migracoes = )`), o núcleo troca `nivel` por `confianca` ao abrir o
+  flow ou colar o template e avisa "migrado de v2 para v4". Sem alias: o nó exige que o `fn` seja a função exportada e que
   cada argumento dela seja um param declarado, então `nivel =` também deixa de
   ser aceito na chamada R. Resultado igual.
 
