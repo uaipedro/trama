@@ -270,7 +270,7 @@ tr_multi_discriminant_functions <- function(modelo, tabela = "funções") {
 #' @param dados tabela.
 #' @param grupo coluna do grupo.
 #' @param cols variáveis; em branco, as numéricas menos o grupo.
-#' @return tibble de uma linha.
+#' @return teste (`trama::tr_test`), que sai no tipo `data/test`.
 #' @export
 tr_multi_box_m <- function(dados, grupo = "", cols = "") {
   no <- "multi/box_m"
@@ -289,22 +289,22 @@ tr_multi_box_m <- function(dados, grupo = "", cols = "") {
   qui <- M * (1 - c1)
   gl <- p * (p + 1) * (k - 1) / 2
   pv <- stats::pchisq(qui, gl, lower.tail = FALSE)
-  rejeita <- pv < .05
-  tibble::tibble(
-    teste = "M de Box",
-    h0 = "as matrizes de covariância são iguais em todos os grupos",
-    m = M, qui_quadrado = qui, gl = as.integer(gl), p_valor = pv,
-    decisao_5 = if (rejeita) "rejeita H0" else "não rejeita H0",
-    leitura = if (rejeita) {
-      paste0("As covariâncias parecem diferir entre os grupos: a quadrática é candidata. ",
-             "Mas o M de Box é muito sensível a caudas pesadas e, com muitas observações, ",
-             "rejeita por diferenças pequenas — compare a taxa de acerto em validação ",
-             "cruzada das duas antes de trocar.")
-    } else {
-      paste0("Sem evidência de covariâncias diferentes: a linear é adequada, e é mais ",
-             "estável (estima uma covariância só). Não rejeitar não prova igualdade; com ",
-             "grupos pequenos o teste tem pouco poder.")
-    })
+  # Sai no tipo único de teste (`data/test`): o card da régua em vez de uma
+  # tabela de uma linha, e a mesma linha de volta pelo adaptador — com `m` em
+  # coluna extra, porque o M cru é o número que o livro-texto reporta.
+  trama::tr_test(
+    "M de Box", "as matrizes de covariância são iguais em todos os grupos",
+    qui, "qui2", p_valor = pv, gl = as.character(as.integer(gl)),
+    conclusao_sim = paste0(
+      "As covariâncias parecem diferir entre os grupos: a quadrática é candidata. ",
+      "Mas o M de Box é muito sensível a caudas pesadas e, com muitas observações, ",
+      "rejeita por diferenças pequenas — compare a taxa de acerto em validação ",
+      "cruzada das duas antes de trocar."),
+    conclusao_nao = paste0(
+      "Sem evidência de covariâncias diferentes: a linear é adequada, e é mais ",
+      "estável (estima uma covariância só). Não rejeitar não prova igualdade; com ",
+      "grupos pequenos o teste tem pouco poder."),
+    fonte = "Box (1949)", extra = list(m = M), classe = "tr_multi_test")
 }
 
 #' O plano discriminante: escores por grupo, com centróides.
@@ -531,7 +531,7 @@ que é outra pergunta — funções significativas não garantem classificar bem
     trama::tr_node("multi/box_m", role = "avaliacao", fn = tr_multi_box_m, label = "M de Box",
       category = "multi_discriminante", icon = trama::tr_icon("scale"),
       description = "Testa se as matrizes de covariância dos grupos são iguais: linear ou quadrática?",
-      inputs = list(dados = TB), outputs = list(out = TB),
+      inputs = list(dados = TB), outputs = list(out = "data/test"),
       params = list(
         grupo = P("cols", "", label = "Grupo", example = "cultivar"),
         cols = P("cols", "", label = "Variáveis", example = "alcool, flavonoides")),
@@ -567,9 +567,12 @@ o teste tem pouco poder.
 - **Variáveis** — as medidas. Em branco, as numéricas menos o grupo — as
   mesmas que um `multi/discriminant` com os preditores em branco usaria.
 ]---", r"---[
-Uma tabela (`data/table`) de uma linha: `teste`, `h0`, `m`, `qui_quadrado`,
-`gl`, `p_valor`, `decisao_5` (a 5%) e `leitura`. Todo grupo precisa de pelo
-menos p + 1 observações e covariância inversível (o erro nomeia o grupo).
+Um teste (`data/test`), com a régua do p-valor: o qui-quadrado é a
+estatística, e o M cru vai numa coluna extra (`m`). Ligado numa entrada de
+tabela, vira UMA linha, com as colunas de todo teste (`teste`, `h0`,
+`estatistica`, `gl`, `p_valor`, `decisao_5`, `conclusao`...). Todo grupo
+precisa de pelo menos p + 1 observações e covariância inversível (o erro nomeia
+o grupo).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("v", "multi/example", dataset = "vinhos") |>
@@ -577,7 +580,7 @@ tr_flow(reg) |>
 ]---", r"---[
 `multi/discriminant` para ajustar a linear ou a quadrática; `models/confusion`
 para compará-las pelo acerto.
-]---")),
+]---", teste = TRUE)),
 
     trama::tr_node("multi/plot_discriminant", role = "leitura", fn = tr_multi_plot_discriminant,
       label = "Plano discriminante",

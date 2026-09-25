@@ -127,13 +127,17 @@
 #' nós, a seção esquecida em um deles é certa. Os textos vêm em raw string
 #' (`r"---[ ]---"`) porque citam código com aspas e barras.
 #' @noRd
-.tr_multi_ajuda <- function(descricao, parametros, valor, exemplos, veja, grafico = FALSE) {
+.tr_multi_ajuda <- function(descricao, parametros, valor, exemplos, veja, grafico = FALSE,
+                            teste = FALSE) {
   paste0("## Descrição\n\n", trimws(descricao),
          "\n\n## Parâmetros\n\n", trimws(parametros),
          "\n\n## Valor\n\n", trimws(valor),
          "\n\n## Exemplos\n\n```r\n", trimws(exemplos), "\n```",
          "\n\n## Veja também\n\n", trimws(veja),
-         if (grafico) paste0("\n", trama.view::tr_view_help_appearance()) else "")
+         if (grafico) paste0("\n", trama.view::tr_view_help_appearance()) else "",
+         # O bloco que sai em `data/test` explica o card do núcleo com o texto
+         # do núcleo, escrito uma vez só.
+         if (teste) paste0("\n", trama::tr_help_test_card()) else "")
 }
 
 #' Os cosméticos da `view`, com a proporção padrão própria do gráfico.

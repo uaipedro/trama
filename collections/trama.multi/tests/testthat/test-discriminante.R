@@ -95,16 +95,19 @@ test_that("QDA: bate com MASS::qda, classifica e confunde", {
 
 test_that("M de Box: iris rejeita (≈140,94, 20 gl), vinhos não", {
   b <- tr_multi_box_m(iris_t(), grupo = "Species")
-  expect_equal(nrow(b), 1L)
-  expect_equal(names(b), c("teste", "h0", "m", "qui_quadrado", "gl", "p_valor",
-                           "decisao_5", "leitura"))
-  expect_equal(b$qui_quadrado, 140.94, tolerance = 1e-4)
-  expect_equal(b$m, 146.66, tolerance = 1e-4)
-  expect_equal(b$gl, 20L)
+  expect_s3_class(b, "tr_test")
+  expect_equal(b$estatistica, 140.94, tolerance = 1e-4)
+  expect_equal(b$extra$m, 146.66, tolerance = 1e-4)
+  expect_equal(b$gl, "20")
   expect_lt(b$p_valor, .001)
   expect_equal(b$decisao_5, "rejeita H0")
+  # A linha de tabela, pelo adaptador da `data`, guarda o que a tabela antiga
+  # tinha de útil: estatística, gl, p-valor, decisão e o M.
+  tb <- trama::tr_test_table(b)
+  expect_equal(nrow(tb), 1L)
+  expect_true(all(c("estatistica", "gl", "p_valor", "decisao_5", "conclusao", "m") %in% names(tb)))
   v <- tr_multi_box_m(tr_multi_example("vinhos"), grupo = "cultivar")
-  expect_equal(v$gl, 42L)
+  expect_equal(v$gl, "42")
   expect_gt(v$p_valor, .05)
   expect_equal(v$decisao_5, "não rejeita H0")
 })
