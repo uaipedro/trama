@@ -42,6 +42,8 @@ tr_flow(reg) |>
       inputs = list(amostra = S), outputs = list(out = ES),
       params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"), por = POR(),
                     confianca = CONF()),
+      pressupostos = .tr_sampling_press_estimar(),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_mean"),
       help = .tr_sampling_ajuda(paste(r"---[
 A média da população, estimada pela média PONDERADA da amostra (Σ w·y / Σ w).
 Numa AAS todo peso é igual e ela é a média simples; numa estratificada
@@ -59,6 +61,11 @@ desproporcional ou numa PPS, a média simples estaria errada.
       inputs = list(amostra = S), outputs = list(out = ES),
       params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"), por = POR(),
                     confianca = CONF()),
+      pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
+        "Os pesos estão na **escala da população** (somam o N): o total depende do peso inteiro, e não só das proporções entre os pesos.",
+        verificar = "sampling/design",
+        se_falhar = "Declare o peso de expansão em `sampling/design`, ou pós-estratifique a totais conhecidos com `sampling/poststratify`."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_total"),
       help = .tr_sampling_ajuda(paste(r"---[
 O total da população pelo estimador de Horvitz-Thompson: Σ w·y, em que cada
 unidade da amostra conta pelas w unidades da população que representa. É o que
@@ -81,14 +88,18 @@ amostra sem peso (ou declarada sem ele) daria o total da AMOSTRA.
       params = list(variavel = P("cols", "", label = "Variável", example = "irrigada"),
                     nivel = P("text", "", label = "Categoria (em branco: todas)", example = "sim"),
                     por = POR(), confianca = CONF()),
+      pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
+        "O intervalo de **Wald** (com t) supõe a proporção longe de 0 e de 1 para o n do domínio; perto dos extremos ele pode sair de [0, 1] e cobre menos que o prometido.",
+        verificar = "sampling/simulate",
+        se_falhar = "Leia o intervalo junto do n; com proporção extrema e domínio pequeno, junte domínios ou aumente a amostra."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_proportion"),
       help = .tr_sampling_ajuda(paste(r"---[
 A proporção da população em cada categoria: a média ponderada do indicador
 (1 se a unidade é da categoria, 0 se não). Com **Categoria** em branco, uma
 linha por categoria; com uma categoria, só ela.
 
 O card mostra em %; a tabela, em proporção (0 a 1). O intervalo é o de Wald com
-t, que pode passar de 0 ou 1 em proporções extremas com amostra pequena — leia
-junto do n.
+t.
 ]---", ajuda_desenho), paste(r"---[
 - **Variável** — coluna categórica (texto, fator ou lógica).
 - **Categoria** — o valor cuja proporção se quer; em branco, todas.
@@ -104,6 +115,11 @@ número de unidades; `sampling/plot_estimates`.
       params = list(numerador = P("cols", "", label = "Numerador", example = "producao_t"),
                     denominador = P("cols", "", label = "Denominador", example = "area_ha"),
                     por = POR(), confianca = CONF()),
+      pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
+        "A linearização da razão supõe o total do **denominador estimado com precisão** (CV pequeno, uns 10% ou menos): o viés da razão é da ordem de 1/n.",
+        verificar = "sampling/total",
+        se_falhar = "Estime o total do denominador com `sampling/total` e olhe o CV; se for alto, aumente a amostra ou junte domínios."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_ratio"),
       help = .tr_sampling_ajuda(paste(r"---[
 A razão entre dois totais, R = Σ w·y / Σ w·x: toneladas por hectare, renda por
 morador, trabalhadores por fazenda. Não é a média das razões de cada unidade
@@ -138,6 +154,13 @@ que nenhum.
                     estimador = E("média", c("média", "total"), label = "Estimador"),
                     repeticoes = I(500L, min = 20L, max = 10000L, label = "Repetições"),
                     confianca = E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")),
+      pressupostos = list(
+        trama::tr_pressuposto("A população ligada é o **cadastro completo** de onde o desenho sorteia: a verdade medida é a dela, e o resultado vale para populações parecidas com ela.",
+          se_falhar = "Com cadastro parcial ou simulado, leia viés e cobertura como os do cenário, não os da pesquisa real."),
+        trama::tr_pressuposto("As **repetições** são suficientes para o erro de Monte Carlo: com R réplicas, a cobertura tem erro padrão √(c(1 − c)/R), cerca de 1 ponto com 500.",
+          se_falhar = "Aumente as **Repetições** antes de concluir sobre diferenças pequenas de cobertura ou de EP.")),
+      referencias = list(.tr_sampling_refs()$morris, .tr_sampling_refs()$cochran,
+        .tr_sampling_impl("tr_sampling_simulate", "Re-sorteia pela receita guardada na amostra (seleção e calibração), estima com o mesmo motor do conglomerado último e resume viés relativo, EP empírico, EP estimado (raiz da média das variâncias), REQM e cobertura do intervalo t.")),
       help = .tr_sampling_ajuda(r"---[
 Avalia o DESENHO, e não a amostra: pega a receita guardada na amostra ligada
 (o bloco de seleção, o n, os estratos, a pós-estratificação), sorteia de novo da

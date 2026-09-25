@@ -56,13 +56,8 @@ multi/roc
 sampling/detectable_difference
 sampling/margin
 sampling/margin_levels
-sampling/mean
-sampling/proportion
 sampling/question_margins
-sampling/ratio
 sampling/referral
-sampling/simulate
-sampling/total
 series/accuracy
 series/adf
 series/arima
