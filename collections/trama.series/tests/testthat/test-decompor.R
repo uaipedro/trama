@@ -96,13 +96,12 @@ test_that("regressão recusa série sem graus de liberdade para o modelo", {
                   "tr_series_reg")
 })
 
-test_that("regressão recusa modelo vazio, série anual com sazonal, faltante e regressor", {
+test_that("regressão recusa modelo vazio, série anual com sazonal, faltante", {
   x <- serie_mensal()
   expect_error(tr_series_regression(x, grau = 0L, sazonalidade = FALSE),
                class = "tr_series_error_empty_model")
   expect_error(tr_series_regression(serie_anual()), class = "tr_series_error_no_season")
   expect_error(tr_series_regression(datasets::presidents), class = "tr_series_error_missing_values")
-  expect_error(tr_series_regression(x, regressor = x), class = "tr_series_error_xreg_unsupported")
   expect_error(tr_series_regression(x, grau = 4L), class = "tr_series_error_bad_option")
   expect_error(tr_series_regression(x, contraste = "meio"), class = "tr_series_error_bad_option")
 })
@@ -128,4 +127,34 @@ test_that("sem_tendencia: série menos a tendência na aditiva, dividida na mult
   expect_equal(as.numeric(sm * m$tendencia), as.numeric(ifelse(is.na(m$tendencia), NA, x)))
   # Fator em torno de 1, e não de zero: a divisão, e não a subtração.
   expect_equal(mean(sm, na.rm = TRUE), 1, tolerance = .02)
+})
+
+test_that("regressor entra no ajuste com coeficiente e teste, e os componentes somam", {
+  set.seed(7)
+  x <- serie_mensal()
+  # Regressor mais longo que a série (sobra dos dois lados): é recortado.
+  z <- stats::ts(stats::rnorm(length(x) + 24), start = c(1948, 1), frequency = 12)
+  zj <- as.numeric(stats::window(z, start = stats::start(x), end = stats::end(x)))
+  y <- x + 30 * stats::window(z, start = stats::start(x), end = stats::end(x))
+  r <- tr_series_regression(y, grau = 1L, regressor = z)
+  tab <- .tr_series_reg_tabela(r)
+  expect_true("regressor" %in% tab$termo)
+  # Dentro de 3 erros-padrão do verdadeiro: o resto do AirPassengers aditivo é
+  # grande (a sazonalidade dele é multiplicativa), e é isso que o SE mede.
+  lin <- tab[tab$termo == "regressor", ]
+  expect_lt(abs(lin$estimativa - 30), 3 * lin$erro_padrao)
+  expect_lt(tab$p_valor[tab$termo == "regressor"], 1e-6)
+  expect_equal(as.numeric(r$efeito_regressor), stats::coef(r$ajuste)[["regressor"]] * zj)
+  expect_equal(as.numeric(r$tendencia + r$sazonal + r$resto), as.numeric(y))
+  # O F de tendência continua sendo o do bloco t, com o regressor no modelo.
+  expect_s3_class(tr_series_f_tendencia(r), "tr_series_test")
+  # Grau 0 sem sazonalidade deixa de ser vazio com regressor.
+  expect_s3_class(tr_series_regression(y, grau = 0L, sazonalidade = FALSE, regressor = z),
+                  "tr_series_reg")
+  expect_error(tr_series_regression(x, regressor = stats::window(z, end = c(1955, 12))),
+               class = "tr_series_error_no_overlap")
+  expect_error(tr_series_regression(x, regressor = stats::ts(1:200, frequency = 4)),
+               class = "tr_series_error_frequency_mismatch")
+  zn <- z; zn[30] <- NA
+  expect_error(tr_series_regression(x, regressor = zn), class = "tr_series_error_missing_values")
 })

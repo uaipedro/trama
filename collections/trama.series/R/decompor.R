@@ -90,20 +90,22 @@ tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
 #' decomposições diferentes conforme uma escolha de parametrização, que é
 #' exatamente o tipo de resultado errado com cara de certo que a coleção
 #' recusa.
+#'
+#' O `regressor` é uma covariável externa (outra série, no mesmo tempo) que
+#' entra no `lm` ao lado da tendência e das dummies: o coeficiente dele sai na
+#' tabela com erro-padrão e p-valor, e os componentes passam a ser os
+#' "descontado o regressor". É a pergunta "a tendência continua depois de
+#' controlar pela renda?" respondida no mesmo ajuste.
 #' @export
 tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
                                  contraste = "soma_zero", regressor = NULL) {
   grau <- .tr_series_int(grau, "grau", min = 0, max = 3)
   contraste <- .tr_series_enum(contraste, c("soma_zero", "categoria_base"), "contraste")
-  if (!is.null(regressor)) {
-    .tr_series_abort("tr_series_error_xreg_unsupported",
-                     paste0("'series/regression' ainda não usa regressor externo. Desligue o fio da ",
-                            "entrada 'regressor'."))
-  }
-  if (grau == 0L && !isTRUE(sazonalidade)) {
+  xreg <- if (!is.null(regressor)) .tr_series_regressor(serie, regressor)
+  if (grau == 0L && !isTRUE(sazonalidade) && is.null(xreg)) {
     .tr_series_abort("tr_series_error_empty_model",
-                     paste0("'series/regression' com grau 0 e sem sazonalidade não tem nada a ",
-                            "estimar. Suba o grau, ou ligue a sazonalidade."))
+                     paste0("'series/regression' com grau 0, sem sazonalidade e sem regressor não ",
+                            "tem nada a estimar. Suba o grau, ou ligue a sazonalidade."))
   }
   .tr_series_sem_na(serie, "series/regression")
   if (isTRUE(sazonalidade)) .tr_series_sazonal(serie, "series/regression")
@@ -114,19 +116,21 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   # perfeita. Dois graus é o mínimo para que erro-padrão e p-valor queiram
   # dizer alguma coisa.
   n_saz <- if (isTRUE(sazonalidade)) as.integer(stats::frequency(serie)) - 1L else 0L
-  n_par <- 1L + grau + n_saz
+  n_x <- if (is.null(xreg)) 0L else 1L
+  n_par <- 1L + grau + n_saz + n_x
   if (length(serie) < n_par + 2L) {
     .tr_series_abort("tr_series_error_too_short",
                      paste0("'series/regression': a série tem %d observações e o modelo pede %d ",
-                            "parâmetros (1 intercepto, %d de tendência, %d sazonais), o que deixa ",
-                            "%d graus de liberdade residuais. Abaixo de 2 não há erro-padrão nem ",
-                            "p-valor: baixe o grau, ou desligue a sazonalidade."),
-                     length(serie), n_par, grau, n_saz, length(serie) - n_par)
+                            "parâmetros (1 intercepto, %d de tendência, %d sazonais, %d do ",
+                            "regressor), o que deixa %d graus de liberdade residuais. Abaixo de 2 ",
+                            "não há erro-padrão nem p-valor: baixe o grau, ou desligue a sazonalidade."),
+                     length(serie), n_par, grau, n_saz, n_x, length(serie) - n_par)
   }
 
   dados <- data.frame(y = as.numeric(serie))
   tt <- seq_along(serie)
   for (g in seq_len(grau)) dados[[paste0("t", g)]] <- tt^g
+  if (!is.null(xreg)) dados$regressor <- xreg
   if (isTRUE(sazonalidade)) {
     f <- as.integer(stats::frequency(serie))
     dados$estacao <- factor(as.integer(stats::cycle(serie)), levels = seq_len(f),
@@ -165,10 +169,43 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   como_ts <- function(v) {
     stats::ts(v, start = stats::start(serie), frequency = stats::frequency(serie))
   }
+  # O efeito do regressor fica DENTRO da tendência (tendência = ajustado −
+  # sazonal, como sem regressor): é a parte sistemática não sazonal, e é o
+  # que mantém a promessa de que os três componentes somam a série. Ele vai
+  # também à parte, para quem quiser a tendência pura no console.
+  efeito <- if (is.null(xreg)) NULL else como_ts(stats::coef(fit)[["regressor"]] * xreg)
   structure(list(ajuste = fit, serie = serie, grau = grau,
                  sazonalidade = isTRUE(sazonalidade), contraste = contraste,
+                 efeito_regressor = efeito,
                  tendencia = como_ts(as.numeric(stats::fitted(fit)) - saz),
                  sazonal = como_ts(saz),
                  resto = como_ts(as.numeric(stats::residuals(fit)))),
             class = "tr_series_reg")
+}
+
+#' O regressor alinhado à série, ou erro dizendo por que não se alinha.
+#'
+#' Tem de COBRIR a série inteira, e não só cruzar com ela: recortar a série
+#' para a interseção mudaria a decomposição sem que o card dissesse — o
+#' `series/window` antes é o jeito de fazer isso às claras.
+#' @noRd
+.tr_series_regressor <- function(serie, regressor) {
+  fs <- stats::frequency(serie); fr <- stats::frequency(regressor)
+  if (!isTRUE(all.equal(fs, fr))) {
+    .tr_series_abort("tr_series_error_frequency_mismatch",
+                     paste0("'series/regression': a série tem frequência %g e o regressor, %g. Leve o ",
+                            "regressor à frequência da série com 'series/aggregate'."), fs, fr)
+  }
+  ts_s <- stats::tsp(serie); ts_r <- stats::tsp(regressor)
+  eps <- 1e-8
+  if (ts_r[[1]] > ts_s[[1]] + eps || ts_r[[2]] < ts_s[[2]] - eps) {
+    .tr_series_abort("tr_series_error_no_overlap",
+                     paste0("'series/regression': o regressor (%s a %s) não cobre a série inteira ",
+                            "(%s a %s). Recorte a série com 'series/window'."),
+                     .tr_series_rotulo(stats::start(regressor), fr), .tr_series_rotulo(stats::end(regressor), fr),
+                     .tr_series_rotulo(stats::start(serie), fs), .tr_series_rotulo(stats::end(serie), fs))
+  }
+  x <- stats::window(regressor, start = ts_s[[1]], end = ts_s[[2]])
+  .tr_series_sem_na(x, "series/regression (regressor)")
+  as.numeric(x)
 }

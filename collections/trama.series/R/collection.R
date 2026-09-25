@@ -808,8 +808,25 @@ causa de uma escolha de leitura.
 ### Limites
 
 O bloco não aceita faltantes, e sazonalidade pede frequência maior que 1. Grau 0
-com sazonalidade desligada não tem o que estimar, e para o nó em vermelho. A
-entrada **regressor** está declarada mas ainda não é usada.
+com sazonalidade desligada (e sem regressor) não tem o que estimar, e para o nó
+em vermelho.
+
+### Regressor
+
+A entrada opcional **regressor** recebe outra série — uma covariável, como a
+renda ou a temperatura — que entra no mesmo ajuste:
+
+`valor = tendência(t) + sazonal(estação) + β·regressor + erro`
+
+O coeficiente `regressor` sai na tabela com erro-padrão e p-valor: é o efeito
+da covariável descontadas tendência e sazonalidade, e os F de tendência e de
+sazonalidade passam a ser os descontado o regressor. Na decomposição, o efeito
+`β·regressor` entra na **tendência** (a parte sistemática que não é sazonal),
+para que os componentes continuem somando a série.
+
+O regressor tem de ter a mesma frequência e cobrir o período inteiro da série
+(sobrar dos lados não faz mal; faltar é erro — recorte a série com
+`series/window`), sem faltantes nesse período.
 
 O modelo supõe erro sem autocorrelação, e série temporal quase nunca obedece:
 confira o resto com `series/ljung_box` antes de levar os p-valores a sério.
@@ -829,6 +846,7 @@ logo depois do último ponto. Para prever, `series/arima` ou `series/ets`.
 - **Grau da tendência** — 0 (sem tendência) a 3.
 - **Sazonalidade** — inclui as dummies de período.
 - **Contraste** — `soma_zero` ou `categoria_base`.
+- **regressor** (entrada, opcional) — uma série usada como covariável.
 ]---", r"---[
 Uma regressão (`series/regression`): o card traz o resumo do ajuste.
 `series/f_global`, `series/f_seasonal` e `series/f_trend` testam os blocos;

@@ -33,7 +33,7 @@ tr_series_errors <- function() {
     tr_series_error_bad_ets = "código de modelo ETS inválido",
     tr_series_error_fit = "o ajuste do modelo falhou",
     tr_series_error_no_overlap =
-      "duas séries que o nó alinha pelo tempo não têm nenhum período em comum",
+      "duas séries que o nó alinha pelo tempo não têm o período em comum que a conta pede",
     tr_series_error_frequency_mismatch =
       "duas séries que o nó opera juntas chegaram com frequências diferentes",
     tr_series_error_not_a_series =
@@ -54,9 +54,7 @@ tr_series_errors <- function() {
       "o bloco de F testa um bloco de termos que a regressão ligada não tem",
     tr_series_error_bad_criticos =
       paste0("o bloco não trouxe como decidir: nem p-valor nem tabela de críticos, ",
-             "ou tabela sem o nível da decisão nomeado"),
-    tr_series_error_xreg_unsupported =
-      "regressor externo ligado, e esta versão do nó ainda não o usa"
+             "ou tabela sem o nível da decisão nomeado")
   )
   data.frame(class = names(e), when = unname(e), stringsAsFactors = FALSE)
 }
