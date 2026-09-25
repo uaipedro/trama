@@ -81,3 +81,25 @@ test_that("glmer tipo III reajusta com contr.sum (efeito na média, não no nív
   q2 <- tr_models_anova_table(g, "II")$tabela
   expect_equal(q2$qui2, unname(car::Anova(g$ajuste, type = 2)$Chisq), tolerance = 1e-8)
 })
+
+test_that("glmer guarda os avisos do ajuste na nota e recusa respostas binomiais inválidas", {
+  # Grupos idênticos: variância do grupo no limite (ajuste singular). O lme4
+  # avisa "boundary (singular) fit"; o aviso tem de chegar ao card.
+  d <- data.frame(g = factor(rep(1:5, each = 4)), y = rep(c(0, 1, 1, 0), 5))
+  g <- tr_models_glmer(d, formula = "y ~ 1 + (1 | g)", familia = "binomial")
+  expect_true(lme4::isSingular(g$ajuste))
+  expect_match(g$nota, "singular")
+  expect_equal(tr_models_glmer(cbpp_d(), formula = "cbind(incidence, sadios) ~ period + (1 | herd)")$nota, "")
+  expect_match(tr_models_coefficients(g)$nota, "singular")
+  expect_match(.tr_models_fit_preview(g)$nota, "singular")
+  # Bernoulli + efeito por observação: não identificável.
+  expect_error(tr_models_glmer(d, formula = "y ~ 1 + (1 | g)", familia = "binomial", nivel_obs = TRUE),
+               class = "tr_models_error_bad_option")
+  # Proporção numa coluna só, sem o total: recusa e aponta o cbind.
+  cb <- cbpp_d(); cb$prop <- cb$incidence / cb$size
+  expect_error(tr_models_glmer(cb, formula = "prop ~ period + (1 | herd)", familia = "binomial"),
+               "cbind", class = "tr_models_error_bad_option")
+  # Contagem de sucessos sem o total também.
+  expect_error(tr_models_glmer(cb, formula = "incidence ~ period + (1 | herd)", familia = "binomial"),
+               class = "tr_models_error_bad_option")
+})

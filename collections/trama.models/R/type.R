@@ -63,11 +63,14 @@
 #' - `aux_lm`: `lm` com os mesmos resíduos do erro de dentro (só na parcela
 #'   subdividida); `aux_misto`: o `lmer` equivalente, para as médias.
 #' - `descartadas`: linhas com faltante que ficaram fora.
+#' - `nota`: o que o ajuste avisou (convergência, ajuste singular), em texto.
+#'   Fora de `.TR_MODELS_CAMPOS_FIT` de propósito: um RDS salvo antes dela
+#'   continua válido.
 #' @noRd
 .tr_models_fit_obj <- function(ajuste, classe, rotulo, formula, dados, resposta,
                                delineamento = NULL, tratamentos = character(), bloco = NULL,
-                               aux_lm = NULL, aux_misto = NULL, descartadas = 0L) {
-  structure(list(ajuste = ajuste, classe = classe, rotulo = rotulo,
+                               aux_lm = NULL, aux_misto = NULL, descartadas = 0L, nota = "") {
+  structure(list(ajuste = ajuste, classe = classe, rotulo = rotulo, nota = nota,
                  formula = paste(deparse(formula, width.cutoff = 500L), collapse = " "),
                  dados = dados, resposta = resposta, delineamento = delineamento,
                  tratamentos = tratamentos, bloco = bloco, aux_lm = aux_lm,
@@ -110,6 +113,7 @@ models_fit_type <- function() {
   efeitos <- tryCatch(.tr_models_efeitos_do_fit(fit), error = function(e) NULL)
   list(
     rotulo = fit$rotulo, formula = fit$formula, n = est$n, descartadas = fit$descartadas,
+    nota = .tr_models_nota_fit(fit),
     destaques = destaques,
     global = .tr_models_teste_global(fit),
     efeitos_titulo = if (is.null(efeitos)) NULL else efeitos$titulo,

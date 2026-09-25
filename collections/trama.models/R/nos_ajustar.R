@@ -177,7 +177,7 @@ tr_flow(reg) |>
 escala da resposta.
 ]---")),
 
-    trama::tr_node("models/glmer",
+    trama::tr_node("models/glmer", version = 2L,
       pressupostos = .tr_models_doc("models/glmer")$pressupostos,
       referencias = .tr_models_doc("models/glmer")$referencias,
       fn = tr_models_glmer, label = "GLM misto",
@@ -209,6 +209,14 @@ médias populacionais.
 a variância a mais que a binomial ou a Poisson vira um componente de variância.
 Compare com e sem no `models/compare` (razão de verossimilhança; a variância
 testada está na fronteira do espaço, e o p sai conservador).
+
+Com resposta 0/1 (uma tentativa por linha) o efeito por observação não é
+identificável e o bloco recusa; ele serve a `cbind(sucessos, fracassos)` e a
+contagens. Uma resposta de uma coluna na binomial tem de ser 0/1: proporção ou
+número de sucessos sem o total é recusado (escreva o `cbind`).
+
+Os avisos do ajuste (não convergência, ajuste singular) vão para a nota do
+modelo e dos quadros que saem dele.
 
 Não há resíduo normal a testar (Shapiro, Levene e Breusch-Pagan recusam) nem
 SQ sequencial: o quadro é de Wald, tipo II ou III.

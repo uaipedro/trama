@@ -220,7 +220,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
   .tr_models_efeitos(
     tibble::as_tibble(tab), sprintf("Quadro da ANOVA · SQ tipo %s", tipo), coluna_estat = coluna,
     rodape = rodape,
-    nota = .tr_models_nota(nota, .tr_models_nota_descarte(modelo$descartadas)),
+    nota = .tr_models_nota(nota, .tr_models_nota_fit(modelo)),
     fonte = switch(tipo, I = "Fisher (1925)", II = "Langsrud (2003); Fox & Weisberg (2019)",
                    III = "Yates (1934); Fox & Weisberg (2019)"))
 }
@@ -330,7 +330,7 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
   rownames(tab) <- NULL
   .tr_models_efeitos(tibble::as_tibble(tab), "Coeficientes", coluna_estat = coluna,
                      rodape = list(n = as.character(nrow(modelo$dados))),
-                     nota = .tr_models_nota(nota, .tr_models_nota_descarte(modelo$descartadas)),
+                     nota = .tr_models_nota(nota, .tr_models_nota_fit(modelo)),
                      fonte = "")
 }
 

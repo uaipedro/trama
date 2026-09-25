@@ -188,7 +188,29 @@ tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grup
                        "'%s': a família poisson é de contagem, e a resposta '%s' tem valor negativo.", no, resp)
     }
   }
+  lhs <- f[[2]]
+  y <- p$dados[[resp]]
+  bernoulli <- FALSE
+  if (familia == "binomial" && is.name(lhs)) {
+    # Resposta de uma coluna: é Bernoulli (0/1, fator, lógico). Proporção ou
+    # contagem de sucessos sem o total não tem como virar binomial aqui (não há
+    # 'weights'): o glmer só avisaria "non-integer #successes" e seguiria errado.
+    if (is.numeric(y) && !all(y %in% c(0, 1))) {
+      .tr_models_abort("tr_models_error_bad_option",
+                       paste0("'%s': na binomial, a resposta '%s' de uma coluna tem de ser 0/1. ",
+                              "Para proporção ou contagem de sucessos, escreva ",
+                              "'cbind(sucessos, fracassos) ~ ...' na fórmula."), no, resp)
+    }
+    bernoulli <- TRUE
+  }
   if (isTRUE(nivel_obs)) {
+    if (bernoulli) {
+      .tr_models_abort("tr_models_error_bad_option",
+                       paste0("'%s': com resposta 0/1 (Bernoulli) o efeito por observação não é ",
+                              "identificável — a variância extra-binomial não existe numa única ",
+                              "tentativa. Use 'nivel_obs' com 'cbind(sucessos, fracassos)' ou com contagens."),
+                       no)
+    }
     if (".obs" %in% names(p$dados)) {
       .tr_models_abort("tr_models_error_bad_option", "'%s': a tabela já tem uma coluna '.obs'.", no)
     }
@@ -201,7 +223,7 @@ tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grup
   aj@call <- as.call(list(quote(lme4::glmer), formula = stats::formula(aj), data = as.data.frame(p$dados),
                           family = fam))
   .tr_models_fit_obj(aj, "glmer", sprintf("GLM misto · %s", familia), f, p$dados, resp,
-                     descartadas = p$descartadas)
+                     descartadas = p$descartadas, nota = .tr_models_nota_avisos(r$avisos))
 }
 
 .TR_MODELS_CORRELACOES <- c("nenhuma", "ar1", "simetria_composta", "nao_estruturada")

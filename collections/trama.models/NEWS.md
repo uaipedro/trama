@@ -11,6 +11,11 @@
   trt F = 8,653 (antes 2,140). O `lmerTest` já era invariante ao contraste
   (teste de regressão). Tipo III com covariável numérica em interação ganha nota:
   o efeito do fator é testado com a covariável em zero.
+- `models/glmer` (versão 2): os avisos do `lme4` (convergência, ajuste
+  singular) vão para a nota do modelo (campo `nota` do `models/fit`, lido pelo
+  card e pelos quadros). Recusa `nivel_obs` com resposta 0/1 (efeito por
+  observação não identificável numa tentativa) e resposta binomial de uma
+  coluna que não seja 0/1 (proporção ou sucessos sem o total: use `cbind`).
 
 ## Blocos novos
 
