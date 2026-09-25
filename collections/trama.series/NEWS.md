@@ -2,6 +2,22 @@
 
 ## Rigor metodológico (fase 3, revisão)
 
+- `series/mann_kendall`: nova `correcao = "bootstrap_blocos"` — o mesmo S,
+  p-valor por bootstrap de blocos móveis (Kundzewicz & Robson 2004,
+  doi:10.1623/hysj.49.1.7.53993; Künsch 1989): blocos de round(√n), 1999
+  reamostras, p = (1 + #{|S*| ≥ |S|})/(B + 1), semente do nó. Oráculo da
+  mecânica: o mesmo bootstrap escrito à mão com a mesma semente, igual
+  exatamente. Medido sem tendência, AR(1), 1000 réplicas por caso (erro de
+  Monte Carlo 0,7-0,9 ponto), rejeição a 5% (nenhuma → bootstrap): phi 0,3,
+  n = 60: 16,0% → 7,2%; n = 120: 13,6% → 5,5%; phi 0,6, n = 60: 31,0% →
+  9,0%; n = 120: 31,2% → 7,7%. Poder (tendência de 1,8 unidades ao longo da
+  série): 77% / 96% (phi 0,3, n = 60 / 120) e 43% / 66% (phi 0,6). Nível
+  nominal só com autocorrelação moderada e n ≈ 120; com phi = 0,6 reduz o
+  excesso sem zerá-lo — é opção, não padrão, e a ajuda diz isso. A regra de
+  bloco do `modifiedmk::bbsmk` (autocorrelações significativas seguidas + 1,
+  blocos de 3-4) rejeitou 17-19% com phi = 0,6 (300 réplicas) e não foi
+  adotada.
+
 - `series/intervencao`: novo parâmetro `resposta` — `imediata` (padrão, sem
   mudança) ou `gradual`, a função de transferência ω/(1 − δB) de Box & Tiao
   (1975) para degrau e pulso. δ pela verossimilhança perfilada, erro-padrão

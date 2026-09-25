@@ -677,8 +677,9 @@ tr_series_f_tendencia <- function(ajuste) {
 #' a conclusão — um bilateral que só dissesse "há tendência" jogaria fora o que
 #' o usuário foi perguntar.
 #' @export
-tr_series_mann_kendall <- function(serie, correcao = "nenhuma") {
-  correcao <- .tr_series_enum(correcao, c("nenhuma", "hamed_rao", "pre_branqueamento"), "correcao")
+tr_series_mann_kendall <- function(serie, correcao = "nenhuma", .seed = NULL) {
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "hamed_rao", "pre_branqueamento",
+                                          "bootstrap_blocos"), "correcao")
   .tr_series_sem_na(serie, "series/mann_kendall")
   # A Z é uma aproximação NORMAL da distribuição exata de S, e com meia dúzia de
   # pontos ela é ruim: o p-valor sairia com uma precisão que a amostra não
@@ -692,7 +693,7 @@ tr_series_mann_kendall <- function(serie, correcao = "nenhuma") {
   x <- as.numeric(serie)
   n <- length(x)
   r1 <- NA_real_
-  if (correcao != "nenhuma") {
+  if (correcao %in% c("hamed_rao", "pre_branqueamento")) {
     tt <- seq_len(n)
     beta <- .tr_series_sen(x)
     detr <- x - beta * tt
@@ -736,6 +737,11 @@ tr_series_mann_kendall <- function(serie, correcao = "nenhuma") {
   # A correção de continuidade (o -1 e o +1): S é discreto e a normal não é.
   Z <- if (S > 0) (S - 1) / sqrt(v) else if (S < 0) (S + 1) / sqrt(v) else 0
   p <- 2 * stats::pnorm(-abs(Z))
+  if (correcao == "bootstrap_blocos") {
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    bb <- .tr_series_boot_blocos(x, .tr_series_mk_s, seed = semente)
+    p <- bb$p
+  }
   grupos <- sum(empates > 1L)
   base <- sprintf("S = %d; %d %s de empates corrigidos", as.integer(S), grupos,
                   if (grupos == 1L) "grupo" else "grupos")
@@ -743,7 +749,9 @@ tr_series_mann_kendall <- function(serie, correcao = "nenhuma") {
     nenhuma = base,
     hamed_rao = sprintf("%s; variância × n/n* = %.3f (Hamed & Rao)", base, razao),
     pre_branqueamento = sprintf("%s; pré-branqueada sem a tendência de Sen, r1 = %.3f, n = %d",
-                                base, r1, n))
+                                base, r1, n),
+    bootstrap_blocos = sprintf("%s; p por bootstrap de blocos móveis (%d reamostras, blocos de %d, semente do nó)",
+                               base, bb$B, bb$l))
   .tr_series_teste(
     "Mann-Kendall", "a série não tem tendência monótona", Z, "Z",
     p_valor = p,
@@ -755,10 +763,43 @@ tr_series_mann_kendall <- function(serie, correcao = "nenhuma") {
     # esperado para um S grande.
     nota = nota,
     fonte = switch(correcao, nenhuma = "Mann (1945)", hamed_rao = "Hamed & Rao (1998)",
-                   pre_branqueamento = "Yue et al. (2002)"),
+                   pre_branqueamento = "Yue et al. (2002)",
+                   bootstrap_blocos = "Kundzewicz & Robson (2004)"),
     extra = switch(correcao, nenhuma = list(S = S),
                    hamed_rao = list(S = S, razao_n = razao),
-                   pre_branqueamento = list(S = S, r1 = r1)))
+                   pre_branqueamento = list(S = S, r1 = r1),
+                   bootstrap_blocos = list(S = S, bloco = bb$l)))
+}
+
+#' Bootstrap de blocos móveis de uma estatística de tendência ou de ruptura.
+#'
+#' Blocos de comprimento l = round(sqrt(n)), de inícios sorteados com reposição
+#' entre 1 e n - l + 1, emendados e cortados em n (Künsch 1989; Kundzewicz &
+#' Robson 2004 para os testes de tendência). A série é reamostrada como veio:
+#' sob H0 (sem tendência, sem ruptura) os blocos guardam a dependência de curto
+#' alcance e a ordem global some. p = (1 + #{|T*| >= |T|}) / (B + 1).
+#'
+#' O comprimento foi MEDIDO, não herdado: a regra do `modifiedmk::bbsmk`
+#' (autocorrelações significativas seguidas + 1) dá blocos de 3 a 4 e o
+#' Mann-Kendall rejeitou 17% a 19% a 5% com AR(1) phi = 0,6 (n = 60 e 120,
+#' 300 réplicas); com sqrt(n), 9% e 7%. Ver NEWS 0.3.0.
+#' @noRd
+.tr_series_boot_blocos <- function(x, estat, B = 1999L, seed = 1L) {
+  n <- length(x)
+  l <- max(1L, as.integer(round(sqrt(n))))
+  t0 <- estat(x)
+  tb <- .tr_series_com_semente(seed, vapply(seq_len(B), function(b) {
+    ini <- sample.int(n - l + 1L, ceiling(n / l), replace = TRUE)
+    estat(x[as.vector(outer(seq_len(l) - 1L, ini, "+"))[seq_len(n)]])
+  }, 0))
+  list(p = (1 + sum(abs(tb) >= abs(t0) - 1e-12)) / (B + 1), l = l, B = B, t0 = t0)
+}
+
+#' S de Mann-Kendall, vetorizado.
+#' @noRd
+.tr_series_mk_s <- function(x) {
+  d <- outer(x, x, "-")
+  -sum(sign(d[upper.tri(d)]))
 }
 
 #' Declividade de Sen: mediana das inclinações de todos os pares.

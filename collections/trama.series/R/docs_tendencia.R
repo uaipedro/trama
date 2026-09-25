@@ -25,8 +25,8 @@
       pressupostos = list(
         P("Com **Correção** `nenhuma`, sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva, comum em série ambiental, faz o teste rejeitar bem mais que o nível nominal.",
           verificar = c("series/acf", "series/ljung_box"),
-          se_falhar = "Troque a **Correção** para `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."),
-        P("Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009).",
+          se_falhar = "Troque a **Correção** para `bootstrap_blocos` (p por bootstrap de blocos móveis; o que mais se aproxima do nível), `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."),
+        P("Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 5,5% com phi = 0,3 e n = 120, mas 7,7% a 9,0% com phi = 0,6 (n = 120 e 60).",
           verificar = c("series/acf", "series/pacf"),
           se_falhar = "Com autocorrelação forte, modele o erro: `series/regression` com **Erro** = `arma` e o `series/f_tendencia`."),
         monotona, continua,
@@ -44,7 +44,14 @@
           titulo = "Enhancing the effectiveness of prewhitening in trend analysis of hydrologic data",
           fonte = "Journal of Hydrology, 368(1-4), 143-155", doi = "10.1016/j.jhydrol.2009.01.040",
           papel = "complementar"),
-        I("trama.series", "tr_series_mann_kendall", "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre."))),
+        R(autores = c("Kundzewicz, Z. W.", "Robson, A. J."), ano = 2004,
+          titulo = "Change detection in hydrological records—a review of the methodology",
+          fonte = "Hydrological Sciences Journal, 49(1), 7-19", doi = "10.1623/hysj.49.1.7.53993"),
+        R(autores = "Künsch, H. R.", ano = 1989,
+          titulo = "The jackknife and the bootstrap for general stationary observations",
+          fonte = "The Annals of Statistics, 17(3), 1217-1241", doi = "10.1214/aos/1176347265",
+          papel = "complementar"),
+        I("trama.series", "tr_series_mann_kendall", "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre. `bootstrap_blocos`: blocos móveis de round(√n), inícios sorteados com reposição, 1999 reamostras, p = (1 + #{|S*| ≥ |S|})/(B + 1), semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."))),
 
     "series/cox_stuart" = list(
       pressupostos = list(

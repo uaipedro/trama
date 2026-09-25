@@ -1901,7 +1901,8 @@ inteiro; `series/regression`, que produz o ajuste.
         category = "serie_tendencia", icon = icone("trending-up"),
         description = "Mann-Kendall: a série tem tendência?",
         inputs = list(serie = S), outputs = list(out = TE),
-        params = list(correcao = E("nenhuma", c("nenhuma", "hamed_rao", "pre_branqueamento"),
+        params = list(correcao = E("nenhuma", c("nenhuma", "hamed_rao", "pre_branqueamento",
+                                                 "bootstrap_blocos"),
                                    label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem TENDÊNCIA. É o teste de tendência mais usado em
@@ -1964,8 +1965,14 @@ rejeita bem acima dos 5% nominais. Duas correções publicadas:
   tendência: tira a tendência de Sen, remove o AR(1) do resto pelo r1, devolve
   a tendência e testa a série resultante (uma observação a menos; pede 11).
   A `nota` traz o r1.
+- **bootstrap_blocos** — o mesmo S, com o p-valor de um bootstrap de blocos
+  móveis (Kundzewicz & Robson, 2004): a série é cortada em blocos de
+  round(√n) observações seguidas, sorteados com reposição e emendados, 1999
+  vezes; o p é a fração das reamostras com |S*| ≥ |S|. Os blocos guardam a
+  dependência de curto alcance e desmancham a tendência. Usa a semente do nó:
+  o mesmo fluxo dá o mesmo p. A `nota` traz o tamanho do bloco.
 
-As duas seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
+As duas primeiras seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
 Nenhuma devolve o nível nominal. Medido em série SEM tendência, erro AR(1)
 forte (phi de seis décimos) e 60 observações (2000 réplicas), o teste a 5% rejeitou em 31%
 das vezes sem correção, 21% com `hamed_rao` e 39% com `pre_branqueamento`; em
@@ -1977,16 +1984,39 @@ tendência PIORA o nível, como Hamed (2009) já apontava — a tendência de Se
 estimada na série autocorrelacionada volta somada. Use-o para reproduzir um
 trabalho que o aplicou, não como remédio. Em raros casos (até 1% das réplicas
 acima) a soma do Hamed-Rao sai negativa e o bloco recusa em vez de devolver
-NaN. Com autocorrelação forte, prefira modelar o erro (`series/regression` com
-**Erro** = `arma` e o `series/f_tendencia`).
+NaN.
+
+O `bootstrap_blocos` é a correção que mais se aproxima do nível, e ainda
+assim não o alcança com autocorrelação forte. Medido em série SEM tendência,
+AR(1), 1000 réplicas por caso (erro de Monte Carlo de 0,7 a 0,9 ponto),
+rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     16.0%        7.2%
+0.3   120    13.6%        5.5%
+0.6   60     31.0%        9.0%
+0.6   120    31.2%        7.7%
+```
+
+Com autocorrelação moderada e série de uns cem pontos ele devolve o nível;
+com phi de seis décimos, reduz o excesso de 31% para 8% a 9%, sem zerá-lo. O
+preço é poder: com uma tendência de 1,8 desvio do ruído ao longo da série, ele
+detecta em 77% (phi 0,3, n = 60), 96% (phi 0,3, n = 120), 43% (phi 0,6, n =
+60) e 66% (phi 0,6, n = 120) das vezes — menos que o teste sem correção, cujo
+poder aparente vem em parte do nível inflado. A regra de bloco do
+`modifiedmk::bbsmk` (autocorrelações significativas seguidas, mais um) dá
+blocos de 3 a 4 e rejeitou 17% a 19% com phi 0,6 (300 réplicas); por isso o
+bloco aqui é √n. Com autocorrelação forte, prefira modelar o erro
+(`series/regression` com **Erro** = `arma` e o `series/f_tendencia`).
 
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao` ou
-  `pre_branqueamento`.
+- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao`,
+  `pre_branqueamento` ou `bootstrap_blocos`.
 
 Uma entrada: **serie**.
 ]---", r"---[
