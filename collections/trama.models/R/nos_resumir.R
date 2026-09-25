@@ -279,7 +279,10 @@ tr_flow(reg) |>
 os termos; `models/lmer`.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("models/compare", role = "avaliacao", fn = tr_models_compare, label = "Comparar modelos",
+    trama::tr_node("models/compare", 
+      pressupostos = .tr_models_doc("models/compare")$pressupostos,
+      referencias = .tr_models_doc("models/compare")$referencias,
+      role = "avaliacao", fn = tr_models_compare, label = "Comparar modelos",
       category = "modelo_resumir", icon = trama::tr_icon("git-compare"),
       description = "Dois modelos aninhados: os termos a mais melhoram o ajuste? (F ou razão de verossimilhança)",
       inputs = list(modelo = Fm, outro = Fm), outputs = list(out = TE),
@@ -313,7 +316,10 @@ tr_flow(reg) |>
 um misto; `models/anova_table` para os termos um a um.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/random_test", role = "avaliacao", fn = tr_models_random_test, label = "Teste dos aleatórios",
+    trama::tr_node("models/random_test", 
+      pressupostos = .tr_models_doc("models/random_test")$pressupostos,
+      referencias = .tr_models_doc("models/random_test")$referencias,
+      role = "avaliacao", fn = tr_models_random_test, label = "Teste dos aleatórios",
       category = "modelo_resumir", icon = trama::tr_icon("shuffle"),
       description = "Razão de verossimilhança para cada termo aleatório de um modelo misto.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
@@ -321,10 +327,6 @@ um misto; `models/anova_table` para os termos um a um.
 Tira cada termo aleatório do misto, um de cada vez, e testa por razão de
 verossimilhança se o ajuste piora (`lmerTest::ranova`). Uma inclinação aleatória
 `(Days | Subject)` é reduzida a `(1 | Subject)`; um intercepto `(1 | bloco)` sai.
-
-A hipótese nula põe a variância na FRONTEIRA (zero), onde a distribuição
-qui-quadrado não vale exatamente: o p-valor é conservador — maior do que
-deveria. Um termo que sai significativo aqui é seguro.
 ]---", r"---[
 Nenhum.
 ]---", r"---[

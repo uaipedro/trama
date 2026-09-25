@@ -49,7 +49,7 @@
 #' @noRd
 .tr_models_doc <- function(id) {
   todos <- c(.tr_models_docs_testes(), .tr_models_docs_anova(),
-             .tr_models_docs_medias())
+             .tr_models_docs_medias(), .tr_models_docs_modelos())
   d <- todos[[id]]
   list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
 }

@@ -70,7 +70,10 @@ quantas (`n = 38 (2 fora)`). As outras colunas da tabela não contam.
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; T <- "data/table"
   list(
-    trama::tr_node("models/lm", fn = tr_models_lm, label = "Regressão linear",
+    trama::tr_node("models/lm", 
+      pressupostos = .tr_models_doc("models/lm")$pressupostos,
+      referencias = .tr_models_doc("models/lm")$referencias,
+      fn = tr_models_lm, label = "Regressão linear",
       category = "modelo_ajustar", icon = trama::tr_icon("chart-scatter"),
       description = "Ajusta um modelo linear (lm) pelas colunas ou por uma fórmula digitada.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -118,7 +121,10 @@ tr_flow(reg) |>
 contínua.
 ]---")),
 
-    trama::tr_node("models/glm", fn = tr_models_glm, label = "Modelo linear generalizado",
+    trama::tr_node("models/glm", 
+      pressupostos = .tr_models_doc("models/glm")$pressupostos,
+      referencias = .tr_models_doc("models/glm")$referencias,
+      fn = tr_models_glm, label = "Modelo linear generalizado",
       category = "modelo_ajustar", icon = trama::tr_icon("chart-spline"),
       description = "Ajusta um GLM (binomial, Poisson, gama...) pelas colunas ou por uma fórmula.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -147,8 +153,7 @@ preenchida, vence.
 
 Numa Poisson a variância é igual à média. Quando o desvio residual é muito
 maior que os graus de liberdade do resíduo, a variância é maior, os erros
-padrão ficam pequenos demais e os p-valores, otimistas. A saída é a
-`quasipoisson`.
+padrão ficam pequenos demais e os p-valores, otimistas.
 ]---", .tr_models_ajuda_faltantes()), r"---[
 - **Resposta**, **Preditores**, **Fórmula** — como no `models/lm`.
 - **Família** — a distribuição da resposta (tabela acima).
@@ -166,7 +171,10 @@ tr_flow(reg) |>
 escala da resposta.
 ]---")),
 
-    trama::tr_node("models/lmer", fn = tr_models_lmer, label = "Modelo misto",
+    trama::tr_node("models/lmer", 
+      pressupostos = .tr_models_doc("models/lmer")$pressupostos,
+      referencias = .tr_models_doc("models/lmer")$referencias,
+      fn = tr_models_lmer, label = "Modelo misto",
       category = "modelo_ajustar", icon = trama::tr_icon("layers"),
       description = "Ajusta um modelo linear misto (lme4), com p-valores por Satterthwaite (lmerTest).",
       inputs = list(dados = T), outputs = list(out = Fm),

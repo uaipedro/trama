@@ -12,12 +12,6 @@ ml/roc
 ml/svm
 ml/tune
 ml/xgboost
-models/compare
-models/glm
-models/lm
-models/lmer
-models/random_test
-models/rls
 multi/box_m
 multi/confusion
 multi/discriminant
