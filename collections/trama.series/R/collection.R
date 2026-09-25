@@ -715,7 +715,9 @@ com a covariância do GLS (a `nota` do teste diz). Medido sem tendência nenhuma
 com erro AR(1) de phi = 0.6 (n = 120, 300 réplicas), o F de tendência rejeita a
 5% em 37% das vezes por MQO e em 8% pelo GLS; com phi = 0.9 são 69% e 17% — perto
 da raiz unitária o GLS melhora muito, mas ainda passa do nominal, e o caminho é
-diferenciar a série. O R² e o F do `summary` do MQO não existem no GLS: o card
+diferenciar a série; quando o AR estimado tem raiz inversa de 0.9 ou mais, o
+bloco avisa e a `nota` dos F diz. Série que o modelo reproduz sem resíduo é
+recusada (não há erro a modelar). O R² e o F do `summary` do MQO não existem no GLS: o card
 mostra o resumo do `gls`.
 
 ### Limites

@@ -146,21 +146,39 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   # Os rótulos dos termos vão junto com a matriz: é por `assign` que o F de
   # Wald acha as colunas de um bloco quando o ajuste é GLS.
   attr(X, "rotulos") <- attr(stats::terms(fit), "term.labels")
+  aviso <- NULL
   if (erro == "arma" && !anyNA(stats::coef(fit))) {
     # Mínimos quadrados generalizados com erro ARMA(p, q) (Morettin & Toloi
     # 2006; Pinheiro & Bates 2000), por máxima verossimilhança — e não REML —
     # para que o ajuste seja a MESMA função que o `stats::arima(xreg = )`
     # maximiza, que é o oráculo dos testes. O `lm` acima fica só como checagem
     # de posto; os F passam a ser de Wald sobre o `vcov` do GLS.
+    # Sem resíduo não há erro a modelar: a série que o polinômio e as dummies
+    # reproduzem exatamente deixa o GLS singular, e isso não é "não convergiu".
+    rss <- sum(stats::residuals(fit)^2)
+    if (rss <= 1e-12 * max(1, sum((dados$y - mean(dados$y))^2))) {
+      .tr_series_abort("tr_series_error_singular_fit",
+                       paste0("'series/regression': o modelo reproduz a série exatamente (resíduo ",
+                              "nulo), e sem resíduo não há erro ARMA a estimar. Use erro = ",
+                              "'independente', ou baixe o grau / desligue a sazonalidade."))
+    }
     fit <- tryCatch(
       nlme::gls(y ~ ., data = dados, method = "ML",
                 correlation = nlme::corARMA(p = ar, q = ma, form = ~ 1)),
       error = function(e) {
+        if (grepl("singular", conditionMessage(e), fixed = TRUE)) {
+          .tr_series_abort("tr_series_error_singular_fit",
+                           paste0("'series/regression': o ajuste com erro ARMA(%d, %d) ficou ",
+                                  "singular (%s) — resíduo quase nulo ou termos colineares. ",
+                                  "Baixe o grau, desligue a sazonalidade ou use erro = 'independente'."),
+                           ar, ma, conditionMessage(e))
+        }
         .tr_series_abort("tr_series_error_fit",
                          paste0("O ajuste com erro ARMA(%d, %d) não convergiu (%s). Baixe a ",
                                 "ordem do erro, ou use erro = 'independente'."),
                          ar, ma, conditionMessage(e))
       })
+    aviso <- .tr_series_aviso_raiz(fit, ar)
   }
   if (anyNA(stats::coef(fit))) {
     .tr_series_abort("tr_series_error_fit",
@@ -189,9 +207,28 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   structure(list(ajuste = fit, serie = serie, grau = grau,
                  sazonalidade = isTRUE(sazonalidade), contraste = contraste,
                  erro = erro, ordem = if (erro == "arma") c(ar = ar, ma = ma) else NULL,
+                 aviso = aviso,
                  matriz = X,
                  tendencia = como_ts(as.numeric(stats::fitted(fit)) - saz),
                  sazonal = como_ts(saz),
                  resto = como_ts(as.numeric(stats::residuals(fit)))),
             class = "tr_series_reg")
+}
+
+#' Aviso de AR perto da raiz unitária no erro do GLS.
+#'
+#' Maior módulo das raízes inversas do polinômio AR >= 0,9: medido (fase 1),
+#' com phi = 0,9 o F de tendência por GLS ainda rejeita 17% a 5% sob H0. O
+#' aviso sai como condição com classe (console) e fica no ajuste, de onde os
+#' três F o levam para a `nota`.
+#' @noRd
+.tr_series_aviso_raiz <- function(fit, ar) {
+  if (ar < 1L) return(NULL)
+  phi <- stats::coef(fit$modelStruct$corStruct, unconstrained = FALSE)[seq_len(ar)]
+  m <- max(1 / Mod(polyroot(c(1, -phi))))
+  if (m < 0.9) return(NULL)
+  msg <- sprintf(paste0("erro AR perto da raiz unitária (maior raiz inversa %.3f): o GLS não ",
+                        "segura o nível dos F; considere diferenciar a série"), m)
+  rlang::warn(paste0("'series/regression': ", msg), class = "tr_series_warn_near_unit_root")
+  msg
 }

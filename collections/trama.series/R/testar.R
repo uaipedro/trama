@@ -565,8 +565,9 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
     sentido = "menor",
     conclusao_sim = sim,
     conclusao_nao = nao,
-    nota = sprintf("%s com erro ARMA(%d, %d) por GLS, %d %s no numerador e %d no denominador",
-                   tipo, o[["ar"]], o[["ma"]], q, if (q == 1L) "grau" else "graus", gl2),
+    nota = paste0(sprintf("%s com erro ARMA(%d, %d) por GLS, %d %s no numerador e %d no denominador",
+                          tipo, o[["ar"]], o[["ma"]], q, if (q == 1L) "grau" else "graus", gl2),
+                  if (!is.null(ajuste$aviso)) paste0("; ", ajuste$aviso) else ""),
     fonte = "Morettin & Toloi (2006)")
 }
 

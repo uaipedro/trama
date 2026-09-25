@@ -32,6 +32,8 @@ tr_series_errors <- function() {
     tr_series_error_bad_frequency = "a nova frequência não divide a frequência da série",
     tr_series_error_bad_ets = "código de modelo ETS inválido",
     tr_series_error_fit = "o ajuste do modelo falhou",
+    tr_series_error_singular_fit =
+      "o modelo reproduz a série sem resíduo (ou é singular): não há erro ARMA a estimar",
     tr_series_error_no_overlap = "a série real não cobre nenhum período da previsão",
     tr_series_error_not_a_series =
       "o nó produziu um objeto que não é série univariada, e o tipo series/ts recusa guardá-lo",

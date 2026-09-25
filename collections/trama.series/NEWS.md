@@ -24,6 +24,13 @@
   réplicas), com n = 12 o teste rejeita a 5% em 7,0% (constante) e 10,2%
   (tendência); com n = 25, 5,9% e 4,9%.
 
+- `series/regression` com `erro = "arma"`: série que o modelo reproduz sem
+  resíduo (ou GLS singular) é recusada com `tr_series_error_singular_fit` e
+  mensagem própria, em vez de "não convergiu"; AR do erro com raiz inversa
+  ≥ 0,9 emite `tr_series_warn_near_unit_root` e o aviso vai para a `nota` dos
+  três F (medido na fase 1: com phi = 0,9 o F de tendência por GLS ainda
+  rejeita 17% sob H0).
+
 ## Rigor metodológico (fase 1)
 
 - `series/fisher` (versão 2): convenções de Fisher (1929). O g passa a usar só
