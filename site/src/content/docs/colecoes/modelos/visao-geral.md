@@ -60,7 +60,7 @@ tr_flow(reg) |>
 
 ### Médias
 
-- [Médias ajustadas](/trama/colecoes/modelos/emmeans/), [Comparações de médias](/trama/colecoes/modelos/pairwise/), [Contrastes (F)](/trama/colecoes/modelos/linear-hypothesis/), [Duncan](/trama/colecoes/modelos/duncan/), [Waller-Duncan](/trama/colecoes/modelos/waller-duncan/) e [Gráfico de médias](/trama/colecoes/modelos/plot-means/).
+- [Médias ajustadas](/trama/colecoes/modelos/emmeans/), [Comparações de médias](/trama/colecoes/modelos/pairwise/), [Contrastes (F)](/trama/colecoes/modelos/linear-hypothesis/), [Duncan](/trama/colecoes/modelos/duncan/), [Waller-Duncan](/trama/colecoes/modelos/waller-duncan/), [Scott-Knott](/trama/colecoes/modelos/scott-knott/) e [Gráfico de médias](/trama/colecoes/modelos/plot-means/).
 
 ### Pressupostos
 

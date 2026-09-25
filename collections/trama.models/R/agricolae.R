@@ -26,7 +26,7 @@
 #' @noRd
 .tr_models_agricolae_base <- function(modelo, tratamento, no) {
   .tr_models_exigir(modelo, c("lm", "split"), no,
-                    "Duncan e Waller-Duncan pedem o erro de uma ANOVA; para GLM e misto, use 'models/emmeans'.")
+                    "Os testes de agrupamento (Duncan, Waller-Duncan, Scott-Knott) pedem o erro de uma ANOVA; para GLM e misto, use 'models/emmeans'.")
   trat <- .tr_models_cols(modelo$dados, tratamento, "tratamento", minimo = 1L, maximo = 3L)
   for (v in trat) {
     if (!is.factor(modelo$dados[[v]])) {
@@ -118,4 +118,80 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
   .tr_models_agricolae_emm(res, b, modelo, 0.05, "waller-duncan",
                            sprintf("letras: Waller-Duncan, K = %s; diferença crítica %s",
                                    formatC(k, format = "fg"), .tr_models_fmt(crit, 4L)))
+}
+
+# ---- Scott-Knott -------------------------------------------------------------
+#
+# Implementado aqui, e não pelo pacote `ScottKnott` (leve: emmeans + xtable):
+# o algoritmo cabe em trinta linhas, e o que pesa é escolher o erro — que já
+# está em `.tr_models_agricolae_base` (parcela subdividida com erro (a) ou (b),
+# combinações de fatores). Pelo pacote, a subdividida iria por outro caminho, e
+# as médias seriam as do `emmeans` num e as da tabela nos vizinhos. Os testes
+# conferem os grupos contra os do pacote nos exemplos documentados dele.
+
+#' Partição recursiva de Scott & Knott (1974).
+#'
+#' Ordena as médias; entre os k − 1 cortes possíveis escolhe o que maximiza a
+#' soma de quadrados entre os dois grupos (B0). A razão
+#' lambda = pi / (2 (pi − 2)) · B0 / sigma0², com
+#' sigma0² = [soma (y − ybar)² + v · s²] / (k + v) e s² = QM / r, segue
+#' qui-quadrado com k / (pi − 2) gl sob H0. Se rejeita, cada metade é partida de
+#' novo; se não, as médias formam um grupo. Os grupos NÃO se sobrepõem — é o
+#' que o distingue de Tukey e Duncan, e o que o tornou padrão nas revistas de
+#' agrárias quando há muitos tratamentos.
+#' @return vetor inteiro de grupo (1 = o das maiores médias), na ordem de `medias`.
+#' @noRd
+.tr_models_sk_grupos <- function(medias, qm, gl, r, alfa) {
+  ord <- order(medias, decreasing = TRUE)
+  y <- medias[ord]
+  s2 <- qm / r
+  grupo <- integer(length(y))
+  proximo <- 0L
+  partir <- function(i) {
+    k <- length(i)
+    if (k > 1L) {
+      yi <- y[i]
+      b0 <- vapply(seq_len(k - 1L), function(c) {
+        a <- yi[seq_len(c)]; b <- yi[-seq_len(c)]
+        sum(a)^2 / length(a) + sum(b)^2 / length(b) - sum(yi)^2 / k
+      }, 0)
+      corte <- which.max(b0)
+      sigma0 <- (sum((yi - mean(yi))^2) + gl * s2) / (k + gl)
+      lambda <- pi / (2 * (pi - 2)) * b0[[corte]] / sigma0
+      if (lambda > stats::qchisq(1 - alfa, k / (pi - 2))) {
+        partir(i[seq_len(corte)]); partir(i[-seq_len(corte)])
+        return(invisible())
+      }
+    }
+    # Recursão da esquerda para a direita: os grupos nascem já em ordem
+    # decrescente de média, e o número do grupo vira a letra direto.
+    proximo <<- proximo + 1L
+    grupo[i] <<- proximo
+  }
+  partir(seq_along(y))
+  grupo[order(ord)]
+}
+
+#' Teste de Scott-Knott.
+#' @inheritParams tr_models_duncan
+#' @return objeto `tr_models_emm`.
+#' @export
+tr_models_scott_knott <- function(modelo, tratamento = "", confianca = 0.95) {
+  .tr_models_fit_conferir(modelo)
+  no <- "models/scott_knott"
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
+  alfa <- 1 - confianca
+  b <- .tr_models_agricolae_base(modelo, tratamento, no)
+  trt <- droplevels(factor(b$trt))
+  medias <- tapply(b$y, trt, mean, na.rm = TRUE)
+  n <- tapply(!is.na(b$y), trt, sum)
+  # Desbalanceado: o erro padrão da média no sigma0 usa a média harmônica das
+  # repetições, como o pacote `ScottKnott`; a nota da base já avisa.
+  g <- .tr_models_sk_grupos(as.vector(medias), b$qm, b$gl, length(n) / sum(1 / n), alfa)
+  alfabeto <- c(letters, LETTERS)
+  res <- list(means = data.frame(media = as.vector(medias), r = as.vector(n), row.names = names(medias)),
+              groups = data.frame(groups = alfabeto[g], row.names = names(medias)))
+  .tr_models_agricolae_emm(res, b, modelo, alfa, "scott-knott",
+                           sprintf("grupos: Scott-Knott a %s%% (sem sobreposição)",
+                                   formatC(100 * alfa, format = "fg", decimal.mark = ",")))
 }

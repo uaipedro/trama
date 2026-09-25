@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- models_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_models(reg)
-  expect_length(nos, 44L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance
+  expect_length(nos, 45L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)

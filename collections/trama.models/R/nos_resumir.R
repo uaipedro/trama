@@ -623,6 +623,44 @@ tr_flow(reg) |>
 `models/duncan`; `models/emmeans`; `models/anova_table` para o F que o teste usa.
 ]---")),
 
+    trama::tr_node("models/scott_knott", fn = tr_models_scott_knott, label = "Scott-Knott",
+      category = "modelo_medias", icon = trama::tr_icon("chart-column"),
+      description = "Teste de Scott-Knott: agrupa as médias em grupos sem sobreposição.",
+      inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
+      params = list(
+        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
+        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+      help = .tr_models_ajuda(r"---[
+O teste de Scott & Knott (1974) parte as médias ordenadas em grupos por
+divisões sucessivas: entre todos os cortes possíveis, escolhe o que deixa a
+maior soma de quadrados entre os dois lados e testa, por uma razão com
+distribuição qui-quadrado, se o corte é real. Se for, cada lado é partido de
+novo; se não, as médias daquele lado formam um grupo.
+
+A diferença para Tukey e Duncan é que os grupos **não se sobrepõem**: cada
+média tem UMA letra, nunca "ab". Com muitos tratamentos (cultivares, linhagens,
+clones) é o que deixa a tabela legível, e por isso é o teste de agrupamento mais
+usado nas revistas brasileiras de ciências agrárias.
+
+Usa o QM e os gl do resíduo do modelo; na parcela subdividida, o erro (a) para
+o fator da parcela e o (b) para o da subparcela, como no `models/duncan`. As
+médias são as da tabela: no desbalanceado, a nota avisa.
+]---", r"---[
+- **Tratamento** — o fator (ou até 3, separados por vírgula).
+- **Confiança** — padrão 0,95: os cortes são testados a alfa = 1 − confiança (5%).
+]---", r"---[
+Médias com letras (`models/emm`): o card é o gráfico com as letras, e a tabela
+sai pelo adaptador, como no `models/emmeans`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho") |>
+  tr_add("sk", "models/scott_knott", tratamento = "hibrido", from = "dbc")
+]---", r"---[
+`models/duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
+]---")),
+
     trama::tr_node("models/plot_means", fn = tr_models_plot_means, label = "Gráfico de médias",
       category = "modelo_medias", icon = trama::tr_icon("chart-no-axes-column"),
       description = "Médias ajustadas com intervalo de confiança e as letras de comparação.",

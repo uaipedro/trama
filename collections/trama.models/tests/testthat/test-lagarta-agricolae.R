@@ -68,3 +68,44 @@ test_that("na parcela subdividida cada fator usa o seu erro", {
                class = "tr_models_error_not_applicable")
   expect_error(tr_models_duncan(milho_dbc(), "variedade"), class = "tr_models_error_unknown_column")
 })
+
+# Grupos de referência tirados do pacote `ScottKnott` 1.4-0 (`SK()` com
+# `sig.level = 0.05`), fixos aqui para o teste não depender dele. CRD1 e RCBD
+# são os exemplos documentados do pacote (`?SK`), com os dados copiados.
+test_that("Scott-Knott: mesmos grupos do pacote ScottKnott (DIC e DBC)", {
+  crd1 <- data.frame(x = factor(rep(c("tr-1", "tr-2", "tr-3", "tr-4"), each = 6)),
+                     y = c(58.81, 50.78, 49.32, 55.61, 49.47, 48.11, 61.98, 55.64, 65.13, 59.82, 54.67, 61.67,
+                           59.52, 47.1, 44.19, 49.73, 62.81, 61.31, 45.74, 31.14, 32.84, 48.03, 39.38, 44.02))
+  s <- tr_models_scott_knott(tr_models_anova_dic(crd1, "y", "x"), "x")
+  expect_equal(s$tabela$grupo, c("a", "a", "a", "b"))
+  rcbd <- data.frame(tra = factor(rep(LETTERS[1:5], each = 4)), blk = factor(rep(1:4, 5)),
+                     y = c(143.17, 146.56, 143.51, 138.49, 138.75, 137.88, 146.42, 131.25, 139.86, 132.88,
+                           136.74, 144.78, 151.4, 135.93, 137.16, 137.09, 154.3, 166.33, 152.49, 148.36))
+  s <- tr_models_scott_knott(tr_models_anova_dbc(rcbd, "y", "tra", "blk"), "tra")
+  expect_equal(s$tabela$grupo, c("b", "b", "b", "b", "a"))
+  # Três grupos num DBC, e o DIC do InsectSprays.
+  s <- tr_models_scott_knott(milho_dbc(), "hibrido")
+  expect_equal(s$tabela$grupo, c("c", "c", "a", "c", "b"))
+  expect_null(s$grade)
+  expect_match(s$nota, "Scott-Knott a 5%", fixed = TRUE)
+  expect_equal(s$tabela$gl, rep(12, 5))
+  d <- tr_models_scott_knott(tr_models_anova_dic(ex("InsectSprays"), "count", "spray"), "spray")
+  expect_equal(d$tabela$grupo, c("a", "a", "b", "b", "b", "a"))
+  expect_s3_class(tr_models_plot_means(s), "ggplot")
+})
+
+test_that("Scott-Knott: a confiança muda o corte; erro certo na subdividida; recusas", {
+  # O alfa sai da confiança: a 99,9% nenhum corte do milho passa, e as cinco
+  # médias ficam num grupo só.
+  g999 <- tr_models_scott_knott(milho_dbc(), "hibrido", confianca = 0.999)
+  expect_equal(unique(g999$tabela$grupo), "a")
+  expect_match(g999$nota, "0,1%", fixed = TRUE)
+  # Com as médias bem separadas, cada uma vira o seu grupo.
+  expect_equal(.tr_models_sk_grupos(c(1, 50, 100), 1, 20, 4, 0.05), c(3L, 2L, 1L))
+  expect_equal(.tr_models_sk_grupos(c(10, 10.01, 10.02), 1, 20, 4, 0.05), c(1L, 1L, 1L))
+  sp <- tr_models_anova_split_plot(ex("aveia"), "producao", "variedade", "nitrogenio", "bloco")
+  q <- tr_models_anova_table(sp)$tabela
+  expect_equal(unique(tr_models_scott_knott(sp, "nitrogenio")$tabela$gl), q$gl[q$termo == "Resíduo (b)"])
+  expect_error(tr_models_scott_knott(tr_models_glm(ex("InsectSprays"), "count", "spray"), "spray"),
+               class = "tr_models_error_not_applicable")
+})

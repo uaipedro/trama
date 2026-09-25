@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/duncan
 category: medias
-related: [models/emmeans, models/linear_hypothesis]
+related: [models/emmeans, models/linear_hypothesis, models/scott_knott]
 ---
 
 ## O que o bloco faz
