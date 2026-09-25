@@ -13,3 +13,7 @@ Nenhuma pendência: todas as referências usadas foram conferidas em 2026-09-25 
 ## trama.ml
 
 - Friedman (2001), "Greedy function approximation: A gradient boosting machine", *The Annals of Statistics*, 29(5), doi:10.1214/aos/1013203451 — DOI conferido no Crossref, mas as páginas não vêm no registro nem no OpenAlex e a página da editora não abriu; ficou fora do `ml/xgboost` (que cita Chen & Guestrin 2016 e ESL).
+
+## trama.multi
+
+Nenhuma pendência: todas as referências usadas foram conferidas em 2026-09-25 (DOIs no Crossref, com autor, ano, título, periódico, volume(número) e páginas; Efron & Stein 1981, p. 586-596, no Project Euclid; Johnson & Wichern 2007, 6. ed., Pearson Prentice Hall, ISBN 9780131877153; Mingoti 2005, Editora UFMG, ISBN 9788570414519; Ferreira 2018, 3. ed., Editora UFLA, ISBN 9788581270630 — no catálogo da livraria da Editora UFLA). Hair et al. (*Análise multivariada de dados*) ficou fora: a edição de referência varia entre as bibliografias e não houve conferência de uma edição específica. O resumo de Tukey (1958) sobre o jackknife não foi usado: o DOI resolve para o bloco de resumos do volume, não para um artigo; os blocos citam Quenouille (1956) e Efron & Stein (1981).
