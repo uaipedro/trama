@@ -6,10 +6,10 @@ ml_registry <- function() {
   r
 }
 
-test_that("catálogo registra os 18 blocos e contratos consistentes", {
+test_that("catálogo registra os 19 blocos e contratos consistentes", {
   reg <- ml_registry()
   nodes <- trama_collection()$nodes
-  expect_length(nodes, 18L)
+  expect_length(nodes, 19L)
   for (n in nodes) {
     for (sec in c("Descrição", "Parâmetros", "Valor", "Exemplos", "Veja também"))
       expect_match(n$help, paste0("## ", sec), fixed = TRUE, info = n$id)

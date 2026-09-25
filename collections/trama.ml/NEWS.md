@@ -47,3 +47,10 @@
   preditores. Validação: contabilidade exata dos folds (20 dias em 5 blocos de
   4; cada linha valida uma vez por grupo), nenhum grupo/instante futuro no
   treino, datas e números dão o mesmo corte.
+- Novo bloco `ml/nested_cv`: validação cruzada aninhada (Varma & Simon
+  2006). Cada fold externo roda o `ml/tune` completo só no seu treino e mede o
+  vencedor na validação externa; saída com a métrica interna (otimista) e a
+  externa por fold, e a média. Validação: fold externo refeito à mão (mesmos
+  folds e semente) e, em ruído puro (12 réplicas semeadas, n = 40, SVM, 10
+  tentativas), aninhada 0,519 de acurácia (acaso 0,5; tolerância 0,06) contra
+  0,604 da média do vencedor não aninhada.

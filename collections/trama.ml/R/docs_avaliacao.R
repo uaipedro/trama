@@ -24,7 +24,7 @@
           se_falhar = "Escolha `estrategia = \"grupo\"` com `grupo`, ou `\"temporal\"` com `ordem`, e use a mesma estratégia no `ml/split`."),
         P("A **média dos folds do vencedor é otimista**: foi a melhor entre muitas tentativas, e parte da vantagem é sorte. Ela serve para escolher, não para reportar o desempenho.",
           verificar = "ml/tuning_plot",
-          se_falhar = "Reporte o desempenho medido no teste com `ml/predict` e `ml/evaluate`. Validação cruzada aninhada ainda sem bloco no trama."),
+          se_falhar = "Reporte o desempenho medido no teste com `ml/predict` e `ml/evaluate`. Sem teste separado (n pequeno), use o `ml/nested_cv`, que estima o procedimento inteiro sem reaproveitar as linhas da escolha."),
         P("A **métrica** escolhida é a que importa no problema; `auto` usa RMSE (regressão) e macro F1 (classificação).",
           verificar = "data/group_summarise",
           se_falhar = "Com classes desequilibradas, prefira `balanced_accuracy` ou `macro_f1` a `accuracy`."),
@@ -44,6 +44,28 @@
           titulo = "Bias in error estimation when using cross-validation for model selection",
           fonte = "BMC Bioinformatics, 7, 91", doi = "10.1186/1471-2105-7-91", papel = "complementar"),
         I("trama.ml", "tr_ml_tune", "Implementação própria: busca aleatória (log-uniforme para `cost`, `gamma` e `eta`) avaliada nos mesmos k folds (aleatórios estratificados, por grupo ou de origem móvel no tempo); o vencedor, pela média, é reajustado com `tr_ml_fit` em todas as linhas."))),
+
+    "ml/nested_cv" = list(
+      pressupostos = list(
+        P("A estimativa é do **procedimento de ajuste inteiro** (busca + reajuste), não de um modelo final específico: cada fold externo escolhe hiperparâmetros próprios, e o vencedor pode mudar de fold para fold.",
+          se_falhar = "Para o modelo a usar, rode o `ml/tune` em todas as linhas; reporte a média `externa` do `ml/nested_cv` como o desempenho esperado desse procedimento."),
+        P("Só a coluna **`externa`** é honesta: mede linhas que a busca nunca viu. A `interna` é a média dos folds do vencedor dentro da busca e sai otimista (Varma & Simon 2006); a diferença entre elas mostra o otimismo da seleção.",
+          se_falhar = "Não reporte a `interna`; se ela ficar muito acima da `externa`, a busca está escolhendo ruído — reduza o espaço ou as tentativas."),
+        P("Os folds externos e internos seguem a mesma **estratégia** (`aleatoria`, `grupo` ou `temporal`) e supõem a mesma estrutura de dependência do `ml/tune`.",
+          se_falhar = "Com tempo ou grupos, escolha `estrategia = \"temporal\"` (com `ordem`) ou `\"grupo\"` (com `grupo`)."),
+        P("Com poucas linhas, cada busca interna vê só uma parte do treino: a estimativa externa é **pessimista e variável** (poucas linhas por fold), e o custo é folds externos × tentativas × folds internos ajustes.",
+          se_falhar = "Leia a variação entre folds; aumente `folds_externos` só se houver linhas para isso."),
+        C$semente),
+      referencias = list(
+        R(autores = c("Varma, S.", "Simon, R."), ano = 2006,
+          titulo = "Bias in error estimation when using cross-validation for model selection",
+          fonte = "BMC Bioinformatics, 7, 91", doi = "10.1186/1471-2105-7-91"),
+        R(autores = c("Cawley, G. C.", "Talbot, N. L. C."), ano = 2010,
+          titulo = "On over-fitting in model selection and subsequent selection bias in performance evaluation",
+          fonte = "Journal of Machine Learning Research, 11, 2079-2107",
+          url = "https://www.jmlr.org/papers/v11/cawley10a.html", papel = "complementar"),
+        L$islr, L$kuhn,
+        I("trama.ml", "tr_ml_nested_cv", "Implementação própria: folds externos formados como no `ml/tune`; em cada um, `tr_ml_tune` completo só no treino externo e a métrica do vencedor na validação externa."))),
 
     "ml/split" = list(
       pressupostos = list(

@@ -191,3 +191,58 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   })
   structure(resultado, class = "tr_ml_tuning")
 }
+
+#' Validação cruzada aninhada
+#'
+#' Estima o desempenho de todo o procedimento de ajuste — busca de
+#' hiperparâmetros incluída — sem reaproveitar as linhas que escolheram o
+#' vencedor (Varma & Simon 2006). Cada fold externo roda um [tr_ml_tune()]
+#' completo só no seu treino e mede o vencedor na sua validação, que a busca
+#' nunca viu.
+#' @inheritParams tr_ml_tune
+#' @param folds_externos Partições externas, a partir de dois.
+#' @param folds Partições internas de cada busca.
+#' @return Tibble com uma linha por fold externo (`fold`, `n_treino`,
+#'   `n_validacao`, `tentativa`, `interna` = média dos folds internos do
+#'   vencedor, otimista; `externa` = métrica na validação externa) e uma linha
+#'   final `fold = "media"` com as médias; a estimativa honesta é `externa`.
+#' @examples
+#' d <- tr_ml_example("iris_binaria")
+#' tr_ml_nested_cv(d, alvo = "Species", tentativas = 3, folds_externos = 3, folds = 3)
+#' @export
+tr_ml_nested_cv <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
+                            metrica = "auto", tentativas = 10L, folds_externos = 5L,
+                            folds = 3L, amplitude = "conservadora", estrategia = "aleatoria",
+                            ordem = "", grupo = "", seed = 42L) {
+  modelo <- .tr_ml_enum(modelo, c("cart", "figs", "forest", "svm", "xgboost"), "modelo")
+  folds_externos <- .tr_ml_int(folds_externos, "folds_externos", 2L)
+  seed <- .tr_ml_int(seed, "seed", 0L)
+  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
+  cols <- .tr_ml_cols_sem_aux(dados, alvo, cols, ordem, grupo)
+  d <- .tr_ml_dados(dados, alvo, cols, tarefa)
+  tarefa <- d$tarefa
+  if (folds_externos > d$n)
+    .tr_ml_abort("tr_ml_error_bad_folds", "'folds_externos' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
+  partes <- .tr_ml_with_seed(seed, {
+    y <- if (tarefa == "classificacao") factor(dados[[d$alvo]]) else dados[[d$alvo]]
+    .tr_ml_folds(dados, estrategia, folds_externos, y, ordem, grupo)
+  })
+  linhas <- lapply(seq_along(partes), function(i) {
+    parte <- partes[[i]]
+    treino <- dados[parte$treino, , drop = FALSE]
+    validacao <- dados[parte$validacao, , drop = FALSE]
+    z <- tr_ml_tune(treino, alvo = alvo, cols = cols, modelo = modelo, tarefa = tarefa,
+                    metrica = metrica, tentativas = tentativas, folds = folds,
+                    amplitude = amplitude, estrategia = estrategia, ordem = ordem, grupo = grupo,
+                    seed = as.integer((as.double(seed) + i) %% .Machine$integer.max))
+    pred <- tr_ml_predict(z$modelo, validacao)
+    tibble::tibble(fold = as.character(i), n_treino = nrow(treino), n_validacao = nrow(validacao),
+                   tentativa = z$melhor_tentativa, metrica = z$metrica,
+                   interna = z$historico$media[[z$melhor_tentativa]],
+                   externa = .tr_ml_tune_metric(pred, alvo, tarefa, z$metrica))
+  })
+  out <- do.call(rbind, linhas)
+  rbind(out, tibble::tibble(fold = "media", n_treino = NA_integer_, n_validacao = NA_integer_,
+                            tentativa = NA_integer_, metrica = out$metrica[[1]],
+                            interna = mean(out$interna), externa = mean(out$externa)))
+}
