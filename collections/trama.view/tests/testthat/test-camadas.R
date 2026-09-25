@@ -129,3 +129,8 @@ test_that("pelo motor: disperso -> reta -> referência -> painel", {
   p <- trama::tr_value(f$doc, "p", registry = reg, store = s)
   expect_s3_class(p, "patchwork")
 })
+
+test_that("o texto das camadas segue o Texto (pt) do view/save", {
+  q <- .tr_view_texto(tr_fit_line(disperso_mtcars()), 9)
+  expect_equal(unique(camada_de(q, "GeomText")[[1]]$size), 9 * .8 / ggplot2::.pt)
+})

@@ -94,7 +94,10 @@ tr_save <- function(grafico, path = "", formato = "png", largura_mm = 170, altur
 .tr_view_texto <- function(grafico, texto_pt) {
   pt <- suppressWarnings(as.numeric(texto_pt))
   if (!length(pt) || is.na(pt[[1]]) || pt[[1]] <= 0) return(grafico)
-  .tr_view_texto_em(grafico, ggplot2::theme(text = ggplot2::element_text(size = pt[[1]])))
+  # `geom = element_geom(fontsize)` leva junto o texto DESENHADO pelas camadas
+  # (equação, anotação, rótulo da referência), que lê o tamanho do tema.
+  .tr_view_texto_em(grafico, ggplot2::theme(text = ggplot2::element_text(size = pt[[1]]),
+                                            geom = ggplot2::element_geom(fontsize = pt[[1]])))
 }
 
 #' Desce o tema até DENTRO dos painéis aninhados. O `&` não atravessa o

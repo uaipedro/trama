@@ -28,6 +28,12 @@
 .TR_VIEW_ESTILOS_LINHA <- c("tracejada", "contínua", "pontilhada")
 .TR_VIEW_AJUSTES <- c("linear", "quadrática", "loess")
 
+# O texto das camadas tem o tamanho do TEMA (80% do texto base), e não um
+# número fixo em mm: assim o `view/save`, que leva o texto a `texto_pt`
+# pontos na figura gravada, leva a equação e a anotação junto. Com tamanho
+# fixo, num painel de 170 mm a equação saía maior que o eixo e cortada.
+.TR_VIEW_TAMANHO_TEXTO <- rlang::expr(ggplot2::from_theme(fontsize * .8))
+
 #' A entrada de toda camada: um ggplot, e não um painel.
 #' @noRd
 .tr_view_camada_entrada <- function(grafico, no) {
@@ -169,9 +175,10 @@ tr_reference <- function(grafico, tipo = "horizontal", valor = "0", inclinacao =
                    rotulo = rotulos[quais], hj = 1, vj = -.4, ang = 0)
       })
     p <- p + ggplot2::geom_text(
-      data = txt, inherit.aes = FALSE, size = 3.4,
+      data = txt, inherit.aes = FALSE,
       ggplot2::aes(x = .data[["x"]], y = .data[["y"]], label = .data[["rotulo"]],
-                   hjust = .data[["hj"]], vjust = .data[["vj"]], angle = .data[["ang"]]))
+                   hjust = .data[["hj"]], vjust = .data[["vj"]], angle = .data[["ang"]],
+                   size = !!.TR_VIEW_TAMANHO_TEXTO))
   }
   p
 }
@@ -352,10 +359,11 @@ tr_fit_line <- function(grafico, metodo = "linear", intervalo = TRUE, confianca 
       r <- curvas[[g]][1L, c(chaves, ".grupo"), drop = FALSE]; r$.rotulo <- textos[[g]]; r
     }))
     eq$.vj <- if (length(facetas)) stats::ave(seq_len(nrow(eq)), eq[facetas], FUN = seq_along) else seq_len(nrow(eq))
-    eq$.vj <- 1.3 + 1.5 * (eq$.vj - 1)
-    m <- ggplot2::aes(x = -Inf, y = Inf, label = .data[[".rotulo"]], vjust = .data[[".vj"]])
+    eq$.vj <- 1.3 + 1.8 * (eq$.vj - 1)
+    m <- ggplot2::aes(x = -Inf, y = Inf, label = .data[[".rotulo"]], vjust = .data[[".vj"]],
+                      size = !!.TR_VIEW_TAMANHO_TEXTO)
     if (!is.null(cor)) m$colour <- rlang::quo(.data[[!!cor]])
-    p <- p + ggplot2::geom_text(data = eq, mapping = m, inherit.aes = FALSE, hjust = -.04, size = 3.4,
+    p <- p + ggplot2::geom_text(data = eq, mapping = m, inherit.aes = FALSE, hjust = -.04,
                                 show.legend = FALSE)
   }
   attr(p, "tr_view_ajustes") <- ajustes
@@ -382,14 +390,17 @@ tr_annotate <- function(grafico, x = "", y = "", texto = "", seta_x = "", seta_y
     rlang::abort("Params 'seta_x' e 'seta_y': a seta precisa dos dois, ou de nenhum.",
                  class = "tr_view_error_bad_option")
   }
-  # `annotate()` e não `geom_*` com dados: sem coluna de painel, a anotação
-  # cai em TODOS os painéis, e é assim que o ggplot a trata. A seta sai do
-  # texto e termina no ponto, e vai antes para o texto ficar por cima.
+  # Sem coluna de painel nos dados da camada, a anotação cai em TODOS os
+  # painéis. A seta sai do texto e termina no ponto, e vai antes para o texto
+  # ficar por cima. O texto é `geom_text` de uma linha, e não `annotate()`,
+  # só para poder levar o tamanho do tema (ver `.TR_VIEW_TAMANHO_TEXTO`).
   if (length(sx)) {
     p <- p + ggplot2::annotate("segment", x = px, y = py, xend = sx, yend = sy, linewidth = .5,
                                arrow = grid::arrow(length = grid::unit(2.5, "mm"), type = "closed"))
   }
-  p + ggplot2::annotate("text", x = px, y = py, label = tx, size = 3.6)
+  p + ggplot2::geom_text(data = data.frame(x = px, y = py, rotulo = tx), inherit.aes = FALSE,
+                         ggplot2::aes(x = .data[["x"]], y = .data[["y"]], label = .data[["rotulo"]],
+                                      size = !!.TR_VIEW_TAMANHO_TEXTO))
 }
 
 # ---- Nós ---------------------------------------------------------------------
