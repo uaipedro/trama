@@ -519,7 +519,10 @@ trecho com buraco em vez de inventá-lo.
 
 # ---- Decompor ---------------------------------------------------------------
 
-      trama::tr_node("series/decompose", fn = tr_series_decompose, label = "Decomposição clássica",
+      trama::tr_node("series/decompose",
+        pressupostos = .tr_series_doc("series/decompose")$pressupostos,
+        referencias = .tr_series_doc("series/decompose")$referencias,
+        fn = tr_series_decompose, label = "Decomposição clássica",
         category = "serie_decompor", icon = icone("layers-2"),
         description = "Separa tendência, sazonalidade e resto por médias móveis.",
         inputs = list(serie = S), outputs = list(out = D),
@@ -565,7 +568,10 @@ título do gráfico; `series/regression`, que estima os mesmos componentes e, po
 estimá-los, dá coeficiente e p-valor a cada um.
 ]---")),
 
-      trama::tr_node("series/stl", fn = tr_series_stl, label = "Decomposição STL",
+      trama::tr_node("series/stl",
+        pressupostos = .tr_series_doc("series/stl")$pressupostos,
+        referencias = .tr_series_doc("series/stl")$referencias,
+        fn = tr_series_stl, label = "Decomposição STL",
         category = "serie_decompor", icon = icone("layers"),
         description = "Decomposição por suavização local: sazonalidade que muda devagar, robusta a outlier.",
         inputs = list(serie = S), outputs = list(out = D),
@@ -646,7 +652,10 @@ tr_flow(reg) |>
 p-valor por componente; `series/ljung_box` para testar o resto.
 ]---")),
 
-      trama::tr_node("series/regression", fn = tr_series_regression, label = "Regressão dos componentes",
+      trama::tr_node("series/regression",
+        pressupostos = .tr_series_doc("series/regression")$pressupostos,
+        referencias = .tr_series_doc("series/regression")$referencias,
+        fn = tr_series_regression, label = "Regressão dos componentes",
         category = "serie_decompor", icon = icone("trending-up"),
         description = "Estima tendência e sazonalidade por regressão, com coeficientes e p-valores.",
         inputs = list(serie = S, regressor = trama::tr_port(S, required = FALSE)),
@@ -693,9 +702,6 @@ causa de uma escolha de leitura.
 O bloco não aceita faltantes, e sazonalidade pede frequência maior que 1. Grau 0
 com sazonalidade desligada não tem o que estimar, e para o nó em vermelho. A
 entrada **regressor** está declarada mas ainda não é usada.
-
-O modelo supõe erro sem autocorrelação, e série temporal quase nunca obedece:
-confira o resto com `series/ljung_box` antes de levar os p-valores a sério.
 
 As potências do tempo são cruas (`t`, `t²`, `t³`) e fortemente
 correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
@@ -1532,7 +1538,10 @@ defasagem está a autocorrelação.
 
 # ---- Testar: os F da regressão ----------------------------------------------
 
-      trama::tr_node("series/f_global", fn = tr_series_f_global, label = "F global",
+      trama::tr_node("series/f_global",
+        pressupostos = .tr_series_doc("series/f_global")$pressupostos,
+        referencias = .tr_series_doc("series/f_global")$referencias,
+        fn = tr_series_f_global, label = "F global",
         category = "serie_regressao", icon = icone("sigma"),
         description = "Teste F do modelo inteiro: a regressão explica alguma coisa?",
         inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
@@ -1556,13 +1565,6 @@ um continuam disponíveis: ligue a regressão num nó da `data`.
 Numa regressão sem sazonalidade (ou de grau 0), o modelo tem um bloco de
 termos apenas — e aí o F global e o F parcial daquele bloco são o MESMO teste.
 Os dois cards mostram números idênticos. É esperado, não é defeito.
-
-### Antes de citar o p-valor
-
-O teste supõe erro sem autocorrelação. Série temporal quase nunca obedece, e o
-efeito é conhecido: o p-valor sai otimista demais. Extraia o resto com
-`series/component` e passe pelo `series/ljung_box`; se houver autocorrelação,
-os p-valores daqui são indicativos, não conclusivos.
 ]---", r"---[
 Nenhum. Uma entrada: **ajuste**, vindo de `series/regression`.
 ]---", r"---[
@@ -1579,7 +1581,10 @@ tr_flow(reg) |>
 autocorrelação do resto.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/f_sazonal", fn = tr_series_f_sazonal, label = "F do bloco sazonal",
+      trama::tr_node("series/f_sazonal",
+        pressupostos = .tr_series_doc("series/f_sazonal")$pressupostos,
+        referencias = .tr_series_doc("series/f_sazonal")$referencias,
+        fn = tr_series_f_sazonal, label = "F do bloco sazonal",
         category = "serie_regressao", icon = icone("calendar-range"),
         description = "Teste F do bloco sazonal da regressão: há sazonalidade?",
         inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
@@ -1620,7 +1625,10 @@ modelo inteiro; `series/seasonal_plot` para ver a sazonalidade que o teste
 mede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/f_tendencia", fn = tr_series_f_tendencia,
+      trama::tr_node("series/f_tendencia",
+        pressupostos = .tr_series_doc("series/f_tendencia")$pressupostos,
+        referencias = .tr_series_doc("series/f_tendencia")$referencias,
+        fn = tr_series_f_tendencia,
         label = "F do bloco de tendência",
         category = "serie_regressao", icon = icone("trending-up-down"),
         description = "Teste F do bloco de tendência da regressão: há tendência?",

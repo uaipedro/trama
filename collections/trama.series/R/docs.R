@@ -38,7 +38,7 @@
 #' Pressupostos e referências de um nó (listas vazias se não houver).
 #' @noRd
 .tr_series_doc <- function(id) {
-  todos <- c(.tr_series_docs_modelar())
+  todos <- c(.tr_series_docs_modelar(), .tr_series_docs_decompor())
   d <- todos[[id]]
   list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
 }
