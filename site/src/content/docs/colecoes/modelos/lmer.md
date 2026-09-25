@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/lmer
 category: ajustar
-related: [models/random_effects, models/random_test]
+related: [models/random_effects, models/random_test, models/glmer]
 ---
 
 ## O que o bloco faz

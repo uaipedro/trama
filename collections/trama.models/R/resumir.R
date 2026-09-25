@@ -174,6 +174,19 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
                                 "equivalente em 'models/lmer' com '(1 | bloco:parcela)'."), no)
       }
       .tr_models_quadro_split(modelo)
+    },
+    glmer = {
+      # No GLMM não há soma de quadrados: o quadro é de Wald (qui-quadrado) por
+      # termo, pelo `car`, e só no tipo II — o III pediria reajustar com
+      # contraste de soma zero, e o I (sequencial) o `lme4` não testa.
+      if (tipo != "II") {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         "'%s': no misto generalizado o quadro sai por Wald com SQ tipo II. Escolha tipo_sq = \"II\".", no)
+      }
+      a <- .tr_models_ajustar(as.data.frame(car::Anova(modelo$ajuste, type = 2)), no)
+      coluna <- "qui2"
+      nota <- "qui-quadrado de Wald"
+      data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     })
   cv <- .tr_models_cv(modelo)
   if (!is.null(cv$cv)) rodape[[if (modelo$classe == "split") "CV (b)" else "CV"]] <- .tr_models_pct(cv$cv)
@@ -544,6 +557,11 @@ tr_models_random_test <- function(modelo) {
   .tr_models_fit_conferir(modelo)
   no <- "models/random_test"
   aj <- .tr_models_misto(modelo, no)
+  if (modelo$classe == "glmer") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' não se aplica ao misto generalizado (o ranova é do lmerTest, só gaussiano). ",
+                            "Ajuste o modelo sem o termo e compare os dois em 'models/compare'."), no)
+  }
   r <- .tr_models_ajustar(as.data.frame(.tr_models_capturar(lmerTest::ranova(aj))$valor), no)
   termo <- rownames(r)
   termo[termo == "<none>"] <- "modelo completo"

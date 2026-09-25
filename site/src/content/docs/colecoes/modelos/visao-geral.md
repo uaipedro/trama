@@ -40,7 +40,7 @@ tr_flow(reg) |>
 
 - [Regressão linear](/trama/colecoes/modelos/lm/) ajusta respostas contínuas.
 - [Modelo linear generalizado](/trama/colecoes/modelos/glm/) ajusta respostas binárias, contagens ou contínuas positivas.
-- [Modelo misto](/trama/colecoes/modelos/lmer/) modela dependência entre observações agrupadas.
+- [Modelo misto](/trama/colecoes/modelos/lmer/) modela dependência entre observações agrupadas; [Misto generalizado](/trama/colecoes/modelos/glmer/) faz o mesmo para proporções e contagens.
 - [Regressão não linear](/trama/colecoes/modelos/nls/) ajusta curvas prontas (logística, Michaelis-Menten, Gompertz, platô) sem pedir chute.
 - [RLS online](/trama/colecoes/modelos/rls/) atualiza o ajuste ponto a ponto em fluxo.
 

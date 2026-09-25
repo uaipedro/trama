@@ -37,6 +37,9 @@ delineamento ou modelo.
 
 - **sleepstudy** — tempo de reação (`Reaction`) de 18 pessoas (`Subject`) ao
   longo de 10 dias de privação de sono (`Days`). O exemplo do `lme4`.
+- **cbpp** — pleuropneumonia bovina (`lme4::cbpp`): casos novos
+  (`incidence`) entre os animais (`size`) de 15 rebanhos (`herd`) em 4 períodos
+  (`period`). Proporção com rebanho aleatório: o `models/glmer` binomial.
 - **InsectSprays** — contagem de insetos (`count`) sob 6 inseticidas (`spray`).
   Contagem com variância que cresce com a média: GLM Poisson.
 - **Puromycin** — velocidade de reação (`rate`) pela concentração de substrato
@@ -223,7 +226,70 @@ tr_flow(reg) |>
   tr_add("misto", "models/lmer", formula = "Reaction ~ Days + (Days | Subject)", from = "sono")
 ]---", r"---[
 `models/random_effects` para as variâncias; `models/random_test` para testar os
-termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos.
+termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos;
+`models/glmer` para proporção ou contagem.
+]---")),
+
+    trama::tr_node("models/glmer", fn = tr_models_glmer, label = "Misto generalizado",
+      category = "modelo_ajustar", icon = trama::tr_icon("layers-2"),
+      description = "Ajusta um modelo misto generalizado (lme4::glmer), binomial ou Poisson, com efeitos aleatórios.",
+      inputs = list(dados = T), outputs = list(out = Fm),
+      params = list(
+        formula = P("expr", "", label = "Fórmula", example = "cbind(incidence, size - incidence) ~ period + (1 | herd)"),
+        resposta = P("cols", "", label = "Resposta (sem fórmula)", example = "doente"),
+        fixos = P("cols", "", label = "Efeitos fixos (sem fórmula)", example = "tratamento"),
+        grupo = P("cols", "", label = "Grupo aleatório (sem fórmula)", example = "bloco"),
+        familia = E("binomial", .TR_MODELS_FAMILIAS_MISTO, label = "Família")),
+      help = .tr_models_ajuda(paste0(r"---[
+O modelo misto para resposta que não é contínua (`lme4::glmer`): a parte
+generalizada do `models/glm` — a resposta segue a família escolhida, ligada aos
+preditores por logit ou log — com os efeitos aleatórios do `models/lmer`.
+
+É o modelo de proporção de plantas doentes por parcela com bloco aleatório, de
+contagem de insetos por armadilha com local aleatório, de germinação por
+placa com lote aleatório.
+
+| família | resposta | ligação |
+|---|---|---|
+| `binomial` | 0/1, sim/não, ou `cbind(sucessos, fracassos)` | logit |
+| `poisson` | contagem | log |
+
+### A fórmula
+
+Como no `models/lmer`: os termos aleatórios entre parênteses, `(1 | bloco)`.
+Para uma proporção com o total de cada linha, a resposta vai na fórmula como
+`cbind(doentes, total - doentes)`. Sem fórmula, **Resposta**, **Efeitos fixos**
+e **Grupo** montam `resposta ~ fixos + (1 | grupo)`.
+
+### Os testes
+
+Sem REML nem Satterthwaite: os coeficientes saem com z de Wald, e o quadro do
+`models/anova_table` por Wald, tipo II. Avisos de convergência e de ajuste
+singular do `lme4` aparecem na nota dos coeficientes — ajuste singular quer
+dizer que a variância de algum grupo foi estimada em zero.
+
+### Superdispersão
+
+Na Poisson e na binomial com total, a variância é fixada pela média. Se ela é
+maior, um efeito aleatório por observação (`(1 | parcela)`, com uma linha por
+parcela) absorve o excesso.
+]---", .tr_models_ajuda_faltantes()), r"---[
+- **Fórmula** — com pelo menos um termo aleatório.
+- **Resposta**, **Efeitos fixos**, **Grupo aleatório** — o atalho sem fórmula.
+- **Família** — `binomial` (padrão) ou `poisson`.
+]---", r"---[
+Um modelo (`models/fit`). O card mostra o AIC e os coeficientes com a régua do
+p-valor (z de Wald), na escala da ligação.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("gado", "models/example", dataset = "cbpp") |>
+  tr_add("misto", "models/glmer", formula = "cbind(incidence, size - incidence) ~ period + (1 | herd)",
+         familia = "binomial", from = "gado")
+]---", r"---[
+`models/coefficients` com exponenciar para razão de chances ou de taxas;
+`models/emmeans` para as proporções por nível na escala da resposta;
+`models/random_effects` e `models/plot_caterpillar` para os grupos;
+`models/compare` para testar um termo.
 ]---")),
 
     trama::tr_node("models/nls", fn = tr_models_nls, label = "Regressão não linear",

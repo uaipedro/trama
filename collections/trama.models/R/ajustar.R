@@ -102,6 +102,29 @@ tr_models_glm <- function(dados, resposta = "", preditores = "", formula = "", f
                      descartadas = p$descartadas)
 }
 
+#' A fórmula de um misto: a digitada (com termo aleatório) ou a do atalho.
+#' @param alternativa o bloco sugerido quando a fórmula não tem termo aleatório.
+#' @noRd
+.tr_models_formula_misto <- function(dados, formula, resposta, fixos, grupo, alternativa) {
+  if (.tr_models_preenchido(formula)) {
+    f <- .tr_models_ler_formula(formula, dados)
+    if (is.null(reformulas::findbars(f))) {
+      .tr_models_abort("tr_models_error_bad_formula",
+                       paste0("Param 'formula': '%s' não tem termo aleatório. Escreva-o como ",
+                              "'(1 | grupo)', ou use '%s' para um modelo só de efeitos fixos."),
+                       formula, alternativa)
+    }
+  } else {
+    resp <- .tr_models_col(dados, resposta, "resposta")
+    fix <- .tr_models_cols(dados, fixos, "fixos", minimo = 0L)
+    g <- .tr_models_col(dados, grupo, "grupo")
+    rhs <- c(if (length(fix)) .tr_models_bt(fix) else "1", sprintf("(1 | %s)", .tr_models_bt(g)))
+    f <- stats::as.formula(paste(.tr_models_bt(resp), "~", paste(rhs, collapse = " + ")))
+    environment(f) <- globalenv()
+  }
+  f
+}
+
 #' Modelo linear misto (`lme4`, com os p-valores do `lmerTest`).
 #'
 #' Pela fórmula, com os termos aleatórios na sintaxe do `lme4` —
@@ -116,22 +139,7 @@ tr_models_glm <- function(dados, resposta = "", preditores = "", formula = "", f
 #' @return objeto `tr_models_fit`.
 #' @export
 tr_models_lmer <- function(dados, formula = "", resposta = "", fixos = "", grupo = "", reml = TRUE) {
-  if (.tr_models_preenchido(formula)) {
-    f <- .tr_models_ler_formula(formula, dados)
-    if (is.null(reformulas::findbars(f))) {
-      .tr_models_abort("tr_models_error_bad_formula",
-                       paste0("Param 'formula': '%s' não tem termo aleatório. Escreva-o como ",
-                              "'(1 | grupo)', ou use 'models/lm' para um modelo só de efeitos fixos."),
-                       formula)
-    }
-  } else {
-    resp <- .tr_models_col(dados, resposta, "resposta")
-    fix <- .tr_models_cols(dados, fixos, "fixos", minimo = 0L)
-    g <- .tr_models_col(dados, grupo, "grupo")
-    rhs <- c(if (length(fix)) .tr_models_bt(fix) else "1", sprintf("(1 | %s)", .tr_models_bt(g)))
-    f <- stats::as.formula(paste(.tr_models_bt(resp), "~", paste(rhs, collapse = " + ")))
-    environment(f) <- globalenv()
-  }
+  f <- .tr_models_formula_misto(dados, formula, resposta, fixos, grupo, "models/lm")
   resp <- all.vars(f[[2]])[[1]]
   .tr_models_numerica(dados, resp, "resposta")
   vars <- all.vars(f)
@@ -142,6 +150,54 @@ tr_models_lmer <- function(dados, formula = "", resposta = "", fixos = "", grupo
   r <- .tr_models_ajustar(.tr_models_capturar(
     lmerTest::lmer(f, data = p$dados, REML = isTRUE(reml))), "models/lmer")
   .tr_models_fit_obj(.tr_models_embutir_dados(r$valor, p$dados), "lmer", "Modelo misto", f, p$dados, resp, descartadas = p$descartadas)
+}
+
+.TR_MODELS_FAMILIAS_MISTO <- c("binomial", "poisson")
+
+#' Modelo misto generalizado (`lme4::glmer`).
+#'
+#' O `models/lmer` para resposta que não é contínua: proporção de plantas
+#' doentes por parcela, contagem de insetos por armadilha, com bloco, animal ou
+#' local aleatórios. A fórmula e o atalho de colunas são os do `models/lmer`;
+#' na binomial com contagem de sucessos, a resposta vai na fórmula como
+#' `cbind(sucessos, fracassos)`.
+#'
+#' Sem REML (não existe para o GLMM) e sem Satterthwaite: os testes dos fixos
+#' são de Wald (z), como o `summary()` do `lme4` dá.
+#' @param familia `"binomial"` ou `"poisson"`, com a ligação canônica.
+#' @inheritParams tr_models_lmer
+#' @return objeto `tr_models_fit`.
+#' @export
+tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grupo = "", familia = "binomial") {
+  no <- "models/glmer"
+  familia <- .tr_models_enum(familia, .TR_MODELS_FAMILIAS_MISTO, "familia")
+  f <- .tr_models_formula_misto(dados, formula, resposta, fixos, grupo, "models/glm")
+  resp <- all.vars(f[[2]])[[1]]
+  vars <- all.vars(f)
+  grupos <- unique(unlist(lapply(reformulas::findbars(f), function(b) all.vars(b[[3]]))))
+  p0 <- .tr_models_preparar(dados, vars, no)
+  # Resposta de texto ("doente"/"sadia") vira fator, que o `glmer` binomial lê.
+  cats <- union(.tr_models_categoricas(p0$dados, vars), grupos)
+  p <- .tr_models_preparar(dados, vars, no, fatores = cats)
+  if (familia == "poisson") {
+    .tr_models_numerica(p$dados, resp, "resposta")
+    if (any(p$dados[[resp]] < 0)) {
+      .tr_models_abort("tr_models_error_bad_option",
+                       "'%s': a família poisson é de contagem, e a resposta '%s' tem valor negativo.", no, resp)
+    }
+  }
+  fam <- if (familia == "binomial") stats::binomial() else stats::poisson()
+  r <- .tr_models_ajustar(.tr_models_capturar(lme4::glmer(f, data = p$dados, family = fam)), no)
+  aj <- r$valor
+  # A chamada com os VALORES, como no `models/lmer`: o `anova()` do
+  # `models/compare` a avalia de novo, e depois do RDS `p` e `fam` não existem.
+  aj@call <- as.call(list(quote(lme4::glmer), formula = stats::formula(aj), data = as.data.frame(p$dados), family = fam))
+  fit <- .tr_models_fit_obj(aj, "glmer", sprintf("Misto generalizado · %s", familia), f, p$dados, resp,
+                            descartadas = p$descartadas)
+  # Os avisos de convergência e de ajuste singular do `lme4` não se perdem no
+  # card: vão para a nota dos coeficientes.
+  fit$avisos <- r$avisos
+  fit
 }
 
 # ---- Delineamentos ------------------------------------------------------------

@@ -18,7 +18,7 @@ Use este bloco para experimentar uma técnica antes de conectá-la aos seus pró
 
 ## Configuração
 
-Escolha o conjunto no seletor; os conjuntos simulados `milho_dbc` e `racao_dql` têm semente fixa e efeitos plantados.
+Escolha o conjunto no seletor; os conjuntos simulados `milho_dbc`, `racao_dql` e `adubo_dbc` (doses de nitrogênio com resposta quadrática) têm semente fixa e efeitos plantados; `cbpp` e `Puromycin` servem ao misto generalizado e à regressão não linear.
 
 ## Exemplo
 
