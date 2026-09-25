@@ -18,7 +18,7 @@ Use no fim do fluxo que produz uma figura de artigo, relatório ou tese. Como o 
 
 ## Configuração
 
-Arquivo é o caminho de saída; relativo, parte da pasta do projeto, e a pasta precisa existir. Em branco, o nó não grava nada. Sem extensão, o arquivo recebe a do formato. Formato aceita `pdf` (vetorial, preferido para pontos e linhas), `png` e `tiff` (com compressão LZW). Largura (mm) vem em 170, a largura de página comum; uma coluna tem por volta de 85 mm. Altura (mm) 0 segue a proporção escolhida no gráfico. Resolução (dpi) vale para PNG e TIFF: 300 para figura colorida, 600 ou mais para desenho de linhas.
+Arquivo é o caminho de saída; relativo, parte da pasta do projeto, e a pasta precisa existir. Em branco, o nó não grava nada. Sem extensão, o arquivo recebe a do formato. Formato aceita `pdf` (vetorial, preferido para pontos e linhas), `png` e `tiff` (com compressão LZW). Largura (mm) vem em 170, a largura de página comum; uma coluna tem por volta de 85 mm. Altura (mm) 0 segue a proporção escolhida no gráfico. Resolução (dpi) vale para PNG e TIFF: 300 para figura colorida, 600 ou mais para desenho de linhas. Texto (pt) é o tamanho impresso do texto base, padrão 9; 0 mantém o tamanho do tema.
 
 ## Exemplo
 
@@ -30,4 +30,4 @@ tr_save(p, "figura1.tiff", formato = "tiff", largura_mm = 85, dpi = 600)
 
 ## Como interpretar
 
-Um PNG ou TIFF tem largura em pixels igual a largura em mm × dpi / 25,4, arredondada: 170 mm a 300 dpi dão 2008 px. O texto mantém o tamanho em pontos do tema, então a mesma figura gravada em 85 mm tem letras proporcionalmente maiores em relação ao desenho, que é o ajuste certo para uma coluna.
+Um PNG ou TIFF tem largura em pixels igual a largura em mm × dpi / 25,4, arredondada: 170 mm a 300 dpi dão 2008 px. O texto sai no tamanho impresso de Texto (pt), em qualquer largura: é o que o periódico pede (8–10 pt). O tema do card é calibrado para a tela e, sem esse ajuste, a figura a 170 mm teria letras de 13–16 pt.

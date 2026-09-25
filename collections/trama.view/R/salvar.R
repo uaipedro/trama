@@ -16,9 +16,13 @@
 #' Tamanho em MILÍMETROS porque é a unidade das instruções aos autores (uma
 #' coluna ~85 mm, página ~170 mm). Altura 0 segue a proporção escolhida no
 #' gráfico: quem ajustou o aspecto olhando o card recebe no arquivo a mesma
-#' forma, só maior. A fonte fica em pontos absolutos, então a figura gravada
-#' em 170 mm tem letra do tamanho que vai sair impressa — é por isso que o
-#' tamanho é param, e não uma escala do PNG do card.
+#' forma, só maior.
+#'
+#' `texto_pt` existe porque o tema é calibrado para o CARD (base 13 pt num
+#' desenho de 8 pol) e a fonte é absoluta: gravado a 170 mm, o texto sairia
+#' com 13–16 pt impressos, e num painel os títulos se atropelam. O periódico
+#' pede 8–10 pt impressos; trocar só o `text` base basta, porque título,
+#' eixos, legenda e etiqueta derivam dele por `rel()`.
 #'
 #' PNG e TIFF saem pelo `ragg`, pelo mesmo motivo do preview (não depende de
 #' X11); TIFF com LZW, que as revistas aceitam e que corta o arquivo a uma
@@ -30,10 +34,12 @@
 #' @param largura_mm largura em milímetros.
 #' @param altura_mm altura em milímetros; `0` deriva da proporção do gráfico.
 #' @param dpi resolução de PNG e TIFF (o PDF é vetorial e a ignora).
+#' @param texto_pt tamanho do texto base, em pontos, na figura gravada; `0`
+#'   mantém o do tema.
 #' @return o próprio `grafico`, para seguir no fluxo.
 #' @export
 tr_save <- function(grafico, path = "", formato = "png", largura_mm = 170, altura_mm = 0,
-                    dpi = 300, .ctx = NULL) {
+                    dpi = 300, texto_pt = 9, .ctx = NULL) {
   if (!length(path) || is.na(path[[1]]) || !nzchar(trimws(path[[1]]))) return(grafico)
   if (!formato %in% .TR_VIEW_FORMATOS) .tr_view_option("formato", formato, .TR_VIEW_FORMATOS)
   if (!is.null(.ctx)) path <- .ctx$path(path)
@@ -59,6 +65,9 @@ tr_save <- function(grafico, path = "", formato = "png", largura_mm = 170, altur
     altura <- altura[[1]]
   }
   dpi <- .tr_view_medida(dpi, "dpi")
+  # O objeto que SEGUE no fluxo é o original: o card continua no tamanho do card.
+  grafico_out <- grafico
+  grafico <- .tr_view_texto(grafico, texto_pt)
   if (formato == "pdf") {
     dev <- if (capabilities("cairo")) grDevices::cairo_pdf else grDevices::pdf
     ggplot2::ggsave(path, plot = grafico, width = largura, height = altura, units = "mm",
@@ -75,7 +84,34 @@ tr_save <- function(grafico, path = "", formato = "png", largura_mm = 170, altur
     dev(path, width = px[[1]], height = px[[2]], units = "px", res = dpi)
     tryCatch(print(grafico), finally = grDevices::dev.off())
   }
-  grafico
+  grafico_out
+}
+
+#' O texto base em pontos; `0`, vazio ou NA mantém o tema.
+#'
+#' `&` no painel, porque `+` só atingiria o último gráfico dele.
+#' @noRd
+.tr_view_texto <- function(grafico, texto_pt) {
+  pt <- suppressWarnings(as.numeric(texto_pt))
+  if (!length(pt) || is.na(pt[[1]]) || pt[[1]] <= 0) return(grafico)
+  .tr_view_texto_em(grafico, ggplot2::theme(text = ggplot2::element_text(size = pt[[1]])))
+}
+
+#' Desce o tema até DENTRO dos painéis aninhados. O `&` não atravessa o
+#' `wrap_elements()` com que `tr_combine()` embrulha um painel interno (o
+#' patchwork interno fica guardado em `attr(, "grobs")`), e sem esta descida o
+#' painel externo encolhia e o interno ficava no tamanho do card.
+#' @noRd
+.tr_view_texto_em <- function(g, tx) {
+  if (inherits(g, "wrapped_patch")) {
+    gr <- attr(g, "grobs")
+    for (k in names(gr)) if (inherits(gr[[k]], "ggplot")) gr[[k]] <- .tr_view_texto_em(gr[[k]], tx)
+    attr(g, "grobs") <- gr
+    return(g)
+  }
+  if (!inherits(g, "patchwork")) return(g + tx)
+  g$patches$plots <- lapply(g$patches$plots, .tr_view_texto_em, tx = tx)
+  g & tx
 }
 
 #' Número positivo, ou erro que diz qual campo.
@@ -103,7 +139,8 @@ tr_save <- function(grafico, path = "", formato = "png", largura_mm = 170, altur
       formato = trama::tr_param_enum("png", .TR_VIEW_FORMATOS, label = "Formato"),
       largura_mm = trama::tr_param_num(170, min = 20, max = 500, step = 1, label = "Largura (mm)"),
       altura_mm = trama::tr_param_num(0, min = 0, max = 500, step = 1, label = "Altura (mm)"),
-      dpi = trama::tr_param_num(300, min = 72, max = 1200, step = 1, label = "Resolução (dpi)")),
+      dpi = trama::tr_param_num(300, min = 72, max = 1200, step = 1, label = "Resolução (dpi)"),
+      texto_pt = trama::tr_param_num(9, min = 0, max = 14, step = 0.5, label = "Texto (pt)")),
     pure = FALSE, volatile = TRUE,
     fingerprint = function(params, ctx) ctx$path(params$path),
     help = "## Descrição
@@ -114,9 +151,11 @@ a partir da pasta do projeto; a pasta tem que existir. Caminho em branco não
 grava nada: o card recém-arrastado não é erro.
 
 O tamanho é em milímetros porque é assim que as revistas o pedem: uma coluna
-tem por volta de 85 mm, a página inteira por volta de 170 mm. O texto do
-gráfico fica no tamanho em pontos do tema, então gravar em 85 mm deixa a letra
-proporcionalmente maior — é o efeito certo para figura de uma coluna.
+tem por volta de 85 mm, a página inteira por volta de 170 mm. O texto sai no
+tamanho IMPRESSO de **Texto (pt)**, qualquer que seja a largura: o periódico
+pede 8–10 pt na página, e é isso que o padrão 9 entrega. O tema do card é
+calibrado para a tela, e gravado a 170 mm daria letras de 13–16 pt, com
+títulos se sobrepondo num painel.
 
 O nó grava em TODA execução do fluxo, mesmo que nada tenha mudado: um arquivo
 apagado à mão volta na próxima execução.
@@ -131,6 +170,9 @@ apagado à mão volta na próxima execução.
 - **Altura (mm)** — `0` (padrão) segue a proporção escolhida no gráfico.
 - **Resolução (dpi)** — para PNG e TIFF: 300 (padrão) para figura colorida,
   600 ou 1000 para desenho de linhas. O PDF ignora.
+- **Texto (pt)** — tamanho do texto base na figura gravada, padrão 9 (de 6 a
+  14). Título e etiquetas saem um pouco maiores, eixos um pouco menores, na
+  proporção do tema. `0` mantém o tamanho do tema. O card não muda.
 
 ## Valor
 

@@ -27,7 +27,7 @@
 #' A ordem dos painéis (e portanto das etiquetas) é a ordem das entradas, que o
 #' núcleo fixa pelo `index` da aresta: a primeira ligada é o A.
 #' @param graficos lista de ggplots (ou um só).
-#' @param colunas quantos painéis por linha; `0` deixa o patchwork decidir.
+#' @param por_linha quantos painéis por linha; `0` deixa o patchwork decidir.
 #' @param etiquetas `"nenhuma"`, `"A, B, C"`, `"a, b, c"` ou `"1, 2, 3"`.
 #' @param legenda_comum `TRUE` junta legendas iguais numa só (`guides = "collect"`).
 #' @param aspecto,tema,titulo,rotulo_x,rotulo_y,legenda os cosméticos de
@@ -35,7 +35,7 @@
 #'   preenchido vale para todos os painéis.
 #' @return um patchwork (que é um ggplot) com o atributo `tr_view_dim`.
 #' @export
-tr_combine <- function(graficos, colunas = 0, etiquetas = "A, B, C", legenda_comum = FALSE,
+tr_combine <- function(graficos, por_linha = 0, etiquetas = "A, B, C", legenda_comum = FALSE,
                        aspecto = "16:9", tema = "padrão", titulo = "", rotulo_x = "",
                        rotulo_y = "", legenda = "direita") {
   if (inherits(graficos, "ggplot")) graficos <- list(graficos)
@@ -47,12 +47,19 @@ tr_combine <- function(graficos, colunas = 0, etiquetas = "A, B, C", legenda_com
   if (!legenda %in% .TR_VIEW_LEGENDAS) .tr_view_option("legenda", legenda, .TR_VIEW_LEGENDAS)
   # 0, vazio ou NA = automático: o patchwork escolhe uma grade quase quadrada,
   # que é o que se quer até o autor ter opinião.
-  ncol <- suppressWarnings(as.integer(colunas))
+  ncol <- suppressWarnings(as.integer(por_linha))
   ncol <- if (!length(ncol) || is.na(ncol[[1]]) || ncol[[1]] <= 0L) NULL else ncol[[1]]
   tag <- switch(etiquetas, nenhuma = NULL, "A, B, C" = "A", "a, b, c" = "a", "1, 2, 3" = "1")
   pos <- switch(legenda, direita = "right", abaixo = "bottom", nenhuma = "none")
   th <- .tr_view_tema(tema) + ggplot2::theme(legend.position = pos)
 
+  # Painel que entra em painel vira UMA unidade (`wrap_elements`): sem isso o
+  # patchwork o achata, o título interno some e as etiquetas `a, b` dele viram
+  # A, B, C do externo, uma por gráfico. Envolvido, ele leva UMA etiqueta do
+  # externo e guarda título, etiquetas e tema próprios. O custo é que o `&`
+  # do externo não desce nele — que é o certo: o interno já foi acabado.
+  graficos <- lapply(graficos, function(g)
+    if (inherits(g, "patchwork")) patchwork::wrap_elements(full = g) else g)
   p <- patchwork::wrap_plots(graficos, ncol = ncol,
                              guides = if (isTRUE(legenda_comum)) "collect" else "auto")
   p <- p & th
@@ -71,7 +78,7 @@ tr_combine <- function(graficos, colunas = 0, etiquetas = "A, B, C", legenda_com
       icon = trama::tr_icon("layout-grid"),
       inputs = list(graficos = trama::tr_port(G, multiple = TRUE)), outputs = list(out = G),
       params = .tr_view_props(
-        colunas = trama::tr_param_num(0, min = 0, max = 6, step = 1, label = "Colunas"),
+        por_linha = trama::tr_param_num(0, min = 0, max = 6, step = 1, label = "Por linha"),
         etiquetas = trama::tr_param_enum("A, B, C", .TR_VIEW_ETIQUETAS, label = "Etiquetas"),
         legenda_comum = trama::tr_param_bool(FALSE, label = "Legenda comum")),
       help = paste0("## Descrição
@@ -90,9 +97,12 @@ não passa na revisão. O mesmo vale para **Rótulo do X** e **Rótulo do Y**:
 preenchidos, trocam o rótulo de todos os painéis; em branco, cada painel
 mantém o seu. O **Título** vira o título da figura inteira, acima dos painéis.
 
+Um painel ligado a outro painel entra como UMA unidade, com uma etiqueta do
+externo, e mantém o título, as etiquetas e o tema que já tinha.
+
 ## Parâmetros
 
-- **Colunas** — quantos painéis por linha. `0` (padrão) deixa uma grade quase
+- **Por linha** — quantos painéis por linha. `0` (padrão) deixa uma grade quase
   quadrada; `1` empilha tudo; o número de gráficos põe tudo numa linha.
 - **Etiquetas** — `A, B, C` (padrão), `a, b, c`, `1, 2, 3` ou `nenhuma`.
 - **Legenda comum** — ligado, legendas IGUAIS em vários painéis viram uma só,
@@ -102,7 +112,7 @@ mantém o seu. O **Título** vira o título da figura inteira, acima dos painéi
 
 Um gráfico (um `patchwork`, que é um ggplot), que pode seguir para
 `view/save` ou entrar em outro painel. No console,
-`tr_combine(list(p1, p2), colunas = 2)`.
+`tr_combine(list(p1, p2), por_linha = 2)`.
 
 ## Exemplos
 
@@ -111,7 +121,7 @@ tr_flow(reg) |>
   tr_add(\"ler\", \"data/read_csv\", path = \"ensaio.csv\") |>
   tr_add(\"a\", \"view/boxplot\", x = \"tratamento\", y = \"resposta\", from = \"ler\") |>
   tr_add(\"b\", \"view/points\", x = \"dose\", y = \"resposta\", from = \"ler\") |>
-  tr_add(\"fig\", \"view/combine\", colunas = 2, tema = \"clássico\",
+  tr_add(\"fig\", \"view/combine\", por_linha = 2, tema = \"clássico\",
          aspecto = \"2:1\", from = c(\"a\", \"b\"))
 ```
 

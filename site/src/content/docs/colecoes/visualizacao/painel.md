@@ -18,7 +18,7 @@ Use para montar a figura com vários painéis de um artigo ou de uma tese dentro
 
 ## Configuração
 
-A ordem dos painéis é a ordem em que os gráficos foram ligados à entrada: o primeiro ligado é o A. Colunas define quantos painéis por linha; 0 deixa uma grade quase quadrada. Etiquetas aceita `A, B, C`, `a, b, c`, `1, 2, 3` ou `nenhuma`. Legenda comum junta legendas iguais numa só. O título vira o título da figura inteira, e rótulos de eixo preenchidos valem para todos os painéis.
+A ordem dos painéis é a ordem em que os gráficos foram ligados à entrada: o primeiro ligado é o A. Por linha define quantos painéis por linha; 0 deixa uma grade quase quadrada. Etiquetas aceita `A, B, C`, `a, b, c`, `1, 2, 3` ou `nenhuma`. Legenda comum junta legendas iguais numa só. O título vira o título da figura inteira, e rótulos de eixo preenchidos valem para todos os painéis.
 
 ## Exemplo
 
@@ -26,7 +26,7 @@ A ordem dos painéis é a ordem em que os gráficos foram ligados à entrada: o 
 library(trama.view)
 a <- tr_points(mtcars, x = "wt", y = "mpg", titulo = "Consumo e peso")
 b <- tr_boxplot(mtcars, x = "cyl", y = "mpg", titulo = "Consumo por cilindros")
-tr_combine(list(a, b), colunas = 2, tema = "clássico", aspecto = "2:1")
+tr_combine(list(a, b), por_linha = 2, tema = "clássico", aspecto = "2:1")
 ```
 
 ## Como interpretar

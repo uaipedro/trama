@@ -68,7 +68,7 @@ test_that("o tema do painel vale para todos os painéis, e para o fundo entre el
 
 test_that("legenda comum coleta, e colunas são respeitadas", {
   g <- dois_graficos()
-  p <- tr_combine(list(g$a, g$a), colunas = 1, legenda_comum = TRUE)
+  p <- tr_combine(list(g$a, g$a), por_linha = 1, legenda_comum = TRUE)
   expect_equal(p$patches$layout$guides, "collect")
   expect_equal(p$patches$layout$ncol, 1L)
   # Coletadas, as duas legendas iguais viram UMA caixa no nível do painel, no
@@ -76,7 +76,7 @@ test_that("legenda comum coleta, e colunas são respeitadas", {
   nomes <- pw_grob(p)$layout$name
   expect_equal(grep("^guide-box", nomes, value = TRUE), "guide-box")
   # 0 é automático: o patchwork decide, e o layout não fixa colunas.
-  expect_null(tr_combine(list(g$a, g$b), colunas = 0)$patches$layout$ncol)
+  expect_null(tr_combine(list(g$a, g$b), por_linha = 0)$patches$layout$ncol)
 })
 
 test_that("título vira título do painel, e o preview renderiza na proporção", {
@@ -93,7 +93,7 @@ test_that("título vira título do painel, e o preview renderiza na proporção"
 test_that("painel de painel funciona, e entrada que não é gráfico é recusada", {
   g <- dois_graficos()
   interno <- tr_combine(list(g$a, g$b))
-  expect_s3_class(tr_combine(list(interno, g$a), colunas = 1), "patchwork")
+  expect_s3_class(tr_combine(list(interno, g$a), por_linha = 1), "patchwork")
   expect_error(tr_combine(list(g$a, df_exemplo())), class = "tr_view_error_not_a_plot")
   expect_error(tr_combine(list(g$a), etiquetas = "I, II"), class = "tr_view_error_bad_option")
 })
@@ -181,4 +181,37 @@ test_that("pelo motor, dados -> dois gráficos -> painel -> arquivo", {
     trama::tr_add("s", "view/save", path = f, largura_mm = 170, from = "p")
   trama::tr_run(fl$doc, registry = reg, store = s)
   expect_equal(dim(png::readPNG(f))[2:1], round(c(170, 85) * 300 / 25.4))
+})
+
+test_that("texto_pt fixa o tamanho impresso, e 0 mantém o tema", {
+  g <- dois_graficos()
+  tam <- function(p, el) ggplot2::calc_element(el, ggplot2::complete_theme(p$theme))$size
+  p <- .tr_view_texto(g$a, 9)
+  expect_equal(tam(p, "axis.text.x"), 0.8 * 9, tolerance = 0.01)
+  expect_equal(tam(p, "plot.title"), 1.2 * 9, tolerance = 0.01)
+  expect_equal(tam(.tr_view_texto(g$a, 0), "axis.text.x"), tam(g$a, "axis.text.x"))
+  # No painel, TODOS os gráficos recebem o tamanho, não só o último.
+  pw <- .tr_view_texto(tr_combine(list(g$a, g$b)), 9)
+  for (i in seq_along(pw)) expect_equal(tam(pw[[i]], "axis.text.x"), 0.8 * 9, tolerance = 0.01)
+  # E o gravador devolve o original: o card não encolhe.
+  d <- tempfile(); dir.create(d)
+  expect_identical(tr_save(g$a, file.path(d, "f.png"), largura_mm = 170, texto_pt = 9), g$a)
+})
+
+test_that("painel dentro de painel entra como uma unidade e guarda o que tinha", {
+  g <- dois_graficos()
+  interno <- tr_combine(list(g$a, g$b), etiquetas = "a, b, c", titulo = "INNER")
+  externo <- tr_combine(list(interno, g$b))
+  # Duas unidades no externo, não três gráficos achatados.
+  expect_length(externo$patches$plots, 1L)
+  expect_s3_class(externo$patches$plots[[1]], "wrapped_patch")
+  pw <- pw_grob(externo)
+  expect_equal(c(rotulo_grob(pw, "tag-1"), rotulo_grob(pw, "tag-2")), c("A", "B"))
+  # O interno segue intacto dentro da unidade.
+  expect_equal(interno$patches$annotation$title, "INNER")
+  expect_equal(interno$patches$annotation$tag_levels, "a")
+  # O texto em pt desce até os gráficos do painel interno.
+  tam <- function(p, el) ggplot2::calc_element(el, ggplot2::complete_theme(p$theme))$size
+  dentro <- attr(.tr_view_texto(externo, 9)$patches$plots[[1]], "grobs")$full
+  for (i in seq_along(dentro)) expect_equal(tam(dentro[[i]], "axis.text.x"), 0.8 * 9, tolerance = 0.01)
 })
