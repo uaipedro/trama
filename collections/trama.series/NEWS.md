@@ -20,3 +20,13 @@
   tendência; `aTSA::pp.test` (tipo 2) igual a 1e-10 no Z(t) com constante,
   `urca::ur.pp` a menos de 0,5% (normalização de MacKinnon). A `nota` do caso
   com tendência deixou de dizer "sempre".
+
+- `series/zivot_andrews` (versão 2): as defasagens passam a ser escolhidas do
+  geral para o específico, como no artigo (Perron 1989; Zivot & Andrews 1992):
+  do teto para baixo, fica o primeiro k cuja última diferença defasada tem
+  |t| >= 1,645 (10%). Novo parâmetro `selecao` (`t_sig`, padrão, ou `fixa`, o
+  comportamento da versão 1); `defasagens` vira o teto (0 = Schwert 1989,
+  trunc(12·(n/100)^(1/4))). A `nota` e a coluna `defasagens` dizem o k usado.
+  Oráculos: a regressão do corte reproduz `urca::ur.za` a 1e-10; com k = 8 o
+  bloco reproduz Zivot & Andrews (1992) no PNB real (-5,58, 1929) e nominal
+  (-5,82, 1929) de Nelson-Plosser (`urca::nporg`). Muda o resultado padrão.

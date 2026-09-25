@@ -231,7 +231,9 @@ tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
 #' É o segundo bloco da coleção a publicar um ponto localizado na série, depois
 #' do `series/pettitt`, e usa o mesmo `.tr_series_rotulo_em()` para o rótulo.
 #' @export
-tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
+tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
+                                    selecao = "t_sig") {
+  selecao <- .tr_series_enum(selecao, c("t_sig", "fixa"), "selecao")
   mud <- .tr_series_enum(mudanca, c("nível", "inclinação", "ambas"), "mudanca")
   # Eq. 3.35 (nível), 3.36 (inclinação) e 3.37 (ambas) da dissertação, nesta ordem.
   modelo <- switch(mud, "nível" = "intercept", "inclinação" = "trend", "ambas" = "both")
@@ -257,7 +259,6 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   x <- as.numeric(serie)
   n <- length(x)
   k <- .tr_series_int(defasagens, "defasagens", min = 0L)
-  if (k == 0L) k <- as.integer(trunc((n - 1)^(1 / 3)))
   # O `ur.za` ajusta, em CADA corte candidato, uma regressão com intercepto,
   # y_{t-1}, tendência, as k diferenças defasadas e a dummy da quebra — duas
   # dummies no modelo "ambas" —, sobre as n - 1 - k linhas que sobram depois das
@@ -273,13 +274,31 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   # tendência e a(s) dummy(s). Com eles, gl = n - 1 - 2k - fixos, e o maior k que
   # ainda deixa um grau de liberdade sai de gl >= 1.
   fixos <- if (modelo == "both") 5L else 4L
+  k_cabe <- max(0L, (n - 2L - fixos) %/% 2L)
+  if (selecao == "t_sig") {
+    # Teto da busca: o dado, ou a regra de Schwert (1989), trunc(12 (n/100)^(1/4)),
+    # limitada ao que cabe — o teto automático nunca é motivo de erro.
+    kmax <- if (k == 0L) as.integer(trunc(12 * (n / 100)^(1 / 4))) else k
+    if (kmax > k_cabe && k > 0L) {
+      .tr_series_abort("tr_series_error_bad_option",
+                       paste0("Param 'defasagens': %d defasagens não cabem numa série de %d ",
+                              "observações neste modelo — a regressão da quebra ficaria sem ",
+                              "graus de liberdade. O máximo aqui é %d."),
+                       k, n, k_cabe)
+    }
+    sel <- .tr_series_za_gts(x, modelo, min(kmax, k_cabe))
+    k <- sel$k
+    kmax <- sel$kmax
+  } else if (k == 0L) {
+    k <- as.integer(trunc((n - 1)^(1 / 3)))
+  }
   gl <- n - 1L - 2L * k - fixos
   if (gl < 1L) {
     .tr_series_abort("tr_series_error_bad_option",
                      paste0("Param 'defasagens': %d defasagens não cabem numa série de %d ",
                             "observações neste modelo — a regressão da quebra ficaria sem ",
                             "graus de liberdade. O máximo aqui é %d."),
-                     k, n, max(0L, (n - 2L - fixos) %/% 2L))
+                     k, n, k_cabe)
   }
   z <- urca::ur.za(x, model = modelo, lag = k)
   # `z@cval` chega SEM NOMES e na ordem 1%, 5%, 10% — invertida em relação à
@@ -321,8 +340,13 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   # prosa. Os três viram o que se lê em voz alta.
   oque <- switch(mud, "nível" = "nível", "inclinação" = "inclinação",
                  "ambas" = "nível e inclinação")
-  nota <- sprintf("quebra de %s, estimada pelo teste; %d defasagens; %d observações antes da quebra e %d a partir dela",
-                  oque, k, quebra, n - quebra)
+  defs <- if (selecao == "t_sig") {
+    sprintf("%d defasagens, escolhidas do geral para o específico (teto %d, t da última a 10%%)", k, kmax)
+  } else {
+    sprintf("%d defasagens", k)
+  }
+  nota <- sprintf("quebra de %s, estimada pelo teste; %s; %d observações antes da quebra e %d a partir dela",
+                  oque, defs, quebra, n - quebra)
   # A ressalva do excesso de tamanho, e só onde ela vale: medido, a taxa de
   # rejeição sob passeio aleatório fica em torno de 10% a 14% até n = 30 e segue
   # acima do nominal depois — perto de 9% em n = 40 e 7% a 8% em n = 100, na
@@ -358,7 +382,7 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
     fonte = "Zivot & Andrews (1992)",
     # O índice porque é o que se confere contra o `ur.za`; o rótulo porque é o
     # que uma pessoa lê no relatório. Mesmo par do `series/pettitt`.
-    extra = list(quebra = quebra, quando = quando))
+    extra = list(quebra = quebra, quando = quando, defasagens = as.integer(k)))
 }
 
 #' O miolo dos dois testes de ruído branco.
@@ -1092,4 +1116,47 @@ tr_series_fisher <- function(serie, remover = "reta") {
   while (.tr_series_fisher_p(lo, m) < alfa) lo <- lo / 2
   stats::uniroot(function(x) .tr_series_fisher_p(x, m) - alfa,
                  c(lo, hi), tol = 1e-12)$root
+}
+
+#' A regressão do Zivot-Andrews num corte, como o `urca::ur.za` a monta.
+#'
+#' y_t em y_{t-1}, tendência, as k diferenças defasadas e a(s) dummy(s) da
+#' quebra depois da observação `quebra`. Devolve o `lm`.
+#' @noRd
+.tr_series_za_lm <- function(x, modelo, k, quebra) {
+  n <- length(x)
+  d <- data.frame(y = x, y.l1 = c(NA, x)[seq_len(n)], trend = seq_len(n))
+  for (i in seq_len(k)) d[[paste0("y.dl", i)]] <- c(rep(NA, i + 1L), diff(x))[seq_len(n)]
+  if (modelo %in% c("intercept", "both")) d$du <- c(rep(0, quebra), rep(1, n - quebra))
+  if (modelo %in% c("trend", "both")) d$dt <- c(rep(0, quebra), seq_len(n - quebra))
+  stats::lm(y ~ ., data = d)
+}
+
+#' Mínimo do t na janela de 15% a 85%, com k defasagens.
+#' @noRd
+.tr_series_za_janela <- function(x, modelo, k) {
+  n <- length(x)
+  z <- urca::ur.za(x, model = modelo, lag = k)
+  lo <- as.integer(ceiling(0.15 * n))
+  hi <- as.integer(min(floor(0.85 * n), length(z@tstats)))
+  janela <- z@tstats[lo:hi]
+  list(z = z, estat = min(janela, na.rm = TRUE),
+       quebra = as.integer(lo - 1L + which.min(janela)))
+}
+
+#' Escolha de k do geral para o específico (Perron 1989; Zivot & Andrews
+#' 1992, seção 4): parte de `kmax` e, enquanto o t da ÚLTIMA diferença
+#' defasada não for significativo a 10% (|t| < 1,645, normal bilateral), tira
+#' uma. O t é lido na regressão do corte que o próprio teste escolhe com
+#' aquele k. Se nenhuma for significativa, k = 0.
+#' @noRd
+.tr_series_za_gts <- function(x, modelo, kmax) {
+  k <- kmax
+  while (k > 0L) {
+    q <- .tr_series_za_janela(x, modelo, k)$quebra
+    cf <- stats::coef(summary(.tr_series_za_lm(x, modelo, k, q)))
+    if (abs(cf[paste0("y.dl", k), "t value"]) >= stats::qnorm(0.95)) break
+    k <- k - 1L
+  }
+  list(k = as.integer(k), kmax = as.integer(kmax))
 }

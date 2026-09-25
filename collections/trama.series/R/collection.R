@@ -1287,7 +1287,7 @@ pede.
       trama::tr_node("series/zivot_andrews",
         pressupostos = .tr_series_doc("series/zivot_andrews")$pressupostos,
         referencias = .tr_series_doc("series/zivot_andrews")$referencias,
-        fn = tr_series_zivot_andrews,
+        fn = tr_series_zivot_andrews, version = 2L,
         label = "Zivot-Andrews",
         category = "serie_raiz", icon = icone("split"),
         description = "Zivot-Andrews: raiz unitária, com a quebra achada pelo próprio teste?",
@@ -1295,7 +1295,8 @@ pede.
         params = list(
           mudanca = E("ambas", c("nível", "inclinação", "ambas"),
                       label = "O que quebra"),
-          defasagens = I(0L, min = 0L, max = 50L, label = "Defasagens")),
+          defasagens = I(0L, min = 0L, max = 50L, label = "Defasagens"),
+          selecao = E("t_sig", c("t_sig", "fixa"), label = "Escolha das defasagens")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem RAIZ UNITÁRIA admitindo que ela possa ter sofrido uma
 QUEBRA ESTRUTURAL — e achando a data da quebra sozinho.
@@ -1380,11 +1381,26 @@ palavras; a posição da quebra e o rótulo do período vão nas colunas extras.
 p-valor a partir dela seria inventar precisão que o pacote não dá. A decisão a
 5% vem do valor crítico.
 
-**Defasagens**: quantas diferenças defasadas entram na regressão. `0` usa a
-regra de sempre (a raiz cúbica de n - 1). Diferente do `series/adf`, aqui não há
-escolha por AIC: o número vale como foi dado. Defasagem demais numa série curta
-deixa a regressão da quebra sem graus de liberdade, e nesse caso o bloco recusa
-dizendo qual é o máximo — sem isso o `urca` morreria com um erro cru do R.
+**Defasagens**: quantas diferenças defasadas entram na regressão, e como se
+chega ao número — é o que limpa a autocorrelação do erro, e a tabela de
+críticos supõe que ela foi limpa.
+
+- **Escolha das defasagens = t_sig** (padrão desde a versão 2) — a regra do
+  artigo: do geral para o específico (Perron, 1989; Zivot & Andrews, 1992).
+  Parte do teto e, enquanto o t da ÚLTIMA diferença defasada não for
+  significativo a 10% (|t| < 1.645), tira uma; o t é lido na regressão do corte
+  que o teste escolhe com aquele número. **Defasagens** é o teto; `0` usa a
+  regra de Schwert (1989), trunc(12·(n/100)^(1/4)), limitada ao que a série
+  comporta. A `nota` diz quantas ficaram e qual foi o teto.
+- **fixa** — o número vale como foi dado, sem busca; `0` usa a regra da versão
+  1 (a raiz cúbica de n - 1).
+
+Um teto (ou número fixo) grande demais para uma série curta deixa a regressão
+da quebra sem graus de liberdade, e nesse caso o bloco recusa dizendo qual é o
+máximo — sem isso o `urca` morreria com um erro cru do R.
+
+Com k = 8 fixo, o bloco reproduz o artigo no PNB real de Nelson e Plosser
+(1909-1970, em log, `urca::nporg`), modelo de nível: t = -5.58, quebra em 1929.
 
 ### Precisa de série, e de série que chegue
 
