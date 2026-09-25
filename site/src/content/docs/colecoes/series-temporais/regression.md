@@ -43,14 +43,31 @@ Em ambos, o componente sazonal devolvido é centrado em zero e a tendência
 absorve a média — senão a mesma série daria duas decomposições diferentes por
 causa de uma escolha de leitura.
 
+### Erro autocorrelacionado
+
+O padrão (**Erro = independente**) é mínimos quadrados ordinários, que supõe
+erros independentes. Em série temporal o erro quase sempre é autocorrelacionado,
+e aí os erros-padrão saem pequenos demais e os p-valores — dos coeficientes e dos
+três F — OTIMISTAS. Confira: `series/component` (`resto`) → `series/ljung_box`.
+
+**Erro = arma** ajusta a mesma regressão por mínimos quadrados generalizados com
+erro ARMA(p, q) (`nlme::gls` com `corARMA`, por máxima verossimilhança), com
+**Ordem AR do erro** = p e **Ordem MA do erro** = q; AR(1) é o ponto de partida
+usual. Os coeficientes passam a ser os do GLS, e os três F viram testes de Wald
+com a covariância do GLS (a `nota` do teste diz). Medido sem tendência nenhuma e
+com erro AR(1) de phi = 0.6 (n = 120, 300 réplicas), o F de tendência rejeita a
+5% em 37% das vezes por MQO e em 8% pelo GLS; com phi = 0.9 são 69% e 17% — perto
+da raiz unitária o GLS melhora muito, mas ainda passa do nominal, e o caminho é
+diferenciar a série; quando o AR estimado tem raiz inversa de 0.9 ou mais, o
+bloco avisa e a `nota` dos F diz. Série que o modelo reproduz sem resíduo é
+recusada (não há erro a modelar). O R² e o F do `summary` do MQO não existem no GLS: o card
+mostra o resumo do `gls`.
+
 ### Limites
 
 O bloco não aceita faltantes, e sazonalidade pede frequência maior que 1. Grau 0
 com sazonalidade desligada não tem o que estimar, e para o nó em vermelho. A
 entrada **regressor** está declarada mas ainda não é usada.
-
-O modelo supõe erro sem autocorrelação, e série temporal quase nunca obedece:
-confira o resto com `series/ljung_box` antes de levar os p-valores a sério.
 
 As potências do tempo são cruas (`t`, `t²`, `t³`) e fortemente
 correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
@@ -73,6 +90,9 @@ Estime tendência e sazonalidade por regressão para obter coeficientes, medidas
 - **Grau da tendência** — 0 (sem tendência) a 3.
 - **Sazonalidade** — inclui as dummies de período.
 - **Contraste** — `soma_zero` ou `categoria_base`.
+- **Erro** — `independente` (MQO, padrão) ou `arma` (GLS com erro ARMA).
+- **Ordem AR do erro** e **Ordem MA do erro** — p e q do erro ARMA, de 0 a 3
+  (não os dois zero). Só valem com `arma`.
 
 ## Exemplo
 

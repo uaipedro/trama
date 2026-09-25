@@ -31,12 +31,12 @@ e não sabe qual, usa este.
 ELE ESTEJA, e nem todo pico é estação. Cinco séries do R, medidas:
 
 ```
-série            n      g       zα (5%)   p            período do pico
-AirPassengers   72   0.5017    0.0974    2.392e-20     12 observações
-UKgas           54   0.5531    0.1235    1.566e-17      4 observações
-nottem         120   0.9130    0.0633    7.636e-125    12 observações
-lh              24   0.2344    0.2354    5.158e-02      8 observações
-Nile            50   0.1781    0.1315    3.356e-03    100 observações
+série            m      g       zα (5%)   p            período do pico
+AirPassengers   71   0.5019    0.0984    4.627e-20     12 observações
+UKgas           53   0.5531    0.1252    3.434e-17      4 observações
+nottem         119   0.9140    0.0636    2.268e-124    12 observações
+lh              23   0.2357    0.2432    6.193e-02      8 observações
+Nile            49   0.1833    0.1335    2.944e-03    100 observações
 ```
 
 O `Nile` REJEITA — e não tem sazonalidade nenhuma. Olhe o período: 100
@@ -47,10 +47,20 @@ da série: poucas observações por ciclo e muitos ciclos, como os 12 do
 `AirPassengers`. O primeiro período da grade, N, é justamente o contrário — um
 ciclo só, que é tendência e não estação —, e é nele que o `Nile` caiu.
 
-Em série de tamanho par a grade inclui ainda o último período, de duas
-observações. Ele entra na soma do g como os outros; tirá-lo não muda a decisão
-no `lh`, o caso mais apertado da tabela (o p vai de 0.052 para 0.062, e segue
-sem rejeitar).
+`m` é o número de ordenadas que entram no g: as m = (N − 1) ÷ 2 (inteiro)
+frequências de Fourier, sem a frequência zero e sem a de Nyquist — em série de
+tamanho par, o período de duas observações fica de fora, porque a ordenada dele
+tem metade dos graus de liberdade das outras e a distribuição de g supõe todas
+iguais (Fisher, 1929). Até a versão 1 do bloco ela entrava na soma.
+
+### Remover antes
+
+- **reta** (padrão) — tira uma reta de mínimos quadrados antes do
+  periodograma, como na dissertação. É o teste de Fisher aplicado aos resíduos
+  da reta, e evita que uma tendência linear vire o maior pico.
+- **media** — tira só a média: a formulação original de Fisher (1929) e a de
+  `GeneCycle::fisher.g.test`. No `AirPassengers` o pico passa a ser o período
+  de 144 observações — a tendência —, e a `nota` avisa.
 
 Por isso o bloco publica o PERÍODO junto com o veredito, e a `nota` avisa em voz
 alta quando o pico não se repete ao menos duas vezes. Um "há periodicidade" lido
@@ -68,13 +78,14 @@ coincidem. Junto vai quantas vezes o ciclo cabe na série — 12 no
 
 ### O corte da dissertação e o p-valor
 
-A dissertação decide comparando o **g** com o valor crítico zα = 1 - (α/n)^(1/(n-1))
-(eq. 3.42), rejeitando quando o g passa de zα. Este bloco emite um p-valor de
-verdade — o primeiro termo da série exata de Fisher — para que os três pontos do
-card funcionem como em todo outro teste da coleção. As duas regras são A MESMA,
-escrita de dois jeitos: nas cinco séries acima elas concordam, inclusive no caso
-apertado do `lh`, onde o g fica logo ABAIXO de zα e o p-valor fica logo ACIMA de
-5%, e as duas não rejeitam. Para que a comparação da dissertação possa ser
+A dissertação decide comparando o **g** com o valor crítico
+zα = 1 - (α/m)^(1/(m-1)) (eq. 3.42), rejeitando quando o g passa de zα. Essa
+fórmula é o PRIMEIRO termo da distribuição exata de Fisher (1929), e é exata só
+quando o crítico passa de 1/2; abaixo disso ela é conservadora. O bloco usa a
+distribuição exata inteira, nos dois lados: o p-valor é a soma completa, e o zα
+publicado é o quantil exato a 5% dela. As duas regras são, então, A MESMA por
+construção: nas cinco séries acima elas concordam, inclusive no caso apertado
+do `lh`, onde o g fica ABAIXO de zα e o p-valor ACIMA de 5%. Para que a comparação da dissertação possa ser
 conferida direto no card, o zα sai publicado como o valor crítico a 5%, ao lado
 do p-valor.
 
@@ -112,7 +123,10 @@ Procure periodicidade em uma série quando o ciclo não estiver especificado pre
 
 ## Configuração
 
-Nenhum. Uma entrada: **serie**.
+- **Remover antes** — `reta` (padrão) ou `media`: o que sai da série antes do
+  periodograma.
+
+Uma entrada: **serie**.
 
 ## Exemplo
 

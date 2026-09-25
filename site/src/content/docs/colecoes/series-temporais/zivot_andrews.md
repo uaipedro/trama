@@ -32,7 +32,7 @@ em torno de seis — estacionária dos dois lados, com um degrau no meio:
 ```
 bloco                     estatística   decisão a 5%   conclusão
 series/adf                     -1.57    não rejeita    não há evidência contra a raiz unitária
-series/zivot_andrews          -11.00    rejeita        estacionária, quebra na obs. 60
+series/zivot_andrews          -14.21    rejeita        estacionária, quebra na obs. 60
 ```
 
 O ADF erra a pergunta inteira; este acha o degrau na observação exata em que
@@ -94,11 +94,38 @@ palavras; a posição da quebra e o rótulo do período vão nas colunas extras.
 p-valor a partir dela seria inventar precisão que o pacote não dá. A decisão a
 5% vem do valor crítico.
 
-**Defasagens**: quantas diferenças defasadas entram na regressão. `0` usa a
-regra de sempre (a raiz cúbica de n - 1). Diferente do `series/adf`, aqui não há
-escolha por AIC: o número vale como foi dado. Defasagem demais numa série curta
-deixa a regressão da quebra sem graus de liberdade, e nesse caso o bloco recusa
-dizendo qual é o máximo — sem isso o `urca` morreria com um erro cru do R.
+**Defasagens**: quantas diferenças defasadas entram na regressão, e como se
+chega ao número — é o que limpa a autocorrelação do erro, e a tabela de
+críticos supõe que ela foi limpa.
+
+- **Escolha das defasagens = t_sig** (padrão) — a regra do artigo: do geral
+  para o específico (Perron, 1989; Zivot & Andrews, 1992), EM CADA CORTE. Para
+  cada data candidata, parte do teto e, enquanto o t da ÚLTIMA diferença
+  defasada não for significativo a 10% (|t| < 1.645), tira uma; o t da raiz
+  unitária daquele corte é o da regressão com o número que sobrou, e o teste é
+  o menor t entre os cortes. **Defasagens** é o teto; `0` usa a regra de
+  Schwert (1989), trunc(12·(n/100)^(1/4)), limitada ao que a série comporta. A
+  `nota` diz quantas ficaram no corte vencedor e qual foi o teto. (Na versão 2
+  o corte era escolhido primeiro e o número depois, só nele; a versão 3 segue
+  o artigo.)
+- **fixa** — o número vale como foi dado, sem busca, e `0` é zero defasagens
+  (na versão 2, `0` caía na raiz cúbica de n - 1).
+
+O preço da regra do artigo é o nível em amostra finita: a busca em cada corte
+escolhe, entre muitos k, o que mais favorece a rejeição. Medido sob passeio
+aleatório (modelo de nível, 300 réplicas), `t_sig` rejeita a 5% em 31% das
+vezes com 30 observações, 27% com 50 e 13% com 100; `fixa` com a raiz cúbica
+de n - 1 defasagens, em 10%, 6% e 5%. Abaixo de 100 observações a `nota`
+avisa, e o resultado deve ser conferido com `fixa`.
+
+Um teto (ou número fixo) grande demais para uma série curta deixa a regressão
+da quebra sem graus de liberdade, e nesse caso o bloco recusa dizendo qual é o
+máximo — sem isso o `urca` morreria com um erro cru do R.
+
+Com k = 8 fixo, no PNB de Nelson e Plosser (1909-1970, em log,
+`urca::nporg`), modelo de nível, o bloco dá t = -5.576 (real) e -5.824
+(nominal), quebra em 1929 — iguais ao `urca::ur.za`, e aos -5.58 e -5.82
+citados de Zivot e Andrews (1992), que não foram conferidos no PDF do artigo.
 
 ### Precisa de série, e de série que chegue
 
@@ -133,8 +160,9 @@ Teste raiz unitária permitindo uma quebra estrutural única cuja posição é e
 
 - **O que quebra** — `nível`, `inclinação` ou `ambas`; muda a regressão e a
   tabela de valores críticos junto.
-- **Defasagens** — quantas diferenças defasadas entram; `0` para a regra
-  automática.
+- **Defasagens** — com `t_sig`, o teto da busca (`0` = regra de Schwert);
+  com `fixa`, o número usado (`0` = nenhuma).
+- **Escolha das defasagens** — `t_sig` (padrão) ou `fixa`.
 
 ## Exemplo
 
