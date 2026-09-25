@@ -2639,6 +2639,35 @@ function App() {
     }, 1000);
     return () => clearInterval(id);
   }, []);
+  // O bloco novo pode nascer fora da tela (um vão bem abaixo de um gráfico
+  // alto, uma cadeia de Tab que passa da borda direita). Anda o mínimo pra
+  // trazê-lo inteiro, com margem, sem mexer no zoom. Já visível, ou com o
+  // usuário arrastando a tela agora, não mexe. Devolve o deslocamento em
+  // pixels de tela (o popover encadeado soma isso pra ficar ao lado do card).
+  const panUsuarioRef = useRef(false), panProprioRef = useRef(null);
+  const mostrarBloco = (pos, hBloco, folgaDir = 0) => {
+    const box = wrapRef.current?.getBoundingClientRect();
+    if (!box || panUsuarioRef.current) return { dx: 0, dy: 0 };
+    // Tab rápido: a andada anterior ainda anima; parte do destino dela.
+    const vp = panProprioRef.current ?? rf.getViewport();
+    const ax = box.left + vp.x + pos.x * vp.zoom, ay = box.top + vp.y + pos.y * vp.zoom;
+    const bx = ax + MIN_W * vp.zoom + folgaDir, by = ay + hBloco * vp.zoom;
+    const M = 48;
+    const eixo = (lo, hi, min, max) => {
+      if (lo >= min + M && hi <= max - M) return 0;
+      if (hi - lo > max - min - 2 * M || lo < min + M) return min + M - lo;
+      return max - M - hi;
+    };
+    const dx = eixo(ax, bx, box.left, box.right), dy = eixo(ay, by, box.top, box.bottom);
+    const atual = rf.getViewport();
+    const alvo = { x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom };
+    if (!dx && !dy) return { dx: alvo.x - atual.x, dy: alvo.y - atual.y };
+    panProprioRef.current = alvo;
+    Promise.resolve(rf.setViewport(alvo, { duration: 300 }))
+      .finally(() => setTimeout(() => { if (panProprioRef.current === alvo) panProprioRef.current = null; }, 50));
+    // Deslocamento de tela entre o viewport de agora e o final.
+    return { dx: alvo.x - atual.x, dy: alvo.y - atual.y };
+  };
   const inserirProximo = (tipoId, porta, { encadear, saida: saidaMeio } = {}) => {
     const p = prox; if (!p) return;
     if (p.modo === "meio") {
@@ -2668,6 +2697,7 @@ function App() {
       // Com inserts encadeados na fila (ou o último ainda em voo), este entra
       // atrás deles: sair antes mandaria uma revisão que eles tornam defasada.
       enviarProx(opsMeio, nid, { pos: pm, h: hMeio });
+      mostrarBloco(pm, hMeio);
       registrar(p.deTipo, tipoId);
       selNovoRef.current = nid;
       return;
@@ -2709,8 +2739,12 @@ function App() {
     selNovoRef.current = nid;
     const spec = cat.nodes.find((x) => x.id === tipoId);
     const saida = spec?.outputs?.[0];
+    // Encadeando, sobra lugar à direita pro popover que reabre ao lado.
+    const d = mostrarBloco(pos, hNovo, encadear ? 360 : 0);
     if (encadear && saida) {
-      const tela = rf.flowToScreenPosition({ x: pos.x + MIN_W, y: pos.y + 40 });
+      // Posição de tela já no viewport final (depois da andada).
+      const t0 = rf.flowToScreenPosition({ x: pos.x + MIN_W, y: pos.y + 40 });
+      const tela = { x: t0.x + d.dx, y: t0.y + d.dy };
       setProx({ de: nid, deTipo: tipoId, pos: { ...pos }, porta: saida.name, tipo: saida.type,
                 presentes: [...presentes, tipoId],
                 x: tela.x + 8, y: tela.y });
@@ -3557,7 +3591,14 @@ function App() {
           : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
         onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
         onPaneClick: () => { setMenu(null); setMenuAcoes(false); }, onNodeClick: () => setMenu(null),
-        onMoveStart: () => { setMenu(null); setProx(null); },
+        // A andada automática até o bloco novo não fecha o popover encadeado;
+        // um arrasto do usuário fecha e, enquanto dura, trava a andada.
+        onMoveStart: (ev) => {
+          if (panProprioRef.current && !ev) return;
+          if (ev) panUsuarioRef.current = true;
+          setMenu(null); setProx(null);
+        },
+        onMoveEnd: () => { panUsuarioRef.current = false; },
         // Gestos: arrastar no vazio (botão principal ou do meio, ou com espaço)
         // ANDA pela tela; Shift + arrasto desenha a caixa de seleção, e
         // Shift+clique soma à seleção. A roda dá zoom; Ctrl+roda rola a tela,
