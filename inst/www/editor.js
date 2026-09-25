@@ -1198,6 +1198,58 @@ function TemplateDialog({ quantos, destinoPadrao, conflito, enviando, onSave, on
     ]));
 }
 
+// Painel de templates: o que as coleções trazem, a biblioteca pessoal e os do
+// projeto, nessa ordem — do mais genérico ao mais local. A lista vem do
+// servidor (`tr_template_list`), pedida a cada abertura: um template salvo em
+// outra janela, ou largado à mão na pasta, aparece sem recarregar.
+// Clique insere no centro da tela; arrastar solta onde o mouse estiver. O
+// `arquivo` que viaja é o caminho que o próprio servidor listou, e ele recusa
+// qualquer outro (ver `tr_template_insert`).
+const SECOES_TEMPLATE = [
+  { escopo: "colecao", titulo: "Coleções" },
+  { escopo: "biblioteca", titulo: "Minha biblioteca" },
+  { escopo: "projeto", titulo: "Projeto" },
+];
+function TemplatesPanel({ templates, onInsert, onClose }) {
+  return h("aside", { className: "tr-frames tr-templates" }, [
+    h("div", { key: "hd", className: "tr-help-head" }, [
+      h("strong", { key: "t" }, "Templates"),
+      h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
+                    onClick: onClose }, "×"),
+    ]),
+    h("div", { key: "b", className: "tr-frames-body" }, templates === null
+      ? h("p", { className: "tr-frames-empty" }, "carregando…")
+      : SECOES_TEMPLATE.map((sec) => {
+          const itens = templates.filter((t) => t.escopo === sec.escopo);
+          return h("section", { key: sec.escopo, className: "tr-tpl-secao" }, [
+            h("h4", { key: "h" }, sec.titulo),
+            ...(itens.length ? itens.map((t) => h("div", {
+              key: t.arquivo, role: "button", tabIndex: 0, draggable: true,
+              className: "tr-frames-item tr-tpl-item",
+              title: "clique para inserir no centro; arraste para soltar no canvas",
+              onClick: () => onInsert(t.arquivo),
+              // Mesmo trato do item do painel de frames: Espaço é a tecla de
+              // andar pela tela, e não pode escapar até o `window`.
+              onKeyDown: (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault(); e.stopPropagation();
+                onInsert(t.arquivo);
+              },
+              onDragStart: (e) => {
+                e.dataTransfer.setData("application/trama-template", t.arquivo);
+                e.dataTransfer.effectAllowed = "copy";
+              },
+            }, [
+              h("span", { key: "n", className: "tr-tpl-nome" }, t.nome),
+              t.descricao ? h("span", { key: "d", className: "tr-tpl-desc" }, t.descricao) : null,
+            ])) : [h("p", { key: "v", className: "tr-frames-empty" },
+                    sec.escopo === "colecao" ? "Nenhuma coleção carregada traz templates."
+                      : "Selecione blocos e use Salvar como template.")]),
+          ]);
+        })),
+  ]);
+}
+
 // Nome de arquivo a partir do nome do template, como `.tr_slug` no R.
 const slugArquivo = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "template";
@@ -1275,6 +1327,8 @@ function App() {
   // `ids` é fixado ao abrir — clicar no canvas atrás não é possível (overlay),
   // mas o retrato evita depender disso.
   const [templateDlg, setTemplateDlg] = useState(null);
+  const [painelTemplates, setPainelTemplates] = useState(false);
+  const [templates, setTemplates] = useState(null); // lista do servidor; null = ainda não veio
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [opcoesFrame, setOpcoesFrame] = useState(false);
   // Clique fora fecha os popovers da toolbar; dentro deles ou no botão que os
@@ -1531,7 +1585,7 @@ function App() {
   const ajuda = () => {
     if (helpFor || painelAtalhos) { setHelpFor(null); setPainelAtalhos(false); return; }
     const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
-    setPainelFrames(false); setPainelConfig(false);
+    setPainelFrames(false); setPainelConfig(false); setPainelTemplates(false);
     if (sel.length === 1) setHelpFor(sel[0].data.nodeType);
     else setPainelAtalhos(true);
   };
@@ -1855,6 +1909,7 @@ function App() {
         }
         return;
       }
+      if (m.type === "templates") { setTemplates(m.templates || []); return; }
       if (m.type === "template_conflict") {
         setTemplateDlg((d) => d && { ...d, conflito: { nome: m.nome, destino: d.destino }, enviando: false });
         return;
@@ -1949,6 +2004,11 @@ function App() {
   // Ferramenta "I" ativada: pede a lista de novo, pelo mesmo motivo do
   // comentário acima de `imagens` — é o gesto mais provável de precisar dela
   // fresca (alguém acabou de largar um arquivo em `imagens/` pra usar agora).
+  // Painel de templates: lista fresca a cada abertura (ver `TemplatesPanel`).
+  useEffect(() => {
+    if (painelTemplates) sendInput("tr_template_list", { seq: ++seqCounter });
+  }, [painelTemplates]);
+
   useEffect(() => {
     if (ferramenta === "imagem") sendInput("tr_list_imagens", { seq: ++seqCounter });
   }, [ferramenta]);
@@ -2297,6 +2357,16 @@ function App() {
 
   const onDrop = useCallback((ev) => {
     ev.preventDefault();
+    // Item do painel de templates: vem antes dos arquivos porque nem é
+    // arquivo — é o caminho que o servidor listou.
+    const arqTpl = ev.dataTransfer.getData("application/trama-template");
+    if (arqTpl) {
+      ev.stopPropagation();
+      const p = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      sendInput("tr_template_insert", { seq: ++seqCounter, arquivo: arqTpl,
+                                        x: Math.round(p.x), y: Math.round(p.y) });
+      return;
+    }
     const t = ev.dataTransfer.getData("application/trama-type");
     if (t) { addAt(t, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })); return; }
     // Arquivo do SO (não o drag interno da paleta, tratado acima). Soltar
@@ -3018,7 +3088,7 @@ function App() {
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
-  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos ? "tr-app-help" : "",
+  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "",
                                 abrindo || templateDlg ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
@@ -3178,6 +3248,14 @@ function App() {
             onSave: (m) => sendInput("tr_themes", { temas: m.temas, tema_padrao: m.tema_padrao,
                                                     marca: m.marca, seq: Date.now() }),
             onClose: () => setPainelConfig(false) })
+      : painelTemplates
+        ? h(TemplatesPanel, { key: "templates", templates,
+            onInsert: (arquivo) => {
+              const p = centroDaTela();
+              sendInput("tr_template_insert", { seq: ++seqCounter, arquivo,
+                                                x: Math.round(p.x), y: Math.round(p.y) });
+            },
+            onClose: () => setPainelTemplates(false) })
       : painelFrames
         ? h(FramePanel, { key: "frames", frames: framesOrd, exportando,
             onGo: (id) => irAoFrame(framesOrd.findIndex((x) => x.id === id)),
@@ -3232,7 +3310,10 @@ function App() {
       h("span", { key: "s2", className: "tr-toolbar-sep", "aria-hidden": true }),
       h(BotaoIcone, { key: "fp", icone: "slides", rotulo: "Painel de frames", on: painelFrames,
                       onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
-                                       setPainelFrames((v) => !v); } }),
+                                       setPainelTemplates(false); setPainelFrames((v) => !v); } }),
+      h(BotaoIcone, { key: "tpl", icone: "template", rotulo: "Templates", on: painelTemplates,
+                      onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
+                                       setPainelFrames(false); setPainelTemplates((v) => !v); } }),
       h(BotaoIcone, { key: "aj", icone: "ajuda", rotulo: "Ajuda e atalhos", dica: dica("ajuda"),
                       on: painelAtalhos || !!helpFor, onClick: ajuda }),
       h(BotaoIcone, { key: "more", icone: "mais", rotulo: "Mais ações", on: menuAcoes,
@@ -3259,7 +3340,7 @@ function App() {
                                  { value: "escuro", label: "☾", title: "tema escuro" }] })),
       h("button", { key: "cfg", className: "tr-pop-item" + (painelConfig ? " tr-on" : ""),
                     onClick: () => { setHelpFor(null); setPainelFrames(false); setPainelAtalhos(false);
-                                     setPainelConfig((v) => !v); } },
+                                     setPainelTemplates(false); setPainelConfig((v) => !v); } },
         [h(Icone, { key: "i", nome: "config" }), h("span", { key: "t" }, "Configurações")]),
       h("button", { key: "u", className: "tr-pop-item", onClick: desfazer, title: dica("desfazer") },
         [h(Icone, { key: "i", nome: "desfazer" }), h("span", { key: "t" }, "Desfazer")]),
