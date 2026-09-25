@@ -1,3 +1,5 @@
+import { PAPEIS } from "./papeis.js";
+
 // Ranking do "próximo bloco". Módulo puro (sem React), pelo mesmo motivo de
 // `modos.js`: `editor.js` não carrega sob `node --test`.
 //
@@ -47,12 +49,54 @@ export function relacionados(spec) {
 
 const colecao = (id) => id.split("/")[0];
 
+// Fração de `n` de cada destino entre as transições filtradas, por chave.
+function fracoes(pares, chaveDe) {
+  const soma = {};
+  let total = 0;
+  for (const t of pares) {
+    const k = chaveDe(t);
+    if (k == null) continue;
+    soma[k] = (soma[k] || 0) + (t.n || 0);
+    total += t.n || 0;
+  }
+  return total ? (k) => (soma[k] || 0) / total : () => 0;
+}
+
+// Transição: as observadas a partir do próprio bloco de origem. Sem nenhuma,
+// back-off para categoria -> categoria (agregando os blocos das duas pontas),
+// valendo metade, porque é evidência mais fraca.
+function pontoTransicao(cat, byId, de) {
+  const ts = cat.transitions || [];
+  const diretas = ts.filter((t) => t.from === de);
+  if (diretas.length) {
+    const f = fracoes(diretas, (t) => t.to);
+    return (spec) => f(spec.id);
+  }
+  const deCat = byId[de]?.category;
+  if (deCat == null) return () => 0;
+  const f = fracoes(ts.filter((t) => byId[t.from]?.category === deCat),
+                    (t) => byId[t.to]?.category);
+  return (spec) => 0.5 * f(spec.category);
+}
+
+// Papel pela mesma regra de `papeis.js`: o do bloco vence o da categoria.
+const papel = (catPorId, spec) =>
+  [spec.role, catPorId[spec.category]?.role].find((p) => PAPEIS.includes(p)) || null;
+
 export function sugerir(cat, ctx) {
-  const { de, tipo } = ctx;
+  const { de, tipo, presentes = [], historico = {} } = ctx;
   const byId = Object.fromEntries((cat.nodes || []).map((n) => [n.id, n]));
+  const catPorId = Object.fromEntries((cat.categories || []).map((c) => [c.id, c]));
   const ordem = ordemCat(cat);
   const origem = byId[de];
   const rel = new Set(relacionados(origem));
+  const trans = pontoTransicao(cat, byId, de);
+  const hist = fracoes(
+    Object.entries(historico || {}).filter(([k]) => k.startsWith(`${de}>`))
+      .map(([k, n]) => ({ to: k.slice(de.length + 1), n })),
+    (t) => t.to);
+  const presentesSet = new Set(presentes);
+  const citadosNoFluxo = new Set(presentes.flatMap((id) => relacionados(byId[id])));
   return aceitantes(cat, tipo).map((a) => {
     const motivos = {};
     if (origem) {
@@ -61,6 +105,16 @@ export function sugerir(cat, ctx) {
       if (e) motivos.etapa = e * PESOS.etapa;
     }
     if (rel.has(a.id)) motivos.relacionado = PESOS.relacionado;
+    const t = trans(a.spec);
+    if (t) motivos.transicao = t * PESOS.transicao;
+    const h = hist(a.id);
+    if (h) motivos.historico = h * PESOS.historico;
+    // Contexto: um segundo bloco de análise igual raramente faz sentido (uma
+    // segunda `anova`), mas preparação repete à vontade.
+    let c = 0;
+    if (presentesSet.has(a.id) && papel(catPorId, a.spec) !== "preparacao") c -= 1;
+    if (citadosNoFluxo.has(a.id)) c += 0.5 * PESOS.contexto;
+    if (c) motivos.contexto = c;
     const score = Object.values(motivos).reduce((s, v) => s + v, 0);
     return { id: a.id, porta: a.porta, score, motivos };
   }).sort((x, y) => y.score - x.score || x.id.localeCompare(y.id));
