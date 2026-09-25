@@ -20,7 +20,9 @@
 #' @export
 tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store = NULL,
                     settings = NULL) {
-  doc <- .tr_as_doc(doc)
+  # Flow salvo com params de uma versão velha do nó roda migrado — no-op pro
+  # documento já atual (ver `migrate.R`).
+  doc <- tr_doc_migrate(.tr_as_doc(doc), registry)
   targets <- targets %||% tr_doc_terminals(doc)
   by_target <- list()
   for (t in doc$edges) by_target[[t$to$node]] <- c(by_target[[t$to$node]], list(t))

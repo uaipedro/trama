@@ -151,6 +151,7 @@ tr_template_op <- function(tpl, origin = c(0, 0)) {
     n <- d$nodes[[id]]; pos <- d$ui$positions[[id]] %||% c(0, 0)
     ops[[length(ops) + 1]] <- list(op = "add_node", id = novo[[id]], type = n$type, label = n$label,
                                    params = .tr_empty_obj(n$params), seed = n$seed,
+                                   type_version = n$type_version,
                                    position = at(pos[[1]], pos[[2]]))
     # `sizes` guarda o vetor c(w, h), e `resize` o recebe em `w`/`h`.
     sz <- d$ui$sizes[[id]]

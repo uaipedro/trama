@@ -53,13 +53,19 @@ tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
 #' `pressupostos` e `referencias` são listas de [tr_pressuposto()] e
 #' [tr_ref()]: campos genéricos (o núcleo não sabe o que é normalidade), que o
 #' catálogo publica para a ajuda do editor e o site mostrarem igual.
+#'
+#' `migracoes` leva flows salvos com params antigos à versão atual: uma função
+#' `function(params) params` por versão de DESTINO, nomeada pelo número —
+#' `list(`3` = function(p) { p$confianca <- p$nivel; p$nivel <- NULL; p })`.
+#' Ver [tr_doc_migrate()].
 #' @export
 tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),
                     params = list(), pure = TRUE, fingerprint = NULL,
                     volatile = FALSE, stochastic = FALSE, icon = NULL,
                     init = NULL, step = NULL, role = NULL,
-                    pressupostos = list(), referencias = list()) {
+                    pressupostos = list(), referencias = list(),
+                    migracoes = list()) {
   .tr_check_id(id, "id de nó")
   if (!is.null(role)) .tr_check_role(role, sprintf("Nó '%s'", id))
 
@@ -215,6 +221,11 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
   # recalculam a condição por conta própria.
   stochastic <- isTRUE(stochastic) || .tr_wants_seed(fn) || .tr_wants_seed(step)
 
+  # Migrações de params (ver `migrate.R`): checadas aqui, na declaração, pelo
+  # mesmo motivo de `init`/`step` — uma chave errada só apareceria ao abrir um
+  # flow velho, longe da coleção que a escreveu.
+  migracoes <- .tr_check_migracoes(migracoes, as.integer(version), id)
+
   structure(list(
     id = id, fn = fn, version = as.integer(version), label = label %||% id,
     description = description, help = help, category = category,
@@ -222,7 +233,8 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     pure = isTRUE(pure), fingerprint = fingerprint,
     volatile = isTRUE(volatile), stochastic = stochastic, icon = icon,
     init = init, step = step, online = online, role = role,
-    pressupostos = pressupostos, referencias = referencias
+    pressupostos = pressupostos, referencias = referencias,
+    migracoes = migracoes
   ), class = "tr_node")
 }
 

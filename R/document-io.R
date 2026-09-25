@@ -111,9 +111,17 @@ tr_doc_read <- function(path) tr_doc_parse(paste(readLines(path, warn = FALSE), 
 #' o usuário veja o que falta em vez de receber um documento que não abre.
 #' @export
 tr_doc_validate <- function(doc, registry = .tr_default_registry) {
+  # Valida o documento como ele vai RODAR: o que tem migração declarada não é
+  # deriva nem param desconhecido (`tr_plan()` migra do mesmo jeito). Falha de
+  # migração vira problema do nó, e não aborto da validação inteira.
   doc <- .tr_as_doc(doc)
+  mig_err <- NULL
+  doc <- tryCatch(tr_doc_migrate(doc, registry), tr_error_migration = function(e) {
+    mig_err <<- e; doc
+  })
   problems <- list()
   add <- function(kind, ...) problems[[length(problems) + 1]] <<- c(list(kind = kind), list(...))
+  if (!is.null(mig_err)) add("migration_failed", node = mig_err$node, message = conditionMessage(mig_err))
 
   for (id in names(doc$nodes)) {
     n <- doc$nodes[[id]]

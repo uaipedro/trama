@@ -200,6 +200,14 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   if (!is.null(doc$nodes[[id]])) {
     rlang::abort(sprintf("Id de nó já existe: '%s'.", id), class = "tr_error_duplicate_id")
   }
+  # Template (ou op) gravado numa versão velha do nó traz `type_version`: os
+  # params sobem pela cadeia de migração ANTES da checagem de desconhecidos,
+  # senão o renome de um param recusaria o template inteiro.
+  if (!is.null(op$type_version)) {
+    migrados <- .tr_migrate_params(spec, op$params, op$type_version, node = id)
+    if (!is.null(migrados)) op$params <- migrados
+    op$type_version <- NULL
+  }
   unknown <- setdiff(names(op$params %||% list()), names(spec$params))
   if (length(unknown) > 0) {
     rlang::abort(sprintf("Param desconhecido em '%s': %s.", op$type, paste(unknown, collapse = ", ")),

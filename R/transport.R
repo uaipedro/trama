@@ -146,6 +146,13 @@ tr_server <- function(project, flow = "main",
     # Erro de GESTO (caminho que não existe, coleção que falta, pasta ocupada)
     # não é bug do servidor: vira aviso na tela e o estado fica como estava. O
     # valor devolvido é como o chamador sabe que não deve seguir adiante.
+    # Flow aberto com nó de versão velha já chega migrado de
+    # `tr_project_flow()`; o usuário precisa ver que os params mudaram.
+    avisar_migracoes <- function(doc) {
+      txt <- .tr_migracoes_texto(attr(doc, "migracoes"))
+      if (length(txt)) send("warning", list(message = paste(txt, collapse = " ")))
+    }
+
     avisar <- function(valor = NULL) function(e) {
       send("warning", list(message = conditionMessage(e)))
       valor
@@ -212,6 +219,7 @@ tr_server <- function(project, flow = "main",
       enviar_temas()
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
                             problems = tr_doc_validate(doc, novo$registry)))
+      avisar_migracoes(doc)
       run_now(doc)
     }
 
@@ -228,6 +236,7 @@ tr_server <- function(project, flow = "main",
       log      <<- list()
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
                             problems = tr_doc_validate(doc, rv_project()$registry)))
+      avisar_migracoes(doc)
       run_now(doc)
     }, once = TRUE)
 
