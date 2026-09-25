@@ -15,6 +15,21 @@ export { moverFoco };
 
 const MARGEM = 8;
 
+// Altura típica do card recém-criado, pelo modo com que ele entra: ainda não
+// foi medido, e supor baixo demais faz o bloco nascer por cima do vizinho.
+export const alturaNova = (modo) => (modo === "completo" ? 360 : modo === "mini" ? 80 : 220);
+
+// Primeiro `y` livre para o retângulo `q`, descendo a partir de `q.y`: a cada
+// card que bate (retângulos com `margem` de folga), o candidato vai para logo
+// abaixo dele. Nunca sobe e nunca pula um vão que caiba.
+export function primeiroVao(caixas, q, margem = 30) {
+  let y = q.y;
+  const bate = (c) => q.x < c.x + c.w + margem && c.x < q.x + q.w + margem &&
+    y < c.y + c.h + margem && c.y < y + q.h + margem;
+  for (let i = 0, c; i < 200 && (c = caixas.find(bate)); i++) y = c.y + c.h + margem;
+  return y;
+}
+
 // Mesma regra da paleta (editor.js): `label description id`, sem caixa.
 const casa = (n, termo) =>
   !termo || `${n.label} ${n.description || ""} ${n.id}`.toLowerCase().includes(termo);

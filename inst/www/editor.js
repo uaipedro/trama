@@ -27,7 +27,7 @@ import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
-import { Proximo } from "./proximo.js";
+import { Proximo, primeiroVao, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 
@@ -300,6 +300,8 @@ function md(text) {
 // estilo aceitaria.
 const GRID = 16;
 const MIN_W = 240, MIN_H = 132;
+// Quanto um insert encadeado espera, na fila, a origem voltar do servidor.
+const FILA_PROX_PRAZO = 10000;
 const snap = (v) => Math.round(v / GRID) * GRID;
 
 // Alça própria em vez do `NodeResizer`/`NodeResizeControl` do xyflow: eles
@@ -2056,7 +2058,10 @@ function App() {
         // A corrida do insumo (documento antigo, cache servido, preview
         // parado, sem erro) aqui é sempre explícita.
         revRef.current = m.rev ?? revRef.current;
-        setBanner(m.message);
+        // Recusado com inserts encadeados na fila: eles dependem do bloco que
+        // não entrou (ou sairiam de novo com revisão velha). Descarta a fila
+        // em vez de deixá-la presa até recarregar.
+        setBanner(descartarFila(m.message));
         return;
       }
 
@@ -2563,10 +2568,63 @@ function App() {
   // Insere o bloco à direita da origem, já conectado, num batch só (um passo
   // de undo). Colidindo com um card, desce até achar vão.
   const filaProxRef = useRef([]);
+  // Id do último bloco inserido que ainda não voltou do servidor. Enquanto
+  // ele não ecoa, qualquer insert novo (encadeado, no meio ou de outra
+  // origem) sairia com revisão defasada: vai pra fila atrás dele.
+  const ultimoProxRef = useRef(null);
+  const ultimoProxT = useRef(0);
+  const descartarFila = (motivo) => {
+    const n = filaProxRef.current.length;
+    const pendente = n || ultimoProxRef.current;
+    filaProxRef.current = [];
+    ultimoProxRef.current = null;
+    // O popover encadeando a partir de um bloco que não vai existir fecha:
+    // senão o próximo Tab conectaria num nó que o servidor nunca viu.
+    if (pendente) {
+      setProx((q) => (q && q.modo !== "meio" && !nodesRef.current.some((x) => x.id === q.de) ? null : q));
+    }
+    if (!n) return motivo;
+    const q = n === 1 ? "1 bloco encadeado descartado" : `${n} blocos encadeados descartados`;
+    return motivo ? `${motivo} · ${q}` : q;
+  };
+  // Manda já, ou entra na fila esperando o bloco anterior ecoar. `nid` passa
+  // a ser quem o próximo espera.
+  const enviarProx = (ops, nid, extra) => {
+    const ult = ultimoProxRef.current;
+    const livre = !filaProxRef.current.length && !(ult && !nodesRef.current.some((n) => n.id === ult));
+    if (livre) pushMany(ops);
+    else filaProxRef.current.push({ de: ult, ops, t: Date.now(), ...extra });
+    ultimoProxRef.current = nid;
+    ultimoProxT.current = Date.now();
+  };
   useEffect(() => {
     const f = filaProxRef.current[0];
-    if (f && nodes.some((n) => n.id === f.de)) { filaProxRef.current.shift(); pushMany(f.ops); }
+    if (ultimoProxRef.current && !f && nodes.some((n) => n.id === ultimoProxRef.current)) {
+      ultimoProxRef.current = null;
+    }
+    if (f && nodes.some((n) => n.id === f.de)) {
+      filaProxRef.current.shift();
+      // Quem sai agora recomeça o prazo de quem vem atrás.
+      if (filaProxRef.current[0]) filaProxRef.current[0].t = Date.now();
+      pushMany(f.ops);
+    }
   }, [nodes]);
+  // Rede de segurança: se o documento que traria a origem nunca chega (eco
+  // perdido, op engolida sem `op_rejected`), a fila não fica presa. Passado o
+  // prazo sem a cabeça andar, descarta tudo e avisa.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const f = filaProxRef.current[0];
+      // Fila vazia com o último em voo há tempo demais: só para de esperar
+      // por ele, sem aviso (nada foi descartado).
+      if (!f && ultimoProxRef.current && Date.now() - ultimoProxT.current > FILA_PROX_PRAZO) {
+        ultimoProxRef.current = null;
+      }
+      if (!f || Date.now() - (f.t ?? Date.now()) < FILA_PROX_PRAZO) return;
+      setBanner(descartarFila("O servidor não confirmou o bloco anterior"));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
   const inserirProximo = (tipoId, porta, { encadear, saida: saidaMeio } = {}) => {
     const p = prox; if (!p) return;
     if (p.modo === "meio") {
@@ -2585,10 +2643,9 @@ function App() {
         { op: "connect", from_node: a.source, from_port: a.sourceHandle, to_node: nid, to_port: porta },
         { op: "connect", from_node: nid, from_port: saidaMeio, to_node: a.target, to_port: a.targetHandle },
       ];
-      // Com inserts encadeados na fila, este entra atrás deles: sair antes
-      // mandaria uma revisão que a fila ainda vai tornar defasada.
-      if (!filaProxRef.current.length) pushMany(opsMeio);
-      else filaProxRef.current.push({ de: a.source, ops: opsMeio, pos: pm });
+      // Com inserts encadeados na fila (ou o último ainda em voo), este entra
+      // atrás deles: sair antes mandaria uma revisão que eles tornam defasada.
+      enviarProx(opsMeio, nid, { pos: pm });
       registrar(p.deTipo, tipoId);
       selNovoRef.current = nid;
       return;
@@ -2601,14 +2658,23 @@ function App() {
     const oTipo = origem?.data.nodeType ?? p.deTipo;
     if (!oPos || !oTipo || !cat) { setProx(null); return; }
     const origemModo = p.modo === "origem";
-    const pos = { x: oPos.x + (origemModo ? -300 : 300), y: oPos.y };
-    // Colisão pela altura medida do card (um card completo passa de 350) e
-    // também contra os inserts ainda na fila, que não estão em `nodes`.
+    // À direita, a distância conta a largura medida da origem: um card largo
+    // (Quadro, 540) não pode ficar por baixo do bloco novo, nem o "+" dele.
+    const oW = origem?.measured?.width ?? origem?.width ?? MIN_W;
+    const pos = { x: oPos.x + (origemModo ? -300 : Math.max(300, oW + 60)), y: oPos.y };
+    // Colisão por retângulo: largura e altura medidas de cada card (um
+    // completo passa de 350, um Quadro tem 540 de largura) e também os inserts
+    // ainda na fila, que não estão em `nodes`. O bloco novo entra com a altura
+    // que o modo dele costuma ter. Batendo, desce pra logo abaixo do obstáculo
+    // (margem de 30) e testa de novo: só passa de um card se o vão entre ele e
+    // o próximo não comporta o novo. Frame e nota não contam: o bloco pode
+    // nascer dentro de um frame.
+    const hNovo = alturaNova(modoNovoRef.current);
     const caixas = nodesRef.current.filter((n) => n.type === "ndNode" && n.id !== p.de)
-      .map((n) => ({ x: n.position.x, y: n.position.y, h: n.measured?.height ?? n.height ?? 200 }))
-      .concat(filaProxRef.current.map((f) => ({ ...f.pos, h: 380 })));
-    const bate = (q) => caixas.find((c) => Math.abs(c.x - q.x) < 260 && q.y < c.y + c.h + 30 && c.y < q.y + 200);
-    for (let i = 0, c; i < 50 && (c = bate(pos)); i++) pos.y = c.y + c.h + 30;
+      .map((n) => ({ x: n.position.x, y: n.position.y,
+                     w: n.measured?.width ?? n.width ?? MIN_W, h: n.measured?.height ?? n.height ?? 200 }))
+      .concat(filaProxRef.current.map((f) => ({ ...f.pos, w: MIN_W, h: f.h ?? hNovo })));
+    pos.y = primeiroVao(caixas, { x: pos.x, y: pos.y, w: MIN_W, h: hNovo }, 30);
     const nid = novoId();
     // Em "origem", `porta` é a SAÍDA do bloco novo e a conexão vai dele ao alvo.
     const ops = [...opsAdd(tipoId, pos, nid), origemModo
@@ -2616,8 +2682,7 @@ function App() {
       : { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }];
     // O servidor recusa op com revisão defasada: se a origem ainda não ecoou
     // (Tab rápido), o insert espera na fila e sai quando ela chegar.
-    if (origem && !filaProxRef.current.length) pushMany(ops);
-    else filaProxRef.current.push({ de: p.de, ops, pos: { ...pos } });
+    enviarProx(ops, nid, { pos: { ...pos }, h: hNovo });
     if (origemModo) registrar(tipoId, oTipo); else registrar(oTipo, tipoId);
     selNovoRef.current = nid;
     const spec = cat.nodes.find((x) => x.id === tipoId);
