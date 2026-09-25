@@ -57,6 +57,7 @@ export const ATALHOS = [
   { id: "ajuda", grupo: "Geral", teclas: ["H"], rotulo: "Ajuda do bloco / atalhos" },
   { id: "desfazer", grupo: "Geral", teclas: ["Ctrl+Z"], rotulo: "Desfazer" },
   { id: "tudo", grupo: "Geral", teclas: ["Ctrl+A"], rotulo: "Selecionar tudo" },
+  { id: "copiar-template", grupo: "Geral", teclas: ["Ctrl+Shift+C"], rotulo: "Copiar como template" },
   { id: "apresentar", grupo: "Frames", teclas: ["F"], rotulo: "Apresentar / sair" },
   { id: "frame", grupo: "Frames", teclas: ["Shift+F"], rotulo: "Desenhar frame" },
   { id: "frame-sel", grupo: "Frames", teclas: ["Ctrl+G"], rotulo: "Frame da seleção" },

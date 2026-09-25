@@ -1120,6 +1120,88 @@ function UploadConflictDialog({ nome, onOverwrite, onRename, onCancel }) {
     ]));
 }
 
+// "Salvar como template": nome, descrição e ONDE gravar. Mesmo visual do
+// `ProjectDialog` e a mesma regra de não fechar ao clicar fora — aqui o custo
+// do clique errado é o nome e a descrição digitados. O destino padrão vem de
+// quem abriu o editor (`origem`, na mensagem `project`): no launcher não há
+// projeto que o usuário versione, então a biblioteca pessoal é o lugar
+// natural; vindo do R, é o projeto.
+//
+// Nome repetido não fecha nem avisa no banner: o servidor devolve
+// `template_conflict` e a pergunta aparece aqui, onde dá pra trocar o nome ou
+// confirmar a substituição.
+const DESTINOS_TEMPLATE = [
+  { value: "biblioteca", label: "Minha biblioteca", nota: "disponível em qualquer projeto" },
+  { value: "projeto", label: "Este projeto", nota: "fica em templates/, junto do projeto" },
+  { value: "baixar", label: "Baixar arquivo", nota: "um .template.json para enviar a alguém" },
+];
+function TemplateDialog({ quantos, destinoPadrao, conflito, enviando, onSave, onClose }) {
+  const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [destino, setDestino] = useState(destinoPadrao);
+  const nomeRef = useRef(null);
+  useEffect(() => { nomeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const esc = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+  const pode = !!nome.trim() && !enviando;
+  // A pergunta vale para o nome E o destino que colidiram: trocou qualquer um
+  // dos dois, é um pedido novo e volta a ser "Salvar".
+  const colide = !!conflito && conflito.nome === nome.trim() && conflito.destino === destino;
+  const salvar = (overwrite = false) => {
+    if (pode) onSave({ nome: nome.trim(), descricao: descricao.trim(), destino, overwrite });
+  };
+  return h("div", { className: "tr-lightbox tr-modal" },
+    h("div", { className: "tr-dialog tr-tpl-dialog", role: "dialog", "aria-modal": "true",
+               "aria-label": "Salvar como template" }, [
+      h("div", { key: "p", className: "tr-dialog-path" }, [
+        h("span", { key: "c" }, quantos ? `Salvar ${quantos} ${quantos > 1 ? "blocos" : "bloco"} como template`
+                                        : "Salvar o flow inteiro como template"),
+        h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)",
+                      onClick: onClose }, "×"),
+      ]),
+      h("div", { key: "f", className: "tr-tpl-form" }, [
+        h("label", { key: "n" }, [
+          h("span", { key: "r" }, "Nome"),
+          h("input", { key: "i", ref: nomeRef, className: "tr-dialog-name", value: nome,
+                       placeholder: "ex.: Limpeza padrão",
+                       onChange: (e) => setNome(e.target.value),
+                       onKeyDown: (e) => { if (e.key === "Enter") salvar(); } }),
+        ]),
+        h("label", { key: "d" }, [
+          h("span", { key: "r" }, "Descrição"),
+          h("textarea", { key: "i", className: "tr-dialog-name", rows: 2, value: descricao,
+                          placeholder: "opcional — o que este trecho faz",
+                          onChange: (e) => setDescricao(e.target.value) }),
+        ]),
+        h("fieldset", { key: "ds", className: "tr-tpl-destinos" }, [
+          h("legend", { key: "l" }, "Destino"),
+          ...DESTINOS_TEMPLATE.map((d) => h("label", { key: d.value, className: "tr-tpl-destino" }, [
+            h("input", { key: "i", type: "radio", name: "tr-tpl-destino", value: d.value,
+                         checked: destino === d.value, onChange: () => setDestino(d.value) }),
+            h("span", { key: "t" }, d.label),
+            h("small", { key: "n" }, d.nota),
+          ])),
+        ]),
+      ]),
+      colide ? h("p", { key: "cf", className: "tr-dialog-note tr-tpl-conflito", role: "alert" },
+        `Já existe um template chamado "${conflito.nome}" aqui. Substituir, ou troque o nome.`) : null,
+      h("div", { key: "ac", className: "tr-dialog-actions tr-tpl-actions" }, [
+        h("button", { key: "c", onClick: onClose }, "Cancelar"),
+        colide
+          ? h("button", { key: "s", disabled: !pode, onClick: () => salvar(true) }, "Substituir")
+          : h("button", { key: "s", disabled: !pode, onClick: () => salvar() },
+              enviando ? "salvando…" : destino === "baixar" ? "Baixar" : "Salvar"),
+      ]),
+    ]));
+}
+
+// Nome de arquivo a partir do nome do template, como `.tr_slug` no R.
+const slugArquivo = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "template";
+
 // --- App -------------------------------------------------------------------
 
 // Espelha `.tr_presentation_ops` (R/document.R): op cosmética não recomputa
@@ -1146,6 +1228,7 @@ const ICONES = {
   desfazer: "M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3",
   recalcular: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
   baixar: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  template: "M12 3 3 8l9 5 9-5zM3 12.5l9 5 9-5M3 17l9 5 9-5",
 };
 function Icone({ nome }) {
   return h("svg", { className: "tr-ic", viewBox: "0 0 24 24", width: 18, height: 18, fill: "none",
@@ -1188,6 +1271,10 @@ function App() {
   // coluna e abrir um fecha os outros: com dois estados ligados, o botão do
   // escondido ficaria aceso sem nada na tela que corresponda a ele.
   const [painelConfig, setPainelConfig] = useState(false);
+  // Diálogo "Salvar como template": `{ ids, conflito, enviando }` | null.
+  // `ids` é fixado ao abrir — clicar no canvas atrás não é possível (overlay),
+  // mas o retrato evita depender disso.
+  const [templateDlg, setTemplateDlg] = useState(null);
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [opcoesFrame, setOpcoesFrame] = useState(false);
   // Clique fora fecha os popovers da toolbar; dentro deles ou no botão que os
@@ -1732,7 +1819,7 @@ function App() {
           sendInput("tr_list_imagens", { seq: ++seqCounter });
         }
         projetoRef.current = m.root;
-        setProjeto({ root: m.root, flow: m.flow });
+        setProjeto({ root: m.root, flow: m.flow, origem: m.origem });
         setAbrindo(false);
         setEnviando(null);
         // A recusa da tentativa anterior ("nome inválido") não pode ficar na
@@ -1743,6 +1830,40 @@ function App() {
       }
 
       if (m.type === "listing") { setListagem(m); return; }
+
+      // Baixar/copiar: o servidor montou o template (tira dados, normaliza) e
+      // devolve só o texto; arquivo e clipboard são coisa do navegador.
+      // `navigator.clipboard` não existe fora de contexto seguro (o app
+      // servido por IP da rede, sem https) e pode recusar sem gesto recente
+      // do usuário — a resposta chega depois de uma ida ao R. Nos dois casos
+      // o texto não pode se perder: vira download.
+      if (m.type === "template_json") {
+        const arq = `${slugArquivo(m.nome)}.template.json`;
+        setTemplateDlg(null);
+        if (m.acao === "copiar") {
+          const baixar = () => {
+            exportText(m.texto, arq, "application/json");
+            setBanner("Não deu pra copiar para a área de transferência — o template foi baixado.");
+          };
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(m.texto)
+              .then(() => setBanner("Template copiado. Cole com Ctrl+V em outro canvas."))
+              .catch(baixar);
+          } else baixar();
+        } else {
+          exportText(m.texto, arq, "application/json");
+        }
+        return;
+      }
+      if (m.type === "template_conflict") {
+        setTemplateDlg((d) => d && { ...d, conflito: { nome: m.nome, destino: d.destino }, enviando: false });
+        return;
+      }
+      if (m.type === "template_saved") {
+        setTemplateDlg(null);
+        setBanner(`Template "${m.nome}" salvo em ${m.destino === "biblioteca" ? "Minha biblioteca" : "Este projeto"}.`);
+        return;
+      }
 
       if (m.type === "imagens") { setImagens(m.files || []); return; }
 
@@ -1800,7 +1921,12 @@ function App() {
       // Toda recusa de abrir ou criar chega por aqui: é ela que devolve as
       // ações do diálogo: sem isto um `warning` deixaria os botões
       // desabilitados até fechar e reabrir.
-      if (m.type === "warning") { setEnviando(null); setBanner(m.message); return; }
+      if (m.type === "warning") {
+        setEnviando(null);
+        setTemplateDlg((d) => d && { ...d, enviando: false });
+        setBanner(m.message);
+        return;
+      }
 
       if (m.type === "unit") { applyUnit(m); return; }
 
@@ -2632,6 +2758,22 @@ function App() {
     pushMany(opsDoGrupo(retrato, DESLOCA_COPIA, DESLOCA_COPIA));
   };
 
+  // Template da seleção (nós, frames e notas — todos são nós do xyflow); nada
+  // selecionado = o flow inteiro. Diferente do Ctrl+C: aqui é gesto explícito
+  // de menu ou de atalho com Shift, então "tudo" não é surpresa.
+  const selecionadosOuNull = () => {
+    const s = nodesRef.current.filter((n) => n.selected).map((n) => n.id);
+    return s.length ? s : null;
+  };
+  const abrirSalvarTemplate = (ids = selecionadosOuNull()) => {
+    setMenu(null); setMenuAcoes(false);
+    setTemplateDlg({ ids, conflito: null, enviando: false });
+  };
+  const copiarTemplate = (ids = selecionadosOuNull()) => {
+    setMenu(null); setMenuAcoes(false);
+    sendInput("tr_template_save", { seq: ++seqCounter, ids, nome: "Template", destino: "copiar" });
+  };
+
   // Tabela refeita a cada render e lida pelo listener via ref: o listener é
   // registrado uma vez só, e as ações sempre enxergam o estado atual. As
   // chaves são `mod+` (Ctrl ou Cmd), `shift+`, e `e.key` em minúsculas.
@@ -2661,6 +2803,7 @@ function App() {
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
     "mod+g": frameDaSelecao,
+    "mod+shift+c": () => copiarTemplate(),
     "w": () => definirModo("preview"),
     "a": () => definirModo("mini"),
     "s": () => definirModo("params"),
@@ -2820,6 +2963,8 @@ function App() {
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
     const ligacoes = alvo.length > 1 ? edges.filter((e) => e.selected).map((e) => e.id) : [];
     return [
+      h("button", { key: "tpl", onClick: () => abrirSalvarTemplate(alvo) }, "Salvar como template…"),
+      h("button", { key: "tplc", onClick: () => copiarTemplate(alvo) }, "Copiar como template"),
       h("button", { key: "du", onClick: () => { duplicar(alvo); setMenu(null); } },
         alvo.length > 1 ? `Duplicar ${alvo.length} selecionados` : "Duplicar"),
       h("button", { key: "d", onClick: () => apagar(alvo, ligacoes) },
@@ -2875,7 +3020,7 @@ function App() {
   // não há (ver `.tr-banner` no CSS).
   return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "",
-                                abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
+                                abrindo || templateDlg ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
     h("div", { key: "canvas", className: "tr-canvas", ref: wrapRef,
                onMouseMove: (e) => { mouseFlowRef.current = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }); },
@@ -3131,6 +3276,15 @@ function App() {
       h("button", { key: "ex-qmd", className: "tr-pop-item", disabled: !doc,
                     onClick: () => sendInput("tr_export_code", { format: "quarto", seq: ++seqCounter }) },
         [h(Icone, { key: "i", nome: "baixar" }), h("span", { key: "t" }, "Exportar Quarto")]),
+      h("div", { key: "sep2", className: "tr-pop-sep" }),
+      // Sem seleção, o flow inteiro — o rótulo diz qual dos dois vai sair.
+      h("button", { key: "tpl", className: "tr-pop-item", disabled: !doc,
+                    onClick: () => abrirSalvarTemplate() },
+        [h(Icone, { key: "i", nome: "template" }),
+         h("span", { key: "t" }, selecionados.length ? "Salvar seleção como template…" : "Salvar flow como template…")]),
+      h("button", { key: "tplc", className: "tr-pop-item", disabled: !doc, title: dica("copiar-template"),
+                    onClick: () => copiarTemplate() },
+        [h(Icone, { key: "i", nome: "template" }), h("span", { key: "t" }, "Copiar como template")]),
       ]) : null,
     ]),
     // Irmão da toolbar, no mesmo `.tr-app`: o CSS o põe logo abaixo dela.
@@ -3152,6 +3306,15 @@ function App() {
                             sendInput("tr_project_import", { seq: ++seqCounter, path: p, nome, conteudo }); },
       onColarTemplate: (conteudo) => inserirTemplate(conteudo, centroDaTela()),
       onClose: fecharDialogo }) : null,
+    templateDlg ? h(TemplateDialog, { key: "td", quantos: templateDlg.ids?.length || 0,
+      destinoPadrao: projeto?.origem === "launcher" ? "biblioteca" : "projeto",
+      conflito: templateDlg.conflito, enviando: templateDlg.enviando,
+      onSave: ({ nome, descricao, destino, overwrite }) => {
+        setTemplateDlg((d) => d && { ...d, enviando: true, destino });
+        sendInput("tr_template_save", { seq: ++seqCounter, ids: templateDlg.ids, nome, descricao,
+                                        destino, overwrite });
+      },
+      onClose: () => setTemplateDlg(null) }) : null,
     // Só aparece quando o pendente do conflito ainda existe — servidor lento
     // ou uma segunda resposta perdida não deixam o diálogo preso sem ação
     // nenhuma fazer sentido.
