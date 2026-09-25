@@ -66,13 +66,13 @@
 
 #' O quadro de um GLM: desvio e razão de verossimilhança.
 #'
-#' Nas famílias com dispersão estimada (gaussiana, gama, quasipoisson) o teste
+#' Nas famílias com dispersão estimada (gaussiana, gama, quasipoisson, quasibinomial) o teste
 #' é F; nas de dispersão fixa (binomial, poisson), qui-quadrado. É a mesma
 #' escolha que o `anova.glm` recomenda, e o card diz qual foi.
 #' @noRd
 .tr_models_quadro_glm <- function(fit, tipo) {
   aj <- fit$ajuste
-  usa_f <- stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson")
+  usa_f <- stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
   if (tipo == "I") {
     a <- as.data.frame(stats::anova(aj, test = if (usa_f) "F" else "Chisq"))
     a <- a[rownames(a) != "NULL", , drop = FALSE]
@@ -508,7 +508,7 @@ tr_models_compare <- function(modelo, outro) {
                                            .tr_models_fmt(a$AIC[[1]], 5L), .tr_models_fmt(a$AIC[[2]], 5L)),
                             fonte = "Wilks (1938)"))
   }
-  usa_f <- menor$classe == "lm" || stats::family(menor$ajuste)$family %in% c("gaussian", "Gamma", "quasipoisson")
+  usa_f <- menor$classe == "lm" || stats::family(menor$ajuste)$family %in% c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
   a <- .tr_models_ajustar(as.data.frame(stats::anova(menor$ajuste, maior$ajuste,
                                                      test = if (usa_f) "F" else "Chisq")), no)
   if (usa_f) {

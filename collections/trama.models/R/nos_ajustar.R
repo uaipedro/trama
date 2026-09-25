@@ -143,6 +143,7 @@ função de ligação.
 | `binomial` | 0/1, sim/não | logit |
 | `poisson` | contagem | log |
 | `quasipoisson` | contagem com variância maior que a média | log |
+| `quasibinomial` | sucessos em n tentativas (`cbind(sucessos, fracassos)`) com variância maior que a binomial | logit |
 | `gama` | contínua positiva, assimétrica | log |
 | `gaussiana` | contínua (o mesmo que `models/lm`) | identidade |
 

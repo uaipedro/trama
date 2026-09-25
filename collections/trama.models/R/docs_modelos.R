@@ -40,13 +40,16 @@
           verificar = c("models/plot_diagnostics", "models/residuals")),
         P("Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (desvio residual perto dos gl do resíduo).",
           verificar = "models/fit_stats",
-          se_falhar = "Na Poisson, use a família `quasipoisson`, que estima a dispersão. Na binomial agregada (sucessos em n tentativas) o trama ainda não tem família quasi nem GLM misto (o `models/lmer` é só gaussiano); é lacuna registrada na revisão metodológica. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão."),
+          se_falhar = "Na Poisson, use a família `quasipoisson`; na binomial agregada (`cbind(sucessos, fracassos)`), a `quasibinomial`. As duas estimam a dispersão pelo X² de Pearson / gl, e os testes passam a F. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão."),
         P("Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos.")),
       referencias = list(
         R(autores = c("Nelder, J. A.", "Wedderburn, R. W. M."), ano = 1972, titulo = "Generalized linear models",
           fonte = "Journal of the Royal Statistical Society. Series A, 135(3), 370-384", doi = "10.2307/2344614"),
+        R(autores = "Wedderburn, R. W. M.", ano = 1974,
+          titulo = "Quasi-likelihood functions, generalized linear models, and the Gauss-Newton method",
+          fonte = "Biometrika, 61(3), 439-447", doi = "10.1093/biomet/61.3.439", papel = "complementar"),
         L$dobson,
-        I("stats", "glm", "Famílias `gaussian`, `binomial`, `poisson`, `quasipoisson` na ligação canônica e `Gamma(link = \"log\")`."))),
+        I("stats", "glm", "Famílias `gaussian`, `binomial`, `poisson`, `quasipoisson`, `quasibinomial` na ligação canônica e `Gamma(link = \"log\")`; nas quasi, dispersão pelo X² de Pearson / gl e quadro com F."))),
 
     "models/lmer" = list(
       pressupostos = list(linear,

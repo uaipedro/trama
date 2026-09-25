@@ -69,11 +69,11 @@ tr_models_lm <- function(dados, resposta = "", preditores = "", formula = "") {
                      descartadas = p$descartadas)
 }
 
-.TR_MODELS_FAMILIAS <- c("gaussiana", "binomial", "poisson", "gama", "quasipoisson")
+.TR_MODELS_FAMILIAS <- c("gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial")
 
 #' Modelo linear generalizado.
-#' @param familia `"gaussiana"`, `"binomial"`, `"poisson"`, `"gama"` ou
-#'   `"quasipoisson"`, cada uma com a ligação canônica (log na gama).
+#' @param familia `"gaussiana"`, `"binomial"`, `"poisson"`, `"gama"`,
+#'   `"quasipoisson"` ou `"quasibinomial"`, cada uma com a ligação canônica (log na gama).
 #' @inheritParams tr_models_lm
 #' @return objeto `tr_models_fit`.
 #' @export
@@ -86,11 +86,11 @@ tr_models_glm <- function(dados, resposta = "", preditores = "", formula = "", f
   # que se quer interpretar, e diverge com facilidade.
   fam <- switch(familia, gaussiana = stats::gaussian(), binomial = stats::binomial(),
                 poisson = stats::poisson(), gama = stats::Gamma(link = "log"),
-                quasipoisson = stats::quasipoisson())
+                quasipoisson = stats::quasipoisson(), quasibinomial = stats::quasibinomial())
   p0 <- .tr_models_preparar(dados, vars, "models/glm")
   cats <- .tr_models_categoricas(p0$dados, all.vars(f[[3]]))
   p <- .tr_models_preparar(dados, vars, "models/glm", fatores = cats)
-  if (familia != "binomial") .tr_models_numerica(p$dados, resp, "resposta")
+  if (!familia %in% c("binomial", "quasibinomial")) .tr_models_numerica(p$dados, resp, "resposta")
   if (familia %in% c("poisson", "quasipoisson") && any(p$dados[[resp]] < 0)) {
     .tr_models_abort("tr_models_error_bad_option",
                      "'models/glm': a família %s é de contagem, e a resposta '%s' tem valor negativo.",
