@@ -89,7 +89,7 @@ tr_flow(reg) |>
 comparar níveis de um fator.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/fit_stats", fn = tr_models_fit_stats, label = "Medidas de ajuste",
+    trama::tr_node("models/fit_stats", version = 2L, fn = tr_models_fit_stats, label = "Medidas de ajuste",
       category = "modelo_resumir", icon = trama::tr_icon("gauge"),
       description = "R², R² ajustado, R² marginal e condicional, CV, AIC, BIC e log-verossimilhança, em colunas fixas.",
       inputs = list(modelo = Fm), outputs = list(out = T),
@@ -105,6 +105,11 @@ com NA onde a medida não existe, para que três modelos ligados num
 - `sigma` — desvio padrão residual.
 - `cv_pct` — coeficiente de variação (100 · √QM do resíduo / média). No
   experimento, é a medida de precisão que as revistas pedem.
+- `dispersao_pearson`, `desvio_por_gl` — GLM e GLM misto binomial ou Poisson:
+  X² de Pearson / gl do resíduo e desvio / gl. Perto de 1, a variância é a da
+  família; bem acima (digamos 1,5 ou mais), há superdispersão. No misto, os
+  resíduos são os condicionais e o gl desconta os parâmetros de variância
+  (Bolker et al. 2009). NA na binomial 0/1, em que a razão não mede nada.
 - `aic`, `bic`, `log_verossimilhanca` — para comparar modelos NÃO aninhados
   (menor AIC, melhor), ajustados nas mesmas linhas.
 ]---", r"---[

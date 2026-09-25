@@ -381,6 +381,7 @@ tr_models_fit_stats <- function(modelo) {
     r <- .tr_models_r2_misto(aj); r2m <- r[["marginal"]]; r2c <- r[["condicional"]]
     sig <- stats::sigma(aj)
   }
+  disp <- .tr_models_dispersao(modelo)
   ll <- tryCatch(stats::logLik(aj), error = function(e) NULL)
   # Os valores saem do objeto ANTES do `tibble()`: lá dentro, `modelo` já é a
   # coluna recém-criada, e `modelo$formula` falharia sobre uma string.
@@ -391,8 +392,30 @@ tr_models_fit_stats <- function(modelo) {
     gl_residuo = gl_res,
     r2 = r2, r2_ajustado = r2a, r2_marginal = r2m, r2_condicional = r2c,
     desvio_explicado = dexp, sigma = sig, cv_pct = cv,
+    dispersao_pearson = disp[["pearson"]], desvio_por_gl = disp[["desvio"]],
     aic = if (is.null(ll)) na else stats::AIC(aj), bic = if (is.null(ll)) na else stats::BIC(aj),
     log_verossimilhanca = if (is.null(ll)) na else as.numeric(ll))
+}
+
+#' Superdispersão: X² de Pearson / gl e desvio / gl, nas famílias de
+#' dispersão fixa (binomial, Poisson), do GLM e do GLM misto.
+#'
+#' Perto de 1, a variância é a da família; bem acima, há superdispersão. No
+#' misto os resíduos são os condicionais (dados os efeitos aleatórios) e o gl é
+#' o do `df.residual` do lme4 (n menos os parâmetros fixos e de variância) —
+#' a regra de bolso de Bolker et al. (2009). Na binomial 0/1 (uma tentativa por
+#' linha) a razão não mede superdispersão, e sai NA.
+#' @noRd
+.tr_models_dispersao <- function(fit) {
+  na <- c(pearson = NA_real_, desvio = NA_real_)
+  if (!fit$classe %in% c("glm", "glmer")) return(na)
+  aj <- fit$ajuste
+  fam <- stats::family(aj)$family
+  if (!fam %in% c("binomial", "poisson")) return(na)
+  if (fam == "binomial" && is.name(stats::formula(aj)[[2]])) return(na)
+  gl <- stats::df.residual(aj)
+  c(pearson = sum(stats::residuals(aj, type = "pearson")^2) / gl,
+    desvio = sum(stats::residuals(aj, type = "deviance")^2) / gl)
 }
 
 #' O misto do modelo: o próprio, ou o equivalente da parcela subdividida.

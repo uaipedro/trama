@@ -103,3 +103,26 @@ test_that("glmer guarda os avisos do ajuste na nota e recusa respostas binomiais
   expect_error(tr_models_glmer(cb, formula = "incidence ~ period + (1 | herd)", familia = "binomial"),
                class = "tr_models_error_bad_option")
 })
+
+test_that("fit_stats dá X² de Pearson / gl e desvio / gl no glmer (superdispersão verificável)", {
+  gr <- as.data.frame(get(utils::data("grouseticks", package = "lme4", envir = environment())))
+  g <- tr_models_glmer(gr, formula = "TICKS ~ YEAR + (1 | BROOD)", familia = "poisson")
+  fs <- tr_models_fit_stats(g)
+  ref <- lme4::glmer(TICKS ~ YEAR + (1 | BROOD), family = stats::poisson(), data = gr)
+  # Oráculo: sum(residuals(fit, "pearson")^2) / df.residual(fit) no próprio lme4.
+  expect_equal(fs$dispersao_pearson, sum(stats::residuals(ref, "pearson")^2) / stats::df.residual(ref),
+               tolerance = 1e-6)
+  expect_equal(fs$desvio_por_gl, sum(stats::residuals(ref, "deviance")^2) / stats::df.residual(ref),
+               tolerance = 1e-6)
+  expect_equal(round(fs$dispersao_pearson, 3), 1.692)  # grouseticks é superdisperso
+  # O efeito por observação absorve a superdispersão.
+  go <- tr_models_glmer(gr, formula = "TICKS ~ YEAR + (1 | BROOD)", familia = "poisson", nivel_obs = TRUE)
+  expect_lt(tr_models_fit_stats(go)$dispersao_pearson, fs$dispersao_pearson)
+  # GLM Poisson: a razão clássica do desvio.
+  gm <- tr_models_glm(datasets::InsectSprays, formula = "count ~ spray", familia = "poisson")
+  r <- stats::glm(count ~ spray, family = stats::poisson(), data = datasets::InsectSprays)
+  expect_equal(tr_models_fit_stats(gm)$desvio_por_gl, r$deviance / r$df.residual, tolerance = 1e-10)
+  # Binomial 0/1: não mede superdispersão.
+  d <- data.frame(g = factor(rep(1:6, each = 5)), y = rep(c(0, 1, 1, 0, 1), 6))
+  expect_true(is.na(tr_models_fit_stats(tr_models_glmer(d, formula = "y ~ 1 + (1 | g)"))$dispersao_pearson))
+})

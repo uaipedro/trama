@@ -16,6 +16,11 @@
   card e pelos quadros). Recusa `nivel_obs` com resposta 0/1 (efeito por
   observação não identificável numa tentativa) e resposta binomial de uma
   coluna que não seja 0/1 (proporção ou sucessos sem o total: use `cbind`).
+- `models/fit_stats` (versão 2): colunas `dispersao_pearson` (X² de Pearson /
+  gl) e `desvio_por_gl` no GLM e no GLM misto binomial/Poisson, NA na binomial
+  0/1 — o pressuposto de superdispersão do `models/glmer` passa a ter o que
+  verificar. Oráculo: `sum(residuals(fit, "pearson")^2) / df.residual(fit)` do
+  lme4 (grouseticks, `TICKS ~ YEAR + (1 | BROOD)`: 1,692; desvio / gl 1,824).
 
 ## Blocos novos
 
