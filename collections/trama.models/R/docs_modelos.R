@@ -40,7 +40,7 @@
           verificar = c("models/plot_diagnostics", "models/residuals")),
         P("Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (desvio residual perto dos gl do resíduo).",
           verificar = "models/fit_stats",
-          se_falhar = "Use a família `quasipoisson`, que estima a dispersão."),
+          se_falhar = "Na Poisson, use a família `quasipoisson`, que estima a dispersão. Na binomial agregada (sucessos em n tentativas) o trama ainda não tem família quasi nem GLM misto (o `models/lmer` é só gaussiano); é lacuna registrada na revisão metodológica. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão."),
         P("Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos.")),
       referencias = list(
         R(autores = c("Nelder, J. A.", "Wedderburn, R. W. M."), ano = 1972, titulo = "Generalized linear models",
@@ -52,8 +52,8 @@
       pressupostos = list(linear,
         P("Os **efeitos aleatórios** são normais, com média zero, e independentes do erro.",
           verificar = c("models/random_effects", "models/plot_caterpillar")),
-        P("Os **erros** condicionais são normais e de variância constante.",
-          verificar = c("models/shapiro_residuals", "models/plot_diagnostics")),
+        P("Os **erros** condicionais (resíduos depois de descontar os efeitos aleatórios) são normais e de variância constante. Levene e Breusch-Pagan não se aplicam a esses resíduos; a conferência é visual.",
+          verificar = "models/plot_diagnostics"),
         P("Os **grupos** (sujeitos, blocos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
           se_falhar = "Com poucos grupos (menos de 5 ou 6), trate o fator como fixo no `models/lm`.")),
       referencias = list(lme4, lmertest,
@@ -88,7 +88,7 @@
       pressupostos = list(
         P("O modelo é **linear** e seus coeficientes são **fixos** no tempo: o RLS sem fator de esquecimento pondera igualmente o passado e o presente.",
           se_falhar = "Para relação que muda com o tempo, ajuste por janelas, ou use o `models/lm` em cada período."),
-        P("Os preditores estão em **escalas parecidas**: a prior difusa `lambda · I` fica mal condicionada com colunas de ordens de grandeza diferentes.",
+        P("Os preditores estão em **escalas parecidas**: a prior difusa `lambda · I` (a matriz inicial `P0`, que diz ao RLS \"ainda não sei nada\" sobre os coeficientes) fica mal condicionada com colunas de ordens de grandeza diferentes.",
           se_falhar = "Escale as colunas num `data/mutate` antes."),
         P("Os mesmos pressupostos de erro do `models/lm` (independência, variância constante) valem para interpretar os coeficientes como os de mínimos quadrados.")),
       referencias = list(

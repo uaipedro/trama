@@ -81,7 +81,7 @@
     "models/t_test" = list(
       pressupostos = list(
         indep("observações, dentro e entre os dois grupos,"),
-        P("A resposta é **aproximadamente normal** em cada grupo (com amostras grandes, o teorema central do limite alivia).",
+        P("A resposta é **aproximadamente normal** em cada grupo (com amostras grandes, o teorema central do limite alivia). O `models/shapiro` lê uma coluna só: para conferir por grupo, filtre cada grupo (`data/filter`) e rode `models/shapiro`, ou olhe o `view/qq`.",
           verificar = c("models/shapiro", "view/qq"),
           se_falhar = "Use o `models/wilcoxon`."),
         P("No t de **Student** (variâncias iguais ligado), as variâncias dos dois grupos são iguais. O de Welch, padrão, não pede isso.",
@@ -106,7 +106,7 @@
     "models/one_sample_t" = list(
       pressupostos = list(
         indep(),
-        P("A coluna é **aproximadamente normal** (com amostras grandes, o teorema central do limite alivia).",
+        P("A coluna é **aproximadamente normal** (com amostras grandes, o teorema central do limite alivia). Se a coluna mistura grupos, filtre cada grupo (`data/filter`) e rode o `models/shapiro`, ou olhe o `view/qq`.",
           verificar = c("models/shapiro", "view/qq"))),
       referencias = list(student, L$montgomery,
         I("stats", "t.test", "Com `mu` = valor de referência."))),
@@ -146,7 +146,7 @@
         P("Cada linha da tabela é uma **unidade independente**, contada uma vez só.",
           se_falhar = "É a coleta que garante; a mesma unidade em duas caselas invalida o teste."),
         P("Contagens **esperadas** de pelo menos 5 em (quase) todas as caselas: com mais de 20% abaixo disso, a aproximação qui-quadrado falha.",
-          se_falhar = "Use o `models/fisher_exact`, ou junte categorias raras num `data/mutate`.")),
+          se_falhar = "A própria nota do bloco avisa quando há esperados abaixo de 5 e sugere o `models/fisher_exact`; outra saída é juntar categorias raras num `data/mutate`.")),
       referencias = list(
         R(autores = "Pearson, K.", ano = 1900,
           titulo = "On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling",
@@ -172,7 +172,7 @@
     "models/cor_test" = list(
       pressupostos = list(
         indep("pares (x, y)"),
-        P("**Pearson**: a relação é **linear**, e o teste supõe normalidade bivariada.",
+        P("**Pearson**: a relação é **linear**, e o teste supõe normalidade bivariada. O `models/shapiro` só confere a normalidade de cada variável sozinha (marginal): passar nas duas não garante a bivariada; olhe também a nuvem no `view/points`.",
           verificar = c("view/points", "models/shapiro"),
           se_falhar = "Use `spearman` ou `kendall` (relação monotônica, por postos)."),
         P("**Spearman** e **Kendall**: a relação é **monotônica** (sempre cresce ou sempre decresce).",

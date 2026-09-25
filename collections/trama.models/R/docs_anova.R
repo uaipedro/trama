@@ -6,9 +6,11 @@
   casualizacao <- function(como) P(
     sprintf("Os tratamentos foram **sorteados** %s, e cada parcela é uma unidade experimental independente.", como),
     se_falhar = "Não há teste para isso: é o planejamento que garante. Sem sorteio, o F não tem a interpretação causal do experimento.")
-  normal <- P("Os **erros** (resíduos) são normais — não a resposta crua.",
+  normal_p <- function(alternativa) P("Os **erros** (resíduos) são normais — não a resposta crua.",
               verificar = c("models/shapiro_residuals", "models/plot_diagnostics"),
-              se_falhar = "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC).")
+              se_falhar = paste("Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`;", alternativa))
+  normal_dic <- normal_p("sem modelo que sirva, o `models/kruskal`.")
+  normal <- normal_p("sem modelo que sirva, o teste de Friedman para DBC — ainda sem bloco no trama.")
   homog <- P("A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
              verificar = c("models/levene", "models/bartlett", "models/plot_diagnostics"),
              se_falhar = "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama.")
@@ -21,7 +23,7 @@
       pressupostos = list(casualizacao("nas parcelas sem restrição"),
         P("As parcelas são **homogêneas**: não há fonte de variação conhecida (área, dia, lote) que devesse ter virado bloco.",
           se_falhar = "Se houve bloco, use o `models/anova_dbc`."),
-        normal, homog),
+        normal_dic, homog),
       referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
 
     "models/anova_dbc" = list(
@@ -55,7 +57,9 @@
           verificar = c("models/shapiro_residuals", "models/levene", "models/plot_diagnostics"),
           se_falhar = "Transforme a resposta. Os blocos de pressuposto usam os resíduos do erro (b)."),
         P("Dados **balanceados** (todo bloco com todas as combinações): o quadro com `Error()` só é o dos livros assim.",
-          se_falhar = "No desbalanceado, ajuste o misto `(1 | bloco:parcela)` no `models/lmer`.")),
+          se_falhar = "No desbalanceado, ajuste o misto `(1 | bloco:parcela)` no `models/lmer`."),
+        P("Se a subparcela é **tempo** ou medida repetida (não sorteada dentro da parcela), a análise com dois erros supõe **esfericidade** (simetria composta): a correlação entre duas medidas da mesma parcela é igual para qualquer par de tempos.",
+          se_falhar = "Sem esfericidade (tempos próximos mais correlacionados que distantes), o F da subparcela fica liberal. O `models/lmer` só aceita efeitos aleatórios, não uma estrutura de correlação no erro (como AR(1)); é lacuna registrada na revisão metodológica.")),
       referencias = list(L$banzatto, L$pimentel, L$montgomery,
         I("stats", "aov", "Com `Error(bloco/parcela)`: o quadro sai dos estratos, com o bloco testado contra o erro (a). Médias e comparações usam o misto equivalente em `lmerTest::lmer` com `(1 | bloco:parcela)`."))),
 
