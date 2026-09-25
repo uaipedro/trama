@@ -39,7 +39,8 @@ Suggests:
     png,
     randtests,
     tseries,
-    trend
+    trend,
+    modifiedmk
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Remotes:

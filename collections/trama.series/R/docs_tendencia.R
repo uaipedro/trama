@@ -7,7 +7,7 @@
   indep <- function(efeito) P(
     sprintf("Sob H0 as observações são **independentes** (sem autocorrelação). %s", efeito),
     verificar = c("series/acf", "series/ljung_box"),
-    se_falhar = "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Versões para dado autocorrelacionado (Mann-Kendall modificado, pré-branqueamento) ainda sem bloco no trama: leia o p-valor como otimista.")
+    se_falhar = "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Este teste não tem versão para dado autocorrelacionado: leia o p-valor como otimista e, para tendência, use o `series/mann_kendall` com **Correção** `hamed_rao` ou `pre_branqueamento`.")
   continua <- P("A variável é **contínua**: empates são raros. Os empatados saem da conta (ou corrigem a variância), e com muitos o teste perde informação.")
   monotona <- P(
     "A tendência procurada é **monótona** (um sentido só). Uma série que sobe e depois desce pode sair sem tendência nenhuma.",
@@ -17,17 +17,34 @@
                  titulo = "A modified Mann-Kendall trend test for autocorrelated data",
                  fonte = "Journal of Hydrology, 204(1-4), 182-196",
                  doi = "10.1016/S0022-1694(97)00125-X", papel = "complementar")
+  yue <- R(autores = c("Yue, S.", "Pilon, P.", "Phinney, B.", "Cavadias, G."), ano = 2002,
+           titulo = "The influence of autocorrelation on the ability to detect trend in hydrological series",
+           fonte = "Hydrological Processes, 16(9), 1807-1829", doi = "10.1002/hyp.1095")
   list(
     "series/mann_kendall" = list(
       pressupostos = list(
-        indep("Autocorrelação positiva, comum em série ambiental, faz o teste rejeitar bem mais que o nível nominal."),
+        P("Com **Correção** `nenhuma`, sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva, comum em série ambiental, faz o teste rejeitar bem mais que o nível nominal.",
+          verificar = c("series/acf", "series/ljung_box"),
+          se_falhar = "Troque a **Correção** para `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."),
+        P("Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009).",
+          verificar = c("series/acf", "series/pacf"),
+          se_falhar = "Com autocorrelação forte, modele o erro: `series/regression` com **Erro** = `arma` e o `series/f_tendencia`."),
         monotona, continua,
         P("Pelo menos **10** observações para a aproximação normal de S.")),
       referencias = list(
         R(autores = "Mann, H. B.", ano = 1945, titulo = "Nonparametric tests against trend",
           fonte = "Econometrica, 13(3), 245-259", doi = "10.2307/1907187"),
-        L$morettin, hamed_rao,
-        I("trama.series", "tr_series_mann_kendall", "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral."))),
+        L$morettin,
+        R(autores = c("Hamed, K. H.", "Rao, A. R."), ano = 1998,
+          titulo = "A modified Mann-Kendall trend test for autocorrelated data",
+          fonte = "Journal of Hydrology, 204(1-4), 182-196",
+          doi = "10.1016/S0022-1694(97)00125-X"),
+        yue,
+        R(autores = "Hamed, K. H.", ano = 2009,
+          titulo = "Enhancing the effectiveness of prewhitening in trend analysis of hydrologic data",
+          fonte = "Journal of Hydrology, 368(1-4), 143-155", doi = "10.1016/j.jhydrol.2009.01.040",
+          papel = "complementar"),
+        I("trama.series", "tr_series_mann_kendall", "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre."))),
 
     "series/cox_stuart" = list(
       pressupostos = list(

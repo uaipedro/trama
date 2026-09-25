@@ -1,5 +1,19 @@
 # trama.series (desenvolvimento)
 
+## Rigor metodológico (fase 3)
+
+- `series/mann_kendall`: novo parâmetro `correcao` — `nenhuma` (padrão, sem
+  mudança de resultado), `hamed_rao` (variância × n/n* pelas autocorrelações
+  significativas dos postos da série sem a tendência de Sen; Hamed & Rao 1998)
+  ou `pre_branqueamento` (livre de tendência; Yue et al. 2002). Oráculo:
+  `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (1.6) iguais a 1e-8 (diferença
+  medida < 1e-14) em seis séries, com empates; `modifiedmk` entra em Suggests.
+  n/n* ≤ 0 é recusado (`tr_series_error_fit`) em vez de NaN. Empate passa a ser
+  igualdade exata (`match`), não o texto de `table()`; sem efeito nas séries
+  dos testes. Medido sem tendência, AR(1) phi = 0,6, n = 60, 2000 réplicas:
+  rejeição a 5% de 30,7% (nenhuma), 21,1% (Hamed-Rao) e 39,4%
+  (pré-branqueamento) — nenhuma correção devolve o nível, e a ajuda diz isso.
+
 ## Rigor metodológico (fase 1)
 
 - `series/fisher` (versão 2): convenções de Fisher (1929). O g passa a usar só

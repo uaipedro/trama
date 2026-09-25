@@ -652,27 +652,73 @@ tr_series_f_tendencia <- function(ajuste) {
 #' a conclusão — um bilateral que só dissesse "há tendência" jogaria fora o que
 #' o usuário foi perguntar.
 #' @export
-tr_series_mann_kendall <- function(serie) {
+tr_series_mann_kendall <- function(serie, correcao = "nenhuma") {
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "hamed_rao", "pre_branqueamento"), "correcao")
   .tr_series_sem_na(serie, "series/mann_kendall")
   # A Z é uma aproximação NORMAL da distribuição exata de S, e com meia dúzia de
   # pontos ela é ruim: o p-valor sairia com uma precisão que a amostra não
   # sustenta, e sem nada no card avisando. Daí o piso — abaixo dele o caminho é
-  # a tabela exata de S, que este bloco não traz.
-  .tr_series_minimo(serie, 10L, "series/mann_kendall", "a aproximação normal")
+  # a tabela exata de S, que este bloco não traz. Pré-branquear perde a
+  # primeira observação, então ali o piso vale para a série que sobra.
+  n_min <- if (correcao == "pre_branqueamento") 11L else 10L
+  .tr_series_minimo(serie, n_min, "series/mann_kendall",
+                    if (n_min == 11L) "o pré-branqueamento (perde uma observação) com a aproximação normal"
+                    else "a aproximação normal")
   x <- as.numeric(serie)
   n <- length(x)
+  r1 <- NA_real_
+  if (correcao != "nenhuma") {
+    tt <- seq_len(n)
+    beta <- .tr_series_sen(x)
+    detr <- x - beta * tt
+  }
+  if (correcao == "pre_branqueamento") {
+    # Yue et al. (2002): tira a tendência de Sen, pré-branqueia o resíduo pelo
+    # r1 (AR(1)) e devolve a tendência. Como no `modifiedmk::tfpwmk`, o r1 entra
+    # sempre, significativo ou não; somar a reta com índice deslocado de um
+    # passo não muda nenhum sinal par a par.
+    r1 <- stats::acf(detr, lag.max = 1L, plot = FALSE)$acf[2L]
+    x <- (detr[-1L] - r1 * detr[-n]) + beta * seq_len(n - 1L)
+    n <- length(x)
+  }
   S <- sum(vapply(seq_len(n - 1L), function(i) sum(sign(x[(i + 1L):n] - x[i])), 0))
   # A variância leva a correção de empates (eq. 3.20 da dissertação), e ela não é
   # refinamento: par empatado não aponta direção nenhuma, e sem descontá-lo a
   # variância fica grande demais para o S que de fato pode sair. O efeito é um
   # p-valor OTIMISTA numa série cheia de valores repetidos — medição arredondada,
   # chuva com corrida de zeros —, que é a série climatológica típica.
-  empates <- table(x)
+  # Empate é igualdade EXATA (`match`), e não a de `table()`, que compara o
+  # texto com 15 algarismos e juntaria valores pré-branqueados distintos.
+  empates <- tabulate(match(x, unique(x)))
   v <- (n * (n - 1) * (2 * n + 5) - sum(empates * (empates - 1) * (2 * empates + 5))) / 18
+  razao <- 1
+  if (correcao == "hamed_rao") {
+    # Hamed & Rao (1998), eq. da razão n/n*: autocorrelações dos POSTOS da
+    # série sem a tendência de Sen, em todas as defasagens, e só as
+    # significativas a 5% (|r| > z_0,975 / sqrt(n)) entram na soma.
+    ro <- stats::acf(rank(detr), lag.max = n - 1L, plot = FALSE)$acf[-1L]
+    ro[abs(ro) <= stats::qnorm(0.975) / sqrt(n)] <- 0
+    i <- seq_len(n - 1L)
+    razao <- 1 + 2 / (n * (n - 1) * (n - 2)) * sum((n - i) * (n - i - 1) * (n - i - 2) * ro)
+    if (!is.finite(razao) || razao <= 0) {
+      .tr_series_abort("tr_series_error_fit",
+                       paste0("'series/mann_kendall': a correção de Hamed & Rao deu n/n* = %.3g, ",
+                              "sem variância positiva (autocorrelações negativas fortes). ",
+                              "Use o pré-branqueamento ou leia o teste sem correção."), razao)
+    }
+    v <- v * razao
+  }
   # A correção de continuidade (o -1 e o +1): S é discreto e a normal não é.
   Z <- if (S > 0) (S - 1) / sqrt(v) else if (S < 0) (S + 1) / sqrt(v) else 0
   p <- 2 * stats::pnorm(-abs(Z))
   grupos <- sum(empates > 1L)
+  base <- sprintf("S = %d; %d %s de empates corrigidos", as.integer(S), grupos,
+                  if (grupos == 1L) "grupo" else "grupos")
+  nota <- switch(correcao,
+    nenhuma = base,
+    hamed_rao = sprintf("%s; variância × n/n* = %.3f (Hamed & Rao)", base, razao),
+    pre_branqueamento = sprintf("%s; pré-branqueada sem a tendência de Sen, r1 = %.3f, n = %d",
+                                base, r1, n))
   .tr_series_teste(
     "Mann-Kendall", "a série não tem tendência monótona", Z, "Z",
     p_valor = p,
@@ -682,10 +728,22 @@ tr_series_mann_kendall <- function(serie) {
     # O S bruto e o tamanho da correção: é por eles que se confere o teste contra
     # o que outro pacote reportou, e é o empate que explica um Z menor que o
     # esperado para um S grande.
-    nota = sprintf("S = %d; %d %s de empates corrigidos", as.integer(S), grupos,
-                   if (grupos == 1L) "grupo" else "grupos"),
-    fonte = "Mann (1945)",
-    extra = list(S = S))
+    nota = nota,
+    fonte = switch(correcao, nenhuma = "Mann (1945)", hamed_rao = "Hamed & Rao (1998)",
+                   pre_branqueamento = "Yue et al. (2002)"),
+    extra = switch(correcao, nenhuma = list(S = S),
+                   hamed_rao = list(S = S, razao_n = razao),
+                   pre_branqueamento = list(S = S, r1 = r1)))
+}
+
+#' Declividade de Sen: mediana das inclinações de todos os pares.
+#' @noRd
+.tr_series_sen <- function(x) {
+  n <- length(x)
+  stats::median(unlist(lapply(seq_len(n - 1L), function(i) {
+    j <- (i + 1L):n
+    (x[j] - x[i]) / (j - i)
+  })))
 }
 
 #' Cox-Stuart: a série tem tendência?

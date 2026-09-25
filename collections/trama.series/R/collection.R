@@ -1754,7 +1754,9 @@ inteiro; `series/regression`, que produz o ajuste.
         label = "Mann-Kendall",
         category = "serie_tendencia", icon = icone("trending-up"),
         description = "Mann-Kendall: a série tem tendência?",
-        inputs = list(serie = S), outputs = list(out = TE), params = list(),
+        inputs = list(serie = S), outputs = list(out = TE),
+        params = list(correcao = E("nenhuma", c("nenhuma", "hamed_rao", "pre_branqueamento"),
+                                   label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem TENDÊNCIA. É o teste de tendência mais usado em
 climatologia — chuva, vazão, temperatura —, e o que se espera encontrar num
@@ -1801,12 +1803,46 @@ sobre uma contagem de símbolos: dez observações já rendem quarenta e cinco
 comparações, enquanto o `series/runs`, que depende do corte pela mediana, só
 alcança a normal dele com quarenta observações.
 
+### Série autocorrelacionada: a **Correção**
+
+O teste supõe observações independentes, e série ambiental quase nunca é:
+com autocorrelação positiva o S varia mais do que a fórmula diz, e o teste
+rejeita bem acima dos 5% nominais. Duas correções publicadas:
+
+- **nenhuma** — o teste de Mann (1945), como na dissertação. É o padrão.
+- **hamed_rao** — Hamed & Rao (1998): o mesmo S, com a variância multiplicada
+  por n/n*, calculado das autocorrelações dos POSTOS da série sem a tendência
+  de Sen, só as significativas a 5%. A `nota` traz o n/n*: acima de 1, a
+  autocorrelação alargou a variância e o Z encolheu.
+- **pre_branqueamento** — Yue et al. (2002), o pré-branqueamento livre de
+  tendência: tira a tendência de Sen, remove o AR(1) do resto pelo r1, devolve
+  a tendência e testa a série resultante (uma observação a menos; pede 11).
+  A `nota` traz o r1.
+
+As duas seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
+Nenhuma devolve o nível nominal. Medido em série SEM tendência, erro AR(1)
+forte (phi de seis décimos) e 60 observações (2000 réplicas), o teste a 5% rejeitou em 31%
+das vezes sem correção, 21% com `hamed_rao` e 39% com `pre_branqueamento`; em
+ruído branco, 5%, 9% e 5%. A página do site traz a tabela inteira.
+
+O Hamed-Rao reduz o excesso quando a autocorrelação é forte, mas não o
+elimina e custa um pouco em ruído branco; o pré-branqueamento livre de
+tendência PIORA o nível, como Hamed (2009) já apontava — a tendência de Sen
+estimada na série autocorrelacionada volta somada. Use-o para reproduzir um
+trabalho que o aplicou, não como remédio. Em raros casos (até 1% das réplicas
+acima) a soma do Hamed-Rao sai negativa e o bloco recusa em vez de devolver
+NaN. Com autocorrelação forte, prefira modelar o erro (`series/regression` com
+**Erro** = `arma` e o `series/f_tendencia`).
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum. Uma entrada: **serie**.
+- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao` ou
+  `pre_branqueamento`.
+
+Uma entrada: **serie**.
 ]---", r"---[
 Um teste (`series/test`), com o S numa coluna extra. Ligado numa entrada de
 tabela, ele vira UMA linha de relatório: um `data/bind_rows` junta vários testes
@@ -1814,7 +1850,8 @@ num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
-  tr_add("mk", "series/mann_kendall", from = "nilo")
+  tr_add("mk", "series/mann_kendall", from = "nilo") |>
+  tr_add("mk_hr", "series/mann_kendall", correcao = "hamed_rao", from = "nilo")
 ]---", r"---[
 `series/f_tendencia`, a mesma pergunta pela regressão; `series/adf` e
 `series/kpss`, que perguntam por estacionariedade e não por tendência;
