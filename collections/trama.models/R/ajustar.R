@@ -197,6 +197,17 @@ tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grup
   # Os avisos de convergência e de ajuste singular do `lme4` não se perdem no
   # card: vão para a nota dos coeficientes.
   fit$avisos <- r$avisos
+  # Na Poisson a variância é a média; se os dados variam mais, os erros padrão
+  # de Wald ficam pequenos demais e nada no ajuste avisa. A razão de Pearson
+  # (Σ r² / gl do resíduo) perto de 1 é o esperado; acima de 1,5 vira nota.
+  fit$dispersao <- if (familia == "poisson") {
+    sum(stats::residuals(aj, type = "pearson")^2) / stats::df.residual(aj)
+  } else NA_real_
+  if (isTRUE(fit$dispersao > 1.5)) {
+    fit$avisos <- c(sprintf(paste0("sobredispersão (razão de Pearson %s): p-valores de Wald ficam pequenos demais; ",
+                                   "considere efeito aleatório de observação ou binomial negativa"),
+                            .tr_models_fmt(fit$dispersao)), fit$avisos)
+  }
   fit
 }
 

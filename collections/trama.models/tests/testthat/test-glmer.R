@@ -55,3 +55,19 @@ test_that("quadro de Wald, médias, variâncias, comparação e previsão", {
   expect_equal(p$previsto, unname(stats::fitted(g$ajuste)))
   expect_s3_class(tr_models_plot_caterpillar(g), "ggplot")
 })
+
+test_that("Poisson sobredispersa: razão de Pearson nas medidas e nota nos coeficientes", {
+  set.seed(9)
+  d <- data.frame(bloco = rep(paste0("B", 1:8), each = 20), trat = rep(c("A", "B"), 80))
+  mu <- exp(2 + 0.3 * (d$trat == "B"))
+  d$n <- stats::rnbinom(nrow(d), mu = mu, size = 1.5)
+  g <- tr_models_glmer(d, resposta = "n", fixos = "trat", grupo = "bloco", familia = "poisson")
+  r <- sum(stats::residuals(g$ajuste, type = "pearson")^2) / stats::df.residual(g$ajuste)
+  expect_equal(tr_models_fit_stats(g)$razao_dispersao, r)
+  expect_gt(r, 1.5)
+  expect_match(tr_models_coefficients(g)$nota, "sobredispersão", fixed = TRUE)
+  # Sem excesso, sem nota.
+  d$m <- stats::rpois(nrow(d), mu)
+  g2 <- tr_models_glmer(d, resposta = "m", fixos = "trat", grupo = "bloco", familia = "poisson")
+  expect_false(grepl("sobredispersão", tr_models_coefficients(g2)$nota))
+})

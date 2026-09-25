@@ -272,7 +272,10 @@ dizer que a variância de algum grupo foi estimada em zero.
 
 Na Poisson e na binomial com total, a variância é fixada pela média. Se ela é
 maior, um efeito aleatório por observação (`(1 | parcela)`, com uma linha por
-parcela) absorve o excesso.
+parcela) absorve o excesso. Na Poisson o bloco mede isso: a razão de Pearson
+(Σ resíduos de Pearson² / gl do resíduo) sai em `razao_dispersao` nas medidas,
+e acima de 1,5 a nota dos coeficientes avisa que os p-valores de Wald estão
+pequenos demais.
 ]---", .tr_models_ajuda_faltantes()), r"---[
 - **Fórmula** — com pelo menos um termo aleatório.
 - **Resposta**, **Efeitos fixos**, **Grupo aleatório** — o atalho sem fórmula.

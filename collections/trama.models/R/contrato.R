@@ -374,7 +374,13 @@ tr_models_stats.tr_models_lmer <- function(x) {
 #' distribuição na escala da ligação, que muda com a família e a ligação): as
 #' medidas são as de verossimilhança.
 #' @export
-tr_models_stats.tr_models_glmer <- function(x) .tr_models_stats_linha(x, x$ajuste, gl_res = NA_real_)
+tr_models_stats.tr_models_glmer <- function(x) {
+  linha <- .tr_models_stats_linha(x, x$ajuste, gl_res = NA_real_)
+  # A razão de Pearson (Poisson; NA na binomial), que a nota dos coeficientes
+  # usa para avisar sobredispersão acima de 1,5.
+  linha$razao_dispersao <- x$dispersao %||% NA_real_
+  linha
+}
 
 # ---- coefs ------------------------------------------------------------------------
 
@@ -421,7 +427,7 @@ tr_models_coefs.tr_models_glmer <- function(x, exponenciar = FALSE, escala = "un
   }
   .tr_models_coefs_efeitos(x, .tr_models_coefs_ic_nomes(tab, confianca), "z",
                            .tr_models_nota(nota, .tr_models_nota_escala(escala),
-                                           if (length(x$avisos)) paste("lme4:", paste(x$avisos, collapse = " | ")) else ""))
+                                           if (length(x$avisos)) paste(x$avisos, collapse = " | ") else ""))
 }
 #' @export
 tr_models_coefs.tr_models_split <- function(x, ...) {
