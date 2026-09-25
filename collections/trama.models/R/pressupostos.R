@@ -82,7 +82,10 @@ tr_models_shapiro_residuals <- function(modelo) {
 #' Cov(|e_i|, |e_j|) = σ_i σ_j (2/π)(√(1 − ρ²) + ρ·asen ρ − 1), ρ = correlação
 #' dos resíduos; os quadrados médios esperados saem de tr(A Σ). No DBC isso
 #' reproduz a forma fechada do artigo (e o `oneilldbc` do ExpDes.pt); no DQL é
-#' a mesma conta, conferida por simulação nos testes.
+#' a mesma conta, conferida por simulação nos testes. O multiplicador acerta a
+#' média do F, não a cauda: em desenho pequeno o teste fica conservador
+#' (tamanho a 5%, 20000 réplicas: DBC 5 x 6 4,6%, 4 x 3 2,9%; DQL 8 x 8 4,7%,
+#' 5 x 5 2,9%, 4 x 4 2,3%).
 #' @noRd
 .tr_models_levene_om <- function(modelo, g, no) {
   d <- modelo$dados
@@ -102,7 +105,10 @@ tr_models_shapiro_residuals <- function(modelo) {
     .tr_models_abort("tr_models_error_no_residual_df",
                      "'%s': o delineamento não deixa grau de liberdade para o teste nos |resíduos|.", no)
   }
-  if (diff(range(h)) > 1e-8 * max(h)) {
+  # Equilíbrio: cada tratamento o mesmo número de vezes em cada nível de cada
+  # controle (bloco; linha e coluna). Alavancas iguais sozinhas não bastam.
+  celas_iguais <- all(vapply(ctrl, function(v) length(unique(as.vector(table(g, dd[[v]])))) == 1L, TRUE))
+  if (!celas_iguais || diff(range(h)) > 1e-8 * max(h)) {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'%s': o delineamento está desbalanceado (falta ou sobra parcela), e o Levene ",
                             "de O'Neill & Mathews (2002) supõe o delineamento equilibrado. Confira os dados ",

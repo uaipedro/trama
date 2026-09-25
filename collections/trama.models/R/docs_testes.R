@@ -29,8 +29,10 @@
         P("Os grupos (as combinações dos tratamentos) têm **pelo menos duas observações** cada; o bloco recusa senão."),
         indep("observações de cada grupo"),
         P(residuos_do_modelo, verificar = "models/plot_diagnostics"),
-        P("Com bloco (DBC, fatorial em DBC, DQL), o delineamento é **equilibrado** (sem parcela perdida): a correção de O'Neill & Mathews é um fator do desenho que supõe o equilíbrio; o bloco recusa senão. Ali o centro é o ajuste de mínimos quadrados (a média), qualquer que seja o param Centro.",
+        P("Com bloco (DBC, fatorial em DBC, DQL), o delineamento é **equilibrado** (cada tratamento o mesmo número de vezes em cada bloco, linha e coluna): a correção de O'Neill & Mathews é um fator do desenho que supõe o equilíbrio; o bloco recusa senão. Ali o centro é o ajuste de mínimos quadrados (a média), qualquer que seja o param Centro.",
           se_falhar = "Leia o painel escala-locação do `models/plot_diagnostics`."),
+        P("Com bloco, o desenho **não é pequeno demais**: a correção acerta a média do F, não a cauda, e em desenho pequeno o teste é conservador (tamanho a 5%, por simulação: DBC 5 × 6 4,6%, 4 × 3 2,9%; DQL 8 × 8 4,7%, 5 × 5 2,9%, 4 × 4 2,3%).",
+          se_falhar = "Não rejeitar num desenho pequeno é pouca evidência de variâncias iguais: leia também o painel escala-locação do `models/plot_diagnostics`."),
         P("O modelo **não é parcela subdividida**: os resíduos de dois estratos de erro não têm correção publicada (a de O'Neill & Mathews supõe um estrato), e o bloco recusa.",
           se_falhar = "Leia o painel escala-locação do `models/plot_diagnostics`; com variâncias diferentes, ajuste o misto no `models/lmer`.")),
       referencias = list(

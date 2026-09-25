@@ -198,6 +198,52 @@ test_that("Levene no DQL: o fator de correção leva E(F) ao da F (Monte Carlo s
   expect_equal(lv$estatistica / f_ols, qmr / qmt, tolerance = 0.01)
 })
 
+test_that("Levene com bloco: tamanho a 5% medido por simulação (≈ 5% no médio, conservador no pequeno)", {
+  # O multiplicador de O'Neill & Mathews acerta a média do F sob H0, não a
+  # cauda. Sob H0 o F só depende de |R e|, com R = I - H do desenho: simula-se
+  # e ~ N(0, I) direto na forma matricial (a mesma conta do bloco, conferida
+  # contra tr_models_levene em amostras). 20000 réplicas: EP de Monte Carlo
+  # ~0,0015 em 5%; tolerância declarada de 1 ponto.
+  dbc <- function(t, b) data.frame(trat = factor(rep(seq_len(t), b)), bloco = factor(rep(seq_len(b), each = t)))
+  dql <- function(k) {
+    d <- expand.grid(linha = seq_len(k), coluna = seq_len(k))
+    d$trat <- factor((d$linha + d$coluna) %% k + 1L)
+    d$linha <- factor(d$linha); d$coluna <- factor(d$coluna); d
+  }
+  tamanho <- function(d, ajustar, ctrl, n_rep = 20000L) {
+    set.seed(20020301)
+    d$y <- stats::rnorm(nrow(d))
+    fit <- ajustar(d)
+    lv <- tr_models_levene(fit)
+    proj <- function(f) { q <- qr(stats::model.matrix(f, d)); Q <- qr.Q(q)[, seq_len(q$rank)]; tcrossprod(Q) }
+    Hc <- proj(stats::reformulate(ctrl)); Hf <- proj(stats::reformulate(c(ctrl, "trat")))
+    n <- nrow(d); R <- diag(n) - Hf; At <- Hf - Hc
+    gl <- as.integer(strsplit(lv$gl, "; ")[[1]])
+    fq <- function(Z) (colSums(Z * (At %*% Z)) / gl[[1]]) / (colSums(Z * (R %*% Z)) / gl[[2]])
+    m <- lv$estatistica / fq(matrix(abs(R %*% d$y)))
+    # a forma matricial é o bloco: outra amostra, mesmo F
+    d2 <- d; d2$y <- stats::rnorm(n)
+    expect_equal(tr_models_levene(ajustar(d2))$estatistica, m * fq(matrix(abs(R %*% d2$y))), tolerance = 1e-8)
+    Z <- abs(R %*% matrix(stats::rnorm(n * n_rep), n))
+    mean(stats::pf(m * fq(Z), gl[[1]], gl[[2]], lower.tail = FALSE) < 0.05)
+  }
+  f_dbc <- function(d) tr_models_anova_dbc(d, "y", "trat", "bloco")
+  f_dql <- function(d) tr_models_anova_dql(d, "y", "trat", "linha", "coluna")
+  expect_equal(tamanho(dbc(5, 6), f_dbc, "bloco"), 0.05, tolerance = 0.01 / 0.05)
+  expect_equal(tamanho(dql(8), f_dql, c("linha", "coluna")), 0.05, tolerance = 0.01 / 0.05)
+  expect_lt(tamanho(dbc(4, 3), f_dbc, "bloco"), 0.04)          # conservador (medido: 2,9%)
+  expect_lt(tamanho(dql(5), f_dql, c("linha", "coluna")), 0.04) # conservador (medido: 2,9%)
+})
+
+test_that("Levene com bloco: casela repetida num bloco e faltando noutro recusa", {
+  m <- ex("milho_dbc")
+  i <- which(m$bloco == m$bloco[[1]] & m$hibrido == m$hibrido[[1]])
+  j <- which(m$bloco != m$bloco[[1]] & m$hibrido == m$hibrido[[1]])[[1]]
+  m$bloco[j] <- m$bloco[i]   # o híbrido aparece 2x no bloco 1 e some de outro bloco
+  expect_error(tr_models_levene(tr_models_anova_dbc(m, "producao", "hibrido", "bloco")),
+               class = "tr_models_error_not_applicable")
+})
+
 test_that("Levene em bloco desbalanceado recusa (o multiplicador supõe equilíbrio)", {
   m <- ex("milho_dbc")
   expect_error(tr_models_levene(tr_models_anova_dbc(m[-1, ], "producao", "hibrido", "bloco")),

@@ -65,7 +65,9 @@ O'Neill & Mathews (2002): ANOVA dos |resíduos| de mínimos quadrados em
 tratamento + bloco (+ linha e coluna no DQL), com o F multiplicado por um fator
 que só depende do delineamento. O centro, ali, é sempre o ajuste do modelo (a
 média), e o param **Centro** não muda o resultado. O delineamento precisa estar
-equilibrado (sem parcela perdida).
+equilibrado (cada tratamento o mesmo número de vezes em cada bloco). Em
+desenho pequeno a correção é conservadora: tamanho a 5% de 2,9% no DBC 4 × 3 e
+no DQL 5 × 5 (perto de 5% no DBC 5 × 6 e no DQL 8 × 8).
 
 Na parcela subdividida o bloco recusa: os resíduos vêm de dois estratos de
 erro, e a correção de O'Neill & Mathews supõe um só. Leia o painel

@@ -22,6 +22,16 @@
 
 ## Mudanças de método
 
+- `models/levene` (com bloco): o equilíbrio passa a exigir o mesmo número de
+  parcelas em cada casela tratamento × bloco (e × linha, × coluna no DQL),
+  não só alavancas iguais. O tamanho do teste de O'Neill & Mathews foi medido
+  por simulação sob H0 (20000 réplicas, semente fixa, nível 5%): DBC 5 × 6
+  4,6% (o Levene comum nos resíduos: 8,5%), DBC 5 × 10 4,6%, DQL 8 × 8 4,7%
+  (comum: 7,9%); em desenho pequeno o multiplicador, que acerta a média do F e
+  não a cauda, deixa o teste conservador: DBC 4 × 3 2,9% (comum: 12,0%), DQL
+  5 × 5 2,9% (comum: 5,1%), DQL 4 × 4 2,3%. A ajuda e os pressupostos dizem
+  isso; um teste fixa DBC 5 × 6 e DQL 8 × 8 em 5% ± 1 ponto.
+
 - `models/levene` e `models/bartlett` (versão 3): recusam a parcela subdividida
   com `tr_models_error_block_design`. Os resíduos do erro (b) vêm de um
   delineamento em que o fator da parcela está confundido com a parcela, e a
@@ -63,6 +73,7 @@
   Pearson sem a correção de Yates, que deixa o teste conservador; Agresti
   2002, *Categorical Data Analysis*, doi:10.1002/0471249688). A opção
   continua. Fluxos antigos com 2 × 2 e sem `correcao` explícita mudam de
-  resultado. Validado no Physicians' Health Study (aspirina × infarto,
-  Agresti): X² = 25,01 sem e 24,43 com Yates, iguais à forma fechada e a
-  `stats::chisq.test` (tol. 1e-10).
+  resultado. Validado nas contagens do Physicians' Health Study (aspirina ×
+  infarto, 189/10845 e 104/10933, como em Agresti): X² = 25,01 sem e 24,43
+  com Yates, calculados por `stats::chisq.test` e pela forma fechada do 2 × 2,
+  iguais a 1e-10 (os valores não foram conferidos no texto do livro).
