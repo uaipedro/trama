@@ -165,3 +165,54 @@ tr_series_interpolate <- function(serie) {
   }
   forecast::na.interp(serie)
 }
+
+#' Tira a tendência da série, e diz qual tendência tirou.
+#'
+#' É o "estimo num lm e depois subtraio" num nó só. A sazonalidade FICA —
+#' quem quer tirá-la junto usa a decomposição —, e a tendência estimada vai
+#' pendurada na série como atributo `tendencia` (um `ts` no mesmo tempo): é o
+#' que permite conferir, no console, que `saída + tendência` devolve a série.
+#'
+#' O polinômio é ortogonal (`poly()`), e não cru como o da `series/regression`:
+#' aqui só o AJUSTE importa, não a leitura dos coeficientes, e `t⁵` cru numa
+#' série de 144 meses tem número de condição astronômico — o `lm` perderia
+#' dígitos sem avisar.
+#'
+#' Faltante não impede o ajuste (`na.exclude`): a tendência é prevista em todo
+#' t, e a saída tem NA só onde a série tinha.
+#'
+#' `diferenca` é o outro jeito de tirar tendência, e o único sem modelo: a
+#' "tendência" é o valor do período anterior, e a série perde a 1ª observação
+#' — começa um período depois, com o calendário certo.
+#' @export
+tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0.75) {
+  metodo <- .tr_series_enum(metodo, c("linear", "polinomial", "loess", "diferenca"), "metodo")
+  f <- stats::frequency(serie)
+  como_ts <- function(v, inicio = stats::tsp(serie)[[1]]) stats::ts(v, start = inicio, frequency = f)
+  if (metodo == "diferenca") {
+    .tr_series_minimo(serie, 3L, "series/detrend", "a diferença")
+    x <- as.numeric(serie)
+    out <- diff(serie)
+    attr(out, "tendencia") <- como_ts(x[-length(x)], stats::tsp(serie)[[1]] + 1 / f)
+    return(out)
+  }
+  tt <- seq_along(serie)
+  y <- as.numeric(serie)
+  if (metodo == "loess") {
+    ok <- length(suavidade) == 1L && is.numeric(suavidade) && !is.na(suavidade) &&
+      suavidade > 0 && suavidade <= 1
+    if (!ok) .tr_series_option("suavidade", suavidade, "um número maior que 0 e até 1")
+    .tr_series_minimo(serie, 5L, "series/detrend", "a tendência loess",
+                      validas = sum(!is.na(serie)))
+    fit <- stats::loess(y ~ tt, span = suavidade, degree = 2L, na.action = stats::na.exclude)
+  } else {
+    g <- if (metodo == "linear") 1L else .tr_series_int(grau, "grau", min = 2, max = 5)
+    .tr_series_minimo(serie, g + 3L, "series/detrend", sprintf("um polinômio de grau %d", g),
+                      validas = sum(!is.na(serie)))
+    fit <- stats::lm(y ~ stats::poly(tt, g), na.action = stats::na.exclude)
+  }
+  tend <- as.numeric(stats::predict(fit, newdata = data.frame(tt = tt)))
+  out <- como_ts(y - tend)
+  attr(out, "tendencia") <- como_ts(tend)
+  out
+}

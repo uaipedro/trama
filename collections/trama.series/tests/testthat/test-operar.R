@@ -80,3 +80,48 @@ test_that("interpolação preenche faltante e deixa série completa intacta", {
   expect_identical(tr_series_interpolate(serie_mensal()), serie_mensal())
   expect_error(tr_series_interpolate(stats::ts(c(NA, 1, NA))), class = "tr_series_error_too_short")
 })
+
+test_that("detrend linear: reta pura + ruído sai com média e inclinação zero", {
+  set.seed(42)
+  x <- stats::ts(10 + 0.5 * (1:120) + stats::rnorm(120), start = c(2000, 1), frequency = 12)
+  s <- tr_series_detrend(x, "linear")
+  expect_equal(stats::tsp(s), stats::tsp(x))
+  expect_equal(mean(s), 0, tolerance = 1e-8)
+  expect_equal(unname(stats::coef(stats::lm(as.numeric(s) ~ seq_along(s)))[[2]]), 0,
+               tolerance = 1e-8)
+  # A tendência guardada reconstrói a série, e a inclinação dela é a da reta.
+  tend <- attr(s, "tendencia")
+  expect_equal(as.numeric(s + tend), as.numeric(x))
+  expect_equal(unname(diff(as.numeric(tend))[[1]]), 0.5, tolerance = .02)
+})
+
+test_that("detrend polinomial e loess tiram a curva; faltante fica faltante", {
+  tt <- 1:96
+  x <- stats::ts(0.02 * tt^2 + sin(2 * pi * tt / 12), frequency = 12)
+  p <- tr_series_detrend(x, "polinomial", grau = 2L)
+  expect_equal(unname(stats::coef(stats::lm(as.numeric(p) ~ poly(tt, 2)))[2:3]), c(0, 0),
+               tolerance = 1e-8)
+  # A sazonalidade fica: o que sobra é o seno.
+  expect_gt(stats::cor(as.numeric(p), sin(2 * pi * tt / 12)), .99)
+  l <- tr_series_detrend(x, "loess", suavidade = .5)
+  expect_lt(abs(mean(l)), .1)
+  xn <- x; xn[10] <- NA
+  ln <- tr_series_detrend(xn, "linear")
+  expect_true(is.na(ln[10])); expect_equal(sum(is.na(ln)), 1L)
+  expect_false(anyNA(attr(ln, "tendencia")))
+  expect_error(tr_series_detrend(x, "polinomial", grau = 6L), class = "tr_series_error_bad_option")
+  expect_error(tr_series_detrend(x, "loess", suavidade = 0), class = "tr_series_error_bad_option")
+  expect_error(tr_series_detrend(x, "cubica"), class = "tr_series_error_bad_option")
+  expect_error(tr_series_detrend(stats::ts(1:3), "polinomial", grau = 2L),
+               class = "tr_series_error_too_short")
+})
+
+test_that("detrend por diferença perde a 1ª observação e mantém o calendário", {
+  x <- serie_mensal()
+  d <- tr_series_detrend(x, "diferenca")
+  expect_equal(length(d), length(x) - 1L)
+  expect_equal(stats::start(d), c(1949, 2))
+  expect_equal(stats::end(d), stats::end(x))
+  expect_equal(as.numeric(d), as.numeric(diff(x)))
+  expect_equal(as.numeric(d + attr(d, "tendencia")), as.numeric(x)[-1])
+})

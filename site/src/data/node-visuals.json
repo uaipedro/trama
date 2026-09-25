@@ -1073,6 +1073,13 @@
     "label": "Decomposição clássica",
     "icon": "layers-2"
   },
+  "series/detrend": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Tirar tendência",
+    "icon": "trending-down"
+  },
   "series/diff": {
     "accent": "#06b6d4",
     "hasInput": true,
