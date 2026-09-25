@@ -7,13 +7,28 @@
 #
 # Roda sozinho (Rscript tools/site/export-node-docs.R, da raiz) ou pelo
 # export-node-visuals.R, que reaproveita o `registry` já montado.
+#
+# Sozinho, carrega o trama e as coleções DA ÁRVORE (pkgload::load_all), não os
+# instalados: um trama instalado antigo não tem pressupostos/referências e o
+# site sairia vazio sem aviso. Ordem: data e view antes (as outras dependem).
 stopifnot(file.exists("DESCRIPTION"), dir.exists("site/src/data"))
+`%||%` <- function(a, b) if (is.null(a)) b else a
 if (!exists("registry", inherits = FALSE)) {
-  registry <- trama::tr_registry()
-  for (package in c("trama.data", "trama.view", "trama.models", "trama.multi",
-                    "trama.sampling", "trama.series", "trama.ml")) {
-    trama::tr_use(package, registry = registry)
-  }
+  suppressMessages({
+    pkgload::load_all(".", quiet = TRUE)
+    colecoes <- c("trama.data", "trama.view", "trama.models", "trama.multi",
+                  "trama.sampling", "trama.series", "trama.ml")
+    for (package in colecoes) {
+      pkgload::load_all(file.path("collections", package), quiet = TRUE,
+                        export_all = FALSE, helpers = FALSE)
+    }
+    registry <- trama::tr_registry()
+    for (package in colecoes) trama::tr_use(package, registry = registry)
+  })
+}
+if (!exists("tr_pressuposto", envir = asNamespace("trama"))) {
+  stop("O trama carregado (", getNamespaceInfo("trama", "path"), ") não tem ",
+       "pressupostos/referências: rode da raiz com o trama da árvore.")
 }
 
 local({
@@ -46,4 +61,10 @@ local({
   json <- if (length(docs)) jsonlite::toJSON(docs, auto_unbox = TRUE, pretty = TRUE) else "{}"
   writeLines(json, "site/src/data/node-docs.json", useBytes = TRUE)
   cat(length(docs), "blocos com pressupostos/referências exportados\n")
+  if (!length(docs)) warning("Nenhum bloco exportado: o registry não tem pressupostos/referências.")
+  # O Astro guarda o markdown renderizado em node_modules/.astro/data-store.json
+  # e não sabe que as seções vêm deste JSON: sem apagar, dev/build servem as
+  # páginas antigas.
+  store <- "site/node_modules/.astro/data-store.json"
+  if (file.exists(store)) unlink(store)
 })

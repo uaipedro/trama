@@ -69,3 +69,33 @@ test("sem 'Quando usar', entra depois de 'O que o bloco faz'", () => {
   assert.ok(html.indexOf("<p>a</p>") < html.indexOf("Pressupostos") && html.indexOf("Pressupostos") < html.indexOf(">Exemplo"));
   assert.ok(!html.includes("Referências"));
 });
+
+const render = (d: NodeDocs, lang?: string) => {
+  const tree: Root = { type: "root", children: [h2("Quando usar"), p("b")] };
+  insertNodeDocs(tree, d, resolve, lang);
+  return toHtml(tree);
+};
+
+test("implementação sem função mostra só o pacote, como o editor", () => {
+  const html = render({ pressupostos: [], referencias: [{ papel: "implementacao", pacote: "lme4" }] });
+  assert.match(html, /<code>lme4<\/code>/);
+  assert.ok(!html.includes("lme4::"));
+});
+
+test("url que não é https vira texto, não link; DOI é codificado", () => {
+  for (const url of ["http://exemplo.org", "javascript:alert(1)"]) {
+    const html = render({ pressupostos: [], referencias: [{ papel: "complementar", titulo: "X", url }] });
+    assert.ok(!html.includes("<a"), `${url} virou link`);
+    assert.ok(html.includes(url.replace("(", "(")), `${url} sumiu`);
+  }
+  const ok = render({ pressupostos: [], referencias: [{ papel: "complementar", url: "https://exemplo.org" }] });
+  assert.match(ok, /<a href="https:\/\/exemplo.org"/);
+  const doi = render({ pressupostos: [], referencias: [{ papel: "teoria", doi: "10.1000/a<b>" }] });
+  assert.match(doi, /href="https:\/\/doi.org\/10.1000\/a%3Cb%3E"/);
+});
+
+test("idioma en atravessa todo o caminho até o HAST", () => {
+  const html = render(fixture, "en");
+  assert.match(html, /Normal residuals\./);
+  assert.ok(!html.includes("normais"));
+});

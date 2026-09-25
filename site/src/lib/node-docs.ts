@@ -107,7 +107,8 @@ export function pressupostosHast(items: Pressuposto[], resolve: ResolveBlock, la
 function referenciaHast(r: Referencia, lang: string): Element {
   const partes: ElementContent[] = [];
   if (r.papel === "implementacao" && r.pacote) {
-    partes.push(el("code", null, [t(`${r.pacote}::${r.funcao ? r.funcao + "()" : ""}`)]));
+    // Como o editor: sem função, só o pacote.
+    partes.push(el("code", null, [t(r.funcao ? `${r.pacote}::${r.funcao}()` : r.pacote)]));
     if (r.versao) partes.push(el("span", "node-ref__ver", [t(` versão ${r.versao}`)]));
     if (r.autores?.length || r.titulo) partes.push(el("br", null, []));
   }
@@ -120,8 +121,10 @@ function referenciaHast(r: Referencia, lang: string): Element {
   if (titulo) partes.push(el("em", null, [t(titulo.replace(/\.$/, ""))]), t(". "));
   const fonte = resolveText(r.fonte, lang);
   if (fonte) partes.push(t(fonte.replace(/\.$/, "") + ". "));
-  const href = r.doi ? `https://doi.org/${r.doi}` : r.url;
-  if (href) partes.push(el("a", null, [t(r.doi ? `doi:${r.doi}` : r.url!)], { href, rel: "noopener" }));
+  // Só https vira link (javascript:, http: etc. ficam texto); DOI é codificado.
+  if (r.doi) partes.push(el("a", null, [t(`doi:${r.doi}`)], { href: `https://doi.org/${encodeURI(r.doi)}`, rel: "noopener" }));
+  else if (r.url && /^https:\/\//i.test(r.url)) partes.push(el("a", null, [t(r.url)], { href: r.url, rel: "noopener" }));
+  else if (r.url) partes.push(t(r.url));
   const nota = resolveText(r.nota, lang);
   if (nota) partes.push(el("span", "node-ref__nota", inline(nota)));
   return el("li", "node-ref", partes);

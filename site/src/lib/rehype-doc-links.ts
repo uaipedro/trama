@@ -11,6 +11,14 @@ import type { VFile } from "vfile";
 
 const docsDir = join(process.cwd(), "src/content/docs");
 
+/** Campo simples do frontmatter (`chave: valor`, aspas opcionais). Único
+ *  parser de frontmatter dos plugins: nodePages() e os títulos usam este. */
+export function frontmatterField(src: string, key: string): string | undefined {
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(src)?.[1] ?? "";
+  const v = new RegExp(`^${key}:\\s*(.+?)\\s*$`, "m").exec(fm)?.[1];
+  return v?.replace(/^(["'])(.*)\1$/, "$2");
+}
+
 // Mapa bloco → caminho da página, lido do frontmatter `node:` dos .md.
 export function nodePages(): Map<string, string> {
   const pages = new Map<string, string>();
@@ -19,7 +27,7 @@ export function nodePages(): Map<string, string> {
       const path = join(dir, entry.name);
       if (entry.isDirectory()) walk(path);
       else if (/\.mdx?$/.test(entry.name)) {
-        const node = /^node:\s*(\S+)\s*$/m.exec(readFileSync(path, "utf8"))?.[1];
+        const node = frontmatterField(readFileSync(path, "utf8"), "node");
         if (node) pages.set(node, relative(docsDir, path).replace(/\.mdx?$/, ""));
       }
     }

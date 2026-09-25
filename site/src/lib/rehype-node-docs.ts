@@ -3,12 +3,12 @@
 // depois de "O que o bloco faz". O conteúdo vem de src/data/node-docs.json,
 // gerado do núcleo por tools/site/export-node-docs.R.
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Element, ElementContent, Root, RootContent } from "hast";
 import type { VFile } from "vfile";
-import { nodePages } from "./rehype-doc-links.ts";
-import { pressupostosHast, referenciasHast, type NodeDocs, type ResolveBlock } from "./node-docs.ts";
+import { frontmatterField, nodePages } from "./rehype-doc-links.ts";
+import { pressupostosHast, referenciasHast, SITE_LANG, type NodeDocs, type ResolveBlock } from "./node-docs.ts";
 
 const text = (node: ElementContent | RootContent): string =>
   node.type === "text" ? node.value : "children" in node ? node.children.map(text).join("") : "";
@@ -24,8 +24,8 @@ export function afterSection(tree: Root, titulo: string): number {
   return end;
 }
 
-export function insertNodeDocs(tree: Root, docs: NodeDocs, resolve: ResolveBlock): void {
-  const secoes: Element[] = [...pressupostosHast(docs.pressupostos, resolve), ...referenciasHast(docs.referencias)];
+export function insertNodeDocs(tree: Root, docs: NodeDocs, resolve: ResolveBlock, lang = SITE_LANG): void {
+  const secoes: Element[] = [...pressupostosHast(docs.pressupostos, resolve, lang), ...referenciasHast(docs.referencias, lang)];
   if (!secoes.length) return;
   let at = afterSection(tree, "Quando usar");
   if (at < 0) at = afterSection(tree, "O que o bloco faz");
@@ -34,25 +34,46 @@ export function insertNodeDocs(tree: Root, docs: NodeDocs, resolve: ResolveBlock
 }
 
 function titleOf(page: string): string | undefined {
-  const src = readFileSync(join(process.cwd(), "src/content/docs", `${page}.md`), "utf8");
-  return /^title:\s*"?(.+?)"?\s*$/m.exec(src)?.[1];
+  const dir = join(process.cwd(), "src/content/docs");
+  const path = [".md", ".mdx"].map((ext) => join(dir, page + ext)).find((f) => existsSync(f));
+  return path ? frontmatterField(readFileSync(path, "utf8"), "title") : undefined;
 }
 
-export function rehypeNodeDocs() {
-  let docs: Record<string, NodeDocs> | undefined;
-  let resolve: ResolveBlock | undefined;
+export interface RehypeNodeDocsOptions {
+  /** `base` do astro.config (ex.: "/trama"); os links de "Verificar" o usam. */
+  base?: string;
+  /** Idioma das páginas. */
+  lang?: string;
+  /** Caminho do JSON (padrão: src/data/node-docs.json). */
+  dataPath?: string;
+}
+
+// Cache pelo mtime do JSON, não pela vida do processo: com `astro dev` aberto,
+// rodar de novo tools/site/export-node-docs.R muda o arquivo e a próxima
+// página já lê o novo. (O export também apaga o data-store do Astro.)
+let cache: { mtime: number; docs: Record<string, NodeDocs> } | undefined;
+function loadDocs(path: string): Record<string, NodeDocs> {
+  const mtime = statSync(path).mtimeMs;
+  if (cache?.mtime !== mtime) cache = { mtime, docs: JSON.parse(readFileSync(path, "utf8")) };
+  return cache.docs;
+}
+
+export function blockResolver(base = "/"): ResolveBlock {
+  const prefix = base.replace(/\/+$/, "");
+  const pages = nodePages();
+  return (id) => {
+    const page = pages.get(id);
+    return page ? { href: `${prefix}/${page}/`, label: titleOf(page) ?? id } : undefined;
+  };
+}
+
+export function rehypeNodeDocs(options: RehypeNodeDocsOptions = {}) {
+  const dataPath = options.dataPath ?? join(process.cwd(), "src/data/node-docs.json");
   return (tree: Root, file?: VFile) => {
     const node = (file?.data as { astro?: { frontmatter?: { node?: string } } })?.astro?.frontmatter?.node;
     if (!node) return;
-    docs ??= JSON.parse(readFileSync(join(process.cwd(), "src/data/node-docs.json"), "utf8"));
-    if (!docs![node]) return;
-    if (!resolve) {
-      const pages = nodePages();
-      resolve = (id) => {
-        const page = pages.get(id);
-        return page ? { href: `/trama/${page}/`, label: titleOf(page) ?? id } : undefined;
-      };
-    }
-    insertNodeDocs(tree, docs![node], resolve);
+    const docs = loadDocs(dataPath)[node];
+    if (!docs) return;
+    insertNodeDocs(tree, docs, blockResolver(options.base), options.lang);
   };
 }
