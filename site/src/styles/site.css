@@ -162,8 +162,8 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 /* Canvas estático com os cards do editor (flow-canvas-html.ts). O card em si
    vem do trama.css escopado (editor-card.css); aqui só o que o React Flow
    faria: mundo em escala, alças posicionadas, arestas por baixo dos cards. */
-.tr-estatico { position: relative; overflow: hidden; min-width: 100%; background: var(--tr-bg); font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-.tr-estatico__mundo { position: absolute; top: 0; left: 0; transform: scale(var(--escala)); transform-origin: 0 0; }
+.tr-estatico { position: relative; overflow: hidden; min-width: 100%; background: var(--tr-bancada, var(--tr-bg)); font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.tr-estatico__mundo { position: absolute; top: 0; left: 50%; transform: translateX(-50%) scale(var(--escala)); transform-origin: 50% 0; }
 .tr-estatico .react-flow__background { position: absolute; inset: 0; }
 .tr-estatico__arestas { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
 .tr-estatico .tr-estatico__mundo .tr-node { position: absolute; overflow: visible; pointer-events: none; }

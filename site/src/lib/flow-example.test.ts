@@ -38,12 +38,12 @@ test("layout em colunas por profundidade", () => {
 
 test("canvas: um card por nó, aresta por par, escapa texto", () => {
   const [g] = parseFlowExample(`tr_add("a","t/x", q = "<b>") |> tr_add("b","t/y", from = "a")`)!;
-  const visuals = { "t/x": { accent: "#000", hasInput: false, hasOutput: true,
+  const visuals = { "t/x": { accent: "#000", label: "<b>", hasInput: false, hasOutput: true,
     params: [{ name: "q", kind: "text", label: "Q" }] } };
   const html = renderFlowCanvas(g, visuals);
   assert.equal(html.match(/class="tr-node /g)?.length, 2);
   assert.equal(html.match(/class="react-flow__edge-path"/g)?.length, 1);
-  assert.ok(html.includes('value="&lt;b&gt;"') && !html.includes("<b>"));
+  assert.ok(html.includes("&lt;b&gt;") && !html.includes("<b>"));
 });
 
 test("from com porta nomeada vira aresta com porta de saída", () => {

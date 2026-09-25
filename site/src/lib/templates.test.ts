@@ -31,7 +31,7 @@ test("documento do template vira canvas com um card por nó", () => {
   assert.equal(html.match(/class="tr-node /g)?.length, graph.nodes.length);
 });
 
-test("card do template usa as posições do documento e as portas nomeadas", () => {
+test("card do template ignora as posições do documento: layout automático em camadas", () => {
   const graph = templateToGraph({
     nodes: { a: { type: "x/a" }, b: { type: "x/b" } },
     edges: [{ from: { node: "a", port: "teste" }, to: { node: "b", port: "dados" } }],
@@ -39,7 +39,12 @@ test("card do template usa as posições do documento e as portas nomeadas", () 
   });
   assert.deepEqual(graph.edges, [["a", "b", "teste", "dados"]]);
   const html = renderFlowCanvas(graph, {});
-  assert.ok(html.includes('style="left:40px;top:40px'));
-  assert.ok(html.includes('style="left:400px;top:40px'));
-  assert.ok(html.includes('class="tr-estatico"'));
+  const H = renderFlowCanvas(graph, {}, { direcao: "H" });
+  const V = renderFlowCanvas(graph, {}, { direcao: "V" });
+  const pos = (h: string) => [...h.matchAll(/left:(\d+)px;top:(\d+)px/g)].map((m) => [+m[1], +m[2]]);
+  const [ha, hb] = pos(H), [va, vb] = pos(V);
+  assert.ok(ha[1] === hb[1] && hb[0] > ha[0], "H: lado a lado");
+  assert.ok(va[0] === vb[0] && vb[1] > va[1], "V: um acima do outro");
+  assert.ok(html.includes("tr-node-mini"));
+  assert.ok(html.includes('class="tr-estatico '));
 });
