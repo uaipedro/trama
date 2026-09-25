@@ -1,0 +1,54 @@
+Package: trama.experiments
+Title: Experimental Design Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for planning experiments in a trama graph: a declarative
+    design node that builds and randomizes completely randomized, randomized
+    block, Latin square, factorial (with or without confounding in blocks),
+    fractional factorial 2^(k-p), central composite, split-plot, strip-plot,
+    balanced incomplete block, repeated measures, crossover (Williams) and
+    multi-site designs, with every factor's role, unit of assignment and
+    randomization scope made explicit. The plan carries its metadata and
+    becomes a plain table for the analysis nodes of trama.models. Builds on
+    trama.data for tables, trama.view for plots and trama.models for
+    the fitted models that the analysis nodes read.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    trama,
+    trama.data,
+    trama.view,
+    trama.models,
+    emmeans,
+    ggplot2 (>= 4.0.0),
+    rlang,
+    tibble,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    MASS,
+    boot,
+    car,
+    agricolae,
+    FrF2,
+    DoE.base,
+    rsm,
+    crossdes,
+    jsonlite
+Config/testthat/edition: 3
+Config/trama/requires: trama.data, trama.view, trama.models
+Remotes:
+    uaipedro/trama,
+    trama.data=github::uaipedro/trama/collections/trama.data,
+    trama.view=github::uaipedro/trama/collections/trama.view,
+    trama.models=github::uaipedro/trama/collections/trama.models

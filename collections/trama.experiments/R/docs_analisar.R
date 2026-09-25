@@ -227,9 +227,11 @@ distância ao centro; na 1ª ordem, a direção de maior subida); `grafico`
 (`view/plot`, o contorno).
 ]---", r"---[
 tr_flow(reg) |>
-  tr_add("ccd", "data/read_csv", path = "ccd_codificado.csv") |>
+  tr_add("plano", "experiments/design", estrutura = "composto_central", fatores = "x1; x2") |>
+  tr_add("ccd", "data/mutate", name = "rendimento",
+         expr = "80 - (x1 - 0.4)^2 - 2 * x2^2 + sin(unidade) / 5", from = "plano") |>
   tr_add("rsm", "experiments/response_surface", resposta = "rendimento",
-         fatores = "x1, x2", ordem = "2", bloco = "bloco", from = "ccd")
+         fatores = "x1, x2", ordem = "2", from = "ccd")
 ]---", r"---[
 - Box, G. E. P. & Wilson, K. B. (1951). On the experimental attainment of
   optimum conditions. *Journal of the Royal Statistical Society, Series B*, 13,
