@@ -37,7 +37,7 @@ versão: `ml/split` 3, `ml/predict` 3, `ml/evaluate` 4, `ml/confusion` 3,
 - `ml/roc`: com AUC = 0 ou 1 a variância de DeLong é zero; o IC sai NA com a
   explicação em `auc_nota`, em vez de um intervalo de largura zero. Com menos
   de duas linhas numa classe, o IC também sai NA com nota (a curva e a AUC
-  seguem; o `multi/roc` recusa nesse caso — alinhar depois).
+  seguem; o `multi/roc` faz o mesmo).
 - `ml/evaluate`: precisão de classe nunca prevista é indefinida (0/0): sai NA
   e fica fora das médias macro e ponderada (pesos renormalizados), como
   `zero_division = np.nan` do scikit-learn. Antes valia 0 (o padrão do

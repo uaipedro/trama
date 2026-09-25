@@ -337,8 +337,8 @@ tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
   v10 <- rowMeans(psi); v01 <- colMeans(psi); auc <- mean(psi)
   # A variância de DeLong usa a variância amostral dos componentes de cada
   # classe: com menos de duas linhas numa classe ela não existe. A curva e a
-  # AUC continuam válidas, então o bloco não recusa (o `multi/roc`, que só
-  # reporta o IC, recusa com `tr_multi_error_small_group`): o IC sai NA com a nota.
+  # AUC continuam válidas, então o bloco não recusa: o IC sai NA com a nota
+  # (o `multi/roc` faz o mesmo).
   if (m < 2L || n < 2L) return(list(ep = NA_real_, inf = NA_real_, sup = NA_real_, nota = sprintf(paste(
     "IC de DeLong indispon\u{ED}vel: h\u{E1} menos de duas linhas numa classe (%d positivas e %d",
     "negativas), e a vari\u{E2}ncia precisa de ao menos duas de cada."), m, n)))
