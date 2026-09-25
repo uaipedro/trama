@@ -9,6 +9,7 @@ tr_registry <- function() {
   reg <- new.env(parent = emptyenv())
   reg$types <- list(); reg$nodes <- list(); reg$adapters <- list()
   reg$categories <- list(); reg$collections <- list()
+  reg$migrations <- list(nodes = list(), params = list(), ports = list())
   structure(reg, class = "tr_registry")
 }
 
@@ -56,6 +57,25 @@ tr_use <- function(collection, registry = .tr_default_registry) {
   for (n in col$nodes)    nodes    <- add(nodes, "nodes", n$id, n)
   for (a in col$adapters) adapters <- add(adapters, "adapters", paste0(a$from, "->", a$to), a)
 
+  # Migrações acumulam entre coleções: o id antigo de um nó que mudou de casa
+  # pertence à coleção de ORIGEM, então duas coleções podem reivindicá-lo. Com
+  # o mesmo destino é redundância inofensiva; com destinos diferentes o
+  # documento abriria de um jeito ou de outro conforme a ordem do manifesto —
+  # erro aqui, e não uma escolha silenciosa. `params`/`ports` são indexados por
+  # id novo, que o namespace já prende a uma coleção só.
+  mig <- registry$migrations %||% list(nodes = list(), params = list(), ports = list())
+  cm <- col$migrations %||% list()
+  for (old in names(cm$nodes)) {
+    prev <- mig$nodes[[old]]
+    if (!is.null(prev) && !identical(prev, cm$nodes[[old]])) {
+      rlang::abort(sprintf("Migração conflitante: '%s' iria pra '%s' e pra '%s'.",
+                           old, prev, cm$nodes[[old]]), class = "tr_error_bad_migration")
+    }
+    mig$nodes[[old]] <- cm$nodes[[old]]
+  }
+  for (k in names(cm$params)) mig$params[[k]] <- cm$params[[k]]
+  for (k in names(cm$ports))  mig$ports[[k]]  <- cm$ports[[k]]
+
   # Toda porta de todo nó tem que referenciar um tipo que exista — checado
   # contra o staging, e não durante `tr_node()`, porque um nó pode
   # legitimamente consumir tipo de outra coleção já carregada.
@@ -75,6 +95,7 @@ tr_use <- function(collection, registry = .tr_default_registry) {
   }
 
   registry$types <- types; registry$nodes <- nodes; registry$adapters <- adapters
+  registry$migrations <- mig
   for (k in col$categories) registry$categories[[k$id]] <- k
   # `package` guardado separado do `id`: os dois só coincidem por acidente
   # (`trama.terrain` traz a coleção `terrain`), e é o nome do PACOTE que um

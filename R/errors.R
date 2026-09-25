@@ -42,6 +42,7 @@ tr_errors <- function() {
     tr_error_failed_key = "chave guarda um erro, não um valor",
     tr_error_fn_not_function = "fn de tr_node() não é função",
     tr_error_foreign_id = "coleção declarou id fora do próprio namespace",
+    tr_error_bad_migration = "migração de coleção malformada, ou dois destinos pro mesmo id antigo",
     tr_error_incomplete_online = "tr_node() com 'init' sem 'step' (ou vice-versa), ou com um dos dois não sendo função",
     tr_error_missing_collection =
       "projeto pede coleção que não está carregada nesta página do editor",

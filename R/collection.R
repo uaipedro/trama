@@ -14,10 +14,22 @@
 #'   DEPOIS do `trama.css` do núcleo, então pode refinar regra do núcleo com a
 #'   mesma especificidade — e é por isso mesmo que deve prefixar as próprias
 #'   classes, pra não refinar sem querer.
+#' @param migrations Renomes que a coleção declara pra documentos antigos
+#'   abrirem já migrados, sem nó órfão. Lista com até três entradas, todas
+#'   opcionais:
+#'   * `nodes`: id antigo -> id novo (`list("multi/roc" = "models/roc")`). O id
+#'     antigo pode ser de OUTRA coleção — é assim que um bloco muda de casa —,
+#'     mas o destino tem que ser desta.
+#'   * `params`: id NOVO do nó -> lista de renomes `antigo = list(to = "novo",
+#'     value = function(v) ...)`. `value` é opcional (identidade).
+#'   * `ports`: id NOVO do nó -> lista `antiga = "nova"`, valendo pra entradas e
+#'     saídas.
+#'
+#'   Aplicadas por `tr_doc_migrate()` quando um fluxo é aberto.
 #' @export
 tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
                           nodes = list(), adapters = list(), categories = list(),
-                          js = NULL, css = NULL) {
+                          js = NULL, css = NULL, migrations = list()) {
   if (!grepl("^[a-z][a-z0-9_]*$", id)) {
     rlang::abort(sprintf("Id de coleção inválido: '%s'.", id), class = "tr_error_bad_id")
   }
@@ -39,10 +51,61 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
     rlang::abort(sprintf("Coleção '%s' declara nó fora do próprio namespace: '%s'.", id, n$id),
                  class = "tr_error_foreign_id")
   }
+  migrations <- .tr_check_migrations(migrations, id)
   structure(list(id = id, label = label, version = version, types = types,
                  nodes = nodes, adapters = adapters, categories = categories,
-                 js = js, css = css),
+                 js = js, css = css, migrations = migrations),
             class = "tr_collection")
+}
+
+#' Normaliza e valida `migrations` de `tr_collection()`.
+#'
+#' O namespace vale pro DESTINO (e pras chaves de `params`/`ports`, que já são
+#' ids novos): a origem de um renome de nó é justamente o id que não existe
+#' mais, e pode ter morado em outra coleção. Sem a checagem no destino, uma
+#' coleção poderia "migrar" documentos pra dentro de um nó alheio.
+#' @noRd
+.tr_check_migrations <- function(m, id) {
+  bad <- function(msg) rlang::abort(sprintf("Coleção '%s': migração inválida: %s", id, msg),
+                                    class = "tr_error_bad_migration")
+  if (!is.list(m) || length(setdiff(names(m), c("nodes", "params", "ports"))) > 0) {
+    bad("esperado list(nodes = , params = , ports = ).")
+  }
+  own <- function(to, what) {
+    if (!is.character(to) || length(to) != 1L || is.na(to)) bad(sprintf("%s tem que ser um id (string).", what))
+    if (.tr_collection_of(to) != id) {
+      rlang::abort(sprintf("Coleção '%s' declara migração fora do próprio namespace: '%s'.", id, to),
+                   class = "tr_error_foreign_id")
+    }
+  }
+  nodes <- m$nodes %||% list()
+  # Chave repetida numa lista R não é erro de sintaxe: a segunda entrada
+  # simplesmente seria ignorada por `[[`, e o autor nunca saberia qual valeu.
+  if (anyDuplicated(names(nodes))) {
+    bad(sprintf("'%s' tem dois destinos.", names(nodes)[anyDuplicated(names(nodes))]))
+  }
+  for (old in names(nodes)) own(nodes[[old]], sprintf("o destino de '%s'", old))
+  params <- m$params %||% list()
+  for (nid in names(params)) {
+    own(nid, "a chave de params")
+    for (p in names(params[[nid]])) {
+      r <- params[[nid]][[p]]
+      if (!is.list(r) || !is.character(r$to) || length(r$to) != 1L) {
+        bad(sprintf("param '%s' de '%s' precisa de list(to = \"novo\").", p, nid))
+      }
+      if (!is.null(r$value) && !is.function(r$value)) {
+        bad(sprintf("'value' do param '%s' de '%s' tem que ser função.", p, nid))
+      }
+    }
+  }
+  ports <- m$ports %||% list()
+  for (nid in names(ports)) {
+    own(nid, "a chave de ports")
+    for (p in names(ports[[nid]])) if (!is.character(ports[[nid]][[p]])) {
+      bad(sprintf("porta '%s' de '%s' tem que ir pra um nome (string).", p, nid))
+    }
+  }
+  list(nodes = nodes, params = params, ports = ports)
 }
 
 #' @noRd

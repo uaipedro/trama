@@ -126,3 +126,33 @@ test_that("nó sem description é recusado, e 'help' viaja na spec", {
   expect_equal(n$description, "Faz nada.")
   expect_match(n$help, "Nada mesmo")
 })
+
+test_that("migrações declaradas acumulam no registro, inclusive vindas de outra coleção", {
+  reg <- test_registry()
+  tr_use(tr_collection(id = "u", migrations = list(
+    nodes  = list("t/velho" = "u/novo", "outra/roc" = "u/roc"),
+    params = list("u/novo" = list(alfa = list(to = "confianca", value = function(v) 1 - v))),
+    ports  = list("u/novo" = list(data = "dados"))
+  )), registry = reg)
+  expect_equal(reg$migrations$nodes[["t/velho"]], "u/novo")
+  expect_equal(reg$migrations$nodes[["outra/roc"]], "u/roc")
+  expect_equal(reg$migrations$params[["u/novo"]]$alfa$to, "confianca")
+  expect_equal(reg$migrations$ports[["u/novo"]]$data, "dados")
+})
+
+test_that("migração com destino fora do namespace, malformada ou conflitante é recusada", {
+  expect_error(tr_collection(id = "u", migrations = list(nodes = list("u/a" = "v/b"))),
+               class = "tr_error_foreign_id")
+  expect_error(tr_collection(id = "u", migrations = list(params = list("v/b" = list()))),
+               class = "tr_error_foreign_id")
+  expect_error(tr_collection(id = "u", migrations = list(nodes = list("x/a" = "u/b", "x/a" = "u/c"))),
+               class = "tr_error_bad_migration")
+  expect_error(tr_collection(id = "u", migrations = list(params = list("u/b" = list(p = "q")))),
+               class = "tr_error_bad_migration")
+  reg <- tr_registry()
+  tr_use(tr_collection(id = "u", migrations = list(nodes = list("x/a" = "u/b"))), registry = reg)
+  expect_error(tr_use(tr_collection(id = "v", migrations = list(nodes = list("x/a" = "v/b"))),
+                      registry = reg), class = "tr_error_bad_migration")
+  # O erro não deixa a segunda coleção meio carregada.
+  expect_null(reg$collections$v)
+})

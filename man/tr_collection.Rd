@@ -13,7 +13,8 @@ tr_collection(
   adapters = list(),
   categories = list(),
   js = NULL,
-  css = NULL
+  css = NULL,
+  migrations = list()
 )
 }
 \arguments{
@@ -26,6 +27,20 @@ coleção (as classes que os renderers dela usam). Opcional. Entra na página
 DEPOIS do \code{trama.css} do núcleo, então pode refinar regra do núcleo com a
 mesma especificidade — e é por isso mesmo que deve prefixar as próprias
 classes, pra não refinar sem querer.}
+
+\item{migrations}{Renomes que a coleção declara pra documentos antigos
+abrirem já migrados, sem nó órfão. Lista com até três entradas, todas
+opcionais:
+\itemize{
+\item \code{nodes}: id antigo -> id novo (\code{list("multi/roc" = "models/roc")}). O id
+antigo pode ser de OUTRA coleção — é assim que um bloco muda de casa —,
+mas o destino tem que ser desta.
+\item \code{params}: id NOVO do nó -> lista de renomes \code{antigo = list(to = "novo", value = function(v) ...)}. \code{value} é opcional (identidade).
+\item \code{ports}: id NOVO do nó -> lista \code{antiga = "nova"}, valendo pra entradas e
+saídas.
+}
+
+Aplicadas por \code{tr_doc_migrate()} quando um fluxo é aberto.}
 }
 \description{
 Uma coleção é o que um pacote de domínio exporta. \code{js} aponta pra um módulo
