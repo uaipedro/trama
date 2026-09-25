@@ -8,6 +8,11 @@ import { PAPEIS } from "./papeis.js";
 
 export const PESOS = { etapa: 1, relacionado: 2, transicao: 3, contexto: 1.5, historico: 2.5 };
 
+// Multiplicadores de PESOS.contexto para blocos já a montante. Medido em
+// avaliar.mjs: penalizar preparo igual à origem piora (filtro -> filtro é
+// real); penalizar preparo mais acima da origem melhora hit@3.
+export const PENAL = { origem: 2, origemPrep: 0, presente: 1.5, presentePrep: 1.5 };
+
 export function compativel(cat, de, para) {
   if (de === para) return true;
   return (cat.adapters || []).some((a) => a.from === de && a.to === para);
@@ -91,10 +96,12 @@ export function sugerir(cat, ctx) {
   const origem = byId[de];
   const rel = new Set(relacionados(origem));
   const trans = pontoTransicao(cat, byId, de);
-  const hist = fracoes(
-    Object.entries(historico || {}).filter(([k]) => k.startsWith(`${de}>`))
-      .map(([k, n]) => ({ to: k.slice(de.length + 1), n })),
-    (t) => t.to);
+  // Histórico pessoal: contagem própria de cada destino, sem normalizar pela
+  // soma (normalizar diluía uma escolha explícita quando havia outras).
+  // count/(count+1) satura em PESOS.historico: 1 escolha já vale metade.
+  const contagem = Object.fromEntries(Object.entries(historico || {})
+    .filter(([k, n]) => k.startsWith(`${de}>`) && n > 0)
+    .map(([k, n]) => [k.slice(de.length + 1), n]));
   const presentesSet = new Set(presentes);
   const citadosNoFluxo = new Set(presentes.flatMap((id) => relacionados(byId[id])));
   return aceitantes(cat, tipo).map((a) => {
@@ -107,16 +114,21 @@ export function sugerir(cat, ctx) {
     if (rel.has(a.id)) motivos.relacionado = PESOS.relacionado;
     const t = trans(a.spec);
     if (t) motivos.transicao = t * PESOS.transicao;
-    const h = hist(a.id);
-    if (h) motivos.historico = h * PESOS.historico;
+    const nh = contagem[a.id] || 0;
+    if (nh) motivos.historico = (nh / (nh + 1)) * PESOS.historico;
     // Contexto: um segundo bloco de análise igual raramente faz sentido (uma
-    // segunda `anova`), mas preparação repete à vontade. A penalidade usa o
+    // segunda `anova`); preparação só repete logo em seguida. A penalidade usa o
     // mesmo peso do bônus, para ficar na mesma escala. Isentar também leitura e
     // saída (gráficos, exportações) foi medido e não mudou nada (hit@1/3/5
     // iguais em 210 arestas): elas quase nunca estão a montante, pois fecham o
     // fluxo. Fica a regra mais simples.
     let c = 0;
-    if (presentesSet.has(a.id) && papel(catPorId, a.spec) !== "preparacao") c -= PESOS.contexto;
+    // Voltar a um bloco já a montante gera o pingue-pongue do Tab (Converter
+    // -> Resumo -> Converter...), então preparação também cai quando está
+    // acima da origem. Inspeção não é isenta: costuma ser uma por caminho.
+    const prep = papel(catPorId, a.spec) === "preparacao";
+    if (a.id === de) c -= PESOS.contexto * (prep ? PENAL.origemPrep : PENAL.origem);
+    else if (presentesSet.has(a.id)) c -= PESOS.contexto * (prep ? PENAL.presentePrep : PENAL.presente);
     if (citadosNoFluxo.has(a.id)) c += 0.5 * PESOS.contexto;
     if (c) motivos.contexto = c;
     const score = Object.values(motivos).reduce((s, v) => s + v, 0);

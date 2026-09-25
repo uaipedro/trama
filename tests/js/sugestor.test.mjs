@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compativel, aceitantes, sugerir, relacionados, PESOS } from "../../inst/www/sugestor.js";
+import { compativel, aceitantes, sugerir, relacionados, PESOS, PENAL } from "../../inst/www/sugestor.js";
 
 const cat = {
   categories: [{ id: "source" }, { id: "inspect" }, { id: "clean" }, { id: "fit" }],
@@ -77,16 +77,49 @@ test("o histórico reordena o topo", () => {
   assert.equal(r[0].motivos.historico, 0.75 * PESOS.historico);
 });
 
-test("contexto: bloco de ajuste já presente cai; preparação não", () => {
-  const c = {
-    ...cat,
-    categories: cat.categories.map((k) => k.id === "clean" ? { ...k, role: "preparacao" } : k),
-    nodes: cat.nodes.map((n) => n.id === "d/resumo" ? { ...n, role: "ajuste" } : n),
-  };
-  const r = sugerir(c, { de: "d/ler", tipo: "t/a", presentes: ["d/resumo", "d/limpa"] });
-  assert.equal(r.find((x) => x.id === "d/resumo").motivos.contexto, -PESOS.contexto);
-  assert.ok(!("contexto" in r.find((x) => x.id === "d/limpa").motivos));
+const comPapeis = {
+  ...cat,
+  categories: cat.categories.map((k) => k.id === "clean" ? { ...k, role: "preparacao" }
+    : k.id === "inspect" ? { ...k, role: "inspecao" } : k),
+};
+
+test("contexto: bloco já a montante cai, inspeção inclusive", () => {
+  const r = sugerir(comPapeis, { de: "d/ler", tipo: "t/a", presentes: ["d/ler", "d/resumo"] });
+  assert.equal(r.find((x) => x.id === "d/resumo").motivos.contexto, -PENAL.presente * PESOS.contexto);
   assert.equal(r[0].id, "d/limpa"); // sem o contexto, d/resumo lideraria
+});
+
+test("contexto: mesmo tipo da origem cai forte; preparação encadeada não", () => {
+  const c = { ...comPapeis, nodes: [...comPapeis.nodes,
+    { id: "d/ver", category: "inspect", inputs: [{ name: "in", type: "t/a" }], outputs: [{ name: "out", type: "t/a" }] }] };
+  const r = sugerir(c, { de: "d/ver", tipo: "t/a", presentes: ["d/ver", "d/ler"] });
+  assert.equal(r.find((x) => x.id === "d/ver").motivos.contexto, -PENAL.origem * PESOS.contexto);
+  const p = sugerir(c, { de: "d/limpa", tipo: "t/a", presentes: ["d/limpa", "d/ler"] });
+  assert.ok(!("contexto" in p.find((x) => x.id === "d/limpa").motivos));
+});
+
+test("sem pingue-pongue: preparo -> inspeção -> não volta ao preparo", () => {
+  // Converter (preparo) -> Resumo (inspeção): de Resumo, Converter já está a
+  // montante e não deve liderar; de Converter, Resumo a montante também cai.
+  const c = { ...comPapeis, transitions: [
+    { from: "d/limpa", to: "d/resumo", n: 6 }, { from: "d/resumo", to: "d/limpa", n: 6 },
+    { from: "d/limpa", to: "m/ajuste", n: 4 }, { from: "d/resumo", to: "m/ajuste", n: 4 }] };
+  const r1 = sugerir(c, { de: "d/resumo", tipo: "t/a", presentes: ["d/resumo", "d/limpa", "d/ler"] });
+  assert.notEqual(r1[0].id, "d/limpa");
+  const r2 = sugerir(c, { de: "d/limpa", tipo: "t/a", presentes: ["d/limpa", "d/resumo", "d/ler"] });
+  assert.notEqual(r2[0].id, "d/resumo");
+});
+
+test("histórico: uma escolha explícita fica no top 5 mesmo com outras escolhas", () => {
+  const nodes = [cat.nodes[0], ...Array.from({ length: 8 }, (_, i) =>
+    ({ id: `d/b${i}`, category: "inspect", inputs: [{ name: "in", type: "t/a" }], outputs: [] })),
+    { id: "d/dup", category: "fit", inputs: [{ name: "in", type: "t/a" }], outputs: [] }];
+  const c = { ...cat, nodes, transitions: Array.from({ length: 8 }, (_, i) => ({ from: "d/ler", to: `d/b${i}`, n: 10 })) };
+  const historico = { "d/ler>d/dup": 1, "d/ler>d/b0": 5, "d/ler>d/b1": 5, "d/ler>d/b2": 5 };
+  const r = sugerir(c, { de: "d/ler", tipo: "t/a", historico });
+  const i = r.findIndex((x) => x.id === "d/dup");
+  assert.ok(i >= 0 && i < 5, `d/dup em ${i}`);
+  assert.equal(r[i].motivos.historico, 0.5 * PESOS.historico);
 });
 
 test("contexto: citado em Usos relacionados de bloco presente ganha", () => {
