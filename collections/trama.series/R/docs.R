@@ -39,7 +39,7 @@
 #' @noRd
 .tr_series_doc <- function(id) {
   todos <- c(.tr_series_docs_modelar(), .tr_series_docs_decompor(),
-             .tr_series_docs_raiz())
+             .tr_series_docs_raiz(), .tr_series_docs_tendencia())
   d <- todos[[id]]
   list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
 }

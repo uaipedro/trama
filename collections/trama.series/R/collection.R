@@ -1690,7 +1690,10 @@ inteiro; `series/regression`, que produz o ajuste.
 
 # ---- Testar: tendência ------------------------------------------------------
 
-      trama::tr_node("series/mann_kendall", fn = tr_series_mann_kendall,
+      trama::tr_node("series/mann_kendall",
+        pressupostos = .tr_series_doc("series/mann_kendall")$pressupostos,
+        referencias = .tr_series_doc("series/mann_kendall")$referencias,
+        fn = tr_series_mann_kendall,
         label = "Mann-Kendall",
         category = "serie_tendencia", icon = icone("trending-up"),
         description = "Mann-Kendall: a série tem tendência?",
@@ -1762,7 +1765,10 @@ tr_flow(reg) |>
 `series/example` para uma série com tendência à mão.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/cox_stuart", fn = tr_series_cox_stuart,
+      trama::tr_node("series/cox_stuart",
+        pressupostos = .tr_series_doc("series/cox_stuart")$pressupostos,
+        referencias = .tr_series_doc("series/cox_stuart")$referencias,
+        fn = tr_series_cox_stuart,
         label = "Cox-Stuart",
         category = "serie_tendencia", icon = icone("arrow-up-down"),
         description = "Cox-Stuart: a série tem tendência?",
@@ -1856,7 +1862,10 @@ pela regressão; `series/plot` para ver se o movimento é mesmo de um sentido s�
 `series/example` para uma série com tendência à mão.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/runs", fn = tr_series_runs,
+      trama::tr_node("series/runs",
+        pressupostos = .tr_series_doc("series/runs")$pressupostos,
+        referencias = .tr_series_doc("series/runs")$referencias,
+        fn = tr_series_runs,
         label = "Run",
         category = "serie_tendencia", icon = icone("shuffle"),
         description = "Run (Wald-Wolfowitz): a série é aleatória?",
@@ -1931,7 +1940,10 @@ jeito a aleatoriedade falhou; `series/ljung_box`, que também pergunta se a sér
 é ruído, mas pela autocorrelação.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/pettitt", fn = tr_series_pettitt,
+      trama::tr_node("series/pettitt",
+        pressupostos = .tr_series_doc("series/pettitt")$pressupostos,
+        referencias = .tr_series_doc("series/pettitt")$referencias,
+        fn = tr_series_pettitt,
         label = "Pettitt",
         category = "serie_tendencia", icon = icone("milestone"),
         description = "Pettitt: a série tem um ponto de mudança?",
@@ -2018,7 +2030,10 @@ paramétricos da categoria; `series/plot` para ver a quebra que o teste apontou;
 
 # ---- Sazonalidade -----------------------------------------------------------
 
-      trama::tr_node("series/kruskal_wallis", fn = tr_series_kruskal_wallis,
+      trama::tr_node("series/kruskal_wallis",
+        pressupostos = .tr_series_doc("series/kruskal_wallis")$pressupostos,
+        referencias = .tr_series_doc("series/kruskal_wallis")$referencias,
+        fn = tr_series_kruskal_wallis,
         label = "Kruskal-Wallis",
         category = "serie_sazonal", icon = icone("calendar-days"),
         description = "Kruskal-Wallis: a série tem sazonalidade?",
@@ -2133,7 +2148,10 @@ variância e que NÃO muda este teste; `series/seasonal_plot` e `series/subserie
 para ver a sazonalidade que o teste mede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/fisher", fn = tr_series_fisher,
+      trama::tr_node("series/fisher",
+        pressupostos = .tr_series_doc("series/fisher")$pressupostos,
+        referencias = .tr_series_doc("series/fisher")$referencias,
+        fn = tr_series_fisher,
         label = "Fisher",
         category = "serie_sazonal", icon = icone("signal"),
         description = "Fisher: existe uma periodicidade escondida?",
