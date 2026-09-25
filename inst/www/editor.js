@@ -27,6 +27,8 @@ import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
+import { Proximo } from "./proximo.js";
+import { registrar } from "./historico.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -1833,8 +1835,11 @@ function App() {
         const medidas = new Map(comMedidas(nodesRef.current)
           .filter((x) => x.type === "ndNode" && x.measured)
           .map((x) => [x.id, x.measured]));
+        const selNovo = selNovoRef.current;
         const n = novos.map((x) => (x.type === "ndNode" && medidas.has(x.id)
-          ? { ...x, measured: medidas.get(x.id) } : x));
+          ? { ...x, measured: medidas.get(x.id) } : x))
+          .map((x) => (selNovo && x.id === selNovo ? { ...x, selected: true } : x));
+        if (selNovo && n.some((x) => x.id === selNovo)) selNovoRef.current = null;
         setNodes(n); setEdges(e);
         // Documento sem posições (escrito à mão ou por LLM): o dagre resolve e
         // as posições sobem como `move`, que é apresentação pura e não
@@ -2221,6 +2226,7 @@ function App() {
   }, []);
 
   const onNodeDragStart = useCallback((e, _n, dragged) => {
+    setProx(null);
     // Alt: ajuste fino do retângulo, sem levar nada. Só o que está
     // selecionado anda, que é o comportamento de um nó comum. `e` é o evento
     // de origem do d3-drag (mouse ou toque), que carrega `altKey`.
@@ -2346,14 +2352,66 @@ function App() {
   // do cliente — o mesmo truque de `opsDoGrupo`: `set_mode` referenciando um
   // id que só existe dentro deste lote. Ausência de extra ops quando o modo é
   // o padrão evita mandar um `set_mode` inútil a cada bloco novo.
-  const addAt = useCallback((typeId, pos, extra) => {
+  const opsAdd = (typeId, pos, id, extra) => {
     const add = { op: "add_node", type: typeId,
                   position: [Math.round(pos.x), Math.round(pos.y)], ...extra };
     const modo = modoNovoRef.current;
-    if (modo === "completo") { pushOp(add); return; }
-    const id = add.id || novoId();
-    pushMany([{ ...add, id }, { op: "set_mode", node: id, modo }]);
+    if (modo === "completo") return [id ? { ...add, id } : add];
+    const nid = id || add.id || novoId();
+    return [{ ...add, id: nid }, { op: "set_mode", node: nid, modo }];
+  };
+  const addAt = useCallback((typeId, pos, extra) => {
+    pushMany(opsAdd(typeId, pos, null, extra));
   }, []);
+
+  // Popover "próximo bloco": `{de, porta, tipo, x, y}` — `de` é o id do NÓ de
+  // origem; o tipo de bloco dele sai do nó na hora de montar o popover.
+  const [prox, setProx] = useState(null);
+  const tipoDaSaida = (nodeId, porta) => {
+    const cat = catalogRef.current;
+    const n = nodesRef.current.find((x) => x.id === nodeId);
+    const spec = n && cat?.nodes.find((x) => x.id === n.data.nodeType);
+    const out = spec?.outputs?.find((o) => o.name === porta);
+    return out ? { tipo: out.type, nodeType: n.data.nodeType } : null;
+  };
+  const abrirProximo = useCallback((nodeId, porta, x, y) => {
+    const t = tipoDaSaida(nodeId, porta);
+    if (t) setProx({ de: nodeId, porta, tipo: t.tipo, x, y });
+  }, []);
+  // Id do bloco recém-inserido: o documento que ecoa o batch refaz os nós
+  // sem seleção, e é ali que ele ganha o `selected`.
+  const selNovoRef = useRef(null);
+
+  // Insere o bloco à direita da origem, já conectado, num batch só (um passo
+  // de undo). Colidindo com um card, desce até achar vão.
+  const inserirProximo = (tipoId, porta, { encadear } = {}) => {
+    const p = prox; if (!p) return;
+    const origem = nodesRef.current.find((n) => n.id === p.de);
+    const cat = catalogRef.current;
+    if (!origem || !cat) { setProx(null); return; }
+    const pos = { x: origem.position.x + 300, y: origem.position.y };
+    const ocupado = (q) => nodesRef.current.some((n) => n.type === "ndNode" && n.id !== p.de
+      && Math.abs(n.position.x - q.x) < 260 && Math.abs(n.position.y - q.y) < 200);
+    for (let i = 0; i < 50 && ocupado(pos); i++) pos.y += 230;
+    const nid = novoId();
+    pushMany([...opsAdd(tipoId, pos, nid),
+              { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }]);
+    registrar(origem.data.nodeType, tipoId);
+    selNovoRef.current = nid;
+    const spec = cat.nodes.find((x) => x.id === tipoId);
+    const saida = spec?.outputs?.[0];
+    if (encadear && saida) {
+      const tela = rf.flowToScreenPosition({ x: pos.x + MIN_W, y: pos.y + 40 });
+      setProx({ de: nid, porta: saida.name, tipo: saida.type, x: tela.x + 8, y: tela.y });
+    } else setProx(null);
+  };
+
+  // Tipos de bloco no fluxo, estável enquanto o conjunto não muda: o
+  // sugestor recalcula o ranking quando esta referência muda.
+  const presentesChave = nodes.filter((n) => n.type === "ndNode")
+    .map((n) => n.data.nodeType).sort().join("\n");
+  const presentes = useMemo(() => (presentesChave ? [...new Set(presentesChave.split("\n"))] : []),
+    [presentesChave]);
 
   // Clicar na paleta cai numa cascata a partir do canto visível, em vez de um
   // ponto fixo: sem isso todo nó novo nasce exatamente em cima do anterior.
@@ -3151,7 +3209,7 @@ function App() {
           : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
         onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
         onPaneClick: () => { setMenu(null); setMenuAcoes(false); }, onNodeClick: () => setMenu(null),
-        onMoveStart: () => setMenu(null),
+        onMoveStart: () => { setMenu(null); setProx(null); },
         // Gestos: arrastar no vazio (botão principal ou do meio, ou com espaço)
         // ANDA pela tela; Shift + arrasto desenha a caixa de seleção, e
         // Shift+clique soma à seleção. A roda dá zoom; Ctrl+roda rola a tela,
@@ -3302,6 +3360,16 @@ function App() {
             onClose: () => setPainelFrames(false) })
         : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked,
                        modoNovo, onModoNovo: setModoNovo }),
+    prox && !present && catalog
+      ? h(Proximo, { key: `prox-${prox.de}-${prox.porta}`, catalog,
+          de: nodes.find((n) => n.id === prox.de)?.data.nodeType,
+          tipo: prox.tipo, presentes, x: prox.x, y: prox.y,
+          onEscolher: inserirProximo, onFechar: () => setProx(null),
+          renderIcone: (n) => (n.icon && ICON_KINDS.has(n.icon.kind)
+            ? h(Icon, { icon: n.icon, className: "tr-palette-icon",
+                        color: corDaCategoria((catalog.categories || []).find((c) => c.id === n.category), n) })
+            : null) })
+      : null,
     h("div", { key: "tb", className: "tr-toolbar", role: "toolbar", "aria-label": "Ferramentas" }, [
       // `img`, e não botão: a marca é assinatura, não controle. Não clica, não
       // abre nada e não entra na ordem de tabulação. A versão só existe do
