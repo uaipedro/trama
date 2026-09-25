@@ -29,6 +29,10 @@ média móvel; o ajuste de outro modelo. Ligue a série original em **serie** e,
 por exemplo, `series/component` com `tendencia` (de uma `series/regression`
 de grau 1, para a tendência linear) em **sobreposta**.
 
+Na legenda, a série se chama **original** e a sobreposta leva o nome do
+componente de onde veio (`tendência`, `sazonal`…) ou, sem ele, **estimada**;
+**Nome da série** e **Nome da sobreposta** trocam os dois.
+
 As duas precisam ter a mesma frequência; leve uma à outra com
 `series/aggregate`. Períodos diferentes são aceitos: o eixo cobre a união, e
 cada linha ocupa o seu trecho.
@@ -41,6 +45,8 @@ Inspecione a evolução da série no tempo para reconhecer tendência, sazonalid
 
 - **Marcar pontos** — desenha cada observação sobre a linha. Útil em série
   curta, e para ver onde estão os faltantes.
+- **Nome da série**, **Nome da sobreposta** — os nomes na legenda, só com a
+  sobreposta ligada. Vazios: `original` e o nome do componente (ou `estimada`).
 
 ## Exemplo
 

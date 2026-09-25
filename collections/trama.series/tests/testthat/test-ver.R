@@ -65,8 +65,14 @@ test_that("série no tempo com sobreposta: duas linhas no mesmo eixo, com legend
   p <- tr_series_plot(x, sobreposta = tend)
   b <- ggplot2::ggplot_build(p)
   expect_equal(length(unique(b$data[[1]]$colour)), 2L)
-  expect_equal(levels(p$data$linha), c("série", "sobreposta"))
-  expect_equal(p$data$valor[p$data$linha == "sobreposta"], as.numeric(tend))
+  expect_equal(levels(p$data$linha), c("original", "tendência"))
+  expect_equal(p$data$valor[p$data$linha == "tendência"], as.numeric(tend))
+  # Sem nome de componente, "estimada"; digitados, vencem; iguais, erro.
+  expect_equal(levels(tr_series_plot(x, sobreposta = x + 1)$data$linha), c("original", "estimada"))
+  expect_equal(levels(tr_series_plot(x, sobreposta = tend, nome_serie = "pax",
+                                     nome_sobreposta = "reta")$data$linha), c("pax", "reta"))
+  expect_error(tr_series_plot(x, sobreposta = tend, nome_serie = "tendência"),
+               class = "tr_series_error_bad_option")
   # Sem sobreposta, o desenho de sempre: uma linha, sem mapeamento de cor.
   expect_null(tr_series_plot(x)$mapping$colour)
 })
@@ -92,5 +98,6 @@ test_that("pelo motor: série em 'serie' e tendência em 'sobreposta'", {
     trama::tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
     trama::tr_add("g", "series/plot", from = c("ap", "tend"))
   p <- trama::tr_value(f$doc, "g", registry = reg, store = s)
-  expect_equal(levels(p$data$linha), c("série", "sobreposta"))
+  # O nome do componente atravessa o store da série.
+  expect_equal(levels(p$data$linha), c("original", "tendência"))
 })

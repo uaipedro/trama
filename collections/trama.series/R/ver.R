@@ -23,7 +23,8 @@
 #' `sobreposta` vem DEPOIS de `pontos` para não mudar a posição dos
 #' argumentos de quem já chamava `tr_series_plot(x, TRUE)` no console.
 #' @export
-tr_series_plot <- function(serie, pontos = FALSE, sobreposta = NULL, aspecto = "16:9", tema = "padrão",
+tr_series_plot <- function(serie, pontos = FALSE, sobreposta = NULL, nome_serie = "", nome_sobreposta = "",
+                           aspecto = "16:9", tema = "padrão",
                            titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   d <- .tr_series_tabela(serie)
   if (is.null(sobreposta)) {
@@ -44,7 +45,17 @@ tr_series_plot <- function(serie, pontos = FALSE, sobreposta = NULL, aspecto = "
                        paste0("'series/plot': 'serie' tem frequência %g e 'sobreposta' tem %g. Leve as duas ",
                               "à mesma frequência antes, com 'series/aggregate'."), fa, fb)
     }
-    niveis <- c("série", "sobreposta")
+    # Nomes da legenda: o digitado, senão "original" e o nome do componente
+    # que a `series/component` gravou ("tendência"), senão "estimada". Nomes
+    # iguais fundiriam as duas linhas num nível só, e isso é recusado.
+    nome <- function(v, padrao) { v <- trimws(paste(as.character(v), collapse = " ")); if (nzchar(v)) v else padrao }
+    niveis <- c(nome(nome_serie, "original"),
+                nome(nome_sobreposta, attr(sobreposta, "tr_series_nome") %||% "estimada"))
+    if (niveis[[1]] == niveis[[2]]) {
+      .tr_series_abort("tr_series_error_bad_option",
+                       "'series/plot': as duas linhas se chamam '%s'. Dê nomes diferentes à série e à sobreposta.",
+                       niveis[[1]])
+    }
     d$linha <- factor(niveis[[1]], niveis)
     d2 <- .tr_series_tabela(sobreposta); d2$linha <- factor(niveis[[2]], niveis)
     d <- rbind(d, d2)
@@ -52,7 +63,7 @@ tr_series_plot <- function(serie, pontos = FALSE, sobreposta = NULL, aspecto = "
     p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["tempo"]], y = .data[["valor"]], colour = .data[["linha"]])) +
       ggplot2::geom_line(ggplot2::aes(linewidth = .data[["linha"]]), na.rm = TRUE) +
       # A sobreposta um pouco mais grossa: é ela que se está conferindo.
-      ggplot2::scale_linewidth_manual(values = c(.6, .9), guide = "none") +
+      ggplot2::scale_linewidth_manual(values = stats::setNames(c(.6, .9), niveis), guide = "none") +
       ggplot2::scale_colour_manual(values = cores, name = NULL)
     if (isTRUE(pontos)) {
       p <- p + ggplot2::geom_point(data = d[d$linha == niveis[[1]], ], size = 1.2, na.rm = TRUE)

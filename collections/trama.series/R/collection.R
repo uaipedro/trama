@@ -2375,7 +2375,9 @@ enganoso do caso `Nile`.
         category = "serie_ver", icon = icone("chart-line"),
         description = "Desenha a série ao longo do tempo, e uma segunda série sobre ela.",
         inputs = list(serie = S, sobreposta = trama::tr_port(S, required = FALSE)), outputs = list(out = G),
-        params = .tr_series_props(pontos = B(FALSE, label = "Marcar pontos")),
+        params = .tr_series_props(pontos = B(FALSE, label = "Marcar pontos"),
+          nome_serie = trama::tr_param("text", "", label = "Nome da série", example = "passageiros"),
+          nome_sobreposta = trama::tr_param("text", "", label = "Nome da sobreposta", example = "tendência linear")),
         help = .tr_series_ajuda(r"---[
 A série como linha no tempo, que é o primeiro gráfico de qualquer análise:
 tendência, sazonalidade, quebras, outliers e mudança de variância se veem
@@ -2395,12 +2397,19 @@ subtraí-la; a média móvel; o ajuste de outro modelo. Ligue a série original 
 **serie** e, por exemplo, `series/component` com `tendencia` (de uma
 `series/regression` com grau 1, para a tendência linear) em **sobreposta**.
 
+Na legenda, a série se chama **original** e a sobreposta leva o nome do
+componente de onde veio (`tendência`, `sazonal`…) ou, sem ele, **estimada**;
+**Nome da série** e **Nome da sobreposta** trocam os dois.
+
 As duas precisam ter a mesma frequência — mensal com anual para o nó; leve
 uma à outra com `series/aggregate`. Períodos diferentes, não: o eixo cobre a
 união, e cada linha ocupa o seu trecho.
 ]---", r"---[
 - **Marcar pontos** — desenha cada observação sobre a linha. Útil em série
   curta, e para ver onde estão os faltantes.
+- **Nome da série**, **Nome da sobreposta** — os nomes na legenda, só com a
+  sobreposta ligada. Vazios: `original` e o nome do componente (ou
+  `estimada`).
 ]---", r"---[
 Um gráfico (`view/plot`). No console, um ggplot comum, somável.
 ]---", r"---[

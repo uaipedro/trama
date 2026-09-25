@@ -27,7 +27,8 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `intervalo` | desenhar a faixa do intervalo de confiança (bool); o nível vai em `confianca` | — |
 | `valor` | número(s) digitado(s) de uma referência fixa, vários separados por `;`, vírgula decimal (view/reference) | — |
 | `texto` | texto livre escrito no gráfico (view/reference, view/annotate) | `rotulo` quando é texto, e não coluna |
-| `rotulo` | coluna cujo valor é escrito junto de cada ponto (view/labels, multi/pca) | — (não usar para texto livre) |
+| `rotulo` | sozinho, a coluna de rótulos escritos junto de cada ponto (view/labels, multi/pca); com prefixo, `rotulo_*` é o texto de um eixo (`rotulo_x`, `rotulo_y`) | — (não usar `rotulo` sozinho para texto livre) |
+| `nome_*` | texto de legenda de uma linha do gráfico (`nome_serie`, `nome_sobreposta` em series/plot) | — |
 | `por_cor` | uma curva por grupo de cor do gráfico de entrada (view/fit_line) | — |
 | `sobreposta` | porta de uma segunda série desenhada no mesmo eixo (series/plot) | — |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |

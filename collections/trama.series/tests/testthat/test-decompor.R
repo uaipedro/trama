@@ -14,10 +14,15 @@ test_that("multiplicativa multiplica, e dessazonalizada divide", {
   prod <- d$tendencia * d$sazonal * d$resto
   ok <- !is.na(prod)
   expect_equal(as.numeric(prod[ok]), as.numeric(x[ok]), tolerance = 1e-8)
-  expect_equal(tr_series_component(d, "dessazonalizada"), x / d$sazonal)
+  # O componente leva o nome legível num atributo (a legenda do series/plot);
+  # os valores e o tempo são os da conta.
+  expect_equal(tr_series_component(d, "dessazonalizada"), x / d$sazonal, ignore_attr = "tr_series_nome")
   expect_equal(tr_series_component(tr_series_stl(x), "dessazonalizada"),
-               x - tr_series_stl(x)$sazonal)
-  expect_identical(tr_series_component(d, "tendencia"), d$tendencia)
+               x - tr_series_stl(x)$sazonal, ignore_attr = "tr_series_nome")
+  tend <- tr_series_component(d, "tendencia")
+  expect_equal(attr(tend, "tr_series_nome"), "tendência")
+  attr(tend, "tr_series_nome") <- NULL
+  expect_identical(tend, d$tendencia)
 })
 
 test_that("decompor recusa série anual, curta, com faltante ou não positiva", {

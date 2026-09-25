@@ -79,7 +79,14 @@ tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
     tendencia = d$tendencia, sazonal = d$sazonal, resto = d$resto, regressor = d$regressor,
     dessazonalizada = if (mult) d$observado / d$sazonal else d$observado - d$sazonal,
     sem_tendencia = if (mult) d$observado / d$tendencia else d$observado - d$tendencia)
-  .tr_series_uni(out)
+  out <- .tr_series_uni(out)
+  # O nome legível do componente viaja com a série: é o que o `series/plot`
+  # escreve na legenda quando ela entra como `sobreposta`. Atributo e não
+  # classe: a série continua um `ts` comum para todo o resto.
+  attr(out, "tr_series_nome") <- c(tendencia = "tendência", sazonal = "sazonal", resto = "resto",
+                                   dessazonalizada = "dessazonalizada", sem_tendencia = "sem tendência",
+                                   regressor = "regressor")[[componente]]
+  out
 }
 
 #' Decomposição por REGRESSÃO: tendência polinomial e sazonalidade por dummies.
