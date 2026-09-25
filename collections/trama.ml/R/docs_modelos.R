@@ -26,12 +26,12 @@
         P("A relação entre os preditores e a resposta (ou o logito da classe, na logística) é **linear e aditiva**: sem curvatura nem interação que o modelo não tenha.",
           verificar = "ml/residuals",
           se_falhar = "Crie termos (quadrado, produto) com o `data/mutate` ou compare com um modelo de árvore (`ml/cart`, `ml/forest`) no mesmo teste."),
-        P("Na classificação, **duas classes**, e a classe prevista é a de probabilidade ≥ 0,5. Com classes desequilibradas esse corte favorece a maioritária.",
+        P("Na classificação, **duas classes**, e a classe prevista é a segunda quando sua probabilidade é ≥ `corte` (padrão 0,5). Com classes desequilibradas o corte 0,5 favorece a maioritária.",
           verificar = "ml/confusion",
-          se_falhar = "Leia a `balanced_accuracy` no `ml/evaluate` e a curva no `ml/roc`, que não dependem do corte. Escolher outro corte ainda sem bloco no trama."))),
+          se_falhar = "Leia a `balanced_accuracy` no `ml/evaluate` e a curva no `ml/roc`, que não dependem do corte. Se mudar o `corte`, escolha-o com dados de treino (validação), nunca olhando o teste."))),
       referencias = list(L$islr, L$esl,
         I("stats", "lm", "Regressão: mínimos quadrados sobre os preditores escolhidos, sem interações."),
-        I("stats", "glm", "Classificação binária: `family = binomial()`; a classe prevista é a de probabilidade ≥ 0,5."))),
+        I("stats", "glm", "Classificação binária: `family = binomial()`; a classe prevista é a segunda quando sua probabilidade é ≥ `corte`."))),
 
     "ml/cart" = list(
       pressupostos = c(base, list(num,

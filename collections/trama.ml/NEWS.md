@@ -19,3 +19,7 @@
   poda ao ajustar CART. Validação: `rpart::printcp`/`prune` reproduzidos em
   `airquality` (casos completos) com semente 42 — árvore cheia de 30 divisões,
   1-EP com 3 divisões, previsões idênticas.
+- `ml/linear`: parâmetro `corte` (padrão 0,5, que reproduz o comportamento
+  anterior — versão do nó mantida) para a logística binária: prevê a segunda
+  classe quando P ≥ `corte`. Validação: `.prob_*` iguais a `fitted(glm)` e
+  `.pred` igual à regra aplicada à mão para cortes 0,3, 0,5 e 0,8.

@@ -31,13 +31,16 @@
 #'   cruzada de 10 folds do `rpart` (Breiman et al. 1984): `"1ep"` fica com a
 #'   menor árvore cujo erro de validação não passa do mínimo mais um
 #'   erro-padrão; `"minimo"`, com a de menor erro; `"nenhuma"` não poda.
+#' @param corte Na logística binária, a classe prevista é a segunda quando sua
+#'   probabilidade é maior ou igual a `corte` (entre 0 e 1, exclusivos).
+#'   Ignorado pelos demais modelos.
 #' @return Objeto `tr_ml_fit`.
 #' @export
 tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
                       trees = 200L, mtry = 0L, cost = 1, gamma = 0.1,
                       kernel = "radial", nrounds = 100L, eta = 0.1,
-                      cp = 0, poda = "1ep") {
+                      cp = 0, poda = "1ep", corte = 0.5) {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   seed <- .tr_ml_int(seed, "seed", 0L); max_depth <- .tr_ml_int(max_depth, "max_depth", 1L)
   min_n <- .tr_ml_int(min_n, "min_n", 1L); max_splits <- .tr_ml_int(max_splits, "max_splits", 1L)
@@ -45,6 +48,8 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
   cost <- .tr_ml_num(cost, "cost", 0, TRUE); gamma <- .tr_ml_num(gamma, "gamma", 0)
   nrounds <- .tr_ml_int(nrounds, "nrounds", 1L); eta <- .tr_ml_num(eta, "eta", 0, TRUE)
   kernel <- .tr_ml_enum(kernel, c("linear", "polynomial", "radial", "sigmoid"), "kernel")
+  corte <- .tr_ml_num(corte, "corte", 0, TRUE)
+  if (corte >= 1) .tr_ml_abort("tr_ml_error_bad_param", "Param 'corte' deve estar entre 0 e 1, exclusivos.")
   cp <- .tr_ml_num(cp, "cp", 0); poda <- .tr_ml_enum(poda, c("1ep", "minimo", "nenhuma"), "poda")
   d <- .tr_ml_dados(dados, alvo, cols, tarefa)
   if (d$tarefa == "classificacao" && length(d$niveis) > 2L && modelo %in% c("linear", "figs")) {
@@ -116,7 +121,7 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
                             nrounds = nrounds, eta = eta, cp = cp,
-                            poda = poda)
+                            poda = poda, corte = corte)
   structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$alvo,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
                  n = d$n, seed = seed, extras = extras), class = "tr_ml_fit")
@@ -149,7 +154,8 @@ tr_ml_predict <- function(modelo, dados) {
   x <- .tr_ml_novos_dados(modelo, dados)
   cls <- modelo$tarefa == "classificacao"; prob <- NULL
   if (modelo$modelo == "linear") {
-    if (cls) { p <- as.numeric(stats::predict(modelo$ajuste, x, type = "response")); prob <- cbind(1-p, p); pred <- modelo$niveis[1L + (p >= .5)] }
+    if (cls) { p <- as.numeric(stats::predict(modelo$ajuste, x, type = "response")); prob <- cbind(1-p, p)
+      pred <- modelo$niveis[1L + (p >= (modelo$extras$parametros$corte %||% .5))] }
     else pred <- as.numeric(stats::predict(modelo$ajuste, x))
   } else if (modelo$modelo == "cart") {
     if (cls) { prob <- stats::predict(modelo$ajuste, x, type = "prob"); pred <- colnames(prob)[max.col(prob, ties.method = "first")] }

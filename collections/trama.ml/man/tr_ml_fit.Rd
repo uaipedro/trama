@@ -22,7 +22,8 @@ tr_ml_fit(
   nrounds = 100L,
   eta = 0.1,
   cp = 0,
-  poda = "1ep"
+  poda = "1ep",
+  corte = 0.5
 )
 }
 \arguments{
@@ -68,6 +69,10 @@ máxima permitida por \code{max_depth} e \code{min_n}, depois podada.}
 cruzada de 10 folds do \code{rpart} (Breiman et al. 1984): \code{"1ep"} fica com a
 menor árvore cujo erro de validação não passa do mínimo mais um
 erro-padrão; \code{"minimo"}, com a de menor erro; \code{"nenhuma"} não poda.}
+
+\item{corte}{Na logística binária, a classe prevista é a segunda quando sua
+probabilidade é maior ou igual a \code{corte} (entre 0 e 1, exclusivos).
+Ignorado pelos demais modelos.}
 }
 \value{
 Objeto \code{tr_ml_fit}.

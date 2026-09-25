@@ -54,8 +54,8 @@ tr_ml_xgboost <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "linear", tarefa, seed = seed)
+tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0.5, seed = 42L) {
+  tr_ml_fit(dados, alvo, cols, "linear", tarefa, seed = seed, corte = corte)
 }
 
 .tr_ml_help <- function(descricao, parametros, valor, exemplo, veja) {
@@ -77,7 +77,8 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
     linear = list(fn = tr_ml_linear, icon = "chart-spline", label = "Linear / log\u{ED}stica", category = "ml_simples",
       desc = "Refer\u{EA}ncia simples: regress\u{E3}o linear ou log\u{ED}stica bin\u{E1}ria.",
       details = "Ajusta m\u{ED}nimos quadrados (`stats::lm`) ou log\u{ED}stica bin\u{E1}ria (`stats::glm`). N\u{E3}o \u{E9} rede neural. Compare com os modelos de \u{E1}rvore usando o mesmo teste. A log\u{ED}stica suporta duas classes.",
-      params = list(), extra = ""),
+      params = list(corte = trama::tr_param_num(0.5, min = 0.000001, max = 0.999999, label = "Corte de probabilidade")),
+      extra = "`corte`: na log\u{ED}stica, prev\u{EA} a segunda classe quando sua probabilidade \u{E9} maior ou igual ao corte; ignorado na regress\u{E3}o. O padr\u{E3}o 0,5 favorece a classe majorit\u{E1}ria quando as classes s\u{E3}o desequilibradas; escolha o corte no treino (nunca olhando o teste)."),
     cart = list(fn = tr_ml_cart, icon = "git-fork", label = "CART \u{B7} \u{E1}rvore de decis\u{E3}o", category = "ml_simples",
       desc = "Uma \u{E1}rvore pequena para seguir cada decis\u{E3}o at\u{E9} a previs\u{E3}o.",
       details = "Usa `rpart`. Cada caminho da raiz at\u{E9} uma folha forma uma regra. Profundidade pequena facilita a leitura; \u{E1}rvores grandes podem sobreajustar. A tabela do card mostra regras e as previs\u{F5}es das folhas.",

@@ -319,3 +319,20 @@ test_that("CART: cp cresce a árvore mínima e parâmetros inválidos são recus
   expect_error(tr_ml_cart(mtcars, "mpg", "wt", cp = -1), class = "tr_ml_error_bad_param")
   expect_error(tr_ml_cart(mtcars, "mpg", "wt", poda = "tudo"), class = "tr_ml_error_bad_option")
 })
+
+test_that("logística classifica pelo corte informado sobre P(segunda classe)", {
+  d <- tr_ml_example("iris_binaria")
+  ref <- stats::glm(Species ~ Sepal.Length + Sepal.Width, d, family = stats::binomial())
+  p <- unname(stats::fitted(ref))
+  for (corte in c(.5, .3, .8)) {
+    m <- tr_ml_linear(d, "Species", "Sepal.Length, Sepal.Width", corte = corte)
+    prev <- tr_ml_predict(m, d)
+    expect_equal(prev$.prob_virginica, p, tolerance = 1e-10)
+    esperado <- factor(levels(d$Species)[1L + (p >= corte)], levels = levels(d$Species))
+    expect_identical(prev$.pred, esperado)
+  }
+  expect_gt(sum(tr_ml_predict(tr_ml_linear(d, "Species", "Sepal.Length, Sepal.Width", corte = .3), d)$.pred == "virginica"),
+            sum(tr_ml_predict(tr_ml_linear(d, "Species", "Sepal.Length, Sepal.Width"), d)$.pred == "virginica"))
+  expect_error(tr_ml_linear(d, "Species", corte = 0), class = "tr_ml_error_bad_param")
+  expect_error(tr_ml_linear(d, "Species", corte = 1), class = "tr_ml_error_bad_param")
+})
