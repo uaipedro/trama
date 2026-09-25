@@ -81,6 +81,17 @@
           papel = "complementar"),
         I("trama", "tr_models_scott_knott", "Implementação própria das fórmulas de Scott & Knott (1974): médias da tabela, s2 das médias = QM / r, qui-quadrado com k/(pi - 2) gl; conferida contra `ScottKnott::SK`."))),
 
+    "models/polinomial" = list(
+      pressupostos = list(modelo_ok,
+        P("Os níveis do tratamento são **quantitativos** e a resposta pode variar de forma contínua entre eles (dose, época, espaçamento)."),
+        P("O modelo é um **DIC ou DBC de um fator**; no DBC, com todos os tratamentos em todo bloco."),
+        P("O polinômio só vale **dentro da faixa** testada; fora dela a equação extrapola.",
+          se_falhar = "Não use a equação para prever doses fora dos níveis do experimento."),
+        P("A **falta de ajuste** não é significativa para o grau escolhido.",
+          se_falhar = "Aumente o grau, ou considere um modelo não linear (platô, exponencial).")),
+      referencias = list(L$pimentel, L$banzatto, L$montgomery,
+        I("stats", "poly", "Colunas de `poly(x, grau)` em sequência depois do bloco, e o fator do tratamento por último (falta de ajuste); F com o QM do resíduo da ANOVA; equação por `lm` nas médias com peso r."))),
+
     "models/waller_duncan" = list(
       pressupostos = list(modelo_ok, anova_agricolae,
         P("Os efeitos de tratamento são tratados como **intercambiáveis** a priori (a regra é bayesiana), e a razão K reflete o custo relativo dos erros tipo I e II.")),

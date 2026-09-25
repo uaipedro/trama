@@ -611,6 +611,45 @@ tr_flow(reg) |>
 `models/duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
+    trama::tr_node("models/polinomial",
+      pressupostos = .tr_models_doc("models/polinomial")$pressupostos,
+      referencias = .tr_models_doc("models/polinomial")$referencias,
+      fn = tr_models_polinomial, label = "Regressão polinomial",
+      category = "modelo_medias", icon = trama::tr_icon("chart-spline"),
+      description = "Regressão nos tratamentos quantitativos: SQ por grau, falta de ajuste, equação e R².",
+      inputs = list(modelo = "models/fit"), outputs = list(out = "models/effects"),
+      params = list(
+        tratamento = P("cols", "", label = "Tratamento (numérico)", example = "dose"),
+        grau = N(3L, min = 1, max = 5, step = 1, label = "Maior grau"),
+        alfa = N(0.05, min = 0.001, max = 0.5, step = 0.01, label = "Nível (alfa)")),
+      help = .tr_models_ajuda(r"---[
+Quando os tratamentos são doses, épocas ou espaçamentos, comparar médias duas a
+duas desperdiça a ordem dos níveis. Este bloco decompõe a SQ de tratamentos da
+ANOVA (DIC ou DBC) em graus: linear, quadrático, cúbico..., cada um com 1 gl e
+testado com o QM do resíduo; o que sobra até k - 1 gl é a falta de ajuste.
+
+Com níveis igualmente espaçados e repetições iguais, são os polinômios
+ortogonais do livro. Com espaçamento ou repetições desiguais, a mesma
+decomposição sequencial (o acréscimo de SQ de cada grau sobre os menores).
+
+A equação é a do maior grau significativo, ajustada às médias; o R² é a SQ da
+regressão sobre a SQ de tratamentos. Falta de ajuste significativa diz que o
+polinômio não descreve bem as médias.
+]---", r"---[
+- **Tratamento (numérico)** — o fator do modelo, com níveis que são números.
+- **Maior grau** — até 5, e menor que o número de níveis (padrão 3).
+- **Nível (alfa)** — para escolher o grau da equação.
+]---", r"---[
+Um quadro de efeitos (`models/effects`), com a equação e o R² no rodapé.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("dados", "models/example", dataset = "ToothGrowth") |>
+  tr_add("dic", "models/anova_dic", resposta = "len", tratamento = "dose", from = "dados") |>
+  tr_add("reg", "models/polinomial", tratamento = "dose", grau = 2, from = "dic")
+]---", r"---[
+`models/anova_dic`; `models/anova_dbc`; `models/anova_table`.
+]---", teste = TRUE)),
+
     trama::tr_node("models/waller_duncan", 
       pressupostos = .tr_models_doc("models/waller_duncan")$pressupostos,
       referencias = .tr_models_doc("models/waller_duncan")$referencias,

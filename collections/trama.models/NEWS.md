@@ -19,8 +19,16 @@
   14 8 5 7 9 3 1 4 2 (esse exemplo é um látice, que o bloco recusa; a
   reprodução é da função interna com as médias da tabela). Mesma partição que
   `ScottKnott::SK` 1.4.0 no `milho_dbc` e no PlantGrowth, e que a conta à mão.
-
-## Mudanças de método
+- `models/polinomial`: regressão nos tratamentos quantitativos de um DIC ou
+  DBC — SQ de tratamentos decomposta em graus (1 gl cada, F com o QM do
+  resíduo da ANOVA), falta de ajuste, equação do maior grau significativo
+  (ajustada às médias com peso r) e R² = SQ da regressão / SQ de tratamentos.
+  Espaçamento e repetições desiguais pela decomposição sequencial. Validado
+  contra `lm` com as colunas de `poly()` em sequência (1e-10, também no DBC,
+  com doses 0-400 desigualmente espaçadas e com repetições desiguais) e no
+  exemplo do algodão de Montgomery (*Design and Analysis of Experiments*,
+  tabela 3.1): SQ 33,62, 343,21, 64,98 e 33,95 (valores lembrados do livro e
+  reproduzidos pelos dados; página não conferida).
 
 - `models/levene` (com bloco): o equilíbrio passa a exigir o mesmo número de
   parcelas em cada casela tratamento × bloco (e × linha, × coluna no DQL),
