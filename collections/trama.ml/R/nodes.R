@@ -87,7 +87,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
     cart = list(fn = tr_ml_cart, icon = "git-fork", label = "CART \u{B7} \u{E1}rvore de decis\u{E3}o", category = "ml_simples",
       desc = "Uma \u{E1}rvore pequena para seguir cada decis\u{E3}o at\u{E9} a previs\u{E3}o.",
       details = "Usa `rpart`. Cada caminho da raiz at\u{E9} uma folha forma uma regra. Profundidade pequena facilita a leitura; \u{E1}rvores grandes podem sobreajustar. A tabela do card mostra regras e as previs\u{F5}es das folhas.",
-      version = 3L,
+      version = 4L,
       params = list(max_depth = depth, min_n = min_n,
         cp = trama::tr_param_num(0, min = 0, label = "Complexidade m\u{ED}nima (cp)"),
         poda = trama::tr_param_enum("1ep", c("1ep", "minimo", "nenhuma"), label = "Poda")),
@@ -121,7 +121,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
   lapply(names(configs), function(id) {
     cfg <- configs[[id]]
     doc <- .tr_ml_doc(paste0("ml/", id))
-    trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label, version = cfg$version %||% 2L,
+    trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label, version = cfg$version %||% 3L,
       pressupostos = doc$pressupostos, referencias = doc$referencias,
       description = cfg$desc, category = cfg$category, icon = trama::tr_icon(cfg$icon),
       inputs = list(dados = "data/table"), outputs = list(out = "ml/fit"),
@@ -138,7 +138,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
   T <- "data/table"; G <- "view/plot"; M <- "ml/fit"
   visual <- function(...) trama.view::tr_view_props(...)
   list(
-    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, version = 3L,
+    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, version = 4L,
       pressupostos = .tr_ml_doc("ml/tune")$pressupostos, referencias = .tr_ml_doc("ml/tune")$referencias, label = "Ajustar hiperpar\u{E2}metros",
       description = "Seleciona hiperpar\u{E2}metros por valida\u{E7}\u{E3}o cruzada e reajusta o vencedor no treino completo.",
       category = "ml_avaliar", icon = trama::tr_icon("sliders-horizontal"), inputs = list(dados = T),
@@ -157,7 +157,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
         "Duas sa\u{ED}das: o melhor `ml/fit` reajustado e uma tabela com todas as tentativas.",
         "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, alvo = 'Species', tentativas = 3, folds = 3)",
         "`ml/tuning_plot`, `ml/predict`, `ml/evaluate`.")),
-    trama::tr_node("ml/nested_cv", role = "avaliacao", tr_ml_nested_cv, version = 2L,
+    trama::tr_node("ml/nested_cv", role = "avaliacao", tr_ml_nested_cv, version = 3L,
       pressupostos = .tr_ml_doc("ml/nested_cv")$pressupostos, referencias = .tr_ml_doc("ml/nested_cv")$referencias,
       label = "Valida\u{E7}\u{E3}o cruzada aninhada",
       description = "Estima o desempenho do ajuste com busca de hiperpar\u{E2}metros sem reaproveitar as linhas da escolha.",
@@ -205,7 +205,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
         "`alvo`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
         paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, version = 4L,
+    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, version = 5L,
       pressupostos = .tr_ml_doc("ml/roc")$pressupostos, referencias = .tr_ml_doc("ml/roc")$referencias, label = "Curva ROC",
       description = "Mostra sensibilidade contra falsos positivos em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
       category = "ml_inspecionar", icon = trama::tr_icon("chart-line"), inputs = list(dados = T), outputs = list(out = G),
@@ -219,7 +219,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
         "Um gr\u{E1}fico `view/plot`; os dados trazem limiar, taxas, `auc`, `auc_ep`, `auc_inf`, `auc_sup`, `youden_limiar`, `youden_j` e a marca `youden`.",
         "d <- data.frame(y = factor(c('nao','sim','nao','sim')), .prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_roc(d, 'y', '.prob_sim', 'sim')",
         paste("`ml/predict`, `ml/confusion`, `ml/pr_curve`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/pr_curve", role = "avaliacao", tr_ml_pr_curve, version = 2L,
+    trama::tr_node("ml/pr_curve", role = "avaliacao", tr_ml_pr_curve, version = 3L,
       pressupostos = .tr_ml_doc("ml/pr_curve")$pressupostos, referencias = .tr_ml_doc("ml/pr_curve")$referencias, label = "Curva precis\u{E3}o-revoca\u{E7}\u{E3}o",
       description = "Mostra precis\u{E3}o contra revoca\u{E7}\u{E3}o e a precis\u{E3}o m\u{E9}dia em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
       category = "ml_inspecionar", icon = trama::tr_icon("chart-line"), inputs = list(dados = T), outputs = list(out = G),

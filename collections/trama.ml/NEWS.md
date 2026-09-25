@@ -1,3 +1,61 @@
+# trama.ml 0.4.0
+
+Versão sobe de 0.3.0: a revisão quebrou o isolamento do teste de 0.3.0 e as
+correções mudam resultados. Blocos que mudam de comportamento sobem de
+versão: `ml/split` 3, `ml/predict` 3, `ml/evaluate` 4, `ml/confusion` 3,
+`ml/roc` 5, `ml/pr_curve` 3, `ml/tune` 4, `ml/nested_cv` 3,
+`ml/importance` 2, `ml/cart` 4 e os demais modelos 3. Nova dependência:
+`cli` (>= 3.6.0), pelo xxHash64 vetorizado.
+
+## Proveniência por linha
+
+- `ml/split` grava na marca das duas saídas as impressões digitais das
+  linhas do teste: xxHash64 do conteúdo de cada linha nas colunas da divisão
+  (números pelo valor binário exato), como multiconjunto — cópias no teste e
+  cópias idênticas que o sorteio pôs no treino. Todo modelo guarda as
+  impressões do seu treino, qualquer que seja a marca da entrada.
+- `ml/predict` recusa (`tr_ml_error_test_leak`) prever linhas do teste que o
+  modelo viu: ajuste na tabela inteira antes de dividir, numa cópia sem marca
+  do teste ou no treino de outra divisão (B1).
+- Ajuste, `ml/tune`, `ml/nested_cv` e nova divisão recusam uma tabela que
+  junta treino e teste (`rbind`, `bind_rows`, `data/bind_rows`), mesmo com a
+  marca de treino (B2).
+- Os avaliadores recusam (`tr_ml_error_train_eval`) uma tabela marcada como
+  teste que traz linhas de fora dele — previsões do treino juntadas às do
+  teste, ou o teste repetido — salvo `permitir_treino` (B4).
+- Linhas repetidas legítimas dos dois lados não disparam: a contagem de cópias
+  as separa de vazamento.
+- Custo medido em 100 mil linhas: ~1 s para as impressões e ~7 MB no modelo;
+  os folds internos de `ml/tune` e `ml/nested_cv` não as recalculam.
+- O que a marca não cobre, por construção, está documentado (B3): juntar com
+  o teste à direita, remodelar (`pivot_longer`/`pivot_wider`), recriar a
+  tabela à mão, reescrever ou tirar colunas da divisão e dividir fora do
+  `ml/split`.
+
+## Avaliação
+
+- `ml/roc`: com AUC = 0 ou 1 a variância de DeLong é zero; o IC sai NA com a
+  explicação em `auc_nota`, em vez de um intervalo de largura zero. Com menos
+  de duas linhas numa classe, o IC também sai NA com nota (a curva e a AUC
+  seguem; o `multi/roc` recusa nesse caso — alinhar depois).
+- `ml/evaluate`: precisão de classe nunca prevista é indefinida (0/0): sai NA
+  e fica fora das médias macro e ponderada (pesos renormalizados), como
+  `zero_division = np.nan` do scikit-learn. Antes valia 0 (o padrão do
+  scikit-learn), o que puxava as médias para baixo.
+- `ml/tune` e `ml/nested_cv` avisam, e guardam em `nota`, folds de validação
+  com uma classe só (macro F1, kappa e acurácia balanceada degeneram). Nova
+  estratégia `grupo_estratificado`: grupos inteiros distribuídos para
+  equilibrar as classes entre os folds (critério do StratifiedGroupKFold).
+
+## Importância
+
+- `ml/importance` ganha a coluna `medida`, que diz o que cada número mede. Na
+  floresta de classificação (floresta de probabilidade), a permutação é o
+  aumento do erro de Brier do `ranger` — média de (1 − p da classe
+  observada)² fora da bolsa —, não a queda de acurácia, como a documentação
+  dizia; na regressão, do erro quadrático médio. O XGBoost é rotulado como
+  Gain relativo (fração do ganho total, soma 1).
+
 # trama.ml 0.3.0
 
 Versão sobe de 0.2.0: o isolamento do teste passa a ser imposto. Blocos que
