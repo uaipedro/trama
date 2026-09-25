@@ -50,8 +50,8 @@
           verificar = "multi/parallel",
           se_falhar = "Compare também o `multi/scree` de uma `multi/pca` padronizada nas mesmas variáveis, e ajuste com um fator a menos."),
         P("No método **ml**, as variáveis são **normais multivariadas**: o teste qui-quadrado de ajuste depende disso. O `paf` não supõe distribuição.",
-          verificar = "models/shapiro",
-          se_falhar = "O trama só confere a normalidade de cada variável (univariada), que é necessária mas não suficiente; não há teste multivariado (lacuna registrada na revisão metodológica). Com itens Likert ou dados assimétricos, use `metodo = \"paf\"`."),
+          verificar = c("multi/mardia", "models/shapiro"),
+          se_falhar = "Com o `multi/mardia` rejeitando, o teste χ² e os erros da ML não valem como publicados. Com itens Likert ou dados assimétricos, use `metodo = \"paf\"`."),
         linear,
         P("Amostra **grande** em relação ao número de variáveis: cargas e comunalidades são instáveis com poucas observações.",
           verificar = "multi/jackknife_fa")),
@@ -71,8 +71,8 @@
     "multi/kmo_bartlett" = list(
       pressupostos = list(
         P("As observações são **independentes**, e o teste de Bartlett supõe **normalidade multivariada**; com n grande ele rejeita quase sempre, e por isso só diz se há ALGUMA correlação.",
-          verificar = "models/shapiro",
-          se_falhar = "O trama só confere cada variável isoladamente; não há teste de normalidade multivariada (lacuna registrada). Leia o KMO, que não depende de distribuição."),
+          verificar = c("multi/mardia", "models/shapiro"),
+          se_falhar = "Com o `multi/mardia` rejeitando, o p do Bartlett não é confiável; leia o KMO, que não depende de distribuição."),
         P("A matriz de correlação é **inversível** (nenhuma variável é combinação exata das outras): o KMO usa as correlações parciais, que vêm da inversa.",
           verificar = "multi/correlation_matrix",
           se_falhar = "Tire a variável redundante da lista.")),

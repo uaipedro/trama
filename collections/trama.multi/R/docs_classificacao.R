@@ -21,15 +21,32 @@
              fonte = "PLOS ONE, 10(3), e0118432", doi = "10.1371/journal.pone.0118432", papel = "complementar")
   indep <- P("As observações são **independentes** (um indivíduo por linha, sem medidas repetidas).")
   mvn <- P("Dentro de cada grupo, os preditores são **normais multivariados**.",
-           verificar = c("models/shapiro", "view/qq"),
-           se_falhar = "O trama confere só cada preditor em cada grupo (filtre o grupo com `data/filter` antes), o que é necessário mas não suficiente; não há teste multivariado (lacuna registrada). Com preditores assimétricos, contagens ou 0/1, use a `multi/logistic`.")
+           verificar = c("multi/mardia", "models/shapiro", "view/qq"),
+           se_falhar = "Teste no `multi/mardia` com o grupo informado (ele testa dentro de cada grupo). Com preditores assimétricos, contagens ou 0/1, use a `multi/logistic`.")
   fora_amostra <- P("A taxa de acerto que interessa é a **fora da amostra**: por resubstituição ela sai otimista, e mais ainda com muitos preditores e poucos casos.",
                     verificar = "multi/confusion",
                     se_falhar = "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco.")
   desbalanceio <- P("Com **grupos desbalanceados**, a taxa de acerto geral engana: prever sempre o grupo maior já acerta a proporção dele. Leia a taxa de cada grupo (a sensibilidade de cada um).",
                     verificar = "data/group_summarise",
                     se_falhar = "Compare pela AUC na `multi/roc`; na discriminante, experimente `priors = \"iguais\"`. O trama ainda não tem acurácia balanceada nem curva precisão-revocação (lacuna registrada).")
+  mardia70 <- R(autores = "Mardia, K. V.", ano = 1970,
+                titulo = "Measures of multivariate skewness and kurtosis with applications",
+                fonte = "Biometrika, 57(3), 519-530", doi = "10.1093/biomet/57.3.519")
+  mardia74 <- R(autores = "Mardia, K. V.", ano = 1974,
+                titulo = "Applications of some measures of multivariate skewness and kurtosis in testing normality and robustness studies",
+                fonte = "Sankhyā, Series B, 36(2), 115-128", papel = "complementar")
   list(
+    "multi/mardia" = list(
+      pressupostos = list(indep,
+        P("As estatísticas têm distribuição **assintótica** (χ² na assimetria, normal na curtose): com n pequeno a curtose é conservadora e a assimetria liberal — leia a linha de **amostra pequena** (Mardia 1974) quando n < 20.",
+          se_falhar = "Com poucos casos, olhe também os gráficos de cada variável (`view/qq`) e não trate o não rejeitar como prova de normalidade."),
+        P("Os dados são de **uma** população: grupos com médias diferentes misturados na mesma tabela formam uma mistura que não é normal.",
+          se_falhar = "Informe o **grupo** para testar dentro de cada um, que é o que a discriminante e o M de Box supõem."),
+        P("A covariância de cada grupo é **inversível**: n ≥ p + 2 e nenhuma variável é combinação exata das outras (o bloco recusa senão).",
+          verificar = "multi/correlation_matrix")),
+      referencias = list(mardia70, mardia74, L$johnson, L$ferreira,
+        I("trama.multi", "tr_multi_mardia", "Implementação própria com a covariância de divisor n (Mardia 1970; `MVN::mardia` com `use_population = TRUE`); a correção de amostra pequena usa o fator k de Mardia (1974), o mesmo de `MVN::mardia` e `psych::mardia`. Conferido contra `psych::mardia` reescalado (divisor n − 1)."))),
+
     "multi/discriminant" = list(
       pressupostos = list(indep, mvn,
         P("Na **linear**, as matrizes de covariância são **iguais** em todos os grupos; só as médias diferem.",
@@ -47,8 +64,8 @@
     "multi/box_m" = list(
       pressupostos = list(indep,
         P("Dentro de cada grupo, as variáveis são **normais multivariadas**: o M de Box é muito sensível a caudas pesadas, e rejeita por falta de normalidade tanto quanto por covariâncias diferentes.",
-          verificar = c("models/shapiro", "view/qq"),
-          se_falhar = "O trama só confere cada variável isoladamente (lacuna registrada). Decida entre linear e quadrática pela taxa cruzada no `multi/confusion`."),
+          verificar = c("multi/mardia", "view/qq"),
+          se_falhar = "Com o `multi/mardia` rejeitando, não leia o M de Box como teste de covariâncias: decida entre linear e quadrática pela taxa cruzada no `multi/confusion`."),
         P("Cada grupo tem **observações suficientes** (pelo menos p + 1, e o bloco recusa senão) para a aproximação qui-quadrado; com amostra grande, o teste rejeita diferenças que não mudam a classificação.")),
       referencias = list(box, L$johnson, L$ferreira,
         I("trama.multi", "tr_multi_box_m", "Implementação própria: M = (N − g) ln|Sₚ| − Σ(nᵢ − 1) ln|Sᵢ| com a correção de Box para a qui-quadrado, p(p + 1)(g − 1)/2 gl."))),
