@@ -21,6 +21,10 @@
   0/1 — o pressuposto de superdispersão do `models/glmer` passa a ter o que
   verificar. Oráculo: `sum(residuals(fit, "pearson")^2) / df.residual(fit)` do
   lme4 (grouseticks, `TICKS ~ YEAR + (1 | BROOD)`: 1,692; desvio / gl 1,824).
+- `models/gls`: pressuposto novo sobre os gl — coeficientes e quadro usam n − p
+  do `nlme`, liberal com poucos grupos; alternativa, `models/lmer` com
+  Satterthwaite. O `models/emmeans` no GLS fixa `mode = "satterthwaite"` (antes
+  implícito no padrão do emmeans) e diz na nota que o quadro usa n − p.
 
 ## Blocos novos
 

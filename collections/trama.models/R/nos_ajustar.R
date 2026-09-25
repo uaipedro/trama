@@ -266,8 +266,12 @@ subdividida no tempo não pode supor esfericidade (`nlme::gls`).
 linhas). **Variância por** dá uma variância a cada nível da coluna.
 
 Compare estruturas no `models/compare` (razão de verossimilhança; reajusta por
-ML quando os efeitos fixos diferem). Os testes são de Wald, com t e F nos gl
-n - p; os resíduos são os normalizados.
+ML quando os efeitos fixos diferem). Os testes dos coeficientes e do quadro
+são de Wald, com t e F nos gl n - p do `nlme` (n observações, p parâmetros
+fixos): com poucos grupos esses gl são grandes demais e os p-valores,
+liberais. O `models/emmeans` usa gl de Satterthwaite (menores); com poucos
+sujeitos, prefira-o, ou o misto equivalente no `models/lmer`. Os resíduos são
+os normalizados.
 ]---", .tr_models_ajuda_faltantes()), r"---[
 - **Fórmula (efeitos fixos)** — sem termos aleatórios.
 - **Correlação no grupo** — ar1 (padrão), simetria_composta, nao_estruturada ou nenhuma.

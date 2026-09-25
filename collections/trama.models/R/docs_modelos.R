@@ -59,11 +59,13 @@
         P("Com AR(1), as ocasiões são **igualmente espaçadas** e informadas em Tempo (ou as linhas estão na ordem do tempo)."),
         P("Os **resíduos normalizados** (descontada a correlação) são normais e de variância constante, salvo a variância por nível declarada.",
           verificar = c("models/plot_diagnostics", "models/shapiro_residuals")),
-        P("A **não estruturada** estima uma correlação por par de ocasiões: pede muitos grupos para poucas ocasiões.")),
+        P("A **não estruturada** estima uma correlação por par de ocasiões: pede muitos grupos para poucas ocasiões."),
+        P("Os **gl** dos testes t e F dos coeficientes e do quadro são os do `nlme`, n − p (número de observações menos parâmetros fixos): ignoram que a informação vem de poucos grupos e ficam **liberais** (p pequeno demais) com poucos sujeitos. As médias e comparações do `models/emmeans` usam gl de Satterthwaite, menores, e por isso os dois podem discordar perto de 5%.",
+          se_falhar = "Com poucos grupos (digamos menos de 20), confira o efeito no `models/emmeans`/`models/pairwise` (Satterthwaite) ou ajuste o misto equivalente no `models/lmer`, que dá Satterthwaite ao quadro e aos coeficientes.")),
       referencias = list(
         R(autores = c("Pinheiro, J. C.", "Bates, D. M."), ano = 2000, titulo = "Mixed-effects models in S and S-PLUS",
           fonte = "Springer, New York", doi = "10.1007/b98882"),
-        I("nlme", "gls", "`corAR1`, `corCompSymm` ou `corSymm` na posição dentro do grupo, `varIdent` por nível; REML por padrão; testes de Wald com t e F nos gl n - p; comparação por razão de verossimilhança, reajustada por ML quando os fixos diferem."))),
+        I("nlme", "gls", "`corAR1`, `corCompSymm` ou `corSymm` na posição dentro do grupo, `varIdent` por nível; REML por padrão; testes de Wald com t e F nos gl n - p (liberais com poucos grupos; o `emmeans` usa Satterthwaite); comparação por razão de verossimilhança, reajustada por ML quando os fixos diferem."))),
 
     "models/glmer" = list(
       pressupostos = list(P("Os **grupos** (rebanhos, blocos, sujeitos) são independentes entre si, e há grupos suficientes para estimar cada variância.",

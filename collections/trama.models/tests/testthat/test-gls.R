@@ -97,3 +97,17 @@ test_that("lmer tipo III (lmerTest) já não depende do contraste", {
   expect_equal(q$F, unname(stats::anova(ref, type = 3)$`F value`), tolerance = 1e-6)
   expect_equal(round(q$F, 4), c(8.6046, 5.7260, 4.3282))
 })
+
+test_that("gls: emmeans com gl de Satterthwaite explícitos, e a nota diz que o quadro usa n − p", {
+  d <- medidas_trt()
+  g <- tr_models_gls(d, formula = "y ~ trt", correlacao = "ar1", grupo = "id", tempo = "t")
+  em <- tr_models_emmeans(g, "trt")
+  ref <- summary(emmeans::emmeans(g$ajuste, "trt", mode = "satterthwaite"))
+  expect_equal(em$tabela$gl, ref$df, tolerance = 1e-8)
+  expect_equal(em$tabela$li, ref$lower.CL, tolerance = 1e-8)
+  expect_match(em$nota, "Satterthwaite")
+  # Os coeficientes ficam nos gl do nlme, n − p = 64 − 2 = 62: mais que os de
+  # Satterthwaite com 16 sujeitos.
+  expect_equal(g$ajuste$dims$N - g$ajuste$dims$p, 62)
+  expect_true(all(em$tabela$gl < 62))
+})
