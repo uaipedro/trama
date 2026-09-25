@@ -17,3 +17,13 @@ Nenhuma pendência: todas as referências usadas foram conferidas em 2026-09-25 
 ## trama.multi
 
 Nenhuma pendência: todas as referências usadas foram conferidas em 2026-09-25 (DOIs no Crossref, com autor, ano, título, periódico, volume(número) e páginas; Efron & Stein 1981, p. 586-596, no Project Euclid; Johnson & Wichern 2007, 6. ed., Pearson Prentice Hall, ISBN 9780131877153; Mingoti 2005, Editora UFMG, ISBN 9788570414519; Ferreira 2018, 3. ed., Editora UFLA, ISBN 9788581270630 — no catálogo da livraria da Editora UFLA). Hair et al. (*Análise multivariada de dados*) ficou fora: a edição de referência varia entre as bibliografias e não houve conferência de uma edição específica. O resumo de Tukey (1958) sobre o jackknife não foi usado: o DOI resolve para o bloco de resumos do volume, não para um artigo; os blocos citam Quenouille (1956) e Efron & Stein (1981).
+
+## trama.series
+
+Conferidas em 2026-09-25: todos os DOIs no Crossref (autor, ano, título, periódico, volume, número e páginas); Morettin & Toloi 2006, 2. ed., Blucher, ISBN 9788521203896 (catálogo da editora); Box, Jenkins, Reinsel & Ljung 2015, 5. ed., Wiley, ISBN 9781118675021; Hyndman & Athanasopoulos 2021, 3. ed., OTexts (https://otexts.com/fpp3/, citação da própria página); Cleveland et al. 1990, Journal of Official Statistics 6(1), 3-73 (sem DOI; conferido na listagem da revista e na documentação de `stats::stl`); Siegel & Castellan 2006 (já conferido em trama.models). Holt entra pela reedição de 2004 no International Journal of Forecasting (o memorando original de 1957 não tem registro conferível).
+
+Fora dos blocos por não terem sido conferidas na fonte:
+
+- Paiva, D. A. (2020), *Estudo de testes para tendência em séries temporais*, dissertação (UFLA) — guiou a escolha e a formulação dos testes (ver `docs/fontes.md`), mas não foi localizada no repositório institucional nesta rodada.
+- Morais, T. S. T. (2012), *Estudo temporal do nível médio do mar em diferentes oceanos*, dissertação (UFLA) — o campo `fonte` do `series/fisher` a cita; o bloco cita Fisher (1929).
+- Kendall, M. G., *Rank Correlation Methods* (Griffin), fonte usual da variância do Mann-Kendall — edição e ano não conferidos; o bloco cita Mann (1945).
