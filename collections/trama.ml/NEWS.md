@@ -1,11 +1,15 @@
-# trama.ml (desenvolvimento)
+# trama.ml 0.2.0
+
+Versão sobe de 0.1.0: mudam padrões e resultados de `ml/roc` (classe
+positiva) e `ml/cart` (poda), com os nós em versão 2.
 
 ## Correções de método
 
 - `ml/roc` (versão 2): com `positiva` vazia, a classe positiva passa a ser a
   do nome da coluna de probabilidade (`.prob_<classe>`); se o nome não indicar
-  uma classe observada, o segundo nível do fator (ordem alfabética para texto,
-  a convenção de `glm` binomial). Antes era a segunda classe na ordem das
+  uma classe observada, o bloco recusa com `tr_ml_error_positive_required` e
+  pede `positiva` (adivinhar pelo segundo nível espelharia a curva quando a
+  coluna for da outra classe). Antes era a segunda classe na ordem das
   linhas, sem relação com a coluna: com `y = sim, nao, sim, nao` e
   `.prob_sim = .8, .1, .7, .4` a AUC saía 0 em vez de 1 (curva espelhada;
   Fawcett 2006). Validação: AUC igual a U/(n1·n0) de Mann-Whitney

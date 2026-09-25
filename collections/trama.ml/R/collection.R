@@ -4,7 +4,7 @@
 #' @return Uma declaração `tr_collection`.
 #' @export
 trama_collection <- function() {
-  trama::tr_collection("ml", version = "0.1.0", label = "Machine learning",
+  trama::tr_collection("ml", version = "0.2.0", label = "Machine learning",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.ml")),
     types = list(.tr_ml_model_type()),
     categories = list(
