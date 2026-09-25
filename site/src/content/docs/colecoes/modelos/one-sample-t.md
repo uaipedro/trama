@@ -18,7 +18,7 @@ Use para comparar uma média amostral a um valor de referência definido previam
 
 ## Configuração
 
-Informe coluna, mu e alternativa bilateral, menor ou maior.
+Informe Variável, mu e alternativa bilateral, menor ou maior.
 
 ## Exemplo
 
@@ -30,7 +30,7 @@ tr_use("trama.models", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "models/example", dataset = "PlantGrowth") |>
-  tr_add("resultado", "models/one_sample_t", coluna = "weight", mu = 5, from = "dados")
+  tr_add("resultado", "models/one_sample_t", variavel = "weight", mu = 5, from = "dados")
 ```
 
 Com `PlantGrowth`, o bloco lê `weight` e calcula a diferença entre a média amostral e `mu = 5`, com estatística t, p-valor e intervalo para essa diferença.

@@ -18,7 +18,7 @@ Use para comparar níveis de fatores após controlar os outros termos do modelo,
 
 ## Configuração
 
-Médias de seleciona o fator; Por desdobra por outros fatores; ajuste das letras e alfa definem comparações; Escala escolhe resposta ou ligação em GLM.
+Médias de seleciona o fator; Por desdobra por outros fatores; ajuste das letras e Confiança (padrão 0,95; letras a alfa = 1 − confiança) definem comparações; Escala escolhe resposta ou ligação em GLM.
 
 ## Exemplo
 
@@ -38,4 +38,4 @@ O fluxo usa o delineamento de milho e calcula as médias de cada híbrido.
 
 ## Como interpretar
 
-Médias ajustadas controlam os demais termos do modelo. Letras compartilhadas indicam que o procedimento não separou aquelas médias no alfa escolhido.
+Médias ajustadas controlam os demais termos do modelo. Letras compartilhadas indicam que o procedimento não separou aquelas médias no nível de confiança escolhido.

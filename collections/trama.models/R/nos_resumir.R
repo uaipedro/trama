@@ -350,7 +350,7 @@ comparar duas estruturas escolhidas à mão.
         especs = P("cols", "", label = "Médias de", example = "hibrido"),
         por = P("cols", "", label = "Por (desdobramento)", example = "supp"),
         ajuste = E("tukey", .TR_MODELS_AJUSTES, label = "Ajuste das letras"),
-        alfa = N(0.05, min = 0.001, max = 0.5, step = 0.01, label = "Nível (alfa)"),
+        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"),
         escala = E("resposta", c("resposta", "ligação"), label = "Escala (GLM)")),
       help = .tr_models_ajuda(r"---[
 As médias ajustadas pelo modelo (`emmeans`), com erro padrão, intervalo de
@@ -383,7 +383,8 @@ O fator tem de ser FATOR no modelo: nos blocos de ANOVA isso é automático; no
 - **Médias de** — 1 a 3 fatores.
 - **Por** — fatores de condição (opcional).
 - **Ajuste das letras** — a correção das comparações.
-- **Nível (alfa)** — o nível das letras e do intervalo (padrão 5%).
+- **Confiança** — o nível de confiança do intervalo; as letras usam
+  alfa = 1 − confiança (padrão 0,95, letras a 5%).
 - **Escala (GLM)** — `resposta` (contagens, proporções) ou `ligação` (log,
   logit). Não muda nada em modelo gaussiano.
 ]---", r"---[
@@ -526,7 +527,7 @@ contrastes combinam; `models/coefficients` para os nomes dos coeficientes;
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
       params = list(
         tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
-        alfa = N(0.05, min = 0.001, max = 0.5, step = 0.01, label = "Nível (alfa)")),
+        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_models_ajuda(r"---[
 O teste de Duncan agrupa as médias do tratamento por amplitudes múltiplas
 (`agricolae::duncan.test`). O nível de proteção cresce com o número de médias
@@ -543,7 +544,7 @@ As médias são as da tabela: no desbalanceado elas diferem das ajustadas, e a
 nota avisa.
 ]---", r"---[
 - **Tratamento** — o fator (ou até 3, separados por vírgula).
-- **Nível (alfa)** — padrão 5%.
+- **Confiança** — padrão 0,95: as letras saem a alfa = 1 − confiança (5%).
 ]---", r"---[
 Médias com letras (`models/emm`): o card é o gráfico com as letras, e a tabela
 sai pelo adaptador, como no `models/emmeans`.

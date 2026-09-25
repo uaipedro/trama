@@ -18,7 +18,7 @@ Use em experimentos de tratamento quando o plano analítico especifica o procedi
 
 ## Configuração
 
-Tratamento escolhe o fator; alfa define o nível de decisão.
+Tratamento escolhe o fator; Confiança (padrão 0,95) define o nível de decisão, com alfa = 1 − confiança.
 
 ## Exemplo
 
@@ -34,7 +34,7 @@ tr_flow(reg) |>
   tr_add("resultado", "models/duncan", tratamento = "hibrido", from = "ajuste")
 ```
 
-O DBC de milho fornece médias de produção dos híbridos; as letras de Duncan indicam quais híbridos o procedimento não separa ao alfa usado.
+O DBC de milho fornece médias de produção dos híbridos; as letras de Duncan indicam quais híbridos o procedimento não separa ao nível de confiança usado.
 
 ## Como interpretar
 

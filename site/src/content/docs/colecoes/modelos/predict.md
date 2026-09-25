@@ -18,7 +18,7 @@ Use após ajustar o modelo para aplicar a equação a linhas novas que contenham
 
 ## Configuração
 
-Intervalo pode ser nenhum, confiança ou predição; os dois intervalos estão disponíveis para `lm`. Dados novos precisam conter preditores e níveis fatoriais vistos no ajuste.
+Intervalo pode ser nenhum, confiança ou predição, no nível de Confiança (padrão 0,95); os dois intervalos estão disponíveis para `lm`. Dados novos precisam conter preditores e níveis fatoriais vistos no ajuste.
 
 ## Exemplo
 

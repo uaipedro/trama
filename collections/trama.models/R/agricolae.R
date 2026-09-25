@@ -86,13 +86,15 @@
 #' Teste de Duncan.
 #' @param modelo objeto `tr_models_fit` de uma ANOVA.
 #' @param tratamento fator (ou até 3, para as combinações).
-#' @param alfa nível.
+#' @param confianca nível de confiança; o Duncan roda a alfa = 1 - confianca.
 #' @return objeto `tr_models_emm`.
 #' @export
-tr_models_duncan <- function(modelo, tratamento = "", alfa = 0.05) {
+tr_models_duncan <- function(modelo, tratamento = "", confianca = 0.95) {
   .tr_models_fit_conferir(modelo)
   no <- "models/duncan"
-  alfa <- .tr_models_num(alfa, "alfa", min = 0.001, max = 0.5)
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
+  # O agricolae pede o alfa; o param segue o glossário (confiança).
+  alfa <- 1 - confianca
   b <- .tr_models_agricolae_base(modelo, tratamento, no)
   res <- .tr_models_ajustar(agricolae::duncan.test(b$y, b$trt, DFerror = b$gl, MSerror = b$qm,
                                                    alpha = alfa, group = TRUE, console = FALSE), no)

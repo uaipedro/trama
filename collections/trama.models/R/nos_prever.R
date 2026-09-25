@@ -1,14 +1,15 @@
 # A declaração do nó da predição.
 
 .tr_models_nos_prever <- function() {
-  P <- trama::tr_param; E <- trama::tr_param_enum
+  P <- trama::tr_param; E <- trama::tr_param_enum; N <- trama::tr_param_num
   Fm <- "models/fit"; T <- "data/table"
   list(
     trama::tr_node("models/predict", fn = tr_models_predict, label = "Prever",
       category = "modelo_resumir", icon = trama::tr_icon("target"),
       description = "Aplica um modelo já ajustado a uma tabela nova, e devolve a previsão de cada linha.",
       inputs = list(modelo = Fm, dados = T), outputs = list(out = T),
-      params = list(intervalo = E("nenhum", .TR_MODELS_PREVER_INTERVALOS, label = "Intervalo")),
+      params = list(intervalo = E("nenhum", .TR_MODELS_PREVER_INTERVALOS, label = "Intervalo"),
+                    confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_models_ajuda(r"---[
 Aplica um modelo já ajustado (`models/fit`) a uma tabela NOVA, e devolve as
 mesmas colunas de `dados` com a previsão anexada.
@@ -42,6 +43,7 @@ motivou a Fase 7 — a peça que faltava para o caso de uso do desenho era esta,
 e não uma peça com memória.
 ]---", r"---[
 - **Intervalo** — `nenhum`, `confiança` ou `predição` (só em `models/lm`).
+- **Confiança** — o nível do intervalo (padrão 0,95); ignorada com `nenhum`.
 ]---", r"---[
 Uma tabela (`data/table`): as colunas de `dados`, mais `previsto` (e `li`,
 `ls` quando há intervalo).

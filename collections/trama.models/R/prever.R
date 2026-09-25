@@ -31,9 +31,11 @@
 #'   `predict.glm()` (dar o de `lm` exigiria linearizar a variância na escala
 #'   da ligação, que o card não faz sozinho) e o misto não tem erro padrão de
 #'   predição fechado — os dois recusam.
+#' @param confianca nível do intervalo (o `level` de `predict()`); só vale com
+#'   intervalo diferente de `"nenhum"`.
 #' @return `dados` com `previsto` (e `li`, `ls` com intervalo) anexadas.
 #' @export
-tr_models_predict <- function(modelo, dados, intervalo = "nenhum") {
+tr_models_predict <- function(modelo, dados, intervalo = "nenhum", confianca = 0.95) {
   .tr_models_fit_conferir(modelo)
   if (modelo$classe == "split") {
     .tr_models_abort("tr_models_error_not_applicable",
@@ -42,6 +44,7 @@ tr_models_predict <- function(modelo, dados, intervalo = "nenhum") {
                             "Ajuste o misto equivalente em 'models/lmer' para prever."))
   }
   intervalo <- .tr_models_enum(intervalo, .TR_MODELS_PREVER_INTERVALOS, "intervalo")
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
   if (intervalo != "nenhum" && modelo$classe != "lm") {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'models/predict': intervalo só está disponível em 'models/lm'. '%s' não ",
@@ -91,7 +94,10 @@ tr_models_predict <- function(modelo, dados, intervalo = "nenhum") {
   # logit), e o card mostraria log-odds ou log-contagem como "previsto" sem
   # avisar — plausível e ilegível.
   if (modelo$classe == "glm") args$type <- "response"
-  if (intervalo != "nenhum") args$interval <- if (intervalo == "confianca") "confidence" else "prediction"
+  if (intervalo != "nenhum") {
+    args$interval <- if (intervalo == "confianca") "confidence" else "prediction"
+    args$level <- confianca
+  }
 
   pred <- .tr_models_ajustar(do.call(stats::predict, args), "models/predict")
 

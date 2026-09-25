@@ -18,7 +18,7 @@ Use para avaliar a normalidade de uma coluna observada; para pressuposto de regr
 
 ## Configuração
 
-Informe Coluna numérica.
+Informe Variável (coluna numérica).
 
 ## Exemplo
 
@@ -30,7 +30,7 @@ tr_use("trama.models", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "models/example", dataset = "PlantGrowth") |>
-  tr_add("resultado", "models/shapiro", coluna = "weight", from = "dados")
+  tr_add("resultado", "models/shapiro", variavel = "weight", from = "dados")
 ```
 
 Com `PlantGrowth`, o resultado resume Shapiro–Wilk para os 30 valores de `weight`; a estatística W mede o afastamento da forma normal.

@@ -100,16 +100,20 @@
 #' @param por fatores de condição: as médias e as letras são feitas DENTRO de
 #'   cada nível deles (o desdobramento da interação).
 #' @param ajuste correção das comparações que fazem as letras.
-#' @param alfa nível das letras.
+#' @param confianca nível de confiança do intervalo; as letras são feitas a
+#'   alfa = 1 - confianca.
 #' @param escala `"resposta"` ou `"ligação"` (só muda algo no GLM).
 #' @return objeto `tr_models_emm`.
 #' @export
-tr_models_emmeans <- function(modelo, especs = "", por = "", ajuste = "tukey", alfa = 0.05,
+tr_models_emmeans <- function(modelo, especs = "", por = "", ajuste = "tukey", confianca = 0.95,
                               escala = "resposta") {
   .tr_models_fit_conferir(modelo)
   no <- "models/emmeans"
   ajuste <- .tr_models_enum(ajuste, .TR_MODELS_AJUSTES, "ajuste")
-  alfa <- .tr_models_num(alfa, "alfa", min = 0.001, max = 0.5)
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
+  # O param fala a língua do glossário (confiança); por dentro seguimos em alfa,
+  # que é o que o emmeans/letras e o objeto `models/emm` usam.
+  alfa <- 1 - confianca
   escala <- .tr_models_enum(escala, c("resposta", "ligação"), "escala")
   esp <- .tr_models_cols(modelo$dados, especs, "especs", minimo = 1L, maximo = 3L)
   cond <- .tr_models_cols(modelo$dados, por, "por", minimo = 0L, maximo = 2L)
@@ -193,6 +197,10 @@ tr_models_pairwise <- function(medias, metodo = "todos os pares", controle = "",
     ct <- .tr_models_ajustar(emmeans::contrast(grade, "trt.vs.ctrl", ref = ref, adjust = aj_r), no)
     titulo <- sprintf("Contra o controle (%s)", ctl)
   }
+  # IC dos contrastes fixo em 95%: as colunas `li_95`/`ls_95` e o cabeçalho
+  # "LI 95%" são os mesmos de todo quadro de efeitos, e o pairwise não tem param
+  # de confiança. Herdar a confiança das médias trocaria o nível sem trocar o
+  # rótulo.
   s <- as.data.frame(summary(ct, infer = c(TRUE, TRUE), level = 0.95))
   est <- setdiff(names(s), c("contrast", medias$por, "SE", "df", "null"))[[1]]
   estat <- grep("ratio$", names(s), value = TRUE)

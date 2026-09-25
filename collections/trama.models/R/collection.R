@@ -35,6 +35,15 @@ trama_collection <- function() {
     nodes = c(.tr_models_nos_fonte(), .tr_models_nos_ajustar(), .tr_models_nos_anova(),
               .tr_models_nos_resumir(), .tr_models_nos_medias(),
               .tr_models_nos_pressupostos(), .tr_models_nos_testes(),
-              .tr_models_nos_prever(), .tr_models_nos_online())
+              .tr_models_nos_prever(), .tr_models_nos_online()),
+    # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
+    # nomes antigos abrem já migrados. `alfa` vira `confianca` com o valor
+    # complementar (alfa 0,05 -> confiança 0,95).
+    migrations = list(params = list(
+      "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      "models/one_sample_t" = list(coluna = list(to = "variavel")),
+      "models/shapiro" = list(coluna = list(to = "variavel"))
+    ))
   )
 }

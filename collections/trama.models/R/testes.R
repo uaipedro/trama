@@ -110,16 +110,16 @@ tr_models_paired_t <- function(dados, antes = "", depois = "", alternativa = "bi
 
 #' t para uma amostra.
 #' @param dados tabela.
-#' @param coluna coluna numérica.
+#' @param variavel coluna numérica testada.
 #' @param mu valor de referência.
 #' @inheritParams tr_models_t_test
 #' @return objeto `tr_models_test`.
 #' @export
-tr_models_one_sample_t <- function(dados, coluna = "", mu = 0, alternativa = "bilateral") {
+tr_models_one_sample_t <- function(dados, variavel = "", mu = 0, alternativa = "bilateral") {
   no <- "models/one_sample_t"
   alt <- .tr_models_enum(alternativa, .TR_MODELS_ALTERNATIVAS, "alternativa")
   mu <- .tr_models_num(mu, "mu")
-  x <- .tr_models_numerica(dados, .tr_models_col(dados, coluna, "coluna"), "coluna")
+  x <- .tr_models_numerica(dados, .tr_models_col(dados, variavel, "variavel"), "variavel")
   td <- .tr_models_teste_dados(dados, x, no)
   t <- .tr_models_ajustar(stats::t.test(td$d[[x]], mu = mu, alternative = .tr_models_alt_r(alt)), no)
   mu_txt <- .tr_models_fmt(mu, 6L)
@@ -282,12 +282,12 @@ tr_models_cor_test <- function(dados, x = "", y = "", metodo = "pearson") {
 
 #' Shapiro-Wilk numa coluna.
 #' @param dados tabela.
-#' @param coluna coluna numérica.
+#' @param variavel coluna numérica testada.
 #' @return objeto `tr_models_test`.
 #' @export
-tr_models_shapiro <- function(dados, coluna = "") {
+tr_models_shapiro <- function(dados, variavel = "") {
   no <- "models/shapiro"
-  x <- .tr_models_numerica(dados, .tr_models_col(dados, coluna, "coluna"), "coluna")
+  x <- .tr_models_numerica(dados, .tr_models_col(dados, variavel, "variavel"), "variavel")
   td <- .tr_models_teste_dados(dados, x, no)
   if (nrow(td$d) > 5000L) {
     .tr_models_abort("tr_models_error_too_few_rows", "'%s': o Shapiro-Wilk aceita até 5000 valores, e há %d.",

@@ -214,21 +214,21 @@ medidas na mesma unidade.
       description = "t para uma amostra: a média da coluna é igual a um valor de referência?",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        coluna = P("cols", "", label = "Coluna", example = "weight"),
+        variavel = P("cols", "", label = "Variável", example = "weight"),
         mu = N(0, label = "Valor de referência"),
         alternativa = ALT()),
       help = .tr_models_ajuda(r"---[
 Testa se a média de uma coluna é igual a um valor de referência — a meta de
 produção, o valor do rótulo, o padrão da norma.
 ]---", paste(r"---[
-- **Coluna** — coluna numérica.
+- **Variável** — coluna numérica.
 - **Valor de referência** — o valor da hipótese nula.
 ]---", ajuda_alt), r"---[
 Um teste (`models/test`), com a média e o intervalo de 95%.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("plantas", "models/example", dataset = "PlantGrowth") |>
-  tr_add("t1", "models/one_sample_t", coluna = "weight", mu = 5, from = "plantas")
+  tr_add("t1", "models/one_sample_t", variavel = "weight", mu = 5, from = "plantas")
 ]---", r"---[
 `models/t_test`; `models/shapiro` para conferir a normalidade da coluna.
 ]---", teste = TRUE)),
@@ -380,7 +380,7 @@ tr_flow(reg) |>
       category = "modelo_testes", icon = trama::tr_icon("chart-area"),
       description = "Shapiro-Wilk: uma coluna tem distribuição normal?",
       inputs = list(dados = T), outputs = list(out = TE),
-      params = list(coluna = P("cols", "", label = "Coluna", example = "weight")),
+      params = list(variavel = P("cols", "", label = "Variável", example = "weight")),
       help = .tr_models_ajuda(r"---[
 Testa se os valores de UMA coluna vêm de uma distribuição normal.
 
@@ -390,13 +390,13 @@ o `models/shapiro_residuals`.
 
 Aceita de 3 a 5000 valores.
 ]---", r"---[
-- **Coluna** — coluna numérica.
+- **Variável** — coluna numérica.
 ]---", r"---[
 Um teste (`models/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("plantas", "models/example", dataset = "PlantGrowth") |>
-  tr_add("sw", "models/shapiro", coluna = "weight", from = "plantas")
+  tr_add("sw", "models/shapiro", variavel = "weight", from = "plantas")
 ]---", r"---[
 `models/shapiro_residuals`; `view/histogram`.
 ]---", teste = TRUE))
