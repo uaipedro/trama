@@ -82,7 +82,7 @@
 
 #' Tamanho da amostra para estimar uma média.
 #' @param piloto tabela de um piloto (opcional): o desvio e a média saem dela.
-#' @param coluna coluna do piloto.
+#' @param variavel coluna do piloto.
 #' @param desvio_padrao desvio padrão da variável (sem piloto).
 #' @param media média esperada (só para erro relativo, sem piloto).
 #' @param erro margem de erro: na unidade da variável, ou % da média.
@@ -93,7 +93,7 @@
 #' @param taxa_resposta proporção esperada de respondentes (0 a 1).
 #' @return um plano (`sampling/plan`).
 #' @export
-tr_sampling_size_mean <- function(piloto = NULL, coluna = "", desvio_padrao = 10, media = 0, erro = 1,
+tr_sampling_size_mean <- function(piloto = NULL, variavel = "", desvio_padrao = 10, media = 0, erro = 1,
                                   tipo_erro = "absoluto", confianca = "95%", populacao = 0,
                                   deff = 1, taxa_resposta = 1) {
   cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
@@ -101,8 +101,8 @@ tr_sampling_size_mean <- function(piloto = NULL, coluna = "", desvio_padrao = 10
   erro <- .tr_sampling_num(erro, "erro", 0, aberto_min = TRUE)
   nota <- ""
   if (!is.null(piloto)) {
-    col <- .tr_sampling_col(piloto, coluna, "coluna")
-    .tr_sampling_numerica(piloto, col, "coluna")
+    col <- .tr_sampling_col(piloto, variavel, "variavel")
+    .tr_sampling_numerica(piloto, col, "variavel")
     v <- piloto[[col]][!is.na(piloto[[col]])]
     if (length(v) < 2L) {
       .tr_sampling_abort("tr_sampling_error_too_few",

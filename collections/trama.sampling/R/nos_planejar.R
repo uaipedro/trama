@@ -88,7 +88,7 @@ conversa é sobre a taxa de resposta, e não sobre a margem.
       description = "Quantas unidades sortear para estimar uma média com a margem de erro desejada?",
       inputs = list(piloto = trama::tr_port(T, required = FALSE)), outputs = list(out = PL),
       params = list(
-        coluna = P("cols", "", label = "Coluna do piloto", example = "producao_t"),
+        variavel = P("cols", "", label = "Variável do piloto", example = "producao_t"),
         desvio_padrao = N(10, min = 0, label = "Desvio padrão"),
         media = N(0, label = "Média esperada (erro relativo)"),
         erro = N(1, min = 0, label = "Margem de erro"),
@@ -105,14 +105,14 @@ vêm os ajustes — deff, população finita e não resposta —, nessa ordem
 (Cochran 1977).
 
 O desvio vem de um campo ou de um **piloto**: ligue uma tabela na porta
-`piloto` e escolha a coluna, e o desvio e a média saem dela. Sem piloto, o
+`piloto` e escolha a variável, e o desvio e a média saem dela. Sem piloto, o
 desvio pode vir de uma pesquisa anterior, ou da regra de bolso amplitude ÷ 4.
 
 **Erro relativo** é a margem em % da média ("quero errar no máximo 10%"), que
 é como a agronomia e a economia costumam pedir; precisa da média (do campo ou
 do piloto).
 ]---", ajuda_escada), paste(r"---[
-- **Coluna do piloto** — só com a porta `piloto` ligada.
+- **Variável do piloto** — a coluna do piloto; só com a porta `piloto` ligada.
 - **Desvio padrão** — S, sem piloto.
 - **Média esperada** — só para erro relativo, sem piloto.
 - **Margem de erro** — na unidade da variável (absoluto) ou em % da média
@@ -125,7 +125,7 @@ Um plano (`sampling/plan`). Ligue-o na porta `plano` de `sampling/srs`,
 tr_flow(reg) |>
   tr_add("pop", "sampling/example", dataset = "fazendas") |>
   tr_add("piloto", "sampling/srs", n = 30L, from = "pop") |>
-  tr_add("plano", "sampling/size_mean", coluna = "producao_t", erro = 10, tipo_erro = "relativo",
+  tr_add("plano", "sampling/size_mean", variavel = "producao_t", erro = 10, tipo_erro = "relativo",
          populacao = 2400) |>
   tr_link("piloto", "plano:piloto")
 ]---", r"---[

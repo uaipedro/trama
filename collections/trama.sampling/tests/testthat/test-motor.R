@@ -26,7 +26,7 @@ test_that("piloto opcional, estimativas num relatório e simulações comparadas
   f <- trama::tr_flow(reg) |>
     trama::tr_add("pop", "sampling/example", dataset = "fazendas") |>
     trama::tr_add("piloto", "sampling/srs", n = 30L, from = "pop") |>
-    trama::tr_add("plano", "sampling/size_mean", coluna = "producao_t", erro = 60) |>
+    trama::tr_add("plano", "sampling/size_mean", variavel = "producao_t", erro = 60) |>
     trama::tr_link("piloto", "plano:piloto") |>
     trama::tr_add("sem_piloto", "sampling/size_mean", desvio_padrao = 500, erro = 60) |>
     trama::tr_add("aas", "sampling/srs", from = "pop") |>

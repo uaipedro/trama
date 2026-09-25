@@ -19,7 +19,7 @@ vêm os ajustes — deff, população finita e não resposta —, nessa ordem
 (Cochran 1977).
 
 O desvio vem de um campo ou de um **piloto**: ligue uma tabela na porta
-`piloto` e escolha a coluna, e o desvio e a média saem dela. Sem piloto, o
+`piloto` e escolha a variável, e o desvio e a média saem dela. Sem piloto, o
 desvio pode vir de uma pesquisa anterior, ou da regra de bolso amplitude ÷ 4.
 
 **Erro relativo** é a margem em % da média ("quero errar no máximo 10%"), que
@@ -32,7 +32,7 @@ Use quando a variável de interesse é numérica e a decisão é o número de un
 
 ## Configuração
 
-- **Coluna do piloto** — só com a porta `piloto` ligada.
+- **Variável do piloto** — a coluna do piloto; só com a porta `piloto` ligada.
 - **Desvio padrão** — S, sem piloto.
 - **Média esperada** — só para erro relativo, sem piloto.
 - **Margem de erro** — na unidade da variável (absoluto) ou em % da média
@@ -52,7 +52,7 @@ tr_use("trama.sampling", registry = reg)
 tr_flow(reg) |>
   tr_add("pop", "sampling/example", dataset = "fazendas") |>
   tr_add("piloto", "sampling/srs", n = 30L, from = "pop") |>
-  tr_add("plano", "sampling/size_mean", coluna = "producao_t", erro = 10,
+  tr_add("plano", "sampling/size_mean", variavel = "producao_t", erro = 10,
          tipo_erro = "relativo", populacao = 2400) |>
   tr_link("piloto", "plano:piloto")
 ```

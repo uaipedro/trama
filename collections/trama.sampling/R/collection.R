@@ -34,6 +34,11 @@ trama_collection <- function() {
       trama::tr_category("amostra_avaliar",    "Avaliar", role = "avaliacao")
     ),
     nodes = c(.tr_sampling_nos_fonte(), .tr_sampling_nos_planejar(), .tr_sampling_nos_domains(), .tr_sampling_nos_precisao(), .tr_sampling_nos_perguntas(),
-              .tr_sampling_nos_selecionar(), .tr_sampling_nos_desenho(), .tr_sampling_nos_rake(), .tr_sampling_nos_estimar(), .tr_sampling_nos_avaliar())
+              .tr_sampling_nos_selecionar(), .tr_sampling_nos_desenho(), .tr_sampling_nos_rake(), .tr_sampling_nos_estimar(), .tr_sampling_nos_avaliar()),
+    # Glossário de params (docs/glossario-parametros.md): fluxos salvos com o
+    # nome antigo abrem já migrados.
+    migrations = list(params = list(
+      "sampling/size_mean" = list(coluna = list(to = "variavel"))
+    ))
   )
 }
