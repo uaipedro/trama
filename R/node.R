@@ -49,12 +49,17 @@ tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
 #' `role` é o papel do bloco no fluxo (ver [tr_category()]). Sem ele, vale o
 #' da categoria; declare só quando o bloco faz outra coisa que os vizinhos de
 #' paleta, como um "Prever" (leitura) dentro de "Modelar" (ajuste).
+#'
+#' `pressupostos` e `referencias` são listas de [tr_pressuposto()] e
+#' [tr_ref()]: campos genéricos (o núcleo não sabe o que é normalidade), que o
+#' catálogo publica para a ajuda do editor e o site mostrarem igual.
 #' @export
 tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),
                     params = list(), pure = TRUE, fingerprint = NULL,
                     volatile = FALSE, stochastic = FALSE, icon = NULL,
-                    init = NULL, step = NULL, role = NULL) {
+                    init = NULL, step = NULL, role = NULL,
+                    pressupostos = list(), referencias = list()) {
   .tr_check_id(id, "id de nó")
   if (!is.null(role)) .tr_check_role(role, sprintf("Nó '%s'", id))
 
@@ -83,6 +88,13 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     rlang::abort(sprintf("Nó '%s': 'icon' tem que vir de tr_icon().", id),
                  class = "tr_error_bad_icon")
   }
+
+  # Mesma razão do `icon`: um item solto (uma string, um tr_ref no lugar do
+  # tr_pressuposto) só quebraria no catálogo ou no front, longe da coleção
+  # que o declarou. `inherits()` na LISTA também pega o esquecimento comum de
+  # passar `tr_pressuposto(...)` sem o `list()` em volta.
+  .tr_check_docs(pressupostos, "tr_pressuposto", "pressupostos", id)
+  .tr_check_docs(referencias, "tr_ref", "referencias", id)
 
   if (!is.function(fn)) {
     rlang::abort(sprintf("'fn' de '%s' não é função.", id), class = "tr_error_fn_not_function")
@@ -209,8 +221,18 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     inputs = inputs, outputs = outputs, params = params,
     pure = isTRUE(pure), fingerprint = fingerprint,
     volatile = isTRUE(volatile), stochastic = stochastic, icon = icon,
-    init = init, step = step, online = online, role = role
+    init = init, step = step, online = online, role = role,
+    pressupostos = pressupostos, referencias = referencias
   ), class = "tr_node")
+}
+
+.tr_check_docs <- function(x, cls, campo, id) {
+  if (!is.list(x) || inherits(x, cls) ||
+      !all(vapply(x, inherits, logical(1), what = cls))) {
+    rlang::abort(sprintf("Nó '%s': '%s' tem que ser uma list() de %s().", id, campo, cls),
+                 class = "tr_error_bad_docs")
+  }
+  invisible(x)
 }
 
 #' Esta função quer a seed desta invocação?
