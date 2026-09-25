@@ -167,10 +167,11 @@ export function sugerirOrigem(cat, ctx) {
                       (t) => byId[t.from]?.category);
     trans = (spec) => 0.5 * f(spec.category);
   } else trans = () => 0;
-  const hist = fracoes(
+  // Mesma saturação de `sugerir`: normalizar pela soma diluiria a escolha
+  // explícita a cada escolha nova.
+  const contagem = Object.fromEntries(
     Object.entries(historico || {}).filter(([k]) => k.endsWith(`>${para}`))
-      .map(([k, n]) => ({ to: k.slice(0, k.length - para.length - 1), n })),
-    (t) => t.to);
+      .map(([k, n]) => [k.slice(0, k.length - para.length - 1), n]));
   const presentesSet = new Set(presentes);
   return emitentes(cat, tipo).map((a) => {
     const motivos = {};
@@ -182,9 +183,11 @@ export function sugerirOrigem(cat, ctx) {
     if (relacionados(a.spec).includes(para)) motivos.relacionado = PESOS.relacionado;
     const t = trans(a.spec);
     if (t) motivos.transicao = t * PESOS.transicao;
-    const h = hist(a.id);
-    if (h) motivos.historico = h * PESOS.historico;
-    if (presentesSet.has(a.id)) motivos.contexto = 0.5 * PESOS.contexto;
+    const nh = contagem[a.id];
+    if (nh) motivos.historico = (nh / (nh + 1)) * PESOS.historico;
+    // `presentes` é o que já alimenta o alvo: uma segunda cópia a montante
+    // repete trabalho, então pesa como em `sugerir`, não como bônus.
+    if (presentesSet.has(a.id)) motivos.contexto = -PENAL.presente * PESOS.contexto;
     const score = Object.values(motivos).reduce((s, v) => s + v, 0);
     return { id: a.id, porta: a.porta, score, motivos };
   }).sort((x, y) => y.score - x.score || x.id.localeCompare(y.id));

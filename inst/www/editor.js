@@ -712,7 +712,7 @@ function caminhoComCantos(pontos, raio) {
   return d + `L${fim.x},${fim.y}`;
 }
 
-// Quem abre o popover de "inserir no meio": o App, que dono do `prox`. Vazio
+// Quem abre o popover de "inserir no meio": o App, que é dono do `prox`. Vazio
 // (apresentação, ou antes de montar) deixa a aresta sem o "+".
 const MeioCtx = createContext(null);
 

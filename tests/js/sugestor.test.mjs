@@ -162,7 +162,7 @@ test("sugerirOrigem: relacionado, histórico e alvo desconhecido", () => {
   const c = { ...cat, nodes: cat.nodes.map((n) => n.id === "d/limpa" ? { ...n, help: "## Usos relacionados\n\n`d/resumo`" } : n) };
   const r = sugerirOrigem(c, { para: "d/resumo", tipo: "t/a", historico: { "d/ler>d/resumo": 2, "d/ler>x/y": 9 } });
   assert.equal(r.find((x) => x.id === "d/limpa").motivos.relacionado, PESOS.relacionado);
-  assert.equal(r.find((x) => x.id === "d/ler").motivos.historico, PESOS.historico);
+  assert.equal(r.find((x) => x.id === "d/ler").motivos.historico, (2 / 3) * PESOS.historico);
   assert.deepEqual(sugerirOrigem(cat, { para: "nao/existe", tipo: "t/a" }).map((x) => x.id), ["d/ler", "d/limpa"]);
 });
 
@@ -170,4 +170,20 @@ test("intermediarios: entrada aceita a origem e saída alimenta o destino", () =
   assert.deepEqual(intermediarios(cat, "t/a", "t/b"), [{ id: "d/limpa", porta: "in", saida: "out" }]);
   assert.deepEqual(intermediarios(cat, "t/b", "t/a"), []);
   assert.deepEqual(intermediarios(cat, "t/a", "t/z"), []);
+});
+
+test("origem: bloco já a montante do alvo perde, e o histórico satura", async () => {
+  const { sugerirOrigem, PENAL, PESOS } = await import("../../inst/www/sugestor.js");
+  const c = {
+    categories: [{ id: "source" }, { id: "clean" }],
+    nodes: [
+      { id: "d/ler", category: "source", inputs: [], outputs: [{ name: "out", type: "t/a" }] },
+      { id: "d/limpa", category: "clean", inputs: [{ name: "in", type: "t/a" }], outputs: [{ name: "out", type: "t/a" }] },
+    ],
+  };
+  const r = sugerirOrigem(c, { para: "d/limpa", tipo: "t/a", presentes: ["d/ler"],
+                               historico: { "d/ler>d/limpa": 1 } });
+  const ler = r.find((x) => x.id === "d/ler");
+  assert.equal(ler.motivos.contexto, -PENAL.presente * PESOS.contexto);
+  assert.equal(ler.motivos.historico, 0.5 * PESOS.historico);
 });
