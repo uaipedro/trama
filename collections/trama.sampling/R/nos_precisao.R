@@ -211,7 +211,8 @@ escolhidos:
 
 com p_b = p_a + δ, p̄ a média das duas ponderada pelos n e c = 1 − n/N a
 correção finita (1 sem a população do grupo) — a fórmula de duas proporções de
-Fleiss, Levin & Paik (2003). A DMD é o menor δ que resolve a equação; a tabela
+Fleiss, Levin & Paik (2003), **sem correção de continuidade** (a DMD sai um
+pouco menor que com a correção de Yates/Fleiss). A DMD é o menor δ que resolve a equação; a tabela
 traz o pior caso entre partir de p_a ou de p_b, para cima ou para baixo. Com
 **Distribuição** `t`, os quantis são t com n_a + n_b − 2 gl.
 
