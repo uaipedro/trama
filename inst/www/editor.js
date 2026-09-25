@@ -2189,7 +2189,7 @@ function App() {
       f.text().then((texto) => {
         if (ehTemplate(texto)) inserirTemplateRef.current(texto, pos);
         else iniciarUploadDado(f, pos);
-      });
+      }).catch(() => setBanner("Não foi possível ler o arquivo."));
       return;
     }
     if (f && iniciarUploadDado(f, pos)) ev.stopPropagation();
