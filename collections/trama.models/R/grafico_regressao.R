@@ -26,7 +26,7 @@
   b <- stats::coef(m$ajuste)
   f <- .tr_models_fmt_eq
   if (m$classe == "dose") {
-    pot <- c("x", "x²", "x³")
+    pot <- c("x", "x²", "x³", "x⁴", "x⁵")
     return(paste0("ŷ = ", f(b[[1]]), paste(vapply(seq_len(length(b) - 1L), function(j) .tr_models_termo_eq(b[[j + 1L]], pot[[j]]), ""), collapse = "")))
   }
   switch(m$modelo,
@@ -45,7 +45,7 @@
 #' curva foi ajustada a elas) e, na parábola, a linha tracejada marca a dose de
 #' máxima (ou mínima) eficiência técnica; no não linear os pontos são as
 #' observações, e no linear-platô a linha marca o início do platô.
-#' @param modelo objeto `tr_models_fit` de `models/dose_response` ou `models/nls`.
+#' @param modelo objeto `tr_models_fit` de `models/polinomial` ou `models/nls`.
 #' @param observacoes na dose-resposta, mostrar também as parcelas (em cinza)
 #'   atrás das médias.
 #' @param equacao escrever a equação e o R² no gráfico.
@@ -57,7 +57,7 @@ tr_models_plot_regression <- function(modelo, observacoes = FALSE, equacao = TRU
   .tr_models_fit_conferir(modelo)
   if (!modelo$classe %in% c("dose", "nls")) {
     .tr_models_abort("tr_models_error_not_applicable",
-                     paste0("'models/plot_regression' desenha a curva de 'models/dose_response' ou de ",
+                     paste0("'models/plot_regression' desenha a curva de 'models/polinomial' ou de ",
                             "'models/nls', e chegou %s."), modelo$rotulo)
   }
   dose <- modelo$classe == "dose"

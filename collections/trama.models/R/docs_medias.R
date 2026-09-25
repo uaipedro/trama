@@ -84,13 +84,15 @@
     "models/polinomial" = list(
       pressupostos = list(modelo_ok,
         P("Os níveis do tratamento são **quantitativos** e a resposta pode variar de forma contínua entre eles (dose, época, espaçamento)."),
-        P("O modelo é um **DIC ou DBC de um fator**; no DBC, com todos os tratamentos em todo bloco."),
+        P("O modelo é um **DIC, DBC ou DQL de um fator**. Com repetições desiguais ou parcela perdida a partição é sequencial (cada grau depois do bloco e dos graus menores), e a curva é ajustada às médias da tabela."),
         P("O polinômio só vale **dentro da faixa** testada; fora dela a equação extrapola.",
           se_falhar = "Não use a equação para prever doses fora dos níveis do experimento."),
         P("A **falta de ajuste** não é significativa para o grau escolhido.",
-          se_falhar = "Aumente o grau, ou considere um modelo não linear (platô, exponencial).")),
+          se_falhar = "Aumente o grau, ou considere um modelo não linear (platô, exponencial)."),
+        P("A **MET** (−b₁ / 2b₂) só é dose ótima se cair dentro da faixa testada e a parábola for o grau adequado.",
+          se_falhar = "A nota avisa quando a MET cai fora das doses; não a reporte como ótimo.")),
       referencias = list(L$pimentel, L$banzatto, L$montgomery,
-        I("stats", "poly", "Colunas de `poly(x, grau)` em sequência depois do bloco, e o fator do tratamento por último (falta de ajuste); F com o QM do resíduo da ANOVA; equação por `lm` nas médias com peso r."))),
+        I("stats", "poly", "Colunas de `poly(x, grau)` nas doses reais em sequência depois do bloco (e linha/coluna no DQL), e o fator do tratamento por último (desvios da regressão); F com o QM do resíduo da ANOVA; curva por `lm` nas médias com peso r e erro padrão QM_res · (X'WX)⁻¹."))),
 
     "models/waller_duncan" = list(
       pressupostos = list(modelo_ok, anova_agricolae,

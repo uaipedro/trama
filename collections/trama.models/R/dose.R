@@ -1,4 +1,9 @@
-# Dose-resposta: a regressão do fator QUANTITATIVO depois da ANOVA.
+# Peças da regressão nos tratamentos quantitativos (`models/polinomial`, em
+# polinomial.R) e o contrato da curva que ela devolve (classe `tr_models_dose`).
+#
+# Até a integração 9.2 havia dois blocos para isto: o `models/polinomial` da
+# main e o `models/dose_response` da branch. Viraram um só, com o id da main;
+# a história de cada escolha está no cabeçalho de polinomial.R.
 #
 # O clássico das teses de agrárias: doses de adubo, lâminas de irrigação,
 # densidades. A ANOVA trata a dose como fator (o F do tratamento diz SE a dose
@@ -18,10 +23,6 @@
 # desvio da regressão, com k − g − 1 gl) dão o erro padrão que o livro dá. E
 # sai, na outra porta, o quadro do desdobramento.
 
-# Nome próprio: `.TR_MODELS_GRAUS` é o do `models/polinomial` (main), e dois
-# objetos com o mesmo nome no pacote se sobrescreviam pela ordem de colação.
-.TR_MODELS_DOSE_GRAUS <- c("automático", "1", "2", "3")
-.TR_MODELS_COMPONENTES <- c("Linear", "Quadrático", "Cúbico")
 
 #' Os níveis de um fator como número, ou erro dizendo qual nível não é.
 #' @noRd
@@ -80,132 +81,6 @@
   xm <- -b[[2]] / (2 * b[[3]])
   list(x = xm, y = b[[1]] + b[[2]] * xm + b[[3]] * xm^2, tipo = if (b[[3]] < 0) "máximo" else "mínimo",
        dentro = xm >= faixa[[1]] && xm <= faixa[[2]])
-}
-
-#' Regressão da dose depois da ANOVA: desdobramento e curva.
-#'
-#' @param modelo objeto `tr_models_fit` de uma ANOVA em DIC, DBC ou DQL.
-#' @param tratamento o fator de doses (os níveis têm de ser números).
-#' @param grau `"automático"` (o maior componente significativo, até o cúbico)
-#'   ou `"1"`, `"2"`, `"3"`.
-#' @param confianca o nível dos testes dos componentes (e do intervalo dos
-#'   coeficientes): o grau automático é o maior com p < 1 − confianca.
-#' @return lista com `modelo` (objeto `tr_models_fit` de classe
-#'   `tr_models_dose`) e `quadro` (`tr_models_effects`, o desdobramento).
-#' @export
-tr_models_dose_response <- function(modelo, tratamento = "", grau = "automático", confianca = 0.95) {
-  .tr_models_fit_conferir(modelo)
-  no <- "models/dose_response"
-  grau <- .tr_models_enum(as.character(grau), .TR_MODELS_DOSE_GRAUS, "grau")
-  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
-  alfa <- 1 - confianca
-  if (!identical(modelo$classe, "lm") || !isTRUE(modelo$delineamento %in% c("DIC", "DBC", "DQL"))) {
-    .tr_models_abort("tr_models_error_not_applicable",
-                     paste0("'%s' desdobra o tratamento de uma ANOVA em DIC, DBC ou DQL, e chegou %s. ",
-                            "No fatorial, ajuste a regressão dentro de cada nível do outro fator em ",
-                            "'models/lm' (ex.: 'y ~ dose + I(dose^2)')."), no, modelo$rotulo)
-  }
-  trat <- .tr_models_col(modelo$dados, tratamento, "tratamento")
-  if (!trat %in% modelo$tratamentos) {
-    .tr_models_abort("tr_models_error_not_applicable", "'%s': '%s' não é o tratamento do modelo (%s).",
-                     no, trat, paste(modelo$tratamentos, collapse = ", "))
-  }
-  fator <- modelo$dados[[trat]]
-  x <- .tr_models_doses(fator, trat, no)
-  k <- length(x)
-  if (k < 3L) {
-    .tr_models_abort("tr_models_error_too_few_rows",
-                     paste0("'%s': com %d doses só passa uma reta por elas, e não sobra grau de liberdade ",
-                            "para testar se ela serve. A regressão pede pelo menos 3 doses."), no, k)
-  }
-  gmax <- min(3L, k - 1L)
-  dd <- .tr_models_ajustar(.tr_models_desdobrar(modelo, trat, x, gmax), no)
-  linhas <- .tr_models_linha_f(.TR_MODELS_COMPONENTES[seq_len(gmax)], rep(1, gmax), dd$sq, dd$qm_res, dd$gl_res)
-  sq_trat <- sum(dd$sq) + dd$sq_desvio
-  g <- if (grau == "automático") {
-    sig <- which(linhas$p_valor < alfa)
-    if (!length(sig)) {
-      .tr_models_abort("tr_models_error_not_applicable",
-                       paste0("'%s': nenhum componente (linear a %s) é significativo a %s%%: as doses não ",
-                              "seguem uma curva que o teste sustente. Para descrever mesmo assim, escolha o ",
-                              "grau à mão."), no, tolower(.TR_MODELS_COMPONENTES[[gmax]]),
-                       formatC(100 * alfa, format = "fg", decimal.mark = ","))
-    }
-    max(sig)
-  } else as.integer(grau)
-  if (g > gmax) {
-    .tr_models_abort("tr_models_error_bad_option",
-                     "Param 'grau': com %d doses o polinômio vai até o grau %d, e veio %d.", k, gmax, g)
-  }
-  tab <- rbind(.tr_models_linha_f("Tratamentos", k - 1, sq_trat, dd$qm_res, dd$gl_res), linhas)
-  if (dd$gl_desvio > 0) {
-    tab <- rbind(tab, .tr_models_linha_f("Desvios da regressão", dd$gl_desvio, dd$sq_desvio, dd$qm_res, dd$gl_res))
-  }
-  # A falta de ajuste do grau escolhido: tudo o que o tratamento explica e a
-  # curva não. Com o grau 3 ela é a própria linha dos desvios, e não repete.
-  if (g < gmax) {
-    tab <- rbind(tab, .tr_models_linha_f(sprintf("Falta de ajuste (grau %d)", g), k - 1 - g,
-                                         sq_trat - sum(dd$sq[seq_len(g)]), dd$qm_res, dd$gl_res))
-  }
-  # O grau escolhido pelo maior componente pode ainda deixar diferença entre
-  # doses sem explicar: a falta de ajuste dele (ou os desvios, no cúbico) diz
-  # isso, e o aviso vai para o quadro E para os coeficientes, que é onde a
-  # curva é lida. Grau = k − 1 passa por todas as médias: R² = 1 por
-  # construção, e a curva não resume nada.
-  p_fa <- tab$p_valor[tab$termo %in% c(sprintf("Falta de ajuste (grau %d)", g), if (g == 3L) "Desvios da regressão")]
-  avisos <- c(
-    if (length(p_fa) && isTRUE(p_fa[[1]] < alfa))
-      sprintf("a curva de grau %d não explica toda a variação entre doses; veja a falta de ajuste (p = %s)", g, .tr_models_fmt_p(p_fa[[1]])),
-    if (g == k - 1L) sprintf("grau %d com %d doses: a curva passa por todas as médias (R² = 1 por construção)", g, k))
-  tab <- rbind(tab, data.frame(termo = "Resíduo", gl = dd$gl_res, sq = dd$qm_res * dd$gl_res, qm = dd$qm_res,
-                               F = NA_real_, p_valor = NA_real_))
-
-  # A curva nas MÉDIAS, com peso nas repetições: no balanceado são os mesmos
-  # coeficientes do ajuste nas parcelas, e o R² é o do livro (SQ da regressão
-  # sobre SQ de tratamentos).
-  y <- modelo$dados[[modelo$resposta]]
-  medias <- data.frame(x, as.vector(tapply(y, fator, mean)), as.vector(table(fator)))
-  names(medias) <- c(trat, modelo$resposta, ".r")
-  X <- .tr_models_bt(trat)
-  rhs <- c(X, if (g >= 2) sprintf("I(%s^2)", X), if (g >= 3) sprintf("I(%s^3)", X))
-  f <- stats::as.formula(paste(.tr_models_bt(modelo$resposta), "~", paste(rhs, collapse = " + ")))
-  environment(f) <- globalenv()
-  # `weights` é avaliado DENTRO de `data` (avaliação não padrão do `lm`).
-  ajuste <- stats::lm(f, data = medias, weights = .r)
-  r2 <- sum(dd$sq[seq_len(g)]) / sq_trat
-  met <- if (g == 2L) .tr_models_met(unname(stats::coef(ajuste)), range(x)) else NULL
-  balanceado <- length(unique(medias$.r)) == 1L
-  rodape <- list(grau = as.character(g), `R²` = .tr_models_fmt(r2, 4L))
-  if (!is.null(met)) rodape[[paste("dose de", met$tipo)]] <- .tr_models_fmt(met$x, 4L)
-  quadro <- .tr_models_efeitos(
-    tibble::as_tibble(tab), sprintf("Desdobramento de %s em regressão", trat), coluna_estat = "F",
-    rodape = rodape,
-    nota = .tr_models_nota(
-      sprintf("F contra o resíduo da ANOVA (%s); grau %s", modelo$rotulo,
-              if (grau == "automático") sprintf("escolhido: o maior componente com p < %s", .tr_models_fmt(alfa)) else "fixado"),
-      avisos,
-      if (!is.null(met) && !met$dentro) sprintf("o %s da parábola (x = %s) cai fora das doses testadas", met$tipo, .tr_models_fmt(met$x, 4L)) else "",
-      if (!balanceado) "desbalanceado: curva nas médias da tabela; partição sequencial depois dos controles" else ""),
-    fonte = "Pimentel-Gomes (2009); Banzatto & Kronka (2006)")
-  # A tabela do ajuste com a dose NUMÉRICA: é a preditora da curva, e o
-  # `models/predict` confere nível de fator — uma dose nova (133) seria
-  # recusada como nível que o ajuste não viu.
-  dados <- modelo$dados
-  dados[[trat]] <- x[as.integer(fator)]
-  fit <- .tr_models_fit_obj(ajuste, "dose", sprintf("Regressão · %s", c("linear", "quadrática", "cúbica")[[g]]),
-                            f, dados, modelo$resposta, tratamentos = trat,
-                            descartadas = modelo$descartadas)
-  fit$medias <- tibble::as_tibble(medias[, 1:2])
-  fit$repeticoes <- medias$.r
-  fit$grau <- g
-  fit$r2 <- r2
-  fit$qm_res <- dd$qm_res
-  fit$gl_res <- dd$gl_res
-  fit$met <- met
-  fit$desdobramento <- quadro
-  fit$origem <- modelo$rotulo
-  fit$avisos <- avisos
-  list(modelo = fit, quadro = quadro)
 }
 
 # ---- Contrato da classe tr_models_dose -----------------------------------------------

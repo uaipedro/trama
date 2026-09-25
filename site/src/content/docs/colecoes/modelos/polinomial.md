@@ -1,24 +1,26 @@
 ---
 title: Regressão polinomial
-description: "Regressão nos tratamentos quantitativos: SQ por grau, falta de ajuste, equação e R²."
+description: "Desdobra o tratamento quantitativo da ANOVA em linear, quadrático, cúbico... e ajusta a curva."
 section: colecoes
 collection: modelos
 node: models/polinomial
 category: medias
-related: [models/anova_dic, models/anova_dbc, models/anova_table]
+related: [models/anova_dbc, models/plot_regression, models/coefficients]
 ---
 
 ## O que o bloco faz
 
-`models/polinomial` decompõe a soma de quadrados de tratamentos de uma ANOVA (DIC ou DBC) em graus de um polinômio nos níveis do tratamento: linear, quadrático, cúbico... Cada grau tem 1 gl e é testado com o QM do resíduo da ANOVA. O que sobra até k − 1 gl é a falta de ajuste. A saída é `models/effects`, com a equação do maior grau significativo e o R² no rodapé.
+`models/polinomial` recebe o modelo de uma ANOVA (`models/anova_dic`, `models/anova_dbc` ou `models/anova_dql`) em que o tratamento é uma dose, desdobra a soma de quadrados de tratamentos em componentes linear, quadrático, cúbico... (1 gl cada, testados com o QM do resíduo da ANOVA) e ajusta a curva do grau escolhido. Tem duas saídas: `modelo` (`models/fit`, a curva, que vai para `models/coefficients`, `models/predict` e `models/plot_regression`) e `quadro` (`models/effects`, o desdobramento, com a equação, o R² e a dose de máxima eficiência técnica no rodapé).
+
+Desde a versão 2 ele reúne o antigo `models/dose_response`; fluxos gravados com esse id abrem aqui.
 
 ## Quando usar
 
-Quando os tratamentos são quantitativos (doses, épocas, espaçamentos). Comparar essas médias duas a duas ignora a ordem dos níveis; a regressão descreve a resposta ao longo da faixa. Com níveis igualmente espaçados e repetições iguais, a decomposição é a dos polinômios ortogonais dos livros. Com espaçamento ou repetições desiguais, é a mesma decomposição sequencial: o acréscimo de SQ de cada grau sobre os menores.
+Quando o tratamento é quantitativo — doses de adubo, lâminas de irrigação, densidades, épocas — e a pergunta é como a resposta muda com a dose, e não só se as doses diferem. Com níveis igualmente espaçados e repetições iguais, a decomposição é a dos polinômios ortogonais dos livros; com espaçamento desigual entram as doses reais, e com repetições desiguais ou parcela perdida a partição é sequencial (cada grau depois do bloco e dos graus menores).
 
 ## Configuração
 
-Informe o tratamento (com níveis numéricos), o maior grau a testar (até 5 e menor que o número de níveis) e o nível usado para escolher o grau da equação.
+Tratamento é o fator de doses (níveis numéricos; vírgula decimal serve). Grau da curva `automático` escolhe o maior componente significativo a 1 − Confiança; se nenhum é, a curva é a média geral (grau 0) e a nota diz isso. De 1 a 5 fixam o grau. Maior grau testado (padrão 3) é quantos componentes o quadro testa; desce sozinho até k − 1 com poucas doses. O quadro traz os desvios da regressão e a falta de ajuste do grau escolhido.
 
 ## Exemplo
 
@@ -29,13 +31,13 @@ reg <- tr_registry()
 tr_use("trama.models", registry = reg)
 
 tr_flow(reg) |>
-  tr_add("dados", "models/example", dataset = "ToothGrowth") |>
-  tr_add("dic", "models/anova_dic", resposta = "len", tratamento = "dose", from = "dados") |>
-  tr_add("reg", "models/polinomial", tratamento = "dose", grau = 2, from = "dic")
+  tr_add("dados", "models/example", dataset = "adubo_dbc") |>
+  tr_add("ajuste", "models/anova_dbc", resposta = "producao", tratamento = "dose", bloco = "bloco", from = "dados") |>
+  tr_add("resultado", "models/polinomial", tratamento = "dose", from = "ajuste")
 ```
 
-No `ToothGrowth`, as três doses de vitamina C (0,5, 1 e 2 mg) têm SQ linear 2224,3 (F = 123,6) e quadrática 202,1 (F = 11,2, p = 0,0014), com QM do resíduo 18,0 e 57 gl. A equação é ŷ = −2,49 + 30,15x − 7,93x². O R² é 100% porque, com três níveis, o polinômio de grau 2 passa por todas as médias: com poucos níveis, o R² diz pouco.
+`adubo_dbc` simula cinco doses de nitrogênio (0 a 200 kg/ha) em quatro blocos. O linear (F = 228,2) e o quadrático (F = 104,1) são significativos, o cúbico e os desvios não (p = 0,66 e 0,71), e o grau automático é 2: ŷ = 3,051 + 0,0363x − 0,0001262x², R² = 0,9989, falta de ajuste do grau 2 com p = 0,84 e dose de máxima produção 143,8 kg/ha.
 
 ## Como interpretar
 
-Fique com o maior grau significativo cuja falta de ajuste não seja significativa. A equação vale só dentro da faixa testada. A validação reproduz as SQ do exemplo do algodão de Montgomery (33,62, 343,21, 64,98 e 33,95) e a decomposição sequencial do `lm` com `poly()`.
+Componente significativo quer dizer que aquela forma explica parte da diferença entre as doses. A falta de ajuste significativa avisa que a curva escolhida deixa diferença sem explicar. O R² é SQ da regressão / SQ de tratamentos: com três doses e grau 2 a curva passa por todas as médias e o R² é 1 por construção. A equação vale só dentro da faixa testada; a dose de máxima eficiência técnica, −b₁ / (2 b₂), quando cai fora das doses, é extrapolação e a nota avisa. A validação reproduz as SQ do exemplo do algodão de Montgomery (33,62, 343,21, 64,98 e 33,95), os contrastes `contr.poly` com as doses reais como scores e a ANOVA sequencial de `lm(y ~ bloco + x + x² + x³ + dose)` no DBC desbalanceado.

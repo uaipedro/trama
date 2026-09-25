@@ -168,7 +168,7 @@ tr_flow(reg) |>
 O gráfico de regressão das teses: os pontos, a curva ajustada e, no canto, a
 equação e o R². Lê a curva de dois blocos:
 
-- **`models/dose_response`** — os pontos são as MÉDIAS das doses (a curva foi
+- **`models/polinomial`** — os pontos são as MÉDIAS das doses (a curva foi
   ajustada a elas), o R² é SQ da regressão / SQ de tratamentos, e na parábola a
   linha tracejada marca a dose de máxima eficiência técnica (MET) quando ela
   cai dentro das doses testadas.
@@ -188,11 +188,11 @@ tr_flow(reg) |>
   tr_add("adubo", "models/example", dataset = "adubo_dbc") |>
   tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "dose",
          bloco = "bloco", from = "adubo") |>
-  tr_add("reg", "models/dose_response", tratamento = "dose", from = "dbc") |>
+  tr_add("reg", "models/polinomial", tratamento = "dose", from = "dbc") |>
   tr_add("graf", "models/plot_regression", titulo = "Produção por dose de N",
          from = "reg")
 ]---", r"---[
-`models/dose_response`; `models/nls`; `models/plot_means` quando o tratamento
+`models/polinomial`; `models/nls`; `models/plot_means` quando o tratamento
 é qualitativo.
 ]---", grafico = TRUE)),
 
@@ -767,43 +767,94 @@ tr_flow(reg) |>
 `models/duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
-    trama::tr_node("models/polinomial",
+    trama::tr_node("models/polinomial", version = 2L,
       pressupostos = .tr_models_doc("models/polinomial")$pressupostos,
       referencias = .tr_models_doc("models/polinomial")$referencias,
       fn = tr_models_polinomial, label = "Regressão polinomial",
       category = "modelo_medias", icon = trama::tr_icon("chart-spline"),
-      description = "Regressão nos tratamentos quantitativos: SQ por grau, falta de ajuste, equação e R².",
-      inputs = list(modelo = "models/fit"), outputs = list(out = "models/effects"),
+      description = "Desdobra o tratamento quantitativo da ANOVA em linear, quadrático, cúbico... e ajusta a curva.",
+      inputs = list(modelo = "models/fit"), outputs = list(modelo = "models/fit", quadro = "models/effects"),
       params = list(
-        tratamento = P("cols", "", label = "Tratamento (numérico)", example = "dose"),
-        grau = N(3L, min = 1, max = 5, step = 1, label = "Maior grau"),
+        tratamento = P("cols", "", label = "Tratamento (doses)", example = "dose"),
+        grau = trama::tr_param_enum("automático", .TR_MODELS_POLI_GRAUS, label = "Grau da curva"),
+        grau_max = N(3L, min = 1, max = 5, step = 1, label = "Maior grau testado"),
         confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_models_ajuda(r"---[
-Quando os tratamentos são doses, épocas ou espaçamentos, comparar médias duas a
-duas desperdiça a ordem dos níveis. Este bloco decompõe a SQ de tratamentos da
-ANOVA (DIC ou DBC) em graus: linear, quadrático, cúbico..., cada um com 1 gl e
-testado com o QM do resíduo; o que sobra até k - 1 gl é a falta de ajuste.
+Quando o tratamento é QUANTITATIVO — doses de adubo, lâminas de irrigação,
+densidades, épocas —, o F da ANOVA diz se as doses diferem, mas a pergunta é
+como a resposta muda com a dose. O procedimento de livro desdobra os graus de
+liberdade do tratamento em componentes polinomiais e testa cada um contra o
+resíduo da ANOVA:
 
-Com níveis igualmente espaçados e repetições iguais, são os polinômios
-ortogonais do livro. Com espaçamento ou repetições desiguais, a mesma
-decomposição sequencial (o acréscimo de SQ de cada grau sobre os menores).
+| FV | GL |
+|---|---|
+| Tratamentos | k − 1 |
+| Linear | 1 |
+| Quadrático | 1 |
+| Cúbico | 1 |
+| Desvios da regressão | k − 1 − grau máximo |
+| Resíduo | o da ANOVA |
 
-A equação é a do maior grau significativo, ajustada às médias; o R² é a SQ da
-regressão sobre a SQ de tratamentos. Falta de ajuste significativa diz que o
-polinômio não descreve bem as médias.
+Ligue o bloco ao modelo de um `models/anova_dic`, `models/anova_dbc` ou
+`models/anova_dql` em que a dose entrou como tratamento. Os níveis têm de ser
+números (vírgula decimal serve): é a distância entre eles que a regressão usa,
+e doses não equidistantes entram com os valores reais. Com níveis igualmente
+espaçados e repetições iguais são os polinômios ortogonais do livro; com
+espaçamento ou repetições desiguais, a mesma partição sequencial (o acréscimo
+de SQ de cada grau sobre os menores, depois do bloco).
+
+### O grau
+
+- **automático** — o maior componente significativo (a 1 − confiança), até o
+  maior grau testado. É a regra dos livros: um quadrático significativo com o
+  cúbico não significativo dá a parábola. Se nenhum é significativo, a curva é
+  a média geral (grau 0) e a nota diz isso.
+- **1** a **5** — o grau fixado.
+
+O quadro traz também a **falta de ajuste** do grau escolhido: tudo o que o
+tratamento explica e a curva não. Significativa, a curva não descreve bem as
+doses, mesmo com o componente significativo — o grau automático NÃO sobe por
+causa dela (a regra é a do componente), mas a nota do quadro e a dos
+coeficientes avisam. Com 3 doses e grau 2 (ou 4 doses e grau 3) a curva passa
+por todas as médias: R² = 1 por construção, e a nota também diz isso.
+
+### A curva
+
+Ajustada às médias das doses, com peso nas repetições e o erro da ANOVA nos
+erros padrão dos coeficientes (como fazem os programas de experimentação). O
+R² é o do livro, SQ da regressão / SQ de tratamentos — quanto da diferença
+entre as doses a curva explica, e não quanto da variação das parcelas.
+
+Na parábola sai a **dose de máxima eficiência técnica** (MET), −b₁ / (2 b₂): a
+dose de maior resposta prevista (ou de menor, com a parábola para cima). A nota
+avisa quando ela cai fora das doses testadas — aí é extrapolação.
+
+No fatorial, a regressão é dentro de cada nível do outro fator, e o bloco
+recusa: filtre um nível e ajuste, ou escreva o polinômio num `models/lm`.
 ]---", r"---[
-- **Tratamento (numérico)** — o fator do modelo, com níveis que são números.
-- **Maior grau** — até 5, e menor que o número de níveis (padrão 3).
-- **Confiança** — padrão 0,95; o grau da equação é o maior significativo a alfa = 1 − confiança.
+- **Tratamento (doses)** — o fator de doses do modelo.
+- **Grau da curva** — `automático` (padrão) ou 1 a 5.
+- **Maior grau testado** — quantos componentes o quadro testa (padrão 3, até 5
+  e menor que o número de doses); sobe sozinho até o grau fixado.
+- **Confiança** — padrão 0,95: os componentes são testados a 5%, e os
+  coeficientes saem com IC 95%.
 ]---", r"---[
-Um quadro de efeitos (`models/effects`), com a equação e o R² no rodapé.
+Duas saídas. **modelo** (`models/fit`): a curva, cujo card é o gráfico de
+regressão das teses — médias, curva, equação, R² e a MET; ligada a
+`models/coefficients` dá b₀, b₁, b₂ com o erro da ANOVA, e a `models/predict` a
+resposta prevista em outras doses. **quadro** (`models/effects`): o
+desdobramento, com a régua do p-valor por componente e a equação, o R² e a MET
+no rodapé.
 ]---", r"---[
 tr_flow(reg) |>
-  tr_add("dados", "models/example", dataset = "ToothGrowth") |>
-  tr_add("dic", "models/anova_dic", resposta = "len", tratamento = "dose", from = "dados") |>
-  tr_add("reg", "models/polinomial", tratamento = "dose", grau = 2, from = "dic")
+  tr_add("adubo", "models/example", dataset = "adubo_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "dose",
+         bloco = "bloco", from = "adubo") |>
+  tr_add("reg", "models/polinomial", tratamento = "dose", from = "dbc")
 ]---", r"---[
-`models/anova_dic`; `models/anova_dbc`; `models/anova_table`.
+`models/plot_regression` para a figura com título e rótulos;
+`models/coefficients`; `models/anova_dbc`; `models/nls` quando a curva não é
+um polinômio (platô, Mitscherlich).
 ]---", teste = TRUE)),
 
     trama::tr_node("models/waller_duncan", 

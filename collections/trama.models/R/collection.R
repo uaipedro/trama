@@ -76,16 +76,27 @@ trama_collection <- function() {
                      "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
                                                          params = list(exponenciar = TRUE)),
                      "multi/plot_odds" = list(to = "models/plot_coefficients",
-                                              params = list(exponenciar = TRUE, escala = "desvio padrão"))),
+                                              params = list(exponenciar = TRUE, escala = "desvio padrão")),
+                     # 9.2: a regressão de doses da branch virou o polinomial da main
+                     # (um bloco). Params e portas têm o mesmo nome; o grau dela
+                     # ("automático", "1".."3") é valor válido do enum daqui.
+                     "models/dose_response" = "models/polinomial"),
                 .tr_models_migracoes_ml()$nodes),
-      ports = list("models/predict" = list(novos = "dados")),
+      # O polinomial da main tinha uma saída só (`out`, o quadro); agora são
+      # `modelo` e `quadro`, e a aresta velha vai para o quadro.
+      ports = list("models/predict" = list(novos = "dados"), "models/polinomial" = list(out = "quadro")),
       params = c(.tr_models_migracoes_ml()$params, list(
       "models/coefficients" = list(nivel = list(to = "confianca")),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       # O Scott-Knott da main nasceu com `alfa`; o nó é o dela, o param o do glossário.
       "models/scott_knott" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
-      "models/polinomial" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      # O `grau` numérico da main era o MAIOR grau testado (a curva já era a do
+      # maior significativo, o `automático` de hoje): vira `grau_max`. O `when`
+      # só pega o número — o grau do enum é texto, e o doc migrado fica.
+      "models/polinomial" = list(alfa = list(to = "confianca", value = function(v) 1 - v),
+                                 grau = list(to = "grau", when = is.numeric,
+                                             value = function(v) list(grau_max = as.integer(v)))),
       "models/one_sample_t" = list(coluna = list(to = "variavel")),
       "models/shapiro" = list(coluna = list(to = "variavel")),
       # O enum da lagarta tinha o nível no nome ("IC 90%"); agora é "IC" + a

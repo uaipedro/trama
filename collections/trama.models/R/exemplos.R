@@ -60,7 +60,7 @@
 #'
 #' 3 + 0,04 N − 0,00015 N² t/ha: a máxima eficiência técnica está em
 #' N = 0,04 / 0,0003 ≈ 133 kg/ha, dentro das doses testadas — o
-#' `models/dose_response` tem de escolher o grau 2 e achar a MET perto daí.
+#' `models/polinomial` tem de escolher o grau 2 e achar a MET perto daí.
 #' @noRd
 .tr_models_adubo <- function() {
   .tr_models_com_semente(1974L, {

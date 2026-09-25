@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- models_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_models(reg)
-  expect_length(nos, 55L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott, dunn, effect_size, cohen_d, plot_coefficients, dose_response, nls, glmer, plot_regression; main (rigor): friedman, polinomial
+  expect_length(nos, 54L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott, dunn, effect_size, cohen_d, plot_coefficients, nls, glmer, plot_regression; main (rigor): friedman, polinomial; 9.2: dose_response fundido no polinomial
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -120,7 +120,7 @@ test_that("o fn de todo nó está exportado no NAMESPACE", {
 test_that("todo teste e quadro traz a explicação da régua, e o JS a registra", {
   reg <- models_registry()
   for (n in nos_models(reg)) {
-    # Pelas saídas todas: o `models/dose_response` tem o quadro na segunda.
+    # Pelas saídas todas: o `models/polinomial` tem o quadro na segunda.
     tipos <- vapply(n$outputs, function(o) o$type, "")
     if (!any(tipos %in% c("data/test", "models/effects"))) next
     expect_true(grepl(.tr_models_ajuda_regua(), n$help, fixed = TRUE), info = n$id)

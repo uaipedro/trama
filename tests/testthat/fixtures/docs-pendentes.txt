@@ -6,7 +6,6 @@
 # régua existir. Entram aqui como exceção declarada, para a 9.3 documentar com
 # referências conferidas (sem inventar) e tirar daqui.
 models/cohen_d
-models/dose_response
 models/dunn
 models/glmer
 models/nls
