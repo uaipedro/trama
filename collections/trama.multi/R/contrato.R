@@ -271,7 +271,7 @@ tr_models_card.tr_multi_lda <- function(x, ctx) {
 #' @export
 tr_models_card.tr_multi_logit <- function(x, ctx) {
   p <- if (length(x$separacao)) trama.models::tr_models_roc(x, validacao = "resubstituição")
-       else tr_multi_plot_odds(x)
+       else trama.models::tr_models_plot_coefficients(x, exponenciar = TRUE, escala = "desvio padrão")
   trama.view::tr_view_render(p, ctx)
 }
 

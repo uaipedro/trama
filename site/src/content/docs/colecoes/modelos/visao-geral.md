@@ -51,7 +51,7 @@ tr_flow(reg) |>
 
 ### Resumir
 
-- [Quadro da ANOVA](/trama/colecoes/modelos/anova-table/), [Coeficientes](/trama/colecoes/modelos/coefficients/), [Medidas de ajuste](/trama/colecoes/modelos/fit-stats/), [Tamanho de efeito (ANOVA)](/trama/colecoes/modelos/effect-size/), [Efeitos aleatórios](/trama/colecoes/modelos/random-effects/), [Resíduos](/trama/colecoes/modelos/residuals/), [Diagnóstico dos resíduos](/trama/colecoes/modelos/plot-diagnostics/), [Gráfico de lagarta](/trama/colecoes/modelos/plot-caterpillar/), [Comparar modelos](/trama/colecoes/modelos/compare/), [Teste dos aleatórios](/trama/colecoes/modelos/random-test/) e [Importância](/trama/colecoes/modelos/importance/).
+- [Quadro da ANOVA](/trama/colecoes/modelos/anova-table/), [Coeficientes](/trama/colecoes/modelos/coefficients/), [Gráfico dos coeficientes](/trama/colecoes/modelos/plot-coefficients/), [Medidas de ajuste](/trama/colecoes/modelos/fit-stats/), [Tamanho de efeito (ANOVA)](/trama/colecoes/modelos/effect-size/), [Efeitos aleatórios](/trama/colecoes/modelos/random-effects/), [Resíduos](/trama/colecoes/modelos/residuals/), [Diagnóstico dos resíduos](/trama/colecoes/modelos/plot-diagnostics/), [Gráfico de lagarta](/trama/colecoes/modelos/plot-caterpillar/), [Comparar modelos](/trama/colecoes/modelos/compare/), [Teste dos aleatórios](/trama/colecoes/modelos/random-test/) e [Importância](/trama/colecoes/modelos/importance/).
 
 ### Prever e avaliar
 

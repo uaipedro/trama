@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/coefficients
 category: resumir
-related: [models/anova_table, models/compare]
+related: [models/anova_table, models/compare, models/plot_coefficients]
 ---
 
 ## O que o bloco faz

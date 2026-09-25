@@ -193,57 +193,6 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
              stringsAsFactors = FALSE)
 }
 
-#' As razões de chances com o intervalo de Wald, para o gráfico.
-#'
-#' A tabela que o leitor vê sai da `models/coefficients` (o método
-#' `tr_models_coefs` em `R/contrato.R`, na forma de toda a coleção de modelos);
-#' esta é a do GRÁFICO, que precisa do intervalo já exponenciado e do grupo.
-#' @noRd
-.tr_multi_logit_or <- function(modelo, escala = "unidade", confianca = 0.95) {
-  d <- .tr_multi_logit_coefs(modelo, escala)
-  q <- stats::qnorm((1 + confianca) / 2)
-  tibble::tibble(grupo = d$grupo, termo = d$termo, razao_chances = exp(d$coeficiente),
-                 ic_inf = exp(d$coeficiente - q * d$erro_padrao),
-                 ic_sup = exp(d$coeficiente + q * d$erro_padrao))
-}
-
-#' As razões de chances com intervalo, em escala log.
-#' @param modelo uma regressão logística (`multi/logistic`).
-#' @param escala `"desvio padrão"` (o padrão aqui: compara medidas) ou `"unidade"`.
-#' @inheritParams trama.view::tr_view_finish
-#' @return ggplot.
-#' @export
-tr_multi_plot_odds <- function(modelo, escala = "desvio padrão", aspecto = "16:9", tema = "padrão",
-                               titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
-  no <- "multi/plot_odds"
-  .tr_multi_exigir(modelo, "logit", no)
-  escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
-  .tr_multi_sem_separacao(modelo, no)
-  tab <- .tr_multi_logit_or(modelo, escala = escala)
-  tab <- tab[tab$termo != "(intercepto)", ]
-  tab$termo <- factor(tab$termo, levels = rev(modelo$preditores))
-  tab$sinal <- ifelse(tab$ic_inf > 1, "aumenta", ifelse(tab$ic_sup < 1, "diminui", "inclui 1"))
-  # `geom_errorbarh` está deprecado no ggplot2 4: a barra horizontal é a
-  # `geom_errorbar` com `orientation = "y"`.
-  p <- ggplot2::ggplot(tab, ggplot2::aes(x = .data[["razao_chances"]], y = .data[["termo"]],
-                                         colour = .data[["sinal"]])) +
-    ggplot2::geom_vline(xintercept = 1, colour = .TR_MULTI_CINZA, linetype = "dashed") +
-    ggplot2::geom_errorbar(ggplot2::aes(xmin = .data[["ic_inf"]], xmax = .data[["ic_sup"]]),
-                           width = .2, linewidth = .6, orientation = "y") +
-    ggplot2::geom_point(size = 2.4) +
-    ggplot2::scale_x_log10() +
-    ggplot2::scale_colour_manual(values = c(aumenta = .TR_MULTI_COR_2, diminui = .TR_MULTI_COR,
-                                            `inclui 1` = .TR_MULTI_CINZA), name = "IC 95%") +
-    ggplot2::labs(x = sprintf("razão de chances (por %s, escala log)",
-                              if (escala == "unidade") "unidade" else "desvio padrão"),
-                  y = NULL,
-                  subtitle = sprintf("Chance de %s contra %s",
-                                     if (identical(modelo$tipo, "binária")) sprintf("'%s'", modelo$niveis[[2]])
-                                     else "cada grupo", sprintf("'%s'", modelo$niveis[[1]])))
-  if (identical(modelo$tipo, "multinomial")) p <- p + ggplot2::facet_wrap(ggplot2::vars(.data[["grupo"]]))
-  trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
-}
-
 # ---------------------------------------------------------------------------
 # Declarações
 
@@ -296,7 +245,7 @@ Se um grupo é separável dos outros SEM nenhuma sobreposição (setosa na `iris
 o cultivar C nos `vinhos` com as seis medidas), a verossimilhança cresce sem
 limite e os coeficientes vão ao infinito. A classificação continua certa, e o
 modelo sai; o card avisa em `separacao`, e os nós que leem coeficientes
-(`models/coefficients`, `multi/plot_odds`, `multi/jackknife_logistic`)
+(`models/coefficients`, `models/plot_coefficients`, `multi/jackknife_logistic`)
 recusam. É sinal de que a pergunta "o que separa" é mais bem respondida pela
 discriminante.
 
@@ -321,38 +270,9 @@ tr_flow(reg) |>
   tr_add("lg", "multi/logistic", resposta = "diabetes", from = "pima") |>
   tr_add("cv", "models/confusion", validacao = "cruzada", from = "lg")
 ]---", r"---[
-`models/coefficients` (com `exponenciar`) para as razões de chances;
+`models/coefficients` e `models/plot_coefficients` (com `exponenciar`) para as razões de chances;
 `models/roc` para escolher o corte; `multi/discriminant` para a comparação; models/glm para a
 logística como modelo de regressão, com desvio e contrastes.
-]---")),
-
-    trama::tr_node("multi/plot_odds", role = "leitura", fn = tr_multi_plot_odds, label = "Gráfico das razões de chances",
-      category = "multi_logistica", icon = trama::tr_icon("chart-bar"),
-      description = "Razões de chances de cada preditor com intervalo de 95%, em escala log.",
-      inputs = list(modelo = LG), outputs = list(out = "view/plot"),
-      params = .tr_multi_props(
-        escala = trama::tr_param_enum("desvio padrão", .TR_MULTI_ESCALAS_OR, label = "Escala"),
-        .aspecto = "16:9"),
-      help = .tr_multi_ajuda(r"---[
-Um ponto por preditor na razão de chances, com o intervalo de 95%, em eixo LOG
-(dobrar e reduzir à metade ficam à mesma distância do 1). A linha tracejada é
-o 1: intervalo que a cruza é efeito não distinguível de zero, e fica cinza;
-acima de 1, aumenta a chance; abaixo, diminui.
-
-O padrão é a escala por **desvio padrão**, que é a que deixa comparar as
-barras entre si. Na multinomial, um painel por grupo contra a referência. Com
-separação, o gráfico é recusado (veja `multi/logistic`).
-]---", r"---[
-- **Escala** — `desvio padrão` (padrão) ou `unidade`.
-]---", r"---[
-Um gráfico (`view/plot`). É também o card de toda logística sem separação.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("v", "multi/example", dataset = "vinhos") |>
-  tr_add("lg", "multi/logistic", resposta = "cultivar", preditores = "alcool, acidez_malica, magnesio, fenois_totais", from = "v") |>
-  tr_add("g", "multi/plot_odds", from = "lg")
-]---", r"---[
-`models/coefficients` para os números; `models/roc` para o desempenho.
-]---", grafico = TRUE))
+]---"))
   )
 }

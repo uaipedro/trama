@@ -64,10 +64,18 @@ trama_collection <- function() {
     # nesse caso a coluna também não existiria. O `tarefa` do antigo
     # `ml/evaluate` não tem par (a tarefa sai do modelo ou dos tipos das
     # colunas) e é descartado.
+    #
+    # O `multi/plot_odds` (Fase 6) virou o `models/plot_coefficients`, que
+    # desenha qualquer modelo com coeficiente. Os params dele (escala e os
+    # cosméticos) têm o mesmo nome aqui; injetam-se `exponenciar = TRUE` e a
+    # escala por desvio padrão, que era o padrão de lá e não é o daqui — como a
+    # injeção não sobrescreve, um `escala = "unidade"` gravado fica.
     migrations = list(
       nodes = c(list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
                      "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
-                                                         params = list(exponenciar = TRUE))),
+                                                         params = list(exponenciar = TRUE)),
+                     "multi/plot_odds" = list(to = "models/plot_coefficients",
+                                              params = list(exponenciar = TRUE, escala = "desvio padrão"))),
                 .tr_models_migracoes_ml()$nodes),
       ports = list("models/predict" = list(novos = "dados")),
       params = c(.tr_models_migracoes_ml()$params, list(

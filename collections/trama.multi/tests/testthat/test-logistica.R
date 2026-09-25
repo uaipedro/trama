@@ -141,8 +141,7 @@ test_that("coeficientes, importância e gráfico recusam modelo com separação"
   m <- tr_multi_logistic(iris_t(), resposta = "Species")
   expect_error(trama.models::tr_models_coefficients(m), class = "tr_multi_error_separation")
   expect_error(trama.models::tr_models_importance_table(m), class = "tr_multi_error_separation")
-  expect_error(tr_multi_plot_odds(m), class = "tr_multi_error_separation")
-  expect_error(tr_multi_plot_odds(m), "multi/plot_odds", fixed = TRUE)
+  expect_error(trama.models::tr_models_plot_coefficients(m, exponenciar = TRUE), class = "tr_multi_error_separation")
 })
 
 test_that("contrato: info, stats (AIC, desvio, pseudo-R²) e importância |z|", {
@@ -183,18 +182,22 @@ test_that("round-trip no store de models/fit; o card é o das chances, ou a ROC 
 
 test_that("leitor da logística recusa outro modelo com erro de classe", {
   lda <- tr_multi_discriminant(pima(), resposta = "diabetes")
-  for (f in list(tr_multi_plot_odds, tr_multi_jackknife_logistic)) {
+  for (f in list(tr_multi_jackknife_logistic)) {
     err <- tryCatch(f(lda), condition = identity)
     expect_s3_class(err, "tr_multi_error_not_a_logit")
     expect_match(conditionMessage(err), "precisa de uma Regressão logística", fixed = TRUE)
   }
 })
 
-test_that("o gráfico das razões de chances desenha, e facetado na multinomial", {
+test_that("o gráfico dos coeficientes da models desenha a logística, facetado na multinomial", {
+  # O `multi/plot_odds` foi para `models/plot_coefficients` (coesão F6).
   m <- tr_multi_logistic(pima(), resposta = "diabetes")
-  p <- tr_multi_plot_odds(m)
+  p <- trama.models::tr_models_plot_coefficients(m, exponenciar = TRUE, escala = "desvio padrão")
   expect_s3_class(p, "ggplot")
   expect_no_error(ggplot2::ggplot_build(p))
+  expect_false("(intercepto)" %in% as.character(p$data$termo))
   v <- tr_multi_logistic(tr_multi_example("vinhos"), resposta = "cultivar", preditores = vinhos4)
-  expect_no_error(ggplot2::ggplot_build(tr_multi_plot_odds(v)))
+  pv <- trama.models::tr_models_plot_coefficients(v, exponenciar = TRUE)
+  expect_no_error(ggplot2::ggplot_build(pv))
+  expect_s3_class(pv$facet, "FacetWrap")
 })

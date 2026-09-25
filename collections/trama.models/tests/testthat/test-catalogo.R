@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- models_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_models(reg)
-  expect_length(nos, 48L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott, dunn, effect_size, cohen_d
+  expect_length(nos, 49L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott, dunn, effect_size, cohen_d, plot_coefficients
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -40,7 +40,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
 test_that("todo gráfico da coleção é view/plot com os seis cosméticos e a ajuda deles", {
   reg <- models_registry()
   graficos <- Filter(function(n) identical(n$outputs$out$type, "view/plot"), nos_models(reg))
-  expect_length(graficos, 4L)
+  expect_length(graficos, 5L)
   comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
   for (n in graficos) {
     expect_equal(utils::tail(names(n$params), 6L), comuns, info = n$id)

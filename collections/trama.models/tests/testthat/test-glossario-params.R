@@ -72,3 +72,26 @@ test_that("os leitores de classificador da multi abrem como os blocos daqui", {
               edges = list(list(from = list(node = "t", port = "out"), to = list(node = "c", port = "novos"))))
   expect_equal(trama::tr_doc_migrate(doc, reg)$edges[[1]]$to$port, "dados")
 })
+
+test_that("multi/plot_odds abre como models/plot_coefficients, exponenciado e por DP, e roda", {
+  reg <- models_registry()
+  mig <- function(params) trama::tr_doc_migrate(doc_minimo("multi/plot_odds", params), reg)$nodes$n
+  # Salvo sem params (o default de lá era por desvio padrão): ganha os dois.
+  expect_equal(mig(list()), list(type = "models/plot_coefficients",
+                                 params = list(exponenciar = TRUE, escala = "desvio padrão")))
+  # Escala e cosméticos gravados ficam como estão.
+  p <- mig(list(escala = "unidade", titulo = "Chances", aspecto = "1:1"))
+  expect_equal(p$params[c("escala", "titulo", "aspecto", "exponenciar")],
+               list(escala = "unidade", titulo = "Chances", aspecto = "1:1", exponenciar = TRUE))
+  # O documento migrado valida e roda, sobre um glm binomial daqui.
+  doc <- list(format = 1L,
+              nodes = list(c = list(type = "models/example", params = list(dataset = "mtcars")),
+                           g = list(type = "models/glm", params = list(formula = "am ~ wt + hp", familia = "binomial")),
+                           o = list(type = "multi/plot_odds", params = list())),
+              edges = list(list(from = list(node = "c", port = "out"), to = list(node = "g", port = "dados")),
+                           list(from = list(node = "g", port = "out"), to = list(node = "o", port = "modelo"))))
+  doc <- trama::tr_doc_migrate(doc, reg)
+  expect_length(trama::tr_doc_validate(doc, reg), 0L)
+  s <- trama::tr_store(tempfile())
+  expect_s3_class(trama::tr_value(doc, "o", registry = reg, store = s), "ggplot")
+})

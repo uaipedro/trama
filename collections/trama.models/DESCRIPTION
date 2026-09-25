@@ -15,8 +15,10 @@ Description: Nodes for statistical models in a trama graph: linear and
     randomized blocks, latin square, factorial and split plot) with type I, II
     and III sums of squares; linear mixed models with lme4 and lmerTest;
     estimated marginal means, compact letter displays and pairwise or
-    Dunnett comparisons with emmeans; residual diagnostics and assumption
-    tests; and the classical hypothesis tests. Every p-value is shown on a
+    Dunnett comparisons with emmeans; Duncan, Waller-Duncan and Scott-Knott
+    grouping; effect sizes and coefficient forest plots; residual diagnostics
+    and assumption tests; and the classical hypothesis tests with the Dunn
+    post hoc. Every p-value is shown on a
     logarithmic gauge with significance stars. Builds on trama.data for
     tables and trama.view for plots.
 License: MIT + file LICENSE

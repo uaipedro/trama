@@ -51,3 +51,20 @@ test_that("cohen_d: d, g e intervalo pelas fórmulas; d = t de Student · sqrt(1
   expect_equal(round(c(t$estimativa[[1]], t$li[[1]], t$ls[[1]]), 2), c(0.49, -0.02, 1.01))
   expect_error(tr_models_cohen_d(ex("PlantGrowth"), "weight", "group"), class = "tr_models_error_two_groups")
 })
+
+test_that("plot_coefficients: sem intercepto, referência 0 ou 1, ordem e nível", {
+  g <- tr_models_glm(ex("mtcars"), formula = "am ~ wt + hp", familia = "binomial")
+  p <- tr_models_plot_coefficients(g)
+  expect_equal(rev(levels(p$data$termo)), c("wt", "hp"))
+  expect_equal(p$layers[[1]]$data$xintercept %||% p$layers[[1]]$aes_params$xintercept %||% 0, 0)
+  e <- tr_models_plot_coefficients(g, exponenciar = TRUE, confianca = 0.9, ordenar = "estimativa")
+  cf <- tr_models_coefs(g, exponenciar = TRUE, confianca = 0.9)$tabela
+  expect_equal(sort(e$data$li), sort(cf$li_90[cf$termo != "(Intercept)"]))
+  expect_equal(rev(levels(e$data$termo)), c("wt", "hp")[order(-cf$estimativa[-1])])
+  expect_no_error(ggplot2::ggplot_build(e))
+  expect_error(tr_models_plot_coefficients(g, ordenar = "alfabética"))
+  expect_error(tr_models_plot_coefficients(tr_models_lm(ex("mtcars"), formula = "mpg ~ 1")),
+               class = "tr_models_error_not_applicable")
+  expect_error(tr_models_plot_coefficients(tr_models_lm(ex("mtcars"), formula = "mpg ~ wt"), exponenciar = TRUE),
+               class = "tr_models_error_not_applicable")
+})

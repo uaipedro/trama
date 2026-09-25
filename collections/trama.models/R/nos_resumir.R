@@ -145,6 +145,51 @@ tr_flow(reg) |>
 `models/anova_table` para o quadro; `models/cohen_d` para dois grupos.
 ]---")),
 
+    trama::tr_node("models/plot_coefficients", fn = tr_models_plot_coefficients, label = "Gráfico dos coeficientes",
+      category = "modelo_resumir", icon = trama::tr_icon("chart-bar"),
+      description = "Gráfico de floresta: cada coeficiente com o intervalo de confiança, contra a linha do zero (ou do 1).",
+      inputs = list(modelo = Fm), outputs = list(out = "view/plot"),
+      params = .tr_models_props(
+        exponenciar = B(FALSE, label = "Exponenciar (GLM)"),
+        escala = E("unidade", .TR_MODELS_ESCALAS, label = "Escala"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"),
+        ordenar = E("modelo", c("modelo", "estimativa"), label = "Ordenar")),
+      help = .tr_models_ajuda(r"---[
+Os coeficientes do `models/coefficients` em gráfico de floresta: um ponto por
+termo na estimativa, a barra no intervalo de confiança e a linha tracejada na
+referência — 0, ou 1 quando exponenciado. O intercepto fica de fora.
+
+A cor diz de que lado da referência o intervalo está: acima, abaixo, ou
+cruzando (cinza, efeito não distinguível de zero ao nível escolhido).
+
+Vale para todo modelo com coeficiente: `models/lm`, `models/glm`, o misto, a
+logística da coleção multivariada e a regressão linear da coleção de
+aprendizado de máquina. Na logística multinomial, um painel por classe.
+
+- **Exponenciar** — no GLM de ligação log ou logit, o eixo vira razão (de
+  chances, de taxas) em escala LOG, em que dobrar e reduzir à metade ficam à
+  mesma distância do 1.
+- **Escala** — `desvio padrão` põe as preditoras em unidades comparáveis:
+  é a escolha quando a pergunta é qual delas pesa mais.
+]---", r"---[
+- **Exponenciar (GLM)** — razão de chances ou de taxas, em eixo log.
+- **Escala** — `unidade` (padrão) ou `desvio padrão`.
+- **Confiança** — nível do intervalo (padrão 0,95).
+- **Ordenar** — `modelo` (a ordem dos termos) ou `estimativa` (do maior para o
+  menor).
+]---", r"---[
+Um gráfico (`view/plot`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carros", "models/example", dataset = "mtcars") |>
+  tr_add("logit", "models/glm", formula = "am ~ wt + hp", familia = "binomial", from = "carros") |>
+  tr_add("floresta", "models/plot_coefficients", exponenciar = TRUE, escala = "desvio padrão",
+         from = "logit")
+]---", r"---[
+`models/coefficients` para os números; `models/effect_size` para os termos de
+uma ANOVA.
+]---", grafico = TRUE)),
+
     trama::tr_node("models/fit_stats", fn = tr_models_fit_stats, label = "Medidas de ajuste",
       category = "modelo_resumir", icon = trama::tr_icon("gauge"),
       description = "R², R² ajustado, R² marginal e condicional, CV, AIC, BIC e log-verossimilhança, em colunas fixas.",

@@ -234,6 +234,66 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidad
   tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca)
 }
 
+#' Gráfico de floresta dos coeficientes.
+#'
+#' Lê o `tr_models_coefs()` do contrato, e não o ajuste: por isso vale para todo
+#' modelo com coeficiente — `lm`, `glm`, misto, a logística da `multi` e a
+#' referência linear da `ml`. Substitui o `multi/plot_odds`, que era este mesmo
+#' gráfico só para a logística; um fluxo antigo abre aqui com `exponenciar` e a
+#' escala por desvio padrão que eram o padrão de lá.
+#'
+#' A cor diz se o intervalo cruza a referência (0, ou 1 exponenciado): é a
+#' leitura que o gráfico existe para facilitar. Exponenciado, o eixo é log, em
+#' que dobrar e reduzir à metade ficam à mesma distância do 1.
+#' @inheritParams tr_models_coefficients
+#' @param ordenar `"modelo"` (a ordem dos termos no modelo, de cima para baixo)
+#'   ou `"estimativa"` (do maior para o menor).
+#' @inheritParams trama.view::tr_view_finish
+#' @return ggplot.
+#' @export
+tr_models_plot_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidade", confianca = 0.95,
+                                        ordenar = "modelo", aspecto = "16:9", tema = "padrão", titulo = "",
+                                        rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  .tr_models_modelo_conferir(modelo)
+  ordenar <- .tr_models_enum(ordenar, c("modelo", "estimativa"), "ordenar")
+  ef <- tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca)
+  d <- as.data.frame(ef$tabela)
+  d <- d[!d$termo %in% c("(Intercept)", "(intercepto)"), , drop = FALSE]
+  if (!nrow(d)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     "'models/plot_coefficients': o modelo só tem o intercepto; não há coeficiente para desenhar.")
+  }
+  # As colunas do intervalo levam o nível no nome (`li_95`, `li_90`).
+  d$li <- d[[grep("^li_", names(d), value = TRUE)[[1]]]]
+  d$ls <- d[[grep("^ls_", names(d), value = TRUE)[[1]]]]
+  ref <- if (isTRUE(exponenciar)) 1 else 0
+  # Na multinomial o mesmo termo aparece uma vez por classe: a ordem é a da
+  # primeira aparição, e cada classe ganha um painel.
+  niveis <- unique(d$termo)
+  if (ordenar == "estimativa") niveis <- unique(d$termo[order(-d$estimativa)])
+  d$termo <- factor(d$termo, levels = rev(niveis))
+  d$sinal <- ifelse(d$li > ref, "acima", ifelse(d$ls < ref, "abaixo", "cruza"))
+  d$sinal <- factor(d$sinal, levels = c("acima", "abaixo", "cruza"))
+  pct <- formatC(100 * confianca, format = "fg", decimal.mark = ",")
+  rotulos <- if (isTRUE(exponenciar)) c(acima = "aumenta (> 1)", abaixo = "diminui (< 1)", cruza = "inclui 1")
+             else c(acima = "positivo", abaixo = "negativo", cruza = "inclui 0")
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["estimativa"]], y = .data[["termo"]], colour = .data[["sinal"]])) +
+    ggplot2::geom_vline(xintercept = ref, colour = .TR_MODELS_CINZA, linetype = "dashed") +
+    # `geom_errorbarh` está deprecado no ggplot2 4: barra horizontal é a
+    # `geom_errorbar` com `orientation = "y"`.
+    ggplot2::geom_errorbar(ggplot2::aes(xmin = .data[["li"]], xmax = .data[["ls"]]),
+                           width = .2, linewidth = .6, orientation = "y") +
+    ggplot2::geom_point(size = 2.4) +
+    ggplot2::scale_colour_manual(values = c(acima = .TR_MODELS_COR_2, abaixo = .TR_MODELS_COR, cruza = .TR_MODELS_CINZA),
+                                 labels = rotulos, name = sprintf("IC %s%%", pct)) +
+    ggplot2::labs(x = sprintf("%s (IC %s%%%s)", if (isTRUE(exponenciar)) "estimativa exponenciada, escala log" else "estimativa",
+                              pct, if (identical(escala, "desvio padrão")) ", por desvio padrão" else ""),
+                  y = NULL)
+  if (isTRUE(exponenciar)) p <- p + ggplot2::scale_x_log10()
+  if ("grupo" %in% names(d) && length(unique(d$grupo)) > 1L) p <- p + ggplot2::facet_wrap(ggplot2::vars(.data[["grupo"]]))
+  trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
 #' R² marginal e condicional de um misto gaussiano (Nakagawa & Schielzeth 2013,
 #' com a extensão de Johnson 2014 para inclinação aleatória).
 #'
