@@ -215,3 +215,18 @@ test_that("sem falsos positivos: filtros, colunas novas e linhas duplicadas entr
   expect_equal(sum(m$treino_impressoes$n), nrow(s$treino))
   expect_equal(sum(tr_ml_cart(binaria(), "Species")$treino_impressoes$n), 100L)
 })
+
+test_that("B3: limites documentados da marca continuam como descritos", {
+  # Fixa o que a documentação diz que a marca NÃO cobre; se um destes passar a
+  # ser coberto, atualize proveniencia.R, a ajuda e a página do site.
+  s <- tr_ml_split(binaria(), "Species"); te <- s$teste
+  chave <- data.frame(Species = levels(te$Species), k = 1)
+  direita <- trama.data::tr_join(chave, te, by = "Species", type = "left")
+  expect_null(attr(direita, "tr_ml_origem"))
+  mao <- data.frame(as.list(as.data.frame(te)))
+  expect_null(attr(mao, "tr_ml_origem"))
+  expect_s3_class(tr_ml_cart(mao, "Species"), "tr_ml_fit")
+  # coluna da divisão reescrita: só a checagem de papel continua
+  x <- rbind(s$treino, te); x$Sepal.Length <- round(x$Sepal.Length + 0.01, 2)
+  expect_s3_class(tr_ml_cart(x, "Species"), "tr_ml_fit")
+})

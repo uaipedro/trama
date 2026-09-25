@@ -38,10 +38,22 @@ As saídas `treino` e `teste` não duplicam nem perdem linhas. A proporção fin
 
 ### Proveniência: o teste fica isolado por construção
 
-As duas saídas levam uma marca (atributo `tr_ml_origem`, com o papel `treino`/`teste` e um id da divisão) que sobrevive ao cache e a filtros ou colunas novas. Com ela:
+As duas saídas levam uma marca (atributo `tr_ml_origem`, com o papel `treino`/`teste`, um id da divisão e as **impressões digitais das linhas do teste**) que sobrevive ao cache e a filtros ou colunas novas. A impressão é um hash (xxHash64) do conteúdo de cada linha nas colunas da divisão, guardado com a contagem de cópias — assim uma linha repetida que o sorteio pôs dos dois lados não é confundida com uma linha do teste que voltou ao treino. Todo modelo guarda as impressões das suas linhas de treino. Com isso:
 
-- ajustar um modelo, o `ml/tune` ou o `ml/nested_cv` na saída `teste` é recusado (`tr_ml_error_test_leak`);
-- `ml/evaluate`, `ml/confusion`, `ml/roc` e `ml/pr_curve` recusam previsões das linhas de `treino` (`tr_ml_error_train_eval`), a menos que se ligue `permitir_treino` — aí o resultado sai com a nota “avaliação no treino é otimista”;
-- o `ml/predict` recusa o teste de outra divisão com um modelo ajustado no treino desta (`tr_ml_error_split_mismatch`).
+- ajustar um modelo, o `ml/tune` ou o `ml/nested_cv` na saída `teste` é recusado (`tr_ml_error_test_leak`), e também numa tabela que junta treino e teste (`rbind`, `bind_rows`, `data/bind_rows`), mesmo que ela venha com a marca de treino;
+- o `ml/predict` recusa prever o teste com um modelo que viu linhas dele no ajuste — por exemplo, ajustado na tabela inteira antes de dividir, ou numa cópia do teste sem a marca (`tr_ml_error_test_leak`) — e o teste de outra divisão com um modelo ajustado no treino desta (`tr_ml_error_split_mismatch`);
+- `ml/evaluate`, `ml/confusion`, `ml/roc` e `ml/pr_curve` recusam previsões das linhas de `treino`, e também uma tabela marcada como teste que traz linhas de fora dele (previsões do treino juntadas às do teste, ou o teste repetido) (`tr_ml_error_train_eval`), a menos que se ligue `permitir_treino` — aí o resultado sai com a nota “avaliação no treino é otimista”.
 
-Tabelas sem a marca — divisão feita por fora do `ml/split`, ou treino e teste juntados — seguem como antes: o bloco não tem como saber de onde vieram as linhas, e o isolamento fica com você.
+Custo: em 100 mil linhas, calcular as impressões leva cerca de 1 segundo e ocupa uns 7 MB no modelo; os folds internos do `ml/tune` não as recalculam.
+
+### O que a marca não cobre
+
+A marca é um atributo: só viaja quando a operação copia os atributos da tabela que o leva, e a impressão só confere quando as colunas da divisão continuam lá com os mesmos valores. Ficam de fora, por construção:
+
+- **juntar com o teste à direita** — `data/join` ou `left_join(outra, teste)` ficam com os atributos de `outra`, sem marca;
+- **remodelar** — `pivot_longer`/`pivot_wider` mudam o que é uma linha e as colunas;
+- **recriar à mão** — copiar os valores para uma tabela nova, exportar para planilha e ler de volta;
+- **reescrever ou tirar colunas da divisão** — arredondar, converter para texto, `select` que remove uma coluna: as impressões deixam de conferir e só a checagem de papel continua;
+- **dividir fora do `ml/split`**.
+
+Nesses casos os blocos seguem como sem marca: não têm como saber de onde vieram as linhas, e o isolamento fica com você. Divida primeiro, no `ml/split`, e só então transforme cada lado.

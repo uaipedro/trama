@@ -22,7 +22,10 @@
 #'   `tr_ml_origem` (`papel` = `"treino"`/`"teste"` e `divisao`, um id da
 #'   divisão, mais as impressões digitais das linhas do teste). Ajustar no
 #'   teste (inclusive numa tabela que junta treino e teste) e avaliar o treino
-#'   passam a ser recusados.
+#'   passam a ser recusados. A marca não cobre juntar com o teste à direita
+#'   (`tr_join(outra, teste)`), remodelar (`pivot_longer`/`pivot_wider`),
+#'   recriar a tabela à mão, reescrever ou tirar colunas da divisão, nem
+#'   divisões feitas fora do `ml/split`; aí os blocos seguem como sem marca.
 #' @export
 tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
                         estratificar = TRUE, estrategia = "aleatoria",

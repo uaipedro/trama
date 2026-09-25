@@ -36,4 +36,4 @@ O gráfico traz o intervalo de confiança da AUC pelo método de DeLong, DeLong 
 
 ### Previsões do treino
 
-Se as linhas vierem do `treino` marcado pelo [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/), o bloco recusa por padrão (`tr_ml_error_train_eval`): a avaliação no treino é otimista e não mede generalização. Para medir o ajuste no treino de propósito (por exemplo, comparar com o teste e ver o sobreajuste), ligue `permitir_treino`; o resultado vem com um aviso e a nota de otimismo. Tabelas sem a marca do `ml/split` são avaliadas como chegam.
+Se as linhas vierem do `treino` marcado pelo [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/), o bloco recusa por padrão (`tr_ml_error_train_eval`): a avaliação no treino é otimista e não mede generalização. Para medir o ajuste no treino de propósito (por exemplo, comparar com o teste e ver o sobreajuste), ligue `permitir_treino`; o resultado vem com um aviso e a nota de otimismo. O mesmo vale para uma tabela marcada como teste que traz linhas de fora dele (previsões do treino juntadas às do teste). Tabelas sem a marca do `ml/split` são avaliadas como chegam.

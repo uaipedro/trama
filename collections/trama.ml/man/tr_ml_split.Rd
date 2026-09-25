@@ -41,7 +41,12 @@ por \code{estrategia = "temporal"}.}
 \value{
 Lista com tibbles treino e teste, marcados com o atributo
 \code{tr_ml_origem} (\code{papel} = \code{"treino"}/\code{"teste"} e \code{divisao}, um id da
-divisão). Ajustar no teste e avaliar no treino passam a ser recusados.
+divisão, mais as impressões digitais das linhas do teste). Ajustar no
+teste (inclusive numa tabela que junta treino e teste) e avaliar o treino
+passam a ser recusados. A marca não cobre juntar com o teste à direita
+(\code{tr_join(outra, teste)}), remodelar (\code{pivot_longer}/\code{pivot_wider}),
+recriar a tabela à mão, reescrever ou tirar colunas da divisão, nem
+divisões feitas fora do \code{ml/split}; aí os blocos seguem como sem marca.
 }
 \description{
 Faz uma divisão reprodutível. Para alvos categóricos, amostra cada classe

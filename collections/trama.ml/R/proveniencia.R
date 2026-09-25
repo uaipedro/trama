@@ -47,7 +47,24 @@
 #   `tr_ml_error_train_eval`, salvo `permitir_treino = TRUE`, que devolve o
 #   resultado com a nota de otimismo e um aviso.
 #
-# O que a marca não cobre: juntar pela direita, remodelar, recriar à mão.
+# O que a marca NÃO cobre (B3), por construção: o atributo só viaja quando a
+# operação copia os atributos da tabela que o leva, e a impressão só confere
+# quando as colunas da divisão estão presentes com os mesmos valores.
+# - juntar pela direita: `tr_join(outra, teste)`/`left_join(outra, teste)`
+#   ficam com o atributo de `outra` (sem marca); o resultado é tabela nova;
+# - remodelar: `pivot_longer`/`pivot_wider` mudam o que é uma linha e as
+#   colunas; a marca some ou a impressão deixa de conferir;
+# - recriar à mão: copiar valores para uma tabela nova (`data.frame(...)`,
+#   planilha exportada e lida de volta, `as.data.frame` de outra origem);
+# - mudar valores ou tirar colunas da divisão (`mutate` que reescreve uma
+#   coluna existente, arredondar, converter para texto, `select` que remove
+#   uma coluna): as impressões não conferem e a checagem de conteúdo é
+#   pulada (a de papel continua);
+# - linhas idênticas dentro de uma tabela sem marca e o teste, quando o modelo
+#   foi ajustado sem marca e em outras colunas (comparação por presença);
+# - dividir fora do `ml/split`.
+# Nesses casos os blocos se comportam como sem marca; os pressupostos da
+# documentação explicam a disciplina que continua sendo do usuário.
 
 .tr_ml_origem_attr <- "tr_ml_origem"
 

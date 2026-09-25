@@ -35,4 +35,4 @@ head(p)
 
 ### Proveniência
 
-A marca `treino`/`teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) passa para a saída, para que a avaliação saiba de onde vieram as linhas. Um modelo ajustado no treino de uma divisão não prevê o teste de outra divisão (`tr_ml_error_split_mismatch`): parte daquelas linhas pode ter estado no treino.
+A marca `treino`/`teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) passa para a saída, para que a avaliação saiba de onde vieram as linhas. Um modelo ajustado no treino de uma divisão não prevê o teste de outra divisão (`tr_ml_error_split_mismatch`): parte daquelas linhas pode ter estado no treino. E, pelas impressões digitais das linhas, um modelo que viu linhas deste teste no ajuste (ajustado na tabela inteira antes de dividir, ou numa cópia do teste sem a marca) não o prevê (`tr_ml_error_test_leak`). O que a marca não cobre está em [Separar treino e teste](/trama/colecoes/aprendizado/separar-treino-teste/).

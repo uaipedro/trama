@@ -83,7 +83,9 @@ de acerto fora da bolsa ao permutar o preditor; Breiman 2001) ou
 pelos demais modelos.}
 }
 \value{
-Objeto \code{tr_ml_fit}.
+Objeto \code{tr_ml_fit}. Guarda as impressões digitais das linhas de
+treino (\code{treino_impressoes}), com que \code{ml/predict} recusa prever linhas
+do teste que o modelo viu.
 }
 \description{
 Ajusta regressão linear/logística, CART, FIGS, floresta aleatória, SVM ou
