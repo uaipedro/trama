@@ -37,4 +37,4 @@ A velocidade de reação satura com a concentração do substrato; o ajuste dá 
 
 ## Como interpretar
 
-Cada parâmetro tem significado na curva: assíntota, ponto de inflexão, início do platô. A tabela traz cada um com erro padrão e intervalo de Wald. O R² das medidas é um pseudo R²; para escolher entre curvas na mesma resposta, compare o AIC e o `rmse`. Quando o ajuste não converge, o card diz que forma o modelo espera.
+Cada parâmetro tem significado na curva: assíntota, ponto de inflexão, início do platô. A tabela traz cada um com erro padrão e intervalo de Wald. O R² das medidas sai na coluna `r2_pseudo`, e o gráfico o rotula "R² (pseudo)"; para escolher entre curvas na mesma resposta, compare o AIC e o `rmse`. Quando o ajuste não converge, o card diz que forma o modelo espera.

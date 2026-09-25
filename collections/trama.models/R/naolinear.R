@@ -172,7 +172,10 @@ tr_models_stats.tr_models_nls <- function(x) {
   aj <- x$ajuste
   y <- x$dados[[x$resposta]]
   sqr <- sum(stats::residuals(aj)^2)
-  linha <- .tr_models_stats_linha(x, aj, r2 = 1 - sqr / sum((y - mean(y))^2), sig = stats::sigma(aj))
+  # Em coluna própria, e não em `r2`: numa tabela de medidas empilhada com
+  # modelos lineares, o pseudo ao lado do R² de verdade seria lido como igual.
+  linha <- .tr_models_stats_linha(x, aj, sig = stats::sigma(aj))
+  linha$r2_pseudo <- 1 - sqr / sum((y - mean(y))^2)
   linha$rmse <- sqrt(sqr / length(y))
   linha
 }

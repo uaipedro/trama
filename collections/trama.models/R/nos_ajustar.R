@@ -328,8 +328,8 @@ parte de cima do S), ou faltam pontos de um dos lados da mudança.
 
 ### R² de um modelo não linear
 
-O `R²` das medidas é 1 − SQ do resíduo / SQ total, um pseudo R²: fora do
-linear ele não é a fração explicada. Para comparar modelos na mesma resposta,
+As medidas trazem `r2_pseudo` = 1 − SQ do resíduo / SQ total, e não `r2`:
+fora do linear ele não é a fração explicada. Para comparar modelos na mesma resposta,
 leia o AIC e o `rmse` (raiz do erro quadrático médio).
 
 Uma curva por grupo (um logístico por cultivar) não é feita aqui: filtre a

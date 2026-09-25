@@ -75,7 +75,7 @@ tr_models_plot_regression <- function(modelo, observacoes = FALSE, equacao = TRU
   p <- p + ggplot2::geom_line(data = grade, ggplot2::aes(y = .data[[".y"]]), colour = .TR_MODELS_COR, linewidth = .9) +
     ggplot2::geom_point(data = pts, ggplot2::aes(y = .data[[y]]), colour = .TR_MODELS_COR, size = 2.6)
   if (isTRUE(equacao)) {
-    r2 <- if (dose) modelo$r2 else tr_models_stats(modelo)$r2
+    r2 <- if (dose) modelo$r2 else tr_models_stats(modelo)$r2_pseudo
     texto <- sprintf("%s\n%s = %s", .tr_models_equacao(modelo), if (dose) "R²" else "R² (pseudo)", .tr_models_fmt(r2, 4L))
     p <- p + ggplot2::annotate("text", x = faixa[[1]], y = Inf, label = texto, hjust = 0, vjust = 1.3, size = 3.4)
   }
