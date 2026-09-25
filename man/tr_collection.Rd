@@ -52,6 +52,10 @@ deixa intocado o documento já migrado:
 \item derivar vários params: \code{value} devolve lista NOMEADA, fundida aos
 params do nó (param já presente com esse nome vence):
 \code{intervalo = list(to = "intervalo", when = function(v) grepl("^IC ", v), value = function(v) list(intervalo = "IC", confianca = 0.9))}.
+\item remover: \code{list(drop = TRUE)} (sem \code{to} nem \code{value}; \code{when}
+opcional) apaga o param que o nó novo não tem mais — idempotente, e o
+documento regravado simplesmente não o traz:
+\code{tarefa = list(drop = TRUE)}.
 }
 \item \code{ports}: id NOVO do nó -> lista \code{antiga = "nova"}, valendo pra entradas e
 saídas.

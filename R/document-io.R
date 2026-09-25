@@ -146,6 +146,14 @@ tr_doc_migrate <- function(doc, registry = .tr_default_registry) {
     for (old in intersect(names(renames), names(n$params))) {
       r <- renames[[old]]
       v <- n$params[[old]]
+      if (isTRUE(r$drop)) {
+        # Remoção declarada: sem destino, só sai (se `when` deixar).
+        if (is.null(r$when) || isTRUE(tryCatch(r$when(v), error = function(e) FALSE))) {
+          n$params[[old]] <- NULL
+          changed <- TRUE
+        }
+        next
+      }
       no_lugar <- identical(r$to, old)
       # `when` é o que torna a migração idempotente: um doc gravado DEPOIS da
       # migração ainda tem o param com o mesmo nome (sempre, no caso de

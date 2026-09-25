@@ -186,6 +186,25 @@ test_that("destino com params injeta só no nó migrado; presente vence; cadeia 
   expect_true(attr(doc, "migrated"))
 })
 
+test_that("drop = TRUE remove o param; idempotente; o doc regravado não traz null", {
+  reg <- migr_registry(list(params = list("t/add" = list(
+    kk = list(drop = TRUE), zz = list(drop = TRUE, when = function(v) v > 1)))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{
+    "s":{"type":"t/add","params":{"kk":2,"k":5,"zz":1}}},"edges":[]}')
+  m1 <- tr_doc_migrate(doc, reg)
+  expect_equal(m1$nodes$s$params, list(k = 5, zz = 1))  # `when` falso segura o zz
+  expect_true(attr(m1, "migrated"))
+  m2 <- tr_doc_migrate(m1, reg)
+  expect_equal(m2$nodes$s$params, m1$nodes$s$params)
+  expect_false(isTRUE(attr(tr_doc_migrate(tr_doc_parse(tr_doc_json(m1)), reg), "migrated")))
+  expect_false(grepl("kk|null", tr_doc_json(m1)))
+  # Malformado: drop com destino ou value.
+  expect_error(trama:::.tr_check_migrations(list(params = list("t/add" = list(
+    kk = list(drop = TRUE, to = "k")))), "t"), class = "tr_error_bad_migration")
+  expect_error(trama:::.tr_check_migrations(list(params = list("t/add" = list(
+    kk = list(drop = TRUE, value = identity)))), "t"), class = "tr_error_bad_migration")
+})
+
 test_that("params injetados entram antes dos renomes do id novo", {
   reg <- migr_registry(list(nodes = list("velho/add" = list(to = "t/add", params = list(kk = 4))),
                             params = list("t/add" = list(kk = list(to = "k")))))

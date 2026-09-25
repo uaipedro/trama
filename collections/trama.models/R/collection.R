@@ -90,8 +90,8 @@ trama_collection <- function() {
 #'
 #' Nós: `ml/<x>` -> `models/<x>`. Params, pelo id NOVO: `alvo` -> `resposta`
 #' (o glossário que a ml aplicava), `.pred` -> `previsto` e `.prob_<classe>`
-#' -> `prob_<classe>` (a classe saneada como nas colunas daqui) convertidos no lugar, e `tarefa` descartado — um `value`
-#' que devolve lista nomeada com o próprio nome em NULL não deixa nada no nó.
+#' -> `prob_<classe>` (a classe saneada como nas colunas daqui) convertidos no lugar, e `tarefa` removido
+#' (`drop = TRUE`): o evaluate da models lê a tarefa do modelo.
 #' @noRd
 .tr_models_migracoes_ml <- function() {
   ids <- c("predict", "evaluate", "confusion", "roc", "importance")
@@ -101,7 +101,7 @@ trama_collection <- function() {
   prob <- list(probabilidade = list(to = "probabilidade",
                                     when = function(v) is.character(v) && length(v) == 1L && grepl("^\\.prob_", v),
                                     value = function(v) paste0("prob_", tr_models_clean_name(sub("^\\.prob_", "", v)))))
-  tarefa <- list(tarefa = list(to = "tarefa", when = function(v) TRUE, value = function(v) list(tarefa = NULL)))
+  tarefa <- list(tarefa = list(drop = TRUE))  # models/evaluate infere a tarefa do modelo
   list(nodes = stats::setNames(as.list(paste0("models/", ids)), paste0("ml/", ids)),
        params = list("models/evaluate" = c(resposta, predito, tarefa),
                      "models/confusion" = c(resposta, predito),

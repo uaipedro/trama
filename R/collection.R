@@ -40,6 +40,10 @@
 #'       params do nó (param já presente com esse nome vence):
 #'       `intervalo = list(to = "intervalo", when = function(v) grepl("^IC ", v),
 #'       value = function(v) list(intervalo = "IC", confianca = 0.9))`.
+#'     - remover: `list(drop = TRUE)` (sem `to` nem `value`; `when`
+#'       opcional) apaga o param que o nó novo não tem mais — idempotente, e o
+#'       documento regravado simplesmente não o traz:
+#'       `tarefa = list(drop = TRUE)`.
 #'   * `ports`: id NOVO do nó -> lista `antiga = "nova"`, valendo pra entradas e
 #'     saídas.
 #'
@@ -126,8 +130,19 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
     own(nid, "a chave de params")
     for (p in names(params[[nid]])) {
       r <- params[[nid]][[p]]
+      # Remoção: `drop = TRUE` no lugar de `to`. Explícita porque "param que o
+      # nó novo não tem" não se infere — e `value` não faz sentido sem destino.
+      if (is.list(r) && isTRUE(r$drop)) {
+        if (!is.null(r$to) || !is.null(r$value)) {
+          bad(sprintf("param '%s' de '%s' com drop = TRUE não leva 'to' nem 'value'.", p, nid))
+        }
+        if (!is.null(r$when) && !is.function(r$when)) {
+          bad(sprintf("'when' do param '%s' de '%s' tem que ser função.", p, nid))
+        }
+        next
+      }
       if (!is.list(r) || !is.character(r$to) || length(r$to) != 1L) {
-        bad(sprintf("param '%s' de '%s' precisa de list(to = \"novo\").", p, nid))
+        bad(sprintf("param '%s' de '%s' precisa de list(to = \"novo\") ou list(drop = TRUE).", p, nid))
       }
       for (f in c("value", "when")) if (!is.null(r[[f]]) && !is.function(r[[f]])) {
         bad(sprintf("'%s' do param '%s' de '%s' tem que ser função.", f, p, nid))
