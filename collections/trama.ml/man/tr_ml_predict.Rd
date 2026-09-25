@@ -13,7 +13,10 @@ tr_ml_predict(modelo, dados)
 }
 \value{
 Tibble com os dados originais, \code{.pred} e, quando disponíveis,
-probabilidades \verb{.prob_<classe>}.
+probabilidades \verb{.prob_<classe>}. A marca de treino/teste do \code{ml/split}
+(atributo \code{tr_ml_origem}) passa adiante; prever o teste de outra divisão
+com um modelo ajustado no treino de uma divisão marcada é recusado
+(\code{tr_ml_error_split_mismatch}).
 }
 \description{
 Prever com um modelo de aprendizado de máquina

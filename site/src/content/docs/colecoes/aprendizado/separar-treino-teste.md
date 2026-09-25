@@ -35,3 +35,13 @@ range(t$treino$dia); range(t$teste$dia)   # 1-14 e 15-20
 ## Como interpretar
 
 As saídas `treino` e `teste` não duplicam nem perdem linhas. A proporção final pode variar por arredondamento em cada classe.
+
+### Proveniência: o teste fica isolado por construção
+
+As duas saídas levam uma marca (atributo `tr_ml_origem`, com o papel `treino`/`teste` e um id da divisão) que sobrevive ao cache e a filtros ou colunas novas. Com ela:
+
+- ajustar um modelo, o `ml/tune` ou o `ml/nested_cv` na saída `teste` é recusado (`tr_ml_error_test_leak`);
+- `ml/evaluate`, `ml/confusion`, `ml/roc` e `ml/pr_curve` recusam previsões das linhas de `treino` (`tr_ml_error_train_eval`), a menos que se ligue `permitir_treino` — aí o resultado sai com a nota “avaliação no treino é otimista”;
+- o `ml/predict` recusa o teste de outra divisão com um modelo ajustado no treino desta (`tr_ml_error_split_mismatch`).
+
+Tabelas sem a marca — divisão feita por fora do `ml/split`, ou treino e teste juntados — seguem como antes: o bloco não tem como saber de onde vieram as linhas, e o isolamento fica com você.

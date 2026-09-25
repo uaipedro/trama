@@ -30,3 +30,7 @@ trama.ml::tr_ml_predict(m, d[1:3, ])
 ## Como interpretar
 
 A floresta retorna um ajuste agregado. Importância resume o motor; não é regra individual nem medida causal.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `ml/predict`.

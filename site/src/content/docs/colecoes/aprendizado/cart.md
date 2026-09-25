@@ -30,3 +30,7 @@ trama.ml::tr_ml_rules(m)
 ## Como interpretar
 
 Cada linha de regras representa uma folha e seu valor previsto. `ml/tree_plot` mostra a estrutura e `ml/importance` resume importância do motor.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `ml/predict`.

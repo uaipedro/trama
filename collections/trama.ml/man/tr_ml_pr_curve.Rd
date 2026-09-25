@@ -9,6 +9,7 @@ tr_ml_pr_curve(
   alvo = "",
   probabilidade = "",
   positiva = "",
+  permitir_treino = FALSE,
   aspecto = "16:9",
   tema = "padrão",
   titulo = "",
@@ -28,6 +29,10 @@ tr_ml_pr_curve(
 coluna de probabilidade (\verb{.prob_<classe>}, como sai de \code{\link[=tr_ml_predict]{tr_ml_predict()}});
 se o nome não indicar uma classe observada, o bloco recusa
 (\code{tr_ml_error_positive_required}) em vez de adivinhar.}
+
+\item{permitir_treino}{Se FALSE (padrão), recusa linhas marcadas como
+treino pelo \code{ml/split} (\code{tr_ml_error_train_eval}); se TRUE, desenha,
+avisa e põe a nota de otimismo na legenda e na coluna \code{nota}.}
 
 \item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
 ou \code{"2:1"}.}

@@ -30,3 +30,7 @@ trama.ml::tr_ml_predict(m, d[1:3, ])
 ## Como interpretar
 
 Prever acrescenta a classe `.pred` e probabilidades `.prob_<classe>` quando disponíveis. Kernel não linear descreve fronteira menos diretamente que limiares de árvore.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `ml/predict`.

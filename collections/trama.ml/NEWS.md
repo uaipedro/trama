@@ -1,3 +1,39 @@
+# trama.ml 0.3.0
+
+Versão sobe de 0.2.0: o isolamento do teste passa a ser imposto. Blocos que
+mudam de comportamento sobem de versão: `ml/split` 2, `ml/predict` 2,
+`ml/evaluate` 3, `ml/confusion` 2, `ml/roc` 4, `ml/pr_curve` 2, `ml/tune` 3,
+`ml/nested_cv` 2, `ml/cart` 3 e os demais modelos 2.
+
+## Isolamento do teste por construção
+
+- `ml/split` marca as saídas com o atributo `tr_ml_origem` (`papel` =
+  `"treino"`/`"teste"` e `divisao`, id que depende só dos dados e das linhas
+  sorteadas). Escolhemos atributo, e não coluna oculta: o tipo `data/table`
+  guarda em RDS, que preserva atributos na ida e volta do store e na releitura
+  do cache; subconjunto, `dplyr::filter` e colunas novas também os preservam; e
+  os dados, o card e a exportação ficam iguais.
+- Ajustar (`ml/<modelo>`, `ml/tune`, `ml/nested_cv`) ou dividir de novo a
+  saída teste é recusado com `tr_ml_error_test_leak` — o vazamento
+  treino-teste de Kaufman, Rosset, Perlich & Stitelman (2012,
+  doi:10.1145/2382577.2382579). O modelo guarda a origem do treino.
+- `ml/predict` propaga a marca e recusa o teste de outra divisão com um modelo
+  ajustado no treino de uma divisão marcada (`tr_ml_error_split_mismatch`).
+- `ml/evaluate`, `ml/confusion`, `ml/roc` e `ml/pr_curve` ganham
+  `permitir_treino` (padrão `FALSE`): previsões das linhas de treino marcadas
+  são recusadas com `tr_ml_error_train_eval`. Com `TRUE`, o resultado é o
+  mesmo número de antes, com aviso e a nota “avaliação no treino é otimista”
+  (coluna `nota`; legenda do gráfico). Erro por padrão, e não só aviso, porque
+  num fluxo de blocos o aviso se perde no card e o número otimista segue
+  adiante como se fosse do teste; medir o treino de propósito (comparar com o
+  teste, ver sobreajuste) continua possível com uma escolha explícita.
+- Tabelas sem a marca (divisão feita por fora, treino e teste juntados) seguem
+  como antes; os pressupostos dizem que ali o isolamento depende do usuário. A
+  validação interna do `ml/tune` mede os folds de um treino marcado sem
+  recusa: a validação de cada fold não ajustou o modelo do fold.
+- Validação: testes de cada caminho, inclusive no fluxo real com o store e a
+  segunda execução lida do cache, e pelo `store`/`restore` do `data/table`.
+
 # trama.ml 0.2.0
 
 Versão sobe de 0.1.0: mudam padrões e resultados de `ml/roc` (classe

@@ -32,3 +32,7 @@ head(p)
 ## Como interpretar
 
 `.pred` contém valor ou classe prevista. Em classificação, cada probabilidade disponível usa o nome `.prob_<classe>`.
+
+### Proveniência
+
+A marca `treino`/`teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) passa para a saída, para que a avaliação saiba de onde vieram as linhas. Um modelo ajustado no treino de uma divisão não prevê o teste de outra divisão (`tr_ml_error_split_mismatch`): parte daquelas linhas pode ter estado no treino.

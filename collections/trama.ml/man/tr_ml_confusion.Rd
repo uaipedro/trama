@@ -4,7 +4,7 @@
 \alias{tr_ml_confusion}
 \title{Produz uma matriz de confusão em formato longo}
 \usage{
-tr_ml_confusion(dados, alvo = "", predito = ".pred")
+tr_ml_confusion(dados, alvo = "", predito = ".pred", permitir_treino = FALSE)
 }
 \arguments{
 \item{dados}{Data frame com as colunas observada e prevista.}
@@ -12,9 +12,12 @@ tr_ml_confusion(dados, alvo = "", predito = ".pred")
 \item{alvo}{Nome da coluna observada.}
 
 \item{predito}{Nome da coluna prevista.}
+
+\item{permitir_treino}{Como em \code{\link[=tr_ml_evaluate]{tr_ml_evaluate()}}.}
 }
 \value{
-Tibble com observado, previsto e n.
+Tibble com observado, previsto e n (mais \code{nota} quando avalia o
+treino por opção).
 }
 \description{
 Produz uma matriz de confusão em formato longo

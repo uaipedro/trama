@@ -30,3 +30,7 @@ p$data
 ## Como interpretar
 
 No exemplo, os cortes dão (revocação, precisão) = (0,33; 1), (0,33; 0,5), (0,67; 0,67), (0,67; 0,5) e (1; 0,6). A AP soma ganho de revocação × precisão: (1 + 0,667 + 0,6)/3 = 0,756. A `area`, com a interpolação de Davis & Goadrich (2006), é 0,716 — menor porque entre dois cortes a precisão não varia em linha reta. Compare as duas com a prevalência, 0,6 aqui: um classificador ao acaso fica nessa linha.
+
+### Previsões do treino
+
+Se as linhas vierem do `treino` marcado pelo [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/), o bloco recusa por padrão (`tr_ml_error_train_eval`): a avaliação no treino é otimista e não mede generalização. Para medir o ajuste no treino de propósito (por exemplo, comparar com o teste e ver o sobreajuste), ligue `permitir_treino`; o resultado vem com um aviso e a nota de otimismo. Tabelas sem a marca do `ml/split` são avaliadas como chegam.

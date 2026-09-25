@@ -31,3 +31,7 @@ head(z$historico)
 ## Como interpretar
 
 A saída `modelo` é o vencedor reajustado; `historico` registra configurações, resultado por fold, média e melhor valor acumulado.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `ml/predict`.

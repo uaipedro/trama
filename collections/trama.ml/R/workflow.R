@@ -18,12 +18,15 @@
 #' @param grupo Coluna que identifica indivíduo, lote ou área, usada por
 #'   `estrategia = "grupo"`; `proporcao` passa a ser a fração dos grupos.
 #' @param seed Semente inteira; o estado RNG do chamador é restaurado.
-#' @return Lista com tibbles treino e teste.
+#' @return Lista com tibbles treino e teste, marcados com o atributo
+#'   `tr_ml_origem` (`papel` = `"treino"`/`"teste"` e `divisao`, um id da
+#'   divisão). Ajustar no teste e avaliar no treino passam a ser recusados.
 #' @export
 tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
                         estratificar = TRUE, estrategia = "aleatoria",
                         ordem = "", grupo = "", seed = 42L) {
   .tr_ml_validate_data(dados, alvo)
+  .tr_ml_exigir_nao_teste(dados)
   if (!is.numeric(proporcao) || length(proporcao) != 1L ||
       !is.finite(proporcao) || proporcao <= 0 || proporcao >= 1) {
     stop("proporcao deve ser um n\u{FA}mero finito estritamente entre 0 e 1.",
@@ -47,10 +50,9 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
   estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
   if (estrategia != "aleatoria") {
     idx <- .tr_ml_with_rng(seed, .tr_ml_split_dependente(dados, estrategia, proporcao, ordem, grupo))
-    return(list(treino = tibble::as_tibble(dados[idx, , drop = FALSE]),
-                teste = tibble::as_tibble(dados[-idx, , drop = FALSE])))
+    return(.tr_ml_split_saida(dados, idx))
   }
-  .tr_ml_with_rng(seed, {
+  idx <- .tr_ml_with_rng(seed, {
     if (isTRUE(estratificar) &&
         (is.factor(y) || is.character(y) || is.logical(y))) {
       classes <- unique(y)
@@ -71,11 +73,19 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
       nt <- min(n - 1L, max(1L, floor(n * proporcao)))
       idx <- sort(sample.int(n, nt, replace = FALSE))
     }
-    list(
-      treino = tibble::as_tibble(dados[idx, , drop = FALSE]),
-      teste = tibble::as_tibble(dados[-idx, , drop = FALSE])
-    )
+    idx
   })
+  .tr_ml_split_saida(dados, idx)
+}
+
+# Treino e teste marcados com a proveniência (ver R/proveniencia.R). A marca
+# anterior da entrada (dividir de novo um treino) é substituída.
+.tr_ml_split_saida <- function(dados, idx) {
+  id <- .tr_ml_divisao_id(dados, idx)
+  base <- tibble::as_tibble(dados)
+  attr(base, .tr_ml_origem_attr) <- NULL
+  list(treino = .tr_ml_marcar(base[idx, , drop = FALSE], "treino", id),
+       teste = .tr_ml_marcar(base[-idx, , drop = FALSE], "teste", id))
 }
 
 #' Avalia previsões de regressão ou classificação
@@ -91,14 +101,27 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
 #' @param alvo Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
 #' @param tarefa auto, regressao ou classificacao.
+#' @param permitir_treino Se FALSE (padrão), recusa linhas marcadas como
+#'   treino pelo `ml/split` (`tr_ml_error_train_eval`); se TRUE, avalia, avisa
+#'   e acrescenta a coluna `nota` sobre o otimismo.
 #' @return Tibble com colunas metrica, classe, valor e n. Na classificação,
 #'   as métricas globais têm `classe` ausente e as por classe (`precision`,
 #'   `recall`, `f1`) trazem a classe e seu suporte em `n`; na regressão não há
 #'   coluna `classe`.
 #' @export
 tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
-                           tarefa = "auto") {
+                           tarefa = "auto", permitir_treino = FALSE) {
   .tr_ml_validate_pair(dados, alvo, predito)
+  nota <- .tr_ml_checar_avaliacao(dados, permitir_treino)
+  .tr_ml_com_nota(.tr_ml_evaluate_calc(dados, alvo, predito, tarefa), nota)
+}
+
+.tr_ml_com_nota <- function(out, nota) {
+  if (nzchar(nota)) { out$nota <- nota; attr(out, "nota") <- nota }
+  out
+}
+
+.tr_ml_evaluate_calc <- function(dados, alvo, predito, tarefa) {
   if (length(tarefa) != 1L || is.na(tarefa) ||
       !tarefa %in% c("auto", "regressao", "classificacao")) {
     stop("tarefa deve ser auto, regressao ou classificacao.", call. = FALSE)
@@ -149,10 +172,14 @@ tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
 #' @param dados Data frame com as colunas observada e prevista.
 #' @param alvo Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
-#' @return Tibble com observado, previsto e n.
+#' @param permitir_treino Como em [tr_ml_evaluate()].
+#' @return Tibble com observado, previsto e n (mais `nota` quando avalia o
+#'   treino por opção).
 #' @export
-tr_ml_confusion <- function(dados, alvo = "", predito = ".pred") {
+tr_ml_confusion <- function(dados, alvo = "", predito = ".pred",
+                            permitir_treino = FALSE) {
   .tr_ml_validate_pair(dados, alvo, predito)
+  nota <- .tr_ml_checar_avaliacao(dados, permitir_treino)
   y <- dados[[alvo]]
   p <- dados[[predito]]
   if (anyNA(y) || anyNA(p)) {
@@ -174,7 +201,7 @@ tr_ml_confusion <- function(dados, alvo = "", predito = ".pred") {
   tab <- table(factor(ys, levels = niveis), factor(ps, levels = niveis))
   out <- as.data.frame(tab, stringsAsFactors = FALSE)
   names(out) <- c("observado", "previsto", "n")
-  tibble::as_tibble(out)
+  .tr_ml_com_nota(tibble::as_tibble(out), nota)
 }
 
 #' Carrega um conjunto pequeno para exemplos da coleção ML

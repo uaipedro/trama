@@ -76,6 +76,9 @@
 }
 
 .tr_ml_tune_metric <- function(pred, alvo, tarefa, metrica) {
+  # A validação de um fold é parte do treino marcado pelo `ml/split`, mas não
+  # ajustou o modelo do fold: a medida é fora da amostra, sem nota de otimismo.
+  attr(pred, .tr_ml_origem_attr) <- NULL
   z <- tr_ml_evaluate(pred, alvo, tarefa = tarefa)
   i <- match(metrica, z$metrica)
   if (is.na(i)) .tr_ml_abort("tr_ml_error_bad_param", sprintf("M\u{E9}trica '%s' n\u{E3}o serve para esta tarefa.", metrica))

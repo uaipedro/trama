@@ -134,7 +134,8 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
                             poda = poda, corte = corte, importancia = importancia)
   structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$alvo,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
-                 n = d$n, seed = seed, extras = extras), class = "tr_ml_fit")
+                 n = d$n, seed = seed, extras = extras,
+                 origem = .tr_ml_origem(dados)), class = "tr_ml_fit")
 }
 
 # Custo-complexidade (Breiman et al. 1984, sec. 3.4.3): na sequência aninhada
@@ -158,10 +159,20 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
 #' @param modelo Objeto criado por [tr_ml_fit()].
 #' @param dados Nova tabela, preservada integralmente na saída.
 #' @return Tibble com os dados originais, `.pred` e, quando disponíveis,
-#'   probabilidades `.prob_<classe>`.
+#'   probabilidades `.prob_<classe>`. A marca de treino/teste do `ml/split`
+#'   (atributo `tr_ml_origem`) passa adiante; prever o teste de outra divisão
+#'   com um modelo ajustado no treino de uma divisão marcada é recusado
+#'   (`tr_ml_error_split_mismatch`).
 #' @export
 tr_ml_predict <- function(modelo, dados) {
   x <- .tr_ml_novos_dados(modelo, dados)
+  o_dados <- .tr_ml_origem(dados); o_modelo <- modelo$origem
+  if (identical(o_dados$papel, "teste") && !is.null(o_modelo$divisao) &&
+      !identical(o_dados$divisao, o_modelo$divisao)) {
+    .tr_ml_abort("tr_ml_error_split_mismatch", paste(
+      "O modelo foi ajustado no treino de uma divis\u{E3}o e estas linhas s\u{E3}o o teste de outra:",
+      "parte delas pode ter estado no treino. Use o teste do mesmo `ml/split` do modelo."))
+  }
   cls <- modelo$tarefa == "classificacao"; prob <- NULL
   if (modelo$modelo == "linear") {
     if (cls) { p <- as.numeric(stats::predict(modelo$ajuste, x, type = "response")); prob <- cbind(1-p, p)
@@ -213,6 +224,7 @@ tr_ml_predict <- function(modelo, dados) {
     prob <- prob[, modelo$niveis, drop = FALSE]
     for (j in seq_along(modelo$niveis)) out[[paste0(".prob_", modelo$niveis[[j]])]] <- as.numeric(prob[, j])
   }
+  attr(out, .tr_ml_origem_attr) <- o_dados
   out
 }
 

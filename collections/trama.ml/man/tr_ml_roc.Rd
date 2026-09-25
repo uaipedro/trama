@@ -10,6 +10,7 @@ tr_ml_roc(
   probabilidade = "",
   positiva = "",
   confianca = 0.95,
+  permitir_treino = FALSE,
   aspecto = "16:9",
   tema = "padrão",
   titulo = "",
@@ -32,6 +33,10 @@ se o nome não indicar uma classe observada, o bloco recusa
 
 \item{confianca}{Nível do intervalo de confiança da AUC (DeLong et al.
 1988), entre 0 e 1.}
+
+\item{permitir_treino}{Se FALSE (padrão), recusa linhas marcadas como
+treino pelo \code{ml/split} (\code{tr_ml_error_train_eval}); se TRUE, desenha,
+avisa e põe a nota de otimismo na legenda e na coluna \code{nota}.}
 
 \item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
 ou \code{"2:1"}.}

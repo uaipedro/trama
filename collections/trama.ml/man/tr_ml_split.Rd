@@ -39,7 +39,9 @@ por \code{estrategia = "temporal"}.}
 \item{seed}{Semente inteira; o estado RNG do chamador é restaurado.}
 }
 \value{
-Lista com tibbles treino e teste.
+Lista com tibbles treino e teste, marcados com o atributo
+\code{tr_ml_origem} (\code{papel} = \code{"treino"}/\code{"teste"} e \code{divisao}, um id da
+divisão). Ajustar no teste e avaliar no treino passam a ser recusados.
 }
 \description{
 Faz uma divisão reprodutível. Para alvos categóricos, amostra cada classe

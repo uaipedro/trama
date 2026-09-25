@@ -4,7 +4,13 @@
 \alias{tr_ml_evaluate}
 \title{Avalia previsões de regressão ou classificação}
 \usage{
-tr_ml_evaluate(dados, alvo = "", predito = ".pred", tarefa = "auto")
+tr_ml_evaluate(
+  dados,
+  alvo = "",
+  predito = ".pred",
+  tarefa = "auto",
+  permitir_treino = FALSE
+)
 }
 \arguments{
 \item{dados}{Data frame com alvo e previsão.}
@@ -14,6 +20,10 @@ tr_ml_evaluate(dados, alvo = "", predito = ".pred", tarefa = "auto")
 \item{predito}{Nome da coluna prevista.}
 
 \item{tarefa}{auto, regressao ou classificacao.}
+
+\item{permitir_treino}{Se FALSE (padrão), recusa linhas marcadas como
+treino pelo \code{ml/split} (\code{tr_ml_error_train_eval}); se TRUE, avalia, avisa
+e acrescenta a coluna \code{nota} sobre o otimismo.}
 }
 \value{
 Tibble com colunas metrica, classe, valor e n. Na classificação,

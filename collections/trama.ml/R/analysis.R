@@ -199,6 +199,9 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @param confianca Nível do intervalo de confiança da AUC (DeLong et al.
 #'   1988), entre 0 e 1.
+#' @param permitir_treino Se FALSE (padrão), recusa linhas marcadas como
+#'   treino pelo `ml/split` (`tr_ml_error_train_eval`); se TRUE, desenha,
+#'   avisa e põe a nota de otimismo na legenda e na coluna `nota`.
 #' @return Objeto `ggplot` da curva ROC. Os dados do gráfico trazem, por corte,
 #'   `limiar` (prevê positivo com P >= limiar), `fpr` e `tpr`, e repetidos a
 #'   `auc`, seu erro-padrão (`auc_ep`) e intervalo (`auc_inf`, `auc_sup`) de
@@ -206,9 +209,10 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #'   `youden` na linha escolhida.
 #' @export
 tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
-                      confianca = 0.95, aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
+                      confianca = 0.95, permitir_treino = FALSE, aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
                       rotulo_x = "", rotulo_y = "", legenda = "direita") {
   .tr_ml_validate_pair(dados, alvo, probabilidade)
+  nota <- .tr_ml_checar_avaliacao(dados, permitir_treino)
   if (!is.numeric(confianca) || length(confianca) != 1L || !is.finite(confianca) ||
       confianca <= 0 || confianca >= 1)
     .tr_ml_abort("tr_ml_error_bad_param", "Param 'confianca' deve estar entre 0 e 1.")
@@ -238,6 +242,7 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
   i <- which.max(j)
   d$youden_limiar <- d$limiar[[i]]; d$youden_j <- j[[i]]
   d$youden <- seq_len(n_curva) == i
+  d <- .tr_ml_com_nota(d, nota)
   rotulo <- sprintf("AUC = %.3f (IC %s%%: %.3f a %.3f)\nYouden: J = %.3f com P \u{2265} %s",
                     d$auc[[1]], format(100 * confianca), ic[["inf"]], ic[["sup"]],
                     j[[i]], format(signif(d$limiar[[i]], 3)))
@@ -246,7 +251,8 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
     ggplot2::geom_step(linewidth = 1) + ggplot2::coord_equal() +
     ggplot2::geom_point(data = d[i, ], size = 3, colour = "#dc2626") +
     ggplot2::annotate("text", x = .6, y = .1, label = rotulo, size = 3.3) +
-    ggplot2::labs(x = "Taxa de falsos positivos", y = "Taxa de verdadeiros positivos")
+    ggplot2::labs(x = "Taxa de falsos positivos", y = "Taxa de verdadeiros positivos",
+                  caption = if (nzchar(nota)) nota else NULL)
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 
@@ -269,7 +275,7 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
 #' tr_ml_pr_curve(d, "y", ".prob_sim")
 #' @export
 tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
-                           aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
+                           permitir_treino = FALSE, aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
                            rotulo_x = "", rotulo_y = "", legenda = "direita") {
   .tr_ml_validate_pair(dados, alvo, probabilidade)
   y <- as.character(dados[[alvo]]); prob <- dados[[probabilidade]]
@@ -278,10 +284,11 @@ tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
       any(!is.finite(prob)) || any(prob < 0 | prob > 1))
     .tr_ml_abort("tr_ml_error_not_applicable",
                  "A curva precis\u{E3}o-revoca\u{E7}\u{E3}o exige duas classes e uma probabilidade finita entre 0 e 1.")
+  nota <- .tr_ml_checar_avaliacao(dados, permitir_treino)
   if (!nzchar(positiva)) positiva <- .tr_ml_roc_positiva(dados[[alvo]], probabilidade)
   if (!positiva %in% classes)
     .tr_ml_abort("tr_ml_error_bad_param", "Param 'positiva' deve ser uma classe observada.")
-  d <- .tr_ml_pr_pontos(y == positiva, prob)
+  d <- .tr_ml_com_nota(.tr_ml_pr_pontos(y == positiva, prob), nota)
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$recall, y = .data$precision)) +
     ggplot2::geom_hline(yintercept = d$prevalencia[[1]], linetype = 2, colour = "#94a3b8") +
     ggplot2::geom_step(direction = "vh", linewidth = 1) +
@@ -289,7 +296,8 @@ tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
     ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
     ggplot2::annotate("text", x = .3, y = .08,
                       label = sprintf("AP = %.3f  (acaso = %.3f)", d$ap[[1]], d$prevalencia[[1]])) +
-    ggplot2::labs(x = "Revoca\u{E7}\u{E3}o", y = "Precis\u{E3}o")
+    ggplot2::labs(x = "Revoca\u{E7}\u{E3}o", y = "Precis\u{E3}o",
+                  caption = if (nzchar(nota)) nota else NULL)
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 
