@@ -2,6 +2,17 @@
 
 ## Rigor metodológico (fase 3, revisão)
 
+- `series/intervencao`: novo parâmetro `resposta` — `imediata` (padrão, sem
+  mudança) ou `gradual`, a função de transferência ω/(1 − δB) de Box & Tiao
+  (1975) para degrau e pulso. δ pela verossimilhança perfilada, erro-padrão
+  pela hessiana da verossimilhança completa; no degrau, linha
+  `efeito_longo_prazo` = ω/(1 − δ) (método delta). Oráculo: `TSA::arimax(
+  transfer = list(c(1, 0)))` 1.3.1 (Cryer & Chan 2008, cap. 11), airmiles em
+  log, ARIMA(0,1,1)(0,1,1)₁₂, 2001-09: degrau ω = −0,35892, δ = −0,29605;
+  pulso ω = −0,34591, δ = 0,69468; coeficientes e erros-padrão a 1e-3
+  (diferença medida < 3e-5). `TSA` entra em Suggests só pelos dados (o teste
+  não carrega o namespace, que sobrescreve `fitted.Arima`).
+
 - `series/zivot_andrews` (versão 4): o padrão passa a ser `selecao = "fixa"`
   com `defasagens = -1` = regra l4 de Schwert (1989; eq. 13a do NBER
   Technical Working Paper 73, conferida no texto), trunc(4·(n/100)^(1/4));

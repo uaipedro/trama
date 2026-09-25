@@ -56,8 +56,9 @@
         P("Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
           verificar = c("series/window", "series/arima", "series/ndiffs"),
           se_falhar = "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e use-a aqui."),
-        P("O efeito entra **inteiro na data** (forma de ordem zero); uma resposta gradual (função de transferência de Box & Tiao com δ) não é modelada.",
-          verificar = c("series/plot", "series/residuals")),
+        P("Com **Resposta** = `imediata`, o efeito entra **inteiro na data** (forma de ordem zero); com `gradual`, segue ω/(1 − δB) com |δ| < 1 — uma resposta de outra forma (duas taxas, atraso) não é modelada.",
+          verificar = c("series/plot", "series/residuals"),
+          se_falhar = "Se o resíduo mostra o efeito chegando aos poucos, use `gradual`; se δ vai para a borda, troque o degrau pela rampa."),
         residuo_branco(),
         P("O IC e o p-valor são de **Wald** (normal assintótica da máxima verossimilhança): pedem resíduos aproximadamente normais e série não muito curta.",
           verificar = c("series/residuals", "view/qq"))),
@@ -67,8 +68,11 @@
           fonte = "Journal of the American Statistical Association, 70(349), 70-79",
           doi = "10.1080/01621459.1975.10480264"),
         L$box_jenkins, L$fpp3,
+        R(autores = c("Cryer, J. D.", "Chan, K.-S."), ano = 2008,
+          titulo = "Time Series Analysis: With Applications in R", fonte = "2. ed. New York: Springer (cap. 11)",
+          doi = "10.1007/978-0-387-75959-3"),
         I("forecast", "Arima",
-          "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8."))),
+          "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8. Resposta gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ pela verossimilhança perfilada (`optimize` em (−0,999; 0,999)), erro-padrão pela hessiana numérica (`optimHess`) da verossimilhança completa; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles (degrau e pulso em 2001-09) a 1e-3."))),
 
     "series/ets" = list(
       pressupostos = list(

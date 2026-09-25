@@ -851,7 +851,8 @@ ordem à mão; `series/ets` para a alternativa por suavização exponencial.
           P = I(0L, min = 0L, max = 2L, label = "P (AR sazonal)"),
           D = I(0L, min = 0L, max = 1L, label = "D (diferença sazonal)"),
           Q = I(0L, min = 0L, max = 2L, label = "Q (MA sazonal)"),
-          constante = B(FALSE, label = "Constante")),
+          constante = B(FALSE, label = "Constante"),
+          resposta = E("imediata", c("imediata", "gradual"), label = "Resposta")),
         help = .tr_series_ajuda(r"---[
 Mede o efeito de um EVENTO numa data conhecida — uma lei, uma mudança de
 política, um acidente — sobre a série: o modelo de intervenção de Box e Tiao
@@ -885,8 +886,22 @@ Escolha a ordem do ruído no trecho ANTES da intervenção (`series/window` →
 é diferenciado junto: o degrau numa série diferenciada vira um pulso na
 diferença, e o ω continua sendo a mudança de nível.
 
-Esta é a forma de ordem zero: o efeito entra inteiro na data. A resposta
-gradual de Box e Tiao (função de transferência com δ) não está no bloco.
+Com **Resposta** = `imediata` (padrão), é a forma de ordem zero: o efeito
+entra inteiro na data.
+
+### Resposta gradual
+
+Com **Resposta** = `gradual` (degrau ou pulso), o efeito entra pela função de
+transferência de Box e Tiao, ω/(1 − δB): no primeiro período ele vale ω, e
+depois cada período soma δ vezes o anterior. No degrau, o efeito cresce (ou
+encolhe) até o nível de longo prazo ω/(1 − δ), que sai numa linha própria
+(`efeito_longo_prazo`, com erro-padrão pelo método delta); no pulso, o choque
+se desfaz aos poucos, à razão δ por período. δ é estimado junto com o ARIMA
+por máxima verossimilhança (perfilada em δ), com erro-padrão da hessiana
+completa. Conferido contra o `TSA::arimax` (Cryer e Chan, 2008) no tráfego
+aéreo dos EUA depois de 11/09/2001: pulso gradual com ω = −0.346 e δ = 0.695,
+a menos de 1e-3. Um δ na borda (|δ| > 0.99) é recusado: a resposta não se
+estabiliza, e o degrau (ou a rampa) descreve melhor.
 
 ### Faltantes
 
@@ -898,10 +913,15 @@ um `series/interpolate` antes.
 - **Tipo** — `degrau` (padrão), `pulso` ou `rampa`.
 - **p, d, q** e **P, D, Q** — a ordem do ARIMA do ruído.
 - **Constante** — média (ou deriva, com uma diferença) no modelo.
+- **Resposta** — `imediata` (padrão, ordem zero) ou `gradual` (ω/(1 − δB),
+  só degrau e pulso).
 ]---", r"---[
 Uma tabela, uma linha por coeficiente, a da intervenção primeiro: `termo`,
 `estimativa`, `erro_padrao`, `li_95`, `ls_95` (IC de Wald), `z`, `p_valor` e
-`efeito_pct` (só na linha da intervenção).
+`efeito_pct` (só na linha da intervenção). Com resposta gradual, vêm também
+a linha `delta` e, no degrau, `efeito_longo_prazo` (com o `efeito_pct` dele);
+o `efeito_pct` da linha `intervencao` fica vazio, porque ω é só o primeiro
+período.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
