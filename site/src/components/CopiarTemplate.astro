@@ -48,9 +48,14 @@ const canvas = renderFlowCanvas(templateToGraph(doc), visuals as Record<string, 
 </script>
 
 <style>
-  .template-card { display: grid; min-width: 0; border: 1px solid var(--line); background: var(--paper-strong); }
-  .template-card__canvas { border-bottom: 1px solid var(--line); }
-  .template-card__body { display: grid; gap: var(--space-sm); padding: var(--space-lg); min-width: 0; }
+  .template-card { display: grid; grid-row: span 2; grid-template-rows: subgrid; row-gap: 0; min-width: 0; border: 1px solid var(--line); background: var(--paper-strong); }
+  .template-card__canvas { display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+  /* Na mesma linha da grade os cards têm a mesma altura: a bancada cresce até
+     preencher e o fluxo fica centrado nela. Com subgrid, bancadas e textos
+     da linha dividem as mesmas alturas e começam na mesma linha. */
+  .template-card__canvas :global(.tr-estatico) { flex: 1 0 auto; }
+  .template-card__canvas :global(.tr-estatico__mundo) { top: 50%; transform: translate(-50%, -50%) scale(var(--escala)); transform-origin: 50% 50%; }
+  .template-card__body { display: grid; align-content: start; gap: var(--space-sm); padding: var(--space-lg); min-width: 0; }
   .template-card h3 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; letter-spacing: -.02em; }
   .template-card p { margin: 0; color: var(--ink-soft); overflow-wrap: anywhere; }
   .template-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); }
