@@ -9,14 +9,55 @@
 
 .TR_SERIES_CINZA <- "#8b949e"
 
-#' A série no tempo.
+#' A série no tempo, e opcionalmente uma segunda série no mesmo eixo.
+#'
+#' `sobreposta` é para VER uma série estimada sobre a original antes de usá-la
+#' — a tendência que se vai subtrair, a média móvel, a previsão de outro
+#' modelo. Mesmo eixo Y, e não dois painéis: a pergunta é se a tendência
+#' acompanha a série, e isso só se lê com as duas uma sobre a outra.
+#'
+#' Frequências diferentes são recusadas, como no `series/combine`: uma mensal
+#' e uma anual no mesmo eixo parecem comparáveis ponto a ponto, e não são.
+#' Janelas diferentes, não: o eixo é a união, e cada linha ocupa o seu trecho.
+#'
+#' `sobreposta` vem DEPOIS de `pontos` para não mudar a posição dos
+#' argumentos de quem já chamava `tr_series_plot(x, TRUE)` no console.
 #' @export
-tr_series_plot <- function(serie, pontos = FALSE, aspecto = "16:9", tema = "padrão",
+tr_series_plot <- function(serie, pontos = FALSE, sobreposta = NULL, aspecto = "16:9", tema = "padrão",
                            titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   d <- .tr_series_tabela(serie)
-  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["tempo"]], y = .data[["valor"]])) +
-    ggplot2::geom_line(linewidth = .6, colour = .TR_SERIES_COR, na.rm = TRUE)
-  if (isTRUE(pontos)) p <- p + ggplot2::geom_point(size = 1.2, colour = .TR_SERIES_COR, na.rm = TRUE)
+  if (is.null(sobreposta)) {
+    # Sem sobreposta, o desenho de sempre, sem legenda: um fluxo gravado antes
+    # renderiza igual.
+    p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["tempo"]], y = .data[["valor"]])) +
+      ggplot2::geom_line(linewidth = .6, colour = .TR_SERIES_COR, na.rm = TRUE)
+    if (isTRUE(pontos)) p <- p + ggplot2::geom_point(size = 1.2, colour = .TR_SERIES_COR, na.rm = TRUE)
+  } else {
+    if (!stats::is.ts(sobreposta)) {
+      .tr_series_abort("tr_series_error_not_a_series",
+                       "'series/plot': a entrada 'sobreposta' precisa ser uma série, e chegou '%s'.",
+                       class(sobreposta)[[1]])
+    }
+    fa <- stats::frequency(serie); fb <- stats::frequency(sobreposta)
+    if (!isTRUE(all.equal(fa, fb))) {
+      .tr_series_abort("tr_series_error_frequency_mismatch",
+                       paste0("'series/plot': 'serie' tem frequência %g e 'sobreposta' tem %g. Leve as duas ",
+                              "à mesma frequência antes, com 'series/aggregate'."), fa, fb)
+    }
+    niveis <- c("série", "sobreposta")
+    d$linha <- factor(niveis[[1]], niveis)
+    d2 <- .tr_series_tabela(sobreposta); d2$linha <- factor(niveis[[2]], niveis)
+    d <- rbind(d, d2)
+    cores <- stats::setNames(c(.TR_SERIES_COR, .TR_SERIES_COR_2), niveis)
+    p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["tempo"]], y = .data[["valor"]], colour = .data[["linha"]])) +
+      ggplot2::geom_line(ggplot2::aes(linewidth = .data[["linha"]]), na.rm = TRUE) +
+      # A sobreposta um pouco mais grossa: é ela que se está conferindo.
+      ggplot2::scale_linewidth_manual(values = c(.6, .9), guide = "none") +
+      ggplot2::scale_colour_manual(values = cores, name = NULL)
+    if (isTRUE(pontos)) {
+      p <- p + ggplot2::geom_point(data = d[d$linha == niveis[[1]], ], size = 1.2, na.rm = TRUE)
+    }
+  }
   p <- p + ggplot2::labs(x = "tempo", y = "valor")
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }

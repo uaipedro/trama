@@ -2373,8 +2373,8 @@ enganoso do caso `Nile`.
 
       trama::tr_node("series/plot", fn = tr_series_plot, label = "Série no tempo",
         category = "serie_ver", icon = icone("chart-line"),
-        description = "Desenha a série ao longo do tempo.",
-        inputs = list(serie = S), outputs = list(out = G),
+        description = "Desenha a série ao longo do tempo, e uma segunda série sobre ela.",
+        inputs = list(serie = S, sobreposta = trama::tr_port(S, required = FALSE)), outputs = list(out = G),
         params = .tr_series_props(pontos = B(FALSE, label = "Marcar pontos")),
         help = .tr_series_ajuda(r"---[
 A série como linha no tempo, que é o primeiro gráfico de qualquer análise:
@@ -2386,6 +2386,18 @@ escolhe: proporção, tema claro para o relatório, título — e para sair como
 `view/plot`, igual aos gráficos da coleção `view`.
 
 Faltante interrompe a linha: o buraco aparece como buraco.
+
+### Série sobreposta
+
+A entrada opcional **sobreposta** desenha uma segunda série no MESMO eixo,
+com legenda: a tendência estimada sobre a série original, antes de
+subtraí-la; a média móvel; o ajuste de outro modelo. Ligue a série original em
+**serie** e, por exemplo, `series/component` com `tendencia` (de uma
+`series/regression` com grau 1, para a tendência linear) em **sobreposta**.
+
+As duas precisam ter a mesma frequência — mensal com anual para o nó; leve
+uma à outra com `series/aggregate`. Períodos diferentes, não: o eixo cobre a
+união, e cada linha ocupa o seu trecho.
 ]---", r"---[
 - **Marcar pontos** — desenha cada observação sobre a linha. Útil em série
   curta, e para ver onde estão os faltantes.
@@ -2396,7 +2408,15 @@ tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
   tr_add("g", "series/plot", pontos = TRUE, titulo = "Vazão anual do Nilo",
          tema = "claro", from = "nilo")
+
+# A tendência linear sobre a série, antes de tirá-la:
+tr_flow(reg) |>
+  tr_add("ap", "series/example", dataset = "AirPassengers") |>
+  tr_add("reg", "series/regression", grau = 1L, from = "ap") |>
+  tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
+  tr_add("g", "series/plot", from = c("ap", "tend"))
 ]---", r"---[
+`series/detrend` para tirar a tendência depois de vê-la;
 `view/line` para várias séries numa tabela; `series/seasonal_plot` para o
 padrão sazonal; `series/plot_decomposition` para os componentes.
 ]---", grafico = TRUE)),

@@ -58,3 +58,39 @@ test_that("previews dos tipos gráficos são PNG pela view", {
   f <- tr_series_forecast(tr_series_ets(serie_mensal()), 12L)
   expect_true(file.exists(series_forecast_type()$preview(f, ctx_tmp())$files$png))
 })
+
+test_that("série no tempo com sobreposta: duas linhas no mesmo eixo, com legenda", {
+  x <- serie_mensal()
+  tend <- tr_series_component(tr_series_regression(x, grau = 1L), "tendencia")
+  p <- tr_series_plot(x, sobreposta = tend)
+  b <- ggplot2::ggplot_build(p)
+  expect_equal(length(unique(b$data[[1]]$colour)), 2L)
+  expect_equal(levels(p$data$linha), c("série", "sobreposta"))
+  expect_equal(p$data$valor[p$data$linha == "sobreposta"], as.numeric(tend))
+  # Sem sobreposta, o desenho de sempre: uma linha, sem mapeamento de cor.
+  expect_null(tr_series_plot(x)$mapping$colour)
+})
+
+test_that("sobreposta: frequência diferente é erro; janela diferente dá o eixo da união", {
+  x <- serie_mensal()
+  expect_error(tr_series_plot(x, sobreposta = stats::aggregate(x, nfrequency = 1)),
+               class = "tr_series_error_frequency_mismatch")
+  expect_error(tr_series_plot(x, sobreposta = 1:3), class = "tr_series_error_not_a_series")
+  # 1955 a 1965: começa depois e termina depois da original (1949–1960).
+  curta <- stats::ts(c(as.numeric(stats::window(x, start = c(1955, 1))), 1:60),
+                     start = c(1955, 1), frequency = 12)
+  p <- tr_series_plot(x, sobreposta = curta)
+  faixa <- range(p$data$tempo)
+  expect_equal(faixa, as.Date(c("1949-01-01", "1965-12-01")))
+})
+
+test_that("pelo motor: série em 'serie' e tendência em 'sobreposta'", {
+  reg <- series_registry(); s <- trama::tr_store(tempfile())
+  f <- trama::tr_flow(reg) |>
+    trama::tr_add("ap", "series/example", dataset = "AirPassengers") |>
+    trama::tr_add("reg", "series/regression", grau = 1L, from = "ap") |>
+    trama::tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
+    trama::tr_add("g", "series/plot", from = c("ap", "tend"))
+  p <- trama::tr_value(f$doc, "g", registry = reg, store = s)
+  expect_equal(levels(p$data$linha), c("série", "sobreposta"))
+})
