@@ -15,7 +15,12 @@ nodes <- lapply(registry$nodes[sort(names(registry$nodes))], function(node) {
     accent = category$color,
     hasInput = length(node$inputs) > 0L,
     hasOutput = length(node$outputs) > 0L,
-    label = node$label
+    label = node$label,
+    # Etapa do bloco na coleção: o catálogo do site agrupa por ela, na ordem
+    # em que a coleção registra as categorias.
+    category = node$category,
+    categoryLabel = category$label,
+    categoryOrder = match(node$category, names(registry$categories))
   )
   if (!is.null(node$icon)) {
     if (node$icon$kind != "set") stop("Ícone SVG próprio requer suporte explícito: ", node$id)

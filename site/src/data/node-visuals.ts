@@ -6,6 +6,9 @@ export interface NodeVisual {
   hasInput: boolean;
   hasOutput: boolean;
   label?: string;
+  category?: string;
+  categoryLabel?: string;
+  categoryOrder?: number;
 }
 
 const nodeVisuals: Record<string, NodeVisual> = visuals;

@@ -4,6 +4,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Ordenar",
+    "category": "transform",
+    "categoryLabel": "Transformar",
+    "categoryOrder": 4,
     "icon": "arrow-up-down"
   },
   "data/bind_rows": {
@@ -11,6 +14,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Empilhar tabelas",
+    "category": "aggregate",
+    "categoryLabel": "Agregar",
+    "categoryOrder": 6,
     "icon": "layers"
   },
   "data/clean_names": {
@@ -18,6 +24,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Limpar nomes",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "case-sensitive"
   },
   "data/convert": {
@@ -25,6 +34,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Converter tipo",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "arrow-right-left"
   },
   "data/distinct": {
@@ -32,6 +44,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Remover duplicadas",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "copy-x"
   },
   "data/drop_na": {
@@ -39,6 +54,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Remover faltantes",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "circle-slash"
   },
   "data/example": {
@@ -46,6 +64,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Dados de exemplo",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "flask-conical"
   },
   "data/filter": {
@@ -53,6 +74,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Filtrar",
+    "category": "transform",
+    "categoryLabel": "Transformar",
+    "categoryOrder": 4,
     "icon": "list-filter"
   },
   "data/from_stream": {
@@ -60,6 +84,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Sair de fluxo",
+    "category": "stream",
+    "categoryLabel": "Fluxo",
+    "categoryOrder": 7,
     "icon": "layers"
   },
   "data/generate": {
@@ -67,6 +94,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Gerar dados",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "dices"
   },
   "data/get_dupes": {
@@ -74,6 +104,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Duplicadas",
+    "category": "inspect",
+    "categoryLabel": "Conhecer",
+    "categoryOrder": 2,
     "icon": "copy"
   },
   "data/group_summarise": {
@@ -81,6 +114,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Agrupar e resumir",
+    "category": "aggregate",
+    "categoryLabel": "Agregar",
+    "categoryOrder": 6,
     "icon": "sigma"
   },
   "data/join": {
@@ -88,6 +124,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Juntar",
+    "category": "aggregate",
+    "categoryLabel": "Agregar",
+    "categoryOrder": 6,
     "icon": "combine"
   },
   "data/mutate": {
@@ -95,6 +134,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Criar coluna",
+    "category": "transform",
+    "categoryLabel": "Transformar",
+    "categoryOrder": 4,
     "icon": "square-plus"
   },
   "data/pivot_longer": {
@@ -102,6 +144,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Empilhar colunas",
+    "category": "reshape",
+    "categoryLabel": "Reformatar",
+    "categoryOrder": 5,
     "icon": "unfold-vertical"
   },
   "data/pivot_wider": {
@@ -109,6 +154,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Espalhar colunas",
+    "category": "reshape",
+    "categoryLabel": "Reformatar",
+    "categoryOrder": 5,
     "icon": "unfold-horizontal"
   },
   "data/read_csv": {
@@ -116,6 +164,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Ler CSV",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "file-spreadsheet"
   },
   "data/read_excel": {
@@ -123,6 +174,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Ler Excel",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "sheet"
   },
   "data/read_json": {
@@ -130,6 +184,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Ler JSON",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "braces"
   },
   "data/read_parquet": {
@@ -137,6 +194,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Ler Parquet",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "file-digit"
   },
   "data/read_rds": {
@@ -144,6 +204,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Ler RDS",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
     "icon": "file-box"
   },
   "data/remove_empty": {
@@ -151,6 +214,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Remover vazias",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "eraser"
   },
   "data/rename": {
@@ -158,6 +224,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Renomear",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "pencil-line"
   },
   "data/replace_na": {
@@ -165,6 +234,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Preencher faltantes",
+    "category": "clean",
+    "categoryLabel": "Limpar",
+    "categoryOrder": 3,
     "icon": "paint-bucket"
   },
   "data/select": {
@@ -172,6 +244,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Selecionar",
+    "category": "transform",
+    "categoryLabel": "Transformar",
+    "categoryOrder": 4,
     "icon": "columns-3"
   },
   "data/slice_head": {
@@ -179,6 +254,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Primeiras N",
+    "category": "transform",
+    "categoryLabel": "Transformar",
+    "categoryOrder": 4,
     "icon": "list-start"
   },
   "data/summary": {
@@ -186,6 +264,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Resumo",
+    "category": "inspect",
+    "categoryLabel": "Conhecer",
+    "categoryOrder": 2,
     "icon": "clipboard-list"
   },
   "data/to_stream": {
@@ -193,6 +274,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Entrar em fluxo",
+    "category": "stream",
+    "categoryLabel": "Fluxo",
+    "categoryOrder": 7,
     "icon": "chevrons-right"
   },
   "data/write_csv": {
@@ -200,6 +284,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gravar CSV",
+    "category": "sink",
+    "categoryLabel": "Saída",
+    "categoryOrder": 8,
     "icon": "save"
   },
   "data/write_parquet": {
@@ -207,6 +294,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gravar Parquet",
+    "category": "sink",
+    "categoryLabel": "Saída",
+    "categoryOrder": 8,
     "icon": "hard-drive-download"
   },
   "data/write_rds": {
@@ -214,121 +304,181 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gravar RDS",
+    "category": "sink",
+    "categoryLabel": "Saída",
+    "categoryOrder": 8,
     "icon": "archive"
   },
   "ml/cart": {
     "accent": "#65a30d",
     "hasInput": true,
     "hasOutput": true,
-    "label": "CART · árvore de decisão"
+    "label": "CART · árvore de decisão",
+    "category": "ml_simples",
+    "categoryLabel": "Interpretáveis",
+    "categoryOrder": 44
   },
   "ml/confusion": {
     "accent": "#2563eb",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Matriz de confusão"
+    "label": "Matriz de confusão",
+    "category": "ml_avaliar",
+    "categoryLabel": "Prever e avaliar",
+    "categoryOrder": 47
   },
   "ml/evaluate": {
     "accent": "#2563eb",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Avaliar previsões"
+    "label": "Avaliar previsões",
+    "category": "ml_avaliar",
+    "categoryLabel": "Prever e avaliar",
+    "categoryOrder": 47
   },
   "ml/example": {
     "accent": "#0891b2",
     "hasInput": false,
     "hasOutput": true,
-    "label": "Dados para aprender"
+    "label": "Dados para aprender",
+    "category": "ml_dados",
+    "categoryLabel": "Preparar",
+    "categoryOrder": 43
   },
   "ml/figs": {
     "accent": "#65a30d",
     "hasInput": true,
     "hasOutput": true,
-    "label": "FIGS · soma de árvores"
+    "label": "FIGS · soma de árvores",
+    "category": "ml_simples",
+    "categoryLabel": "Interpretáveis",
+    "categoryOrder": 44
   },
   "ml/forest": {
     "accent": "#d97706",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Random forest"
+    "label": "Random forest",
+    "category": "ml_ensembles",
+    "categoryLabel": "Conjuntos de árvores",
+    "categoryOrder": 45
   },
   "ml/importance": {
     "accent": "#be123c",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Importância de variáveis"
+    "label": "Importância de variáveis",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48
   },
   "ml/linear": {
     "accent": "#65a30d",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Linear / logística"
+    "label": "Linear / logística",
+    "category": "ml_simples",
+    "categoryLabel": "Interpretáveis",
+    "categoryOrder": 44
   },
   "ml/predict": {
     "accent": "#2563eb",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Prever"
+    "label": "Prever",
+    "category": "ml_avaliar",
+    "categoryLabel": "Prever e avaliar",
+    "categoryOrder": 47
   },
   "ml/residuals": {
     "accent": "#be123c",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Analisar resíduos"
+    "label": "Analisar resíduos",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48
   },
   "ml/roc": {
     "accent": "#be123c",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Curva ROC"
+    "label": "Curva ROC",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48
   },
   "ml/rules": {
     "accent": "#be123c",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Ler regras das árvores"
+    "label": "Ler regras das árvores",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48
   },
   "ml/split": {
     "accent": "#0891b2",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Separar treino / teste"
+    "label": "Separar treino / teste",
+    "category": "ml_dados",
+    "categoryLabel": "Preparar",
+    "categoryOrder": 43
   },
   "ml/svm": {
     "accent": "#7c3aed",
     "hasInput": true,
     "hasOutput": true,
-    "label": "SVM · vetores de suporte"
+    "label": "SVM · vetores de suporte",
+    "category": "ml_margem",
+    "categoryLabel": "Vetores de suporte",
+    "categoryOrder": 46
   },
   "ml/tree_plot": {
     "accent": "#be123c",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Visualizar árvores"
+    "label": "Visualizar árvores",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48
   },
   "ml/tune": {
     "accent": "#2563eb",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Ajustar hiperparâmetros"
+    "label": "Ajustar hiperparâmetros",
+    "category": "ml_avaliar",
+    "categoryLabel": "Prever e avaliar",
+    "categoryOrder": 47
   },
   "ml/tuning_plot": {
     "accent": "#be123c",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Visualizar tuning"
+    "label": "Visualizar tuning",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48
   },
   "ml/xgboost": {
     "accent": "#d97706",
     "hasInput": true,
     "hasOutput": true,
-    "label": "XGBoost"
+    "label": "XGBoost",
+    "category": "ml_ensembles",
+    "categoryLabel": "Conjuntos de árvores",
+    "categoryOrder": 45
   },
   "models/anova_dbc": {
     "accent": "#0ea5e9",
     "hasInput": true,
     "hasOutput": true,
     "label": "ANOVA · DBC",
+    "category": "modelo_anova",
+    "categoryLabel": "ANOVA",
+    "categoryOrder": 14,
     "icon": "grid-3x3"
   },
   "models/anova_dic": {
@@ -336,6 +486,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ANOVA · DIC",
+    "category": "modelo_anova",
+    "categoryLabel": "ANOVA",
+    "categoryOrder": 14,
     "icon": "layout-grid"
   },
   "models/anova_dql": {
@@ -343,6 +496,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ANOVA · DQL",
+    "category": "modelo_anova",
+    "categoryLabel": "ANOVA",
+    "categoryOrder": 14,
     "icon": "columns-3"
   },
   "models/anova_factorial": {
@@ -350,6 +506,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ANOVA · fatorial",
+    "category": "modelo_anova",
+    "categoryLabel": "ANOVA",
+    "categoryOrder": 14,
     "icon": "grid-2x2"
   },
   "models/anova_split_plot": {
@@ -357,6 +516,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ANOVA · parcela subdividida",
+    "category": "modelo_anova",
+    "categoryLabel": "ANOVA",
+    "categoryOrder": 14,
     "icon": "square-split-horizontal"
   },
   "models/anova_table": {
@@ -364,6 +526,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Quadro da ANOVA",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "sheet"
   },
   "models/bartlett": {
@@ -371,6 +536,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Bartlett",
+    "category": "modelo_pressupostos",
+    "categoryLabel": "Pressupostos",
+    "categoryOrder": 17,
     "icon": "scale"
   },
   "models/breusch_pagan": {
@@ -378,6 +546,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Breusch-Pagan",
+    "category": "modelo_pressupostos",
+    "categoryLabel": "Pressupostos",
+    "categoryOrder": 17,
     "icon": "chart-spline"
   },
   "models/chisq": {
@@ -385,6 +556,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Qui-quadrado",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "table"
   },
   "models/coefficients": {
@@ -392,6 +566,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Coeficientes",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "variable"
   },
   "models/compare": {
@@ -399,6 +576,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Comparar modelos",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "git-compare"
   },
   "models/cor_test": {
@@ -406,6 +586,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Teste de correlação",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "trending-up"
   },
   "models/duncan": {
@@ -413,6 +596,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Duncan",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
     "icon": "chart-column"
   },
   "models/emmeans": {
@@ -420,6 +606,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Médias ajustadas",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
     "icon": "chart-column"
   },
   "models/example": {
@@ -427,6 +616,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Exemplo de modelos",
+    "category": "modelo_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 12,
     "icon": "database"
   },
   "models/fisher_exact": {
@@ -434,6 +626,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Exato de Fisher",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "table"
   },
   "models/fit_stats": {
@@ -441,6 +636,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Medidas de ajuste",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "gauge"
   },
   "models/glm": {
@@ -448,6 +646,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Modelo linear generalizado",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 13,
     "icon": "chart-spline"
   },
   "models/kruskal": {
@@ -455,6 +656,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Kruskal-Wallis",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "list-ordered"
   },
   "models/levene": {
@@ -462,6 +666,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Levene",
+    "category": "modelo_pressupostos",
+    "categoryLabel": "Pressupostos",
+    "categoryOrder": 17,
     "icon": "scale"
   },
   "models/linear_hypothesis": {
@@ -469,6 +676,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Contrastes (F)",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
     "icon": "divide"
   },
   "models/lm": {
@@ -476,6 +686,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Regressão linear",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 13,
     "icon": "chart-scatter"
   },
   "models/lmer": {
@@ -483,6 +696,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Modelo misto",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 13,
     "icon": "layers"
   },
   "models/one_sample_t": {
@@ -490,6 +706,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "t para uma amostra",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "target"
   },
   "models/paired_t": {
@@ -497,6 +716,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "t pareado",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "link"
   },
   "models/pairwise": {
@@ -504,6 +726,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Comparações de médias",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
     "icon": "git-compare"
   },
   "models/plot_caterpillar": {
@@ -511,6 +736,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico de lagarta",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "list-ordered"
   },
   "models/plot_diagnostics": {
@@ -518,6 +746,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Diagnóstico dos resíduos",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "microscope"
   },
   "models/plot_means": {
@@ -525,6 +756,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico de médias",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
     "icon": "chart-no-axes-column"
   },
   "models/predict": {
@@ -532,6 +766,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Prever",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "target"
   },
   "models/random_effects": {
@@ -539,6 +776,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Efeitos aleatórios",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "dices"
   },
   "models/random_test": {
@@ -546,6 +786,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Teste dos aleatórios",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "shuffle"
   },
   "models/residuals": {
@@ -553,6 +796,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Resíduos",
+    "category": "modelo_resumir",
+    "categoryLabel": "Resumir",
+    "categoryOrder": 15,
     "icon": "chart-scatter"
   },
   "models/rls": {
@@ -560,6 +806,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "RLS online",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 13,
     "icon": "activity"
   },
   "models/shapiro": {
@@ -567,6 +816,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Shapiro-Wilk",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "chart-area"
   },
   "models/shapiro_residuals": {
@@ -574,6 +826,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Normalidade dos resíduos",
+    "category": "modelo_pressupostos",
+    "categoryLabel": "Pressupostos",
+    "categoryOrder": 17,
     "icon": "chart-area"
   },
   "models/t_test": {
@@ -581,6 +836,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "t para duas amostras",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "equal-not"
   },
   "models/tukey_additivity": {
@@ -588,6 +846,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Aditividade de Tukey",
+    "category": "modelo_pressupostos",
+    "categoryLabel": "Pressupostos",
+    "categoryOrder": 17,
     "icon": "equal"
   },
   "models/waller_duncan": {
@@ -595,6 +856,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Waller-Duncan",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
     "icon": "chart-column"
   },
   "models/wilcoxon": {
@@ -602,6 +866,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Wilcoxon-Mann-Whitney",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
     "icon": "list-ordered"
   },
   "multi/biplot": {
@@ -609,6 +876,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Biplot",
+    "category": "multi_pca",
+    "categoryLabel": "Componentes",
+    "categoryOrder": 21,
     "icon": "chart-scatter"
   },
   "multi/box_m": {
@@ -616,6 +886,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "M de Box",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "scale"
   },
   "multi/classify": {
@@ -623,6 +896,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Classificar",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "tags"
   },
   "multi/confusion": {
@@ -630,6 +906,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Matriz de confusão",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "grid-3x3"
   },
   "multi/correlation_circle": {
@@ -637,6 +916,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Círculo de correlações",
+    "category": "multi_pca",
+    "categoryLabel": "Componentes",
+    "categoryOrder": 21,
     "icon": "orbit"
   },
   "multi/correlation_matrix": {
@@ -644,6 +926,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Matriz de correlação",
+    "category": "multi_diagnostico",
+    "categoryLabel": "Diagnóstico",
+    "categoryOrder": 20,
     "icon": "table-2"
   },
   "multi/discriminant": {
@@ -651,6 +936,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Discriminante",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "split"
   },
   "multi/discriminant_functions": {
@@ -658,6 +946,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Funções discriminantes",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "sigma"
   },
   "multi/example": {
@@ -665,6 +956,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Exemplo multivariado",
+    "category": "multi_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 19,
     "icon": "database"
   },
   "multi/fa_loadings": {
@@ -672,6 +966,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Cargas fatoriais",
+    "category": "multi_fatorial",
+    "categoryLabel": "Fatorial",
+    "categoryOrder": 22,
     "icon": "table-2"
   },
   "multi/factor_analysis": {
@@ -679,6 +976,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Análise fatorial",
+    "category": "multi_fatorial",
+    "categoryLabel": "Fatorial",
+    "categoryOrder": 22,
     "icon": "layers"
   },
   "multi/jackknife_discriminant": {
@@ -686,6 +986,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Jackknife da discriminante",
+    "category": "multi_jackknife",
+    "categoryLabel": "Jackknife",
+    "categoryOrder": 25,
     "icon": "repeat"
   },
   "multi/jackknife_fa": {
@@ -693,6 +996,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Jackknife da fatorial",
+    "category": "multi_jackknife",
+    "categoryLabel": "Jackknife",
+    "categoryOrder": 25,
     "icon": "repeat"
   },
   "multi/jackknife_logistic": {
@@ -700,6 +1006,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Jackknife da logística",
+    "category": "multi_jackknife",
+    "categoryLabel": "Jackknife",
+    "categoryOrder": 25,
     "icon": "repeat"
   },
   "multi/jackknife_pca": {
@@ -707,6 +1016,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Jackknife da PCA",
+    "category": "multi_jackknife",
+    "categoryLabel": "Jackknife",
+    "categoryOrder": 25,
     "icon": "repeat"
   },
   "multi/kmo_bartlett": {
@@ -714,6 +1026,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "KMO e Bartlett",
+    "category": "multi_diagnostico",
+    "categoryLabel": "Diagnóstico",
+    "categoryOrder": 20,
     "icon": "stethoscope"
   },
   "multi/logistic": {
@@ -721,6 +1036,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Regressão logística",
+    "category": "multi_logistica",
+    "categoryLabel": "Logística",
+    "categoryOrder": 24,
     "icon": "chart-spline"
   },
   "multi/logistic_coefficients": {
@@ -728,6 +1046,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Razões de chances",
+    "category": "multi_logistica",
+    "categoryLabel": "Logística",
+    "categoryOrder": 24,
     "icon": "sigma"
   },
   "multi/parallel": {
@@ -735,6 +1056,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Análise paralela",
+    "category": "multi_diagnostico",
+    "categoryLabel": "Diagnóstico",
+    "categoryOrder": 20,
     "icon": "dices"
   },
   "multi/pca": {
@@ -742,6 +1066,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Componentes principais",
+    "category": "multi_pca",
+    "categoryLabel": "Componentes",
+    "categoryOrder": 21,
     "icon": "axis-3d"
   },
   "multi/pca_loadings": {
@@ -749,6 +1076,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Cargas da PCA",
+    "category": "multi_pca",
+    "categoryLabel": "Componentes",
+    "categoryOrder": 21,
     "icon": "table-2"
   },
   "multi/pca_variance": {
@@ -756,6 +1086,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Variância explicada",
+    "category": "multi_pca",
+    "categoryLabel": "Componentes",
+    "categoryOrder": 21,
     "icon": "chart-bar-decreasing"
   },
   "multi/plot_correlation": {
@@ -763,6 +1096,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Mapa de correlações",
+    "category": "multi_diagnostico",
+    "categoryLabel": "Diagnóstico",
+    "categoryOrder": 20,
     "icon": "grid-3x3"
   },
   "multi/plot_discriminant": {
@@ -770,6 +1106,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Plano discriminante",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "chart-scatter"
   },
   "multi/plot_loadings": {
@@ -777,6 +1116,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Mapa das cargas",
+    "category": "multi_fatorial",
+    "categoryLabel": "Fatorial",
+    "categoryOrder": 22,
     "icon": "grid-3x3"
   },
   "multi/plot_odds": {
@@ -784,6 +1126,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico das razões de chances",
+    "category": "multi_logistica",
+    "categoryLabel": "Logística",
+    "categoryOrder": 24,
     "icon": "chart-bar"
   },
   "multi/roc": {
@@ -791,6 +1136,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Curva ROC",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
     "icon": "chart-line"
   },
   "multi/scree": {
@@ -798,6 +1146,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Scree",
+    "category": "multi_pca",
+    "categoryLabel": "Componentes",
+    "categoryOrder": 21,
     "icon": "chart-no-axes-combined"
   },
   "sampling/cluster": {
@@ -805,6 +1156,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Conglomerados",
+    "category": "amostra_selecionar",
+    "categoryLabel": "Selecionar",
+    "categoryOrder": 28,
     "icon": "group"
   },
   "sampling/design": {
@@ -812,6 +1166,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Declarar desenho",
+    "category": "amostra_desenho",
+    "categoryLabel": "Desenho",
+    "categoryOrder": 29,
     "icon": "table-properties"
   },
   "sampling/detectable_difference": {
@@ -819,6 +1176,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Diferença detectável",
+    "category": "amostra_precisao",
+    "categoryLabel": "Precisão",
+    "categoryOrder": 30,
     "icon": "git-compare"
   },
   "sampling/example": {
@@ -826,6 +1186,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Exemplo de amostragem",
+    "category": "amostra_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 26,
     "icon": "database"
   },
   "sampling/margin": {
@@ -833,6 +1196,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Margem para n dado",
+    "category": "amostra_precisao",
+    "categoryLabel": "Precisão",
+    "categoryOrder": 30,
     "icon": "ruler"
   },
   "sampling/margin_levels": {
@@ -840,6 +1206,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Margem por nível",
+    "category": "amostra_precisao",
+    "categoryLabel": "Precisão",
+    "categoryOrder": 30,
     "icon": "layers-plus"
   },
   "sampling/mean": {
@@ -847,6 +1216,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Média",
+    "category": "amostra_estimar",
+    "categoryLabel": "Estimar",
+    "categoryOrder": 31,
     "icon": "sigma"
   },
   "sampling/plot_estimates": {
@@ -854,6 +1226,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico de estimativas",
+    "category": "amostra_avaliar",
+    "categoryLabel": "Avaliar",
+    "categoryOrder": 32,
     "icon": "crosshair"
   },
   "sampling/plot_margins": {
@@ -861,6 +1236,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico das margens",
+    "category": "amostra_precisao",
+    "categoryLabel": "Precisão",
+    "categoryOrder": 30,
     "icon": "chart-no-axes-column"
   },
   "sampling/plot_simulation": {
@@ -868,6 +1246,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Comparar simulações",
+    "category": "amostra_avaliar",
+    "categoryLabel": "Avaliar",
+    "categoryOrder": 32,
     "icon": "chart-candlestick"
   },
   "sampling/poststratify": {
@@ -875,6 +1256,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Pós-estratificar",
+    "category": "amostra_desenho",
+    "categoryLabel": "Desenho",
+    "categoryOrder": 29,
     "icon": "weight"
   },
   "sampling/pps": {
@@ -882,6 +1266,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "PPS",
+    "category": "amostra_selecionar",
+    "categoryLabel": "Selecionar",
+    "categoryOrder": 28,
     "icon": "scale"
   },
   "sampling/proportion": {
@@ -889,6 +1276,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Proporção",
+    "category": "amostra_estimar",
+    "categoryLabel": "Estimar",
+    "categoryOrder": 31,
     "icon": "chart-pie"
   },
   "sampling/question_margins": {
@@ -896,6 +1286,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Margem por pergunta",
+    "category": "amostra_precisao",
+    "categoryLabel": "Precisão",
+    "categoryOrder": 30,
     "icon": "list-checks"
   },
   "sampling/rake": {
@@ -903,6 +1296,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Calibrar (raking)",
+    "category": "amostra_desenho",
+    "categoryLabel": "Desenho",
+    "categoryOrder": 29,
     "icon": "sliders-horizontal"
   },
   "sampling/ratio": {
@@ -910,6 +1306,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Razão",
+    "category": "amostra_estimar",
+    "categoryLabel": "Estimar",
+    "categoryOrder": 31,
     "icon": "divide"
   },
   "sampling/referral": {
@@ -917,6 +1316,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Margem com indicação",
+    "category": "amostra_precisao",
+    "categoryLabel": "Precisão",
+    "categoryOrder": 30,
     "icon": "network"
   },
   "sampling/simulate": {
@@ -924,6 +1326,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Simular desenho",
+    "category": "amostra_avaliar",
+    "categoryLabel": "Avaliar",
+    "categoryOrder": 32,
     "icon": "dices"
   },
   "sampling/size_cluster": {
@@ -931,6 +1336,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Tamanho por conglomerados",
+    "category": "amostra_planejar",
+    "categoryLabel": "Planejar",
+    "categoryOrder": 27,
     "icon": "boxes"
   },
   "sampling/size_curve": {
@@ -938,6 +1346,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Curva do tamanho",
+    "category": "amostra_planejar",
+    "categoryLabel": "Planejar",
+    "categoryOrder": 27,
     "icon": "chart-spline"
   },
   "sampling/size_domains": {
@@ -945,6 +1356,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Tamanho por grupos",
+    "category": "amostra_planejar",
+    "categoryLabel": "Planejar",
+    "categoryOrder": 27,
     "icon": "users"
   },
   "sampling/size_mean": {
@@ -952,6 +1366,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Tamanho para média",
+    "category": "amostra_planejar",
+    "categoryLabel": "Planejar",
+    "categoryOrder": 27,
     "icon": "calculator"
   },
   "sampling/size_proportion": {
@@ -959,6 +1376,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Tamanho para proporção",
+    "category": "amostra_planejar",
+    "categoryLabel": "Planejar",
+    "categoryOrder": 27,
     "icon": "percent"
   },
   "sampling/size_stratified": {
@@ -966,6 +1386,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Tamanho estratificado",
+    "category": "amostra_planejar",
+    "categoryLabel": "Planejar",
+    "categoryOrder": 27,
     "icon": "layers"
   },
   "sampling/srs": {
@@ -973,6 +1396,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Aleatória simples",
+    "category": "amostra_selecionar",
+    "categoryLabel": "Selecionar",
+    "categoryOrder": 28,
     "icon": "shuffle"
   },
   "sampling/stratified": {
@@ -980,6 +1406,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Estratificada",
+    "category": "amostra_selecionar",
+    "categoryLabel": "Selecionar",
+    "categoryOrder": 28,
     "icon": "layers-2"
   },
   "sampling/systematic": {
@@ -987,6 +1416,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Sistemática",
+    "category": "amostra_selecionar",
+    "categoryLabel": "Selecionar",
+    "categoryOrder": 28,
     "icon": "list-ordered"
   },
   "sampling/total": {
@@ -994,6 +1426,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Total",
+    "category": "amostra_estimar",
+    "categoryLabel": "Estimar",
+    "categoryOrder": 31,
     "icon": "square-sigma"
   },
   "sampling/two_stage": {
@@ -1001,6 +1436,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Dois estágios",
+    "category": "amostra_selecionar",
+    "categoryLabel": "Selecionar",
+    "categoryOrder": 28,
     "icon": "git-fork"
   },
   "series/accuracy": {
@@ -1008,6 +1446,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Acurácia",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "square-sigma"
   },
   "series/acf": {
@@ -1015,6 +1456,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Correlograma (ACF)",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-column"
   },
   "series/adf": {
@@ -1022,6 +1466,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ADF",
+    "category": "serie_raiz",
+    "categoryLabel": "Raiz unitária",
+    "categoryOrder": 37,
     "icon": "test-tube"
   },
   "series/aggregate": {
@@ -1029,6 +1476,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Mudar frequência",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "calendar-days"
   },
   "series/arima": {
@@ -1036,6 +1486,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ARIMA",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "sigma"
   },
   "series/baseline": {
@@ -1043,6 +1496,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Previsão de referência",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "repeat"
   },
   "series/box_pierce": {
@@ -1050,6 +1506,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Box-Pierce",
+    "category": "serie_autocorr",
+    "categoryLabel": "Autocorrelação",
+    "categoryOrder": 38,
     "icon": "activity"
   },
   "series/component": {
@@ -1057,6 +1516,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Componente",
+    "category": "serie_decompor",
+    "categoryLabel": "Decompor",
+    "categoryOrder": 35,
     "icon": "square-split-horizontal"
   },
   "series/cox_stuart": {
@@ -1064,6 +1526,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Cox-Stuart",
+    "category": "serie_tendencia",
+    "categoryLabel": "Tendência",
+    "categoryOrder": 39,
     "icon": "arrow-up-down"
   },
   "series/decompose": {
@@ -1071,6 +1536,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Decomposição clássica",
+    "category": "serie_decompor",
+    "categoryLabel": "Decompor",
+    "categoryOrder": 35,
     "icon": "layers-2"
   },
   "series/diff": {
@@ -1078,6 +1546,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Diferença",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "diff"
   },
   "series/ets": {
@@ -1085,6 +1556,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "ETS",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "waves-horizontal"
   },
   "series/example": {
@@ -1092,6 +1566,9 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Série de exemplo",
+    "category": "serie_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 33,
     "icon": "activity"
   },
   "series/f_global": {
@@ -1099,6 +1576,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "F global",
+    "category": "serie_regressao",
+    "categoryLabel": "Regressão",
+    "categoryOrder": 41,
     "icon": "sigma"
   },
   "series/f_sazonal": {
@@ -1106,6 +1586,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "F do bloco sazonal",
+    "category": "serie_regressao",
+    "categoryLabel": "Regressão",
+    "categoryOrder": 41,
     "icon": "calendar-range"
   },
   "series/f_tendencia": {
@@ -1113,6 +1596,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "F do bloco de tendência",
+    "category": "serie_regressao",
+    "categoryLabel": "Regressão",
+    "categoryOrder": 41,
     "icon": "trending-up-down"
   },
   "series/fisher": {
@@ -1120,6 +1606,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Fisher",
+    "category": "serie_sazonal",
+    "categoryLabel": "Sazonalidade",
+    "categoryOrder": 40,
     "icon": "signal"
   },
   "series/forecast": {
@@ -1127,6 +1616,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Prever",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "trending-up"
   },
   "series/from_table": {
@@ -1134,6 +1626,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Tabela para série",
+    "category": "serie_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 33,
     "icon": "table-rows-split"
   },
   "series/holt_winters": {
@@ -1141,6 +1636,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Holt-Winters",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "trending-up-down"
   },
   "series/interpolate": {
@@ -1148,6 +1646,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Interpolar faltantes",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "pipette"
   },
   "series/kpss": {
@@ -1155,6 +1656,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "KPSS",
+    "category": "serie_raiz",
+    "categoryLabel": "Raiz unitária",
+    "categoryOrder": 37,
     "icon": "test-tubes"
   },
   "series/kruskal_wallis": {
@@ -1162,6 +1666,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Kruskal-Wallis",
+    "category": "serie_sazonal",
+    "categoryLabel": "Sazonalidade",
+    "categoryOrder": 40,
     "icon": "calendar-days"
   },
   "series/lag": {
@@ -1169,6 +1676,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Defasar",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "move-right"
   },
   "series/lag_plot": {
@@ -1176,6 +1686,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico de defasagens",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-scatter"
   },
   "series/ljung_box": {
@@ -1183,6 +1696,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Ljung-Box",
+    "category": "serie_autocorr",
+    "categoryLabel": "Autocorrelação",
+    "categoryOrder": 38,
     "icon": "audio-waveform"
   },
   "series/mann_kendall": {
@@ -1190,6 +1706,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Mann-Kendall",
+    "category": "serie_tendencia",
+    "categoryLabel": "Tendência",
+    "categoryOrder": 39,
     "icon": "trending-up"
   },
   "series/moving_average": {
@@ -1197,6 +1716,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Média móvel",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "spline"
   },
   "series/ndiffs": {
@@ -1204,6 +1726,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Diferenças necessárias",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "hash"
   },
   "series/pacf": {
@@ -1211,6 +1736,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Autocorrelação parcial (PACF)",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-bar"
   },
   "series/pettitt": {
@@ -1218,6 +1746,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Pettitt",
+    "category": "serie_tendencia",
+    "categoryLabel": "Tendência",
+    "categoryOrder": 39,
     "icon": "milestone"
   },
   "series/phillips_perron": {
@@ -1225,6 +1756,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Phillips-Perron",
+    "category": "serie_raiz",
+    "categoryLabel": "Raiz unitária",
+    "categoryOrder": 37,
     "icon": "flask-conical"
   },
   "series/plot": {
@@ -1232,6 +1766,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Série no tempo",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-line"
   },
   "series/plot_decomposition": {
@@ -1239,6 +1776,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico da decomposição",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "file-chart-line"
   },
   "series/plot_forecast": {
@@ -1246,6 +1786,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico da previsão",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-area"
   },
   "series/regression": {
@@ -1253,6 +1796,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Regressão dos componentes",
+    "category": "serie_decompor",
+    "categoryLabel": "Decompor",
+    "categoryOrder": 35,
     "icon": "trending-up"
   },
   "series/residuals": {
@@ -1260,6 +1806,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Resíduos",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
     "icon": "scan-line"
   },
   "series/runs": {
@@ -1267,6 +1816,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Run",
+    "category": "serie_tendencia",
+    "categoryLabel": "Tendência",
+    "categoryOrder": 39,
     "icon": "shuffle"
   },
   "series/seasonal_plot": {
@@ -1274,6 +1826,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Gráfico sazonal",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-spline"
   },
   "series/stl": {
@@ -1281,6 +1836,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Decomposição STL",
+    "category": "serie_decompor",
+    "categoryLabel": "Decompor",
+    "categoryOrder": 35,
     "icon": "layers"
   },
   "series/subseries": {
@@ -1288,6 +1846,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Subséries sazonais",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 42,
     "icon": "chart-no-axes-combined"
   },
   "series/transform": {
@@ -1295,6 +1856,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Transformar",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "square-function"
   },
   "series/window": {
@@ -1302,6 +1866,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Recortar período",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 34,
     "icon": "calendar-range"
   },
   "series/zivot_andrews": {
@@ -1309,6 +1876,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Zivot-Andrews",
+    "category": "serie_raiz",
+    "categoryLabel": "Raiz unitária",
+    "categoryOrder": 37,
     "icon": "split"
   },
   "view/area": {
@@ -1316,6 +1886,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Área",
+    "category": "relacao",
+    "categoryLabel": "Relação",
+    "categoryOrder": 9,
     "icon": "chart-area"
   },
   "view/bars": {
@@ -1323,6 +1896,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Barras",
+    "category": "comparacao",
+    "categoryLabel": "Comparação",
+    "categoryOrder": 11,
     "icon": "chart-bar"
   },
   "view/bin2d": {
@@ -1330,6 +1906,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Grade de densidade",
+    "category": "relacao",
+    "categoryLabel": "Relação",
+    "categoryOrder": 9,
     "icon": "grid-3x3"
   },
   "view/boxplot": {
@@ -1337,6 +1916,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Boxplot",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "chart-candlestick"
   },
   "view/density": {
@@ -1344,6 +1926,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Densidade",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "chart-spline"
   },
   "view/dotplot": {
@@ -1351,6 +1936,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Pontos ordenados",
+    "category": "comparacao",
+    "categoryLabel": "Comparação",
+    "categoryOrder": 11,
     "icon": "lollipop"
   },
   "view/dumbbell": {
@@ -1358,6 +1946,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Halteres",
+    "category": "comparacao",
+    "categoryLabel": "Comparação",
+    "categoryOrder": 11,
     "icon": "dumbbell"
   },
   "view/ecdf": {
@@ -1365,6 +1956,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Acumulada",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "chart-no-axes-combined"
   },
   "view/heatmap": {
@@ -1372,6 +1966,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Mapa de calor",
+    "category": "relacao",
+    "categoryLabel": "Relação",
+    "categoryOrder": 9,
     "icon": "layout-grid"
   },
   "view/histogram": {
@@ -1379,6 +1976,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Histograma",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "chart-column"
   },
   "view/labels": {
@@ -1386,6 +1986,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Disperso com rótulos",
+    "category": "relacao",
+    "categoryLabel": "Relação",
+    "categoryOrder": 9,
     "icon": "tags"
   },
   "view/line": {
@@ -1393,6 +1996,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Linha",
+    "category": "relacao",
+    "categoryLabel": "Relação",
+    "categoryOrder": 9,
     "icon": "chart-line"
   },
   "view/means": {
@@ -1400,6 +2006,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Médias com barras",
+    "category": "comparacao",
+    "categoryLabel": "Comparação",
+    "categoryOrder": 11,
     "icon": "git-commit-vertical"
   },
   "view/paired": {
@@ -1407,6 +2016,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Pareamento",
+    "category": "comparacao",
+    "categoryLabel": "Comparação",
+    "categoryOrder": 11,
     "icon": "git-compare-arrows"
   },
   "view/pareto": {
@@ -1414,6 +2026,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Pareto",
+    "category": "comparacao",
+    "categoryLabel": "Comparação",
+    "categoryOrder": 11,
     "icon": "chart-column-decreasing"
   },
   "view/points": {
@@ -1421,6 +2036,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Disperso",
+    "category": "relacao",
+    "categoryLabel": "Relação",
+    "categoryOrder": 9,
     "icon": "chart-scatter"
   },
   "view/qq": {
@@ -1428,6 +2046,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Quantil-quantil",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "trending-up"
   },
   "view/strip": {
@@ -1435,6 +2056,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Faixa de pontos",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "grip-vertical"
   },
   "view/violin": {
@@ -1442,6 +2066,9 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Violino",
+    "category": "distribuicao",
+    "categoryLabel": "Distribuição",
+    "categoryOrder": 10,
     "icon": "audio-waveform"
   }
 }
