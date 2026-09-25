@@ -12,7 +12,7 @@ import type { VFile } from "vfile";
 const docsDir = join(process.cwd(), "src/content/docs");
 
 // Mapa bloco → caminho da página, lido do frontmatter `node:` dos .md.
-function nodePages(): Map<string, string> {
+export function nodePages(): Map<string, string> {
   const pages = new Map<string, string>();
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {

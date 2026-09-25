@@ -65,3 +65,6 @@ writeLines(json, "site/src/data/node-visuals.json", useBytes = TRUE)
 dir.create("site/public/icons", recursive = TRUE, showWarnings = FALSE)
 file.copy("inst/www/vendor/lucide.svg", "site/public/icons/lucide.svg", overwrite = TRUE)
 cat(length(nodes), "blocos exportados\n")
+
+# Pressupostos e referências vêm do mesmo registry.
+source("tools/site/export-node-docs.R", local = TRUE)

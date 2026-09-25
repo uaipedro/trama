@@ -244,3 +244,19 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 }
 @media (max-width: 420px) { .toggle-copy { display: none; } }
 /* No canvas a seta fica na altura em que o fio chega (PORT_Y do layout). */
+/* Pressupostos e referências do bloco (rehype-node-docs): mesma ordem e rótulos da ajuda do editor. */
+.prose .node-press { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-md); }
+.prose .node-press > li { display: grid; grid-template-columns: 1.1rem minmax(0, 1fr); gap: var(--space-sm); padding: var(--space-md); background: var(--paper-strong); border-left: 3px solid var(--teal); }
+.prose .node-press__ic { width: 1.1rem; height: 1.1rem; margin-top: .2rem; border-radius: 50%; background: var(--teal); position: relative; }
+.prose .node-press__ic::after { content: ""; position: absolute; left: .38rem; top: .2rem; width: .28rem; height: .52rem; border: solid var(--paper); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.prose .node-press p { margin: 0; overflow-wrap: anywhere; }
+.prose .node-press__verif { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs) var(--space-xs); margin-top: var(--space-xs) !important; }
+.prose .node-press__falha { margin-top: var(--space-xs) !important; color: var(--ink-soft) !important; }
+.prose .node-docs__rot { font-family: var(--font-display); font-weight: 700; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+.prose a.node-press__chip, .prose code.node-press__chip { display: inline-flex; align-items: center; padding: .15rem .55rem; border: 1px solid var(--line); background: var(--paper); color: var(--blue-dark); font-size: .85rem; text-decoration: none; border-radius: 999px; }
+.prose a.node-press__chip:hover { border-color: var(--blue); background: var(--blue-wash); }
+.prose .node-refs { list-style: none; padding: 0; margin: 0 0 var(--space-md); }
+.prose .node-ref { padding: var(--space-xs) 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.prose .node-ref__ver, .prose .node-ref__nota { color: var(--ink-soft); }
+.prose .node-ref__nota { display: block; margin-top: var(--space-2xs); font-size: .92rem; }
+.prose h2#referencias + h3, .prose .node-refs + h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
