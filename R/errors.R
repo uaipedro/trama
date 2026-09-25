@@ -13,7 +13,7 @@ tr_errors <- function() {
     tr_error_bad_asset = "'js' ou 'css' de tr_collection() não é caminho relativo único",
     tr_error_bad_role = "papel de tr_category() fora da lista de papéis do editor",
     tr_error_bad_collection = "objeto não é tr_collection",
-    tr_error_bad_format = "documento em formato não suportado",
+    tr_error_bad_format = "documento ou template em formato/versão não suportado",
     tr_error_bad_help = "'help' de tr_node() não é uma string única",
     tr_error_bad_icon = "tr_icon() sem 'name' nem 'svg', com os dois, ou com valor que não é string única",
     tr_error_bad_id = "id de tipo, nó ou coleção fora do formato 'colecao/nome'",
@@ -54,6 +54,7 @@ tr_errors <- function() {
     tr_error_no_output = "nó sem porta de saída consultado por tr_value()",
     tr_error_not_liftable = "nó impuro, volátil ou que pede '.ctx' dentro de uma região de fluxo",
     tr_error_not_project = "pedido de ABRIR apontado para pasta sem trama.json",
+    tr_error_not_template = "JSON sem a marca trama = \"template\" lido como template",
     tr_error_online_without_stream = "nó declara 'step' mas nenhuma entrada de fluxo",
     tr_error_online_without_stream_output =
       "nó com 'init'/'step' cuja saída não é fluxo: o motor o leria como o colapso da região",
@@ -74,6 +75,7 @@ tr_errors <- function() {
     tr_error_stream_stopped = paste0(
       "região de fluxo PARADA por comando entre passos — não é falha: o checkpoint fica, ",
       "a chave de saída continua vazia e o scheduler trata como cancelamento"),
+    tr_error_template_exists = "tr_template_save() sem overwrite sobre arquivo que já existe",
     tr_error_type_mismatch = "tipos de porta incompatíveis e sem adaptador",
     tr_error_unknown_adapter = "adaptador da aresta não registrado no worker",
     tr_error_unknown_edge = "disconnect de aresta que não existe",
