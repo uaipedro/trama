@@ -56,6 +56,10 @@ trama_collection <- function() {
       trama::tr_category("comparacao",  "Comparação", role = "inspecao"),
       # Por último, e com papel de saída: montar e gravar a figura é o passo
       # depois de escolher o gráfico, e a paleta lê na ordem do trabalho.
+      # Camadas antes da figura: anota-se o gráfico, e só depois ele entra no
+      # painel (que recusa camada por cima). Papel de inspeção, como os
+      # gráficos que elas completam.
+      trama::tr_category("camadas",     "Camadas", role = "inspecao"),
       trama::tr_category("figura",      "Figura", role = "saida")
     ),
     # Os nós que vieram depois moram por categoria em `R/catalogo.R`, e entram
@@ -656,7 +660,7 @@ número só; `view/line` quando a categoria do eixo tem ordem e o interesse é a
 evolução; `data/filter` para reduzir o número de barras;
 `data/convert` quando a altura veio como texto.", .TR_VIEW_AJUDA_APARENCIA))),
     .tr_view_nos_comparacao(P, PAINEL, G),
-    .tr_view_nos_figura(P, G), list(.tr_view_no_salvar(P, G))),
+    .tr_view_nos_camadas(P, G), .tr_view_nos_figura(P, G), list(.tr_view_no_salvar(P, G))),
     # Glossário de params: a barra das médias tinha o nível no nome ("IC 95%");
     # agora é "IC" + `confianca`. `when` só pega o formato velho, então as
     # outras barras e um fluxo já migrado ficam intactos.

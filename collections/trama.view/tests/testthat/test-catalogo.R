@@ -18,7 +18,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- view_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- Filter(function(n) startsWith(n$id, "view/"), reg$nodes)
-  expect_length(nos, 21L)
+  expect_length(nos, 24L)
   for (n in nos) {
     expect_true(!is.null(n$help) && nzchar(trimws(n$help)), info = n$id)
     expect_match(n$help, "## Descrição", fixed = TRUE, info = n$id)
@@ -28,8 +28,9 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
     # `### Aparência` digitado à mão passaria numa busca por cabeçalho e
     # descreveria seis params que já mudaram de nome. O cabeçalho é convenção;
     # a constante é garantia — só passa quem colou `.TR_VIEW_AJUDA_APARENCIA`.
-    # `view/save` não desenha, e por isso não tem a seção nem os seis params.
-    if (n$id != "view/save") expect_true(grepl(.TR_VIEW_AJUDA_APARENCIA, n$help, fixed = TRUE), info = n$id)
+    # `view/save` não desenha, e as camadas herdam a aparência do gráfico de
+    # entrada: nenhum dos quatro tem a seção nem os seis params.
+    if (!n$id %in% c("view/save", "view/reference", "view/fit_line", "view/annotate")) expect_true(grepl(.TR_VIEW_AJUDA_APARENCIA, n$help, fixed = TRUE), info = n$id)
 
     for (nm in names(n$params)) {
       p <- n$params[[nm]]
@@ -49,7 +50,9 @@ test_that("todo nó de gráfico declara os seis props cosméticos, na ordem", {
   reg <- view_registry()
   # `view/save` fica de fora: grava, não redesenha, e um tema ali seria um
   # segundo lugar para decidir a aparência da figura.
-  for (n in Filter(function(x) startsWith(x$id, "view/") && x$id != "view/save", reg$nodes)) {
+  # As camadas também: herdam a aparência do gráfico que recebem.
+  sem <- c("view/save", "view/reference", "view/fit_line", "view/annotate")
+  for (n in Filter(function(x) startsWith(x$id, "view/") && !x$id %in% sem, reg$nodes)) {
     nm <- names(n$params)
     comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
     expect_equal(utils::tail(nm, 6L), comuns, info = n$id)

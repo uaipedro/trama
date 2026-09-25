@@ -21,7 +21,11 @@ tr_view_errors <- function() {
       "pareamento com o par unidade x condição repetido: não há uma medida por unidade",
     tr_view_error_missing_dir = "view/save com caminho numa pasta que não existe",
     tr_view_error_not_a_plot =
-      "o nó produziu um objeto que não é um ggplot, e o tipo view/plot recusa guardá-lo"
+      "o nó produziu um objeto que não é um ggplot, e o tipo view/plot recusa guardá-lo",
+    tr_view_error_panel =
+      "camada (referência, reta ajustada, anotação) ligada a um painel view/combine, e não a um gráfico",
+    tr_view_error_too_few =
+      "view/fit_line com grupo (painel ou cor) de pontos insuficientes para a curva escolhida"
   )
   data.frame(class = names(e), when = unname(e), stringsAsFactors = FALSE)
 }
