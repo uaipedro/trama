@@ -223,7 +223,8 @@ tr_flow(reg) |>
       inputs = list(modelo = Fm), outputs = list(out = "view/plot"),
       params = .tr_models_props(
         grupo = P("cols", "", label = "Grupo aleatório", example = "Subject"),
-        intervalo = E("IC 95%", .TR_MODELS_INTERVALOS, label = "Intervalo"),
+        intervalo = E("IC", .TR_MODELS_INTERVALOS, label = "Intervalo"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
         faixa_desvio = B(TRUE, label = "Faixa de ±1 desvio padrão"),
         ordenar = B(TRUE, label = "Ordenar pelo efeito"),
         .aspecto = "3:4", .legenda = "abaixo"),
@@ -239,7 +240,8 @@ que se veja se quem começa alto também sobe mais rápido.
 
 A largura das barras vem da variância condicional do `lme4`:
 
-- **IC 95%**, **IC 90%**, **IC 99%** — 1,96, 1,64 ou 2,58 erros padrão.
+- **IC** — intervalo com a **Confiança** escolhida: 1,96 erros padrão a 0,95,
+  1,64 a 0,90, 2,58 a 0,99.
 - **± 1 EP**, **± 2 EP** — com muitos níveis próximos, 1 EP mostra a ordem sem
   virar um borrão de barras sobrepostas.
 

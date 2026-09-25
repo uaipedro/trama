@@ -19,6 +19,28 @@ test_that("lagarta: um painel por termo, intervalo pela variância condicional, 
     tr_models_anova_split_plot(ex("aveia"), "producao", "variedade", "nitrogenio", "bloco")), "ggplot")
 })
 
+test_that("lagarta: IC usa a confiança (z = qnorm(1 - (1 - conf)/2))", {
+  s <- tr_models_lmer(ex("sleepstudy"), formula = "Reaction ~ Days + (Days | Subject)")
+  d <- tr_models_plot_caterpillar(s, intervalo = "IC", confianca = 0.9)$data
+  expect_equal(d$ls - d$condval, stats::qnorm(0.95) * d$condsd)
+  d <- tr_models_plot_caterpillar(s)$data
+  expect_equal(d$ls - d$condval, stats::qnorm(0.975) * d$condsd)
+  expect_error(tr_models_plot_caterpillar(s, intervalo = "IC 95%"))
+})
+
+test_that("lagarta: fluxo com o enum antigo abre com intervalo e confiança separados, uma vez só", {
+  reg <- models_registry()
+  doc <- trama::tr_doc_parse('{"format":1,"nodes":{
+    "a":{"type":"models/plot_caterpillar","params":{"intervalo":"IC 90%"}},
+    "b":{"type":"models/plot_caterpillar","params":{"intervalo":"± 1 EP"}}},"edges":[]}')
+  doc <- trama::tr_doc_migrate(doc, reg)
+  expect_equal(doc$nodes$a$params$intervalo, "IC")
+  expect_equal(doc$nodes$a$params$confianca, 0.9)
+  expect_equal(doc$nodes$b$params, list(intervalo = "± 1 EP"))
+  attr(doc, "migrated") <- NULL
+  expect_identical(trama::tr_doc_migrate(doc, reg), doc)
+})
+
 test_that("Duncan e Waller-Duncan batem com o agricolae", {
   m <- milho_dbc()
   ref <- agricolae::duncan.test(m$ajuste, "hibrido", console = FALSE)$groups

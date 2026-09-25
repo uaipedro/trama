@@ -8,33 +8,36 @@
 #
 # Dois controles fazem a figura conversar com o resultado:
 #
-# - **intervalo**: 1 ou 2 erros padrão, ou IC de 90, 95 ou 99%. Com poucos
-#   níveis muito separados, 95% mostra quem se destaca; com muitos níveis
-#   próximos, 1 EP mostra a ordem sem virar um borrão de barras sobrepostas.
+# - **intervalo**: 1 ou 2 erros padrão, ou IC com a `confianca` escolhida (o
+#   mesmo widget numérico do `models/emmeans`; antes eram três IC fixos no
+#   enum). Com poucos níveis muito separados, 95% mostra quem se destaca; com
+#   muitos níveis próximos, 1 EP mostra a ordem sem virar um borrão de barras
+#   sobrepostas.
 # - **faixa do desvio**: a faixa sombreada de ±1 desvio padrão do componente de
 #   variância — o MESMO número que o `models/random_effects` mostra. Um nível
 #   cuja lagarta sai inteira da faixa é um nível atípico para aquele grupo.
 
-.TR_MODELS_INTERVALOS <- c("IC 95%", "IC 90%", "IC 99%", "± 1 EP", "± 2 EP")
+.TR_MODELS_INTERVALOS <- c("IC", "± 1 EP", "± 2 EP")
 
-.tr_models_mult_intervalo <- function(intervalo) {
-  switch(intervalo, `IC 95%` = stats::qnorm(0.975), `IC 90%` = stats::qnorm(0.95),
-         `IC 99%` = stats::qnorm(0.995), `± 1 EP` = 1, `± 2 EP` = 2)
+.tr_models_mult_intervalo <- function(intervalo, confianca) {
+  switch(intervalo, IC = stats::qnorm(1 - (1 - confianca) / 2), `± 1 EP` = 1, `± 2 EP` = 2)
 }
 
 #' Gráfico de lagarta dos efeitos aleatórios.
 #' @param modelo objeto `tr_models_fit` de um misto (ou parcela subdividida).
 #' @param grupo fator de agrupamento; em branco, o primeiro do modelo.
-#' @param intervalo largura das barras.
+#' @param intervalo largura das barras: `"IC"` (com `confianca`), `"± 1 EP"` ou `"± 2 EP"`.
+#' @param confianca nível do IC quando `intervalo = "IC"`; ignorado nos EP.
 #' @param faixa_desvio sombrear ±1 desvio padrão do componente de variância.
 #' @param ordenar ordenar os níveis pelo efeito.
 #' @export
-tr_models_plot_caterpillar <- function(modelo, grupo = "", intervalo = "IC 95%", faixa_desvio = TRUE,
+tr_models_plot_caterpillar <- function(modelo, grupo = "", intervalo = "IC", confianca = 0.95, faixa_desvio = TRUE,
                                        ordenar = TRUE, aspecto = "3:4", tema = "padrão", titulo = "",
                                        rotulo_x = "", rotulo_y = "", legenda = "abaixo") {
   .tr_models_fit_conferir(modelo)
   no <- "models/plot_caterpillar"
   intervalo <- .tr_models_enum(intervalo, .TR_MODELS_INTERVALOS, "intervalo")
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
   aj <- .tr_models_misto(modelo, no)
   r <- as.data.frame(lme4::ranef(aj, condVar = TRUE))
   grupos <- unique(as.character(r$grpvar))
@@ -45,7 +48,7 @@ tr_models_plot_caterpillar <- function(modelo, grupo = "", intervalo = "IC 95%",
                      g, paste(grupos, collapse = ", "))
   }
   d <- r[r$grpvar == g, , drop = FALSE]
-  k <- .tr_models_mult_intervalo(intervalo)
+  k <- .tr_models_mult_intervalo(intervalo, confianca)
   d$li <- d$condval - k * d$condsd
   d$ls <- d$condval + k * d$condsd
   d$termo <- factor(d$term, levels = unique(d$term))
@@ -77,7 +80,8 @@ tr_models_plot_caterpillar <- function(modelo, grupo = "", intervalo = "IC 95%",
                                             `cruza zero` = .TR_MODELS_CINZA), name = NULL, drop = FALSE) +
     ggplot2::facet_wrap(~termo, scales = "free_x", nrow = 1L) +
     ggplot2::labs(x = "efeito aleatório previsto", y = g,
-                  caption = sprintf("barras: %s%s", intervalo,
+                  caption = sprintf("barras: %s%s",
+                                    if (intervalo == "IC") sprintf("IC %s%%", format(100 * confianca, decimal.mark = ",")) else intervalo,
                                     if (isTRUE(faixa_desvio)) " · faixa: ±1 desvio padrão do componente" else ""))
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }

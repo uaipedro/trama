@@ -43,7 +43,13 @@ trama_collection <- function() {
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/one_sample_t" = list(coluna = list(to = "variavel")),
-      "models/shapiro" = list(coluna = list(to = "variavel"))
+      "models/shapiro" = list(coluna = list(to = "variavel")),
+      # O enum da lagarta tinha o nível no nome ("IC 90%"); agora é "IC" + a
+      # confiança à parte. `when` só pega o formato velho: "IC" puro e os EP
+      # ficam como estão, e reabrir um fluxo já migrado não mexe nele.
+      "models/plot_caterpillar" = list(intervalo = list(
+        to = "intervalo", when = function(v) is.character(v) && grepl("^IC [0-9]+%$", v),
+        value = function(v) list(intervalo = "IC", confianca = as.numeric(sub("^IC ([0-9]+)%$", "\\1", v)) / 100)))
     ))
   )
 }

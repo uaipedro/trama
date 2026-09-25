@@ -192,7 +192,7 @@ f <- f |>
   tr_add("rep_var", "models/random_effects", from = "rep_incl", label = "Componentes de variância",
          position = em(7, 3)) |>
   tr_add("rep_coef", "models/coefficients", from = "rep_incl", label = "Efeito dos dias", position = em(7, 4)) |>
-  tr_add("rep_lagarta", "models/plot_caterpillar", intervalo = "IC 95%", from = "rep_incl",
+  tr_add("rep_lagarta", "models/plot_caterpillar", intervalo = "IC", from = "rep_incl",
          label = "Lagarta: cada pessoa", position = em(7, 5))
 tamanho("rep_graf", 280, 200); tamanho("rep_lagarta", 300, 400)
 

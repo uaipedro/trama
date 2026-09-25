@@ -613,7 +613,7 @@
       "type_version": 1,
       "label": "Lagarta: cada pessoa",
       "params": {
-        "intervalo": "IC 95%"
+        "intervalo": "IC"
       },
       "seed": 197440478
     },

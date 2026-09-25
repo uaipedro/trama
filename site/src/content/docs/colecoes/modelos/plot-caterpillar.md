@@ -18,7 +18,7 @@ Use para comparar efeitos previstos entre níveis de um grupo aleatório e local
 
 ## Configuração
 
-Grupo seleciona o termo aleatório; intervalo, faixa de desvio padrão e ordenação controlam a exibição.
+Grupo seleciona o termo aleatório; intervalo (IC, ± 1 EP ou ± 2 EP), confiança (o nível do IC, 0,95 por padrão), faixa de desvio padrão e ordenação controlam a exibição.
 
 ## Exemplo
 
