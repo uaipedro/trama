@@ -248,9 +248,12 @@ tr_sampling_size_stratified <- function(estratos, estrato = "", tamanho = "", de
     E <- erro
     # Var(ȳ_st) = Σ W²S²/n_h − Σ W S²/N, com n_h = a_h·n, igualada a (E/q)².
     n_de_q <- function(q) sum(W^2 * S^2 / a) / ((E / q)^2 + sum(W * S^2) / Nt)
-    sol <- .tr_sampling_resolver_t(conf, distribuicao, function(q) as.integer(ceiling(n_de_q(q) - 1e-9)), gl_de_n)
+    sol <- .tr_sampling_resolver_t(conf, distribuicao, function(q) as.integer(ceiling(n_de_q(q) - 1e-9)),
+                                   function(n) if (distribuicao == "z") Inf else n - H)
     z <- sol$q
-    n <- max(n_de_q(z), sol$n)
+    # A alocação põe ao menos 2 por estrato (ou o estrato inteiro): o n não
+    # fica abaixo desse piso.
+    n <- max(n_de_q(z), sol$n, sum(pmin(2, N)))
     passos[[1]] <- c(sprintf("n pela fórmula da alocação %s%s", alocacao, .tr_sampling_rotulo_q(sol$gl)), n)
   } else {
     .tr_sampling_abort("tr_sampling_error_blank_param",

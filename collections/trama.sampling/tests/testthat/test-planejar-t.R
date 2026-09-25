@@ -100,3 +100,28 @@ test_that("referral: os gl são das redes (sementes), não das respostas", {
   expect_equal(a$gl, 19)
   expect_equal(a$margem, stats::qt(0.975, 19) * sqrt(a$deff * 0.25 / 80 * (1 - 80 / 1e6)))
 })
+
+test_that("n minúsculo não dá t com 0 gl: a busca começa no menor n com gl ≥ 1", {
+  # σ = 10 e margem 1000: a fórmula pede n₀ ≈ 0,02; com t precisa de n ≥ 2
+  # (gl = n − 1 ≥ 1), e n = 2 já cabe: t_{0,975;1}·10/√2 ≈ 89,8 ≤ 1000.
+  r <- tr_sampling_size_mean(desvio_padrao = 10, erro = 1000)
+  expect_equal(r$n, menor_n(function(n) stats::qt(0.975, n - 1) * 10 / sqrt(n), 1000))
+  expect_equal(r$n, 2L)
+  expect_false(any(grepl("0 gl", r$passos$passo)))
+  expect_equal(tr_sampling_size_proportion(erro = 0.99)$n,
+               menor_n(function(n) stats::qt(0.975, n - 1) * sqrt(0.25 / n), 0.99))
+  # Direto no resolvedor: gl = n − H exige n ≥ H + 1; conglomerados − 1, ≥ 2.
+  s <- .tr_sampling_resolver_t(0.95, "t", function(q) 1L, function(n) n - 3)
+  expect_equal(s$n, 4L); expect_equal(s$gl, 1)
+  s <- .tr_sampling_resolver_t(0.95, "t", function(q) 1L, function(n) n - 1)
+  expect_equal(s$n, 2L); expect_true(is.finite(s$q))
+  # z não muda: a fórmula fechada.
+  expect_equal(tr_sampling_size_mean(desvio_padrao = 10, erro = 1000, distribuicao = "z")$n, 1L)
+})
+
+test_that("size_stratified com margem folgada tem pelo menos H + 1 no total e gl ≥ 1", {
+  e <- data.frame(h = c("a", "b", "c"), N = c(100, 100, 100), s = c(1, 1, 1))
+  r <- tr_sampling_size_stratified(e, estrato = "h", tamanho = "N", desvio = "s", erro = 100)
+  expect_false(any(grepl("0 gl", r$passos$passo)))
+  expect_gte(r$n, 6L)  # piso de 2 por estrato ≥ H + 1
+})

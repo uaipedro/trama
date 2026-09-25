@@ -2,6 +2,11 @@
 
 ## Mudanças de método (revisão metodológica, 2026-09-25)
 
+- Planejamento com t: margem muito folgada não dá mais "t com 0 gl" (n = 1).
+  A busca começa no menor n com gl ≥ 1 (2 na AAS, H + 1 na estratificada, 2
+  conglomerados); em `size_stratified` o n também não fica abaixo do piso da
+  alocação (2 por estrato), que antes dava erro. Com `z` nada muda.
+
 - `sampling/proportion` (versão 3): com p̂ = 0 ou 1 o intervalo não degenera
   mais no ponto. `logit` e `wilson` passam, nesses casos, ao Clopper-Pearson de
   Korn & Graubard (1998, Survey Methodology 24(2), 193-201): n efetivo
