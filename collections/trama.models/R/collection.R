@@ -17,6 +17,7 @@
 trama_collection <- function() {
   trama::tr_collection(
     id = "models", version = "0.1.0", label = "Modelos",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.models")),
     js = "trama/index.js", css = "trama/models.css",
     types = list(models_fit_type(), models_effects_type(), models_emm_type()),
     adapters = .tr_models_adapters(),
@@ -82,6 +83,9 @@ trama_collection <- function() {
       "models/coefficients" = list(nivel = list(to = "confianca")),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      # O Scott-Knott da main nasceu com `alfa`; o nó é o dela, o param o do glossário.
+      "models/scott_knott" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      "models/polinomial" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/one_sample_t" = list(coluna = list(to = "variavel")),
       "models/shapiro" = list(coluna = list(to = "variavel")),
       # O enum da lagarta tinha o nível no nome ("IC 90%"); agora é "IC" + a

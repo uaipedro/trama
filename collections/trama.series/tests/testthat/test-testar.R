@@ -210,6 +210,11 @@ serie_degrau <- function() {
   stats::ts(c(stats::rnorm(60), stats::rnorm(60) + 6), start = c(1950, 1), frequency = 12)
 }
 
+# Os testes abaixo travam a mecânica com defasagens FIXAS (a regra da versão 1,
+# trunc((n - 1)^(1/3))). A seleção do geral para o específico, que é o padrão
+# desde a versão 2, tem os testes próprios mais adiante.
+za_fixa <- function(...) tr_series_zivot_andrews(..., selecao = "fixa")
+
 test_that("cada modelo do Zivot-Andrews traz a SUA tabela de críticos", {
   # A armadilha central deste bloco, posta como asserção. O `z@cval` chega SEM
   # NOMES e na ordem 1%, 5%, 10% — invertida em relação à da casa. Montar a
@@ -225,7 +230,7 @@ test_that("cada modelo do Zivot-Andrews traz a SUA tabela de críticos", {
     "inclinação" = c(`10%` = -4.11, `5%` = -4.42, `1%` = -4.93),
     "ambas"      = c(`10%` = -4.82, `5%` = -5.08, `1%` = -5.57))
   for (m in names(esperado)) {
-    t <- tr_series_zivot_andrews(serie_degrau(), mudanca = m)
+    t <- za_fixa(serie_degrau(), mudanca = m)
     expect_equal(names(t$criticos), c("10%", "5%", "1%"), info = m)
     expect_equal(t$criticos, esperado[[m]], info = m)
     # O 1% é o corte MAIS SEVERO, e é esta comparação que pega a leitura ao
@@ -250,7 +255,7 @@ test_that("no degrau de nível o Zivot-Andrews acha a quebra que o ADF não vê"
   expect_equal(adf$decisao_5, "não rejeita H0")
   expect_equal(adf$conclusao, "não há evidência contra a raiz unitária")
 
-  t <- tr_series_zivot_andrews(x, mudanca = "nível")
+  t <- za_fixa(x, mudanca = "nível")
   expect_s3_class(t, "tr_series_test")
   expect_equal(t$teste, "Zivot-Andrews")
   expect_equal(t$h0, "a série tem raiz unitária, sem quebra")
@@ -268,7 +273,7 @@ test_that("no degrau de nível o Zivot-Andrews acha a quebra que o ADF não vê"
   # degrau não é uma virada de tendência. Serve de controle de que o parâmetro
   # `mudanca` chega ao `urca` — se os três modelos dessem o mesmo número, os
   # testes de cima passariam e o parâmetro não estaria fazendo nada.
-  inc <- tr_series_zivot_andrews(x, mudanca = "inclinação")
+  inc <- za_fixa(x, mudanca = "inclinação")
   expect_equal(inc$estatistica, -2.681320, tolerance = 1e-5)
   expect_equal(inc$decisao_5, "não rejeita H0")
   expect_equal(inc$conclusao, "não há evidência contra a raiz unitária, mesmo admitindo uma quebra")
@@ -282,7 +287,7 @@ test_that("o passeio aleatório não rejeita, mesmo com a quebra de graça", {
   set.seed(5)
   rw <- stats::ts(cumsum(stats::rnorm(120)), start = c(1950, 1), frequency = 12)
   for (m in c("nível", "ambas")) {
-    t <- tr_series_zivot_andrews(rw, mudanca = m)
+    t <- za_fixa(rw, mudanca = m)
     expect_equal(t$decisao_5, "não rejeita H0", info = m)
     expect_equal(t$conclusao,
                  "não há evidência contra a raiz unitária, mesmo admitindo uma quebra", info = m)
@@ -291,9 +296,9 @@ test_that("o passeio aleatório não rejeita, mesmo com a quebra de graça", {
     # favorável, e nem assim deu.
     expect_equal(t$extra$quebra, 64L, info = m)
   }
-  expect_equal(tr_series_zivot_andrews(rw, mudanca = "nível")$estatistica,
+  expect_equal(za_fixa(rw, mudanca = "nível")$estatistica,
                -3.909448, tolerance = 1e-5)
-  expect_equal(tr_series_zivot_andrews(rw, mudanca = "ambas")$estatistica,
+  expect_equal(za_fixa(rw, mudanca = "ambas")$estatistica,
                -4.178075, tolerance = 1e-5)
 })
 
@@ -301,7 +306,7 @@ test_that("o rótulo da quebra sai do calendário da série", {
   # O índice é o que se confere contra o `ur.za`; o rótulo é o que uma pessoa lê.
   # Numa mensal que começa em janeiro de 1950, a observação 60 é dezembro de 1954
   # — e é isso que tem de chegar ao relatório, não o número 60.
-  t <- tr_series_zivot_andrews(serie_degrau(), mudanca = "nível")
+  t <- za_fixa(serie_degrau(), mudanca = "nível")
   expect_equal(t$extra$quando, "1954 dez")
   expect_equal(t$extra$quando, .tr_series_rotulo_em(serie_degrau(), 60))
   expect_equal(t$conclusao, "estacionária, com uma quebra na observação 60 (1954 dez)")
@@ -310,7 +315,7 @@ test_that("o rótulo da quebra sai do calendário da série", {
   # justamente onde ele carrega a data. Mesma regra do `series/pettitt`.
   set.seed(1)
   cru <- c(stats::rnorm(60), stats::rnorm(60) + 6)
-  s <- tr_series_zivot_andrews(cru, mudanca = "nível")
+  s <- za_fixa(cru, mudanca = "nível")
   expect_equal(s$extra$quando, "60")
   expect_equal(s$conclusao, "estacionária, com uma quebra na observação 60")
 })
@@ -328,7 +333,7 @@ test_that("a quebra do Zivot-Andrews fica dentro da janela de 15% a 85%", {
   expect_equal(z@tstats[z@bpoint], z@teststat)
   expect_equal(z@bpoint, 1L)
 
-  t <- tr_series_zivot_andrews(x)
+  t <- za_fixa(x)
   lo <- ceiling(0.15 * 60)
   hi <- floor(0.85 * 60)
   expect_gte(t$extra$quebra, lo)
@@ -341,9 +346,9 @@ test_that("a quebra do Zivot-Andrews fica dentro da janela de 15% a 85%", {
 })
 
 test_that("Zivot-Andrews recusa faltante, série curta e defasagem que não cabe", {
-  expect_error(tr_series_zivot_andrews(datasets::presidents),
+  expect_error(za_fixa(datasets::presidents),
                class = "tr_series_error_missing_values")
-  err <- tryCatch(tr_series_zivot_andrews(stats::ts(1:19)), condition = identity)
+  err <- tryCatch(za_fixa(stats::ts(1:19)), condition = identity)
   expect_s3_class(err, "tr_series_error_too_short")
   expect_match(conditionMessage(err), "pelo menos 20", fixed = TRUE)
 
@@ -354,27 +359,27 @@ test_that("Zivot-Andrews recusa faltante, série curta e defasagem que não cabe
   # rejeita a 5% em cerca de 68% das amostras com n = 11 e 24% com n = 14, contra
   # 14% com n = 20. Abaixo de vinte o bloco diria "estacionária com quebra" para
   # série com raiz unitária de verdade na maioria das vezes.
-  expect_s3_class(tr_series_zivot_andrews(stats::ts(stats::rnorm(20))), "tr_series_test")
+  expect_s3_class(za_fixa(stats::ts(stats::rnorm(20))), "tr_series_test")
 
   # E a defasagem escolhida pelo usuário pode esgotar os graus de liberdade mesmo
   # acima do piso. Sem este guard o `ur.za` morre com um erro CRU do R, sem classe
   # e sem dizer o que fazer. A conta: gl = n - 1 - 2k - fixos, com fixos = 5 no
   # modelo completo, então em n = 20 o maior k que deixa um grau é 6.
-  e2 <- tryCatch(tr_series_zivot_andrews(stats::ts(stats::rnorm(20)), defasagens = 7L),
+  e2 <- tryCatch(za_fixa(stats::ts(stats::rnorm(20)), defasagens = 7L),
                  condition = identity)
   expect_s3_class(e2, "tr_series_error_bad_option")
   expect_match(conditionMessage(e2), "O máximo aqui é 6", fixed = TRUE)
   # E o máximo que ele anuncia REALMENTE roda: um limite que erra por um é pior
   # que limite nenhum, porque manda o usuário para um erro cru.
-  expect_s3_class(tr_series_zivot_andrews(stats::ts(stats::rnorm(20)), defasagens = 6L),
+  expect_s3_class(za_fixa(stats::ts(stats::rnorm(20)), defasagens = 6L),
                   "tr_series_test")
 
-  expect_error(tr_series_zivot_andrews(serie_degrau(), mudanca = "oi"),
+  expect_error(za_fixa(serie_degrau(), mudanca = "oi"),
                class = "tr_series_error_bad_option")
 })
 
 test_that("o Zivot-Andrews atravessa o adaptador com a quebra em colunas", {
-  t <- tr_series_zivot_andrews(serie_degrau())
+  t <- za_fixa(serie_degrau())
   tb <- tabela_teste(t)
   expect_s3_class(tb, "tbl_df")
   expect_equal(nrow(tb), 1L)
@@ -394,13 +399,13 @@ test_that("a ressalva de série curta aparece onde vale, e some onde não vale",
   # passeio aleatório fica em torno de 10% a 14% até n = 30, e é abaixo de 40 que o
   # excesso pesa mais (acima segue por volta de 7% a 9%). A ressalva vai na nota nessa faixa — e NÃO vai fora
   # dela, porque ressalva que sai sempre é ressalva que se aprende a ignorar.
-  curta <- tr_series_zivot_andrews(stats::ts(stats::rnorm(25)))
+  curta <- za_fixa(stats::ts(stats::rnorm(25)))
   expect_match(curta$nota, "série curta para este teste", fixed = TRUE)
-  expect_false(grepl("série curta para este teste", tr_series_zivot_andrews(serie_degrau())$nota,
+  expect_false(grepl("série curta para este teste", za_fixa(serie_degrau())$nota,
                      fixed = TRUE))
   # A nota diz o que explica o número: o que quebrou, quantas defasagens e o
   # tamanho dos dois trechos.
-  expect_match(tr_series_zivot_andrews(serie_degrau())$nota,
+  expect_match(za_fixa(serie_degrau())$nota,
                "quebra de nível e inclinação, estimada pelo teste; 4 defasagens; 60 observações antes da quebra e 60 a partir dela",
                fixed = TRUE)
 })
@@ -1312,11 +1317,11 @@ test_that("o Kruskal-Wallis atravessa o adaptador, e leva os graus como coluna",
 fisher_medido <- function() {
   tibble::tribble(
     ~serie,          ~g,        ~log10p,   ~periodo, ~ciclos, ~decisao,
-    "AirPassengers", 0.5017076,  -19.62129,      12,     12L, "rejeita H0",
-    "UKgas",         0.5530745,  -16.80515,       4,     27L, "rejeita H0",
-    "nottem",        0.9129985, -124.11714,      12,     20L, "rejeita H0",
-    "lh",            0.2343832,   -1.28753,       8,      6L, "não rejeita H0",
-    "Nile",          0.1780696,   -2.47411,     100,      1L, "rejeita H0")
+    "AirPassengers", 0.5018697,  -19.33473,      12,     12L, "rejeita H0",
+    "UKgas",         0.5530885,  -16.46421,       4,     27L, "rejeita H0",
+    "nottem",        0.9139844, -123.64436,      12,     20L, "rejeita H0",
+    "lh",            0.2357169,   -1.20811,       8,      6L, "não rejeita H0",
+    "Nile",          0.1833099,   -2.53111,     100,      1L, "rejeita H0")
 }
 
 test_that("o Fisher reproduz as cinco linhas medidas da página", {
@@ -1351,10 +1356,9 @@ test_that("o g contra zα e o p contra 5% decidem a mesma coisa nas cinco", {
   for (nm in fisher_medido()$serie) {
     s <- get(nm, envir = asNamespace("datasets"))
     t <- tr_series_fisher(s)
-    n <- length(stats::spec.pgram(s, taper = 0, detrend = TRUE, fast = FALSE,
-                                  plot = FALSE)$spec)
-    za <- 1 - (0.05 / n)^(1 / (n - 1))
-    expect_equal(unname(t$criticos[["5%"]]), za, info = nm)
+    # m ordenadas: sem a frequência zero e sem a de Nyquist (Fisher 1929).
+    expect_equal(t$extra$ordenadas, (length(s) - 1L) %/% 2L, info = nm)
+    za <- unname(t$criticos[["5%"]])
     expect_identical(t$estatistica > za, t$p_valor < 0.05, info = nm)
     expect_identical(t$decisao_5 == "rejeita H0", t$p_valor < 0.05, info = nm)
   }
@@ -1366,8 +1370,8 @@ test_that("o g contra zα e o p contra 5% decidem a mesma coisa nas cinco", {
   expect_lt(t$estatistica, za)
   expect_gt(t$p_valor, 0.05)
   expect_equal(t$decisao_5, "não rejeita H0")
-  # E por pouco: a folga entre os dois é de menos de um milésimo.
-  expect_lt(za - t$estatistica, 0.002)
+  # E por pouco: a folga entre os dois é de menos de um centésimo.
+  expect_lt(za - t$estatistica, 0.01)
 })
 
 test_that("o Nile rejeita, e o período publicado denuncia o artefato", {
@@ -1394,8 +1398,8 @@ test_that("um ciclo curto de verdade é achado no período certo", {
   # O contraponto do `Nile`: aqui a estação existe e é conhecida de antemão —
   # quatro trimestres —, e é nesse período que o pico tem de cair.
   t <- tr_series_fisher(serie_sazonal_aditiva())
-  expect_equal(t$estatistica, 0.7855865, tolerance = 1e-6)
-  expect_equal(log10(t$p_valor), -11.40518, tolerance = 1e-5)
+  expect_equal(t$estatistica, 0.9648497, tolerance = 1e-6)
+  expect_equal(log10(t$p_valor), -24.89451, tolerance = 1e-5)
   expect_equal(t$decisao_5, "rejeita H0")
   expect_equal(t$extra$periodo, 4)
   # Dez ciclos completos dentro das quarenta observações: o oposto do `Nile`.
@@ -1439,5 +1443,274 @@ test_that("o Fisher atravessa o adaptador, e leva o período como coluna", {
   # Diferente dos irmãos de sazonalidade, este bloco TEM tabela de críticos: o zα
   # da dissertação sai na coluna do valor crítico a 5%, que é o que deixa a regra
   # `g > zα` ser conferida no relatório sem refazer a conta.
-  expect_equal(tb$valor_critico_5, 0.0973570, tolerance = 1e-5)
+  expect_equal(tb$valor_critico_5, 0.0983575, tolerance = 1e-5)
+})
+
+# ---- Oráculo do Fisher (revisão metodológica, fase 1) -------------------------
+# Fisher (1929) define g sobre as m = floor((N - 1) / 2) ordenadas de Fourier
+# j = 1..m — sem a frequência zero e sem a de Nyquist, cuja ordenada é um
+# qui-quadrado com UM grau (as outras têm dois) — e dá o p-valor exato
+# P(g > x) = sum_{j=1}^{floor(1/x)} (-1)^(j-1) choose(m, j) (1 - j x)^(m-1).
+# A implementação de referência é `GeneCycle::fisher.g.test` (Wichert,
+# Fokianos & Strimmer 2004), que tira só a média, descarta a ordenada de Nyquist
+# e soma a série inteira.
+test_that("Fisher com remover = 'media' reproduz GeneCycle::fisher.g.test", {
+  skip_if_not_installed("GeneCycle")
+  for (nm in c("AirPassengers", "UKgas", "nottem", "lh", "Nile", "sunspot.year")) {
+    s <- get(nm, envir = asNamespace("datasets"))
+    t <- tr_series_fisher(s, remover = "media")
+    expect_equal(t$p_valor, GeneCycle::fisher.g.test(as.numeric(s)),
+                 tolerance = 1e-10, info = nm)
+  }
+  # Série ímpar: não há ordenada de Nyquist a descartar.
+  s <- stats::ts(datasets::lh[-1])
+  expect_equal(tr_series_fisher(s, remover = "media")$p_valor,
+               GeneCycle::fisher.g.test(as.numeric(s)), tolerance = 1e-10)
+})
+
+test_that("Fisher com remover = 'reta' (padrão) é o GeneCycle sobre os resíduos da reta", {
+  skip_if_not_installed("GeneCycle")
+  for (nm in c("AirPassengers", "UKgas", "nottem", "lh", "Nile")) {
+    s <- get(nm, envir = asNamespace("datasets"))
+    tt <- seq_along(s)
+    e <- stats::residuals(stats::lm(as.numeric(s) ~ tt))
+    expect_equal(tr_series_fisher(s)$p_valor, GeneCycle::fisher.g.test(e),
+                 tolerance = 1e-10, info = nm)
+  }
+})
+
+test_that("o crítico a 5% do Fisher é o quantil EXATO: p(zα) = 0,05", {
+  for (nm in c("AirPassengers", "lh", "Nile")) {
+    s <- get(nm, envir = asNamespace("datasets"))
+    t <- tr_series_fisher(s)
+    za <- unname(t$criticos[["5%"]])
+    m <- t$extra$ordenadas
+    j <- seq_len(floor(1 / za))
+    p_za <- sum((-1)^(j - 1) * choose(m, j) * (1 - j * za)^(m - 1))
+    expect_equal(p_za, 0.05, tolerance = 1e-8, info = nm)
+    expect_identical(t$estatistica > za, t$p_valor < 0.05, info = nm)
+  }
+  # Conferência analítica: quando o crítico passa de 1/2 a série exata tem um
+  # termo só, e ele é a fórmula fechada 1 - (alfa/m)^(1/(m-1)) (eq. 3.42 da
+  # dissertação). Com m = 5, 0,6838.
+  expect_equal(.tr_series_fisher_critico(5, 0.05), 1 - (0.05 / 5)^(1 / 4), tolerance = 1e-10)
+  expect_equal(round(.tr_series_fisher_critico(5, 0.05), 4), 0.6838)
+  # Abaixo de 1/2 o primeiro termo SUPERESTIMA o crítico (é conservador).
+  expect_lt(.tr_series_fisher_critico(50, 0.05), 1 - (0.05 / 50)^(1 / 49))
+})
+
+test_that("Fisher recusa opção de remoção desconhecida", {
+  expect_error(tr_series_fisher(serie_mensal(), remover = "nada"),
+               class = "tr_series_error_bad_option")
+})
+
+# ---- Phillips-Perron só com constante (revisão metodológica, fase 1) ----------
+# Z(t) de Phillips & Perron (1988), na forma geral (Hamilton 1994, eq. 17.6.8):
+# regressão de y_t em 1 e y_{t-1}, variância de longo prazo de Newey-West com
+# janela trunc(4 (n/100)^(1/4)) e pesos de Bartlett.
+test_that("PP com 'tendência' (padrão) segue idêntico ao stats::PP.test e ao tseries", {
+  set.seed(1)
+  x <- stats::ts(cumsum(stats::rnorm(150)))
+  p <- tr_series_phillips_perron(x)
+  pp <- stats::PP.test(as.numeric(x))
+  expect_equal(p$estatistica, unname(pp$statistic), tolerance = 1e-12)
+  expect_equal(p$p_valor, pp$p.value, tolerance = 1e-12)
+  skip_if_not_installed("tseries")
+  expect_equal(p$estatistica,
+               unname(suppressWarnings(tseries::pp.test(as.numeric(x), type = "Z(t_alpha)"))$statistic),
+               tolerance = 1e-12)
+})
+
+test_that("PP com 'constante' reproduz aTSA::pp.test (tipo 2) e o urca::ur.pp", {
+  skip_if_not_installed("aTSA")
+  set.seed(1)
+  for (n in c(60, 150, 400)) {
+    x <- cumsum(stats::rnorm(n))
+    p <- tr_series_phillips_perron(stats::ts(x), deterministico = "constante")
+    ref <- aTSA::pp.test(x, type = "Z_tau", lag.short = TRUE, output = FALSE)
+    expect_equal(p$estatistica, ref[2, "Z_tau"], tolerance = 1e-10, info = as.character(n))
+    # O p-valor é o de MacKinnon (1996); o aTSA interpola a tabela de Fuller.
+    # Longe da borda os dois concordam na decisão.
+    expect_identical(p$p_valor < 0.05, ref[2, "p.value"] < 0.05)
+    # O urca normaliza a variância do erro de outro jeito (MacKinnon): concorda
+    # a menos de 0,5%.
+    u <- urca::ur.pp(x, type = "Z-tau", model = "constant", lags = "short")
+    expect_equal(p$estatistica, u@teststat[[1]], tolerance = 5e-3, info = as.character(n))
+  }
+  # A nota diz qual determinístico entrou.
+  expect_match(tr_series_phillips_perron(serie_mensal(), "constante")$nota, "só constante")
+})
+
+test_that("PP 'constante': p-valor pela superfície de resposta de MacKinnon (1996)", {
+  # Oráculo 1: os críticos assintóticos de tau_c de MacKinnon (2010, tab. 1)
+  # voltam como 1%, 5% e 10%.
+  expect_equal(.tr_series_pp_p_constante(c(-3.43035, -2.86154, -2.56677), Inf),
+               c(0.01, 0.05, 0.10), tolerance = 1e-3)
+  # Oráculo 2: as colunas de 1% e 5% da tabela tau_mu de Fuller (1976, tab.
+  # 8.5.2; n = 25 e 100) caem a menos de 0,002 do nível.
+  expect_lt(max(abs(.tr_series_pp_p_constante(c(-3.75, -3.00), 25) - c(0.01, 0.05))), 0.002)
+  expect_lt(max(abs(.tr_series_pp_p_constante(c(-3.51, -2.89), 100) - c(0.01, 0.05))), 0.002)
+  # Oráculo 3: é a função do urca, com N = observações da regressão.
+  expect_equal(.tr_series_pp_p_constante(-2.5, 59),
+               urca::punitroot(-2.5, N = 59, trend = "c", statistic = "t"), tolerance = 1e-12)
+  # Sem borda presa: um Z muito negativo sai abaixo de 0,01, sem nota de truncagem.
+  set.seed(6)
+  x <- stats::ts(stats::arima.sim(list(ar = 0.2), 200, rand.gen = function(n, ...) stats::rnorm(n)))
+  t <- tr_series_phillips_perron(x, "constante")
+  expect_lt(t$p_valor, 0.01)
+  expect_false(grepl("truncado", t$nota))
+})
+
+test_that("PP em série curta (< 25) avisa na nota, nos dois determinísticos", {
+  # Medido sob passeio aleatório, 4000 réplicas: com n = 12 rejeita a 5% em 7%
+  # (constante) e 10% (tendência); com n = 25, 5,9% e 4,9%.
+  x <- stats::ts(cumsum(c(0.3, -1.2, 0.8, 1.1, -0.4, 0.5, -0.9, 1.4, 0.2, -0.6, 0.7, 1.0, -0.2, 0.4)))
+  for (d in c("constante", "tendência")) {
+    expect_match(tr_series_phillips_perron(x, d)$nota, "menos de 25 observações", fixed = TRUE)
+  }
+  set.seed(8)
+  expect_false(grepl("menos de 25", tr_series_phillips_perron(stats::ts(cumsum(stats::rnorm(25))),
+                                                             "constante")$nota))
+})
+
+test_that("PP 'constante' tem mais poder que 'tendência' em série estacionária sem tendência", {
+  # É o motivo da opção (Phillips & Perron 1988): tendência supérflua gasta
+  # poder. AR(1) com phi = 0,85, n = 80, 300 réplicas.
+  set.seed(11)
+  rej <- replicate(300, {
+    x <- stats::ts(stats::arima.sim(list(ar = 0.85), 80))
+    c(tr_series_phillips_perron(x, "constante")$p_valor < 0.05,
+      tr_series_phillips_perron(x, "tendência")$p_valor < 0.05)
+  })
+  expect_gt(mean(rej[1, ]), mean(rej[2, ]))
+})
+
+test_that("PP recusa determinístico desconhecido", {
+  expect_error(tr_series_phillips_perron(serie_mensal(), "nenhum"),
+               class = "tr_series_error_bad_option")
+})
+
+# ---- Zivot-Andrews: defasagens do geral para o específico (fase 1) ------------
+# Zivot & Andrews (1992) escolhem k como Perron (1989): partem de um teto e
+# tiram a última diferença defasada enquanto o t dela não for significativo a
+# 10%. É o padrão desde a versão 2 do nó (`selecao = "t_sig"`).
+test_that("a regressão do corte refaz o t do urca::ur.za", {
+  set.seed(4)
+  x <- cumsum(stats::rnorm(80))
+  for (m in c("intercept", "trend", "both")) {
+    z <- urca::ur.za(x, model = m, lag = 3L)
+    for (q in c(15L, 40L, 60L)) {
+      cf <- stats::coef(summary(.tr_series_za_lm(x, m, 3L, q)))
+      expect_equal((cf["y.l1", 1] - 1) / cf["y.l1", 2], z@tstats[[q]],
+                   tolerance = 1e-10, info = paste(m, q))
+    }
+  }
+})
+
+test_that("a seleção geral→específico para no primeiro k com última defasagem significativa", {
+  set.seed(8)
+  # AR(2) nas diferenças: a segunda defasagem importa, as de cima não.
+  e <- stats::arima.sim(list(ar = c(0.5, -0.4)), 150)
+  x <- stats::ts(cumsum(e))
+  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L)
+  k <- t$extra$defasagens
+  expect_true(k >= 1L && k <= 8L)
+  crit <- stats::qnorm(0.95)
+  x <- as.numeric(x)
+  # A última escolhida é significativa, no corte escolhido com ela...
+  cf <- stats::coef(summary(.tr_series_za_lm(x, "intercept", k, t$extra$quebra)))
+  expect_gte(abs(cf[paste0("y.dl", k), "t value"]), crit)
+  # ...e toda k maior até o teto foi descartada por não ser.
+  for (kk in seq.int(k + 1L, length.out = 8L - k)) {
+    q <- .tr_series_za_janela(x, "intercept", kk)$quebra
+    cf <- stats::coef(summary(.tr_series_za_lm(x, "intercept", kk, q)))
+    expect_lt(abs(cf[paste0("y.dl", kk), "t value"]), crit)
+  }
+  # O resultado é o ur.za com o k escolhido, mínimo na janela de 15% a 85%.
+  z <- urca::ur.za(x, model = "intercept", lag = k)
+  n <- length(x)
+  expect_equal(t$estatistica, min(z@tstats[ceiling(0.15 * n):floor(0.85 * n)]),
+               tolerance = 1e-12)
+  expect_match(t$nota, "do geral para o específico (teto 8", fixed = TRUE)
+})
+
+test_that("ruído branco nas diferenças leva a seleção até k = 0", {
+  set.seed(2)
+  x <- stats::ts(cumsum(stats::rnorm(100)))
+  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 4L)
+  # Nem sempre 0 (10% de chance por degrau), mas nesta semente sim, e a
+  # estatística é a do ur.za com lag = 0.
+  expect_equal(t$extra$defasagens, 0L)
+  z <- urca::ur.za(as.numeric(x), model = "intercept", lag = 0L)
+  expect_equal(t$estatistica, min(z@tstats[15:85]), tolerance = 1e-12)
+})
+
+test_that("Zivot & Andrews (1992): PNB real de Nelson-Plosser, modelo A, k = 8", {
+  # Série anual 1909-1970 em log (urca::nporg), modelo de mudança de nível com
+  # k = 8, o valor que o artigo usa (herdado de Perron 1989). O artigo publica
+  # t = -5.58 com quebra em 1929; conferido aqui a duas casas.
+  data("nporg", package = "urca", envir = environment())
+  d <- stats::na.omit(nporg[nporg$year <= 1970, c("year", "gnp.r")])
+  x <- stats::ts(log(d$gnp.r), start = d$year[[1]])
+  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L, selecao = "fixa")
+  expect_equal(round(t$estatistica, 2), -5.58)
+  expect_equal(t$extra$quando, "1929")
+  expect_equal(t$decisao_5, "rejeita H0")
+  # PNB nominal: -5.82, 1929.
+  d <- stats::na.omit(nporg[nporg$year <= 1970, c("year", "gnp.n")])
+  x <- stats::ts(log(d$gnp.n), start = d$year[[1]])
+  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L, selecao = "fixa")
+  expect_equal(round(t$estatistica, 2), -5.82)
+  expect_equal(t$extra$quando, "1929")
+})
+
+test_that("teto de defasagens que não cabe é recusado também na seleção", {
+  e <- tryCatch(tr_series_zivot_andrews(stats::ts(stats::rnorm(20)), defasagens = 7L),
+                condition = identity)
+  expect_s3_class(e, "tr_series_error_bad_option")
+  # O teto AUTOMÁTICO (Schwert) nunca é erro: é limitado ao que cabe.
+  expect_s3_class(tr_series_zivot_andrews(stats::ts(stats::rnorm(20))), "tr_series_test")
+  expect_error(tr_series_zivot_andrews(serie_mensal(), selecao = "aic"),
+               class = "tr_series_error_bad_option")
+})
+
+# ---- F com erro ARMA (GLS): Wald F, refeito à mão ------------------------------
+wald_f <- function(fit, idx) {
+  b <- stats::coef(fit)[idx]; V <- stats::vcov(fit)[idx, idx, drop = FALSE]
+  q <- length(idx)
+  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
+  c(F = Fv, p = stats::pf(Fv, q, length(stats::fitted(fit)) - length(stats::coef(fit)),
+                           lower.tail = FALSE))
+}
+
+test_that("os três F com erro AR(1) são o F de Wald do GLS", {
+  x <- log(datasets::AirPassengers)
+  r <- tr_series_regression(x, grau = 2L, erro = "arma", ar = 1L)
+  nm <- names(stats::coef(r$ajuste))
+  g <- tr_series_f_global(r); s <- tr_series_f_sazonal(r); d <- tr_series_f_tendencia(r)
+  for (par in list(list(g, which(nm != "(Intercept)")),
+                   list(s, grep("^estacao", nm)),
+                   list(d, match(c("t1", "t2"), nm)))) {
+    w <- wald_f(r$ajuste, par[[2]])
+    expect_equal(par[[1]]$estatistica, w[["F"]], tolerance = 1e-8)
+    expect_equal(par[[1]]$p_valor, w[["p"]], tolerance = 1e-8)
+    expect_match(par[[1]]$nota, "erro ARMA(1, 0)", fixed = TRUE)
+  }
+  expect_match(s$nota, "11 graus no numerador")
+})
+
+test_that("com erro AR(1) o F de MQO é otimista e o do GLS chega perto do nominal", {
+  # O motivo da opção. Sem tendência nenhuma, erro AR(1) com phi = 0,6, n = 120:
+  # medido em 300 réplicas, o F de tendência do MQO rejeita em 37% e o do GLS
+  # em 8%. Com phi = 0,9 são 69% e 17%: o GLS melhora muito, mas o F de Wald
+  # ainda passa do nominal perto da raiz unitária (a página avisa).
+  set.seed(21)
+  rej <- replicate(150, {
+    e <- stats::arima.sim(list(ar = 0.6), 120)
+    x <- stats::ts(as.numeric(e), frequency = 12)
+    c(tr_series_f_tendencia(tr_series_regression(x, sazonalidade = FALSE))$p_valor < 0.05,
+      tr_series_f_tendencia(tr_series_regression(x, sazonalidade = FALSE, erro = "arma"))$p_valor < 0.05)
+  })
+  expect_gt(mean(rej[1, ]), 0.25)
+  expect_lt(mean(rej[2, ]), 0.12)
 })

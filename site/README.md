@@ -67,3 +67,11 @@ Para o canvas sair correto:
 A lógica de parsing (`src/lib/flow-example.ts`) e de renderização
 (`src/lib/flow-canvas-html.ts`) tem testes em `src/lib/flow-example.test.ts`
 (`npm test`).
+
+## Pressupostos e referências dos blocos
+
+As seções Pressupostos e Referências das páginas de bloco (frontmatter
+`node:`) vêm de `src/data/node-docs.json`, gerado do núcleo e das coleções da
+árvore por `Rscript tools/site/export-node-docs.R` (na raiz). O script apaga
+`node_modules/.astro/data-store.json` para o Astro não servir páginas antigas;
+o plugin (`src/lib/rehype-node-docs.ts`) relê o JSON quando ele muda.

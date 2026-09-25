@@ -4,10 +4,10 @@ fit_type <- function() {
   Filter(function(t) identical(t$id, "models/fit"), trama.models::trama_collection()$types)[[1L]]
 }
 
-test_that("catálogo registra os 13 blocos e contratos consistentes", {
+test_that("catálogo registra os 15 blocos e contratos consistentes", {
   reg <- ml_registry()
   nodes <- trama_collection()$nodes
-  expect_length(nodes, 13L)
+  expect_length(nodes, 15L)  # + ml/nested_cv e ml/pr_curve (main)
   ids <- vapply(nodes, `[[`, "", "id")
   # Prever, avaliar, confusão, ROC e importância são os blocos da models.
   expect_false(any(c("ml/predict", "ml/evaluate", "ml/confusion", "ml/roc", "ml/importance") %in% ids))
@@ -51,7 +51,7 @@ test_that("fluxo real calcula teste separado com os blocos da models", {
   expect_equal(nrow(p), 26L)
   expect_true(all(c("previsto", "prob_versicolor", "prob_virginica") %in% names(p)))
   av <- val("avaliar")
-  expect_equal(unique(av$n), 26L)
+  expect_equal(unique(av$n[is.na(av$classe)]), 26L)  # por classe, `n` é o suporte
   # Modo tabela e modo modelo+dados medem o mesmo teste.
   expect_equal(av$valor, val("direto")$valor)
   expect_equal(p, prever(m, val("divisao", "teste")))

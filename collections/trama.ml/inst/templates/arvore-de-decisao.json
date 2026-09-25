@@ -1,0 +1,97 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Árvore de decisão",
+  "descricao": "Árvore de classificação para iris binária, com o desenho da árvore e as regras.",
+  "colecoes": ["trama.ml"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "ml": "0.2.0"
+    },
+    "nodes": {
+      "dados": {
+        "type": "ml/example",
+        "type_version": 1,
+        "label": "Dados para aprender",
+        "params": {
+          "nome": "iris_binaria"
+        },
+        "seed": 135350314
+      },
+      "arvore": {
+        "type": "ml/cart",
+        "type_version": 2,
+        "label": "CART · árvore de decisão",
+        "params": {
+          "resposta": "Species",
+          "preditores": "Petal.Length, Petal.Width"
+        },
+        "seed": 6490776
+      },
+      "desenho": {
+        "type": "ml/tree_plot",
+        "type_version": 1,
+        "label": "Visualizar árvores",
+        "params": {},
+        "seed": 144962519
+      },
+      "regras": {
+        "type": "ml/rules",
+        "type_version": 1,
+        "label": "Ler regras das árvores",
+        "params": {},
+        "seed": 200641776
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "dados",
+          "port": "out"
+        },
+        "to": {
+          "node": "arvore",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "arvore",
+          "port": "out"
+        },
+        "to": {
+          "node": "desenho",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "arvore",
+          "port": "out"
+        },
+        "to": {
+          "node": "regras",
+          "port": "modelo"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "dados": [0, 0],
+        "arvore": [360, 0],
+        "desenho": [720, 0],
+        "regras": [720, 628]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

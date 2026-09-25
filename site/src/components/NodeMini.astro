@@ -5,18 +5,19 @@ interface Props {
   icon?: string;
   hasInput: boolean;
   hasOutput: boolean;
+  inputColor?: string;
+  outputColor?: string;
 }
 
-const { label, accent, icon, hasInput, hasOutput } = Astro.props;
+const { label, accent, icon, hasInput, hasOutput, inputColor, outputColor } = Astro.props;
 ---
 
+<!-- Mesma etiqueta do modo mini do editor: ícone no bloco da categoria,
+     rótulo e grade de ranhuras. Sem portas: no site é só a etiqueta. -->
 <span class="node-miniature" style={`--node-accent: ${accent}`} aria-hidden="true">
-  {hasInput && <i class="node-miniature__port node-miniature__port--in"></i>}
-  <span class="node-miniature__body">
-    <span class="node-miniature__header">
-      {icon ? <svg viewBox="0 0 24 24"><use href={`/trama/icons/lucide.svg#${icon}`} /></svg> : <i class="node-miniature__fallback"></i>}
-    </span>
-    <span>{label}</span>
+  <span class="node-miniature__icon">
+    {icon ? <svg viewBox="0 0 24 24"><use href={`/trama/icons/lucide.svg#${icon}`} /></svg> : <i class="node-miniature__fallback"></i>}
   </span>
-  {hasOutput && <i class="node-miniature__port node-miniature__port--out"></i>}
+  <span class="node-miniature__label">{label}</span>
+  <i class="node-miniature__grip"></i>
 </span>

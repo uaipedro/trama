@@ -13,9 +13,19 @@ A proporção da população em cada categoria: a média ponderada do indicador
 (1 se a unidade é da categoria, 0 se não). Com **Categoria** em branco, uma
 linha por categoria; com uma categoria, só ela.
 
-O card mostra em %; a tabela, em proporção (0 a 1). O intervalo é o de Wald com
-t, que pode passar de 0 ou 1 em proporções extremas com amostra pequena — leia
-junto do n.
+O card mostra em %; a tabela, em proporção (0 a 1).
+
+O intervalo padrão é o **logit** (Wald na escala log-odds, t com os gl do
+desenho), o padrão de `survey::svyciprop`: fica em (0, 1) e é assimétrico perto
+dos extremos. **wilson** usa o escore de Wilson com o n efetivo do desenho;
+**clopper_pearson** é o Clopper-Pearson com n efetivo ajustado pelos gl (Korn &
+Graubard 1998); **wald** é p̂ ± t·EP.
+
+Com proporção 0 ou 1 o erro padrão é zero: logit, wilson e clopper_pearson usam
+então o Clopper-Pearson de Korn & Graubard com o n nominal do domínio, ajustado
+pelos gl — numa AAS sem correção finita é o intervalo exato de `binom.test`
+(0 em 150: [0; 2,4%]). Com conglomerados, o n nominal não desconta a
+correlação interna e o intervalo pode ser curto demais. O wald fica no ponto.
 
 ## Quando usar
 
@@ -25,6 +35,7 @@ Use para estimar a fração populacional de uma categoria, uma ou todas as categ
 
 - **Variável** — coluna categórica (texto, fator ou lógica).
 - **Categoria** — o valor cuja proporção se quer; em branco, todas.
+- **Intervalo** — `logit` (padrão), `wilson`, `clopper_pearson` ou `wald`.
 
 ## Exemplo
 

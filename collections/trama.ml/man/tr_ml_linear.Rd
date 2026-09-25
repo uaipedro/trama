@@ -9,6 +9,7 @@ tr_ml_linear(
   resposta = "",
   preditores = "",
   tarefa = "auto",
+  corte = 0.5,
   seed = 42L
 )
 }
@@ -21,6 +22,10 @@ tr_ml_linear(
 colunas numéricas, exceto o resposta.}
 
 \item{tarefa}{\code{"auto"}, \code{"regressao"} ou \code{"classificacao"}.}
+
+\item{corte}{Na logística binária, a classe prevista é a segunda quando sua
+probabilidade é maior ou igual a \code{corte} (entre 0 e 1, exclusivos).
+Ignorado pelos demais modelos.}
 
 \item{seed}{Semente local; o estado aleatório da sessão é preservado.}
 }

@@ -25,6 +25,7 @@ trama_collection <- function() {
   params[["sampling/size_mean"]] <- c(params[["sampling/size_mean"]], list(coluna = list(to = "variavel")))
   trama::tr_collection(
     id = "sampling", version = "0.1.0", label = "Amostragem",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.sampling")),
     js = "trama/index.js", css = "trama/sampling.css",
     types = list(sampling_plan_type(), sampling_sample_type(), sampling_estimate_type(),
                  sampling_simulation_type()),

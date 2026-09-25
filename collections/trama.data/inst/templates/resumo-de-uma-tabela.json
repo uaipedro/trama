@@ -1,0 +1,77 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Resumo de uma tabela",
+  "descricao": "Carros de mtcars com mais de 20 milhas por galão, resumidos coluna a coluna.",
+  "colecoes": ["trama.data"],
+  "doc": {
+    "format": 1,
+    "rev": 5,
+    "collections": {
+      "data": "0.1.0"
+    },
+    "nodes": {
+      "carros": {
+        "type": "data/example",
+        "type_version": 1,
+        "label": "Dados de exemplo",
+        "params": {
+          "dataset": "mtcars"
+        },
+        "seed": 181866711
+      },
+      "economicos": {
+        "type": "data/filter",
+        "type_version": 2,
+        "label": "Filtrar",
+        "params": {
+          "expr": "mpg > 20"
+        },
+        "seed": 97467215
+      },
+      "resumo": {
+        "type": "data/summary",
+        "type_version": 1,
+        "label": "Resumo",
+        "params": {},
+        "seed": 260144473
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "carros",
+          "port": "out"
+        },
+        "to": {
+          "node": "economicos",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "economicos",
+          "port": "out"
+        },
+        "to": {
+          "node": "resumo",
+          "port": "dados"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "carros": [0, 0],
+        "economicos": [360, 0],
+        "resumo": [720, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

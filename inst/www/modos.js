@@ -21,6 +21,8 @@ export function nomeDaTecla(e) {
   const k = e.key.toLowerCase();
   if (k === "<" || k === ",") return (e.ctrlKey || e.metaKey ? "mod+" : "") + ",";
   if (k === ">" || k === ".") return (e.ctrlKey || e.metaKey ? "mod+" : "") + ".";
+  // "+" pede Shift no teclado principal e não no numérico: vira sempre "+".
+  if (k === "+") return (e.ctrlKey || e.metaKey ? "mod+" : "") + "+";
   return (e.ctrlKey || e.metaKey ? "mod+" : "") + (e.shiftKey ? "shift+" : "") + k;
 }
 
@@ -54,9 +56,11 @@ export const ATALHOS = [
   { id: "modo-completo", grupo: "Card", teclas: ["D"], rotulo: "Completo" },
   { id: "vista", grupo: "Card", teclas: ["V"], rotulo: "Ver em tela cheia" },
   { id: "tamanho", grupo: "Card", teclas: ["Shift+R"], rotulo: "Restaurar tamanho" },
+  { id: "proximo", grupo: "Card", teclas: ["+"], rotulo: "Próximo bloco" },
   { id: "ajuda", grupo: "Geral", teclas: ["H"], rotulo: "Ajuda do bloco / atalhos" },
   { id: "desfazer", grupo: "Geral", teclas: ["Ctrl+Z"], rotulo: "Desfazer" },
   { id: "tudo", grupo: "Geral", teclas: ["Ctrl+A"], rotulo: "Selecionar tudo" },
+  { id: "copiar-template", grupo: "Geral", teclas: ["Ctrl+Shift+C"], rotulo: "Copiar como template" },
   { id: "apresentar", grupo: "Frames", teclas: ["F"], rotulo: "Apresentar / sair" },
   { id: "frame", grupo: "Frames", teclas: ["Shift+F"], rotulo: "Desenhar frame" },
   { id: "frame-sel", grupo: "Frames", teclas: ["Ctrl+G"], rotulo: "Frame da seleção" },

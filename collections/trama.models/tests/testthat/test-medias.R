@@ -59,3 +59,39 @@ test_that("GLM na escala da resposta e parcela subdividida pelo misto", {
   en <- tr_models_emmeans(sp, "nitrogenio")
   expect_true(all(is.finite(en$tabela$erro_padrao)))
 })
+
+test_that("Dunnett exato bate com multcomp::glht(mcp(Dunnett)) (oráculo)", {
+  skip_if_not_installed("multcomp")
+  # Oráculo: multcomp (Hothorn, Bretz & Westfall 2008), mesma integração da t
+  # multivariada. Com 2 contrastes a integral é exata (tolerância 1e-6); com 5,
+  # o erro de Genz-Bretz é de ~1e-3 (tolerância absoluta 2e-3).
+  casos <- list(list(d = ex("PlantGrowth"), y = "weight", x = "group", ctl = "ctrl", tol = 1e-6),
+                list(d = ex("InsectSprays"), y = "count", x = "spray", ctl = "A", tol = 2e-3))
+  for (k in casos) {
+    dic <- tr_models_anova_dic(k$d, k$y, k$x)
+    e <- tr_models_emmeans(dic, k$x)
+    d <- tr_models_pairwise(e, "contra controle", k$ctl, "dunnett", .seed = 7L)$tabela
+    dd <- as.data.frame(k$d); dd[[k$x]] <- stats::relevel(factor(dd[[k$x]]), k$ctl)
+    fit <- stats::aov(stats::reformulate(k$x, k$y), dd)
+    set.seed(7)
+    g <- multcomp::glht(fit, linfct = do.call(multcomp::mcp, stats::setNames(list("Dunnett"), k$x)))
+    ref_p <- unname(summary(g)$test$pvalues)
+    set.seed(7)
+    ref_ci <- stats::confint(g)$confint
+    expect_equal(d$p_valor, ref_p, tolerance = k$tol, ignore_attr = TRUE)
+    expect_equal(d$li_95, unname(ref_ci[, "lwr"]), tolerance = k$tol)
+    expect_equal(d$ls_95, unname(ref_ci[, "upr"]), tolerance = k$tol)
+  }
+  # PlantGrowth, valores de referência (multcomp 2 contrastes, exato):
+  d <- tr_models_pairwise(tr_models_emmeans(tr_models_anova_dic(ex("PlantGrowth"), "weight", "group"), "group"),
+                          "contra controle", "ctrl", "dunnett")$tabela
+  expect_equal(d$p_valor, c(0.3226957, 0.1534859), tolerance = 1e-6)
+})
+
+test_that("Dunnett exato é reprodutível com a semente do nó", {
+  e <- tr_models_emmeans(tr_models_anova_dic(ex("InsectSprays"), "count", "spray"), "spray")
+  a <- tr_models_pairwise(e, "contra controle", "A", "dunnett", .seed = 11L)$tabela
+  b <- tr_models_pairwise(e, "contra controle", "A", "dunnett", .seed = 11L)$tabela
+  expect_identical(a$p_valor, b$p_valor)
+  expect_identical(a$li_95, b$li_95)
+})

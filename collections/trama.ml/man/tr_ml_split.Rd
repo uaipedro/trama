@@ -9,6 +9,9 @@ tr_ml_split(
   resposta = "",
   proporcao = 0.75,
   estratificar = TRUE,
+  estrategia = "aleatoria",
+  ordem = "",
+  grupo = "",
   seed = 42L
 )
 }
@@ -20,6 +23,18 @@ tr_ml_split(
 \item{proporcao}{Fração entre 0 e 1 destinada ao treino.}
 
 \item{estratificar}{Se TRUE, preserva cada classe categórica nos dois lados.}
+
+\item{estrategia}{\code{"aleatoria"} (padrão) sorteia linhas; \code{"temporal"} põe
+no treino as linhas mais antigas segundo \code{ordem} e no teste as posteriores,
+sem partir instantes empatados; \code{"grupo"} sorteia grupos inteiros de
+\code{grupo} (nenhum grupo nos dois lados). Nas duas últimas \code{estratificar} é
+ignorado.}
+
+\item{ordem}{Coluna de tempo (número, data ou data-hora, sem ausentes) usada
+por \code{estrategia = "temporal"}.}
+
+\item{grupo}{Coluna que identifica indivíduo, lote ou área, usada por
+\code{estrategia = "grupo"}; \code{proporcao} passa a ser a fração dos grupos.}
 
 \item{seed}{Semente inteira; o estado RNG do chamador é restaurado.}
 }

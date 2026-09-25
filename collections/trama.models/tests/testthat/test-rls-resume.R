@@ -57,7 +57,7 @@
 # entradas externas do store (a mesma ordem de `test-stream-driver.R`, "entrada
 # comum chega igual... e é lida do store UMA vez").
 .tr_resume_test_run_dados <- function(doc, reg, store) {
-  .tr_run_unit(tr_plan(doc, registry = reg, store = store)$units[["dados"]], reg, store)
+  trama:::.tr_run_unit(trama::tr_plan(doc, registry = reg, store = store)$units[["dados"]], reg, store)
 }
 
 .tr_resume_test_ckpt_path <- function(store, key) file.path(store$root, "stream", key, "ckpt.rds")
@@ -75,18 +75,18 @@ test_that("retomada de uma região com models/rls: morre no passo 180, retoma do
   # 1. A referência: sem interrupção, em store próprio.
   s0 <- .tr_resume_test_store()
   .tr_resume_test_run_dados(doc, reg, s0)
-  u0 <- tr_plan(doc, registry = reg, store = s0)$units[["sai"]]
-  .tr_run_unit(u0, reg, s0, ctx_extra = list(checkpoint_every = 50))
+  u0 <- trama::tr_plan(doc, registry = reg, store = s0)$units[["sai"]]
+  trama:::.tr_run_unit(u0, reg, s0, ctx_extra = list(checkpoint_every = 50))
   ref <- trama::tr_store_get(s0, u0$outputs$out, trama::tr_get_type("data/table", reg))
   expect_equal(nrow(ref), 250L)
 
   # 2. O run que morre no ponto 180.
   s <- .tr_resume_test_store()
   .tr_resume_test_run_dados(doc, reg, s)
-  u <- tr_plan(doc, registry = reg, store = s)$units[["sai"]]
+  u <- trama::tr_plan(doc, registry = reg, store = s)$units[["sai"]]
   expect_identical(u$key, u0$key)  # mesma chave — é ela que acha o checkpoint
   e$vistos <- 0L; e$morre_em <- 180L
-  expect_error(.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 50)),
+  expect_error(trama:::.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 50)),
                class = "tr_error_stream_step")
 
   ckpt <- .tr_resume_test_ckpt_path(s, u$key)
@@ -96,7 +96,7 @@ test_that("retomada de uma região com models/rls: morre no passo 180, retoma do
   # 3. A retomada, com a mesma chave — e de VERDADE: só os 100 pontos que
   # faltavam, não os 250 de novo.
   e$vistos <- 0L; e$morre_em <- NULL
-  .tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 50))
+  trama:::.tr_run_unit(u, reg, s, ctx_extra = list(checkpoint_every = 50))
   expect_equal(e$vistos, 100L)
 
   hist <- trama::tr_store_get(s, u$outputs$out, trama::tr_get_type("data/table", reg))

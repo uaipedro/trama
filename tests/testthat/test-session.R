@@ -196,3 +196,87 @@ test_that("o editor recebe código R ou Quarto para baixar", {
     expect_match(export[[1]]$code, "```\\{r\\}")
   })
 })
+
+# Template entra pelo mesmo `aplicar()` de `tr_op`: um passo no log (um Ctrl+Z
+# tira tudo), ids novos a cada colagem, e `arquivo` fora da lista é recusado —
+# senão o input viraria leitor de arquivo arbitrário.
+test_that("tr_template_insert cola como um batch e recusa arquivo fora da lista", {
+  reg <- store_registry()
+  root <- withr::local_tempdir("proj")
+  dir.create(file.path(root, "flows"), recursive = TRUE)
+  s <- tr_store(file.path(root, ".trama", "store"), project_root = root)
+  project <- structure(list(root = root, registry = reg, store = s,
+                            flows_dir = file.path(root, "flows")), class = "tr_project")
+  doc0 <- build(reg, list(
+    list(op = "add_node", type = "t/const", id = "a", params = list(v = 1)),
+    list(op = "add_node", type = "t/inc", id = "b"),
+    list(op = "connect", from_node = "a", from_port = "out", to_node = "b", to_port = "x")))
+  tr_doc_write(doc0, file.path(root, "flows", "main.json"))
+  txt <- as.character(tr_template_json(tr_template(doc0, "t", registry = reg)))
+  fora <- withr::local_tempfile(fileext = ".json"); writeLines(txt, fora)
+
+  shiny::testServer(tr_server(project, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+    session$setInputs(tr_template_insert = list(seq = 1, conteudo = txt, x = 100, y = 50))
+    session$setInputs(tr_template_insert = list(seq = 2, conteudo = txt, x = 400, y = 50))
+    expect_length(rv_doc()$nodes, 6L)
+    expect_length(rv_doc()$edges, 3L)
+    expect_equal(length(session$env$log), 2L)
+
+    msgs <- list()
+    session$setInputs(tr_template_insert = list(seq = 3, arquivo = fora))
+    expect_length(rv_doc()$nodes, 6L)
+    expect_true("warning" %in% vapply(msgs, function(m) m$type, ""))
+
+    session$setInputs(tr_undo = 1)
+    expect_length(rv_doc()$nodes, 4L)
+  })
+})
+
+# A cola entre o diálogo e `tr_template_save()`: cada destino cai onde deve,
+# "copiar" só devolve o texto, e nome repetido vira pergunta (não aviso).
+test_that("tr_template_save grava na biblioteca e no projeto, copia e acusa conflito", {
+  reg <- store_registry()
+  root <- withr::local_tempdir("proj")
+  withr::local_envvar(R_USER_CONFIG_DIR = withr::local_tempdir("cfg"))
+  dir.create(file.path(root, "flows"), recursive = TRUE)
+  s <- tr_store(file.path(root, ".trama", "store"), project_root = root)
+  project <- structure(list(root = root, registry = reg, store = s,
+                            flows_dir = file.path(root, "flows")), class = "tr_project")
+  doc0 <- build(reg, list(
+    list(op = "add_node", type = "t/const", id = "a", params = list(v = 1)),
+    list(op = "add_node", type = "t/inc", id = "b")))
+  tr_doc_write(doc0, file.path(root, "flows", "main.json"))
+
+  shiny::testServer(tr_server(project, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    tipos <- function() vapply(msgs, function(m) m$type, "")
+    session$setInputs(tr_ready = 1)
+
+    msgs <- list()
+    session$setInputs(tr_template_save = list(seq = 1, ids = list("a"), nome = "Meu T",
+                                              destino = "biblioteca"))
+    expect_true(file.exists(file.path(tr_template_dir("biblioteca"), "meu-t.json")))
+    expect_true("templates" %in% tipos())
+
+    session$setInputs(tr_template_save = list(seq = 2, nome = "Meu T", destino = "projeto"))
+    expect_true(file.exists(file.path(root, "templates", "meu-t.json")))
+
+    msgs <- list()
+    session$setInputs(tr_template_save = list(seq = 3, nome = "Meu T", destino = "projeto"))
+    expect_true("template_conflict" %in% tipos())
+    expect_false("warning" %in% tipos())
+
+    msgs <- list()
+    session$setInputs(tr_template_save = list(seq = 4, ids = list("a"), nome = "C",
+                                              destino = "copiar"))
+    tj <- Filter(function(m) identical(m$type, "template_json"), msgs)
+    expect_length(tj, 1L)
+    expect_identical(tj[[1]]$acao, "copiar")
+    expect_true(tr_is_template(tj[[1]]$texto))
+    expect_length(tr_template_parse(tj[[1]]$texto)$doc$nodes, 1L)
+  })
+})

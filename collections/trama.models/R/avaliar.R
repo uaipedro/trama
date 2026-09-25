@@ -242,6 +242,12 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
     pos <- if (.tr_models_preenchido(positiva)) .tr_models_enum(trimws(positiva), niv, "positiva") else ""
     if (.tr_models_preenchido(probabilidade) || length(niv) == 2L || nzchar(pos)) {
       # Uma coluna só: a da positiva. Vazia, o nome que o `models/predict` dá.
+      # Coluna informada e positiva vazia: a classe vem do nome `prob_<classe>`
+      # (a correção da main na `ml/roc`). Um nome que não indica classe é
+      # recusado em vez de adivinhado — a classe errada espelha a curva.
+      if (!nzchar(pos) && .tr_models_preenchido(probabilidade)) {
+        pos <- .tr_models_roc_positiva(niv, trimws(probabilidade), no)
+      }
       if (!nzchar(pos)) {
         if (length(niv) > 2L) {
           .tr_models_abort("tr_models_error_blank_param",
@@ -280,6 +286,21 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
   par <- .tr_models_sem_na(par)
   rd <- .tr_models_roc_dados(par$real, par$prob, par$niveis, positiva, par$corte)
   .tr_models_roc_grafico(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+#' A classe que a coluna `prob_<classe>` nomeia (também `.prob_<classe>`, o
+#' nome da antiga `ml/predict`), comparando com o nome saneado de cada nível.
+#' @noRd
+.tr_models_roc_positiva <- function(niveis, coluna, no) {
+  cand <- sub("^\\.?prob_", "", coluna)
+  if (grepl("^\\.?prob_", coluna)) {
+    if (cand %in% niveis) return(cand)
+    i <- match(cand, tr_models_clean_name(niveis))
+    if (!is.na(i)) return(niveis[[i]])
+  }
+  .tr_models_abort("tr_models_error_positive_required",
+                   "'%s': a coluna '%s' não indica a classe (esperado 'prob_<classe>'); informe 'positiva' com a classe cuja probabilidade ela contém.",
+                   no, coluna)
 }
 
 .tr_models_roc_grafico <- function(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda) {
@@ -321,32 +342,54 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
 
 #' As métricas de classificação, com os nomes e as contas da `ml/evaluate`.
 #'
-#' `accuracy`, `balanced_accuracy` (média do recall por classe OBSERVADA) e
-#' `macro_f1` são porte literal de `.tr_ml_classification_metrics`, para que
-#' um fluxo que migrou de `ml/evaluate` veja os mesmos números. Somam-se o
-#' `kappa` de Cohen (o acerto descontado do que o acaso daria com essas
-#' margens) e, na binária, `sensitivity`/`specificity` da positiva.
+#' Porte da `.tr_ml_classification_metrics` da main (a `ml/evaluate` com kappa,
+#' precisão/revocação/F1 macro, ponderados e por classe), para que um fluxo
+#' que migrou de `ml/evaluate` veja os mesmos números. As médias macro são
+#' sobre as classes OBSERVADAS; as ponderadas usam o suporte de cada classe;
+#' precisão de classe nunca prevista e F1 sem acerto valem 0 (a convenção
+#' `zero_division = 0` do scikit-learn). Somam-se, na binária,
+#' `sensitivity`/`specificity` da positiva (o que a `multi` mostrava).
+#' @return tibble `metrica`, `classe`, `valor`, `n`: `classe` é NA nas globais
+#'   e nomeia a classe nas por classe (`precision`, `recall`, `f1`), com o
+#'   suporte dela em `n`.
 #' @noRd
 .tr_models_metricas_classif <- function(y, p, positiva = "") {
   ys <- as.character(y); ps <- as.character(p)
   classes <- unique(ys)
+  n <- length(ys)
   acc <- mean(ys == ps)
-  recalls <- vapply(classes, function(k) sum(ys == k & ps == k) / sum(ys == k), numeric(1))
-  f1 <- vapply(classes, function(k) {
+  por <- vapply(classes, function(k) {
     tp <- sum(ys == k & ps == k); fp <- sum(ys != k & ps == k); fn <- sum(ys == k & ps != k)
-    if (tp == 0 || (2 * tp + fp + fn) == 0) 0 else 2 * tp / (2 * tp + fp + fn)
-  }, numeric(1))
+    c(precision = if (tp + fp == 0) 0 else tp / (tp + fp),
+      recall = tp / (tp + fn),
+      f1 = if (tp == 0) 0 else 2 * tp / (2 * tp + fp + fn),
+      suporte = tp + fn)
+  }, numeric(4))
+  w <- por["suporte", ] / n
+  # Kappa de Cohen (1960): concordância observada contra a esperada pelas
+  # marginais da tabela real × previsto (rótulos dos dois lados).
   todas <- union(classes, unique(ps))
   pe <- sum(vapply(todas, function(k) mean(ys == k) * mean(ps == k), numeric(1)))
   kappa <- if (pe == 1) NA_real_ else (acc - pe) / (1 - pe)
-  metrica <- c("accuracy", "balanced_accuracy", "macro_f1", "kappa")
-  valor <- c(acc, mean(recalls), mean(f1), kappa)
+  metrica <- c("accuracy", "balanced_accuracy", "macro_f1", "kappa",
+               "macro_precision", "macro_recall", "weighted_precision",
+               "weighted_recall", "weighted_f1")
+  valor <- c(acc, mean(por["recall", ]), mean(por["f1", ]), kappa,
+             mean(por["precision", ]), mean(por["recall", ]),
+             sum(w * por["precision", ]), sum(w * por["recall", ]), sum(w * por["f1", ]))
   if (nzchar(positiva)) {
     metrica <- c(metrica, "sensitivity", "specificity")
     valor <- c(valor, sum(ys == positiva & ps == positiva) / sum(ys == positiva),
                sum(ys != positiva & ps != positiva) / sum(ys != positiva))
   }
-  tibble::tibble(metrica = metrica, valor = valor, n = length(ys))
+  globais <- tibble::tibble(metrica = metrica, classe = NA_character_, valor = valor, n = n)
+  k <- length(classes)
+  por_classe <- tibble::tibble(
+    metrica = rep(c("precision", "recall", "f1"), times = k),
+    classe = rep(classes, each = 3L),
+    valor = as.numeric(por[c("precision", "recall", "f1"), ]),
+    n = rep(as.integer(por["suporte", ]), each = 3L))
+  rbind(globais, por_classe)
 }
 
 #' As de regressão, idem: `mae`, `rmse`, `r2` (de PREVISÃO: 1 − SQE/SQT sobre
@@ -367,7 +410,9 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
 #' @inheritParams tr_models_confusion
 #' @param positiva classificação binária: a classe das `sensitivity` e
 #'   `specificity`; vazio = o segundo nível.
-#' @return tibble `metrica`, `valor`, `n` (as linhas que contaram).
+#' @return tibble `metrica`, `valor`, `n` (as linhas que contaram); na
+#'   classificação também `classe` (NA nas globais; a classe nas `precision`,
+#'   `recall` e `f1` por classe, com o suporte em `n`).
 #' @export
 tr_models_evaluate <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
                                predito = "previsto", positiva = "") {

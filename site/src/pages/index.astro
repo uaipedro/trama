@@ -1,15 +1,9 @@
 ---
 import Base from "../layouts/Base.astro";
-import FlowMap from "../components/FlowMap.astro";
 import CollectionCard from "../components/CollectionCard.astro";
 import { collections } from "../data/collections";
 import { control } from "../data/copy-variants";
 
-const firstFlowSteps = [
-  { label: "Dados de exemplo", tone: "source" },
-  { label: "Resumo", tone: "inspect" },
-  { label: "Disperso", tone: "sink" }
-] as const;
 ---
 
 <Base title="trama" description={control.copy.metaDescription}>
@@ -23,12 +17,7 @@ const firstFlowSteps = [
         <a class="button button--primary" href="/trama/comece/primeiro-fluxo/"><span data-copy="ctaPrimary">{control.copy.ctaPrimary}</span> <span aria-hidden="true">→</span></a>
         <a class="text-link" href="/trama/colecoes/"><span data-copy="ctaSecondary">{control.copy.ctaSecondary}</span></a>
       </div>
-      <div class="home-install">
-        <p class="home-install__label">Instale no R <span>R ≥ 4.1 · via GitHub</span></p>
-        <pre><code>pak::pak(c("uaipedro/trama",
-  "uaipedro/trama/collections/trama.data",
-  "uaipedro/trama/collections/trama.view"))</code></pre>
-      </div>
+      <p class="home-install-link"><a href="/trama/por-dentro/instalacao/">Instalar o trama</a> — programa para Windows e Linux, ou pacote no seu R.</p>
     </div>
     <figure class="flow-reel flow-reel--hero flow-reel--landscape">
       <div class="flow-reel__meta"><span><i aria-hidden="true"></i> montagem real</span><span>Dados</span></div>
@@ -43,10 +32,8 @@ const firstFlowSteps = [
 
   <section class="home-path" aria-labelledby="caminho-title">
     <div class="home-path__copy">
-      <p class="eyebrow">Comece aqui</p>
       <h2 id="caminho-title">Monte um primeiro fluxo em três blocos.</h2>
       <p class="home-path__lede">Use uma tabela de exemplo para reconhecer a sequência: dado, inspeção e gráfico. Depois, troque o dado — não a forma de pensar.</p>
-      <FlowMap steps={firstFlowSteps} />
       <p class="home-path__lede">Quando o fluxo cresce, o caminho continua ali: volte a qualquer bloco, confira o que entrou e saiu dele e siga a partir de uma etapa concreta.</p>
       <a class="text-link home-path__link" href="/trama/comece/primeiro-fluxo/">Abrir o primeiro fluxo <span aria-hidden="true">→</span></a>
     </div>
@@ -63,8 +50,7 @@ const firstFlowSteps = [
 
   <section id="colecoes" class="home-collections" aria-labelledby="collections-title">
     <div class="section-intro">
-      <p class="eyebrow">Coleções</p>
-      <h2 id="collections-title">Escolha por onde começar.</h2>
+      <h2 id="collections-title">Coleções disponíveis.</h2>
     </div>
     <div class="collection-cards">
       {collections.map((collection) => <CollectionCard collection={collection} />)}

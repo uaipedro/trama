@@ -24,13 +24,24 @@
 #' @param kernel Kernel linear, radial, polynomial ou sigmoid.
 #' @param nrounds Rodadas do XGBoost.
 #' @param eta Taxa de aprendizado do XGBoost.
+#' @param cp Parâmetro de complexidade do CART: a árvore cresce só com divisões
+#'   que melhoram o ajuste relativo em pelo menos `cp`; zero cresce a árvore
+#'   máxima permitida por `max_depth` e `min_n`, depois podada.
+#' @param poda Poda do CART por custo-complexidade, escolhida pela validação
+#'   cruzada de 10 folds do `rpart` (Breiman et al. 1984): `"1ep"` fica com a
+#'   menor árvore cujo erro de validação não passa do mínimo mais um
+#'   erro-padrão; `"minimo"`, com a de menor erro; `"nenhuma"` não poda.
+#' @param corte Na logística binária, a classe prevista é a segunda quando sua
+#'   probabilidade é maior ou igual a `corte` (entre 0 e 1, exclusivos).
+#'   Ignorado pelos demais modelos.
 #' @return Um `models/fit`: objeto de classe `c("tr_ml_fit", "tr_models_fit")`,
 #'   que responde ao contrato da `trama.models` (prever, avaliar, importância).
 #' @export
 tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
                       trees = 200L, mtry = 0L, cost = 1, gamma = 0.1,
-                      kernel = "radial", nrounds = 100L, eta = 0.1) {
+                      kernel = "radial", nrounds = 100L, eta = 0.1,
+                      cp = 0, poda = "1ep", corte = 0.5) {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   seed <- .tr_ml_int(seed, "seed", 0L); max_depth <- .tr_ml_int(max_depth, "max_depth", 1L)
   min_n <- .tr_ml_int(min_n, "min_n", 1L); max_splits <- .tr_ml_int(max_splits, "max_splits", 1L)
@@ -38,6 +49,9 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
   cost <- .tr_ml_num(cost, "cost", 0, TRUE); gamma <- .tr_ml_num(gamma, "gamma", 0)
   nrounds <- .tr_ml_int(nrounds, "nrounds", 1L); eta <- .tr_ml_num(eta, "eta", 0, TRUE)
   kernel <- .tr_ml_enum(kernel, c("linear", "polynomial", "radial", "sigmoid"), "kernel")
+  corte <- .tr_ml_num(corte, "corte", 0, TRUE)
+  if (corte >= 1) .tr_ml_abort("tr_ml_error_bad_param", "Param 'corte' deve estar entre 0 e 1, exclusivos.")
+  cp <- .tr_ml_num(cp, "cp", 0); poda <- .tr_ml_enum(poda, c("1ep", "minimo", "nenhuma"), "poda")
   d <- .tr_ml_dados(dados, resposta, preditores, tarefa)
   if (d$tarefa == "classificacao" && length(d$niveis) > 2L && modelo %in% c("linear", "figs")) {
     .tr_ml_abort("tr_ml_error_binary_only", "O modelo '%s' aceita classifica\u{E7}\u{E3}o com exatamente duas classes.", modelo)
@@ -56,10 +70,15 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
       # leaf.  `minsplit` only decides whether a node is considered for a
       # split; cap its derived value before rpart coerces it to integer.
       minsplit <- min(as.double(.Machine$integer.max), 2 * as.double(min_n))
-      rpart::rpart(f, treino, method = if (d$tarefa == "regressao") "anova" else "class",
+      arvore <- rpart::rpart(f, treino, method = if (d$tarefa == "regressao") "anova" else "class",
                    control = rpart::rpart.control(maxdepth = max_depth,
                                                   minbucket = min_n,
-                                                  minsplit = minsplit, cp = 0))
+                                                  minsplit = minsplit, cp = cp,
+                                                  xval = if (poda == "nenhuma") 0L else min(10L, nrow(treino))))
+      extras$poda <- .tr_ml_poda_cart(arvore, poda)
+      extras$poda$folds <- if (poda == "nenhuma") 0L else min(10L, nrow(treino))
+      if (!is.null(extras$poda$cp)) arvore <- rpart::prune(arvore, cp = extras$poda$cp)
+      arvore
     },
     figs = {
       .tr_ml_require("figsr", modelo)
@@ -103,7 +122,8 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
                             max_splits = max_splits, trees = trees,
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
-                            nrounds = nrounds, eta = eta)
+                            nrounds = nrounds, eta = eta, cp = cp,
+                            poda = poda, corte = corte)
   # `resposta`, e não mais `alvo`: o modelo agora viaja como `models/fit`, e a
   # chave do cache mudou de qualquer forma com o tipo. `dados` são as colunas
   # USADAS, com os nomes originais: o modo "só modelo" dos avaliadores da
@@ -117,6 +137,23 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
             class = c("tr_ml_fit", "tr_models_fit"))
 }
 
+# Custo-complexidade (Breiman et al. 1984, sec. 3.4.3): na sequência aninhada
+# de subárvores do `cptable`, a regra 1-EP fica com a menor cujo `xerror` não
+# passa de min(xerror) + xstd do mínimo. Podar com o CP da linha escolhida
+# devolve exatamente essa subárvore (`prune.rpart` corta nós com
+# complexidade <= cp).
+.tr_ml_poda_cart <- function(arvore, poda) {
+  tab <- arvore$cptable
+  if (poda == "nenhuma" || nrow(tab) < 2L || !"xerror" %in% colnames(tab) ||
+      all(is.na(tab[, "xerror"]))) {
+    return(list(metodo = poda, cp = NULL, divisoes = unname(tab[nrow(tab), "nsplit"]), cptable = tab))
+  }
+  i_min <- which.min(tab[, "xerror"])
+  limite <- tab[i_min, "xerror"] + if (poda == "1ep") tab[i_min, "xstd"] else 0
+  i <- which(tab[, "xerror"] <= limite)[[1L]]
+  list(metodo = poda, cp = unname(tab[i, "CP"]), divisoes = unname(tab[i, "nsplit"]), cptable = tab)
+}
+
 #' A previsão crua do motor: classe (ou número) e a matriz de probabilidades.
 #'
 #' Era o corpo do antigo `tr_ml_predict()`, sem montar tabela: quem monta é a
@@ -128,7 +165,8 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
 .tr_ml_prever <- function(modelo, x) {
   cls <- modelo$tarefa == "classificacao"; prob <- NULL
   if (modelo$modelo == "linear") {
-    if (cls) { p <- as.numeric(stats::predict(modelo$ajuste, x, type = "response")); prob <- cbind(1-p, p); pred <- modelo$niveis[1L + (p >= .5)] }
+    if (cls) { p <- as.numeric(stats::predict(modelo$ajuste, x, type = "response")); prob <- cbind(1-p, p)
+      pred <- modelo$niveis[1L + (p >= (modelo$extras$parametros$corte %||% .5))] }
     else pred <- as.numeric(stats::predict(modelo$ajuste, x))
   } else if (modelo$modelo == "cart") {
     if (cls) { prob <- stats::predict(modelo$ajuste, x, type = "prob"); pred <- colnames(prob)[max.col(prob, ties.method = "first")] }
@@ -146,8 +184,14 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
     if (cls) { prob <- as.matrix(z); pred <- colnames(prob)[max.col(prob, ties.method = "first")] } else pred <- as.numeric(z)
   } else if (modelo$modelo == "svm") {
     z <- stats::predict(modelo$ajuste, x, probability = cls)
-    pred <- if (cls) as.character(z) else as.numeric(z)
-    if (cls) prob <- attr(z, "probabilities")
+    if (cls) {
+      # Com `probability = TRUE` o LIBSVM já rotula pela maior probabilidade de
+      # Platt (svm_predict_probability), não pela margem; fixamos a regra aqui
+      # para que `.pred` e `.prob_*` nunca discordem, com empates resolvidos
+      # na ordem dos níveis como nos outros modelos.
+      prob <- attr(z, "probabilities")[, modelo$niveis, drop = FALSE]
+      pred <- modelo$niveis[max.col(prob, ties.method = "first")]
+    } else pred <- as.numeric(z)
   } else {
     z <- stats::predict(modelo$ajuste, data.matrix(x))
     if (!cls) pred <- as.numeric(z) else if (length(modelo$niveis) == 2L) {

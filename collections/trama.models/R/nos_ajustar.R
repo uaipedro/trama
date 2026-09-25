@@ -79,7 +79,10 @@ quantas (`n = 38 (2 fora)`). As outras colunas da tabela não contam.
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; T <- "data/table"
   list(
-    trama::tr_node("models/lm", fn = tr_models_lm, label = "Regressão linear",
+    trama::tr_node("models/lm", 
+      pressupostos = .tr_models_doc("models/lm")$pressupostos,
+      referencias = .tr_models_doc("models/lm")$referencias,
+      fn = tr_models_lm, label = "Regressão linear",
       category = "modelo_ajustar", icon = trama::tr_icon("chart-scatter"),
       description = "Ajusta um modelo linear (lm) pelas colunas ou por uma fórmula digitada.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -127,7 +130,10 @@ tr_flow(reg) |>
 contínua.
 ]---")),
 
-    trama::tr_node("models/glm", fn = tr_models_glm, label = "Modelo linear generalizado",
+    trama::tr_node("models/glm", 
+      pressupostos = .tr_models_doc("models/glm")$pressupostos,
+      referencias = .tr_models_doc("models/glm")$referencias,
+      fn = tr_models_glm, label = "Modelo linear generalizado",
       category = "modelo_ajustar", icon = trama::tr_icon("chart-spline"),
       description = "Ajusta um GLM (binomial, Poisson, gama...) pelas colunas ou por uma fórmula.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -146,6 +152,7 @@ função de ligação.
 | `binomial` | 0/1, sim/não | logit |
 | `poisson` | contagem | log |
 | `quasipoisson` | contagem com variância maior que a média | log |
+| `quasibinomial` | sucessos em n tentativas (`cbind(sucessos, fracassos)`) com variância maior que a binomial | logit |
 | `gama` | contínua positiva, assimétrica | log |
 | `gaussiana` | contínua (o mesmo que `models/lm`) | identidade |
 
@@ -156,8 +163,7 @@ preenchida, vence.
 
 Numa Poisson a variância é igual à média. Quando o desvio residual é muito
 maior que os graus de liberdade do resíduo, a variância é maior, os erros
-padrão ficam pequenos demais e os p-valores, otimistas. A saída é a
-`quasipoisson`.
+padrão ficam pequenos demais e os p-valores, otimistas.
 ]---", .tr_models_ajuda_faltantes()), r"---[
 - **Resposta**, **Preditores**, **Fórmula** — como no `models/lm`.
 - **Família** — a distribuição da resposta (tabela acima).
@@ -175,7 +181,10 @@ tr_flow(reg) |>
 escala da resposta.
 ]---")),
 
-    trama::tr_node("models/lmer", fn = tr_models_lmer, label = "Modelo misto",
+    trama::tr_node("models/lmer", 
+      pressupostos = .tr_models_doc("models/lmer")$pressupostos,
+      referencias = .tr_models_doc("models/lmer")$referencias,
+      fn = tr_models_lmer, label = "Modelo misto",
       category = "modelo_ajustar", icon = trama::tr_icon("layers"),
       description = "Ajusta um modelo linear misto (lme4), com p-valores por Satterthwaite (lmerTest).",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -366,7 +375,10 @@ dose 50/100/150 é tratamento com 2 graus de liberdade, e não uma reta. Para
 a regressão da dose depois da ANOVA, ligue o modelo ao `models/dose_response`.
 "
   list(
-    trama::tr_node("models/anova_dic", fn = tr_models_anova_dic, label = "ANOVA · DIC",
+    trama::tr_node("models/anova_dic", 
+      pressupostos = .tr_models_doc("models/anova_dic")$pressupostos,
+      referencias = .tr_models_doc("models/anova_dic")$referencias,
+      fn = tr_models_anova_dic, label = "ANOVA · DIC",
       category = "modelo_anova", icon = trama::tr_icon("layout-grid"),
       description = "Análise de variância de um delineamento inteiramente casualizado.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -396,7 +408,10 @@ tr_flow(reg) |>
 `models/kruskal` como alternativa não paramétrica.
 ]---")),
 
-    trama::tr_node("models/anova_dbc", fn = tr_models_anova_dbc, label = "ANOVA · DBC",
+    trama::tr_node("models/anova_dbc", 
+      pressupostos = .tr_models_doc("models/anova_dbc")$pressupostos,
+      referencias = .tr_models_doc("models/anova_dbc")$referencias,
+      fn = tr_models_anova_dbc, label = "ANOVA · DBC",
       category = "modelo_anova", icon = trama::tr_icon("grid-3x3"),
       description = "Análise de variância de um delineamento em blocos casualizados.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -411,11 +426,6 @@ tratamentos, sorteados dentro dele. Modelo `resposta ~ bloco + tratamento`.
 O bloco tira do resíduo a variação entre áreas (fertilidade, declive, dia de
 colheita). O F do bloco não é o objetivo do experimento, mas diz se valeu a
 pena bloquear: bloco não significativo é experimento que poderia ter sido DIC.
-
-### O pressuposto próprio do DBC
-
-O modelo supõe que o efeito do tratamento é o MESMO em todo bloco
-(aditividade). Confira com o `models/tukey_additivity`.
 ]---", ajuda_fator, .tr_models_ajuda_faltantes()), r"---[
 - **Resposta** — coluna numérica.
 - **Tratamento** — coluna do tratamento.
@@ -434,7 +444,10 @@ tr_flow(reg) |>
 combinação de fatores.
 ]---")),
 
-    trama::tr_node("models/anova_dql", fn = tr_models_anova_dql, label = "ANOVA · DQL",
+    trama::tr_node("models/anova_dql", 
+      pressupostos = .tr_models_doc("models/anova_dql")$pressupostos,
+      referencias = .tr_models_doc("models/anova_dql")$referencias,
+      fn = tr_models_anova_dql, label = "ANOVA · DQL",
       category = "modelo_anova", icon = trama::tr_icon("columns-3"),
       description = "Análise de variância de um delineamento em quadrado latino.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -465,7 +478,10 @@ tr_flow(reg) |>
 `models/anova_dbc` para uma restrição só; `models/emmeans`; `models/anova_table`.
 ]---")),
 
-    trama::tr_node("models/anova_factorial", fn = tr_models_anova_factorial, label = "ANOVA · fatorial",
+    trama::tr_node("models/anova_factorial", 
+      pressupostos = .tr_models_doc("models/anova_factorial")$pressupostos,
+      referencias = .tr_models_doc("models/anova_factorial")$referencias,
+      fn = tr_models_anova_factorial, label = "ANOVA · fatorial",
       category = "modelo_anova", icon = trama::tr_icon("grid-2x2"),
       description = "Análise de variância de um fatorial com 2 ou 3 fatores, em DIC ou em blocos.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -502,7 +518,10 @@ desdobramento; `models/anova_split_plot` quando um fator está na parcela e o
 outro na subparcela.
 ]---")),
 
-    trama::tr_node("models/anova_split_plot", fn = tr_models_anova_split_plot, label = "ANOVA · parcela subdividida",
+    trama::tr_node("models/anova_split_plot", 
+      pressupostos = .tr_models_doc("models/anova_split_plot")$pressupostos,
+      referencias = .tr_models_doc("models/anova_split_plot")$referencias,
+      fn = tr_models_anova_split_plot, label = "ANOVA · parcela subdividida",
       category = "modelo_anova", icon = trama::tr_icon("square-split-horizontal"),
       description = "Análise de variância de parcelas subdivididas em blocos, com os erros (a) e (b).",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -559,7 +578,7 @@ entre parcelas; `models/lmer` para o caso desbalanceado.
       inputs = list(modelo = Fm), outputs = list(modelo = Fm, quadro = "models/effects"),
       params = list(
         tratamento = P("cols", "", label = "Tratamento (doses)", example = "dose"),
-        grau = trama::tr_param_enum("automático", .TR_MODELS_GRAUS, label = "Grau"),
+        grau = trama::tr_param_enum("automático", .TR_MODELS_DOSE_GRAUS, label = "Grau"),
         confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_models_ajuda(r"---[
 Quando o tratamento é QUANTITATIVO — doses de adubo, lâminas de irrigação,

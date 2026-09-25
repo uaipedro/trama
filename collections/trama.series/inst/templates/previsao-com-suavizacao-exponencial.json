@@ -1,0 +1,96 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Previsão com suavização exponencial",
+  "descricao": "Modelo ETS para AirPassengers, com previsão de 24 meses e gráfico.",
+  "colecoes": ["trama.series"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "series": "0.1.0"
+    },
+    "nodes": {
+      "pax": {
+        "type": "series/example",
+        "type_version": 1,
+        "label": "Série de exemplo",
+        "params": {
+          "dataset": "AirPassengers"
+        },
+        "seed": 241105342
+      },
+      "modelo": {
+        "type": "series/ets",
+        "type_version": 1,
+        "label": "ETS",
+        "params": {},
+        "seed": 40210492
+      },
+      "previsao": {
+        "type": "series/forecast",
+        "type_version": 1,
+        "label": "Prever",
+        "params": {
+          "horizonte": 24
+        },
+        "seed": 32366497
+      },
+      "grafico": {
+        "type": "series/plot_forecast",
+        "type_version": 1,
+        "label": "Gráfico da previsão",
+        "params": {},
+        "seed": 265575397
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "pax",
+          "port": "out"
+        },
+        "to": {
+          "node": "modelo",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "modelo",
+          "port": "out"
+        },
+        "to": {
+          "node": "previsao",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "previsao",
+          "port": "out"
+        },
+        "to": {
+          "node": "grafico",
+          "port": "previsao"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "pax": [0, 0],
+        "modelo": [360, 0],
+        "previsao": [720, 0],
+        "grafico": [1080, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

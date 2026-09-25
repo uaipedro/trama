@@ -18,7 +18,9 @@
 # desvio da regressão, com k − g − 1 gl) dão o erro padrão que o livro dá. E
 # sai, na outra porta, o quadro do desdobramento.
 
-.TR_MODELS_GRAUS <- c("automático", "1", "2", "3")
+# Nome próprio: `.TR_MODELS_GRAUS` é o do `models/polinomial` (main), e dois
+# objetos com o mesmo nome no pacote se sobrescreviam pela ordem de colação.
+.TR_MODELS_DOSE_GRAUS <- c("automático", "1", "2", "3")
 .TR_MODELS_COMPONENTES <- c("Linear", "Quadrático", "Cúbico")
 
 #' Os níveis de um fator como número, ou erro dizendo qual nível não é.
@@ -94,7 +96,7 @@
 tr_models_dose_response <- function(modelo, tratamento = "", grau = "automático", confianca = 0.95) {
   .tr_models_fit_conferir(modelo)
   no <- "models/dose_response"
-  grau <- .tr_models_enum(as.character(grau), .TR_MODELS_GRAUS, "grau")
+  grau <- .tr_models_enum(as.character(grau), .TR_MODELS_DOSE_GRAUS, "grau")
   confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
   alfa <- 1 - confianca
   if (!identical(modelo$classe, "lm") || !isTRUE(modelo$delineamento %in% c("DIC", "DBC", "DQL"))) {

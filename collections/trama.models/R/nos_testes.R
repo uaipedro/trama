@@ -11,7 +11,10 @@ tr_flow(reg) |>
   tr_add("teste", "%s", %sfrom = "dbc")
 ]---", no, extra)
   list(
-    trama::tr_node("models/shapiro_residuals", fn = tr_models_shapiro_residuals, label = "Normalidade dos resíduos",
+    trama::tr_node("models/shapiro_residuals", 
+      pressupostos = .tr_models_doc("models/shapiro_residuals")$pressupostos,
+      referencias = .tr_models_doc("models/shapiro_residuals")$referencias,
+      fn = tr_models_shapiro_residuals, label = "Normalidade dos resíduos",
       category = "modelo_pressupostos", icon = trama::tr_icon("chart-area"),
       description = "Shapiro-Wilk nos resíduos do modelo: os erros são normais?",
       inputs = list(modelo = Fm), outputs = list(out = TE),
@@ -36,9 +39,12 @@ Um teste (`data/test`).
 `models/plot_diagnostics`; `models/levene`; `models/shapiro` para uma coluna.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/levene", fn = tr_models_levene, label = "Levene",
+    trama::tr_node("models/levene", version = 3L,
+      pressupostos = .tr_models_doc("models/levene")$pressupostos,
+      referencias = .tr_models_doc("models/levene")$referencias,
+      fn = tr_models_levene, label = "Levene",
       category = "modelo_pressupostos", icon = trama::tr_icon("scale"),
-      description = "Levene (Brown-Forsythe): as variâncias dos resíduos são iguais entre os tratamentos?",
+      description = "Levene (Brown-Forsythe; O'Neill-Mathews com bloco): as variâncias dos resíduos são iguais entre os tratamentos?",
       inputs = list(modelo = Fm), outputs = list(out = TE),
       params = list(centro = E("mediana", c("mediana", "média"), label = "Centro")),
       help = .tr_models_ajuda(r"---[
@@ -53,6 +59,20 @@ as colunas-fator dos efeitos fixos nos modelos de fórmula. Sem fator, use o
   normalidade. É a recomendada.
 - **média** — o Levene original.
 
+Nos delineamentos com bloco (DBC, fatorial em DBC, DQL) os resíduos são
+correlacionados e o Levene comum sai liberal. Ali o bloco aplica o teste de
+O'Neill & Mathews (2002): ANOVA dos |resíduos| de mínimos quadrados em
+tratamento + bloco (+ linha e coluna no DQL), com o F multiplicado por um fator
+que só depende do delineamento. O centro, ali, é sempre o ajuste do modelo (a
+média), e o param **Centro** não muda o resultado. O delineamento precisa estar
+equilibrado (cada tratamento o mesmo número de vezes em cada bloco). Em
+desenho pequeno a correção é conservadora: tamanho a 5% de 2,9% no DBC 4 × 3 e
+no DQL 5 × 5 (perto de 5% no DBC 5 × 6 e no DQL 8 × 8).
+
+Na parcela subdividida o bloco recusa: os resíduos vêm de dois estratos de
+erro, e a correção de O'Neill & Mathews supõe um só. Leia o painel
+escala-locação do `models/plot_diagnostics`.
+
 Não se aplica a GLM (a variância acompanha a média por construção) nem a misto.
 ]---", r"---[
 - **Centro** — `mediana` ou `média`.
@@ -62,26 +82,41 @@ Um teste (`data/test`).
 `models/bartlett`; `models/breusch_pagan`; `models/plot_diagnostics`.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/bartlett", fn = tr_models_bartlett, label = "Bartlett",
+    trama::tr_node("models/bartlett", version = 3L,
+      pressupostos = .tr_models_doc("models/bartlett")$pressupostos,
+      referencias = .tr_models_doc("models/bartlett")$referencias,
+      fn = tr_models_bartlett, label = "Bartlett",
       category = "modelo_pressupostos", icon = trama::tr_icon("scale"),
-      description = "Bartlett: as variâncias dos resíduos são iguais entre os tratamentos?",
+      description = "Bartlett: as variâncias dos resíduos são iguais entre os tratamentos? Só sem bloco.",
       inputs = list(modelo = Fm), outputs = list(out = TE),
       help = .tr_models_ajuda(r"---[
 Testa a homogeneidade das variâncias entre os grupos (os mesmos do
 `models/levene`), pelo teste de Bartlett.
 
-É mais poderoso que o Levene quando os resíduos são normais, e muito sensível
-quando não são: rejeita por causa da cauda, e não da variância. Rode o
-`models/shapiro_residuals` antes; se ele rejeitar, prefira o Levene.
+É mais poderoso que o Levene quando os resíduos são normais.
+
+Não se aplica a delineamento com bloco (DBC, fatorial em DBC, DQL): nos
+resíduos correlacionados o Bartlett não tem correção publicada, e o bloco
+recusa. Use o `models/levene`, que ali aplica a correção de O'Neill & Mathews.
+Na parcela subdividida (dois estratos de erro) também recusa, como o Levene.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
 Um teste (`data/test`).
-]---", exemplo_dbc("models/bartlett"), r"---[
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("plantas", "models/example", dataset = "PlantGrowth") |>
+  tr_add("dic", "models/anova_dic", resposta = "weight", tratamento = "group",
+         from = "plantas") |>
+  tr_add("teste", "models/bartlett", from = "dic")
+]---", r"---[
 `models/levene`; `models/shapiro_residuals`.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/breusch_pagan", fn = tr_models_breusch_pagan, label = "Breusch-Pagan",
+    trama::tr_node("models/breusch_pagan", 
+      pressupostos = .tr_models_doc("models/breusch_pagan")$pressupostos,
+      referencias = .tr_models_doc("models/breusch_pagan")$referencias,
+      fn = tr_models_breusch_pagan, label = "Breusch-Pagan",
       category = "modelo_pressupostos", icon = trama::tr_icon("chart-spline"),
       description = "Breusch-Pagan (Koenker): a variância dos resíduos depende dos preditores?",
       inputs = list(modelo = Fm), outputs = list(out = TE),
@@ -109,7 +144,10 @@ tr_flow(reg) |>
 `models/glm` com família gama quando a variância cresce com a média.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/tukey_additivity", fn = tr_models_tukey_additivity, label = "Aditividade de Tukey",
+    trama::tr_node("models/tukey_additivity", 
+      pressupostos = .tr_models_doc("models/tukey_additivity")$pressupostos,
+      referencias = .tr_models_doc("models/tukey_additivity")$referencias,
+      fn = tr_models_tukey_additivity, label = "Aditividade de Tukey",
       category = "modelo_pressupostos", icon = trama::tr_icon("equal"),
       description = "Teste de não aditividade de Tukey: bloco e tratamento interagem?",
       inputs = list(modelo = Fm), outputs = list(out = TE),
@@ -143,7 +181,10 @@ Um teste (`data/test`).
   ALT <- function() E("bilateral", .TR_MODELS_ALTERNATIVAS, label = "Alternativa")
   ajuda_alt <- "- **Alternativa** — `bilateral` (diferentes), `menor` ou `maior` (o primeiro em relação ao segundo)."
   list(
-    trama::tr_node("models/t_test", fn = tr_models_t_test, label = "t para duas amostras",
+    trama::tr_node("models/t_test", 
+      pressupostos = .tr_models_doc("models/t_test")$pressupostos,
+      referencias = .tr_models_doc("models/t_test")$referencias,
+      fn = tr_models_t_test, label = "t para duas amostras",
       category = "modelo_testes", icon = trama::tr_icon("equal-not"),
       description = "t de Welch (ou de Student): as médias de dois grupos independentes são iguais?",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -178,7 +219,10 @@ tr_flow(reg) |>
 `models/anova_dic` para mais de dois grupos; `models/cohen_d` para o tamanho do efeito.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/paired_t", fn = tr_models_paired_t, label = "t pareado",
+    trama::tr_node("models/paired_t", 
+      pressupostos = .tr_models_doc("models/paired_t")$pressupostos,
+      referencias = .tr_models_doc("models/paired_t")$referencias,
+      fn = tr_models_paired_t, label = "t pareado",
       category = "modelo_testes", icon = trama::tr_icon("link"),
       description = "t pareado: a média das diferenças entre duas medidas na mesma unidade é zero?",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -209,7 +253,10 @@ tr_flow(reg) |>
 medidas na mesma unidade.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/one_sample_t", fn = tr_models_one_sample_t, label = "t para uma amostra",
+    trama::tr_node("models/one_sample_t", 
+      pressupostos = .tr_models_doc("models/one_sample_t")$pressupostos,
+      referencias = .tr_models_doc("models/one_sample_t")$referencias,
+      fn = tr_models_one_sample_t, label = "t para uma amostra",
       category = "modelo_testes", icon = trama::tr_icon("target"),
       description = "t para uma amostra: a média da coluna é igual a um valor de referência?",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -233,7 +280,10 @@ tr_flow(reg) |>
 `models/t_test`; `models/shapiro` para conferir a normalidade da coluna.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/wilcoxon", fn = tr_models_wilcoxon, label = "Wilcoxon-Mann-Whitney",
+    trama::tr_node("models/wilcoxon", 
+      pressupostos = .tr_models_doc("models/wilcoxon")$pressupostos,
+      referencias = .tr_models_doc("models/wilcoxon")$referencias,
+      fn = tr_models_wilcoxon, label = "Wilcoxon-Mann-Whitney",
       category = "modelo_testes", icon = trama::tr_icon("list-ordered"),
       description = "Wilcoxon-Mann-Whitney: dois grupos independentes têm a mesma locação? (não paramétrico)",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -261,7 +311,10 @@ tr_flow(reg) |>
 `models/t_test`; `models/kruskal` para mais de dois grupos.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/kruskal", fn = tr_models_kruskal, label = "Kruskal-Wallis",
+    trama::tr_node("models/kruskal", 
+      pressupostos = .tr_models_doc("models/kruskal")$pressupostos,
+      referencias = .tr_models_doc("models/kruskal")$referencias,
+      fn = tr_models_kruskal, label = "Kruskal-Wallis",
       category = "modelo_testes", icon = trama::tr_icon("list-ordered"),
       description = "Kruskal-Wallis: dois ou mais grupos vêm da mesma distribuição? (não paramétrico)",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -273,8 +326,8 @@ A alternativa não paramétrica ao `models/anova_dic`: compara os postos de dois
 ou mais grupos. Útil quando os resíduos da ANOVA não são normais e nenhuma
 transformação resolve.
 
-Rejeitar diz que ALGUM grupo difere, não qual: para isso, o `models/dunn`. Não há bloco: para um DBC com
-dados não normais, considere transformar a resposta ou um `models/glm`.
+Rejeitar diz que ALGUM grupo difere, não qual: para isso, o `models/dunn`. Não
+há bloco: para um DBC com dados não normais, use o `models/friedman`.
 ]---", r"---[
 - **Resposta** — coluna numérica.
 - **Grupo** — coluna dos grupos.
@@ -286,7 +339,7 @@ tr_flow(reg) |>
   tr_add("kw", "models/kruskal", resposta = "count", grupo = "spray", from = "insetos")
 ]---", r"---[
 `models/dunn` para saber quais grupos diferem; `models/anova_dic`;
-`models/wilcoxon` para dois grupos.
+`models/wilcoxon` para dois grupos; `models/friedman` com bloco.
 ]---", teste = TRUE)),
 
     trama::tr_node("models/dunn", fn = tr_models_dunn, label = "Dunn",
@@ -367,26 +420,67 @@ tr_flow(reg) |>
 os termos de uma ANOVA.
 ]---")),
 
-    trama::tr_node("models/chisq", fn = tr_models_chisq, label = "Qui-quadrado",
+    trama::tr_node("models/friedman",
+      pressupostos = .tr_models_doc("models/friedman")$pressupostos,
+      referencias = .tr_models_doc("models/friedman")$referencias,
+      fn = tr_models_friedman, label = "Friedman",
+      category = "modelo_testes", icon = trama::tr_icon("list-ordered"),
+      description = "Friedman: os tratamentos diferem dentro dos blocos? (DBC não paramétrico)",
+      inputs = list(dados = T), outputs = list(out = TE),
+      params = list(
+        resposta = P("cols", "", label = "Resposta", example = "producao"),
+        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
+        bloco = P("cols", "", label = "Bloco", example = "bloco")),
+      help = .tr_models_ajuda(r"---[
+A alternativa não paramétrica ao `models/anova_dbc`: ordena os tratamentos
+DENTRO de cada bloco e compara as somas de postos. Útil quando os resíduos do
+DBC não são normais e nenhuma transformação resolve.
+
+Pede uma observação por bloco e tratamento: com repetições, resuma antes (a
+média de cada casela). Bloco a que falta tratamento sai inteiro, e a nota conta
+quantos. Empates dentro do bloco recebem posto médio e a estatística é
+corrigida. O efeito é o W de Kendall (0 = blocos sem concordância, 1 = mesma
+ordem em todo bloco). Rejeitar diz que ALGUM tratamento difere, não qual.
+]---", r"---[
+- **Resposta** — coluna numérica.
+- **Tratamento** — coluna dos tratamentos.
+- **Bloco** — coluna dos blocos.
+]---", r"---[
+Um teste (`data/test`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("fr", "models/friedman", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho")
+]---", r"---[
+`models/anova_dbc`; `models/kruskal` sem bloco.
+]---", teste = TRUE)),
+
+    trama::tr_node("models/chisq", version = 2L,
+      pressupostos = .tr_models_doc("models/chisq")$pressupostos,
+      referencias = .tr_models_doc("models/chisq")$referencias,
+      fn = tr_models_chisq, label = "Qui-quadrado",
       category = "modelo_testes", icon = trama::tr_icon("table"),
       description = "Qui-quadrado de independência entre duas colunas categóricas.",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
         linha = P("cols", "", label = "Linha", example = "wool"),
         coluna = P("cols", "", label = "Coluna", example = "tension"),
-        correcao = B(TRUE, label = "Correção de Yates (2 × 2)")),
+        correcao = B(FALSE, label = "Correção de Yates (2 × 2)")),
       help = .tr_models_ajuda(r"---[
 Testa se duas variáveis categóricas são independentes, a partir da tabela de
 contingência que o bloco monta contando as linhas da tabela.
 
-A aproximação qui-quadrado pede contagens esperadas de pelo menos 5. Quando mais
-de 20% das caselas ficam abaixo disso, a nota avisa e aponta o
+Quando mais de 20% das caselas têm esperado abaixo de 5, a nota avisa e aponta o
 `models/fisher_exact`. O detalhe mostra o menor esperado.
 
-A **Correção de Yates** só age em tabelas 2 × 2.
+A **Correção de Yates** só age em tabelas 2 × 2 e vem desligada: ela deixa o
+teste conservador (p-valor maior que o nominal). Com esperados pequenos, o
+caminho é o `models/fisher_exact`, não a correção.
 ]---", r"---[
 - **Linha**, **Coluna** — as duas colunas categóricas.
-- **Correção de Yates** — correção de continuidade no 2 × 2.
+- **Correção de Yates** — correção de continuidade no 2 × 2 (desligada por
+  padrão).
 ]---", r"---[
 Um teste (`data/test`).
 ]---", r"---[
@@ -397,7 +491,10 @@ tr_flow(reg) |>
 `models/fisher_exact` para contagens pequenas; `data/group_summarise` para ver as contagens.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/fisher_exact", fn = tr_models_fisher_exact, label = "Exato de Fisher",
+    trama::tr_node("models/fisher_exact", 
+      pressupostos = .tr_models_doc("models/fisher_exact")$pressupostos,
+      referencias = .tr_models_doc("models/fisher_exact")$referencias,
+      fn = tr_models_fisher_exact, label = "Exato de Fisher",
       category = "modelo_testes", icon = trama::tr_icon("table"),
       description = "Teste exato de Fisher: duas colunas categóricas são independentes?",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -425,7 +522,10 @@ tr_flow(reg) |>
 variáveis.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/cor_test", fn = tr_models_cor_test, label = "Teste de correlação",
+    trama::tr_node("models/cor_test", 
+      pressupostos = .tr_models_doc("models/cor_test")$pressupostos,
+      referencias = .tr_models_doc("models/cor_test")$referencias,
+      fn = tr_models_cor_test, label = "Teste de correlação",
       category = "modelo_testes", icon = trama::tr_icon("trending-up"),
       description = "Correlação de Pearson, Spearman ou Kendall entre duas colunas, com o teste de que ela é zero.",
       inputs = list(dados = T), outputs = list(out = TE),
@@ -455,7 +555,10 @@ tr_flow(reg) |>
 `models/lm` para modelar a relação; `view/points` para vê-la.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/shapiro", fn = tr_models_shapiro, label = "Shapiro-Wilk",
+    trama::tr_node("models/shapiro", 
+      pressupostos = .tr_models_doc("models/shapiro")$pressupostos,
+      referencias = .tr_models_doc("models/shapiro")$referencias,
+      fn = tr_models_shapiro, label = "Shapiro-Wilk",
       category = "modelo_testes", icon = trama::tr_icon("chart-area"),
       description = "Shapiro-Wilk: uma coluna tem distribuição normal?",
       inputs = list(dados = T), outputs = list(out = TE),

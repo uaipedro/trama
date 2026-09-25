@@ -1,0 +1,61 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Dispersão com cor por grupo",
+  "descricao": "Pétalas de iris em um gráfico de dispersão, coloridas pela espécie.",
+  "colecoes": ["trama.data", "trama.view"],
+  "doc": {
+    "format": 1,
+    "rev": 3,
+    "collections": {
+      "data": "0.1.0",
+      "view": "0.1.0"
+    },
+    "nodes": {
+      "flores": {
+        "type": "data/example",
+        "type_version": 1,
+        "label": "Dados de exemplo",
+        "params": {
+          "dataset": "iris"
+        },
+        "seed": 83017419
+      },
+      "dispersao": {
+        "type": "view/points",
+        "type_version": 1,
+        "label": "Disperso",
+        "params": {
+          "x": "Petal.Length",
+          "y": "Petal.Width",
+          "cor": "Species"
+        },
+        "seed": 194289957
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "flores",
+          "port": "out"
+        },
+        "to": {
+          "node": "dispersao",
+          "port": "dados"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "flores": [0, 0],
+        "dispersao": [360, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

@@ -1,0 +1,127 @@
+[
+  {
+    "from": "sampling/simulate",
+    "to": "sampling/plot_simulation",
+    "n": 3
+  },
+  {
+    "from": "sampling/cluster",
+    "to": "sampling/simulate",
+    "n": 1
+  },
+  {
+    "from": "sampling/design",
+    "to": "sampling/mean",
+    "n": 1
+  },
+  {
+    "from": "sampling/design",
+    "to": "sampling/proportion",
+    "n": 1
+  },
+  {
+    "from": "sampling/design",
+    "to": "sampling/ratio",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/cluster",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/design",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/pps",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/size_stratified",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/srs",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/stratified",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/two_stage",
+    "n": 1
+  },
+  {
+    "from": "sampling/pps",
+    "to": "sampling/total",
+    "n": 1
+  },
+  {
+    "from": "sampling/proportion",
+    "to": "sampling/plot_estimates",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_cluster",
+    "to": "sampling/two_stage",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_proportion",
+    "to": "sampling/size_cluster",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_proportion",
+    "to": "sampling/size_curve",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_stratified",
+    "to": "sampling/stratified",
+    "n": 1
+  },
+  {
+    "from": "sampling/srs",
+    "to": "sampling/mean",
+    "n": 1
+  },
+  {
+    "from": "sampling/srs",
+    "to": "sampling/simulate",
+    "n": 1
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/mean",
+    "n": 1
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/proportion",
+    "n": 1
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/ratio",
+    "n": 1
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/simulate",
+    "n": 1
+  },
+  {
+    "from": "sampling/two_stage",
+    "to": "sampling/proportion",
+    "n": 1
+  }
+]

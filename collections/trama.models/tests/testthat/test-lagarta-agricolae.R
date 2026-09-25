@@ -130,6 +130,14 @@ test_that("Scott-Knott desbalanceado: s² = média de QM/rᵢ do grupo, como o p
                         11.737, 12.367, 13.707, 12.724, 12.781, 10.732, 12.618, 12.466,
                         11.4, 15.076, 15.159, 15.544, 15.705, 15.319, 16.309, 15.969,
                         16.353, 16.461, 15.901))
-  s <- tr_models_scott_knott(tr_models_anova_dic(d, "y", "t"), "t")
-  expect_equal(s$tabela$grupo, c("e", "d", "c", "c", "b", "a"))
+  # Integração 9.1: o nó `models/scott_knott` é o da main, que RECUSA o
+  # desbalanceado; o partidor da branch, que o trata, ficou interno
+  # (`.tr_models_sk_grupos`) até a 9.2 decidir com oráculo. O teste confere os
+  # dois: o interno contra o pacote, e a recusa do nó.
+  fit <- tr_models_anova_dic(d, "y", "t")
+  expect_error(tr_models_scott_knott(fit, "t"), class = "tr_models_error_not_applicable")
+  medias <- tapply(d$y, d$t, mean); r <- as.vector(table(d$t))
+  qm <- sum(stats::residuals(fit$ajuste)^2) / stats::df.residual(fit$ajuste)
+  g <- .tr_models_sk_grupos(as.vector(medias), qm, stats::df.residual(fit$ajuste), r, 0.05)
+  expect_equal(c(letters, LETTERS)[g], c("e", "d", "c", "c", "b", "a"))
 })

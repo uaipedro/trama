@@ -304,7 +304,10 @@ tr_multi_correlation_circle <- function(pca, x = 1L, y = 2L, aspecto = "1:1", te
   pca <- list(pca = "multi/pca")
   G <- list(out = "view/plot")
   list(
-    trama::tr_node("multi/pca", fn = tr_multi_pca, label = "Componentes principais",
+    trama::tr_node("multi/pca",
+      pressupostos = .tr_multi_doc("multi/pca")$pressupostos,
+      referencias = .tr_multi_doc("multi/pca")$referencias,
+      fn = tr_multi_pca, label = "Componentes principais",
       category = "multi_pca", icon = trama::tr_icon("axis-3d"),
       description = "Resume variáveis correlacionadas em poucos componentes que não se correlacionam.",
       inputs = list(dados = "data/table"), outputs = list(out = "multi/pca"),

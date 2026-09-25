@@ -14,6 +14,9 @@ tr_ml_tune(
   tentativas = 20L,
   folds = 5L,
   amplitude = "conservadora",
+  estrategia = "aleatoria",
+  ordem = "",
+  grupo = "",
   seed = 42L
 )
 }
@@ -26,7 +29,10 @@ tr_ml_tune(
 numéricos, exceto \code{resposta}.}
 
 \item{modelo}{Família com hiperparâmetros: \code{"cart"}, \code{"figs"}, \code{"forest"},
-\code{"svm"} ou \code{"xgboost"}.}
+\code{"svm"} ou \code{"xgboost"}.
+Com \code{"cart"}, cada ajuste inclui a poda 1-EP de \code{\link[=tr_ml_fit]{tr_ml_fit()}}, com sua
+própria validação cruzada interna (até 10 ajustes extras); \code{cp} não entra
+na busca porque a poda já o escolhe.}
 
 \item{tarefa}{Uma de \code{"auto"}, \code{"regressao"} ou \code{"classificacao"}. \code{"auto"}
 interpreta resposta numérica como regressão.}
@@ -40,6 +46,17 @@ regressão e \code{"macro_f1"} em classificação.}
 o número de linhas nem o tamanho da menor classe.}
 
 \item{amplitude}{Limites \code{"conservadora"} ou \code{"ampla"} para a busca.}
+
+\item{estrategia}{Como formar os folds: \code{"aleatoria"} (padrão; estratificada
+pela classe), \code{"grupo"} (grupos inteiros de \code{grupo} por fold) ou
+\code{"temporal"} (origem móvel com janela crescente: os instantes de \code{ordem}
+formam \code{folds + 1} blocos contíguos e cada fold valida o bloco seguinte ao
+treino).}
+
+\item{ordem}{Coluna de tempo para \code{estrategia = "temporal"}.}
+
+\item{grupo}{Coluna de grupo para \code{estrategia = "grupo"}. Com \code{preditores} vazio,
+\code{ordem} e \code{grupo} nunca entram como preditores.}
 
 \item{seed}{Inteiro entre zero e 2147483647. Controla folds, configurações e
 ajustes sem alterar o estado aleatório da sessão.}

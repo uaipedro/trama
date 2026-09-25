@@ -42,6 +42,8 @@ tr_flow(reg) |>
       inputs = list(amostra = S), outputs = list(out = ES),
       params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"), por = POR(),
                     confianca = CONF()),
+      pressupostos = .tr_sampling_press_estimar(),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_mean"),
       help = .tr_sampling_ajuda(paste(r"---[
 A média da população, estimada pela média PONDERADA da amostra (Σ w·y / Σ w).
 Numa AAS todo peso é igual e ela é a média simples; numa estratificada
@@ -59,6 +61,11 @@ desproporcional ou numa PPS, a média simples estaria errada.
       inputs = list(amostra = S), outputs = list(out = ES),
       params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"), por = POR(),
                     confianca = CONF()),
+      pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
+        "Os pesos estão na **escala da população** (somam o N): o total depende do peso inteiro, e não só das proporções entre os pesos.",
+        verificar = "sampling/design",
+        se_falhar = "Declare o peso de expansão em `sampling/design`, ou pós-estratifique a totais conhecidos com `sampling/poststratify`."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_total"),
       help = .tr_sampling_ajuda(paste(r"---[
 O total da população pelo estimador de Horvitz-Thompson: Σ w·y, em que cada
 unidade da amostra conta pelas w unidades da população que representa. É o que
@@ -74,24 +81,45 @@ amostra sem peso (ou declarada sem ele) daria o total da AMOSTRA.
 `sampling/poststratify`.
 ]---", cv = TRUE)),
 
-    trama::tr_node("sampling/proportion", fn = tr_sampling_proportion, label = "Proporção",
+    trama::tr_node("sampling/proportion", fn = tr_sampling_proportion, label = "Proporção", version = 3L,
       category = "amostra_estimar", icon = trama::tr_icon("chart-pie"),
       description = "Estima a proporção da população em cada categoria de uma variável, com o erro do desenho.",
       inputs = list(amostra = S), outputs = list(out = ES),
       params = list(variavel = P("cols", "", label = "Variável", example = "irrigada"),
                     nivel = P("text", "", label = "Categoria (em branco: todas)", example = "sim"),
-                    por = POR(), confianca = CONF()),
+                    por = POR(), confianca = CONF(),
+                    intervalo = E("logit", .TR_SAMPLING_INTERVALOS, label = "Intervalo")),
+      pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
+        "O intervalo **logit** (padrão) é Wald na escala log-odds, com EP pelo método delta e t nos gl do desenho: fica dentro de (0, 1) e é assimétrico perto dos extremos, mas ainda é aproximação assintótica. Com proporção 0 ou 1 no domínio a variância estimada é zero: logit, wilson e clopper_pearson usam o Clopper-Pearson de Korn & Graubard (1998) com o n nominal do domínio no lugar do n efetivo (que não existe), ajustado pelos gl do desenho — sem efeito de desenho é o exato de `binom.test`, com efeito de desenho pode cobrir menos que o nominal, porque o n nominal não desconta a correlação dentro dos conglomerados. O **Wald** (opção) pode sair de [0, 1] e cobre menos que o nominal com proporção extrema.",
+        verificar = "sampling/simulate",
+        se_falhar = "Com proporção extrema e domínio pequeno, compare logit e wilson, confira a cobertura com `sampling/simulate` e junte domínios ou aumente a amostra."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_proportion", with(.tr_sampling_refs(), list(korn, korn98, wilson, lumley))),
       help = .tr_sampling_ajuda(paste(r"---[
 A proporção da população em cada categoria: a média ponderada do indicador
 (1 se a unidade é da categoria, 0 se não). Com **Categoria** em branco, uma
 linha por categoria; com uma categoria, só ela.
 
-O card mostra em %; a tabela, em proporção (0 a 1). O intervalo é o de Wald com
-t, que pode passar de 0 ou 1 em proporções extremas com amostra pequena — leia
-junto do n.
+O card mostra em %; a tabela, em proporção (0 a 1).
+
+O intervalo padrão é o **logit**: o de Wald calculado na escala log-odds, com o
+erro padrão do desenho pelo método delta e t com os gl do desenho, levado de
+volta à escala da proporção. É o padrão de `survey::svyciprop` e nunca sai de
+(0, 1); perto de 0 ou 1 é assimétrico, e a **margem** do card é a maior das duas
+metades. **wilson** é o escore de Wilson com o n efetivo do desenho
+(p̂(1 − p̂)/variância) e t; **clopper_pearson** é o Clopper-Pearson com esse
+n efetivo ajustado pelos gl (Korn & Graubard 1998; o `method = "beta"` de
+`survey::svyciprop`); **wald** é p̂ ± t·EP, o intervalo da versão 1.
+
+Com proporção 0 ou 1 (nenhuma ou todas as unidades do domínio na categoria),
+o erro padrão é zero e o logit e o wilson degenerariam no ponto: nesses casos
+os três usam o Clopper-Pearson de Korn & Graubard com o **n nominal** do
+domínio, ajustado pelos gl do desenho. Numa AAS sem correção finita é o
+intervalo exato de `binom.test` (0 em 150: [0; 2,4%]). O **wald** continua
+literal e fica no ponto.
 ]---", ajuda_desenho), paste(r"---[
 - **Variável** — coluna categórica (texto, fator ou lógica).
 - **Categoria** — o valor cuja proporção se quer; em branco, todas.
+- **Intervalo** — `logit` (padrão), `wilson`, `clopper_pearson` ou `wald`.
 ]---", ajuda_por), ajuda_valor, exemplo("sampling/proportion", "variavel = \"irrigada\", nivel = \"sim\", por = \"regiao\""), r"---[
 `sampling/size_proportion` para o n; `sampling/total` do indicador para o
 número de unidades; `sampling/plot_estimates`.
@@ -104,6 +132,11 @@ número de unidades; `sampling/plot_estimates`.
       params = list(numerador = P("cols", "", label = "Numerador", example = "producao_t"),
                     denominador = P("cols", "", label = "Denominador", example = "area_ha"),
                     por = POR(), confianca = CONF()),
+      pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
+        "A linearização da razão supõe o total do **denominador estimado com precisão** (CV pequeno, uns 10% ou menos): o viés da razão é da ordem de 1/n.",
+        verificar = "sampling/total",
+        se_falhar = "Estime o total do denominador com `sampling/total` e olhe o CV; se for alto, aumente a amostra ou junte domínios."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_ratio"),
       help = .tr_sampling_ajuda(paste(r"---[
 A razão entre dois totais, R = Σ w·y / Σ w·x: toneladas por hectare, renda por
 morador, trabalhadores por fazenda. Não é a média das razões de cada unidade
@@ -138,6 +171,13 @@ que nenhum.
                     estimador = E("média", c("média", "total"), label = "Estimador"),
                     repeticoes = I(500L, min = 20L, max = 10000L, label = "Repetições"),
                     confianca = .tr_sampling_param_conf()),
+      pressupostos = list(
+        trama::tr_pressuposto("A população ligada é o **cadastro completo** de onde o desenho sorteia: a verdade medida é a dela, e o resultado vale para populações parecidas com ela.",
+          se_falhar = "Com cadastro parcial ou simulado, leia viés e cobertura como os do cenário, não os da pesquisa real."),
+        trama::tr_pressuposto("As **repetições** são suficientes para o erro de Monte Carlo: com R réplicas, a cobertura tem erro padrão √(c(1 − c)/R), cerca de 1 ponto com 500.",
+          se_falhar = "Aumente as **Repetições** antes de concluir sobre diferenças pequenas de cobertura ou de EP.")),
+      referencias = list(.tr_sampling_refs()$morris, .tr_sampling_refs()$cochran,
+        .tr_sampling_impl("tr_sampling_simulate", "Re-sorteia pela receita guardada na amostra (seleção e calibração), estima com o mesmo motor do conglomerado último e resume viés relativo, EP empírico, EP estimado (raiz da média das variâncias), REQM e cobertura do intervalo t.")),
       help = .tr_sampling_ajuda(r"---[
 Avalia o DESENHO, e não a amostra: pega a receita guardada na amostra ligada
 (o bloco de seleção, o n, os estratos, a pós-estratificação), sorteia de novo da

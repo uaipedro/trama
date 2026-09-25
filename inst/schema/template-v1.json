@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/uaipedro/trama/schema/template-v1.json",
+  "title": "trama template",
+  "description": "Trecho de flow empacotado pra colar em outro canvas. Envelope sobre um documento comum: só estrutura, sem dados (params de arquivo voltam ao default) e com posições relativas ao canto (0,0).",
+  "type": "object",
+  "required": ["trama", "versao", "nome", "doc"],
+  "properties": {
+    "trama": { "const": "template", "description": "Marca que separa template de um JSON de dados qualquer." },
+    "versao": { "const": 1 },
+    "nome": { "type": "string" },
+    "descricao": { "type": "string" },
+    "colecoes": {
+      "type": "array",
+      "description": "Pacotes R das coleções que o template usa.",
+      "items": { "type": "string" }
+    },
+    "doc": { "$ref": "document-v1.json" }
+  }
+}

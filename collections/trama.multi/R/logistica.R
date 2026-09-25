@@ -201,7 +201,10 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
   TB <- "data/table"
   LG <- "models/fit"
   list(
-    trama::tr_node("multi/logistic", fn = tr_multi_logistic, label = "Regressão logística",
+    trama::tr_node("multi/logistic",
+      pressupostos = .tr_multi_doc("multi/logistic")$pressupostos,
+      referencias = .tr_multi_doc("multi/logistic")$referencias,
+      fn = tr_multi_logistic, label = "Regressão logística",
       category = "multi_logistica", icon = trama::tr_icon("chart-spline"),
       description = "Ajusta uma regressão logística binária (2 grupos) ou multinomial (3+) para classificar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = LG),

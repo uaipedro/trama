@@ -191,7 +191,7 @@ tr_models_linear_hypothesis <- function(modelo, hipoteses = "", fator = "") {
       gl = sprintf("%d; %s", as.integer(a$NumDF[[1]]), .tr_models_gl(a$DenDF[[1]])),
       nota = "gl do denominador por Satterthwaite"), base)))
   }
-  usa_f <- modelo$classe == "lm" || (modelo$classe == "glm" && stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson"))
+  usa_f <- modelo$classe == "lm" || stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
   a <- .tr_models_ajustar(as.data.frame(car::linearHypothesis(aj, L, rhs, test = if (usa_f) "F" else "Chisq")), no)
   if (usa_f) {
     do.call(.tr_models_teste, c(list("F da hipótese linear geral", h0, a$F[[2]], "F", a$`Pr(>F)`[[2]],

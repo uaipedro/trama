@@ -1,0 +1,17 @@
+# Blocos inferenciais ainda sem pressupostos e referências (teoria ou
+# livro-texto + implementacao). Gerado por test-cobertura-docs.R.
+# Esta lista só pode ENCOLHER: documente o bloco e tire a linha dele.
+# Bloco novo exigido nasce documentado; não entra aqui.
+# Integração 9.1 (coesao-colecoes × main): blocos que a branch criou antes da
+# régua existir. Entram aqui como exceção declarada, para a 9.3 documentar com
+# referências conferidas (sem inventar) e tirar daqui.
+models/cohen_d
+models/dose_response
+models/dunn
+models/glmer
+models/nls
+models/predict
+multi/cluster
+multi/distance
+multi/manova
+multi/tocher

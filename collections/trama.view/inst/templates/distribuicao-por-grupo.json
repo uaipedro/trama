@@ -1,0 +1,82 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Distribuição por grupo",
+  "descricao": "Comprimento da sépala de iris: histograma e boxplot por espécie.",
+  "colecoes": ["trama.data", "trama.view"],
+  "doc": {
+    "format": 1,
+    "rev": 5,
+    "collections": {
+      "data": "0.1.0",
+      "view": "0.1.0"
+    },
+    "nodes": {
+      "flores": {
+        "type": "data/example",
+        "type_version": 1,
+        "label": "Dados de exemplo",
+        "params": {
+          "dataset": "iris"
+        },
+        "seed": 83017419
+      },
+      "histograma": {
+        "type": "view/histogram",
+        "type_version": 1,
+        "label": "Histograma",
+        "params": {
+          "x": "Sepal.Length",
+          "cor": "Species"
+        },
+        "seed": 249968585
+      },
+      "caixas": {
+        "type": "view/boxplot",
+        "type_version": 1,
+        "label": "Boxplot",
+        "params": {
+          "y": "Sepal.Length",
+          "x": "Species"
+        },
+        "seed": 30346342
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "flores",
+          "port": "out"
+        },
+        "to": {
+          "node": "histograma",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "flores",
+          "port": "out"
+        },
+        "to": {
+          "node": "caixas",
+          "port": "dados"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "flores": [0, 0],
+        "histograma": [360, 0],
+        "caixas": [360, 688]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

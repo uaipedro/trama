@@ -21,6 +21,7 @@ trama_collection <- function() {
     # A discriminante e a logística saem como `models/fit` (tipo da
     # `trama.models`, que por isso carrega antes): prever, confundir e a ROC
     # são os blocos de lá.
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.multi")),
     types = list(multi_pca_type(), multi_fa_type(), multi_dist_type(), multi_cluster_type()),
     adapters = .tr_multi_adapters(),
     # Os gráficos ficam na categoria da técnica, e não numa "Ver" à parte: quem

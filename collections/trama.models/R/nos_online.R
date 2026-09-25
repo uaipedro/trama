@@ -203,7 +203,10 @@ tr_models_rls_fn <- function(dados, resposta = "y", preditores = "", lambda = 1e
   P <- trama::tr_param; N <- trama::tr_param_num
   T <- "data/table"
   list(
-    trama::tr_node("models/rls", fn = tr_models_rls_fn, label = "RLS online",
+    trama::tr_node("models/rls", 
+      pressupostos = .tr_models_doc("models/rls")$pressupostos,
+      referencias = .tr_models_doc("models/rls")$referencias,
+      fn = tr_models_rls_fn, label = "RLS online",
       category = "modelo_ajustar", icon = trama::tr_icon("activity"),
       description = "Regressão linear que aprende ponto a ponto: mínimos quadrados recursivos, dentro de uma região de fluxo.",
       # As DUAS portas de fluxo, entrada e saída: sem a de SAÍDA, o núcleo

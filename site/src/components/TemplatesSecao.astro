@@ -1,0 +1,29 @@
+---
+// Seção "Templates": fluxos prontos de uma coleção (ou de todas).
+import CopiarTemplate from "./CopiarTemplate.astro";
+import dados from "../data/templates.json";
+
+type Template = Parameters<typeof CopiarTemplate>[0];
+const indice = dados as unknown as Template[];
+
+interface Props { pkg?: string; titulo?: string }
+const { pkg, titulo = "Templates." } = Astro.props;
+const templates = indice.filter((t) => !pkg || t.pkg === pkg);
+---
+
+{templates.length > 0 && (
+  <section class="templates" aria-labelledby={`templates-${pkg ?? "todos"}`}>
+    <div class="section-intro">
+      <h2 id={`templates-${pkg ?? "todos"}`}>{titulo}</h2>
+      <p>Copie e cole no canvas do trama. Também dá pra arrastar o arquivo .json para o canvas.</p>
+    </div>
+    <div class="templates__grid">
+      {templates.map((t) => <CopiarTemplate {...t} />)}
+    </div>
+  </section>
+)}
+
+<style>
+  .templates { padding-top: var(--space-3xl); }
+  .templates__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); gap: var(--space-lg); margin-top: var(--space-xl); }
+</style>

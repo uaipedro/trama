@@ -240,6 +240,63 @@ tr_models_dunn <- function(dados, resposta = "", grupo = "", ajuste = "holm") {
                      fonte = "Dunn (1964)")
 }
 
+#' Friedman: tratamentos em blocos, por postos dentro de cada bloco.
+#'
+#' A alternativa não paramétrica ao DBC com UMA observação por bloco e
+#' tratamento. Casela repetida recusa (o teste de Friedman não a define); bloco
+#' a que falta algum tratamento sai inteiro, e a nota conta quantos — é o bloco
+#' completo que o teste compara.
+#' @param dados tabela.
+#' @param resposta coluna numérica.
+#' @param tratamento coluna do tratamento.
+#' @param bloco coluna do bloco.
+#' @return objeto `tr_models_test`.
+#' @export
+tr_models_friedman <- function(dados, resposta = "", tratamento = "", bloco = "") {
+  no <- "models/friedman"
+  resp <- .tr_models_numerica(dados, .tr_models_col(dados, resposta, "resposta"), "resposta")
+  trat <- .tr_models_col(dados, tratamento, "tratamento")
+  blc <- .tr_models_col(dados, bloco, "bloco")
+  if (anyDuplicated(c(resp, trat, blc))) {
+    .tr_models_abort("tr_models_error_bad_option", "'%s': a mesma coluna aparece em dois papéis.", no)
+  }
+  td <- .tr_models_teste_dados(dados, c(resp, trat, blc), no, min_linhas = 1L)
+  d <- td$d
+  tr <- factor(d[[trat]]); bl <- factor(d[[blc]])
+  cont <- table(bl, tr)
+  if (any(cont > 1L)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s': há mais de uma observação por bloco e tratamento (ex.: bloco %s). O ",
+                            "Friedman pede uma por casela: resuma as repetições (média de ",
+                            "cada casela) antes."), no, rownames(cont)[which(rowSums(cont > 1L) > 0)[[1]]])
+  }
+  completos <- rownames(cont)[rowSums(cont) == ncol(cont)]
+  fora <- nrow(cont) - length(completos)
+  d <- d[as.character(bl) %in% completos, , drop = FALSE]
+  tr <- droplevels(factor(d[[trat]])); bl <- droplevels(factor(d[[blc]]))
+  if (nlevels(tr) < 2L) {
+    .tr_models_abort("tr_models_error_one_level", "'%s': a coluna '%s' tem um tratamento só.", no, trat)
+  }
+  if (nlevels(bl) < 2L) {
+    .tr_models_abort("tr_models_error_too_few_rows",
+                     "'%s' precisa de pelo menos dois blocos completos, e há %d.", no, nlevels(bl))
+  }
+  t <- .tr_models_ajustar(stats::friedman.test(d[[resp]], tr, bl), no)
+  b <- nlevels(bl); k <- nlevels(tr)
+  empates <- any(tapply(d[[resp]], bl, function(x) anyDuplicated(x) > 0L))
+  .tr_models_teste(
+    "Friedman", sprintf("as distribuições de %s são iguais entre os níveis de %s (dentro dos blocos)", resp, trat),
+    t$statistic, "qui2", t$p.value, gl = as.character(t$parameter),
+    conclusao_sim = "algum tratamento difere",
+    conclusao_nao = "não há evidência de diferença entre os tratamentos",
+    efeito = list(rotulo = "W de Kendall (concordância entre blocos)", valor = unname(t$statistic) / (b * (k - 1L))),
+    nota = .tr_models_nota(sprintf("%d tratamentos em %d blocos", k, b), td$nota,
+                           if (fora > 0L) sprintf("%d bloco%s incompleto%s fora", fora, if (fora > 1L) "s" else "",
+                                                  if (fora > 1L) "s" else "") else "",
+                           if (empates) "empates dentro de bloco: estatística corrigida" else ""),
+    fonte = "Friedman (1937)")
+}
+
 #' A tabela de contingência de duas colunas.
 #' @noRd
 .tr_models_contingencia <- function(dados, linha, coluna, no) {
@@ -258,10 +315,11 @@ tr_models_dunn <- function(dados, resposta = "", grupo = "", ajuste = "holm") {
 #' Qui-quadrado de independência.
 #' @param dados tabela.
 #' @param linha,coluna as duas colunas categóricas.
-#' @param correcao correção de continuidade de Yates (só em 2 × 2).
+#' @param correcao correção de continuidade de Yates (só em 2 × 2). Desligada
+#'   por padrão: torna o teste conservador (Agresti 2002).
 #' @return objeto `tr_models_test`.
 #' @export
-tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = TRUE) {
+tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = FALSE) {
   no <- "models/chisq"
   ct <- .tr_models_contingencia(dados, linha, coluna, no)
   r <- .tr_models_capturar(stats::chisq.test(ct$tab, correct = isTRUE(correcao)))

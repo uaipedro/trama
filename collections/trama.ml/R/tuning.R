@@ -39,6 +39,42 @@
   lapply(seq_len(k), function(i) which(ids == i))
 }
 
+# Partições de validação: lista de pares treino/validação (índices de linha).
+# aleatoria: k folds sorteados, estratificados pela classe (versão anterior).
+# grupo: grupos inteiros distribuídos em k folds (nenhum grupo dos dois lados).
+# temporal: origem móvel com janela crescente (Tashman 2000; FPP3, sec. 5.10):
+#   os instantes distintos, em ordem, formam k + 1 blocos contíguos; a origem i
+#   treina nos blocos 1..i e valida no bloco i + 1.
+.tr_ml_folds <- function(dados, estrategia, k, y = NULL, ordem = "", grupo = "") {
+  n <- nrow(dados)
+  todos <- seq_len(n)
+  par <- function(v) list(treino = setdiff(todos, v), validacao = v)
+  if (estrategia == "aleatoria") return(lapply(.tr_ml_make_folds(y, k), par))
+  if (estrategia == "grupo") {
+    g <- as.character(.tr_ml_coluna_aux(dados, grupo, "grupo"))
+    grupos <- unique(g)
+    if (k > length(grupos))
+      .tr_ml_abort("tr_ml_error_bad_folds", "'folds' n\u{E3}o pode superar o n\u{FA}mero de grupos (%d).", length(grupos))
+    id <- stats::setNames(sample(rep(seq_len(k), length.out = length(grupos))), grupos)
+    return(lapply(seq_len(k), function(i) par(unname(which(id[g] == i)))))
+  }
+  t <- .tr_ml_coluna_aux(dados, ordem, "ordem")
+  if (is.character(t) || is.factor(t) || is.logical(t))
+    .tr_ml_abort("tr_ml_error_bad_order", "A coluna 'ordem' deve ser num\u{E9}rica, data ou data-hora.")
+  r <- xtfrm(t); u <- sort(unique(r))
+  if (length(u) < k + 1L)
+    .tr_ml_abort("tr_ml_error_bad_folds", "A valida\u{E7}\u{E3}o temporal com %d folds precisa de pelo menos %d instantes distintos.", k, k + 1L)
+  bloco <- ceiling(seq_along(u) * (k + 1L) / length(u))[match(r, u)]
+  lapply(seq_len(k), function(i) list(treino = which(bloco <= i), validacao = which(bloco == i + 1L)))
+}
+
+# Sem `preditores`, são os numéricos exceto resposta, ordem e grupo.
+.tr_ml_cols_sem_aux <- function(dados, resposta, preditores, ordem, grupo) {
+  if (length(.tr_ml_cols(preditores))) return(preditores)
+  num <- names(dados)[vapply(dados, is.numeric, TRUE)]
+  paste(setdiff(num, c(resposta, trimws(ordem), trimws(grupo))), collapse = ", ")
+}
+
 .tr_ml_tune_metric <- function(y, pred, tarefa, metrica) {
   z <- .tr_ml_metricas(y, pred, tarefa)
   i <- match(metrica, z$metrica)
@@ -57,6 +93,9 @@
 #'   numéricos, exceto `resposta`.
 #' @param modelo Família com hiperparâmetros: `"cart"`, `"figs"`, `"forest"`,
 #'   `"svm"` ou `"xgboost"`.
+#'   Com `"cart"`, cada ajuste inclui a poda 1-EP de [tr_ml_fit()], com sua
+#'   própria validação cruzada interna (até 10 ajustes extras); `cp` não entra
+#'   na busca porque a poda já o escolhe.
 #' @param tarefa Uma de `"auto"`, `"regressao"` ou `"classificacao"`. `"auto"`
 #'   interpreta resposta numérica como regressão.
 #' @param metrica Métrica compatível com a tarefa. `"auto"` usa `"rmse"` em
@@ -65,6 +104,14 @@
 #' @param folds Número inteiro de partições, a partir de dois. Não pode superar
 #'   o número de linhas nem o tamanho da menor classe.
 #' @param amplitude Limites `"conservadora"` ou `"ampla"` para a busca.
+#' @param estrategia Como formar os folds: `"aleatoria"` (padrão; estratificada
+#'   pela classe), `"grupo"` (grupos inteiros de `grupo` por fold) ou
+#'   `"temporal"` (origem móvel com janela crescente: os instantes de `ordem`
+#'   formam `folds + 1` blocos contíguos e cada fold valida o bloco seguinte ao
+#'   treino).
+#' @param ordem Coluna de tempo para `estrategia = "temporal"`.
+#' @param grupo Coluna de grupo para `estrategia = "grupo"`. Com `preditores` vazio,
+#'   `ordem` e `grupo` nunca entram como preditores.
 #' @param seed Inteiro entre zero e 2147483647. Controla folds, configurações e
 #'   ajustes sem alterar o estado aleatório da sessão.
 #' @return Objeto `tr_ml_tuning`: lista com o `modelo` vencedor reajustado (um
@@ -74,7 +121,8 @@
 #' @export
 tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
                        metrica = "auto", tentativas = 20L, folds = 5L,
-                       amplitude = "conservadora", seed = 42L) {
+                       amplitude = "conservadora", estrategia = "aleatoria",
+                       ordem = "", grupo = "", seed = 42L) {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   if (identical(modelo, "linear"))
     .tr_ml_abort("tr_ml_error_not_tunable", "O modelo linear n\u{E3}o possui hiperpar\u{E2}metros nesta cole\u{E7}\u{E3}o.")
@@ -82,27 +130,29 @@ tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", t
   folds <- .tr_ml_int(folds, "folds", 2L)
   seed <- .tr_ml_int(seed, "seed", 0L)
   amplitude <- .tr_ml_enum(amplitude, c("conservadora", "ampla"), "amplitude")
+  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
+  preditores <- .tr_ml_cols_sem_aux(dados, resposta, preditores, ordem, grupo)
   d <- .tr_ml_dados(dados, resposta, preditores, tarefa)
   if (folds > d$n) .tr_ml_abort("tr_ml_error_bad_folds", "'folds' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
   tarefa <- d$tarefa
   if (identical(metrica, "auto")) metrica <- if (tarefa == "regressao") "rmse" else "macro_f1"
   validas <- if (tarefa == "regressao") c("mae", "rmse", "r2") else
-    c("accuracy", "balanced_accuracy", "macro_f1")
+    c("accuracy", "balanced_accuracy", "macro_f1", "kappa", "weighted_f1")
   metrica <- .tr_ml_enum(metrica, validas, "metrica")
   minimizar <- metrica %in% c("mae", "rmse")
   space <- .tr_ml_tuning_space(modelo, length(d$preditores), amplitude)
 
   resultado <- .tr_ml_with_seed(seed, {
     y_folds <- if (tarefa == "classificacao") factor(dados[[d$resposta]]) else dados[[d$resposta]]
-    partes <- .tr_ml_make_folds(y_folds, folds)
+    partes <- .tr_ml_folds(dados, estrategia, folds, y_folds, ordem, grupo)
     configs <- lapply(seq_len(tentativas), function(i) .tr_ml_sample_config(space, modelo))
     linhas <- vector("list", tentativas)
     for (i in seq_len(tentativas)) {
       cfg <- configs[[i]]; valores <- numeric()
       erro <- NULL; avisos <- character(); inicio <- proc.time()[["elapsed"]]
-      for (validacao in partes) {
-        treino <- dados[-validacao, , drop = FALSE]
-        teste <- dados[validacao, , drop = FALSE]
+      for (parte in partes) {
+        treino <- dados[parte$treino, , drop = FALSE]
+        teste <- dados[parte$validacao, , drop = FALSE]
         args <- c(list(dados = treino, resposta = resposta, preditores = preditores, modelo = modelo,
                        tarefa = tarefa, seed = as.integer((as.double(seed) + i) %% .Machine$integer.max)), cfg)
         valor <- tryCatch(withCallingHandlers({
@@ -145,7 +195,63 @@ tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", t
     final$extras$tunado <- TRUE
     list(modelo = final, historico = historico,
          melhor_tentativa = melhor, metrica = metrica, minimizar = minimizar,
-         folds = folds, seed = seed)
+         folds = folds, estrategia = estrategia, seed = seed)
   })
   structure(resultado, class = "tr_ml_tuning")
+}
+
+#' Validação cruzada aninhada
+#'
+#' Estima o desempenho de todo o procedimento de ajuste — busca de
+#' hiperparâmetros incluída — sem reaproveitar as linhas que escolheram o
+#' vencedor (Varma & Simon 2006). Cada fold externo roda um [tr_ml_tune()]
+#' completo só no seu treino e mede o vencedor na sua validação, que a busca
+#' nunca viu.
+#' @inheritParams tr_ml_tune
+#' @param folds_externos Partições externas, a partir de dois.
+#' @param folds Partições internas de cada busca.
+#' @return Tibble com uma linha por fold externo (`fold`, `n_treino`,
+#'   `n_validacao`, `tentativa`, `interna` = média dos folds internos do
+#'   vencedor, otimista; `externa` = métrica na validação externa) e uma linha
+#'   final `fold = "media"` com as médias; a estimativa honesta é `externa`.
+#' @examples
+#' d <- tr_ml_example("iris_binaria")
+#' tr_ml_nested_cv(d, resposta = "Species", tentativas = 3, folds_externos = 3, folds = 3)
+#' @export
+tr_ml_nested_cv <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
+                            metrica = "auto", tentativas = 10L, folds_externos = 5L,
+                            folds = 3L, amplitude = "conservadora", estrategia = "aleatoria",
+                            ordem = "", grupo = "", seed = 42L) {
+  modelo <- .tr_ml_enum(modelo, c("cart", "figs", "forest", "svm", "xgboost"), "modelo")
+  folds_externos <- .tr_ml_int(folds_externos, "folds_externos", 2L)
+  seed <- .tr_ml_int(seed, "seed", 0L)
+  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
+  preditores <- .tr_ml_cols_sem_aux(dados, resposta, preditores, ordem, grupo)
+  d <- .tr_ml_dados(dados, resposta, preditores, tarefa)
+  tarefa <- d$tarefa
+  if (folds_externos > d$n)
+    .tr_ml_abort("tr_ml_error_bad_folds", "'folds_externos' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
+  partes <- .tr_ml_with_seed(seed, {
+    y <- if (tarefa == "classificacao") factor(dados[[d$resposta]]) else dados[[d$resposta]]
+    .tr_ml_folds(dados, estrategia, folds_externos, y, ordem, grupo)
+  })
+  linhas <- lapply(seq_along(partes), function(i) {
+    parte <- partes[[i]]
+    treino <- dados[parte$treino, , drop = FALSE]
+    validacao <- dados[parte$validacao, , drop = FALSE]
+    z <- tr_ml_tune(treino, resposta = resposta, preditores = preditores, modelo = modelo, tarefa = tarefa,
+                    metrica = metrica, tentativas = tentativas, folds = folds,
+                    amplitude = amplitude, estrategia = estrategia, ordem = ordem, grupo = grupo,
+                    seed = as.integer((as.double(seed) + i) %% .Machine$integer.max))
+    # A previsão crua do contrato (antes, a extinta `ml/predict`).
+    pred <- .tr_ml_prever(z$modelo, .tr_ml_novos_dados(z$modelo, validacao))$previsto
+    tibble::tibble(fold = as.character(i), n_treino = nrow(treino), n_validacao = nrow(validacao),
+                   tentativa = z$melhor_tentativa, metrica = z$metrica,
+                   interna = z$historico$media[[z$melhor_tentativa]],
+                   externa = .tr_ml_tune_metric(validacao[[d$resposta]], pred, tarefa, z$metrica))
+  })
+  out <- do.call(rbind, linhas)
+  rbind(out, tibble::tibble(fold = "media", n_treino = NA_integer_, n_validacao = NA_integer_,
+                            tentativa = NA_integer_, metrica = out$metrica[[1]],
+                            interna = mean(out$interna), externa = mean(out$externa)))
 }

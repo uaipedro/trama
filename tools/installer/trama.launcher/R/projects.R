@@ -257,6 +257,7 @@ tl_project_open <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
   unlink(pid_file)
   cmd <- sprintf(
     paste0(
+      "Sys.setenv(TRAMA_LAUNCHER = \"1\"); ",
       "writeLines(as.character(Sys.getpid()), %s); ",
       ".libPaths(c(%s, .Library)); ",
       "trama::tr_app(trama::tr_project(%s), port = %d, options = list(launch.browser = FALSE))"

@@ -1,0 +1,81 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Média por grupo",
+  "descricao": "Ozônio médio e número de dias medidos em cada mês de airquality.",
+  "colecoes": ["trama.data"],
+  "doc": {
+    "format": 1,
+    "rev": 5,
+    "collections": {
+      "data": "0.1.0"
+    },
+    "nodes": {
+      "ar": {
+        "type": "data/example",
+        "type_version": 1,
+        "label": "Dados de exemplo",
+        "params": {
+          "dataset": "airquality"
+        },
+        "seed": 2145758
+      },
+      "medidos": {
+        "type": "data/filter",
+        "type_version": 2,
+        "label": "Filtrar",
+        "params": {
+          "expr": "!is.na(Ozone)"
+        },
+        "seed": 31981594
+      },
+      "mensal": {
+        "type": "data/group_summarise",
+        "type_version": 1,
+        "label": "Agrupar e resumir",
+        "params": {
+          "by": "Month",
+          "name": "ozonio_medio, dias",
+          "expr": "mean(Ozone), dplyr::n()"
+        },
+        "seed": 52807229
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "ar",
+          "port": "out"
+        },
+        "to": {
+          "node": "medidos",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "medidos",
+          "port": "out"
+        },
+        "to": {
+          "node": "mensal",
+          "port": "dados"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "ar": [0, 0],
+        "medidos": [360, 0],
+        "mensal": [720, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

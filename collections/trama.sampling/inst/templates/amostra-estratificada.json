@@ -1,0 +1,100 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Amostra estratificada",
+  "descricao": "Amostra de 240 fazendas estratificada por região e média de produção por estrato.",
+  "colecoes": ["trama.sampling"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "sampling": "0.1.0"
+    },
+    "nodes": {
+      "pop": {
+        "type": "sampling/example",
+        "type_version": 1,
+        "label": "Exemplo de amostragem",
+        "params": {
+          "dataset": "fazendas"
+        },
+        "seed": 12233599
+      },
+      "amostra": {
+        "type": "sampling/stratified",
+        "type_version": 1,
+        "label": "Estratificada",
+        "params": {
+          "estrato": "regiao",
+          "n": 240
+        },
+        "seed": 208080183
+      },
+      "media": {
+        "type": "sampling/mean",
+        "type_version": 1,
+        "label": "Média",
+        "params": {
+          "variavel": "producao_t",
+          "por": "regiao"
+        },
+        "seed": 61793873
+      },
+      "grafico": {
+        "type": "sampling/plot_estimates",
+        "type_version": 1,
+        "label": "Gráfico de estimativas",
+        "params": {},
+        "seed": 265575397
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "pop",
+          "port": "out"
+        },
+        "to": {
+          "node": "amostra",
+          "port": "populacao"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "amostra",
+          "port": "out"
+        },
+        "to": {
+          "node": "media",
+          "port": "amostra"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "media",
+          "port": "out"
+        },
+        "to": {
+          "node": "grafico",
+          "port": "estimativa"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "pop": [0, 0],
+        "amostra": [360, 0],
+        "media": [720, 0],
+        "grafico": [1080, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

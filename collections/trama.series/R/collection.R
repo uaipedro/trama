@@ -65,6 +65,9 @@ trama_collection <- function() {
 
   trama::tr_collection(
     id = "series", version = "0.1.0", label = "Séries temporais",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.series")),
+    # Sem `js`: o card do teste era o único script da coleção, e o tipo de teste
+    # agora é o `data/test` (registrado pela `data`).
     types = list(series_ts_type(), series_decomposition_type(), series_model_type(),
                  series_forecast_type(), series_regression_type()),
     adapters = .tr_series_adapters(),
@@ -631,7 +634,10 @@ frequências; `series/window` para escolher o período à mão.
 
 # ---- Decompor ---------------------------------------------------------------
 
-      trama::tr_node("series/decompose", fn = tr_series_decompose, label = "Decomposição clássica",
+      trama::tr_node("series/decompose",
+        pressupostos = .tr_series_doc("series/decompose")$pressupostos,
+        referencias = .tr_series_doc("series/decompose")$referencias,
+        fn = tr_series_decompose, label = "Decomposição clássica",
         category = "serie_decompor", icon = icone("layers-2"),
         description = "Separa tendência, sazonalidade e resto por médias móveis.",
         inputs = list(serie = S), outputs = list(out = D),
@@ -677,7 +683,10 @@ título do gráfico; `series/regression`, que estima os mesmos componentes e, po
 estimá-los, dá coeficiente e p-valor a cada um.
 ]---")),
 
-      trama::tr_node("series/stl", fn = tr_series_stl, label = "Decomposição STL",
+      trama::tr_node("series/stl",
+        pressupostos = .tr_series_doc("series/stl")$pressupostos,
+        referencias = .tr_series_doc("series/stl")$referencias,
+        fn = tr_series_stl, label = "Decomposição STL",
         category = "serie_decompor", icon = icone("layers"),
         description = "Decomposição por suavização local: sazonalidade que muda devagar, robusta a outlier.",
         inputs = list(serie = S), outputs = list(out = D),
@@ -772,7 +781,10 @@ tr_flow(reg) |>
 p-valor por componente; `series/ljung_box` para testar o resto.
 ]---")),
 
-      trama::tr_node("series/regression", fn = tr_series_regression, label = "Regressão dos componentes",
+      trama::tr_node("series/regression",
+        pressupostos = .tr_series_doc("series/regression")$pressupostos,
+        referencias = .tr_series_doc("series/regression")$referencias,
+        fn = tr_series_regression, label = "Regressão dos componentes",
         category = "serie_decompor", icon = icone("trending-up"),
         description = "Estima tendência e sazonalidade por regressão, com coeficientes e p-valores.",
         inputs = list(serie = S, regressor = trama::tr_port(S, required = FALSE)),
@@ -780,7 +792,10 @@ p-valor por componente; `series/ljung_box` para testar o resto.
         params = list(grau = I(1L, min = 0L, max = 3L, label = "Grau da tendência"),
                       sazonalidade = B(TRUE, label = "Sazonalidade"),
                       contraste = E("soma_zero", c("soma_zero", "categoria_base"),
-                                    label = "Contraste")),
+                                    label = "Contraste"),
+                      erro = E("independente", c("independente", "arma"), label = "Erro"),
+                      ar = I(1L, min = 0L, max = 3L, label = "Ordem AR do erro"),
+                      ma = I(0L, min = 0L, max = 3L, label = "Ordem MA do erro")),
         help = .tr_series_ajuda(r"---[
 Ajusta um modelo EXPLÍCITO para os componentes da série:
 
@@ -814,6 +829,24 @@ Em ambos, o componente sazonal devolvido é centrado em zero e a tendência
 absorve a média — senão a mesma série daria duas decomposições diferentes por
 causa de uma escolha de leitura.
 
+### Erro autocorrelacionado
+
+O padrão (**Erro = independente**) é mínimos quadrados ordinários, que supõe
+erros independentes. Em série temporal o erro quase sempre é autocorrelacionado,
+e aí os erros-padrão saem pequenos demais e os p-valores — dos coeficientes e dos
+três F — OTIMISTAS. Confira: `series/component` (`resto`) → `series/ljung_box`.
+
+**Erro = arma** ajusta a mesma regressão por mínimos quadrados generalizados com
+erro ARMA(p, q) (`nlme::gls` com `corARMA`, por máxima verossimilhança), com
+**Ordem AR do erro** = p e **Ordem MA do erro** = q; AR(1) é o ponto de partida
+usual. Os coeficientes passam a ser os do GLS, e os três F viram testes de Wald
+com a covariância do GLS (a `nota` do teste diz). Medido sem tendência nenhuma e
+com erro AR(1) de phi = 0.6 (n = 120, 300 réplicas), o F de tendência rejeita a
+5% em 37% das vezes por MQO e em 8% pelo GLS; com phi = 0.9 são 69% e 17% — perto
+da raiz unitária o GLS melhora muito, mas ainda passa do nominal, e o caminho é
+diferenciar a série. O R² e o F do `summary` do MQO não existem no GLS: o card
+mostra o resumo do `gls`.
+
 ### Limites
 
 O bloco não aceita faltantes, e sazonalidade pede frequência maior que 1. Grau 0
@@ -844,9 +877,6 @@ nível (como em `AirPassengers`), passe a série por `series/transform` com
 `log` antes: no log, o efeito multiplicativo vira soma, e os componentes
 estimados são fatores quando voltam da exponencial.
 
-O modelo supõe erro sem autocorrelação, e série temporal quase nunca obedece:
-confira o resto com `series/ljung_box` antes de levar os p-valores a sério.
-
 As potências do tempo são cruas (`t`, `t²`, `t³`) e fortemente
 correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
 tem número de condição de 7,3 milhões, e `t³` sai com p = 0,46 enquanto o F do
@@ -863,6 +893,9 @@ logo depois do último ponto. Para prever, `series/arima` ou `series/ets`.
 - **Sazonalidade** — inclui as dummies de período.
 - **Contraste** — `soma_zero` ou `categoria_base`.
 - **regressor** (entrada, opcional) — uma série usada como covariável.
+- **Erro** — `independente` (MQO, padrão) ou `arma` (GLS com erro ARMA).
+- **Ordem AR do erro** e **Ordem MA do erro** — p e q do erro ARMA, de 0 a 3
+  (não os dois zero). Só valem com `arma`.
 ]---", r"---[
 Uma regressão (`series/regression`): o card traz o resumo do ajuste.
 `series/f_global`, `series/f_seasonal` e `series/f_trend` testam os blocos;
@@ -884,7 +917,10 @@ oscilação cresce com o nível.
 
 # ---- Modelar ----------------------------------------------------------------
 
-      trama::tr_node("series/arima", fn = tr_series_arima, label = "ARIMA",
+      trama::tr_node("series/arima",
+        pressupostos = .tr_series_doc("series/arima")$pressupostos,
+        referencias = .tr_series_doc("series/arima")$referencias,
+        fn = tr_series_arima, label = "ARIMA",
         category = "serie_modelar", icon = icone("sigma"),
         description = "Ajusta um ARIMA sazonal, automático ou com a ordem escolhida.",
         inputs = list(serie = S), outputs = list(out = M),
@@ -951,7 +987,10 @@ diagnosticar; `series/ndiffs`, `series/acf` e `series/pacf` para escolher a
 ordem à mão; `series/ets` para a alternativa por suavização exponencial.
 ]---")),
 
-      trama::tr_node("series/ets", fn = tr_series_ets, label = "ETS",
+      trama::tr_node("series/ets",
+        pressupostos = .tr_series_doc("series/ets")$pressupostos,
+        referencias = .tr_series_doc("series/ets")$referencias,
+        fn = tr_series_ets, label = "ETS",
         category = "serie_modelar", icon = icone("waves-horizontal"),
         description = "Suavização exponencial em espaço de estados (erro, tendência, sazonalidade).",
         inputs = list(serie = S), outputs = list(out = M),
@@ -1001,7 +1040,10 @@ tr_flow(reg) |>
 grande família; `series/baseline` para a referência que o modelo tem de bater.
 ]---")),
 
-      trama::tr_node("series/holt_winters", fn = tr_series_holt_winters, label = "Holt-Winters",
+      trama::tr_node("series/holt_winters",
+        pressupostos = .tr_series_doc("series/holt_winters")$pressupostos,
+        referencias = .tr_series_doc("series/holt_winters")$referencias,
+        fn = tr_series_holt_winters, label = "Holt-Winters",
         category = "serie_modelar", icon = icone("trending-up-down"),
         description = "Suavização exponencial clássica com nível, tendência e sazonalidade.",
         inputs = list(serie = S), outputs = list(out = M),
@@ -1036,7 +1078,10 @@ tr_flow(reg) |>
 `series/ets`, a versão em espaço de estados; `series/forecast` para prever.
 ]---")),
 
-      trama::tr_node("series/forecast", role = "leitura", fn = tr_series_forecast, label = "Prever",
+      trama::tr_node("series/forecast",
+        pressupostos = .tr_series_doc("series/forecast")$pressupostos,
+        referencias = .tr_series_doc("series/forecast")$referencias,
+        role = "leitura", fn = tr_series_forecast, label = "Prever",
         category = "serie_modelar", icon = icone("trending-up"),
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
         inputs = list(modelo = M), outputs = list(out = F),
@@ -1052,8 +1097,7 @@ de 12 para 24 recomputa só este card.
 Os intervalos são o ponto. Uma previsão sem leque diz "vai dar 450"; com o
 leque, diz "entre 390 e 520 com 95% de chance" — e o leque ABRE com o
 horizonte, que é a informação mais honesta que um modelo dá sobre o próprio
-limite. Eles supõem resíduos sem autocorrelação e com variância constante:
-confira com `series/residuals` → `series/ljung_box` antes de confiar.
+limite. O que eles supõem está em Pressupostos, logo abaixo.
 
 Os níveis são sempre 80 e 95, porque são os que o gráfico e a tabela nomeiam
 (`li_80`, `ls_95`); um fluxo que filtra por `ls_95` não quebra.
@@ -1078,7 +1122,10 @@ tr_flow(reg) |>
 para exportar.
 ]---")),
 
-      trama::tr_node("series/baseline", fn = tr_series_baseline, label = "Previsão de referência",
+      trama::tr_node("series/baseline",
+        pressupostos = .tr_series_doc("series/baseline")$pressupostos,
+        referencias = .tr_series_doc("series/baseline")$referencias,
+        fn = tr_series_baseline, label = "Previsão de referência",
         category = "serie_modelar", icon = icone("repeat"),
         description = "Média, ingênuo, ingênuo sazonal ou deriva: o que qualquer modelo tem de bater.",
         inputs = list(serie = S), outputs = list(out = F),
@@ -1154,7 +1201,10 @@ tr_flow(reg) |>
 a forma da distribuição.
 ]---")),
 
-      trama::tr_node("series/accuracy", role = "avaliacao", fn = tr_series_accuracy, label = "Acurácia",
+      trama::tr_node("series/accuracy",
+        pressupostos = .tr_series_doc("series/accuracy")$pressupostos,
+        referencias = .tr_series_doc("series/accuracy")$referencias,
+        role = "avaliacao", fn = tr_series_accuracy, label = "Acurácia",
         category = "serie_modelar", icon = icone("square-sigma"),
         description = "Medidas de erro da previsão: no treino e, com a série real, no teste.",
         inputs = list(previsao = F, real = trama::tr_port(S, required = FALSE)),
@@ -1211,7 +1261,10 @@ referência; `data/bind_rows` para comparar vários modelos numa tabela.
 
 # ---- Testar: raiz unitária --------------------------------------------------
 
-      trama::tr_node("series/adf", fn = tr_series_adf, label = "ADF",
+      trama::tr_node("series/adf",
+        pressupostos = .tr_series_doc("series/adf")$pressupostos,
+        referencias = .tr_series_doc("series/adf")$referencias,
+        fn = tr_series_adf, label = "ADF",
         category = "serie_raiz", icon = icone("test-tube"),
         description = "Dickey-Fuller Aumentado: a série tem raiz unitária?",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1273,7 +1326,10 @@ tende a não rejeitar nesse caso, e lá a quebra é estimada e o veredito muda;
 fazê-las.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/kpss", fn = tr_series_kpss, label = "KPSS",
+      trama::tr_node("series/kpss",
+        pressupostos = .tr_series_doc("series/kpss")$pressupostos,
+        referencias = .tr_series_doc("series/kpss")$referencias,
+        fn = tr_series_kpss, label = "KPSS",
         category = "serie_raiz", icon = icone("test-tubes"),
         description = "KPSS: a série é estacionária? (H0 é a estacionariedade)",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1334,12 +1390,17 @@ tr_flow(reg) |>
 a série pede; `series/diff` para fazê-las.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/phillips_perron", fn = tr_series_phillips_perron,
+      trama::tr_node("series/phillips_perron",
+        pressupostos = .tr_series_doc("series/phillips_perron")$pressupostos,
+        referencias = .tr_series_doc("series/phillips_perron")$referencias,
+        fn = tr_series_phillips_perron, version = 3L,
         label = "Phillips-Perron",
         category = "serie_raiz", icon = icone("flask-conical"),
         description = "Phillips-Perron: a série tem raiz unitária?",
         inputs = list(serie = S), outputs = list(out = TE),
-        params = list(),
+        params = list(
+          deterministico = E("tendência", c("constante", "tendência"),
+                             label = "Termos determinísticos")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem RAIZ UNITÁRIA, a mesma hipótese nula do `series/adf`.
 Muda o caminho: em vez de acrescentar defasagens à regressão para limpar a
@@ -1355,21 +1416,43 @@ estacionária) — é quando os dois concordam que a conclusão tem chão.
 
 ### O p-valor preso na borda
 
-O p-valor sai de uma tabela interpolada que vai de 0,01 a 0,99. Fora dela, o
-valor é PRESO na borda, sem aviso nenhum: um `0,01` quer dizer "0,01 ou
+Com **tendência**, o p-valor sai de uma tabela interpolada que vai de 0,01 a
+0,99. Fora dela, o valor é PRESO na borda: um `0,01` quer dizer "0,01 ou
 menos", e um `0,99`, "0,99 ou mais". Quando isso acontece, a `nota` do teste
 diz. A decisão a 5% não muda com isso — a ressalva está lá para quem for
-reportar o número.
+reportar o número. Com **constante**, o p-valor vem da superfície de resposta
+de MacKinnon (1996), que não tem borda.
 
-Os termos determinísticos não são parâmetro: o teste do `stats` roda sempre
-com constante e tendência.
+### Série curta
+
+Abaixo de 25 observações o teste rejeita mais do que o nível nominal — o
+excesso é do próprio Z(t) em amostra pequena, não só da tabela —, e a `nota`
+avisa. Medido sob passeio aleatório: com 12 observações, até 10% de rejeição
+a 5%.
+
+### Termos determinísticos
+
+- **tendência** (padrão) — constante e tendência linear na regressão: a
+  alternativa é "estacionária em torno de uma reta". É o `stats::PP.test`, e o
+  que o bloco fazia na versão 1.
+- **constante** — só constante: a alternativa é "estacionária em torno de um
+  nível". Em série sem tendência tem MAIS poder, porque não gasta um parâmetro
+  com uma reta que não existe (Phillips & Perron, 1988). O Z(t) é a forma geral
+  (Hamilton, 1994, eq. 17.6.8) com as convenções do `PP.test` — janela curta de
+  Newey-West, trunc(4·(n/100)^(1/4)) —, conferido contra `aTSA::pp.test`; o
+  p-valor é o de MacKinnon (1996), o mesmo do `urca`.
+
+Escolher pelo gráfico, ANTES de olhar o resultado: série que sobe ou desce de
+forma regular pede `tendência`; série que oscila em torno de um nível pede
+`constante`. Numa série com tendência, `constante` confunde a tendência com
+raiz unitária.
 
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue
 um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum.
+- **Termos determinísticos** — `tendência` (padrão) ou `constante`.
 ]---", r"---[
 Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só quadro.
@@ -1386,7 +1469,10 @@ o de hipótese nula oposta; `series/ndiffs` para quantas diferenças a série
 pede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/zivot_andrews", fn = tr_series_zivot_andrews,
+      trama::tr_node("series/zivot_andrews",
+        pressupostos = .tr_series_doc("series/zivot_andrews")$pressupostos,
+        referencias = .tr_series_doc("series/zivot_andrews")$referencias,
+        fn = tr_series_zivot_andrews, version = 2L,
         label = "Zivot-Andrews",
         category = "serie_raiz", icon = icone("split"),
         description = "Zivot-Andrews: raiz unitária, com a quebra achada pelo próprio teste?",
@@ -1394,7 +1480,8 @@ pede.
         params = list(
           mudanca = E("ambas", c("nível", "inclinação", "ambas"),
                       label = "O que quebra"),
-          defasagens = I(0L, min = 0L, max = 50L, label = "Defasagens")),
+          defasagens = I(0L, min = 0L, max = 50L, label = "Defasagens"),
+          selecao = E("t_sig", c("t_sig", "fixa"), label = "Escolha das defasagens")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem RAIZ UNITÁRIA admitindo que ela possa ter sofrido uma
 QUEBRA ESTRUTURAL — e achando a data da quebra sozinho.
@@ -1479,11 +1566,26 @@ palavras; a posição da quebra e o rótulo do período vão nas colunas extras.
 p-valor a partir dela seria inventar precisão que o pacote não dá. A decisão a
 5% vem do valor crítico.
 
-**Defasagens**: quantas diferenças defasadas entram na regressão. `0` usa a
-regra de sempre (a raiz cúbica de n - 1). Diferente do `series/adf`, aqui não há
-escolha por AIC: o número vale como foi dado. Defasagem demais numa série curta
-deixa a regressão da quebra sem graus de liberdade, e nesse caso o bloco recusa
-dizendo qual é o máximo — sem isso o `urca` morreria com um erro cru do R.
+**Defasagens**: quantas diferenças defasadas entram na regressão, e como se
+chega ao número — é o que limpa a autocorrelação do erro, e a tabela de
+críticos supõe que ela foi limpa.
+
+- **Escolha das defasagens = t_sig** (padrão desde a versão 2) — a regra do
+  artigo: do geral para o específico (Perron, 1989; Zivot & Andrews, 1992).
+  Parte do teto e, enquanto o t da ÚLTIMA diferença defasada não for
+  significativo a 10% (|t| < 1.645), tira uma; o t é lido na regressão do corte
+  que o teste escolhe com aquele número. **Defasagens** é o teto; `0` usa a
+  regra de Schwert (1989), trunc(12·(n/100)^(1/4)), limitada ao que a série
+  comporta. A `nota` diz quantas ficaram e qual foi o teto.
+- **fixa** — o número vale como foi dado, sem busca; `0` usa a regra da versão
+  1 (a raiz cúbica de n - 1).
+
+Um teto (ou número fixo) grande demais para uma série curta deixa a regressão
+da quebra sem graus de liberdade, e nesse caso o bloco recusa dizendo qual é o
+máximo — sem isso o `urca` morreria com um erro cru do R.
+
+Com k = 8 fixo, o bloco reproduz o artigo no PNB real de Nelson e Plosser
+(1909-1970, em log, `urca::nporg`), modelo de nível: t = -5.58, quebra em 1929.
 
 ### Precisa de série, e de série que chegue
 
@@ -1535,7 +1637,10 @@ apontou antes de acreditar nela.
 
 # ---- Testar: autocorrelação -------------------------------------------------
 
-      trama::tr_node("series/ljung_box", fn = tr_series_ljung_box, label = "Ljung-Box",
+      trama::tr_node("series/ljung_box",
+        pressupostos = .tr_series_doc("series/ljung_box")$pressupostos,
+        referencias = .tr_series_doc("series/ljung_box")$referencias,
+        fn = tr_series_ljung_box, label = "Ljung-Box",
         category = "serie_autocorr", icon = icone("audio-waveform"),
         description = "Ljung-Box: a série é ruído branco, ou sobrou autocorrelação?",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1601,7 +1706,10 @@ defasagem está a autocorrelação; `series/box_pierce`, o mesmo teste sem a
 correção de amostra pequena.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/box_pierce", fn = tr_series_box_pierce, label = "Box-Pierce",
+      trama::tr_node("series/box_pierce",
+        pressupostos = .tr_series_doc("series/box_pierce")$pressupostos,
+        referencias = .tr_series_doc("series/box_pierce")$referencias,
+        fn = tr_series_box_pierce, label = "Box-Pierce",
         category = "serie_autocorr", icon = icone("activity"),
         description = "Box-Pierce: a série é ruído branco? (a fórmula original, sem correção)",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1666,7 +1774,10 @@ defasagem está a autocorrelação.
 
 # ---- Testar: os F da regressão ----------------------------------------------
 
-      trama::tr_node("series/f_global", fn = tr_series_f_global, label = "F global",
+      trama::tr_node("series/f_global",
+        pressupostos = .tr_series_doc("series/f_global")$pressupostos,
+        referencias = .tr_series_doc("series/f_global")$referencias,
+        fn = tr_series_f_global, label = "F global",
         category = "serie_regressao", icon = icone("sigma"),
         description = "Teste F do modelo inteiro: a regressão explica alguma coisa?",
         inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
@@ -1690,13 +1801,6 @@ um continuam disponíveis: ligue a regressão num nó da `data`.
 Numa regressão sem sazonalidade (ou de grau 0), o modelo tem um bloco de
 termos apenas — e aí o F global e o F parcial daquele bloco são o MESMO teste.
 Os dois cards mostram números idênticos. É esperado, não é defeito.
-
-### Antes de citar o p-valor
-
-O teste supõe erro sem autocorrelação. Série temporal quase nunca obedece, e o
-efeito é conhecido: o p-valor sai otimista demais. Extraia o resto com
-`series/component` e passe pelo `series/ljung_box`; se houver autocorrelação,
-os p-valores daqui são indicativos, não conclusivos.
 ]---", r"---[
 Nenhum. Uma entrada: **ajuste**, vindo de `series/regression`.
 ]---", r"---[
@@ -1713,7 +1817,10 @@ tr_flow(reg) |>
 autocorrelação do resto.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/f_seasonal", fn = tr_series_f_sazonal, label = "F do bloco sazonal",
+      trama::tr_node("series/f_seasonal",
+        pressupostos = .tr_series_doc("series/f_seasonal")$pressupostos,
+        referencias = .tr_series_doc("series/f_seasonal")$referencias,
+        fn = tr_series_f_sazonal, label = "F do bloco sazonal",
         category = "serie_regressao", icon = icone("calendar-range"),
         description = "Teste F do bloco sazonal da regressão: há sazonalidade?",
         inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
@@ -1754,7 +1861,10 @@ modelo inteiro; `series/seasonal_plot` para ver a sazonalidade que o teste
 mede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/f_trend", fn = tr_series_f_tendencia,
+      trama::tr_node("series/f_trend",
+        pressupostos = .tr_series_doc("series/f_trend")$pressupostos,
+        referencias = .tr_series_doc("series/f_trend")$referencias,
+        fn = tr_series_f_tendencia,
         label = "F do bloco de tendência",
         category = "serie_regressao", icon = icone("trending-up-down"),
         description = "Teste F do bloco de tendência da regressão: há tendência?",
@@ -1802,11 +1912,16 @@ inteiro; `series/regression`, que produz o ajuste.
 
 # ---- Testar: tendência ------------------------------------------------------
 
-      trama::tr_node("series/mann_kendall", fn = tr_series_mann_kendall,
+      trama::tr_node("series/mann_kendall",
+        pressupostos = .tr_series_doc("series/mann_kendall")$pressupostos,
+        referencias = .tr_series_doc("series/mann_kendall")$referencias,
+        fn = tr_series_mann_kendall,
         label = "Mann-Kendall",
         category = "serie_tendencia", icon = icone("trending-up"),
         description = "Mann-Kendall: a série tem tendência?",
-        inputs = list(serie = S), outputs = list(out = TE), params = list(),
+        inputs = list(serie = S), outputs = list(out = TE),
+        params = list(correcao = E("nenhuma", c("nenhuma", "hamed_rao", "pre_branqueamento"),
+                                   label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem TENDÊNCIA. É o teste de tendência mais usado em
 climatologia — chuva, vazão, temperatura —, e o que se espera encontrar num
@@ -1853,12 +1968,46 @@ sobre uma contagem de símbolos: dez observações já rendem quarenta e cinco
 comparações, enquanto o `series/runs`, que depende do corte pela mediana, só
 alcança a normal dele com quarenta observações.
 
+### Série autocorrelacionada: a **Correção**
+
+O teste supõe observações independentes, e série ambiental quase nunca é:
+com autocorrelação positiva o S varia mais do que a fórmula diz, e o teste
+rejeita bem acima dos 5% nominais. Duas correções publicadas:
+
+- **nenhuma** — o teste de Mann (1945), como na dissertação. É o padrão.
+- **hamed_rao** — Hamed & Rao (1998): o mesmo S, com a variância multiplicada
+  por n/n*, calculado das autocorrelações dos POSTOS da série sem a tendência
+  de Sen, só as significativas a 5%. A `nota` traz o n/n*: acima de 1, a
+  autocorrelação alargou a variância e o Z encolheu.
+- **pre_branqueamento** — Yue et al. (2002), o pré-branqueamento livre de
+  tendência: tira a tendência de Sen, remove o AR(1) do resto pelo r1, devolve
+  a tendência e testa a série resultante (uma observação a menos; pede 11).
+  A `nota` traz o r1.
+
+As duas seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
+Nenhuma devolve o nível nominal. Medido em série SEM tendência, erro AR(1)
+forte (phi de seis décimos) e 60 observações (2000 réplicas), o teste a 5% rejeitou em 31%
+das vezes sem correção, 21% com `hamed_rao` e 39% com `pre_branqueamento`; em
+ruído branco, 5%, 9% e 5%. A página do site traz a tabela inteira.
+
+O Hamed-Rao reduz o excesso quando a autocorrelação é forte, mas não o
+elimina e custa um pouco em ruído branco; o pré-branqueamento livre de
+tendência PIORA o nível, como Hamed (2009) já apontava — a tendência de Sen
+estimada na série autocorrelacionada volta somada. Use-o para reproduzir um
+trabalho que o aplicou, não como remédio. Em raros casos (até 1% das réplicas
+acima) a soma do Hamed-Rao sai negativa e o bloco recusa em vez de devolver
+NaN. Com autocorrelação forte, prefira modelar o erro (`series/regression` com
+**Erro** = `arma` e o `series/f_trend`).
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum. Uma entrada: **serie**.
+- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao` ou
+  `pre_branqueamento`.
+
+Uma entrada: **serie**.
 ]---", r"---[
 Um teste (`data/test`), com o S numa coluna extra. Ligado numa entrada de
 tabela, ele vira UMA linha de relatório: um `data/bind_rows` junta vários testes
@@ -1866,7 +2015,8 @@ num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
-  tr_add("mk", "series/mann_kendall", from = "nilo")
+  tr_add("mk", "series/mann_kendall", from = "nilo") |>
+  tr_add("mk_hr", "series/mann_kendall", correcao = "hamed_rao", from = "nilo")
 ]---", r"---[
 `series/f_trend`, a mesma pergunta pela regressão; `series/adf` e
 `series/kpss`, que perguntam por estacionariedade e não por tendência;
@@ -1874,7 +2024,10 @@ tr_flow(reg) |>
 `series/example` para uma série com tendência à mão.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/cox_stuart", fn = tr_series_cox_stuart,
+      trama::tr_node("series/cox_stuart",
+        pressupostos = .tr_series_doc("series/cox_stuart")$pressupostos,
+        referencias = .tr_series_doc("series/cox_stuart")$referencias,
+        fn = tr_series_cox_stuart,
         label = "Cox-Stuart",
         category = "serie_tendencia", icon = icone("arrow-up-down"),
         description = "Cox-Stuart: a série tem tendência?",
@@ -1968,7 +2121,10 @@ pela regressão; `series/plot` para ver se o movimento é mesmo de um sentido s�
 `series/example` para uma série com tendência à mão.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/runs", fn = tr_series_runs,
+      trama::tr_node("series/runs",
+        pressupostos = .tr_series_doc("series/runs")$pressupostos,
+        referencias = .tr_series_doc("series/runs")$referencias,
+        fn = tr_series_runs,
         label = "Run",
         category = "serie_tendencia", icon = icone("shuffle"),
         description = "Run (Wald-Wolfowitz): a série é aleatória?",
@@ -2043,7 +2199,10 @@ jeito a aleatoriedade falhou; `series/ljung_box`, que também pergunta se a sér
 é ruído, mas pela autocorrelação.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/pettitt", fn = tr_series_pettitt,
+      trama::tr_node("series/pettitt",
+        pressupostos = .tr_series_doc("series/pettitt")$pressupostos,
+        referencias = .tr_series_doc("series/pettitt")$referencias,
+        fn = tr_series_pettitt,
         label = "Pettitt",
         category = "serie_tendencia", icon = icone("milestone"),
         description = "Pettitt: a série tem um ponto de mudança?",
@@ -2130,7 +2289,10 @@ paramétricos da categoria; `series/plot` para ver a quebra que o teste apontou;
 
 # ---- Sazonalidade -----------------------------------------------------------
 
-      trama::tr_node("series/seasonality_kw", fn = tr_series_kruskal_wallis,
+      trama::tr_node("series/seasonality_kw",
+        pressupostos = .tr_series_doc("series/seasonality_kw")$pressupostos,
+        referencias = .tr_series_doc("series/seasonality_kw")$referencias,
+        fn = tr_series_kruskal_wallis,
         label = "Sazonalidade (Kruskal-Wallis)",
         category = "serie_sazonal", icon = icone("calendar-days"),
         description = "Kruskal-Wallis: a série tem sazonalidade?",
@@ -2245,11 +2407,15 @@ variância e que NÃO muda este teste; `series/seasonal_plot` e `series/subserie
 para ver a sazonalidade que o teste mede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/periodicity_fisher", fn = tr_series_fisher,
+      trama::tr_node("series/periodicity_fisher",
+        pressupostos = .tr_series_doc("series/periodicity_fisher")$pressupostos,
+        referencias = .tr_series_doc("series/periodicity_fisher")$referencias,
+        fn = tr_series_fisher, version = 2L,
         label = "Periodicidade (Fisher)",
         category = "serie_sazonal", icon = icone("signal"),
         description = "Fisher: existe uma periodicidade escondida?",
-        inputs = list(serie = S), outputs = list(out = TE), params = list(),
+        inputs = list(serie = S), outputs = list(out = TE),
+        params = list(remover = E("reta", c("reta", "media"), label = "Remover antes")),
         help = .tr_series_ajuda(r"---[
 Procura uma PERIODICIDADE ESCONDIDA. Decompõe a série nas ondas de todos os
 períodos que ela comporta — o periodograma — e pergunta se o MAIOR pico é maior
@@ -2271,12 +2437,12 @@ e não sabe qual, usa este.
 ELE ESTEJA, e nem todo pico é estação. Cinco séries do R, medidas:
 
 ```
-série            n      g       zα (5%)   p            período do pico
-AirPassengers   72   0.5017    0.0974    2.392e-20     12 observações
-UKgas           54   0.5531    0.1235    1.566e-17      4 observações
-nottem         120   0.9130    0.0633    7.636e-125    12 observações
-lh              24   0.2344    0.2354    5.158e-02      8 observações
-Nile            50   0.1781    0.1315    3.356e-03    100 observações
+série            m      g       zα (5%)   p            período do pico
+AirPassengers   71   0.5019    0.0984    4.627e-20     12 observações
+UKgas           53   0.5531    0.1252    3.434e-17      4 observações
+nottem         119   0.9140    0.0636    2.268e-124    12 observações
+lh              23   0.2357    0.2432    6.193e-02      8 observações
+Nile            49   0.1833    0.1335    2.944e-03    100 observações
 ```
 
 O `Nile` REJEITA — e não tem sazonalidade nenhuma. Olhe o período: 100
@@ -2287,10 +2453,20 @@ da série: poucas observações por ciclo e muitos ciclos, como os 12 do
 `AirPassengers`. O primeiro período da grade, N, é justamente o contrário — um
 ciclo só, que é tendência e não estação —, e é nele que o `Nile` caiu.
 
-Em série de tamanho par a grade inclui ainda o último período, de duas
-observações. Ele entra na soma do g como os outros; tirá-lo não muda a decisão
-no `lh`, o caso mais apertado da tabela (o p vai de 0.052 para 0.062, e segue
-sem rejeitar).
+`m` é o número de ordenadas que entram no g: as m = (N − 1) ÷ 2 (inteiro)
+frequências de Fourier, sem a frequência zero e sem a de Nyquist — em série de
+tamanho par, o período de duas observações fica de fora, porque a ordenada dele
+tem metade dos graus de liberdade das outras e a distribuição de g supõe todas
+iguais (Fisher, 1929). Até a versão 1 do bloco ela entrava na soma.
+
+### Remover antes
+
+- **reta** (padrão) — tira uma reta de mínimos quadrados antes do
+  periodograma, como na dissertação. É o teste de Fisher aplicado aos resíduos
+  da reta, e evita que uma tendência linear vire o maior pico.
+- **media** — tira só a média: a formulação original de Fisher (1929) e a de
+  `GeneCycle::fisher.g.test`. No `AirPassengers` o pico passa a ser o período
+  de 144 observações — a tendência —, e a `nota` avisa.
 
 Por isso o bloco publica o PERÍODO junto com o veredito, e a `nota` avisa em voz
 alta quando o pico não se repete ao menos duas vezes. Um "há periodicidade" lido
@@ -2308,13 +2484,14 @@ coincidem. Junto vai quantas vezes o ciclo cabe na série — 12 no
 
 ### O corte da dissertação e o p-valor
 
-A dissertação decide comparando o **g** com o valor crítico zα = 1 - (α/n)^(1/(n-1))
-(eq. 3.42), rejeitando quando o g passa de zα. Este bloco emite um p-valor de
-verdade — o primeiro termo da série exata de Fisher — para que os três pontos do
-card funcionem como em todo outro teste da coleção. As duas regras são A MESMA,
-escrita de dois jeitos: nas cinco séries acima elas concordam, inclusive no caso
-apertado do `lh`, onde o g fica logo ABAIXO de zα e o p-valor fica logo ACIMA de
-5%, e as duas não rejeitam. Para que a comparação da dissertação possa ser
+A dissertação decide comparando o **g** com o valor crítico
+zα = 1 - (α/m)^(1/(m-1)) (eq. 3.42), rejeitando quando o g passa de zα. Essa
+fórmula é o PRIMEIRO termo da distribuição exata de Fisher (1929), e é exata só
+quando o crítico passa de 1/2; abaixo disso ela é conservadora. O bloco usa a
+distribuição exata inteira, nos dois lados: o p-valor é a soma completa, e o zα
+publicado é o quantil exato a 5% dela. As duas regras são, então, A MESMA por
+construção: nas cinco séries acima elas concordam, inclusive no caso apertado
+do `lh`, onde o g fica ABAIXO de zα e o p-valor ACIMA de 5%. Para que a comparação da dissertação possa ser
 conferida direto no card, o zα sai publicado como o valor crítico a 5%, ao lado
 do p-valor.
 
@@ -2346,7 +2523,10 @@ derruba H0.
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum. Uma entrada: **serie**.
+- **Remover antes** — `reta` (padrão) ou `media`: o que sai da série antes do
+  periodograma.
+
+Uma entrada: **serie**.
 ]---", r"---[
 Um teste (`data/test`), com o período do pico e o número de ciclos em colunas
 extras, e o zα da dissertação na coluna do valor crítico a 5%. Ligado numa

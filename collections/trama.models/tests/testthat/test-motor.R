@@ -28,7 +28,7 @@ test_that("testes ligados num data/bind_rows viram relatório", {
     trama::tr_add("rel", "data/bind_rows", from = "sw") |>
     trama::tr_link("lev", "rel:tabelas")
   r <- rodar(f, "rel")
-  expect_equal(r$teste, c("Shapiro-Wilk (resíduos)", "Levene"))
+  expect_equal(r$teste, c("Shapiro-Wilk (resíduos)", "Levene (O'Neill-Mathews)"))
   expect_true(all(c("p_valor", "significancia", "decisao_5") %in% names(r)))
 })
 

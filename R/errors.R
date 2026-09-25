@@ -11,9 +11,11 @@ tr_errors <- function() {
   e <- c(
     tr_error_bad_adapter = "tr_adapter() sem função",
     tr_error_bad_asset = "'js' ou 'css' de tr_collection() não é caminho relativo único",
+    tr_error_bad_transition = "'transitions' de tr_collection() não é data.frame(from, to, n) com n inteiro positivo",
     tr_error_bad_role = "papel de tr_category() fora da lista de papéis do editor",
     tr_error_bad_collection = "objeto não é tr_collection",
-    tr_error_bad_format = "documento em formato não suportado",
+    tr_error_bad_docs = "tr_ref() malformada, ou 'pressupostos'/'referencias' de tr_node() com item que não veio de tr_pressuposto()/tr_ref()",
+    tr_error_bad_format = "documento ou template em formato/versão não suportado",
     tr_error_bad_help = "'help' de tr_node() não é uma string única",
     tr_error_bad_icon = "tr_icon() sem 'name' nem 'svg', com os dois, ou com valor que não é string única",
     tr_error_bad_id = "id de tipo, nó ou coleção fora do formato 'colecao/nome'",
@@ -30,6 +32,7 @@ tr_errors <- function() {
       "sem input/param), ou 'step' que num passo da região de fluxo devolveu outra coisa ",
       "que não list(state = , out = )"),
     tr_error_bad_test = "tr_test() sem fonte de decisão, ou com campo fora da forma",
+    tr_error_bad_text = "texto i18n que não é string única nem lista nomeada por idioma de strings únicas",
     tr_error_bad_theme = "configuração do trama.json inválida: tema com campo desconhecido, valor fora do vocabulário ou nome reservado, tema_padrao inexistente, marca que não é booleana",
     tr_error_bad_type = "tr_type() mal declarado (store sem restore, etc.)",
     tr_error_cancelled = "unidade cancelada pelo coordenador (handoff, ou stop_mirai no pool)",
@@ -59,6 +62,7 @@ tr_errors <- function() {
     tr_error_not_a_test = "o store do tipo de teste recebeu um objeto que não é tr_test",
     tr_error_not_liftable = "nó impuro, volátil ou que pede '.ctx' dentro de uma região de fluxo",
     tr_error_not_project = "pedido de ABRIR apontado para pasta sem trama.json",
+    tr_error_not_template = "JSON sem a marca trama = \"template\" lido como template",
     tr_error_online_without_stream = "nó declara 'step' mas nenhuma entrada de fluxo",
     tr_error_online_without_stream_output =
       "nó com 'init'/'step' cuja saída não é fluxo: o motor o leria como o colapso da região",
@@ -79,6 +83,7 @@ tr_errors <- function() {
     tr_error_stream_stopped = paste0(
       "região de fluxo PARADA por comando entre passos — não é falha: o checkpoint fica, ",
       "a chave de saída continua vazia e o scheduler trata como cancelamento"),
+    tr_error_template_exists = "tr_template_save() sem overwrite sobre arquivo que já existe",
     tr_error_type_mismatch = "tipos de porta incompatíveis e sem adaptador",
     tr_error_unknown_adapter = "adaptador da aresta não registrado no worker",
     tr_error_unknown_edge = "disconnect de aresta que não existe",

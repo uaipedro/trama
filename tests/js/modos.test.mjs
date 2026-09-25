@@ -27,6 +27,8 @@ test("nomeDaTecla monta mod+/shift+ e normaliza < > para , .", () => {
   assert.equal(nomeDaTecla(ev(">", { shiftKey: true })), ".");
   assert.equal(nomeDaTecla(ev("<")), ",");
   assert.equal(nomeDaTecla(ev(".")), ".");
+  assert.equal(nomeDaTecla(ev("+", { shiftKey: true })), "+");
+  assert.equal(nomeDaTecla(ev("+")), "+");
 });
 
 const fr = (id, x, y) => ({ id, x, y, w: 100, h: 100 });

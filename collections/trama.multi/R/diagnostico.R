@@ -105,10 +105,98 @@ tr_multi_parallel <- function(dados, cols = "", repeticoes = 100L, percentil = 9
                  autovalor_aleatorio = limiar, reter = reter)
 }
 
+#' Assimetria e curtose multivariadas de Mardia numa matriz.
+#'
+#' A covariância é a de divisor n, a do artigo (Mardia 1970, eq. 2.1-2.2) e a
+#' do `MVN::mardia` (`use_population = TRUE`); o `psych::mardia` usa n − 1, e
+#' os coeficientes dele saem menores por ((n − 1)/n)^3 e ^2. A correção de
+#' amostra pequena da assimetria é o fator k de Mardia (1974), o mesmo do MVN e
+#' do psych.
+#' @noRd
+.tr_multi_mardia_matriz <- function(x) {
+  n <- nrow(x); p <- ncol(x)
+  xc <- scale(x, center = TRUE, scale = FALSE)
+  S <- crossprod(xc) / n
+  D <- xc %*% solve(S, t(xc))
+  b1 <- sum(D^3) / n^2
+  b2 <- sum(diag(D)^2) / n
+  gl <- p * (p + 1) * (p + 2) / 6
+  k <- (p + 1) * (n + 1) * (n + 3) / (n * ((n + 1) * (p + 1) - 6))
+  qui <- n * b1 / 6
+  qui_k <- n * k * b1 / 6
+  z <- (b2 - p * (p + 2)) * sqrt(n / (8 * p * (p + 2)))
+  data.frame(
+    medida = c("assimetria", "assimetria (amostra pequena)", "curtose"),
+    n = n, coeficiente = c(b1, b1, b2), estatistica = c(qui, qui_k, z),
+    gl = c(gl, gl, NA_real_),
+    p_valor = c(stats::pchisq(qui, gl, lower.tail = FALSE),
+                stats::pchisq(qui_k, gl, lower.tail = FALSE),
+                2 * stats::pnorm(-abs(z))),
+    stringsAsFactors = FALSE)
+}
+
+#' Teste de normalidade multivariada de Mardia (assimetria e curtose).
+#' @param dados tabela.
+#' @param cols variáveis, separadas por vírgula; em branco, todas as numéricas.
+#' @param grupo coluna de grupo opcional: o teste é feito dentro de cada grupo,
+#'   que é o que a discriminante e o M de Box supõem.
+#' @param confianca nível de confiança da leitura (a decisão é a 1 − confianca).
+#' @return tibble com `medida`, `n`, `coeficiente` (b1,p ou b2,p),
+#'   `estatistica`, `gl`, `p_valor`, `leitura` (e o grupo na frente, se houver).
+#' @export
+tr_multi_mardia <- function(dados, cols = "", grupo = "", confianca = 0.95) {
+  no <- "multi/mardia"
+  confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
+  alfa <- 1 - confianca
+  tem_grupo <- length(grupo) == 1L && !is.na(grupo) && nzchar(trimws(grupo))
+  if (tem_grupo) {
+    gr <- .tr_multi_grupos(dados, grupo, cols, no)
+    X <- gr$X; g <- gr$g
+  } else {
+    X <- .tr_multi_matriz(dados, .tr_multi_variaveis(dados, cols), no)
+    g <- factor(rep("todos", nrow(X)))
+  }
+  p <- ncol(X)
+  # Com n = p + 1 os pontos formam um simplex e toda distância de Mahalanobis
+  # vale o mesmo: b1 e b2 saem da conta de n e p, não dos dados.
+  minimo <- p + 2L
+  if (!tem_grupo && nrow(X) < minimo) {
+    .tr_multi_abort("tr_multi_error_too_few_rows",
+                    "'%s' precisa de pelo menos p + 2 = %d observações com %d variáveis, e a tabela tem %d.",
+                    no, as.integer(minimo), p, nrow(X))
+  }
+  if (tem_grupo) {
+    .tr_multi_grupo_minimo(g, minimo, no, sprintf(
+      "Com %d variáveis o teste pede pelo menos p + 2 observações por grupo.", p))
+  }
+  partes <- lapply(levels(g), function(l) {
+    x <- X[g == l, , drop = FALSE]
+    S <- stats::cov(x)
+    if (.tr_multi_cov_singular(S)) {
+      .tr_multi_abort("tr_multi_error_singular_matrix",
+                      paste0("'%s': a covariância%s é singular — alguma variável é combinação ",
+                             "exata das outras ou constante. Tire a redundante."),
+                      no, if (tem_grupo) sprintf(" do grupo '%s'", l) else "")
+    }
+    r <- .tr_multi_mardia_matriz(x)
+    if (tem_grupo) r <- cbind(stats::setNames(data.frame(factor(l, levels(g))), gr$grupo), r)
+    r
+  })
+  r <- do.call(rbind, partes)
+  pct <- format(100 * alfa, decimal.mark = ",")
+  r$leitura <- ifelse(r$p_valor < alfa,
+                      sprintf("rejeita a normalidade multivariada (%s%%)", pct),
+                      sprintf("não rejeita a normalidade multivariada (%s%%): sem evidência contra", pct))
+  tibble::as_tibble(r)
+}
+
 .tr_multi_nos_diagnostico <- function() {
   P <- trama::tr_param
   list(
-    trama::tr_node("multi/kmo_bartlett", fn = tr_multi_kmo_bartlett, label = "KMO e Bartlett",
+    trama::tr_node("multi/kmo_bartlett",
+      pressupostos = .tr_multi_doc("multi/kmo_bartlett")$pressupostos,
+      referencias = .tr_multi_doc("multi/kmo_bartlett")$referencias,
+      fn = tr_multi_kmo_bartlett, label = "KMO e Bartlett",
       category = "multi_diagnostico", icon = trama::tr_icon("stethoscope"),
       description = "A matriz tem correlação para fatorar? KMO global, MSA por variável e esfericidade de Bartlett.",
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
@@ -162,6 +250,65 @@ tr_flow(reg) |>
 ]---", r"---[
 `multi/parallel` para decidir quantos fatores; `multi/plot_correlation` para
 ver a matriz; `multi/factor_analysis` para fatorar.
+]---")),
+
+    trama::tr_node("multi/mardia",
+      pressupostos = .tr_multi_doc("multi/mardia")$pressupostos,
+      referencias = .tr_multi_doc("multi/mardia")$referencias,
+      fn = tr_multi_mardia, label = "Normalidade multivariada (Mardia)",
+      category = "multi_diagnostico", icon = trama::tr_icon("stethoscope"),
+      description = "Assimetria e curtose multivariadas de Mardia: as variáveis, juntas, são normais multivariadas? Por grupo, se houver.",
+      inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
+      params = list(
+        cols = P("cols", "", label = "Variáveis", example = "Sepal.Length, Sepal.Width, Petal.Length"),
+        grupo = P("cols", "", label = "Grupo (opcional)", example = "Species"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança")),
+      help = .tr_multi_ajuda(r"---[
+Testa se as variáveis, JUNTAS, seguem uma normal multivariada — o que a
+discriminante (`multi/discriminant`), o M de Box (`multi/box_m`), a fatorial
+por máxima verossimilhança (`multi/factor_analysis`) e a esfericidade de
+Bartlett (`multi/kmo_bartlett`) supõem. Conferir cada variável sozinha
+(Shapiro-Wilk) é necessário mas não suficiente: variáveis normais uma a uma
+podem não ser normais juntas.
+
+### As duas medidas (Mardia, 1970)
+
+Com dᵢⱼ = (xᵢ − x̄)ᵀ S⁻¹ (xⱼ − x̄) e S a covariância de divisor n:
+
+- **assimetria** b₁,ₚ = Σᵢ Σⱼ dᵢⱼ³ / n², zero na normal; n·b₁,ₚ/6 é
+  qui-quadrado com p(p + 1)(p + 2)/6 gl. A linha **amostra pequena** multiplica
+  a estatística pelo fator k = (p + 1)(n + 1)(n + 3) / (n((n + 1)(p + 1) − 6))
+  (Mardia, 1974), que deixa o nível mais perto do nominal com n pequeno (menos
+  de 20, na regra do pacote MVN).
+- **curtose** b₂,ₚ = Σᵢ dᵢᵢ² / n, igual a p(p + 2) na normal; o desvio
+  padronizado (b₂,ₚ − p(p + 2)) / √(8p(p + 2)/n) é normal padrão (bilateral).
+
+Rejeitar em qualquer das duas é evidência contra a normal multivariada.
+Não rejeitar não prova normalidade: com poucos casos o teste tem pouco poder,
+e com muitos rejeita desvios que não mudam a análise.
+
+### Grupo
+
+Com **grupo**, o teste é feito dentro de cada grupo (a discriminante e o M de
+Box supõem normalidade DENTRO dos grupos, e não na tabela misturada — grupos
+com médias diferentes formam uma mistura que não é normal).
+]---", r"---[
+- **Variáveis** — as colunas, separadas por vírgula. Em branco, todas as
+  numéricas (menos o grupo).
+- **Grupo (opcional)** — coluna que separa os grupos; em branco, a tabela toda.
+- **Confiança** — a leitura rejeita quando p < 1 − confiança (padrão 0,95).
+]---", r"---[
+Uma tabela (`data/table`) com três linhas (por grupo, se houver): `assimetria`,
+`assimetria (amostra pequena)` e `curtose`. Colunas: o grupo (se houver),
+`medida`, `n`, `coeficiente` (b₁,ₚ ou b₂,ₚ), `estatistica` (χ² ou z), `gl`
+(só nas assimetrias), `p_valor` e `leitura`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("i", "multi/example", dataset = "iris") |>
+  tr_add("m", "multi/mardia", grupo = "Species", from = "i")
+]---", r"---[
+`multi/box_m` para as covariâncias;
+`multi/discriminant` e `multi/logistic` (que não supõe normalidade).
 ]---")),
 
     trama::tr_node("multi/parallel", fn = tr_multi_parallel, label = "Análise paralela",

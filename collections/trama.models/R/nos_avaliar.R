@@ -32,7 +32,10 @@ As duas entradas são opcionais, mas uma tem de estar ligada:
   predito <- P("cols", "previsto", label = "Previsto (modo tabela)", example = "previsto")
   positiva <- P("text", "", label = "Classe positiva", example = "1")
   list(
-    trama::tr_node("models/confusion", fn = tr_models_confusion, label = "Matriz de confusão",
+    trama::tr_node("models/confusion",
+      pressupostos = .tr_models_doc("models/confusion")$pressupostos,
+      referencias = .tr_models_doc("models/confusion")$referencias,
+      fn = tr_models_confusion, label = "Matriz de confusão",
       category = "modelo_avaliar", icon = trama::tr_icon("table"),
       description = "Classe real × classe prevista, com o acerto de cada classe e o geral.",
       inputs = list(modelo = opc(Fm), dados = opc(T)), outputs = list(out = T),
@@ -71,7 +74,13 @@ tr_flow(reg) |>
 F1; `models/predict` para ver os casos.
 ]---")),
 
-    trama::tr_node("models/roc", fn = tr_models_roc, label = "Curva ROC",
+    # Versão 2: no modo tabela, com a coluna de probabilidade informada e a
+    # positiva vazia, a classe sai do nome `prob_<classe>` (antes, o 2º nível),
+    # como a `ml/roc` v2 da main.
+    trama::tr_node("models/roc", version = 2L,
+      pressupostos = .tr_models_doc("models/roc")$pressupostos,
+      referencias = .tr_models_doc("models/roc")$referencias,
+      fn = tr_models_roc, label = "Curva ROC",
       category = "modelo_avaliar", icon = trama::tr_icon("chart-line"),
       description = "Sensibilidade × especificidade em todos os cortes, com a AUC.",
       inputs = list(modelo = opc(Fm), dados = opc(T)), outputs = list(out = "view/plot"),
@@ -115,7 +124,12 @@ tr_flow(reg) |>
 `models/confusion` para o acerto num corte; `models/evaluate` para as métricas.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("models/evaluate", fn = tr_models_evaluate, label = "Avaliar previsões",
+    # Versão 2: a tabela ganhou a coluna `classe` e as métricas ponderadas e por
+    # classe (porte da `ml/evaluate` da main).
+    trama::tr_node("models/evaluate", version = 2L,
+      pressupostos = .tr_models_doc("models/evaluate")$pressupostos,
+      referencias = .tr_models_doc("models/evaluate")$referencias,
+      fn = tr_models_evaluate, label = "Avaliar previsões",
       category = "modelo_avaliar", icon = trama::tr_icon("gauge"),
       description = "Erro de previsão (regressão) ou acerto, kappa e F1 (classificação), numa tabela de métricas.",
       inputs = list(modelo = opc(Fm), dados = opc(T)), outputs = list(out = T),
@@ -129,8 +143,11 @@ Mede quanto a previsão erra, numa linha por métrica:
   ser negativo: o modelo prevê pior que a média.
 - **Classificação** — `accuracy` (acerto), `balanced_accuracy` (média do
   acerto por classe observada), `macro_f1`, `kappa` de Cohen (o acerto além do
-  que o acaso daria) e, com duas classes, `sensitivity` e `specificity` da
-  **Classe positiva** (vazia = o segundo nível).
+  que o acaso daria), precisão e revocação macro, precisão, revocação e F1
+  ponderados pelo suporte e, com duas classes, `sensitivity` e `specificity`
+  da **Classe positiva** (vazia = o segundo nível). Por classe, `precision`,
+  `recall` e `f1` de cada uma (um contra todos), com o suporte em `n`. Médias
+  macro usam as classes observadas; precisão de classe nunca prevista vale 0.
 
 Os nomes e as contas das três primeiras de cada tarefa são os que a busca de
 hiperparâmetros da coleção `ml` compara, para que os números batam.
@@ -145,7 +162,8 @@ fora, e `n` diz quantas contaram.
 - **Classe positiva** — a das `sensitivity`/`specificity`.
 - **Resposta**, **Previsto** — só no modo tabela.
 ]---", r"---[
-Uma tabela (`data/table`): `metrica`, `valor`, `n`.
+Uma tabela (`data/table`): `metrica`, `valor`, `n` e, na classificação,
+`classe` (vazia nas métricas globais).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "mtcars") |>

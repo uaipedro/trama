@@ -1,6 +1,7 @@
 package applauncher
 
 import (
+	"context"
 	"net"
 	"os"
 	"os/exec"
@@ -102,5 +103,25 @@ func TestWaitForAppReady_DetectsEarlyExitWithoutWaitingFullTimeout(t *testing.T)
 	}
 	if elapsed >= 3*time.Second {
 		t.Fatalf("deveria detectar a saída antecipada rápido, não esperar perto do timeout de 10s; levou %v", elapsed)
+	}
+}
+
+func TestNewTramaAppCmd_SetsLauncherEnv(t *testing.T) {
+	t.Setenv("TRAMA_TESTE_HERDADO", "sim")
+	cmd := newTramaAppCmd(context.Background(), "Rscript", "/lib", "/proj")
+	var marca, herdado bool
+	for _, kv := range cmd.Env {
+		if kv == "TRAMA_LAUNCHER=1" {
+			marca = true
+		}
+		if kv == "TRAMA_TESTE_HERDADO=sim" {
+			herdado = true
+		}
+	}
+	if !marca {
+		t.Fatalf("TRAMA_LAUNCHER=1 ausente do ambiente: %v", cmd.Env)
+	}
+	if !herdado {
+		t.Fatal("ambiente do processo pai não foi herdado")
 	}
 }

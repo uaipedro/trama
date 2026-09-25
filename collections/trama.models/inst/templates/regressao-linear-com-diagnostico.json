@@ -1,0 +1,96 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Regressão linear com diagnóstico",
+  "descricao": "Consumo (mpg) explicado por peso e potência em mtcars, com coeficientes e gráficos de resíduos.",
+  "colecoes": ["trama.models"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "models": "0.1.0"
+    },
+    "nodes": {
+      "dados": {
+        "type": "models/example",
+        "type_version": 1,
+        "label": "Exemplo de modelos",
+        "params": {
+          "dataset": "mtcars"
+        },
+        "seed": 135350314
+      },
+      "ajuste": {
+        "type": "models/lm",
+        "type_version": 1,
+        "label": "Regressão linear",
+        "params": {
+          "formula": "mpg ~ wt + hp"
+        },
+        "seed": 140023745
+      },
+      "coeficientes": {
+        "type": "models/coefficients",
+        "type_version": 1,
+        "label": "Coeficientes",
+        "params": {},
+        "seed": 134407390
+      },
+      "diagnostico": {
+        "type": "models/plot_diagnostics",
+        "type_version": 1,
+        "label": "Diagnóstico dos resíduos",
+        "params": {},
+        "seed": 22019954
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "dados",
+          "port": "out"
+        },
+        "to": {
+          "node": "ajuste",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ajuste",
+          "port": "out"
+        },
+        "to": {
+          "node": "coeficientes",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ajuste",
+          "port": "out"
+        },
+        "to": {
+          "node": "diagnostico",
+          "port": "modelo"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "dados": [0, 0],
+        "ajuste": [360, 0],
+        "coeficientes": [720, 0],
+        "diagnostico": [720, 418]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

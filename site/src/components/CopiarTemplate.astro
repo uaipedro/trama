@@ -1,0 +1,65 @@
+---
+// Cartão de um template: canvas estático do fluxo, nome, descrição e as duas
+// formas de levar o fluxo ao editor (copiar para colar com Ctrl+V ou baixar o
+// .json para arrastar ao canvas).
+import { templateToGraph } from "../lib/template-graph";
+import { renderFlowCanvas } from "../lib/flow-canvas-html";
+import visuals from "../data/node-visuals.json";
+import type { NodeVisual } from "../data/node-visuals";
+
+interface Props { pkg: string; arquivo: string; nome: string; descricao: string; doc: Parameters<typeof templateToGraph>[0]; texto: string }
+const { pkg, arquivo, nome, descricao, doc, texto } = Astro.props;
+const href = `/trama/templates/${pkg}/${arquivo}`;
+const canvas = renderFlowCanvas(templateToGraph(doc), visuals as Record<string, NodeVisual>);
+---
+
+<article class="template-card" data-template={href}>
+  <div class="flow-canvas-scroll template-card__canvas" set:html={canvas} />
+  <div class="template-card__body">
+    <h3>{nome}</h3>
+    <p>{descricao}</p>
+    <div class="template-card__actions">
+      <button type="button" class="button button--primary" data-template-copiar>Copiar template</button>
+      <a class="template-card__baixar" href={href} download={arquivo}>Baixar .json</a>
+    </div>
+    <script type="application/json" data-template-json set:html={texto.replace(/</g, "\\u003c")} />
+    <p class="template-card__status" role="status" aria-live="polite" data-template-status></p>
+  </div>
+</article>
+
+<script>
+  for (const card of document.querySelectorAll<HTMLElement>("[data-template]")) {
+    const botao = card.querySelector<HTMLButtonElement>("[data-template-copiar]");
+    const status = card.querySelector<HTMLElement>("[data-template-status]");
+    if (!botao || !status) continue;
+    const json = card.querySelector<HTMLScriptElement>("[data-template-json]")?.textContent ?? "";
+    const falhou = () => {
+      status.textContent = "Não deu para copiar. Use “Baixar .json” e arraste o arquivo para o canvas.";
+    };
+    // `writeText` chamado direto no clique, sem nada assíncrono antes: é o
+    // gesto do usuário que autoriza a escrita.
+    botao.addEventListener("click", () => {
+      if (!json || !navigator.clipboard?.writeText) return falhou();
+      navigator.clipboard.writeText(json).then(() => {
+        status.textContent = "Copiado — cole no canvas do trama com Ctrl+V.";
+      }, falhou);
+    });
+  }
+</script>
+
+<style>
+  .template-card { display: grid; grid-row: span 2; grid-template-rows: subgrid; row-gap: 0; min-width: 0; border: 1px solid var(--line); background: var(--paper-strong); }
+  .template-card__canvas { display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+  /* Na mesma linha da grade os cards têm a mesma altura: a bancada cresce até
+     preencher e o fluxo fica centrado nela. Com subgrid, bancadas e textos
+     da linha dividem as mesmas alturas e começam na mesma linha. */
+  .template-card__canvas :global(.tr-estatico) { flex: 1 0 auto; }
+  .template-card__canvas :global(.tr-estatico__mundo) { top: 50%; transform: translate(-50%, -50%) scale(var(--escala)); transform-origin: 50% 50%; }
+  .template-card__body { display: grid; align-content: start; gap: var(--space-sm); padding: var(--space-lg); min-width: 0; }
+  .template-card h3 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; letter-spacing: -.02em; }
+  .template-card p { margin: 0; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .template-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); }
+  .template-card__actions .button { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
+  .template-card__baixar { color: var(--blue); font-weight: 650; }
+  .template-card__status { min-height: 1.4em; font-size: .9rem; }
+</style>

@@ -1,0 +1,97 @@
+[
+  {
+    "from": "series/example",
+    "to": "series/accuracy",
+    "n": 2
+  },
+  {
+    "from": "series/baseline",
+    "to": "series/accuracy",
+    "n": 1
+  },
+  {
+    "from": "series/diff",
+    "to": "series/acf",
+    "n": 1
+  },
+  {
+    "from": "series/diff",
+    "to": "series/adf",
+    "n": 1
+  },
+  {
+    "from": "series/diff",
+    "to": "series/kpss",
+    "n": 1
+  },
+  {
+    "from": "series/diff",
+    "to": "series/pacf",
+    "n": 1
+  },
+  {
+    "from": "series/diff",
+    "to": "series/phillips_perron",
+    "n": 1
+  },
+  {
+    "from": "series/ets",
+    "to": "series/forecast",
+    "n": 1
+  },
+  {
+    "from": "series/ets",
+    "to": "series/residuals",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/seasonal_plot",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/stl",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/transform",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/window",
+    "n": 1
+  },
+  {
+    "from": "series/forecast",
+    "to": "series/accuracy",
+    "n": 1
+  },
+  {
+    "from": "series/residuals",
+    "to": "series/ljung_box",
+    "n": 1
+  },
+  {
+    "from": "series/stl",
+    "to": "series/component",
+    "n": 1
+  },
+  {
+    "from": "series/transform",
+    "to": "series/diff",
+    "n": 1
+  },
+  {
+    "from": "series/window",
+    "to": "series/baseline",
+    "n": 1
+  },
+  {
+    "from": "series/window",
+    "to": "series/ets",
+    "n": 1
+  }
+]

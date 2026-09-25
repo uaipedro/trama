@@ -151,8 +151,13 @@ test_that("roc multiclasse (modo tabela): uma curva por classe, AUCs do modo mod
   ref <- tr_models_roc(lda, validacao = "resubstituição")
   expect_equal(levels(p$data$grupo %||% ggplot2::ggplot_build(p)$plot$layers[[2]]$data$grupo),
                levels(ggplot2::ggplot_build(ref)$plot$layers[[2]]$data$grupo))
-  expect_error(tr_models_roc(dados = tab, resposta = "Species", probabilidade = "prob_setosa"),
-               class = "tr_models_error_blank_param")
+  # A coluna nomeia a classe (`prob_<classe>`): a positiva sai dela, como na
+  # `ml/roc` corrigida da main. Coluna de nome livre, sem `positiva`, recusa.
+  s <- tr_models_roc(dados = tab, resposta = "Species", probabilidade = "prob_setosa")
+  expect_match(s$labels$subtitle, "positivo: setosa", fixed = TRUE)
+  tab$p_livre <- tab$prob_setosa
+  expect_error(tr_models_roc(dados = tab, resposta = "Species", probabilidade = "p_livre"),
+               class = "tr_models_error_positive_required")
 })
 
 test_that("roc recusa regressão", {
@@ -173,7 +178,9 @@ test_that("evaluate: as métricas batem com as da ml nos três modos", {
   tab <- tr_models_predict(g, validacao = "cruzada")
   ref <- ml_metricas(tab, "am_f", "classificacao")
   e <- tr_models_evaluate(g)
-  expect_equal(e[match(ref$metrica, e$metrica), ], ref)
+  # Por classe a métrica se repete: o par (metrica, classe) é a chave.
+  chave <- function(x) paste(x$metrica, x$classe)
+  expect_equal(e[match(chave(ref), chave(e)), ], ref)
   expect_equal(tr_models_evaluate(dados = tab, resposta = "am_f"), e)
   # kappa, sensibilidade, especificidade conferidas contra a matriz
   cm <- table(tab$am_f, tab$previsto)

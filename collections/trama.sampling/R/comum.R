@@ -95,6 +95,47 @@
 #' @noRd
 .tr_sampling_z <- function(conf) stats::qnorm(1 - (1 - conf) / 2)
 
+.TR_SAMPLING_DISTRIBUICOES <- c("t", "z")
+
+#' O quantil bilateral: t com `gl` graus de liberdade, ou z com `gl = Inf`.
+#'
+#' É o mesmo quantil que as estimativas usam (t com gl = UPAs − estratos): a
+#' margem planejada tem de ser a que o card de `sampling/mean` vai mostrar.
+#' @noRd
+.tr_sampling_q <- function(conf, gl = Inf) {
+  ifelse(is.finite(gl), stats::qt(1 - (1 - conf) / 2, pmax(gl, 1)), stats::qnorm(1 - (1 - conf) / 2))
+}
+
+#' `"t"` ou `"z"`, validado.
+#' @noRd
+.tr_sampling_distrib <- function(distribuicao) {
+  .tr_sampling_enum(distribuicao, .TR_SAMPLING_DISTRIBUICOES, "distribuicao")
+}
+
+#' Resolve o n cujo quantil depende do próprio n (t com gl do desenho).
+#'
+#' `n_de_q(q)` devolve o n (inteiro) que a fórmula pede com o quantil q;
+#' `gl_de_n(n)`, os gl que esse n dá. A resposta é o MENOR n que se sustenta,
+#' n ≥ n_de_q(q(gl(n))): como o t cai com n, a condição é monótona, e a busca
+#' sobe a partir do n de z (que é sempre um limite inferior), e nunca abaixo
+#' do menor n com gl ≥ 1.
+#' @return lista `n`, `q`, `gl`.
+#' @noRd
+.tr_sampling_resolver_t <- function(conf, distribuicao, n_de_q, gl_de_n) {
+  q <- .tr_sampling_z(conf)
+  n <- n_de_q(q)
+  if (distribuicao == "z") return(list(n = n, q = q, gl = Inf))
+  # t com 0 gl não existe: começa no menor n que dá gl ≥ 1 (2 na AAS, H + 1
+  # na estratificada, 2 conglomerados).
+  while (gl_de_n(n) < 1) n <- n + 1L
+  repeat {
+    q <- .tr_sampling_q(conf, gl_de_n(n))
+    if (n_de_q(q) <= n) break
+    n <- n + 1L
+  }
+  list(n = n, q = q, gl = gl_de_n(n))
+}
+
 #' Número com vírgula, que é como a nota e os passos falam.
 #'
 #' Inteiro sai inteiro ("N = 2.400", e não "2.400,00"): é contagem, e a casa

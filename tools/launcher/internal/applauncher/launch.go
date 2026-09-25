@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -68,12 +69,20 @@ func buildTramaAppExpr(libPath, projectDir string) string {
 	return fmt.Sprintf(`.libPaths(c(%q, .libPaths())); trama::tr_app(trama::tr_project(%q))`, libPath, projectDir)
 }
 
+// newTramaAppCmd monta o comando sem iniciá-lo. TRAMA_LAUNCHER=1 avisa o
+// editor que ele foi aberto pelo launcher (e não por um console R), pra ele
+// ajustar o que depende disso. O ambiente herdado segue inteiro.
+func newTramaAppCmd(ctx context.Context, rscriptPath, libPath, projectDir string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, rscriptPath, "-e", buildTramaAppExpr(libPath, projectDir))
+	cmd.Env = append(os.Environ(), "TRAMA_LAUNCHER=1")
+	return cmd
+}
+
 // StartTramaApp sobe `Rscript -e ".libPaths(...); trama::tr_app(trama::tr_project(projectDir))"`
 // como processo filho e retorna o *exec.Cmd (já em execução) e a captura da
 // sua saída, pro chamador decidir quando encerrar e diagnosticar falhas.
 func StartTramaApp(ctx context.Context, rscriptPath, libPath, projectDir string) (*exec.Cmd, *OutputCapture, error) {
-	expr := buildTramaAppExpr(libPath, projectDir)
-	cmd := exec.CommandContext(ctx, rscriptPath, "-e", expr)
+	cmd := newTramaAppCmd(ctx, rscriptPath, libPath, projectDir)
 	capture := &OutputCapture{}
 	cmd.Stdout = capture
 	cmd.Stderr = capture

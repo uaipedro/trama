@@ -25,14 +25,36 @@ estacionária) — é quando os dois concordam que a conclusão tem chão.
 
 ### O p-valor preso na borda
 
-O p-valor sai de uma tabela interpolada que vai de 0,01 a 0,99. Fora dela, o
-valor é PRESO na borda, sem aviso nenhum: um `0,01` quer dizer "0,01 ou
+Com **tendência**, o p-valor sai de uma tabela interpolada que vai de 0,01 a
+0,99. Fora dela, o valor é PRESO na borda: um `0,01` quer dizer "0,01 ou
 menos", e um `0,99`, "0,99 ou mais". Quando isso acontece, a `nota` do teste
 diz. A decisão a 5% não muda com isso — a ressalva está lá para quem for
-reportar o número.
+reportar o número. Com **constante**, o p-valor vem da superfície de resposta
+de MacKinnon (1996), que não tem borda.
 
-Os termos determinísticos não são parâmetro: o teste do `stats` roda sempre
-com constante e tendência.
+### Série curta
+
+Abaixo de 25 observações o teste rejeita mais do que o nível nominal — o
+excesso é do próprio Z(t) em amostra pequena, não só da tabela —, e a `nota`
+avisa. Medido sob passeio aleatório: com 12 observações, até 10% de rejeição
+a 5%.
+
+### Termos determinísticos
+
+- **tendência** (padrão) — constante e tendência linear na regressão: a
+  alternativa é "estacionária em torno de uma reta". É o `stats::PP.test`, e o
+  que o bloco fazia na versão 1.
+- **constante** — só constante: a alternativa é "estacionária em torno de um
+  nível". Em série sem tendência tem MAIS poder, porque não gasta um parâmetro
+  com uma reta que não existe (Phillips & Perron, 1988). O Z(t) é a forma geral
+  (Hamilton, 1994, eq. 17.6.8) com as convenções do `PP.test` — janela curta de
+  Newey-West, trunc(4·(n/100)^(1/4)) —, conferido contra `aTSA::pp.test`; o
+  p-valor é o de MacKinnon (1996), o mesmo do `urca`.
+
+Escolher pelo gráfico, ANTES de olhar o resultado: série que sobe ou desce de
+forma regular pede `tendência`; série que oscila em torno de um nível pede
+`constante`. Numa série com tendência, `constante` confunde a tendência com
+raiz unitária.
 
 ### Faltantes
 
@@ -45,7 +67,7 @@ Teste a hipótese de raiz unitária com correção não paramétrica para depend
 
 ## Configuração
 
-Nenhum.
+- **Termos determinísticos** — `tendência` (padrão) ou `constante`.
 
 ## Exemplo
 

@@ -5,6 +5,20 @@ section: por-dentro
 order: 2
 ---
 
+<div class="install-choice">
+  <section class="install-choice__option">
+    <h2>Programa</h2>
+    <p>Para quem não usa R. Ele baixa o R sozinho e cria o atalho <strong>Trama</strong>.</p>
+    <a class="button button--primary" href="https://github.com/uaipedro/trama/releases/latest/download/Trama-Setup.exe">Baixar para Windows</a>
+    <p><a href="#instalar-sem-saber-programar">No Linux, um comando →</a></p>
+  </section>
+  <section class="install-choice__option">
+    <h2>Pacote R</h2>
+    <p>Para quem já tem R 4.1 ou mais novo: instala o núcleo e as coleções no seu R.</p>
+    <p><a href="#pelo-r-com-pak">Instalar com pak →</a></p>
+  </section>
+</div>
+
 ## Instalar sem saber programar
 
 Quem nunca abriu um terminal também instala o trama. No **Windows**, baixe e

@@ -56,6 +56,52 @@ sobre uma contagem de símbolos: dez observações já rendem quarenta e cinco
 comparações, enquanto o `series/runs`, que depende do corte pela mediana, só
 alcança a normal dele com quarenta observações.
 
+### Série autocorrelacionada: a **Correção**
+
+O teste supõe observações independentes, e série ambiental quase nunca é:
+com autocorrelação positiva o S varia mais do que a fórmula diz, e o teste
+rejeita bem acima dos 5% nominais. Duas correções publicadas:
+
+- **nenhuma** — o teste de Mann (1945), como na dissertação. É o padrão.
+- **hamed_rao** — Hamed & Rao (1998): o mesmo S, com a variância multiplicada
+  por n/n*, calculado das autocorrelações dos POSTOS da série sem a tendência
+  de Sen, só as significativas a 5%. A `nota` traz o n/n*: acima de 1, a
+  autocorrelação alargou a variância e o Z encolheu.
+- **pre_branqueamento** — Yue et al. (2002), o pré-branqueamento livre de
+  tendência: tira a tendência de Sen, remove o AR(1) do resto pelo r1, devolve
+  a tendência e testa a série resultante (uma observação a menos; pede 11).
+  A `nota` traz o r1.
+
+No Nilo (`datasets::Nile`, 100 anos):
+
+```
+correção            Z        p-valor     nota
+nenhuma           -4,128    3,7e-05     S = -1387
+hamed_rao         -2,820    0,0048      n/n* = 2,143
+pre_branqueamento -4,577    4,7e-06     r1 = 0,375, n = 99
+```
+
+As duas seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
+Nenhuma devolve o nível nominal. Medido em série SEM tendência, erro AR(1),
+2000 réplicas, rejeição a 5%:
+
+```
+phi   n     nenhuma   hamed_rao   pre_branqueamento
+0     60      5,1%       8,5%          4,7%
+0,3   60     13,5%      15,3%         15,6%
+0,6   60     30,7%      21,1%         39,4%
+0,6   120    33,4%      18,0%         43,1%
+```
+
+O Hamed-Rao reduz o excesso quando a autocorrelação é forte, mas não o
+elimina e custa um pouco em ruído branco; o pré-branqueamento livre de
+tendência PIORA o nível, como Hamed (2009) já apontava — a tendência de Sen
+estimada na série autocorrelacionada volta somada. Use-o para reproduzir um
+trabalho que o aplicou, não como remédio. Em raros casos (até 1% das réplicas
+acima) a soma do Hamed-Rao sai negativa e o bloco recusa em vez de devolver
+NaN. Com autocorrelação forte, prefira modelar o erro (`series/regression` com
+**Erro** = `arma` e o `series/f_tendencia`).
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
@@ -67,7 +113,10 @@ Teste se há tendência monotônica ao longo do tempo sem exigir uma forma linea
 
 ## Configuração
 
-Nenhum. Uma entrada: **serie**.
+- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao` ou
+  `pre_branqueamento`.
+
+Uma entrada: **serie**.
 
 ## Exemplo
 
@@ -79,7 +128,8 @@ tr_use("trama.series", registry = reg)
 
 tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
-  tr_add("mk", "series/mann_kendall", from = "nilo")
+  tr_add("mk", "series/mann_kendall", from = "nilo") |>
+  tr_add("mk_hr", "series/mann_kendall", correcao = "hamed_rao", from = "nilo")
 ```
 
 ## Como interpretar
