@@ -134,36 +134,86 @@ tr_series_kpss <- function(serie, deterministico = "constante") {
 #' defasagens à regressão, corrige a estatística para a autocorrelação dos
 #' resíduos.
 #' @export
-tr_series_phillips_perron <- function(serie) {
+tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
+  det <- .tr_series_enum(deterministico, c("constante", "tendência"), "deterministico")
   .tr_series_sem_na(serie, "series/phillips_perron")
   .tr_series_minimo(serie, 12L, "series/phillips_perron", "um teste de raiz unitária")
-  # O `PP.test` interpola o p-valor numa tabela e, fora dela, PRENDE o valor
-  # na borda (`approx(rule = 2)`) sem avisar nada — medido: nem warning ele
-  # dá. Um "0,01" que é na verdade "menor que 0,01" não pode sair sem a
-  # ressalva, então ela é deduzida do próprio valor e vai para a nota.
-  #
-  # As bordas são 0,01 e 0,99, e não 0,01 e 0,1: o `tablep` do `stats` é
-  # c(0.01, 0.025, 0.05, 0.1, 0.9, 0.95, 0.975, 0.99). Medido, o passeio
-  # aleatório do teste sai com p = 0,62 — interpolado, não preso —, e um corte
-  # em 0,1 o marcaria como truncado. Ressalva que aparece quando não há
-  # truncamento nenhum é ressalva que se aprende a ignorar, e aí ela não
-  # protege mais o caso em que importa.
-  pp <- stats::PP.test(as.numeric(serie))
-  nota <- "sempre com constante e tendência (é como o stats o define)"
-  if (pp$p.value <= 0.01) {
+  # O p-valor é interpolado numa tabela e, fora dela, PRESO na borda
+  # (`approx(rule = 2)`) sem aviso nenhum. Um "0,01" que é na verdade "menor que
+  # 0,01" não pode sair sem a ressalva, então ela é deduzida do próprio valor e
+  # vai para a nota. As bordas são 0,01 e 0,99 (as das duas tabelas), e não
+  # 0,1: o passeio aleatório sai com p = 0,62, interpolado, e um corte em 0,1 o
+  # marcaria como truncado sem estar.
+  if (det == "tendência") {
+    # Com tendência, o `stats::PP.test` — inalterado desde a versão 1 do nó.
+    pp <- stats::PP.test(as.numeric(serie))
+    estat <- unname(pp$statistic)
+    p <- pp$p.value
+    nota <- "com constante e tendência"
+  } else {
+    # Só constante: o `stats` não tem, e a conta é a forma geral do Z(t)
+    # (Phillips & Perron 1988; Hamilton 1994, eq. 17.6.8) com as MESMAS
+    # convenções do `PP.test` — janela curta, pesos de Bartlett, gamma_0 com
+    # divisor n. Conferida contra `aTSA::pp.test` (tipo 2) a 1e-10.
+    estat <- .tr_series_pp_z_constante(as.numeric(serie))
+    p <- .tr_series_pp_p_constante(estat, length(serie) - 1L)
+    nota <- "só constante (sem tendência)"
+  }
+  if (p <= 0.01) {
     nota <- paste0(nota, "; p-valor truncado na borda da tabela: o verdadeiro é <= 0,01")
   }
-  if (pp$p.value >= 0.99) {
+  if (p >= 0.99) {
     nota <- paste0(nota, "; p-valor truncado na borda da tabela: o verdadeiro é >= 0,99")
   }
   .tr_series_teste(
-    "Phillips-Perron", "a série tem raiz unitária", pp$statistic, "Z(t)",
-    p_valor = pp$p.value,
+    "Phillips-Perron", "a série tem raiz unitária", estat, "Z(t)",
+    p_valor = p,
     sentido = "menor",
     conclusao_sim = "estacionária",
     conclusao_nao = "não há evidência contra a raiz unitária",
     nota = nota,
     fonte = "Phillips & Perron (1988)")
+}
+
+#' Z(t) de Phillips-Perron com só constante.
+#'
+#' Regressão y_t = a + rho y_{t-1} + u_t; t de rho = 1 corrigido pela variância
+#' de longo prazo lambda² (Newey-West, janela trunc(4 (n/100)^(1/4))):
+#' Z(t) = sqrt(g0/lambda²) t - (lambda² - g0) n se(rho) / (2 lambda s).
+#' @noRd
+.tr_series_pp_z_constante <- function(x) {
+  z <- stats::embed(x, 2)
+  yt <- z[, 1]; yt1 <- z[, 2]
+  n <- length(yt)
+  fit <- stats::lm(yt ~ yt1)
+  cf <- stats::coef(summary(fit))["yt1", ]
+  tstat <- (cf[[1]] - 1) / cf[[2]]
+  u <- stats::residuals(fit)
+  g0 <- sum(u^2) / n
+  l <- trunc(4 * (n / 100)^0.25)
+  gam <- vapply(seq_len(l), function(i) sum(u[-seq_len(i)] * u[seq_len(n - i)]) / n, 0)
+  lam <- g0 + 2 * sum((1 - seq_len(l) / (l + 1)) * gam)
+  s <- summary(fit)$sigma
+  sqrt(g0 / lam) * tstat - (lam - g0) * n * cf[[2]] / (2 * sqrt(lam) * s)
+}
+
+#' P-valor do Z(t) com constante, pela tabela tau_mu de Fuller (1976, tab.
+#' 8.5.2), interpolada em n e depois no quantil — o mesmo esquema do
+#' `stats::PP.test` com a tabela tau_tau.
+#' @noRd
+.tr_series_pp_p_constante <- function(estat, n) {
+  tabela <- rbind(
+    c(-3.75, -3.33, -3.00, -2.63, -0.37,  0.00, 0.34, 0.72),
+    c(-3.58, -3.22, -2.93, -2.60, -0.40, -0.03, 0.29, 0.66),
+    c(-3.51, -3.17, -2.89, -2.58, -0.42, -0.05, 0.26, 0.63),
+    c(-3.46, -3.14, -2.88, -2.57, -0.42, -0.06, 0.24, 0.62),
+    c(-3.44, -3.13, -2.87, -2.57, -0.43, -0.07, 0.24, 0.61),
+    c(-3.43, -3.12, -2.86, -2.57, -0.44, -0.07, 0.23, 0.60))
+  tam <- c(25, 50, 100, 250, 500, 1e5)
+  prob <- c(0.01, 0.025, 0.05, 0.1, 0.9, 0.95, 0.975, 0.99)
+  q <- vapply(seq_len(ncol(tabela)),
+              function(j) stats::approx(tam, tabela[, j], n, rule = 2)$y, 0)
+  stats::approx(q, prob, estat, rule = 2)$y
 }
 
 #' Zivot-Andrews: raiz unitária, com a quebra estimada pelo próprio teste?

@@ -1215,12 +1215,14 @@ a série pede; `series/diff` para fazê-las.
       trama::tr_node("series/phillips_perron",
         pressupostos = .tr_series_doc("series/phillips_perron")$pressupostos,
         referencias = .tr_series_doc("series/phillips_perron")$referencias,
-        fn = tr_series_phillips_perron,
+        fn = tr_series_phillips_perron, version = 2L,
         label = "Phillips-Perron",
         category = "serie_raiz", icon = icone("flask-conical"),
         description = "Phillips-Perron: a série tem raiz unitária?",
         inputs = list(serie = S), outputs = list(out = TE),
-        params = list(),
+        params = list(
+          deterministico = E("tendência", c("constante", "tendência"),
+                             label = "Termos determinísticos")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem RAIZ UNITÁRIA, a mesma hipótese nula do `series/adf`.
 Muda o caminho: em vez de acrescentar defasagens à regressão para limpar a
@@ -1242,15 +1244,30 @@ menos", e um `0,99`, "0,99 ou mais". Quando isso acontece, a `nota` do teste
 diz. A decisão a 5% não muda com isso — a ressalva está lá para quem for
 reportar o número.
 
-Os termos determinísticos não são parâmetro: o teste do `stats` roda sempre
-com constante e tendência.
+### Termos determinísticos
+
+- **tendência** (padrão) — constante e tendência linear na regressão: a
+  alternativa é "estacionária em torno de uma reta". É o `stats::PP.test`, e o
+  que o bloco fazia na versão 1.
+- **constante** — só constante: a alternativa é "estacionária em torno de um
+  nível". Em série sem tendência tem MAIS poder, porque não gasta um parâmetro
+  com uma reta que não existe (Phillips & Perron, 1988). O Z(t) é a forma geral
+  (Hamilton, 1994, eq. 17.6.8) com as convenções do `PP.test` — janela curta de
+  Newey-West, trunc(4·(n/100)^(1/4)) —, conferido contra `aTSA::pp.test`; o
+  p-valor interpola a tabela τ_μ de Fuller (1976), com as mesmas bordas de 0,01
+  e 0,99.
+
+Escolher pelo gráfico, ANTES de olhar o resultado: série que sobe ou desce de
+forma regular pede `tendência`; série que oscila em torno de um nível pede
+`constante`. Numa série com tendência, `constante` confunde a tendência com
+raiz unitária.
 
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue
 um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum.
+- **Termos determinísticos** — `tendência` (padrão) ou `constante`.
 ]---", r"---[
 Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só quadro.

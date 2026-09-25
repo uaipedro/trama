@@ -1496,3 +1496,67 @@ test_that("Fisher recusa opção de remoção desconhecida", {
   expect_error(tr_series_fisher(serie_mensal(), remover = "nada"),
                class = "tr_series_error_bad_option")
 })
+
+# ---- Phillips-Perron só com constante (revisão metodológica, fase 1) ----------
+# Z(t) de Phillips & Perron (1988), na forma geral (Hamilton 1994, eq. 17.6.8):
+# regressão de y_t em 1 e y_{t-1}, variância de longo prazo de Newey-West com
+# janela trunc(4 (n/100)^(1/4)) e pesos de Bartlett.
+test_that("PP com 'tendência' (padrão) segue idêntico ao stats::PP.test e ao tseries", {
+  set.seed(1)
+  x <- stats::ts(cumsum(stats::rnorm(150)))
+  p <- tr_series_phillips_perron(x)
+  pp <- stats::PP.test(as.numeric(x))
+  expect_equal(p$estatistica, unname(pp$statistic), tolerance = 1e-12)
+  expect_equal(p$p_valor, pp$p.value, tolerance = 1e-12)
+  skip_if_not_installed("tseries")
+  expect_equal(p$estatistica,
+               unname(suppressWarnings(tseries::pp.test(as.numeric(x), type = "Z(t_alpha)"))$statistic),
+               tolerance = 1e-12)
+})
+
+test_that("PP com 'constante' reproduz aTSA::pp.test (tipo 2) e o urca::ur.pp", {
+  skip_if_not_installed("aTSA")
+  set.seed(1)
+  for (n in c(60, 150, 400)) {
+    x <- cumsum(stats::rnorm(n))
+    p <- tr_series_phillips_perron(stats::ts(x), deterministico = "constante")
+    ref <- aTSA::pp.test(x, type = "Z_tau", lag.short = TRUE, output = FALSE)
+    expect_equal(p$estatistica, ref[2, "Z_tau"], tolerance = 1e-10, info = as.character(n))
+    # O p-valor vem da mesma tabela de Fuller; o aTSA acrescenta a coluna da
+    # mediana, o que muda a interpolação só no MEIO (p entre 0,1 e 0,9), longe
+    # de qualquer decisão: medido, diferença de até 0,022 nesses três casos.
+    expect_equal(p$p_valor, ref[2, "p.value"], tolerance = 0.05, info = as.character(n))
+    expect_identical(p$p_valor < 0.05, ref[2, "p.value"] < 0.05)
+    # O urca normaliza a variância do erro de outro jeito (MacKinnon): concorda
+    # a menos de 0,5%.
+    u <- urca::ur.pp(x, type = "Z-tau", model = "constant", lags = "short")
+    expect_equal(p$estatistica, u@teststat[[1]], tolerance = 5e-3, info = as.character(n))
+  }
+  # A nota diz qual determinístico entrou.
+  expect_match(tr_series_phillips_perron(serie_mensal(), "constante")$nota, "só constante")
+})
+
+test_that("PP 'constante' interpola a tabela tau_mu de Fuller (1976, tab. 8.5.2)", {
+  # Os quantis publicados, lidos de volta: um Z(t) igual ao quantil de 5% com
+  # n = 100 tem de sair com p = 0,05, e o de 1% com n = 25, p = 0,01.
+  expect_equal(.tr_series_pp_p_constante(-2.89, 100), 0.05, tolerance = 1e-12)
+  expect_equal(.tr_series_pp_p_constante(-3.75, 25), 0.01, tolerance = 1e-12)
+  expect_equal(.tr_series_pp_p_constante(-0.42, 250), 0.90, tolerance = 1e-12)
+})
+
+test_that("PP 'constante' tem mais poder que 'tendência' em série estacionária sem tendência", {
+  # É o motivo da opção (Phillips & Perron 1988): tendência supérflua gasta
+  # poder. AR(1) com phi = 0,85, n = 80, 300 réplicas.
+  set.seed(11)
+  rej <- replicate(300, {
+    x <- stats::ts(stats::arima.sim(list(ar = 0.85), 80))
+    c(tr_series_phillips_perron(x, "constante")$p_valor < 0.05,
+      tr_series_phillips_perron(x, "tendência")$p_valor < 0.05)
+  })
+  expect_gt(mean(rej[1, ]), mean(rej[2, ]))
+})
+
+test_that("PP recusa determinístico desconhecido", {
+  expect_error(tr_series_phillips_perron(serie_mensal(), "nenhum"),
+               class = "tr_series_error_bad_option")
+})

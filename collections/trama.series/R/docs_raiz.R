@@ -63,9 +63,7 @@
 
     "series/phillips_perron" = list(
       pressupostos = list(
-        P("A série é **estacionária em torno de uma reta** sob a alternativa: o teste roda sempre com constante e tendência, sem opção.",
-          verificar = "series/plot",
-          se_falhar = "Para série sem tendência, o `series/adf` com `constante` tem mais poder."),
+        deterministico,
         P("A autocorrelação do erro é de **dependência curta**, corrigida de forma não paramétrica (Newey-West com janela curta). Com componente MA forte e negativo o teste rejeita demais.",
           verificar = "series/acf",
           se_falhar = "Confira com o `series/adf` e o `series/kpss`."),
@@ -74,8 +72,13 @@
         R(autores = c("Phillips, P. C. B.", "Perron, P."), ano = 1988,
           titulo = "Testing for a unit root in time series regression",
           fonte = "Biometrika, 75(2), 335-346", doi = "10.1093/biomet/75.2.335"),
+        R(autores = "Fuller, W. A.", ano = 1976, titulo = "Introduction to Statistical Time Series",
+          fonte = "New York: Wiley", papel = "livro-texto"),
+        R(autores = "Hamilton, J. D.", ano = 1994, titulo = "Time Series Analysis",
+          fonte = "Princeton: Princeton University Press", papel = "livro-texto"),
         L$morettin,
-        I("stats", "PP.test", "Estatística Z(t) com constante e tendência, `lshort = TRUE`; p-valor interpolado numa tabela e preso em [0,01; 0,99]."))),
+        I("stats", "PP.test", "`tendência`: estatística Z(t) com constante e tendência, `lshort = TRUE`; p-valor interpolado na tabela τ_τ e preso em [0,01; 0,99]."),
+        I("trama.series", "tr_series_phillips_perron", "`constante`: Z(t) pela forma geral (Hamilton 1994, eq. 17.6.8), Newey-West com janela trunc(4·(n/100)^(1/4)) e pesos de Bartlett; p-valor interpolado na tabela τ_μ de Fuller (1976, tab. 8.5.2) e preso em [0,01; 0,99]. Conferido contra `aTSA::pp.test` (tipo 2) a 1e-10 no Z(t)."))),
 
     "series/zivot_andrews" = list(
       pressupostos = list(

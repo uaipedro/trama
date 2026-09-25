@@ -33,9 +33,11 @@ Imports:
     utils
 Suggests:
     testthat (>= 3.0.0),
+    aTSA,
     GeneCycle,
     png,
     randtests,
+    tseries,
     trend
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
