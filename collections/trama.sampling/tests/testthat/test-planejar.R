@@ -1,11 +1,13 @@
 test_that("n de Cochran para média e proporção, com os ajustes na ordem", {
   z <- stats::qnorm(0.975)
-  p <- tr_sampling_size_proportion()
+  # Com z declarado: os números clássicos (e os da versão 1 do bloco).
+  p <- tr_sampling_size_proportion(distribuicao = "z")
   expect_equal(p$parametros$n0, z^2 * 0.25 / 0.05^2)
   expect_equal(p$n, 385L)
   # O clássico das pesquisas de opinião: 3 pontos a 95% dá 1.068.
-  expect_equal(tr_sampling_size_proportion(erro = 0.03)$n, 1068L)
-  m <- tr_sampling_size_mean(desvio_padrao = 700, erro = 100, populacao = 2400, deff = 1.2, taxa_resposta = 0.8)
+  expect_equal(tr_sampling_size_proportion(erro = 0.03, distribuicao = "z")$n, 1068L)
+  m <- tr_sampling_size_mean(desvio_padrao = 700, erro = 100, populacao = 2400, deff = 1.2, taxa_resposta = 0.8,
+                             distribuicao = "z")
   n0 <- (z * 700 / 100)^2
   esperado <- ceiling((n0 * 1.2) / (1 + n0 * 1.2 / 2400) / 0.8)
   expect_equal(m$n, as.integer(esperado))
@@ -59,7 +61,7 @@ test_that("tamanho estratificado alcança a margem pedida e a ótima corta o est
   expect_equal(p$n, sum(p$alocacao$n_final))
   W <- e$N / sum(e$N)
   v <- sum(W^2 * (1 - p$alocacao$n / e$N) * e$desvio_producao^2 / p$alocacao$n)
-  expect_equal(p$erro_alcancado, stats::qnorm(0.975) * sqrt(v))
+  expect_equal(p$erro_alcancado, stats::qt(0.975, p$n - 4) * sqrt(v))  # t com n − H gl
   # A Neyman precisa de menos que a proporcional para a mesma margem.
   prop <- tr_sampling_size_stratified(e, "regiao", "N", "desvio_producao", alocacao = "proporcional", erro = 60)
   expect_lt(p$n, prop$n)
@@ -75,16 +77,16 @@ test_that("tamanho estratificado alcança a margem pedida e a ótima corta o est
 })
 
 test_that("tamanho por conglomerados pelo ICC", {
-  base <- tr_sampling_size_proportion()
-  c <- tr_sampling_size_cluster(base, tamanho_conglomerado = 20, icc = 0.05)
+  base <- tr_sampling_size_proportion(distribuicao = "z")
+  c <- tr_sampling_size_cluster(base, tamanho_conglomerado = 20, icc = 0.05, distribuicao = "z")
   deff <- 1 + 19 * 0.05
   expect_equal(c$conglomerados, as.integer(ceiling(base$parametros$n0 * deff / 20)))
   expect_equal(c$tipo, "conglomerados")
-  cM <- tr_sampling_size_cluster(base, 20, 0.05, conglomerados = 50)
+  cM <- tr_sampling_size_cluster(base, 20, 0.05, conglomerados = 50, distribuicao = "z")
   cg <- base$parametros$n0 * deff / 20
   expect_equal(cM$conglomerados, as.integer(ceiling(cg / (1 + cg / 50))))
   # ICC zero: é a AAS em pedaços.
-  expect_equal(tr_sampling_size_cluster(base, 10, 0)$n, as.integer(10 * ceiling(base$parametros$n0 / 10)))
+  expect_equal(tr_sampling_size_cluster(base, 10, 0, distribuicao = "z")$n, as.integer(10 * ceiling(base$parametros$n0 / 10)))
   expect_error(tr_sampling_size_cluster(c), class = "tr_sampling_error_plan_mismatch")
   expect_s3_class(tr_sampling_size_curve(base), "ggplot")
 })

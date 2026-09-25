@@ -34,8 +34,8 @@
 #' a informação.
 #' @return lista com `passos` e `n` (inteiro, arredondado para cima).
 #' @noRd
-.tr_sampling_ajustes <- function(n0, deff, N, resposta, unidade = "unidades") {
-  passos <- list(c("n₀ pela fórmula (população infinita)", n0))
+.tr_sampling_ajustes <- function(n0, deff, N, resposta, unidade = "unidades", gl = NULL, n_min = 0) {
+  passos <- list(c(sprintf("n₀ pela fórmula (população infinita%s)", .tr_sampling_rotulo_q(gl)), n0))
   n <- n0
   if (deff != 1) {
     n <- n * deff
@@ -44,6 +44,12 @@
   if (N > 0) {
     n <- n / (1 + n / N)
     passos[[length(passos) + 1L]] <- c(sprintf("correção de população finita (N = %s)", .tr_sampling_fmt(N, 6)), n)
+  }
+  if (ceiling(n - 1e-9) < n_min) {
+    # O t cai com n: o n da fórmula pode sair um abaixo do menor n cuja margem,
+    # com os gl DELE, cabe na pedida. Sobe para esse.
+    n <- n_min
+    passos[[length(passos) + 1L]] <- c("menor n cuja margem, com t nos gl dele, cabe na pedida", n)
   }
   if (resposta < 1) {
     n <- n / resposta
@@ -62,10 +68,30 @@
        n = as.integer(final), nota = nota)
 }
 
+#' ", t com 37 gl" ou ", z": de onde veio o quantil.
+#' @noRd
+.tr_sampling_rotulo_q <- function(gl) {
+  if (is.null(gl)) return("")
+  if (is.finite(gl)) sprintf(", t com %s gl", .tr_sampling_fmt(gl)) else ", z normal"
+}
+
+#' n de AAS com t: resolve n₀(q) = n0_z·(q/z)², com gl = n − 1 do n que
+#' responde (depois do deff e da correção finita, antes da não resposta).
+#' @return lista `n0`, `q`, `gl`, `aj` (os ajustes).
+#' @noRd
+.tr_sampling_n_aas <- function(n0_z, conf, distribuicao, deff, N, resposta) {
+  z <- .tr_sampling_z(conf)
+  n0 <- function(q) n0_z * (q / z)^2
+  resp <- function(q) .tr_sampling_ajustes(n0(q), deff, N, 1)$n
+  r <- .tr_sampling_resolver_t(conf, distribuicao, resp, function(n) n - 1)
+  list(n0 = n0(r$q), q = r$q, gl = r$gl,
+       aj = .tr_sampling_ajustes(n0(r$q), deff, N, resposta, gl = r$gl, n_min = r$n))
+}
+
 #' Os params comuns aos dois tamanhos simples.
 #' @noRd
-.tr_sampling_comuns <- function(confianca, populacao, deff, taxa_resposta) {
-  list(conf = .tr_sampling_conf(confianca),
+.tr_sampling_comuns <- function(confianca, populacao, deff, taxa_resposta, distribuicao = "t") {
+  list(conf = .tr_sampling_conf(confianca), distribuicao = .tr_sampling_distrib(distribuicao),
        N = .tr_sampling_num(populacao, "populacao", 0),
        deff = .tr_sampling_num(deff, "deff", 0, aberto_min = TRUE),
        resposta = .tr_sampling_num(taxa_resposta, "taxa_resposta", 0, 1, aberto_min = TRUE))
@@ -77,7 +103,8 @@
 .tr_sampling_n_para_erro <- function(par, E, conf) {
   z <- .tr_sampling_z(conf)
   n0 <- if (par$medida == "média") (z * par$S / E)^2 else z^2 * par$p * (1 - par$p) / E^2
-  .tr_sampling_ajustes(n0, par$deff, par$N, par$resposta)$n
+  dist <- if (is.null(par$distribuicao)) "z" else par$distribuicao
+  .tr_sampling_n_aas(n0, conf, dist, par$deff, par$N, par$resposta)$aj$n
 }
 
 #' Tamanho da amostra para estimar uma média.
@@ -91,12 +118,13 @@
 #' @param populacao tamanho da população (0: infinita).
 #' @param deff efeito do desenho esperado (1: AAS).
 #' @param taxa_resposta proporção esperada de respondentes (0 a 1).
+#' @param distribuicao `"t"` (gl = n − 1, resolvido por iteração) ou `"z"`.
 #' @return um plano (`sampling/plan`).
 #' @export
 tr_sampling_size_mean <- function(piloto = NULL, coluna = "", desvio_padrao = 10, media = 0, erro = 1,
                                   tipo_erro = "absoluto", confianca = "95%", populacao = 0,
-                                  deff = 1, taxa_resposta = 1) {
-  cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
+                                  deff = 1, taxa_resposta = 1, distribuicao = "t") {
+  cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta, distribuicao)
   tipo_erro <- .tr_sampling_enum(tipo_erro, c("absoluto", "relativo"), "tipo_erro")
   erro <- .tr_sampling_num(erro, "erro", 0, aberto_min = TRUE)
   nota <- ""
@@ -121,12 +149,14 @@ tr_sampling_size_mean <- function(piloto = NULL, coluna = "", desvio_padrao = 10
     }
     E <- erro / 100 * media
   }
-  n0 <- (.tr_sampling_z(cm$conf) * S / E)^2
-  aj <- .tr_sampling_ajustes(n0, cm$deff, cm$N, cm$resposta)
+  sol <- .tr_sampling_n_aas((.tr_sampling_z(cm$conf) * S / E)^2, cm$conf, cm$distribuicao, cm$deff, cm$N,
+                            cm$resposta)
+  aj <- sol$aj
   .tr_sampling_plano("média", "Tamanho · média", aj$n, aj$passos, cm$conf, E,
                      parametros = list(medida = "média", S = S, media = media, erro_informado = erro,
                                        tipo_erro = tipo_erro, N = cm$N, deff = cm$deff,
-                                       resposta = cm$resposta, n0 = n0),
+                                       resposta = cm$resposta, n0 = sol$n0, q = sol$q, gl = sol$gl,
+                                       distribuicao = cm$distribuicao),
                      nota = .tr_sampling_nota(nota, aj$nota,
                                               if (tipo_erro == "relativo") sprintf("erro de %s%% da média = %s", .tr_sampling_fmt(erro), .tr_sampling_fmt(E)) else ""))
 }
@@ -138,19 +168,21 @@ tr_sampling_size_mean <- function(piloto = NULL, coluna = "", desvio_padrao = 10
 #' @return um plano (`sampling/plan`).
 #' @export
 tr_sampling_size_proportion <- function(proporcao = 0.5, erro = 0.05, confianca = "95%", populacao = 0,
-                                        deff = 1, taxa_resposta = 1) {
-  cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
+                                        deff = 1, taxa_resposta = 1, distribuicao = "t") {
+  cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta, distribuicao)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 1, aberto_min = TRUE)
   if (p >= 1) {
     .tr_sampling_abort("tr_sampling_error_bad_option",
                        "Param 'proporcao': tem de ficar entre 0 e 1, sem os extremos (veio %s).", p)
   }
   E <- .tr_sampling_num(erro, "erro", 0, 1, aberto_min = TRUE)
-  n0 <- .tr_sampling_z(cm$conf)^2 * p * (1 - p) / E^2
-  aj <- .tr_sampling_ajustes(n0, cm$deff, cm$N, cm$resposta)
+  sol <- .tr_sampling_n_aas(.tr_sampling_z(cm$conf)^2 * p * (1 - p) / E^2, cm$conf, cm$distribuicao, cm$deff,
+                            cm$N, cm$resposta)
+  aj <- sol$aj
   .tr_sampling_plano("proporção", "Tamanho · proporção", aj$n, aj$passos, cm$conf, E,
                      parametros = list(medida = "proporção", p = p, N = cm$N, deff = cm$deff,
-                                       resposta = cm$resposta, n0 = n0),
+                                       resposta = cm$resposta, n0 = sol$n0, q = sol$q, gl = sol$gl,
+                                       distribuicao = cm$distribuicao),
                      nota = .tr_sampling_nota(if (p == 0.5) "p = 0,5: o pior caso, o n que serve para qualquer proporção" else "",
                                               aj$nota))
 }
@@ -170,7 +202,8 @@ tr_sampling_size_proportion <- function(proporcao = 0.5, erro = 0.05, confianca 
 #' @export
 tr_sampling_size_stratified <- function(estratos, estrato = "", tamanho = "", desvio = "", custo = "",
                                         alocacao = "neyman", erro = 0, n_total = 0L,
-                                        confianca = "95%", taxa_resposta = 1) {
+                                        confianca = "95%", taxa_resposta = 1, distribuicao = "t") {
+  distribuicao <- .tr_sampling_distrib(distribuicao)
   e <- tibble::as_tibble(estratos)
   ce <- .tr_sampling_col(e, estrato, "estrato")
   cN <- .tr_sampling_col(e, tamanho, "tamanho"); .tr_sampling_numerica(e, cN, "tamanho")
@@ -202,16 +235,23 @@ tr_sampling_size_stratified <- function(estratos, estrato = "", tamanho = "", de
   Nt <- sum(N); W <- N / Nt
   a <- switch(alocacao, proporcional = W, neyman = W * S, `ótima` = W * S / sqrt(C), igual = rep(1, length(N)))
   a <- if (sum(a) > 0) a / sum(a) else W
-  z <- .tr_sampling_z(conf)
+  H <- length(N)
+  # gl da estratificada: n − H, o mesmo gl = UPAs − estratos que o card de
+  # `sampling/mean` vai usar.
+  gl_de_n <- function(n) if (distribuicao == "z") Inf else max(1, n - H)
   passos <- list()
   if (length(n_total) == 1L && !is.na(n_total) && n_total > 0) {
     n <- as.numeric(round(n_total)); E <- NA_real_
+    z <- .tr_sampling_q(conf, gl_de_n(n))
     passos[[1]] <- c("n total informado", n)
   } else if (length(erro) == 1L && !is.na(erro) && erro > 0) {
     E <- erro
-    # Var(ȳ_st) = Σ W²S²/n_h − Σ W S²/N, com n_h = a_h·n, igualada a (E/z)².
-    n <- sum(W^2 * S^2 / a) / ((E / z)^2 + sum(W * S^2) / Nt)
-    passos[[1]] <- c(sprintf("n pela fórmula da alocação %s", alocacao), n)
+    # Var(ȳ_st) = Σ W²S²/n_h − Σ W S²/N, com n_h = a_h·n, igualada a (E/q)².
+    n_de_q <- function(q) sum(W^2 * S^2 / a) / ((E / q)^2 + sum(W * S^2) / Nt)
+    sol <- .tr_sampling_resolver_t(conf, distribuicao, function(q) as.integer(ceiling(n_de_q(q) - 1e-9)), gl_de_n)
+    z <- sol$q
+    n <- max(n_de_q(z), sol$n)
+    passos[[1]] <- c(sprintf("n pela fórmula da alocação %s%s", alocacao, .tr_sampling_rotulo_q(sol$gl)), n)
   } else {
     .tr_sampling_abort("tr_sampling_error_blank_param",
                        "'sampling/size_stratified': preencha 'erro' (a margem da média) ou 'n_total'.")
@@ -219,6 +259,7 @@ tr_sampling_size_stratified <- function(estratos, estrato = "", tamanho = "", de
   nh <- .tr_sampling_alocar(N, S, C, as.integer(ceiling(n - 1e-9)), alocacao)
   passos[[length(passos) + 1L]] <- c("alocado nos estratos (inteiros, mínimo 2, até N_h)", sum(nh))
   f <- nh / N
+  z <- .tr_sampling_q(conf, gl_de_n(sum(nh)))
   alcancado <- z * sqrt(sum(W^2 * (1 - f) * S^2 / nh))
   n_final <- pmin(N, ceiling(nh / resposta - 1e-9))
   if (resposta < 1) passos[[length(passos) + 1L]] <- c(sprintf("÷ taxa de resposta (%s)", .tr_sampling_pct(resposta)), sum(n_final))
@@ -230,36 +271,67 @@ tr_sampling_size_stratified <- function(estratos, estrato = "", tamanho = "", de
                      tibble::tibble(passo = vapply(passos, `[[`, "", 1L),
                                     valor = as.numeric(vapply(passos, `[[`, "", 2L)), unidade = "unidades"),
                      conf, E, erro_alcancado = alcancado,
-                     parametros = list(medida = "média", alocacao = alocacao, resposta = resposta, N = Nt),
+                     parametros = list(medida = "média", alocacao = alocacao, resposta = resposta, N = Nt,
+                                       q = z, gl = gl_de_n(sum(nh)), distribuicao = distribuicao),
                      alocacao = al,
                      nota = .tr_sampling_nota(
                        if (any(nh >= N)) sprintf("censo em: %s", paste(nomes[nh >= N], collapse = ", ")) else "",
                        sprintf("margem alcançada com a alocação inteira: %s", .tr_sampling_fmt(alcancado))))
 }
 
+#' O deff de conglomerados de tamanho desigual (Eldridge, Ashby & Kerry 2006):
+#' 1 + ((CV² + 1)·m̄ − 1)·ρ. Com CV = 0 é o 1 + (m̄ − 1)·ρ de tamanhos iguais.
+#' @noRd
+.tr_sampling_deff_cv <- function(m, cv, rho) 1 + ((cv^2 + 1) * m - 1) * rho
+
 #' Tamanho de uma amostra de conglomerados, pelo ICC.
 #' @param plano plano de `sampling/size_mean` ou `sampling/size_proportion`.
 #' @param tamanho_conglomerado unidades por conglomerado (média, m̄).
 #' @param icc correlação intraclasse esperada (0 a 1).
 #' @param conglomerados conglomerados na população (0: infinitos).
+#' @param cv_tamanho coeficiente de variação do tamanho dos conglomerados (0:
+#'   todos do mesmo tamanho).
+#' @param distribuicao `"t"` (gl = conglomerados − 1, por iteração) ou `"z"`.
 #' @return um plano (`sampling/plan`) de conglomerados.
 #' @export
-tr_sampling_size_cluster <- function(plano, tamanho_conglomerado = 20, icc = 0.05, conglomerados = 0) {
+tr_sampling_size_cluster <- function(plano, tamanho_conglomerado = 20, icc = 0.05, conglomerados = 0,
+                                     cv_tamanho = 0, distribuicao = "t") {
   .tr_sampling_plano_do_tipo(plano, c("média", "proporção"), "sampling/size_cluster",
                              "'sampling/stratified' — o plano estratificado já aloca por unidades")
   m <- .tr_sampling_num(tamanho_conglomerado, "tamanho_conglomerado", 1)
   rho <- .tr_sampling_num(icc, "icc", 0, 1)
   M <- .tr_sampling_num(conglomerados, "conglomerados", 0)
+  cv <- .tr_sampling_num(cv_tamanho, "cv_tamanho", 0, 10)
+  distribuicao <- .tr_sampling_distrib(distribuicao)
   par <- plano$parametros
-  deff <- 1 + (m - 1) * rho
-  passos <- list(c("n₀ da AAS (população infinita)", par$n0, "unidades"))
-  n1 <- par$n0 * deff
-  passos[[2]] <- c(sprintf("× deff = 1 + (m̄ − 1)·ICC = %s", .tr_sampling_fmt(deff)), n1, "unidades")
+  deff <- .tr_sampling_deff_cv(m, cv, rho)
+  # O n₀ do plano foi feito com o quantil DELE; aqui o quantil é o dos
+  # conglomerados (t com cg − 1 gl), e o n₀ se refaz: n₀(q) = n₀·(q/q_plano)².
+  z <- .tr_sampling_z(plano$confianca)
+  q_plano <- if (is.null(par$q)) z else par$q
+  n0z <- par$n0 * (z / q_plano)^2
+  cg_de_q <- function(q) {
+    cg <- n0z * (q / z)^2 * deff / m
+    if (M > 0) cg <- cg / (1 + cg / M)
+    cg
+  }
+  sol <- .tr_sampling_resolver_t(plano$confianca, distribuicao,
+                                 function(q) as.integer(max(2, ceiling(cg_de_q(q) - 1e-9))),
+                                 function(n) n - 1)
+  n0 <- n0z * (sol$q / z)^2
+  passos <- list(c(sprintf("n₀ da AAS (população infinita%s)", .tr_sampling_rotulo_q(sol$gl)), n0, "unidades"))
+  n1 <- n0 * deff
+  passos[[2]] <- c(sprintf(if (cv > 0) "× deff = 1 + ((CV² + 1)·m̄ − 1)·ICC = %s" else "× deff = 1 + (m̄ − 1)·ICC = %s",
+                           .tr_sampling_fmt(deff)), n1, "unidades")
   cg <- n1 / m
   passos[[3]] <- c(sprintf("÷ %s unidades por conglomerado", .tr_sampling_fmt(m)), cg, "conglomerados")
   if (M > 0) {
     cg <- cg / (1 + cg / M)
     passos[[length(passos) + 1L]] <- c(sprintf("correção finita (M = %s)", .tr_sampling_fmt(M, 6)), cg, "conglomerados")
+  }
+  if (ceiling(cg - 1e-9) < sol$n) {
+    cg <- sol$n
+    passos[[length(passos) + 1L]] <- c("menor número cuja margem, com t nos gl dele, cabe na pedida", cg, "conglomerados")
   }
   if (par$resposta < 1) {
     cg <- cg / par$resposta
@@ -274,7 +346,9 @@ tr_sampling_size_cluster <- function(plano, tamanho_conglomerado = 20, icc = 0.0
                                     valor = as.numeric(vapply(passos, `[[`, "", 2L)),
                                     unidade = vapply(passos, `[[`, "", 3L)),
                      plano$confianca, plano$erro,
-                     parametros = c(par, list(icc = rho, deff_conglomerado = deff, M = M)),
+                     parametros = c(par[setdiff(names(par), c("n0", "q", "gl", "distribuicao"))],
+                                    list(n0 = n0, q = sol$q, gl = sol$gl, distribuicao = distribuicao,
+                                         icc = rho, cv_tamanho = cv, deff_conglomerado = deff, M = M)),
                      conglomerados = final, tamanho_conglomerado = m,
                      nota = .tr_sampling_nota(
                        if (par$deff != 1) sprintf("o deff do plano (%s) foi trocado pelo dos conglomerados (%s)",
