@@ -74,3 +74,45 @@ test_that("recorte mantém só os nós pedidos e as arestas internas", {
   expect_equal(names(sub$collections), "t")
   expect_identical(tr_doc_subset(doc), doc)
 })
+
+test_that("ops do template inserem com ids novos e na origem pedida", {
+  reg <- test_registry()
+  doc <- tr_doc_apply(doc_soma(reg), list(op = "resize", node = "s", w = 320, h = 200), reg)
+  doc <- tr_doc_apply(doc, list(op = "set_mode", node = "s", modo = "mini"), reg)
+  doc <- tr_doc_apply(doc, list(op = "add_frame", id = "f", x = 100, y = 50, w = 600, h = 300,
+                                title = "Grupo"), reg)
+  doc <- tr_doc_apply(doc, list(op = "add_note", id = "n", x = 150, y = 300, w = 80, h = 40,
+                                kind = "markdown", text = "oi"), reg)
+  tpl <- tr_template(doc, nome = "Soma", registry = reg)
+  base <- add(tr_doc(), reg, "t/const", id = "a")
+  op <- tr_template_op(tpl, origin = c(1000, 500))
+  expect_equal(op$op, "batch")
+  res <- tr_doc_apply(base, op, reg)
+  expect_length(res$nodes, 3)                     # "a" original + 2 do template
+  expect_length(res$edges, 1)
+  novos <- setdiff(names(res$nodes), "a")
+  tipos <- vapply(res$nodes[novos], `[[`, "", "type")
+  const <- novos[tipos == "t/const"]; soma <- novos[tipos == "t/add"]
+  expect_equal(res$ui$positions[[const]], c(1000, 500))
+  expect_equal(res$ui$positions[[soma]], c(1300, 500))
+  expect_equal(res$nodes[[const]]$params$value, 7)
+  expect_equal(res$ui$sizes[[soma]], c(320, 200))
+  expect_equal(res$ui$modes[[soma]], "mini")
+  expect_equal(res$edges[[1]]$from$node, const)
+  expect_equal(res$edges[[1]]$to$node, soma)
+  f <- res$ui$frames[[1]]
+  expect_equal(c(f$x, f$y, f$w, f$h), c(1000, 500, 600, 300))
+  expect_equal(f$title, "Grupo")
+  n <- res$ui$notes[[1]]
+  expect_equal(c(n$x, n$y), c(1050, 750))
+  expect_equal(n$text, "oi")
+  # Colar de novo não colide.
+  res2 <- tr_doc_apply(res, tr_template_op(tpl, c(0, 0)), reg)
+  expect_length(res2$nodes, 5)
+  expect_length(res2$edges, 2)
+  # E o template lido do disco insere igual ao recém-criado.
+  lido <- tr_template_parse(tr_template_json(tpl))
+  res3 <- tr_doc_apply(base, tr_template_op(lido, c(1000, 500)), reg)
+  expect_equal(unname(res3$ui$positions[setdiff(names(res3$nodes), "a")]),
+               unname(res$ui$positions[novos]))
+})

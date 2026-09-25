@@ -115,3 +115,46 @@ tr_doc_subset <- function(doc, ids = NULL) {
   doc$collections <- .tr_empty_obj(doc$collections[intersect(names(doc$collections), usadas)])
   doc
 }
+
+#' Uma op `batch` que insere o template com o canto em `origin`, ids novos.
+#'
+#' Ids novos a cada chamada: colar o mesmo template duas vezes não pode
+#' colidir. Uma op só (e não várias) pra inserção ser um passo de undo.
+#' Frames vêm antes dos nós (ficam por baixo); tamanho, vista, modo e arestas
+#' vêm depois, porque exigem o nó já criado.
+#' @export
+tr_template_op <- function(tpl, origin = c(0, 0)) {
+  d <- tpl$doc
+  novo <- list()
+  for (id in c(names(d$nodes), names(d$ui$frames), names(d$ui$notes))) novo[[id]] <- .tr_new_id()
+  at <- function(x, y) c(round(origin[[1]] + x), round(origin[[2]] + y))
+  ops <- list(); depois <- list()
+  for (id in names(d$ui$frames)) {
+    f <- d$ui$frames[[id]]; p <- at(f$x, f$y)
+    # Sem `order`: o frame colado entra no fim da sequência de slides do destino.
+    ops[[length(ops) + 1]] <- list(op = "add_frame", id = novo[[id]], x = p[1], y = p[2], w = f$w, h = f$h,
+                                   title = f$title, aspect = f$aspect, color = f$color)
+  }
+  for (id in names(d$nodes)) {
+    n <- d$nodes[[id]]; pos <- d$ui$positions[[id]] %||% c(0, 0)
+    ops[[length(ops) + 1]] <- list(op = "add_node", id = novo[[id]], type = n$type, label = n$label,
+                                   params = .tr_empty_obj(n$params), seed = n$seed,
+                                   position = at(pos[[1]], pos[[2]]))
+    # `sizes` guarda o vetor c(w, h), e `resize` o recebe em `w`/`h`.
+    sz <- d$ui$sizes[[id]]
+    if (!is.null(sz)) depois[[length(depois) + 1]] <- list(op = "resize", node = novo[[id]], w = sz[[1]], h = sz[[2]])
+    if (!is.null(d$ui$views[[id]])) depois[[length(depois) + 1]] <-
+      list(op = "set_view", node = novo[[id]], view = d$ui$views[[id]])
+    if (!is.null(d$ui$modes[[id]])) depois[[length(depois) + 1]] <-
+      list(op = "set_mode", node = novo[[id]], modo = d$ui$modes[[id]])
+  }
+  for (id in names(d$ui$notes)) {
+    n <- d$ui$notes[[id]]; p <- at(n$x, n$y)
+    ops[[length(ops) + 1]] <- c(list(op = "add_note", id = novo[[id]], x = p[1], y = p[2]),
+                                n[setdiff(names(n), c("x", "y"))])
+  }
+  for (e in d$edges) depois[[length(depois) + 1]] <-
+    list(op = "connect", from_node = novo[[e$from$node]], from_port = e$from$port,
+         to_node = novo[[e$to$node]], to_port = e$to$port)
+  list(op = "batch", ops = c(ops, depois))
+}
