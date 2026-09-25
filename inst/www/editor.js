@@ -906,6 +906,16 @@ function compatible(catalog, from, to) {
   return (catalog.adapters || []).some((a) => a.from === from && a.to === to);
 }
 
+// Template = JSON com a marca `trama: "template"`. Qualquer outro JSON segue
+// sendo dado (ou flow, no diálogo de importar). O parse aqui é só pra decidir
+// o caminho; validar de verdade é do servidor (`tr_template_parse`). O teste
+// de texto antes do `JSON.parse` evita parsear todo texto colado à toa.
+function ehTemplate(texto) {
+  if (typeof texto !== "string" || texto.length > 5e6 || !/"trama"\s*:\s*"template"/.test(texto)) return false;
+  try { const x = JSON.parse(texto); return !!x && !Array.isArray(x) && x.trama === "template"; }
+  catch { return false; }
+}
+
 // Espelha exportFramePng (frames.js): Blob, e não data: URL, pelo mesmo
 // motivo — um flow grande em base64 pesa um terço a mais no href. Revogado
 // depois de dar tempo ao clique iniciar o download.
@@ -2580,6 +2590,20 @@ function App() {
     pushMany(opsDoGrupo(retrato, off, off));
   };
 
+  // Template entra pelo servidor (parse, ids novos, checagem de coleções) e
+  // volta como `batch` comum. Sem posição explícita, nasce onde o mouse está
+  // no canvas; mouse fora dele, no centro da tela.
+  const mouseFlowRef = useRef(null);
+  const inserirTemplate = (texto, pos) => {
+    const p = pos || mouseFlowRef.current || centroDaTela();
+    sendInput("tr_template_insert", { seq: ++seqCounter, conteudo: texto,
+                                      x: Math.round(p.x), y: Math.round(p.y) });
+  };
+  // Refs pros listeners registrados uma vez só (paste, drop global)
+  // enxergarem as funções do render atual.
+  const inserirTemplateRef = useRef(inserirTemplate); inserirTemplateRef.current = inserirTemplate;
+  const colarRef = useRef(colar); colarRef.current = colar;
+
   // Duplicar (menu de contexto): copiar + colar num só passo, sem tocar o
   // clipboard — um Ctrl+V depois de duplicar continua colando o que o
   // usuário copiou por último, não o bloco duplicado.
@@ -2672,19 +2696,31 @@ function App() {
         copiar();
         return;
       }
-      if (nome === "mod+v") {
-        if (!clipboardRef.current) return;
-        e.preventDefault();
-        colar();
-        return;
-      }
+      // Ctrl+V não é tratado aqui: o `paste` abaixo é quem decide, porque só
+      // ele enxerga o clipboard do SISTEMA. `preventDefault` no keydown
+      // mataria o próprio evento `paste`.
+      if (nome === "mod+v") return;
       const fn = atalhosRef.current[nome];
       if (!fn) return;
       e.preventDefault();
       fn();
     };
+    // Colar do SISTEMA: um template copiado do site ou de uma mensagem vence
+    // o clipboard interno. Qualquer outro texto cai no comportamento de antes
+    // (colar os nós do último Ctrl+C) — texto solto no clipboard do SO não
+    // pode sequestrar o Ctrl+V interno. Campo de texto focado não é conosco;
+    // diálogo e lightbox recuam como no keydown.
+    const onPaste = (e) => {
+      const t = e.target;
+      if (abrindoRef.current || document.querySelector(".tr-lightbox")) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const texto = e.clipboardData?.getData("text/plain") || "";
+      if (ehTemplate(texto)) { e.preventDefault(); inserirTemplateRef.current(texto); return; }
+      if (clipboardRef.current) { e.preventDefault(); colarRef.current(); }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("paste", onPaste);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("paste", onPaste); };
   }, []);
 
   if (!catalog || !doc) return h("div", { className: "tr-loading" }, "carregando…");
@@ -2820,6 +2856,8 @@ function App() {
                                 abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
     h("div", { key: "canvas", className: "tr-canvas", ref: wrapRef,
+               onMouseMove: (e) => { mouseFlowRef.current = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }); },
+               onMouseLeave: () => { mouseFlowRef.current = null; },
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
       h(ReactFlow, {
