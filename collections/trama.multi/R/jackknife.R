@@ -332,7 +332,10 @@ sorteie uma amostra das linhas antes.
 .tr_multi_nos_jackknife <- function() {
   TB <- "data/table"
   no <- function(id, fn, label, description, inputs, params, help) {
-    trama::tr_node(id, fn = fn, label = label, category = "multi_jackknife",
+    trama::tr_node(id, fn = fn,
+                   pressupostos = .tr_multi_doc(id)$pressupostos,
+                   referencias = .tr_multi_doc(id)$referencias,
+                   label = label, category = "multi_jackknife",
                    icon = trama::tr_icon("repeat"), description = description,
                    inputs = inputs, outputs = list(out = TB), params = params, help = help)
   }
