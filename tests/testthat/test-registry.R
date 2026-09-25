@@ -167,6 +167,26 @@ test_that("migração com destino fora do namespace, malformada ou conflitante �
     "x/a" = list(to = "v/b", params = list(k = 1))))), registry = reg), class = "tr_error_bad_migration")
 })
 
+test_that("mesmo id antigo pro mesmo destino com params diferentes é conflito", {
+  # O namespace impede duas coleções de apontarem pro mesmo destino pela
+  # porta da frente; a coleção montada à mão (sem tr_collection) testa a regra
+  # do registro sozinha.
+  reg <- tr_registry()
+  tr_use(tr_collection(id = "u", migrations = list(nodes = list(
+    "x/a" = list(to = "u/b", params = list(k = 1))))), registry = reg)
+  outra <- function(dest) {
+    col <- tr_collection(id = "v")
+    col$migrations <- list(nodes = list("x/a" = dest))
+    col
+  }
+  expect_error(tr_use(outra(list(to = "u/b", params = list(k = 2))), registry = reg),
+               class = "tr_error_bad_migration")
+  expect_error(tr_use(outra("u/b"), registry = reg), class = "tr_error_bad_migration")
+  expect_null(reg$collections$v)
+  tr_use(outra(list(to = "u/b", params = list(k = 1))), registry = reg)
+  expect_false(is.null(reg$collections$v))
+})
+
 test_that("destino de nó com params: forma válida aceita, malformada recusada", {
   ok <- tr_collection(id = "u", migrations = list(nodes = list(
     "x/a" = list(to = "u/b", params = list(k = TRUE)))))

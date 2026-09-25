@@ -96,12 +96,20 @@ tr_use <- function(collection, registry = .tr_default_registry,
   mig <- registry$migrations %||% list(nodes = list(), params = list(), ports = list())
   cm <- col$migrations %||% list()
   for (old in names(cm$nodes)) {
-    # Compara pelo destino (`to`): a forma com params injetados e a string
-    # simples apontando pro mesmo id não são conflito de casa.
+    # Compara destino E params injetados: mesmo `to` com params diferentes
+    # também abriria o doc de um jeito ou de outro conforme a ordem. A string
+    # simples vale como params vazios, então ela e `list(to =)` não conflitam.
     prev <- mig$nodes[[old]]
-    if (!is.null(prev) && !identical(.tr_mig_to(prev), .tr_mig_to(cm$nodes[[old]]))) {
+    novo <- cm$nodes[[old]]
+    ps <- function(x) if (is.list(x)) x$params %||% list() else list()
+    if (!is.null(prev) && !identical(.tr_mig_to(prev), .tr_mig_to(novo))) {
       rlang::abort(sprintf("Migração conflitante: '%s' iria pra '%s' e pra '%s'.",
-                           old, .tr_mig_to(prev), .tr_mig_to(cm$nodes[[old]])),
+                           old, .tr_mig_to(prev), .tr_mig_to(novo)),
+                   class = "tr_error_bad_migration")
+    }
+    if (!is.null(prev) && !identical(ps(prev), ps(novo))) {
+      rlang::abort(sprintf("Migração conflitante: '%s' iria pra '%s' com params injetados diferentes.",
+                           old, .tr_mig_to(novo)),
                    class = "tr_error_bad_migration")
     }
     mig$nodes[[old]] <- cm$nodes[[old]]
