@@ -31,6 +31,18 @@
   três F (medido na fase 1: com phi = 0,9 o F de tendência por GLS ainda
   rejeita 17% sob H0).
 
+- `series/zivot_andrews` (versão 3): `t_sig` passa a seguir a regra exata de
+  Zivot & Andrews (1992, seção 4) — k do geral para o específico em CADA
+  corte, t de cada corte com o seu k, mínimo nos cortes (a versão 2 escolhia o
+  corte primeiro e o k só nele). Oráculo: força bruta com a regressão do
+  `urca::ur.za` (1e-10) em quatro séries, uma em que as regras divergem
+  (-4,335 → -4,738). `fixa` com `defasagens = 0` passa a ser zero defasagens
+  (antes caía em trunc((n − 1)^(1/3))). Nelson-Plosser, modelo A, k = 8:
+  -5,576386 (real) e -5,823666 (nominal), 1929, recalculados no `urca::nporg`
+  (a tabela do artigo não foi conferida no PDF). Medido sob passeio aleatório
+  (nível, 300 réplicas): `t_sig` rejeita a 5% em 31% (n = 30), 27% (50) e 13%
+  (100), contra 10%, 6% e 5% com k fixo; a `nota` avisa abaixo de 100.
+
 ## Rigor metodológico (fase 1)
 
 - `series/fisher` (versão 2): convenções de Fisher (1929). O g passa a usar só

@@ -211,7 +211,10 @@ serie_degrau <- function() {
 # Os testes abaixo travam a mecânica com defasagens FIXAS (a regra da versão 1,
 # trunc((n - 1)^(1/3))). A seleção do geral para o específico, que é o padrão
 # desde a versão 2, tem os testes próprios mais adiante.
-za_fixa <- function(...) tr_series_zivot_andrews(..., selecao = "fixa")
+# Desde a versão 3, `fixa` com 0 é zero defasagens; a regra antiga vai explícita.
+za_fixa <- function(serie, ..., defasagens = as.integer(trunc((length(serie) - 1)^(1 / 3)))) {
+  tr_series_zivot_andrews(serie, ..., defasagens = defasagens, selecao = "fixa")
+}
 
 test_that("cada modelo do Zivot-Andrews traz a SUA tabela de críticos", {
   # A armadilha central deste bloco, posta como asserção. O `z@cval` chega SEM
@@ -1605,31 +1608,44 @@ test_that("a regressão do corte refaz o t do urca::ur.za", {
   }
 })
 
-test_that("a seleção geral→específico para no primeiro k com última defasagem significativa", {
-  set.seed(8)
-  # AR(2) nas diferenças: a segunda defasagem importa, as de cima não.
-  e <- stats::arima.sim(list(ar = c(0.5, -0.4)), 150)
-  x <- stats::ts(cumsum(e))
-  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L)
-  k <- t$extra$defasagens
-  expect_true(k >= 1L && k <= 8L)
-  crit <- stats::qnorm(0.95)
-  x <- as.numeric(x)
-  # A última escolhida é significativa, no corte escolhido com ela...
-  cf <- stats::coef(summary(.tr_series_za_lm(x, "intercept", k, t$extra$quebra)))
-  expect_gte(abs(cf[paste0("y.dl", k), "t value"]), crit)
-  # ...e toda k maior até o teto foi descartada por não ser.
-  for (kk in seq.int(k + 1L, length.out = 8L - k)) {
-    q <- .tr_series_za_janela(x, "intercept", kk)$quebra
-    cf <- stats::coef(summary(.tr_series_za_lm(x, "intercept", kk, q)))
-    expect_lt(abs(cf[paste0("y.dl", kk), "t value"]), crit)
-  }
-  # O resultado é o ur.za com o k escolhido, mínimo na janela de 15% a 85%.
-  z <- urca::ur.za(x, model = "intercept", lag = k)
+# Oráculo por força bruta da regra de Zivot & Andrews (1992, seção 4): em CADA
+# corte da janela, k do geral para o específico (teto kmax, |t| da última
+# diferença defasada >= 1,645); t de y_{t-1} com aquele k; mínimo nos cortes.
+# A regressão de cada corte é a `.tr_series_za_lm`, igual ao `ur.za` a 1e-10.
+za_bruto <- function(x, modelo, kmax) {
   n <- length(x)
-  expect_equal(t$estatistica, min(z@tstats[ceiling(0.15 * n):floor(0.85 * n)]),
-               tolerance = 1e-12)
-  expect_match(t$nota, "do geral para o específico (teto 8", fixed = TRUE)
+  lo <- ceiling(0.15 * n); hi <- min(floor(0.85 * n), n - 1)
+  res <- t(vapply(lo:hi, function(q) {
+    k <- kmax
+    while (k > 0) {
+      cf <- stats::coef(summary(.tr_series_za_lm(x, modelo, k, q)))
+      if (abs(cf[paste0("y.dl", k), "t value"]) >= stats::qnorm(0.95)) break
+      k <- k - 1
+    }
+    cf <- stats::coef(summary(.tr_series_za_lm(x, modelo, k, q)))
+    c(t = (cf["y.l1", 1] - 1) / cf["y.l1", 2], q = q, k = k)
+  }, c(t = 0, q = 0, k = 0)))
+  res[which.min(res[, "t"]), ]
+}
+
+test_that("t_sig escolhe k em cada corte, como Zivot & Andrews (1992)", {
+  casos <- list(
+    list(seed = 8, ar = c(0.5, -0.4), n = 150, m = "nível", mod = "intercept", kmax = 8L),
+    list(seed = 3, ar = 0.6, n = 90, m = "ambas", mod = "both", kmax = 6L),
+    list(seed = 5, ar = c(0.3, 0.3), n = 70, m = "inclinação", mod = "trend", kmax = 5L),
+    # Aqui as duas regras divergem: escolher o corte primeiro (versão 2) dava
+    # t = -4,335 (obs. 56, k = 6); k por corte dá -4,738 (obs. 55, k = 1).
+    list(seed = 16, ar = 0.4, n = 80, m = "nível", mod = "intercept", kmax = 6L))
+  for (cs in casos) {
+    set.seed(cs$seed)
+    x <- cumsum(stats::arima.sim(list(ar = cs$ar), cs$n))
+    t <- tr_series_zivot_andrews(stats::ts(x), mudanca = cs$m, defasagens = cs$kmax)
+    ref <- za_bruto(as.numeric(x), cs$mod, cs$kmax)
+    expect_equal(t$estatistica, unname(ref[["t"]]), tolerance = 1e-10, info = cs$m)
+    expect_equal(t$extra$quebra, as.integer(ref[["q"]]), info = cs$m)
+    expect_equal(t$extra$defasagens, as.integer(ref[["k"]]), info = cs$m)
+  }
+  expect_match(t$nota, "escolhidas em cada corte", fixed = TRUE)
 })
 
 test_that("ruído branco nas diferenças leva a seleção até k = 0", {
@@ -1643,23 +1659,33 @@ test_that("ruído branco nas diferenças leva a seleção até k = 0", {
   expect_equal(t$estatistica, min(z@tstats[15:85]), tolerance = 1e-12)
 })
 
-test_that("Zivot & Andrews (1992): PNB real de Nelson-Plosser, modelo A, k = 8", {
-  # Série anual 1909-1970 em log (urca::nporg), modelo de mudança de nível com
-  # k = 8, o valor que o artigo usa (herdado de Perron 1989). O artigo publica
-  # t = -5.58 com quebra em 1929; conferido aqui a duas casas.
+test_that("Nelson-Plosser, modelo A, k = 8: PNB real -5,576 e nominal -5,824 em 1929", {
+  # Série anual 1909-1970 em log (urca::nporg), mudança de nível, k = 8 (o k que
+  # Zivot & Andrews 1992 usam, herdado de Perron 1989). Os valores de
+  # referência foram RECALCULADOS com urca::ur.za(lag = 8) sobre o nporg (o
+  # mínimo cai dentro da janela de 15%-85%); a tabela do artigo não pôde ser
+  # conferida no PDF. Batem com os -5,58 e -5,82 citados de memória.
   data("nporg", package = "urca", envir = environment())
-  d <- stats::na.omit(nporg[nporg$year <= 1970, c("year", "gnp.r")])
-  x <- stats::ts(log(d$gnp.r), start = d$year[[1]])
-  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L, selecao = "fixa")
-  expect_equal(round(t$estatistica, 2), -5.58)
-  expect_equal(t$extra$quando, "1929")
-  expect_equal(t$decisao_5, "rejeita H0")
-  # PNB nominal: -5.82, 1929.
-  d <- stats::na.omit(nporg[nporg$year <= 1970, c("year", "gnp.n")])
-  x <- stats::ts(log(d$gnp.n), start = d$year[[1]])
-  t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L, selecao = "fixa")
-  expect_equal(round(t$estatistica, 2), -5.82)
-  expect_equal(t$extra$quando, "1929")
+  for (v in c(gnp.r = -5.576386, gnp.n = -5.823666) |> names()) {
+    d <- stats::na.omit(nporg[nporg$year <= 1970, c("year", v)])
+    x <- stats::ts(log(d[[v]]), start = d$year[[1]])
+    t <- tr_series_zivot_andrews(x, mudanca = "nível", defasagens = 8L, selecao = "fixa")
+    ref <- c(gnp.r = -5.576386, gnp.n = -5.823666)[[v]]
+    expect_equal(t$estatistica, ref, tolerance = 1e-6, info = v)
+    expect_equal(t$estatistica, urca::ur.za(log(d[[v]]), model = "intercept", lag = 8L)@teststat[[1]],
+                 tolerance = 1e-12, info = v)
+    expect_equal(t$extra$quando, "1929", info = v)
+    expect_equal(t$decisao_5, "rejeita H0", info = v)
+  }
+})
+
+test_that("fixa com defasagens = 0 é exatamente zero defasagens", {
+  set.seed(12)
+  x <- cumsum(stats::rnorm(80))
+  t <- tr_series_zivot_andrews(stats::ts(x), mudanca = "nível", defasagens = 0L, selecao = "fixa")
+  expect_equal(t$extra$defasagens, 0L)
+  z <- urca::ur.za(x, model = "intercept", lag = 0L)
+  expect_equal(t$estatistica, min(z@tstats[12:68]), tolerance = 1e-12)
 })
 
 test_that("teto de defasagens que não cabe é recusado também na seleção", {

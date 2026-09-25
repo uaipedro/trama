@@ -287,12 +287,12 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
                               "graus de liberdade. O máximo aqui é %d."),
                        k, n, k_cabe)
     }
-    sel <- .tr_series_za_gts(x, modelo, min(kmax, k_cabe))
+    kmax <- min(kmax, k_cabe)
+    sel <- .tr_series_za_por_corte(x, modelo, kmax)
     k <- sel$k
-    kmax <- sel$kmax
-  } else if (k == 0L) {
-    k <- as.integer(trunc((n - 1)^(1 / 3)))
   }
+  # Com `fixa`, `defasagens` é o k usado, e 0 é zero (versão 3; até a versão 2,
+  # 0 caía na regra trunc((n - 1)^(1/3)) sem dizer).
   gl <- n - 1L - 2L * k - fixos
   if (gl < 1L) {
     .tr_series_abort("tr_series_error_bad_option",
@@ -328,9 +328,17 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
   # são os da tabela aparada.
   lo <- as.integer(ceiling(0.15 * n))
   hi <- as.integer(min(floor(0.85 * n), length(z@tstats)))
-  janela <- z@tstats[lo:hi]
-  estat <- min(janela, na.rm = TRUE)
-  quebra <- as.integer(lo - 1L + which.min(janela))
+  if (selecao == "t_sig") {
+    # k escolhido em CADA corte (Zivot & Andrews 1992, seção 4): o t de cada
+    # corte é o da regressão com o k daquele corte, e o teste é o mínimo deles.
+    # `z` (o `ur.za` com o k do corte vencedor) fica só pela tabela de críticos.
+    estat <- sel$estat
+    quebra <- sel$quebra
+  } else {
+    janela <- z@tstats[lo:hi]
+    estat <- min(janela, na.rm = TRUE)
+    quebra <- as.integer(lo - 1L + which.min(janela))
+  }
   quando <- .tr_series_rotulo_em(serie, quebra)
   # Numa série sem calendário o rótulo é o próprio índice, e "observação 60 (60)"
   # é ruído que ensina a ignorar o parêntese justamente onde ele carrega a data.
@@ -342,7 +350,7 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
   oque <- switch(mud, "nível" = "nível", "inclinação" = "inclinação",
                  "ambas" = "nível e inclinação")
   defs <- if (selecao == "t_sig") {
-    sprintf("%d defasagens, escolhidas do geral para o específico (teto %d, t da última a 10%%)", k, kmax)
+    sprintf("%d defasagens no corte vencedor, escolhidas em cada corte do geral para o específico (teto %d, t da última a 10%%)", k, kmax)
   } else {
     sprintf("%d defasagens", k)
   }
@@ -355,7 +363,14 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L,
   # onde o excesso é maior; acima dele o resto está na página do nó. Pôr o aviso em toda série o transformaria em ruído que se
   # aprende a pular — que é como a ressalva do `series/phillips_perron` teria
   # morrido se o corte dela fosse 0,1 em vez da borda de verdade.
-  if (n < 40L) {
+  if (selecao == "t_sig" && n < 100L) {
+    # Medido sob passeio aleatório (modelo de nível, 300 réplicas): escolher k
+    # em cada corte rejeita a 5% em 31% (n = 30), 27% (n = 50) e 13% (n = 100);
+    # com k fixo = trunc((n - 1)^(1/3)), 10%, 6% e 5%.
+    nota <- paste0(nota, "; com a escolha das defasagens em cada corte e menos de 100 ",
+                   "observações o teste rejeita bem acima do nível nominal (medido: 31% a 5% ",
+                   "com 30 observações); confira com Escolha = fixa")
+  } else if (n < 40L) {
     nota <- paste0(nota, "; série curta para este teste: com menos de 40 observações ",
                    "ele rejeita mais do que o nível nominal, então um \"rejeita H0\" ",
                    "apertado aqui pede confirmação")
@@ -1246,19 +1261,55 @@ tr_series_fisher <- function(serie, remover = "reta") {
        quebra = as.integer(lo - 1L + which.min(janela)))
 }
 
-#' Escolha de k do geral para o específico (Perron 1989; Zivot & Andrews
-#' 1992, seção 4): parte de `kmax` e, enquanto o t da ÚLTIMA diferença
-#' defasada não for significativo a 10% (|t| < 1,645, normal bilateral), tira
-#' uma. O t é lido na regressão do corte que o próprio teste escolhe com
-#' aquele k. Se nenhuma for significativa, k = 0.
+#' Zivot & Andrews (1992, seção 4), regra exata: em cada corte q da janela de
+#' 15% a 85%, k parte de `kmax` e desce enquanto o |t| da ÚLTIMA diferença
+#' defasada for < 1,645 (10%, normal bilateral; Perron 1989); o t de y_{t-1}
+#' do corte é o da regressão com esse k. O teste é o mínimo nos cortes.
+#' Mínimos quadrados por `lm.fit` (a mesma regressão da `.tr_series_za_lm`,
+#' conferida contra o `ur.za`), porque são até (janela × kmax) ajustes.
 #' @noRd
-.tr_series_za_gts <- function(x, modelo, kmax) {
-  k <- kmax
-  while (k > 0L) {
-    q <- .tr_series_za_janela(x, modelo, k)$quebra
-    cf <- stats::coef(summary(.tr_series_za_lm(x, modelo, k, q)))
-    if (abs(cf[paste0("y.dl", k), "t value"]) >= stats::qnorm(0.95)) break
-    k <- k - 1L
+.tr_series_za_por_corte <- function(x, modelo, kmax) {
+  n <- length(x)
+  lo <- as.integer(ceiling(0.15 * n))
+  hi <- as.integer(min(floor(0.85 * n), n - 1L))
+  dx <- c(NA, diff(x))
+  base <- cbind(1, y.l1 = c(NA, x)[seq_len(n)], trend = seq_len(n))
+  lags <- vapply(seq_len(max(kmax, 1L)), function(i) c(rep(NA, i), dx)[seq_len(n)], numeric(n))
+  lags <- matrix(lags, nrow = n)
+  # t de um coeficiente como o `summary.lm` o daria, inclusive com colunas
+  # colineares (a dummy perto da borda com k grande): a coluna aliada sai, as
+  # outras seguem, e o t de uma coluna aliada é NA.
+  tcoef <- function(X, j) {
+    ok <- stats::complete.cases(X)
+    f <- stats::lm.fit(X[ok, , drop = FALSE], x[ok])
+    r <- f$rank
+    usadas <- f$qr$pivot[seq_len(r)]
+    if (!j %in% usadas) return(NA_real_)
+    s2 <- sum(f$residuals^2) / (sum(ok) - r)
+    V <- chol2inv(qr.R(f$qr)[seq_len(r), seq_len(r), drop = FALSE]) * s2
+    i <- match(j, usadas)
+    (f$coefficients[[j]] - if (j == 2L) 1 else 0) / sqrt(V[i, i])
   }
-  list(k = as.integer(k), kmax = as.integer(kmax))
+  melhor <- list(estat = Inf)
+  for (q in lo:hi) {
+    du <- c(rep(0, q), rep(1, n - q))
+    dt <- c(rep(0, q), seq_len(n - q))
+    dum <- switch(modelo, intercept = cbind(du), trend = cbind(dt), both = cbind(du, dt))
+    k <- kmax
+    repeat {
+      X <- cbind(base, lags[, seq_len(k), drop = FALSE], dum)
+      if (k == 0L) break
+      tk <- tcoef(X, 3L + k)
+      if (!is.na(tk) && abs(tk) >= stats::qnorm(0.95)) break
+      k <- k - 1L
+    }
+    tq <- tcoef(X, 2L)
+    if (is.na(tq)) next
+    if (tq < melhor$estat) melhor <- list(estat = tq, quebra = q, k = as.integer(k))
+  }
+  if (!is.finite(melhor$estat)) {
+    .tr_series_abort("tr_series_error_fit",
+                     "'series/zivot_andrews': nenhum corte da janela deu uma regressão estimável.")
+  }
+  melhor
 }
