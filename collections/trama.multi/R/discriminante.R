@@ -304,7 +304,7 @@ tr_multi_box_m <- function(dados, grupo = "", cols = "") {
       "Sem evidência de covariâncias diferentes: a linear é adequada, e é mais ",
       "estável (estima uma covariância só). Não rejeitar não prova igualdade; com ",
       "grupos pequenos o teste tem pouco poder."),
-    fonte = "Box (1949)", extra = list(m = M), classe = "tr_multi_test")
+    fonte = "Box (1949)", extra = list(m_box = M), classe = "tr_multi_test")
 }
 
 #' O plano discriminante: escores por grupo, com centróides.
@@ -568,7 +568,7 @@ o teste tem pouco poder.
   mesmas que um `multi/discriminant` com os preditores em branco usaria.
 ]---", r"---[
 Um teste (`data/test`), com a régua do p-valor: o qui-quadrado é a
-estatística, e o M cru vai numa coluna extra (`m`). Ligado numa entrada de
+estatística, e o M cru vai numa coluna extra (`extra_m_box`). Ligado numa entrada de
 tabela, vira UMA linha, com as colunas de todo teste (`teste`, `h0`,
 `estatistica`, `gl`, `p_valor`, `decisao_5`, `conclusao`...). Todo grupo
 precisa de pelo menos p + 1 observações e covariância inversível (o erro nomeia

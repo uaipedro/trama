@@ -33,7 +33,7 @@ tr_flow(reg) |>
   tr_add("bx", "multi/box_m", grupo = "cultivar", cols = "alcool, flavonoides", from = "dados")
 ```
 
-A saída é um teste (`data/test`): o card mostra o p-valor na régua, o qui-quadrado e a decisão a 5%; ligado numa entrada de tabela, vira uma linha com o M numa coluna extra.
+A saída é um teste (`data/test`): o card mostra o p-valor na régua, o qui-quadrado e a decisão a 5%; ligado numa entrada de tabela, vira uma linha com o M numa coluna extra (`extra_m_box`).
 
 ## Como interpretar
 
