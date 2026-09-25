@@ -7,13 +7,13 @@
 // Sem bundler, sem JSX: `React.createElement` direto. O custo é a verbosidade;
 // o ganho é que uma coleção nova é um `.js` solto, sem toolchain.
 
-import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ReactFlow, Background, BackgroundVariant, MiniMap, Controls,
   Handle, Position, applyNodeChanges, applyEdgeChanges, SelectionMode,
   useReactFlow, ReactFlowProvider,
-  BaseEdge, getSmoothStepPath, useInternalNode,
+  BaseEdge, getSmoothStepPath, useInternalNode, EdgeLabelRenderer,
 } from "@xyflow/react";
 import { h, getRenderer, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
@@ -711,16 +711,47 @@ function caminhoComCantos(pontos, raio) {
   return d + `L${fim.x},${fim.y}`;
 }
 
+// Quem abre o popover de "inserir no meio": o App, que dono do `prox`. Vazio
+// (apresentação, ou antes de montar) deixa a aresta sem o "+".
+const MeioCtx = createContext(null);
+
+// Ponto a meio comprimento de uma poligonal: onde o "+" do meio fica.
+function meioDaLinha(pontos) {
+  const seg = pontos.slice(1).map((p, i) => Math.hypot(p.x - pontos[i].x, p.y - pontos[i].y));
+  let resta = seg.reduce((a, b) => a + b, 0) / 2;
+  for (let i = 0; i < seg.length; i++) {
+    if (resta <= seg[i] && seg[i] > 0) {
+      const a = pontos[i], b = pontos[i + 1], t = resta / seg[i];
+      return [a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t];
+    }
+    resta -= seg[i];
+  }
+  return [pontos[0].x, pontos[0].y];
+}
+
 function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
-                     targetX, targetY, targetPosition, style, markerEnd }) {
+                     targetX, targetY, targetPosition, style, markerEnd,
+                     sourceHandleId, targetHandleId, data, selected }) {
   const noOrigem = useInternalNode(source);
   const noDestino = useInternalNode(target);
+  const abrirMeio = useContext(MeioCtx);
+  const [sobre, setSobre] = useState(false);
+  const sair = useRef(null);
+  const entra = () => { clearTimeout(sair.current); setSobre(true); };
+  // Com folga: o mouse precisa atravessar do fio até o "+" sem ele sumir.
+  const sai = () => { clearTimeout(sair.current); sair.current = setTimeout(() => setSobre(false), 250); };
+  useEffect(() => () => clearTimeout(sair.current), []);
+  let [, meioX, meioY] = getSmoothStepPath({
+    sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 12 });
   let path;
   if (noOrigem && noDestino) {
     const pontos = caminhoContornando(sourceX, sourceY, sourcePosition,
       targetX, targetY, targetPosition,
       retanguloDoNo(noOrigem), retanguloDoNo(noDestino));
-    if (pontos) path = caminhoComCantos(pontos, 12);
+    if (pontos) {
+      path = caminhoComCantos(pontos, 12);
+      [meioX, meioY] = meioDaLinha(pontos);
+    }
   }
   if (!path) {
     [path] = getSmoothStepPath({
@@ -733,9 +764,24 @@ function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
   // abrir o card.
   const quebrou = ["failed", "invalid"].includes(noDestino?.data?.state);
   return h(Fragment, null, [
-    h("path", { key: "t", d: path, className: "tr-fio-trilho" }),
-    h(BaseEdge, { key: "f", id, path, style, markerEnd,
-                  className: quebrou ? "tr-fio-quebrado" : undefined }),
+    h("g", { key: "g", onMouseEnter: entra, onMouseLeave: sai }, [
+      h("path", { key: "t", d: path, className: "tr-fio-trilho" }),
+      h(BaseEdge, { key: "f", id, path, style, markerEnd,
+                    className: quebrou ? "tr-fio-quebrado" : undefined }),
+    ]),
+    abrirMeio && (sobre || selected) ? h(EdgeLabelRenderer, { key: "m" },
+      h("button", {
+        className: "tr-meio-mais nodrag nopan", type: "button",
+        title: "Inserir bloco no meio", "aria-label": "Inserir bloco no meio da conexão",
+        style: { transform: `translate(-50%, -50%) translate(${meioX}px, ${meioY}px)` },
+        onMouseEnter: entra, onMouseLeave: sai,
+        onPointerDown: (e) => e.stopPropagation(),
+        onClick: (e) => {
+          e.stopPropagation();
+          const r = e.currentTarget.getBoundingClientRect();
+          abrirMeio({ source, sourceHandle: sourceHandleId, target, targetHandle: targetHandleId,
+                      index: data?.index }, r.right + 6, r.top);
+        } }, "+")) : null,
   ]);
 }
 
@@ -1761,6 +1807,16 @@ function App() {
     const t = tipoDaSaida(nodeId, porta);
     if (t) setProx({ de: nodeId, deTipo: t.nodeType, porta, tipo: t.tipo, x, y });
   }, []);
+  // Modo "meio": o "+" no meio de uma aresta. Filtra o que entra no tipo da
+  // origem E alimenta a entrada do destino.
+  const abrirMeio = useCallback((e, x, y) => {
+    const cat = catalogRef.current;
+    const t = tipoDaSaida(e.source, e.sourceHandle);
+    const n = nodesRef.current.find((q) => q.id === e.target);
+    const inp = n && cat?.nodes.find((q) => q.id === n.data.nodeType)?.inputs?.find((i) => i.name === e.targetHandle);
+    if (t && inp) setProx({ modo: "meio", de: e.source, deTipo: t.nodeType, porta: e.sourceHandle,
+                            tipo: t.tipo, tipoPara: inp.type, aresta: e, x, y });
+  }, []);
   // Modo "origem": puxado de uma ENTRADA, sugere o que alimentaria a porta.
   const abrirOrigem = useCallback((nodeId, porta, x, y) => {
     const cat = catalogRef.current;
@@ -2407,8 +2463,27 @@ function App() {
     const f = filaProxRef.current[0];
     if (f && nodes.some((n) => n.id === f.de)) { filaProxRef.current.shift(); pushMany(f.ops); }
   }, [nodes]);
-  const inserirProximo = (tipoId, porta, { encadear } = {}) => {
+  const inserirProximo = (tipoId, porta, { encadear, saida: saidaMeio } = {}) => {
     const p = prox; if (!p) return;
+    if (p.modo === "meio") {
+      // Nasce no meio das duas pontas; os nós à direita não se movem.
+      const a = p.aresta;
+      const o = nodesRef.current.find((n) => n.id === a.source);
+      const d = nodesRef.current.find((n) => n.id === a.target);
+      setProx(null);
+      if (!o || !d) return;
+      const nid = novoId();
+      pushMany([
+        { op: "disconnect", from_node: a.source, from_port: a.sourceHandle,
+          to_node: a.target, to_port: a.targetHandle, index: a.index },
+        ...opsAdd(tipoId, { x: (o.position.x + d.position.x) / 2, y: (o.position.y + d.position.y) / 2 }, nid),
+        { op: "connect", from_node: a.source, from_port: a.sourceHandle, to_node: nid, to_port: porta },
+        { op: "connect", from_node: nid, from_port: saidaMeio, to_node: a.target, to_port: a.targetHandle },
+      ]);
+      registrar(p.deTipo, tipoId);
+      selNovoRef.current = nid;
+      return;
+    }
     const origem = nodesRef.current.find((n) => n.id === p.de);
     const cat = catalogRef.current;
     // Encadeando rápido, a origem pode ainda não ter voltado do servidor:
@@ -3267,7 +3342,7 @@ function App() {
                onMouseLeave: () => { mouseFlowRef.current = null; },
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
-      h(ReactFlow, {
+      h(MeioCtx.Provider, { key: "rf", value: present ? null : abrirMeio }, h(ReactFlow, {
         nodes: decorated, edges, nodeTypes, edgeTypes,
         // Conectores em ângulo reto com cantos arredondados; a direção da
         // curva (TrAresta) é recalculada por par de cards a cada render,
@@ -3350,7 +3425,7 @@ function App() {
           nodeColor: (n) => (n.type === "trFrame" ? "transparent"
             : corDaCategoria(categories[n.data?.spec?.category], n.data?.spec)),
           nodeStrokeColor: (n) => (n.type === "trFrame" ? "var(--tr-dim)" : "transparent") }),
-      ]),
+      ])),
       menu ? h("div", { key: "menu", className: "tr-menu",
                         style: { left: menu.x, top: menu.y } }, menuItens(menu)) : null,
       selecionados.length > 1 ? h("div", { key: "sel", className: "tr-selbar" }, [

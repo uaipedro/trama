@@ -1173,3 +1173,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-prox-mais:hover,.tr-prox-mais:focus-visible{color:var(--tr-accent-fg);
   background:var(--tr-accent);border-color:var(--tr-accent)}
 .tr-presenting .tr-prox-mais{display:none}
+/* "+" no meio de uma conexão: aparece no hover do fio ou com ele selecionado. */
+.tr-meio-mais{position:absolute;pointer-events:all;width:18px;height:18px;padding:0;
+  border-radius:50%;border:1px solid var(--tr-line);background:var(--tr-panel);
+  color:var(--tr-dim);font-size:13px;line-height:15px;text-align:center;cursor:pointer}
+.tr-meio-mais:hover,.tr-meio-mais:focus-visible{color:var(--tr-accent-fg);
+  background:var(--tr-accent);border-color:var(--tr-accent)}
