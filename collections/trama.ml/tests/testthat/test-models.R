@@ -354,3 +354,20 @@ test_that("SVM: .pred é a classe de maior probabilidade (coerência com .prob_*
   prev3 <- tr_ml_predict(m3, iris)
   expect_identical(prev3$.pred, argmax(prev3, m3$niveis))
 })
+
+test_that("poda do CART com n < 10 usa min(10, n) folds: deixa-um-fora exato", {
+  skip_if_not_installed("rpart")
+  # Com n <= 10 os folds viram deixa-um-fora, que não depende de sorteio: o
+  # cptable tem de ser igual ao do rpart com xval = 1:n (grupos explícitos).
+  for (n in c(3L, 5L, 8L)) {
+    d <- mtcars[seq_len(n), c("mpg", "wt", "hp")]
+    m <- tr_ml_fit(d, "mpg", "wt, hp", modelo = "cart", min_n = 1)
+    expect_equal(m$extras$poda$folds, n)
+    ref <- rpart::rpart(mpg ~ wt + hp, d, method = "anova",
+                        control = rpart::rpart.control(minbucket = 1, minsplit = 2, cp = 0,
+                                                       maxdepth = 3, xval = seq_len(n)))
+    expect_equal(unname(m$extras$poda$cptable), unname(ref$cptable), tolerance = 1e-12, info = n)
+    expect_true(all(is.finite(tr_ml_predict(m, d)$.pred)))
+  }
+  expect_equal(tr_ml_fit(mtcars, "mpg", "wt", modelo = "cart")$extras$poda$folds, 10L)
+})

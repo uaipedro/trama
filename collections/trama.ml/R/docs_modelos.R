@@ -35,7 +35,7 @@
 
     "ml/cart" = list(
       pressupostos = c(base, list(num,
-        P("A árvore cresce até `max_depth`, `min_n` e `cp` e é **podada por custo-complexidade**: entre as subárvores aninhadas, a validação cruzada de 10 folds do `rpart` (dentro do treino, com a semente do bloco) escolhe a menor cujo erro não passa do mínimo mais um erro-padrão (regra 1-EP, `poda = \"1ep\"`). `poda = \"minimo\"` fica com a de menor erro, maior e mais variável; `\"nenhuma\"` desliga a poda.",
+        P("A árvore cresce até `max_depth`, `min_n` e `cp` e é **podada por custo-complexidade**: entre as subárvores aninhadas, a validação cruzada do `rpart` com min(10, n) folds (dentro do treino, com a semente do bloco; com n ≤ 10 vira deixa-um-fora, e com poucas dezenas de linhas o erro de validação é muito variável e a poda, instável) escolhe a menor cujo erro não passa do mínimo mais um erro-padrão (regra 1-EP, `poda = \"1ep\"`). `poda = \"minimo\"` fica com a de menor erro, maior e mais variável; `\"nenhuma\"` desliga a poda.",
           verificar = c("ml/tune", "ml/evaluate"),
           se_falhar = "Se a árvore podada ficar só com a raiz, os preditores não reduziram o erro de validação além do ruído; confira o desempenho no teste antes de afrouxar a poda. `max_depth` e `min_n` ainda se escolhem no `ml/tune`."),
         P("Uma árvore única é **instável**: pequenas mudanças nos dados (outra semente no `ml/split`) podem trocar os cortes e as regras.",

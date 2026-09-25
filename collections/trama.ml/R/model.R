@@ -73,8 +73,9 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
                    control = rpart::rpart.control(maxdepth = max_depth,
                                                   minbucket = min_n,
                                                   minsplit = minsplit, cp = cp,
-                                                  xval = if (poda == "nenhuma") 0L else 10L))
+                                                  xval = if (poda == "nenhuma") 0L else min(10L, nrow(treino))))
       extras$poda <- .tr_ml_poda_cart(arvore, poda)
+      extras$poda$folds <- if (poda == "nenhuma") 0L else min(10L, nrow(treino))
       if (!is.null(extras$poda$cp)) arvore <- rpart::prune(arvore, cp = extras$poda$cp)
       arvore
     },

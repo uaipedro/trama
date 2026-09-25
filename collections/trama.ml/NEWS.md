@@ -22,7 +22,10 @@ positiva) e `ml/cart` (poda), com os nós em versão 2.
   divisões escolhidos ficam em `extras$poda`. `ml/tune` (versão 2) herda a
   poda ao ajustar CART. Validação: `rpart::printcp`/`prune` reproduzidos em
   `airquality` (casos completos) com semente 42 — árvore cheia de 30 divisões,
-  1-EP com 3 divisões, previsões idênticas.
+  1-EP com 3 divisões, previsões idênticas. Com n < 10, a validação cruzada usa
+  min(10, n) folds (deixa-um-fora), número guardado em `extras$poda$folds`;
+  conferido contra `rpart` com `xval = 1:n` (cptable igual a 1e-12 com n = 3,
+  5 e 8).
 - `ml/linear`: parâmetro `corte` (padrão 0,5, que reproduz o comportamento
   anterior — versão do nó mantida) para a logística binária: prevê a segunda
   classe quando P ≥ `corte`. Validação: `.prob_*` iguais a `fitted(glm)` e
