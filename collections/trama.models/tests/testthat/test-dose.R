@@ -100,3 +100,25 @@ test_that("no motor: duas saídas, e o card da curva é o gráfico", {
   expect_s3_class(rodar(fl, "reg", port = "modelo"), "tr_models_dose")
   expect_s3_class(rodar(fl, "graf"), "ggplot")
 })
+
+test_that("avisos: falta de ajuste significativa e grau que satura", {
+  # Resposta em degrau: o linear é significativo e o resto não segue o
+  # polinômio; a falta de ajuste do grau escolhido tem de aparecer.
+  set.seed(4)
+  d <- expand.grid(bloco = paste0("B", 1:4), dose = c(0, 50, 100, 150, 200))
+  d$y <- c(2, 2, 6, 6, 9)[match(d$dose, c(0, 50, 100, 150, 200))] + stats::rnorm(20, sd = 0.2)
+  d$y[d$dose == 150] <- d$y[d$dose == 150] - 3
+  r <- tr_models_dose_response(tr_models_anova_dbc(d, "y", "dose", "bloco"), "dose")
+  fa <- as.data.frame(r$quadro$tabela)
+  g <- r$modelo$grau
+  linha <- if (g == 3L) "Desvios da regressão" else sprintf("Falta de ajuste (grau %d)", g)
+  expect_lt(fa$p_valor[fa$termo == linha], 0.05)
+  expect_match(r$quadro$nota, "não explica toda a variação entre doses", fixed = TRUE)
+  expect_match(tr_models_coefficients(r$modelo)$nota, "falta de ajuste", fixed = TRUE)
+  # Três doses, grau 2: passa pelas três médias.
+  tg <- tr_models_anova_dic(ex("ToothGrowth"), "len", "dose")
+  s <- tr_models_dose_response(tg, "dose", grau = "2")
+  expect_equal(s$modelo$r2, 1)
+  expect_match(s$quadro$nota, "passa por todas as médias", fixed = TRUE)
+  expect_false(grepl("passa por todas", tr_models_dose_response(adubo(), "dose")$quadro$nota))
+})

@@ -145,6 +145,16 @@ tr_models_dose_response <- function(modelo, tratamento = "", grau = "automático
     tab <- rbind(tab, .tr_models_linha_f(sprintf("Falta de ajuste (grau %d)", g), k - 1 - g,
                                          sq_trat - sum(dd$sq[seq_len(g)]), dd$qm_res, dd$gl_res))
   }
+  # O grau escolhido pelo maior componente pode ainda deixar diferença entre
+  # doses sem explicar: a falta de ajuste dele (ou os desvios, no cúbico) diz
+  # isso, e o aviso vai para o quadro E para os coeficientes, que é onde a
+  # curva é lida. Grau = k − 1 passa por todas as médias: R² = 1 por
+  # construção, e a curva não resume nada.
+  p_fa <- tab$p_valor[tab$termo %in% c(sprintf("Falta de ajuste (grau %d)", g), if (g == 3L) "Desvios da regressão")]
+  avisos <- c(
+    if (length(p_fa) && isTRUE(p_fa[[1]] < alfa))
+      sprintf("a curva de grau %d não explica toda a variação entre doses; veja a falta de ajuste (p = %s)", g, .tr_models_fmt_p(p_fa[[1]])),
+    if (g == k - 1L) sprintf("grau %d com %d doses: a curva passa por todas as médias (R² = 1 por construção)", g, k))
   tab <- rbind(tab, data.frame(termo = "Resíduo", gl = dd$gl_res, sq = dd$qm_res * dd$gl_res, qm = dd$qm_res,
                                F = NA_real_, p_valor = NA_real_))
 
@@ -171,6 +181,7 @@ tr_models_dose_response <- function(modelo, tratamento = "", grau = "automático
     nota = .tr_models_nota(
       sprintf("F contra o resíduo da ANOVA (%s); grau %s", modelo$rotulo,
               if (grau == "automático") sprintf("escolhido: o maior componente com p < %s", .tr_models_fmt(alfa)) else "fixado"),
+      avisos,
       if (!is.null(met) && !met$dentro) sprintf("o %s da parábola (x = %s) cai fora das doses testadas", met$tipo, .tr_models_fmt(met$x, 4L)) else "",
       if (!balanceado) "desbalanceado: curva nas médias da tabela; partição sequencial depois dos controles" else ""),
     fonte = "Pimentel-Gomes (2009); Banzatto & Kronka (2006)")
@@ -191,6 +202,7 @@ tr_models_dose_response <- function(modelo, tratamento = "", grau = "automático
   fit$met <- met
   fit$desdobramento <- quadro
   fit$origem <- modelo$rotulo
+  fit$avisos <- avisos
   list(modelo = fit, quadro = quadro)
 }
 
@@ -247,7 +259,7 @@ tr_models_coefs.tr_models_dose <- function(x, exponenciar = FALSE, escala = "uni
   tab <- .tr_models_coefs_escala(tab, X, escala)
   met <- x$met
   .tr_models_coefs_efeitos(x, .tr_models_coefs_ic_nomes(tab, confianca), "t",
-    .tr_models_nota(sprintf("erro do resíduo da ANOVA (%s gl)", .tr_models_gl(x$gl_res)),
+    .tr_models_nota(sprintf("erro do resíduo da ANOVA (%s gl)", .tr_models_gl(x$gl_res)), x$avisos,
                     if (!is.null(met)) sprintf("dose de %s: %s (ŷ = %s)", met$tipo, .tr_models_fmt(met$x, 4L), .tr_models_fmt(met$y, 4L)) else "",
                     .tr_models_nota_escala(escala)))
 }

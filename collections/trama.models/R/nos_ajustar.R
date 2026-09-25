@@ -587,7 +587,10 @@ tratamento têm de ser números: é a distância entre eles que a regressão usa
 
 O quadro traz também a **falta de ajuste** do grau escolhido: tudo o que o
 tratamento explica e a curva não. Significativa, a curva não descreve bem as
-doses, mesmo com o componente significativo.
+doses, mesmo com o componente significativo — o grau automático NÃO sobe por
+causa dela (a regra é a do componente), mas a nota do quadro e a dos
+coeficientes avisam. Com 3 doses e grau 2 (ou 4 doses e grau 3) a curva passa
+por todas as médias: R² = 1 por construção, e a nota também diz isso.
 
 ### A curva
 
