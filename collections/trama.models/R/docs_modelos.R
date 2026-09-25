@@ -56,7 +56,8 @@
         P("Os **grupos** (animais, parcelas) são independentes entre si; a correlação só existe DENTRO do grupo, com a estrutura escolhida.",
           verificar = "models/compare",
           se_falhar = "Compare estruturas (AR(1), simetria composta, não estruturada) no `models/compare`; a de menor AIC que ainda faz sentido."),
-        P("Com AR(1), as ocasiões são **igualmente espaçadas** e informadas em Tempo (ou as linhas estão na ordem do tempo)."),
+        P("Com AR(1), as ocasiões são **igualmente espaçadas** e informadas em Tempo (ou as linhas estão na ordem do tempo): o AR(1) conta posições, não distância. Com Tempo numérico desigualmente espaçado, a nota do modelo avisa.",
+          se_falhar = "Use `correlacao = \"car1\"` (AR(1) em tempo contínuo, `corCAR1`), que dá correlação phi^|t − s| na distância real."),
         P("Os **resíduos normalizados** (descontada a correlação) são normais e de variância constante, salvo a variância por nível declarada.",
           verificar = c("models/plot_diagnostics", "models/shapiro_residuals")),
         P("A **não estruturada** estima uma correlação por par de ocasiões: pede muitos grupos para poucas ocasiões."),
@@ -65,7 +66,7 @@
       referencias = list(
         R(autores = c("Pinheiro, J. C.", "Bates, D. M."), ano = 2000, titulo = "Mixed-effects models in S and S-PLUS",
           fonte = "Springer, New York", doi = "10.1007/b98882"),
-        I("nlme", "gls", "`corAR1`, `corCompSymm` ou `corSymm` na posição dentro do grupo, `varIdent` por nível; REML por padrão; testes de Wald com t e F nos gl n - p (liberais com poucos grupos; o `emmeans` usa Satterthwaite); comparação por razão de verossimilhança, reajustada por ML quando os fixos diferem."))),
+        I("nlme", "gls", "`corAR1`, `corCAR1` (no tempo), `corCompSymm` ou `corSymm` na posição dentro do grupo, `varIdent` por nível; REML por padrão; testes de Wald com t e F nos gl n - p (liberais com poucos grupos; o `emmeans` usa Satterthwaite); comparação por razão de verossimilhança, reajustada por ML quando os fixos diferem."))),
 
     "models/glmer" = list(
       pressupostos = list(P("Os **grupos** (rebanhos, blocos, sujeitos) são independentes entre si, e há grupos suficientes para estimar cada variância.",

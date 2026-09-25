@@ -237,7 +237,7 @@ tr_flow(reg) |>
 `models/random_effects`; `models/compare`.
 ]---")),
 
-    trama::tr_node("models/gls",
+    trama::tr_node("models/gls", version = 2L,
       pressupostos = .tr_models_doc("models/gls")$pressupostos,
       referencias = .tr_models_doc("models/gls")$referencias,
       fn = tr_models_gls, label = "GLS (erro correlacionado)",
@@ -256,7 +256,12 @@ Regressão ou ANOVA com o erro CORRELACIONADO dentro de cada grupo — as medida
 repetidas de um animal, de uma parcela no tempo. É a saída quando a parcela
 subdividida no tempo não pode supor esfericidade (`nlme::gls`).
 
-- **ar1** — a correlação cai com a distância entre as ocasiões (phi, phi²...).
+- **ar1** — a correlação cai com a distância entre as ocasiões (phi, phi²...),
+  contada em POSIÇÕES: vale para ocasiões igualmente espaçadas. Com Tempo
+  numérico desigualmente espaçado, a nota avisa.
+- **car1** — AR(1) em tempo contínuo (`corCAR1`): correlação phi^|t − s| na
+  distância real entre as ocasiões. Pede Tempo numérico; é a escolha para
+  ocasiões desigualmente espaçadas (dias 0, 7, 14, 42).
 - **simetria_composta** — a mesma correlação entre quaisquer duas ocasiões: é
   o que a análise de parcela subdividida supõe.
 - **nao_estruturada** — uma correlação por par de ocasiões.
@@ -274,7 +279,7 @@ sujeitos, prefira-o, ou o misto equivalente no `models/lmer`. Os resíduos são
 os normalizados.
 ]---", .tr_models_ajuda_faltantes()), r"---[
 - **Fórmula (efeitos fixos)** — sem termos aleatórios.
-- **Correlação no grupo** — ar1 (padrão), simetria_composta, nao_estruturada ou nenhuma.
+- **Correlação no grupo** — ar1 (padrão), car1, simetria_composta, nao_estruturada ou nenhuma.
 - **Grupo** — a unidade com medidas repetidas.
 - **Tempo** — a ocasião (opcional).
 - **Variância por** — coluna com variância própria por nível (opcional).

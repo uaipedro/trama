@@ -226,7 +226,7 @@ tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grup
                      descartadas = p$descartadas, nota = .tr_models_nota_avisos(r$avisos))
 }
 
-.TR_MODELS_CORRELACOES <- c("nenhuma", "ar1", "simetria_composta", "nao_estruturada")
+.TR_MODELS_CORRELACOES <- c("nenhuma", "ar1", "car1", "simetria_composta", "nao_estruturada")
 
 #' Mínimos quadrados generalizados (`nlme::gls`): erro correlacionado dentro do
 #' grupo e variância por nível.
@@ -237,7 +237,9 @@ tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grup
 #' (`varIdent`). As posições no grupo vêm de `tempo` (ordenado) ou, sem ele, da
 #' ordem das linhas.
 #' @param formula fórmula dos efeitos fixos.
-#' @param correlacao `"nenhuma"`, `"ar1"`, `"simetria_composta"` ou `"nao_estruturada"`.
+#' @param correlacao `"nenhuma"`, `"ar1"`, `"car1"` (AR(1) em tempo contínuo,
+#'   `corCAR1`, para ocasiões desigualmente espaçadas: correlação phi^|t - s|
+#'   na distância real), `"simetria_composta"` ou `"nao_estruturada"`.
 #' @param grupo coluna das unidades com medidas repetidas.
 #' @param tempo coluna da ocasião (opcional).
 #' @param variancia_por coluna cujos níveis têm variâncias próprias (opcional).
@@ -272,9 +274,24 @@ tr_models_gls <- function(dados, formula = "", correlacao = "ar1", grupo = "", t
       .tr_models_abort("tr_models_error_bad_option", "'%s': há ocasião repetida dentro de um mesmo grupo.", no)
     }
   }
+  nota <- ""
+  if (correlacao == "car1" && !(length(tp) && is.numeric(d[[tp]]))) {
+    .tr_models_abort("tr_models_error_bad_option",
+                     "'%s': a correlação 'car1' pede um 'tempo' numérico (a distância entre as ocasiões).", no)
+  }
+  if (correlacao == "ar1" && length(tp) && is.numeric(d[[tp]])) {
+    # O AR(1) usa a POSIÇÃO da ocasião (1, 2, 3...), não a distância: com
+    # tempos 0, 1, 2, 6 a correlação entre 2 e 6 sairia phi, e não phi^4.
+    u <- sort(unique(d[[tp]]))
+    if (length(u) > 2L && !isTRUE(all.equal(diff(u), rep(diff(u)[[1]], length(u) - 1L)))) {
+      nota <- sprintf(paste0("'%s' é desigualmente espaçado e o AR(1) trata as ocasiões como ",
+                             "equidistantes; use correlacao = 'car1' para a correlação na distância real"), tp)
+    }
+  }
   fg <- if (length(g)) stats::as.formula(paste("~ .pos |", .tr_models_bt(g))) else NULL
+  fc <- if (correlacao == "car1") stats::as.formula(paste("~", .tr_models_bt(tp), "|", .tr_models_bt(g))) else NULL
   cor <- switch(correlacao, nenhuma = NULL,
-                ar1 = nlme::corAR1(form = fg), simetria_composta = nlme::corCompSymm(form = fg),
+                ar1 = nlme::corAR1(form = fg), car1 = nlme::corCAR1(form = fc), simetria_composta = nlme::corCompSymm(form = fg),
                 nao_estruturada = nlme::corSymm(form = fg))
   pesos <- if (length(vp)) nlme::varIdent(form = stats::as.formula(paste("~ 1 |", .tr_models_bt(vp)))) else NULL
   r <- .tr_models_ajustar(.tr_models_capturar(
@@ -283,9 +300,11 @@ tr_models_gls <- function(dados, formula = "", correlacao = "ar1", grupo = "", t
   aj$call <- as.call(list(quote(nlme::gls), model = f, data = d, correlation = cor, weights = pesos,
                           method = if (isTRUE(reml)) "REML" else "ML"))
   rotulo <- sprintf("GLS · %s%s", switch(correlacao, nenhuma = "erro independente", ar1 = "AR(1)",
+                                         car1 = "AR(1) contínuo",
                                          simetria_composta = "simetria composta", nao_estruturada = "não estruturada"),
                     if (length(vp)) sprintf(", variância por %s", vp) else "")
-  .tr_models_fit_obj(aj, "gls", rotulo, f, tibble::as_tibble(d), resp, descartadas = p$descartadas)
+  .tr_models_fit_obj(aj, "gls", rotulo, f, tibble::as_tibble(d), resp, descartadas = p$descartadas,
+                     nota = .tr_models_nota(nota, .tr_models_nota_avisos(r$avisos)))
 }
 
 # ---- Delineamentos ------------------------------------------------------------

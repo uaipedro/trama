@@ -111,3 +111,26 @@ test_that("gls: emmeans com gl de Satterthwaite explícitos, e a nota diz que o 
   expect_equal(g$ajuste$dims$N - g$ajuste$dims$p, 62)
   expect_true(all(em$tabela$gl < 62))
 })
+
+test_that("gls: AR(1) em tempo desigual avisa; car1 reproduz o corCAR1 do nlme", {
+  d <- medidas_trt()
+  d$dia <- c(0, 1, 2, 6)[d$t]
+  g <- tr_models_gls(d, formula = "y ~ trt", correlacao = "ar1", grupo = "id", tempo = "dia")
+  expect_match(g$nota, "car1")
+  expect_match(tr_models_coefficients(g)$nota, "desigualmente")
+  # Igualmente espaçado não avisa.
+  expect_equal(tr_models_gls(d, formula = "y ~ trt", correlacao = "ar1", grupo = "id", tempo = "t")$nota, "")
+  c1 <- tr_models_gls(d, formula = "y ~ trt", correlacao = "car1", grupo = "id", tempo = "dia")
+  ref <- nlme::gls(y ~ trt, data = d, correlation = nlme::corCAR1(form = ~ dia | id))
+  expect_equal(c1$nota, "")
+  expect_equal(round(as.numeric(stats::logLik(c1$ajuste)), 4), -103.0739)  # phi = 0,8487
+  expect_equal(as.numeric(stats::logLik(c1$ajuste)), as.numeric(stats::logLik(ref)), tolerance = 1e-8)
+  expect_equal(unname(coef(c1$ajuste$modelStruct$corStruct, unconstrained = FALSE)),
+               unname(coef(ref$modelStruct$corStruct, unconstrained = FALSE)), tolerance = 1e-6)
+  expect_equal(tr_models_coefficients(c1)$tabela$erro_padrao, unname(summary(ref)$tTable[, "Std.Error"]),
+               tolerance = 1e-6)
+  # É outro modelo que o AR(1) nas posições.
+  expect_false(isTRUE(all.equal(as.numeric(stats::logLik(c1$ajuste)), as.numeric(stats::logLik(g$ajuste)))))
+  expect_error(tr_models_gls(d, formula = "y ~ trt", correlacao = "car1", grupo = "id"),
+               class = "tr_models_error_bad_option")
+})
