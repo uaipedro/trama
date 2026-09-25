@@ -27,7 +27,7 @@ import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
-import { Proximo, primeiroVao, vaoPerto, alturaNova } from "./proximo.js";
+import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 
@@ -2726,7 +2726,11 @@ function App() {
       .map((n) => ({ x: n.position.x, y: n.position.y,
                      w: n.measured?.width ?? n.width ?? MIN_W, h: n.measured?.height ?? n.height ?? 200 }))
       .concat(filaProxRef.current.map((f) => ({ ...f.pos, w: MIN_W, h: f.h ?? hNovo })));
-    pos.y = primeiroVao(caixas, { x: pos.x, y: pos.y, w: MIN_W, h: hNovo }, 30);
+    // Numa coluna cheia de cards (outro experimento empilhado à direita), o
+    // vão livre pode estar milhares de unidades abaixo: aí o bloco anda uma
+    // coluna à direita em vez de nascer longe da origem.
+    Object.assign(pos, vaoAoLado(caixas, { x: pos.x, y: pos.y, w: MIN_W, h: hNovo }, 30,
+                                 { limite: 600, passoX: origemModo ? -300 : 300, colunas: 6 }));
     const nid = novoId();
     // Em "origem", `porta` é a SAÍDA do bloco novo e a conexão vai dele ao alvo.
     const ops = [...opsAdd(tipoId, pos, nid), origemModo

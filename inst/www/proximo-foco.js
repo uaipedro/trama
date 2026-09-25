@@ -49,3 +49,18 @@ export function vaoPerto(caixas, q, margem = 30) {
   if (desce == null) return sobe;
   return Math.abs(sobe - q.y) < Math.abs(desce - q.y) ? sobe : desce;
 }
+
+// Onde o bloco encadeado nasce: `primeiroVao` na coluna de `q.x`, mas sem
+// descer mais que `limite` além de `q.y`. Numa coluna cheia (outro experimento
+// inteiro empilhado ali), anda `passoX` para a direita e tenta de novo, até
+// `colunas` tentativas; nenhuma serve, fica com a de vão mais raso. Nunca sobe.
+export function vaoAoLado(caixas, q, margem = 30, { limite = 600, passoX = 300, colunas = 6 } = {}) {
+  let melhor = null;
+  for (let k = 0; k < colunas; k++) {
+    const x = q.x + k * passoX;
+    const y = primeiroVao(caixas, { ...q, x }, margem);
+    if (y - q.y <= limite) return { x, y };
+    if (!melhor || y < melhor.y) melhor = { x, y };
+  }
+  return melhor;
+}

@@ -9,9 +9,9 @@ import { h } from "trama";
 import { sugerir, sugerirOrigem, intermediarios } from "./sugestor.js";
 import { lerHistorico } from "./historico.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
-import { moverFoco, alturaNova, primeiroVao, vaoPerto } from "./proximo-foco.js";
+import { moverFoco, alturaNova, primeiroVao, vaoPerto, vaoAoLado } from "./proximo-foco.js";
 
-export { moverFoco, alturaNova, primeiroVao, vaoPerto };
+export { moverFoco, alturaNova, primeiroVao, vaoPerto, vaoAoLado };
 
 const MARGEM = 8;
 
