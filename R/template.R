@@ -13,7 +13,7 @@
 #' lista os pacotes que quem cola precisa ter.
 #' @export
 tr_template <- function(doc, nome, descricao = "", registry = .tr_default_registry) {
-  doc <- .tr_template_normalize(.tr_as_doc(doc))
+  doc <- .tr_template_normalize(.tr_template_strip_data(.tr_as_doc(doc), registry))
   pkgs <- unlist(lapply(names(doc$collections), function(cid) registry$collections[[cid]]$package))
   structure(list(trama = "template", versao = .tr_template_versao, nome = nome,
                  descricao = descricao, colecoes = unique(as.character(pkgs)), doc = doc),
@@ -78,5 +78,21 @@ tr_template_read <- function(path) tr_template_parse(paste(readLines(path, warn 
   doc$ui$positions <- .tr_empty_obj(lapply(doc$ui$positions, function(p) c(p[[1]] - dx, p[[2]] - dy)))
   doc$ui$frames <- .tr_empty_obj(lapply(doc$ui$frames, function(f) { f$x <- f$x - dx; f$y <- f$y - dy; f }))
   doc$ui$notes <- .tr_empty_obj(lapply(doc$ui$notes, function(n) { n$x <- n$x - dx; n$y <- n$y - dy; n }))
+  doc
+}
+
+# Só estrutura: param de kind `path` aponta pra arquivo de quem exportou, que
+# quem cola não tem. Volta ao default, e o nó aparece como "falta dado" pelo
+# mesmo caminho de qualquer leitor sem arquivo. Nó de tipo fora do registro
+# passa intocado: sem a spec não há como saber qual param é caminho.
+.tr_template_strip_data <- function(doc, registry) {
+  for (id in names(doc$nodes)) {
+    spec <- registry$nodes[[doc$nodes[[id]]$type]]
+    if (is.null(spec)) next
+    for (p in names(doc$nodes[[id]]$params)) {
+      ps <- spec$params[[p]]
+      if (!is.null(ps) && identical(ps$kind, "path")) doc$nodes[[id]]$params[[p]] <- ps$default
+    }
+  }
   doc
 }

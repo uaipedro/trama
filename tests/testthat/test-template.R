@@ -32,3 +32,25 @@ test_that("versão desconhecida falha alto", {
   expect_error(tr_template_parse('{"trama":"template","versao":9,"nome":"x","doc":{"format":1,"nodes":{},"edges":[]}}'),
                class = "tr_error_bad_format")
 })
+
+test_that("exportar zera params de arquivo e preserva o resto", {
+  reg <- test_registry()
+  tr_use(tr_collection(
+    id = "d", version = "1.0.0", label = "Dados",
+    nodes = list(tr_node("d/ler", fn = function(path, n) NULL, description = "Lê um arquivo.", outputs = list(out = "t/num"),
+                         params = list(path = tr_param("path", ""), n = tr_param_num(1))))
+  ), registry = reg)
+  doc <- add(tr_doc(), reg, "d/ler", id = "l", params = list(path = "data/vendas.csv", n = 3))
+  tpl <- tr_template(doc, nome = "Ler", registry = reg)
+  expect_equal(tpl$doc$nodes$l$params$path, "")
+  expect_equal(tpl$doc$nodes$l$params$n, 3)
+})
+
+test_that("nó de tipo fora do registro passa intocado", {
+  reg <- test_registry()
+  doc <- add(tr_doc(), reg, "t/const", id = "a", params = list(value = 7))
+  doc$nodes$z <- list(type = "x/sumiu", label = "?", params = list(path = "a.csv"), seed = 1L)
+  tpl <- tr_template(doc, nome = "X", registry = reg)
+  expect_equal(tpl$doc$nodes$z$params$path, "a.csv")
+  expect_equal(tpl$doc$nodes$a$params$value, 7)
+})
