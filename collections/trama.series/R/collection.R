@@ -1083,7 +1083,10 @@ referência; `data/bind_rows` para comparar vários modelos numa tabela.
 
 # ---- Testar: raiz unitária --------------------------------------------------
 
-      trama::tr_node("series/adf", fn = tr_series_adf, label = "ADF",
+      trama::tr_node("series/adf",
+        pressupostos = .tr_series_doc("series/adf")$pressupostos,
+        referencias = .tr_series_doc("series/adf")$referencias,
+        fn = tr_series_adf, label = "ADF",
         category = "serie_raiz", icon = icone("test-tube"),
         description = "Dickey-Fuller Aumentado: a série tem raiz unitária?",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1145,7 +1148,10 @@ tende a não rejeitar nesse caso, e lá a quebra é estimada e o veredito muda;
 fazê-las.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/kpss", fn = tr_series_kpss, label = "KPSS",
+      trama::tr_node("series/kpss",
+        pressupostos = .tr_series_doc("series/kpss")$pressupostos,
+        referencias = .tr_series_doc("series/kpss")$referencias,
+        fn = tr_series_kpss, label = "KPSS",
         category = "serie_raiz", icon = icone("test-tubes"),
         description = "KPSS: a série é estacionária? (H0 é a estacionariedade)",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1206,7 +1212,10 @@ tr_flow(reg) |>
 a série pede; `series/diff` para fazê-las.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/phillips_perron", fn = tr_series_phillips_perron,
+      trama::tr_node("series/phillips_perron",
+        pressupostos = .tr_series_doc("series/phillips_perron")$pressupostos,
+        referencias = .tr_series_doc("series/phillips_perron")$referencias,
+        fn = tr_series_phillips_perron,
         label = "Phillips-Perron",
         category = "serie_raiz", icon = icone("flask-conical"),
         description = "Phillips-Perron: a série tem raiz unitária?",
@@ -1258,7 +1267,10 @@ o de hipótese nula oposta; `series/ndiffs` para quantas diferenças a série
 pede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/zivot_andrews", fn = tr_series_zivot_andrews,
+      trama::tr_node("series/zivot_andrews",
+        pressupostos = .tr_series_doc("series/zivot_andrews")$pressupostos,
+        referencias = .tr_series_doc("series/zivot_andrews")$referencias,
+        fn = tr_series_zivot_andrews,
         label = "Zivot-Andrews",
         category = "serie_raiz", icon = icone("split"),
         description = "Zivot-Andrews: raiz unitária, com a quebra achada pelo próprio teste?",
@@ -1407,7 +1419,10 @@ apontou antes de acreditar nela.
 
 # ---- Testar: autocorrelação -------------------------------------------------
 
-      trama::tr_node("series/ljung_box", fn = tr_series_ljung_box, label = "Ljung-Box",
+      trama::tr_node("series/ljung_box",
+        pressupostos = .tr_series_doc("series/ljung_box")$pressupostos,
+        referencias = .tr_series_doc("series/ljung_box")$referencias,
+        fn = tr_series_ljung_box, label = "Ljung-Box",
         category = "serie_autocorr", icon = icone("audio-waveform"),
         description = "Ljung-Box: a série é ruído branco, ou sobrou autocorrelação?",
         inputs = list(serie = S), outputs = list(out = TE),
@@ -1473,7 +1488,10 @@ defasagem está a autocorrelação; `series/box_pierce`, o mesmo teste sem a
 correção de amostra pequena.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/box_pierce", fn = tr_series_box_pierce, label = "Box-Pierce",
+      trama::tr_node("series/box_pierce",
+        pressupostos = .tr_series_doc("series/box_pierce")$pressupostos,
+        referencias = .tr_series_doc("series/box_pierce")$referencias,
+        fn = tr_series_box_pierce, label = "Box-Pierce",
         category = "serie_autocorr", icon = icone("activity"),
         description = "Box-Pierce: a série é ruído branco? (a fórmula original, sem correção)",
         inputs = list(serie = S), outputs = list(out = TE),
