@@ -1,0 +1,21 @@
+# Glossário de parâmetros
+
+Regra: **ids de nós em inglês** (`models/shapiro`, `ml/forest`), **parâmetros e portas em português** (`resposta`, `dados`). O mesmo conceito tem um nome só em todas as coleções — quem aprende um nó reconhece o parâmetro no próximo.
+
+A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e lista `id: param` de cada nome fora do glossário. Renomes antigos migram documentos via `tr_collection(migrations = ...)`.
+
+## Nomes canônicos
+
+| Canônico | O que é | Substitui |
+|---|---|---|
+| `confianca` | nível de confiança de intervalos, valor livre, default 0.95 | `alfa` (valor = 1 − alfa), `nivel` |
+| `resposta` | coluna explicada pelo modelo | `alvo` (ml), `grupo` quando é a resposta (multi/discriminant, multi/logistic) |
+| `preditores` | colunas explicativas de um modelo | `cols` quando são preditoras (ml, multi/discriminant, multi/logistic) |
+| `cols` | colunas quaisquer, sem papel de modelo (data/select, multi/pca) | — |
+| `grupo` | coluna de agrupamento/estrato | — (não usar para resposta) |
+| `variavel` | a coluna testada ou estimada | `coluna` (models/shapiro, models/one_sample_t, sampling/size_mean) |
+| `dados` | porta de entrada da tabela | `data` (coleção data) |
+
+## Homônimos permitidos
+
+Nomes que coincidem com um proibido mas têm outro sentido: `coluna` do quadrado latino (models/anova_dql) e da tabela de contingência (models/chisq, models/fisher_exact); `nivel` como categoria da variável (sampling/proportion).
