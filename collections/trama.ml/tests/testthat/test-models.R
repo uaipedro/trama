@@ -51,7 +51,8 @@ test_that("CART expõe regras e importância com nomes originais", {
   expect_true(any(grepl("Sepal", r$regra, fixed = TRUE)))
   expect_true("valor" %in% names(r))
   i <- tr_ml_importance(m)
-  expect_named(i, c("variavel", "importancia"))
+  expect_named(i, c("variavel", "importancia", "medida"))
+  expect_match(i$medida[[1]], "impureza.*substitutas")
   expect_true(all(i$variavel %in% m$preditores))
   expect_true(all(diff(i$importancia) <= 0))
 })
@@ -397,5 +398,26 @@ test_that("importância da floresta: permutação e impureza corrigida iguais ao
                         max.depth = 3, probability = TRUE, importance = "permutation", seed = 3)
   expect_equal(tr_ml_importance(m)$importancia[match(names(ref$variable.importance), tr_ml_importance(m)$variavel)],
                unname(ref$variable.importance), tolerance = 1e-12)
+  # a medida é visível e diz o que a permutação mede em cada tarefa: na
+  # floresta de probabilidade, aumento do erro de Brier do ranger (média de
+  # (1 - p da classe observada)^2 fora da bolsa), não queda de acurácia
+  expect_true(all(grepl("Brier", tr_ml_importance(m)$medida)))
+  expect_false(any(grepl("acur", tr_ml_importance(m)$medida)))
+  mr <- tr_ml_forest(d, "y", "x1, x2, ruido", trees = 50, importancia = "permutacao", seed = 3)
+  expect_true(all(grepl("quadr", tr_ml_importance(mr)$medida)))
+  expect_match(tr_ml_importance(tr_ml_forest(d, "y", "x1, x2", trees = 20))$medida[[1]], "redu.*vari")
+  # o erro que o ranger reporta na floresta de probabilidade é essa média
+  expect_equal(ref$prediction.error,
+               mean((1 - ref$predictions[cbind(seq_len(nrow(dc)), as.integer(dc$y))])^2), tolerance = 1e-12)
   expect_error(tr_ml_forest(d, "y", importancia = "gini"), class = "tr_ml_error_bad_option")
+})
+
+test_that("importância do XGBoost é o Gain relativo, rotulado como tal", {
+  skip_if_not_installed("xgboost")
+  m <- tr_ml_xgboost(tr_ml_example("iris_binaria"), "Species", nrounds = 10)
+  i <- tr_ml_importance(m)
+  expect_match(i$medida[[1]], "Gain")
+  expect_equal(sum(i$importancia), 1, tolerance = 1e-6)      # fração do ganho total
+  skip_if_not_installed("figsr")
+  expect_match(tr_ml_importance(tr_ml_figs(tr_ml_example("iris_binaria"), "Species"))$medida[[1]], "FIGS")
 })

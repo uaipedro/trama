@@ -17,7 +17,7 @@ Use para resumir quais preditores participaram mais do ajuste em CART, FIGS, flo
 
 ## Configuração
 
-Recebe `modelo` ajustado por CART, FIGS, random forest ou XGBoost. Na random forest, a medida é a escolhida em `importancia` no `ml/forest`: redução de impureza (padrão), permutação (queda de acerto fora da bolsa ao embaralhar o preditor; Breiman 2001) ou impureza corrigida (AIR; Nembrini, König & Wright 2018).
+Recebe `modelo` ajustado por CART, FIGS, random forest ou XGBoost. Na random forest, a medida é a escolhida em `importancia` no `ml/forest`: redução de impureza (padrão), permutação (aumento do erro fora da bolsa ao embaralhar o preditor; Breiman 2001 — na classificação é o erro de Brier do `ranger`, média de (1 − p da classe observada)², não a queda de acurácia; na regressão, o erro quadrático médio) ou impureza corrigida (AIR; Nembrini, König & Wright 2018). No XGBoost, o número é o Gain relativo (fração do ganho total das divisões, soma 1); no CART, a redução de impureza inclui as divisões substitutas do `rpart`. A saída traz a coluna `medida`, que diz em palavras o que cada número mede.
 
 ## Exemplo
 

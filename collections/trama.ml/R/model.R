@@ -36,8 +36,9 @@
 #'   Ignorado pelos demais modelos.
 #' @param importancia Medida de importância da floresta (`ranger`):
 #'   `"impureza"` (padrão, redução de Gini/variância, enviesada para
-#'   preditores com muitos valores; Strobl et al. 2007), `"permutacao"` (queda
-#'   de acerto fora da bolsa ao permutar o preditor; Breiman 2001) ou
+#'   preditores com muitos valores; Strobl et al. 2007), `"permutacao"`
+#'   (aumento do erro fora da bolsa ao permutar o preditor, Breiman 2001: erro
+#'   quadrático médio na regressão, erro de Brier na classificação) ou
 #'   `"impureza_corrigida"` (AIR, Nembrini, König & Wright 2018). Ignorado
 #'   pelos demais modelos.
 #' @return Objeto `tr_ml_fit`. Guarda as impressões digitais das linhas de
@@ -317,9 +318,14 @@ tr_ml_rules <- function(modelo) {
 
 #' Importância das variáveis nos modelos baseados em árvores
 #' @param modelo Objeto criado por [tr_ml_fit()].
-#' @return Tibble `variavel`, `importancia`; a medida é a redução de impureza
-#'   do engine (Gain no XGBoost) ou, na floresta, a escolhida em `importancia`
-#'   no ajuste (atributo `medida`).
+#' @return Tibble `variavel`, `importancia` e `medida` (o que o número mede):
+#'   redução de impureza no CART (com divisões substitutas) e no FIGS (em % do
+#'   total); no XGBoost, o Gain relativo (fração do ganho total, soma 1); na
+#'   floresta, a escolhida em `importancia` no ajuste — com `"permutacao"`, o
+#'   aumento do erro fora da bolsa ao permutar o preditor: erro quadrático
+#'   médio na regressão e, na classificação (floresta de probabilidade), o erro
+#'   de Brier do `ranger`, média de (1 - p da classe observada)^2, e não queda
+#'   de acurácia. O código curto da medida fica no atributo `medida`.
 #' @export
 tr_ml_importance <- function(modelo) {
   if (!inherits(modelo, "tr_ml_fit")) .tr_ml_abort("tr_ml_error_not_fit", "Param 'modelo' n\u{E3}o \u{E9} um ajuste de machine learning.")
@@ -333,7 +339,29 @@ tr_ml_importance <- function(modelo) {
   nomes <- names(imp) %||% character()
   mapa <- match(nomes, modelo$internos)
   nomes[!is.na(mapa)] <- modelo$preditores[mapa[!is.na(mapa)]]
-  out <- tibble::tibble(variavel = nomes, importancia = as.numeric(imp))[order(-as.numeric(imp)), , drop = FALSE]
-  attr(out, "medida") <- if (modelo$modelo == "forest") modelo$extras$parametros$importancia %||% "impureza" else "impureza"
+  codigo <- if (modelo$modelo == "forest") modelo$extras$parametros$importancia %||% "impureza" else "impureza"
+  out <- tibble::tibble(variavel = nomes, importancia = as.numeric(imp),
+                        medida = rep(.tr_ml_medida_importancia(modelo, codigo), length(nomes)))
+  out <- out[order(-out$importancia), , drop = FALSE]
+  attr(out, "medida") <- codigo
   out
+}
+
+# O que o número de cada engine mede, em palavras. Na permutação do `ranger`,
+# o erro fora da bolsa é o EQM na regressão e, na floresta de probabilidade
+# (a nossa classificação), a média de (1 - p da classe observada)^2, uma forma
+# do erro de Brier; a importância é o aumento desse erro, não queda de acurácia.
+.tr_ml_medida_importancia <- function(modelo, codigo) {
+  cls <- modelo$tarefa == "classificacao"
+  switch(modelo$modelo,
+    cart = "redu\u{E7}\u{E3}o de impureza somada nos cortes, inclusive divis\u{F5}es substitutas (rpart)",
+    figs = "ganho de impureza somado nos cortes do FIGS, em % do total (figsr)",
+    xgboost = "Gain: fra\u{E7}\u{E3}o do ganho total das divis\u{F5}es que usam o preditor (xgboost)",
+    forest = switch(codigo,
+      impureza = if (cls) "redu\u{E7}\u{E3}o de impureza de Gini somada nas \u{E1}rvores (ranger)" else
+        "redu\u{E7}\u{E3}o de vari\u{E2}ncia somada nas \u{E1}rvores (ranger)",
+      impureza_corrigida = "impureza corrigida AIR (Nembrini et al. 2018; ranger)",
+      permutacao = if (cls) paste("permuta\u{E7}\u{E3}o: aumento do erro de Brier fora da bolsa,",
+                                  "m\u{E9}dia de (1 - p da classe observada)^2 (ranger)") else
+        "permuta\u{E7}\u{E3}o: aumento do erro quadr\u{E1}tico m\u{E9}dio fora da bolsa (ranger)"))
 }

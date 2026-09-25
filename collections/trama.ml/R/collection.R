@@ -73,11 +73,11 @@ trama_collection <- function() {
       help = .tr_ml_help("CART escolhe uma folha. FIGS soma uma contribui\u{E7}\u{E3}o por \u{E1}rvore. Regras descrevem o modelo ajustado; n\u{E3}o provam causas. Limiares s\u{E3}o mostrados com precis\u{E3}o suficiente para n\u{E3}o deslocar as decis\u{F5}es.",
         "Entrada: `modelo` CART ou FIGS.", "Tabela de regras que pode ser exportada com a cole\u{E7}\u{E3}o data.",
         "m <- trama.ml::tr_ml_cart(trama.ml::tr_ml_example(), alvo = 'Species')\ntrama.ml::tr_ml_rules(m)", "`ml/cart`, `ml/figs`.")),
-    trama::tr_node("ml/importance", tr_ml_importance, label = "Import\u{E2}ncia de vari\u{E1}veis",
+    trama::tr_node("ml/importance", tr_ml_importance, version = 2L, label = "Import\u{E2}ncia de vari\u{E1}veis",
       description = "Resume a import\u{E2}ncia interna nos modelos de \u{E1}rvore.",
       category = "ml_inspecionar", icon = trama::tr_icon("chart-bar-decreasing"), inputs = list(modelo = "ml/fit"), outputs = list(out = "data/table"),
       help = .tr_ml_help("Import\u{E2}ncias dependem do motor: redu\u{E7}\u{E3}o de impureza, erro ou ganho conforme o m\u{E9}todo. N\u{E3}o compare suas magnitudes entre motores. Preditores correlacionados podem repartir ou deslocar import\u{E2}ncia; import\u{E2}ncia n\u{E3}o indica sinal do efeito nem causalidade.",
         "Entrada: `modelo` CART, FIGS, random forest ou XGBoost. SVM e refer\u{EA}ncia linear n\u{E3}o t\u{EA}m esta import\u{E2}ncia de \u{E1}rvore.",
-        "Tabela variavel/importancia. Valores descrevem o ajuste, n\u{E3}o garantem relev\u{E2}ncia fora da amostra.",
+        "Tabela variavel/importancia/medida; `medida` diz o que o n\u{FA}mero mede (na permuta\u{E7}\u{E3}o da floresta de classifica\u{E7}\u{E3}o, aumento do erro de Brier, n\u{E3}o queda de acur\u{E1}cia). Valores descrevem o ajuste, n\u{E3}o garantem relev\u{E2}ncia fora da amostra.",
         "m <- trama.ml::tr_ml_cart(trama.ml::tr_ml_example(), alvo = 'Species')\ntrama.ml::tr_ml_importance(m)", "`ml/rules`, `ml/evaluate`.")))
 }

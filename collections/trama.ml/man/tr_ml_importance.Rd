@@ -10,9 +10,14 @@ tr_ml_importance(modelo)
 \item{modelo}{Objeto criado por \code{\link[=tr_ml_fit]{tr_ml_fit()}}.}
 }
 \value{
-Tibble \code{variavel}, \code{importancia}; a medida é a redução de impureza
-do engine (Gain no XGBoost) ou, na floresta, a escolhida em \code{importancia}
-no ajuste (atributo \code{medida}).
+Tibble \code{variavel}, \code{importancia} e \code{medida} (o que o número mede):
+redução de impureza no CART (com divisões substitutas) e no FIGS (em \% do
+total); no XGBoost, o Gain relativo (fração do ganho total, soma 1); na
+floresta, a escolhida em \code{importancia} no ajuste — com \code{"permutacao"}, o
+aumento do erro fora da bolsa ao permutar o preditor: erro quadrático
+médio na regressão e, na classificação (floresta de probabilidade), o erro
+de Brier do \code{ranger}, média de (1 - p da classe observada)^2, e não queda
+de acurácia. O código curto da medida fica no atributo \code{medida}.
 }
 \description{
 Importância das variáveis nos modelos baseados em árvores

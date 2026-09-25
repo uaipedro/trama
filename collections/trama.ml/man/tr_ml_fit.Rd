@@ -77,8 +77,9 @@ Ignorado pelos demais modelos.}
 
 \item{importancia}{Medida de importância da floresta (\code{ranger}):
 \code{"impureza"} (padrão, redução de Gini/variância, enviesada para
-preditores com muitos valores; Strobl et al. 2007), \code{"permutacao"} (queda
-de acerto fora da bolsa ao permutar o preditor; Breiman 2001) ou
+preditores com muitos valores; Strobl et al. 2007), \code{"permutacao"}
+(aumento do erro fora da bolsa ao permutar o preditor, Breiman 2001: erro
+quadrático médio na regressão, erro de Brier na classificação) ou
 \code{"impureza_corrigida"} (AIR, Nembrini, König & Wright 2018). Ignorado
 pelos demais modelos.}
 }

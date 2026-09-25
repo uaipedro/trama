@@ -66,7 +66,7 @@
         P("As árvores são **muitas o bastante** para a média estabilizar; o `mtry` (preditores sorteados por corte) e o `min_n` regulam a correlação entre elas e o sobreajuste.",
           verificar = c("ml/tune", "ml/evaluate"),
           se_falhar = "Escolha `mtry`, `min_n` e `max_depth` no `ml/tune`; mais árvores só custam tempo."),
-        P("A **importância** (no `ml/importance`) segue `importancia`: `impureza` (padrão) soma a redução de Gini/variância e favorece preditores contínuos ou com muitos valores distintos (Strobl et al. 2007); `permutacao` mede a queda de acerto fora da bolsa ao embaralhar o preditor (Breiman 2001) e `impureza_corrigida` (AIR) subtrai a importância de uma cópia permutada, sem esse viés (Nembrini et al. 2018). Todas descrevem o ajuste, não o efeito, e preditores correlacionados repartem a importância entre si; as duas últimas podem dar valores negativos (preditor sem informação).",
+        P("A **importância** (no `ml/importance`) segue `importancia`: `impureza` (padrão) soma a redução de Gini/variância e favorece preditores contínuos ou com muitos valores distintos (Strobl et al. 2007); `permutacao` mede o aumento do erro fora da bolsa ao embaralhar o preditor (Breiman 2001) — na classificação, o erro de Brier que o `ranger` usa na floresta de probabilidade, média de (1 − p da classe observada)², e não a queda de acurácia; na regressão, o erro quadrático médio e `impureza_corrigida` (AIR) subtrai a importância de uma cópia permutada, sem esse viés (Nembrini et al. 2018). Todas descrevem o ajuste, não o efeito, e preditores correlacionados repartem a importância entre si; as duas últimas podem dar valores negativos (preditor sem informação).",
           verificar = "data/summary",
           se_falhar = "Com preditores de tipos ou números de valores diferentes, use `impureza_corrigida` ou `permutacao`; leia o ranking como resumo, não como causa."),
         C$semente)),
@@ -105,7 +105,7 @@
         P("O **número de rodadas** (`nrounds`), a profundidade e a taxa de aprendizado (`eta`) controlam o sobreajuste. O bloco não faz parada antecipada: usa exatamente `nrounds`.",
           verificar = c("ml/tune", "ml/evaluate"),
           se_falhar = "Escolha os três juntos no `ml/tune` (eta menor pede mais rodadas); nunca pare pelo desempenho no teste."),
-        imp_arvore("o ganho (Gain) somado nos cortes de cada preditor"))),
+        imp_arvore("o Gain relativo: a fração do ganho total das divisões que usam cada preditor (soma 1)"))),
       referencias = list(
         R(autores = c("Chen, T.", "Guestrin, C."), ano = 2016, titulo = "XGBoost: A Scalable Tree Boosting System",
           fonte = "Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 785-794",
