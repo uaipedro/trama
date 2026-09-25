@@ -227,6 +227,19 @@ tr_models_pairwise <- function(medias, metodo = "todos os pares", controle = "",
                                     sidak = "Šidák (1967)", nenhum = "Lenth (2016)"))
 }
 
+#' O eixo das médias diz de onde elas vêm e o nível real do intervalo.
+#'
+#' Sem a grade do `emmeans` (Duncan, Waller-Duncan, Scott-Knott) as médias são
+#' as da TABELA: chamá-las de ajustadas prometeria a correção do desbalanceado
+#' que elas não têm. O nível sai do `alfa` do objeto (o IC foi calculado com
+#' ele), e não de um 95% escrito à mão.
+#' @noRd
+.tr_models_rotulo_medias <- function(medias) {
+  sprintf("%s (%s e IC %s%%)", medias$resposta,
+          if (is.null(medias$grade)) "média" else "média ajustada",
+          formatC(100 * (1 - medias$alfa), format = "fg", decimal.mark = ","))
+}
+
 #' Médias com intervalo de confiança e letras.
 #' @param medias objeto `tr_models_emm`.
 #' @param letras escrever as letras acima dos intervalos.
@@ -255,7 +268,6 @@ tr_models_plot_means <- function(medias, letras = TRUE, aspecto = "16:9", tema =
                                  labeller = ggplot2::label_both)
   }
   p <- p + ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(.05, .12))) +
-    ggplot2::labs(x = x, y = sprintf("%s (média ajustada e IC %s%%)", medias$resposta,
-                                     formatC(100 * (1 - medias$alfa), format = "fg", decimal.mark = ",")))
+    ggplot2::labs(x = x, y = .tr_models_rotulo_medias(medias))
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }

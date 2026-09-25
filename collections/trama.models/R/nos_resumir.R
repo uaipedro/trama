@@ -745,13 +745,17 @@ tr_flow(reg) |>
 
     trama::tr_node("models/plot_means", fn = tr_models_plot_means, label = "Gráfico de médias",
       category = "modelo_medias", icon = trama::tr_icon("chart-no-axes-column"),
-      description = "Médias ajustadas com intervalo de confiança e as letras de comparação.",
+      description = "Médias com intervalo de confiança e as letras de comparação.",
       inputs = list(medias = "models/emm"), outputs = list(out = "view/plot"),
       params = .tr_models_props(letras = B(TRUE, label = "Letras")),
       help = .tr_models_ajuda(r"---[
 O gráfico das médias ajustadas: ponto na média, barra no intervalo de confiança
 e as letras acima. É o mesmo desenho do card do `models/emmeans`, com título,
 rótulos e proporção escolhidos.
+
+O eixo diz de onde as médias vêm: "média ajustada" quando vêm do
+`models/emmeans`, "média" quando são as da tabela (Duncan, Waller-Duncan,
+Scott-Knott) — e o nível do intervalo é o que foi pedido lá.
 
 Com dois fatores em **Médias de**, o segundo vira a cor; com **Por**, um painel
 por condição.

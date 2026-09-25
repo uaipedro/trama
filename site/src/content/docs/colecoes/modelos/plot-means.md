@@ -1,20 +1,20 @@
 ---
 title: Gráfico de médias
-description: "Médias ajustadas com intervalo de confiança e as letras de comparação."
+description: "Médias com intervalo de confiança e as letras de comparação."
 section: colecoes
 collection: modelos
 node: models/plot_means
 category: medias
-related: [models/duncan, models/emmeans]
+related: [models/duncan, models/emmeans, models/scott_knott]
 ---
 
 ## O que o bloco faz
 
-`models/plot_means` Representa médias ajustadas com intervalos e, opcionalmente, letras. A saída é `view/plot`.
+`models/plot_means` representa médias com intervalos e, opcionalmente, letras. A saída é `view/plot`. O eixo diz a origem: "média ajustada" quando vêm do `models/emmeans`, "média" quando são as da tabela (Duncan, Waller-Duncan, Scott-Knott), sempre com o nível de confiança pedido.
 
 ## Quando usar
 
-Use para apresentar médias ajustadas, seus intervalos e agrupamentos de comparação em uma figura.
+Use para apresentar médias, seus intervalos e agrupamentos de comparação em uma figura.
 
 ## Configuração
 
@@ -39,4 +39,4 @@ O gráfico representa as médias de produção ajustadas por `hibrido`, com os i
 
 ## Como interpretar
 
-Pontos são médias ajustadas; barras são intervalos. Letras compartilhadas indicam ausência de diferença detectada pelo ajuste escolhido.
+Pontos são as médias (ajustadas ou da tabela, conforme o eixo); barras são intervalos. Letras compartilhadas indicam ausência de diferença detectada pelo ajuste escolhido.

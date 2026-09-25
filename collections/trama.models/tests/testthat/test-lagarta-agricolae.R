@@ -109,3 +109,14 @@ test_that("Scott-Knott: a confiança muda o corte; erro certo na subdividida; re
   expect_error(tr_models_scott_knott(tr_models_glm(ex("InsectSprays"), "count", "spray"), "spray"),
                class = "tr_models_error_not_applicable")
 })
+
+test_that("o eixo do gráfico de médias diz a origem e o nível real do intervalo", {
+  m <- milho_dbc()
+  eixo <- function(e) tr_models_plot_means(e)$labels$y
+  # Agrupamentos do agricolae e o Scott-Knott usam as médias da tabela.
+  expect_equal(eixo(tr_models_duncan(m, "hibrido", confianca = 0.9)), "producao (média e IC 90%)")
+  expect_equal(eixo(tr_models_scott_knott(m, "hibrido")), "producao (média e IC 95%)")
+  expect_equal(eixo(tr_models_waller_duncan(m, "hibrido")), "producao (média e IC 95%)")
+  # O emmeans dá médias ajustadas, no nível pedido.
+  expect_equal(eixo(tr_models_emmeans(m, "hibrido", confianca = 0.99)), "producao (média ajustada e IC 99%)")
+})
