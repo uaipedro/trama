@@ -1,1 +1,2274 @@
-{}
+{
+  "models/anova_dbc": {
+    "pressupostos": [
+      {
+        "texto": "Os tratamentos foram **sorteados** dentro de cada bloco, com todos os tratamentos em todo bloco, e cada parcela é uma unidade experimental independente.",
+        "se_falhar": "Não há teste para isso: é o planejamento que garante. Sem sorteio, o F não tem a interpretação causal do experimento."
+      },
+      {
+        "texto": "**Aditividade**: o efeito do tratamento é o mesmo em todo bloco (não há interação bloco × tratamento).",
+        "verificar": ["models/tukey_additivity"],
+        "se_falhar": "Uma transformação (quase sempre o log) costuma devolver a aditividade."
+      },
+      {
+        "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+      },
+      {
+        "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
+        "verificar": ["models/levene", "models/bartlett", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Banzatto, D. A.", "Kronka, S. N."],
+        "ano": 2006,
+        "titulo": "Experimentação agrícola",
+        "fonte": "4. ed. Jaboticabal: Funep"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Pimentel-Gomes, F."],
+        "ano": 2009,
+        "titulo": "Curso de estatística experimental",
+        "fonte": "15. ed. Piracicaba: FEALQ"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "aov",
+        "versao": "4.6.0",
+        "nota": "`aov` com os fatores do desenho convertidos em fator; o quadro é a soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
+      }
+    ]
+  },
+  "models/anova_dic": {
+    "pressupostos": [
+      {
+        "texto": "Os tratamentos foram **sorteados** nas parcelas sem restrição, e cada parcela é uma unidade experimental independente.",
+        "se_falhar": "Não há teste para isso: é o planejamento que garante. Sem sorteio, o F não tem a interpretação causal do experimento."
+      },
+      {
+        "texto": "As parcelas são **homogêneas**: não há fonte de variação conhecida (área, dia, lote) que devesse ter virado bloco.",
+        "se_falhar": "Se houve bloco, use o `models/anova_dbc`."
+      },
+      {
+        "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+      },
+      {
+        "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
+        "verificar": ["models/levene", "models/bartlett", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Banzatto, D. A.", "Kronka, S. N."],
+        "ano": 2006,
+        "titulo": "Experimentação agrícola",
+        "fonte": "4. ed. Jaboticabal: Funep"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Pimentel-Gomes, F."],
+        "ano": 2009,
+        "titulo": "Curso de estatística experimental",
+        "fonte": "15. ed. Piracicaba: FEALQ"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "aov",
+        "versao": "4.6.0",
+        "nota": "`aov` com os fatores do desenho convertidos em fator; o quadro é a soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
+      }
+    ]
+  },
+  "models/anova_dql": {
+    "pressupostos": [
+      {
+        "texto": "Os tratamentos foram **sorteados** com cada tratamento uma vez em cada linha e em cada coluna, e cada parcela é uma unidade experimental independente.",
+        "se_falhar": "Não há teste para isso: é o planejamento que garante. Sem sorteio, o F não tem a interpretação causal do experimento."
+      },
+      {
+        "texto": "**Aditividade** de linha, coluna e tratamento: nenhuma interação entre eles.",
+        "verificar": ["models/tukey_additivity"],
+        "se_falhar": "Transforme a resposta; o delineamento não tem gl para estimar essas interações."
+      },
+      {
+        "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+      },
+      {
+        "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
+        "verificar": ["models/levene", "models/bartlett", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Banzatto, D. A.", "Kronka, S. N."],
+        "ano": 2006,
+        "titulo": "Experimentação agrícola",
+        "fonte": "4. ed. Jaboticabal: Funep"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Pimentel-Gomes, F."],
+        "ano": 2009,
+        "titulo": "Curso de estatística experimental",
+        "fonte": "15. ed. Piracicaba: FEALQ"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "aov",
+        "versao": "4.6.0",
+        "nota": "`aov` com os fatores do desenho convertidos em fator; o quadro é a soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
+      }
+    ]
+  },
+  "models/anova_factorial": {
+    "pressupostos": [
+      {
+        "texto": "Os tratamentos foram **sorteados** entre as combinações dos fatores (nas parcelas, ou dentro dos blocos), e cada parcela é uma unidade experimental independente.",
+        "se_falhar": "Não há teste para isso: é o planejamento que garante. Sem sorteio, o F não tem a interpretação causal do experimento."
+      },
+      {
+        "texto": "Com bloco: **aditividade** entre bloco e as combinações de tratamento.",
+        "verificar": ["models/tukey_additivity"]
+      },
+      {
+        "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/kruskal` (DIC)."
+      },
+      {
+        "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
+        "verificar": ["models/levene", "models/bartlett", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama."
+      },
+      {
+        "texto": "Todas as combinações dos fatores foram observadas; com parcelas perdidas, o quadro sequencial depende da ordem dos fatores.",
+        "verificar": ["models/anova_table"],
+        "se_falhar": "No desbalanceado, leia o `models/anova_table` com SQ tipo II ou III e compare médias ajustadas no `models/emmeans`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Banzatto, D. A.", "Kronka, S. N."],
+        "ano": 2006,
+        "titulo": "Experimentação agrícola",
+        "fonte": "4. ed. Jaboticabal: Funep"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Pimentel-Gomes, F."],
+        "ano": 2009,
+        "titulo": "Curso de estatística experimental",
+        "fonte": "15. ed. Piracicaba: FEALQ"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "aov",
+        "versao": "4.6.0",
+        "nota": "`aov` com os fatores do desenho convertidos em fator; o quadro é a soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
+      }
+    ]
+  },
+  "models/anova_split_plot": {
+    "pressupostos": [
+      {
+        "texto": "Houve **dois sorteios**: o fator da parcela nas parcelas de cada bloco, e o da subparcela dentro de cada parcela. É isso que justifica os dois erros.",
+        "se_falhar": "Se os dois fatores foram sorteados juntos nas parcelas, é fatorial: use o `models/anova_factorial`."
+      },
+      {
+        "texto": "Os erros (a) e (b) são **normais e independentes** entre si, cada um com variância constante.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta. Os blocos de pressuposto usam os resíduos do erro (b)."
+      },
+      {
+        "texto": "Dados **balanceados** (todo bloco com todas as combinações): o quadro com `Error()` só é o dos livros assim.",
+        "se_falhar": "No desbalanceado, ajuste o misto `(1 | bloco:parcela)` no `models/lmer`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Banzatto, D. A.", "Kronka, S. N."],
+        "ano": 2006,
+        "titulo": "Experimentação agrícola",
+        "fonte": "4. ed. Jaboticabal: Funep"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Pimentel-Gomes, F."],
+        "ano": 2009,
+        "titulo": "Curso de estatística experimental",
+        "fonte": "15. ed. Piracicaba: FEALQ"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "aov",
+        "versao": "4.6.0",
+        "nota": "Com `Error(bloco/parcela)`: o quadro sai dos estratos, com o bloco testado contra o erro (a). Médias e comparações usam o misto equivalente em `lmerTest::lmer` com `(1 | bloco:parcela)`."
+      }
+    ]
+  },
+  "models/anova_table": {
+    "pressupostos": [
+      {
+        "texto": "Os pressupostos do **modelo** que entra (normalidade e variância constante do erro nos modelos lineares; família e ligação no GLM) valem: o quadro só lê o ajuste.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"]
+      },
+      {
+        "texto": "No **tipo III**, os fatores estão em contrastes de soma zero (o bloco reajusta sozinho); no **tipo I**, a ordem dos termos na fórmula é a ordem das perguntas.",
+        "se_falhar": "No desbalanceado, prefira o tipo II quando não há interação, e o III quando há."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Searle, S. R."],
+        "ano": 1971,
+        "titulo": "Linear Models",
+        "fonte": "New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Fox, J.", "Weisberg, S."],
+        "ano": 2019,
+        "titulo": "An R Companion to Applied Regression",
+        "fonte": "3. ed. Thousand Oaks: Sage"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "anova",
+        "versao": "4.6.0",
+        "nota": "Tipo I (`lm`, `aov`, `glm`: F ou qui-quadrado conforme a dispersão da família); no misto, `anova` do `lmerTest` com gl de Satterthwaite."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "car",
+        "funcao": "Anova",
+        "versao": "3.1.5",
+        "nota": "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`."
+      }
+    ]
+  },
+  "models/bartlett": {
+    "pressupostos": [
+      {
+        "texto": "Os resíduos de cada grupo são **normais**: o teste é muito sensível à falta de normalidade, e rejeita pela cauda, não pela variância.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
+        "se_falhar": "Use o `models/levene` (centro na mediana), robusto à falta de normalidade."
+      },
+      {
+        "texto": "Os grupos têm **pelo menos duas observações** cada."
+      },
+      {
+        "texto": "As observações de cada grupo são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Bartlett, M. S."],
+        "ano": 1937,
+        "titulo": "Properties of sufficiency and statistical tests",
+        "fonte": "Proceedings of the Royal Society of London. Series A, 160(901), 268-282",
+        "doi": "10.1098/rspa.1937.0109"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "bartlett.test",
+        "versao": "4.6.0",
+        "nota": "Nos resíduos do modelo, agrupados pelos tratamentos."
+      }
+    ]
+  },
+  "models/breusch_pagan": {
+    "pressupostos": [
+      {
+        "texto": "A heterocedasticidade, se existe, é **função dos preditores do modelo** (o teste regride o quadrado do resíduo neles); uma variância que muda com outra coisa (o tempo, uma variável fora do modelo) passa despercebida.",
+        "verificar": ["models/plot_diagnostics"]
+      },
+      {
+        "texto": "Os resíduos vêm de um modelo **bem especificado** (termos certos, sem tendência sobrando): o teste olha os resíduos, e um modelo errado muda o que eles medem.",
+        "verificar": ["models/plot_diagnostics"]
+      },
+      {
+        "texto": "Amostra **grande o bastante** para a aproximação qui-quadrado de n·R²."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Breusch, T. S.", "Pagan, A. R."],
+        "ano": 1979,
+        "titulo": "A simple test for heteroscedasticity and random coefficient variation",
+        "fonte": "Econometrica, 47(5), 1287-1294",
+        "doi": "10.2307/1911963"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Koenker, R."],
+        "ano": 1981,
+        "titulo": "A note on studentizing a test for heteroscedasticity",
+        "fonte": "Journal of Econometrics, 17(1), 107-112",
+        "doi": "10.1016/0304-4076(81)90062-2"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.models",
+        "funcao": "tr_models_breusch_pagan",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: regressão auxiliar com `stats::lm.fit` do quadrado dos resíduos na matriz do modelo, estatística n·R² (versão studentizada de Koenker, a mesma do padrão de `lmtest::bptest`)."
+      }
+    ]
+  },
+  "models/chisq": {
+    "pressupostos": [
+      {
+        "texto": "Cada linha da tabela é uma **unidade independente**, contada uma vez só.",
+        "se_falhar": "É a coleta que garante; a mesma unidade em duas caselas invalida o teste."
+      },
+      {
+        "texto": "Contagens **esperadas** de pelo menos 5 em (quase) todas as caselas: com mais de 20% abaixo disso, a aproximação qui-quadrado falha.",
+        "se_falhar": "Use o `models/fisher_exact`, ou junte categorias raras num `data/mutate`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Pearson, K."],
+        "ano": 1900,
+        "titulo": "On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling",
+        "fonte": "The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science, 50(302), 157-175",
+        "doi": "10.1080/14786440009463897"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Yates, F."],
+        "ano": 1934,
+        "titulo": "Contingency tables involving small numbers and the χ² test",
+        "fonte": "Supplement to the Journal of the Royal Statistical Society, 1(2), 217-235",
+        "doi": "10.2307/2983604"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "chisq.test",
+        "versao": "4.6.0",
+        "nota": "`correct = TRUE` por padrão: correção de continuidade de Yates, que só age em tabelas 2 × 2."
+      }
+    ]
+  },
+  "models/compare": {
+    "pressupostos": [
+      {
+        "texto": "Os modelos são **aninhados** (o menor é um caso particular do maior), da mesma família e ajustados nas **mesmas linhas**; o bloco recusa senão.",
+        "se_falhar": "Para modelos não aninhados, compare o AIC no `models/fit_stats`."
+      },
+      {
+        "texto": "O modelo **maior** atende aos pressupostos dele: o teste compara ajustes, não conserta um modelo errado.",
+        "verificar": ["models/plot_diagnostics", "models/shapiro_residuals"]
+      },
+      {
+        "texto": "No GLM e no misto, o teste é de **razão de verossimilhança** assintótico: pede amostra grande."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Wilks, S. S."],
+        "ano": 1938,
+        "titulo": "The large-sample distribution of the likelihood ratio for testing composite hypotheses",
+        "fonte": "The Annals of Mathematical Statistics, 9(1), 60-62",
+        "doi": "10.1214/aoms/1177732360"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Rencher, A. C.", "Schaalje, G. B."],
+        "ano": 2008,
+        "titulo": "Linear Models in Statistics",
+        "fonte": "2. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Dobson, A. J.", "Barnett, A. G."],
+        "ano": 2008,
+        "titulo": "An Introduction to Generalized Linear Models",
+        "fonte": "3. ed. Boca Raton: Chapman & Hall/CRC"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "anova",
+        "versao": "4.6.0",
+        "nota": "`lm`: F de modelos aninhados; GLM: `test = \"F\"` nas famílias de dispersão estimada e `\"Chisq\"` nas demais; misto: `anova` do `lme4` com `refit = TRUE` (reajuste por ML)."
+      }
+    ]
+  },
+  "models/cor_test": {
+    "pressupostos": [
+      {
+        "texto": "As pares (x, y) são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "**Pearson**: a relação é **linear**, e o teste supõe normalidade bivariada.",
+        "verificar": ["view/points", "models/shapiro"],
+        "se_falhar": "Use `spearman` ou `kendall` (relação monotônica, por postos)."
+      },
+      {
+        "texto": "**Spearman** e **Kendall**: a relação é **monotônica** (sempre cresce ou sempre decresce).",
+        "verificar": ["view/points"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Pearson, K."],
+        "ano": 1896,
+        "titulo": "Mathematical contributions to the theory of evolution. III. Regression, heredity, and panmixia",
+        "fonte": "Philosophical Transactions of the Royal Society of London. Series A, 187, 253-318",
+        "doi": "10.1098/rsta.1896.0007"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Spearman, C."],
+        "ano": 1904,
+        "titulo": "The proof and measurement of association between two things",
+        "fonte": "The American Journal of Psychology, 15(1), 72-101",
+        "doi": "10.2307/1412159"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Kendall, M. G."],
+        "ano": 1938,
+        "titulo": "A new measure of rank correlation",
+        "fonte": "Biometrika, 30(1-2), 81-93",
+        "doi": "10.1093/biomet/30.1-2.81"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "cor.test",
+        "versao": "4.6.0",
+        "nota": "IC de Pearson pela transformação z de Fisher; Spearman e Kendall sem IC, p-valor exato ou aproximado conforme n e empates."
+      }
+    ]
+  },
+  "models/duncan": {
+    "pressupostos": [
+      {
+        "texto": "O **modelo** que entra atende aos seus pressupostos (erros normais, variância constante, independência): as comparações usam o erro padrão dele.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Acerte o modelo antes: transformação, `models/glm`, ou `models/lmer` para erros correlacionados."
+      },
+      {
+        "texto": "As médias vêm de uma **ANOVA** com um erro só por fator (o bloco escolhe o erro (a) ou (b) na parcela subdividida), e os dados são **balanceados**: as médias usadas são as da tabela.",
+        "se_falhar": "No desbalanceado, ou em GLM e misto, use o `models/emmeans`."
+      },
+      {
+        "texto": "Sem **interação** relevante com outro fator; havendo, a média de um fator somada sobre o outro esconde o que aconteceu.",
+        "verificar": ["models/anova_table"],
+        "se_falhar": "Compare dentro de cada nível do outro fator (**Por** no `models/emmeans`)."
+      },
+      {
+        "texto": "Aceita-se uma taxa de erro por família **maior** que a nominal: o nível de proteção cai com o número de médias entre as comparadas.",
+        "se_falhar": "Para controlar o erro da família, use o Tukey do `models/emmeans`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Duncan, D. B."],
+        "ano": 1955,
+        "titulo": "Multiple range and multiple F tests",
+        "fonte": "Biometrics, 11(1), 1-42",
+        "doi": "10.2307/3001478"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Banzatto, D. A.", "Kronka, S. N."],
+        "ano": 2006,
+        "titulo": "Experimentação agrícola",
+        "fonte": "4. ed. Jaboticabal: Funep"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "agricolae",
+        "funcao": "duncan.test",
+        "versao": "1.3.7",
+        "nota": "Com o QM e os gl do erro do quadro (`DFerror`, `MSerror`) e `group = TRUE`."
+      }
+    ]
+  },
+  "models/emmeans": {
+    "pressupostos": [
+      {
+        "texto": "O **modelo** que entra atende aos seus pressupostos (erros normais, variância constante, independência): as comparações usam o erro padrão dele.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Acerte o modelo antes: transformação, `models/glm`, ou `models/lmer` para erros correlacionados."
+      },
+      {
+        "texto": "Sem **interação** relevante com outro fator; havendo, a média de um fator somada sobre o outro esconde o que aconteceu.",
+        "verificar": ["models/anova_table"],
+        "se_falhar": "Compare dentro de cada nível do outro fator (**Por** no `models/emmeans`)."
+      },
+      {
+        "texto": "As médias ajustadas dão **peso igual** a cada nível dos outros fatores; é a população de referência que a comparação supõe."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Searle, S. R.", "Speed, F. M.", "Milliken, G. A."],
+        "ano": 1980,
+        "titulo": "Population marginal means in the linear model: an alternative to least squares means",
+        "fonte": "The American Statistician, 34(4), 216-221",
+        "doi": "10.1080/00031305.1980.10483031"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Kramer, C. Y."],
+        "ano": 1956,
+        "titulo": "Extension of multiple range tests to group means with unequal numbers of replications",
+        "fonte": "Biometrics, 12(3), 307-310",
+        "doi": "10.2307/3001469"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Piepho, H.-P."],
+        "ano": 2004,
+        "titulo": "An algorithm for a letter-based representation of all-pairwise comparisons",
+        "fonte": "Journal of Computational and Graphical Statistics, 13(2), 456-466",
+        "doi": "10.1198/1061860043515"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "emmeans",
+        "funcao": "emmeans",
+        "versao": "2.0.3",
+        "nota": "Grade de referência com pesos iguais; no misto e na parcela subdividida, `lmer.df = \"satterthwaite\"`; no GLM, `type = \"response\"` na escala da resposta."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "emmeans",
+        "funcao": "contrast",
+        "versao": "2.0.3",
+        "nota": "`\"pairwise\"` com o `adjust` escolhido (Tukey = Tukey-Kramer no desbalanceado), dentro de cada nível de **Por**; as letras saem do algoritmo de inserir e absorver, implementado no trama."
+      }
+    ]
+  },
+  "models/fisher_exact": {
+    "pressupostos": [
+      {
+        "texto": "Cada linha da tabela é uma **unidade independente**, contada uma vez só."
+      },
+      {
+        "texto": "Os **totais marginais** são tratados como fixos: o teste é condicional a eles (vale também quando não foram fixados no delineamento, mas fica conservador)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Fisher, R. A."],
+        "ano": 1922,
+        "titulo": "On the interpretation of χ² from contingency tables, and the calculation of P",
+        "fonte": "Journal of the Royal Statistical Society, 85(1), 87-94",
+        "doi": "10.2307/2340521"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "fisher.test",
+        "versao": "4.6.0",
+        "nota": "`workspace = 2e6`; em 2 × 2, a razão de chances é a estimativa condicional de máxima verossimilhança, com IC exato."
+      }
+    ]
+  },
+  "models/glm": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes**.",
+        "se_falhar": "Medidas repetidas ou agrupadas (mesmo animal, parcela, local) pedem o `models/lmer`."
+      },
+      {
+        "texto": "A resposta segue a **família** escolhida, e a média se liga aos preditores pela **ligação** (canônica; log na gama).",
+        "verificar": ["models/plot_diagnostics", "models/residuals"]
+      },
+      {
+        "texto": "Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (desvio residual perto dos gl do resíduo).",
+        "verificar": ["models/fit_stats"],
+        "se_falhar": "Use a família `quasipoisson`, que estima a dispersão."
+      },
+      {
+        "texto": "Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Nelder, J. A.", "Wedderburn, R. W. M."],
+        "ano": 1972,
+        "titulo": "Generalized linear models",
+        "fonte": "Journal of the Royal Statistical Society. Series A, 135(3), 370-384",
+        "doi": "10.2307/2344614"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Dobson, A. J.", "Barnett, A. G."],
+        "ano": 2008,
+        "titulo": "An Introduction to Generalized Linear Models",
+        "fonte": "3. ed. Boca Raton: Chapman & Hall/CRC"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "glm",
+        "versao": "4.6.0",
+        "nota": "Famílias `gaussian`, `binomial`, `poisson`, `quasipoisson` na ligação canônica e `Gamma(link = \"log\")`."
+      }
+    ]
+  },
+  "models/kruskal": {
+    "pressupostos": [
+      {
+        "texto": "As observações, dentro e entre os grupos, são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "A resposta é **contínua** ou ordinal; empates são corrigidos na estatística."
+      },
+      {
+        "texto": "Para ler a rejeição como diferença de **locação** (medianas), as distribuições dos grupos têm a **mesma forma**.",
+        "verificar": ["view/boxplot", "view/density"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kruskal, W. H.", "Wallis, W. A."],
+        "ano": 1952,
+        "titulo": "Use of ranks in one-criterion variance analysis",
+        "fonte": "Journal of the American Statistical Association, 47(260), 583-621",
+        "doi": "10.1080/01621459.1952.10483441"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "kruskal.test",
+        "versao": "4.6.0",
+        "nota": "H com correção para empates, p-valor pela aproximação qui-quadrado."
+      }
+    ]
+  },
+  "models/levene": {
+    "pressupostos": [
+      {
+        "texto": "Os grupos (as combinações dos tratamentos) têm **pelo menos duas observações** cada; o bloco recusa senão."
+      },
+      {
+        "texto": "As observações de cada grupo são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "Os resíduos vêm de um modelo **bem especificado** (termos certos, sem tendência sobrando): o teste olha os resíduos, e um modelo errado muda o que eles medem.",
+        "verificar": ["models/plot_diagnostics"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Levene, H."],
+        "ano": 1960,
+        "titulo": "Robust tests for equality of variances",
+        "fonte": "In: Olkin, I. et al. (ed.). Contributions to Probability and Statistics: Essays in Honor of Harold Hotelling. Stanford: Stanford University Press, p. 278-292"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Brown, M. B.", "Forsythe, A. B."],
+        "ano": 1974,
+        "titulo": "Robust tests for the equality of variances",
+        "fonte": "Journal of the American Statistical Association, 69(346), 364-367",
+        "doi": "10.1080/01621459.1974.10482955"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "car",
+        "funcao": "leveneTest",
+        "versao": "3.1.5",
+        "nota": "Nos resíduos do modelo, agrupados pelos tratamentos. `center = median` (padrão do bloco) é a versão de Brown-Forsythe; `center = mean` é o Levene original."
+      }
+    ]
+  },
+  "models/linear_hypothesis": {
+    "pressupostos": [
+      {
+        "texto": "O **modelo** que entra atende aos seus pressupostos (erros normais, variância constante, independência): as comparações usam o erro padrão dele.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Acerte o modelo antes: transformação, `models/glm`, ou `models/lmer` para erros correlacionados."
+      },
+      {
+        "texto": "Os contrastes foram **planejados** antes de ver os dados, e são linearmente independentes (o bloco recusa os dependentes).",
+        "se_falhar": "Para comparações sugeridas pelos dados, use o `models/pairwise` com ajuste."
+      },
+      {
+        "texto": "No GLM e no misto, o teste é **assintótico** (Wald) ou aproximado (Satterthwaite): pede amostra grande o bastante."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Searle, S. R."],
+        "ano": 1971,
+        "titulo": "Linear Models",
+        "fonte": "New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Fox, J.", "Weisberg, S."],
+        "ano": 2019,
+        "titulo": "An R Companion to Applied Regression",
+        "fonte": "3. ed. Thousand Oaks: Sage"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "emmeans",
+        "funcao": "contrast",
+        "versao": "2.0.3",
+        "nota": "Contrastes nas médias de um fator; F conjunto calculado pela forma quadrática de Wald com os gl do `emmeans::test(joint = TRUE)`."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "car",
+        "funcao": "linearHypothesis",
+        "versao": "3.1.5",
+        "nota": "Hipóteses nos coeficientes (`lm`, `glm`): F, ou qui-quadrado de Wald nas famílias de dispersão fixa."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "lmerTest",
+        "funcao": "contest",
+        "versao": "3.2.1",
+        "nota": "Hipóteses nos coeficientes do misto, `joint = TRUE`, gl de Satterthwaite."
+      }
+    ]
+  },
+  "models/lm": {
+    "pressupostos": [
+      {
+        "texto": "A relação entre a resposta e os preditores é a da **fórmula** (linear nos parâmetros, com as interações e curvaturas escritas).",
+        "verificar": ["models/plot_diagnostics"],
+        "se_falhar": "Acrescente termos (`poly(x, 2)`, `a * b`) ou transforme; teste o termo a mais com o `models/compare`."
+      },
+      {
+        "texto": "As observações são **independentes**.",
+        "se_falhar": "Medidas repetidas ou agrupadas (mesmo animal, parcela, local) pedem o `models/lmer`."
+      },
+      {
+        "texto": "Os **erros** são normais.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta, ou use o `models/glm` com a família da resposta."
+      },
+      {
+        "texto": "A **variância do erro é constante** (não cresce com o ajustado nem muda entre grupos).",
+        "verificar": ["models/breusch_pagan", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Transforme a resposta (log) ou use o `models/glm` com família gama."
+      },
+      {
+        "texto": "Sem **colinearidade** forte entre os preditores: com ela os coeficientes ficam instáveis e os erros padrão, grandes.",
+        "verificar": ["models/coefficients"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Rencher, A. C.", "Schaalje, G. B."],
+        "ano": 2008,
+        "titulo": "Linear Models in Statistics",
+        "fonte": "2. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "lm",
+        "versao": "4.6.0",
+        "nota": "Mínimos quadrados; texto e lógico viram fator (contraste de tratamento, o padrão do R), número fica número."
+      }
+    ]
+  },
+  "models/lmer": {
+    "pressupostos": [
+      {
+        "texto": "A relação entre a resposta e os preditores é a da **fórmula** (linear nos parâmetros, com as interações e curvaturas escritas).",
+        "verificar": ["models/plot_diagnostics"],
+        "se_falhar": "Acrescente termos (`poly(x, 2)`, `a * b`) ou transforme; teste o termo a mais com o `models/compare`."
+      },
+      {
+        "texto": "Os **efeitos aleatórios** são normais, com média zero, e independentes do erro.",
+        "verificar": ["models/random_effects", "models/plot_caterpillar"]
+      },
+      {
+        "texto": "Os **erros** condicionais são normais e de variância constante.",
+        "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"]
+      },
+      {
+        "texto": "Os **grupos** (sujeitos, blocos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
+        "se_falhar": "Com poucos grupos (menos de 5 ou 6), trate o fator como fixo no `models/lm`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Bates, D.", "Mächler, M.", "Bolker, B.", "Walker, S."],
+        "ano": 2015,
+        "titulo": "Fitting linear mixed-effects models using lme4",
+        "fonte": "Journal of Statistical Software, 67(1), 1-48",
+        "doi": "10.18637/jss.v067.i01"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Kuznetsova, A.", "Brockhoff, P. B.", "Christensen, R. H. B."],
+        "ano": 2017,
+        "titulo": "lmerTest package: tests in linear mixed effects models",
+        "fonte": "Journal of Statistical Software, 82(13), 1-26",
+        "doi": "10.18637/jss.v082.i13"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Patterson, H. D.", "Thompson, R."],
+        "ano": 1971,
+        "titulo": "Recovery of inter-block information when block sizes are unequal",
+        "fonte": "Biometrika, 58(3), 545-554",
+        "doi": "10.1093/biomet/58.3.545"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Satterthwaite, F. E."],
+        "ano": 1946,
+        "titulo": "An approximate distribution of estimates of variance components",
+        "fonte": "Biometrics Bulletin, 2(6), 110-114",
+        "doi": "10.2307/3002019"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "lmerTest",
+        "funcao": "lmer",
+        "versao": "3.2.1",
+        "nota": "Mesmo ajuste do `lme4::lmer`, com gl de Satterthwaite nos testes; `REML = TRUE` por padrão."
+      }
+    ]
+  },
+  "models/one_sample_t": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "A coluna é **aproximadamente normal** (com amostras grandes, o teorema central do limite alivia).",
+        "verificar": ["models/shapiro", "view/qq"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Student"],
+        "ano": 1908,
+        "titulo": "The probable error of a mean",
+        "fonte": "Biometrika, 6(1), 1-25",
+        "doi": "10.2307/2331554"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "t.test",
+        "versao": "4.6.0",
+        "nota": "Com `mu` = valor de referência."
+      }
+    ]
+  },
+  "models/paired_t": {
+    "pressupostos": [
+      {
+        "texto": "Os pares são **independentes** entre si (as duas medidas de um par é que são ligadas).",
+        "se_falhar": "É o delineamento que garante; unidades agrupadas pedem `models/lmer`."
+      },
+      {
+        "texto": "As **diferenças** (primeira − segunda) são aproximadamente normais — não cada medida.",
+        "verificar": ["models/shapiro", "view/qq"],
+        "se_falhar": "Calcule a diferença num `data/mutate` e confira; sem normalidade, o Wilcoxon de postos sinalizados é a alternativa (ainda não há bloco no trama)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Student"],
+        "ano": 1908,
+        "titulo": "The probable error of a mean",
+        "fonte": "Biometrika, 6(1), 1-25",
+        "doi": "10.2307/2331554"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "t.test",
+        "versao": "4.6.0",
+        "nota": "Aplicado às diferenças, como t para uma amostra com média zero."
+      }
+    ]
+  },
+  "models/pairwise": {
+    "pressupostos": [
+      {
+        "texto": "O **modelo** que entra atende aos seus pressupostos (erros normais, variância constante, independência): as comparações usam o erro padrão dele.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Acerte o modelo antes: transformação, `models/glm`, ou `models/lmer` para erros correlacionados."
+      },
+      {
+        "texto": "Sem **interação** relevante com outro fator; havendo, a média de um fator somada sobre o outro esconde o que aconteceu.",
+        "verificar": ["models/anova_table"],
+        "se_falhar": "Compare dentro de cada nível do outro fator (**Por** no `models/emmeans`)."
+      },
+      {
+        "texto": "As comparações foram **escolhidas antes** de ver os dados (todos os pares, ou todos contra o controle): o ajuste protege essa família, e não comparações escolhidas depois."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "complementar",
+        "autores": ["Tukey, J. W."],
+        "ano": 1949,
+        "titulo": "Comparing individual means in the analysis of variance",
+        "fonte": "Biometrics, 5(2), 99-114",
+        "doi": "10.2307/3001913"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Kramer, C. Y."],
+        "ano": 1956,
+        "titulo": "Extension of multiple range tests to group means with unequal numbers of replications",
+        "fonte": "Biometrics, 12(3), 307-310",
+        "doi": "10.2307/3001469"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Dunnett, C. W."],
+        "ano": 1955,
+        "titulo": "A multiple comparison procedure for comparing several treatments with a control",
+        "fonte": "Journal of the American Statistical Association, 50(272), 1096-1121",
+        "doi": "10.1080/01621459.1955.10501294"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "emmeans",
+        "funcao": "contrast",
+        "versao": "2.0.3",
+        "nota": "`\"pairwise\"` ou `\"trt.vs.ctrl\"`; o ajuste `dunnett` usa `adjust = \"dunnettx\"`, a aproximação de Hsu para o Dunnett."
+      }
+    ]
+  },
+  "models/random_test": {
+    "pressupostos": [
+      {
+        "texto": "O modelo misto atende aos seus pressupostos (efeitos aleatórios e erros normais).",
+        "verificar": ["models/plot_diagnostics", "models/plot_caterpillar"]
+      },
+      {
+        "texto": "A variância testada está na **fronteira** (zero) sob H0: a distribuição qui-quadrado não vale exatamente, e o p-valor é conservador.",
+        "se_falhar": "Um termo que sai significativo é seguro; um p-valor perto do limite pode estar superestimado."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Wilks, S. S."],
+        "ano": 1938,
+        "titulo": "The large-sample distribution of the likelihood ratio for testing composite hypotheses",
+        "fonte": "The Annals of Mathematical Statistics, 9(1), 60-62",
+        "doi": "10.1214/aoms/1177732360"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Self, S. G.", "Liang, K.-Y."],
+        "ano": 1987,
+        "titulo": "Asymptotic properties of maximum likelihood estimators and likelihood ratio tests under nonstandard conditions",
+        "fonte": "Journal of the American Statistical Association, 82(398), 605-610",
+        "doi": "10.1080/01621459.1987.10478472"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Kuznetsova, A.", "Brockhoff, P. B.", "Christensen, R. H. B."],
+        "ano": 2017,
+        "titulo": "lmerTest package: tests in linear mixed effects models",
+        "fonte": "Journal of Statistical Software, 82(13), 1-26",
+        "doi": "10.18637/jss.v082.i13"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "lmerTest",
+        "funcao": "ranova",
+        "versao": "3.2.1",
+        "nota": "Retira cada termo aleatório (uma inclinação aleatória é reduzida ao intercepto) e compara por razão de verossimilhança."
+      }
+    ]
+  },
+  "models/rls": {
+    "pressupostos": [
+      {
+        "texto": "O modelo é **linear** e seus coeficientes são **fixos** no tempo: o RLS sem fator de esquecimento pondera igualmente o passado e o presente.",
+        "se_falhar": "Para relação que muda com o tempo, ajuste por janelas, ou use o `models/lm` em cada período."
+      },
+      {
+        "texto": "Os preditores estão em **escalas parecidas**: a prior difusa `lambda · I` fica mal condicionada com colunas de ordens de grandeza diferentes.",
+        "se_falhar": "Escale as colunas num `data/mutate` antes."
+      },
+      {
+        "texto": "Os mesmos pressupostos de erro do `models/lm` (independência, variância constante) valem para interpretar os coeficientes como os de mínimos quadrados."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Plackett, R. L."],
+        "ano": 1950,
+        "titulo": "Some theorems in least squares",
+        "fonte": "Biometrika, 37(1-2), 149-157",
+        "doi": "10.1093/biomet/37.1-2.149"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.models",
+        "funcao": "step_rls",
+        "versao": "0.1.0",
+        "nota": "Implementação própria da atualização recursiva de mínimos quadrados, com `P0 = lambda · I` e simetrização de `P` a cada passo."
+      }
+    ]
+  },
+  "models/shapiro": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "De **3 a 5000** valores, sem muitos empates por arredondamento."
+      },
+      {
+        "texto": "A coluna é **uma população só**: com grupos ou tratamentos misturados, a coluna crua não é o que um modelo supõe normal.",
+        "se_falhar": "Para os pressupostos de ANOVA ou regressão, use o `models/shapiro_residuals`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Shapiro, S. S.", "Wilk, M. B."],
+        "ano": 1965,
+        "titulo": "An analysis of variance test for normality (complete samples)",
+        "fonte": "Biometrika, 52(3-4), 591-611",
+        "doi": "10.1093/biomet/52.3-4.591"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "shapiro.test",
+        "versao": "4.6.0"
+      }
+    ]
+  },
+  "models/shapiro_residuals": {
+    "pressupostos": [
+      {
+        "texto": "Os resíduos vêm de um modelo **bem especificado** (termos certos, sem tendência sobrando): o teste olha os resíduos, e um modelo errado muda o que eles medem.",
+        "verificar": ["models/plot_diagnostics"],
+        "se_falhar": "Acerte o modelo antes (termo faltante, interação, curvatura) e teste de novo."
+      },
+      {
+        "texto": "De **3 a 5000** resíduos, e não muito arredondados (muitos empates distorcem o W).",
+        "se_falhar": "Acima de 5000, leia o Q-Q do `models/plot_diagnostics`: com esse n qualquer desvio mínimo rejeita."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Shapiro, S. S.", "Wilk, M. B."],
+        "ano": 1965,
+        "titulo": "An analysis of variance test for normality (complete samples)",
+        "fonte": "Biometrika, 52(3-4), 591-611",
+        "doi": "10.1093/biomet/52.3-4.591"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "shapiro.test",
+        "versao": "4.6.0",
+        "nota": "Aplicado aos resíduos do ajuste: erro (b) na parcela subdividida, resíduos condicionais no misto."
+      }
+    ]
+  },
+  "models/t_test": {
+    "pressupostos": [
+      {
+        "texto": "As observações, dentro e entre os dois grupos, são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "A resposta é **aproximadamente normal** em cada grupo (com amostras grandes, o teorema central do limite alivia).",
+        "verificar": ["models/shapiro", "view/qq"],
+        "se_falhar": "Use o `models/wilcoxon`."
+      },
+      {
+        "texto": "No t de **Student** (variâncias iguais ligado), as variâncias dos dois grupos são iguais. O de Welch, padrão, não pede isso.",
+        "se_falhar": "Deixe **Variâncias iguais** desligado (Welch)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Student"],
+        "ano": 1908,
+        "titulo": "The probable error of a mean",
+        "fonte": "Biometrika, 6(1), 1-25",
+        "doi": "10.2307/2331554"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Welch, B. L."],
+        "ano": 1947,
+        "titulo": "The generalization of 'Student's' problem when several different population variances are involved",
+        "fonte": "Biometrika, 34(1-2), 28-35",
+        "doi": "10.1093/biomet/34.1-2.28"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "t.test",
+        "versao": "4.6.0",
+        "nota": "`var.equal = FALSE` por padrão (Welch, gl de Welch-Satterthwaite); `TRUE` dá o t de Student com variância combinada."
+      }
+    ]
+  },
+  "models/tukey_additivity": {
+    "pressupostos": [
+      {
+        "texto": "A não aditividade, se existe, tem a forma **multiplicativa** que o teste procura (efeito proporcional ao produto dos efeitos de bloco e tratamento); outras formas de interação podem passar."
+      },
+      {
+        "texto": "Os erros do modelo aditivo são **normais e homocedásticos**: o teste é um F.",
+        "verificar": ["models/shapiro_residuals", "models/levene"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Tukey, J. W."],
+        "ano": 1949,
+        "titulo": "One degree of freedom for non-additivity",
+        "fonte": "Biometrics, 5(3), 232-242",
+        "doi": "10.2307/3001938"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Montgomery, D. C."],
+        "ano": 2017,
+        "titulo": "Design and Analysis of Experiments",
+        "fonte": "9. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.models",
+        "funcao": "tr_models_tukey_additivity",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio com `stats::lm` e `stats::anova`: acrescenta o quadrado do valor ajustado ao modelo aditivo (bloco + tratamento, ou linha + coluna + tratamento no DQL) e testa esse termo com 1 gl."
+      }
+    ]
+  },
+  "models/waller_duncan": {
+    "pressupostos": [
+      {
+        "texto": "O **modelo** que entra atende aos seus pressupostos (erros normais, variância constante, independência): as comparações usam o erro padrão dele.",
+        "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"],
+        "se_falhar": "Acerte o modelo antes: transformação, `models/glm`, ou `models/lmer` para erros correlacionados."
+      },
+      {
+        "texto": "As médias vêm de uma **ANOVA** com um erro só por fator (o bloco escolhe o erro (a) ou (b) na parcela subdividida), e os dados são **balanceados**: as médias usadas são as da tabela.",
+        "se_falhar": "No desbalanceado, ou em GLM e misto, use o `models/emmeans`."
+      },
+      {
+        "texto": "Os efeitos de tratamento são tratados como **intercambiáveis** a priori (a regra é bayesiana), e a razão K reflete o custo relativo dos erros tipo I e II."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Waller, R. A.", "Duncan, D. B."],
+        "ano": 1969,
+        "titulo": "A Bayes rule for the symmetric multiple comparisons problem",
+        "fonte": "Journal of the American Statistical Association, 64(328), 1484-1503",
+        "doi": "10.1080/01621459.1969.10501073"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "agricolae",
+        "funcao": "waller.test",
+        "versao": "1.3.7",
+        "nota": "Com o QM e os gl do erro, o F do tratamento (`Fc`) e a razão `K`; `group = TRUE`."
+      }
+    ]
+  },
+  "models/wilcoxon": {
+    "pressupostos": [
+      {
+        "texto": "As observações, dentro e entre os dois grupos, são **independentes** entre si.",
+        "se_falhar": "Não há teste no trama para isso: é o delineamento (sorteio, uma medida por unidade) que garante. Medidas repetidas na mesma unidade pedem `models/paired_t` ou `models/lmer`."
+      },
+      {
+        "texto": "A resposta é **contínua** (ou ao menos ordinal com poucos empates); com empates o p-valor é o da aproximação normal, e a nota avisa."
+      },
+      {
+        "texto": "Para ler o efeito como **deslocamento** de locação (Hodges-Lehmann), as duas distribuições têm a **mesma forma**; sem isso o teste compara P(X > Y), não medianas.",
+        "verificar": ["view/boxplot", "view/density"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Wilcoxon, F."],
+        "ano": 1945,
+        "titulo": "Individual comparisons by ranking methods",
+        "fonte": "Biometrics Bulletin, 1(6), 80-83",
+        "doi": "10.2307/3001968"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Mann, H. B.", "Whitney, D. R."],
+        "ano": 1947,
+        "titulo": "On a test of whether one of two random variables is stochastically larger than the other",
+        "fonte": "The Annals of Mathematical Statistics, 18(1), 50-60",
+        "doi": "10.1214/aoms/1177730491"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Hodges, J. L.", "Lehmann, E. L."],
+        "ano": 1963,
+        "titulo": "Estimates of location based on rank tests",
+        "fonte": "The Annals of Mathematical Statistics, 34(2), 598-611",
+        "doi": "10.1214/aoms/1177704172"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "wilcox.test",
+        "versao": "4.6.0",
+        "nota": "`conf.int = TRUE` (estimador de Hodges-Lehmann); p-valor exato sem empates e n < 50, aproximação normal com correção de continuidade nos demais."
+      }
+    ]
+  },
+  "sampling/detectable_difference": {
+    "pressupostos": [
+      {
+        "texto": "Os dois grupos são **independentes** e a comparação é de UM par escolhido antes de olhar os dados, com teste bilateral e a mesma p nos dois.",
+        "se_falhar": "Para muitas comparações, divida a significância pelo número de pares (Bonferroni) e recalcule; grupos que se sobrepõem pedem a variância da diferença pelo desenho."
+      },
+      {
+        "texto": "Sem **correção finita**: supõe grupos pequenos diante da população.",
+        "se_falhar": "Com grupo recenseado quase inteiro, a DMD sai conservadora."
+      },
+      {
+        "texto": "As entrevistas de cada unidade se comportam como uma **amostra aleatória** dela; em coleta por recrutamento, indicação ou adesão a margem é **nominal** (a de uma amostra aleatória com o mesmo tamanho efetivo), e o viés de quem aparece não entra nela.",
+        "se_falhar": "Cuide do viés no desenho da coleta e calibre depois com `sampling/rake`; a margem não o corrige."
+      },
+      {
+        "texto": "**Aproximação normal** da proporção: n·p e n·(1 − p) não muito pequenos (umas 30 respostas por célula ou mais).",
+        "se_falhar": "Junte células pequenas; abaixo disso a margem da fórmula não deve ir para o relatório."
+      },
+      {
+        "texto": "O **deff** informado é o do desenho real (ponderação e agrupamento); a fórmula não o estima.",
+        "verificar": ["sampling/mean"],
+        "se_falhar": "Use o deff de uma pesquisa anterior ou do piloto (o card de `sampling/mean` o mostra) e compare cenários."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Fleiss, J. L.", "Levin, B.", "Paik, M. C."],
+        "ano": 2003,
+        "titulo": "Statistical Methods for Rates and Proportions",
+        "fonte": "3. ed. Hoboken: Wiley",
+        "doi": "10.1002/0471445428"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_detectable_difference",
+        "versao": "0.1.0",
+        "nota": "DMD = (z_{1−α/2} + z_{poder})·√(deff·p(1 − p)·(1/n_a + 1/n_b)), aproximação normal com variância não agrupada e p comum; sem correção finita."
+      }
+    ]
+  },
+  "sampling/margin": {
+    "pressupostos": [
+      {
+        "texto": "Com **População** informada, a correção finita é a da AAS sem reposição, (1 − n/N); a amostra sorteada tem de ser uma fração da mesma população.",
+        "se_falhar": "Deixe a População em 0 (infinita) quando não souber o N; o erro sai um pouco conservador."
+      },
+      {
+        "texto": "As entrevistas se comportam como uma **amostra aleatória simples** da população; em coleta por recrutamento, indicação ou adesão a margem é **nominal** (a de uma amostra aleatória com o mesmo tamanho efetivo), e o viés de quem aparece não entra nela.",
+        "se_falhar": "Cuide do viés no desenho da coleta e calibre depois com `sampling/rake`; a margem não o corrige."
+      },
+      {
+        "texto": "**Aproximação normal** da proporção: n·p e n·(1 − p) não muito pequenos (umas 30 respostas por célula ou mais).",
+        "se_falhar": "Junte células pequenas; abaixo disso a margem da fórmula não deve ir para o relatório."
+      },
+      {
+        "texto": "O **deff** informado é o do desenho real (ponderação e agrupamento); a fórmula não o estima.",
+        "verificar": ["sampling/mean"],
+        "se_falhar": "Use o deff de uma pesquisa anterior ou do piloto (o card de `sampling/mean` o mostra) e compare cenários."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_margin",
+        "versao": "0.1.0",
+        "nota": "E = z·√(deff·p(1 − p)/n·(1 − n/N)), com z normal (não t) e n = entrevistas × taxa de resposta; a correção finita só com N > 0."
+      }
+    ]
+  },
+  "sampling/margin_levels": {
+    "pressupostos": [
+      {
+        "texto": "Nos agregados, cada unidade é um **estrato** amostrado de forma independente, e a estimativa pondera pela população (W_h = N_h/N).",
+        "se_falhar": "Se as unidades foram sorteadas (e não todas incluídas), o agregado ganha uma variância entre unidades que a tabela não tem: use `sampling/two_stage` e `sampling/simulate`."
+      },
+      {
+        "texto": "As entrevistas de cada unidade se comportam como uma **amostra aleatória** dela; em coleta por recrutamento, indicação ou adesão a margem é **nominal** (a de uma amostra aleatória com o mesmo tamanho efetivo), e o viés de quem aparece não entra nela.",
+        "se_falhar": "Cuide do viés no desenho da coleta e calibre depois com `sampling/rake`; a margem não o corrige."
+      },
+      {
+        "texto": "**Aproximação normal** da proporção: n·p e n·(1 − p) não muito pequenos (umas 30 respostas por célula ou mais).",
+        "se_falhar": "Junte células pequenas; abaixo disso a margem da fórmula não deve ir para o relatório."
+      },
+      {
+        "texto": "O **deff** informado é o do desenho real (ponderação e agrupamento); a fórmula não o estima.",
+        "verificar": ["sampling/mean"],
+        "se_falhar": "Use o deff de uma pesquisa anterior ou do piloto (o card de `sampling/mean` o mostra) e compare cenários."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kish, L."],
+        "ano": 1965,
+        "titulo": "Survey Sampling",
+        "fonte": "New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_margin_levels",
+        "versao": "0.1.0",
+        "nota": "Variância estratificada Σ W_h²(1 − n_h/N_h)·p(1 − p)/n_h vezes o deff de agrupamento; deff de ponderação de Kish n·Σ W_h²/n_h; z normal."
+      }
+    ]
+  },
+  "sampling/mean": {
+    "pressupostos": [
+      {
+        "texto": "A amostra é **probabilística**: toda unidade da população tinha probabilidade de inclusão conhecida e maior que zero, e o peso de cada uma é o inverso dela.",
+        "se_falhar": "Em coleta por adesão ou indicação, calibre os pesos a totais conhecidos (`sampling/rake`, `sampling/poststratify`) e leia o erro como nominal: o viés de quem entrou não está nele."
+      },
+      {
+        "texto": "Estratos, unidades primárias e pesos no cabo são os do **sorteio real**.",
+        "verificar": ["sampling/design"],
+        "se_falhar": "Declare o desenho verdadeiro em `sampling/design`: tratar conglomerados como unidades independentes subestima o erro padrão."
+      },
+      {
+        "texto": "Unidades primárias sorteadas **independentemente** entre estratos, com pelo menos duas por estrato; a variância do conglomerado último trata o primeiro estágio como com reposição (ou com a correção finita declarada).",
+        "se_falhar": "Junte estratos com uma unidade primária só; com fração amostral alta no primeiro estágio e sem `fpc`, o erro sai conservador."
+      },
+      {
+        "texto": "O intervalo é o da **aproximação normal** do estimador linearizado (t com gl do desenho): pede unidades primárias e casos no domínio em número razoável.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Confira a cobertura com `sampling/simulate`; com poucos graus de liberdade ou domínio raro, junte domínios ou leia o intervalo como aproximado."
+      },
+      {
+        "texto": "Faltantes são **ignoráveis**: dentro do desenho, quem não respondeu se parece com quem respondeu.",
+        "se_falhar": "Ajuste os pesos pela não resposta (`sampling/poststratify`, `sampling/rake`) ou impute antes de estimar."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Horvitz, D. G.", "Thompson, D. J."],
+        "ano": 1952,
+        "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
+        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "doi": "10.1080/01621459.1952.10483446"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Woodruff, R. S."],
+        "ano": 1971,
+        "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
+        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "doi": "10.1080/01621459.1971.10482279"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_mean",
+        "versao": "0.1.0",
+        "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
+      }
+    ]
+  },
+  "sampling/poststratify": {
+    "pressupostos": [
+      {
+        "texto": "Os **totais** N_g são exatos e da mesma população e data da amostra, e toda célula tem pelo menos uma unidade na amostra.",
+        "se_falhar": "Junte pós-estratos vazios ou pequenos com `data/mutate`; totais de outra época viram viés."
+      },
+      {
+        "texto": "Dentro de cada pós-estrato, respondentes e não respondentes se parecem (**não resposta ignorável** dado o grupo).",
+        "se_falhar": "Pós-estratifique por mais variáveis com `sampling/rake`."
+      },
+      {
+        "texto": "A variância pelos resíduos dentro dos pós-estratos é **assintótica**: pede pós-estratos com várias unidades.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Confira com `sampling/simulate`, que refaz a pós-estratificação em cada amostra."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Deville, J.-C.", "Särndal, C.-E."],
+        "ano": 1992,
+        "titulo": "Calibration Estimators in Survey Sampling",
+        "fonte": "Journal of the American Statistical Association, 87(418)",
+        "doi": "10.1080/01621459.1992.10475217"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Lohr, S. L."],
+        "ano": 2021,
+        "titulo": "Sampling: Design and Analysis",
+        "fonte": "3. ed. Boca Raton: Chapman and Hall/CRC",
+        "doi": "10.1201/9780429298899"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_poststratify",
+        "versao": "0.1.0",
+        "nota": "w* = w·N_g/N̂_g; na variância, z é trocado pelo resíduo da regressão ponderada nas indicadoras dos pós-estratos (linearização do estimador calibrado)."
+      }
+    ]
+  },
+  "sampling/proportion": {
+    "pressupostos": [
+      {
+        "texto": "A amostra é **probabilística**: toda unidade da população tinha probabilidade de inclusão conhecida e maior que zero, e o peso de cada uma é o inverso dela.",
+        "se_falhar": "Em coleta por adesão ou indicação, calibre os pesos a totais conhecidos (`sampling/rake`, `sampling/poststratify`) e leia o erro como nominal: o viés de quem entrou não está nele."
+      },
+      {
+        "texto": "Estratos, unidades primárias e pesos no cabo são os do **sorteio real**.",
+        "verificar": ["sampling/design"],
+        "se_falhar": "Declare o desenho verdadeiro em `sampling/design`: tratar conglomerados como unidades independentes subestima o erro padrão."
+      },
+      {
+        "texto": "Unidades primárias sorteadas **independentemente** entre estratos, com pelo menos duas por estrato; a variância do conglomerado último trata o primeiro estágio como com reposição (ou com a correção finita declarada).",
+        "se_falhar": "Junte estratos com uma unidade primária só; com fração amostral alta no primeiro estágio e sem `fpc`, o erro sai conservador."
+      },
+      {
+        "texto": "O intervalo é o da **aproximação normal** do estimador linearizado (t com gl do desenho): pede unidades primárias e casos no domínio em número razoável.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Confira a cobertura com `sampling/simulate`; com poucos graus de liberdade ou domínio raro, junte domínios ou leia o intervalo como aproximado."
+      },
+      {
+        "texto": "Faltantes são **ignoráveis**: dentro do desenho, quem não respondeu se parece com quem respondeu.",
+        "se_falhar": "Ajuste os pesos pela não resposta (`sampling/poststratify`, `sampling/rake`) ou impute antes de estimar."
+      },
+      {
+        "texto": "O intervalo de **Wald** (com t) supõe a proporção longe de 0 e de 1 para o n do domínio; perto dos extremos ele pode sair de [0, 1] e cobre menos que o prometido.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Leia o intervalo junto do n; com proporção extrema e domínio pequeno, junte domínios ou aumente a amostra."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Horvitz, D. G.", "Thompson, D. J."],
+        "ano": 1952,
+        "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
+        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "doi": "10.1080/01621459.1952.10483446"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Woodruff, R. S."],
+        "ano": 1971,
+        "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
+        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "doi": "10.1080/01621459.1971.10482279"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_proportion",
+        "versao": "0.1.0",
+        "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
+      }
+    ]
+  },
+  "sampling/question_margins": {
+    "pressupostos": [
+      {
+        "texto": "A **não resposta** e a base condicional só reduzem o n: quem pula ou não responde se parece com quem responde.",
+        "se_falhar": "Se a não resposta depende do tema, a margem subestima o erro; calibre com `sampling/rake`."
+      },
+      {
+        "texto": "As margens de diferença e de todos os pares valem para pares **definidos antes** de olhar os dados; a de todos os pares usa Bonferroni, conservadora.",
+        "se_falhar": "Para escolher o par depois de ver os dados, use `margem_todos_pares_pp`."
+      },
+      {
+        "texto": "As entrevistas de cada unidade se comportam como uma **amostra aleatória** dela; em coleta por recrutamento, indicação ou adesão a margem é **nominal** (a de uma amostra aleatória com o mesmo tamanho efetivo), e o viés de quem aparece não entra nela.",
+        "se_falhar": "Cuide do viés no desenho da coleta e calibre depois com `sampling/rake`; a margem não o corrige."
+      },
+      {
+        "texto": "**Aproximação normal** da proporção: n·p e n·(1 − p) não muito pequenos (umas 30 respostas por célula ou mais).",
+        "se_falhar": "Junte células pequenas; abaixo disso a margem da fórmula não deve ir para o relatório."
+      },
+      {
+        "texto": "O **deff** informado é o do desenho real (ponderação e agrupamento); a fórmula não o estima.",
+        "verificar": ["sampling/mean"],
+        "se_falhar": "Use o deff de uma pesquisa anterior ou do piloto (o card de `sampling/mean` o mostra) e compare cenários."
+      },
+      {
+        "texto": "Os níveis vêm de uma tabela de margens da mesma pesquisa (n e deff por nível).",
+        "verificar": ["sampling/margin_levels"],
+        "se_falhar": "Gere os níveis com `sampling/margin_levels` ou `sampling/referral`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Thompson, S. K."],
+        "ano": 1987,
+        "titulo": "Sample Size for Estimating Multinomial Proportions",
+        "fonte": "The American Statistician, 41(1)",
+        "doi": "10.1080/00031305.1987.10475440"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_question_margins",
+        "versao": "0.1.0",
+        "nota": "Pior caso por tipo com z normal: p = 0,5; simultânea de Thompson (max sobre m de z_{α/(2m)}·√((1/m)(1 − 1/m)/n)); diferença √(deff/n); todos os pares com Bonferroni sobre k(k − 1)/2; escala com desvio (k − 1)/2."
+      }
+    ]
+  },
+  "sampling/rake": {
+    "pressupostos": [
+      {
+        "texto": "Os totais das **margens** são exatos e consistentes (todas as variáveis somam a mesma população), e toda categoria tem gente na amostra.",
+        "se_falhar": "Junte categorias vazias antes; totais de fontes diferentes precisam ser reconciliados."
+      },
+      {
+        "texto": "A não resposta (ou a seleção) é **ignorável dadas as variáveis calibradas** — o modelo é o de efeitos principais, sem interação entre elas.",
+        "se_falhar": "Inclua a variável que explica a participação, ou um cruzamento dela, entre as calibradas."
+      },
+      {
+        "texto": "A variância linearizada supõe amostra **probabilística**; em coleta não probabilística ela é nominal.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Leia o erro como nominal e reporte a amplitude dos pesos da nota."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Deming, W. E.", "Stephan, F. F."],
+        "ano": 1940,
+        "titulo": "On a Least Squares Adjustment of a Sampled Frequency Table When the Expected Marginal Totals are Known",
+        "fonte": "The Annals of Mathematical Statistics, 11(4)",
+        "doi": "10.1214/aoms/1177731829"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Deville, J.-C.", "Särndal, C.-E."],
+        "ano": 1992,
+        "titulo": "Calibration Estimators in Survey Sampling",
+        "fonte": "Journal of the American Statistical Association, 87(418)",
+        "doi": "10.1080/01621459.1992.10475217"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Lohr, S. L."],
+        "ano": 2021,
+        "titulo": "Sampling: Design and Analysis",
+        "fonte": "3. ed. Boca Raton: Chapman and Hall/CRC",
+        "doi": "10.1201/9780429298899"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_rake",
+        "versao": "0.1.0",
+        "nota": "Ajuste proporcional iterativo (uma variável por rodada, até as margens baterem ou o limite de rodadas); variância pelo resíduo da regressão ponderada nas indicadoras de todas as variáveis calibradas."
+      }
+    ]
+  },
+  "sampling/ratio": {
+    "pressupostos": [
+      {
+        "texto": "A amostra é **probabilística**: toda unidade da população tinha probabilidade de inclusão conhecida e maior que zero, e o peso de cada uma é o inverso dela.",
+        "se_falhar": "Em coleta por adesão ou indicação, calibre os pesos a totais conhecidos (`sampling/rake`, `sampling/poststratify`) e leia o erro como nominal: o viés de quem entrou não está nele."
+      },
+      {
+        "texto": "Estratos, unidades primárias e pesos no cabo são os do **sorteio real**.",
+        "verificar": ["sampling/design"],
+        "se_falhar": "Declare o desenho verdadeiro em `sampling/design`: tratar conglomerados como unidades independentes subestima o erro padrão."
+      },
+      {
+        "texto": "Unidades primárias sorteadas **independentemente** entre estratos, com pelo menos duas por estrato; a variância do conglomerado último trata o primeiro estágio como com reposição (ou com a correção finita declarada).",
+        "se_falhar": "Junte estratos com uma unidade primária só; com fração amostral alta no primeiro estágio e sem `fpc`, o erro sai conservador."
+      },
+      {
+        "texto": "O intervalo é o da **aproximação normal** do estimador linearizado (t com gl do desenho): pede unidades primárias e casos no domínio em número razoável.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Confira a cobertura com `sampling/simulate`; com poucos graus de liberdade ou domínio raro, junte domínios ou leia o intervalo como aproximado."
+      },
+      {
+        "texto": "Faltantes são **ignoráveis**: dentro do desenho, quem não respondeu se parece com quem respondeu.",
+        "se_falhar": "Ajuste os pesos pela não resposta (`sampling/poststratify`, `sampling/rake`) ou impute antes de estimar."
+      },
+      {
+        "texto": "A linearização da razão supõe o total do **denominador estimado com precisão** (CV pequeno, uns 10% ou menos): o viés da razão é da ordem de 1/n.",
+        "verificar": ["sampling/total"],
+        "se_falhar": "Estime o total do denominador com `sampling/total` e olhe o CV; se for alto, aumente a amostra ou junte domínios."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Horvitz, D. G.", "Thompson, D. J."],
+        "ano": 1952,
+        "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
+        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "doi": "10.1080/01621459.1952.10483446"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Woodruff, R. S."],
+        "ano": 1971,
+        "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
+        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "doi": "10.1080/01621459.1971.10482279"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_ratio",
+        "versao": "0.1.0",
+        "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
+      }
+    ]
+  },
+  "sampling/referral": {
+    "pressupostos": [
+      {
+        "texto": "O agrupamento pelas redes segue o modelo de **correlação intraclasse comum**: deff = 1 + (m − 1)·ICC, com redes do mesmo tamanho m e o mesmo ICC em todas.",
+        "se_falhar": "Trabalhe com vários cenários de ICC e, depois da coleta, meça o ICC real das redes."
+      },
+      {
+        "texto": "As **sementes** (a coleta de base) são uma amostra aleatória da unidade; a indicação só multiplica o n, não corrige quem entrou.",
+        "se_falhar": "Leia a margem como nominal e calibre com `sampling/rake`."
+      },
+      {
+        "texto": "As entrevistas de cada unidade se comportam como uma **amostra aleatória** dela; em coleta por recrutamento, indicação ou adesão a margem é **nominal** (a de uma amostra aleatória com o mesmo tamanho efetivo), e o viés de quem aparece não entra nela.",
+        "se_falhar": "Cuide do viés no desenho da coleta e calibre depois com `sampling/rake`; a margem não o corrige."
+      },
+      {
+        "texto": "**Aproximação normal** da proporção: n·p e n·(1 − p) não muito pequenos (umas 30 respostas por célula ou mais).",
+        "se_falhar": "Junte células pequenas; abaixo disso a margem da fórmula não deve ir para o relatório."
+      },
+      {
+        "texto": "O **deff** informado é o do desenho real (ponderação e agrupamento); a fórmula não o estima.",
+        "verificar": ["sampling/mean"],
+        "se_falhar": "Use o deff de uma pesquisa anterior ou do piloto (o card de `sampling/mean` o mostra) e compare cenários."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kish, L."],
+        "ano": 1965,
+        "titulo": "Survey Sampling",
+        "fonte": "New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_referral",
+        "versao": "0.1.0",
+        "nota": "Para cada cenário (k, ICC), refaz as margens de tr_sampling_margin_levels com n × (1 + k·adesão) e o deff de agrupamento 1 + (m − 1)·ICC multiplicado."
+      }
+    ]
+  },
+  "sampling/simulate": {
+    "pressupostos": [
+      {
+        "texto": "A população ligada é o **cadastro completo** de onde o desenho sorteia: a verdade medida é a dela, e o resultado vale para populações parecidas com ela.",
+        "se_falhar": "Com cadastro parcial ou simulado, leia viés e cobertura como os do cenário, não os da pesquisa real."
+      },
+      {
+        "texto": "As **repetições** são suficientes para o erro de Monte Carlo: com R réplicas, a cobertura tem erro padrão √(c(1 − c)/R), cerca de 1 ponto com 500.",
+        "se_falhar": "Aumente as **Repetições** antes de concluir sobre diferenças pequenas de cobertura ou de EP."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Morris, T. P.", "White, I. R.", "Crowther, M. J."],
+        "ano": 2019,
+        "titulo": "Using simulation studies to evaluate statistical methods",
+        "fonte": "Statistics in Medicine, 38(11)",
+        "doi": "10.1002/sim.8086"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_simulate",
+        "versao": "0.1.0",
+        "nota": "Re-sorteia pela receita guardada na amostra (seleção e calibração), estima com o mesmo motor do conglomerado último e resume viés relativo, EP empírico, EP estimado (raiz da média das variâncias), REQM e cobertura do intervalo t."
+      }
+    ]
+  },
+  "sampling/size_cluster": {
+    "pressupostos": [
+      {
+        "texto": "O deff segue o modelo de **ICC comum**: deff = 1 + (m̄ − 1)·ρ, com conglomerados de tamanho parecido e o mesmo ρ em todos.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Com tamanhos muito desiguais o deff é maior; teste o plano com `sampling/two_stage` e `sampling/simulate`."
+      },
+      {
+        "texto": "Os conglomerados serão sorteados por **AAS** (ou com probabilidade que o deff já absorva), e o ICC informado vem de pesquisa parecida.",
+        "se_falhar": "Trabalhe com cenários de ICC e escolha o n do pior plausível."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kish, L."],
+        "ano": 1965,
+        "titulo": "Survey Sampling",
+        "fonte": "New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_size_cluster",
+        "versao": "0.1.0",
+        "nota": "n₀ do plano × (1 + (m̄ − 1)·ρ), ÷ m̄ para número de conglomerados, correção finita com M e ÷ taxa de resposta; o deff e a correção finita do plano ligado são trocados."
+      }
+    ]
+  },
+  "sampling/size_domains": {
+    "pressupostos": [
+      {
+        "texto": "Sem cotas, a coleta traz cada grupo **na proporção da população** informada.",
+        "se_falhar": "Use a composição de uma coleta anterior ou do piloto; coleta aberta costuma atrair uns grupos mais que outros."
+      },
+      {
+        "texto": "Dentro de cada grupo, as respostas se comportam como **amostra aleatória** do grupo, com aproximação normal da proporção.",
+        "se_falhar": "Leia a margem como nominal e calibre com `sampling/rake`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Lohr, S. L."],
+        "ano": 2021,
+        "titulo": "Sampling: Design and Analysis",
+        "fonte": "3. ed. Boca Raton: Chapman and Hall/CRC",
+        "doi": "10.1201/9780429298899"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_size_domains",
+        "versao": "0.1.0",
+        "nota": "n por grupo = z²·p(1 − p)/E² × deff; total = maior n_g/participação_g entre os grupos considerados; ÷ taxa de resposta; sem correção finita."
+      }
+    ]
+  },
+  "sampling/size_mean": {
+    "pressupostos": [
+      {
+        "texto": "A amostra será uma **AAS sem reposição** (ou o deff informado traduz o desenho real para ela); a correção finita é n/(1 + n/N).",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Para estratos, use `sampling/size_stratified`; para conglomerados, `sampling/size_cluster`; confira o n escolhido com `sampling/simulate`."
+      },
+      {
+        "texto": "O **desvio padrão** S (do piloto, de pesquisa anterior ou da regra amplitude ÷ 4) está perto do da população, e a média amostral é aproximadamente normal no n calculado.",
+        "se_falhar": "Com piloto pequeno o S é incerto: use um S maior (limite superior) ou refaça o plano com o S da primeira onda."
+      },
+      {
+        "texto": "A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.",
+        "se_falhar": "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_size_mean",
+        "versao": "0.1.0",
+        "nota": "n₀ = (z·S/E)² com z normal; depois × deff, n/(1 + n/N) e ÷ taxa de resposta, nessa ordem; erro relativo usa E = e·média."
+      }
+    ]
+  },
+  "sampling/size_proportion": {
+    "pressupostos": [
+      {
+        "texto": "A amostra será uma **AAS sem reposição** (ou o deff informado traduz o desenho real para ela); a correção finita é n/(1 + n/N).",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Para estratos, use `sampling/size_stratified`; para conglomerados, `sampling/size_cluster`; confira o n escolhido com `sampling/simulate`."
+      },
+      {
+        "texto": "**Aproximação normal** da proporção: p esperada não muito perto de 0 ou 1 para o n calculado (n·p e n·(1 − p) acima de uns 10).",
+        "se_falhar": "Com p esperada extrema, use p = 0,5 (pior caso) ou confira com `sampling/simulate`."
+      },
+      {
+        "texto": "A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.",
+        "se_falhar": "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_size_proportion",
+        "versao": "0.1.0",
+        "nota": "n₀ = z²·p(1 − p)/E² com z normal; depois × deff, n/(1 + n/N) e ÷ taxa de resposta."
+      }
+    ]
+  },
+  "sampling/size_stratified": {
+    "pressupostos": [
+      {
+        "texto": "Os **N_h e S_h** da tabela são os da população (ou boas aproximações), e o sorteio dentro de cada estrato é AAS independente.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Com S_h incertos, a alocação proporcional é a mais robusta; confira o plano com `sampling/stratified` e `sampling/simulate`."
+      },
+      {
+        "texto": "A alocação **ótima** supõe custo linear por entrevista (c_h constante dentro do estrato).",
+        "se_falhar": "Com custo fixo por estrato, ajuste o n total à mão e use a alocação de Neyman."
+      },
+      {
+        "texto": "A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.",
+        "se_falhar": "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Neyman, J."],
+        "ano": 1934,
+        "titulo": "On the Two Different Aspects of the Representative Method: The Method of Stratified Sampling and the Method of Purposive Selection",
+        "fonte": "Journal of the Royal Statistical Society, 97(4)",
+        "doi": "10.2307/2342192"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_size_stratified",
+        "versao": "0.1.0",
+        "nota": "n = Σ W_h²S_h²/a_h / ((E/z)² + Σ W_h S_h²/N), com a_h da alocação (proporcional, Neyman, ótima, igual); inteiros, mínimo 2 e máximo N_h por estrato; z normal."
+      }
+    ]
+  },
+  "sampling/total": {
+    "pressupostos": [
+      {
+        "texto": "A amostra é **probabilística**: toda unidade da população tinha probabilidade de inclusão conhecida e maior que zero, e o peso de cada uma é o inverso dela.",
+        "se_falhar": "Em coleta por adesão ou indicação, calibre os pesos a totais conhecidos (`sampling/rake`, `sampling/poststratify`) e leia o erro como nominal: o viés de quem entrou não está nele."
+      },
+      {
+        "texto": "Estratos, unidades primárias e pesos no cabo são os do **sorteio real**.",
+        "verificar": ["sampling/design"],
+        "se_falhar": "Declare o desenho verdadeiro em `sampling/design`: tratar conglomerados como unidades independentes subestima o erro padrão."
+      },
+      {
+        "texto": "Unidades primárias sorteadas **independentemente** entre estratos, com pelo menos duas por estrato; a variância do conglomerado último trata o primeiro estágio como com reposição (ou com a correção finita declarada).",
+        "se_falhar": "Junte estratos com uma unidade primária só; com fração amostral alta no primeiro estágio e sem `fpc`, o erro sai conservador."
+      },
+      {
+        "texto": "O intervalo é o da **aproximação normal** do estimador linearizado (t com gl do desenho): pede unidades primárias e casos no domínio em número razoável.",
+        "verificar": ["sampling/simulate"],
+        "se_falhar": "Confira a cobertura com `sampling/simulate`; com poucos graus de liberdade ou domínio raro, junte domínios ou leia o intervalo como aproximado."
+      },
+      {
+        "texto": "Faltantes são **ignoráveis**: dentro do desenho, quem não respondeu se parece com quem respondeu.",
+        "se_falhar": "Ajuste os pesos pela não resposta (`sampling/poststratify`, `sampling/rake`) ou impute antes de estimar."
+      },
+      {
+        "texto": "Os pesos estão na **escala da população** (somam o N): o total depende do peso inteiro, e não só das proporções entre os pesos.",
+        "verificar": ["sampling/design"],
+        "se_falhar": "Declare o peso de expansão em `sampling/design`, ou pós-estratifique a totais conhecidos com `sampling/poststratify`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Horvitz, D. G.", "Thompson, D. J."],
+        "ano": 1952,
+        "titulo": "A Generalization of Sampling Without Replacement from a Finite Universe",
+        "fonte": "Journal of the American Statistical Association, 47(260)",
+        "doi": "10.1080/01621459.1952.10483446"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Woodruff, R. S."],
+        "ano": 1971,
+        "titulo": "A Simple Method for Approximating the Variance of a Complicated Estimate",
+        "fonte": "Journal of the American Statistical Association, 66(334)",
+        "doi": "10.1080/01621459.1971.10482279"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cochran, W. G."],
+        "ano": 1977,
+        "titulo": "Sampling Techniques",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Bolfarine, H.", "Bussab, W. O."],
+        "ano": 2005,
+        "titulo": "Elementos de Amostragem",
+        "fonte": "São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.sampling",
+        "funcao": "tr_sampling_total",
+        "versao": "0.1.0",
+        "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
+      }
+    ]
+  }
+}
