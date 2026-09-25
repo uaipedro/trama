@@ -66,6 +66,21 @@
         L$banzatto,
         I("agricolae", "duncan.test", "Com o QM e os gl do erro do quadro (`DFerror`, `MSerror`) e `group = TRUE`."))),
 
+    "models/scott_knott" = list(
+      pressupostos = list(modelo_ok, anova_agricolae, interacao,
+        P("Todo outro termo do modelo é **ortogonal** ao tratamento (bloco completo, sem covariável), e as médias têm o mesmo número de repetições: todas com a variância QM / r.",
+          se_falhar = "O bloco recusa; use o `models/emmeans` com médias ajustadas."),
+        P("O **alfa vale para cada corte**, não para o agrupamento inteiro: a taxa de erro por experimento é maior que a nominal quando há muitas médias.")),
+      referencias = list(
+        R(autores = c("Scott, A. J.", "Knott, M."), ano = 1974,
+          titulo = "A cluster analysis method for grouping means in the analysis of variance",
+          fonte = "Biometrics, 30(3), 507-512", doi = "10.2307/2529204"),
+        R(autores = c("Jelihovschi, E. G.", "Faria, J. C.", "Allaman, I. B."), ano = 2014,
+          titulo = "ScottKnott: a package for performing the Scott-Knott clustering algorithm in R",
+          fonte = "TEMA (São Carlos), 15(1), 3-17", doi = "10.5540/tema.2014.015.01.0003",
+          papel = "complementar"),
+        I("trama", "tr_models_scott_knott", "Implementação própria das fórmulas de Scott & Knott (1974): médias da tabela, s2 das médias = QM / r, qui-quadrado com k/(pi - 2) gl; conferida contra `ScottKnott::SK`."))),
+
     "models/waller_duncan" = list(
       pressupostos = list(modelo_ok, anova_agricolae,
         P("Os efeitos de tratamento são tratados como **intercambiáveis** a priori (a regra é bayesiana), e a razão K reflete o custo relativo dos erros tipo I e II.")),

@@ -117,3 +117,80 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
                            sprintf("letras: Waller-Duncan, K = %s; diferença crítica %s",
                                    formatC(k, format = "fg"), .tr_models_fmt(crit, 4L)))
 }
+
+#' O agrupamento de Scott & Knott (1974), recursivo nas médias ordenadas.
+#'
+#' Em cada grupo: a partição em dois (entre médias vizinhas na ordem) que
+#' maximiza a SQ entre grupos B0; lambda = pi / (2 (pi - 2)) * B0 / sigma0^2,
+#' com sigma0^2 = (soma (m - mbarra)^2 + v * s2m) / (k + v) e s2m = QM / r;
+#' lambda contra a qui-quadrado com k / (pi - 2) gl. Rejeitou, parte e desce
+#' nos dois lados; senão o grupo fica.
+#' @return inteiro com o grupo de cada média, na ordem de `m`; 1 = maiores.
+#' @noRd
+.tr_models_sk <- function(m, s2m, v, alfa) {
+  o <- order(m, decreasing = TRUE)
+  x <- m[o]
+  grupo <- integer(length(x)); prox <- 0L
+  parte <- function(idx) {
+    k <- length(idx); y <- x[idx]
+    if (k > 1L) {
+      t1 <- cumsum(y)[-k]; i <- seq_len(k - 1L); tt <- sum(y)
+      b <- t1^2 / i + (tt - t1)^2 / (k - i) - tt^2 / k
+      s0 <- (sum((y - mean(y))^2) + v * s2m) / (k + v)
+      lam <- pi / (2 * (pi - 2)) * max(b) / s0
+      if (stats::pchisq(lam, k / (pi - 2), lower.tail = FALSE) < alfa) {
+        c0 <- which.max(b)
+        parte(idx[seq_len(c0)]); parte(idx[(c0 + 1L):k])
+        return(invisible())
+      }
+    }
+    prox <<- prox + 1L; grupo[idx] <<- prox
+  }
+  parte(seq_along(x))
+  grupo[order(o)]
+}
+
+#' Agrupamento de Scott-Knott.
+#' @inheritParams tr_models_duncan
+#' @return objeto `tr_models_emm`.
+#' @export
+tr_models_scott_knott <- function(modelo, tratamento = "", alfa = 0.05) {
+  .tr_models_fit_conferir(modelo)
+  no <- "models/scott_knott"
+  alfa <- .tr_models_num(alfa, "alfa", min = 0.001, max = 0.5)
+  b <- .tr_models_agricolae_base(modelo, tratamento, no)
+  if (!b$balanceado) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s': o Scott-Knott usa QM / r como variância de TODA média, e aqui os níveis ",
+                            "têm repetições diferentes. Use o 'models/emmeans' (médias ajustadas, Tukey)."), no)
+  }
+  trt <- droplevels(factor(b$trt))
+  if (modelo$classe == "lm") {
+    # Médias da tabela só estimam as do tratamento se todo outro termo do modelo
+    # for ortogonal a ele: fator com tabela cruzada proporcional, nenhuma
+    # covariável. Bloco incompleto (látice) e covariância pedem média ajustada,
+    # e aí as médias não têm mais a variância comum QM / r que o teste supõe.
+    outros <- setdiff(all.vars(stats::formula(modelo$ajuste)), c(modelo$resposta, b$trat))
+    for (v in outros) {
+      z <- modelo$dados[[v]]
+      if (is.numeric(z)) {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         "'%s': '%s' é covariável; as médias ajustadas não têm variância comum. Use o 'models/emmeans'.", no, v)
+      }
+      tab <- table(trt, z)
+      if (max(abs(tab - outer(rowSums(tab), colSums(tab)) / sum(tab))) > 1e-8) {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         paste0("'%s': '%s' não é ortogonal ao tratamento (bloco incompleto ou desbalanceado): ",
+                                "as médias da tabela não estimam as do tratamento. Use o 'models/emmeans'."), no, v)
+      }
+    }
+  }
+  medias <- tapply(b$y, trt, mean)
+  r <- as.vector(table(trt))[[1]]
+  g <- .tr_models_sk(as.vector(medias), b$qm / r, b$gl, alfa)
+  res <- list(means = data.frame(media = as.vector(medias), r = r, row.names = names(medias)),
+              groups = data.frame(groups = ifelse(g <= 26L, letters[pmin(g, 26L)], paste0(letters[(g - 1L) %% 26L + 1L], (g - 1L) %/% 26L)), row.names = names(medias)))
+  .tr_models_agricolae_emm(res, b, modelo, alfa, "scott-knott",
+                           sprintf("grupos: Scott-Knott a %s%% (sem sobreposição)",
+                                   formatC(100 * alfa, format = "fg", decimal.mark = ",")))
+}

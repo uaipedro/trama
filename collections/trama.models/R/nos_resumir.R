@@ -574,6 +574,43 @@ tr_flow(reg) |>
 `models/waller_duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
+    trama::tr_node("models/scott_knott",
+      pressupostos = .tr_models_doc("models/scott_knott")$pressupostos,
+      referencias = .tr_models_doc("models/scott_knott")$referencias,
+      fn = tr_models_scott_knott, label = "Scott-Knott",
+      category = "modelo_medias", icon = trama::tr_icon("ungroup"),
+      description = "Scott-Knott: separa as médias em grupos sem sobreposição.",
+      inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
+      params = list(
+        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
+        alfa = N(0.05, min = 0.001, max = 0.5, step = 0.01, label = "Nível (alfa)")),
+      help = .tr_models_ajuda(r"---[
+O agrupamento de Scott & Knott (1974): ordena as médias, acha o corte que
+divide o conjunto em dois grupos com a maior soma de quadrados entre eles e
+testa esse corte pela razão de verossimilhança (qui-quadrado com k/(pi - 2)
+gl). Se o corte é significativo, repete dentro de cada lado. Cada média fica
+com UMA letra: os grupos não se sobrepõem, ao contrário do Tukey e do Duncan.
+
+O alfa vale para cada corte, não para o procedimento inteiro. Usa o QM e os gl
+do resíduo do modelo (na parcela subdividida, o erro (a) ou (b) do fator, e a
+nota diz qual). Pede dados balanceados e termos ortogonais ao tratamento: com
+bloco incompleto, covariável ou repetições desiguais o bloco recusa e aponta
+o `models/emmeans`.
+]---", r"---[
+- **Tratamento** — o fator (ou até 3, separados por vírgula).
+- **Nível (alfa)** — padrão 5%, aplicado a cada corte.
+]---", r"---[
+Médias com letras (`models/emm`), como no `models/duncan`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho") |>
+  tr_add("sk", "models/scott_knott", tratamento = "hibrido", from = "dbc")
+]---", r"---[
+`models/duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
+]---")),
+
     trama::tr_node("models/waller_duncan", 
       pressupostos = .tr_models_doc("models/waller_duncan")$pressupostos,
       referencias = .tr_models_doc("models/waller_duncan")$referencias,

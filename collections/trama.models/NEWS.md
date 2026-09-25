@@ -9,6 +9,16 @@
   que os pressupostos do `models/anova_dbc` apontam. Validado contra
   `stats::friedman.test` (1e-12) e o exemplo de Hollander & Wolfe (1973, p.
   140; 22 jogadores × 3 métodos), S = 11,14 com correção para empates.
+- `models/scott_knott`: agrupamento de Scott & Knott (1974, *Biometrics*
+  30:507-512, doi:10.2307/2529204) sobre o QM e os gl do erro do quadro, uma
+  letra por média. Implementação própria das fórmulas do artigo. Recusa dados
+  desbalanceados e termos não ortogonais ao tratamento (bloco incompleto,
+  covariável), em que as médias da tabela deixam de ter variância comum. Reproduz
+  o exemplo publicado do sorgo em Jelihovschi, Faria & Allaman (2014, TEMA
+  15(1), Fig. 1; doi:10.5540/tema.2014.015.01.0003): dois grupos, de cima
+  14 8 5 7 9 3 1 4 2 (esse exemplo é um látice, que o bloco recusa; a
+  reprodução é da função interna com as médias da tabela). Mesma partição que
+  `ScottKnott::SK` 1.4.0 no `milho_dbc` e no PlantGrowth, e que a conta à mão.
 
 ## Mudanças de método
 
