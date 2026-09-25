@@ -116,9 +116,14 @@
           verificar = "multi/confusion",
           se_falhar = "Leia a sensibilidade de cada grupo no `multi/confusion`; curva precisão-revocação ainda sem bloco no trama (lacuna registrada)."),
         P("Com três ou mais grupos, cada curva é **um grupo contra os outros**: a AUC de cada uma não soma nem resume o classificador inteiro."),
-        P("A AUC sai **sem intervalo de confiança**: com poucos positivos ela varia muito de amostra para amostra.",
-          se_falhar = "Intervalo da AUC (Hanley-McNeil, DeLong) ainda sem bloco no trama (lacuna registrada).")),
-      referencias = list(hanley, fawcett, saito,
-        I("trama.multi", "tr_multi_roc", "Implementação própria: um ponto por escore distinto e AUC de Mann-Whitney (meio ponto por empate); probabilidades por deixa-um-fora como no `multi/confusion`.")))
+        P("O intervalo de DeLong da AUC é **assintótico** (normal): com poucos positivos ou negativos, ou AUC perto de 1, a cobertura fica abaixo do nominal; o bloco corta os limites em [0, 1] e exige ao menos 2 de cada.",
+          se_falhar = "Leia o intervalo como aproximado e a largura como sinal de pouca informação; aumente a amostra do grupo raro."),
+        P("Com validação cruzada, as probabilidades vêm de n ajustes, e o intervalo as trata como **um escore fixo**: a incerteza de ter estimado o modelo não entra.")),
+      referencias = list(hanley,
+        R(autores = c("DeLong, E. R.", "DeLong, D. M.", "Clarke-Pearson, D. L."), ano = 1988,
+          titulo = "Comparing the areas under two or more correlated receiver operating characteristic curves: a nonparametric approach",
+          fonte = "Biometrics, 44(3), 837-845", doi = "10.2307/2531595"),
+        fawcett, saito,
+        I("trama.multi", "tr_multi_roc", "Implementação própria: um ponto por escore distinto e AUC de Mann-Whitney (meio ponto por empate); IC de DeLong pelas componentes estruturais, conferido contra `pROC::ci.auc(method = \"delong\")` a 1e-8; probabilidades por deixa-um-fora como no `multi/confusion`.")))
   )
 }

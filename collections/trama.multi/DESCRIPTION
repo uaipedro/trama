@@ -43,6 +43,7 @@ Suggests:
     png,
     GPArotation,
     logistf,
+    pROC,
     psych,
     withr
 Config/testthat/edition: 3

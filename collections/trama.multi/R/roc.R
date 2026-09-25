@@ -21,19 +21,51 @@
   list(pontos = data.frame(fpr = c(0, fpr), tpr = c(0, tpr)), auc = auc)
 }
 
+#' AUC com o intervalo de DeLong, DeLong & Clarke-Pearson (1988).
+#'
+#' A AUC de Mann-Whitney é a média das componentes estruturais: V10 de cada
+#' positivo (a fração dos negativos abaixo dele, meio por empate) e V01 de cada
+#' negativo. A variância é var(V10)/n1 + var(V01)/n0, e o intervalo é o normal
+#' em torno da AUC, cortado em [0, 1] como no `pROC::ci.auc` (método
+#' "delong"), conferido nos testes.
+#' @noRd
+.tr_multi_auc_delong <- function(score, positivo, confianca, no = "multi/roc") {
+  n1 <- sum(positivo); n0 <- sum(!positivo)
+  if (n1 < 2L || n0 < 2L) {
+    .tr_multi_abort("tr_multi_error_small_group",
+                    "'%s': o intervalo de DeLong pede pelo menos 2 positivos e 2 negativos (há %d e %d).",
+                    no, n1, n0)
+  }
+  x <- score[positivo]; y <- score[!positivo]
+  psi <- outer(x, y, function(a, b) (a > b) + 0.5 * (a == b))
+  v10 <- rowMeans(psi); v01 <- colMeans(psi)
+  auc <- mean(psi)
+  ep <- sqrt(stats::var(v10) / n1 + stats::var(v01) / n0)
+  z <- stats::qnorm(1 - (1 - confianca) / 2)
+  list(auc = auc, ep = ep, ic_inf = max(0, auc - z * ep), ic_sup = min(1, auc + z * ep))
+}
+
 .tr_multi_virgula <- function(x, d = 3L) formatC(x, format = "f", digits = d, decimal.mark = ",")
 
 #' Curva ROC de um classificador.
 #' @param modelo objeto `tr_multi_lda` ou `tr_multi_logit`.
 #' @param validacao `"cruzada"` ou `"resubstituição"`.
+#' @param confianca nível do intervalo de DeLong da AUC.
 #' @inheritParams trama.view::tr_view_finish
 #' @return ggplot.
 #' @export
-tr_multi_roc <- function(modelo, validacao = "cruzada", aspecto = "1:1", tema = "padrão",
+tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspecto = "1:1", tema = "padrão",
                          titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   no <- "multi/roc"
   validacao <- .tr_multi_enum(validacao, .TR_MULTI_VALIDACOES, "validacao")
+  confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
   pr <- .tr_multi_prever(modelo, validacao, no)
+  pct <- format(100 * confianca, decimal.mark = ",")
+  auc_ic <- function(s, pos) {
+    d <- .tr_multi_auc_delong(s, pos, confianca, no)
+    sprintf("AUC %s (IC %s%% DeLong %s–%s)", .tr_multi_virgula(d$auc), pct,
+            .tr_multi_virgula(d$ic_inf), .tr_multi_virgula(d$ic_sup))
+  }
   niv <- levels(pr$g)
   diag_df <- data.frame(x = c(0, 1), y = c(0, 1))
   base <- ggplot2::ggplot() +
@@ -53,8 +85,8 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", aspecto = "1:1", tema = 
                          colour = .TR_MULTI_COR, linewidth = .9) +
       ggplot2::geom_point(data = ponto, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]]),
                           colour = .TR_MULTI_COR_2, size = 3) +
-      ggplot2::labs(subtitle = sprintf("AUC %s · validação %s · positivo: %s · ponto: corte %s",
-                                       .tr_multi_virgula(cur$auc), validacao, niv[[2]],
+      ggplot2::labs(subtitle = sprintf("%s · validação %s · positivo: %s · ponto: corte %s",
+                                       auc_ic(pr$prob[, niv[[2]]], pr$g == niv[[2]]), validacao, niv[[2]],
                                        .tr_multi_virgula(corte, 2L)))
   } else {
     # Uma curva por grupo, ele contra todos os outros.
@@ -62,7 +94,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", aspecto = "1:1", tema = 
     # legenda; o fator com os níveis na ordem dos grupos a mantém.
     curvas <- lapply(niv, function(l) {
       cur <- .tr_multi_roc_curva(pr$prob[, l], pr$g == l)
-      cbind(cur$pontos, grupo = sprintf("%s (AUC %s)", l, .tr_multi_virgula(cur$auc)))
+      cbind(cur$pontos, grupo = sprintf("%s (%s)", l, auc_ic(pr$prob[, l], pr$g == l)))
     })
     rotulos <- vapply(curvas, function(d) as.character(d$grupo[[1]]), "")
     curvas <- do.call(rbind, curvas)
@@ -81,7 +113,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", aspecto = "1:1", tema = 
 
 .tr_multi_nos_roc <- function() {
   list(
-    trama::tr_node("multi/roc",
+    trama::tr_node("multi/roc", version = 2L,
       pressupostos = .tr_multi_doc("multi/roc")$pressupostos,
       referencias = .tr_multi_doc("multi/roc")$referencias,
       role = "avaliacao", fn = tr_multi_roc, label = "Curva ROC",
@@ -90,6 +122,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", aspecto = "1:1", tema = 
       inputs = list(modelo = "multi/classifier"), outputs = list(out = "view/plot"),
       params = .tr_multi_props(
         validacao = trama::tr_param_enum("cruzada", .TR_MULTI_VALIDACOES, label = "Validação"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança da AUC"),
         .aspecto = "1:1"),
       help = .tr_multi_ajuda(r"---[
 Para cada corte de probabilidade possível, a fração dos positivos que a regra
@@ -99,7 +132,12 @@ um perfeito sobe reto até o canto superior esquerdo.
 
 A **AUC** (área sob a curva) é a probabilidade de um caso positivo sorteado ter
 probabilidade prevista maior que a de um negativo sorteado: 0,5 é moeda, 1 é
-perfeito. Não depende do corte, e por isso compara modelos melhor que a taxa
+perfeito. O intervalo é o de DeLong, DeLong & Clarke-Pearson (1988), não
+paramétrico (variância pelas componentes estruturais da estatística de
+Mann-Whitney), cortado em [0, 1]; com poucos positivos ele é largo, e é
+justamente o que ele deve mostrar. Com validação cruzada as probabilidades
+vêm de n ajustes diferentes, e o intervalo as trata como um escore só (a
+prática usual; a variância do próprio ajuste não entra). Não depende do corte, e por isso compara modelos melhor que a taxa
 de acerto quando os grupos são desbalanceados (no `pima`, um terço tem
 diabetes: prever "não" para todas já acerta 67%).
 
@@ -113,6 +151,7 @@ curva por resubstituição é otimista pelo mesmo motivo da `multi/confusion`.
 Serve à discriminante e à logística.
 ]---", r"---[
 - **Validação** — `cruzada` (padrão) ou `resubstituição`.
+- **Confiança da AUC** — nível do intervalo de DeLong (padrão 0,95).
 ]---", r"---[
 Um gráfico (`view/plot`).
 ]---", r"---[

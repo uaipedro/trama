@@ -26,3 +26,12 @@
   `vinhos` B × C quase separados, onde o `logistf` não converge em quatro dos
   oito limites, os limites conferem pela definição (χ²₁ do perfil a 1e-6) e
   batem com os quatro em que ele converge.
+
+## Intervalo da AUC
+
+* `multi/roc` (versão 2): a AUC sai com o intervalo de DeLong, DeLong &
+  Clarke-Pearson (1988, doi:10.2307/2531595), no subtítulo (dois grupos) ou
+  na legenda (cada grupo contra os outros), com o param novo `confianca`
+  (0,95). Validação: `pROC::ci.auc(method = "delong")` 1.18 a 1e-8 no `aSAH`
+  (três escores, com empates; também a 90%) e nas probabilidades de
+  deixa-um-fora da logística do `pima` (AUC 0,849, IC 0,816–0,882).

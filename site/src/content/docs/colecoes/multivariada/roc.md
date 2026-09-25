@@ -9,7 +9,7 @@ related: [multi/logistic, multi/classify, multi/confusion]
 
 ## O que o bloco faz
 
-O bloco `multi/roc` plota sensibilidade contra taxa de falsos positivos para vários cortes de probabilidade e calcula AUC. O bloco recebe `multi/classifier`.
+O bloco `multi/roc` plota sensibilidade contra taxa de falsos positivos para vários cortes de probabilidade e calcula a AUC com intervalo de confiança de DeLong (DeLong, DeLong & Clarke-Pearson, 1988). O bloco recebe `multi/classifier`.
 
 ## Quando usar
 
@@ -18,6 +18,7 @@ Use **Curva ROC** para comparar a capacidade de ordenar positivos acima de negat
 ## Configuração
 
 - **Validação** — `cruzada` (padrão, deixa uma observação fora) ou `resubstituição`.
+- **Confiança da AUC** — nível do intervalo de DeLong (padrão 0,95).
 - **Aspecto**, **Tema**, **Título**, **Rótulo X**, **Rótulo Y** e **Legenda** — controlam a apresentação.
 
 Em binária, o segundo nível é a classe positiva; não há parâmetro para alterá-la.
@@ -40,7 +41,7 @@ A curva usa probabilidades da validação cruzada; o segundo nível de `diabetes
 
 ## Como interpretar
 
-Sensibilidade é a fração de positivos encontrados; eixo X é 1 − especificidade. AUC 0,5 corresponde à ordenação aleatória e 1 à separação perfeita. Em binária, positivo é o segundo nível; com três ou mais grupos, cada classe é comparada às demais.
+Sensibilidade é a fração de positivos encontrados; eixo X é 1 − especificidade. AUC 0,5 corresponde à ordenação aleatória e 1 à separação perfeita. Em binária, positivo é o segundo nível; com três ou mais grupos, cada classe é comparada às demais. Na logística do `pima` com todos os preditores e validação cruzada, a AUC é 0,849 (IC 95% DeLong de 0,816 a 0,882). O intervalo é assintótico e trata as probabilidades de deixa-um-fora como um escore fixo.
 
 ## Veja também
 
