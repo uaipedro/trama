@@ -186,9 +186,10 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @param dados Tabela com a classe observada e sua probabilidade prevista.
 #' @param alvo Nome da coluna observada.
 #' @param probabilidade Coluna com a probabilidade da classe positiva.
-#' @param positiva Classe tratada como positiva; vazio usa a segunda classe observada,
-#'   na ordem em que aparece nas linhas — confira se é a classe da coluna de
-#'   probabilidade escolhida.
+#' @param positiva Classe tratada como positiva. Vazio deduz a classe do nome da
+#'   coluna de probabilidade (`.prob_<classe>`, como sai de [tr_ml_predict()]);
+#'   se o nome não indicar uma classe observada, usa o segundo nível do fator
+#'   (níveis em ordem alfabética quando o alvo é texto), a convenção de `glm`.
 #' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
 #'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
@@ -209,7 +210,7 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
       any(!is.finite(prob)) || any(prob < 0 | prob > 1))
     .tr_ml_abort("tr_ml_error_not_applicable",
                  "ROC exige duas classes e uma probabilidade finita entre 0 e 1.")
-  if (!nzchar(positiva)) positiva <- classes[[2L]]
+  if (!nzchar(positiva)) positiva <- .tr_ml_roc_positiva(dados[[alvo]], probabilidade)
   if (!positiva %in% classes)
     .tr_ml_abort("tr_ml_error_bad_param", "Param 'positiva' deve ser uma classe observada.")
   ord <- order(prob, decreasing = TRUE)
@@ -226,6 +227,14 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
     ggplot2::annotate("text", x = .62, y = .08, label = sprintf("AUC = %.3f", d$auc[[1]])) +
     ggplot2::labs(x = "Taxa de falsos positivos", y = "Taxa de verdadeiros positivos")
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+# Classe positiva padrão: a que a coluna `.prob_<classe>` nomeia; senão o
+# segundo nível observado do fator (o que `glm` binomial modela como sucesso).
+.tr_ml_roc_positiva <- function(y, probabilidade) {
+  niveis <- if (is.factor(y)) levels(droplevels(y)) else sort(unique(as.character(y)))
+  da_coluna <- sub("^\\.prob_", "", probabilidade)
+  if (startsWith(probabilidade, ".prob_") && da_coluna %in% niveis) da_coluna else niveis[[2L]]
 }
 
 #' Visualizar o histórico de uma busca de hiperparâmetros

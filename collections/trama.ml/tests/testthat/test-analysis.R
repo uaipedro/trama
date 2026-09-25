@@ -56,3 +56,29 @@ test_that("histórico de tuning vira gráfico e valida o contrato", {
   expect_error(tr_ml_tuning_plot(h, "ausente"), class = "tr_ml_error_bad_tuning")
   expect_error(tr_ml_tuning_plot(h[, -2]), class = "tr_ml_error_bad_tuning")
 })
+
+test_that("ROC deduz a classe positiva do nome da coluna de probabilidade", {
+  # Regressão: com `positiva` vazia, a segunda classe na ordem das linhas era
+  # "nao" e a curva saía espelhada (AUC 0 em vez de 1).
+  d <- tibble::tibble(y = c("sim", "nao", "sim", "nao"), .prob_sim = c(.8, .1, .7, .4))
+  expect_equal(unique(tr_ml_roc(d, "y", ".prob_sim")$data$auc), 1)
+  d2 <- tibble::tibble(y = d$y, .prob_nao = 1 - d$.prob_sim)
+  expect_equal(unique(tr_ml_roc(d2, "y", ".prob_nao")$data$auc), 1)
+  # Sem `.prob_<classe>` reconhecível: segundo nível do fator (níveis
+  # ordenados quando o alvo é texto), não a ordem das linhas.
+  d3 <- tibble::tibble(y = d$y, escore = d$.prob_sim)
+  expect_equal(unique(tr_ml_roc(d3, "y", "escore")$data$auc), 1)
+  d4 <- tibble::tibble(y = factor(d$y, levels = c("sim", "nao")), escore = d$.prob_sim)
+  expect_equal(unique(tr_ml_roc(d4, "y", "escore")$data$auc), 0)
+  expect_equal(unique(tr_ml_roc(d4, "y", "escore", positiva = "sim")$data$auc), 1)
+})
+
+test_that("AUC coincide com a estatística de Mann-Whitney (Hanley & McNeil 1982)", {
+  # AUC = U / (n1 n0), com empates valendo 1/2 (Hanley & McNeil 1982, eq. 1).
+  y <- c("a", "b", "b", "a", "b", "a", "b", "b", "a", "a")
+  p <- c(.2, .9, .5, .5, .7, .1, .3, .8, .6, .4)
+  auc <- unique(tr_ml_roc(data.frame(y = y, .prob_b = p), "y", ".prob_b")$data$auc)
+  u <- suppressWarnings(stats::wilcox.test(p[y == "b"], p[y == "a"], exact = FALSE))$statistic
+  expect_equal(auc, unname(u) / (5 * 5), tolerance = 1e-12)
+  expect_equal(auc, 0.82, tolerance = 1e-12)
+})

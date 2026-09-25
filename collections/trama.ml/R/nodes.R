@@ -174,7 +174,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         "`alvo`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
         paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc,
+    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, version = 2L,
       pressupostos = .tr_ml_doc("ml/roc")$pressupostos, referencias = .tr_ml_doc("ml/roc")$referencias, label = "Curva ROC",
       description = "Mostra sensibilidade contra falsos positivos em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
       category = "ml_inspecionar", icon = trama::tr_icon("chart-line"), inputs = list(dados = T), outputs = list(out = G),
@@ -182,7 +182,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         probabilidade = trama::tr_param("text", "", label = "Probabilidade", example = ".prob_sim"),
         positiva = trama::tr_param("text", "", label = "Classe positiva", example = "sim")),
       help = .tr_ml_help("Ordena as linhas pela probabilidade da classe positiva e exibe a curva ROC com sua AUC. Use somente classifica\u{E7}\u{E3}o bin\u{E1}ria.",
-        "`alvo`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada, na ordem em que aparece nas linhas — confira se é a classe da coluna de probabilidade escolhida.",
+        "`alvo`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio deduz a classe do nome da coluna (`.prob_<classe>`); se o nome não indicar uma classe observada, usa o segundo nível do fator (ordem alfabética quando o alvo é texto).",
         "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = factor(c('nao','sim','nao','sim')), .prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_roc(d, 'y', '.prob_sim', 'sim')",
         paste("`ml/predict`, `ml/confusion`.", trama.view::tr_view_help_appearance())))
