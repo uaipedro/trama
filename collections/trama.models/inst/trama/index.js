@@ -1,14 +1,12 @@
 // Os renderers da coleção `models`.
 //
-// O card de TESTE é do núcleo (`trama/test`): a régua logarítmica do p-valor e
-// as estrelas atravessam coleções, e a `series` desenha os testes dela com o
-// mesmo componente. Aqui só o que é da coleção — o quadro com p-valor por
+// Os testes saem como `data/test`, e o preview deles já pede o card do núcleo
+// (`trama/test`): a régua logarítmica do p-valor e as estrelas atravessam
+// coleções, e nada precisa ser registrado aqui. Aqui só o que é da coleção — o quadro com p-valor por
 // linha (ANOVA, coeficientes, comparações) e o card do modelo —, e os dois
 // reaproveitam a `Regua` e as `Estrelas` do núcleo em vez de redesenhá-las.
 
-import { h, registerRenderer, getRenderer, Regua, Estrelas, num, numP } from "trama";
-
-registerRenderer("models/test", getRenderer("trama/test"));
+import { h, registerRenderer, Regua, Estrelas, num, numP } from "trama";
 
 // ---- models/effects --------------------------------------------------------------
 

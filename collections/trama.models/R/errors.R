@@ -37,7 +37,6 @@ tr_models_errors <- function() {
       "bloco de entradas opcionais (models/confusion, models/roc, models/evaluate) sem nenhuma ligada",
     tr_models_error_not_effects =
       "o nó produziu um objeto que não é quadro de efeitos, e o tipo models/effects o recusa",
-    tr_models_error_not_a_test = "o nó produziu um objeto que não é teste, e o tipo models/test o recusa",
     tr_models_error_not_emm =
       "o nó produziu um objeto que não é grade de médias, e o tipo models/emm o recusa"
   )

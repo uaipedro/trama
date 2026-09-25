@@ -98,7 +98,7 @@ test_that("os exemplos da ajuda rodam como DSL de verdade, e o fluxo inteiro cal
 test_that("o catálogo sai com a ajuda e os adaptadores", {
   cat_json <- as.character(trama::tr_catalog_json(models_registry()))
   expect_match(cat_json, "Exemplo de modelos", fixed = TRUE)
-  expect_match(cat_json, "\"from\":\"models/test\"", fixed = TRUE)
+  expect_match(cat_json, "\"from\":\"models/effects\"", fixed = TRUE)
 })
 
 test_that("o fn de todo nó está exportado no NAMESPACE", {
@@ -120,11 +120,23 @@ test_that("o fn de todo nó está exportado no NAMESPACE", {
 test_that("todo teste e quadro traz a explicação da régua, e o JS a registra", {
   reg <- models_registry()
   for (n in nos_models(reg)) {
-    if (!n$outputs$out$type %in% c("models/test", "models/effects")) next
+    if (!n$outputs$out$type %in% c("data/test", "models/effects")) next
     expect_true(grepl(.tr_models_ajuda_regua(), n$help, fixed = TRUE), info = n$id)
   }
   js <- readLines(system.file("trama", "index.js", package = "trama.models"))
-  for (r in c("models/test", "models/effects", "models/fit")) {
+  # O card de teste é do núcleo e o tipo é `data/test`: a `models` não
+  # registra renderer de teste nenhum.
+  expect_false(any(grepl("/test\"", js, fixed = TRUE)))
+  for (r in c("models/effects", "models/fit")) {
     expect_true(any(grepl(sprintf('registerRenderer("%s"', r), js, fixed = TRUE)), info = r)
   }
+})
+
+test_that("nenhum nó declara os tipos de teste antigos; os testes saem em data/test", {
+  reg <- models_registry()
+  tipos <- unlist(lapply(reg$nodes, function(n) c(vapply(n$inputs, `[[`, "", "type"),
+                                                  vapply(n$outputs, `[[`, "", "type"))))
+  expect_false(any(tipos %in% c("models/test", "series/test")))
+  expect_null(reg$types[["models/test"]])
+  expect_true(sum(vapply(nos_models(reg), function(n) identical(n$outputs$out$type, "data/test"), TRUE)) > 10L)
 })

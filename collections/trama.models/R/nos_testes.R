@@ -2,7 +2,7 @@
 
 .tr_models_nos_pressupostos <- function() {
   E <- trama::tr_param_enum
-  Fm <- "models/fit"; TE <- "models/test"
+  Fm <- "models/fit"; TE <- "data/test"
   exemplo_dbc <- function(no, extra = "") sprintf(r"---[
 tr_flow(reg) |>
   tr_add("milho", "models/example", dataset = "milho_dbc") |>
@@ -31,7 +31,7 @@ com poucas, não rejeita nada. Leia junto do Q-Q em `models/plot_diagnostics`.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", exemplo_dbc("models/shapiro_residuals"), r"---[
 `models/plot_diagnostics`; `models/levene`; `models/shapiro` para uma coluna.
 ]---", teste = TRUE)),
@@ -57,7 +57,7 @@ Não se aplica a GLM (a variância acompanha a média por construção) nem a mi
 ]---", r"---[
 - **Centro** — `mediana` ou `média`.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", exemplo_dbc("models/levene"), r"---[
 `models/bartlett`; `models/breusch_pagan`; `models/plot_diagnostics`.
 ]---", teste = TRUE)),
@@ -76,7 +76,7 @@ quando não são: rejeita por causa da cauda, e não da variância. Rode o
 ]---", r"---[
 Nenhum.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", exemplo_dbc("models/bartlett"), r"---[
 `models/levene`; `models/shapiro_residuals`.
 ]---", teste = TRUE)),
@@ -98,7 +98,7 @@ Não se aplica a GLM nem a misto.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "cars") |>
@@ -129,7 +129,7 @@ combinações de fatores como tratamento) e a `models/anova_dql`.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", exemplo_dbc("models/tukey_additivity"), r"---[
 `models/anova_dbc`; `models/plot_diagnostics`.
 ]---", teste = TRUE))
@@ -139,7 +139,7 @@ Um teste (`models/test`).
 .tr_models_nos_testes <- function() {
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   N <- trama::tr_param_num
-  T <- "data/table"; TE <- "models/test"
+  T <- "data/table"; TE <- "data/test"
   ALT <- function() E("bilateral", .TR_MODELS_ALTERNATIVAS, label = "Alternativa")
   ajuda_alt <- "- **Alternativa** — `bilateral` (diferentes), `menor` ou `maior` (o primeiro em relação ao segundo)."
   list(
@@ -168,7 +168,7 @@ que o p-valor não diz.
 - **Grupo** — coluna com dois níveis.
 - **Variâncias iguais** — liga o t de Student.
 ]---", ajuda_alt), r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dentes", "models/example", dataset = "ToothGrowth") |>
@@ -199,7 +199,7 @@ Parear tira a variação entre unidades: é por isso que detecta diferenças que
 ]---", paste(r"---[
 - **Primeira medida**, **Segunda medida** — colunas numéricas.
 ]---", ajuda_alt), r"---[
-Um teste (`models/test`), com a média das diferenças e o intervalo de 95%.
+Um teste (`data/test`), com a média das diferenças e o intervalo de 95%.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "mtcars") |>
@@ -224,7 +224,7 @@ produção, o valor do rótulo, o padrão da norma.
 - **Variável** — coluna numérica.
 - **Valor de referência** — o valor da hipótese nula.
 ]---", ajuda_alt), r"---[
-Um teste (`models/test`), com a média e o intervalo de 95%.
+Um teste (`data/test`), com a média e o intervalo de 95%.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("plantas", "models/example", dataset = "PlantGrowth") |>
@@ -252,7 +252,7 @@ o p-valor é o da aproximação normal, e a nota avisa.
 - **Resposta** — coluna numérica.
 - **Grupo** — coluna com dois níveis.
 ]---", ajuda_alt), r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dentes", "models/example", dataset = "ToothGrowth") |>
@@ -279,7 +279,7 @@ dados não normais, considere transformar a resposta ou um `models/glm`.
 - **Resposta** — coluna numérica.
 - **Grupo** — coluna dos grupos.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("insetos", "models/example", dataset = "InsectSprays") |>
@@ -309,7 +309,7 @@ A **Correção de Yates** só age em tabelas 2 × 2.
 - **Linha**, **Coluna** — as duas colunas categóricas.
 - **Correção de Yates** — correção de continuidade no 2 × 2.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("fios", "models/example", dataset = "warpbreaks") |>
@@ -336,7 +336,7 @@ card fica vermelho e o qui-quadrado é a saída.
 ]---", r"---[
 - **Linha**, **Coluna** — as duas colunas categóricas.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "mtcars") |>
@@ -367,7 +367,7 @@ observações, r = 0,1 é significativo e explica 1% da variação.
 - **X**, **Y** — colunas numéricas.
 - **Método** — `pearson`, `spearman` ou `kendall`.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "mtcars") |>
@@ -392,7 +392,7 @@ Aceita de 3 a 5000 valores.
 ]---", r"---[
 - **Variável** — coluna numérica.
 ]---", r"---[
-Um teste (`models/test`).
+Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("plantas", "models/example", dataset = "PlantGrowth") |>

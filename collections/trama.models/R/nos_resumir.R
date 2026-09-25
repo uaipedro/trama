@@ -2,7 +2,7 @@
 
 .tr_models_nos_resumir <- function() {
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
-  Fm <- "models/fit"; EF <- "models/effects"; TE <- "models/test"; T <- "data/table"
+  Fm <- "models/fit"; EF <- "models/effects"; TE <- "data/test"; T <- "data/table"
   list(
     trama::tr_node("models/anova_table", fn = tr_models_anova_table, label = "Quadro da ANOVA",
       category = "modelo_resumir", icon = trama::tr_icon("sheet"),
@@ -321,7 +321,7 @@ Para modelos não aninhados, compare o AIC em `models/fit_stats`.
 ]---", r"---[
 Nenhum. Entradas: **modelo** e **outro**.
 ]---", r"---[
-Um teste (`models/test`), com a régua do p-valor.
+Um teste (`data/test`), com a régua do p-valor.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("carros", "models/example", dataset = "mtcars") |>
@@ -470,7 +470,7 @@ tr_flow(reg) |>
     trama::tr_node("models/linear_hypothesis", fn = tr_models_linear_hypothesis, label = "Contrastes (F)",
       category = "modelo_medias", icon = trama::tr_icon("divide"),
       description = "Teste F da hipótese linear geral: você escreve os contrastes, nas médias de um fator ou nos coeficientes.",
-      inputs = list(modelo = "models/fit"), outputs = list(out = "models/test"),
+      inputs = list(modelo = "models/fit"), outputs = list(out = "data/test"),
       params = list(
         hipoteses = P("expr", "", label = "Contrastes (um por linha, ou separados por ;)",
                       example = "ctrl vs trat: 2 -1 -1; trt1 vs trt2: trt1 - trt2"),
@@ -532,7 +532,7 @@ existe.
 - **Fator** — a coluna-fator cujas médias os contrastes combinam. Em branco, as
   hipóteses são sobre os coeficientes.
 ]---", r"---[
-Um teste (`models/test`), com a régua do p-valor da hipótese conjunta.
+Um teste (`data/test`), com a régua do p-valor da hipótese conjunta.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("plantas", "models/example", dataset = "PlantGrowth") |>

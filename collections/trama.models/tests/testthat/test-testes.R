@@ -67,8 +67,8 @@ test_that("qui-quadrado com esperado pequeno aponta o Fisher", {
 })
 
 test_that("o guard dos tipos recusa objeto sem os campos", {
-  tipo <- models_test_type()
-  expect_error(tipo$store(list(teste = "x"), tempfile()), class = "tr_models_error_not_a_test")
+  tipo <- trama::tr_get_type("data/test", models_registry())
+  expect_error(tipo$store(list(teste = "x"), tempfile()), class = "tr_error_not_a_test")
   expect_error(models_fit_type()$store(stats::lm(mpg ~ wt, mtcars), tempfile()), class = "tr_models_error_not_a_fit")
   expect_error(models_effects_type()$store(.tr_models_efeitos(data.frame(a = 1), "x"), tempfile()),
                class = "tr_models_error_not_effects")
@@ -92,8 +92,18 @@ test_that("previews dos tipos saem sem erro para todo modelo", {
   q <- pv$data$quadro
   expect_equal(vapply(q$colunas, `[[`, "", "rotulo"), c("FV", "GL", "SQ", "QM", "Fc", "Pr > F"))
   expect_equal(q$linhas[[length(q$linhas)]]$termo, "Total")
-  pv <- models_test_type()$preview(tr_models_shapiro_residuals(milho_dbc()), ctx_tmp())
-  expect_equal(pv$data$estrelas, "ns")
+  # O teste sai no tipo único: card do núcleo, store em round-trip e a linha
+  # de tabela pelo adaptador da `data`.
+  reg <- models_registry()
+  sh <- tr_models_shapiro_residuals(milho_dbc())
+  ty <- trama::tr_get_type("data/test", reg)
+  pv <- ty$preview(sh, ctx_tmp())
+  expect_equal(pv$renderer, "trama/test")
+  expect_equal(trama::tr_test_table(sh)$significancia, "ns")
+  arq <- tempfile(fileext = ".rds"); ty$store(sh, arq)
+  expect_identical(ty$restore(arq), sh)
+  tb <- trama::tr_adapter_for("data/test", "data/table", reg)$fn(sh)
+  expect_s3_class(tb, "tbl_df"); expect_equal(nrow(tb), 1L)
   pv <- models_emm_type()$preview(tr_models_emmeans(milho_dbc(), "hibrido"), ctx_tmp())
   expect_true(file.exists(pv$files$png %||% unlist(pv$files)[[1]]))
 })

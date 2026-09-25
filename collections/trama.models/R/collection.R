@@ -18,7 +18,7 @@ trama_collection <- function() {
   trama::tr_collection(
     id = "models", version = "0.1.0", label = "Modelos",
     js = "trama/index.js", css = "trama/models.css",
-    types = list(models_fit_type(), models_effects_type(), models_test_type(), models_emm_type()),
+    types = list(models_fit_type(), models_effects_type(), models_emm_type()),
     adapters = .tr_models_adapters(),
     # O corte das abas é pela PERGUNTA: ajustar, ler o ajuste, comparar médias,
     # conferir os pressupostos, testar sem modelo. Os delineamentos têm aba

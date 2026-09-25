@@ -1,4 +1,4 @@
-# Os quatro tipos da coleção, e os adaptadores que os ligam à `data`.
+# Os três tipos da coleção, e os adaptadores que os ligam à `data`.
 #
 # - `models/fit`: o modelo ajustado. Tipo próprio porque dele saem VÁRIAS
 #   coisas — quadro, coeficientes, médias, resíduos —, e um nó que devolvesse só
@@ -8,7 +8,6 @@
 #   CARD: o que se quer ver num quadro é quais linhas são significativas, e isso
 #   pede um renderer que desenhe a régua do p-valor por linha. Registrar esse
 #   renderer sob `data/table` mudaria toda tabela do app.
-# - `models/test`: um teste, uma hipótese nula (doutrina da `series`).
 # - `models/emm`: as médias ajustadas, com as letras.
 #
 # O preço de um tipo próprio seria perder a `data` e a `view`, e são os
@@ -248,17 +247,19 @@ models_effects_type <- function() {
   df
 }
 
-# ---- models/test -------------------------------------------------------------
-
-.TR_MODELS_CAMPOS_TESTE <- c("teste", "h0", "estatistica", "rotulo_estat", "gl", "p_valor",
-                             "decisao_5", "conclusao", "efeito", "nota", "fonte")
+# ---- Testes ------------------------------------------------------------------
+#
+# Um teste daqui sai como `data/test`, o tipo único de teste de hipótese (o
+# registro e o card são do núcleo, o tipo é registrado pela `data`): um Shapiro
+# da `models` e um ADF da `series` se empilham no mesmo quadro.
 
 #' O registro de um teste.
 #'
 #' Diferente da `series`, TODO teste daqui tem p-valor — e é isso que deixa o
 #' card trocar os pontinhos de tabela pela régua. Um bloco que chegasse sem
 #' p-valor seria um bug, e vira erro aqui em vez de card com "não rejeita"
-#' confiante.
+#' confiante; o `trama::tr_test` aceitaria uma tabela de críticos, que aqui não
+#' existe.
 #'
 #' `efeito`: `list(rotulo, valor, li, ls)` — a diferença de médias, a
 #' correlação — ou NULL. O p-valor diz SE há efeito; o efeito diz de QUANTO, e é
@@ -272,57 +273,9 @@ models_effects_type <- function() {
     .tr_models_abort("tr_models_error_fit",
                      "'%s': o teste não devolveu p-valor (os dados são constantes?).", teste)
   }
-  rejeita <- p < 0.05
-  structure(list(
-    teste = teste, h0 = h0, estatistica = as.numeric(estatistica), rotulo_estat = rotulo_estat,
-    gl = as.character(gl), p_valor = p,
-    decisao_5 = if (rejeita) "rejeita H0" else "não rejeita H0",
-    conclusao = if (rejeita) conclusao_sim else conclusao_nao,
-    efeito = efeito, nota = nota, fonte = fonte, extra = extra
-  ), class = "tr_models_test")
-}
-
-.tr_models_teste_conferir <- function(x) {
-  .tr_models_guard(x, "tr_models_test", .TR_MODELS_CAMPOS_TESTE, "tr_models_error_not_a_test",
-                   "o resultado de um teste")
-}
-
-.tr_models_teste_json <- function(x) {
-  list(teste = x$teste, h0 = x$h0, estatistica = x$estatistica, rotulo_estat = x$rotulo_estat,
-       gl = if (is.na(x$gl)) NULL else x$gl, p_valor = x$p_valor,
-       estrelas = .tr_models_estrelas(x$p_valor), decisao_5 = x$decisao_5,
-       conclusao = x$conclusao,
-       efeito = if (is.null(x$efeito)) NULL else lapply(x$efeito, function(v) if (is.numeric(v) && is.na(v)) NULL else v),
-       nota = x$nota, fonte = x$fonte,
-       extra = if (is.null(x$extra)) NULL else as.list(x$extra))
-}
-
-models_test_type <- function() {
-  trama::tr_type(
-    "models/test", version = 1L, label = "Teste", color = "#ef4444", ext = "rds",
-    store = function(x, path) {
-      .tr_models_teste_conferir(x)
-      saveRDS(x, path, compress = FALSE)
-    },
-    restore = function(path) readRDS(path),
-    preview = function(x, ctx) trama::tr_preview("models/test", data = .tr_models_teste_json(x))
-  )
-}
-
-#' Teste -> tabela: UMA linha, para `data/bind_rows` montar o relatório.
-#' @noRd
-.tr_models_teste_tabela <- function(x) {
-  ef <- x$efeito
-  base <- tibble::tibble(
-    teste = x$teste, h0 = x$h0, estatistica = x$estatistica, rotulo_estat = x$rotulo_estat,
-    gl = x$gl, p_valor = x$p_valor, significancia = .tr_models_estrelas(x$p_valor),
-    decisao_5 = x$decisao_5, conclusao = x$conclusao,
-    efeito = if (is.null(ef)) NA_character_ else ef$rotulo,
-    efeito_valor = if (is.null(ef)) NA_real_ else as.numeric(ef$valor),
-    efeito_li_95 = if (is.null(ef) || is.null(ef$li)) NA_real_ else as.numeric(ef$li),
-    efeito_ls_95 = if (is.null(ef) || is.null(ef$ls)) NA_real_ else as.numeric(ef$ls),
-    nota = x$nota, fonte = x$fonte)
-  base
+  trama::tr_test(teste, h0, estatistica, rotulo_estat, p_valor = p, gl = gl,
+                 conclusao_sim = conclusao_sim, conclusao_nao = conclusao_nao, efeito = efeito,
+                 nota = nota, fonte = fonte, extra = extra, classe = "tr_models_test")
 }
 
 # ---- models/emm --------------------------------------------------------------
@@ -369,7 +322,6 @@ models_emm_type <- function() {
   list(
     trama::tr_adapter("models/fit", "data/table", tr_models_as_table),
     trama::tr_adapter("models/effects", "data/table", function(x) x$tabela),
-    trama::tr_adapter("models/test", "data/table", .tr_models_teste_tabela),
     trama::tr_adapter("models/emm", "data/table", function(x) x$tabela)
   )
 }
