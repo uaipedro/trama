@@ -4,10 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copiar-templates.mjs",
     "dev": "astro dev",
+    "prebuild": "node scripts/copiar-templates.mjs",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "check": "astro check",
+    "pretest": "node scripts/copiar-templates.mjs",
     "test": "node --test --experimental-strip-types src/lib/*.test.ts"
   },
   "dependencies": {

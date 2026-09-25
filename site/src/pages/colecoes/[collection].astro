@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import CollectionHero from "../../components/CollectionHero.astro";
 import NodeMini from "../../components/NodeMini.astro";
+import TemplatesSecao from "../../components/TemplatesSecao.astro";
 import { collections } from "../../data/collections";
 import { getNodeVisual } from "../../data/node-visuals";
 
@@ -63,5 +64,6 @@ const info = collections.find(({ id }) => id === collection)!;
         ))}
       </ol>
     </section>
+    <TemplatesSecao pkg={info.packageName} titulo="Templates prontos." />
   </div>
 </Base>
