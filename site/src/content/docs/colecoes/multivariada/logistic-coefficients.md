@@ -18,7 +18,7 @@ Use **Razões de chances** para quantificar direção e tamanho dos efeitos esti
 ## Configuração
 
 - **Escala** — `unidade` (padrão) ou `desvio padrão`, para expressar o efeito por desvio padrão da variável.
-- **Nível do intervalo** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Confiança do intervalo** (`confianca`) — 0,95 por padrão, entre 0,5 e 0,999. Até a versão 2 do bloco o param se chamava `nivel`: fluxo salvo com `nivel` acusa param desconhecido ao abrir e precisa renomeá-lo.
 
 ## Exemplo
 

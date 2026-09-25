@@ -47,7 +47,7 @@ test_that("confiança diferente e escala por desvio padrão continuam batendo", 
                         data = transform(d, case = as.integer(case) - 1L), alpha = 0.1,
                         control = logistf::logistf.control(xconv = 1e-12, gconv = 1e-12, lconv = 1e-12, maxit = 200),
                         plcontrol = logistf::logistpl.control(xconv = 1e-12, lconv = 1e-12, maxit = 500))
-  t90 <- tr_multi_logistic_coefficients(m, nivel = 0.9)
+  t90 <- tr_multi_logistic_coefficients(m, confianca = 0.9)
   expect_equal(log(t90$ic_inf), unname(o$ci.lower), tolerance = 1e-4)
   expect_equal(log(t90$ic_sup), unname(o$ci.upper), tolerance = 1e-4)
   dp <- tr_multi_logistic_coefficients(m, escala = "desvio padrão")

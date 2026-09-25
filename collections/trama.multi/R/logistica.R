@@ -219,15 +219,22 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5, metodo 
 #' Coeficientes, erros padrão de Wald e razões de chances.
 #' @param modelo objeto `tr_multi_logit`.
 #' @param escala `"unidade"` ou `"desvio padrão"`.
-#' @param nivel nível do intervalo de confiança.
+#' @param confianca nível do intervalo de confiança.
+#' @param nivel obsoleto: o nome antigo de `confianca` (até a versão 2 do nó).
+#'   Aceito aqui com aviso; no grafo o param é só `confianca`.
 #' @return tibble.
 #' @export
-tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", nivel = 0.95) {
+tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", confianca = 0.95, nivel) {
   no <- "multi/logistic_coefficients"
+  if (!missing(nivel)) {
+    rlang::warn(paste0("`nivel` em `tr_multi_logistic_coefficients()` está obsoleto desde a versão 3 ",
+                       "do nó; use `confianca`."), class = "tr_multi_warning_deprecated")
+    confianca <- nivel
+  }
   .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
                   "uma regressão logística")
   escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
-  nivel <- .tr_multi_num(nivel, "nivel", min = 0.5, max = 0.999)
+  nivel <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
   .tr_multi_sem_separacao(modelo, no)
   d <- .tr_multi_logit_coefs(modelo, escala)
   z <- d$coeficiente / d$erro_padrao
@@ -403,14 +410,17 @@ escolher o corte; `multi/discriminant` para a comparação; models/glm para a
 logística como modelo de regressão, com desvio e contrastes.
 ]---")),
 
-    trama::tr_node("multi/logistic_coefficients", version = 2L, role = "leitura", fn = tr_multi_logistic_coefficients,
+    trama::tr_node("multi/logistic_coefficients", version = 3L, role = "leitura",
+      # O nó não declara o alias `nivel`: a função do grafo é a sem ele.
+      fn = function(modelo, escala = "unidade", confianca = 0.95)
+        tr_multi_logistic_coefficients(modelo, escala = escala, confianca = confianca),
       label = "Razões de chances",
       category = "multi_logistica", icon = trama::tr_icon("sigma"),
       description = "Coeficientes, erros padrão de Wald, p-valores e razões de chances com intervalo.",
       inputs = list(modelo = LG), outputs = list(out = TB),
       params = list(
         escala = trama::tr_param_enum("unidade", .TR_MULTI_ESCALAS_OR, label = "Escala"),
-        nivel = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Nível do intervalo")),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança do intervalo")),
       help = .tr_multi_ajuda(r"---[
 Uma linha por termo (e, na multinomial, por grupo contra a referência).
 
@@ -441,7 +451,8 @@ separação, a tabela é recusada na ML; ajuste com `metodo = "firth"` na
 `multi/logistic`.
 ]---", r"---[
 - **Escala** — `unidade` ou `desvio padrão`.
-- **Nível do intervalo** — 0,95 por padrão.
+- **Confiança do intervalo** (`confianca`) — 0,95 por padrão. Até a versão 2
+  do nó o param se chamava `nivel`; fluxo salvo com `nivel` precisa renomeá-lo.
 ]---", r"---[
 Uma tabela (`data/table`): `grupo` (o grupo cuja chance se modela), `referencia`,
 `termo` (`(intercepto)` e os preditores), `coeficiente`, `erro_padrao`, `z`,

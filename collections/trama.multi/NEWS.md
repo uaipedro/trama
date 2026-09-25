@@ -46,3 +46,12 @@
   contas à mão; exemplo 20/5/10/15 (κ = 0,4, o exemplo da página "Cohen's
   kappa" da Wikipédia — não é fonte primária); `irr::kappa2` e
   `psych::cohen.kappa` a 1e-12 nas previsões cruzadas da LDA do `iris`.
+
+## `confianca` na `multi/logistic_coefficients`
+
+* `multi/logistic_coefficients` (versão 3): o param do nível do intervalo passa
+  de `nivel` a `confianca`, a convenção da coleção (`multi/roc`) e das irmãs.
+  O núcleo não tem migração de params: um fluxo salvo com `nivel` acusa
+  `unknown_param` (e `version_drift`) ao ser validado e precisa do param
+  renomeado. A função R `tr_multi_logistic_coefficients()` ainda aceita
+  `nivel =` com aviso (classe `tr_multi_warning_deprecated`). Resultado igual.
