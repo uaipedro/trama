@@ -49,6 +49,16 @@
   npaths = 5000)` com a mesma semente, igual a 1e-12 (ARIMA e ETS no
   `AirPassengers`).
 
+- Novo bloco `series/intervencao`: modelo de intervenção de Box & Tiao (1975),
+  forma de ordem zero — ARIMA com regressor de degrau, pulso ou rampa numa
+  data informada, por `forecast::Arima(xreg = )`; tabela com estimativa,
+  erro-padrão, IC de Wald 95%, p e efeito em % (série em log). Oráculo: a
+  mesma chamada do `forecast::Arima`, coeficientes e erros-padrão a 1e-8
+  (Seatbelts com degrau = coluna `law`; Nile com pulso e rampa). Exemplo:
+  lei do cinto (1983-02), log(drivers), ARIMA(1,0,0)(1,1,1)₁₂: ω = −0,2397
+  (EP 0,0433), −21,3%. Valores publicados de Harvey & Durbin (1986) não
+  foram conferidos na fonte e não entram como oráculo.
+
 ## Rigor metodológico (fase 1)
 
 - `series/fisher` (versão 2): convenções de Fisher (1929). O g passa a usar só

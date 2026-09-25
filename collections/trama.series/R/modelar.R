@@ -205,3 +205,59 @@ tr_series_accuracy <- function(previsao, real = NULL) {
   names(out) <- gsub("[^a-z0-9]+", "_", tolower(names(out)))
   tibble::as_tibble(cbind(metodo = previsao$method, conjunto = unname(conjunto), out))
 }
+
+#' Modelo de intervenção: ARIMA com regressor de degrau, pulso ou rampa.
+#'
+#' A forma de ordem zero de Box & Tiao (1975): y_t = ω I_t + N_t, com N_t
+#' ARIMA e I_t = 1 a partir da data (degrau), só na data (pulso) ou t − T + 1
+#' a partir dela (rampa). Estimação conjunta por máxima verossimilhança
+#' (`forecast::Arima(xreg = )`), com a diferenciação aplicada também ao
+#' regressor. Devolve a tabela dos coeficientes com erro-padrão, IC de 95%
+#' (Wald, normal) e p-valor.
+#' @export
+tr_series_intervencao <- function(serie, data, tipo = "degrau", p = 0L, d = 1L, q = 1L,
+                                  P = 0L, D = 0L, Q = 0L, constante = FALSE) {
+  tipo <- .tr_series_enum(tipo, c("degrau", "pulso", "rampa"), "tipo")
+  .tr_series_sem_na(serie, "series/intervencao")
+  .tr_series_minimo(serie, 12L, "series/intervencao", "um modelo de intervenção")
+  f <- stats::frequency(serie)
+  v <- .tr_series_periodo(.tr_series_obrigatorio(data, "data"), "data", f)
+  pos <- .tr_series_pos(v, f)
+  tt <- as.numeric(stats::time(serie))
+  i0 <- which(abs(tt - pos) < 1e-6 / f)
+  n <- length(serie)
+  if (length(i0) != 1L || i0 < 2L) {
+    .tr_series_abort("tr_series_error_bad_period",
+                     paste0("Param 'data': '%s' tem de ser um período DA série, depois da primeira ",
+                            "observação (%s a %s) — sem observação antes, não há nível de referência."),
+                     data, .tr_series_rotulo(stats::start(serie), f), .tr_series_rotulo(stats::end(serie), f))
+  }
+  idx <- seq_len(n)
+  reg <- switch(tipo,
+    degrau = as.numeric(idx >= i0),
+    pulso = as.numeric(idx == i0),
+    rampa = pmax(0, idx - i0 + 1))
+  ordem <- c(.tr_series_int(p, "p", 0, 5), .tr_series_int(d, "d", 0, 2), .tr_series_int(q, "q", 0, 5))
+  sazo <- c(.tr_series_int(P, "P", 0, 2), .tr_series_int(D, "D", 0, 1), .tr_series_int(Q, "Q", 0, 2))
+  if (sum(sazo) > 0L) .tr_series_sazonal(serie, "series/intervencao (parte sazonal P, D, Q)", ciclos = 1L)
+  fit <- .tr_series_ajustar(
+    forecast::Arima(serie, order = ordem, seasonal = sazo, xreg = cbind(intervencao = reg),
+                    include.constant = isTRUE(constante)),
+    "series/intervencao")
+  b <- stats::coef(fit)
+  se <- sqrt(diag(fit$var.coef))
+  if (anyNA(se) || any(!is.finite(se))) {
+    .tr_series_abort("tr_series_error_fit",
+                     "'series/intervencao': a matriz de covariância saiu singular; simplifique a ordem do ARIMA.")
+  }
+  z <- stats::qnorm(0.975)
+  tb <- tibble::tibble(
+    termo = names(b), estimativa = unname(b), erro_padrao = unname(se),
+    li_95 = unname(b - z * se), ls_95 = unname(b + z * se),
+    z = unname(b / se), p_valor = unname(2 * stats::pnorm(-abs(b / se))))
+  # Série em log: o efeito em porcentagem é exp(ω) − 1 (só faz sentido no
+  # degrau e no pulso, e só se a série foi logaritmizada — a coluna vem sempre
+  # e a ajuda diz quando lê-la).
+  tb$efeito_pct <- ifelse(tb$termo == "intervencao", 100 * (exp(tb$estimativa) - 1), NA_real_)
+  tb[order(tb$termo != "intervencao"), ]
+}

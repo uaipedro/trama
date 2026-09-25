@@ -835,6 +835,85 @@ diagnosticar; `series/ndiffs`, `series/acf` e `series/pacf` para escolher a
 ordem à mão; `series/ets` para a alternativa por suavização exponencial.
 ]---")),
 
+      trama::tr_node("series/intervencao",
+        pressupostos = .tr_series_doc("series/intervencao")$pressupostos,
+        referencias = .tr_series_doc("series/intervencao")$referencias,
+        fn = tr_series_intervencao, label = "Intervenção",
+        category = "serie_modelar", icon = icone("milestone"),
+        description = "ARIMA com degrau, pulso ou rampa numa data: quanto um evento mudou a série?",
+        inputs = list(serie = S), outputs = list(out = T),
+        params = list(
+          data = P("text", "", label = "Data da intervenção", example = "1983, 2"),
+          tipo = E("degrau", c("degrau", "pulso", "rampa"), label = "Tipo"),
+          p = I(0L, min = 0L, max = 5L, label = "p (AR)"),
+          d = I(1L, min = 0L, max = 2L, label = "d (diferenças)"),
+          q = I(1L, min = 0L, max = 5L, label = "q (MA)"),
+          P = I(0L, min = 0L, max = 2L, label = "P (AR sazonal)"),
+          D = I(0L, min = 0L, max = 1L, label = "D (diferença sazonal)"),
+          Q = I(0L, min = 0L, max = 2L, label = "Q (MA sazonal)"),
+          constante = B(FALSE, label = "Constante")),
+        help = .tr_series_ajuda(r"---[
+Mede o efeito de um EVENTO numa data conhecida — uma lei, uma mudança de
+política, um acidente — sobre a série: o modelo de intervenção de Box e Tiao
+(1975). A série é um ARIMA mais um regressor que liga na data:
+
+- **degrau** — 0 antes, 1 da data em diante: o nível MUDOU e ficou.
+- **pulso** — 1 só na data: um choque de um período.
+- **rampa** — 0 antes, 1, 2, 3, ... a partir da data: a inclinação mudou.
+
+O coeficiente ω do regressor é o efeito, estimado junto com o ARIMA por
+máxima verossimilhança; o erro-padrão já leva em conta a autocorrelação, o que
+uma comparação ingênua de médias antes e depois não faz.
+
+### A data vem de FORA
+
+A data é informada, não procurada: é o que se sabia antes de olhar o gráfico.
+Escolher a data pelo maior salto da própria série e depois testá-la aqui é
+testar a hipótese com o dado que a sugeriu, e o p-valor sai otimista. Para
+PROCURAR uma quebra, `series/pettitt` ou `series/zivot_andrews`.
+
+### Série em log
+
+Com a série no log (`series/transform`), o degrau é uma mudança
+PROPORCIONAL, e a coluna `efeito_pct` = 100·(exp(ω) − 1) a traduz em
+porcentagem. Sem log, ignore essa coluna: o efeito é o ω, na unidade da série.
+
+### A ordem do ARIMA
+
+Escolha a ordem do ruído no trecho ANTES da intervenção (`series/window` →
+`series/arima` automático) e repita aqui. Com diferenças (d ou D), o regressor
+é diferenciado junto: o degrau numa série diferenciada vira um pulso na
+diferença, e o ω continua sendo a mudança de nível.
+
+Esta é a forma de ordem zero: o efeito entra inteiro na data. A resposta
+gradual de Box e Tiao (função de transferência com δ) não está no bloco.
+
+### Faltantes
+
+Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue
+um `series/interpolate` antes.
+]---", r"---[
+- **Data da intervenção** — o período, como `1983, 2` (fevereiro de 1983) ou
+  só o ano numa série anual. Precisa haver ao menos uma observação antes.
+- **Tipo** — `degrau` (padrão), `pulso` ou `rampa`.
+- **p, d, q** e **P, D, Q** — a ordem do ARIMA do ruído.
+- **Constante** — média (ou deriva, com uma diferença) no modelo.
+]---", r"---[
+Uma tabela, uma linha por coeficiente, a da intervenção primeiro: `termo`,
+`estimativa`, `erro_padrao`, `li_95`, `ls_95` (IC de Wald), `z`, `p_valor` e
+`efeito_pct` (só na linha da intervenção).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
+  tr_add("log", "series/transform", from = "sb") |>
+  tr_add("lei", "series/intervencao", data = "1983, 2", p = 1L, d = 0L, q = 0L,
+         P = 1L, D = 1L, Q = 1L, from = "log")
+]---", r"---[
+`series/arima` para escolher a ordem do ruído; `series/pettitt` para
+procurar uma data de mudança que não se conhece; `series/window` para
+ajustar só o trecho anterior.
+]---")),
+
       trama::tr_node("series/ets",
         pressupostos = .tr_series_doc("series/ets")$pressupostos,
         referencias = .tr_series_doc("series/ets")$referencias,

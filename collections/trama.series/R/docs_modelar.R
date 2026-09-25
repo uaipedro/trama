@@ -10,7 +10,7 @@
   sem_quebra <- P(
     "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
     verificar = c("series/plot", "series/pettitt", "series/zivot_andrews"),
-    se_falhar = "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama.")
+    se_falhar = "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa).")
   hyndman_khandakar <- R(autores = c("Hyndman, R. J.", "Khandakar, Y."), ano = 2008,
                          titulo = "Automatic time series forecasting: the forecast package for R",
                          fonte = "Journal of Statistical Software, 27(3), 1-22",
@@ -47,6 +47,28 @@
       referencias = list(L$box_jenkins, hyndman_khandakar, L$morettin, L$fpp3,
         I("forecast", "auto.arima",
           "Com Automático: busca passo a passo pelo menor AICc; `d` pelo KPSS e `D` pela força sazonal (padrões do pacote); `seasonal`, `allowdrift` e `allowmean` vêm dos params. Manual: `forecast::Arima(order, seasonal, include.constant)`, por máxima verossimilhança."))),
+
+    "series/intervencao" = list(
+      pressupostos = list(
+        P("A **data** da intervenção é conhecida de antemão, e não escolhida pelo maior salto da própria série: escolhê-la pelo dado e testá-la no mesmo dado torna o p-valor otimista.",
+          verificar = "series/plot",
+          se_falhar = "Para procurar a data, `series/pettitt` ou `series/zivot_andrews`; depois confirme em outra série ou período."),
+        P("Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
+          verificar = c("series/window", "series/arima", "series/ndiffs"),
+          se_falhar = "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e use-a aqui."),
+        P("O efeito entra **inteiro na data** (forma de ordem zero); uma resposta gradual (função de transferência de Box & Tiao com δ) não é modelada.",
+          verificar = c("series/plot", "series/residuals")),
+        residuo_branco(),
+        P("O IC e o p-valor são de **Wald** (normal assintótica da máxima verossimilhança): pedem resíduos aproximadamente normais e série não muito curta.",
+          verificar = c("series/residuals", "view/qq"))),
+      referencias = list(
+        R(autores = c("Box, G. E. P.", "Tiao, G. C."), ano = 1975,
+          titulo = "Intervention analysis with applications to economic and environmental problems",
+          fonte = "Journal of the American Statistical Association, 70(349), 70-79",
+          doi = "10.1080/01621459.1975.10480264"),
+        L$box_jenkins, L$fpp3,
+        I("forecast", "Arima",
+          "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8."))),
 
     "series/ets" = list(
       pressupostos = list(
