@@ -1964,7 +1964,9 @@ rejeita bem acima dos 5% nominais. Duas correções publicadas:
 - **pre_branqueamento** — Yue et al. (2002), o pré-branqueamento livre de
   tendência: tira a tendência de Sen, remove o AR(1) do resto pelo r1, devolve
   a tendência e testa a série resultante (uma observação a menos; pede 11).
-  A `nota` traz o r1.
+  A `nota` traz o r1. Como no artigo (passos 1 a 4, p. 1822-1823), o AR(1) é
+  removido sempre, significativo ou não; o r1 é o do `acf` (o do
+  `modifiedmk`), n/(n − 1) vezes menor que o da eq. 14a do artigo.
 - **bootstrap_blocos** — o mesmo S, com o p-valor de um bootstrap de blocos
   móveis (Kundzewicz & Robson, 2004): a série é cortada em blocos de
   round(√n) observações seguidas, sorteados com reposição e emendados, 1999

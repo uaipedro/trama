@@ -2,6 +2,14 @@
 
 ## Rigor metodológico (fase 3, revisão)
 
+- `series/mann_kendall` (`pre_branqueamento`): regra de Yue et al. (2002)
+  conferida no texto (Hydrol. Process. 16:1807-1829, p. 1822-1823): o AR(1)
+  é removido sempre, sem condição de significância — o teste do r1 (eq. B.1,
+  10%) só seleciona estações na aplicação (p. 1825). Igual ao
+  `modifiedmk::tfpwmk` e a esta implementação; sem mudança de resultado.
+  Diferença documentada: o r1 da eq. 14a do artigo é n/(n − 1) vezes o do
+  `stats::acf`, que o `modifiedmk` e este bloco usam.
+
 - `series/mann_kendall`: nova `correcao = "bootstrap_blocos"` — o mesmo S,
   p-valor por bootstrap de blocos móveis (Kundzewicz & Robson 2004,
   doi:10.1623/hysj.49.1.7.53993; Künsch 1989): blocos de round(√n), 1999
