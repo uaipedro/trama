@@ -23,14 +23,16 @@ suppressMessages({
 # nasceriam no mesmo ponto.
 #
 # O passo é o do card de verdade, no modo completo (o padrão ao colar): 240px
-# de largura (`.tr-node`, trama.css) e até ~360px de altura — cabeçalho, 132px
-# de preview, abas, uns cinco params e as portas. `dx = 360` deixa 120px de
-# vão entre colunas; `dy = 440`, uns 80px entre linhas no card mais alto.
+# de largura (`.tr-node`, trama.css) e `dx = 360` deixa 120px de vão entre
+# colunas. A altura varia com o bloco (cabeçalho, 132px de preview, abas, um
+# campo por param, as portas): cada linha desce a altura ESTIMADA do card mais
+# alto da linha de cima mais `vao` — um gráfico com doze params não invade o
+# card de baixo.
 #
 # Linha por RAMO: o nó herda a linha do primeiro pai (uma cadeia fica reta) e,
 # se ela já estiver ocupada na coluna, desce para a próxima livre — dois
 # destinos do mesmo pai ficam um embaixo do outro, nunca por cima.
-dispor <- function(flow, dx = 360, dy = 440) {
+dispor <- function(flow, dx = 360, vao = 100) {
   doc <- flow$doc
   ids <- names(doc$nodes)
   prof <- setNames(rep(0L, length(ids)), ids)
@@ -57,8 +59,20 @@ dispor <- function(flow, dx = 360, dy = 440) {
     linha[[id]] <- alvo
     ocupadas[[k]] <- c(usadas, alvo)
   }
+  # Estimativa folgada (px por campo acima do real, que vai de 22 a 46).
+  altura <- vapply(ids, function(id) {
+    spec <- reg$nodes[[doc$nodes[[id]]$type]]
+    portas <- max(length(spec$inputs), length(spec$outputs), 1L)
+    29 + 133 + 19 + 10 + 30 * length(spec$params) + 19 + 18 * portas
+  }, numeric(1))
+  topo <- 0
+  y <- numeric()
+  for (l in sort(unique(linha))) {
+    y[as.character(l)] <- topo
+    topo <- topo + max(altura[linha == l]) + vao
+  }
   for (id in ids) {
-    doc$ui$positions[[id]] <- c(prof[[id]] * dx, linha[[id]] * dy)
+    doc$ui$positions[[id]] <- c(prof[[id]] * dx, unname(y[as.character(linha[[id]])]))
     # Seed derivada do id: `tr_add()` sorteia uma nova a cada execução, e
     # regerar sem mudar o exemplo não pode sujar o diff.
     doc$nodes[[id]]$seed <- strtoi(substr(digest::digest(id, algo = "md5"), 1, 7), 16L)
