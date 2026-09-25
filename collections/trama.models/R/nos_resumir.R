@@ -120,21 +120,29 @@ termo (na parcela subdividida, o erro (a) para a parcela e o (b) para o resto;
 a coluna `erro` diz qual).
 
 - **eta2** — SQ do termo / SQ total: a fração da variação total que o termo
-  explica. Diminui quando o modelo ganha termos.
+  explica. Diminui quando o modelo ganha termos. Com SQ tipo II ou III as SQ
+  não somam o total, e o denominador é a soma das SQ do quadro — a coluna
+  `base_eta2` diz qual foi.
 - **eta2_parcial** — SQ / (SQ + SQ do erro): o termo contra o próprio erro. É o
   que o SPSS mostra, e o que se compara entre experimentos com delineamentos
   diferentes. Não soma 1 entre os termos.
 - **omega2** — (SQ − gl · QM do erro) / (SQ total + QM do erro): o eta²
-  corrigido do viés para cima em amostra pequena. Sai negativo quando F < 1:
-  leia como zero.
+  corrigido do viés para cima em amostra pequena. Na parcela subdividida sai
+  vazio: o total mistura os dois estratos de erro.
+- **omega2_parcial** — (SQ − gl · QM do erro) / (SQ + (N − gl) · QM do erro),
+  de Olejnik & Algina (2003), com o erro do próprio termo: é o ômega² que vale
+  na subdividida. Os dois ômegas saem negativos quando F < 1: leia como zero.
+
+Bloco (e linha e coluna do quadrado latino) não entram na tabela: são controle
+da casualização, não efeito a relatar.
 
 Referências de Cohen (1988) para eta²: 0,01 pequeno, 0,06 médio, 0,14 grande —
 régua genérica, que a área de cada um deve substituir quando tiver a sua.
 ]---", r"---[
 - **Soma de quadrados** — `I`, `II` ou `III`, como no `models/anova_table`.
 ]---", r"---[
-Uma tabela (`data/table`): `termo`, `gl`, `eta2`, `eta2_parcial`, `omega2` e
-`erro`.
+Uma tabela (`data/table`): `termo`, `gl`, `eta2`, `eta2_parcial`, `omega2`,
+`omega2_parcial`, `erro` e `base_eta2`.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("milho", "models/example", dataset = "milho_dbc") |>

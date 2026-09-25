@@ -14,15 +14,24 @@
 #' que o F de cada um usa.
 #'
 #' - eta² = SQ / SQ total: a fração da variação total do termo. Soma no máximo
-#'   1 entre os termos, e diminui quando se põem mais termos no modelo.
-#' - eta² parcial = SQ / (SQ + SQ do erro): o termo contra o próprio erro, sem
-#'   os outros termos no denominador. É o que o SPSS mostra; não soma 1.
-#' - ômega² = (SQ − gl · QM do erro) / (SQ total + QM do erro): o eta² corrigido
-#'   do viés para cima que ele tem em amostra pequena. Pode sair negativo
-#'   quando F < 1 — leia como zero.
+#'   1 entre os termos, e diminui quando se põem mais termos no modelo. Com SQ
+#'   tipo II/III as SQ não somam o total, e o denominador é a soma das SQ do
+#'   quadro — a coluna `base_eta2` diz qual foi.
+#' - eta² parcial = SQ / (SQ + SQ do erro): o termo contra o próprio erro.
+#' - ômega² = (SQ − gl · QM do erro) / (SQ total + QM do erro): o eta²
+#'   corrigido do viés. Só com UM erro: na subdividida o total mistura os dois
+#'   estratos, e a coluna sai NA.
+#' - ômega² parcial (Olejnik & Algina 2003, fatores manipulados) =
+#'   (SQ − gl · QM do erro) / (SQ + (N − gl) · QM do erro), com o erro do termo:
+#'   é o que vale para a subdividida.
+#'
+#' Bloco, linha e coluna do DQL e o bloco da subdividida SAEM da tabela: são
+#' controle da casualização, e um "tamanho de efeito do bloco" ao lado do do
+#' tratamento convida a comparar o que não se compara.
 #' @param modelo objeto `tr_models_fit` de uma ANOVA (lm, delineamento, subdividida).
 #' @param tipo_sq `"I"`, `"II"` ou `"III"`, como no quadro.
-#' @return tibble com `termo`, `gl`, `eta2`, `eta2_parcial`, `omega2`.
+#' @return tibble com `termo`, `gl`, `eta2`, `eta2_parcial`, `omega2`,
+#'   `omega2_parcial`, `erro` e `base_eta2`.
 #' @export
 tr_models_effect_size <- function(modelo, tipo_sq = "I") {
   .tr_models_fit_conferir(modelo)
@@ -33,16 +42,24 @@ tr_models_effect_size <- function(modelo, tipo_sq = "I") {
   residuos <- which(startsWith(q$termo, "Resíduo"))
   termos <- setdiff(which(q$termo != "Total"), residuos)
   # Sem a linha Total (tipo II/III não somam), o total é a soma de todas as SQ.
-  sq_total <- if ("Total" %in% q$termo && tipo_sq == "I") q$sq[q$termo == "Total"]
-              else sum(q$sq[q$termo != "Total"], na.rm = TRUE)
+  com_total <- "Total" %in% q$termo && tipo_sq == "I"
+  sq_total <- if (com_total) q$sq[q$termo == "Total"] else sum(q$sq[q$termo != "Total"], na.rm = TRUE)
   erro <- vapply(termos, function(i) residuos[residuos > i][[1]], 1L)
+  controles <- if (!is.null(modelo$delineamento)) {
+    setdiff(all.vars(stats::as.formula(modelo$formula)[[3]]), modelo$tratamentos)
+  } else character()
+  fica <- !q$termo[termos] %in% controles
+  termos <- termos[fica]; erro <- erro[fica]
   sq <- q$sq[termos]; gl <- q$gl[termos]
   sq_e <- q$sq[erro]; qm_e <- q$qm[erro]
+  n <- nrow(modelo$dados)
   tibble::tibble(termo = q$termo[termos], gl = gl,
                  eta2 = sq / sq_total,
                  eta2_parcial = sq / (sq + sq_e),
-                 omega2 = (sq - gl * qm_e) / (sq_total + qm_e),
-                 erro = q$termo[erro])
+                 omega2 = if (modelo$classe == "split") NA_real_ else (sq - gl * qm_e) / (sq_total + qm_e),
+                 omega2_parcial = (sq - gl * qm_e) / (sq + (n - gl) * qm_e),
+                 erro = q$termo[erro],
+                 base_eta2 = if (com_total) "SQ total" else sprintf("soma das SQ do quadro (tipo %s não soma o total)", tipo_sq))
 }
 
 #' d de Cohen e g de Hedges entre dois grupos, com intervalo.

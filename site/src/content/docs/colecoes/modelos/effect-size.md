@@ -10,7 +10,7 @@ related: [models/anova_table, models/cohen_d]
 
 ## O que o bloco faz
 
-`models/effect_size` calcula, para cada termo do quadro da ANOVA, o eta² (fração da variação total), o eta² parcial (o termo contra o próprio erro) e o ômega² (o eta² corrigido do viés em amostra pequena). A saída é uma tabela.
+`models/effect_size` calcula, para cada termo do quadro da ANOVA, o eta² (fração da variação total), o eta² parcial (o termo contra o próprio erro) o ômega² (o eta² corrigido do viés em amostra pequena) e o ômega² parcial de Olejnik & Algina (2003), com o erro do próprio termo. Bloco, linha e coluna ficam de fora: são controle da casualização. A saída é uma tabela.
 
 ## Quando usar
 
@@ -18,7 +18,7 @@ Sempre que o artigo pedir, além do p-valor, o tamanho do efeito de cada fator �
 
 ## Configuração
 
-Soma de quadrados escolhe o tipo (`I`, `II` ou `III`), como no [Quadro da ANOVA](/trama/colecoes/modelos/anova-table/). Cada termo usa o próprio erro: na parcela subdividida, o erro (a) para o fator da parcela e o (b) para a subparcela e a interação; a coluna `erro` diz qual.
+Soma de quadrados escolhe o tipo (`I`, `II` ou `III`), como no [Quadro da ANOVA](/trama/colecoes/modelos/anova-table/). Cada termo usa o próprio erro: na parcela subdividida, o erro (a) para o fator da parcela e o (b) para a subparcela e a interação; a coluna `erro` diz qual. Ali o ômega² comum sai vazio (o total mistura os dois estratos) e vale o parcial. Com SQ tipo II ou III as SQ não somam o total, e a coluna `base_eta2` diz que o denominador do eta² é a soma das SQ do quadro.
 
 ## Exemplo
 
