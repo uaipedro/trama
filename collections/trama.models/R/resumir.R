@@ -23,14 +23,31 @@
 .tr_models_soma_zero <- function(fit) {
   aj <- fit$ajuste
   fatores <- names(Filter(is.factor, fit$dados))
-  usados <- intersect(fatores, all.vars(stats::formula(aj)))
+  # Só os fatores da parte FIXA: o fator de agrupamento de um misto não entra
+  # na matriz dos fixos, e o contraste dele não tem o que mudar.
+  fixa <- if (fit$classe == "glmer") reformulas::nobars(stats::formula(aj)) else stats::formula(aj)
+  usados <- intersect(fatores, all.vars(fixa))
   ctr <- stats::setNames(rep(list("contr.sum"), length(usados)), usados)
-  if (fit$classe == "glm") {
-    stats::glm(stats::formula(aj), family = stats::family(aj), data = fit$dados,
-               contrasts = if (length(ctr)) ctr else NULL)
-  } else {
-    stats::lm(stats::formula(aj), data = fit$dados, contrasts = if (length(ctr)) ctr else NULL)
-  }
+  switch(fit$classe,
+    glm = stats::glm(stats::formula(aj), family = stats::family(aj), data = fit$dados,
+                     contrasts = if (length(ctr)) ctr else NULL),
+    glmer = {
+      r <- .tr_models_capturar(lme4::glmer(stats::formula(aj), data = as.data.frame(fit$dados),
+                                           family = stats::family(aj),
+                                           contrasts = if (length(ctr)) ctr else NULL))
+      r$valor
+    },
+    gls = {
+      # O nlme::gls não tem argumento 'contrasts': o contraste vai no próprio
+      # fator, que o model.matrix respeita. O resto da chamada (correlação,
+      # pesos, método) é o do ajuste original.
+      d <- as.data.frame(fit$dados)
+      for (v in usados) stats::contrasts(d[[v]]) <- stats::contr.sum(nlevels(d[[v]]))
+      cl <- aj$call
+      cl$data <- d
+      eval(cl)
+    },
+    stats::lm(stats::formula(aj), data = fit$dados, contrasts = if (length(ctr)) ctr else NULL))
 }
 
 #' O quadro do `stats`/`car`, com nomes em português e o QM calculado.
@@ -163,11 +180,12 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
                  qm = a$`Mean Sq`, F = a$`F value`, p_valor = a$`Pr(>F)`)
     },
     gls = {
-      a <- .tr_models_ajustar(as.data.frame(stats::anova(modelo$ajuste, type = if (tipo == "I") "sequential" else "marginal")), no)
       if (tipo == "II") {
         .tr_models_abort("tr_models_error_not_applicable",
                          "'%s': no GLS há o quadro sequencial (tipo I) e o marginal (tipo III).", no)
       }
+      m <- if (tipo == "III") .tr_models_ajustar(.tr_models_soma_zero(modelo), no) else modelo$ajuste
+      a <- .tr_models_ajustar(as.data.frame(stats::anova(m, type = if (tipo == "I") "sequential" else "marginal")), no)
       a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
       nota <- "F de Wald pela covariância do GLS"
       data.frame(termo = rownames(a), gl = a$numDF, F = a$`F-value`, p_valor = a$`p-value`)
@@ -178,7 +196,9 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
                          paste0("'%s': o GLM misto não tem SQ sequencial; use tipo_sq = 'II' ou 'III' ",
                                 "(qui-quadrado de Wald, car::Anova)."), no)
       }
-      a <- .tr_models_ajustar(as.data.frame(car::Anova(modelo$ajuste, type = tipo)), no)
+      m <- if (tipo == "III") .tr_models_ajustar(.tr_models_soma_zero(modelo), no) else modelo$ajuste
+      a <- .tr_models_ajustar(as.data.frame(car::Anova(m, type = tipo)), no)
+      a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
       coluna <- "qui2"; nota <- "qui-quadrado de Wald"
       data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     },
@@ -191,6 +211,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       }
       .tr_models_quadro_split(modelo)
     })
+  if (tipo == "III") nota <- .tr_models_nota(nota, .tr_models_nota_covariavel_iii(modelo))
   cv <- .tr_models_cv(modelo)
   if (!is.null(cv$cv)) rodape[[if (modelo$classe == "split") "CV (b)" else "CV"]] <- .tr_models_pct(cv$cv)
   if (!is.null(cv$cv_a)) rodape[["CV (a)"]] <- .tr_models_pct(cv$cv_a)
@@ -202,6 +223,28 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
     nota = .tr_models_nota(nota, .tr_models_nota_descarte(modelo$descartadas)),
     fonte = switch(tipo, I = "Fisher (1925)", II = "Langsrud (2003); Fox & Weisberg (2019)",
                    III = "Yates (1934); Fox & Weisberg (2019)"))
+}
+
+#' Tipo III com covariável numérica em interação com fator.
+#'
+#' O `contr.sum` resolve o fator (efeito na média do outro fator), mas não a
+#' covariável: o efeito principal do fator é testado com a covariável em ZERO,
+#' que pode estar fora dos dados. É a convenção do SAS e do `car`; a nota diz
+#' onde o teste está sendo feito para que se centre a covariável se zero não
+#' tiver sentido.
+#' @noRd
+.tr_models_nota_covariavel_iii <- function(fit) {
+  fixa <- tryCatch(reformulas::nobars(stats::as.formula(fit$formula)), error = function(e) NULL)
+  if (is.null(fixa)) return("")
+  rot <- attr(stats::terms(fixa), "term.labels")
+  inter <- rot[grepl(":", rot, fixed = TRUE)]
+  if (!length(inter)) return("")
+  vars <- unique(unlist(lapply(inter, function(t) all.vars(stats::as.formula(paste("~", t))))))
+  num <- vars[vapply(vars, function(v) v %in% names(fit$dados) && is.numeric(fit$dados[[v]]), logical(1))]
+  if (!length(num)) return("")
+  sprintf(paste0("tipo III com %s em interação: os efeitos principais são testados em %s = 0; ",
+                 "centre a covariável se zero não estiver nos dados"),
+          paste(num, collapse = ", "), paste(num, collapse = " = 0, "))
 }
 
 #' Os efeitos que o card do modelo mostra: o quadro tipo I nos delineamentos, os

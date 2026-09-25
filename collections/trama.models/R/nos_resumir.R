@@ -4,7 +4,7 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "models/test"; T <- "data/table"
   list(
-    trama::tr_node("models/anova_table", 
+    trama::tr_node("models/anova_table", version = 2L,
       pressupostos = .tr_models_doc("models/anova_table")$pressupostos,
       referencias = .tr_models_doc("models/anova_table")$referencias,
       fn = tr_models_anova_table, label = "Quadro da ANOVA",

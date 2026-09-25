@@ -72,10 +72,11 @@
       pressupostos = list(
         P("Os pressupostos do **modelo** que entra (normalidade e variância constante do erro nos modelos lineares; família e ligação no GLM) valem: o quadro só lê o ajuste.",
           verificar = c("models/shapiro_residuals", "models/levene", "models/plot_diagnostics")),
-        P("No **tipo III**, os fatores estão em contrastes de soma zero (o bloco reajusta sozinho); no **tipo I**, a ordem dos termos na fórmula é a ordem das perguntas.",
+        P("No **tipo III**, os fatores estão em contrastes de soma zero (o bloco reajusta sozinho, também no GLM misto e no GLS; o `lmerTest` já é invariante ao contraste). Uma **covariável numérica em interação** com fator não é centrada: o efeito principal do fator é testado com a covariável em zero, e a nota avisa. No **tipo I**, a ordem dos termos na fórmula é a ordem das perguntas.",
           se_falhar = "No desbalanceado, prefira o tipo II quando não há interação, e o III quando há.")),
       referencias = list(L$searle, L$fox, L$montgomery,
+        I("nlme", "anova.gls", "No GLS, `type = \"sequential\"` (tipo I) ou `\"marginal\"` (tipo III, com os fatores reajustados em `contr.sum`)."),
         I("stats", "anova", "Tipo I (`lm`, `aov`, `glm`: F ou qui-quadrado conforme a dispersão da família); no misto, `anova` do `lmerTest` com gl de Satterthwaite."),
-        I("car", "Anova", "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`.")))
+        I("car", "Anova", "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo (também o `glmer`) é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`.")))
   )
 }

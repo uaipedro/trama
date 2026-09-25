@@ -1,5 +1,17 @@
 # trama.models (desenvolvimento)
 
+## Correções
+
+- `models/anova_table` (versão 2): o SQ tipo III do GLM misto (`car::Anova`) e o
+  marginal do GLS (`anova.gls`) usavam o contraste de tratamento, e com
+  interação testavam cada fator no nível de referência do outro. Agora o modelo
+  é reajustado com `contr.sum` nos fatores fixos, como já era no `lm`/`glm`.
+  Oráculos: `grouseticks`, `TICKS ~ YEAR * alt + (1 | BROOD)` Poisson, YEAR
+  χ² = 80,94 e alt 72,17 (antes 50,52 e 41,71); GLS AR(1) `y ~ trt * tempo`,
+  trt F = 8,653 (antes 2,140). O `lmerTest` já era invariante ao contraste
+  (teste de regressão). Tipo III com covariável numérica em interação ganha nota:
+  o efeito do fator é testado com a covariável em zero.
+
 ## Blocos novos
 
 - `models/friedman`: teste de Friedman (1937, doi:10.1080/01621459.1937.10503522)

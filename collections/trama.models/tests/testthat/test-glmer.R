@@ -62,3 +62,22 @@ test_that("glmer Poisson, atalho por colunas, e recusas", {
   em <- tr_models_emmeans(g, "YEAR")
   expect_s3_class(em, "tr_models_emm")
 })
+
+test_that("glmer tipo III reajusta com contr.sum (efeito na média, não no nível de referência)", {
+  gr <- as.data.frame(get(utils::data("grouseticks", package = "lme4", envir = environment())))
+  gr$alt <- factor(ifelse(gr$HEIGHT > stats::median(gr$HEIGHT), "alta", "baixa"))
+  g <- tr_models_glmer(gr, formula = "TICKS ~ YEAR * alt + (1 | BROOD)", familia = "poisson")
+  q <- tr_models_anova_table(g, "III")$tabela
+  # Oráculo: car::Anova(type = 3) no glmer ajustado com contr.sum nos fatores
+  # fixos. Com o contraste de tratamento o YEAR sairia 50,52 e o alt 41,71.
+  ref <- lme4::glmer(TICKS ~ YEAR * alt + (1 | BROOD), family = stats::poisson(), data = gr,
+                     contrasts = list(YEAR = "contr.sum", alt = "contr.sum"))
+  a <- car::Anova(ref, type = 3)
+  expect_equal(q$termo, c("YEAR", "alt", "YEAR:alt"))
+  expect_equal(q$qui2, unname(a$Chisq[-1]), tolerance = 1e-6)
+  expect_equal(q$p_valor, unname(a$`Pr(>Chisq)`[-1]), tolerance = 1e-6)
+  expect_equal(round(q$qui2, 1), c(80.9, 72.2, 6.4))
+  # O tipo II não muda com o contraste e fica no ajuste original.
+  q2 <- tr_models_anova_table(g, "II")$tabela
+  expect_equal(q2$qui2, unname(car::Anova(g$ajuste, type = 2)$Chisq), tolerance = 1e-8)
+})
