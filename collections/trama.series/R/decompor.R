@@ -85,9 +85,18 @@ tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
 #' recusa.
 #' @export
 tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
-                                 contraste = "soma_zero", regressor = NULL) {
+                                 contraste = "soma_zero", regressor = NULL,
+                                 erro = "independente", ar = 1L, ma = 0L) {
   grau <- .tr_series_int(grau, "grau", min = 0, max = 3)
   contraste <- .tr_series_enum(contraste, c("soma_zero", "categoria_base"), "contraste")
+  erro <- .tr_series_enum(erro, c("independente", "arma"), "erro")
+  ar <- .tr_series_int(ar, "ar", min = 0, max = 3)
+  ma <- .tr_series_int(ma, "ma", min = 0, max = 3)
+  if (erro == "arma" && ar + ma == 0L) {
+    .tr_series_abort("tr_series_error_bad_option",
+                     paste0("Params 'ar' e 'ma': erro ARMA(0, 0) é erro independente. Suba 'ar' ",
+                            "ou 'ma', ou escolha erro = 'independente'."))
+  }
   if (!is.null(regressor)) {
     .tr_series_abort("tr_series_error_xreg_unsupported",
                      paste0("'series/regression' ainda não usa regressor externo. Desligue o fio da ",
@@ -133,6 +142,26 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   }
 
   fit <- stats::lm(y ~ ., data = dados)
+  X <- stats::model.matrix(fit)
+  # Os rótulos dos termos vão junto com a matriz: é por `assign` que o F de
+  # Wald acha as colunas de um bloco quando o ajuste é GLS.
+  attr(X, "rotulos") <- attr(stats::terms(fit), "term.labels")
+  if (erro == "arma" && !anyNA(stats::coef(fit))) {
+    # Mínimos quadrados generalizados com erro ARMA(p, q) (Morettin & Toloi
+    # 2006; Pinheiro & Bates 2000), por máxima verossimilhança — e não REML —
+    # para que o ajuste seja a MESMA função que o `stats::arima(xreg = )`
+    # maximiza, que é o oráculo dos testes. O `lm` acima fica só como checagem
+    # de posto; os F passam a ser de Wald sobre o `vcov` do GLS.
+    fit <- tryCatch(
+      nlme::gls(y ~ ., data = dados, method = "ML",
+                correlation = nlme::corARMA(p = ar, q = ma, form = ~ 1)),
+      error = function(e) {
+        .tr_series_abort("tr_series_error_fit",
+                         paste0("O ajuste com erro ARMA(%d, %d) não convergiu (%s). Baixe a ",
+                                "ordem do erro, ou use erro = 'independente'."),
+                         ar, ma, conditionMessage(e))
+      })
+  }
   if (anyNA(stats::coef(fit))) {
     .tr_series_abort("tr_series_error_fit",
                      paste0("O ajuste ficou indeterminado (%d coeficientes sem estimativa): a série é ",
@@ -146,7 +175,6 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   # perderia.
   saz <- rep(0, nrow(dados))
   if (isTRUE(sazonalidade)) {
-    X <- stats::model.matrix(fit)
     cols <- grepl("^estacao", colnames(X))
     saz <- as.numeric(X[, cols, drop = FALSE] %*% stats::coef(fit)[cols])
     # Centra pela média do CICLO, e não da amostra: com anos completos as duas
@@ -160,6 +188,8 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   }
   structure(list(ajuste = fit, serie = serie, grau = grau,
                  sazonalidade = isTRUE(sazonalidade), contraste = contraste,
+                 erro = erro, ordem = if (erro == "arma") c(ar = ar, ma = ma) else NULL,
+                 matriz = X,
                  tendencia = como_ts(as.numeric(stats::fitted(fit)) - saz),
                  sazonal = como_ts(saz),
                  resto = como_ts(as.numeric(stats::residuals(fit)))),

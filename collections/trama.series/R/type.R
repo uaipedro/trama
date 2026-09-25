@@ -241,6 +241,13 @@ series_regression_type <- function() {
     },
     restore = function(path) readRDS(path),
     summary = function(x) {
+      if (inherits(x$ajuste, "gls")) {
+        f <- tr_series_f_global(x)
+        return(list(grau = x$grau, sazonalidade = x$sazonalidade,
+                    erro = sprintf("ARMA(%d, %d)", x$ordem[["ar"]], x$ordem[["ma"]]),
+                    p_valor_f = signif(f$p_valor, 3),
+                    observacoes = length(x$serie)))
+      }
       s <- summary(x$ajuste)
       fs <- s$fstatistic
       list(grau = x$grau, sazonalidade = x$sazonalidade,

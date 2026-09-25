@@ -7,9 +7,14 @@
              verificar = c("series/seasonal_plot", "series/subseries", "series/fisher"),
              se_falhar = "Declare a frequência certa no nó que cria a série (`series/from_table`).")
   erro_indep <- P(
-    "Os erros da regressão são **independentes** (sem autocorrelação). Série temporal quase nunca obedece, e o efeito é conhecido: erros-padrão pequenos demais e p-valores **otimistas**.",
+    "Com **Erro = independente** (padrão, MQO), os erros da regressão são **independentes** (sem autocorrelação). Série temporal quase nunca obedece, e o efeito é conhecido: erros-padrão pequenos demais e p-valores **otimistas**. Com **Erro = arma**, o erro segue o ARMA(p, q) declarado.",
     verificar = c("series/component", "series/ljung_box", "series/acf"),
-    se_falhar = "Tire o `resto` com `series/component` e passe no `series/ljung_box`. Com autocorrelação, leia os p-valores como indicativos; regressão com erro ARMA (mínimos quadrados generalizados) ainda sem bloco no trama. Os testes não paramétricos (`series/mann_kendall`, `series/kruskal_wallis`) também supõem independência, então não resolvem.")
+    se_falhar = "Tire o `resto` com `series/component` e passe no `series/ljung_box`. Com autocorrelação, ligue **Erro = arma** no `series/regression` (GLS com erro ARMA; comece por AR(1) e escolha a ordem pela `series/acf` e `series/pacf` do resto); os três F viram testes de Wald do GLS. Perto da raiz unitária nem o GLS segura o nível: diferencie. Os testes não paramétricos (`series/mann_kendall`, `series/kruskal_wallis`) também supõem independência, então não resolvem.")
+  pinheiro_bates <- R(autores = c("Pinheiro, J. C.", "Bates, D. M."), ano = 2000,
+                      titulo = "Mixed-Effects Models in S and S-PLUS",
+                      fonte = "New York: Springer", doi = "10.1007/b98882", papel = "livro-texto")
+  f_wald <- I("trama.series", "tr_series_f_global",
+              "Com regressão de erro ARMA (GLS): F de Wald b'V⁻¹b/q do bloco, com a covariância do `gls`, q e n - p graus de liberdade; conferido refazendo a conta à mão (1e-8).")
   erro_normal <- P(
     "Os erros são **normais e de variância constante**: o F é exato só assim.",
     verificar = c("series/component", "view/qq", "models/shapiro"),
@@ -58,12 +63,15 @@
         P("Do grau 2 em diante, as potências cruas do tempo são **quase colineares**: os coeficientes de tendência não se leem um a um.",
           se_falhar = "Leia a tendência pelo `series/f_tendencia`, que testa o bloco inteiro.")),
       referencias = c(regressao_ref, list(
-        I("stats", "lm", "Mínimos quadrados ordinários de `y ~ t + ... + t^grau + estacao`; o contraste da estação é `contr.sum` (soma_zero) ou `contr.treatment` (categoria_base), posto no fator.")))),
+        I("stats", "lm", "Mínimos quadrados ordinários de `y ~ t + ... + t^grau + estacao`; o contraste da estação é `contr.sum` (soma_zero) ou `contr.treatment` (categoria_base), posto no fator."),
+        pinheiro_bates,
+        I("nlme", "gls", "Com `erro = \"arma\"`: `gls(y ~ ..., correlation = corARMA(p = ar, q = ma), method = \"ML\")`. Conferido contra `stats::arima(xreg = , method = \"ML\")` (coeficientes a 1e-3, log-verossimilhança a 1e-4) e, em AR(1), contra o MQO de Prais-Winsten com o phi estimado (1e-8).")))),
 
     "series/f_global" = list(
       pressupostos = list(erro_indep, erro_normal, forma),
       referencias = c(regressao_ref, list(
-        I("stats", "summary.lm", "O F do `summary()` do ajuste do `series/regression`; p-valor por `stats::pf`.")))),
+        I("stats", "summary.lm", "O F do `summary()` do ajuste do `series/regression`; p-valor por `stats::pf`."),
+        f_wald))),
 
     "series/f_sazonal" = list(
       pressupostos = list(erro_indep, erro_normal,
@@ -73,7 +81,8 @@
         P("A tendência está **bem modelada** pelo polinômio: tendência sobrando no erro infla a variância residual e esconde a sazonalidade.",
           verificar = "series/plot_decomposition")),
       referencias = c(regressao_ref, list(
-        I("stats", "anova", "F parcial: `anova(lm(sem as dummies), ajuste)`, reajustado a partir de `fit$model`.")))),
+        I("stats", "anova", "F parcial: `anova(lm(sem as dummies), ajuste)`, reajustado a partir de `fit$model`."),
+        f_wald))),
 
     "series/f_tendencia" = list(
       pressupostos = list(erro_indep, erro_normal,
@@ -83,6 +92,7 @@
         P("A sazonalidade, se existe, está **no modelo**: sazonalidade sobrando no erro infla a variância residual.",
           verificar = "series/f_sazonal")),
       referencias = c(regressao_ref, list(
-        I("stats", "anova", "F parcial: `anova(lm(sem os termos t...t^grau), ajuste)`, reajustado a partir de `fit$model`."))))
+        I("stats", "anova", "F parcial: `anova(lm(sem os termos t...t^grau), ajuste)`, reajustado a partir de `fit$model`."),
+        f_wald)))
   )
 }

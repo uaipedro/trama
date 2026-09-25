@@ -24,6 +24,7 @@ Imports:
     trama.data,
     trama.view,
     forecast (>= 8.0),
+    nlme,
     urca,
     ggplot2 (>= 4.0.0),
     rlang,

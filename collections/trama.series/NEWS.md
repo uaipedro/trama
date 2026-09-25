@@ -30,3 +30,14 @@
   Oráculos: a regressão do corte reproduz `urca::ur.za` a 1e-10; com k = 8 o
   bloco reproduz Zivot & Andrews (1992) no PNB real (-5,58, 1929) e nominal
   (-5,82, 1929) de Nelson-Plosser (`urca::nporg`). Muda o resultado padrão.
+
+- `series/regression`: opção de erro ARMA por mínimos quadrados generalizados
+  (`erro = "arma"`, ordens `ar` e `ma`; `nlme::gls` + `corARMA`, por máxima
+  verossimilhança). O padrão continua MQO (`erro = "independente"`), sem mudar
+  resultado. Com GLS, `series/f_global`, `series/f_sazonal` e
+  `series/f_tendencia` passam a F de Wald com a covariância do GLS (a `nota`
+  diz). Oráculos: `stats::arima(xreg = , method = "ML")` (coeficientes a 1e-3,
+  log-verossimilhança a 1e-4), MQO de Prais-Winsten com o phi estimado (1e-8) e
+  o F de Wald refeito à mão (1e-8). Medido: sem tendência e erro AR(1)
+  phi = 0,6, n = 120, o F de tendência rejeita a 5% em 37% por MQO e 8% por GLS
+  (phi = 0,9: 69% e 17%). `nlme` entra em Imports (pacote recomendado do R).

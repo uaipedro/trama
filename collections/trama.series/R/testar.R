@@ -514,6 +514,12 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
 #' @noRd
 .tr_series_f_parcial <- function(ajuste, rotulo, h0, termos, sim, nao) {
   fit <- ajuste$ajuste
+  if (inherits(fit, "gls")) {
+    # Erro ARMA: não há reajuste por MQO que valha; o F é o de Wald sobre os
+    # coeficientes do bloco, com a covariância do GLS.
+    cols <- .tr_series_colunas_termos(ajuste, termos)
+    return(.tr_series_f_wald(ajuste, cols, rotulo, h0, sim, nao, "F de Wald do bloco"))
+  }
   # Teste PARCIAL: reajusta sem o bloco e compara. O reajuste sai de
   # `fit$model`, que carrega o fator com o contraste já posto — por isso o
   # contraste é atribuído ao fator, e não ao `lm`, em `tr_series_regression`.
@@ -534,6 +540,35 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
     fonte = "Morettin & Toloi (2006)")
 }
 
+#' Colunas da matriz de desenho que pertencem a um conjunto de termos.
+#' @noRd
+.tr_series_colunas_termos <- function(ajuste, termos) {
+  X <- ajuste$matriz
+  which(attr(X, "assign") %in% match(termos, attr(X, "rotulos")))
+}
+
+#' F de Wald de um bloco de coeficientes do GLS: b' V^-1 b / q, com q e
+#' n - p graus de liberdade (Pinheiro & Bates 2000, sec. 5.4).
+#' @noRd
+.tr_series_f_wald <- function(ajuste, cols, rotulo, h0, sim, nao, tipo) {
+  fit <- ajuste$ajuste
+  b <- stats::coef(fit)[cols]
+  V <- stats::vcov(fit)[cols, cols, drop = FALSE]
+  q <- length(cols)
+  gl2 <- length(stats::fitted(fit)) - length(stats::coef(fit))
+  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
+  o <- ajuste$ordem
+  .tr_series_teste(
+    rotulo, h0, Fv, "F",
+    p_valor = stats::pf(Fv, q, gl2, lower.tail = FALSE),
+    sentido = "menor",
+    conclusao_sim = sim,
+    conclusao_nao = nao,
+    nota = sprintf("%s com erro ARMA(%d, %d) por GLS, %d %s no numerador e %d no denominador",
+                   tipo, o[["ar"]], o[["ma"]], q, if (q == 1L) "grau" else "graus", gl2),
+    fonte = "Morettin & Toloi (2006)")
+}
+
 #' O bloco pedido não está no ajuste.
 #' @noRd
 .tr_series_sem_bloco <- function(no, bloco, saida) {
@@ -551,6 +586,13 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
 #' @export
 tr_series_f_global <- function(ajuste) {
   .tr_series_exige_reg(ajuste, "series/f_global")
+  if (inherits(ajuste$ajuste, "gls")) {
+    cols <- which(colnames(ajuste$matriz) != "(Intercept)")
+    return(.tr_series_f_wald(ajuste, cols, "F global",
+                             "todos os coeficientes, fora o intercepto, são nulos",
+                             "o modelo explica parte da série",
+                             "não há evidência de que o modelo explique a série", "F de Wald global"))
+  }
   s <- summary(ajuste$ajuste)
   fs <- s$fstatistic
   p <- stats::pf(fs[[1]], fs[[2]], fs[[3]], lower.tail = FALSE)

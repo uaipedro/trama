@@ -1649,3 +1649,44 @@ test_that("teto de defasagens que não cabe é recusado também na seleção", {
   expect_error(tr_series_zivot_andrews(serie_mensal(), selecao = "aic"),
                class = "tr_series_error_bad_option")
 })
+
+# ---- F com erro ARMA (GLS): Wald F, refeito à mão ------------------------------
+wald_f <- function(fit, idx) {
+  b <- stats::coef(fit)[idx]; V <- stats::vcov(fit)[idx, idx, drop = FALSE]
+  q <- length(idx)
+  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
+  c(F = Fv, p = stats::pf(Fv, q, length(stats::fitted(fit)) - length(stats::coef(fit)),
+                           lower.tail = FALSE))
+}
+
+test_that("os três F com erro AR(1) são o F de Wald do GLS", {
+  x <- log(datasets::AirPassengers)
+  r <- tr_series_regression(x, grau = 2L, erro = "arma", ar = 1L)
+  nm <- names(stats::coef(r$ajuste))
+  g <- tr_series_f_global(r); s <- tr_series_f_sazonal(r); d <- tr_series_f_tendencia(r)
+  for (par in list(list(g, which(nm != "(Intercept)")),
+                   list(s, grep("^estacao", nm)),
+                   list(d, match(c("t1", "t2"), nm)))) {
+    w <- wald_f(r$ajuste, par[[2]])
+    expect_equal(par[[1]]$estatistica, w[["F"]], tolerance = 1e-8)
+    expect_equal(par[[1]]$p_valor, w[["p"]], tolerance = 1e-8)
+    expect_match(par[[1]]$nota, "erro ARMA(1, 0)", fixed = TRUE)
+  }
+  expect_match(s$nota, "11 graus no numerador")
+})
+
+test_that("com erro AR(1) o F de MQO é otimista e o do GLS chega perto do nominal", {
+  # O motivo da opção. Sem tendência nenhuma, erro AR(1) com phi = 0,6, n = 120:
+  # medido em 300 réplicas, o F de tendência do MQO rejeita em 37% e o do GLS
+  # em 8%. Com phi = 0,9 são 69% e 17%: o GLS melhora muito, mas o F de Wald
+  # ainda passa do nominal perto da raiz unitária (a página avisa).
+  set.seed(21)
+  rej <- replicate(150, {
+    e <- stats::arima.sim(list(ar = 0.6), 120)
+    x <- stats::ts(as.numeric(e), frequency = 12)
+    c(tr_series_f_tendencia(tr_series_regression(x, sazonalidade = FALSE))$p_valor < 0.05,
+      tr_series_f_tendencia(tr_series_regression(x, sazonalidade = FALSE, erro = "arma"))$p_valor < 0.05)
+  })
+  expect_gt(mean(rej[1, ]), 0.25)
+  expect_lt(mean(rej[2, ]), 0.12)
+})
