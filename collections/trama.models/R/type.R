@@ -51,8 +51,10 @@
 #'
 #' - `ajuste`: o `lm`/`aov`, `glm`, `lmerModLmerTest` ou, na parcela
 #'   subdividida, o `aovlist`.
-#' - `classe`: `"lm"`, `"glm"`, `"lmer"` ou `"split"` — é por ela que cada nó
-#'   decide o que sabe fazer, e não por `inherits()` espalhado.
+#' - `classe`: `"lm"`, `"glm"`, `"lmer"` ou `"split"`. A classe S3 é
+#'   `c("tr_models_<classe>", "tr_models_fit")`, e é por ela que os genéricos do
+#'   contrato (`contrato.R`) despacham; o campo fica para os leitores que não são
+#'   do contrato e para promover RDS antigos.
 #' - `rotulo`: o que o card escreve no topo ("ANOVA · DBC").
 #' - `formula`: a fórmula em texto, como foi ajustada.
 #' - `dados`: as linhas USADAS, já com os fatores. `emmeans` e o SQ tipo III
@@ -72,7 +74,7 @@
                  dados = dados, resposta = resposta, delineamento = delineamento,
                  tratamentos = tratamentos, bloco = bloco, aux_lm = aux_lm,
                  aux_misto = aux_misto, descartadas = as.integer(descartadas)),
-            class = "tr_models_fit")
+            class = c(paste0("tr_models_", classe), "tr_models_fit"))
 }
 
 .tr_models_fit_conferir <- function(fit) {
@@ -83,12 +85,22 @@
 models_fit_type <- function() {
   trama::tr_type(
     "models/fit", version = 1L, label = "Modelo", color = .TR_MODELS_COR, ext = "rds",
+    # O funil é o CONTRATO, não os campos: qualquer `tr_models_fit` com um
+    # `tr_models_info()` válido entra (os campos fixos só se conferem nas
+    # classes daqui). Grava-se o que `tr_models_serialize()` devolve — o objeto
+    # inteiro, salvo em quem guarda ponteiro externo.
     store = function(x, path) {
-      .tr_models_fit_conferir(x)
-      saveRDS(x, path, compress = FALSE)
+      .tr_models_modelo_conferir(x)
+      saveRDS(tr_models_serialize(x), path, compress = FALSE)
     },
-    restore = function(path) readRDS(path),
-    preview = function(x, ctx) trama::tr_preview("models/fit", data = .tr_models_fit_preview(x))
+    # RDS de antes do contrato volta com a subclasse derivada de `$classe`; o de
+    # uma coleção que não está carregada para aqui, dizendo qual carregar.
+    restore = function(path) {
+      x <- .tr_models_promover(readRDS(path))
+      .tr_models_exigir_metodos(x)
+      tr_models_unserialize(x)
+    },
+    preview = function(x, ctx) tr_models_card(x, ctx)
   )
 }
 
@@ -332,16 +344,9 @@ models_emm_type <- function() {
   )
 }
 
-#' Modelo -> tabela: os coeficientes; na parcela subdividida, que não tem
-#' coeficientes que se leiam, o quadro.
-#' @noRd
-.tr_models_fit_tabela <- function(x) {
-  if (x$classe == "split") tr_models_anova_table(x)$tabela else tr_models_coefficients(x)$tabela
-}
-
 .tr_models_adapters <- function() {
   list(
-    trama::tr_adapter("models/fit", "data/table", .tr_models_fit_tabela),
+    trama::tr_adapter("models/fit", "data/table", tr_models_as_table),
     trama::tr_adapter("models/effects", "data/table", function(x) x$tabela),
     trama::tr_adapter("models/test", "data/table", .tr_models_teste_tabela),
     trama::tr_adapter("models/emm", "data/table", function(x) x$tabela)

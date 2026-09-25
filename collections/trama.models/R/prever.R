@@ -36,29 +36,22 @@
 #' @return `dados` com `previsto` (e `li`, `ls` com intervalo) anexadas.
 #' @export
 tr_models_predict <- function(modelo, dados, intervalo = "nenhum", confianca = 0.95) {
-  .tr_models_fit_conferir(modelo)
-  if (modelo$classe == "split") {
-    .tr_models_abort("tr_models_error_not_applicable",
-                     paste0("'models/predict' não se aplica à parcela subdividida: o ajuste é uma ",
-                            "lista de modelos (aovlist, um por estrato de erro), sem um predict() só. ",
-                            "Ajuste o misto equivalente em 'models/lmer' para prever."))
-  }
+  .tr_models_modelo_conferir(modelo)
+  if (identical(modelo$classe, "split")) .tr_models_split_sem_predict()
   intervalo <- .tr_models_enum(intervalo, .TR_MODELS_PREVER_INTERVALOS, "intervalo")
   confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
-  if (intervalo != "nenhum" && modelo$classe != "lm") {
+  if (intervalo != "nenhum" && !identical(modelo$classe, "lm")) {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'models/predict': intervalo só está disponível em 'models/lm'. '%s' não ",
                             "tem um predict() com intervalo fechado — deixe 'intervalo' em 'nenhum'."),
-                     modelo$classe)
+                     modelo$classe %||% class(modelo)[[1]])
   }
 
   d <- as.data.frame(dados, stringsAsFactors = FALSE)
-  # As preditoras que a fórmula usa, pelo NOME da variável — `all.vars()` do
-  # lado direito pega `x` dentro de `poly(x, 2)` ou `log(x)` sem confundir a
-  # função com a coluna, o mesmo que `.tr_models_categoricas()` já faz em
-  # `ajustar.R` para achar quem vira fator.
-  f <- stats::as.formula(modelo$formula)
-  preditoras <- all.vars(f[[3]])
+  # As preditoras vêm do contrato (`tr_models_info()$preditores`); nas classes
+  # daqui são as variáveis do lado direito da fórmula, pelo NOME — `x` dentro
+  # de `poly(x, 2)` ou `log(x)`, sem confundir a função com a coluna.
+  preditoras <- tr_models_info(modelo)$preditores
 
   faltam <- setdiff(preditoras, names(d))
   if (length(faltam)) {
@@ -73,7 +66,9 @@ tr_models_predict <- function(modelo, dados, intervalo = "nenhum", confianca = 0
   # de já ter tentado montar a matriz inteira. Aqui a checagem é explícita e
   # roda para todas as colunas antes de chamar predict() uma vez sequer.
   for (v in preditoras) {
-    niveis_ajuste <- levels(modelo$dados[[v]])
+    # Os níveis do ajuste estão em `modelo$dados`; modelo de outra coleção sem
+    # esse campo alinha os níveis no próprio `tr_models_predict_raw()`.
+    niveis_ajuste <- if (is.data.frame(modelo$dados)) levels(modelo$dados[[v]]) else NULL
     if (is.null(niveis_ajuste)) next  # não é fator no ajuste: número é número
     vistos <- as.character(d[[v]])
     novos <- setdiff(unique(vistos[!is.na(vistos)]), niveis_ajuste)
@@ -89,22 +84,8 @@ tr_models_predict <- function(modelo, dados, intervalo = "nenhum", confianca = 0
     d[[v]] <- factor(vistos, levels = niveis_ajuste)
   }
 
-  args <- list(object = modelo$ajuste, newdata = d)
-  # GLM: sem isto, o default de `predict.glm()` é a escala da LIGAÇÃO (log,
-  # logit), e o card mostraria log-odds ou log-contagem como "previsto" sem
-  # avisar — plausível e ilegível.
-  if (modelo$classe == "glm") args$type <- "response"
-  if (intervalo != "nenhum") {
-    args$interval <- if (intervalo == "confianca") "confidence" else "prediction"
-    args$level <- confianca
-  }
-
-  pred <- .tr_models_ajustar(do.call(stats::predict, args), "models/predict")
-
-  saida <- if (is.matrix(pred)) {
-    tibble::tibble(previsto = unname(pred[, "fit"]), li = unname(pred[, "lwr"]), ls = unname(pred[, "upr"]))
-  } else {
-    tibble::tibble(previsto = as.numeric(pred))
-  }
+  p <- tr_models_predict_raw(modelo, d, intervalo = intervalo, confianca = confianca)
+  saida <- tibble::tibble(previsto = p$previsto)
+  if (!is.null(p$extra)) saida <- dplyr::bind_cols(saida, tibble::as_tibble(p$extra))
   dplyr::bind_cols(tibble::as_tibble(dados), saida)
 }

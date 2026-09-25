@@ -225,41 +225,8 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
 #' @return objeto `tr_models_effects`.
 #' @export
 tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
-  .tr_models_fit_conferir(modelo)
-  no <- "models/coefficients"
-  .tr_models_exigir(modelo, c("lm", "glm", "lmer"), no,
-                    "Na parcela subdividida os coeficientes misturam os dois erros; compare as médias em 'models/emmeans'.")
-  aj <- modelo$ajuste
-  if (modelo$classe == "lmer") {
-    s <- stats::coef(summary(aj))
-    ic <- suppressMessages(stats::confint(aj, method = "Wald", parm = "beta_"))
-    tab <- data.frame(termo = rownames(s), estimativa = s[, "Estimate"], erro_padrao = s[, "Std. Error"],
-                      gl = s[, "df"], t = s[, "t value"], p_valor = s[, "Pr(>|t|)"],
-                      li_95 = ic[rownames(s), 1], ls_95 = ic[rownames(s), 2])
-    coluna <- "t"; nota <- "gl de Satterthwaite; intervalo de Wald"
-  } else {
-    # `summary.lm` explícito: nos delineamentos o ajuste é um `aov`, e o
-    # `summary()` dele é o quadro, sem coeficientes.
-    s <- if (modelo$classe == "glm") stats::coef(summary(aj)) else stats::coef(stats::summary.lm(aj))
-    ic <- if (modelo$classe == "glm") stats::confint.default(aj) else stats::confint(aj)
-    est_col <- colnames(s)[3]
-    coluna <- if (grepl("^z", est_col)) "z" else "t"
-    tab <- data.frame(termo = rownames(s), estimativa = s[, 1], erro_padrao = s[, 2],
-                      estat = s[, 3], p_valor = s[, 4], li_95 = ic[rownames(s), 1], ls_95 = ic[rownames(s), 2])
-    names(tab)[names(tab) == "estat"] <- coluna
-    nota <- if (modelo$classe == "glm") "intervalo de Wald, na escala da ligação" else ""
-    if (isTRUE(exponenciar)) {
-      .tr_models_exigir(modelo, "glm", no, "Exponenciar só faz sentido num GLM com ligação log ou logit.")
-      tab$estimativa <- exp(tab$estimativa); tab$li_95 <- exp(tab$li_95); tab$ls_95 <- exp(tab$ls_95)
-      tab$erro_padrao <- NULL
-      nota <- "estimativa e intervalo exponenciados (razão de chances ou de taxas)"
-    }
-  }
-  rownames(tab) <- NULL
-  .tr_models_efeitos(tibble::as_tibble(tab), "Coeficientes", coluna_estat = coluna,
-                     rodape = list(n = as.character(nrow(modelo$dados))),
-                     nota = .tr_models_nota(nota, .tr_models_nota_descarte(modelo$descartadas)),
-                     fonte = "")
+  .tr_models_modelo_conferir(modelo)
+  tr_models_coefs(modelo, exponenciar = exponenciar)
 }
 
 #' R² marginal e condicional de um misto gaussiano (Nakagawa & Schielzeth 2013,
@@ -293,32 +260,8 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
 #' @return tibble de uma linha.
 #' @export
 tr_models_fit_stats <- function(modelo) {
-  .tr_models_fit_conferir(modelo)
-  aj <- if (modelo$classe == "split") modelo$aux_lm else modelo$ajuste
-  na <- NA_real_
-  r2 <- r2a <- r2m <- r2c <- dexp <- sig <- cv <- na
-  if (modelo$classe %in% c("lm", "split")) {
-    s <- stats::summary.lm(aj); r2 <- s$r.squared; r2a <- s$adj.r.squared; sig <- s$sigma
-    cv <- .tr_models_cv(modelo)$cv
-  } else if (modelo$classe == "glm") {
-    dexp <- 1 - aj$deviance / aj$null.deviance
-    if (stats::family(aj)$family == "gaussian") sig <- stats::sigma(aj)
-  } else {
-    r <- .tr_models_r2_misto(aj); r2m <- r[["marginal"]]; r2c <- r[["condicional"]]
-    sig <- stats::sigma(aj)
-  }
-  ll <- tryCatch(stats::logLik(aj), error = function(e) NULL)
-  # Os valores saem do objeto ANTES do `tibble()`: lá dentro, `modelo` já é a
-  # coluna recém-criada, e `modelo$formula` falharia sobre uma string.
-  rotulo <- modelo$rotulo; fml <- modelo$formula; n <- nrow(modelo$dados)
-  gl_res <- if (modelo$classe == "lmer") na else as.numeric(stats::df.residual(aj))
-  tibble::tibble(
-    modelo = rotulo, formula = fml, n = n,
-    gl_residuo = gl_res,
-    r2 = r2, r2_ajustado = r2a, r2_marginal = r2m, r2_condicional = r2c,
-    desvio_explicado = dexp, sigma = sig, cv_pct = cv,
-    aic = if (is.null(ll)) na else stats::AIC(aj), bic = if (is.null(ll)) na else stats::BIC(aj),
-    log_verossimilhanca = if (is.null(ll)) na else as.numeric(ll))
+  .tr_models_modelo_conferir(modelo)
+  tr_models_stats(modelo)
 }
 
 #' O misto do modelo: o próprio, ou o equivalente da parcela subdividida.
@@ -384,22 +327,8 @@ tr_models_random_effects <- function(modelo) {
 #'   `residuo_padronizado` à direita.
 #' @export
 tr_models_residuals <- function(modelo) {
-  .tr_models_fit_conferir(modelo)
-  aj <- if (modelo$classe == "split") modelo$aux_lm else modelo$ajuste
-  d <- modelo$dados
-  pad <- switch(modelo$classe,
-                glm = stats::rstandard(aj, type = "deviance"),
-                lmer = stats::residuals(aj, type = "pearson", scaled = TRUE),
-                stats::rstandard(aj))
-  nomes <- c("ajustado", "residuo", "residuo_padronizado")
-  # Coluna que já existe na tabela ganha sufixo, em vez de ser sobrescrita: um
-  # `residuo` de outra análise perdido em silêncio é o tipo de coisa que só se
-  # descobre no artigo.
-  nomes <- ifelse(nomes %in% names(d), paste0(nomes, "_modelo"), nomes)
-  d[[nomes[[1]]]] <- as.numeric(stats::fitted(aj))
-  d[[nomes[[2]]]] <- as.numeric(stats::residuals(aj, type = if (modelo$classe == "glm") "deviance" else "response"))
-  d[[nomes[[3]]]] <- as.numeric(pad)
-  d
+  .tr_models_modelo_conferir(modelo)
+  tr_models_resid(modelo)
 }
 
 #' Diagnóstico gráfico dos resíduos: quatro painéis.

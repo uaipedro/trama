@@ -29,6 +29,10 @@ tr_models_errors <- function() {
     tr_models_error_unknown_level =
       "nível citado (o controle do Dunnett, ou um nível novo em 'newdata') não existe no fator do ajuste",
     tr_models_error_not_a_fit = "o nó produziu um objeto que não é modelo, e o tipo models/fit o recusa",
+    tr_models_error_bad_info =
+      "o modelo devolveu um tr_models_info() fora do contrato, e o tipo models/fit o recusa",
+    tr_models_error_no_method =
+      "o modelo não implementa o método do contrato que o bloco pede (ou a coleção dona dele não está carregada)",
     tr_models_error_not_effects =
       "o nó produziu um objeto que não é quadro de efeitos, e o tipo models/effects o recusa",
     tr_models_error_not_a_test = "o nó produziu um objeto que não é teste, e o tipo models/test o recusa",

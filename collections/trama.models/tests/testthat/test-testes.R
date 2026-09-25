@@ -86,7 +86,7 @@ test_that("previews dos tipos saem sem erro para todo modelo", {
     expect_equal(pv$renderer, "models/fit", info = m$rotulo)
     expect_true(length(pv$data$linhas) > 0L, info = m$rotulo)
     expect_no_error(jsonlite::toJSON(pv$data, auto_unbox = TRUE, null = "null"))
-    expect_s3_class(.tr_models_fit_tabela(m), "data.frame")
+    expect_s3_class(tr_models_as_table(m), "data.frame")
   }
   pv <- models_effects_type()$preview(tr_models_anova_table(milho_dbc()), ctx_tmp())
   q <- pv$data$quadro
