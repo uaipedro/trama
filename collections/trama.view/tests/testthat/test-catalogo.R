@@ -18,7 +18,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- view_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- Filter(function(n) startsWith(n$id, "view/"), reg$nodes)
-  expect_length(nos, 20L)
+  expect_length(nos, 21L)
   for (n in nos) {
     expect_true(!is.null(n$help) && nzchar(trimws(n$help)), info = n$id)
     expect_match(n$help, "## Descrição", fixed = TRUE, info = n$id)
@@ -28,7 +28,8 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
     # `### Aparência` digitado à mão passaria numa busca por cabeçalho e
     # descreveria seis params que já mudaram de nome. O cabeçalho é convenção;
     # a constante é garantia — só passa quem colou `.TR_VIEW_AJUDA_APARENCIA`.
-    expect_true(grepl(.TR_VIEW_AJUDA_APARENCIA, n$help, fixed = TRUE), info = n$id)
+    # `view/save` não desenha, e por isso não tem a seção nem os seis params.
+    if (n$id != "view/save") expect_true(grepl(.TR_VIEW_AJUDA_APARENCIA, n$help, fixed = TRUE), info = n$id)
 
     for (nm in names(n$params)) {
       p <- n$params[[nm]]
@@ -46,7 +47,9 @@ test_that("todo nó de gráfico declara os seis props cosméticos, na ordem", {
   # PARECE. Um nó que declarasse os cosméticos à mão, ou fora do
   # `.tr_view_props()`, cairia aqui.
   reg <- view_registry()
-  for (n in Filter(function(x) startsWith(x$id, "view/"), reg$nodes)) {
+  # `view/save` fica de fora: grava, não redesenha, e um tema ali seria um
+  # segundo lugar para decidir a aparência da figura.
+  for (n in Filter(function(x) startsWith(x$id, "view/") && x$id != "view/save", reg$nodes)) {
     nm <- names(n$params)
     comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
     expect_equal(utils::tail(nm, 6L), comuns, info = n$id)

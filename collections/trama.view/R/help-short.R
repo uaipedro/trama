@@ -20,7 +20,8 @@
     "view/dotplot" = "## Uso principal\n\nCompara valores de categorias numa escala comum e ordenada.\n\n## Exemplo curto\n\n`Eixo X: valor`; `Eixo Y: produto`; `Ordenar: ligado`\n\n## Usos relacionados\n\n`view/bars` enfatiza magnitude; `view/dumbbell` compara dois valores por categoria.",
     "view/dumbbell" = "## Uso principal\n\nCompara dois valores de cada categoria por uma linha entre pontos.\n\n## Exemplo curto\n\n`Categoria: produto`; `Valor: antes, depois`\n\n## Usos relacionados\n\n`view/paired` mostra unidades pareadas; `view/dotplot` mostra um valor por categoria.",
     "view/paired" = "## Uso principal\n\nMostra a mudança de cada unidade entre duas condições ou tempos.\n\n## Exemplo curto\n\n`Eixo X: tempo`; `Eixo Y: valor`; `Unidade: paciente`\n\n## Usos relacionados\n\n`view/dumbbell` compara valores já resumidos; `view/line` mostra séries com mais de dois tempos.",
-    "view/combine" = "## Uso principal\n\nJunta gráficos numa figura com painéis etiquetados (A, B, C), com um tema só para todos.\n\n## Exemplo curto\n\n`Colunas: 2`; `Etiquetas: A, B, C`; `Legenda comum: ligado`\n\n## Usos relacionados\n\nA ordem dos painéis é a ordem em que os gráficos foram ligados; `view/points`, `view/boxplot` e os demais gráficos entram como painéis.",
+    "view/combine" = "## Uso principal\n\nJunta gráficos numa figura com painéis etiquetados (A, B, C), com um tema só para todos.\n\n## Exemplo curto\n\n`Colunas: 2`; `Etiquetas: A, B, C`; `Legenda comum: ligado`\n\n## Usos relacionados\n\nA ordem dos painéis é a ordem em que os gráficos foram ligados; `view/save` grava o painel no tamanho do periódico.",
+    "view/save" = "## Uso principal\n\nGrava o gráfico ou o painel em PDF, PNG ou TIFF, na largura em milímetros e na resolução que o periódico pede.\n\n## Exemplo curto\n\n`Arquivo: figuras/figura1.pdf`; `Formato: pdf`; `Largura (mm): 85`; `Altura (mm): 0`\n\n## Usos relacionados\n\nAltura 0 segue a proporção do gráfico. `view/combine` monta o painel antes; `data/write_csv` grava a tabela de origem.",
     "view/pareto" = "## Uso principal\n\nOrdena categorias por contribuição e mostra o percentual acumulado.\n\n## Exemplo curto\n\n`Categoria: defeito`; `Valor: ocorrencias`; `Referência: 80`\n\n## Usos relacionados\n\n`view/bars` compara categorias sem acumulado; `data/group_summarise` calcula contagens ou totais."
   )
   unname(ajuda[[id]])
@@ -30,7 +31,8 @@
   guias <- c(
     "view/points" = "https://uaipedro.github.io/trama/colecoes/visualizacao/disperso/",
     "view/histogram" = "https://uaipedro.github.io/trama/colecoes/visualizacao/histograma/",
-    "view/combine" = "https://uaipedro.github.io/trama/colecoes/visualizacao/painel/"
+    "view/combine" = "https://uaipedro.github.io/trama/colecoes/visualizacao/painel/",
+    "view/save" = "https://uaipedro.github.io/trama/colecoes/visualizacao/salvar-figura/"
   )
   colecao$nodes <- lapply(colecao$nodes, function(no) {
     no$help <- .tr_view_help_curto(no$id)

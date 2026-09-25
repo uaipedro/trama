@@ -1437,6 +1437,13 @@
     "label": "Quantil-quantil",
     "icon": "trending-up"
   },
+  "view/save": {
+    "accent": "#22c55e",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Salvar figura",
+    "icon": "save"
+  },
   "view/strip": {
     "accent": "#a855f7",
     "hasInput": true,

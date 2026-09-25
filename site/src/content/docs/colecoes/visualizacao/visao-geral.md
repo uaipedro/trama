@@ -19,7 +19,7 @@ A coleção Visualização transforma tabelas em gráficos. Antes de escolher a 
 | Como séries evoluem ou compõem um total? | `view/line`, `view/area` | Trajetórias ou composição empilhada em eixo ordenado |
 | Como categorias se comparam? | `view/bars`, `view/means`, `view/dotplot`, `view/dumbbell`, `view/paired`, `view/pareto` | Contagens e somas, médias e incerteza, ranking, condições ou acumulado |
 | Como dois grupos de categorias se relacionam? | `view/heatmap` | Contagem ou soma em cada par de categorias |
-| Como levar os gráficos ao artigo? | `view/combine` | Painel com etiquetas A, B, C e um tema só |
+| Como levar os gráficos ao artigo? | `view/combine`, `view/save` | Painel com etiquetas A, B, C e um tema só; arquivo no tamanho e na resolução do periódico |
 
 ## Dados antes da aparência
 

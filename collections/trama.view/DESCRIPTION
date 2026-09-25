@@ -20,7 +20,8 @@ Imports:
     patchwork,
     ragg,
     rlang,
-    scales
+    scales,
+    tools
 Suggests:
     stats,
     utils,

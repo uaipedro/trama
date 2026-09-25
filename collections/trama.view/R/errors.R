@@ -19,6 +19,7 @@ tr_view_errors <- function() {
       "coluna de condição com menos valores distintos do que o gráfico liga (halteres, pareamento)",
     tr_view_error_not_unique =
       "pareamento com o par unidade x condição repetido: não há uma medida por unidade",
+    tr_view_error_missing_dir = "view/save com caminho numa pasta que não existe",
     tr_view_error_not_a_plot =
       "o nó produziu um objeto que não é um ggplot, e o tipo view/plot recusa guardá-lo"
   )
