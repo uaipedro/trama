@@ -1756,9 +1756,10 @@ function App() {
     const out = spec?.outputs?.find((o) => o.name === porta);
     return out ? { tipo: out.type, nodeType: n.data.nodeType } : null;
   };
+  const fecharProx = useCallback(() => setProx(null), []);
   const abrirProximo = useCallback((nodeId, porta, x, y) => {
     const t = tipoDaSaida(nodeId, porta);
-    if (t) setProx({ de: nodeId, porta, tipo: t.tipo, x, y });
+    if (t) setProx({ de: nodeId, deTipo: t.nodeType, porta, tipo: t.tipo, x, y });
   }, []);
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
@@ -2394,25 +2395,43 @@ function App() {
 
   // Insere o bloco à direita da origem, já conectado, num batch só (um passo
   // de undo). Colidindo com um card, desce até achar vão.
+  const filaProxRef = useRef([]);
+  useEffect(() => {
+    const f = filaProxRef.current[0];
+    if (f && nodes.some((n) => n.id === f.de)) { filaProxRef.current.shift(); pushMany(f.ops); }
+  }, [nodes]);
   const inserirProximo = (tipoId, porta, { encadear } = {}) => {
     const p = prox; if (!p) return;
     const origem = nodesRef.current.find((n) => n.id === p.de);
     const cat = catalogRef.current;
-    if (!origem || !cat) { setProx(null); return; }
-    const pos = { x: origem.position.x + 300, y: origem.position.y };
-    const ocupado = (q) => nodesRef.current.some((n) => n.type === "ndNode" && n.id !== p.de
-      && Math.abs(n.position.x - q.x) < 260 && Math.abs(n.position.y - q.y) < 200);
-    for (let i = 0; i < 50 && ocupado(pos); i++) pos.y += 230;
+    // Encadeando rápido, a origem pode ainda não ter voltado do servidor:
+    // tipo e posição dela vêm guardados no próprio `prox`.
+    const oPos = origem?.position ?? p.pos;
+    const oTipo = origem?.data.nodeType ?? p.deTipo;
+    if (!oPos || !oTipo || !cat) { setProx(null); return; }
+    const pos = { x: oPos.x + 300, y: oPos.y };
+    // Colisão pela altura medida do card (um card completo passa de 350) e
+    // também contra os inserts ainda na fila, que não estão em `nodes`.
+    const caixas = nodesRef.current.filter((n) => n.type === "ndNode" && n.id !== p.de)
+      .map((n) => ({ x: n.position.x, y: n.position.y, h: n.measured?.height ?? n.height ?? 200 }))
+      .concat(filaProxRef.current.map((f) => ({ ...f.pos, h: 380 })));
+    const bate = (q) => caixas.find((c) => Math.abs(c.x - q.x) < 260 && q.y < c.y + c.h + 30 && c.y < q.y + 200);
+    for (let i = 0, c; i < 50 && (c = bate(pos)); i++) pos.y = c.y + c.h + 30;
     const nid = novoId();
-    pushMany([...opsAdd(tipoId, pos, nid),
-              { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }]);
-    registrar(origem.data.nodeType, tipoId);
+    const ops = [...opsAdd(tipoId, pos, nid),
+                 { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }];
+    // O servidor recusa op com revisão defasada: se a origem ainda não ecoou
+    // (Tab rápido), o insert espera na fila e sai quando ela chegar.
+    if (origem && !filaProxRef.current.length) pushMany(ops);
+    else filaProxRef.current.push({ de: p.de, ops, pos: { ...pos } });
+    registrar(oTipo, tipoId);
     selNovoRef.current = nid;
     const spec = cat.nodes.find((x) => x.id === tipoId);
     const saida = spec?.outputs?.[0];
     if (encadear && saida) {
       const tela = rf.flowToScreenPosition({ x: pos.x + MIN_W, y: pos.y + 40 });
-      setProx({ de: nid, porta: saida.name, tipo: saida.type, x: tela.x + 8, y: tela.y });
+      setProx({ de: nid, deTipo: tipoId, pos: { ...pos }, porta: saida.name, tipo: saida.type,
+                x: tela.x + 8, y: tela.y });
     } else setProx(null);
   };
 
@@ -3395,9 +3414,9 @@ function App() {
                        modoNovo, onModoNovo: setModoNovo }),
     prox && !present && catalog
       ? h(Proximo, { key: `prox-${prox.de}-${prox.porta}`, catalog,
-          de: nodes.find((n) => n.id === prox.de)?.data.nodeType,
+          de: prox.deTipo,
           tipo: prox.tipo, presentes, x: prox.x, y: prox.y,
-          onEscolher: inserirProximo, onFechar: () => setProx(null),
+          onEscolher: inserirProximo, onFechar: fecharProx,
           renderIcone: (n) => (n.icon && ICON_KINDS.has(n.icon.kind)
             ? h(Icon, { icon: n.icon, className: "tr-palette-icon",
                         color: corDaCategoria((catalog.categories || []).find((c) => c.id === n.category), n) })
