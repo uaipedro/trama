@@ -134,7 +134,9 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
 #' Ordena as médias; entre os k − 1 cortes possíveis escolhe o que maximiza a
 #' soma de quadrados entre os dois grupos (B0). A razão
 #' lambda = pi / (2 (pi − 2)) · B0 / sigma0², com
-#' sigma0² = [soma (y − ybar)² + v · s²] / (k + v) e s² = QM / r, segue
+#' sigma0² = [soma (y − ybar)² + v · s²] / (k + v) e s² = média de QM / rᵢ
+#' sobre as médias DO GRUPO que se está partindo (recalculada a cada nível da
+#' recursão, como o `ScottKnott:::MaxValue`; no balanceado é QM / r), segue
 #' qui-quadrado com k / (pi − 2) gl sob H0. Se rejeita, cada metade é partida de
 #' novo; se não, as médias formam um grupo. Os grupos NÃO se sobrepõem — é o
 #' que o distingue de Tukey e Duncan, e o que o tornou padrão nas revistas de
@@ -144,7 +146,7 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
 .tr_models_sk_grupos <- function(medias, qm, gl, r, alfa) {
   ord <- order(medias, decreasing = TRUE)
   y <- medias[ord]
-  s2 <- qm / r
+  r <- rep_len(r, length(medias))[ord]
   grupo <- integer(length(y))
   proximo <- 0L
   partir <- function(i) {
@@ -156,7 +158,7 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
         sum(a)^2 / length(a) + sum(b)^2 / length(b) - sum(yi)^2 / k
       }, 0)
       corte <- which.max(b0)
-      sigma0 <- (sum((yi - mean(yi))^2) + gl * s2) / (k + gl)
+      sigma0 <- (sum((yi - mean(yi))^2) + gl * mean(qm / r[i])) / (k + gl)
       lambda <- pi / (2 * (pi - 2)) * b0[[corte]] / sigma0
       if (lambda > stats::qchisq(1 - alfa, k / (pi - 2))) {
         partir(i[seq_len(corte)]); partir(i[-seq_len(corte)])
@@ -185,9 +187,9 @@ tr_models_scott_knott <- function(modelo, tratamento = "", confianca = 0.95) {
   trt <- droplevels(factor(b$trt))
   medias <- tapply(b$y, trt, mean, na.rm = TRUE)
   n <- tapply(!is.na(b$y), trt, sum)
-  # Desbalanceado: o erro padrão da média no sigma0 usa a média harmônica das
-  # repetições, como o pacote `ScottKnott`; a nota da base já avisa.
-  g <- .tr_models_sk_grupos(as.vector(medias), b$qm, b$gl, length(n) / sum(1 / n), alfa)
+  # Desbalanceado: cada média leva a sua repetição, e o s² do sigma0 é a média
+  # de QM / rᵢ do grupo em partição, como o pacote `ScottKnott`.
+  g <- .tr_models_sk_grupos(as.vector(medias), b$qm, b$gl, as.vector(n), alfa)
   alfabeto <- c(letters, LETTERS)
   res <- list(means = data.frame(media = as.vector(medias), r = as.vector(n), row.names = names(medias)),
               groups = data.frame(groups = alfabeto[g], row.names = names(medias)))

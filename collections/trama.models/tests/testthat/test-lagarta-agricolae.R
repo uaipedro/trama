@@ -120,3 +120,16 @@ test_that("o eixo do gráfico de médias diz a origem e o nível real do interva
   # O emmeans dá médias ajustadas, no nível pedido.
   expect_equal(eixo(tr_models_emmeans(m, "hibrido", confianca = 0.99)), "producao (média ajustada e IC 99%)")
 })
+
+test_that("Scott-Knott desbalanceado: s² = média de QM/rᵢ do grupo, como o pacote ScottKnott", {
+  # DIC 6 × (3, 5, 4, 5, 5, 5). Referência: ScottKnott::SK(aov(y ~ t)) dá
+  # F a, E b, C e D c, B d, A e. Com uma média harmônica única de r, E e F
+  # ficavam juntos (lambda 4,95 contra 5,57 do pacote).
+  d <- data.frame(t = rep(LETTERS[1:6], c(3, 5, 4, 5, 5, 5)),
+                  y = c(9.715, 8.688, 9.609, 10.098, 11.851, 11.091, 10.601, 11.431,
+                        11.737, 12.367, 13.707, 12.724, 12.781, 10.732, 12.618, 12.466,
+                        11.4, 15.076, 15.159, 15.544, 15.705, 15.319, 16.309, 15.969,
+                        16.353, 16.461, 15.901))
+  s <- tr_models_scott_knott(tr_models_anova_dic(d, "y", "t"), "t")
+  expect_equal(s$tabela$grupo, c("e", "d", "c", "c", "b", "a"))
+})
