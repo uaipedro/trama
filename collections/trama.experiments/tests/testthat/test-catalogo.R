@@ -4,7 +4,7 @@ test_that("a coleção carrega sobre data/view/models, com categorias prefixadas
   expect_no_error(experiments_registry())
   ids <- vapply(trama_collection()$categories, function(k) k$id, "")
   expect_true(all(startsWith(ids, "exp_")))
-  expect_setequal(ids, c("exp_planejar", "exp_analisar"))
+  expect_setequal(ids, c("exp_planejar", "exp_analisar", "exp_avaliar"))
 })
 
 test_that("todo nó tem help no formato e todo param do spec existe no fn com o mesmo default", {

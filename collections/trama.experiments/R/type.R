@@ -61,7 +61,10 @@
 #   (`.ef_<nome>`, a contribuição de cada unidade em `unidades`), `tipo`,
 #   `fator`, `parametros`, `verdadeiro` (data.frame nivel/efeito: o valor
 #   verdadeiro, sorteado no aleatório), `conversao` (contraste → efeitos, ou
-#   NULL) e `semente`.
+#   NULL), `semente` e `argumentos` (desde 0.2.0: os argumentos da chamada de
+#   `tr_experiments_effect()` sem plano e sem semente — é por eles que o
+#   `experiments/power` refaz a cadeia; plano antigo sem o campo continua
+#   válido, só não serve ao poder).
 # - `resposta`: lista `nome`, `distribuicao`, `parametros`, `perdidas` (as
 #   unidades perdidas) e `semente`, posta por `experiments/error`; a partir
 #   dela `unidades` tem a coluna da resposta (e `.ef_residuo`, na normal) e

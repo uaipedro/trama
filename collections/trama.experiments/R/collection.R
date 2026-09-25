@@ -11,17 +11,18 @@
 #' coleção que usasse o mesmo id.
 #' @export
 trama_collection <- function() {
-  nos <- c(.tr_experiments_nos_planejar(), .tr_experiments_nos_simular(),
+  nos <- c(.tr_experiments_nos_planejar(), .tr_experiments_nos_simular(), .tr_experiments_nos_avaliar(),
            # Os nós de análise moram em arquivos de outro autor; a checagem
            # deixa a coleção carregar mesmo antes de eles existirem.
            if (exists(".tr_experiments_nos_analisar", mode = "function")) .tr_experiments_nos_analisar())
   trama::tr_collection(
-    id = "experiments", version = "0.1.0", label = "Experimentos",
+    id = "experiments", version = "0.2.0", label = "Experimentos",
     types = list(experiments_plan_type()),
     adapters = .tr_experiments_adapters(),
     categories = list(
       trama::tr_category("exp_planejar", "Planejar", role = "preparacao"),
-      trama::tr_category("exp_analisar", "Analisar", role = "leitura")
+      trama::tr_category("exp_analisar", "Analisar", role = "leitura"),
+      trama::tr_category("exp_avaliar", "Avaliar", role = "avaliacao")
     ),
     nodes = nos
   )

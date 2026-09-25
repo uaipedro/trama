@@ -334,8 +334,14 @@ tr_experiments_effect <- function(plano, tipo = "intercepto", fator = "", valor 
     })
   u[[coluna]] <- as.numeric(r$contrib)
   plano$unidades <- u
+  # `argumentos`: a chamada como veio (sem plano e sem semente), para o
+  # `experiments/power` refazer a cadeia em outro sorteio ou outro tamanho.
+  argumentos <- list(tipo = tipo, fator = fator, valor = valor, efeitos = efeitos, conjunto = conjunto,
+                     magnitudes = magnitudes, doses = doses, controle = controle, contrastes = contrastes,
+                     sd = sd, coeficientes = coeficientes, inclinacao = inclinacao, media = media, nome = nome)
   termo <- list(nome = nome, coluna = coluna, tipo = tipo, fator = cols, parametros = params,
-                verdadeiro = r$verdadeiro, conversao = conversao, semente = if (tipo %in% c("aleatorio", "covariavel")) as.integer(.seed))
+                verdadeiro = r$verdadeiro, conversao = conversao, semente = if (tipo %in% c("aleatorio", "covariavel")) as.integer(.seed),
+                argumentos = argumentos)
   plano$termos <- c(plano$termos, list(termo))
   plano$avisos <- c(plano$avisos, avisos)
   plano$nota <- paste(c(plano$nota, sprintf("termo %s (%s%s)", nome, tipo,
