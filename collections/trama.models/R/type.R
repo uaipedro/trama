@@ -166,7 +166,11 @@ models_fit_type <- function() {
   lapply(seq_len(nrow(t)), function(i) {
     p <- t$p_valor[[i]]
     est <- if (!is.null(ef$coluna_estat) && ef$coluna_estat %in% names(t)) t[[ef$coluna_estat]][[i]] else NA
-    list(termo = as.character(t$termo[[i]]),
+    # Com `grupo` (logística multinomial: um coeficiente por classe), o termo
+    # sozinho repetiria "peso" três vezes na régua sem dizer de qual classe.
+    termo <- as.character(t$termo[[i]])
+    if ("grupo" %in% names(t) && !is.na(t$grupo[[i]])) termo <- paste0(t$grupo[[i]], " · ", termo)
+    list(termo = termo,
          p = if (is.na(p)) NULL else p,
          estrelas = .tr_models_estrelas(p),
          detalhe = if (is.na(est)) NULL else paste(ef$coluna_estat, .tr_models_fmt(est)))

@@ -222,11 +222,16 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
 #' @param modelo objeto `tr_models_fit`.
 #' @param exponenciar no GLM, devolver `exp()` da estimativa e do intervalo
 #'   (razão de chances na binomial, razão de taxas na poisson).
-#' @return objeto `tr_models_effects`.
+#' @param escala `"unidade"` (por unidade da preditora) ou `"desvio padrão"`
+#'   (por desvio padrão da coluna da matriz de design; t e p não mudam).
+#' @param confianca nível do intervalo; as colunas saem `li_<nível>`,
+#'   `ls_<nível>` (`li_95` no padrão).
+#' @return objeto `tr_models_effects`; modelo de outra coleção pode trazer a
+#'   coluna `grupo` (a classe de cada linha numa logística multinomial).
 #' @export
-tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
+tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidade", confianca = 0.95) {
   .tr_models_modelo_conferir(modelo)
-  tr_models_coefs(modelo, exponenciar = exponenciar)
+  tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca)
 }
 
 #' R² marginal e condicional de um misto gaussiano (Nakagawa & Schielzeth 2013,

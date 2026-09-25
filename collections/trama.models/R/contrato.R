@@ -332,18 +332,30 @@ tr_models_stats.tr_models_lmer <- function(x) {
 
 # ---- coefs ------------------------------------------------------------------------
 
+.TR_MODELS_ESCALAS <- c("unidade", "desvio padrão")
+
 #' @export
-tr_models_coefs.tr_models_lm <- function(x, exponenciar = FALSE, ...) .tr_models_coefs_mq(x, exponenciar)
+tr_models_coefs.tr_models_lm <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
+  .tr_models_coefs_mq(x, exponenciar, escala, confianca)
+}
 #' @export
-tr_models_coefs.tr_models_glm <- function(x, exponenciar = FALSE, ...) .tr_models_coefs_mq(x, exponenciar)
+tr_models_coefs.tr_models_glm <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
+  .tr_models_coefs_mq(x, exponenciar, escala, confianca)
+}
 #' @export
-tr_models_coefs.tr_models_lmer <- function(x, ...) {
+tr_models_coefs.tr_models_lmer <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
+  if (isTRUE(exponenciar)) {
+    .tr_models_exigir(x, "glm", "models/coefficients",
+                      "Exponenciar só faz sentido num GLM com ligação log ou logit.")
+  }
   s <- stats::coef(summary(x$ajuste))
-  ic <- suppressMessages(stats::confint(x$ajuste, method = "Wald", parm = "beta_"))
+  ic <- suppressMessages(stats::confint(x$ajuste, method = "Wald", parm = "beta_", level = confianca))
   tab <- data.frame(termo = rownames(s), estimativa = s[, "Estimate"], erro_padrao = s[, "Std. Error"],
                     gl = s[, "df"], t = s[, "t value"], p_valor = s[, "Pr(>|t|)"],
-                    li_95 = ic[rownames(s), 1], ls_95 = ic[rownames(s), 2])
-  .tr_models_coefs_efeitos(x, tab, "t", "gl de Satterthwaite; intervalo de Wald")
+                    li = ic[rownames(s), 1], ls = ic[rownames(s), 2])
+  tab <- .tr_models_coefs_escala(tab, lme4::getME(x$ajuste, "X"), escala)
+  .tr_models_coefs_efeitos(x, .tr_models_coefs_ic_nomes(tab, confianca), "t",
+                           .tr_models_nota("gl de Satterthwaite; intervalo de Wald", .tr_models_nota_escala(escala)))
 }
 #' @export
 tr_models_coefs.tr_models_split <- function(x, ...) {
@@ -351,26 +363,62 @@ tr_models_coefs.tr_models_split <- function(x, ...) {
                     "Na parcela subdividida os coeficientes misturam os dois erros; compare as médias em 'models/emmeans'.")
 }
 
-.tr_models_coefs_mq <- function(x, exponenciar) {
+#' Coeficiente "por desvio padrão" da coluna da matriz de design.
+#'
+#' Porte do `escala = "desvio padrão"` da logística da `multi`, na forma
+#' genérica: estimativa, erro padrão e limites multiplicados pelo DP da coluna
+#' do `model.matrix` — "quanto muda a resposta (ou o log-odds) quando a
+#' preditora sobe um desvio padrão", que deixa comparáveis preditoras em
+#' unidades diferentes. A estatística e o p-valor não mudam (numerador e
+#' denominador escalam juntos). O intercepto e a coluna constante ficam como
+#' estão. Numa dummy de fator o DP é o da 0/1, que é o que o livro faz, mas lê
+#' pior — a nota do card avisa.
+#' @noRd
+.tr_models_coefs_escala <- function(tab, X, escala) {
+  if (.tr_models_enum(escala, .TR_MODELS_ESCALAS, "escala") == "unidade") return(tab)
+  dp <- apply(X, 2L, stats::sd)[tab$termo]
+  dp[is.na(dp) | dp == 0] <- 1
+  for (col in intersect(c("estimativa", "erro_padrao", "li", "ls"), names(tab))) tab[[col]] <- tab[[col]] * dp
+  tab
+}
+
+.tr_models_nota_escala <- function(escala) {
+  if (identical(escala, "desvio padrão")) "coeficientes por desvio padrão da preditora (dummy de fator: DP da 0/1)" else ""
+}
+
+#' `li`/`ls` com o nível no nome: `li_95` no padrão (o nome de sempre, que o
+#' card e os fluxos a jusante já leem), `li_90` a 90%.
+#' @noRd
+.tr_models_coefs_ic_nomes <- function(tab, confianca) {
+  pct <- sub(".", "_", as.character(round(100 * confianca, 1)), fixed = TRUE)
+  names(tab)[names(tab) == "li"] <- paste0("li_", pct)
+  names(tab)[names(tab) == "ls"] <- paste0("ls_", pct)
+  tab
+}
+
+.tr_models_coefs_mq <- function(x, exponenciar, escala = "unidade", confianca = 0.95) {
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
   aj <- x$ajuste
   glm <- x$classe == "glm"
   # `summary.lm` explícito: nos delineamentos o ajuste é um `aov`, e o
   # `summary()` dele é o quadro, sem coeficientes.
   s <- if (glm) stats::coef(summary(aj)) else stats::coef(stats::summary.lm(aj))
-  ic <- if (glm) stats::confint.default(aj) else stats::confint(aj)
+  ic <- if (glm) stats::confint.default(aj, level = confianca) else stats::confint(aj, level = confianca)
   coluna <- if (grepl("^z", colnames(s)[3])) "z" else "t"
   tab <- data.frame(termo = rownames(s), estimativa = s[, 1], erro_padrao = s[, 2],
-                    estat = s[, 3], p_valor = s[, 4], li_95 = ic[rownames(s), 1], ls_95 = ic[rownames(s), 2])
+                    estat = s[, 3], p_valor = s[, 4], li = ic[rownames(s), 1], ls = ic[rownames(s), 2])
   names(tab)[names(tab) == "estat"] <- coluna
+  tab <- .tr_models_coefs_escala(tab, stats::model.matrix(aj), escala)
   nota <- if (glm) "intervalo de Wald, na escala da ligação" else ""
   if (isTRUE(exponenciar)) {
     .tr_models_exigir(x, "glm", "models/coefficients",
                       "Exponenciar só faz sentido num GLM com ligação log ou logit.")
-    tab$estimativa <- exp(tab$estimativa); tab$li_95 <- exp(tab$li_95); tab$ls_95 <- exp(tab$ls_95)
+    tab$estimativa <- exp(tab$estimativa); tab$li <- exp(tab$li); tab$ls <- exp(tab$ls)
     tab$erro_padrao <- NULL
     nota <- "estimativa e intervalo exponenciados (razão de chances ou de taxas)"
   }
-  .tr_models_coefs_efeitos(x, tab, coluna, nota)
+  .tr_models_coefs_efeitos(x, .tr_models_coefs_ic_nomes(tab, confianca), coluna,
+                           .tr_models_nota(nota, .tr_models_nota_escala(escala)))
 }
 
 .tr_models_coefs_efeitos <- function(x, tab, coluna, nota) {

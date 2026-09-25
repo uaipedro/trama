@@ -52,12 +52,15 @@ médias depois do F; `models/coefficients` para os coeficientes.
 
     trama::tr_node("models/coefficients", fn = tr_models_coefficients, label = "Coeficientes",
       category = "modelo_resumir", icon = trama::tr_icon("variable"),
-      description = "Estimativa, erro padrão, estatística, p-valor e intervalo de 95% de cada coeficiente.",
+      description = "Estimativa, erro padrão, estatística, p-valor e intervalo de confiança de cada coeficiente.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
-      params = list(exponenciar = B(FALSE, label = "Exponenciar (GLM)")),
+      params = list(exponenciar = B(FALSE, label = "Exponenciar (GLM)"),
+                    escala = trama::tr_param_enum("unidade", .TR_MODELS_ESCALAS, label = "Escala"),
+                    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_models_ajuda(r"---[
 Os coeficientes do modelo, um por linha: estimativa, erro padrão, estatística
-(t ou z), p-valor e intervalo de confiança de 95%.
+(t ou z), p-valor e intervalo de confiança (95% no padrão; as colunas levam o
+nível no nome: `li_95`, `ls_95`, ou `li_90`, `ls_90` a 90%).
 
 - `lm`: t, com intervalo exato.
 - GLM: z (ou t nas famílias de dispersão estimada), com intervalo de Wald, na
@@ -71,9 +74,28 @@ Um fator com k níveis vira k − 1 coeficientes, cada um a diferença para o
 PRIMEIRO nível. O p-valor de `sprayC` é o de C contra A, e não o de C contra
 todos. Para comparar níveis, use o `models/emmeans`.
 
+### Escala
+
+**unidade** (padrão) é o coeficiente de sempre: quanto muda a resposta (ou o
+log-odds, no GLM) quando a preditora sobe UMA unidade. **desvio padrão**
+multiplica estimativa, erro padrão e intervalo pelo desvio padrão da coluna —
+quanto muda quando a preditora sobe um DP —, o que deixa comparáveis
+preditoras em unidades diferentes (cm e kg). A estatística e o p-valor não
+mudam. Numa dummy de fator o DP é o da coluna 0/1, e a leitura fica estranha:
+prefira a escala da unidade para fatores.
+
+Com **exponenciar** e desvio padrão juntos, sai a razão de chances por DP.
+
+### Classificadores de outras coleções
+
+Uma logística multinomial (da `multi`) tem um coeficiente por classe para cada
+preditora: a tabela ganha a coluna `grupo`, e a régua mostra `classe · termo`.
+
 Na parcela subdividida os coeficientes misturam os dois erros, e o bloco recusa.
 ]---", r"---[
 - **Exponenciar** — só no GLM.
+- **Escala** — `unidade` (padrão) ou `desvio padrão` da preditora.
+- **Confiança** — o nível do intervalo (padrão 0,95).
 ]---", r"---[
 Um quadro de efeitos (`models/effects`), com a régua por coeficiente.
 ]---", r"---[
