@@ -517,7 +517,7 @@ Com separação, a tabela é recusada na ML; ajuste com `metodo = "firth"` na
 ]---", r"---[
 - **Escala** — `unidade` ou `desvio padrão`.
 - **Confiança do intervalo** (`confianca`) — 0,95 por padrão. Até a versão 2
-  do nó o param se chamava `nivel`; fluxo salvo com `nivel` precisa renomeá-lo.
+  do nó o param se chamava `nivel`; fluxo salvo com `nivel` abre migrado.
 - **Intervalo** — `perfilado` (padrão desde a versão 4) ou `Wald` (o padrão
   até a versão 3). Na multinomial, sempre Wald.
 ]---", r"---[

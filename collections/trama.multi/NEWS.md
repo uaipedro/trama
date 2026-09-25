@@ -62,6 +62,14 @@ padrão na `multi/logistic_coefficients`).
   kappa" da Wikipédia — não é fonte primária); `irr::kappa2` e
   `psych::cohen.kappa` a 1e-12 nas previsões cruzadas da LDA do `iris`.
 
+## `confianca` nos jackknifes
+
+* `multi/jackknife_pca`, `_fa`, `_discriminant` e `_logistic` (versão 2): o
+  param do nível do intervalo passa de `nivel` a `confianca`, como na
+  `multi/logistic_coefficients` e na `multi/roc`. Fluxo salvo com `nivel` abre
+  migrado (`tr_node(migracoes = )`). Na chamada R, `nivel =` deixa de ser
+  aceito. Resultado igual.
+
 ## `confianca` na `multi/logistic_coefficients`
 
 * `multi/logistic_coefficients` (versão 3): o param do nível do intervalo passa

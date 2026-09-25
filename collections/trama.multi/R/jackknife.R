@@ -17,6 +17,15 @@
 
 .TR_MULTI_JK_TABELAS <- c("resumo", "pseudovalores")
 .TR_MULTI_JK_MAX <- 5000L
+.TR_MULTI_JK_VERSAO <- 2L
+
+#' v1 -> v2: `nivel` virou `confianca`.
+#' @noRd
+.tr_multi_jk_migrar_confianca <- function(params) {
+  if (!is.null(params$nivel)) params$confianca <- params$nivel
+  params$nivel <- NULL
+  params
+}
 
 #' O laço do jackknife e as duas tabelas.
 #' @param dados a tabela de treino do modelo.
@@ -30,10 +39,10 @@
 #'   linha: cada réplica tira um grupo inteiro, e as fórmulas usam G réplicas
 #'   no lugar de n (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001).
 #' @noRd
-.tr_multi_jackknife <- function(dados, variaveis, completo, reajustar, extrair, no, tabela, nivel,
+.tr_multi_jackknife <- function(dados, variaveis, completo, reajustar, extrair, no, tabela, confianca,
                                 log = FALSE, grupos = NULL) {
   tabela <- .tr_multi_enum(tabela, .TR_MULTI_JK_TABELAS, "tabela")
-  nivel <- .tr_multi_num(nivel, "nivel", min = 0.5, max = 0.999)
+  nivel <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
   dados <- as.data.frame(dados)
   if (!is.null(grupos)) {
     return(.tr_multi_jackknife_grupos(dados, completo, reajustar, extrair, no, tabela, nivel, log,
@@ -247,12 +256,12 @@
 #' @param estatistica `"autovalores"`, `"proporção"` ou `"cargas"` (correlações
 #'   variável-componente).
 #' @param tabela `"resumo"` ou `"pseudovalores"`.
-#' @param nivel nível do intervalo.
+#' @param confianca confiança do intervalo (até a versão 1 do nó, `nivel`).
 #' @param grupo coluna de conglomerado: em branco, deixa uma linha fora; senão,
 #'   cada réplica tira um grupo inteiro (jackknife apagar-um-grupo).
 #' @return tibble.
 #' @export
-tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "resumo", nivel = 0.95,
+tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "resumo", confianca = 0.95,
                                    grupo = "") {
   no <- "multi/jackknife_pca"
   .tr_multi_pca_conferir(pca)
@@ -270,7 +279,7 @@ tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "r
   .tr_multi_jackknife(pca$dados, pca$variaveis, pca,
                       function(d) tr_multi_pca(d, cols = .tr_multi_cols_de(pca$variaveis),
                                                padronizar = pca$padronizado),
-                      extrair, no, tabela, nivel, grupos = .tr_multi_jk_grupos(pca$dados, grupo, no))
+                      extrair, no, tabela, confianca, grupos = .tr_multi_jk_grupos(pca$dados, grupo, no))
 }
 
 #' Jackknife da análise fatorial.
@@ -279,7 +288,7 @@ tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "r
 #' @inheritParams tr_multi_jackknife_pca
 #' @return tibble.
 #' @export
-tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo", nivel = 0.95,
+tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo", confianca = 0.95,
                                   grupo = "") {
   no <- "multi/jackknife_fa"
   .tr_multi_guard(fa, "tr_multi_fa", setdiff(.TR_MULTI_CAMPOS_FA, "normalizar"),
@@ -298,7 +307,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
                                                            fatores = ncol(fa$cargas), metodo = fa$metodo,
                                                            rotacao = fa$rotacao, normalizar = normalizar,
                                                            escores = "nenhum"),
-                      extrair, no, tabela, nivel, grupos = .tr_multi_jk_grupos(fa$dados, grupo, no))
+                      extrair, no, tabela, confianca, grupos = .tr_multi_jk_grupos(fa$dados, grupo, no))
 }
 
 #' Jackknife da discriminante linear.
@@ -309,7 +318,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
 #' @return tibble.
 #' @export
 tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação canônica",
-                                            tabela = "resumo", nivel = 0.95, grupo = "") {
+                                            tabela = "resumo", confianca = 0.95, grupo = "") {
   no <- "multi/jackknife_discriminant"
   .tr_multi_modelo(modelo)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_LDA, "estatistica")
@@ -337,7 +346,7 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
                       function(d) tr_multi_discriminant(d, grupo = modelo$grupo,
                                                         cols = .tr_multi_cols_de(modelo$preditores),
                                                         metodo = modelo$metodo, priors = modelo$priors),
-                      extrair, no, tabela, nivel,
+                      extrair, no, tabela, confianca,
                       grupos = .tr_multi_jk_grupos(modelo$dados, grupo, no, proibida = modelo$grupo))
 }
 
@@ -348,7 +357,7 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
 #' @return tibble; no resumo, também `erro_padrao_wald`.
 #' @export
 tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", tabela = "resumo",
-                                        nivel = 0.95, grupo = "") {
+                                        confianca = 0.95, grupo = "") {
   no <- "multi/jackknife_logistic"
   .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
                   "uma regressão logística")
@@ -368,7 +377,7 @@ tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", ta
                                                            cols = .tr_multi_cols_de(modelo$preditores),
                                                            corte = if (is.na(modelo$corte)) 0.5 else modelo$corte,
                                                            metodo = if (is.null(modelo$metodo)) "ml" else modelo$metodo),
-                             extrair, no, tabela, nivel, log = estatistica == "razões de chances",
+                             extrair, no, tabela, confianca, log = estatistica == "razões de chances",
                              grupos = .tr_multi_jk_grupos(modelo$dados, grupo, no, proibida = modelo$grupo))
   if (identical(tabela, "resumo")) {
     # O EP de Wald ao lado: quando os dois discordam muito, a curvatura da
@@ -425,7 +434,7 @@ largo, como deve. Os pseudovalores saem um por grupo (`grupo_removido`,
   list(
     estatistica = trama::tr_param_enum(padrao, opcoes, label = "Estatística"),
     tabela = trama::tr_param_enum("resumo", .TR_MULTI_JK_TABELAS, label = "Tabela"),
-    nivel = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Nível do intervalo"),
+    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança do intervalo"),
     grupo = trama::tr_param("cols", "", label = "Grupo (apagar-um-grupo)", example = "talhao"))
 }
 
@@ -436,7 +445,8 @@ largo, como deve. Os pseudovalores saem um por grupo (`grupo_removido`,
     paste(trimws(descricao), .TR_MULTI_JK_AJUDA_TABELAS, sep = "\n\n"),
     paste0("- **Estatística** — ", estatisticas, "\n",
            "- **Tabela** — `resumo` ou `pseudovalores`.\n",
-           "- **Nível do intervalo** — 0,95 por padrão.\n",
+           "- **Confiança do intervalo** (`confianca`) — 0,95 por padrão. Até a versão 1 do nó o ",
+           "param se chamava `nivel`; fluxo salvo com `nivel` abre migrado.\n",
            "- **Grupo (apagar-um-grupo)** — em branco, deixa uma linha fora por vez; com uma coluna ",
            "de conglomerado (talhão, animal, lote), cada réplica tira o grupo inteiro."),
     "Uma tabela (`data/table`), no formato descrito em \"As duas tabelas\".",
@@ -446,7 +456,9 @@ largo, como deve. Os pseudovalores saem um por grupo (`grupo_removido`,
 .tr_multi_nos_jackknife <- function() {
   TB <- "data/table"
   no <- function(id, fn, label, description, inputs, params, help) {
-    trama::tr_node(id, fn = fn,
+    trama::tr_node(id, fn = fn, version = .TR_MULTI_JK_VERSAO,
+                   # v2 renomeou `nivel` para `confianca`: flow salvo antes abre migrado.
+                   migracoes = list(`2` = .tr_multi_jk_migrar_confianca),
                    pressupostos = .tr_multi_doc(id)$pressupostos,
                    referencias = .tr_multi_doc(id)$referencias,
                    label = label, category = "multi_jackknife",
