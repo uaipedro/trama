@@ -325,7 +325,7 @@ ou mais grupos. Útil quando os resíduos da ANOVA não são normais e nenhuma
 transformação resolve.
 
 Rejeitar diz que ALGUM grupo difere, não qual. Não há bloco: para um DBC com
-dados não normais, considere transformar a resposta ou um `models/glm`.
+dados não normais, use o `models/friedman`.
 ]---", r"---[
 - **Resposta** — coluna numérica.
 - **Grupo** — coluna dos grupos.
@@ -336,7 +336,43 @@ tr_flow(reg) |>
   tr_add("insetos", "models/example", dataset = "InsectSprays") |>
   tr_add("kw", "models/kruskal", resposta = "count", grupo = "spray", from = "insetos")
 ]---", r"---[
-`models/anova_dic`; `models/wilcoxon` para dois grupos.
+`models/anova_dic`; `models/wilcoxon` para dois grupos; `models/friedman` com bloco.
+]---", teste = TRUE)),
+
+    trama::tr_node("models/friedman",
+      pressupostos = .tr_models_doc("models/friedman")$pressupostos,
+      referencias = .tr_models_doc("models/friedman")$referencias,
+      fn = tr_models_friedman, label = "Friedman",
+      category = "modelo_testes", icon = trama::tr_icon("list-ordered"),
+      description = "Friedman: os tratamentos diferem dentro dos blocos? (DBC não paramétrico)",
+      inputs = list(dados = T), outputs = list(out = TE),
+      params = list(
+        resposta = P("cols", "", label = "Resposta", example = "producao"),
+        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
+        bloco = P("cols", "", label = "Bloco", example = "bloco")),
+      help = .tr_models_ajuda(r"---[
+A alternativa não paramétrica ao `models/anova_dbc`: ordena os tratamentos
+DENTRO de cada bloco e compara as somas de postos. Útil quando os resíduos do
+DBC não são normais e nenhuma transformação resolve.
+
+Pede uma observação por bloco e tratamento: com repetições, resuma antes (a
+média de cada casela). Bloco a que falta tratamento sai inteiro, e a nota conta
+quantos. Empates dentro do bloco recebem posto médio e a estatística é
+corrigida. O efeito é o W de Kendall (0 = blocos sem concordância, 1 = mesma
+ordem em todo bloco). Rejeitar diz que ALGUM tratamento difere, não qual.
+]---", r"---[
+- **Resposta** — coluna numérica.
+- **Tratamento** — coluna dos tratamentos.
+- **Bloco** — coluna dos blocos.
+]---", r"---[
+Um teste (`models/test`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("fr", "models/friedman", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho")
+]---", r"---[
+`models/anova_dbc`; `models/kruskal` sem bloco.
 ]---", teste = TRUE)),
 
     trama::tr_node("models/chisq", version = 2L,

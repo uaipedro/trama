@@ -1,5 +1,15 @@
 # trama.models (desenvolvimento)
 
+## Blocos novos
+
+- `models/friedman`: teste de Friedman (1937, doi:10.1080/01621459.1937.10503522)
+  para o DBC de um fator, uma observação por bloco e tratamento (casela
+  repetida recusa; bloco incompleto sai inteiro, contado na nota), estatística
+  corrigida para empates e W de Kendall como efeito. É a saída não paramétrica
+  que os pressupostos do `models/anova_dbc` apontam. Validado contra
+  `stats::friedman.test` (1e-12) e o exemplo de Hollander & Wolfe (1973, p.
+  140; 22 jogadores × 3 métodos), S = 11,14 com correção para empates.
+
 ## Mudanças de método
 
 - `models/levene` e `models/bartlett` (versão 3): recusam a parcela subdividida

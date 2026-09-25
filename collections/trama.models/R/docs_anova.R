@@ -10,7 +10,8 @@
               verificar = c("models/shapiro_residuals", "models/plot_diagnostics"),
               se_falhar = paste("Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`;", alternativa))
   normal_dic <- normal_p("sem modelo que sirva, o `models/kruskal`.")
-  normal <- normal_p("sem modelo que sirva, o teste de Friedman para DBC — ainda sem bloco no trama.")
+  normal_dbc <- normal_p("sem modelo que sirva, o `models/friedman` (uma observação por bloco e tratamento).")
+  normal <- normal_p("não há teste por postos para este delineamento no trama (o `models/friedman` é só para o DBC de um fator).")
   homog_p <- function(verificar) P("A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
              verificar = verificar,
              se_falhar = "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama.")
@@ -32,7 +33,7 @@
 
     "models/anova_dbc" = list(
       pressupostos = list(casualizacao("dentro de cada bloco, com todos os tratamentos em todo bloco"),
-        aditiv, normal, homog),
+        aditiv, normal_dbc, homog),
       referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
 
     "models/anova_dql" = list(

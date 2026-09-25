@@ -155,6 +155,21 @@
         L$siegel,
         I("stats", "kruskal.test", "H com correção para empates, p-valor pela aproximação qui-quadrado."))),
 
+    "models/friedman" = list(
+      pressupostos = list(
+        P("Os **blocos são independentes** entre si; dentro do bloco, cada tratamento foi sorteado a uma parcela."),
+        P("**Uma observação por bloco e tratamento**, com todos os tratamentos em todo bloco.",
+          se_falhar = "Resuma as repetições (a média de cada casela) antes; bloco incompleto sai inteiro."),
+        P("A resposta é **contínua** ou ordinal; empates dentro do bloco são corrigidos na estatística."),
+        P("O p-valor é o da aproximação qui-quadrado, boa com blocos e tratamentos não muito poucos (com 3 tratamentos, uns 10 blocos).")),
+      referencias = list(
+        R(autores = "Friedman, M.", ano = 1937,
+          titulo = "The use of ranks to avoid the assumption of normality implicit in the analysis of variance",
+          fonte = "Journal of the American Statistical Association, 32(200), 675-701",
+          doi = "10.1080/01621459.1937.10503522"),
+        L$siegel,
+        I("stats", "friedman.test", "Postos dentro do bloco, estatística corrigida para empates, p-valor pela aproximação qui-quadrado; o W de Kendall é a estatística dividida por b(k - 1)."))),
+
     "models/chisq" = list(
       pressupostos = list(
         P("Cada linha da tabela é uma **unidade independente**, contada uma vez só.",
