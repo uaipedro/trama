@@ -222,6 +222,6 @@ test_that("param torto erra ANTES de ter tabela, e vetor no lugar dela se nomeia
   # E o nível 1 com um vetor: antes morria com "argumento tem comprimento zero",
   # que não nomeia nem o argumento nem o problema.
   err <- expect_error(tr_to_stream(1:10), class = "tr_data_error_not_a_table")
-  expect_match(conditionMessage(err), "'data'")
+  expect_match(conditionMessage(err), "'dados'")
   expect_match(conditionMessage(err), "integer")
 })

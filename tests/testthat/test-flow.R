@@ -69,7 +69,10 @@ test_that("tr_flow_code(doc) avaliado reconstrói um documento com as MESMAS cha
 
 test_that("o ETL de exemplo vira código legível e volta igual", {
   skip_if_no_data()
-  reg <- etl_registry(); doc <- tr_doc_read("../../exemplos/vendas/flows/main.json")
+  # Migrado como o editor abre: o JSON do exemplo ainda liga as arestas na
+  # porta antiga `data`, e o código gerado usa as portas do registro atual.
+  reg <- etl_registry()
+  doc <- tr_doc_migrate(tr_doc_read("../../exemplos/vendas/flows/main.json"), reg)
   code <- tr_flow_code(doc, reg)
   doc2 <- eval(parse(text = code)) |> tr_flow_doc()
   expect_equal(sort(names(doc2$nodes)), sort(names(doc$nodes)))

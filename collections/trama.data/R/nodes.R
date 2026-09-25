@@ -288,11 +288,11 @@ tr_generate <- function(n = 100L, expr = "x = rnorm(n)", .seed = 1L) {
 }
 
 #' @export
-tr_filter <- function(data, expr, by = "") {
-  if (!nzchar(trimws(expr))) return(data)
-  g <- .tr_data_by(data, by)
+tr_filter <- function(dados, expr, by = "") {
+  if (!nzchar(trimws(expr))) return(dados)
+  g <- .tr_data_by(dados, by)
   e <- .tr_data_parse(expr, "expr")
-  .tr_data_eval(dplyr::filter(data, !!e, .by = dplyr::all_of(g)), "expr", data)
+  .tr_data_eval(dplyr::filter(dados, !!e, .by = dplyr::all_of(g)), "expr", dados)
 }
 
 #' Sem expressão, o nó está DESLIGADO: `expr` tem default vazio no spec e não
@@ -314,10 +314,10 @@ tr_filter <- function(data, expr, by = "") {
 #' coluna de `by`, sobrescreveria uma coluna nova (ou o próprio grupo) em
 #' silêncio — daí a mesma checagem de colisão do resumir.
 #' @export
-tr_mutate <- function(data, name, expr, by = "") {
-  if (!nzchar(trimws(expr))) return(data)
+tr_mutate <- function(dados, name, expr, by = "") {
+  if (!nzchar(trimws(expr))) return(dados)
   .tr_data_obrigatorio(name, "name")
-  g <- .tr_data_by(data, by)
+  g <- .tr_data_by(dados, by)
   nomes <- .as_cols(name)
   es <- .tr_data_parse_exprs(expr, "expr")
   .tr_data_obrigatorio(nomes, "name")
@@ -336,8 +336,8 @@ tr_mutate <- function(data, name, expr, by = "") {
       class = "tr_data_error_name_collision")
   }
   .tr_data_eval(
-    dplyr::mutate(data, !!!stats::setNames(es, nomes), .by = dplyr::all_of(g)),
-    "expr", data)
+    dplyr::mutate(dados, !!!stats::setNames(es, nomes), .by = dplyr::all_of(g)),
+    "expr", dados)
 }
 
 #' Manter as colunas escolhidas, ou jogá-las fora.
@@ -347,15 +347,15 @@ tr_mutate <- function(data, name, expr, by = "") {
 #' ideia sem trocar de caixa. `remove` entrou na versão 2 do nó; documento
 #' salvo na versão 1 não traz o param, e o default do spec o preenche.
 #' @export
-tr_select <- function(data, cols, remove = FALSE) {
+tr_select <- function(dados, cols, remove = FALSE) {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(data)
+  if (!length(cols)) return(dados)
   # Valida ANTES do verbo, nunca aninhado dentro dele: o dplyr embrulha a
   # condição num `rlang_error` novo e a classe útil sobra só no `parent` — o
   # motor grava `class(e)[1]` e o card receberia "rlang_error".
-  .tr_data_cols(data, cols, "cols")
-  if (isTRUE(remove)) dplyr::select(data, -dplyr::all_of(cols))
-  else dplyr::select(data, dplyr::all_of(cols))
+  .tr_data_cols(dados, cols, "cols")
+  if (isTRUE(remove)) dplyr::select(dados, -dplyr::all_of(cols))
+  else dplyr::select(dados, dplyr::all_of(cols))
 }
 
 #' Uma linha por combinação das colunas escolhidas.
@@ -367,11 +367,11 @@ tr_select <- function(data, cols, remove = FALSE) {
 #' Sem colunas, compara a linha INTEIRA, que é o pedido mais comum de quem
 #' acabou de empilhar duas tabelas.
 #' @export
-tr_distinct <- function(data, cols) {
+tr_distinct <- function(dados, cols) {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(dplyr::distinct(data))
-  .tr_data_cols(data, cols, "cols")
-  dplyr::distinct(data, dplyr::across(dplyr::all_of(cols)), .keep_all = TRUE)
+  if (!length(cols)) return(dplyr::distinct(dados))
+  .tr_data_cols(dados, cols, "cols")
+  dplyr::distinct(dados, dplyr::across(dplyr::all_of(cols)), .keep_all = TRUE)
 }
 
 #' Renomeia colunas, casando as duas listas pela POSIÇÃO.
@@ -385,21 +385,21 @@ tr_distinct <- function(data, cols) {
 #' `novo = velho`, ou seja, o nome de destino é o NOME do par e o de origem é
 #' o VALOR.
 #' @export
-tr_rename <- function(data, from, to) {
+tr_rename <- function(dados, from, to) {
   from <- .as_cols(from); to <- .as_cols(to)
-  if (!length(from)) return(data)
+  if (!length(from)) return(dados)
   if (length(from) != length(to)) {
     rlang::abort(sprintf("Renomear: %d nome(s) de origem para %d de destino.",
                          length(from), length(to)),
                  class = "tr_data_error_mismatched_names")
   }
-  .tr_data_cols(data, from, "from")
+  .tr_data_cols(dados, from, "from")
   # Destino já ocupado é validação de PARAM, e param inválido é o que esta
   # coleção classifica em todo lugar. Sem isto, o vctrs abortava com
   # `vctrs_error_names_must_be_unique`, em inglês e sem dizer qual nome bateu.
   # `setdiff(names(data), from)` porque a coluna que está saindo de cena na
   # mesma chamada não conta como ocupada: trocar dois nomes é simultâneo.
-  colide <- unique(c(intersect(to, setdiff(names(data), from)), to[duplicated(to)]))
+  colide <- unique(c(intersect(to, setdiff(names(dados), from)), to[duplicated(to)]))
   if (length(colide)) {
     rlang::abort(
       sprintf(paste0("Renomear: o nome de destino já está em uso: %s. Escolha outro, ",
@@ -407,7 +407,7 @@ tr_rename <- function(data, from, to) {
               paste(colide, collapse = ", ")),
       class = "tr_data_error_name_collision")
   }
-  dplyr::rename(data, !!!stats::setNames(from, to))
+  dplyr::rename(dados, !!!stats::setNames(from, to))
 }
 
 #' Um resumo por vírgula, com os nomes casados pela POSIÇÃO.
@@ -421,9 +421,9 @@ tr_rename <- function(data, from, to) {
 #' passar por ele, porque a vírgula de `sum(valor, na.rm = TRUE)` não separa
 #' resumo nenhum — quem sabe disso é `.tr_data_parse_exprs()`.
 #' @export
-tr_group_summarise <- function(data, by, name, expr) {
+tr_group_summarise <- function(dados, by, name, expr) {
   by <- .as_cols(by)
-  if (length(by)) .tr_data_cols(data, by, "by")
+  if (length(by)) .tr_data_cols(dados, by, "by")
   # Mesmo caso de `names_to`/`values_to`: default não vazio no spec, e em
   # branco o `quos()` abortava culpando o param 'expr', que estava certo.
   .tr_data_obrigatorio(name, "name")
@@ -456,10 +456,10 @@ tr_group_summarise <- function(data, by, name, expr) {
               paste(colide, collapse = ", ")),
       class = "tr_data_error_name_collision")
   }
-  out <- if (length(by)) dplyr::group_by(data, dplyr::across(dplyr::all_of(by))) else data
+  out <- if (length(by)) dplyr::group_by(dados, dplyr::across(dplyr::all_of(by))) else dados
   .tr_data_eval(
     dplyr::ungroup(dplyr::summarise(out, !!!stats::setNames(es, nomes), .groups = "drop")),
-    "expr", data)
+    "expr", dados)
 }
 
 #' @export
@@ -473,10 +473,10 @@ tr_join <- function(left, right, by, type = "inner") {
 }
 
 #' @export
-tr_arrange <- function(data, cols, desc = FALSE) {
+tr_arrange <- function(dados, cols, desc = FALSE) {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(data)
-  .tr_data_cols(data, cols, "cols")
+  if (!length(cols)) return(dados)
+  .tr_data_cols(dados, cols, "cols")
   # Símbolos construídos e injetados com `!!!`. `across()` só existe dentro de
   # um verbo de data-masking — montá-lo numa variável antes falha com
   # "must only be used inside data-masking verbs".
@@ -484,15 +484,15 @@ tr_arrange <- function(data, cols, desc = FALSE) {
     s <- rlang::sym(cl)
     if (isTRUE(desc)) rlang::expr(dplyr::desc(!!s)) else s
   })
-  dplyr::arrange(data, !!!exprs)
+  dplyr::arrange(dados, !!!exprs)
 }
 
 #' @export
-tr_slice_head <- function(data, n = 10L, by = "") {
-  g <- .tr_data_by(data, by)
+tr_slice_head <- function(dados, n = 10L, by = "") {
+  g <- .tr_data_by(dados, by)
   # Aqui é `by`, não `.by`: os `slice_*` recebem a expressão em `...` e por
   # isso batizaram o argumento sem ponto — passar `.by` aborta na hora.
-  dplyr::slice_head(data, n = as.integer(n), by = dplyr::all_of(g))
+  dplyr::slice_head(dados, n = as.integer(n), by = dplyr::all_of(g))
 }
 
 #' Gravador desligado: o caminho, COMO O USUÁRIO DIGITOU, está em branco.
@@ -540,21 +540,21 @@ tr_slice_head <- function(data, n = 10L, by = "") {
 #' do resto dela. Ainda assim é a escolha: sink que não grava o arquivo que
 #' promete é silêncio produzindo resultado errado, e isso é pior.
 #' @export
-tr_write_csv <- function(data, path, .ctx = NULL) {
-  if (.tr_data_sink_desligado(path)) return(data)
+tr_write_csv <- function(dados, path, .ctx = NULL) {
+  if (.tr_data_sink_desligado(path)) return(dados)
   if (!is.null(.ctx)) path <- .ctx$path(path)
-  readr::write_csv(data, path)
-  data
+  readr::write_csv(dados, path)
+  dados
 }
 
 #' @export
-tr_write_rds <- function(data, path, .ctx = NULL) {
-  if (.tr_data_sink_desligado(path)) return(data)
+tr_write_rds <- function(dados, path, .ctx = NULL) {
+  if (.tr_data_sink_desligado(path)) return(dados)
   if (!is.null(.ctx)) path <- .ctx$path(path)
   # Mesma razão do leitor: `saveRDS` erra cego, sem o caminho na mensagem.
   .tr_data_arquivo(dirname(path), "path", pasta = TRUE)
-  saveRDS(data, path)
-  data
+  saveRDS(dados, path)
+  dados
 }
 
 #' Caminho em branco é "desligado", e por isso vem ANTES do `.tr_data_need()`:
@@ -562,12 +562,12 @@ tr_write_rds <- function(data, path, .ctx = NULL) {
 #' pintar de vermelho por falta do `arrow` — ele não vai gravar nada mesmo, e
 #' a tabela tem que continuar passando adiante.
 #' @export
-tr_write_parquet <- function(data, path, .ctx = NULL) {
-  if (.tr_data_sink_desligado(path)) return(data)
+tr_write_parquet <- function(dados, path, .ctx = NULL) {
+  if (.tr_data_sink_desligado(path)) return(dados)
   if (!is.null(.ctx)) path <- .ctx$path(path)
   .tr_data_need("arrow", "data/write_parquet")
-  arrow::write_parquet(data, path)
-  data
+  arrow::write_parquet(dados, path)
+  dados
 }
 
 #' Colunas chegam do front como texto separado por vírgula, ou como vetor
@@ -593,7 +593,7 @@ tr_write_parquet <- function(data, path, .ctx = NULL) {
 #' Tudo vira texto porque `minimo` de uma coluna de data e de uma numérica
 #' moram na mesma coluna do resultado.
 #' @export
-tr_summary <- function(data) {
+tr_summary <- function(dados) {
   # `min()` sobre texto usa a colação da locale — aceitável aqui, porque isto
   # é um resumo para o olho, não uma chave de ordenação do fluxo.
   extremo <- function(v, qual) {
@@ -619,16 +619,16 @@ tr_summary <- function(data) {
     x <- as.character(format(v[[1]]))
     if (!length(x)) NA_character_ else paste(x, collapse = ", ")
   }
-  # `unname()` em cada coluna: `vapply()` herda os nomes de `data`, e uma coluna
+  # `unname()` em cada coluna: `vapply()` herda os nomes de `dados`, e uma coluna
   # de tibble com nomes por linha é lixo que vaza para o renderizador.
   tibble::tibble(
-    coluna    = names(data),
-    tipo      = unname(vapply(data, function(v) class(v)[[1]], "")),
-    faltantes = unname(vapply(data, function(v) sum(is.na(v)), 0L)),
-    distintos = unname(vapply(data, function(v) length(unique(v[!is.na(v)])), 0L)),
-    minimo    = unname(vapply(data, extremo, "", qual = min)),
-    maximo    = unname(vapply(data, extremo, "", qual = max)),
-    exemplo   = unname(vapply(data, primeiro, ""))
+    coluna    = names(dados),
+    tipo      = unname(vapply(dados, function(v) class(v)[[1]], "")),
+    faltantes = unname(vapply(dados, function(v) sum(is.na(v)), 0L)),
+    distintos = unname(vapply(dados, function(v) length(unique(v[!is.na(v)])), 0L)),
+    minimo    = unname(vapply(dados, extremo, "", qual = min)),
+    maximo    = unname(vapply(dados, extremo, "", qual = max)),
+    exemplo   = unname(vapply(dados, primeiro, ""))
   )
 }
 
@@ -650,10 +650,10 @@ tr_summary <- function(data) {
 #' 123456. Nada virava NA, então o guard de NA não via nada: o valor só ficava
 #' mil vezes maior, calado.
 #' @export
-tr_convert <- function(data, cols, type = "numero", format = "", decimal = ".") {
+tr_convert <- function(dados, cols, type = "numero", format = "", decimal = ".") {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(data)
-  .tr_data_cols(data, cols, "cols")
+  if (!length(cols)) return(dados)
+  .tr_data_cols(dados, cols, "cols")
 
   numerico <- function(v) if (is.numeric(v)) as.double(v) else .tr_data_double(v, decimal)
   conv <- switch(type,
@@ -684,7 +684,7 @@ tr_convert <- function(data, cols, type = "numero", format = "", decimal = ".") 
     "")
 
   for (cl in cols) {
-    antes <- data[[cl]]; depois <- conv(antes)
+    antes <- dados[[cl]]; depois <- conv(antes)
     perdidos <- unique(as.character(antes[!is.na(antes) & is.na(depois)]))
     if (length(perdidos)) {
       rlang::abort(
@@ -694,9 +694,9 @@ tr_convert <- function(data, cols, type = "numero", format = "", decimal = ".") 
                 dica),
         class = "tr_data_error_bad_conversion")
     }
-    data[[cl]] <- depois
+    dados[[cl]] <- depois
   }
-  data
+  dados
 }
 
 #' Texto para double, ESTRITO — de propósito.
@@ -730,31 +730,31 @@ tr_convert <- function(data, cols, type = "numero", format = "", decimal = ".") 
 #' todos os outros. Colisão depois da limpeza (duas colunas que viram
 #' `valor_r`) o janitor desambigua sozinho, com sufixo (`valor_r_2`).
 #' @export
-tr_clean_names <- function(data) janitor::clean_names(data)
+tr_clean_names <- function(dados) janitor::clean_names(dados)
 
 #' @export
-tr_remove_empty <- function(data, which = "ambos") {
+tr_remove_empty <- function(dados, which = "ambos") {
   # "ambos" aplica linhas e depois colunas; a ordem não muda o resultado,
   # porque só remove o que está inteiramente vazio nos dois sentidos.
   # Sem default, `which` inválido devolvia NULL e o janitor não removia NADA,
   # sem reclamar — o pior desfecho possível num nó de limpeza.
   w <- switch(which, linhas = "rows", colunas = "cols", ambos = c("rows", "cols"),
               .tr_data_option("which", which, c("linhas", "colunas", "ambos")))
-  janitor::remove_empty(data, which = w)
+  janitor::remove_empty(dados, which = w)
 }
 
 #' Ao contrário do `distinct`, que REMOVE repetidas, este MOSTRA quais são —
 #' é nó da fase "conhecer", não da fase "limpar". Ver antes de apagar.
 #' @export
-tr_get_dupes <- function(data, cols) {
+tr_get_dupes <- function(dados, cols) {
   cols <- .as_cols(cols)
   # Sem colunas, o janitor usa todas — e avisa com `message()`. Aviso não sobe
   # até o card, só sujaria o log de execução do nó; a informação já está no
   # campo vazio da tela.
-  if (!length(cols)) return(suppressMessages(janitor::get_dupes(data)))
-  .tr_data_cols(data, cols, "cols")
+  if (!length(cols)) return(suppressMessages(janitor::get_dupes(dados)))
+  .tr_data_cols(dados, cols, "cols")
   # `get_dupes()` é tidyselect: `all_of()` funciona dentro dele.
-  janitor::get_dupes(data, dplyr::all_of(cols))
+  janitor::get_dupes(dados, dplyr::all_of(cols))
 }
 
 #' Empilha várias colunas em duas: uma com o nome, outra com o valor.
@@ -763,17 +763,17 @@ tr_get_dupes <- function(data, cols) {
 #' levantado de dentro do verbo tidyr é embrulhado e a classe útil sobra só no
 #' `parent`, onde o card não a enxerga.
 #' @export
-tr_pivot_longer <- function(data, cols, names_to = "nome", values_to = "valor") {
+tr_pivot_longer <- function(dados, cols, names_to = "nome", values_to = "valor") {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(data)
-  .tr_data_cols(data, cols, "cols")
+  if (!length(cols)) return(dados)
+  .tr_data_cols(dados, cols, "cols")
   # `names_to`/`values_to` são obrigatórios: têm default não vazio no spec e o
   # usuário pode limpá-los no card. Vazio aqui não é "desligado" — sem eles as
   # duas colunas de saída não têm nome, e o R aborta com "tentativa de usar um
   # nome de variável com comprimento zero", sem classe e sem dizer qual campo.
   .tr_data_obrigatorio(names_to, "names_to")
   .tr_data_obrigatorio(values_to, "values_to")
-  tidyr::pivot_longer(data, cols = dplyr::all_of(cols),
+  tidyr::pivot_longer(dados, cols = dplyr::all_of(cols),
                       names_to = names_to, values_to = values_to)
 }
 
@@ -788,7 +788,7 @@ tr_pivot_longer <- function(data, cols, names_to = "nome", values_to = "valor") 
 #' preenchimento; número escrito vira número, pra não transformar coluna
 #' numérica em texto só porque o preenchimento veio de um input.
 #' @export
-tr_pivot_wider <- function(data, names_from, values_from, values_fill = "") {
+tr_pivot_wider <- function(dados, names_from, values_from, values_fill = "") {
   # Antes do `.tr_data_cols()`: o default dos dois no spec é "", então todo nó
   # recém-arrastado da paleta passava por aqui e a mensagem saía "coluna(s)
   # inexistente(s): ." — o nome vazio não renderiza e não sobra nada pra ler.
@@ -799,15 +799,15 @@ tr_pivot_wider <- function(data, names_from, values_from, values_fill = "") {
   # LISTA. Sem ele, um espaço à direita vindo do card errava com
   # "coluna(s) inexistente(s): k " — o culpado invisível de sempre.
   names_from <- trimws(names_from); values_from <- trimws(values_from)
-  .tr_data_cols(data, names_from, "names_from")
-  .tr_data_cols(data, values_from, "values_from")
-  .tr_data_chave_unica(data, names_from, values_from)
+  .tr_data_cols(dados, names_from, "names_from")
+  .tr_data_cols(dados, values_from, "values_from")
+  .tr_data_chave_unica(dados, names_from, values_from)
   fill <- NULL
   if (nzchar(trimws(values_fill))) {
     n <- suppressWarnings(as.numeric(values_fill))
     fill <- if (is.na(n)) values_fill else n
   }
-  tidyr::pivot_wider(data, names_from = dplyr::all_of(names_from),
+  tidyr::pivot_wider(dados, names_from = dplyr::all_of(names_from),
                      values_from = dplyr::all_of(values_from), values_fill = fill)
 }
 
@@ -863,11 +863,11 @@ tr_bind_rows <- function(tabelas) dplyr::bind_rows(tabelas)
 #' mesmo motivo do `tr_select()`: erro levantado de dentro do verbo tidyr vira
 #' embrulho, e a classe útil sobra só no `parent`, onde o card não a enxerga.
 #' @export
-tr_drop_na <- function(data, cols) {
+tr_drop_na <- function(dados, cols) {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(tidyr::drop_na(data))
-  .tr_data_cols(data, cols, "cols")
-  tidyr::drop_na(data, dplyr::all_of(cols))
+  if (!length(cols)) return(tidyr::drop_na(dados))
+  .tr_data_cols(dados, cols, "cols")
+  tidyr::drop_na(dados, dplyr::all_of(cols))
 }
 
 #' Preenche os faltantes das colunas escolhidas com um valor fixo.
@@ -887,21 +887,21 @@ tr_drop_na <- function(data, cols) {
 #'
 #' Param vazio é no-op: campo em branco no card não é ordem de mexer.
 #' @export
-tr_replace_na <- function(data, cols, value = "0") {
+tr_replace_na <- function(dados, cols, value = "0") {
   cols <- .as_cols(cols)
-  if (!length(cols)) return(data)
+  if (!length(cols)) return(dados)
   # Valor em branco também é no-op, como o resto da coleção: campo limpo no
   # card não é ordem de trocar NA por string vazia. Antes, isto abortava em
   # coluna numérica e virava "" em coluna de texto.
-  if (!nzchar(trimws(value))) return(data)
-  .tr_data_cols(data, cols, "cols")
+  if (!nzchar(trimws(value))) return(dados)
+  .tr_data_cols(dados, cols, "cols")
   for (cl in cols) {
-    v <- data[[cl]]
+    v <- dados[[cl]]
     if (is.factor(v) && !value %in% levels(v)) levels(v) <- c(levels(v), value)
     v[is.na(v)] <- .tr_data_na_valor(v, value, cl)
-    data[[cl]] <- v
+    dados[[cl]] <- v
   }
-  data
+  dados
 }
 
 #' Texto do card no tipo da coluna, ou erro classificado.
@@ -990,7 +990,7 @@ tr_replace_na <- function(data, cols, value = "0") {
 #' vermelho um fluxo saudável, e a região de zero passos tem semântica
 #' definida (o colapso roda uma vez, com o histórico vazio).
 #' @export
-tr_to_stream <- function(data = NULL, lote = 1L, ordenar_por = "", max_passos = 0L) {
+tr_to_stream <- function(dados = NULL, lote = 1L, ordenar_por = "", max_passos = 0L) {
   # Params ANTES do retorno antecipado: com a validação depois, um card com
   # `lote = 0` e nada ligado lia como sadio e só ficava vermelho quando o
   # usuário conectasse a tabela — o erro chegando um passo depois do engano.
@@ -999,29 +999,29 @@ tr_to_stream <- function(data = NULL, lote = 1L, ordenar_por = "", max_passos = 
 
   # Porta opcional solta: card recém-arrastado da paleta, ou nível 1 sem
   # tabela. Zero pontos é a leitura honesta — a região não tem o que percorrer.
-  if (is.null(data)) return(list())
+  if (is.null(dados)) return(list())
 
   # Nível 1 com um vetor no lugar da tabela: sem isto, `nrow()` devolve NULL e
   # o `if (n == 0L)` morre com "argumento tem comprimento zero", que não nomeia
   # nem o argumento nem o problema. A porta e o `store` do tipo é que impõem
   # tipo no grafo; aqui é só a chamada de função R comum que merece a frase.
-  if (is.null(nrow(data))) {
-    rlang::abort(sprintf("'data' não é uma tabela, e sim '%s'.", class(data)[[1]]),
+  if (is.null(nrow(dados))) {
+    rlang::abort(sprintf("'dados' não é uma tabela, e sim '%s'.", class(dados)[[1]]),
                  class = "tr_data_error_not_a_table")
   }
 
   ordem <- .as_cols(ordenar_por)
   if (length(ordem)) {
-    .tr_data_cols(data, ordem, "ordenar_por")
+    .tr_data_cols(dados, ordem, "ordenar_por")
     # `order()` e não `dplyr::arrange()` porque a ordenação aqui não é do
     # domínio do usuário (não há expressão a avaliar): são colunas nomeadas, e
     # `method = "radix"` é o que torna a sequência de pontos — logo o
     # histórico — independente da locale de quem roda o fluxo.
-    data <- data[do.call(order, c(unname(as.list(data[ordem])),
+    dados <- dados[do.call(order, c(unname(as.list(dados[ordem])),
                                   list(method = "radix"))), , drop = FALSE]
   }
 
-  n <- nrow(data)
+  n <- nrow(dados)
   if (n == 0L) return(list())
   inicios <- seq.int(1L, n, by = lote)
   # `0 = todos` é a forma inteira do "vazio é desligado" da coleção, e vem
@@ -1029,13 +1029,13 @@ tr_to_stream <- function(data = NULL, lote = 1L, ordenar_por = "", max_passos = 
   # "máximo de passos" leria como "nenhum passo".
   if (max_passos > 0L) inicios <- utils::head(inicios, max_passos)
 
-  lapply(inicios, function(i) data[seq.int(i, min(i + lote - 1L, n)), , drop = FALSE])
+  lapply(inicios, function(i) dados[seq.int(i, min(i + lote - 1L, n)), , drop = FALSE])
 }
 
 #' Empilha o histórico da região num valor comum: é aqui que a região colapsa
 #' de volta no ecossistema (Decisão 6).
 #'
-#' O contrato do colapso: este `fn` roda UMA vez, DEPOIS do laço, e `data` é a
+#' O contrato do colapso: este `fn` roda UMA vez, DEPOIS do laço, e `dados` é a
 #' lista com o valor de todos os passos. O driver entrega a lista inteira de
 #' uma vez justamente porque juntar N pedaços num valor do tipo declarado é
 #' conhecimento de domínio — `rbind` de tabela, `c()` de vetor, mosaico de
@@ -1053,18 +1053,18 @@ tr_to_stream <- function(data = NULL, lote = 1L, ordenar_por = "", max_passos = 
 #' preencheria `NA` na coluna que falta — histórico verde, com um buraco cuja
 #' causa está em um passo que a mensagem não diria qual.
 #' @export
-tr_from_stream <- function(data = NULL, passo = TRUE) {
-  pontos <- if (is.null(data)) {
+tr_from_stream <- function(dados = NULL, passo = TRUE) {
+  pontos <- if (is.null(dados)) {
     list()
-  } else if (!is.null(dim(data))) {
+  } else if (!is.null(dim(dados))) {
     # Retângulo, não lista de pontos: `data/from_stream` ligado direto numa
     # tabela é grafo aceito (sem fonte não há região), e aí o `fn` recebe a
     # tabela inteira. Percorrê-la como lista andaria nas COLUNAS — o mesmo erro
     # calado que a guarda do driver evita do outro lado da fronteira. Uma
     # tabela é o histórico de UM ponto, que é a única leitura sensata.
-    list(data)
+    list(dados)
   } else {
-    as.list(data)
+    as.list(dados)
   }
 
   # Zero pontos: não há ponto de onde aprender as colunas da tabela, e este nó

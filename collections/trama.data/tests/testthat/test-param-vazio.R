@@ -22,11 +22,11 @@
 args_validos <- function() list(
   "data/read_excel"      = list(path = "planilha.xlsx", sheet = "1"),
   "data/generate"        = list(n = 10L, expr = "x = rnorm(n)"),
-  "data/mutate"          = list(data = df_exemplo(), name = "nova",
+  "data/mutate"          = list(dados = df_exemplo(), name = "nova",
                                 expr = "valor * 2", by = ""),
-  "data/pivot_longer"    = list(data = df_exemplo(), cols = "valor, qtd",
+  "data/pivot_longer"    = list(dados = df_exemplo(), cols = "valor, qtd",
                                 names_to = "nome", values_to = "valor"),
-  "data/group_summarise" = list(data = df_exemplo(), by = "regiao",
+  "data/group_summarise" = list(dados = df_exemplo(), by = "regiao",
                                 name = "total", expr = "sum(valor)")
 )
 

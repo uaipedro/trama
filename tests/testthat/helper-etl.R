@@ -35,10 +35,10 @@ etl_doc <- function(reg, csv) {
          params = list(by = "regiao", name = "total_regiao", expr = "sum(total)")),
     list(op = "add_node", type = "data/arrange", id = "ordenar",
          params = list(cols = "total_regiao", desc = TRUE)),
-    list(op = "connect", from_node = "ler",     from_port = "out", to_node = "filtrar", to_port = "data"),
-    list(op = "connect", from_node = "filtrar", from_port = "out", to_node = "calc",    to_port = "data"),
-    list(op = "connect", from_node = "calc",    from_port = "out", to_node = "resumo",  to_port = "data"),
-    list(op = "connect", from_node = "resumo",  from_port = "out", to_node = "ordenar", to_port = "data")
+    list(op = "connect", from_node = "ler",     from_port = "out", to_node = "filtrar", to_port = "dados"),
+    list(op = "connect", from_node = "filtrar", from_port = "out", to_node = "calc",    to_port = "dados"),
+    list(op = "connect", from_node = "calc",    from_port = "out", to_node = "resumo",  to_port = "dados"),
+    list(op = "connect", from_node = "resumo",  from_port = "out", to_node = "ordenar", to_port = "dados")
   )
   doc <- tr_doc()
   for (op in ops) doc <- tr_doc_apply(doc, op, reg)

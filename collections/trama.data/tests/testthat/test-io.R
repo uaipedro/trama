@@ -314,7 +314,7 @@ test_that("gravadores repassam a tabela: a porta de saída existe", {
   reg <- data_registry()
   for (id in c("data/write_csv", "data/write_rds", "data/write_parquet")) {
     expect_true("out" %in% names(reg$nodes[[id]]$outputs), info = id)
-    expect_true("data" %in% names(reg$nodes[[id]]$inputs), info = id)
+    expect_true("dados" %in% names(reg$nodes[[id]]$inputs), info = id)
   }
 })
 
@@ -334,7 +334,7 @@ test_that("apagar o arquivo de saída e re-rodar regrava", {
     list(op = "add_node", type = "data/write_rds", id = "grava",
          params = list(path = alvo)),
     list(op = "connect", from_node = "fonte", from_port = "out",
-         to_node = "grava", to_port = "data"))) {
+         to_node = "grava", to_port = "dados"))) {
     doc <- trama::tr_doc_apply(doc, op, reg)
   }
 
@@ -566,4 +566,19 @@ test_that("cada conjunto de exemplo é o conjunto que o card diz ser", {
   ar <- tr_example("airquality")
   expect_gt(sum(is.na(ar$Ozone)), 0L)
   expect_equal(sum(is.na(tr_example("ToothGrowth"))), 0L)
+})
+
+# Glossário de params (docs/glossario-parametros.md): a porta de entrada da
+# tabela virou `dados`. Fluxo salvo com a aresta em `data` abre religado.
+test_that("aresta salva na porta `data` abre na porta `dados`", {
+  reg <- data_registry()
+  doc <- list(
+    nodes = list(ler = list(type = "data/read_csv", params = list(path = "x.csv")),
+                 filtra = list(type = "data/filter", params = list())),
+    edges = list(list(from = list(node = "ler", port = "out"),
+                      to = list(node = "filtra", port = "data"))))
+  m <- trama::tr_doc_migrate(doc, reg)
+  expect_equal(m$edges[[1]]$to$port, "dados")
+  expect_equal(m$edges[[1]]$from$port, "out")
+  expect_true(isTRUE(attr(m, "migrated")))
 })
