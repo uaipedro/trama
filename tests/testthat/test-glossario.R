@@ -71,7 +71,6 @@ violacoes_glossario <- function(nos) {
 }
 
 test_that("parâmetros e portas seguem o glossário", {
-  skip("glossário: renomes nas tasks 1.2–1.4")
   for (p in colecoes_glossario) skip_if_not_installed(p)
   for (p in colecoes_glossario) tr_use(p)
 
