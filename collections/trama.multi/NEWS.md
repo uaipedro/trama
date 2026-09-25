@@ -1,4 +1,7 @@
-# trama.multi (desenvolvimento)
+# trama.multi 0.2.0
+
+Versão sobe de 0.1.0: o resultado padrão mudou (intervalo perfilado como
+padrão na `multi/logistic_coefficients`).
 
 ## Blocos novos
 
