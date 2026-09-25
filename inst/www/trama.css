@@ -961,6 +961,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-help-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;font:inherit;font-size:11px;
   color:var(--tr-fg);background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:10px;cursor:pointer}
 .tr-help-chip:hover{border-color:var(--tr-accent);background:var(--tr-hover)}
+.tr-help-chip:focus-visible{outline:2px solid var(--tr-accent);outline-offset:1px}
+/* Id sem nó no catálogo: só texto, sem cara de clicável. */
+.tr-help-chip-off{color:var(--tr-dim);cursor:default;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tr-help-chip-off:hover{border-color:var(--tr-line);background:var(--tr-panel)}
+.tr-help-head strong:focus{outline:none}
+.tr-help-head strong:focus-visible{outline:2px solid var(--tr-accent);outline-offset:1px}
 .tr-help-chip .tr-palette-icon{width:12px;height:12px}
 .tr-help-body .tr-help-refgrp ul{padding-left:0;list-style:none;margin:0}
 .tr-help-ref{margin-bottom:5px;overflow-wrap:anywhere}

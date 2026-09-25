@@ -963,7 +963,8 @@ function Referencia({ r }) {
   const partes = [];
   if (r.papel === "implementacao" && r.pacote) {
     partes.push(h("code", { key: "f", className: "tr-help-ref-fn" },
-      `${r.pacote}::${r.funcao ? r.funcao + "()" : ""}`));
+      // Sem função declarada, só o pacote (nada de `pacote::` pendurado).
+      r.funcao ? `${r.pacote}::${r.funcao}()` : r.pacote));
     if (r.versao) partes.push(h("span", { key: "v", className: "tr-help-ref-ver" }, ` versão ${r.versao}`));
     if (r.autores?.length || r.titulo) partes.push(h("br", { key: "br" }));
   }
@@ -974,26 +975,51 @@ function Referencia({ r }) {
   if (cab.length) partes.push(cab.join(" ") + " ");
   if (r.titulo) partes.push(h("em", { key: "t" }, r.titulo.replace(/\.$/, "")), ". ");
   if (r.fonte) partes.push(r.fonte.replace(/\.$/, "") + ". ");
-  const href = r.doi ? `https://doi.org/${r.doi}` : r.url;
+  // Defesa em profundidade: só vira link URL https; o resto aparece como texto.
+  const urlOk = typeof r.url === "string" && /^https:\/\//i.test(r.url);
+  const href = r.doi ? `https://doi.org/${encodeURI(r.doi)}` : (urlOk ? r.url : null);
   if (href) partes.push(h("a", { key: "a", href, target: "_blank", rel: "noopener" },
                           r.doi ? `doi:${r.doi}` : r.url));
+  else if (r.url) partes.push(h("span", { key: "a" }, r.url));
   if (r.nota) partes.push(h("div", { key: "n", className: "tr-help-ref-nota" }, r.nota));
   return h("li", { className: "tr-help-ref" }, partes);
 }
 
+// Normaliza espaços para comparar descrição e ajuda sem tropeçar em quebras.
+const normEsp = (t) => String(t || "").replace(/\s+/g, " ").trim();
+
+// A descrição repete a ajuda quando o primeiro parágrafo do markdown (depois de
+// um "## Descrição" opcional) começa pelo mesmo texto.
+function descricaoRepete(desc, help) {
+  if (!desc || !help) return false;
+  const corpo = help.replace(/^\s*##\s*Descri[çc][ãa]o\s*\n/i, "").trimStart();
+  const par = normEsp(corpo.split(/\n\s*\n/)[0]);
+  const d = normEsp(desc).replace(/\.$/, "");
+  return d.length > 0 && par.startsWith(d);
+}
+
 function Help({ catalog, typeId, onClose, onOpen }) {
   const spec = (catalog.nodes || []).find((n) => n.id === typeId);
+  const titulo = useRef(null);
+  const veioDeChip = useRef(false);
+  // Depois que um chip troca o painel, o foco vai para o título da nova ajuda.
+  useEffect(() => {
+    if (veioDeChip.current && titulo.current) titulo.current.focus();
+    veioDeChip.current = false;
+  }, [typeId]);
   if (!spec) return null;
   const nos = catalog.nodes || [];
   const press = spec.pressupostos || [];
   const refs = spec.referencias || [];
   const chip = (id) => {
     const alvo = nos.find((n) => n.id === id);
+    // Id fora do catálogo: nada para abrir, então texto cru e apagado, não botão.
+    if (!alvo) return h("span", { key: id, className: "tr-help-chip tr-help-chip-off", title: id }, id);
     return h("button", { key: id, type: "button", className: "tr-help-chip", title: id,
-                         onClick: () => onOpen && onOpen(id) }, [
-      alvo?.icon && ICON_KINDS.has(alvo.icon.kind)
+                         onClick: () => { veioDeChip.current = true; onOpen && onOpen(id); } }, [
+      alvo.icon && ICON_KINDS.has(alvo.icon.kind)
         ? h(Icon, { key: "i", icon: alvo.icon, className: "tr-palette-icon" }) : null,
-      h("span", { key: "l" }, alvo?.label || id),
+      h("span", { key: "l" }, alvo.label || id),
     ]);
   };
   const secPress = press.length ? h("section", { key: "pr", className: "tr-help-sec" }, [
@@ -1022,13 +1048,13 @@ function Help({ catalog, typeId, onClose, onOpen }) {
   ]) : null;
   return h("aside", { className: "tr-help" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
-      h("strong", { key: "t" }, spec.label || spec.id),
+      h("strong", { key: "t", ref: titulo, tabIndex: -1 }, spec.label || spec.id),
       h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
                     onClick: onClose }, "×"),
     ]),
     h("code", { key: "id", className: "tr-help-id" }, spec.id),
     h("div", { key: "b", className: "tr-help-body" }, [
-      spec.description ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
+      spec.description && !descricaoRepete(spec.description, spec.help) ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
       secPress, secRefs,
       spec.help ? h("div", { key: "md" }, md(spec.help))
         : (!spec.description && !secPress && !secRefs ? h("p", { key: "0" }, "sem ajuda") : null),
