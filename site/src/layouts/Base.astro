@@ -1,4 +1,7 @@
 ---
+// O CSS do editor antes do site: as regras do canvas estático (site.css)
+// ajustam o card e precisam vir depois.
+import "../styles/editor-card.css";
 import "../styles/site.css";
 import { variants } from "../data/copy-variants";
 
@@ -314,6 +317,32 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         store.set(exemploAbaKey, aba);
         event.preventDefault();
       });
+    </script>
+    <script is:inline>
+      {
+        // Canvas estático: reduz a escala até caber na largura (piso de 0,5;
+        // abaixo disso o card fica ilegível e a faixa rola na horizontal).
+        const ajustarCanvas = (el) => {
+          const caixa = el.parentElement;
+          // Só a LARGURA da caixa conta, e só quando muda: a barra de rolagem
+          // que aparece com a escala nova não pode disparar outro ajuste.
+          const largura = caixa ? caixa.getBoundingClientRect().width : 0;
+          if (!largura || String(largura) === el.dataset.caixaW) return;
+          el.dataset.caixaW = String(largura);
+          const max = Number(el.dataset.escala) || 0.8;
+          const cabe = largura / Number(el.dataset.canvasW);
+          el.style.setProperty("--escala", String(Math.max(0.5, Math.min(max, cabe)).toFixed(3)));
+        };
+        const canvases = document.querySelectorAll(".tr-estatico[data-canvas-w]");
+        canvases.forEach(ajustarCanvas);
+        if ("ResizeObserver" in window) {
+          const ro = new ResizeObserver((entradas) => entradas.forEach((e) => {
+            const el = e.target.querySelector(":scope > .tr-estatico[data-canvas-w]");
+            if (el) ajustarCanvas(el);
+          }));
+          canvases.forEach((el) => el.parentElement && ro.observe(el.parentElement));
+        }
+      }
     </script>
   </body>
 </html>

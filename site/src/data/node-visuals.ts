@@ -11,6 +11,27 @@ export interface NodeVisual {
   categoryOrder?: number;
   inputColor?: string;
   outputColor?: string;
+  /** Papel no fluxo: dá a cor do cabeçalho pelo token do tema. */
+  role?: string;
+  inputs?: NodePort[];
+  outputs?: NodePort[];
+  params?: NodeParam[];
+}
+
+export interface NodePort {
+  name: string;
+  color: string;
+  required: boolean;
+  multiple: boolean;
+}
+
+export interface NodeParam {
+  name: string;
+  kind: string;
+  label: string;
+  default?: unknown;
+  example?: string;
+  choices?: string[];
 }
 
 const nodeVisuals: Record<string, NodeVisual> = visuals;

@@ -1,11 +1,12 @@
 // Converte o documento (document-v1) de um template no grafo simples que o
 // mini-canvas das docs desenha (flow-canvas-html.ts).
 
-import type { FlowGraph } from "./flow-example.ts";
+import type { FlowEdge, FlowGraph } from "./flow-example.ts";
 
 interface TemplateDoc {
   nodes: Record<string, { type: string; params?: Record<string, unknown> }>;
-  edges?: { from: { node: string }; to: { node: string } }[];
+  edges?: { from: { node: string; port?: string }; to: { node: string; port?: string } }[];
+  ui?: { positions?: Record<string, [number, number]> };
 }
 
 function paramText(value: unknown): string {
@@ -22,6 +23,7 @@ export function templateToGraph(doc: TemplateDoc): FlowGraph {
       type: node.type,
       params: Object.entries(node.params ?? {}).map(([k, v]) => [k, paramText(v)] as [string, string])
     })),
-    edges: (doc.edges ?? []).map((e) => [e.from.node, e.to.node] as [string, string])
+    edges: (doc.edges ?? []).map((e) => [e.from.node, e.to.node, e.from.port, e.to.port] as FlowEdge),
+    positions: doc.ui?.positions
   };
 }

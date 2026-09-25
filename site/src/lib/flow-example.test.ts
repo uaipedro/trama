@@ -38,10 +38,17 @@ test("layout em colunas por profundidade", () => {
 
 test("canvas: um card por nó, aresta por par, escapa texto", () => {
   const [g] = parseFlowExample(`tr_add("a","t/x", q = "<b>") |> tr_add("b","t/y", from = "a")`)!;
-  const html = renderFlowCanvas(g, {});
-  assert.equal(html.match(/class="canvas-card"/g)?.length, 2);
-  assert.equal(html.match(/<path /g)?.length, 1);
-  assert.ok(html.includes("&lt;b&gt;") && !html.includes("<b>"));
+  const visuals = { "t/x": { accent: "#000", hasInput: false, hasOutput: true,
+    params: [{ name: "q", kind: "text", label: "Q" }] } };
+  const html = renderFlowCanvas(g, visuals);
+  assert.equal(html.match(/class="tr-node /g)?.length, 2);
+  assert.equal(html.match(/class="react-flow__edge-path"/g)?.length, 1);
+  assert.ok(html.includes('value="&lt;b&gt;"') && !html.includes("<b>"));
+});
+
+test("from com porta nomeada vira aresta com porta de saída", () => {
+  const [g] = parseFlowExample(`tr_add("a","t/x") |> tr_add("b","t/y", from = "a:teste")`)!;
+  assert.deepEqual(g.edges, [["a", "b", "teste"]]);
 });
 
 // --- Item 1: vários tr_flow(...) independentes viram uma lista de grafos ---

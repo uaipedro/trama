@@ -28,5 +28,18 @@ test("documento do template vira canvas com um card por nó", () => {
   const graph = templateToGraph(tpl.doc);
   assert.equal(graph.nodes.length, Object.keys(tpl.doc.nodes).length);
   const html = renderFlowCanvas(graph, {});
-  assert.equal(html.match(/class="canvas-card"/g)?.length, graph.nodes.length);
+  assert.equal(html.match(/class="tr-node /g)?.length, graph.nodes.length);
+});
+
+test("card do template usa as posições do documento e as portas nomeadas", () => {
+  const graph = templateToGraph({
+    nodes: { a: { type: "x/a" }, b: { type: "x/b" } },
+    edges: [{ from: { node: "a", port: "teste" }, to: { node: "b", port: "dados" } }],
+    ui: { positions: { a: [0, 0], b: [360, 0] } },
+  });
+  assert.deepEqual(graph.edges, [["a", "b", "teste", "dados"]]);
+  const html = renderFlowCanvas(graph, {});
+  assert.ok(html.includes('style="left:40px;top:40px'));
+  assert.ok(html.includes('style="left:400px;top:40px'));
+  assert.ok(html.includes('class="tr-estatico"'));
 });
