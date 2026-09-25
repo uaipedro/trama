@@ -68,7 +68,7 @@
 
     "models/scott_knott" = list(
       pressupostos = list(modelo_ok, anova_agricolae, interacao,
-        P("Todo outro termo do modelo é **ortogonal** ao tratamento (bloco completo, sem covariável), e as médias têm o mesmo número de repetições: todas com a variância QM / r.",
+        P("Todo outro termo do modelo é **ortogonal** ao tratamento (bloco completo, sem covariável): a média da tabela estima a do nível, com variância QM / rᵢ. Repetições desiguais são aceitas no DIC; em cada corte s² é a média de QM / rᵢ do grupo (Jelihovschi, Faria & Allaman 2014; `ScottKnott:::MaxValue`).",
           se_falhar = "O bloco recusa; use o `models/emmeans` com médias ajustadas."),
         P("O **alfa vale para cada corte**, não para o agrupamento inteiro: a taxa de erro por experimento é maior que a nominal quando há muitas médias.")),
       referencias = list(
@@ -79,7 +79,7 @@
           titulo = "ScottKnott: a package for performing the Scott-Knott clustering algorithm in R",
           fonte = "TEMA (São Carlos), 15(1), 3-17", doi = "10.5540/tema.2014.015.01.0003",
           papel = "complementar"),
-        I("trama", "tr_models_scott_knott", "Implementação própria das fórmulas de Scott & Knott (1974): médias da tabela, s2 das médias = QM / r, qui-quadrado com k/(pi - 2) gl; conferida contra `ScottKnott::SK`."))),
+        I("trama", "tr_models_scott_knott", "Implementação própria das fórmulas de Scott & Knott (1974): médias da tabela, s2 das médias = média de QM / rᵢ no grupo partido (QM / r no balanceado), qui-quadrado com k/(pi - 2) gl; conferida contra `ScottKnott::SK` 1.4-0 (DIC, DBC, DIC desbalanceado, InsectSprays, CRD2)."))),
 
     "models/polinomial" = list(
       pressupostos = list(modelo_ok,

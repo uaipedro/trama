@@ -729,7 +729,7 @@ tr_flow(reg) |>
 `models/waller_duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
-    trama::tr_node("models/scott_knott",
+    trama::tr_node("models/scott_knott", version = 2L,
       pressupostos = .tr_models_doc("models/scott_knott")$pressupostos,
       referencias = .tr_models_doc("models/scott_knott")$referencias,
       fn = tr_models_scott_knott, label = "Scott-Knott",
@@ -748,9 +748,10 @@ com UMA letra: os grupos não se sobrepõem, ao contrário do Tukey e do Duncan.
 
 O nível (alfa = 1 − confiança) vale para cada corte, não para o procedimento inteiro. Usa o QM e os gl
 do resíduo do modelo (na parcela subdividida, o erro (a) ou (b) do fator, e a
-nota diz qual). Pede dados balanceados e termos ortogonais ao tratamento: com
-bloco incompleto, covariável ou repetições desiguais o bloco recusa e aponta
-o `models/emmeans`.
+nota diz qual). Pede termos ortogonais ao tratamento: com bloco incompleto,
+DBC com parcela perdida ou covariável o bloco recusa e aponta o
+`models/emmeans`. O DIC com repetições desiguais é aceito: cada corte usa
+s² = média de QM / rᵢ do grupo, como o pacote `ScottKnott` (versão 2 do nó).
 ]---", r"---[
 - **Tratamento** — o fator (ou até 3, separados por vírgula).
 - **Confiança** — padrão 0,95: cada corte é testado a alfa = 1 − confiança (5%).

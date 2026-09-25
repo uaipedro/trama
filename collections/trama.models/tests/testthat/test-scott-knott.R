@@ -38,7 +38,7 @@ test_that("Scott-Knott reproduz o exemplo publicado do sorgo, e o bloco recusa o
   sorgo <- get(utils::data("sorghum", package = "ScottKnott", envir = environment()))$dfm
   q <- anova(stats::lm(y ~ r/bl + x, data = sorgo))
   mm <- tapply(sorgo$y, sorgo$x, mean)
-  g <- .tr_models_sk(as.vector(mm), q["Residuals", "Mean Sq"] / 5, q["Residuals", "Df"], 0.05)
+  g <- .tr_models_sk_grupos(as.vector(mm), q["Residuals", "Mean Sq"], q["Residuals", "Df"], 5, 0.05)
   expect_setequal(names(mm)[g == 1L], c("14", "8", "5", "7", "9", "3", "1", "4", "2"))
   expect_setequal(names(mm)[g == 2L], c("12", "10", "16", "6", "11", "13", "15"))
   expect_true(mesma_particao(stats::setNames(g, names(mm)),
@@ -78,12 +78,14 @@ test_that("Scott-Knott no DBC de milho e no DIC bate com a conta e com o pacote"
   expect_true(mesma_particao(g, mao))
 })
 
-test_that("Scott-Knott recusa o que não é ANOVA e o desbalanceado", {
+test_that("Scott-Knott recusa o que não é ANOVA e o termo não ortogonal", {
   expect_error(tr_models_scott_knott(tr_models_glm(ex("InsectSprays"), "count", "spray"), "spray"),
                class = "tr_models_error_not_applicable")
-  d <- ex("PlantGrowth")[-1, ]
-  expect_error(tr_models_scott_knott(tr_models_anova_dic(d, "weight", "group"), "group"),
-               class = "tr_models_error_not_applicable")
+  # DBC com parcela perdida: o bloco deixa de ser ortogonal ao tratamento, e a
+  # média da tabela não estima a do nível — a recusa tem razão estatística.
+  d <- ex("milho_dbc")[-1, ]
+  expect_error(tr_models_scott_knott(tr_models_anova_dbc(d, "producao", "hibrido", "bloco"), "hibrido"),
+               "ortogonal", class = "tr_models_error_not_applicable")
   cov <- tr_models_lm(ex("warpbreaks") |> transform(z = seq_len(54)), formula = "breaks ~ z + tension")
   expect_error(tr_models_scott_knott(cov, "tension"), "covariável", class = "tr_models_error_not_applicable")
 })
