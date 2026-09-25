@@ -62,11 +62,11 @@ export function renderFlowCanvas(graph: FlowGraph, visuals: Record<string, NodeV
       const hasOutput = visual?.hasOutput ?? true;
 
       return `<div class="canvas-card" style="left:${left}px;top:${top}px;width:${CARD_W}px;--node-accent:${escapeHtml(accent)}" data-node-id="${escapeHtml(node.id)}">
-${hasInput ? `<i class="canvas-card__port canvas-card__port--in" aria-hidden="true"></i>` : ""}
+${hasInput ? `<i class="canvas-card__port canvas-card__port--in" aria-hidden="true"${visual?.inputColor ? ` style="--porta-cor:${escapeHtml(visual.inputColor)}"` : ""}></i>` : ""}
 <header class="canvas-card__header">${iconHtml}<strong>${escapeHtml(label)}</strong></header>
 <code>${escapeHtml(node.type)}</code>
 ${node.params.length > 0 ? `<ul class="canvas-card__params">${paramsHtml}${extraHtml}</ul>` : ""}
-${hasOutput ? `<i class="canvas-card__port canvas-card__port--out" aria-hidden="true"></i>` : ""}
+${hasOutput ? `<i class="canvas-card__port canvas-card__port--out" aria-hidden="true"${visual?.outputColor ? ` style="--porta-cor:${escapeHtml(visual.outputColor)}"` : ""}></i>` : ""}
 </div>`;
     })
     .join("\n");
@@ -80,7 +80,10 @@ ${hasOutput ? `<i class="canvas-card__port canvas-card__port--out" aria-hidden="
       const x2 = b.left;
       const y2 = b.top + PORT_Y;
       const mx = (x1 + x2) / 2;
-      return `<path d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="var(--node-accent, #94a3b8)" stroke-width="2" />`;
+      // O fio leva a cor do tipo que sai do bloco de origem, como no editor.
+      const fromType = graph.nodes.find((node) => node.id === from)?.type;
+      const color = (fromType && visuals[fromType]?.outputColor) ?? FALLBACK_ACCENT;
+      return `<path d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="${escapeHtml(color)}" stroke-width="2" />`;
     })
     .join("\n");
 

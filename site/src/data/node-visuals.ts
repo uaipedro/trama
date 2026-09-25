@@ -9,6 +9,8 @@ export interface NodeVisual {
   category?: string;
   categoryLabel?: string;
   categoryOrder?: number;
+  inputColor?: string;
+  outputColor?: string;
 }
 
 const nodeVisuals: Record<string, NodeVisual> = visuals;

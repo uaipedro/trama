@@ -7,6 +7,8 @@
     "category": "transform",
     "categoryLabel": "Transformar",
     "categoryOrder": 4,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "arrow-up-down"
   },
   "data/bind_rows": {
@@ -17,6 +19,8 @@
     "category": "aggregate",
     "categoryLabel": "Agregar",
     "categoryOrder": 6,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "layers"
   },
   "data/clean_names": {
@@ -27,6 +31,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "case-sensitive"
   },
   "data/convert": {
@@ -37,6 +43,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "arrow-right-left"
   },
   "data/distinct": {
@@ -47,6 +55,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "copy-x"
   },
   "data/drop_na": {
@@ -57,6 +67,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "circle-slash"
   },
   "data/example": {
@@ -67,6 +79,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "flask-conical"
   },
   "data/filter": {
@@ -77,6 +90,8 @@
     "category": "transform",
     "categoryLabel": "Transformar",
     "categoryOrder": 4,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "list-filter"
   },
   "data/from_stream": {
@@ -87,6 +102,8 @@
     "category": "stream",
     "categoryLabel": "Fluxo",
     "categoryOrder": 7,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "layers"
   },
   "data/generate": {
@@ -97,6 +114,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "dices"
   },
   "data/get_dupes": {
@@ -107,6 +125,8 @@
     "category": "inspect",
     "categoryLabel": "Conhecer",
     "categoryOrder": 2,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "copy"
   },
   "data/group_summarise": {
@@ -117,6 +137,8 @@
     "category": "aggregate",
     "categoryLabel": "Agregar",
     "categoryOrder": 6,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "sigma"
   },
   "data/join": {
@@ -127,6 +149,8 @@
     "category": "aggregate",
     "categoryLabel": "Agregar",
     "categoryOrder": 6,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "combine"
   },
   "data/mutate": {
@@ -137,6 +161,8 @@
     "category": "transform",
     "categoryLabel": "Transformar",
     "categoryOrder": 4,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "square-plus"
   },
   "data/pivot_longer": {
@@ -147,6 +173,8 @@
     "category": "reshape",
     "categoryLabel": "Reformatar",
     "categoryOrder": 5,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "unfold-vertical"
   },
   "data/pivot_wider": {
@@ -157,6 +185,8 @@
     "category": "reshape",
     "categoryLabel": "Reformatar",
     "categoryOrder": 5,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "unfold-horizontal"
   },
   "data/read_csv": {
@@ -167,6 +197,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "file-spreadsheet"
   },
   "data/read_excel": {
@@ -177,6 +208,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "sheet"
   },
   "data/read_json": {
@@ -187,6 +219,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "braces"
   },
   "data/read_parquet": {
@@ -197,6 +230,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "file-digit"
   },
   "data/read_rds": {
@@ -207,6 +241,7 @@
     "category": "source",
     "categoryLabel": "Fonte",
     "categoryOrder": 1,
+    "outputColor": "#38bdf8",
     "icon": "file-box"
   },
   "data/remove_empty": {
@@ -217,6 +252,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "eraser"
   },
   "data/rename": {
@@ -227,6 +264,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "pencil-line"
   },
   "data/replace_na": {
@@ -237,6 +276,8 @@
     "category": "clean",
     "categoryLabel": "Limpar",
     "categoryOrder": 3,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "paint-bucket"
   },
   "data/select": {
@@ -247,6 +288,8 @@
     "category": "transform",
     "categoryLabel": "Transformar",
     "categoryOrder": 4,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "columns-3"
   },
   "data/slice_head": {
@@ -257,6 +300,8 @@
     "category": "transform",
     "categoryLabel": "Transformar",
     "categoryOrder": 4,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "list-start"
   },
   "data/summary": {
@@ -267,6 +312,8 @@
     "category": "inspect",
     "categoryLabel": "Conhecer",
     "categoryOrder": 2,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "clipboard-list"
   },
   "data/to_stream": {
@@ -277,6 +324,8 @@
     "category": "stream",
     "categoryLabel": "Fluxo",
     "categoryOrder": 7,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "chevrons-right"
   },
   "data/write_csv": {
@@ -287,6 +336,8 @@
     "category": "sink",
     "categoryLabel": "Saída",
     "categoryOrder": 8,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "save"
   },
   "data/write_parquet": {
@@ -297,6 +348,8 @@
     "category": "sink",
     "categoryLabel": "Saída",
     "categoryOrder": 8,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "hard-drive-download"
   },
   "data/write_rds": {
@@ -307,6 +360,8 @@
     "category": "sink",
     "categoryLabel": "Saída",
     "categoryOrder": 8,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "archive"
   },
   "ml/cart": {
@@ -316,7 +371,9 @@
     "label": "CART · árvore de decisão",
     "category": "ml_simples",
     "categoryLabel": "Interpretáveis",
-    "categoryOrder": 44
+    "categoryOrder": 44,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "ml/confusion": {
     "accent": "#2563eb",
@@ -325,7 +382,9 @@
     "label": "Matriz de confusão",
     "category": "ml_avaliar",
     "categoryLabel": "Prever e avaliar",
-    "categoryOrder": 47
+    "categoryOrder": 47,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8"
   },
   "ml/evaluate": {
     "accent": "#2563eb",
@@ -334,7 +393,9 @@
     "label": "Avaliar previsões",
     "category": "ml_avaliar",
     "categoryLabel": "Prever e avaliar",
-    "categoryOrder": 47
+    "categoryOrder": 47,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8"
   },
   "ml/example": {
     "accent": "#0891b2",
@@ -343,7 +404,8 @@
     "label": "Dados para aprender",
     "category": "ml_dados",
     "categoryLabel": "Preparar",
-    "categoryOrder": 43
+    "categoryOrder": 43,
+    "outputColor": "#38bdf8"
   },
   "ml/figs": {
     "accent": "#65a30d",
@@ -352,7 +414,9 @@
     "label": "FIGS · soma de árvores",
     "category": "ml_simples",
     "categoryLabel": "Interpretáveis",
-    "categoryOrder": 44
+    "categoryOrder": 44,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "ml/forest": {
     "accent": "#d97706",
@@ -361,7 +425,9 @@
     "label": "Random forest",
     "category": "ml_ensembles",
     "categoryLabel": "Conjuntos de árvores",
-    "categoryOrder": 45
+    "categoryOrder": 45,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "ml/importance": {
     "accent": "#be123c",
@@ -370,7 +436,9 @@
     "label": "Importância de variáveis",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 48
+    "categoryOrder": 48,
+    "inputColor": "#65a30d",
+    "outputColor": "#38bdf8"
   },
   "ml/linear": {
     "accent": "#65a30d",
@@ -379,7 +447,9 @@
     "label": "Linear / logística",
     "category": "ml_simples",
     "categoryLabel": "Interpretáveis",
-    "categoryOrder": 44
+    "categoryOrder": 44,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "ml/predict": {
     "accent": "#2563eb",
@@ -388,7 +458,9 @@
     "label": "Prever",
     "category": "ml_avaliar",
     "categoryLabel": "Prever e avaliar",
-    "categoryOrder": 47
+    "categoryOrder": 47,
+    "inputColor": "#65a30d",
+    "outputColor": "#38bdf8"
   },
   "ml/residuals": {
     "accent": "#be123c",
@@ -397,7 +469,9 @@
     "label": "Analisar resíduos",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 48
+    "categoryOrder": 48,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6"
   },
   "ml/roc": {
     "accent": "#be123c",
@@ -406,7 +480,9 @@
     "label": "Curva ROC",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 48
+    "categoryOrder": 48,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6"
   },
   "ml/rules": {
     "accent": "#be123c",
@@ -415,7 +491,9 @@
     "label": "Ler regras das árvores",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 48
+    "categoryOrder": 48,
+    "inputColor": "#65a30d",
+    "outputColor": "#38bdf8"
   },
   "ml/split": {
     "accent": "#0891b2",
@@ -424,7 +502,9 @@
     "label": "Separar treino / teste",
     "category": "ml_dados",
     "categoryLabel": "Preparar",
-    "categoryOrder": 43
+    "categoryOrder": 43,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8"
   },
   "ml/svm": {
     "accent": "#7c3aed",
@@ -433,7 +513,9 @@
     "label": "SVM · vetores de suporte",
     "category": "ml_margem",
     "categoryLabel": "Vetores de suporte",
-    "categoryOrder": 46
+    "categoryOrder": 46,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "ml/tree_plot": {
     "accent": "#be123c",
@@ -442,7 +524,9 @@
     "label": "Visualizar árvores",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 48
+    "categoryOrder": 48,
+    "inputColor": "#65a30d",
+    "outputColor": "#f472b6"
   },
   "ml/tune": {
     "accent": "#2563eb",
@@ -451,7 +535,9 @@
     "label": "Ajustar hiperparâmetros",
     "category": "ml_avaliar",
     "categoryLabel": "Prever e avaliar",
-    "categoryOrder": 47
+    "categoryOrder": 47,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "ml/tuning_plot": {
     "accent": "#be123c",
@@ -460,7 +546,9 @@
     "label": "Visualizar tuning",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 48
+    "categoryOrder": 48,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6"
   },
   "ml/xgboost": {
     "accent": "#d97706",
@@ -469,7 +557,9 @@
     "label": "XGBoost",
     "category": "ml_ensembles",
     "categoryLabel": "Conjuntos de árvores",
-    "categoryOrder": 45
+    "categoryOrder": 45,
+    "inputColor": "#38bdf8",
+    "outputColor": "#65a30d"
   },
   "models/anova_dbc": {
     "accent": "#0ea5e9",
@@ -479,6 +569,8 @@
     "category": "modelo_anova",
     "categoryLabel": "ANOVA",
     "categoryOrder": 14,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "grid-3x3"
   },
   "models/anova_dic": {
@@ -489,6 +581,8 @@
     "category": "modelo_anova",
     "categoryLabel": "ANOVA",
     "categoryOrder": 14,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "layout-grid"
   },
   "models/anova_dql": {
@@ -499,6 +593,8 @@
     "category": "modelo_anova",
     "categoryLabel": "ANOVA",
     "categoryOrder": 14,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "columns-3"
   },
   "models/anova_factorial": {
@@ -509,6 +605,8 @@
     "category": "modelo_anova",
     "categoryLabel": "ANOVA",
     "categoryOrder": 14,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "grid-2x2"
   },
   "models/anova_split_plot": {
@@ -519,6 +617,8 @@
     "category": "modelo_anova",
     "categoryLabel": "ANOVA",
     "categoryOrder": 14,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "square-split-horizontal"
   },
   "models/anova_table": {
@@ -529,6 +629,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#eab308",
     "icon": "sheet"
   },
   "models/bartlett": {
@@ -539,6 +641,8 @@
     "category": "modelo_pressupostos",
     "categoryLabel": "Pressupostos",
     "categoryOrder": 17,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "scale"
   },
   "models/breusch_pagan": {
@@ -549,6 +653,8 @@
     "category": "modelo_pressupostos",
     "categoryLabel": "Pressupostos",
     "categoryOrder": 17,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "chart-spline"
   },
   "models/chisq": {
@@ -559,6 +665,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "table"
   },
   "models/coefficients": {
@@ -569,6 +677,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#eab308",
     "icon": "variable"
   },
   "models/compare": {
@@ -579,6 +689,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "git-compare"
   },
   "models/cor_test": {
@@ -589,6 +701,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "trending-up"
   },
   "models/duncan": {
@@ -599,6 +713,8 @@
     "category": "modelo_medias",
     "categoryLabel": "Médias",
     "categoryOrder": 16,
+    "inputColor": "#14b8a6",
+    "outputColor": "#8b5cf6",
     "icon": "chart-column"
   },
   "models/emmeans": {
@@ -609,6 +725,8 @@
     "category": "modelo_medias",
     "categoryLabel": "Médias",
     "categoryOrder": 16,
+    "inputColor": "#14b8a6",
+    "outputColor": "#8b5cf6",
     "icon": "chart-column"
   },
   "models/example": {
@@ -619,6 +737,7 @@
     "category": "modelo_fonte",
     "categoryLabel": "Fonte",
     "categoryOrder": 12,
+    "outputColor": "#38bdf8",
     "icon": "database"
   },
   "models/fisher_exact": {
@@ -629,6 +748,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "table"
   },
   "models/fit_stats": {
@@ -639,6 +760,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#38bdf8",
     "icon": "gauge"
   },
   "models/glm": {
@@ -649,6 +772,8 @@
     "category": "modelo_ajustar",
     "categoryLabel": "Ajustar",
     "categoryOrder": 13,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "chart-spline"
   },
   "models/kruskal": {
@@ -659,6 +784,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "list-ordered"
   },
   "models/levene": {
@@ -669,6 +796,8 @@
     "category": "modelo_pressupostos",
     "categoryLabel": "Pressupostos",
     "categoryOrder": 17,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "scale"
   },
   "models/linear_hypothesis": {
@@ -679,6 +808,8 @@
     "category": "modelo_medias",
     "categoryLabel": "Médias",
     "categoryOrder": 16,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "divide"
   },
   "models/lm": {
@@ -689,6 +820,8 @@
     "category": "modelo_ajustar",
     "categoryLabel": "Ajustar",
     "categoryOrder": 13,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "chart-scatter"
   },
   "models/lmer": {
@@ -699,6 +832,8 @@
     "category": "modelo_ajustar",
     "categoryLabel": "Ajustar",
     "categoryOrder": 13,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
     "icon": "layers"
   },
   "models/one_sample_t": {
@@ -709,6 +844,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "target"
   },
   "models/paired_t": {
@@ -719,6 +856,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "link"
   },
   "models/pairwise": {
@@ -729,6 +868,8 @@
     "category": "modelo_medias",
     "categoryLabel": "Médias",
     "categoryOrder": 16,
+    "inputColor": "#8b5cf6",
+    "outputColor": "#eab308",
     "icon": "git-compare"
   },
   "models/plot_caterpillar": {
@@ -739,6 +880,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#f472b6",
     "icon": "list-ordered"
   },
   "models/plot_diagnostics": {
@@ -749,6 +892,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#f472b6",
     "icon": "microscope"
   },
   "models/plot_means": {
@@ -759,6 +904,8 @@
     "category": "modelo_medias",
     "categoryLabel": "Médias",
     "categoryOrder": 16,
+    "inputColor": "#8b5cf6",
+    "outputColor": "#f472b6",
     "icon": "chart-no-axes-column"
   },
   "models/predict": {
@@ -769,6 +916,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#38bdf8",
     "icon": "target"
   },
   "models/random_effects": {
@@ -779,6 +928,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#38bdf8",
     "icon": "dices"
   },
   "models/random_test": {
@@ -789,6 +940,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#eab308",
     "icon": "shuffle"
   },
   "models/residuals": {
@@ -799,6 +952,8 @@
     "category": "modelo_resumir",
     "categoryLabel": "Resumir",
     "categoryOrder": 15,
+    "inputColor": "#14b8a6",
+    "outputColor": "#38bdf8",
     "icon": "chart-scatter"
   },
   "models/rls": {
@@ -809,6 +964,8 @@
     "category": "modelo_ajustar",
     "categoryLabel": "Ajustar",
     "categoryOrder": 13,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "activity"
   },
   "models/shapiro": {
@@ -819,6 +976,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "chart-area"
   },
   "models/shapiro_residuals": {
@@ -829,6 +988,8 @@
     "category": "modelo_pressupostos",
     "categoryLabel": "Pressupostos",
     "categoryOrder": 17,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "chart-area"
   },
   "models/t_test": {
@@ -839,6 +1000,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "equal-not"
   },
   "models/tukey_additivity": {
@@ -849,6 +1012,8 @@
     "category": "modelo_pressupostos",
     "categoryLabel": "Pressupostos",
     "categoryOrder": 17,
+    "inputColor": "#14b8a6",
+    "outputColor": "#ef4444",
     "icon": "equal"
   },
   "models/waller_duncan": {
@@ -859,6 +1024,8 @@
     "category": "modelo_medias",
     "categoryLabel": "Médias",
     "categoryOrder": 16,
+    "inputColor": "#14b8a6",
+    "outputColor": "#8b5cf6",
     "icon": "chart-column"
   },
   "models/wilcoxon": {
@@ -869,6 +1036,8 @@
     "category": "modelo_testes",
     "categoryLabel": "Testes",
     "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
     "icon": "list-ordered"
   },
   "multi/biplot": {
@@ -879,6 +1048,8 @@
     "category": "multi_pca",
     "categoryLabel": "Componentes",
     "categoryOrder": 21,
+    "inputColor": "#818cf8",
+    "outputColor": "#f472b6",
     "icon": "chart-scatter"
   },
   "multi/box_m": {
@@ -889,6 +1060,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "scale"
   },
   "multi/classify": {
@@ -899,6 +1072,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#fb923c",
+    "outputColor": "#38bdf8",
     "icon": "tags"
   },
   "multi/confusion": {
@@ -909,6 +1084,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#fb923c",
+    "outputColor": "#38bdf8",
     "icon": "grid-3x3"
   },
   "multi/correlation_circle": {
@@ -919,6 +1096,8 @@
     "category": "multi_pca",
     "categoryLabel": "Componentes",
     "categoryOrder": 21,
+    "inputColor": "#818cf8",
+    "outputColor": "#f472b6",
     "icon": "orbit"
   },
   "multi/correlation_matrix": {
@@ -929,6 +1108,8 @@
     "category": "multi_diagnostico",
     "categoryLabel": "Diagnóstico",
     "categoryOrder": 20,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "table-2"
   },
   "multi/discriminant": {
@@ -939,6 +1120,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#38bdf8",
+    "outputColor": "#fb923c",
     "icon": "split"
   },
   "multi/discriminant_functions": {
@@ -949,6 +1132,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#fb923c",
+    "outputColor": "#38bdf8",
     "icon": "sigma"
   },
   "multi/example": {
@@ -959,6 +1144,7 @@
     "category": "multi_fonte",
     "categoryLabel": "Fonte",
     "categoryOrder": 19,
+    "outputColor": "#38bdf8",
     "icon": "database"
   },
   "multi/fa_loadings": {
@@ -969,6 +1155,8 @@
     "category": "multi_fatorial",
     "categoryLabel": "Fatorial",
     "categoryOrder": 22,
+    "inputColor": "#c084fc",
+    "outputColor": "#38bdf8",
     "icon": "table-2"
   },
   "multi/factor_analysis": {
@@ -979,6 +1167,8 @@
     "category": "multi_fatorial",
     "categoryLabel": "Fatorial",
     "categoryOrder": 22,
+    "inputColor": "#38bdf8",
+    "outputColor": "#c084fc",
     "icon": "layers"
   },
   "multi/jackknife_discriminant": {
@@ -989,6 +1179,8 @@
     "category": "multi_jackknife",
     "categoryLabel": "Jackknife",
     "categoryOrder": 25,
+    "inputColor": "#fb923c",
+    "outputColor": "#38bdf8",
     "icon": "repeat"
   },
   "multi/jackknife_fa": {
@@ -999,6 +1191,8 @@
     "category": "multi_jackknife",
     "categoryLabel": "Jackknife",
     "categoryOrder": 25,
+    "inputColor": "#c084fc",
+    "outputColor": "#38bdf8",
     "icon": "repeat"
   },
   "multi/jackknife_logistic": {
@@ -1009,6 +1203,8 @@
     "category": "multi_jackknife",
     "categoryLabel": "Jackknife",
     "categoryOrder": 25,
+    "inputColor": "#f59e0b",
+    "outputColor": "#38bdf8",
     "icon": "repeat"
   },
   "multi/jackknife_pca": {
@@ -1019,6 +1215,8 @@
     "category": "multi_jackknife",
     "categoryLabel": "Jackknife",
     "categoryOrder": 25,
+    "inputColor": "#818cf8",
+    "outputColor": "#38bdf8",
     "icon": "repeat"
   },
   "multi/kmo_bartlett": {
@@ -1029,6 +1227,8 @@
     "category": "multi_diagnostico",
     "categoryLabel": "Diagnóstico",
     "categoryOrder": 20,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "stethoscope"
   },
   "multi/logistic": {
@@ -1039,6 +1239,8 @@
     "category": "multi_logistica",
     "categoryLabel": "Logística",
     "categoryOrder": 24,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f59e0b",
     "icon": "chart-spline"
   },
   "multi/logistic_coefficients": {
@@ -1049,6 +1251,8 @@
     "category": "multi_logistica",
     "categoryLabel": "Logística",
     "categoryOrder": 24,
+    "inputColor": "#f59e0b",
+    "outputColor": "#38bdf8",
     "icon": "sigma"
   },
   "multi/parallel": {
@@ -1059,6 +1263,8 @@
     "category": "multi_diagnostico",
     "categoryLabel": "Diagnóstico",
     "categoryOrder": 20,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "dices"
   },
   "multi/pca": {
@@ -1069,6 +1275,8 @@
     "category": "multi_pca",
     "categoryLabel": "Componentes",
     "categoryOrder": 21,
+    "inputColor": "#38bdf8",
+    "outputColor": "#818cf8",
     "icon": "axis-3d"
   },
   "multi/pca_loadings": {
@@ -1079,6 +1287,8 @@
     "category": "multi_pca",
     "categoryLabel": "Componentes",
     "categoryOrder": 21,
+    "inputColor": "#818cf8",
+    "outputColor": "#38bdf8",
     "icon": "table-2"
   },
   "multi/pca_variance": {
@@ -1089,6 +1299,8 @@
     "category": "multi_pca",
     "categoryLabel": "Componentes",
     "categoryOrder": 21,
+    "inputColor": "#818cf8",
+    "outputColor": "#38bdf8",
     "icon": "chart-bar-decreasing"
   },
   "multi/plot_correlation": {
@@ -1099,6 +1311,8 @@
     "category": "multi_diagnostico",
     "categoryLabel": "Diagnóstico",
     "categoryOrder": 20,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "grid-3x3"
   },
   "multi/plot_discriminant": {
@@ -1109,6 +1323,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#fb923c",
+    "outputColor": "#f472b6",
     "icon": "chart-scatter"
   },
   "multi/plot_loadings": {
@@ -1119,6 +1335,8 @@
     "category": "multi_fatorial",
     "categoryLabel": "Fatorial",
     "categoryOrder": 22,
+    "inputColor": "#c084fc",
+    "outputColor": "#f472b6",
     "icon": "grid-3x3"
   },
   "multi/plot_odds": {
@@ -1129,6 +1347,8 @@
     "category": "multi_logistica",
     "categoryLabel": "Logística",
     "categoryOrder": 24,
+    "inputColor": "#f59e0b",
+    "outputColor": "#f472b6",
     "icon": "chart-bar"
   },
   "multi/roc": {
@@ -1139,6 +1359,8 @@
     "category": "multi_discriminante",
     "categoryLabel": "Classificação",
     "categoryOrder": 23,
+    "inputColor": "#fb923c",
+    "outputColor": "#f472b6",
     "icon": "chart-line"
   },
   "multi/scree": {
@@ -1149,6 +1371,8 @@
     "category": "multi_pca",
     "categoryLabel": "Componentes",
     "categoryOrder": 21,
+    "inputColor": "#818cf8",
+    "outputColor": "#f472b6",
     "icon": "chart-no-axes-combined"
   },
   "sampling/cluster": {
@@ -1159,6 +1383,8 @@
     "category": "amostra_selecionar",
     "categoryLabel": "Selecionar",
     "categoryOrder": 28,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "group"
   },
   "sampling/design": {
@@ -1169,6 +1395,8 @@
     "category": "amostra_desenho",
     "categoryLabel": "Desenho",
     "categoryOrder": 29,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "table-properties"
   },
   "sampling/detectable_difference": {
@@ -1179,6 +1407,8 @@
     "category": "amostra_precisao",
     "categoryLabel": "Precisão",
     "categoryOrder": 30,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "git-compare"
   },
   "sampling/example": {
@@ -1189,6 +1419,7 @@
     "category": "amostra_fonte",
     "categoryLabel": "Fonte",
     "categoryOrder": 26,
+    "outputColor": "#38bdf8",
     "icon": "database"
   },
   "sampling/margin": {
@@ -1199,6 +1430,7 @@
     "category": "amostra_precisao",
     "categoryLabel": "Precisão",
     "categoryOrder": 30,
+    "outputColor": "#6366f1",
     "icon": "ruler"
   },
   "sampling/margin_levels": {
@@ -1209,6 +1441,8 @@
     "category": "amostra_precisao",
     "categoryLabel": "Precisão",
     "categoryOrder": 30,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "layers-plus"
   },
   "sampling/mean": {
@@ -1219,6 +1453,8 @@
     "category": "amostra_estimar",
     "categoryLabel": "Estimar",
     "categoryOrder": 31,
+    "inputColor": "#0891b2",
+    "outputColor": "#0e7490",
     "icon": "sigma"
   },
   "sampling/plot_estimates": {
@@ -1229,6 +1465,8 @@
     "category": "amostra_avaliar",
     "categoryLabel": "Avaliar",
     "categoryOrder": 32,
+    "inputColor": "#0e7490",
+    "outputColor": "#f472b6",
     "icon": "crosshair"
   },
   "sampling/plot_margins": {
@@ -1239,6 +1477,8 @@
     "category": "amostra_precisao",
     "categoryLabel": "Precisão",
     "categoryOrder": 30,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-no-axes-column"
   },
   "sampling/plot_simulation": {
@@ -1249,6 +1489,8 @@
     "category": "amostra_avaliar",
     "categoryLabel": "Avaliar",
     "categoryOrder": 32,
+    "inputColor": "#a855f7",
+    "outputColor": "#f472b6",
     "icon": "chart-candlestick"
   },
   "sampling/poststratify": {
@@ -1259,6 +1501,8 @@
     "category": "amostra_desenho",
     "categoryLabel": "Desenho",
     "categoryOrder": 29,
+    "inputColor": "#0891b2",
+    "outputColor": "#0891b2",
     "icon": "weight"
   },
   "sampling/pps": {
@@ -1269,6 +1513,8 @@
     "category": "amostra_selecionar",
     "categoryLabel": "Selecionar",
     "categoryOrder": 28,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "scale"
   },
   "sampling/proportion": {
@@ -1279,6 +1525,8 @@
     "category": "amostra_estimar",
     "categoryLabel": "Estimar",
     "categoryOrder": 31,
+    "inputColor": "#0891b2",
+    "outputColor": "#0e7490",
     "icon": "chart-pie"
   },
   "sampling/question_margins": {
@@ -1289,6 +1537,8 @@
     "category": "amostra_precisao",
     "categoryLabel": "Precisão",
     "categoryOrder": 30,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "list-checks"
   },
   "sampling/rake": {
@@ -1299,6 +1549,8 @@
     "category": "amostra_desenho",
     "categoryLabel": "Desenho",
     "categoryOrder": 29,
+    "inputColor": "#0891b2",
+    "outputColor": "#0891b2",
     "icon": "sliders-horizontal"
   },
   "sampling/ratio": {
@@ -1309,6 +1561,8 @@
     "category": "amostra_estimar",
     "categoryLabel": "Estimar",
     "categoryOrder": 31,
+    "inputColor": "#0891b2",
+    "outputColor": "#0e7490",
     "icon": "divide"
   },
   "sampling/referral": {
@@ -1319,6 +1573,8 @@
     "category": "amostra_precisao",
     "categoryLabel": "Precisão",
     "categoryOrder": 30,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
     "icon": "network"
   },
   "sampling/simulate": {
@@ -1329,6 +1585,8 @@
     "category": "amostra_avaliar",
     "categoryLabel": "Avaliar",
     "categoryOrder": 32,
+    "inputColor": "#0891b2",
+    "outputColor": "#a855f7",
     "icon": "dices"
   },
   "sampling/size_cluster": {
@@ -1339,6 +1597,8 @@
     "category": "amostra_planejar",
     "categoryLabel": "Planejar",
     "categoryOrder": 27,
+    "inputColor": "#6366f1",
+    "outputColor": "#6366f1",
     "icon": "boxes"
   },
   "sampling/size_curve": {
@@ -1349,6 +1609,8 @@
     "category": "amostra_planejar",
     "categoryLabel": "Planejar",
     "categoryOrder": 27,
+    "inputColor": "#6366f1",
+    "outputColor": "#f472b6",
     "icon": "chart-spline"
   },
   "sampling/size_domains": {
@@ -1359,6 +1621,8 @@
     "category": "amostra_planejar",
     "categoryLabel": "Planejar",
     "categoryOrder": 27,
+    "inputColor": "#38bdf8",
+    "outputColor": "#6366f1",
     "icon": "users"
   },
   "sampling/size_mean": {
@@ -1369,6 +1633,8 @@
     "category": "amostra_planejar",
     "categoryLabel": "Planejar",
     "categoryOrder": 27,
+    "inputColor": "#38bdf8",
+    "outputColor": "#6366f1",
     "icon": "calculator"
   },
   "sampling/size_proportion": {
@@ -1379,6 +1645,7 @@
     "category": "amostra_planejar",
     "categoryLabel": "Planejar",
     "categoryOrder": 27,
+    "outputColor": "#6366f1",
     "icon": "percent"
   },
   "sampling/size_stratified": {
@@ -1389,6 +1656,8 @@
     "category": "amostra_planejar",
     "categoryLabel": "Planejar",
     "categoryOrder": 27,
+    "inputColor": "#38bdf8",
+    "outputColor": "#6366f1",
     "icon": "layers"
   },
   "sampling/srs": {
@@ -1399,6 +1668,8 @@
     "category": "amostra_selecionar",
     "categoryLabel": "Selecionar",
     "categoryOrder": 28,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "shuffle"
   },
   "sampling/stratified": {
@@ -1409,6 +1680,8 @@
     "category": "amostra_selecionar",
     "categoryLabel": "Selecionar",
     "categoryOrder": 28,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "layers-2"
   },
   "sampling/systematic": {
@@ -1419,6 +1692,8 @@
     "category": "amostra_selecionar",
     "categoryLabel": "Selecionar",
     "categoryOrder": 28,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "list-ordered"
   },
   "sampling/total": {
@@ -1429,6 +1704,8 @@
     "category": "amostra_estimar",
     "categoryLabel": "Estimar",
     "categoryOrder": 31,
+    "inputColor": "#0891b2",
+    "outputColor": "#0e7490",
     "icon": "square-sigma"
   },
   "sampling/two_stage": {
@@ -1439,6 +1716,8 @@
     "category": "amostra_selecionar",
     "categoryLabel": "Selecionar",
     "categoryOrder": 28,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0891b2",
     "icon": "git-fork"
   },
   "series/accuracy": {
@@ -1449,6 +1728,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#f472b6",
+    "outputColor": "#38bdf8",
     "icon": "square-sigma"
   },
   "series/acf": {
@@ -1459,6 +1740,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "chart-column"
   },
   "series/adf": {
@@ -1469,6 +1752,8 @@
     "category": "serie_raiz",
     "categoryLabel": "Raiz unitária",
     "categoryOrder": 37,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "test-tube"
   },
   "series/aggregate": {
@@ -1479,6 +1764,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "calendar-days"
   },
   "series/arima": {
@@ -1489,6 +1776,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#34d399",
+    "outputColor": "#f59e0b",
     "icon": "sigma"
   },
   "series/baseline": {
@@ -1499,6 +1788,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "repeat"
   },
   "series/box_pierce": {
@@ -1509,6 +1800,8 @@
     "category": "serie_autocorr",
     "categoryLabel": "Autocorrelação",
     "categoryOrder": 38,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "activity"
   },
   "series/component": {
@@ -1519,6 +1812,8 @@
     "category": "serie_decompor",
     "categoryLabel": "Decompor",
     "categoryOrder": 35,
+    "inputColor": "#a3e635",
+    "outputColor": "#34d399",
     "icon": "square-split-horizontal"
   },
   "series/cox_stuart": {
@@ -1529,6 +1824,8 @@
     "category": "serie_tendencia",
     "categoryLabel": "Tendência",
     "categoryOrder": 39,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "arrow-up-down"
   },
   "series/decompose": {
@@ -1539,6 +1836,8 @@
     "category": "serie_decompor",
     "categoryLabel": "Decompor",
     "categoryOrder": 35,
+    "inputColor": "#34d399",
+    "outputColor": "#a3e635",
     "icon": "layers-2"
   },
   "series/diff": {
@@ -1549,6 +1848,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "diff"
   },
   "series/ets": {
@@ -1559,6 +1860,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#34d399",
+    "outputColor": "#f59e0b",
     "icon": "waves-horizontal"
   },
   "series/example": {
@@ -1569,6 +1872,7 @@
     "category": "serie_fonte",
     "categoryLabel": "Fonte",
     "categoryOrder": 33,
+    "outputColor": "#34d399",
     "icon": "activity"
   },
   "series/f_global": {
@@ -1579,6 +1883,8 @@
     "category": "serie_regressao",
     "categoryLabel": "Regressão",
     "categoryOrder": 41,
+    "inputColor": "#c084fc",
+    "outputColor": "#ef4444",
     "icon": "sigma"
   },
   "series/f_sazonal": {
@@ -1589,6 +1895,8 @@
     "category": "serie_regressao",
     "categoryLabel": "Regressão",
     "categoryOrder": 41,
+    "inputColor": "#c084fc",
+    "outputColor": "#ef4444",
     "icon": "calendar-range"
   },
   "series/f_tendencia": {
@@ -1599,6 +1907,8 @@
     "category": "serie_regressao",
     "categoryLabel": "Regressão",
     "categoryOrder": 41,
+    "inputColor": "#c084fc",
+    "outputColor": "#ef4444",
     "icon": "trending-up-down"
   },
   "series/fisher": {
@@ -1609,6 +1919,8 @@
     "category": "serie_sazonal",
     "categoryLabel": "Sazonalidade",
     "categoryOrder": 40,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "signal"
   },
   "series/forecast": {
@@ -1619,6 +1931,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#f59e0b",
+    "outputColor": "#f472b6",
     "icon": "trending-up"
   },
   "series/from_table": {
@@ -1629,6 +1943,8 @@
     "category": "serie_fonte",
     "categoryLabel": "Fonte",
     "categoryOrder": 33,
+    "inputColor": "#38bdf8",
+    "outputColor": "#34d399",
     "icon": "table-rows-split"
   },
   "series/holt_winters": {
@@ -1639,6 +1955,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#34d399",
+    "outputColor": "#f59e0b",
     "icon": "trending-up-down"
   },
   "series/interpolate": {
@@ -1649,6 +1967,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "pipette"
   },
   "series/kpss": {
@@ -1659,6 +1979,8 @@
     "category": "serie_raiz",
     "categoryLabel": "Raiz unitária",
     "categoryOrder": 37,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "test-tubes"
   },
   "series/kruskal_wallis": {
@@ -1669,6 +1991,8 @@
     "category": "serie_sazonal",
     "categoryLabel": "Sazonalidade",
     "categoryOrder": 40,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "calendar-days"
   },
   "series/lag": {
@@ -1679,6 +2003,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "move-right"
   },
   "series/lag_plot": {
@@ -1689,6 +2015,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "chart-scatter"
   },
   "series/ljung_box": {
@@ -1699,6 +2027,8 @@
     "category": "serie_autocorr",
     "categoryLabel": "Autocorrelação",
     "categoryOrder": 38,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "audio-waveform"
   },
   "series/mann_kendall": {
@@ -1709,6 +2039,8 @@
     "category": "serie_tendencia",
     "categoryLabel": "Tendência",
     "categoryOrder": 39,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "trending-up"
   },
   "series/moving_average": {
@@ -1719,6 +2051,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "spline"
   },
   "series/ndiffs": {
@@ -1729,6 +2063,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#38bdf8",
     "icon": "hash"
   },
   "series/pacf": {
@@ -1739,6 +2075,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "chart-bar"
   },
   "series/pettitt": {
@@ -1749,6 +2087,8 @@
     "category": "serie_tendencia",
     "categoryLabel": "Tendência",
     "categoryOrder": 39,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "milestone"
   },
   "series/phillips_perron": {
@@ -1759,6 +2099,8 @@
     "category": "serie_raiz",
     "categoryLabel": "Raiz unitária",
     "categoryOrder": 37,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "flask-conical"
   },
   "series/plot": {
@@ -1769,6 +2111,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "chart-line"
   },
   "series/plot_decomposition": {
@@ -1779,6 +2123,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#a3e635",
+    "outputColor": "#f472b6",
     "icon": "file-chart-line"
   },
   "series/plot_forecast": {
@@ -1789,6 +2135,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#f472b6",
+    "outputColor": "#f472b6",
     "icon": "chart-area"
   },
   "series/regression": {
@@ -1799,6 +2147,8 @@
     "category": "serie_decompor",
     "categoryLabel": "Decompor",
     "categoryOrder": 35,
+    "inputColor": "#34d399",
+    "outputColor": "#c084fc",
     "icon": "trending-up"
   },
   "series/residuals": {
@@ -1809,6 +2159,8 @@
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 36,
+    "inputColor": "#f59e0b",
+    "outputColor": "#34d399",
     "icon": "scan-line"
   },
   "series/runs": {
@@ -1819,6 +2171,8 @@
     "category": "serie_tendencia",
     "categoryLabel": "Tendência",
     "categoryOrder": 39,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "shuffle"
   },
   "series/seasonal_plot": {
@@ -1829,6 +2183,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "chart-spline"
   },
   "series/stl": {
@@ -1839,6 +2195,8 @@
     "category": "serie_decompor",
     "categoryLabel": "Decompor",
     "categoryOrder": 35,
+    "inputColor": "#34d399",
+    "outputColor": "#a3e635",
     "icon": "layers"
   },
   "series/subseries": {
@@ -1849,6 +2207,8 @@
     "category": "serie_ver",
     "categoryLabel": "Ver",
     "categoryOrder": 42,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
     "icon": "chart-no-axes-combined"
   },
   "series/transform": {
@@ -1859,6 +2219,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "square-function"
   },
   "series/window": {
@@ -1869,6 +2231,8 @@
     "category": "serie_operar",
     "categoryLabel": "Operar",
     "categoryOrder": 34,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
     "icon": "calendar-range"
   },
   "series/zivot_andrews": {
@@ -1879,6 +2243,8 @@
     "category": "serie_raiz",
     "categoryLabel": "Raiz unitária",
     "categoryOrder": 37,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
     "icon": "split"
   },
   "view/area": {
@@ -1889,6 +2255,8 @@
     "category": "relacao",
     "categoryLabel": "Relação",
     "categoryOrder": 9,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-area"
   },
   "view/bars": {
@@ -1899,6 +2267,8 @@
     "category": "comparacao",
     "categoryLabel": "Comparação",
     "categoryOrder": 11,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-bar"
   },
   "view/bin2d": {
@@ -1909,6 +2279,8 @@
     "category": "relacao",
     "categoryLabel": "Relação",
     "categoryOrder": 9,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "grid-3x3"
   },
   "view/boxplot": {
@@ -1919,6 +2291,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-candlestick"
   },
   "view/density": {
@@ -1929,6 +2303,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-spline"
   },
   "view/dotplot": {
@@ -1939,6 +2315,8 @@
     "category": "comparacao",
     "categoryLabel": "Comparação",
     "categoryOrder": 11,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "lollipop"
   },
   "view/dumbbell": {
@@ -1949,6 +2327,8 @@
     "category": "comparacao",
     "categoryLabel": "Comparação",
     "categoryOrder": 11,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "dumbbell"
   },
   "view/ecdf": {
@@ -1959,6 +2339,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-no-axes-combined"
   },
   "view/heatmap": {
@@ -1969,6 +2351,8 @@
     "category": "relacao",
     "categoryLabel": "Relação",
     "categoryOrder": 9,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "layout-grid"
   },
   "view/histogram": {
@@ -1979,6 +2363,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-column"
   },
   "view/labels": {
@@ -1989,6 +2375,8 @@
     "category": "relacao",
     "categoryLabel": "Relação",
     "categoryOrder": 9,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "tags"
   },
   "view/line": {
@@ -1999,6 +2387,8 @@
     "category": "relacao",
     "categoryLabel": "Relação",
     "categoryOrder": 9,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-line"
   },
   "view/means": {
@@ -2009,6 +2399,8 @@
     "category": "comparacao",
     "categoryLabel": "Comparação",
     "categoryOrder": 11,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "git-commit-vertical"
   },
   "view/paired": {
@@ -2019,6 +2411,8 @@
     "category": "comparacao",
     "categoryLabel": "Comparação",
     "categoryOrder": 11,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "git-compare-arrows"
   },
   "view/pareto": {
@@ -2029,6 +2423,8 @@
     "category": "comparacao",
     "categoryLabel": "Comparação",
     "categoryOrder": 11,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-column-decreasing"
   },
   "view/points": {
@@ -2039,6 +2435,8 @@
     "category": "relacao",
     "categoryLabel": "Relação",
     "categoryOrder": 9,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "chart-scatter"
   },
   "view/qq": {
@@ -2049,6 +2447,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "trending-up"
   },
   "view/strip": {
@@ -2059,6 +2459,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "grip-vertical"
   },
   "view/violin": {
@@ -2069,6 +2471,8 @@
     "category": "distribuicao",
     "categoryLabel": "Distribuição",
     "categoryOrder": 10,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
     "icon": "audio-waveform"
   }
 }

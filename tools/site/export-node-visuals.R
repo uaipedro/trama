@@ -22,6 +22,13 @@ nodes <- lapply(registry$nodes[sort(names(registry$nodes))], function(node) {
     categoryLabel = category$label,
     categoryOrder = match(node$category, names(registry$categories))
   )
+  # Cor da primeira porta de cada lado, pelo tipo: é a cor da seta no editor.
+  port_color <- function(ports) {
+    if (length(ports) == 0L) return(NULL)
+    registry$types[[ports[[1]]$type]]$color
+  }
+  visual$inputColor <- port_color(node$inputs)
+  visual$outputColor <- port_color(node$outputs)
   if (!is.null(node$icon)) {
     if (node$icon$kind != "set") stop("Ícone SVG próprio requer suporte explícito: ", node$id)
     visual$icon <- node$icon$value
