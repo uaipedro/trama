@@ -14,7 +14,9 @@
                fonte = "New York: Springer (Springer Series in Statistics)", doi = "10.1007/978-1-4612-0795-5",
                papel = "livro-texto")
   kott <- R(autores = "Kott, P. S.", ano = 2001, titulo = "The delete-a-group jackknife",
-            fonte = "Journal of Official Statistics, 17(4), 521-526", papel = "complementar")
+            fonte = "Journal of Official Statistics, 17(4), 521-526",
+            url = "https://www.scb.se/contentassets/ca21efb41fee47d293bbee5bf7be7fb3/the-delete-a-group-jackknife.pdf",
+            papel = "complementar")
   impl <- I("trama.multi", "tr_multi_jackknife",
             "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP. Com `grupo`, G reajustes sem um grupo e as mesmas fórmulas com G; EP conferido contra o `survey` com réplicas JK1 (`as.svrepdesign(type = \"JK1\")`) na média e na razão, a 1e-10.")
   indep <- P("As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados em conglomerados (várias linhas do mesmo talhão, animal, escola) a variância sai subestimada. Em série temporal, nenhuma das duas versões serve.",
