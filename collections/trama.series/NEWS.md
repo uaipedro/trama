@@ -14,6 +14,16 @@
   rejeição a 5% de 30,7% (nenhuma), 21,1% (Hamed-Rao) e 39,4%
   (pré-branqueamento) — nenhuma correção devolve o nível, e a ajuda diz isso.
 
+- `series/phillips_perron` (versão 3): com `constante`, o p-valor passa a ser
+  o da superfície de resposta de MacKinnon (1996), `urca::punitroot`, no lugar
+  da tabela τ_μ de Fuller interpolada e presa em [0,01; 0,99] (e na linha
+  n = 25 para série menor). Conferido: devolve 1/5/10% nos críticos
+  assintóticos de MacKinnon (2010) e fica a menos de 0,002 das colunas de 1% e
+  5% de Fuller (n = 25 e 100). Série com menos de 25 observações ganha aviso
+  na `nota` nos dois determinísticos: medido sob passeio aleatório (4000
+  réplicas), com n = 12 o teste rejeita a 5% em 7,0% (constante) e 10,2%
+  (tendência); com n = 25, 5,9% e 4,9%.
+
 ## Rigor metodológico (fase 1)
 
 - `series/fisher` (versão 2): convenções de Fisher (1929). O g passa a usar só

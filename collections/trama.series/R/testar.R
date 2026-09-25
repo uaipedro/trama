@@ -157,13 +157,21 @@ tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
     # divisor n. Conferida contra `aTSA::pp.test` (tipo 2) a 1e-10.
     estat <- .tr_series_pp_z_constante(as.numeric(serie))
     p <- .tr_series_pp_p_constante(estat, length(serie) - 1L)
-    nota <- "só constante (sem tendência)"
+    nota <- "só constante (sem tendência); p-valor de MacKinnon (1996)"
   }
-  if (p <= 0.01) {
+  # Só a tabela do `PP.test` tem borda; a superfície de MacKinnon não.
+  if (det == "tendência" && p <= 0.01) {
     nota <- paste0(nota, "; p-valor truncado na borda da tabela: o verdadeiro é <= 0,01")
   }
-  if (p >= 0.99) {
+  if (det == "tendência" && p >= 0.99) {
     nota <- paste0(nota, "; p-valor truncado na borda da tabela: o verdadeiro é >= 0,99")
+  }
+  # Medido sob passeio aleatório (4000 réplicas): com 12 observações o teste
+  # rejeita a 5% em 7% (constante) e 10% (tendência) das vezes; com 25, 5,9% e
+  # 4,9%. O excesso é do próprio Z(t) em amostra pequena, não só da tabela.
+  if (length(serie) < 25L) {
+    nota <- paste0(nota, "; série curta: com menos de 25 observações o teste rejeita ",
+                   "acima do nível nominal (medido: até 10% a 5% com 12)")
   }
   .tr_series_teste(
     "Phillips-Perron", "a série tem raiz unitária", estat, "Z(t)",
@@ -197,23 +205,16 @@ tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
   sqrt(g0 / lam) * tstat - (lam - g0) * n * cf[[2]] / (2 * sqrt(lam) * s)
 }
 
-#' P-valor do Z(t) com constante, pela tabela tau_mu de Fuller (1976, tab.
-#' 8.5.2), interpolada em n e depois no quantil — o mesmo esquema do
-#' `stats::PP.test` com a tabela tau_tau.
+#' P-valor do Z(t) com constante: superfície de resposta de MacKinnon (1996),
+#' `urca::punitroot(trend = "c")`, com N = observações da regressão. Substitui
+#' (versão 3) a tabela tau_mu de Fuller (1976) interpolada e presa na borda.
+#' O aviso de "amostra pequena" que o urca imprime com `print()` é engolido: a
+#' ressalva de série curta vai para a `nota`, com o tamanho medido.
 #' @noRd
 .tr_series_pp_p_constante <- function(estat, n) {
-  tabela <- rbind(
-    c(-3.75, -3.33, -3.00, -2.63, -0.37,  0.00, 0.34, 0.72),
-    c(-3.58, -3.22, -2.93, -2.60, -0.40, -0.03, 0.29, 0.66),
-    c(-3.51, -3.17, -2.89, -2.58, -0.42, -0.05, 0.26, 0.63),
-    c(-3.46, -3.14, -2.88, -2.57, -0.42, -0.06, 0.24, 0.62),
-    c(-3.44, -3.13, -2.87, -2.57, -0.43, -0.07, 0.24, 0.61),
-    c(-3.43, -3.12, -2.86, -2.57, -0.44, -0.07, 0.23, 0.60))
-  tam <- c(25, 50, 100, 250, 500, 1e5)
-  prob <- c(0.01, 0.025, 0.05, 0.1, 0.9, 0.95, 0.975, 0.99)
-  q <- vapply(seq_len(ncol(tabela)),
-              function(j) stats::approx(tam, tabela[, j], n, rule = 2)$y, 0)
-  stats::approx(q, prob, estat, rule = 2)$y
+  out <- NULL
+  utils::capture.output(out <- urca::punitroot(estat, N = n, trend = "c", statistic = "t"))
+  out
 }
 
 #' Zivot-Andrews: raiz unitária, com a quebra estimada pelo próprio teste?

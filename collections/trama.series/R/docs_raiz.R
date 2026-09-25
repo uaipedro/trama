@@ -67,7 +67,9 @@
         P("A autocorrelação do erro é de **dependência curta**, corrigida de forma não paramétrica (Newey-West com janela curta). Com componente MA forte e negativo o teste rejeita demais.",
           verificar = "series/acf",
           se_falhar = "Confira com o `series/adf` e o `series/kpss`."),
-        sem_quebra, poder),
+        sem_quebra, poder,
+        P("Pelo menos **25** observações para o nível nominal. Medido sob passeio aleatório: com 12, rejeita a 5% em 7% (constante) e 10% (tendência) das vezes; o excesso é do Z(t) em amostra pequena. A `nota` avisa abaixo de 25.",
+          se_falhar = "Leia uma rejeição apertada como indício e confira com o `series/kpss`.")),
       referencias = list(
         R(autores = c("Phillips, P. C. B.", "Perron, P."), ano = 1988,
           titulo = "Testing for a unit root in time series regression",
@@ -76,9 +78,13 @@
           fonte = "New York: Wiley", papel = "livro-texto"),
         R(autores = "Hamilton, J. D.", ano = 1994, titulo = "Time Series Analysis",
           fonte = "Princeton: Princeton University Press", papel = "livro-texto"),
+        R(autores = "MacKinnon, J. G.", ano = 1996,
+          titulo = "Numerical distribution functions for unit root and cointegration tests",
+          fonte = "Journal of Applied Econometrics, 11(6), 601-618",
+          doi = "10.1002/(SICI)1099-1255(199611)11:6<601::AID-JAE417>3.0.CO;2-T"),
         L$morettin,
         I("stats", "PP.test", "`tendência`: estatística Z(t) com constante e tendência, `lshort = TRUE`; p-valor interpolado na tabela τ_τ e preso em [0,01; 0,99]."),
-        I("trama.series", "tr_series_phillips_perron", "`constante`: Z(t) pela forma geral (Hamilton 1994, eq. 17.6.8), Newey-West com janela trunc(4·(n/100)^(1/4)) e pesos de Bartlett; p-valor interpolado na tabela τ_μ de Fuller (1976, tab. 8.5.2) e preso em [0,01; 0,99]. Conferido contra `aTSA::pp.test` (tipo 2) a 1e-10 no Z(t)."))),
+        I("trama.series", "tr_series_phillips_perron", "`constante`: Z(t) pela forma geral (Hamilton 1994, eq. 17.6.8), Newey-West com janela trunc(4·(n/100)^(1/4)) e pesos de Bartlett; p-valor pela superfície de resposta de MacKinnon (1996), `urca::punitroot(trend = \"c\", statistic = \"t\")` com N = n − 1, sem borda. Conferido: Z(t) contra `aTSA::pp.test` (tipo 2) a 1e-10; o p devolve 1/5/10% nos críticos assintóticos de MacKinnon (2010) e fica a menos de 0,002 das colunas de 1% e 5% de Fuller (1976, tab. 8.5.2)."))),
 
     "series/zivot_andrews" = list(
       pressupostos = list(

@@ -1527,10 +1527,8 @@ test_that("PP com 'constante' reproduz aTSA::pp.test (tipo 2) e o urca::ur.pp", 
     p <- tr_series_phillips_perron(stats::ts(x), deterministico = "constante")
     ref <- aTSA::pp.test(x, type = "Z_tau", lag.short = TRUE, output = FALSE)
     expect_equal(p$estatistica, ref[2, "Z_tau"], tolerance = 1e-10, info = as.character(n))
-    # O p-valor vem da mesma tabela de Fuller; o aTSA acrescenta a coluna da
-    # mediana, o que muda a interpolação só no MEIO (p entre 0,1 e 0,9), longe
-    # de qualquer decisão: medido, diferença de até 0,022 nesses três casos.
-    expect_equal(p$p_valor, ref[2, "p.value"], tolerance = 0.05, info = as.character(n))
+    # O p-valor é o de MacKinnon (1996); o aTSA interpola a tabela de Fuller.
+    # Longe da borda os dois concordam na decisão.
     expect_identical(p$p_valor < 0.05, ref[2, "p.value"] < 0.05)
     # O urca normaliza a variância do erro de outro jeito (MacKinnon): concorda
     # a menos de 0,5%.
@@ -1541,12 +1539,36 @@ test_that("PP com 'constante' reproduz aTSA::pp.test (tipo 2) e o urca::ur.pp", 
   expect_match(tr_series_phillips_perron(serie_mensal(), "constante")$nota, "só constante")
 })
 
-test_that("PP 'constante' interpola a tabela tau_mu de Fuller (1976, tab. 8.5.2)", {
-  # Os quantis publicados, lidos de volta: um Z(t) igual ao quantil de 5% com
-  # n = 100 tem de sair com p = 0,05, e o de 1% com n = 25, p = 0,01.
-  expect_equal(.tr_series_pp_p_constante(-2.89, 100), 0.05, tolerance = 1e-12)
-  expect_equal(.tr_series_pp_p_constante(-3.75, 25), 0.01, tolerance = 1e-12)
-  expect_equal(.tr_series_pp_p_constante(-0.42, 250), 0.90, tolerance = 1e-12)
+test_that("PP 'constante': p-valor pela superfície de resposta de MacKinnon (1996)", {
+  # Oráculo 1: os críticos assintóticos de tau_c de MacKinnon (2010, tab. 1)
+  # voltam como 1%, 5% e 10%.
+  expect_equal(.tr_series_pp_p_constante(c(-3.43035, -2.86154, -2.56677), Inf),
+               c(0.01, 0.05, 0.10), tolerance = 1e-3)
+  # Oráculo 2: as colunas de 1% e 5% da tabela tau_mu de Fuller (1976, tab.
+  # 8.5.2; n = 25 e 100) caem a menos de 0,002 do nível.
+  expect_lt(max(abs(.tr_series_pp_p_constante(c(-3.75, -3.00), 25) - c(0.01, 0.05))), 0.002)
+  expect_lt(max(abs(.tr_series_pp_p_constante(c(-3.51, -2.89), 100) - c(0.01, 0.05))), 0.002)
+  # Oráculo 3: é a função do urca, com N = observações da regressão.
+  expect_equal(.tr_series_pp_p_constante(-2.5, 59),
+               urca::punitroot(-2.5, N = 59, trend = "c", statistic = "t"), tolerance = 1e-12)
+  # Sem borda presa: um Z muito negativo sai abaixo de 0,01, sem nota de truncagem.
+  set.seed(6)
+  x <- stats::ts(stats::arima.sim(list(ar = 0.2), 200, rand.gen = function(n, ...) stats::rnorm(n)))
+  t <- tr_series_phillips_perron(x, "constante")
+  expect_lt(t$p_valor, 0.01)
+  expect_false(grepl("truncado", t$nota))
+})
+
+test_that("PP em série curta (< 25) avisa na nota, nos dois determinísticos", {
+  # Medido sob passeio aleatório, 4000 réplicas: com n = 12 rejeita a 5% em 7%
+  # (constante) e 10% (tendência); com n = 25, 5,9% e 4,9%.
+  x <- stats::ts(cumsum(c(0.3, -1.2, 0.8, 1.1, -0.4, 0.5, -0.9, 1.4, 0.2, -0.6, 0.7, 1.0, -0.2, 0.4)))
+  for (d in c("constante", "tendência")) {
+    expect_match(tr_series_phillips_perron(x, d)$nota, "menos de 25 observações", fixed = TRUE)
+  }
+  set.seed(8)
+  expect_false(grepl("menos de 25", tr_series_phillips_perron(stats::ts(cumsum(stats::rnorm(25))),
+                                                             "constante")$nota))
 })
 
 test_that("PP 'constante' tem mais poder que 'tendência' em série estacionária sem tendência", {

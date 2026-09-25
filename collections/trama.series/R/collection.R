@@ -1239,7 +1239,7 @@ a série pede; `series/diff` para fazê-las.
       trama::tr_node("series/phillips_perron",
         pressupostos = .tr_series_doc("series/phillips_perron")$pressupostos,
         referencias = .tr_series_doc("series/phillips_perron")$referencias,
-        fn = tr_series_phillips_perron, version = 2L,
+        fn = tr_series_phillips_perron, version = 3L,
         label = "Phillips-Perron",
         category = "serie_raiz", icon = icone("flask-conical"),
         description = "Phillips-Perron: a série tem raiz unitária?",
@@ -1262,11 +1262,19 @@ estacionária) — é quando os dois concordam que a conclusão tem chão.
 
 ### O p-valor preso na borda
 
-O p-valor sai de uma tabela interpolada que vai de 0,01 a 0,99. Fora dela, o
-valor é PRESO na borda, sem aviso nenhum: um `0,01` quer dizer "0,01 ou
+Com **tendência**, o p-valor sai de uma tabela interpolada que vai de 0,01 a
+0,99. Fora dela, o valor é PRESO na borda: um `0,01` quer dizer "0,01 ou
 menos", e um `0,99`, "0,99 ou mais". Quando isso acontece, a `nota` do teste
 diz. A decisão a 5% não muda com isso — a ressalva está lá para quem for
-reportar o número.
+reportar o número. Com **constante**, o p-valor vem da superfície de resposta
+de MacKinnon (1996), que não tem borda.
+
+### Série curta
+
+Abaixo de 25 observações o teste rejeita mais do que o nível nominal — o
+excesso é do próprio Z(t) em amostra pequena, não só da tabela —, e a `nota`
+avisa. Medido sob passeio aleatório: com 12 observações, até 10% de rejeição
+a 5%.
 
 ### Termos determinísticos
 
@@ -1278,8 +1286,7 @@ reportar o número.
   com uma reta que não existe (Phillips & Perron, 1988). O Z(t) é a forma geral
   (Hamilton, 1994, eq. 17.6.8) com as convenções do `PP.test` — janela curta de
   Newey-West, trunc(4·(n/100)^(1/4)) —, conferido contra `aTSA::pp.test`; o
-  p-valor interpola a tabela τ_μ de Fuller (1976), com as mesmas bordas de 0,01
-  e 0,99.
+  p-valor é o de MacKinnon (1996), o mesmo do `urca`.
 
 Escolher pelo gráfico, ANTES de olhar o resultado: série que sobe ou desce de
 forma regular pede `tendência`; série que oscila em torno de um nível pede
