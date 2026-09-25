@@ -1,12 +1,12 @@
 ---
-title: Kruskal-Wallis
+title: Sazonalidade (Kruskal-Wallis)
 description: "Kruskal-Wallis: a série tem sazonalidade?"
 section: colecoes
 collection: series-temporais
-node: series/kruskal_wallis
+node: series/seasonality_kw
 category: Tendência
 order: 2
-related: [series/f_sazonal, series/diff, series/transform]
+related: [series/f_seasonal, series/diff, series/transform]
 ---
 
 ## O que o bloco faz
@@ -18,7 +18,7 @@ sempre alto e julho é sempre baixo, as somas se afastam e o H cresce. H0 é "as
 estações têm a mesma distribuição" — sem sazonalidade —, e rejeitar é concluir
 que há.
 
-É o irmão não paramétrico do `series/f_sazonal`, que responde à mesma pergunta
+É o irmão não paramétrico do `series/f_seasonal`, que responde à mesma pergunta
 pedindo erro normal em troca.
 
 ### Sazonalidade determinística
@@ -116,12 +116,12 @@ tr_use("trama.series", registry = reg)
 
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("kw", "series/kruskal_wallis", from = "pax")
+  tr_add("kw", "series/seasonality_kw", from = "pax")
 
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
   tr_add("d", "series/diff", from = "pax") |>
-  tr_add("kw", "series/kruskal_wallis", from = "d")
+  tr_add("kw", "series/seasonality_kw", from = "d")
 ```
 
 ## Como interpretar
@@ -132,7 +132,7 @@ junta vários testes num só quadro.
 
 ## Veja também
 
-`series/f_sazonal`, a mesma pergunta pedindo erro normal em troca;
+`series/f_seasonal`, a mesma pergunta pedindo erro normal em troca;
 `series/diff` para tirar a tendência antes do teste, ou para a diferença sazonal
 quando a sazonalidade é estocástica; `series/transform`, o log que estabiliza a
 variância e que NÃO muda este teste; `series/seasonal_plot` e `series/subseries`

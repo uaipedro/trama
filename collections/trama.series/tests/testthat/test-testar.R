@@ -1296,7 +1296,7 @@ test_that("o Kruskal-Wallis atravessa o adaptador, e leva os graus como coluna",
   expect_equal(tb$graus, t$extra$graus)
 })
 
-# As cinco linhas medidas que a página do `series/fisher` publica, e elas SÃO o
+# As cinco linhas medidas que a página do `series/periodicity_fisher` publica, e elas SÃO o
 # contrato do bloco. Cinco, e não uma: um teste de contrato apoiado numa entrada
 # escolhida a dedo prova muito menos do que parece, e foi o que custou duas
 # rodadas de revisão no `series/cox_stuart`.

@@ -323,3 +323,20 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
   }
   expect_length(tabela, length(testes))
 })
+
+# Glossário (docs/glossario-parametros.md): os ids em português e os que
+# diziam o autor em vez da pergunta mudaram. Fluxo salvo com o id antigo abre
+# com o novo — e a aresta continua ligada, porque as portas não mudaram.
+test_that("fluxos salvos com os ids antigos abrem com os novos", {
+  reg <- series_registry()
+  antigos <- c("series/f_sazonal" = "series/f_seasonal",
+               "series/f_tendencia" = "series/f_trend",
+               "series/kruskal_wallis" = "series/seasonality_kw",
+               "series/fisher" = "series/periodicity_fisher")
+  for (velho in names(antigos)) {
+    doc <- list(nodes = list(n = list(type = velho, params = list())), edges = list())
+    m <- trama::tr_doc_migrate(doc, reg)
+    expect_equal(m$nodes$n$type, antigos[[velho]], info = velho)
+    expect_false(is.null(reg$nodes[[antigos[[velho]]]]), info = velho)
+  }
+})

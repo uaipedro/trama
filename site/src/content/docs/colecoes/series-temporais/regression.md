@@ -57,7 +57,7 @@ correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
 tem número de condição de 7,3 milhões, e `t³` sai com p = 0,46 enquanto o F do
 bloco de tendência é esmagador. Do **grau 2 em diante, os p-valores individuais
 dos termos de tendência não se leem um a um** — quem quer saber se há tendência
-lê o F do bloco, em `series/f_tendencia`. Os coeficientes sazonais não
+lê o F do bloco, em `series/f_trend`. Os coeficientes sazonais não
 sofrem disso.
 
 O nó não prevê, e é de propósito: tendência polinomial fora da amostra é das
@@ -93,13 +93,13 @@ tr_flow(reg) |>
 ## Como interpretar
 
 Uma regressão (`series/regression`): o card traz o resumo do ajuste.
-`series/f_global`, `series/f_sazonal` e `series/f_tendencia` testam os blocos;
+`series/f_global`, `series/f_seasonal` e `series/f_trend` testam os blocos;
 `series/component` extrai um componente como série; ligada à `data`, vira a
 tabela de coeficientes.
 
 ## Veja também
 
-`series/f_global`, `series/f_sazonal` e `series/f_tendencia` para a
+`series/f_global`, `series/f_seasonal` e `series/f_trend` para a
 significância dos blocos; `series/decompose` e `series/stl` para as
 decomposições não paramétricas; `series/transform` para ajustar em log quando a
 oscilação cresce com o nível.

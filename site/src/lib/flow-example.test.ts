@@ -50,11 +50,11 @@ test("vários tr_flow independentes viram grafos separados, mesmo com ids repeti
   const code = `
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("f", "series/fisher", from = "pax")
+  tr_add("f", "series/periodicity_fisher", from = "pax")
 
 tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
-  tr_add("f", "series/fisher", from = "nilo")
+  tr_add("f", "series/periodicity_fisher", from = "nilo")
 `;
   const graphs = parseFlowExample(code)!;
   assert.equal(graphs.length, 2);

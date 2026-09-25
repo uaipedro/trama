@@ -6,7 +6,7 @@ collection: series-temporais
 node: series/f_global
 category: Sazonalidade
 order: 2
-related: [series/regression, series/f_sazonal, series/f_tendencia]
+related: [series/regression, series/f_seasonal, series/f_trend]
 ---
 
 ## O que o bloco faz
@@ -15,8 +15,8 @@ Testa o ajuste de `series/regression` INTEIRO. H0 é "todos os coeficientes,
 fora o intercepto, são nulos" — nenhum termo explica a série: p-valor pequeno quer dizer que o modelo — tendência e sazonalidade
 juntas — captura parte do movimento.
 
-Diz que há sinal, não de onde ele vem. Para separar, `series/f_sazonal` e
-`series/f_tendencia`, que testam cada bloco por si.
+Diz que há sinal, não de onde ele vem. Para separar, `series/f_seasonal` e
+`series/f_trend`, que testam cada bloco por si.
 
 ### Por que em BLOCO
 
@@ -67,7 +67,7 @@ relatório: um `data/bind_rows` junta os três F num só quadro.
 
 ## Veja também
 
-`series/f_sazonal` e `series/f_tendencia`, o mesmo F bloco a bloco;
+`series/f_seasonal` e `series/f_trend`, o mesmo F bloco a bloco;
 `series/regression`, que produz o ajuste; `series/ljung_box` para conferir a
 autocorrelação do resto.
 

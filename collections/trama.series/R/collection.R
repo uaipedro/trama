@@ -69,6 +69,14 @@ trama_collection <- function() {
     types = list(series_ts_type(), series_decomposition_type(), series_model_type(),
                  series_forecast_type(), series_regression_type(), series_test_type()),
     adapters = .tr_series_adapters(),
+    # Glossário (docs/glossario-parametros.md): id em inglês que diga a
+    # PERGUNTA, como os outros da coleção. `kruskal_wallis` e `fisher` diziam o
+    # autor do teste, não o que ele testa. Fluxos salvos abrem com o id novo.
+    migrations = list(nodes = list(
+      "series/f_sazonal" = "series/f_seasonal",
+      "series/f_tendencia" = "series/f_trend",
+      "series/kruskal_wallis" = "series/seasonality_kw",
+      "series/fisher" = "series/periodicity_fisher")),
     # Os testes ocupam cinco categorias, e não uma "Testar": são quinze blocos,
     # um por hipótese nula, e quinze itens numa lista só não se varrem com o
     # olho. O corte é pela PERGUNTA que o teste responde — a série tem raiz
@@ -701,7 +709,7 @@ correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
 tem número de condição de 7,3 milhões, e `t³` sai com p = 0,46 enquanto o F do
 bloco de tendência é esmagador. Do **grau 2 em diante, os p-valores individuais
 dos termos de tendência não se leem um a um** — quem quer saber se há tendência
-lê o F do bloco, em `series/f_tendencia`. Os coeficientes sazonais não
+lê o F do bloco, em `series/f_trend`. Os coeficientes sazonais não
 sofrem disso.
 
 O nó não prevê, e é de propósito: tendência polinomial fora da amostra é das
@@ -713,7 +721,7 @@ logo depois do último ponto. Para prever, `series/arima` ou `series/ets`.
 - **Contraste** — `soma_zero` ou `categoria_base`.
 ]---", r"---[
 Uma regressão (`series/regression`): o card traz o resumo do ajuste.
-`series/f_global`, `series/f_sazonal` e `series/f_tendencia` testam os blocos;
+`series/f_global`, `series/f_seasonal` e `series/f_trend` testam os blocos;
 `series/component` extrai um componente como série; ligada à `data`, vira a
 tabela de coeficientes.
 ]---", r"---[
@@ -724,7 +732,7 @@ tr_flow(reg) |>
   tr_add("resto", "series/component", componente = "resto", from = "reg") |>
   tr_add("ruido", "series/ljung_box", from = "resto")
 ]---", r"---[
-`series/f_global`, `series/f_sazonal` e `series/f_tendencia` para a
+`series/f_global`, `series/f_seasonal` e `series/f_trend` para a
 significância dos blocos; `series/decompose` e `series/stl` para as
 decomposições não paramétricas; `series/transform` para ajustar em log quando a
 oscilação cresce com o nível.
@@ -1523,8 +1531,8 @@ Testa o ajuste de `series/regression` INTEIRO. H0 é "todos os coeficientes,
 fora o intercepto, são nulos" — nenhum termo explica a série: p-valor pequeno quer dizer que o modelo — tendência e sazonalidade
 juntas — captura parte do movimento.
 
-Diz que há sinal, não de onde ele vem. Para separar, `series/f_sazonal` e
-`series/f_tendencia`, que testam cada bloco por si.
+Diz que há sinal, não de onde ele vem. Para separar, `series/f_seasonal` e
+`series/f_trend`, que testam cada bloco por si.
 
 ### Por que em BLOCO
 
@@ -1556,12 +1564,12 @@ tr_flow(reg) |>
   tr_add("reg", "series/regression", from = "pax") |>
   tr_add("f", "series/f_global", from = "reg")
 ]---", r"---[
-`series/f_sazonal` e `series/f_tendencia`, o mesmo F bloco a bloco;
+`series/f_seasonal` e `series/f_trend`, o mesmo F bloco a bloco;
 `series/regression`, que produz o ajuste; `series/ljung_box` para conferir a
 autocorrelação do resto.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/f_sazonal", fn = tr_series_f_sazonal, label = "F do bloco sazonal",
+      trama::tr_node("series/f_seasonal", fn = tr_series_f_sazonal, label = "F do bloco sazonal",
         category = "serie_regressao", icon = icone("calendar-range"),
         description = "Teste F do bloco sazonal da regressão: há sazonalidade?",
         inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
@@ -1595,14 +1603,14 @@ relatório.
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
   tr_add("reg", "series/regression", from = "pax") |>
-  tr_add("f", "series/f_sazonal", from = "reg")
+  tr_add("f", "series/f_seasonal", from = "reg")
 ]---", r"---[
-`series/f_tendencia`, o mesmo teste no outro bloco; `series/f_global`, o
+`series/f_trend`, o mesmo teste no outro bloco; `series/f_global`, o
 modelo inteiro; `series/seasonal_plot` para ver a sazonalidade que o teste
 mede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/f_tendencia", fn = tr_series_f_tendencia,
+      trama::tr_node("series/f_trend", fn = tr_series_f_tendencia,
         label = "F do bloco de tendência",
         category = "serie_regressao", icon = icone("trending-up-down"),
         description = "Teste F do bloco de tendência da regressão: há tendência?",
@@ -1638,9 +1646,9 @@ relatório.
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
   tr_add("reg", "series/regression", grau = 2L, from = "pax") |>
-  tr_add("f", "series/f_tendencia", from = "reg")
+  tr_add("f", "series/f_trend", from = "reg")
 ]---", r"---[
-`series/f_sazonal`, o mesmo teste no outro bloco; `series/f_global`, o modelo
+`series/f_seasonal`, o mesmo teste no outro bloco; `series/f_global`, o modelo
 inteiro; `series/regression`, que produz o ajuste.
 ]---", teste = TRUE)),
 
@@ -1664,7 +1672,7 @@ costuma estar abaixo. A estatística Z é o S padronizado.
 
 Não supõe distribuição nenhuma para a série. É por isso que ele é o padrão onde
 o dado não é normal, que é o caso da maior parte das variáveis ambientais. O
-`series/f_tendencia` responde à mesma pergunta, mas cobra normalidade do erro em
+`series/f_trend` responde à mesma pergunta, mas cobra normalidade do erro em
 troca; quando os dois concordam, a conclusão tem chão.
 
 ### A tendência é MONOTÔNICA
@@ -1712,7 +1720,7 @@ tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
   tr_add("mk", "series/mann_kendall", from = "nilo")
 ]---", r"---[
-`series/f_tendencia`, a mesma pergunta pela regressão; `series/adf` e
+`series/f_trend`, a mesma pergunta pela regressão; `series/adf` e
 `series/kpss`, que perguntam por estacionariedade e não por tendência;
 `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.
@@ -1807,7 +1815,7 @@ tr_flow(reg) |>
   tr_add("cs", "series/cox_stuart", from = "nilo")
 ]---", r"---[
 `series/mann_kendall`, a mesma pergunta contando todos os pares — a dissertação
-compara os dois, e vale rodar os dois; `series/f_tendencia`, a mesma pergunta
+compara os dois, e vale rodar os dois; `series/f_trend`, a mesma pergunta
 pela regressão; `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.
 ]---", teste = TRUE)),
@@ -1974,8 +1982,8 @@ paramétricos da categoria; `series/plot` para ver a quebra que o teste apontou;
 
 # ---- Sazonalidade -----------------------------------------------------------
 
-      trama::tr_node("series/kruskal_wallis", fn = tr_series_kruskal_wallis,
-        label = "Kruskal-Wallis",
+      trama::tr_node("series/seasonality_kw", fn = tr_series_kruskal_wallis,
+        label = "Sazonalidade (Kruskal-Wallis)",
         category = "serie_sazonal", icon = icone("calendar-days"),
         description = "Kruskal-Wallis: a série tem sazonalidade?",
         inputs = list(serie = S), outputs = list(out = TE), params = list(),
@@ -1987,7 +1995,7 @@ sempre alto e julho é sempre baixo, as somas se afastam e o H cresce. H0 é "as
 estações têm a mesma distribuição" — sem sazonalidade —, e rejeitar é concluir
 que há.
 
-É o irmão não paramétrico do `series/f_sazonal`, que responde à mesma pergunta
+É o irmão não paramétrico do `series/f_seasonal`, que responde à mesma pergunta
 pedindo erro normal em troca.
 
 ### Sazonalidade determinística
@@ -2075,22 +2083,22 @@ junta vários testes num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("kw", "series/kruskal_wallis", from = "pax")
+  tr_add("kw", "series/seasonality_kw", from = "pax")
 
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
   tr_add("d", "series/diff", from = "pax") |>
-  tr_add("kw", "series/kruskal_wallis", from = "d")
+  tr_add("kw", "series/seasonality_kw", from = "d")
 ]---", r"---[
-`series/f_sazonal`, a mesma pergunta pedindo erro normal em troca;
+`series/f_seasonal`, a mesma pergunta pedindo erro normal em troca;
 `series/diff` para tirar a tendência antes do teste, ou para a diferença sazonal
 quando a sazonalidade é estocástica; `series/transform`, o log que estabiliza a
 variância e que NÃO muda este teste; `series/seasonal_plot` e `series/subseries`
 para ver a sazonalidade que o teste mede.
 ]---", teste = TRUE)),
 
-      trama::tr_node("series/fisher", fn = tr_series_fisher,
-        label = "Fisher",
+      trama::tr_node("series/periodicity_fisher", fn = tr_series_fisher,
+        label = "Periodicidade (Fisher)",
         category = "serie_sazonal", icon = icone("signal"),
         description = "Fisher: existe uma periodicidade escondida?",
         inputs = list(serie = S), outputs = list(out = TE), params = list(),
@@ -2101,7 +2109,7 @@ do que o acaso produziria. A estatística é o **g**, a fração da potência to
 que esse pico sozinho carrega (eq. 3.41 da dissertação). H0 é "a série não tem
 periodicidade", e rejeitar é concluir que há um ciclo.
 
-É o irmão do `series/kruskal_wallis`, e os dois fazem a pergunta em sentidos
+É o irmão do `series/seasonality_kw`, e os dois fazem a pergunta em sentidos
 opostos. O Kruskal-Wallis COMPARA ESTAÇÕES QUE VOCÊ JÁ DECLAROU: ele lê a
 frequência da série para saber o que é janeiro, e responde se aquelas estações
 diferem. Este aqui CAÇA UM PERÍODO DESCONHECIDO: não pergunta a frequência a
@@ -2164,7 +2172,7 @@ do p-valor.
 
 ### Não precisa de estação declarada, mas precisa de tamanho
 
-Ao contrário do `series/kruskal_wallis`, este bloco ACEITA série de frequência 1:
+Ao contrário do `series/seasonality_kw`, este bloco ACEITA série de frequência 1:
 ele não agrupa por estação, e o periodograma existe para qualquer série. Recusar
 frequência 1 bloquearia justamente o uso para o qual ele serve — caçar um período
 que ninguém declarou —, e foi assim que a linha do `Nile` da tabela acima foi
@@ -2199,13 +2207,13 @@ vários testes num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("f", "series/fisher", from = "pax")
+  tr_add("f", "series/periodicity_fisher", from = "pax")
 
 tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
-  tr_add("f", "series/fisher", from = "nilo")
+  tr_add("f", "series/periodicity_fisher", from = "nilo")
 ]---", r"---[
-`series/kruskal_wallis`, a outra pergunta da categoria — lá você declara as
+`series/seasonality_kw`, a outra pergunta da categoria — lá você declara as
 estações e o teste as compara, aqui o teste procura o período sozinho;
 `series/acf` e `series/seasonal_plot` para OLHAR o ciclo que o pico apontou antes
 de acreditar nele; `series/subseries` quando o período achado bate com a

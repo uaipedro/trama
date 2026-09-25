@@ -27,8 +27,8 @@ Seções e equações da dissertação usadas na implementação:
 | 3.3.4 | Cox-Stuart | 3.22 | `series/cox_stuart` (`pareamento = "metades"`) |
 | 3.3.5.1 e 3.3.5.2 | Dickey-Fuller e Dickey-Fuller Aumentado | 3.23 a 3.34 | `series/adf` |
 | 3.3.5.3 | Zivot-Andrews | 3.35 a 3.37, Tabela 3.2 | `series/zivot_andrews` |
-| 3.5.1 | Kruskal-Wallis | 3.38 a 3.40 | `series/kruskal_wallis` |
-| 3.5.2 | Fisher | 3.41 e 3.42 | `series/fisher` |
+| 3.5.1 | Kruskal-Wallis | 3.38 a 3.40 | `series/seasonality_kw` |
+| 3.5.2 | Fisher | 3.41 e 3.42 | `series/periodicity_fisher` |
 
 A dissertação também é a origem de três ressalvas que as páginas de ajuda
 repetem: Pettitt detecta ruptura e não tendência (NIEL et al., 1998, §3.3.1);
@@ -58,14 +58,14 @@ consta da lista de referências da dissertação, foi copiada de lá.
 | `series/ljung_box` | Ljung & Box (1978) | LJUNG, G. M.; BOX, G. E. P. On a measure of lack of fit in time series models. Biometrika, v. 65, n. 2, p. 297–303, 1978. | **não** — referência padrão |
 | `series/box_pierce` | Box & Pierce (1970) | BOX, G. E. P.; PIERCE, D. A. Distribution of residual autocorrelations in autoregressive-integrated moving average time series models. Journal of the American Statistical Association, v. 65, n. 332, p. 1509–1526, 1970. | **não** — referência padrão |
 | `series/f_global` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | a obra sim; o F de regressão não é tratado na dissertação |
-| `series/f_sazonal` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | a obra sim; o F de regressão não é tratado na dissertação |
-| `series/f_tendencia` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | a obra sim; o F de regressão não é tratado na dissertação |
+| `series/f_seasonal` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | a obra sim; o F de regressão não é tratado na dissertação |
+| `series/f_trend` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | a obra sim; o F de regressão não é tratado na dissertação |
 | `series/mann_kendall` | Mann (1945) | MANN, H. B. Nonparametric tests against trend. Econometric Society, New Haven, v. 13, n. 3, p. 245–259, 1945. | sim |
 | `series/cox_stuart` | Cox & Stuart (1955) | COX, D. R.; STUART, A. Some quick sign tests for trend in location and dispersion. Biometrika, Oxford, v. 42, n. 1/2, p. 80–95, 1955. | sim |
 | `series/runs` | Wald & Wolfowitz (1940) | WALD, A.; WOLFOWITZ, J. On a test whether two samples are from the same population. The Annals of Mathematical Statistics, Beachwood, v. 11, n. 2, p. 147–162, 1940. | sim |
 | `series/pettitt` | Pettitt (1979) | PETTITT, A. A non-parametric approach to the change-point problem. Journal of the Royal Statistical Society, Malden, v. 28, n. 2, p. 126–135, 1979. | sim |
-| `series/kruskal_wallis` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | sim (§3.5.1) |
-| `series/fisher` | Morais (2012) | MORAIS, T. S. T. d. Estudo temporal do nível médio do mar em diferentes oceanos. 2012. 110 p. Dissertação (Mestrado em Estatística e Experimentação Agropecuária) — Universidade Federal de Lavras, Lavras, 2012. | sim (§3.5.2) |
+| `series/seasonality_kw` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | sim (§3.5.1) |
+| `series/periodicity_fisher` | Morais (2012) | MORAIS, T. S. T. d. Estudo temporal do nível médio do mar em diferentes oceanos. 2012. 110 p. Dissertação (Mestrado em Estatística e Experimentação Agropecuária) — Universidade Federal de Lavras, Lavras, 2012. | sim (§3.5.2) |
 
 Observações sobre a tabela:
 

@@ -1,45 +1,44 @@
 ---
-title: F do bloco de tendência
-description: "Teste F do bloco de tendência da regressão: há tendência?"
+title: F do bloco sazonal
+description: "Teste F do bloco sazonal da regressão: há sazonalidade?"
 section: colecoes
 collection: series-temporais
-node: series/f_tendencia
+node: series/f_seasonal
 category: Sazonalidade
 order: 2
-related: [series/regression, series/f_sazonal, series/f_global]
+related: [series/regression, series/f_trend, series/f_global]
 ---
 
 ## O que o bloco faz
 
-Testa os termos do polinômio de tendência de um ajuste de `series/regression`
-EM BLOCO. H0 é "os coeficientes do polinômio são todos nulos": rejeitar é
-concluir que há tendência.
+Testa os coeficientes sazonais de um ajuste de `series/regression` EM BLOCO.
+H0 é "os coeficientes sazonais são todos nulos": rejeitar é concluir que há
+sazonalidade.
 
-O F parcial compara o ajuste com e sem o bloco — reajusta a regressão sem os
-termos de tendência e mede o quanto o encaixe piorou.
+O F parcial compara o ajuste com e sem o bloco — reajusta a regressão sem as
+dummies e mede o quanto o encaixe piorou.
 
 ### Por que em BLOCO
 
-Num polinômio de grau 2 ou 3, o termo linear e o quadrático dividem o mesmo
-sinal, e nenhum dos dois aparece sozinho: olhar os p-valores um a um faria
-concluir que não há tendência nenhuma quando há. A pergunta honesta é se o
-CONJUNTO dos termos melhora o ajuste. Os coeficientes um a um continuam
+Com onze dummies mensais, olhar onze p-valores é onze chances de encontrar um
+"significativo" por acaso. A pergunta honesta é se o CONJUNTO delas melhora o
+ajuste, e é o que este teste mede. Os coeficientes um a um continuam
 disponíveis: ligue a regressão num nó da `data`.
 
 ### A regressão precisa ter o bloco
 
-Regressão de grau 0 é cartão vermelho, e não um card verde dizendo que não há
-tendência: o bloco não foi testado, ele nunca existiu. Suba o grau no
-`series/regression`.
+Regressão ligada sem sazonalidade é cartão vermelho, e não um card verde
+dizendo que não há: o bloco não foi testado, ele nunca existiu. Ligue a
+sazonalidade no `series/regression`.
 
 ## Quando usar
 
-Teste se o bloco de tendência da regressão contribui para explicar a série, mantendo os termos sazonais.
+Teste se o bloco de termos sazonais da regressão contribui para explicar a série, mantendo os outros termos do modelo.
 
 ## Configuração
 
-Nenhum. Uma entrada: **ajuste**, vindo de `series/regression` com grau 1 ou
-mais.
+Nenhum. Uma entrada: **ajuste**, vindo de `series/regression` com sazonalidade
+ligada.
 
 ## Exemplo
 
@@ -51,8 +50,8 @@ tr_use("trama.series", registry = reg)
 
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("reg", "series/regression", grau = 2L, from = "pax") |>
-  tr_add("f", "series/f_tendencia", from = "reg")
+  tr_add("reg", "series/regression", from = "pax") |>
+  tr_add("f", "series/f_seasonal", from = "reg")
 ```
 
 ## Como interpretar
@@ -62,8 +61,9 @@ relatório.
 
 ## Veja também
 
-`series/f_sazonal`, o mesmo teste no outro bloco; `series/f_global`, o modelo
-inteiro; `series/regression`, que produz o ajuste.
+`series/f_trend`, o mesmo teste no outro bloco; `series/f_global`, o
+modelo inteiro; `series/seasonal_plot` para ver a sazonalidade que o teste
+mede.
 
 ### Como ler o card do teste
 

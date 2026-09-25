@@ -1101,25 +1101,25 @@
     "label": "F global",
     "icon": "sigma"
   },
-  "series/f_sazonal": {
+  "series/f_seasonal": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
     "label": "F do bloco sazonal",
     "icon": "calendar-range"
   },
-  "series/f_tendencia": {
+  "series/f_trend": {
     "accent": "#a855f7",
     "hasInput": true,
     "hasOutput": true,
     "label": "F do bloco de tendência",
     "icon": "trending-up-down"
   },
-  "series/fisher": {
+  "series/periodicity_fisher": {
     "accent": "#db2777",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Fisher",
+    "label": "Periodicidade (Fisher)",
     "icon": "signal"
   },
   "series/forecast": {
@@ -1157,11 +1157,11 @@
     "label": "KPSS",
     "icon": "test-tubes"
   },
-  "series/kruskal_wallis": {
+  "series/seasonality_kw": {
     "accent": "#db2777",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Kruskal-Wallis",
+    "label": "Sazonalidade (Kruskal-Wallis)",
     "icon": "calendar-days"
   },
   "series/lag": {

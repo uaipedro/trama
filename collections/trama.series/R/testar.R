@@ -497,9 +497,9 @@ tr_series_f_global <- function(ajuste) {
 #' acaso.
 #' @export
 tr_series_f_sazonal <- function(ajuste) {
-  .tr_series_exige_reg(ajuste, "series/f_sazonal")
+  .tr_series_exige_reg(ajuste, "series/f_seasonal")
   if (!isTRUE(ajuste$sazonalidade)) {
-    .tr_series_sem_bloco("series/f_sazonal", "sazonal", "Ligue a sazonalidade")
+    .tr_series_sem_bloco("series/f_seasonal", "sazonal", "Ligue a sazonalidade")
   }
   .tr_series_f_parcial(ajuste, "F do bloco sazonal",
                        "os coeficientes sazonais são todos nulos", "estacao",
@@ -513,9 +513,9 @@ tr_series_f_sazonal <- function(ajuste) {
 #' olhá-los um a um faria concluir que não há tendência nenhuma.
 #' @export
 tr_series_f_tendencia <- function(ajuste) {
-  .tr_series_exige_reg(ajuste, "series/f_tendencia")
+  .tr_series_exige_reg(ajuste, "series/f_trend")
   if (ajuste$grau == 0L) {
-    .tr_series_sem_bloco("series/f_tendencia", "de tendência", "Suba o grau do polinômio")
+    .tr_series_sem_bloco("series/f_trend", "de tendência", "Suba o grau do polinômio")
   }
   .tr_series_f_parcial(ajuste, "F do bloco de tendência",
                        "os coeficientes do polinômio são todos nulos",
@@ -528,7 +528,7 @@ tr_series_f_tendencia <- function(ajuste) {
 #' O teste de tendência mais usado em climatologia, e não paramétrico: conta,
 #' par a par, quantas vezes o futuro supera o passado. Não supõe distribuição
 #' nenhuma, que é por que ele é o padrão justamente onde a série não é normal —
-#' o `series/f_tendencia` mede a mesma coisa pedindo erro normal em troca.
+#' o `series/f_trend` mede a mesma coisa pedindo erro normal em troca.
 #'
 #' A tendência que ele enxerga é MONOTÔNICA: numa série que sobe e depois desce,
 #' os pares de um lado cancelam os do outro e o teste pode sair sem tendência
@@ -830,7 +830,7 @@ tr_series_pettitt <- function(serie) {
 #' O não paramétrico da sazonalidade, e o primeiro bloco da categoria: põe TODAS
 #' as observações em postos e pergunta se a soma dos postos muda de uma estação
 #' para outra. Janeiro sempre alto e julho sempre baixo afastam as somas, e o H
-#' cresce. O `series/f_sazonal` responde à mesma pergunta pedindo erro normal em
+#' cresce. O `series/f_seasonal` responde à mesma pergunta pedindo erro normal em
 #' troca.
 #'
 #' A sazonalidade que ele enxerga é DETERMINÍSTICA: o padrão que se repete igual
@@ -846,7 +846,7 @@ tr_series_pettitt <- function(serie) {
 #' nenhum. O detalhe está na página do nó, com os números medidos.
 #' @export
 tr_series_kruskal_wallis <- function(serie) {
-  .tr_series_sem_na(serie, "series/kruskal_wallis")
+  .tr_series_sem_na(serie, "series/seasonality_kw")
   # Frequência 1 não tem estação nenhuma para comparar: `cycle()` devolveria uma
   # coluna de 1s e o `kruskal.test` seria mandado comparar UM grupo só.
   #
@@ -859,7 +859,7 @@ tr_series_kruskal_wallis <- function(serie) {
   # chega a 10.38 e a semestral a 3.857, os dois acima do corte. A mensal já
   # rejeitaria com dois (22.88 contra 19.68), mas um piso por frequência seria
   # uma regra a mais para explicar em troca de um ano de dado; fica um só.
-  .tr_series_sazonal(serie, "series/kruskal_wallis", ciclos = 3L)
+  .tr_series_sazonal(serie, "series/seasonality_kw", ciclos = 3L)
   estacoes <- factor(stats::cycle(serie))
   s <- stats::kruskal.test(as.numeric(serie), estacoes)
   k <- nlevels(estacoes)
@@ -896,7 +896,7 @@ tr_series_kruskal_wallis <- function(serie) {
 
 #' Fisher: existe uma periodicidade escondida?
 #'
-#' O irmão do `series/kruskal_wallis` que faz a pergunta ao contrário. O
+#' O irmão do `series/seasonality_kw` que faz a pergunta ao contrário. O
 #' Kruskal-Wallis compara estações que VOCÊ já declarou — ele precisa da
 #' frequência da série para saber o que é janeiro. Este aqui não declara nada: ele
 #' varre o periodograma inteiro e pergunta se o MAIOR pico é maior do que o acaso
@@ -911,7 +911,7 @@ tr_series_kruskal_wallis <- function(serie) {
 #' não chega a se repetir dentro da série.
 #' @export
 tr_series_fisher <- function(serie) {
-  .tr_series_sem_na(serie, "series/fisher")
+  .tr_series_sem_na(serie, "series/periodicity_fisher")
   # O piso NÃO saiu da conta que fixou os do `series/pettitt` e do
   # `series/cox_stuart`, e vale dizer por quê em vez de fingir que saiu: lá a
   # pergunta era "qual o menor n em que o dado mais extremo possível ainda
@@ -927,7 +927,7 @@ tr_series_fisher <- function(serie) {
   # observações: em N=8 a grade é 8, 4, 2.67 e 2, e em N=7 ela é 7, 3.5 e 2.33 —
   # não tem o 4. Abaixo de oito, portanto, o "período do pico" não é uma escolha
   # entre alternativas: é o único lugar onde ele podia cair.
-  .tr_series_minimo(serie, 8L, "series/fisher", "a grade de períodos do periodograma")
+  .tr_series_minimo(serie, 8L, "series/periodicity_fisher", "a grade de períodos do periodograma")
   # Sem `.tr_series_sazonal`, e a decisão é deliberada. O Kruskal-Wallis precisa do
   # guard porque AGRUPA por estação, e sem frequência não há grupo. Este não
   # agrupa: ele lê o periodograma, que existe para qualquer série. Recusar

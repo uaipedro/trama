@@ -1,12 +1,12 @@
 ---
-title: Fisher
+title: Periodicidade (Fisher)
 description: "Fisher: existe uma periodicidade escondida?"
 section: colecoes
 collection: series-temporais
-node: series/fisher
+node: series/periodicity_fisher
 category: Sazonalidade
 order: 2
-related: [series/kruskal_wallis, series/interpolate, series/window]
+related: [series/seasonality_kw, series/interpolate, series/window]
 ---
 
 ## O que o bloco faz
@@ -17,7 +17,7 @@ do que o acaso produziria. A estatística é o **g**, a fração da potência to
 que esse pico sozinho carrega (eq. 3.41 da dissertação). H0 é "a série não tem
 periodicidade", e rejeitar é concluir que há um ciclo.
 
-É o irmão do `series/kruskal_wallis`, e os dois fazem a pergunta em sentidos
+É o irmão do `series/seasonality_kw`, e os dois fazem a pergunta em sentidos
 opostos. O Kruskal-Wallis COMPARA ESTAÇÕES QUE VOCÊ JÁ DECLAROU: ele lê a
 frequência da série para saber o que é janeiro, e responde se aquelas estações
 diferem. Este aqui CAÇA UM PERÍODO DESCONHECIDO: não pergunta a frequência a
@@ -80,7 +80,7 @@ do p-valor.
 
 ### Não precisa de estação declarada, mas precisa de tamanho
 
-Ao contrário do `series/kruskal_wallis`, este bloco ACEITA série de frequência 1:
+Ao contrário do `series/seasonality_kw`, este bloco ACEITA série de frequência 1:
 ele não agrupa por estação, e o periodograma existe para qualquer série. Recusar
 frequência 1 bloquearia justamente o uso para o qual ele serve — caçar um período
 que ninguém declarou —, e foi assim que a linha do `Nile` da tabela acima foi
@@ -124,11 +124,11 @@ tr_use("trama.series", registry = reg)
 
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("f", "series/fisher", from = "pax")
+  tr_add("f", "series/periodicity_fisher", from = "pax")
 
 tr_flow(reg) |>
   tr_add("nilo", "series/example", dataset = "Nile") |>
-  tr_add("f", "series/fisher", from = "nilo")
+  tr_add("f", "series/periodicity_fisher", from = "nilo")
 ```
 
 ## Como interpretar
@@ -140,7 +140,7 @@ vários testes num só quadro.
 
 ## Veja também
 
-`series/kruskal_wallis`, a outra pergunta da categoria — lá você declara as
+`series/seasonality_kw`, a outra pergunta da categoria — lá você declara as
 estações e o teste as compara, aqui o teste procura o período sozinho;
 `series/acf` e `series/seasonal_plot` para OLHAR o ciclo que o pico apontou antes
 de acreditar nele; `series/subseries` quando o período achado bate com a

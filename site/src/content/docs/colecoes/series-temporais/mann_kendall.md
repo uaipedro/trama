@@ -6,7 +6,7 @@ collection: series-temporais
 node: series/mann_kendall
 category: Tendência
 order: 2
-related: [series/f_tendencia, series/plot, series/runs]
+related: [series/f_trend, series/plot, series/runs]
 ---
 
 ## O que o bloco faz
@@ -23,7 +23,7 @@ costuma estar abaixo. A estatística Z é o S padronizado.
 
 Não supõe distribuição nenhuma para a série. É por isso que ele é o padrão onde
 o dado não é normal, que é o caso da maior parte das variáveis ambientais. O
-`series/f_tendencia` responde à mesma pergunta, mas cobra normalidade do erro em
+`series/f_trend` responde à mesma pergunta, mas cobra normalidade do erro em
 troca; quando os dois concordam, a conclusão tem chão.
 
 ### A tendência é MONOTÔNICA
@@ -90,7 +90,7 @@ num só quadro.
 
 ## Veja também
 
-`series/f_tendencia`, a mesma pergunta pela regressão; `series/adf` e
+`series/f_trend`, a mesma pergunta pela regressão; `series/adf` e
 `series/kpss`, que perguntam por estacionariedade e não por tendência;
 `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.
