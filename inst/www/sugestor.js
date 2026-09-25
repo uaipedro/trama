@@ -36,6 +36,15 @@ function pontoEtapa(ordem, deCat, paraCat, mesmaColecao) {
   return 0;
 }
 
+// Seção "## Usos relacionados" da ajuda curta: ids entre crases no formato
+// `colecao/bloco`. Só essa seção conta. Citação no meio da descrição costuma
+// ser contraste ("diferente de X"), não sequência.
+export function relacionados(spec) {
+  const m = /##\s*Usos relacionados\s*\n([\s\S]*?)(?=\n##\s|$)/.exec(spec?.help || "");
+  if (!m) return [];
+  return [...m[1].matchAll(/`([a-z][a-z0-9_]*\/[a-z0-9_]+)`/g)].map((x) => x[1]);
+}
+
 const colecao = (id) => id.split("/")[0];
 
 export function sugerir(cat, ctx) {
@@ -43,6 +52,7 @@ export function sugerir(cat, ctx) {
   const byId = Object.fromEntries((cat.nodes || []).map((n) => [n.id, n]));
   const ordem = ordemCat(cat);
   const origem = byId[de];
+  const rel = new Set(relacionados(origem));
   return aceitantes(cat, tipo).map((a) => {
     const motivos = {};
     if (origem) {
@@ -50,6 +60,7 @@ export function sugerir(cat, ctx) {
                            colecao(de) === colecao(a.id));
       if (e) motivos.etapa = e * PESOS.etapa;
     }
+    if (rel.has(a.id)) motivos.relacionado = PESOS.relacionado;
     const score = Object.values(motivos).reduce((s, v) => s + v, 0);
     return { id: a.id, porta: a.porta, score, motivos };
   }).sort((x, y) => y.score - x.score || x.id.localeCompare(y.id));
