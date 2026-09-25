@@ -17,7 +17,7 @@ Use as probabilidades de uma classe para comparar a discriminação ao longo de 
 
 ## Configuração
 
-`alvo` é a classe observada; `probabilidade` é coluna `.prob_<classe>`; `positiva` escolhe a classe positiva (vazia usa a segunda classe observada).
+`alvo` é a classe observada; `probabilidade` é coluna `.prob_<classe>`; `positiva` escolhe a classe positiva; vazia usa a classe do nome da coluna `.prob_<classe>` e, com coluna de nome livre, o bloco pede `positiva` em vez de adivinhar.
 
 ## Exemplo
 

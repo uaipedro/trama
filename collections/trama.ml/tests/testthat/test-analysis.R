@@ -64,12 +64,13 @@ test_that("ROC deduz a classe positiva do nome da coluna de probabilidade", {
   expect_equal(unique(tr_ml_roc(d, "y", ".prob_sim")$data$auc), 1)
   d2 <- tibble::tibble(y = d$y, .prob_nao = 1 - d$.prob_sim)
   expect_equal(unique(tr_ml_roc(d2, "y", ".prob_nao")$data$auc), 1)
-  # Sem `.prob_<classe>` reconhecível: segundo nível do fator (níveis
-  # ordenados quando o alvo é texto), não a ordem das linhas.
+  # Sem `.prob_<classe>` reconhecível, a classe não é adivinhada: exige `positiva`.
   d3 <- tibble::tibble(y = d$y, escore = d$.prob_sim)
-  expect_equal(unique(tr_ml_roc(d3, "y", "escore")$data$auc), 1)
+  expect_error(tr_ml_roc(d3, "y", "escore"), class = "tr_ml_error_positive_required")
   d4 <- tibble::tibble(y = factor(d$y, levels = c("sim", "nao")), escore = d$.prob_sim)
-  expect_equal(unique(tr_ml_roc(d4, "y", "escore")$data$auc), 0)
+  expect_error(tr_ml_roc(d4, "y", "escore"), class = "tr_ml_error_positive_required")
+  d5 <- tibble::tibble(y = d$y, .prob_talvez = d$.prob_sim)
+  expect_error(tr_ml_roc(d5, "y", ".prob_talvez"), class = "tr_ml_error_positive_required")
   expect_equal(unique(tr_ml_roc(d4, "y", "escore", positiva = "sim")$data$auc), 1)
 })
 

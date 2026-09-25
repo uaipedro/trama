@@ -188,8 +188,8 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @param probabilidade Coluna com a probabilidade da classe positiva.
 #' @param positiva Classe tratada como positiva. Vazio deduz a classe do nome da
 #'   coluna de probabilidade (`.prob_<classe>`, como sai de [tr_ml_predict()]);
-#'   se o nome não indicar uma classe observada, usa o segundo nível do fator
-#'   (níveis em ordem alfabética quando o alvo é texto), a convenção de `glm`.
+#'   se o nome não indicar uma classe observada, o bloco recusa
+#'   (`tr_ml_error_positive_required`) em vez de adivinhar.
 #' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
 #'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
@@ -229,12 +229,16 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 
-# Classe positiva padrão: a que a coluna `.prob_<classe>` nomeia; senão o
-# segundo nível observado do fator (o que `glm` binomial modela como sucesso).
+# Classe positiva padrão: a que a coluna `.prob_<classe>` nomeia. Sem esse
+# nome, não há como saber de que classe é a probabilidade, e adivinhar pode
+# espelhar a curva (AUC vira 1 - AUC): exige `positiva`.
 .tr_ml_roc_positiva <- function(y, probabilidade) {
-  niveis <- if (is.factor(y)) levels(droplevels(y)) else sort(unique(as.character(y)))
+  niveis <- unique(as.character(y))
   da_coluna <- sub("^\\.prob_", "", probabilidade)
-  if (startsWith(probabilidade, ".prob_") && da_coluna %in% niveis) da_coluna else niveis[[2L]]
+  if (startsWith(probabilidade, ".prob_") && da_coluna %in% niveis) return(da_coluna)
+  .tr_ml_abort("tr_ml_error_positive_required",
+    "A coluna '%s' n\u{E3}o indica a classe (esperado '.prob_<classe>'); informe 'positiva' com a classe cuja probabilidade ela cont\u{E9}m.",
+    probabilidade)
 }
 
 #' Visualizar o histórico de uma busca de hiperparâmetros

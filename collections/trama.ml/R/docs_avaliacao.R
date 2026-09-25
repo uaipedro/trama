@@ -99,7 +99,7 @@
 
     "ml/roc" = list(
       pressupostos = list(teste_fora,
-        P("**Duas classes**, e a coluna de probabilidade é a **da classe positiva**. Com `positiva` vazia o bloco deduz a classe do nome da coluna (`.prob_<classe>`); se o nome não indicar uma classe observada, usa o segundo nível do fator. Se classe e coluna não baterem, a curva sai espelhada (AUC = 1 − AUC).",
+        P("**Duas classes**, e a coluna de probabilidade é a **da classe positiva**. Com `positiva` vazia o bloco deduz a classe do nome da coluna (`.prob_<classe>`); se o nome não indicar uma classe observada, o bloco recusa e pede `positiva`. Se classe e coluna não baterem, a curva sai espelhada (AUC = 1 − AUC).",
           se_falhar = "Com uma coluna de nome livre, preencha `positiva` com a classe cuja probabilidade ela contém."),
         P("A AUC resume **todos os cortes**, inclusive os que ninguém usaria, e não muda com o desequilíbrio das classes — por isso mesmo pode parecer boa quando a classe rara é mal prevista.",
           verificar = c("ml/confusion", "data/group_summarise"),
