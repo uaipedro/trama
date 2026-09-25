@@ -30,7 +30,13 @@ test_that("bordas: separação perfeita e classe com uma linha", {
   z <- tr_ml_roc(data.frame(y = c("a", "a", "b", "b"), .prob_b = c(.1, .2, .8, .9)), "y", ".prob_b")$data
   expect_equal(z$auc[[1]], 1)
   expect_equal(z$auc_ep[[1]], 0)                         # variância de DeLong nula
-  expect_equal(c(z$auc_inf[[1]], z$auc_sup[[1]]), c(1, 1))
+  # IC degenerado: largura zero não é certeza, é o estimador sem informação
+  expect_true(is.na(z$auc_inf[[1]])); expect_true(is.na(z$auc_sup[[1]]))
+  expect_match(z$auc_nota[[1]], "degenerad")
+  z0 <- tr_ml_roc(data.frame(y = c("a", "a", "b", "b"), .prob_b = c(.9, .8, .2, .1)), "y", ".prob_b")$data
+  expect_equal(z0$auc[[1]], 0); expect_true(is.na(z0$auc_inf[[1]])); expect_match(z0$auc_nota[[1]], "degenerad")
+  expect_true(is.na(tr_ml_roc(data.frame(y = rep(c("a", "b"), 3), .prob_b = c(.1, .8, .4, .7, .6, .3)),
+                              "y", ".prob_b")$data$auc_nota[[1]]))
   expect_equal(z$youden_j[[1]], 1); expect_equal(z$youden_limiar[[1]], .8)
   u <- tr_ml_roc(data.frame(y = c("a", "b", "b"), .prob_b = c(.1, .8, .9)), "y", ".prob_b")$data
   expect_true(is.na(u$auc_inf[[1]]))

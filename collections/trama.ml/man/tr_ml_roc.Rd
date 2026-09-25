@@ -55,7 +55,8 @@ ou \code{"2:1"}.}
 Objeto \code{ggplot} da curva ROC. Os dados do gráfico trazem, por corte,
 \code{limiar} (prevê positivo com P >= limiar), \code{fpr} e \code{tpr}, e repetidos a
 \code{auc}, seu erro-padrão (\code{auc_ep}) e intervalo (\code{auc_inf}, \code{auc_sup}) de
-DeLong, o corte de Youden (\code{youden_limiar}, \code{youden_j}) e a marca
+DeLong, \code{auc_nota} (NA, ou o motivo quando o IC é indisponível: AUC = 0
+ou 1 dá variância de DeLong zero e o IC sai NA), o corte de Youden (\code{youden_limiar}, \code{youden_j}) e a marca
 \code{youden} na linha escolhida.
 }
 \description{

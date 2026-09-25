@@ -147,7 +147,7 @@
         P("A AUC resume **todos os cortes**, inclusive os que ninguém usaria, e não muda com o desequilíbrio das classes — por isso mesmo pode parecer boa quando a classe rara é mal prevista.",
           verificar = c("ml/confusion", "data/group_summarise"),
           se_falhar = "Leia junto a matriz de confusão, a acurácia balanceada no `ml/evaluate` e, com classe rara, a `ml/pr_curve`."),
-        P("O **intervalo de DeLong** é assintótico (normal): com poucos positivos ou negativos, ou AUC perto de 1, ele fica estreito demais e é truncado em [0, 1]; com AUC = 1 sai de largura zero.",
+        P("O **intervalo de DeLong** é assintótico (normal): com poucos positivos ou negativos, ou AUC perto de 1, ele fica estreito demais e é truncado em [0, 1]. Com AUC = 0 ou 1 a variância de DeLong é zero: o intervalo sai **indisponível** (NA), com a nota em `auc_nota`, em vez de um falso intervalo de largura zero.",
           se_falhar = "Com poucas linhas, leia o intervalo como aproximado e repita a divisão com outras sementes."),
         P("O **corte de Youden** é escolhido nas mesmas linhas em que é lido: a sensibilidade e a especificidade nele são otimistas, e J pesa igualmente falso positivo e falso negativo, o que raramente reflete os custos reais.",
           se_falhar = "Escolha o corte num conjunto de validação (ou pelos custos do problema) e leia o desempenho dele no teste, com o `corte` do `ml/linear` ou a `ml/confusion`.")),

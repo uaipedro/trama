@@ -205,7 +205,8 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @return Objeto `ggplot` da curva ROC. Os dados do gráfico trazem, por corte,
 #'   `limiar` (prevê positivo com P >= limiar), `fpr` e `tpr`, e repetidos a
 #'   `auc`, seu erro-padrão (`auc_ep`) e intervalo (`auc_inf`, `auc_sup`) de
-#'   DeLong, o corte de Youden (`youden_limiar`, `youden_j`) e a marca
+#'   DeLong, `auc_nota` (NA, ou o motivo quando o IC é indisponível: AUC = 0
+#'   ou 1 dá variância de DeLong zero e o IC sai NA), o corte de Youden (`youden_limiar`, `youden_j`) e a marca
 #'   `youden` na linha escolhida.
 #' @export
 tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
@@ -235,7 +236,7 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
   n_curva <- nrow(d)
   d$auc <- sum(diff(d$fpr) * (d$tpr[-n_curva] + d$tpr[-1L]) / 2)
   ic <- .tr_ml_auc_delong(prob[y == positiva], prob[y != positiva], confianca)
-  d$auc_ep <- ic[["ep"]]; d$auc_inf <- ic[["inf"]]; d$auc_sup <- ic[["sup"]]
+  d$auc_ep <- ic$ep; d$auc_inf <- ic$inf; d$auc_sup <- ic$sup; d$auc_nota <- ic$nota
   # Corte de Youden (1950): maximiza J = sensibilidade + especificidade - 1;
   # em empate, o de maior limiar (menos positivos previstos).
   j <- d$tpr - d$fpr
@@ -243,9 +244,10 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
   d$youden_limiar <- d$limiar[[i]]; d$youden_j <- j[[i]]
   d$youden <- seq_len(n_curva) == i
   d <- .tr_ml_com_nota(d, nota)
-  rotulo <- sprintf("AUC = %.3f (IC %s%%: %.3f a %.3f)\nYouden: J = %.3f com P \u{2265} %s",
-                    d$auc[[1]], format(100 * confianca), ic[["inf"]], ic[["sup"]],
-                    j[[i]], format(signif(d$limiar[[i]], 3)))
+  ic_txt <- if (is.na(ic$inf)) "IC indispon\u{ED}vel" else
+    sprintf("IC %s%%: %.3f a %.3f", format(100 * confianca), ic$inf, ic$sup)
+  rotulo <- sprintf("AUC = %.3f (%s)\nYouden: J = %.3f com P \u{2265} %s",
+                    d$auc[[1]], ic_txt, j[[i]], format(signif(d$limiar[[i]], 3)))
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$fpr, y = .data$tpr)) +
     ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "#94a3b8") +
     ggplot2::geom_step(linewidth = 1) + ggplot2::coord_equal() +
@@ -333,10 +335,18 @@ tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
   m <- length(pos); n <- length(neg)
   psi <- outer(pos, neg, function(a, b) (a > b) + 0.5 * (a == b))
   v10 <- rowMeans(psi); v01 <- colMeans(psi); auc <- mean(psi)
-  if (m < 2L || n < 2L) return(c(ep = NA_real_, inf = NA_real_, sup = NA_real_))
+  if (m < 2L || n < 2L) return(list(ep = NA_real_, inf = NA_real_, sup = NA_real_, nota = NA_character_))
   ep <- sqrt(stats::var(v10) / m + stats::var(v01) / n)
+  # AUC = 0 ou 1 (separação perfeita): todos os componentes estruturais são
+  # iguais, a variância de DeLong é zero e o intervalo teria largura zero. Isso
+  # não é certeza, é o estimador sem informação: o IC sai NA com a nota.
+  if (ep == 0) {
+    return(list(ep = ep, inf = NA_real_, sup = NA_real_, nota = paste(
+      "IC de DeLong degenerado: com AUC =", format(auc), "a vari\u{E2}ncia estimada \u{E9} zero",
+      "e o intervalo n\u{E3}o informa a incerteza; use mais linhas ou reamostragem.")))
+  }
   z <- stats::qnorm(1 - (1 - confianca) / 2)
-  c(ep = ep, inf = max(0, auc - z * ep), sup = min(1, auc + z * ep))
+  list(ep = ep, inf = max(0, auc - z * ep), sup = min(1, auc + z * ep), nota = NA_character_)
 }
 
 # Classe positiva padrão: a que a coluna `.prob_<classe>` nomeia. Sem esse
