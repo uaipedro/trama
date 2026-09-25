@@ -2,16 +2,21 @@
   {
     "from": "ml/predict",
     "to": "ml/evaluate",
-    "n": 10
+    "n": 11
   },
   {
     "from": "ml/split",
     "to": "ml/predict",
-    "n": 10
+    "n": 11
   },
   {
     "from": "ml/cart",
     "to": "ml/predict",
+    "n": 3
+  },
+  {
+    "from": "ml/example",
+    "to": "ml/split",
     "n": 3
   },
   {
@@ -30,8 +35,23 @@
     "n": 3
   },
   {
-    "from": "ml/example",
-    "to": "ml/split",
+    "from": "ml/cart",
+    "to": "ml/rules",
+    "n": 2
+  },
+  {
+    "from": "ml/cart",
+    "to": "ml/tree_plot",
+    "n": 2
+  },
+  {
+    "from": "ml/forest",
+    "to": "ml/predict",
+    "n": 2
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/forest",
     "n": 2
   },
   {
@@ -40,13 +60,8 @@
     "n": 1
   },
   {
-    "from": "ml/cart",
-    "to": "ml/rules",
-    "n": 1
-  },
-  {
-    "from": "ml/cart",
-    "to": "ml/tree_plot",
+    "from": "ml/example",
+    "to": "ml/cart",
     "n": 1
   },
   {
@@ -65,18 +80,13 @@
     "n": 1
   },
   {
-    "from": "ml/forest",
-    "to": "ml/predict",
-    "n": 1
-  },
-  {
     "from": "ml/linear",
     "to": "ml/predict",
     "n": 1
   },
   {
-    "from": "ml/split",
-    "to": "ml/forest",
+    "from": "ml/predict",
+    "to": "ml/confusion",
     "n": 1
   },
   {

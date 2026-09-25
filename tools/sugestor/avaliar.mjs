@@ -5,26 +5,24 @@
 //     for (p in c("trama.data","trama.view","trama.models","trama.sampling",
 //                 "trama.multi","trama.series","trama.ml")) tr_use(p, registry = reg);
 //     cat(tr_catalog_json(reg))' > cat.json
-//   node tools/sugestor/avaliar.mjs cat.json
+//   node --experimental-strip-types --no-warnings tools/sugestor/avaliar.mjs cat.json [fontes]
 //
-// Para cada aresta a -> b de `exemplos/*/flows/*.json`, tira do catálogo as
-// transições que AQUELE fluxo contribuiu (mesma contagem de `minerar.R`) e
-// pergunta ao `sugerir` o que vem depois de a. Conta se b está no top-k.
+// `fontes` escolhe os fluxos avaliados (padrão: exemplos; `todas` = corpus
+// inteiro de `corpus.mjs`). Para cada aresta a -> b desses fluxos, tira do
+// catálogo as transições que AQUELE fluxo contribuiu (mesma contagem de
+// `minerar.R`) e pergunta ao `sugerir` o que vem depois de a. Conta se b está
+// no top-k. Aresta sem porta (fluxo da doc) usa a primeira saída de a que b
+// aceita.
 
-import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { carregarCorpus, FONTES } from "./corpus.mjs";
 import { sugerir, aceitantes, PESOS } from "../../inst/www/sugestor.js";
 
 const cat = JSON.parse(readFileSync(process.argv[2] || "cat.json", "utf8"));
 const byId = Object.fromEntries(cat.nodes.map((n) => [n.id, n]));
 
-const fluxos = [];
-for (const ex of readdirSync("exemplos")) {
-  const dir = join("exemplos", ex, "flows");
-  if (!existsSync(dir)) continue;
-  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json")))
-    fluxos.push({ nome: `${ex}/${f}`, fl: JSON.parse(readFileSync(join(dir, f), "utf8")) });
-}
+const arg = process.argv[3] || "exemplos";
+const fluxos = await carregarCorpus(arg === "todas" ? Object.keys(FONTES) : arg.split(","));
 
 // Mesmo par de `minerar.R`: (tipo de a, tipo de b), sem laço do mesmo tipo.
 function pares(fl) {
@@ -72,11 +70,13 @@ function avaliar(cfg) {
   let n = 0, fora = 0;
   const hit = { 1: 0, 3: 0, 5: 0 };
   try {
-    for (const { fl } of fluxos) {
+    for (const fl of fluxos) {
       const catLoo = { ...cat, transitions: semFluxo(fl) };
       for (const e of fl.edges || []) {
         const de = fl.nodes[e.from.node]?.type, para = fl.nodes[e.to.node]?.type;
-        const porta = byId[de]?.outputs?.find((o) => o.name === e.from.port);
+        const porta = e.from.port == null
+          ? byId[de]?.outputs?.find((o) => aceitantes(cat, o.type).some((a) => a.id === para))
+          : byId[de]?.outputs?.find((o) => o.name === e.from.port);
         if (!porta) { fora++; continue; }
         if (!aceitantes(cat, porta.type).some((a) => a.id === para)) { fora++; continue; }
         // Só o que já existe a montante: a origem da aresta e seus ancestrais.
@@ -96,7 +96,7 @@ function avaliar(cfg) {
 }
 
 const pct = (x, n) => `${((100 * x) / n).toFixed(1)}%`.padStart(7);
-console.log(`${fluxos.length} fluxos`);
+console.log(`${fluxos.length} fluxos (${arg})`);
 console.log("| camadas       | hit@1  | hit@3  | hit@5  |");
 console.log("|---------------|--------|--------|--------|");
 let resumo;

@@ -1,5 +1,30 @@
 [
   {
+    "from": "models/example",
+    "to": "models/anova_dic",
+    "n": 12
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_dbc",
+    "n": 10
+  },
+  {
+    "from": "models/example",
+    "to": "models/lm",
+    "n": 6
+  },
+  {
+    "from": "models/example",
+    "to": "models/lmer",
+    "n": 6
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/emmeans",
+    "n": 4
+  },
+  {
     "from": "models/anova_factorial",
     "to": "models/emmeans",
     "n": 4
@@ -10,13 +35,63 @@
     "n": 4
   },
   {
+    "from": "models/anova_dic",
+    "to": "models/levene",
+    "n": 3
+  },
+  {
+    "from": "models/emmeans",
+    "to": "models/plot_means",
+    "n": 3
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_factorial",
+    "n": 3
+  },
+  {
     "from": "data/mutate",
     "to": "models/lmer",
     "n": 2
   },
   {
+    "from": "models/anova_dbc",
+    "to": "models/anova_table",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/duncan",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/tukey_additivity",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/waller_duncan",
+    "n": 2
+  },
+  {
     "from": "models/anova_dic",
-    "to": "models/levene",
+    "to": "models/bartlett",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/linear_hypothesis",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/plot_diagnostics",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/shapiro_residuals",
     "n": 2
   },
   {
@@ -31,37 +106,47 @@
   },
   {
     "from": "models/emmeans",
-    "to": "models/plot_means",
+    "to": "models/pairwise",
     "n": 2
   },
   {
     "from": "models/example",
-    "to": "models/anova_dic",
+    "to": "models/anova_dql",
     "n": 2
   },
   {
     "from": "models/example",
-    "to": "models/anova_factorial",
+    "to": "models/anova_split_plot",
     "n": 2
   },
   {
     "from": "models/example",
-    "to": "models/lmer",
+    "to": "models/glm",
     "n": 2
   },
   {
-    "from": "models/anova_dbc",
-    "to": "models/anova_table",
-    "n": 1
+    "from": "models/example",
+    "to": "models/kruskal",
+    "n": 2
   },
   {
-    "from": "models/anova_dbc",
-    "to": "models/duncan",
-    "n": 1
+    "from": "models/lm",
+    "to": "models/compare",
+    "n": 2
   },
   {
-    "from": "models/anova_dbc",
-    "to": "models/emmeans",
+    "from": "models/lmer",
+    "to": "models/plot_caterpillar",
+    "n": 2
+  },
+  {
+    "from": "models/lmer",
+    "to": "models/random_effects",
+    "n": 2
+  },
+  {
+    "from": "data/to_stream",
+    "to": "models/rls",
     "n": 1
   },
   {
@@ -81,17 +166,12 @@
   },
   {
     "from": "models/anova_dbc",
+    "to": "models/scott_knott",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
     "to": "models/shapiro_residuals",
-    "n": 1
-  },
-  {
-    "from": "models/anova_dbc",
-    "to": "models/tukey_additivity",
-    "n": 1
-  },
-  {
-    "from": "models/anova_dbc",
-    "to": "models/waller_duncan",
     "n": 1
   },
   {
@@ -101,7 +181,7 @@
   },
   {
     "from": "models/anova_dic",
-    "to": "models/bartlett",
+    "to": "models/coefficients",
     "n": 1
   },
   {
@@ -111,17 +191,17 @@
   },
   {
     "from": "models/anova_dic",
-    "to": "models/linear_hypothesis",
+    "to": "models/fit_stats",
     "n": 1
   },
   {
     "from": "models/anova_dic",
-    "to": "models/plot_diagnostics",
+    "to": "models/polinomial",
     "n": 1
   },
   {
     "from": "models/anova_dic",
-    "to": "models/shapiro_residuals",
+    "to": "models/residuals",
     "n": 1
   },
   {
@@ -170,33 +250,58 @@
     "n": 1
   },
   {
-    "from": "models/emmeans",
-    "to": "models/pairwise",
+    "from": "models/example",
+    "to": "models/chisq",
     "n": 1
   },
   {
     "from": "models/example",
-    "to": "models/anova_dbc",
+    "to": "models/cor_test",
     "n": 1
   },
   {
     "from": "models/example",
-    "to": "models/anova_dql",
+    "to": "models/fisher_exact",
     "n": 1
   },
   {
     "from": "models/example",
-    "to": "models/anova_split_plot",
+    "to": "models/friedman",
     "n": 1
   },
   {
     "from": "models/example",
-    "to": "models/glm",
+    "to": "models/glmer",
     "n": 1
   },
   {
     "from": "models/example",
-    "to": "models/kruskal",
+    "to": "models/one_sample_t",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/paired_t",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/predict",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/shapiro",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/t_test",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/wilcoxon",
     "n": 1
   },
   {
@@ -212,6 +317,26 @@
   {
     "from": "models/glm",
     "to": "models/plot_diagnostics",
+    "n": 1
+  },
+  {
+    "from": "models/lm",
+    "to": "models/breusch_pagan",
+    "n": 1
+  },
+  {
+    "from": "models/lm",
+    "to": "models/coefficients",
+    "n": 1
+  },
+  {
+    "from": "models/lm",
+    "to": "models/plot_diagnostics",
+    "n": 1
+  },
+  {
+    "from": "models/lm",
+    "to": "models/predict",
     "n": 1
   },
   {
@@ -221,12 +346,7 @@
   },
   {
     "from": "models/lmer",
-    "to": "models/plot_caterpillar",
-    "n": 1
-  },
-  {
-    "from": "models/lmer",
-    "to": "models/random_effects",
+    "to": "models/random_test",
     "n": 1
   }
 ]

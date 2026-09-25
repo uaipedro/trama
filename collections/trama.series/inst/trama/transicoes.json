@@ -1,42 +1,162 @@
 [
   {
     "from": "series/example",
-    "to": "series/accuracy",
-    "n": 2
+    "to": "series/transform",
+    "n": 11
   },
   {
-    "from": "series/baseline",
-    "to": "series/accuracy",
-    "n": 1
-  },
-  {
-    "from": "series/diff",
-    "to": "series/acf",
-    "n": 1
-  },
-  {
-    "from": "series/diff",
-    "to": "series/adf",
-    "n": 1
-  },
-  {
-    "from": "series/diff",
-    "to": "series/kpss",
-    "n": 1
-  },
-  {
-    "from": "series/diff",
-    "to": "series/pacf",
-    "n": 1
-  },
-  {
-    "from": "series/diff",
-    "to": "series/phillips_perron",
-    "n": 1
+    "from": "series/transform",
+    "to": "series/diff",
+    "n": 6
   },
   {
     "from": "series/ets",
     "to": "series/forecast",
+    "n": 5
+  },
+  {
+    "from": "series/diff",
+    "to": "series/adf",
+    "n": 4
+  },
+  {
+    "from": "series/example",
+    "to": "series/regression",
+    "n": 4
+  },
+  {
+    "from": "series/example",
+    "to": "series/stl",
+    "n": 4
+  },
+  {
+    "from": "series/residuals",
+    "to": "series/ljung_box",
+    "n": 4
+  },
+  {
+    "from": "series/stl",
+    "to": "series/component",
+    "n": 4
+  },
+  {
+    "from": "series/arima",
+    "to": "series/residuals",
+    "n": 3
+  },
+  {
+    "from": "series/diff",
+    "to": "series/kpss",
+    "n": 3
+  },
+  {
+    "from": "series/example",
+    "to": "series/arima",
+    "n": 3
+  },
+  {
+    "from": "series/example",
+    "to": "series/ets",
+    "n": 3
+  },
+  {
+    "from": "series/example",
+    "to": "series/window",
+    "n": 3
+  },
+  {
+    "from": "series/baseline",
+    "to": "series/accuracy",
+    "n": 2
+  },
+  {
+    "from": "series/component",
+    "to": "series/ljung_box",
+    "n": 2
+  },
+  {
+    "from": "series/diff",
+    "to": "series/acf",
+    "n": 2
+  },
+  {
+    "from": "series/diff",
+    "to": "series/pacf",
+    "n": 2
+  },
+  {
+    "from": "series/diff",
+    "to": "series/phillips_perron",
+    "n": 2
+  },
+  {
+    "from": "series/example",
+    "to": "series/accuracy",
+    "n": 2
+  },
+  {
+    "from": "series/example",
+    "to": "series/mann_kendall",
+    "n": 2
+  },
+  {
+    "from": "series/example",
+    "to": "series/seasonal_plot",
+    "n": 2
+  },
+  {
+    "from": "series/forecast",
+    "to": "series/accuracy",
+    "n": 2
+  },
+  {
+    "from": "series/regression",
+    "to": "series/f_global",
+    "n": 2
+  },
+  {
+    "from": "series/stl",
+    "to": "series/plot_decomposition",
+    "n": 2
+  },
+  {
+    "from": "series/transform",
+    "to": "series/stl",
+    "n": 2
+  },
+  {
+    "from": "series/window",
+    "to": "series/baseline",
+    "n": 2
+  },
+  {
+    "from": "series/window",
+    "to": "series/ets",
+    "n": 2
+  },
+  {
+    "from": "data/read_csv",
+    "to": "series/from_table",
+    "n": 1
+  },
+  {
+    "from": "series/arima",
+    "to": "series/forecast",
+    "n": 1
+  },
+  {
+    "from": "series/component",
+    "to": "series/acf",
+    "n": 1
+  },
+  {
+    "from": "series/decompose",
+    "to": "series/component",
+    "n": 1
+  },
+  {
+    "from": "series/diff",
+    "to": "series/kruskal_wallis",
     "n": 1
   },
   {
@@ -46,52 +166,142 @@
   },
   {
     "from": "series/example",
-    "to": "series/seasonal_plot",
+    "to": "series/adf",
     "n": 1
   },
   {
     "from": "series/example",
-    "to": "series/stl",
+    "to": "series/aggregate",
     "n": 1
   },
   {
     "from": "series/example",
-    "to": "series/transform",
+    "to": "series/cox_stuart",
     "n": 1
   },
   {
     "from": "series/example",
-    "to": "series/window",
+    "to": "series/decompose",
     "n": 1
   },
   {
-    "from": "series/forecast",
-    "to": "series/accuracy",
-    "n": 1
-  },
-  {
-    "from": "series/residuals",
-    "to": "series/ljung_box",
-    "n": 1
-  },
-  {
-    "from": "series/stl",
-    "to": "series/component",
-    "n": 1
-  },
-  {
-    "from": "series/transform",
+    "from": "series/example",
     "to": "series/diff",
     "n": 1
   },
   {
-    "from": "series/window",
-    "to": "series/baseline",
+    "from": "series/example",
+    "to": "series/fisher",
     "n": 1
   },
   {
-    "from": "series/window",
-    "to": "series/ets",
+    "from": "series/example",
+    "to": "series/holt_winters",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/interpolate",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/kruskal_wallis",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/lag",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/lag_plot",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/moving_average",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/ndiffs",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/pettitt",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/plot",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/runs",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/subseries",
+    "n": 1
+  },
+  {
+    "from": "series/example",
+    "to": "series/zivot_andrews",
+    "n": 1
+  },
+  {
+    "from": "series/forecast",
+    "to": "series/plot_forecast",
+    "n": 1
+  },
+  {
+    "from": "series/holt_winters",
+    "to": "series/forecast",
+    "n": 1
+  },
+  {
+    "from": "series/interpolate",
+    "to": "series/stl",
+    "n": 1
+  },
+  {
+    "from": "series/regression",
+    "to": "series/component",
+    "n": 1
+  },
+  {
+    "from": "series/regression",
+    "to": "series/f_sazonal",
+    "n": 1
+  },
+  {
+    "from": "series/regression",
+    "to": "series/f_tendencia",
+    "n": 1
+  },
+  {
+    "from": "series/residuals",
+    "to": "series/acf",
+    "n": 1
+  },
+  {
+    "from": "series/residuals",
+    "to": "series/box_pierce",
+    "n": 1
+  },
+  {
+    "from": "series/transform",
+    "to": "series/arima",
+    "n": 1
+  },
+  {
+    "from": "series/transform",
+    "to": "series/pacf",
     "n": 1
   }
 ]

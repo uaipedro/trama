@@ -1,16 +1,28 @@
 # Minera as transições dos fluxos de exemplo para o sugestor.
 #
-# Uso: Rscript tools/sugestor/minerar.R (da raiz do repositório).
+# Uso: Rscript tools/sugestor/minerar.R [fontes] (da raiz do repositório).
 #
-# Cada aresta `a -> b` de `exemplos/*/flows/*.json` vira um par
+# Os fluxos vêm de `tools/sugestor/corpus.mjs`, que junta e deduplica as
+# fontes reais do repositório: exemplos, templates das coleções e os fluxos
+# em blocos ```r da doc do site. `fontes` (separadas por vírgula) restringe
+# o corpus; sem argumento, usa todas.
+#
+# Cada aresta `a -> b` de cada fluxo vira um par
 # (tipo de a, tipo de b). Os pares são separados pela coleção do `to` e
 # gravados em `collections/<pacote>/inst/trama/transicoes.json`: quem é
 # sugerido é o dono do dado, e é essa a regra que `tr_collection()` cobra.
 # Laços do mesmo tipo são ignorados; sugerir o próprio bloco de novo não ajuda.
 
-arquivos <- Sys.glob("exemplos/*/flows/*.json")
-pares <- do.call(rbind, lapply(arquivos, function(f) {
-  fl <- jsonlite::fromJSON(f, simplifyVector = FALSE)
+fontes <- commandArgs(trailingOnly = TRUE)
+corpus <- jsonlite::fromJSON(
+  paste(system2("node", c("--experimental-strip-types", "--no-warnings",
+                          "tools/sugestor/corpus.mjs", fontes), stdout = TRUE),
+        collapse = ""),
+  simplifyVector = FALSE
+)
+cat(sprintf("%d fluxos no corpus\n", length(corpus)))
+
+pares <- do.call(rbind, lapply(corpus, function(fl) {
   tipo <- vapply(fl$nodes, function(n) n$type, "")
   do.call(rbind, lapply(fl$edges, function(e) {
     de <- unname(tipo[e$from$node]); para <- unname(tipo[e$to$node])
