@@ -42,7 +42,24 @@ trama_collection <- function() {
     # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
     # nomes antigos abrem já migrados. `alfa` vira `confianca` com o valor
     # complementar (alfa 0,05 -> confiança 0,95).
-    migrations = list(params = list(
+    #
+    # Os leitores de classificador da `multi` vieram para cá na Fase 4 (o
+    # contrato de modelo): a migração mora AQUI porque o destino é daqui, e as
+    # chaves de params/ports são o id NOVO. Os params de `classify`, `confusion`
+    # e `roc` têm o mesmo nome e o mesmo default dos de cá; a porta `novos` do
+    # classify é a `dados` do predict. `nivel` era o nome antigo da confiança na
+    # `multi/logistic_coefficients`, e só ela o tinha: é a única âncora que
+    # distingue um nó que veio de lá, e aproveita-se para pôr `exponenciar` (a
+    # tabela de lá era de razões de chances). Um `escala` salvo não serve de
+    # âncora — o `models/coefficients` nativo também o tem, e injetar
+    # `exponenciar` num `lm` com escala o faria errar ao reabrir.
+    migrations = list(
+      nodes = list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
+                   "multi/roc" = "models/roc", "multi/logistic_coefficients" = "models/coefficients"),
+      ports = list("models/predict" = list(novos = "dados")),
+      params = list(
+      "models/coefficients" = list(nivel = list(
+        to = "confianca", value = function(v) list(confianca = v, exponenciar = TRUE))),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/one_sample_t" = list(coluna = list(to = "variavel")),

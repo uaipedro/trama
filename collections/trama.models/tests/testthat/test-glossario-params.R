@@ -45,3 +45,28 @@ test_that("fluxos salvos com alfa/coluna abrem com confianca/variavel", {
     expect_equal(p$variavel, "weight")
   }
 })
+
+test_that("os leitores de classificador da multi abrem como os blocos daqui", {
+  # Declarado aqui porque o destino é daqui; a coleção de origem nem precisa
+  # estar carregada para o id antigo migrar.
+  reg <- models_registry()
+  mig <- function(tipo, params) trama::tr_doc_migrate(doc_minimo(tipo, params), reg)$nodes$n
+  expect_equal(mig("multi/classify", list(validacao = "cruzada")),
+               list(type = "models/predict", params = list(validacao = "cruzada")))
+  expect_equal(mig("multi/confusion", list())$type, "models/confusion")
+  expect_equal(mig("multi/roc", list(validacao = "resubstituição"))$params$validacao, "resubstituição")
+  # `nivel` só existia na multi/logistic_coefficients: vira confiança e traz a
+  # razão de chances (exponenciar), que era o que a tabela de lá mostrava.
+  rc <- mig("multi/logistic_coefficients", list(nivel = 0.9, escala = "desvio padrão"))
+  expect_equal(rc$type, "models/coefficients")
+  expect_equal(rc$params, list(escala = "desvio padrão", confianca = 0.9, exponenciar = TRUE))
+  # Um models/coefficients nativo com escala não ganha exponenciar (num lm, ele
+  # faria o card errar).
+  expect_equal(mig("models/coefficients", list(escala = "desvio padrão"))$params,
+               list(escala = "desvio padrão"))
+  # A porta `novos` do classify é a `dados` do predict.
+  doc <- list(nodes = list(t = list(type = "data/example", params = list()),
+                           c = list(type = "multi/classify", params = list())),
+              edges = list(list(from = list(node = "t", port = "out"), to = list(node = "c", port = "novos"))))
+  expect_equal(trama::tr_doc_migrate(doc, reg)$edges[[1]]$to$port, "dados")
+})

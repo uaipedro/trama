@@ -146,6 +146,23 @@ models_fit_type <- function() {
                  rodape = rodape, nota = nota, fonte = fonte), class = "tr_models_effects")
 }
 
+#' Um quadro de efeitos (`models/effects`), para o `tr_models_coefs()` de
+#' modelo de outra coleção.
+#'
+#' Exportado porque o contrato promete que `tr_models_coefs()` devolve um
+#' `tr_models_effects`, e a coleção irmã que implementa o método não tem como
+#' montar um sem repetir aqui os campos que o store confere.
+#' @param tabela data.frame com `termo` e `p_valor` (e o que mais o quadro tiver).
+#' @param titulo o topo do card.
+#' @param coluna_estat o nome da coluna da estatística (`"z"`, `"t"`), ou `NULL`.
+#' @param rodape lista nomeada de textos curtos.
+#' @param nota,fonte textos do pé do card.
+#' @export
+tr_models_effects <- function(tabela, titulo, coluna_estat = NULL, rodape = list(), nota = "",
+                              fonte = "") {
+  .tr_models_efeitos(tabela, titulo, coluna_estat, rodape, nota, fonte)
+}
+
 .tr_models_efeitos_conferir <- function(x) {
   .tr_models_guard(x, "tr_models_effects", .TR_MODELS_CAMPOS_EFEITOS,
                    "tr_models_error_not_effects", "um quadro de efeitos")
