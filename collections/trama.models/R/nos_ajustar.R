@@ -27,6 +27,9 @@ delineamento ou modelo.
 - **warpbreaks** — quebras de fio (`breaks`) por lã (`wool`) e tensão
   (`tension`). Fatorial com interação forte.
 - **npk** — ervilha em blocos (`block`), fatorial 2³ de N, P e K (`yield`).
+- **adubo_dbc** — SIMULADO. 5 doses de nitrogênio (`dose`, 0 a 200 kg/ha) em 4
+  blocos (`bloco`), resposta `producao` em t/ha, construída QUADRÁTICA com
+  máximo perto de 133 kg/ha: o caso do `models/dose_response`.
 - **aveia** — o experimento de Yates (`MASS::oats`): parcela subdividida com
   `variedade` na parcela, `nitrogenio` na subparcela, 6 blocos, `producao`.
 
@@ -230,7 +233,7 @@ termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos.
 
 Tratamento, bloco, linha e coluna entram como FATOR mesmo quando são números:
 dose 50/100/150 é tratamento com 2 graus de liberdade, e não uma reta. Para
-ajustar a dose como regressão, use o `models/lm`.
+a regressão da dose depois da ANOVA, ligue o modelo ao `models/dose_response`.
 "
   list(
     trama::tr_node("models/anova_dic", fn = tr_models_anova_dic, label = "ANOVA · DIC",
@@ -418,6 +421,81 @@ tr_flow(reg) |>
 ]---", r"---[
 `models/anova_table`; `models/emmeans`; `models/random_effects` para a variância
 entre parcelas; `models/lmer` para o caso desbalanceado.
-]---"))
+]---")),
+
+    trama::tr_node("models/dose_response", fn = tr_models_dose_response, label = "Regressão de doses",
+      category = "modelo_anova", icon = trama::tr_icon("chart-line"),
+      description = "Desdobra o tratamento quantitativo da ANOVA em linear, quadrático e cúbico, e ajusta a curva.",
+      inputs = list(modelo = Fm), outputs = list(modelo = Fm, quadro = "models/effects"),
+      params = list(
+        tratamento = P("cols", "", label = "Tratamento (doses)", example = "dose"),
+        grau = trama::tr_param_enum("automático", .TR_MODELS_GRAUS, label = "Grau"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+      help = .tr_models_ajuda(r"---[
+Quando o tratamento é QUANTITATIVO — doses de adubo, lâminas de irrigação,
+densidades de plantio —, o F da ANOVA diz se as doses diferem, mas a pergunta é
+como a resposta muda com a dose. O procedimento de livro desdobra os graus de
+liberdade do tratamento em componentes polinomiais e testa cada um contra o
+resíduo da ANOVA:
+
+| FV | GL |
+|---|---|
+| Tratamentos | k − 1 |
+| Linear | 1 |
+| Quadrático | 1 |
+| Cúbico | 1 |
+| Desvios da regressão | k − 4 |
+| Resíduo | o da ANOVA |
+
+Ligue o bloco ao modelo de um `models/anova_dic`, `models/anova_dbc` ou
+`models/anova_dql` em que a dose entrou como tratamento. Os níveis do
+tratamento têm de ser números: é a distância entre eles que a regressão usa.
+
+### O grau
+
+- **automático** — o maior componente significativo (a 1 − confiança), até o
+  cúbico. É a regra dos livros: um quadrático significativo com o cúbico não
+  significativo dá a parábola.
+- **1**, **2**, **3** — o grau fixado.
+
+O quadro traz também a **falta de ajuste** do grau escolhido: tudo o que o
+tratamento explica e a curva não. Significativa, a curva não descreve bem as
+doses, mesmo com o componente significativo.
+
+### A curva
+
+Ajustada às médias das doses, com o erro da ANOVA nos erros padrão dos
+coeficientes (como fazem os programas de experimentação). O R² é o do livro,
+SQ da regressão / SQ de tratamentos — quanto da diferença entre as doses a
+curva explica, e não quanto da variação das parcelas.
+
+Na parábola sai a **dose de máxima eficiência técnica** (MET), −b₁ / (2 b₂): a
+dose de maior resposta prevista (ou de menor, com a parábola para cima). A nota
+avisa quando ela cai fora das doses testadas — aí é extrapolação.
+
+No fatorial, a regressão é dentro de cada nível do outro fator, e o bloco
+recusa: filtre um nível e ajuste, ou escreva o polinômio num `models/lm`.
+]---", r"---[
+- **Tratamento** — o fator de doses do modelo.
+- **Grau** — `automático` (padrão) ou 1, 2, 3.
+- **Confiança** — padrão 0,95: o grau automático testa os componentes a 5%, e
+  os coeficientes saem com IC 95%.
+]---", r"---[
+Duas saídas. **modelo** (`models/fit`): a curva, cujo card é o gráfico de
+regressão das teses — médias, curva, equação, R² e a MET; ligada a
+`models/coefficients` dá b₀, b₁, b₂ com o erro da ANOVA, e a `models/predict` a
+resposta prevista em outras doses. **quadro** (`models/effects`): o
+desdobramento, com a régua do p-valor por componente e o R² e a MET no rodapé.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("adubo", "models/example", dataset = "adubo_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "dose",
+         bloco = "bloco", from = "adubo") |>
+  tr_add("reg", "models/dose_response", tratamento = "dose", from = "dbc")
+]---", r"---[
+`models/plot_regression` para a figura com título e rótulos;
+`models/coefficients`; `models/anova_dbc`; a regressão não linear quando a curva não é
+um polinômio (platô, Mitscherlich).
+]---", teste = TRUE))
   )
 }

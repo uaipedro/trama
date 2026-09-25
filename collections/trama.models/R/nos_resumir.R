@@ -145,6 +145,46 @@ tr_flow(reg) |>
 `models/anova_table` para o quadro; `models/cohen_d` para dois grupos.
 ]---")),
 
+    trama::tr_node("models/plot_regression", fn = tr_models_plot_regression, label = "Gráfico de regressão",
+      category = "modelo_resumir", icon = trama::tr_icon("chart-line"),
+      description = "Pontos, curva ajustada, equação e R²: a figura da dose-resposta ou do modelo não linear.",
+      inputs = list(modelo = Fm), outputs = list(out = "view/plot"),
+      params = .tr_models_props(
+        observacoes = B(FALSE, label = "Parcelas ao fundo"),
+        equacao = B(TRUE, label = "Equação e R²"),
+        .aspecto = "4:3"),
+      help = .tr_models_ajuda(r"---[
+O gráfico de regressão das teses: os pontos, a curva ajustada e, no canto, a
+equação e o R². Lê a curva de dois blocos:
+
+- **`models/dose_response`** — os pontos são as MÉDIAS das doses (a curva foi
+  ajustada a elas), o R² é SQ da regressão / SQ de tratamentos, e na parábola a
+  linha tracejada marca a dose de máxima eficiência técnica (MET) quando ela
+  cai dentro das doses testadas.
+- **a regressão não linear** — os pontos são as observações, o R² é o pseudo R², e no
+  linear-platô a linha tracejada marca o início do platô.
+
+A equação sai com vírgula decimal e quatro algarismos significativos, pronta
+para a legenda da figura.
+]---", r"---[
+- **Parcelas ao fundo** — na dose-resposta, desenhar também cada parcela, em
+  cinza, atrás das médias.
+- **Equação e R²** — escrever a equação no gráfico.
+]---", r"---[
+Um gráfico (`view/plot`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("adubo", "models/example", dataset = "adubo_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "dose",
+         bloco = "bloco", from = "adubo") |>
+  tr_add("reg", "models/dose_response", tratamento = "dose", from = "dbc") |>
+  tr_add("graf", "models/plot_regression", titulo = "Produção por dose de N",
+         from = "reg")
+]---", r"---[
+`models/dose_response`; a regressão não linear; `models/plot_means` quando o tratamento
+é qualitativo.
+]---", grafico = TRUE)),
+
     trama::tr_node("models/plot_coefficients", fn = tr_models_plot_coefficients, label = "Gráfico dos coeficientes",
       category = "modelo_resumir", icon = trama::tr_icon("chart-bar"),
       description = "Gráfico de floresta: cada coeficiente com o intervalo de confiança, contra a linha do zero (ou do 1).",

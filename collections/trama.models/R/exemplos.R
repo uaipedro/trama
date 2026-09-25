@@ -6,7 +6,7 @@
 # gerador próprios, devolvendo o estado do RNG como estava — o `milho_dbc` de
 # hoje é o de amanhã, em qualquer computador.
 
-.TR_MODELS_EXEMPLOS <- c("PlantGrowth", "milho_dbc", "racao_dql", "ToothGrowth", "warpbreaks",
+.TR_MODELS_EXEMPLOS <- c("PlantGrowth", "milho_dbc", "racao_dql", "adubo_dbc", "ToothGrowth", "warpbreaks",
                          "npk", "aveia", "sleepstudy", "InsectSprays", "mtcars", "cars")
 
 #' Roda `expr` com semente própria, sem mexer na do usuário.
@@ -56,6 +56,22 @@
   })
 }
 
+#' DBC: 5 doses de nitrogênio em 4 blocos, com resposta QUADRÁTICA plantada.
+#'
+#' 3 + 0,04 N − 0,00015 N² t/ha: a máxima eficiência técnica está em
+#' N = 0,04 / 0,0003 ≈ 133 kg/ha, dentro das doses testadas — o
+#' `models/dose_response` tem de escolher o grau 2 e achar a MET perto daí.
+#' @noRd
+.tr_models_adubo <- function() {
+  .tr_models_com_semente(1974L, {
+    d <- expand.grid(bloco = factor(paste0("B", 1:4)), dose = c(0, 50, 100, 150, 200))
+    ef_b <- c(B1 = -0.2, B2 = 0, B3 = 0.15, B4 = 0.05)
+    d$producao <- round(3 + 0.04 * d$dose - 0.00015 * d$dose^2 + ef_b[as.character(d$bloco)] +
+                          stats::rnorm(nrow(d), sd = 0.25), 2)
+    tibble::as_tibble(d[, c("bloco", "dose", "producao")])
+  })
+}
+
 #' Carrega um conjunto de exemplo.
 #' @param dataset nome do conjunto (ver a ajuda do nó).
 #' @return tibble.
@@ -66,6 +82,7 @@ tr_models_example <- function(dataset = "PlantGrowth") {
     PlantGrowth = tibble::as_tibble(datasets::PlantGrowth),
     milho_dbc = .tr_models_milho(),
     racao_dql = .tr_models_racao(),
+    adubo_dbc = .tr_models_adubo(),
     ToothGrowth = tibble::as_tibble(datasets::ToothGrowth),
     warpbreaks = tibble::as_tibble(datasets::warpbreaks),
     npk = tibble::as_tibble(datasets::npk),

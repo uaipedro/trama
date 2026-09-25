@@ -123,7 +123,7 @@ tr_models_linear_hypothesis <- function(modelo, hipoteses = "", fator = "") {
                      paste0("'%s': '%s' é numérica no modelo, e contraste de médias é entre níveis de ",
                             "fator. Escreva a hipótese nos coeficientes (deixe 'fator' em branco)."), no, f)
   }
-  aj <- .tr_models_modelo_emm(modelo)
+  aj <- .tr_models_modelo_emm(modelo, no)
   args <- list(aj, specs = f, data = modelo$dados)
   if (modelo$classe %in% c("lmer", "split")) args$lmer.df <- "satterthwaite"
   r <- .tr_models_ajustar(.tr_models_capturar(do.call(emmeans::emmeans, args)), no)
@@ -160,10 +160,10 @@ tr_models_linear_hypothesis <- function(modelo, hipoteses = "", fator = "") {
 }
 
 .tr_models_hip_coef <- function(modelo, linhas, nomes, no) {
-  .tr_models_exigir(modelo, c("lm", "glm", "lmer"), no,
+  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "glmer"), no,
                     "Na parcela subdividida, escreva os contrastes nas médias de um fator (preencha 'fator').")
   aj <- modelo$ajuste
-  beta <- if (modelo$classe == "lmer") lme4::fixef(aj) else stats::coef(aj)
+  beta <- if (modelo$classe %in% c("lmer", "glmer")) lme4::fixef(aj) else stats::coef(aj)
   corpos <- vapply(linhas, `[[`, "", "corpo")
   M <- tryCatch(suppressWarnings(car::makeHypothesis(names(beta), corpos)), error = function(e) {
     .tr_models_abort("tr_models_error_bad_option",
@@ -191,7 +191,7 @@ tr_models_linear_hypothesis <- function(modelo, hipoteses = "", fator = "") {
       gl = sprintf("%d; %s", as.integer(a$NumDF[[1]]), .tr_models_gl(a$DenDF[[1]])),
       nota = "gl do denominador por Satterthwaite"), base)))
   }
-  usa_f <- modelo$classe == "lm" || stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson")
+  usa_f <- modelo$classe == "lm" || (modelo$classe == "glm" && stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson"))
   a <- .tr_models_ajustar(as.data.frame(car::linearHypothesis(aj, L, rhs, test = if (usa_f) "F" else "Chisq")), no)
   if (usa_f) {
     do.call(.tr_models_teste, c(list("F da hipótese linear geral", h0, a$F[[2]], "F", a$`Pr(>F)`[[2]],

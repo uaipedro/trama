@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- models_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_models(reg)
-  expect_length(nos, 49L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott, dunn, effect_size, cohen_d, plot_coefficients
+  expect_length(nos, 51L)  # Fase 7: predict e rls; coesão F4: confusion, roc, evaluate, importance; F6: scott_knott, dunn, effect_size, cohen_d, plot_coefficients, dose_response, plot_regression
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -40,7 +40,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
 test_that("todo gráfico da coleção é view/plot com os seis cosméticos e a ajuda deles", {
   reg <- models_registry()
   graficos <- Filter(function(n) identical(n$outputs$out$type, "view/plot"), nos_models(reg))
-  expect_length(graficos, 5L)
+  expect_length(graficos, 6L)
   comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
   for (n in graficos) {
     expect_equal(utils::tail(names(n$params), 6L), comuns, info = n$id)
@@ -120,7 +120,9 @@ test_that("o fn de todo nó está exportado no NAMESPACE", {
 test_that("todo teste e quadro traz a explicação da régua, e o JS a registra", {
   reg <- models_registry()
   for (n in nos_models(reg)) {
-    if (!n$outputs$out$type %in% c("data/test", "models/effects")) next
+    # Pelas saídas todas: o `models/dose_response` tem o quadro na segunda.
+    tipos <- vapply(n$outputs, function(o) o$type, "")
+    if (!any(tipos %in% c("data/test", "models/effects"))) next
     expect_true(grepl(.tr_models_ajuda_regua(), n$help, fixed = TRUE), info = n$id)
   }
   js <- readLines(system.file("trama", "index.js", package = "trama.models"))

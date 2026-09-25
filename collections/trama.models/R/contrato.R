@@ -10,7 +10,8 @@
 # todos eles sem que se toque uma linha daqui.
 #
 # A classe S3 é `c("<específica>", "tr_models_fit")`. As da coleção são
-# `tr_models_lm`, `tr_models_glm`, `tr_models_lmer` e `tr_models_split`; o
+# `tr_models_lm`, `tr_models_glm`, `tr_models_lmer`, `tr_models_split` e
+# `tr_models_dose` (a curva da dose-resposta, em `dose.R`); o
 # campo `$classe` continua, porque os leitores que NÃO são do contrato (quadro
 # da ANOVA, médias, testes de pressuposto) ainda o usam, e porque é por ele que
 # um RDS antigo — gravado só com `"tr_models_fit"` — recupera a subclasse.
@@ -20,7 +21,7 @@
 # método falta. Um default que "funcionasse" para qualquer modelo teria de
 # adivinhar campos, e o erro sairia longe do lugar que o causou.
 
-.TR_MODELS_CLASSES <- c("lm", "glm", "lmer", "split")
+.TR_MODELS_CLASSES <- c("lm", "glm", "lmer", "split", "dose")
 .TR_MODELS_VALIDACOES <- c("resubstituição", "cruzada")
 .TR_MODELS_TAREFAS <- c("regressao", "classificacao")
 

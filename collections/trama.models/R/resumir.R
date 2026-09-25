@@ -150,6 +150,10 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
   .tr_models_fit_conferir(modelo)
   tipo <- .tr_models_enum(tipo_sq, .TR_MODELS_TIPOS_SQ, "tipo_sq")
   no <- "models/anova_table"
+  # A curva da dose-resposta: o quadro dela é o desdobramento, feito no ajuste.
+  if (identical(modelo$classe, "dose")) return(modelo$desdobramento)
+  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "split", "glmer"), no,
+                    "Um modelo não linear não tem quadro de somas de quadrados; leia os parâmetros em 'models/coefficients'.")
   rodape <- list()
   coluna <- "F"
   nota <- ""
@@ -332,7 +336,7 @@ tr_models_fit_stats <- function(modelo) {
 #' O misto do modelo: o próprio, ou o equivalente da parcela subdividida.
 #' @noRd
 .tr_models_misto <- function(fit, no) {
-  if (fit$classe == "lmer") return(fit$ajuste)
+  if (fit$classe %in% c("lmer", "glmer")) return(fit$ajuste)
   if (fit$classe == "split") return(fit$aux_misto)
   .tr_models_abort("tr_models_error_not_applicable",
                    "'%s' pede um modelo misto, e chegou %s. Ajuste um 'models/lmer'.", no, fit$rotulo)
@@ -353,7 +357,9 @@ tr_models_random_effects <- function(modelo) {
   # Proporção só para interceptos e resíduo: a variância de uma inclinação está
   # em outra escala (por unidade da covariável²), e somá-la com as outras dá
   # um número sem significado.
-  soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)")
+  # No GLMM não há variância residual na escala da ligação para somar, e a
+  # proporção entre só os grupos diria outra coisa: fica NA.
+  soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)") & modelo$classe != "glmer"
   total <- sum(v$vcov[soma_ok])
   tibble::tibble(
     grupo = ifelse(v$grp == "Residual", "resíduo", v$grp), componente = comp,
@@ -369,7 +375,12 @@ tr_models_random_effects <- function(modelo) {
 #' GLM —, e o bloco que pedir isso vira card vermelho explicando.
 #' @noRd
 .tr_models_residuos <- function(fit, no, permitir_misto = TRUE) {
-  if (fit$classe == "glm") {
+  if (fit$classe == "dose") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' não se aplica a %s: os pressupostos são os da ANOVA de origem (%s). ",
+                            "Ligue o teste ao modelo da ANOVA."), no, fit$rotulo, fit$origem)
+  }
+  if (fit$classe %in% c("glm", "glmer")) {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'%s' não se aplica a %s: num GLM a variância acompanha a média e os ",
                             "resíduos não precisam ser normais — é para isso que ele existe. Olhe o ",
@@ -464,10 +475,10 @@ tr_models_plot_diagnostics <- function(modelo, aspecto = "1:1", tema = "padrão"
 tr_models_compare <- function(modelo, outro) {
   .tr_models_fit_conferir(modelo); .tr_models_fit_conferir(outro)
   no <- "models/compare"
-  if (modelo$classe != outro$classe || modelo$classe == "split") {
+  if (modelo$classe != outro$classe || !modelo$classe %in% c("lm", "glm", "lmer", "glmer")) {
     .tr_models_abort("tr_models_error_not_nested",
-                     paste0("'%s': compara dois modelos da mesma família (dois lm, dois glm ou dois ",
-                            "lmer), e chegaram %s e %s."), no, modelo$rotulo, outro$rotulo)
+                     paste0("'%s': compara dois modelos da mesma família (dois lm, dois glm, dois ",
+                            "lmer ou dois glmer), e chegaram %s e %s."), no, modelo$rotulo, outro$rotulo)
   }
   if (nrow(modelo$dados) != nrow(outro$dados)) {
     .tr_models_abort("tr_models_error_not_nested",
@@ -476,11 +487,11 @@ tr_models_compare <- function(modelo, outro) {
                             "'data/drop_na', e ajuste os dois na mesma tabela."),
                      no, nrow(modelo$dados), nrow(outro$dados))
   }
-  if (modelo$classe == "glm" && stats::family(modelo$ajuste)$family != stats::family(outro$ajuste)$family) {
+  if (modelo$classe %in% c("glm", "glmer") && stats::family(modelo$ajuste)$family != stats::family(outro$ajuste)$family) {
     .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM têm famílias diferentes.", no)
   }
   ta <- .tr_models_termos(modelo); tb <- .tr_models_termos(outro)
-  gl_de <- function(f) if (f$classe == "lmer") attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
+  gl_de <- function(f) if (f$classe %in% c("lmer", "glmer")) attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
   if (gl_de(modelo) <= gl_de(outro)) { menor <- modelo; maior <- outro; tm <- ta; tM <- tb }
   else { menor <- outro; maior <- modelo; tm <- tb; tM <- ta }
   if (!all(tm %in% tM) || gl_de(menor) == gl_de(maior)) {
@@ -492,13 +503,13 @@ tr_models_compare <- function(modelo, outro) {
   novos <- paste(setdiff(tM, tm), collapse = " + ")
   if (!nzchar(novos)) novos <- "estrutura aleatória"
   h0 <- sprintf("os termos a mais (%s) não melhoram o ajuste", novos)
-  if (menor$classe == "lmer") {
+  if (menor$classe %in% c("lmer", "glmer")) {
     a <- .tr_models_ajustar(.tr_models_capturar(stats::anova(menor$ajuste, maior$ajuste, refit = TRUE))$valor, no)
     return(.tr_models_teste("Razão de verossimilhança", h0, a$Chisq[[2]], "qui2", a$`Pr(>Chisq)`[[2]],
                             gl = as.character(a$Df[[2]]),
                             conclusao_sim = "o modelo maior ajusta melhor",
                             conclusao_nao = "não há evidência de que o modelo maior ajuste melhor",
-                            nota = sprintf("reajustados por máxima verossimilhança; AIC %s × %s",
+                            nota = sprintf("%sAIC %s × %s", if (menor$classe == "lmer") "reajustados por máxima verossimilhança; " else "",
                                            .tr_models_fmt(a$AIC[[1]], 5L), .tr_models_fmt(a$AIC[[2]], 5L)),
                             fonte = "Wilks (1938)"))
   }
