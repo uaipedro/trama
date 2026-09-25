@@ -23,3 +23,12 @@
   anterior — versão do nó mantida) para a logística binária: prevê a segunda
   classe quando P ≥ `corte`. Validação: `.prob_*` iguais a `fitted(glm)` e
   `.pred` igual à regra aplicada à mão para cortes 0,3, 0,5 e 0,8.
+- `ml/svm` / `ml/predict`: `.pred` passa a ser calculado explicitamente como a
+  classe de maior `.prob_*` (empates na ordem dos níveis). A revisão
+  metodológica supunha que `.pred` vinha da margem e podia discordar das
+  probabilidades; na verdade, com `probability = TRUE` o
+  `svm_predict_probability` do LIBSVM (Chang & Lin 2011) já rotula pela maior
+  probabilidade de Platt — o pressuposto antigo estava errado e foi corrigido.
+  Resultados idênticos fora de empates exatos, por isso a versão do nó foi
+  mantida. Teste: `.pred` igual ao argmax das `.prob_*` em iris binária
+  (onde a regra da margem discorda em 2 linhas) e em iris com 3 classes.

@@ -336,3 +336,21 @@ test_that("logística classifica pelo corte informado sobre P(segunda classe)", 
   expect_error(tr_ml_linear(d, "Species", corte = 0), class = "tr_ml_error_bad_param")
   expect_error(tr_ml_linear(d, "Species", corte = 1), class = "tr_ml_error_bad_param")
 })
+
+test_that("SVM: .pred é a classe de maior probabilidade (coerência com .prob_*)", {
+  skip_if_not_installed("e1071")
+  argmax <- function(prev, niveis) {
+    pr <- as.matrix(prev[paste0(".prob_", niveis)])
+    factor(niveis[max.col(pr, ties.method = "first")], levels = niveis)
+  }
+  d <- droplevels(subset(iris, Species != "setosa"))
+  m <- tr_ml_svm(d, "Species", "Sepal.Length, Sepal.Width")
+  prev <- tr_ml_predict(m, d)
+  # Neste exemplo a margem e a calibração de Platt discordam em algumas linhas.
+  margem <- stats::predict(m$ajuste, d[c("Sepal.Length", "Sepal.Width")])
+  expect_true(any(as.character(margem) != as.character(argmax(prev, m$niveis))))
+  expect_identical(prev$.pred, argmax(prev, m$niveis))
+  m3 <- tr_ml_svm(iris, "Species", "Sepal.Length, Sepal.Width")
+  prev3 <- tr_ml_predict(m3, iris)
+  expect_identical(prev3$.pred, argmax(prev3, m3$niveis))
+})

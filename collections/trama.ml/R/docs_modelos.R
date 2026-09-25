@@ -82,9 +82,9 @@
         P("`cost` e `gamma` (e o kernel) são **hiperparâmetros**: os valores padrão raramente são os bons, e o resultado é sensível a eles.",
           verificar = c("ml/tune", "ml/evaluate"),
           se_falhar = "Escolha-os no `ml/tune`, na escala logarítmica, nunca olhando o teste."),
-        P("As probabilidades `.prob_*` saem de uma calibração à parte (Platt, com validação cruzada interna) e **podem discordar** da classe em `.pred`, que vem da margem.",
+        P("As probabilidades `.prob_*` saem de uma **calibração à parte** (Platt, ajustada por validação cruzada interna do LIBSVM) e a classe em `.pred` é a de **maior probabilidade** — não o lado da margem. Perto da fronteira as duas regras podem divergir; o bloco segue a das probabilidades para que `.pred` e `.prob_*` sempre concordem.",
           verificar = "ml/confusion",
-          se_falhar = "Use `.pred` para a matriz de confusão e as `.prob_*` só para a curva no `ml/roc`."),
+          se_falhar = "Se a regra da margem importar, compare as `.prob_*` com a matriz de confusão; com poucos dados a calibração de Platt é instável."),
         C$semente)),
       referencias = list(
         R(autores = c("Cortes, C.", "Vapnik, V."), ano = 1995, titulo = "Support-vector networks",
@@ -93,7 +93,7 @@
         R(autores = c("Chang, C.-C.", "Lin, C.-J."), ano = 2011, titulo = "LIBSVM: A library for support vector machines",
           fonte = "ACM Transactions on Intelligent Systems and Technology, 2(3), 1-27",
           doi = "10.1145/1961189.1961199", papel = "complementar"),
-        I("e1071", "svm", "`type = \"eps-regression\"` ou `\"C-classification\"`, `kernel`, `cost`, `gamma`; `scale = TRUE` (padrão: centra e escala pelo treino); `probability = TRUE` na classificação."))),
+        I("e1071", "svm", "`type = \"eps-regression\"` ou `\"C-classification\"`, `kernel`, `cost`, `gamma`; `scale = TRUE` (padrão: centra e escala pelo treino); `probability = TRUE` na classificação, e `.pred` = classe de maior probabilidade (a mesma que o `svm_predict_probability` do LIBSVM devolve)."))),
 
     "ml/xgboost" = list(
       pressupostos = c(base, list(num,

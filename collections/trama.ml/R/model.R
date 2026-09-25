@@ -173,8 +173,14 @@ tr_ml_predict <- function(modelo, dados) {
     if (cls) { prob <- as.matrix(z); pred <- colnames(prob)[max.col(prob, ties.method = "first")] } else pred <- as.numeric(z)
   } else if (modelo$modelo == "svm") {
     z <- stats::predict(modelo$ajuste, x, probability = cls)
-    pred <- if (cls) as.character(z) else as.numeric(z)
-    if (cls) prob <- attr(z, "probabilities")
+    if (cls) {
+      # Com `probability = TRUE` o LIBSVM já rotula pela maior probabilidade de
+      # Platt (svm_predict_probability), não pela margem; fixamos a regra aqui
+      # para que `.pred` e `.prob_*` nunca discordem, com empates resolvidos
+      # na ordem dos níveis como nos outros modelos.
+      prob <- attr(z, "probabilities")[, modelo$niveis, drop = FALSE]
+      pred <- modelo$niveis[max.col(prob, ties.method = "first")]
+    } else pred <- as.numeric(z)
   } else {
     z <- stats::predict(modelo$ajuste, data.matrix(x))
     if (!cls) pred <- as.numeric(z) else if (length(modelo$niveis) == 2L) {
