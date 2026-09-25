@@ -24,6 +24,11 @@ export(tr_multi_jackknife_pca)
 export(tr_multi_jackknife_fa)
 export(tr_multi_jackknife_discriminant)
 export(tr_multi_jackknife_logistic)
+export(tr_multi_distance)
+export(tr_multi_cluster)
+export(tr_multi_plot_dendrogram)
+export(tr_multi_tocher)
+export(tr_multi_manova)
 # O contrato de modelo da trama.models: a discriminante e a logística são
 # `models/fit`, e os blocos de lá despacham para estes métodos.
 S3method(trama.models::tr_models_info,tr_multi_lda)

@@ -21,7 +21,7 @@ trama_collection <- function() {
     # A discriminante e a logística saem como `models/fit` (tipo da
     # `trama.models`, que por isso carrega antes): prever, confundir e a ROC
     # são os blocos de lá.
-    types = list(multi_pca_type(), multi_fa_type()),
+    types = list(multi_pca_type(), multi_fa_type(), multi_dist_type(), multi_cluster_type()),
     adapters = .tr_multi_adapters(),
     # Os gráficos ficam na categoria da técnica, e não numa "Ver" à parte: quem
     # fez uma PCA procura o biplot ao lado dela.
@@ -32,12 +32,17 @@ trama_collection <- function() {
       trama::tr_category("multi_fatorial",      "Fatorial", role = "ajuste"),
       trama::tr_category("multi_discriminante", "Classificação", role = "ajuste"),
       trama::tr_category("multi_logistica",     "Logística", role = "ajuste"),
+      trama::tr_category("multi_manova",        "MANOVA", role = "avaliacao"),
+      # Distância, agrupamento, dendrograma e Tocher juntos: o estudo de
+      # diversidade genética é essa sequência, e procura-se uma peça ao lado da outra.
+      trama::tr_category("multi_agrupamento",   "Agrupamento", role = "ajuste"),
       trama::tr_category("multi_jackknife",     "Jackknife", role = "avaliacao")
     ),
     nodes = c(.tr_multi_nos_fonte(), .tr_multi_nos_diagnostico(), .tr_multi_nos_correlacao(),
               .tr_multi_nos_pca(),
               .tr_multi_nos_fatorial(), .tr_multi_nos_discriminante(),
-              .tr_multi_nos_logistica(), .tr_multi_nos_jackknife()),
+              .tr_multi_nos_logistica(), .tr_multi_nos_jackknife(),
+              .tr_multi_nos_manova(), .tr_multi_nos_agrupamento()),
     # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
     # nomes antigos abrem com os novos. Na discriminante e na logística o grupo
     # conhecido é a RESPOSTA e as medidas são os PREDITORES; no M de Box `grupo`

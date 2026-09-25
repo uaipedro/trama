@@ -39,7 +39,12 @@ tr_multi_errors <- function() {
     tr_multi_error_separation =
       "separação completa: algum grupo é separado sem sobreposição e os coeficientes vão ao infinito",
     tr_multi_error_jackknife_replicate = "a réplica do jackknife sem uma das linhas falhou",
-    tr_multi_error_too_many_rows = "linhas demais para reajustar a técnica uma vez por linha"
+    tr_multi_error_too_many_rows = "linhas demais para reajustar a técnica uma vez por linha",
+    tr_multi_error_bad_input = "entradas opcionais ligadas de um jeito que o nó não aceita (as duas, ou nenhuma)",
+    tr_multi_error_not_a_dist =
+      "o nó produziu (ou recebeu) um objeto que não é matriz de distância, e o tipo multi/dist o recusa",
+    tr_multi_error_not_a_cluster =
+      "o nó produziu (ou recebeu) um objeto que não é agrupamento, e o tipo multi/cluster o recusa"
   )
   data.frame(class = names(e), when = unname(e), stringsAsFactors = FALSE)
 }

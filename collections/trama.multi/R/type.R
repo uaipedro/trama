@@ -179,6 +179,8 @@ multi_fa_type <- function() {
 .tr_multi_adapters <- function() {
   list(
     trama::tr_adapter("multi/pca", "data/table", .tr_multi_pca_tabela),
-    trama::tr_adapter("multi/fa", "data/table", .tr_multi_fa_tabela)
+    trama::tr_adapter("multi/fa", "data/table", .tr_multi_fa_tabela),
+    trama::tr_adapter("multi/dist", "data/table", .tr_multi_dist_tabela),
+    trama::tr_adapter("multi/cluster", "data/table", .tr_multi_cluster_tabela)
   )
 }
