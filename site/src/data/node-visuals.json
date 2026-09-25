@@ -1331,7 +1331,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "git-fork"
   },
   "ml/confusion": {
     "accent": "#8b3a62",
@@ -1375,7 +1376,8 @@
         "default": ".pred",
         "example": ".pred"
       }
-    ]
+    ],
+    "icon": "grid-3x3"
   },
   "ml/evaluate": {
     "accent": "#8b3a62",
@@ -1426,7 +1428,8 @@
         "default": "auto",
         "choices": ["auto", "regressao", "classificacao"]
       }
-    ]
+    ],
+    "icon": "gauge"
   },
   "ml/example": {
     "accent": "#976523",
@@ -1455,7 +1458,8 @@
         "default": "iris",
         "choices": ["iris", "iris_binaria", "mtcars"]
       }
-    ]
+    ],
+    "icon": "database"
   },
   "ml/figs": {
     "accent": "#31765a",
@@ -1524,7 +1528,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "git-branch-plus"
   },
   "ml/forest": {
     "accent": "#31765a",
@@ -1605,7 +1610,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "trees"
   },
   "ml/importance": {
     "accent": "#d3e9de",
@@ -1634,7 +1640,8 @@
         "multiple": false
       }
     ],
-    "params": []
+    "params": [],
+    "icon": "chart-bar-decreasing"
   },
   "ml/linear": {
     "accent": "#31765a",
@@ -1691,7 +1698,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "chart-spline"
   },
   "ml/predict": {
     "accent": "#d3e9de",
@@ -1726,7 +1734,8 @@
         "multiple": false
       }
     ],
-    "params": []
+    "params": [],
+    "icon": "target"
   },
   "ml/residuals": {
     "accent": "#d3e9de",
@@ -1811,7 +1820,8 @@
         "default": "direita",
         "choices": ["direita", "abaixo", "nenhuma"]
       }
-    ]
+    ],
+    "icon": "chart-scatter"
   },
   "ml/roc": {
     "accent": "#8b3a62",
@@ -1903,7 +1913,8 @@
         "default": "direita",
         "choices": ["direita", "abaixo", "nenhuma"]
       }
-    ]
+    ],
+    "icon": "chart-line"
   },
   "ml/rules": {
     "accent": "#d3e9de",
@@ -1932,7 +1943,8 @@
         "multiple": false
       }
     ],
-    "params": []
+    "params": [],
+    "icon": "list-tree"
   },
   "ml/split": {
     "accent": "#976523",
@@ -1993,7 +2005,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "scissors"
   },
   "ml/svm": {
     "accent": "#31765a",
@@ -2069,7 +2082,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "move-diagonal"
   },
   "ml/tree_plot": {
     "accent": "#d3e9de",
@@ -2164,7 +2178,8 @@
         "default": "direita",
         "choices": ["direita", "abaixo", "nenhuma"]
       }
-    ]
+    ],
+    "icon": "network"
   },
   "ml/tune": {
     "accent": "#31765a",
@@ -2260,7 +2275,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "sliders-horizontal"
   },
   "ml/tuning_plot": {
     "accent": "#d3e9de",
@@ -2338,7 +2354,8 @@
         "default": "direita",
         "choices": ["direita", "abaixo", "nenhuma"]
       }
-    ]
+    ],
+    "icon": "chart-no-axes-combined"
   },
   "ml/xgboost": {
     "accent": "#31765a",
@@ -2413,7 +2430,8 @@
         "label": "Semente",
         "default": 42
       }
-    ]
+    ],
+    "icon": "rocket"
   },
   "models/anova_dbc": {
     "accent": "#31765a",
