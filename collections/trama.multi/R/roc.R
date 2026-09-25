@@ -45,6 +45,24 @@
   list(auc = auc, ep = ep, ic_inf = max(0, auc - z * ep), ic_sup = min(1, auc + z * ep))
 }
 
+#' AUC multiclasse M de Hand & Till (2001).
+#'
+#' Para cada par de grupos (i, j), só com os casos dos dois: A(i|j) é a AUC do
+#' escore de i com i positivo, A(j|i) a do escore de j com j positivo, e
+#' Â(i, j) a média delas. M é a média de Â sobre os c(c − 1)/2 pares. Não
+#' depende das prevalências (cada par usa só os seus casos), ao contrário da
+#' média das AUCs um-contra-os-outros.
+#' @noRd
+.tr_multi_auc_hand_till <- function(prob, g) {
+  niv <- levels(g)
+  pares <- utils::combn(niv, 2L)
+  a <- function(i, j) {
+    k <- g %in% c(i, j)
+    .tr_multi_roc_curva(prob[k, i], g[k] == i)$auc
+  }
+  mean(apply(pares, 2L, function(p) (a(p[[1]], p[[2]]) + a(p[[2]], p[[1]])) / 2))
+}
+
 .tr_multi_virgula <- function(x, d = 3L) formatC(x, format = "f", digits = d, decimal.mark = ",")
 
 #' Curva ROC de um classificador.
@@ -104,7 +122,8 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspect
                                                      colour = .data[["grupo"]], group = .data[["grupo"]]),
                          linewidth = .8) +
       ggplot2::labs(colour = modelo$grupo,
-                    subtitle = sprintf("Cada grupo contra os outros · validação %s", validacao))
+                    subtitle = sprintf("Cada grupo contra os outros · AUC multiclasse (Hand & Till) %s · validação %s",
+                                       .tr_multi_virgula(.tr_multi_auc_hand_till(pr$prob, pr$g)), validacao))
   }
   p <- p + ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
     ggplot2::labs(x = "1 − especificidade (falsos positivos)", y = "sensibilidade (verdadeiros positivos)")
@@ -113,7 +132,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspect
 
 .tr_multi_nos_roc <- function() {
   list(
-    trama::tr_node("multi/roc", version = 2L,
+    trama::tr_node("multi/roc", version = 3L,
       pressupostos = .tr_multi_doc("multi/roc")$pressupostos,
       referencias = .tr_multi_doc("multi/roc")$referencias,
       role = "avaliacao", fn = tr_multi_roc, label = "Curva ROC",
@@ -144,7 +163,11 @@ diabetes: prever "não" para todas já acerta 67%).
 - **Dois grupos** — uma curva; o positivo é o SEGUNDO nível. O ponto rosa é o
   corte do modelo (o `corte` da `multi/logistic`; 0,5 na discriminante).
 - **Três ou mais** — uma curva por grupo, ele contra todos os outros, com a AUC
-  de cada na legenda.
+  de cada na legenda. O subtítulo traz a **AUC multiclasse** M de Hand & Till
+  (2001): para cada par de grupos, só com os casos dos dois, a média da AUC
+  do escore de um e da do escore do outro; M é a média sobre os pares. Resume
+  o classificador inteiro sem depender das proporções dos grupos (a média das
+  AUCs um-contra-os-outros depende). Não tem intervalo aqui.
 
 Por padrão as probabilidades vêm da validação **cruzada** (deixa-um-fora): a
 curva por resubstituição é otimista pelo mesmo motivo da `multi/confusion`.

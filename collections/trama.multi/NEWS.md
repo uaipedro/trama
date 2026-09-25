@@ -77,3 +77,13 @@
   perfilado = χ²₁ a 1e-6); p contra `drop1(test = "LRT")` a 1e-10. No `pima`
   (glicose, imc, pedigree), a razão de chances do pedigree 3,71 tem IC
   1,88–7,45 perfilado e 1,86–7,39 de Wald.
+
+## AUC multiclasse de Hand & Till
+
+* `multi/roc` (versão 3): com três ou mais grupos, o subtítulo traz a AUC
+  multiclasse M de Hand & Till (2001, *Machine Learning* 45(2):171–186,
+  doi:10.1023/A:1010920819831) — média, sobre os pares de grupos, de
+  [A(i|j) + A(j|i)]/2, cada A só com os casos do par. Não depende das
+  proporções dos grupos. Sem intervalo. Validação: `pROC::multiclass.roc`
+  1.19.1 a 1e-10 (LDA da `iris` por deixa-um-fora, M = 0,998133, diferença
+  1e-16; logística dos `vinhos`; 4 grupos com empates) e conta à mão.

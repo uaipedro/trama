@@ -9,7 +9,7 @@ related: [multi/logistic, multi/classify, multi/confusion]
 
 ## O que o bloco faz
 
-O bloco `multi/roc` plota sensibilidade contra taxa de falsos positivos para vários cortes de probabilidade e calcula a AUC com intervalo de confiança de DeLong (DeLong, DeLong & Clarke-Pearson, 1988). O bloco recebe `multi/classifier`.
+O bloco `multi/roc` plota sensibilidade contra taxa de falsos positivos para vários cortes de probabilidade e calcula a AUC com intervalo de confiança de DeLong (DeLong, DeLong & Clarke-Pearson, 1988). Com três ou mais grupos, traça uma curva por grupo contra os outros e resume o classificador pela AUC multiclasse M de Hand & Till (2001) no subtítulo: a média, sobre os pares de grupos, da AUC de cada par, que não depende das proporções dos grupos. Na discriminante linear da `iris`, por validação cruzada, M = 0,998. O bloco recebe `multi/classifier`.
 
 ## Quando usar
 

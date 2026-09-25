@@ -126,7 +126,8 @@
         P("Com **grupos muito desbalanceados**, a ROC e a AUC podem parecer boas enquanto o grupo raro é mal previsto: a taxa de falsos positivos se dilui no grupo grande.",
           verificar = "multi/confusion",
           se_falhar = "Leia a sensibilidade de cada grupo no `multi/confusion`; curva precisão-revocação ainda sem bloco no trama (lacuna registrada)."),
-        P("Com três ou mais grupos, cada curva é **um grupo contra os outros**: a AUC de cada uma não soma nem resume o classificador inteiro."),
+        P("Com três ou mais grupos, cada curva é **um grupo contra os outros**: a AUC de cada uma não soma nem resume o classificador inteiro. O resumo é a AUC multiclasse M de Hand & Till (2001), no subtítulo: média, sobre os pares de grupos, da AUC do par; não depende das proporções dos grupos, mas pondera todos os pares igualmente e não tem intervalo.",
+          se_falhar = "Para saber qual par se confunde, leia a matriz de confusão (`multi/confusion`)."),
         P("O intervalo de DeLong da AUC é **assintótico** (normal): com poucos positivos ou negativos, ou AUC perto de 1, a cobertura fica abaixo do nominal; o bloco corta os limites em [0, 1] e exige ao menos 2 de cada.",
           se_falhar = "Leia o intervalo como aproximado e a largura como sinal de pouca informação; aumente a amostra do grupo raro."),
         P("Com validação cruzada, as probabilidades vêm de n ajustes, e o intervalo as trata como **um escore fixo**: a incerteza de ter estimado o modelo não entra.")),
@@ -134,7 +135,10 @@
         R(autores = c("DeLong, E. R.", "DeLong, D. M.", "Clarke-Pearson, D. L."), ano = 1988,
           titulo = "Comparing the areas under two or more correlated receiver operating characteristic curves: a nonparametric approach",
           fonte = "Biometrics, 44(3), 837-845", doi = "10.2307/2531595"),
+        R(autores = c("Hand, D. J.", "Till, R. J."), ano = 2001,
+          titulo = "A simple generalisation of the area under the ROC curve for multiple class classification problems",
+          fonte = "Machine Learning, 45(2), 171-186", doi = "10.1023/A:1010920819831"),
         fawcett, saito,
-        I("trama.multi", "tr_multi_roc", "Implementação própria: um ponto por escore distinto e AUC de Mann-Whitney (meio ponto por empate); IC de DeLong pelas componentes estruturais, conferido contra `pROC::ci.auc(method = \"delong\")` a 1e-8; probabilidades por deixa-um-fora como no `multi/confusion`.")))
+        I("trama.multi", "tr_multi_roc", "Implementação própria: um ponto por escore distinto e AUC de Mann-Whitney (meio ponto por empate); IC de DeLong pelas componentes estruturais, conferido contra `pROC::ci.auc(method = \"delong\")` a 1e-8; M de Hand & Till conferido contra `pROC::multiclass.roc` a 1e-10; probabilidades por deixa-um-fora como no `multi/confusion`.")))
   )
 }
