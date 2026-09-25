@@ -10,6 +10,7 @@
     "trama.launcher": "0.1.2"
   },
   "collections": {
+    "trama.experiments": {"version": "0.1.0", "title": "Experimentos", "requires": ["trama.models"]},
     "trama.ml": {"version": "0.1.0", "title": "Aprendizado de máquina", "requires": []},
     "trama.models": {"version": "0.1.0", "title": "Modelos estatísticos", "requires": []},
     "trama.multi": {"version": "0.1.0", "title": "Análise multivariada", "requires": []},

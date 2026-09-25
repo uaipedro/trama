@@ -32,6 +32,7 @@ pak::pak("uaipedro/trama/collections/trama.series")    # séries temporais
 pak::pak("uaipedro/trama/collections/trama.models")    # modelos estatísticos
 pak::pak("uaipedro/trama/collections/trama.multi")     # análise multivariada
 pak::pak("uaipedro/trama/collections/trama.sampling")  # amostragem
+pak::pak("uaipedro/trama/collections/trama.experiments")  # experimentos
 pak::pak("uaipedro/trama/collections/trama.ml")        # aprendizado de máquina
 ```
 
@@ -92,6 +93,7 @@ As coleções separam a infraestrutura de execução dos diferentes domínios de
 | `trama.models` | Modelos estatísticos e diagnósticos |
 | `trama.multi` | Análise multivariada |
 | `trama.sampling` | Procedimentos de amostragem |
+| `trama.experiments` | Planejamento e sorteio de experimentos, contrastes e superfície de resposta |
 | `trama.ml` | Classificação, regressão, avaliação e regras interpretáveis |
 
 `trama.data` é a coleção de referência. Seus blocos abrangem fontes, inspeção, limpeza, transformação, reformatação, agregação, regiões de fluxo e gravação.

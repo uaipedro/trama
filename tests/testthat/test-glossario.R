@@ -2,13 +2,13 @@
 #
 # Por quê: o catálogo acumulou o mesmo conceito com nomes diferentes (alfa vs
 # nivel vs confianca, alvo vs resposta...). Quem aprende um nó deve reconhecer o
-# parâmetro no próximo. Este teste lê o catálogo real das 7 coleções e falha
+# parâmetro no próximo. Este teste lê o catálogo real das 8 coleções e falha
 # listando `id: param` de cada nome proibido. A tabela e a justificativa vivem em
 # docs/glossario-parametros.md.
 
 colecoes_glossario <- c(
   "trama.data", "trama.view", "trama.models", "trama.series",
-  "trama.multi", "trama.sampling", "trama.ml"
+  "trama.multi", "trama.sampling", "trama.ml", "trama.experiments"
 )
 
 # Proibidos em qualquer nó, pelo nome (proibido -> canônico).
@@ -46,7 +46,8 @@ excecoes <- c(
   "models/anova_dql: coluna",     # fator coluna do quadrado latino
   "models/chisq: coluna",         # variável nas colunas da tabela de contingência
   "models/fisher_exact: coluna",  # idem
-  "sampling/proportion: nivel"    # categoria da variável, não nível de confiança
+  "sampling/proportion: nivel",   # categoria da variável, não nível de confiança
+  "experiments/design: alfa"      # distância axial do composto central, não significância
 )
 
 violacoes_glossario <- function(nos) {

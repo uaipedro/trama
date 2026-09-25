@@ -19,6 +19,11 @@
     "subdir": "collections/trama.ml"
   },
   {
+    "package": "trama.experiments",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.experiments"
+  },
+  {
     "package": "trama.models",
     "url": "https://github.com/uaipedro/trama",
     "subdir": "collections/trama.models"
