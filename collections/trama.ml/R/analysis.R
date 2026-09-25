@@ -335,7 +335,13 @@ tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
   m <- length(pos); n <- length(neg)
   psi <- outer(pos, neg, function(a, b) (a > b) + 0.5 * (a == b))
   v10 <- rowMeans(psi); v01 <- colMeans(psi); auc <- mean(psi)
-  if (m < 2L || n < 2L) return(list(ep = NA_real_, inf = NA_real_, sup = NA_real_, nota = NA_character_))
+  # A variância de DeLong usa a variância amostral dos componentes de cada
+  # classe: com menos de duas linhas numa classe ela não existe. A curva e a
+  # AUC continuam válidas, então o bloco não recusa (o `multi/roc`, que só
+  # reporta o IC, recusa com `tr_multi_error_small_group`): o IC sai NA com a nota.
+  if (m < 2L || n < 2L) return(list(ep = NA_real_, inf = NA_real_, sup = NA_real_, nota = sprintf(paste(
+    "IC de DeLong indispon\u{ED}vel: h\u{E1} menos de duas linhas numa classe (%d positivas e %d",
+    "negativas), e a vari\u{E2}ncia precisa de ao menos duas de cada."), m, n)))
   ep <- sqrt(stats::var(v10) / m + stats::var(v01) / n)
   # AUC = 0 ou 1 (separação perfeita): todos os componentes estruturais são
   # iguais, a variância de DeLong é zero e o intervalo teria largura zero. Isso

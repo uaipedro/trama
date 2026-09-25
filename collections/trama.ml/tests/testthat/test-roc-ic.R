@@ -39,7 +39,8 @@ test_that("bordas: separação perfeita e classe com uma linha", {
                               "y", ".prob_b")$data$auc_nota[[1]]))
   expect_equal(z$youden_j[[1]], 1); expect_equal(z$youden_limiar[[1]], .8)
   u <- tr_ml_roc(data.frame(y = c("a", "b", "b"), .prob_b = c(.1, .8, .9)), "y", ".prob_b")$data
-  expect_true(is.na(u$auc_inf[[1]]))
+  expect_true(is.na(u$auc_inf[[1]])); expect_true(is.na(u$auc_ep[[1]]))
+  expect_match(u$auc_nota[[1]], "menos de duas")
   expect_error(tr_ml_roc(data.frame(y = c("a", "b"), .prob_b = c(.1, .8)), "y", ".prob_b", confianca = 1),
                class = "tr_ml_error_bad_param")
 })
