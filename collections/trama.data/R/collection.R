@@ -15,7 +15,14 @@ trama_collection <- function() {
   P <- trama::tr_param
   .tr_data_aplicar_ajuda_curta(trama::tr_collection(
     id = "data", version = "0.1.0", label = "Dados", js = "trama/index.js",
-    types = list(data_table_type()),
+    # `data/test` é o resultado de UM teste de hipótese, de qualquer coleção:
+    # o mecanismo (construtor, regra de decisão, card, linha de tabela) é do
+    # núcleo, que não registra tipo nenhum; o registro fica aqui porque toda
+    # coleção já depende da `data`, e um "resultado com p-valor" genérico não é
+    # domínio de ninguém. A `data` não sabe nome de teste algum.
+    types = list(data_table_type(), trama::tr_test_type("data/test")),
+    adapters = list(trama::tr_adapter("data/test", "data/table",
+                                      function(x) tibble::as_tibble(trama::tr_test_table(x)))),
     migrations = list(ports = .tr_data_migracoes()),
     categories = list(
       trama::tr_category("source",    "Fonte", role = "origem"),
