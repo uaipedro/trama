@@ -285,8 +285,8 @@ card mostra o deff que o desenho de fato teve.
       params = .tr_sampling_props(),
       help = .tr_sampling_ajuda(r"---[
 Desenha o n contra a margem de erro, com os mesmos ajustes do plano ligado
-(deff, população, não resposta), uma curva para cada confiança, e marca o ponto
-do plano.
+(deff, população, não resposta), uma curva para cada confiança (90%, 95%, 99%
+e a do plano, quando é outra), e marca o ponto do plano sobre a sua curva.
 
 A curva é a conversa com quem paga a pesquisa: o n cresce com o QUADRADO da
 precisão, e metade da margem custa quatro vezes a amostra. É ela que mostra

@@ -293,13 +293,17 @@ tr_sampling_size_curve <- function(plano, aspecto = "16:9", tema = "padrão", ti
                              "um bloco de seleção; a curva é para planos de média ou proporção")
   par <- plano$parametros
   E0 <- plano$erro
-  grade <- seq(E0 * 0.4, E0 * 2.5, length.out = 60L)
-  confs <- c(0.90, 0.95, 0.99)
+  # O erro do plano entra na grade para a curva passar exatamente pelo ponto.
+  grade <- sort(unique(c(seq(E0 * 0.4, E0 * 2.5, length.out = 60L), E0)))
+  # A confiança do próprio plano entra entre as curvas: com 0,92 o ponto do
+  # plano cairia entre a de 90% e a de 95%, sem curva que passe por ele.
+  rotulo_conf <- function(cf) paste0(format(round(100 * cf, 1), decimal.mark = ",", trim = TRUE), "%")
+  confs <- sort(unique(round(c(0.90, 0.95, 0.99, plano$confianca), 6)))
   d <- do.call(rbind, lapply(confs, function(cf) {
     data.frame(erro = grade, n = vapply(grade, function(E) .tr_sampling_n_para_erro(par, E, cf), 0),
-               confianca = paste0(round(100 * cf), "%"))
+               confianca = rotulo_conf(cf))
   }))
-  d$confianca <- factor(d$confianca, levels = c("90%", "95%", "99%"))
+  d$confianca <- factor(d$confianca, levels = unique(rotulo_conf(confs)))
   ponto <- data.frame(erro = E0, n = plano$n,
                       rotulo = sprintf("n = %s", format(plano$n, big.mark = ".", decimal.mark = ",")))
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["erro"]], y = .data[["n"]], colour = .data[["confianca"]])) +

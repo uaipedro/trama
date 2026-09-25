@@ -88,3 +88,15 @@ test_that("tamanho por conglomerados pelo ICC", {
   expect_error(tr_sampling_size_cluster(c), class = "tr_sampling_error_plan_mismatch")
   expect_s3_class(tr_sampling_size_curve(base), "ggplot")
 })
+
+test_that("a curva inclui a confiança do plano, e o ponto do plano cai nela", {
+  pl <- tr_sampling_size_proportion(erro = 0.05, confianca = 0.92)
+  g <- tr_sampling_size_curve(pl)
+  d <- g$data
+  expect_setequal(levels(d$confianca), c("90%", "92%", "95%", "99%"))
+  na_curva <- d[d$confianca == "92%" & abs(d$erro - pl$erro) < 1e-12, ]
+  expect_equal(nrow(na_curva), 1L)
+  expect_equal(ceiling(na_curva$n - 1e-9), pl$n)
+  # Confiança que já é uma das fixas não duplica a curva.
+  expect_length(levels(tr_sampling_size_curve(tr_sampling_size_proportion(erro = 0.05))$data$confianca), 3L)
+})
