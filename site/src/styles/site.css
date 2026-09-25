@@ -230,17 +230,19 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .catalogue-guides a { display: inline-flex; align-items: center; gap: .6rem; min-height: 2.4rem; padding: 0 .9rem; border: 1px solid var(--line); background: var(--paper-strong); font-family: var(--font-display); font-weight: 650; text-decoration: none; }
 .catalogue-guides a:hover { border-color: var(--ink); }
 .catalogue-guides span { color: var(--ink-soft); font-family: var(--font-code); font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
-.catalogue-stages { display: grid; gap: var(--space-xl); margin: var(--space-2xl) 0 0; padding: 0; list-style: none; counter-reset: etapa; }
-.catalogue-stage { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: var(--space-lg); padding-top: var(--space-lg); border-top: 1px solid var(--line); counter-increment: etapa; }
-.catalogue-stage h3 { display: flex; align-items: baseline; gap: .5rem; margin: .45rem 0 0; font-size: 1.15rem; }
+.catalogue-stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--space-2xl) var(--space-xl); margin: var(--space-2xl) 0 0; padding: 0; list-style: none; counter-reset: etapa; }
+.catalogue-stage { display: grid; align-content: start; gap: var(--space-md); min-width: 0; padding-top: var(--space-md); border-top: 2px solid var(--node-accent); counter-increment: etapa; }
+.catalogue-stage h3 { display: flex; align-items: baseline; gap: .5rem; margin: 0; font-size: 1.15rem; }
 .catalogue-stage h3::before { content: counter(etapa); display: inline-grid; place-items: center; flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; color: #0b0e13; background: var(--node-accent); font-family: var(--font-code); font-size: .75rem; transform: translateY(-.1rem); }
 .catalogue-stage h3 span { color: var(--ink-soft); font-family: var(--font-code); font-size: .75rem; font-weight: 500; }
-.catalogue-stage ul { display: flex; flex-wrap: wrap; gap: var(--space-md) var(--space-lg); margin: 0; padding: 0 .4rem; list-style: none; }
+.catalogue-stage ul { display: grid; justify-items: start; gap: var(--space-sm); margin: 0; padding: 0 .4rem; list-style: none; }
+.catalogue-stage li { max-width: 100%; }
+.catalogue-stage a { max-width: 100%; }
 .catalogue-stage a { display: block; border-radius: 7px; text-decoration: none; transition: transform 160ms var(--ease-out); }
 .catalogue-stage a:hover { transform: translateY(-2px); }
 .catalogue-stage a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-.catalogue-stage .node-miniature { max-width: none; }
-@media (max-width: 760px) { .catalogue-stage { grid-template-columns: minmax(0, 1fr); gap: var(--space-sm); } }
+
+
 /* Instalação: a escolha entre programa e pacote R vem antes dos detalhes. */
 .install-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--space-md); margin: var(--space-xl) 0 var(--space-2xl); }
 .install-choice__option { display: grid; align-content: start; gap: var(--space-sm); padding: var(--space-lg); border: 1px solid var(--line); background: var(--paper-strong); }
