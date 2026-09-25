@@ -229,6 +229,56 @@ tr_flow(reg) |>
 `models/random_effects`; `models/compare`.
 ]---")),
 
+    trama::tr_node("models/gls",
+      pressupostos = .tr_models_doc("models/gls")$pressupostos,
+      referencias = .tr_models_doc("models/gls")$referencias,
+      fn = tr_models_gls, label = "GLS (erro correlacionado)",
+      category = "modelo_ajustar", icon = trama::tr_icon("chart-network"),
+      description = "Ajusta mínimos quadrados generalizados (nlme::gls): AR(1), simetria composta ou não estruturada no erro, variância por nível.",
+      inputs = list(dados = T), outputs = list(out = Fm),
+      params = list(
+        formula = P("expr", "", label = "Fórmula (efeitos fixos)", example = "Reaction ~ Days"),
+        correlacao = E("ar1", .TR_MODELS_CORRELACOES, label = "Correlação no grupo"),
+        grupo = P("cols", "", label = "Grupo (medidas repetidas)", example = "Subject"),
+        tempo = P("cols", "", label = "Tempo (ocasião)", example = "Days"),
+        variancia_por = P("cols", "", label = "Variância por (opcional)", example = "Days"),
+        reml = B(TRUE, label = "REML")),
+      help = .tr_models_ajuda(paste0(r"---[
+Regressão ou ANOVA com o erro CORRELACIONADO dentro de cada grupo — as medidas
+repetidas de um animal, de uma parcela no tempo. É a saída quando a parcela
+subdividida no tempo não pode supor esfericidade (`nlme::gls`).
+
+- **ar1** — a correlação cai com a distância entre as ocasiões (phi, phi²...).
+- **simetria_composta** — a mesma correlação entre quaisquer duas ocasiões: é
+  o que a análise de parcela subdividida supõe.
+- **nao_estruturada** — uma correlação por par de ocasiões.
+- **nenhuma** — erro independente (útil com **Variância por**).
+
+**Tempo** ordena as ocasiões dentro do grupo (sem ele, vale a ordem das
+linhas). **Variância por** dá uma variância a cada nível da coluna.
+
+Compare estruturas no `models/compare` (razão de verossimilhança; reajusta por
+ML quando os efeitos fixos diferem). Os testes são de Wald, com t e F nos gl
+n - p; os resíduos são os normalizados.
+]---", .tr_models_ajuda_faltantes()), r"---[
+- **Fórmula (efeitos fixos)** — sem termos aleatórios.
+- **Correlação no grupo** — ar1 (padrão), simetria_composta, nao_estruturada ou nenhuma.
+- **Grupo** — a unidade com medidas repetidas.
+- **Tempo** — a ocasião (opcional).
+- **Variância por** — coluna com variância própria por nível (opcional).
+- **REML** — padrão; desligado, máxima verossimilhança.
+]---", r"---[
+Um modelo (`models/fit`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("sono", "models/example", dataset = "sleepstudy") |>
+  tr_add("gls", "models/gls", formula = "Reaction ~ Days", correlacao = "ar1",
+         grupo = "Subject", tempo = "Days", from = "sono")
+]---", r"---[
+`models/lmer` para efeitos aleatórios; `models/anova_split_plot`;
+`models/compare` para escolher a estrutura.
+]---")),
+
     trama::tr_node("models/lmer", 
       pressupostos = .tr_models_doc("models/lmer")$pressupostos,
       referencias = .tr_models_doc("models/lmer")$referencias,

@@ -204,6 +204,68 @@ tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grup
                      descartadas = p$descartadas)
 }
 
+.TR_MODELS_CORRELACOES <- c("nenhuma", "ar1", "simetria_composta", "nao_estruturada")
+
+#' Mínimos quadrados generalizados (`nlme::gls`): erro correlacionado dentro do
+#' grupo e variância por nível.
+#'
+#' Para medidas repetidas no tempo sem supor esfericidade: a correlação entre
+#' as medidas de um mesmo grupo (animal, parcela) é AR(1), simetria composta ou
+#' não estruturada, e `variancia_por` dá uma variância a cada nível
+#' (`varIdent`). As posições no grupo vêm de `tempo` (ordenado) ou, sem ele, da
+#' ordem das linhas.
+#' @param formula fórmula dos efeitos fixos.
+#' @param correlacao `"nenhuma"`, `"ar1"`, `"simetria_composta"` ou `"nao_estruturada"`.
+#' @param grupo coluna das unidades com medidas repetidas.
+#' @param tempo coluna da ocasião (opcional).
+#' @param variancia_por coluna cujos níveis têm variâncias próprias (opcional).
+#' @param reml REML (padrão) ou máxima verossimilhança.
+#' @inheritParams tr_models_lm
+#' @return objeto `tr_models_fit`.
+#' @export
+tr_models_gls <- function(dados, formula = "", correlacao = "ar1", grupo = "", tempo = "",
+                          variancia_por = "", reml = TRUE) {
+  no <- "models/gls"
+  correlacao <- .tr_models_enum(correlacao, .TR_MODELS_CORRELACOES, "correlacao")
+  f <- .tr_models_ler_formula(formula, dados)
+  resp <- all.vars(f[[2]])[[1]]
+  .tr_models_numerica(dados, resp, "resposta")
+  g <- if (.tr_models_preenchido(grupo)) .tr_models_col(dados, grupo, "grupo") else character()
+  tp <- if (.tr_models_preenchido(tempo)) .tr_models_col(dados, tempo, "tempo") else character()
+  vp <- if (.tr_models_preenchido(variancia_por)) .tr_models_col(dados, variancia_por, "variancia_por") else character()
+  if (correlacao != "nenhuma" && !length(g)) {
+    .tr_models_abort("tr_models_error_bad_option",
+                     "'%s': a correlação '%s' pede o 'grupo' (a unidade com medidas repetidas).", no, correlacao)
+  }
+  vars <- unique(c(all.vars(f), g, tp, vp))
+  p0 <- .tr_models_preparar(dados, vars, no)
+  cats <- union(.tr_models_categoricas(p0$dados, setdiff(all.vars(f), resp)), c(g, vp))
+  p <- .tr_models_preparar(dados, vars, no, fatores = cats)
+  d <- as.data.frame(p$dados)
+  if (length(g)) {
+    ord <- if (length(tp)) order(d[[g]], d[[tp]]) else order(d[[g]], seq_len(nrow(d)))
+    d <- d[ord, , drop = FALSE]
+    d$.pos <- if (length(tp)) as.integer(factor(d[[tp]])) else stats::ave(seq_len(nrow(d)), d[[g]], FUN = seq_along)
+    if (anyDuplicated(paste(d[[g]], d$.pos))) {
+      .tr_models_abort("tr_models_error_bad_option", "'%s': há ocasião repetida dentro de um mesmo grupo.", no)
+    }
+  }
+  fg <- if (length(g)) stats::as.formula(paste("~ .pos |", .tr_models_bt(g))) else NULL
+  cor <- switch(correlacao, nenhuma = NULL,
+                ar1 = nlme::corAR1(form = fg), simetria_composta = nlme::corCompSymm(form = fg),
+                nao_estruturada = nlme::corSymm(form = fg))
+  pesos <- if (length(vp)) nlme::varIdent(form = stats::as.formula(paste("~ 1 |", .tr_models_bt(vp)))) else NULL
+  r <- .tr_models_ajustar(.tr_models_capturar(
+    nlme::gls(f, data = d, correlation = cor, weights = pesos, method = if (isTRUE(reml)) "REML" else "ML")), no)
+  aj <- r$valor
+  aj$call <- as.call(list(quote(nlme::gls), model = f, data = d, correlation = cor, weights = pesos,
+                          method = if (isTRUE(reml)) "REML" else "ML"))
+  rotulo <- sprintf("GLS · %s%s", switch(correlacao, nenhuma = "erro independente", ar1 = "AR(1)",
+                                         simetria_composta = "simetria composta", nao_estruturada = "não estruturada"),
+                    if (length(vp)) sprintf(", variância por %s", vp) else "")
+  .tr_models_fit_obj(aj, "gls", rotulo, f, tibble::as_tibble(d), resp, descartadas = p$descartadas)
+}
+
 # ---- Delineamentos ------------------------------------------------------------
 
 #' O miolo de todo delineamento: conferir, fatorar e ajustar o `aov`.

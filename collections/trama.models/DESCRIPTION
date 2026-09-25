@@ -32,6 +32,7 @@ Imports:
     lme4,
     reformulas,
     lmerTest,
+    nlme,
     MASS,
     agricolae,
     ggplot2 (>= 4.0.0),

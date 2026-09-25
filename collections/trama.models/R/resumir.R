@@ -162,6 +162,16 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       data.frame(termo = rownames(a), gl = a$NumDF, gl_den = a$DenDF, sq = a$`Sum Sq`,
                  qm = a$`Mean Sq`, F = a$`F value`, p_valor = a$`Pr(>F)`)
     },
+    gls = {
+      a <- .tr_models_ajustar(as.data.frame(stats::anova(modelo$ajuste, type = if (tipo == "I") "sequential" else "marginal")), no)
+      if (tipo == "II") {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         "'%s': no GLS há o quadro sequencial (tipo I) e o marginal (tipo III).", no)
+      }
+      a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
+      nota <- "F de Wald pela covariância do GLS"
+      data.frame(termo = rownames(a), gl = a$numDF, F = a$`F-value`, p_valor = a$`p-value`)
+    },
     glmer = {
       if (tipo == "I") {
         .tr_models_abort("tr_models_error_not_applicable",
@@ -237,7 +247,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
 tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
   .tr_models_fit_conferir(modelo)
   no <- "models/coefficients"
-  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "glmer"), no,
+  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "glmer", "gls"), no,
                     "Na parcela subdividida os coeficientes misturam os dois erros; compare as médias em 'models/emmeans'.")
   aj <- modelo$ajuste
   if (modelo$classe == "lmer") {
@@ -247,6 +257,13 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
                       gl = s[, "df"], t = s[, "t value"], p_valor = s[, "Pr(>|t|)"],
                       li_95 = ic[rownames(s), 1], ls_95 = ic[rownames(s), 2])
     coluna <- "t"; nota <- "gl de Satterthwaite; intervalo de Wald"
+  } else if (modelo$classe == "gls") {
+    s <- summary(aj)$tTable
+    ic <- nlme::intervals(aj, which = "coef")$coef
+    tab <- data.frame(termo = rownames(s), estimativa = s[, "Value"], erro_padrao = s[, "Std.Error"],
+                      t = s[, "t-value"], p_valor = s[, "p-value"],
+                      li_95 = ic[rownames(s), "lower"], ls_95 = ic[rownames(s), "upper"])
+    coluna <- "t"; nota <- sprintf("t com %d gl (n - p)", as.integer(aj$dims$N - aj$dims$p))
   } else {
     # `summary.lm` explícito: nos delineamentos o ajuste é um `aov`, e o
     # `summary()` dele é o quadro, sem coeficientes.
@@ -315,6 +332,8 @@ tr_models_fit_stats <- function(modelo) {
   } else if (modelo$classe == "glm") {
     dexp <- 1 - aj$deviance / aj$null.deviance
     if (stats::family(aj)$family == "gaussian") sig <- stats::sigma(aj)
+  } else if (modelo$classe == "gls") {
+    sig <- aj$sigma
   } else if (modelo$classe == "lmer") {
     r <- .tr_models_r2_misto(aj); r2m <- r[["marginal"]]; r2c <- r[["condicional"]]
     sig <- stats::sigma(aj)
@@ -323,7 +342,7 @@ tr_models_fit_stats <- function(modelo) {
   # Os valores saem do objeto ANTES do `tibble()`: lá dentro, `modelo` já é a
   # coluna recém-criada, e `modelo$formula` falharia sobre uma string.
   rotulo <- modelo$rotulo; fml <- modelo$formula; n <- nrow(modelo$dados)
-  gl_res <- if (modelo$classe %in% c("lmer", "glmer")) na else as.numeric(stats::df.residual(aj))
+  gl_res <- if (modelo$classe %in% c("lmer", "glmer")) na else if (modelo$classe == "gls") as.numeric(aj$dims$N - aj$dims$p) else as.numeric(stats::df.residual(aj))
   tibble::tibble(
     modelo = rotulo, formula = fml, n = n,
     gl_residuo = gl_res,
@@ -390,6 +409,12 @@ tr_models_random_effects <- function(modelo) {
                      "'%s' não se aplica a %s. Olhe os resíduos em 'models/plot_diagnostics'.", no, fit$rotulo)
   }
   aj <- if (fit$classe == "split") fit$aux_lm else fit$ajuste
+  if (fit$classe == "gls") {
+    # Resíduos normalizados: descontada a correlação e a variância do modelo,
+    # são os que devem sair normais e independentes.
+    return(list(ajustado = as.numeric(stats::fitted(aj)), residuo = as.numeric(stats::residuals(aj, type = "normalized")),
+                padronizado = as.numeric(stats::residuals(aj, type = "normalized")), ajuste = aj))
+  }
   list(ajustado = as.numeric(stats::fitted(aj)), residuo = as.numeric(stats::residuals(aj)),
        padronizado = if (fit$classe == "lmer") as.numeric(stats::residuals(aj, type = "pearson", scaled = TRUE))
                      else as.numeric(stats::rstandard(aj)),
@@ -408,6 +433,7 @@ tr_models_residuals <- function(modelo) {
   pad <- switch(modelo$classe,
                 glm = stats::rstandard(aj, type = "deviance"),
                 glmer = stats::residuals(aj, type = "pearson"),
+                gls = stats::residuals(aj, type = "normalized"),
                 lmer = stats::residuals(aj, type = "pearson", scaled = TRUE),
                 stats::rstandard(aj))
   nomes <- c("ajustado", "residuo", "residuo_padronizado")
@@ -508,7 +534,7 @@ tr_models_compare <- function(modelo, outro) {
   if (modelo$classe == "glmer" && stats::family(modelo$ajuste)$family != stats::family(outro$ajuste)$family) {
     .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM mistos têm famílias diferentes.", no)
   }
-  gl_de <- function(f) if (f$classe %in% c("lmer", "glmer")) attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
+  gl_de <- function(f) if (f$classe %in% c("lmer", "glmer", "gls")) attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
   if (gl_de(modelo) <= gl_de(outro)) { menor <- modelo; maior <- outro; tm <- ta; tM <- tb }
   else { menor <- outro; maior <- modelo; tm <- tb; tM <- ta }
   if (!all(tm %in% tM) || gl_de(menor) == gl_de(maior)) {
@@ -520,8 +546,17 @@ tr_models_compare <- function(modelo, outro) {
   novos <- paste(setdiff(tM, tm), collapse = " + ")
   if (!nzchar(novos)) novos <- "estrutura aleatória"
   h0 <- sprintf("os termos a mais (%s) não melhoram o ajuste", novos)
-  if (menor$classe %in% c("lmer", "glmer")) {
-    a <- if (menor$classe == "glmer") {
+  if (menor$classe %in% c("lmer", "glmer", "gls")) {
+    a <- if (menor$classe == "gls") {
+      m1 <- menor$ajuste; m2 <- maior$ajuste
+      # REML só compara estruturas de erro com os mesmos fixos; senão, ML.
+      if (!identical(ta[order(ta)], tb[order(tb)]) || m1$method != m2$method) {
+        m1 <- stats::update(m1, method = "ML"); m2 <- stats::update(m2, method = "ML")
+      }
+      x <- as.data.frame(stats::anova(m1, m2))
+      list(Chisq = c(NA, x$L.Ratio[[2]]), Df = c(NA, diff(x$df)), `Pr(>Chisq)` = c(NA, x$`p-value`[[2]]),
+           AIC = x$AIC)
+    } else if (menor$classe == "glmer") {
       # Direto das verossimilhanças: o anova() do lme4 exige o mesmo objeto de
       # dados, e o efeito por observação acrescenta a coluna '.obs'. Os dois já
       # são de máxima verossimilhança.
