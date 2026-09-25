@@ -1,0 +1,102 @@
+[
+  {
+    "from": "multi/discriminant",
+    "to": "multi/confusion",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/discriminant",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/factor_analysis",
+    "n": 2
+  },
+  {
+    "from": "multi/factor_analysis",
+    "to": "multi/fa_loadings",
+    "n": 2
+  },
+  {
+    "from": "multi/discriminant",
+    "to": "multi/discriminant_functions",
+    "n": 1
+  },
+  {
+    "from": "multi/discriminant",
+    "to": "multi/plot_discriminant",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/box_m",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/correlation_matrix",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/kmo_bartlett",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/logistic",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/parallel",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/pca",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/plot_correlation",
+    "n": 1
+  },
+  {
+    "from": "multi/logistic",
+    "to": "multi/confusion",
+    "n": 1
+  },
+  {
+    "from": "multi/logistic",
+    "to": "multi/logistic_coefficients",
+    "n": 1
+  },
+  {
+    "from": "multi/logistic",
+    "to": "multi/roc",
+    "n": 1
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/biplot",
+    "n": 1
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/correlation_circle",
+    "n": 1
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/jackknife_pca",
+    "n": 1
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/pca_variance",
+    "n": 1
+  }
+]

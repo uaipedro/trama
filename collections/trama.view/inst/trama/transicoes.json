@@ -1,0 +1,32 @@
+[
+  {
+    "from": "models/example",
+    "to": "view/boxplot",
+    "n": 2
+  },
+  {
+    "from": "data/group_summarise",
+    "to": "view/boxplot",
+    "n": 1
+  },
+  {
+    "from": "data/group_summarise",
+    "to": "view/histogram",
+    "n": 1
+  },
+  {
+    "from": "data/slice_head",
+    "to": "view/bars",
+    "n": 1
+  },
+  {
+    "from": "ml/importance",
+    "to": "view/bars",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "view/points",
+    "n": 1
+  }
+]

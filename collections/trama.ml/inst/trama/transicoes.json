@@ -1,0 +1,107 @@
+[
+  {
+    "from": "ml/predict",
+    "to": "ml/evaluate",
+    "n": 10
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/predict",
+    "n": 10
+  },
+  {
+    "from": "ml/cart",
+    "to": "ml/predict",
+    "n": 3
+  },
+  {
+    "from": "ml/figs",
+    "to": "ml/predict",
+    "n": 3
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/cart",
+    "n": 3
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/figs",
+    "n": 3
+  },
+  {
+    "from": "ml/example",
+    "to": "ml/split",
+    "n": 2
+  },
+  {
+    "from": "data/read_csv",
+    "to": "ml/split",
+    "n": 1
+  },
+  {
+    "from": "ml/cart",
+    "to": "ml/rules",
+    "n": 1
+  },
+  {
+    "from": "ml/cart",
+    "to": "ml/tree_plot",
+    "n": 1
+  },
+  {
+    "from": "ml/figs",
+    "to": "ml/importance",
+    "n": 1
+  },
+  {
+    "from": "ml/figs",
+    "to": "ml/rules",
+    "n": 1
+  },
+  {
+    "from": "ml/figs",
+    "to": "ml/tree_plot",
+    "n": 1
+  },
+  {
+    "from": "ml/forest",
+    "to": "ml/predict",
+    "n": 1
+  },
+  {
+    "from": "ml/linear",
+    "to": "ml/predict",
+    "n": 1
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/forest",
+    "n": 1
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/linear",
+    "n": 1
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/svm",
+    "n": 1
+  },
+  {
+    "from": "ml/split",
+    "to": "ml/xgboost",
+    "n": 1
+  },
+  {
+    "from": "ml/svm",
+    "to": "ml/predict",
+    "n": 1
+  },
+  {
+    "from": "ml/xgboost",
+    "to": "ml/predict",
+    "n": 1
+  }
+]

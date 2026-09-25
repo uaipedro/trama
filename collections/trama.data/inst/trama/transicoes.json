@@ -1,0 +1,62 @@
+[
+  {
+    "from": "data/mutate",
+    "to": "data/group_summarise",
+    "n": 3
+  },
+  {
+    "from": "sampling/simulate",
+    "to": "data/bind_rows",
+    "n": 3
+  },
+  {
+    "from": "data/filter",
+    "to": "data/mutate",
+    "n": 2
+  },
+  {
+    "from": "data/group_summarise",
+    "to": "data/arrange",
+    "n": 2
+  },
+  {
+    "from": "data/read_csv",
+    "to": "data/filter",
+    "n": 2
+  },
+  {
+    "from": "series/accuracy",
+    "to": "data/bind_rows",
+    "n": 2
+  },
+  {
+    "from": "data/arrange",
+    "to": "data/slice_head",
+    "n": 1
+  },
+  {
+    "from": "data/filter",
+    "to": "data/group_summarise",
+    "n": 1
+  },
+  {
+    "from": "data/read_json",
+    "to": "data/filter",
+    "n": 1
+  },
+  {
+    "from": "data/read_json",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "models/emmeans",
+    "to": "data/arrange",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "data/mutate",
+    "n": 1
+  }
+]

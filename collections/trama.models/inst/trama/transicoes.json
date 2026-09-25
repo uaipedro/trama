@@ -1,0 +1,232 @@
+[
+  {
+    "from": "models/anova_factorial",
+    "to": "models/emmeans",
+    "n": 4
+  },
+  {
+    "from": "models/lmer",
+    "to": "models/compare",
+    "n": 4
+  },
+  {
+    "from": "data/mutate",
+    "to": "models/lmer",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/levene",
+    "n": 2
+  },
+  {
+    "from": "models/anova_factorial",
+    "to": "models/anova_table",
+    "n": 2
+  },
+  {
+    "from": "models/anova_split_plot",
+    "to": "models/emmeans",
+    "n": 2
+  },
+  {
+    "from": "models/emmeans",
+    "to": "models/plot_means",
+    "n": 2
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_dic",
+    "n": 2
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_factorial",
+    "n": 2
+  },
+  {
+    "from": "models/example",
+    "to": "models/lmer",
+    "n": 2
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/anova_table",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/bartlett",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/duncan",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/emmeans",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/fit_stats",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/linear_hypothesis",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/shapiro_residuals",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/tukey_additivity",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/waller_duncan",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/anova_table",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/bartlett",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/emmeans",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/linear_hypothesis",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/plot_diagnostics",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dic",
+    "to": "models/shapiro_residuals",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dql",
+    "to": "models/anova_table",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dql",
+    "to": "models/emmeans",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dql",
+    "to": "models/shapiro_residuals",
+    "n": 1
+  },
+  {
+    "from": "models/anova_factorial",
+    "to": "models/plot_diagnostics",
+    "n": 1
+  },
+  {
+    "from": "models/anova_factorial",
+    "to": "models/shapiro_residuals",
+    "n": 1
+  },
+  {
+    "from": "models/anova_split_plot",
+    "to": "models/anova_table",
+    "n": 1
+  },
+  {
+    "from": "models/anova_split_plot",
+    "to": "models/linear_hypothesis",
+    "n": 1
+  },
+  {
+    "from": "models/anova_split_plot",
+    "to": "models/random_effects",
+    "n": 1
+  },
+  {
+    "from": "models/anova_split_plot",
+    "to": "models/shapiro_residuals",
+    "n": 1
+  },
+  {
+    "from": "models/emmeans",
+    "to": "models/pairwise",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_dbc",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_dql",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/anova_split_plot",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/glm",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "models/kruskal",
+    "n": 1
+  },
+  {
+    "from": "models/glm",
+    "to": "models/anova_table",
+    "n": 1
+  },
+  {
+    "from": "models/glm",
+    "to": "models/emmeans",
+    "n": 1
+  },
+  {
+    "from": "models/glm",
+    "to": "models/plot_diagnostics",
+    "n": 1
+  },
+  {
+    "from": "models/lmer",
+    "to": "models/coefficients",
+    "n": 1
+  },
+  {
+    "from": "models/lmer",
+    "to": "models/plot_caterpillar",
+    "n": 1
+  },
+  {
+    "from": "models/lmer",
+    "to": "models/random_effects",
+    "n": 1
+  }
+]
