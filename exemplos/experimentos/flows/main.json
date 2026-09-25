@@ -132,9 +132,9 @@
       "params": {},
       "seed": 54381306
     },
-    "dbc_bart": {
-      "type": "models/bartlett",
-      "type_version": 1,
+    "dbc_lev": {
+      "type": "models/levene",
+      "type_version": 2,
       "label": "Homogeneidade",
       "params": {},
       "seed": 93579540
@@ -771,7 +771,7 @@
         "port": "out"
       },
       "to": {
-        "node": "dbc_bart",
+        "node": "dbc_lev",
         "port": "modelo"
       },
       "index": 1
@@ -1365,7 +1365,7 @@
       "dbc": [845, 2839],
       "dbc_medidas": [1325, 1735],
       "dbc_sw": [1325, 1990],
-      "dbc_bart": [1325, 2245],
+      "dbc_lev": [1325, 2245],
       "dbc_adit": [1325, 2500],
       "dbc_quadro": [1175, 2755],
       "dbc_medias": [1305, 3205],
@@ -1582,7 +1582,7 @@
       "dbc_sw": {
         "params": false
       },
-      "dbc_bart": {
+      "dbc_lev": {
         "params": false
       },
       "dbc_adit": {

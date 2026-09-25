@@ -11,9 +11,13 @@
               se_falhar = paste("Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`;", alternativa))
   normal_dic <- normal_p("sem modelo que sirva, o `models/kruskal`.")
   normal <- normal_p("sem modelo que sirva, o teste de Friedman para DBC — ainda sem bloco no trama.")
-  homog <- P("A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
-             verificar = c("models/levene", "models/bartlett", "models/plot_diagnostics"),
+  homog_p <- function(verificar) P("A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
+             verificar = verificar,
              se_falhar = "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama.")
+  homog_dic <- homog_p(c("models/levene", "models/bartlett", "models/plot_diagnostics"))
+  # Com bloco, só o Levene: o de O'Neill & Mathews corrige a correlação dos
+  # resíduos, e o Bartlett recusa.
+  homog <- homog_p(c("models/levene", "models/plot_diagnostics"))
   aditiv <- P("**Aditividade**: o efeito do tratamento é o mesmo em todo bloco (não há interação bloco × tratamento).",
               verificar = "models/tukey_additivity",
               se_falhar = "Uma transformação (quase sempre o log) costuma devolver a aditividade.")
@@ -23,7 +27,7 @@
       pressupostos = list(casualizacao("nas parcelas sem restrição"),
         P("As parcelas são **homogêneas**: não há fonte de variação conhecida (área, dia, lote) que devesse ter virado bloco.",
           se_falhar = "Se houve bloco, use o `models/anova_dbc`."),
-        normal_dic, homog),
+        normal_dic, homog_dic),
       referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
 
     "models/anova_dbc" = list(

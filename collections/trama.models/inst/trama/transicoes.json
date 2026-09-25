@@ -56,11 +56,6 @@
   },
   {
     "from": "models/anova_dbc",
-    "to": "models/bartlett",
-    "n": 1
-  },
-  {
-    "from": "models/anova_dbc",
     "to": "models/duncan",
     "n": 1
   },
@@ -72,6 +67,11 @@
   {
     "from": "models/anova_dbc",
     "to": "models/fit_stats",
+    "n": 1
+  },
+  {
+    "from": "models/anova_dbc",
+    "to": "models/levene",
     "n": 1
   },
   {

@@ -2,6 +2,28 @@
 
 ## Mudanças de método
 
+- `models/levene` (versão 2): nos delineamentos com bloco (DBC, fatorial em
+  DBC, DQL) passa a ser o teste de O'Neill & Mathews (2002, *Biometrics*
+  58:216-224, doi:10.1111/j.0006-341x.2002.00216.x): ANOVA dos |resíduos| de
+  mínimos quadrados em tratamento + bloco (+ linha e coluna) com o F
+  multiplicado pelo fator do delineamento, a razão dos quadrados médios
+  esperados de |e| sob H0 calculada pelas correlações dos resíduos. O Levene
+  comum nos resíduos correlacionados sai liberal (no quadrado latino 7 × 7,
+  8,3% de rejeição a 5% contra 5,0% com a correção, em simulação). Ali o centro
+  é sempre o ajuste do modelo (a média) e o param `centro` não muda o
+  resultado; delineamento desbalanceado é recusado. DIC e modelos de fórmula
+  não mudam. Validado contra `oneilldbc()` do ExpDes.pt 1.2.2 (arquivado no
+  CRAN em 2026-06, por isso fora do Suggests; os p ficam fixos no teste):
+  warpbreaks em 9 blocos, F = 3,1517, p = 0,017183 (e o fatorial em blocos dá
+  o mesmo), e o exemplo `ex4` do ExpDes.pt (carbono), p = 0,30708, iguais a
+  1e-14; o fator fechado do DBC do artigo é reproduzido a 1e-10. No DQL o
+  fator foi conferido por Monte Carlo (OrchardSprays, 20000 réplicas, 1%).
+- `models/bartlett` (versão 2): recusa delineamento com bloco (DBC, fatorial
+  em DBC, DQL) com `tr_models_error_block_design`, apontando o
+  `models/levene`: não há correção publicada do Bartlett para a correlação dos
+  resíduos. DIC e modelos de fórmula não mudam. O exemplo `experimentos`
+  troca o Bartlett do DBC pelo Levene.
+
 - `models/pairwise` (versão 2): o ajuste `dunnett` passa a ser o Dunnett
   EXATO (`emmeans`, `adjust = "mvt"`: integração da t multivariada de Genz &
   Bretz 2009), no lugar da aproximação de Hsu (`"dunnettx"`). Os p-valores e

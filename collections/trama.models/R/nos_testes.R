@@ -39,12 +39,12 @@ Um teste (`models/test`).
 `models/plot_diagnostics`; `models/levene`; `models/shapiro` para uma coluna.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/levene", 
+    trama::tr_node("models/levene", version = 2L,
       pressupostos = .tr_models_doc("models/levene")$pressupostos,
       referencias = .tr_models_doc("models/levene")$referencias,
       fn = tr_models_levene, label = "Levene",
       category = "modelo_pressupostos", icon = trama::tr_icon("scale"),
-      description = "Levene (Brown-Forsythe): as variâncias dos resíduos são iguais entre os tratamentos?",
+      description = "Levene (Brown-Forsythe; O'Neill-Mathews com bloco): as variâncias dos resíduos são iguais entre os tratamentos?",
       inputs = list(modelo = Fm), outputs = list(out = TE),
       params = list(centro = E("mediana", c("mediana", "média"), label = "Centro")),
       help = .tr_models_ajuda(r"---[
@@ -59,6 +59,14 @@ as colunas-fator dos efeitos fixos nos modelos de fórmula. Sem fator, use o
   normalidade. É a recomendada.
 - **média** — o Levene original.
 
+Nos delineamentos com bloco (DBC, fatorial em DBC, DQL) os resíduos são
+correlacionados e o Levene comum sai liberal. Ali o bloco aplica o teste de
+O'Neill & Mathews (2002): ANOVA dos |resíduos| de mínimos quadrados em
+tratamento + bloco (+ linha e coluna no DQL), com o F multiplicado por um fator
+que só depende do delineamento. O centro, ali, é sempre o ajuste do modelo (a
+média), e o param **Centro** não muda o resultado. O delineamento precisa estar
+equilibrado (sem parcela perdida).
+
 Não se aplica a GLM (a variância acompanha a média por construção) nem a misto.
 ]---", r"---[
 - **Centro** — `mediana` ou `média`.
@@ -68,23 +76,33 @@ Um teste (`models/test`).
 `models/bartlett`; `models/breusch_pagan`; `models/plot_diagnostics`.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/bartlett", 
+    trama::tr_node("models/bartlett", version = 2L,
       pressupostos = .tr_models_doc("models/bartlett")$pressupostos,
       referencias = .tr_models_doc("models/bartlett")$referencias,
       fn = tr_models_bartlett, label = "Bartlett",
       category = "modelo_pressupostos", icon = trama::tr_icon("scale"),
-      description = "Bartlett: as variâncias dos resíduos são iguais entre os tratamentos?",
+      description = "Bartlett: as variâncias dos resíduos são iguais entre os tratamentos? Só sem bloco.",
       inputs = list(modelo = Fm), outputs = list(out = TE),
       help = .tr_models_ajuda(r"---[
 Testa a homogeneidade das variâncias entre os grupos (os mesmos do
 `models/levene`), pelo teste de Bartlett.
 
 É mais poderoso que o Levene quando os resíduos são normais.
+
+Não se aplica a delineamento com bloco (DBC, fatorial em DBC, DQL): nos
+resíduos correlacionados o Bartlett não tem correção publicada, e o bloco
+recusa. Use o `models/levene`, que ali aplica a correção de O'Neill & Mathews.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
 Um teste (`models/test`).
-]---", exemplo_dbc("models/bartlett"), r"---[
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("plantas", "models/example", dataset = "PlantGrowth") |>
+  tr_add("dic", "models/anova_dic", resposta = "weight", tratamento = "group",
+         from = "plantas") |>
+  tr_add("teste", "models/bartlett", from = "dic")
+]---", r"---[
 `models/levene`; `models/shapiro_residuals`.
 ]---", teste = TRUE)),
 

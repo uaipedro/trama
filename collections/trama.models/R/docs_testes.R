@@ -28,8 +28,18 @@
       pressupostos = list(
         P("Os grupos (as combinações dos tratamentos) têm **pelo menos duas observações** cada; o bloco recusa senão."),
         indep("observações de cada grupo"),
-        P(residuos_do_modelo, verificar = "models/plot_diagnostics")),
+        P(residuos_do_modelo, verificar = "models/plot_diagnostics"),
+        P("Com bloco (DBC, fatorial em DBC, DQL), o delineamento é **equilibrado** (sem parcela perdida): a correção de O'Neill & Mathews é um fator do desenho que supõe o equilíbrio; o bloco recusa senão. Ali o centro é o ajuste de mínimos quadrados (a média), qualquer que seja o param Centro.",
+          se_falhar = "Leia o painel escala-locação do `models/plot_diagnostics`.")),
       referencias = list(
+        R(autores = c("O'Neill, M. E.", "Mathews, K. L."), ano = 2002,
+          titulo = "Levene tests of homogeneity of variance for general block and treatment designs",
+          fonte = "Biometrics, 58(1), 216-224",
+          doi = "10.1111/j.0006-341x.2002.00216.x"),
+        R(autores = c("O'Neill, M. E.", "Mathews, K."), ano = 2000,
+          titulo = "A weighted least squares approach to Levene's test of homogeneity of variance",
+          fonte = "Australian & New Zealand Journal of Statistics, 42(1), 81-100",
+          doi = "10.1111/1467-842x.00109"),
         R(autores = "Levene, H.", ano = 1960, titulo = "Robust tests for equality of variances",
           fonte = "In: Olkin, I. et al. (ed.). Contributions to Probability and Statistics: Essays in Honor of Harold Hotelling. Stanford: Stanford University Press, p. 278-292"),
         R(autores = c("Brown, M. B.", "Forsythe, A. B."), ano = 1974,
@@ -37,7 +47,7 @@
           fonte = "Journal of the American Statistical Association, 69(346), 364-367",
           doi = "10.1080/01621459.1974.10482955"),
         L$montgomery,
-        I("car", "leveneTest", "Nos resíduos do modelo, agrupados pelos tratamentos. `center = median` (padrão do bloco) é a versão de Brown-Forsythe; `center = mean` é o Levene original."))),
+        I("car", "leveneTest", "Sem bloco: nos resíduos do modelo, agrupados pelos tratamentos. `center = median` (padrão do bloco) é a versão de Brown-Forsythe; `center = mean` é o Levene original. Com bloco (DBC, DQL) a conta é própria (O'Neill & Mathews 2002), validada contra o `oneilldbc` do ExpDes.pt."))),
 
     "models/bartlett" = list(
       pressupostos = list(
@@ -45,6 +55,8 @@
           verificar = c("models/shapiro_residuals", "models/plot_diagnostics"),
           se_falhar = "Use o `models/levene` (centro na mediana), robusto à falta de normalidade."),
         P("Os grupos têm **pelo menos duas observações** cada."),
+        P("O modelo **não tem bloco** (DIC, fatorial em DIC, modelos de fórmula): nos resíduos correlacionados de um DBC ou DQL o Bartlett não tem correção publicada, e o bloco recusa.",
+          se_falhar = "Use o `models/levene`, que no delineamento com bloco aplica a correção de O'Neill & Mathews (2002)."),
         indep("observações de cada grupo")),
       referencias = list(
         R(autores = "Bartlett, M. S.", ano = 1937, titulo = "Properties of sufficiency and statistical tests",
