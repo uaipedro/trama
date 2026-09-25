@@ -216,3 +216,45 @@ tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0
   attr(out, "tendencia") <- como_ts(tend)
   out
 }
+
+#' Opera duas séries ponto a ponto: a − b, a + b, a / b, a × b.
+#'
+#' O alinhamento é pelo TEMPO, e não pela posição: `a` de 1949 a 1960 menos
+#' `b` de 1955 a 1965 é a diferença de 1955 a 1960 — a interseção. Operar os
+#' vetores crus somaria janeiro de 1949 com janeiro de 1955, verde.
+#'
+#' Frequências diferentes são erro, e não conversão implícita: somar uma
+#' mensal com uma trimestral pede escolher COMO agregar (soma? média?), e é o
+#' `series/aggregate` que faz essa pergunta.
+#'
+#' Divisão por zero sai NA, e não `Inf`/`NaN`: um `Inf` no meio da série
+#' quebra a escala do gráfico e todo nó seguinte, e o aviso do R não chega ao
+#' card. O NA chega — o resumo da série conta os faltantes —, e o
+#' `series/interpolate` sabe o que fazer com ele.
+#' @export
+tr_series_combine <- function(a, b, operacao = "a - b") {
+  operacao <- .tr_series_enum(operacao, c("a - b", "a + b", "a / b", "a * b"), "operacao")
+  fa <- stats::frequency(a); fb <- stats::frequency(b)
+  if (!isTRUE(all.equal(fa, fb))) {
+    .tr_series_abort("tr_series_error_frequency_mismatch",
+                     paste0("'series/combine': 'a' tem frequência %g e 'b' tem %g. Leve as duas à ",
+                            "mesma frequência antes, com 'series/aggregate'."), fa, fb)
+  }
+  ini <- max(stats::tsp(a)[[1]], stats::tsp(b)[[1]])
+  fim <- min(stats::tsp(a)[[2]], stats::tsp(b)[[2]])
+  if (fim < ini - 1e-8) {
+    .tr_series_abort("tr_series_error_no_overlap",
+                     "'series/combine': as séries não têm período em comum ('a' vai de %s a %s; 'b', de %s a %s).",
+                     .tr_series_rotulo(stats::start(a), fa), .tr_series_rotulo(stats::end(a), fa),
+                     .tr_series_rotulo(stats::start(b), fb), .tr_series_rotulo(stats::end(b), fb))
+  }
+  # `as.numeric()` antes da conta: descarta atributos pendurados (a
+  # `tendencia` do `series/detrend`), que a aritmética de `ts` carregaria para
+  # a saída sem que ela quisesse mais dizer nada.
+  xa <- as.numeric(stats::window(a, start = ini, end = fim))
+  xb <- as.numeric(stats::window(b, start = ini, end = fim))
+  out <- switch(operacao,
+    "a - b" = xa - xb, "a + b" = xa + xb, "a * b" = xa * xb,
+    "a / b" = ifelse(xb == 0, NA_real_, xa / xb))
+  stats::ts(out, start = ini, frequency = fa)
+}

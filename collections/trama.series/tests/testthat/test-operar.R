@@ -125,3 +125,30 @@ test_that("detrend por diferença perde a 1ª observação e mantém o calendár
   expect_equal(as.numeric(d), as.numeric(diff(x)))
   expect_equal(as.numeric(d + attr(d, "tendencia")), as.numeric(x)[-1])
 })
+
+test_that("combine alinha pela interseção do tempo e faz a conta", {
+  x <- serie_mensal()
+  a <- stats::window(x, end = c(1956, 12))
+  b <- stats::window(x, start = c(1955, 1)) / 2
+  d <- tr_series_combine(a, b, "a - b")
+  expect_equal(stats::start(d), c(1955, 1)); expect_equal(stats::end(d), c(1956, 12))
+  expect_equal(as.numeric(d), as.numeric(stats::window(x, 1955, c(1956, 12))) / 2)
+  expect_equal(as.numeric(tr_series_combine(a, b, "a + b")),
+               1.5 * as.numeric(stats::window(x, 1955, c(1956, 12))))
+  expect_equal(as.numeric(tr_series_combine(a, b, "a / b")), rep(2, 24))
+  expect_equal(as.numeric(tr_series_combine(x, x, "a * b")), as.numeric(x)^2)
+  # O atributo da detrend não vaza para a saída.
+  expect_null(attr(tr_series_combine(tr_series_detrend(x), x), "tendencia"))
+})
+
+test_that("combine: divisão por zero vira NA; frequência e janela sem interseção são erro", {
+  a <- stats::ts(c(1, 2, 3, 4), frequency = 4)
+  b <- stats::ts(c(1, 0, 2, 0), frequency = 4)
+  q <- tr_series_combine(a, b, "a / b")
+  expect_equal(as.numeric(q), c(1, NA, 1.5, NA))
+  expect_error(tr_series_combine(serie_mensal(), stats::ts(1:20, frequency = 4)),
+               class = "tr_series_error_frequency_mismatch")
+  expect_error(tr_series_combine(stats::ts(1:5, start = 1900), stats::ts(1:5, start = 2000)),
+               class = "tr_series_error_no_overlap")
+  expect_error(tr_series_combine(a, b, "a ^ b"), class = "tr_series_error_bad_option")
+})

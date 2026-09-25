@@ -6,7 +6,7 @@ collection: series-temporais
 node: series/detrend
 category: Operar
 order: 2
-related: [series/component, series/diff, series/moving_average]
+related: [series/component, series/combine, series/diff, series/moving_average]
 ---
 
 ## O que o bloco faz
@@ -75,5 +75,6 @@ período mais curta na diferença), com a tendência estimada no atributo
 ## Veja também
 
 `series/component` com `sem_tendencia`, para a mesma conta a partir de uma
-decomposição; `series/diff` para diferenças de ordem maior ou sazonais;
+decomposição; `series/combine` para subtrair uma tendência estimada em outro
+lugar; `series/diff` para diferenças de ordem maior ou sazonais;
 `series/moving_average` para ver a tendência sem tirá-la.

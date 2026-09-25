@@ -1052,6 +1052,13 @@
     "label": "Box-Pierce",
     "icon": "activity"
   },
+  "series/combine": {
+    "accent": "#06b6d4",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Operar duas séries",
+    "icon": "combine"
+  },
   "series/component": {
     "accent": "#84cc16",
     "hasInput": true,

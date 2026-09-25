@@ -577,8 +577,53 @@ tr_flow(reg) |>
   tr_add("g", "series/plot", from = "sem")
 ]---", r"---[
 `series/component` com `sem_tendencia`, para a mesma conta a partir de uma
-decomposição; `series/diff` para diferenças de ordem maior ou sazonais;
+decomposição; `series/combine` para subtrair uma tendência estimada em outro
+lugar; `series/diff` para diferenças de ordem maior ou sazonais;
 `series/moving_average` para ver a tendência sem tirá-la.
+]---")),
+
+      trama::tr_node("series/combine", fn = tr_series_combine, label = "Operar duas séries",
+        category = "serie_operar", icon = icone("combine"),
+        description = "Subtrai, soma, divide ou multiplica duas séries, alinhadas pelo tempo.",
+        inputs = list(a = S, b = S), outputs = list(out = S),
+        params = list(operacao = E("a - b", c("a - b", "a + b", "a / b", "a * b"),
+                                   label = "Operação")),
+        help = .tr_series_ajuda(r"---[
+Faz a conta ponto a ponto entre duas séries: `a − b`, `a + b`, `a / b` ou
+`a × b`. Serve para tirar de uma série outra que se estimou à parte (a
+tendência, um índice de preços), para somar partes, para calcular uma razão
+entre duas medidas no mesmo tempo.
+
+### Alinhamento pelo tempo
+
+As séries são alinhadas pelo CALENDÁRIO, e não pela posição: se `a` vai de
+1949 a 1960 e `b` de 1955 a 1965, a saída vai de 1955 a 1960 — o período em
+comum. Séries sem período em comum param o nó em vermelho.
+
+As duas têm de ter a mesma frequência. Mensal com trimestral é erro, e não
+conversão implícita: agregar pede escolher como (soma? média?), e é o
+`series/aggregate` que faz essa escolha às claras.
+
+### Divisão por zero
+
+Onde `b` é zero, `a / b` sai **em branco (NA)**, e não infinito: um infinito no
+meio da série quebra a escala do gráfico e os nós seguintes. O resumo do card
+conta os faltantes, e `series/interpolate` pode preenchê-los se fizer sentido.
+]---", r"---[
+- **Operação** — `a - b`, `a + b`, `a / b` ou `a * b`.
+]---", r"---[
+Uma série (`series/ts`) no período em comum das duas entradas.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("pax", "series/example") |>
+  tr_add("reg", "series/regression", grau = 1L, from = "pax") |>
+  tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
+  tr_add("sem", "series/combine", operacao = "a - b", from = "pax") |>
+  tr_link("tend", "sem:b")
+]---", r"---[
+`series/detrend`, que estima e tira a tendência num nó só;
+`series/component` com `sem_tendencia`; `series/aggregate` para igualar as
+frequências; `series/window` para escolher o período à mão.
 ]---")),
 
 # ---- Decompor ---------------------------------------------------------------
