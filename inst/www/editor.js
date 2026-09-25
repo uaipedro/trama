@@ -2441,14 +2441,26 @@ function App() {
     if (encadear && saida) {
       const tela = rf.flowToScreenPosition({ x: pos.x + MIN_W, y: pos.y + 40 });
       setProx({ de: nid, deTipo: tipoId, pos: { ...pos }, porta: saida.name, tipo: saida.type,
+                presentes: [...presentes, tipoId],
                 x: tela.x + 8, y: tela.y });
     } else setProx(null);
   };
 
-  // Tipos de bloco no fluxo, estável enquanto o conjunto não muda: o
-  // sugestor recalcula o ranking quando esta referência muda.
-  const presentesChave = nodes.filter((n) => n.type === "ndNode")
-    .map((n) => n.data.nodeType).sort().join("\n");
+  // Tipos de bloco A MONTANTE da origem (ela e tudo que chega nela pelas
+  // arestas), não o fluxo inteiro: um ramo sem relação não deve pesar. Com o
+  // encadeamento ainda na fila, a origem não ecoou: vale o que o `prox` traz.
+  // Estável enquanto o conjunto não muda: o sugestor recalcula por referência.
+  const presentesChave = (() => {
+    if (!prox) return "";
+    if (!nodes.some((n) => n.id === prox.de)) return [...(prox.presentes || [prox.deTipo])].sort().join("\n");
+    const vistos = new Set([prox.de]), fila = [prox.de];
+    while (fila.length) {
+      const atual = fila.pop();
+      for (const e of edges) if (e.target === atual && !vistos.has(e.source)) { vistos.add(e.source); fila.push(e.source); }
+    }
+    const tipoDe = Object.fromEntries(nodes.map((n) => [n.id, n.data?.nodeType]));
+    return [...vistos].map((id) => tipoDe[id]).filter(Boolean).sort().join("\n");
+  })();
   const presentes = useMemo(() => (presentesChave ? [...new Set(presentesChave.split("\n"))] : []),
     [presentesChave]);
 
