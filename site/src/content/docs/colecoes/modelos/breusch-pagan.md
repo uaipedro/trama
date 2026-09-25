@@ -10,7 +10,7 @@ related: [models/bartlett, models/levene]
 
 ## O que o bloco faz
 
-`models/breusch_pagan` Testa se a variância residual depende dos preditores. A saída é `models/test`.
+`models/breusch_pagan` Testa se a variância residual depende dos preditores. A saída é `data/test`.
 
 ## Quando usar
 

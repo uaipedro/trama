@@ -10,7 +10,7 @@ related: [models/breusch_pagan, models/levene]
 
 ## O que o bloco faz
 
-`models/bartlett` Testa igualdade de variâncias residuais entre grupos. A saída é `models/test`.
+`models/bartlett` Testa igualdade de variâncias residuais entre grupos. A saída é `data/test`.
 
 ## Quando usar
 

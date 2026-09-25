@@ -10,7 +10,7 @@ related: [models/chisq, models/cor_test]
 
 ## O que o bloco faz
 
-`models/fisher_exact` Testa independência entre colunas categóricas pelo teste exato de Fisher. A saída é `models/test`.
+`models/fisher_exact` Testa independência entre colunas categóricas pelo teste exato de Fisher. A saída é `data/test`.
 
 ## Quando usar
 

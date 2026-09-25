@@ -33,7 +33,7 @@ tr_flow(reg) |>
   tr_add("bx", "multi/box_m", grupo = "cultivar", cols = "alcool, flavonoides", from = "dados")
 ```
 
-A tabela informa a estatística M de Box e seu p-valor para as medidas escolhidas.
+A saída é um teste (`data/test`): o card mostra o p-valor na régua, o qui-quadrado e a decisão a 5%; ligado numa entrada de tabela, vira uma linha com o M numa coluna extra.
 
 ## Como interpretar
 

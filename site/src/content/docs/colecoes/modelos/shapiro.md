@@ -10,7 +10,7 @@ related: [models/chisq, models/cor_test]
 
 ## O que o bloco faz
 
-`models/shapiro` Aplica Shapiro–Wilk a uma coluna (3–5000 observações). A saída é `models/test`.
+`models/shapiro` Aplica Shapiro–Wilk a uma coluna (3–5000 observações). A saída é `data/test`.
 
 ## Quando usar
 

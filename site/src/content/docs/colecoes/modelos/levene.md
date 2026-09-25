@@ -10,7 +10,7 @@ related: [models/bartlett, models/breusch_pagan]
 
 ## O que o bloco faz
 
-`models/levene` Compara variâncias residuais entre grupos de efeitos fixos. A saída é `models/test`.
+`models/levene` Compara variâncias residuais entre grupos de efeitos fixos. A saída é `data/test`.
 
 ## Quando usar
 

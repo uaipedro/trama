@@ -10,7 +10,7 @@ related: [models/bartlett, models/breusch_pagan]
 
 ## O que o bloco faz
 
-`models/tukey_additivity` Testa aditividade entre bloco e tratamento. A saída é `models/test`.
+`models/tukey_additivity` Testa aditividade entre bloco e tratamento. A saída é `data/test`.
 
 ## Quando usar
 

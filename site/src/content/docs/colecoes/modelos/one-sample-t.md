@@ -10,7 +10,7 @@ related: [models/chisq, models/cor_test]
 
 ## O que o bloco faz
 
-`models/one_sample_t` Compara a média de uma coluna com valor de referência. A saída é `models/test`.
+`models/one_sample_t` Compara a média de uma coluna com valor de referência. A saída é `data/test`.
 
 ## Quando usar
 

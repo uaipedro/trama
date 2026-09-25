@@ -152,7 +152,7 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-Um teste (`series/test`), com a posição da quebra e o rótulo do período em
+Um teste (`data/test`), com a posição da quebra e o rótulo do período em
 colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de relatório:
 um `data/bind_rows` põe este e o `series/adf` lado a lado, que é como a
 diferença entre os dois se lê.

@@ -104,7 +104,7 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-Um teste (`series/test`), com o M e o número de pares em colunas extras. Ligado
+Um teste (`data/test`), com o M e o número de pares em colunas extras. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
 junta vários testes num só quadro.
 

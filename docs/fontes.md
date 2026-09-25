@@ -3,7 +3,7 @@
 Este documento registra de onde vem cada teste de hipótese da coleção
 `trama.series`, para citação em publicação. Ele é conferido por teste: a
 varredura de `collections/trama.series/tests/testthat/test-catalogo.R` exige que
-todo bloco `series/test` do registro tenha a sua linha na tabela abaixo, com o
+todo bloco de teste da `series` (saída `data/test`) tenha a sua linha na tabela abaixo, com o
 campo `fonte` escrito exatamente como o bloco o devolve, e que toda linha da
 tabela nomeie um bloco que existe.
 
@@ -240,7 +240,7 @@ bloco nomeia a observação da mudança e não fala em direção.
 
 ## Outras fontes citadas nas páginas de ajuda
 
-Não são testes `series/test`, e não estão na dissertação; são as referências
+Não são blocos de teste (`data/test`), e não estão na dissertação; são as referências
 padrão dos métodos que a coleção já citava no código:
 
 - **Força da tendência e da sazonalidade** (resumo do `series/decompose` e do `series/stl`) —

@@ -10,7 +10,7 @@ related: [models/levene, models/plot_diagnostics]
 
 ## O que o bloco faz
 
-`models/shapiro_residuals` Aplica Shapiro–Wilk aos resíduos do ajuste (resíduo b em parcela subdividida). A saída é `models/test`.
+`models/shapiro_residuals` Aplica Shapiro–Wilk aos resíduos do ajuste (resíduo b em parcela subdividida). A saída é `data/test`.
 
 ## Quando usar
 

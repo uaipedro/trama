@@ -70,7 +70,7 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só.
 
 ## Veja também

@@ -10,7 +10,7 @@ related: [models/chisq, models/fisher_exact]
 
 ## O que o bloco faz
 
-`models/cor_test` Estima e testa correlação entre duas colunas. A saída é `models/test`.
+`models/cor_test` Estima e testa correlação entre duas colunas. A saída é `data/test`.
 
 ## Quando usar
 

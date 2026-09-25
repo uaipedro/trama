@@ -10,7 +10,7 @@ related: [models/chisq, models/cor_test]
 
 ## O que o bloco faz
 
-`models/kruskal` Compara dois ou mais grupos pelo teste de Kruskal–Wallis. A saída é `models/test`.
+`models/kruskal` Compara dois ou mais grupos pelo teste de Kruskal–Wallis. A saída é `data/test`.
 
 ## Quando usar
 

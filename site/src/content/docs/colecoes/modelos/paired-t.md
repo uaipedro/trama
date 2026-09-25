@@ -10,7 +10,7 @@ related: [models/chisq, models/cor_test]
 
 ## O que o bloco faz
 
-`models/paired_t` Testa se a média das diferenças entre duas medidas pareadas é zero. A saída é `models/test`.
+`models/paired_t` Testa se a média das diferenças entre duas medidas pareadas é zero. A saída é `data/test`.
 
 ## Quando usar
 

@@ -10,7 +10,7 @@ related: [models/chisq, models/cor_test]
 
 ## O que o bloco faz
 
-`models/wilcoxon` Compara localização de dois grupos independentes por postos. A saída é `models/test`.
+`models/wilcoxon` Compara localização de dois grupos independentes por postos. A saída é `data/test`.
 
 ## Quando usar
 

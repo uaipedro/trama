@@ -133,7 +133,7 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-Um teste (`series/test`), com o período do pico e o número de ciclos em colunas
+Um teste (`data/test`), com o período do pico e o número de ciclos em colunas
 extras, e o zα da dissertação na coluna do valor crítico a 5%. Ligado numa
 entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows` junta
 vários testes num só quadro.

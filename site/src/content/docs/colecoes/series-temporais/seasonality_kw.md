@@ -126,7 +126,7 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-Um teste (`series/test`), com os graus de liberdade numa coluna extra. Ligado
+Um teste (`data/test`), com os graus de liberdade numa coluna extra. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
 junta vários testes num só quadro.
 

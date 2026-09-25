@@ -10,7 +10,7 @@ related: [models/cor_test, models/fisher_exact]
 
 ## O que o bloco faz
 
-`models/chisq` Testa independência entre duas colunas categóricas pelo qui-quadrado. A saída é `models/test`.
+`models/chisq` Testa independência entre duas colunas categóricas pelo qui-quadrado. A saída é `data/test`.
 
 ## Quando usar
 

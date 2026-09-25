@@ -85,7 +85,7 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-Um teste (`series/test`), com o número de sequências numa coluna extra. Ligado
+Um teste (`data/test`), com o número de sequências numa coluna extra. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
 junta vários testes num só quadro.
 

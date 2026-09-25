@@ -10,7 +10,7 @@ related: [models/duncan, models/emmeans]
 
 ## O que o bloco faz
 
-`models/linear_hypothesis` Avalia contrastes lineares conjuntos por teste F. A saída é `models/test`.
+`models/linear_hypothesis` Avalia contrastes lineares conjuntos por teste F. A saída é `data/test`.
 
 ## Quando usar
 

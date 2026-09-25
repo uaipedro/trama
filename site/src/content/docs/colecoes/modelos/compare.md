@@ -10,7 +10,7 @@ related: [models/anova_table, models/coefficients]
 
 ## O que o bloco faz
 
-`models/compare` Compara dois modelos aninhados por teste F ou razão de verossimilhanças. A saída é `models/test`.
+`models/compare` Compara dois modelos aninhados por teste F ou razão de verossimilhanças. A saída é `data/test`.
 
 ## Quando usar
 

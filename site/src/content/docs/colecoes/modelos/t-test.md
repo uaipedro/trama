@@ -10,7 +10,7 @@ related: [models/paired_t, models/wilcoxon]
 
 ## O que o bloco faz
 
-`models/t_test` Compara médias de dois grupos independentes pelo teste t. A saída é `models/test`.
+`models/t_test` Compara médias de dois grupos independentes pelo teste t. A saída é `data/test`.
 
 ## Quando usar
 
