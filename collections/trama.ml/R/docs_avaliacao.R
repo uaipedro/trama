@@ -22,6 +22,8 @@
         C$sem_vazamento,
         P("Os folds refletem a **dependência** dos dados: `aleatoria` (estratificada pela classe) supõe linhas independentes; `grupo` põe cada indivíduo, lote ou área num só fold; `temporal` usa origem móvel com janela crescente — cada fold treina no passado e valida no bloco seguinte, nunca no futuro do treino. Folds aleatórios com dados dependentes dão erro otimista (Roberts et al. 2017).",
           se_falhar = "Escolha `estrategia = \"grupo\"` com `grupo`, ou `\"temporal\"` com `ordem`, e use a mesma estratégia no `ml/split`."),
+        P("Na classificação, cada fold de validação precisa das **duas classes** (ou de todas): com folds por grupo e grupos de uma classe só, um fold pode validar uma classe apenas, e nele macro F1, kappa e acurácia balanceada degeneram. O bloco avisa e guarda a nota (`nota`).",
+          se_falhar = "Use `estrategia = \"grupo_estratificado\"`, que distribui os grupos inteiros equilibrando as classes entre os folds (como o StratifiedGroupKFold do scikit-learn), ou menos folds."),
         P("A **média dos folds do vencedor é otimista**: foi a melhor entre muitas tentativas, e parte da vantagem é sorte. Ela serve para escolher, não para reportar o desempenho.",
           verificar = "ml/tuning_plot",
           se_falhar = "Reporte o desempenho medido no teste com `ml/predict` e `ml/evaluate`. Sem teste separado (n pequeno), use o `ml/nested_cv`, que estima o procedimento inteiro sem reaproveitar as linhas da escolha."),

@@ -17,7 +17,7 @@ Quando não há linhas para um teste separado, ou quando se quer saber quanto da
 
 ## Configuração
 
-Os mesmos parâmetros do `ml/tune` (`modelo`, `metrica`, `tentativas`, `amplitude`, `estrategia`, `ordem`, `grupo`, `seed`), mais `folds_externos`; `folds` são as partições internas de cada busca. O custo é folds externos × tentativas × folds internos ajustes.
+Os mesmos parâmetros do `ml/tune` (`modelo`, `metrica`, `tentativas`, `amplitude`, `estrategia`, `ordem`, `grupo`, `seed`), mais `folds_externos`; `folds` são as partições internas de cada busca. O custo é folds externos × tentativas × folds internos ajustes. A estratégia `grupo_estratificado` também vale aqui; folds externos de validação com uma classe só geram aviso e a nota no atributo `nota`.
 
 ## Exemplo
 

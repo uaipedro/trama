@@ -39,6 +39,12 @@
   lapply(seq_len(k), function(i) which(ids == i))
 }
 
+.tr_ml_exigir_estrat_classes <- function(estrategia, tarefa) {
+  if (estrategia == "grupo_estratificado" && tarefa != "classificacao")
+    .tr_ml_abort("tr_ml_error_bad_option",
+                 "A estrat\u{E9}gia 'grupo_estratificado' equilibra classes e s\u{F3} serve para classifica\u{E7}\u{E3}o; use 'grupo'.")
+}
+
 # Partições de validação: lista de pares treino/validação (índices de linha).
 # aleatoria: k folds sorteados, estratificados pela classe (versão anterior).
 # grupo: grupos inteiros distribuídos em k folds (nenhum grupo dos dois lados).
@@ -50,6 +56,7 @@
   todos <- seq_len(n)
   par <- function(v) list(treino = setdiff(todos, v), validacao = v)
   if (estrategia == "aleatoria") return(lapply(.tr_ml_make_folds(y, k), par))
+  if (estrategia == "grupo_estratificado") return(lapply(.tr_ml_folds_grupo_estrat(dados, k, y, grupo), par))
   if (estrategia == "grupo") {
     g <- as.character(.tr_ml_coluna_aux(dados, grupo, "grupo"))
     grupos <- unique(g)
@@ -66,6 +73,53 @@
     .tr_ml_abort("tr_ml_error_bad_folds", "A valida\u{E7}\u{E3}o temporal com %d folds precisa de pelo menos %d instantes distintos.", k, k + 1L)
   bloco <- ceiling(seq_along(u) * (k + 1L) / length(u))[match(r, u)]
   lapply(seq_len(k), function(i) list(treino = which(bloco <= i), validacao = which(bloco == i + 1L)))
+}
+
+# Grupos inteiros em k folds equilibrando as classes, como o StratifiedGroupKFold
+# do scikit-learn: grupos embaralhados (pela semente) e ordenados pelo desvio
+# da sua distribuição de classes, do mais concentrado ao mais misto; cada um
+# vai ao fold que deixa menor a média, nas classes, do desvio-padrão entre
+# folds da fração da classe; empate, o fold com menos linhas e depois o de
+# menor índice. Não garante as duas classes em todo fold (grupos grandes
+# demais podem impedir), mas evita os folds puros que o sorteio produz.
+.tr_ml_folds_grupo_estrat <- function(dados, k, y, grupo) {
+  g <- as.character(.tr_ml_coluna_aux(dados, grupo, "grupo"))
+  grupos <- unique(g)
+  if (k > length(grupos))
+    .tr_ml_abort("tr_ml_error_bad_folds", "'folds' n\u{E3}o pode superar o n\u{FA}mero de grupos (%d).", length(grupos))
+  y <- factor(y)
+  cont <- unclass(table(factor(g, levels = grupos), y))       # grupos x classes
+  total <- colSums(cont)
+  grupos_ord <- sample(seq_along(grupos))
+  desvio <- apply(cont[grupos_ord, , drop = FALSE], 1L, stats::sd)
+  grupos_ord <- grupos_ord[order(-desvio, method = "radix")]
+  por_fold <- matrix(0, k, ncol(cont)); fold_de <- integer(length(grupos))
+  for (gi in grupos_ord) {
+    custo <- vapply(seq_len(k), function(f) {
+      m <- por_fold; m[f, ] <- m[f, ] + cont[gi, ]
+      mean(apply(sweep(m, 2L, total, "/"), 2L, stats::sd))
+    }, numeric(1))
+    cand <- which(abs(custo - min(custo)) < 1e-12)
+    cand <- cand[order(rowSums(por_fold)[cand], cand)][[1L]]
+    por_fold[cand, ] <- por_fold[cand, ] + cont[gi, ]; fold_de[[gi]] <- cand
+  }
+  id <- stats::setNames(fold_de, grupos)
+  lapply(seq_len(k), function(i) unname(which(id[g] == i)))
+}
+
+# Folds de validação com uma só classe: macro F1, kappa e acurácia balanceada
+# degeneram neles. Devolve a nota (ou NULL) e avisa.
+.tr_ml_nota_folds_puros <- function(partes, y, tarefa, onde) {
+  if (tarefa != "classificacao") return(NULL)
+  puros <- which(vapply(partes, function(p) length(unique(y[p$validacao])) < 2L, logical(1)))
+  if (!length(puros)) return(NULL)
+  nota <- sprintf(paste(
+    "%s: %d de %d folds de valida\u{E7}\u{E3}o t\u{EA}m uma classe s\u{F3} (folds %s);",
+    "neles macro F1, kappa e acur\u{E1}cia balanceada degeneram. Use estrategia",
+    "'grupo_estratificado' ou menos folds."), onde, length(puros), length(partes),
+    paste(puros, collapse = ", "))
+  warning(nota, call. = FALSE)
+  nota
 }
 
 # Sem `cols`, os preditores são os numéricos exceto alvo, ordem e grupo.
@@ -108,7 +162,10 @@
 #'   o número de linhas nem o tamanho da menor classe.
 #' @param amplitude Limites `"conservadora"` ou `"ampla"` para a busca.
 #' @param estrategia Como formar os folds: `"aleatoria"` (padrão; estratificada
-#'   pela classe), `"grupo"` (grupos inteiros de `grupo` por fold) ou
+#'   pela classe), `"grupo"` (grupos inteiros de `grupo` por fold),
+#'   `"grupo_estratificado"` (grupos inteiros, distribuídos para equilibrar as
+#'   classes entre os folds, como o StratifiedGroupKFold do scikit-learn; só
+#'   classificação) ou
 #'   `"temporal"` (origem móvel com janela crescente: os instantes de `ordem`
 #'   formam `folds + 1` blocos contíguos e cada fold valida o bloco seguinte ao
 #'   treino).
@@ -119,7 +176,8 @@
 #'   ajustes sem alterar o estado aleatório da sessão.
 #' @return Objeto `tr_ml_tuning`: lista com o `modelo` vencedor reajustado,
 #'   `historico` por tentativa e fold, índice `melhor_tentativa`, `metrica`,
-#'   direção `minimizar`, número de `folds` e `seed`.
+#'   direção `minimizar`, número de `folds`, `seed` e `nota` (NULL, ou o aviso
+#'   de folds de validação com uma classe só).
 #' @export
 tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
                        metrica = "auto", tentativas = 20L, folds = 5L,
@@ -132,9 +190,10 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   folds <- .tr_ml_int(folds, "folds", 2L)
   seed <- .tr_ml_int(seed, "seed", 0L)
   amplitude <- .tr_ml_enum(amplitude, c("conservadora", "ampla"), "amplitude")
-  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
+  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo", "grupo_estratificado"), "estrategia")
   cols <- .tr_ml_cols_sem_aux(dados, alvo, cols, ordem, grupo)
   d <- .tr_ml_dados(dados, alvo, cols, tarefa)
+  .tr_ml_exigir_estrat_classes(estrategia, d$tarefa)
   if (folds > d$n) .tr_ml_abort("tr_ml_error_bad_folds", "'folds' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
   tarefa <- d$tarefa
   if (identical(metrica, "auto")) metrica <- if (tarefa == "regressao") "rmse" else "macro_f1"
@@ -150,6 +209,7 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   resultado <- .tr_ml_with_seed(seed, {
     y_folds <- if (tarefa == "classificacao") factor(dados[[d$alvo]]) else dados[[d$alvo]]
     partes <- .tr_ml_folds(dados, estrategia, folds, y_folds, ordem, grupo)
+    nota <- .tr_ml_nota_folds_puros(partes, y_folds, tarefa, "ml/tune")
     configs <- lapply(seq_len(tentativas), function(i) .tr_ml_sample_config(space, modelo))
     linhas <- vector("list", tentativas)
     for (i in seq_len(tentativas)) {
@@ -196,7 +256,7 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
                          tarefa = tarefa, seed = seed), configs[[melhor]])
     list(modelo = do.call(tr_ml_fit, final_args), historico = historico,
          melhor_tentativa = melhor, metrica = metrica, minimizar = minimizar,
-         folds = folds, estrategia = estrategia, seed = seed)
+         folds = folds, estrategia = estrategia, seed = seed, nota = nota)
   })
   structure(resultado, class = "tr_ml_tuning")
 }
@@ -215,6 +275,8 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
 #'   `n_validacao`, `tentativa`, `interna` = média dos folds internos do
 #'   vencedor, otimista; `externa` = métrica na validação externa) e uma linha
 #'   final `fold = "media"` com as médias; a estimativa honesta é `externa`.
+#'   Com folds externos de validação de uma classe só, avisa e guarda a nota
+#'   no atributo `nota`.
 #' @examples
 #' d <- tr_ml_example("iris_binaria")
 #' tr_ml_nested_cv(d, alvo = "Species", tentativas = 3, folds_externos = 3, folds = 3)
@@ -226,16 +288,19 @@ tr_ml_nested_cv <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa
   modelo <- .tr_ml_enum(modelo, c("cart", "figs", "forest", "svm", "xgboost"), "modelo")
   folds_externos <- .tr_ml_int(folds_externos, "folds_externos", 2L)
   seed <- .tr_ml_int(seed, "seed", 0L)
-  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
+  estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo", "grupo_estratificado"), "estrategia")
   cols <- .tr_ml_cols_sem_aux(dados, alvo, cols, ordem, grupo)
   d <- .tr_ml_dados(dados, alvo, cols, tarefa)
   tarefa <- d$tarefa
+  .tr_ml_exigir_estrat_classes(estrategia, tarefa)
   if (folds_externos > d$n)
     .tr_ml_abort("tr_ml_error_bad_folds", "'folds_externos' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
   partes <- .tr_ml_with_seed(seed, {
     y <- if (tarefa == "classificacao") factor(dados[[d$alvo]]) else dados[[d$alvo]]
     .tr_ml_folds(dados, estrategia, folds_externos, y, ordem, grupo)
   })
+  y_ext <- dados[[d$alvo]]
+  nota <- .tr_ml_nota_folds_puros(partes, y_ext, tarefa, "ml/nested_cv (folds externos)")
   base <- dados; attr(base, .tr_ml_origem_attr) <- NULL
   linhas <- .tr_ml_sem_impressao(lapply(seq_along(partes), function(i) {
     parte <- partes[[i]]
@@ -252,7 +317,9 @@ tr_ml_nested_cv <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa
                    externa = .tr_ml_tune_metric(pred, alvo, tarefa, z$metrica))
   }))
   out <- do.call(rbind, linhas)
-  rbind(out, tibble::tibble(fold = "media", n_treino = NA_integer_, n_validacao = NA_integer_,
-                            tentativa = NA_integer_, metrica = out$metrica[[1]],
-                            interna = mean(out$interna), externa = mean(out$externa)))
+  out <- rbind(out, tibble::tibble(fold = "media", n_treino = NA_integer_, n_validacao = NA_integer_,
+                                   tentativa = NA_integer_, metrica = out$metrica[[1]],
+                                   interna = mean(out$interna), externa = mean(out$externa)))
+  if (!is.null(nota)) attr(out, "nota") <- nota
+  out
 }

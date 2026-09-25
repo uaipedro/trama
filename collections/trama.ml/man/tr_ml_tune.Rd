@@ -48,7 +48,10 @@ o número de linhas nem o tamanho da menor classe.}
 \item{amplitude}{Limites \code{"conservadora"} ou \code{"ampla"} para a busca.}
 
 \item{estrategia}{Como formar os folds: \code{"aleatoria"} (padrão; estratificada
-pela classe), \code{"grupo"} (grupos inteiros de \code{grupo} por fold) ou
+pela classe), \code{"grupo"} (grupos inteiros de \code{grupo} por fold),
+\code{"grupo_estratificado"} (grupos inteiros, distribuídos para equilibrar as
+classes entre os folds, como o StratifiedGroupKFold do scikit-learn; só
+classificação) ou
 \code{"temporal"} (origem móvel com janela crescente: os instantes de \code{ordem}
 formam \code{folds + 1} blocos contíguos e cada fold valida o bloco seguinte ao
 treino).}
@@ -64,7 +67,8 @@ ajustes sem alterar o estado aleatório da sessão.}
 \value{
 Objeto \code{tr_ml_tuning}: lista com o \code{modelo} vencedor reajustado,
 \code{historico} por tentativa e fold, índice \code{melhor_tentativa}, \code{metrica},
-direção \code{minimizar}, número de \code{folds} e \code{seed}.
+direção \code{minimizar}, número de \code{folds}, \code{seed} e \code{nota} (NULL, ou o aviso
+de folds de validação com uma classe só).
 }
 \description{
 O conjunto recebido é usado para validação interna; após escolher a melhor
