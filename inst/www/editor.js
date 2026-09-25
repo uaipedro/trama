@@ -27,7 +27,7 @@ import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
-import { Proximo, primeiroVao, alturaNova } from "./proximo.js";
+import { Proximo, primeiroVao, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 
@@ -2573,11 +2573,24 @@ function App() {
   // origem) sairia com revisão defasada: vai pra fila atrás dele.
   const ultimoProxRef = useRef(null);
   const ultimoProxT = useRef(0);
+  // Op perdida (recusa ou prazo) nunca terá `run_finished`: o "na fila"
+  // que `pushOp` pintou volta ao repouso, senão fica preso até a próxima run.
+  const liberarPendentes = () => {
+    let mudou = false;
+    Object.keys(stateRef.current).forEach((k) => {
+      if (stateRef.current[k].state === "pending") {
+        stateRef.current[k] = { ...stateRef.current[k], state: "idle" };
+        mudou = true;
+      }
+    });
+    if (mudou) bumpTick();
+  };
   const descartarFila = (motivo) => {
     const n = filaProxRef.current.length;
     const pendente = n || ultimoProxRef.current;
     filaProxRef.current = [];
     ultimoProxRef.current = null;
+    liberarPendentes();
     // O popover encadeando a partir de um bloco que não vai existir fecha:
     // senão o próximo Tab conectaria num nó que o servidor nunca viu.
     if (pendente) {
@@ -2619,6 +2632,7 @@ function App() {
       // por ele, sem aviso (nada foi descartado).
       if (!f && ultimoProxRef.current && Date.now() - ultimoProxT.current > FILA_PROX_PRAZO) {
         ultimoProxRef.current = null;
+        liberarPendentes();
       }
       if (!f || Date.now() - (f.t ?? Date.now()) < FILA_PROX_PRAZO) return;
       setBanner(descartarFila("O servidor não confirmou o bloco anterior"));
@@ -2636,6 +2650,14 @@ function App() {
       if (!o || !d) return;
       const nid = novoId();
       const pm = { x: (o.position.x + d.position.x) / 2, y: (o.position.y + d.position.y) / 2 };
+      // Os vizinhos não se movem: o bloco é que procura o vão livre mais perto
+      // do ponto médio (descendo, depois subindo); sem vão, fica no meio.
+      const hMeio = alturaNova(modoNovoRef.current);
+      const caixasMeio = nodesRef.current.filter((n) => n.type === "ndNode")
+        .map((n) => ({ x: n.position.x, y: n.position.y,
+                       w: n.measured?.width ?? n.width ?? MIN_W, h: n.measured?.height ?? n.height ?? 200 }))
+        .concat(filaProxRef.current.map((f) => ({ ...f.pos, w: MIN_W, h: f.h ?? hMeio })));
+      pm.y = vaoPerto(caixasMeio, { x: pm.x, y: pm.y, w: MIN_W, h: hMeio }, 30);
       const opsMeio = [
         { op: "disconnect", from_node: a.source, from_port: a.sourceHandle,
           to_node: a.target, to_port: a.targetHandle, index: a.index },
@@ -2645,7 +2667,7 @@ function App() {
       ];
       // Com inserts encadeados na fila (ou o último ainda em voo), este entra
       // atrás deles: sair antes mandaria uma revisão que eles tornam defasada.
-      enviarProx(opsMeio, nid, { pos: pm });
+      enviarProx(opsMeio, nid, { pos: pm, h: hMeio });
       registrar(p.deTipo, tipoId);
       selNovoRef.current = nid;
       return;

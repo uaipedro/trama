@@ -30,6 +30,28 @@ export function primeiroVao(caixas, q, margem = 30) {
   return y;
 }
 
+// Vão mais perto de `q.y`: procura descendo e subindo (mesma regra de
+// `primeiroVao`) e fica com o menor deslocamento; empate desce. Sem vão em
+// nenhum sentido (200 passos), volta ao `q.y` original.
+export function vaoPerto(caixas, q, margem = 30) {
+  const bate = (y) => (c) => q.x < c.x + c.w + margem && c.x < q.x + q.w + margem &&
+    y < c.y + c.h + margem && c.y < y + q.h + margem;
+  const anda = (passo) => {
+    let y = q.y;
+    for (let i = 0, c; i < 200; i++) {
+      if (!(c = caixas.find(bate(y)))) return y;
+      y = passo(c);
+    }
+    return null;
+  };
+  const desce = anda((c) => c.y + c.h + margem);
+  const sobe = anda((c) => c.y - q.h - margem);
+  if (desce == null && sobe == null) return q.y;
+  if (sobe == null) return desce;
+  if (desce == null) return sobe;
+  return Math.abs(sobe - q.y) < Math.abs(desce - q.y) ? sobe : desce;
+}
+
 // Mesma regra da paleta (editor.js): `label description id`, sem caixa.
 const casa = (n, termo) =>
   !termo || `${n.label} ${n.description || ""} ${n.id}`.toLowerCase().includes(termo);
