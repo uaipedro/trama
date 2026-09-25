@@ -35,3 +35,14 @@
   (0,95). Validação: `pROC::ci.auc(method = "delong")` 1.18 a 1e-8 no `aSAH`
   (três escores, com empates; também a 90%) e nas probabilidades de
   deixa-um-fora da logística do `pima` (AUC 0,849, IC 0,816–0,882).
+
+## Métricas da matriz de confusão
+
+* `multi/confusion` ganha `tabela = c("matriz", "métricas")` (padrão `matriz`,
+  sem mudança). `métricas` devolve acurácia, acurácia balanceada (Brodersen et
+  al. 2010, doi:10.1109/ICPR.2010.764), kappa de Cohen (1960,
+  doi:10.1177/001316446002000104) e precisão, revocação e F1 por grupo
+  (Sokolova & Lapalme 2009); precisão de grupo nunca previsto é NA. Validação:
+  contas à mão; exemplo 20/5/10/15 (κ = 0,4, o exemplo da página "Cohen's
+  kappa" da Wikipédia — não é fonte primária); `irr::kappa2` e
+  `psych::cohen.kappa` a 1e-12 nas previsões cruzadas da LDA do `iris`.

@@ -42,6 +42,7 @@ Suggests:
     testthat (>= 3.0.0),
     png,
     GPArotation,
+    irr,
     logistf,
     pROC,
     psych,

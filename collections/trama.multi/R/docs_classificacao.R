@@ -28,7 +28,7 @@
                     se_falhar = "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco.")
   desbalanceio <- P("Com **grupos desbalanceados**, a taxa de acerto geral engana: prever sempre o grupo maior já acerta a proporção dele. Leia a taxa de cada grupo (a sensibilidade de cada um).",
                     verificar = "data/group_summarise",
-                    se_falhar = "Compare pela AUC na `multi/roc`; na discriminante, experimente `priors = \"iguais\"`. O trama ainda não tem acurácia balanceada nem curva precisão-revocação (lacuna registrada).")
+                    se_falhar = "Leia a acurácia balanceada, o kappa e a precisão/revocação por grupo (`tabela = \"métricas\"` no `multi/confusion`) e a AUC na `multi/roc`; na discriminante, experimente `priors = \"iguais\"`. Curva precisão-revocação ainda sem bloco na multi (lacuna registrada).")
   mardia70 <- R(autores = "Mardia, K. V.", ano = 1970,
                 titulo = "Measures of multivariate skewness and kurtosis with applications",
                 fonte = "Biometrika, 57(3), 519-530", doi = "10.1093/biomet/57.3.519")
@@ -108,7 +108,17 @@
         P("O classificador de entrada atende aos seus pressupostos (os da discriminante ou da logística); a matriz mede o acerto, não conserta o modelo. O `multi/box_m` só se aplica quando a entrada é um discriminante.",
           verificar = "multi/box_m")),
       referencias = list(lachenbruch, L$johnson, L$mass,
-        I("MASS", "lda", "Deixa-um-fora da discriminante pelo `CV = TRUE` de `MASS::lda`/`qda`; na logística, n reajustes do `glm`/`nnet::multinom`, cada um sem uma linha."))),
+        R(autores = "Cohen, J.", ano = 1960, titulo = "A coefficient of agreement for nominal scales",
+          fonte = "Educational and Psychological Measurement, 20(1), 37-46", doi = "10.1177/001316446002000104"),
+        R(autores = c("Brodersen, K. H.", "Ong, C. S.", "Stephan, K. E.", "Buhmann, J. M."), ano = 2010,
+          titulo = "The balanced accuracy and its posterior distribution",
+          fonte = "20th International Conference on Pattern Recognition, 3121-3124", doi = "10.1109/ICPR.2010.764",
+          papel = "complementar"),
+        R(autores = c("Sokolova, M.", "Lapalme, G."), ano = 2009,
+          titulo = "A systematic analysis of performance measures for classification tasks",
+          fonte = "Information Processing & Management, 45(4), 427-437", doi = "10.1016/j.ipm.2009.03.002",
+          papel = "complementar"),
+        I("MASS", "lda", "Deixa-um-fora da discriminante pelo `CV = TRUE` de `MASS::lda`/`qda`; na logística, n reajustes do `glm`/`nnet::multinom`, cada um sem uma linha. Métricas (`tabela = \"métricas\"`) por implementação própria; kappa conferido contra `irr::kappa2` e `psych::cohen.kappa`."))),
 
     "multi/roc" = list(
       pressupostos = list(fora_amostra,

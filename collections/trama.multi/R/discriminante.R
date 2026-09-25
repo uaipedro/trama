@@ -337,19 +337,54 @@ tr_multi_classify <- function(modelo, novos = NULL, validacao = "resubstituiçã
   tibble::as_tibble(cbind(as.data.frame(tab), novas))
 }
 
+.TR_MULTI_TABELAS_CONFUSAO <- c("matriz", "métricas")
+
+#' Métricas de uma matriz de confusão (linhas = real, colunas = previsto).
+#'
+#' Acurácia; acurácia balanceada, a média das revocações (Brodersen et al.
+#' 2010); kappa de Cohen (1960), (pₒ − pₑ)/(1 − pₑ) com pₑ dos totais
+#' marginais; e, por grupo, precisão, revocação e F1 (Sokolova & Lapalme
+#' 2009). Grupo nunca previsto tem precisão 0/0: sai NA, e o F1 também — zero
+#' seria dizer que se sabe o que não se sabe.
+#' @noRd
+.tr_multi_metricas <- function(m) {
+  n <- sum(m); acertos <- diag(m)
+  real <- rowSums(m); prev <- colSums(m)
+  revoc <- acertos / real
+  prec <- ifelse(prev > 0, acertos / prev, NA_real_)
+  f1 <- ifelse(is.na(prec) | (prec + revoc) == 0, NA_real_, 2 * prec * revoc / (prec + revoc))
+  po <- sum(acertos) / n
+  pe <- sum(real * prev) / n^2
+  kappa <- if (pe < 1) (po - pe) / (1 - pe) else NA_real_
+  g <- rownames(m)
+  data.frame(
+    medida = c("acurácia", "acurácia balanceada", "kappa de Cohen",
+               rep(c("precisão", "revocação", "F1"), each = length(g))),
+    grupo = c(NA, NA, NA, rep(g, 3)),
+    valor = c(po, mean(revoc), kappa, unname(prec), unname(revoc), unname(f1)),
+    stringsAsFactors = FALSE)
+}
+
 #' Matriz de confusão: grupo real × grupo previsto.
 #' @param modelo objeto `tr_multi_lda` ou `tr_multi_logit`.
 #' @param validacao `"cruzada"` (deixa-um-fora) ou `"resubstituição"`.
+#' @param tabela `"matriz"` (padrão) ou `"métricas"`.
 #' @return tibble: `real`, uma coluna de contagem por grupo previsto, `total`,
 #'   `acertos`, `taxa_acerto`; a última linha, `real = "total"`, é o geral.
+#'   Com `"métricas"`: `medida`, `grupo`, `valor`.
 #' @export
-tr_multi_confusion <- function(modelo, validacao = "cruzada") {
+tr_multi_confusion <- function(modelo, validacao = "cruzada", tabela = "matriz") {
   no <- "multi/confusion"
   validacao <- .tr_multi_enum(validacao, .TR_MULTI_VALIDACOES, "validacao")
+  tabela <- .tr_multi_enum(tabela, .TR_MULTI_TABELAS_CONFUSAO, "tabela")
   pr <- .tr_multi_prever(modelo, validacao, no)
   previsto <- pr$classe
   niveis <- levels(pr$g)
   m <- table(factor(pr$g, levels = niveis), factor(previsto, levels = niveis))
+  if (tabela == "métricas") {
+    mm <- matrix(as.numeric(m), nrow(m), dimnames = list(niveis, niveis))
+    return(tibble::as_tibble(.tr_multi_metricas(mm)))
+  }
   cont <- matrix(as.integer(m), nrow(m), dimnames = list(NULL, niveis))
   # Um grupo chamado "total" colidiria com a coluna do total: ganha o sufixo.
   reservados <- c("real", "total", "acertos", "taxa_acerto")
@@ -710,7 +745,9 @@ de probabilidade baixa.
       description = "Grupo real × previsto e taxa de acerto, por validação cruzada ou resubstituição.",
       inputs = list(modelo = "multi/classifier"), outputs = list(out = TB),
       params = list(validacao = trama::tr_param_enum("cruzada", .TR_MULTI_VALIDACOES,
-                                                     label = "Validação")),
+                                                     label = "Validação"),
+                    tabela = trama::tr_param_enum("matriz", .TR_MULTI_TABELAS_CONFUSAO,
+                                                  label = "Tabela")),
       help = .tr_multi_ajuda(r"---[
 Cruza o grupo REAL de cada observação com o grupo que a regra PREVÊ, e conta.
 A diagonal são os acertos; fora dela, quem foi confundido com quem — e é aí
@@ -734,14 +771,36 @@ o modelo é reajustado n vezes (segundos com centenas de linhas na multinomial).
 Na `iris`, a linear acerta 98% por resubstituição e também 98% na cruzada:
 com 4 preditores e 50 flores por espécie, quase não há otimismo. Com 20
 preditores e 15 casos por grupo, a diferença seria grande.
+
+### Métricas
+
+Com **tabela = métricas**, a mesma matriz vira medidas que não se deixam
+enganar por grupos desbalanceados:
+
+- **acurácia** — acertos / total (a `taxa_acerto` geral da matriz).
+- **acurácia balanceada** — a média das revocações dos grupos (Brodersen et
+  al., 2010): prever sempre o grupo maior dá 1/g, e não a proporção dele.
+- **kappa de Cohen** — (pₒ − pₑ)/(1 − pₑ), o acerto além do esperado pelo
+  acaso com os mesmos totais de real e previsto (Cohen, 1960): 0 é acaso, 1 é
+  perfeito.
+- **precisão**, **revocação** e **F1**, por grupo — dos previstos no grupo,
+  quantos eram dele; dos que eram dele, quantos foram previstos (a
+  `taxa_acerto` da linha); e a média harmônica das duas. Grupo nunca previsto
+  tem precisão e F1 `NA` (0/0), e não zero.
+
+Na `iris` com a linear e validação cruzada: acurácia 0,98, acurácia balanceada
+0,98, kappa 0,97.
 ]---", r"---[
 - **Validação** — `cruzada` (deixa-um-fora, o padrão) ou `resubstituição`.
+- **Tabela** — `matriz` (padrão) ou `métricas`.
 ]---", r"---[
 Uma tabela (`data/table`) com uma linha por grupo REAL: a coluna `real`; uma
 coluna por grupo PREVISTO, com a contagem; `total` (quantos há no grupo),
 `acertos` (a diagonal) e `taxa_acerto` (acertos / total, a sensibilidade do
 grupo). A última linha, `real = "total"`, soma as colunas: as contagens são
 quantos foram previstos em cada grupo, e `taxa_acerto` é o acerto GERAL.
+
+Com `métricas`: `medida`, `grupo` (só nas medidas por grupo) e `valor`.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("iris", "multi/example", dataset = "iris") |>
