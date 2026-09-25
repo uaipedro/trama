@@ -15,7 +15,6 @@
 
 .TR_MULTI_METODOS_LDA <- c("linear", "quadrática")
 .TR_MULTI_PRIORS <- c("proporcionais", "iguais")
-.TR_MULTI_VALIDACOES <- c("cruzada", "resubstituição")
 .TR_MULTI_TABELAS_LDA <- c("funções", "coeficientes", "padronizados", "estrutura")
 
 # ---------------------------------------------------------------------------
@@ -147,15 +146,8 @@
 #' A matriz de treino e o grupo de volta, a partir do objeto.
 #' @noRd
 .tr_multi_treino <- function(modelo) {
-  list(X = .tr_multi_matriz(modelo$dados, modelo$preditores, "multi/lda"),
+  list(X = .tr_multi_matriz(modelo$dados, modelo$preditores, "multi/discriminant"),
        g = droplevels(as.factor(modelo$dados[[modelo$grupo]])))
-}
-
-#' Confere o objeto que chega pela porta, para o `fn` chamado no console.
-#' @noRd
-.tr_multi_modelo <- function(modelo) {
-  .tr_multi_guard(modelo, "tr_multi_lda", .TR_MULTI_CAMPOS_LDA, "tr_multi_error_not_a_lda",
-                  "uma análise discriminante")
 }
 
 #' O ajuste, com o aviso de colinearidade do MASS promovido a erro.
@@ -176,65 +168,6 @@
     }), no)
 }
 
-#' Nome de coluna a partir do nome de um grupo: `azul fêmea` -> `azul_fêmea`.
-#'
-#' Mantém letra acentuada (a tabela é em português) e troca o resto por `_`,
-#' para a coluna ser citável em `data/select` sem crase.
-#' @noRd
-.tr_multi_nome_coluna <- function(x) {
-  x <- gsub("(*UCP)[^\\p{L}\\p{N}]+", "_", x, perl = TRUE)
-  x <- gsub("^_+|_+$", "", x)
-  x[!nzchar(x)] <- "grupo"
-  make.unique(x, sep = "_")
-}
-
-.TR_MULTI_VALIDACOES_CLASSIFY <- c("resubstituição", "cruzada")
-
-#' Classe e probabilidades do TREINO, por resubstituição ou deixa-um-fora.
-#'
-#' Comum a `classify`, `confusion` e `roc`, para que os três contem a mesma
-#' história. Na LDA/QDA a cruzada é o `CV = TRUE` da MASS, exato e sem
-#' reajuste. Na logística não há atalho: são n ajustes, cada um sem uma linha —
-#' rápido no `glm`, alguns segundos no `multinom` com centenas de linhas.
-#' @return `list(prob, classe, g)` com `prob` n × grupos (colunas nos níveis).
-#' @noRd
-.tr_multi_prever <- function(modelo, validacao, no) {
-  qual <- .tr_multi_classificador(modelo)
-  g <- droplevels(as.factor(modelo$dados[[modelo$grupo]]))
-  if (qual == "lda") {
-    X <- .tr_multi_matriz(modelo$dados, modelo$preditores, no)
-    if (identical(validacao, "resubstituição")) {
-      pr <- stats::predict(modelo$ajuste, newdata = X)
-      return(list(prob = pr$posterior, classe = factor(pr$class, levels = levels(g)), g = g))
-    }
-    if (identical(modelo$metodo, "quadrática")) {
-      # Deixando uma fora, o grupo dela fica com n - 1; a covariância só é
-      # inversível se ainda sobrarem p + 1.
-      .tr_multi_grupo_minimo(g, ncol(X) + 2L, no,
-                             "A validação cruzada da quadrática tira uma observação do grupo e ainda precisa inverter a covariância dele.")
-    }
-    cv <- .tr_multi_lda_ajuste(X, g, modelo$metodo, .tr_multi_prior_vetor(g, modelo$priors), no,
-                               CV = TRUE)
-    return(list(prob = cv$posterior, classe = factor(cv$class, levels = levels(g)), g = g))
-  }
-  X <- .tr_multi_logit_X(modelo, modelo$dados)
-  if (identical(validacao, "resubstituição")) return(c(.tr_multi_logit_prever(modelo, X), list(g = g)))
-  .tr_multi_grupo_minimo(g, 3L, no,
-                         "Deixando uma observação de fora, o grupo dela ainda precisa de duas para entrar no ajuste.")
-  n <- nrow(X)
-  prob <- matrix(NA_real_, n, nlevels(g), dimnames = list(NULL, levels(g)))
-  classe <- character(n)
-  for (i in seq_len(n)) {
-    sem <- modelo
-    # Sem hessiana: o reajuste só prevê a observação deixada de fora.
-    sem$ajuste <- .tr_multi_logit_ajuste(X[-i, , drop = FALSE], g[-i], no, hess = FALSE)
-    pr <- .tr_multi_logit_prever(sem, X[i, , drop = FALSE])
-    prob[i, ] <- pr$prob[1, ]
-    classe[i] <- as.character(pr$classe)
-  }
-  list(prob = prob, classe = factor(classe, levels = levels(g)), g = g)
-}
-
 # ---------------------------------------------------------------------------
 # Nós
 
@@ -244,7 +177,7 @@
 #' @param preditores colunas preditoras; em branco, todas as numéricas menos a resposta.
 #' @param metodo `"linear"` ou `"quadrática"`.
 #' @param priors `"proporcionais"` (às frequências observadas) ou `"iguais"`.
-#' @return objeto `tr_multi_lda`.
+#' @return modelo `models/fit` de classe `tr_multi_lda`.
 #' @export
 tr_multi_discriminant <- function(dados, resposta = "", preditores = "", metodo = "linear",
                                   priors = "proporcionais") {
@@ -269,103 +202,6 @@ tr_multi_discriminant <- function(dados, resposta = "", preditores = "", metodo 
   .tr_multi_lda_obj(ajuste, metodo, gr$grupo, gr$preditores, tibble::as_tibble(dados), priors)
 }
 
-#' Classifica: a classe prevista e as probabilidades a posteriori.
-#' @param modelo objeto `tr_multi_lda` ou `tr_multi_logit`.
-#' @param novos tabela a classificar; `NULL` classifica o próprio treino.
-#' @param validacao `"resubstituição"` ou `"cruzada"` (só sem `novos`).
-#' @return tibble: as colunas da tabela, `previsto`, `prob_<grupo>` e, na
-#'   discriminante linear, `LD1..`.
-#' @export
-tr_multi_classify <- function(modelo, novos = NULL, validacao = "resubstituição") {
-  no <- "multi/classify"
-  qual <- .tr_multi_classificador(modelo)
-  validacao <- .tr_multi_enum(validacao, .TR_MULTI_VALIDACOES_CLASSIFY, "validacao")
-  preds <- modelo$preditores
-  if (!is.null(novos) && identical(validacao, "cruzada")) {
-    .tr_multi_abort("tr_multi_error_bad_option",
-                    paste0("'%s': validação cruzada só vale para o TREINO — cada linha é prevista ",
-                           "pelo modelo ajustado sem ela, e uma tabela nova nunca esteve no ajuste. ",
-                           "Desligue a porta 'novos' ou use validacao = \"resubstituição\"."), no)
-  }
-  tab <- if (is.null(novos)) modelo$dados else tibble::as_tibble(novos)
-  faltam <- setdiff(preds, names(tab))
-  if (length(faltam)) {
-    .tr_multi_abort("tr_multi_error_new_data_columns",
-                    paste0("'%s': a tabela a classificar não tem colunas usadas no treino: %s. ",
-                           "O modelo foi ajustado com: %s."),
-                    no, paste(faltam, collapse = ", "), paste(preds, collapse = ", "))
-  }
-  texto <- preds[!vapply(tab[preds], is.numeric, TRUE)]
-  if (length(texto)) {
-    .tr_multi_abort("tr_multi_error_not_numeric",
-                    "'%s': na tabela a classificar, coluna não numérica entre os preditores: %s.",
-                    no, paste(texto, collapse = ", "))
-  }
-  # Não é `.tr_multi_matriz`: ela recusa variável constante, e classificar UMA
-  # linha nova (desvio padrão NA) ou duas iguais é legítimo.
-  X <- as.matrix(as.data.frame(tab)[, preds, drop = FALSE])
-  storage.mode(X) <- "double"
-  incompletas <- !stats::complete.cases(X)
-  if (any(incompletas)) {
-    .tr_multi_abort("tr_multi_error_missing_values",
-                    paste0("'%s' não classifica linha com faltante, e %d linha(s) têm (colunas: %s). ",
-                           "Ligue um 'data/drop_na' antes."),
-                    no, sum(incompletas), paste(preds[colSums(is.na(X)) > 0], collapse = ", "))
-  }
-  if (is.null(novos) && identical(validacao, "cruzada")) {
-    pr <- .tr_multi_prever(modelo, "cruzada", no)
-    prob <- pr$prob; classe <- pr$classe; escores <- NULL
-  } else if (qual == "lda") {
-    p <- stats::predict(modelo$ajuste, newdata = X)
-    prob <- p$posterior; classe <- p$class; escores <- p$x
-  } else {
-    p <- .tr_multi_logit_prever(modelo, X)
-    prob <- p$prob; classe <- p$classe; escores <- NULL
-  }
-  post <- as.data.frame(prob)
-  names(post) <- paste0("prob_", .tr_multi_nome_coluna(colnames(prob)))
-  novas <- tibble::tibble(previsto = classe)
-  novas <- cbind(novas, post)
-  # Os escores LD saem mesmo na cruzada (são as coordenadas no plano do modelo
-  # completo): o `view/points` colorido pelo previsto honesto precisa deles.
-  if (qual == "lda" && is.null(escores) && identical(modelo$metodo, "linear")) {
-    escores <- stats::predict(modelo$ajuste, newdata = X)$x
-  }
-  if (!is.null(escores)) novas <- cbind(novas, as.data.frame(escores))
-  # Classificar a SAÍDA de um classify (ou reclassificar) sobrescreve as colunas
-  # antigas, em vez de criar `previsto.1` ao lado da velha.
-  tab <- tab[, setdiff(names(tab), names(novas)), drop = FALSE]
-  tibble::as_tibble(cbind(as.data.frame(tab), novas))
-}
-
-#' Matriz de confusão: grupo real × grupo previsto.
-#' @param modelo objeto `tr_multi_lda` ou `tr_multi_logit`.
-#' @param validacao `"cruzada"` (deixa-um-fora) ou `"resubstituição"`.
-#' @return tibble: `real`, uma coluna de contagem por grupo previsto, `total`,
-#'   `acertos`, `taxa_acerto`; a última linha, `real = "total"`, é o geral.
-#' @export
-tr_multi_confusion <- function(modelo, validacao = "cruzada") {
-  no <- "multi/confusion"
-  validacao <- .tr_multi_enum(validacao, .TR_MULTI_VALIDACOES, "validacao")
-  pr <- .tr_multi_prever(modelo, validacao, no)
-  previsto <- pr$classe
-  niveis <- levels(pr$g)
-  m <- table(factor(pr$g, levels = niveis), factor(previsto, levels = niveis))
-  cont <- matrix(as.integer(m), nrow(m), dimnames = list(NULL, niveis))
-  # Um grupo chamado "total" colidiria com a coluna do total: ganha o sufixo.
-  reservados <- c("real", "total", "acertos", "taxa_acerto")
-  colnames(cont) <- ifelse(niveis %in% reservados, paste(niveis, "(previsto)"), niveis)
-  total <- as.integer(rowSums(cont))
-  acertos <- as.integer(diag(cont))
-  corpo <- data.frame(real = niveis, cont, total = total, acertos = acertos,
-                      taxa_acerto = acertos / total, check.names = FALSE)
-  ultima <- data.frame(real = "total", t(as.integer(colSums(cont))), total = sum(total),
-                       acertos = sum(acertos), taxa_acerto = sum(acertos) / sum(total),
-                       check.names = FALSE)
-  names(ultima) <- names(corpo)
-  tibble::as_tibble(rbind(corpo, ultima))
-}
-
 #' Autovalores W^-1 B: a análise canônica dos grupos.
 #'
 #' Calculados dos DADOS, e não do `svd` da `lda`: o `svd` pondera a dispersão
@@ -384,14 +220,14 @@ tr_multi_confusion <- function(modelo, validacao = "cruzada") {
 }
 
 #' Funções discriminantes: autovalor, separação, correlação canônica, Wilks.
-#' @param modelo objeto `tr_multi_lda` (linear).
+#' @param modelo uma discriminante (`multi/discriminant`, linear).
 #' @param tabela `"funções"` (os testes), `"coeficientes"` (brutos),
 #'   `"padronizados"` ou `"estrutura"` (correlações variável-função).
 #' @return tibble.
 #' @export
 tr_multi_discriminant_functions <- function(modelo, tabela = "funções") {
   no <- "multi/discriminant_functions"
-  .tr_multi_modelo(modelo)
+  .tr_multi_exigir(modelo, "lda", no)
   tabela <- .tr_multi_enum(tabela, .TR_MULTI_TABELAS_LDA, "tabela")
   if (!identical(modelo$metodo, "linear")) {
     .tr_multi_abort("tr_multi_error_bad_option",
@@ -472,7 +308,7 @@ tr_multi_box_m <- function(dados, grupo = "", cols = "") {
 }
 
 #' O plano discriminante: escores por grupo, com centróides.
-#' @param modelo objeto `tr_multi_lda`.
+#' @param modelo uma discriminante (`multi/discriminant`).
 #' @param x,y as funções nos eixos (1 = LD1).
 #' @param elipses desenhar as elipses normais de 95% de cada grupo.
 #' @inheritParams trama.view::tr_view_finish
@@ -482,7 +318,7 @@ tr_multi_plot_discriminant <- function(modelo, x = 1L, y = 2L, elipses = TRUE, a
                                        tema = "padrão", titulo = "", rotulo_x = "",
                                        rotulo_y = "", legenda = "direita") {
   no <- "multi/plot_discriminant"
-  .tr_multi_modelo(modelo)
+  .tr_multi_exigir(modelo, "lda", no)
   tr <- .tr_multi_treino(modelo)
   # A QDA não tem funções discriminantes. Para ter EIXOS, uma LDA auxiliar nos
   # mesmos dados: as cores e os grupos são os mesmos, mas a fronteira que a
@@ -541,28 +377,11 @@ tr_multi_plot_discriminant <- function(modelo, x = 1L, y = 2L, elipses = TRUE, a
 }
 
 # ---------------------------------------------------------------------------
-# Tipo: resumo do card e adaptador
-
-#' O resumo do card de `multi/lda`.
-#' @noRd
-.tr_multi_lda_resumo <- function(x) {
-  tr <- .tr_multi_treino(x)
-  acerto <- mean(stats::predict(x$ajuste, newdata = tr$X)$class == tr$g)
-  list(metodo = x$metodo, grupos = .tr_multi_tamanhos(tr$g),
-       preditores = length(x$preditores),
-       acerto_resubstituicao = round(acerto, 4), priors = x$priors)
-}
-
-#' `multi/lda` -> `data/table`: o treino classificado, com os escores.
-#' @noRd
-.tr_multi_lda_tabela <- function(x) tr_multi_classify(x)
-
-# ---------------------------------------------------------------------------
 # Declarações
 
 .tr_multi_nos_discriminante <- function() {
   P <- trama::tr_param
-  L <- "multi/lda"
+  L <- "models/fit"
   TB <- "data/table"
   list(
     trama::tr_node("multi/discriminant", fn = tr_multi_discriminant, label = "Discriminante",
@@ -593,7 +412,7 @@ CLASSIFICAR caso novo, cujo grupo não se sabe.
 
 O `multi/box_m` testa se as covariâncias são iguais. A regra prática é
 começar pela linear e trocar só se a quadrática ACERTAR mais em validação
-cruzada (`multi/confusion`) — o M de Box rejeita com facilidade.
+cruzada (`models/confusion`) — o M de Box rejeita com facilidade.
 
 ### Priors
 
@@ -626,126 +445,22 @@ de cada grupo tem de ser inversível (o erro nomeia o grupo).
 - **Método** — `linear` (LDA) ou `quadrática` (QDA).
 - **Priors** — `proporcionais` às frequências da tabela, ou `iguais`.
 ]---", r"---[
-Um modelo `multi/lda`. O card mostra o plano discriminante e a taxa de acerto
-por resubstituição. Ligado a um nó de tabela, vira o treino classificado
-(como `multi/classify`), com `LD1`, `LD2`, ... para um `view/points`.
+Um modelo (`models/fit`). O card mostra o plano discriminante. O modelo
+entra nos blocos de previsão da coleção de modelos: `models/predict` para
+classificar (o treino, ou caso novo em `dados`), `models/confusion` e
+`models/roc` para medir o acerto. Ligado a um nó de tabela, vira o treino
+classificado (como o `models/predict`), com `LD1`, `LD2`, ... para um
+`view/points`.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("cr", "multi/example", dataset = "caranguejos") |>
   tr_add("lda", "multi/discriminant", resposta = "grupo", from = "cr") |>
-  tr_add("cv", "multi/confusion", validacao = "cruzada", from = "lda")
+  tr_add("cv", "models/confusion", validacao = "cruzada", from = "lda")
 ]---", r"---[
-`multi/confusion` para a taxa de acerto honesta; `multi/discriminant_functions`
-para Wilks e correlações canônicas; `multi/classify` para caso novo;
+`models/confusion` para a taxa de acerto honesta; `multi/discriminant_functions`
+para Wilks e correlações canônicas; `models/predict` para caso novo;
 `multi/box_m` para escolher entre linear e quadrática; `multi/pca` para
 comparar com o que se vê sem o grupo.
-]---")),
-
-    trama::tr_node("multi/classify", role = "leitura", fn = tr_multi_classify, label = "Classificar",
-      category = "multi_discriminante", icon = trama::tr_icon("tags"),
-      description = "Classe prevista e probabilidade de cada grupo, do treino ou de uma tabela nova.",
-      inputs = list(modelo = "multi/classifier", novos = trama::tr_port(TB, required = FALSE)),
-      outputs = list(out = TB),
-      params = list(validacao = trama::tr_param_enum("resubstituição",
-                                                     .TR_MULTI_VALIDACOES_CLASSIFY,
-                                                     label = "Validação")),
-      help = .tr_multi_ajuda(r"---[
-Aplica a regra de um `multi/discriminant` ou de uma `multi/logistic` e diz,
-para cada linha, o grupo PREVISTO e a probabilidade de cada grupo — a
-probabilidade de a linha ser daquele grupo, dadas as medidas (e, na
-discriminante, as priors; a logística não tem priors).
-
-Sem nada na porta `novos`, classifica a própria tabela de treino. Com uma
-tabela ligada em `novos`, classifica ELA: é o uso de verdade, o caso cujo
-grupo não se sabe. A tabela nova precisa ter todas as colunas usadas como
-preditores (com o mesmo nome), sem faltante; as outras colunas passam intactas,
-e a do grupo pode nem existir.
-
-Leia a probabilidade junto com a classe: `previsto = versicolor` com
-`prob_versicolor = 0,51` é um empate, e não um acerto convicto. Casos com a
-maior probabilidade abaixo de 0,7 merecem ser olhados. Isso vale para a regra
-do grupo mais provável; na logística binária a classe vem do `corte`, e o
-empate é a probabilidade perto dele.
-
-Classificar o treino dá uma visão OTIMISTA do acerto — cada caso ajudou a
-fazer a regra que o classifica. A taxa de acerto honesta é a da validação
-cruzada, em `multi/confusion`.
-
-### Validação cruzada
-
-Com **cruzada**, cada linha do treino recebe a classe e as probabilidades do
-modelo ajustado SEM ela (deixa-um-fora, *leave-one-out*, o jackknife da
-classificação). É a tabela para ver QUAIS casos erram em caso novo, e com que
-probabilidade. Só vale sem tabela em `novos`.
-]---", r"---[
-- **Validação** — `resubstituição` (padrão) ou `cruzada`.
-
-Entradas: **modelo** (`multi/lda` ou `multi/logit`) e, opcional, **novos**
-(`data/table`), a tabela a classificar.
-]---", r"---[
-Uma tabela (`data/table`): as colunas da tabela classificada; `previsto`
-(fator); `prob_<grupo>`, uma por grupo (o nome do grupo com espaço e
-pontuação trocados por `_`); e, na discriminante linear, os escores `LD1`, `LD2`, ...
-Colunas com esses nomes que já existiam na tabela são substituídas.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("v", "multi/example", dataset = "vinhos") |>
-  tr_add("lda", "multi/discriminant", resposta = "cultivar", from = "v") |>
-  tr_add("amostra", "data/slice_head", n = 5L, from = "v") |>
-  tr_add("cl", "multi/classify", from = "lda") |>
-  tr_link("amostra", "cl:novos")
-]---", r"---[
-`multi/confusion` para resumir os acertos; `view/points` com `cor = previsto`
-para ver os erros no plano discriminante; `data/filter` para separar os casos
-de probabilidade baixa.
-]---")),
-
-    trama::tr_node("multi/confusion", role = "avaliacao", fn = tr_multi_confusion, label = "Matriz de confusão",
-      category = "multi_discriminante", icon = trama::tr_icon("grid-3x3"),
-      description = "Grupo real × previsto e taxa de acerto, por validação cruzada ou resubstituição.",
-      inputs = list(modelo = "multi/classifier"), outputs = list(out = TB),
-      params = list(validacao = trama::tr_param_enum("cruzada", .TR_MULTI_VALIDACOES,
-                                                     label = "Validação")),
-      help = .tr_multi_ajuda(r"---[
-Cruza o grupo REAL de cada observação com o grupo que a regra PREVÊ, e conta.
-A diagonal são os acertos; fora dela, quem foi confundido com quem — e é aí
-que se aprende: na `iris`, os erros são sempre entre versicolor e virginica,
-nunca com setosa.
-
-### Por que validação cruzada
-
-**Resubstituição** classifica os mesmos dados que ajustaram a regra. A taxa de
-acerto aparente sai OTIMISTA: cada caso puxou a fronteira para o próprio lado.
-O viés cresce com muitos preditores e poucos casos — e na quadrática, que
-estima mais, é maior ainda.
-
-**Cruzada** (deixa-um-fora, *leave-one-out*) reajusta a regra n vezes, cada
-vez sem uma observação, e classifica a que ficou de fora. Estima o acerto em
-caso NOVO, que é o que interessa. É exata e rápida na LDA e na QDA (a MASS a
-calcula sem reajustar de verdade), então é o padrão aqui. Para comparar
-linear com quadrática, compare as taxas CRUZADAS. Na logística não há atalho:
-o modelo é reajustado n vezes (segundos com centenas de linhas na multinomial).
-
-Na `iris`, a linear acerta 98% por resubstituição e também 98% na cruzada:
-com 4 preditores e 50 flores por espécie, quase não há otimismo. Com 20
-preditores e 15 casos por grupo, a diferença seria grande.
-]---", r"---[
-- **Validação** — `cruzada` (deixa-um-fora, o padrão) ou `resubstituição`.
-]---", r"---[
-Uma tabela (`data/table`) com uma linha por grupo REAL: a coluna `real`; uma
-coluna por grupo PREVISTO, com a contagem; `total` (quantos há no grupo),
-`acertos` (a diagonal) e `taxa_acerto` (acertos / total, a sensibilidade do
-grupo). A última linha, `real = "total"`, soma as colunas: as contagens são
-quantos foram previstos em cada grupo, e `taxa_acerto` é o acerto GERAL.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("iris", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
-  tr_add("cv", "multi/confusion", validacao = "cruzada", from = "lda")
-]---", r"---[
-`multi/discriminant` para o modelo; `multi/classify` para ver QUAIS casos
-erraram e com que probabilidade; `multi/roc` para a troca entre sensibilidade e
-especificidade; `multi/logistic` para o outro classificador.
 ]---")),
 
     trama::tr_node("multi/discriminant_functions", role = "leitura", fn = tr_multi_discriminant_functions,
@@ -809,7 +524,7 @@ tr_flow(reg) |>
   tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
   tr_add("fun", "multi/discriminant_functions", tabela = "estrutura", from = "lda")
 ]---", r"---[
-`multi/plot_discriminant` para ver as funções; `multi/confusion` para o acerto,
+`multi/plot_discriminant` para ver as funções; `models/confusion` para o acerto,
 que é outra pergunta — funções significativas não garantem classificar bem.
 ]---")),
 
@@ -839,7 +554,7 @@ O M de Box é notoriamente SENSÍVEL: rejeita tanto por covariância diferente
 quanto por falta de normalidade (caudas pesadas), e com amostra grande rejeita
 por diferenças que não mudam a classificação. Por isso a decisão entre linear
 e quadrática não deve ser só dele: compare as duas pela taxa de acerto em
-validação cruzada (`multi/confusion`). A linear é mais robusta e costuma
+validação cruzada (`models/confusion`). A linear é mais robusta e costuma
 ganhar com grupos pequenos, mesmo com H0 rejeitada.
 
 Na `iris`, χ² ≈ 140,9 com 20 gl (p < 0,001): rejeita. Nos `vinhos`, simulados
@@ -860,7 +575,7 @@ tr_flow(reg) |>
   tr_add("v", "multi/example", dataset = "vinhos") |>
   tr_add("box", "multi/box_m", grupo = "cultivar", from = "v")
 ]---", r"---[
-`multi/discriminant` para ajustar a linear ou a quadrática; `multi/confusion`
+`multi/discriminant` para ajustar a linear ou a quadrática; `models/confusion`
 para compará-las pelo acerto.
 ]---")),
 
@@ -882,7 +597,7 @@ ele fosse normal.
 
 É o gráfico que mostra o que os números de `multi/discriminant_functions`
 dizem: grupos que se afastam ao longo de LD1 são os que a primeira função
-separa; elipses que se sobrepõem são as confusões de `multi/confusion`. O
+separa; elipses que se sobrepõem são as confusões de `models/confusion`. O
 rótulo de cada eixo traz a porcentagem da separação daquela função.
 
 Na LDA as elipses dos grupos deveriam ter formas parecidas (é a hipótese da
@@ -900,7 +615,7 @@ covariância comum); elipses de formas muito diferentes são o que o
 - **Elipses de 95%** — desenhar a elipse normal de cada grupo (grupos com
   menos de 4 observações ficam sem ela).
 ]---", r"---[
-Um gráfico (`view/plot`). É também o card de todo modelo `multi/lda`.
+Um gráfico (`view/plot`). É também o card de toda discriminante.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("iris", "multi/example", dataset = "iris") |>

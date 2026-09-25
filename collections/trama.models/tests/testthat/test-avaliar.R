@@ -60,12 +60,16 @@ test_that("predict: prever a saída de outra previsão substitui as colunas", {
 
 # ---- models/confusion ------------------------------------------------------------
 
-test_that("confusion nos três modos bate com tr_multi_confusion (mesma validação)", {
+# A logística da `multi` é um ajuste independente (a matriz `v1..vp`, o próprio
+# deixa-um-fora) que também responde ao contrato: um GLM daqui e ela têm de
+# contar igual. Até a Fase 4 a comparação era com os nós da multi; eles viraram
+# estes.
+test_that("confusion nos três modos bate com a logística da multi (mesma validação)", {
   skip_if_not_installed("trama.multi")
   g <- logit()
   lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp")
   for (v in c("cruzada", "resubstituição")) {
-    ref <- as.data.frame(trama.multi::tr_multi_confusion(lg, v))
+    ref <- as.data.frame(tr_models_confusion(lg, validacao = v))
     expect_equal(as.data.frame(tr_models_confusion(g, validacao = v)), ref, info = v)
     # modo tabela, sobre a saída do models/predict com a mesma validação
     tab <- tr_models_predict(g, validacao = v)
@@ -73,7 +77,7 @@ test_that("confusion nos três modos bate com tr_multi_confusion (mesma validaç
   }
   # modelo + dados: prever o próprio treino é a resubstituição
   expect_equal(as.data.frame(tr_models_confusion(g, mt)),
-               as.data.frame(trama.multi::tr_multi_confusion(lg, "resubstituição")))
+               as.data.frame(tr_models_confusion(lg, validacao = "resubstituição")))
 })
 
 test_that("confusion no modo tabela conta como a tr_ml_confusion (formato largo x longo)", {
@@ -99,13 +103,13 @@ test_that("confusion recusa: sem entrada, regressão, coluna que falta", {
 
 # ---- models/roc ----------------------------------------------------------------
 
-test_that("roc: a AUC e o corte batem com tr_multi_roc e tr_ml_roc", {
+test_that("roc: a AUC e o corte batem com a logística da multi e tr_ml_roc", {
   skip_if_not_installed("trama.multi")
   skip_if_not_installed("trama.ml")
   g <- logit()
   lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp")
   for (v in c("cruzada", "resubstituição")) {
-    expect_equal(subtitulo(tr_models_roc(g, validacao = v)), subtitulo(trama.multi::tr_multi_roc(lg, v)))
+    expect_equal(subtitulo(tr_models_roc(g, validacao = v)), subtitulo(tr_models_roc(lg, validacao = v)))
   }
   tab <- tr_models_predict(g, validacao = "cruzada")
   auc_ml <- ggplot2::ggplot_build(trama.ml::tr_ml_roc(tab, resposta = "am_f", probabilidade = "prob_1",
@@ -124,13 +128,13 @@ test_that("roc marca o corte do modelo quando ele traz um", {
   expect_match(subtitulo(tr_models_roc(g)), "corte 0,30", fixed = TRUE)
 })
 
-test_that("roc multiclasse (modo tabela): uma curva por classe, AUCs da tr_multi_roc", {
+test_that("roc multiclasse (modo tabela): uma curva por classe, AUCs do modo modelo", {
   skip_if_not_installed("trama.multi")
   ir <- tibble::as_tibble(datasets::iris)
   lda <- trama.multi::tr_multi_discriminant(ir, resposta = "Species")
-  tab <- trama.multi::tr_multi_classify(lda, validacao = "resubstituição")
+  tab <- tr_models_predict(lda, validacao = "resubstituição")
   p <- tr_models_roc(dados = tab, resposta = "Species")
-  ref <- trama.multi::tr_multi_roc(lda, "resubstituição")
+  ref <- tr_models_roc(lda, validacao = "resubstituição")
   expect_equal(levels(p$data$grupo %||% ggplot2::ggplot_build(p)$plot$layers[[2]]$data$grupo),
                levels(ggplot2::ggplot_build(ref)$plot$layers[[2]]$data$grupo))
   expect_error(tr_models_roc(dados = tab, resposta = "Species", probabilidade = "prob_setosa"),
@@ -191,15 +195,15 @@ test_that("coefficients: confiança no nome e no intervalo; escala DP multiplica
   expect_error(tr_models_coefficients(m, escala = "outra"), class = "tr_models_error_bad_option")
 })
 
-test_that("coefficients: batem com tr_multi_logistic_coefficients (escala e confiança)", {
+test_that("coefficients: batem com os da logística da multi (escala e confiança)", {
   skip_if_not_installed("trama.multi")
   g <- logit()
   lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp")
   for (esc in c("unidade", "desvio padrão")) {
-    ref <- trama.multi::tr_multi_logistic_coefficients(lg, escala = esc, confianca = 0.9)
+    ref <- tr_models_coefficients(lg, exponenciar = TRUE, escala = esc, confianca = 0.9)$tabela
     t <- tr_models_coefficients(g, exponenciar = TRUE, escala = esc, confianca = 0.9)$tabela
-    expect_equal(t$estimativa, ref$razao_chances, tolerance = 1e-6, info = esc)
-    expect_equal(t$li_90, ref$ic_inf, tolerance = 1e-6, info = esc)
+    expect_equal(t$estimativa, ref$estimativa, tolerance = 1e-6, info = esc)
+    expect_equal(t$li_90, ref$li_90, tolerance = 1e-6, info = esc)
     expect_equal(t$p_valor, ref$p_valor, tolerance = 1e-6, info = esc)
   }
 })

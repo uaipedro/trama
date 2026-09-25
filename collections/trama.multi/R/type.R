@@ -1,4 +1,4 @@
-# Os três tipos da coleção, e os adaptadores que os ligam à `data`.
+# Os dois tipos da coleção, e os adaptadores que os ligam à `data`.
 #
 # Tipo próprio, e não `data/table`, porque cada técnica produz VÁRIAS tabelas
 # que só fazem sentido juntas: a PCA tem autovalores, cargas e escores; a
@@ -103,6 +103,20 @@ multi_fa_type <- function() {
   )
 }
 
+# ---- Discriminante e logística: `models/fit` -----------------------------------
+#
+# Até a Fase 4 os dois classificadores tinham tipos próprios (`multi/lda`,
+# `multi/logit`) e um tipo-porta (`multi/classifier`) para caberem nos mesmos
+# nós de classificar, confundir e desenhar a ROC. Agora viajam no `models/fit`
+# da `trama.models` e respondem ao contrato dela (`R/contrato.R`): prever,
+# confundir e a ROC são os blocos da models, que servem igual a um GLM ou a um
+# xgboost. O que só a multi sabe fazer (funções discriminantes, razões de
+# chances, jackknife) continua aqui, lendo `models/fit` e conferindo a classe.
+#
+# `classe` e `rotulo` existem pelos leitores da models que NÃO são do contrato
+# (quadro da ANOVA, médias): eles leem `$classe` e `$rotulo` para recusar com
+# "não se aplica a <rótulo>", e sem os campos cairiam num erro cru do R.
+
 .TR_MULTI_CAMPOS_LDA <- c("ajuste", "metodo", "grupo", "preditores", "dados", "priors")
 
 #' Monta o objeto da discriminante.
@@ -111,26 +125,15 @@ multi_fa_type <- function() {
 #' - `metodo`: `"linear"` ou `"quadrática"`.
 #' - `grupo`: nome da coluna do grupo; `preditores`: as variáveis.
 #' - `dados`: a tabela de treino inteira (sem as linhas descartadas: não há
-#'   descarte, faltante é erro).
+#'   descarte, faltante é erro). É dela que os blocos da models leem o real
+#'   quando avaliam no treino.
 #' - `priors`: `"proporcionais"` ou `"iguais"`.
 #' @noRd
 .tr_multi_lda_obj <- function(ajuste, metodo, grupo, preditores, dados, priors) {
   structure(list(ajuste = ajuste, metodo = metodo, grupo = grupo, preditores = preditores,
-                 dados = dados, priors = priors), class = "tr_multi_lda")
-}
-
-multi_lda_type <- function() {
-  trama::tr_type(
-    "multi/lda", version = 1L, label = "Discriminante", color = "#fb923c", ext = "rds",
-    store = function(x, path) {
-      .tr_multi_guard(x, "tr_multi_lda", .TR_MULTI_CAMPOS_LDA, "tr_multi_error_not_a_lda",
-                      "uma análise discriminante")
-      saveRDS(x, path, compress = FALSE)
-    },
-    restore = function(path) readRDS(path),
-    summary = function(x) .tr_multi_lda_resumo(x),
-    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_plot_discriminant(x), ctx)
-  )
+                 dados = dados, priors = priors, classe = "lda",
+                 rotulo = if (identical(metodo, "linear")) "Discriminante linear" else "Discriminante quadrática"),
+            class = c("tr_multi_lda", "tr_models_fit"))
 }
 
 .TR_MULTI_CAMPOS_LOGIT <- c("ajuste", "tipo", "grupo", "preditores", "niveis", "dados",
@@ -144,92 +147,38 @@ multi_lda_type <- function() {
 #' - `tipo`: `"binária"` ou `"multinomial"`.
 #' - `grupo`, `preditores`, `niveis` (o primeiro é a referência), `dados`.
 #' - `corte`: probabilidade do SEGUNDO nível a partir da qual se prevê ele
-#'   (só na binária; `NA` na multinomial).
+#'   (só na binária; `NA` na multinomial). A `models/roc` marca o ponto dele.
 #' - `separacao`: os grupos separados sem sobreposição (`character()` se nenhum).
 #' @noRd
 .tr_multi_logit_obj <- function(ajuste, tipo, grupo, preditores, niveis, dados, corte, separacao) {
   structure(list(ajuste = ajuste, tipo = tipo, grupo = grupo, preditores = preditores,
-                 niveis = niveis, dados = dados, corte = corte, separacao = separacao),
-            class = "tr_multi_logit")
+                 niveis = niveis, dados = dados, corte = corte, separacao = separacao,
+                 classe = "logit", rotulo = sprintf("Logística %s", tipo)),
+            class = c("tr_multi_logit", "tr_models_fit"))
 }
 
-multi_logit_type <- function() {
-  trama::tr_type(
-    "multi/logit", version = 1L, label = "Logística", color = "#f59e0b", ext = "rds",
-    store = function(x, path) {
-      .tr_multi_guard(x, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
-                      "uma regressão logística")
-      saveRDS(x, path, compress = FALSE)
-    },
-    restore = function(path) readRDS(path),
-    summary = function(x) .tr_multi_logit_resumo(x),
-    preview = function(x, ctx) trama.view::tr_view_render(.tr_multi_logit_preview(x), ctx)
-  )
-}
-
-#' O gráfico do card de uma logística, igual em `multi/logit` e `multi/classifier`.
-#'
-#' O card é o das RAZÕES DE CHANCES; com separação elas não existem (vão ao
-#' infinito), e o card cai para a ROC por resubstituição, que continua honesta.
-#' Num helper só para os dois tipos não divergirem.
+#' A porta é `models/fit`, que aceita qualquer modelo: o leitor que só sabe
+#' ler uma Discriminante (ou uma Logística) confere a classe NA ENTRADA, e diz
+#' qual bloco produz o que ele precisa — e não um "subscript out of bounds"
+#' três funções abaixo, sobre o `$scaling` de um `lm`.
 #' @noRd
-.tr_multi_logit_preview <- function(x) {
-  if (length(x$separacao)) tr_multi_roc(x, validacao = "resubstituição") else tr_multi_plot_odds(x)
-}
-
-#' O tipo-porta dos nós que classificam.
-#'
-#' Não é um modelo novo: é a porta que aceita os DOIS classificadores. Porta no
-#' trama tem um tipo só, e a compatibilidade é igualdade ou adaptador; os
-#' adaptadores identidade `multi/lda -> multi/classifier` e
-#' `multi/logit -> multi/classifier` deixam `multi/confusion` receber a LDA e a
-#' logística sem duplicar nó nem mexer no núcleo. O valor é o objeto intacto.
-#' @noRd
-multi_classifier_type <- function() {
-  trama::tr_type(
-    "multi/classifier", version = 1L, label = "Classificador", color = "#fb923c", ext = "rds",
-    store = function(x, path) {
-      .tr_multi_classificador(x)
-      saveRDS(x, path, compress = FALSE)
-    },
-    restore = function(path) readRDS(path),
-    summary = function(x) {
-      if (inherits(x, "tr_multi_logit")) .tr_multi_logit_resumo(x) else .tr_multi_lda_resumo(x)
-    },
-    preview = function(x, ctx) {
-      p <- if (inherits(x, "tr_multi_logit")) .tr_multi_logit_preview(x)
-           else tr_multi_plot_discriminant(x)
-      trama.view::tr_view_render(p, ctx)
-    }
-  )
-}
-
-#' Confere que o valor é um classificador, e diz qual.
-#' @return `"lda"` ou `"logit"`.
-#' @noRd
-.tr_multi_classificador <- function(x) {
-  if (inherits(x, "tr_multi_lda")) {
-    .tr_multi_guard(x, "tr_multi_lda", .TR_MULTI_CAMPOS_LDA, "tr_multi_error_not_a_lda",
-                    "uma análise discriminante")
-    return("lda")
+.tr_multi_exigir <- function(modelo, qual, no) {
+  cls <- if (qual == "lda") "tr_multi_lda" else "tr_multi_logit"
+  if (!inherits(modelo, cls)) {
+    .tr_multi_abort(if (qual == "lda") "tr_multi_error_not_a_lda" else "tr_multi_error_not_a_logit",
+                    "'%s': este bloco precisa de uma %s, e chegou um modelo '%s'.",
+                    no, if (qual == "lda") "Discriminante (multi/discriminant)"
+                        else "Regressão logística (multi/logistic)",
+                    class(modelo)[[1]])
   }
-  if (inherits(x, "tr_multi_logit")) {
-    .tr_multi_guard(x, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
-                    "uma regressão logística")
-    return("logit")
-  }
-  .tr_multi_abort("tr_multi_error_not_a_classifier",
-                  "O nó produziu um objeto '%s', e a porta espera um classificador (discriminante ou logística).",
-                  class(x)[[1]])
+  .tr_multi_guard(modelo, cls, if (qual == "lda") .TR_MULTI_CAMPOS_LDA else .TR_MULTI_CAMPOS_LOGIT,
+                  if (qual == "lda") "tr_multi_error_not_a_lda" else "tr_multi_error_not_a_logit",
+                  if (qual == "lda") "uma análise discriminante" else "uma regressão logística")
 }
 
 .tr_multi_adapters <- function() {
   list(
     trama::tr_adapter("multi/pca", "data/table", .tr_multi_pca_tabela),
-    trama::tr_adapter("multi/fa", "data/table", .tr_multi_fa_tabela),
-    trama::tr_adapter("multi/lda", "data/table", .tr_multi_lda_tabela),
-    trama::tr_adapter("multi/logit", "data/table", .tr_multi_logit_tabela),
-    trama::tr_adapter("multi/lda", "multi/classifier", function(x) x),
-    trama::tr_adapter("multi/logit", "multi/classifier", function(x) x)
+    trama::tr_adapter("multi/fa", "data/table", .tr_multi_fa_tabela)
   )
 }

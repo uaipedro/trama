@@ -74,7 +74,7 @@
                           ic_inf = tr(unname(ic_inf)), ic_sup = tr(unname(ic_sup))))
   }
   # Coluna de entrada com o nome de uma coluna calculada sai: as calculadas
-  # vencem (como em tr_multi_classify), e o tibble não aceita nome repetido.
+  # vencem (como no models/predict), e o tibble não aceita nome repetido.
   reservados <- c("obs", "estatistica", "sem_ela", "pseudovalor", "influencia")
   resto <- dados[, setdiff(names(dados), c(variaveis, reservados)), drop = FALSE]
   linhas <- rep(seq_len(n), times = length(nomes))
@@ -209,7 +209,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
 }
 
 #' Jackknife da discriminante linear.
-#' @param modelo objeto `tr_multi_lda` (linear).
+#' @param modelo uma discriminante (`multi/discriminant`, linear).
 #' @param estatistica `"correlação canônica"`, `"autovalores"` ou
 #'   `"coeficientes padronizados"`.
 #' @inheritParams tr_multi_jackknife_pca
@@ -218,7 +218,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
 tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação canônica",
                                             tabela = "resumo", confianca = 0.95) {
   no <- "multi/jackknife_discriminant"
-  .tr_multi_modelo(modelo)
+  .tr_multi_exigir(modelo, "lda", no)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_LDA, "estatistica")
   if (!identical(modelo$metodo, "linear")) {
     .tr_multi_abort("tr_multi_error_bad_option",
@@ -248,7 +248,7 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
 }
 
 #' Jackknife da regressão logística.
-#' @param modelo objeto `tr_multi_logit`.
+#' @param modelo uma regressão logística (`multi/logistic`).
 #' @param estatistica `"coeficientes"` ou `"razões de chances"`.
 #' @inheritParams tr_multi_jackknife_pca
 #' @return tibble; no resumo, também `erro_padrao_wald`.
@@ -256,8 +256,7 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
 tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", tabela = "resumo",
                                         confianca = 0.95) {
   no <- "multi/jackknife_logistic"
-  .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
-                  "uma regressão logística")
+  .tr_multi_exigir(modelo, "logit", no)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_LOGIT, "estatistica")
   .tr_multi_sem_separacao(modelo, no)
   rotulos <- function(cf) {
@@ -396,7 +395,7 @@ tr_flow(reg) |>
 
     no("multi/jackknife_discriminant", tr_multi_jackknife_discriminant, "Jackknife da discriminante",
       "Erro padrão das correlações canônicas, autovalores e coeficientes padronizados.",
-      list(modelo = "multi/lda"),
+      list(modelo = "models/fit"),
       .tr_multi_jk_params("correlação canônica", .TR_MULTI_JK_LDA),
       .tr_multi_jk_ajuda(r"---[
 Refaz a `multi/discriminant` (linear) sem cada linha e mede a **correlação
@@ -406,7 +405,7 @@ canônica** e o **autovalor** de cada função (os de
 função alinhado ao da amostra toda.
 
 A taxa de acerto não está aqui de propósito: o jackknife da classificação é a
-validação cruzada, em `multi/confusion` e `multi/classify`.
+validação cruzada, em `models/confusion` e `models/predict`.
 
 A quadrática não tem funções discriminantes e é recusada.
 ]---", "`correlação canônica` (padrão), `autovalores` ou `coeficientes padronizados`.", r"---[
@@ -415,20 +414,20 @@ tr_flow(reg) |>
   tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
   tr_add("jk", "multi/jackknife_discriminant", from = "lda")
 ]---", r"---[
-`multi/discriminant_functions` para as funções; `multi/confusion` para o
+`multi/discriminant_functions` para as funções; `models/confusion` para o
 jackknife da classificação.
 ]---")),
 
     no("multi/jackknife_logistic", tr_multi_jackknife_logistic, "Jackknife da logística",
       "Erro padrão dos coeficientes sem a aproximação de Wald, e a influência de cada linha.",
-      list(modelo = "multi/logit"), .tr_multi_jk_params("coeficientes", .TR_MULTI_JK_LOGIT),
+      list(modelo = "models/fit"), .tr_multi_jk_params("coeficientes", .TR_MULTI_JK_LOGIT),
       .tr_multi_jk_ajuda(r"---[
 Refaz a `multi/logistic` sem cada linha e mede os **coeficientes** (rótulo
 `termo`, ou `grupo:termo` na multinomial).
 
 O resumo traz também `erro_padrao_wald`, o erro padrão de Wald do coeficiente
 (escala log), ao lado do jackknife: quando os dois discordam muito, a
-aproximação de Wald de `multi/logistic_coefficients` não é confiável.
+aproximação de Wald de `models/coefficients` não é confiável.
 
 Em **razões de chances** o cálculo é feito no coeficiente (escala log) e
 exponenciado no fim: estimativa, média, corrigida e intervalo saem em escala
@@ -442,7 +441,7 @@ tr_flow(reg) |>
   tr_add("lg", "multi/logistic", resposta = "diabetes", preditores = "glicose, imc, pedigree", from = "pima") |>
   tr_add("jk", "multi/jackknife_logistic", estatistica = "razões de chances", from = "lg")
 ]---", r"---[
-`multi/logistic_coefficients` para os erros de Wald; `multi/classify` com
+`models/coefficients` para os erros de Wald; `models/predict` com
 validação cruzada.
 ]---"))
   )

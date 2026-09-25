@@ -4,12 +4,14 @@
 
 iris_t <- function() tr_multi_example("iris")
 
-# A `multi` NÃO carrega sozinha: as portas são `data/table` (da `data`) e
-# `view/plot` (da `view`). A ordem aqui é a mesma que o `trama.json` precisa.
+# A `multi` NÃO carrega sozinha: as portas são `data/table` (da `data`),
+# `view/plot` (da `view`) e `models/fit` (da `models`). A ordem aqui é a mesma
+# que o `trama.json` precisa.
 multi_registry <- function() {
   reg <- trama::tr_registry()
   trama::tr_use("trama.data", registry = reg)
   trama::tr_use("trama.view", registry = reg)
+  trama::tr_use("trama.models", registry = reg)
   trama::tr_use(trama_collection(), registry = reg)
   reg
 }

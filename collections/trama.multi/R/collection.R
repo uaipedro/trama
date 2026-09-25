@@ -7,8 +7,9 @@
 
 #' A coleção `multi`.
 #'
-#' Carrega DEPOIS de `trama.data` e `trama.view`: as portas usam `data/table` e
-#' `view/plot`, e o registro recusa porta com tipo desconhecido.
+#' Carrega DEPOIS de `trama.data`, `trama.view` e `trama.models`: as portas usam
+#' `data/table`, `view/plot` e `models/fit`, e o registro recusa porta com tipo
+#' desconhecido (o `Config/trama/requires` do DESCRIPTION diz isso ao núcleo).
 #'
 #' Os ids de categoria têm prefixo (`multi_*`) porque o registro de categorias
 #' é GLOBAL: uma categoria `pca` aqui sobrescreveria em silêncio a de outra
@@ -17,8 +18,10 @@
 trama_collection <- function() {
   trama::tr_collection(
     id = "multi", version = "0.1.0", label = "Multivariada",
-    types = list(multi_pca_type(), multi_fa_type(), multi_lda_type(), multi_logit_type(),
-                 multi_classifier_type()),
+    # A discriminante e a logística saem como `models/fit` (tipo da
+    # `trama.models`, que por isso carrega antes): prever, confundir e a ROC
+    # são os blocos de lá.
+    types = list(multi_pca_type(), multi_fa_type()),
     adapters = .tr_multi_adapters(),
     # Os gráficos ficam na categoria da técnica, e não numa "Ver" à parte: quem
     # fez uma PCA procura o biplot ao lado dela.
@@ -34,19 +37,22 @@ trama_collection <- function() {
     nodes = c(.tr_multi_nos_fonte(), .tr_multi_nos_diagnostico(), .tr_multi_nos_correlacao(),
               .tr_multi_nos_pca(),
               .tr_multi_nos_fatorial(), .tr_multi_nos_discriminante(),
-              .tr_multi_nos_logistica(), .tr_multi_nos_roc(), .tr_multi_nos_jackknife()),
+              .tr_multi_nos_logistica(), .tr_multi_nos_jackknife()),
     # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
     # nomes antigos abrem com os novos. Na discriminante e na logística o grupo
     # conhecido é a RESPOSTA e as medidas são os PREDITORES; no M de Box `grupo`
     # e `cols` continuam, porque lá não há o que prever. `nivel` era a confiança
-    # do intervalo e já guardava 0,95: renome puro.
+    # do intervalo e já guardava 0,95: renome puro. Os blocos que foram para a
+    # `trama.models` (classify, confusion, roc, logistic_coefficients) têm a
+    # migração declarada LÁ: o destino é da models, e as chaves de params são o
+    # id novo.
     migrations = list(params = c(
       list(
         "multi/discriminant" = list(grupo = list(to = "resposta"), cols = list(to = "preditores")),
         "multi/logistic" = list(grupo = list(to = "resposta"), cols = list(to = "preditores"))),
       stats::setNames(
-        rep(list(list(nivel = list(to = "confianca"))), 5L),
-        c("multi/logistic_coefficients", "multi/jackknife_pca", "multi/jackknife_fa",
+        rep(list(list(nivel = list(to = "confianca"))), 4L),
+        c("multi/jackknife_pca", "multi/jackknife_fa",
           "multi/jackknife_discriminant", "multi/jackknife_logistic"))))
   )
 }

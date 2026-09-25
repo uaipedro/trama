@@ -120,7 +120,7 @@
                     paste0("'%s': separação completa — %s sem ",
                            "nenhuma sobreposição, e os coeficientes vão ao infinito ",
                            "(o que o otimizador devolve é arbitrário). A CLASSIFICAÇÃO continua ",
-                           "valendo (`multi/confusion`, `multi/roc`); para descrever o que separa, ",
+                           "valendo (`models/confusion`, `models/roc`); para descrever o que separa, ",
                            "use a `multi/discriminant`, ou tire o preditor que isola os grupos."),
                     no, quem)
   }
@@ -133,7 +133,7 @@
 #' @param preditores colunas preditoras; em branco, todas as numéricas menos a resposta.
 #' @param corte na binária, a probabilidade do segundo grupo a partir da qual
 #'   se prevê ele.
-#' @return objeto `tr_multi_logit`.
+#' @return modelo `models/fit` de classe `tr_multi_logit`.
 #' @export
 tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5) {
   no <- "multi/logistic"
@@ -193,43 +193,33 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
              stringsAsFactors = FALSE)
 }
 
-#' Coeficientes, erros padrão de Wald e razões de chances.
-#' @param modelo objeto `tr_multi_logit`.
-#' @param escala `"unidade"` ou `"desvio padrão"`.
-#' @param confianca nível do intervalo de confiança.
-#' @return tibble.
-#' @export
-tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", confianca = 0.95) {
-  no <- "multi/logistic_coefficients"
-  .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
-                  "uma regressão logística")
-  escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
-  confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
-  .tr_multi_sem_separacao(modelo, no)
+#' As razões de chances com o intervalo de Wald, para o gráfico.
+#'
+#' A tabela que o leitor vê sai da `models/coefficients` (o método
+#' `tr_models_coefs` em `R/contrato.R`, na forma de toda a coleção de modelos);
+#' esta é a do GRÁFICO, que precisa do intervalo já exponenciado e do grupo.
+#' @noRd
+.tr_multi_logit_or <- function(modelo, escala = "unidade", confianca = 0.95) {
   d <- .tr_multi_logit_coefs(modelo, escala)
   q <- stats::qnorm((1 + confianca) / 2)
-  z <- d$coeficiente / d$erro_padrao
-  tibble::tibble(grupo = d$grupo, referencia = d$referencia, termo = d$termo,
-                 coeficiente = d$coeficiente, erro_padrao = d$erro_padrao, z = z,
-                 p_valor = 2 * stats::pnorm(-abs(z)), razao_chances = exp(d$coeficiente),
+  tibble::tibble(grupo = d$grupo, termo = d$termo, razao_chances = exp(d$coeficiente),
                  ic_inf = exp(d$coeficiente - q * d$erro_padrao),
                  ic_sup = exp(d$coeficiente + q * d$erro_padrao))
 }
 
 #' As razões de chances com intervalo, em escala log.
-#' @param modelo objeto `tr_multi_logit`.
+#' @param modelo uma regressão logística (`multi/logistic`).
 #' @param escala `"desvio padrão"` (o padrão aqui: compara medidas) ou `"unidade"`.
 #' @inheritParams trama.view::tr_view_finish
 #' @return ggplot.
 #' @export
 tr_multi_plot_odds <- function(modelo, escala = "desvio padrão", aspecto = "16:9", tema = "padrão",
                                titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
-  .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
-                  "uma regressão logística")
-  # A recusa por separação vem antes de delegar: senão o erro nomearia
-  # 'multi/logistic_coefficients', um nó que o usuário nem pôs no grafo.
-  .tr_multi_sem_separacao(modelo, "multi/plot_odds")
-  tab <- tr_multi_logistic_coefficients(modelo, escala = escala)
+  no <- "multi/plot_odds"
+  .tr_multi_exigir(modelo, "logit", no)
+  escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
+  .tr_multi_sem_separacao(modelo, no)
+  tab <- .tr_multi_logit_or(modelo, escala = escala)
   tab <- tab[tab$termo != "(intercepto)", ]
   tab$termo <- factor(tab$termo, levels = rev(modelo$preditores))
   tab$sinal <- ifelse(tab$ic_inf > 1, "aumenta", ifelse(tab$ic_sup < 1, "diminui", "inclui 1"))
@@ -254,29 +244,13 @@ tr_multi_plot_odds <- function(modelo, escala = "desvio padrão", aspecto = "16:
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 
-#' O resumo do card de `multi/logit`.
-#' @noRd
-.tr_multi_logit_resumo <- function(x) {
-  g <- droplevels(as.factor(x$dados[[x$grupo]]))
-  pr <- .tr_multi_logit_prever(x, .tr_multi_logit_X(x, x$dados))
-  r <- list(tipo = x$tipo, grupos = .tr_multi_tamanhos(g), preditores = length(x$preditores),
-            acerto_resubstituicao = round(mean(pr$classe == g), 4))
-  if (identical(x$tipo, "binária")) r$corte <- x$corte
-  if (length(x$separacao)) r$separacao <- paste(x$separacao, collapse = ", ")
-  r
-}
-
-#' `multi/logit` -> `data/table`: o treino classificado.
-#' @noRd
-.tr_multi_logit_tabela <- function(x) tr_multi_classify(x)
-
 # ---------------------------------------------------------------------------
 # Declarações
 
 .tr_multi_nos_logistica <- function() {
   P <- trama::tr_param
   TB <- "data/table"
-  LG <- "multi/logit"
+  LG <- "models/fit"
   list(
     trama::tr_node("multi/logistic", fn = tr_multi_logistic, label = "Regressão logística",
       category = "multi_logistica", icon = trama::tr_icon("chart-spline"),
@@ -290,8 +264,8 @@ tr_multi_plot_odds <- function(modelo, escala = "desvio padrão", aspecto = "16:
 Modela a PROBABILIDADE de cada observação pertencer a cada grupo a partir das
 medidas, e classifica pelo grupo mais provável. É a irmã da
 `multi/discriminant`: recebe a mesma tabela, com as mesmas recusas, e o modelo
-entra nos mesmos nós de classificação (`multi/classify`, `multi/confusion`,
-`multi/roc`).
+entra nos mesmos blocos de previsão da coleção de modelos (`models/predict`,
+`models/confusion`, `models/roc`).
 
 ### Binária ou multinomial
 
@@ -308,13 +282,13 @@ A LDA supõe medidas normais com a mesma covariância em todo grupo; quando isso
 vale, ela aproveita melhor os dados. A logística não supõe nada sobre as
 medidas (serve com preditor assimétrico, contagem ou 0/1) e costuma ganhar
 fora dessa hipótese. A decisão prática é a mesma de sempre: compare as taxas
-de acerto CRUZADAS em `multi/confusion`. No `pima` as duas empatam perto de 78%.
+de acerto CRUZADAS em `models/confusion`. No `pima` as duas empatam perto de 78%.
 
 ### O corte
 
 Com 0,5 a regra minimiza o erro total. Quando errar um diabético custa mais que
 alarmar um saudável, baixe o corte: a sensibilidade sobe, a especificidade
-cai. A `multi/roc` mostra essa troca inteira e marca o corte escolhido.
+cai. A `models/roc` mostra essa troca inteira e marca o corte escolhido.
 
 ### Separação
 
@@ -322,7 +296,7 @@ Se um grupo é separável dos outros SEM nenhuma sobreposição (setosa na `iris
 o cultivar C nos `vinhos` com as seis medidas), a verossimilhança cresce sem
 limite e os coeficientes vão ao infinito. A classificação continua certa, e o
 modelo sai; o card avisa em `separacao`, e os nós que leem coeficientes
-(`multi/logistic_coefficients`, `multi/plot_odds`, `multi/jackknife_logistic`)
+(`models/coefficients`, `multi/plot_odds`, `multi/jackknife_logistic`)
 recusam. É sinal de que a pergunta "o que separa" é mais bem respondida pela
 discriminante.
 
@@ -338,65 +312,18 @@ preditores numéricos, preditor não numérico, constante ou colinear.
 - **Corte (binária)** — probabilidade do segundo grupo a partir da qual se
   prevê ele. Ignorado com três ou mais grupos.
 ]---", r"---[
-Um modelo `multi/logit`. O card mostra as razões de chances (ou a ROC, se há
-separação), o tipo, a taxa de acerto por resubstituição e os grupos separados.
-Ligado a um nó de tabela, vira o treino classificado (como `multi/classify`).
+Um modelo (`models/fit`). O card mostra as razões de chances (ou a ROC por
+resubstituição, se há separação). Ligado a um nó de tabela, vira o treino
+classificado (como o `models/predict`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pima", "multi/example", dataset = "pima") |>
   tr_add("lg", "multi/logistic", resposta = "diabetes", from = "pima") |>
-  tr_add("cv", "multi/confusion", validacao = "cruzada", from = "lg")
+  tr_add("cv", "models/confusion", validacao = "cruzada", from = "lg")
 ]---", r"---[
-`multi/logistic_coefficients` para as razões de chances; `multi/roc` para
-escolher o corte; `multi/discriminant` para a comparação; models/glm para a
+`models/coefficients` (com `exponenciar`) para as razões de chances;
+`models/roc` para escolher o corte; `multi/discriminant` para a comparação; models/glm para a
 logística como modelo de regressão, com desvio e contrastes.
-]---")),
-
-    trama::tr_node("multi/logistic_coefficients", role = "leitura", fn = tr_multi_logistic_coefficients,
-      label = "Razões de chances",
-      category = "multi_logistica", icon = trama::tr_icon("sigma"),
-      description = "Coeficientes, erros padrão de Wald, p-valores e razões de chances com intervalo.",
-      inputs = list(modelo = LG), outputs = list(out = TB),
-      params = list(
-        escala = trama::tr_param_enum("unidade", .TR_MULTI_ESCALAS_OR, label = "Escala"),
-        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
-      help = .tr_multi_ajuda(r"---[
-Uma linha por termo (e, na multinomial, por grupo contra a referência).
-
-- **coeficiente** — o efeito no LOG da chance: mais 1 no preditor soma b ao
-  log(p / (1 − p)).
-- **razao_chances** — exp(b): a chance é MULTIPLICADA por esse número a cada
-  unidade a mais. 1 é nenhum efeito; 1,04 na glicose do `pima` é "+4% de chance
-  de diabetes por mg/dL".
-- **erro_padrao**, **z**, **p_valor** — Wald: z = b / EP, contra a normal.
-- **ic_inf**, **ic_sup** — o intervalo de Wald de b exponenciado:
-  exp(b ± z·EP). Assimétrico em torno da razão de chances, como deve ser.
-
-### Escala
-
-Por **unidade**, a razão de chances depende da unidade da medida (por mg/dL,
-por ano). Por **desvio padrão**, coeficiente e erro padrão são multiplicados
-pelo DP do preditor no treino: "a chance a cada desvio padrão a mais", que
-deixa comparar glicose com pedigree. O intercepto e os p-valores não mudam.
-
-Wald é aproximado e fica ruim com coeficientes grandes; a
-`multi/jackknife_logistic` dá um erro padrão que não depende da aproximação. Com
-separação, a tabela é recusada.
-]---", r"---[
-- **Escala** — `unidade` ou `desvio padrão`.
-- **Confiança** (`confianca`) — nível do intervalo, 0,95 por padrão.
-]---", r"---[
-Uma tabela (`data/table`): `grupo` (o grupo cuja chance se modela), `referencia`,
-`termo` (`(intercepto)` e os preditores), `coeficiente`, `erro_padrao`, `z`,
-`p_valor`, `razao_chances`, `ic_inf`, `ic_sup`.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("pima", "multi/example", dataset = "pima") |>
-  tr_add("lg", "multi/logistic", resposta = "diabetes", from = "pima") |>
-  tr_add("rc", "multi/logistic_coefficients", escala = "desvio padrão", from = "lg")
-]---", r"---[
-`multi/plot_odds` para o gráfico; `multi/jackknife_logistic` para erros padrão
-sem a aproximação de Wald; `multi/logistic` para o modelo.
 ]---")),
 
     trama::tr_node("multi/plot_odds", role = "leitura", fn = tr_multi_plot_odds, label = "Gráfico das razões de chances",
@@ -418,15 +345,14 @@ separação, o gráfico é recusado (veja `multi/logistic`).
 ]---", r"---[
 - **Escala** — `desvio padrão` (padrão) ou `unidade`.
 ]---", r"---[
-Um gráfico (`view/plot`). É também o card de todo modelo `multi/logit` sem
-separação.
+Um gráfico (`view/plot`). É também o card de toda logística sem separação.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("v", "multi/example", dataset = "vinhos") |>
   tr_add("lg", "multi/logistic", resposta = "cultivar", preditores = "alcool, acidez_malica, magnesio, fenois_totais", from = "v") |>
   tr_add("g", "multi/plot_odds", from = "lg")
 ]---", r"---[
-`multi/logistic_coefficients` para os números; `multi/roc` para o desempenho.
+`models/coefficients` para os números; `models/roc` para o desempenho.
 ]---", grafico = TRUE))
   )
 }

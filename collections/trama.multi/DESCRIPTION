@@ -13,14 +13,15 @@ Description: Nodes for multivariate analysis in a trama graph: principal
     component analysis with scree, biplot and correlation circle; factor
     analysis by maximum likelihood or principal axis, with orthogonal
     (varimax, quartimax, equamax) and oblique (promax, oblimin) rotations;
-    linear and quadratic discriminant analysis with cross-validated
-    confusion matrices; logistic regression (binary and multinomial) as a
-    classifier, with leave-one-out predictions and ROC curves; jackknife
-    bias, standard errors and pseudovalues for component, factor,
+    linear and quadratic discriminant analysis with exact leave-one-out
+    predictions; logistic regression (binary and multinomial) as a
+    classifier; jackknife bias, standard errors and pseudovalues for
+    component, factor,
     discriminant and logistic statistics; and the diagnostics that come
     first (KMO, Bartlett's sphericity, Horn's parallel analysis, Box's M).
     Ships example data with known structure. Builds on trama.data for
-    tables and trama.view for plots.
+    tables, trama.view for plots and trama.models, whose model contract
+    the classifiers implement (prediction, confusion and ROC are its nodes).
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:
@@ -29,6 +30,7 @@ Imports:
     trama,
     trama.data,
     trama.view,
+    trama.models,
     MASS,
     nnet,
     ggplot2 (>= 4.0.0),
@@ -45,8 +47,9 @@ Suggests:
     psych,
     withr
 Config/testthat/edition: 3
-Config/trama/requires: trama.data, trama.view
+Config/trama/requires: trama.data, trama.view, trama.models
 Remotes:
     uaipedro/trama,
     trama.data=github::uaipedro/trama/collections/trama.data,
-    trama.view=github::uaipedro/trama/collections/trama.view
+    trama.view=github::uaipedro/trama/collections/trama.view,
+    trama.models=github::uaipedro/trama/collections/trama.models

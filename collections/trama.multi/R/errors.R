@@ -28,17 +28,14 @@ tr_multi_errors <- function() {
       "caso Heywood no eixo principal: comunalidade acima de 1, solução impossível",
     tr_multi_error_one_group = "a coluna do grupo tem menos de dois grupos",
     tr_multi_error_small_group = "algum grupo tem observações de menos para o método",
-    tr_multi_error_new_data_columns = "a tabela a classificar não tem as colunas usadas no treino",
     tr_multi_error_not_a_pca =
       "o nó produziu um objeto que não é PCA, e o tipo multi/pca o recusa",
     tr_multi_error_not_a_fa =
       "o nó produziu um objeto que não é análise fatorial, e o tipo multi/fa o recusa",
     tr_multi_error_not_a_lda =
-      "o nó produziu um objeto que não é análise discriminante, e o tipo multi/lda o recusa",
+      "o bloco lê uma discriminante e chegou outro modelo (ou um objeto sem os campos dela)",
     tr_multi_error_not_a_logit =
-      "o nó produziu um objeto que não é regressão logística, e o tipo multi/logit o recusa",
-    tr_multi_error_not_a_classifier =
-      "o valor na porta não é classificador (discriminante ou logística)",
+      "o bloco lê uma regressão logística e chegou outro modelo (ou um objeto sem os campos dela)",
     tr_multi_error_separation =
       "separação completa: algum grupo é separado sem sobreposição e os coeficientes vão ao infinito",
     tr_multi_error_jackknife_replicate = "a réplica do jackknife sem uma das linhas falhou",
