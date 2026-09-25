@@ -193,7 +193,7 @@ tr_flow(reg) |>
         confianca = CONF(), taxa_resposta = RESP()),
       pressupostos = list(
         trama::tr_pressuposto("Os **N_h e S_h** da tabela são os da população (ou boas aproximações), e o sorteio dentro de cada estrato é AAS independente.", verificar = "sampling/simulate", se_falhar = "Com S_h incertos, a alocação proporcional é a mais robusta; confira o plano com `sampling/stratified` e `sampling/simulate`."),
-        trama::tr_pressuposto("A alocação **ótima** supõe custo linear por entrevista (c_h constante dentro do estrato).", se_falhar = "Com custo fixo por estrato, ajuste o n total à mão e use a alocação de Neyman."),
+        trama::tr_pressuposto("A alocação **ótima** supõe custo linear por entrevista (c_h constante dentro do estrato).", se_falhar = "Custo fixo por estrato não muda as proporções da alocação ótima; desconte-o do orçamento antes de fixar o n total."),
         trama::tr_pressuposto("A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.", se_falhar = "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`.")),
       referencias = list(.tr_sampling_refs()$neyman, .tr_sampling_refs()$cochran, .tr_sampling_refs()$bolfarine,
         .tr_sampling_impl("tr_sampling_size_stratified", "n = Σ W_h²S_h²/a_h / ((E/z)² + Σ W_h S_h²/N), com a_h da alocação (proporcional, Neyman, ótima, igual); inteiros, mínimo 2 e máximo N_h por estrato; z normal.")),
