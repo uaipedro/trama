@@ -1,3 +1,3 @@
 {
-  "collections": ["trama.data", "trama.view", "trama.multi"]
+  "collections": ["trama.data", "trama.view", "trama.models", "trama.multi"]
 }

@@ -201,7 +201,8 @@
       "type_version": 1,
       "label": "Razões de chances",
       "params": {
-        "escala": "desvio padrão"
+        "escala": "desvio padrão",
+        "exponenciar": true
       },
       "seed": 774120953
     },
