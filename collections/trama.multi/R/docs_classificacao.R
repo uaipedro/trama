@@ -28,7 +28,7 @@
                     se_falhar = "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco.")
   desbalanceio <- P("Com **grupos desbalanceados**, a taxa de acerto geral engana: prever sempre o grupo maior já acerta a proporção dele. Leia a taxa de cada grupo (a sensibilidade de cada um).",
                     verificar = "data/group_summarise",
-                    se_falhar = "Leia a acurácia balanceada, o kappa e a precisão/revocação por grupo (`tabela = \"métricas\"` no `multi/confusion`) e a AUC na `multi/roc`; na discriminante, experimente `priors = \"iguais\"`. Curva precisão-revocação ainda sem bloco na multi (lacuna registrada).")
+                    se_falhar = "Leia a acurácia balanceada, o kappa e a precisão/revocação por grupo (`tabela = \"métricas\"` no `multi/confusion`), a AUC na `multi/roc` e, com grupo raro, a `multi/pr_curve`; na discriminante, experimente `priors = \"iguais\"`.")
   mardia70 <- R(autores = "Mardia, K. V.", ano = 1970,
                 titulo = "Measures of multivariate skewness and kurtosis with applications",
                 fonte = "Biometrika, 57(3), 519-530", doi = "10.1093/biomet/57.3.519")
@@ -121,11 +121,34 @@
           papel = "complementar"),
         I("MASS", "lda", "Deixa-um-fora da discriminante pelo `CV = TRUE` de `MASS::lda`/`qda`; na logística, n reajustes do `glm`/`nnet::multinom`, cada um sem uma linha. Métricas (`tabela = \"métricas\"`) por implementação própria; kappa conferido contra `irr::kappa2` e `psych::cohen.kappa`."))),
 
+    "multi/pr_curve" = list(
+      pressupostos = list(fora_amostra,
+        P("A referência do acaso é a **prevalência** do grupo positivo, não 0,5: a AP só diz algo comparada a ela, e curvas de tabelas com prevalências diferentes não se comparam (Saito & Rehmsmeier 2015).",
+          verificar = "data/group_summarise",
+          se_falhar = "Compare classificadores na mesma tabela; para comparar populações diferentes, leia a `multi/roc`."),
+        P("A **AP** (Σ ΔR·P) e a **área interpolada** de Davis & Goadrich são estimativas diferentes da mesma área; ligar os pontos por reta superestima a área e não é usado (Davis & Goadrich 2006).",
+          se_falhar = "Reporte uma delas nomeada: a AP é a do `yardstick`, a área a do `PRROC`."),
+        P("Com **poucos positivos** a curva tem poucos degraus e a AP varia muito entre amostras; o bloco não dá intervalo.",
+          verificar = "data/group_summarise"),
+        P("Com validação cruzada, as probabilidades vêm de n ajustes e são tratadas como **um escore fixo**.")),
+      referencias = list(
+        R(autores = c("Saito, T.", "Rehmsmeier, M."), ano = 2015,
+          titulo = "The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets",
+          fonte = "PLOS ONE, 10(3), e0118432", doi = "10.1371/journal.pone.0118432"),
+        R(autores = c("Davis, J.", "Goadrich, M."), ano = 2006,
+          titulo = "The relationship between precision-recall and ROC curves",
+          fonte = "Proceedings of the 23rd International Conference on Machine Learning (ICML), 233-240",
+          doi = "10.1145/1143844.1143874"),
+        R(autores = c("Keilwagen, J.", "Grosse, I.", "Grau, J."), ano = 2014,
+          titulo = "Area under precision-recall curves for weighted and unweighted data",
+          fonte = "PLoS ONE, 9(3), e92209", doi = "10.1371/journal.pone.0092209", papel = "complementar"),
+        I("trama.multi", "tr_multi_pr_curve", "Implementação própria, a mesma conta da `ml/pr_curve`: um ponto por escore distinto; AP = Σ ΔR·P; área de Davis & Goadrich em forma fechada. Conferido contra `yardstick::average_precision` (1e-10) e `PRROC::pr.curve` (`auc.integral`, 1e-8); probabilidades por deixa-um-fora como no `multi/confusion`."))),
+
     "multi/roc" = list(
       pressupostos = list(fora_amostra,
         P("Com **grupos muito desbalanceados**, a ROC e a AUC podem parecer boas enquanto o grupo raro é mal previsto: a taxa de falsos positivos se dilui no grupo grande.",
           verificar = "multi/confusion",
-          se_falhar = "Leia a sensibilidade de cada grupo no `multi/confusion`; curva precisão-revocação ainda sem bloco no trama (lacuna registrada)."),
+          se_falhar = "Leia a sensibilidade de cada grupo no `multi/confusion` e a curva precisão-revocação na `multi/pr_curve`."),
         P("Com três ou mais grupos, cada curva é **um grupo contra os outros**: a AUC de cada uma não soma nem resume o classificador inteiro. O resumo é a AUC multiclasse M de Hand & Till (2001), no subtítulo: média, sobre os pares de grupos, da AUC do par; não depende das proporções dos grupos, mas pondera todos os pares igualmente e não tem intervalo.",
           se_falhar = "Para saber qual par se confunde, leia a matriz de confusão (`multi/confusion`)."),
         P("O intervalo de DeLong da AUC é **assintótico** (normal): com poucos positivos ou negativos, ou AUC perto de 1, a cobertura fica abaixo do nominal; o bloco corta os limites em [0, 1] e exige ao menos 2 de cada.",

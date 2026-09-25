@@ -35,6 +35,6 @@ trama_collection <- function() {
     nodes = c(.tr_multi_nos_fonte(), .tr_multi_nos_diagnostico(), .tr_multi_nos_correlacao(),
               .tr_multi_nos_pca(),
               .tr_multi_nos_fatorial(), .tr_multi_nos_discriminante(),
-              .tr_multi_nos_logistica(), .tr_multi_nos_roc(), .tr_multi_nos_jackknife())
+              .tr_multi_nos_logistica(), .tr_multi_nos_roc(), .tr_multi_nos_pr(), .tr_multi_nos_jackknife())
   )
 }

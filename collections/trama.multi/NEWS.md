@@ -2,6 +2,18 @@
 
 ## Blocos novos
 
+* `multi/pr_curve`: curva precisão-revocação dos classificadores (LDA/QDA e
+  logística), por deixa-um-fora como a `multi/roc`, com a precisão média (AP
+  = Σ ΔR·P) e a área de Davis & Goadrich (2006, doi:10.1145/1143844.1143874)
+  integrada em forma fechada (Keilwagen, Grosse & Grau 2014,
+  doi:10.1371/journal.pone.0092209), e a prevalência como linha do acaso
+  (Saito & Rehmsmeier 2015, doi:10.1371/journal.pone.0118432). Três ou mais
+  grupos: cada um contra os outros. A mesma conta da `ml/pr_curve`, copiada
+  (a coleção não depende da `trama.ml`). Validação: exemplo à mão da ml;
+  `yardstick::average_precision` 1.4.0 a 1e-10 e `PRROC::pr.curve` 1.4
+  (`auc.integral`) a 1e-8 no `pima` por deixa-um-fora (AP 0,721, área 0,719,
+  acaso 0,333) e nos três cultivares dos `vinhos` com empates.
+
 * `multi/mardia`: teste de normalidade multivariada de Mardia (1970,
   doi:10.1093/biomet/57.3.519) — assimetria b1,p (χ², e com a correção de
   amostra pequena de Mardia 1974) e curtose b2,p (z), na tabela toda ou dentro
