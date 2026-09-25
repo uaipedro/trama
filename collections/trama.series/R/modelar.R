@@ -104,9 +104,39 @@ tr_series_holt_winters <- function(serie, tendencia = TRUE, sazonalidade = TRUE,
 #' mudaria o nome das colunas a jusante, e um `data/filter` escrito sobre
 #' `ls_95` quebraria ao trocar o nível no card.
 #' @export
-tr_series_forecast <- function(modelo, horizonte = 12L) {
+tr_series_forecast <- function(modelo, horizonte = 12L, intervalo = "normal", .seed = NULL) {
   h <- .tr_series_int(horizonte, "horizonte", min = 1, max = 1000)
-  .tr_series_ajustar(forecast::forecast(modelo, h = h, level = c(80, 95)), "series/forecast")
+  intervalo <- .tr_series_enum(intervalo, c("normal", "bootstrap"), "intervalo")
+  if (intervalo == "normal") {
+    return(.tr_series_ajustar(forecast::forecast(modelo, h = h, level = c(80, 95)), "series/forecast"))
+  }
+  # Bootstrap dos resíduos (FPP3, sec. 5.5): 5000 trajetórias simuladas com
+  # erros reamostrados; os limites são quantis empíricos. Só ARIMA e ETS têm
+  # simulação no `forecast`; Holt-Winters do `stats` não.
+  if (!inherits(modelo, c("Arima", "ets"))) {
+    .tr_series_option("intervalo", intervalo,
+                      "normal (o bootstrap pede um modelo series/arima ou series/ets)")
+  }
+  semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+  .tr_series_com_semente(semente, .tr_series_ajustar(
+    forecast::forecast(modelo, h = h, level = c(80, 95), bootstrap = TRUE, npaths = 5000),
+    "series/forecast"))
+}
+
+#' Roda com a semente do nó e devolve o RNG como estava.
+#' @noRd
+.tr_series_com_semente <- function(seed, expr) {
+  tem <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+  if (tem) antigo <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  antigo_kind <- RNGkind()
+  on.exit({
+    do.call(RNGkind, as.list(antigo_kind))
+    if (tem) assign(".Random.seed", antigo, envir = globalenv())
+    else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) rm(".Random.seed", envir = globalenv())
+  }, add = TRUE)
+  RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+  set.seed(seed)
+  force(expr)
 }
 
 #' As previsões de referência: o que qualquer modelo tem de bater.

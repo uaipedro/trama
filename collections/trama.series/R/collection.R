@@ -933,7 +933,8 @@ tr_flow(reg) |>
         category = "serie_modelar", icon = icone("trending-up"),
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
         inputs = list(modelo = M), outputs = list(out = F),
-        params = list(horizonte = I(12L, min = 1L, max = 1000L, label = "Horizonte")),
+        params = list(horizonte = I(12L, min = 1L, max = 1000L, label = "Horizonte"),
+                      intervalo = E("normal", c("normal", "bootstrap"), label = "Intervalo")),
         help = .tr_series_ajuda(r"---[
 Projeta o modelo **Horizonte** períodos à frente, com a previsão pontual e os
 intervalos de 80% e 95%.
@@ -951,8 +952,19 @@ Os níveis são sempre 80 e 95, porque são os que o gráfico e a tabela nomeiam
 (`li_80`, `ls_95`); um fluxo que filtra por `ls_95` não quebra.
 
 Série transformada é prevista na escala transformada.
+
+### Intervalo: normal ou bootstrap
+
+- **normal** (padrão) — os limites são quantis normais em torno da previsão,
+  com a variância do modelo. Supõe resíduos normais.
+- **bootstrap** — simula 5000 trajetórias futuras reamostrando os resíduos do
+  ajuste e toma os quantis empíricos (Hyndman & Athanasopoulos, FPP3). Não
+  supõe normalidade, só que os resíduos sejam independentes e de variância
+  constante. Usa a semente do nó: o mesmo fluxo dá o mesmo leque. Só para
+  `series/arima` e `series/ets`; com `series/holt_winters` o bloco recusa.
 ]---", r"---[
 - **Horizonte** — quantos períodos prever.
+- **Intervalo** — `normal` (padrão) ou `bootstrap`.
 ]---", r"---[
 Uma previsão (`series/forecast`): o card mostra histórico e leque. Ligada a um
 nó da `data`, vira tabela com `tempo`, `previsto`, `li_80`, `ls_80`, `li_95` e

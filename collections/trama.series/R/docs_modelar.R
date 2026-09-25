@@ -42,7 +42,7 @@
         residuo_branco(),
         P("Para os **intervalos de previsão**, os resíduos são **normais**; a previsão pontual não depende disso.",
           verificar = c("series/residuals", "view/qq", "models/shapiro"),
-          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, leia os intervalos como aproximados; intervalos por bootstrap ainda sem bloco no trama."),
+          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, use **Intervalo** = `bootstrap` no `series/forecast`."),
         sem_quebra),
       referencias = list(L$box_jenkins, hyndman_khandakar, L$morettin, L$fpp3,
         I("forecast", "auto.arima",
@@ -85,13 +85,13 @@
           se_falhar = "Refaça o modelo (ordem do ARIMA, família) antes de ler o leque."),
         P("Os resíduos são **normais e de variância constante**: os limites de 80% e 95% são quantis normais.",
           verificar = c("series/residuals", "view/qq", "models/shapiro"),
-          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Intervalos por bootstrap ainda sem bloco no trama."),
+          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Sem normalidade, use **Intervalo** = `bootstrap` (ARIMA e ETS), que reamostra os resíduos e ainda supõe independência e variância constante."),
         P("O **futuro segue a mesma dinâmica** do passado usado no ajuste: nenhuma quebra, intervenção ou mudança de regime no horizonte. Quanto maior o horizonte, mais essa suposição pesa.",
           se_falhar = "Não há teste possível para o futuro; encurte o horizonte e compare com o `series/baseline` num período de teste (`series/window` + `series/accuracy`)."),
         P("O intervalo trata os **parâmetros estimados como conhecidos**: no ARIMA e no ETS a incerteza da estimação não entra, e o leque sai um pouco estreito em série curta.")),
       referencias = list(L$fpp3, L$box_jenkins,
         I("forecast", "forecast",
-          "`h` = horizonte, `level = c(80, 95)` fixos. Série transformada antes é prevista na escala transformada."))),
+          "`h` = horizonte, `level = c(80, 95)` fixos; com `bootstrap`, `bootstrap = TRUE, npaths = 5000` sob a semente do nó (Mersenne-Twister), conferido contra a mesma chamada a 1e-12. Série transformada antes é prevista na escala transformada."))),
 
     "series/baseline" = list(
       pressupostos = list(

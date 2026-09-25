@@ -43,6 +43,12 @@
   (nível, 300 réplicas): `t_sig` rejeita a 5% em 31% (n = 30), 27% (50) e 13%
   (100), contra 10%, 6% e 5% com k fixo; a `nota` avisa abaixo de 100.
 
+- `series/forecast`: novo parâmetro `intervalo` — `normal` (padrão, sem
+  mudança) ou `bootstrap` (resíduos reamostrados, 5000 trajetórias, semente do
+  nó; só ARIMA e ETS). Oráculo: `forecast::forecast(bootstrap = TRUE,
+  npaths = 5000)` com a mesma semente, igual a 1e-12 (ARIMA e ETS no
+  `AirPassengers`).
+
 ## Rigor metodológico (fase 1)
 
 - `series/fisher` (versão 2): convenções de Fisher (1929). O g passa a usar só
