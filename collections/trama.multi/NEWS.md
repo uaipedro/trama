@@ -62,6 +62,19 @@ padrão na `multi/logistic_coefficients`).
   kappa" da Wikipédia — não é fonte primária); `irr::kappa2` e
   `psych::cohen.kappa` a 1e-12 nas previsões cruzadas da LDA do `iris`.
 
+## Jackknife por grupo com grupos desiguais
+
+* Os quatro jackknifes (versão 3), com `grupo` de tamanhos diferentes: viés,
+  corrigida e pseudovalor saem NA, e o intervalo centra na estimativa da
+  amostra toda (θ̂ ± t(G − 1) · EP), com a coluna `nota`. Antes centrava na
+  corrigida de G réplicas, que supõe grupos iguais (Shao & Tu 1995, sec.
+  2.3); a correção ponderada para grupos desiguais não foi implementada por
+  falta de oráculo conferido. O EP JK1 não muda (vale com grupos desiguais;
+  `survey`). Menos de 5 grupos avisa (`tr_multi_warning_few_groups`).
+  **Muda o resultado** só com grupos desiguais; grupos iguais e deixa-um-fora
+  ficam iguais. Validação: contas à mão (5 grupos iguais e desiguais; escala
+  log).
+
 ## `confianca` nos jackknifes
 
 * `multi/jackknife_pca`, `_fa`, `_discriminant` e `_logistic` (versão 2): o

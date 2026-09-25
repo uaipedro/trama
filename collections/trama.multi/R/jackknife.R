@@ -17,7 +17,7 @@
 
 .TR_MULTI_JK_TABELAS <- c("resumo", "pseudovalores")
 .TR_MULTI_JK_MAX <- 5000L
-.TR_MULTI_JK_VERSAO <- 2L
+.TR_MULTI_JK_VERSAO <- 3L
 
 #' v1 -> v2: `nivel` virou `confianca`.
 #' @noRd
@@ -113,8 +113,8 @@
 #' como a unidade independente: EP = √((G − 1)/G · Σ(θ₍g₎ − θ̄)²), a variância
 #' JK1 de amostragem (Shao & Tu 1995, sec. 6.2; Kott 2001; `survey` com
 #' `type = "JK1"`), conferida nos testes. Viés, corrigida e pseudovalores usam
-#' G no lugar de n — exatos com grupos de tamanho igual, aproximados senão
-#' (o EP não depende disso).
+#' G no lugar de n só com grupos de tamanho igual; com tamanhos diferentes saem
+#' NA (coluna `nota`) e o intervalo centra em θ̂. Menos de 5 grupos avisa.
 #' @noRd
 .tr_multi_jackknife_grupos <- function(dados, completo, reajustar, extrair, no, tabela, nivel, log,
                                        grupos) {
@@ -146,27 +146,50 @@
     }
     reps[k, ] <- r
   }
+  if (G < 5L) {
+    rlang::warn(sprintf(paste0("'%s': jackknife por grupo com só %d grupos — o EP tem %d grau(s) de ",
+                               "liberdade e é pouco confiável; o intervalo sai muito largo."),
+                        no, G, G - 1L), class = "tr_multi_warning_few_groups")
+  }
+  tamanhos <- as.integer(table(factor(grupos, levels = u)))
+  # Viés, corrigida e pseudovalores com G no lugar de n são o jackknife de
+  # grupos do MESMO tamanho (Shao & Tu 1995, sec. 2.3): com tamanhos
+  # diferentes, a réplica sem um grupo grande pesa igual à sem um pequeno, e
+  # não há aqui correção conferida contra fonte. Eles saem NA e o intervalo
+  # centra em θ̂ (a amostra toda); o EP JK1 vale com tamanhos diferentes
+  # (Kott 2001; é o do `survey`).
+  iguais <- length(unique(tamanhos)) == 1L
+  nota <- if (iguais) "" else sprintf(paste0(
+    "grupos de tamanhos diferentes (%d a %d linhas): viés, corrigida e pseudovalor valem só com ",
+    "grupos iguais e saem NA; o intervalo centra na estimativa da amostra toda."),
+    min(tamanhos), max(tamanhos))
+  com_nota <- function(out) {
+    if (nzchar(nota)) out$nota <- nota
+    out
+  }
   media <- colMeans(reps)
   tr <- if (isTRUE(log)) exp else identity
   if (identical(tabela, "resumo")) {
-    vies <- (G - 1) * (media - theta)
+    vies <- if (iguais) (G - 1) * (media - theta) else media * NA_real_
     corrigida <- theta - vies
+    centro <- if (iguais) corrigida else theta
     ep <- sqrt((G - 1) / G * colSums(sweep(reps, 2L, media)^2))
     q <- stats::qt((1 + nivel) / 2, G - 1)
-    ic_inf <- corrigida - q * ep
-    ic_sup <- corrigida + q * ep
-    return(tibble::tibble(estatistica = nomes, estimativa = tr(unname(theta)),
-                          media_jackknife = tr(unname(media)), vies = unname(vies),
-                          corrigida = tr(unname(corrigida)), erro_padrao = unname(ep),
-                          ic_inf = tr(unname(ic_inf)), ic_sup = tr(unname(ic_sup))))
+    ic_inf <- centro - q * ep
+    ic_sup <- centro + q * ep
+    return(com_nota(tibble::tibble(estatistica = nomes, estimativa = tr(unname(theta)),
+                                   media_jackknife = tr(unname(media)), vies = unname(vies),
+                                   corrigida = tr(unname(corrigida)), erro_padrao = unname(ep),
+                                   ic_inf = tr(unname(ic_inf)), ic_sup = tr(unname(ic_sup)))))
   }
   linhas <- rep(seq_len(G), times = length(nomes))
   sem_ela <- as.vector(reps)
   th <- rep(unname(theta), each = G)
   md <- rep(unname(media), each = G)
-  tibble::tibble(grupo_removido = u[linhas], linhas = as.integer(table(factor(grupos, levels = u)))[linhas],
-                 estatistica = rep(nomes, each = G), sem_ela = sem_ela,
-                 pseudovalor = G * th - (G - 1) * sem_ela, influencia = (G - 1) * (md - sem_ela))
+  pseudo <- if (iguais) G * th - (G - 1) * sem_ela else NA_real_
+  com_nota(tibble::tibble(grupo_removido = u[linhas], linhas = tamanhos[linhas],
+                          estatistica = rep(nomes, each = G), sem_ela = sem_ela,
+                          pseudovalor = pseudo, influencia = (G - 1) * (md - sem_ela)))
 }
 
 #' A coluna de grupo do jackknife, conferida na tabela do modelo.
@@ -421,10 +444,14 @@ que sai tem "gêmeas" que ficam). Informe em **grupo** a coluna do
 conglomerado: cada réplica tira o grupo inteiro, e as fórmulas usam o número
 de grupos G no lugar de n — EP = √((G − 1)/G · Σ(θ₍g₎ − média)²), intervalo
 com t(G − 1). É a variância JK1 de amostragem (Shao & Tu 1995; Kott 2001),
-a mesma do `survey` com réplicas JK1. Viés e pseudovalores usam G também:
-exatos com grupos de tamanho igual, aproximados senão. Com poucos grupos
-(menos de uns 15) o EP tem poucos graus de liberdade e o intervalo fica
-largo, como deve. Os pseudovalores saem um por grupo (`grupo_removido`,
+a mesma do `survey` com réplicas JK1, e vale com grupos de tamanhos
+diferentes. Viés, corrigida e pseudovalores usam G também, e isso só vale
+com **grupos do mesmo tamanho**: com tamanhos diferentes a réplica sem um
+grupo grande pesa igual à sem um pequeno, e o trama não tem uma correção
+conferida contra fonte. Nesse caso esses três saem NA, o intervalo centra
+na **estimativa** da amostra toda (estimativa ± t(G − 1) · EP), e a coluna
+`nota` diz por quê. Com poucos grupos o EP tem poucos graus de liberdade e
+o intervalo fica largo, como deve; com menos de 5 grupos o bloco avisa. Os pseudovalores saem um por grupo (`grupo_removido`,
 `linhas` no grupo) em vez de um por linha.
 ]---"
 
