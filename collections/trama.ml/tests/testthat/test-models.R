@@ -277,3 +277,45 @@ test_that("XGBoost preserva a correspondencia linha-classe em multiclasse", {
                unname(esperado), tolerance = 1e-7)
   expect_equal(as.character(obtido$.pred), m$niveis[max.col(esperado, ties.method = "first")])
 })
+
+test_that("CART poda por custo-complexidade com a regra 1-EP (oráculo rpart)", {
+  skip_if_not_installed("rpart")
+  # Breiman et al. (1984, sec. 3.4.3): a menor árvore cujo erro de validação
+  # cruzada não passa do mínimo + 1 erro-padrão. Reproduz printcp/prune do
+  # rpart com a mesma semente e os mesmos 10 folds.
+  d <- datasets::airquality[stats::complete.cases(datasets::airquality), ]
+  cols <- "Solar.R, Wind, Temp, Month, Day"
+  m <- tr_ml_cart(d, "Ozone", cols, max_depth = 30, min_n = 3, seed = 42)
+  oraculo <- trama.ml:::.tr_ml_with_seed(42L, rpart::rpart(
+    Ozone ~ Solar.R + Wind + Temp + Month + Day, d, method = "anova",
+    control = rpart::rpart.control(maxdepth = 30, minbucket = 3, minsplit = 6, cp = 0, xval = 10)))
+  tab <- oraculo$cptable
+  expect_equal(unname(m$extras$poda$cptable), unname(tab), tolerance = 1e-12)
+  i_min <- which.min(tab[, "xerror"])
+  i_1ep <- which(tab[, "xerror"] <= tab[i_min, "xerror"] + tab[i_min, "xstd"])[[1]]
+  # Valores da semente 42 (printcp): árvore cheia com 30 divisões, mínimo do
+  # xerror em outra linha, 1-EP com 3 divisões.
+  expect_equal(unname(tab[nrow(tab), "nsplit"]), 30)
+  expect_equal(unname(tab[i_1ep, "nsplit"]), 3)
+  expect_lt(i_1ep, i_min)
+  podada <- rpart::prune(oraculo, cp = tab[i_1ep, "CP"])
+  expect_equal(m$extras$poda$cp, unname(tab[i_1ep, "CP"]))
+  expect_equal(m$extras$poda$divisoes, 3)
+  expect_equal(sum(m$ajuste$frame$var != "<leaf>"), 3L)
+  expect_equal(tr_ml_predict(m, d)$.pred, unname(stats::predict(podada, d)))
+  # A regra do mínimo escolhe a árvore de menor xerror; sem poda, a árvore cheia.
+  mm <- tr_ml_cart(d, "Ozone", cols, max_depth = 30, min_n = 3, seed = 42, poda = "minimo")
+  expect_equal(mm$extras$poda$divisoes, unname(tab[i_min, "nsplit"]))
+  mn <- tr_ml_cart(d, "Ozone", cols, max_depth = 30, min_n = 3, seed = 42, poda = "nenhuma")
+  expect_equal(sum(mn$ajuste$frame$var != "<leaf>"), 30L)
+  # Regras continuam recompondo a árvore podada.
+  expect_equal(nrow(tr_ml_rules(m)), 4L)
+})
+
+test_that("CART: cp cresce a árvore mínima e parâmetros inválidos são recusados", {
+  skip_if_not_installed("rpart")
+  m <- tr_ml_cart(mtcars, "mpg", "wt, hp", cp = 0.5, poda = "nenhuma")
+  expect_equal(sum(m$ajuste$frame$var != "<leaf>"), 1L)
+  expect_error(tr_ml_cart(mtcars, "mpg", "wt", cp = -1), class = "tr_ml_error_bad_param")
+  expect_error(tr_ml_cart(mtcars, "mpg", "wt", poda = "tudo"), class = "tr_ml_error_bad_option")
+})

@@ -35,14 +35,14 @@
 
     "ml/cart" = list(
       pressupostos = c(base, list(num,
-        P("A árvore **não é podada**: cresce até `max_depth` ou até não restarem nós com `min_n` observações por folha. São esses dois limites que controlam o sobreajuste.",
+        P("A árvore cresce até `max_depth`, `min_n` e `cp` e é **podada por custo-complexidade**: entre as subárvores aninhadas, a validação cruzada de 10 folds do `rpart` (dentro do treino, com a semente do bloco) escolhe a menor cujo erro não passa do mínimo mais um erro-padrão (regra 1-EP, `poda = \"1ep\"`). `poda = \"minimo\"` fica com a de menor erro, maior e mais variável; `\"nenhuma\"` desliga a poda.",
           verificar = c("ml/tune", "ml/evaluate"),
-          se_falhar = "Escolha `max_depth` e `min_n` no `ml/tune` (validação cruzada no treino) em vez de fixá-los a olho."),
+          se_falhar = "Se a árvore podada ficar só com a raiz, os preditores não reduziram o erro de validação além do ruído; confira o desempenho no teste antes de afrouxar a poda. `max_depth` e `min_n` ainda se escolhem no `ml/tune`."),
         P("Uma árvore única é **instável**: pequenas mudanças nos dados (outra semente no `ml/split`) podem trocar os cortes e as regras.",
           se_falhar = "Refaça com outra semente e compare as regras; para previsão estável, `ml/forest`."),
         imp_arvore("a redução de impureza somada nos cortes (inclusive substitutos) de cada preditor"))),
       referencias = list(cart84, L$islr, L$esl, strobl,
-        I("rpart", "rpart", "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp = 0)` — sem poda por complexidade."))),
+        I("rpart", "rpart", "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp, xval = 10)`; depois `prune(cp)` com o CP da linha do `cptable` escolhida pela regra 1-EP (ou do mínimo de `xerror`)."))),
 
     "ml/figs" = list(
       pressupostos = c(base, list(num,

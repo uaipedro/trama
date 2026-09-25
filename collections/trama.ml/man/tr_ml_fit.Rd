@@ -20,7 +20,9 @@ tr_ml_fit(
   gamma = 0.1,
   kernel = "radial",
   nrounds = 100L,
-  eta = 0.1
+  eta = 0.1,
+  cp = 0,
+  poda = "1ep"
 )
 }
 \arguments{
@@ -57,6 +59,15 @@ ou \code{"xgboost"}.}
 \item{nrounds}{Rodadas do XGBoost.}
 
 \item{eta}{Taxa de aprendizado do XGBoost.}
+
+\item{cp}{Parâmetro de complexidade do CART: a árvore cresce só com divisões
+que melhoram o ajuste relativo em pelo menos \code{cp}; zero cresce a árvore
+máxima permitida por \code{max_depth} e \code{min_n}, depois podada.}
+
+\item{poda}{Poda do CART por custo-complexidade, escolhida pela validação
+cruzada de 10 folds do \code{rpart} (Breiman et al. 1984): \code{"1ep"} fica com a
+menor árvore cujo erro de validação não passa do mínimo mais um
+erro-padrão; \code{"minimo"}, com a de menor erro; \code{"nenhuma"} não poda.}
 }
 \value{
 Objeto \code{tr_ml_fit}.

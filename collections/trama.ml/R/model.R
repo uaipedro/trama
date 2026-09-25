@@ -24,12 +24,20 @@
 #' @param kernel Kernel linear, radial, polynomial ou sigmoid.
 #' @param nrounds Rodadas do XGBoost.
 #' @param eta Taxa de aprendizado do XGBoost.
+#' @param cp Parâmetro de complexidade do CART: a árvore cresce só com divisões
+#'   que melhoram o ajuste relativo em pelo menos `cp`; zero cresce a árvore
+#'   máxima permitida por `max_depth` e `min_n`, depois podada.
+#' @param poda Poda do CART por custo-complexidade, escolhida pela validação
+#'   cruzada de 10 folds do `rpart` (Breiman et al. 1984): `"1ep"` fica com a
+#'   menor árvore cujo erro de validação não passa do mínimo mais um
+#'   erro-padrão; `"minimo"`, com a de menor erro; `"nenhuma"` não poda.
 #' @return Objeto `tr_ml_fit`.
 #' @export
 tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
                       trees = 200L, mtry = 0L, cost = 1, gamma = 0.1,
-                      kernel = "radial", nrounds = 100L, eta = 0.1) {
+                      kernel = "radial", nrounds = 100L, eta = 0.1,
+                      cp = 0, poda = "1ep") {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   seed <- .tr_ml_int(seed, "seed", 0L); max_depth <- .tr_ml_int(max_depth, "max_depth", 1L)
   min_n <- .tr_ml_int(min_n, "min_n", 1L); max_splits <- .tr_ml_int(max_splits, "max_splits", 1L)
@@ -37,6 +45,7 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
   cost <- .tr_ml_num(cost, "cost", 0, TRUE); gamma <- .tr_ml_num(gamma, "gamma", 0)
   nrounds <- .tr_ml_int(nrounds, "nrounds", 1L); eta <- .tr_ml_num(eta, "eta", 0, TRUE)
   kernel <- .tr_ml_enum(kernel, c("linear", "polynomial", "radial", "sigmoid"), "kernel")
+  cp <- .tr_ml_num(cp, "cp", 0); poda <- .tr_ml_enum(poda, c("1ep", "minimo", "nenhuma"), "poda")
   d <- .tr_ml_dados(dados, alvo, cols, tarefa)
   if (d$tarefa == "classificacao" && length(d$niveis) > 2L && modelo %in% c("linear", "figs")) {
     .tr_ml_abort("tr_ml_error_binary_only", "O modelo '%s' aceita classifica\u{E7}\u{E3}o com exatamente duas classes.", modelo)
@@ -55,10 +64,14 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
       # leaf.  `minsplit` only decides whether a node is considered for a
       # split; cap its derived value before rpart coerces it to integer.
       minsplit <- min(as.double(.Machine$integer.max), 2 * as.double(min_n))
-      rpart::rpart(f, treino, method = if (d$tarefa == "regressao") "anova" else "class",
+      arvore <- rpart::rpart(f, treino, method = if (d$tarefa == "regressao") "anova" else "class",
                    control = rpart::rpart.control(maxdepth = max_depth,
                                                   minbucket = min_n,
-                                                  minsplit = minsplit, cp = 0))
+                                                  minsplit = minsplit, cp = cp,
+                                                  xval = if (poda == "nenhuma") 0L else 10L))
+      extras$poda <- .tr_ml_poda_cart(arvore, poda)
+      if (!is.null(extras$poda$cp)) arvore <- rpart::prune(arvore, cp = extras$poda$cp)
+      arvore
     },
     figs = {
       .tr_ml_require("figsr", modelo)
@@ -102,10 +115,28 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
                             max_splits = max_splits, trees = trees,
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
-                            nrounds = nrounds, eta = eta)
+                            nrounds = nrounds, eta = eta, cp = cp,
+                            poda = poda)
   structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$alvo,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
                  n = d$n, seed = seed, extras = extras), class = "tr_ml_fit")
+}
+
+# Custo-complexidade (Breiman et al. 1984, sec. 3.4.3): na sequência aninhada
+# de subárvores do `cptable`, a regra 1-EP fica com a menor cujo `xerror` não
+# passa de min(xerror) + xstd do mínimo. Podar com o CP da linha escolhida
+# devolve exatamente essa subárvore (`prune.rpart` corta nós com
+# complexidade <= cp).
+.tr_ml_poda_cart <- function(arvore, poda) {
+  tab <- arvore$cptable
+  if (poda == "nenhuma" || nrow(tab) < 2L || !"xerror" %in% colnames(tab) ||
+      all(is.na(tab[, "xerror"]))) {
+    return(list(metodo = poda, cp = NULL, divisoes = unname(tab[nrow(tab), "nsplit"]), cptable = tab))
+  }
+  i_min <- which.min(tab[, "xerror"])
+  limite <- tab[i_min, "xerror"] + if (poda == "1ep") tab[i_min, "xstd"] else 0
+  i <- which(tab[, "xerror"] <= limite)[[1L]]
+  list(metodo = poda, cp = unname(tab[i, "CP"]), divisoes = unname(tab[i, "nsplit"]), cptable = tab)
 }
 
 #' Prever com um modelo de aprendizado de máquina

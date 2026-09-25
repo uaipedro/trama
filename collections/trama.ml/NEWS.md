@@ -10,3 +10,12 @@
   `.prob_sim = .8, .1, .7, .4` a AUC saía 0 em vez de 1 (curva espelhada;
   Fawcett 2006). Validação: AUC igual a U/(n1·n0) de Mann-Whitney
   (Hanley & McNeil 1982), conferida contra `stats::wilcox.test`.
+- `ml/cart` (versão 2): poda por custo-complexidade com a regra 1-EP sobre a
+  validação cruzada de 10 folds do `rpart` (Breiman et al. 1984, sec. 3.4.3):
+  a menor subárvore com `xerror` ≤ mínimo + 1 erro-padrão. Novos parâmetros
+  `cp` (padrão 0) e `poda` (`"1ep"`, `"minimo"`, `"nenhuma"`; `"nenhuma"`
+  reproduz a árvore sem poda da versão 1). O `cptable`, o CP e o número de
+  divisões escolhidos ficam em `extras$poda`. `ml/tune` (versão 2) herda a
+  poda ao ajustar CART. Validação: `rpart::printcp`/`prune` reproduzidos em
+  `airquality` (casos completos) com semente 42 — árvore cheia de 30 divisões,
+  1-EP com 3 divisões, previsões idênticas.

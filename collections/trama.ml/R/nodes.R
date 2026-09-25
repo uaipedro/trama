@@ -5,9 +5,9 @@
 #' @return Um modelo `tr_ml_fit`.
 #' @export
 tr_ml_cart <- function(dados, alvo = "", cols = "", tarefa = "auto",
-                       max_depth = 3L, min_n = 5L, seed = 42L) {
+                       max_depth = 3L, min_n = 5L, cp = 0, poda = "1ep", seed = 42L) {
   tr_ml_fit(dados, alvo, cols, "cart", tarefa, seed = seed,
-            max_depth = max_depth, min_n = min_n)
+            max_depth = max_depth, min_n = min_n, cp = cp, poda = poda)
 }
 
 #' Soma de árvores interpretáveis FIGS.
@@ -81,8 +81,11 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
     cart = list(fn = tr_ml_cart, icon = "git-fork", label = "CART \u{B7} \u{E1}rvore de decis\u{E3}o", category = "ml_simples",
       desc = "Uma \u{E1}rvore pequena para seguir cada decis\u{E3}o at\u{E9} a previs\u{E3}o.",
       details = "Usa `rpart`. Cada caminho da raiz at\u{E9} uma folha forma uma regra. Profundidade pequena facilita a leitura; \u{E1}rvores grandes podem sobreajustar. A tabela do card mostra regras e as previs\u{F5}es das folhas.",
-      params = list(max_depth = depth, min_n = min_n),
-      extra = "`max_depth`: profundidade m\u{E1}xima. `min_n`: m\u{ED}nimo de observa\u{E7}\u{F5}es por folha."),
+      version = 2L,
+      params = list(max_depth = depth, min_n = min_n,
+        cp = trama::tr_param_num(0, min = 0, label = "Complexidade m\u{ED}nima (cp)"),
+        poda = trama::tr_param_enum("1ep", c("1ep", "minimo", "nenhuma"), label = "Poda")),
+      extra = "`max_depth`: profundidade m\u{E1}xima. `min_n`: m\u{ED}nimo de observa\u{E7}\u{F5}es por folha. `cp`: melhora relativa m\u{ED}nima para crescer uma divis\u{E3}o; zero cresce a \u{E1}rvore m\u{E1}xima, depois podada. `poda`: custo-complexidade pela valida\u{E7}\u{E3}o cruzada de 10 folds do rpart \u{2014} `1ep` fica com a menor \u{E1}rvore cujo erro n\u{E3}o passa do m\u{ED}nimo mais um erro-padr\u{E3}o (Breiman et al. 1984), `minimo` com a de menor erro, `nenhuma` n\u{E3}o poda."),
     figs = list(fn = tr_ml_figs, icon = "git-branch-plus", label = "FIGS \u{B7} soma de \u{E1}rvores", category = "ml_simples",
       desc = "Soma poucas \u{E1}rvores pequenas com um or\u{E7}amento total de divis\u{F5}es.",
       details = "Usa `figsr`, de Jo\u{E3}o Paulo Assis Bonif\u{E1}cio, Geraldo Magela da Cruz Pereira, Pedro Mambelli Fernandes e Jo\u{E3}o Vitor Andrade Alves de Souza. FIGS escolhe entre crescer uma \u{E1}rvore e iniciar outra. Suporta regress\u{E3}o e classifica\u{E7}\u{E3}o **bin\u{E1}ria**; some as contribui\u{E7}\u{F5}es das \u{E1}rvores, n\u{E3}o fa\u{E7}a vota\u{E7}\u{E3}o. O limite de divis\u{F5}es controla a complexidade global.",
@@ -111,7 +114,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
   lapply(names(configs), function(id) {
     cfg <- configs[[id]]
     doc <- .tr_ml_doc(paste0("ml/", id))
-    trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label,
+    trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label, version = cfg$version %||% 1L,
       pressupostos = doc$pressupostos, referencias = doc$referencias,
       description = cfg$desc, category = cfg$category, icon = trama::tr_icon(cfg$icon),
       inputs = list(dados = "data/table"), outputs = list(out = "ml/fit"),
@@ -128,7 +131,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
   T <- "data/table"; G <- "view/plot"; M <- "ml/fit"
   visual <- function(...) trama.view::tr_view_props(...)
   list(
-    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune,
+    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, version = 2L,
       pressupostos = .tr_ml_doc("ml/tune")$pressupostos, referencias = .tr_ml_doc("ml/tune")$referencias, label = "Ajustar hiperpar\u{E2}metros",
       description = "Seleciona hiperpar\u{E2}metros por valida\u{E7}\u{E3}o cruzada e reajusta o vencedor no treino completo.",
       category = "ml_avaliar", icon = trama::tr_icon("sliders-horizontal"), inputs = list(dados = T),

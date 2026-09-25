@@ -11,6 +11,8 @@ tr_ml_cart(
   tarefa = "auto",
   max_depth = 3L,
   min_n = 5L,
+  cp = 0,
+  poda = "1ep",
   seed = 42L
 )
 }
@@ -27,6 +29,15 @@ colunas numéricas, exceto o alvo.}
 \item{max_depth}{Profundidade máxima das árvores (CART, forest e XGBoost).}
 
 \item{min_n}{Mínimo por folha no CART; tamanho mínimo do nó em FIGS e ranger.}
+
+\item{cp}{Parâmetro de complexidade do CART: a árvore cresce só com divisões
+que melhoram o ajuste relativo em pelo menos \code{cp}; zero cresce a árvore
+máxima permitida por \code{max_depth} e \code{min_n}, depois podada.}
+
+\item{poda}{Poda do CART por custo-complexidade, escolhida pela validação
+cruzada de 10 folds do \code{rpart} (Breiman et al. 1984): \code{"1ep"} fica com a
+menor árvore cujo erro de validação não passa do mínimo mais um
+erro-padrão; \code{"minimo"}, com a de menor erro; \code{"nenhuma"} não poda.}
 
 \item{seed}{Semente local; o estado aleatório da sessão é preservado.}
 }
