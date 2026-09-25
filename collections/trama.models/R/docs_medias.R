@@ -40,7 +40,11 @@
       pressupostos = list(modelo_ok, interacao,
         P("As comparações foram **escolhidas antes** de ver os dados (todos os pares, ou todos contra o controle): o ajuste protege essa família, e não comparações escolhidas depois.")),
       referencias = list(tukey49, kramer, dunnett, L$montgomery,
-        I("emmeans", "contrast", "`\"pairwise\"` ou `\"trt.vs.ctrl\"`; o ajuste `dunnett` usa `adjust = \"dunnettx\"`, a aproximação de Hsu para o Dunnett."))),
+        I("emmeans", "contrast", "`\"pairwise\"` ou `\"trt.vs.ctrl\"`; o ajuste `dunnett` usa `adjust = \"mvt\"`: o Dunnett exato, pela integração da t multivariada (Genz & Bretz), com a semente do nó para ser reprodutível; validado contra `multcomp::glht(mcp(... = \"Dunnett\"))`."),
+        R(autores = c("Genz, A.", "Bretz, F."), ano = 2009,
+          titulo = "Computation of Multivariate Normal and t Probabilities",
+          fonte = "Lecture Notes in Statistics, 195. Berlin: Springer",
+          doi = "10.1007/978-3-642-01689-9", papel = "complementar"))),
 
     "models/linear_hypothesis" = list(
       pressupostos = list(modelo_ok,

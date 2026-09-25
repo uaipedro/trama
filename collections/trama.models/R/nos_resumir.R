@@ -410,7 +410,7 @@ para o gráfico com título e proporção; `models/anova_factorial` para o
 desdobramento.
 ]---")),
 
-    trama::tr_node("models/pairwise", 
+    trama::tr_node("models/pairwise", version = 2L,
       pressupostos = .tr_models_doc("models/pairwise")$pressupostos,
       referencias = .tr_models_doc("models/pairwise")$referencias,
       fn = tr_models_pairwise, label = "Comparações de médias",

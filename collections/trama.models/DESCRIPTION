@@ -42,7 +42,8 @@ Imports:
     utils
 Suggests:
     testthat (>= 3.0.0),
-    png
+    png,
+    multcomp
 Config/testthat/edition: 3
 Remotes:
     uaipedro/trama,

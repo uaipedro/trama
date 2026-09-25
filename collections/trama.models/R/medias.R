@@ -155,9 +155,14 @@ tr_models_emmeans <- function(modelo, especs = "", por = "", ajuste = "tukey", a
 #' @param metodo `"todos os pares"` ou `"contra controle"`.
 #' @param controle nível do controle (com `"contra controle"`).
 #' @param ajuste correção; `"dunnett"` é o padrão natural contra controle.
+#'   É o Dunnett exato: `adjust = "mvt"` do emmeans, integração da t
+#'   multivariada (Genz-Bretz), com erro numérico de ~1e-3 a partir de 3
+#'   contrastes.
+#' @param .seed semente do nó: torna o Dunnett (Monte Carlo quase-aleatório)
+#'   reprodutível, sem mexer no estado aleatório da sessão.
 #' @return objeto `tr_models_effects`.
 #' @export
-tr_models_pairwise <- function(medias, metodo = "todos os pares", controle = "", ajuste = "tukey") {
+tr_models_pairwise <- function(medias, metodo = "todos os pares", controle = "", ajuste = "tukey", .seed = NULL) {
   .tr_models_emm_conferir(medias)
   no <- "models/pairwise"
   if (is.null(medias$grade)) {
@@ -167,7 +172,7 @@ tr_models_pairwise <- function(medias, metodo = "todos os pares", controle = "",
   }
   metodo <- .tr_models_enum(metodo, c("todos os pares", "contra controle"), "metodo")
   ajuste <- .tr_models_enum(ajuste, c(.TR_MODELS_AJUSTES, "dunnett"), "ajuste")
-  aj_r <- if (ajuste == "dunnett") "dunnettx" else .tr_models_ajuste_r(ajuste)
+  aj_r <- if (ajuste == "dunnett") "mvt" else .tr_models_ajuste_r(ajuste)
   grade <- medias$grade
   if (metodo == "todos os pares") {
     if (ajuste == "dunnett") {
@@ -193,7 +198,8 @@ tr_models_pairwise <- function(medias, metodo = "todos os pares", controle = "",
     ct <- .tr_models_ajustar(emmeans::contrast(grade, "trt.vs.ctrl", ref = ref, adjust = aj_r), no)
     titulo <- sprintf("Contra o controle (%s)", ctl)
   }
-  s <- as.data.frame(summary(ct, infer = c(TRUE, TRUE), level = 0.95))
+  semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1955L else as.integer(.seed[[1]])
+  s <- .tr_models_com_semente(semente, as.data.frame(summary(ct, infer = c(TRUE, TRUE), level = 0.95)))
   est <- setdiff(names(s), c("contrast", medias$por, "SE", "df", "null"))[[1]]
   estat <- grep("ratio$", names(s), value = TRUE)
   estat <- estat[estat != est][[1]]
