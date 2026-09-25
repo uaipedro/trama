@@ -5,7 +5,7 @@ test_that("motor: EP jackknife da média é s/√n, e o viés é zero", {
   tab <- .tr_multi_jackknife(d, "x", completo = d,
                              reajustar = function(dd) dd,
                              extrair = function(obj) c(media = mean(obj$x)),
-                             no = "x", tabela = "resumo", nivel = .95)
+                             no = "x", tabela = "resumo", confianca = .95)
   expect_equal(tab$estimativa, mean(d$x))
   expect_equal(tab$vies, 0, tolerance = 1e-12)
   expect_equal(tab$erro_padrao, stats::sd(d$x) / sqrt(12))
@@ -101,17 +101,17 @@ test_that("jackknife_fa: comunalidades e cargas alinhadas", {
 })
 
 test_that("jackknife_discriminant: correlação canônica e quadrática recusada", {
-  lda <- tr_multi_discriminant(iris_t(), grupo = "Species")
+  lda <- tr_multi_discriminant(iris_t(), resposta = "Species")
   tab <- tr_multi_jackknife_discriminant(lda)
   expect_equal(tab$estatistica, c("LD1", "LD2"))
   expect_equal(tab$estimativa, c(0.9848, 0.4712), tolerance = 1e-3)
-  qda <- tr_multi_discriminant(iris_t(), grupo = "Species", metodo = "quadrática")
+  qda <- tr_multi_discriminant(iris_t(), resposta = "Species", metodo = "quadrática")
   expect_error(tr_multi_jackknife_discriminant(qda), class = "tr_multi_error_bad_option")
 })
 
 test_that("jackknife_logistic: coeficientes, EP de Wald ao lado, razões de chances exponenciadas", {
   d <- tr_multi_example("pima")[1:150, ]
-  m <- tr_multi_logistic(d, grupo = "diabetes", cols = "glicose, imc")
+  m <- tr_multi_logistic(d, resposta = "diabetes", preditores = "glicose, imc")
   tab <- tr_multi_jackknife_logistic(m)
   expect_equal(tab$estatistica, c("(intercepto)", "glicose", "imc"))
   expect_true("erro_padrao_wald" %in% names(tab))
@@ -123,6 +123,6 @@ test_that("jackknife_logistic: coeficientes, EP de Wald ao lado, razões de chan
   expect_equal(or$corrigida, exp(tab$corrigida))
   expect_equal(or$ic_inf, exp(tab$ic_inf))
   expect_equal(or$ic_sup, exp(tab$ic_sup))
-  sep <- tr_multi_logistic(iris_t(), grupo = "Species")
+  sep <- tr_multi_logistic(iris_t(), resposta = "Species")
   expect_error(tr_multi_jackknife_logistic(sep), class = "tr_multi_error_separation")
 })

@@ -32,7 +32,7 @@ tr_use("trama.multi", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "pima") |>
-  tr_add("log", "multi/logistic", grupo = "diabetes", cols = "glicose, imc, pedigree", from = "dados") |>
+  tr_add("log", "multi/logistic", resposta = "diabetes", preditores = "glicose, imc, pedigree", from = "dados") |>
   tr_add("roc", "multi/roc", validacao = "cruzada", from = "log")
 ```
 

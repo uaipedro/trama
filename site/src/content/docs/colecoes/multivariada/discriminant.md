@@ -17,8 +17,8 @@ Use **Discriminante** quando os grupos são conhecidos no treino e a tarefa é c
 
 ## Configuração
 
-- **Grupo** — coluna da classe conhecida.
-- **Preditores** — colunas numéricas; em branco, usa as numéricas menos Grupo.
+- **Resposta** — coluna da classe conhecida.
+- **Preditores** — colunas numéricas; em branco, usa as numéricas menos a Resposta.
 - **Método** — `linear` (padrão, LDA) ou `quadrática` (QDA).
 - **Priors** — `proporcionais` (padrão) às frequências ou `iguais`.
 
@@ -32,7 +32,7 @@ tr_use("trama.multi", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", cols = "Petal.Length, Petal.Width", from = "dados")
+  tr_add("lda", "multi/discriminant", resposta = "Species", preditores = "Petal.Length, Petal.Width", from = "dados")
 ```
 
 O classificador LDA pode ser conectado à classificação e avaliação cruzada.

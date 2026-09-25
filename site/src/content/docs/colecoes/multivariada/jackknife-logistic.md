@@ -19,7 +19,7 @@ Use **Jackknife da logística** para localizar linhas influentes e comparar erro
 
 - **Estatística** — `coeficientes` (padrão) ou `razões de chances`.
 - **Tabela** — `resumo` (padrão) ou `pseudovalores`.
-- **Nível do intervalo** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Confiança** — 0,95 por padrão, entre 0,5 e 0,999.
 
 ## Exemplo
 
@@ -33,7 +33,7 @@ tr_use("trama.multi", registry = reg)
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "pima") |>
   tr_add("amostra", "data/slice_head", n = 150L, from = "dados") |>
-  tr_add("log", "multi/logistic", grupo = "diabetes", cols = "glicose, imc", from = "amostra") |>
+  tr_add("log", "multi/logistic", resposta = "diabetes", preditores = "glicose, imc", from = "amostra") |>
   tr_add("jk", "multi/jackknife_logistic", estatistica = "razões de chances", from = "log")
 ```
 

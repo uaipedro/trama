@@ -19,7 +19,7 @@ Use **Jackknife da fatorial** para localizar respondentes influentes e avaliar e
 
 - **Estatística** — `cargas` (padrão) ou `comunalidades`.
 - **Tabela** — `resumo` (padrão) ou `pseudovalores`.
-- **Nível do intervalo** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Confiança** — 0,95 por padrão, entre 0,5 e 0,999.
 
 ## Exemplo
 

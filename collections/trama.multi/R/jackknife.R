@@ -27,10 +27,10 @@
 #' @param log se TRUE, estimativa, média, corrigida e IC saem exponenciados
 #'   (razões de chances); viés e erro padrão ficam na escala log.
 #' @noRd
-.tr_multi_jackknife <- function(dados, variaveis, completo, reajustar, extrair, no, tabela, nivel,
+.tr_multi_jackknife <- function(dados, variaveis, completo, reajustar, extrair, no, tabela, confianca,
                                 log = FALSE) {
   tabela <- .tr_multi_enum(tabela, .TR_MULTI_JK_TABELAS, "tabela")
-  nivel <- .tr_multi_num(nivel, "nivel", min = 0.5, max = 0.999)
+  confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
   dados <- as.data.frame(dados)
   n <- nrow(dados)
   if (n > .TR_MULTI_JK_MAX) {
@@ -63,7 +63,7 @@
     vies <- (n - 1) * (media - theta)
     corrigida <- theta - vies
     ep <- sqrt((n - 1) / n * colSums(sweep(reps, 2L, media)^2))
-    q <- stats::qt((1 + nivel) / 2, n - 1)
+    q <- stats::qt((1 + confianca) / 2, n - 1)
     # Os limites saem ANTES do tibble: dentro dele, `corrigida` já seria a coluna
     # exponenciada, e a razão de chances sairia com o intervalo exp(exp(.)).
     ic_inf <- corrigida - q * ep
@@ -158,10 +158,10 @@
 #' @param estatistica `"autovalores"`, `"proporção"` ou `"cargas"` (correlações
 #'   variável-componente).
 #' @param tabela `"resumo"` ou `"pseudovalores"`.
-#' @param nivel nível do intervalo.
+#' @param confianca nível do intervalo.
 #' @return tibble.
 #' @export
-tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "resumo", nivel = 0.95) {
+tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "resumo", confianca = 0.95) {
   no <- "multi/jackknife_pca"
   .tr_multi_pca_conferir(pca)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_PCA, "estatistica")
@@ -178,7 +178,7 @@ tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "r
   .tr_multi_jackknife(pca$dados, pca$variaveis, pca,
                       function(d) tr_multi_pca(d, cols = .tr_multi_cols_de(pca$variaveis),
                                                padronizar = pca$padronizado),
-                      extrair, no, tabela, nivel)
+                      extrair, no, tabela, confianca)
 }
 
 #' Jackknife da análise fatorial.
@@ -187,7 +187,7 @@ tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "r
 #' @inheritParams tr_multi_jackknife_pca
 #' @return tibble.
 #' @export
-tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo", nivel = 0.95) {
+tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo", confianca = 0.95) {
   no <- "multi/jackknife_fa"
   .tr_multi_guard(fa, "tr_multi_fa", setdiff(.TR_MULTI_CAMPOS_FA, "normalizar"),
                   "tr_multi_error_not_a_fa", "uma análise fatorial")
@@ -205,7 +205,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
                                                            fatores = ncol(fa$cargas), metodo = fa$metodo,
                                                            rotacao = fa$rotacao, normalizar = normalizar,
                                                            escores = "nenhum"),
-                      extrair, no, tabela, nivel)
+                      extrair, no, tabela, confianca)
 }
 
 #' Jackknife da discriminante linear.
@@ -216,7 +216,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
 #' @return tibble.
 #' @export
 tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação canônica",
-                                            tabela = "resumo", nivel = 0.95) {
+                                            tabela = "resumo", confianca = 0.95) {
   no <- "multi/jackknife_discriminant"
   .tr_multi_modelo(modelo)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_LDA, "estatistica")
@@ -241,10 +241,10 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
   }
   # Só os preditores saem dos pseudovalores: o grupo fica ao lado da influência.
   .tr_multi_jackknife(modelo$dados, modelo$preditores, modelo,
-                      function(d) tr_multi_discriminant(d, grupo = modelo$grupo,
-                                                        cols = .tr_multi_cols_de(modelo$preditores),
+                      function(d) tr_multi_discriminant(d, resposta = modelo$grupo,
+                                                        preditores = .tr_multi_cols_de(modelo$preditores),
                                                         metodo = modelo$metodo, priors = modelo$priors),
-                      extrair, no, tabela, nivel)
+                      extrair, no, tabela, confianca)
 }
 
 #' Jackknife da regressão logística.
@@ -254,7 +254,7 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
 #' @return tibble; no resumo, também `erro_padrao_wald`.
 #' @export
 tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", tabela = "resumo",
-                                        nivel = 0.95) {
+                                        confianca = 0.95) {
   no <- "multi/jackknife_logistic"
   .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
                   "uma regressão logística")
@@ -270,10 +270,10 @@ tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", ta
     stats::setNames(cf$coeficiente, rotulos(cf))
   }
   tab <- .tr_multi_jackknife(modelo$dados, modelo$preditores, modelo,
-                             function(d) tr_multi_logistic(d, grupo = modelo$grupo,
-                                                           cols = .tr_multi_cols_de(modelo$preditores),
+                             function(d) tr_multi_logistic(d, resposta = modelo$grupo,
+                                                           preditores = .tr_multi_cols_de(modelo$preditores),
                                                            corte = if (is.na(modelo$corte)) 0.5 else modelo$corte),
-                             extrair, no, tabela, nivel, log = estatistica == "razões de chances")
+                             extrair, no, tabela, confianca, log = estatistica == "razões de chances")
   if (identical(tabela, "resumo")) {
     # O EP de Wald ao lado: quando os dois discordam muito, a curvatura da
     # verossimilhança não descreve bem a incerteza (amostra pequena, influência).
@@ -314,7 +314,7 @@ sorteie uma amostra das linhas antes.
   list(
     estatistica = trama::tr_param_enum(padrao, opcoes, label = "Estatística"),
     tabela = trama::tr_param_enum("resumo", .TR_MULTI_JK_TABELAS, label = "Tabela"),
-    nivel = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Nível do intervalo"))
+    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"))
 }
 
 #' A página de um nó: descrição própria + as duas tabelas; params e valor comuns.
@@ -324,7 +324,7 @@ sorteie uma amostra das linhas antes.
     paste(trimws(descricao), .TR_MULTI_JK_AJUDA_TABELAS, sep = "\n\n"),
     paste0("- **Estatística** — ", estatisticas, "\n",
            "- **Tabela** — `resumo` ou `pseudovalores`.\n",
-           "- **Nível do intervalo** — 0,95 por padrão."),
+           "- **Confiança** (`confianca`) — nível do intervalo, 0,95 por padrão."),
     "Uma tabela (`data/table`), no formato descrito em \"As duas tabelas\".",
     exemplo, veja)
 }
@@ -412,7 +412,7 @@ A quadrática não tem funções discriminantes e é recusada.
 ]---", "`correlação canônica` (padrão), `autovalores` ou `coeficientes padronizados`.", r"---[
 tr_flow(reg) |>
   tr_add("iris", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", from = "iris") |>
+  tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
   tr_add("jk", "multi/jackknife_discriminant", from = "lda")
 ]---", r"---[
 `multi/discriminant_functions` para as funções; `multi/confusion` para o
@@ -439,7 +439,7 @@ a linha.
 ]---", "`coeficientes` (padrão) ou `razões de chances`.", r"---[
 tr_flow(reg) |>
   tr_add("pima", "multi/example", dataset = "pima") |>
-  tr_add("lg", "multi/logistic", grupo = "diabetes", cols = "glicose, imc, pedigree", from = "pima") |>
+  tr_add("lg", "multi/logistic", resposta = "diabetes", preditores = "glicose, imc, pedigree", from = "pima") |>
   tr_add("jk", "multi/jackknife_logistic", estatistica = "razões de chances", from = "lg")
 ]---", r"---[
 `multi/logistic_coefficients` para os erros de Wald; `multi/classify` com

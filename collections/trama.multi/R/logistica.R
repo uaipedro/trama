@@ -129,16 +129,16 @@
 
 #' Regressão logística binária ou multinomial.
 #' @param dados tabela.
-#' @param grupo coluna com o grupo conhecido.
-#' @param cols preditores; em branco, todas as numéricas menos o grupo.
+#' @param resposta coluna com o grupo conhecido (a resposta a classificar).
+#' @param preditores colunas preditoras; em branco, todas as numéricas menos a resposta.
 #' @param corte na binária, a probabilidade do segundo grupo a partir da qual
 #'   se prevê ele.
 #' @return objeto `tr_multi_logit`.
 #' @export
-tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
+tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5) {
   no <- "multi/logistic"
   corte <- .tr_multi_num(corte, "corte", min = 0.01, max = 0.99)
-  gr <- .tr_multi_grupos(dados, grupo, cols, no)
+  gr <- .tr_multi_grupos(dados, resposta, preditores, no, param = "resposta")
   .tr_multi_grupo_minimo(gr$g, 2L, no,
                          "Com uma observação só, o grupo não tem como ter probabilidade estimada.")
   # A matriz dos preditores singular deixa coeficientes NA no `glm` (e em
@@ -196,18 +196,18 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
 #' Coeficientes, erros padrão de Wald e razões de chances.
 #' @param modelo objeto `tr_multi_logit`.
 #' @param escala `"unidade"` ou `"desvio padrão"`.
-#' @param nivel nível do intervalo de confiança.
+#' @param confianca nível do intervalo de confiança.
 #' @return tibble.
 #' @export
-tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", nivel = 0.95) {
+tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", confianca = 0.95) {
   no <- "multi/logistic_coefficients"
   .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
                   "uma regressão logística")
   escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
-  nivel <- .tr_multi_num(nivel, "nivel", min = 0.5, max = 0.999)
+  confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
   .tr_multi_sem_separacao(modelo, no)
   d <- .tr_multi_logit_coefs(modelo, escala)
-  q <- stats::qnorm((1 + nivel) / 2)
+  q <- stats::qnorm((1 + confianca) / 2)
   z <- d$coeficiente / d$erro_padrao
   tibble::tibble(grupo = d$grupo, referencia = d$referencia, termo = d$termo,
                  coeficiente = d$coeficiente, erro_padrao = d$erro_padrao, z = z,
@@ -283,8 +283,8 @@ tr_multi_plot_odds <- function(modelo, escala = "desvio padrão", aspecto = "16:
       description = "Ajusta uma regressão logística binária (2 grupos) ou multinomial (3+) para classificar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = LG),
       params = list(
-        grupo = P("cols", "", label = "Grupo", example = "diabetes"),
-        cols = P("cols", "", label = "Preditores", example = "glicose, imc, idade"),
+        resposta = P("cols", "", label = "Resposta (grupo)", example = "diabetes"),
+        preditores = P("cols", "", label = "Preditores", example = "glicose, imc, idade"),
         corte = trama::tr_param_num(0.5, min = 0.01, max = 0.99, label = "Corte (binária)")),
       help = .tr_multi_ajuda(r"---[
 Modela a PROBABILIDADE de cada observação pertencer a cada grupo a partir das
@@ -331,9 +331,9 @@ discriminante.
 Grupo com faltante, grupo único, grupo com uma observação, menos de dois
 preditores numéricos, preditor não numérico, constante ou colinear.
 ]---", r"---[
-- **Grupo** — a coluna com o grupo conhecido. Os níveis sem linha são
+- **Resposta** (`resposta`) — a coluna com o grupo conhecido. Os níveis sem linha são
   descartados; o primeiro nível é a referência.
-- **Preditores** — as medidas, separadas por vírgula. Em branco, todas as
+- **Preditores** (`preditores`) — as medidas, separadas por vírgula. Em branco, todas as
   numéricas menos o grupo.
 - **Corte (binária)** — probabilidade do segundo grupo a partir da qual se
   prevê ele. Ignorado com três ou mais grupos.
@@ -344,7 +344,7 @@ Ligado a um nó de tabela, vira o treino classificado (como `multi/classify`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pima", "multi/example", dataset = "pima") |>
-  tr_add("lg", "multi/logistic", grupo = "diabetes", from = "pima") |>
+  tr_add("lg", "multi/logistic", resposta = "diabetes", from = "pima") |>
   tr_add("cv", "multi/confusion", validacao = "cruzada", from = "lg")
 ]---", r"---[
 `multi/logistic_coefficients` para as razões de chances; `multi/roc` para
@@ -359,7 +359,7 @@ logística como modelo de regressão, com desvio e contrastes.
       inputs = list(modelo = LG), outputs = list(out = TB),
       params = list(
         escala = trama::tr_param_enum("unidade", .TR_MULTI_ESCALAS_OR, label = "Escala"),
-        nivel = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Nível do intervalo")),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_multi_ajuda(r"---[
 Uma linha por termo (e, na multinomial, por grupo contra a referência).
 
@@ -384,7 +384,7 @@ Wald é aproximado e fica ruim com coeficientes grandes; a
 separação, a tabela é recusada.
 ]---", r"---[
 - **Escala** — `unidade` ou `desvio padrão`.
-- **Nível do intervalo** — 0,95 por padrão.
+- **Confiança** (`confianca`) — nível do intervalo, 0,95 por padrão.
 ]---", r"---[
 Uma tabela (`data/table`): `grupo` (o grupo cuja chance se modela), `referencia`,
 `termo` (`(intercepto)` e os preditores), `coeficiente`, `erro_padrao`, `z`,
@@ -392,7 +392,7 @@ Uma tabela (`data/table`): `grupo` (o grupo cuja chance se modela), `referencia`
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pima", "multi/example", dataset = "pima") |>
-  tr_add("lg", "multi/logistic", grupo = "diabetes", from = "pima") |>
+  tr_add("lg", "multi/logistic", resposta = "diabetes", from = "pima") |>
   tr_add("rc", "multi/logistic_coefficients", escala = "desvio padrão", from = "lg")
 ]---", r"---[
 `multi/plot_odds` para o gráfico; `multi/jackknife_logistic` para erros padrão
@@ -423,7 +423,7 @@ separação.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("v", "multi/example", dataset = "vinhos") |>
-  tr_add("lg", "multi/logistic", grupo = "cultivar", cols = "alcool, acidez_malica, magnesio, fenois_totais", from = "v") |>
+  tr_add("lg", "multi/logistic", resposta = "cultivar", preditores = "alcool, acidez_malica, magnesio, fenois_totais", from = "v") |>
   tr_add("g", "multi/plot_odds", from = "lg")
 ]---", r"---[
 `multi/logistic_coefficients` para os números; `multi/roc` para o desempenho.

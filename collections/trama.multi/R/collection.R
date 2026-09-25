@@ -34,6 +34,19 @@ trama_collection <- function() {
     nodes = c(.tr_multi_nos_fonte(), .tr_multi_nos_diagnostico(), .tr_multi_nos_correlacao(),
               .tr_multi_nos_pca(),
               .tr_multi_nos_fatorial(), .tr_multi_nos_discriminante(),
-              .tr_multi_nos_logistica(), .tr_multi_nos_roc(), .tr_multi_nos_jackknife())
+              .tr_multi_nos_logistica(), .tr_multi_nos_roc(), .tr_multi_nos_jackknife()),
+    # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
+    # nomes antigos abrem com os novos. Na discriminante e na logística o grupo
+    # conhecido é a RESPOSTA e as medidas são os PREDITORES; no M de Box `grupo`
+    # e `cols` continuam, porque lá não há o que prever. `nivel` era a confiança
+    # do intervalo e já guardava 0,95: renome puro.
+    migrations = list(params = c(
+      list(
+        "multi/discriminant" = list(grupo = list(to = "resposta"), cols = list(to = "preditores")),
+        "multi/logistic" = list(grupo = list(to = "resposta"), cols = list(to = "preditores"))),
+      stats::setNames(
+        rep(list(list(nivel = list(to = "confianca"))), 5L),
+        c("multi/logistic_coefficients", "multi/jackknife_pca", "multi/jackknife_fa",
+          "multi/jackknife_discriminant", "multi/jackknife_logistic"))))
   )
 }

@@ -29,7 +29,7 @@ tr_use("trama.multi", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", from = "dados") |>
+  tr_add("lda", "multi/discriminant", resposta = "Species", from = "dados") |>
   tr_add("cm", "multi/confusion", validacao = "cruzada", from = "lda")
 ```
 

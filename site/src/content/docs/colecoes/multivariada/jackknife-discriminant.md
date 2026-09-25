@@ -19,7 +19,7 @@ Use **Jackknife da discriminante** para verificar se observações individuais a
 
 - **Estatística** — `correlação canônica` (padrão), `autovalores` ou `coeficientes padronizados`.
 - **Tabela** — `resumo` (padrão) ou `pseudovalores`.
-- **Nível do intervalo** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Confiança** — 0,95 por padrão, entre 0,5 e 0,999.
 
 ## Exemplo
 
@@ -31,7 +31,7 @@ tr_use("trama.multi", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", from = "dados") |>
+  tr_add("lda", "multi/discriminant", resposta = "Species", from = "dados") |>
   tr_add("jk", "multi/jackknife_discriminant", from = "lda")
 ```
 

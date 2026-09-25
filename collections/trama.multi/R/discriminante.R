@@ -28,8 +28,10 @@
 #' (com prior zero e média NaN). Faltante no grupo é recusado como nas medidas —
 #' uma linha sem grupo não tem onde entrar na conta das covariâncias.
 #' @noRd
-.tr_multi_grupos <- function(dados, grupo, cols, no) {
-  grupo <- .tr_multi_col(dados, grupo, "grupo")
+# `param` é o nome do parâmetro nas mensagens: o M de Box chama a coluna de
+# `grupo`, e discriminante/logística a chamam de `resposta` (glossário).
+.tr_multi_grupos <- function(dados, grupo, cols, no, param = "grupo") {
+  grupo <- .tr_multi_col(dados, grupo, param)
   preditores <- .tr_multi_variaveis(dados, cols, excluir = grupo)
   if (grupo %in% preditores) {
     .tr_multi_abort("tr_multi_error_bad_option",
@@ -238,18 +240,18 @@
 
 #' Análise discriminante linear (LDA) ou quadrática (QDA).
 #' @param dados tabela.
-#' @param grupo coluna com o grupo conhecido.
-#' @param cols preditores; em branco, todas as numéricas menos o grupo.
+#' @param resposta coluna com o grupo conhecido (a resposta a classificar).
+#' @param preditores colunas preditoras; em branco, todas as numéricas menos a resposta.
 #' @param metodo `"linear"` ou `"quadrática"`.
 #' @param priors `"proporcionais"` (às frequências observadas) ou `"iguais"`.
 #' @return objeto `tr_multi_lda`.
 #' @export
-tr_multi_discriminant <- function(dados, grupo = "", cols = "", metodo = "linear",
+tr_multi_discriminant <- function(dados, resposta = "", preditores = "", metodo = "linear",
                                   priors = "proporcionais") {
   no <- "multi/discriminant"
   metodo <- .tr_multi_enum(metodo, .TR_MULTI_METODOS_LDA, "metodo")
   priors <- .tr_multi_enum(priors, .TR_MULTI_PRIORS, "priors")
-  gr <- .tr_multi_grupos(dados, grupo, cols, no)
+  gr <- .tr_multi_grupos(dados, resposta, preditores, no, param = "resposta")
   p <- ncol(gr$X)
   if (identical(metodo, "linear")) {
     .tr_multi_grupo_minimo(gr$g, 2L, no,
@@ -568,8 +570,8 @@ tr_multi_plot_discriminant <- function(modelo, x = 1L, y = 2L, elipses = TRUE, a
       description = "Ajusta uma análise discriminante linear (LDA) ou quadrática (QDA) para separar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = L),
       params = list(
-        grupo = P("cols", "", label = "Grupo", example = "Species"),
-        cols = P("cols", "", label = "Preditores", example = "Sepal.Length, Petal.Length"),
+        resposta = P("cols", "", label = "Resposta (grupo)", example = "Species"),
+        preditores = P("cols", "", label = "Preditores", example = "Sepal.Length, Petal.Length"),
         metodo = trama::tr_param_enum("linear", .TR_MULTI_METODOS_LDA, label = "Método"),
         priors = trama::tr_param_enum("proporcionais", .TR_MULTI_PRIORS, label = "Priors")),
       help = .tr_multi_ajuda(r"---[
@@ -617,9 +619,9 @@ Grupo com faltante, grupo único e preditor colinear viram erro. Na linear,
 todo grupo precisa de 2 observações; na quadrática, de p + 1, e a covariância
 de cada grupo tem de ser inversível (o erro nomeia o grupo).
 ]---", r"---[
-- **Grupo** — a coluna com o grupo conhecido. Texto, fator ou número; os
+- **Resposta** (`resposta`) — a coluna com o grupo conhecido. Texto, fator ou número; os
   níveis sem nenhuma linha são descartados.
-- **Preditores** — as medidas, separadas por vírgula. Em branco, todas as
+- **Preditores** (`preditores`) — as medidas, separadas por vírgula. Em branco, todas as
   colunas numéricas menos o grupo.
 - **Método** — `linear` (LDA) ou `quadrática` (QDA).
 - **Priors** — `proporcionais` às frequências da tabela, ou `iguais`.
@@ -630,7 +632,7 @@ por resubstituição. Ligado a um nó de tabela, vira o treino classificado
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("cr", "multi/example", dataset = "caranguejos") |>
-  tr_add("lda", "multi/discriminant", grupo = "grupo", from = "cr") |>
+  tr_add("lda", "multi/discriminant", resposta = "grupo", from = "cr") |>
   tr_add("cv", "multi/confusion", validacao = "cruzada", from = "lda")
 ]---", r"---[
 `multi/confusion` para a taxa de acerto honesta; `multi/discriminant_functions`
@@ -688,7 +690,7 @@ Colunas com esses nomes que já existiam na tabela são substituídas.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("v", "multi/example", dataset = "vinhos") |>
-  tr_add("lda", "multi/discriminant", grupo = "cultivar", from = "v") |>
+  tr_add("lda", "multi/discriminant", resposta = "cultivar", from = "v") |>
   tr_add("amostra", "data/slice_head", n = 5L, from = "v") |>
   tr_add("cl", "multi/classify", from = "lda") |>
   tr_link("amostra", "cl:novos")
@@ -738,7 +740,7 @@ quantos foram previstos em cada grupo, e `taxa_acerto` é o acerto GERAL.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("iris", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", from = "iris") |>
+  tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
   tr_add("cv", "multi/confusion", validacao = "cruzada", from = "lda")
 ]---", r"---[
 `multi/discriminant` para o modelo; `multi/classify` para ver QUAIS casos
@@ -804,7 +806,7 @@ outras: `variavel` e uma coluna por função (`LD1`, `LD2`, ...).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("iris", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", from = "iris") |>
+  tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
   tr_add("fun", "multi/discriminant_functions", tabela = "estrutura", from = "lda")
 ]---", r"---[
 `multi/plot_discriminant` para ver as funções; `multi/confusion` para o acerto,
@@ -902,7 +904,7 @@ Um gráfico (`view/plot`). É também o card de todo modelo `multi/lda`.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("iris", "multi/example", dataset = "iris") |>
-  tr_add("lda", "multi/discriminant", grupo = "Species", from = "iris") |>
+  tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
   tr_add("plano", "multi/plot_discriminant", x = 1L, y = 2L, elipses = TRUE, from = "lda")
 ]---", r"---[
 `multi/discriminant_functions` para os números por trás dos eixos; `view/points`

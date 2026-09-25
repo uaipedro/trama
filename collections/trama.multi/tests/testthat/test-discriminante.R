@@ -1,6 +1,6 @@
 # Discriminante: paridade com a MASS, os números de livro da iris e o motor.
 
-lda_iris <- function(...) tr_multi_discriminant(iris_t(), grupo = "Species", ...)
+lda_iris <- function(...) tr_multi_discriminant(iris_t(), resposta = "Species", ...)
 X_iris <- function() as.matrix(datasets::iris[1:4])
 
 test_that("a LDA bate com MASS::lda: scaling até o sinal e previsões idênticas", {
@@ -20,10 +20,10 @@ test_that("a LDA bate com MASS::lda: scaling até o sinal e previsões idêntica
 
 test_that("priors iguais chegam à lda", {
   d <- iris_t()[c(1:20, 51:150), ]
-  m <- tr_multi_discriminant(d, grupo = "Species", priors = "iguais")
+  m <- tr_multi_discriminant(d, resposta = "Species", priors = "iguais")
   expect_equal(unname(m$ajuste$prior), rep(1 / 3, 3))
   expect_equal(unname(lda_iris()$ajuste$prior), rep(1 / 3, 3))
-  m2 <- tr_multi_discriminant(d, grupo = "Species")
+  m2 <- tr_multi_discriminant(d, resposta = "Species")
   expect_equal(unname(m2$ajuste$prior), c(20, 50, 50) / 120)
 })
 
@@ -118,32 +118,32 @@ test_that("M de Box recusa covariância singular nomeando o grupo", {
 
 test_that("erros: grupo único, grupo pequeno, NA no grupo, colinear, coluna", {
   d <- iris_t()
-  expect_error(tr_multi_discriminant(d[1:50, ], grupo = "Species"),
+  expect_error(tr_multi_discriminant(d[1:50, ], resposta = "Species"),
                class = "tr_multi_error_one_group")
   pequeno <- d[c(1:50, 51:53, 101:150), ]
-  err <- tryCatch(tr_multi_discriminant(pequeno, grupo = "Species", metodo = "quadrática"),
+  err <- tryCatch(tr_multi_discriminant(pequeno, resposta = "Species", metodo = "quadrática"),
                   condition = identity)
   expect_s3_class(err, "tr_multi_error_small_group")
   expect_match(conditionMessage(err), "'versicolor' tem 3", fixed = TRUE)
-  expect_no_error(tr_multi_discriminant(pequeno, grupo = "Species"))
-  expect_error(tr_multi_discriminant(d[c(1:50, 51, 101:150), ], grupo = "Species"),
+  expect_no_error(tr_multi_discriminant(pequeno, resposta = "Species"))
+  expect_error(tr_multi_discriminant(d[c(1:50, 51, 101:150), ], resposta = "Species"),
                class = "tr_multi_error_small_group")
   na <- d; na$Species[c(2, 7)] <- NA
-  err <- tryCatch(tr_multi_discriminant(na, grupo = "Species"), condition = identity)
+  err <- tryCatch(tr_multi_discriminant(na, resposta = "Species"), condition = identity)
   expect_s3_class(err, "tr_multi_error_missing_values")
   expect_match(conditionMessage(err), "2 linha", fixed = TRUE)
   col <- d; col$soma <- col$Sepal.Length + col$Petal.Length
-  expect_error(tr_multi_discriminant(col, grupo = "Species"),
+  expect_error(tr_multi_discriminant(col, resposta = "Species"),
                class = "tr_multi_error_singular_matrix")
-  expect_error(tr_multi_discriminant(d, grupo = ""), class = "tr_multi_error_blank_param")
-  expect_error(tr_multi_discriminant(d, grupo = "Especie"), class = "tr_multi_error_unknown_column")
-  expect_error(tr_multi_discriminant(d, grupo = "Species", metodo = "logística"),
+  expect_error(tr_multi_discriminant(d, resposta = ""), class = "tr_multi_error_blank_param")
+  expect_error(tr_multi_discriminant(d, resposta = "Especie"), class = "tr_multi_error_unknown_column")
+  expect_error(tr_multi_discriminant(d, resposta = "Species", metodo = "logística"),
                class = "tr_multi_error_bad_option")
 })
 
 test_that("níveis vazios do grupo são descartados", {
   d <- iris_t()[1:100, ]
-  m <- tr_multi_discriminant(d, grupo = "Species")
+  m <- tr_multi_discriminant(d, resposta = "Species")
   expect_equal(levels(tr_multi_classify(m)$previsto), c("setosa", "versicolor"))
   expect_equal(nrow(tr_multi_confusion(m)), 3L)
 })
@@ -168,7 +168,7 @@ test_that("classify com tabela nova: colunas faltando, NA, e sem a coluna do gru
 })
 
 test_that("nomes de grupo com espaço viram prob_ citável", {
-  m <- tr_multi_discriminant(tr_multi_example("caranguejos"), grupo = "grupo")
+  m <- tr_multi_discriminant(tr_multi_example("caranguejos"), resposta = "grupo")
   cl <- tr_multi_classify(m)
   expect_true(all(c("prob_azul_fêmea", "prob_laranja_macho") %in% names(cl)))
   expect_equal(ncol(tr_multi_confusion(m)), 1L + 4L + 3L)
@@ -183,7 +183,7 @@ test_that("o gráfico: disperso com 3 grupos, densidade com 2, eixos auxiliares 
   expect_no_error(ggplot2::ggplot_build(p))
   sem <- tr_multi_plot_discriminant(lda_iris(), elipses = FALSE, x = 2L, y = 1L)
   expect_false(any(vapply(sem$layers, function(l) inherits(l$stat, "StatEllipse"), TRUE)))
-  dois <- tr_multi_plot_discriminant(tr_multi_discriminant(iris_t()[51:150, ], grupo = "Species"))
+  dois <- tr_multi_plot_discriminant(tr_multi_discriminant(iris_t()[51:150, ], resposta = "Species"))
   expect_true(any(vapply(dois$layers, function(l) inherits(l$geom, "GeomDensity"), TRUE)))
   expect_no_error(ggplot2::ggplot_build(dois))
   q <- tr_multi_plot_discriminant(lda_iris(metodo = "quadrática"))
@@ -223,7 +223,7 @@ test_that("motor: exemplo -> discriminante -> classify com novos, e -> view/poin
   reg <- multi_registry()
   f <- trama::tr_flow(reg) |>
     trama::tr_add("iris", "multi/example", dataset = "iris") |>
-    trama::tr_add("lda", "multi/discriminant", grupo = "Species", from = "iris") |>
+    trama::tr_add("lda", "multi/discriminant", resposta = "Species", from = "iris") |>
     trama::tr_add("cabeca", "data/slice_head", n = 7L, from = "iris") |>
     trama::tr_add("cl", "multi/classify", from = "lda") |>
     trama::tr_link("cabeca", "cl:novos") |>

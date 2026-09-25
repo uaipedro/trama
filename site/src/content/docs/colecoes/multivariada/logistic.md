@@ -17,8 +17,8 @@ Use **Regressão logística** para modelar a probabilidade de uma classe em fun�
 
 ## Configuração
 
-- **Grupo** — classe conhecida.
-- **Preditores** — colunas numéricas; em branco, usa as numéricas menos Grupo.
+- **Resposta** — classe conhecida.
+- **Preditores** — colunas numéricas; em branco, usa as numéricas menos a Resposta.
 - **Corte (binária)** — 0,5 por padrão (intervalo 0,01–0,99); aplica-se à logística binária, para prever o segundo nível.
 
 ## Exemplo
@@ -31,14 +31,14 @@ tr_use("trama.multi", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "pima") |>
-  tr_add("log", "multi/logistic", grupo = "diabetes", cols = "glicose, imc, pedigree", from = "dados")
+  tr_add("log", "multi/logistic", resposta = "diabetes", preditores = "glicose, imc, pedigree", from = "dados")
 ```
 
 O classificador estima as probabilidades de diabetes para cada linha de `pima`.
 
 ## Como interpretar
 
-Grupo escolhe a resposta; Preditores seleciona as variáveis numéricas; Corte define o limiar para o segundo grupo no caso binário e não se aplica à multinomial. Separação completa pode tornar coeficientes não finitos.
+Resposta escolhe a coluna do grupo; Preditores seleciona as variáveis numéricas; Corte define o limiar para o segundo grupo no caso binário e não se aplica à multinomial. Separação completa pode tornar coeficientes não finitos.
 
 ## Veja também
 

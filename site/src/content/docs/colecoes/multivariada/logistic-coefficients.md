@@ -18,7 +18,7 @@ Use **Razões de chances** para quantificar direção e tamanho dos efeitos esti
 ## Configuração
 
 - **Escala** — `unidade` (padrão) ou `desvio padrão`, para expressar o efeito por desvio padrão da variável.
-- **Nível do intervalo** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Confiança** — 0,95 por padrão, entre 0,5 e 0,999.
 
 ## Exemplo
 
@@ -30,7 +30,7 @@ tr_use("trama.multi", registry = reg)
 
 tr_flow(reg) |>
   tr_add("dados", "multi/example", dataset = "pima") |>
-  tr_add("log", "multi/logistic", grupo = "diabetes", cols = "glicose, imc, pedigree", from = "dados") |>
+  tr_add("log", "multi/logistic", resposta = "diabetes", preditores = "glicose, imc, pedigree", from = "dados") |>
   tr_add("coef", "multi/logistic_coefficients", from = "log")
 ```
 

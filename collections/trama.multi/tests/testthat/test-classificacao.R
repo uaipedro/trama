@@ -4,7 +4,7 @@ pima <- function() tr_multi_example("pima")
 
 test_that("LOO da logística é o laço manual de glm sem a linha", {
   d <- pima()[1:80, ]
-  m <- tr_multi_logistic(d, grupo = "diabetes", cols = "glicose, imc")
+  m <- tr_multi_logistic(d, resposta = "diabetes", preditores = "glicose, imc")
   cv <- .tr_multi_prever(m, "cruzada", "x")
   manual <- vapply(seq_len(nrow(d)), function(i) {
     f <- stats::glm(diabetes ~ glicose + imc, stats::binomial(), d[-i, ])
@@ -15,7 +15,7 @@ test_that("LOO da logística é o laço manual de glm sem a linha", {
 })
 
 test_that("LOO da LDA é o CV = TRUE da MASS, com as posteriores", {
-  m <- tr_multi_discriminant(iris_t(), grupo = "Species")
+  m <- tr_multi_discriminant(iris_t(), resposta = "Species")
   cv <- .tr_multi_prever(m, "cruzada", "x")
   ref <- MASS::lda(as.matrix(datasets::iris[1:4]), datasets::iris$Species, CV = TRUE)
   expect_equal(unname(cv$prob), unname(ref$posterior))
@@ -24,7 +24,7 @@ test_that("LOO da LDA é o CV = TRUE da MASS, com as posteriores", {
 
 test_that("classify com validação cruzada devolve as probabilidades sem a linha", {
   d <- pima()[1:80, ]
-  m <- tr_multi_logistic(d, grupo = "diabetes", cols = "glicose, imc")
+  m <- tr_multi_logistic(d, resposta = "diabetes", preditores = "glicose, imc")
   res <- tr_multi_classify(m)
   cru <- tr_multi_classify(m, validacao = "cruzada")
   expect_equal(names(cru), names(res))
@@ -35,7 +35,7 @@ test_that("classify com validação cruzada devolve as probabilidades sem a linh
 })
 
 test_that("confusion aceita a logística, e a da LDA não mudou", {
-  m <- tr_multi_logistic(pima(), grupo = "diabetes")
+  m <- tr_multi_logistic(pima(), resposta = "diabetes")
   tab <- tr_multi_confusion(m)
   expect_equal(tab$real, c("não", "sim", "total"))
   expect_gt(tab$taxa_acerto[3], .7)
@@ -47,7 +47,7 @@ test_that("confusion aceita a logística, e a da LDA não mudou", {
 
 test_that("classify da logística multinomial com novos", {
   v <- tr_multi_example("vinhos")
-  m <- tr_multi_logistic(v, grupo = "cultivar", cols = "alcool, acidez_malica, magnesio, fenois_totais")
+  m <- tr_multi_logistic(v, resposta = "cultivar", preditores = "alcool, acidez_malica, magnesio, fenois_totais")
   cl <- tr_multi_classify(m, novos = v[1:5, c("alcool", "acidez_malica", "magnesio", "fenois_totais")])
   expect_equal(nrow(cl), 5L)
   expect_equal(names(cl)[5:8], c("previsto", "prob_A", "prob_B", "prob_C"))
@@ -69,12 +69,12 @@ test_that("AUC é a estatística de Mann-Whitney normalizada, com empates", {
 })
 
 test_that("roc binária da logística e multiclasse da LDA desenham", {
-  m <- tr_multi_logistic(pima(), grupo = "diabetes")
+  m <- tr_multi_logistic(pima(), resposta = "diabetes")
   p <- tr_multi_roc(m, validacao = "resubstituição")
   expect_s3_class(p, "ggplot")
   expect_match(p$labels$subtitle, "AUC", fixed = TRUE)
   expect_no_warning(ggplot2::ggplot_build(p))
-  l <- tr_multi_discriminant(iris_t(), grupo = "Species")
+  l <- tr_multi_discriminant(iris_t(), resposta = "Species")
   q <- tr_multi_roc(l)
   b <- ggplot2::ggplot_build(q)
   expect_equal(length(unique(b$data[[2]]$group)), 3L)
@@ -83,7 +83,7 @@ test_that("roc binária da logística e multiclasse da LDA desenham", {
 test_that("roc multiclasse: a legenda segue a ordem dos níveis, e não a alfabética", {
   d <- iris_t()
   d$Species <- factor(d$Species, levels = c("virginica", "setosa", "versicolor"))
-  q <- tr_multi_roc(tr_multi_discriminant(d, grupo = "Species"))
+  q <- tr_multi_roc(tr_multi_discriminant(d, resposta = "Species"))
   camadas <- Filter(function(ly) "grupo" %in% names(ly$data), q$layers)
   expect_length(camadas, 1L)
   expect_equal(sub(" \\(.*$", "", levels(camadas[[1]]$data$grupo)),
@@ -96,8 +96,8 @@ test_that("motor: lda e logística chegam a confusion e roc pelo adaptador", {
   expect_true(trama::tr_compatible("multi/logit", "multi/classifier", reg))
   f <- trama::tr_flow(reg) |>
     trama::tr_add("p", "multi/example", dataset = "pima") |>
-    trama::tr_add("lg", "multi/logistic", grupo = "diabetes", from = "p") |>
-    trama::tr_add("ld", "multi/discriminant", grupo = "diabetes", from = "p") |>
+    trama::tr_add("lg", "multi/logistic", resposta = "diabetes", from = "p") |>
+    trama::tr_add("ld", "multi/discriminant", resposta = "diabetes", from = "p") |>
     trama::tr_add("c1", "multi/confusion", validacao = "resubstituição", from = "lg") |>
     trama::tr_add("c2", "multi/confusion", from = "ld") |>
     trama::tr_add("r", "multi/roc", validacao = "resubstituição", from = "lg")

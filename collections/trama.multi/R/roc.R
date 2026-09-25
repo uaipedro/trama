@@ -115,7 +115,7 @@ Um gráfico (`view/plot`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pima", "multi/example", dataset = "pima") |>
-  tr_add("lg", "multi/logistic", grupo = "diabetes", from = "pima") |>
+  tr_add("lg", "multi/logistic", resposta = "diabetes", from = "pima") |>
   tr_add("roc", "multi/roc", validacao = "cruzada", from = "lg")
 ]---", r"---[
 `multi/confusion` para o acerto num corte; `multi/logistic` para mudar o corte;
