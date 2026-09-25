@@ -28,21 +28,33 @@
 #' negativo. A variância é var(V10)/n1 + var(V01)/n0, e o intervalo é o normal
 #' em torno da AUC, cortado em [0, 1] como no `pROC::ci.auc` (método
 #' "delong"), conferido nos testes.
+#'
+#' Duas bordas dão IC NA com `nota`, como a `ml/roc` (a curva e a AUC
+#' continuam válidas, então o gráfico não é recusado): menos de dois casos numa
+#' classe (a variância amostral dos componentes não existe) e variância zero
+#' (AUC 0 ou 1, separação perfeita: o intervalo teria largura zero, o que é o
+#' estimador sem informação, não certeza).
 #' @noRd
-.tr_multi_auc_delong <- function(score, positivo, confianca, no = "multi/roc") {
+.tr_multi_auc_delong <- function(score, positivo, confianca) {
   n1 <- sum(positivo); n0 <- sum(!positivo)
-  if (n1 < 2L || n0 < 2L) {
-    .tr_multi_abort("tr_multi_error_small_group",
-                    "'%s': o intervalo de DeLong pede pelo menos 2 positivos e 2 negativos (há %d e %d).",
-                    no, n1, n0)
-  }
   x <- score[positivo]; y <- score[!positivo]
   psi <- outer(x, y, function(a, b) (a > b) + 0.5 * (a == b))
-  v10 <- rowMeans(psi); v01 <- colMeans(psi)
   auc <- mean(psi)
+  sem_ic <- function(ep, nota) list(auc = auc, ep = ep, ic_inf = NA_real_, ic_sup = NA_real_, nota = nota)
+  if (n1 < 2L || n0 < 2L) {
+    return(sem_ic(NA_real_, sprintf(paste0(
+      "IC de DeLong indisponível: há menos de duas linhas numa classe (%d positivas e %d negativas), ",
+      "e a variância precisa de ao menos duas de cada."), n1, n0)))
+  }
+  v10 <- rowMeans(psi); v01 <- colMeans(psi)
   ep <- sqrt(stats::var(v10) / n1 + stats::var(v01) / n0)
+  if (ep == 0) {
+    return(sem_ic(ep, sprintf(paste0(
+      "IC de DeLong degenerado: com AUC = %s a variância estimada é zero e o intervalo não informa ",
+      "a incerteza; use mais linhas ou reamostragem."), format(auc))))
+  }
   z <- stats::qnorm(1 - (1 - confianca) / 2)
-  list(auc = auc, ep = ep, ic_inf = max(0, auc - z * ep), ic_sup = min(1, auc + z * ep))
+  list(auc = auc, ep = ep, ic_inf = max(0, auc - z * ep), ic_sup = min(1, auc + z * ep), nota = NA_character_)
 }
 
 #' AUC multiclasse M de Hand & Till (2001).
@@ -79,8 +91,14 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspect
   confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
   pr <- .tr_multi_prever(modelo, validacao, no)
   pct <- format(100 * confianca, decimal.mark = ",")
-  auc_ic <- function(s, pos) {
-    d <- .tr_multi_auc_delong(s, pos, confianca, no)
+  # As notas de IC indisponível (uma por curva) vão juntas para a legenda.
+  notas <- character()
+  auc_ic <- function(s, pos, quem = NULL) {
+    d <- .tr_multi_auc_delong(s, pos, confianca)
+    if (!is.na(d$nota)) {
+      notas <<- c(notas, if (is.null(quem)) d$nota else paste0(quem, ": ", d$nota))
+      return(sprintf("AUC %s (IC indisponível)", .tr_multi_virgula(d$auc)))
+    }
     sprintf("AUC %s (IC %s%% DeLong %s–%s)", .tr_multi_virgula(d$auc), pct,
             .tr_multi_virgula(d$ic_inf), .tr_multi_virgula(d$ic_sup))
   }
@@ -112,7 +130,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspect
     # legenda; o fator com os níveis na ordem dos grupos a mantém.
     curvas <- lapply(niv, function(l) {
       cur <- .tr_multi_roc_curva(pr$prob[, l], pr$g == l)
-      cbind(cur$pontos, grupo = sprintf("%s (%s)", l, auc_ic(pr$prob[, l], pr$g == l)))
+      cbind(cur$pontos, grupo = sprintf("%s (%s)", l, auc_ic(pr$prob[, l], pr$g == l, l)))
     })
     rotulos <- vapply(curvas, function(d) as.character(d$grupo[[1]]), "")
     curvas <- do.call(rbind, curvas)
@@ -125,6 +143,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspect
                     subtitle = sprintf("Cada grupo contra os outros · AUC multiclasse (Hand & Till) %s · validação %s",
                                        .tr_multi_virgula(.tr_multi_auc_hand_till(pr$prob, pr$g)), validacao))
   }
+  if (length(notas)) p <- p + ggplot2::labs(caption = paste(notas, collapse = "\n"))
   p <- p + ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
     ggplot2::labs(x = "1 − especificidade (falsos positivos)", y = "sensibilidade (verdadeiros positivos)")
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
@@ -132,7 +151,7 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", confianca = 0.95, aspect
 
 .tr_multi_nos_roc <- function() {
   list(
-    trama::tr_node("multi/roc", version = 3L,
+    trama::tr_node("multi/roc", version = 4L,
       pressupostos = .tr_multi_doc("multi/roc")$pressupostos,
       referencias = .tr_multi_doc("multi/roc")$referencias,
       role = "avaliacao", fn = tr_multi_roc, label = "Curva ROC",
@@ -156,7 +175,11 @@ paramétrico (variância pelas componentes estruturais da estatística de
 Mann-Whitney), cortado em [0, 1]; com poucos positivos ele é largo, e é
 justamente o que ele deve mostrar. Com validação cruzada as probabilidades
 vêm de n ajustes diferentes, e o intervalo as trata como um escore só (a
-prática usual; a variância do próprio ajuste não entra). Não depende do corte, e por isso compara modelos melhor que a taxa
+prática usual; a variância do próprio ajuste não entra).
+Com AUC 0 ou 1 (separação perfeita) a variância de DeLong é zero, e com
+menos de dois casos numa classe ela não existe: nos dois casos a AUC sai
+com "IC indisponível" e a legenda do gráfico diz por quê, sem recusar a
+curva (como na `ml/roc`). Não depende do corte, e por isso compara modelos melhor que a taxa
 de acerto quando os grupos são desbalanceados (no `pima`, um terço tem
 diabetes: prever "não" para todas já acerta 67%).
 

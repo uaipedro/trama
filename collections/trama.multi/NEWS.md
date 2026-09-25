@@ -62,6 +62,17 @@ padrão na `multi/logistic_coefficients`).
   kappa" da Wikipédia — não é fonte primária); `irr::kappa2` e
   `psych::cohen.kappa` a 1e-12 nas previsões cruzadas da LDA do `iris`.
 
+## IC da AUC indisponível em vez de recusa
+
+* `multi/roc` (versão 4): com AUC 0 ou 1 (variância de DeLong zero) ou menos
+  de dois casos numa classe, a AUC sai com "IC indisponível" e a nota vai na
+  legenda do gráfico, como a `ml/roc` (IC NA com nota). Antes, AUC 1 dava o
+  intervalo degenerado 1–1 (a `setosa` na LDA da `iris`) e uma classe pequena
+  derrubava o gráfico inteiro com `tr_multi_error_small_group`. Com três ou
+  mais grupos, o grupo sem IC não afeta as curvas dos outros. Validação:
+  bordas à mão (AUC 0, 1, classe com um caso); `pROC` inalterado nos casos
+  regulares.
+
 ## Jackknife por grupo com grupos desiguais
 
 * Os quatro jackknifes (versão 3), com `grupo` de tamanhos diferentes: viés,

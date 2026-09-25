@@ -151,7 +151,7 @@
           se_falhar = "Leia a sensibilidade de cada grupo no `multi/confusion` e a curva precisão-revocação na `multi/pr_curve`."),
         P("Com três ou mais grupos, cada curva é **um grupo contra os outros**: a AUC de cada uma não soma nem resume o classificador inteiro. O resumo é a AUC multiclasse M de Hand & Till (2001), no subtítulo: média, sobre os pares de grupos, da AUC do par; não depende das proporções dos grupos, mas pondera todos os pares igualmente e não tem intervalo.",
           se_falhar = "Para saber qual par se confunde, leia a matriz de confusão (`multi/confusion`)."),
-        P("O intervalo de DeLong da AUC é **assintótico** (normal): com poucos positivos ou negativos, ou AUC perto de 1, a cobertura fica abaixo do nominal; o bloco corta os limites em [0, 1] e exige ao menos 2 de cada.",
+        P("O intervalo de DeLong da AUC é **assintótico** (normal): com poucos positivos ou negativos, ou AUC perto de 1, a cobertura fica abaixo do nominal; o bloco corta os limites em [0, 1]; com AUC 0 ou 1 (variância zero) ou menos de 2 casos numa classe, o IC sai indisponível, com a nota na legenda.",
           se_falhar = "Leia o intervalo como aproximado e a largura como sinal de pouca informação; aumente a amostra do grupo raro."),
         P("Com validação cruzada, as probabilidades vêm de n ajustes, e o intervalo as trata como **um escore fixo**: a incerteza de ter estimado o modelo não entra.")),
       referencias = list(hanley,

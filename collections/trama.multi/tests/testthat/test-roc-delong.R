@@ -32,12 +32,39 @@ test_that("nas probabilidades de deixa-um-fora da logística do pima, idem", {
   expect_equal(r$auc, .tr_multi_roc_curva(s, pos)$auc, tolerance = 1e-12)
 })
 
-test_that("bordas: separação perfeita dá AUC 1 com IC degenerado; limites cortados em [0, 1]", {
+test_that("bordas: AUC 0/1 e classe com menos de 2 dão IC NA com nota (como a ml/roc)", {
+  # Separação perfeita: variância de DeLong zero, intervalo sem informação.
   r <- .tr_multi_auc_delong(c(1, 2, 3, 4), c(FALSE, FALSE, TRUE, TRUE), 0.95)
-  expect_equal(c(r$auc, r$ic_inf, r$ic_sup), c(1, 1, 1))
+  expect_equal(r$auc, 1)
+  expect_true(is.na(r$ic_inf) && is.na(r$ic_sup))
+  expect_match(r$nota, "degenerado")
+  r <- .tr_multi_auc_delong(c(4, 3, 2, 1), c(FALSE, FALSE, TRUE, TRUE), 0.95)
+  expect_equal(r$auc, 0)
+  expect_true(is.na(r$ic_inf))
   r <- .tr_multi_auc_delong(c(1, 3, 2, 4, 5), c(FALSE, TRUE, FALSE, FALSE, TRUE), 0.95)
   expect_true(r$ic_inf >= 0 && r$ic_sup <= 1)
-  expect_error(.tr_multi_auc_delong(c(1, 2), c(FALSE, TRUE), 0.95), class = "tr_multi_error_small_group")
+  expect_true(is.na(r$nota))
+  r <- .tr_multi_auc_delong(c(1, 2, 3), c(FALSE, TRUE, FALSE), 0.95)
+  expect_equal(r$auc, 0.5)
+  expect_true(is.na(r$ic_inf) && is.na(r$ic_sup))
+  expect_match(r$nota, "menos de duas")
+})
+
+test_that("gráfico: IC indisponível de um grupo não derruba a ROC nem os outros", {
+  # Um grupo com menos de 2 casos não chega aqui (o ajuste recusa); a borda
+  # que chega é a AUC 1 de um grupo separado, como a setosa na LDA da iris.
+  l <- tr_multi_discriminant(iris, grupo = "Species")
+  q <- tr_multi_roc(l)
+  rot <- levels(q$layers[[2]]$data$grupo)
+  expect_true(any(grepl("^setosa \\(AUC 1,000 \\(IC indisponível\\)", rot)))
+  expect_true(any(grepl("^versicolor .*IC 95% DeLong", rot)))
+  expect_match(q$labels$caption, "degenerado")
+  # Dois grupos com AUC 1: o subtítulo diz indisponível e a legenda explica.
+  d2 <- droplevels(as.data.frame(tr_multi_example("iris"))[1:100, ])
+  m <- tr_multi_discriminant(d2, grupo = "Species")
+  p <- tr_multi_roc(m, validacao = "resubstituição")
+  expect_match(p$labels$subtitle, "AUC 1,000 \\(IC indisponível\\)")
+  expect_match(p$labels$caption, "degenerado")
 })
 
 test_that("o gráfico leva o IC no subtítulo e na legenda, e aceita confianca", {

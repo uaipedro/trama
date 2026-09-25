@@ -41,7 +41,7 @@ A curva usa probabilidades da validação cruzada; o segundo nível de `diabetes
 
 ## Como interpretar
 
-Sensibilidade é a fração de positivos encontrados; eixo X é 1 − especificidade. AUC 0,5 corresponde à ordenação aleatória e 1 à separação perfeita. Em binária, positivo é o segundo nível; com três ou mais grupos, cada classe é comparada às demais. Na logística do `pima` com todos os preditores e validação cruzada, a AUC é 0,849 (IC 95% DeLong de 0,816 a 0,882). O intervalo é assintótico e trata as probabilidades de deixa-um-fora como um escore fixo.
+Sensibilidade é a fração de positivos encontrados; eixo X é 1 − especificidade. AUC 0,5 corresponde à ordenação aleatória e 1 à separação perfeita. Em binária, positivo é o segundo nível; com três ou mais grupos, cada classe é comparada às demais. Na logística do `pima` com todos os preditores e validação cruzada, a AUC é 0,849 (IC 95% DeLong de 0,816 a 0,882). O intervalo é assintótico e trata as probabilidades de deixa-um-fora como um escore fixo. Com AUC 0 ou 1 (separação perfeita, como a `setosa` na LDA da `iris`) a variância de DeLong é zero, e com menos de dois casos numa classe ela não existe: a AUC sai com "IC indisponível" e a legenda explica, sem recusar a curva.
 
 ## Veja também
 
