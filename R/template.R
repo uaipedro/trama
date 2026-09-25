@@ -96,3 +96,22 @@ tr_template_read <- function(path) tr_template_parse(paste(readLines(path, warn 
   }
   doc
 }
+
+#' Recorte do documento com os nós/frames/notas de `ids` e só as arestas internas.
+#'
+#' Aresta que sai do grupo é descartada, e não pendurada: no destino ela
+#' apontaria pra um nó que não existe. `ids = NULL` devolve o documento todo.
+#' @export
+tr_doc_subset <- function(doc, ids = NULL) {
+  doc <- .tr_as_doc(doc)
+  if (is.null(ids)) return(doc)
+  keep <- function(m) .tr_empty_obj(m[intersect(names(m), ids)])
+  doc$nodes <- keep(doc$nodes)
+  doc$edges <- Filter(function(e) e$from$node %in% ids && e$to$node %in% ids, doc$edges)
+  for (k in c("positions", "sizes", "views", "modes", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
+  # O manifesto encolhe junto: o template não deve exigir coleção que nenhum
+  # nó recortado usa.
+  usadas <- unique(vapply(doc$nodes, function(n) .tr_collection_of(n$type), ""))
+  doc$collections <- .tr_empty_obj(doc$collections[intersect(names(doc$collections), usadas)])
+  doc
+}

@@ -54,3 +54,23 @@ test_that("nó de tipo fora do registro passa intocado", {
   expect_equal(tpl$doc$nodes$z$params$path, "a.csv")
   expect_equal(tpl$doc$nodes$a$params$value, 7)
 })
+
+test_that("recorte mantém só os nós pedidos e as arestas internas", {
+  reg <- test_registry()
+  doc <- add(doc_soma(reg), reg, "t/add", id = "t", position = c(700, 50))
+  doc <- tr_doc_apply(doc, list(op = "connect", from_node = "s", from_port = "out",
+                                to_node = "t", to_port = "a"), reg)
+  doc <- tr_doc_apply(doc, list(op = "add_frame", id = "f", x = 0, y = 0, w = 100, h = 100), reg)
+  doc <- tr_doc_apply(doc, list(op = "add_note", id = "n1", x = 0, y = 0, w = 50, h = 50,
+                                kind = "markdown", text = "oi"), reg)
+  doc <- tr_doc_apply(doc, list(op = "add_note", id = "n2", x = 9, y = 9, w = 50, h = 50,
+                                kind = "markdown"), reg)
+  sub <- tr_doc_subset(doc, c("a", "s", "n1"))
+  expect_setequal(names(sub$nodes), c("a", "s"))
+  expect_length(sub$edges, 1)
+  expect_equal(names(sub$ui$positions), c("a", "s"))
+  expect_length(sub$ui$frames, 0)
+  expect_equal(names(sub$ui$notes), "n1")
+  expect_equal(names(sub$collections), "t")
+  expect_identical(tr_doc_subset(doc), doc)
+})
