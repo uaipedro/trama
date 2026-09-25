@@ -18,7 +18,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- view_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- Filter(function(n) startsWith(n$id, "view/"), reg$nodes)
-  expect_length(nos, 19L)
+  expect_length(nos, 20L)
   for (n in nos) {
     expect_true(!is.null(n$help) && nzchar(trimws(n$help)), info = n$id)
     expect_match(n$help, "## Descrição", fixed = TRUE, info = n$id)

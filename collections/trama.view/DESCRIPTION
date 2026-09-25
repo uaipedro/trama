@@ -17,6 +17,7 @@ Imports:
     trama,
     trama.data,
     ggplot2 (>= 4.0.0),
+    patchwork,
     ragg,
     rlang,
     scales

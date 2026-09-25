@@ -1339,6 +1339,13 @@
     "label": "Boxplot",
     "icon": "chart-candlestick"
   },
+  "view/combine": {
+    "accent": "#22c55e",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Painel",
+    "icon": "layout-grid"
+  },
   "view/density": {
     "accent": "#a855f7",
     "hasInput": true,
