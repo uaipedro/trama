@@ -121,17 +121,21 @@
 .tr_exp_estr_dql <- function(s) {
   nome <- names(s$fatores); niv <- s$fatores[[1]]; t <- length(niv)
   if (t < 3L) .tr_exp_sem_residuo("dql", "quadrado latino 2 × 2")
-  # Quadrado cíclico, e o sorteio permuta linhas, colunas e a associação
-  # letra -> tratamento. Toda permutação dessas preserva a propriedade latina.
-  M <- outer(seq_len(t) - 1L, seq_len(t) - 1L, "+") %% t + 1L
-  M <- M[.tr_exp_perm(seq_len(t)), .tr_exp_perm(seq_len(t)), drop = FALSE]
-  rot <- .tr_exp_perm(seq_len(t))
+  # Fisher & Yates: um quadrado padrão sorteado entre todos, depois linhas,
+  # colunas e letras permutadas (R/combinatoria.R). Uniforme até t = 6;
+  # aproximadamente uniforme (Jacobson & Matthews) de t = 7 em diante.
+  M <- .tr_exp_quadrado_latino(t)
+  rot <- seq_len(t)
   lin <- rep(seq_len(t), each = t); col <- rep(seq_len(t), t)
   u <- tibble::tibble(unidade = seq_len(t * t), linha = .tr_exp_id(lin, t), coluna = .tr_exp_id(col, t))
   u[[nome]] <- factor(niv[rot[M[cbind(lin, col)]]], levels = niv)
-  avisos <- if (s$r_dado && s$r != t) {
-    sprintf("No quadrado latino o número de repetições é o de tratamentos (%d); 'repeticoes' foi ignorado.", t)
-  }
+  avisos <- c(
+    if (s$r_dado && s$r != t) {
+      sprintf("No quadrado latino o número de repetições é o de tratamentos (%d); 'repeticoes' foi ignorado.", t)
+    },
+    if (t >= 7L) {
+      "Com t ≥ 7 o quadrado vem da cadeia de Jacobson & Matthews: sorteio aproximadamente uniforme entre todos os quadrados latinos, não exatamente."
+    })
   list(unidades = u,
        fatores = rbind(
          .tr_exp_fator("linha", "bloco", seq_len(t), "linha", "—", "sem sorteio",
@@ -377,7 +381,12 @@
     if (N - 1L - gl_efeitos <= 0L) "O modelo sugerido não deixa resíduo: sem repetição, leia os efeitos num gráfico normal (Daniel) ou aumente 'repeticoes'.")
   fat_meta <- do.call(rbind, lapply(seq_len(k), function(j) {
     niv <- if (is.null(f[[j]])) c("-1", "1") else f[[j]]
-    .tr_exp_fator(nomes[[j]], "tratamento", niv, "corrida", "ordem de todas as corridas", "livre")
+    .tr_exp_fator(nomes[[j]], "tratamento", niv, "corrida", "ordem de todas as corridas", "livre",
+                  if (!is.null(f[[j]])) sprintf("coluna codificada: -1 = %s, +1 = %s", f[[j]][[1]], f[[j]][[2]]) else "")
+  }))
+  codificacao <- do.call(rbind, lapply(seq_len(k), function(j) {
+    niv <- if (is.null(f[[j]])) c("-1", "1") else f[[j]]
+    data.frame(fator = nomes[[j]], menos1 = niv[[1]], mais1 = niv[[2]], stringsAsFactors = FALSE)
   }))
   list(unidades = u, fatores = fat_meta,
        hierarquia = .tr_exp_hier("corrida", "unidade", NA, N),
@@ -386,7 +395,8 @@
        analise = list(no = "models/lm", params = list(formula = paste("~", termos))),
        avisos = avisos,
        extras = list(letras = stats::setNames(nomes, LETTERS[seq_len(k)]), relacao_definicao = fr$relacao,
-                     palavras = fr$palavras, resolucao = fr$resolucao, aliases = fr$aliases, geradores = s$geradores),
+                     palavras = fr$palavras, resolucao = fr$resolucao, aliases = fr$aliases, geradores = s$geradores,
+                     codificacao = codificacao),
        rotulo = sprintf("2^(%d−%d) resolução %s · %d corridas", k, fr$p, .tr_exp_romano(fr$resolucao), N))
 }
 
@@ -398,9 +408,22 @@
     .tr_experiments_abort("tr_experiments_error_bad_factors",
                           "O composto central aqui é para 2 a 6 fatores (vieram %d).", k)
   }
-  nf <- 2L^k
+  # Porção fatorial: o 2^k completo, ou a fração dos 'geradores' (resolução
+  # V ou mais, para que efeitos principais e interações duplas fiquem livres).
+  fr <- NULL
+  if (.tr_exp_preenchido(s$geradores)) {
+    fr <- .tr_exp_fracao(k, s$geradores)
+    if (fr$resolucao < 5L) {
+      .tr_experiments_abort("tr_experiments_error_bad_generator",
+                            "Param 'geradores': no composto central a porção fatorial precisa de resolução V ou mais (a fração dada tem %s, %s).",
+                            .tr_exp_romano(fr$resolucao), fr$relacao)
+    }
+    cubo <- fr$X * 1; nf <- fr$n
+  } else {
+    nf <- 2L^k
+    cubo <- sapply(seq_len(k), function(j) ifelse(((seq_len(nf) - 1L) %/% 2L^(j - 1L)) %% 2L == 0L, -1, 1))
+  }
   alfa <- if (s$alfa == "rotacional") nf^(1 / 4) else 1
-  cubo <- sapply(seq_len(k), function(j) ifelse(((seq_len(nf) - 1L) %/% 2L^(j - 1L)) %% 2L == 0L, -1, 1))
   axial <- matrix(0, 2L * k, k)
   for (j in seq_len(k)) axial[2L * j - 1L, j] <- -alfa; for (j in seq_len(k)) axial[2L * j, j] <- alfa
   centro <- matrix(0, s$pontos_centrais, k)
@@ -424,8 +447,10 @@
        tipo_geo = "sequencia",
        analise = list(no = "models/lm", params = list(formula = formula)), avisos = avisos,
        extras = list(alfa = alfa, tipo_alfa = s$alfa, n_fatorial = nf, n_axial = 2L * k,
-                     n_central = s$pontos_centrais),
-       rotulo = sprintf("Composto central · %d fatores, α = %s (%s), %d centrais", k,
+                     n_central = s$pontos_centrais,
+                     relacao_definicao = if (!is.null(fr)) fr$relacao, resolucao = if (!is.null(fr)) fr$resolucao),
+       rotulo = sprintf("Composto central · %d fatores%s, α = %s (%s), %d centrais", k,
+                        if (!is.null(fr)) sprintf(", fatorial 2^(%d−%d)", k, fr$p) else "",
                         format(signif(alfa, 4)), s$alfa, s$pontos_centrais))
 }
 
@@ -506,35 +531,8 @@
 
 # ---- blocos incompletos balanceados -------------------------------------------
 
-#' A base de um BIB para `t` tratamentos em blocos de `k`.
-#'
-#' Primeiro tenta um BIB CÍCLICO com b = t: procura um bloco inicial B
-#' (contendo 0) cujas diferenças (x − y mod t) cubram cada resíduo não nulo o
-#' mesmo número λ de vezes — um conjunto de diferenças; os blocos são B + i.
-#' Sem conjunto de diferenças, cai no BIB NÃO REDUZIDO (todos os C(t, k)
-#' blocos), que é sempre balanceado, mas grande. Devolve a matriz b × k de
-#' índices de tratamento (1..t).
-#' @noRd
-.tr_exp_bib_base <- function(t, k) {
-  lam <- k * (k - 1) / (t - 1)
-  if (abs(lam - round(lam)) < 1e-9 && choose(t - 1, k - 1) <= 50000) {
-    cand <- utils::combn(t - 1L, k - 1L)
-    for (j in seq_len(ncol(cand))) {
-      B <- c(0L, cand[, j])
-      dif <- outer(B, B, "-") %% t
-      dif <- dif[row(dif) != col(dif)]
-      if (all(tabulate(dif, t - 1L) == lam)) {
-        return(list(blocos = t(sapply(0:(t - 1L), function(i) sort((B + i) %% t) + 1L)), ciclico = TRUE))
-      }
-    }
-  }
-  if (choose(t, k) > 300) {
-    .tr_experiments_abort("tr_experiments_error_no_design",
-                          "Não achei BIB cíclico para t = %d, k = %d, e o não reduzido teria %s blocos. Mude o tamanho do bloco.",
-                          t, k, format(choose(t, k), big.mark = ".", decimal.mark = ","))
-  }
-  list(blocos = t(utils::combn(t, k)), ciclico = FALSE)
-}
+# A base do BIB (cíclico, família de diferenças, tabela, busca ou não
+# reduzido) está em R/combinatoria.R.
 
 .tr_exp_estr_bib <- function(s) {
   nome <- names(s$fatores); niv <- s$fatores[[1]]; t <- length(niv); k <- s$tamanho_bloco; rr <- s$r
@@ -551,8 +549,9 @@
   }))
   u <- tibble::tibble(unidade = seq_len(nrow(d)), bloco = .tr_exp_id(d$bloco, b))
   u[[nome]] <- factor(niv[d$trat], levels = niv)
-  avisos <- if (!base$ciclico) {
-    sprintf("Sem BIB cíclico para t = %d e k = %d: usado o não reduzido, com todos os %d blocos possíveis.", t, k, b / rr)
+  avisos <- if (base$construcao == "não reduzido") {
+    sprintf("Nenhuma construção achou BIB menor para t = %d e k = %d: usado o não reduzido, com todos os %d blocos possíveis.",
+            t, k, b / rr)
   }
   list(unidades = u,
        fatores = rbind(
@@ -564,7 +563,8 @@
        posicoes = data.frame(linha = d$bloco, coluna = d$posicao), eixos = c("bloco", "posição no bloco"),
        analise = list(no = "models/lm", params = list(formula = sprintf("~ bloco + %s", .tr_exp_bt(nome)))),
        avisos = avisos,
-       extras = list(t = t, k = k, b = b, r = r, lambda = lam, eficiencia = lam * t / (r * k), ciclico = base$ciclico),
+       extras = list(t = t, k = k, b = b, r = r, lambda = lam, eficiencia = lam * t / (r * k),
+                     ciclico = base$construcao == "cíclico", construcao = base$construcao),
        rotulo = sprintf("BIB · t = %d, k = %d, b = %d, r = %g, λ = %g", t, k, b, r, lam))
 }
 
@@ -615,6 +615,10 @@
 
 .tr_exp_estr_crossover <- function(s) {
   nome <- names(s$fatores); niv <- s$fatores[[1]]; t <- length(niv); r <- s$r
+  if (nome == "residual") {
+    .tr_experiments_abort("tr_experiments_error_reserved_name",
+                          "Fator 'residual': no crossover esse nome é a coluna do tratamento do período anterior. Use outro nome.")
+  }
   W <- .tr_exp_williams(t); ns <- nrow(W)
   rot <- .tr_exp_perm(seq_len(t))
   seq_ind <- .tr_exp_perm(rep(seq_len(ns), each = r)); ni <- length(seq_ind)
@@ -622,6 +626,11 @@
                       sequencia = .tr_exp_id(rep(seq_ind, each = t), ns),
                       periodo = .tr_exp_id(rep(seq_len(t), ni), t))
   u[[nome]] <- factor(niv[rot[as.vector(t(W[seq_ind, , drop = FALSE]))]], levels = niv)
+  # Efeito residual (carryover): o tratamento do período anterior; no 1º
+  # período não há, e o nível "nenhum" (referência) fica confundido com ele.
+  ant <- c(NA, as.character(u[[nome]])[-nrow(u)])
+  ant[u$periodo == "1"] <- "nenhum"
+  u$residual <- factor(ant, levels = c("nenhum", niv))
   seqs <- apply(W, 1L, function(w) paste(niv[rot[w]], collapse = " → "))
   list(unidades = u,
        fatores = rbind(
@@ -629,13 +638,15 @@
          .tr_exp_fator(nome, "tratamento", niv, "período do indivíduo",
                        "fixado pela sequência sorteada ao indivíduo", "restrito"),
          .tr_exp_fator("periodo", "tempo", seq_len(t), "período", "—", "sem sorteio",
-                       "os períodos se sucedem no tempo; o balanço vem das sequências")),
+                       "os períodos se sucedem no tempo; o balanço vem das sequências"),
+         .tr_exp_fator("residual", "residual", c("nenhum", niv), "período do indivíduo", "—", "sem sorteio",
+                       "o tratamento do período anterior (efeito residual); segue da sequência")),
        hierarquia = .tr_exp_hier(c("sequência", "indivíduo", "período"), c("sequencia", "individuo", "unidade"),
                                  c(NA, "sequência", "indivíduo"), c(ns, ni, nrow(u))),
        posicoes = data.frame(linha = rep(seq_len(ni), each = t), coluna = rep(seq_len(t), ni)),
        eixos = c("indivíduo", "período"), tipo_geo = "tempo",
        analise = list(no = "models/lmer", params = list(
-         formula = sprintf("~ periodo + %s + (1 | individuo)", .tr_exp_bt(nome)))),
+         formula = sprintf("~ periodo + %s + residual + (1 | individuo)", .tr_exp_bt(nome)))),
        extras = list(sequencias = seqs, williams = W),
        rotulo = sprintf("Crossover de Williams · %d tratamentos, %d sequências, %d indivíduos", t, ns, ni))
 }
@@ -674,8 +685,13 @@
                 transform(p1$hierarquia, n = p1$hierarquia$n * L,
                           dentro_de = ifelse(is.na(p1$hierarquia$dentro_de), "local", p1$hierarquia$dentro_de)))
   ft <- paste(.tr_exp_bt(trat), collapse = " * ")
+  # Cada termo de tratamento (efeitos principais e TODAS as interações)
+  # interage com o local: A:B é testado contra local:A:B, não contra o resíduo.
+  termos <- unlist(lapply(seq_along(trat), function(m) {
+    apply(utils::combn(.tr_exp_bt(trat), m), 2L, paste, collapse = ":")
+  }))
   formula <- sprintf("~ %s + (1 | local)%s + %s", ft, if (bloco) " + (1 | local:bloco)" else "",
-                     paste(sprintf("(1 | local:%s)", .tr_exp_bt(trat)), collapse = " + "))
+                     paste(sprintf("(1 | local:%s)", termos), collapse = " + "))
   list(unidades = tibble::as_tibble(u), fatores = fat_meta, hierarquia = hier, posicoes = pos,
        eixos = c(paste(p1$eixos[[1]], "(locais empilhados)"), p1$eixos[[2]]),
        analise = list(no = "models/lmer", params = list(formula = formula)),

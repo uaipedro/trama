@@ -28,6 +28,42 @@ test_that("DQL: cada tratamento uma vez por linha e por coluna", {
     expect_true(all(contagem(p$unidades, "racao", "coluna") == 1L))
   }
   expect_error(ds("dql", "t: A, B"), class = "tr_experiments_error_no_residual")
+  p <- ds("dql", "t: 8", .seed = 3L)
+  expect_true(all(contagem(p$unidades, "t", "linha") == 1L))
+  expect_true(all(contagem(p$unidades, "t", "coluna") == 1L))
+  expect_length(p$avisos, 1L)
+})
+
+test_that("DQL: número de quadrados padrão igual à OEIS A000315", {
+  n <- vapply(1:6, function(t) nrow(.tr_exp_padroes_latinos(t)), 0L)
+  expect_equal(n, c(1L, 1L, 1L, 4L, 56L, 9408L))
+  # Cada um é padrão (1ª linha e 1ª coluna em ordem) e latino, e não se repete.
+  P <- .tr_exp_padroes_latinos(5)
+  expect_equal(anyDuplicated(P), 0L)
+  for (i in seq_len(nrow(P))) {
+    M <- matrix(P[i, ], 5, byrow = TRUE)
+    expect_true(all(M[1, ] == 1:5) && all(M[, 1] == 1:5) &&
+                all(apply(M, 1, function(x) length(unique(x))) == 5L) &&
+                all(apply(M, 2, function(x) length(unique(x))) == 5L))
+  }
+})
+
+test_that("DQL 4 × 4: os 576 quadrados saem, com frequências de uniforme (qui-quadrado)", {
+  # 576 = 4!·3!·4. Com 11520 sorteios, 20 esperados por quadrado; antes (só
+  # permutações do cíclico) saíam 432 e a classe de Klein nunca.
+  sorteia <- function(f, n) {
+    trama.experiments:::.tr_exp_com_semente(20260925L, replicate(n, paste(f(), collapse = "")))
+  }
+  k <- sorteia(function() .tr_exp_quadrado_latino(4L), 11520L)
+  tb <- table(k)
+  expect_equal(length(tb), 576L)
+  expect_gt(stats::chisq.test(as.vector(tb))$p.value, 0.001)
+  # A cadeia de Jacobson & Matthews, usada de t = 7 em diante, conferida onde
+  # dá para contar: 4 × 4, t³ = 64 passos.
+  kj <- sorteia(function() .tr_exp_jm_latino(4L), 11520L)
+  tj <- table(kj)
+  expect_equal(length(tj), 576L)
+  expect_gt(stats::chisq.test(as.vector(tj))$p.value, 0.001)
 })
 
 test_that("fatorial em DBC: cada combinação uma vez por bloco", {
@@ -79,6 +115,15 @@ test_that("fracionado: relação de definição, resolução e matriz iguais às
   expect_error(ds("fracionado", "A; B; C", geradores = "C = C"), class = "tr_experiments_error_bad_generator")
 })
 
+test_that("fracionado com níveis nomeados: coluna em −1/+1, nomes no metadado", {
+  p <- ds("fracionado", "A: baixo, alto; B: x, y; C; D", geradores = "D = ABC")
+  expect_true(is.numeric(p$unidades$A))
+  expect_setequal(unique(p$unidades$A), c(-1, 1))
+  expect_equal(p$extras$codificacao$menos1[1:2], c("baixo", "x"))
+  expect_equal(p$extras$codificacao$mais1[1:2], c("alto", "y"))
+  expect_equal(p$fatores$niveis[[which(p$fatores$nome == "A")]], c("baixo", "alto"))
+})
+
 test_that("composto central: pontos iguais aos do rsm::ccd (rotacional e face)", {
   skip_if_not_installed("rsm")
   for (k in 2:3) for (tipo in c("rotacional", "face")) {
@@ -91,6 +136,20 @@ test_that("composto central: pontos iguais aos do rsm::ccd (rotacional e face)",
   }
   p <- ds("composto_central", "x1; x2")
   expect_equal(p$extras$alfa, sqrt(2), tolerance = 1e-12)
+})
+
+test_that("composto central com porção fatorial fracionada (k = 5, E = ABCD) igual ao rsm::ccd", {
+  p <- ds("composto_central", "A; B; C; D; E", geradores = "E = ABCD", pontos_centrais = 4L)
+  expect_equal(p$extras$alfa, 2, tolerance = 1e-12)
+  expect_equal(p$extras$n_fatorial, 16L)
+  expect_equal(nrow(p$unidades), 16L + 10L + 4L)
+  expect_error(ds("composto_central", "A; B; C; D; E", geradores = "E = ABC"),
+               class = "tr_experiments_error_bad_generator")
+  skip_if_not_installed("rsm")
+  o <- as.data.frame(rsm::ccd(~ A + B + C + D, E ~ A * B * C * D, n0 = c(4, 0), alpha = "rotatable",
+                              randomize = FALSE, oneblock = TRUE))
+  chave <- function(d) sort(apply(round(as.matrix(d[c("A", "B", "C", "D", "E")]), 10), 1, paste, collapse = ","))
+  expect_equal(chave(p$unidades), chave(o))
 })
 
 test_that("parcela subdividida: A constante na parcela, B sorteado dentro dela", {
@@ -124,9 +183,20 @@ test_that("BIB: λ constante entre todos os pares, e os parâmetros do agricolae
   p <- ds("bib", "t: 7", tamanho_bloco = 3L, .seed = 2L)
   expect_true(all(concorrencia(p$unidades) == 1))
   expect_equal(p$extras[c("b", "r", "lambda")], list(b = 7L, r = 3, lambda = 1))
-  q <- ds("bib", "t: 6", tamanho_bloco = 3L)
-  expect_true(all(concorrencia(q$unidades) == q$extras$lambda))
-  expect_true(length(q$avisos) == 1L)
+  # b mínimo pelas condições necessárias (r, b inteiros, b ≥ t), que esses
+  # BIBs atingem (Cochran & Cox 1957, cap. 11).
+  casos <- list(c(t = 6, k = 3, b = 10, r = 5, l = 2), c(t = 9, k = 3, b = 12, r = 4, l = 1),
+                c(t = 8, k = 4, b = 14, r = 7, l = 3), c(t = 10, k = 4, b = 15, r = 6, l = 2),
+                c(t = 10, k = 6, b = 15, r = 9, l = 5))
+  for (cs in casos) {
+    q <- ds("bib", paste0("t: ", cs[["t"]]), tamanho_bloco = as.integer(cs[["k"]]), .seed = 5L)
+    expect_true(all(concorrencia(q$unidades) == cs[["l"]]), info = cs[["t"]])
+    expect_true(all(table(q$unidades$t) == cs[["r"]]), info = cs[["t"]])
+    expect_true(all(table(q$unidades$bloco) == cs[["k"]]), info = cs[["t"]])
+    expect_equal(unlist(q$extras[c("b", "r", "lambda")]), c(b = cs[["b"]], r = cs[["r"]], lambda = cs[["l"]]))
+    expect_length(q$avisos, 0L)
+  }
+  expect_true(.tr_exp_bib_confere(.TR_EXP_BIB_TABELA[["10_4"]], 10L, 2L))
   skip_if_not_installed("agricolae")
   o <- suppressMessages(utils::capture.output(b <- agricolae::design.bib(1:7, 3, seed = 1)))
   expect_equal(unname(b$statistics$lambda), p$extras$lambda)
@@ -157,12 +227,27 @@ test_that("crossover: Williams igual ao crossdes e balanceado para o efeito resi
   expect_true(all(table(p$unidades$individuo, p$unidades$t) == 1L))
 })
 
+test_that("crossover: coluna do efeito residual e fórmula com ela, t − 1 gl", {
+  p <- ds("crossover", "t: A, B, C, D", repeticoes = 2L, .seed = 6L)
+  u <- as.data.frame(p$unidades)
+  expect_true(all(u$residual[u$periodo == "1"] == "nenhum"))
+  for (i in which(u$periodo != "1")) expect_equal(as.character(u$residual[i]), as.character(u$t[i - 1L]))
+  expect_match(p$analise$params$formula, "residual", fixed = TRUE)
+  set.seed(1); u$y <- stats::rnorm(nrow(u))
+  a <- stats::anova(stats::lm(y ~ individuo + periodo + t + residual, u))
+  expect_equal(a["residual", "Df"], 3L)
+  expect_error(ds("crossover", "residual: A, B"), class = "tr_experiments_error_reserved_name")
+})
+
 test_that("grupos: o mesmo DBC em cada local, com sorteio independente", {
   p <- ds("grupos", "t: A, B, C, D", locais = 3L, repeticoes = 3L, .seed = 11L)
   u <- p$unidades
   expect_true(all(table(interaction(u$local, u$bloco, drop = TRUE), u$t) == 1L))
   por_local <- tapply(as.character(u$t), u$local, paste, collapse = "")
   expect_gt(length(unique(por_local)), 1L)
+  q <- ds("grupos", "a: 1, 2; b: x, y", locais = 3L)
+  expect_match(q$analise$params$formula, "(1 | local:a:b)", fixed = TRUE)
+  expect_match(q$analise$params$formula, "(1 | local:a)", fixed = TRUE)
 })
 
 test_that("reprodutível pela semente, sem mexer no RNG do usuário", {
