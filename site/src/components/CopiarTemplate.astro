@@ -7,8 +7,8 @@ import { renderFlowCanvas } from "../lib/flow-canvas-html";
 import visuals from "../data/node-visuals.json";
 import type { NodeVisual } from "../data/node-visuals";
 
-interface Props { pkg: string; arquivo: string; nome: string; descricao: string; doc: Parameters<typeof templateToGraph>[0] }
-const { pkg, arquivo, nome, descricao, doc } = Astro.props;
+interface Props { pkg: string; arquivo: string; nome: string; descricao: string; doc: Parameters<typeof templateToGraph>[0]; texto: string }
+const { pkg, arquivo, nome, descricao, doc, texto } = Astro.props;
 const href = `/trama/templates/${pkg}/${arquivo}`;
 const canvas = renderFlowCanvas(templateToGraph(doc), visuals as Record<string, NodeVisual>);
 ---
@@ -22,6 +22,7 @@ const canvas = renderFlowCanvas(templateToGraph(doc), visuals as Record<string, 
       <button type="button" class="button button--primary" data-template-copiar>Copiar template</button>
       <a class="template-card__baixar" href={href} download={arquivo}>Baixar .json</a>
     </div>
+    <script type="application/json" data-template-json set:html={texto.replace(/</g, "\\u003c")} />
     <p class="template-card__status" role="status" aria-live="polite" data-template-status></p>
   </div>
 </article>
@@ -31,15 +32,17 @@ const canvas = renderFlowCanvas(templateToGraph(doc), visuals as Record<string, 
     const botao = card.querySelector<HTMLButtonElement>("[data-template-copiar]");
     const status = card.querySelector<HTMLElement>("[data-template-status]");
     if (!botao || !status) continue;
-    botao.addEventListener("click", async () => {
-      try {
-        const resposta = await fetch(card.dataset.template!);
-        if (!resposta.ok) throw new Error(String(resposta.status));
-        await navigator.clipboard.writeText(await resposta.text());
+    const json = card.querySelector<HTMLScriptElement>("[data-template-json]")?.textContent ?? "";
+    const falhou = () => {
+      status.textContent = "Não deu para copiar. Use “Baixar .json” e arraste o arquivo para o canvas.";
+    };
+    // `writeText` chamado direto no clique, sem nada assíncrono antes: é o
+    // gesto do usuário que autoriza a escrita.
+    botao.addEventListener("click", () => {
+      if (!json || !navigator.clipboard?.writeText) return falhou();
+      navigator.clipboard.writeText(json).then(() => {
         status.textContent = "Copiado — cole no canvas do trama com Ctrl+V.";
-      } catch {
-        status.textContent = "Não deu para copiar. Use “Baixar .json” e arraste o arquivo para o canvas.";
-      }
+      }, falhou);
     });
   }
 </script>
