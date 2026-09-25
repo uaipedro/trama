@@ -28,7 +28,8 @@ import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla,
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo } from "./proximo.js";
-import { registrar } from "./historico.js";
+import { registrar, lerHistorico } from "./historico.js";
+import { sugerir } from "./sugestor.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -836,7 +837,7 @@ function Icon({ icon, className, color }) {
 // ou arrasto de porta): a aba não manda, porque quem procura quer "o que
 // serve", não "de que coleção veio" — as abas somem e a lista vira global, com
 // o selo dizendo de onde cada bloco vem.
-function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
+function Palette({ catalog, filterType, dragFrom, onPick, modoNovo, onModoNovo }) {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState(null);
   const cols = catalog.collections || [];
@@ -869,9 +870,17 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
     return m;
   }, [hits, active]);
 
-  const achados = useMemo(
-    () => [...hits].sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id, "pt")),
-    [hits]);
+  // Arrastando de uma porta com origem conhecida, a ordem é a do sugestor e
+  // os 5 primeiros com pontuação ganham a marca; sem origem, alfabética.
+  const { achados, marcados } = useMemo(() => {
+    const alfa = [...hits].sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id, "pt"));
+    if (!filterType || !dragFrom) return { achados: alfa, marcados: new Set() };
+    const r = sugerir(catalog, { de: dragFrom, tipo: filterType, historico: lerHistorico() });
+    const pos = Object.fromEntries(r.map((s, i) => [s.id, i]));
+    const achados = alfa.map((n, i) => [n, pos[n.id] ?? 1e6 + i]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+    const vivos = new Set(achados.map((n) => n.id));
+    return { achados, marcados: new Set(r.filter((s) => s.score > 0 && vivos.has(s.id)).slice(0, 5).map((s) => s.id)) };
+  }, [hits, catalog, filterType, dragFrom]);
 
   const rotulo = (id) => cols.find((c) => c.id === id)?.label || id;
 
@@ -896,6 +905,7 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
       : h("i", { key: "i", className: "tr-palette-dot",
                  style: { background: catColor(n) } }),
     h("span", { key: "l", className: "tr-palette-label" }, n.label),
+    marcados.has(n.id) ? h("span", { key: "sg", className: "tr-palette-sug", title: "sugerido", role: "img", "aria-label": "sugerido" }) : null,
     selo ? h("span", { key: "s", className: "tr-palette-seal" }, selo) : null,
   ]);
 
@@ -1397,6 +1407,7 @@ function App() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [dragType, setDragType] = useState(null);
+  const [dragFrom, setDragFrom] = useState(null);
   const [banner, setBanner] = useState(null);
   const [helpFor, setHelpFor] = useState(null);
   const [vista, setVista] = useState(null); // id do card aberto em tela cheia (V)
@@ -2618,12 +2629,14 @@ function App() {
     if (!cat || !n || p.handleType !== "source") return;
     const byId = Object.fromEntries(cat.nodes.map((x) => [x.id, x]));
     setDragType(byId[n.data.nodeType]?.outputs.find((o) => o.name === p.handleId)?.type || null);
+    setDragFrom(n.data.nodeType);
   }, [nodes]);
 
   // Conexão de uma saída solta no vazio abre o próximo bloco no ponto do
   // mouse. `fromHandle` é a porta onde o arrasto começou.
   const onConnectEnd = useCallback((ev, st) => {
     setDragType(null);
+    setDragFrom(null);
     if (present || !st || st.toNode || !st.fromHandle) return;
     const pt = ev.changedTouches?.[0] || ev;
     if (pt.clientX == null) return;
@@ -3508,7 +3521,7 @@ function App() {
             onRename: (id, title) => onFrameEdit(id, { title }), onAspect: mudarProporcao,
             onPresent: apresentar, onExport: () => exportar(framesOrd),
             onClose: () => setPainelFrames(false) })
-        : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked,
+        : h(Palette, { key: "pal", catalog, filterType: dragType, dragFrom, onPick: addPicked,
                        modoNovo, onModoNovo: setModoNovo }),
     prox && !present && catalog
       ? h(Proximo, { key: `prox-${prox.modo || "p"}-${prox.de}-${prox.porta}`, catalog,

@@ -1179,3 +1179,6 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   color:var(--tr-dim);font-size:13px;line-height:15px;text-align:center;cursor:pointer}
 .tr-meio-mais:hover,.tr-meio-mais:focus-visible{color:var(--tr-accent-fg);
   background:var(--tr-accent);border-color:var(--tr-accent)}
+
+/* Marca discreta dos 5 primeiros do sugestor na paleta (arrasto de porta). */
+.tr-palette-sug{flex:none;width:6px;height:6px;border-radius:50%;background:var(--tr-accent);opacity:.75}
