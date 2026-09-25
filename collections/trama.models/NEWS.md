@@ -32,6 +32,23 @@
   Proporção em [0, 1] continua aceita na quasibinomial.
 - `models/friedman`: o pressuposto de bloco completo aponta o Skillings–Mack e
   o Durbin para blocos incompletos, ainda sem bloco no trama.
+- `models/friedman` (versão 2): parâmetro `metodo` (`auto`, `friedman`,
+  `durbin`, `skillings_mack`). Os três respondem à mesma pergunta — algum
+  tratamento difere, com postos dentro do bloco — e mudam só no desenho que
+  aceitam, por isso ficam num bloco só. Em `auto` (padrão), blocos completos
+  usam o Friedman; blocos incompletos balanceados, o Durbin (1951; T1 na forma
+  de Conover 1999, com correção para empates); o resto, o Skillings–Mack (1981;
+  faltantes quaisquer, desenho conexo, empates sem correção). Antes o bloco
+  incompleto saía inteiro; isso agora só com `metodo = "friedman"`, e a nota
+  aponta o método que aproveitaria esses blocos. `durbin` fora de um BIB recusa
+  (`tr_models_error_not_applicable`) e aponta o `skillings_mack`. Oráculos:
+  sorvete de `agricolae::durbin.test` (atribuído a Conover 1999, p. 391),
+  T1 = 12, p = 0,0620, e o mesmo com empates (1e-12); exemplo de
+  `Skillings.Mack::Ski.Mack` (montagem, 9 blocos com 4 faltantes),
+  SM = 15,493, 3 gl, p = 0,00144, e faltantes ao acaso com empates (1e-8);
+  Skillings–Mack = `stats::friedman.test` em dados completos sem empate (20
+  sorteios, 1e-10). `Skillings.Mack` em Suggests. O `PMCMRplus::durbinTest` não
+  foi usado: não instala sem a biblioteca de sistema MPFR (dependência Rmpfr).
 - `models/gls` (versão 2): `correlacao = "car1"` (AR(1) em tempo contínuo,
   `nlme::corCAR1(form = ~ tempo | grupo)`) para ocasiões desigualmente
   espaçadas; com `"ar1"` e Tempo numérico desigual, a nota avisa que o AR(1)

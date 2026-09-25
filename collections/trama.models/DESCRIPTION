@@ -45,7 +45,8 @@ Suggests:
     testthat (>= 3.0.0),
     png,
     multcomp,
-    ScottKnott
+    ScottKnott,
+    Skillings.Mack
 Config/testthat/edition: 3
 Remotes:
     uaipedro/trama,

@@ -160,17 +160,30 @@
     "models/friedman" = list(
       pressupostos = list(
         P("Os **blocos são independentes** entre si; dentro do bloco, cada tratamento foi sorteado a uma parcela."),
-        P("**Uma observação por bloco e tratamento**, com todos os tratamentos em todo bloco.",
-          se_falhar = "Resuma as repetições (a média de cada casela) antes; bloco incompleto sai inteiro. Para blocos incompletos há o teste de Skillings–Mack (faltantes quaisquer) e o de Durbin (blocos incompletos balanceados), ainda sem bloco no trama."),
-        P("A resposta é **contínua** ou ordinal; empates dentro do bloco são corrigidos na estatística."),
+        P("**No máximo uma observação por bloco e tratamento.**",
+          se_falhar = "Resuma as repetições (a média de cada casela) antes."),
+        P("O **desenho casa com o método**: Friedman pede blocos completos; Durbin, blocos incompletos balanceados (k < t parcelas por bloco, r repetições por tratamento, todo par junto λ vezes); Skillings–Mack aceita faltantes quaisquer, desde que o desenho seja conexo.",
+          se_falhar = "Deixe o método em `auto`, que escolhe pelo desenho. Com `durbin` num desenho que não é balanceado o bloco recusa e aponta o `skillings_mack`; com `friedman` forçado, bloco incompleto sai inteiro."),
+        P("Os faltantes do Skillings–Mack são **ao acaso**, não ligados ao tratamento ou à resposta.",
+          se_falhar = "Se a parcela se perdeu por causa do tratamento (planta morta pela dose), o teste de postos não corrige o viés; trate a perda como resposta."),
+        P("A resposta é **contínua** ou ordinal. Empates dentro do bloco recebem posto médio; Friedman e Durbin corrigem a estatística, o Skillings–Mack não (fica conservador)."),
         P("O p-valor é o da aproximação qui-quadrado, boa com blocos e tratamentos não muito poucos (com 3 tratamentos, uns 10 blocos).")),
       referencias = list(
         R(autores = "Friedman, M.", ano = 1937,
           titulo = "The use of ranks to avoid the assumption of normality implicit in the analysis of variance",
           fonte = "Journal of the American Statistical Association, 32(200), 675-701",
           doi = "10.1080/01621459.1937.10503522"),
+        R(autores = "Durbin, J.", ano = 1951, titulo = "Incomplete blocks in ranking experiments",
+          fonte = "British Journal of Statistical Psychology, 4(2), 85-90",
+          doi = "10.1111/j.2044-8317.1951.tb00310.x"),
+        R(autores = c("Skillings, J. H.", "Mack, G. A."), ano = 1981,
+          titulo = "On the use of a Friedman-type statistic in balanced and unbalanced block designs",
+          fonte = "Technometrics, 23(2), 171-177", doi = "10.1080/00401706.1981.10486261"),
+        R(autores = "Conover, W. J.", ano = 1999, titulo = "Practical Nonparametric Statistics",
+          fonte = "3. ed. New York: Wiley", papel = "livro-texto"),
         L$siegel,
-        I("stats", "friedman.test", "Postos dentro do bloco, estatística corrigida para empates, p-valor pela aproximação qui-quadrado; o W de Kendall é a estatística dividida por b(k - 1)."))),
+        I("stats", "friedman.test", "Friedman: postos dentro do bloco, estatística corrigida para empates, p-valor pela aproximação qui-quadrado; o W de Kendall é a estatística dividida por b(k - 1)."),
+        I("trama", "tr_models_friedman", "Durbin e Skillings–Mack calculados no trama: T1 de Durbin na forma de Conover (1999), (t - 1) Σ(R_j - r(k + 1)/2)² / (A - C); Skillings–Mack como A' Σ⁻ A com a inversa generalizada, gl = posto de Σ. Conferidos com agricolae::durbin.test e Skillings.Mack::Ski.Mack."))),
 
     "models/chisq" = list(
       pressupostos = list(
