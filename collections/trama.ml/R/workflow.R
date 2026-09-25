@@ -81,15 +81,20 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
 #' Avalia previsões de regressão ou classificação
 #'
 #' Não remove silenciosamente linhas: alvo e previsão ausentes produzem erro.
-#' Em classificação, balanced accuracy e F1 são médias macro sobre as classes
-#' observadas no alvo; uma classe ausente nas previsões recebe seu recall/F1
-#' correspondente (zero quando aplicável).
+#' Em classificação, balanced accuracy (média das revocações), F1, precisão e
+#' revocação macro são médias sobre as classes observadas no alvo; as
+#' ponderadas usam o suporte de cada classe; o kappa de Cohen (1960) desconta a
+#' concordância esperada pelas marginais. Precisão de classe nunca prevista e
+#' F1 sem acerto valem zero.
 #'
 #' @param dados Data frame com alvo e previsão.
 #' @param alvo Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
 #' @param tarefa auto, regressao ou classificacao.
-#' @return Tibble com colunas metrica, valor e n.
+#' @return Tibble com colunas metrica, classe, valor e n. Na classificação,
+#'   as métricas globais têm `classe` ausente e as por classe (`precision`,
+#'   `recall`, `f1`) trazem a classe e seu suporte em `n`; na regressão não há
+#'   coluna `classe`.
 #' @export
 tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
                            tarefa = "auto") {
@@ -214,22 +219,39 @@ tr_ml_example <- function(nome = "iris") {
 .tr_ml_classification_metrics <- function(y, p) {
   ys <- as.character(y); ps <- as.character(p)
   classes <- unique(ys)
+  n <- length(ys)
   acc <- mean(ys == ps)
-  recalls <- vapply(classes, function(k) {
-    den <- sum(ys == k)
-    sum(ys == k & ps == k) / den
-  }, numeric(1))
-  f1 <- vapply(classes, function(k) {
-    tp <- sum(ys == k & ps == k)
-    fp <- sum(ys != k & ps == k)
-    fn <- sum(ys == k & ps != k)
-    if (tp == 0 || (2 * tp + fp + fn) == 0) 0 else 2 * tp / (2 * tp + fp + fn)
-  }, numeric(1))
-  tibble::tibble(
-    metrica = c("accuracy", "balanced_accuracy", "macro_f1"),
-    valor = c(acc, mean(recalls), mean(f1)),
-    n = length(ys)
-  )
+  # Por classe (um contra todos). Precisão de uma classe nunca prevista e F1
+  # sem acerto valem 0 (convenção zero_division = 0 do scikit-learn).
+  por <- vapply(classes, function(k) {
+    tp <- sum(ys == k & ps == k); fp <- sum(ys != k & ps == k); fn <- sum(ys == k & ps != k)
+    c(precision = if (tp + fp == 0) 0 else tp / (tp + fp),
+      recall = tp / (tp + fn),
+      f1 = if (tp == 0) 0 else 2 * tp / (2 * tp + fp + fn),
+      suporte = tp + fn)
+  }, numeric(4))
+  w <- por["suporte", ] / n
+  # Kappa de Cohen (1960): concordância observada contra a esperada pelas
+  # marginais da tabela observado x previsto (rótulos de ambos os lados).
+  rotulos <- union(ys, ps)
+  pe <- sum(vapply(rotulos, function(k) mean(ys == k) * mean(ps == k), numeric(1)))
+  kappa <- if (pe == 1) NA_real_ else (acc - pe) / (1 - pe)
+  globais <- tibble::tibble(
+    metrica = c("accuracy", "balanced_accuracy", "macro_f1", "kappa",
+                "macro_precision", "macro_recall", "weighted_precision",
+                "weighted_recall", "weighted_f1"),
+    classe = NA_character_,
+    valor = c(acc, mean(por["recall", ]), mean(por["f1", ]), kappa,
+              mean(por["precision", ]), mean(por["recall", ]),
+              sum(w * por["precision", ]), sum(w * por["recall", ]), sum(w * por["f1", ])),
+    n = n)
+  k <- length(classes)
+  por_classe <- tibble::tibble(
+    metrica = rep(c("precision", "recall", "f1"), times = k),
+    classe = rep(classes, each = 3L),
+    valor = as.numeric(por[c("precision", "recall", "f1"), ]),
+    n = rep(as.integer(por["suporte", ]), each = 3L))
+  rbind(globais, por_classe)
 }
 
 # Coluna auxiliar de ordem ou grupo: existe, não tem ausentes.

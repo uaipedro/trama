@@ -136,7 +136,7 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   tarefa <- d$tarefa
   if (identical(metrica, "auto")) metrica <- if (tarefa == "regressao") "rmse" else "macro_f1"
   validas <- if (tarefa == "regressao") c("mae", "rmse", "r2") else
-    c("accuracy", "balanced_accuracy", "macro_f1")
+    c("accuracy", "balanced_accuracy", "macro_f1", "kappa", "weighted_f1")
   metrica <- .tr_ml_enum(metrica, validas, "metrica")
   minimizar <- metrica %in% c("mae", "rmse")
   space <- .tr_ml_tuning_space(modelo, length(d$preditores), amplitude)

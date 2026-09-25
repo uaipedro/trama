@@ -41,7 +41,7 @@ test_that("métricas de regressão e R2 indefinido", {
 test_that("classificação calcula macro e aceita classe ausente na previsão", {
   d <- tibble::tibble(y = factor(c("a", "a", "b", "b")), .pred = factor(c("a", "a", "a", "a"), levels = c("a", "b")))
   z <- tr_ml_evaluate(d, "y")
-  expect_equal(z$valor, c(0.5, 0.5, 1/3))
+  expect_equal(z$valor[1:3], c(0.5, 0.5, 1/3))
   m <- tr_ml_confusion(d, "y")
   expect_equal(sum(m$n), 4)
   expect_equal(m$n[m$observado == "b" & m$previsto == "a"], 2)
@@ -50,7 +50,7 @@ test_that("classificação calcula macro e aceita classe ausente na previsão", 
 test_that("classes previstas fora do alvo não alteram a média sobre classes observadas", {
   d <- tibble::tibble(y = c("a", "a", "b", "b"), .pred = c("a", "a", "c", "c"))
   z <- tr_ml_evaluate(d, "y")
-  expect_equal(z$valor, c(0.5, 0.5, 0.5))
+  expect_equal(z$valor[1:3], c(0.5, 0.5, 0.5))
   expect_equal(sum(tr_ml_confusion(d, "y")$n), 4)
 })
 
@@ -65,7 +65,7 @@ test_that("classificação rejeita valores numéricos não finitos", {
 test_that("classificação aceita códigos numéricos na avaliação e confusão", {
   d <- tibble::tibble(y = c(0, 0, 1, 1), .pred = c(0, 1, 1, 1))
   z <- tr_ml_evaluate(d, "y", tarefa = "classificacao")
-  expect_equal(z$valor, c(0.75, 0.75, 11/15))
+  expect_equal(z$valor[1:3], c(0.75, 0.75, 11/15))
   m <- tr_ml_confusion(d, "y")
   expect_equal(sum(m$n), 4)
   expect_equal(m$n[m$observado == "0" & m$previsto == "1"], 1)

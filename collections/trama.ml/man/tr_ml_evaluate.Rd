@@ -16,11 +16,16 @@ tr_ml_evaluate(dados, alvo = "", predito = ".pred", tarefa = "auto")
 \item{tarefa}{auto, regressao ou classificacao.}
 }
 \value{
-Tibble com colunas metrica, valor e n.
+Tibble com colunas metrica, classe, valor e n. Na classificação,
+as métricas globais têm \code{classe} ausente e as por classe (\code{precision},
+\code{recall}, \code{f1}) trazem a classe e seu suporte em \code{n}; na regressão não há
+coluna \code{classe}.
 }
 \description{
 Não remove silenciosamente linhas: alvo e previsão ausentes produzem erro.
-Em classificação, balanced accuracy e F1 são médias macro sobre as classes
-observadas no alvo; uma classe ausente nas previsões recebe seu recall/F1
-correspondente (zero quando aplicável).
+Em classificação, balanced accuracy (média das revocações), F1, precisão e
+revocação macro são médias sobre as classes observadas no alvo; as
+ponderadas usam o suporte de cada classe; o kappa de Cohen (1960) desconta a
+concordância esperada pelas marginais. Precisão de classe nunca prevista e
+F1 sem acerto valem zero.
 }

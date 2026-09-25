@@ -61,3 +61,12 @@ positiva) e `ml/cart` (poda), com os nós em versão 2.
   folds e semente) e, em ruído puro (12 réplicas semeadas, n = 40, SVM, 10
   tentativas), aninhada 0,519 de acurácia (acaso 0,5; tolerância 0,06) contra
   0,604 da média do vencedor não aninhada.
+- `ml/evaluate` (versão 2): na classificação, além de acurácia, acurácia
+  balanceada e macro F1 (valores inalterados), kappa de Cohen (1960),
+  precisão e revocação macro, precisão/revocação/F1 ponderados pelo suporte e
+  precisão/revocação/F1 por classe; nova coluna `classe` (a tabela ganha
+  linhas). Precisão de classe nunca prevista vale 0. `ml/tune` e
+  `ml/nested_cv` aceitam `kappa` e `weighted_f1` como métrica. Validação:
+  exemplo à mão de 3 classes (kappa 0,5; F1 0,8/0,5/0,667) e `yardstick`
+  (kap, f_meas/precision/recall macro e macro_weighted, bal_accuracy binária)
+  a 1e-12.

@@ -37,7 +37,7 @@ test_that("fluxo real calcula teste separado, preserva e restaura modelos", {
   p <- val("prever")
   expect_equal(m$n, 74L)
   expect_equal(nrow(p), 26L)
-  expect_equal(val("avaliar")$n, rep(26L, 3L))
+  expect_equal(val("avaliar")$n[1:3], rep(26L, 3L))
   expect_equal(val("prever"), p)
   expect_equal(tr_ml_predict(m, val("divisao", "teste")), p)
 })
