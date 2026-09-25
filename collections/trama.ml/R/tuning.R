@@ -144,6 +144,9 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   minimizar <- metrica %in% c("mae", "rmse")
   space <- .tr_ml_tuning_space(modelo, length(d$preditores), amplitude)
 
+  # A entrada já foi checada por `.tr_ml_dados`; os folds usam uma cópia sem
+  # marca e ajustam sem impressões (só o reajuste final as calcula).
+  base <- dados; attr(base, .tr_ml_origem_attr) <- NULL
   resultado <- .tr_ml_with_seed(seed, {
     y_folds <- if (tarefa == "classificacao") factor(dados[[d$alvo]]) else dados[[d$alvo]]
     partes <- .tr_ml_folds(dados, estrategia, folds, y_folds, ordem, grupo)
@@ -153,12 +156,12 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
       cfg <- configs[[i]]; valores <- numeric()
       erro <- NULL; avisos <- character(); inicio <- proc.time()[["elapsed"]]
       for (parte in partes) {
-        treino <- dados[parte$treino, , drop = FALSE]
-        teste <- dados[parte$validacao, , drop = FALSE]
+        treino <- base[parte$treino, , drop = FALSE]
+        teste <- base[parte$validacao, , drop = FALSE]
         args <- c(list(dados = treino, alvo = alvo, cols = cols, modelo = modelo,
                        tarefa = tarefa, seed = as.integer((as.double(seed) + i) %% .Machine$integer.max)), cfg)
         valor <- tryCatch(withCallingHandlers({
-            fit <- do.call(tr_ml_fit, args)
+            fit <- .tr_ml_sem_impressao(do.call(tr_ml_fit, args))
             pred <- tr_ml_predict(fit, teste)
             .tr_ml_tune_metric(pred, alvo, tarefa, metrica)
           }, warning = function(w) {
@@ -233,10 +236,11 @@ tr_ml_nested_cv <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa
     y <- if (tarefa == "classificacao") factor(dados[[d$alvo]]) else dados[[d$alvo]]
     .tr_ml_folds(dados, estrategia, folds_externos, y, ordem, grupo)
   })
-  linhas <- lapply(seq_along(partes), function(i) {
+  base <- dados; attr(base, .tr_ml_origem_attr) <- NULL
+  linhas <- .tr_ml_sem_impressao(lapply(seq_along(partes), function(i) {
     parte <- partes[[i]]
-    treino <- dados[parte$treino, , drop = FALSE]
-    validacao <- dados[parte$validacao, , drop = FALSE]
+    treino <- base[parte$treino, , drop = FALSE]
+    validacao <- base[parte$validacao, , drop = FALSE]
     z <- tr_ml_tune(treino, alvo = alvo, cols = cols, modelo = modelo, tarefa = tarefa,
                     metrica = metrica, tentativas = tentativas, folds = folds,
                     amplitude = amplitude, estrategia = estrategia, ordem = ordem, grupo = grupo,
@@ -246,7 +250,7 @@ tr_ml_nested_cv <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa
                    tentativa = z$melhor_tentativa, metrica = z$metrica,
                    interna = z$historico$media[[z$melhor_tentativa]],
                    externa = .tr_ml_tune_metric(pred, alvo, tarefa, z$metrica))
-  })
+  }))
   out <- do.call(rbind, linhas)
   rbind(out, tibble::tibble(fold = "media", n_treino = NA_integer_, n_validacao = NA_integer_,
                             tentativa = NA_integer_, metrica = out$metrica[[1]],

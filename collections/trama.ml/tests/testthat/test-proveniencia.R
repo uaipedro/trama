@@ -43,7 +43,7 @@ test_that("tune com treino marcado mede os folds sem recusa e o modelo herda a o
   s <- tr_ml_split(binaria(), "Species")
   z <- tr_ml_tune(s$treino, "Species", tentativas = 2, folds = 2)
   expect_true(all(z$historico$status == "ok"))
-  expect_identical(z$modelo$origem, attr(s$treino, "tr_ml_origem"))
+  expect_identical(z$modelo$origem, attr(s$treino, "tr_ml_origem")[c("papel", "divisao")])
   n <- tr_ml_nested_cv(s$treino, "Species", tentativas = 2, folds_externos = 2, folds = 2)
   expect_true(all(is.finite(n$externa)))
 })
@@ -96,9 +96,11 @@ test_that("prever o teste de outra divisão com o modelo desta é recusado", {
   m <- tr_ml_cart(s1$treino, "Species")
   expect_error(tr_ml_predict(m, s2$teste), class = "tr_ml_error_split_mismatch")
   expect_s3_class(tr_ml_predict(m, s1$teste), "tbl_df")
-  # modelo sem origem (divisão por fora) prevê qualquer teste
+  # sem a marca, as impressões ainda veem linhas do teste 2 no treino 1
   sem <- s1$treino; attr(sem, "tr_ml_origem") <- NULL
-  expect_s3_class(tr_ml_predict(tr_ml_cart(sem, "Species"), s2$teste), "tbl_df")
+  expect_error(tr_ml_predict(tr_ml_cart(sem, "Species"), s2$teste), class = "tr_ml_error_test_leak")
+  # modelo de dados disjuntos do teste prevê normalmente
+  expect_s3_class(tr_ml_predict(tr_ml_cart(sem, "Species"), s1$teste), "tbl_df")
 })
 
 test_that("marca sobrevive ao store e à releitura do cache no fluxo real", {
@@ -133,4 +135,83 @@ test_that("marca sobrevive ao store e à releitura do cache no fluxo real", {
   path <- tempfile(fileext = ".rds")
   tabela$store(val("divisao", "teste"), path)
   expect_error(tr_ml_cart(tabela$restore(path), "Species"), class = "tr_ml_error_test_leak")
+})
+
+# --- Proveniência por linha (impressões digitais): os desvios do revisor ----
+# Cada caso reproduz um contorno de scratchpad/leak.R e leak2.R.
+
+test_that("B1: modelo que viu linhas do teste não prevê esse teste", {
+  ex <- binaria(); s <- tr_ml_split(ex, "Species")
+  # ajustado na tabela inteira, antes de dividir
+  expect_error(tr_ml_predict(tr_ml_cart(ex, "Species"), s$teste), class = "tr_ml_error_test_leak")
+  # ajustado numa cópia do teste sem a marca
+  u <- s$teste; attr(u, "tr_ml_origem") <- NULL
+  expect_error(tr_ml_predict(tr_ml_cart(u, "Species"), s$teste), class = "tr_ml_error_test_leak")
+  # ajustado no treino mais algumas linhas do teste sem marca
+  mais <- rbind(as.data.frame(s$treino), as.data.frame(u)[1:3, ])
+  attr(mais, "tr_ml_origem") <- NULL
+  expect_error(tr_ml_predict(tr_ml_linear(mais, "Species"), s$teste), class = "tr_ml_error_test_leak")
+  # o caminho legítimo continua aberto
+  expect_s3_class(tr_ml_predict(tr_ml_cart(s$treino, "Species"), s$teste), "tbl_df")
+})
+
+test_that("B2: tabela de treino que contém o teste é recusada no ajuste e na divisão", {
+  s <- tr_ml_split(binaria(), "Species"); tr <- s$treino; te <- s$teste
+  juntos <- list(rbind = rbind(tr, te),
+                 bind_rows = trama.data::tr_bind_rows(list(tr, te)),
+                 parte = rbind(tr, te[1, ]))
+  if (requireNamespace("dplyr", quietly = TRUE)) juntos$dplyr <- dplyr::bind_rows(tr, te)
+  for (nm in names(juntos)) {
+    x <- juntos[[nm]]
+    expect_error(tr_ml_cart(x, "Species"), class = "tr_ml_error_test_leak", info = nm)
+    expect_error(tr_ml_split(x, "Species", seed = 7), class = "tr_ml_error_test_leak", info = nm)
+  }
+  expect_error(tr_ml_tune(juntos$rbind, "Species", tentativas = 2, folds = 2),
+               class = "tr_ml_error_test_leak")
+  expect_error(tr_ml_nested_cv(juntos$rbind, "Species", tentativas = 2, folds_externos = 2, folds = 2),
+               class = "tr_ml_error_test_leak")
+  # colunas novas e reordenadas não apagam a impressão (ela usa as colunas da divisão)
+  x <- juntos$rbind; x$z <- 1; x <- x[rev(names(x))]
+  expect_error(tr_ml_cart(x, "Species"), class = "tr_ml_error_test_leak")
+})
+
+test_that("B4: avaliar previsões de treino misturadas ao teste exige permitir_treino", {
+  s <- tr_ml_split(binaria(), "Species")
+  m <- tr_ml_cart(s$treino, "Species")
+  pe <- tr_ml_predict(m, s$teste); pt <- tr_ml_predict(m, s$treino)
+  mistos <- list(rbind = rbind(pe, pt), bind_rows = trama.data::tr_bind_rows(list(pe, pt)))
+  if (requireNamespace("dplyr", quietly = TRUE)) mistos$dplyr <- dplyr::bind_rows(pe, pt)
+  for (nm in names(mistos)) {
+    x <- mistos[[nm]]
+    expect_error(tr_ml_evaluate(x, "Species"), class = "tr_ml_error_train_eval", info = nm)
+    expect_error(tr_ml_confusion(x, "Species"), class = "tr_ml_error_train_eval", info = nm)
+    expect_error(tr_ml_roc(x, "Species", ".prob_virginica"), class = "tr_ml_error_train_eval", info = nm)
+    expect_error(tr_ml_pr_curve(x, "Species", ".prob_virginica"), class = "tr_ml_error_train_eval", info = nm)
+    expect_warning(e <- tr_ml_evaluate(x, "Species", permitir_treino = TRUE), "otimista")
+    expect_true(all(grepl("otimista", e$nota)))
+  }
+  # teste repetido também não é o teste
+  expect_error(tr_ml_evaluate(rbind(pe, pe), "Species"), class = "tr_ml_error_train_eval")
+})
+
+test_that("sem falsos positivos: filtros, colunas novas e linhas duplicadas entre os lados", {
+  # iris_binaria tem linhas idênticas (102 e 143 do iris); com duplicatas
+  # forçadas nos dois lados, o multiconjunto separa cópia legítima de vazamento.
+  d <- binaria(); d <- rbind(d, d[1:20, ])
+  for (sd in 1:5) {
+    s <- tr_ml_split(d, "Species", seed = sd)
+    m <- tr_ml_cart(s$treino, "Species")
+    p <- tr_ml_predict(m, s$teste)
+    expect_no_error(tr_ml_evaluate(p, "Species"))
+    f <- p[p$Sepal.Length > 5.5, ]; f$extra <- 1
+    expect_no_error(tr_ml_evaluate(f, "Species"))
+    expect_no_error(tr_ml_tune(s$treino, "Species", tentativas = 1, folds = 2))
+    v <- tr_ml_split(s$treino, "Species", seed = 1)
+    expect_no_error(tr_ml_predict(tr_ml_cart(v$treino, "Species"), v$teste))
+  }
+  # o modelo guarda as impressões do treino, qualquer que seja a marca
+  s <- tr_ml_split(binaria(), "Species")
+  m <- tr_ml_cart(s$treino, "Species")
+  expect_equal(sum(m$treino_impressoes$n), nrow(s$treino))
+  expect_equal(sum(tr_ml_cart(binaria(), "Species")$treino_impressoes$n), 100L)
 })

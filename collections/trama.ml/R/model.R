@@ -40,7 +40,9 @@
 #'   de acerto fora da bolsa ao permutar o preditor; Breiman 2001) ou
 #'   `"impureza_corrigida"` (AIR, Nembrini, König & Wright 2018). Ignorado
 #'   pelos demais modelos.
-#' @return Objeto `tr_ml_fit`.
+#' @return Objeto `tr_ml_fit`. Guarda as impressões digitais das linhas de
+#'   treino (`treino_impressoes`), com que `ml/predict` recusa prever linhas
+#'   do teste que o modelo viu.
 #' @export
 tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
@@ -135,7 +137,8 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
   structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$alvo,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
                  n = d$n, seed = seed, extras = extras,
-                 origem = .tr_ml_origem(dados)), class = "tr_ml_fit")
+                 origem = .tr_ml_origem_curta(dados),
+                 treino_impressoes = .tr_ml_impressoes_treino(dados, d$impressoes)), class = "tr_ml_fit")
 }
 
 # Custo-complexidade (Breiman et al. 1984, sec. 3.4.3): na sequência aninhada
@@ -162,7 +165,9 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
 #'   probabilidades `.prob_<classe>`. A marca de treino/teste do `ml/split`
 #'   (atributo `tr_ml_origem`) passa adiante; prever o teste de outra divisão
 #'   com um modelo ajustado no treino de uma divisão marcada é recusado
-#'   (`tr_ml_error_split_mismatch`).
+#'   (`tr_ml_error_split_mismatch`), e prever linhas do teste que o modelo viu
+#'   no ajuste (pelas impressões digitais das linhas) também
+#'   (`tr_ml_error_test_leak`).
 #' @export
 tr_ml_predict <- function(modelo, dados) {
   x <- .tr_ml_novos_dados(modelo, dados)
@@ -172,6 +177,13 @@ tr_ml_predict <- function(modelo, dados) {
     .tr_ml_abort("tr_ml_error_split_mismatch", paste(
       "O modelo foi ajustado no treino de uma divis\u{E3}o e estas linhas s\u{E3}o o teste de outra:",
       "parte delas pode ter estado no treino. Use o teste do mesmo `ml/split` do modelo."))
+  }
+  vistas <- .tr_ml_teste_no_treino(modelo, dados)
+  if (vistas > 0L) {
+    .tr_ml_abort("tr_ml_error_test_leak", paste(
+      "O modelo foi ajustado com %d linha(s) deste teste (ajuste antes de dividir, ou numa",
+      "tabela que cont\u{E9}m o teste): a previs\u{E3}o n\u{E3}o mede generaliza\u{E7}\u{E3}o. Ajuste s\u{F3}",
+      "na sa\u{ED}da treino do `ml/split`."), vistas)
   }
   cls <- modelo$tarefa == "classificacao"; prob <- NULL
   if (modelo$modelo == "linear") {

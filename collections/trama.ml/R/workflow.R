@@ -20,7 +20,9 @@
 #' @param seed Semente inteira; o estado RNG do chamador é restaurado.
 #' @return Lista com tibbles treino e teste, marcados com o atributo
 #'   `tr_ml_origem` (`papel` = `"treino"`/`"teste"` e `divisao`, um id da
-#'   divisão). Ajustar no teste e avaliar no treino passam a ser recusados.
+#'   divisão, mais as impressões digitais das linhas do teste). Ajustar no
+#'   teste (inclusive numa tabela que junta treino e teste) e avaliar o treino
+#'   passam a ser recusados.
 #' @export
 tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
                         estratificar = TRUE, estrategia = "aleatoria",
@@ -84,8 +86,15 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
   id <- .tr_ml_divisao_id(dados, idx)
   base <- tibble::as_tibble(dados)
   attr(base, .tr_ml_origem_attr) <- NULL
-  list(treino = .tr_ml_marcar(base[idx, , drop = FALSE], "treino", id),
-       teste = .tr_ml_marcar(base[-idx, , drop = FALSE], "teste", id))
+  # Impressões por linha nas colunas da divisão: o multiconjunto do teste e,
+  # para cada impressão dele, quantas cópias idênticas foram para o treino.
+  colunas <- .tr_ml_colunas_canonicas(names(base))
+  f <- .tr_ml_impressoes(base, colunas)
+  mc <- .tr_ml_multiconjunto(f[-idx])
+  teste <- list(impressao = mc$impressao, n_teste = mc$n,
+                n_treino = .tr_ml_contar(.tr_ml_multiconjunto(f[idx]), mc$impressao))
+  list(treino = .tr_ml_marcar(base[idx, , drop = FALSE], "treino", id, colunas, teste),
+       teste = .tr_ml_marcar(base[-idx, , drop = FALSE], "teste", id, colunas, teste))
 }
 
 #' Avalia previsões de regressão ou classificação
