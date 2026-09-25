@@ -19,7 +19,10 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
   settings <- .tr_settings(cfg)
 
   registry <- tr_registry()
-  for (cl in cols) tr_use(cl, registry = registry)
+  # Pula o que uma coleção anterior já trouxe como dependência: com
+  # `Config/trama/requires` a ordem do trama.json deixou de importar, e listar
+  # `trama.data` depois de `trama.series` não pode virar "já carregada".
+  for (cl in cols) if (!cl %in% .tr_registry_packages(registry)) tr_use(cl, registry = registry)
 
   .tr_project_obj(root, registry, cols, settings)
 }

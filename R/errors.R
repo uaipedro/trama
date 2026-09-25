@@ -32,6 +32,8 @@ tr_errors <- function() {
     tr_error_bad_theme = "configuração do trama.json inválida: tema com campo desconhecido, valor fora do vocabulário ou nome reservado, tema_padrao inexistente, marca que não é booleana",
     tr_error_bad_type = "tr_type() mal declarado (store sem restore, etc.)",
     tr_error_cancelled = "unidade cancelada pelo coordenador (handoff, ou stop_mirai no pool)",
+    tr_error_collection_cycle = "coleções que se exigem em ciclo via Config/trama/requires",
+    tr_error_collection_requires = "coleção exige (Config/trama/requires) outra que não está instalada",
     tr_error_collection_not_dispatchable = "coleção sem pacote não pode ir para daemon",
     tr_error_cycle = "aresta fecharia um ciclo",
     tr_error_duplicate_collection = "coleção já carregada neste registro",

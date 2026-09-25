@@ -31,6 +31,7 @@ Suggests:
     datasets
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
+Config/trama/requires: trama.data
 Remotes:
     uaipedro/trama,
     trama.data=github::uaipedro/trama/collections/trama.data

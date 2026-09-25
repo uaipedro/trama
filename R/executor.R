@@ -132,7 +132,8 @@ tr_executor_pool <- function(n = 2L, registry = .tr_default_registry, setup = NU
 #' @export
 tr_registry_for <- function(packages) {
   reg <- tr_registry()
-  for (p in packages) tr_use(p, registry = reg)
+  # Mesma regra do `tr_project()`: dependências já trazidas não recarregam.
+  for (p in packages) if (!p %in% .tr_registry_packages(reg)) tr_use(p, registry = reg)
   reg
 }
 

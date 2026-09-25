@@ -45,6 +45,7 @@ Suggests:
     psych,
     withr
 Config/testthat/edition: 3
+Config/trama/requires: trama.data, trama.view
 Remotes:
     uaipedro/trama,
     trama.data=github::uaipedro/trama/collections/trama.data,

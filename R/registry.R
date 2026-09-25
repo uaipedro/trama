@@ -20,11 +20,41 @@ tr_registry <- function() {
 #' Aceita o objeto `tr_collection` direto, ou o nome de um pacote que exporte
 #' `trama_collection()`. Colisão de id é erro alto e cedo — mas agora é
 #' improvável por construção, já que id é qualificado por coleção.
+#'
+#' Pelo nome de pacote, as coleções de que ela depende (campo
+#' `Config/trama/requires` do DESCRIPTION, ver `.tr_collection_requires()`)
+#' entram antes, recursivamente, pulando as que o registro já tem. É isso que
+#' tira a ordem do `trama.json` do caminho: a validação de portas abaixo
+#' recusa tipo desconhecido, e sem isso um projeto que lista só
+#' `trama.series` quebrava por não ter pedido `trama.data` antes.
+#' `requires_of` existe para teste: injeta o grafo sem pacotes de verdade.
 #' @export
-tr_use <- function(collection, registry = .tr_default_registry) {
+tr_use <- function(collection, registry = .tr_default_registry,
+                   requires_of = .tr_collection_requires) {
+  .tr_use(collection, registry, requires_of, stack = character())
+}
+
+#' Corpo de `tr_use()` com a pilha de pacotes em carregamento, que é o que
+#' distingue ciclo (pacote na pilha) de dependência já satisfeita (pacote no
+#' registro). Sem a pilha um ciclo recursaria até estourar o C stack.
+#' @noRd
+.tr_use <- function(collection, registry, requires_of, stack) {
   pkg <- NULL
   if (is.character(collection)) {
     pkg <- collection
+    if (pkg %in% stack) {
+      rlang::abort(sprintf("Ciclo de dependência entre coleções: %s.",
+                           paste(c(stack[match(pkg, stack):length(stack)], pkg), collapse = " -> ")),
+                   class = "tr_error_collection_cycle")
+    }
+    for (dep in requires_of(pkg)) {
+      if (dep %in% .tr_registry_packages(registry)) next
+      if (!requireNamespace(dep, quietly = TRUE)) {
+        rlang::abort(sprintf("A coleção '%s' depende de '%s', que não está instalada.", pkg, dep),
+                     class = "tr_error_collection_requires")
+      }
+      .tr_use(dep, registry, requires_of, c(stack, pkg))
+    }
     fn <- get("trama_collection", envir = asNamespace(collection))
     collection <- fn()
   }
@@ -108,6 +138,23 @@ tr_use <- function(collection, registry = .tr_default_registry) {
   # em que o código dos nós pode ter mudado (hot reload).
   registry$prints <- new.env(parent = emptyenv())
   invisible(registry)
+}
+
+#' Coleções trama de que um pacote-coleção depende, pelo DESCRIPTION.
+#'
+#' Lido do campo `Config/trama/requires` (lista separada por vírgula) e não de
+#' um argumento de `tr_collection()`: o DESCRIPTION se lê sem executar
+#' `trama_collection()`, e é exatamente antes dela que as dependências têm de
+#' estar no registro — a coleção pode até construir tipos alheios na
+#' chamada. Também não se deriva do `Imports`: importar `trama.view` para
+#' usar um helper não diz que as PORTAS dependem dela, e o núcleo não sabe
+#' quais pacotes do `Imports` são coleções.
+#' @noRd
+.tr_collection_requires <- function(pkg) {
+  raw <- suppressWarnings(utils::packageDescription(pkg, fields = "Config/trama/requires"))
+  if (is.null(raw) || is.na(raw) || !nzchar(trimws(raw))) return(character())
+  deps <- trimws(strsplit(raw, ",", fixed = TRUE)[[1]])
+  deps[nzchar(deps)]
 }
 
 #' Nomes de PACOTE das coleções carregadas — a moeda do manifesto.

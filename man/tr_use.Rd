@@ -4,10 +4,22 @@
 \alias{tr_use}
 \title{Carrega uma coleção num registro.}
 \usage{
-tr_use(collection, registry = .tr_default_registry)
+tr_use(
+  collection,
+  registry = .tr_default_registry,
+  requires_of = .tr_collection_requires
+)
 }
 \description{
 Aceita o objeto \code{tr_collection} direto, ou o nome de um pacote que exporte
 \code{trama_collection()}. Colisão de id é erro alto e cedo — mas agora é
 improvável por construção, já que id é qualificado por coleção.
+
+Pelo nome de pacote, as coleções de que ela depende (campo
+\code{Config/trama/requires} do DESCRIPTION, ver \code{.tr_collection_requires()})
+entram antes, recursivamente, pulando as que o registro já tem. É isso que
+tira a ordem do \code{trama.json} do caminho: a validação de portas abaixo
+recusa tipo desconhecido, e sem isso um projeto que lista só
+\code{trama.series} quebrava por não ter pedido \code{trama.data} antes.
+\code{requires_of} existe para teste: injeta o grafo sem pacotes de verdade.
 }
