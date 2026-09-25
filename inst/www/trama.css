@@ -1129,3 +1129,36 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-tpl-item:focus-visible{outline:2px solid var(--tr-accent);outline-offset:1px}
 .tr-tpl-nome{font-weight:600}
 .tr-tpl-desc{color:var(--tr-dim);font-size:11.5px;line-height:1.4}
+
+/* --- popover "próximo bloco" (proximo.js) --- */
+/* As tagzinhas repetem o NodeMini do site: calha colorida da categoria com o
+   ícone à esquerda, rótulo à direita. A caixa é `fixed` porque as coordenadas
+   vêm da tela, não do canvas. */
+.tr-prox{position:fixed;z-index:30;width:340px;max-height:min(420px,calc(100vh - 16px));
+  display:flex;flex-direction:column;background:var(--tr-panel);color:var(--tr-fg);
+  border:1px solid var(--tr-line);border-radius:10px;box-shadow:0 10px 30px var(--tr-shadow-hi);
+  font-size:11.5px;overflow:hidden}
+.tr-prox-q{flex:none;border:0;border-bottom:1px solid var(--tr-line);background:transparent;
+  color:var(--tr-fg);font:inherit;font-size:12.5px;padding:9px 12px;outline:none}
+.tr-prox-q::placeholder{color:var(--tr-dim)}
+.tr-prox-body{overflow-y:auto;padding:4px 10px 10px}
+.tr-prox-sec h5{margin:8px 0 5px;font-size:10px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--tr-dim);display:flex;align-items:center;gap:5px}
+.tr-prox-sec h5 i{width:7px;height:7px;border-radius:2px;display:inline-block}
+.tr-prox-sug{padding-bottom:6px;border-bottom:1px dashed var(--tr-line)}
+.tr-prox-pills{display:flex;flex-wrap:wrap;gap:5px}
+.tr-prox-pill{--tr-cat:#64748b;--tr-cat-ink:#0b0e13;display:inline-flex;align-items:center;
+  gap:6px;max-width:100%;height:24px;padding:0 9px 0 0;cursor:pointer;
+  background:var(--tr-card);color:var(--tr-fg);border:1px solid var(--tr-card-line);
+  border-radius:6px;font:inherit;font-size:11.5px;font-weight:600;overflow:hidden;
+  box-shadow:0 1px 0 var(--tr-shadow)}
+.tr-prox-pill:hover,.tr-prox-on{border-color:var(--tr-accent);background:var(--tr-card-hi)}
+.tr-prox-on{box-shadow:0 0 0 2px color-mix(in srgb,var(--tr-accent) 35%,transparent)}
+.tr-prox-icon{flex:none;align-self:stretch;width:24px;display:grid;place-items:center;
+  background:var(--tr-cat);color:var(--tr-cat-ink);
+  background-image:linear-gradient(180deg,#ffffff40,#fff0 45%,#0000 60%,#00000026)}
+.tr-prox-icon svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.tr-prox-dot{width:6px;height:6px;border:1.5px solid currentColor;transform:rotate(45deg)}
+.tr-prox-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-prox-vazio{padding:14px 12px;color:var(--tr-dim)}
