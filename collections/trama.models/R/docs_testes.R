@@ -161,7 +161,7 @@
       pressupostos = list(
         P("Os **blocos são independentes** entre si; dentro do bloco, cada tratamento foi sorteado a uma parcela."),
         P("**Uma observação por bloco e tratamento**, com todos os tratamentos em todo bloco.",
-          se_falhar = "Resuma as repetições (a média de cada casela) antes; bloco incompleto sai inteiro."),
+          se_falhar = "Resuma as repetições (a média de cada casela) antes; bloco incompleto sai inteiro. Para blocos incompletos há o teste de Skillings–Mack (faltantes quaisquer) e o de Durbin (blocos incompletos balanceados), ainda sem bloco no trama."),
         P("A resposta é **contínua** ou ordinal; empates dentro do bloco são corrigidos na estatística."),
         P("O p-valor é o da aproximação qui-quadrado, boa com blocos e tratamentos não muito poucos (com 3 tratamentos, uns 10 blocos).")),
       referencias = list(

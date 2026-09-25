@@ -25,6 +25,8 @@
   do `nlme`, liberal com poucos grupos; alternativa, `models/lmer` com
   Satterthwaite. O `models/emmeans` no GLS fixa `mode = "satterthwaite"` (antes
   implícito no padrão do emmeans) e diz na nota que o quadro usa n − p.
+- `models/friedman`: o pressuposto de bloco completo aponta o Skillings–Mack e
+  o Durbin para blocos incompletos, ainda sem bloco no trama.
 - `models/gls` (versão 2): `correlacao = "car1"` (AR(1) em tempo contínuo,
   `nlme::corCAR1(form = ~ tempo | grupo)`) para ocasiões desigualmente
   espaçadas; com `"ar1"` e Tempo numérico desigual, a nota avisa que o AR(1)
