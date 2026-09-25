@@ -15,6 +15,7 @@ trama_collection <- function() {
   P <- trama::tr_param
   .tr_data_aplicar_ajuda_curta(trama::tr_collection(
     id = "data", version = "0.1.0", label = "Dados", js = "trama/index.js",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.data")),
     types = list(data_table_type()),
     categories = list(
       trama::tr_category("source",    "Fonte", role = "origem"),

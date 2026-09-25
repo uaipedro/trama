@@ -65,6 +65,7 @@ trama_collection <- function() {
 
   trama::tr_collection(
     id = "series", version = "0.1.0", label = "Séries temporais",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.series")),
     js = "trama/index.js",
     types = list(series_ts_type(), series_decomposition_type(), series_model_type(),
                  series_forecast_type(), series_regression_type(), series_test_type()),

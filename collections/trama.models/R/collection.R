@@ -17,6 +17,7 @@
 trama_collection <- function() {
   trama::tr_collection(
     id = "models", version = "0.1.0", label = "Modelos",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.models")),
     js = "trama/index.js", css = "trama/models.css",
     types = list(models_fit_type(), models_effects_type(), models_test_type(), models_emm_type()),
     adapters = .tr_models_adapters(),

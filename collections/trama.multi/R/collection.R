@@ -17,6 +17,7 @@
 trama_collection <- function() {
   trama::tr_collection(
     id = "multi", version = "0.1.0", label = "Multivariada",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.multi")),
     types = list(multi_pca_type(), multi_fa_type(), multi_lda_type(), multi_logit_type(),
                  multi_classifier_type()),
     adapters = .tr_multi_adapters(),
