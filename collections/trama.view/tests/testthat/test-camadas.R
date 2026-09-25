@@ -105,7 +105,7 @@ test_that("com log no Y, o ajuste é na escala desenhada", {
   q <- tr_fit_line(disperso_mtcars(log = "Y"))
   fit <- stats::lm(log10(mpg) ~ wt, mtcars)
   expect_equal(unname(attr(q, "tr_view_ajustes")$tudo$coeficientes), unname(stats::coef(fit)))
-  expect_match(camada_de(q, "GeomText")[[1]]$label, "^log\\(ŷ\\)")
+  expect_match(camada_de(q, "GeomText")[[1]]$label, "^log₁₀\\(ŷ\\)")
 })
 
 test_that("anotação: números validados, seta só com os dois pontos", {
@@ -133,4 +133,73 @@ test_that("pelo motor: disperso -> reta -> referência -> painel", {
 test_that("o texto das camadas segue o Texto (pt) do view/save", {
   q <- .tr_view_texto(tr_fit_line(disperso_mtcars()), 9)
   expect_equal(unique(camada_de(q, "GeomText")[[1]]$size), 9 * .8 / ggplot2::.pt)
+})
+
+test_that("com eixos em log, nenhum aviso de NaN (a borda é 0, não -Inf)", {
+  p <- tr_points(mtcars, "hp", "mpg", log = "ambos")
+  for (canto in .TR_VIEW_CANTOS) {
+    expect_no_warning(ggplot2::ggplot_build(tr_fit_line(p, posicao_equacao = canto)))
+  }
+  expect_no_warning(ggplot2::ggplot_build(tr_reference(p, valor = "15", ate = "20")))
+  expect_no_warning(ggplot2::ggplot_build(tr_reference(p, "vertical", valor = "100", ate = "150")))
+})
+
+test_that("o grupo pequeno é nomeado pelas colunas: cyl = 8, am = 1", {
+  d <- mtcars; d$cyl <- factor(d$cyl)
+  expect_error(tr_fit_line(tr_points(d, "wt", "mpg", cor = "cyl", painel = "am")),
+               "cyl = 8, am = 1", fixed = TRUE, class = "tr_view_error_too_few")
+})
+
+test_that("números da equação: sem zeros à direita, iguais aos da models", {
+  v <- c(2.78, 31.42, -3.786, 0.00001234, 100, 12345678, 0.5, 1.2e-7)
+  expect_equal(.tr_view_fmt(2.78), "2,78")
+  expect_equal(.tr_view_fmt(100), "100")
+  skip_if_not_installed("trama.models")
+  fm <- utils::getFromNamespace(".tr_models_fmt_eq", "trama.models")
+  expect_equal(.tr_view_fmt(v), fm(v))
+})
+
+# A caixa do texto em unidades do painel, medida num device do tamanho do
+# card (8 x 4,5 pol): largura pela fonte de verdade, altura pelas linhas.
+caixas_equacao <- function(q) {
+  ragg::agg_png(tempfile(fileext = ".png"), width = 8, height = 4.5, units = "in", res = 72)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  b <- ggplot2::ggplot_build(q)
+  gt <- ggplot2::ggplot_gtable(b)
+  i <- which(vapply(q$layers, function(l) inherits(l$geom, "GeomText"), logical(1)))
+  txt <- b$data[[i]]
+  paineis <- gt$layout[grepl("^panel", gt$layout$name), ]
+  # Tamanho do painel em polegadas: a grade inteira menos o que não é painel.
+  # O que não é painel tem tamanho absoluto; o painel fica com o resto.
+  abs_w <- sum(grid::convertWidth(gt$widths[-unique(paineis$l)], "in", valueOnly = TRUE))
+  abs_h <- sum(grid::convertHeight(gt$heights[-unique(paineis$t)], "in", valueOnly = TRUE))
+  pw <- (8 - abs_w) / length(unique(paineis$l)); ph <- (4.5 - abs_h) / length(unique(paineis$t))
+  lapply(seq_len(nrow(txt)), function(k) {
+    r <- txt[k, ]
+    pp <- b$layout$panel_params[[as.integer(r$PANEL)]]
+    gp <- grid::gpar(fontsize = r$size * ggplot2::.pt)
+    w <- grid::convertWidth(grid::grobWidth(grid::textGrob(r$label, gp = gp)), "in", valueOnly = TRUE)
+    h <- grid::convertHeight(grid::grobHeight(grid::textGrob("Ag", gp = gp)), "in", valueOnly = TRUE)
+    fx <- diff(pp$x.range) / pw; fy <- diff(pp$y.range) / ph
+    x0 <- r$x - r$hjust * w * fx
+    y1 <- r$y - (r$vjust - 1) * h * fy
+    list(PANEL = r$PANEL, x = c(x0, x0 + w * fx), y = c(y1 - h * fy, y1))
+  })
+}
+
+test_that("as equações não cobrem pontos: mtcars wt x mpg por am, todos os cantos", {
+  d <- mtcars; d$am <- factor(d$am)
+  p <- tr_points(d, "wt", "mpg", cor = "am")
+  for (canto in .TR_VIEW_CANTOS) {
+    q <- tr_fit_line(p, posicao_equacao = canto)
+    pts <- ggplot2::ggplot_build(q)$data[[1]]
+    for (cx in caixas_equacao(q)) {
+      dentro <- pts$PANEL == cx$PANEL & pts$x >= cx$x[[1]] & pts$x <= cx$x[[2]] &
+        pts$y >= cx$y[[1]] & pts$y <= cx$y[[2]]
+      expect_false(any(dentro), info = canto)
+    }
+  }
+  # Com painéis, o canto automático é escolhido por painel.
+  q <- tr_fit_line(tr_points(d, "wt", "mpg", painel = "am"))
+  expect_equal(length(caixas_equacao(q)), 2L)
 })

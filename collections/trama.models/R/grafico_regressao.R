@@ -1,17 +1,30 @@
 # O gráfico de regressão das teses: pontos, curva, equação e R², para as duas
 # curvas da coleção que têm UMA preditora (dose-resposta e não linear).
 
-#' Coeficiente com sinal para a equação: " + 0,45", " − 0,0021".
+#' Número da equação: 4 algarismos significativos, vírgula decimal, SEM os
+#' zeros à direita que o `.tr_models_fmt()` guarda nas tabelas ("2,78", não
+#' "2,780"). É a mesma regra do `.tr_view_fmt()` da `view/fit_line`, e há
+#' teste lá comparando as duas: o mesmo ajuste escreve a mesma equação.
+#' @noRd
+.tr_models_fmt_eq <- function(x) {
+  v <- .tr_models_fmt(x, 4L)
+  ifelse(grepl(",", v, fixed = TRUE), sub(",$", "", sub("0+$", "", v)), v)
+}
+
+#' Coeficiente com sinal para a equação: " + 0,45", " - 0,0021".
+#'
+#' Hífen, e não o sinal de menos U+2212: a fonte do tema o desenha como um
+#' traço minúsculo no PNG (medido na `view/fit_line`).
 #' @noRd
 .tr_models_termo_eq <- function(b, sufixo) {
-  sprintf(" %s %s%s", if (b < 0) "−" else "+", .tr_models_fmt(abs(b), 4L), sufixo)
+  sprintf(" %s %s%s", if (b < 0) "-" else "+", .tr_models_fmt_eq(abs(b)), sufixo)
 }
 
 #' A equação da curva, como as teses a escrevem.
 #' @noRd
 .tr_models_equacao <- function(m) {
   b <- stats::coef(m$ajuste)
-  f <- function(v) .tr_models_fmt(v, 4L)
+  f <- .tr_models_fmt_eq
   if (m$classe == "dose") {
     pot <- c("x", "x²", "x³")
     return(paste0("ŷ = ", f(b[[1]]), paste(vapply(seq_len(length(b) - 1L), function(j) .tr_models_termo_eq(b[[j + 1L]], pot[[j]]), ""), collapse = "")))
