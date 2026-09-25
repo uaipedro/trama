@@ -84,7 +84,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </div>
     <script type="application/json" id="ab-variants" set:html={JSON.stringify(variants)} />
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-    <header class="site-header">
+    <header class="site-bar"><div class="site-header">
       <a class="brand" href="/trama/" aria-label="trama — página inicial">
         <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
           <path class="mark-frame" d="M24 2.5 43 13.5v21L24 45.5 5 34.5v-21Z" />
@@ -112,7 +112,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           <span class="toggle-copy">Contexto</span>
         </button>
       </div>
-    </header>
+    </div></header>
     <main id="conteudo">
       <slot />
     </main>
