@@ -107,3 +107,77 @@ test_that("catálogo publica pressupostos e referências resolvidos no idioma, s
   expect_equal(js_sem$referencias, list())
   expect_match(as.character(tr_catalog_json(reg)), '"pressupostos":\\[\\]')
 })
+
+test_that("tr_ref valida papel contra o conjunto e rejeita vetor ou classe errada", {
+  ref <- function(...) tr_ref("Autor", 2000, "T", ...)
+  expect_equal(ref()$papel, "teoria")
+  expect_error(ref(papel = "inexistente"), class = "tr_error_bad_docs")
+  expect_error(ref(papel = c("teoria", "livro-texto")), class = "tr_error_bad_docs")
+  expect_error(ref(papel = 1), class = "tr_error_bad_docs")
+  expect_error(ref(papel = NA_character_), class = "tr_error_bad_docs")
+})
+
+test_that("tr_ref rejeita ano string e valida autores em qualquer papel", {
+  expect_error(tr_ref("Autor", "2000", "T"), class = "tr_error_bad_docs")
+  impl <- function(...) tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm", ...)
+  expect_error(impl(autores = ""), class = "tr_error_bad_docs")
+  expect_error(impl(autores = NA_character_), class = "tr_error_bad_docs")
+  expect_error(impl(autores = character()), class = "tr_error_bad_docs")
+  expect_error(impl(autores = 1), class = "tr_error_bad_docs")
+  expect_equal(impl(autores = "R Core")$autores, "R Core")
+})
+
+test_that("tr_ref rejeita doi com pontuação final e url sem host", {
+  ref <- function(...) tr_ref("Autor", 2000, "T", ...)
+  for (d in c("10.1000/x.", "10.1000/x,", "10.1000/x;")) {
+    expect_error(ref(doi = d), class = "tr_error_bad_docs")
+  }
+  expect_equal(ref(doi = "10.1000/x.y")$doi, "10.1000/x.y")
+  for (u in c("https://", "https://x", "https:///a.b", "http://a.b")) {
+    expect_error(ref(url = u), class = "tr_error_bad_docs")
+  }
+  expect_equal(ref(url = "https://a.org/p")$url, "https://a.org/p")
+})
+
+test_that("tr_text valida lang e usa indexação exata", {
+  x <- list(pt = "a", english = "b")
+  expect_error(tr_text(x, lang = c("pt", "en")), class = "tr_error_bad_text")
+  expect_error(tr_text(x, lang = NA_character_), class = "tr_error_bad_text")
+  expect_error(tr_text(x, lang = 1), class = "tr_error_bad_text")
+  expect_equal(tr_text(x, lang = "en"), "a")
+})
+
+test_that("texto i18n rejeita idiomas duplicados", {
+  expect_error(tr_text(list(pt = "a", pt = "b")), class = "tr_error_bad_text")
+})
+
+test_that("catálogo: pacote ausente não gera chave versao; singletons viram arrays JSON", {
+  reg <- tr_registry()
+  tr_use(tr_collection("u", types = list(tr_type("u/num")), nodes = list(
+    tr_node("u/a", fn = function() 1, description = "A.", outputs = list(out = "u/num"),
+            pressupostos = list(tr_pressuposto("P.", verificar = "u/a")),
+            referencias = list(
+              tr_ref("Um Autor", 2000, "T"),
+              tr_ref(papel = "implementacao", pacote = "pacoteQueNaoExiste", funcao = "f")))
+  )), registry = reg)
+  a <- tr_catalog(reg)$nodes[[1]]
+  expect_false("versao" %in% names(a$referencias[[2]]))
+  js <- as.character(tr_catalog_json(reg))
+  expect_match(js, '"verificar":\\["u/a"\\]')
+  expect_match(js, '"autores":\\["Um Autor"\\]')
+})
+
+test_that("catálogo lê packageVersion uma vez por pacote", {
+  reg <- tr_registry()
+  refs <- rep(list(tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm")), 3)
+  tr_use(tr_collection("v", types = list(tr_type("v/num")), nodes = list(
+    tr_node("v/a", fn = function() 1, description = "A.", outputs = list(out = "v/num"),
+            referencias = refs),
+    tr_node("v/b", fn = function() 1, description = "B.", outputs = list(out = "v/num"),
+            referencias = refs))), registry = reg)
+  n <- 0L
+  local_mocked_bindings(.tr_pkg_version = function(p) { n <<- n + 1L; "9.9" })
+  cat <- tr_catalog(reg)
+  expect_equal(n, 1L)
+  expect_equal(cat$nodes[[1]]$referencias[[1]]$versao, "9.9")
+})

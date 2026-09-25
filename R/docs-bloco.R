@@ -12,9 +12,14 @@
 #' @export
 tr_text <- function(x, lang = getOption("trama.lang", "pt")) {
   .tr_check_text(x)
+  if (!.tr_is_string(lang)) {
+    rlang::abort("'lang' tem que ser uma string única, como \"pt\" ou \"en\".",
+                 class = "tr_error_bad_text")
+  }
   if (is.character(x)) return(x)
-  if (!is.null(x[[lang]])) return(x[[lang]])
-  if (!is.null(x[["pt"]])) return(x[["pt"]])
+  # `[[` exato em nomes: sem casamento parcial ("en" não pega "english").
+  if (lang %in% names(x)) return(x[[match(lang, names(x))]])
+  if ("pt" %in% names(x)) return(x[[match("pt", names(x))]])
   x[[1L]]
 }
 
@@ -24,7 +29,8 @@ tr_text <- function(x, lang = getOption("trama.lang", "pt")) {
 #' @noRd
 .tr_check_text <- function(x, what = "texto") {
   ok <- .tr_is_string(x) ||
-    (is.list(x) && length(x) > 0L && !is.null(names(x)) && all(nzchar(names(x))) &&
+    (is.list(x) && length(x) > 0L && !is.null(names(x)) && all(nzchar(names(x))) && !anyNA(names(x)) &&
+       !anyDuplicated(names(x)) &&
        all(vapply(x, .tr_is_string, logical(1))))
   if (!ok) {
     rlang::abort(sprintf(
@@ -72,18 +78,26 @@ tr_pressuposto <- function(texto, verificar = NULL, se_falhar = NULL) {
 #' `https://doi.org/` convivendo, o front teria que adivinhar qual montar.
 #' @export
 tr_ref <- function(autores = NULL, ano = NULL, titulo = NULL, fonte = NULL, doi = NULL,
-                   url = NULL, papel = c("teoria", "livro-texto", "implementacao", "complementar"),
+                   url = NULL, papel = "teoria",
                    pacote = NULL, funcao = NULL, nota = NULL) {
-  papel <- match.arg(papel)
   bad <- function(msg) rlang::abort(paste0("tr_ref(): ", msg), class = "tr_error_bad_docs")
+  if (!.tr_is_string(papel) || !papel %in% .tr_papeis_ref) {
+    bad(sprintf("'papel' tem que ser um de: %s.", paste(.tr_papeis_ref, collapse = ", ")))
+  }
+  # Autores, quando dados, valem a mesma regra em todo papel: a de
+  # implementação dispensa, mas não aceita lixo.
+  autores_ok <- is.character(autores) && length(autores) > 0L && !anyNA(autores) &&
+    all(nzchar(trimws(autores)))
+  if (!is.null(autores) && !autores_ok) {
+    bad("'autores' tem que ser um vetor de strings não vazias.")
+  }
 
   if (papel == "implementacao") {
     if (!.tr_is_string(pacote) || !.tr_is_string(funcao)) {
       bad("referência de implementação exige 'pacote' e 'funcao' (strings únicas).")
     }
   } else {
-    if (!is.character(autores) || length(autores) == 0L || anyNA(autores) ||
-        !all(nzchar(trimws(autores)))) {
+    if (is.null(autores)) {
       bad(sprintf("referência de papel '%s' exige 'autores'.", papel))
     }
     if (is.null(titulo)) bad(sprintf("referência de papel '%s' exige 'titulo'.", papel))
@@ -99,11 +113,11 @@ tr_ref <- function(autores = NULL, ano = NULL, titulo = NULL, fonte = NULL, doi 
   if (!is.null(titulo)) .tr_check_text(titulo, "'titulo' da referência")
   if (!is.null(fonte)) .tr_check_text(fonte, "'fonte' da referência")
   if (!is.null(nota)) .tr_check_text(nota, "'nota' da referência")
-  if (!is.null(doi) && !(.tr_is_string(doi) && grepl("^10\\.[0-9]{4,9}/\\S+$", doi))) {
-    bad("'doi' tem que ser da forma '10.xxxx/...', sem prefixo de URL.")
+  if (!is.null(doi) && !(.tr_is_string(doi) && grepl("^10\\.[0-9]{4,9}/\\S*[^[:space:].,;]$", doi))) {
+    bad("'doi' tem que ser da forma '10.xxxx/...', sem prefixo de URL nem pontuação final.")
   }
-  if (!is.null(url) && !(.tr_is_string(url) && grepl("^https://\\S+$", url))) {
-    bad("'url' tem que começar com 'https://'.")
+  if (!is.null(url) && !(.tr_is_string(url) && grepl("^https://[^/[:space:]]+\\.[^/[:space:].]+(/\\S*)?$", url))) {
+    bad("'url' tem que ser 'https://' seguido de um host com ponto.")
   }
 
   structure(list(papel = papel, autores = autores, ano = ano, titulo = titulo, fonte = fonte,

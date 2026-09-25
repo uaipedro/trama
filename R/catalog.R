@@ -51,11 +51,9 @@
 #' é o pacote instalado agora. Pacote ausente não é erro — o bloco pode nem
 #' ser usado nesta sessão —, só fica sem versão.
 #' @noRd
-.tr_json_ref <- function(r) {
+.tr_json_ref <- function(r, versao_de = .tr_pkg_version) {
   txt <- function(x) if (!is.null(x)) tr_text(x)
-  versao <- if (!is.null(r$pacote)) {
-    tryCatch(as.character(utils::packageVersion(r$pacote)), error = function(e) NULL)
-  }
+  versao <- if (!is.null(r$pacote)) versao_de(r$pacote)
   .tr_json_drop_empty(list(
     papel = r$papel, autores = if (length(r$autores)) I(r$autores), ano = r$ano,
     titulo = txt(r$titulo), fonte = txt(r$fonte), doi = r$doi, url = r$url,
@@ -63,9 +61,30 @@
   ))
 }
 
+#' Versão instalada de um pacote, ou `NULL` se ele não estiver instalado.
+#' @noRd
+.tr_pkg_version <- function(pacote) {
+  tryCatch(as.character(utils::packageVersion(pacote)), error = function(e) NULL)
+}
+
+#' Memoiza `.tr_pkg_version()` dentro de UMA montagem de catálogo: vários
+#' blocos citam o mesmo pacote, e `packageVersion()` lê o DESCRIPTION do disco.
+#' A memória morre com a chamada — pacote atualizado aparece no catálogo seguinte.
+#' @noRd
+.tr_pkg_version_memo <- function() {
+  memo <- new.env(parent = emptyenv())
+  function(pacote) {
+    if (!exists(pacote, envir = memo, inherits = FALSE)) {
+      assign(pacote, list(.tr_pkg_version(pacote)), envir = memo)
+    }
+    get(pacote, envir = memo, inherits = FALSE)[[1L]]
+  }
+}
+
 #' Catálogo do registro em forma serializável: tipos, categorias, nós e adaptadores — o que o front usa pra desenhar a paleta e validar conexões sem round-trip.
 #' @export
 tr_catalog <- function(registry = .tr_default_registry) {
+  versao_de <- .tr_pkg_version_memo()
   port_json <- function(nm, p) {
     out <- list(name = nm, type = p$type, required = p$required)
     if (isTRUE(p$multiple)) out$multiple <- TRUE
@@ -95,7 +114,7 @@ tr_catalog <- function(registry = .tr_default_registry) {
       outputs = unname(Map(port_json, names(n$outputs), n$outputs)),
       params  = unname(Map(.tr_json_param, names(n$params), n$params)),
       pressupostos = unname(lapply(n$pressupostos %||% list(), .tr_json_pressuposto)),
-      referencias  = unname(lapply(n$referencias %||% list(), .tr_json_ref))
+      referencias  = unname(lapply(n$referencias %||% list(), .tr_json_ref, versao_de = versao_de))
     ))))
   )
   if (length(transitions)) out$transitions <- transitions

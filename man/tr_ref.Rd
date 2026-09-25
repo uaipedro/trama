@@ -11,7 +11,7 @@ tr_ref(
   fonte = NULL,
   doi = NULL,
   url = NULL,
-  papel = c("teoria", "livro-texto", "implementacao", "complementar"),
+  papel = "teoria",
   pacote = NULL,
   funcao = NULL,
   nota = NULL
