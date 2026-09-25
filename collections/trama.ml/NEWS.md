@@ -77,3 +77,10 @@ positiva) e `ml/cart` (poda), com os nós em versão 2.
   à mão de 5 linhas (AP 0,7556; área 0,7161 em forma fechada),
   `yardstick::average_precision` (1e-10) e `PRROC::pr.curve` `auc.integral`
   (1e-8), com empates.
+- `ml/roc` (versão 3): intervalo de confiança da AUC por DeLong, DeLong &
+  Clarke-Pearson (1988), parâmetro `confianca` (padrão 0,95), e corte de
+  Youden (1950) marcado no gráfico; os dados do gráfico ganham `limiar`,
+  `auc_ep`, `auc_inf`, `auc_sup`, `youden_limiar`, `youden_j` e `youden`. AUC
+  inalterada. Validação: `pROC` (AUC 1e-10; IC e variância de DeLong 1e-8 em
+  90/95/99%; sensibilidade, especificidade e J do `coords(best.method =
+  "youden")` 1e-12, com empates); AUC = 1 dá erro-padrão 0.

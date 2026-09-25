@@ -142,7 +142,11 @@
           se_falhar = "Com uma coluna de nome livre, preencha `positiva` com a classe cuja probabilidade ela contém."),
         P("A AUC resume **todos os cortes**, inclusive os que ninguém usaria, e não muda com o desequilíbrio das classes — por isso mesmo pode parecer boa quando a classe rara é mal prevista.",
           verificar = c("ml/confusion", "data/group_summarise"),
-          se_falhar = "Leia junto a matriz de confusão, a acurácia balanceada no `ml/evaluate` e, com classe rara, a `ml/pr_curve`.")),
+          se_falhar = "Leia junto a matriz de confusão, a acurácia balanceada no `ml/evaluate` e, com classe rara, a `ml/pr_curve`."),
+        P("O **intervalo de DeLong** é assintótico (normal): com poucos positivos ou negativos, ou AUC perto de 1, ele fica estreito demais e é truncado em [0, 1]; com AUC = 1 sai de largura zero.",
+          se_falhar = "Com poucas linhas, leia o intervalo como aproximado e repita a divisão com outras sementes."),
+        P("O **corte de Youden** é escolhido nas mesmas linhas em que é lido: a sensibilidade e a especificidade nele são otimistas, e J pesa igualmente falso positivo e falso negativo, o que raramente reflete os custos reais.",
+          se_falhar = "Escolha o corte num conjunto de validação (ou pelos custos do problema) e leia o desempenho dele no teste, com o `corte` do `ml/linear` ou a `ml/confusion`.")),
       referencias = list(
         R(autores = c("Hanley, J. A.", "McNeil, B. J."), ano = 1982,
           titulo = "The meaning and use of the area under a receiver operating characteristic (ROC) curve",
@@ -151,6 +155,14 @@
         R(autores = c("Saito, T.", "Rehmsmeier, M."), ano = 2015,
           titulo = "The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets",
           fonte = "PLOS ONE, 10(3), e0118432", doi = "10.1371/journal.pone.0118432", papel = "complementar"),
-        I("trama.ml", "tr_ml_roc", "Cálculo próprio: ordena pela probabilidade, agrupa empates num só degrau e integra a AUC pela regra do trapézio.")))
+        R(autores = c("DeLong, E. R.", "DeLong, D. M.", "Clarke-Pearson, D. L."), ano = 1988,
+          titulo = "Comparing the Areas under Two or More Correlated Receiver Operating Characteristic Curves: A Nonparametric Approach",
+          fonte = "Biometrics, 44(3), 837-845", doi = "10.2307/2531595"),
+        R(autores = "Youden, W. J.", ano = 1950, titulo = "Index for rating diagnostic tests",
+          fonte = "Cancer, 3(1), 32-35", doi = "10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3"),
+        R(autores = c("Robin, X.", "Turck, N.", "Hainard, A.", "Tiberti, N.", "Lisacek, F.", "Sanchez, J.-C.", "Müller, M."),
+          ano = 2011, titulo = "pROC: an open-source package for R and S+ to analyze and compare ROC curves",
+          fonte = "BMC Bioinformatics, 12, 77", doi = "10.1186/1471-2105-12-77", papel = "complementar"),
+        I("trama.ml", "tr_ml_roc", "Cálculo próprio: ordena pela probabilidade, agrupa empates num só degrau e integra a AUC pela regra do trapézio; IC de DeLong pelos componentes estruturais (intervalo normal truncado em [0, 1]); corte de Youden = máximo de sensibilidade + especificidade − 1 (empate: maior limiar). Conferido contra `pROC`.")))
   )
 }

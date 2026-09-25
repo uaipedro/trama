@@ -9,6 +9,7 @@ tr_ml_roc(
   alvo = "",
   probabilidade = "",
   positiva = "",
+  confianca = 0.95,
   aspecto = "16:9",
   tema = "padrão",
   titulo = "",
@@ -29,6 +30,9 @@ coluna de probabilidade (\verb{.prob_<classe>}, como sai de \code{\link[=tr_ml_p
 se o nome não indicar uma classe observada, o bloco recusa
 (\code{tr_ml_error_positive_required}) em vez de adivinhar.}
 
+\item{confianca}{Nível do intervalo de confiança da AUC (DeLong et al.
+1988), entre 0 e 1.}
+
 \item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
 ou \code{"2:1"}.}
 
@@ -43,8 +47,11 @@ ou \code{"2:1"}.}
 \item{legenda}{Posição \code{"direita"} ou \code{"abaixo"}. \code{"nenhuma"} a omite.}
 }
 \value{
-Objeto \code{ggplot} da curva ROC. A coluna \code{auc} dos dados do gráfico
-contém a área sob a curva.
+Objeto \code{ggplot} da curva ROC. Os dados do gráfico trazem, por corte,
+\code{limiar} (prevê positivo com P >= limiar), \code{fpr} e \code{tpr}, e repetidos a
+\code{auc}, seu erro-padrão (\code{auc_ep}) e intervalo (\code{auc_inf}, \code{auc_sup}) de
+DeLong, o corte de Youden (\code{youden_limiar}, \code{youden_j}) e a marca
+\code{youden} na linha escolhida.
 }
 \description{
 Curva ROC para classificação binária

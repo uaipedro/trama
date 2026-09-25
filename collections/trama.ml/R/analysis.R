@@ -197,13 +197,21 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @param rotulo_x Rótulo do eixo X. Vazio mantém o rótulo gerado.
 #' @param rotulo_y Rótulo do eixo Y. Vazio mantém o rótulo gerado.
 #' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
-#' @return Objeto `ggplot` da curva ROC. A coluna `auc` dos dados do gráfico
-#'   contém a área sob a curva.
+#' @param confianca Nível do intervalo de confiança da AUC (DeLong et al.
+#'   1988), entre 0 e 1.
+#' @return Objeto `ggplot` da curva ROC. Os dados do gráfico trazem, por corte,
+#'   `limiar` (prevê positivo com P >= limiar), `fpr` e `tpr`, e repetidos a
+#'   `auc`, seu erro-padrão (`auc_ep`) e intervalo (`auc_inf`, `auc_sup`) de
+#'   DeLong, o corte de Youden (`youden_limiar`, `youden_j`) e a marca
+#'   `youden` na linha escolhida.
 #' @export
 tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
-                      aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
+                      confianca = 0.95, aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
                       rotulo_x = "", rotulo_y = "", legenda = "direita") {
   .tr_ml_validate_pair(dados, alvo, probabilidade)
+  if (!is.numeric(confianca) || length(confianca) != 1L || !is.finite(confianca) ||
+      confianca <= 0 || confianca >= 1)
+    .tr_ml_abort("tr_ml_error_bad_param", "Param 'confianca' deve estar entre 0 e 1.")
   y <- as.character(dados[[alvo]]); prob <- dados[[probabilidade]]
   classes <- unique(y)
   if (anyNA(y) || length(classes) != 2L || !is.numeric(prob) || anyNA(prob) ||
@@ -218,13 +226,26 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
   grupos <- cumsum(c(TRUE, diff(prob[ord]) != 0))
   tp <- c(0, cumsum(as.numeric(rowsum(as.integer(positivo), grupos))))
   fp <- c(0, cumsum(as.numeric(rowsum(as.integer(!positivo), grupos))))
-  d <- tibble::tibble(fpr = fp / sum(!positivo), tpr = tp / sum(positivo))
+  d <- tibble::tibble(limiar = c(Inf, prob[ord][!duplicated(grupos)]),
+                      fpr = fp / sum(!positivo), tpr = tp / sum(positivo))
   n_curva <- nrow(d)
   d$auc <- sum(diff(d$fpr) * (d$tpr[-n_curva] + d$tpr[-1L]) / 2)
+  ic <- .tr_ml_auc_delong(prob[y == positiva], prob[y != positiva], confianca)
+  d$auc_ep <- ic[["ep"]]; d$auc_inf <- ic[["inf"]]; d$auc_sup <- ic[["sup"]]
+  # Corte de Youden (1950): maximiza J = sensibilidade + especificidade - 1;
+  # em empate, o de maior limiar (menos positivos previstos).
+  j <- d$tpr - d$fpr
+  i <- which.max(j)
+  d$youden_limiar <- d$limiar[[i]]; d$youden_j <- j[[i]]
+  d$youden <- seq_len(n_curva) == i
+  rotulo <- sprintf("AUC = %.3f (IC %s%%: %.3f a %.3f)\nYouden: J = %.3f com P \u{2265} %s",
+                    d$auc[[1]], format(100 * confianca), ic[["inf"]], ic[["sup"]],
+                    j[[i]], format(signif(d$limiar[[i]], 3)))
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$fpr, y = .data$tpr)) +
     ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "#94a3b8") +
     ggplot2::geom_step(linewidth = 1) + ggplot2::coord_equal() +
-    ggplot2::annotate("text", x = .62, y = .08, label = sprintf("AUC = %.3f", d$auc[[1]])) +
+    ggplot2::geom_point(data = d[i, ], size = 3, colour = "#dc2626") +
+    ggplot2::annotate("text", x = .6, y = .1, label = rotulo, size = 3.3) +
     ggplot2::labs(x = "Taxa de falsos positivos", y = "Taxa de verdadeiros positivos")
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
@@ -295,6 +316,19 @@ tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
   }
   tibble::tibble(limiar = prob[!duplicated(grupos)], recall = recall, precision = precision,
                  ap = ap, area = area / sum(positivo), prevalencia = mean(positivo))
+}
+
+# IC da AUC por DeLong, DeLong & Clarke-Pearson (1988): componentes
+# estruturais (placements) de cada positivo e de cada negativo, variância
+# S10/m + S01/n e intervalo normal truncado em [0, 1] (como `pROC`).
+.tr_ml_auc_delong <- function(pos, neg, confianca) {
+  m <- length(pos); n <- length(neg)
+  psi <- outer(pos, neg, function(a, b) (a > b) + 0.5 * (a == b))
+  v10 <- rowMeans(psi); v01 <- colMeans(psi); auc <- mean(psi)
+  if (m < 2L || n < 2L) return(c(ep = NA_real_, inf = NA_real_, sup = NA_real_))
+  ep <- sqrt(stats::var(v10) / m + stats::var(v01) / n)
+  z <- stats::qnorm(1 - (1 - confianca) / 2)
+  c(ep = ep, inf = max(0, auc - z * ep), sup = min(1, auc + z * ep))
 }
 
 # Classe positiva padrão: a que a coluna `.prob_<classe>` nomeia. Sem esse

@@ -35,6 +35,7 @@ Suggests:
     ranger,
     yardstick,
     PRROC,
+    pROC,
     e1071,
     xgboost (>= 3.0.0),
     testthat (>= 3.0.0),
