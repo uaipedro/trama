@@ -28,7 +28,7 @@
                     se_falhar = "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco.")
   desbalanceio <- P("Com **grupos desbalanceados**, a taxa de acerto geral engana: prever sempre o grupo maior já acerta a proporção dele. Leia a taxa de cada grupo (a sensibilidade de cada um).",
                     verificar = "data/group_summarise",
-                    se_falhar = "Compare pela AUC na `models/roc`; na discriminante, experimente `priors = \"iguais\"`. O trama ainda não tem acurácia balanceada nem curva precisão-revocação (lacuna registrada).")
+                    se_falhar = "Leia a acurácia balanceada, o kappa e o F1 por classe no `models/evaluate`, e, com um grupo raro de interesse, a curva precisão-revocação no `models/pr_curve`; na discriminante, experimente `priors = \"iguais\"`.")
   mardia70 <- R(autores = "Mardia, K. V.", ano = 1970,
                 titulo = "Measures of multivariate skewness and kurtosis with applications",
                 fonte = "Biometrika, 57(3), 519-530", doi = "10.1093/biomet/57.3.519")
