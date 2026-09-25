@@ -652,6 +652,15 @@ tr_flow(reg) |>
 número só; `view/line` quando a categoria do eixo tem ordem e o interesse é a
 evolução; `data/filter` para reduzir o número de barras;
 `data/convert` quando a altura veio como texto.", .TR_VIEW_AJUDA_APARENCIA))),
-    .tr_view_nos_comparacao(P, PAINEL, G))
+    .tr_view_nos_comparacao(P, PAINEL, G)),
+    # Glossário de params: a barra das médias tinha o nível no nome ("IC 95%");
+    # agora é "IC" + `confianca`. `when` só pega o formato velho, então as
+    # outras barras e um fluxo já migrado ficam intactos.
+    migrations = list(params = list(
+      "view/means" = list(barra = list(
+        to = "barra", when = function(v) is.character(v) && grepl("^IC [0-9]+([.,][0-9]+)?%$", v),
+        value = function(v) list(barra = "IC",
+                                 confianca = as.numeric(sub(",", ".", sub("^IC ([0-9.,]+)%$", "\\1", v))) / 100)))
+    ))
   ))
 }

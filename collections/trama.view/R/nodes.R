@@ -576,7 +576,9 @@ tr_bars <- function(dados, x = "", y = "", cor = "", posicao = "empilhar", orden
     colour = t$texto, size = 3.3)
 }
 
-.TR_VIEW_BARRAS_ERRO <- c("IC 95%", "erro padrão", "desvio padrão")
+# O nível do IC mora em `confianca`, não no nome da opção: com ele embutido
+# ("IC 95%") cada nível pedia uma opção nova, e as outras barras ignoram nível.
+.TR_VIEW_BARRAS_ERRO <- c("IC", "erro padrão", "desvio padrão")
 
 #' Médias com barras: um ponto por grupo, e a incerteza em volta dele.
 #'
@@ -588,14 +590,23 @@ tr_bars <- function(dados, x = "", y = "", cor = "", posicao = "empilhar", orden
 #'
 #' As três barras respondem perguntas diferentes, e a ajuda insiste nisso:
 #' desvio padrão é o espalhamento dos DADOS; erro padrão e IC, a incerteza da
-#' MÉDIA, que encolhe com n.
+#' MÉDIA, que encolhe com n. `confianca` só vale para `barra = "IC"`.
 #' @export
-tr_means <- function(dados, x = "", y = "", cor = "", barra = "IC 95%", painel = "",
+tr_means <- function(dados, x = "", y = "", cor = "", barra = "IC", confianca = 0.95, painel = "",
                      aspecto = "16:9", tema = "padrão", titulo = "", rotulo_x = "",
                      rotulo_y = "", legenda = "direita") {
   m <- .tr_view_aes(dados, x = x, y = y, cor = cor, painel = painel,
                     .param_obrigatorio = c("x", "y"))
   barra <- .tr_view_escolha(barra, "barra", .TR_VIEW_BARRAS_ERRO)
+  if (barra == "IC" && !(is.numeric(confianca) && length(confianca) == 1L && !is.na(confianca) &&
+                         confianca > 0 && confianca < 1)) {
+    rlang::abort("`confianca` precisa ser um número entre 0 e 1 (0,95 = 95%).",
+                 class = "tr_view_error_bad_option")
+  }
+  # O rótulo diz o nível de verdade ("IC 90%"), não só "IC".
+  nome_barra <- if (barra == "IC") {
+    paste0("IC ", format(round(100 * confianca, 1), decimal.mark = ",", trim = TRUE), "%")
+  } else barra
   .tr_view_numerica(dados, m$y, "y")
   vals <- dados[[m$y]]
   resumo <- .tr_view_agregar(dados, unique(c(m$x, m$cor, m$painel)), function(i) {
@@ -603,7 +614,7 @@ tr_means <- function(dados, x = "", y = "", cor = "", barra = "IC 95%", painel =
     n <- length(v)
     s <- if (n > 1L) stats::sd(v) else NA_real_
     meia <- switch(barra,
-      `IC 95%` = if (n > 1L) stats::qt(.975, n - 1L) * s / sqrt(n) else NA_real_,
+      IC = if (n > 1L) stats::qt(1 - (1 - confianca) / 2, n - 1L) * s / sqrt(n) else NA_real_,
       `erro padrão` = s / sqrt(n),
       `desvio padrão` = s)
     media <- if (n) mean(v) else NA_real_
@@ -614,7 +625,7 @@ tr_means <- function(dados, x = "", y = "", cor = "", barra = "IC 95%", painel =
     ggplot2::geom_errorbar(.tr_view_mapa(ymin = "inferior", ymax = "superior"),
                            width = .18, linewidth = .7, position = esquiva, na.rm = TRUE) +
     ggplot2::geom_point(size = 3.2, position = esquiva) +
-    ggplot2::labs(x = m$x, y = sprintf("%s (média ± %s)", m$y, barra), colour = m$cor)
+    ggplot2::labs(x = m$x, y = sprintf("%s (média ± %s)", m$y, nome_barra), colour = m$cor)
   p <- .tr_view_painel(p, resumo, m$painel %||% "")
   .tr_view_acabar(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }

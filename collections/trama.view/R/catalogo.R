@@ -637,7 +637,8 @@ mesma unidade aparece em mais de um grupo.", .TR_VIEW_AJUDA_APARENCIA))
         x = P("cols", "", label = "Grupo", example = "regiao"),
         y = P("cols", "", label = "Medida", example = "valor"),
         cor = P("cols", "", label = "Separar por", example = "produto"),
-        barra = trama::tr_param_enum("IC 95%", .TR_VIEW_BARRAS_ERRO, label = "Barra"),
+        barra = trama::tr_param_enum("IC", .TR_VIEW_BARRAS_ERRO, label = "Barra"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
         painel = PAINEL),
       help = paste0("## Descrição
 
@@ -654,8 +655,8 @@ agrupa por **Grupo**, **Separar por** e **Painéis por**.
 Merece um parágrafo próprio, porque é a fonte do erro mais comum ao ler este
 gráfico — confundir as três:
 
-- `IC 95%` (padrão) — intervalo de confiança da MÉDIA, pela t de Student com
-  n − 1 graus de liberdade, o mesmo do `t.test()`. Diz onde a média do grupo
+- `IC` (padrão) — intervalo de confiança da MÉDIA, no nível de **Confiança**,
+  pela t de Student com n − 1 graus de liberdade, o mesmo do `t.test()`. Diz onde a média do grupo
   provavelmente está. Encolhe quando o grupo cresce.
 - `erro padrão` — o desvio padrão dividido por √n: a incerteza da média numa
   unidade só. É cerca de metade do IC 95% com grupos grandes, e parece mais
@@ -681,7 +682,9 @@ vazio.
 - **Grupo** — categoria do eixo horizontal. Obrigatória.
 - **Medida** — coluna numérica cuja média se calcula. Obrigatória.
 - **Separar por** — coluna que dá pontos lado a lado, por cor, em cada grupo.
-- **Barra** — `IC 95%` (padrão), `erro padrão` ou `desvio padrão`.
+- **Barra** — `IC` (padrão), `erro padrão` ou `desvio padrão`.
+- **Confiança (IC)** — nível do IC, de 0,5 a 0,999 (padrão 0,95 = 95%). Só vale
+  com **Barra** `IC`; o rótulo do eixo mostra o nível usado.
 - **Painéis por** — coluna que divide o gráfico em painéis, na mesma escala.
 
 ## Valor
@@ -696,7 +699,7 @@ Um gráfico. O objeto guarda a tabela calculada em `p$data`, com `n`, `media`,
 tr_flow(reg) |>
   tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
   tr_add(\"medias\", \"view/means\", x = \"regiao\", y = \"valor\",
-         barra = \"IC 95%\", from = \"ler\")
+         barra = \"IC\", confianca = 0.9, from = \"ler\")
 ```
 
 ## Veja também

@@ -132,6 +132,30 @@ test_that("médias: o IC é o do t.test, e grupo de uma linha sai sem barra", {
   expect_error(tr_means(d, "grupo", "sub"), class = "tr_view_error_not_numeric")
   expect_error(tr_means(d, "", "v"), class = "tr_view_error_blank_param")
   expect_error(tr_means(d, "grupo", "v", barra = "IC 99%"), class = "tr_view_error_bad_option")
+  expect_error(tr_means(d, "grupo", "v", confianca = 95), class = "tr_view_error_bad_option")
+})
+
+test_that("médias: o IC segue a confiança, com a t certa, e o rótulo diz o nível", {
+  d <- df_grupos()
+  g <- tr_means(d, "grupo", "v", barra = "IC", confianca = 0.9)
+  ic <- stats::t.test(d$v[d$grupo == "b"], conf.level = 0.9)$conf.int
+  r <- g$data
+  expect_equal(r$inferior[r$grupo == "b"], ic[[1]])
+  expect_equal(r$superior[r$grupo == "b"], ic[[2]])
+  expect_match(g$labels$y, "IC 90%", fixed = TRUE)
+})
+
+test_that("médias: fluxo com a barra antiga abre com barra e confiança separadas, uma vez só", {
+  reg <- view_registry()
+  doc <- trama::tr_doc_parse('{"format":1,"nodes":{
+    "a":{"type":"view/means","params":{"barra":"IC 95%"}},
+    "b":{"type":"view/means","params":{"barra":"erro padrão"}}},"edges":[]}')
+  doc <- trama::tr_doc_migrate(doc, reg)
+  expect_equal(doc$nodes$a$params$barra, "IC")
+  expect_equal(doc$nodes$a$params$confianca, 0.95)
+  expect_equal(doc$nodes$b$params, list(barra = "erro padrão"))
+  attr(doc, "migrated") <- NULL
+  expect_identical(trama::tr_doc_migrate(doc, reg), doc)
 })
 
 test_that("a agregação preserva o tipo e a ordem dos níveis da chave", {
