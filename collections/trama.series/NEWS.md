@@ -1,4 +1,4 @@
-# trama.series (desenvolvimento)
+# trama.series 0.2.0
 
 ## Rigor metodológico (fase 3)
 
