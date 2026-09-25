@@ -944,6 +944,29 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-help-body pre{background:var(--tr-field);border:1px solid var(--tr-line);border-radius:4px;
   padding:8px;overflow-x:auto;font-size:11px}
 .tr-help-body code{font-size:11px}
+/* Pressupostos e Referências: blocos próprios, entre a descrição e o markdown. */
+.tr-help-desc{color:var(--tr-fg)}
+.tr-help-sec{margin:10px 0 12px;padding:8px 10px;background:var(--tr-field);
+  border:1px solid var(--tr-line);border-radius:6px}
+.tr-help-body .tr-help-sec h4{margin:0 0 6px;opacity:.85}
+.tr-help-body .tr-help-sec h5{margin:8px 0 3px;font-size:10.5px;font-weight:600;color:var(--tr-dim)}
+.tr-help-body .tr-help-press{list-style:none;padding:0;margin:0}
+.tr-help-press li{display:flex;gap:6px;margin-bottom:8px}
+.tr-help-press li:last-child{margin-bottom:0}
+.tr-help-press-ic{width:13px;height:13px;flex:none;margin-top:2px;stroke:var(--tr-ok);fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tr-help-verif{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px}
+.tr-help-falha{margin-top:3px;color:var(--tr-dim)}
+.tr-help-rot{font-weight:600;color:var(--tr-dim);font-size:11px}
+.tr-help-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;font:inherit;font-size:11px;
+  color:var(--tr-fg);background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:10px;cursor:pointer}
+.tr-help-chip:hover{border-color:var(--tr-accent);background:var(--tr-hover)}
+.tr-help-chip .tr-palette-icon{width:12px;height:12px}
+.tr-help-body .tr-help-refgrp ul{padding-left:0;list-style:none;margin:0}
+.tr-help-ref{margin-bottom:5px;overflow-wrap:anywhere}
+.tr-help-ref a{color:var(--tr-accent)}
+.tr-help-ref-fn{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tr-help-ref-ver,.tr-help-ref-nota{color:var(--tr-dim)}
 
 /* Painel de atalhos (H) */
 .tr-atalhos section{padding:8px 16px}

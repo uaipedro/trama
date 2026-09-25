@@ -954,9 +954,72 @@ function Palette({ catalog, filterType, dragFrom, onPick, modoNovo, onModoNovo }
 // Toma o lugar da paleta, na mesma coluna: é o `?funcao` do R dentro do canvas,
 // sem tirar ninguém de onde estava.
 
-function Help({ catalog, typeId, onClose }) {
+const PAPEIS_REF = [["teoria", "Teoria"], ["livro-texto", "Livro-texto"],
+                    ["implementacao", "Implementação"], ["complementar", "Complementar"]];
+
+// Referência em autor-data: `Autores (ano). Título. Fonte.` + DOI ou URL.
+// Implementação mostra `pacote::funcao()` e a versão do pacote.
+function Referencia({ r }) {
+  const partes = [];
+  if (r.papel === "implementacao" && r.pacote) {
+    partes.push(h("code", { key: "f", className: "tr-help-ref-fn" },
+      `${r.pacote}::${r.funcao ? r.funcao + "()" : ""}`));
+    if (r.versao) partes.push(h("span", { key: "v", className: "tr-help-ref-ver" }, ` versão ${r.versao}`));
+    if (r.autores?.length || r.titulo) partes.push(h("br", { key: "br" }));
+  }
+  const cab = [];
+  if (r.autores?.length) cab.push(r.autores.join("; "));
+  if (r.ano) cab.push(`(${r.ano}).`);
+  else if (cab.length) cab[cab.length - 1] += ".";
+  if (cab.length) partes.push(cab.join(" ") + " ");
+  if (r.titulo) partes.push(h("em", { key: "t" }, r.titulo.replace(/\.$/, "")), ". ");
+  if (r.fonte) partes.push(r.fonte.replace(/\.$/, "") + ". ");
+  const href = r.doi ? `https://doi.org/${r.doi}` : r.url;
+  if (href) partes.push(h("a", { key: "a", href, target: "_blank", rel: "noopener" },
+                          r.doi ? `doi:${r.doi}` : r.url));
+  if (r.nota) partes.push(h("div", { key: "n", className: "tr-help-ref-nota" }, r.nota));
+  return h("li", { className: "tr-help-ref" }, partes);
+}
+
+function Help({ catalog, typeId, onClose, onOpen }) {
   const spec = (catalog.nodes || []).find((n) => n.id === typeId);
   if (!spec) return null;
+  const nos = catalog.nodes || [];
+  const press = spec.pressupostos || [];
+  const refs = spec.referencias || [];
+  const chip = (id) => {
+    const alvo = nos.find((n) => n.id === id);
+    return h("button", { key: id, type: "button", className: "tr-help-chip", title: id,
+                         onClick: () => onOpen && onOpen(id) }, [
+      alvo?.icon && ICON_KINDS.has(alvo.icon.kind)
+        ? h(Icon, { key: "i", icon: alvo.icon, className: "tr-palette-icon" }) : null,
+      h("span", { key: "l" }, alvo?.label || id),
+    ]);
+  };
+  const secPress = press.length ? h("section", { key: "pr", className: "tr-help-sec" }, [
+    h("h4", { key: "t" }, "Pressupostos"),
+    h("ul", { key: "l", className: "tr-help-press" }, press.map((p, i) =>
+      h("li", { key: i }, [
+        h(Icon, { key: "ic", icon: { kind: "set", value: "circle-check" }, className: "tr-help-press-ic" }),
+        h("div", { key: "c" }, [
+          h("div", { key: "tx" }, mdInline(p.texto || "")),
+          p.verificar?.length ? h("div", { key: "v", className: "tr-help-verif" },
+            [h("span", { key: "r", className: "tr-help-rot" }, "Verificar:"), ...p.verificar.map(chip)]) : null,
+          p.se_falhar ? h("div", { key: "f", className: "tr-help-falha" },
+            [h("span", { key: "r", className: "tr-help-rot" }, "Se falhar: "), mdInline(p.se_falhar)]) : null,
+        ]),
+      ]))),
+  ]) : null;
+  const secRefs = refs.length ? h("section", { key: "rf", className: "tr-help-sec" }, [
+    h("h4", { key: "t" }, "Referências"),
+    ...PAPEIS_REF.map(([papel, rot]) => {
+      const grupo = refs.filter((r) => r.papel === papel);
+      return grupo.length ? h("div", { key: papel, className: "tr-help-refgrp" }, [
+        h("h5", { key: "t" }, rot),
+        h("ul", { key: "l" }, grupo.map((r, i) => h(Referencia, { key: i, r }))),
+      ]) : null;
+    }),
+  ]) : null;
   return h("aside", { className: "tr-help" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t" }, spec.label || spec.id),
@@ -964,8 +1027,12 @@ function Help({ catalog, typeId, onClose }) {
                     onClick: onClose }, "×"),
     ]),
     h("code", { key: "id", className: "tr-help-id" }, spec.id),
-    h("div", { key: "b", className: "tr-help-body" },
-      spec.help ? md(spec.help) : h("p", null, spec.description || "sem ajuda")),
+    h("div", { key: "b", className: "tr-help-body" }, [
+      spec.description ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
+      secPress, secRefs,
+      spec.help ? h("div", { key: "md" }, md(spec.help))
+        : (!spec.description && !secPress && !secRefs ? h("p", { key: "0" }, "sem ajuda") : null),
+    ]),
   ]);
 }
 
@@ -3501,7 +3568,7 @@ function App() {
     painelAtalhos
       ? h(AtalhosPanel, { key: "atalhos", onClose: () => setPainelAtalhos(false) })
       : helpFor
-      ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null) })
+      ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null), onOpen: setHelpFor })
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
             marca: temas.marca,
