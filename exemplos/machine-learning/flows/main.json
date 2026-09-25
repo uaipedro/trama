@@ -112,7 +112,7 @@
       "type_version": 1,
       "label": "Barras",
       "params": {
-        "x": "variavel",
+        "x": "termo",
         "y": "importancia",
         "ordenar": true,
         "deitar": true,
