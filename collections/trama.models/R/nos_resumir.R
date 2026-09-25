@@ -4,7 +4,10 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "models/test"; T <- "data/table"
   list(
-    trama::tr_node("models/anova_table", fn = tr_models_anova_table, label = "Quadro da ANOVA",
+    trama::tr_node("models/anova_table", 
+      pressupostos = .tr_models_doc("models/anova_table")$pressupostos,
+      referencias = .tr_models_doc("models/anova_table")$referencias,
+      fn = tr_models_anova_table, label = "Quadro da ANOVA",
       category = "modelo_resumir", icon = trama::tr_icon("sheet"),
       description = "O quadro da análise de variância, com SQ tipo I, II ou III e a régua do p-valor por termo.",
       inputs = list(modelo = Fm), outputs = list(out = EF),

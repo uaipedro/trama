@@ -233,7 +233,10 @@ dose 50/100/150 é tratamento com 2 graus de liberdade, e não uma reta. Para
 ajustar a dose como regressão, use o `models/lm`.
 "
   list(
-    trama::tr_node("models/anova_dic", fn = tr_models_anova_dic, label = "ANOVA · DIC",
+    trama::tr_node("models/anova_dic", 
+      pressupostos = .tr_models_doc("models/anova_dic")$pressupostos,
+      referencias = .tr_models_doc("models/anova_dic")$referencias,
+      fn = tr_models_anova_dic, label = "ANOVA · DIC",
       category = "modelo_anova", icon = trama::tr_icon("layout-grid"),
       description = "Análise de variância de um delineamento inteiramente casualizado.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -263,7 +266,10 @@ tr_flow(reg) |>
 `models/kruskal` como alternativa não paramétrica.
 ]---")),
 
-    trama::tr_node("models/anova_dbc", fn = tr_models_anova_dbc, label = "ANOVA · DBC",
+    trama::tr_node("models/anova_dbc", 
+      pressupostos = .tr_models_doc("models/anova_dbc")$pressupostos,
+      referencias = .tr_models_doc("models/anova_dbc")$referencias,
+      fn = tr_models_anova_dbc, label = "ANOVA · DBC",
       category = "modelo_anova", icon = trama::tr_icon("grid-3x3"),
       description = "Análise de variância de um delineamento em blocos casualizados.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -278,11 +284,6 @@ tratamentos, sorteados dentro dele. Modelo `resposta ~ bloco + tratamento`.
 O bloco tira do resíduo a variação entre áreas (fertilidade, declive, dia de
 colheita). O F do bloco não é o objetivo do experimento, mas diz se valeu a
 pena bloquear: bloco não significativo é experimento que poderia ter sido DIC.
-
-### O pressuposto próprio do DBC
-
-O modelo supõe que o efeito do tratamento é o MESMO em todo bloco
-(aditividade). Confira com o `models/tukey_additivity`.
 ]---", ajuda_fator, .tr_models_ajuda_faltantes()), r"---[
 - **Resposta** — coluna numérica.
 - **Tratamento** — coluna do tratamento.
@@ -301,7 +302,10 @@ tr_flow(reg) |>
 combinação de fatores.
 ]---")),
 
-    trama::tr_node("models/anova_dql", fn = tr_models_anova_dql, label = "ANOVA · DQL",
+    trama::tr_node("models/anova_dql", 
+      pressupostos = .tr_models_doc("models/anova_dql")$pressupostos,
+      referencias = .tr_models_doc("models/anova_dql")$referencias,
+      fn = tr_models_anova_dql, label = "ANOVA · DQL",
       category = "modelo_anova", icon = trama::tr_icon("columns-3"),
       description = "Análise de variância de um delineamento em quadrado latino.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -332,7 +336,10 @@ tr_flow(reg) |>
 `models/anova_dbc` para uma restrição só; `models/emmeans`; `models/anova_table`.
 ]---")),
 
-    trama::tr_node("models/anova_factorial", fn = tr_models_anova_factorial, label = "ANOVA · fatorial",
+    trama::tr_node("models/anova_factorial", 
+      pressupostos = .tr_models_doc("models/anova_factorial")$pressupostos,
+      referencias = .tr_models_doc("models/anova_factorial")$referencias,
+      fn = tr_models_anova_factorial, label = "ANOVA · fatorial",
       category = "modelo_anova", icon = trama::tr_icon("grid-2x2"),
       description = "Análise de variância de um fatorial com 2 ou 3 fatores, em DIC ou em blocos.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -369,7 +376,10 @@ desdobramento; `models/anova_split_plot` quando um fator está na parcela e o
 outro na subparcela.
 ]---")),
 
-    trama::tr_node("models/anova_split_plot", fn = tr_models_anova_split_plot, label = "ANOVA · parcela subdividida",
+    trama::tr_node("models/anova_split_plot", 
+      pressupostos = .tr_models_doc("models/anova_split_plot")$pressupostos,
+      referencias = .tr_models_doc("models/anova_split_plot")$referencias,
+      fn = tr_models_anova_split_plot, label = "ANOVA · parcela subdividida",
       category = "modelo_anova", icon = trama::tr_icon("square-split-horizontal"),
       description = "Análise de variância de parcelas subdivididas em blocos, com os erros (a) e (b).",
       inputs = list(dados = T), outputs = list(out = Fm),

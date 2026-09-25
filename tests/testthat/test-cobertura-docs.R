@@ -8,7 +8,9 @@
 # - comparações múltiplas e médias ajustadas são `leitura` de um ajuste, mas
 #   cada uma é um procedimento inferencial com pressupostos próprios;
 # - `series/forecast` é `leitura` do modelo, mas é a previsão (com intervalo);
-# - `multi/kmo_bartlett` está em `inspecao`, mas inclui o teste de Bartlett.
+# - `multi/kmo_bartlett` está em `inspecao`, mas inclui o teste de Bartlett;
+# - `models/anova_split_plot` tem `plot` no id (é "split plot", não gráfico);
+# - `models/anova_table` é `leitura`, mas faz os testes F de cada termo.
 #
 # Documentado = ≥1 pressuposto, ≥1 referência de papel `teoria` ou
 # `livro-texto` e ≥1 de papel `implementacao`.
@@ -19,7 +21,8 @@
 
 .cob_incluir <- c("models/duncan", "models/emmeans", "models/linear_hypothesis",
                   "models/pairwise", "models/waller_duncan", "series/forecast",
-                  "multi/kmo_bartlett")
+                  "multi/kmo_bartlett", "models/anova_split_plot",
+                  "models/anova_table")
 
 .cob_colecoes <- c("trama.data", "trama.view", "trama.models", "trama.sampling",
                    "trama.series", "trama.multi", "trama.ml")

@@ -12,10 +12,6 @@ ml/roc
 ml/svm
 ml/tune
 ml/xgboost
-models/anova_dbc
-models/anova_dic
-models/anova_dql
-models/anova_factorial
 models/compare
 models/duncan
 models/emmeans
