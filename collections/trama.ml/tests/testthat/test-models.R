@@ -371,3 +371,31 @@ test_that("poda do CART com n < 10 usa min(10, n) folds: deixa-um-fora exato", {
   }
   expect_equal(tr_ml_fit(mtcars, "mpg", "wt", modelo = "cart")$extras$poda$folds, 10L)
 })
+
+test_that("importância da floresta: permutação e impureza corrigida iguais ao ranger direto", {
+  skip_if_not_installed("ranger")
+  # Oráculo: chamada direta do ranger com os mesmos argumentos e semente.
+  set.seed(8)
+  d <- data.frame(y = rnorm(120), x1 = rnorm(120), x2 = sample(1:3, 120, TRUE),
+                  ruido = runif(120))
+  d$y <- d$y + 2 * d$x1
+  for (nome in c("impureza", "permutacao", "impureza_corrigida")) {
+    eng <- c(impureza = "impurity", permutacao = "permutation", impureza_corrigida = "impurity_corrected")[[nome]]
+    m <- tr_ml_forest(d, "y", "x1, x2, ruido", trees = 150, min_n = 5, max_depth = 3, importancia = nome, seed = 11)
+    ref <- ranger::ranger(y ~ x1 + x2 + ruido, d, num.trees = 150, mtry = 1, min.node.size = 5,
+                          max.depth = 3, importance = eng, seed = 11)
+    imp <- tr_ml_importance(m)
+    expect_equal(attr(imp, "medida"), nome)
+    expect_equal(imp$importancia[match(names(ref$variable.importance), imp$variavel)],
+                 unname(ref$variable.importance), tolerance = 1e-12, info = nome)
+    expect_equal(imp$variavel[[1]], "x1")
+  }
+  # Classificação (floresta de probabilidade) com permutação.
+  dc <- data.frame(y = factor(ifelse(d$x1 > 0, "a", "b")), d[c("x1", "x2", "ruido")])
+  m <- tr_ml_forest(dc, "y", "x1, x2, ruido", trees = 100, importancia = "permutacao", seed = 3)
+  ref <- ranger::ranger(y ~ x1 + x2 + ruido, dc, num.trees = 100, mtry = 1, min.node.size = 5,
+                        max.depth = 3, probability = TRUE, importance = "permutation", seed = 3)
+  expect_equal(tr_ml_importance(m)$importancia[match(names(ref$variable.importance), tr_ml_importance(m)$variavel)],
+               unname(ref$variable.importance), tolerance = 1e-12)
+  expect_error(tr_ml_forest(d, "y", importancia = "gini"), class = "tr_ml_error_bad_option")
+})

@@ -11,7 +11,8 @@ tr_ml_importance(modelo)
 }
 \value{
 Tibble \code{variavel}, \code{importancia}; a medida é a redução de impureza
-do engine (Gain no XGBoost).
+do engine (Gain no XGBoost) ou, na floresta, a escolhida em \code{importancia}
+no ajuste (atributo \code{medida}).
 }
 \description{
 Importância das variáveis nos modelos baseados em árvores

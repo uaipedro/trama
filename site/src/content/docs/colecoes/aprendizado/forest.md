@@ -17,7 +17,7 @@ Use para modelar relações não lineares e interações com um conjunto de árv
 
 ## Configuração
 
-`trees` define o número de árvores; `mtry` define preditores candidatos por divisão (0 usa piso da raiz quadrada do número de preditores); `min_n` é o tamanho mínimo do nó a dividir; `max_depth` limita profundidade. Também recebe `alvo`, `cols`, `tarefa` e `seed`.
+`trees` define o número de árvores; `mtry` define preditores candidatos por divisão (0 usa piso da raiz quadrada do número de preditores); `min_n` é o tamanho mínimo do nó a dividir; `max_depth` limita profundidade; `importancia` escolhe a medida lida no `ml/importance` — `impureza` (padrão), `permutacao` ou `impureza_corrigida`. Também recebe `alvo`, `cols`, `tarefa` e `seed`.
 
 ## Exemplo
 

@@ -28,19 +28,25 @@
 #'   que melhoram o ajuste relativo em pelo menos `cp`; zero cresce a árvore
 #'   máxima permitida por `max_depth` e `min_n`, depois podada.
 #' @param poda Poda do CART por custo-complexidade, escolhida pela validação
-#'   cruzada de 10 folds do `rpart` (Breiman et al. 1984): `"1ep"` fica com a
+#'   cruzada do `rpart` com min(10, n) folds (Breiman et al. 1984): `"1ep"` fica com a
 #'   menor árvore cujo erro de validação não passa do mínimo mais um
 #'   erro-padrão; `"minimo"`, com a de menor erro; `"nenhuma"` não poda.
 #' @param corte Na logística binária, a classe prevista é a segunda quando sua
 #'   probabilidade é maior ou igual a `corte` (entre 0 e 1, exclusivos).
 #'   Ignorado pelos demais modelos.
+#' @param importancia Medida de importância da floresta (`ranger`):
+#'   `"impureza"` (padrão, redução de Gini/variância, enviesada para
+#'   preditores com muitos valores; Strobl et al. 2007), `"permutacao"` (queda
+#'   de acerto fora da bolsa ao permutar o preditor; Breiman 2001) ou
+#'   `"impureza_corrigida"` (AIR, Nembrini, König & Wright 2018). Ignorado
+#'   pelos demais modelos.
 #' @return Objeto `tr_ml_fit`.
 #' @export
 tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
                       trees = 200L, mtry = 0L, cost = 1, gamma = 0.1,
                       kernel = "radial", nrounds = 100L, eta = 0.1,
-                      cp = 0, poda = "1ep", corte = 0.5) {
+                      cp = 0, poda = "1ep", corte = 0.5, importancia = "impureza") {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   seed <- .tr_ml_int(seed, "seed", 0L); max_depth <- .tr_ml_int(max_depth, "max_depth", 1L)
   min_n <- .tr_ml_int(min_n, "min_n", 1L); max_splits <- .tr_ml_int(max_splits, "max_splits", 1L)
@@ -51,6 +57,7 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
   corte <- .tr_ml_num(corte, "corte", 0, TRUE)
   if (corte >= 1) .tr_ml_abort("tr_ml_error_bad_param", "Param 'corte' deve estar entre 0 e 1, exclusivos.")
   cp <- .tr_ml_num(cp, "cp", 0); poda <- .tr_ml_enum(poda, c("1ep", "minimo", "nenhuma"), "poda")
+  importancia <- .tr_ml_enum(importancia, c("impureza", "permutacao", "impureza_corrigida"), "importancia")
   d <- .tr_ml_dados(dados, alvo, cols, tarefa)
   if (d$tarefa == "classificacao" && length(d$niveis) > 2L && modelo %in% c("linear", "figs")) {
     .tr_ml_abort("tr_ml_error_binary_only", "O modelo '%s' aceita classifica\u{E7}\u{E3}o com exatamente duas classes.", modelo)
@@ -91,7 +98,9 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
       extras$mtry <- mm
       ranger::ranger(f, treino, num.trees = trees, mtry = mm,
                      min.node.size = min_n, max.depth = max_depth,
-                     probability = d$tarefa == "classificacao", importance = "impurity", seed = seed)
+                     probability = d$tarefa == "classificacao", seed = seed,
+                     importance = c(impureza = "impurity", permutacao = "permutation",
+                                    impureza_corrigida = "impurity_corrected")[[importancia]])
     },
     svm = {
       .tr_ml_require("e1071", modelo)
@@ -122,7 +131,7 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
                             nrounds = nrounds, eta = eta, cp = cp,
-                            poda = poda, corte = corte)
+                            poda = poda, corte = corte, importancia = importancia)
   structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$alvo,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
                  n = d$n, seed = seed, extras = extras), class = "tr_ml_fit")
@@ -285,7 +294,8 @@ tr_ml_rules <- function(modelo) {
 #' Importância das variáveis nos modelos baseados em árvores
 #' @param modelo Objeto criado por [tr_ml_fit()].
 #' @return Tibble `variavel`, `importancia`; a medida é a redução de impureza
-#'   do engine (Gain no XGBoost).
+#'   do engine (Gain no XGBoost) ou, na floresta, a escolhida em `importancia`
+#'   no ajuste (atributo `medida`).
 #' @export
 tr_ml_importance <- function(modelo) {
   if (!inherits(modelo, "tr_ml_fit")) .tr_ml_abort("tr_ml_error_not_fit", "Param 'modelo' n\u{E3}o \u{E9} um ajuste de machine learning.")
@@ -299,5 +309,7 @@ tr_ml_importance <- function(modelo) {
   nomes <- names(imp) %||% character()
   mapa <- match(nomes, modelo$internos)
   nomes[!is.na(mapa)] <- modelo$preditores[mapa[!is.na(mapa)]]
-  tibble::tibble(variavel = nomes, importancia = as.numeric(imp))[order(-as.numeric(imp)), , drop = FALSE]
+  out <- tibble::tibble(variavel = nomes, importancia = as.numeric(imp))[order(-as.numeric(imp)), , drop = FALSE]
+  attr(out, "medida") <- if (modelo$modelo == "forest") modelo$extras$parametros$importancia %||% "impureza" else "impureza"
+  out
 }

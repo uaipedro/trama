@@ -84,3 +84,10 @@ positiva) e `ml/cart` (poda), com os nós em versão 2.
   inalterada. Validação: `pROC` (AUC 1e-10; IC e variância de DeLong 1e-8 em
   90/95/99%; sensibilidade, especificidade e J do `coords(best.method =
   "youden")` 1e-12, com empates); AUC = 1 dá erro-padrão 0.
+- `ml/forest`: parâmetro `importancia` = `impureza` (padrão, resultado
+  anterior, versão mantida), `permutacao` (Breiman 2001) ou
+  `impureza_corrigida` (AIR; Nembrini, König & Wright 2018), lida pelo
+  `ml/importance` (atributo `medida`). Motivo: a impureza favorece preditores
+  com muitos valores (Strobl et al. 2007). Validação: chamada direta do
+  `ranger` com os mesmos argumentos e semente, igual a 1e-12 nas três
+  medidas (regressão) e na permutação da floresta de probabilidade.

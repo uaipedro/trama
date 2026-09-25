@@ -23,7 +23,8 @@ tr_ml_fit(
   eta = 0.1,
   cp = 0,
   poda = "1ep",
-  corte = 0.5
+  corte = 0.5,
+  importancia = "impureza"
 )
 }
 \arguments{
@@ -66,13 +67,20 @@ que melhoram o ajuste relativo em pelo menos \code{cp}; zero cresce a árvore
 máxima permitida por \code{max_depth} e \code{min_n}, depois podada.}
 
 \item{poda}{Poda do CART por custo-complexidade, escolhida pela validação
-cruzada de 10 folds do \code{rpart} (Breiman et al. 1984): \code{"1ep"} fica com a
+cruzada do \code{rpart} com min(10, n) folds (Breiman et al. 1984): \code{"1ep"} fica com a
 menor árvore cujo erro de validação não passa do mínimo mais um
 erro-padrão; \code{"minimo"}, com a de menor erro; \code{"nenhuma"} não poda.}
 
 \item{corte}{Na logística binária, a classe prevista é a segunda quando sua
 probabilidade é maior ou igual a \code{corte} (entre 0 e 1, exclusivos).
 Ignorado pelos demais modelos.}
+
+\item{importancia}{Medida de importância da floresta (\code{ranger}):
+\code{"impureza"} (padrão, redução de Gini/variância, enviesada para
+preditores com muitos valores; Strobl et al. 2007), \code{"permutacao"} (queda
+de acerto fora da bolsa ao permutar o preditor; Breiman 2001) ou
+\code{"impureza_corrigida"} (AIR, Nembrini, König & Wright 2018). Ignorado
+pelos demais modelos.}
 }
 \value{
 Objeto \code{tr_ml_fit}.

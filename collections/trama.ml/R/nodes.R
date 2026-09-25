@@ -25,9 +25,11 @@ tr_ml_figs <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @return Um modelo `tr_ml_fit`.
 #' @export
 tr_ml_forest <- function(dados, alvo = "", cols = "", tarefa = "auto",
-                         trees = 200L, mtry = 0L, min_n = 5L, max_depth = 3L, seed = 42L) {
+                         trees = 200L, mtry = 0L, min_n = 5L, max_depth = 3L,
+                         importancia = "impureza", seed = 42L) {
   tr_ml_fit(dados, alvo, cols, "forest", tarefa, seed = seed,
-            trees = trees, mtry = mtry, min_n = min_n, max_depth = max_depth)
+            trees = trees, mtry = mtry, min_n = min_n, max_depth = max_depth,
+            importancia = importancia)
 }
 
 #' Máquina de vetores de suporte com e1071.
@@ -99,8 +101,9 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
       desc = "Combina \u{E1}rvores aleatorizadas para regress\u{E3}o e classifica\u{E7}\u{E3}o.",
       details = "Usa `ranger`. \u{C1}rvores treinadas com bootstrap e subconjuntos de preditores s\u{E3}o agregadas. Import\u{E2}ncia ajuda a resumir a floresta, mas n\u{E3}o equivale a uma regra individual nem indica causalidade.",
       params = list(trees = trama::tr_param_int(200L, min = 1L, label = "\u{C1}rvores"),
-        mtry = trama::tr_param_int(0L, min = 0L, label = "Vari\u{E1}veis por divis\u{E3}o (0 = autom\u{E1}tico)"), min_n = min_n, max_depth = depth),
-      extra = "`trees`: n\u{FA}mero de \u{E1}rvores. `mtry`: preditores candidatos por divis\u{E3}o; zero usa a raiz quadrada do n\u{FA}mero de preditores, arredondada para baixo. `min_n`: tamanho m\u{ED}nimo do n\u{F3} a dividir conforme ranger, n\u{E3}o tamanho m\u{ED}nimo das folhas. `max_depth`: profundidade m\u{E1}xima de cada \u{E1}rvore."),
+        mtry = trama::tr_param_int(0L, min = 0L, label = "Vari\u{E1}veis por divis\u{E3}o (0 = autom\u{E1}tico)"), min_n = min_n, max_depth = depth,
+        importancia = trama::tr_param_enum("impureza", c("impureza", "permutacao", "impureza_corrigida"), label = "Import\u{E2}ncia")),
+      extra = "`importancia`: medida lida no `ml/importance` \u{2014} impureza (padr\u{E3}o, enviesada para preditores cont\u{ED}nuos ou com muitos valores), permutacao (queda de acerto fora da bolsa ao embaralhar o preditor) ou impureza_corrigida (AIR de Nembrini et al. 2018, sem esse vi\u{E9}s). `trees`: n\u{FA}mero de \u{E1}rvores. `mtry`: preditores candidatos por divis\u{E3}o; zero usa a raiz quadrada do n\u{FA}mero de preditores, arredondada para baixo. `min_n`: tamanho m\u{ED}nimo do n\u{F3} a dividir conforme ranger, n\u{E3}o tamanho m\u{ED}nimo das folhas. `max_depth`: profundidade m\u{E1}xima de cada \u{E1}rvore."),
     svm = list(fn = tr_ml_svm, icon = "move-diagonal", label = "SVM \u{B7} vetores de suporte", category = "ml_margem",
       desc = "Ajusta uma margem linear ou n\u{E3}o linear, com escala aprendida no treino.",
       details = "Usa `e1071`/LIBSVM. A padroniza\u{E7}\u{E3}o \u{E9} estimada somente no treino e reaplicada na previs\u{E3}o. Kernels n\u{E3}o lineares tornam a regra menos transparente.",

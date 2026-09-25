@@ -10,7 +10,7 @@
   imp_arvore <- function(medida) P(sprintf(
     "A **importância** (no `ml/importance`) é %s, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.", medida),
     verificar = "data/summary",
-    se_falhar = "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama.")
+    se_falhar = "Leia a importância como resumo do modelo, não como ranking de causas. Na `ml/forest`, `importancia = \"impureza_corrigida\"` ou `\"permutacao\"` tiram o viés para preditores com muitos valores.")
   breiman01 <- R(autores = "Breiman, L.", ano = 2001, titulo = "Random Forests",
                  fonte = "Machine Learning, 45(1), 5-32", doi = "10.1023/A:1010933404324")
   cart84 <- R(autores = c("Breiman, L.", "Friedman, J. H.", "Olshen, R. A.", "Stone, C. J."), ano = 1984,
@@ -42,7 +42,7 @@
           se_falhar = "Refaça com outra semente e compare as regras; para previsão estável, `ml/forest`."),
         imp_arvore("a redução de impureza somada nos cortes (inclusive substitutos) de cada preditor"))),
       referencias = list(cart84, L$islr, L$esl, strobl,
-        I("rpart", "rpart", "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp, xval = 10)`; depois `prune(cp)` com o CP da linha do `cptable` escolhida pela regra 1-EP (ou do mínimo de `xerror`)."))),
+        I("rpart", "rpart", "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp, xval = min(10, n))`; depois `prune(cp)` com o CP da linha do `cptable` escolhida pela regra 1-EP (ou do mínimo de `xerror`)."))),
 
     "ml/figs" = list(
       pressupostos = c(base, list(num,
@@ -66,14 +66,19 @@
         P("As árvores são **muitas o bastante** para a média estabilizar; o `mtry` (preditores sorteados por corte) e o `min_n` regulam a correlação entre elas e o sobreajuste.",
           verificar = c("ml/tune", "ml/evaluate"),
           se_falhar = "Escolha `mtry`, `min_n` e `max_depth` no `ml/tune`; mais árvores só custam tempo."),
-        imp_arvore("a redução de impureza (Gini na classificação, variância na regressão) somada nas árvores"),
+        P("A **importância** (no `ml/importance`) segue `importancia`: `impureza` (padrão) soma a redução de Gini/variância e favorece preditores contínuos ou com muitos valores distintos (Strobl et al. 2007); `permutacao` mede a queda de acerto fora da bolsa ao embaralhar o preditor (Breiman 2001) e `impureza_corrigida` (AIR) subtrai a importância de uma cópia permutada, sem esse viés (Nembrini et al. 2018). Todas descrevem o ajuste, não o efeito, e preditores correlacionados repartem a importância entre si; as duas últimas podem dar valores negativos (preditor sem informação).",
+          verificar = "data/summary",
+          se_falhar = "Com preditores de tipos ou números de valores diferentes, use `impureza_corrigida` ou `permutacao`; leia o ranking como resumo, não como causa."),
         C$semente)),
       referencias = list(breiman01, L$islr, L$esl, strobl,
+        R(autores = c("Nembrini, S.", "König, I. R.", "Wright, M. N."), ano = 2018,
+          titulo = "The revival of the Gini importance?",
+          fonte = "Bioinformatics, 34(21), 3711-3718", doi = "10.1093/bioinformatics/bty373"),
         R(autores = c("Wright, M. N.", "Ziegler, A."), ano = 2017,
           titulo = "ranger: A Fast Implementation of Random Forests for High Dimensional Data in C++ and R",
           fonte = "Journal of Statistical Software, 77(1), 1-17", doi = "10.18637/jss.v077.i01",
           papel = "complementar"),
-        I("ranger", "ranger", "`num.trees = trees`, `mtry` (0 = ⌊√p⌋), `min.node.size = min_n`, `max.depth`, `importance = \"impurity\"`; na classificação, floresta de probabilidade (`probability = TRUE`)."))),
+        I("ranger", "ranger", "`num.trees = trees`, `mtry` (0 = ⌊√p⌋), `min.node.size = min_n`, `max.depth`, `importance` = `\"impurity\"`, `\"permutation\"` ou `\"impurity_corrected\"` conforme `importancia`, `seed` do bloco; na classificação, floresta de probabilidade (`probability = TRUE`)."))),
 
     "ml/svm" = list(
       pressupostos = c(base, list(num,
