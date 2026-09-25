@@ -4,7 +4,7 @@ title: CART · árvore de decisão
 description: Ajusta uma árvore de decisão para regressão ou classificação; cada caminho até uma folha corresponde a uma regra.
 collection: aprendizado
 node: ml/cart
-related: ["ml/split", "ml/predict", "ml/rules", "ml/tree_plot", "ml/importance"]
+related: ["ml/split", "models/predict", "ml/rules", "ml/tree_plot", "models/importance"]
 ---
 
 ## O que o bloco faz
@@ -29,4 +29,4 @@ trama.ml::tr_ml_rules(m)
 
 ## Como interpretar
 
-Cada linha de regras representa uma folha e seu valor previsto. `ml/tree_plot` mostra a estrutura e `ml/importance` resume importância do motor.
+Cada linha de regras representa uma folha e seu valor previsto. `ml/tree_plot` mostra a estrutura e `models/importance` resume importância do motor.

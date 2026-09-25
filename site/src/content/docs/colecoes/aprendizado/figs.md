@@ -4,7 +4,7 @@ title: FIGS · soma de árvores
 description: Ajusta uma soma de árvores pequenas sob um orçamento global de divisões para regressão ou classificação binária.
 collection: aprendizado
 node: ml/figs
-related: ["ml/split", "ml/predict", "ml/rules", "ml/tree_plot"]
+related: ["ml/split", "models/predict", "ml/rules", "ml/tree_plot"]
 ---
 
 ## O que o bloco faz

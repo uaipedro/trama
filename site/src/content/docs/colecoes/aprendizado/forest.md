@@ -4,7 +4,7 @@ title: Random forest
 description: Combina árvores aleatorizadas e agrega suas previsões para regressão ou classificação.
 collection: aprendizado
 node: ml/forest
-related: ["ml/split", "ml/predict", "ml/evaluate", "ml/importance"]
+related: ["ml/split", "models/predict", "models/evaluate", "models/importance"]
 ---
 
 ## O que o bloco faz
@@ -24,7 +24,7 @@ Use para modelar relações não lineares e interações com um conjunto de árv
 ```r
 d <- trama.ml::tr_ml_example("mtcars")
 m <- trama.ml::tr_ml_forest(d, resposta = "mpg", preditores = "wt, hp, disp", trees = 100)
-trama.ml::tr_ml_predict(m, d[1:3, ])
+trama.models::tr_models_predict(m, d[1:3, ])
 ```
 
 ## Como interpretar

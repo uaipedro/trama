@@ -4,7 +4,7 @@ title: SVM · vetores de suporte
 description: Ajusta uma máquina de vetores de suporte para regressão ou classificação, com kernel configurável.
 collection: aprendizado
 node: ml/svm
-related: ["ml/split", "ml/predict", "ml/evaluate", "ml/roc"]
+related: ["ml/split", "models/predict", "models/evaluate", "models/roc"]
 ---
 
 ## O que o bloco faz
@@ -24,9 +24,9 @@ Use para ajustar uma fronteira linear ou não linear. A escala é estimada no tr
 ```r
 d <- trama.ml::tr_ml_example("iris_binaria")
 m <- trama.ml::tr_ml_svm(d, resposta = "Species", preditores = "Petal.Length, Petal.Width", kernel = "radial")
-trama.ml::tr_ml_predict(m, d[1:3, ])
+trama.models::tr_models_predict(m, d[1:3, ])
 ```
 
 ## Como interpretar
 
-Prever acrescenta a classe `.pred` e probabilidades `.prob_<classe>` quando disponíveis. Kernel não linear descreve fronteira menos diretamente que limiares de árvore.
+`models/predict` acrescenta a classe `previsto` e probabilidades `prob_<classe>` quando disponíveis. Kernel não linear descreve fronteira menos diretamente que limiares de árvore.

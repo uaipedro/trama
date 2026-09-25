@@ -4,7 +4,7 @@ title: Ajustar hiperparâmetros
 description: Avalia configurações por validação cruzada nos dados recebidos e reajusta a melhor configuração em todas as linhas.
 collection: aprendizado
 node: ml/tune
-related: ["ml/split", "ml/predict", "ml/evaluate", "ml/tuning_plot"]
+related: ["ml/split", "models/predict", "models/evaluate", "ml/tuning_plot"]
 ---
 
 ## O que o bloco faz

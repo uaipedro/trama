@@ -4,7 +4,7 @@ title: Ler regras das árvores
 description: Expõe os caminhos e valores das folhas de um modelo CART ou as folhas/contribuições das árvores FIGS.
 collection: aprendizado
 node: ml/rules
-related: ["ml/cart", "ml/figs", "ml/tree_plot", "ml/importance"]
+related: ["ml/cart", "ml/figs", "ml/tree_plot", "models/importance"]
 ---
 
 ## O que o bloco faz

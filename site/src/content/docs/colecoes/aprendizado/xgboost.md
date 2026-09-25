@@ -4,7 +4,7 @@ title: XGBoost
 description: Ajusta árvores sequencialmente, cada rodada acrescentando correções ao conjunto para regressão ou classificação.
 collection: aprendizado
 node: ml/xgboost
-related: ["ml/split", "ml/predict", "ml/evaluate", "ml/importance", "ml/tune"]
+related: ["ml/split", "models/predict", "models/evaluate", "models/importance", "ml/tune"]
 ---
 
 ## O que o bloco faz
@@ -24,7 +24,7 @@ Use para modelos de árvores impulsionadas e compare o resultado no mesmo conjun
 ```r
 d <- trama.ml::tr_ml_example("mtcars")
 m <- trama.ml::tr_ml_xgboost(d, resposta = "mpg", preditores = "wt, hp", nrounds = 50)
-trama.ml::tr_ml_predict(m, d[1:3, ])
+trama.models::tr_models_predict(m, d[1:3, ])
 ```
 
 ## Como interpretar

@@ -4,7 +4,7 @@ title: Visualizar tuning
 description: Plota a métrica média por tentativa com o melhor valor acumulado ou relaciona um hiperparâmetro à métrica.
 collection: aprendizado
 node: ml/tuning_plot
-related: ["ml/tune", "ml/evaluate"]
+related: ["ml/tune", "models/evaluate"]
 ---
 
 ## O que o bloco faz

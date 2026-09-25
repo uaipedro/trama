@@ -4,7 +4,7 @@ title: Separar treino e teste
 description: Divide as linhas em duas tabelas reprodutivelmente e pode preservar a proporção de cada classe.
 collection: aprendizado
 node: ml/split
-related: ["ml/cart", "ml/predict"]
+related: ["ml/cart", "models/predict"]
 ---
 
 ## O que o bloco faz
