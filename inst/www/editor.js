@@ -946,7 +946,7 @@ function exportText(texto, nomeArquivo, tipo = "text/plain;charset=utf-8") {
 // errado custa reabrir a imagem, aqui custa o nome digitado e a pasta
 // navegada. Sai pelo × ou pelo Esc, que são gestos deliberados.
 function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onImport, onClose,
-                         arquivoInicial }) {
+                         arquivoInicial, onColarTemplate }) {
   const [nome, setNome] = useState("");
   const [arquivo, setArquivo] = useState(null); // { nomeArquivo, conteudo } | null
   const [arrastando, setArrastando] = useState(false);
@@ -986,8 +986,15 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
     };
     leitor.readAsText(file);
   };
-  const importar = () => { if (arquivo && nome.trim()) onImport(l.path, nome.trim(), arquivo.conteudo); };
-  const podeImportar = !!l && !!arquivo && !!nome.trim() && !enviando;
+  // Template escolhido aqui não vira projeto: é um trecho de flow, e o gesto
+  // que faz sentido é colá-lo no canvas aberto. O botão troca de papel em vez
+  // de recusar, porque o usuário só errou a porta de entrada.
+  const template = !!arquivo && ehTemplate(arquivo.conteudo);
+  const importar = () => {
+    if (template) { onColarTemplate(arquivo.conteudo); onClose(); return; }
+    if (arquivo && nome.trim()) onImport(l.path, nome.trim(), arquivo.conteudo);
+  };
+  const podeImportar = template ? !enviando : !!l && !!arquivo && !!nome.trim() && !enviando;
 
   // Arquivo solto na PÁGINA (fora deste diálogo) chega aqui já lido — o
   // diálogo mal montou e o gesto do usuário já aconteceu. Sem dependência de
@@ -1078,8 +1085,10 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
         h("button", { key: "fb", onClick: () => fileRef.current?.click() },
           arquivo ? `📄 ${arquivo.nomeArquivo}` : "Escolher arquivo…"),
         h("button", { key: "im", disabled: !podeImportar, onClick: importar },
-          enviando === "importar" ? "importando…" : "Importar aqui"),
+          template ? "Colar no canvas" : enviando === "importar" ? "importando…" : "Importar aqui"),
       ]),
+      template ? h("p", { key: "tpl", className: "tr-dialog-note" },
+        "Isto é um template — ele será colado no canvas atual.") : null,
     ]));
 }
 
@@ -2171,9 +2180,19 @@ function App() {
     // ele, este mesmo evento borbulharia até lá e abriria os dois ao mesmo
     // tempo.
     const f = ev.dataTransfer.files?.[0];
-    if (f && iniciarUploadDado(f, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY }))) {
+    const pos = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+    // `.json` pode ser template ou dado, e só o conteúdo diz qual. A leitura
+    // é assíncrona, então o `stopPropagation` vem antes de saber — o drop
+    // global nunca deve ver um `.json` que caiu no canvas.
+    if (f && /\.json$/i.test(f.name)) {
       ev.stopPropagation();
+      f.text().then((texto) => {
+        if (ehTemplate(texto)) inserirTemplateRef.current(texto, pos);
+        else iniciarUploadDado(f, pos);
+      });
+      return;
     }
+    if (f && iniciarUploadDado(f, pos)) ev.stopPropagation();
   }, [rf, addAt, iniciarUploadDado]);
 
   const onConnectStart = useCallback((_e, p) => {
@@ -2840,6 +2859,9 @@ function App() {
     e.preventDefault();
     const leitor = new FileReader();
     leitor.onload = () => {
+      // Template solto fora do canvas vai direto pro canvas: abrir o diálogo
+      // de projeto pra algo que não é projeto seria um desvio sem saída útil.
+      if (ehTemplate(leitor.result)) { inserirTemplate(leitor.result, centroDaTela()); return; }
       setArquivoSolto({ nomeArquivo: f.name, conteudo: leitor.result });
       setBanner(null); setListagem(null); setEnviando(null); setAbrindo(true);
       sendInput("tr_browse", { seq: ++seqCounter, path: projeto?.root || "." });
@@ -3128,6 +3150,7 @@ function App() {
                             sendInput("tr_project_new", { seq: ++seqCounter, path: p, nome }); },
       onImport: (p, nome, conteudo) => { setEnviando("importar");
                             sendInput("tr_project_import", { seq: ++seqCounter, path: p, nome, conteudo }); },
+      onColarTemplate: (conteudo) => inserirTemplate(conteudo, centroDaTela()),
       onClose: fecharDialogo }) : null,
     // Só aparece quando o pendente do conflito ainda existe — servidor lento
     // ou uma segunda resposta perdida não deixam o diálogo preso sem ação

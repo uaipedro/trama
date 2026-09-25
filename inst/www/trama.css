@@ -353,6 +353,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
                           border:1px solid var(--tr-line);border-radius:5px;
                           padding:4px 10px;cursor:pointer;font:inherit}
 .tr-dialog-actions button:disabled{opacity:.4;cursor:default}
+.tr-dialog-note{margin:0;padding:0 12px 10px;font-size:12px;color:var(--tr-dim)}
 
 .tr-params{padding:5px 9px;display:grid;gap:4px}
 /* Rótulo com até 45% da linha (e nunca menos de 78px): com coluna fixa de
