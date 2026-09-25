@@ -28,7 +28,14 @@ tr_experiments_errors <- function() {
     tr_experiments_error_no_design = "não há construção para os parâmetros pedidos (ex.: BIB grande demais)",
     tr_experiments_error_no_residual = "o delineamento pedido não deixa grau de liberdade para o resíduo",
     tr_experiments_error_not_a_plan =
-      "o nó produziu um objeto que não é plano, e o tipo experiments/plan o recusa"
+      "o nó produziu um objeto que não é plano, e o tipo experiments/plan o recusa",
+    tr_experiments_error_bad_term =
+      "o termo de experiments/effect não cabe no plano (fator ausente, célula sem efeito, contraste inválido)",
+    tr_experiments_error_bad_response =
+      "o erro de experiments/error pedido não serve (sd negativo, correlação sem indivíduo, perturbação fora da normal)",
+    tr_experiments_error_response_closed =
+      "termo ou erro ligado depois de a resposta já ter sido fechada por experiments/error",
+    tr_experiments_error_no_terms = "experiments/error recebeu um plano sem nenhum termo"
   )
   base <- data.frame(class = names(e), when = unname(e), stringsAsFactors = FALSE)
   extra <- if (exists(".tr_experiments_errors_analisar", mode = "function")) {

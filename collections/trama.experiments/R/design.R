@@ -164,6 +164,12 @@ print.tr_experiments_plan <- function(x, ...) {
   cat("<plano de experimento>", x$rotulo, "\n")
   cat("semente", x$semente, "·", nrow(x$unidades), "unidades · análise:", x$analise$no, "\n")
   for (a in x$avisos) cat("aviso:", a, "\n")
+  for (t in x$termos) {
+    cat(sprintf("termo %s (%s%s)\n", t$nome, t$tipo,
+                if (length(t$fator)) paste0(": ", paste(t$fator, collapse = ":")) else ""))
+    if (!is.null(t$conversao)) print(t$conversao, row.names = FALSE)
+  }
+  if (!is.null(x$resposta)) cat("resposta", x$resposta$nome, "·", x$resposta$distribuicao, "\n")
   print(x$unidades, ...)
   invisible(x)
 }

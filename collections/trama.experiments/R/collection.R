@@ -11,7 +11,7 @@
 #' coleção que usasse o mesmo id.
 #' @export
 trama_collection <- function() {
-  nos <- c(.tr_experiments_nos_planejar(),
+  nos <- c(.tr_experiments_nos_planejar(), .tr_experiments_nos_simular(),
            # Os nós de análise moram em arquivos de outro autor; a checagem
            # deixa a coleção carregar mesmo antes de eles existirem.
            if (exists(".tr_experiments_nos_analisar", mode = "function")) .tr_experiments_nos_analisar())

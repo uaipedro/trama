@@ -55,6 +55,18 @@
 # - `semente`, `metodo` (o gerador), `versao` (da coleção): reprodutibilidade.
 # - `avisos`: character, o que não bloqueia mas merece leitura; `nota`: texto.
 #
+# Campos OPCIONAIS, acrescentados pela simulação (`R/efeito.R`, `R/erro.R`) —
+# o plano com termos continua sendo o mesmo tipo:
+# - `termos`: lista, um item por `experiments/effect`, com `nome`, `coluna`
+#   (`.ef_<nome>`, a contribuição de cada unidade em `unidades`), `tipo`,
+#   `fator`, `parametros`, `verdadeiro` (data.frame nivel/efeito: o valor
+#   verdadeiro, sorteado no aleatório), `conversao` (contraste → efeitos, ou
+#   NULL) e `semente`.
+# - `resposta`: lista `nome`, `distribuicao`, `parametros`, `perdidas` (as
+#   unidades perdidas) e `semente`, posta por `experiments/error`; a partir
+#   dela `unidades` tem a coluna da resposta (e `.ef_residuo`, na normal) e
+#   `analise` já traz a resposta (param `resposta` ou fórmula completa).
+#
 # Decisão de forma (comparada com `trama.sampling`): a amostra de lá guarda
 # `dados` + `desenho` (estrato/psu/fpc) + `receita` para re-sortear. A ideia
 # de `receita` foi reaproveitada — o teste de aleatorização re-sorteia pelo
@@ -88,7 +100,9 @@ experiments_plan_type <- function() {
     },
     restore = function(path) readRDS(path),
     summary = function(x) list(estrutura = x$estrutura, rotulo = x$rotulo, unidades = nrow(x$unidades),
-                               semente = x$semente, avisos = length(x$avisos)),
+                               semente = x$semente, avisos = length(x$avisos),
+                               termos = length(x$termos),
+                               resposta = if (is.null(x$resposta)) NA_character_ else x$resposta$nome),
     # O card é o MAPA: "onde caiu cada tratamento" se lê sem abrir nada.
     preview = function(x, ctx) trama.view::tr_view_render(tr_experiments_view(x, "mapa"), ctx)
   )

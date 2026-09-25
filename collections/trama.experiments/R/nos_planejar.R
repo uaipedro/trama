@@ -141,9 +141,11 @@ tr_flow(reg) |>
       category = "exp_planejar", role = "leitura", icon = trama::tr_icon("layout-grid"),
       description = "Mapa, hierarquia, combinações ou ordem de execução de um plano.",
       inputs = list(plano = PL), outputs = list(out = "view/plot"),
-      params = c(list(aba = E("mapa", .TR_EXP_ABAS, label = "Aba")), .tr_exp_props()),
+      params = c(list(aba = E("mapa", .TR_EXP_ABAS, label = "Aba"),
+                      por = E("tratamento", .TR_EXP_POR, label = "Componentes por")), .tr_exp_props()),
       help = .tr_exp_ajuda(r"---[
-Desenha um plano de `experiments/design` por um dos quatro lados:
+Desenha um plano de `experiments/design` (ou o que sai de `experiments/effect`
+e `experiments/error`) por um dos cinco lados:
 
 - **mapa** — a grade 2D (linhas × colunas) com o tratamento de cada unidade e
   o contorno dos blocos. No fracionado e no composto central a grade é a
@@ -156,8 +158,16 @@ Desenha um plano de `experiments/design` por um dos quatro lados:
   réplicas de cada combinação; célula sem réplica aparece como "vazia" (no
   fracionado, é a fração que ficou de fora).
 - **ordem** — o tratamento de cada unidade na ordem de execução.
+- **componentes** — a resposta simulada decomposta: uma barra empilhada com a
+  contribuição de cada termo (`.ef_*`), e o resíduo quando o erro é normal. O
+  intercepto sai da pilha e vai ao subtítulo; o ponto é a resposta menos o
+  intercepto. Por **tratamento**, cada barra é a média de cada termo na
+  combinação de tratamentos; por **unidade**, uma barra por unidade, na ordem
+  de execução. Fora da normal, os termos estão na escala do preditor linear.
+  Pede um plano com termos.
 ]---", r"---[
-- **Aba** — `mapa`, `hierarquia`, `combinacoes` ou `ordem`.
+- **Aba** — `mapa`, `hierarquia`, `combinacoes`, `ordem` ou `componentes`.
+- **Componentes por** — `tratamento` ou `unidade` (só na aba `componentes`).
 ]---", r"---[
 Um gráfico (`view/plot`).
 ]---", r"---[
@@ -166,7 +176,7 @@ tr_flow(reg) |>
          geradores = "D = ABC") |>
   tr_add("comb", "experiments/view", aba = "combinacoes", from = "plano")
 ]---", r"---[
-`experiments/design`.
+`experiments/design`, `experiments/effect`, `experiments/error`.
 ]---", grafico = TRUE))
   )
 }
