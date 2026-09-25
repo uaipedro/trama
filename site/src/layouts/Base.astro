@@ -102,9 +102,9 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         <a href="/trama/por-dentro/">Por dentro do trama</a>
         <button type="button" class="search-trigger" data-search-open>Buscar <kbd>/</kbd></button>
       </nav>
-      <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle>
+      <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle title="Liga ou desliga as caixas de contexto: explicações extras para quem está começando, sem mudar o texto principal.">
         <span class="toggle-orbit" aria-hidden="true"></span>
-        <span class="toggle-copy">Mostrar contexto</span>
+        <span class="toggle-copy">Contexto extra</span>
       </button>
     </header>
     <main id="conteudo">
@@ -116,7 +116,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </dialog>
     <footer class="site-footer">
       <p><strong>trama</strong> — R em blocos executáveis.</p>
-      <p>Documentação das coleções do trama.</p>
+      <p><a href="https://github.com/uaipedro/trama">Código no GitHub</a> · <a href="/trama/por-dentro/instalacao/">Instalação</a></p>
     </footer>
     <script is:inline>
       const key = "trama-camada-facilitadora";
@@ -125,8 +125,6 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       const updateToggle = () => {
         const enabled = root.dataset.facilitador !== "off";
         button?.setAttribute("aria-pressed", String(enabled));
-        const copy = button?.querySelector(".toggle-copy");
-        if (copy) copy.textContent = enabled ? "Mostrar contexto" : "Ocultar contexto";
       };
       document.querySelectorAll(".prose blockquote").forEach((quote) => {
         const lead = quote.querySelector("strong");
@@ -202,7 +200,10 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           new window.PagefindUI({
             element: "#search",
             showSubResults: true,
-            translations: { placeholder: "Buscar blocos e páginas" }
+            translations: {
+              placeholder: "Buscar blocos e páginas",
+              zero_results: "Nada encontrado para [SEARCH_TERM]. Tente outra palavra ou o id do bloco, como sampling/srs."
+            }
           });
         });
         return pagefindReady;

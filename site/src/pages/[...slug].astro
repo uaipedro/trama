@@ -3,6 +3,7 @@ import { getCollection, render } from "astro:content";
 import Base from "../layouts/Base.astro";
 import NodeMini from "../components/NodeMini.astro";
 import { getNodeVisual } from "../data/node-visuals";
+import { collections } from "../data/collections";
 
 export async function getStaticPaths() {
   const entries = await getCollection("docs");
@@ -11,6 +12,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
+const collectionTitle = collections.find(({ id }) => id === entry.data.collection)?.title;
 const related = (await getCollection("docs"))
   .filter((item) => entry.data.related.includes(item.data.node ?? item.id));
 ---
@@ -18,7 +20,7 @@ const related = (await getCollection("docs"))
 <Base title={entry.data.title} description={entry.data.description}>
   <div class="doc-page">
     <aside class="doc-rail" aria-label="Nesta página">
-      <a class="doc-rail__back" href={entry.data.collection ? `/trama/colecoes/${entry.data.collection}/` : "/trama/"}>← Voltar</a>
+      <a class="doc-rail__back" href={entry.data.collection ? `/trama/colecoes/${entry.data.collection}/` : "/trama/"}>← {collectionTitle ?? "Início"}</a>
       {entry.data.node && <code data-pagefind-meta="bloco">{entry.data.node}</code>}
       <nav>
         <p>Na página</p>
@@ -36,7 +38,6 @@ const related = (await getCollection("docs"))
       <div class="prose"><Content /></div>
       {related.length > 0 && (
         <section class="related" aria-labelledby="related-title">
-          <p class="eyebrow">Blocos próximos</p>
           <h2 id="related-title">Veja também</h2>
           <div class="related__links">
             {related.map((item) => {

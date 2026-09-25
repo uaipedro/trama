@@ -23,11 +23,21 @@ const firstFlowSteps = [
         <a class="button button--primary" href="/trama/comece/primeiro-fluxo/"><span data-copy="ctaPrimary">{control.copy.ctaPrimary}</span> <span aria-hidden="true">→</span></a>
         <a class="text-link" href="/trama/colecoes/"><span data-copy="ctaSecondary">{control.copy.ctaSecondary}</span></a>
       </div>
-      <div class="home-install">
-        <p class="home-install__label">Instale no R <span>R ≥ 4.1 · via GitHub</span></p>
-        <pre><code>pak::pak(c("uaipedro/trama",
+      <div class="home-install" aria-labelledby="install-title">
+        <p class="home-install__label" id="install-title">Duas formas de instalar</p>
+        <div class="home-install__option">
+          <p><strong>Programa</strong> <span>não precisa ter R; ele baixa tudo</span></p>
+          <div class="home-install__actions">
+            <a class="button button--quiet" href="https://github.com/uaipedro/trama/releases/latest/download/Trama-Setup.exe">Baixar para Windows</a>
+            <a class="text-link" href="/trama/por-dentro/instalacao/#instalar-sem-saber-programar">Linux: um comando <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <div class="home-install__option">
+          <p><strong>Pacote R</strong> <span>no seu R ≥ 4.1, via GitHub</span></p>
+          <pre><code>pak::pak(c("uaipedro/trama",
   "uaipedro/trama/collections/trama.data",
   "uaipedro/trama/collections/trama.view"))</code></pre>
+        </div>
       </div>
     </div>
     <figure class="flow-reel flow-reel--hero flow-reel--landscape">
@@ -43,7 +53,6 @@ const firstFlowSteps = [
 
   <section class="home-path" aria-labelledby="caminho-title">
     <div class="home-path__copy">
-      <p class="eyebrow">Comece aqui</p>
       <h2 id="caminho-title">Monte um primeiro fluxo em três blocos.</h2>
       <p class="home-path__lede">Use uma tabela de exemplo para reconhecer a sequência: dado, inspeção e gráfico. Depois, troque o dado — não a forma de pensar.</p>
       <FlowMap steps={firstFlowSteps} />
@@ -63,8 +72,7 @@ const firstFlowSteps = [
 
   <section id="colecoes" class="home-collections" aria-labelledby="collections-title">
     <div class="section-intro">
-      <p class="eyebrow">Coleções</p>
-      <h2 id="collections-title">Escolha por onde começar.</h2>
+      <h2 id="collections-title">Coleções disponíveis.</h2>
     </div>
     <div class="collection-cards">
       {collections.map((collection) => <CollectionCard collection={collection} />)}

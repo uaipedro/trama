@@ -6,7 +6,8 @@ import { layoutFlow, type FlowGraph } from "./flow-example.ts";
 import type { NodeVisual } from "../data/node-visuals.ts";
 
 const CELL_W = 220;
-const CELL_H = 120;
+// Altura da célula cabe o card mais alto: cabeçalho, id e até 3 params + "+n".
+const CELL_H = 150;
 const GAP = 56;
 const CARD_W = CELL_W - GAP;
 const CARD_H = 88;
@@ -33,7 +34,7 @@ export function renderFlowCanvas(graph: FlowGraph, visuals: Record<string, NodeV
   const rows = Math.max(1, ...[...rowsByCol.values()]);
 
   const width = cols * CELL_W + GAP;
-  const height = rows * CELL_H + GAP;
+  const height = GAP + rows * CELL_H;
 
   const cardCenter = (id: string) => {
     const pos = positions.get(id) ?? { col: 0, row: 0 };
