@@ -9,3 +9,7 @@ Nenhuma pendência: todas as referências usadas foram conferidas em 2026-09-25 
 ## trama.models
 
 Nenhuma pendência: todas as referências usadas foram conferidas em 2026-09-25 (DOIs no Crossref, com autor, ano, título e periódico conferidos; Montgomery 2017, 9. ed., Wiley, ISBN 9781119113478; Banzatto & Kronka 2006, 4. ed., Funep, ISBN 85-87632-71-X; Pimentel-Gomes 2009, 15. ed., FEALQ; Siegel & Castellan 2006, 2. ed., Artmed, ISBN 9788536307299; Dobson & Barnett 2008, 3. ed., Chapman & Hall/CRC; Rencher & Schaalje 2008, 2. ed., Wiley; Searle 1971, Wiley; Fox & Weisberg 2019, 3. ed., Sage; Levene 1960 em Olkin et al., Stanford University Press, p. 278-292 — no Open Library, catálogos de editora e citação do pacote). Os livros-texto só entraram nos blocos cujo método eles cobrem com certeza; Pimentel-Gomes e Banzatto & Kronka ficaram fora do Waller-Duncan (não conferido que tratam o teste), e Montgomery fora dos blocos de Shapiro-Wilk.
+
+## trama.ml
+
+- Friedman (2001), "Greedy function approximation: A gradient boosting machine", *The Annals of Statistics*, 29(5), doi:10.1214/aos/1013203451 — DOI conferido no Crossref, mas as páginas não vêm no registro nem no OpenAlex e a página da editora não abriu; ficou fora do `ml/xgboost` (que cita Chen & Guestrin 2016 e ESL).
