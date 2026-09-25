@@ -139,7 +139,11 @@ tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", t
     historico$melhor <- acumulado
     final_args <- c(list(dados = dados, resposta = resposta, preditores = preditores, modelo = modelo,
                          tarefa = tarefa, seed = seed), configs[[melhor]])
-    list(modelo = do.call(tr_ml_fit, final_args), historico = historico,
+    # Marca de origem: os hiperparâmetros vieram destas linhas, e a cruzada
+    # do `predict_cv` as repartiria do mesmo jeito (mesma semente) — ver lá.
+    final <- do.call(tr_ml_fit, final_args)
+    final$extras$tunado <- TRUE
+    list(modelo = final, historico = historico,
          melhor_tentativa = melhor, metrica = metrica, minimizar = minimizar,
          folds = folds, seed = seed)
   })

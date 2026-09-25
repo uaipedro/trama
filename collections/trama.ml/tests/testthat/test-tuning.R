@@ -46,3 +46,16 @@ test_that("tuning valida orçamento, folds e modelos ajustáveis", {
   expect_error(tr_ml_tune(mtcars[1:3, ], "mpg", folds = 4),
                class = "tr_ml_error_bad_folds")
 })
+
+test_that("modelo tunado recusa a cruzada (viés de seleção), aceita dados e resubstituição", {
+  skip_if_not_installed("trama.models")
+  z <- tr_ml_tune(iris, "Species", modelo = "cart", tentativas = 3, folds = 3, seed = 7)
+  expect_true(isTRUE(z$modelo$extras$tunado))
+  expect_error(trama.models::tr_models_evaluate(z$modelo, validacao = "cruzada"),
+               class = "tr_models_error_not_applicable")
+  expect_s3_class(trama.models::tr_models_evaluate(z$modelo, dados = iris), "data.frame")
+  expect_s3_class(trama.models::tr_models_evaluate(z$modelo, validacao = "resubstituição"), "data.frame")
+  m <- tr_ml_fit(iris, "Species", modelo = "cart")
+  expect_null(m$extras$tunado)
+  expect_s3_class(trama.models::tr_models_evaluate(m, validacao = "cruzada"), "data.frame")
+})

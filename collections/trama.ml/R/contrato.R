@@ -60,10 +60,20 @@ tr_models_predict_raw.tr_ml_fit <- function(x, novos, ...) {
 #' Na cruzada cada fold é previsto por um modelo reajustado SEM ele, com os
 #' mesmos hiperparâmetros e a mesma semente. Os folds são estratificados por
 #' classe; com uma classe menor que 5, `k` cai para o tamanho dela (ao menos 2).
+#' Modelo vindo do `ml/tune` (`extras$tunado`) recusa a cruzada: seria otimista.
 #' @export
 tr_models_predict_cv.tr_ml_fit <- function(x, validacao = "resubstitui\u{E7}\u{E3}o") {
   validacao <- .tr_ml_enum(validacao, c("resubstitui\u{E7}\u{E3}o", "cruzada"), "validacao")
   if (validacao != "cruzada") return(tr_models_predict_raw.tr_ml_fit(x, x$dados))
+  # Modelo tunado: a busca já escolheu os hiperparâmetros pela nota nestas
+  # linhas (e, com a mesma semente, nestas mesmas partições). Reavaliar por
+  # cruzada devolveria a nota do vencedor, otimista por construção — viés de
+  # seleção. Só dado que o tune não viu mede o modelo.
+  if (isTRUE(x$extras$tunado)) {
+    .tr_ml_abort("tr_models_error_not_applicable",
+                 "Valida\u{E7}\u{E3}o 'cruzada' n\u{E3}o se aplica a %s: os hiperpar\u{E2}metros foram escolhidos nestas mesmas parti\u{E7}\u{F5}es, e a valida\u{E7}\u{E3}o cruzada seria otimista. Avalie em dados separados: `ml/split` antes do `ml/tune`, e ligue o teste na entrada 'dados'.",
+                 x$rotulo)
+  }
   resposta <- x$resposta %||% x$alvo
   dados <- as.data.frame(x$dados, check.names = FALSE)
   y <- dados[[resposta]]
