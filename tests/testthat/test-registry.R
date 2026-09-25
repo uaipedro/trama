@@ -149,6 +149,13 @@ test_that("migração com destino fora do namespace, malformada ou conflitante �
                class = "tr_error_bad_migration")
   expect_error(tr_collection(id = "u", migrations = list(params = list("u/b" = list(p = "q")))),
                class = "tr_error_bad_migration")
+  # Converter no lugar sem `when` não teria como pular doc já migrado.
+  expect_error(tr_collection(id = "u", migrations = list(params = list(
+    "u/b" = list(p = list(to = "p", value = as.numeric))))), class = "tr_error_bad_migration")
+  expect_error(tr_collection(id = "u", migrations = list(params = list(
+    "u/b" = list(p = list(to = "q", when = TRUE))))), class = "tr_error_bad_migration")
+  expect_s3_class(tr_collection(id = "u", migrations = list(params = list(
+    "u/b" = list(p = list(to = "p", when = is.character, value = as.numeric))))), "tr_collection")
   reg <- tr_registry()
   tr_use(tr_collection(id = "u", migrations = list(nodes = list("x/a" = "u/b"))), registry = reg)
   expect_error(tr_use(tr_collection(id = "v", migrations = list(nodes = list("x/a" = "v/b"))),

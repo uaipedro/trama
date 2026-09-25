@@ -21,7 +21,18 @@
 #'     antigo pode ser de OUTRA coleção — é assim que um bloco muda de casa —,
 #'     mas o destino tem que ser desta.
 #'   * `params`: id NOVO do nó -> lista de renomes `antigo = list(to = "novo",
-#'     value = function(v) ...)`. `value` é opcional (identidade).
+#'     value = function(v) ..., when = function(v) ...)`. `value` é opcional
+#'     (identidade); `when` é um predicado sobre o valor antigo, e `value` só
+#'     roda quando ele é verdadeiro. Dois casos especiais:
+#'     - converter no lugar: `to` igual ao nome antigo. Aí `when` é
+#'       obrigatório — é ele que reconhece o valor ainda no formato velho e
+#'       deixa intocado o documento já migrado:
+#'       `confianca = list(to = "confianca", when = is.character,
+#'       value = function(v) as.numeric(sub("%", "", v)) / 100)`.
+#'     - derivar vários params: `value` devolve lista NOMEADA, fundida aos
+#'       params do nó (param já presente com esse nome vence):
+#'       `intervalo = list(to = "intervalo", when = function(v) grepl("^IC ", v),
+#'       value = function(v) list(intervalo = "IC", confianca = 0.9))`.
 #'   * `ports`: id NOVO do nó -> lista `antiga = "nova"`, valendo pra entradas e
 #'     saídas.
 #'
@@ -93,8 +104,15 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
       if (!is.list(r) || !is.character(r$to) || length(r$to) != 1L) {
         bad(sprintf("param '%s' de '%s' precisa de list(to = \"novo\").", p, nid))
       }
-      if (!is.null(r$value) && !is.function(r$value)) {
-        bad(sprintf("'value' do param '%s' de '%s' tem que ser função.", p, nid))
+      for (f in c("value", "when")) if (!is.null(r[[f]]) && !is.function(r[[f]])) {
+        bad(sprintf("'%s' do param '%s' de '%s' tem que ser função.", f, p, nid))
+      }
+      # Converter no lugar sem `when` rodaria `value` de novo a cada abertura
+      # de um doc já migrado (o nome não muda, então nada distingue antigo de
+      # novo). Exigir o predicado aqui transforma esse bug silencioso em erro
+      # no registro, que o autor da coleção vê na hora.
+      if (identical(r$to, p) && (is.null(r$value) || is.null(r$when))) {
+        bad(sprintf("param '%s' de '%s' converte no lugar: exige 'value' e 'when'.", p, nid))
       }
     }
   }

@@ -183,3 +183,34 @@ test_that("tr_project_flow abre o fluxo antigo já migrado", {
              file.path(root, "main.json"))
   expect_equal(tr_project_flow(proj)$nodes$a$type, "t/const")
 })
+
+test_that("converter no lugar aplica value só quando `when` reconhece o formato velho", {
+  pct <- list(to = "k", when = is.character, value = function(v) as.numeric(sub("%", "", v)) / 100)
+  reg <- migr_registry(list(params = list("t/add" = list(k = pct))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{"s":{"type":"t/add","params":{"k":"95%"}}},"edges":[]}')
+  doc <- tr_doc_migrate(doc, reg)
+  expect_equal(doc$nodes$s$params, list(k = 0.95))
+  expect_true(attr(doc, "migrated"))
+  # Idempotência: o doc já migrado (gravado de novo) sai idêntico.
+  attr(doc, "migrated") <- NULL
+  expect_identical(tr_doc_migrate(doc, reg), doc)
+})
+
+test_that("value com lista nomeada deriva params; presente vence; erro mantém valor", {
+  deriva <- list(to = "k", when = function(v) grepl("^IC ", v),
+                 value = function(v) list(k = "IC", extra = as.numeric(sub("IC (\\d+)%", "\\1", v)) / 100))
+  reg <- migr_registry(list(params = list("t/add" = list(k = deriva))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{"s":{"type":"t/add","params":{"k":"IC 90%"}},
+    "p":{"type":"t/add","params":{"k":"IC 90%","extra":0.5}},
+    "n":{"type":"t/add","params":{"k":"IC"}}},"edges":[]}')
+  doc <- tr_doc_migrate(doc, reg)
+  expect_equal(doc$nodes$s$params, list(k = "IC", extra = 0.9))
+  expect_equal(doc$nodes$p$params$extra, 0.5)
+  expect_equal(doc$nodes$p$params$k, "IC")
+  expect_equal(doc$nodes$n$params, list(k = "IC"))
+
+  quebra <- list(to = "k", when = is.character, value = function(v) stop("x"))
+  reg <- migr_registry(list(params = list("t/add" = list(k = quebra))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{"s":{"type":"t/add","params":{"k":"95%"}}},"edges":[]}')
+  expect_equal(tr_doc_migrate(doc, reg)$nodes$s$params, list(k = "95%"))
+})

@@ -131,15 +131,33 @@ tr_doc_migrate <- function(doc, registry = .tr_default_registry) {
     renames <- mig$params[[n$type]]
     for (old in intersect(names(renames), names(n$params))) {
       r <- renames[[old]]
-      if (is.null(n$params[[r$to]])) {
-        # `value` é código da coleção rodando na subida do app: se ele falhar,
-        # o valor antigo passa adiante sob o nome novo e a validação o acusa
-        # como `bad_param_value` no card — erro visível, em vez de servidor
-        # que não sobe por causa de um fluxo.
-        v <- n$params[[old]]
-        n$params[[r$to]] <- if (is.null(r$value)) v else tryCatch(r$value(v), error = function(e) v)
+      v <- n$params[[old]]
+      no_lugar <- identical(r$to, old)
+      # `when` é o que torna a migração idempotente: um doc gravado DEPOIS da
+      # migração ainda tem o param com o mesmo nome (sempre, no caso de
+      # converter no lugar), e reaplicar `value` num valor já convertido
+      # viraria lixo. Falso = o valor já está no formato novo, nada a fazer.
+      aplica <- is.null(r$when) || isTRUE(tryCatch(r$when(v), error = function(e) FALSE))
+      if (no_lugar && !aplica) next
+      if (!no_lugar && !is.null(n$params[[r$to]])) {
+        # Nome novo já presente vence (doc meio migrado à mão).
+        n$params[[old]] <- NULL
+        changed <- TRUE
+        next
       }
+      # `value` é código da coleção rodando na subida do app: se ele falhar,
+      # o valor antigo passa adiante sob o nome novo e a validação o acusa
+      # como `bad_param_value` no card — erro visível, em vez de servidor
+      # que não sobe por causa de um fluxo.
+      novo <- if (is.null(r$value) || !aplica) v else tryCatch(r$value(v), error = function(e) v)
       n$params[[old]] <- NULL
+      if (is.list(novo) && !is.null(names(novo)) && all(nzchar(names(novo)))) {
+        # Lista nomeada = um param antigo vira vários. Quem já existe no nó
+        # vence, pela mesma regra do renome simples.
+        for (nm in names(novo)) if (is.null(n$params[[nm]])) n$params[[nm]] <- novo[[nm]]
+      } else {
+        n$params[[r$to]] <- novo
+      }
       changed <- TRUE
     }
     doc$nodes[[id]] <- n

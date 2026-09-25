@@ -35,7 +35,18 @@ opcionais:
 \item \code{nodes}: id antigo -> id novo (\code{list("multi/roc" = "models/roc")}). O id
 antigo pode ser de OUTRA coleção — é assim que um bloco muda de casa —,
 mas o destino tem que ser desta.
-\item \code{params}: id NOVO do nó -> lista de renomes \code{antigo = list(to = "novo", value = function(v) ...)}. \code{value} é opcional (identidade).
+\item \code{params}: id NOVO do nó -> lista de renomes \code{antigo = list(to = "novo", value = function(v) ..., when = function(v) ...)}. \code{value} é opcional
+(identidade); \code{when} é um predicado sobre o valor antigo, e \code{value} só
+roda quando ele é verdadeiro. Dois casos especiais:
+\itemize{
+\item converter no lugar: \code{to} igual ao nome antigo. Aí \code{when} é
+obrigatório — é ele que reconhece o valor ainda no formato velho e
+deixa intocado o documento já migrado:
+\code{confianca = list(to = "confianca", when = is.character, value = function(v) as.numeric(sub("\%", "", v)) / 100)}.
+\item derivar vários params: \code{value} devolve lista NOMEADA, fundida aos
+params do nó (param já presente com esse nome vence):
+\code{intervalo = list(to = "intervalo", when = function(v) grepl("^IC ", v), value = function(v) list(intervalo = "IC", confianca = 0.9))}.
+}
 \item \code{ports}: id NOVO do nó -> lista \code{antiga = "nova"}, valendo pra entradas e
 saídas.
 }
