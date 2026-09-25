@@ -3418,8 +3418,8 @@ function App() {
           tipo: prox.tipo, presentes, x: prox.x, y: prox.y,
           onEscolher: inserirProximo, onFechar: fecharProx,
           renderIcone: (n) => (n.icon && ICON_KINDS.has(n.icon.kind)
-            ? h(Icon, { icon: n.icon, className: "tr-palette-icon",
-                        color: corDaCategoria((catalog.categories || []).find((c) => c.id === n.category), n) })
+            // Sem `color`: o ícone herda a tinta da faixa colorida da pílula.
+            ? h(Icon, { icon: n.icon, className: "tr-palette-icon" })
             : null) })
       : null,
     h("div", { key: "tb", className: "tr-toolbar", role: "toolbar", "aria-label": "Ferramentas" }, [
