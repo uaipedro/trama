@@ -97,3 +97,27 @@ test_that("previews dos tipos saem sem erro para todo modelo", {
   pv <- models_emm_type()$preview(tr_models_emmeans(milho_dbc(), "hibrido"), ctx_tmp())
   expect_true(file.exists(pv$files$png %||% unlist(pv$files)[[1]]))
 })
+
+test_that("qui-quadrado 2 × 2: sem Yates por padrão, com Yates como opção (oráculo)", {
+  # Physicians' Health Study (aspirina × infarto), Agresti, An Introduction to
+  # Categorical Data Analysis, cap. 2: placebo 189/10845, aspirina 104/10933.
+  # Oráculo duplo: forma fechada do X² de Pearson, n(ad − bc)² / (r1 r2 c1 c2),
+  # e da versão de Yates (1934), n(|ad − bc| − n/2)² / (r1 r2 c1 c2), e
+  # stats::chisq.test. Tolerância 1e-10 (relativa).
+  a <- 189; b <- 10845; c <- 104; d <- 10933; n <- a + b + c + d
+  den <- (a + b) * (c + d) * (a + c) * (b + d)
+  pearson <- n * (a * d - b * c)^2 / den
+  yates <- n * (abs(a * d - b * c) - n / 2)^2 / den
+  expect_equal(round(pearson, 2), 25.01)
+  dados <- data.frame(
+    grupo = rep(c("placebo", "placebo", "aspirina", "aspirina"), c(a, b, c, d)),
+    infarto = rep(c("sim", "não", "sim", "não"), c(a, b, c, d)))
+  tab <- table(dados$grupo, dados$infarto)
+  sem <- tr_models_chisq(dados, "grupo", "infarto")
+  expect_equal(unname(sem$estatistica), pearson, tolerance = 1e-10)
+  expect_equal(sem$p_valor, stats::chisq.test(tab, correct = FALSE)$p.value, tolerance = 1e-10)
+  com <- tr_models_chisq(dados, "grupo", "infarto", correcao = TRUE)
+  expect_equal(unname(com$estatistica), yates, tolerance = 1e-10)
+  expect_equal(com$p_valor, stats::chisq.test(tab, correct = TRUE)$p.value, tolerance = 1e-10)
+  expect_false(formals(tr_models_chisq)$correcao)
+})

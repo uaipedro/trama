@@ -209,10 +209,11 @@ tr_models_kruskal <- function(dados, resposta = "", grupo = "") {
 #' Qui-quadrado de independência.
 #' @param dados tabela.
 #' @param linha,coluna as duas colunas categóricas.
-#' @param correcao correção de continuidade de Yates (só em 2 × 2).
+#' @param correcao correção de continuidade de Yates (só em 2 × 2). Desligada
+#'   por padrão: torna o teste conservador (Agresti 2002).
 #' @return objeto `tr_models_test`.
 #' @export
-tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = TRUE) {
+tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = FALSE) {
   no <- "models/chisq"
   ct <- .tr_models_contingencia(dados, linha, coluna, no)
   r <- .tr_models_capturar(stats::chisq.test(ct$tab, correct = isTRUE(correcao)))

@@ -316,7 +316,7 @@ tr_flow(reg) |>
 `models/anova_dic`; `models/wilcoxon` para dois grupos.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/chisq", 
+    trama::tr_node("models/chisq", version = 2L,
       pressupostos = .tr_models_doc("models/chisq")$pressupostos,
       referencias = .tr_models_doc("models/chisq")$referencias,
       fn = tr_models_chisq, label = "Qui-quadrado",
@@ -326,7 +326,7 @@ tr_flow(reg) |>
       params = list(
         linha = P("cols", "", label = "Linha", example = "wool"),
         coluna = P("cols", "", label = "Coluna", example = "tension"),
-        correcao = B(TRUE, label = "Correção de Yates (2 × 2)")),
+        correcao = B(FALSE, label = "Correção de Yates (2 × 2)")),
       help = .tr_models_ajuda(r"---[
 Testa se duas variáveis categóricas são independentes, a partir da tabela de
 contingência que o bloco monta contando as linhas da tabela.
@@ -334,10 +334,13 @@ contingência que o bloco monta contando as linhas da tabela.
 Quando mais de 20% das caselas têm esperado abaixo de 5, a nota avisa e aponta o
 `models/fisher_exact`. O detalhe mostra o menor esperado.
 
-A **Correção de Yates** só age em tabelas 2 × 2.
+A **Correção de Yates** só age em tabelas 2 × 2 e vem desligada: ela deixa o
+teste conservador (p-valor maior que o nominal). Com esperados pequenos, o
+caminho é o `models/fisher_exact`, não a correção.
 ]---", r"---[
 - **Linha**, **Coluna** — as duas colunas categóricas.
-- **Correção de Yates** — correção de continuidade no 2 × 2.
+- **Correção de Yates** — correção de continuidade no 2 × 2 (desligada por
+  padrão).
 ]---", r"---[
 Um teste (`models/test`).
 ]---", r"---[

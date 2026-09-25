@@ -155,8 +155,10 @@
         R(autores = "Yates, F.", ano = 1934, titulo = "Contingency tables involving small numbers and the χ² test",
           fonte = "Supplement to the Journal of the Royal Statistical Society, 1(2), 217-235",
           doi = "10.2307/2983604", papel = "complementar"),
+        R(autores = "Agresti, A.", ano = 2002, titulo = "Categorical Data Analysis", fonte = "2. ed. Hoboken: Wiley",
+          doi = "10.1002/0471249688", papel = "complementar"),
         L$siegel,
-        I("stats", "chisq.test", "`correct = TRUE` por padrão: correção de continuidade de Yates, que só age em tabelas 2 × 2."))),
+        I("stats", "chisq.test", "`correct = FALSE` por padrão no bloco: X² de Pearson sem correção, porque a de Yates deixa o teste conservador (Agresti 2002); a opção **Correção de Yates** liga `correct = TRUE`, que só age em 2 × 2. Validado contra a forma fechada do 2 × 2 no exemplo do Physicians' Health Study (Agresti)."))),
 
     "models/fisher_exact" = list(
       pressupostos = list(
