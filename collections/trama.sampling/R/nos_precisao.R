@@ -28,15 +28,6 @@ nome de cada nível intermediário, `unidade`), `nivel`, `unidades`,
 `margem_pp` (em pontos percentuais). Vai direto para
 `sampling/plot_margins`, `data/filter` ou `data/write_csv`.
 ]---"
-  ajuda_nao_prob <- r"---[
-### Margem nominal
-
-A conta supõe que as entrevistas de cada unidade se comportem como uma amostra
-aleatória dela. Em coleta por recrutamento, indicação ou adesão aberta isso não
-é garantido, e a margem deve ser lida como NOMINAL: a de uma amostra aleatória
-com o mesmo tamanho efetivo. O viés de quem aparece não entra na margem; entra
-no desenho da coleta e na calibração (`sampling/rake`).
-]---"
   exemplo_unidades <- function(no, extra) sprintf(r"---[
 tr_flow(reg) |>
   tr_add("escolas", "sampling/example", dataset = "escolas_resumo") |>
@@ -54,6 +45,12 @@ tr_flow(reg) |>
         populacao = N(0, min = 0, label = "População (0 = infinita)"),
         deff = N(1, min = 0.01, step = 0.1, label = "Efeito do desenho (deff)"),
         taxa_resposta = N(1, min = 0.01, max = 1, step = 0.05, label = "Taxa de resposta")),
+      pressupostos = c(list(trama::tr_pressuposto(
+        "Com **População** informada, a correção finita é a da AAS sem reposição, (1 − n/N); a amostra sorteada tem de ser uma fração da mesma população.",
+        se_falhar = "Deixe a População em 0 (infinita) quando não souber o N; o erro sai um pouco conservador.")),
+        .tr_sampling_press_margem("As entrevistas se comportam como uma **amostra aleatória simples** da população")),
+      referencias = list(.tr_sampling_refs()$cochran, .tr_sampling_refs()$bolfarine,
+        .tr_sampling_impl("tr_sampling_margin", "E = z·√(deff·p(1 − p)/n·(1 − n/N)), com z normal (não t) e n = entrevistas × taxa de resposta; a correção finita só com N > 0.")),
       help = .tr_sampling_ajuda(paste(r"---[
 O caminho contrário do `sampling/size_proportion`: o n já está dado (o campo
 contratado, o orçamento fechado) e a pergunta é quanto se erra:
@@ -63,7 +60,7 @@ contratado, o orçamento fechado) e a pergunta é quanto se erra:
 O card mostra a margem em pontos percentuais e a escada: entrevistas previstas,
 as que viram resposta, o n efetivo depois do deff. É a conta de uma célula
 só; para vários níveis de uma vez, `sampling/margin_levels`.
-]---", ajuda_nao_prob), r"---[
+]---"), r"---[
 - **Entrevistas** — n previsto.
 - **Proporção esperada** — p; 0,5 é o pior caso.
 - **Confiança**, **População**, **Efeito do desenho**, **Taxa de resposta** —
@@ -85,6 +82,12 @@ tr_flow(reg) |>
       params = c(unidades_params(), list(
         deff = N(1, min = 0.01, step = 0.1, label = "Deff de agrupamento"),
         proporcao = PROP(), confianca = CONF())),
+      pressupostos = c(list(trama::tr_pressuposto(
+        "Nos agregados, cada unidade é um **estrato** amostrado de forma independente, e a estimativa pondera pela população (W_h = N_h/N).",
+        se_falhar = "Se as unidades foram sorteadas (e não todas incluídas), o agregado ganha uma variância entre unidades que a tabela não tem: use `sampling/two_stage` e `sampling/simulate`.")),
+        .tr_sampling_press_margem()),
+      referencias = list(.tr_sampling_refs()$kish, .tr_sampling_refs()$cochran, .tr_sampling_refs()$bolfarine,
+        .tr_sampling_impl("tr_sampling_margin_levels", "Variância estratificada Σ W_h²(1 − n_h/N_h)·p(1 − p)/n_h vezes o deff de agrupamento; deff de ponderação de Kish n·Σ W_h²/n_h; z normal.")),
       help = .tr_sampling_ajuda(paste(r"---[
 A margem de erro de uma proporção em todos os níveis de agregação de uma vez: o
 total (o país), cada nível intermediário (as macrorregiões) e cada unidade (as
@@ -104,7 +107,7 @@ entrevistas em 27 capitais valem, no total, bem menos que 675 aleatórias.
 
 **Deff de agrupamento** multiplica tudo, para quando as entrevistas vêm em
 grupos parecidos entre si (escolas, redes de indicação).
-]---", ajuda_nao_prob), paste(ajuda_unidades, r"---[
+]---"), paste(ajuda_unidades, r"---[
 - **Deff de agrupamento** — efeito de conglomerado além da ponderação (1:
   nenhum).
 ]---"), ajuda_tabela_margens, exemplo_unidades("sampling/margin_levels", ""), r"---[
@@ -121,6 +124,14 @@ grupos parecidos entre si (escolas, redes de indicação).
         adesao = N(1, min = 0.01, max = 1, step = 0.05, label = "Adesão dos convidados"),
         icc = P("text", "0.05, 0.1, 0.2", label = "ICC (cenários)", example = "0.05, 0.1, 0.2"),
         proporcao = PROP(), confianca = CONF())),
+      pressupostos = c(list(trama::tr_pressuposto(
+        "O agrupamento pelas redes segue o modelo de **correlação intraclasse comum**: deff = 1 + (m − 1)·ICC, com redes do mesmo tamanho m e o mesmo ICC em todas.",
+        se_falhar = "Trabalhe com vários cenários de ICC e, depois da coleta, meça o ICC real das redes."),
+        trama::tr_pressuposto("As **sementes** (a coleta de base) são uma amostra aleatória da unidade; a indicação só multiplica o n, não corrige quem entrou.",
+          se_falhar = "Leia a margem como nominal e calibre com `sampling/rake`.")),
+        .tr_sampling_press_margem()),
+      referencias = list(.tr_sampling_refs()$kish, .tr_sampling_refs()$cochran,
+        .tr_sampling_impl("tr_sampling_referral", "Para cada cenário (k, ICC), refaz as margens de tr_sampling_margin_levels com n × (1 + k·adesão) e o deff de agrupamento 1 + (m − 1)·ICC multiplicado.")),
       help = .tr_sampling_ajuda(paste(r"---[
 A expansão por indicação: cada participante da coleta de base convida k
 pessoas. Para cada combinação de **convidados** e **ICC**, a tabela refaz as
@@ -142,7 +153,7 @@ ligadas (hábitos compartilhados, território).
 
 Os cenários com 0 convidados são a coleta de base, na mesma tabela, para a
 comparação direta.
-]---", ajuda_nao_prob), paste(ajuda_unidades, r"---[
+]---"), paste(ajuda_unidades, r"---[
 - **Convidados por participante** — lista de k, separados por vírgula.
 - **Adesão dos convidados** — a fração dos convidados que de fato responde.
 - **ICC (cenários)** — lista de correlações intraclasse, com ponto decimal.
@@ -168,6 +179,14 @@ a mesma fórmula do deff no caminho de ida.
         poder = E("80%", c("80%", "90%"), label = "Poder"),
         deff = N(1, min = 0.01, step = 0.1, label = "Efeito do desenho (deff)"),
         diferenca_relevante = N(0.10, min = 0.01, max = 1, step = 0.01, label = "Diferença que importa")),
+      pressupostos = c(list(trama::tr_pressuposto(
+        "Os dois grupos são **independentes** e a comparação é de UM par escolhido antes de olhar os dados, com teste bilateral e a mesma p nos dois.",
+        se_falhar = "Para muitas comparações, divida a significância pelo número de pares (Bonferroni) e recalcule; grupos que se sobrepõem pedem a variância da diferença pelo desenho."),
+        trama::tr_pressuposto("Sem **correção finita**: supõe grupos pequenos diante da população.",
+          se_falhar = "Com grupo recenseado quase inteiro, a DMD sai conservadora.")),
+        .tr_sampling_press_margem()),
+      referencias = list(.tr_sampling_refs()$fleiss, .tr_sampling_refs()$cochran,
+        .tr_sampling_impl("tr_sampling_detectable_difference", "DMD = (z_{1−α/2} + z_{poder})·√(deff·p(1 − p)·(1/n_a + 1/n_b)), aproximação normal com variância não agrupada e p comum; sem correção finita.")),
       help = .tr_sampling_ajuda(paste(r"---[
 Responde se dá para COMPARAR grupos: para cada par de categorias de uma mesma
 variável (mulheres × homens, pretos × brancos), a menor diferença entre as duas
@@ -188,7 +207,7 @@ muda a DMD.
 Duas margens de erro que não se sobrepõem não são o teste da diferença, e duas
 que se sobrepõem ainda podem esconder uma diferença real. É esta a conta certa
 para a pergunta "dá para comparar?".
-]---", ajuda_nao_prob), r"---[
+]---"), r"---[
 - **Variável**, **Grupo** — colunas da tabela longa (uma linha por categoria).
 - **Tamanho do grupo** — coluna com a contagem, ou a participação (0 a 1) se o
   **n total** for maior que 0.
@@ -255,6 +274,15 @@ tr_flow(reg) |>
         base = P("cols", "base", label = "Coluna da base", example = "base"),
         nao_resposta = N(0, min = 0, max = 0.9, step = 0.01, label = "Não resposta esperada"),
         confianca = E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")),
+      pressupostos = c(list(trama::tr_pressuposto(
+        "A **não resposta** e a base condicional só reduzem o n: quem pula ou não responde se parece com quem responde.",
+        se_falhar = "Se a não resposta depende do tema, a margem subestima o erro; calibre com `sampling/rake`."),
+        trama::tr_pressuposto("As margens de diferença e de todos os pares valem para pares **definidos antes** de olhar os dados; a de todos os pares usa Bonferroni, conservadora.",
+          se_falhar = "Para escolher o par depois de ver os dados, use `margem_todos_pares_pp`.")),
+        .tr_sampling_press_margem(), list(trama::tr_pressuposto("Os níveis vêm de uma tabela de margens da mesma pesquisa (n e deff por nível).",
+          verificar = "sampling/margin_levels", se_falhar = "Gere os níveis com `sampling/margin_levels` ou `sampling/referral`."))),
+      referencias = list(.tr_sampling_refs()$thompson, .tr_sampling_refs()$cochran,
+        .tr_sampling_impl("tr_sampling_question_margins", "Pior caso por tipo com z normal: p = 0,5; simultânea de Thompson (max sobre m de z_{α/(2m)}·√((1/m)(1 − 1/m)/n)); diferença √(deff/n); todos os pares com Bonferroni sobre k(k − 1)/2; escala com desvio (k − 1)/2.")),
       help = .tr_sampling_ajuda(r"---[
 Cruza o QUESTIONÁRIO com os níveis de uma tabela de margens (de
 `sampling/margin_levels` ou `sampling/referral`) e dá, para cada pergunta em
