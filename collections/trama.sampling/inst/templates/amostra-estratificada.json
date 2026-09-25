@@ -86,9 +86,9 @@
     "ui": {
       "positions": {
         "pop": [0, 0],
-        "amostra": [300, 0],
-        "media": [600, 0],
-        "grafico": [900, 0]
+        "amostra": [360, 0],
+        "media": [720, 0],
+        "grafico": [1080, 0]
       },
       "sizes": {},
       "views": {},

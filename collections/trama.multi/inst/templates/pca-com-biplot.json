@@ -83,9 +83,9 @@
     "ui": {
       "positions": {
         "dados": [0, 0],
-        "pca": [300, 0],
-        "variancia": [600, 0],
-        "mapa": [600, 180]
+        "pca": [360, 0],
+        "variancia": [720, 0],
+        "mapa": [720, 440]
       },
       "sizes": {},
       "views": {},

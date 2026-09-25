@@ -64,8 +64,8 @@
     "ui": {
       "positions": {
         "carros": [0, 0],
-        "economicos": [300, 0],
-        "resumo": [600, 0]
+        "economicos": [360, 0],
+        "resumo": [720, 0]
       },
       "sizes": {},
       "views": {},

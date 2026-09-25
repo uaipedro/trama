@@ -69,8 +69,8 @@
     "ui": {
       "positions": {
         "flores": [0, 0],
-        "histograma": [300, 0],
-        "caixas": [300, 180]
+        "histograma": [360, 0],
+        "caixas": [360, 440]
       },
       "sizes": {},
       "views": {},

@@ -82,9 +82,9 @@
     "ui": {
       "positions": {
         "pax": [0, 0],
-        "modelo": [300, 0],
-        "previsao": [600, 0],
-        "grafico": [900, 0]
+        "modelo": [360, 0],
+        "previsao": [720, 0],
+        "grafico": [1080, 0]
       },
       "sizes": {},
       "views": {},

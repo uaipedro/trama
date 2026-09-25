@@ -86,9 +86,9 @@
     "ui": {
       "positions": {
         "dados": [0, 0],
-        "ajuste": [300, 0],
-        "medias": [600, 0],
-        "pares": [900, 0]
+        "ajuste": [360, 0],
+        "medias": [720, 0],
+        "pares": [1080, 0]
       },
       "sizes": {},
       "views": {},

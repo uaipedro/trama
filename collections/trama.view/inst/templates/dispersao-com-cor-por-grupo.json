@@ -49,7 +49,7 @@
     "ui": {
       "positions": {
         "flores": [0, 0],
-        "dispersao": [300, 0]
+        "dispersao": [360, 0]
       },
       "sizes": {},
       "views": {},

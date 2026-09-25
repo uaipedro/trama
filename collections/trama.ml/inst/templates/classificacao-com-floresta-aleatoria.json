@@ -137,11 +137,11 @@
     "ui": {
       "positions": {
         "dados": [0, 0],
-        "separar": [300, 0],
-        "floresta": [600, 0],
-        "prever": [900, 0],
-        "avaliar": [1200, 0],
-        "confusao": [1200, 180]
+        "separar": [360, 0],
+        "floresta": [720, 0],
+        "prever": [1080, 0],
+        "avaliar": [1440, 0],
+        "confusao": [1440, 440]
       },
       "sizes": {},
       "views": {},

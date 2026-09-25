@@ -68,8 +68,8 @@
     "ui": {
       "positions": {
         "ar": [0, 0],
-        "medidos": [300, 0],
-        "mensal": [600, 0]
+        "medidos": [360, 0],
+        "mensal": [720, 0]
       },
       "sizes": {},
       "views": {},

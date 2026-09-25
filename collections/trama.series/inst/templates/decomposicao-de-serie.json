@@ -82,9 +82,9 @@
     "ui": {
       "positions": {
         "pax": [0, 0],
-        "log": [300, 0],
-        "decomp": [600, 0],
-        "grafico": [900, 0]
+        "log": [360, 0],
+        "decomp": [720, 0],
+        "grafico": [1080, 0]
       },
       "sizes": {},
       "views": {},

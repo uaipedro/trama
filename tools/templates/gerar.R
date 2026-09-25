@@ -9,6 +9,8 @@
 # Só dados embutidos (`*/example`): template descarta param de caminho, então
 # um exemplo que lê arquivo chegaria vazio a quem o cola.
 
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
 suppressMessages({
   pkgload::load_all(".", quiet = TRUE)  # o trama da árvore, não o instalado
   pkgs <- c("trama.data", "trama.view", "trama.models", "trama.ml",
@@ -17,9 +19,18 @@ suppressMessages({
   for (p in pkgs) tr_use(p, registry = reg)
 })
 
-# Colunas por profundidade topológica (fontes à esquerda), linhas na ordem em
-# que os nós entraram no fluxo. Sem isso, todos nasceriam no mesmo ponto.
-dispor <- function(flow, dx = 300, dy = 180) {
+# Colunas por profundidade topológica (fontes à esquerda). Sem isso, todos
+# nasceriam no mesmo ponto.
+#
+# O passo é o do card de verdade, no modo completo (o padrão ao colar): 240px
+# de largura (`.tr-node`, trama.css) e até ~360px de altura — cabeçalho, 132px
+# de preview, abas, uns cinco params e as portas. `dx = 360` deixa 120px de
+# vão entre colunas; `dy = 440`, uns 80px entre linhas no card mais alto.
+#
+# Linha por RAMO: o nó herda a linha do primeiro pai (uma cadeia fica reta) e,
+# se ela já estiver ocupada na coluna, desce para a próxima livre — dois
+# destinos do mesmo pai ficam um embaixo do outro, nunca por cima.
+dispor <- function(flow, dx = 360, dy = 440) {
   doc <- flow$doc
   ids <- names(doc$nodes)
   prof <- setNames(rep(0L, length(ids)), ids)
@@ -31,11 +42,23 @@ dispor <- function(flow, dx = 300, dy = 180) {
     }
     if (!mudou) break
   }
-  linha <- integer()
-  for (id in ids) {
+  pais <- lapply(setNames(ids, ids), function(id)
+    unique(vapply(Filter(function(e) e$to$node == id, doc$edges),
+                  function(e) e$from$node, "")))
+  linha <- setNames(rep(NA_integer_, length(ids)), ids)
+  ocupadas <- list()
+  # Por profundidade, e dentro dela na ordem de entrada no fluxo: o pai
+  # sempre tem linha quando o filho é disposto.
+  for (id in ids[order(prof, seq_along(ids))]) {
     k <- as.character(prof[[id]])
-    linha[k] <- (if (is.na(linha[k])) 0L else linha[k] + 1L)
-    doc$ui$positions[[id]] <- c(prof[[id]] * dx, linha[[k]] * dy)
+    usadas <- ocupadas[[k]] %||% integer()
+    alvo <- if (length(pais[[id]])) min(linha[pais[[id]]]) else 0L
+    while (alvo %in% usadas) alvo <- alvo + 1L
+    linha[[id]] <- alvo
+    ocupadas[[k]] <- c(usadas, alvo)
+  }
+  for (id in ids) {
+    doc$ui$positions[[id]] <- c(prof[[id]] * dx, linha[[id]] * dy)
     # Seed derivada do id: `tr_add()` sorteia uma nova a cada execução, e
     # regerar sem mudar o exemplo não pode sujar o diff.
     doc$nodes[[id]]$seed <- strtoi(substr(digest::digest(id, algo = "md5"), 1, 7), 16L)
