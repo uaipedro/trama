@@ -2484,13 +2484,18 @@ function App() {
       setProx(null);
       if (!o || !d) return;
       const nid = novoId();
-      pushMany([
+      const pm = { x: (o.position.x + d.position.x) / 2, y: (o.position.y + d.position.y) / 2 };
+      const opsMeio = [
         { op: "disconnect", from_node: a.source, from_port: a.sourceHandle,
           to_node: a.target, to_port: a.targetHandle, index: a.index },
-        ...opsAdd(tipoId, { x: (o.position.x + d.position.x) / 2, y: (o.position.y + d.position.y) / 2 }, nid),
+        ...opsAdd(tipoId, pm, nid),
         { op: "connect", from_node: a.source, from_port: a.sourceHandle, to_node: nid, to_port: porta },
         { op: "connect", from_node: nid, from_port: saidaMeio, to_node: a.target, to_port: a.targetHandle },
-      ]);
+      ];
+      // Com inserts encadeados na fila, este entra atrás deles: sair antes
+      // mandaria uma revisão que a fila ainda vai tornar defasada.
+      if (!filaProxRef.current.length) pushMany(opsMeio);
+      else filaProxRef.current.push({ de: a.source, ops: opsMeio, pos: pm });
       registrar(p.deTipo, tipoId);
       selNovoRef.current = nid;
       return;
