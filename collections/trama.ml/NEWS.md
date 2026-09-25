@@ -70,3 +70,10 @@ positiva) e `ml/cart` (poda), com os nós em versão 2.
   exemplo à mão de 3 classes (kappa 0,5; F1 0,8/0,5/0,667) e `yardstick`
   (kap, f_meas/precision/recall macro e macro_weighted, bal_accuracy binária)
   a 1e-12.
+- Novo bloco `ml/pr_curve`: curva precisão-revocação com precisão média
+  (AP = Σ ΔR·P, sem interpolação) e área com a interpolação de Davis &
+  Goadrich (2006) integrada em forma fechada (Keilwagen, Grosse & Grau 2014);
+  linha do acaso na prevalência (Saito & Rehmsmeier 2015). Validação: exemplo
+  à mão de 5 linhas (AP 0,7556; área 0,7161 em forma fechada),
+  `yardstick::average_precision` (1e-10) e `PRROC::pr.curve` `auc.integral`
+  (1e-8), com empates.

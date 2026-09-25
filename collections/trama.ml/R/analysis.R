@@ -229,6 +229,74 @@ tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 
+#' Curva precisão-revocação para classificação binária
+#'
+#' Ordena as linhas pela probabilidade da classe positiva e traça a precisão
+#' contra a revocação em cada corte (empates num só degrau). A precisão média
+#' (AP) é a soma, nos cortes, do ganho de revocação vezes a precisão
+#' (sem interpolação; Su, Yuan & Zhu 2015). A linha de referência é a
+#' prevalência da classe positiva, a precisão de um classificador ao acaso
+#' (Saito & Rehmsmeier 2015). A `area` é a área sob a curva com a interpolação
+#' não linear de Davis & Goadrich (2006), integrada de forma contínua; é menor
+#' que a AP quando há degraus, e a interpolação linear da ROC não vale aqui.
+#' @inheritParams tr_ml_roc
+#' @return Objeto `ggplot`. Os dados do gráfico trazem `limiar`, `recall`,
+#'   `precision`, a `ap`, a `area` (Davis & Goadrich) e a `prevalencia`.
+#' @examples
+#' d <- data.frame(y = c("sim", "nao", "sim", "nao", "sim"),
+#'                 .prob_sim = c(.9, .8, .7, .6, .2))
+#' tr_ml_pr_curve(d, "y", ".prob_sim")
+#' @export
+tr_ml_pr_curve <- function(dados, alvo = "", probabilidade = "", positiva = "",
+                           aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
+                           rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  .tr_ml_validate_pair(dados, alvo, probabilidade)
+  y <- as.character(dados[[alvo]]); prob <- dados[[probabilidade]]
+  classes <- unique(y)
+  if (anyNA(y) || length(classes) != 2L || !is.numeric(prob) || anyNA(prob) ||
+      any(!is.finite(prob)) || any(prob < 0 | prob > 1))
+    .tr_ml_abort("tr_ml_error_not_applicable",
+                 "A curva precis\u{E3}o-revoca\u{E7}\u{E3}o exige duas classes e uma probabilidade finita entre 0 e 1.")
+  if (!nzchar(positiva)) positiva <- .tr_ml_roc_positiva(dados[[alvo]], probabilidade)
+  if (!positiva %in% classes)
+    .tr_ml_abort("tr_ml_error_bad_param", "Param 'positiva' deve ser uma classe observada.")
+  d <- .tr_ml_pr_pontos(y == positiva, prob)
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$recall, y = .data$precision)) +
+    ggplot2::geom_hline(yintercept = d$prevalencia[[1]], linetype = 2, colour = "#94a3b8") +
+    ggplot2::geom_step(direction = "vh", linewidth = 1) +
+    ggplot2::geom_point(size = 1.6) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::annotate("text", x = .3, y = .08,
+                      label = sprintf("AP = %.3f  (acaso = %.3f)", d$ap[[1]], d$prevalencia[[1]])) +
+    ggplot2::labs(x = "Revoca\u{E7}\u{E3}o", y = "Precis\u{E3}o")
+  .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+# Um ponto por limiar distinto (decrescente): prevê positivo quando prob >= limiar.
+.tr_ml_pr_pontos <- function(positivo, prob) {
+  ord <- order(prob, decreasing = TRUE)
+  positivo <- positivo[ord]; prob <- prob[ord]
+  grupos <- cumsum(c(TRUE, diff(prob) != 0))
+  tp <- cumsum(as.numeric(rowsum(as.integer(positivo), grupos)))
+  fp <- cumsum(as.numeric(rowsum(as.integer(!positivo), grupos)))
+  recall <- tp / sum(positivo); precision <- tp / (tp + fp)
+  ap <- sum(diff(c(0, recall)) * precision)
+  # Área com a interpolação de Davis & Goadrich (2006), contínua (Keilwagen,
+  # Grosse & Grau 2014): entre dois cortes, cada positivo a mais traz
+  # s = dFP/dTP falsos positivos, e a precisão (a + x)/(c + k x), com
+  # a = TP, c = TP + FP e k = 1 + s, é integrada em forma fechada.
+  a <- c(0, tp[-length(tp)]); b <- c(0, fp[-length(fp)])
+  dtp <- tp - a; dfp <- fp - b
+  area <- 0
+  for (i in which(dtp > 0)) {
+    k <- 1 + dfp[[i]] / dtp[[i]]; c0 <- a[[i]] + b[[i]]
+    area <- area + if (c0 == 0) dtp[[i]] / k else
+      dtp[[i]] / k + (a[[i]] - c0 / k) / k * log((c0 + k * dtp[[i]]) / c0)
+  }
+  tibble::tibble(limiar = prob[!duplicated(grupos)], recall = recall, precision = precision,
+                 ap = ap, area = area / sum(positivo), prevalencia = mean(positivo))
+}
+
 # Classe positiva padrão: a que a coluna `.prob_<classe>` nomeia. Sem esse
 # nome, não há como saber de que classe é a probabilidade, e adivinhar pode
 # espelhar a curva (AUC vira 1 - AUC): exige `positiva`.
