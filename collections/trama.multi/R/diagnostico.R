@@ -182,6 +182,19 @@ tr_multi_mardia <- function(dados, cols = "", grupo = "", confianca = 0.95) {
     if (tem_grupo) r <- cbind(stats::setNames(data.frame(factor(l, levels(g))), gr$grupo), r)
     r
   })
+  # Os p são assintóticos (χ² e normal com n → ∞). Abaixo de 20 o MVN troca
+  # para a assimetria de amostra pequena (Korkmaz, Goksuluk & Zararsiz 2014):
+  # é uma regra de pacote, não um limiar da literatura, e o aviso a usa só
+  # como sinal de "n pequeno".
+  ns <- table(g)
+  pequenos <- ns[ns < 20L]
+  if (length(pequenos)) {
+    rlang::warn(sprintf(paste0(
+      "'%s': teste assintótico; pouco confiável em n pequeno (%s). Leia a linha ",
+      "'assimetria (amostra pequena)', e não rejeitar não é evidência de normalidade."),
+      no, if (tem_grupo) paste(sprintf("'%s' tem %d", names(pequenos), as.integer(pequenos)), collapse = "; ")
+          else sprintf("n = %d", as.integer(pequenos))), class = "tr_multi_warning_small_n")
+  }
   r <- do.call(rbind, partes)
   pct <- format(100 * alfa, decimal.mark = ",")
   r$leitura <- ifelse(r$p_valor < alfa,
@@ -286,6 +299,12 @@ Com dᵢⱼ = (xᵢ − x̄)ᵀ S⁻¹ (xⱼ − x̄) e S a covariância de divi
 Rejeitar em qualquer das duas é evidência contra a normal multivariada.
 Não rejeitar não prova normalidade: com poucos casos o teste tem pouco poder,
 e com muitos rejeita desvios que não mudam a análise.
+
+Os p são **assintóticos** (qui-quadrado e normal valem com n grande) e pouco
+confiáveis em n pequeno: a curtose converge devagar, e a assimetria sem
+correção erra o nível. Com menos de 20 linhas (na tabela ou num grupo) o
+bloco avisa — 20 é a regra do pacote MVN para trocar para a assimetria de
+amostra pequena, não um limiar estabelecido na literatura.
 
 ### Grupo
 

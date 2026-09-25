@@ -62,6 +62,23 @@ padrão na `multi/logistic_coefficients`).
   kappa" da Wikipédia — não é fonte primária); `irr::kappa2` e
   `psych::cohen.kappa` a 1e-12 nas previsões cruzadas da LDA do `iris`.
 
+## Aviso de n pequeno no Mardia
+
+* `multi/mardia`: com menos de 20 linhas na tabela ou num grupo, avisa
+  (`tr_multi_warning_small_n`) que o teste é assintótico e pouco confiável em
+  n pequeno. 20 é a regra do `MVN::mardia` para usar a assimetria de amostra
+  pequena (conferida no código-fonte do MVN), não um limiar da literatura.
+  Resultado igual.
+
+## `z` de Wald e p perfilado na `multi/logistic_coefficients`
+
+* A ajuda explica que o `z` é sempre de Wald e, com `intervalo = "perfilado"`,
+  o `p_valor` é da razão de verossimilhanças (penalizadas no Firth): os dois
+  podem discordar. O EP do Firth (inversa da informação de Fisher em β̂) não
+  foi conferido no texto de Heinze & Schemper (2002), sem acesso aberto; o
+  resumo só diz que Wald existe e que os testes da razão de verossimilhanças
+  penalizadas são muitas vezes preferíveis.
+
 ## IC da AUC indisponível em vez de recusa
 
 * `multi/roc` (versão 4): com AUC 0 ou 1 (variância de DeLong zero) ou menos
