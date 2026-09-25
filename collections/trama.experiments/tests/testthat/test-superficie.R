@@ -1,6 +1,6 @@
 # Oráculo: `rsm::rsm` + `canonical` sobre `rsm::ChemReact` (composto central
-# em dois blocos; Myers, Montgomery & Anderson-Cook, tabela 7.6 segundo a
-# documentação do rsm). Tolerância 1e-8 relativa: mesma conta, mesmo QR.
+# em dois blocos; Myers, Montgomery & Anderson-Cook, 3rd ed., 2009, tabela 7.6,
+# como cita a documentação do rsm). Tolerância 1e-8 relativa: mesma conta, mesmo QR.
 
 cr_codificado <- function(d = rsm::ChemReact) {
   d$x1 <- (d$Time - 85) / 5; d$x2 <- (d$Temp - 175) / 5
@@ -45,4 +45,21 @@ test_that("sela é reconhecida, e fatores na unidade original são recusados", {
   expect_equal(s$canonica$valor[s$canonica$item == "natureza"], "ponto de sela")
   expect_error(tr_experiments_response_surface(cr_codificado(), "Yield", "Time, Temp", "2"),
                class = "tr_experiments_error_bad_option")
+})
+
+test_that("com bloco, o erro puro é o resíduo de y ~ bloco + ponto, como no rsm", {
+  skip_if_not_installed("rsm")
+  # CCD 2³ com 6 centrais, 2 repetições como blocos. Antes da correção o erro
+  # puro era calculado dentro de ponto × bloco: EP 10 gl, FA 19 gl.
+  Z <- as.data.frame(tr_experiments_design("composto_central", "A; B; C", pontos_centrais = 6,
+                                           repeticoes = 2, .seed = 8)$unidades)
+  set.seed(31)
+  Z$y <- 10 + Z$A - Z$B^2 - Z$C^2 - Z$A^2 + 0.5 * Z$A * Z$C + as.numeric(Z$repeticao) +
+    stats::rnorm(nrow(Z), sd = 0.5)
+  t <- tr_experiments_response_surface(Z, "y", "A, B, C", "2", "repeticao")$quadro$tabela
+  a <- summary(rsm::rsm(y ~ repeticao + SO(A, B, C), data = Z))$lof
+  expect_equal(t$gl, unname(a$Df), tolerance = 1e-12)
+  expect_equal(t$gl[t$termo == "Erro puro"], 24)
+  expect_equal(t$sq, unname(a$`Sum Sq`), tolerance = 1e-8)
+  expect_equal(t$p_valor[t$termo == "Falta de ajuste"], a$`Pr(>F)`[[6]], tolerance = 1e-8)
 })

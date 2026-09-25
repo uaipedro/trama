@@ -14,10 +14,11 @@
 #   Satterthwaite). É ele que escolhe o TERMO DE ERRO: contraste entre níveis da
 #   parcela usa o erro a; entre níveis da subparcela, o erro b. Refazer essa
 #   escolha aqui seria duplicar o que o models já acerta.
-# - O SQ é o do livro, est² / Σ(cᵢ²/rᵢ), com rᵢ as observações de cada média.
-#   O F é t², que sai da covariância do modelo; no balanceado os dois caminhos
-#   coincidem com o F = SQ / QM do erro, e o QM do erro que aparece na linha é
-#   exatamente SQ / F — no desbalanceado é o erro "efetivo" daquela comparação.
+# - O SQ da linha é o SQ extra do teste de 1 gl, F × QM do erro (o do
+#   `car::linearHypothesis`). O F é t², da covariância do modelo. No `lm`, o QM
+#   do erro é o do resíduo, igual em toda linha; no misto e na parcela
+#   subdividida, é o erro efetivo daquele contraste. No balanceado esse SQ é o
+#   do livro, est² / Σ(cᵢ²/rᵢ); no desbalanceado, o do livro sai em `sq_livro`.
 # - A sintaxe dos contrastes digitados é a do `models/linear_hypothesis`, lida
 #   pelas MESMAS funções de lá (ver `.tr_exp_an_do_models`), para que um texto
 #   que funciona num bloco funcione no outro.
@@ -361,46 +362,64 @@ tr_experiments_contrasts <- function(modelo, fator = "", conjunto = "polinomiais
   niveis <- as.character(grade1[[fts[[1]]]])
 
   # Réplicas de cada média contrastada: as do fator (ou da célula, no 2^k). No
-  # desdobramento, as da célula no primeiro nível de `dentro`; se variarem entre
-  # níveis, a nota avisa.
+  # desdobramento, as da CÉLULA em cada nível de `dentro`: os polinômios de um
+  # grupo são construídos com as réplicas daquele grupo, e ficam ortogonais
+  # dentro da célula mesmo quando as células têm tamanhos diferentes.
   chave <- function(df, cols) do.call(paste, c(lapply(cols, function(cc) as.character(df[[cc]])), sep = "\r"))
   conta <- table(chave(dados, c(fts, by)))
   r_de <- function(g) as.numeric(conta[chave(g, c(fts, by))])
-  r <- r_de(grade1)
-  r_marg <- as.numeric(table(dados[[fts[[1]]]])[niveis])
-  r_varia <- length(by) && length(unique(round(as.numeric(conta), 8))) > 1L
+  grupos <- if (length(by)) unique(as.character(grade[[by]])) else ""
+  linhas_g <- lapply(grupos, function(b) if (length(by)) which(as.character(grade[[by]]) == b) else seq_len(nrow(grade)))
 
   x <- NULL
-  L <- switch(conjunto,
-    polinomiais = { x <- .tr_exp_an_x(niveis, doses, fts, no); .tr_exp_an_polinomiais(x, r_marg) },
+  monta_L <- function(g, r) switch(conjunto,
+    polinomiais = { x <<- .tr_exp_an_x(niveis, doses, fts, no); .tr_exp_an_polinomiais(x, r) },
     helmert = .tr_exp_an_helmert(niveis),
     controle = .tr_exp_an_controle(niveis, if (.tr_exp_preenchido(controle)) controle else niveis[[1]], no),
-    `fatorial 2^k` = .tr_exp_an_fatorial(grade1, fts, no),
+    `fatorial 2^k` = .tr_exp_an_fatorial(g, fts, no),
     digitados = .tr_exp_an_digitados(contrastes, niveis, no))
+  r_g <- lapply(linhas_g, function(i) r_de(grade[i, , drop = FALSE]))
+  L_g <- lapply(seq_along(grupos), function(j) monta_L(grade[linhas_g[[j]], , drop = FALSE], r_g[[j]]))
+  L <- L_g[[1]]
   if (qr(L)$rank < nrow(L)) {
     .tr_experiments_abort("tr_experiments_error_bad_option",
                      "'%s': os contrastes (%s) são linearmente dependentes — algum é combinação dos outros.",
                      no, paste(rownames(L), collapse = "; "))
   }
 
-  ct <- emmeans::contrast(emm, method = stats::setNames(lapply(seq_len(nrow(L)), function(i) L[i, ]), rownames(L)),
-                          by = if (length(by)) by else NULL, adjust = "none")
+  # Cada contraste vira um vetor sobre a grade TODA (zero fora do seu grupo),
+  # para que cada grupo de `dentro` tenha os seus próprios coeficientes.
+  metodo <- list(); info <- list()
+  for (j in seq_along(grupos)) for (i in seq_len(nrow(L_g[[j]]))) {
+    v <- numeric(nrow(grade)); v[linhas_g[[j]]] <- L_g[[j]][i, ]
+    nm <- if (length(by)) sprintf("%s | %s = %s", rownames(L_g[[j]])[[i]], by, grupos[[j]]) else rownames(L_g[[j]])[[i]]
+    metodo[[nm]] <- v
+    info[[nm]] <- list(c = L_g[[j]][i, ], r = r_g[[j]])
+  }
+  ct <- emmeans::contrast(emm, method = metodo, by = NULL, adjust = "none")
   s <- as.data.frame(summary(ct))
-  # Linha de `s` → linha de L: o `contrast()` devolve na ordem do método, por grupo.
-  i_l <- match(as.character(s$contrast), rownames(L))
-  r_linha <- if (length(by)) {
-    lapply(as.character(s[[by]]), function(b) r_de(grade[as.character(grade[[by]]) == b, , drop = FALSE]))
-  } else rep(list(r), nrow(s))
-  soma_c2r <- vapply(seq_len(nrow(s)), function(i) sum(L[i_l[[i]], ]^2 / r_linha[[i]]), 1)
+  info <- info[as.character(s$contrast)]
+  soma_c2r <- vapply(info, function(z) sum(z$c^2 / z$r), 1)
   est <- s$estimate
   f_est <- (est / s$SE)^2
-  sq <- est^2 / soma_c2r
-  tab <- data.frame(termo = if (length(by)) sprintf("%s | %s = %s", s$contrast, by, s[[by]]) else as.character(s$contrast),
-                    coeficientes = vapply(i_l, function(i) paste(format(signif(L[i, ], 4), trim = TRUE), collapse = " "), ""),
+  # O SQ da linha é o SQ EXTRA do teste de 1 gl (o do `car::linearHypothesis`):
+  # F × QM do erro. No `lm`, o QM do erro é o do resíduo, o mesmo em toda
+  # linha; no misto e na parcela subdividida, é o erro efetivo (combinado) que
+  # o `emmeans` usou para aquele contraste, SE² / Σ(cᵢ²/rᵢ). No balanceado, os
+  # dois coincidem com o SQ do livro, est² / Σ(cᵢ²/rᵢ); no desbalanceado, o do
+  # livro vai à coluna `sq_livro`.
+  qm <- if (modelo$classe == "lm") rep(stats::sigma(modelo$ajuste)^2, nrow(s)) else s$SE^2 / soma_c2r
+  sq <- f_est * qm
+  sq_livro <- est^2 / soma_c2r
+  tab <- data.frame(termo = as.character(s$contrast),
+                    coeficientes = vapply(info, function(z) paste(format(signif(z$c, 4), trim = TRUE), collapse = " "), ""),
                     estimativa = est, erro_padrao = s$SE, gl = 1L, sq = sq, F = f_est,
-                    gl_erro = s$df, qm_erro = sq / f_est,
+                    gl_erro = s$df, qm_erro = qm,
                     p_valor = stats::pf(f_est, 1, s$df, lower.tail = FALSE),
                     stringsAsFactors = FALSE)
+  livro_difere <- any(abs(sq_livro - sq) > 1e-8 * pmax(1, abs(sq)))
+  if (livro_difere) tab$sq_livro <- sq_livro
+  i_l <- match(sub(" \\| .*$", "", as.character(s$contrast)), rownames(L))
   if (conjunto == "fatorial 2^k") tab$efeito <- est / 2^(length(fts) - 1L)
 
   nota <- character()
@@ -414,8 +433,11 @@ tr_experiments_contrasts <- function(modelo, fator = "", conjunto = "polinomiais
 
   # Conferência da soma: só faz sentido para um conjunto COMPLETO (k − 1 por
   # grupo) e ortogonal. Fora disso, diz por que não se espera que some.
-  M <- .tr_exp_an_ortogonalidade(L, r)
-  nao_ort <- .tr_exp_an_pares_nao_ortogonais(M)
+  Ms <- lapply(seq_along(grupos), function(j) .tr_exp_an_ortogonalidade(L_g[[j]], r_g[[j]]))
+  nao_ort <- unique(unlist(lapply(seq_along(grupos), function(j) {
+    p <- .tr_exp_an_pares_nao_ortogonais(Ms[[j]])
+    if (length(p) && length(by)) sprintf("%s (%s = %s)", p, by, grupos[[j]]) else p
+  })))
   alvo <- .tr_exp_an_sq_alvo(modelo, fts, c(fts, by))
   soma <- sum(sq)
   completo <- nrow(L) == ncol(L) - 1L
@@ -430,15 +452,20 @@ tr_experiments_contrasts <- function(modelo, fator = "", conjunto = "polinomiais
   if (length(nao_ort)) nota <- c(nota, sprintf("pares não ortogonais (Σ cᵢdᵢ/rᵢ ≠ 0): %s — os SQ se sobrepõem e não somam", paste(nao_ort, collapse = ", ")))
   nao_soma <- rownames(L)[abs(rowSums(L)) > 1e-8]
   if (length(nao_soma)) nota <- c(nota, sprintf("não somam zero (não são contrastes): %s", paste(nao_soma, collapse = ", ")))
-  if (r_varia) nota <- c(nota, "réplicas desiguais entre os níveis de 'dentro': a matriz de ortogonalidade usa as do primeiro nível")
+  if (livro_difere) nota <- c(nota, "desbalanceado: sq é o SQ extra do teste (F × qm_erro); sq_livro é est² / Σ(cᵢ²/rᵢ), que aqui não é o SQ do teste")
   if (modelo$classe %in% c("split", "lmer")) nota <- c(nota, "erro de cada contraste pelo modelo misto (gl de Satterthwaite): na parcela subdividida balanceada, erro a para a parcela e erro b para a subparcela")
 
-  ort <- tibble::as_tibble(cbind(data.frame(contraste = rownames(M), stringsAsFactors = FALSE),
-                                 as.data.frame(M, optional = TRUE)))
+  ort <- do.call(rbind, lapply(seq_along(grupos), function(j) {
+    M <- Ms[[j]]
+    o <- cbind(data.frame(contraste = rownames(M), stringsAsFactors = FALSE), as.data.frame(M, optional = TRUE))
+    if (length(by)) o <- cbind(stats::setNames(data.frame(rep(grupos[[j]], nrow(o)), stringsAsFactors = FALSE), by), o)
+    o
+  }))
+  ort <- tibble::as_tibble(ort)
   titulo <- sprintf("Contrastes (%s) · %s%s", conjunto, paste(fts, collapse = " × "),
                     if (length(by)) sprintf(" dentro de %s", by) else "")
   quadro <- trama.models::tr_models_effects(
     tab, titulo, coluna_estat = "F", rodape = rodape, nota = paste(nota, collapse = "; "),
-    fonte = "Montgomery (2017); Pimentel-Gomes (2009); Searle (1971)")
+    fonte = "Montgomery (2017); Pimentel-Gomes (2009); Searle (1971); Lenth (emmeans)")
   list(out = quadro, ortogonalidade = ort)
 }

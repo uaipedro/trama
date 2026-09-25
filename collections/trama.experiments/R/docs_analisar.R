@@ -64,6 +64,10 @@ estimativa Σ cᵢ ȳᵢ, SQ, F e p.
 Com **Dentro** preenchido, os contrastes do fator são estimados em cada nível do
 outro fator (linear de N dentro de cada variedade). Com um conjunto completo e
 ortogonal, a soma de todos os SQ desdobrados é SQ(fator) + SQ(fator × dentro).
+Os coeficientes de cada grupo usam as réplicas da CÉLULA daquele grupo: com
+células de tamanhos diferentes, os polinômios de cada nível de **Dentro** saem
+diferentes e ortogonais dentro da célula, e a porta `ortogonalidade` traz uma
+matriz por grupo.
 
 ### O termo de erro
 
@@ -72,8 +76,13 @@ escolhe o erro: no delineamento e no `lm`, o resíduo; na **parcela
 subdividida**, o misto do `models/fit` com gl de Satterthwaite — no balanceado,
 o erro a para contrastes entre níveis da parcela e o erro b para os da
 subparcela. O `qm_erro` de cada linha é SQ / F, o erro que aquela comparação de
-fato usou. O SQ é o do livro, est² / Σ(cᵢ²/rᵢ), com rᵢ as observações de cada
-média.
+fato usou. O SQ de cada linha é o SQ extra do teste de 1 gl, `sq` = F ×
+`qm_erro` (o mesmo do `car::linearHypothesis`). No `lm` e nos delineamentos,
+`qm_erro` é o QM do resíduo, igual em todas as linhas; no misto e na parcela
+subdividida, é o erro efetivo (combinado) que aquele contraste usou. No
+balanceado, `sq` é o SQ do livro, est² / Σ(cᵢ²/rᵢ), com rᵢ as observações de
+cada média; no desbalanceado os dois diferem, e o do livro sai à parte, na
+coluna `sq_livro`.
 ]---", r"---[
 - Modelo linear com erro normal, independente e de variância constante (ANOVA,
   `lm`, misto ou parcela subdividida); GLM é recusado — lá o contraste vive na
@@ -81,9 +90,10 @@ média.
 - Contrastes **planejados** antes de ver os dados: o p de cada linha não é
   corrigido para multiplicidade. Contrastes escolhidos depois de olhar as médias
   pedem Scheffé ou outra correção.
-- No desbalanceado, as médias são as ajustadas do `emmeans`, e o SQ de livro
-  (est² / Σ cᵢ²/rᵢ) é uma aproximação: o F e o p, que vêm da covariância do
-  modelo, continuam exatos, e o rodapé diz que a soma não fecha.
+- No desbalanceado, as médias são as ajustadas do `emmeans`; `sq` é o SQ
+  extra do teste (F × QM do erro), e o SQ de livro (est² / Σ cᵢ²/rᵢ), que aí
+  não é o do teste, vai para `sq_livro`. Os SQ extras não somam o SQ do
+  tratamento, e o rodapé diz isso.
 - Polinômios exigem fator quantitativo: os níveis têm de ser números, ou os
   valores vão em **Doses**.
 ]---", r"---[
@@ -103,9 +113,10 @@ Duas portas:
 - `out` — um quadro de efeitos (`models/effects`) com uma linha por contraste:
   `termo`, `coeficientes`, `estimativa`, `erro_padrao`, `gl`, `sq`, `F`,
   `gl_erro`, `qm_erro`, `p_valor` (e `efeito` no 2^k, `sq_regressao` nos
-  polinomiais sobre `lm`). O rodapé traz a conferência da soma dos SQ.
+  polinomiais sobre `lm`, `sq_livro` quando o modelo é desbalanceado). O rodapé traz a
+  conferência da soma dos SQ.
 - `ortogonalidade` — uma tabela (`data/table`) com a matriz Σ cᵢdᵢ/rᵢ entre os
-  contrastes.
+  contrastes (uma por nível de **Dentro**, com a coluna do grupo).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("aveia", "models/example", dataset = "aveia") |>
@@ -115,13 +126,15 @@ tr_flow(reg) |>
          doses = "0 0.2 0.4 0.6", dentro = "variedade", from = "split")
 ]---", r"---[
 - Montgomery, D. C. (2017). *Design and Analysis of Experiments*, 9th ed.
-  Wiley. Cap. 3 (contrastes e contrastes ortogonais; o exemplo da taxa de
-  gravação, reproduzido nos testes) e cap. 6 (o fatorial 2^k como contrastes).
+  Wiley. Cap. 3 (contrastes e contrastes ortogonais; o exemplo 3.1, da taxa de
+  gravação, reproduzido nos testes) e cap. 6 (o fatorial 2^k como contrastes;
+  o 2² do processo químico da seção 6.2, reproduzido nos testes).
 - Pimentel-Gomes, F. (2009). *Curso de Estatística Experimental*, 15ª ed. FEALQ.
-  (Contrastes ortogonais e polinômios ortogonais — capítulo a conferir.)
 - Searle, S. R. (1971). *Linear Models*. Wiley.
 - Lenth, R. V. `emmeans`: Estimated Marginal Means (pacote R), usado para as
   estimativas e os erros padrão.
+- Fox, J. & Weisberg, S. `car` (pacote R): o `linearHypothesis`, cujo SQ extra é
+  o `sq` de cada linha.
 ]---", r"---[
 `models/linear_hypothesis` para o F conjunto dos mesmos contrastes;
 `models/dose_response` para a curva ajustada às doses; `models/emmeans` para as
@@ -145,7 +158,10 @@ Devolve:
 - **λ sugerido** — dentro do intervalo, a potência interpretável mais próxima do
   ótimo, entre −2, −1, −0,5, 0 (log), 0,5, 1 (nenhuma) e 2. Se nenhuma cair no
   intervalo, o bloco diz isso e não sugere;
-- se λ = 1 (não transformar) está no intervalo.
+- se λ = 1 (não transformar) está no intervalo;
+- se λ̂ caiu na **borda da grade** (`na_borda`): aí o perfil ainda sobe além
+  do limite, λ̂ não é o ótimo, e o bloco não sugere transformação — amplie a
+  grade.
 
 Na parcela subdividida, o perfil é o do modelo de efeitos fixos com bloco ×
 parcela como fator (o que dá os resíduos do erro b).
@@ -164,7 +180,8 @@ parcela como fator (o que dá os resíduos do erro b).
 ]---", r"---[
 Três portas: `out`, o gráfico do perfil (`view/plot`) com o ótimo, o intervalo
 e o λ sugerido; `resumo`, uma tabela de uma linha (`lambda_otimo`, `li`, `ls`,
-`confianca`, `lambda_sugerido`, `transformacao`, `um_no_intervalo`, `nota`); e
+`confianca`, `lambda_sugerido`, `transformacao`, `um_no_intervalo`,
+`na_borda`, `nota`); e
 `perfil`, a tabela (λ, log-verossimilhança) da grade.
 ]---", r"---[
 tr_flow(reg) |>
@@ -174,7 +191,8 @@ tr_flow(reg) |>
   tr_add("bc", "experiments/boxcox", from = "fat")
 ]---", r"---[
 - Box, G. E. P. & Cox, D. R. (1964). An analysis of transformations. *Journal of
-  the Royal Statistical Society, Series B*, 26, 211–252. (Os dados de venenos e
+  the Royal Statistical Society, Series B*, 26(2), 211–243 (com a discussão,
+  até 252). doi:10.1111/j.2517-6161.1964.tb00553.x. (Os dados de venenos e
   tratamentos, `boot::poisons`, são deste artigo e estão nos testes.)
 - Venables, W. N. & Ripley, B. D. (2002). *Modern Applied Statistics with S*,
   4th ed. Springer. (`MASS::boxcox`.)
@@ -213,7 +231,8 @@ aditivo, e o b0 da canônica e do contorno é a média dos blocos.
 - O modelo de 2ª ordem é uma aproximação local: vale dentro da região
   experimentada, e o ponto estacionário fora dela não é recomendação.
 - Falta de ajuste só se testa com pontos repetidos; o erro puro vem das
-  repetições no mesmo ponto (e no mesmo bloco).
+  repetições no mesmo ponto. Com bloco, é o resíduo de `y ~ bloco + ponto`
+  (o bloco aditivo, como no modelo), a conta do `rsm` e de Myers et al.
 ]---", r"---[
 - **Resposta** — coluna numérica.
 - **Fatores** — de 1 a 6 colunas numéricas codificadas, separadas por vírgula.
@@ -234,14 +253,14 @@ tr_flow(reg) |>
          fatores = "x1, x2", ordem = "2", from = "ccd")
 ]---", r"---[
 - Box, G. E. P. & Wilson, K. B. (1951). On the experimental attainment of
-  optimum conditions. *Journal of the Royal Statistical Society, Series B*, 13,
-  1–45.
-- Myers, R. H., Montgomery, D. C. & Anderson-Cook, C. M. (2016). *Response
-  Surface Methodology*, 4th ed. Wiley. (Os dados do processo químico em dois
-  blocos, `rsm::ChemReact`, são da tabela 7.6 do livro segundo a documentação
-  do `rsm` — edição a conferir — e estão nos testes.)
+  optimum conditions. *Journal of the Royal Statistical Society, Series B*,
+  13(1), 1–38 (com a discussão, até 45). doi:10.1111/j.2517-6161.1951.tb00067.x.
+- Myers, R. H., Montgomery, D. C. & Anderson-Cook, C. M. (2009). *Response
+  Surface Methodology*, 3rd ed. Wiley. (Os dados do processo químico em dois
+  blocos, `rsm::ChemReact`, são da tabela 7.6 desta edição, como cita a
+  documentação do `rsm`, e estão nos testes.)
 - Lenth, R. V. (2009). Response-Surface Methods in R, Using rsm. *Journal of
-  Statistical Software*, 32(7).
+  Statistical Software*, 32(7). doi:10.18637/jss.v032.i07.
 ]---", r"---[
 `models/residuals` e `models/predict` sobre o `modelo`; `experiments/boxcox`.
 ]---", grafico = TRUE)

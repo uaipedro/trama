@@ -81,6 +81,11 @@ tr_experiments_boxcox <- function(modelo, lambda_min = -2, lambda_max = 2, passo
   # O ótimo fino, e não o da grade: com passo 0,1 a grade só acerta a primeira casa.
   o <- stats::optimize(ll, c(lambda_min, lambda_max), maximum = TRUE, tol = 1e-8)
   lhat <- o$maximum; lmax <- o$objective
+  # O `optimize` devolve um ponto da ponta quando o perfil só cresce até ela: aí
+  # λ̂ não é o ótimo, é a borda da grade, e o máximo está além dela.
+  borda <- c(if (lhat - lambda_min < 1e-4 * (lambda_max - lambda_min) && ll(lambda_min) >= ll(lambda_min + passo / 10)) "inferior",
+             if (lambda_max - lhat < 1e-4 * (lambda_max - lambda_min) && ll(lambda_max) >= ll(lambda_max - passo / 10)) "superior")
+  if (length(borda)) lhat <- if (borda[[1]] == "inferior") lambda_min else lambda_max
   corte <- lmax - stats::qchisq(confianca, 1) / 2
   raiz <- function(a, b) {
     if ((ll(a) - corte) * (ll(b) - corte) > 0) return(NA_real_)
@@ -90,18 +95,25 @@ tr_experiments_boxcox <- function(modelo, lambda_min = -2, lambda_max = 2, passo
   aberto <- c(if (is.na(li)) "inferior", if (is.na(ls)) "superior")
   li_ <- if (is.na(li)) lambda_min else li; ls_ <- if (is.na(ls)) lambda_max else ls
   dentro <- .TR_EXP_AN_LAMBDAS >= li_ & .TR_EXP_AN_LAMBDAS <= ls_
-  sug <- if (any(dentro)) {
+  sug <- if (length(borda)) NA_real_ else if (any(dentro)) {
     cand <- .TR_EXP_AN_LAMBDAS[dentro]
     cand[which.min(abs(cand - lhat))]
   } else NA_real_
   resumo <- tibble::tibble(
     lambda_otimo = lhat, li = li, ls = ls, confianca = confianca,
     lambda_sugerido = sug,
-    transformacao = if (is.na(sug)) "nenhuma potência simples cai no intervalo" else .TR_EXP_AN_TRANSF[match(sug, .TR_EXP_AN_LAMBDAS)],
+    transformacao = if (length(borda)) "sem sugestão: λ̂ na borda da grade" else if (is.na(sug)) "nenhuma potência simples cai no intervalo" else .TR_EXP_AN_TRANSF[match(sug, .TR_EXP_AN_LAMBDAS)],
     um_no_intervalo = 1 >= li_ && 1 <= ls_,
-    nota = if (length(aberto)) sprintf("intervalo aberto no limite %s da grade: amplie a grade", paste(aberto, collapse = " e ")) else "")
+    na_borda = length(borda) > 0L,
+    nota = paste(c(
+      if (length(borda)) sprintf("λ̂ está na borda %s da grade (%g): não é o ótimo, o máximo do perfil fica além; amplie a grade",
+                                 borda[[1]], lhat),
+      if (length(aberto)) sprintf("intervalo aberto no limite %s da grade: amplie a grade", paste(aberto, collapse = " e "))),
+      collapse = "; "))
 
-  lab <- sprintf("λ̂ = %.3f · IC %g%%: [%s; %s]%s", lhat, 100 * confianca,
+  sinal <- if (!length(borda)) "=" else if (borda[[1]] == "inferior") "≤" else "≥"
+  lab <- sprintf("λ̂ %s %.3f%s · IC %g%%: [%s; %s]%s", sinal, lhat, if (length(borda)) " (borda da grade)" else "",
+                 100 * confianca,
                  if (is.na(li)) "<" else sprintf("%.3f", li), if (is.na(ls)) ">" else sprintf("%.3f", ls),
                  if (is.na(sug)) "" else sprintf(" · sugerido: %s", resumo$transformacao))
   p <- ggplot2::ggplot(perfil, ggplot2::aes(x = .data[["lambda"]], y = .data[["log_verossimilhanca"]])) +

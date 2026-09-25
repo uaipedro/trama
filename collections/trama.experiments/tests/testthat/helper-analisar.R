@@ -8,8 +8,9 @@ dados_gravacao <- function() {
                       600, 651, 610, 637, 629, 725, 700, 715, 685, 710))
 }
 
-# Montgomery (2017), exemplo 6.1: 2² (concentração do reagente A, catalisador
-# B), 3 réplicas. Totais (1) = 80, a = 100, b = 60, ab = 90.
+# Montgomery (2017), seção 6.2: o 2² do processo químico (concentração do
+# reagente A, catalisador B), 3 réplicas. (O exemplo 6.1 do livro é um 2³.)
+# Totais (1) = 80, a = 100, b = 60, ab = 90.
 dados_2k <- function() {
   # O nível alto é o SEGUNDO: é ele que leva o sinal + no contraste.
   data.frame(A = factor(rep(c("-", "+", "-", "+"), each = 3), levels = c("-", "+")),

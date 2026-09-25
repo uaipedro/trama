@@ -1,4 +1,4 @@
-# Oráculos: Montgomery (2017) ex. 3.1 e 6.1 (valores do livro, tolerância 0,01
+# Oráculos: Montgomery (2017) ex. 3.1 e seção 6.2 (valores do livro, tolerância 0,01
 # por virem com duas casas); `emmeans::contrast`, `car::linearHypothesis`,
 # `stats::contr.poly` e o quadro do `aov` com `Error()` (tolerância 1e-8
 # relativa, a do ponto flutuante).
@@ -52,7 +52,7 @@ test_that("doses desigualmente espaçadas e réplicas desiguais: ortogonal e igu
   expect_match(h$out$nota, "pares não ortogonais")
 })
 
-test_that("Montgomery 6.1: o 2² como contrastes dá os SQ e os efeitos do livro", {
+test_that("Montgomery seç. 6.2: o 2² como contrastes dá os SQ e os efeitos do livro", {
   m <- trama.models::tr_models_anova_factorial(dados_2k(), "y", "A, B")
   r <- tr_experiments_contrasts(m, "A, B", "fatorial 2^k")
   t <- r$out$tabela
@@ -119,5 +119,48 @@ test_that("os nós de análise têm ajuda completa e params iguais aos do fn", {
       expect_true(nm %in% names(f), info = paste(n$id, nm))
       expect_equal(n$params[[nm]]$default, eval(f[[nm]]), info = paste(n$id, nm))
     }
+  }
+})
+
+test_that("desbalanceado: sq é o SQ extra do car::linearHypothesis e qm_erro é o QM do resíduo", {
+  # DBC com uma parcela perdida (revisão independente, semente 11). Antes da
+  # correção: sq 5,19 e 14,0 e qm_erro 0,710/0,744/0,715.
+  set.seed(11)
+  dd <- expand.grid(t = factor(1:4), b = factor(1:5))
+  dd$y <- 10 + as.numeric(dd$t) + stats::rnorm(20)
+  dd <- dd[-3, ]
+  m <- trama.models::tr_models_anova_dbc(dd, "y", "t", "b")
+  t <- tr_experiments_contrasts(m, "t", "helmert")$out$tabela
+  aj0 <- lm(y ~ 0 + t + b, dd)
+  hs <- lapply(list(c(-1, 1, 0, 0), c(-1, -1, 2, 0), c(-1, -1, -1, 3)),
+               function(L) car::linearHypothesis(aj0, c(L, rep(0, 4))))
+  expect_equal(t$sq, vapply(hs, function(h) h$`Sum of Sq`[[2]], 1), tolerance = 1e-8)
+  expect_equal(t$F, vapply(hs, function(h) h$F[[2]], 1), tolerance = 1e-8)
+  expect_equal(t$sq[2:3], c(4.956, 13.94), tolerance = 1e-3)
+  expect_equal(t$qm_erro, rep(sigma(aj0)^2, 3), tolerance = 1e-10)
+  expect_true("sq_livro" %in% names(t))
+  # No balanceado nada muda: sem sq_livro, e o sq continua o do livro.
+  mb <- trama.models::tr_models_anova_dic(dados_gravacao(), "taxa", "potencia")
+  expect_false("sq_livro" %in% names(tr_experiments_contrasts(mb, "potencia", "helmert")$out$tabela))
+})
+
+test_that("polinomiais dentro de células desiguais usam as réplicas da célula", {
+  set.seed(4)
+  f <- expand.grid(rep = 1:4, A = factor(c(0, 50, 100)), B = factor(c("b1", "b2")))
+  f$y <- 20 + as.numeric(f$A) * ifelse(f$B == "b1", 2, -1) + stats::rnorm(nrow(f))
+  f <- f[-c(1, 2, 13), ]  # células b1: 2, 4, 4; b2: 3, 4, 4
+  m <- trama.models::tr_models_anova_factorial(f, "y", "A, B")
+  r <- tr_experiments_contrasts(m, "A", "polinomiais", dentro = "B")
+  t <- r$out$tabela
+  # Antes: os dois grupos com "-5 -1 6", das réplicas marginais, e Σ cᵢdᵢ/rᵢ = −0,5.
+  expect_equal(t$coeficientes, c("-3 -1 4", "1 -2 1", "-9 -1 10", "1 -2 1"))
+  M <- as.matrix(r$ortogonalidade[, c("Linear", "Quadrático")])
+  expect_true(all(M[cbind(1:4, c(2, 1, 2, 1))] == 0))
+  expect_false(grepl("não ortogonais", r$out$nota))
+  # Oráculo: SQ sequencial de x e x² na regressão dentro de cada nível de B.
+  for (lv in c("b1", "b2")) {
+    s <- f[f$B == lv, ]; x <- as.numeric(as.character(s$A))
+    esperado <- anova(lm(y ~ x + I(x^2), s))$`Sum Sq`[1:2]
+    expect_equal(t$sq[grepl(paste0("= ", lv, "$"), t$termo)], esperado, tolerance = 1e-8)
   }
 })

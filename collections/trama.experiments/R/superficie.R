@@ -42,14 +42,18 @@
 
 #' Falta de ajuste contra o erro puro das repetições.
 #'
-#' O erro puro vem das observações repetidas no MESMO ponto do delineamento (e
-#' no mesmo bloco, quando há): tipicamente os pontos centrais. A falta de ajuste
-#' é o resto do resíduo. Sem repetição não há erro puro, e o teste não existe.
+#' O erro puro vem das observações repetidas no MESMO ponto do delineamento:
+#' tipicamente os pontos centrais. Com bloco, é o resíduo de `y ~ bloco + ponto`
+#' — o bloco entra aditivo, como no modelo, e os pontos repetidos em blocos
+#' diferentes também contam —, que é a conta do `rsm` e de Myers, Montgomery &
+#' Anderson-Cook. A falta de ajuste é o resto do resíduo. Sem repetição não há
+#' erro puro, e o teste não existe.
 #' @noRd
 .tr_exp_an_falta_ajuste <- function(aj, d, x, bloco) {
-  ponto <- interaction(d[, c(x, bloco), drop = FALSE], drop = TRUE)
-  sq_ep <- sum(stats::resid(stats::lm(d[[".y"]] ~ ponto))^2)
-  gl_ep <- nrow(d) - nlevels(ponto)
+  ponto <- interaction(d[, x, drop = FALSE], drop = TRUE)
+  ep <- if (length(bloco)) stats::lm(d[[".y"]] ~ d[[bloco]] + ponto) else stats::lm(d[[".y"]] ~ ponto)
+  sq_ep <- sum(stats::resid(ep)^2)
+  gl_ep <- stats::df.residual(ep)
   sq_res <- sum(stats::resid(aj)^2); gl_res <- stats::df.residual(aj)
   list(sq_ep = sq_ep, gl_ep = gl_ep, sq_fa = sq_res - sq_ep, gl_fa = gl_res - gl_ep)
 }
@@ -148,7 +152,7 @@ tr_experiments_response_surface <- function(dados, resposta = "", fatores = "", 
   quadro <- trama.models::tr_models_effects(
     tab, sprintf("Superfície de resposta · %sª ordem", ordem), coluna_estat = "F",
     rodape = list(R2 = format(signif(summary(aj)$r.squared, 4))), nota = nota_fa,
-    fonte = "Myers, Montgomery & Anderson-Cook (2016); Box & Wilson (1951)")
+    fonte = "Myers, Montgomery & Anderson-Cook (2009); Box & Wilson (1951); Lenth (2009)")
 
   # Análise canônica: com blocos, o intercepto é a média dos blocos, para que o
   # ŷ no ponto estacionário não seja o de um bloco arbitrário.
