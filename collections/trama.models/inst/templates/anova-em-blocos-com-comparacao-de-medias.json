@@ -1,0 +1,100 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "ANOVA em blocos com comparação de médias",
+  "descricao": "Produção de híbridos de milho em blocos casualizados: ANOVA, médias ajustadas e comparações par a par.",
+  "colecoes": ["trama.models"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "models": "0.1.0"
+    },
+    "nodes": {
+      "dados": {
+        "type": "models/example",
+        "type_version": 1,
+        "label": "Exemplo de modelos",
+        "params": {
+          "dataset": "milho_dbc"
+        },
+        "seed": 135350314
+      },
+      "ajuste": {
+        "type": "models/anova_dbc",
+        "type_version": 1,
+        "label": "ANOVA · DBC",
+        "params": {
+          "resposta": "producao",
+          "tratamento": "hibrido",
+          "bloco": "bloco"
+        },
+        "seed": 140023745
+      },
+      "medias": {
+        "type": "models/emmeans",
+        "type_version": 1,
+        "label": "Médias ajustadas",
+        "params": {
+          "especs": "hibrido"
+        },
+        "seed": 29307538
+      },
+      "pares": {
+        "type": "models/pairwise",
+        "type_version": 1,
+        "label": "Comparações de médias",
+        "params": {},
+        "seed": 74841777
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "dados",
+          "port": "out"
+        },
+        "to": {
+          "node": "ajuste",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ajuste",
+          "port": "out"
+        },
+        "to": {
+          "node": "medias",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "medias",
+          "port": "out"
+        },
+        "to": {
+          "node": "pares",
+          "port": "medias"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "dados": [0, 0],
+        "ajuste": [300, 0],
+        "medias": [600, 0],
+        "pares": [900, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

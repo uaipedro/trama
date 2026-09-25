@@ -1,0 +1,97 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "PCA com biplot",
+  "descricao": "Componentes principais de USArrests padronizado: variância explicada e biplot.",
+  "colecoes": ["trama.multi"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "multi": "0.1.0"
+    },
+    "nodes": {
+      "dados": {
+        "type": "multi/example",
+        "type_version": 1,
+        "label": "Exemplo multivariado",
+        "params": {
+          "dataset": "USArrests"
+        },
+        "seed": 135350314
+      },
+      "pca": {
+        "type": "multi/pca",
+        "type_version": 1,
+        "label": "Componentes principais",
+        "params": {
+          "cols": "Murder, Assault, UrbanPop, Rape",
+          "padronizar": true
+        },
+        "seed": 267020882
+      },
+      "variancia": {
+        "type": "multi/pca_variance",
+        "type_version": 1,
+        "label": "Variância explicada",
+        "params": {},
+        "seed": 79461264
+      },
+      "mapa": {
+        "type": "multi/biplot",
+        "type_version": 1,
+        "label": "Biplot",
+        "params": {},
+        "seed": 13021669
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "dados",
+          "port": "out"
+        },
+        "to": {
+          "node": "pca",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "pca",
+          "port": "out"
+        },
+        "to": {
+          "node": "variancia",
+          "port": "pca"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "pca",
+          "port": "out"
+        },
+        "to": {
+          "node": "mapa",
+          "port": "pca"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "dados": [0, 0],
+        "pca": [300, 0],
+        "variancia": [600, 0],
+        "mapa": [600, 180]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

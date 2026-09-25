@@ -163,3 +163,36 @@ test_that("slug aceita nome vazio ou vetor", {
   expect_equal(.tr_slug(character()), "template")
   expect_equal(.tr_slug(c("Um", "Dois")), "um")
 })
+
+# Templates das coleções: gerados por tools/templates/gerar.R. Cada um tem de
+# abrir, validar e rodar num projeto vazio — é a promessa de "exemplo pronto".
+test_that("templates das coleções validam, não carregam caminho e rodam", {
+  arquivos <- Sys.glob(test_path("../../collections/*/inst/templates/*.json"))
+  skip_if(!length(arquivos), "sem templates de coleção nesta árvore")
+  pkgs <- c("trama.data", "trama.view", "trama.models", "trama.ml",
+            "trama.multi", "trama.series", "trama.sampling")
+  for (p in pkgs) skip_if_not_installed(p)
+  reg <- tr_registry()
+  suppressMessages(for (p in pkgs) tr_use(p, registry = reg))
+
+  for (f in arquivos) {
+    tpl <- tr_template_read(f)
+    expect_true(nzchar(tpl$nome), info = f)
+    expect_length(tr_doc_validate(tpl$doc, registry = reg), 0)
+    for (id in names(tpl$doc$nodes)) {
+      n <- tpl$doc$nodes[[id]]
+      spec <- reg$nodes[[n$type]]
+      for (p in names(n$params)) {
+        if (identical(spec$params[[p]]$kind, "path")) {
+          expect_false(nzchar(paste(unlist(n$params[[p]]), collapse = "")), info = paste(f, id, p))
+        }
+      }
+    }
+    falhas <- character()
+    s <- tr_store(withr::local_tempdir())
+    tr_run(tpl$doc, registry = reg, store = s, on_event = function(ev) {
+      if (ev$type %in% c("failed", "invalid", "blocked")) falhas <<- c(falhas, paste(ev$type, ev$node %||% ""))
+    })
+    expect_equal(falhas, character(), info = basename(f))
+  }
+})

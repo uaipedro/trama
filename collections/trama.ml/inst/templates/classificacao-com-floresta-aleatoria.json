@@ -1,0 +1,153 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Classificação com floresta aleatória",
+  "descricao": "Espécie de iris prevista por floresta aleatória: separa treino e teste, avalia e mostra a matriz de confusão.",
+  "colecoes": ["trama.ml"],
+  "doc": {
+    "format": 1,
+    "rev": 13,
+    "collections": {
+      "ml": "0.1.0"
+    },
+    "nodes": {
+      "dados": {
+        "type": "ml/example",
+        "type_version": 1,
+        "label": "Dados para aprender",
+        "params": {
+          "nome": "iris"
+        },
+        "seed": 135350314
+      },
+      "separar": {
+        "type": "ml/split",
+        "type_version": 1,
+        "label": "Separar treino / teste",
+        "params": {
+          "alvo": "Species",
+          "seed": 42
+        },
+        "seed": 150228636
+      },
+      "floresta": {
+        "type": "ml/forest",
+        "type_version": 1,
+        "label": "Random forest",
+        "params": {
+          "alvo": "Species",
+          "trees": 200
+        },
+        "seed": 198606431
+      },
+      "prever": {
+        "type": "ml/predict",
+        "type_version": 1,
+        "label": "Prever",
+        "params": {},
+        "seed": 10903832
+      },
+      "avaliar": {
+        "type": "ml/evaluate",
+        "type_version": 1,
+        "label": "Avaliar previsões",
+        "params": {
+          "alvo": "Species"
+        },
+        "seed": 129449846
+      },
+      "confusao": {
+        "type": "ml/confusion",
+        "type_version": 1,
+        "label": "Matriz de confusão",
+        "params": {
+          "alvo": "Species"
+        },
+        "seed": 223421417
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "dados",
+          "port": "out"
+        },
+        "to": {
+          "node": "separar",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "separar",
+          "port": "treino"
+        },
+        "to": {
+          "node": "floresta",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "floresta",
+          "port": "out"
+        },
+        "to": {
+          "node": "prever",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "separar",
+          "port": "teste"
+        },
+        "to": {
+          "node": "prever",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "prever",
+          "port": "out"
+        },
+        "to": {
+          "node": "avaliar",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "prever",
+          "port": "out"
+        },
+        "to": {
+          "node": "confusao",
+          "port": "dados"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "dados": [0, 0],
+        "separar": [300, 0],
+        "floresta": [600, 0],
+        "prever": [900, 0],
+        "avaliar": [1200, 0],
+        "confusao": [1200, 180]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}
