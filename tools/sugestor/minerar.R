@@ -13,8 +13,8 @@ pares <- do.call(rbind, lapply(arquivos, function(f) {
   fl <- jsonlite::fromJSON(f, simplifyVector = FALSE)
   tipo <- vapply(fl$nodes, function(n) n$type, "")
   do.call(rbind, lapply(fl$edges, function(e) {
-    de <- tipo[[e$from$node]]; para <- tipo[[e$to$node]]
-    if (is.null(de) || is.null(para) || de == para) return(NULL)
+    de <- unname(tipo[e$from$node]); para <- unname(tipo[e$to$node])
+    if (is.na(de) || is.na(para) || de == para) return(NULL)
     data.frame(from = de, to = para)
   }))
 }))
