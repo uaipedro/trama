@@ -17,5 +17,8 @@ Sempre as mesmas colunas, com NA onde não se aplica (teste de tabela não tem
 p-valor; quase nenhum tem efeito): o pesquisador empilha testes de coleções
 diferentes num quadro só, e esquema estável é o que deixa o empilhamento
 ser um relatório. Só \code{extra} vira coluna quando existe — é, por definição,
-o que cada teste tem de próprio.
+o que cada teste tem de próprio —, e com prefixo \code{extra_} e o nome como veio:
+as chaves podem ser nomes de contraste do usuário ("A - B", até "nota"), e
+sem prefixo colidiriam com as fixas; sem \code{check.names = FALSE}, "A - B"
+viraria "A...B".
 }

@@ -80,15 +80,21 @@ igual\", por isso.
 #' @param teste,h0 nome do teste e a hipótese nula, em texto.
 #' @param estatistica o valor da estatística; `rotulo_estat` como ela se escreve.
 #' @param p_valor o p-valor, ou `NA` quando o teste só tem tabela de críticos.
-#' @param gl graus de liberdade em texto ("2; 27"), ou `NA`.
+#' @param gl graus de liberdade: texto ("2; 27"), usado como veio, ou número(s),
+#'   formatados aqui — inteiro sem casas, fracionário (Welch, Satterthwaite)
+#'   com uma casa e vírgula decimal, vários separados por "; " — ou `NA`.
 #' @param criticos vetor nomeado de valores críticos ("10%", "5%", "1%").
 #' @param sentido "menor" ou "maior": a cauda em que a estatística rejeita
 #'   contra os `criticos`. Ignorado quando há p-valor.
 #' @param conclusao_sim,conclusao_nao a conclusão em uma linha, conforme rejeite
 #'   ou não H0 a 5%.
-#' @param efeito `list(rotulo, valor, li, ls)` — o tamanho do efeito com o
-#'   intervalo de 95% — ou `NULL`.
-#' @param nota,fonte texto livre; `extra` lista nomeada de valores por teste.
+#' @param efeito `list(rotulo, valor, li, ls)` — o tamanho do efeito, com `li` e
+#'   `ls` o intervalo de confiança de 95% — ou `NULL`. Um campo `nivel`
+#'   opcional, se vier, tem de ser 0.95: as colunas da tabela são
+#'   `efeito_li_95`/`efeito_ls_95`, fixas para empilhar, e um IC de 90% nelas
+#'   mentiria em silêncio.
+#' @param nota,fonte texto livre; `extra` lista nomeada de valores por teste,
+#'   com quaisquer nomes (na tabela, viram colunas `extra_<nome>`).
 #' @param classe classe S3 a mais, na frente de `tr_test` (a coleção de origem).
 #' @return objeto `tr_test`.
 #' @export
@@ -116,15 +122,32 @@ tr_test <- function(teste, h0, estatistica, rotulo_estat = "estatística", p_val
     rlang::abort(sprintf("tr_test('%s'): sem p-valor e sem crítico de 5%%, não há como decidir.", teste),
                  class = "tr_error_bad_test")
   }
+  if (!is.null(efeito$nivel) && !isTRUE(all.equal(as.numeric(efeito$nivel), 0.95))) {
+    rlang::abort(sprintf("tr_test('%s'): o intervalo do efeito é de 95%%, e veio nível %s.",
+                         teste, format(efeito$nivel)), class = "tr_error_bad_test")
+  }
   rejeita <- if (!is.na(p)) p < 0.05 else if (sentido == "menor") est < cv else est > cv
   rejeita <- isTRUE(rejeita)
   structure(list(
     teste = teste, h0 = h0, estatistica = est, rotulo_estat = rotulo_estat,
-    gl = as.character(gl), p_valor = p, criticos = criticos, sentido = sentido,
+    gl = .tr_test_gl(gl), p_valor = p, criticos = criticos, sentido = sentido,
     decisao_5 = if (rejeita) "rejeita H0" else "não rejeita H0",
     conclusao = if (rejeita) conclusao_sim else conclusao_nao,
     efeito = efeito, nota = nota, fonte = fonte, extra = extra
   ), class = c(classe, "tr_test"))
+}
+
+#' Graus de liberdade num formato só, venha de que coleção vier: é o que faz a
+#' coluna `gl` de um quadro empilhado ler igual em toda linha.
+#' @noRd
+.tr_test_gl <- function(gl) {
+  if (is.character(gl)) return(if (length(gl)) paste(gl, collapse = "; ") else NA_character_)
+  gl <- suppressWarnings(as.numeric(gl))
+  if (!length(gl) || all(is.na(gl))) return(NA_character_)
+  paste(vapply(gl, function(x) {
+    if (abs(x - round(x)) < 1e-6) as.character(round(x))
+    else formatC(x, format = "f", digits = 1, decimal.mark = ",")
+  }, ""), collapse = "; ")
 }
 
 #' Confere que `x` é um `tr_test` inteiro; erro classificado se não.
@@ -185,7 +208,10 @@ tr_test_type <- function(id) {
 #' p-valor; quase nenhum tem efeito): o pesquisador empilha testes de coleções
 #' diferentes num quadro só, e esquema estável é o que deixa o empilhamento
 #' ser um relatório. Só `extra` vira coluna quando existe — é, por definição,
-#' o que cada teste tem de próprio.
+#' o que cada teste tem de próprio —, e com prefixo `extra_` e o nome como veio:
+#' as chaves podem ser nomes de contraste do usuário ("A - B", até "nota"), e
+#' sem prefixo colidiriam com as fixas; sem `check.names = FALSE`, "A - B"
+#' viraria "A...B".
 #' @param x um `tr_test`.
 #' @return data.frame de uma linha.
 #' @export
@@ -201,6 +227,10 @@ tr_test_table <- function(x) {
     efeito = if (is.null(ef)) NA_character_ else ef$rotulo,
     efeito_valor = num(ef$valor), efeito_li_95 = num(ef$li), efeito_ls_95 = num(ef$ls),
     nota = x$nota, fonte = x$fonte, stringsAsFactors = FALSE)
-  if (length(x$extra)) base <- cbind(base, as.data.frame(x$extra, stringsAsFactors = FALSE))
+  if (length(x$extra)) {
+    ex <- as.data.frame(lapply(x$extra, unname), stringsAsFactors = FALSE, check.names = FALSE)
+    names(ex) <- paste0("extra_", names(x$extra))
+    base <- cbind(base, ex)
+  }
   base
 }

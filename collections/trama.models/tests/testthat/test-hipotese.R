@@ -51,3 +51,16 @@ test_that("recusas: dependentes, tamanho errado, nome desconhecido, fator numér
   expect_error(tr_models_linear_hypothesis(l, "1 -1", "cyl"), class = "tr_models_error_not_applicable")
   expect_error(tr_models_linear_hypothesis(dic, "a: 1 -1 0; a: 0 1 -1", "group"), class = "tr_models_error_bad_option")
 })
+
+test_that("contraste com nome livre (\"A - B\", \"nota\") vira coluna extra_ intacta na tabela", {
+  # Regressão: os nomes dos contrastes são chaves de `extra`, e antes do
+  # prefixo "A - B" virava "A...B" e "nota" duplicava a coluna fixa.
+  dic <- tr_models_anova_dic(ex("PlantGrowth"), "weight", "group")
+  t <- tr_models_linear_hypothesis(dic, "nota: 2 -1 -1; A - B: trt1 - trt2", "group")
+  ad <- trama::tr_adapter_for("data/test", "data/table", models_registry())$fn
+  tb <- ad(t)
+  expect_true(all(c("extra_nota", "extra_A - B", "nota") %in% names(tb)))
+  expect_false(anyDuplicated(names(tb)) > 0)
+  q <- trama.data::tr_bind_rows(list(tb, ad(tr_models_shapiro(ex("PlantGrowth"), "weight"))))
+  expect_equal(nrow(q), 2L)
+})

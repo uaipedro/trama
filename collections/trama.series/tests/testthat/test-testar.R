@@ -384,9 +384,9 @@ test_that("o Zivot-Andrews atravessa o adaptador com a quebra em colunas", {
   expect_true(is.na(tb$p_valor))
   # A decisão vem daqui, então a coluna não pode estar vazia.
   expect_equal(tb$valor_critico_5, -5.08)
-  expect_equal(tb$quebra, 60L)
-  expect_type(tb$quando, "character")
-  expect_equal(tb$quando, "1954 dez")
+  expect_equal(tb$extra_quebra, 60L)
+  expect_type(tb$extra_quando, "character")
+  expect_equal(tb$extra_quando, "1954 dez")
 })
 
 test_that("a ressalva de série curta aparece onde vale, e some onde não vale", {
@@ -729,8 +729,8 @@ test_that("o Mann-Kendall atravessa o adaptador, e leva o S como coluna", {
   expect_equal(tb$teste, "Mann-Kendall")
   expect_false(is.na(tb$p_valor))
   expect_true(is.na(tb$valor_critico_5))
-  expect_true("S" %in% names(tb))
-  expect_equal(tb$S, tr_series_mann_kendall(serie_mensal())$extra$S)
+  expect_true("extra_S" %in% names(tb))
+  expect_equal(tb$extra_S, tr_series_mann_kendall(serie_mensal())$extra$S)
 })
 
 test_that("Cox-Stuart em terços mede os pares, o Z e o p da reta com ruído", {
@@ -896,8 +896,8 @@ test_that("o Cox-Stuart atravessa o adaptador, e leva o M e os pares como coluna
   expect_equal(tb$teste, "Cox-Stuart")
   expect_false(is.na(tb$p_valor))
   expect_true(is.na(tb$valor_critico_5))
-  expect_equal(tb$M, t$extra$M)
-  expect_equal(tb$pares, t$extra$pares)
+  expect_equal(tb$extra_M, t$extra$M)
+  expect_equal(tb$extra_pares, t$extra$pares)
 })
 
 test_that("Run mede as sequências, o Z e o p da reta com ruído", {
@@ -1004,8 +1004,8 @@ test_that("o Run atravessa o adaptador, e leva as sequências como coluna", {
   expect_equal(tb$teste, "Run")
   expect_false(is.na(tb$p_valor))
   expect_true(is.na(tb$valor_critico_5))
-  expect_true("sequencias" %in% names(tb))
-  expect_equal(tb$sequencias, t$extra$sequencias)
+  expect_true("extra_sequencias" %in% names(tb))
+  expect_equal(tb$extra_sequencias, t$extra$sequencias)
 })
 
 test_that("Pettitt mede o K, o ponto e o p da reta com ruído", {
@@ -1169,10 +1169,10 @@ test_that("o Pettitt atravessa o adaptador, e leva o ponto e o rótulo como colu
   expect_equal(tb$teste, "Pettitt")
   expect_false(is.na(tb$p_valor))
   expect_true(is.na(tb$valor_critico_5))
-  expect_equal(tb$ponto_de_mudanca, t$extra$ponto_de_mudanca)
+  expect_equal(tb$extra_ponto_de_mudanca, t$extra$ponto_de_mudanca)
   # Texto, e texto de verdade: nem fator, nem NA.
-  expect_type(tb$quando, "character")
-  expect_equal(tb$quando, "1955 fev")
+  expect_type(tb$extra_quando, "character")
+  expect_equal(tb$extra_quando, "1955 fev")
 })
 
 # Sazonalidade ADITIVA, com o padrão escrito à mão: quatro estações, uma bem
@@ -1294,8 +1294,8 @@ test_that("o Kruskal-Wallis atravessa o adaptador, e leva os graus como coluna",
   expect_false(is.na(tb$p_valor))
   # Sem tabela de críticos: a decisão veio do p-valor.
   expect_true(is.na(tb$valor_critico_5))
-  expect_true("graus" %in% names(tb))
-  expect_equal(tb$graus, t$extra$graus)
+  expect_true("extra_graus" %in% names(tb))
+  expect_equal(tb$extra_graus, t$extra$graus)
 })
 
 # As cinco linhas medidas que a página do `series/periodicity_fisher` publica, e elas SÃO o
@@ -1433,9 +1433,9 @@ test_that("o Fisher atravessa o adaptador, e leva o período como coluna", {
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Fisher")
   expect_false(is.na(tb$p_valor))
-  expect_true(all(c("periodo", "ciclos") %in% names(tb)))
-  expect_equal(tb$periodo, 12)
-  expect_equal(tb$ciclos, 12L)
+  expect_true(all(c("extra_periodo", "extra_ciclos") %in% names(tb)))
+  expect_equal(tb$extra_periodo, 12)
+  expect_equal(tb$extra_ciclos, 12L)
   # Diferente dos irmãos de sazonalidade, este bloco TEM tabela de críticos: o zα
   # da dissertação sai na coluna do valor crítico a 5%, que é o que deixa a regra
   # `g > zα` ser conferida no relatório sem refazer a conta.

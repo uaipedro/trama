@@ -168,8 +168,8 @@ test_that("extra vira coluna só quando existe", {
   sem <- tabela_teste(do.call(.tr_series_teste, base))
   com <- tabela_teste(do.call(.tr_series_teste,
                                           c(base, list(extra = list(ponto_de_mudanca = 30)))))
-  expect_false("ponto_de_mudanca" %in% names(sem))
-  expect_equal(com$ponto_de_mudanca, 30)
+  expect_false("extra_ponto_de_mudanca" %in% names(sem))
+  expect_equal(com$extra_ponto_de_mudanca, 30)
   # Os DOIS caminhos devolvem tibble. Sem o `as_tibble` de fora, o `cbind`
   # despacharia pro `cbind.data.frame` e a classe de saída do adaptador
   # passaria a depender da entrada — um adaptador com duas caras.

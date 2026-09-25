@@ -29,7 +29,9 @@ tr_test(
 
 \item{p_valor}{o p-valor, ou \code{NA} quando o teste só tem tabela de críticos.}
 
-\item{gl}{graus de liberdade em texto ("2; 27"), ou \code{NA}.}
+\item{gl}{graus de liberdade: texto ("2; 27"), usado como veio, ou número(s),
+formatados aqui — inteiro sem casas, fracionário (Welch, Satterthwaite)
+com uma casa e vírgula decimal, vários separados por "; " — ou \code{NA}.}
 
 \item{criticos}{vetor nomeado de valores críticos ("10\%", "5\%", "1\%").}
 
@@ -39,10 +41,14 @@ contra os \code{criticos}. Ignorado quando há p-valor.}
 \item{conclusao_sim, conclusao_nao}{a conclusão em uma linha, conforme rejeite
 ou não H0 a 5\%.}
 
-\item{efeito}{\code{list(rotulo, valor, li, ls)} — o tamanho do efeito com o
-intervalo de 95\% — ou \code{NULL}.}
+\item{efeito}{\code{list(rotulo, valor, li, ls)} — o tamanho do efeito, com \code{li} e
+\code{ls} o intervalo de confiança de 95\% — ou \code{NULL}. Um campo \code{nivel}
+opcional, se vier, tem de ser 0.95: as colunas da tabela são
+\code{efeito_li_95}/\code{efeito_ls_95}, fixas para empilhar, e um IC de 90\% nelas
+mentiria em silêncio.}
 
-\item{nota, fonte}{texto livre; \code{extra} lista nomeada de valores por teste.}
+\item{nota, fonte}{texto livre; \code{extra} lista nomeada de valores por teste,
+com quaisquer nomes (na tabela, viram colunas \verb{extra_<nome>}).}
 
 \item{classe}{classe S3 a mais, na frente de \code{tr_test} (a coleção de origem).}
 }
