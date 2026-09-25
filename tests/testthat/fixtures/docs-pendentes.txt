@@ -13,16 +13,11 @@ ml/svm
 ml/tune
 ml/xgboost
 models/compare
-models/duncan
-models/emmeans
 models/glm
-models/linear_hypothesis
 models/lm
 models/lmer
-models/pairwise
 models/random_test
 models/rls
-models/waller_duncan
 multi/box_m
 multi/confusion
 multi/discriminant

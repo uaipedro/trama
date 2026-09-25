@@ -345,7 +345,10 @@ comparar duas estruturas escolhidas à mão.
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   N <- trama::tr_param_num
   list(
-    trama::tr_node("models/emmeans", fn = tr_models_emmeans, label = "Médias ajustadas",
+    trama::tr_node("models/emmeans", 
+      pressupostos = .tr_models_doc("models/emmeans")$pressupostos,
+      referencias = .tr_models_doc("models/emmeans")$referencias,
+      fn = tr_models_emmeans, label = "Médias ajustadas",
       category = "modelo_medias", icon = trama::tr_icon("chart-column"),
       description = "Médias ajustadas (emmeans) com intervalo de confiança e letras de comparação (Tukey e outros).",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
@@ -405,7 +408,10 @@ para o gráfico com título e proporção; `models/anova_factorial` para o
 desdobramento.
 ]---")),
 
-    trama::tr_node("models/pairwise", fn = tr_models_pairwise, label = "Comparações de médias",
+    trama::tr_node("models/pairwise", 
+      pressupostos = .tr_models_doc("models/pairwise")$pressupostos,
+      referencias = .tr_models_doc("models/pairwise")$referencias,
+      fn = tr_models_pairwise, label = "Comparações de médias",
       category = "modelo_medias", icon = trama::tr_icon("git-compare"),
       description = "Todas as diferenças entre pares, ou cada tratamento contra um controle (Dunnett), com p-valor ajustado.",
       inputs = list(medias = "models/emm"), outputs = list(out = "models/effects"),
@@ -445,7 +451,10 @@ tr_flow(reg) |>
 `models/emmeans`; `models/plot_means`.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/linear_hypothesis", fn = tr_models_linear_hypothesis, label = "Contrastes (F)",
+    trama::tr_node("models/linear_hypothesis", 
+      pressupostos = .tr_models_doc("models/linear_hypothesis")$pressupostos,
+      referencias = .tr_models_doc("models/linear_hypothesis")$referencias,
+      fn = tr_models_linear_hypothesis, label = "Contrastes (F)",
       category = "modelo_medias", icon = trama::tr_icon("divide"),
       description = "Teste F da hipótese linear geral: você escreve os contrastes, nas médias de um fator ou nos coeficientes.",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/test"),
@@ -523,7 +532,10 @@ contrastes combinam; `models/coefficients` para os nomes dos coeficientes;
 `models/compare` quando a hipótese é tirar termos do modelo.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/duncan", fn = tr_models_duncan, label = "Duncan",
+    trama::tr_node("models/duncan", 
+      pressupostos = .tr_models_doc("models/duncan")$pressupostos,
+      referencias = .tr_models_doc("models/duncan")$referencias,
+      fn = tr_models_duncan, label = "Duncan",
       category = "modelo_medias", icon = trama::tr_icon("chart-column"),
       description = "Teste de Duncan (amplitude múltipla): letras de agrupamento das médias.",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
@@ -560,7 +572,10 @@ tr_flow(reg) |>
 `models/waller_duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
-    trama::tr_node("models/waller_duncan", fn = tr_models_waller_duncan, label = "Waller-Duncan",
+    trama::tr_node("models/waller_duncan", 
+      pressupostos = .tr_models_doc("models/waller_duncan")$pressupostos,
+      referencias = .tr_models_doc("models/waller_duncan")$referencias,
+      fn = tr_models_waller_duncan, label = "Waller-Duncan",
       category = "modelo_medias", icon = trama::tr_icon("chart-column"),
       description = "Teste de Waller-Duncan (bayesiano, razão K): letras de agrupamento das médias.",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
