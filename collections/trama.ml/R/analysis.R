@@ -186,7 +186,9 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @param dados Tabela com a classe observada e sua probabilidade prevista.
 #' @param alvo Nome da coluna observada.
 #' @param probabilidade Coluna com a probabilidade da classe positiva.
-#' @param positiva Classe tratada como positiva; vazio usa a segunda observada.
+#' @param positiva Classe tratada como positiva; vazio usa a segunda classe observada,
+#'   na ordem em que aparece nas linhas — confira se é a classe da coluna de
+#'   probabilidade escolhida.
 #' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
 #'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.

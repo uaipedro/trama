@@ -182,7 +182,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         probabilidade = trama::tr_param("text", "", label = "Probabilidade", example = ".prob_sim"),
         positiva = trama::tr_param("text", "", label = "Classe positiva", example = "sim")),
       help = .tr_ml_help("Ordena as linhas pela probabilidade da classe positiva e exibe a curva ROC com sua AUC. Use somente classifica\u{E7}\u{E3}o bin\u{E1}ria.",
-        "`alvo`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada.",
+        "`alvo`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada, na ordem em que aparece nas linhas — confira se é a classe da coluna de probabilidade escolhida.",
         "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = factor(c('nao','sim','nao','sim')), .prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_roc(d, 'y', '.prob_sim', 'sim')",
         paste("`ml/predict`, `ml/confusion`.", trama.view::tr_view_help_appearance())))

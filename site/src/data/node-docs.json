@@ -2161,7 +2161,7 @@
         "se_falhar": "Compare pela AUC na `multi/roc`; na discriminante, experimente `priors = \"iguais\"`. O trama ainda não tem acurácia balanceada nem curva precisão-revocação (lacuna registrada)."
       },
       {
-        "texto": "O classificador de entrada atende aos seus pressupostos (os da discriminante ou da logística); a matriz mede o acerto, não conserta o modelo.",
+        "texto": "O classificador de entrada atende aos seus pressupostos (os da discriminante ou da logística); a matriz mede o acerto, não conserta o modelo. O `multi/box_m` só se aplica quando a entrada é um discriminante.",
         "verificar": ["multi/box_m"]
       }
     ],
@@ -2721,7 +2721,7 @@
       {
         "texto": "O **logito** (log da chance) é **linear** em cada preditor numérico.",
         "verificar": ["models/glm", "models/compare"],
-        "se_falhar": "Na binária, ajuste um `models/glm` binomial com e sem `poly(x, 2)` do preditor suspeito e compare no `models/compare`; se a curvatura importar, inclua a transformação num `data/mutate` antes."
+        "se_falhar": "Na binária, ajuste um `models/glm` binomial com e sem `poly(x, 2)` do preditor suspeito no campo `formula` (ex.: `y ~ poly(x, 2) + z`) e compare no `models/compare`; se a curvatura importar, inclua a transformação num `data/mutate` antes."
       },
       {
         "texto": "**Sem separação** completa: se algum grupo é isolado sem sobreposição, os coeficientes vão ao infinito. O bloco detecta e avisa em `separacao`.",

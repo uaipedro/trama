@@ -24,7 +24,9 @@ tr_ml_roc(
 
 \item{probabilidade}{Coluna com a probabilidade da classe positiva.}
 
-\item{positiva}{Classe tratada como positiva; vazio usa a segunda observada.}
+\item{positiva}{Classe tratada como positiva; vazio usa a segunda classe observada,
+na ordem em que aparece nas linhas — confira se é a classe da coluna de
+probabilidade escolhida.}
 
 \item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
 ou \code{"2:1"}.}

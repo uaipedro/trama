@@ -57,7 +57,7 @@
       pressupostos = list(indep,
         P("O **logito** (log da chance) é **linear** em cada preditor numérico.",
           verificar = c("models/glm", "models/compare"),
-          se_falhar = "Na binária, ajuste um `models/glm` binomial com e sem `poly(x, 2)` do preditor suspeito e compare no `models/compare`; se a curvatura importar, inclua a transformação num `data/mutate` antes."),
+          se_falhar = "Na binária, ajuste um `models/glm` binomial com e sem `poly(x, 2)` do preditor suspeito no campo `formula` (ex.: `y ~ poly(x, 2) + z`) e compare no `models/compare`; se a curvatura importar, inclua a transformação num `data/mutate` antes."),
         P("**Sem separação** completa: se algum grupo é isolado sem sobreposição, os coeficientes vão ao infinito. O bloco detecta e avisa em `separacao`.",
           se_falhar = "A classificação continua valendo; para descrever o que separa, use a `multi/discriminant` ou tire o preditor que isola os grupos. Logística penalizada (Firth) ainda sem bloco no trama (lacuna registrada)."),
         P("**Eventos suficientes por preditor**: com poucos casos no grupo menor (a regra usual é pelo menos 10 por preditor), coeficientes e erros de Wald ficam viesados.",
@@ -82,7 +82,7 @@
 
     "multi/confusion" = list(
       pressupostos = list(fora_amostra, desbalanceio,
-        P("O classificador de entrada atende aos seus pressupostos (os da discriminante ou da logística); a matriz mede o acerto, não conserta o modelo.",
+        P("O classificador de entrada atende aos seus pressupostos (os da discriminante ou da logística); a matriz mede o acerto, não conserta o modelo. O `multi/box_m` só se aplica quando a entrada é um discriminante.",
           verificar = "multi/box_m")),
       referencias = list(lachenbruch, L$johnson, L$mass,
         I("MASS", "lda", "Deixa-um-fora da discriminante pelo `CV = TRUE` de `MASS::lda`/`qda`; na logística, n reajustes do `glm`/`nnet::multinom`, cada um sem uma linha."))),
