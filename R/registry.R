@@ -9,6 +9,7 @@ tr_registry <- function() {
   reg <- new.env(parent = emptyenv())
   reg$types <- list(); reg$nodes <- list(); reg$adapters <- list()
   reg$categories <- list(); reg$collections <- list()
+  reg$transitions <- list()
   structure(reg, class = "tr_registry")
 }
 
@@ -76,6 +77,9 @@ tr_use <- function(collection, registry = .tr_default_registry) {
 
   registry$types <- types; registry$nodes <- nodes; registry$adapters <- adapters
   for (k in col$categories) registry$categories[[k$id]] <- k
+  # Guardadas por coleção: a regra de namespace do `to` garante que duas
+  # coleções nunca declaram o mesmo par, então concatenar no catálogo basta.
+  if (!is.null(col$transitions)) registry$transitions[[col$id]] <- col$transitions
   # `package` guardado separado do `id`: os dois só coincidem por acidente
   # (`trama.terrain` traz a coleção `terrain`), e é o nome do PACOTE que um
   # daemon precisa pra reconstruir o registro. NULL = coleção de globalenv,

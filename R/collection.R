@@ -14,10 +14,15 @@
 #'   DEPOIS do `trama.css` do núcleo, então pode refinar regra do núcleo com a
 #'   mesma especificidade — e é por isso mesmo que deve prefixar as próprias
 #'   classes, pra não refinar sem querer.
+#' @param transitions `data.frame(from, to, n)` com quantas vezes um bloco
+#'   `from` foi seguido de `to` nos fluxos de exemplo, ou `NULL`. É o corpus do
+#'   sugestor. O `to` tem que ser da própria coleção: quem é sugerido é o dono
+#'   do dado, e assim `models` pode declarar `data/ler -> models/ajuste` sem o
+#'   núcleo saber o que é ler nem ajustar. Ver [tr_transitions_read()].
 #' @export
 tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
                           nodes = list(), adapters = list(), categories = list(),
-                          js = NULL, css = NULL) {
+                          js = NULL, css = NULL, transitions = NULL) {
   if (!grepl("^[a-z][a-z0-9_]*$", id)) {
     rlang::abort(sprintf("Id de coleção inválido: '%s'.", id), class = "tr_error_bad_id")
   }
@@ -39,10 +44,50 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
     rlang::abort(sprintf("Coleção '%s' declara nó fora do próprio namespace: '%s'.", id, n$id),
                  class = "tr_error_foreign_id")
   }
+  transitions <- .tr_check_transitions(transitions, id)
   structure(list(id = id, label = label, version = version, types = types,
                  nodes = nodes, adapters = adapters, categories = categories,
-                 js = js, css = css),
+                 js = js, css = css, transitions = transitions),
             class = "tr_collection")
+}
+
+#' @noRd
+.tr_check_transitions <- function(tr, id) {
+  if (is.null(tr) || NROW(tr) == 0L) return(NULL)
+  if (!is.data.frame(tr) || !all(c("from", "to", "n") %in% names(tr))) {
+    rlang::abort(sprintf("Coleção '%s': 'transitions' tem que ser um data.frame(from, to, n).", id),
+                 class = "tr_error_bad_transition")
+  }
+  # Mesma regra dos nós: sem ela, uma coleção poderia empurrar sugestões para
+  # blocos alheios, e o dono do bloco não teria como corrigir.
+  for (to in tr$to) if (.tr_collection_of(to) != id) {
+    rlang::abort(sprintf("Coleção '%s' declara transição para bloco fora do próprio namespace: '%s'.", id, to),
+                 class = "tr_error_foreign_id")
+  }
+  n <- tr$n
+  if (!is.numeric(n) || anyNA(n) || any(n != round(n)) || any(n <= 0)) {
+    rlang::abort(sprintf("Coleção '%s': 'n' das transições tem que ser inteiro positivo.", id),
+                 class = "tr_error_bad_transition")
+  }
+  data.frame(from = as.character(tr$from), to = as.character(tr$to), n = as.integer(n),
+             stringsAsFactors = FALSE)
+}
+
+#' Lê as transições mineradas que uma coleção guarda no próprio pacote.
+#'
+#' O arquivo é o `transicoes.json` que `tools/sugestor/minerar.R` grava: um
+#' array `[{from, to, n}]`. Ausente devolve `NULL` em vez de erro, porque uma
+#' coleção sem exemplos não tem o que declarar, e isso não deve impedi-la de
+#' carregar.
+#' @param path Caminho do JSON; costuma vir de `system.file()`, que devolve
+#'   `""` quando o arquivo não existe.
+#' @return `data.frame(from, to, n)` ou `NULL`.
+#' @export
+tr_transitions_read <- function(path) {
+  if (!is.character(path) || length(path) != 1L || !nzchar(path) || !file.exists(path)) return(NULL)
+  tr <- jsonlite::fromJSON(path, simplifyDataFrame = TRUE)
+  if (NROW(tr) == 0L) return(NULL)
+  tr
 }
 
 #' @noRd

@@ -112,3 +112,32 @@ test_that("nó pode declarar o próprio papel, validado como o da categoria", {
   expect_error(tr_node("t/y", function() 1, description = "y", role = "analise"),
                class = "tr_error_bad_role")
 })
+
+test_that("transições declaradas pela coleção viajam no catálogo", {
+  col <- tr_collection(
+    id = "t", types = list(tr_type("t/num")),
+    nodes = list(tr_node("t/um", fn = function() 1, description = "Um.",
+                         outputs = list(out = "t/num"))),
+    transitions = data.frame(from = c("x/ler", "t/um"), to = c("t/um", "t/um2"), n = c(3L, 1L))
+  )
+  reg <- tr_registry(); tr_use(col, registry = reg)
+  tr <- tr_catalog(reg)$transitions
+  expect_length(tr, 2)
+  expect_equal(tr[[1]], list(from = "x/ler", to = "t/um", n = 3L))
+})
+
+test_that("transição com `to` fora do namespace aborta", {
+  expect_error(
+    tr_collection("t", transitions = data.frame(from = "t/a", to = "x/b", n = 1L)),
+    class = "tr_error_foreign_id")
+})
+
+test_that("transição com n não positivo aborta", {
+  expect_error(
+    tr_collection("t", transitions = data.frame(from = "x/a", to = "t/b", n = 0L)),
+    class = "tr_error_bad_transition")
+})
+
+test_that("sem transições, o campo some do catálogo", {
+  expect_false("transitions" %in% names(tr_catalog(test_registry())))
+})

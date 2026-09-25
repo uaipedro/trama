@@ -42,7 +42,13 @@ tr_catalog <- function(registry = .tr_default_registry) {
     if (isTRUE(p$stream)) out$stream <- TRUE
     out
   }
-  list(
+  # Omitido quando vazio, pela mesma regra de `.tr_json_drop_empty()`: o front
+  # testa presença do campo.
+  tr <- do.call(rbind, unname(registry$transitions))
+  transitions <- if (NROW(tr)) unname(lapply(seq_len(nrow(tr)), function(i) {
+    list(from = tr$from[[i]], to = tr$to[[i]], n = tr$n[[i]])
+  }))
+  out <- list(
     schema_version = 1L,
     collections = unname(lapply(registry$collections, .tr_json_drop_empty)),
     types = unname(lapply(registry$types, function(t) {
@@ -60,6 +66,8 @@ tr_catalog <- function(registry = .tr_default_registry) {
       params  = unname(Map(.tr_json_param, names(n$params), n$params))
     ))))
   )
+  if (length(transitions)) out$transitions <- transitions
+  out
 }
 
 #' `tr_catalog()` como JSON.
