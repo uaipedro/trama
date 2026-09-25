@@ -1,6 +1,6 @@
 ---
 title: Razões de chances
-description: Apresenta coeficientes, erros de Wald, p-valores e razões de chances com intervalo.
+description: Apresenta coeficientes, erros padrão, p-valores e razões de chances com intervalo (Wald na ML, perfilado no Firth).
 section: colecoes
 collection: multivariada
 node: multi/logistic_coefficients
@@ -9,7 +9,7 @@ related: [multi/logistic, multi/plot_odds, multi/roc]
 
 ## O que o bloco faz
 
-O bloco `multi/logistic_coefficients` extrai coeficientes, erros padrão de Wald, testes, razões de chances e intervalos de confiança em uma tabela. O bloco recebe `multi/logit`.
+O bloco `multi/logistic_coefficients` extrai coeficientes, erros padrão, testes, razões de chances e intervalos de confiança em uma tabela. Na logística por máxima verossimilhança o intervalo e o p são de Wald; na de Firth (`metodo = "firth"` na `multi/logistic`), são da verossimilhança penalizada perfilada (Heinze & Schemper, 2002), e a coluna `intervalo` diz qual. O bloco recebe `multi/logit`.
 
 ## Quando usar
 

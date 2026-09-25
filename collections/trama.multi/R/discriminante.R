@@ -225,7 +225,8 @@
   for (i in seq_len(n)) {
     sem <- modelo
     # Sem hessiana: o reajuste só prevê a observação deixada de fora.
-    sem$ajuste <- .tr_multi_logit_ajuste(X[-i, , drop = FALSE], g[-i], no, hess = FALSE)
+    sem$ajuste <- .tr_multi_logit_ajuste(X[-i, , drop = FALSE], g[-i], no, hess = FALSE,
+                                         metodo = if (is.null(modelo$metodo)) "ml" else modelo$metodo)
     pr <- .tr_multi_logit_prever(sem, X[i, , drop = FALSE])
     prob[i, ] <- pr$prob[1, ]
     classe[i] <- as.character(pr$classe)

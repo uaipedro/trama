@@ -54,7 +54,8 @@
 #' hessiana nos n reajustes da validação cruzada, que só leem as probabilidades
 #' (a hessiana só serve aos erros padrão do `summary`).
 #' @noRd
-.tr_multi_logit_ajuste <- function(X, g, no, hess = TRUE) {
+.tr_multi_logit_ajuste <- function(X, g, no, hess = TRUE, metodo = "ml") {
+  if (identical(metodo, "firth")) return(.tr_multi_firth(X, g, no))
   d <- .tr_multi_logit_df(X)
   d$.y <- g
   f <- stats::as.formula(paste(".y ~", paste(names(d)[names(d) != ".y"], collapse = " + ")))
@@ -76,7 +77,11 @@
   d <- .tr_multi_logit_df(X)
   niv <- modelo$niveis
   if (identical(modelo$tipo, "binária")) {
-    p2 <- unname(stats::predict(modelo$ajuste, newdata = d, type = "response"))
+    p2 <- if (inherits(modelo$ajuste, "tr_multi_firth")) {
+      stats::plogis(drop(cbind(1, unname(X)) %*% modelo$ajuste$coefficients))
+    } else {
+      unname(stats::predict(modelo$ajuste, newdata = d, type = "response"))
+    }
     prob <- cbind(1 - p2, p2)
     classe <- ifelse(p2 >= modelo$corte, niv[[2]], niv[[1]])
   } else {
@@ -106,7 +111,8 @@
 #' Recusa o que depende dos coeficientes quando há separação.
 #' @noRd
 .tr_multi_sem_separacao <- function(modelo, no) {
-  if (length(modelo$separacao)) {
+  # Firth dá estimativa finita com separação: é justamente para isso.
+  if (length(modelo$separacao) && !identical(modelo$metodo, "firth")) {
     # Na binária os dois grupos saem separados juntos (isolar um é isolar o
     # outro): a frase vai para o plural em vez de "o grupo 'a', 'b' é".
     sep <- sprintf("'%s'", modelo$separacao)
@@ -121,7 +127,7 @@
                            "nenhuma sobreposição, e os coeficientes vão ao infinito ",
                            "(o que o otimizador devolve é arbitrário). A CLASSIFICAÇÃO continua ",
                            "valendo (`multi/confusion`, `multi/roc`); para descrever o que separa, ",
-                           "use a `multi/discriminant`, ou tire o preditor que isola os grupos."),
+                           "use `metodo = \"firth\"` (logística penalizada, binária) ou a `multi/discriminant`."),
                     no, quem)
   }
   invisible(modelo)
@@ -133,12 +139,21 @@
 #' @param cols preditores; em branco, todas as numéricas menos o grupo.
 #' @param corte na binária, a probabilidade do segundo grupo a partir da qual
 #'   se prevê ele.
+#' @param metodo `"ml"` (máxima verossimilhança) ou `"firth"` (verossimilhança
+#'   penalizada de Firth; só com dois grupos).
 #' @return objeto `tr_multi_logit`.
 #' @export
-tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
+tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5, metodo = "ml") {
   no <- "multi/logistic"
   corte <- .tr_multi_num(corte, "corte", min = 0.01, max = 0.99)
+  metodo <- .tr_multi_enum(metodo, .TR_MULTI_METODOS_LOGIT, "metodo")
   gr <- .tr_multi_grupos(dados, grupo, cols, no)
+  if (metodo == "firth" && nlevels(gr$g) != 2L) {
+    .tr_multi_abort("tr_multi_error_bad_option",
+                    paste0("'%s': a logística de Firth do trama é só binária, e a coluna '%s' tem %d ",
+                           "grupos. Use `metodo = \"ml\"` (multinomial) ou filtre dois grupos."),
+                    no, gr$grupo, nlevels(gr$g))
+  }
   .tr_multi_grupo_minimo(gr$g, 2L, no,
                          "Com uma observação só, o grupo não tem como ter probabilidade estimada.")
   # A matriz dos preditores singular deixa coeficientes NA no `glm` (e em
@@ -148,14 +163,17 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
                     paste0("'%s': os preditores são colineares — algum é combinação exata dos ",
                            "outros, e o coeficiente dele não se identifica. Tire o redundante."), no)
   }
-  ajuste <- .tr_multi_logit_ajuste(gr$X, gr$g, no)
+  ajuste <- .tr_multi_logit_ajuste(gr$X, gr$g, no, metodo = metodo)
   tipo <- if (nlevels(gr$g) == 2L) "binária" else "multinomial"
   m <- .tr_multi_logit_obj(ajuste, tipo, gr$grupo, gr$preditores, levels(gr$g),
                            tibble::as_tibble(dados), if (tipo == "binária") corte else NA_real_,
                            character())
+  m$metodo <- metodo
   m$separacao <- .tr_multi_separados(.tr_multi_logit_prever(m, gr$X)$prob, gr$g)
   m
 }
+
+.TR_MULTI_METODOS_LOGIT <- c("ml", "firth")
 
 .TR_MULTI_ESCALAS_OR <- c("unidade", "desvio padrão")
 
@@ -168,7 +186,10 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
 #' @noRd
 .tr_multi_logit_coefs <- function(modelo, escala = "unidade") {
   termos <- c("(intercepto)", modelo$preditores)
-  if (identical(modelo$tipo, "binária")) {
+  if (inherits(modelo$ajuste, "tr_multi_firth")) {
+    b <- matrix(modelo$ajuste$coefficients, nrow = 1L, dimnames = list(modelo$niveis[[2]], termos))
+    se <- matrix(sqrt(diag(modelo$ajuste$vcov)), nrow = 1L, dimnames = dimnames(b))
+  } else if (identical(modelo$tipo, "binária")) {
     cs <- stats::coef(summary(modelo$ajuste))
     b <- matrix(cs[, 1], nrow = 1L, dimnames = list(modelo$niveis[[2]], termos))
     se <- matrix(cs[, 2], nrow = 1L, dimnames = dimnames(b))
@@ -179,6 +200,7 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
     b <- s$coefficients; se <- s$standard.errors
     dimnames(b) <- dimnames(se) <- list(modelo$niveis[-1L], termos)
   }
+  dp <- rep(1, length(termos))
   if (identical(escala, "desvio padrão")) {
     X <- .tr_multi_logit_X(modelo, modelo$dados)
     dp <- c(1, apply(X, 2L, stats::sd))
@@ -190,6 +212,7 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5) {
              referencia = modelo$niveis[[1]],
              termo = rep(termos, times = nrow(b)),
              coeficiente = as.vector(t(b)), erro_padrao = as.vector(t(se)),
+             escala_dp = rep(dp, times = nrow(b)),
              stringsAsFactors = FALSE)
 }
 
@@ -207,13 +230,26 @@ tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", nivel = 0
   nivel <- .tr_multi_num(nivel, "nivel", min = 0.5, max = 0.999)
   .tr_multi_sem_separacao(modelo, no)
   d <- .tr_multi_logit_coefs(modelo, escala)
-  q <- stats::qnorm((1 + nivel) / 2)
   z <- d$coeficiente / d$erro_padrao
+  if (inherits(modelo$ajuste, "tr_multi_firth")) {
+    # Perfilado e razão de verossimilhanças penalizadas (Heinze & Schemper
+    # 2002), calculados na escala do ajuste e levados à do desvio padrão pelo
+    # mesmo fator do coeficiente (a reparametrização é linear).
+    aj <- modelo$ajuste
+    ic <- vapply(seq_along(aj$coefficients), function(j) .tr_multi_firth_ic(aj, j, nivel), numeric(2))
+    lo <- ic[1, ] * d$escala_dp; hi <- ic[2, ] * d$escala_dp
+    pv <- vapply(seq_along(aj$coefficients), function(j) .tr_multi_firth_p(aj, j), 0)
+    tipo_ic <- "perfilado"
+  } else {
+    q <- stats::qnorm((1 + nivel) / 2)
+    lo <- d$coeficiente - q * d$erro_padrao; hi <- d$coeficiente + q * d$erro_padrao
+    pv <- 2 * stats::pnorm(-abs(z))
+    tipo_ic <- "Wald"
+  }
   tibble::tibble(grupo = d$grupo, referencia = d$referencia, termo = d$termo,
                  coeficiente = d$coeficiente, erro_padrao = d$erro_padrao, z = z,
-                 p_valor = 2 * stats::pnorm(-abs(z)), razao_chances = exp(d$coeficiente),
-                 ic_inf = exp(d$coeficiente - q * d$erro_padrao),
-                 ic_sup = exp(d$coeficiente + q * d$erro_padrao))
+                 p_valor = pv, razao_chances = exp(d$coeficiente),
+                 ic_inf = exp(lo), ic_sup = exp(hi), intervalo = tipo_ic)
 }
 
 #' As razões de chances com intervalo, em escala log.
@@ -288,7 +324,8 @@ tr_multi_plot_odds <- function(modelo, escala = "desvio padrão", aspecto = "16:
       params = list(
         grupo = P("cols", "", label = "Grupo", example = "diabetes"),
         cols = P("cols", "", label = "Preditores", example = "glicose, imc, idade"),
-        corte = trama::tr_param_num(0.5, min = 0.01, max = 0.99, label = "Corte (binária)")),
+        corte = trama::tr_param_num(0.5, min = 0.01, max = 0.99, label = "Corte (binária)"),
+        metodo = trama::tr_param_enum("ml", .TR_MULTI_METODOS_LOGIT, label = "Método")),
       help = .tr_multi_ajuda(r"---[
 Modela a PROBABILIDADE de cada observação pertencer a cada grupo a partir das
 medidas, e classifica pelo grupo mais provável. É a irmã da
@@ -324,10 +361,19 @@ cai. A `multi/roc` mostra essa troca inteira e marca o corte escolhido.
 Se um grupo é separável dos outros SEM nenhuma sobreposição (setosa na `iris`,
 o cultivar C nos `vinhos` com as seis medidas), a verossimilhança cresce sem
 limite e os coeficientes vão ao infinito. A classificação continua certa, e o
-modelo sai; o card avisa em `separacao`, e os nós que leem coeficientes
-(`multi/logistic_coefficients`, `multi/plot_odds`, `multi/jackknife_logistic`)
-recusam. É sinal de que a pergunta "o que separa" é mais bem respondida pela
-discriminante.
+modelo sai; o card avisa em `separacao`, e com `metodo = "ml"` os nós que leem
+coeficientes (`multi/logistic_coefficients`, `multi/plot_odds`,
+`multi/jackknife_logistic`) recusam.
+
+### Firth
+
+Com `metodo = "firth"` (só dois grupos), o ajuste maximiza a verossimilhança
+penalizada de Firth (1993), l(β) + ½ log|I(β)|. A penalidade tira o viés de
+ordem 1/n da máxima verossimilhança — útil com poucos eventos por preditor — e
+dá coeficientes FINITOS mesmo com separação (Heinze & Schemper, 2002). Os
+intervalos da `multi/logistic_coefficients` passam a ser os da verossimilhança
+penalizada perfilada, e os p-valores, os da razão de verossimilhanças
+penalizadas, como no pacote `logistf`. Com n grande, ML e Firth quase coincidem.
 
 ### Recusas
 
@@ -340,6 +386,8 @@ preditores numéricos, preditor não numérico, constante ou colinear.
   numéricas menos o grupo.
 - **Corte (binária)** — probabilidade do segundo grupo a partir da qual se
   prevê ele. Ignorado com três ou mais grupos.
+- **Método** — `ml` (máxima verossimilhança, padrão) ou `firth` (penalizada,
+  só com dois grupos).
 ]---", r"---[
 Um modelo `multi/logit`. O card mostra as razões de chances (ou a ROC, se há
 separação), o tipo, a taxa de acerto por resubstituição e os grupos separados.
@@ -355,7 +403,7 @@ escolher o corte; `multi/discriminant` para a comparação; models/glm para a
 logística como modelo de regressão, com desvio e contrastes.
 ]---")),
 
-    trama::tr_node("multi/logistic_coefficients", role = "leitura", fn = tr_multi_logistic_coefficients,
+    trama::tr_node("multi/logistic_coefficients", version = 2L, role = "leitura", fn = tr_multi_logistic_coefficients,
       label = "Razões de chances",
       category = "multi_logistica", icon = trama::tr_icon("sigma"),
       description = "Coeficientes, erros padrão de Wald, p-valores e razões de chances com intervalo.",
@@ -372,8 +420,13 @@ Uma linha por termo (e, na multinomial, por grupo contra a referência).
   unidade a mais. 1 é nenhum efeito; 1,04 na glicose do `pima` é "+4% de chance
   de diabetes por mg/dL".
 - **erro_padrao**, **z**, **p_valor** — Wald: z = b / EP, contra a normal.
-- **ic_inf**, **ic_sup** — o intervalo de Wald de b exponenciado:
-  exp(b ± z·EP). Assimétrico em torno da razão de chances, como deve ser.
+- **ic_inf**, **ic_sup** — o intervalo de b exponenciado. Na ML, o de Wald,
+  exp(b ± z·EP); na logística de Firth, o da verossimilhança penalizada
+  perfilada (Heinze & Schemper 2002), que não supõe a verossimilhança
+  quadrática. Assimétrico em torno da razão de chances, como deve ser.
+- **intervalo** — `Wald` ou `perfilado`. No Firth, o `p_valor` também é o da
+  razão de verossimilhanças penalizadas (o `z` segue sendo b / EP), e o EP é a
+  raiz da inversa da informação de Fisher em β̂.
 
 ### Escala
 
@@ -384,14 +437,15 @@ deixa comparar glicose com pedigree. O intercepto e os p-valores não mudam.
 
 Wald é aproximado e fica ruim com coeficientes grandes; a
 `multi/jackknife_logistic` dá um erro padrão que não depende da aproximação. Com
-separação, a tabela é recusada.
+separação, a tabela é recusada na ML; ajuste com `metodo = "firth"` na
+`multi/logistic`.
 ]---", r"---[
 - **Escala** — `unidade` ou `desvio padrão`.
 - **Nível do intervalo** — 0,95 por padrão.
 ]---", r"---[
 Uma tabela (`data/table`): `grupo` (o grupo cuja chance se modela), `referencia`,
 `termo` (`(intercepto)` e os preditores), `coeficiente`, `erro_padrao`, `z`,
-`p_valor`, `razao_chances`, `ic_inf`, `ic_sup`.
+`p_valor`, `razao_chances`, `ic_inf`, `ic_sup`, `intervalo`.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pima", "multi/example", dataset = "pima") |>

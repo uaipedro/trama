@@ -272,7 +272,8 @@ tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", ta
   tab <- .tr_multi_jackknife(modelo$dados, modelo$preditores, modelo,
                              function(d) tr_multi_logistic(d, grupo = modelo$grupo,
                                                            cols = .tr_multi_cols_de(modelo$preditores),
-                                                           corte = if (is.na(modelo$corte)) 0.5 else modelo$corte),
+                                                           corte = if (is.na(modelo$corte)) 0.5 else modelo$corte,
+                                                           metodo = if (is.null(modelo$metodo)) "ml" else modelo$metodo),
                              extrair, no, tabela, nivel, log = estatistica == "razões de chances")
   if (identical(tabela, "resumo")) {
     # O EP de Wald ao lado: quando os dois discordam muito, a curvatura da

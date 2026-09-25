@@ -94,7 +94,7 @@ test_that("coeficientes da binária: Wald do glm e razão de chances", {
   m <- tr_multi_logistic(d, grupo = "diabetes", cols = "glicose, imc")
   tab <- tr_multi_logistic_coefficients(m)
   expect_equal(names(tab), c("grupo", "referencia", "termo", "coeficiente", "erro_padrao",
-                             "z", "p_valor", "razao_chances", "ic_inf", "ic_sup"))
+                             "z", "p_valor", "razao_chances", "ic_inf", "ic_sup", "intervalo"))
   ref <- stats::coef(summary(stats::glm(diabetes ~ glicose + imc, stats::binomial(), d)))
   expect_equal(tab$termo, c("(intercepto)", "glicose", "imc"))
   expect_equal(unique(tab$grupo), "sim")
