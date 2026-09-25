@@ -110,8 +110,10 @@ test_that("restaurar subclasse sem método registrado diz qual coleção carrega
   s <- trama::tr_store(tempfile())
   h <- trama::tr_store_put(s, "k", milho_dbc(), models_fit_type())
   f <- list.files(s$root, pattern = "\\.rds$", recursive = TRUE, full.names = TRUE)
-  saveRDS(structure(list(), class = c("tr_ml_fit", "tr_models_fit")), f[[1]])
-  expect_error(trama::tr_store_get(s, "k", models_fit_type()), "trama\\.ml",
+  # Classe de uma coleção que não existe: a `ml` agora registra os métodos
+  # quando está instalada, e não serviria mais de exemplo.
+  saveRDS(structure(list(), class = c("tr_ausente_fit", "tr_models_fit")), f[[1]])
+  expect_error(trama::tr_store_get(s, "k", models_fit_type()), "trama\\.ausente",
                class = "tr_models_error_no_method")
 })
 

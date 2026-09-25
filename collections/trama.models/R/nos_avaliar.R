@@ -132,8 +132,8 @@ Mede quanto a previsão erra, numa linha por métrica:
   que o acaso daria) e, com duas classes, `sensitivity` e `specificity` da
   **Classe positiva** (vazia = o segundo nível).
 
-Os nomes e as contas são os do bloco de avaliação da coleção `ml`, para que
-os números batam.
+Os nomes e as contas das três primeiras de cada tarefa são os que a busca de
+hiperparâmetros da coleção `ml` compara, para que os números batam.
 Diferente de `models/fit_stats`, que descreve o AJUSTE no treino, este bloco
 mede a PREVISÃO.
 ]---", .tr_models_ajuda_modos(), r"---[
@@ -167,7 +167,9 @@ coluna `medida` diz qual régua foi usada, e ela muda com o modelo:
 - `lm` e GLM — **|t|** (ou |z|) de cada coeficiente: não depende da escala da
   preditora, e o intercepto fica de fora. Um fator vira uma linha por
   contraste.
-- Árvores da `ml` — redução de impureza (ganho no XGBoost).
+- Árvores da `ml` — a importância interna do motor: redução de impureza
+  (ganho no XGBoost). A referência linear da `ml` usa o |t| (|z|), como o
+  `lm`; a SVM não tem importância interna e recusa.
 
 Não compare importâncias de medidas diferentes, e não leia sinal nem causa:
 preditoras correlacionadas repartem a importância entre si. O misto e a

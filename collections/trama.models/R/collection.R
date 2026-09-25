@@ -51,12 +51,26 @@ trama_collection <- function() {
     # razões de chances: o destino injeta `exponenciar = TRUE` só nos nós que
     # vieram de lá (o `models/coefficients` nativo, p.ex. de um `lm`, fica
     # intocado), e o `nivel` dela vira `confianca`.
+    #
+    # Os leitores da `ml` vieram na mesma fase, com a mesma regra: predict,
+    # evaluate, confusion, roc e importance da ml têm as portas com os nomes
+    # daqui (`modelo`, `dados`). Os renomes de params que a ml já declarava
+    # para esses ids (`alvo` -> `resposta`) passam para cá sob o id novo; as
+    # colunas de previsão da ml eram `.pred` e `.prob_<classe>`, e as daqui
+    # são `previsto` e `prob_<classe>` — o param que as nomeava é convertido
+    # no lugar, com `when` reconhecendo só o formato velho. Como a chave é o
+    # id NOVO, a conversão atinge também um nó nativo daqui que tivesse
+    # `predito = ".pred"`: improvável (nenhuma saída daqui tem esse nome), e
+    # nesse caso a coluna também não existiria. O `tarefa` do antigo
+    # `ml/evaluate` não tem par (a tarefa sai do modelo ou dos tipos das
+    # colunas) e é descartado.
     migrations = list(
-      nodes = list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
-                   "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
-                                                       params = list(exponenciar = TRUE))),
+      nodes = c(list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
+                     "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
+                                                         params = list(exponenciar = TRUE))),
+                .tr_models_migracoes_ml()$nodes),
       ports = list("models/predict" = list(novos = "dados")),
-      params = list(
+      params = c(.tr_models_migracoes_ml()$params, list(
       "models/coefficients" = list(nivel = list(to = "confianca")),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
@@ -68,6 +82,28 @@ trama_collection <- function() {
       "models/plot_caterpillar" = list(intervalo = list(
         to = "intervalo", when = function(v) is.character(v) && grepl("^IC [0-9]+%$", v),
         value = function(v) list(intervalo = "IC", confianca = as.numeric(sub("^IC ([0-9]+)%$", "\\1", v)) / 100)))
-    ))
+    )))
   )
+}
+
+#' As migrações dos leitores que vieram da `ml` (Fase 4).
+#'
+#' Nós: `ml/<x>` -> `models/<x>`. Params, pelo id NOVO: `alvo` -> `resposta`
+#' (o glossário que a ml aplicava), `.pred` -> `previsto` e `.prob_<classe>`
+#' -> `prob_<classe>` (a classe saneada como nas colunas daqui) convertidos no lugar, e `tarefa` descartado — um `value`
+#' que devolve lista nomeada com o próprio nome em NULL não deixa nada no nó.
+#' @noRd
+.tr_models_migracoes_ml <- function() {
+  ids <- c("predict", "evaluate", "confusion", "roc", "importance")
+  resposta <- list(alvo = list(to = "resposta"))
+  predito <- list(predito = list(to = "predito", when = function(v) identical(v, ".pred"),
+                                 value = function(v) "previsto"))
+  prob <- list(probabilidade = list(to = "probabilidade",
+                                    when = function(v) is.character(v) && length(v) == 1L && grepl("^\\.prob_", v),
+                                    value = function(v) paste0("prob_", tr_models_clean_name(sub("^\\.prob_", "", v)))))
+  tarefa <- list(tarefa = list(to = "tarefa", when = function(v) TRUE, value = function(v) list(tarefa = NULL)))
+  list(nodes = stats::setNames(as.list(paste0("models/", ids)), paste0("ml/", ids)),
+       params = list("models/evaluate" = c(resposta, predito, tarefa),
+                     "models/confusion" = c(resposta, predito),
+                     "models/roc" = c(resposta, prob)))
 }

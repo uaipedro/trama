@@ -80,13 +80,14 @@ test_that("confusion nos três modos bate com a logística da multi (mesma valid
                as.data.frame(tr_models_confusion(lg, validacao = "resubstituição")))
 })
 
-test_that("confusion no modo tabela conta como a tr_ml_confusion (formato largo x longo)", {
-  skip_if_not_installed("trama.ml")
+# Era conferida contra o antigo bloco de confusão da ml (formato longo), que
+# veio para cá na Fase 4; a contagem longa agora é o `table()` direto.
+test_that("confusion no modo tabela conta como a tabela cruzada (formato largo x longo)", {
   d <- data.frame(y = c("a", "a", "b", "c", "c", "c"), previsto = c("a", "b", "b", "c", "a", "c"))
   larga <- tr_models_confusion(dados = d, resposta = "y")
-  longa <- trama.ml::tr_ml_confusion(d, resposta = "y", predito = "previsto")
+  longa <- as.data.frame(table(observado = d$y, previsto = d$previsto), stringsAsFactors = FALSE)
   for (i in seq_len(nrow(longa))) {
-    expect_equal(larga[[longa$previsto[[i]]]][larga$real == longa$observado[[i]]], longa$n[[i]])
+    expect_equal(larga[[longa$previsto[[i]]]][larga$real == longa$observado[[i]]], longa$Freq[[i]])
   }
   expect_equal(larga$taxa_acerto[larga$real == "total"], 4 / 6)
 })
@@ -103,17 +104,18 @@ test_that("confusion recusa: sem entrada, regressão, coluna que falta", {
 
 # ---- models/roc ----------------------------------------------------------------
 
-test_that("roc: a AUC e o corte batem com a logística da multi e tr_ml_roc", {
+test_that("roc: a AUC e o corte batem com a logística da multi e com Mann-Whitney", {
   skip_if_not_installed("trama.multi")
-  skip_if_not_installed("trama.ml")
   g <- logit()
   lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp")
   for (v in c("cruzada", "resubstituição")) {
     expect_equal(subtitulo(tr_models_roc(g, validacao = v)), subtitulo(tr_models_roc(lg, validacao = v)))
   }
   tab <- tr_models_predict(g, validacao = "cruzada")
-  auc_ml <- ggplot2::ggplot_build(trama.ml::tr_ml_roc(tab, resposta = "am_f", probabilidade = "prob_1",
-                                                      positiva = "1"))$plot$data$auc[[1]]
+  # A AUC é a probabilidade de um positivo ter escore maior que um negativo
+  # (empate conta meio): a conta que a antiga ROC da ml fazia pela escada.
+  pos <- tab$prob_1[tab$am_f == "1"]; neg <- tab$prob_1[tab$am_f == "0"]
+  auc_ml <- mean(outer(pos, neg, ">") + 0.5 * outer(pos, neg, "=="))
   rd <- trama.models:::.tr_models_roc_dados(as.character(tab$am_f), cbind(`0` = tab$prob_0, `1` = tab$prob_1),
                                             c("0", "1"))
   expect_equal(rd$curvas$auc[[1]], auc_ml)
@@ -147,11 +149,17 @@ test_that("roc recusa regressão", {
 
 # ---- models/evaluate -------------------------------------------------------------
 
-test_that("evaluate: as métricas batem com tr_ml_evaluate nos três modos", {
+# As métricas comuns são as que a busca de hiperparâmetros da ml compara
+# (`.tr_ml_metricas`, o que sobrou do antigo bloco de avaliação de lá).
+ml_metricas <- function(tab, resposta, tarefa) {
+  get(".tr_ml_metricas", envir = asNamespace("trama.ml"))(tab[[resposta]], tab$previsto, tarefa)
+}
+
+test_that("evaluate: as métricas batem com as da ml nos três modos", {
   skip_if_not_installed("trama.ml")
   g <- logit()
   tab <- tr_models_predict(g, validacao = "cruzada")
-  ref <- trama.ml::tr_ml_evaluate(tab, resposta = "am_f", predito = "previsto")
+  ref <- ml_metricas(tab, "am_f", "classificacao")
   e <- tr_models_evaluate(g)
   expect_equal(e[match(ref$metrica, e$metrica), ], ref)
   expect_equal(tr_models_evaluate(dados = tab, resposta = "am_f"), e)
@@ -164,9 +172,8 @@ test_that("evaluate: as métricas batem com tr_ml_evaluate nos três modos", {
 
   m <- tr_models_lm(mt, formula = "mpg ~ wt + hp")
   tr <- tr_models_predict(m, validacao = "cruzada")
-  expect_equal(tr_models_evaluate(m), trama.ml::tr_ml_evaluate(tr, resposta = "mpg", predito = "previsto"))
-  expect_equal(tr_models_evaluate(m, mt), trama.ml::tr_ml_evaluate(tr_models_predict(m, mt), resposta = "mpg",
-                                                                   predito = "previsto"))
+  expect_equal(tr_models_evaluate(m), ml_metricas(tr, "mpg", "regressao"))
+  expect_equal(tr_models_evaluate(m, mt), ml_metricas(tr_models_predict(m, mt), "mpg", "regressao"))
 })
 
 # ---- models/importance / coefficients ---------------------------------------------
