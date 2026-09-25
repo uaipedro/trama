@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/anova_table
 category: resumir
-related: [models/coefficients, models/fit_stats]
+related: [models/coefficients, models/fit_stats, models/effect_size]
 ---
 
 ## O que o bloco faz

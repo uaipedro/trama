@@ -51,7 +51,7 @@ tr_flow(reg) |>
 
 ### Resumir
 
-- [Quadro da ANOVA](/trama/colecoes/modelos/anova-table/), [Coeficientes](/trama/colecoes/modelos/coefficients/), [Medidas de ajuste](/trama/colecoes/modelos/fit-stats/), [Efeitos aleatórios](/trama/colecoes/modelos/random-effects/), [Resíduos](/trama/colecoes/modelos/residuals/), [Diagnóstico dos resíduos](/trama/colecoes/modelos/plot-diagnostics/), [Gráfico de lagarta](/trama/colecoes/modelos/plot-caterpillar/), [Comparar modelos](/trama/colecoes/modelos/compare/), [Teste dos aleatórios](/trama/colecoes/modelos/random-test/) e [Importância](/trama/colecoes/modelos/importance/).
+- [Quadro da ANOVA](/trama/colecoes/modelos/anova-table/), [Coeficientes](/trama/colecoes/modelos/coefficients/), [Medidas de ajuste](/trama/colecoes/modelos/fit-stats/), [Tamanho de efeito (ANOVA)](/trama/colecoes/modelos/effect-size/), [Efeitos aleatórios](/trama/colecoes/modelos/random-effects/), [Resíduos](/trama/colecoes/modelos/residuals/), [Diagnóstico dos resíduos](/trama/colecoes/modelos/plot-diagnostics/), [Gráfico de lagarta](/trama/colecoes/modelos/plot-caterpillar/), [Comparar modelos](/trama/colecoes/modelos/compare/), [Teste dos aleatórios](/trama/colecoes/modelos/random-test/) e [Importância](/trama/colecoes/modelos/importance/).
 
 ### Prever e avaliar
 
@@ -68,4 +68,4 @@ tr_flow(reg) |>
 
 ### Testes
 
-- [t para duas amostras](/trama/colecoes/modelos/t-test/), [t pareado](/trama/colecoes/modelos/paired-t/), [t para uma amostra](/trama/colecoes/modelos/one-sample-t/), [Wilcoxon-Mann-Whitney](/trama/colecoes/modelos/wilcoxon/), [Kruskal-Wallis](/trama/colecoes/modelos/kruskal/), [Dunn](/trama/colecoes/modelos/dunn/), [Qui-quadrado](/trama/colecoes/modelos/chisq/), [Exato de Fisher](/trama/colecoes/modelos/fisher-exact/), [Teste de correlação](/trama/colecoes/modelos/cor-test/) e [Shapiro-Wilk](/trama/colecoes/modelos/shapiro/).
+- [t para duas amostras](/trama/colecoes/modelos/t-test/), [t pareado](/trama/colecoes/modelos/paired-t/), [t para uma amostra](/trama/colecoes/modelos/one-sample-t/), [Wilcoxon-Mann-Whitney](/trama/colecoes/modelos/wilcoxon/), [Kruskal-Wallis](/trama/colecoes/modelos/kruskal/), [Dunn](/trama/colecoes/modelos/dunn/), [Tamanho de efeito (dois grupos)](/trama/colecoes/modelos/cohen-d/), [Qui-quadrado](/trama/colecoes/modelos/chisq/), [Exato de Fisher](/trama/colecoes/modelos/fisher-exact/), [Teste de correlação](/trama/colecoes/modelos/cor-test/) e [Shapiro-Wilk](/trama/colecoes/modelos/shapiro/).

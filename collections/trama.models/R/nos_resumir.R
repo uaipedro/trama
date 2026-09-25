@@ -108,6 +108,43 @@ tr_flow(reg) |>
 comparar níveis de um fator.
 ]---", teste = TRUE)),
 
+    trama::tr_node("models/effect_size", fn = tr_models_effect_size, label = "Tamanho de efeito (ANOVA)",
+      category = "modelo_resumir", icon = trama::tr_icon("ruler"),
+      description = "Eta², eta² parcial e ômega² de cada termo da ANOVA: quanto da variação cada um explica.",
+      inputs = list(modelo = Fm), outputs = list(out = T),
+      params = list(tipo_sq = E("I", .TR_MODELS_TIPOS_SQ, label = "Soma de quadrados")),
+      help = .tr_models_ajuda(r"---[
+O p-valor do quadro diz SE um termo tem efeito; o tamanho de efeito diz de
+QUANTO. Uma linha por termo, calculada do quadro da ANOVA com o erro de cada
+termo (na parcela subdividida, o erro (a) para a parcela e o (b) para o resto;
+a coluna `erro` diz qual).
+
+- **eta2** — SQ do termo / SQ total: a fração da variação total que o termo
+  explica. Diminui quando o modelo ganha termos.
+- **eta2_parcial** — SQ / (SQ + SQ do erro): o termo contra o próprio erro. É o
+  que o SPSS mostra, e o que se compara entre experimentos com delineamentos
+  diferentes. Não soma 1 entre os termos.
+- **omega2** — (SQ − gl · QM do erro) / (SQ total + QM do erro): o eta²
+  corrigido do viés para cima em amostra pequena. Sai negativo quando F < 1:
+  leia como zero.
+
+Referências de Cohen (1988) para eta²: 0,01 pequeno, 0,06 médio, 0,14 grande —
+régua genérica, que a área de cada um deve substituir quando tiver a sua.
+]---", r"---[
+- **Soma de quadrados** — `I`, `II` ou `III`, como no `models/anova_table`.
+]---", r"---[
+Uma tabela (`data/table`): `termo`, `gl`, `eta2`, `eta2_parcial`, `omega2` e
+`erro`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho") |>
+  tr_add("efeito", "models/effect_size", from = "dbc")
+]---", r"---[
+`models/anova_table` para o quadro; `models/cohen_d` para dois grupos.
+]---")),
+
     trama::tr_node("models/fit_stats", fn = tr_models_fit_stats, label = "Medidas de ajuste",
       category = "modelo_resumir", icon = trama::tr_icon("gauge"),
       description = "R², R² ajustado, R² marginal e condicional, CV, AIC, BIC e log-verossimilhança, em colunas fixas.",

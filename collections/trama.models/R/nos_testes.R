@@ -175,7 +175,7 @@ tr_flow(reg) |>
   tr_add("t", "models/t_test", resposta = "len", grupo = "supp", from = "dentes")
 ]---", r"---[
 `models/wilcoxon` (não paramétrico); `models/paired_t` para medidas pareadas;
-`models/anova_dic` para mais de dois grupos.
+`models/anova_dic` para mais de dois grupos; `models/cohen_d` para o tamanho do efeito.
 ]---", teste = TRUE)),
 
     trama::tr_node("models/paired_t", fn = tr_models_paired_t, label = "t pareado",
@@ -328,6 +328,44 @@ tr_flow(reg) |>
 ]---", r"---[
 `models/kruskal`; `models/pairwise` para as médias de um modelo.
 ]---", teste = TRUE)),
+
+    trama::tr_node("models/cohen_d", fn = tr_models_cohen_d, label = "Tamanho de efeito (dois grupos)",
+      category = "modelo_testes", icon = trama::tr_icon("ruler"),
+      description = "d de Cohen e g de Hedges entre dois grupos, com intervalo de confiança.",
+      inputs = list(dados = T), outputs = list(out = T),
+      params = list(
+        resposta = P("cols", "", label = "Resposta", example = "len"),
+        grupo = P("cols", "", label = "Grupo (2 níveis)", example = "supp"),
+        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+      help = .tr_models_ajuda(r"---[
+A diferença entre as médias de dois grupos em unidades de desvio padrão: o
+tamanho de efeito que acompanha o `models/t_test`.
+
+- **d de Cohen** — (média do 1º − média do 2º) / DP combinado. Positivo quando
+  o primeiro grupo (na ordem dos níveis) tem a maior média.
+- **g de Hedges** — o d vezes 1 − 3 / (4(n1 + n2) − 9), que corrige o viés
+  para cima do d em amostras pequenas. Com menos de 20 por grupo, prefira o g.
+
+O intervalo é o normal de Hedges & Olkin (1985), aproximado; a partir de uns
+10 por grupo difere pouco do exato.
+
+Referências de Cohen (1988): 0,2 pequeno, 0,5 médio, 0,8 grande — genéricas;
+a comparação com efeitos já publicados na área diz mais.
+]---", r"---[
+- **Resposta** — coluna numérica.
+- **Grupo** — coluna com dois níveis.
+- **Confiança** — nível do intervalo (padrão 0,95).
+]---", r"---[
+Uma tabela (`data/table`) de duas linhas (d e g): `estimativa`, `li`, `ls`, a
+`confianca` e os tamanhos `n1`, `n2`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("dentes", "models/example", dataset = "ToothGrowth") |>
+  tr_add("d", "models/cohen_d", resposta = "len", grupo = "supp", from = "dentes")
+]---", r"---[
+`models/t_test` para o p-valor da mesma diferença; `models/effect_size` para
+os termos de uma ANOVA.
+]---")),
 
     trama::tr_node("models/chisq", fn = tr_models_chisq, label = "Qui-quadrado",
       category = "modelo_testes", icon = trama::tr_icon("table"),

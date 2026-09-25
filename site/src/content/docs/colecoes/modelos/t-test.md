@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/t_test
 category: testes
-related: [models/paired_t, models/wilcoxon]
+related: [models/paired_t, models/wilcoxon, models/cohen_d]
 ---
 
 ## O que o bloco faz
