@@ -94,6 +94,11 @@ conversa é sobre a taxa de resposta, e não sobre a margem.
         erro = N(1, min = 0, label = "Margem de erro"),
         tipo_erro = E("absoluto", c("absoluto", "relativo"), label = "Tipo de erro"),
         confianca = CONF(), populacao = POP(), deff = DEFF(), taxa_resposta = RESP()),
+      pressupostos = list(trama::tr_pressuposto("A amostra será uma **AAS sem reposição** (ou o deff informado traduz o desenho real para ela); a correção finita é n/(1 + n/N).", verificar = "sampling/simulate", se_falhar = "Para estratos, use `sampling/size_stratified`; para conglomerados, `sampling/size_cluster`; confira o n escolhido com `sampling/simulate`."),
+        trama::tr_pressuposto("O **desvio padrão** S (do piloto, de pesquisa anterior ou da regra amplitude ÷ 4) está perto do da população, e a média amostral é aproximadamente normal no n calculado.", se_falhar = "Com piloto pequeno o S é incerto: use um S maior (limite superior) ou refaça o plano com o S da primeira onda."),
+        trama::tr_pressuposto("A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.", se_falhar = "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`.")),
+      referencias = list(.tr_sampling_refs()$cochran, .tr_sampling_refs()$bolfarine,
+        .tr_sampling_impl("tr_sampling_size_mean", "n₀ = (z·S/E)² com z normal; depois × deff, n/(1 + n/N) e ÷ taxa de resposta, nessa ordem; erro relativo usa E = e·média.")),
       help = .tr_sampling_ajuda(paste(r"---[
 O tamanho de uma amostra aleatória simples para estimar uma MÉDIA com margem
 de erro E (metade do intervalo de confiança):
@@ -142,6 +147,11 @@ conglomerados; `sampling/size_curve` para ver o n contra a margem;
         proporcao = N(0.5, min = 0, max = 1, step = 0.05, label = "Proporção esperada"),
         erro = N(0.05, min = 0, max = 1, step = 0.01, label = "Margem de erro"),
         confianca = CONF(), populacao = POP(), deff = DEFF(), taxa_resposta = RESP()),
+      pressupostos = list(trama::tr_pressuposto("A amostra será uma **AAS sem reposição** (ou o deff informado traduz o desenho real para ela); a correção finita é n/(1 + n/N).", verificar = "sampling/simulate", se_falhar = "Para estratos, use `sampling/size_stratified`; para conglomerados, `sampling/size_cluster`; confira o n escolhido com `sampling/simulate`."),
+        trama::tr_pressuposto("**Aproximação normal** da proporção: p esperada não muito perto de 0 ou 1 para o n calculado (n·p e n·(1 − p) acima de uns 10).", se_falhar = "Com p esperada extrema, use p = 0,5 (pior caso) ou confira com `sampling/simulate`."),
+        trama::tr_pressuposto("A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.", se_falhar = "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`.")),
+      referencias = list(.tr_sampling_refs()$cochran, .tr_sampling_refs()$bolfarine,
+        .tr_sampling_impl("tr_sampling_size_proportion", "n₀ = z²·p(1 − p)/E² com z normal; depois × deff, n/(1 + n/N) e ÷ taxa de resposta.")),
       help = .tr_sampling_ajuda(paste(r"---[
 O tamanho de uma amostra aleatória simples para estimar uma PROPORÇÃO p com
 margem de erro E:
@@ -181,6 +191,12 @@ tr_flow(reg) |>
         erro = N(0, min = 0, label = "Margem de erro da média"),
         n_total = I(0L, min = 0L, label = "n total (vence a margem)"),
         confianca = CONF(), taxa_resposta = RESP()),
+      pressupostos = list(
+        trama::tr_pressuposto("Os **N_h e S_h** da tabela são os da população (ou boas aproximações), e o sorteio dentro de cada estrato é AAS independente.", verificar = "sampling/simulate", se_falhar = "Com S_h incertos, a alocação proporcional é a mais robusta; confira o plano com `sampling/stratified` e `sampling/simulate`."),
+        trama::tr_pressuposto("A alocação **ótima** supõe custo linear por entrevista (c_h constante dentro do estrato).", se_falhar = "Com custo fixo por estrato, ajuste o n total à mão e use a alocação de Neyman."),
+        trama::tr_pressuposto("A **não resposta** é ignorável: quem responde se parece com quem não responde, e dividir por ela só repõe o tamanho.", se_falhar = "Se a não resposta depende do tema, aumentar o n não corrige o viés; calibre depois com `sampling/rake` ou `sampling/poststratify`.")),
+      referencias = list(.tr_sampling_refs()$neyman, .tr_sampling_refs()$cochran, .tr_sampling_refs()$bolfarine,
+        .tr_sampling_impl("tr_sampling_size_stratified", "n = Σ W_h²S_h²/a_h / ((E/z)² + Σ W_h S_h²/N), com a_h da alocação (proporcional, Neyman, ótima, igual); inteiros, mínimo 2 e máximo N_h por estrato; z normal.")),
       help = .tr_sampling_ajuda(paste(r"---[
 Calcula o n de uma amostra ESTRATIFICADA e o reparte entre os estratos. A
 entrada é a tabela de estratos: uma linha por estrato, com o tamanho na
@@ -237,6 +253,11 @@ a AAS de comparação; `data/group_summarise` para montar a tabela de estratos.
         tamanho_conglomerado = N(20, min = 1, label = "Unidades por conglomerado (m̄)"),
         icc = N(0.05, min = 0, max = 1, step = 0.01, label = "ICC"),
         conglomerados = N(0, min = 0, label = "Conglomerados na população (0 = infinitos)")),
+      pressupostos = list(
+        trama::tr_pressuposto("O deff segue o modelo de **ICC comum**: deff = 1 + (m̄ − 1)·ρ, com conglomerados de tamanho parecido e o mesmo ρ em todos.", verificar = "sampling/simulate", se_falhar = "Com tamanhos muito desiguais o deff é maior; teste o plano com `sampling/two_stage` e `sampling/simulate`."),
+        trama::tr_pressuposto("Os conglomerados serão sorteados por **AAS** (ou com probabilidade que o deff já absorva), e o ICC informado vem de pesquisa parecida.", se_falhar = "Trabalhe com cenários de ICC e escolha o n do pior plausível.")),
+      referencias = list(.tr_sampling_refs()$kish, .tr_sampling_refs()$cochran,
+        .tr_sampling_impl("tr_sampling_size_cluster", "n₀ do plano × (1 + (m̄ − 1)·ρ), ÷ m̄ para número de conglomerados, correção finita com M e ÷ taxa de resposta; o deff e a correção finita do plano ligado são trocados.")),
       help = .tr_sampling_ajuda(paste(r"---[
 Leva um plano de AAS (de `sampling/size_mean` ou `sampling/size_proportion`) a
 um plano de CONGLOMERADOS: escolas em vez de alunos, municípios em vez de

@@ -291,6 +291,12 @@ tr_flow(reg) |>
       params = list(
         pos_estrato = P("cols", "", label = "Pós-estrato", example = "regiao"),
         coluna_total = P("cols", "N", label = "Coluna do total", example = "N")),
+      pressupostos = list(
+        trama::tr_pressuposto("Os **totais** N_g são exatos e da mesma população e data da amostra, e toda célula tem pelo menos uma unidade na amostra.", se_falhar = "Junte pós-estratos vazios ou pequenos com `data/mutate`; totais de outra época viram viés."),
+        trama::tr_pressuposto("Dentro de cada pós-estrato, respondentes e não respondentes se parecem (**não resposta ignorável** dado o grupo).", se_falhar = "Pós-estratifique por mais variáveis com `sampling/rake`."),
+        trama::tr_pressuposto("A variância pelos resíduos dentro dos pós-estratos é **assintótica**: pede pós-estratos com várias unidades.", verificar = "sampling/simulate", se_falhar = "Confira com `sampling/simulate`, que refaz a pós-estratificação em cada amostra.")),
+      referencias = list(.tr_sampling_refs()$deville, .tr_sampling_refs()$lohr, .tr_sampling_refs()$bolfarine,
+        .tr_sampling_impl("tr_sampling_poststratify", "w* = w·N_g/N̂_g; na variância, z é trocado pelo resíduo da regressão ponderada nas indicadoras dos pós-estratos (linearização do estimador calibrado).")),
       help = .tr_sampling_ajuda(r"---[
 A pós-estratificação: quando o total de cada grupo na população é conhecido (o
 censo diz quantas fazendas há por região, quantas pessoas por sexo e idade),

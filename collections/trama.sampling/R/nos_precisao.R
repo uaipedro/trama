@@ -374,6 +374,11 @@ célula.
         deff = N(1, min = 0.01, step = 0.1, label = "Efeito do desenho (deff)"),
         taxa_resposta = N(1, min = 0.01, max = 1, step = 0.05, label = "Taxa de resposta"),
         participacao_minima = N(0, min = 0, max = 1, step = 0.01, label = "Ignorar grupos abaixo de")),
+      pressupostos = list(
+        trama::tr_pressuposto("Sem cotas, a coleta traz cada grupo **na proporção da população** informada.", se_falhar = "Use a composição de uma coleta anterior ou do piloto; coleta aberta costuma atrair uns grupos mais que outros."),
+        trama::tr_pressuposto("Dentro de cada grupo, as respostas se comportam como **amostra aleatória** do grupo, com aproximação normal da proporção.", se_falhar = "Leia a margem como nominal e calibre com `sampling/rake`.")),
+      referencias = list(.tr_sampling_refs()$cochran, .tr_sampling_refs()$lohr,
+        .tr_sampling_impl("tr_sampling_size_domains", "n por grupo = z²·p(1 − p)/E² × deff; total = maior n_g/participação_g entre os grupos considerados; ÷ taxa de resposta; sem correção finita.")),
       help = .tr_sampling_ajuda(r"---[
 O tamanho da amostra quando a margem tem de valer DENTRO de cada grupo de
 perfil (cada sexo, cada raça/cor, cada faixa de renda) e não há cotas.
@@ -385,15 +390,12 @@ quer ler: com um grupo de 2%, o total passa de 19 mil. A escada do card mostra
 o grupo limitante; a vista `alocação` e a tabela, o que cada grupo exigiria e a
 margem que ele teria no total escolhido.
 
-Dois alertas que a conta não resolve:
+Um alerta que a conta não resolve:
 
 - **Grupos muito pequenos** (indígenas e amarelos, em muitos recortes) exigem
   totais inviáveis. **Ignorar grupos abaixo de** os tira da conta, e a nota diz
   quais ficaram fora: a pesquisa não terá margem para eles, e isso deve ir para
   o relatório.
-- A conta supõe que a coleta traga cada grupo na proporção da população. Coleta
-  aberta costuma atrair uns grupos mais que outros; a composição de uma coleta
-  anterior (ou do piloto) é melhor que a do Censo, quando existe.
 ]---", r"---[
 - **Variável**, **Grupo**, **Participação** — colunas da tabela longa de
   composição (a participação soma 1 dentro de cada variável).
@@ -430,6 +432,12 @@ para a margem só no total; `sampling/rake` para calibrar depois.
         categoria = P("cols", "categoria", label = "Coluna da categoria", example = "categoria"),
         total = P("cols", "total", label = "Coluna do total", example = "total"),
         iteracoes = I(50L, min = 1L, max = 1000L, label = "Rodadas")),
+      pressupostos = list(
+        trama::tr_pressuposto("Os totais das **margens** são exatos e consistentes (todas as variáveis somam a mesma população), e toda categoria tem gente na amostra.", se_falhar = "Junte categorias vazias antes; totais de fontes diferentes precisam ser reconciliados."),
+        trama::tr_pressuposto("A não resposta (ou a seleção) é **ignorável dadas as variáveis calibradas** — o modelo é o de efeitos principais, sem interação entre elas.", se_falhar = "Inclua a variável que explica a participação, ou um cruzamento dela, entre as calibradas."),
+        trama::tr_pressuposto("A variância linearizada supõe amostra **probabilística**; em coleta não probabilística ela é nominal.", verificar = "sampling/simulate", se_falhar = "Leia o erro como nominal e reporte a amplitude dos pesos da nota.")),
+      referencias = list(.tr_sampling_refs()$deming, .tr_sampling_refs()$deville, .tr_sampling_refs()$lohr,
+        .tr_sampling_impl("tr_sampling_rake", "Ajuste proporcional iterativo (uma variável por rodada, até as margens baterem ou o limite de rodadas); variância pelo resíduo da regressão ponderada nas indicadoras de todas as variáveis calibradas.")),
       help = .tr_sampling_ajuda(r"---[
 A calibração por várias variáveis: os pesos são ajustados para que a amostra
 tenha, ao mesmo tempo, o total conhecido de cada categoria de cada variável —

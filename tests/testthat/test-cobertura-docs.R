@@ -10,7 +10,9 @@
 # - `series/forecast` é `leitura` do modelo, mas é a previsão (com intervalo);
 # - `multi/kmo_bartlett` está em `inspecao`, mas inclui o teste de Bartlett;
 # - `models/anova_split_plot` tem `plot` no id (é "split plot", não gráfico);
-# - `models/anova_table` é `leitura`, mas faz os testes F de cada termo.
+# - `models/anova_table` é `leitura`, mas faz os testes F de cada termo;
+# - em `sampling`, os tamanhos de amostra e a calibração são `preparacao`, mas
+#   dependem de fórmulas de variância com pressupostos próprios.
 #
 # Documentado = ≥1 pressuposto, ≥1 referência de papel `teoria` ou
 # `livro-texto` e ≥1 de papel `implementacao`.
@@ -22,7 +24,10 @@
 .cob_incluir <- c("models/duncan", "models/emmeans", "models/linear_hypothesis",
                   "models/pairwise", "models/waller_duncan", "series/forecast",
                   "multi/kmo_bartlett", "models/anova_split_plot",
-                  "models/anova_table")
+                  "models/anova_table",
+                  "sampling/size_mean", "sampling/size_proportion", "sampling/size_stratified",
+                  "sampling/size_cluster", "sampling/size_domains", "sampling/poststratify",
+                  "sampling/rake")
 
 .cob_colecoes <- c("trama.data", "trama.view", "trama.models", "trama.sampling",
                    "trama.series", "trama.multi", "trama.ml")
