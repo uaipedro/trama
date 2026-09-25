@@ -1761,6 +1761,13 @@ function App() {
     const t = tipoDaSaida(nodeId, porta);
     if (t) setProx({ de: nodeId, deTipo: t.nodeType, porta, tipo: t.tipo, x, y });
   }, []);
+  // Modo "origem": puxado de uma ENTRADA, sugere o que alimentaria a porta.
+  const abrirOrigem = useCallback((nodeId, porta, x, y) => {
+    const cat = catalogRef.current;
+    const n = nodesRef.current.find((q) => q.id === nodeId);
+    const inp = n && cat?.nodes.find((q) => q.id === n.data.nodeType)?.inputs?.find((i) => i.name === porta);
+    if (inp) setProx({ modo: "origem", de: nodeId, deTipo: n.data.nodeType, porta, tipo: inp.type, x, y });
+  }, []);
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
   const decorated = useMemo(() => nodes.map((n) => {
@@ -2409,7 +2416,8 @@ function App() {
     const oPos = origem?.position ?? p.pos;
     const oTipo = origem?.data.nodeType ?? p.deTipo;
     if (!oPos || !oTipo || !cat) { setProx(null); return; }
-    const pos = { x: oPos.x + 300, y: oPos.y };
+    const origemModo = p.modo === "origem";
+    const pos = { x: oPos.x + (origemModo ? -300 : 300), y: oPos.y };
     // Colisão pela altura medida do card (um card completo passa de 350) e
     // também contra os inserts ainda na fila, que não estão em `nodes`.
     const caixas = nodesRef.current.filter((n) => n.type === "ndNode" && n.id !== p.de)
@@ -2418,13 +2426,15 @@ function App() {
     const bate = (q) => caixas.find((c) => Math.abs(c.x - q.x) < 260 && q.y < c.y + c.h + 30 && c.y < q.y + 200);
     for (let i = 0, c; i < 50 && (c = bate(pos)); i++) pos.y = c.y + c.h + 30;
     const nid = novoId();
-    const ops = [...opsAdd(tipoId, pos, nid),
-                 { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }];
+    // Em "origem", `porta` é a SAÍDA do bloco novo e a conexão vai dele ao alvo.
+    const ops = [...opsAdd(tipoId, pos, nid), origemModo
+      ? { op: "connect", from_node: nid, from_port: porta, to_node: p.de, to_port: p.porta }
+      : { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }];
     // O servidor recusa op com revisão defasada: se a origem ainda não ecoou
     // (Tab rápido), o insert espera na fila e sai quando ela chegar.
     if (origem && !filaProxRef.current.length) pushMany(ops);
     else filaProxRef.current.push({ de: p.de, ops, pos: { ...pos } });
-    registrar(oTipo, tipoId);
+    if (origemModo) registrar(tipoId, oTipo); else registrar(oTipo, tipoId);
     selNovoRef.current = nid;
     const spec = cat.nodes.find((x) => x.id === tipoId);
     const saida = spec?.outputs?.[0];
@@ -2527,11 +2537,12 @@ function App() {
   // mouse. `fromHandle` é a porta onde o arrasto começou.
   const onConnectEnd = useCallback((ev, st) => {
     setDragType(null);
-    if (present || !st || st.toNode || st.fromHandle?.type !== "source") return;
+    if (present || !st || st.toNode || !st.fromHandle) return;
     const pt = ev.changedTouches?.[0] || ev;
     if (pt.clientX == null) return;
-    abrirProximo(st.fromHandle.nodeId, st.fromHandle.id, pt.clientX, pt.clientY);
-  }, [present, abrirProximo]);
+    const abrir = st.fromHandle.type === "source" ? abrirProximo : abrirOrigem;
+    abrir(st.fromHandle.nodeId, st.fromHandle.id, pt.clientX, pt.clientY);
+  }, [present, abrirProximo, abrirOrigem]);
 
   // O log de undo é do servidor: aqui só se pede. Log no cliente, montado com
   // os ecos, desfazia o passo errado quando havia op em voo — o R bloqueia
@@ -3413,8 +3424,8 @@ function App() {
         : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked,
                        modoNovo, onModoNovo: setModoNovo }),
     prox && !present && catalog
-      ? h(Proximo, { key: `prox-${prox.de}-${prox.porta}`, catalog,
-          de: prox.deTipo,
+      ? h(Proximo, { key: `prox-${prox.modo || "p"}-${prox.de}-${prox.porta}`, catalog,
+          de: prox.deTipo, modo: prox.modo, tipoPara: prox.tipoPara,
           tipo: prox.tipo, presentes, x: prox.x, y: prox.y,
           onEscolher: inserirProximo, onFechar: fecharProx,
           renderIcone: (n) => (n.icon && ICON_KINDS.has(n.icon.kind)

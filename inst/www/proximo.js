@@ -6,7 +6,7 @@
 // passa `renderIcone(spec)`. Sem ele, cai sempre na bolinha da categoria.
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { h } from "trama";
-import { sugerir } from "./sugestor.js";
+import { sugerir, sugerirOrigem, intermediarios } from "./sugestor.js";
 import { lerHistorico } from "./historico.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { moverFoco } from "./proximo-foco.js";
@@ -20,20 +20,26 @@ const casa = (n, termo) =>
   !termo || `${n.label} ${n.description || ""} ${n.id}`.toLowerCase().includes(termo);
 
 // O motivo de maior peso vira a dica da tagzinha.
-export function motivoPrincipal(s, { deLabel, historico, de }) {
+export function motivoPrincipal(s, { deLabel, historico, de, origem }) {
   const [chave] = Object.entries(s.motivos || {}).filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])[0] || [];
   switch (chave) {
-    case "transicao": return `aparece depois de ${deLabel} nos exemplos`;
-    case "historico": return `usado por você ${historico?.[`${de}>${s.id}`] || 1}×`;
-    case "relacionado": return `citado na ajuda de ${deLabel}`;
-    case "etapa": return "próxima etapa";
+    case "transicao": return origem ? `aparece antes de ${deLabel} nos exemplos`
+      : `aparece depois de ${deLabel} nos exemplos`;
+    case "historico": return `usado por você ${historico?.[origem ? `${s.id}>${de}` : `${de}>${s.id}`] || 1}×`;
+    case "relacionado": return origem ? `cita ${deLabel} na ajuda` : `citado na ajuda de ${deLabel}`;
+    case "etapa": return origem ? "etapa anterior" : "próxima etapa";
     case "contexto": return "combina com o fluxo";
     default: return "";
   }
 }
 
-export function Proximo({ catalog, de, tipo, presentes, x, y, onEscolher, onFechar, renderIcone }) {
+// `modo`: "proximo" (padrão) sugere o que vem depois de `de`, cuja saída tem
+// `tipo`; "origem" sugere o que vem ANTES de `de`, cuja entrada espera `tipo`,
+// e aí o Tab não encadeia; "meio" é o próximo restrito aos blocos que também
+// alimentam `tipoPara` (inserir numa aresta), e cada item leva a `saida`.
+export function Proximo({ catalog, de, tipo, tipoPara, modo = "proximo", presentes, x, y,
+                          onEscolher, onFechar, renderIcone }) {
   const [q, setQ] = useState("");
   const [foco, setFoco] = useState(-1);
   const [pos, setPos] = useState({ left: x, top: y });
@@ -41,9 +47,14 @@ export function Proximo({ catalog, de, tipo, presentes, x, y, onEscolher, onFech
   const input = useRef(null);
 
   const historico = useMemo(() => lerHistorico(), []);
-  const ranking = useMemo(
-    () => sugerir(catalog, { de, tipo, presentes: presentes || [], historico }),
-    [catalog, de, tipo, presentes, historico]);
+  const ranking = useMemo(() => {
+    const ctx = { tipo, presentes: presentes || [], historico };
+    if (modo === "origem") return sugerirOrigem(catalog, { ...ctx, para: de });
+    const r = sugerir(catalog, { ...ctx, de });
+    if (modo !== "meio") return r;
+    const cabe = Object.fromEntries(intermediarios(catalog, tipo, tipoPara).map((m) => [m.id, m]));
+    return r.filter((s) => cabe[s.id]).map((s) => ({ ...s, saida: cabe[s.id].saida }));
+  }, [catalog, de, tipo, tipoPara, modo, presentes, historico]);
 
   const byId = useMemo(
     () => Object.fromEntries((catalog.nodes || []).map((n) => [n.id, n])), [catalog]);
@@ -100,7 +111,7 @@ export function Proximo({ catalog, de, tipo, presentes, x, y, onEscolher, onFech
 
   const escolher = (i, encadear) => {
     const s = todos[i >= 0 ? i : 0];
-    if (s) onEscolher?.(s.id, s.porta, { encadear });
+    if (s) onEscolher?.(s.id, s.porta, { encadear: encadear && modo === "proximo", saida: s.saida });
   };
 
   const onKeyDown = (e) => {
@@ -138,9 +149,9 @@ export function Proximo({ catalog, de, tipo, presentes, x, y, onEscolher, onFech
     ]);
   };
 
-  const ctx = { deLabel, historico, de };
+  const ctx = { deLabel, historico, de, origem: modo === "origem" };
   return h("div", {
-    ref: caixa, className: "tr-prox nodrag nowheel", role: "dialog", "aria-label": "próximo bloco",
+    ref: caixa, className: "tr-prox nodrag nowheel", role: "dialog", "aria-label": modo === "origem" ? "bloco de origem" : "próximo bloco",
     style: { left: pos.left, top: pos.top }, onKeyDown,
   }, [
     h("input", { key: "q", ref: input, className: "tr-prox-q", placeholder: "digite para filtrar…",
