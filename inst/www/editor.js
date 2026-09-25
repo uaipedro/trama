@@ -1202,7 +1202,9 @@ function TemplateDialog({ quantos, destinoPadrao, conflito, enviando, onSave, on
 // projeto, nessa ordem — do mais genérico ao mais local. A lista vem do
 // servidor (`tr_template_list`), pedida a cada abertura: um template salvo em
 // outra janela, ou largado à mão na pasta, aparece sem recarregar.
-// Clique insere no centro da tela; arrastar solta onde o mouse estiver. O
+// Clique só foca o item (clique solto inseria sem querer). Botão direito abre
+// um menu com "Colar template", que insere no centro da tela; Enter faz o
+// mesmo pelo teclado; arrastar solta onde o mouse estiver. O
 // `arquivo` que viaja é o caminho que o próprio servidor listou, e ele recusa
 // qualquer outro (ver `tr_template_insert`).
 const SECOES_TEMPLATE = [
@@ -1211,7 +1213,30 @@ const SECOES_TEMPLATE = [
   { escopo: "projeto", titulo: "Projeto" },
 ];
 function TemplatesPanel({ templates, onInsert, onClose }) {
+  // Menu próprio, em coordenadas da janela (`position:fixed`): o painel não é
+  // filho de `.tr-canvas`, onde mora o menu do canvas. Mesmas classes.
+  const [menuTpl, setMenuTpl] = useState(null); // {arquivo, x, y}
+  useEffect(() => {
+    if (!menuTpl) return;
+    const fechar = () => setMenuTpl(null);
+    const tecla = (e) => { if (e.key === "Escape") fechar(); };
+    window.addEventListener("pointerdown", fechar);
+    window.addEventListener("keydown", tecla);
+    window.addEventListener("blur", fechar);
+    return () => {
+      window.removeEventListener("pointerdown", fechar);
+      window.removeEventListener("keydown", tecla);
+      window.removeEventListener("blur", fechar);
+    };
+  }, [menuTpl]);
   return h("aside", { className: "tr-frames tr-templates" }, [
+    menuTpl ? h("div", { key: "menu", className: "tr-menu",
+                         style: { position: "fixed", left: menuTpl.x, top: menuTpl.y },
+                         onPointerDown: (e) => e.stopPropagation(),
+                         onContextMenu: (e) => e.preventDefault() }, [
+      h("button", { key: "c", onClick: () => { onInsert(menuTpl.arquivo); setMenuTpl(null); } },
+        "Colar template"),
+    ]) : null,
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t" }, "Templates"),
       h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
@@ -1226,14 +1251,18 @@ function TemplatesPanel({ templates, onInsert, onClose }) {
             ...(itens.length ? itens.map((t) => h("div", {
               key: t.arquivo, role: "button", tabIndex: 0, draggable: true,
               className: "tr-frames-item tr-tpl-item",
-              title: "clique para inserir no centro; arraste para soltar no canvas",
-              onClick: () => onInsert(t.arquivo),
+              title: "arraste para o canvas ou clique com o botão direito → Colar template",
+              onClick: (e) => e.currentTarget.focus(),
+              onContextMenu: (e) => {
+                e.preventDefault();
+                setMenuTpl({ arquivo: t.arquivo, x: e.clientX, y: e.clientY });
+              },
               // Mesmo trato do item do painel de frames: Espaço é a tecla de
               // andar pela tela, e não pode escapar até o `window`.
               onKeyDown: (e) => {
                 if (e.key !== "Enter" && e.key !== " ") return;
                 e.preventDefault(); e.stopPropagation();
-                onInsert(t.arquivo);
+                if (e.key === "Enter") onInsert(t.arquivo);
               },
               onDragStart: (e) => {
                 e.dataTransfer.setData("application/trama-template", t.arquivo);
