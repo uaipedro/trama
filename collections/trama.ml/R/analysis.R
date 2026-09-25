@@ -96,7 +96,8 @@ NULL
 }
 
 #' Visualizar uma árvore CART ou uma das árvores do FIGS
-#' @param modelo Modelo CART ou FIGS devolvido por [tr_ml_fit()].
+#' @param modelo Modelo CART ou FIGS devolvido por [tr_ml_fit()]; outro modelo
+#'   é recusado com erro `tr_ml_error_not_fit`.
 #' @param arvore Índice positivo da árvore do FIGS. Ignorado pelo CART.
 #' @param mostrar_n Inclui em cada nó o número de observações que o alcançam.
 #' @param mostrar_impureza Inclui a impureza do CART ou o ganho do FIGS.
@@ -115,8 +116,7 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
                             aspecto = "16:9", tema = "padr\u{E3}o",
                             titulo = "", rotulo_x = "", rotulo_y = "",
                             legenda = "direita") {
-  if (!inherits(modelo, "tr_ml_fit"))
-    .tr_ml_abort("tr_ml_error_not_fit", "Param 'modelo' n\u{E3}o \u{E9} um ajuste de machine learning.")
+  .tr_ml_exigir_fit(modelo, "ml/tree_plot")
   if (!modelo$modelo %in% c("cart", "figs"))
     .tr_ml_abort("tr_ml_error_not_applicable", "A visualiza\u{E7}\u{E3}o de \u{E1}rvore aceita apenas CART e FIGS.")
   nodes <- if (modelo$modelo == "cart") .tr_ml_cart_plot_data(modelo) else
@@ -155,7 +155,8 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
 #' Gráfico de resíduos de regressão
 #' @param dados Tabela com valores observados e previstos.
 #' @param resposta Nome da coluna observada.
-#' @param predito Nome da coluna prevista.
+#' @param predito Nome da coluna prevista; o padrão `previsto` é a coluna que
+#'   a `models/predict` escreve.
 #' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
 #'   ou `"2:1"`.
 #' @param tema Nome de um tema registrado no projeto.
@@ -165,7 +166,7 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
 #' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @return Objeto `ggplot` dos resíduos contra as previsões recebidas.
 #' @export
-tr_ml_residuals <- function(dados, resposta = "", predito = ".pred", aspecto = "16:9",
+tr_ml_residuals <- function(dados, resposta = "", predito = "previsto", aspecto = "16:9",
                             tema = "padr\u{E3}o", titulo = "", rotulo_x = "",
                             rotulo_y = "", legenda = "direita") {
   .tr_ml_validate_pair(dados, resposta, predito)
@@ -179,50 +180,6 @@ tr_ml_residuals <- function(dados, resposta = "", predito = ".pred", aspecto = "
     ggplot2::geom_hline(yintercept = 0, colour = "#94a3b8", linewidth = .6) +
     ggplot2::geom_point(size = 2.4, alpha = .85) +
     ggplot2::labs(x = "Previs\u{E3}o", y = "Res\u{ED}duo (observado \u{2212} previsto)")
-  .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
-}
-
-#' Curva ROC para classificação binária
-#' @param dados Tabela com a classe observada e sua probabilidade prevista.
-#' @param resposta Nome da coluna observada.
-#' @param probabilidade Coluna com a probabilidade da classe positiva.
-#' @param positiva Classe tratada como positiva; vazio usa a segunda observada.
-#' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
-#'   ou `"2:1"`.
-#' @param tema Nome de um tema registrado no projeto.
-#' @param titulo Título do gráfico. Vazio omite o título.
-#' @param rotulo_x Rótulo do eixo X. Vazio mantém o rótulo gerado.
-#' @param rotulo_y Rótulo do eixo Y. Vazio mantém o rótulo gerado.
-#' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
-#' @return Objeto `ggplot` da curva ROC. A coluna `auc` dos dados do gráfico
-#'   contém a área sob a curva.
-#' @export
-tr_ml_roc <- function(dados, resposta = "", probabilidade = "", positiva = "",
-                      aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
-                      rotulo_x = "", rotulo_y = "", legenda = "direita") {
-  .tr_ml_validate_pair(dados, resposta, probabilidade)
-  y <- as.character(dados[[resposta]]); prob <- dados[[probabilidade]]
-  classes <- unique(y)
-  if (anyNA(y) || length(classes) != 2L || !is.numeric(prob) || anyNA(prob) ||
-      any(!is.finite(prob)) || any(prob < 0 | prob > 1))
-    .tr_ml_abort("tr_ml_error_not_applicable",
-                 "ROC exige duas classes e uma probabilidade finita entre 0 e 1.")
-  if (!nzchar(positiva)) positiva <- classes[[2L]]
-  if (!positiva %in% classes)
-    .tr_ml_abort("tr_ml_error_bad_param", "Param 'positiva' deve ser uma classe observada.")
-  ord <- order(prob, decreasing = TRUE)
-  positivo <- y[ord] == positiva
-  grupos <- cumsum(c(TRUE, diff(prob[ord]) != 0))
-  tp <- c(0, cumsum(as.numeric(rowsum(as.integer(positivo), grupos))))
-  fp <- c(0, cumsum(as.numeric(rowsum(as.integer(!positivo), grupos))))
-  d <- tibble::tibble(fpr = fp / sum(!positivo), tpr = tp / sum(positivo))
-  n_curva <- nrow(d)
-  d$auc <- sum(diff(d$fpr) * (d$tpr[-n_curva] + d$tpr[-1L]) / 2)
-  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$fpr, y = .data$tpr)) +
-    ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "#94a3b8") +
-    ggplot2::geom_step(linewidth = 1) + ggplot2::coord_equal() +
-    ggplot2::annotate("text", x = .62, y = .08, label = sprintf("AUC = %.3f", d$auc[[1]])) +
-    ggplot2::labs(x = "Taxa de falsos positivos", y = "Taxa de verdadeiros positivos")
   .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 

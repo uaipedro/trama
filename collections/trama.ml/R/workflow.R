@@ -62,98 +62,36 @@ tr_ml_split <- function(dados, resposta = "", proporcao = 0.75,
   })
 }
 
-#' Avalia previsões de regressão ou classificação
+#' As métricas que a busca de hiperparâmetros compara, fold a fold.
 #'
-#' Não remove silenciosamente linhas: resposta e previsão ausentes produzem erro.
-#' Em classificação, balanced accuracy e F1 são médias macro sobre as classes
-#' observadas na resposta; uma classe ausente nas previsões recebe seu recall/F1
-#' correspondente (zero quando aplicável).
-#'
-#' @param dados Data frame com resposta e previsão.
-#' @param resposta Nome da coluna observada.
-#' @param predito Nome da coluna prevista.
-#' @param tarefa auto, regressao ou classificacao.
-#' @return Tibble com colunas metrica, valor e n.
-#' @export
-tr_ml_evaluate <- function(dados, resposta = "", predito = ".pred",
-                           tarefa = "auto") {
-  .tr_ml_validate_pair(dados, resposta, predito)
-  if (length(tarefa) != 1L || is.na(tarefa) ||
-      !tarefa %in% c("auto", "regressao", "classificacao")) {
-    stop("tarefa deve ser auto, regressao ou classificacao.", call. = FALSE)
-  }
-  y <- dados[[resposta]]
-  p <- dados[[predito]]
+#' Era o corpo do antigo bloco de avaliação da ml, que foi para a
+#' `models/evaluate` com os mesmos nomes e as mesmas contas; aqui fica só o que
+#' `ml/tune` usa, sobre vetores já pareados. Nada de faltante descartado em
+#' silêncio. Na classificação, balanced accuracy e F1 são médias macro sobre as
+#' classes OBSERVADAS; uma classe ausente das previsões entra com recall/F1 zero.
+#' @return tibble `metrica`, `valor`, `n`.
+#' @noRd
+.tr_ml_metricas <- function(y, p, tarefa) {
   if (anyNA(y) || anyNA(p)) {
     stop("Alvo e previs\u{E3}o n\u{E3}o podem conter valores ausentes; nenhuma linha foi descartada.",
          call. = FALSE)
   }
   if (!length(y)) {
-    stop("Alvo e previs\u{E3}o precisam conter pelo menos uma observa\u{E7}\u{E3}o.",
-         call. = FALSE)
+    stop("Alvo e previs\u{E3}o precisam conter pelo menos uma observa\u{E7}\u{E3}o.", call. = FALSE)
   }
-  classe <- if (tarefa == "auto") {
-    if (is.factor(y) || is.character(y) || is.logical(y) ||
-        is.factor(p) || is.character(p) || is.logical(p)) "classificacao" else "regressao"
-  } else tarefa
-  if (classe == "regressao") {
-    if (!is.numeric(y) || !is.numeric(p)) {
-      stop("Regress\u{E3}o exige resposta e previs\u{E3}o num\u{E9}ricos.", call. = FALSE)
-    }
-    if (any(!is.finite(y)) || any(!is.finite(p))) {
-      stop("Alvo e previs\u{E3}o de regress\u{E3}o devem conter apenas valores finitos.",
-           call. = FALSE)
+  if (tarefa == "regressao") {
+    if (!is.numeric(y) || !is.numeric(p) || any(!is.finite(y)) || any(!is.finite(p))) {
+      stop("Regress\u{E3}o exige resposta e previs\u{E3}o num\u{E9}ricas e finitas.", call. = FALSE)
     }
     erro <- p - y
     sst <- sum((y - mean(y))^2)
-    tibble::tibble(
+    return(tibble::tibble(
       metrica = c("mae", "rmse", "r2"),
       valor = c(mean(abs(erro)), sqrt(mean(erro^2)),
                 if (sst == 0) NA_real_ else 1 - sum(erro^2) / sst),
-      n = length(y)
-    )
-  } else {
-    if (is.numeric(y) && any(!is.finite(y))) {
-      stop("A resposta de classifica\u{E7}\u{E3}o num\u{E9}rico deve conter apenas valores finitos.", call. = FALSE)
-    }
-    if (is.numeric(p) && any(!is.finite(p))) {
-      stop("A previs\u{E3}o de classifica\u{E7}\u{E3}o num\u{E9}rica deve conter apenas valores finitos.", call. = FALSE)
-    }
-    .tr_ml_classification_metrics(y, p)
+      n = length(y)))
   }
-}
-
-#' Produz uma matriz de confusão em formato longo
-#'
-#' @param dados Data frame com as colunas observada e prevista.
-#' @param resposta Nome da coluna observada.
-#' @param predito Nome da coluna prevista.
-#' @return Tibble com observado, previsto e n.
-#' @export
-tr_ml_confusion <- function(dados, resposta = "", predito = ".pred") {
-  .tr_ml_validate_pair(dados, resposta, predito)
-  y <- dados[[resposta]]
-  p <- dados[[predito]]
-  if (anyNA(y) || anyNA(p)) {
-    stop("Alvo e previs\u{E3}o n\u{E3}o podem conter valores ausentes; nenhuma linha foi descartada.",
-         call. = FALSE)
-  }
-  if ((is.numeric(y) && any(!is.finite(y))) ||
-      (is.numeric(p) && any(!is.finite(p)))) {
-    stop("Alvo e previs\u{E3}o categ\u{F3}ricos num\u{E9}ricos devem conter apenas valores finitos.",
-         call. = FALSE)
-  }
-  categ <- function(x) is.factor(x) || is.character(x) || is.logical(x) ||
-    is.numeric(x)
-  if (!categ(y) || !categ(p)) {
-    stop("A matriz de confus\u{E3}o exige resposta e previs\u{E3}o categ\u{F3}ricos.", call. = FALSE)
-  }
-  ys <- as.character(y); ps <- as.character(p)
-  niveis <- unique(c(ys, ps))
-  tab <- table(factor(ys, levels = niveis), factor(ps, levels = niveis))
-  out <- as.data.frame(tab, stringsAsFactors = FALSE)
-  names(out) <- c("observado", "previsto", "n")
-  tibble::as_tibble(out)
+  .tr_ml_classification_metrics(y, p)
 }
 
 #' Carrega um conjunto pequeno para exemplos da coleção ML

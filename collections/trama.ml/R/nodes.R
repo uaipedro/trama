@@ -117,19 +117,19 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
     cfg <- configs[[id]]
     trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label,
       description = cfg$desc, category = cfg$category,
-      inputs = list(dados = "data/table"), outputs = list(out = "ml/fit"),
+      inputs = list(dados = "data/table"), outputs = list(out = "models/fit"),
       params = c(common, cfg$params, list(seed = .tr_ml_seed_param())),
       help = .tr_ml_help(cfg$details,
         paste("`resposta`: coluna resposta. `preditores`: preditores num\u{E9}ricos separados por v\u{ED}rgula; vazio usa os num\u{E9}ricos exceto a resposta. Remova identificadores e vari\u{E1}veis que revelem a resposta. `tarefa`: auto interpreta n\u{FA}meros como regress\u{E3}o e fator/texto como classifica\u{E7}\u{E3}o. Para classes codificadas com n\u{FA}meros, selecione classificacao. `seed`: semente reproduz\u{ED}vel, sem alterar a sess\u{E3}o.", cfg$extra,
           "Faltantes e infinitos s\u{E3}o recusados: trate-os explicitamente sem aprender estat\u{ED}sticas no teste."),
-        "Modelo `ml/fit`. Ligue-o a `ml/predict`; conecte a tabela de teste na outra entrada. Use `ml/evaluate` para medir desempenho fora do treino.",
+        "Modelo `models/fit`. Ligue-o a `models/predict` com a tabela de teste na entrada `dados`, ou direto a `models/evaluate`, `models/confusion` e `models/roc` (com o teste em `dados`; sem ele, eles medem por valida\u{E7}\u{E3}o cruzada de 5 folds no treino). A tabela prevista traz `previsto` e, na classifica\u{E7}\u{E3}o, `prob_<classe>`.",
         paste0("trama.ml::tr_ml_", id, "(trama.ml::tr_ml_example('iris_binaria'), resposta = 'Species')"),
-        paste(cfg$ref, "Ver `ml/split`, `ml/predict` e `ml/evaluate`.")))
+        paste(cfg$ref, "Ver `ml/split`, `models/predict` e `models/evaluate`.")))
   })
 }
 
 .tr_ml_analysis_nodes <- function() {
-  T <- "data/table"; G <- "view/plot"; M <- "ml/fit"
+  T <- "data/table"; G <- "view/plot"; M <- "models/fit"
   visual <- function(...) trama.view::tr_view_props(...)
   list(
     trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, label = "Ajustar hiperpar\u{E2}metros",
@@ -146,9 +146,9 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
         seed = .tr_ml_seed_param()),
       help = .tr_ml_help("Avalia configura\u{E7}\u{F5}es nos mesmos folds, escolhe pela m\u{E9}dia e reajusta o vencedor em todas as linhas recebidas. Conecte somente treino; preserve o teste para a avalia\u{E7}\u{E3}o final.",
         "`modelo`: fam\u{ED}lia a ajustar. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
-        "Duas sa\u{ED}das: o melhor `ml/fit` reajustado e uma tabela com todas as tentativas.",
+        "Duas sa\u{ED}das: o melhor modelo reajustado (`models/fit`) e uma tabela com todas as tentativas.",
         "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, resposta = 'Species', tentativas = 3, folds = 3)",
-        "`ml/tuning_plot`, `ml/predict`, `ml/evaluate`.")),
+        "`ml/tuning_plot`, `models/predict`, `models/evaluate`.")),
     trama::tr_node("ml/tree_plot", tr_ml_tree_plot, label = "Visualizar \u{E1}rvores",
       description = "Desenha a \u{E1}rvore CART ou uma \u{E1}rvore da soma FIGS.",
       category = "ml_inspecionar", inputs = list(modelo = M), outputs = list(out = G),
@@ -156,7 +156,7 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
         mostrar_n = trama::tr_param_bool(TRUE, label = "Mostrar amostras"),
         mostrar_impureza = trama::tr_param_bool(FALSE, label = "Mostrar impureza / ganho"),
         casas = trama::tr_param_int(3L, min = 0L, max = 6L, label = "Casas decimais")),
-      help = .tr_ml_help("No CART, mostra a \u{E1}rvore de decis\u{E3}o completa. No FIGS, mostra uma \u{E1}rvore por vez; a previs\u{E3}o final continua sendo a soma das contribui\u{E7}\u{F5}es.",
+      help = .tr_ml_help("No CART, mostra a \u{E1}rvore de decis\u{E3}o completa. No FIGS, mostra uma \u{E1}rvore por vez; a previs\u{E3}o final continua sendo a soma das contribui\u{E7}\u{F5}es. Outro modelo (um `lm` da models, por exemplo) \u{E9} recusado.",
         "`arvore`: \u{ED}ndice da \u{E1}rvore no FIGS; \u{E9} ignorado pelo CART. `mostrar_n`: inclui o n\u{FA}mero de observa\u{E7}\u{F5}es. `mostrar_impureza`: inclui impureza no CART ou ganho no FIGS. `casas`: precis\u{E3}o dos valores.", "Um gr\u{E1}fico `view/plot`.",
         "m <- trama.ml::tr_ml_cart(mtcars, resposta = 'mpg', preditores = 'wt, hp')\ntrama.ml::tr_ml_tree_plot(m)",
         paste("`ml/rules`, `ml/cart`, `ml/figs`.", trama.view::tr_view_help_appearance()))),
@@ -172,21 +172,10 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
       description = "Compara res\u{ED}duos de regress\u{E3}o com os valores previstos.",
       category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
       params = visual(resposta = .tr_ml_target_param(),
-        predito = trama::tr_param("text", ".pred", label = "Coluna prevista", example = ".pred")),
+        predito = trama::tr_param("text", "previsto", label = "Coluna prevista", example = "previsto")),
       help = .tr_ml_help("Padr\u{F5}es, curvas ou abertura dos res\u{ED}duos sugerem erros sistem\u{E1}ticos ou vari\u{E2}ncia desigual. \u{C9} um diagn\u{F3}stico, n\u{E3}o uma prova isolada.",
-        "`resposta`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
-        "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
-        paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, label = "Curva ROC",
-      description = "Mostra sensibilidade contra falsos positivos em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
-      category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
-      params = visual(resposta = .tr_ml_target_param(),
-        probabilidade = trama::tr_param("text", "", label = "Probabilidade", example = ".prob_sim"),
-        positiva = trama::tr_param("text", "", label = "Classe positiva", example = "sim")),
-      help = .tr_ml_help("Ordena as linhas pela probabilidade da classe positiva e exibe a curva ROC com sua AUC. Use somente classifica\u{E7}\u{E3}o bin\u{E1}ria.",
-        "`resposta`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada.",
-        "Um gr\u{E1}fico `view/plot`.",
-        "d <- data.frame(y = factor(c('nao','sim','nao','sim')), .prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_roc(d, 'y', '.prob_sim', 'sim')",
-        paste("`ml/predict`, `ml/confusion`.", trama.view::tr_view_help_appearance())))
+        "`resposta`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica; o padr\u{E3}o `previsto` \u{E9} a coluna que `models/predict` escreve.", "Um gr\u{E1}fico `view/plot`.",
+        "d <- data.frame(y = 1:4, previsto = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
+        paste("`models/predict`, `models/evaluate`.", trama.view::tr_view_help_appearance())))
   )
 }

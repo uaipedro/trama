@@ -45,7 +45,8 @@ o número de linhas nem o tamanho da menor classe.}
 ajustes sem alterar o estado aleatório da sessão.}
 }
 \value{
-Objeto \code{tr_ml_tuning}: lista com o \code{modelo} vencedor reajustado,
+Objeto \code{tr_ml_tuning}: lista com o \code{modelo} vencedor reajustado (um
+\code{models/fit}),
 \code{historico} por tentativa e fold, índice \code{melhor_tentativa}, \code{metrica},
 direção \code{minimizar}, número de \code{folds} e \code{seed}.
 }

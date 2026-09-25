@@ -113,17 +113,17 @@
        tarefa = tarefa, niveis = niveis, n = nrow(dados))
 }
 
+#' Os preditores de uma tabela nova, com os nomes internos do motor.
+#'
+#' A models já conferiu que as colunas existem (`.tr_models_novos`); aqui fica
+#' o que é da ml: número finito e sem faltante. Colunas `previsto`/`prob_*` já
+#' existentes não são problema daqui — a `models/predict` as substitui.
+#' @noRd
 .tr_ml_novos_dados <- function(modelo, dados) {
-  if (!inherits(modelo, "tr_ml_fit")) {
-    .tr_ml_abort("tr_ml_error_not_fit", "Param 'modelo' deve ser um ajuste criado por tr_ml_fit().")
-  }
   if (!is.data.frame(dados)) .tr_ml_abort("tr_ml_error_not_table", "Param 'dados' deve ser uma tabela.")
   .tr_ml_require(modelo$extras$engine, modelo$modelo)
   faltam <- setdiff(modelo$preditores, names(dados))
   if (length(faltam)) .tr_ml_abort("tr_ml_error_unknown_column", "Faltam preditores na tabela: %s.", paste(sprintf("'%s'", faltam), collapse = ", "))
-  reservadas <- c(".pred", paste0(".prob_", modelo$niveis %||% character()))
-  colisao <- intersect(reservadas, names(dados))
-  if (length(colisao)) .tr_ml_abort("tr_ml_error_output_collision", "A sa\u{ED}da sobrescreveria a coluna '%s'. Renomeie-a antes de prever.", colisao[[1L]])
   x <- dados[modelo$preditores]
   if (anyNA(x) || !all(vapply(x, function(z) is.numeric(z) && all(is.finite(z)), TRUE))) {
     .tr_ml_abort("tr_ml_error_bad_newdata", "Os novos preditores devem ser num\u{E9}ricos, finitos e sem valores ausentes.")

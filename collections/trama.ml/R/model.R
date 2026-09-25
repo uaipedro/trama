@@ -24,7 +24,8 @@
 #' @param kernel Kernel linear, radial, polynomial ou sigmoid.
 #' @param nrounds Rodadas do XGBoost.
 #' @param eta Taxa de aprendizado do XGBoost.
-#' @return Objeto `tr_ml_fit`.
+#' @return Um `models/fit`: objeto de classe `c("tr_ml_fit", "tr_models_fit")`,
+#'   que responde ao contrato da `trama.models` (prever, avaliar, importância).
 #' @export
 tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
@@ -103,22 +104,28 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
                             nrounds = nrounds, eta = eta)
-  # O campo continua `alvo`: modelos ajustados ficam serializados no store
-  # (cache), e `ml/fit` (type.R) valida esse nome. Renomear aqui invalidaria o
-  # cache de todo fluxo salvo; o glossário vale para os PARAMS dos nós.
-  structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$resposta,
+  # `resposta`, e não mais `alvo`: o modelo agora viaja como `models/fit`, e a
+  # chave do cache mudou de qualquer forma com o tipo. `dados` são as colunas
+  # USADAS, com os nomes originais: o modo "só modelo" dos avaliadores da
+  # models lê o real do treino ali (`modelo$dados[[info$resposta]]`), e a
+  # validação cruzada reajusta a partir delas.
+  structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, resposta = d$resposta,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
-                 n = d$n, seed = seed, extras = extras), class = "tr_ml_fit")
+                 n = d$n, seed = seed, extras = extras,
+                 dados = tibble::as_tibble(dados[c(d$resposta, d$preditores)]),
+                 rotulo = .tr_ml_rotulo(modelo, d$tarefa)),
+            class = c("tr_ml_fit", "tr_models_fit"))
 }
 
-#' Prever com um modelo de aprendizado de máquina
-#' @param modelo Objeto criado por [tr_ml_fit()].
-#' @param dados Nova tabela, preservada integralmente na saída.
-#' @return Tibble com os dados originais, `.pred` e, quando disponíveis,
-#'   probabilidades `.prob_<classe>`.
-#' @export
-tr_ml_predict <- function(modelo, dados) {
-  x <- .tr_ml_novos_dados(modelo, dados)
+#' A previsão crua do motor: classe (ou número) e a matriz de probabilidades.
+#'
+#' Era o corpo do antigo `tr_ml_predict()`, sem montar tabela: quem monta é a
+#' `models/predict`, que dá às colunas os nomes do contrato (`previsto`,
+#' `prob_<nivel>`). `x` já vem com os nomes internos (`.tr_ml_novos_dados`).
+#' @return list(previsto = fator nos níveis | número, prob = matriz n × k com
+#'   `colnames = niveis`, ou NULL)
+#' @noRd
+.tr_ml_prever <- function(modelo, x) {
   cls <- modelo$tarefa == "classificacao"; prob <- NULL
   if (modelo$modelo == "linear") {
     if (cls) { p <- as.numeric(stats::predict(modelo$ajuste, x, type = "response")); prob <- cbind(1-p, p); pred <- modelo$niveis[1L + (p >= .5)] }
@@ -156,22 +163,36 @@ tr_ml_predict <- function(modelo, dados) {
       pred <- modelo$niveis[max.col(prob, ties.method = "first")]
     }
   }
-  out <- tibble::as_tibble(dados); out$.pred <- if (cls) factor(pred, levels = modelo$niveis) else as.numeric(pred)
-  if (!is.null(prob)) {
-    prob <- as.matrix(prob)
-    if (is.null(colnames(prob)) || !all(modelo$niveis %in% colnames(prob))) colnames(prob) <- modelo$niveis
-    prob <- prob[, modelo$niveis, drop = FALSE]
-    for (j in seq_along(modelo$niveis)) out[[paste0(".prob_", modelo$niveis[[j]])]] <- as.numeric(prob[, j])
+  if (!cls) return(list(previsto = as.numeric(pred), prob = NULL))
+  prob <- as.matrix(prob)
+  if (is.null(colnames(prob)) || !all(modelo$niveis %in% colnames(prob))) colnames(prob) <- modelo$niveis
+  prob <- prob[, modelo$niveis, drop = FALSE]
+  storage.mode(prob) <- "double"
+  rownames(prob) <- NULL
+  list(previsto = factor(pred, levels = modelo$niveis), prob = prob)
+}
+
+#' O modelo é da ml? Os leitores que ficaram aqui (regras, árvore) só sabem
+#' ler os motores daqui; um `lm` da models ou uma LDA da multi chegam pela
+#' mesma porta `models/fit` e param com a classe no erro.
+#' @noRd
+.tr_ml_exigir_fit <- function(modelo, no) {
+  if (!inherits(modelo, "tr_ml_fit")) {
+    cls <- if (is.null(class(modelo))) typeof(modelo) else class(modelo)[[1L]]
+    .tr_ml_abort("tr_ml_error_not_fit",
+                 "'%s' l\u{EA} apenas modelos ajustados pela cole\u{E7}\u{E3}o ml (CART, FIGS...); recebeu um de classe '%s'.",
+                 no, cls)
   }
-  out
+  invisible(modelo)
 }
 
 #' Regras legíveis de CART ou FIGS
-#' @param modelo Objeto criado por [tr_ml_fit()].
+#' @param modelo Objeto criado por [tr_ml_fit()]; outro modelo é recusado com
+#'   erro `tr_ml_error_not_fit`.
 #' @return Tibble com as regras exibidas pelo engine.
 #' @export
 tr_ml_rules <- function(modelo) {
-  if (!inherits(modelo, "tr_ml_fit")) .tr_ml_abort("tr_ml_error_not_fit", "Param 'modelo' n\u{E3}o \u{E9} um ajuste de machine learning.")
+  .tr_ml_exigir_fit(modelo, "ml/rules")
   if (modelo$modelo == "cart") {
     fr <- modelo$ajuste$frame
     nos <- as.integer(row.names(fr))
@@ -241,22 +262,25 @@ tr_ml_rules <- function(modelo) {
   .tr_ml_abort("tr_ml_error_not_applicable", "Regras expl\u{ED}citas est\u{E3}o dispon\u{ED}veis apenas para CART e FIGS.")
 }
 
-#' Importância das variáveis nos modelos baseados em árvores
-#' @param modelo Objeto criado por [tr_ml_fit()].
-#' @return Tibble `variavel`, `importancia`; a medida é a redução de impureza
-#'   do engine (Gain no XGBoost).
-#' @export
-tr_ml_importance <- function(modelo) {
-  if (!inherits(modelo, "tr_ml_fit")) .tr_ml_abort("tr_ml_error_not_fit", "Param 'modelo' n\u{E3}o \u{E9} um ajuste de machine learning.")
+#' A importância interna dos motores de árvore, com os nomes originais.
+#'
+#' É o `tr_models_importance()` da ml (contrato.R) para CART, FIGS, floresta e
+#' XGBoost; a medida é a do motor (redução de impureza; ganho no XGBoost).
+#' @return tibble `termo`, `importancia`, `medida`, da maior para a menor.
+#' @noRd
+.tr_ml_importancia_arvores <- function(modelo) {
   imp <- switch(modelo$modelo,
     cart = modelo$ajuste$variable.importance,
     figs = { z <- figsr::figsr_importance(modelo$ajuste); stats::setNames(z[[ncol(z)]], z[[1L]]) },
     forest = modelo$ajuste$variable.importance,
-    xgboost = { z <- xgboost::xgb.importance(model = modelo$ajuste); stats::setNames(z$Gain, z$Feature) },
-    .tr_ml_abort("tr_ml_error_not_applicable", "Import\u{E2}ncia est\u{E1} dispon\u{ED}vel para CART, FIGS, forest e XGBoost."))
+    xgboost = { z <- xgboost::xgb.importance(model = modelo$ajuste); stats::setNames(z$Gain, z$Feature) })
   if (is.null(imp)) imp <- numeric()
   nomes <- names(imp) %||% character()
   mapa <- match(nomes, modelo$internos)
   nomes[!is.na(mapa)] <- modelo$preditores[mapa[!is.na(mapa)]]
-  tibble::tibble(variavel = nomes, importancia = as.numeric(imp))[order(-as.numeric(imp)), , drop = FALSE]
+  medida <- switch(modelo$modelo, cart = "redu\u{E7}\u{E3}o de impureza (rpart)",
+                   figs = "import\u{E2}ncia do figsr", forest = "redu\u{E7}\u{E3}o de impureza (ranger)",
+                   xgboost = "ganho (XGBoost)")
+  out <- tibble::tibble(termo = nomes, importancia = as.numeric(imp), medida = rep(medida, length(imp)))
+  out[order(-out$importancia), , drop = FALSE]
 }

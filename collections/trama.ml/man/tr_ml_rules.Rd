@@ -7,7 +7,8 @@
 tr_ml_rules(modelo)
 }
 \arguments{
-\item{modelo}{Objeto criado por \code{\link[=tr_ml_fit]{tr_ml_fit()}}.}
+\item{modelo}{Objeto criado por \code{\link[=tr_ml_fit]{tr_ml_fit()}}; outro modelo é recusado com
+erro \code{tr_ml_error_not_fit}.}
 }
 \value{
 Tibble com as regras exibidas pelo engine.

@@ -19,25 +19,30 @@ pak::pak("uaipedro/trama/collections/trama.ml")
 # Instale apenas os motores que vai usar:
 install.packages(c("rpart", "figsr", "ranger", "e1071", "xgboost"))
 library(trama)
-tr_app(tr_project("meu-ml", collections = c("trama.data", "trama.view", "trama.ml")))
+tr_app(tr_project("meu-ml", collections = c("trama.data", "trama.view", "trama.models", "trama.ml")))
 ```
 
 Na paleta: **Dados para aprender → Separar treino / teste**. Ligue treino ao
-modelo escolhido. Em **Prever**, conecte o modelo e a tabela de teste. Leve
-as previsões a **Avaliar previsões** e **Matriz de confusão**. CART e FIGS
-mostram regras no card; **Ler regras das árvores** as disponibiliza como tabela.
+modelo escolhido. Os ajustes saem como `models/fit`, o modelo da coleção
+`trama.models`, e prever e avaliar é com os blocos de lá: em **Prever**
+(`models/predict`), conecte o modelo e a tabela de teste; a saída ganha
+`previsto` e, na classificação, `prob_<classe>`. **Avaliar previsões**,
+**Matriz de confusão**, **Curva ROC** e **Importância** também são da models, e
+aceitam o modelo direto (com o teste em `dados`; sem ele, medem por validação
+cruzada de 5 folds no treino). CART e FIGS mostram regras no card; **Ler
+regras das árvores** as disponibiliza como tabela.
 
 ## FIGS no console
 
 ```r
 library(trama.ml)
-d <- tr_ml_split(tr_ml_example("iris_binaria"), alvo = "Species", seed = 42)
-m <- tr_ml_figs(d$treino, alvo = "Species", max_splits = 6)
-p <- tr_ml_predict(m, d$teste)
-tr_ml_evaluate(p, alvo = "Species")
-tr_ml_confusion(p, alvo = "Species")
+d <- tr_ml_split(tr_ml_example("iris_binaria"), resposta = "Species", seed = 42)
+m <- tr_ml_figs(d$treino, resposta = "Species", max_splits = 6)
+p <- trama.models::tr_models_predict(m, d$teste)
+trama.models::tr_models_evaluate(m, d$teste)
+trama.models::tr_models_confusion(m, d$teste)
 tr_ml_rules(m)
-tr_ml_importance(m)
+trama.models::tr_models_importance(m)
 ```
 
 No CART, siga as condições até uma folha e leia sua previsão. No FIGS,
@@ -48,12 +53,13 @@ em `m$ajuste`; motor, versão e hiperparâmetros ficam em `m$extras`.
 
 ## Escopo e avaliação
 
-São 18 blocos: dados, divisão, seis modelos, tuning, previsão, avaliação,
-confusão, regras, importância e quatro visualizadores. **Ajustar
+São 13 blocos: dados, divisão, seis modelos, tuning, regras e três
+visualizadores (árvore, histórico do tuning, resíduos); prever, avaliar, a
+confusão, a ROC e a importância são os blocos da `trama.models`. **Ajustar
 hiperparâmetros** usa validação cruzada somente nas linhas recebidas, devolve o
 modelo vencedor reajustado e o histórico completo; preserve o teste para a
 avaliação final. **Visualizar árvores** desenha CART ou uma árvore do FIGS;
-há também histórico do tuning, resíduos e curva ROC. A primeira versão aceita
+há também histórico do tuning e resíduos. A primeira versão aceita
 preditores numéricos. Para
 classes codificadas com números, converta a fator ou escolha
 `tarefa = "classificacao"`. FIGS e logística suportam duas classes.

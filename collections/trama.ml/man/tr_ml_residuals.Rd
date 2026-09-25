@@ -7,7 +7,7 @@
 tr_ml_residuals(
   dados,
   resposta = "",
-  predito = ".pred",
+  predito = "previsto",
   aspecto = "16:9",
   tema = "padrão",
   titulo = "",
@@ -21,7 +21,8 @@ tr_ml_residuals(
 
 \item{resposta}{Nome da coluna observada.}
 
-\item{predito}{Nome da coluna prevista.}
+\item{predito}{Nome da coluna prevista; o padrão \code{previsto} é a coluna que
+a \code{models/predict} escreve.}
 
 \item{aspecto}{Proporção do gráfico: \code{"16:9"}, \code{"4:3"}, \code{"1:1"}, \code{"3:4"}
 ou \code{"2:1"}.}

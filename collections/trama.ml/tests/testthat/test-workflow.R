@@ -27,48 +27,31 @@ test_that("split numérico não duplica nem descarta", {
   expect_equal(sort(c(s$treino$y, s$teste$y)), d$y)
 })
 
+# O bloco de avaliação foi para a `models/evaluate`; as contas ficam aqui só
+# para a busca de hiperparâmetros (`.tr_ml_metricas`), e é isso que se testa.
 test_that("métricas de regressão e R2 indefinido", {
-  d <- tibble::tibble(y = c(1, 2, 4), .pred = c(2, 2, 3))
-  z <- tr_ml_evaluate(d, "y")
+  z <- .tr_ml_metricas(c(1, 2, 4), c(2, 2, 3), "regressao")
   expect_equal(z$metrica, c("mae", "rmse", "r2"))
   expect_equal(z$valor[1], 2/3)
   expect_equal(z$valor[3], 1 - 2/(14/3))
-  expect_true(is.na(tr_ml_evaluate(tibble::tibble(y = c(2, 2), .pred = c(1, 3)), "y")$valor[3]))
-  expect_error(tr_ml_evaluate(tibble::tibble(y = c(1, Inf), .pred = c(1, 2)), "y"), "finitos")
-  expect_error(tr_ml_evaluate(tibble::tibble(y = numeric(), .pred = numeric()), "y"), "pelo menos uma")
+  expect_true(is.na(.tr_ml_metricas(c(2, 2), c(1, 3), "regressao")$valor[3]))
+  expect_error(.tr_ml_metricas(c(1, Inf), c(1, 2), "regressao"), "finitas")
+  expect_error(.tr_ml_metricas(numeric(), numeric(), "regressao"), "pelo menos uma")
 })
 
 test_that("classificação calcula macro e aceita classe ausente na previsão", {
-  d <- tibble::tibble(y = factor(c("a", "a", "b", "b")), .pred = factor(c("a", "a", "a", "a"), levels = c("a", "b")))
-  z <- tr_ml_evaluate(d, "y")
+  z <- .tr_ml_metricas(factor(c("a", "a", "b", "b")), factor(rep("a", 4), levels = c("a", "b")), "classificacao")
   expect_equal(z$valor, c(0.5, 0.5, 1/3))
-  m <- tr_ml_confusion(d, "y")
-  expect_equal(sum(m$n), 4)
-  expect_equal(m$n[m$observado == "b" & m$previsto == "a"], 2)
 })
 
 test_that("classes previstas fora do alvo não alteram a média sobre classes observadas", {
-  d <- tibble::tibble(y = c("a", "a", "b", "b"), .pred = c("a", "a", "c", "c"))
-  z <- tr_ml_evaluate(d, "y")
+  z <- .tr_ml_metricas(c("a", "a", "b", "b"), c("a", "a", "c", "c"), "classificacao")
   expect_equal(z$valor, c(0.5, 0.5, 0.5))
-  expect_equal(sum(tr_ml_confusion(d, "y")$n), 4)
 })
 
-test_that("classificação rejeita valores numéricos não finitos", {
-  expect_error(
-    tr_ml_evaluate(tibble::tibble(y = c(1, 2), .pred = c(1, Inf)), "y",
-                   tarefa = "classificacao"),
-    "finitos"
-  )
-})
-
-test_that("classificação aceita códigos numéricos na avaliação e confusão", {
-  d <- tibble::tibble(y = c(0, 0, 1, 1), .pred = c(0, 1, 1, 1))
-  z <- tr_ml_evaluate(d, "y", tarefa = "classificacao")
+test_that("classificação aceita códigos numéricos", {
+  z <- .tr_ml_metricas(c(0, 0, 1, 1), c(0, 1, 1, 1), "classificacao")
   expect_equal(z$valor, c(0.75, 0.75, 11/15))
-  m <- tr_ml_confusion(d, "y")
-  expect_equal(sum(m$n), 4)
-  expect_equal(m$n[m$observado == "0" & m$previsto == "1"], 1)
 })
 
 test_that("exemplos têm tamanhos e alvos esperados", {
@@ -80,8 +63,8 @@ test_that("exemplos têm tamanhos e alvos esperados", {
 })
 
 test_that("métricas não descartam faltantes silenciosamente", {
-  expect_error(tr_ml_evaluate(tibble::tibble(y = c(1, NA), .pred = c(1, 2)), "y"), "ausentes")
-  expect_error(tr_ml_confusion(tibble::tibble(y = c("a", NA), .pred = c("a", "a")), "y"), "ausentes")
+  expect_error(.tr_ml_metricas(c(1, NA), c(1, 2), "regressao"), "ausentes")
+  expect_error(.tr_ml_metricas(c("a", NA), c("a", "a"), "classificacao"), "ausentes")
 })
 test_that("divisao independe do gerador do chamador e o restaura", {
   kind <- RNGkind()

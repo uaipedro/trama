@@ -10,5 +10,8 @@ trama_collection()
 Uma declaração \code{tr_collection}.
 }
 \description{
-Carregue \code{trama.data} antes de \code{trama.ml}. Motores de modelos são opcionais.
+Carregue \code{trama.data}, \code{trama.view} e \code{trama.models} antes de \code{trama.ml}: os
+ajustes saem no tipo \code{models/fit}, e prever, avaliar, a matriz de confusão, a
+ROC e a importância são os blocos da \code{trama.models}. Motores de modelos são
+opcionais.
 }

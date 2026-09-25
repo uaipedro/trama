@@ -59,7 +59,8 @@ ou \code{"xgboost"}.}
 \item{eta}{Taxa de aprendizado do XGBoost.}
 }
 \value{
-Objeto \code{tr_ml_fit}.
+Um \code{models/fit}: objeto de classe \code{c("tr_ml_fit", "tr_models_fit")},
+que responde ao contrato da \code{trama.models} (prever, avaliar, importância).
 }
 \description{
 Ajusta regressão linear/logística, CART, FIGS, floresta aleatória, SVM ou

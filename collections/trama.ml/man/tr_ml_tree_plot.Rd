@@ -19,7 +19,8 @@ tr_ml_tree_plot(
 )
 }
 \arguments{
-\item{modelo}{Modelo CART ou FIGS devolvido por \code{\link[=tr_ml_fit]{tr_ml_fit()}}.}
+\item{modelo}{Modelo CART ou FIGS devolvido por \code{\link[=tr_ml_fit]{tr_ml_fit()}}; outro modelo
+é recusado com erro \code{tr_ml_error_not_fit}.}
 
 \item{arvore}{Índice positivo da árvore do FIGS. Ignorado pelo CART.}
 

@@ -39,8 +39,8 @@
   lapply(seq_len(k), function(i) which(ids == i))
 }
 
-.tr_ml_tune_metric <- function(pred, resposta, tarefa, metrica) {
-  z <- tr_ml_evaluate(pred, resposta, tarefa = tarefa)
+.tr_ml_tune_metric <- function(y, pred, tarefa, metrica) {
+  z <- .tr_ml_metricas(y, pred, tarefa)
   i <- match(metrica, z$metrica)
   if (is.na(i)) .tr_ml_abort("tr_ml_error_bad_param", sprintf("M\u{E9}trica '%s' n\u{E3}o serve para esta tarefa.", metrica))
   z$valor[[i]]
@@ -67,7 +67,8 @@
 #' @param amplitude Limites `"conservadora"` ou `"ampla"` para a busca.
 #' @param seed Inteiro entre zero e 2147483647. Controla folds, configurações e
 #'   ajustes sem alterar o estado aleatório da sessão.
-#' @return Objeto `tr_ml_tuning`: lista com o `modelo` vencedor reajustado,
+#' @return Objeto `tr_ml_tuning`: lista com o `modelo` vencedor reajustado (um
+#'   `models/fit`),
 #'   `historico` por tentativa e fold, índice `melhor_tentativa`, `metrica`,
 #'   direção `minimizar`, número de `folds` e `seed`.
 #' @export
@@ -106,8 +107,8 @@ tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", t
                        tarefa = tarefa, seed = as.integer((as.double(seed) + i) %% .Machine$integer.max)), cfg)
         valor <- tryCatch(withCallingHandlers({
             fit <- do.call(tr_ml_fit, args)
-            pred <- tr_ml_predict(fit, teste)
-            .tr_ml_tune_metric(pred, resposta, tarefa, metrica)
+            pred <- .tr_ml_prever(fit, .tr_ml_novos_dados(fit, teste))$previsto
+            .tr_ml_tune_metric(teste[[d$resposta]], pred, tarefa, metrica)
           }, warning = function(w) {
             avisos <<- c(avisos, conditionMessage(w)); invokeRestart("muffleWarning")
           }), error = function(e) { erro <<- conditionMessage(e); NA_real_ })
