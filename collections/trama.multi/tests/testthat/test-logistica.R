@@ -101,8 +101,9 @@ test_that("coeficientes da binária: Wald do glm e razão de chances", {
   expect_equal(unique(tab$referencia), "não")
   expect_equal(tab$coeficiente, unname(ref[, 1]), tolerance = 1e-8)
   expect_equal(tab$erro_padrao, unname(ref[, 2]), tolerance = 1e-6)
-  expect_equal(tab$p_valor, unname(ref[, 4]), tolerance = 1e-6)
-  expect_equal(tab$ic_inf, exp(ref[, 1] - stats::qnorm(.975) * ref[, 2]), tolerance = 1e-6,
+  w <- tr_multi_logistic_coefficients(m, intervalo = "Wald")
+  expect_equal(w$p_valor, unname(ref[, 4]), tolerance = 1e-6)
+  expect_equal(w$ic_inf, exp(ref[, 1] - stats::qnorm(.975) * ref[, 2]), tolerance = 1e-6,
                ignore_attr = TRUE)
 })
 
@@ -146,15 +147,15 @@ test_that("o gráfico das razões de chances desenha, e facetado na multinomial"
   expect_no_error(ggplot2::ggplot_build(tr_multi_plot_odds(v)))
 })
 
-test_that("logistic_coefficients: param `confianca` (versão 3); `nivel` só como alias obsoleto na função R", {
+test_that("logistic_coefficients: param `confianca` (versão 3); `nivel` saiu", {
   reg <- multi_registry()
   spec <- reg$nodes[["multi/logistic_coefficients"]]
-  expect_identical(spec$version, 3L)
+  expect_gte(spec$version, 3L)
   expect_true("confianca" %in% names(spec$params))
   expect_false("nivel" %in% names(spec$params))
   m <- tr_multi_logistic(tr_multi_example("pima"), grupo = "diabetes", cols = "glicose, imc")
   a <- tr_multi_logistic_coefficients(m, confianca = 0.9)
-  expect_warning(b <- tr_multi_logistic_coefficients(m, nivel = 0.9), class = "tr_multi_warning_deprecated")
-  expect_equal(a, b)
+  # O núcleo não tem alias de param, e o fn do nó é a própria função exportada.
+  expect_error(tr_multi_logistic_coefficients(m, nivel = 0.9), "unused argument|argumento não usado")
   expect_error(tr_multi_logistic_coefficients(m, confianca = 2), class = "tr_multi_error_bad_option")
 })

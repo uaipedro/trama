@@ -1,6 +1,6 @@
 ---
 title: Razões de chances
-description: Apresenta coeficientes, erros padrão, p-valores e razões de chances com intervalo (Wald na ML, perfilado no Firth).
+description: Apresenta coeficientes, erros padrão, p-valores e razões de chances com intervalo da verossimilhança perfilada (ou de Wald, como opção).
 section: colecoes
 collection: multivariada
 node: multi/logistic_coefficients
@@ -9,7 +9,7 @@ related: [multi/logistic, multi/plot_odds, multi/roc]
 
 ## O que o bloco faz
 
-O bloco `multi/logistic_coefficients` extrai coeficientes, erros padrão, testes, razões de chances e intervalos de confiança em uma tabela. Na logística por máxima verossimilhança o intervalo e o p são de Wald; na de Firth (`metodo = "firth"` na `multi/logistic`), são da verossimilhança penalizada perfilada (Heinze & Schemper, 2002), e a coluna `intervalo` diz qual. O bloco recebe `multi/logit`.
+O bloco `multi/logistic_coefficients` extrai coeficientes, erros padrão, testes, razões de chances e intervalos de confiança em uma tabela. Por padrão (versão 4) o intervalo é o da verossimilhança perfilada e o p é o da razão de verossimilhanças — na logística por máxima verossimilhança binária (Venables & Ripley, 2002; Hosmer, Lemeshow & Sturdivant, 2013, que o preferem em amostra pequena) e, com a verossimilhança penalizada, na de Firth (`metodo = "firth"`; Heinze & Schemper, 2002). Na multinomial o intervalo e o p continuam de Wald, por falta de implementação de referência do perfil. A coluna `intervalo` diz qual foi calculado. O bloco recebe `multi/logit`.
 
 ## Quando usar
 
@@ -19,6 +19,7 @@ Use **Razões de chances** para quantificar direção e tamanho dos efeitos esti
 
 - **Escala** — `unidade` (padrão) ou `desvio padrão`, para expressar o efeito por desvio padrão da variável.
 - **Confiança do intervalo** (`confianca`) — 0,95 por padrão, entre 0,5 e 0,999. Até a versão 2 do bloco o param se chamava `nivel`: fluxo salvo com `nivel` acusa param desconhecido ao abrir e precisa renomeá-lo.
+- **Intervalo** — `perfilado` (padrão) ou `Wald` (o padrão até a versão 3). Na multinomial, sempre Wald.
 
 ## Exemplo
 
@@ -34,7 +35,7 @@ tr_flow(reg) |>
   tr_add("coef", "multi/logistic_coefficients", from = "log")
 ```
 
-A tabela resume coeficientes e razões de chances da logística ajustada.
+A tabela resume coeficientes e razões de chances da logística ajustada. No `pima`, a razão de chances do `pedigree` é 3,71, com IC 95% perfilado de 1,88 a 7,45 (o de Wald daria 1,86 a 7,39): com 768 casos os dois quase coincidem; a diferença cresce com poucos eventos por preditor.
 
 ## Como interpretar
 

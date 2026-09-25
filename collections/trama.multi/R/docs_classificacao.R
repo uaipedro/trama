@@ -101,7 +101,8 @@
           fonte = "Statistics in Medicine, 21(16), 2409-2419", doi = "10.1002/sim.1047"),
         L$hosmer, L$mass,
         I("stats", "glm", "Dois grupos: `glm(family = binomial())`. Três ou mais: `nnet::multinom(maxit = 1000)`. Separação detectada por regra própria sobre as probabilidades ajustadas."),
-        I("trama.multi", "tr_multi_logistic", "`metodo = \"firth\"`: implementação própria (Newton na verossimilhança penalizada, intervalos perfilados por `uniroot`), conferida contra `logistf::logistf` no `sex2` (coeficientes a 1e-6, limites e p a 1e-4). EP pela inversa da informação de Fisher em β̂; o `logistf` usa (X'W(1 + h)X)⁻¹."))),
+        I("trama.multi", "tr_multi_logistic", "`metodo = \"firth\"`: implementação própria (Newton na verossimilhança penalizada, intervalos perfilados por `uniroot`), conferida contra `logistf::logistf` no `sex2` (coeficientes a 1e-6, limites e p a 1e-4). EP pela inversa da informação de Fisher em β̂; o `logistf` usa (X'W(1 + h)X)⁻¹."),
+        I("trama.multi", "tr_multi_logistic_coefficients", "ML binária: IC da verossimilhança perfilada por `uniroot` no desvio perfilado (β_j como offset no `glm.fit`) e p da razão de verossimilhanças; conferido contra o `confint` do `glm` (perfil do MASS) a 1e-4 com grade fina e contra `drop1(test = \"LRT\")` a 1e-10. Multinomial: Wald (sem implementação de referência do perfil para o `multinom`)."))),
 
     "multi/confusion" = list(
       pressupostos = list(fora_amostra, desbalanceio,

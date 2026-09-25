@@ -216,29 +216,62 @@ tr_multi_logistic <- function(dados, grupo = "", cols = "", corte = 0.5, metodo 
              stringsAsFactors = FALSE)
 }
 
-#' Coeficientes, erros padrão de Wald e razões de chances.
+.TR_MULTI_INTERVALOS_OR <- c("perfilado", "Wald")
+
+#' Desvio da logística ML binária com β_j fixado em `v` (os outros livres).
+#'
+#' O perfil: β_j entra como offset, e o `glm.fit` maximiza nos outros. A
+#' separação que só aparece com β_j fixo longe dá aviso do `glm.fit`, calado:
+#' o desvio que ele devolve continua sendo o ínfimo naquela direção.
+#' @noRd
+.tr_multi_logit_desvio_perfil <- function(X, y, j, v) {
+  f <- suppressWarnings(stats::glm.fit(X[, -j, drop = FALSE], y, offset = X[, j] * v,
+                                       family = stats::binomial(),
+                                       control = stats::glm.control(epsilon = 1e-12, maxit = 100L)))
+  f$deviance
+}
+
+#' IC da verossimilhança perfilada de um coeficiente da logística ML binária.
+#'
+#' Os limites são os β_j em que D(β_j) − D(β̂) = χ²₁(confiança), com D o desvio
+#' perfilado (Venables & Ripley 2002, sec. 7.2; Hosmer, Lemeshow & Sturdivant
+#' 2013, sec. 1.4). O perfil é monótono de cada lado de β̂: a busca abre a
+#' partir de β̂ ± 2·EP até trocar de sinal e fecha com `uniroot`. Mesma
+#' definição do `MASS::confint` (que interpola uma spline no perfil em grade).
+#' @noRd
+.tr_multi_logit_ic_perfil <- function(X, y, b, ep, dev, j, confianca) {
+  alvo <- stats::qchisq(confianca, 1)
+  f <- function(v) .tr_multi_logit_desvio_perfil(X, y, j, v) - dev - alvo
+  lado <- function(s) {
+    passo <- 2 * ep[[j]]; fora <- b[[j]] + s * passo; k <- 0L
+    while (f(fora) < 0 && k < 60L) { passo <- passo * 2; fora <- b[[j]] + s * passo; k <- k + 1L }
+    stats::uniroot(f, sort(c(b[[j]], fora)), tol = 1e-12, maxiter = 1000L)$root
+  }
+  c(lado(-1), lado(1))
+}
+
+#' Coeficientes, erros padrão e razões de chances, com IC perfilado ou de Wald.
 #' @param modelo objeto `tr_multi_logit`.
 #' @param escala `"unidade"` ou `"desvio padrão"`.
 #' @param confianca nível do intervalo de confiança.
-#' @param nivel obsoleto: o nome antigo de `confianca` (até a versão 2 do nó).
-#'   Aceito aqui com aviso; no grafo o param é só `confianca`.
+#' @param intervalo `"perfilado"` (padrão; na multinomial sai Wald, ver ajuda)
+#'   ou `"Wald"`.
 #' @return tibble.
 #' @export
-tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", confianca = 0.95, nivel) {
+tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", confianca = 0.95,
+                                           intervalo = "perfilado") {
   no <- "multi/logistic_coefficients"
-  if (!missing(nivel)) {
-    rlang::warn(paste0("`nivel` em `tr_multi_logistic_coefficients()` está obsoleto desde a versão 3 ",
-                       "do nó; use `confianca`."), class = "tr_multi_warning_deprecated")
-    confianca <- nivel
-  }
   .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
                   "uma regressão logística")
   escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
   nivel <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
+  intervalo <- .tr_multi_enum(intervalo, .TR_MULTI_INTERVALOS_OR, "intervalo")
   .tr_multi_sem_separacao(modelo, no)
   d <- .tr_multi_logit_coefs(modelo, escala)
   z <- d$coeficiente / d$erro_padrao
-  if (inherits(modelo$ajuste, "tr_multi_firth")) {
+  firth <- inherits(modelo$ajuste, "tr_multi_firth")
+  binaria_ml <- !firth && identical(modelo$tipo, "binária")
+  if (intervalo == "perfilado" && firth) {
     # Perfilado e razão de verossimilhanças penalizadas (Heinze & Schemper
     # 2002), calculados na escala do ajuste e levados à do desvio padrão pelo
     # mesmo fator do coeficiente (a reparametrização é linear).
@@ -247,7 +280,23 @@ tr_multi_logistic_coefficients <- function(modelo, escala = "unidade", confianca
     lo <- ic[1, ] * d$escala_dp; hi <- ic[2, ] * d$escala_dp
     pv <- vapply(seq_along(aj$coefficients), function(j) .tr_multi_firth_p(aj, j), 0)
     tipo_ic <- "perfilado"
+  } else if (intervalo == "perfilado" && binaria_ml) {
+    # Perfil da verossimilhança e p da razão de verossimilhanças (β_j = 0),
+    # na escala da unidade; o fator do DP leva à outra escala.
+    aj <- modelo$ajuste
+    X <- stats::model.matrix(aj); y <- aj$y
+    b <- unname(stats::coef(aj)); ep <- unname(sqrt(diag(stats::vcov(aj))))
+    dev <- aj$deviance
+    ic <- vapply(seq_along(b), function(j) .tr_multi_logit_ic_perfil(X, y, b, ep, dev, j, nivel),
+                 numeric(2))
+    lo <- ic[1, ] * d$escala_dp; hi <- ic[2, ] * d$escala_dp
+    pv <- vapply(seq_along(b), function(j) {
+      stats::pchisq(max(0, .tr_multi_logit_desvio_perfil(X, y, j, 0) - dev), 1, lower.tail = FALSE)
+    }, 0)
+    tipo_ic <- "perfilado"
   } else {
+    # Wald: pedido, ou multinomial (o `nnet::multinom` não tem perfil, e sem
+    # implementação de referência para conferir o trama não calcula um).
     q <- stats::qnorm((1 + nivel) / 2)
     lo <- d$coeficiente - q * d$erro_padrao; hi <- d$coeficiente + q * d$erro_padrao
     pv <- 2 * stats::pnorm(-abs(z))
@@ -410,17 +459,16 @@ escolher o corte; `multi/discriminant` para a comparação; models/glm para a
 logística como modelo de regressão, com desvio e contrastes.
 ]---")),
 
-    trama::tr_node("multi/logistic_coefficients", version = 3L, role = "leitura",
-      # O nó não declara o alias `nivel`: a função do grafo é a sem ele.
-      fn = function(modelo, escala = "unidade", confianca = 0.95)
-        tr_multi_logistic_coefficients(modelo, escala = escala, confianca = confianca),
+    trama::tr_node("multi/logistic_coefficients", version = 4L, role = "leitura",
+      fn = tr_multi_logistic_coefficients,
       label = "Razões de chances",
       category = "multi_logistica", icon = trama::tr_icon("sigma"),
-      description = "Coeficientes, erros padrão de Wald, p-valores e razões de chances com intervalo.",
+      description = "Coeficientes, erros padrão, p-valores e razões de chances com intervalo perfilado (ou de Wald).",
       inputs = list(modelo = LG), outputs = list(out = TB),
       params = list(
         escala = trama::tr_param_enum("unidade", .TR_MULTI_ESCALAS_OR, label = "Escala"),
-        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança do intervalo")),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança do intervalo"),
+        intervalo = trama::tr_param_enum("perfilado", .TR_MULTI_INTERVALOS_OR, label = "Intervalo")),
       help = .tr_multi_ajuda(r"---[
 Uma linha por termo (e, na multinomial, por grupo contra a referência).
 
@@ -429,14 +477,27 @@ Uma linha por termo (e, na multinomial, por grupo contra a referência).
 - **razao_chances** — exp(b): a chance é MULTIPLICADA por esse número a cada
   unidade a mais. 1 é nenhum efeito; 1,04 na glicose do `pima` é "+4% de chance
   de diabetes por mg/dL".
-- **erro_padrao**, **z**, **p_valor** — Wald: z = b / EP, contra a normal.
-- **ic_inf**, **ic_sup** — o intervalo de b exponenciado. Na ML, o de Wald,
-  exp(b ± z·EP); na logística de Firth, o da verossimilhança penalizada
-  perfilada (Heinze & Schemper 2002), que não supõe a verossimilhança
-  quadrática. Assimétrico em torno da razão de chances, como deve ser.
-- **intervalo** — `Wald` ou `perfilado`. No Firth, o `p_valor` também é o da
-  razão de verossimilhanças penalizadas (o `z` segue sendo b / EP), e o EP é a
-  raiz da inversa da informação de Fisher em β̂.
+- **erro_padrao**, **z** — EP da informação de Fisher e z = b / EP.
+- **ic_inf**, **ic_sup** — o intervalo de b exponenciado. Por padrão, o da
+  verossimilhança **perfilada**: os b em que o desvio, maximizado nos outros
+  coeficientes, sobe χ²₁ acima do mínimo (Venables & Ripley 2002, sec. 7.2).
+  Não supõe a log-verossimilhança quadrática, e é o preferido em amostra
+  pequena (Hosmer, Lemeshow & Sturdivant 2013, sec. 1.4); com n grande
+  coincide com o de Wald. Na logística de Firth, o perfil é o da
+  verossimilhança penalizada (Heinze & Schemper 2002). Com `intervalo =
+  "Wald"`, exp(b ± z·EP).
+- **p_valor** — com o perfilado, o da razão de verossimilhanças (desvio sem o
+  termo menos o desvio com ele, contra χ²₁; penalizadas no Firth), coerente
+  com o intervalo; com Wald, 2Φ(−|z|).
+- **intervalo** — `perfilado` ou `Wald`: o que foi calculado.
+
+### Multinomial
+
+Com três ou mais grupos o intervalo e o p saem **de Wald** mesmo com
+`intervalo = "perfilado"`, e a coluna `intervalo` diz isso: o `nnet::multinom`
+não tem perfil, e o trama não calcula um sem implementação de referência para
+conferir. Para erros padrão que não dependem da aproximação quadrática, use a
+`multi/jackknife_logistic`.
 
 ### Escala
 
@@ -445,14 +506,14 @@ por ano). Por **desvio padrão**, coeficiente e erro padrão são multiplicados
 pelo DP do preditor no treino: "a chance a cada desvio padrão a mais", que
 deixa comparar glicose com pedigree. O intercepto e os p-valores não mudam.
 
-Wald é aproximado e fica ruim com coeficientes grandes; a
-`multi/jackknife_logistic` dá um erro padrão que não depende da aproximação. Com
-separação, a tabela é recusada na ML; ajuste com `metodo = "firth"` na
+Com separação, a tabela é recusada na ML; ajuste com `metodo = "firth"` na
 `multi/logistic`.
 ]---", r"---[
 - **Escala** — `unidade` ou `desvio padrão`.
 - **Confiança do intervalo** (`confianca`) — 0,95 por padrão. Até a versão 2
   do nó o param se chamava `nivel`; fluxo salvo com `nivel` precisa renomeá-lo.
+- **Intervalo** — `perfilado` (padrão desde a versão 4) ou `Wald` (o padrão
+  até a versão 3). Na multinomial, sempre Wald.
 ]---", r"---[
 Uma tabela (`data/table`): `grupo` (o grupo cuja chance se modela), `referencia`,
 `termo` (`(intercepto)` e os preditores), `coeficiente`, `erro_padrao`, `z`,

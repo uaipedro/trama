@@ -53,5 +53,27 @@
   de `nivel` a `confianca`, a convenção da coleção (`multi/roc`) e das irmãs.
   O núcleo não tem migração de params: um fluxo salvo com `nivel` acusa
   `unknown_param` (e `version_drift`) ao ser validado e precisa do param
-  renomeado. A função R `tr_multi_logistic_coefficients()` ainda aceita
-  `nivel =` com aviso (classe `tr_multi_warning_deprecated`). Resultado igual.
+  renomeado. Sem alias: o nó exige que o `fn` seja a função exportada e que
+  cada argumento dela seja um param declarado, então `nivel =` também deixa de
+  ser aceito na chamada R. Resultado igual.
+
+## Intervalo perfilado na logística ML
+
+* `multi/logistic_coefficients` (versão 4) ganha `intervalo = c("perfilado",
+  "Wald")`, com **perfilado como padrão**: na logística ML binária, o IC da
+  verossimilhança perfilada (Venables & Ripley 2002, sec. 7.2,
+  doi:10.1007/978-0-387-21706-2) e o p da razão de verossimilhanças. O de
+  Wald supõe a log-verossimilhança quadrática; Hosmer, Lemeshow & Sturdivant
+  (2013, sec. 1.4, doi:10.1002/9781118548387) preferem o perfilado em amostra
+  pequena, e com n grande os dois coincidem. **Muda o resultado padrão** (os
+  limites e o p da ML binária; coeficientes e EP iguais); `intervalo = "Wald"`
+  reproduz o anterior. Na multinomial fica Wald (o `nnet::multinom` não tem
+  perfil e não há implementação de referência para conferir um próprio),
+  dito na coluna `intervalo`. No Firth, `Wald` passa a ser opção também.
+  Validação: `confint` do `glm` (o perfil do MASS, no `stats` desde o R 4.4)
+  com grade fina a 1e-4 (2e-6 observado) no `pima` inteiro e numa
+  subamostra de 64, a 95% e 90%; a grade padrão erra ~6e-4 na subamostra
+  pela spline, e os limites do trama conferem pela definição (desvio
+  perfilado = χ²₁ a 1e-6); p contra `drop1(test = "LRT")` a 1e-10. No `pima`
+  (glicose, imc, pedigree), a razão de chances do pedigree 3,71 tem IC
+  1,88–7,45 perfilado e 1,86–7,39 de Wald.

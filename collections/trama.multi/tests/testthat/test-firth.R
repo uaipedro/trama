@@ -90,11 +90,12 @@ test_that("Firth prevê, classifica, valida por deixa-um-fora e passa no jackkni
                class = "tr_multi_error_bad_option")
 })
 
-test_that("ML continua com Wald e com a mesma tabela de antes", {
+test_that("ML: perfilado por padrão (versão 4), Wald como opção, mesmos coeficientes", {
   p <- tr_multi_example("pima")
   ml <- tr_multi_logistic(p, grupo = "diabetes")
   tab <- tr_multi_logistic_coefficients(ml)
-  expect_equal(tab$intervalo, rep("Wald", nrow(tab)))
+  expect_equal(tab$intervalo, rep("perfilado", nrow(tab)))
+  expect_equal(tr_multi_logistic_coefficients(ml, intervalo = "Wald")$intervalo, rep("Wald", nrow(tab)))
   g <- stats::glm(stats::reformulate(ml$preditores, "diabetes"), family = stats::binomial(), data = p)
   expect_equal(tab$coeficiente, unname(stats::coef(g)), tolerance = 1e-8)
 })
