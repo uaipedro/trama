@@ -132,7 +132,12 @@ tr_doc_migrate <- function(doc, registry = .tr_default_registry) {
     for (old in intersect(names(renames), names(n$params))) {
       r <- renames[[old]]
       if (is.null(n$params[[r$to]])) {
-        n$params[[r$to]] <- if (is.null(r$value)) n$params[[old]] else r$value(n$params[[old]])
+        # `value` é código da coleção rodando na subida do app: se ele falhar,
+        # o valor antigo passa adiante sob o nome novo e a validação o acusa
+        # como `bad_param_value` no card — erro visível, em vez de servidor
+        # que não sobe por causa de um fluxo.
+        v <- n$params[[old]]
+        n$params[[r$to]] <- if (is.null(r$value)) v else tryCatch(r$value(v), error = function(e) v)
       }
       n$params[[old]] <- NULL
       changed <- TRUE
