@@ -226,8 +226,10 @@ tr_server <- function(project, flow = "main",
       run_now(doc)
     }, once = TRUE)
 
-    shiny::observeEvent(input$tr_op, {
-      env <- input$tr_op
+    # O corpo de `tr_op` virou função porque inserir template também é uma op
+    # comum: undo, `rev`, eco e re-execução têm de ser os mesmos de qualquer
+    # gesto, e duplicar este caminho deixaria os dois divergirem.
+    aplicar <- function(env) {
       res <- tr_submit(rv_doc(), env, rv_project()$registry)
       if (!isTRUE(res$ok)) {
         send("op_rejected", list(seq = env$seq, reason = res$reason, message = res$message,
@@ -261,6 +263,43 @@ tr_server <- function(project, flow = "main",
       }
       if (autosave) save_now(res$doc)
       if (isTRUE(res$semantic)) run_now(res$doc)
+    }
+
+    shiny::observeEvent(input$tr_op, aplicar(input$tr_op))
+
+    # Colar/arrastar/importar template. O front só detectou a marca; parse,
+    # remoção de dados e ids novos são daqui. Entra como um `batch` comum pelo
+    # mesmo `aplicar()` de `tr_op`: um passo de undo, como colar nós copiados.
+    # `base_rev` é o do servidor porque o pedido não é uma edição sobre a
+    # revisão que o front via — é uma inserção, que vale sobre qualquer uma.
+    shiny::observeEvent(input$tr_template_insert, {
+      m <- input$tr_template_insert
+      tpl <- tryCatch({
+        if (!is.null(m$arquivo)) {
+          # `arquivo` vem do painel e só pode ser um dos templates listados:
+          # aceitar caminho qualquer faria deste input um leitor de arquivo
+          # arbitrário da máquina.
+          conhecidos <- vapply(tr_template_list(rv_project()$root, rv_project()$registry),
+                               function(t) t$arquivo, "")
+          alvo <- normalizePath(as.character(m$arquivo)[1], mustWork = FALSE)
+          if (!alvo %in% conhecidos) rlang::abort("Template não encontrado entre os disponíveis.")
+          tr_template_read(alvo)
+        } else {
+          tr_template_parse(m$conteudo)
+        }
+      }, error = avisar())
+      if (is.null(tpl)) return(invisible())
+      faltam <- setdiff(tpl$colecoes,
+                        as.character(.tr_registry_packages(rv_project()$registry) %||% character()))
+      if (length(faltam)) {
+        send("warning", list(message = sprintf(
+          "Este template usa %s, que não está carregado. Instale e reabra o projeto.",
+          paste(faltam, collapse = ", "))))
+        return(invisible())
+      }
+      num <- function(v) if (is.numeric(v) && length(v) == 1 && !is.na(v)) v else 0
+      aplicar(list(seq = m$seq, base_rev = rv_doc()$rev,
+                   op = tr_template_op(tpl, c(num(m$x), num(m$y)))))
     })
 
     shiny::observeEvent(input$tr_rerun, { run_now(rv_doc()) })
