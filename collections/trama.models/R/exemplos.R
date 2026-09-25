@@ -7,7 +7,8 @@
 # hoje é o de amanhã, em qualquer computador.
 
 .TR_MODELS_EXEMPLOS <- c("PlantGrowth", "milho_dbc", "racao_dql", "ToothGrowth", "warpbreaks",
-                         "npk", "aveia", "sleepstudy", "InsectSprays", "mtcars", "cars")
+                         "npk", "aveia", "sleepstudy", "InsectSprays", "mtcars", "cars",
+                         "cbpp", "grouseticks")
 
 #' Roda `expr` com semente própria, sem mexer na do usuário.
 #' @noRd
@@ -77,5 +78,8 @@ tr_models_example <- function(dataset = "PlantGrowth") {
     sleepstudy = tibble::as_tibble(lme4::sleepstudy),
     InsectSprays = tibble::as_tibble(datasets::InsectSprays),
     mtcars = tibble::as_tibble(cbind(modelo = rownames(datasets::mtcars), datasets::mtcars)),
-    cars = tibble::as_tibble(datasets::cars))
+    cars = tibble::as_tibble(datasets::cars),
+    cbpp = { d <- lme4::cbpp; tibble::tibble(rebanho = d$herd, periodo = d$period, casos = d$incidence,
+                                             sadios = d$size - d$incidence, tamanho = d$size) },
+    grouseticks = tibble::as_tibble(lme4::grouseticks))
 }

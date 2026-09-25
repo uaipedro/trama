@@ -162,6 +162,16 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       data.frame(termo = rownames(a), gl = a$NumDF, gl_den = a$DenDF, sq = a$`Sum Sq`,
                  qm = a$`Mean Sq`, F = a$`F value`, p_valor = a$`Pr(>F)`)
     },
+    glmer = {
+      if (tipo == "I") {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         paste0("'%s': o GLM misto não tem SQ sequencial; use tipo_sq = 'II' ou 'III' ",
+                                "(qui-quadrado de Wald, car::Anova)."), no)
+      }
+      a <- .tr_models_ajustar(as.data.frame(car::Anova(modelo$ajuste, type = tipo)), no)
+      coluna <- "qui2"; nota <- "qui-quadrado de Wald"
+      data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
+    },
     split = {
       if (tipo != "I") {
         .tr_models_abort("tr_models_error_not_applicable",
@@ -227,7 +237,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
 tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
   .tr_models_fit_conferir(modelo)
   no <- "models/coefficients"
-  .tr_models_exigir(modelo, c("lm", "glm", "lmer"), no,
+  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "glmer"), no,
                     "Na parcela subdividida os coeficientes misturam os dois erros; compare as médias em 'models/emmeans'.")
   aj <- modelo$ajuste
   if (modelo$classe == "lmer") {
@@ -240,16 +250,18 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE) {
   } else {
     # `summary.lm` explícito: nos delineamentos o ajuste é um `aov`, e o
     # `summary()` dele é o quadro, sem coeficientes.
-    s <- if (modelo$classe == "glm") stats::coef(summary(aj)) else stats::coef(stats::summary.lm(aj))
-    ic <- if (modelo$classe == "glm") stats::confint.default(aj) else stats::confint(aj)
+    s <- if (modelo$classe %in% c("glm", "glmer")) stats::coef(summary(aj)) else stats::coef(stats::summary.lm(aj))
+    ic <- if (modelo$classe == "glm") stats::confint.default(aj)
+          else if (modelo$classe == "glmer") suppressMessages(stats::confint(aj, method = "Wald", parm = "beta_"))
+          else stats::confint(aj)
     est_col <- colnames(s)[3]
     coluna <- if (grepl("^z", est_col)) "z" else "t"
     tab <- data.frame(termo = rownames(s), estimativa = s[, 1], erro_padrao = s[, 2],
                       estat = s[, 3], p_valor = s[, 4], li_95 = ic[rownames(s), 1], ls_95 = ic[rownames(s), 2])
     names(tab)[names(tab) == "estat"] <- coluna
-    nota <- if (modelo$classe == "glm") "intervalo de Wald, na escala da ligação" else ""
+    nota <- if (modelo$classe %in% c("glm", "glmer")) "intervalo de Wald, na escala da ligação" else ""
     if (isTRUE(exponenciar)) {
-      .tr_models_exigir(modelo, "glm", no, "Exponenciar só faz sentido num GLM com ligação log ou logit.")
+      .tr_models_exigir(modelo, c("glm", "glmer"), no, "Exponenciar só faz sentido num GLM com ligação log ou logit.")
       tab$estimativa <- exp(tab$estimativa); tab$li_95 <- exp(tab$li_95); tab$ls_95 <- exp(tab$ls_95)
       tab$erro_padrao <- NULL
       nota <- "estimativa e intervalo exponenciados (razão de chances ou de taxas)"
@@ -303,7 +315,7 @@ tr_models_fit_stats <- function(modelo) {
   } else if (modelo$classe == "glm") {
     dexp <- 1 - aj$deviance / aj$null.deviance
     if (stats::family(aj)$family == "gaussian") sig <- stats::sigma(aj)
-  } else {
+  } else if (modelo$classe == "lmer") {
     r <- .tr_models_r2_misto(aj); r2m <- r[["marginal"]]; r2c <- r[["condicional"]]
     sig <- stats::sigma(aj)
   }
@@ -311,7 +323,7 @@ tr_models_fit_stats <- function(modelo) {
   # Os valores saem do objeto ANTES do `tibble()`: lá dentro, `modelo` já é a
   # coluna recém-criada, e `modelo$formula` falharia sobre uma string.
   rotulo <- modelo$rotulo; fml <- modelo$formula; n <- nrow(modelo$dados)
-  gl_res <- if (modelo$classe == "lmer") na else as.numeric(stats::df.residual(aj))
+  gl_res <- if (modelo$classe %in% c("lmer", "glmer")) na else as.numeric(stats::df.residual(aj))
   tibble::tibble(
     modelo = rotulo, formula = fml, n = n,
     gl_residuo = gl_res,
@@ -323,8 +335,13 @@ tr_models_fit_stats <- function(modelo) {
 
 #' O misto do modelo: o próprio, ou o equivalente da parcela subdividida.
 #' @noRd
-.tr_models_misto <- function(fit, no) {
-  if (fit$classe == "lmer") return(fit$ajuste)
+.tr_models_misto <- function(fit, no, glmer_ok = TRUE) {
+  if (fit$classe == "lmer" || (glmer_ok && fit$classe == "glmer")) return(fit$ajuste)
+  if (fit$classe == "glmer") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' não se aplica ao GLM misto. Para testar um efeito aleatório, ajuste o ",
+                            "modelo sem ele e compare os dois no 'models/compare' (razão de verossimilhança)."), no)
+  }
   if (fit$classe == "split") return(fit$aux_misto)
   .tr_models_abort("tr_models_error_not_applicable",
                    "'%s' pede um modelo misto, e chegou %s. Ajuste um 'models/lmer'.", no, fit$rotulo)
@@ -345,7 +362,8 @@ tr_models_random_effects <- function(modelo) {
   # Proporção só para interceptos e resíduo: a variância de uma inclinação está
   # em outra escala (por unidade da covariável²), e somá-la com as outras dá
   # um número sem significado.
-  soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)")
+  # No GLM misto não há variância residual na mesma escala: sem proporção.
+  soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)") & modelo$classe != "glmer"
   total <- sum(v$vcov[soma_ok])
   tibble::tibble(
     grupo = ifelse(v$grp == "Residual", "resíduo", v$grp), componente = comp,
@@ -361,7 +379,7 @@ tr_models_random_effects <- function(modelo) {
 #' GLM —, e o bloco que pedir isso vira card vermelho explicando.
 #' @noRd
 .tr_models_residuos <- function(fit, no, permitir_misto = TRUE) {
-  if (fit$classe == "glm") {
+  if (fit$classe %in% c("glm", "glmer")) {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'%s' não se aplica a %s: num GLM a variância acompanha a média e os ",
                             "resíduos não precisam ser normais — é para isso que ele existe. Olhe o ",
@@ -389,6 +407,7 @@ tr_models_residuals <- function(modelo) {
   d <- modelo$dados
   pad <- switch(modelo$classe,
                 glm = stats::rstandard(aj, type = "deviance"),
+                glmer = stats::residuals(aj, type = "pearson"),
                 lmer = stats::residuals(aj, type = "pearson", scaled = TRUE),
                 stats::rstandard(aj))
   nomes <- c("ajustado", "residuo", "residuo_padronizado")
@@ -397,7 +416,7 @@ tr_models_residuals <- function(modelo) {
   # descobre no artigo.
   nomes <- ifelse(nomes %in% names(d), paste0(nomes, "_modelo"), nomes)
   d[[nomes[[1]]]] <- as.numeric(stats::fitted(aj))
-  d[[nomes[[2]]]] <- as.numeric(stats::residuals(aj, type = if (modelo$classe == "glm") "deviance" else "response"))
+  d[[nomes[[2]]]] <- as.numeric(stats::residuals(aj, type = if (modelo$classe %in% c("glm", "glmer")) "deviance" else "response"))
   d[[nomes[[3]]]] <- as.numeric(pad)
   d
 }
@@ -486,7 +505,10 @@ tr_models_compare <- function(modelo, outro) {
     .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM têm famílias diferentes.", no)
   }
   ta <- .tr_models_termos(modelo); tb <- .tr_models_termos(outro)
-  gl_de <- function(f) if (f$classe == "lmer") attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
+  if (modelo$classe == "glmer" && stats::family(modelo$ajuste)$family != stats::family(outro$ajuste)$family) {
+    .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM mistos têm famílias diferentes.", no)
+  }
+  gl_de <- function(f) if (f$classe %in% c("lmer", "glmer")) attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
   if (gl_de(modelo) <= gl_de(outro)) { menor <- modelo; maior <- outro; tm <- ta; tM <- tb }
   else { menor <- outro; maior <- modelo; tm <- tb; tM <- ta }
   if (!all(tm %in% tM) || gl_de(menor) == gl_de(maior)) {
@@ -498,13 +520,26 @@ tr_models_compare <- function(modelo, outro) {
   novos <- paste(setdiff(tM, tm), collapse = " + ")
   if (!nzchar(novos)) novos <- "estrutura aleatória"
   h0 <- sprintf("os termos a mais (%s) não melhoram o ajuste", novos)
-  if (menor$classe == "lmer") {
-    a <- .tr_models_ajustar(.tr_models_capturar(stats::anova(menor$ajuste, maior$ajuste, refit = TRUE))$valor, no)
+  if (menor$classe %in% c("lmer", "glmer")) {
+    a <- if (menor$classe == "glmer") {
+      # Direto das verossimilhanças: o anova() do lme4 exige o mesmo objeto de
+      # dados, e o efeito por observação acrescenta a coluna '.obs'. Os dois já
+      # são de máxima verossimilhança.
+      ll <- c(stats::logLik(menor$ajuste), stats::logLik(maior$ajuste))
+      gl <- c(attr(stats::logLik(menor$ajuste), "df"), attr(stats::logLik(maior$ajuste), "df"))
+      x2 <- max(0, 2 * (ll[[2]] - ll[[1]]))
+      list(Chisq = c(NA, x2), Df = c(NA, diff(gl)), `Pr(>Chisq)` = c(NA, stats::pchisq(x2, diff(gl), lower.tail = FALSE)),
+           AIC = c(stats::AIC(menor$ajuste), stats::AIC(maior$ajuste)))
+    } else .tr_models_ajustar(.tr_models_capturar(stats::anova(menor$ajuste, maior$ajuste, refit = TRUE))$valor, no)
     return(.tr_models_teste("Razão de verossimilhança", h0, a$Chisq[[2]], "qui2", a$`Pr(>Chisq)`[[2]],
                             gl = as.character(a$Df[[2]]),
                             conclusao_sim = "o modelo maior ajusta melhor",
                             conclusao_nao = "não há evidência de que o modelo maior ajuste melhor",
-                            nota = sprintf("reajustados por máxima verossimilhança; AIC %s × %s",
+                            nota = sprintf(paste0(if (menor$classe == "glmer") "máxima verossimilhança (Laplace)"
+                                                  else "reajustados por máxima verossimilhança",
+                                                  "; AIC %s × %s",
+                                                  if (novos == "estrutura aleatória" || grepl("|", novos, fixed = TRUE))
+                                                    "; variância testada na fronteira (zero): p conservador" else ""),
                                            .tr_models_fmt(a$AIC[[1]], 5L), .tr_models_fmt(a$AIC[[2]], 5L)),
                             fonte = "Wilks (1938)"))
   }
@@ -533,7 +568,7 @@ tr_models_compare <- function(modelo, outro) {
 tr_models_random_test <- function(modelo) {
   .tr_models_fit_conferir(modelo)
   no <- "models/random_test"
-  aj <- .tr_models_misto(modelo, no)
+  aj <- .tr_models_misto(modelo, no, glmer_ok = FALSE)
   r <- .tr_models_ajustar(as.data.frame(.tr_models_capturar(lmerTest::ranova(aj))$valor), no)
   termo <- rownames(r)
   termo[termo == "<none>"] <- "modelo completo"

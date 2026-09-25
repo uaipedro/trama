@@ -39,6 +39,11 @@ delineamento ou modelo.
 - **mtcars** — 32 carros, consumo (`mpg`) e 10 características, com o nome em
   `modelo`. Regressão múltipla; `am` e `vs` servem para GLM binomial.
 - **cars** — distância de frenagem (`dist`) pela velocidade (`speed`).
+- **cbpp** — pleuropneumonia bovina (`lme4::cbpp`): `casos` e `sadios` de
+  `tamanho` animais por `rebanho` (15) e `periodo` (4). GLM misto binomial.
+- **grouseticks** — carrapatos (`TICKS`) em filhotes de lagópode por ninhada
+  (`BROOD`), local (`LOCATION`) e ano (`YEAR`); `lme4::grouseticks`. GLM misto
+  Poisson com superdispersão.
 ]---", r"---[
 - **Conjunto** — qual conjunto carregar.
 ]---", r"---[
@@ -170,6 +175,58 @@ tr_flow(reg) |>
 `models/coefficients` com exponenciar para razão de taxas ou de chances;
 `models/anova_table` para o quadro de desvio; `models/emmeans` para as médias na
 escala da resposta.
+]---")),
+
+    trama::tr_node("models/glmer",
+      pressupostos = .tr_models_doc("models/glmer")$pressupostos,
+      referencias = .tr_models_doc("models/glmer")$referencias,
+      fn = tr_models_glmer, label = "GLM misto",
+      category = "modelo_ajustar", icon = trama::tr_icon("layers-2"),
+      description = "Ajusta um GLM misto (lme4::glmer), binomial ou Poisson, com efeito por observação opcional.",
+      inputs = list(dados = T), outputs = list(out = Fm),
+      params = list(
+        formula = P("expr", "", label = "Fórmula", example = "cbind(casos, sadios) ~ periodo + (1 | rebanho)"),
+        resposta = P("cols", "", label = "Resposta (sem fórmula)", example = "TICKS"),
+        fixos = P("cols", "", label = "Efeitos fixos (sem fórmula)", example = "YEAR"),
+        grupo = P("cols", "", label = "Grupo aleatório (sem fórmula)", example = "BROOD"),
+        familia = E("binomial", c("binomial", "poisson"), label = "Família"),
+        nivel_obs = B(FALSE, label = "Efeito por observação")),
+      help = .tr_models_ajuda(paste0(r"---[
+O `models/glm` com efeitos aleatórios: a resposta é binomial (0/1, ou
+sucessos em n tentativas com `cbind(sucessos, fracassos)` na fórmula) ou
+Poisson (contagem), e os grupos (rebanho, bloco, ninhada) entram como
+intercepto aleatório, na sintaxe do `lme4`: `(1 | rebanho)`.
+
+O ajuste é por máxima verossimilhança com a aproximação de Laplace
+(`lme4::glmer`). Os coeficientes saem na escala da ligação (logit, log), com z
+de Wald; o `models/coefficients` exponencia (razão de chances, de taxas). As
+médias do `models/emmeans` são as do grupo típico (efeito aleatório zero), não
+médias populacionais.
+
+### Superdispersão
+
+**Efeito por observação** soma `(1 | .obs)`, um intercepto aleatório por linha:
+a variância a mais que a binomial ou a Poisson vira um componente de variância.
+Compare com e sem no `models/compare` (razão de verossimilhança; a variância
+testada está na fronteira do espaço, e o p sai conservador).
+
+Não há resíduo normal a testar (Shapiro, Levene e Breusch-Pagan recusam) nem
+SQ sequencial: o quadro é de Wald, tipo II ou III.
+]---", .tr_models_ajuda_faltantes()), r"---[
+- **Fórmula** — com pelo menos um termo aleatório.
+- **Resposta**, **Efeitos fixos**, **Grupo aleatório** — o atalho sem fórmula.
+- **Família** — binomial (logit) ou Poisson (log).
+- **Efeito por observação** — soma `(1 | .obs)` para a superdispersão.
+]---", r"---[
+Um modelo (`models/fit`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carrapatos", "models/example", dataset = "grouseticks") |>
+  tr_add("gm", "models/glmer", resposta = "TICKS", fixos = "YEAR", grupo = "BROOD",
+         familia = "poisson", nivel_obs = TRUE, from = "carrapatos")
+]---", r"---[
+`models/glm` sem efeito aleatório; `models/lmer` para resposta contínua;
+`models/random_effects`; `models/compare`.
 ]---")),
 
     trama::tr_node("models/lmer", 

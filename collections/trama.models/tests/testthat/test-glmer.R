@@ -1,0 +1,64 @@
+# GLM misto (lme4::glmer): binomial e Poisson, com efeito aleatório por
+# observação opcional para a superdispersão.
+
+cbpp_d <- function() {
+  d <- get(utils::data("cbpp", package = "lme4", envir = environment()))
+  d$sadios <- d$size - d$incidence
+  as.data.frame(d)
+}
+
+test_that("glmer reproduz o cbpp do lme4 (Bates et al. 2015): fixos, variância do rebanho, AIC", {
+  d <- cbpp_d()
+  g <- tr_models_glmer(d, formula = "cbind(incidence, sadios) ~ period + (1 | herd)", familia = "binomial")
+  expect_equal(g$classe, "glmer")
+  # Saída publicada do exemplo de ?lme4::glmer (gm1), com 4 decimais.
+  expect_equal(round(unname(lme4::fixef(g$ajuste)), 4), c(-1.3983, -0.9919, -1.1282, -1.5797))
+  re <- tr_models_random_effects(g)
+  expect_equal(round(re$variancia[re$grupo == "herd"], 4), 0.4123)
+  expect_equal(round(stats::AIC(g$ajuste), 1), 194.1)
+  # E o próprio lme4, na precisão do otimizador.
+  ref <- lme4::glmer(cbind(incidence, size - incidence) ~ period + (1 | herd), family = stats::binomial(), data = d)
+  expect_equal(unname(lme4::fixef(g$ajuste)), unname(lme4::fixef(ref)), tolerance = 1e-6)
+  cf <- tr_models_coefficients(g)$tabela
+  s <- stats::coef(summary(ref))
+  expect_equal(cf$erro_padrao, unname(s[, "Std. Error"]), tolerance = 1e-5)
+  expect_equal(cf$p_valor, unname(s[, "Pr(>|z|)"]), tolerance = 1e-4)
+  expect_true(all(is.na(re$proporcao)))
+  fs <- tr_models_fit_stats(g)
+  expect_equal(fs$log_verossimilhanca, as.numeric(stats::logLik(ref)), tolerance = 1e-6)
+  # Quadro: qui-quadrado de Wald do car::Anova.
+  q <- tr_models_anova_table(g, "II")
+  expect_equal(q$tabela$p_valor[[1]], car::Anova(ref, type = "II")$`Pr(>Chisq)`[[1]], tolerance = 1e-4)
+})
+
+test_that("glmer com efeito por observação reproduz o gm2 do lme4", {
+  d <- cbpp_d()
+  g <- tr_models_glmer(d, formula = "cbind(incidence, sadios) ~ period + (1 | herd)", familia = "binomial",
+                       nivel_obs = TRUE)
+  d$obs <- factor(seq_len(nrow(d)))
+  ref <- lme4::glmer(cbind(incidence, size - incidence) ~ period + (1 | herd) + (1 | obs),
+                     family = stats::binomial(), data = d)
+  expect_equal(unname(lme4::fixef(g$ajuste)), unname(lme4::fixef(ref)), tolerance = 1e-5)
+  re <- tr_models_random_effects(g)
+  expect_equal(re$desvio_padrao[re$grupo == ".obs"], 0.89107, tolerance = 1e-4)
+  # Comparação: o efeito por observação melhora o ajuste? (RV)
+  g1 <- tr_models_glmer(d, formula = "cbind(incidence, sadios) ~ period + (1 | herd)", familia = "binomial")
+  cmp <- tr_models_compare(g1, g)
+  expect_equal(cmp$p_valor, stats::anova(lme4::glmer(cbind(incidence, size - incidence) ~ period + (1 | herd),
+                                                     family = stats::binomial(), data = d), ref)$`Pr(>Chisq)`[[2]],
+               tolerance = 1e-4)
+})
+
+test_that("glmer Poisson, atalho por colunas, e recusas", {
+  gr <- get(utils::data("grouseticks", package = "lme4", envir = environment()))
+  g <- tr_models_glmer(gr, resposta = "TICKS", fixos = "YEAR", grupo = "BROOD", familia = "poisson")
+  ref <- lme4::glmer(TICKS ~ YEAR + (1 | BROOD), family = stats::poisson(), data = gr)
+  expect_equal(unname(lme4::fixef(g$ajuste)), unname(lme4::fixef(ref)), tolerance = 1e-5)
+  expect_error(tr_models_glmer(gr, formula = "TICKS ~ YEAR", familia = "poisson"), class = "tr_models_error_bad_formula")
+  expect_error(tr_models_glmer(gr, formula = "TICKS ~ YEAR + (1 | BROOD)", familia = "gama"),
+               class = "tr_models_error_bad_option")
+  expect_error(tr_models_shapiro_residuals(g), class = "tr_models_error_not_applicable")
+  expect_error(tr_models_duncan(g, "YEAR"), class = "tr_models_error_not_applicable")
+  em <- tr_models_emmeans(g, "YEAR")
+  expect_s3_class(em, "tr_models_emm")
+})

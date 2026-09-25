@@ -90,7 +90,7 @@ tr_models_predict <- function(modelo, dados, intervalo = "nenhum") {
   # GLM: sem isto, o default de `predict.glm()` é a escala da LIGAÇÃO (log,
   # logit), e o card mostraria log-odds ou log-contagem como "previsto" sem
   # avisar — plausível e ilegível.
-  if (modelo$classe == "glm") args$type <- "response"
+  if (modelo$classe %in% c("glm", "glmer")) args$type <- "response"
   if (intervalo != "nenhum") args$interval <- if (intervalo == "confianca") "confidence" else "prediction"
 
   pred <- .tr_models_ajustar(do.call(stats::predict, args), "models/predict")

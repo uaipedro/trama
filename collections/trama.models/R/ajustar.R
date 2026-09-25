@@ -144,6 +144,66 @@ tr_models_lmer <- function(dados, formula = "", resposta = "", fixos = "", grupo
   .tr_models_fit_obj(.tr_models_embutir_dados(r$valor, p$dados), "lmer", "Modelo misto", f, p$dados, resp, descartadas = p$descartadas)
 }
 
+#' GLM misto (`lme4::glmer`): binomial ou Poisson com efeitos aleatórios.
+#'
+#' Máxima verossimilhança pela aproximação de Laplace (o padrão do `lme4`).
+#' `nivel_obs` soma um intercepto aleatório por linha, `(1 | .obs)`: a variância
+#' extra-binomial ou extra-Poisson vira um componente de variância (Harrison
+#' 2014), a saída do misto para a superdispersão.
+#' @param familia `"binomial"` ou `"poisson"` (ligações canônicas).
+#' @param nivel_obs soma um efeito aleatório por observação.
+#' @inheritParams tr_models_lmer
+#' @return objeto `tr_models_fit`.
+#' @export
+tr_models_glmer <- function(dados, formula = "", resposta = "", fixos = "", grupo = "",
+                            familia = "binomial", nivel_obs = FALSE) {
+  no <- "models/glmer"
+  familia <- .tr_models_enum(familia, c("binomial", "poisson"), "familia")
+  if (.tr_models_preenchido(formula)) {
+    f <- .tr_models_ler_formula(formula, dados)
+    if (is.null(reformulas::findbars(f))) {
+      .tr_models_abort("tr_models_error_bad_formula",
+                       paste0("Param 'formula': '%s' não tem termo aleatório. Escreva-o como ",
+                              "'(1 | grupo)', ou use 'models/glm' para um modelo só de efeitos fixos."),
+                       formula)
+    }
+  } else {
+    resp <- .tr_models_col(dados, resposta, "resposta")
+    fix <- .tr_models_cols(dados, fixos, "fixos", minimo = 0L)
+    g <- .tr_models_col(dados, grupo, "grupo")
+    rhs <- c(if (length(fix)) .tr_models_bt(fix) else "1", sprintf("(1 | %s)", .tr_models_bt(g)))
+    f <- stats::as.formula(paste(.tr_models_bt(resp), "~", paste(rhs, collapse = " + ")))
+    environment(f) <- globalenv()
+  }
+  resp <- all.vars(f[[2]])[[1]]
+  vars <- all.vars(f)
+  grupos <- unique(unlist(lapply(reformulas::findbars(f), function(b) all.vars(b[[3]]))))
+  p0 <- .tr_models_preparar(dados, vars, no)
+  cats <- union(.tr_models_categoricas(p0$dados, setdiff(vars, c(resp, grupos))), grupos)
+  p <- .tr_models_preparar(dados, vars, no, fatores = cats)
+  if (familia == "poisson") {
+    .tr_models_numerica(p$dados, resp, "resposta")
+    if (any(p$dados[[resp]] < 0)) {
+      .tr_models_abort("tr_models_error_bad_option",
+                       "'%s': a família poisson é de contagem, e a resposta '%s' tem valor negativo.", no, resp)
+    }
+  }
+  if (isTRUE(nivel_obs)) {
+    if (".obs" %in% names(p$dados)) {
+      .tr_models_abort("tr_models_error_bad_option", "'%s': a tabela já tem uma coluna '.obs'.", no)
+    }
+    p$dados$.obs <- factor(seq_len(nrow(p$dados)))
+    f <- stats::update(f, . ~ . + (1 | .obs))
+  }
+  fam <- if (familia == "binomial") stats::binomial() else stats::poisson()
+  r <- .tr_models_ajustar(.tr_models_capturar(lme4::glmer(f, data = p$dados, family = fam)), no)
+  aj <- r$valor
+  aj@call <- as.call(list(quote(lme4::glmer), formula = stats::formula(aj), data = as.data.frame(p$dados),
+                          family = fam))
+  .tr_models_fit_obj(aj, "glmer", sprintf("GLM misto · %s", familia), f, p$dados, resp,
+                     descartadas = p$descartadas)
+}
+
 # ---- Delineamentos ------------------------------------------------------------
 
 #' O miolo de todo delineamento: conferir, fatorar e ajustar o `aov`.

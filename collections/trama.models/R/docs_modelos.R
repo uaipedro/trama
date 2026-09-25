@@ -51,6 +51,27 @@
         L$dobson,
         I("stats", "glm", "Famílias `gaussian`, `binomial`, `poisson`, `quasipoisson`, `quasibinomial` na ligação canônica e `Gamma(link = \"log\")`; nas quasi, dispersão pelo X² de Pearson / gl e quadro com F."))),
 
+    "models/glmer" = list(
+      pressupostos = list(P("Os **grupos** (rebanhos, blocos, sujeitos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
+          se_falhar = "Com poucos grupos (menos de 5 ou 6), trate o fator como fixo no `models/glm`."),
+        P("A resposta segue a **família** (binomial ou Poisson) condicional aos efeitos aleatórios, na ligação canônica (logit, log).",
+          verificar = "models/plot_diagnostics"),
+        P("Os **efeitos aleatórios** são normais, com média zero.",
+          verificar = c("models/random_effects", "models/plot_caterpillar")),
+        P("**Sem superdispersão** além da que o modelo descreve.",
+          verificar = "models/fit_stats",
+          se_falhar = "Ligue o efeito por observação (`nivel_obs`) e compare os dois ajustes no `models/compare`."),
+        P("A **aproximação de Laplace** é boa: grupos com bastante informação (binomial com n não muito pequeno, contagens não quase todas zero). Os testes são de Wald (z) e assintóticos.")),
+      referencias = list(lme4,
+        R(autores = c("Bolker, B. M.", "Brooks, M. E.", "Clark, C. J.", "Geange, S. W.", "Poulsen, J. R.",
+                      "Stevens, M. H. H.", "White, J.-S. S."), ano = 2009,
+          titulo = "Generalized linear mixed models: a practical guide for ecology and evolution",
+          fonte = "Trends in Ecology & Evolution, 24(3), 127-135", doi = "10.1016/j.tree.2008.10.008"),
+        R(autores = "Harrison, X. A.", ano = 2014,
+          titulo = "Using observation-level random effects to model overdispersion in count data in ecology and evolution",
+          fonte = "PeerJ, 2, e616", doi = "10.7717/peerj.616", papel = "complementar"),
+        I("lme4", "glmer", "Máxima verossimilhança pela aproximação de Laplace (`nAGQ = 1`); coeficientes com z de Wald; quadro pelo `car::Anova` (qui-quadrado de Wald, tipo II ou III)."))),
+
     "models/lmer" = list(
       pressupostos = list(linear,
         P("Os **efeitos aleatórios** são normais, com média zero, e independentes do erro.",
