@@ -1,14 +1,11 @@
 ---
-import FlowMap from "./FlowMap.astro";
-
 interface Props {
   eyebrow: string;
   title: string;
   description: string;
-  steps: Parameters<typeof FlowMap>[0]["steps"];
 }
 
-const { eyebrow, title, description, steps } = Astro.props;
+const { eyebrow, title, description } = Astro.props;
 ---
 
 <section class="collection-hero">
@@ -16,9 +13,5 @@ const { eyebrow, title, description, steps } = Astro.props;
     <p class="eyebrow">{eyebrow}</p>
     <h1>{title}</h1>
     <p class="lede">{description}</p>
-  </div>
-  <div class="collection-hero__map">
-    <p class="map-label">Um caminho possível</p>
-    <FlowMap {steps} />
   </div>
 </section>
