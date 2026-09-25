@@ -108,7 +108,10 @@ tr_multi_parallel <- function(dados, cols = "", repeticoes = 100L, percentil = 9
 .tr_multi_nos_diagnostico <- function() {
   P <- trama::tr_param
   list(
-    trama::tr_node("multi/kmo_bartlett", fn = tr_multi_kmo_bartlett, label = "KMO e Bartlett",
+    trama::tr_node("multi/kmo_bartlett",
+      pressupostos = .tr_multi_doc("multi/kmo_bartlett")$pressupostos,
+      referencias = .tr_multi_doc("multi/kmo_bartlett")$referencias,
+      fn = tr_multi_kmo_bartlett, label = "KMO e Bartlett",
       category = "multi_diagnostico", icon = trama::tr_icon("stethoscope"),
       description = "A matriz tem correlação para fatorar? KMO global, MSA por variável e esfericidade de Bartlett.",
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
