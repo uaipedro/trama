@@ -32,3 +32,18 @@
   Resultados idênticos fora de empates exatos, por isso a versão do nó foi
   mantida. Teste: `.pred` igual ao argmax das `.prob_*` em iris binária
   (onde a regra da margem discorda em 2 linhas) e em iris com 3 classes.
+
+## Novos recursos
+
+- `ml/split` e `ml/tune`: `estrategia` = `aleatoria` (padrão, resultado
+  idêntico ao anterior, versões mantidas), `temporal` (coluna `ordem`) ou
+  `grupo` (coluna `grupo`). Divisão temporal: treino = linhas até o instante da
+  linha ⌊n·p⌋ na ordem do tempo, empates do mesmo lado; por grupo: ⌊G·p⌋ grupos
+  inteiros. Validação cruzada temporal por origem móvel com janela crescente
+  (Tashman 2000; Hyndman & Athanasopoulos, FPP3, sec. 5.10; Bergmeir, Hyndman
+  & Koo 2018): os instantes formam `folds + 1` blocos contíguos e o fold i
+  treina nos blocos 1..i e valida no i + 1; por grupo, cada grupo num só fold
+  (Roberts et al. 2017). Com `cols` vazio, `ordem` e `grupo` não viram
+  preditores. Validação: contabilidade exata dos folds (20 dias em 5 blocos de
+  4; cada linha valida uma vez por grupo), nenhum grupo/instante futuro no
+  treino, datas e números dão o mesmo corte.

@@ -14,6 +14,9 @@ tr_ml_tune(
   tentativas = 20L,
   folds = 5L,
   amplitude = "conservadora",
+  estrategia = "aleatoria",
+  ordem = "",
+  grupo = "",
   seed = 42L
 )
 }
@@ -40,6 +43,17 @@ regressão e \code{"macro_f1"} em classificação.}
 o número de linhas nem o tamanho da menor classe.}
 
 \item{amplitude}{Limites \code{"conservadora"} ou \code{"ampla"} para a busca.}
+
+\item{estrategia}{Como formar os folds: \code{"aleatoria"} (padrão; estratificada
+pela classe), \code{"grupo"} (grupos inteiros de \code{grupo} por fold) ou
+\code{"temporal"} (origem móvel com janela crescente: os instantes de \code{ordem}
+formam \code{folds + 1} blocos contíguos e cada fold valida o bloco seguinte ao
+treino).}
+
+\item{ordem}{Coluna de tempo para \code{estrategia = "temporal"}.}
+
+\item{grupo}{Coluna de grupo para \code{estrategia = "grupo"}. Com \code{cols} vazio,
+\code{ordem} e \code{grupo} nunca entram como preditores.}
 
 \item{seed}{Inteiro entre zero e 2147483647. Controla folds, configurações e
 ajustes sem alterar o estado aleatório da sessão.}

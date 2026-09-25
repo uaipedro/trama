@@ -68,6 +68,9 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
 .tr_ml_cols_param <- function() trama::tr_param("cols", "", label = "Preditores", example = "Sepal.Length, Petal.Length")
 .tr_ml_task_param <- function() trama::tr_param_enum("auto", c("auto", "regressao", "classificacao"), label = "Tarefa")
 .tr_ml_seed_param <- function() trama::tr_param_int(42L, min = 0L, label = "Semente")
+.tr_ml_estrategia_param <- function() trama::tr_param_enum("aleatoria", c("aleatoria", "temporal", "grupo"), label = "Estrat\u{E9}gia")
+.tr_ml_ordem_param <- function() trama::tr_param("text", "", label = "Coluna de tempo", example = "data")
+.tr_ml_grupo_param <- function() trama::tr_param("text", "", label = "Coluna de grupo", example = "lote")
 
 .tr_ml_model_nodes <- function() {
   common <- list(alvo = .tr_ml_target_param(), cols = .tr_ml_cols_param(), tarefa = .tr_ml_task_param())
@@ -144,9 +147,10 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", corte = 0
         tentativas = trama::tr_param_int(20L, min = 1L, label = "Tentativas"),
         folds = trama::tr_param_int(5L, min = 2L, label = "Folds"),
         amplitude = trama::tr_param_enum("conservadora", c("conservadora", "ampla"), label = "Espa\u{E7}o de busca"),
+        estrategia = .tr_ml_estrategia_param(), ordem = .tr_ml_ordem_param(), grupo = .tr_ml_grupo_param(),
         seed = .tr_ml_seed_param()),
       help = .tr_ml_help("Avalia configura\u{E7}\u{F5}es nos mesmos folds, escolhe pela m\u{E9}dia e reajusta o vencedor em todas as linhas recebidas.",
-        "`modelo`: fam\u{ED}lia a ajustar. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
+        "`modelo`: fam\u{ED}lia a ajustar. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `estrategia`: aleatoria (folds sorteados, estratificados pela classe), grupo (grupos inteiros de `grupo` por fold) ou temporal (origem m\u{F3}vel: os instantes de `ordem` formam folds + 1 blocos cont\u{ED}guos e cada fold treina nos blocos anteriores e valida no seguinte). `ordem` e `grupo` n\u{E3}o entram como preditores quando `cols` fica vazio. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
         "Duas sa\u{ED}das: o melhor `ml/fit` reajustado e uma tabela com todas as tentativas.",
         "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, alvo = 'Species', tentativas = 3, folds = 3)",
         "`ml/tuning_plot`, `ml/predict`, `ml/evaluate`.")),

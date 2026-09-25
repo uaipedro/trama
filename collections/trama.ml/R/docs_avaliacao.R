@@ -20,8 +20,8 @@
         P("Entra **só o treino**: os folds saem das linhas recebidas e o vencedor é reajustado nelas todas. Se o teste entrar aqui, ele deixa de ser teste.",
           se_falhar = "Ligue a saída treino do `ml/split`; a teste vai só ao `ml/predict`."),
         C$sem_vazamento,
-        P("Os folds são **aleatórios** (estratificados pela classe na classificação): supõem linhas independentes, sem ordem no tempo nem grupos repartidos entre folds.",
-          se_falhar = "Validação cruzada temporal ou por grupo ainda sem bloco no trama; com dependência, reduza o peso dado à média dos folds e confira no teste."),
+        P("Os folds refletem a **dependência** dos dados: `aleatoria` (estratificada pela classe) supõe linhas independentes; `grupo` põe cada indivíduo, lote ou área num só fold; `temporal` usa origem móvel com janela crescente — cada fold treina no passado e valida no bloco seguinte, nunca no futuro do treino. Folds aleatórios com dados dependentes dão erro otimista (Roberts et al. 2017).",
+          se_falhar = "Escolha `estrategia = \"grupo\"` com `grupo`, ou `\"temporal\"` com `ordem`, e use a mesma estratégia no `ml/split`."),
         P("A **média dos folds do vencedor é otimista**: foi a melhor entre muitas tentativas, e parte da vantagem é sorte. Ela serve para escolher, não para reportar o desempenho.",
           verificar = "ml/tuning_plot",
           se_falhar = "Reporte o desempenho medido no teste com `ml/predict` e `ml/evaluate`. Validação cruzada aninhada ainda sem bloco no trama."),
@@ -39,11 +39,24 @@
         R(autores = c("Bergstra, J.", "Bengio, Y."), ano = 2012, titulo = "Random Search for Hyper-Parameter Optimization",
           fonte = "Journal of Machine Learning Research, 13, 281-305",
           url = "https://www.jmlr.org/papers/v13/bergstra12a.html"),
-        L$islr, L$kuhn,
+        L$islr, L$kuhn, L$roberts, L$tashman, L$fpp3, L$bergmeir18,
         R(autores = c("Varma, S.", "Simon, R."), ano = 2006,
           titulo = "Bias in error estimation when using cross-validation for model selection",
           fonte = "BMC Bioinformatics, 7, 91", doi = "10.1186/1471-2105-7-91", papel = "complementar"),
-        I("trama.ml", "tr_ml_tune", "Implementação própria: busca aleatória (log-uniforme para `cost`, `gamma` e `eta`) avaliada nos mesmos k folds; o vencedor, pela média, é reajustado com `tr_ml_fit` em todas as linhas."))),
+        I("trama.ml", "tr_ml_tune", "Implementação própria: busca aleatória (log-uniforme para `cost`, `gamma` e `eta`) avaliada nos mesmos k folds (aleatórios estratificados, por grupo ou de origem móvel no tempo); o vencedor, pela média, é reajustado com `tr_ml_fit` em todas as linhas."))),
+
+    "ml/split" = list(
+      pressupostos = list(
+        P("A **estratégia de divisão** respeita a dependência entre linhas: `aleatoria` supõe linhas independentes; com medidas no tempo o teste deve ser todo posterior ao treino (`temporal`), e com várias linhas do mesmo indivíduo, lote ou área nenhum grupo pode cair dos dois lados (`grupo`). Senão o teste mede memorização, não generalização (Roberts et al. 2017).",
+          se_falhar = "Troque `estrategia` para `temporal` (com `ordem`) ou `grupo` (com `grupo`) e use a mesma no `ml/tune`."),
+        P("Na divisão `temporal`, o teste representa o **futuro em que o modelo será usado**: o corte no tempo cai onde a proporção pede, com instantes empatados todos do mesmo lado.",
+          se_falhar = "Se houver mudança de regime depois do corte, o teste mede também essa mudança; leia o desempenho junto do período."),
+        P("Na divisão `grupo`, `proporcao` é a **fração dos grupos**; com grupos de tamanhos muito diferentes, a fração das linhas pode se afastar dela, e a estratificação por classe não é feita.",
+          verificar = "data/group_summarise",
+          se_falhar = "Conte linhas e classes por lado no `data/group_summarise`; se uma classe faltar no teste, mude a semente ou a proporção."),
+        C$semente),
+      referencias = list(L$roberts, L$tashman, L$fpp3, L$islr, L$kuhn,
+        I("trama.ml", "tr_ml_split", "Implementação própria: sorteio estratificado pela classe (`aleatoria`); corte no instante da linha floor(n·proporção) na ordem do tempo, todas as linhas até ele no treino (`temporal`); sorteio de floor(G·proporção) grupos inteiros (`grupo`)."))),
 
     "ml/evaluate" = list(
       pressupostos = list(teste_fora, desequilibrio,

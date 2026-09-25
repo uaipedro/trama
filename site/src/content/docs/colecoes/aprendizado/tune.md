@@ -17,7 +17,7 @@ Conecte apenas treino. Mantenha o teste separado até a avaliação final.
 
 ## Configuração
 
-`modelo` aceita CART, FIGS, forest, SVM ou XGBoost; `metrica` escolhe medida (auto usa RMSE ou macro F1); `tentativas` define orçamento; `folds` define partições; `amplitude` escolhe limites conservadores/amplos; `seed` reproduz a busca. Também recebe `alvo`, `cols` e `tarefa`.
+`modelo` aceita CART, FIGS, forest, SVM ou XGBoost; `metrica` escolhe medida (auto usa RMSE ou macro F1); `tentativas` define orçamento; `folds` define partições; `amplitude` escolhe limites conservadores/amplos; `estrategia` forma os folds: `aleatoria` (estratificada pela classe), `grupo` (cada grupo de `grupo` num só fold) ou `temporal` (origem móvel com janela crescente: os instantes de `ordem` formam `folds + 1` blocos contíguos e o fold i treina nos blocos 1 a i e valida no bloco i + 1, nunca no passado do treino); `seed` reproduz a busca. Também recebe `alvo`, `cols` e `tarefa`.
 
 ## Exemplo
 
