@@ -10,7 +10,7 @@ related: [models/lmer, models/anova_split_plot, models/compare]
 
 ## O que o bloco faz
 
-`models/gls` ajusta uma regressão ou ANOVA por mínimos quadrados generalizados (`nlme::gls`), com o erro correlacionado dentro de cada grupo: AR(1), simetria composta ou não estruturada. Opcionalmente, cada nível de uma coluna tem variância própria (`varIdent`). A saída é `models/fit`.
+`models/gls` ajusta uma regressão ou ANOVA por mínimos quadrados generalizados (`nlme::gls`), com o erro correlacionado dentro de cada grupo: AR(1), AR(1) em tempo contínuo (`car1`, para ocasiões desigualmente espaçadas), simetria composta ou não estruturada. Opcionalmente, cada nível de uma coluna tem variância própria (`varIdent`). A saída é `models/fit`.
 
 ## Quando usar
 
@@ -38,4 +38,4 @@ No `sleepstudy`, o AR(1) estima phi = 0,80 entre dias consecutivos e uma inclina
 
 ## Como interpretar
 
-Coeficientes e quadro são testes de Wald com gl n − p. Os resíduos do diagnóstico são os normalizados, já sem a correlação. Duas estruturas com o mesmo número de parâmetros (AR(1) e simetria composta) não são aninhadas: compare-as pelo AIC. Estruturas aninhadas (simetria composta dentro da não estruturada) vão ao `models/compare`. Validação: o bloco reproduz o `nlme` no `Ovary` (AR(1), phi 0,7532, logLik −780,7273), a igualdade entre simetria composta e o misto de intercepto aleatório, e o modelo não estruturado com variância por idade do `Orthodont`.
+Coeficientes e quadro são testes de Wald com gl n − p, do `nlme`: com poucos grupos esses gl são grandes demais e os p-valores, liberais; o `models/emmeans` usa Satterthwaite, e o misto equivalente no `models/lmer` também. O AR(1) conta posições (1, 2, 3...), não distância: com Tempo numérico desigualmente espaçado a nota avisa, e `car1` usa a distância real. No tipo III (marginal), os fatores são reajustados em contraste de soma zero. Os resíduos do diagnóstico são os normalizados, já sem a correlação. Duas estruturas com o mesmo número de parâmetros (AR(1) e simetria composta) não são aninhadas: compare-as pelo AIC. Estruturas aninhadas (simetria composta dentro da não estruturada) vão ao `models/compare`. Validação: o bloco reproduz o `nlme` no `Ovary` (AR(1), phi 0,7532, logLik −780,7273), a igualdade entre simetria composta e o misto de intercepto aleatório, e o modelo não estruturado com variância por idade do `Orthodont`.
