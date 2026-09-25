@@ -545,15 +545,19 @@ escolhida às claras:
 - **loess** — regressão local, sem forma imposta. A **Suavidade** é a fração
   da série que entra em cada ajuste local: perto de 1, uma curva larga; perto
   de 0,1, uma que segue até a sazonalidade (e aí a tira junto).
-- **diferenca** — `x[t] − x[t−1]`, sem modelo nenhum. A série perde a 1ª
-  observação e começa um período depois. É a mesma conta de `series/diff`
-  simples; está aqui para comparar com os outros métodos no mesmo card.
+- **diferenca** — `x[t] − x[t−1]`, sem modelo nenhum. A saída é outra
+  grandeza: a VARIAÇÃO de um período para o seguinte, e não a série em torno
+  da tendência. A série perde a 1ª observação e começa um período depois. É a
+  mesma conta de `series/diff` simples; está aqui para comparar com os outros
+  métodos no mesmo card.
 
 A tendência estimada vai junto com a série, como atributo `tendencia` —
 no console, `attr(saida, "tendencia")` —, e `saída + tendência` devolve a
 série original.
 
-A sazonalidade FICA na saída. Para tirar as duas, use `series/component` com
+Nos três métodos com modelo (linear, polinomial, loess), a sazonalidade FICA
+na saída; na diferença ela sobra só como variação entre meses vizinhos, com
+outra forma. Para tirar as duas, use `series/component` com
 `resto`; para tirar só a sazonalidade, `dessazonalizada`. A reta daqui é
 estimada sem olhar a sazonalidade; com anos completos, é a mesma de
 `series/regression` de grau 1, e com anos incompletos difere um pouco — lá a
@@ -726,7 +730,7 @@ decompor o log; `series/component` para extrair um componente;
         inputs = list(decomposicao = D), outputs = list(out = S),
         params = list(componente = E("dessazonalizada",
                                      c("tendencia", "sazonal", "resto", "dessazonalizada",
-                                       "sem_tendencia"),
+                                       "sem_tendencia", "regressor"),
                                      label = "Componente")),
         help = .tr_series_ajuda(r"---[
 Devolve um dos componentes de uma decomposição como série, para seguir
@@ -744,11 +748,17 @@ dentro — `série − tendência` na aditiva, `série / tendência` na multipli
 É o "estimo a tendência e subtraio" às claras: com `series/regression` de grau 1
 na frente, é a série menos a reta ajustada por mínimos quadrados.
 
+**regressor** é o efeito da covariável (β·x) de uma `series/regression` com
+a entrada `regressor` ligada. Numa decomposição sem regressor (STL, clássica,
+regressão sem covariável) a escolha para o nó em vermelho, dizendo por quê.
+Com regressor, a tendência é só a do tempo, e `sem_tendencia` e
+`dessazonalizada` mantêm o efeito do regressor dentro.
+
 Da clássica, tendência e resto (e, por isso, `sem_tendencia`) chegam com NA
 nas pontas.
 ]---", r"---[
-- **Componente** — `tendencia`, `sazonal`, `resto`, `dessazonalizada` ou
-  `sem_tendencia`.
+- **Componente** — `tendencia`, `sazonal`, `resto`, `dessazonalizada`,
+  `sem_tendencia` ou `regressor`.
 ]---", r"---[
 Uma série (`series/ts`) do mesmo tamanho da original.
 ]---", r"---[
@@ -821,12 +831,19 @@ renda ou a temperatura — que entra no mesmo ajuste:
 O coeficiente `regressor` sai na tabela com erro-padrão e p-valor: é o efeito
 da covariável descontadas tendência e sazonalidade, e os F de tendência e de
 sazonalidade passam a ser os descontado o regressor. Na decomposição, o efeito
-`β·regressor` entra na **tendência** (a parte sistemática que não é sazonal),
-para que os componentes continuem somando a série.
+`β·regressor` é um componente PRÓPRIO, **regressor**, e a tendência continua
+sendo só do tempo (intercepto + polinômio):
+`série = tendência + sazonal + regressor + resto`. `series/component` tira o
+`regressor` como série, e `series/plot_decomposition` ganha um painel para ele.
 
 O regressor tem de ter a mesma frequência e cobrir o período inteiro da série
 (sobrar dos lados não faz mal; faltar é erro — recorte a série com
 `series/window`), sem faltantes nesse período.
+
+A decomposição daqui é sempre ADITIVA. Se a oscilação sazonal cresce com o
+nível (como em `AirPassengers`), passe a série por `series/transform` com
+`log` antes: no log, o efeito multiplicativo vira soma, e os componentes
+estimados são fatores quando voltam da exponencial.
 
 O modelo supõe erro sem autocorrelação, e série temporal quase nunca obedece:
 confira o resto com `series/ljung_box` antes de levar os p-valores a sério.
@@ -1750,6 +1767,10 @@ concluir que há tendência.
 
 O F parcial compara o ajuste com e sem o bloco — reajusta a regressão sem os
 termos de tendência e mede o quanto o encaixe piorou.
+
+Se a regressão tem **regressor** ligado, ele fica nos dois ajustes: o teste é
+da tendência TEMPORAL dado o regressor — "sobra tendência depois de descontar
+a covariável?".
 
 ### Por que em BLOCO
 

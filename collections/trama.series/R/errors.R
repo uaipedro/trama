@@ -34,6 +34,10 @@ tr_series_errors <- function() {
     tr_series_error_fit = "o ajuste do modelo falhou",
     tr_series_error_no_overlap =
       "duas séries que o nó alinha pelo tempo não têm o período em comum que a conta pede",
+    tr_series_error_no_component =
+      "o componente pedido não existe nesta decomposição (regressor fora de uma regressão com covariável)",
+    tr_series_error_misaligned =
+      "duas séries da mesma frequência com as grades de tempo defasadas: nenhum período coincide exatamente",
     tr_series_error_frequency_mismatch =
       "duas séries que o nó opera juntas chegaram com frequências diferentes",
     tr_series_error_not_a_series =

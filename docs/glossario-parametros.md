@@ -15,6 +15,9 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `grupo` | coluna de agrupamento/estrato | — (não usar para resposta) |
 | `variavel` | a coluna testada ou estimada | `coluna` (models/shapiro, models/one_sample_t, sampling/size_mean) |
 | `dados` | porta de entrada da tabela | `data` (coleção data) |
+| `metodo` | escolha do método de estimação/cálculo do nó (enum) | — |
+| `operacao` | escolha da operação aritmética entre entradas (series/combine) | — |
+| `suavidade` | fração da amostra em cada ajuste local (loess, 0–1) | — |
 
 ## Homônimos permitidos
 

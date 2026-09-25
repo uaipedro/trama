@@ -70,10 +70,15 @@ series_ts_type <- function() {
 #' `$time.series[, "trend"]` no outro), e o `series/component` teria de saber
 #' de onde veio cada um. Normalizar na saída do nó é o que deixa o resto da
 #' coleção cego ao método.
+#'
+#' `regressor` é o quarto componente, e só a `series/regression` com covariável
+#' o tem (β·x): NULL nas outras. Ele fica À PARTE, e não dentro da tendência,
+#' porque a tendência promete ser função do tempo — somar β·x a ela faria a
+#' "tendência" oscilar com a covariável, e o `sem_tendencia` tiraria as duas.
 #' @noRd
-.tr_series_decomp <- function(observado, tendencia, sazonal, resto, tipo, metodo) {
+.tr_series_decomp <- function(observado, tendencia, sazonal, resto, tipo, metodo, regressor = NULL) {
   structure(list(observado = observado, tendencia = tendencia, sazonal = sazonal,
-                 resto = resto, tipo = tipo, metodo = metodo),
+                 resto = resto, tipo = tipo, metodo = metodo, regressor = regressor),
             class = "tr_series_decomp")
 }
 
@@ -120,9 +125,11 @@ series_decomposition_type <- function() {
 }
 
 .tr_series_decomp_tabela <- function(x) {
-  tibble::tibble(tempo = .tr_series_tempo(x$observado),
-                 observado = as.numeric(x$observado), tendencia = as.numeric(x$tendencia),
-                 sazonal = as.numeric(x$sazonal), resto = as.numeric(x$resto))
+  tab <- tibble::tibble(tempo = .tr_series_tempo(x$observado),
+                        observado = as.numeric(x$observado), tendencia = as.numeric(x$tendencia),
+                        sazonal = as.numeric(x$sazonal), resto = as.numeric(x$resto))
+  if (!is.null(x$regressor)) tab$regressor <- as.numeric(x$regressor)
+  tab
 }
 
 .TR_SERIES_MODELOS <- c("Arima", "ets", "HoltWinters")
@@ -261,7 +268,8 @@ series_regression_type <- function() {
 #' decomposição já tinha.
 #' @noRd
 .tr_series_reg_decomp <- function(x) {
-  .tr_series_decomp(x$serie, x$tendencia, x$sazonal, x$resto, "aditiva", "regressão")
+  .tr_series_decomp(x$serie, x$tendencia, x$sazonal, x$resto, "aditiva", "regressão",
+                    regressor = x$efeito_regressor)
 }
 
 #' Regressão -> tabela de coeficientes.

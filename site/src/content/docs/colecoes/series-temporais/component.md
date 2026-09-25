@@ -26,6 +26,12 @@ dentro — `série − tendência` na aditiva, `série / tendência` na multipli
 É o "estimo a tendência e subtraio" às claras: com `series/regression` de grau 1
 na frente, é a série menos a reta ajustada por mínimos quadrados.
 
+**regressor** é o efeito da covariável (β·x) de uma `series/regression` com
+a entrada `regressor` ligada. Numa decomposição sem regressor (STL, clássica,
+regressão sem covariável) a escolha para o nó em vermelho, dizendo por quê.
+Com regressor, a tendência é só a do tempo, e `sem_tendencia` e
+`dessazonalizada` mantêm o efeito do regressor dentro.
+
 Da clássica, tendência e resto (e, por isso, `sem_tendencia`) chegam com NA
 nas pontas.
 
@@ -35,8 +41,8 @@ Extraia tendência, sazonalidade, resto, série dessazonalizada ou série sem te
 
 ## Configuração
 
-- **Componente** — `tendencia`, `sazonal`, `resto`, `dessazonalizada` ou
-  `sem_tendencia`.
+- **Componente** — `tendencia`, `sazonal`, `resto`, `dessazonalizada`,
+  `sem_tendencia` ou `regressor`.
 
 ## Exemplo
 

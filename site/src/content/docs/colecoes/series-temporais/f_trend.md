@@ -18,6 +18,10 @@ concluir que há tendência.
 O F parcial compara o ajuste com e sem o bloco — reajusta a regressão sem os
 termos de tendência e mede o quanto o encaixe piorou.
 
+Se a regressão tem **regressor** ligado, ele fica nos dois ajustes: o teste é
+da tendência TEMPORAL dado o regressor — "sobra tendência depois de descontar
+a covariável?".
+
 ### Por que em BLOCO
 
 Num polinômio de grau 2 ou 3, o termo linear e o quadrático dividem o mesmo

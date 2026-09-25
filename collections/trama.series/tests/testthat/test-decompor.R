@@ -145,7 +145,7 @@ test_that("regressor entra no ajuste com coeficiente e teste, e os componentes s
   expect_lt(abs(lin$estimativa - 30), 3 * lin$erro_padrao)
   expect_lt(tab$p_valor[tab$termo == "regressor"], 1e-6)
   expect_equal(as.numeric(r$efeito_regressor), stats::coef(r$ajuste)[["regressor"]] * zj)
-  expect_equal(as.numeric(r$tendencia + r$sazonal + r$resto), as.numeric(y))
+  expect_equal(as.numeric(r$tendencia + r$sazonal + r$efeito_regressor + r$resto), as.numeric(y))
   # O F de tendência continua sendo o do bloco t, com o regressor no modelo.
   expect_s3_class(tr_series_f_tendencia(r), "tr_series_test")
   # Grau 0 sem sazonalidade deixa de ser vazio com regressor.
@@ -157,4 +157,34 @@ test_that("regressor entra no ajuste com coeficiente e teste, e os componentes s
                class = "tr_series_error_frequency_mismatch")
   zn <- z; zn[30] <- NA
   expect_error(tr_series_regression(x, regressor = zn), class = "tr_series_error_missing_values")
+})
+
+test_that("com regressor, a tendência é só do tempo e o regressor é o quarto componente", {
+  set.seed(11)
+  x <- serie_mensal()
+  z <- stats::ts(stats::rnorm(length(x)), start = stats::start(x), frequency = 12)
+  y <- x + 30 * z
+  r <- tr_series_regression(y, grau = 2L, regressor = z)
+  # Tendência suave: é exatamente um polinômio de grau 2 em t, sem nada de z.
+  tt <- seq_along(y)
+  expect_lt(max(abs(stats::residuals(stats::lm(as.numeric(r$tendencia) ~ tt + I(tt^2))))), 1e-8)
+  expect_lt(abs(stats::cor(diff(as.numeric(r$tendencia)), diff(as.numeric(z)))), .05)
+  d <- .tr_series_reg_decomp(r)
+  expect_equal(as.numeric(d$tendencia + d$sazonal + d$regressor + d$resto), as.numeric(y))
+  expect_equal(as.numeric(tr_series_component(d, "regressor")),
+               stats::coef(r$ajuste)[["regressor"]] * as.numeric(z))
+  expect_equal(as.numeric(tr_series_component(d, "sem_tendencia")), as.numeric(y - d$tendencia))
+  expect_true("regressor" %in% names(.tr_series_decomp_tabela(d)))
+  expect_s3_class(tr_series_plot_decomposition(d), "ggplot")
+  expect_error(tr_series_component(tr_series_stl(x), "regressor"),
+               class = "tr_series_error_no_component")
+  expect_error(tr_series_component(.tr_series_reg_decomp(tr_series_regression(x)), "regressor"),
+               class = "tr_series_error_no_component")
+})
+
+test_that("regressor colinear com a tendência é dito como tal", {
+  x <- serie_mensal()
+  t2 <- stats::ts(2 * seq_along(x) + 5, start = stats::start(x), frequency = 12)
+  expect_error(tr_series_regression(x, grau = 1L, regressor = t2),
+               class = "tr_series_error_fit", regexp = "colinear")
 })

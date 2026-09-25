@@ -152,3 +152,9 @@ test_that("combine: divisão por zero vira NA; frequência e janela sem interse�
                class = "tr_series_error_no_overlap")
   expect_error(tr_series_combine(a, b, "a ^ b"), class = "tr_series_error_bad_option")
 })
+
+test_that("combine recusa grades de tempo defasadas na mesma frequência", {
+  a <- stats::ts(1:24, start = 1949, frequency = 12)
+  b <- stats::ts(1:24, start = 1949 + 0.5 / 12, frequency = 12)
+  expect_error(tr_series_combine(a, b), class = "tr_series_error_misaligned")
+})

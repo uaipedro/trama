@@ -240,6 +240,16 @@ tr_series_combine <- function(a, b, operacao = "a - b") {
                      paste0("'series/combine': 'a' tem frequência %g e 'b' tem %g. Leve as duas à ",
                             "mesma frequência antes, com 'series/aggregate'."), fa, fb)
   }
+  # Mesma frequência não basta: uma mensal que começa em 1949,0 e outra em
+  # 1949,04 (meio mês de defasagem) não têm nenhum período em comum, e o
+  # `window()` arredondaria uma para a grade da outra, calado.
+  desvio <- (stats::tsp(a)[[1]] - stats::tsp(b)[[1]]) * fa
+  if (abs(desvio - round(desvio)) > 1e-6) {
+    .tr_series_abort("tr_series_error_misaligned",
+                     paste0("'series/combine': 'a' e 'b' têm frequência %g, mas as grades de tempo ",
+                            "estão defasadas em %.3g de período: nenhum instante coincide. Confira o ",
+                            "início declarado de cada série."), fa, desvio - round(desvio))
+  }
   ini <- max(stats::tsp(a)[[1]], stats::tsp(b)[[1]])
   fim <- min(stats::tsp(a)[[2]], stats::tsp(b)[[2]])
   if (fim < ini - 1e-8) {

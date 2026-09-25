@@ -59,12 +59,19 @@ renda ou a temperatura — que entra no mesmo ajuste:
 O coeficiente `regressor` sai na tabela com erro-padrão e p-valor: é o efeito
 da covariável descontadas tendência e sazonalidade, e os F de tendência e de
 sazonalidade passam a ser os descontado o regressor. Na decomposição, o efeito
-`β·regressor` entra na **tendência** (a parte sistemática que não é sazonal),
-para que os componentes continuem somando a série.
+`β·regressor` é um componente PRÓPRIO, **regressor**, e a tendência continua
+sendo só do tempo (intercepto + polinômio):
+`série = tendência + sazonal + regressor + resto`. `series/component` tira o
+`regressor` como série, e `series/plot_decomposition` ganha um painel para ele.
 
 O regressor tem de ter a mesma frequência e cobrir o período inteiro da série
 (sobrar dos lados não faz mal; faltar é erro — recorte a série com
 `series/window`), sem faltantes nesse período.
+
+A decomposição daqui é sempre ADITIVA. Se a oscilação sazonal cresce com o
+nível (como em `AirPassengers`), passe a série por `series/transform` com
+`log` antes: no log, o efeito multiplicativo vira soma, e os componentes
+estimados são fatores quando voltam da exponencial.
 
 O modelo supõe erro sem autocorrelação, e série temporal quase nunca obedece:
 confira o resto com `series/ljung_box` antes de levar os p-valores a sério.

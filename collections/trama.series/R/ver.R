@@ -198,7 +198,10 @@ tr_series_plot_decomposition <- function(decomposicao, aspecto = "4:3", tema = "
                                          titulo = "", rotulo_x = "", rotulo_y = "",
                                          legenda = "direita") {
   tab <- .tr_series_decomp_tabela(decomposicao)
-  nomes <- c(observado = "observado", tendencia = "tendência", sazonal = "sazonal", resto = "resto")
+  nomes <- c(observado = "observado", tendencia = "tendência", sazonal = "sazonal",
+             regressor = "regressor", resto = "resto")
+  # O painel do regressor só existe quando a decomposição o tem.
+  if (is.null(decomposicao$regressor)) nomes <- nomes[names(nomes) != "regressor"]
   d <- do.call(rbind, lapply(names(nomes), function(nm) {
     tibble::tibble(tempo = tab$tempo, componente = factor(nomes[[nm]], levels = unname(nomes)),
                    valor = tab[[nm]])

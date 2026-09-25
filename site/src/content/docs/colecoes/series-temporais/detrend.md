@@ -22,15 +22,19 @@ escolhida às claras:
 - **loess** — regressão local, sem forma imposta. A **Suavidade** é a fração
   da série que entra em cada ajuste local: perto de 1, uma curva larga; perto
   de 0,1, uma que segue até a sazonalidade (e aí a tira junto).
-- **diferenca** — `x[t] − x[t−1]`, sem modelo nenhum. A série perde a 1ª
-  observação e começa um período depois. É a mesma conta de `series/diff`
-  simples; está aqui para comparar com os outros métodos no mesmo card.
+- **diferenca** — `x[t] − x[t−1]`, sem modelo nenhum. A saída é outra
+  grandeza: a VARIAÇÃO de um período para o seguinte, e não a série em torno
+  da tendência. A série perde a 1ª observação e começa um período depois. É a
+  mesma conta de `series/diff` simples; está aqui para comparar com os outros
+  métodos no mesmo card.
 
 A tendência estimada vai junto com a série, como atributo `tendencia` —
 no console, `attr(saida, "tendencia")` —, e `saída + tendência` devolve a
 série original.
 
-A sazonalidade FICA na saída. Para tirar as duas, use `series/component` com
+Nos três métodos com modelo (linear, polinomial, loess), a sazonalidade FICA
+na saída; na diferença ela sobra só como variação entre meses vizinhos, com
+outra forma. Para tirar as duas, use `series/component` com
 `resto`; para tirar só a sazonalidade, `dessazonalizada`. A reta daqui é
 estimada sem olhar a sazonalidade; com anos completos, é a mesma de
 `series/regression` de grau 1, e com anos incompletos difere um pouco — lá a

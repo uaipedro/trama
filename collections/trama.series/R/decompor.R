@@ -64,12 +64,19 @@ tr_series_stl <- function(serie, janela_sazonal = 0L, robusta = FALSE) {
 #' @export
 tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
   componente <- .tr_series_enum(componente,
-                                c("tendencia", "sazonal", "resto", "dessazonalizada", "sem_tendencia"),
+                                c("tendencia", "sazonal", "resto", "dessazonalizada", "sem_tendencia",
+                                  "regressor"),
                                 "componente")
   d <- decomposicao
+  if (componente == "regressor" && is.null(d$regressor)) {
+    .tr_series_abort("tr_series_error_no_component",
+                     paste0("'series/component': a decomposição (%s) não tem componente de regressor. ",
+                            "Ele só existe numa 'series/regression' com a entrada 'regressor' ligada."),
+                     d$metodo %||% "?")
+  }
   mult <- identical(d$tipo, "multiplicativa")
   out <- switch(componente,
-    tendencia = d$tendencia, sazonal = d$sazonal, resto = d$resto,
+    tendencia = d$tendencia, sazonal = d$sazonal, resto = d$resto, regressor = d$regressor,
     dessazonalizada = if (mult) d$observado / d$sazonal else d$observado - d$sazonal,
     sem_tendencia = if (mult) d$observado / d$tendencia else d$observado - d$tendencia)
   .tr_series_uni(out)
@@ -94,7 +101,8 @@ tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
 #' O `regressor` é uma covariável externa (outra série, no mesmo tempo) que
 #' entra no `lm` ao lado da tendência e das dummies: o coeficiente dele sai na
 #' tabela com erro-padrão e p-valor, e os componentes passam a ser os
-#' "descontado o regressor". É a pergunta "a tendência continua depois de
+#' "descontado o regressor" (o efeito β·x é o quarto componente, à parte da
+#' tendência). É a pergunta "a tendência continua depois de
 #' controlar pela renda?" respondida no mesmo ajuste.
 #' @export
 tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
@@ -144,6 +152,12 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   }
 
   fit <- stats::lm(y ~ ., data = dados)
+  if (!is.null(xreg) && is.na(stats::coef(fit)[["regressor"]])) {
+    .tr_series_abort("tr_series_error_fit",
+                     paste0("O regressor é colinear com a tendência e/ou a sazonalidade: ele é uma ",
+                            "combinação exata dos outros termos, e seu coeficiente não se estima. ",
+                            "Ligue outro regressor, ou baixe o grau / desligue a sazonalidade."))
+  }
   if (anyNA(stats::coef(fit))) {
     .tr_series_abort("tr_series_error_fit",
                      paste0("O ajuste ficou indeterminado (%d coeficientes sem estimativa): a série é ",
@@ -169,15 +183,14 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   como_ts <- function(v) {
     stats::ts(v, start = stats::start(serie), frequency = stats::frequency(serie))
   }
-  # O efeito do regressor fica DENTRO da tendência (tendência = ajustado −
-  # sazonal, como sem regressor): é a parte sistemática não sazonal, e é o
-  # que mantém a promessa de que os três componentes somam a série. Ele vai
-  # também à parte, para quem quiser a tendência pura no console.
-  efeito <- if (is.null(xreg)) NULL else como_ts(stats::coef(fit)[["regressor"]] * xreg)
+  # O efeito do regressor é componente PRÓPRIO, fora da tendência: a
+  # tendência fica função só do tempo (intercepto + polinômio), e a
+  # identidade passa a ser série = tendência + sazonal + regressor + resto.
+  efeito <- if (is.null(xreg)) NULL else stats::coef(fit)[["regressor"]] * xreg
   structure(list(ajuste = fit, serie = serie, grau = grau,
                  sazonalidade = isTRUE(sazonalidade), contraste = contraste,
-                 efeito_regressor = efeito,
-                 tendencia = como_ts(as.numeric(stats::fitted(fit)) - saz),
+                 efeito_regressor = if (!is.null(efeito)) como_ts(efeito),
+                 tendencia = como_ts(as.numeric(stats::fitted(fit)) - saz - (efeito %||% 0)),
                  sazonal = como_ts(saz),
                  resto = como_ts(as.numeric(stats::residuals(fit)))),
             class = "tr_series_reg")
