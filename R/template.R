@@ -48,13 +48,25 @@ tr_template_parse <- function(txt) {
   if (!is.list(x) || is.null(names(x)) || !identical(x$trama, "template")) {
     rlang::abort("Este JSON não é um template do trama.", class = "tr_error_not_template")
   }
-  if (!identical(as.integer(x$versao %||% NA_integer_), .tr_template_versao)) {
-    rlang::abort(sprintf("Versão de template não suportada: %s.", x$versao %||% "ausente"),
+  # `versao` escrita à mão pode vir como lista/vetor: só um inteiro vale, e a
+  # mensagem não pode estourar em `sprintf` com comprimento > 1.
+  v <- x$versao
+  if (length(v) != 1 || !identical(suppressWarnings(as.integer(unlist(v))), .tr_template_versao)) {
+    rlang::abort(sprintf("Versão de template não suportada: %s.",
+                         if (length(v)) paste(unlist(v), collapse = ",") else "ausente"),
                  class = "tr_error_bad_format")
   }
   # Reserializa o `doc` pra passar pelo mesmo parse de qualquer documento: é lá
   # que mapas vazios e vetores achatados são reconstituídos.
   doc <- tr_doc_parse(jsonlite::toJSON(x$doc, auto_unbox = TRUE, null = "null", digits = NA))
+  # Template escrito à mão (ou por LLM) pode ligar nó que não existe; o erro
+  # tem que sair aqui, e não como `connect` falhando no meio do batch.
+  for (e in doc$edges) {
+    if (!all(c(e$from$node, e$to$node) %in% names(doc$nodes))) {
+      rlang::abort(sprintf("Aresta liga nó inexistente: %s -> %s.", e$from$node, e$to$node),
+                   class = "tr_error_bad_format")
+    }
+  }
   structure(list(trama = "template", versao = .tr_template_versao, nome = x$nome %||% "Template",
                  descricao = x$descricao %||% "", colecoes = as.character(unlist(x$colecoes)),
                  doc = doc), class = "tr_template")
@@ -174,6 +186,8 @@ tr_template_dir <- function(escopo = c("biblioteca", "projeto"), root = ".") {
 # Nome de arquivo a partir do nome do template: sem acento, sem espaço, sem
 # nada que um sistema de arquivos estranhe.
 .tr_slug <- function(x) {
+  # Nome vindo de JSON pode ser vazio ou vetor; `if` abaixo exige escalar.
+  if (length(x) != 1) x <- if (length(x)) as.character(x[[1]]) else ""
   s <- tolower(iconv(x, to = "ASCII//TRANSLIT", sub = ""))
   s <- gsub("[^a-z0-9]+", "-", s); s <- gsub("^-|-$", "", s)
   if (is.na(s) || !nzchar(s)) "template" else s

@@ -147,3 +147,19 @@ test_that("slug cai em 'template' quando o nome não tem nada aproveitável", {
   expect_equal(.tr_slug("Ação & Reação!"), "acao-reacao")
   expect_equal(.tr_slug("!!!"), "template")
 })
+
+test_that("versao com mais de um valor é rejeitada sem estourar a mensagem", {
+  expect_error(tr_template_parse('{"trama":"template","versao":[1,2],"doc":{}}'),
+               class = "tr_error_bad_format", regexp = "1,2")
+})
+
+test_that("aresta para nó inexistente é rejeitada no parse", {
+  txt <- '{"trama":"template","versao":1,"nome":"x","doc":{"format":1,"nodes":{"a":{"type":"x","label":"a","params":{}}},
+    "edges":[{"from":{"node":"a","port":"out"},"to":{"node":"zz","port":"in"}}]}}'
+  expect_error(tr_template_parse(txt), class = "tr_error_bad_format", regexp = "zz")
+})
+
+test_that("slug aceita nome vazio ou vetor", {
+  expect_equal(.tr_slug(character()), "template")
+  expect_equal(.tr_slug(c("Um", "Dois")), "um")
+})
