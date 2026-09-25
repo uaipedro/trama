@@ -11,12 +11,15 @@ Divergências entre implementação e teoria encontradas ao documentar pressupos
 
 ## trama.models
 
-- **`models/pairwise`** — o ajuste `dunnett` chama `emmeans::contrast(adjust = "dunnettx")`, a aproximação de Hsu para a distribuição de Dunnett, e não o Dunnett exato (`adjust = "mvt"`, integração da t multivariada). A diferença é pequena, mas o card diz "Dunnett" (Dunnett 1955, doi:10.1080/01621459.1955.10501294).
-- **`models/chisq`** — `correcao = TRUE` por padrão: a correção de Yates (1934, doi:10.2307/2983604) em toda tabela 2 × 2, que torna o teste conservador. É o padrão de `stats::chisq.test`, mas é escolha discutível como padrão de um bloco didático.
 - **`models/levene` e `models/bartlett`** — aplicados aos RESÍDUOS do modelo agrupados pelos tratamentos (também no DBC, DQL e fatorial com bloco), e não às observações de cada grupo como na formulação original (Levene 1960; Bartlett 1937, doi:10.1098/rspa.1937.0109). Os gl do teste não descontam os parâmetros do modelo (bloco), o que pode deixá-lo levemente liberal com poucos gl de resíduo. No DIC as duas formas coincidem (resíduo = desvio da média do grupo).
 - **Friedman ausente** — a alternativa não paramétrica ao DBC (Friedman 1937, doi:10.1080/01621459.1937.10503522) não tem bloco; os pressupostos de DBC, DQL e fatorial apontam para ela como lacuna. Só o DIC tem saída por postos (`models/kruskal`).
 - **Superdispersão na binomial agregada** — o `models/glm` oferece `quasipoisson`, mas não `quasibinomial`, e não há GLM misto (`glmer`) para um efeito aleatório por observação. Contagens de sucessos em n tentativas superdispersas ficam sem saída no trama (McCullagh & Nelder 1989, *Generalized Linear Models*, 2. ed., cap. 4).
 - **Parcela subdividida no tempo** — com a subparcela em medidas repetidas, a análise de dois erros supõe esfericidade. O `models/lmer` só especifica efeitos aleatórios, não estrutura de correlação no erro (AR(1), não estruturada, como em `nlme::gls`/`lme`), então não há como relaxar esse pressuposto no trama.
+
+### Resolvido
+
+- **`models/pairwise`** — o ajuste `dunnett` chama `emmeans::contrast(adjust = "dunnettx")`, a aproximação de Hsu para a distribuição de Dunnett, e não o Dunnett exato (`adjust = "mvt"`, integração da t multivariada). A diferença é pequena, mas o card diz "Dunnett" (Dunnett 1955, doi:10.1080/01621459.1955.10501294). **Resolvido** em 598f09c: `adjust = "mvt"` (Dunnett exato) com a semente do nó; `models/pairwise` versão 2. Validação: `multcomp::glht(mcp(... = "Dunnett"))` em PlantGrowth (2 contrastes, igual a 1e-6: p = 0,3227 e 0,1535) e InsectSprays (5 contrastes, diferença máxima de 5e-5 no p, tolerância 2e-3; intervalos iguais).
+- **`models/chisq`** — `correcao = TRUE` por padrão: a correção de Yates (1934, doi:10.2307/2983604) em toda tabela 2 × 2, que torna o teste conservador. É o padrão de `stats::chisq.test`, mas é escolha discutível como padrão de um bloco didático. **Resolvido** em 15a93e2: padrão `correcao = FALSE` (Agresti 2002, *Categorical Data Analysis*, doi:10.1002/0471249688), opção mantida; `models/chisq` versão 2. Validação: Physicians' Health Study (aspirina × infarto, Agresti), X² = 25,01 sem e 24,43 com Yates, iguais à forma fechada do 2 × 2 e a `stats::chisq.test` (tolerância 1e-10).
 
 ## trama.ml
 
