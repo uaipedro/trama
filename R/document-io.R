@@ -116,18 +116,32 @@ tr_doc_migrate <- function(doc, registry = .tr_default_registry) {
   mig <- registry$migrations
   if (is.null(mig) || all(lengths(mig) == 0)) return(doc)
   changed <- FALSE
+  # Segue a cadeia juntando os params que cada salto injeta, na ordem dos
+  # saltos: é o nó que VEIO do id antigo que precisa deles (ex.: a tabela de
+  # razões de chances que virou `models/coefficients` + `exponenciar`), e o
+  # id antigo só é conhecido aqui — depois do renome ele se perde.
   destino <- function(type) {
     seen <- type
-    while (!is.null(nxt <- mig$nodes[[type]])) {
+    params <- list()
+    while (!is.null(m <- mig$nodes[[type]])) {
+      nxt <- .tr_mig_to(m)
       if (nxt %in% seen) break
+      if (is.list(m)) for (nm in names(m$params)) if (is.null(params[[nm]])) params[nm] <- m$params[nm]
       type <- nxt; seen <- c(seen, type)
     }
-    type
+    list(type = type, params = params)
   }
   for (id in names(doc$nodes)) {
     n <- doc$nodes[[id]]
-    to <- destino(n$type)
-    if (!identical(to, n$type)) { n$type <- to; changed <- TRUE }
+    d <- destino(n$type)
+    if (!identical(d$type, n$type)) { n$type <- d$type; changed <- TRUE }
+    # Injetado ANTES dos renomes de params do id novo, e sem sobrescrever: o
+    # documento salvo só grava params fora do default, então ausência é o caso
+    # comum; presença é escolha explícita de alguém e vence.
+    for (nm in names(d$params)) if (is.null(n$params[[nm]])) {
+      n$params[nm] <- d$params[nm]
+      changed <- TRUE
+    }
     renames <- mig$params[[n$type]]
     for (old in intersect(names(renames), names(n$params))) {
       r <- renames[[old]]

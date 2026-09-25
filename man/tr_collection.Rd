@@ -34,7 +34,13 @@ opcionais:
 \itemize{
 \item \code{nodes}: id antigo -> id novo (\code{list("multi/roc" = "models/roc")}). O id
 antigo pode ser de OUTRA coleção — é assim que um bloco muda de casa —,
-mas o destino tem que ser desta.
+mas o destino tem que ser desta. Quando o nó novo precisa de um param
+pra se comportar como o antigo, o destino pode ser
+\code{list(to = "novo", params = list(nome = valor))}: os params entram SÓ
+nos nós cujo tipo era o id antigo, antes dos renomes de \code{params}, e não
+sobrescrevem param já presente. Em cadeia (a -> b -> c) os params de
+cada salto se acumulam na ordem. Ex.:
+\code{"multi/logistic_coefficients" = list(to = "models/coefficients", params = list(exponenciar = TRUE))}.
 \item \code{params}: id NOVO do nó -> lista de renomes \code{antigo = list(to = "novo", value = function(v) ..., when = function(v) ...)}. \code{value} é opcional
 (identidade); \code{when} é um predicado sobre o valor antigo, e \code{value} só
 roda quando ele é verdadeiro. Dois casos especiais:

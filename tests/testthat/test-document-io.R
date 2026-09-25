@@ -168,6 +168,31 @@ test_that("ciclo de renomes não trava, e param com nome novo já presente vence
   expect_equal(doc$nodes$s$params, list(k = 5))
 })
 
+test_that("destino com params injeta só no nó migrado; presente vence; cadeia acumula", {
+  reg <- migr_registry(list(nodes = list(
+    "velho/const" = list(to = "t/meio", params = list(value = 7, extra = "a")),
+    "t/meio" = list(to = "t/const", params = list(extra = "b", outro = 1)))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{
+    "v":{"type":"velho/const"},
+    "p":{"type":"velho/const","params":{"value":2}},
+    "n":{"type":"t/const"}},"edges":[]}')
+  doc <- tr_doc_migrate(doc, reg)
+  expect_equal(doc$nodes$v$type, "t/const")
+  # Params de cada salto na ordem; o primeiro salto vence o seguinte.
+  expect_equal(doc$nodes$v$params, list(value = 7, extra = "a", outro = 1))
+  expect_equal(doc$nodes$p$params$value, 2)
+  # O nó nativo do id novo não ganha nada.
+  expect_length(doc$nodes$n$params, 0)
+  expect_true(attr(doc, "migrated"))
+})
+
+test_that("params injetados entram antes dos renomes do id novo", {
+  reg <- migr_registry(list(nodes = list("velho/add" = list(to = "t/add", params = list(kk = 4))),
+                            params = list("t/add" = list(kk = list(to = "k")))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{"s":{"type":"velho/add"}},"edges":[]}')
+  expect_equal(tr_doc_migrate(doc, reg)$nodes$s$params, list(k = 4))
+})
+
 test_that("documento sem nada a migrar sai idêntico", {
   reg <- migr_registry(list(nodes = list("velho/x" = "t/const")))
   doc <- tr_doc_apply(tr_doc(), list(op = "add_node", type = "t/add", id = "s"), reg)

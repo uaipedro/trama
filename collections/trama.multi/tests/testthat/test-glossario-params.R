@@ -54,7 +54,7 @@ test_that("classify, confusion, roc e logistic_coefficients abrem como os blocos
                c("models/predict", "models/confusion", "models/roc", "models/coefficients"))
   expect_equal(m$nodes$cl$params$validacao, "cruzada")
   expect_equal(m$nodes$roc$params$validacao, "resubstituição")
-  expect_equal(m$nodes$rc$params, list(escala = "desvio padrão", confianca = 0.9, exponenciar = TRUE))
+  expect_equal(m$nodes$rc$params, list(escala = "desvio padrão", exponenciar = TRUE, confianca = 0.9))
   expect_equal(m$edges[[5]]$to, list(node = "cl", port = "dados"))
   expect_length(trama::tr_doc_validate(m, reg), 0L)
   s <- trama::tr_store(tempfile())

@@ -47,19 +47,17 @@ trama_collection <- function() {
     # contrato de modelo): a migração mora AQUI porque o destino é daqui, e as
     # chaves de params/ports são o id NOVO. Os params de `classify`, `confusion`
     # e `roc` têm o mesmo nome e o mesmo default dos de cá; a porta `novos` do
-    # classify é a `dados` do predict. `nivel` era o nome antigo da confiança na
-    # `multi/logistic_coefficients`, e só ela o tinha: é a única âncora que
-    # distingue um nó que veio de lá, e aproveita-se para pôr `exponenciar` (a
-    # tabela de lá era de razões de chances). Um `escala` salvo não serve de
-    # âncora — o `models/coefficients` nativo também o tem, e injetar
-    # `exponenciar` num `lm` com escala o faria errar ao reabrir.
+    # classify é a `dados` do predict. A `multi/logistic_coefficients` mostrava
+    # razões de chances: o destino injeta `exponenciar = TRUE` só nos nós que
+    # vieram de lá (o `models/coefficients` nativo, p.ex. de um `lm`, fica
+    # intocado), e o `nivel` dela vira `confianca`.
     migrations = list(
       nodes = list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
-                   "multi/roc" = "models/roc", "multi/logistic_coefficients" = "models/coefficients"),
+                   "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
+                                                       params = list(exponenciar = TRUE))),
       ports = list("models/predict" = list(novos = "dados")),
       params = list(
-      "models/coefficients" = list(nivel = list(
-        to = "confianca", value = function(v) list(confianca = v, exponenciar = TRUE))),
+      "models/coefficients" = list(nivel = list(to = "confianca")),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/one_sample_t" = list(coluna = list(to = "variavel")),

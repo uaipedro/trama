@@ -162,4 +162,21 @@ test_that("migração com destino fora do namespace, malformada ou conflitante �
                       registry = reg), class = "tr_error_bad_migration")
   # O erro não deixa a segunda coleção meio carregada.
   expect_null(reg$collections$v)
+  # Na forma com params o conflito também é pelo `to`.
+  expect_error(tr_use(tr_collection(id = "v", migrations = list(nodes = list(
+    "x/a" = list(to = "v/b", params = list(k = 1))))), registry = reg), class = "tr_error_bad_migration")
+})
+
+test_that("destino de nó com params: forma válida aceita, malformada recusada", {
+  ok <- tr_collection(id = "u", migrations = list(nodes = list(
+    "x/a" = list(to = "u/b", params = list(k = TRUE)))))
+  expect_s3_class(ok, "tr_collection")
+  ruim <- function(dest) expect_error(tr_collection(id = "u", migrations = list(nodes = list("x/a" = dest))),
+                                      class = "tr_error_bad_migration")
+  ruim(list(to = "u/b", params = list(TRUE)))          # param sem nome
+  ruim(list(to = "u/b", params = "k"))                 # params não é lista
+  ruim(list(to = "u/b", parms = list(k = 1)))          # campo desconhecido
+  ruim(list(params = list(k = 1)))                     # sem `to`
+  expect_error(tr_collection(id = "u", migrations = list(nodes = list(
+    "x/a" = list(to = "v/b", params = list(k = 1))))), class = "tr_error_foreign_id")
 })

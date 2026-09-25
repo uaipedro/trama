@@ -19,7 +19,14 @@
 #'   opcionais:
 #'   * `nodes`: id antigo -> id novo (`list("multi/roc" = "models/roc")`). O id
 #'     antigo pode ser de OUTRA coleção — é assim que um bloco muda de casa —,
-#'     mas o destino tem que ser desta.
+#'     mas o destino tem que ser desta. Quando o nó novo precisa de um param
+#'     pra se comportar como o antigo, o destino pode ser
+#'     `list(to = "novo", params = list(nome = valor))`: os params entram SÓ
+#'     nos nós cujo tipo era o id antigo, antes dos renomes de `params`, e não
+#'     sobrescrevem param já presente. Em cadeia (a -> b -> c) os params de
+#'     cada salto se acumulam na ordem. Ex.:
+#'     `"multi/logistic_coefficients" = list(to = "models/coefficients",
+#'     params = list(exponenciar = TRUE))`.
 #'   * `params`: id NOVO do nó -> lista de renomes `antigo = list(to = "novo",
 #'     value = function(v) ..., when = function(v) ...)`. `value` é opcional
 #'     (identidade); `when` é um predicado sobre o valor antigo, e `value` só
@@ -69,6 +76,10 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
             class = "tr_collection")
 }
 
+#' Destino de uma migração de nó, na forma string ou `list(to =, params =)`.
+#' @noRd
+.tr_mig_to <- function(x) if (is.list(x)) x$to else x
+
 #' Normaliza e valida `migrations` de `tr_collection()`.
 #'
 #' O namespace vale pro DESTINO (e pras chaves de `params`/`ports`, que já são
@@ -95,7 +106,21 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
   if (anyDuplicated(names(nodes))) {
     bad(sprintf("'%s' tem dois destinos.", names(nodes)[anyDuplicated(names(nodes))]))
   }
-  for (old in names(nodes)) own(nodes[[old]], sprintf("o destino de '%s'", old))
+  for (old in names(nodes)) {
+    x <- nodes[[old]]
+    if (is.list(x)) {
+      # Forma com params injetados: só `to` e `params`, e params nomeados —
+      # sem nome não há onde injetar, e um campo a mais é quase sempre typo.
+      ps <- x$params %||% list()
+      if (length(setdiff(names(x), c("to", "params"))) > 0 || is.null(names(x)) ||
+          !is.list(ps) || (length(ps) > 0 && (is.null(names(ps)) || !all(nzchar(names(ps)))))) {
+        bad(sprintf("'%s' espera \"novo\" ou list(to = \"novo\", params = list(nome = valor)).", old))
+      }
+      own(x$to, sprintf("o destino de '%s'", old))
+    } else {
+      own(x, sprintf("o destino de '%s'", old))
+    }
+  }
   params <- m$params %||% list()
   for (nid in names(params)) {
     own(nid, "a chave de params")

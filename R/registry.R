@@ -96,10 +96,13 @@ tr_use <- function(collection, registry = .tr_default_registry,
   mig <- registry$migrations %||% list(nodes = list(), params = list(), ports = list())
   cm <- col$migrations %||% list()
   for (old in names(cm$nodes)) {
+    # Compara pelo destino (`to`): a forma com params injetados e a string
+    # simples apontando pro mesmo id não são conflito de casa.
     prev <- mig$nodes[[old]]
-    if (!is.null(prev) && !identical(prev, cm$nodes[[old]])) {
+    if (!is.null(prev) && !identical(.tr_mig_to(prev), .tr_mig_to(cm$nodes[[old]]))) {
       rlang::abort(sprintf("Migração conflitante: '%s' iria pra '%s' e pra '%s'.",
-                           old, prev, cm$nodes[[old]]), class = "tr_error_bad_migration")
+                           old, .tr_mig_to(prev), .tr_mig_to(cm$nodes[[old]])),
+                   class = "tr_error_bad_migration")
     }
     mig$nodes[[old]] <- cm$nodes[[old]]
   }

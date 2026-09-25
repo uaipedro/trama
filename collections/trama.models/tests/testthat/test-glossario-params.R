@@ -55,11 +55,13 @@ test_that("os leitores de classificador da multi abrem como os blocos daqui", {
                list(type = "models/predict", params = list(validacao = "cruzada")))
   expect_equal(mig("multi/confusion", list())$type, "models/confusion")
   expect_equal(mig("multi/roc", list(validacao = "resubstituição"))$params$validacao, "resubstituição")
-  # `nivel` só existia na multi/logistic_coefficients: vira confiança e traz a
-  # razão de chances (exponenciar), que era o que a tabela de lá mostrava.
+  # A multi/logistic_coefficients mostrava razões de chances: o nó que vem de
+  # lá ganha `exponenciar`, mesmo salvo sem param nenhum; `nivel` vira confiança.
   rc <- mig("multi/logistic_coefficients", list(nivel = 0.9, escala = "desvio padrão"))
   expect_equal(rc$type, "models/coefficients")
-  expect_equal(rc$params, list(escala = "desvio padrão", confianca = 0.9, exponenciar = TRUE))
+  expect_equal(rc$params, list(escala = "desvio padrão", exponenciar = TRUE, confianca = 0.9))
+  expect_equal(mig("multi/logistic_coefficients", list()),
+               list(type = "models/coefficients", params = list(exponenciar = TRUE)))
   # Um models/coefficients nativo com escala não ganha exponenciar (num lm, ele
   # faria o card errar).
   expect_equal(mig("models/coefficients", list(escala = "desvio padrão"))$params,
