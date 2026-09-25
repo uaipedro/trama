@@ -27,7 +27,11 @@ args_validos <- function() list(
   "data/pivot_longer"    = list(dados = df_exemplo(), cols = "valor, qtd",
                                 names_to = "nome", values_to = "valor"),
   "data/group_summarise" = list(dados = df_exemplo(), by = "regiao",
-                                name = "total", expr = "sum(valor)")
+                                name = "total", expr = "sum(valor)"),
+  "data/separate"        = list(dados = tibble::tibble(c = "a_1"), variavel = "c",
+                                nomes = "x, y", separador = "_"),
+  "data/unite"           = list(dados = df_exemplo(), cols = "regiao, produto",
+                                nome = "junto", separador = "_")
 )
 
 # Exceção é DECLARADA, com motivo, nunca silenciosa: cada uma destas é um campo

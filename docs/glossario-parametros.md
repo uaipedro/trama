@@ -12,7 +12,7 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `resposta` | coluna explicada pelo modelo | `alvo` (ml), `grupo` quando é a resposta (multi/discriminant, multi/logistic) |
 | `preditores` | colunas explicativas de um modelo | `cols` quando são preditoras (ml, multi/discriminant, multi/logistic) |
 | `cols` | colunas quaisquer, sem papel de modelo (data/select, multi/pca) | — |
-| `grupo` | coluna de agrupamento/estrato | — (não usar para resposta) |
+| `grupo` | coluna de agrupamento/estrato (também o "por grupo" de data/sample) | — (não usar para resposta) |
 | `variavel` | a coluna testada ou estimada | `coluna` (models/shapiro, models/one_sample_t, sampling/size_mean) |
 | `dados` | porta de entrada da tabela | `data` (coleção data) |
 | `metodo` | escolha do método de estimação/cálculo do nó (enum) | — |
@@ -31,6 +31,11 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `nome_*` | texto de legenda de uma linha do gráfico (`nome_serie`, `nome_sobreposta` em series/plot) | — |
 | `por_cor` | uma curva por grupo de cor do gráfico de entrada (view/fit_line) | — |
 | `sobreposta` | porta de uma segunda série desenhada no mesmo eixo (series/plot) | — |
+| `respostas` | várias colunas resposta de um mesmo teste (multi/manova) | — |
+| `tratamento`, `bloco` | colunas do fator em teste e do bloco (models/anova_*, multi/manova) | — |
+| `separador` | texto literal que separa/junta valores (data/separate, data/unite) | — |
+| `fracao` | fração das linhas, 0–1 (data/sample) | — |
+| `reposicao` | sortear com reposição (data/sample) | — |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 
 ## Homônimos permitidos

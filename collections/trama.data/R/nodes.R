@@ -1115,3 +1115,232 @@ tr_from_stream <- function(dados = NULL, passo = TRUE) {
   }
   dplyr::bind_rows(pontos)
 }
+
+# ---- Separar, juntar, recodificar, amostrar ------------------------------------
+#
+# Os quatro que faltavam para a preparação de planilha de campo: `parcela_A_1`
+# que precisa virar três colunas, a data que chegou em três, o tratamento em
+# códigos que precisam de nome, a idade que precisa de faixa, e a amostra para
+# conferir à mão. Todos em base R + tidyr, que a coleção já importa.
+
+#' Uma coluna só, existente, com o campo nomeado no erro.
+#' @noRd
+.tr_data_uma_col <- function(dados, col, param) {
+  col <- .as_cols(.tr_data_obrigatorio(col, param))
+  if (length(col) != 1L) {
+    rlang::abort(sprintf("Param '%s': informe UMA coluna (vieram %d: %s).", param, length(col),
+                         paste(col, collapse = ", ")), class = "tr_data_error_bad_option")
+  }
+  .tr_data_cols(dados, col, param)
+}
+
+#' Separa uma coluna de texto em várias pelo separador.
+#'
+#' O separador é LITERAL (`fixed`), e não expressão regular: quem digita `.`
+#' ou `|` quer o caractere, e na regex os dois casariam com tudo.
+#' @param dados tabela.
+#' @param variavel a coluna a separar.
+#' @param nomes os nomes das colunas novas, separados por vírgula.
+#' @param separador o texto que separa as partes.
+#' @param remover tirar a coluna original.
+#' @export
+tr_separate <- function(dados, variavel = "", nomes = "", separador = "_", remover = TRUE) {
+  col <- .tr_data_uma_col(dados, variavel, "variavel")
+  novos <- .as_cols(.tr_data_obrigatorio(nomes, "nomes"))
+  .tr_data_obrigatorio(separador, "separador")
+  colide <- setdiff(intersect(novos, names(dados)), if (isTRUE(remover)) col)
+  if (length(colide) || anyDuplicated(novos)) {
+    rlang::abort(sprintf("Param 'nomes': nome já em uso ou repetido: %s.",
+                         paste(unique(c(colide, novos[duplicated(novos)])), collapse = ", ")),
+                 class = "tr_data_error_name_collision")
+  }
+  partes <- strsplit(as.character(dados[[col]]), separador, fixed = TRUE)
+  k <- length(novos)
+  # Parte a mais ou a menos é ERRO, contando as linhas: o `separate()` do
+  # tidyr só avisa e descarta ou preenche com NA, e o aviso não chega ao card.
+  tam <- lengths(partes)
+  ruins <- which(!is.na(dados[[col]]) & tam != k)
+  if (length(ruins)) {
+    rlang::abort(sprintf(paste0("Param 'nomes': %d nome(s), mas %d linha(s) têm outro número de partes ",
+                                "(ex.: linha %d, '%s', em %d). Ajuste os nomes ou o separador."),
+                         k, length(ruins), ruins[[1]], dados[[col]][ruins[[1]]], tam[ruins[[1]]]),
+                 class = "tr_data_error_bad_option")
+  }
+  m <- do.call(rbind, lapply(partes, function(p) if (length(p) == k) p else rep(NA_character_, k)))
+  pos <- match(col, names(dados))
+  novas <- stats::setNames(as.data.frame(m, stringsAsFactors = FALSE), novos)
+  antes <- c(names(dados)[seq_len(pos - 1L)], if (!isTRUE(remover)) col)
+  depois <- names(dados)[-seq_len(pos)]
+  # As colunas novas no lugar da original, e não no fim: é onde se olha.
+  tibble::as_tibble(cbind(dados[antes], novas, dados[depois]))
+}
+
+#' Junta colunas numa só, com um separador.
+#' @param dados tabela.
+#' @param cols as colunas a juntar, na ordem.
+#' @param nome o nome da coluna nova.
+#' @param separador o texto posto entre os valores.
+#' @param remover tirar as colunas originais.
+#' @export
+tr_unite <- function(dados, cols = "", nome = "junto", separador = "_", remover = TRUE) {
+  cs <- .tr_data_cols(dados, .as_cols(.tr_data_obrigatorio(cols, "cols")), "cols")
+  nome <- trimws(.tr_data_obrigatorio(nome, "nome"))
+  if (!nzchar(separador)) .tr_data_obrigatorio("", "separador")
+  if (nome %in% setdiff(names(dados), if (isTRUE(remover)) cs)) {
+    rlang::abort(sprintf("Param 'nome': a coluna '%s' já existe.", nome), class = "tr_data_error_name_collision")
+  }
+  # Faltante vira "NA" no texto, como no `paste()`: sumir com ele juntaria
+  # "A__1" e "A_1" no mesmo lugar.
+  v <- do.call(paste, c(unname(as.list(as.data.frame(dados)[cs])), sep = separador))
+  pos <- match(cs[[1]], names(dados))
+  fora <- if (isTRUE(remover)) cs else character()
+  antes <- setdiff(names(dados)[seq_len(pos - 1L)], fora)
+  depois <- setdiff(names(dados)[pos:ncol(dados)], fora)
+  tibble::as_tibble(cbind(dados[antes], stats::setNames(data.frame(v, stringsAsFactors = FALSE), nome),
+                          dados[depois]))
+}
+
+#' Lê "a=x; b=y" em pares de/para.
+#' @noRd
+.tr_data_pares <- function(txt) {
+  itens <- trimws(strsplit(txt, ";", fixed = TRUE)[[1]])
+  itens <- itens[nzchar(itens)]
+  sem_igual <- itens[!grepl("=", itens, fixed = TRUE)]
+  if (length(sem_igual)) {
+    rlang::abort(sprintf("Param 'niveis': cada item é 'de=para', separados por ';' (sem '=': %s).",
+                         paste(sem_igual, collapse = "; ")), class = "tr_data_error_bad_option")
+  }
+  de <- trimws(sub("=.*$", "", itens)); para <- trimws(sub("^[^=]*=", "", itens))
+  if (anyDuplicated(de)) {
+    rlang::abort(sprintf("Param 'niveis': o nível '%s' aparece duas vezes.", de[duplicated(de)][[1]]),
+                 class = "tr_data_error_bad_option")
+  }
+  stats::setNames(para, de)
+}
+
+#' Números separados por ";", com vírgula decimal aceita.
+#' @noRd
+.tr_data_numeros <- function(txt, param) {
+  v <- trimws(strsplit(txt, ";", fixed = TRUE)[[1]]); v <- v[nzchar(v)]
+  x <- suppressWarnings(as.numeric(sub(",", ".", v, fixed = TRUE)))
+  if (anyNA(x)) {
+    rlang::abort(sprintf("Param '%s': '%s' não é número. Separe os cortes com ';' (ex.: 0; 10; 20).",
+                         param, v[is.na(x)][[1]]), class = "tr_data_error_bad_option")
+  }
+  x
+}
+
+#' Recodifica níveis ou cria faixas de uma coluna numérica.
+#'
+#' Um nó para as duas coisas porque é a mesma pergunta ("que nome dar a estes
+#' valores"), e o modo se decide pelo campo preenchido: **Níveis** troca
+#' valores um a um, **Cortes** fatia um número em faixas.
+#' @param dados tabela.
+#' @param variavel a coluna.
+#' @param niveis pares `de=para` separados por `;`. Nível não citado fica igual.
+#' @param cortes limites das faixas separados por `;` (use `-Inf`/`Inf` nas pontas).
+#' @param rotulos nomes das faixas separados por `;`; em branco, `(a,b]`.
+#' @param fechado `"direita"` (`(a,b]`) ou `"esquerda"` (`[a,b)`).
+#' @param nome a coluna de saída; em branco, substitui a original.
+#' @export
+tr_recode <- function(dados, variavel = "", niveis = "", cortes = "", rotulos = "",
+                      fechado = "direita", nome = "") {
+  col <- .tr_data_uma_col(dados, variavel, "variavel")
+  if (!fechado %in% c("direita", "esquerda")) {
+    rlang::abort(sprintf("Param 'fechado': '%s' não é 'direita' nem 'esquerda'.", fechado),
+                 class = "tr_data_error_bad_option")
+  }
+  tem_niv <- nzchar(trimws(niveis)); tem_cor <- nzchar(trimws(cortes))
+  if (tem_niv == tem_cor) {
+    rlang::abort("Preencha 'niveis' (trocar valores) OU 'cortes' (faixas de um número), um dos dois.",
+                 class = "tr_data_error_bad_option")
+  }
+  v <- dados[[col]]
+  if (tem_niv) {
+    mapa <- .tr_data_pares(niveis)
+    txt <- as.character(v)
+    ausentes <- setdiff(names(mapa), unique(txt))
+    if (length(ausentes)) {
+      # Nível citado que não existe é quase sempre erro de digitação ("Sul"
+      # contra "sul"), e passar calado deixaria o valor sem recodificar.
+      rlang::abort(sprintf("Param 'niveis': valor(es) que não existem na coluna '%s': %s.",
+                           col, paste(ausentes, collapse = ", ")), class = "tr_data_error_bad_option")
+    }
+    novo <- ifelse(txt %in% names(mapa), unname(mapa[txt]), txt)
+    # Fator continua fator, com os níveis na ordem antiga (já traduzidos): a
+    # ordem é a do eixo dos gráficos, e reordenar em silêncio a mudaria.
+    if (is.factor(v)) novo <- factor(novo, levels = unique(ifelse(levels(v) %in% names(mapa),
+                                                                   mapa[levels(v)], levels(v))))
+  } else {
+    if (!is.numeric(v)) {
+      rlang::abort(sprintf("Param 'cortes': a coluna '%s' não é numérica. Converta antes num 'data/convert'.", col),
+                   class = "tr_data_error_bad_option")
+    }
+    br <- .tr_data_numeros(cortes, "cortes")
+    if (length(br) < 2L || is.unsorted(br, strictly = TRUE)) {
+      rlang::abort("Param 'cortes': informe ao menos dois cortes, em ordem crescente e sem repetir.",
+                   class = "tr_data_error_bad_option")
+    }
+    rot <- trimws(strsplit(rotulos, ";", fixed = TRUE)[[1]]); rot <- rot[nzchar(rot)]
+    if (length(rot) && length(rot) != length(br) - 1L) {
+      rlang::abort(sprintf("Param 'rotulos': %d corte(s) formam %d faixa(s), e vieram %d rótulo(s).",
+                           length(br), length(br) - 1L, length(rot)), class = "tr_data_error_bad_option")
+    }
+    # `include.lowest`: o primeiro corte entra na primeira faixa (fechado à
+    # direita) — sem ele, o 0 de "0; 10; 20" cairia fora de tudo, como NA.
+    novo <- cut(v, br, labels = if (length(rot)) rot else NULL, right = fechado == "direita",
+                include.lowest = TRUE)
+    fora <- sum(is.na(novo) & !is.na(v))
+    if (fora) {
+      rlang::abort(sprintf(paste0("Param 'cortes': %d valor(es) de '%s' caem fora das faixas ",
+                                  "(de %g a %g). Estenda os cortes, ou use -Inf/Inf nas pontas."),
+                           fora, col, min(br), max(br)), class = "tr_data_error_bad_option")
+    }
+  }
+  destino <- if (nzchar(trimws(nome))) trimws(nome) else col
+  dados[[destino]] <- novo
+  dados
+}
+
+#' Amostra linhas, com semente.
+#' @param dados tabela.
+#' @param n quantas linhas; 0 usa a fração.
+#' @param fracao a fração das linhas (0 a 1), quando `n` é 0.
+#' @param reposicao sortear com reposição.
+#' @param grupo colunas: amostra dentro de cada grupo.
+#' @param .seed semente (a do nó).
+#' @export
+tr_sample <- function(dados, n = 10L, fracao = 0.1, reposicao = FALSE, grupo = "", .seed = 1L) {
+  if (length(n) != 1L || !is.numeric(n) || is.na(n) || n < 0 || n != round(n)) {
+    rlang::abort("Param 'n': um inteiro >= 0 (0 usa a fração).", class = "tr_data_error_bad_option")
+  }
+  por_fracao <- n == 0
+  if (por_fracao && (length(fracao) != 1L || !is.numeric(fracao) || is.na(fracao) || fracao <= 0 ||
+                     (fracao > 1 && !isTRUE(reposicao)))) {
+    rlang::abort("Param 'fracao': entre 0 e 1 (acima de 1 só com reposição).", class = "tr_data_error_bad_option")
+  }
+  g <- .as_cols(grupo)
+  if (length(g)) .tr_data_cols(dados, g, "grupo")
+  chave <- if (length(g)) interaction(as.data.frame(dados)[g], drop = TRUE, lex.order = TRUE) else
+    factor(rep(1L, nrow(dados)))
+  idx <- split(seq_len(nrow(dados)), chave)
+  tamanhos <- vapply(idx, function(i) if (por_fracao) round(fracao * length(i)) else n, 0)
+  pequenos <- names(idx)[tamanhos > lengths(idx)]
+  if (!isTRUE(reposicao) && length(pequenos)) {
+    rlang::abort(sprintf(paste0("Param 'n': sem reposição não se tiram %d linhas de %s com %d. ",
+                                "Diminua n ou ligue a reposição."), as.integer(n),
+                         if (length(g)) sprintf("o grupo '%s'", pequenos[[1]]) else "uma tabela",
+                         length(idx[[pequenos[[1]]]])), class = "tr_data_error_bad_option")
+  }
+  # Mesma higiene do `tr_generate()`: a semente é do nó, e o RNG global volta
+  # como estava — o sorteio daqui não mexe no de ninguém.
+  anterior <- if (exists(".Random.seed", globalenv(), inherits = FALSE)) get(".Random.seed", globalenv())
+  on.exit(if (is.null(anterior)) suppressWarnings(rm(".Random.seed", envir = globalenv())) else
+    assign(".Random.seed", anterior, envir = globalenv()), add = TRUE)
+  set.seed(.seed)
+  # `i[sample.int(length(i), ...)]` e não `sample(i)`: com um índice só,
+  # `sample(5)` sortearia de 1:5.
+  escolhidos <- unlist(Map(function(i, k) i[sample.int(length(i), k, replace = isTRUE(reposicao))],
+                           idx, tamanhos), use.names = FALSE)
+  dados[sort(escolhidos), , drop = FALSE]
+}
