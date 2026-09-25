@@ -45,6 +45,20 @@ function semFluxo(fl) {
     .filter((t) => t.n > 0);
 }
 
+// A origem e todos os nós que chegam a ela pelas arestas do fluxo.
+function ancestrais(fl, no) {
+  const vistos = new Set([no]), fila = [no];
+  while (fila.length) {
+    const atual = fila.pop();
+    for (const e of fl.edges || [])
+      if (e.to.node === atual && !vistos.has(e.from.node)) {
+        vistos.add(e.from.node);
+        fila.push(e.from.node);
+      }
+  }
+  return [...vistos];
+}
+
 const CONFIGS = [
   { nome: "etapa", pesos: { relacionado: 0, transicao: 0 }, contexto: false },
   { nome: "+relacionado", pesos: { transicao: 0 }, contexto: false },
@@ -65,9 +79,9 @@ function avaliar(cfg) {
         const porta = byId[de]?.outputs?.find((o) => o.name === e.from.port);
         if (!porta) { fora++; continue; }
         if (!aceitantes(cat, porta.type).some((a) => a.id === para)) { fora++; continue; }
-        // Os outros nós do fluxo, sem o próprio destino.
+        // Só o que já existe a montante: a origem da aresta e seus ancestrais.
         const presentes = cfg.contexto
-          ? Object.entries(fl.nodes).filter(([k]) => k !== e.to.node).map(([, x]) => x.type)
+          ? ancestrais(fl, e.from.node).map((k) => fl.nodes[k]?.type).filter(Boolean)
           : [];
         const r = sugerir(catLoo, { de, tipo: porta.type, presentes })
           .findIndex((s) => s.id === para);

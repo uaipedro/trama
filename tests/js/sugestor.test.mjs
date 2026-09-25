@@ -84,7 +84,7 @@ test("contexto: bloco de ajuste já presente cai; preparação não", () => {
     nodes: cat.nodes.map((n) => n.id === "d/resumo" ? { ...n, role: "ajuste" } : n),
   };
   const r = sugerir(c, { de: "d/ler", tipo: "t/a", presentes: ["d/resumo", "d/limpa"] });
-  assert.equal(r.find((x) => x.id === "d/resumo").motivos.contexto, -1);
+  assert.equal(r.find((x) => x.id === "d/resumo").motivos.contexto, -PESOS.contexto);
   assert.ok(!("contexto" in r.find((x) => x.id === "d/limpa").motivos));
   assert.equal(r[0].id, "d/limpa"); // sem o contexto, d/resumo lideraria
 });

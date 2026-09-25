@@ -110,9 +110,13 @@ export function sugerir(cat, ctx) {
     const h = hist(a.id);
     if (h) motivos.historico = h * PESOS.historico;
     // Contexto: um segundo bloco de análise igual raramente faz sentido (uma
-    // segunda `anova`), mas preparação repete à vontade.
+    // segunda `anova`), mas preparação repete à vontade. A penalidade usa o
+    // mesmo peso do bônus, para ficar na mesma escala. Isentar também leitura e
+    // saída (gráficos, exportações) foi medido e não mudou nada (hit@1/3/5
+    // iguais em 210 arestas): elas quase nunca estão a montante, pois fecham o
+    // fluxo. Fica a regra mais simples.
     let c = 0;
-    if (presentesSet.has(a.id) && papel(catPorId, a.spec) !== "preparacao") c -= 1;
+    if (presentesSet.has(a.id) && papel(catPorId, a.spec) !== "preparacao") c -= PESOS.contexto;
     if (citadosNoFluxo.has(a.id)) c += 0.5 * PESOS.contexto;
     if (c) motivos.contexto = c;
     const score = Object.values(motivos).reduce((s, v) => s + v, 0);
