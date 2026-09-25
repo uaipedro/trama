@@ -42,7 +42,7 @@ A matriz resultante conta acertos e erros por espécie usando validação cruzad
 A diagonal contém acertos e as demais células, erros por par de grupos. A validação cruzada deixa uma observação fora do ajuste por vez; resubstituição tende a ser otimista.
 
 
-Com grupos desbalanceados, leia as métricas. Na logística do `pima` com todos os preditores e validação cruzada, a acurácia é 0,778, mas a acurácia balanceada é 0,723 e o kappa 0,472: o grupo `sim` (um terço) tem revocação de só 0,559 (precisão 0,712, F1 0,627), contra 0,887 no `não`. Grupo nunca previsto tem precisão e F1 `NA`.
+Com grupos desbalanceados, leia as métricas. Na logística do `pima` com todos os preditores e validação cruzada, a acurácia é 0,778, mas a acurácia balanceada é 0,723 e o kappa 0,472: o grupo `sim` (um terço) tem revocação de só 0,559 (precisão 0,712, F1 0,627), contra 0,887 no `não`. Grupo nunca previsto tem precisão e F1 `NA` (0/0), e não zero. O bloco não tira média macro de precisão ou F1; se tirar uma à mão, deixe esse grupo de fora em vez de contá-lo como zero. A acurácia balanceada é a média das revocações, que nunca são `NA`.
 
 ## Veja também
 

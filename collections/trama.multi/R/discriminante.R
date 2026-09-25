@@ -345,7 +345,9 @@ tr_multi_classify <- function(modelo, novos = NULL, validacao = "resubstituiçã
 #' 2010); kappa de Cohen (1960), (pₒ − pₑ)/(1 − pₑ) com pₑ dos totais
 #' marginais; e, por grupo, precisão, revocação e F1 (Sokolova & Lapalme
 #' 2009). Grupo nunca previsto tem precisão 0/0: sai NA, e o F1 também — zero
-#' seria dizer que se sabe o que não se sabe.
+#' seria dizer que se sabe o que não se sabe. Não há média macro de precisão
+#' ou F1 (o NA ficaria fora dela, nunca como zero); a acurácia balanceada é a
+#' média das revocações, que nunca são NA. Mesma decisão da `ml`.
 #' @noRd
 .tr_multi_metricas <- function(m) {
   n <- sum(m); acertos <- diag(m)
@@ -786,7 +788,10 @@ enganar por grupos desbalanceados:
 - **precisão**, **revocação** e **F1**, por grupo — dos previstos no grupo,
   quantos eram dele; dos que eram dele, quantos foram previstos (a
   `taxa_acerto` da linha); e a média harmônica das duas. Grupo nunca previsto
-  tem precisão e F1 `NA` (0/0), e não zero.
+  tem precisão e F1 `NA` (0/0), e não zero. O bloco não tira média macro de
+  precisão ou F1; ao tirar uma à mão, deixe esse grupo de fora (ou diga que
+  a média é indefinida) em vez de contá-lo como zero. A acurácia balanceada é
+  a média das revocações, que nunca são `NA`.
 
 Na `iris` com a linear e validação cruzada: acurácia 0,98, acurácia balanceada
 0,98, kappa 0,97.

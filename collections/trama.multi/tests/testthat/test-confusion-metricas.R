@@ -25,6 +25,11 @@ test_that("grupo nunca previsto: precisão e F1 são NA, e não zero", {
   expect_equal(r$valor[r$medida == "revocação" & r$grupo %in% "b"], 0)
   expect_equal(r$valor[r$medida == "acurácia balanceada"], 0.5)
   expect_equal(r$valor[r$medida == "kappa de Cohen"], 0)
+  # Sem média macro de precisão/F1: o NA não entra como zero em média nenhuma.
+  # A única média entre grupos é a acurácia balanceada, das revocações, que
+  # nunca são NA (todo grupo tem casos reais).
+  expect_setequal(unique(r$medida), c("acurácia", "acurácia balanceada", "kappa de Cohen",
+                                      "precisão", "revocação", "F1"))
 })
 
 test_that("kappa bate com irr e psych nas previsões do iris (3 grupos)", {
