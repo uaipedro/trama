@@ -99,3 +99,42 @@ test("sem transitions nem historico nem presentes, nada quebra", () => {
   assert.deepEqual(ids(sugerir(cat, { de: "d/ler", tipo: "t/a" })), ["d/resumo", "d/limpa", "m/ajuste"]);
   assert.deepEqual(ids(sugerir(cat, { de: "nao/existe", tipo: "t/a" })), ["d/limpa", "d/resumo", "m/ajuste"]);
 });
+
+import { sugerirOrigem, intermediarios, emitentes } from "../../inst/www/sugestor.js";
+
+test("emitentes: saída igual ou via adaptador", () => {
+  assert.deepEqual(emitentes(cat, "t/b").map((x) => x.id).sort(), ["d/ler", "d/limpa"]);
+  assert.deepEqual(emitentes(cat, "t/z"), []);
+});
+
+test("sugerirOrigem: etapa invertida põe a categoria anterior no topo", () => {
+  const r = sugerirOrigem(cat, { para: "d/resumo", tipo: "t/a" });
+  assert.deepEqual(r.map((x) => x.id), ["d/ler", "d/limpa"]);
+  assert.equal(r[0].motivos.etapa, PESOS.etapa);
+  assert.ok(!("etapa" in r[1].motivos)); // clean vem depois de inspect
+});
+
+test("sugerirOrigem: transições que chegam no alvo e back-off", () => {
+  const c = { ...cat, transitions: [{ from: "d/limpa", to: "m/ajuste", n: 3 }, { from: "d/ler", to: "m/ajuste", n: 1 }] };
+  const r = sugerirOrigem(c, { para: "m/ajuste", tipo: "t/b" });
+  assert.equal(r[0].id, "d/limpa");
+  assert.equal(r[0].motivos.transicao, 0.75 * PESOS.transicao);
+  const c2 = { ...cat, nodes: [...cat.nodes, { id: "m/outro", category: "fit", inputs: [{ name: "d", type: "t/b" }] }],
+               transitions: [{ from: "d/limpa", to: "m/ajuste", n: 1 }] };
+  const r2 = sugerirOrigem(c2, { para: "m/outro", tipo: "t/b" });
+  assert.equal(r2.find((x) => x.id === "d/limpa").motivos.transicao, 0.5 * PESOS.transicao);
+});
+
+test("sugerirOrigem: relacionado, histórico e alvo desconhecido", () => {
+  const c = { ...cat, nodes: cat.nodes.map((n) => n.id === "d/limpa" ? { ...n, help: "## Usos relacionados\n\n`d/resumo`" } : n) };
+  const r = sugerirOrigem(c, { para: "d/resumo", tipo: "t/a", historico: { "d/ler>d/resumo": 2, "d/ler>x/y": 9 } });
+  assert.equal(r.find((x) => x.id === "d/limpa").motivos.relacionado, PESOS.relacionado);
+  assert.equal(r.find((x) => x.id === "d/ler").motivos.historico, PESOS.historico);
+  assert.deepEqual(sugerirOrigem(cat, { para: "nao/existe", tipo: "t/a" }).map((x) => x.id), ["d/ler", "d/limpa"]);
+});
+
+test("intermediarios: entrada aceita a origem e saída alimenta o destino", () => {
+  assert.deepEqual(intermediarios(cat, "t/a", "t/b"), [{ id: "d/limpa", porta: "in", saida: "out" }]);
+  assert.deepEqual(intermediarios(cat, "t/b", "t/a"), []);
+  assert.deepEqual(intermediarios(cat, "t/a", "t/z"), []);
+});

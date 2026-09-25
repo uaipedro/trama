@@ -123,3 +123,70 @@ export function sugerir(cat, ctx) {
     return { id: a.id, porta: a.porta, score, motivos };
   }).sort((x, y) => y.score - x.score || x.id.localeCompare(y.id));
 }
+
+// Todo bloco com alguma SAÍDA que alimenta `tipo`: o espelho de `aceitantes`,
+// para a sugestão de origem (arrasto a partir de uma porta de entrada).
+export function emitentes(cat, tipo) {
+  const out = [];
+  for (const n of cat.nodes || []) {
+    const p = (n.outputs || []).find((o) => compativel(cat, o.type, tipo));
+    if (p) out.push({ id: n.id, porta: p.name, spec: n });
+  }
+  return out;
+}
+
+// Origem: o que viria ANTES de `para`, cuja entrada espera `tipo`. As mesmas
+// camadas de `sugerir`, com as pontas trocadas: etapa conta da categoria do
+// candidato até a de `para`, a transição olha as que CHEGAM em `para`, e o
+// relacionado é o candidato citar `para` na própria ajuda.
+export function sugerirOrigem(cat, ctx) {
+  const { para, tipo, presentes = [], historico = {} } = ctx;
+  const byId = Object.fromEntries((cat.nodes || []).map((n) => [n.id, n]));
+  const ordem = ordemCat(cat);
+  const alvo = byId[para];
+  const ts = cat.transitions || [];
+  const diretas = ts.filter((t) => t.to === para);
+  let trans;
+  if (diretas.length) {
+    const f = fracoes(diretas, (t) => t.from);
+    trans = (spec) => f(spec.id);
+  } else if (alvo?.category != null) {
+    const f = fracoes(ts.filter((t) => byId[t.to]?.category === alvo.category),
+                      (t) => byId[t.from]?.category);
+    trans = (spec) => 0.5 * f(spec.category);
+  } else trans = () => 0;
+  const hist = fracoes(
+    Object.entries(historico || {}).filter(([k]) => k.endsWith(`>${para}`))
+      .map(([k, n]) => ({ to: k.slice(0, k.length - para.length - 1), n })),
+    (t) => t.to);
+  const presentesSet = new Set(presentes);
+  return emitentes(cat, tipo).map((a) => {
+    const motivos = {};
+    if (alvo) {
+      const e = pontoEtapa(ordem, a.spec.category, alvo.category,
+                           colecao(para) === colecao(a.id));
+      if (e) motivos.etapa = e * PESOS.etapa;
+    }
+    if (relacionados(a.spec).includes(para)) motivos.relacionado = PESOS.relacionado;
+    const t = trans(a.spec);
+    if (t) motivos.transicao = t * PESOS.transicao;
+    const h = hist(a.id);
+    if (h) motivos.historico = h * PESOS.historico;
+    if (presentesSet.has(a.id)) motivos.contexto = 0.5 * PESOS.contexto;
+    const score = Object.values(motivos).reduce((s, v) => s + v, 0);
+    return { id: a.id, porta: a.porta, score, motivos };
+  }).sort((x, y) => y.score - x.score || x.id.localeCompare(y.id));
+}
+
+// Blocos que cabem no MEIO de uma aresta `tipoDe -> tipoPara`: alguma entrada
+// aceita `tipoDe` e alguma saída alimenta `tipoPara`. `porta` é a entrada e
+// `saida` a saída que a inserção vai ligar (as primeiras compatíveis).
+export function intermediarios(cat, tipoDe, tipoPara) {
+  const out = [];
+  for (const n of cat.nodes || []) {
+    const i = (n.inputs || []).find((p) => compativel(cat, tipoDe, p.type));
+    const o = (n.outputs || []).find((p) => compativel(cat, p.type, tipoPara));
+    if (i && o) out.push({ id: n.id, porta: i.name, saida: o.name });
+  }
+  return out;
+}
