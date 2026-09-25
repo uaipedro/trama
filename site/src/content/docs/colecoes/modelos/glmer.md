@@ -38,4 +38,4 @@ Nos carrapatos de `grouseticks`, o efeito por observação tem variância 0,30 e
 
 ## Como interpretar
 
-Os coeficientes estão na escala da ligação (logit, log), com z de Wald; o `models/coefficients` os exponencia. As médias do `models/emmeans` são as do grupo típico (efeito aleatório zero), não médias populacionais. Não há resíduo normal a testar, e o quadro é de Wald, tipo II ou III. No exemplo `cbpp` do lme4, o bloco reproduz a saída publicada: interceptos −1,3983, −0,9919, −1,1282 e −1,5797, variância do rebanho 0,4123 e AIC 194,1.
+Os coeficientes estão na escala da ligação (logit, log), com z de Wald; o `models/coefficients` os exponencia. As médias do `models/emmeans` são as do grupo típico (efeito aleatório zero), não médias populacionais. Não há resíduo normal a testar, e o quadro é de Wald, tipo II ou III. No exemplo `cbpp` do lme4, o bloco reproduz a saída do `lme4::glmer`: interceptos −1,3983, −0,9919, −1,1282 e −1,5797, variância do rebanho 0,4123 e AIC 194,1.

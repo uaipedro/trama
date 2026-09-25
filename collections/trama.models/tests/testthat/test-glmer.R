@@ -7,11 +7,12 @@ cbpp_d <- function() {
   as.data.frame(d)
 }
 
-test_that("glmer reproduz o cbpp do lme4 (Bates et al. 2015): fixos, variância do rebanho, AIC", {
+test_that("glmer reproduz a saída do lme4::glmer no cbpp: fixos, variância do rebanho, AIC", {
   d <- cbpp_d()
   g <- tr_models_glmer(d, formula = "cbind(incidence, sadios) ~ period + (1 | herd)", familia = "binomial")
   expect_equal(g$classe, "glmer")
-  # Saída publicada do exemplo de ?lme4::glmer (gm1), com 4 decimais.
+  # Reproduz a saída do lme4::glmer no exemplo de ?lme4::glmer (gm1), com 4
+  # decimais — saída do software, não valor publicado em artigo.
   expect_equal(round(unname(lme4::fixef(g$ajuste)), 4), c(-1.3983, -0.9919, -1.1282, -1.5797))
   re <- tr_models_random_effects(g)
   expect_equal(round(re$variancia[re$grupo == "herd"], 4), 0.4123)

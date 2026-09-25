@@ -38,4 +38,4 @@ No `ToothGrowth`, as três doses de vitamina C (0,5, 1 e 2 mg) têm SQ linear 22
 
 ## Como interpretar
 
-Fique com o maior grau significativo cuja falta de ajuste não seja significativa. A equação vale só dentro da faixa testada. A validação reproduz as SQ do exemplo do algodão de Montgomery (33,62, 343,21, 64,98 e 33,95) e a decomposição sequencial do `lm` com `poly()`.
+Fique com o maior grau significativo cuja falta de ajuste não seja significativa. A equação vale só dentro da faixa testada. A validação usa os dados do algodão de Montgomery (*Design and Analysis of Experiments*, 5.ª ed., tabela 3.1): as SQ 33,62, 343,21, 64,98 e 33,95 são calculadas desses dados e conferidas à mão pelos contrastes ortogonais (não copiadas de página impressa); e a decomposição sequencial do `lm` com `poly()`.

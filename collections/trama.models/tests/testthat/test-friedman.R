@@ -1,9 +1,11 @@
 # Friedman (1937) para o DBC com uma observação por casela.
 
 rounding_times <- function() {
-  # Hollander & Wolfe (1973, p. 140): tempo para contornar a primeira base,
-  # 22 jogadores (blocos) × 3 métodos. O livro dá S = 11,14 (com a correção
-  # para empates), p = 0,0038 — o mesmo exemplo de ?friedman.test.
+  # Os dados do exemplo de ?stats::friedman.test (RoundingTimes, que o R
+  # atribui a Hollander & Wolfe 1973): tempo para contornar a primeira base,
+  # 22 jogadores (blocos) × 3 métodos. S = 11,14 (com a correção para empates)
+  # e p = 0,0038 são valores CALCULADOS por nós nesses dados — não conferidos
+  # na página do livro.
   m <- matrix(c(5.40, 5.50, 5.55, 5.85, 5.70, 5.75, 5.20, 5.60, 5.50, 5.55, 5.50, 5.40,
                 5.90, 5.85, 5.70, 5.45, 5.55, 5.60, 5.40, 5.40, 5.35, 5.45, 5.50, 5.35,
                 5.25, 5.15, 5.00, 5.85, 5.80, 5.70, 5.25, 5.20, 5.10, 5.65, 5.55, 5.45,
@@ -15,10 +17,10 @@ rounding_times <- function() {
              tempo = as.vector(m))
 }
 
-test_that("Friedman reproduz Hollander & Wolfe (S = 11,14) e o stats::friedman.test", {
+test_that("Friedman nos dados do exemplo do friedman.test (S = 11,14) e o stats::friedman.test", {
   d <- rounding_times()
   t <- tr_models_friedman(d, "tempo", "metodo", "jogador")
-  expect_equal(round(t$estatistica, 2), 11.14)                    # publicado
+  expect_equal(round(t$estatistica, 2), 11.14)                    # calculado, com empates
   ref <- stats::friedman.test(tempo ~ metodo | jogador, data = d)
   expect_equal(t$estatistica, unname(ref$statistic), tolerance = 1e-12)
   expect_equal(t$p_valor, ref$p.value, tolerance = 1e-12)

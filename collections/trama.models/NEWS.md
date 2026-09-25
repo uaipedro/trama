@@ -38,8 +38,10 @@
   repetida recusa; bloco incompleto sai inteiro, contado na nota), estatística
   corrigida para empates e W de Kendall como efeito. É a saída não paramétrica
   que os pressupostos do `models/anova_dbc` apontam. Validado contra
-  `stats::friedman.test` (1e-12) e o exemplo de Hollander & Wolfe (1973, p.
-  140; 22 jogadores × 3 métodos), S = 11,14 com correção para empates.
+  `stats::friedman.test` (1e-12) nos dados do exemplo de `?friedman.test`
+  (RoundingTimes, atribuídos a Hollander & Wolfe 1973; 22 jogadores × 3
+  métodos): S = 11,14 com correção para empates, valor calculado por nós, não
+  conferido na página do livro.
 - `models/scott_knott`: agrupamento de Scott & Knott (1974, *Biometrics*
   30:507-512, doi:10.2307/2529204) sobre o QM e os gl do erro do quadro, uma
   letra por média. Implementação própria das fórmulas do artigo. Recusa dados
@@ -58,8 +60,9 @@
   contra `lm` com as colunas de `poly()` em sequência (1e-10, também no DBC,
   com doses 0-400 desigualmente espaçadas e com repetições desiguais) e no
   exemplo do algodão de Montgomery (*Design and Analysis of Experiments*,
-  tabela 3.1): SQ 33,62, 343,21, 64,98 e 33,95 (valores lembrados do livro e
-  reproduzidos pelos dados; página não conferida).
+  5.ª ed., tabela 3.1): SQ 33,62, 343,21, 64,98 e 33,95, calculadas desses
+  dados e conferidas à mão pelos contrastes ortogonais (não copiadas de página
+  impressa).
 
 - `models/levene` (com bloco): o equilíbrio passa a exigir o mesmo número de
   parcelas em cada casela tratamento × bloco (e × linha, × coluna no DQL),
