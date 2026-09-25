@@ -273,7 +273,7 @@ A alternativa não paramétrica ao `models/anova_dic`: compara os postos de dois
 ou mais grupos. Útil quando os resíduos da ANOVA não são normais e nenhuma
 transformação resolve.
 
-Rejeitar diz que ALGUM grupo difere, não qual. Não há bloco: para um DBC com
+Rejeitar diz que ALGUM grupo difere, não qual: para isso, o `models/dunn`. Não há bloco: para um DBC com
 dados não normais, considere transformar a resposta ou um `models/glm`.
 ]---", r"---[
 - **Resposta** — coluna numérica.
@@ -285,7 +285,48 @@ tr_flow(reg) |>
   tr_add("insetos", "models/example", dataset = "InsectSprays") |>
   tr_add("kw", "models/kruskal", resposta = "count", grupo = "spray", from = "insetos")
 ]---", r"---[
-`models/anova_dic`; `models/wilcoxon` para dois grupos.
+`models/dunn` para saber quais grupos diferem; `models/anova_dic`;
+`models/wilcoxon` para dois grupos.
+]---", teste = TRUE)),
+
+    trama::tr_node("models/dunn", fn = tr_models_dunn, label = "Dunn",
+      category = "modelo_testes", icon = trama::tr_icon("git-compare"),
+      description = "Comparações de Dunn entre pares de grupos, o post hoc do Kruskal-Wallis, com p-valor ajustado.",
+      inputs = list(dados = T), outputs = list(out = "models/effects"),
+      params = list(
+        resposta = P("cols", "", label = "Resposta", example = "count"),
+        grupo = P("cols", "", label = "Grupo", example = "spray"),
+        ajuste = trama::tr_param_enum("holm", c("holm", "bonferroni", "sidak", "nenhum"), label = "Ajuste")),
+      help = .tr_models_ajuda(r"---[
+Depois de um `models/kruskal` que rejeita, o Dunn (1964) diz QUAIS pares de
+grupos diferem. Compara os postos médios de cada par usando os postos da
+amostra inteira — por isso é o par natural do Kruskal-Wallis, e não o Wilcoxon
+repetido par a par, que refaz os postos a cada comparação.
+
+A estatística de cada par é z = (R̄i − R̄j) / EP, com o erro padrão corrigido
+para empates. O p-valor é bilateral e sai AJUSTADO pela correção escolhida; a
+coluna `p_sem_ajuste` guarda o de cada comparação isolada.
+
+- **holm** (padrão) — controla o erro por família como o Bonferroni, com mais
+  poder.
+- **bonferroni** — multiplica cada p pelo número de pares. É a do artigo
+  original.
+- **sidak** — 1 − (1 − p)^m; um pouco menos conservador que o Bonferroni.
+- **nenhum** — os p das comparações isoladas.
+]---", r"---[
+- **Resposta** — coluna numérica.
+- **Grupo** — coluna dos grupos.
+- **Ajuste** — `holm`, `bonferroni`, `sidak` ou `nenhum`.
+]---", r"---[
+Um quadro de efeitos (`models/effects`), um par por linha: a diferença dos
+postos médios (`estimativa`), o `z` e o p-valor ajustado, com a régua.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("insetos", "models/example", dataset = "InsectSprays") |>
+  tr_add("kw", "models/kruskal", resposta = "count", grupo = "spray", from = "insetos") |>
+  tr_add("dunn", "models/dunn", resposta = "count", grupo = "spray", from = "insetos")
+]---", r"---[
+`models/kruskal`; `models/pairwise` para as médias de um modelo.
 ]---", teste = TRUE)),
 
     trama::tr_node("models/chisq", fn = tr_models_chisq, label = "Qui-quadrado",

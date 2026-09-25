@@ -107,3 +107,37 @@ test_that("previews dos tipos saem sem erro para todo modelo", {
   pv <- models_emm_type()$preview(tr_models_emmeans(milho_dbc(), "hibrido"), ctx_tmp())
   expect_true(file.exists(pv$files$png %||% unlist(pv$files)[[1]]))
 })
+
+# Referência: `dunn.test::dunn.test(..., altp = TRUE)` 1.3.6 (a mesma conta do
+# `FSA::dunnTest`) no InsectSprays com os sprays A a D, fixa aqui. Os empates
+# são muitos (contagens), o que exercita a correção.
+test_that("Dunn: z e p batem com o dunn.test, com empates, nas quatro correções", {
+  d <- subset(ex("InsectSprays"), spray %in% c("A", "B", "C", "D"))
+  r <- tr_models_dunn(d, "count", "spray")
+  expect_s3_class(r, "tr_models_effects")
+  t <- r$tabela
+  expect_equal(t$termo, c("A - B", "A - C", "A - D", "B - C", "B - D", "C - D"))
+  expect_equal(t$z, c(-0.2995389540, 4.7487882959, 3.1488119316, 5.0483272499, 3.4483508856, -1.5999763643),
+               tolerance = 1e-9)
+  expect_equal(t$p_sem_ajuste, c(0.7645288545, 2.046390175e-06, 0.001639356604, 4.456952256e-07,
+                                 0.0005640208015, 0.1096038269), tolerance = 1e-8)
+  expect_equal(t$p_valor, c(0.7645288545, 1.023195088e-05, 0.004918069812, 2.674171354e-06,
+                            0.002256083206, 0.2192076538), tolerance = 1e-8)
+  b <- tr_models_dunn(d, "count", "spray", ajuste = "bonferroni")$tabela
+  expect_equal(b$p_valor, c(1, 1.227834105e-05, 0.009836139624, 2.674171354e-06, 0.003384124809, 0.6576229613),
+               tolerance = 1e-8)
+  expect_equal(tr_models_dunn(d, "count", "spray", ajuste = "nenhum")$tabela$p_valor, t$p_sem_ajuste)
+  expect_equal(tr_models_dunn(d, "count", "spray", ajuste = "sidak")$tabela$p_valor, 1 - (1 - t$p_sem_ajuste)^6)
+  expect_error(tr_models_dunn(d, "count", "spray", ajuste = "tukey"))
+})
+
+test_that("Dunn: sem empates é a fórmula de Dunn crua, e a diferença é a de postos médios", {
+  d <- data.frame(y = c(1, 2, 3, 10, 11, 12, 20, 21, 22), g = rep(c("x", "y", "w"), each = 3))
+  r <- tr_models_dunn(d, "y", "g", ajuste = "nenhum")$tabela
+  # Postos 1..9; médias 2, 5, 8; EP = sqrt(9 * 10 / 12 * (1/3 + 1/3)) = sqrt(5).
+  expect_equal(r$termo, c("w - x", "w - y", "x - y"))
+  expect_equal(r$estimativa, c(6, 3, -3))
+  expect_equal(r$z, c(6, 3, -3) / sqrt(5))
+  expect_equal(r$p_valor, 2 * pnorm(-abs(c(6, 3, -3) / sqrt(5))))
+  expect_error(tr_models_dunn(transform(d, g = "x"), "y", "g"), class = "tr_models_error_one_level")
+})

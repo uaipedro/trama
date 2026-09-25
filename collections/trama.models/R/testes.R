@@ -191,6 +191,55 @@ tr_models_kruskal <- function(dados, resposta = "", grupo = "") {
     fonte = "Kruskal & Wallis (1952)")
 }
 
+#' Comparações múltiplas de Dunn (1964), o post hoc do Kruskal-Wallis.
+#'
+#' À mão, e não pelo `FSA`/`dunn.test`: são dez linhas, e o pacote traria uma
+#' dependência para uma fórmula. Os postos são os da amostra INTEIRA (é o que
+#' distingue o Dunn de rodar Wilcoxon par a par): z = (R̄i − R̄j) / EP, com
+#' EP² = [N(N + 1)/12 − Σ(t³ − t) / (12(N − 1))] · (1/ni + 1/nj), a correção
+#' de empates dentro dos colchetes. O p é bilateral, 2 · P(Z > |z|).
+#' @param dados tabela.
+#' @param resposta coluna numérica.
+#' @param grupo coluna dos grupos.
+#' @param ajuste correção dos p-valores: `"holm"` (padrão), `"bonferroni"`,
+#'   `"sidak"` ou `"nenhum"`.
+#' @return objeto `tr_models_effects`, um par por linha.
+#' @export
+tr_models_dunn <- function(dados, resposta = "", grupo = "", ajuste = "holm") {
+  no <- "models/dunn"
+  # Sem `tukey`: a correção de Tukey é da amplitude studentizada das MÉDIAS, e
+  # aqui a estatística é z de postos.
+  ajuste <- .tr_models_enum(ajuste, c("holm", "bonferroni", "sidak", "nenhum"), "ajuste")
+  resp <- .tr_models_numerica(dados, .tr_models_col(dados, resposta, "resposta"), "resposta")
+  grp <- .tr_models_col(dados, grupo, "grupo")
+  td <- .tr_models_teste_dados(dados, c(resp, grp), no)
+  g <- droplevels(factor(td$d[[grp]]))
+  if (nlevels(g) < 2L) {
+    .tr_models_abort("tr_models_error_one_level", "'%s': a coluna '%s' tem um grupo só.", no, grp)
+  }
+  y <- td$d[[resp]]
+  N <- length(y)
+  r <- rank(y)
+  t <- table(y)
+  s2 <- N * (N + 1) / 12 - sum(t^3 - t) / (12 * (N - 1))
+  rm <- tapply(r, g, mean)
+  n <- tapply(r, g, length)
+  pares <- utils::combn(nlevels(g), 2L)
+  i <- pares[1, ]; j <- pares[2, ]
+  dif <- as.vector(rm[i] - rm[j])
+  z <- dif / sqrt(s2 * (1 / n[i] + 1 / n[j]))
+  p <- 2 * stats::pnorm(-abs(z))
+  m <- length(p)
+  padj <- switch(ajuste, nenhum = p, sidak = 1 - (1 - p)^m, stats::p.adjust(p, ajuste))
+  tab <- tibble::tibble(termo = paste(levels(g)[i], "-", levels(g)[j]), estimativa = dif,
+                        z = as.vector(z), p_valor = as.vector(padj), p_sem_ajuste = as.vector(p))
+  .tr_models_efeitos(tab, "Comparações de Dunn (postos)", coluna_estat = "z",
+                     rodape = list(ajuste = ajuste, n = as.character(N)),
+                     nota = .tr_models_nota("estimativa: diferença dos postos médios", td$nota,
+                                            if (any(t > 1)) "com correção de empates" else ""),
+                     fonte = "Dunn (1964)")
+}
+
 #' A tabela de contingência de duas colunas.
 #' @noRd
 .tr_models_contingencia <- function(dados, linha, coluna, no) {

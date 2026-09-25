@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/kruskal
 category: testes
-related: [models/chisq, models/cor_test]
+related: [models/dunn, models/chisq, models/cor_test]
 ---
 
 ## O que o bloco faz

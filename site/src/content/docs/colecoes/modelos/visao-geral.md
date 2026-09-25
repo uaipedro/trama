@@ -68,4 +68,4 @@ tr_flow(reg) |>
 
 ### Testes
 
-- [t para duas amostras](/trama/colecoes/modelos/t-test/), [t pareado](/trama/colecoes/modelos/paired-t/), [t para uma amostra](/trama/colecoes/modelos/one-sample-t/), [Wilcoxon-Mann-Whitney](/trama/colecoes/modelos/wilcoxon/), [Kruskal-Wallis](/trama/colecoes/modelos/kruskal/), [Qui-quadrado](/trama/colecoes/modelos/chisq/), [Exato de Fisher](/trama/colecoes/modelos/fisher-exact/), [Teste de correlação](/trama/colecoes/modelos/cor-test/) e [Shapiro-Wilk](/trama/colecoes/modelos/shapiro/).
+- [t para duas amostras](/trama/colecoes/modelos/t-test/), [t pareado](/trama/colecoes/modelos/paired-t/), [t para uma amostra](/trama/colecoes/modelos/one-sample-t/), [Wilcoxon-Mann-Whitney](/trama/colecoes/modelos/wilcoxon/), [Kruskal-Wallis](/trama/colecoes/modelos/kruskal/), [Dunn](/trama/colecoes/modelos/dunn/), [Qui-quadrado](/trama/colecoes/modelos/chisq/), [Exato de Fisher](/trama/colecoes/modelos/fisher-exact/), [Teste de correlação](/trama/colecoes/modelos/cor-test/) e [Shapiro-Wilk](/trama/colecoes/modelos/shapiro/).
