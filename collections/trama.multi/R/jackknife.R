@@ -26,12 +26,19 @@
 #' @param extrair `function(objeto)` -> vetor numérico nomeado.
 #' @param log se TRUE, estimativa, média, corrigida e IC saem exponenciados
 #'   (razões de chances); viés e erro padrão ficam na escala log.
+#' @param grupos `NULL` (deixa-uma-linha-fora) ou um vetor com o grupo de cada
+#'   linha: cada réplica tira um grupo inteiro, e as fórmulas usam G réplicas
+#'   no lugar de n (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001).
 #' @noRd
 .tr_multi_jackknife <- function(dados, variaveis, completo, reajustar, extrair, no, tabela, nivel,
-                                log = FALSE) {
+                                log = FALSE, grupos = NULL) {
   tabela <- .tr_multi_enum(tabela, .TR_MULTI_JK_TABELAS, "tabela")
   nivel <- .tr_multi_num(nivel, "nivel", min = 0.5, max = 0.999)
   dados <- as.data.frame(dados)
+  if (!is.null(grupos)) {
+    return(.tr_multi_jackknife_grupos(dados, completo, reajustar, extrair, no, tabela, nivel, log,
+                                      as.character(grupos)))
+  }
   n <- nrow(dados)
   if (n > .TR_MULTI_JK_MAX) {
     .tr_multi_abort("tr_multi_error_too_many_rows",
@@ -87,6 +94,88 @@
     data.frame(estatistica = rep(nomes, each = n), sem_ela = sem_ela,
                pseudovalor = n * th - (n - 1) * sem_ela, influencia = (n - 1) * (md - sem_ela),
                stringsAsFactors = FALSE)))
+}
+
+#' Jackknife apagar-um-grupo: G réplicas, cada uma sem um grupo inteiro.
+#'
+#' Com os dados em conglomerados (várias linhas por talhão, por animal, por
+#' escola), as linhas de um mesmo grupo não são independentes, e tirar uma
+#' linha por vez subestima a variância. Tirar o grupo inteiro trata o grupo
+#' como a unidade independente: EP = √((G − 1)/G · Σ(θ₍g₎ − θ̄)²), a variância
+#' JK1 de amostragem (Shao & Tu 1995, sec. 6.2; Kott 2001; `survey` com
+#' `type = "JK1"`), conferida nos testes. Viés, corrigida e pseudovalores usam
+#' G no lugar de n — exatos com grupos de tamanho igual, aproximados senão
+#' (o EP não depende disso).
+#' @noRd
+.tr_multi_jackknife_grupos <- function(dados, completo, reajustar, extrair, no, tabela, nivel, log,
+                                       grupos) {
+  if (anyNA(grupos)) {
+    .tr_multi_abort("tr_multi_error_missing_values",
+                    "'%s': %d linha(s) sem grupo do jackknife. Ligue um 'data/drop_na' antes.",
+                    no, sum(is.na(grupos)))
+  }
+  u <- sort(unique(grupos))
+  G <- length(u)
+  if (G < 2L) {
+    .tr_multi_abort("tr_multi_error_one_group",
+                    "'%s': o jackknife por grupo precisa de pelo menos 2 grupos, e há %d.", no, G)
+  }
+  theta <- extrair(completo)
+  nomes <- names(theta)
+  reps <- matrix(NA_real_, G, length(theta), dimnames = list(NULL, nomes))
+  for (k in seq_len(G)) {
+    r <- tryCatch(extrair(reajustar(dados[grupos != u[[k]], , drop = FALSE])), error = function(e) {
+      .tr_multi_abort("tr_multi_error_jackknife_replicate",
+                      "'%s': a réplica sem o grupo '%s' falhou: %s", no, u[[k]], conditionMessage(e),
+                      parent = e)
+    })
+    r <- r[nomes]
+    if (anyNA(r)) {
+      .tr_multi_abort("tr_multi_error_jackknife_replicate",
+                      "'%s': a réplica sem o grupo '%s' não produziu %s.", no, u[[k]],
+                      paste(nomes[is.na(r)], collapse = ", "))
+    }
+    reps[k, ] <- r
+  }
+  media <- colMeans(reps)
+  tr <- if (isTRUE(log)) exp else identity
+  if (identical(tabela, "resumo")) {
+    vies <- (G - 1) * (media - theta)
+    corrigida <- theta - vies
+    ep <- sqrt((G - 1) / G * colSums(sweep(reps, 2L, media)^2))
+    q <- stats::qt((1 + nivel) / 2, G - 1)
+    ic_inf <- corrigida - q * ep
+    ic_sup <- corrigida + q * ep
+    return(tibble::tibble(estatistica = nomes, estimativa = tr(unname(theta)),
+                          media_jackknife = tr(unname(media)), vies = unname(vies),
+                          corrigida = tr(unname(corrigida)), erro_padrao = unname(ep),
+                          ic_inf = tr(unname(ic_inf)), ic_sup = tr(unname(ic_sup))))
+  }
+  linhas <- rep(seq_len(G), times = length(nomes))
+  sem_ela <- as.vector(reps)
+  th <- rep(unname(theta), each = G)
+  md <- rep(unname(media), each = G)
+  tibble::tibble(grupo_removido = u[linhas], linhas = as.integer(table(factor(grupos, levels = u)))[linhas],
+                 estatistica = rep(nomes, each = G), sem_ela = sem_ela,
+                 pseudovalor = G * th - (G - 1) * sem_ela, influencia = (G - 1) * (md - sem_ela))
+}
+
+#' A coluna de grupo do jackknife, conferida na tabela do modelo.
+#' @noRd
+.tr_multi_jk_grupos <- function(dados, grupo, no, proibida = NULL) {
+  grupo <- trimws(grupo)
+  if (!nzchar(grupo)) return(NULL)
+  if (!grupo %in% names(dados)) {
+    .tr_multi_abort("tr_multi_error_unknown_column",
+                    "'%s': a coluna de grupo do jackknife '%s' não está na tabela do modelo.", no, grupo)
+  }
+  if (!is.null(proibida) && identical(grupo, proibida)) {
+    .tr_multi_abort("tr_multi_error_bad_option",
+                    paste0("'%s': '%s' é o grupo que o classificador prevê; tirar um deles inteiro deixa ",
+                           "a réplica sem aquele grupo. O `grupo` do jackknife é o conglomerado das ",
+                           "linhas (talhão, animal, lote)."), no, grupo)
+  }
+  as.data.frame(dados)[[grupo]]
 }
 
 #' Matriz em vetor nomeado `linha:coluna`, na ordem das colunas.
@@ -159,9 +248,12 @@
 #'   variável-componente).
 #' @param tabela `"resumo"` ou `"pseudovalores"`.
 #' @param nivel nível do intervalo.
+#' @param grupo coluna de conglomerado: em branco, deixa uma linha fora; senão,
+#'   cada réplica tira um grupo inteiro (jackknife apagar-um-grupo).
 #' @return tibble.
 #' @export
-tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "resumo", nivel = 0.95) {
+tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "resumo", nivel = 0.95,
+                                   grupo = "") {
   no <- "multi/jackknife_pca"
   .tr_multi_pca_conferir(pca)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_PCA, "estatistica")
@@ -178,7 +270,7 @@ tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "r
   .tr_multi_jackknife(pca$dados, pca$variaveis, pca,
                       function(d) tr_multi_pca(d, cols = .tr_multi_cols_de(pca$variaveis),
                                                padronizar = pca$padronizado),
-                      extrair, no, tabela, nivel)
+                      extrair, no, tabela, nivel, grupos = .tr_multi_jk_grupos(pca$dados, grupo, no))
 }
 
 #' Jackknife da análise fatorial.
@@ -187,7 +279,8 @@ tr_multi_jackknife_pca <- function(pca, estatistica = "autovalores", tabela = "r
 #' @inheritParams tr_multi_jackknife_pca
 #' @return tibble.
 #' @export
-tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo", nivel = 0.95) {
+tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo", nivel = 0.95,
+                                  grupo = "") {
   no <- "multi/jackknife_fa"
   .tr_multi_guard(fa, "tr_multi_fa", setdiff(.TR_MULTI_CAMPOS_FA, "normalizar"),
                   "tr_multi_error_not_a_fa", "uma análise fatorial")
@@ -205,7 +298,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
                                                            fatores = ncol(fa$cargas), metodo = fa$metodo,
                                                            rotacao = fa$rotacao, normalizar = normalizar,
                                                            escores = "nenhum"),
-                      extrair, no, tabela, nivel)
+                      extrair, no, tabela, nivel, grupos = .tr_multi_jk_grupos(fa$dados, grupo, no))
 }
 
 #' Jackknife da discriminante linear.
@@ -216,7 +309,7 @@ tr_multi_jackknife_fa <- function(fa, estatistica = "cargas", tabela = "resumo",
 #' @return tibble.
 #' @export
 tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação canônica",
-                                            tabela = "resumo", nivel = 0.95) {
+                                            tabela = "resumo", nivel = 0.95, grupo = "") {
   no <- "multi/jackknife_discriminant"
   .tr_multi_modelo(modelo)
   estatistica <- .tr_multi_enum(estatistica, .TR_MULTI_JK_LDA, "estatistica")
@@ -244,7 +337,8 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
                       function(d) tr_multi_discriminant(d, grupo = modelo$grupo,
                                                         cols = .tr_multi_cols_de(modelo$preditores),
                                                         metodo = modelo$metodo, priors = modelo$priors),
-                      extrair, no, tabela, nivel)
+                      extrair, no, tabela, nivel,
+                      grupos = .tr_multi_jk_grupos(modelo$dados, grupo, no, proibida = modelo$grupo))
 }
 
 #' Jackknife da regressão logística.
@@ -254,7 +348,7 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
 #' @return tibble; no resumo, também `erro_padrao_wald`.
 #' @export
 tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", tabela = "resumo",
-                                        nivel = 0.95) {
+                                        nivel = 0.95, grupo = "") {
   no <- "multi/jackknife_logistic"
   .tr_multi_guard(modelo, "tr_multi_logit", .TR_MULTI_CAMPOS_LOGIT, "tr_multi_error_not_a_logit",
                   "uma regressão logística")
@@ -274,7 +368,8 @@ tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", ta
                                                            cols = .tr_multi_cols_de(modelo$preditores),
                                                            corte = if (is.na(modelo$corte)) 0.5 else modelo$corte,
                                                            metodo = if (is.null(modelo$metodo)) "ml" else modelo$metodo),
-                             extrair, no, tabela, nivel, log = estatistica == "razões de chances")
+                             extrair, no, tabela, nivel, log = estatistica == "razões de chances",
+                             grupos = .tr_multi_jk_grupos(modelo$dados, grupo, no, proibida = modelo$grupo))
   if (identical(tabela, "resumo")) {
     # O EP de Wald ao lado: quando os dois discordam muito, a curvatura da
     # verossimilhança não descreve bem a incerteza (amostra pequena, influência).
@@ -307,6 +402,21 @@ de pseudovalores mostra as réplicas que fogem da curva.
 
 O jackknife reajusta a técnica uma vez por linha: até 5000 linhas. Com mais,
 sorteie uma amostra das linhas antes.
+
+### Por grupo (apagar-um-grupo)
+
+Quando as linhas vêm em **conglomerados** — várias plantas do mesmo talhão,
+várias medidas do mesmo animal, alunos da mesma escola —, elas não são
+independentes, e tirar uma linha por vez subestima o erro padrão (a linha
+que sai tem "gêmeas" que ficam). Informe em **grupo** a coluna do
+conglomerado: cada réplica tira o grupo inteiro, e as fórmulas usam o número
+de grupos G no lugar de n — EP = √((G − 1)/G · Σ(θ₍g₎ − média)²), intervalo
+com t(G − 1). É a variância JK1 de amostragem (Shao & Tu 1995; Kott 2001),
+a mesma do `survey` com réplicas JK1. Viés e pseudovalores usam G também:
+exatos com grupos de tamanho igual, aproximados senão. Com poucos grupos
+(menos de uns 15) o EP tem poucos graus de liberdade e o intervalo fica
+largo, como deve. Os pseudovalores saem um por grupo (`grupo_removido`,
+`linhas` no grupo) em vez de um por linha.
 ]---"
 
 #' Os params comuns aos quatro nós, com o enum de `estatistica` de cada técnica.
@@ -315,7 +425,8 @@ sorteie uma amostra das linhas antes.
   list(
     estatistica = trama::tr_param_enum(padrao, opcoes, label = "Estatística"),
     tabela = trama::tr_param_enum("resumo", .TR_MULTI_JK_TABELAS, label = "Tabela"),
-    nivel = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Nível do intervalo"))
+    nivel = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Nível do intervalo"),
+    grupo = trama::tr_param("cols", "", label = "Grupo (apagar-um-grupo)", example = "talhao"))
 }
 
 #' A página de um nó: descrição própria + as duas tabelas; params e valor comuns.
@@ -325,7 +436,9 @@ sorteie uma amostra das linhas antes.
     paste(trimws(descricao), .TR_MULTI_JK_AJUDA_TABELAS, sep = "\n\n"),
     paste0("- **Estatística** — ", estatisticas, "\n",
            "- **Tabela** — `resumo` ou `pseudovalores`.\n",
-           "- **Nível do intervalo** — 0,95 por padrão."),
+           "- **Nível do intervalo** — 0,95 por padrão.\n",
+           "- **Grupo (apagar-um-grupo)** — em branco, deixa uma linha fora por vez; com uma coluna ",
+           "de conglomerado (talhão, animal, lote), cada réplica tira o grupo inteiro."),
     "Uma tabela (`data/table`), no formato descrito em \"As duas tabelas\".",
     exemplo, veja)
 }

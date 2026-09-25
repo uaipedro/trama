@@ -99,3 +99,20 @@
   proporções dos grupos. Sem intervalo. Validação: `pROC::multiclass.roc`
   1.19.1 a 1e-10 (LDA da `iris` por deixa-um-fora, M = 0,998133, diferença
   1e-16; logística dos `vinhos`; 4 grupos com empates) e conta à mão.
+
+## Jackknife por grupo
+
+* Os quatro blocos de jackknife (`multi/jackknife_pca`, `_fa`,
+  `_discriminant`, `_logistic`) ganham o param `grupo` (padrão em branco, sem
+  mudança): com uma coluna de conglomerado, cada réplica tira o grupo
+  inteiro (jackknife apagar-um-grupo; Shao & Tu 1995, *The Jackknife and
+  Bootstrap*, doi:10.1007/978-1-4612-0795-5; Kott 2001, *Journal of Official
+  Statistics* 17(4):521–526, sem DOI no Crossref). EP = √((G − 1)/G ·
+  Σ(θ₍g₎ − θ̄)²), intervalo com t(G − 1); viés e pseudovalores com G (exatos
+  com grupos iguais). Para dados em conglomerados, onde deixar uma linha fora
+  subestima a variância. Recusa faltante no grupo, menos de 2 grupos e, nos
+  classificadores, a própria coluna do grupo previsto. Validação: EP igual ao
+  do `survey` 4.5 com os grupos como UPAs e réplicas JK1
+  (`as.svrepdesign(type = "JK1")`) a 1e-10 na média (0,1244884, diferença
+  6e-17) e na razão (0,006755280, diferença 1e-17), 9 grupos desiguais;
+  exemplo de 3 grupos à mão; réplica da PCA igual ao ajuste sem o grupo.

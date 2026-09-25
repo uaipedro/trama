@@ -10,15 +10,20 @@
   efron82 <- R(autores = "Efron, B.", ano = 1982,
                titulo = "The Jackknife, the Bootstrap and Other Resampling Plans",
                fonte = "Philadelphia: SIAM", doi = "10.1137/1.9781611970319", papel = "livro-texto")
+  shao_tu <- R(autores = c("Shao, J.", "Tu, D."), ano = 1995, titulo = "The Jackknife and Bootstrap",
+               fonte = "New York: Springer (Springer Series in Statistics)", doi = "10.1007/978-1-4612-0795-5",
+               papel = "livro-texto")
+  kott <- R(autores = "Kott, P. S.", ano = 2001, titulo = "The delete-a-group jackknife",
+            fonte = "Journal of Official Statistics, 17(4), 521-526", papel = "complementar")
   impl <- I("trama.multi", "tr_multi_jackknife",
-            "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP.")
-  indep <- P("As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
-             se_falhar = "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada).")
+            "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP. Com `grupo`, G reajustes sem um grupo e as mesmas fórmulas com G; EP conferido contra o `survey` com réplicas JK1 (`as.svrepdesign(type = \"JK1\")`) na média e na razão, a 1e-10.")
+  indep <- P("As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados em conglomerados (várias linhas do mesmo talhão, animal, escola) a variância sai subestimada. Em série temporal, nenhuma das duas versões serve.",
+             se_falhar = "Com conglomerados, informe a coluna em `grupo`: cada réplica tira o grupo inteiro (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001), e o erro padrão passa a tratar o grupo como a unidade independente.")
   suave <- P("A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
              verificar = "data/arrange",
              se_falhar = "Ordene a tabela `pseudovalores` por `sem_ela` num `data/arrange` e procure dois patamares; se houver, não use o erro padrão daquela estatística.")
   normal <- P("O **intervalo** (corrigida ± t · EP) supõe a estatística aproximadamente normal; o erro padrão do jackknife tende a ser um pouco **conservador** (viesado para cima).")
-  refs <- function(...) list(quenouille, efron_stein, efron82, L$efron_tib, ..., impl)
+  refs <- function(...) list(quenouille, efron_stein, efron82, L$efron_tib, shao_tu, kott, ..., impl)
   list(
     "multi/jackknife_pca" = list(
       pressupostos = list(indep, suave, normal,

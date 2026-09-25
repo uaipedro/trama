@@ -20,6 +20,7 @@ Use **Jackknife da PCA** para avaliar se casos individuais alteram as conclusõe
 - **Estatística** — `autovalores` (padrão), `proporção` ou `cargas`.
 - **Tabela** — `resumo` (padrão) ou `pseudovalores`.
 - **Nível do intervalo** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Grupo (apagar-um-grupo)** — em branco (padrão), tira uma linha por vez. Com dados em conglomerados (várias linhas do mesmo talhão, animal ou lote), informe a coluna do conglomerado: cada réplica tira o grupo inteiro e o erro padrão usa o número de grupos G no lugar de n, com intervalo t(G − 1) — a variância JK1 de amostragem (Shao & Tu, 1995; Kott, 2001). Os pseudovalores saem um por grupo.
 
 ## Exemplo
 
