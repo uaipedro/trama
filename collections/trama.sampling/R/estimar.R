@@ -81,10 +81,13 @@ tr_sampling_total <- function(amostra, variavel = "", por = "", confianca = "95%
 #' @inheritParams tr_sampling_mean
 #' @param variavel coluna categórica (texto, fator ou lógica).
 #' @param nivel a categoria (em branco: todas).
+#' @param intervalo `"logit"` (padrão), `"wilson"` ou `"wald"`.
 #' @return uma estimativa (`sampling/estimate`).
 #' @export
-tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "", confianca = "95%") {
+tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "", confianca = "95%",
+                                   intervalo = "logit") {
   conf <- .tr_sampling_conf(confianca)
+  intervalo <- .tr_sampling_enum(intervalo, .TR_SAMPLING_INTERVALOS, "intervalo")
   l <- .tr_sampling_ler(amostra, variavel, por, numerica = FALSE)
   x <- as.character(l$d[[l$v]])
   presentes <- sort(unique(x[!is.na(x)]))
@@ -106,6 +109,7 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
   partes <- lapply(niveis, function(nv) {
     t <- .tr_sampling_estimar(amostra, ifelse(is.na(x), NA_real_, as.numeric(x == nv)), "media", conf,
                               dominio = l$dominio)
+    t <- .tr_sampling_ic_proporcao(t, intervalo, conf)
     t <- .tr_sampling_nomear_dominio(t, l$por)
     tibble::add_column(t, nivel = nv, .before = "estimativa")
   })
@@ -114,6 +118,48 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
   .tr_sampling_estimativa(t, "Proporção", if (length(niveis) == 1L) sprintf("%s = %s", l$v, niveis) else l$v,
                           l$por, conf, amostra$rotulo, percentual = TRUE,
                           nota = .tr_sampling_nota_estimativa(amostra, falt, l$v))
+}
+
+.TR_SAMPLING_INTERVALOS <- c("logit", "wilson", "wald")
+
+#' O escore de Wilson (1927) para p̂ com n (efetivo) e quantil q.
+#' @noRd
+.tr_sampling_wilson <- function(p, n, q) {
+  cen <- (p + q^2 / (2 * n)) / (1 + q^2 / n)
+  mei <- q / (1 + q^2 / n) * sqrt(p * (1 - p) / n + q^2 / (4 * n^2))
+  c(cen - mei, cen + mei)
+}
+
+#' Troca o intervalo de Wald da proporção pelo pedido.
+#'
+#' - **logit** (padrão): Wald na escala logit, EP_logit = EP/(p̂(1 − p̂)) pelo
+#'   método delta, e volta por `plogis`. É o padrão de `survey::svyciprop` e o
+#'   recomendado por Korn & Graubard (1999) para amostras complexas:
+#'   nunca sai de (0, 1) e é assimétrico perto dos extremos.
+#' - **wilson**: escore de Wilson com o n efetivo de Kish, n_ef = p̂(1 − p̂)/v(p̂),
+#'   e t com os gl do desenho no lugar de z.
+#' - **wald**: p̂ ± t·EP, o intervalo anterior.
+#'
+#' A `margem` do card é a maior das duas metades, para não prometer a precisão
+#' do lado mais curto.
+#' @noRd
+.tr_sampling_ic_proporcao <- function(t, intervalo, conf) {
+  if (intervalo == "wald") return(t)
+  for (i in seq_len(nrow(t))) {
+    p <- t$estimativa[[i]]; ep <- t$erro_padrao[[i]]
+    q <- stats::qt(1 - (1 - conf) / 2, t$gl[[i]])
+    if (p <= 0 || p >= 1 || ep <= 0) {
+      lim <- c(p, p)
+    } else if (intervalo == "logit") {
+      el <- ep / (p * (1 - p))
+      lim <- stats::plogis(stats::qlogis(p) + c(-1, 1) * q * el)
+    } else {
+      lim <- .tr_sampling_wilson(p, p * (1 - p) / ep^2, q)
+    }
+    t$li[[i]] <- lim[[1]]; t$ls[[i]] <- lim[[2]]
+    t$margem[[i]] <- max(p - lim[[1]], lim[[2]] - p)
+  }
+  t
 }
 
 #' Razão de dois totais estimada pelo desenho.

@@ -81,28 +81,36 @@ amostra sem peso (ou declarada sem ele) daria o total da AMOSTRA.
 `sampling/poststratify`.
 ]---", cv = TRUE)),
 
-    trama::tr_node("sampling/proportion", fn = tr_sampling_proportion, label = "Proporção",
+    trama::tr_node("sampling/proportion", fn = tr_sampling_proportion, label = "Proporção", version = 2L,
       category = "amostra_estimar", icon = trama::tr_icon("chart-pie"),
       description = "Estima a proporção da população em cada categoria de uma variável, com o erro do desenho.",
       inputs = list(amostra = S), outputs = list(out = ES),
       params = list(variavel = P("cols", "", label = "Variável", example = "irrigada"),
                     nivel = P("text", "", label = "Categoria (em branco: todas)", example = "sim"),
-                    por = POR(), confianca = CONF()),
+                    por = POR(), confianca = CONF(),
+                    intervalo = E("logit", .TR_SAMPLING_INTERVALOS, label = "Intervalo")),
       pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
-        "O intervalo de **Wald** (com t) supõe a proporção longe de 0 e de 1 para o n do domínio; perto dos extremos ele pode sair de [0, 1] e cobre menos que o prometido.",
+        "O intervalo **logit** (padrão) é Wald na escala log-odds, com EP pelo método delta e t nos gl do desenho: fica dentro de (0, 1) e é assimétrico perto dos extremos, mas ainda é aproximação assintótica; com proporção 0 ou 1 no domínio a variância estimada é zero e o intervalo degenera no ponto. O **Wald** (opção) pode sair de [0, 1] e cobre menos que o nominal com proporção extrema.",
         verificar = "sampling/simulate",
-        se_falhar = "Leia o intervalo junto do n; com proporção extrema e domínio pequeno, junte domínios ou aumente a amostra."))),
-      referencias = .tr_sampling_refs_estimar("tr_sampling_proportion"),
+        se_falhar = "Com proporção extrema e domínio pequeno, compare logit e wilson, confira a cobertura com `sampling/simulate` e junte domínios ou aumente a amostra."))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_proportion", with(.tr_sampling_refs(), list(korn, wilson, lumley))),
       help = .tr_sampling_ajuda(paste(r"---[
 A proporção da população em cada categoria: a média ponderada do indicador
 (1 se a unidade é da categoria, 0 se não). Com **Categoria** em branco, uma
 linha por categoria; com uma categoria, só ela.
 
-O card mostra em %; a tabela, em proporção (0 a 1). O intervalo é o de Wald com
-t.
+O card mostra em %; a tabela, em proporção (0 a 1).
+
+O intervalo padrão é o **logit**: o de Wald calculado na escala log-odds, com o
+erro padrão do desenho pelo método delta e t com os gl do desenho, levado de
+volta à escala da proporção. É o padrão de `survey::svyciprop` e nunca sai de
+(0, 1); perto de 0 ou 1 é assimétrico, e a **margem** do card é a maior das duas
+metades. **wilson** é o escore de Wilson com o n efetivo do desenho
+(p̂(1 − p̂)/variância) e t; **wald** é p̂ ± t·EP, o intervalo da versão 1.
 ]---", ajuda_desenho), paste(r"---[
 - **Variável** — coluna categórica (texto, fator ou lógica).
 - **Categoria** — o valor cuja proporção se quer; em branco, todas.
+- **Intervalo** — `logit` (padrão), `wilson` ou `wald`.
 ]---", ajuda_por), ajuda_valor, exemplo("sampling/proportion", "variavel = \"irrigada\", nivel = \"sim\", por = \"regiao\""), r"---[
 `sampling/size_proportion` para o n; `sampling/total` do indicador para o
 número de unidades; `sampling/plot_estimates`.
