@@ -1162,3 +1162,14 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-prox-dot{width:6px;height:6px;border:1.5px solid currentColor;transform:rotate(45deg)}
 .tr-prox-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-prox-vazio{padding:14px 12px;color:var(--tr-dim)}
+
+/* "+" do próximo bloco: fora da borda, depois da seta da porta de saída.
+   Só aparece com o card em hover ou selecionado; some na apresentação. */
+.tr-prox-mais{position:absolute;right:-30px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;padding:0;border-radius:50%;border:1px solid var(--tr-line);
+  background:var(--tr-panel);color:var(--tr-dim);font-size:12px;line-height:14px;
+  text-align:center;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}
+.tr-node:hover .tr-prox-mais,.tr-node-sel .tr-prox-mais{opacity:1;pointer-events:all}
+.tr-prox-mais:hover,.tr-prox-mais:focus-visible{color:var(--tr-accent-fg);
+  background:var(--tr-accent);border-color:var(--tr-accent)}
+.tr-presenting .tr-prox-mais{display:none}

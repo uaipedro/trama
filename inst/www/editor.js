@@ -602,6 +602,16 @@ function NdNode({ id, data, selected }) {
           mini ? null : h("span", { key: "n", title: p.type }, p.name),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
+          // "+" do próximo bloco: some no mini (e na apresentação, pelo CSS).
+          mini || !data.onAbrirProximo ? null : h("button", {
+            key: "mais", className: "tr-prox-mais nodrag nopan", type: "button",
+            title: "Próximo bloco", "aria-label": `Próximo bloco a partir de ${p.name}`,
+            onPointerDown: (e) => e.stopPropagation(),
+            onClick: (e) => {
+              e.stopPropagation();
+              const r = e.currentTarget.getBoundingClientRect();
+              data.onAbrirProximo(id, p.name, r.right + 6, r.top);
+            } }, "+"),
         ]))),
     ]),
     // O mini tem largura automática, então fica sem alça.
@@ -1736,6 +1746,20 @@ function App() {
     return null;
   }, []);
 
+  // Popover "próximo bloco": `{de, porta, tipo, x, y}` — `de` é o id do NÓ de
+  // origem; o tipo de bloco dele sai do nó na hora de montar o popover.
+  const [prox, setProx] = useState(null);
+  const tipoDaSaida = (nodeId, porta) => {
+    const cat = catalogRef.current;
+    const n = nodesRef.current.find((x) => x.id === nodeId);
+    const spec = n && cat?.nodes.find((x) => x.id === n.data.nodeType);
+    const out = spec?.outputs?.find((o) => o.name === porta);
+    return out ? { tipo: out.type, nodeType: n.data.nodeType } : null;
+  };
+  const abrirProximo = useCallback((nodeId, porta, x, y) => {
+    const t = tipoDaSaida(nodeId, porta);
+    if (t) setProx({ de: nodeId, porta, tipo: t.tipo, x, y });
+  }, []);
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
   const decorated = useMemo(() => nodes.map((n) => {
@@ -1772,11 +1796,11 @@ function App() {
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
                       typeColors, categories, onParam, onView, onResize, onModo,
-                      onReseed, temas } };
+                      onReseed, onAbrirProximo: abrirProximo, temas } };
   }),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
-    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas,
+    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
@@ -2364,20 +2388,6 @@ function App() {
     pushMany(opsAdd(typeId, pos, null, extra));
   }, []);
 
-  // Popover "próximo bloco": `{de, porta, tipo, x, y}` — `de` é o id do NÓ de
-  // origem; o tipo de bloco dele sai do nó na hora de montar o popover.
-  const [prox, setProx] = useState(null);
-  const tipoDaSaida = (nodeId, porta) => {
-    const cat = catalogRef.current;
-    const n = nodesRef.current.find((x) => x.id === nodeId);
-    const spec = n && cat?.nodes.find((x) => x.id === n.data.nodeType);
-    const out = spec?.outputs?.find((o) => o.name === porta);
-    return out ? { tipo: out.type, nodeType: n.data.nodeType } : null;
-  };
-  const abrirProximo = useCallback((nodeId, porta, x, y) => {
-    const t = tipoDaSaida(nodeId, porta);
-    if (t) setProx({ de: nodeId, porta, tipo: t.tipo, x, y });
-  }, []);
   // Id do bloco recém-inserido: o documento que ecoa o batch refaz os nós
   // sem seleção, e é ali que ele ganha o `selected`.
   const selNovoRef = useRef(null);
@@ -2493,6 +2503,16 @@ function App() {
     const byId = Object.fromEntries(cat.nodes.map((x) => [x.id, x]));
     setDragType(byId[n.data.nodeType]?.outputs.find((o) => o.name === p.handleId)?.type || null);
   }, [nodes]);
+
+  // Conexão de uma saída solta no vazio abre o próximo bloco no ponto do
+  // mouse. `fromHandle` é a porta onde o arrasto começou.
+  const onConnectEnd = useCallback((ev, st) => {
+    setDragType(null);
+    if (present || !st || st.toNode || st.fromHandle?.type !== "source") return;
+    const pt = ev.changedTouches?.[0] || ev;
+    if (pt.clientX == null) return;
+    abrirProximo(st.fromHandle.nodeId, st.fromHandle.id, pt.clientX, pt.clientY);
+  }, [present, abrirProximo]);
 
   // O log de undo é do servidor: aqui só se pede. Log no cliente, montado com
   // os ecos, desfazia o passo errado quando havia op em voo — o R bloqueia
@@ -2943,6 +2963,18 @@ function App() {
   // registrado uma vez só, e as ações sempre enxergam o estado atual. As
   // chaves são `mod+` (Ctrl ou Cmd), `shift+`, e `e.key` em minúsculas.
   const atalhosRef = useRef({});
+  // "+" com um card selecionado: popover na primeira saída dele, ancorado na
+  // borda direita do card na tela.
+  const abrirProximoDaSelecao = () => {
+    const sel = nodesRef.current.filter((n) => n.selected);
+    if (sel.length !== 1 || sel[0].type !== "ndNode") return;
+    const n = sel[0];
+    const saida = catalogRef.current?.nodes.find((x) => x.id === n.data.nodeType)?.outputs?.[0];
+    if (!saida) return;
+    const w = n.measured?.width ?? n.width ?? MIN_W;
+    const tela = rf.flowToScreenPosition({ x: n.position.x + w, y: n.position.y + 40 });
+    abrirProximo(n.id, saida.name, tela.x + 8, tela.y);
+  };
   // 1…9/0 vão direto ao frame N; `,`/`.` andam um frame por vez a partir do
   // atual. As duas tabelas (apresentação e edição) compartilham essa base —
   // navegar entre frames é o mesmo gesto nos dois modos — e cada uma só
@@ -2976,6 +3008,7 @@ function App() {
     "shift+r": restaurarAlvos,
     "v": abrirVista,
     "h": ajuda,
+    "+": abrirProximoDaSelecao,
   };
   useEffect(() => {
     const onKey = (e) => {
@@ -3201,7 +3234,7 @@ function App() {
         defaultEdgeOptions: { type: "trAresta" },
         onNodesChange, onEdgesChange, onConnect, isValidConnection,
         onNodeDragStart, onSelectionStart, onSelectionEnd,
-        onConnectStart, onConnectEnd: () => setDragType(null),
+        onConnectStart, onConnectEnd,
         onBeforeDelete,
         // Na apresentação o menu também some: ele traz "Apagar", e o slide é
         // somente leitura.
