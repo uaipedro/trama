@@ -1,4 +1,687 @@
 {
+  "ml/cart": {
+    "pressupostos": [
+      {
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `ml/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "As linhas são **independentes e vêm da mesma população** em que o modelo vai ser usado: sem ordem no tempo, sem várias linhas do mesmo indivíduo, lote ou área repartidas entre treino e teste.",
+        "se_falhar": "Com tempo, separe à mão com dois `data/filter` (treino antes de uma data de corte, teste depois). Divisão por grupo e validação cruzada temporal ou por grupo ainda sem bloco no trama."
+      },
+      {
+        "texto": "Os preditores são **numéricos, finitos e sem faltantes** — o bloco recusa o resto. Fatores entram só depois de codificados em números.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Trate faltantes com o `data/drop_na` ou o `data/replace_na` e codifique fatores com o `data/mutate`. Uma imputação que usa estatísticas (média, mediana) deve sair só do treino."
+      },
+      {
+        "texto": "A árvore **não é podada**: cresce até `max_depth` ou até não restarem nós com `min_n` observações por folha. São esses dois limites que controlam o sobreajuste.",
+        "verificar": ["ml/tune", "ml/evaluate"],
+        "se_falhar": "Escolha `max_depth` e `min_n` no `ml/tune` (validação cruzada no treino) em vez de fixá-los a olho."
+      },
+      {
+        "texto": "Uma árvore única é **instável**: pequenas mudanças nos dados (outra semente no `ml/split`) podem trocar os cortes e as regras.",
+        "se_falhar": "Refaça com outra semente e compare as regras; para previsão estável, `ml/forest`."
+      },
+      {
+        "texto": "A **importância** (no `ml/importance`) é a redução de impureza somada nos cortes (inclusive substitutos) de cada preditor, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Breiman, L.", "Friedman, J. H.", "Olshen, R. A.", "Stone, C. J."],
+        "ano": 1984,
+        "titulo": "Classification and Regression Trees",
+        "fonte": "Belmont: Wadsworth; reimpressão New York: Routledge, 2017",
+        "doi": "10.1201/9781315139470"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hastie, T.", "Tibshirani, R.", "Friedman, J."],
+        "ano": 2009,
+        "titulo": "The Elements of Statistical Learning: Data Mining, Inference, and Prediction",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-84858-7"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Strobl, C.", "Boulesteix, A.-L.", "Zeileis, A.", "Hothorn, T."],
+        "ano": 2007,
+        "titulo": "Bias in random forest variable importance measures: Illustrations, sources and a solution",
+        "fonte": "BMC Bioinformatics, 8, 25",
+        "doi": "10.1186/1471-2105-8-25"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "rpart",
+        "funcao": "rpart",
+        "versao": "4.1.24",
+        "nota": "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp = 0)` — sem poda por complexidade."
+      }
+    ]
+  },
+  "ml/confusion": {
+    "pressupostos": [
+      {
+        "texto": "As linhas avaliadas são do **teste**, que não participou do ajuste nem da escolha de hiperparâmetros. O bloco mede o que receber: no treino, ou num teste já usado para decidir, a medida sai otimista.",
+        "se_falhar": "Avalie a saída teste do `ml/split` passada pelo `ml/predict`; se o teste já foi usado para escolher, separe um novo teste ou reporte a estimativa como otimista."
+      },
+      {
+        "texto": "Com **classes desequilibradas**, a acurácia engana: prever sempre a classe maioritária já a deixa alta. A acurácia balanceada e o macro F1 dão peso igual a cada classe.",
+        "verificar": ["data/group_summarise"],
+        "se_falhar": "Conte as linhas por classe no `data/group_summarise` e leia a `balanced_accuracy` ou o `macro_f1` e a `ml/confusion`, não só a `accuracy`."
+      },
+      {
+        "texto": "Observado e previsto usam os **mesmos rótulos** de classe; um rótulo escrito diferente vira uma classe a mais.",
+        "se_falhar": "Padronize os rótulos com o `data/mutate` antes."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Fawcett, T."],
+        "ano": 2006,
+        "titulo": "An introduction to ROC analysis",
+        "fonte": "Pattern Recognition Letters, 27(8), 861-874",
+        "doi": "10.1016/j.patrec.2005.10.010"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Kuhn, M.", "Johnson, K."],
+        "ano": 2013,
+        "titulo": "Applied Predictive Modeling",
+        "fonte": "New York: Springer",
+        "doi": "10.1007/978-1-4614-6849-3"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.ml",
+        "funcao": "tr_ml_confusion",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio com `base::table`, sobre a união das classes observadas e previstas, incluindo as contagens zero."
+      }
+    ]
+  },
+  "ml/evaluate": {
+    "pressupostos": [
+      {
+        "texto": "As linhas avaliadas são do **teste**, que não participou do ajuste nem da escolha de hiperparâmetros. O bloco mede o que receber: no treino, ou num teste já usado para decidir, a medida sai otimista.",
+        "se_falhar": "Avalie a saída teste do `ml/split` passada pelo `ml/predict`; se o teste já foi usado para escolher, separe um novo teste ou reporte a estimativa como otimista."
+      },
+      {
+        "texto": "Com **classes desequilibradas**, a acurácia engana: prever sempre a classe maioritária já a deixa alta. A acurácia balanceada e o macro F1 dão peso igual a cada classe.",
+        "verificar": ["data/group_summarise"],
+        "se_falhar": "Conte as linhas por classe no `data/group_summarise` e leia a `balanced_accuracy` ou o `macro_f1` e a `ml/confusion`, não só a `accuracy`."
+      },
+      {
+        "texto": "Na regressão, o **R²** compara com a média do próprio conjunto avaliado; no teste pode ser negativo (pior que prever a média) e é indefinido com resposta constante.",
+        "verificar": ["ml/residuals"],
+        "se_falhar": "Leia RMSE e MAE, na unidade da resposta, junto do gráfico de resíduos."
+      },
+      {
+        "texto": "A medida vem de **um único teste**: com poucas linhas ela varia muito de uma divisão para outra.",
+        "se_falhar": "Refaça o `ml/split` com outras sementes e compare; ou use o `ml/tune`, que mostra a variação entre folds."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Kuhn, M.", "Johnson, K."],
+        "ano": 2013,
+        "titulo": "Applied Predictive Modeling",
+        "fonte": "New York: Springer",
+        "doi": "10.1007/978-1-4614-6849-3"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Brodersen, K. H.", "Ong, C. S.", "Stephan, K. E.", "Buhmann, J. M."],
+        "ano": 2010,
+        "titulo": "The Balanced Accuracy and Its Posterior Distribution",
+        "fonte": "20th International Conference on Pattern Recognition (ICPR), 3121-3124",
+        "doi": "10.1109/ICPR.2010.764"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.ml",
+        "funcao": "tr_ml_evaluate",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: MAE, RMSE e R² = 1 − SQE/SQT; acurácia, acurácia balanceada (média dos recalls) e macro F1 sobre as classes observadas no alvo. Nenhuma linha é descartada."
+      }
+    ]
+  },
+  "ml/figs": {
+    "pressupostos": [
+      {
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `ml/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "As linhas são **independentes e vêm da mesma população** em que o modelo vai ser usado: sem ordem no tempo, sem várias linhas do mesmo indivíduo, lote ou área repartidas entre treino e teste.",
+        "se_falhar": "Com tempo, separe à mão com dois `data/filter` (treino antes de uma data de corte, teste depois). Divisão por grupo e validação cruzada temporal ou por grupo ainda sem bloco no trama."
+      },
+      {
+        "texto": "Os preditores são **numéricos, finitos e sem faltantes** — o bloco recusa o resto. Fatores entram só depois de codificados em números.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Trate faltantes com o `data/drop_na` ou o `data/replace_na` e codifique fatores com o `data/mutate`. Uma imputação que usa estatísticas (média, mediana) deve sair só do treino."
+      },
+      {
+        "texto": "Na classificação, **duas classes**: a soma das árvores estima a probabilidade da segunda.",
+        "verificar": ["data/group_summarise"],
+        "se_falhar": "Com três ou mais classes, `ml/cart`, `ml/forest` ou `ml/xgboost`."
+      },
+      {
+        "texto": "O **orçamento de divisões** (`max_splits`) controla a complexidade de todo o modelo; ele não é escolhido pelo bloco.",
+        "verificar": ["ml/tune", "ml/evaluate"],
+        "se_falhar": "Escolha `max_splits` e `min_n` no `ml/tune`."
+      },
+      {
+        "texto": "A **importância** (no `ml/importance`) é a redução de erro somada por preditor em todas as árvores, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Tan, Y. S.", "Singh, C.", "Nasseri, K.", "Agarwal, A.", "Duncan, J.", "Ronen, O.", "Epland, M.", "Kornblith, A.", "Yu, B."],
+        "ano": 2025,
+        "titulo": "Fast Interpretable Greedy-Tree Sums",
+        "fonte": "Proceedings of the National Academy of Sciences, 122(7), e2310151122",
+        "doi": "10.1073/pnas.2310151122"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "figsr",
+        "funcao": "figs",
+        "versao": "0.1.1",
+        "nota": "`mode = \"regression\"` ou `\"classification\"` (binária), com `max_splits` e `min_n`."
+      }
+    ]
+  },
+  "ml/forest": {
+    "pressupostos": [
+      {
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `ml/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "As linhas são **independentes e vêm da mesma população** em que o modelo vai ser usado: sem ordem no tempo, sem várias linhas do mesmo indivíduo, lote ou área repartidas entre treino e teste.",
+        "se_falhar": "Com tempo, separe à mão com dois `data/filter` (treino antes de uma data de corte, teste depois). Divisão por grupo e validação cruzada temporal ou por grupo ainda sem bloco no trama."
+      },
+      {
+        "texto": "Os preditores são **numéricos, finitos e sem faltantes** — o bloco recusa o resto. Fatores entram só depois de codificados em números.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Trate faltantes com o `data/drop_na` ou o `data/replace_na` e codifique fatores com o `data/mutate`. Uma imputação que usa estatísticas (média, mediana) deve sair só do treino."
+      },
+      {
+        "texto": "As árvores são **muitas o bastante** para a média estabilizar; o `mtry` (preditores sorteados por corte) e o `min_n` regulam a correlação entre elas e o sobreajuste.",
+        "verificar": ["ml/tune", "ml/evaluate"],
+        "se_falhar": "Escolha `mtry`, `min_n` e `max_depth` no `ml/tune`; mais árvores só custam tempo."
+      },
+      {
+        "texto": "A **importância** (no `ml/importance`) é a redução de impureza (Gini na classificação, variância na regressão) somada nas árvores, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+      },
+      {
+        "texto": "O resultado depende da **semente**: outra semente muda a divisão, os folds ou o próprio ajuste, e com poucos dados a diferença pode ser grande.",
+        "se_falhar": "Repita com outras sementes e leia a variação; não escolha a semente pelo resultado."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Breiman, L."],
+        "ano": 2001,
+        "titulo": "Random Forests",
+        "fonte": "Machine Learning, 45(1), 5-32",
+        "doi": "10.1023/A:1010933404324"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hastie, T.", "Tibshirani, R.", "Friedman, J."],
+        "ano": 2009,
+        "titulo": "The Elements of Statistical Learning: Data Mining, Inference, and Prediction",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-84858-7"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Strobl, C.", "Boulesteix, A.-L.", "Zeileis, A.", "Hothorn, T."],
+        "ano": 2007,
+        "titulo": "Bias in random forest variable importance measures: Illustrations, sources and a solution",
+        "fonte": "BMC Bioinformatics, 8, 25",
+        "doi": "10.1186/1471-2105-8-25"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Wright, M. N.", "Ziegler, A."],
+        "ano": 2017,
+        "titulo": "ranger: A Fast Implementation of Random Forests for High Dimensional Data in C++ and R",
+        "fonte": "Journal of Statistical Software, 77(1), 1-17",
+        "doi": "10.18637/jss.v077.i01"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "ranger",
+        "funcao": "ranger",
+        "versao": "0.18.0",
+        "nota": "`num.trees = trees`, `mtry` (0 = ⌊√p⌋), `min.node.size = min_n`, `max.depth`, `importance = \"impurity\"`; na classificação, floresta de probabilidade (`probability = TRUE`)."
+      }
+    ]
+  },
+  "ml/linear": {
+    "pressupostos": [
+      {
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `ml/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "As linhas são **independentes e vêm da mesma população** em que o modelo vai ser usado: sem ordem no tempo, sem várias linhas do mesmo indivíduo, lote ou área repartidas entre treino e teste.",
+        "se_falhar": "Com tempo, separe à mão com dois `data/filter` (treino antes de uma data de corte, teste depois). Divisão por grupo e validação cruzada temporal ou por grupo ainda sem bloco no trama."
+      },
+      {
+        "texto": "Os preditores são **numéricos, finitos e sem faltantes** — o bloco recusa o resto. Fatores entram só depois de codificados em números.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Trate faltantes com o `data/drop_na` ou o `data/replace_na` e codifique fatores com o `data/mutate`. Uma imputação que usa estatísticas (média, mediana) deve sair só do treino."
+      },
+      {
+        "texto": "A relação entre os preditores e a resposta (ou o logito da classe, na logística) é **linear e aditiva**: sem curvatura nem interação que o modelo não tenha.",
+        "verificar": ["ml/residuals"],
+        "se_falhar": "Crie termos (quadrado, produto) com o `data/mutate` ou compare com um modelo de árvore (`ml/cart`, `ml/forest`) no mesmo teste."
+      },
+      {
+        "texto": "Na classificação, **duas classes**, e a classe prevista é a de probabilidade ≥ 0,5. Com classes desequilibradas esse corte favorece a maioritária.",
+        "verificar": ["ml/confusion"],
+        "se_falhar": "Leia a `balanced_accuracy` no `ml/evaluate` e a curva no `ml/roc`, que não dependem do corte. Escolher outro corte ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hastie, T.", "Tibshirani, R.", "Friedman, J."],
+        "ano": 2009,
+        "titulo": "The Elements of Statistical Learning: Data Mining, Inference, and Prediction",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-84858-7"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "lm",
+        "versao": "4.6.0",
+        "nota": "Regressão: mínimos quadrados sobre os preditores escolhidos, sem interações."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "glm",
+        "versao": "4.6.0",
+        "nota": "Classificação binária: `family = binomial()`; a classe prevista é a de probabilidade ≥ 0,5."
+      }
+    ]
+  },
+  "ml/roc": {
+    "pressupostos": [
+      {
+        "texto": "As linhas avaliadas são do **teste**, que não participou do ajuste nem da escolha de hiperparâmetros. O bloco mede o que receber: no treino, ou num teste já usado para decidir, a medida sai otimista.",
+        "se_falhar": "Avalie a saída teste do `ml/split` passada pelo `ml/predict`; se o teste já foi usado para escolher, separe um novo teste ou reporte a estimativa como otimista."
+      },
+      {
+        "texto": "**Duas classes**, e a coluna de probabilidade é a **da classe positiva**. Com `positiva` vazia o bloco usa a segunda classe na ordem em que aparece nas linhas, não o nome da coluna: se não baterem, a curva sai espelhada (AUC = 1 − AUC).",
+        "se_falhar": "Preencha `positiva` com a classe da coluna `.prob_<classe>` escolhida."
+      },
+      {
+        "texto": "A AUC resume **todos os cortes**, inclusive os que ninguém usaria, e não muda com o desequilíbrio das classes — por isso mesmo pode parecer boa quando a classe rara é mal prevista.",
+        "verificar": ["ml/confusion", "data/group_summarise"],
+        "se_falhar": "Leia junto a matriz de confusão e a acurácia balanceada no `ml/evaluate`. Curva precisão-revocação ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Hanley, J. A.", "McNeil, B. J."],
+        "ano": 1982,
+        "titulo": "The meaning and use of the area under a receiver operating characteristic (ROC) curve",
+        "fonte": "Radiology, 143(1), 29-36",
+        "doi": "10.1148/radiology.143.1.7063747"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Fawcett, T."],
+        "ano": 2006,
+        "titulo": "An introduction to ROC analysis",
+        "fonte": "Pattern Recognition Letters, 27(8), 861-874",
+        "doi": "10.1016/j.patrec.2005.10.010"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Saito, T.", "Rehmsmeier, M."],
+        "ano": 2015,
+        "titulo": "The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets",
+        "fonte": "PLOS ONE, 10(3), e0118432",
+        "doi": "10.1371/journal.pone.0118432"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.ml",
+        "funcao": "tr_ml_roc",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: ordena pela probabilidade, agrupa empates num só degrau e integra a AUC pela regra do trapézio."
+      }
+    ]
+  },
+  "ml/svm": {
+    "pressupostos": [
+      {
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `ml/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "As linhas são **independentes e vêm da mesma população** em que o modelo vai ser usado: sem ordem no tempo, sem várias linhas do mesmo indivíduo, lote ou área repartidas entre treino e teste.",
+        "se_falhar": "Com tempo, separe à mão com dois `data/filter` (treino antes de uma data de corte, teste depois). Divisão por grupo e validação cruzada temporal ou por grupo ainda sem bloco no trama."
+      },
+      {
+        "texto": "Os preditores são **numéricos, finitos e sem faltantes** — o bloco recusa o resto. Fatores entram só depois de codificados em números.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Trate faltantes com o `data/drop_na` ou o `data/replace_na` e codifique fatores com o `data/mutate`. Uma imputação que usa estatísticas (média, mediana) deve sair só do treino."
+      },
+      {
+        "texto": "Os preditores estão em **escalas comparáveis**: o bloco padroniza cada um com média e desvio **do treino** e reaplica essa padronização na previsão, então isso já está garantido.",
+        "se_falhar": "Nada a fazer; não padronize antes com estatísticas do conjunto inteiro (vazaria o teste)."
+      },
+      {
+        "texto": "`cost` e `gamma` (e o kernel) são **hiperparâmetros**: os valores padrão raramente são os bons, e o resultado é sensível a eles.",
+        "verificar": ["ml/tune", "ml/evaluate"],
+        "se_falhar": "Escolha-os no `ml/tune`, na escala logarítmica, nunca olhando o teste."
+      },
+      {
+        "texto": "As probabilidades `.prob_*` saem de uma calibração à parte (Platt, com validação cruzada interna) e **podem discordar** da classe em `.pred`, que vem da margem.",
+        "verificar": ["ml/confusion"],
+        "se_falhar": "Use `.pred` para a matriz de confusão e as `.prob_*` só para a curva no `ml/roc`."
+      },
+      {
+        "texto": "O resultado depende da **semente**: outra semente muda a divisão, os folds ou o próprio ajuste, e com poucos dados a diferença pode ser grande.",
+        "se_falhar": "Repita com outras sementes e leia a variação; não escolha a semente pelo resultado."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Cortes, C.", "Vapnik, V."],
+        "ano": 1995,
+        "titulo": "Support-vector networks",
+        "fonte": "Machine Learning, 20(3), 273-297",
+        "doi": "10.1007/BF00994018"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hastie, T.", "Tibshirani, R.", "Friedman, J."],
+        "ano": 2009,
+        "titulo": "The Elements of Statistical Learning: Data Mining, Inference, and Prediction",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-84858-7"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Chang, C.-C.", "Lin, C.-J."],
+        "ano": 2011,
+        "titulo": "LIBSVM: A library for support vector machines",
+        "fonte": "ACM Transactions on Intelligent Systems and Technology, 2(3), 1-27",
+        "doi": "10.1145/1961189.1961199"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "e1071",
+        "funcao": "svm",
+        "versao": "1.7.17",
+        "nota": "`type = \"eps-regression\"` ou `\"C-classification\"`, `kernel`, `cost`, `gamma`; `scale = TRUE` (padrão: centra e escala pelo treino); `probability = TRUE` na classificação."
+      }
+    ]
+  },
+  "ml/tune": {
+    "pressupostos": [
+      {
+        "texto": "Entra **só o treino**: os folds saem das linhas recebidas e o vencedor é reajustado nelas todas. Se o teste entrar aqui, ele deixa de ser teste.",
+        "se_falhar": "Ligue a saída treino do `ml/split`; a teste vai só ao `ml/predict`."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "Os folds são **aleatórios** (estratificados pela classe na classificação): supõem linhas independentes, sem ordem no tempo nem grupos repartidos entre folds.",
+        "se_falhar": "Validação cruzada temporal ou por grupo ainda sem bloco no trama; com dependência, reduza o peso dado à média dos folds e confira no teste."
+      },
+      {
+        "texto": "A **média dos folds do vencedor é otimista**: foi a melhor entre muitas tentativas, e parte da vantagem é sorte. Ela serve para escolher, não para reportar o desempenho.",
+        "verificar": ["ml/tuning_plot"],
+        "se_falhar": "Reporte o desempenho medido no teste com `ml/predict` e `ml/evaluate`. Validação cruzada aninhada ainda sem bloco no trama."
+      },
+      {
+        "texto": "A **métrica** escolhida é a que importa no problema; `auto` usa RMSE (regressão) e macro F1 (classificação).",
+        "verificar": ["data/group_summarise"],
+        "se_falhar": "Com classes desequilibradas, prefira `balanced_accuracy` ou `macro_f1` a `accuracy`."
+      },
+      {
+        "texto": "As **tentativas bastam** para o espaço de busca (busca aleatória): se o melhor ainda melhora perto do fim, o orçamento foi curto.",
+        "verificar": ["ml/tuning_plot"],
+        "se_falhar": "Aumente `tentativas` ou mude a `amplitude`."
+      },
+      {
+        "texto": "O resultado depende da **semente**: outra semente muda a divisão, os folds ou o próprio ajuste, e com poucos dados a diferença pode ser grande.",
+        "se_falhar": "Repita com outras sementes e leia a variação; não escolha a semente pelo resultado."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Stone, M."],
+        "ano": 1974,
+        "titulo": "Cross-Validatory Choice and Assessment of Statistical Predictions",
+        "fonte": "Journal of the Royal Statistical Society. Series B, 36(2), 111-133",
+        "doi": "10.1111/j.2517-6161.1974.tb00994.x"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Bergstra, J.", "Bengio, Y."],
+        "ano": 2012,
+        "titulo": "Random Search for Hyper-Parameter Optimization",
+        "fonte": "Journal of Machine Learning Research, 13, 281-305",
+        "url": "https://www.jmlr.org/papers/v13/bergstra12a.html"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Kuhn, M.", "Johnson, K."],
+        "ano": 2013,
+        "titulo": "Applied Predictive Modeling",
+        "fonte": "New York: Springer",
+        "doi": "10.1007/978-1-4614-6849-3"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Varma, S.", "Simon, R."],
+        "ano": 2006,
+        "titulo": "Bias in error estimation when using cross-validation for model selection",
+        "fonte": "BMC Bioinformatics, 7, 91",
+        "doi": "10.1186/1471-2105-7-91"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.ml",
+        "funcao": "tr_ml_tune",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: busca aleatória (log-uniforme para `cost`, `gamma` e `eta`) avaliada nos mesmos k folds; o vencedor, pela média, é reajustado com `tr_ml_fit` em todas as linhas."
+      }
+    ]
+  },
+  "ml/xgboost": {
+    "pressupostos": [
+      {
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `ml/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
+      },
+      {
+        "texto": "Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
+        "verificar": ["data/summary"],
+        "se_falhar": "Tire essas colunas de `cols` (ou com o `data/select` antes do `ml/split`)."
+      },
+      {
+        "texto": "As linhas são **independentes e vêm da mesma população** em que o modelo vai ser usado: sem ordem no tempo, sem várias linhas do mesmo indivíduo, lote ou área repartidas entre treino e teste.",
+        "se_falhar": "Com tempo, separe à mão com dois `data/filter` (treino antes de uma data de corte, teste depois). Divisão por grupo e validação cruzada temporal ou por grupo ainda sem bloco no trama."
+      },
+      {
+        "texto": "Os preditores são **numéricos, finitos e sem faltantes** — o bloco recusa o resto. Fatores entram só depois de codificados em números.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Trate faltantes com o `data/drop_na` ou o `data/replace_na` e codifique fatores com o `data/mutate`. Uma imputação que usa estatísticas (média, mediana) deve sair só do treino."
+      },
+      {
+        "texto": "O **número de rodadas** (`nrounds`), a profundidade e a taxa de aprendizado (`eta`) controlam o sobreajuste. O bloco não faz parada antecipada: usa exatamente `nrounds`.",
+        "verificar": ["ml/tune", "ml/evaluate"],
+        "se_falhar": "Escolha os três juntos no `ml/tune` (eta menor pede mais rodadas); nunca pare pelo desempenho no teste."
+      },
+      {
+        "texto": "A **importância** (no `ml/importance`) é o ganho (Gain) somado nos cortes de cada preditor, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
+        "verificar": ["data/summary"],
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Chen, T.", "Guestrin, C."],
+        "ano": 2016,
+        "titulo": "XGBoost: A Scalable Tree Boosting System",
+        "fonte": "Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 785-794",
+        "doi": "10.1145/2939672.2939785"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hastie, T.", "Tibshirani, R.", "Friedman, J."],
+        "ano": 2009,
+        "titulo": "The Elements of Statistical Learning: Data Mining, Inference, and Prediction",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-84858-7"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["James, G.", "Witten, D.", "Hastie, T.", "Tibshirani, R."],
+        "ano": 2021,
+        "titulo": "An Introduction to Statistical Learning: with Applications in R",
+        "fonte": "2. ed. New York: Springer",
+        "doi": "10.1007/978-1-0716-1418-1",
+        "url": "https://www.statlearning.com/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "xgboost",
+        "funcao": "xgb.train",
+        "versao": "3.2.1.1",
+        "nota": "`objective` = `reg:squarederror`, `binary:logistic` ou `multi:softprob`; `max_depth`, `eta`, `nrounds`, `nthread = 1`; sem subamostragem de linhas nem de colunas (determinístico)."
+      }
+    ]
+  },
   "models/anova_dbc": {
     "pressupostos": [
       {
@@ -1419,6 +2102,826 @@
       }
     ]
   },
+  "multi/box_m": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes** (um indivíduo por linha, sem medidas repetidas)."
+      },
+      {
+        "texto": "Dentro de cada grupo, as variáveis são **normais multivariadas**: o M de Box é muito sensível a caudas pesadas, e rejeita por falta de normalidade tanto quanto por covariâncias diferentes.",
+        "verificar": ["models/shapiro", "view/qq"],
+        "se_falhar": "O trama só confere cada variável isoladamente (lacuna registrada). Decida entre linear e quadrática pela taxa cruzada no `multi/confusion`."
+      },
+      {
+        "texto": "Cada grupo tem **observações suficientes** (pelo menos p + 1, e o bloco recusa senão) para a aproximação qui-quadrado; com amostra grande, o teste rejeita diferenças que não mudam a classificação."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Box, G. E. P."],
+        "ano": 1949,
+        "titulo": "A general distribution theory for a class of likelihood criteria",
+        "fonte": "Biometrika, 36(3-4), 317-346",
+        "doi": "10.1093/biomet/36.3-4.317"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_box_m",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: M = (N − g) ln|Sₚ| − Σ(nᵢ − 1) ln|Sᵢ| com a correção de Box para a qui-quadrado, p(p + 1)(g − 1)/2 gl."
+      }
+    ]
+  },
+  "multi/confusion": {
+    "pressupostos": [
+      {
+        "texto": "A taxa de acerto que interessa é a **fora da amostra**: por resubstituição ela sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "verificar": ["multi/confusion"],
+        "se_falhar": "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco."
+      },
+      {
+        "texto": "Com **grupos desbalanceados**, a taxa de acerto geral engana: prever sempre o grupo maior já acerta a proporção dele. Leia a taxa de cada grupo (a sensibilidade de cada um).",
+        "verificar": ["data/group_summarise"],
+        "se_falhar": "Compare pela AUC na `multi/roc`; na discriminante, experimente `priors = \"iguais\"`. O trama ainda não tem acurácia balanceada nem curva precisão-revocação (lacuna registrada)."
+      },
+      {
+        "texto": "O classificador de entrada atende aos seus pressupostos (os da discriminante ou da logística); a matriz mede o acerto, não conserta o modelo.",
+        "verificar": ["multi/box_m"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Lachenbruch, P. A.", "Mickey, M. R."],
+        "ano": 1968,
+        "titulo": "Estimation of error rates in discriminant analysis",
+        "fonte": "Technometrics, 10(1), 1-11",
+        "doi": "10.1080/00401706.1968.10490530"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Venables, W. N.", "Ripley, B. D."],
+        "ano": 2002,
+        "titulo": "Modern Applied Statistics with S",
+        "fonte": "4. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-21706-2"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "MASS",
+        "funcao": "lda",
+        "versao": "7.3.65",
+        "nota": "Deixa-um-fora da discriminante pelo `CV = TRUE` de `MASS::lda`/`qda`; na logística, n reajustes do `glm`/`nnet::multinom`, cada um sem uma linha."
+      }
+    ]
+  },
+  "multi/discriminant": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes** (um indivíduo por linha, sem medidas repetidas)."
+      },
+      {
+        "texto": "Dentro de cada grupo, os preditores são **normais multivariados**.",
+        "verificar": ["models/shapiro", "view/qq"],
+        "se_falhar": "O trama confere só cada preditor em cada grupo (filtre o grupo com `data/filter` antes), o que é necessário mas não suficiente; não há teste multivariado (lacuna registrada). Com preditores assimétricos, contagens ou 0/1, use a `multi/logistic`."
+      },
+      {
+        "texto": "Na **linear**, as matrizes de covariância são **iguais** em todos os grupos; só as médias diferem.",
+        "verificar": ["multi/box_m"],
+        "se_falhar": "Ajuste a `quadrática` e compare as duas pela taxa cruzada no `multi/confusion` antes de trocar: o M de Box rejeita com facilidade."
+      },
+      {
+        "texto": "Sem **colinearidade** exata entre os preditores dentro dos grupos (o bloco recusa senão), e **observações suficientes** por grupo — na quadrática, bem mais que p + 1.",
+        "verificar": ["multi/correlation_matrix"],
+        "se_falhar": "Tire o preditor redundante ou use a linear."
+      },
+      {
+        "texto": "As **priors** refletem a população em que a regra vai ser usada: proporcionais só quando a tabela a representa.",
+        "se_falhar": "Com tamanhos de grupo fixados pela amostragem, use `priors = \"iguais\"`."
+      },
+      {
+        "texto": "A taxa de acerto que interessa é a **fora da amostra**: por resubstituição ela sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "verificar": ["multi/confusion"],
+        "se_falhar": "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Fisher, R. A."],
+        "ano": 1936,
+        "titulo": "The use of multiple measurements in taxonomic problems",
+        "fonte": "Annals of Eugenics, 7(2), 179-188",
+        "doi": "10.1111/j.1469-1809.1936.tb02137.x"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Mingoti, S. A."],
+        "ano": 2005,
+        "titulo": "Análise de dados através de métodos de estatística multivariada: uma abordagem aplicada",
+        "fonte": "Belo Horizonte: Editora UFMG"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Venables, W. N.", "Ripley, B. D."],
+        "ano": 2002,
+        "titulo": "Modern Applied Statistics with S",
+        "fonte": "4. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-21706-2"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "MASS",
+        "funcao": "lda",
+        "versao": "7.3.65",
+        "nota": "`lda(x, grouping, prior)` na linear e `MASS::qda` na quadrática; a validação cruzada da classificação é o `CV = TRUE` delas. Wilks, correlações canônicas e o M de Box são implementação própria."
+      }
+    ]
+  },
+  "multi/factor_analysis": {
+    "pressupostos": [
+      {
+        "texto": "Vale o **modelo de fatores comuns**: cada variável é combinação linear de poucos fatores latentes mais um erro próprio (a unicidade), com erros não correlacionados entre si e com os fatores.",
+        "verificar": ["multi/fa_loadings"],
+        "se_falhar": "Se o objetivo é só resumir a variância, sem construto latente, use a `multi/pca`."
+      },
+      {
+        "texto": "A matriz tem **correlação suficiente** para fatorar: KMO global de pelo menos 0,6 e esfericidade de Bartlett rejeitada.",
+        "verificar": ["multi/kmo_bartlett"],
+        "se_falhar": "Retire as variáveis de MSA baixo (menor que 0,5) e refaça."
+      },
+      {
+        "texto": "O **número de fatores** é o certo e o modelo se identifica (gl ≥ 0; o bloco recusa senão). Fatores demais levam a casos Heywood.",
+        "verificar": ["multi/parallel"],
+        "se_falhar": "Compare também o `multi/scree` de uma `multi/pca` padronizada nas mesmas variáveis, e ajuste com um fator a menos."
+      },
+      {
+        "texto": "No método **ml**, as variáveis são **normais multivariadas**: o teste qui-quadrado de ajuste depende disso. O `paf` não supõe distribuição.",
+        "verificar": ["models/shapiro"],
+        "se_falhar": "O trama só confere a normalidade de cada variável (univariada), que é necessária mas não suficiente; não há teste multivariado (lacuna registrada na revisão metodológica). Com itens Likert ou dados assimétricos, use `metodo = \"paf\"`."
+      },
+      {
+        "texto": "As variáveis se relacionam de forma **linear**: PCA e fatorial trabalham com a matriz de correlação (ou covariância), que só enxerga associação linear.",
+        "verificar": ["multi/plot_correlation", "view/points"],
+        "se_falhar": "Transforme a variável curva (log, raiz) num `data/mutate` antes."
+      },
+      {
+        "texto": "Amostra **grande** em relação ao número de variáveis: cargas e comunalidades são instáveis com poucas observações.",
+        "verificar": ["multi/jackknife_fa"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Lawley, D. N."],
+        "ano": 1940,
+        "titulo": "The estimation of factor loadings by the method of maximum likelihood",
+        "fonte": "Proceedings of the Royal Society of Edinburgh, 60(1), 64-82",
+        "doi": "10.1017/S037016460002006X"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Kaiser, H. F."],
+        "ano": 1958,
+        "titulo": "The varimax criterion for analytic rotation in factor analysis",
+        "fonte": "Psychometrika, 23(3), 187-200",
+        "doi": "10.1007/BF02289233"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Hendrickson, A. E.", "White, P. O."],
+        "ano": 1964,
+        "titulo": "Promax: a quick method for rotation to oblique simple structure",
+        "fonte": "British Journal of Statistical Psychology, 17(1), 65-70",
+        "doi": "10.1111/j.2044-8317.1964.tb00244.x"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Mingoti, S. A."],
+        "ano": 2005,
+        "titulo": "Análise de dados através de métodos de estatística multivariada: uma abordagem aplicada",
+        "fonte": "Belo Horizonte: Editora UFMG"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "factanal",
+        "versao": "4.6.0",
+        "nota": "Método `ml`: `factanal(covmat = R, n.obs = n, rotation = \"none\")`, unicidades limitadas em 0,005. Método `paf`, as rotações (varimax, quartimax, equamax, promax, oblimin) e os escores de regressão e de Bartlett são implementação própria da coleção."
+      }
+    ]
+  },
+  "multi/jackknife_discriminant": {
+    "pressupostos": [
+      {
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
+        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+      },
+      {
+        "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
+        "verificar": ["data/arrange"],
+        "se_falhar": "Ordene a tabela `pseudovalores` por `sem_ela` num `data/arrange` e procure dois patamares; se houver, não use o erro padrão daquela estatística."
+      },
+      {
+        "texto": "O **intervalo** (corrigida ± t · EP) supõe a estatística aproximadamente normal; o erro padrão do jackknife tende a ser um pouco **conservador** (viesado para cima)."
+      },
+      {
+        "texto": "A discriminante de entrada é **linear** (o bloco recusa a quadrática) e atende aos seus pressupostos.",
+        "verificar": ["multi/box_m"]
+      },
+      {
+        "texto": "Cada grupo continua com observações suficientes quando uma linha sai; grupos muito pequenos deixam as correlações canônicas instáveis.",
+        "verificar": ["data/group_summarise"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Quenouille, M. H."],
+        "ano": 1956,
+        "titulo": "Notes on bias in estimation",
+        "fonte": "Biometrika, 43(3-4), 353-360",
+        "doi": "10.1093/biomet/43.3-4.353"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Efron, B.", "Stein, C."],
+        "ano": 1981,
+        "titulo": "The jackknife estimate of variance",
+        "fonte": "The Annals of Statistics, 9(3), 586-596",
+        "doi": "10.1214/aos/1176345462"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B."],
+        "ano": 1982,
+        "titulo": "The Jackknife, the Bootstrap and Other Resampling Plans",
+        "fonte": "Philadelphia: SIAM",
+        "doi": "10.1137/1.9781611970319"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B.", "Tibshirani, R. J."],
+        "ano": 1993,
+        "titulo": "An Introduction to the Bootstrap",
+        "fonte": "New York: Chapman & Hall",
+        "doi": "10.1007/978-1-4899-4541-9"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_jackknife",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+      }
+    ]
+  },
+  "multi/jackknife_fa": {
+    "pressupostos": [
+      {
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
+        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+      },
+      {
+        "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
+        "verificar": ["data/arrange"],
+        "se_falhar": "Ordene a tabela `pseudovalores` por `sem_ela` num `data/arrange` e procure dois patamares; se houver, não use o erro padrão daquela estatística."
+      },
+      {
+        "texto": "O **intervalo** (corrigida ± t · EP) supõe a estatística aproximadamente normal; o erro padrão do jackknife tende a ser um pouco **conservador** (viesado para cima)."
+      },
+      {
+        "texto": "O modelo fatorial de entrada é estável: cada réplica precisa convergir sem caso Heywood, com o mesmo número de fatores (a réplica que falha vira erro que nomeia a linha).",
+        "verificar": ["multi/kmo_bartlett", "multi/parallel"]
+      },
+      {
+        "texto": "Os fatores das réplicas se **casam** com os da amostra toda pela congruência de Tucker; com fatores mal definidos (congruência baixa) o casamento é arbitrário.",
+        "verificar": ["multi/plot_loadings"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Quenouille, M. H."],
+        "ano": 1956,
+        "titulo": "Notes on bias in estimation",
+        "fonte": "Biometrika, 43(3-4), 353-360",
+        "doi": "10.1093/biomet/43.3-4.353"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Efron, B.", "Stein, C."],
+        "ano": 1981,
+        "titulo": "The jackknife estimate of variance",
+        "fonte": "The Annals of Statistics, 9(3), 586-596",
+        "doi": "10.1214/aos/1176345462"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B."],
+        "ano": 1982,
+        "titulo": "The Jackknife, the Bootstrap and Other Resampling Plans",
+        "fonte": "Philadelphia: SIAM",
+        "doi": "10.1137/1.9781611970319"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B.", "Tibshirani, R. J."],
+        "ano": 1993,
+        "titulo": "An Introduction to the Bootstrap",
+        "fonte": "New York: Chapman & Hall",
+        "doi": "10.1007/978-1-4899-4541-9"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Lorenzo-Seva, U.", "ten Berge, J. M. F."],
+        "ano": 2006,
+        "titulo": "Tucker's congruence coefficient as a meaningful index of factor similarity",
+        "fonte": "Methodology, 2(2), 57-64",
+        "doi": "10.1027/1614-2241.2.2.57"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_jackknife",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+      }
+    ]
+  },
+  "multi/jackknife_logistic": {
+    "pressupostos": [
+      {
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
+        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+      },
+      {
+        "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
+        "verificar": ["data/arrange"],
+        "se_falhar": "Ordene a tabela `pseudovalores` por `sem_ela` num `data/arrange` e procure dois patamares; se houver, não use o erro padrão daquela estatística."
+      },
+      {
+        "texto": "O **intervalo** (corrigida ± t · EP) supõe a estatística aproximadamente normal; o erro padrão do jackknife tende a ser um pouco **conservador** (viesado para cima)."
+      },
+      {
+        "texto": "**Sem separação** no modelo e em nenhuma réplica: o bloco recusa o modelo separado, e uma réplica que separa vira erro que nomeia a linha.",
+        "se_falhar": "Tire o preditor que isola os grupos, ou use a `multi/discriminant`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Quenouille, M. H."],
+        "ano": 1956,
+        "titulo": "Notes on bias in estimation",
+        "fonte": "Biometrika, 43(3-4), 353-360",
+        "doi": "10.1093/biomet/43.3-4.353"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Efron, B.", "Stein, C."],
+        "ano": 1981,
+        "titulo": "The jackknife estimate of variance",
+        "fonte": "The Annals of Statistics, 9(3), 586-596",
+        "doi": "10.1214/aos/1176345462"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B."],
+        "ano": 1982,
+        "titulo": "The Jackknife, the Bootstrap and Other Resampling Plans",
+        "fonte": "Philadelphia: SIAM",
+        "doi": "10.1137/1.9781611970319"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B.", "Tibshirani, R. J."],
+        "ano": 1993,
+        "titulo": "An Introduction to the Bootstrap",
+        "fonte": "New York: Chapman & Hall",
+        "doi": "10.1007/978-1-4899-4541-9"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hosmer, D. W.", "Lemeshow, S.", "Sturdivant, R. X."],
+        "ano": 2013,
+        "titulo": "Applied Logistic Regression",
+        "fonte": "3. ed. Hoboken: Wiley",
+        "doi": "10.1002/9781118548387"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_jackknife",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+      }
+    ]
+  },
+  "multi/jackknife_pca": {
+    "pressupostos": [
+      {
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
+        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+      },
+      {
+        "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
+        "verificar": ["data/arrange"],
+        "se_falhar": "Ordene a tabela `pseudovalores` por `sem_ela` num `data/arrange` e procure dois patamares; se houver, não use o erro padrão daquela estatística."
+      },
+      {
+        "texto": "O **intervalo** (corrigida ± t · EP) supõe a estatística aproximadamente normal; o erro padrão do jackknife tende a ser um pouco **conservador** (viesado para cima)."
+      },
+      {
+        "texto": "A PCA de entrada tem a **escala** certa (padronizada ou não): as réplicas repetem a mesma escolha.",
+        "verificar": ["multi/pca"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Quenouille, M. H."],
+        "ano": 1956,
+        "titulo": "Notes on bias in estimation",
+        "fonte": "Biometrika, 43(3-4), 353-360",
+        "doi": "10.1093/biomet/43.3-4.353"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Efron, B.", "Stein, C."],
+        "ano": 1981,
+        "titulo": "The jackknife estimate of variance",
+        "fonte": "The Annals of Statistics, 9(3), 586-596",
+        "doi": "10.1214/aos/1176345462"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B."],
+        "ano": 1982,
+        "titulo": "The Jackknife, the Bootstrap and Other Resampling Plans",
+        "fonte": "Philadelphia: SIAM",
+        "doi": "10.1137/1.9781611970319"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Efron, B.", "Tibshirani, R. J."],
+        "ano": 1993,
+        "titulo": "An Introduction to the Bootstrap",
+        "fonte": "New York: Chapman & Hall",
+        "doi": "10.1007/978-1-4899-4541-9"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_jackknife",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+      }
+    ]
+  },
+  "multi/kmo_bartlett": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes**, e o teste de Bartlett supõe **normalidade multivariada**; com n grande ele rejeita quase sempre, e por isso só diz se há ALGUMA correlação.",
+        "verificar": ["models/shapiro"],
+        "se_falhar": "O trama só confere cada variável isoladamente; não há teste de normalidade multivariada (lacuna registrada). Leia o KMO, que não depende de distribuição."
+      },
+      {
+        "texto": "A matriz de correlação é **inversível** (nenhuma variável é combinação exata das outras): o KMO usa as correlações parciais, que vêm da inversa.",
+        "verificar": ["multi/correlation_matrix"],
+        "se_falhar": "Tire a variável redundante da lista."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kaiser, H. F."],
+        "ano": 1970,
+        "titulo": "A second generation little jiffy",
+        "fonte": "Psychometrika, 35(4), 401-415",
+        "doi": "10.1007/BF02291817"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Kaiser, H. F."],
+        "ano": 1974,
+        "titulo": "An index of factorial simplicity",
+        "fonte": "Psychometrika, 39(1), 31-36",
+        "doi": "10.1007/BF02291575"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Bartlett, M. S."],
+        "ano": 1950,
+        "titulo": "Tests of significance in factor analysis",
+        "fonte": "British Journal of Statistical Psychology, 3(2), 77-85",
+        "doi": "10.1111/j.2044-8317.1950.tb00285.x"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Bartlett, M. S."],
+        "ano": 1951,
+        "titulo": "A further note on tests of significance in factor analysis",
+        "fonte": "British Journal of Statistical Psychology, 4(1), 1-2",
+        "doi": "10.1111/j.2044-8317.1951.tb00299.x"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Mingoti, S. A."],
+        "ano": 2005,
+        "titulo": "Análise de dados através de métodos de estatística multivariada: uma abordagem aplicada",
+        "fonte": "Belo Horizonte: Editora UFMG"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_kmo_bartlett",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: KMO e MSA pelas correlações parciais da inversa de R; χ² = −(n − 1 − (2p + 5)/6) ln|R| com p(p − 1)/2 gl."
+      }
+    ]
+  },
+  "multi/logistic": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes** (um indivíduo por linha, sem medidas repetidas)."
+      },
+      {
+        "texto": "O **logito** (log da chance) é **linear** em cada preditor numérico.",
+        "verificar": ["models/glm", "models/compare"],
+        "se_falhar": "Na binária, ajuste um `models/glm` binomial com e sem `poly(x, 2)` do preditor suspeito e compare no `models/compare`; se a curvatura importar, inclua a transformação num `data/mutate` antes."
+      },
+      {
+        "texto": "**Sem separação** completa: se algum grupo é isolado sem sobreposição, os coeficientes vão ao infinito. O bloco detecta e avisa em `separacao`.",
+        "se_falhar": "A classificação continua valendo; para descrever o que separa, use a `multi/discriminant` ou tire o preditor que isola os grupos. Logística penalizada (Firth) ainda sem bloco no trama (lacuna registrada)."
+      },
+      {
+        "texto": "**Eventos suficientes por preditor**: com poucos casos no grupo menor (a regra usual é pelo menos 10 por preditor), coeficientes e erros de Wald ficam viesados.",
+        "verificar": ["data/group_summarise", "multi/jackknife_logistic"],
+        "se_falhar": "Use menos preditores."
+      },
+      {
+        "texto": "Sem **colinearidade** exata entre os preditores (o bloco recusa senão).",
+        "verificar": ["multi/correlation_matrix"]
+      },
+      {
+        "texto": "A taxa de acerto que interessa é a **fora da amostra**: por resubstituição ela sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "verificar": ["multi/confusion"],
+        "se_falhar": "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Cox, D. R."],
+        "ano": 1958,
+        "titulo": "The regression analysis of binary sequences",
+        "fonte": "Journal of the Royal Statistical Society. Series B, 20(2), 215-232",
+        "doi": "10.1111/j.2517-6161.1958.tb00292.x"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Albert, A.", "Anderson, J. A."],
+        "ano": 1984,
+        "titulo": "On the existence of maximum likelihood estimates in logistic regression models",
+        "fonte": "Biometrika, 71(1), 1-10",
+        "doi": "10.1093/biomet/71.1.1"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Peduzzi, P.", "Concato, J.", "Kemper, E.", "Holford, T. R.", "Feinstein, A. R."],
+        "ano": 1996,
+        "titulo": "A simulation study of the number of events per variable in logistic regression analysis",
+        "fonte": "Journal of Clinical Epidemiology, 49(12), 1373-1379",
+        "doi": "10.1016/S0895-4356(96)00236-3"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hosmer, D. W.", "Lemeshow, S.", "Sturdivant, R. X."],
+        "ano": 2013,
+        "titulo": "Applied Logistic Regression",
+        "fonte": "3. ed. Hoboken: Wiley",
+        "doi": "10.1002/9781118548387"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Venables, W. N.", "Ripley, B. D."],
+        "ano": 2002,
+        "titulo": "Modern Applied Statistics with S",
+        "fonte": "4. ed. New York: Springer",
+        "doi": "10.1007/978-0-387-21706-2"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "glm",
+        "versao": "4.6.0",
+        "nota": "Dois grupos: `glm(family = binomial())`. Três ou mais: `nnet::multinom(maxit = 1000)`. Separação detectada por regra própria sobre as probabilidades ajustadas."
+      }
+    ]
+  },
+  "multi/pca": {
+    "pressupostos": [
+      {
+        "texto": "A PCA **não supõe modelo nem distribuição**: é uma rotação dos dados. O que ela exige é a escolha da **escala** — com variáveis em unidades diferentes, sem padronizar, a de maior variância domina o CP1.",
+        "se_falhar": "Ligue **Padronizar** (matriz de correlação), que é o caso comum."
+      },
+      {
+        "texto": "As variáveis se relacionam de forma **linear**: PCA e fatorial trabalham com a matriz de correlação (ou covariância), que só enxerga associação linear.",
+        "verificar": ["multi/plot_correlation", "view/points"],
+        "se_falhar": "Transforme a variável curva (log, raiz) num `data/mutate` antes."
+      },
+      {
+        "texto": "Sem **observações extremas** que dominem as correlações: uma linha fora da nuvem pode criar ou apagar um componente/fator sozinha.",
+        "verificar": ["view/points", "view/boxplot"],
+        "se_falhar": "Refaça sem a linha (`data/filter`) e compare; o jackknife da técnica mede a influência de cada linha."
+      },
+      {
+        "texto": "As variáveis são **correlacionadas**: se não forem, cada componente é praticamente uma variável e a redução não resume nada.",
+        "verificar": ["multi/kmo_bartlett", "multi/correlation_matrix"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Pearson, K."],
+        "ano": 1901,
+        "titulo": "On lines and planes of closest fit to systems of points in space",
+        "fonte": "The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science, 2(11), 559-572",
+        "doi": "10.1080/14786440109462720"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Hotelling, H."],
+        "ano": 1933,
+        "titulo": "Analysis of a complex of statistical variables into principal components",
+        "fonte": "Journal of Educational Psychology, 24(6), 417-441",
+        "doi": "10.1037/h0071325"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Jolliffe, I. T.", "Cadima, J."],
+        "ano": 2016,
+        "titulo": "Principal component analysis: a review and recent developments",
+        "fonte": "Philosophical Transactions of the Royal Society A, 374(2065), 20150202",
+        "doi": "10.1098/rsta.2015.0202"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Mingoti, S. A."],
+        "ano": 2005,
+        "titulo": "Análise de dados através de métodos de estatística multivariada: uma abordagem aplicada",
+        "fonte": "Belo Horizonte: Editora UFMG"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "prcomp",
+        "versao": "4.6.0",
+        "nota": "Decomposição em valores singulares da matriz centrada (`center = TRUE` sempre); `scale. = padronizar`."
+      }
+    ]
+  },
+  "multi/roc": {
+    "pressupostos": [
+      {
+        "texto": "A taxa de acerto que interessa é a **fora da amostra**: por resubstituição ela sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "verificar": ["multi/confusion"],
+        "se_falhar": "Leia a validação `cruzada` (deixa-um-fora), o padrão do bloco."
+      },
+      {
+        "texto": "Com **grupos muito desbalanceados**, a ROC e a AUC podem parecer boas enquanto o grupo raro é mal previsto: a taxa de falsos positivos se dilui no grupo grande.",
+        "verificar": ["multi/confusion"],
+        "se_falhar": "Leia a sensibilidade de cada grupo no `multi/confusion`; curva precisão-revocação ainda sem bloco no trama (lacuna registrada)."
+      },
+      {
+        "texto": "Com três ou mais grupos, cada curva é **um grupo contra os outros**: a AUC de cada uma não soma nem resume o classificador inteiro."
+      },
+      {
+        "texto": "A AUC sai **sem intervalo de confiança**: com poucos positivos ela varia muito de amostra para amostra.",
+        "se_falhar": "Intervalo da AUC (Hanley-McNeil, DeLong) ainda sem bloco no trama (lacuna registrada)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Hanley, J. A.", "McNeil, B. J."],
+        "ano": 1982,
+        "titulo": "The meaning and use of the area under a receiver operating characteristic (ROC) curve",
+        "fonte": "Radiology, 143(1), 29-36",
+        "doi": "10.1148/radiology.143.1.7063747"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Fawcett, T."],
+        "ano": 2006,
+        "titulo": "An introduction to ROC analysis",
+        "fonte": "Pattern Recognition Letters, 27(8), 861-874",
+        "doi": "10.1016/j.patrec.2005.10.010"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Saito, T.", "Rehmsmeier, M."],
+        "ano": 2015,
+        "titulo": "The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets",
+        "fonte": "PLOS ONE, 10(3), e0118432",
+        "doi": "10.1371/journal.pone.0118432"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_roc",
+        "versao": "0.1.0",
+        "nota": "Implementação própria: um ponto por escore distinto e AUC de Mann-Whitney (meio ponto por empate); probabilidades por deixa-um-fora como no `multi/confusion`."
+      }
+    ]
+  },
   "sampling/detectable_difference": {
     "pressupostos": [
       {
@@ -2272,6 +3775,1173 @@
         "funcao": "tr_sampling_total",
         "versao": "0.1.0",
         "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
+      }
+    ]
+  },
+  "series/accuracy": {
+    "pressupostos": [
+      {
+        "texto": "A validação respeita a **ordem do tempo**: o modelo foi ajustado num trecho ANTERIOR (`series/window`) e a série real cobre os períodos que ele não viu. Sem isso, o erro de teste mede o que o modelo decorou (vazamento).",
+        "verificar": ["series/window"],
+        "se_falhar": "Recorte o treino com `series/window` (fim antes do teste) e ligue a série inteira em **real**. Nunca embaralhe observações de série temporal."
+      },
+      {
+        "texto": "A linha de **treino** é erro de um passo dentro da amostra: otimista por construção, não serve para escolher modelo."
+      },
+      {
+        "texto": "O **MAPE** e o **MPE** pedem série **positiva e longe de zero** (dividem pelo valor observado); com zeros eles explodem ou saem infinitos.",
+        "se_falhar": "Leia o MASE ou o MAE."
+      },
+      {
+        "texto": "O **MASE** escala pelo erro do ingênuo (sazonal, na série com ciclo) no treino: supõe treino com mais de um ciclo e sem ser constante."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Hyndman, R. J.", "Koehler, A. B."],
+        "ano": 2006,
+        "titulo": "Another look at measures of forecast accuracy",
+        "fonte": "International Journal of Forecasting, 22(4), 679-688",
+        "doi": "10.1016/j.ijforecast.2006.03.001"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "forecast",
+        "funcao": "accuracy",
+        "versao": "9.0.2",
+        "nota": "Sem **real**: `accuracy(previsao)`, só o treino. Com **real**: `accuracy(previsao, real)`, que compara nos períodos em comum; a coleção recusa antes se não houver nenhum."
+      }
+    ]
+  },
+  "series/adf": {
+    "pressupostos": [
+      {
+        "texto": "A série segue um **autorregressivo** de ordem finita, e as defasagens da diferença bastam para deixar o erro da regressão **sem autocorrelação** (é o \"aumentado\").",
+        "verificar": ["series/pacf"],
+        "se_falhar": "Aumente o teto de **Defasagens**, ou use o `series/phillips_perron`, que corrige a estatística em vez de acrescentar defasagens."
+      },
+      {
+        "texto": "Há **no máximo uma** raiz unitária: com duas (série que precisa de duas diferenças), o teste na série em nível não se lê.",
+        "verificar": ["series/ndiffs"],
+        "se_falhar": "Aplique o teste à série já diferenciada (`series/diff`)."
+      },
+      {
+        "texto": "Os **termos determinísticos** escolhidos (constante, ou constante e tendência) são os da série: sem a tendência quando ela existe, o teste confunde tendência com raiz unitária; com tendência sobrando, perde poder.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Série que sobe ou desce de forma regular: `tendência`. Série que oscila em torno de um nível: `constante`."
+      },
+      {
+        "texto": "A série **não tem quebra estrutural** (mudança de nível ou de inclinação). Com quebra, os testes de raiz unitária tendem a NÃO rejeitar, e o KPSS a rejeitar, mesmo com a série estacionária dos dois lados.",
+        "verificar": ["series/plot", "series/pettitt"],
+        "se_falhar": "`series/zivot_andrews`, que admite uma quebra e a estima."
+      },
+      {
+        "texto": "Série **longa o bastante**: com poucas observações o teste tem pouco poder, e \"não rejeita\" não é evidência a favor de H0.",
+        "se_falhar": "Leia junto com o teste de hipótese nula oposta (`series/adf` × `series/kpss`); se discordarem, diferenciar é o lado seguro."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Dickey, D. A.", "Fuller, W. A."],
+        "ano": 1979,
+        "titulo": "Distribution of the estimators for autoregressive time series with a unit root",
+        "fonte": "Journal of the American Statistical Association, 74(366a), 427-431",
+        "doi": "10.1080/01621459.1979.10482531"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Said, S. E.", "Dickey, D. A."],
+        "ano": 1984,
+        "titulo": "Testing for unit roots in autoregressive-moving average models of unknown order",
+        "fonte": "Biometrika, 71(3), 599-607",
+        "doi": "10.1093/biomet/71.3.599"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "urca",
+        "funcao": "ur.df",
+        "versao": "1.3.4",
+        "nota": "`type = \"drift\"` (constante) ou `\"trend\"`, `lags` = teto (0 = trunc((n - 1)^(1/3))), `selectlags = \"AIC\"`. Decide pela estatística tau e a tabela de críticos do pacote; sem p-valor."
+      }
+    ]
+  },
+  "series/arima": {
+    "pressupostos": [
+      {
+        "texto": "Depois de `d` diferenças simples e `D` sazonais, a série é **estacionária**: média e autocovariância que não mudam com o tempo. É o que a parte ARMA modela; com diferenças de menos o ajuste falha (\"non-stationary AR part\") ou prevê mal.",
+        "verificar": ["series/ndiffs", "series/adf", "series/kpss"],
+        "se_falhar": "Use o `series/ndiffs` para o número de diferenças e fixe `d` e `D` (ou deixe o automático, que decide `d` pelo KPSS e `D` pela força sazonal). Diferenças DEMAIS também é erro: aparece como MA com coeficiente perto de -1."
+      },
+      {
+        "texto": "A **variância é constante** no tempo. Oscilação que cresce com o nível não é modelada pelo ARIMA.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Transforme antes com `series/transform` (log ou Box-Cox) e modele a série transformada."
+      },
+      {
+        "texto": "O **ciclo declarado** da série (a frequência) é o período sazonal verdadeiro: a parte sazonal (P, D, Q) usa defasagens múltiplas dele.",
+        "verificar": ["series/seasonal_plot", "series/acf", "series/fisher"],
+        "se_falhar": "Declare a frequência certa no nó que cria a série (`series/from_table`)."
+      },
+      {
+        "texto": "Os resíduos do modelo são **ruído branco**: sem autocorrelação sobrando. Autocorrelação nos resíduos quer dizer estrutura que o modelo deixou para trás, e intervalos estreitos demais.",
+        "verificar": ["series/residuals", "series/ljung_box", "series/acf"],
+        "se_falhar": "Ligue `series/residuals` → `series/ljung_box` (com `graus` = parâmetros estimados). Se rejeitar, mude a ordem do `series/arima` (veja a `series/acf` e a `series/pacf` dos resíduos) ou troque de família (`series/ets`)."
+      },
+      {
+        "texto": "Para os **intervalos de previsão**, os resíduos são **normais**; a previsão pontual não depende disso.",
+        "verificar": ["series/residuals", "view/qq", "models/shapiro"],
+        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, leia os intervalos como aproximados; intervalos por bootstrap ainda sem bloco no trama."
+      },
+      {
+        "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
+        "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Box, G. E. P.", "Jenkins, G. M.", "Reinsel, G. C.", "Ljung, G. M."],
+        "ano": 2015,
+        "titulo": "Time Series Analysis: Forecasting and Control",
+        "fonte": "5. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Hyndman, R. J.", "Khandakar, Y."],
+        "ano": 2008,
+        "titulo": "Automatic time series forecasting: the forecast package for R",
+        "fonte": "Journal of Statistical Software, 27(3), 1-22",
+        "doi": "10.18637/jss.v027.i03"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "forecast",
+        "funcao": "auto.arima",
+        "versao": "9.0.2",
+        "nota": "Com Automático: busca passo a passo pelo menor AICc; `d` pelo KPSS e `D` pela força sazonal (padrões do pacote); `seasonal`, `allowdrift` e `allowmean` vêm dos params. Manual: `forecast::Arima(order, seasonal, include.constant)`, por máxima verossimilhança."
+      }
+    ]
+  },
+  "series/baseline": {
+    "pressupostos": [
+      {
+        "texto": "Cada método supõe uma série de um tipo: **média** — série sem tendência nem sazonalidade, em torno de um nível fixo; **ingênuo** e **deriva** — passeio aleatório (com deriva constante, no segundo); **ingênuo sazonal** — o padrão de um ciclo se repete no seguinte.",
+        "verificar": ["series/plot", "series/seasonal_plot"]
+      },
+      {
+        "texto": "Os **intervalos** supõem erros **normais e sem autocorrelação** do método de referência (são fórmulas fechadas, não simulação).",
+        "verificar": ["series/ljung_box", "view/qq"],
+        "se_falhar": "Para comparar métodos, o que conta é o erro no teste (`series/accuracy`), não o leque."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "forecast",
+        "funcao": "snaive",
+        "versao": "9.0.2",
+        "nota": "Conforme o método: `forecast::meanf`, `forecast::naive`, `forecast::snaive` ou `forecast::rwf(drift = TRUE)`, todos com `level = c(80, 95)`."
+      }
+    ]
+  },
+  "series/box_pierce": {
+    "pressupostos": [
+      {
+        "texto": "A série testada é **estacionária** (média e variância constantes): numa série com tendência ou raiz unitária as autocorrelações amostrais ficam altas por construção, e o teste rejeita sem dizer nada sobre ruído.",
+        "verificar": ["series/plot", "series/kpss"],
+        "se_falhar": "Teste os resíduos de um modelo (`series/residuals`) ou a série diferenciada (`series/diff`)."
+      },
+      {
+        "texto": "Nos **resíduos de um modelo**, `graus` é o número de parâmetros ARMA estimados (p + q + P + Q): sem o desconto o qui-quadrado tem graus demais e o teste aceita ruído branco onde há estrutura. A contagem é manual, lida nos coeficientes do card do modelo.",
+        "verificar": ["series/residuals"]
+      },
+      {
+        "texto": "As **defasagens** cobrem a dependência que importa (dois ciclos, na série sazonal); dependência além da última defasagem o teste não olha.",
+        "verificar": ["series/acf"]
+      },
+      {
+        "texto": "A distribuição qui-quadrado de Q é **assintótica**. Sem a correção de amostra pequena, o Box-Pierce rejeita MENOS que o nominal em série curta; para decidir, use o `series/ljung_box`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Box, G. E. P.", "Pierce, D. A."],
+        "ano": 1970,
+        "titulo": "Distribution of residual autocorrelations in autoregressive-integrated moving average time series models",
+        "fonte": "Journal of the American Statistical Association, 65(332), 1509-1526",
+        "doi": "10.1080/01621459.1970.10481180"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Box, G. E. P.", "Jenkins, G. M.", "Reinsel, G. C.", "Ljung, G. M."],
+        "ano": 2015,
+        "titulo": "Time Series Analysis: Forecasting and Control",
+        "fonte": "5. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "Box.test",
+        "versao": "4.6.0",
+        "nota": "`type = \"Box-Pierce\"`, `lag` = defasagens (0 = regra de Hyndman: 10, ou dois ciclos, até n/5), `fitdf` = graus. Faltantes ignorados na autocorrelação."
+      }
+    ]
+  },
+  "series/cox_stuart": {
+    "pressupostos": [
+      {
+        "texto": "Sob H0 as observações são **independentes** (sem autocorrelação). Os pares são tratados como independentes; com autocorrelação o teste rejeita demais.",
+        "verificar": ["series/acf", "series/ljung_box"],
+        "se_falhar": "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Versões para dado autocorrelacionado (Mann-Kendall modificado, pré-branqueamento) ainda sem bloco no trama: leia o p-valor como otimista."
+      },
+      {
+        "texto": "A tendência procurada é **monótona** (um sentido só). Uma série que sobe e depois desce pode sair sem tendência nenhuma.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Separe os trechos (`series/window`) ou procure o ponto de mudança com o `series/pettitt`."
+      },
+      {
+        "texto": "A variável é **contínua**: empates são raros. Os empatados saem da conta (ou corrigem a variância), e com muitos o teste perde informação."
+      },
+      {
+        "texto": "Sobram **pelo menos 6 pares** depois dos empates (o bloco pede 16 observações); com menos, nem o resultado mais extremo rejeita a 5%."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Cox, D. R.", "Stuart, A."],
+        "ano": 1955,
+        "titulo": "Some quick sign tests for trend in location and dispersion",
+        "fonte": "Biometrika, 42(1-2), 80-95",
+        "doi": "10.1093/biomet/42.1-2.80"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.series",
+        "funcao": "tr_series_cox_stuart",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: pares em terços (original) ou metades, empates descartados; `stats::binom.test` com menos de 20 pares, aproximação normal a partir de 20."
+      }
+    ]
+  },
+  "series/decompose": {
+    "pressupostos": [
+      {
+        "texto": "A série é **soma** (aditiva) ou **produto** (multiplicativa) de tendência, sazonal e resto. A multiplicativa é a certa quando a oscilação cresce com o nível, e pede série positiva.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Na dúvida, decomponha o log (`series/transform`) na aditiva."
+      },
+      {
+        "texto": "O **padrão sazonal é o mesmo em todos os ciclos**: a clássica estima UM efeito por estação.",
+        "verificar": ["series/seasonal_plot", "series/subseries"],
+        "se_falhar": "Use `series/stl` com janela sazonal finita, que deixa o padrão mudar."
+      },
+      {
+        "texto": "A tendência é **suave o bastante** para uma média móvel de um ciclo acompanhá-la; um outlier ou uma quebra vazam para sazonal e tendência.",
+        "verificar": ["series/plot"],
+        "se_falhar": "`series/stl` com **Robusta** ligada."
+      },
+      {
+        "texto": "O **ciclo declarado** (a frequência da série) é o período sazonal verdadeiro, e a série tem **pelo menos dois ciclos** completos.",
+        "verificar": ["series/seasonal_plot", "series/subseries", "series/fisher"],
+        "se_falhar": "Declare a frequência certa no nó que cria a série (`series/from_table`)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "decompose",
+        "versao": "4.6.0",
+        "nota": "`type = \"additive\"` ou `\"multiplicative\"`; média móvel centrada de ordem igual à frequência (2×m quando par)."
+      }
+    ]
+  },
+  "series/ets": {
+    "pressupostos": [
+      {
+        "texto": "A série é descrita por **nível, tendência e sazonalidade** que evoluem por suavização exponencial, com o erro entrando de forma aditiva (A) ou multiplicativa (M). Erro, tendência ou sazonalidade **multiplicativos pedem série positiva**.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Com zeros ou negativos, fixe as letras em `A` (ou use `Z`, que as evita) ou modele com `series/arima`."
+      },
+      {
+        "texto": "O **ciclo sazonal** é o declarado na série, e de **no máximo 24** períodos.",
+        "verificar": ["series/seasonal_plot", "series/fisher"],
+        "se_falhar": "Ciclo maior que 24: sazonalidade `N`, ou `series/stl` e modelar a dessazonalizada (`series/component`)."
+      },
+      {
+        "texto": "Os resíduos do modelo são **ruído branco**: sem autocorrelação sobrando. Autocorrelação nos resíduos quer dizer estrutura que o modelo deixou para trás, e intervalos estreitos demais.",
+        "verificar": ["series/residuals", "series/ljung_box", "series/acf"],
+        "se_falhar": "Ligue `series/residuals` → `series/ljung_box` (com `graus` = parâmetros estimados). Se rejeitar, mude a ordem do `series/arima` (veja a `series/acf` e a `series/pacf` dos resíduos) ou troque de família (`series/ets`)."
+      },
+      {
+        "texto": "Para os **intervalos de previsão**, o erro é **normal** e independente (é a verossimilhança do modelo em espaço de estados).",
+        "verificar": ["series/residuals", "view/qq", "models/shapiro"],
+        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Sem normalidade, leia os intervalos como aproximados."
+      },
+      {
+        "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
+        "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Hyndman, R. J.", "Koehler, A. B.", "Snyder, R. D.", "Grose, S."],
+        "ano": 2002,
+        "titulo": "A state space framework for automatic forecasting using exponential smoothing methods",
+        "fonte": "International Journal of Forecasting, 18(3), 439-454",
+        "doi": "10.1016/S0169-2070(01)00110-8"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "forecast",
+        "funcao": "ets",
+        "versao": "9.0.2",
+        "nota": "`model` é o código de três letras do param (Z = escolha por AICc) e `damped` sai de `amortecida` (auto = NULL, o ajuste escolhe). Parâmetros por máxima verossimilhança."
+      }
+    ]
+  },
+  "series/f_global": {
+    "pressupostos": [
+      {
+        "texto": "Os erros da regressão são **independentes** (sem autocorrelação). Série temporal quase nunca obedece, e o efeito é conhecido: erros-padrão pequenos demais e p-valores **otimistas**.",
+        "verificar": ["series/component", "series/ljung_box", "series/acf"],
+        "se_falhar": "Tire o `resto` com `series/component` e passe no `series/ljung_box`. Com autocorrelação, leia os p-valores como indicativos; regressão com erro ARMA (mínimos quadrados generalizados) ainda sem bloco no trama. Os testes não paramétricos (`series/mann_kendall`, `series/kruskal_wallis`) também supõem independência, então não resolvem."
+      },
+      {
+        "texto": "Os erros são **normais e de variância constante**: o F é exato só assim.",
+        "verificar": ["series/component", "view/qq", "models/shapiro"],
+        "se_falhar": "O `resto` do `series/component` vira tabela no fio (coluna `valor`). Variância que cresce com o nível: ajuste no log (`series/transform`). Sem normalidade: `series/mann_kendall` (tendência) ou `series/kruskal_wallis` (sazonalidade)."
+      },
+      {
+        "texto": "A tendência é um **polinômio** do grau escolhido e a sazonalidade é **fixa** (o mesmo efeito para cada estação em todos os ciclos). Tendência que muda de forma, ou sazonalidade que evolui, sobra no resto.",
+        "verificar": ["series/plot_decomposition", "series/seasonal_plot"],
+        "se_falhar": "Sazonalidade que muda com os anos: `series/stl` (sem p-valor) ou diferença sazonal (`series/diff`)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "summary.lm",
+        "versao": "4.6.0",
+        "nota": "O F do `summary()` do ajuste do `series/regression`; p-valor por `stats::pf`."
+      }
+    ]
+  },
+  "series/f_sazonal": {
+    "pressupostos": [
+      {
+        "texto": "Os erros da regressão são **independentes** (sem autocorrelação). Série temporal quase nunca obedece, e o efeito é conhecido: erros-padrão pequenos demais e p-valores **otimistas**.",
+        "verificar": ["series/component", "series/ljung_box", "series/acf"],
+        "se_falhar": "Tire o `resto` com `series/component` e passe no `series/ljung_box`. Com autocorrelação, leia os p-valores como indicativos; regressão com erro ARMA (mínimos quadrados generalizados) ainda sem bloco no trama. Os testes não paramétricos (`series/mann_kendall`, `series/kruskal_wallis`) também supõem independência, então não resolvem."
+      },
+      {
+        "texto": "Os erros são **normais e de variância constante**: o F é exato só assim.",
+        "verificar": ["series/component", "view/qq", "models/shapiro"],
+        "se_falhar": "O `resto` do `series/component` vira tabela no fio (coluna `valor`). Variância que cresce com o nível: ajuste no log (`series/transform`). Sem normalidade: `series/mann_kendall` (tendência) ou `series/kruskal_wallis` (sazonalidade)."
+      },
+      {
+        "texto": "A sazonalidade é **determinística**: o mesmo efeito por estação em todo ciclo. Sazonalidade estocástica (que muda de ano para ano) não é o que as dummies medem.",
+        "verificar": ["series/seasonal_plot", "series/subseries"],
+        "se_falhar": "Diferença sazonal (`series/diff`) e um modelo com parte sazonal (`series/arima`)."
+      },
+      {
+        "texto": "A tendência está **bem modelada** pelo polinômio: tendência sobrando no erro infla a variância residual e esconde a sazonalidade.",
+        "verificar": ["series/plot_decomposition"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "anova",
+        "versao": "4.6.0",
+        "nota": "F parcial: `anova(lm(sem as dummies), ajuste)`, reajustado a partir de `fit$model`."
+      }
+    ]
+  },
+  "series/f_tendencia": {
+    "pressupostos": [
+      {
+        "texto": "Os erros da regressão são **independentes** (sem autocorrelação). Série temporal quase nunca obedece, e o efeito é conhecido: erros-padrão pequenos demais e p-valores **otimistas**.",
+        "verificar": ["series/component", "series/ljung_box", "series/acf"],
+        "se_falhar": "Tire o `resto` com `series/component` e passe no `series/ljung_box`. Com autocorrelação, leia os p-valores como indicativos; regressão com erro ARMA (mínimos quadrados generalizados) ainda sem bloco no trama. Os testes não paramétricos (`series/mann_kendall`, `series/kruskal_wallis`) também supõem independência, então não resolvem."
+      },
+      {
+        "texto": "Os erros são **normais e de variância constante**: o F é exato só assim.",
+        "verificar": ["series/component", "view/qq", "models/shapiro"],
+        "se_falhar": "O `resto` do `series/component` vira tabela no fio (coluna `valor`). Variância que cresce com o nível: ajuste no log (`series/transform`). Sem normalidade: `series/mann_kendall` (tendência) ou `series/kruskal_wallis` (sazonalidade)."
+      },
+      {
+        "texto": "A tendência é **determinística** (um polinômio no tempo). Uma série com raiz unitária — passeio aleatório — produz tendência aparente e F significativo sem tendência nenhuma (regressão espúria).",
+        "verificar": ["series/adf", "series/kpss"],
+        "se_falhar": "Com raiz unitária, diferencie (`series/diff`) e modele a série diferenciada."
+      },
+      {
+        "texto": "A sazonalidade, se existe, está **no modelo**: sazonalidade sobrando no erro infla a variância residual.",
+        "verificar": ["series/f_sazonal"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "anova",
+        "versao": "4.6.0",
+        "nota": "F parcial: `anova(lm(sem os termos t...t^grau), ajuste)`, reajustado a partir de `fit$model`."
+      }
+    ]
+  },
+  "series/fisher": {
+    "pressupostos": [
+      {
+        "texto": "Sob H0 a série é **ruído branco gaussiano** (independente, normal, variância constante) em torno de uma reta: é daí que sai a distribuição de g.",
+        "verificar": ["series/acf", "series/ljung_box"],
+        "se_falhar": "Autocorrelação sem ciclo (um AR, por exemplo) já concentra potência nas frequências baixas e faz o teste rejeitar: leia o período do pico."
+      },
+      {
+        "texto": "A tendência é **no máximo linear** (o periodograma remove uma reta). Tendência curva ou estrutura de baixa frequência vira um pico no período da série inteira.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Diferencie antes (`series/diff`) e desconfie de pico que não se repete (a `nota` avisa)."
+      },
+      {
+        "texto": "A periodicidade cai **na grade de Fourier** (período N/j) e há **uma** dominante: o teste olha só o maior pico.",
+        "verificar": ["series/acf", "series/seasonal_plot"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Fisher, R. A."],
+        "ano": 1929,
+        "titulo": "Tests of significance in harmonic analysis",
+        "fonte": "Proceedings of the Royal Society of London. Series A, 125(796), 54-59",
+        "doi": "10.1098/rspa.1929.0151"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.series",
+        "funcao": "tr_series_fisher",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio sobre `stats::spec.pgram(taper = 0, detrend = TRUE, fast = FALSE)`: g = maior ordenada / soma, p pelo primeiro termo da série exata de Fisher (conservador), zα publicado como crítico a 5%."
+      }
+    ]
+  },
+  "series/forecast": {
+    "pressupostos": [
+      {
+        "texto": "O modelo ajustado é **adequado**: resíduos sem autocorrelação. O intervalo supõe que o que sobrou é ruído.",
+        "verificar": ["series/residuals", "series/ljung_box"],
+        "se_falhar": "Refaça o modelo (ordem do ARIMA, família) antes de ler o leque."
+      },
+      {
+        "texto": "Os resíduos são **normais e de variância constante**: os limites de 80% e 95% são quantis normais.",
+        "verificar": ["series/residuals", "view/qq", "models/shapiro"],
+        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Intervalos por bootstrap ainda sem bloco no trama."
+      },
+      {
+        "texto": "O **futuro segue a mesma dinâmica** do passado usado no ajuste: nenhuma quebra, intervenção ou mudança de regime no horizonte. Quanto maior o horizonte, mais essa suposição pesa.",
+        "se_falhar": "Não há teste possível para o futuro; encurte o horizonte e compare com o `series/baseline` num período de teste (`series/window` + `series/accuracy`)."
+      },
+      {
+        "texto": "O intervalo trata os **parâmetros estimados como conhecidos**: no ARIMA e no ETS a incerteza da estimação não entra, e o leque sai um pouco estreito em série curta."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Box, G. E. P.", "Jenkins, G. M.", "Reinsel, G. C.", "Ljung, G. M."],
+        "ano": 2015,
+        "titulo": "Time Series Analysis: Forecasting and Control",
+        "fonte": "5. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "forecast",
+        "funcao": "forecast",
+        "versao": "9.0.2",
+        "nota": "`h` = horizonte, `level = c(80, 95)` fixos. Série transformada antes é prevista na escala transformada."
+      }
+    ]
+  },
+  "series/holt_winters": {
+    "pressupostos": [
+      {
+        "texto": "A série tem **nível, tendência localmente linear e sazonalidade de ciclo fixo** (as chaves ligadas), que mudam devagar: é o que três equações de suavização conseguem acompanhar.",
+        "verificar": ["series/plot", "series/seasonal_plot"]
+      },
+      {
+        "texto": "Na sazonalidade **multiplicativa**, a amplitude da oscilação é **proporcional ao nível**; na aditiva, constante.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Troque o tipo, ou use `series/transform` (log) e a aditiva."
+      },
+      {
+        "texto": "Os erros de previsão de um passo são **ruído branco**: sem autocorrelação sobrando. Autocorrelação nos resíduos quer dizer estrutura que o modelo deixou para trás, e intervalos estreitos demais.",
+        "verificar": ["series/residuals", "series/ljung_box", "series/acf"],
+        "se_falhar": "Ligue `series/residuals` → `series/ljung_box` (com `graus` = parâmetros estimados). Se rejeitar, mude a ordem do `series/arima` (veja a `series/acf` e a `series/pacf` dos resíduos) ou troque de família (`series/ets`)."
+      },
+      {
+        "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
+        "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Holt, C. C."],
+        "ano": 2004,
+        "titulo": "Forecasting seasonals and trends by exponentially weighted moving averages",
+        "fonte": "International Journal of Forecasting, 20(1), 5-10 (reedição do memorando de 1957)",
+        "doi": "10.1016/j.ijforecast.2003.09.015"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Winters, P. R."],
+        "ano": 1960,
+        "titulo": "Forecasting sales by exponentially weighted moving averages",
+        "fonte": "Management Science, 6(3), 324-342",
+        "doi": "10.1287/mnsc.6.3.324"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "HoltWinters",
+        "versao": "4.6.0",
+        "nota": "α, β e γ minimizam a soma dos quadrados dos erros de um passo (`optim`); `beta = FALSE` e `gamma = FALSE` desligam tendência e sazonalidade. Sem verossimilhança: não há AIC."
+      }
+    ]
+  },
+  "series/kpss": {
+    "pressupostos": [
+      {
+        "texto": "Sob H0 a série é **estacionária em torno de um nível** (ou de uma reta, com `tendência`) mais um erro de **dependência curta**, que a variância de longo prazo corrige com a janela de defasagens.",
+        "verificar": ["series/acf"],
+        "se_falhar": "Autocorrelação forte e persistente em série estacionária faz o KPSS rejeitar demais; confira com o `series/adf`."
+      },
+      {
+        "texto": "Os **termos determinísticos** escolhidos (constante, ou constante e tendência) são os da série: sem a tendência quando ela existe, o teste confunde tendência com raiz unitária; com tendência sobrando, perde poder.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Série que sobe ou desce de forma regular: `tendência`. Série que oscila em torno de um nível: `constante`."
+      },
+      {
+        "texto": "A série **não tem quebra estrutural** (mudança de nível ou de inclinação). Com quebra, os testes de raiz unitária tendem a NÃO rejeitar, e o KPSS a rejeitar, mesmo com a série estacionária dos dois lados.",
+        "verificar": ["series/plot", "series/pettitt"],
+        "se_falhar": "`series/zivot_andrews`, que admite uma quebra e a estima."
+      },
+      {
+        "texto": "Série **longa o bastante**: com poucas observações o teste tem pouco poder, e \"não rejeita\" não é evidência a favor de H0.",
+        "se_falhar": "Leia junto com o teste de hipótese nula oposta (`series/adf` × `series/kpss`); se discordarem, diferenciar é o lado seguro."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kwiatkowski, D.", "Phillips, P. C. B.", "Schmidt, P.", "Shin, Y."],
+        "ano": 1992,
+        "titulo": "Testing the null hypothesis of stationarity against the alternative of a unit root: how sure are we that economic time series have a unit root?",
+        "fonte": "Journal of Econometrics, 54(1-3), 159-178",
+        "doi": "10.1016/0304-4076(92)90104-Y"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "urca",
+        "funcao": "ur.kpss",
+        "versao": "1.3.4",
+        "nota": "`type = \"mu\"` (constante) ou `\"tau\"` (tendência), `lags = \"short\"` (janela trunc(4·(n/100)^(1/4))). Decide pela tabela de críticos; sem p-valor."
+      }
+    ]
+  },
+  "series/kruskal_wallis": {
+    "pressupostos": [
+      {
+        "texto": "A série **não tem tendência**: com tendência os postos altos ficam todos nos anos finais, espalhados por todas as estações, e a sazonalidade some do teste.",
+        "verificar": ["series/plot", "series/mann_kendall"],
+        "se_falhar": "Tire a tendência antes com `series/diff` (o log de `series/transform` não muda nada: o teste é de postos)."
+      },
+      {
+        "texto": "Sob H0 as observações são **independentes** (sem autocorrelação). A autocorrelação dentro de cada estação (o janeiro de um ano parecido com o do seguinte) torna o p-valor otimista.",
+        "verificar": ["series/acf", "series/ljung_box"],
+        "se_falhar": "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Versões para dado autocorrelacionado (Mann-Kendall modificado, pré-branqueamento) ainda sem bloco no trama: leia o p-valor como otimista."
+      },
+      {
+        "texto": "A sazonalidade é **determinística** (o mesmo padrão em todo ciclo) e o **ciclo declarado** é o verdadeiro.",
+        "verificar": ["series/seasonal_plot", "series/subseries", "series/fisher"],
+        "se_falhar": "Sazonalidade que muda de ano para ano: diferença sazonal (`series/diff`)."
+      },
+      {
+        "texto": "Pelo menos **três ciclos**; o H segue o qui-quadrado aproximado com estações − 1 graus de liberdade."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kruskal, W. H.", "Wallis, W. A."],
+        "ano": 1952,
+        "titulo": "Use of ranks in one-criterion variance analysis",
+        "fonte": "Journal of the American Statistical Association, 47(260), 583-621",
+        "doi": "10.1080/01621459.1952.10483441"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "kruskal.test",
+        "versao": "4.6.0",
+        "nota": "Valores da série agrupados pela estação (`cycle()`); p-valor pelo qui-quadrado, com correção de empates."
+      }
+    ]
+  },
+  "series/ljung_box": {
+    "pressupostos": [
+      {
+        "texto": "A série testada é **estacionária** (média e variância constantes): numa série com tendência ou raiz unitária as autocorrelações amostrais ficam altas por construção, e o teste rejeita sem dizer nada sobre ruído.",
+        "verificar": ["series/plot", "series/kpss"],
+        "se_falhar": "Teste os resíduos de um modelo (`series/residuals`) ou a série diferenciada (`series/diff`)."
+      },
+      {
+        "texto": "Nos **resíduos de um modelo**, `graus` é o número de parâmetros ARMA estimados (p + q + P + Q): sem o desconto o qui-quadrado tem graus demais e o teste aceita ruído branco onde há estrutura. A contagem é manual, lida nos coeficientes do card do modelo.",
+        "verificar": ["series/residuals"]
+      },
+      {
+        "texto": "As **defasagens** cobrem a dependência que importa (dois ciclos, na série sazonal); dependência além da última defasagem o teste não olha.",
+        "verificar": ["series/acf"]
+      },
+      {
+        "texto": "A distribuição qui-quadrado de Q é **assintótica**. A correção do Ljung-Box aproxima bem já em amostras moderadas; o bloco pede pelo menos 12 observações válidas."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Ljung, G. M.", "Box, G. E. P."],
+        "ano": 1978,
+        "titulo": "On a measure of lack of fit in time series models",
+        "fonte": "Biometrika, 65(2), 297-303",
+        "doi": "10.1093/biomet/65.2.297"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Box, G. E. P.", "Jenkins, G. M.", "Reinsel, G. C.", "Ljung, G. M."],
+        "ano": 2015,
+        "titulo": "Time Series Analysis: Forecasting and Control",
+        "fonte": "5. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "Box.test",
+        "versao": "4.6.0",
+        "nota": "`type = \"Ljung-Box\"`, `lag` = defasagens (0 = regra de Hyndman: 10, ou dois ciclos, até n/5), `fitdf` = graus. Faltantes ignorados na autocorrelação."
+      }
+    ]
+  },
+  "series/mann_kendall": {
+    "pressupostos": [
+      {
+        "texto": "Sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva, comum em série ambiental, faz o teste rejeitar bem mais que o nível nominal.",
+        "verificar": ["series/acf", "series/ljung_box"],
+        "se_falhar": "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Versões para dado autocorrelacionado (Mann-Kendall modificado, pré-branqueamento) ainda sem bloco no trama: leia o p-valor como otimista."
+      },
+      {
+        "texto": "A tendência procurada é **monótona** (um sentido só). Uma série que sobe e depois desce pode sair sem tendência nenhuma.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Separe os trechos (`series/window`) ou procure o ponto de mudança com o `series/pettitt`."
+      },
+      {
+        "texto": "A variável é **contínua**: empates são raros. Os empatados saem da conta (ou corrigem a variância), e com muitos o teste perde informação."
+      },
+      {
+        "texto": "Pelo menos **10** observações para a aproximação normal de S."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Mann, H. B."],
+        "ano": 1945,
+        "titulo": "Nonparametric tests against trend",
+        "fonte": "Econometrica, 13(3), 245-259",
+        "doi": "10.2307/1907187"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Hamed, K. H.", "Rao, A. R."],
+        "ano": 1998,
+        "titulo": "A modified Mann-Kendall trend test for autocorrelated data",
+        "fonte": "Journal of Hydrology, 204(1-4), 182-196",
+        "doi": "10.1016/S0022-1694(97)00125-X"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.series",
+        "funcao": "tr_series_mann_kendall",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral."
+      }
+    ]
+  },
+  "series/pettitt": {
+    "pressupostos": [
+      {
+        "texto": "Sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva imita ponto de mudança e faz o teste rejeitar demais.",
+        "verificar": ["series/acf", "series/ljung_box"],
+        "se_falhar": "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Versões para dado autocorrelacionado (Mann-Kendall modificado, pré-branqueamento) ainda sem bloco no trama: leia o p-valor como otimista."
+      },
+      {
+        "texto": "Há **no máximo um** ponto de mudança, de **locação** (a distribuição antes e depois difere no nível). Várias mudanças, ou uma tendência gradual, também rejeitam, e a posição apontada não é então uma quebra.",
+        "verificar": ["series/plot", "series/mann_kendall"],
+        "se_falhar": "Analise os trechos em separado (`series/window`)."
+      },
+      {
+        "texto": "A variável é **contínua**: empates são raros. Os empatados saem da conta (ou corrigem a variância), e com muitos o teste perde informação."
+      },
+      {
+        "texto": "O p-valor é **aproximado** (e conservador); o bloco pede pelo menos 11 observações."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Pettitt, A. N."],
+        "ano": 1979,
+        "titulo": "A non-parametric approach to the change-point problem",
+        "fonte": "Journal of the Royal Statistical Society. Series C (Applied Statistics), 28(2), 126-135",
+        "doi": "10.2307/2346729"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.series",
+        "funcao": "tr_series_pettitt",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: U_t acumulado de Mann-Whitney, K = max|U_t|, p ≈ 2·exp(−6K²/(n³ + n²)) limitado a 1."
+      }
+    ]
+  },
+  "series/phillips_perron": {
+    "pressupostos": [
+      {
+        "texto": "A série é **estacionária em torno de uma reta** sob a alternativa: o teste roda sempre com constante e tendência, sem opção.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Para série sem tendência, o `series/adf` com `constante` tem mais poder."
+      },
+      {
+        "texto": "A autocorrelação do erro é de **dependência curta**, corrigida de forma não paramétrica (Newey-West com janela curta). Com componente MA forte e negativo o teste rejeita demais.",
+        "verificar": ["series/acf"],
+        "se_falhar": "Confira com o `series/adf` e o `series/kpss`."
+      },
+      {
+        "texto": "A série **não tem quebra estrutural** (mudança de nível ou de inclinação). Com quebra, os testes de raiz unitária tendem a NÃO rejeitar, e o KPSS a rejeitar, mesmo com a série estacionária dos dois lados.",
+        "verificar": ["series/plot", "series/pettitt"],
+        "se_falhar": "`series/zivot_andrews`, que admite uma quebra e a estima."
+      },
+      {
+        "texto": "Série **longa o bastante**: com poucas observações o teste tem pouco poder, e \"não rejeita\" não é evidência a favor de H0.",
+        "se_falhar": "Leia junto com o teste de hipótese nula oposta (`series/adf` × `series/kpss`); se discordarem, diferenciar é o lado seguro."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Phillips, P. C. B.", "Perron, P."],
+        "ano": 1988,
+        "titulo": "Testing for a unit root in time series regression",
+        "fonte": "Biometrika, 75(2), 335-346",
+        "doi": "10.1093/biomet/75.2.335"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "PP.test",
+        "versao": "4.6.0",
+        "nota": "Estatística Z(t) com constante e tendência, `lshort = TRUE`; p-valor interpolado numa tabela e preso em [0,01; 0,99]."
+      }
+    ]
+  },
+  "series/regression": {
+    "pressupostos": [
+      {
+        "texto": "A tendência é um **polinômio** do grau escolhido e a sazonalidade é **fixa** (o mesmo efeito para cada estação em todos os ciclos). Tendência que muda de forma, ou sazonalidade que evolui, sobra no resto.",
+        "verificar": ["series/plot_decomposition", "series/seasonal_plot"],
+        "se_falhar": "Sazonalidade que muda com os anos: `series/stl` (sem p-valor) ou diferença sazonal (`series/diff`)."
+      },
+      {
+        "texto": "Os erros da regressão são **independentes** (sem autocorrelação). Série temporal quase nunca obedece, e o efeito é conhecido: erros-padrão pequenos demais e p-valores **otimistas**.",
+        "verificar": ["series/component", "series/ljung_box", "series/acf"],
+        "se_falhar": "Tire o `resto` com `series/component` e passe no `series/ljung_box`. Com autocorrelação, leia os p-valores como indicativos; regressão com erro ARMA (mínimos quadrados generalizados) ainda sem bloco no trama. Os testes não paramétricos (`series/mann_kendall`, `series/kruskal_wallis`) também supõem independência, então não resolvem."
+      },
+      {
+        "texto": "Os erros são **normais e de variância constante**: o F é exato só assim.",
+        "verificar": ["series/component", "view/qq", "models/shapiro"],
+        "se_falhar": "O `resto` do `series/component` vira tabela no fio (coluna `valor`). Variância que cresce com o nível: ajuste no log (`series/transform`). Sem normalidade: `series/mann_kendall` (tendência) ou `series/kruskal_wallis` (sazonalidade)."
+      },
+      {
+        "texto": "Do grau 2 em diante, as potências cruas do tempo são **quase colineares**: os coeficientes de tendência não se leem um a um.",
+        "se_falhar": "Leia a tendência pelo `series/f_tendencia`, que testa o bloco inteiro."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "lm",
+        "versao": "4.6.0",
+        "nota": "Mínimos quadrados ordinários de `y ~ t + ... + t^grau + estacao`; o contraste da estação é `contr.sum` (soma_zero) ou `contr.treatment` (categoria_base), posto no fator."
+      }
+    ]
+  },
+  "series/runs": {
+    "pressupostos": [
+      {
+        "texto": "O que se testa é a **aleatoriedade** da ordem: rejeitar não diz qual é a causa (tendência, mudança de nível, ciclo, agrupamento).",
+        "verificar": ["series/plot"],
+        "se_falhar": "Para afirmar tendência, `series/mann_kendall`; para mudança de nível, `series/pettitt`."
+      },
+      {
+        "texto": "A variável é **contínua**: empates são raros. Os empatados saem da conta (ou corrigem a variância), e com muitos o teste perde informação."
+      },
+      {
+        "texto": "Pelo menos **20 observações de cada lado** da mediana, para a aproximação normal do número de sequências (o bloco pede 40)."
+      },
+      {
+        "texto": "É o teste de **menor poder** entre os de tendência: um \"não rejeita\" sozinho é evidência fraca.",
+        "se_falhar": "Rode ao lado o `series/mann_kendall`."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Wald, A.", "Wolfowitz, J."],
+        "ano": 1940,
+        "titulo": "On a test whether two samples are from the same population",
+        "fonte": "The Annals of Mathematical Statistics, 11(2), 147-162",
+        "doi": "10.1214/aoms/1177731909"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.series",
+        "funcao": "tr_series_runs",
+        "versao": "0.1.0",
+        "nota": "Cálculo próprio: símbolos acima/abaixo da mediana (iguais à mediana fora da conta), Z pela média e variância do número de sequências, p-valor normal bilateral, sem correção de continuidade."
+      }
+    ]
+  },
+  "series/stl": {
+    "pressupostos": [
+      {
+        "texto": "A série é **soma** de tendência, sazonal e resto: a STL é só aditiva.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Para sazonalidade multiplicativa, decomponha o log (`series/transform`)."
+      },
+      {
+        "texto": "Tendência e sazonalidade **mudam devagar** (são suavizadas por loess); a janela sazonal escolhida diz o quão devagar.",
+        "verificar": ["series/plot_decomposition"],
+        "se_falhar": "Se o resto ainda mostra o ciclo, diminua a janela sazonal; se a sazonal fica ruidosa, aumente."
+      },
+      {
+        "texto": "Outliers, sem **Robusta**, entram na estimação e puxam tendência e sazonal.",
+        "se_falhar": "Ligue **Robusta**."
+      },
+      {
+        "texto": "O **ciclo declarado** (a frequência da série) é o período sazonal verdadeiro, e a série tem **pelo menos dois ciclos** completos.",
+        "verificar": ["series/seasonal_plot", "series/subseries", "series/fisher"],
+        "se_falhar": "Declare a frequência certa no nó que cria a série (`series/from_table`)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Cleveland, R. B.", "Cleveland, W. S.", "McRae, J. E.", "Terpenning, I."],
+        "ano": 1990,
+        "titulo": "STL: a seasonal-trend decomposition procedure based on loess",
+        "fonte": "Journal of Official Statistics, 6(1), 3-73"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "stl",
+        "versao": "4.6.0",
+        "nota": "`s.window = \"periodic\"` quando a janela é 0, senão o número dado; `robust` = **Robusta**."
+      }
+    ]
+  },
+  "series/zivot_andrews": {
+    "pressupostos": [
+      {
+        "texto": "Há **no máximo uma** quebra, do tipo escolhido em **O que quebra** (nível, inclinação ou ambas). Duas quebras, ou o tipo errado, e o teste não a enxerga.",
+        "verificar": ["series/plot", "series/pettitt"],
+        "se_falhar": "Na dúvida, `ambas`. Testes com duas quebras ainda sem bloco no trama."
+      },
+      {
+        "texto": "A quebra está **longe das pontas** (entre 15% e 85% da série), e sob H0 a série tem raiz unitária **sem** quebra.",
+        "verificar": ["series/plot"]
+      },
+      {
+        "texto": "As **defasagens** bastam para deixar o erro da regressão sem autocorrelação. Aqui o número é fixo (não há escolha por AIC).",
+        "verificar": ["series/pacf"],
+        "se_falhar": "Aumente **Defasagens** (o bloco diz o máximo que cabe)."
+      },
+      {
+        "texto": "Série de **pelo menos 20** observações, e de preferência 40 ou mais: abaixo disso o teste rejeita mais que o nível nominal."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Zivot, E.", "Andrews, D. W. K."],
+        "ano": 1992,
+        "titulo": "Further evidence on the great crash, the oil-price shock, and the unit-root hypothesis",
+        "fonte": "Journal of Business & Economic Statistics, 10(3), 251-270",
+        "doi": "10.1080/07350015.1992.10509904"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "urca",
+        "funcao": "ur.za",
+        "versao": "1.3.4",
+        "nota": "`model = \"intercept\"`, `\"trend\"` ou `\"both\"`, `lag` fixo (0 = trunc((n - 1)^(1/3))). A coleção refaz o mínimo do t só nos cortes entre 15% e 85% da série e usa os críticos de `z@cval`."
       }
     ]
   }
