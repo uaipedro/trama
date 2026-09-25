@@ -87,14 +87,14 @@
 #' @param media média esperada (só para erro relativo, sem piloto).
 #' @param erro margem de erro: na unidade da variável, ou % da média.
 #' @param tipo_erro `"absoluto"` ou `"relativo"`.
-#' @param confianca `"90%"`, `"95%"` ou `"99%"`.
+#' @param confianca nível de confiança, entre 0,5 e 0,999 (0,95 = 95%).
 #' @param populacao tamanho da população (0: infinita).
 #' @param deff efeito do desenho esperado (1: AAS).
 #' @param taxa_resposta proporção esperada de respondentes (0 a 1).
 #' @return um plano (`sampling/plan`).
 #' @export
 tr_sampling_size_mean <- function(piloto = NULL, variavel = "", desvio_padrao = 10, media = 0, erro = 1,
-                                  tipo_erro = "absoluto", confianca = "95%", populacao = 0,
+                                  tipo_erro = "absoluto", confianca = 0.95, populacao = 0,
                                   deff = 1, taxa_resposta = 1) {
   cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
   tipo_erro <- .tr_sampling_enum(tipo_erro, c("absoluto", "relativo"), "tipo_erro")
@@ -137,7 +137,7 @@ tr_sampling_size_mean <- function(piloto = NULL, variavel = "", desvio_padrao = 
 #' @param erro margem de erro em pontos de proporção (0,05 = 5 pontos).
 #' @return um plano (`sampling/plan`).
 #' @export
-tr_sampling_size_proportion <- function(proporcao = 0.5, erro = 0.05, confianca = "95%", populacao = 0,
+tr_sampling_size_proportion <- function(proporcao = 0.5, erro = 0.05, confianca = 0.95, populacao = 0,
                                         deff = 1, taxa_resposta = 1) {
   cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 1, aberto_min = TRUE)
@@ -170,7 +170,7 @@ tr_sampling_size_proportion <- function(proporcao = 0.5, erro = 0.05, confianca 
 #' @export
 tr_sampling_size_stratified <- function(estratos, estrato = "", tamanho = "", desvio = "", custo = "",
                                         alocacao = "neyman", erro = 0, n_total = 0L,
-                                        confianca = "95%", taxa_resposta = 1) {
+                                        confianca = 0.95, taxa_resposta = 1) {
   e <- tibble::as_tibble(estratos)
   ce <- .tr_sampling_col(e, estrato, "estrato")
   cN <- .tr_sampling_col(e, tamanho, "tamanho"); .tr_sampling_numerica(e, cN, "tamanho")

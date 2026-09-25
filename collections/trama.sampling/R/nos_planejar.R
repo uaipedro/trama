@@ -60,12 +60,12 @@ coletada; `data/group_summarise` para montar uma tabela de estratos.
 .tr_sampling_nos_planejar <- function() {
   P <- trama::tr_param; E <- trama::tr_param_enum; N <- trama::tr_param_num; I <- trama::tr_param_int
   T <- "data/table"; PL <- "sampling/plan"
-  CONF <- function() E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")
+  CONF <- function() .tr_sampling_param_conf()
   POP <- function() N(0, min = 0, label = "População (0 = infinita)")
   DEFF <- function() N(1, min = 0.01, step = 0.1, label = "Efeito do desenho (deff)")
   RESP <- function() N(1, min = 0.01, max = 1, step = 0.05, label = "Taxa de resposta")
   ajuda_comuns <- r"---[
-- **Confiança** — 90%, 95% ou 99%.
+- **Confiança** — número entre 0,5 e 0,999 (0,95 = 95%).
 - **População** — o N. Em 0, população infinita (sem correção finita); a
   correção só pesa quando a amostra passa de uns 5% da população.
 - **Efeito do desenho (deff)** — quanto o desenho infla a variância em relação

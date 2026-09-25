@@ -14,12 +14,12 @@
 #' @param variavel coluna numérica da população.
 #' @param estimador `"média"` ou `"total"`.
 #' @param repeticoes quantas amostras sortear.
-#' @param confianca `"90%"`, `"95%"` ou `"99%"`.
+#' @param confianca nível de confiança, entre 0,5 e 0,999 (0,95 = 95%).
 #' @param .seed semente (do núcleo).
 #' @return uma simulação (`sampling/simulation`).
 #' @export
 tr_sampling_simulate <- function(amostra, variavel = "", estimador = "média", repeticoes = 500L,
-                                 confianca = "95%", .seed = 1L) {
+                                 confianca = 0.95, .seed = 1L) {
   .tr_sampling_amostra_conferir(amostra)
   estimador <- .tr_sampling_enum(estimador, c("média", "total"), "estimador")
   R <- as.integer(.tr_sampling_num(repeticoes, "repeticoes", 20, 10000))

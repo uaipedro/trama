@@ -31,7 +31,7 @@ test_that("erro relativo usa a média, e o piloto dá o desvio e a média", {
 test_that("recusas de faixa no tamanho", {
   expect_error(tr_sampling_size_proportion(proporcao = 1), class = "tr_sampling_error_bad_option")
   expect_error(tr_sampling_size_proportion(erro = 0), class = "tr_sampling_error_bad_option")
-  expect_error(tr_sampling_size_mean(confianca = "94%"), class = "tr_sampling_error_bad_option")
+  expect_error(tr_sampling_size_mean(confianca = 0.3), class = "tr_sampling_error_bad_option")
   expect_error(tr_sampling_size_mean(taxa_resposta = 0), class = "tr_sampling_error_bad_option")
 })
 

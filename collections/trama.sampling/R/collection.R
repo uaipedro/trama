@@ -14,6 +14,15 @@
 #' coleção que usasse o mesmo id.
 #' @export
 trama_collection <- function() {
+  nos <- c(.tr_sampling_nos_fonte(), .tr_sampling_nos_planejar(), .tr_sampling_nos_domains(), .tr_sampling_nos_precisao(), .tr_sampling_nos_perguntas(),
+           .tr_sampling_nos_selecionar(), .tr_sampling_nos_desenho(), .tr_sampling_nos_rake(), .tr_sampling_nos_estimar(), .tr_sampling_nos_avaliar())
+  # A confiança era string ("95%") e virou número: converte no lugar todo nó
+  # que tem o param. `when = is.character` deixa intacto o fluxo já migrado.
+  conf <- list(confianca = list(to = "confianca", when = is.character,
+                                value = function(v) as.numeric(sub("%", "", v, fixed = TRUE)) / 100))
+  com_conf <- Filter(function(nd) "confianca" %in% names(nd$params), nos)
+  params <- stats::setNames(rep(list(conf), length(com_conf)), vapply(com_conf, function(nd) nd$id, ""))
+  params[["sampling/size_mean"]] <- c(params[["sampling/size_mean"]], list(coluna = list(to = "variavel")))
   trama::tr_collection(
     id = "sampling", version = "0.1.0", label = "Amostragem",
     js = "trama/index.js", css = "trama/sampling.css",
@@ -33,12 +42,9 @@ trama_collection <- function() {
       trama::tr_category("amostra_estimar",    "Estimar", role = "ajuste"),
       trama::tr_category("amostra_avaliar",    "Avaliar", role = "avaliacao")
     ),
-    nodes = c(.tr_sampling_nos_fonte(), .tr_sampling_nos_planejar(), .tr_sampling_nos_domains(), .tr_sampling_nos_precisao(), .tr_sampling_nos_perguntas(),
-              .tr_sampling_nos_selecionar(), .tr_sampling_nos_desenho(), .tr_sampling_nos_rake(), .tr_sampling_nos_estimar(), .tr_sampling_nos_avaliar()),
+    nodes = nos,
     # Glossário de params (docs/glossario-parametros.md): fluxos salvos com o
     # nome antigo abrem já migrados.
-    migrations = list(params = list(
-      "sampling/size_mean" = list(coluna = list(to = "variavel"))
-    ))
+    migrations = list(params = params)
   )
 }

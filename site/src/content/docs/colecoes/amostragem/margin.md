@@ -41,7 +41,7 @@ tr_use("trama.sampling", registry = reg)
 
 tr_flow(reg) |>
   tr_add("margem", "sampling/margin", n = 400L, proporcao = 0.5,
-         confianca = "95%", populacao = 5000, deff = 1.2)
+         confianca = 0.95, populacao = 5000, deff = 1.2)
 ```
 
 ## Como interpretar

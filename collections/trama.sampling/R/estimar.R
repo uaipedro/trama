@@ -62,10 +62,10 @@
 #' @param amostra uma amostra (`sampling/sample`).
 #' @param variavel coluna numérica.
 #' @param por coluna dos domínios (em branco: a população toda).
-#' @param confianca `"90%"`, `"95%"` ou `"99%"`.
+#' @param confianca nível de confiança, entre 0,5 e 0,999 (0,95 = 95%).
 #' @return uma estimativa (`sampling/estimate`).
 #' @export
-tr_sampling_mean <- function(amostra, variavel = "", por = "", confianca = "95%") {
+tr_sampling_mean <- function(amostra, variavel = "", por = "", confianca = 0.95) {
   .tr_sampling_media_ou_total(amostra, variavel, por, confianca, "media")
 }
 
@@ -73,7 +73,7 @@ tr_sampling_mean <- function(amostra, variavel = "", por = "", confianca = "95%"
 #' @inheritParams tr_sampling_mean
 #' @return uma estimativa (`sampling/estimate`).
 #' @export
-tr_sampling_total <- function(amostra, variavel = "", por = "", confianca = "95%") {
+tr_sampling_total <- function(amostra, variavel = "", por = "", confianca = 0.95) {
   .tr_sampling_media_ou_total(amostra, variavel, por, confianca, "total")
 }
 
@@ -83,7 +83,7 @@ tr_sampling_total <- function(amostra, variavel = "", por = "", confianca = "95%
 #' @param nivel a categoria (em branco: todas).
 #' @return uma estimativa (`sampling/estimate`).
 #' @export
-tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "", confianca = "95%") {
+tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "", confianca = 0.95) {
   conf <- .tr_sampling_conf(confianca)
   l <- .tr_sampling_ler(amostra, variavel, por, numerica = FALSE)
   x <- as.character(l$d[[l$v]])
@@ -121,7 +121,7 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
 #' @param numerador,denominador colunas numéricas.
 #' @return uma estimativa (`sampling/estimate`).
 #' @export
-tr_sampling_ratio <- function(amostra, numerador = "", denominador = "", por = "", confianca = "95%") {
+tr_sampling_ratio <- function(amostra, numerador = "", denominador = "", por = "", confianca = 0.95) {
   conf <- .tr_sampling_conf(confianca)
   l <- .tr_sampling_ler(amostra, numerador, por, param = "numerador")
   den <- .tr_sampling_col(l$d, denominador, "denominador")

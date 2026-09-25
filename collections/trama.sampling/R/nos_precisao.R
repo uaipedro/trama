@@ -4,7 +4,7 @@
 .tr_sampling_nos_precisao <- function() {
   P <- trama::tr_param; E <- trama::tr_param_enum; N <- trama::tr_param_num
   T <- "data/table"; PL <- "sampling/plan"
-  CONF <- function() E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")
+  CONF <- function() .tr_sampling_param_conf()
   PROP <- function() N(0.5, min = 0.01, max = 0.99, step = 0.05, label = "Proporção esperada")
   unidades_params <- function() list(
     unidade = P("cols", "", label = "Unidade", example = "escola"),
@@ -19,7 +19,7 @@
 - **Níveis intermediários** — colunas de agrupamento, separadas por vírgula
   (a região, a rede). Em branco, só o total e as unidades.
 - **Proporção esperada** — p; 0,5 é o pior caso e vale para qualquer pergunta.
-- **Confiança** — 90%, 95% ou 99%.
+- **Confiança** — número entre 0,5 e 0,999 (0,95 = 95%).
 ]---"
   ajuda_tabela_margens <- r"---[
 Uma tabela (`data/table`) com uma linha por nível: `nivel_tipo` (`total`, o
@@ -254,7 +254,7 @@ tr_flow(reg) |>
         opcoes = P("cols", "opcoes", label = "Coluna do nº de opções", example = "opcoes"),
         base = P("cols", "base", label = "Coluna da base", example = "base"),
         nao_resposta = N(0, min = 0, max = 0.9, step = 0.01, label = "Não resposta esperada"),
-        confianca = E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")),
+        confianca = .tr_sampling_param_conf()),
       help = .tr_sampling_ajuda(r"---[
 Cruza o QUESTIONÁRIO com os níveis de uma tabela de margens (de
 `sampling/margin_levels` ou `sampling/referral`) e dá, para cada pergunta em
@@ -307,7 +307,7 @@ relatório.
 - **Coluna da pergunta**, **do tipo**, **do nº de opções**, **da base** —
   colunas da tabela de perguntas (as duas últimas podem ficar em branco).
 - **Não resposta esperada** — fração de "prefiro não responder" nas fechadas.
-- **Confiança** — 90%, 95% ou 99%.
+- **Confiança** — número entre 0,5 e 0,999 (0,95 = 95%).
 ]---", r"---[
 Uma tabela (`data/table`): `pergunta`, `tipo`, `opcoes`, `base`, `nivel_tipo`,
 `nivel`, `n_respondentes`, `deff`, `margem_pp`, `margem_simultanea_pp`,
@@ -342,7 +342,7 @@ célula.
         participacao = P("cols", "", label = "Participação", example = "participacao"),
         erro = N(0.05, min = 0.005, max = 0.5, step = 0.01, label = "Margem em cada grupo"),
         proporcao = N(0.5, min = 0.01, max = 0.99, step = 0.05, label = "Proporção esperada"),
-        confianca = E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança"),
+        confianca = .tr_sampling_param_conf(),
         deff = N(1, min = 0.01, step = 0.1, label = "Efeito do desenho (deff)"),
         taxa_resposta = N(1, min = 0.01, max = 1, step = 0.05, label = "Taxa de resposta"),
         participacao_minima = N(0, min = 0, max = 1, step = 0.01, label = "Ignorar grupos abaixo de")),

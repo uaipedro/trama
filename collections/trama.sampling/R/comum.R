@@ -9,7 +9,6 @@
 .TR_SAMPLING_COR <- "#0891b2"
 .TR_SAMPLING_COR_2 <- "#f59e0b"
 .TR_SAMPLING_CINZA <- "#8b949e"
-.TR_SAMPLING_CONFIANCAS <- c("90%", "95%", "99%")
 
 #' Separa "a, b, c" em nomes, aparando espaços. Vazio vira `character()`.
 #' @noRd
@@ -66,11 +65,30 @@
   col
 }
 
-#' "95%" -> 0,95. A confiança é enum porque 94% não é pergunta de ninguém.
+#' Confere a confiança (número entre 0,5 e 0,999) e a devolve.
+#'
+#' Foi enum ("90%"/"95%"/"99%") e virou número, como no `models/emmeans`: um
+#' mesmo widget de confiança em toda parte. A string com "%" ainda é aceita
+#' porque chamadas em script R escritas antes da troca não devem quebrar; o
+#' documento salvo é migrado pela coleção (`R/collection.R`).
 #' @noRd
 .tr_sampling_conf <- function(confianca, param = "confianca") {
-  confianca <- .tr_sampling_enum(confianca, .TR_SAMPLING_CONFIANCAS, param)
-  as.numeric(sub("%", "", confianca, fixed = TRUE)) / 100
+  if (is.character(confianca) && length(confianca) == 1L && grepl("^\\s*[0-9.]+\\s*%\\s*$", confianca)) {
+    confianca <- as.numeric(sub("%", "", confianca, fixed = TRUE)) / 100
+  }
+  if (!is.numeric(confianca) || length(confianca) != 1L || is.na(confianca) ||
+      confianca < 0.5 || confianca > 0.999) {
+    .tr_sampling_abort("tr_sampling_error_bad_option",
+                       "Param '%s': a confiança é um número entre 0,5 e 0,999 (0,95 = 95%%), e veio '%s'.",
+                       param, paste(format(confianca), collapse = ", "))
+  }
+  confianca
+}
+
+#' O widget da confiança, o mesmo em todo nó (e o do `models/emmeans`).
+#' @noRd
+.tr_sampling_param_conf <- function() {
+  trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")
 }
 
 #' O z bilateral da confiança.

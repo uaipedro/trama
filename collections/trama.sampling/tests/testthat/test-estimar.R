@@ -93,3 +93,23 @@ test_that("o gráfico das estimativas sai, com proporção em %", {
   expect_s3_class(tr_sampling_plot_estimates(tr_sampling_proportion(s, "irrigada", por = "regiao")), "ggplot")
   expect_s3_class(tr_sampling_plot_estimates(tr_sampling_mean(s, "producao_t")), "ggplot")
 })
+
+test_that("confiança numérica: 0.95 dá o mesmo que o antigo \"95%\"", {
+  a <- tr_sampling_srs(ex("fazendas"), n = 200L, .seed = 11L)
+  expect_identical(tr_sampling_mean(a, "producao_t", confianca = 0.95),
+                   tr_sampling_mean(a, "producao_t", confianca = "95%"))
+  expect_identical(tr_sampling_size_mean(confianca = 0.9), tr_sampling_size_mean(confianca = "90%"))
+})
+
+test_that("fluxo salvo com confiança \"95%\" abre migrado para 0.95, e só uma vez", {
+  reg <- sampling_registry()
+  doc <- trama::tr_doc_parse('{"format":1,"nodes":{
+    "m":{"type":"sampling/margin","params":{"confianca":"99%"}},
+    "p":{"type":"sampling/size_mean","params":{"coluna":"x","confianca":"90%"}}},"edges":[]}')
+  doc <- trama::tr_doc_migrate(doc, reg)
+  expect_equal(doc$nodes$m$params$confianca, 0.99)
+  expect_equal(doc$nodes$p$params, list(confianca = 0.9, variavel = "x"), ignore_attr = TRUE)
+  attr(doc, "migrated") <- NULL
+  expect_identical(trama::tr_doc_migrate(doc, reg), doc)
+  expect_length(Filter(function(p) p$kind == "bad_param_value", trama::tr_doc_validate(doc, reg)), 0)
+})

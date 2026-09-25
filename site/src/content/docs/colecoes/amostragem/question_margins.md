@@ -66,7 +66,7 @@ Use para traduzir o plano de amostra em margens para perguntas específicas do q
 - **Coluna da pergunta**, **do tipo**, **do nº de opções**, **da base** —
   colunas da tabela de perguntas (as duas últimas podem ficar em branco).
 - **Não resposta esperada** — fração de "prefiro não responder" nas fechadas.
-- **Confiança** — 90%, 95% ou 99%.
+- **Confiança** — número entre 0,5 e 0,999 (0,95 = 95%).
 
 ## Exemplo
 

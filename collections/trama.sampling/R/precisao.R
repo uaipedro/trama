@@ -38,13 +38,13 @@
 #' Margem de erro para um n dado.
 #' @param n tamanho da amostra (entrevistas previstas).
 #' @param proporcao proporção esperada (0,5 é o pior caso).
-#' @param confianca `"90%"`, `"95%"` ou `"99%"`.
+#' @param confianca nível de confiança, entre 0,5 e 0,999 (0,95 = 95%).
 #' @param populacao tamanho da população (0: infinita).
 #' @param deff efeito do desenho esperado.
 #' @param taxa_resposta fração das entrevistas previstas que vira resposta.
 #' @return um plano (`sampling/plan`) do tipo margem.
 #' @export
-tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = "95%", populacao = 0,
+tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = 0.95, populacao = 0,
                                deff = 1, taxa_resposta = 1) {
   cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
   n <- .tr_sampling_num(n, "n", 2)
@@ -151,7 +151,7 @@ tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = "95%", pop
 #' @return tabela (`data/table`) com uma linha por nível.
 #' @export
 tr_sampling_margin_levels <- function(unidades, unidade = "", tamanho = "", n = "", grupos = "", deff = 1,
-                                      proporcao = 0.5, confianca = "95%") {
+                                      proporcao = 0.5, confianca = 0.95) {
   x <- .tr_sampling_unidades(unidades, unidade, tamanho, n, grupos)
   conf <- .tr_sampling_conf(confianca)
   deff <- .tr_sampling_num(deff, "deff", 0, aberto_min = TRUE)
@@ -168,7 +168,7 @@ tr_sampling_margin_levels <- function(unidades, unidade = "", tamanho = "", n = 
 #' @export
 tr_sampling_referral <- function(unidades, unidade = "", tamanho = "", n = "", grupos = "",
                                  convidados = "0, 1, 2, 3, 5", adesao = 1, icc = "0.05, 0.1, 0.2",
-                                 proporcao = 0.5, confianca = "95%") {
+                                 proporcao = 0.5, confianca = 0.95) {
   x <- .tr_sampling_unidades(unidades, unidade, tamanho, n, grupos)
   conf <- .tr_sampling_conf(confianca)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 0.999, aberto_min = TRUE)
@@ -207,7 +207,7 @@ tr_sampling_referral <- function(unidades, unidade = "", tamanho = "", n = "", g
 #' @return um plano (`sampling/plan`) com o n por grupo.
 #' @export
 tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", participacao = "",
-                                     erro = 0.05, proporcao = 0.5, confianca = "95%", deff = 1,
+                                     erro = 0.05, proporcao = 0.5, confianca = 0.95, deff = 1,
                                      taxa_resposta = 1, participacao_minima = 0) {
   d <- tibble::as_tibble(composicao)
   cv <- .tr_sampling_col(d, variavel, "variavel")
@@ -291,7 +291,7 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
 #' @return tabela (`data/table`) com uma linha por par de grupos.
 #' @export
 tr_sampling_detectable_difference <- function(grupos, variavel = "", grupo = "", tamanho = "", n_total = 0,
-                                              proporcao = 0.5, confianca = "95%", poder = "80%", deff = 1,
+                                              proporcao = 0.5, confianca = 0.95, poder = "80%", deff = 1,
                                               diferenca_relevante = 0.10) {
   d <- tibble::as_tibble(grupos)
   cv <- .tr_sampling_col(d, variavel, "variavel")
@@ -410,7 +410,7 @@ tr_sampling_plot_margins <- function(margens, meta = 5, aspecto = "16:9", tema =
 #' @export
 tr_sampling_question_margins <- function(perguntas, margens, pergunta = "pergunta", tipo = "tipo",
                                          opcoes = "opcoes", base = "base", nao_resposta = 0,
-                                         confianca = "95%") {
+                                         confianca = 0.95) {
   q <- tibble::as_tibble(perguntas)
   m <- tibble::as_tibble(margens)
   cq <- .tr_sampling_col(q, pergunta, "pergunta")

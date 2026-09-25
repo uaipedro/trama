@@ -3,7 +3,7 @@
 .tr_sampling_nos_estimar <- function() {
   P <- trama::tr_param; E <- trama::tr_param_enum
   S <- "sampling/sample"; ES <- "sampling/estimate"
-  CONF <- function() E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")
+  CONF <- function() .tr_sampling_param_conf()
   POR <- function(ex = "regiao") P("cols", "", label = "Por (domínios)", example = ex)
   ajuda_por <- r"---[
 - **Por** — coluna dos domínios: uma estimativa por grupo (região, sexo). O
@@ -11,7 +11,7 @@
   cálculo da variância, com valor zero. Filtrar antes com `data/filter` e
   estimar depois subestima o erro, porque finge que o número de unidades do
   domínio na amostra era fixo.
-- **Confiança** — 90%, 95% ou 99%. O intervalo é t com os graus de liberdade
+- **Confiança** — número entre 0,5 e 0,999 (0,95 = 95%). O intervalo é t com os graus de liberdade
   do desenho (unidades primárias − estratos).
 ]---"
   ajuda_valor <- r"---[
@@ -137,7 +137,7 @@ que nenhum.
       params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"),
                     estimador = E("média", c("média", "total"), label = "Estimador"),
                     repeticoes = I(500L, min = 20L, max = 10000L, label = "Repetições"),
-                    confianca = E("95%", .TR_SAMPLING_CONFIANCAS, label = "Confiança")),
+                    confianca = .tr_sampling_param_conf()),
       help = .tr_sampling_ajuda(r"---[
 Avalia o DESENHO, e não a amostra: pega a receita guardada na amostra ligada
 (o bloco de seleção, o n, os estratos, a pós-estratificação), sorteia de novo da
