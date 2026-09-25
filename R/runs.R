@@ -54,7 +54,8 @@ tr_runs <- function(project) {
 tr_project_gc <- function(project, max_age_days = 7) {
   keep <- character()
   for (f in list.files(project$flows_dir, pattern = "\\.json$", full.names = TRUE)) {
-    doc <- tryCatch(tr_doc_read(f), error = function(e) NULL)
+    # Migrado, senão o plano de um fluxo antigo falha e o GC aborta à toa.
+    doc <- tryCatch(tr_doc_migrate(tr_doc_read(f), project$registry), error = function(e) NULL)
     if (is.null(doc)) return(invisible(0L))
     plan <- tryCatch(tr_plan(doc, targets = names(doc$nodes), registry = project$registry,
                                      settings = project$settings),

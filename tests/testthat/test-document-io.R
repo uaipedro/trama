@@ -125,3 +125,61 @@ test_that("notas sobrevivem à ida e volta pelo JSON", {
   expect_equal(back$ui$notes$i$src, "figuras/logo.png")
   expect_equal(back$ui$notes$i$fit, "cover")
 })
+
+# Registro de teste + uma coleção que só declara migrações pra dentro de `t`.
+# (O destino tem que ser do namespace de quem declara, então é `t` estendida.)
+migr_registry <- function(migrations) {
+  col <- test_collection()
+  col$migrations <- trama:::.tr_check_migrations(migrations, "t")
+  reg <- tr_registry()
+  tr_use(col, registry = reg)
+  reg
+}
+doc_antigo <- function() tr_doc_parse('{"format":1,"nodes":{
+  "a":{"type":"velho/const","params":{"valor":3}},
+  "s":{"type":"t/add","params":{"kk":2}}},
+  "edges":[{"from":{"node":"a","port":"saida"},"to":{"node":"s","port":"a"}}]}')
+
+test_that("nó renomeado (em cadeia), param com value e porta migram; attr sinaliza", {
+  reg <- migr_registry(list(
+    nodes  = list("velho/const" = "t/meio", "t/meio" = "t/const"),
+    params = list("t/const" = list(valor = list(to = "value", value = function(v) v * 10)),
+                  "t/add" = list(kk = list(to = "k"))),
+    ports  = list("t/const" = list(saida = "out"))
+  ))
+  doc <- tr_doc_migrate(doc_antigo(), reg)
+  expect_equal(doc$nodes$a$type, "t/const")
+  expect_equal(doc$nodes$a$params, list(value = 30))
+  expect_equal(doc$nodes$s$params, list(k = 2))
+  expect_equal(doc$edges[[1]]$from$port, "out")
+  expect_true(attr(doc, "migrated"))
+  # Sobra só a entrada `b` do somador aberta — nada órfão nem desconhecido.
+  kinds <- vapply(tr_doc_validate(doc, reg), function(p) p$kind, "")
+  expect_equal(kinds, "missing_required_input")
+})
+
+test_that("ciclo de renomes não trava, e param com nome novo já presente vence", {
+  reg <- migr_registry(list(nodes = list("t/x" = "t/y", "t/y" = "t/x"),
+                            params = list("t/add" = list(kk = list(to = "k")))))
+  doc <- tr_doc_parse('{"format":1,"nodes":{"c":{"type":"t/x"},
+    "s":{"type":"t/add","params":{"kk":2,"k":5}}},"edges":[]}')
+  doc <- tr_doc_migrate(doc, reg)
+  expect_true(doc$nodes$c$type %in% c("t/x", "t/y"))
+  expect_equal(doc$nodes$s$params, list(k = 5))
+})
+
+test_that("documento sem nada a migrar sai idêntico", {
+  reg <- migr_registry(list(nodes = list("velho/x" = "t/const")))
+  doc <- tr_doc_apply(tr_doc(), list(op = "add_node", type = "t/add", id = "s"), reg)
+  expect_identical(tr_doc_migrate(doc, reg), doc)
+  expect_identical(tr_doc_migrate(doc, test_registry()), doc)
+})
+
+test_that("tr_project_flow abre o fluxo antigo já migrado", {
+  reg <- migr_registry(list(nodes = list("velho/const" = "t/const")))
+  root <- withr::local_tempdir()
+  proj <- list(flows_dir = root, registry = reg)
+  writeLines('{"format":1,"nodes":{"a":{"type":"velho/const"}},"edges":[]}',
+             file.path(root, "main.json"))
+  expect_equal(tr_project_flow(proj)$nodes$a$type, "t/const")
+})

@@ -203,6 +203,9 @@ tr_server <- function(project, flow = "main",
       base_doc <<- doc
       log      <<- list()
       rv_doc(doc)
+      # Fluxo antigo abre migrado (`tr_project_flow()`); regravar já deixa o
+      # disco no formato novo, sem esperar a primeira edição.
+      if (autosave && isTRUE(attr(doc, "migrated"))) save_now(doc)
       send("project", list(root = novo$root, flow = padrao))
       enviar_temas()
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
@@ -221,6 +224,8 @@ tr_server <- function(project, flow = "main",
       # empilham, e é sobre ele que o undo reaplica o log.
       base_doc <<- doc
       log      <<- list()
+      # Mesmo motivo de `abrir()`: o fluxo inicial também pode ter vindo migrado.
+      if (autosave && isTRUE(attr(doc, "migrated"))) save_now(doc)
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
                             problems = tr_doc_validate(doc, rv_project()$registry)))
       run_now(doc)

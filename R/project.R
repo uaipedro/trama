@@ -244,10 +244,16 @@ tr_project_new <- function(root, collections = character()) {
 }
 
 #' Lê o flow `name` do projeto; documento vazio se o arquivo ainda não existe.
+#'
+#' É AQUI que as migrações das coleções entram (`tr_doc_migrate()`): este é o
+#' ponto único em que um documento de disco encontra o registro que vai
+#' interpretá-lo — o editor abre por aqui tanto na subida quanto ao trocar de
+#' projeto, e importar grava e reabre por aqui. `tr_doc_read()` não tem
+#' registro, e `tr_doc_validate()` é só diagnóstico (não devolve documento).
 #' @export
 tr_project_flow <- function(project, name = "main") {
   p <- file.path(project$flows_dir, paste0(name, ".json"))
-  if (file.exists(p)) tr_doc_read(p) else tr_doc()
+  if (file.exists(p)) tr_doc_migrate(tr_doc_read(p), project$registry) else tr_doc()
 }
 
 #' Grava o flow `name` do projeto em `flows/<name>.json`.

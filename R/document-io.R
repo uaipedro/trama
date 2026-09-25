@@ -98,6 +98,58 @@ tr_doc_parse <- function(txt) {
 #' @export
 tr_doc_read <- function(path) tr_doc_parse(paste(readLines(path, warn = FALSE), collapse = "\n"))
 
+#' Aplica ao documento as migrações que as coleções do registro declaram.
+#'
+#' Roda ANTES de qualquer checagem: sem ela, um nó renomeado ou movido de
+#' coleção vira órfão em `tr_doc_validate()`, e param/porta renomeados viram
+#' `unknown_param` e aresta pendurada. O tipo segue a cadeia (a -> b -> c), com
+#' guarda contra ciclo pra que duas coleções mal combinadas não travem a
+#' abertura. Param já presente com o nome novo VENCE o antigo: é o documento
+#' meio migrado à mão, e o valor que alguém escreveu no nome novo é o mais
+#' recente. Portas são renomeadas nas arestas pelo tipo NOVO de cada ponta.
+#'
+#' O resultado leva `attr(, "migrated") = TRUE` quando algo mudou, pra que quem
+#' abriu o fluxo possa regravá-lo (o editor faz isso no autosave); documento
+#' sem nada a migrar sai idêntico.
+#' @export
+tr_doc_migrate <- function(doc, registry = .tr_default_registry) {
+  mig <- registry$migrations
+  if (is.null(mig) || all(lengths(mig) == 0)) return(doc)
+  changed <- FALSE
+  destino <- function(type) {
+    seen <- type
+    while (!is.null(nxt <- mig$nodes[[type]])) {
+      if (nxt %in% seen) break
+      type <- nxt; seen <- c(seen, type)
+    }
+    type
+  }
+  for (id in names(doc$nodes)) {
+    n <- doc$nodes[[id]]
+    to <- destino(n$type)
+    if (!identical(to, n$type)) { n$type <- to; changed <- TRUE }
+    renames <- mig$params[[n$type]]
+    for (old in intersect(names(renames), names(n$params))) {
+      r <- renames[[old]]
+      if (is.null(n$params[[r$to]])) {
+        n$params[[r$to]] <- if (is.null(r$value)) n$params[[old]] else r$value(n$params[[old]])
+      }
+      n$params[[old]] <- NULL
+      changed <- TRUE
+    }
+    doc$nodes[[id]] <- n
+  }
+  porta <- function(end) {
+    type <- doc$nodes[[end$node]]$type
+    nova <- if (is.null(type)) NULL else mig$ports[[type]][[end$port]]
+    if (!is.null(nova)) { end$port <- nova; changed <<- TRUE }
+    end
+  }
+  doc$edges <- lapply(doc$edges, function(e) { e$from <- porta(e$from); e$to <- porta(e$to); e })
+  if (changed) attr(doc, "migrated") <- TRUE
+  doc
+}
+
 #' Revalida um documento inteiro contra um registro.
 #'
 #' Existe por causa de documento escrito à mão ou por LLM — que é uma
