@@ -21,13 +21,20 @@ test("store que lança exceção não quebra", () => {
   assert.deepEqual(lerHistorico(undefined), {});
 });
 
-test("teto de 500 pares descarta os de menor contagem", () => {
+test("valor guardado que não é objeto vira histórico vazio", () => {
+  const s = memoria();
+  s.setItem("trama:proximo:v1", "[]");
+  assert.deepEqual(lerHistorico(s), {});
+});
+
+test("teto de 500 pares descarta o de menor contagem, nunca o par novo", () => {
   const s = memoria();
   const h = {};
-  for (let i = 0; i < 500; i++) h[`a/x>b/${i}`] = 2;
+  for (let i = 0; i < 500; i++) h[`a/x>b/${i}`] = i === 7 ? 1 : 2;
   s.setItem("trama:proximo:v1", JSON.stringify(h));
   registrar("a/x", "b/novo", s);
   const r = lerHistorico(s);
   assert.equal(Object.keys(r).length, 500);
-  assert.ok(!("a/x>b/novo" in r));
+  assert.equal(r["a/x>b/novo"], 1);
+  assert.ok(!("a/x>b/7" in r));
 });
