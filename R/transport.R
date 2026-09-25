@@ -138,6 +138,11 @@ tr_server <- function(project, flow = "main",
 
     enviar_temas <- function() send("themes", .tr_settings_json(rv_project()$settings))
 
+    # Quem abriu o editor decide o destino padrão de "Salvar como template": no
+    # launcher não há projeto "de verdade" pro usuário, então a biblioteca
+    # pessoal é o lugar natural; vindo do R, o projeto é o que ele versiona.
+    origem <- function() if (nzchar(Sys.getenv("TRAMA_LAUNCHER"))) "launcher" else "r"
+
     # Erro de GESTO (caminho que não existe, coleção que falta, pasta ocupada)
     # não é bug do servidor: vira aviso na tela e o estado fica como estava. O
     # valor devolvido é como o chamador sabe que não deve seguir adiante.
@@ -174,7 +179,7 @@ tr_server <- function(project, flow = "main",
       # caminhos NORMALIZADOS porque o do cliente pode não estar.
       if (is.character(path) && length(path) == 1L && !is.na(path) &&
           identical(normalizePath(path, mustWork = FALSE), rv_project()$root)) {
-        send("project", list(root = rv_project()$root, flow = rv_flow()))
+        send("project", list(root = rv_project()$root, flow = rv_flow(), origem = origem()))
         return(invisible())
       }
 
@@ -203,7 +208,7 @@ tr_server <- function(project, flow = "main",
       base_doc <<- doc
       log      <<- list()
       rv_doc(doc)
-      send("project", list(root = novo$root, flow = padrao))
+      send("project", list(root = novo$root, flow = padrao, origem = origem()))
       enviar_temas()
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
                             problems = tr_doc_validate(doc, novo$registry)))
@@ -215,7 +220,7 @@ tr_server <- function(project, flow = "main",
     shiny::observeEvent(input$tr_ready, {
       send("catalog", list(catalog = tr_catalog(rv_project()$registry)))
       enviar_temas()
-      send("project", list(root = rv_project()$root, flow = rv_flow()))
+      send("project", list(root = rv_project()$root, flow = rv_flow(), origem = origem()))
       doc <- rv_doc()
       # O log de undo nasce AQUI: é este o documento sobre o qual as ops se
       # empilham, e é sobre ele que o undo reaplica o log.
@@ -300,6 +305,41 @@ tr_server <- function(project, flow = "main",
       num <- function(v) if (is.numeric(v) && length(v) == 1 && !is.na(v)) v else 0
       aplicar(list(seq = m$seq, base_rev = rv_doc()$rev,
                    op = tr_template_op(tpl, c(num(m$x), num(m$y)))))
+    })
+
+    # Destino "biblioteca"/"projeto" grava; "baixar"/"copiar" só devolve o
+    # texto — o download e o clipboard são do navegador. `ids` nulo = flow todo.
+    # Conflito de nome não é erro: vira pergunta no diálogo, que reenvia com
+    # `overwrite`.
+    shiny::observeEvent(input$tr_template_save, {
+      m <- input$tr_template_save
+      reg <- rv_project()$registry
+      nome <- as.character(m$nome %||% "Template")[1]
+      tpl <- tryCatch(tr_template(tr_doc_subset(rv_doc(), unlist(m$ids)), nome,
+                                  as.character(m$descricao %||% "")[1], reg),
+                      error = avisar())
+      if (is.null(tpl)) return(invisible())
+      destino <- as.character(m$destino %||% "")[1]
+      if (destino %in% c("baixar", "copiar")) {
+        send("template_json", list(seq = m$seq, acao = destino, nome = tpl$nome,
+                                   texto = as.character(tr_template_json(tpl))))
+        return(invisible())
+      }
+      ok <- tryCatch({
+        tr_template_save(tpl, tr_template_dir(destino, rv_project()$root),
+                         overwrite = isTRUE(m$overwrite))
+        TRUE
+      }, tr_error_template_exists = function(e) {
+        send("template_conflict", list(seq = m$seq, nome = tpl$nome)); FALSE
+      }, error = avisar(FALSE))
+      if (isTRUE(ok)) {
+        send("template_saved", list(seq = m$seq, nome = tpl$nome, destino = destino))
+        send("templates", list(templates = tr_template_list(rv_project()$root, reg)))
+      }
+    })
+
+    shiny::observeEvent(input$tr_template_list, {
+      send("templates", list(templates = tr_template_list(rv_project()$root, rv_project()$registry)))
     })
 
     shiny::observeEvent(input$tr_rerun, { run_now(rv_doc()) })
