@@ -130,6 +130,18 @@ test_that("roc marca o corte do modelo quando ele traz um", {
   expect_match(subtitulo(tr_models_roc(g)), "corte 0,30", fixed = TRUE)
 })
 
+test_that("roc: com a positiva no 1º nível e corte != 0,5, o ponto é a regra do modelo", {
+  skip_if_not_installed("trama.multi")
+  # O modelo prevê o 2º nível quando p(2º) >= corte; o ponto marcado tem que
+  # cair na matriz de confusão desse modelo, e não em p(1º) >= corte.
+  lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp", corte = 0.3)
+  par <- trama.models:::.tr_models_par_modelo(lg, NULL, "resubstitui\u00e7\u00e3o", "models/roc")
+  rd <- trama.models:::.tr_models_roc_dados(par$real, par$prob, par$niveis, "0", par$corte)
+  real <- as.character(par$real); prev <- as.character(par$previsto)
+  expect_equal(rd$ponto$tpr, mean(prev[real == "0"] == "0"))
+  expect_equal(rd$ponto$fpr, mean(prev[real != "0"] == "0"))
+})
+
 test_that("roc multiclasse (modo tabela): uma curva por classe, AUCs do modo modelo", {
   skip_if_not_installed("trama.multi")
   ir <- tibble::as_tibble(datasets::iris)

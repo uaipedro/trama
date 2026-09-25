@@ -207,7 +207,11 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
   })
   ponto <- NULL
   if (binaria) {
-    s <- prob[, positiva] >= corte
+    # A regra do modelo é "p(2º nível) >= corte" (como na logística), e não um
+    # corte na probabilidade da positiva: com a positiva no 1º nível e corte
+    # != 0,5, `p(1º) >= corte` marcaria um ponto que o modelo nunca usa.
+    s <- prob[, niveis[[2]]] >= corte
+    if (positiva != niveis[[2]]) s <- !s
     ponto <- data.frame(fpr = mean(s[real != positiva]), tpr = mean(s[real == positiva]))
   }
   list(curvas = do.call(rbind, curvas), ponto = ponto, positiva = positiva, corte = corte)
