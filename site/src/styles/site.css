@@ -198,12 +198,12 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .catalogue-guides a { display: inline-flex; align-items: center; gap: .6rem; min-height: 2.4rem; padding: 0 .9rem; border: 1px solid var(--line); background: var(--paper-strong); font-family: var(--font-display); font-weight: 650; text-decoration: none; }
 .catalogue-guides a:hover { border-color: var(--ink); }
 .catalogue-guides span { color: var(--ink-soft); font-family: var(--font-code); font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
-.catalogue-flow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md) var(--space-lg); margin: var(--space-2xl) 0 0; padding: 0; list-style: none; counter-reset: etapa; }
-.catalogue-stage, .catalogue-stage ul { display: contents; }
-.catalogue-stage h3 { counter-increment: etapa; }
-.catalogue-stage h3 { display: inline-flex; align-items: center; gap: .4rem; margin: 0; padding: .3rem .7rem .3rem .3rem; border-radius: 999px; color: var(--ink); background: color-mix(in oklch, var(--node-accent) 16%, var(--paper)); font-size: .85rem; font-weight: 650; letter-spacing: 0; }
-.catalogue-stage h3::before { content: counter(etapa); display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; color: #0b0e13; background: var(--node-accent); font-family: var(--font-code); font-size: .72rem; }
-.catalogue-stage li { display: flex; align-items: center; gap: var(--space-sm); max-width: 100%; list-style: none; }
+.catalogue-flow { display: grid; gap: var(--space-xl); margin: var(--space-2xl) 0 0; padding: 0; list-style: none; counter-reset: etapa; }
+.catalogue-stage { display: grid; gap: var(--space-sm); }
+.catalogue-stage h3 { display: flex; align-items: baseline; gap: .45rem; margin: 0; color: var(--ink-soft); font-family: var(--font-display); font-size: .9rem; font-weight: 650; letter-spacing: 0; counter-increment: etapa; }
+.catalogue-stage h3::before { content: counter(etapa); color: var(--node-accent); font-family: var(--font-code); font-size: .8rem; font-weight: 700; }
+.catalogue-stage ul { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-md); margin: 0; padding: 0 .4rem; list-style: none; }
+.catalogue-stage li { max-width: 100%; }
 .catalogue-stage a { display: block; max-width: 100%; border-radius: 7px; text-decoration: none; transition: transform 160ms var(--ease-out); }
 .catalogue-stage a:hover { transform: translateY(-2px); }
 .catalogue-stage a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }

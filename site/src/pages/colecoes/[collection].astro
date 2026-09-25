@@ -49,10 +49,10 @@ const info = collections.find(({ id }) => id === collection)!;
       <ol class="catalogue-flow">
         {stages.map((stage) => (
           <li class="catalogue-stage" id={`etapa-${stage.id}`} style={`--node-accent: ${stage.accent}`}>
-            <ul aria-label={stage.label}>
-              {stage.blocks.map((entry, i) => (
+            <h3>{stage.label}</h3>
+            <ul>
+              {stage.blocks.map((entry) => (
                 <li>
-                  {i === 0 && <h3>{stage.label}</h3>}
                   <a href={`/trama/${entry.id}/`} title={entry.data.description} aria-label={`${entry.data.title}: ${entry.data.description}`}>
                     <NodeMini label={entry.data.title} {...getNodeVisual(entry.data.node!)} />
                   </a>
