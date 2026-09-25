@@ -83,7 +83,7 @@
       },
       "to": {
         "node": "01M2WWD53X78939F",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -94,7 +94,7 @@
       },
       "to": {
         "node": "01M2WWFH9P424B71",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -105,7 +105,7 @@
       },
       "to": {
         "node": "01M2WWJF9E26956F",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -116,7 +116,7 @@
       },
       "to": {
         "node": "01M2WWREGS496FCB",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -127,7 +127,7 @@
       },
       "to": {
         "node": "01M2WWS9C8EFD0A2",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -177,11 +177,9 @@
         "order": 1
       }
     },
-    "folds": {
-      "01M2WWT07Z413425": {
-        "params": false
-      }
-    },
-    "notes": {}
+    "notes": {},
+    "modes": {
+      "01M2WWT07Z413425": "preview"
+    }
   }
 }

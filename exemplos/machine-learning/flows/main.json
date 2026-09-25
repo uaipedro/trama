@@ -12,36 +12,35 @@
       "type_version": 1,
       "label": "Separar treino / teste",
       "params": {
-        "alvo": "HeartDisease",
-        "estratificar": true
+        "estratificar": true,
+        "resposta": "HeartDisease"
       },
       "seed": 266292228
     },
     "cart": {
       "type": "ml/cart",
-      "type_version": 1,
+      "type_version": 2,
       "label": "CART · árvore de decisão",
       "params": {
-        "alvo": "HeartDisease",
-        "cols": "",
-        "tarefa": "classificacao"
+        "tarefa": "classificacao",
+        "resposta": "HeartDisease",
+        "preditores": ""
       },
       "seed": 101876763
     },
     "cart_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 117514221
     },
     "cart_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "HeartDisease",
-        "tarefa": "classificacao"
+        "resposta": "HeartDisease"
       },
       "seed": 176672245
     },
@@ -50,26 +49,25 @@
       "type_version": 1,
       "label": "FIGS · soma de árvores",
       "params": {
-        "alvo": "HeartDisease",
-        "cols": "",
-        "tarefa": "classificacao"
+        "tarefa": "classificacao",
+        "resposta": "HeartDisease",
+        "preditores": ""
       },
       "seed": 133858971
     },
     "figs_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 5659416
     },
     "figs_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "HeartDisease",
-        "tarefa": "classificacao"
+        "resposta": "HeartDisease"
       },
       "seed": 105942658
     },
@@ -101,7 +99,7 @@
       "seed": 17085427
     },
     "01M2TCB8RR1871B1": {
-      "type": "ml/importance",
+      "type": "models/importance",
       "type_version": 1,
       "label": "Importância de variáveis",
       "params": {},
@@ -293,13 +291,10 @@
       "figs": "tabela"
     },
     "frames": {},
-    "folds": {
-      "01M2TC7PSZF96B49": {
-        "params": false
-      },
-      "01M2TC9D5V41DAAE": {
-        "params": false
-      }
-    }
+    "modes": {
+      "01M2TC7PSZF96B49": "preview",
+      "01M2TC9D5V41DAAE": "preview"
+    },
+    "notes": {}
   }
 }

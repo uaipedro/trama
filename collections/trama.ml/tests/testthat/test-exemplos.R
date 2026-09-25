@@ -30,11 +30,9 @@ test_that("fluxos de exemplo migram, rodam e repetem as métricas dos blocos ant
   reg <- ml_registry()
   for (arq in names(esperado)) {
     doc <- trama::tr_doc_migrate(trama::tr_doc_read(file.path("flows", paste0(arq, ".json"))), reg)
-    # `version_drift` é esperado: os fluxos foram gravados com `ml/cart` e
-    # `ml/evaluate` na versão 1, e os blocos de hoje estão na 2 (poda 1-EP;
-    # métricas por classe). É o aviso que a tela mostra, não um erro.
-    probs <- trama::tr_doc_validate(doc, reg)
-    expect_length(Filter(function(p) p$kind != "version_drift", probs), 0L)
+    # Regravados na 9.2 com as versões de hoje (`ml/cart` e `models/evaluate`
+    # na 2): nenhum problema, nem `version_drift`.
+    expect_length(trama::tr_doc_validate(doc, reg), 0L)
     tipos <- vapply(doc$nodes, `[[`, "", "type")
     expect_false(any(tipos %in% c("ml/predict", "ml/evaluate")), info = arq)
     store <- trama::tr_store(tempfile())

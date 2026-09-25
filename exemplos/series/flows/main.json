@@ -97,7 +97,7 @@
     },
     "pp": {
       "type": "series/phillips_perron",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Phillips-Perron",
       "params": {},
       "seed": 231904417
@@ -455,6 +455,7 @@
     "sizes": {},
     "views": {},
     "frames": {},
-    "folds": {}
+    "modes": {},
+    "notes": {}
   }
 }

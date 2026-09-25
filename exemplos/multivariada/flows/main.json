@@ -144,7 +144,7 @@
       "type_version": 1,
       "label": "LDA",
       "params": {
-        "grupo": "cultivar"
+        "resposta": "cultivar"
       },
       "seed": 92654865
     },
@@ -156,7 +156,7 @@
       "seed": 41035884
     },
     "confusao": {
-      "type": "multi/confusion",
+      "type": "models/confusion",
       "type_version": 1,
       "label": "Confusão (validação cruzada)",
       "params": {},
@@ -183,7 +183,7 @@
       "type_version": 1,
       "label": "Logística",
       "params": {
-        "grupo": "diabetes"
+        "resposta": "diabetes"
       },
       "seed": 528813407
     },
@@ -192,35 +192,36 @@
       "type_version": 1,
       "label": "LDA",
       "params": {
-        "grupo": "diabetes"
+        "resposta": "diabetes"
       },
       "seed": 91736442
     },
     "rc": {
-      "type": "multi/logistic_coefficients",
+      "type": "models/coefficients",
       "type_version": 1,
       "label": "Razões de chances",
       "params": {
-        "escala": "desvio padrão"
+        "escala": "desvio padrão",
+        "exponenciar": true
       },
       "seed": 774120953
     },
     "roc_logit": {
-      "type": "multi/roc",
-      "type_version": 1,
+      "type": "models/roc",
+      "type_version": 2,
       "label": "ROC da logística",
       "params": {},
       "seed": 206583117
     },
     "conf_logit": {
-      "type": "multi/confusion",
+      "type": "models/confusion",
       "type_version": 1,
       "label": "Confusão (logística)",
       "params": {},
       "seed": 639201584
     },
     "conf_lda": {
-      "type": "multi/confusion",
+      "type": "models/confusion",
       "type_version": 1,
       "label": "Confusão (LDA)",
       "params": {},
@@ -536,6 +537,7 @@
     "sizes": {},
     "views": {},
     "frames": {},
-    "folds": {}
+    "modes": {},
+    "notes": {}
   }
 }

@@ -19,7 +19,7 @@
       "type_version": 1,
       "label": "Separar treino / teste",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 63013732
     },
@@ -28,50 +28,50 @@
       "type_version": 1,
       "label": "Linear / logística",
       "params": {
-        "alvo": "mpg",
-        "cols": "wt, hp, disp"
+        "resposta": "mpg",
+        "preditores": "wt, hp, disp"
       },
       "seed": 57671444
     },
     "linear_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 50952665
     },
     "linear_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 29230160
     },
     "cart": {
       "type": "ml/cart",
-      "type_version": 1,
+      "type_version": 2,
       "label": "CART · árvore de decisão",
       "params": {
-        "alvo": "mpg",
-        "cols": "wt, hp, disp"
+        "resposta": "mpg",
+        "preditores": "wt, hp, disp"
       },
       "seed": 191072804
     },
     "cart_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 214577655
     },
     "cart_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 249335127
     },
@@ -80,24 +80,24 @@
       "type_version": 1,
       "label": "FIGS · soma de árvores",
       "params": {
-        "alvo": "mpg",
-        "cols": "wt, hp, disp"
+        "resposta": "mpg",
+        "preditores": "wt, hp, disp"
       },
       "seed": 173837064
     },
     "figs_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 136549934
     },
     "figs_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 227974809
     },
@@ -106,24 +106,24 @@
       "type_version": 1,
       "label": "Random forest",
       "params": {
-        "alvo": "mpg",
-        "cols": "wt, hp, disp"
+        "resposta": "mpg",
+        "preditores": "wt, hp, disp"
       },
       "seed": 171693836
     },
     "forest_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 245060484
     },
     "forest_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 184601362
     },
@@ -132,24 +132,24 @@
       "type_version": 1,
       "label": "SVM · vetores de suporte",
       "params": {
-        "alvo": "mpg",
-        "cols": "wt, hp, disp"
+        "resposta": "mpg",
+        "preditores": "wt, hp, disp"
       },
       "seed": 126600635
     },
     "svm_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 78501791
     },
     "svm_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 33680127
     },
@@ -158,24 +158,24 @@
       "type_version": 1,
       "label": "XGBoost",
       "params": {
-        "alvo": "mpg",
-        "cols": "wt, hp, disp"
+        "resposta": "mpg",
+        "preditores": "wt, hp, disp"
       },
       "seed": 34837424
     },
     "xgboost_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 212360763
     },
     "xgboost_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 2,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "mpg"
+        "resposta": "mpg"
       },
       "seed": 39339544
     }
@@ -483,6 +483,7 @@
     "sizes": {},
     "views": {},
     "frames": {},
-    "folds": {}
+    "modes": {},
+    "notes": {}
   }
 }
