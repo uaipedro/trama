@@ -128,7 +128,7 @@ test_that("todo número decimal da prosa existe como literal no código do nó",
   # deixá-lo contar como literal teria deixado esta varredura VERDE justamente no
   # bug que a motivou — medido.
   #
-  # Recortada aos blocos que emitem `series/test`, que é onde está o sinal — e
+  # Recortada aos blocos que emitem `data/test`, que é onde está o sinal — e
   # SEM lista de exceções, de propósito. A primeira versão varria a coleção
   # inteira e precisou de ONZE exceções em seis nós: valor de exemplo para o
   # usuário digitar, corte de leitura citado de livro, medições trazidas de fora,
@@ -147,9 +147,9 @@ test_that("todo número decimal da prosa existe como literal no código do nó",
   #
   # Corolário para quem escreve as páginas: o nível da decisão se escreve "5%",
   # que é inteiro e não casa, e não "0,05", que casaria e viveria em
-  # `.tr_series_rejeita`, não no corpo do bloco.
+  # `trama::tr_test`, não no corpo do bloco.
   reg <- series_registry()
-  testes <- Filter(function(n) identical(n$outputs$out$type, "series/test"), nos_series(reg))
+  testes <- Filter(function(n) identical(n$outputs$out$type, "data/test"), nos_series(reg))
   # Sem este piso a varredura viraria silenciosamente um laço sobre lista vazia
   # no dia em que o tipo de saída mudasse de nome — verde, e sem testar nada. É
   # um PISO, e não a contagem exata: contagem exata pediria uma edição aqui a
@@ -202,7 +202,7 @@ test_that("a decisão do código sobre faltante está escrita na página, nos do
   # tomou a decisão mais silenciosa das duas — o nó engole o buraco e devolve um
   # veredito — e por isso deve uma seção inteira, não uma frase.
   #
-  # O recorte é a saída `series/test`, que é a forma que vai ser copiada sete
+  # O recorte é a saída `data/test`, que é a forma que vai ser copiada sete
   # vezes. Exigir a seção de todo nó que recebe série puxaria dezoito páginas de
   # transformação e de gráfico para uma reestruturação que esta rodada não quer.
   #
@@ -210,7 +210,7 @@ test_that("a decisão do código sobre faltante está escrita na página, nos do
   # uma série, e o `series/regression` já recusou o faltante lá atrás. A pergunta
   # sobre NA não é deles, e cobrá-la aqui seria pedir que a página respondesse uma
   # pergunta que o bloco não faz.
-  testes <- Filter(function(n) identical(n$outputs$out$type, "series/test") &&
+  testes <- Filter(function(n) identical(n$outputs$out$type, "data/test") &&
                      identical(n$inputs[[1]]$type, "series/ts"), nos_series(reg))
   expect_length(testes, 12L)
   for (n in testes) {
@@ -259,7 +259,7 @@ test_that("todo bloco de teste explica os pontinhos, com o texto comum", {
   # varredura é o que obriga o décimo sexto bloco a ligá-la: sem ela, um teste
   # novo nasceria com três pontinhos que a página dele não explica.
   reg <- series_registry()
-  testes <- Filter(function(n) identical(n$outputs$out$type, "series/test"), nos_series(reg))
+  testes <- Filter(function(n) identical(n$outputs$out$type, "data/test"), nos_series(reg))
   # Piso pelo mesmo motivo da varredura de decimais: laço sobre lista vazia é verde.
   expect_gte(length(testes), 15L)
   secao <- .tr_series_ajuda_pontinhos()
@@ -267,7 +267,7 @@ test_that("todo bloco de teste explica os pontinhos, com o texto comum", {
     expect_true(grepl(secao, n$help, fixed = TRUE), info = n$id)
   }
   # E só neles: nos outros nós não há pontinho nenhum para explicar.
-  for (n in Filter(function(n) !identical(n$outputs$out$type, "series/test"), nos_series(reg))) {
+  for (n in Filter(function(n) !identical(n$outputs$out$type, "data/test"), nos_series(reg))) {
     expect_false(grepl(secao, n$help, fixed = TRUE), info = n$id)
   }
 })
@@ -293,7 +293,7 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
   doc <- paste(readLines(caminho, encoding = "UTF-8"), collapse = "\n")
 
   reg <- series_registry()
-  testes <- Filter(function(n) identical(n$outputs$out$type, "series/test"), nos_series(reg))
+  testes <- Filter(function(n) identical(n$outputs$out$type, "data/test"), nos_series(reg))
   expect_gte(length(testes), 15L)
   ap <- datasets::AirPassengers
   ajuste <- tr_series_regression(ap)
@@ -339,4 +339,12 @@ test_that("fluxos salvos com os ids antigos abrem com os novos", {
     expect_equal(m$nodes$n$type, antigos[[velho]], info = velho)
     expect_false(is.null(reg$nodes[[antigos[[velho]]]]), info = velho)
   }
+})
+
+test_that("nenhum nó declara os tipos de teste antigos", {
+  reg <- series_registry()
+  tipos <- unlist(lapply(reg$nodes, function(n) c(vapply(n$inputs, `[[`, "", "type"),
+                                                  vapply(n$outputs, `[[`, "", "type"))))
+  expect_false(any(tipos %in% c("models/test", "series/test")))
+  expect_null(reg$types[["series/test"]])
 })

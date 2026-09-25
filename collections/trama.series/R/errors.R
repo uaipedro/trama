@@ -50,8 +50,6 @@ tr_series_errors <- function() {
       "o nó produziu um objeto que não é previsão, e o tipo series/forecast o recusa",
     tr_series_error_not_a_regression =
       "o nó produziu um objeto que não é regressão de série, e o tipo series/regression o recusa",
-    tr_series_error_not_a_test =
-      "o nó produziu um objeto que não é resultado de teste, e o tipo series/test o recusa",
     tr_series_error_empty_model =
       "a regressão ficou sem nenhum termo a estimar (grau 0 e sem sazonalidade)",
     tr_series_error_no_block =

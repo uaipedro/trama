@@ -55,7 +55,7 @@
 #' @export
 trama_collection <- function() {
   S <- "series/ts"; D <- "series/decomposition"; M <- "series/model"; F <- "series/forecast"
-  R <- "series/regression"; TE <- "series/test"
+  R <- "series/regression"; TE <- "data/test"
   T <- "data/table"; G <- "view/plot"
   P <- trama::tr_param
   I <- trama::tr_param_int
@@ -65,9 +65,8 @@ trama_collection <- function() {
 
   trama::tr_collection(
     id = "series", version = "0.1.0", label = "Séries temporais",
-    js = "trama/index.js",
     types = list(series_ts_type(), series_decomposition_type(), series_model_type(),
-                 series_forecast_type(), series_regression_type(), series_test_type()),
+                 series_forecast_type(), series_regression_type()),
     adapters = .tr_series_adapters(),
     # Glossário (docs/glossario-parametros.md): id em inglês que diga a
     # PERGUNTA, como os outros da coleção. `kruskal_wallis` e `fisher` diziam o
@@ -1257,7 +1256,7 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 - **Termos determinísticos** — `constante` ou `tendência`.
 - **Defasagens** — teto de defasagens; `0` para a regra automática.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1320,7 +1319,7 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
 - **Termos determinísticos** — `constante` ou `tendência`.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta o KPSS e o ADF no mesmo quadro.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1372,7 +1371,7 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1516,7 +1515,7 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 - **Defasagens** — quantas diferenças defasadas entram; `0` para a regra
   automática.
 ]---", r"---[
-Um teste (`series/test`), com a posição da quebra e o rótulo do período em
+Um teste (`data/test`), com a posição da quebra e o rótulo do período em
 colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de relatório:
 um `data/bind_rows` põe este e o `series/adf` lado a lado, que é como a
 diferença entre os dois se lê.
@@ -1587,7 +1586,7 @@ justamente o caso mais comum.
 - **Graus do modelo** — parâmetros ajustados, a descontar. Tem de ser menor
   que as defasagens.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1649,7 +1648,7 @@ justamente o caso mais comum.
 - **Graus do modelo** — parâmetros ajustados, a descontar. Tem de ser menor
   que as defasagens.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` põe o Box-Pierce e o Ljung-Box lado a lado.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1701,7 +1700,7 @@ os p-valores daqui são indicativos, não conclusivos.
 ]---", r"---[
 Nenhum. Uma entrada: **ajuste**, vindo de `series/regression`.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, ele vira UMA linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta os três F num só quadro.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1742,7 +1741,7 @@ sazonalidade no `series/regression`.
 Nenhum. Uma entrada: **ajuste**, vindo de `series/regression` com sazonalidade
 ligada.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, vira uma linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, vira uma linha de
 relatório.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1789,7 +1788,7 @@ tendência: o bloco não foi testado, ele nunca existiu. Suba o grau no
 Nenhum. Uma entrada: **ajuste**, vindo de `series/regression` com grau 1 ou
 mais.
 ]---", r"---[
-Um teste (`series/test`). Ligado numa entrada de tabela, vira uma linha de
+Um teste (`data/test`). Ligado numa entrada de tabela, vira uma linha de
 relatório.
 ]---", r"---[
 tr_flow(reg) |>
@@ -1861,7 +1860,7 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 ]---", r"---[
 Nenhum. Uma entrada: **serie**.
 ]---", r"---[
-Um teste (`series/test`), com o S numa coluna extra. Ligado numa entrada de
+Um teste (`data/test`), com o S numa coluna extra. Ligado numa entrada de
 tabela, ele vira UMA linha de relatório: um `data/bind_rows` junta vários testes
 num só quadro.
 ]---", r"---[
@@ -1955,7 +1954,7 @@ primeiro terço com o último, descartando o miolo, como no artigo original;
 *metades* pareia cada observação com a que está meia série adiante, como na
 dissertação. Uma entrada: **serie**.
 ]---", r"---[
-Um teste (`series/test`), com o M e o número de pares em colunas extras. Ligado
+Um teste (`data/test`), com o M e o número de pares em colunas extras. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
 junta vários testes num só quadro.
 ]---", r"---[
@@ -2028,7 +2027,7 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 ]---", r"---[
 Nenhum. Uma entrada: **serie**.
 ]---", r"---[
-Um teste (`series/test`), com o número de sequências numa coluna extra. Ligado
+Um teste (`data/test`), com o número de sequências numa coluna extra. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
 junta vários testes num só quadro.
 ]---", r"---[
@@ -2115,7 +2114,7 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 ]---", r"---[
 Nenhum. Uma entrada: **serie**.
 ]---", r"---[
-Um teste (`series/test`), com a posição do ponto de mudança e o rótulo do período
+Um teste (`data/test`), com a posição do ponto de mudança e o rótulo do período
 em colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de
 relatório: um `data/bind_rows` junta vários testes num só quadro.
 ]---", r"---[
@@ -2226,7 +2225,7 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 ]---", r"---[
 Nenhum. Uma entrada: **serie**, que precisa ter frequência maior que 1.
 ]---", r"---[
-Um teste (`series/test`), com os graus de liberdade numa coluna extra. Ligado
+Um teste (`data/test`), com os graus de liberdade numa coluna extra. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
 junta vários testes num só quadro.
 ]---", r"---[
@@ -2349,7 +2348,7 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 ]---", r"---[
 Nenhum. Uma entrada: **serie**.
 ]---", r"---[
-Um teste (`series/test`), com o período do pico e o número de ciclos em colunas
+Um teste (`data/test`), com o período do pico e o número de ciclos em colunas
 extras, e o zα da dissertação na coluna do valor crítico a 5%. Ligado numa
 entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows` junta
 vários testes num só quadro.

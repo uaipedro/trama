@@ -31,3 +31,7 @@ ctx_tmp <- function() {
   dir <- tempfile(); dir.create(dir)
   list(file = function(e) file.path(dir, paste0("pv.", e)))
 }
+
+# A linha de tabela de um teste, como o adaptador `data/test -> data/table`
+# da `data` a entrega (tibble).
+tabela_teste <- function(x) tibble::as_tibble(trama::tr_test_table(x))

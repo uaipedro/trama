@@ -281,84 +281,12 @@ series_regression_type <- function() {
                  p_valor = as.numeric(s[, 4]))
 }
 
-#' `series/test`: o registro de UM teste de hipótese.
-#'
-#' Tipo próprio, e não `data/table`, por uma razão de front: o renderer é
-#' resolvido por id, e registrar um renderer sob `data/table` mudaria toda
-#' tabela do app. O tipo próprio dá ao teste um card que é dele, e o adaptador
-#' devolve a tabela a quem quer exportar.
-#'
-#' Sem `summary`: o runtime acrescenta uma aba `resumo` automática a todo tipo
-#' que declare um, e ela repetiria a vista `detalhe`.
-#' @noRd
-series_test_type <- function() {
-  trama::tr_type(
-    "series/test", version = 1L, label = "Teste", color = "#ef4444", ext = "rds",
-    store = function(x, path) {
-      .tr_series_guard_test(x)
-      saveRDS(x, path, compress = FALSE)
-    },
-    restore = function(path) readRDS(path),
-    preview = function(x, ctx) {
-      trama::tr_preview("series/test", data = list(
-        teste = x$teste, h0 = x$h0,
-        estatistica = x$estatistica, rotulo_estat = x$rotulo_estat,
-        p_valor = if (is.na(x$p_valor)) NULL else x$p_valor,
-        # Lista NOMEADA: vira objeto no JSON, e o front indexa por "5%".
-        criticos = if (is.null(x$criticos)) NULL else as.list(x$criticos),
-        sentido = x$sentido, decisao_5 = x$decisao_5, conclusao = x$conclusao,
-        nota = x$nota, fonte = x$fonte,
-        extra = if (is.null(x$extra)) NULL else as.list(x$extra)
-      ))
-    }
-  )
-}
-
-.TR_SERIES_CAMPOS_TESTE <- c("teste", "h0", "estatistica", "rotulo_estat", "p_valor",
-                             "sentido", "decisao_5", "conclusao", "nota", "fonte")
-
-#' @noRd
-.tr_series_guard_test <- function(x) {
-  falta <- setdiff(.TR_SERIES_CAMPOS_TESTE, names(x))
-  if (!inherits(x, "tr_series_test") || length(falta)) {
-    .tr_series_abort("tr_series_error_not_a_test",
-                     "O nó produziu um objeto '%s', não o resultado de um teste%s.",
-                     class(x)[[1]],
-                     if (length(falta)) sprintf(" (faltam: %s)", paste(falta, collapse = ", ")) else "")
-  }
-  invisible(x)
-}
-
-#' Teste -> tabela: UMA linha, nas colunas de sempre mais a fonte.
-#'
-#' `valor_critico_5` sai da tabela de críticos quando ela existe, para que a
-#' coluna continue significando o que significava antes — é o que faz um
-#' `data/bind_rows` de testes diferentes continuar sendo um relatório legível.
-#' @noRd
-.tr_series_teste_tabela <- function(x) {
-  cv <- if (is.null(x$criticos)) NA_real_ else unname(x$criticos[["5%"]])
-  base <- tibble::tibble(
-    teste = x$teste, h0 = x$h0, estatistica = x$estatistica,
-    p_valor = x$p_valor, valor_critico_5 = as.numeric(cv),
-    decisao_5 = x$decisao_5, conclusao = x$conclusao,
-    nota = x$nota, fonte = x$fonte)
-  # `extra` vira coluna SÓ quando existe: uma coluna vazia em todo teste seria
-  # ruído em todo relatório.
-  # O `as_tibble` de fora não é enfeite: o `cbind` despacha pro
-  # `cbind.data.frame` e devolveria um data.frame pelado, fazendo a classe de
-  # saída do adaptador depender da ENTRADA. Um adaptador só, com duas caras,
-  # vira catorze quando os outros blocos chegarem.
-  if (length(x$extra)) base <- tibble::as_tibble(cbind(base, tibble::as_tibble(x$extra)))
-  base
-}
-
 .tr_series_adapters <- function() {
   list(
     trama::tr_adapter("series/ts", "data/table", .tr_series_tabela),
     trama::tr_adapter("series/decomposition", "data/table", .tr_series_decomp_tabela),
     trama::tr_adapter("series/forecast", "data/table", .tr_series_forecast_tabela),
     trama::tr_adapter("series/regression", "data/table", .tr_series_reg_tabela),
-    trama::tr_adapter("series/regression", "series/decomposition", .tr_series_reg_decomp),
-    trama::tr_adapter("series/test", "data/table", .tr_series_teste_tabela)
+    trama::tr_adapter("series/regression", "series/decomposition", .tr_series_reg_decomp)
   )
 }

@@ -109,14 +109,44 @@ test_that("adaptadores da regressão: decomposição que fecha, e coeficientes e
   expect_true("series/regression series/decomposition" %in% pares)
 })
 
-test_that("store de series/test recusa o que não tem a forma de um teste", {
-  st <- series_test_type()$store
+test_that("store de data/test recusa o que não tem a forma de um teste", {
+  st <- trama::tr_get_type("data/test", series_registry())$store
   p <- tempfile(fileext = ".rds")
   for (x in list(1:10, tabela_mensal(), list(teste = "ADF"))) {
     err <- tryCatch(st(x, p), error = identity)
-    expect_equal(class(err)[[1]], "tr_series_error_not_a_test")
+    expect_equal(class(err)[[1]], "tr_error_not_a_test")
   }
   expect_false(file.exists(p))
+})
+
+test_that("um teste da series sai no tipo único: card, store e adaptador", {
+  reg <- series_registry()
+  t <- tr_series_adf(stats::ts(cumsum(stats::rnorm(60))))
+  ty <- trama::tr_get_type("data/test", reg)
+  pv <- ty$preview(t, list())
+  expect_equal(pv$renderer, "trama/test")
+  expect_equal(names(pv$data$criticos), c("10%", "5%", "1%"))
+  arq <- tempfile(fileext = ".rds"); ty$store(t, arq)
+  expect_identical(ty$restore(arq), t)
+  tb <- trama::tr_adapter_for("data/test", "data/table", reg)$fn(t)
+  expect_s3_class(tb, "tbl_df"); expect_true(is.na(tb$p_valor))
+})
+
+test_that("testes da models e da series se empilham num quadro de colunas fixas", {
+  skip_if_not_installed("trama.models")
+  reg <- series_registry()
+  ad <- trama::tr_adapter_for("data/test", "data/table", reg)$fn
+  a <- ad(tr_series_ljung_box(serie_mensal()))
+  b <- ad(trama.models::tr_models_shapiro(datasets::mtcars, "mpg"))
+  q <- trama.data::tr_bind_rows(list(a, b))
+  fixas <- c("teste", "h0", "rotulo_estat", "estatistica", "gl", "p_valor", "significancia",
+             "valor_critico_5", "decisao_5", "conclusao", "efeito", "efeito_valor",
+             "efeito_li_95", "efeito_ls_95", "nota", "fonte")
+  # As fixas vêm primeiro e na mesma ordem nos dois; o que é próprio de cada
+  # teste (`extra`) vem depois e fica NA na linha do outro.
+  expect_equal(names(a)[seq_along(fixas)], fixas); expect_equal(names(b)[seq_along(fixas)], fixas)
+  expect_equal(nrow(q), 2L); expect_equal(names(q)[seq_along(fixas)], fixas)
+  expect_type(q$p_valor, "double"); expect_type(q$efeito_valor, "double")
 })
 
 test_that("adaptador teste -> tabela é uma linha, com a fonte", {
@@ -124,7 +154,7 @@ test_that("adaptador teste -> tabela é uma linha, com a fonte", {
                         criticos = c(`10%` = -2.57, `5%` = -2.88, `1%` = -3.46),
                         sentido = "menor", conclusao_sim = "estacionária",
                         conclusao_nao = "não estacionária", fonte = "Dickey & Fuller (1979)")
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_equal(nrow(tb), 1L)
   expect_true(all(c("teste", "h0", "estatistica", "p_valor", "valor_critico_5",
                     "decisao_5", "conclusao", "nota", "fonte") %in% names(tb)))
@@ -135,8 +165,8 @@ test_that("adaptador teste -> tabela é uma linha, com a fonte", {
 test_that("extra vira coluna só quando existe", {
   base <- list("Pettitt", "homogêneos", 878, "K", p_valor = 1e-9,
                conclusao_sim = "há quebra", conclusao_nao = "não há", fonte = "Pettitt (1979)")
-  sem <- .tr_series_teste_tabela(do.call(.tr_series_teste, base))
-  com <- .tr_series_teste_tabela(do.call(.tr_series_teste,
+  sem <- tabela_teste(do.call(.tr_series_teste, base))
+  com <- tabela_teste(do.call(.tr_series_teste,
                                           c(base, list(extra = list(ponto_de_mudanca = 30)))))
   expect_false("ponto_de_mudanca" %in% names(sem))
   expect_equal(com$ponto_de_mudanca, 30)

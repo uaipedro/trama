@@ -1,64 +1,42 @@
 # Testes: série entra, UM TESTE sai — um bloco, uma hipótese nula, um veredito.
 #
-# Tipo próprio, e não tabela, porque o card de um teste tem de mostrar a
-# conclusão de relance, e oito colunas num card de 240px não mostram. A tabela
-# continua a um fio de distância pelo adaptador — é ela que exporta, e o card
-# que se lê.
+# Tipo de TESTE, e não tabela, porque o card de um teste tem de mostrar a
+# conclusão de relance, e oito colunas num card de 240px não mostram. O tipo é
+# o único do app (`data/test`, card do núcleo); a tabela continua a um fio de
+# distância pelo adaptador da `data` — é ela que exporta, e o card que se lê.
 
-#' Venceu o corte de `alfa`?
+#' O registro de um teste.
 #'
-#' Duas fontes de decisão, e a ordem importa: p-valor quando existe, tabela de
-#' valor crítico quando não. Nunca interpolar um p-valor a partir da tabela —
-#' seria inventar precisão que o `urca` não dá.
+#' Sai como `data/test`, o tipo único de teste: a regra de decisão (p-valor
+#' quando existe, crítico de 5% na cauda de `sentido` quando não) é a do
+#' `trama::tr_test`, a MESMA que o card desenha. Aqui ficam as conferências que
+#' são desta coleção: a tabela de críticos do `urca`, que não tem contrato
+#' entre um teste e outro, e o erro que nomeia o bloco.
 #'
 #' `sentido` diz que cauda rejeita: ADF e Phillips-Perron rejeitam ABAIXO do
 #' crítico, KPSS ACIMA. Sem esse campo a regra viveria num `if` por nome de
-#' teste, e teste novo obrigaria a mexer aqui e no JavaScript.
-#' @noRd
-.tr_series_rejeita <- function(estatistica, p_valor, criticos, sentido, alfa = 0.05) {
-  if (!is.na(p_valor)) return(p_valor < alfa)
-  cv <- criticos[[.tr_series_rotulo_nivel(alfa)]]
-  if (is.null(cv) || is.na(cv)) return(NA)
-  if (sentido == "menor") estatistica < cv else estatistica > cv
-}
-
-#' O rótulo do nível, montado sem aritmética de ponto flutuante.
-#'
-#' `alfa * 100` para 0,1 dá 10.000000000000002 — a chave nunca bateria na
-#' tabela de críticos. O mesmo cuidado está do lado do JavaScript.
-#' @noRd
-.tr_series_rotulo_nivel <- function(alfa) {
-  switch(as.character(alfa), "0.1" = "10%", "0.05" = "5%", "0.01" = "1%",
-         .tr_series_option("alfa", alfa, "0.1, 0.05, 0.01"))
-}
-
-#' O registro de um teste.
+#' teste, e teste novo obrigaria a mexer no núcleo e no JavaScript. Nunca
+#' interpolar um p-valor a partir da tabela — seria inventar precisão que o
+#' `urca` não dá.
 #' @noRd
 .tr_series_teste <- function(teste, h0, estatistica, rotulo_estat, p_valor = NA_real_,
                              criticos = NULL, sentido = "menor",
                              conclusao_sim, conclusao_nao, nota = "", fonte, extra = NULL) {
   sentido <- .tr_series_enum(sentido, c("menor", "maior"), "sentido")
-  # Um teste precisa de ALGUMA fonte de decisão. Sem p-valor e sem tabela, o
-  # `.tr_series_rejeita` devolve NA e o `isTRUE()` lá embaixo o transforma num
-  # "não rejeita H0" confiante — a mesma mentira silenciosa que a conferência
-  # da tabela fecha, entrando pela outra porta.
+  # Um teste precisa de ALGUMA fonte de decisão. O núcleo também recusa, mas
+  # com erro genérico; aqui o erro é o da coleção, com o nome do bloco.
   if (is.na(p_valor) && is.null(criticos)) {
     .tr_series_abort("tr_series_error_bad_criticos",
                      paste0("'%s': o bloco não trouxe nem p-valor nem tabela de valores ",
                             "críticos, e sem um dos dois não há como decidir."), teste)
   }
-  # A tabela é conferida AQUI, e não lá dentro do `.tr_series_rejeita`: é aqui
-  # que o bloco a monta, e é aqui que o nome do teste existe pra pôr no erro.
+  # A tabela é conferida AQUI: é aqui que o bloco a monta, e é aqui que o nome
+  # do teste existe pra pôr no erro. Sem o nível de 5% nomeado, a decisão
+  # leria NA e viraria um "não rejeita H0" confiante.
   if (!is.null(criticos)) .tr_series_criticos(criticos, teste)
-  rejeita <- .tr_series_rejeita(estatistica, p_valor, criticos, sentido)
-  structure(list(
-    teste = teste, h0 = h0,
-    estatistica = as.numeric(estatistica), rotulo_estat = rotulo_estat,
-    p_valor = as.numeric(p_valor), criticos = criticos, sentido = sentido,
-    decisao_5 = if (isTRUE(rejeita)) "rejeita H0" else "não rejeita H0",
-    conclusao = if (isTRUE(rejeita)) conclusao_sim else conclusao_nao,
-    nota = nota, fonte = fonte, extra = extra
-  ), class = "tr_series_test")
+  trama::tr_test(teste, h0, estatistica, rotulo_estat, p_valor = p_valor, criticos = criticos,
+                 sentido = sentido, conclusao_sim = conclusao_sim, conclusao_nao = conclusao_nao,
+                 nota = nota, fonte = fonte, extra = extra, classe = "tr_series_test")
 }
 
 #' ADF: a série tem raiz unitária?

@@ -1,16 +1,18 @@
-test_that("a decisão sai do p-valor quando há, e do crítico quando não há", {
+test_that("a decisão sai do p-valor quando há, e do crítico na cauda de sentido quando não", {
+  d <- function(...) .tr_series_teste("T", "h", ..., conclusao_sim = "s", conclusao_nao = "n",
+                                      fonte = "—")$decisao_5
   # Com p-valor: comparação direta com 0,05.
-  expect_true(.tr_series_rejeita(NA, 0.03, NULL, "menor", 0.05))
-  expect_false(.tr_series_rejeita(NA, 0.07, NULL, "menor", 0.05))
+  expect_equal(d(0, "z", p_valor = 0.03), "rejeita H0")
+  expect_equal(d(0, "z", p_valor = 0.07), "não rejeita H0")
   # Sem p-valor, cauda de baixo (ADF): rejeita abaixo do crítico.
   cv <- c(`10%` = -2.57, `5%` = -2.88, `1%` = -3.46)
-  expect_true(.tr_series_rejeita(-4.12, NA, cv, "menor", 0.05))
-  expect_false(.tr_series_rejeita(-2.00, NA, cv, "menor", 0.05))
+  expect_equal(d(-4.12, "t", criticos = cv, sentido = "menor"), "rejeita H0")
+  expect_equal(d(-2.00, "t", criticos = cv, sentido = "menor"), "não rejeita H0")
   # Sem p-valor, cauda de cima (KPSS): rejeita ACIMA do crítico. É a
   # inversão que o campo `sentido` existe para carregar.
   kp <- c(`10%` = 0.347, `5%` = 0.463, `1%` = 0.739)
-  expect_true(.tr_series_rejeita(0.60, NA, kp, "maior", 0.05))
-  expect_false(.tr_series_rejeita(0.20, NA, kp, "maior", 0.05))
+  expect_equal(d(0.60, "eta", criticos = kp, sentido = "maior"), "rejeita H0")
+  expect_equal(d(0.20, "eta", criticos = kp, sentido = "maior"), "não rejeita H0")
 })
 
 test_that("o construtor monta o registro e escolhe a conclusão pela decisão", {
@@ -53,7 +55,7 @@ test_that("tabela de críticos sem o nível da decisão é erro tipado, não ín
 
 test_that("bloco sem p-valor e sem tabela de críticos é erro, e não 'não rejeita'", {
   # A outra porta da mesma mentira: sem fonte de decisão nenhuma, o
-  # `.tr_series_rejeita` devolveria NA e o `isTRUE()` do construtor o
+  # decisão leria NA e o `isTRUE()` do construtor o
   # transformaria num "não rejeita H0" de aparência confiante. Vale travar
   # agora, antes de treze blocos novos passarem por aqui.
   err <- tryCatch(
@@ -84,7 +86,7 @@ test_that("ADF recusa faltante e série curta", {
 })
 
 test_that("o ADF atravessa o adaptador como uma linha de relatório", {
-  tb <- .tr_series_teste_tabela(tr_series_adf(serie_mensal()))
+  tb <- tabela_teste(tr_series_adf(serie_mensal()))
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "ADF")
   expect_true(is.na(tb$p_valor))
@@ -140,7 +142,7 @@ test_that("KPSS recusa faltante e série curta", {
 })
 
 test_that("o KPSS atravessa o adaptador como uma linha de relatório", {
-  tb <- .tr_series_teste_tabela(tr_series_kpss(serie_mensal()))
+  tb <- tabela_teste(tr_series_kpss(serie_mensal()))
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "KPSS")
   expect_true(is.na(tb$p_valor))
@@ -191,7 +193,7 @@ test_that("Phillips-Perron recusa faltante e série curta", {
 })
 
 test_that("o Phillips-Perron atravessa o adaptador como uma linha de relatório", {
-  tb <- .tr_series_teste_tabela(tr_series_phillips_perron(serie_mensal()))
+  tb <- tabela_teste(tr_series_phillips_perron(serie_mensal()))
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Phillips-Perron")
   expect_false(is.na(tb$p_valor))
@@ -373,7 +375,7 @@ test_that("Zivot-Andrews recusa faltante, série curta e defasagem que não cabe
 
 test_that("o Zivot-Andrews atravessa o adaptador com a quebra em colunas", {
   t <- tr_series_zivot_andrews(serie_degrau())
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_s3_class(tb, "tbl_df")
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Zivot-Andrews")
@@ -522,12 +524,12 @@ test_that("o mínimo do ruído branco conta as VÁLIDAS, e não o comprimento co
 })
 
 test_that("os dois testes de ruído branco atravessam o adaptador", {
-  lb <- .tr_series_teste_tabela(tr_series_ljung_box(serie_mensal()))
+  lb <- tabela_teste(tr_series_ljung_box(serie_mensal()))
   expect_equal(nrow(lb), 1L)
   expect_equal(lb$teste, "Ljung-Box")
   expect_false(is.na(lb$p_valor))
   expect_true(is.na(lb$valor_critico_5))
-  bp <- .tr_series_teste_tabela(tr_series_box_pierce(serie_mensal()))
+  bp <- tabela_teste(tr_series_box_pierce(serie_mensal()))
   expect_equal(nrow(bp), 1L)
   expect_equal(bp$teste, "Box-Pierce")
   expect_false(is.na(bp$p_valor))
@@ -619,7 +621,7 @@ test_that("os três F recusam o que não é regressão", {
 test_that("os três F atravessam o adaptador de tabela", {
   a <- tr_series_regression(serie_mensal())
   for (t in list(tr_series_f_global(a), tr_series_f_sazonal(a), tr_series_f_tendencia(a))) {
-    tb <- .tr_series_teste_tabela(t)
+    tb <- tabela_teste(t)
     expect_equal(nrow(tb), 1L)
     expect_equal(tb$teste, t$teste)
     expect_false(is.na(tb$p_valor))
@@ -722,7 +724,7 @@ test_that("Mann-Kendall recusa faltante e série curta", {
 })
 
 test_that("o Mann-Kendall atravessa o adaptador, e leva o S como coluna", {
-  tb <- .tr_series_teste_tabela(tr_series_mann_kendall(serie_mensal()))
+  tb <- tabela_teste(tr_series_mann_kendall(serie_mensal()))
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Mann-Kendall")
   expect_false(is.na(tb$p_valor))
@@ -889,7 +891,7 @@ test_that("empates demais deixam o teste sem pares, e isso é cartão vermelho",
 
 test_that("o Cox-Stuart atravessa o adaptador, e leva o M e os pares como colunas", {
   t <- tr_series_cox_stuart(serie_mensal())
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Cox-Stuart")
   expect_false(is.na(tb$p_valor))
@@ -997,7 +999,7 @@ test_that("Run recusa faltante e série curta", {
 
 test_that("o Run atravessa o adaptador, e leva as sequências como coluna", {
   t <- tr_series_runs(serie_mensal())
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Run")
   expect_false(is.na(tb$p_valor))
@@ -1161,7 +1163,7 @@ test_that("o Pettitt atravessa o adaptador, e leva o ponto e o rótulo como colu
   # Este é o primeiro bloco cujo `extra` carrega um valor de TEXTO até uma coluna
   # de relatório: o `cbind` do adaptador tinha visto só número até aqui.
   t <- tr_series_pettitt(serie_mensal())
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_s3_class(tb, "tbl_df")
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Pettitt")
@@ -1285,7 +1287,7 @@ test_that("Kruskal-Wallis recusa série sem frequência, série curta e faltante
 
 test_that("o Kruskal-Wallis atravessa o adaptador, e leva os graus como coluna", {
   t <- tr_series_kruskal_wallis(serie_mensal())
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_s3_class(tb, "tbl_df")
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Kruskal-Wallis")
@@ -1426,7 +1428,7 @@ test_that("o Fisher recusa faltante e série curta, e ACEITA frequência 1", {
 
 test_that("o Fisher atravessa o adaptador, e leva o período como coluna", {
   t <- tr_series_fisher(serie_mensal())
-  tb <- .tr_series_teste_tabela(t)
+  tb <- tabela_teste(t)
   expect_s3_class(tb, "tbl_df")
   expect_equal(nrow(tb), 1L)
   expect_equal(tb$teste, "Fisher")
