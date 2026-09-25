@@ -81,7 +81,10 @@ tr_multi_roc <- function(modelo, validacao = "cruzada", aspecto = "1:1", tema = 
 
 .tr_multi_nos_roc <- function() {
   list(
-    trama::tr_node("multi/roc", role = "avaliacao", fn = tr_multi_roc, label = "Curva ROC",
+    trama::tr_node("multi/roc",
+      pressupostos = .tr_multi_doc("multi/roc")$pressupostos,
+      referencias = .tr_multi_doc("multi/roc")$referencias,
+      role = "avaliacao", fn = tr_multi_roc, label = "Curva ROC",
       category = "multi_discriminante", icon = trama::tr_icon("chart-line"),
       description = "Sensibilidade × especificidade em todos os cortes, com a AUC, por validação cruzada.",
       inputs = list(modelo = "multi/classifier"), outputs = list(out = "view/plot"),

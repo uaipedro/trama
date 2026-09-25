@@ -563,7 +563,10 @@ tr_multi_plot_discriminant <- function(modelo, x = 1L, y = 2L, elipses = TRUE, a
   L <- "multi/lda"
   TB <- "data/table"
   list(
-    trama::tr_node("multi/discriminant", fn = tr_multi_discriminant, label = "Discriminante",
+    trama::tr_node("multi/discriminant",
+      pressupostos = .tr_multi_doc("multi/discriminant")$pressupostos,
+      referencias = .tr_multi_doc("multi/discriminant")$referencias,
+      fn = tr_multi_discriminant, label = "Discriminante",
       category = "multi_discriminante", icon = trama::tr_icon("split"),
       description = "Ajusta uma análise discriminante linear (LDA) ou quadrática (QDA) para separar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = L),
@@ -698,7 +701,10 @@ para ver os erros no plano discriminante; `data/filter` para separar os casos
 de probabilidade baixa.
 ]---")),
 
-    trama::tr_node("multi/confusion", role = "avaliacao", fn = tr_multi_confusion, label = "Matriz de confusão",
+    trama::tr_node("multi/confusion",
+      pressupostos = .tr_multi_doc("multi/confusion")$pressupostos,
+      referencias = .tr_multi_doc("multi/confusion")$referencias,
+      role = "avaliacao", fn = tr_multi_confusion, label = "Matriz de confusão",
       category = "multi_discriminante", icon = trama::tr_icon("grid-3x3"),
       description = "Grupo real × previsto e taxa de acerto, por validação cruzada ou resubstituição.",
       inputs = list(modelo = "multi/classifier"), outputs = list(out = TB),
@@ -811,7 +817,10 @@ tr_flow(reg) |>
 que é outra pergunta — funções significativas não garantem classificar bem.
 ]---")),
 
-    trama::tr_node("multi/box_m", role = "avaliacao", fn = tr_multi_box_m, label = "M de Box",
+    trama::tr_node("multi/box_m",
+      pressupostos = .tr_multi_doc("multi/box_m")$pressupostos,
+      referencias = .tr_multi_doc("multi/box_m")$referencias,
+      role = "avaliacao", fn = tr_multi_box_m, label = "M de Box",
       category = "multi_discriminante", icon = trama::tr_icon("scale"),
       description = "Testa se as matrizes de covariância dos grupos são iguais: linear ou quadrática?",
       inputs = list(dados = TB), outputs = list(out = TB),
@@ -833,10 +842,8 @@ p(p + 1)(g − 1)/2 graus de liberdade.
 
 ### Cuidado ao ler
 
-O M de Box é notoriamente SENSÍVEL: rejeita tanto por covariância diferente
-quanto por falta de normalidade (caudas pesadas), e com amostra grande rejeita
-por diferenças que não mudam a classificação. Por isso a decisão entre linear
-e quadrática não deve ser só dele: compare as duas pela taxa de acerto em
+Pela sensibilidade do teste (ver Pressupostos), a decisão entre linear e
+quadrática não deve ser só dele: compare as duas pela taxa de acerto em
 validação cruzada (`multi/confusion`). A linear é mais robusta e costuma
 ganhar com grupos pequenos, mesmo com H0 rejeitada.
 
