@@ -57,7 +57,7 @@
 #' Pressupostos e referências de um nó (listas vazias se não houver).
 #' @noRd
 .tr_ml_doc <- function(id) {
-  todos <- c(.tr_ml_docs_modelos())
+  todos <- c(.tr_ml_docs_modelos(), .tr_ml_docs_avaliacao())
   d <- todos[[id]]
   list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
 }

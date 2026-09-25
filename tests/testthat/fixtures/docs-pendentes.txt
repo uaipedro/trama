@@ -2,10 +2,6 @@
 # livro-texto + implementacao). Gerado por test-cobertura-docs.R.
 # Esta lista só pode ENCOLHER: documente o bloco e tire a linha dele.
 # Bloco novo exigido nasce documentado; não entra aqui.
-ml/confusion
-ml/evaluate
-ml/roc
-ml/tune
 multi/box_m
 multi/confusion
 multi/discriminant

@@ -128,7 +128,8 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
   T <- "data/table"; G <- "view/plot"; M <- "ml/fit"
   visual <- function(...) trama.view::tr_view_props(...)
   list(
-    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, label = "Ajustar hiperpar\u{E2}metros",
+    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune,
+      pressupostos = .tr_ml_doc("ml/tune")$pressupostos, referencias = .tr_ml_doc("ml/tune")$referencias, label = "Ajustar hiperpar\u{E2}metros",
       description = "Seleciona hiperpar\u{E2}metros por valida\u{E7}\u{E3}o cruzada e reajusta o vencedor no treino completo.",
       category = "ml_avaliar", icon = trama::tr_icon("sliders-horizontal"), inputs = list(dados = T),
       outputs = list(modelo = M, historico = T),
@@ -140,7 +141,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         folds = trama::tr_param_int(5L, min = 2L, label = "Folds"),
         amplitude = trama::tr_param_enum("conservadora", c("conservadora", "ampla"), label = "Espa\u{E7}o de busca"),
         seed = .tr_ml_seed_param()),
-      help = .tr_ml_help("Avalia configura\u{E7}\u{F5}es nos mesmos folds, escolhe pela m\u{E9}dia e reajusta o vencedor em todas as linhas recebidas. Conecte somente treino; preserve o teste para a avalia\u{E7}\u{E3}o final.",
+      help = .tr_ml_help("Avalia configura\u{E7}\u{F5}es nos mesmos folds, escolhe pela m\u{E9}dia e reajusta o vencedor em todas as linhas recebidas.",
         "`modelo`: fam\u{ED}lia a ajustar. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
         "Duas sa\u{ED}das: o melhor `ml/fit` reajustado e uma tabela com todas as tentativas.",
         "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, alvo = 'Species', tentativas = 3, folds = 3)",
@@ -173,7 +174,8 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         "`alvo`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
         paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
-    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, label = "Curva ROC",
+    trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc,
+      pressupostos = .tr_ml_doc("ml/roc")$pressupostos, referencias = .tr_ml_doc("ml/roc")$referencias, label = "Curva ROC",
       description = "Mostra sensibilidade contra falsos positivos em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
       category = "ml_inspecionar", icon = trama::tr_icon("chart-line"), inputs = list(dados = T), outputs = list(out = G),
       params = visual(alvo = .tr_ml_target_param(),
