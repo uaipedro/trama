@@ -93,7 +93,7 @@
           se_falhar = "Leia RMSE e MAE, na unidade da resposta, junto do gráfico de resíduos."),
         P("O **kappa** desconta a concordância esperada pelas marginais, mas depende da prevalência: com uma classe muito rara ele cai mesmo com boa acurácia, e não há escala universal do que é “bom”.",
           se_falhar = "Leia o kappa junto da acurácia balanceada e das métricas por classe."),
-        P("Precisão, revocação e F1 **por classe** tratam cada classe contra as demais; com poucas linhas de uma classe (coluna `n`), os valores dela variam muito. Uma classe nunca prevista tem precisão 0 por convenção.",
+        P("Precisão, revocação e F1 **por classe** tratam cada classe contra as demais; com poucas linhas de uma classe (coluna `n`), os valores dela variam muito. Uma classe nunca prevista tem precisão **indefinida** (0/0): sai NA e fica fora das médias macro e ponderada, como `zero_division = np.nan` do scikit-learn — o padrão do scikit-learn põe 0 e puxa a média para baixo, então compare com cuidado.",
           verificar = "ml/confusion",
           se_falhar = "Confira as contagens na `ml/confusion` antes de interpretar a classe."),
         P("A medida vem de **um único teste**: com poucas linhas ela varia muito de uma divisão para outra.",

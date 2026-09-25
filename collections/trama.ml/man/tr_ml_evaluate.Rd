@@ -36,6 +36,8 @@ Não remove silenciosamente linhas: alvo e previsão ausentes produzem erro.
 Em classificação, balanced accuracy (média das revocações), F1, precisão e
 revocação macro são médias sobre as classes observadas no alvo; as
 ponderadas usam o suporte de cada classe; o kappa de Cohen (1960) desconta a
-concordância esperada pelas marginais. Precisão de classe nunca prevista e
-F1 sem acerto valem zero.
+concordância esperada pelas marginais. Precisão de classe nunca prevista é
+indefinida (0/0): sai \code{NA} e fica fora da média macro e da ponderada (pesos
+renormalizados), como \code{zero_division = np.nan} do scikit-learn; F1 sem
+acerto vale zero.
 }
