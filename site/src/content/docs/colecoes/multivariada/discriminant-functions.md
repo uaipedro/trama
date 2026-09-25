@@ -4,12 +4,12 @@ description: Resume autovalores, separação, correlação canônica e lambda de
 section: colecoes
 collection: multivariada
 node: multi/discriminant_functions
-related: [multi/discriminant, multi/plot_discriminant, multi/confusion]
+related: [multi/discriminant, multi/plot_discriminant, models/confusion]
 ---
 
 ## O que o bloco faz
 
-O bloco `multi/discriminant_functions` calcula estatísticas das funções discriminantes ou devolve seus coeficientes como tabela. O bloco recebe `multi/lda`.
+O bloco `multi/discriminant_functions` calcula estatísticas das funções discriminantes ou devolve seus coeficientes como tabela. O bloco recebe o modelo (`models/fit`) de uma `multi/discriminant`.
 
 ## Quando usar
 
@@ -43,4 +43,4 @@ Autovalores e proporção indicam contribuição de cada função; correlação 
 
 - [`Discriminante`](/trama/colecoes/multivariada/discriminant/)
 - [`Plano discriminante`](/trama/colecoes/multivariada/plot-discriminant/)
-- [`Matriz de confusão`](/trama/colecoes/multivariada/confusion/)
+- [`Matriz de confusão`](/trama/colecoes/modelos/confusion/)

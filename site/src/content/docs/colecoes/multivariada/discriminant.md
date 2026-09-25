@@ -4,7 +4,7 @@ description: Ajusta LDA ou QDA usando grupos conhecidos para classificar observa
 section: colecoes
 collection: multivariada
 node: multi/discriminant
-related: [multi/classify, multi/confusion, multi/box_m]
+related: [models/predict, models/confusion, multi/box_m]
 ---
 
 ## O que o bloco faz
@@ -39,10 +39,10 @@ O classificador LDA pode ser conectado à classificação e avaliação cruzada.
 
 ## Como interpretar
 
-LDA usa covariância comum aos grupos; QDA estima uma covariância por grupo. A taxa do treino é aparente; `multi/confusion` em validação cruzada estima o desempenho em casos não usados no ajuste.
+LDA usa covariância comum aos grupos; QDA estima uma covariância por grupo. A taxa do treino é aparente; `models/confusion` em validação cruzada estima o desempenho em casos não usados no ajuste.
 
 ## Veja também
 
-- [`Classificar`](/trama/colecoes/multivariada/classify/)
-- [`Matriz de confusão`](/trama/colecoes/multivariada/confusion/)
+- [`Prever`](/trama/colecoes/modelos/predict/)
+- [`Matriz de confusão`](/trama/colecoes/modelos/confusion/)
 - [`M de Box`](/trama/colecoes/multivariada/box-m/)

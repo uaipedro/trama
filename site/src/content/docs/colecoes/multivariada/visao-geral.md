@@ -8,7 +8,7 @@ related: [multi/example, multi/pca]
 
 ## Organização da coleção
 
-`trama.multi` recebe `data/table` e conecta tabelas a modelos ou gráficos. Um fluxo pode conferir fatorabilidade com KMO e Bartlett, estimar a quantidade de componentes por análise paralela e então ajustar PCA ou análise fatorial. Para classificar grupos, a coleção oferece LDA/QDA e logística com nós de classificação, validação e avaliação.
+`trama.multi` recebe `data/table` e conecta tabelas a modelos ou gráficos. Um fluxo pode conferir fatorabilidade com KMO e Bartlett, estimar a quantidade de componentes por análise paralela e então ajustar PCA ou análise fatorial. Para classificar grupos, a coleção oferece LDA/QDA e logística; os dois saem como modelo (`models/fit`), e prever, validar e avaliar é com os blocos da coleção de modelos (`models/predict`, `models/confusion`, `models/roc`).
 
 ## Fluxo reproduzível
 
@@ -34,5 +34,5 @@ A coleção contém conjuntos reais do R e conjuntos simulados com estruturas co
 - Correlação: [Matriz](/trama/colecoes/multivariada/correlation-matrix/) e [Mapa](/trama/colecoes/multivariada/plot-correlation/)
 - PCA: [Componentes principais](/trama/colecoes/multivariada/pca/), [Variância explicada](/trama/colecoes/multivariada/pca-variance/), [Cargas](/trama/colecoes/multivariada/pca-loadings/), [Scree](/trama/colecoes/multivariada/scree/), [Biplot](/trama/colecoes/multivariada/biplot/), [Círculo de correlações](/trama/colecoes/multivariada/correlation-circle/), [Jackknife](/trama/colecoes/multivariada/jackknife-pca/)
 - Fatorial: [Análise fatorial](/trama/colecoes/multivariada/factor-analysis/), [Cargas](/trama/colecoes/multivariada/fa-loadings/), [Mapa das cargas](/trama/colecoes/multivariada/plot-loadings/), [Jackknife](/trama/colecoes/multivariada/jackknife-fa/)
-- Classificação: [Discriminante](/trama/colecoes/multivariada/discriminant/), [Classificar](/trama/colecoes/multivariada/classify/), [Matriz de confusão](/trama/colecoes/multivariada/confusion/), [Funções discriminantes](/trama/colecoes/multivariada/discriminant-functions/), [M de Box](/trama/colecoes/multivariada/box-m/), [Plano discriminante](/trama/colecoes/multivariada/plot-discriminant/), [Jackknife](/trama/colecoes/multivariada/jackknife-discriminant/)
-- Logística: [Regressão](/trama/colecoes/multivariada/logistic/), [Razões de chances](/trama/colecoes/multivariada/logistic-coefficients/), [Gráfico das razões](/trama/colecoes/multivariada/plot-odds/), [Curva ROC](/trama/colecoes/multivariada/roc/), [Jackknife](/trama/colecoes/multivariada/jackknife-logistic/)
+- Classificação: [Discriminante](/trama/colecoes/multivariada/discriminant/), [Prever](/trama/colecoes/modelos/predict/) e [Matriz de confusão](/trama/colecoes/modelos/confusion/) (da coleção de modelos), [Funções discriminantes](/trama/colecoes/multivariada/discriminant-functions/), [M de Box](/trama/colecoes/multivariada/box-m/), [Plano discriminante](/trama/colecoes/multivariada/plot-discriminant/), [Jackknife](/trama/colecoes/multivariada/jackknife-discriminant/)
+- Logística: [Regressão](/trama/colecoes/multivariada/logistic/), [Coeficientes](/trama/colecoes/modelos/coefficients/) (modelos), [Gráfico das razões](/trama/colecoes/multivariada/plot-odds/), [Curva ROC](/trama/colecoes/modelos/roc/) (modelos), [Jackknife](/trama/colecoes/multivariada/jackknife-logistic/)

@@ -4,7 +4,7 @@ description: Testa igualdade das matrizes de covariância entre grupos para apoi
 section: colecoes
 collection: multivariada
 node: multi/box_m
-related: [multi/discriminant, multi/confusion]
+related: [multi/discriminant, models/confusion]
 ---
 
 ## O que o bloco faz
@@ -42,4 +42,4 @@ P-valor pequeno indica evidência contra covariâncias iguais. O teste é sensí
 ## Veja também
 
 - [`Discriminante`](/trama/colecoes/multivariada/discriminant/)
-- [`Matriz de confusão`](/trama/colecoes/multivariada/confusion/)
+- [`Matriz de confusão`](/trama/colecoes/modelos/confusion/)

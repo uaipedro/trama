@@ -4,12 +4,12 @@ description: Plota escores das funções por grupo, com centróides e elipses.
 section: colecoes
 collection: multivariada
 node: multi/plot_discriminant
-related: [multi/discriminant_functions, multi/confusion, multi/classify]
+related: [multi/discriminant_functions, models/confusion, models/predict]
 ---
 
 ## O que o bloco faz
 
-O bloco `multi/plot_discriminant` plota os escores das funções discriminantes por grupo, com centróides e elipses opcionais. O bloco recebe `multi/lda`.
+O bloco `multi/plot_discriminant` plota os escores das funções discriminantes por grupo, com centróides e elipses opcionais. O bloco recebe o modelo (`models/fit`) de uma `multi/discriminant`.
 
 ## Quando usar
 
@@ -44,5 +44,5 @@ Pontos são observações projetadas e centróides são médias dos grupos. Elip
 ## Veja também
 
 - [`Funções discriminantes`](/trama/colecoes/multivariada/discriminant-functions/)
-- [`Matriz de confusão`](/trama/colecoes/multivariada/confusion/)
-- [`Classificar`](/trama/colecoes/multivariada/classify/)
+- [`Matriz de confusão`](/trama/colecoes/modelos/confusion/)
+- [`Prever`](/trama/colecoes/modelos/predict/)

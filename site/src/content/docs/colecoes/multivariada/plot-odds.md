@@ -4,12 +4,12 @@ description: Plota razões de chances por preditor com intervalos em escala log.
 section: colecoes
 collection: multivariada
 node: multi/plot_odds
-related: [multi/logistic_coefficients, multi/logistic, multi/roc]
+related: [models/coefficients, multi/logistic, models/roc]
 ---
 
 ## O que o bloco faz
 
-O bloco `multi/plot_odds` plota razões de chances e intervalos de confiança em escala logarítmica. A saída é um gráfico. O bloco recebe `multi/logit`.
+O bloco `multi/plot_odds` plota razões de chances e intervalos de confiança em escala logarítmica. A saída é um gráfico. O bloco recebe o modelo (`models/fit`) de uma `multi/logistic`.
 
 ## Quando usar
 
@@ -41,6 +41,6 @@ A linha de referência em 1 representa razão de chances nula. Intervalo que a c
 
 ## Veja também
 
-- [`Razões de chances`](/trama/colecoes/multivariada/logistic-coefficients/)
+- [`Coeficientes`](/trama/colecoes/modelos/coefficients/)
 - [`Regressão logística`](/trama/colecoes/multivariada/logistic/)
-- [`Curva ROC`](/trama/colecoes/multivariada/roc/)
+- [`Curva ROC`](/trama/colecoes/modelos/roc/)

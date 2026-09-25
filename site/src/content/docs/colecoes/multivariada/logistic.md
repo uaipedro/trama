@@ -4,7 +4,7 @@ description: Ajusta logística binária para dois grupos ou multinomial para tr�
 section: colecoes
 collection: multivariada
 node: multi/logistic
-related: [multi/logistic_coefficients, multi/plot_odds, multi/roc]
+related: [models/coefficients, multi/plot_odds, models/roc]
 ---
 
 ## O que o bloco faz
@@ -42,6 +42,6 @@ Resposta escolhe a coluna do grupo; Preditores seleciona as variáveis numérica
 
 ## Veja também
 
-- [`Razões de chances`](/trama/colecoes/multivariada/logistic-coefficients/)
+- [`Coeficientes`](/trama/colecoes/modelos/coefficients/) (com `exponenciar`, as razões de chances)
 - [`Gráfico das razões de chances`](/trama/colecoes/multivariada/plot-odds/)
-- [`Curva ROC`](/trama/colecoes/multivariada/roc/)
+- [`Curva ROC`](/trama/colecoes/modelos/roc/)

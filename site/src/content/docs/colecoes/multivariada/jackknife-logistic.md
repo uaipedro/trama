@@ -4,12 +4,12 @@ description: Estima incerteza e influência nos coeficientes ou razões de chanc
 section: colecoes
 collection: multivariada
 node: multi/jackknife_logistic
-related: [multi/logistic, multi/logistic_coefficients, multi/roc]
+related: [multi/logistic, models/coefficients, models/roc]
 ---
 
 ## O que o bloco faz
 
-O bloco `multi/jackknife_logistic` refaz a logística sem cada observação e estima incerteza e influência em coeficientes ou razões de chances. O bloco recebe `multi/logit`.
+O bloco `multi/jackknife_logistic` refaz a logística sem cada observação e estima incerteza e influência em coeficientes ou razões de chances. O bloco recebe o modelo (`models/fit`) de uma `multi/logistic`.
 
 ## Quando usar
 
@@ -46,5 +46,5 @@ Para razões de chances, estimativas e intervalo são exponenciados; viés, erro
 ## Veja também
 
 - [`Regressão logística`](/trama/colecoes/multivariada/logistic/)
-- [`Razões de chances`](/trama/colecoes/multivariada/logistic-coefficients/)
-- [`Curva ROC`](/trama/colecoes/multivariada/roc/)
+- [`Coeficientes`](/trama/colecoes/modelos/coefficients/)
+- [`Curva ROC`](/trama/colecoes/modelos/roc/)
