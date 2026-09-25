@@ -4,9 +4,9 @@
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_cart <- function(dados, alvo = "", cols = "", tarefa = "auto",
+tr_ml_cart <- function(dados, resposta = "", preditores = "", tarefa = "auto",
                        max_depth = 3L, min_n = 5L, seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "cart", tarefa, seed = seed,
+  tr_ml_fit(dados, resposta, preditores, "cart", tarefa, seed = seed,
             max_depth = max_depth, min_n = min_n)
 }
 
@@ -14,9 +14,9 @@ tr_ml_cart <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_figs <- function(dados, alvo = "", cols = "", tarefa = "auto",
+tr_ml_figs <- function(dados, resposta = "", preditores = "", tarefa = "auto",
                        max_splits = 6L, min_n = 5L, seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "figs", tarefa, seed = seed,
+  tr_ml_fit(dados, resposta, preditores, "figs", tarefa, seed = seed,
             max_splits = max_splits, min_n = min_n)
 }
 
@@ -24,9 +24,9 @@ tr_ml_figs <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_forest <- function(dados, alvo = "", cols = "", tarefa = "auto",
+tr_ml_forest <- function(dados, resposta = "", preditores = "", tarefa = "auto",
                          trees = 200L, mtry = 0L, min_n = 5L, max_depth = 3L, seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "forest", tarefa, seed = seed,
+  tr_ml_fit(dados, resposta, preditores, "forest", tarefa, seed = seed,
             trees = trees, mtry = mtry, min_n = min_n, max_depth = max_depth)
 }
 
@@ -34,9 +34,9 @@ tr_ml_forest <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_svm <- function(dados, alvo = "", cols = "", tarefa = "auto",
+tr_ml_svm <- function(dados, resposta = "", preditores = "", tarefa = "auto",
                       cost = 1, gamma = 0.1, kernel = "radial", seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "svm", tarefa, seed = seed,
+  tr_ml_fit(dados, resposta, preditores, "svm", tarefa, seed = seed,
             cost = cost, gamma = gamma, kernel = kernel)
 }
 
@@ -44,9 +44,9 @@ tr_ml_svm <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_xgboost <- function(dados, alvo = "", cols = "", tarefa = "auto",
+tr_ml_xgboost <- function(dados, resposta = "", preditores = "", tarefa = "auto",
                           nrounds = 100L, max_depth = 3L, eta = 0.1, seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "xgboost", tarefa, seed = seed,
+  tr_ml_fit(dados, resposta, preditores, "xgboost", tarefa, seed = seed,
             nrounds = nrounds, max_depth = max_depth, eta = eta)
 }
 
@@ -54,8 +54,8 @@ tr_ml_xgboost <- function(dados, alvo = "", cols = "", tarefa = "auto",
 #' @inheritParams tr_ml_fit
 #' @return Um modelo `tr_ml_fit`.
 #' @export
-tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42L) {
-  tr_ml_fit(dados, alvo, cols, "linear", tarefa, seed = seed)
+tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto", seed = 42L) {
+  tr_ml_fit(dados, resposta, preditores, "linear", tarefa, seed = seed)
 }
 
 .tr_ml_help <- function(descricao, parametros, valor, exemplo, veja) {
@@ -70,7 +70,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
 .tr_ml_seed_param <- function() trama::tr_param_int(42L, min = 0L, label = "Semente")
 
 .tr_ml_model_nodes <- function() {
-  common <- list(alvo = .tr_ml_target_param(), cols = .tr_ml_cols_param(), tarefa = .tr_ml_task_param())
+  common <- list(resposta = .tr_ml_target_param(), preditores = .tr_ml_cols_param(), tarefa = .tr_ml_task_param())
   depth <- trama::tr_param_int(3L, min = 1L, max = 30L, label = "Profundidade m\u{E1}xima")
   min_n <- trama::tr_param_int(5L, min = 1L, label = "M\u{ED}nimo por n\u{F3}")
   configs <- list(
@@ -120,10 +120,10 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
       inputs = list(dados = "data/table"), outputs = list(out = "ml/fit"),
       params = c(common, cfg$params, list(seed = .tr_ml_seed_param())),
       help = .tr_ml_help(cfg$details,
-        paste("`alvo`: coluna resposta. `cols`: preditores num\u{E9}ricos separados por v\u{ED}rgula; vazio usa os num\u{E9}ricos exceto a resposta. Remova identificadores e vari\u{E1}veis que revelem a resposta. `tarefa`: auto interpreta n\u{FA}meros como regress\u{E3}o e fator/texto como classifica\u{E7}\u{E3}o. Para classes codificadas com n\u{FA}meros, selecione classificacao. `seed`: semente reproduz\u{ED}vel, sem alterar a sess\u{E3}o.", cfg$extra,
+        paste("`resposta`: coluna resposta. `preditores`: preditores num\u{E9}ricos separados por v\u{ED}rgula; vazio usa os num\u{E9}ricos exceto a resposta. Remova identificadores e vari\u{E1}veis que revelem a resposta. `tarefa`: auto interpreta n\u{FA}meros como regress\u{E3}o e fator/texto como classifica\u{E7}\u{E3}o. Para classes codificadas com n\u{FA}meros, selecione classificacao. `seed`: semente reproduz\u{ED}vel, sem alterar a sess\u{E3}o.", cfg$extra,
           "Faltantes e infinitos s\u{E3}o recusados: trate-os explicitamente sem aprender estat\u{ED}sticas no teste."),
         "Modelo `ml/fit`. Ligue-o a `ml/predict`; conecte a tabela de teste na outra entrada. Use `ml/evaluate` para medir desempenho fora do treino.",
-        paste0("trama.ml::tr_ml_", id, "(trama.ml::tr_ml_example('iris_binaria'), alvo = 'Species')"),
+        paste0("trama.ml::tr_ml_", id, "(trama.ml::tr_ml_example('iris_binaria'), resposta = 'Species')"),
         paste(cfg$ref, "Ver `ml/split`, `ml/predict` e `ml/evaluate`.")))
   })
 }
@@ -136,7 +136,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
       description = "Seleciona hiperpar\u{E2}metros por valida\u{E7}\u{E3}o cruzada e reajusta o vencedor no treino completo.",
       category = "ml_avaliar", inputs = list(dados = T),
       outputs = list(modelo = M, historico = T),
-      params = list(alvo = .tr_ml_target_param(), cols = .tr_ml_cols_param(),
+      params = list(resposta = .tr_ml_target_param(), preditores = .tr_ml_cols_param(),
         modelo = trama::tr_param_enum("cart", c("cart", "figs", "forest", "svm", "xgboost"), label = "Modelo"),
         tarefa = .tr_ml_task_param(),
         metrica = trama::tr_param_enum("auto", c("auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1"), label = "M\u{E9}trica"),
@@ -147,7 +147,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
       help = .tr_ml_help("Avalia configura\u{E7}\u{F5}es nos mesmos folds, escolhe pela m\u{E9}dia e reajusta o vencedor em todas as linhas recebidas. Conecte somente treino; preserve o teste para a avalia\u{E7}\u{E3}o final.",
         "`modelo`: fam\u{ED}lia a ajustar. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
         "Duas sa\u{ED}das: o melhor `ml/fit` reajustado e uma tabela com todas as tentativas.",
-        "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, alvo = 'Species', tentativas = 3, folds = 3)",
+        "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, resposta = 'Species', tentativas = 3, folds = 3)",
         "`ml/tuning_plot`, `ml/predict`, `ml/evaluate`.")),
     trama::tr_node("ml/tree_plot", tr_ml_tree_plot, label = "Visualizar \u{E1}rvores",
       description = "Desenha a \u{E1}rvore CART ou uma \u{E1}rvore da soma FIGS.",
@@ -158,7 +158,7 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
         casas = trama::tr_param_int(3L, min = 0L, max = 6L, label = "Casas decimais")),
       help = .tr_ml_help("No CART, mostra a \u{E1}rvore de decis\u{E3}o completa. No FIGS, mostra uma \u{E1}rvore por vez; a previs\u{E3}o final continua sendo a soma das contribui\u{E7}\u{F5}es.",
         "`arvore`: \u{ED}ndice da \u{E1}rvore no FIGS; \u{E9} ignorado pelo CART. `mostrar_n`: inclui o n\u{FA}mero de observa\u{E7}\u{F5}es. `mostrar_impureza`: inclui impureza no CART ou ganho no FIGS. `casas`: precis\u{E3}o dos valores.", "Um gr\u{E1}fico `view/plot`.",
-        "m <- trama.ml::tr_ml_cart(mtcars, alvo = 'mpg', cols = 'wt, hp')\ntrama.ml::tr_ml_tree_plot(m)",
+        "m <- trama.ml::tr_ml_cart(mtcars, resposta = 'mpg', preditores = 'wt, hp')\ntrama.ml::tr_ml_tree_plot(m)",
         paste("`ml/rules`, `ml/cart`, `ml/figs`.", trama.view::tr_view_help_appearance()))),
     trama::tr_node("ml/tuning_plot", tr_ml_tuning_plot, label = "Visualizar tuning",
       description = "Mostra cada tentativa e a evolu\u{E7}\u{E3}o do melhor resultado.",
@@ -171,20 +171,20 @@ tr_ml_linear <- function(dados, alvo = "", cols = "", tarefa = "auto", seed = 42
     trama::tr_node("ml/residuals", tr_ml_residuals, label = "Analisar res\u{ED}duos",
       description = "Compara res\u{ED}duos de regress\u{E3}o com os valores previstos.",
       category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
-      params = visual(alvo = .tr_ml_target_param(),
+      params = visual(resposta = .tr_ml_target_param(),
         predito = trama::tr_param("text", ".pred", label = "Coluna prevista", example = ".pred")),
       help = .tr_ml_help("Padr\u{F5}es, curvas ou abertura dos res\u{ED}duos sugerem erros sistem\u{E1}ticos ou vari\u{E2}ncia desigual. \u{C9} um diagn\u{F3}stico, n\u{E3}o uma prova isolada.",
-        "`alvo`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
+        "`resposta`: resposta observada. `predito`: previs\u{E3}o num\u{E9}rica.", "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = 1:4, .pred = c(1.1, 1.8, 3.2, 3.7))\ntrama.ml::tr_ml_residuals(d, 'y')",
         paste("`ml/predict`, `ml/evaluate`.", trama.view::tr_view_help_appearance()))),
     trama::tr_node("ml/roc", role = "avaliacao", tr_ml_roc, label = "Curva ROC",
       description = "Mostra sensibilidade contra falsos positivos em classifica\u{E7}\u{E3}o bin\u{E1}ria.",
       category = "ml_inspecionar", inputs = list(dados = T), outputs = list(out = G),
-      params = visual(alvo = .tr_ml_target_param(),
+      params = visual(resposta = .tr_ml_target_param(),
         probabilidade = trama::tr_param("text", "", label = "Probabilidade", example = ".prob_sim"),
         positiva = trama::tr_param("text", "", label = "Classe positiva", example = "sim")),
       help = .tr_ml_help("Ordena as linhas pela probabilidade da classe positiva e exibe a curva ROC com sua AUC. Use somente classifica\u{E7}\u{E3}o bin\u{E1}ria.",
-        "`alvo`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada.",
+        "`resposta`: classe observada. `probabilidade`: coluna `.prob_<classe>` criada por Prever. `positiva`: classe correspondente; vazio usa a segunda classe observada.",
         "Um gr\u{E1}fico `view/plot`.",
         "d <- data.frame(y = factor(c('nao','sim','nao','sim')), .prob_sim = c(.1,.8,.4,.7))\ntrama.ml::tr_ml_roc(d, 'y', '.prob_sim', 'sim')",
         paste("`ml/predict`, `ml/confusion`.", trama.view::tr_view_help_appearance())))

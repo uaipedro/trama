@@ -26,10 +26,10 @@ test_that("fluxo real calcula teste separado, preserva e restaura modelos", {
   reg <- ml_registry()
   f <- trama::tr_flow(reg) |>
     trama::tr_add("dados", "ml/example", nome = "iris_binaria") |>
-    trama::tr_add("divisao", "ml/split", alvo = "Species", from = "dados") |>
-    trama::tr_add("modelo", "ml/cart", alvo = "Species", from = "divisao:treino") |>
+    trama::tr_add("divisao", "ml/split", resposta = "Species", from = "dados") |>
+    trama::tr_add("modelo", "ml/cart", resposta = "Species", from = "divisao:treino") |>
     trama::tr_add("prever", "ml/predict", from = c("modelo", "divisao:teste")) |>
-    trama::tr_add("avaliar", "ml/evaluate", alvo = "Species", from = "prever")
+    trama::tr_add("avaliar", "ml/evaluate", resposta = "Species", from = "prever")
   store <- trama::tr_store(tempfile())
   doc <- trama::tr_flow_doc(f)
   val <- function(id, port = NULL) trama::tr_value(doc, id, port = port, registry = reg, store = store)
@@ -46,7 +46,7 @@ test_that("fluxo real ajusta tuning e expõe modelo e histórico", {
   reg <- ml_registry()
   f <- trama::tr_flow(reg) |>
     trama::tr_add("dados", "ml/example", nome = "mtcars") |>
-    trama::tr_add("ajuste", "ml/tune", alvo = "mpg", cols = "wt, hp",
+    trama::tr_add("ajuste", "ml/tune", resposta = "mpg", preditores = "wt, hp",
                   tentativas = 2L, folds = 2L, from = "dados")
   store <- trama::tr_store(tempfile())
   doc <- trama::tr_flow_doc(f)
@@ -83,4 +83,23 @@ test_that("exemplos da ajuda executam", {
     code <- sub("^```r\n", "", sub("\n```$", "", code))
     expect_no_error(eval(parse(text = code), envir = new.env()), message = n$id)
   }
+})
+
+# Glossário de params (docs/glossario-parametros.md): `alvo` virou `resposta` e,
+# nos ajustes, `cols` virou `preditores`. Fluxo salvo com o nome antigo abre migrado.
+test_that("fluxos salvos com alvo/cols abrem com resposta/preditores", {
+  reg <- ml_registry()
+  mig <- function(tipo, params) {
+    doc <- list(nodes = list(n = list(type = tipo, params = params)), edges = list())
+    trama::tr_doc_migrate(doc, reg)$nodes$n$params
+  }
+  p <- mig("ml/cart", list(alvo = "Species", cols = "Petal.Length"))
+  expect_null(p$alvo)
+  expect_null(p$cols)
+  expect_equal(p$resposta, "Species")
+  expect_equal(p$preditores, "Petal.Length")
+  p <- mig("ml/evaluate", list(alvo = "mpg", predito = ".pred"))
+  expect_null(p$alvo)
+  expect_equal(p$resposta, "mpg")
+  expect_equal(p$predito, ".pred")
 })

@@ -17,13 +17,13 @@ Use quando uma explicação aditiva por árvores pequenas atende à pergunta. Pa
 
 ## Configuração
 
-`alvo`, `cols` e `tarefa` definem dados e tarefa. `max_splits` limita o total de divisões da soma; `min_n` controla o tamanho mínimo dos nós conforme figsr; `seed` reproduz o ajuste.
+`resposta`, `preditores` e `tarefa` definem dados e tarefa. `max_splits` limita o total de divisões da soma; `min_n` controla o tamanho mínimo dos nós conforme figsr; `seed` reproduz o ajuste.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("iris_binaria")
-m <- trama.ml::tr_ml_figs(d, alvo = "Species", max_splits = 4)
+m <- trama.ml::tr_ml_figs(d, resposta = "Species", max_splits = 4)
 trama.ml::tr_ml_rules(m)
 ```
 

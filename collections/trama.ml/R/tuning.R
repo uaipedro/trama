@@ -39,8 +39,8 @@
   lapply(seq_len(k), function(i) which(ids == i))
 }
 
-.tr_ml_tune_metric <- function(pred, alvo, tarefa, metrica) {
-  z <- tr_ml_evaluate(pred, alvo, tarefa = tarefa)
+.tr_ml_tune_metric <- function(pred, resposta, tarefa, metrica) {
+  z <- tr_ml_evaluate(pred, resposta, tarefa = tarefa)
   i <- match(metrica, z$metrica)
   if (is.na(i)) .tr_ml_abort("tr_ml_error_bad_param", sprintf("M\u{E9}trica '%s' n\u{E3}o serve para esta tarefa.", metrica))
   z$valor[[i]]
@@ -52,9 +52,9 @@
 #' configuração, o modelo é reajustado em todas as linhas. O conjunto de teste
 #' final fica fora deste nó.
 #' @param dados Tabela de treino com pelo menos duas linhas.
-#' @param alvo Nome de uma coluna existente em `dados`.
-#' @param cols Preditores numéricos separados por vírgula. Vazio usa todos os
-#'   numéricos, exceto `alvo`.
+#' @param resposta Nome de uma coluna existente em `dados`.
+#' @param preditores Preditores numéricos separados por vírgula. Vazio usa todos os
+#'   numéricos, exceto `resposta`.
 #' @param modelo Família com hiperparâmetros: `"cart"`, `"figs"`, `"forest"`,
 #'   `"svm"` ou `"xgboost"`.
 #' @param tarefa Uma de `"auto"`, `"regressao"` ou `"classificacao"`. `"auto"`
@@ -71,7 +71,7 @@
 #'   `historico` por tentativa e fold, índice `melhor_tentativa`, `metrica`,
 #'   direção `minimizar`, número de `folds` e `seed`.
 #' @export
-tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
+tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
                        metrica = "auto", tentativas = 20L, folds = 5L,
                        amplitude = "conservadora", seed = 42L) {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
@@ -81,7 +81,7 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   folds <- .tr_ml_int(folds, "folds", 2L)
   seed <- .tr_ml_int(seed, "seed", 0L)
   amplitude <- .tr_ml_enum(amplitude, c("conservadora", "ampla"), "amplitude")
-  d <- .tr_ml_dados(dados, alvo, cols, tarefa)
+  d <- .tr_ml_dados(dados, resposta, preditores, tarefa)
   if (folds > d$n) .tr_ml_abort("tr_ml_error_bad_folds", "'folds' n\u{E3}o pode superar o n\u{FA}mero de linhas.")
   tarefa <- d$tarefa
   if (identical(metrica, "auto")) metrica <- if (tarefa == "regressao") "rmse" else "macro_f1"
@@ -92,7 +92,7 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
   space <- .tr_ml_tuning_space(modelo, length(d$preditores), amplitude)
 
   resultado <- .tr_ml_with_seed(seed, {
-    y_folds <- if (tarefa == "classificacao") factor(dados[[d$alvo]]) else dados[[d$alvo]]
+    y_folds <- if (tarefa == "classificacao") factor(dados[[d$resposta]]) else dados[[d$resposta]]
     partes <- .tr_ml_make_folds(y_folds, folds)
     configs <- lapply(seq_len(tentativas), function(i) .tr_ml_sample_config(space, modelo))
     linhas <- vector("list", tentativas)
@@ -102,12 +102,12 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
       for (validacao in partes) {
         treino <- dados[-validacao, , drop = FALSE]
         teste <- dados[validacao, , drop = FALSE]
-        args <- c(list(dados = treino, alvo = alvo, cols = cols, modelo = modelo,
+        args <- c(list(dados = treino, resposta = resposta, preditores = preditores, modelo = modelo,
                        tarefa = tarefa, seed = as.integer((as.double(seed) + i) %% .Machine$integer.max)), cfg)
         valor <- tryCatch(withCallingHandlers({
             fit <- do.call(tr_ml_fit, args)
             pred <- tr_ml_predict(fit, teste)
-            .tr_ml_tune_metric(pred, alvo, tarefa, metrica)
+            .tr_ml_tune_metric(pred, resposta, tarefa, metrica)
           }, warning = function(w) {
             avisos <<- c(avisos, conditionMessage(w)); invokeRestart("muffleWarning")
           }), error = function(e) { erro <<- conditionMessage(e); NA_real_ })
@@ -136,7 +136,7 @@ tr_ml_tune <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "a
     acumulado <- if (minimizar) cummin(replace(historico$media, !is.finite(historico$media), Inf)) else
       cummax(replace(historico$media, !is.finite(historico$media), -Inf))
     historico$melhor <- acumulado
-    final_args <- c(list(dados = dados, alvo = alvo, cols = cols, modelo = modelo,
+    final_args <- c(list(dados = dados, resposta = resposta, preditores = preditores, modelo = modelo,
                          tarefa = tarefa, seed = seed), configs[[melhor]])
     list(modelo = do.call(tr_ml_fit, final_args), historico = historico,
          melhor_tentativa = melhor, metrica = metrica, minimizar = minimizar,

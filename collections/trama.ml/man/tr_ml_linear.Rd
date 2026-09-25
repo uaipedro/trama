@@ -4,15 +4,21 @@
 \alias{tr_ml_linear}
 \title{Referência linear ou logística binária.}
 \usage{
-tr_ml_linear(dados, alvo = "", cols = "", tarefa = "auto", seed = 42L)
+tr_ml_linear(
+  dados,
+  resposta = "",
+  preditores = "",
+  tarefa = "auto",
+  seed = 42L
+)
 }
 \arguments{
 \item{dados}{Tabela de treino.}
 
-\item{alvo}{Nome da coluna a prever.}
+\item{resposta}{Nome da coluna a prever.}
 
-\item{cols}{Preditores separados por vírgula; em branco, usa todas as
-colunas numéricas, exceto o alvo.}
+\item{preditores}{Preditores separados por vírgula; em branco, usa todas as
+colunas numéricas, exceto o resposta.}
 
 \item{tarefa}{\code{"auto"}, \code{"regressao"} ou \code{"classificacao"}.}
 

@@ -6,7 +6,7 @@
 \usage{
 tr_ml_residuals(
   dados,
-  alvo = "",
+  resposta = "",
   predito = ".pred",
   aspecto = "16:9",
   tema = "padrão",
@@ -19,7 +19,7 @@ tr_ml_residuals(
 \arguments{
 \item{dados}{Tabela com valores observados e previstos.}
 
-\item{alvo}{Nome da coluna observada.}
+\item{resposta}{Nome da coluna observada.}
 
 \item{predito}{Nome da coluna prevista.}
 

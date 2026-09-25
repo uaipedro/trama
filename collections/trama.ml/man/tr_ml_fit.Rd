@@ -6,8 +6,8 @@
 \usage{
 tr_ml_fit(
   dados,
-  alvo = "",
-  cols = "",
+  resposta = "",
+  preditores = "",
   modelo = "cart",
   tarefa = "auto",
   seed = 42L,
@@ -26,10 +26,10 @@ tr_ml_fit(
 \arguments{
 \item{dados}{Tabela de treino.}
 
-\item{alvo}{Nome da coluna a prever.}
+\item{resposta}{Nome da coluna a prever.}
 
-\item{cols}{Preditores separados por vírgula; em branco, usa todas as
-colunas numéricas, exceto o alvo.}
+\item{preditores}{Preditores separados por vírgula; em branco, usa todas as
+colunas numéricas, exceto o resposta.}
 
 \item{modelo}{Um de \code{"linear"}, \code{"cart"}, \code{"figs"}, \code{"forest"}, \code{"svm"}
 ou \code{"xgboost"}.}

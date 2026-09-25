@@ -17,13 +17,13 @@ Use para modelar relações não lineares e interações com um conjunto de árv
 
 ## Configuração
 
-`trees` define o número de árvores; `mtry` define preditores candidatos por divisão (0 usa piso da raiz quadrada do número de preditores); `min_n` é o tamanho mínimo do nó a dividir; `max_depth` limita profundidade. Também recebe `alvo`, `cols`, `tarefa` e `seed`.
+`trees` define o número de árvores; `mtry` define preditores candidatos por divisão (0 usa piso da raiz quadrada do número de preditores); `min_n` é o tamanho mínimo do nó a dividir; `max_depth` limita profundidade. Também recebe `resposta`, `preditores`, `tarefa` e `seed`.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("mtcars")
-m <- trama.ml::tr_ml_forest(d, alvo = "mpg", cols = "wt, hp, disp", trees = 100)
+m <- trama.ml::tr_ml_forest(d, resposta = "mpg", preditores = "wt, hp, disp", trees = 100)
 trama.ml::tr_ml_predict(m, d[1:3, ])
 ```
 

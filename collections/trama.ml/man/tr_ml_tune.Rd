@@ -6,8 +6,8 @@
 \usage{
 tr_ml_tune(
   dados,
-  alvo = "",
-  cols = "",
+  resposta = "",
+  preditores = "",
   modelo = "cart",
   tarefa = "auto",
   metrica = "auto",
@@ -20,10 +20,10 @@ tr_ml_tune(
 \arguments{
 \item{dados}{Tabela de treino com pelo menos duas linhas.}
 
-\item{alvo}{Nome de uma coluna existente em \code{dados}.}
+\item{resposta}{Nome de uma coluna existente em \code{dados}.}
 
-\item{cols}{Preditores numéricos separados por vírgula. Vazio usa todos os
-numéricos, exceto \code{alvo}.}
+\item{preditores}{Preditores numéricos separados por vírgula. Vazio usa todos os
+numéricos, exceto \code{resposta}.}
 
 \item{modelo}{Família com hiperparâmetros: \code{"cart"}, \code{"figs"}, \code{"forest"},
 \code{"svm"} ou \code{"xgboost"}.}

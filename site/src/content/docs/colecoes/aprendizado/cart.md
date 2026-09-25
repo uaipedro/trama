@@ -17,13 +17,13 @@ Use quando quiser inspecionar decisões locais por limiares e folhas.
 
 ## Configuração
 
-`alvo`, `cols` e `tarefa` definem a resposta, preditores numéricos e tipo de tarefa. `max_depth` limita a profundidade; `min_n` define o mínimo de observações por folha; `seed` reproduz o ajuste. Requer `rpart`.
+`resposta`, `preditores` e `tarefa` definem a resposta, preditores numéricos e tipo de tarefa. `max_depth` limita a profundidade; `min_n` define o mínimo de observações por folha; `seed` reproduz o ajuste. Requer `rpart`.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("iris_binaria")
-m <- trama.ml::tr_ml_cart(d, alvo = "Species", cols = "Petal.Length, Petal.Width", max_depth = 3)
+m <- trama.ml::tr_ml_cart(d, resposta = "Species", preditores = "Petal.Length, Petal.Width", max_depth = 3)
 trama.ml::tr_ml_rules(m)
 ```
 

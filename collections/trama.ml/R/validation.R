@@ -42,40 +42,40 @@
   as.numeric(x)
 }
 
-.tr_ml_cols <- function(cols) {
-  if (length(cols) > 1L) return(trimws(as.character(cols)))
-  cols <- .tr_ml_texto(cols, "cols")
-  if (!nzchar(cols)) return(character())
-  trimws(strsplit(cols, ",", fixed = TRUE)[[1L]])
+.tr_ml_cols <- function(preditores) {
+  if (length(preditores) > 1L) return(trimws(as.character(preditores)))
+  preditores <- .tr_ml_texto(preditores, "preditores")
+  if (!nzchar(preditores)) return(character())
+  trimws(strsplit(preditores, ",", fixed = TRUE)[[1L]])
 }
 
-.tr_ml_dados <- function(dados, alvo, cols, tarefa) {
+.tr_ml_dados <- function(dados, resposta, preditores, tarefa) {
   if (!is.data.frame(dados)) {
     .tr_ml_abort("tr_ml_error_not_table", "Param 'dados' deve ser uma tabela (data.frame ou tibble).")
   }
   if (!nrow(dados)) .tr_ml_abort("tr_ml_error_empty_data", "A tabela n\u{E3}o tem nenhuma linha.")
-  alvo <- .tr_ml_texto(alvo, "alvo")
-  if (!nzchar(alvo)) .tr_ml_abort("tr_ml_error_blank_param", "Param 'alvo' n\u{E3}o pode ficar em branco.")
-  if (!alvo %in% names(dados)) {
-    .tr_ml_abort("tr_ml_error_unknown_column", "A coluna alvo '%s' n\u{E3}o existe na tabela.", alvo)
+  resposta <- .tr_ml_texto(resposta, "resposta")
+  if (!nzchar(resposta)) .tr_ml_abort("tr_ml_error_blank_param", "Param 'resposta' n\u{E3}o pode ficar em branco.")
+  if (!resposta %in% names(dados)) {
+    .tr_ml_abort("tr_ml_error_unknown_column", "A coluna resposta '%s' n\u{E3}o existe na tabela.", resposta)
   }
-  pred <- .tr_ml_cols(cols)
-  if (!length(pred)) pred <- setdiff(names(dados)[vapply(dados, is.numeric, TRUE)], alvo)
+  pred <- .tr_ml_cols(preditores)
+  if (!length(pred)) pred <- setdiff(names(dados)[vapply(dados, is.numeric, TRUE)], resposta)
   if (any(!nzchar(pred)) || anyDuplicated(pred)) {
-    .tr_ml_abort("tr_ml_error_bad_columns", "Param 'cols' cont\u{E9}m nome vazio ou repetido.")
+    .tr_ml_abort("tr_ml_error_bad_columns", "Param 'preditores' cont\u{E9}m nome vazio ou repetido.")
   }
   desconhecidas <- setdiff(pred, names(dados))
   if (length(desconhecidas)) {
     .tr_ml_abort("tr_ml_error_unknown_column", "Estas colunas n\u{E3}o existem: %s.",
                  paste(sprintf("'%s'", desconhecidas), collapse = ", "))
   }
-  if (alvo %in% pred) {
+  if (resposta %in% pred) {
     .tr_ml_abort("tr_ml_error_target_leakage",
-                 "A coluna alvo '%s' tamb\u{E9}m aparece nos preditores. Retire-a de 'cols'.", alvo)
+                 "A coluna resposta '%s' tamb\u{E9}m aparece nos preditores. Retire-a de 'preditores'.", resposta)
   }
   if (!length(pred)) {
     .tr_ml_abort("tr_ml_error_no_predictors",
-                 "Nenhum preditor num\u{E9}rico foi encontrado. Informe-os em 'cols'.")
+                 "Nenhum preditor num\u{E9}rico foi encontrado. Informe-os em 'preditores'.")
   }
   nao_num <- pred[!vapply(dados[pred], is.numeric, TRUE)]
   if (length(nao_num)) {
@@ -83,33 +83,33 @@
                  "Nesta vers\u{E3}o, os preditores devem ser num\u{E9}ricos; ajuste: %s.",
                  paste(sprintf("'%s'", nao_num), collapse = ", "))
   }
-  usados <- dados[c(alvo, pred)]
+  usados <- dados[c(resposta, pred)]
   if (anyNA(usados)) {
     .tr_ml_abort("tr_ml_error_missing",
-                 "H\u{E1} valores ausentes no alvo ou nos preditores. Impute ou remova essas linhas antes do ajuste.")
+                 "H\u{E1} valores ausentes na resposta ou nos preditores. Impute ou remova essas linhas antes do ajuste.")
   }
   finitos <- vapply(usados[pred], function(x) all(is.finite(x)), TRUE)
-  if (is.numeric(usados[[alvo]])) finitos <- c(finitos, alvo = all(is.finite(usados[[alvo]])))
+  if (is.numeric(usados[[resposta]])) finitos <- c(finitos, resposta = all(is.finite(usados[[resposta]])))
   if (!all(finitos)) {
-    .tr_ml_abort("tr_ml_error_nonfinite", "H\u{E1} valores Inf ou -Inf no alvo ou nos preditores.")
+    .tr_ml_abort("tr_ml_error_nonfinite", "H\u{E1} valores Inf ou -Inf na resposta ou nos preditores.")
   }
   tarefa <- .tr_ml_enum(tarefa, c("auto", "regressao", "classificacao"), "tarefa")
-  if (tarefa == "auto") tarefa <- if (is.factor(usados[[alvo]]) || is.character(usados[[alvo]])) "classificacao" else "regressao"
+  if (tarefa == "auto") tarefa <- if (is.factor(usados[[resposta]]) || is.character(usados[[resposta]])) "classificacao" else "regressao"
   if (tarefa == "regressao") {
-    if (!is.numeric(usados[[alvo]])) {
-      .tr_ml_abort("tr_ml_error_bad_target", "Regress\u{E3}o exige uma coluna alvo num\u{E9}rica.")
+    if (!is.numeric(usados[[resposta]])) {
+      .tr_ml_abort("tr_ml_error_bad_target", "Regress\u{E3}o exige uma coluna resposta num\u{E9}rica.")
     }
-    y <- as.numeric(usados[[alvo]])
+    y <- as.numeric(usados[[resposta]])
     niveis <- NULL
   } else {
-    y <- factor(usados[[alvo]])
+    y <- factor(usados[[resposta]])
     if (nlevels(y) < 2L) .tr_ml_abort("tr_ml_error_bad_target", "Classifica\u{E7}\u{E3}o exige pelo menos duas classes observadas.")
     niveis <- levels(y)
   }
   x <- as.data.frame(usados[pred], check.names = FALSE)
   internos <- paste0("x", seq_along(pred))
   names(x) <- internos
-  list(x = x, y = y, alvo = alvo, preditores = pred, internos = internos,
+  list(x = x, y = y, resposta = resposta, preditores = pred, internos = internos,
        tarefa = tarefa, niveis = niveis, n = nrow(dados))
 }
 

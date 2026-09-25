@@ -17,13 +17,13 @@ Use como referência de comparação quando uma relação linear ou uma fronteir
 
 ## Configuração
 
-`alvo` é a resposta; `cols` lista preditores numéricos separados por vírgula (vazio usa todos os numéricos exceto alvo); `tarefa` aceita `auto`, `regressao` ou `classificacao`; `seed` fixa o ajuste.
+`resposta` é a coluna a prever; `preditores` lista preditores numéricos separados por vírgula (vazio usa todos os numéricos exceto a resposta); `tarefa` aceita `auto`, `regressao` ou `classificacao`; `seed` fixa o ajuste.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("mtcars")
-m <- trama.ml::tr_ml_linear(d, alvo = "mpg", cols = "wt, hp")
+m <- trama.ml::tr_ml_linear(d, resposta = "mpg", preditores = "wt, hp")
 trama.ml::tr_ml_predict(m, d[1:3, ])
 ```
 

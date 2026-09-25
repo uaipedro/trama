@@ -17,13 +17,13 @@ Conecte apenas treino. Mantenha o teste separado até a avaliação final.
 
 ## Configuração
 
-`modelo` aceita CART, FIGS, forest, SVM ou XGBoost; `metrica` escolhe medida (auto usa RMSE ou macro F1); `tentativas` define orçamento; `folds` define partições; `amplitude` escolhe limites conservadores/amplos; `seed` reproduz a busca. Também recebe `alvo`, `cols` e `tarefa`.
+`modelo` aceita CART, FIGS, forest, SVM ou XGBoost; `metrica` escolhe medida (auto usa RMSE ou macro F1); `tentativas` define orçamento; `folds` define partições; `amplitude` escolhe limites conservadores/amplos; `seed` reproduz a busca. Também recebe `resposta`, `preditores` e `tarefa`.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("mtcars")
-z <- trama.ml::tr_ml_tune(d, alvo = "mpg", modelo = "cart", tentativas = 4, folds = 3)
+z <- trama.ml::tr_ml_tune(d, resposta = "mpg", modelo = "cart", tentativas = 4, folds = 3)
 z$modelo
 head(z$historico)
 ```

@@ -17,7 +17,7 @@ Use para procurar padrão, curvatura ou dispersão crescente em uma tarefa de re
 
 ## Configuração
 
-`alvo` nomeia resposta numérica; `predito` nomeia previsão numérica (padrão `.pred`).
+`resposta` nomeia a resposta numérica observada; `predito` nomeia previsão numérica (padrão `.pred`).
 
 ## Exemplo
 

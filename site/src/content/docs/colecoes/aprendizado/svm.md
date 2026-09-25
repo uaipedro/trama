@@ -17,13 +17,13 @@ Use para ajustar uma fronteira linear ou não linear. A escala é estimada no tr
 
 ## Configuração
 
-`kernel` escolhe `linear`, `radial`, `polynomial` ou `sigmoid`; `cost` controla penalidade dos erros; `gamma` controla escala do kernel e não se aplica ao kernel linear. Recebe também `alvo`, `cols`, `tarefa` e `seed`.
+`kernel` escolhe `linear`, `radial`, `polynomial` ou `sigmoid`; `cost` controla penalidade dos erros; `gamma` controla escala do kernel e não se aplica ao kernel linear. Recebe também `resposta`, `preditores`, `tarefa` e `seed`.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("iris_binaria")
-m <- trama.ml::tr_ml_svm(d, alvo = "Species", cols = "Petal.Length, Petal.Width", kernel = "radial")
+m <- trama.ml::tr_ml_svm(d, resposta = "Species", preditores = "Petal.Length, Petal.Width", kernel = "radial")
 trama.ml::tr_ml_predict(m, d[1:3, ])
 ```
 

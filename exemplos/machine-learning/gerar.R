@@ -8,18 +8,18 @@ trama::tr_use("trama.data", registry = reg)
 trama::tr_use("trama.view", registry = reg)
 trama::tr_use("trama.ml", registry = reg)
 
-comparar <- function(nome, alvo, cols = "") {
+comparar <- function(nome, resposta, preditores = "") {
   f <- trama::tr_flow(reg) |>
     trama::tr_add("dados", "ml/example", nome = nome, position = c(0, 300)) |>
-    trama::tr_add("divisao", "ml/split", alvo = alvo, from = "dados", position = c(320, 300))
+    trama::tr_add("divisao", "ml/split", resposta = resposta, from = "dados", position = c(320, 300))
   metodos <- c("linear", "cart", "figs", "forest", "svm", "xgboost")
   for (i in seq_along(metodos)) {
     id <- metodos[[i]]
-    f <- trama::tr_add(f, id, paste0("ml/", id), alvo = alvo, cols = cols,
+    f <- trama::tr_add(f, id, paste0("ml/", id), resposta = resposta, preditores = preditores,
                       from = "divisao:treino", position = c(680, (i - 1) * 320))
     f <- trama::tr_add(f, paste0(id, "_prever"), "ml/predict",
                       from = c(id, "divisao:teste"), position = c(1040, (i - 1) * 320))
-    f <- trama::tr_add(f, paste0(id, "_avaliar"), "ml/evaluate", alvo = alvo,
+    f <- trama::tr_add(f, paste0(id, "_avaliar"), "ml/evaluate", resposta = resposta,
                       from = paste0(id, "_prever"), position = c(1400, (i - 1) * 320))
   }
   f
@@ -31,15 +31,15 @@ comparar <- function(nome, alvo, cols = "") {
 cart_vs_figs <- function() {
   f <- trama::tr_flow(reg) |>
     trama::tr_add("dados", "ml/example", nome = "iris_binaria", position = c(0, 150)) |>
-    trama::tr_add("divisao", "ml/split", alvo = "Species", from = "dados", position = c(320, 150))
+    trama::tr_add("divisao", "ml/split", resposta = "Species", from = "dados", position = c(320, 150))
   metodos <- c("cart", "figs")
   for (i in seq_along(metodos)) {
     id <- metodos[[i]]
-    f <- trama::tr_add(f, id, paste0("ml/", id), alvo = "Species",
+    f <- trama::tr_add(f, id, paste0("ml/", id), resposta = "Species",
                       from = "divisao:treino", position = c(680, (i - 1) * 400))
     f <- trama::tr_add(f, paste0(id, "_prever"), "ml/predict",
                       from = c(id, "divisao:teste"), position = c(1040, (i - 1) * 400))
-    f <- trama::tr_add(f, paste0(id, "_avaliar"), "ml/evaluate", alvo = "Species",
+    f <- trama::tr_add(f, paste0(id, "_avaliar"), "ml/evaluate", resposta = "Species",
                       from = paste0(id, "_prever"), position = c(1400, (i - 1) * 400))
     f <- trama::tr_add(f, paste0(id, "_regras"), "ml/rules",
                       from = id, position = c(1400, (i - 1) * 400 + 160))

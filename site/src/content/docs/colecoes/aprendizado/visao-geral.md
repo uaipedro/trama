@@ -19,11 +19,11 @@ CART e FIGS também podem ser inspecionados com `ml/rules` e `ml/tree_plot`; CAR
 
 ```r
 d <- trama.ml::tr_ml_example("iris_binaria")
-s <- trama.ml::tr_ml_split(d, alvo = "Species", seed = 42)
-m <- trama.ml::tr_ml_cart(s$treino, alvo = "Species", cols = "Petal.Length, Petal.Width")
+s <- trama.ml::tr_ml_split(d, resposta = "Species", seed = 42)
+m <- trama.ml::tr_ml_cart(s$treino, resposta = "Species", preditores = "Petal.Length, Petal.Width")
 p <- trama.ml::tr_ml_predict(m, s$teste)
-trama.ml::tr_ml_evaluate(p, alvo = "Species")
-trama.ml::tr_ml_confusion(p, alvo = "Species")
+trama.ml::tr_ml_evaluate(p, resposta = "Species")
+trama.ml::tr_ml_confusion(p, resposta = "Species")
 ```
 
 O conjunto de teste é usado para a avaliação final. Escolha modelo e parâmetros apenas com treino ou validação interna; `ml/tune` usa folds nos dados recebidos e reajusta o vencedor nessas linhas. Os motores `rpart`, `figsr`, `ranger`, `e1071` e `xgboost` são dependências opcionais instaladas para os métodos correspondentes.

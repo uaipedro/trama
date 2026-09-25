@@ -7,9 +7,9 @@
 #' e a mensagem de erro informa exatamente qual pacote instalar.
 #'
 #' @param dados Tabela de treino.
-#' @param alvo Nome da coluna a prever.
-#' @param cols Preditores separados por vírgula; em branco, usa todas as
-#'   colunas numéricas, exceto o alvo.
+#' @param resposta Nome da coluna a prever.
+#' @param preditores Preditores separados por vírgula; em branco, usa todas as
+#'   colunas numéricas, exceto o resposta.
 #' @param modelo Um de `"linear"`, `"cart"`, `"figs"`, `"forest"`, `"svm"`
 #'   ou `"xgboost"`.
 #' @param tarefa `"auto"`, `"regressao"` ou `"classificacao"`.
@@ -26,7 +26,7 @@
 #' @param eta Taxa de aprendizado do XGBoost.
 #' @return Objeto `tr_ml_fit`.
 #' @export
-tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "auto",
+tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
                       trees = 200L, mtry = 0L, cost = 1, gamma = 0.1,
                       kernel = "radial", nrounds = 100L, eta = 0.1) {
@@ -37,7 +37,7 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
   cost <- .tr_ml_num(cost, "cost", 0, TRUE); gamma <- .tr_ml_num(gamma, "gamma", 0)
   nrounds <- .tr_ml_int(nrounds, "nrounds", 1L); eta <- .tr_ml_num(eta, "eta", 0, TRUE)
   kernel <- .tr_ml_enum(kernel, c("linear", "polynomial", "radial", "sigmoid"), "kernel")
-  d <- .tr_ml_dados(dados, alvo, cols, tarefa)
+  d <- .tr_ml_dados(dados, resposta, preditores, tarefa)
   if (d$tarefa == "classificacao" && length(d$niveis) > 2L && modelo %in% c("linear", "figs")) {
     .tr_ml_abort("tr_ml_error_binary_only", "O modelo '%s' aceita classifica\u{E7}\u{E3}o com exatamente duas classes.", modelo)
   }
@@ -103,7 +103,10 @@ tr_ml_fit <- function(dados, alvo = "", cols = "", modelo = "cart", tarefa = "au
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
                             nrounds = nrounds, eta = eta)
-  structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$alvo,
+  # O campo continua `alvo`: modelos ajustados ficam serializados no store
+  # (cache), e `ml/fit` (type.R) valida esse nome. Renomear aqui invalidaria o
+  # cache de todo fluxo salvo; o glossário vale para os PARAMS dos nós.
+  structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, alvo = d$resposta,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
                  n = d$n, seed = seed, extras = extras), class = "tr_ml_fit")
 }

@@ -6,7 +6,7 @@
 \usage{
 tr_ml_roc(
   dados,
-  alvo = "",
+  resposta = "",
   probabilidade = "",
   positiva = "",
   aspecto = "16:9",
@@ -20,7 +20,7 @@ tr_ml_roc(
 \arguments{
 \item{dados}{Tabela com a classe observada e sua probabilidade prevista.}
 
-\item{alvo}{Nome da coluna observada.}
+\item{resposta}{Nome da coluna observada.}
 
 \item{probabilidade}{Coluna com a probabilidade da classe positiva.}
 

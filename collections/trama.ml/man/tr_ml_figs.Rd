@@ -6,8 +6,8 @@
 \usage{
 tr_ml_figs(
   dados,
-  alvo = "",
-  cols = "",
+  resposta = "",
+  preditores = "",
   tarefa = "auto",
   max_splits = 6L,
   min_n = 5L,
@@ -17,10 +17,10 @@ tr_ml_figs(
 \arguments{
 \item{dados}{Tabela de treino.}
 
-\item{alvo}{Nome da coluna a prever.}
+\item{resposta}{Nome da coluna a prever.}
 
-\item{cols}{Preditores separados por vírgula; em branco, usa todas as
-colunas numéricas, exceto o alvo.}
+\item{preditores}{Preditores separados por vírgula; em branco, usa todas as
+colunas numéricas, exceto o resposta.}
 
 \item{tarefa}{\code{"auto"}, \code{"regressao"} ou \code{"classificacao"}.}
 

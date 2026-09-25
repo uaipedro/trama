@@ -17,13 +17,13 @@ Avalie a saída de Prever conectada ao conjunto de teste, depois de definir o mo
 
 ## Configuração
 
-`alvo` identifica resposta; `predito` indica coluna prevista (padrão `.pred`); `tarefa` aceita `auto`, `regressao` ou `classificacao`.
+`resposta` identifica a resposta observada; `predito` indica coluna prevista (padrão `.pred`); `tarefa` aceita `auto`, `regressao` ou `classificacao`.
 
 ## Exemplo
 
 ```r
 d <- data.frame(y = c(1, 2, 3), .pred = c(1, 2, 4))
-trama.ml::tr_ml_evaluate(d, alvo = "y")
+trama.ml::tr_ml_evaluate(d, resposta = "y")
 ```
 
 ## Como interpretar

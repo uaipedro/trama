@@ -154,7 +154,7 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
 
 #' Gráfico de resíduos de regressão
 #' @param dados Tabela com valores observados e previstos.
-#' @param alvo Nome da coluna observada.
+#' @param resposta Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
 #' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
 #'   ou `"2:1"`.
@@ -165,16 +165,16 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
 #' @param legenda Posição `"direita"` ou `"abaixo"`. `"nenhuma"` a omite.
 #' @return Objeto `ggplot` dos resíduos contra as previsões recebidas.
 #' @export
-tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9",
+tr_ml_residuals <- function(dados, resposta = "", predito = ".pred", aspecto = "16:9",
                             tema = "padr\u{E3}o", titulo = "", rotulo_x = "",
                             rotulo_y = "", legenda = "direita") {
-  .tr_ml_validate_pair(dados, alvo, predito)
-  if (!is.numeric(dados[[alvo]]) || !is.numeric(dados[[predito]]))
-    .tr_ml_abort("tr_ml_error_not_applicable", "Res\u{ED}duos exigem alvo e previs\u{E3}o num\u{E9}ricos.")
-  if (anyNA(dados[[alvo]]) || anyNA(dados[[predito]]) ||
-      any(!is.finite(dados[[alvo]])) || any(!is.finite(dados[[predito]])))
+  .tr_ml_validate_pair(dados, resposta, predito)
+  if (!is.numeric(dados[[resposta]]) || !is.numeric(dados[[predito]]))
+    .tr_ml_abort("tr_ml_error_not_applicable", "Res\u{ED}duos exigem resposta e previs\u{E3}o num\u{E9}ricos.")
+  if (anyNA(dados[[resposta]]) || anyNA(dados[[predito]]) ||
+      any(!is.finite(dados[[resposta]])) || any(!is.finite(dados[[predito]])))
     .tr_ml_abort("tr_ml_error_bad_prediction", "Res\u{ED}duos exigem valores presentes e finitos.")
-  d <- tibble::tibble(.previsto = dados[[predito]], .residuo = dados[[alvo]] - dados[[predito]])
+  d <- tibble::tibble(.previsto = dados[[predito]], .residuo = dados[[resposta]] - dados[[predito]])
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$.previsto, y = .data$.residuo)) +
     ggplot2::geom_hline(yintercept = 0, colour = "#94a3b8", linewidth = .6) +
     ggplot2::geom_point(size = 2.4, alpha = .85) +
@@ -184,7 +184,7 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 
 #' Curva ROC para classificação binária
 #' @param dados Tabela com a classe observada e sua probabilidade prevista.
-#' @param alvo Nome da coluna observada.
+#' @param resposta Nome da coluna observada.
 #' @param probabilidade Coluna com a probabilidade da classe positiva.
 #' @param positiva Classe tratada como positiva; vazio usa a segunda observada.
 #' @param aspecto Proporção do gráfico: `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`
@@ -197,11 +197,11 @@ tr_ml_residuals <- function(dados, alvo = "", predito = ".pred", aspecto = "16:9
 #' @return Objeto `ggplot` da curva ROC. A coluna `auc` dos dados do gráfico
 #'   contém a área sob a curva.
 #' @export
-tr_ml_roc <- function(dados, alvo = "", probabilidade = "", positiva = "",
+tr_ml_roc <- function(dados, resposta = "", probabilidade = "", positiva = "",
                       aspecto = "16:9", tema = "padr\u{E3}o", titulo = "",
                       rotulo_x = "", rotulo_y = "", legenda = "direita") {
-  .tr_ml_validate_pair(dados, alvo, probabilidade)
-  y <- as.character(dados[[alvo]]); prob <- dados[[probabilidade]]
+  .tr_ml_validate_pair(dados, resposta, probabilidade)
+  y <- as.character(dados[[resposta]]); prob <- dados[[probabilidade]]
   classes <- unique(y)
   if (anyNA(y) || length(classes) != 2L || !is.numeric(prob) || anyNA(prob) ||
       any(!is.finite(prob)) || any(prob < 0 | prob > 1))

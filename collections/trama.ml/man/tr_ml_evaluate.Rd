@@ -4,12 +4,12 @@
 \alias{tr_ml_evaluate}
 \title{Avalia previsões de regressão ou classificação}
 \usage{
-tr_ml_evaluate(dados, alvo = "", predito = ".pred", tarefa = "auto")
+tr_ml_evaluate(dados, resposta = "", predito = ".pred", tarefa = "auto")
 }
 \arguments{
-\item{dados}{Data frame com alvo e previsão.}
+\item{dados}{Data frame com resposta e previsão.}
 
-\item{alvo}{Nome da coluna observada.}
+\item{resposta}{Nome da coluna observada.}
 
 \item{predito}{Nome da coluna prevista.}
 
@@ -19,8 +19,8 @@ tr_ml_evaluate(dados, alvo = "", predito = ".pred", tarefa = "auto")
 Tibble com colunas metrica, valor e n.
 }
 \description{
-Não remove silenciosamente linhas: alvo e previsão ausentes produzem erro.
+Não remove silenciosamente linhas: resposta e previsão ausentes produzem erro.
 Em classificação, balanced accuracy e F1 são médias macro sobre as classes
-observadas no alvo; uma classe ausente nas previsões recebe seu recall/F1
+observadas na resposta; uma classe ausente nas previsões recebe seu recall/F1
 correspondente (zero quando aplicável).
 }

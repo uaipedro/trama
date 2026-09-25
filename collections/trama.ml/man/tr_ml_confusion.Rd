@@ -4,12 +4,12 @@
 \alias{tr_ml_confusion}
 \title{Produz uma matriz de confusão em formato longo}
 \usage{
-tr_ml_confusion(dados, alvo = "", predito = ".pred")
+tr_ml_confusion(dados, resposta = "", predito = ".pred")
 }
 \arguments{
 \item{dados}{Data frame com as colunas observada e prevista.}
 
-\item{alvo}{Nome da coluna observada.}
+\item{resposta}{Nome da coluna observada.}
 
 \item{predito}{Nome da coluna prevista.}
 }

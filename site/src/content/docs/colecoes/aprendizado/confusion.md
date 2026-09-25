@@ -17,13 +17,13 @@ Use para localizar quais classes se confundem e interpretar métricas agregadas 
 
 ## Configuração
 
-`alvo` nomeia a classe observada e `predito` a classe prevista (padrão `.pred`).
+`resposta` nomeia a classe observada e `predito` a classe prevista (padrão `.pred`).
 
 ## Exemplo
 
 ```r
 d <- data.frame(y = c("a", "a", "b"), .pred = c("a", "b", "b"))
-trama.ml::tr_ml_confusion(d, alvo = "y")
+trama.ml::tr_ml_confusion(d, resposta = "y")
 ```
 
 ## Como interpretar

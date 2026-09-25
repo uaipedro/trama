@@ -17,13 +17,13 @@ Use para modelos de árvores impulsionadas e compare o resultado no mesmo conjun
 
 ## Configuração
 
-`nrounds` define rodadas; `max_depth` limita profundidade por árvore; `eta` controla taxa de aprendizado. Recebe também `alvo`, `cols`, `tarefa` e `seed`.
+`nrounds` define rodadas; `max_depth` limita profundidade por árvore; `eta` controla taxa de aprendizado. Recebe também `resposta`, `preditores`, `tarefa` e `seed`.
 
 ## Exemplo
 
 ```r
 d <- trama.ml::tr_ml_example("mtcars")
-m <- trama.ml::tr_ml_xgboost(d, alvo = "mpg", cols = "wt, hp", nrounds = 50)
+m <- trama.ml::tr_ml_xgboost(d, resposta = "mpg", preditores = "wt, hp", nrounds = 50)
 trama.ml::tr_ml_predict(m, d[1:3, ])
 ```
 

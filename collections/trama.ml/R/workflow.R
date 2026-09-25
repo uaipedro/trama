@@ -5,15 +5,15 @@
 #' representadas em treino e teste.
 #'
 #' @param dados Data frame ou tibble com as observações.
-#' @param alvo Nome da coluna resposta.
+#' @param resposta Nome da coluna resposta.
 #' @param proporcao Fração entre 0 e 1 destinada ao treino.
 #' @param estratificar Se TRUE, preserva cada classe categórica nos dois lados.
 #' @param seed Semente inteira; o estado RNG do chamador é restaurado.
 #' @return Lista com tibbles treino e teste.
 #' @export
-tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
+tr_ml_split <- function(dados, resposta = "", proporcao = 0.75,
                         estratificar = TRUE, seed = 42L) {
-  .tr_ml_validate_data(dados, alvo)
+  .tr_ml_validate_data(dados, resposta)
   if (!is.numeric(proporcao) || length(proporcao) != 1L ||
       !is.finite(proporcao) || proporcao <= 0 || proporcao >= 1) {
     stop("proporcao deve ser um n\u{FA}mero finito estritamente entre 0 e 1.",
@@ -29,9 +29,9 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
   }
   n <- nrow(dados)
   if (n < 2L) stop("dados precisa ter pelo menos duas linhas.", call. = FALSE)
-  y <- dados[[alvo]]
+  y <- dados[[resposta]]
   if (anyNA(y)) {
-    stop(sprintf("A coluna alvo %s cont\u{E9}m valores ausentes; trate-os antes da divis\u{E3}o.", alvo),
+    stop(sprintf("A coluna resposta %s cont\u{E9}m valores ausentes; trate-os antes da divis\u{E3}o.", resposta),
          call. = FALSE)
   }
   .tr_ml_with_rng(seed, {
@@ -64,25 +64,25 @@ tr_ml_split <- function(dados, alvo = "", proporcao = 0.75,
 
 #' Avalia previsões de regressão ou classificação
 #'
-#' Não remove silenciosamente linhas: alvo e previsão ausentes produzem erro.
+#' Não remove silenciosamente linhas: resposta e previsão ausentes produzem erro.
 #' Em classificação, balanced accuracy e F1 são médias macro sobre as classes
-#' observadas no alvo; uma classe ausente nas previsões recebe seu recall/F1
+#' observadas na resposta; uma classe ausente nas previsões recebe seu recall/F1
 #' correspondente (zero quando aplicável).
 #'
-#' @param dados Data frame com alvo e previsão.
-#' @param alvo Nome da coluna observada.
+#' @param dados Data frame com resposta e previsão.
+#' @param resposta Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
 #' @param tarefa auto, regressao ou classificacao.
 #' @return Tibble com colunas metrica, valor e n.
 #' @export
-tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
+tr_ml_evaluate <- function(dados, resposta = "", predito = ".pred",
                            tarefa = "auto") {
-  .tr_ml_validate_pair(dados, alvo, predito)
+  .tr_ml_validate_pair(dados, resposta, predito)
   if (length(tarefa) != 1L || is.na(tarefa) ||
       !tarefa %in% c("auto", "regressao", "classificacao")) {
     stop("tarefa deve ser auto, regressao ou classificacao.", call. = FALSE)
   }
-  y <- dados[[alvo]]
+  y <- dados[[resposta]]
   p <- dados[[predito]]
   if (anyNA(y) || anyNA(p)) {
     stop("Alvo e previs\u{E3}o n\u{E3}o podem conter valores ausentes; nenhuma linha foi descartada.",
@@ -98,7 +98,7 @@ tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
   } else tarefa
   if (classe == "regressao") {
     if (!is.numeric(y) || !is.numeric(p)) {
-      stop("Regress\u{E3}o exige alvo e previs\u{E3}o num\u{E9}ricos.", call. = FALSE)
+      stop("Regress\u{E3}o exige resposta e previs\u{E3}o num\u{E9}ricos.", call. = FALSE)
     }
     if (any(!is.finite(y)) || any(!is.finite(p))) {
       stop("Alvo e previs\u{E3}o de regress\u{E3}o devem conter apenas valores finitos.",
@@ -114,7 +114,7 @@ tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
     )
   } else {
     if (is.numeric(y) && any(!is.finite(y))) {
-      stop("O alvo de classifica\u{E7}\u{E3}o num\u{E9}rico deve conter apenas valores finitos.", call. = FALSE)
+      stop("A resposta de classifica\u{E7}\u{E3}o num\u{E9}rico deve conter apenas valores finitos.", call. = FALSE)
     }
     if (is.numeric(p) && any(!is.finite(p))) {
       stop("A previs\u{E3}o de classifica\u{E7}\u{E3}o num\u{E9}rica deve conter apenas valores finitos.", call. = FALSE)
@@ -126,13 +126,13 @@ tr_ml_evaluate <- function(dados, alvo = "", predito = ".pred",
 #' Produz uma matriz de confusão em formato longo
 #'
 #' @param dados Data frame com as colunas observada e prevista.
-#' @param alvo Nome da coluna observada.
+#' @param resposta Nome da coluna observada.
 #' @param predito Nome da coluna prevista.
 #' @return Tibble com observado, previsto e n.
 #' @export
-tr_ml_confusion <- function(dados, alvo = "", predito = ".pred") {
-  .tr_ml_validate_pair(dados, alvo, predito)
-  y <- dados[[alvo]]
+tr_ml_confusion <- function(dados, resposta = "", predito = ".pred") {
+  .tr_ml_validate_pair(dados, resposta, predito)
+  y <- dados[[resposta]]
   p <- dados[[predito]]
   if (anyNA(y) || anyNA(p)) {
     stop("Alvo e previs\u{E3}o n\u{E3}o podem conter valores ausentes; nenhuma linha foi descartada.",
@@ -146,7 +146,7 @@ tr_ml_confusion <- function(dados, alvo = "", predito = ".pred") {
   categ <- function(x) is.factor(x) || is.character(x) || is.logical(x) ||
     is.numeric(x)
   if (!categ(y) || !categ(p)) {
-    stop("A matriz de confus\u{E3}o exige alvo e previs\u{E3}o categ\u{F3}ricos.", call. = FALSE)
+    stop("A matriz de confus\u{E3}o exige resposta e previs\u{E3}o categ\u{F3}ricos.", call. = FALSE)
   }
   ys <- as.character(y); ps <- as.character(p)
   niveis <- unique(c(ys, ps))
@@ -173,21 +173,21 @@ tr_ml_example <- function(nome = "iris") {
   tibble::as_tibble(out)
 }
 
-.tr_ml_validate_data <- function(dados, alvo) {
+.tr_ml_validate_data <- function(dados, resposta) {
   if (!is.data.frame(dados)) stop("dados deve ser um data frame ou tibble.", call. = FALSE)
-  if (length(alvo) != 1L || is.na(alvo) || !nzchar(alvo) || !alvo %in% names(dados)) {
-    stop("alvo deve ser o nome de uma coluna existente em dados.", call. = FALSE)
+  if (length(resposta) != 1L || is.na(resposta) || !nzchar(resposta) || !resposta %in% names(dados)) {
+    stop("resposta deve ser o nome de uma coluna existente em dados.", call. = FALSE)
   }
   invisible(TRUE)
 }
 
-.tr_ml_validate_pair <- function(dados, alvo, predito) {
-  .tr_ml_validate_data(dados, alvo)
+.tr_ml_validate_pair <- function(dados, resposta, predito) {
+  .tr_ml_validate_data(dados, resposta)
   if (length(predito) != 1L || is.na(predito) || !nzchar(predito) ||
       !predito %in% names(dados)) {
     stop("predito deve ser o nome de uma coluna existente em dados.", call. = FALSE)
   }
-  if (identical(alvo, predito)) stop("alvo e predito devem ser colunas diferentes.", call. = FALSE)
+  if (identical(resposta, predito)) stop("resposta e predito devem ser colunas diferentes.", call. = FALSE)
   invisible(TRUE)
 }
 

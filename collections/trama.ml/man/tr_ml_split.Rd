@@ -6,7 +6,7 @@
 \usage{
 tr_ml_split(
   dados,
-  alvo = "",
+  resposta = "",
   proporcao = 0.75,
   estratificar = TRUE,
   seed = 42L
@@ -15,7 +15,7 @@ tr_ml_split(
 \arguments{
 \item{dados}{Data frame ou tibble com as observações.}
 
-\item{alvo}{Nome da coluna resposta.}
+\item{resposta}{Nome da coluna resposta.}
 
 \item{proporcao}{Fração entre 0 e 1 destinada ao treino.}
 
