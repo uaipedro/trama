@@ -81,7 +81,7 @@ amostra sem peso (ou declarada sem ele) daria o total da AMOSTRA.
 `sampling/poststratify`.
 ]---", cv = TRUE)),
 
-    trama::tr_node("sampling/proportion", fn = tr_sampling_proportion, label = "Proporção", version = 2L,
+    trama::tr_node("sampling/proportion", fn = tr_sampling_proportion, label = "Proporção", version = 3L,
       category = "amostra_estimar", icon = trama::tr_icon("chart-pie"),
       description = "Estima a proporção da população em cada categoria de uma variável, com o erro do desenho.",
       inputs = list(amostra = S), outputs = list(out = ES),
@@ -90,10 +90,10 @@ amostra sem peso (ou declarada sem ele) daria o total da AMOSTRA.
                     por = POR(), confianca = CONF(),
                     intervalo = E("logit", .TR_SAMPLING_INTERVALOS, label = "Intervalo")),
       pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
-        "O intervalo **logit** (padrão) é Wald na escala log-odds, com EP pelo método delta e t nos gl do desenho: fica dentro de (0, 1) e é assimétrico perto dos extremos, mas ainda é aproximação assintótica; com proporção 0 ou 1 no domínio a variância estimada é zero e o intervalo degenera no ponto. O **Wald** (opção) pode sair de [0, 1] e cobre menos que o nominal com proporção extrema.",
+        "O intervalo **logit** (padrão) é Wald na escala log-odds, com EP pelo método delta e t nos gl do desenho: fica dentro de (0, 1) e é assimétrico perto dos extremos, mas ainda é aproximação assintótica. Com proporção 0 ou 1 no domínio a variância estimada é zero: logit, wilson e clopper_pearson usam o Clopper-Pearson de Korn & Graubard (1998) com o n nominal do domínio no lugar do n efetivo (que não existe), ajustado pelos gl do desenho — sem efeito de desenho é o exato de `binom.test`, com efeito de desenho pode cobrir menos que o nominal, porque o n nominal não desconta a correlação dentro dos conglomerados. O **Wald** (opção) pode sair de [0, 1] e cobre menos que o nominal com proporção extrema.",
         verificar = "sampling/simulate",
         se_falhar = "Com proporção extrema e domínio pequeno, compare logit e wilson, confira a cobertura com `sampling/simulate` e junte domínios ou aumente a amostra."))),
-      referencias = .tr_sampling_refs_estimar("tr_sampling_proportion", with(.tr_sampling_refs(), list(korn, wilson, lumley))),
+      referencias = .tr_sampling_refs_estimar("tr_sampling_proportion", with(.tr_sampling_refs(), list(korn, korn98, wilson, lumley))),
       help = .tr_sampling_ajuda(paste(r"---[
 A proporção da população em cada categoria: a média ponderada do indicador
 (1 se a unidade é da categoria, 0 se não). Com **Categoria** em branco, uma
@@ -106,11 +106,20 @@ erro padrão do desenho pelo método delta e t com os gl do desenho, levado de
 volta à escala da proporção. É o padrão de `survey::svyciprop` e nunca sai de
 (0, 1); perto de 0 ou 1 é assimétrico, e a **margem** do card é a maior das duas
 metades. **wilson** é o escore de Wilson com o n efetivo do desenho
-(p̂(1 − p̂)/variância) e t; **wald** é p̂ ± t·EP, o intervalo da versão 1.
+(p̂(1 − p̂)/variância) e t; **clopper_pearson** é o Clopper-Pearson com esse
+n efetivo ajustado pelos gl (Korn & Graubard 1998; o `method = "beta"` de
+`survey::svyciprop`); **wald** é p̂ ± t·EP, o intervalo da versão 1.
+
+Com proporção 0 ou 1 (nenhuma ou todas as unidades do domínio na categoria),
+o erro padrão é zero e o logit e o wilson degenerariam no ponto: nesses casos
+os três usam o Clopper-Pearson de Korn & Graubard com o **n nominal** do
+domínio, ajustado pelos gl do desenho. Numa AAS sem correção finita é o
+intervalo exato de `binom.test` (0 em 150: [0; 2,4%]). O **wald** continua
+literal e fica no ponto.
 ]---", ajuda_desenho), paste(r"---[
 - **Variável** — coluna categórica (texto, fator ou lógica).
 - **Categoria** — o valor cuja proporção se quer; em branco, todas.
-- **Intervalo** — `logit` (padrão), `wilson` ou `wald`.
+- **Intervalo** — `logit` (padrão), `wilson`, `clopper_pearson` ou `wald`.
 ]---", ajuda_por), ajuda_valor, exemplo("sampling/proportion", "variavel = \"irrigada\", nivel = \"sim\", por = \"regiao\""), r"---[
 `sampling/size_proportion` para o n; `sampling/total` do indicador para o
 número de unidades; `sampling/plot_estimates`.

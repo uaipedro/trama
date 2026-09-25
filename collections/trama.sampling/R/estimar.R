@@ -81,7 +81,9 @@ tr_sampling_total <- function(amostra, variavel = "", por = "", confianca = "95%
 #' @inheritParams tr_sampling_mean
 #' @param variavel coluna categórica (texto, fator ou lógica).
 #' @param nivel a categoria (em branco: todas).
-#' @param intervalo `"logit"` (padrão), `"wilson"` ou `"wald"`.
+#' @param intervalo `"logit"` (padrão), `"wilson"`, `"clopper_pearson"`
+#'   (Clopper-Pearson com n efetivo, Korn & Graubard 1998) ou `"wald"`. Com
+#'   p̂ = 0 ou 1, logit e wilson caem no Clopper-Pearson de Korn & Graubard.
 #' @return uma estimativa (`sampling/estimate`).
 #' @export
 tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "", confianca = "95%",
@@ -120,7 +122,7 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
                           nota = .tr_sampling_nota_estimativa(amostra, falt, l$v))
 }
 
-.TR_SAMPLING_INTERVALOS <- c("logit", "wilson", "wald")
+.TR_SAMPLING_INTERVALOS <- c("logit", "wilson", "clopper_pearson", "wald")
 
 #' O escore de Wilson (1927) para p̂ com n (efetivo) e quantil q.
 #' @noRd
@@ -128,6 +130,17 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
   cen <- (p + q^2 / (2 * n)) / (1 + q^2 / n)
   mei <- q / (1 + q^2 / n) * sqrt(p * (1 - p) / n + q^2 / (4 * n^2))
   c(cen - mei, cen + mei)
+}
+
+#' Clopper-Pearson com n efetivo e gl do desenho (Korn & Graubard 1998).
+#' @noRd
+.tr_sampling_korn_graubard <- function(p, ep, n, gl, conf) {
+  a <- 1 - conf
+  nef <- if (p <= 0 || p >= 1 || ep <= 0) n else p * (1 - p) / ep^2
+  if (n > 1 && is.finite(gl) && gl > 0) nef <- nef * (stats::qt(a / 2, n - 1) / stats::qt(a / 2, gl))^2
+  x <- nef * p
+  c(if (x <= 0) 0 else stats::qbeta(a / 2, x, nef - x + 1),
+    if (x >= nef) 1 else stats::qbeta(1 - a / 2, x + 1, nef - x))
 }
 
 #' Troca o intervalo de Wald da proporção pelo pedido.
@@ -138,7 +151,17 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
 #'   nunca sai de (0, 1) e é assimétrico perto dos extremos.
 #' - **wilson**: escore de Wilson com o n efetivo de Kish, n_ef = p̂(1 − p̂)/v(p̂),
 #'   e t com os gl do desenho no lugar de z.
-#' - **wald**: p̂ ± t·EP, o intervalo anterior.
+#' - **clopper_pearson**: Clopper-Pearson com o n efetivo do desenho
+#'   (Korn & Graubard 1998): n_ef = p̂(1 − p̂)/v(p̂), ajustado pelos gl,
+#'   n_ef · (t_{n−1}/t_gl)², e limites `qbeta(α/2, n_ef·p̂, n_ef(1 − p̂) + 1)` e
+#'   `qbeta(1 − α/2, n_ef·p̂ + 1, n_ef(1 − p̂))` — o `method = "beta"` de
+#'   `survey::svyciprop`. Com p̂ = 0 ou 1 a variância é zero e n_ef não
+#'   existe; fica o n nominal do domínio (convenção nossa, documentada: o
+#'   `survey` devolve NaN aí), ainda ajustado pelos gl. É também o
+#'   intervalo que logit e wilson usam nos extremos, onde eles degenerariam no
+#'   ponto. Sem efeito de desenho (AAS sem correção finita) é o Clopper-Pearson
+#'   exato de `binom.test`.
+#' - **wald**: p̂ ± t·EP, o intervalo anterior (degenera no ponto nos extremos).
 #'
 #' A `margem` do card é a maior das duas metades, para não prometer a precisão
 #' do lado mais curto.
@@ -147,9 +170,10 @@ tr_sampling_proportion <- function(amostra, variavel = "", nivel = "", por = "",
   if (intervalo == "wald") return(t)
   for (i in seq_len(nrow(t))) {
     p <- t$estimativa[[i]]; ep <- t$erro_padrao[[i]]
+    if (is.na(p) || is.na(ep)) next
     q <- stats::qt(1 - (1 - conf) / 2, t$gl[[i]])
-    if (p <= 0 || p >= 1 || ep <= 0) {
-      lim <- c(p, p)
+    if (intervalo == "clopper_pearson" || p <= 0 || p >= 1 || ep <= 0) {
+      lim <- .tr_sampling_korn_graubard(p, ep, t$n[[i]], t$gl[[i]], conf)
     } else if (intervalo == "logit") {
       el <- ep / (p * (1 - p))
       lim <- stats::plogis(stats::qlogis(p) + c(-1, 1) * q * el)

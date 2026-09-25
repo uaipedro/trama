@@ -2,6 +2,17 @@
 
 ## Mudanças de método (revisão metodológica, 2026-09-25)
 
+- `sampling/proportion` (versão 3): com p̂ = 0 ou 1 o intervalo não degenera
+  mais no ponto. `logit` e `wilson` passam, nesses casos, ao Clopper-Pearson de
+  Korn & Graubard (1998, Survey Methodology 24(2), 193-201): n efetivo
+  p̂(1 − p̂)/v(p̂) ajustado pelos gl, n_ef·(t_{n−1}/t_gl)², e limites beta. Como a
+  variância é zero nos extremos, o n efetivo é substituído pelo n nominal do
+  domínio (ainda ajustado pelos gl): sem efeito de desenho é o Clopper-Pearson
+  exato. Nova opção `intervalo = "clopper_pearson"` para usá-lo sempre. Wald
+  continua literal. Validado contra `survey::svyciprop(method = "beta")` em AAS,
+  estratificada e conglomerados (≤ 1e-6) e, nos extremos, contra
+  `stats::binom.test` (≤ 1e-10). Estimativa NA não quebra mais o intervalo.
+
 - `sampling/proportion` (versão 2): o intervalo padrão passa a ser **logit**
   (Wald na escala log-odds, EP pelo método delta, t nos gl do desenho), o padrão
   de `survey::svyciprop` e o recomendado para amostras complexas (Korn &
