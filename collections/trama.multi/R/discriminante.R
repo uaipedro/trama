@@ -392,8 +392,8 @@ tr_multi_plot_discriminant <- function(modelo, x = 1L, y = 2L, elipses = TRUE, a
       description = "Ajusta uma análise discriminante linear (LDA) ou quadrática (QDA) para separar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = L),
       params = list(
-        resposta = P("cols", "", label = "Resposta (grupo)", example = "Species"),
-        preditores = P("cols", "", label = "Preditores", example = "Sepal.Length, Petal.Length"),
+        resposta = trama::tr_param_col("", label = "Resposta (grupo)", role = "categorica", example = "Species"),
+        preditores = trama::tr_param_col("", label = "Preditores", role = "numerica", multi = TRUE, example = "Sepal.Length, Petal.Length"),
         metodo = trama::tr_param_enum("linear", .TR_MULTI_METODOS_LDA, label = "Método"),
         priors = trama::tr_param_enum("proporcionais", .TR_MULTI_PRIORS, label = "Priors")),
       help = .tr_multi_ajuda(r"---[

@@ -266,8 +266,8 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
       description = "Ajusta uma regressão logística binária (2 grupos) ou multinomial (3+) para classificar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = LG),
       params = list(
-        resposta = P("cols", "", label = "Resposta (grupo)", example = "diabetes"),
-        preditores = P("cols", "", label = "Preditores", example = "glicose, imc, idade"),
+        resposta = trama::tr_param_col("", label = "Resposta (grupo)", role = "categorica", example = "diabetes"),
+        preditores = trama::tr_param_col("", label = "Preditores", role = "qualquer", multi = TRUE, example = "glicose, imc, idade"),
         corte = trama::tr_param_num(0.5, min = 0.01, max = 0.99, label = "Corte (binária)"),
         metodo = trama::tr_param_enum("ml", .TR_MULTI_METODOS_LOGIT, label = "Método")),
       help = .tr_multi_ajuda(r"---[

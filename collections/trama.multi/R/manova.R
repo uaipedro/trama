@@ -84,8 +84,8 @@ tr_multi_manova <- function(dados, respostas = "", tratamento = "", bloco = "", 
       inputs = list(dados = "data/table"), outputs = list(out = "data/test"),
       params = list(
         respostas = trama::tr_param_col("", label = "Respostas", role = "numerica", multi = TRUE, example = "alcool, flavonoides, magnesio"),
-        tratamento = P("cols", "", label = "Tratamento", example = "cultivar"),
-        bloco = P("cols", "", label = "Bloco", example = "bloco"),
+        tratamento = trama::tr_param_col("", label = "Tratamento", role = "categorica", example = "cultivar"),
+        bloco = trama::tr_param_col("", label = "Bloco", role = "categorica", suggest = FALSE, example = "bloco"),
         estatistica = trama::tr_param_enum("Pillai", names(.TR_MULTI_MANOVA), label = "Estatística")),
       help = .tr_multi_ajuda(r"---[
 A análise de variância MULTIVARIADA: testa se os tratamentos diferem no vetor

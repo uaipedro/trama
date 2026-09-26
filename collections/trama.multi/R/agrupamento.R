@@ -499,7 +499,7 @@ tr_multi_tocher <- function(distancia) {
       params = list(
         cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Murder, Assault, UrbanPop, Rape"),
         metodo = trama::tr_param_enum("euclidiana padronizada", .TR_MULTI_DISTANCIAS, label = "Distância"),
-        rotulo = P("cols", "", label = "Rótulo das linhas", example = "nome")),
+        rotulo = trama::tr_param_col("", label = "Rótulo das linhas", role = "qualquer", suggest = FALSE, example = "nome")),
       help = .tr_multi_ajuda(r"---[
 A distância (dissimilaridade) entre cada par de LINHAS da tabela — genótipos,
 cultivares, acessos de um banco de germoplasma, municípios. Quanto maior, mais
@@ -566,7 +566,7 @@ entre linhas.
       params = list(
         cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Murder, Assault, UrbanPop, Rape"),
         padronizar = trama::tr_param_bool(TRUE, label = "Padronizar"),
-        rotulo = P("cols", "", label = "Rótulo das linhas", example = "nome"),
+        rotulo = trama::tr_param_col("", label = "Rótulo das linhas", role = "qualquer", suggest = FALSE, example = "nome"),
         metodo = trama::tr_param_enum("UPGMA", c(names(.TR_MULTI_LIGACOES), "k-means"), label = "Método"),
         grupos = trama::tr_param_int(3L, min = 1L, label = "Grupos")),
       help = .tr_multi_ajuda(r"---[
