@@ -60,7 +60,7 @@ para o n; `sampling/simulate` para ver o desenho em ação.
       params = list(
         n = I(0L, min = 0L, label = "n"),
         fracao = N(0, min = 0, max = 1, step = 0.01, label = "Fração (se n = 0)"),
-        ordenar = P("cols", "", label = "Ordenar por", example = "area_ha")),
+        ordenar = trama::tr_param_col("", label = "Ordenar por", role = "qualquer", suggest = FALSE, example = "area_ha")),
       help = .tr_sampling_ajuda(r"---[
 A amostra sistemática: com intervalo k = N/n, sorteia um começo entre 0 e k e
 toma as unidades nas posições começo, começo + k, começo + 2k… É a amostra da
@@ -89,10 +89,10 @@ ordenação.
       description = "Divide o cadastro em estratos e sorteia uma AAS dentro de cada um.",
       inputs = list(populacao = T, plano = PLANO()), outputs = list(out = S),
       params = list(
-        estrato = P("cols", "", label = "Estrato", example = "regiao"),
+        estrato = trama::tr_param_col("", label = "Estrato", role = "categorica", example = "regiao"),
         n = I(0L, min = 0L, label = "n total"),
         alocacao = E("proporcional", c("proporcional", "igual", "neyman"), label = "Alocação"),
-        variavel_auxiliar = trama::tr_when(P("cols", "", label = "Variável do Neyman", example = "producao_t"), alocacao = "neyman")),
+        variavel_auxiliar = trama::tr_when(trama::tr_param_col("", label = "Variável do Neyman", role = "numerica", example = "producao_t"), alocacao = "neyman")),
       help = .tr_sampling_ajuda(r"---[
 A amostra estratificada: o cadastro é dividido em estratos (regiões, redes,
 faixas de tamanho) e uma AAS independente é sorteada em cada um. Ganha da AAS
@@ -133,7 +133,7 @@ estrato só é conhecido depois; `sampling/simulate` para ver o ganho.
       description = "Sorteia com probabilidade proporcional a uma medida de tamanho (PPS sistemática).",
       inputs = list(populacao = T, plano = PLANO()), outputs = list(out = S),
       params = list(
-        tamanho = P("cols", "", label = "Medida de tamanho", example = "area_ha"),
+        tamanho = trama::tr_param_col("", label = "Medida de tamanho", role = "numerica", example = "area_ha"),
         n = I(0L, min = 0L, label = "n")),
       help = .tr_sampling_ajuda(r"---[
 A amostra com probabilidade proporcional ao tamanho (PPS): a unidade com o
@@ -165,7 +165,7 @@ proporcional ao tamanho; `sampling/srs` para comparar.
       description = "Sorteia conglomerados inteiros (municípios, escolas) e toma todas as suas unidades.",
       inputs = list(populacao = T, plano = PLANO()), outputs = list(out = S),
       params = list(
-        conglomerado = P("cols", "", label = "Conglomerado", example = "municipio"),
+        conglomerado = trama::tr_param_col("", label = "Conglomerado", role = "categorica", example = "municipio"),
         conglomerados = I(0L, min = 0L, label = "Conglomerados a sortear"),
         probabilidade = E("iguais", c("iguais", "proporcional ao tamanho"), label = "Probabilidade")),
       help = .tr_sampling_ajuda(r"---[
@@ -197,7 +197,7 @@ plano; `sampling/simulate` para ver o preço.
       description = "Sorteia conglomerados e, dentro de cada um, um número fixo de unidades.",
       inputs = list(populacao = T, plano = PLANO()), outputs = list(out = S),
       params = list(
-        conglomerado = P("cols", "", label = "Conglomerado", example = "escola"),
+        conglomerado = trama::tr_param_col("", label = "Conglomerado", role = "categorica", example = "escola"),
         conglomerados = I(0L, min = 0L, label = "Conglomerados a sortear"),
         por_conglomerado = I(0L, min = 0L, label = "Unidades por conglomerado"),
         primeiro_estagio = E("proporcional ao tamanho", c("iguais", "proporcional ao tamanho"),
@@ -242,10 +242,10 @@ para declarar uma amostra em dois estágios já coletada.
       description = "Diz quais colunas de uma amostra já coletada são o peso, o estrato e o conglomerado.",
       inputs = list(dados = T), outputs = list(out = S),
       params = list(
-        pesos = P("cols", "", label = "Peso", example = "peso"),
-        estrato = P("cols", "", label = "Estrato", example = "estrato"),
-        conglomerado = P("cols", "", label = "Conglomerado (UPA)", example = "setor"),
-        populacao = P("cols", "", label = "UPAs do estrato na população", example = "setores_estrato")),
+        pesos = trama::tr_param_col("", label = "Peso", role = "numerica", suggest = FALSE, example = "peso"),
+        estrato = trama::tr_param_col("", label = "Estrato", role = "categorica", suggest = FALSE, example = "estrato"),
+        conglomerado = trama::tr_param_col("", label = "Conglomerado (UPA)", role = "categorica", suggest = FALSE, example = "setor"),
+        populacao = trama::tr_param_col("", label = "UPAs do estrato na população", role = "numerica", suggest = FALSE, example = "setores_estrato")),
       help = .tr_sampling_ajuda(r"---[
 Transforma a base de uma pesquisa JÁ COLETADA em amostra com desenho. É a porta
 de entrada de microdado de pesquisa oficial, que vem com as colunas do
@@ -289,8 +289,8 @@ tr_flow(reg) |>
       description = "Ajusta os pesos para que cada grupo some o total conhecido da população.",
       inputs = list(amostra = S, totais = T), outputs = list(out = S),
       params = list(
-        pos_estrato = P("cols", "", label = "Pós-estrato", example = "regiao"),
-        coluna_total = P("cols", "N", label = "Coluna do total", example = "N")),
+        pos_estrato = trama::tr_param_col("", label = "Pós-estrato", role = "categorica", from = "totais", example = "regiao"),
+        coluna_total = trama::tr_param_col("N", label = "Coluna do total", role = "numerica", from = "totais", example = "N")),
       pressupostos = list(
         trama::tr_pressuposto("Os **totais** N_g são exatos e da mesma população e data da amostra, e toda célula tem pelo menos uma unidade na amostra.", se_falhar = "Junte pós-estratos vazios ou pequenos com `data/mutate`; totais de outra época viram viés."),
         trama::tr_pressuposto("Dentro de cada pós-estrato, respondentes e não respondentes se parecem (**não resposta ignorável** dado o grupo).", se_falhar = "Pós-estratifique por mais variáveis com `sampling/rake`."),

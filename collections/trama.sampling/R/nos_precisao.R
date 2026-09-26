@@ -7,10 +7,10 @@
   CONF <- function() .tr_sampling_param_conf()
   PROP <- function() N(0.5, min = 0.01, max = 0.99, step = 0.05, label = "Proporção esperada")
   unidades_params <- function() list(
-    unidade = P("cols", "", label = "Unidade", example = "escola"),
-    tamanho = P("cols", "", label = "População da unidade", example = "alunos"),
-    n = P("cols", "", label = "Entrevistas na unidade", example = "n"),
-    grupos = P("cols", "", label = "Níveis intermediários", example = "rede"))
+    unidade = trama::tr_param_col("", label = "Unidade", role = "qualquer", example = "escola"),
+    tamanho = trama::tr_param_col("", label = "População da unidade", role = "numerica", example = "alunos"),
+    n = trama::tr_param_col("", label = "Entrevistas na unidade", role = "numerica", example = "n"),
+    grupos = trama::tr_param_col("", label = "Níveis intermediários", role = "categorica", multi = TRUE, suggest = FALSE, example = "rede"))
   ajuda_unidades <- r"---[
 - **Unidade** — coluna com o nome da unidade (capital, escola, município).
 - **População da unidade** — coluna com o tamanho da população-alvo nela.
@@ -181,16 +181,16 @@ a mesma fórmula do deff no caminho de ida.
       description = "Com os grupos do tamanho previsto, qual a menor diferença entre eles que a pesquisa detecta?",
       inputs = list(grupos = T), outputs = list(out = T),
       params = list(
-        variavel = P("cols", "", label = "Variável", example = "variavel"),
-        grupo = P("cols", "", label = "Grupo", example = "categoria"),
-        tamanho = P("cols", "", label = "Tamanho do grupo", example = "participacao"),
+        variavel = trama::tr_param_col("", label = "Variável", role = "categorica", example = "variavel"),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "qualquer", example = "categoria"),
+        tamanho = trama::tr_param_col("", label = "Tamanho do grupo", role = "numerica", example = "participacao"),
         n_total = N(0, min = 0, label = "n total (se tamanho é participação)"),
         proporcao = PROP(), confianca = CONF(),
         poder = E("80%", c("80%", "90%"), label = "Poder"),
         deff = N(1, min = 0.01, step = 0.1, label = "Efeito do desenho (deff)"),
         diferenca_relevante = N(0.10, min = 0.01, max = 1, step = 0.01, label = "Diferença que importa"),
-        proporcao_grupo = P("cols", "", label = "Proporção de cada grupo (coluna)", example = "p"),
-        populacao = P("cols", "", label = "População de cada grupo (coluna)", example = "N"),
+        proporcao_grupo = trama::tr_param_col("", label = "Proporção de cada grupo (coluna)", role = "numerica", suggest = FALSE, example = "p"),
+        populacao = trama::tr_param_col("", label = "População de cada grupo (coluna)", role = "numerica", suggest = FALSE, example = "N"),
         distribuicao = E("t", .TR_SAMPLING_DISTRIBUICOES, label = "Distribuição")),
       pressupostos = c(list(trama::tr_pressuposto(
         "Os dois grupos são **independentes** e a comparação é de UM par escolhido antes de olhar os dados, com teste bilateral de duas proporções (Fleiss, Levin & Paik 2003, cap. 4, sem correção de continuidade); a DMD é o pior caso entre as duas referências (p_a, p_b) e os dois sentidos.",
@@ -294,10 +294,10 @@ tr_flow(reg) |>
       description = "A margem de erro de pior caso de cada pergunta do questionário, em cada nível e cenário.",
       inputs = list(perguntas = "data/table", margens = "data/table"), outputs = list(out = "data/table"),
       params = list(
-        pergunta = P("cols", "pergunta", label = "Coluna da pergunta", example = "pergunta"),
-        tipo = P("cols", "tipo", label = "Coluna do tipo", example = "tipo"),
-        opcoes = P("cols", "opcoes", label = "Coluna do nº de opções", example = "opcoes"),
-        base = P("cols", "base", label = "Coluna da base", example = "base"),
+        pergunta = trama::tr_param_col("pergunta", label = "Coluna da pergunta", role = "qualquer", example = "pergunta"),
+        tipo = trama::tr_param_col("tipo", label = "Coluna do tipo", role = "categorica", example = "tipo"),
+        opcoes = trama::tr_param_col("opcoes", label = "Coluna do nº de opções", role = "numerica", example = "opcoes"),
+        base = trama::tr_param_col("base", label = "Coluna da base", role = "qualquer", example = "base"),
         nao_resposta = N(0, min = 0, max = 0.9, step = 0.01, label = "Não resposta esperada"),
         confianca = .tr_sampling_param_conf(),
         distribuicao = E("t", .TR_SAMPLING_DISTRIBUICOES, label = "Distribuição")),
@@ -394,9 +394,9 @@ célula.
       description = "Quantas entrevistas no total para que CADA grupo de perfil tenha a margem desejada, sem cotas?",
       inputs = list(composicao = "data/table"), outputs = list(out = "sampling/plan"),
       params = list(
-        variavel = P("cols", "", label = "Variável", example = "variavel"),
-        grupo = P("cols", "", label = "Grupo", example = "categoria"),
-        participacao = P("cols", "", label = "Participação", example = "participacao"),
+        variavel = trama::tr_param_col("", label = "Variável", role = "categorica", example = "variavel"),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "qualquer", example = "categoria"),
+        participacao = trama::tr_param_col("", label = "Participação", role = "numerica", example = "participacao"),
         erro = N(0.05, min = 0.005, max = 0.5, step = 0.01, label = "Margem em cada grupo"),
         proporcao = N(0.5, min = 0.01, max = 0.99, step = 0.05, label = "Proporção esperada"),
         confianca = .tr_sampling_param_conf(),
@@ -459,9 +459,9 @@ para a margem só no total; `sampling/rake` para calibrar depois.
       description = "Ajusta os pesos para que a amostra bata os totais conhecidos de várias variáveis ao mesmo tempo.",
       inputs = list(amostra = "sampling/sample", totais = "data/table"), outputs = list(out = "sampling/sample"),
       params = list(
-        variavel = P("cols", "variavel", label = "Coluna da variável", example = "variavel"),
-        categoria = P("cols", "categoria", label = "Coluna da categoria", example = "categoria"),
-        total = P("cols", "total", label = "Coluna do total", example = "total"),
+        variavel = trama::tr_param_col("variavel", label = "Coluna da variável", role = "categorica", from = "totais", example = "variavel"),
+        categoria = trama::tr_param_col("categoria", label = "Coluna da categoria", role = "qualquer", from = "totais", example = "categoria"),
+        total = trama::tr_param_col("total", label = "Coluna do total", role = "numerica", from = "totais", example = "total"),
         iteracoes = I(50L, min = 1L, max = 1000L, label = "Rodadas")),
       pressupostos = list(
         trama::tr_pressuposto("Os totais das **margens** são exatos e consistentes (todas as variáveis somam a mesma população), e toda categoria tem gente na amostra.", se_falhar = "Junte categorias vazias antes; totais de fontes diferentes precisam ser reconciliados."),
