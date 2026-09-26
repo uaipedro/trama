@@ -86,6 +86,19 @@ export const collections = [
     ]
   },
   {
+    id: "experimentos",
+    title: "Experimentos",
+    packageName: "trama.experiments",
+    icon: "flask-conical",
+    eyebrow: "Coleção trama.experiments",
+    description: "Declare o delineamento, simule a resposta termo a termo, analise por contrastes e avalie o plano.",
+    steps: [
+      { label: "Planejar", tone: "source" },
+      { label: "Analisar", tone: "transform" },
+      { label: "Avaliar", tone: "inspect" }
+    ]
+  },
+  {
     id: "series-temporais",
     title: "Séries temporais",
     packageName: "trama.series",

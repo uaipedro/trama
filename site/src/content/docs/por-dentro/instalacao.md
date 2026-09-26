@@ -58,6 +58,7 @@ pak::pak("uaipedro/trama/collections/trama.series")    # séries temporais
 pak::pak("uaipedro/trama/collections/trama.models")    # modelos estatísticos
 pak::pak("uaipedro/trama/collections/trama.multi")     # análise multivariada
 pak::pak("uaipedro/trama/collections/trama.sampling")  # amostragem
+pak::pak("uaipedro/trama/collections/trama.experiments")  # experimentos
 pak::pak("uaipedro/trama/collections/trama.ml")        # aprendizado de máquina
 ```
 

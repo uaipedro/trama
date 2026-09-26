@@ -216,6 +216,69 @@
     "label": "Gravar RDS",
     "icon": "archive"
   },
+  "experiments/boxcox": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Box-Cox",
+    "icon": "chart-line"
+  },
+  "experiments/contrasts": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Contrastes",
+    "icon": "divide"
+  },
+  "experiments/design": {
+    "accent": "#976523",
+    "hasInput": false,
+    "hasOutput": true,
+    "label": "Delineamento",
+    "icon": "grid-3x3"
+  },
+  "experiments/effect": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Efeito",
+    "icon": "plus"
+  },
+  "experiments/error": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Erro",
+    "icon": "sigma"
+  },
+  "experiments/power": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Poder",
+    "icon": "gauge"
+  },
+  "experiments/randomization_test": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Teste de aleatorização",
+    "icon": "shuffle"
+  },
+  "experiments/response_surface": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Superfície de resposta",
+    "icon": "chart-area"
+  },
+  "experiments/view": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Ver o plano",
+    "icon": "layout-grid"
+  },
   "ml/cart": {
     "accent": "#65a30d",
     "hasInput": true,
@@ -394,12 +457,26 @@
     "label": "Coeficientes",
     "icon": "variable"
   },
+  "models/cohen_d": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Tamanho de efeito (dois grupos)",
+    "icon": "ruler"
+  },
   "models/compare": {
     "accent": "#eab308",
     "hasInput": true,
     "hasOutput": true,
     "label": "Comparar modelos",
     "icon": "git-compare"
+  },
+  "models/confusion": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Matriz de confusão",
+    "icon": "table"
   },
   "models/cor_test": {
     "accent": "#ef4444",
@@ -408,6 +485,13 @@
     "label": "Teste de correlação",
     "icon": "trending-up"
   },
+  "models/dose_response": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Regressão de doses",
+    "icon": "chart-line"
+  },
   "models/duncan": {
     "accent": "#8b5cf6",
     "hasInput": true,
@@ -415,12 +499,33 @@
     "label": "Duncan",
     "icon": "chart-column"
   },
+  "models/dunn": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Dunn",
+    "icon": "git-compare"
+  },
+  "models/effect_size": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Tamanho de efeito (ANOVA)",
+    "icon": "ruler"
+  },
   "models/emmeans": {
     "accent": "#8b5cf6",
     "hasInput": true,
     "hasOutput": true,
     "label": "Médias ajustadas",
     "icon": "chart-column"
+  },
+  "models/evaluate": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Avaliar previsões",
+    "icon": "gauge"
   },
   "models/example": {
     "accent": "#10b981",
@@ -449,6 +554,20 @@
     "hasOutput": true,
     "label": "Modelo linear generalizado",
     "icon": "chart-spline"
+  },
+  "models/glmer": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Misto generalizado",
+    "icon": "layers-2"
+  },
+  "models/importance": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Importância",
+    "icon": "chart-bar"
   },
   "models/kruskal": {
     "accent": "#ef4444",
@@ -485,6 +604,13 @@
     "label": "Modelo misto",
     "icon": "layers"
   },
+  "models/nls": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Regressão não linear",
+    "icon": "chart-spline"
+  },
   "models/one_sample_t": {
     "accent": "#ef4444",
     "hasInput": true,
@@ -513,6 +639,13 @@
     "label": "Gráfico de lagarta",
     "icon": "list-ordered"
   },
+  "models/plot_coefficients": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Gráfico dos coeficientes",
+    "icon": "chart-bar"
+  },
   "models/plot_diagnostics": {
     "accent": "#eab308",
     "hasInput": true,
@@ -526,6 +659,13 @@
     "hasOutput": true,
     "label": "Gráfico de médias",
     "icon": "chart-no-axes-column"
+  },
+  "models/plot_regression": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Gráfico de regressão",
+    "icon": "chart-line"
   },
   "models/predict": {
     "accent": "#eab308",
@@ -561,6 +701,20 @@
     "hasOutput": true,
     "label": "RLS online",
     "icon": "activity"
+  },
+  "models/roc": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Curva ROC",
+    "icon": "chart-line"
+  },
+  "models/scott_knott": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Scott-Knott",
+    "icon": "chart-column"
   },
   "models/shapiro": {
     "accent": "#ef4444",
@@ -1129,13 +1283,6 @@
     "label": "F do bloco de tendência",
     "icon": "trending-up-down"
   },
-  "series/periodicity_fisher": {
-    "accent": "#db2777",
-    "hasInput": true,
-    "hasOutput": true,
-    "label": "Periodicidade (Fisher)",
-    "icon": "signal"
-  },
   "series/forecast": {
     "accent": "#f59e0b",
     "hasInput": true,
@@ -1170,13 +1317,6 @@
     "hasOutput": true,
     "label": "KPSS",
     "icon": "test-tubes"
-  },
-  "series/seasonality_kw": {
-    "accent": "#db2777",
-    "hasInput": true,
-    "hasOutput": true,
-    "label": "Sazonalidade (Kruskal-Wallis)",
-    "icon": "calendar-days"
   },
   "series/lag": {
     "accent": "#06b6d4",
@@ -1226,6 +1366,13 @@
     "hasOutput": true,
     "label": "Autocorrelação parcial (PACF)",
     "icon": "chart-bar"
+  },
+  "series/periodicity_fisher": {
+    "accent": "#db2777",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Periodicidade (Fisher)",
+    "icon": "signal"
   },
   "series/pettitt": {
     "accent": "#e11d48",
@@ -1290,6 +1437,13 @@
     "label": "Gráfico sazonal",
     "icon": "chart-spline"
   },
+  "series/seasonality_kw": {
+    "accent": "#db2777",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Sazonalidade (Kruskal-Wallis)",
+    "icon": "calendar-days"
+  },
   "series/stl": {
     "accent": "#84cc16",
     "hasInput": true,
@@ -1324,6 +1478,13 @@
     "hasOutput": true,
     "label": "Zivot-Andrews",
     "icon": "split"
+  },
+  "view/annotate": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Anotação",
+    "icon": "message-square-text"
   },
   "view/area": {
     "accent": "#f472b6",
@@ -1388,6 +1549,13 @@
     "label": "Acumulada",
     "icon": "chart-no-axes-combined"
   },
+  "view/fit_line": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Reta ajustada",
+    "icon": "trending-up"
+  },
   "view/heatmap": {
     "accent": "#f472b6",
     "hasInput": true,
@@ -1450,6 +1618,13 @@
     "hasOutput": true,
     "label": "Quantil-quantil",
     "icon": "trending-up"
+  },
+  "view/reference": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Linha de referência",
+    "icon": "separator-horizontal"
   },
   "view/save": {
     "accent": "#22c55e",

@@ -26,8 +26,8 @@ pak::pak(c(
 ```
 
 As demais coleções são opcionais e instalam suas próprias dependências:
-`trama.series`, `trama.models`, `trama.multi`, `trama.sampling` e
-`trama.ml`. Detalhes e a ordem de instalação com `remotes` estão em
+`trama.series`, `trama.models`, `trama.multi`, `trama.sampling`,
+`trama.experiments` e `trama.ml`. Detalhes e a ordem de instalação com `remotes` estão em
 [Instalação](/trama/por-dentro/instalacao/).
 
 ## O CLI
