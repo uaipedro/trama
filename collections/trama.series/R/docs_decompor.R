@@ -61,8 +61,13 @@
     "series/regression" = list(
       pressupostos = list(forma, erro_indep, erro_normal,
         P("Do grau 2 em diante, as potências cruas do tempo são **quase colineares**: os coeficientes de tendência não se leem um a um.",
-          se_falhar = "Leia a tendência pelo `series/f_trend`, que testa o bloco inteiro.")),
+          se_falhar = "Leia a tendência pelo `series/f_trend`, que testa o bloco inteiro."),
+        P("Com **regressor** ligado: o efeito dele é **contemporâneo** (x no mesmo instante, sem defasagem) e **exógeno** (y não volta a mexer em x). Duas séries que só compartilham tendência produzem regressão espúria: o p do β sai pequeno sem relação nenhuma, sobretudo com erro autocorrelacionado.",
+          verificar = c("series/ljung_box", "series/adf"),
+          se_falhar = "Deixe a tendência no modelo (grau ≥ 1), ligue **Erro = arma** se o resto for autocorrelacionado, e com séries de raiz unitária diferencie as duas antes (`series/diff`).")),
       referencias = c(regressao_ref, list(
+        R(autores = c("Granger, C. W. J.", "Newbold, P."), ano = 1974, titulo = "Spurious regressions in econometrics",
+          fonte = "Journal of Econometrics, 2(2), 111-120", doi = "10.1016/0304-4076(74)90034-7", papel = "complementar"),
         I("stats", "lm", "Mínimos quadrados ordinários de `y ~ t + ... + t^grau + estacao`; o contraste da estação é `contr.sum` (soma_zero) ou `contr.treatment` (categoria_base), posto no fator."),
         pinheiro_bates,
         I("nlme", "gls", "Com `erro = \"arma\"`: `gls(y ~ ..., correlation = corARMA(p = ar, q = ma), method = \"ML\")`. Conferido contra `stats::arima(xreg = , method = \"ML\")` (coeficientes a 1e-3, log-verossimilhança a 1e-4) e, em AR(1), contra o MQO de Prais-Winsten com o phi estimado (1e-8).")))),
