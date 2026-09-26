@@ -14,12 +14,13 @@ trama_collection <- function() {
   T <- "data/table"
   P <- trama::tr_param
   .tr_data_aplicar_ajuda_curta(trama::tr_collection(
-    id = "data", version = "0.1.0", label = "Dados", js = "trama/index.js",
+    id = "data", version = "0.2.0", label = "Dados", js = "trama/index.js",
     # `data/test` é o resultado de UM teste de hipótese, de qualquer coleção:
     # o mecanismo (construtor, regra de decisão, card, linha de tabela) é do
     # núcleo, que não registra tipo nenhum; o registro fica aqui porque toda
     # coleção já depende da `data`, e um "resultado com p-valor" genérico não é
     # domínio de ninguém. A `data` não sabe nome de teste algum.
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.data")),
     types = list(data_table_type(), trama::tr_test_type("data/test")),
     adapters = list(trama::tr_adapter("data/test", "data/table",
                                       function(x) tibble::as_tibble(trama::tr_test_table(x)))),
@@ -1853,8 +1854,140 @@ tr_flow(reg) |>
 
 `data/read_parquet` lê de volta; `data/write_rds` quando a tabela precisa voltar
 idêntica; `data/write_csv` quando o arquivo será aberto num editor de
-planilha.")
+planilha."),
 
+      trama::tr_node("data/separate", fn = tr_separate, label = "Separar coluna",
+        category = "transform", icon = trama::tr_icon("split"),
+        description = "Separa uma coluna de texto em várias pelo separador (parcela_A_1 → parcela, A, 1).",
+        inputs = list(dados = T), outputs = list(out = T),
+        params = list(
+          variavel = P("cols", "", label = "Coluna", example = "codigo"),
+          nomes = P("text", "", label = "Novas colunas", example = "local, tratamento, repeticao"),
+          separador = P("text", "_", label = "Separador", example = "_"),
+          remover = trama::tr_param_bool(TRUE, label = "Remover a original")),
+        help = r"---[## Descrição
+
+Parte uma coluna de texto em várias, cortando no **Separador** (literal: `.` é
+ponto, não "qualquer caractere"). As colunas novas entram no lugar da original.
+Linha com número de partes diferente do número de **Novas colunas** para o nó
+nomeando a linha, em vez de preencher com faltante em silêncio.
+
+## Parâmetros
+
+- **Coluna** — a coluna a separar.
+- **Novas colunas** — os nomes, separados por vírgula.
+- **Separador** — o texto entre as partes.
+- **Remover a original** — tirar a coluna separada.
+
+## Valor
+
+A tabela com as colunas novas (texto; converta num `data/convert` se forem números).
+
+## Veja também
+
+`data/unite` faz o inverso.]---"),
+
+      trama::tr_node("data/unite", fn = tr_unite, label = "Juntar colunas",
+        category = "transform", icon = trama::tr_icon("merge"),
+        description = "Junta várias colunas numa só, com um separador.",
+        inputs = list(dados = T), outputs = list(out = T),
+        params = list(
+          cols = P("cols", "", label = "Colunas", example = "dia, mes, ano"),
+          nome = P("text", "junto", label = "Nome", example = "data"),
+          separador = P("text", "_", label = "Separador", example = "/"),
+          remover = trama::tr_param_bool(TRUE, label = "Remover as originais")),
+        help = r"---[## Descrição
+
+Cola os valores das **Colunas**, na ordem dada, com o **Separador** entre eles,
+numa coluna nova posta onde estava a primeira. Faltante vira o texto `NA`.
+
+## Parâmetros
+
+- **Colunas** — as colunas a juntar, separadas por vírgula.
+- **Nome** — o nome da coluna nova.
+- **Separador** — o texto entre os valores.
+- **Remover as originais** — tirar as colunas juntadas.
+
+## Valor
+
+A tabela com a coluna nova, de texto.
+
+## Veja também
+
+`data/separate` faz o inverso.]---"),
+
+      trama::tr_node("data/recode", fn = tr_recode, label = "Recodificar",
+        category = "transform", icon = trama::tr_icon("replace"),
+        description = "Troca valores de uma coluna (a=x; b=y) ou fatia um número em faixas.",
+        inputs = list(dados = T), outputs = list(out = T),
+        params = list(
+          variavel = P("cols", "", label = "Coluna", example = "tratamento"),
+          niveis = P("text", "", label = "Níveis (de=para)", example = "T1=testemunha; T2=adubado"),
+          cortes = P("text", "", label = "Cortes das faixas", example = "0; 10; 20; Inf"),
+          rotulos = P("text", "", label = "Rótulos das faixas", example = "baixo; médio; alto"),
+          fechado = trama::tr_param_enum("direita", c("direita", "esquerda"), label = "Faixa fechada à"),
+          nome = P("text", "", label = "Coluna de saída", example = "classe")),
+        help = r"---[## Descrição
+
+Dois modos, pelo campo preenchido (um OU outro):
+
+- **Níveis** — pares `de=para` separados por `;`. Valor não citado fica como
+  está; valor citado que não existe na coluna para o nó (erro de digitação).
+  Fator continua fator, na mesma ordem. Coluna numérica recodificada vira
+  TEXTO (`1=baixo` não é número); converta de volta num `data/convert` se os
+  valores novos forem números.
+- **Cortes** — limites das faixas de uma coluna numérica, separados por `;`
+  (vírgula decimal aceita). Fechada à **direita**, `(10, 20]`; à **esquerda**,
+  `[10, 20)`. As pontas entram: à direita, a primeira faixa fecha nos dois
+  lados (`[0, 10]`); à esquerda, é a ÚLTIMA que fecha nos dois lados
+  (`[10, 20]`), para o maior corte não cair fora. Valor fora dos cortes para o nó — use `-Inf`/`Inf`. **Rótulos**, se
+  dados, são um por faixa (cortes − 1); a mais ou a menos é erro.
+
+## Parâmetros
+
+- **Coluna**, **Níveis**, **Cortes**, **Rótulos**, **Faixa fechada à**.
+- **Coluna de saída** — em branco, substitui a original.
+
+## Valor
+
+A tabela com a coluna recodificada (faixas saem como fator ordenado pelas faixas).
+
+## Veja também
+
+`data/mutate` para regras que não cabem num de/para; `data/convert` para trocar o tipo.]---"),
+
+      trama::tr_node("data/sample", fn = tr_sample, label = "Amostrar linhas",
+        category = "transform", icon = trama::tr_icon("shuffle"), stochastic = TRUE,
+        description = "Sorteia n linhas ou uma fração, com ou sem reposição, por grupo, com semente.",
+        inputs = list(dados = T), outputs = list(out = T),
+        params = list(
+          n = trama::tr_param_int(10L, min = 0L, label = "N (0 = usar a fração)"),
+          fracao = trama::tr_param_num(0.1, min = 0, max = 10, label = "Fração"),
+          reposicao = trama::tr_param_bool(FALSE, label = "Com reposição"),
+          grupo = P("cols", "", label = "Por grupo", example = "tratamento")),
+        help = r"---[## Descrição
+
+Sorteia linhas da tabela com a semente do nó: o mesmo card dá a mesma amostra
+toda vez, e o RNG da sessão não é tocado. As linhas saem na ordem original.
+
+Com **Por grupo**, sorteia dentro de cada grupo (amostra estratificada): N
+linhas de cada, ou a fração de cada. Sem reposição, grupo menor que N para o
+nó nomeando o grupo. Com reposição (bootstrap), fração acima de 1 é permitida.
+
+## Parâmetros
+
+- **N** — quantas linhas (por grupo); 0 usa a **Fração**.
+- **Fração** — a proporção das linhas, arredondada.
+- **Com reposição** — a mesma linha pode sair mais de uma vez.
+- **Por grupo** — colunas que definem os estratos.
+
+## Valor
+
+A tabela com as linhas sorteadas.
+
+## Veja também
+
+`data/slice_head` para as primeiras linhas em vez de sorteadas.]---")
     )
   ))
 }

@@ -120,7 +120,7 @@ test_that("roc: a AUC e o corte batem com a logística da multi e com Mann-Whitn
                                             c("0", "1"))
   expect_equal(rd$curvas$auc[[1]], auc_ml)
   # modo tabela (probabilidade vazia = prob_<positiva>) e modelo + dados
-  expect_match(subtitulo(tr_models_roc(dados = tab, resposta = "am_f")), "AUC 0,943 · tabela", fixed = TRUE)
+  expect_match(subtitulo(tr_models_roc(dados = tab, resposta = "am_f")), "AUC 0,943 \\(IC 95% DeLong .*\\) · tabela")
   expect_match(subtitulo(tr_models_roc(g, mt)), "dados novos", fixed = TRUE)
   expect_match(subtitulo(tr_models_roc(g, positiva = "0")), "positivo: 0", fixed = TRUE)
 })
@@ -151,8 +151,13 @@ test_that("roc multiclasse (modo tabela): uma curva por classe, AUCs do modo mod
   ref <- tr_models_roc(lda, validacao = "resubstituição")
   expect_equal(levels(p$data$grupo %||% ggplot2::ggplot_build(p)$plot$layers[[2]]$data$grupo),
                levels(ggplot2::ggplot_build(ref)$plot$layers[[2]]$data$grupo))
-  expect_error(tr_models_roc(dados = tab, resposta = "Species", probabilidade = "prob_setosa"),
-               class = "tr_models_error_blank_param")
+  # A coluna nomeia a classe (`prob_<classe>`): a positiva sai dela, como na
+  # `ml/roc` corrigida da main. Coluna de nome livre, sem `positiva`, recusa.
+  s <- tr_models_roc(dados = tab, resposta = "Species", probabilidade = "prob_setosa")
+  expect_match(s$labels$subtitle, "positivo: setosa", fixed = TRUE)
+  tab$p_livre <- tab$prob_setosa
+  expect_error(tr_models_roc(dados = tab, resposta = "Species", probabilidade = "p_livre"),
+               class = "tr_models_error_positive_required")
 })
 
 test_that("roc recusa regressão", {
@@ -173,7 +178,9 @@ test_that("evaluate: as métricas batem com as da ml nos três modos", {
   tab <- tr_models_predict(g, validacao = "cruzada")
   ref <- ml_metricas(tab, "am_f", "classificacao")
   e <- tr_models_evaluate(g)
-  expect_equal(e[match(ref$metrica, e$metrica), ], ref)
+  # Por classe a métrica se repete: o par (metrica, classe) é a chave.
+  chave <- function(x) paste(x$metrica, x$classe)
+  expect_equal(e[match(chave(ref), chave(e)), ], ref)
   expect_equal(tr_models_evaluate(dados = tab, resposta = "am_f"), e)
   # kappa, sensibilidade, especificidade conferidas contra a matriz
   cm <- table(tab$am_f, tab$previsto)
@@ -219,7 +226,9 @@ test_that("coefficients: batem com os da logística da multi (escala e confianç
   g <- logit()
   lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp")
   for (esc in c("unidade", "desvio padrão")) {
-    ref <- tr_models_coefficients(lg, exponenciar = TRUE, escala = esc, confianca = 0.9)$tabela
+    # A logística da multi usa IC perfilado por padrão (main 495ea07): a comparação
+    # com o GLM (Wald) é pelo intervalo de Wald.
+    ref <- tr_models_coefficients(lg, exponenciar = TRUE, escala = esc, confianca = 0.9, intervalo = "Wald")$tabela
     t <- tr_models_coefficients(g, exponenciar = TRUE, escala = esc, confianca = 0.9)$tabela
     expect_equal(t$estimativa, ref$estimativa, tolerance = 1e-6, info = esc)
     expect_equal(t$li_90, ref$li_90, tolerance = 1e-6, info = esc)

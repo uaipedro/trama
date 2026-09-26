@@ -84,3 +84,15 @@ test_that("plot_coefficients: sem intercepto, referência 0 ou 1, ordem e nível
   expect_error(tr_models_plot_coefficients(tr_models_lm(ex("mtcars"), formula = "mpg ~ wt"), exponenciar = TRUE),
                class = "tr_models_error_not_applicable")
 })
+
+# Oráculo de Hedges (1981): o fator J exato é Γ(m/2) / (sqrt(m/2) Γ((m−1)/2)),
+# m = n1 + n2 − 2; o bloco usa a aproximação 1 − 3/(4m − 1) do mesmo artigo.
+# Diferença < 0,1% já com m = 9, e some com n.
+test_that("cohen_d: o g de Hedges bate com o J exato de Hedges (1981)", {
+  a <- c(5, 7, 8, 6, 9); b <- c(3, 4, 6, 2, 5, 4)
+  r <- tr_models_cohen_d(data.frame(y = c(a, b), g = rep(c("A", "B"), c(5, 6))), "y", "g")
+  m <- 9
+  j_exato <- exp(lgamma(m / 2) - lgamma((m - 1) / 2)) / sqrt(m / 2)
+  expect_equal(r$estimativa[[2]], j_exato * r$estimativa[[1]], tolerance = 1e-3)
+  expect_equal(1 - 3 / (4 * m - 1), 1 - 3 / (4 * 11 - 9))
+})

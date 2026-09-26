@@ -1,0 +1,187 @@
+# trama.models 0.3.0
+
+Versão sobe de 0.1.0 para 0.3.0: a 0.2.0 era a que a main planejava pelo
+rigor metodológico (glmer, gls, friedman com Durbin/Skillings–Mack,
+quasibinomial, tipo III com contr.sum); a integração com a coesão das coleções
+muda resultados de novo (um Scott-Knott, polinomial com a dose-resposta,
+leitores da ml e da multi fundidos aqui) e sobe mais um minor.
+
+## Integração 9.1b (coesão × main)
+
+- `models/roc` (versão 3): IC de DeLong da AUC (`confianca`), corte de
+  Youden e AUC multiclasse de Hand & Till, portados da `ml/roc` e da
+  `multi/roc` da main, com os oráculos `pROC` de lá.
+- `models/confusion` (versão 2): `tabela = "métricas"` (acurácia, acurácia
+  balanceada, kappa, precisão/revocação/F1, da `multi/confusion`) e
+  `permitir_treino`.
+- `models/evaluate` (versão 3): precisão de classe nunca prevista é NA e sai
+  das médias macro e ponderada (a `ml/evaluate` v4 da main); `permitir_treino`.
+- `models/pr_curve` (versão 2): uma curva por classe com três ou mais classes
+  (da `multi/pr_curve`, que migra para cá); `permitir_treino`.
+- `models/coefficients` (versão 2): `intervalo` (`padrão`, `perfilado`,
+  `Wald`); a logística da multi sai com IC perfilado e Firth.
+- Proveniência da `ml/split`: `models/predict` leva a marca de treino/teste
+  adiante, e os avaliadores recusam avaliar o treino sem `permitir_treino`.
+- `models/gls` no contrato (coeficientes, medidas, resíduos, previsão), e
+  `models/fit_stats` com `dispersao_pearson`/`desvio_por_gl` em todo modelo.
+- `models/glmer`: o da main (nível por observação, recusas da binomial,
+  avisos na nota), com a nota de sobredispersão de Pearson > 1,5 da branch.
+
+## Integração 9.2 (coesão das coleções)
+
+- `models/scott_knott` (versão 2): um partidor só, com s² = média de QM / rᵢ
+  do grupo em partição (como `ScottKnott:::MaxValue`); aceita o DIC com
+  repetições desiguais e continua recusando termo não ortogonal ao
+  tratamento. Balanceado: grupos iguais aos da versão 1. Conferido contra
+  `ScottKnott::SK` 1.4-0 (DIC desbalanceado, CRD1, CRD2, RCBD, milho_dbc,
+  InsectSprays).
+- `models/polinomial` (versão 2) absorve o `models/dose_response`: duas saídas
+  (`quadro` e `modelo`, a curva), `grau` = `automático` ou 1 a 5, `grau_max`
+  (o antigo `grau` numérico), DQL, falta de ajuste do grau escolhido, MET e
+  curva de grau 0 quando nada é significativo. Fluxos antigos migram (id,
+  params e a porta `out` → `quadro`).
+- `models/pr_curve`: a curva precisão-revocação da `ml/pr_curve` (main), com os
+  modos da `models/roc`; `ml/pr_curve` migra para ela.
+## Correções
+
+- `models/anova_table` (versão 2): o SQ tipo III do GLM misto (`car::Anova`) e o
+  marginal do GLS (`anova.gls`) usavam o contraste de tratamento, e com
+  interação testavam cada fator no nível de referência do outro. Agora o modelo
+  é reajustado com `contr.sum` nos fatores fixos, como já era no `lm`/`glm`.
+  Oráculos: `grouseticks`, `TICKS ~ YEAR * alt + (1 | BROOD)` Poisson, YEAR
+  χ² = 80,94 e alt 72,17 (antes 50,52 e 41,71); GLS AR(1) `y ~ trt * tempo`,
+  trt F = 8,653 (antes 2,140). O `lmerTest` já era invariante ao contraste
+  (teste de regressão). Tipo III com covariável numérica em interação ganha nota:
+  o efeito do fator é testado com a covariável em zero.
+- `models/glmer` (versão 2): os avisos do `lme4` (convergência, ajuste
+  singular) vão para a nota do modelo (campo `nota` do `models/fit`, lido pelo
+  card e pelos quadros). Recusa `nivel_obs` com resposta 0/1 (efeito por
+  observação não identificável numa tentativa) e resposta binomial de uma
+  coluna que não seja 0/1 (proporção ou sucessos sem o total: use `cbind`).
+- `models/fit_stats` (versão 2): colunas `dispersao_pearson` (X² de Pearson /
+  gl) e `desvio_por_gl` no GLM e no GLM misto binomial/Poisson, NA na binomial
+  0/1 — o pressuposto de superdispersão do `models/glmer` passa a ter o que
+  verificar. Oráculo: `sum(residuals(fit, "pearson")^2) / df.residual(fit)` do
+  lme4 (grouseticks, `TICKS ~ YEAR + (1 | BROOD)`: 1,692; desvio / gl 1,824).
+- `models/gls`: pressuposto novo sobre os gl — coeficientes e quadro usam n − p
+  do `nlme`, liberal com poucos grupos; alternativa, `models/lmer` com
+  Satterthwaite. O `models/emmeans` no GLS fixa `mode = "satterthwaite"` (antes
+  implícito no padrão do emmeans) e diz na nota que o quadro usa n − p.
+- `models/glm` (versão 2): a `quasibinomial` recusa resposta 0/1 não
+  agrupada (a dispersão não mede superdispersão numa tentativa por linha; use a
+  binomial); resposta de uma coluna fora de [0, 1] na binomial/quasibinomial
+  sai com erro de classe `tr_models_error_bad_option`, e não o do `stats::glm`.
+  Proporção em [0, 1] continua aceita na quasibinomial.
+- `models/friedman`: o pressuposto de bloco completo aponta o Skillings–Mack e
+  o Durbin para blocos incompletos, ainda sem bloco no trama.
+- `models/friedman` (versão 2): parâmetro `metodo` (`auto`, `friedman`,
+  `durbin`, `skillings_mack`). Os três respondem à mesma pergunta — algum
+  tratamento difere, com postos dentro do bloco — e mudam só no desenho que
+  aceitam, por isso ficam num bloco só. Em `auto` (padrão), blocos completos
+  usam o Friedman; blocos incompletos balanceados, o Durbin (1951; T1 na forma
+  de Conover 1999, com correção para empates); o resto, o Skillings–Mack (1981;
+  faltantes quaisquer, desenho conexo, empates sem correção). Antes o bloco
+  incompleto saía inteiro; isso agora só com `metodo = "friedman"`, e a nota
+  aponta o método que aproveitaria esses blocos. `durbin` fora de um BIB recusa
+  (`tr_models_error_not_applicable`) e aponta o `skillings_mack`. Oráculos:
+  sorvete de `agricolae::durbin.test` (atribuído a Conover 1999, p. 391),
+  T1 = 12, p = 0,0620, e o mesmo com empates (1e-12); exemplo de
+  `Skillings.Mack::Ski.Mack` (montagem, 9 blocos com 4 faltantes),
+  SM = 15,493, 3 gl, p = 0,00144, e faltantes ao acaso com empates (1e-8);
+  Skillings–Mack = `stats::friedman.test` em dados completos sem empate (20
+  sorteios, 1e-10). `Skillings.Mack` em Suggests. O `PMCMRplus::durbinTest` não
+  foi usado: não instala sem a biblioteca de sistema MPFR (dependência Rmpfr).
+- `models/gls` (versão 2): `correlacao = "car1"` (AR(1) em tempo contínuo,
+  `nlme::corCAR1(form = ~ tempo | grupo)`) para ocasiões desigualmente
+  espaçadas; com `"ar1"` e Tempo numérico desigual, a nota avisa que o AR(1)
+  conta posições. Os avisos do ajuste também vão para a nota. Oráculo: o
+  `nlme::gls` com `corCAR1` direto (logLik e erros padrão, 1e-6).
+
+## Blocos novos
+
+- `models/friedman`: teste de Friedman (1937, doi:10.1080/01621459.1937.10503522)
+  para o DBC de um fator, uma observação por bloco e tratamento (casela
+  repetida recusa; bloco incompleto sai inteiro, contado na nota), estatística
+  corrigida para empates e W de Kendall como efeito. É a saída não paramétrica
+  que os pressupostos do `models/anova_dbc` apontam. Validado contra
+  `stats::friedman.test` (1e-12) nos dados do exemplo de `?friedman.test`
+  (RoundingTimes, atribuídos a Hollander & Wolfe 1973; 22 jogadores × 3
+  métodos): S = 11,14 com correção para empates, valor calculado por nós, não
+  conferido na página do livro.
+- `models/scott_knott`: agrupamento de Scott & Knott (1974, *Biometrics*
+  30:507-512, doi:10.2307/2529204) sobre o QM e os gl do erro do quadro, uma
+  letra por média. Implementação própria das fórmulas do artigo. Recusa dados
+  desbalanceados e termos não ortogonais ao tratamento (bloco incompleto,
+  covariável), em que as médias da tabela deixam de ter variância comum. Reproduz
+  o exemplo publicado do sorgo em Jelihovschi, Faria & Allaman (2014, TEMA
+  15(1), Fig. 1; doi:10.5540/tema.2014.015.01.0003): dois grupos, de cima
+  14 8 5 7 9 3 1 4 2 (esse exemplo é um látice, que o bloco recusa; a
+  reprodução é da função interna com as médias da tabela). Mesma partição que
+  `ScottKnott::SK` 1.4.0 no `milho_dbc` e no PlantGrowth, e que a conta à mão.
+- `models/polinomial`: regressão nos tratamentos quantitativos de um DIC ou
+  DBC — SQ de tratamentos decomposta em graus (1 gl cada, F com o QM do
+  resíduo da ANOVA), falta de ajuste, equação do maior grau significativo
+  (ajustada às médias com peso r) e R² = SQ da regressão / SQ de tratamentos.
+  Espaçamento e repetições desiguais pela decomposição sequencial. Validado
+  contra `lm` com as colunas de `poly()` em sequência (1e-10, também no DBC,
+  com doses 0-400 desigualmente espaçadas e com repetições desiguais) e no
+  exemplo do algodão de Montgomery (*Design and Analysis of Experiments*,
+  5.ª ed., tabela 3.1): SQ 33,62, 343,21, 64,98 e 33,95, calculadas desses
+  dados e conferidas à mão pelos contrastes ortogonais (não copiadas de página
+  impressa).
+
+- `models/levene` (com bloco): o equilíbrio passa a exigir o mesmo número de
+  parcelas em cada casela tratamento × bloco (e × linha, × coluna no DQL),
+  não só alavancas iguais. O tamanho do teste de O'Neill & Mathews foi medido
+  por simulação sob H0 (20000 réplicas, semente fixa, nível 5%): DBC 5 × 6
+  4,6% (o Levene comum nos resíduos: 8,5%), DBC 5 × 10 4,6%, DQL 8 × 8 4,7%
+  (comum: 7,9%); em desenho pequeno o multiplicador, que acerta a média do F e
+  não a cauda, deixa o teste conservador: DBC 4 × 3 2,9% (comum: 12,0%), DQL
+  5 × 5 2,9% (comum: 5,1%), DQL 4 × 4 2,3%. A ajuda e os pressupostos dizem
+  isso; um teste fixa DBC 5 × 6 e DQL 8 × 8 em 5% ± 1 ponto.
+
+- `models/levene` e `models/bartlett` (versão 3): recusam a parcela subdividida
+  com `tr_models_error_block_design`. Os resíduos do erro (b) vêm de um
+  delineamento em que o fator da parcela está confundido com a parcela, e a
+  correção de O'Neill & Mathews (2002) supõe um estrato de erro só; não há
+  correção publicada para os dois estratos. Em simulação sob H0 no desenho da
+  aveia (4000 réplicas), o Levene comum nesses resíduos rejeitava 10,5% a 5%
+  com centro na média e 2,5% na mediana. A mensagem aponta o painel
+  escala-locação do `models/plot_diagnostics` e o `models/lmer`.
+- `models/levene` (versão 2): nos delineamentos com bloco (DBC, fatorial em
+  DBC, DQL) passa a ser o teste de O'Neill & Mathews (2002, *Biometrics*
+  58:216-224, doi:10.1111/j.0006-341x.2002.00216.x): ANOVA dos |resíduos| de
+  mínimos quadrados em tratamento + bloco (+ linha e coluna) com o F
+  multiplicado pelo fator do delineamento, a razão dos quadrados médios
+  esperados de |e| sob H0 calculada pelas correlações dos resíduos. O Levene
+  comum nos resíduos correlacionados sai liberal (no quadrado latino 7 × 7,
+  8,3% de rejeição a 5% contra 5,0% com a correção, em simulação). Ali o centro
+  é sempre o ajuste do modelo (a média) e o param `centro` não muda o
+  resultado; delineamento desbalanceado é recusado. DIC e modelos de fórmula
+  não mudam. Validado contra `oneilldbc()` do ExpDes.pt 1.2.2 (arquivado no
+  CRAN em 2026-06, por isso fora do Suggests; os p ficam fixos no teste):
+  warpbreaks em 9 blocos, F = 3,1517, p = 0,017183 (e o fatorial em blocos dá
+  o mesmo), e o exemplo `ex4` do ExpDes.pt (carbono), p = 0,30708, iguais a
+  1e-14; o fator fechado do DBC do artigo é reproduzido a 1e-10. No DQL o
+  fator foi conferido por Monte Carlo (OrchardSprays, 20000 réplicas, 1%).
+- `models/bartlett` (versão 2): recusa delineamento com bloco (DBC, fatorial
+  em DBC, DQL) com `tr_models_error_block_design`, apontando o
+  `models/levene`: não há correção publicada do Bartlett para a correlação dos
+  resíduos. DIC e modelos de fórmula não mudam. O exemplo `experimentos`
+  troca o Bartlett do DBC pelo Levene.
+
+- `models/pairwise` (versão 2): o ajuste `dunnett` passa a ser o Dunnett
+  EXATO (`emmeans`, `adjust = "mvt"`: integração da t multivariada de Genz &
+  Bretz 2009), no lugar da aproximação de Hsu (`"dunnettx"`). Os p-valores e
+  intervalos mudam pouco (PlantGrowth: 0,3296 → 0,3227). A integração usa a
+  semente do nó, então o resultado é reprodutível. Validado contra
+  `multcomp::glht(mcp(... = "Dunnett"))`: exato com 2 contrastes (tol. 1e-6),
+  diferença máxima de 5e-5 no p com 5 contrastes (tol. 2e-3).
+- `models/chisq` (versão 2): `correcao` passa a ser `FALSE` por padrão (X² de
+  Pearson sem a correção de Yates, que deixa o teste conservador; Agresti
+  2002, *Categorical Data Analysis*, doi:10.1002/0471249688). A opção
+  continua. Fluxos antigos com 2 × 2 e sem `correcao` explícita mudam de
+  resultado. Validado nas contagens do Physicians' Health Study (aspirina ×
+  infarto, 189/10845 e 104/10933, como em Agresti): X² = 25,01 sem e 24,43
+  com Yates, calculados por `stats::chisq.test` e pela forma fechada do 2 × 2,
+  iguais a 1e-10 (os valores não foram conferidos no texto do livro).

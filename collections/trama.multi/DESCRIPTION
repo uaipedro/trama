@@ -1,6 +1,6 @@
 Package: trama.multi
 Title: Multivariate Analysis Collection for trama
-Version: 0.1.0
+Version: 0.3.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -18,7 +18,10 @@ Description: Nodes for multivariate analysis in a trama graph: principal
     classifier; jackknife bias, standard errors and pseudovalues for
     component, factor,
     discriminant and logistic statistics; and the diagnostics that come
-    first (KMO, Bartlett's sphericity, Horn's parallel analysis, Box's M).
+    first (KMO, Bartlett's sphericity, Horn's parallel analysis, Box's M);
+    distance matrices (Euclidean, Mahalanobis D2, Gower), hierarchical
+    clustering with cophenetic correlation, k-means and Tocher's
+    optimization method; and one-way MANOVA with optional blocks.
     Ships example data with known structure. Builds on trama.data for
     tables, trama.view for plots and trama.models, whose model contract
     the classifiers implement (prediction, confusion and ROC are its nodes).
@@ -32,6 +35,7 @@ Imports:
     trama.view,
     trama.models,
     MASS,
+    cluster,
     nnet,
     ggplot2 (>= 4.0.0),
     rlang,
@@ -44,6 +48,9 @@ Suggests:
     testthat (>= 3.0.0),
     png,
     GPArotation,
+    irr,
+    logistf,
+    pROC,
     psych,
     withr
 Config/testthat/edition: 3

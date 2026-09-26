@@ -140,12 +140,21 @@
 #'   prevista sem ela) ou `"resubstituição"`.
 #' @param resposta,predito só no modo tabela: as colunas da classe real e da
 #'   prevista.
+#' @param tabela `"matriz"` (padrão) ou `"métricas"` (acurácia, acurácia
+#'   balanceada, kappa e precisão/revocação/F1 por classe: `medida`, `grupo`,
+#'   `valor`).
+#' @param permitir_treino com a tabela marcada pelo `ml/split` (em `dados`):
+#'   FALSE (padrão) recusa avaliar linhas do treino
+#'   (`tr_ml_error_train_eval`); TRUE avalia, avisa e acrescenta a `nota` de
+#'   otimismo. Tabela sem a marca é avaliada como chega.
 #' @return tibble: `real`, uma coluna de contagem por classe prevista, `total`,
 #'   `acertos`, `taxa_acerto`; a última linha, `real = "total"`, é o geral.
 #' @export
 tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
-                                predito = "previsto") {
+                                predito = "previsto", tabela = "matriz", permitir_treino = FALSE) {
   no <- "models/confusion"
+  tabela <- .tr_models_enum(tabela, .TR_MODELS_TABELAS_CONFUSAO, "tabela")
+  nota <- .tr_models_checar_avaliacao(dados, permitir_treino)
   if (.tr_models_modo(modelo, dados, no) == "tabela") {
     r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
     pc <- .tr_models_coluna_tabela(dados, predito, "predito", no)
@@ -156,7 +165,49 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
     niv <- par$niveis
   }
   par <- .tr_models_sem_na(par)
-  .tr_models_matriz_larga(par$real, par$previsto, niv)
+  if (tabela == "métricas") {
+    m <- table(factor(par$real, levels = niv), factor(par$previsto, levels = niv))
+    mm <- matrix(as.numeric(m), nrow(m), dimnames = list(niv, niv))
+    return(.tr_models_com_nota(tibble::as_tibble(.tr_models_metricas_matriz(mm)), nota))
+  }
+  .tr_models_com_nota(.tr_models_matriz_larga(par$real, par$previsto, niv), nota)
+}
+
+.TR_MODELS_TABELAS_CONFUSAO <- c("matriz", "métricas")
+
+#' Métricas de uma matriz de confusão (linhas = real, colunas = previsto).
+#'
+#' Porte da `multi/confusion` da main (2b88e85, 03bfaf9): acurácia; acurácia
+#' balanceada, a média das revocações (Brodersen et al. 2010); kappa de Cohen
+#' (1960), (pₒ − pₑ)/(1 − pₑ) com pₑ dos totais marginais; e, por classe,
+#' precisão, revocação e F1 (Sokolova & Lapalme 2009). Classe nunca prevista
+#' tem precisão 0/0: sai NA, e o F1 também. Não há média macro de precisão ou
+#' F1 (o NA ficaria fora dela, nunca como zero); a acurácia balanceada é a
+#' média das revocações, que nunca são NA. Mesma decisão do `models/evaluate`.
+#' @noRd
+.tr_models_metricas_matriz <- function(m) {
+  n <- sum(m); acertos <- diag(m)
+  real <- rowSums(m); prev <- colSums(m)
+  revoc <- acertos / real
+  prec <- ifelse(prev > 0, acertos / prev, NA_real_)
+  f1 <- ifelse(is.na(prec) | (prec + revoc) == 0, NA_real_, 2 * prec * revoc / (prec + revoc))
+  po <- sum(acertos) / n
+  pe <- sum(real * prev) / n^2
+  kappa <- if (pe < 1) (po - pe) / (1 - pe) else NA_real_
+  g <- rownames(m)
+  data.frame(
+    medida = c("acurácia", "acurácia balanceada", "kappa de Cohen",
+               rep(c("precisão", "revocação", "F1"), each = length(g))),
+    grupo = c(NA, NA, NA, rep(g, 3)),
+    valor = c(po, mean(revoc), kappa, unname(prec), unname(revoc), unname(f1)),
+    stringsAsFactors = FALSE)
+}
+
+#' A nota de otimismo (avaliar o treino por opção) numa coluna e no atributo.
+#' @noRd
+.tr_models_com_nota <- function(out, nota) {
+  if (nzchar(nota)) { out$nota <- nota; attr(out, "nota") <- nota }
+  out
 }
 
 # ---- ROC ----------------------------------------------------------------------
@@ -180,7 +231,57 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
   tpr <- vapply(cortes, function(k) sum(score >= k & positivo) / n1, 0)
   fpr <- vapply(cortes, function(k) sum(score >= k & !positivo) / n0, 0)
   auc <- (sum(rank(score)[positivo]) - n1 * (n1 + 1) / 2) / (n1 * n0)
-  list(pontos = data.frame(fpr = c(0, fpr), tpr = c(0, tpr)), auc = auc)
+  # `limiar`: prevê positivo com escore >= limiar (Inf = nenhum positivo).
+  list(pontos = data.frame(limiar = c(Inf, cortes), fpr = c(0, fpr), tpr = c(0, tpr)), auc = auc)
+}
+
+#' AUC com o intervalo de DeLong, DeLong & Clarke-Pearson (1988).
+#'
+#' Porte da `multi/roc` e da `ml/roc` da main (3740464, 144c859, 16d930b,
+#' 168b489, 688b87e): a AUC de Mann-Whitney é a média das componentes
+#' estruturais V10 (de cada positivo, a fração dos negativos abaixo dele, meio
+#' por empate) e V01 (de cada negativo); a variância é var(V10)/n1 +
+#' var(V01)/n0, e o intervalo é o normal em torno da AUC, cortado em [0, 1]
+#' como no `pROC::ci.auc(method = "delong")`. Duas bordas dão IC NA com
+#' `nota` (a curva e a AUC continuam válidas): menos de dois casos numa classe
+#' e variância zero (AUC 0 ou 1).
+#' @noRd
+.tr_models_auc_delong <- function(score, positivo, confianca) {
+  n1 <- sum(positivo); n0 <- sum(!positivo)
+  x <- score[positivo]; y <- score[!positivo]
+  psi <- outer(x, y, function(a, b) (a > b) + 0.5 * (a == b))
+  auc <- mean(psi)
+  sem_ic <- function(ep, nota) list(auc = auc, ep = ep, ic_inf = NA_real_, ic_sup = NA_real_, nota = nota)
+  if (n1 < 2L || n0 < 2L) {
+    return(sem_ic(NA_real_, sprintf(paste0(
+      "IC de DeLong indisponível: há menos de duas linhas numa classe (%d positivas e %d negativas), ",
+      "e a variância precisa de ao menos duas de cada."), n1, n0)))
+  }
+  v10 <- rowMeans(psi); v01 <- colMeans(psi)
+  ep <- sqrt(stats::var(v10) / n1 + stats::var(v01) / n0)
+  if (ep == 0) {
+    return(sem_ic(ep, sprintf(paste0(
+      "IC de DeLong degenerado: com AUC = %s a variância estimada é zero e o intervalo não informa ",
+      "a incerteza; use mais linhas ou reamostragem."), format(auc))))
+  }
+  z <- stats::qnorm(1 - (1 - confianca) / 2)
+  list(auc = auc, ep = ep, ic_inf = max(0, auc - z * ep), ic_sup = min(1, auc + z * ep), nota = NA_character_)
+}
+
+#' AUC multiclasse M de Hand & Till (2001) — porte da `multi/roc` (7fd83da).
+#'
+#' Para cada par de classes (i, j), só com os casos dos dois: A(i|j) é a AUC do
+#' escore de i com i positivo, A(j|i) a do escore de j com j positivo, e
+#' Â(i, j) a média delas. M é a média de Â sobre os c(c − 1)/2 pares; não
+#' depende das prevalências. Conferido contra `pROC::multiclass.roc`.
+#' @noRd
+.tr_models_auc_hand_till <- function(prob, real, niveis) {
+  pares <- utils::combn(niveis, 2L)
+  a <- function(i, j) {
+    k <- real %in% c(i, j)
+    .tr_models_roc_curva(prob[k, i], real[k] == i)$auc
+  }
+  mean(apply(pares, 2L, function(p) (a(p[[1]], p[[2]]) + a(p[[2]], p[[1]])) / 2))
 }
 
 .tr_models_virgula <- function(x, d = 3L) formatC(x, format = "f", digits = d, decimal.mark = ",")
@@ -191,7 +292,7 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
 #' provável", e não um corte na probabilidade de uma delas.
 #' @return list(curvas = data.frame(fpr, tpr, classe, auc), ponto, positiva)
 #' @noRd
-.tr_models_roc_dados <- function(real, prob, niveis, positiva = "", corte = 0.5) {
+.tr_models_roc_dados <- function(real, prob, niveis, positiva = "", corte = 0.5, confianca = 0.95) {
   binaria <- length(niveis) == 2L
   if (.tr_models_preenchido(positiva)) {
     positiva <- .tr_models_enum(trimws(positiva), niveis, "positiva")
@@ -203,7 +304,16 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
   classes <- if (nzchar(positiva)) positiva else niveis
   curvas <- lapply(classes, function(l) {
     cur <- .tr_models_roc_curva(prob[, l], real == l)
-    cbind(cur$pontos, classe = l, auc = cur$auc)
+    ic <- .tr_models_auc_delong(prob[, l], real == l, confianca)
+    d <- cbind(cur$pontos, classe = l, auc = cur$auc, auc_ep = ic$ep, auc_inf = ic$ic_inf,
+               auc_sup = ic$ic_sup, auc_nota = ic$nota, stringsAsFactors = FALSE)
+    # Corte de Youden (1950), como a `ml/roc` da main: maximiza J =
+    # sensibilidade + especificidade − 1; em empate, o de maior limiar.
+    j <- d$tpr - d$fpr
+    i <- which.max(j)
+    d$youden_limiar <- d$limiar[[i]]; d$youden_j <- j[[i]]
+    d$youden <- seq_len(nrow(d)) == i
+    d
   })
   ponto <- NULL
   if (binaria) {
@@ -214,7 +324,11 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
     if (positiva != niveis[[2]]) s <- !s
     ponto <- data.frame(fpr = mean(s[real != positiva]), tpr = mean(s[real == positiva]))
   }
-  list(curvas = do.call(rbind, curvas), ponto = ponto, positiva = positiva, corte = corte)
+  # Resumo multiclasse (sem positiva): o M de Hand & Till, que a média das
+  # curvas um-contra-os-outros não é.
+  m <- if (!nzchar(positiva) && length(niveis) > 2L) .tr_models_auc_hand_till(prob, real, niveis) else NA_real_
+  list(curvas = do.call(rbind, curvas), ponto = ponto, positiva = positiva, corte = corte,
+       confianca = confianca, hand_till = m)
 }
 
 #' Curva ROC: sensibilidade × especificidade em todos os cortes, com a AUC.
@@ -229,9 +343,136 @@ tr_models_confusion <- function(modelo = NULL, dados = NULL, validacao = "cruzad
 #' @return ggplot.
 #' @export
 tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
-                          probabilidade = "", positiva = "", aspecto = "1:1", tema = "padrão",
+                          probabilidade = "", positiva = "", confianca = 0.95, permitir_treino = FALSE,
+                          aspecto = "1:1", tema = "padrão",
                           titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   no <- "models/roc"
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
+  nota <- .tr_models_checar_avaliacao(dados, permitir_treino)
+  par <- .tr_models_par_prob(modelo, dados, validacao, resposta, probabilidade, positiva, no)
+  positiva <- par$positiva
+  rd <- .tr_models_roc_dados(par$real, par$prob, par$niveis, positiva, par$corte, confianca)
+  if (nzchar(nota)) { rd$curvas$nota <- nota; rd$nota <- nota }
+  .tr_models_roc_grafico(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+#' A curva PR de cada classe contra as outras, com a AP e o acaso na legenda.
+#' @noRd
+.tr_models_pr_multiclasse <- function(par, nota, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda) {
+  v <- .tr_models_virgula
+  curvas <- lapply(par$niveis, function(l) {
+    d <- .tr_models_pr_pontos(par$real == l, as.numeric(par$prob[, l]))
+    d$classe <- l
+    d$grupo <- sprintf("%s (AP %s; acaso %s)", l, v(d$ap[[1]]), v(d$prevalencia[[1]]))
+    d
+  })
+  rotulos <- vapply(curvas, function(d) d$grupo[[1]], "")
+  d <- do.call(rbind, curvas)
+  d$grupo <- factor(d$grupo, levels = rotulos)
+  d <- .tr_models_com_nota(d, nota)
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["recall"]], y = .data[["precision"]],
+                                       colour = .data[["grupo"]], group = .data[["grupo"]])) +
+    ggplot2::geom_step(direction = "vh", linewidth = .8) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::labs(colour = par$resposta, x = "Revocação", y = "Precisão",
+                  subtitle = sprintf("Cada classe contra as outras · %s", par$origem),
+                  caption = if (nzchar(nota)) nota else NULL)
+  trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+#' Curva precisão-revocação, com a precisão média (AP) e a área de Davis & Goadrich.
+#'
+#' Veio da `ml/pr_curve` (main) na integração 9.2, com os três modos da
+#' `models/roc`: modelo (validação no treino), modelo + dados novos, ou só a
+#' tabela com a probabilidade. As contas não mudaram (`.tr_models_pr_pontos`,
+#' a mesma da `ml`): um ponto por limiar distinto, empates num degrau; AP =
+#' Σ ΔR·P, sem interpolação; `area` com a interpolação não linear de Davis &
+#' Goadrich (2006), integrada em forma fechada (Keilwagen, Grosse & Grau 2014).
+#' A referência do acaso é a prevalência da positiva (Saito & Rehmsmeier 2015).
+#' @inheritParams tr_models_roc
+#' @param positiva classe de interesse. Vazia: no modo tabela, a do nome da
+#'   coluna `prob_<classe>` (ou o segundo nível sem coluna); com modelo, o
+#'   segundo nível. Com três ou mais classes é obrigatória (a curva é ela
+#'   contra as outras).
+#' @return ggplot; os dados trazem `limiar`, `recall`, `precision`, `ap`,
+#'   `area` e `prevalencia`.
+#' @export
+tr_models_pr_curve <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
+                               probabilidade = "", positiva = "", permitir_treino = FALSE,
+                               aspecto = "16:9", tema = "padrão",
+                               titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  no <- "models/pr_curve"
+  nota <- .tr_models_checar_avaliacao(dados, permitir_treino)
+  par <- .tr_models_par_prob(modelo, dados, validacao, resposta, probabilidade, positiva, no)
+  pos <- par$positiva
+  if (!nzchar(pos) && length(par$niveis) > 2L) {
+    # Três ou mais classes sem positiva: uma curva por classe contra as
+    # outras, cada uma com a AP e o acaso na legenda (porte da `multi/pr_curve`
+    # da main, b68484f).
+    return(.tr_models_pr_multiclasse(par, nota, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda))
+  }
+  if (!nzchar(pos)) pos <- par$niveis[[2]]
+  pos <- .tr_models_enum(pos, par$niveis, "positiva")
+  prob <- as.numeric(par$prob[, pos])
+  positivo <- par$real == pos
+  if (length(unique(positivo)) < 2L) {
+    .tr_models_abort("tr_models_error_one_level",
+                     "'%s': as linhas avaliadas têm uma classe só; a curva pede positivos e negativos.", no)
+  }
+  if (any(!is.finite(prob)) || any(prob < 0 | prob > 1)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     "'%s': a probabilidade tem de ser finita e entre 0 e 1.", no)
+  }
+  d <- .tr_models_com_nota(.tr_models_pr_pontos(positivo, prob), nota)
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$recall, y = .data$precision)) +
+    ggplot2::geom_hline(yintercept = d$prevalencia[[1]], linetype = 2, colour = "#94a3b8") +
+    ggplot2::geom_step(direction = "vh", linewidth = 1, colour = .TR_MODELS_COR) +
+    ggplot2::geom_point(size = 1.6, colour = .TR_MODELS_COR) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    ggplot2::annotate("text", x = .3, y = .08,
+                      label = sprintf("AP = %.3f  (acaso = %.3f)", d$ap[[1]], d$prevalencia[[1]])) +
+    ggplot2::labs(x = "Revocação", y = "Precisão",
+                  subtitle = sprintf("AP %s · acaso %s · área (Davis & Goadrich) %s · %s · positivo: %s",
+                                     .tr_models_virgula(d$ap[[1]]), .tr_models_virgula(d$prevalencia[[1]]),
+                                     .tr_models_virgula(d$area[[1]]), par$origem, pos),
+                  caption = if (nzchar(nota)) nota else NULL)
+  trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+}
+
+#' Os pontos da curva PR: um por limiar distinto (decrescente), prevendo
+#' positivo quando prob >= limiar. Porte literal da `ml` (main).
+#' @noRd
+.tr_models_pr_pontos <- function(positivo, prob) {
+  ord <- order(prob, decreasing = TRUE)
+  positivo <- positivo[ord]; prob <- prob[ord]
+  grupos <- cumsum(c(TRUE, diff(prob) != 0))
+  tp <- cumsum(as.numeric(rowsum(as.integer(positivo), grupos)))
+  fp <- cumsum(as.numeric(rowsum(as.integer(!positivo), grupos)))
+  recall <- tp / sum(positivo); precision <- tp / (tp + fp)
+  ap <- sum(diff(c(0, recall)) * precision)
+  # Área com a interpolação de Davis & Goadrich (2006), contínua (Keilwagen,
+  # Grosse & Grau 2014): entre dois cortes, cada positivo a mais traz
+  # s = dFP/dTP falsos positivos, e a precisão (a + x)/(c + k x), com
+  # a = TP, c = TP + FP e k = 1 + s, é integrada em forma fechada.
+  a <- c(0, tp[-length(tp)]); b <- c(0, fp[-length(fp)])
+  dtp <- tp - a; dfp <- fp - b
+  area <- 0
+  for (i in which(dtp > 0)) {
+    k <- 1 + dfp[[i]] / dtp[[i]]; c0 <- a[[i]] + b[[i]]
+    area <- area + if (c0 == 0) dtp[[i]] / k else
+      dtp[[i]] / k + (a[[i]] - c0 / k) / k * log((c0 + k * dtp[[i]]) / c0)
+  }
+  tibble::tibble(limiar = prob[!duplicated(grupos)], recall = recall, precision = precision,
+                 ap = ap, area = area / sum(positivo), prevalencia = mean(positivo))
+}
+
+#' O par (real, probabilidades) das curvas (`models/roc`, `models/pr_curve`)
+#' nos três modos. No modo tabela, a classe positiva sai do param, do nome da
+#' coluna `prob_<classe>` ou do segundo nível; no de modelo fica como veio
+#' (vazia = decide quem chama).
+#' @return o par de `.tr_models_par_modelo`, com `positiva`.
+#' @noRd
+.tr_models_par_prob <- function(modelo, dados, validacao, resposta, probabilidade, positiva, no) {
   if (.tr_models_modo(modelo, dados, no) == "tabela") {
     r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
     niv <- .tr_models_niveis_tabela(dados[[r]])
@@ -242,6 +483,12 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
     pos <- if (.tr_models_preenchido(positiva)) .tr_models_enum(trimws(positiva), niv, "positiva") else ""
     if (.tr_models_preenchido(probabilidade) || length(niv) == 2L || nzchar(pos)) {
       # Uma coluna só: a da positiva. Vazia, o nome que o `models/predict` dá.
+      # Coluna informada e positiva vazia: a classe vem do nome `prob_<classe>`
+      # (a correção da main na `ml/roc`). Um nome que não indica classe é
+      # recusado em vez de adivinhado — a classe errada espelha a curva.
+      if (!nzchar(pos) && .tr_models_preenchido(probabilidade)) {
+        pos <- .tr_models_roc_positiva(niv, trimws(probabilidade), no)
+      }
       if (!nzchar(pos)) {
         if (length(niv) > 2L) {
           .tr_models_abort("tr_models_error_blank_param",
@@ -268,23 +515,49 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
     }
     par <- list(real = as.character(dados[[r]]), previsto = rep("", nrow(dados)), prob = prob,
                 niveis = niv, corte = 0.5, origem = "tabela", resposta = r)
-    positiva <- pos
+    par$positiva <- pos
   } else {
     par <- .tr_models_exigir_classif(.tr_models_par_modelo(modelo, dados, validacao, no), no)
+    par$positiva <- if (.tr_models_preenchido(positiva)) trimws(positiva) else ""
     if (is.null(par$prob)) {
       .tr_models_abort("tr_models_error_not_applicable",
                        "'%s': o modelo de classe '%s' prevê a classe sem probabilidade, e a curva precisa dela.",
                        no, class(modelo)[[1]])
     }
   }
-  par <- .tr_models_sem_na(par)
-  rd <- .tr_models_roc_dados(par$real, par$prob, par$niveis, positiva, par$corte)
-  .tr_models_roc_grafico(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+  .tr_models_sem_na(par)
+}
+
+#' A classe que a coluna `prob_<classe>` nomeia (também `.prob_<classe>`, o
+#' nome da antiga `ml/predict`), comparando com o nome saneado de cada nível.
+#' @noRd
+.tr_models_roc_positiva <- function(niveis, coluna, no) {
+  cand <- sub("^\\.?prob_", "", coluna)
+  if (grepl("^\\.?prob_", coluna)) {
+    if (cand %in% niveis) return(cand)
+    i <- match(cand, tr_models_clean_name(niveis))
+    if (!is.na(i)) return(niveis[[i]])
+  }
+  .tr_models_abort("tr_models_error_positive_required",
+                   "'%s': a coluna '%s' não indica a classe (esperado 'prob_<classe>'); informe 'positiva' com a classe cuja probabilidade ela contém.",
+                   no, coluna)
 }
 
 .tr_models_roc_grafico <- function(rd, par, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda) {
   diag_df <- data.frame(x = c(0, 1), y = c(0, 1))
-  p <- ggplot2::ggplot() +
+  pct <- format(100 * rd$confianca, decimal.mark = ",")
+  notas <- character()
+  auc_ic <- function(d, quem = NULL) {
+    if (!is.na(d$auc_nota[[1]])) {
+      notas <<- c(notas, if (is.null(quem)) d$auc_nota[[1]] else paste0(quem, ": ", d$auc_nota[[1]]))
+      return(sprintf("AUC %s (IC indisponível)", .tr_models_virgula(d$auc[[1]])))
+    }
+    sprintf("AUC %s (IC %s%% DeLong %s–%s)", .tr_models_virgula(d$auc[[1]]), pct,
+            .tr_models_virgula(d$auc_inf[[1]]), .tr_models_virgula(d$auc_sup[[1]]))
+  }
+  # Os dados do gráfico são as curvas, com a AUC, o IC de DeLong e o corte de
+  # Youden em colunas (o que os testes e quem exporta o gráfico leem).
+  p <- ggplot2::ggplot(rd$curvas) +
     ggplot2::geom_line(data = diag_df, ggplot2::aes(x = .data[["x"]], y = .data[["y"]]),
                        colour = "#8b949e", linetype = "dashed")
   cur <- rd$curvas
@@ -294,7 +567,12 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
     auc <- cur$auc[[1]]
     p <- p + ggplot2::geom_path(data = cur, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]]),
                                 colour = .TR_MODELS_COR, linewidth = .9)
-    sub <- sprintf("AUC %s · %s · positivo: %s", .tr_models_virgula(auc), par$origem, rd$positiva)
+    sub <- sprintf("%s · %s · positivo: %s", auc_ic(cur), par$origem, rd$positiva)
+    yd <- cur[cur$youden, , drop = FALSE][1, , drop = FALSE]
+    p <- p + ggplot2::geom_point(data = yd, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]]),
+                                 colour = .TR_MODELS_COR, shape = 21, fill = "white", size = 3, stroke = 1.2)
+    sub <- paste0(sub, sprintf("\nYouden: J = %s com P ≥ %s", .tr_models_virgula(yd$youden_j),
+                               format(signif(yd$youden_limiar, 3), decimal.mark = ",")))
     if (!is.null(rd$ponto)) {
       p <- p + ggplot2::geom_point(data = rd$ponto, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]]),
                                    colour = .TR_MODELS_COR_2, size = 3)
@@ -304,14 +582,18 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
   } else {
     # O rótulo leva a AUC, e rótulo de texto sairia em ordem ALFABÉTICA na
     # legenda; o fator nos níveis da classe a mantém.
-    aucs <- tapply(cur$auc, cur$classe, `[`, 1)[par$niveis]
-    rotulos <- sprintf("%s (AUC %s)", par$niveis, .tr_models_virgula(aucs))
+    rotulos <- vapply(par$niveis, function(l) sprintf("%s (%s)", l, auc_ic(cur[cur$classe == l, ], l)), "")
     cur$grupo <- factor(rotulos[match(cur$classe, par$niveis)], levels = rotulos)
     p <- p + ggplot2::geom_path(data = cur, ggplot2::aes(x = .data[["fpr"]], y = .data[["tpr"]],
                                                         colour = .data[["grupo"]], group = .data[["grupo"]]),
                                 linewidth = .8) +
-      ggplot2::labs(colour = par$resposta, subtitle = sprintf("Cada classe contra as outras · %s", par$origem))
+      ggplot2::labs(colour = par$resposta,
+                    subtitle = if (is.na(rd$hand_till)) sprintf("Cada classe contra as outras · %s", par$origem)
+                               else sprintf("Cada classe contra as outras · AUC multiclasse (Hand & Till) %s · %s",
+                                            .tr_models_virgula(rd$hand_till), par$origem))
   }
+  notas <- c(notas, rd$nota)
+  if (length(notas)) p <- p + ggplot2::labs(caption = paste(notas, collapse = "\n"))
   p <- p + ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
     ggplot2::labs(x = "1 − especificidade (falsos positivos)", y = "sensibilidade (verdadeiros positivos)")
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
@@ -321,32 +603,60 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
 
 #' As métricas de classificação, com os nomes e as contas da `ml/evaluate`.
 #'
-#' `accuracy`, `balanced_accuracy` (média do recall por classe OBSERVADA) e
-#' `macro_f1` são porte literal de `.tr_ml_classification_metrics`, para que
-#' um fluxo que migrou de `ml/evaluate` veja os mesmos números. Somam-se o
-#' `kappa` de Cohen (o acerto descontado do que o acaso daria com essas
-#' margens) e, na binária, `sensitivity`/`specificity` da positiva.
+#' Porte da `.tr_ml_classification_metrics` da main (a `ml/evaluate` com kappa,
+#' precisão/revocação/F1 macro, ponderados e por classe), para que um fluxo
+#' que migrou de `ml/evaluate` veja os mesmos números. As médias macro são
+#' sobre as classes OBSERVADAS; as ponderadas usam o suporte de cada classe.
+#' Precisão de classe nunca prevista é 0/0, indefinida: sai `NA` e fica fora
+#' das médias macro e ponderada (pesos renormalizados), como `zero_division =
+#' np.nan` do scikit-learn (>= 1.3) — o padrão dele põe 0 e puxa a média para
+#' baixo (main, 2b3d355). F1 sem acerto é 2TP/(2TP + FP + FN) = 0, definido. Somam-se, na binária,
+#' `sensitivity`/`specificity` da positiva (o que a `multi` mostrava).
+#' @return tibble `metrica`, `classe`, `valor`, `n`: `classe` é NA nas globais
+#'   e nomeia a classe nas por classe (`precision`, `recall`, `f1`), com o
+#'   suporte dela em `n`.
 #' @noRd
 .tr_models_metricas_classif <- function(y, p, positiva = "") {
   ys <- as.character(y); ps <- as.character(p)
   classes <- unique(ys)
+  n <- length(ys)
   acc <- mean(ys == ps)
-  recalls <- vapply(classes, function(k) sum(ys == k & ps == k) / sum(ys == k), numeric(1))
-  f1 <- vapply(classes, function(k) {
+  por <- vapply(classes, function(k) {
     tp <- sum(ys == k & ps == k); fp <- sum(ys != k & ps == k); fn <- sum(ys == k & ps != k)
-    if (tp == 0 || (2 * tp + fp + fn) == 0) 0 else 2 * tp / (2 * tp + fp + fn)
-  }, numeric(1))
+    c(precision = if (tp + fp == 0) NA_real_ else tp / (tp + fp),
+      recall = tp / (tp + fn),
+      f1 = if (tp == 0) 0 else 2 * tp / (2 * tp + fp + fn),
+      suporte = tp + fn)
+  }, numeric(4))
+  w <- por["suporte", ] / n
+  media_def <- function(x, peso = rep(1, length(x))) {
+    ok <- !is.na(x)
+    if (!any(ok)) NA_real_ else sum(peso[ok] * x[ok]) / sum(peso[ok])
+  }
+  # Kappa de Cohen (1960): concordância observada contra a esperada pelas
+  # marginais da tabela real × previsto (rótulos dos dois lados).
   todas <- union(classes, unique(ps))
   pe <- sum(vapply(todas, function(k) mean(ys == k) * mean(ps == k), numeric(1)))
   kappa <- if (pe == 1) NA_real_ else (acc - pe) / (1 - pe)
-  metrica <- c("accuracy", "balanced_accuracy", "macro_f1", "kappa")
-  valor <- c(acc, mean(recalls), mean(f1), kappa)
+  metrica <- c("accuracy", "balanced_accuracy", "macro_f1", "kappa",
+               "macro_precision", "macro_recall", "weighted_precision",
+               "weighted_recall", "weighted_f1")
+  valor <- c(acc, mean(por["recall", ]), mean(por["f1", ]), kappa,
+             media_def(por["precision", ]), mean(por["recall", ]),
+             media_def(por["precision", ], w), sum(w * por["recall", ]), sum(w * por["f1", ]))
   if (nzchar(positiva)) {
     metrica <- c(metrica, "sensitivity", "specificity")
     valor <- c(valor, sum(ys == positiva & ps == positiva) / sum(ys == positiva),
                sum(ys != positiva & ps != positiva) / sum(ys != positiva))
   }
-  tibble::tibble(metrica = metrica, valor = valor, n = length(ys))
+  globais <- tibble::tibble(metrica = metrica, classe = NA_character_, valor = valor, n = n)
+  k <- length(classes)
+  por_classe <- tibble::tibble(
+    metrica = rep(c("precision", "recall", "f1"), times = k),
+    classe = rep(classes, each = 3L),
+    valor = as.numeric(por[c("precision", "recall", "f1"), ]),
+    n = rep(as.integer(por["suporte", ]), each = 3L))
+  rbind(globais, por_classe)
 }
 
 #' As de regressão, idem: `mae`, `rmse`, `r2` (de PREVISÃO: 1 − SQE/SQT sobre
@@ -367,11 +677,14 @@ tr_models_roc <- function(modelo = NULL, dados = NULL, validacao = "cruzada", re
 #' @inheritParams tr_models_confusion
 #' @param positiva classificação binária: a classe das `sensitivity` e
 #'   `specificity`; vazio = o segundo nível.
-#' @return tibble `metrica`, `valor`, `n` (as linhas que contaram).
+#' @return tibble `metrica`, `valor`, `n` (as linhas que contaram); na
+#'   classificação também `classe` (NA nas globais; a classe nas `precision`,
+#'   `recall` e `f1` por classe, com o suporte em `n`).
 #' @export
 tr_models_evaluate <- function(modelo = NULL, dados = NULL, validacao = "cruzada", resposta = "",
-                               predito = "previsto", positiva = "") {
+                               predito = "previsto", positiva = "", permitir_treino = FALSE) {
   no <- "models/evaluate"
+  nota <- .tr_models_checar_avaliacao(dados, permitir_treino)
   if (.tr_models_modo(modelo, dados, no) == "tabela") {
     r <- .tr_models_coluna_tabela(dados, resposta, "resposta", no)
     pc <- .tr_models_coluna_tabela(dados, predito, "predito", no)
@@ -391,11 +704,11 @@ tr_models_evaluate <- function(modelo = NULL, dados = NULL, validacao = "cruzada
   if (!length(par$real)) {
     .tr_models_abort("tr_models_error_too_few_rows", "'%s': nenhuma linha com real e previsto para avaliar.", no)
   }
-  if (par$tarefa == "regressao") return(.tr_models_metricas_regressao(par$real, par$previsto))
+  if (par$tarefa == "regressao") return(.tr_models_com_nota(.tr_models_metricas_regressao(par$real, par$previsto), nota))
   pos <- if (.tr_models_preenchido(positiva)) {
     .tr_models_enum(trimws(positiva), par$niveis, "positiva")
   } else if (length(par$niveis) == 2L) par$niveis[[2]] else ""
-  .tr_models_metricas_classif(par$real, par$previsto, pos)
+  .tr_models_com_nota(.tr_models_metricas_classif(par$real, par$previsto, pos), nota)
 }
 
 # ---- Importância ----------------------------------------------------------------

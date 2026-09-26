@@ -7,13 +7,13 @@
 // Sem bundler, sem JSX: `React.createElement` direto. O custo é a verbosidade;
 // o ganho é que uma coleção nova é um `.js` solto, sem toolchain.
 
-import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ReactFlow, Background, BackgroundVariant, MiniMap, Controls,
   Handle, Position, applyNodeChanges, applyEdgeChanges, SelectionMode,
   useReactFlow, ReactFlowProvider,
-  BaseEdge, getSmoothStepPath, useInternalNode,
+  BaseEdge, getSmoothStepPath, useInternalNode, EdgeLabelRenderer,
 } from "@xyflow/react";
 import { h, getRenderer, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
@@ -27,6 +27,9 @@ import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
+import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
+import { registrar, lerHistorico } from "./historico.js";
+import { sugerir } from "./sugestor.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -297,6 +300,8 @@ function md(text) {
 // estilo aceitaria.
 const GRID = 16;
 const MIN_W = 240, MIN_H = 132;
+// Quanto um insert encadeado espera, na fila, a origem voltar do servidor.
+const FILA_PROX_PRAZO = 10000;
 const snap = (v) => Math.round(v / GRID) * GRID;
 
 // Alça própria em vez do `NodeResizer`/`NodeResizeControl` do xyflow: eles
@@ -600,6 +605,16 @@ function NdNode({ id, data, selected }) {
           mini ? null : h("span", { key: "n", title: p.type }, p.name),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
+          // "+" do próximo bloco: some no mini (e na apresentação, pelo CSS).
+          mini || !data.onAbrirProximo ? null : h("button", {
+            key: "mais", className: "tr-prox-mais nodrag nopan", type: "button",
+            title: "Próximo bloco", "aria-label": `Próximo bloco a partir de ${p.name}`,
+            onPointerDown: (e) => e.stopPropagation(),
+            onClick: (e) => {
+              e.stopPropagation();
+              const r = e.currentTarget.getBoundingClientRect();
+              data.onAbrirProximo(id, p.name, r.right + 6, r.top);
+            } }, "+"),
         ]))),
     ]),
     // O mini tem largura automática, então fica sem alça.
@@ -699,16 +714,47 @@ function caminhoComCantos(pontos, raio) {
   return d + `L${fim.x},${fim.y}`;
 }
 
+// Quem abre o popover de "inserir no meio": o App, que é dono do `prox`. Vazio
+// (apresentação, ou antes de montar) deixa a aresta sem o "+".
+const MeioCtx = createContext(null);
+
+// Ponto a meio comprimento de uma poligonal: onde o "+" do meio fica.
+function meioDaLinha(pontos) {
+  const seg = pontos.slice(1).map((p, i) => Math.hypot(p.x - pontos[i].x, p.y - pontos[i].y));
+  let resta = seg.reduce((a, b) => a + b, 0) / 2;
+  for (let i = 0; i < seg.length; i++) {
+    if (resta <= seg[i] && seg[i] > 0) {
+      const a = pontos[i], b = pontos[i + 1], t = resta / seg[i];
+      return [a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t];
+    }
+    resta -= seg[i];
+  }
+  return [pontos[0].x, pontos[0].y];
+}
+
 function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
-                     targetX, targetY, targetPosition, style, markerEnd }) {
+                     targetX, targetY, targetPosition, style, markerEnd,
+                     sourceHandleId, targetHandleId, data, selected }) {
   const noOrigem = useInternalNode(source);
   const noDestino = useInternalNode(target);
+  const abrirMeio = useContext(MeioCtx);
+  const [sobre, setSobre] = useState(false);
+  const sair = useRef(null);
+  const entra = () => { clearTimeout(sair.current); setSobre(true); };
+  // Com folga: o mouse precisa atravessar do fio até o "+" sem ele sumir.
+  const sai = () => { clearTimeout(sair.current); sair.current = setTimeout(() => setSobre(false), 250); };
+  useEffect(() => () => clearTimeout(sair.current), []);
+  let [, meioX, meioY] = getSmoothStepPath({
+    sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 12 });
   let path;
   if (noOrigem && noDestino) {
     const pontos = caminhoContornando(sourceX, sourceY, sourcePosition,
       targetX, targetY, targetPosition,
       retanguloDoNo(noOrigem), retanguloDoNo(noDestino));
-    if (pontos) path = caminhoComCantos(pontos, 12);
+    if (pontos) {
+      path = caminhoComCantos(pontos, 12);
+      [meioX, meioY] = meioDaLinha(pontos);
+    }
   }
   if (!path) {
     [path] = getSmoothStepPath({
@@ -721,9 +767,24 @@ function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
   // abrir o card.
   const quebrou = ["failed", "invalid"].includes(noDestino?.data?.state);
   return h(Fragment, null, [
-    h("path", { key: "t", d: path, className: "tr-fio-trilho" }),
-    h(BaseEdge, { key: "f", id, path, style, markerEnd,
-                  className: quebrou ? "tr-fio-quebrado" : undefined }),
+    h("g", { key: "g", onMouseEnter: entra, onMouseLeave: sai }, [
+      h("path", { key: "t", d: path, className: "tr-fio-trilho" }),
+      h(BaseEdge, { key: "f", id, path, style, markerEnd,
+                    className: quebrou ? "tr-fio-quebrado" : undefined }),
+    ]),
+    abrirMeio && (sobre || selected) ? h(EdgeLabelRenderer, { key: "m" },
+      h("button", {
+        className: "tr-meio-mais nodrag nopan", type: "button",
+        title: "Inserir bloco no meio", "aria-label": "Inserir bloco no meio da conexão",
+        style: { transform: `translate(-50%, -50%) translate(${meioX}px, ${meioY}px)` },
+        onMouseEnter: entra, onMouseLeave: sai,
+        onPointerDown: (e) => e.stopPropagation(),
+        onClick: (e) => {
+          e.stopPropagation();
+          const r = e.currentTarget.getBoundingClientRect();
+          abrirMeio({ source, sourceHandle: sourceHandleId, target, targetHandle: targetHandleId,
+                      index: data?.index }, r.right + 6, r.top);
+        } }, "+")) : null,
   ]);
 }
 
@@ -778,7 +839,7 @@ function Icon({ icon, className, color }) {
 // ou arrasto de porta): a aba não manda, porque quem procura quer "o que
 // serve", não "de que coleção veio" — as abas somem e a lista vira global, com
 // o selo dizendo de onde cada bloco vem.
-function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
+function Palette({ catalog, filterType, dragFrom, onPick, modoNovo, onModoNovo }) {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState(null);
   const cols = catalog.collections || [];
@@ -811,9 +872,17 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
     return m;
   }, [hits, active]);
 
-  const achados = useMemo(
-    () => [...hits].sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id, "pt")),
-    [hits]);
+  // Arrastando de uma porta com origem conhecida, a ordem é a do sugestor e
+  // os 5 primeiros com pontuação ganham a marca; sem origem, alfabética.
+  const { achados, marcados } = useMemo(() => {
+    const alfa = [...hits].sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id, "pt"));
+    if (!filterType || !dragFrom) return { achados: alfa, marcados: new Set() };
+    const r = sugerir(catalog, { de: dragFrom, tipo: filterType, historico: lerHistorico() });
+    const pos = Object.fromEntries(r.map((s, i) => [s.id, i]));
+    const achados = alfa.map((n, i) => [n, pos[n.id] ?? 1e6 + i]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+    const vivos = new Set(achados.map((n) => n.id));
+    return { achados, marcados: new Set(r.filter((s) => s.score > 0 && vivos.has(s.id)).slice(0, 5).map((s) => s.id)) };
+  }, [hits, catalog, filterType, dragFrom]);
 
   const rotulo = (id) => cols.find((c) => c.id === id)?.label || id;
 
@@ -838,6 +907,7 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
       : h("i", { key: "i", className: "tr-palette-dot",
                  style: { background: catColor(n) } }),
     h("span", { key: "l", className: "tr-palette-label" }, n.label),
+    marcados.has(n.id) ? h("span", { key: "sg", className: "tr-palette-sug", title: "sugerido", role: "img", "aria-label": "sugerido" }) : null,
     selo ? h("span", { key: "s", className: "tr-palette-seal" }, selo) : null,
   ]);
 
@@ -886,24 +956,127 @@ function Palette({ catalog, filterType, onPick, modoNovo, onModoNovo }) {
 // Toma o lugar da paleta, na mesma coluna: é o `?funcao` do R dentro do canvas,
 // sem tirar ninguém de onde estava.
 
-function Help({ catalog, typeId, onClose }) {
+const PAPEIS_REF = [["teoria", "Teoria"], ["livro-texto", "Livro-texto"],
+                    ["implementacao", "Implementação"], ["complementar", "Complementar"]];
+
+// Referência em autor-data: `Autores (ano). Título. Fonte.` + DOI ou URL.
+// Implementação mostra `pacote::funcao()` e a versão do pacote.
+function Referencia({ r }) {
+  const partes = [];
+  if (r.papel === "implementacao" && r.pacote) {
+    partes.push(h("code", { key: "f", className: "tr-help-ref-fn" },
+      // Sem função declarada, só o pacote (nada de `pacote::` pendurado).
+      r.funcao ? `${r.pacote}::${r.funcao}()` : r.pacote));
+    if (r.versao) partes.push(h("span", { key: "v", className: "tr-help-ref-ver" }, ` versão ${r.versao}`));
+    if (r.autores?.length || r.titulo) partes.push(h("br", { key: "br" }));
+  }
+  const cab = [];
+  if (r.autores?.length) cab.push(r.autores.join("; "));
+  if (r.ano) cab.push(`(${r.ano}).`);
+  else if (cab.length) cab[cab.length - 1] += ".";
+  if (cab.length) partes.push(cab.join(" ") + " ");
+  if (r.titulo) partes.push(h("em", { key: "t" }, r.titulo.replace(/\.$/, "")), ". ");
+  if (r.fonte) partes.push(r.fonte.replace(/\.$/, "") + ". ");
+  // Defesa em profundidade: só vira link URL https; o resto aparece como texto.
+  const urlOk = typeof r.url === "string" && /^https:\/\//i.test(r.url);
+  const href = r.doi ? `https://doi.org/${encodeURI(r.doi)}` : (urlOk ? r.url : null);
+  if (href) partes.push(h("a", { key: "a", href, target: "_blank", rel: "noopener" },
+                          r.doi ? `doi:${r.doi}` : r.url));
+  else if (r.url) partes.push(h("span", { key: "a" }, r.url));
+  if (r.nota) partes.push(h("div", { key: "n", className: "tr-help-ref-nota" }, r.nota));
+  return h("li", { className: "tr-help-ref" }, partes);
+}
+
+// Normaliza espaços para comparar descrição e ajuda sem tropeçar em quebras.
+const normEsp = (t) => String(t || "").replace(/\s+/g, " ").trim();
+
+// A descrição repete a ajuda quando o primeiro parágrafo do markdown (depois de
+// um "## Descrição" opcional) começa pelo mesmo texto.
+function descricaoRepete(desc, help) {
+  if (!desc || !help) return false;
+  const corpo = help.replace(/^\s*##\s*Descri[çc][ãa]o\s*\n/i, "").trimStart();
+  const par = normEsp(corpo.split(/\n\s*\n/)[0]);
+  const d = normEsp(desc).replace(/\.$/, "");
+  return d.length > 0 && par.startsWith(d);
+}
+
+function Help({ catalog, typeId, onClose, onOpen }) {
   const spec = (catalog.nodes || []).find((n) => n.id === typeId);
+  const titulo = useRef(null);
+  const veioDeChip = useRef(false);
+  // Depois que um chip troca o painel, o foco vai para o título da nova ajuda.
+  useEffect(() => {
+    if (veioDeChip.current && titulo.current) titulo.current.focus();
+    veioDeChip.current = false;
+  }, [typeId]);
   if (!spec) return null;
+  const nos = catalog.nodes || [];
+  const press = spec.pressupostos || [];
+  const refs = spec.referencias || [];
+  const chip = (id) => {
+    const alvo = nos.find((n) => n.id === id);
+    // Id fora do catálogo: nada para abrir, então texto cru e apagado, não botão.
+    if (!alvo) return h("span", { key: id, className: "tr-help-chip tr-help-chip-off", title: id }, id);
+    return h("button", { key: id, type: "button", className: "tr-help-chip", title: id,
+                         onClick: () => { veioDeChip.current = true; onOpen && onOpen(id); } }, [
+      alvo.icon && ICON_KINDS.has(alvo.icon.kind)
+        ? h(Icon, { key: "i", icon: alvo.icon, className: "tr-palette-icon" }) : null,
+      h("span", { key: "l" }, alvo.label || id),
+    ]);
+  };
+  const secPress = press.length ? h("section", { key: "pr", className: "tr-help-sec" }, [
+    h("h4", { key: "t" }, "Pressupostos"),
+    h("ul", { key: "l", className: "tr-help-press" }, press.map((p, i) =>
+      h("li", { key: i }, [
+        h(Icon, { key: "ic", icon: { kind: "set", value: "circle-check" }, className: "tr-help-press-ic" }),
+        h("div", { key: "c" }, [
+          h("div", { key: "tx" }, mdInline(p.texto || "")),
+          p.verificar?.length ? h("div", { key: "v", className: "tr-help-verif" },
+            [h("span", { key: "r", className: "tr-help-rot" }, "Verificar:"), ...p.verificar.map(chip)]) : null,
+          p.se_falhar ? h("div", { key: "f", className: "tr-help-falha" },
+            [h("span", { key: "r", className: "tr-help-rot" }, "Se falhar: "), mdInline(p.se_falhar)]) : null,
+        ]),
+      ]))),
+  ]) : null;
+  const secRefs = refs.length ? h("section", { key: "rf", className: "tr-help-sec" }, [
+    h("h4", { key: "t" }, "Referências"),
+    ...PAPEIS_REF.map(([papel, rot]) => {
+      const grupo = refs.filter((r) => r.papel === papel);
+      return grupo.length ? h("div", { key: papel, className: "tr-help-refgrp" }, [
+        h("h5", { key: "t" }, rot),
+        h("ul", { key: "l" }, grupo.map((r, i) => h(Referencia, { key: i, r }))),
+      ]) : null;
+    }),
+  ]) : null;
   return h("aside", { className: "tr-help" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
-      h("strong", { key: "t" }, spec.label || spec.id),
+      h("strong", { key: "t", ref: titulo, tabIndex: -1 }, spec.label || spec.id),
       h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
                     onClick: onClose }, "×"),
     ]),
     h("code", { key: "id", className: "tr-help-id" }, spec.id),
-    h("div", { key: "b", className: "tr-help-body" },
-      spec.help ? md(spec.help) : h("p", null, spec.description || "sem ajuda")),
+    h("div", { key: "b", className: "tr-help-body" }, [
+      spec.description && !descricaoRepete(spec.description, spec.help) ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
+      secPress, secRefs,
+      spec.help ? h("div", { key: "md" }, md(spec.help))
+        : (!spec.description && !secPress && !secRefs ? h("p", { key: "0" }, "sem ajuda") : null),
+    ]),
   ]);
 }
 
 function compatible(catalog, from, to) {
   if (from === to) return true;
   return (catalog.adapters || []).some((a) => a.from === from && a.to === to);
+}
+
+// Template = JSON com a marca `trama: "template"`. Qualquer outro JSON segue
+// sendo dado (ou flow, no diálogo de importar). O parse aqui é só pra decidir
+// o caminho; validar de verdade é do servidor (`tr_template_parse`). O teste
+// de texto antes do `JSON.parse` evita parsear todo texto colado à toa.
+function ehTemplate(texto) {
+  if (typeof texto !== "string" || texto.length > 5e6 || !/"trama"\s*:\s*"template"/.test(texto)) return false;
+  try { const x = JSON.parse(texto); return !!x && !Array.isArray(x) && x.trama === "template"; }
+  catch { return false; }
 }
 
 // Espelha exportFramePng (frames.js): Blob, e não data: URL, pelo mesmo
@@ -936,7 +1109,7 @@ function exportText(texto, nomeArquivo, tipo = "text/plain;charset=utf-8") {
 // errado custa reabrir a imagem, aqui custa o nome digitado e a pasta
 // navegada. Sai pelo × ou pelo Esc, que são gestos deliberados.
 function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onImport, onClose,
-                         arquivoInicial }) {
+                         arquivoInicial, onColarTemplate }) {
   const [nome, setNome] = useState("");
   const [arquivo, setArquivo] = useState(null); // { nomeArquivo, conteudo } | null
   const [arrastando, setArrastando] = useState(false);
@@ -976,8 +1149,15 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
     };
     leitor.readAsText(file);
   };
-  const importar = () => { if (arquivo && nome.trim()) onImport(l.path, nome.trim(), arquivo.conteudo); };
-  const podeImportar = !!l && !!arquivo && !!nome.trim() && !enviando;
+  // Template escolhido aqui não vira projeto: é um trecho de flow, e o gesto
+  // que faz sentido é colá-lo no canvas aberto. O botão troca de papel em vez
+  // de recusar, porque o usuário só errou a porta de entrada.
+  const template = !!arquivo && ehTemplate(arquivo.conteudo);
+  const importar = () => {
+    if (template) { onColarTemplate(arquivo.conteudo); onClose(); return; }
+    if (arquivo && nome.trim()) onImport(l.path, nome.trim(), arquivo.conteudo);
+  };
+  const podeImportar = template ? !enviando : !!l && !!arquivo && !!nome.trim() && !enviando;
 
   // Arquivo solto na PÁGINA (fora deste diálogo) chega aqui já lido — o
   // diálogo mal montou e o gesto do usuário já aconteceu. Sem dependência de
@@ -1068,8 +1248,10 @@ function ProjectDialog({ listagem, atual, enviando, onBrowse, onOpen, onNew, onI
         h("button", { key: "fb", onClick: () => fileRef.current?.click() },
           arquivo ? `📄 ${arquivo.nomeArquivo}` : "Escolher arquivo…"),
         h("button", { key: "im", disabled: !podeImportar, onClick: importar },
-          enviando === "importar" ? "importando…" : "Importar aqui"),
+          template ? "Colar no canvas" : enviando === "importar" ? "importando…" : "Importar aqui"),
       ]),
+      template ? h("p", { key: "tpl", className: "tr-dialog-note" },
+        "Isto é um template — ele será colado no canvas atual.") : null,
     ]));
 }
 
@@ -1101,6 +1283,169 @@ function UploadConflictDialog({ nome, onOverwrite, onRename, onCancel }) {
     ]));
 }
 
+// "Salvar como template": nome, descrição e ONDE gravar. Mesmo visual do
+// `ProjectDialog` e a mesma regra de não fechar ao clicar fora — aqui o custo
+// do clique errado é o nome e a descrição digitados. O destino padrão vem de
+// quem abriu o editor (`origem`, na mensagem `project`): no launcher não há
+// projeto que o usuário versione, então a biblioteca pessoal é o lugar
+// natural; vindo do R, é o projeto.
+//
+// Nome repetido não fecha nem avisa no banner: o servidor devolve
+// `template_conflict` e a pergunta aparece aqui, onde dá pra trocar o nome ou
+// confirmar a substituição.
+const DESTINOS_TEMPLATE = [
+  { value: "biblioteca", label: "Minha biblioteca", nota: "disponível em qualquer projeto" },
+  { value: "projeto", label: "Este projeto", nota: "fica em templates/, junto do projeto" },
+  { value: "baixar", label: "Baixar arquivo", nota: "um .template.json para enviar a alguém" },
+];
+function TemplateDialog({ quantos, destinoPadrao, conflito, enviando, onSave, onClose }) {
+  const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [destino, setDestino] = useState(destinoPadrao);
+  const nomeRef = useRef(null);
+  useEffect(() => { nomeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const esc = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+  const pode = !!nome.trim() && !enviando;
+  // A pergunta vale para o nome E o destino que colidiram: trocou qualquer um
+  // dos dois, é um pedido novo e volta a ser "Salvar".
+  const colide = !!conflito && conflito.nome === nome.trim() && conflito.destino === destino;
+  const salvar = (overwrite = false) => {
+    if (pode) onSave({ nome: nome.trim(), descricao: descricao.trim(), destino, overwrite });
+  };
+  return h("div", { className: "tr-lightbox tr-modal" },
+    h("div", { className: "tr-dialog tr-tpl-dialog", role: "dialog", "aria-modal": "true",
+               "aria-label": "Salvar como template" }, [
+      h("div", { key: "p", className: "tr-dialog-path" }, [
+        h("span", { key: "c" }, quantos ? `Salvar ${quantos} ${quantos > 1 ? "blocos" : "bloco"} como template`
+                                        : "Salvar o flow inteiro como template"),
+        h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)",
+                      onClick: onClose }, "×"),
+      ]),
+      h("div", { key: "f", className: "tr-tpl-form" }, [
+        h("label", { key: "n" }, [
+          h("span", { key: "r" }, "Nome"),
+          h("input", { key: "i", ref: nomeRef, className: "tr-dialog-name", value: nome,
+                       placeholder: "ex.: Limpeza padrão",
+                       onChange: (e) => setNome(e.target.value),
+                       onKeyDown: (e) => { if (e.key === "Enter") salvar(); } }),
+        ]),
+        h("label", { key: "d" }, [
+          h("span", { key: "r" }, "Descrição"),
+          h("textarea", { key: "i", className: "tr-dialog-name", rows: 2, value: descricao,
+                          placeholder: "opcional — o que este trecho faz",
+                          onChange: (e) => setDescricao(e.target.value) }),
+        ]),
+        h("fieldset", { key: "ds", className: "tr-tpl-destinos" }, [
+          h("legend", { key: "l" }, "Destino"),
+          ...DESTINOS_TEMPLATE.map((d) => h("label", { key: d.value, className: "tr-tpl-destino" }, [
+            h("input", { key: "i", type: "radio", name: "tr-tpl-destino", value: d.value,
+                         checked: destino === d.value, onChange: () => setDestino(d.value) }),
+            h("span", { key: "t" }, d.label),
+            h("small", { key: "n" }, d.nota),
+          ])),
+        ]),
+      ]),
+      colide ? h("p", { key: "cf", className: "tr-dialog-note tr-tpl-conflito", role: "alert" },
+        `Já existe um template chamado "${conflito.nome}" aqui. Substituir, ou troque o nome.`) : null,
+      h("div", { key: "ac", className: "tr-dialog-actions tr-tpl-actions" }, [
+        h("button", { key: "c", onClick: onClose }, "Cancelar"),
+        colide
+          ? h("button", { key: "s", disabled: !pode, onClick: () => salvar(true) }, "Substituir")
+          : h("button", { key: "s", disabled: !pode, onClick: () => salvar() },
+              enviando ? "salvando…" : destino === "baixar" ? "Baixar" : "Salvar"),
+      ]),
+    ]));
+}
+
+// Painel de templates: o que as coleções trazem, a biblioteca pessoal e os do
+// projeto, nessa ordem — do mais genérico ao mais local. A lista vem do
+// servidor (`tr_template_list`), pedida a cada abertura: um template salvo em
+// outra janela, ou largado à mão na pasta, aparece sem recarregar.
+// Clique só foca o item (clique solto inseria sem querer). Botão direito abre
+// um menu com "Colar template", que insere no centro da tela; Enter faz o
+// mesmo pelo teclado; arrastar solta onde o mouse estiver. O
+// `arquivo` que viaja é o caminho que o próprio servidor listou, e ele recusa
+// qualquer outro (ver `tr_template_insert`).
+const SECOES_TEMPLATE = [
+  { escopo: "colecao", titulo: "Coleções" },
+  { escopo: "biblioteca", titulo: "Minha biblioteca" },
+  { escopo: "projeto", titulo: "Projeto" },
+];
+function TemplatesPanel({ templates, onInsert, onClose }) {
+  // Menu próprio, em coordenadas da janela (`position:fixed`): o painel não é
+  // filho de `.tr-canvas`, onde mora o menu do canvas. Mesmas classes.
+  const [menuTpl, setMenuTpl] = useState(null); // {arquivo, x, y}
+  useEffect(() => {
+    if (!menuTpl) return;
+    const fechar = () => setMenuTpl(null);
+    const tecla = (e) => { if (e.key === "Escape") fechar(); };
+    window.addEventListener("pointerdown", fechar);
+    window.addEventListener("keydown", tecla);
+    window.addEventListener("blur", fechar);
+    return () => {
+      window.removeEventListener("pointerdown", fechar);
+      window.removeEventListener("keydown", tecla);
+      window.removeEventListener("blur", fechar);
+    };
+  }, [menuTpl]);
+  return h("aside", { className: "tr-frames tr-templates" }, [
+    menuTpl ? h("div", { key: "menu", className: "tr-menu",
+                         style: { position: "fixed", left: menuTpl.x, top: menuTpl.y },
+                         onPointerDown: (e) => e.stopPropagation(),
+                         onContextMenu: (e) => e.preventDefault() }, [
+      h("button", { key: "c", onClick: () => { onInsert(menuTpl.arquivo); setMenuTpl(null); } },
+        "Colar template"),
+    ]) : null,
+    h("div", { key: "hd", className: "tr-help-head" }, [
+      h("strong", { key: "t" }, "Templates"),
+      h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
+                    onClick: onClose }, "×"),
+    ]),
+    h("div", { key: "b", className: "tr-frames-body" }, templates === null
+      ? h("p", { className: "tr-frames-empty" }, "carregando…")
+      : SECOES_TEMPLATE.map((sec) => {
+          const itens = templates.filter((t) => t.escopo === sec.escopo);
+          return h("section", { key: sec.escopo, className: "tr-tpl-secao" }, [
+            h("h4", { key: "h" }, sec.titulo),
+            ...(itens.length ? itens.map((t) => h("div", {
+              key: t.arquivo, role: "button", tabIndex: 0, draggable: true,
+              className: "tr-frames-item tr-tpl-item",
+              title: "arraste para o canvas ou clique com o botão direito → Colar template",
+              onClick: (e) => e.currentTarget.focus(),
+              onContextMenu: (e) => {
+                e.preventDefault();
+                setMenuTpl({ arquivo: t.arquivo, x: e.clientX, y: e.clientY });
+              },
+              // Mesmo trato do item do painel de frames: Espaço é a tecla de
+              // andar pela tela, e não pode escapar até o `window`.
+              onKeyDown: (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault(); e.stopPropagation();
+                if (e.key === "Enter") onInsert(t.arquivo);
+              },
+              onDragStart: (e) => {
+                e.dataTransfer.setData("application/trama-template", t.arquivo);
+                e.dataTransfer.effectAllowed = "copy";
+              },
+            }, [
+              h("span", { key: "n", className: "tr-tpl-nome" }, t.nome),
+              t.descricao ? h("span", { key: "d", className: "tr-tpl-desc" }, t.descricao) : null,
+            ])) : [h("p", { key: "v", className: "tr-frames-empty" },
+                    sec.escopo === "colecao" ? "Nenhuma coleção carregada traz templates."
+                      : "Selecione blocos e use Salvar como template.")]),
+          ]);
+        })),
+  ]);
+}
+
+// Nome de arquivo a partir do nome do template, como `.tr_slug` no R.
+const slugArquivo = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "template";
+
 // --- App -------------------------------------------------------------------
 
 // Espelha `.tr_presentation_ops` (R/document.R): op cosmética não recomputa
@@ -1127,6 +1472,7 @@ const ICONES = {
   desfazer: "M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3",
   recalcular: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
   baixar: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  template: "M12 3 3 8l9 5 9-5zM3 12.5l9 5 9-5M3 17l9 5 9-5",
 };
 function Icone({ nome }) {
   return h("svg", { className: "tr-ic", viewBox: "0 0 24 24", width: 18, height: 18, fill: "none",
@@ -1156,6 +1502,7 @@ function App() {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [dragType, setDragType] = useState(null);
+  const [dragFrom, setDragFrom] = useState(null);
   const [banner, setBanner] = useState(null);
   const [helpFor, setHelpFor] = useState(null);
   const [vista, setVista] = useState(null); // id do card aberto em tela cheia (V)
@@ -1169,6 +1516,13 @@ function App() {
   // coluna e abrir um fecha os outros: com dois estados ligados, o botão do
   // escondido ficaria aceso sem nada na tela que corresponda a ele.
   const [painelConfig, setPainelConfig] = useState(false);
+  // Diálogo "Salvar como template": `{ ids, conflito, enviando }` | null.
+  // `ids` é fixado ao abrir — clicar no canvas atrás não é possível (overlay),
+  // mas o retrato evita depender disso.
+  const [templateDlg, setTemplateDlg] = useState(null);
+  const [painelTemplates, setPainelTemplates] = useState(false);
+  const painelTemplatesRef = useRef(false); painelTemplatesRef.current = painelTemplates;
+  const [templates, setTemplates] = useState(null); // lista do servidor; null = ainda não veio
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [opcoesFrame, setOpcoesFrame] = useState(false);
   // Clique fora fecha os popovers da toolbar; dentro deles ou no botão que os
@@ -1425,7 +1779,7 @@ function App() {
   const ajuda = () => {
     if (helpFor || painelAtalhos) { setHelpFor(null); setPainelAtalhos(false); return; }
     const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
-    setPainelFrames(false); setPainelConfig(false);
+    setPainelFrames(false); setPainelConfig(false); setPainelTemplates(false);
     if (sel.length === 1) setHelpFor(sel[0].data.nodeType);
     else setPainelAtalhos(true);
   };
@@ -1544,6 +1898,38 @@ function App() {
     return null;
   }, []);
 
+  // Popover "próximo bloco": `{de, porta, tipo, x, y}` — `de` é o id do NÓ de
+  // origem; o tipo de bloco dele sai do nó na hora de montar o popover.
+  const [prox, setProx] = useState(null);
+  const tipoDaSaida = (nodeId, porta) => {
+    const cat = catalogRef.current;
+    const n = nodesRef.current.find((x) => x.id === nodeId);
+    const spec = n && cat?.nodes.find((x) => x.id === n.data.nodeType);
+    const out = spec?.outputs?.find((o) => o.name === porta);
+    return out ? { tipo: out.type, nodeType: n.data.nodeType } : null;
+  };
+  const fecharProx = useCallback(() => setProx(null), []);
+  const abrirProximo = useCallback((nodeId, porta, x, y) => {
+    const t = tipoDaSaida(nodeId, porta);
+    if (t) setProx({ de: nodeId, deTipo: t.nodeType, porta, tipo: t.tipo, x, y });
+  }, []);
+  // Modo "meio": o "+" no meio de uma aresta. Filtra o que entra no tipo da
+  // origem E alimenta a entrada do destino.
+  const abrirMeio = useCallback((e, x, y) => {
+    const cat = catalogRef.current;
+    const t = tipoDaSaida(e.source, e.sourceHandle);
+    const n = nodesRef.current.find((q) => q.id === e.target);
+    const inp = n && cat?.nodes.find((q) => q.id === n.data.nodeType)?.inputs?.find((i) => i.name === e.targetHandle);
+    if (t && inp) setProx({ modo: "meio", de: e.source, deTipo: t.nodeType, porta: e.sourceHandle,
+                            tipo: t.tipo, tipoPara: inp.type, aresta: e, x, y });
+  }, []);
+  // Modo "origem": puxado de uma ENTRADA, sugere o que alimentaria a porta.
+  const abrirOrigem = useCallback((nodeId, porta, x, y) => {
+    const cat = catalogRef.current;
+    const n = nodesRef.current.find((q) => q.id === nodeId);
+    const inp = n && cat?.nodes.find((q) => q.id === n.data.nodeType)?.inputs?.find((i) => i.name === porta);
+    if (inp) setProx({ modo: "origem", de: nodeId, deTipo: n.data.nodeType, porta, tipo: inp.type, x, y });
+  }, []);
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
   const decorated = useMemo(() => nodes.map((n) => {
@@ -1580,11 +1966,11 @@ function App() {
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
                       typeColors, categories, onParam, onView, onResize, onModo,
-                      onReseed, temas } };
+                      onReseed, onAbrirProximo: abrirProximo, temas } };
   }),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
-    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas,
+    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
@@ -1643,8 +2029,11 @@ function App() {
         const medidas = new Map(comMedidas(nodesRef.current)
           .filter((x) => x.type === "ndNode" && x.measured)
           .map((x) => [x.id, x.measured]));
+        const selNovo = selNovoRef.current;
         const n = novos.map((x) => (x.type === "ndNode" && medidas.has(x.id)
-          ? { ...x, measured: medidas.get(x.id) } : x));
+          ? { ...x, measured: medidas.get(x.id) } : x))
+          .map((x) => (selNovo && x.id === selNovo ? { ...x, selected: true } : x));
+        if (selNovo && n.some((x) => x.id === selNovo)) selNovoRef.current = null;
         setNodes(n); setEdges(e);
         // Documento sem posições (escrito à mão ou por LLM): o dagre resolve e
         // as posições sobem como `move`, que é apresentação pura e não
@@ -1669,7 +2058,10 @@ function App() {
         // A corrida do insumo (documento antigo, cache servido, preview
         // parado, sem erro) aqui é sempre explícita.
         revRef.current = m.rev ?? revRef.current;
-        setBanner(m.message);
+        // Recusado com inserts encadeados na fila: eles dependem do bloco que
+        // não entrou (ou sairiam de novo com revisão velha). Descarta a fila
+        // em vez de deixá-la presa até recarregar.
+        setBanner(descartarFila(m.message));
         return;
       }
 
@@ -1690,6 +2082,10 @@ function App() {
       // diálogo aqui nunca o deixa preso. "Abrir" é desabilitado na pasta
       // atual porque reabrir não faz nada, não porque não responderia.
       if (m.type === "project") {
+        // A lista de templates tem a seção "Este projeto": a do projeto
+        // anterior não vale mais. Painel aberto pede de novo.
+        setTemplates(null);
+        if (painelTemplatesRef.current) sendInput("tr_template_list", { seq: ++seqCounter });
         // Estado de execução é indexado por ID DE NÓ, e id de fluxo escrito à
         // mão é palavra ("ler", "filtrar", "total"): dois projetos colidem.
         // Sem zerar, um nó do projeto novo que chega `blocked` herdaria o
@@ -1713,7 +2109,7 @@ function App() {
           sendInput("tr_list_imagens", { seq: ++seqCounter });
         }
         projetoRef.current = m.root;
-        setProjeto({ root: m.root, flow: m.flow });
+        setProjeto({ root: m.root, flow: m.flow, origem: m.origem });
         setAbrindo(false);
         setEnviando(null);
         // A recusa da tentativa anterior ("nome inválido") não pode ficar na
@@ -1724,6 +2120,44 @@ function App() {
       }
 
       if (m.type === "listing") { setListagem(m); return; }
+
+      // Baixar/copiar: o servidor montou o template (tira dados, normaliza) e
+      // devolve só o texto; arquivo e clipboard são coisa do navegador.
+      // `navigator.clipboard` não existe fora de contexto seguro (o app
+      // servido por IP da rede, sem https) e pode recusar sem gesto recente
+      // do usuário — a resposta chega depois de uma ida ao R. Nos dois casos
+      // o texto não pode se perder: vira download.
+      if (m.type === "template_json") {
+        const arq = `${slugArquivo(m.nome)}.template.json`;
+        // Só fecha o diálogo quando a resposta é DELE (mesmo `seq`): um
+        // Ctrl+Shift+C não fecha um diálogo de salvar aberto.
+        setTemplateDlg((d) => (d && d.seq === m.seq ? null : d));
+        if (m.acao === "copiar") {
+          const baixar = () => {
+            exportText(m.texto, arq, "application/json");
+            setBanner("Não deu pra copiar para a área de transferência — o template foi baixado.");
+          };
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(m.texto)
+              .then(() => setBanner("Template copiado. Cole com Ctrl+V em outro canvas."))
+              .catch(baixar);
+          } else baixar();
+        } else {
+          exportText(m.texto, arq, "application/json");
+        }
+        return;
+      }
+      if (m.type === "templates") { setTemplates(m.templates || []); return; }
+      if (m.type === "template_conflict") {
+        setTemplateDlg((d) => d && d.seq === m.seq
+          ? { ...d, conflito: { nome: m.nome, destino: d.destino }, enviando: false } : d);
+        return;
+      }
+      if (m.type === "template_saved") {
+        setTemplateDlg((d) => (d && d.seq === m.seq ? null : d));
+        setBanner(`Template "${m.nome}" salvo em ${m.destino === "biblioteca" ? "Minha biblioteca" : "Este projeto"}.`);
+        return;
+      }
 
       if (m.type === "imagens") { setImagens(m.files || []); return; }
 
@@ -1781,7 +2215,12 @@ function App() {
       // Toda recusa de abrir ou criar chega por aqui: é ela que devolve as
       // ações do diálogo: sem isto um `warning` deixaria os botões
       // desabilitados até fechar e reabrir.
-      if (m.type === "warning") { setEnviando(null); setBanner(m.message); return; }
+      if (m.type === "warning") {
+        setEnviando(null);
+        setTemplateDlg((d) => d && { ...d, enviando: false });
+        setBanner(m.message);
+        return;
+      }
 
       if (m.type === "unit") { applyUnit(m); return; }
 
@@ -1804,6 +2243,11 @@ function App() {
   // Ferramenta "I" ativada: pede a lista de novo, pelo mesmo motivo do
   // comentário acima de `imagens` — é o gesto mais provável de precisar dela
   // fresca (alguém acabou de largar um arquivo em `imagens/` pra usar agora).
+  // Painel de templates: lista fresca a cada abertura (ver `TemplatesPanel`).
+  useEffect(() => {
+    if (painelTemplates) sendInput("tr_template_list", { seq: ++seqCounter });
+  }, [painelTemplates]);
+
   useEffect(() => {
     if (ferramenta === "imagem") sendInput("tr_list_imagens", { seq: ++seqCounter });
   }, [ferramenta]);
@@ -1979,6 +2423,7 @@ function App() {
   }, []);
 
   const onNodeDragStart = useCallback((e, _n, dragged) => {
+    setProx(null);
     // Alt: ajuste fino do retângulo, sem levar nada. Só o que está
     // selecionado anda, que é o comportamento de um nó comum. `e` é o evento
     // de origem do d3-drag (mouse ou toque), que carrega `altKey`.
@@ -2104,14 +2549,229 @@ function App() {
   // do cliente — o mesmo truque de `opsDoGrupo`: `set_mode` referenciando um
   // id que só existe dentro deste lote. Ausência de extra ops quando o modo é
   // o padrão evita mandar um `set_mode` inútil a cada bloco novo.
-  const addAt = useCallback((typeId, pos, extra) => {
+  const opsAdd = (typeId, pos, id, extra) => {
     const add = { op: "add_node", type: typeId,
                   position: [Math.round(pos.x), Math.round(pos.y)], ...extra };
     const modo = modoNovoRef.current;
-    if (modo === "completo") { pushOp(add); return; }
-    const id = add.id || novoId();
-    pushMany([{ ...add, id }, { op: "set_mode", node: id, modo }]);
+    if (modo === "completo") return [id ? { ...add, id } : add];
+    const nid = id || add.id || novoId();
+    return [{ ...add, id: nid }, { op: "set_mode", node: nid, modo }];
+  };
+  const addAt = useCallback((typeId, pos, extra) => {
+    pushMany(opsAdd(typeId, pos, null, extra));
   }, []);
+
+  // Id do bloco recém-inserido: o documento que ecoa o batch refaz os nós
+  // sem seleção, e é ali que ele ganha o `selected`.
+  const selNovoRef = useRef(null);
+
+  // Insere o bloco à direita da origem, já conectado, num batch só (um passo
+  // de undo). Colidindo com um card, desce até achar vão.
+  const filaProxRef = useRef([]);
+  // Id do último bloco inserido que ainda não voltou do servidor. Enquanto
+  // ele não ecoa, qualquer insert novo (encadeado, no meio ou de outra
+  // origem) sairia com revisão defasada: vai pra fila atrás dele.
+  const ultimoProxRef = useRef(null);
+  const ultimoProxT = useRef(0);
+  // Op perdida (recusa ou prazo) nunca terá `run_finished`: o "na fila"
+  // que `pushOp` pintou volta ao repouso, senão fica preso até a próxima run.
+  const liberarPendentes = () => {
+    let mudou = false;
+    Object.keys(stateRef.current).forEach((k) => {
+      if (stateRef.current[k].state === "pending") {
+        stateRef.current[k] = { ...stateRef.current[k], state: "idle" };
+        mudou = true;
+      }
+    });
+    if (mudou) bumpTick();
+  };
+  const descartarFila = (motivo) => {
+    const n = filaProxRef.current.length;
+    const pendente = n || ultimoProxRef.current;
+    filaProxRef.current = [];
+    ultimoProxRef.current = null;
+    liberarPendentes();
+    // O popover encadeando a partir de um bloco que não vai existir fecha:
+    // senão o próximo Tab conectaria num nó que o servidor nunca viu.
+    if (pendente) {
+      setProx((q) => (q && q.modo !== "meio" && !nodesRef.current.some((x) => x.id === q.de) ? null : q));
+    }
+    if (!n) return motivo;
+    const q = n === 1 ? "1 bloco encadeado descartado" : `${n} blocos encadeados descartados`;
+    return motivo ? `${motivo} · ${q}` : q;
+  };
+  // Manda já, ou entra na fila esperando o bloco anterior ecoar. `nid` passa
+  // a ser quem o próximo espera.
+  const enviarProx = (ops, nid, extra) => {
+    const ult = ultimoProxRef.current;
+    const livre = !filaProxRef.current.length && !(ult && !nodesRef.current.some((n) => n.id === ult));
+    if (livre) pushMany(ops);
+    else filaProxRef.current.push({ de: ult, ops, t: Date.now(), ...extra });
+    ultimoProxRef.current = nid;
+    ultimoProxT.current = Date.now();
+  };
+  useEffect(() => {
+    const f = filaProxRef.current[0];
+    if (ultimoProxRef.current && !f && nodes.some((n) => n.id === ultimoProxRef.current)) {
+      ultimoProxRef.current = null;
+    }
+    if (f && nodes.some((n) => n.id === f.de)) {
+      filaProxRef.current.shift();
+      // Quem sai agora recomeça o prazo de quem vem atrás.
+      if (filaProxRef.current[0]) filaProxRef.current[0].t = Date.now();
+      pushMany(f.ops);
+    }
+  }, [nodes]);
+  // Rede de segurança: se o documento que traria a origem nunca chega (eco
+  // perdido, op engolida sem `op_rejected`), a fila não fica presa. Passado o
+  // prazo sem a cabeça andar, descarta tudo e avisa.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const f = filaProxRef.current[0];
+      // Fila vazia com o último em voo há tempo demais: só para de esperar
+      // por ele, sem aviso (nada foi descartado).
+      if (!f && ultimoProxRef.current && Date.now() - ultimoProxT.current > FILA_PROX_PRAZO) {
+        ultimoProxRef.current = null;
+        liberarPendentes();
+      }
+      if (!f || Date.now() - (f.t ?? Date.now()) < FILA_PROX_PRAZO) return;
+      setBanner(descartarFila("O servidor não confirmou o bloco anterior"));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  // O bloco novo pode nascer fora da tela (um vão bem abaixo de um gráfico
+  // alto, uma cadeia de Tab que passa da borda direita). Anda o mínimo pra
+  // trazê-lo inteiro, com margem, sem mexer no zoom. Já visível, ou com o
+  // usuário arrastando a tela agora, não mexe. Devolve o deslocamento em
+  // pixels de tela (o popover encadeado soma isso pra ficar ao lado do card).
+  const panUsuarioRef = useRef(false), panProprioRef = useRef(null);
+  const mostrarBloco = (pos, hBloco, folgaDir = 0) => {
+    const box = wrapRef.current?.getBoundingClientRect();
+    if (!box || panUsuarioRef.current) return { dx: 0, dy: 0 };
+    // Tab rápido: a andada anterior ainda anima; parte do destino dela.
+    const vp = panProprioRef.current ?? rf.getViewport();
+    const ax = box.left + vp.x + pos.x * vp.zoom, ay = box.top + vp.y + pos.y * vp.zoom;
+    const bx = ax + MIN_W * vp.zoom + folgaDir, by = ay + hBloco * vp.zoom;
+    const M = 48;
+    const eixo = (lo, hi, min, max) => {
+      if (lo >= min + M && hi <= max - M) return 0;
+      if (hi - lo > max - min - 2 * M || lo < min + M) return min + M - lo;
+      return max - M - hi;
+    };
+    const dx = eixo(ax, bx, box.left, box.right), dy = eixo(ay, by, box.top, box.bottom);
+    const atual = rf.getViewport();
+    const alvo = { x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom };
+    if (!dx && !dy) return { dx: alvo.x - atual.x, dy: alvo.y - atual.y };
+    panProprioRef.current = alvo;
+    Promise.resolve(rf.setViewport(alvo, { duration: 300 }))
+      .finally(() => setTimeout(() => { if (panProprioRef.current === alvo) panProprioRef.current = null; }, 50));
+    // Deslocamento de tela entre o viewport de agora e o final.
+    return { dx: alvo.x - atual.x, dy: alvo.y - atual.y };
+  };
+  const inserirProximo = (tipoId, porta, { encadear, saida: saidaMeio } = {}) => {
+    const p = prox; if (!p) return;
+    if (p.modo === "meio") {
+      // Nasce no meio das duas pontas; os nós à direita não se movem.
+      const a = p.aresta;
+      const o = nodesRef.current.find((n) => n.id === a.source);
+      const d = nodesRef.current.find((n) => n.id === a.target);
+      setProx(null);
+      if (!o || !d) return;
+      const nid = novoId();
+      const pm = { x: (o.position.x + d.position.x) / 2, y: (o.position.y + d.position.y) / 2 };
+      // Os vizinhos não se movem: o bloco é que procura o vão livre mais perto
+      // do ponto médio (descendo, depois subindo); sem vão, fica no meio.
+      const hMeio = alturaNova(modoNovoRef.current);
+      const caixasMeio = nodesRef.current.filter((n) => n.type === "ndNode")
+        .map((n) => ({ x: n.position.x, y: n.position.y,
+                       w: n.measured?.width ?? n.width ?? MIN_W, h: n.measured?.height ?? n.height ?? 200 }))
+        .concat(filaProxRef.current.map((f) => ({ ...f.pos, w: MIN_W, h: f.h ?? hMeio })));
+      pm.y = vaoPerto(caixasMeio, { x: pm.x, y: pm.y, w: MIN_W, h: hMeio }, 30);
+      const opsMeio = [
+        { op: "disconnect", from_node: a.source, from_port: a.sourceHandle,
+          to_node: a.target, to_port: a.targetHandle, index: a.index },
+        ...opsAdd(tipoId, pm, nid),
+        { op: "connect", from_node: a.source, from_port: a.sourceHandle, to_node: nid, to_port: porta },
+        { op: "connect", from_node: nid, from_port: saidaMeio, to_node: a.target, to_port: a.targetHandle },
+      ];
+      // Com inserts encadeados na fila (ou o último ainda em voo), este entra
+      // atrás deles: sair antes mandaria uma revisão que eles tornam defasada.
+      enviarProx(opsMeio, nid, { pos: pm, h: hMeio });
+      mostrarBloco(pm, hMeio);
+      registrar(p.deTipo, tipoId);
+      selNovoRef.current = nid;
+      return;
+    }
+    const origem = nodesRef.current.find((n) => n.id === p.de);
+    const cat = catalogRef.current;
+    // Encadeando rápido, a origem pode ainda não ter voltado do servidor:
+    // tipo e posição dela vêm guardados no próprio `prox`.
+    const oPos = origem?.position ?? p.pos;
+    const oTipo = origem?.data.nodeType ?? p.deTipo;
+    if (!oPos || !oTipo || !cat) { setProx(null); return; }
+    const origemModo = p.modo === "origem";
+    // À direita, a distância conta a largura medida da origem: um card largo
+    // (Quadro, 540) não pode ficar por baixo do bloco novo, nem o "+" dele.
+    const oW = origem?.measured?.width ?? origem?.width ?? MIN_W;
+    const pos = { x: oPos.x + (origemModo ? -300 : Math.max(300, oW + 60)), y: oPos.y };
+    // Colisão por retângulo: largura e altura medidas de cada card (um
+    // completo passa de 350, um Quadro tem 540 de largura) e também os inserts
+    // ainda na fila, que não estão em `nodes`. O bloco novo entra com a altura
+    // que o modo dele costuma ter. Batendo, desce pra logo abaixo do obstáculo
+    // (margem de 30) e testa de novo: só passa de um card se o vão entre ele e
+    // o próximo não comporta o novo. Frame e nota não contam: o bloco pode
+    // nascer dentro de um frame.
+    const hNovo = alturaNova(modoNovoRef.current);
+    const caixas = nodesRef.current.filter((n) => n.type === "ndNode" && n.id !== p.de)
+      .map((n) => ({ x: n.position.x, y: n.position.y,
+                     w: n.measured?.width ?? n.width ?? MIN_W, h: n.measured?.height ?? n.height ?? 200 }))
+      .concat(filaProxRef.current.map((f) => ({ ...f.pos, w: MIN_W, h: f.h ?? hNovo })));
+    // Numa coluna cheia de cards (outro experimento empilhado à direita), o
+    // vão livre pode estar milhares de unidades abaixo: aí o bloco anda uma
+    // coluna à direita em vez de nascer longe da origem.
+    Object.assign(pos, vaoAoLado(caixas, { x: pos.x, y: pos.y, w: MIN_W, h: hNovo }, 30,
+                                 { limite: 600, passoX: origemModo ? -300 : 300, colunas: 6 }));
+    const nid = novoId();
+    // Em "origem", `porta` é a SAÍDA do bloco novo e a conexão vai dele ao alvo.
+    const ops = [...opsAdd(tipoId, pos, nid), origemModo
+      ? { op: "connect", from_node: nid, from_port: porta, to_node: p.de, to_port: p.porta }
+      : { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }];
+    // O servidor recusa op com revisão defasada: se a origem ainda não ecoou
+    // (Tab rápido), o insert espera na fila e sai quando ela chegar.
+    enviarProx(ops, nid, { pos: { ...pos }, h: hNovo });
+    if (origemModo) registrar(tipoId, oTipo); else registrar(oTipo, tipoId);
+    selNovoRef.current = nid;
+    const spec = cat.nodes.find((x) => x.id === tipoId);
+    const saida = spec?.outputs?.[0];
+    // Encadeando, sobra lugar à direita pro popover que reabre ao lado.
+    const d = mostrarBloco(pos, hNovo, encadear ? 360 : 0);
+    if (encadear && saida) {
+      // Posição de tela já no viewport final (depois da andada).
+      const t0 = rf.flowToScreenPosition({ x: pos.x + MIN_W, y: pos.y + 40 });
+      const tela = { x: t0.x + d.dx, y: t0.y + d.dy };
+      setProx({ de: nid, deTipo: tipoId, pos: { ...pos }, porta: saida.name, tipo: saida.type,
+                presentes: [...presentes, tipoId],
+                x: tela.x + 8, y: tela.y });
+    } else setProx(null);
+  };
+
+  // Tipos de bloco A MONTANTE da origem (ela e tudo que chega nela pelas
+  // arestas), não o fluxo inteiro: um ramo sem relação não deve pesar. Com o
+  // encadeamento ainda na fila, a origem não ecoou: vale o que o `prox` traz.
+  // Estável enquanto o conjunto não muda: o sugestor recalcula por referência.
+  const presentesChave = (() => {
+    if (!prox) return "";
+    if (!nodes.some((n) => n.id === prox.de)) return [...(prox.presentes || [prox.deTipo])].sort().join("\n");
+    const vistos = new Set([prox.de]), fila = [prox.de];
+    while (fila.length) {
+      const atual = fila.pop();
+      for (const e of edges) if (e.target === atual && !vistos.has(e.source)) { vistos.add(e.source); fila.push(e.source); }
+    }
+    const tipoDe = Object.fromEntries(nodes.map((n) => [n.id, n.data?.nodeType]));
+    return [...vistos].map((id) => tipoDe[id]).filter(Boolean).sort().join("\n");
+  })();
+  const presentes = useMemo(() => (presentesChave ? [...new Set(presentesChave.split("\n"))] : []),
+    [presentesChave]);
 
   // Clicar na paleta cai numa cascata a partir do canto visível, em vez de um
   // ponto fixo: sem isso todo nó novo nasce exatamente em cima do anterior.
@@ -2152,6 +2812,16 @@ function App() {
 
   const onDrop = useCallback((ev) => {
     ev.preventDefault();
+    // Item do painel de templates: vem antes dos arquivos porque nem é
+    // arquivo — é o caminho que o servidor listou.
+    const arqTpl = ev.dataTransfer.getData("application/trama-template");
+    if (arqTpl) {
+      ev.stopPropagation();
+      const p = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      sendInput("tr_template_insert", { seq: ++seqCounter, arquivo: arqTpl,
+                                        x: Math.round(p.x), y: Math.round(p.y) });
+      return;
+    }
     const t = ev.dataTransfer.getData("application/trama-type");
     if (t) { addAt(t, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })); return; }
     // Arquivo do SO (não o drag interno da paleta, tratado acima). Soltar
@@ -2161,9 +2831,19 @@ function App() {
     // ele, este mesmo evento borbulharia até lá e abriria os dois ao mesmo
     // tempo.
     const f = ev.dataTransfer.files?.[0];
-    if (f && iniciarUploadDado(f, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY }))) {
+    const pos = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+    // `.json` pode ser template ou dado, e só o conteúdo diz qual. A leitura
+    // é assíncrona, então o `stopPropagation` vem antes de saber — o drop
+    // global nunca deve ver um `.json` que caiu no canvas.
+    if (f && /\.json$/i.test(f.name)) {
       ev.stopPropagation();
+      f.text().then((texto) => {
+        if (ehTemplate(texto)) inserirTemplateRef.current(texto, pos);
+        else iniciarUploadDado(f, pos);
+      }).catch(() => setBanner("Não foi possível ler o arquivo."));
+      return;
     }
+    if (f && iniciarUploadDado(f, pos)) ev.stopPropagation();
   }, [rf, addAt, iniciarUploadDado]);
 
   const onConnectStart = useCallback((_e, p) => {
@@ -2172,7 +2852,20 @@ function App() {
     if (!cat || !n || p.handleType !== "source") return;
     const byId = Object.fromEntries(cat.nodes.map((x) => [x.id, x]));
     setDragType(byId[n.data.nodeType]?.outputs.find((o) => o.name === p.handleId)?.type || null);
+    setDragFrom(n.data.nodeType);
   }, [nodes]);
+
+  // Conexão de uma saída solta no vazio abre o próximo bloco no ponto do
+  // mouse. `fromHandle` é a porta onde o arrasto começou.
+  const onConnectEnd = useCallback((ev, st) => {
+    setDragType(null);
+    setDragFrom(null);
+    if (present || !st || st.toNode || !st.fromHandle) return;
+    const pt = ev.changedTouches?.[0] || ev;
+    if (pt.clientX == null) return;
+    const abrir = st.fromHandle.type === "source" ? abrirProximo : abrirOrigem;
+    abrir(st.fromHandle.nodeId, st.fromHandle.id, pt.clientX, pt.clientY);
+  }, [present, abrirProximo, abrirOrigem]);
 
   // O log de undo é do servidor: aqui só se pede. Log no cliente, montado com
   // os ecos, desfazia o passo errado quando havia op em voo — o R bloqueia
@@ -2580,6 +3273,20 @@ function App() {
     pushMany(opsDoGrupo(retrato, off, off));
   };
 
+  // Template entra pelo servidor (parse, ids novos, checagem de coleções) e
+  // volta como `batch` comum. Sem posição explícita, nasce onde o mouse está
+  // no canvas; mouse fora dele, no centro da tela.
+  const mouseFlowRef = useRef(null);
+  const inserirTemplate = (texto, pos) => {
+    const p = pos || mouseFlowRef.current || centroDaTela();
+    sendInput("tr_template_insert", { seq: ++seqCounter, conteudo: texto,
+                                      x: Math.round(p.x), y: Math.round(p.y) });
+  };
+  // Refs pros listeners registrados uma vez só (paste, drop global)
+  // enxergarem as funções do render atual.
+  const inserirTemplateRef = useRef(inserirTemplate); inserirTemplateRef.current = inserirTemplate;
+  const colarRef = useRef(colar); colarRef.current = colar;
+
   // Duplicar (menu de contexto): copiar + colar num só passo, sem tocar o
   // clipboard — um Ctrl+V depois de duplicar continua colando o que o
   // usuário copiou por último, não o bloco duplicado.
@@ -2589,10 +3296,38 @@ function App() {
     pushMany(opsDoGrupo(retrato, DESLOCA_COPIA, DESLOCA_COPIA));
   };
 
+  // Template da seleção (nós, frames e notas — todos são nós do xyflow); nada
+  // selecionado = o flow inteiro. Diferente do Ctrl+C: aqui é gesto explícito
+  // de menu ou de atalho com Shift, então "tudo" não é surpresa.
+  const selecionadosOuNull = () => {
+    const s = nodesRef.current.filter((n) => n.selected).map((n) => n.id);
+    return s.length ? s : null;
+  };
+  const abrirSalvarTemplate = (ids = selecionadosOuNull()) => {
+    setMenu(null); setMenuAcoes(false);
+    setTemplateDlg({ ids, conflito: null, enviando: false });
+  };
+  const copiarTemplate = (ids = selecionadosOuNull()) => {
+    setMenu(null); setMenuAcoes(false);
+    sendInput("tr_template_save", { seq: ++seqCounter, ids, nome: "Template", destino: "copiar" });
+  };
+
   // Tabela refeita a cada render e lida pelo listener via ref: o listener é
   // registrado uma vez só, e as ações sempre enxergam o estado atual. As
   // chaves são `mod+` (Ctrl ou Cmd), `shift+`, e `e.key` em minúsculas.
   const atalhosRef = useRef({});
+  // "+" com um card selecionado: popover na primeira saída dele, ancorado na
+  // borda direita do card na tela.
+  const abrirProximoDaSelecao = () => {
+    const sel = nodesRef.current.filter((n) => n.selected);
+    if (sel.length !== 1 || sel[0].type !== "ndNode") return;
+    const n = sel[0];
+    const saida = catalogRef.current?.nodes.find((x) => x.id === n.data.nodeType)?.outputs?.[0];
+    if (!saida) return;
+    const w = n.measured?.width ?? n.width ?? MIN_W;
+    const tela = rf.flowToScreenPosition({ x: n.position.x + w, y: n.position.y + 40 });
+    abrirProximo(n.id, saida.name, tela.x + 8, tela.y);
+  };
   // 1…9/0 vão direto ao frame N; `,`/`.` andam um frame por vez a partir do
   // atual. As duas tabelas (apresentação e edição) compartilham essa base —
   // navegar entre frames é o mesmo gesto nos dois modos — e cada uma só
@@ -2618,6 +3353,7 @@ function App() {
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
     "mod+g": frameDaSelecao,
+    "mod+shift+c": () => copiarTemplate(),
     "w": () => definirModo("preview"),
     "a": () => definirModo("mini"),
     "s": () => definirModo("params"),
@@ -2625,6 +3361,7 @@ function App() {
     "shift+r": restaurarAlvos,
     "v": abrirVista,
     "h": ajuda,
+    "+": abrirProximoDaSelecao,
   };
   useEffect(() => {
     const onKey = (e) => {
@@ -2672,19 +3409,31 @@ function App() {
         copiar();
         return;
       }
-      if (nome === "mod+v") {
-        if (!clipboardRef.current) return;
-        e.preventDefault();
-        colar();
-        return;
-      }
+      // Ctrl+V não é tratado aqui: o `paste` abaixo é quem decide, porque só
+      // ele enxerga o clipboard do SISTEMA. `preventDefault` no keydown
+      // mataria o próprio evento `paste`.
+      if (nome === "mod+v") return;
       const fn = atalhosRef.current[nome];
       if (!fn) return;
       e.preventDefault();
       fn();
     };
+    // Colar do SISTEMA: um template copiado do site ou de uma mensagem vence
+    // o clipboard interno. Qualquer outro texto cai no comportamento de antes
+    // (colar os nós do último Ctrl+C) — texto solto no clipboard do SO não
+    // pode sequestrar o Ctrl+V interno. Campo de texto focado não é conosco;
+    // diálogo e lightbox recuam como no keydown.
+    const onPaste = (e) => {
+      const t = e.target;
+      if (abrindoRef.current || document.querySelector(".tr-lightbox")) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const texto = e.clipboardData?.getData("text/plain") || "";
+      if (ehTemplate(texto)) { e.preventDefault(); inserirTemplateRef.current(texto); return; }
+      if (clipboardRef.current) { e.preventDefault(); colarRef.current(); }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("paste", onPaste);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("paste", onPaste); };
   }, []);
 
   if (!catalog || !doc) return h("div", { className: "tr-loading" }, "carregando…");
@@ -2765,6 +3514,8 @@ function App() {
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
     const ligacoes = alvo.length > 1 ? edges.filter((e) => e.selected).map((e) => e.id) : [];
     return [
+      h("button", { key: "tpl", onClick: () => abrirSalvarTemplate(alvo) }, "Salvar como template…"),
+      h("button", { key: "tplc", onClick: () => copiarTemplate(alvo) }, "Copiar como template"),
       h("button", { key: "du", onClick: () => { duplicar(alvo); setMenu(null); } },
         alvo.length > 1 ? `Duplicar ${alvo.length} selecionados` : "Duplicar"),
       h("button", { key: "d", onClick: () => apagar(alvo, ligacoes) },
@@ -2804,6 +3555,9 @@ function App() {
     e.preventDefault();
     const leitor = new FileReader();
     leitor.onload = () => {
+      // Template solto fora do canvas vai direto pro canvas: abrir o diálogo
+      // de projeto pra algo que não é projeto seria um desvio sem saída útil.
+      if (ehTemplate(leitor.result)) { inserirTemplate(leitor.result, centroDaTela()); return; }
       setArquivoSolto({ nomeArquivo: f.name, conteudo: leitor.result });
       setBanner(null); setListagem(null); setEnviando(null); setAbrindo(true);
       sendInput("tr_browse", { seq: ++seqCounter, path: projeto?.root || "." });
@@ -2815,14 +3569,16 @@ function App() {
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
-  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos ? "tr-app-help" : "",
+  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "",
-                                abrindo ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
+                                abrindo || templateDlg ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
     h("div", { key: "canvas", className: "tr-canvas", ref: wrapRef,
+               onMouseMove: (e) => { mouseFlowRef.current = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }); },
+               onMouseLeave: () => { mouseFlowRef.current = null; },
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
-      h(ReactFlow, {
+      h(MeioCtx.Provider, { key: "rf", value: present ? null : abrirMeio }, h(ReactFlow, {
         nodes: decorated, edges, nodeTypes, edgeTypes,
         // Conectores em ângulo reto com cantos arredondados; a direção da
         // curva (TrAresta) é recalculada por par de cards a cada render,
@@ -2831,7 +3587,7 @@ function App() {
         defaultEdgeOptions: { type: "trAresta" },
         onNodesChange, onEdgesChange, onConnect, isValidConnection,
         onNodeDragStart, onSelectionStart, onSelectionEnd,
-        onConnectStart, onConnectEnd: () => setDragType(null),
+        onConnectStart, onConnectEnd,
         onBeforeDelete,
         // Na apresentação o menu também some: ele traz "Apagar", e o slide é
         // somente leitura.
@@ -2839,7 +3595,14 @@ function App() {
           : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
         onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
         onPaneClick: () => { setMenu(null); setMenuAcoes(false); }, onNodeClick: () => setMenu(null),
-        onMoveStart: () => setMenu(null),
+        // A andada automática até o bloco novo não fecha o popover encadeado;
+        // um arrasto do usuário fecha e, enquanto dura, trava a andada.
+        onMoveStart: (ev) => {
+          if (panProprioRef.current && !ev) return;
+          if (ev) panUsuarioRef.current = true;
+          setMenu(null); setProx(null);
+        },
+        onMoveEnd: () => { panUsuarioRef.current = false; },
         // Gestos: arrastar no vazio (botão principal ou do meio, ou com espaço)
         // ANDA pela tela; Shift + arrasto desenha a caixa de seleção, e
         // Shift+clique soma à seleção. A roda dá zoom; Ctrl+roda rola a tela,
@@ -2905,7 +3668,7 @@ function App() {
           nodeColor: (n) => (n.type === "trFrame" ? "transparent"
             : corDaCategoria(categories[n.data?.spec?.category], n.data?.spec)),
           nodeStrokeColor: (n) => (n.type === "trFrame" ? "var(--tr-dim)" : "transparent") }),
-      ]),
+      ])),
       menu ? h("div", { key: "menu", className: "tr-menu",
                         style: { left: menu.x, top: menu.y } }, menuItens(menu)) : null,
       selecionados.length > 1 ? h("div", { key: "sel", className: "tr-selbar" }, [
@@ -2963,7 +3726,7 @@ function App() {
     painelAtalhos
       ? h(AtalhosPanel, { key: "atalhos", onClose: () => setPainelAtalhos(false) })
       : helpFor
-      ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null) })
+      ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null), onOpen: setHelpFor })
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
             marca: temas.marca,
@@ -2973,6 +3736,14 @@ function App() {
             onSave: (m) => sendInput("tr_themes", { temas: m.temas, tema_padrao: m.tema_padrao,
                                                     marca: m.marca, seq: Date.now() }),
             onClose: () => setPainelConfig(false) })
+      : painelTemplates
+        ? h(TemplatesPanel, { key: "templates", templates,
+            onInsert: (arquivo) => {
+              const p = centroDaTela();
+              sendInput("tr_template_insert", { seq: ++seqCounter, arquivo,
+                                                x: Math.round(p.x), y: Math.round(p.y) });
+            },
+            onClose: () => setPainelTemplates(false) })
       : painelFrames
         ? h(FramePanel, { key: "frames", frames: framesOrd, exportando,
             onGo: (id) => irAoFrame(framesOrd.findIndex((x) => x.id === id)),
@@ -2980,8 +3751,18 @@ function App() {
             onRename: (id, title) => onFrameEdit(id, { title }), onAspect: mudarProporcao,
             onPresent: apresentar, onExport: () => exportar(framesOrd),
             onClose: () => setPainelFrames(false) })
-        : h(Palette, { key: "pal", catalog, filterType: dragType, onPick: addPicked,
+        : h(Palette, { key: "pal", catalog, filterType: dragType, dragFrom, onPick: addPicked,
                        modoNovo, onModoNovo: setModoNovo }),
+    prox && !present && catalog
+      ? h(Proximo, { key: `prox-${prox.modo || "p"}-${prox.de}-${prox.porta}`, catalog,
+          de: prox.deTipo, modo: prox.modo, tipoPara: prox.tipoPara,
+          tipo: prox.tipo, presentes, x: prox.x, y: prox.y,
+          onEscolher: inserirProximo, onFechar: fecharProx,
+          renderIcone: (n) => (n.icon && ICON_KINDS.has(n.icon.kind)
+            // Sem `color`: o ícone herda a tinta da faixa colorida da pílula.
+            ? h(Icon, { icon: n.icon, className: "tr-palette-icon" })
+            : null) })
+      : null,
     h("div", { key: "tb", className: "tr-toolbar", role: "toolbar", "aria-label": "Ferramentas" }, [
       // `img`, e não botão: a marca é assinatura, não controle. Não clica, não
       // abre nada e não entra na ordem de tabulação. A versão só existe do
@@ -3027,7 +3808,10 @@ function App() {
       h("span", { key: "s2", className: "tr-toolbar-sep", "aria-hidden": true }),
       h(BotaoIcone, { key: "fp", icone: "slides", rotulo: "Painel de frames", on: painelFrames,
                       onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
-                                       setPainelFrames((v) => !v); } }),
+                                       setPainelTemplates(false); setPainelFrames((v) => !v); } }),
+      h(BotaoIcone, { key: "tpl", icone: "template", rotulo: "Templates", on: painelTemplates,
+                      onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
+                                       setPainelFrames(false); setPainelTemplates((v) => !v); } }),
       h(BotaoIcone, { key: "aj", icone: "ajuda", rotulo: "Ajuda e atalhos", dica: dica("ajuda"),
                       on: painelAtalhos || !!helpFor, onClick: ajuda }),
       h(BotaoIcone, { key: "more", icone: "mais", rotulo: "Mais ações", on: menuAcoes,
@@ -3054,7 +3838,7 @@ function App() {
                                  { value: "escuro", label: "☾", title: "tema escuro" }] })),
       h("button", { key: "cfg", className: "tr-pop-item" + (painelConfig ? " tr-on" : ""),
                     onClick: () => { setHelpFor(null); setPainelFrames(false); setPainelAtalhos(false);
-                                     setPainelConfig((v) => !v); } },
+                                     setPainelTemplates(false); setPainelConfig((v) => !v); } },
         [h(Icone, { key: "i", nome: "config" }), h("span", { key: "t" }, "Configurações")]),
       h("button", { key: "u", className: "tr-pop-item", onClick: desfazer, title: dica("desfazer") },
         [h(Icone, { key: "i", nome: "desfazer" }), h("span", { key: "t" }, "Desfazer")]),
@@ -3071,6 +3855,15 @@ function App() {
       h("button", { key: "ex-qmd", className: "tr-pop-item", disabled: !doc,
                     onClick: () => sendInput("tr_export_code", { format: "quarto", seq: ++seqCounter }) },
         [h(Icone, { key: "i", nome: "baixar" }), h("span", { key: "t" }, "Exportar Quarto")]),
+      h("div", { key: "sep2", className: "tr-pop-sep" }),
+      // Sem seleção, o flow inteiro — o rótulo diz qual dos dois vai sair.
+      h("button", { key: "tpl", className: "tr-pop-item", disabled: !doc,
+                    onClick: () => abrirSalvarTemplate() },
+        [h(Icone, { key: "i", nome: "template" }),
+         h("span", { key: "t" }, selecionados.length ? "Salvar seleção como template…" : "Salvar flow como template…")]),
+      h("button", { key: "tplc", className: "tr-pop-item", disabled: !doc, title: dica("copiar-template"),
+                    onClick: () => copiarTemplate() },
+        [h(Icone, { key: "i", nome: "template" }), h("span", { key: "t" }, "Copiar como template")]),
       ]) : null,
     ]),
     // Irmão da toolbar, no mesmo `.tr-app`: o CSS o põe logo abaixo dela.
@@ -3090,7 +3883,18 @@ function App() {
                             sendInput("tr_project_new", { seq: ++seqCounter, path: p, nome }); },
       onImport: (p, nome, conteudo) => { setEnviando("importar");
                             sendInput("tr_project_import", { seq: ++seqCounter, path: p, nome, conteudo }); },
+      onColarTemplate: (conteudo) => inserirTemplate(conteudo, centroDaTela()),
       onClose: fecharDialogo }) : null,
+    templateDlg ? h(TemplateDialog, { key: "td", quantos: templateDlg.ids?.length || 0,
+      destinoPadrao: projeto?.origem === "launcher" ? "biblioteca" : "projeto",
+      conflito: templateDlg.conflito, enviando: templateDlg.enviando,
+      onSave: ({ nome, descricao, destino, overwrite }) => {
+        const seq = ++seqCounter;
+        setTemplateDlg((d) => d && { ...d, enviando: true, destino, seq });
+        sendInput("tr_template_save", { seq, ids: templateDlg.ids, nome, descricao,
+                                        destino, overwrite });
+      },
+      onClose: () => setTemplateDlg(null) }) : null,
     // Só aparece quando o pendente do conflito ainda existe — servidor lento
     // ou uma segunda resposta perdida não deixam o diálogo preso sem ação
     // nenhuma fazer sentido.

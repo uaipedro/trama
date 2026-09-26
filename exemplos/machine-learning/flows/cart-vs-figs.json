@@ -16,35 +16,35 @@
     },
     "divisao": {
       "type": "ml/split",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Separar treino / teste",
       "params": {
-        "alvo": "Species"
+        "resposta": "Species"
       },
       "seed": 80248118
     },
     "cart": {
       "type": "ml/cart",
-      "type_version": 1,
+      "type_version": 4,
       "label": "CART · árvore de decisão",
       "params": {
-        "alvo": "Species"
+        "resposta": "Species"
       },
       "seed": 153561746
     },
     "cart_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 31846989
     },
     "cart_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "resposta": "Species"
       },
       "seed": 59728939
     },
@@ -57,26 +57,26 @@
     },
     "figs": {
       "type": "ml/figs",
-      "type_version": 1,
+      "type_version": 3,
       "label": "FIGS · soma de árvores",
       "params": {
-        "alvo": "Species"
+        "resposta": "Species"
       },
       "seed": 214423081
     },
     "figs_prever": {
-      "type": "ml/predict",
+      "type": "models/predict",
       "type_version": 1,
       "label": "Prever",
       "params": {},
       "seed": 77653016
     },
     "figs_avaliar": {
-      "type": "ml/evaluate",
-      "type_version": 1,
+      "type": "models/evaluate",
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
-        "alvo": "Species"
+        "resposta": "Species"
       },
       "seed": 93337636
     },
@@ -227,6 +227,7 @@
     "sizes": {},
     "views": {},
     "frames": {},
-    "folds": {}
+    "modes": {},
+    "notes": {}
   }
 }

@@ -53,6 +53,7 @@
   if (!is.data.frame(dados)) {
     .tr_ml_abort("tr_ml_error_not_table", "Param 'dados' deve ser uma tabela (data.frame ou tibble).")
   }
+  impressoes <- .tr_ml_exigir_nao_teste(dados)
   if (!nrow(dados)) .tr_ml_abort("tr_ml_error_empty_data", "A tabela n\u{E3}o tem nenhuma linha.")
   resposta <- .tr_ml_texto(resposta, "resposta")
   if (!nzchar(resposta)) .tr_ml_abort("tr_ml_error_blank_param", "Param 'resposta' n\u{E3}o pode ficar em branco.")
@@ -110,7 +111,7 @@
   internos <- paste0("x", seq_along(pred))
   names(x) <- internos
   list(x = x, y = y, resposta = resposta, preditores = pred, internos = internos,
-       tarefa = tarefa, niveis = niveis, n = nrow(dados))
+       tarefa = tarefa, niveis = niveis, n = nrow(dados), impressoes = impressoes)
 }
 
 #' Os preditores de uma tabela nova, com os nomes internos do motor.

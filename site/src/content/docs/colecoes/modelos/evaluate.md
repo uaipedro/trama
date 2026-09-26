@@ -20,6 +20,10 @@ Use para saber quanto o modelo erra num caso novo. `models/fit_stats` descreve o
 
 Mesmas entradas opcionais da matriz de confusão. No modo tabela, resposta ou previsto categóricos fazem classificação; dois números, regressão. Linhas sem real ou previsto ficam fora, e `n` diz quantas contaram.
 
+Precisão de classe nunca prevista é indefinida (0/0): sai NA e fica fora das médias macro e ponderada, como `zero_division = np.nan` do scikit-learn.
+
+**Permitir avaliar o treino** — com `dados` vindos do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) (a tabela leva a marca de treino/teste), previsões das linhas de treino são recusadas (`tr_ml_error_train_eval`): a medida no treino é otimista. Ligado, avalia assim mesmo e acrescenta a nota de otimismo. Tabela sem a marca é avaliada como chega.
+
 ## Exemplo
 
 ```r

@@ -1,0 +1,18 @@
+---
+import Base from "../layouts/Base.astro";
+import { collections } from "../data/collections";
+---
+
+<Base title="Página não encontrada" description="Este endereço não existe no site do trama.">
+  <section class="not-found">
+    <h1>Esta página não existe.</h1>
+    <p class="lede">O endereço pode ter mudado quando um bloco trocou de nome ou de coleção. Busque pelo nome do bloco ou comece por uma coleção.</p>
+    <div class="not-found__actions">
+      <button class="button button--primary" type="button" data-search-open>Buscar na documentação</button>
+      <a class="text-link" href="/trama/">Voltar ao início</a>
+    </div>
+    <ul class="not-found__collections">
+      {collections.map((c) => <li><a href={`/trama/colecoes/${c.id}/`}>{c.title}</a></li>)}
+    </ul>
+  </section>
+</Base>

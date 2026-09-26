@@ -40,6 +40,8 @@ tr_series_errors <- function() {
       "duas séries da mesma frequência com as grades de tempo defasadas: nenhum período coincide exatamente",
     tr_series_error_frequency_mismatch =
       "duas séries que o nó opera juntas chegaram com frequências diferentes",
+    tr_series_error_singular_fit =
+      "o modelo reproduz a série sem resíduo (ou é singular): não há erro ARMA a estimar",
     tr_series_error_not_a_series =
       "o nó produziu um objeto que não é série univariada, e o tipo series/ts recusa guardá-lo",
     tr_series_error_not_a_decomposition =

@@ -92,3 +92,19 @@ test_that("uma série NÃO entra onde o motor não tem adaptador", {
   err <- tryCatch(trama::tr_add(f, "d", "series/diff", from = "tab"), error = identity)
   expect_s3_class(err, "tr_error_type_mismatch")
 })
+
+test_that("intervenção roda no motor (exemplo da ajuda) e o bootstrap usa a semente do nó", {
+  reg <- series_registry()
+  f <- trama::tr_flow(reg) |>
+    trama::tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
+    trama::tr_add("log", "series/transform", from = "sb") |>
+    trama::tr_add("lei", "series/intervencao", data = "1983, 2", p = 1L, d = 0L, q = 0L,
+                  P = 1L, D = 1L, Q = 1L, from = "log") |>
+    trama::tr_add("ets", "series/ets", from = "log") |>
+    trama::tr_add("prev", "series/forecast", intervalo = "bootstrap", from = "ets")
+  out <- rodar(f, "lei")
+  expect_equal(out$termo[[1]], "intervencao")
+  expect_lt(out$ls_95[[1]], 0)
+  a <- rodar(f, "prev"); b <- rodar(f, "prev")
+  expect_identical(a$upper, b$upper)
+})

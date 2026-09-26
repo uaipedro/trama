@@ -54,6 +54,7 @@ test_that("CART expõe regras e importância com nomes originais", {
   expect_true("valor" %in% names(r))
   i <- trama.models::tr_models_importance(m)
   expect_named(i, c("termo", "importancia", "medida"))
+  expect_match(i$medida[[1]], "impureza.*substitutas")
   expect_true(all(i$termo %in% m$preditores))
   expect_true(all(diff(i$importancia) <= 0))
 })
@@ -272,4 +273,147 @@ test_that("XGBoost preserva a correspondencia linha-classe em multiclasse", {
   expect_equal(unname(as.matrix(obtido[paste0("prob_", m$niveis)])),
                unname(esperado), tolerance = 1e-7)
   expect_equal(as.character(obtido$previsto), m$niveis[max.col(esperado, ties.method = "first")])
+})
+
+test_that("CART poda por custo-complexidade com a regra 1-EP (oráculo rpart)", {
+  skip_if_not_installed("rpart")
+  # Breiman et al. (1984, sec. 3.4.3): a menor árvore cujo erro de validação
+  # cruzada não passa do mínimo + 1 erro-padrão. Reproduz printcp/prune do
+  # rpart com a mesma semente e os mesmos 10 folds.
+  d <- datasets::airquality[stats::complete.cases(datasets::airquality), ]
+  cols <- "Solar.R, Wind, Temp, Month, Day"
+  m <- tr_ml_cart(d, "Ozone", cols, max_depth = 30, min_n = 3, seed = 42)
+  oraculo <- trama.ml:::.tr_ml_with_seed(42L, rpart::rpart(
+    Ozone ~ Solar.R + Wind + Temp + Month + Day, d, method = "anova",
+    control = rpart::rpart.control(maxdepth = 30, minbucket = 3, minsplit = 6, cp = 0, xval = 10)))
+  tab <- oraculo$cptable
+  expect_equal(unname(m$extras$poda$cptable), unname(tab), tolerance = 1e-12)
+  i_min <- which.min(tab[, "xerror"])
+  i_1ep <- which(tab[, "xerror"] <= tab[i_min, "xerror"] + tab[i_min, "xstd"])[[1]]
+  # Valores da semente 42 (printcp): árvore cheia com 30 divisões, mínimo do
+  # xerror em outra linha, 1-EP com 3 divisões.
+  expect_equal(unname(tab[nrow(tab), "nsplit"]), 30)
+  expect_equal(unname(tab[i_1ep, "nsplit"]), 3)
+  expect_lt(i_1ep, i_min)
+  podada <- rpart::prune(oraculo, cp = tab[i_1ep, "CP"])
+  expect_equal(m$extras$poda$cp, unname(tab[i_1ep, "CP"]))
+  expect_equal(m$extras$poda$divisoes, 3)
+  expect_equal(sum(m$ajuste$frame$var != "<leaf>"), 3L)
+  expect_equal(prever(m, d)$previsto, unname(stats::predict(podada, d)))
+  # A regra do mínimo escolhe a árvore de menor xerror; sem poda, a árvore cheia.
+  mm <- tr_ml_cart(d, "Ozone", cols, max_depth = 30, min_n = 3, seed = 42, poda = "minimo")
+  expect_equal(mm$extras$poda$divisoes, unname(tab[i_min, "nsplit"]))
+  mn <- tr_ml_cart(d, "Ozone", cols, max_depth = 30, min_n = 3, seed = 42, poda = "nenhuma")
+  expect_equal(sum(mn$ajuste$frame$var != "<leaf>"), 30L)
+  # Regras continuam recompondo a árvore podada.
+  expect_equal(nrow(tr_ml_rules(m)), 4L)
+})
+
+test_that("CART: cp cresce a árvore mínima e parâmetros inválidos são recusados", {
+  skip_if_not_installed("rpart")
+  m <- tr_ml_cart(mtcars, "mpg", "wt, hp", cp = 0.5, poda = "nenhuma")
+  expect_equal(sum(m$ajuste$frame$var != "<leaf>"), 1L)
+  expect_error(tr_ml_cart(mtcars, "mpg", "wt", cp = -1), class = "tr_ml_error_bad_param")
+  expect_error(tr_ml_cart(mtcars, "mpg", "wt", poda = "tudo"), class = "tr_ml_error_bad_option")
+})
+
+test_that("logística classifica pelo corte informado sobre P(segunda classe)", {
+  d <- tr_ml_example("iris_binaria")
+  ref <- stats::glm(Species ~ Sepal.Length + Sepal.Width, d, family = stats::binomial())
+  p <- unname(stats::fitted(ref))
+  for (corte in c(.5, .3, .8)) {
+    m <- tr_ml_linear(d, "Species", "Sepal.Length, Sepal.Width", corte = corte)
+    prev <- prever(m, d)
+    expect_equal(prev$prob_virginica, p, tolerance = 1e-10)
+    esperado <- factor(levels(d$Species)[1L + (p >= corte)], levels = levels(d$Species))
+    expect_identical(prev$previsto, esperado)
+  }
+  expect_gt(sum(prever(tr_ml_linear(d, "Species", "Sepal.Length, Sepal.Width", corte = .3), d)$previsto == "virginica"),
+            sum(prever(tr_ml_linear(d, "Species", "Sepal.Length, Sepal.Width"), d)$previsto == "virginica"))
+  expect_error(tr_ml_linear(d, "Species", corte = 0), class = "tr_ml_error_bad_param")
+  expect_error(tr_ml_linear(d, "Species", corte = 1), class = "tr_ml_error_bad_param")
+})
+
+test_that("SVM: .pred é a classe de maior probabilidade (coerência com .prob_*)", {
+  skip_if_not_installed("e1071")
+  argmax <- function(prev, niveis) {
+    pr <- as.matrix(prev[paste0("prob_", niveis)])
+    factor(niveis[max.col(pr, ties.method = "first")], levels = niveis)
+  }
+  d <- droplevels(subset(iris, Species != "setosa"))
+  m <- tr_ml_svm(d, "Species", "Sepal.Length, Sepal.Width")
+  prev <- prever(m, d)
+  # Neste exemplo a margem e a calibração de Platt discordam em algumas linhas.
+  margem <- stats::predict(m$ajuste, d[c("Sepal.Length", "Sepal.Width")])
+  expect_true(any(as.character(margem) != as.character(argmax(prev, m$niveis))))
+  expect_identical(prev$previsto, argmax(prev, m$niveis))
+  m3 <- tr_ml_svm(iris, "Species", "Sepal.Length, Sepal.Width")
+  prev3 <- prever(m3, iris)
+  expect_identical(prev3$previsto, argmax(prev3, m3$niveis))
+})
+
+test_that("poda do CART com n < 10 usa min(10, n) folds: deixa-um-fora exato", {
+  skip_if_not_installed("rpart")
+  # Com n <= 10 os folds viram deixa-um-fora, que não depende de sorteio: o
+  # cptable tem de ser igual ao do rpart com xval = 1:n (grupos explícitos).
+  for (n in c(3L, 5L, 8L)) {
+    d <- mtcars[seq_len(n), c("mpg", "wt", "hp")]
+    m <- tr_ml_fit(d, "mpg", "wt, hp", modelo = "cart", min_n = 1)
+    expect_equal(m$extras$poda$folds, n)
+    ref <- rpart::rpart(mpg ~ wt + hp, d, method = "anova",
+                        control = rpart::rpart.control(minbucket = 1, minsplit = 2, cp = 0,
+                                                       maxdepth = 3, xval = seq_len(n)))
+    expect_equal(unname(m$extras$poda$cptable), unname(ref$cptable), tolerance = 1e-12, info = n)
+    expect_true(all(is.finite(prever(m, d)$previsto)))
+  }
+  expect_equal(tr_ml_fit(mtcars, "mpg", "wt", modelo = "cart")$extras$poda$folds, 10L)
+})
+
+test_that("importância da floresta: permutação e impureza corrigida iguais ao ranger direto", {
+  skip_if_not_installed("ranger")
+  # Oráculo: chamada direta do ranger com os mesmos argumentos e semente.
+  set.seed(8)
+  d <- data.frame(y = rnorm(120), x1 = rnorm(120), x2 = sample(1:3, 120, TRUE),
+                  ruido = runif(120))
+  d$y <- d$y + 2 * d$x1
+  for (nome in c("impureza", "permutacao", "impureza_corrigida")) {
+    eng <- c(impureza = "impurity", permutacao = "permutation", impureza_corrigida = "impurity_corrected")[[nome]]
+    m <- tr_ml_forest(d, "y", "x1, x2, ruido", trees = 150, min_n = 5, max_depth = 3, importancia = nome, seed = 11)
+    ref <- ranger::ranger(y ~ x1 + x2 + ruido, d, num.trees = 150, mtry = 1, min.node.size = 5,
+                          max.depth = 3, importance = eng, seed = 11)
+    imp <- trama.models::tr_models_importance(m)
+    expect_equal(attr(imp, "medida"), nome)
+    expect_equal(imp$importancia[match(names(ref$variable.importance), imp$termo)],
+                 unname(ref$variable.importance), tolerance = 1e-12, info = nome)
+    expect_equal(imp$termo[[1]], "x1")
+  }
+  # Classificação (floresta de probabilidade) com permutação.
+  dc <- data.frame(y = factor(ifelse(d$x1 > 0, "a", "b")), d[c("x1", "x2", "ruido")])
+  m <- tr_ml_forest(dc, "y", "x1, x2, ruido", trees = 100, importancia = "permutacao", seed = 3)
+  ref <- ranger::ranger(y ~ x1 + x2 + ruido, dc, num.trees = 100, mtry = 1, min.node.size = 5,
+                        max.depth = 3, probability = TRUE, importance = "permutation", seed = 3)
+  expect_equal(trama.models::tr_models_importance(m)$importancia[match(names(ref$variable.importance), trama.models::tr_models_importance(m)$termo)],
+               unname(ref$variable.importance), tolerance = 1e-12)
+  # a medida é visível e diz o que a permutação mede em cada tarefa: na
+  # floresta de probabilidade, aumento do erro de Brier do ranger (média de
+  # (1 - p da classe observada)^2 fora da bolsa), não queda de acurácia
+  expect_true(all(grepl("Brier", trama.models::tr_models_importance(m)$medida)))
+  expect_false(any(grepl("acur", trama.models::tr_models_importance(m)$medida)))
+  mr <- tr_ml_forest(d, "y", "x1, x2, ruido", trees = 50, importancia = "permutacao", seed = 3)
+  expect_true(all(grepl("quadr", trama.models::tr_models_importance(mr)$medida)))
+  expect_match(trama.models::tr_models_importance(tr_ml_forest(d, "y", "x1, x2", trees = 20))$medida[[1]], "redu.*vari")
+  # o erro que o ranger reporta na floresta de probabilidade é essa média
+  expect_equal(ref$prediction.error,
+               mean((1 - ref$predictions[cbind(seq_len(nrow(dc)), as.integer(dc$y))])^2), tolerance = 1e-12)
+  expect_error(tr_ml_forest(d, "y", importancia = "gini"), class = "tr_ml_error_bad_option")
+})
+
+test_that("importância do XGBoost é o Gain relativo, rotulado como tal", {
+  skip_if_not_installed("xgboost")
+  m <- tr_ml_xgboost(tr_ml_example("iris_binaria"), "Species", nrounds = 10)
+  i <- trama.models::tr_models_importance(m)
+  expect_match(i$medida[[1]], "Gain")
+  expect_equal(sum(i$importancia), 1, tolerance = 1e-6)      # fração do ganho total
+  skip_if_not_installed("figsr")
+  expect_match(trama.models::tr_models_importance(tr_ml_figs(tr_ml_example("iris_binaria"), "Species"))$medida[[1]], "FIGS")
 })

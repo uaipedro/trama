@@ -100,3 +100,15 @@ test_that("comparar modelos aninhados, e recusar os não aninhados", {
   b <- tr_models_lmer(s, formula = "Reaction ~ Days + (Days | Subject)")
   expect_equal(tr_models_compare(a, b)$teste, "Razão de verossimilhança")
 })
+
+test_that("tipo III com covariável em interação avisa que o fator é testado na covariável zero", {
+  d <- data.frame(y = c(5.1, 6.3, 7.2, 8.4, 4.8, 6.9, 8.8, 10.1, 5.5, 6.0, 7.9, 9.7),
+                  a = factor(rep(c("p", "q"), each = 6)), x = rep(c(1, 2, 3), 4) + 10)
+  m <- tr_models_lm(d, formula = "y ~ a * x")
+  q <- tr_models_anova_table(m, "III")
+  expect_match(q$nota, "x = 0")
+  # Oráculo: o F de 'a' é o do contraste entre as retas em x = 0 (contr.sum).
+  ref <- stats::lm(y ~ a * x, data = d, contrasts = list(a = "contr.sum"))
+  expect_equal(q$tabela$F[q$tabela$termo == "a"], car::Anova(ref, type = 3)["a", "F value"], tolerance = 1e-10)
+  expect_equal(tr_models_anova_table(tr_models_lm(d, formula = "y ~ a + x"), "III")$nota, "")
+})

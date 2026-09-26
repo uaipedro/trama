@@ -5,12 +5,12 @@ section: colecoes
 collection: modelos
 node: models/plot_regression
 category: resumir
-related: [models/dose_response, models/nls, models/plot_means]
+related: [models/polinomial, models/nls, models/plot_means]
 ---
 
 ## O que o bloco faz
 
-`models/plot_regression` desenha a curva ajustada por `models/dose_response` ou `models/nls` com os pontos, a equação e o R². A saída é `view/plot`.
+`models/plot_regression` desenha a curva ajustada por `models/polinomial` ou `models/nls` com os pontos, a equação e o R². A saída é `view/plot`.
 
 ## Quando usar
 
@@ -31,7 +31,7 @@ tr_use("trama.models", registry = reg)
 tr_flow(reg) |>
   tr_add("dados", "models/example", dataset = "adubo_dbc") |>
   tr_add("ajuste", "models/anova_dbc", resposta = "producao", tratamento = "dose", bloco = "bloco", from = "dados") |>
-  tr_add("curva", "models/dose_response", tratamento = "dose", from = "ajuste") |>
+  tr_add("curva", "models/polinomial", tratamento = "dose", from = "ajuste") |>
   tr_add("resultado", "models/plot_regression", titulo = "Produção por dose de N", from = "curva")
 ```
 

@@ -112,36 +112,87 @@ tr_series_kpss <- function(serie, deterministico = "constante") {
 #' defasagens à regressão, corrige a estatística para a autocorrelação dos
 #' resíduos.
 #' @export
-tr_series_phillips_perron <- function(serie) {
+tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
+  det <- .tr_series_enum(deterministico, c("constante", "tendência"), "deterministico")
   .tr_series_sem_na(serie, "series/phillips_perron")
   .tr_series_minimo(serie, 12L, "series/phillips_perron", "um teste de raiz unitária")
-  # O `PP.test` interpola o p-valor numa tabela e, fora dela, PRENDE o valor
-  # na borda (`approx(rule = 2)`) sem avisar nada — medido: nem warning ele
-  # dá. Um "0,01" que é na verdade "menor que 0,01" não pode sair sem a
-  # ressalva, então ela é deduzida do próprio valor e vai para a nota.
-  #
-  # As bordas são 0,01 e 0,99, e não 0,01 e 0,1: o `tablep` do `stats` é
-  # c(0.01, 0.025, 0.05, 0.1, 0.9, 0.95, 0.975, 0.99). Medido, o passeio
-  # aleatório do teste sai com p = 0,62 — interpolado, não preso —, e um corte
-  # em 0,1 o marcaria como truncado. Ressalva que aparece quando não há
-  # truncamento nenhum é ressalva que se aprende a ignorar, e aí ela não
-  # protege mais o caso em que importa.
-  pp <- stats::PP.test(as.numeric(serie))
-  nota <- "sempre com constante e tendência (é como o stats o define)"
-  if (pp$p.value <= 0.01) {
+  # O p-valor é interpolado numa tabela e, fora dela, PRESO na borda
+  # (`approx(rule = 2)`) sem aviso nenhum. Um "0,01" que é na verdade "menor que
+  # 0,01" não pode sair sem a ressalva, então ela é deduzida do próprio valor e
+  # vai para a nota. As bordas são 0,01 e 0,99 (as das duas tabelas), e não
+  # 0,1: o passeio aleatório sai com p = 0,62, interpolado, e um corte em 0,1 o
+  # marcaria como truncado sem estar.
+  if (det == "tendência") {
+    # Com tendência, o `stats::PP.test` — inalterado desde a versão 1 do nó.
+    pp <- stats::PP.test(as.numeric(serie))
+    estat <- unname(pp$statistic)
+    p <- pp$p.value
+    nota <- "com constante e tendência"
+  } else {
+    # Só constante: o `stats` não tem, e a conta é a forma geral do Z(t)
+    # (Phillips & Perron 1988; Hamilton 1994, eq. 17.6.8) com as MESMAS
+    # convenções do `PP.test` — janela curta, pesos de Bartlett, gamma_0 com
+    # divisor n. Conferida contra `aTSA::pp.test` (tipo 2) a 1e-10.
+    estat <- .tr_series_pp_z_constante(as.numeric(serie))
+    p <- .tr_series_pp_p_constante(estat, length(serie) - 1L)
+    nota <- "só constante (sem tendência); p-valor de MacKinnon (1996)"
+  }
+  # Só a tabela do `PP.test` tem borda; a superfície de MacKinnon não.
+  if (det == "tendência" && p <= 0.01) {
     nota <- paste0(nota, "; p-valor truncado na borda da tabela: o verdadeiro é <= 0,01")
   }
-  if (pp$p.value >= 0.99) {
+  if (det == "tendência" && p >= 0.99) {
     nota <- paste0(nota, "; p-valor truncado na borda da tabela: o verdadeiro é >= 0,99")
   }
+  # Medido sob passeio aleatório (4000 réplicas): com 12 observações o teste
+  # rejeita a 5% em 7% (constante) e 10% (tendência) das vezes; com 25, 5,9% e
+  # 4,9%. O excesso é do próprio Z(t) em amostra pequena, não só da tabela.
+  if (length(serie) < 25L) {
+    nota <- paste0(nota, "; série curta: com menos de 25 observações o teste rejeita ",
+                   "acima do nível nominal (medido: até 10% a 5% com 12)")
+  }
   .tr_series_teste(
-    "Phillips-Perron", "a série tem raiz unitária", pp$statistic, "Z(t)",
-    p_valor = pp$p.value,
+    "Phillips-Perron", "a série tem raiz unitária", estat, "Z(t)",
+    p_valor = p,
     sentido = "menor",
     conclusao_sim = "estacionária",
     conclusao_nao = "não há evidência contra a raiz unitária",
     nota = nota,
     fonte = "Phillips & Perron (1988)")
+}
+
+#' Z(t) de Phillips-Perron com só constante.
+#'
+#' Regressão y_t = a + rho y_{t-1} + u_t; t de rho = 1 corrigido pela variância
+#' de longo prazo lambda² (Newey-West, janela trunc(4 (n/100)^(1/4))):
+#' Z(t) = sqrt(g0/lambda²) t - (lambda² - g0) n se(rho) / (2 lambda s).
+#' @noRd
+.tr_series_pp_z_constante <- function(x) {
+  z <- stats::embed(x, 2)
+  yt <- z[, 1]; yt1 <- z[, 2]
+  n <- length(yt)
+  fit <- stats::lm(yt ~ yt1)
+  cf <- stats::coef(summary(fit))["yt1", ]
+  tstat <- (cf[[1]] - 1) / cf[[2]]
+  u <- stats::residuals(fit)
+  g0 <- sum(u^2) / n
+  l <- trunc(4 * (n / 100)^0.25)
+  gam <- vapply(seq_len(l), function(i) sum(u[-seq_len(i)] * u[seq_len(n - i)]) / n, 0)
+  lam <- g0 + 2 * sum((1 - seq_len(l) / (l + 1)) * gam)
+  s <- summary(fit)$sigma
+  sqrt(g0 / lam) * tstat - (lam - g0) * n * cf[[2]] / (2 * sqrt(lam) * s)
+}
+
+#' P-valor do Z(t) com constante: superfície de resposta de MacKinnon (1996),
+#' `urca::punitroot(trend = "c")`, com N = observações da regressão. Substitui
+#' (versão 3) a tabela tau_mu de Fuller (1976) interpolada e presa na borda.
+#' O aviso de "amostra pequena" que o urca imprime com `print()` é engolido: a
+#' ressalva de série curta vai para a `nota`, com o tamanho medido.
+#' @noRd
+.tr_series_pp_p_constante <- function(estat, n) {
+  out <- NULL
+  utils::capture.output(out <- urca::punitroot(estat, N = n, trend = "c", statistic = "t"))
+  out
 }
 
 #' Zivot-Andrews: raiz unitária, com a quebra estimada pelo próprio teste?
@@ -159,7 +210,9 @@ tr_series_phillips_perron <- function(serie) {
 #' É o segundo bloco da coleção a publicar um ponto localizado na série, depois
 #' do `series/pettitt`, e usa o mesmo `.tr_series_rotulo_em()` para o rótulo.
 #' @export
-tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
+tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = -1L,
+                                    selecao = "fixa") {
+  selecao <- .tr_series_enum(selecao, c("fixa", "t_sig"), "selecao")
   mud <- .tr_series_enum(mudanca, c("nível", "inclinação", "ambas"), "mudanca")
   # Eq. 3.35 (nível), 3.36 (inclinação) e 3.37 (ambas) da dissertação, nesta ordem.
   modelo <- switch(mud, "nível" = "intercept", "inclinação" = "trend", "ambas" = "both")
@@ -184,8 +237,13 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   .tr_series_minimo(serie, 20L, "series/zivot_andrews", "a varredura da quebra")
   x <- as.numeric(serie)
   n <- length(x)
-  k <- .tr_series_int(defasagens, "defasagens", min = 0L)
-  if (k == 0L) k <- as.integer(trunc((n - 1)^(1 / 3)))
+  # `defasagens = -1` (padrão, versão 4) é a regra de Schwert (1989, eq. 13a e
+  # 13b do NBER t0073): com `fixa`, l4 = trunc(4 (n/100)^(1/4)); com `t_sig`, o
+  # teto l12 = trunc(12 (n/100)^(1/4)). Qualquer k >= 0 vale como foi dado.
+  k <- .tr_series_int(defasagens, "defasagens", min = -1L)
+  auto <- k < 0L
+  k_cabe_auto <- function(k) min(k, max(0L, (n - 2L - (if (modelo == "both") 5L else 4L)) %/% 2L))
+  if (auto && selecao == "fixa") k <- k_cabe_auto(as.integer(trunc(4 * (n / 100)^(1 / 4))))
   # O `ur.za` ajusta, em CADA corte candidato, uma regressão com intercepto,
   # y_{t-1}, tendência, as k diferenças defasadas e a dummy da quebra — duas
   # dummies no modelo "ambas" —, sobre as n - 1 - k linhas que sobram depois das
@@ -201,13 +259,31 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   # tendência e a(s) dummy(s). Com eles, gl = n - 1 - 2k - fixos, e o maior k que
   # ainda deixa um grau de liberdade sai de gl >= 1.
   fixos <- if (modelo == "both") 5L else 4L
+  k_cabe <- max(0L, (n - 2L - fixos) %/% 2L)
+  if (selecao == "t_sig") {
+    # Teto da busca: o dado, ou a regra de Schwert (1989), trunc(12 (n/100)^(1/4)),
+    # limitada ao que cabe — o teto automático nunca é motivo de erro.
+    kmax <- if (auto) as.integer(trunc(12 * (n / 100)^(1 / 4))) else k
+    if (kmax > k_cabe && !auto) {
+      .tr_series_abort("tr_series_error_bad_option",
+                       paste0("Param 'defasagens': %d defasagens não cabem numa série de %d ",
+                              "observações neste modelo — a regressão da quebra ficaria sem ",
+                              "graus de liberdade. O máximo aqui é %d."),
+                       k, n, k_cabe)
+    }
+    kmax <- min(kmax, k_cabe)
+    sel <- .tr_series_za_por_corte(x, modelo, kmax)
+    k <- sel$k
+  }
+  # Com `fixa`, `defasagens` é o k usado, e 0 é zero (versão 3; até a versão 2,
+  # 0 caía na regra trunc((n - 1)^(1/3)) sem dizer).
   gl <- n - 1L - 2L * k - fixos
   if (gl < 1L) {
     .tr_series_abort("tr_series_error_bad_option",
                      paste0("Param 'defasagens': %d defasagens não cabem numa série de %d ",
                             "observações neste modelo — a regressão da quebra ficaria sem ",
                             "graus de liberdade. O máximo aqui é %d."),
-                     k, n, max(0L, (n - 2L - fixos) %/% 2L))
+                     k, n, k_cabe)
   }
   z <- urca::ur.za(x, model = modelo, lag = k)
   # `z@cval` chega SEM NOMES e na ordem 1%, 5%, 10% — invertida em relação à
@@ -236,9 +312,17 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   # são os da tabela aparada.
   lo <- as.integer(ceiling(0.15 * n))
   hi <- as.integer(min(floor(0.85 * n), length(z@tstats)))
-  janela <- z@tstats[lo:hi]
-  estat <- min(janela, na.rm = TRUE)
-  quebra <- as.integer(lo - 1L + which.min(janela))
+  if (selecao == "t_sig") {
+    # k escolhido em CADA corte (Zivot & Andrews 1992, seção 4): o t de cada
+    # corte é o da regressão com o k daquele corte, e o teste é o mínimo deles.
+    # `z` (o `ur.za` com o k do corte vencedor) fica só pela tabela de críticos.
+    estat <- sel$estat
+    quebra <- sel$quebra
+  } else {
+    janela <- z@tstats[lo:hi]
+    estat <- min(janela, na.rm = TRUE)
+    quebra <- as.integer(lo - 1L + which.min(janela))
+  }
   quando <- .tr_series_rotulo_em(serie, quebra)
   # Numa série sem calendário o rótulo é o próprio índice, e "observação 60 (60)"
   # é ruído que ensina a ignorar o parêntese justamente onde ele carrega a data.
@@ -249,8 +333,15 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   # prosa. Os três viram o que se lê em voz alta.
   oque <- switch(mud, "nível" = "nível", "inclinação" = "inclinação",
                  "ambas" = "nível e inclinação")
-  nota <- sprintf("quebra de %s, estimada pelo teste; %d defasagens; %d observações antes da quebra e %d a partir dela",
-                  oque, k, quebra, n - quebra)
+  defs <- if (selecao == "t_sig") {
+    sprintf("%d defasagens no corte vencedor, escolhidas em cada corte do geral para o específico (teto %d, t da última a 10%%)", k, kmax)
+  } else if (auto) {
+    sprintf("%d defasagens (regra de Schwert, trunc(4·(n/100)^(1/4)))", k)
+  } else {
+    sprintf("%d defasagens", k)
+  }
+  nota <- sprintf("quebra de %s, estimada pelo teste; %s; %d observações antes da quebra e %d a partir dela",
+                  oque, defs, quebra, n - quebra)
   # A ressalva do excesso de tamanho, e só onde ela vale: medido, a taxa de
   # rejeição sob passeio aleatório fica em torno de 10% a 14% até n = 30 e segue
   # acima do nominal depois — perto de 9% em n = 40 e 7% a 8% em n = 100, na
@@ -258,7 +349,14 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
   # onde o excesso é maior; acima dele o resto está na página do nó. Pôr o aviso em toda série o transformaria em ruído que se
   # aprende a pular — que é como a ressalva do `series/phillips_perron` teria
   # morrido se o corte dela fosse 0,1 em vez da borda de verdade.
-  if (n < 40L) {
+  if (selecao == "t_sig" && n < 100L) {
+    # Medido sob passeio aleatório (modelo de nível, 1000 réplicas por n, versão
+    # 4): escolher k em cada corte rejeita a 5% em 29,3% (n = 30), 19,8% (50) e
+    # 14,6% (100); o padrão `fixa` com l4 de Schwert, em 8,0%, 6,9% e 6,2%.
+    nota <- paste0(nota, "; com a escolha das defasagens em cada corte e menos de 100 ",
+                   "observações o teste rejeita bem acima do nível nominal (medido: 29% a 5% ",
+                   "com 30 observações); confira com Escolha = fixa")
+  } else if (n < 40L) {
     nota <- paste0(nota, "; série curta para este teste: com menos de 40 observações ",
                    "ele rejeita mais do que o nível nominal, então um \"rejeita H0\" ",
                    "apertado aqui pede confirmação")
@@ -286,7 +384,7 @@ tr_series_zivot_andrews <- function(serie, mudanca = "ambas", defasagens = 0L) {
     fonte = "Zivot & Andrews (1992)",
     # O índice porque é o que se confere contra o `ur.za`; o rótulo porque é o
     # que uma pessoa lê no relatório. Mesmo par do `series/pettitt`.
-    extra = list(quebra = quebra, quando = quando))
+    extra = list(quebra = quebra, quando = quando, defasagens = as.integer(k)))
 }
 
 #' O miolo dos dois testes de ruído branco.
@@ -418,6 +516,12 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
 #' @noRd
 .tr_series_f_parcial <- function(ajuste, rotulo, h0, termos, sim, nao) {
   fit <- ajuste$ajuste
+  if (inherits(fit, "gls")) {
+    # Erro ARMA: não há reajuste por MQO que valha; o F é o de Wald sobre os
+    # coeficientes do bloco, com a covariância do GLS.
+    cols <- .tr_series_colunas_termos(ajuste, termos)
+    return(.tr_series_f_wald(ajuste, cols, rotulo, h0, sim, nao, "F de Wald do bloco"))
+  }
   # Teste PARCIAL: reajusta sem o bloco e compara. O reajuste sai de
   # `fit$model`, que carrega o fator com o contraste já posto — por isso o
   # contraste é atribuído ao fator, e não ao `lm`, em `tr_series_regression`.
@@ -438,6 +542,36 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
     fonte = "Morettin & Toloi (2006)")
 }
 
+#' Colunas da matriz de desenho que pertencem a um conjunto de termos.
+#' @noRd
+.tr_series_colunas_termos <- function(ajuste, termos) {
+  X <- ajuste$matriz
+  which(attr(X, "assign") %in% match(termos, attr(X, "rotulos")))
+}
+
+#' F de Wald de um bloco de coeficientes do GLS: b' V^-1 b / q, com q e
+#' n - p graus de liberdade (Pinheiro & Bates 2000, sec. 5.4).
+#' @noRd
+.tr_series_f_wald <- function(ajuste, cols, rotulo, h0, sim, nao, tipo) {
+  fit <- ajuste$ajuste
+  b <- stats::coef(fit)[cols]
+  V <- stats::vcov(fit)[cols, cols, drop = FALSE]
+  q <- length(cols)
+  gl2 <- length(stats::fitted(fit)) - length(stats::coef(fit))
+  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
+  o <- ajuste$ordem
+  .tr_series_teste(
+    rotulo, h0, Fv, "F",
+    p_valor = stats::pf(Fv, q, gl2, lower.tail = FALSE),
+    sentido = "menor",
+    conclusao_sim = sim,
+    conclusao_nao = nao,
+    nota = paste0(sprintf("%s com erro ARMA(%d, %d) por GLS, %d %s no numerador e %d no denominador",
+                          tipo, o[["ar"]], o[["ma"]], q, if (q == 1L) "grau" else "graus", gl2),
+                  if (!is.null(ajuste$aviso)) paste0("; ", ajuste$aviso) else ""),
+    fonte = "Morettin & Toloi (2006)")
+}
+
 #' O bloco pedido não está no ajuste.
 #' @noRd
 .tr_series_sem_bloco <- function(no, bloco, saida) {
@@ -455,6 +589,13 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
 #' @export
 tr_series_f_global <- function(ajuste) {
   .tr_series_exige_reg(ajuste, "series/f_global")
+  if (inherits(ajuste$ajuste, "gls")) {
+    cols <- which(colnames(ajuste$matriz) != "(Intercept)")
+    return(.tr_series_f_wald(ajuste, cols, "F global",
+                             "todos os coeficientes, fora o intercepto, são nulos",
+                             "o modelo explica parte da série",
+                             "não há evidência de que o modelo explique a série", "F de Wald global"))
+  }
   s <- summary(ajuste$ajuste)
   fs <- s$fstatistic
   p <- stats::pf(fs[[1]], fs[[2]], fs[[3]], lower.tail = FALSE)
@@ -514,27 +655,81 @@ tr_series_f_tendencia <- function(ajuste) {
 #' a conclusão — um bilateral que só dissesse "há tendência" jogaria fora o que
 #' o usuário foi perguntar.
 #' @export
-tr_series_mann_kendall <- function(serie) {
+tr_series_mann_kendall <- function(serie, correcao = "nenhuma", .seed = NULL) {
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "hamed_rao", "pre_branqueamento",
+                                          "bootstrap_blocos"), "correcao")
   .tr_series_sem_na(serie, "series/mann_kendall")
   # A Z é uma aproximação NORMAL da distribuição exata de S, e com meia dúzia de
   # pontos ela é ruim: o p-valor sairia com uma precisão que a amostra não
   # sustenta, e sem nada no card avisando. Daí o piso — abaixo dele o caminho é
-  # a tabela exata de S, que este bloco não traz.
-  .tr_series_minimo(serie, 10L, "series/mann_kendall", "a aproximação normal")
+  # a tabela exata de S, que este bloco não traz. Pré-branquear perde a
+  # primeira observação, então ali o piso vale para a série que sobra.
+  n_min <- if (correcao == "pre_branqueamento") 11L else 10L
+  .tr_series_minimo(serie, n_min, "series/mann_kendall",
+                    if (n_min == 11L) "o pré-branqueamento (perde uma observação) com a aproximação normal"
+                    else "a aproximação normal")
   x <- as.numeric(serie)
   n <- length(x)
+  r1 <- NA_real_
+  if (correcao %in% c("hamed_rao", "pre_branqueamento")) {
+    tt <- seq_len(n)
+    beta <- .tr_series_sen(x)
+    detr <- x - beta * tt
+  }
+  if (correcao == "pre_branqueamento") {
+    # Yue et al. (2002): tira a tendência de Sen, pré-branqueia o resíduo pelo
+    # r1 (AR(1)) e devolve a tendência. Como no `modifiedmk::tfpwmk`, o r1 entra
+    # sempre, significativo ou não; somar a reta com índice deslocado de um
+    # passo não muda nenhum sinal par a par.
+    r1 <- stats::acf(detr, lag.max = 1L, plot = FALSE)$acf[2L]
+    x <- (detr[-1L] - r1 * detr[-n]) + beta * seq_len(n - 1L)
+    n <- length(x)
+  }
   S <- sum(vapply(seq_len(n - 1L), function(i) sum(sign(x[(i + 1L):n] - x[i])), 0))
   # A variância leva a correção de empates (eq. 3.20 da dissertação), e ela não é
   # refinamento: par empatado não aponta direção nenhuma, e sem descontá-lo a
   # variância fica grande demais para o S que de fato pode sair. O efeito é um
   # p-valor OTIMISTA numa série cheia de valores repetidos — medição arredondada,
   # chuva com corrida de zeros —, que é a série climatológica típica.
-  empates <- table(x)
+  # Empate é igualdade EXATA (`match`), e não a de `table()`, que compara o
+  # texto com 15 algarismos e juntaria valores pré-branqueados distintos.
+  empates <- tabulate(match(x, unique(x)))
   v <- (n * (n - 1) * (2 * n + 5) - sum(empates * (empates - 1) * (2 * empates + 5))) / 18
+  razao <- 1
+  if (correcao == "hamed_rao") {
+    # Hamed & Rao (1998), eq. da razão n/n*: autocorrelações dos POSTOS da
+    # série sem a tendência de Sen, em todas as defasagens, e só as
+    # significativas a 5% (|r| > z_0,975 / sqrt(n)) entram na soma.
+    ro <- stats::acf(rank(detr), lag.max = n - 1L, plot = FALSE)$acf[-1L]
+    ro[abs(ro) <= stats::qnorm(0.975) / sqrt(n)] <- 0
+    i <- seq_len(n - 1L)
+    razao <- 1 + 2 / (n * (n - 1) * (n - 2)) * sum((n - i) * (n - i - 1) * (n - i - 2) * ro)
+    if (!is.finite(razao) || razao <= 0) {
+      .tr_series_abort("tr_series_error_fit",
+                       paste0("'series/mann_kendall': a correção de Hamed & Rao deu n/n* = %.3g, ",
+                              "sem variância positiva (autocorrelações negativas fortes). ",
+                              "Use o pré-branqueamento ou leia o teste sem correção."), razao)
+    }
+    v <- v * razao
+  }
   # A correção de continuidade (o -1 e o +1): S é discreto e a normal não é.
   Z <- if (S > 0) (S - 1) / sqrt(v) else if (S < 0) (S + 1) / sqrt(v) else 0
   p <- 2 * stats::pnorm(-abs(Z))
+  if (correcao == "bootstrap_blocos") {
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    bb <- .tr_series_boot_blocos(x, .tr_series_mk_s, seed = semente)
+    p <- bb$p
+  }
   grupos <- sum(empates > 1L)
+  base <- sprintf("S = %d; %d %s de empates corrigidos", as.integer(S), grupos,
+                  if (grupos == 1L) "grupo" else "grupos")
+  nota <- switch(correcao,
+    nenhuma = base,
+    hamed_rao = sprintf("%s; variância × n/n* = %.3f (Hamed & Rao)", base, razao),
+    pre_branqueamento = sprintf("%s; pré-branqueada sem a tendência de Sen, r1 = %.3f, n = %d",
+                                base, r1, n),
+    bootstrap_blocos = sprintf("%s; p por bootstrap de blocos móveis (%d reamostras, blocos de %d, semente do nó)",
+                               base, bb$B, bb$l))
   .tr_series_teste(
     "Mann-Kendall", "a série não tem tendência monótona", Z, "Z",
     p_valor = p,
@@ -544,10 +739,55 @@ tr_series_mann_kendall <- function(serie) {
     # O S bruto e o tamanho da correção: é por eles que se confere o teste contra
     # o que outro pacote reportou, e é o empate que explica um Z menor que o
     # esperado para um S grande.
-    nota = sprintf("S = %d; %d %s de empates corrigidos", as.integer(S), grupos,
-                   if (grupos == 1L) "grupo" else "grupos"),
-    fonte = "Mann (1945)",
-    extra = list(S = S))
+    nota = nota,
+    fonte = switch(correcao, nenhuma = "Mann (1945)", hamed_rao = "Hamed & Rao (1998)",
+                   pre_branqueamento = "Yue et al. (2002)",
+                   bootstrap_blocos = "Kundzewicz & Robson (2004)"),
+    extra = switch(correcao, nenhuma = list(S = S),
+                   hamed_rao = list(S = S, razao_n = razao),
+                   pre_branqueamento = list(S = S, r1 = r1),
+                   bootstrap_blocos = list(S = S, bloco = bb$l)))
+}
+
+#' Bootstrap de blocos móveis de uma estatística de tendência ou de ruptura.
+#'
+#' Blocos de comprimento l = round(sqrt(n)), de inícios sorteados com reposição
+#' entre 1 e n - l + 1, emendados e cortados em n (Künsch 1989; Kundzewicz &
+#' Robson 2004 para os testes de tendência). A série é reamostrada como veio:
+#' sob H0 (sem tendência, sem ruptura) os blocos guardam a dependência de curto
+#' alcance e a ordem global some. p = (1 + #{|T*| >= |T|}) / (B + 1).
+#'
+#' O comprimento foi MEDIDO, não herdado: a regra do `modifiedmk::bbsmk`
+#' (autocorrelações significativas seguidas + 1) dá blocos de 3 a 4 e o
+#' Mann-Kendall rejeitou 17% a 19% a 5% com AR(1) phi = 0,6 (n = 60 e 120,
+#' 300 réplicas); com sqrt(n), 9% e 7%. Ver NEWS 0.3.0.
+#' @noRd
+.tr_series_boot_blocos <- function(x, estat, B = 1999L, seed = 1L) {
+  n <- length(x)
+  l <- max(1L, as.integer(round(sqrt(n))))
+  t0 <- estat(x)
+  tb <- .tr_series_com_semente(seed, vapply(seq_len(B), function(b) {
+    ini <- sample.int(n - l + 1L, ceiling(n / l), replace = TRUE)
+    estat(x[as.vector(outer(seq_len(l) - 1L, ini, "+"))[seq_len(n)]])
+  }, 0))
+  list(p = (1 + sum(abs(tb) >= abs(t0) - 1e-12)) / (B + 1), l = l, B = B, t0 = t0)
+}
+
+#' S de Mann-Kendall, vetorizado.
+#' @noRd
+.tr_series_mk_s <- function(x) {
+  d <- outer(x, x, "-")
+  -sum(sign(d[upper.tri(d)]))
+}
+
+#' Declividade de Sen: mediana das inclinações de todos os pares.
+#' @noRd
+.tr_series_sen <- function(x) {
+  n <- length(x)
+  stats::median(unlist(lapply(seq_len(n - 1L), function(i) {
+    j <- (i + 1L):n
+    (x[j] - x[i]) / (j - i)
+  })))
 }
 
 #' Cox-Stuart: a série tem tendência?
@@ -566,8 +806,9 @@ tr_series_mann_kendall <- function(serie) {
 #' cada um com contraste menor. O param não é cosmético: os dois caminhos dão
 #' estatísticas diferentes na mesma série, e é por isso que a escolha vai na nota.
 #' @export
-tr_series_cox_stuart <- function(serie, pareamento = "terços") {
+tr_series_cox_stuart <- function(serie, pareamento = "terços", correcao = "nenhuma", .seed = NULL) {
   par <- .tr_series_enum(pareamento, c("terços", "metades"), "pareamento")
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "bootstrap_blocos"), "correcao")
   .tr_series_sem_na(serie, "series/cox_stuart")
   # Dezesseis, e não os dez do Mann-Kendall: aqui quem manda não é o tamanho da
   # série, é quantos PARES sobram depois do descarte. Em terços, dezesseis
@@ -628,6 +869,20 @@ tr_series_cox_stuart <- function(serie, pareamento = "terços") {
   # o k, que é o que explica um M pequeno numa série grande.
   nota <- sprintf("pareamento em %s: %d pares, %s", par, k,
                   if (exata) "binomial exata" else "aproximação normal")
+  if (correcao == "bootstrap_blocos") {
+    # A estatística reamostrada é a soma dos sinais dos pares, D = 2M − k (par
+    # empatado soma zero, o mesmo descarte), com o MESMO pareamento.
+    dsinal <- function(z) {
+      aa <- z[seq_len(c0)]
+      bb2 <- if (par == "terços") z[(n - c0 + 1L):n] else z[(c0 + 1L):(2L * c0)]
+      sum(sign(bb2 - aa))
+    }
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    bb <- .tr_series_boot_blocos(x, dsinal, seed = semente)
+    p <- bb$p
+    nota <- sprintf("%s; p por bootstrap de blocos móveis (%d reamostras, blocos de %d, semente do nó) no lugar da %s",
+                    nota, bb$B, bb$l, if (exata) "binomial" else "normal")
+  }
   if (descartados > 0L) {
     nota <- sprintf("%s; %d par%s empatado%s descartado%s", nota, descartados,
                     if (descartados == 1L) "" else "es", if (descartados == 1L) "" else "s",
@@ -741,7 +996,8 @@ tr_series_runs <- function(serie) {
 #' daqui é o lugar mais fácil da coleção para um copiar-colar mentir: ela nomeia
 #' QUANDO a série mudou e cala sobre direção, de propósito.
 #' @export
-tr_series_pettitt <- function(serie) {
+tr_series_pettitt <- function(serie, correcao = "nenhuma", .seed = NULL) {
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "bootstrap_blocos"), "correcao")
   .tr_series_sem_na(serie, "series/pettitt")
   # Onze, e não os dez do Mann-Kendall, e o número foi MEDIDO, não escolhido: com
   # dez observações o maior K possível é 25 — a série monotônica, conferida por
@@ -762,6 +1018,12 @@ tr_series_pettitt <- function(serie) {
   # Eq. 3.11. O `min(1, )` não é cosmético: a aproximação PASSA de 1 em série
   # curta e homogênea, e um p-valor de 1,4 sairia do card como se fosse número.
   p <- min(1, 2 * exp(-6 * K^2 / (n^3 + n^2)))
+  if (correcao == "bootstrap_blocos") {
+    kpet <- function(z) max(abs(cumsum(rowSums(sign(outer(z, z, "-"))))))
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    bb <- .tr_series_boot_blocos(x, kpet, seed = semente)
+    p <- bb$p
+  }
   quando <- .tr_series_rotulo_em(serie, ponto)
   # Numa série sem calendário — vetor cru, ou `ts` que começa em 1 — o rótulo é o
   # próprio índice, e "observação 30 (30)" é ruído que ensina a ignorar o
@@ -781,7 +1043,10 @@ tr_series_pettitt <- function(serie) {
     nota <- sprintf("%s; %d cortes empatam no mesmo K máximo, e o reportado é o primeiro deles",
                     nota, empatados)
   }
-  if (p >= 1) {
+  if (correcao == "bootstrap_blocos") {
+    nota <- sprintf("%s; p por bootstrap de blocos móveis (%d reamostras, blocos de %d, semente do nó)",
+                    nota, bb$B, bb$l)
+  } else if (p >= 1) {
     # Sem esta ressalva, um p-valor preso no teto sai do card como "p = 1", que
     # se lê como certeza de homogeneidade — e é só a aproximação estourando.
     nota <- paste0(nota, "; p-valor aproximado preso em 1 (a fórmula passa de 1 ",
@@ -888,7 +1153,8 @@ tr_series_kruskal_wallis <- function(serie) {
 #' bloco publica o PERÍODO junto com o veredito, e avisa na `nota` quando o pico
 #' não chega a se repetir dentro da série.
 #' @export
-tr_series_fisher <- function(serie) {
+tr_series_fisher <- function(serie, remover = "reta") {
+  remover <- .tr_series_enum(remover, c("reta", "media"), "remover")
   .tr_series_sem_na(serie, "series/periodicity_fisher")
   # O piso NÃO saiu da conta que fixou os do `series/pettitt` e do
   # `series/cox_stuart`, e vale dizer por quê em vez de fingir que saiu: lá a
@@ -914,27 +1180,32 @@ tr_series_fisher <- function(serie) {
   # medida. O preço é deixar entrar a leitura errada do `Nile`, e é por isso que o
   # período e o aviso de "não se repete" saem no resultado em vez de ficarem só na
   # documentação.
-  pg <- stats::spec.pgram(serie, taper = 0, detrend = TRUE, fast = FALSE, plot = FALSE)
+  # Convenções de Fisher (1929), conferidas contra `GeneCycle::fisher.g.test`
+  # (Wichert, Fokianos & Strimmer 2004), que é o oráculo dos testes:
+  #   - g é tomado sobre as m = floor((N - 1) / 2) ordenadas de Fourier j = 1..m.
+  #     A de Nyquist (N par) sai: ela é um qui-quadrado com UM grau, as outras
+  #     têm dois, e a distribuição de g supõe m ordenadas iguais em lei. Até a
+  #     versão 1 do nó ela entrava na soma.
+  #   - o p-valor é a série EXATA, com os floor(1/g) termos, e não só o primeiro
+  #     (versão 1): o primeiro termo é conservador e, em m pequeno e g baixo,
+  #     passa de 1.
+  #   - `remover = "media"` é a formulação original (ruído branco em torno de
+  #     uma média); `"reta"` (padrão, a da dissertação) tira antes uma reta de
+  #     mínimos quadrados — o mesmo teste aplicado aos resíduos da reta, que é
+  #     como o oráculo o confere.
+  pg <- stats::spec.pgram(serie, taper = 0, detrend = remover == "reta",
+                          demean = TRUE, fast = FALSE, plot = FALSE)
   I <- pg$spec
+  if (length(serie) %% 2L == 0L) I <- I[-length(I)]
   n <- length(I)
   pico <- which.max(I)
   # Eq. 3.41: a fração da potência total que o maior pico sozinho carrega.
   g <- max(I) / sum(I)
-  # Primeiro termo da série exata de Fisher. A série é alternada e os termos
-  # seguintes só existem quando g < 0.5 — medido: no `AirPassengers`, com
-  # g = 0.502, a soma exata tem UM termo só. Onde eles existem a correção é
-  # pequena e não move a decisão: no `lh`, o caso mais apertado da página, a soma
-  # completa leva o p de 0.051579 para 0.051447, 0.26% menos, e ele segue acima
-  # do corte. Ficar no primeiro termo é, além disso, o lado CONSERVADOR: ele
-  # superestima o p, então nunca rejeita onde a soma exata não rejeitaria.
-  # O `min(1, )` é o mesmo cuidado do `series/pettitt`: n * (1 - g)^(n - 1) passa
-  # de 1 quando o pico é raso, e um p-valor de 1,3 sairia do card como número.
-  p <- min(1, n * (1 - g)^(n - 1))
-  # Eq. 3.42, o corte que a dissertação escreve. Não é decoração: é a MESMA regra
-  # que o p-valor, escrita na moeda da estatística, e publicá-la como valor
-  # crítico é o que deixa quem veio pela dissertação conferir `g > zα` no card sem
-  # ter de acreditar na equivalência de palavra.
-  z_alfa <- 1 - (0.05 / n)^(1 / (n - 1))
+  p <- .tr_series_fisher_p(g, n)
+  # O corte zα agora é o quantil EXATO a 5% da mesma distribuição, e não a
+  # fórmula de primeiro termo da eq. 3.42: assim `g > zα` e `p < 0,05` são a
+  # mesma regra por construção, e não por aproximação.
+  z_alfa <- .tr_series_fisher_critico(n, 0.05)
   f <- stats::frequency(serie)
   # O período sai em OBSERVAÇÕES, e não na unidade de tempo da série, que é o que
   # `1 / pg$freq` daria. Num `AirPassengers` mensal aquilo vale 1 — a estação de
@@ -984,5 +1255,113 @@ tr_series_fisher <- function(serie) {
     # O período porque é o que distingue uma estação de um artefato, e é o que a
     # página inteira gira em torno de; os ciclos porque são a leitura já feita
     # desse número, e um relatório com vários testes não tem onde fazer a conta.
-    extra = list(periodo = periodo, ciclos = ciclos))
+    extra = list(periodo = periodo, ciclos = ciclos, ordenadas = n))
+}
+
+#' P-valor exato do g de Fisher (1929) com m ordenadas.
+#'
+#' P(g > x) = sum_{j=1}^{floor(1/x)} (-1)^(j-1) choose(m, j) (1 - j x)^(m-1),
+#' somado em log para os binomiais grandes, como em `GeneCycle`. Preso em
+#' [0, 1]: a soma alternada pode sair um ulp fora.
+#' @noRd
+.tr_series_fisher_p <- function(g, m) {
+  if (g <= 0) return(1)
+  j <- seq_len(floor(1 / g))
+  termos <- (-1)^(j - 1) * exp(lchoose(m, j) + (m - 1) * log(pmax(1 - j * g, 0)))
+  min(1, max(0, sum(termos)))
+}
+
+#' Valor crítico exato de g ao nível alfa: resolve P(g > x) = alfa.
+#' @noRd
+.tr_series_fisher_critico <- function(m, alfa) {
+  # O limite de cima é a fórmula de primeiro termo, que superestima o crítico
+  # (a série é alternada). O de baixo parte da metade dele e desce enquanto o p
+  # não passar de alfa — perto de 1/m a soma alternada tem termos enormes e se
+  # cancela mal, então o intervalo não começa ali.
+  hi <- 1 - (alfa / m)^(1 / (m - 1))
+  # Acima de 1/2 a série exata tem um termo só: a fórmula fechada É o crítico.
+  if (hi >= 0.5) return(hi)
+  lo <- hi / 2
+  while (.tr_series_fisher_p(lo, m) < alfa) lo <- lo / 2
+  stats::uniroot(function(x) .tr_series_fisher_p(x, m) - alfa,
+                 c(lo, hi), tol = 1e-12)$root
+}
+
+#' A regressão do Zivot-Andrews num corte, como o `urca::ur.za` a monta.
+#'
+#' y_t em y_{t-1}, tendência, as k diferenças defasadas e a(s) dummy(s) da
+#' quebra depois da observação `quebra`. Devolve o `lm`.
+#' @noRd
+.tr_series_za_lm <- function(x, modelo, k, quebra) {
+  n <- length(x)
+  d <- data.frame(y = x, y.l1 = c(NA, x)[seq_len(n)], trend = seq_len(n))
+  for (i in seq_len(k)) d[[paste0("y.dl", i)]] <- c(rep(NA, i + 1L), diff(x))[seq_len(n)]
+  if (modelo %in% c("intercept", "both")) d$du <- c(rep(0, quebra), rep(1, n - quebra))
+  if (modelo %in% c("trend", "both")) d$dt <- c(rep(0, quebra), seq_len(n - quebra))
+  stats::lm(y ~ ., data = d)
+}
+
+#' Mínimo do t na janela de 15% a 85%, com k defasagens.
+#' @noRd
+.tr_series_za_janela <- function(x, modelo, k) {
+  n <- length(x)
+  z <- urca::ur.za(x, model = modelo, lag = k)
+  lo <- as.integer(ceiling(0.15 * n))
+  hi <- as.integer(min(floor(0.85 * n), length(z@tstats)))
+  janela <- z@tstats[lo:hi]
+  list(z = z, estat = min(janela, na.rm = TRUE),
+       quebra = as.integer(lo - 1L + which.min(janela)))
+}
+
+#' Zivot & Andrews (1992, seção 4), regra exata: em cada corte q da janela de
+#' 15% a 85%, k parte de `kmax` e desce enquanto o |t| da ÚLTIMA diferença
+#' defasada for < 1,645 (10%, normal bilateral; Perron 1989); o t de y_{t-1}
+#' do corte é o da regressão com esse k. O teste é o mínimo nos cortes.
+#' Mínimos quadrados por `lm.fit` (a mesma regressão da `.tr_series_za_lm`,
+#' conferida contra o `ur.za`), porque são até (janela × kmax) ajustes.
+#' @noRd
+.tr_series_za_por_corte <- function(x, modelo, kmax) {
+  n <- length(x)
+  lo <- as.integer(ceiling(0.15 * n))
+  hi <- as.integer(min(floor(0.85 * n), n - 1L))
+  dx <- c(NA, diff(x))
+  base <- cbind(1, y.l1 = c(NA, x)[seq_len(n)], trend = seq_len(n))
+  lags <- vapply(seq_len(max(kmax, 1L)), function(i) c(rep(NA, i), dx)[seq_len(n)], numeric(n))
+  lags <- matrix(lags, nrow = n)
+  # t de um coeficiente como o `summary.lm` o daria, inclusive com colunas
+  # colineares (a dummy perto da borda com k grande): a coluna aliada sai, as
+  # outras seguem, e o t de uma coluna aliada é NA.
+  tcoef <- function(X, j) {
+    ok <- stats::complete.cases(X)
+    f <- stats::lm.fit(X[ok, , drop = FALSE], x[ok])
+    r <- f$rank
+    usadas <- f$qr$pivot[seq_len(r)]
+    if (!j %in% usadas) return(NA_real_)
+    s2 <- sum(f$residuals^2) / (sum(ok) - r)
+    V <- chol2inv(qr.R(f$qr)[seq_len(r), seq_len(r), drop = FALSE]) * s2
+    i <- match(j, usadas)
+    (f$coefficients[[j]] - if (j == 2L) 1 else 0) / sqrt(V[i, i])
+  }
+  melhor <- list(estat = Inf)
+  for (q in lo:hi) {
+    du <- c(rep(0, q), rep(1, n - q))
+    dt <- c(rep(0, q), seq_len(n - q))
+    dum <- switch(modelo, intercept = cbind(du), trend = cbind(dt), both = cbind(du, dt))
+    k <- kmax
+    repeat {
+      X <- cbind(base, lags[, seq_len(k), drop = FALSE], dum)
+      if (k == 0L) break
+      tk <- tcoef(X, 3L + k)
+      if (!is.na(tk) && abs(tk) >= stats::qnorm(0.95)) break
+      k <- k - 1L
+    }
+    tq <- tcoef(X, 2L)
+    if (is.na(tq)) next
+    if (tq < melhor$estat) melhor <- list(estat = tq, quebra = q, k = as.integer(k))
+  }
+  if (!is.finite(melhor$estat)) {
+    .tr_series_abort("tr_series_error_fit",
+                     "'series/zivot_andrews': nenhum corte da janela deu uma regressão estimável.")
+  }
+  melhor
 }

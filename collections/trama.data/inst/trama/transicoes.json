@@ -1,0 +1,252 @@
+[
+  {
+    "from": "data/example",
+    "to": "data/filter",
+    "n": 5
+  },
+  {
+    "from": "sampling/example",
+    "to": "data/mutate",
+    "n": 4
+  },
+  {
+    "from": "data/mutate",
+    "to": "data/group_summarise",
+    "n": 3
+  },
+  {
+    "from": "sampling/simulate",
+    "to": "data/bind_rows",
+    "n": 3
+  },
+  {
+    "from": "data/arrange",
+    "to": "data/slice_head",
+    "n": 2
+  },
+  {
+    "from": "data/example",
+    "to": "data/arrange",
+    "n": 2
+  },
+  {
+    "from": "data/filter",
+    "to": "data/bind_rows",
+    "n": 2
+  },
+  {
+    "from": "data/filter",
+    "to": "data/group_summarise",
+    "n": 2
+  },
+  {
+    "from": "data/filter",
+    "to": "data/mutate",
+    "n": 2
+  },
+  {
+    "from": "data/generate",
+    "to": "data/join",
+    "n": 2
+  },
+  {
+    "from": "data/group_summarise",
+    "to": "data/arrange",
+    "n": 2
+  },
+  {
+    "from": "data/read_csv",
+    "to": "data/filter",
+    "n": 2
+  },
+  {
+    "from": "data/read_csv",
+    "to": "data/summary",
+    "n": 2
+  },
+  {
+    "from": "data/summary",
+    "to": "data/arrange",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "data/slice_head",
+    "n": 2
+  },
+  {
+    "from": "series/accuracy",
+    "to": "data/bind_rows",
+    "n": 2
+  },
+  {
+    "from": "data/example",
+    "to": "data/drop_na",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/group_summarise",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/mutate",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/rename",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/select",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/to_stream",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/write_csv",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/write_parquet",
+    "n": 1
+  },
+  {
+    "from": "data/example",
+    "to": "data/write_rds",
+    "n": 1
+  },
+  {
+    "from": "data/filter",
+    "to": "data/from_stream",
+    "n": 1
+  },
+  {
+    "from": "data/filter",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/clean_names",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/convert",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/distinct",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/get_dupes",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/pivot_longer",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/pivot_wider",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/remove_empty",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/replace_na",
+    "n": 1
+  },
+  {
+    "from": "data/generate",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/read_excel",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/read_json",
+    "to": "data/filter",
+    "n": 1
+  },
+  {
+    "from": "data/read_json",
+    "to": "data/group_summarise",
+    "n": 1
+  },
+  {
+    "from": "data/read_json",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/read_parquet",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/read_rds",
+    "to": "data/summary",
+    "n": 1
+  },
+  {
+    "from": "data/to_stream",
+    "to": "data/filter",
+    "n": 1
+  },
+  {
+    "from": "models/emmeans",
+    "to": "data/arrange",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "data/mutate",
+    "n": 1
+  },
+  {
+    "from": "models/example",
+    "to": "data/to_stream",
+    "n": 1
+  },
+  {
+    "from": "models/rls",
+    "to": "data/from_stream",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "data/filter",
+    "n": 1
+  },
+  {
+    "from": "series/forecast",
+    "to": "data/write_csv",
+    "n": 1
+  }
+]

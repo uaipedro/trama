@@ -1,7 +1,9 @@
 ---
+// O CSS do editor antes do site: as regras do canvas estático (site.css)
+// ajustam o card e precisam vir depois.
+import "../styles/editor-card.css";
 import "../styles/site.css";
 import { variants } from "../data/copy-variants";
-import { collections } from "../data/collections";
 
 interface Props {
   title: string;
@@ -10,6 +12,19 @@ interface Props {
 
 const { title, description = "R em blocos executáveis." } = Astro.props;
 const pageTitle = title === "trama" ? title : `${title} · trama`;
+// Navegação curta, só links. A seção ativa é o link de prefixo mais longo
+// (Instalação mora dentro de Por dentro, mas acende sozinha).
+const navLinks = [
+  { href: "/trama/colecoes/", label: "Coleções" },
+  { href: "/trama/comece/primeiro-fluxo/", label: "Primeiro fluxo" },
+  { href: "/trama/templates/", label: "Templates" },
+  { href: "/trama/por-dentro/instalacao/", label: "Instalação" },
+  { href: "/trama/por-dentro/", label: "Por dentro" }
+];
+const currentNav = navLinks
+  .map(({ href }) => href)
+  .filter((href) => Astro.url.pathname.startsWith(href))
+  .sort((a, b) => b.length - a.length)[0];
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const socialImage = new URL("/trama/og-trama.png", Astro.site);
 ---
@@ -73,7 +88,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </div>
     <script type="application/json" id="ab-variants" set:html={JSON.stringify(variants)} />
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-    <header class="site-header">
+    <header class="site-bar"><div class="site-header">
       <a class="brand" href="/trama/" aria-label="trama — página inicial">
         <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
           <path class="mark-frame" d="M24 2.5 43 13.5v21L24 45.5 5 34.5v-21Z" />
@@ -86,27 +101,22 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         <span>trama</span>
       </a>
       <nav aria-label="Navegação principal" class="main-nav">
-        <a href="/trama/">Início</a>
-        <details class="nav-menu">
-          <summary>Coleções</summary>
-          <div class="nav-menu__panel">
-            {collections.map((c) => (
-              <a href={`/trama/colecoes/${c.id}/`}>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><use href={`/trama/icons/lucide.svg#${c.icon}`} /></svg>
-                <span><strong>{c.title}</strong><em>{c.description}</em></span>
-              </a>
-            ))}
-            <a class="nav-menu__all" href="/trama/colecoes/">Ver todas as coleções →</a>
-          </div>
-        </details>
-        <a href="/trama/por-dentro/">Por dentro do trama</a>
-        <button type="button" class="search-trigger" data-search-open>Buscar <kbd>/</kbd></button>
+        {navLinks.map(({ href, label }) => (
+          <a href={href} aria-current={href === currentNav ? "page" : undefined}>{label}</a>
+        ))}
       </nav>
-      <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle>
-        <span class="toggle-orbit" aria-hidden="true"></span>
-        <span class="toggle-copy">Mostrar contexto</span>
-      </button>
-    </header>
+      <div class="header-tools">
+        <button type="button" class="search-trigger" data-search-open aria-label="Buscar na documentação">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="/trama/icons/lucide.svg#search" /></svg>
+          <span>Buscar</span>
+          <kbd>/</kbd>
+        </button>
+        <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle title="Liga ou desliga as caixas de contexto: explicações extras para quem está começando, sem mudar o texto principal.">
+          <span class="toggle-orbit" aria-hidden="true"></span>
+          <span class="toggle-copy">Contexto</span>
+        </button>
+      </div>
+    </div></header>
     <main id="conteudo">
       <slot />
     </main>
@@ -116,7 +126,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </dialog>
     <footer class="site-footer">
       <p><strong>trama</strong> — R em blocos executáveis.</p>
-      <p>Documentação das coleções do trama.</p>
+      <p><a href="https://github.com/uaipedro/trama">Código no GitHub</a> · <a href="/trama/por-dentro/instalacao/">Instalação</a></p>
     </footer>
     <script is:inline>
       const key = "trama-camada-facilitadora";
@@ -125,8 +135,6 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       const updateToggle = () => {
         const enabled = root.dataset.facilitador !== "off";
         button?.setAttribute("aria-pressed", String(enabled));
-        const copy = button?.querySelector(".toggle-copy");
-        if (copy) copy.textContent = enabled ? "Mostrar contexto" : "Ocultar contexto";
       };
       document.querySelectorAll(".prose blockquote").forEach((quote) => {
         const lead = quote.querySelector("strong");
@@ -171,19 +179,6 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       });
       document.addEventListener("fullscreenchange", updateFullscreenButtons);
 
-      const navMenu = document.querySelector(".nav-menu");
-      if (navMenu instanceof HTMLDetailsElement) {
-        document.addEventListener("click", (event) => {
-          if (navMenu.open && !navMenu.contains(event.target)) navMenu.open = false;
-        });
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape" && navMenu.open) {
-            navMenu.open = false;
-            navMenu.querySelector("summary")?.focus();
-          }
-        });
-      }
-
       const searchDialog = document.querySelector("[data-search-dialog]");
       let pagefindReady = null;
       const loadPagefind = () => {
@@ -202,7 +197,10 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           new window.PagefindUI({
             element: "#search",
             showSubResults: true,
-            translations: { placeholder: "Buscar blocos e páginas" }
+            translations: {
+              placeholder: "Buscar blocos e páginas",
+              zero_results: "Nada encontrado para [SEARCH_TERM]. Tente outra palavra ou o id do bloco, como sampling/srs."
+            }
           });
         });
         return pagefindReady;
@@ -319,6 +317,32 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         store.set(exemploAbaKey, aba);
         event.preventDefault();
       });
+    </script>
+    <script is:inline>
+      {
+        // Canvas estático: reduz a escala até caber na largura (piso de 0,5;
+        // abaixo disso o card fica ilegível e a faixa rola na horizontal).
+        const ajustarCanvas = (el) => {
+          const caixa = el.parentElement;
+          // Só a LARGURA da caixa conta, e só quando muda: a barra de rolagem
+          // que aparece com a escala nova não pode disparar outro ajuste.
+          const largura = caixa ? caixa.getBoundingClientRect().width : 0;
+          if (!largura || String(largura) === el.dataset.caixaW) return;
+          el.dataset.caixaW = String(largura);
+          const max = Number(el.dataset.escala) || 0.8;
+          const cabe = largura / Number(el.dataset.canvasW);
+          el.style.setProperty("--escala", String(Math.max(0.5, Math.min(max, cabe)).toFixed(3)));
+        };
+        const canvases = document.querySelectorAll(".tr-estatico[data-canvas-w]");
+        canvases.forEach(ajustarCanvas);
+        if ("ResizeObserver" in window) {
+          const ro = new ResizeObserver((entradas) => entradas.forEach((e) => {
+            const el = e.target.querySelector(":scope > .tr-estatico[data-canvas-w]");
+            if (el) ajustarCanvas(el);
+          }));
+          canvases.forEach((el) => el.parentElement && ro.observe(el.parentElement));
+        }
+      }
     </script>
   </body>
 </html>

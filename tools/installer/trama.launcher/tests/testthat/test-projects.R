@@ -136,6 +136,8 @@ test_that("tl_project_open adiciona aos recentes e chama o motor de subir o edit
   expect_match(chamadas$janela, sprintf("127.0.0.1:%d", porta))
   expect_equal(tl_state_read()$recentes, normalizePath(caminho))
   expect_equal(tl_project_port(caminho), porta)
+  # O editor precisa saber que foi aberto pelo launcher.
+  expect_match(chamadas$executar[[2]][[3]], 'Sys.setenv(TRAMA_LAUNCHER = "1")', fixed = TRUE)
 })
 
 test_that("abrir um projeto já aberto só reabre a janela, sem subir outro processo", {

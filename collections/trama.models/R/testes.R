@@ -240,6 +240,186 @@ tr_models_dunn <- function(dados, resposta = "", grupo = "", ajuste = "holm") {
                      fonte = "Dunn (1964)")
 }
 
+#' Friedman, Durbin e Skillings–Mack: tratamentos em blocos, por postos.
+#'
+#' A alternativa não paramétrica ao DBC com UMA observação por bloco e
+#' tratamento, e aos blocos incompletos. Os três testes respondem à mesma
+#' pergunta (algum tratamento difere, com os postos tomados dentro do bloco) e
+#' diferem só no desenho que aceitam:
+#' - `"friedman"`: blocos completos (Friedman 1937); bloco incompleto sai
+#'   inteiro, e a nota conta quantos e aponta os outros dois.
+#' - `"durbin"`: blocos incompletos balanceados (BIB: todo bloco com k < t
+#'   parcelas, todo tratamento r vezes, todo par junto λ vezes), estatística
+#'   T1 de Durbin (1951) na forma de Conover (1999), que corrige empates.
+#'   Desenho que não é BIB recusa e aponta o Skillings–Mack.
+#' - `"skillings_mack"`: faltantes quaisquer (Skillings & Mack 1981); bloco com
+#'   uma observação só sai. Empates recebem posto médio, sem correção.
+#' - `"auto"` (padrão): Friedman com os blocos completos, Durbin com BIB,
+#'   Skillings–Mack no resto; a nota diz qual foi.
+#'
+#' Casela repetida recusa (nenhum dos três a define).
+#' @param dados tabela.
+#' @param resposta coluna numérica.
+#' @param tratamento coluna do tratamento.
+#' @param bloco coluna do bloco.
+#' @param metodo `"auto"`, `"friedman"`, `"durbin"` ou `"skillings_mack"`.
+#' @return objeto `tr_models_test`.
+#' @export
+tr_models_friedman <- function(dados, resposta = "", tratamento = "", bloco = "", metodo = "auto") {
+  no <- "models/friedman"
+  metodo <- .tr_models_enum(metodo, .TR_MODELS_METODOS_FRIEDMAN, "metodo")
+  resp <- .tr_models_numerica(dados, .tr_models_col(dados, resposta, "resposta"), "resposta")
+  trat <- .tr_models_col(dados, tratamento, "tratamento")
+  blc <- .tr_models_col(dados, bloco, "bloco")
+  if (anyDuplicated(c(resp, trat, blc))) {
+    .tr_models_abort("tr_models_error_bad_option", "'%s': a mesma coluna aparece em dois papéis.", no)
+  }
+  td <- .tr_models_teste_dados(dados, c(resp, trat, blc), no, min_linhas = 1L)
+  d <- td$d
+  tr <- factor(d[[trat]]); bl <- factor(d[[blc]])
+  cont <- table(bl, tr)
+  if (any(cont > 1L)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s': há mais de uma observação por bloco e tratamento (ex.: bloco %s). O ",
+                            "teste pede uma por casela: resuma as repetições (média de ",
+                            "cada casela) antes."), no, rownames(cont)[which(rowSums(cont > 1L) > 0)[[1]]])
+  }
+  if (ncol(cont) < 2L) {
+    .tr_models_abort("tr_models_error_one_level", "'%s': a coluna '%s' tem um tratamento só.", no, trat)
+  }
+  completo <- all(cont == 1L)
+  bib <- .tr_models_bib(cont)
+  escolhido <- metodo
+  if (metodo == "auto") {
+    escolhido <- if (completo) "friedman" else if (!is.null(bib)) "durbin" else "skillings_mack"
+  }
+  nota_auto <- if (metodo == "auto" && !completo) {
+    if (escolhido == "durbin") "blocos incompletos balanceados: teste de Durbin"
+    else "blocos incompletos: teste de Skillings–Mack"
+  } else ""
+  h0 <- sprintf("as distribuições de %s são iguais entre os níveis de %s (dentro dos blocos)", resp, trat)
+  y <- d[[resp]]
+  empates <- any(tapply(y, bl, function(x) anyDuplicated(x) > 0L))
+  if (escolhido == "durbin") {
+    if (is.null(bib)) {
+      .tr_models_abort("tr_models_error_not_applicable",
+                       paste0("'%s': o teste de Durbin pede blocos incompletos balanceados (todo bloco com o ",
+                              "mesmo número k < t de tratamentos, todo tratamento o mesmo número de vezes, todo ",
+                              "par junto o mesmo número de vezes), e este desenho não é. Use metodo = ",
+                              "\"skillings_mack\", que aceita faltantes quaisquer."), no)
+    }
+    rk <- stats::ave(y, bl, FUN = rank)
+    R <- tapply(rk, tr, sum)
+    t_ <- bib$t; b <- bib$b; k <- bib$k; r <- bib$r
+    A <- sum(rk^2); C <- b * k * (k + 1)^2 / 4
+    if (A - C <= 0) {
+      .tr_models_abort("tr_models_error_fit", "'%s': todos os valores empatam dentro de cada bloco.", no)
+    }
+    T1 <- (t_ - 1) * sum((R - r * (k + 1) / 2)^2) / (A - C)
+    return(.tr_models_teste(
+      "Durbin", h0, T1, "qui2", stats::pchisq(T1, t_ - 1, lower.tail = FALSE), gl = as.character(t_ - 1),
+      conclusao_sim = "algum tratamento difere",
+      conclusao_nao = "não há evidência de diferença entre os tratamentos",
+      nota = .tr_models_nota(
+        sprintf("%d tratamentos em %d blocos de %d (r = %d, λ = %d)", t_, b, k, r, bib$lambda), td$nota, nota_auto,
+        if (empates) "empates dentro de bloco: posto médio, estatística corrigida" else ""),
+      fonte = "Durbin (1951); Conover (1999)"))
+  }
+  if (escolhido == "skillings_mack") {
+    n_bl <- rowSums(cont)
+    um <- sum(n_bl < 2L)
+    ok <- as.character(bl) %in% rownames(cont)[n_bl >= 2L]
+    d2 <- d[ok, , drop = FALSE]
+    tr2 <- factor(d2[[trat]], levels = levels(tr)); bl2 <- droplevels(factor(d2[[blc]]))
+    if (nlevels(bl2) < 2L) {
+      .tr_models_abort("tr_models_error_too_few_rows",
+                       "'%s' precisa de pelo menos dois blocos com duas observações ou mais, e há %d.",
+                       no, nlevels(bl2))
+    }
+    sm <- .tr_models_skillings_mack(d2[[resp]], tr2, bl2)
+    if (sm$gl < length(levels(tr)) - 1L) {
+      .tr_models_abort("tr_models_error_not_applicable",
+                       paste0("'%s': o desenho é desconexo (há tratamentos que nunca dividem bloco, direta ",
+                              "ou indiretamente, com os outros); o Skillings–Mack não compara todos."), no)
+    }
+    return(.tr_models_teste(
+      "Skillings–Mack", h0, sm$estatistica, "qui2", stats::pchisq(sm$estatistica, sm$gl, lower.tail = FALSE),
+      gl = as.character(sm$gl),
+      conclusao_sim = "algum tratamento difere",
+      conclusao_nao = "não há evidência de diferença entre os tratamentos",
+      nota = .tr_models_nota(
+        sprintf("%d tratamentos em %d blocos, %d caselas vazias", nlevels(tr2), nlevels(bl2),
+                sum(table(bl2, tr2) == 0L)), td$nota, nota_auto,
+        if (um > 0L) sprintf("%d bloco%s com uma observação só fora", um, if (um > 1L) "s" else "") else "",
+        if (empates) "empates dentro de bloco: posto médio, sem correção" else ""),
+      fonte = "Skillings & Mack (1981)"))
+  }
+  completos <- rownames(cont)[rowSums(cont) == ncol(cont)]
+  fora <- nrow(cont) - length(completos)
+  d <- d[as.character(bl) %in% completos, , drop = FALSE]
+  tr <- droplevels(factor(d[[trat]])); bl <- droplevels(factor(d[[blc]]))
+  if (nlevels(bl) < 2L) {
+    .tr_models_abort("tr_models_error_too_few_rows",
+                     paste0("'%s' precisa de pelo menos dois blocos completos, e há %d. Com blocos ",
+                            "incompletos, use metodo = \"durbin\" (balanceados) ou \"skillings_mack\"."),
+                     no, nlevels(bl))
+  }
+  t <- .tr_models_ajustar(stats::friedman.test(d[[resp]], tr, bl), no)
+  b <- nlevels(bl); k <- nlevels(tr)
+  empates <- any(tapply(d[[resp]], bl, function(x) anyDuplicated(x) > 0L))
+  .tr_models_teste(
+    "Friedman", h0, t$statistic, "qui2", t$p.value, gl = as.character(t$parameter),
+    conclusao_sim = "algum tratamento difere",
+    conclusao_nao = "não há evidência de diferença entre os tratamentos",
+    efeito = list(rotulo = "W de Kendall (concordância entre blocos)", valor = unname(t$statistic) / (b * (k - 1L))),
+    nota = .tr_models_nota(sprintf("%d tratamentos em %d blocos", k, b), td$nota,
+                           if (fora > 0L) sprintf(paste0("%d bloco%s incompleto%s fora (use metodo = \"%s\" para ",
+                                                         "aproveitá-los)"), fora, if (fora > 1L) "s" else "",
+                                                  if (fora > 1L) "s" else "",
+                                                  if (!is.null(bib)) "durbin" else "skillings_mack") else "",
+                           if (empates) "empates dentro de bloco: estatística corrigida" else ""),
+    fonte = "Friedman (1937)")
+}
+
+.TR_MODELS_METODOS_FRIEDMAN <- c("auto", "friedman", "durbin", "skillings_mack")
+
+#' Os parâmetros do bloco incompleto balanceado, ou NULL se a tabela de
+#' incidência (bloco × tratamento, 0/1) não for de um BIB com k < t.
+#' @noRd
+.tr_models_bib <- function(cont) {
+  n <- unclass(cont) > 0L
+  t_ <- ncol(n); b <- nrow(n)
+  k <- unique(rowSums(n)); r <- unique(colSums(n))
+  if (length(k) != 1L || length(r) != 1L || k >= t_ || k < 2L || b < 2L) return(NULL)
+  lam <- crossprod(n * 1)
+  lam <- unique(lam[upper.tri(lam)])
+  if (length(lam) != 1L || lam < 1L) return(NULL)
+  list(t = t_, b = b, k = k, r = r, lambda = lam)
+}
+
+#' Skillings & Mack (1981): postos no bloco, faltante com posto médio (k_i+1)/2,
+#' soma ajustada A_j = Σ_i √(12/(k_i+1)) (r_ij − (k_i+1)/2), SM = A' Σ⁻ A com
+#' Σ_jj' = −λ_jj' e Σ_jj = Σ_{j'≠j} λ_jj' (λ = nº de blocos com os dois).
+#' @noRd
+.tr_models_skillings_mack <- function(y, tr, bl) {
+  n <- unclass(table(bl, tr)) > 0L
+  ki <- rowSums(n)
+  rk <- stats::ave(y, bl, FUN = rank)
+  ic <- cbind(as.integer(bl), as.integer(tr))
+  dev <- matrix(0, nrow(n), ncol(n))
+  dev[ic] <- rk - (ki[ic[, 1]] + 1) / 2
+  A <- colSums(sqrt(12 / (ki + 1)) * dev)
+  lam <- crossprod(n * 1)
+  sig <- -lam
+  diag(sig) <- 0
+  diag(sig) <- -colSums(sig)
+  s <- svd(sig)
+  tol <- max(dim(sig)) * max(s$d) * .Machine$double.eps
+  pos <- s$d > tol
+  inv <- s$v[, pos, drop = FALSE] %*% (t(s$u[, pos, drop = FALSE]) / s$d[pos])
+  list(estatistica = drop(A %*% inv %*% A), gl = sum(pos))
+}
+
 #' A tabela de contingência de duas colunas.
 #' @noRd
 .tr_models_contingencia <- function(dados, linha, coluna, no) {
@@ -258,10 +438,11 @@ tr_models_dunn <- function(dados, resposta = "", grupo = "", ajuste = "holm") {
 #' Qui-quadrado de independência.
 #' @param dados tabela.
 #' @param linha,coluna as duas colunas categóricas.
-#' @param correcao correção de continuidade de Yates (só em 2 × 2).
+#' @param correcao correção de continuidade de Yates (só em 2 × 2). Desligada
+#'   por padrão: torna o teste conservador (Agresti 2002).
 #' @return objeto `tr_models_test`.
 #' @export
-tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = TRUE) {
+tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = FALSE) {
   no <- "models/chisq"
   ct <- .tr_models_contingencia(dados, linha, coluna, no)
   r <- .tr_models_capturar(stats::chisq.test(ct$tab, correct = isTRUE(correcao)))

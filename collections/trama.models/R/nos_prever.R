@@ -4,7 +4,9 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; N <- trama::tr_param_num
   Fm <- "models/fit"; T <- "data/table"
   list(
-    trama::tr_node("models/predict", fn = tr_models_predict, label = "Prever",
+    trama::tr_node("models/predict", fn = tr_models_predict,
+      pressupostos = .tr_models_doc("models/predict")$pressupostos,
+      referencias = .tr_models_doc("models/predict")$referencias, label = "Prever",
       category = "modelo_avaliar", icon = trama::tr_icon("target"),
       description = "Aplica um modelo já ajustado a uma tabela nova (ou ao próprio treino), e devolve a previsão de cada linha.",
       inputs = list(modelo = Fm, dados = trama::tr_port(T, required = FALSE)), outputs = list(out = T),

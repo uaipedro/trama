@@ -14,6 +14,7 @@ tr_collection(
   categories = list(),
   js = NULL,
   css = NULL,
+  transitions = NULL,
   migrations = list()
 )
 }
@@ -27,6 +28,12 @@ coleção (as classes que os renderers dela usam). Opcional. Entra na página
 DEPOIS do \code{trama.css} do núcleo, então pode refinar regra do núcleo com a
 mesma especificidade — e é por isso mesmo que deve prefixar as próprias
 classes, pra não refinar sem querer.}
+
+\item{transitions}{\code{data.frame(from, to, n)} com quantas vezes um bloco
+\code{from} foi seguido de \code{to} nos fluxos de exemplo, ou \code{NULL}. É o corpus do
+sugestor. O \code{to} tem que ser da própria coleção: quem é sugerido é o dono
+do dado, e assim \code{models} pode declarar \code{data/ler -> models/ajuste} sem o
+núcleo saber o que é ler nem ajustar. Ver \code{\link[=tr_transitions_read]{tr_transitions_read()}}.}
 
 \item{migrations}{Renomes que a coleção declara pra documentos antigos
 abrirem já migrados, sem nó órfão. Lista com até três entradas, todas

@@ -18,7 +18,7 @@ Use para VER a tendência entre duas medidas e escrevê-la na figura, como nas t
 
 ## Configuração
 
-**Método** escolhe `linear`, `quadrática` (ŷ = a + b·x + c·x²) ou `loess` (regressão local, sem equação). **Intervalo** liga a faixa, e **Confiança (IC)** dá o nível, 0,95 por padrão. **Equação e R²** escreve a equação com vírgula decimal. Com painéis há um ajuste por painel; com cor por grupo e **Uma por cor** ligado, uma curva por grupo, na cor dele. Com eixo em log, o ajuste é na escala desenhada, e a equação diz `log(x)` ou `log(ŷ)`.
+**Método** escolhe `linear`, `quadrática` (ŷ = a + b·x + c·x²) ou `loess` (regressão local, sem equação). **Intervalo** liga a faixa, e **Confiança (IC)** dá o nível, 0,95 por padrão. **Equação e R²** escreve a equação com vírgula decimal. Com painéis há um ajuste por painel; com cor por grupo e **Uma por cor** ligado, uma curva por grupo, na cor dele. Com eixo em log, o ajuste é na escala desenhada, e a equação diz `log₁₀(x)` ou `log₁₀(ŷ)`. **Posição da equação** em `automática` põe as equações, em cada painel, no canto com menos pontos (ou fixe um dos quatro cantos), e o eixo Y ganha espaço daquele lado para o texto não cobrir os pontos.
 
 ## Exemplo
 

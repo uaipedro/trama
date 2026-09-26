@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/anova_dbc
 category: anova
-related: [models/emmeans, models/tukey_additivity, models/dose_response]
+related: [models/emmeans, models/tukey_additivity, models/polinomial]
 ---
 
 ## O que o bloco faz

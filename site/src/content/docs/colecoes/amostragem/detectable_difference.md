@@ -14,7 +14,15 @@ variável (mulheres × homens, pretos × brancos), a menor diferença entre as d
 proporções que a pesquisa detectaria com o nível de confiança e o poder
 escolhidos:
 
-    DMD = (z_{1−α/2} + z_{poder}) · √(deff · p(1 − p) · (1/n_a + 1/n_b))
+    δ = q_{1−α/2} · √(deff · p̄q̄ · (c_a/n_a + c_b/n_b))
+        + q_{poder} · √(deff · (p_a q_a c_a/n_a + p_b q_b c_b/n_b))
+
+com p_b = p_a + δ, p̄ a média das duas ponderada pelos n e c = 1 − n/N a
+correção finita (1 sem a população do grupo) — a fórmula de duas proporções de
+Fleiss, Levin & Paik (2003), **sem correção de continuidade** (a DMD sai um
+pouco menor que com a correção de Yates/Fleiss). A tabela traz o pior caso
+entre partir de p_a ou de p_b, para cima ou para baixo. Com **Distribuição**
+`t`, os quantis são t com n_a + n_b − 2 gl.
 
 A coluna `sustentavel` diz se a **diferença que importa** (10 pontos, por
 padrão) é detectável. Quando não é, um resultado "sem diferença" entre os dois

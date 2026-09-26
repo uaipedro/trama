@@ -1,0 +1,165 @@
+# Pressupostos e referências: modelos de fórmula livre e comparação de modelos.
+
+.tr_models_docs_modelos <- function() {
+  P <- .tr_models_P; I <- .tr_models_impl; R <- trama::tr_ref
+  L <- .tr_models_livros()
+  wilks <- R(autores = "Wilks, S. S.", ano = 1938,
+             titulo = "The large-sample distribution of the likelihood ratio for testing composite hypotheses",
+             fonte = "The Annals of Mathematical Statistics, 9(1), 60-62", doi = "10.1214/aoms/1177732360")
+  self_liang <- R(autores = c("Self, S. G.", "Liang, K.-Y."), ano = 1987,
+                  titulo = "Asymptotic properties of maximum likelihood estimators and likelihood ratio tests under nonstandard conditions",
+                  fonte = "Journal of the American Statistical Association, 82(398), 605-610",
+                  doi = "10.1080/01621459.1987.10478472", papel = "complementar")
+  lme4 <- R(autores = c("Bates, D.", "Mächler, M.", "Bolker, B.", "Walker, S."), ano = 2015,
+            titulo = "Fitting linear mixed-effects models using lme4",
+            fonte = "Journal of Statistical Software, 67(1), 1-48", doi = "10.18637/jss.v067.i01")
+  lmertest <- R(autores = c("Kuznetsova, A.", "Brockhoff, P. B.", "Christensen, R. H. B."), ano = 2017,
+                titulo = "lmerTest package: tests in linear mixed effects models",
+                fonte = "Journal of Statistical Software, 82(13), 1-26", doi = "10.18637/jss.v082.i13")
+  linear <- P("A relação entre a resposta e os preditores é a da **fórmula** (linear nos parâmetros, com as interações e curvaturas escritas).",
+              verificar = "models/plot_diagnostics",
+              se_falhar = "Acrescente termos (`poly(x, 2)`, `a * b`) ou transforme; teste o termo a mais com o `models/compare`.")
+  normal <- P("Os **erros** são normais.", verificar = c("models/shapiro_residuals", "models/plot_diagnostics"),
+              se_falhar = "Transforme a resposta, ou use o `models/glm` com a família da resposta.")
+  homog <- P("A **variância do erro é constante** (não cresce com o ajustado nem muda entre grupos).",
+             verificar = c("models/breusch_pagan", "models/levene", "models/plot_diagnostics"),
+             se_falhar = "Transforme a resposta (log) ou use o `models/glm` com família gama.")
+  indep <- P("As observações são **independentes**.",
+             se_falhar = "Medidas repetidas ou agrupadas (mesmo animal, parcela, local) pedem o `models/lmer`.")
+  list(
+    "models/lm" = list(
+      pressupostos = list(linear, indep, normal, homog,
+        P("Sem **colinearidade** forte entre os preditores: com ela os coeficientes ficam instáveis e os erros padrão, grandes.",
+          verificar = "models/coefficients")),
+      referencias = list(L$rencher, L$montgomery,
+        I("stats", "lm", "Mínimos quadrados; texto e lógico viram fator (contraste de tratamento, o padrão do R), número fica número."))),
+
+    "models/glm" = list(
+      pressupostos = list(indep,
+        P("A resposta segue a **família** escolhida, e a média se liga aos preditores pela **ligação** (canônica; log na gama).",
+          verificar = c("models/plot_diagnostics", "models/residuals")),
+        P("Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (`desvio_por_gl` e `dispersao_pearson` do `models/fit_stats` perto de 1).",
+          verificar = "models/fit_stats",
+          se_falhar = "Na Poisson, use a família `quasipoisson`; na binomial agregada (`cbind(sucessos, fracassos)`), a `quasibinomial`. As duas estimam a dispersão pelo X² de Pearson / gl, e os testes passam a F. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão, e a `quasibinomial` recusa essa resposta."),
+        P("Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos.")),
+      referencias = list(
+        R(autores = c("Nelder, J. A.", "Wedderburn, R. W. M."), ano = 1972, titulo = "Generalized linear models",
+          fonte = "Journal of the Royal Statistical Society. Series A, 135(3), 370-384", doi = "10.2307/2344614"),
+        R(autores = "Wedderburn, R. W. M.", ano = 1974,
+          titulo = "Quasi-likelihood functions, generalized linear models, and the Gauss-Newton method",
+          fonte = "Biometrika, 61(3), 439-447", doi = "10.1093/biomet/61.3.439", papel = "complementar"),
+        L$dobson,
+        I("stats", "glm", "Famílias `gaussian`, `binomial`, `poisson`, `quasipoisson`, `quasibinomial` na ligação canônica e `Gamma(link = \"log\")`; nas quasi, dispersão pelo X² de Pearson / gl e quadro com F."))),
+
+    "models/gls" = list(
+      pressupostos = list(linear,
+        P("Os **grupos** (animais, parcelas) são independentes entre si; a correlação só existe DENTRO do grupo, com a estrutura escolhida.",
+          verificar = "models/compare",
+          se_falhar = "Compare estruturas (AR(1), simetria composta, não estruturada) no `models/compare`; a de menor AIC que ainda faz sentido."),
+        P("Com AR(1), as ocasiões são **igualmente espaçadas** e informadas em Tempo (ou as linhas estão na ordem do tempo): o AR(1) conta posições, não distância. Com Tempo numérico desigualmente espaçado, a nota do modelo avisa.",
+          se_falhar = "Use `correlacao = \"car1\"` (AR(1) em tempo contínuo, `corCAR1`), que dá correlação phi^|t − s| na distância real."),
+        P("Os **resíduos normalizados** (descontada a correlação) são normais e de variância constante, salvo a variância por nível declarada.",
+          verificar = c("models/plot_diagnostics", "models/shapiro_residuals")),
+        P("A **não estruturada** estima uma correlação por par de ocasiões: pede muitos grupos para poucas ocasiões."),
+        P("Os **gl** dos testes t e F dos coeficientes e do quadro são os do `nlme`, n − p (número de observações menos parâmetros fixos): ignoram que a informação vem de poucos grupos e ficam **liberais** (p pequeno demais) com poucos sujeitos. As médias e comparações do `models/emmeans` usam gl de Satterthwaite, menores, e por isso os dois podem discordar perto de 5%.",
+          se_falhar = "Com poucos grupos (digamos menos de 20), confira o efeito no `models/emmeans`/`models/pairwise` (Satterthwaite) ou ajuste o misto equivalente no `models/lmer`, que dá Satterthwaite ao quadro e aos coeficientes.")),
+      referencias = list(
+        R(autores = c("Pinheiro, J. C.", "Bates, D. M."), ano = 2000, titulo = "Mixed-effects models in S and S-PLUS",
+          fonte = "Springer, New York", doi = "10.1007/b98882"),
+        I("nlme", "gls", "`corAR1`, `corCAR1` (no tempo), `corCompSymm` ou `corSymm` na posição dentro do grupo, `varIdent` por nível; REML por padrão; testes de Wald com t e F nos gl n - p (liberais com poucos grupos; o `emmeans` usa Satterthwaite); comparação por razão de verossimilhança, reajustada por ML quando os fixos diferem."))),
+
+    "models/glmer" = list(
+      pressupostos = list(P("Os **grupos** (rebanhos, blocos, sujeitos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
+          se_falhar = "Com poucos grupos (menos de 5 ou 6), trate o fator como fixo no `models/glm`."),
+        P("A resposta segue a **família** (binomial ou Poisson) condicional aos efeitos aleatórios, na ligação canônica (logit, log).",
+          verificar = "models/plot_diagnostics"),
+        P("Os **efeitos aleatórios** são normais, com média zero.",
+          verificar = c("models/random_effects", "models/plot_caterpillar")),
+        P("**Sem superdispersão** além da que o modelo descreve: no `models/fit_stats`, `dispersao_pearson` (X² de Pearson dos resíduos condicionais / gl) perto de 1. Não se aplica à binomial 0/1.",
+          verificar = "models/fit_stats",
+          se_falhar = "Ligue o efeito por observação (`nivel_obs`) e compare os dois ajustes no `models/compare`."),
+        P("A **aproximação de Laplace** é boa: grupos com bastante informação (binomial com n não muito pequeno, contagens não quase todas zero). Os testes são de Wald (z) e assintóticos.")),
+      referencias = list(lme4,
+        R(autores = c("Bolker, B. M.", "Brooks, M. E.", "Clark, C. J.", "Geange, S. W.", "Poulsen, J. R.",
+                      "Stevens, M. H. H.", "White, J.-S. S."), ano = 2009,
+          titulo = "Generalized linear mixed models: a practical guide for ecology and evolution",
+          fonte = "Trends in Ecology & Evolution, 24(3), 127-135", doi = "10.1016/j.tree.2008.10.008"),
+        R(autores = "Harrison, X. A.", ano = 2014,
+          titulo = "Using observation-level random effects to model overdispersion in count data in ecology and evolution",
+          fonte = "PeerJ, 2, e616", doi = "10.7717/peerj.616", papel = "complementar"),
+        R(autores = c("Breslow, N. E.", "Clayton, D. G."), ano = 1993,
+          titulo = "Approximate inference in generalized linear mixed models",
+          fonte = "Journal of the American Statistical Association, 88(421), 9-25",
+          doi = "10.1080/01621459.1993.10594284", papel = "complementar"),
+        R(autores = c("McCullagh, P.", "Nelder, J. A."), ano = 1989, titulo = "Generalized Linear Models",
+          fonte = "2. ed. London: Chapman & Hall", doi = "10.1007/978-1-4899-3242-6", papel = "livro-texto"),
+        I("lme4", "glmer", "Máxima verossimilhança pela aproximação de Laplace (`nAGQ = 1`); coeficientes com z de Wald; quadro pelo `car::Anova` (qui-quadrado de Wald, tipo II ou III). Conferido refazendo à mão a log-verossimilhança de Laplace grupo a grupo no `cbpp` (1e-5 relativo) e maximizando-a com `optim` (β e σ a 1e-3)."))),
+
+    "models/lmer" = list(
+      pressupostos = list(linear,
+        P("Os **efeitos aleatórios** são normais, com média zero, e independentes do erro.",
+          verificar = c("models/random_effects", "models/plot_caterpillar")),
+        P("Os **erros** condicionais (resíduos depois de descontar os efeitos aleatórios) são normais e de variância constante. Levene e Breusch-Pagan não se aplicam a esses resíduos; a conferência é visual.",
+          verificar = "models/plot_diagnostics"),
+        P("Os **grupos** (sujeitos, blocos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
+          se_falhar = "Com poucos grupos (menos de 5 ou 6), trate o fator como fixo no `models/lm`.")),
+      referencias = list(lme4, lmertest,
+        R(autores = c("Patterson, H. D.", "Thompson, R."), ano = 1971,
+          titulo = "Recovery of inter-block information when block sizes are unequal",
+          fonte = "Biometrika, 58(3), 545-554", doi = "10.1093/biomet/58.3.545", papel = "complementar"),
+        R(autores = "Satterthwaite, F. E.", ano = 1946,
+          titulo = "An approximate distribution of estimates of variance components",
+          fonte = "Biometrics Bulletin, 2(6), 110-114", doi = "10.2307/3002019", papel = "complementar"),
+        I("lmerTest", "lmer", "Mesmo ajuste do `lme4::lmer`, com gl de Satterthwaite nos testes; `REML = TRUE` por padrão."))),
+
+    "models/compare" = list(
+      pressupostos = list(
+        P("Os modelos são **aninhados** (o menor é um caso particular do maior), da mesma família e ajustados nas **mesmas linhas**; o bloco recusa senão.",
+          se_falhar = "Para modelos não aninhados, compare o AIC no `models/fit_stats`."),
+        P("O modelo **maior** atende aos pressupostos dele: o teste compara ajustes, não conserta um modelo errado.",
+          verificar = c("models/plot_diagnostics", "models/shapiro_residuals")),
+        P("No GLM e no misto, o teste é de **razão de verossimilhança** assintótico: pede amostra grande.")),
+      referencias = list(wilks, L$rencher, L$dobson,
+        I("stats", "anova", "`lm`: F de modelos aninhados; GLM: `test = \"F\"` nas famílias de dispersão estimada e `\"Chisq\"` nas demais; misto: `anova` do `lme4` com `refit = TRUE` (reajuste por ML)."))),
+
+    "models/random_test" = list(
+      pressupostos = list(
+        P("O modelo misto atende aos seus pressupostos (efeitos aleatórios e erros normais).",
+          verificar = c("models/plot_diagnostics", "models/plot_caterpillar")),
+        P("A variância testada está na **fronteira** (zero) sob H0: a distribuição qui-quadrado não vale exatamente, e o p-valor é conservador.",
+          se_falhar = "Um termo que sai significativo é seguro; um p-valor perto do limite pode estar superestimado.")),
+      referencias = list(wilks, self_liang, lmertest,
+        I("lmerTest", "ranova", "Retira cada termo aleatório (uma inclinação aleatória é reduzida ao intercepto) e compara por razão de verossimilhança."))),
+
+    "models/rls" = list(
+      pressupostos = list(
+        P("O modelo é **linear** e seus coeficientes são **fixos** no tempo: o RLS sem fator de esquecimento pondera igualmente o passado e o presente.",
+          se_falhar = "Para relação que muda com o tempo, ajuste por janelas, ou use o `models/lm` em cada período."),
+        P("Os preditores estão em **escalas parecidas**: a prior difusa `lambda · I` (a matriz inicial `P0`, que diz ao RLS \"ainda não sei nada\" sobre os coeficientes) fica mal condicionada com colunas de ordens de grandeza diferentes.",
+          se_falhar = "Escale as colunas num `data/mutate` antes."),
+        P("Os mesmos pressupostos de erro do `models/lm` (independência, variância constante) valem para interpretar os coeficientes como os de mínimos quadrados.")),
+      referencias = list(
+        R(autores = "Plackett, R. L.", ano = 1950, titulo = "Some theorems in least squares",
+          fonte = "Biometrika, 37(1-2), 149-157", doi = "10.1093/biomet/37.1-2.149"),
+        I("trama.models", "step_rls", "Implementação própria da atualização recursiva de mínimos quadrados, com `P0 = lambda · I` e simetrização de `P` a cada passo."))),
+
+
+    "models/nls" = list(
+      pressupostos = list(
+        P("A curva escolhida é a **forma certa** da relação (logística, Michaelis-Menten, assintótica, Gompertz ou linear-platô): o ajuste acha os melhores parâmetros DA curva, não a melhor curva.",
+          verificar = c("models/plot_regression", "models/plot_diagnostics"),
+          se_falhar = "Compare modelos pelo AIC no `models/fit_stats` e olhe os resíduos contra o x: tendência sobrando é forma errada."),
+        P("Os **erros** são independentes, normais e de **variância constante** (mínimos quadrados sem peso).",
+          verificar = c("models/plot_diagnostics", "models/shapiro_residuals"),
+          se_falhar = "Variância que cresce com a resposta pede transformar (log) os dois lados da curva, fora deste bloco."),
+        P("Há pontos **dos dois lados da mudança** (antes e depois do platô, da inflexão, da saturação): sem eles os parâmetros não se identificam e o erro padrão explode.",
+          verificar = "view/points"),
+        P("Os intervalos dos parâmetros são de **Wald** (linearização em torno da estimativa): em amostra pequena e curva muito não linear nos parâmetros, eles saem simétricos quando a incerteza real não é.",
+          verificar = "models/coefficients")),
+      referencias = list(
+        R(autores = c("Bates, D. M.", "Watts, D. G."), ano = 1988,
+          titulo = "Nonlinear Regression Analysis and Its Applications", fonte = "New York: Wiley",
+          doi = "10.1002/9780470316757", papel = "livro-texto"),
+        I("stats", "nls", "Gauss-Newton com os self-starters `SSlogis`, `SSmicmen`, `SSasymp` e `SSgompertz`; o linear-platô parte de uma busca da quebra. Conferido contra os valores certificados do NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten), parâmetros a 1e-6, SQ residual a 1e-6 e erro padrão a 1e-5.")))
+  )
+}

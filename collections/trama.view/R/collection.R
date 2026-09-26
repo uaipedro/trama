@@ -48,7 +48,8 @@ trama_collection <- function() {
   P <- trama::tr_param
   PAINEL <- .tr_view_painel_param()
   .tr_view_aplicar_ajuda_curta(trama::tr_collection(
-    id = "view", version = "0.1.0", label = "Gráficos",
+    id = "view", version = "0.2.0", label = "Gráficos",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.view")),
     types = list(view_plot_type()),
     categories = list(
       trama::tr_category("relacao",     "Relação", role = "inspecao"),

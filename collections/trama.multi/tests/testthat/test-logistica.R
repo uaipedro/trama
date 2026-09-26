@@ -104,8 +104,11 @@ test_that("models/coefficients da binária: Wald do glm, e exponenciar dá a raz
   expect_equal(unique(tab$grupo), "sim")
   expect_equal(tab$estimativa, unname(ref[, 1]), tolerance = 1e-8)
   expect_equal(tab$erro_padrao, unname(ref[, 2]), tolerance = 1e-6)
-  expect_equal(tab$p_valor, unname(ref[, 4]), tolerance = 1e-6)
-  or <- coefs(m, exponenciar = TRUE)
+  # Padrão da logística: IC perfilado e p da razão de verossimilhanças (main
+  # 495ea07); o Wald do glm é pedido com `intervalo = "Wald"`.
+  w <- trama.models::tr_models_coefficients(m, intervalo = "Wald")$tabela
+  expect_equal(w$p_valor, unname(ref[, 4]), tolerance = 1e-6)
+  or <- trama.models::tr_models_coefficients(m, exponenciar = TRUE, intervalo = "Wald")$tabela
   expect_false("erro_padrao" %in% names(or))
   expect_equal(or$estimativa, exp(unname(ref[, 1])), tolerance = 1e-8)
   expect_equal(or$li_95, exp(ref[, 1] - stats::qnorm(.975) * ref[, 2]), tolerance = 1e-6,
@@ -200,4 +203,28 @@ test_that("o gráfico dos coeficientes da models desenha a logística, facetado 
   pv <- trama.models::tr_models_plot_coefficients(v, exponenciar = TRUE)
   expect_no_error(ggplot2::ggplot_build(pv))
   expect_s3_class(pv$facet, "FacetWrap")
+})
+
+test_that("a multi/logistic_coefficients da main (v2, `nivel`) abre como models/coefficients com `confianca`", {
+  # A main renomeou `nivel` para `confianca` na v3 (b97222c, por versão do
+  # nó); aqui o nó é o `models/coefficients`, e o renome é a migração
+  # declarada da coleção. Os dois mecanismos juntos (tr_doc_migrate).
+  reg <- multi_registry()
+  doc <- trama::tr_doc_parse(paste0(
+    '{"format":1,"rev":1,"nodes":{"rc":{"type":"multi/logistic_coefficients",',
+    '"type_version":2,"params":{"escala":"unidade","nivel":0.9}}},"edges":[]}'))
+  mig <- trama::tr_doc_migrate(doc, reg)
+  expect_identical(mig$nodes$rc$type, "models/coefficients")
+  expect_mapequal(mig$nodes$rc$params, list(escala = "unidade", confianca = 0.9, exponenciar = TRUE))
+  expect_identical(mig$nodes$rc$type_version, reg$nodes[["models/coefficients"]]$version)
+  kinds <- vapply(trama::tr_doc_validate(doc, reg), function(p) p$kind, "")
+  expect_false(any(c("unknown_param", "version_drift", "unknown_node_type") %in% kinds))
+  # v4 da main, com `intervalo`: o param existe no models/coefficients.
+  doc4 <- trama::tr_doc_parse(paste0(
+    '{"format":1,"rev":1,"nodes":{"rc":{"type":"multi/logistic_coefficients",',
+    '"type_version":4,"params":{"confianca":0.9,"intervalo":"Wald"}}},"edges":[]}'))
+  k4 <- vapply(trama::tr_doc_validate(doc4, reg), function(p) p$kind, "")
+  expect_false(any(c("unknown_param", "bad_param_value", "version_drift", "unknown_node_type") %in% k4))
+  m <- tr_multi_logistic(tr_multi_example("pima"), resposta = "diabetes", preditores = "glicose, imc")
+  expect_error(trama.models::tr_models_coefficients(m, confianca = 2), class = "tr_multi_error_bad_option")
 })

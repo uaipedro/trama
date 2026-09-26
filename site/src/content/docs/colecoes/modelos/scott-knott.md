@@ -1,6 +1,6 @@
 ---
 title: Scott-Knott
-description: "Teste de Scott-Knott: agrupa as médias em grupos sem sobreposição."
+description: "Scott-Knott: separa as médias em grupos sem sobreposição."
 section: colecoes
 collection: modelos
 node: models/scott_knott
@@ -10,15 +10,15 @@ related: [models/duncan, models/emmeans, models/plot_means]
 
 ## O que o bloco faz
 
-`models/scott_knott` parte as médias ordenadas do tratamento em grupos por divisões sucessivas (Scott & Knott, 1974) e retorna uma letra por média. A saída é `models/emm`.
+`models/scott_knott` agrupa as médias de um tratamento pelo método de Scott & Knott (1974): ordena as médias, acha o corte que divide o conjunto em dois grupos com a maior soma de quadrados entre eles, testa esse corte pela razão de verossimilhança e repete dentro de cada lado enquanto o corte for significativo. A saída é `models/emm`, com uma letra por média.
 
 ## Quando usar
 
-Use quando há muitos tratamentos (cultivares, linhagens, clones) e se quer grupos que não se sobrepõem: cada média recebe uma letra só, nunca "ab". É o agrupamento mais comum nas revistas brasileiras de ciências agrárias.
+Para dividir muitos tratamentos em grupos que não se sobrepõem, sobre uma ANOVA balanceada (DIC, DBC, DQL, fatorial, parcela subdividida). O nível vale para cada corte, não para o agrupamento inteiro. Com bloco incompleto, covariável ou repetições desiguais o bloco recusa: as médias da tabela deixam de ter a variância comum que o teste supõe. Nesses casos, use o `models/emmeans`.
 
 ## Configuração
 
-Tratamento escolhe o fator; Confiança (padrão 0,95) define o nível de cada corte, com alfa = 1 − confiança. O erro é o resíduo do modelo; na parcela subdividida, o erro (a) para o fator da parcela e o (b) para o da subparcela.
+Informe o tratamento e a confiança (padrão 0,95; cada corte é testado a alfa = 1 − confiança). Na parcela subdividida, o bloco usa o erro (a) ou (b) do fator.
 
 ## Exemplo
 
@@ -29,13 +29,14 @@ reg <- tr_registry()
 tr_use("trama.models", registry = reg)
 
 tr_flow(reg) |>
-  tr_add("dados", "models/example", dataset = "milho_dbc") |>
-  tr_add("ajuste", "models/anova_dbc", resposta = "producao", tratamento = "hibrido", bloco = "bloco", from = "dados") |>
-  tr_add("resultado", "models/scott_knott", tratamento = "hibrido", from = "ajuste")
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho") |>
+  tr_add("sk", "models/scott_knott", tratamento = "hibrido", from = "dbc")
 ```
 
-No DBC de milho os cinco híbridos se dividem em três grupos: H3 sozinho no topo, H5 no meio, e H1, H2 e H4 juntos.
+No `milho_dbc` (QM do resíduo 0,0931 com 12 gl), os cinco híbridos formam três grupos: H3 (9,07) no grupo a, H5 (8,47) no b, e H1, H2 e H4 (7,96, 7,87 e 7,66) no c.
 
 ## Como interpretar
 
-Médias com a mesma letra estão no mesmo grupo; letras diferentes indicam grupos separados pelo teste. Como os grupos não se sobrepõem, o Scott-Knott pode separar médias próximas que caem em lados diferentes de um corte — leia a letra como grupo, e não como comparação par a par.
+Médias com a mesma letra ficaram no mesmo grupo: nenhum corte entre elas foi significativo. Como cada média tem uma letra só, a leitura é mais simples que a do Tukey, mas o método não controla a taxa de erro do experimento inteiro.

@@ -1,9 +1,10 @@
 test_that("margem para n dado é o inverso do tamanho", {
   m <- tr_sampling_margin(n = 25)
-  expect_equal(m$erro, stats::qnorm(0.975) * 0.5 / 5)
-  expect_equal(tr_sampling_margin(n = 385)$erro, 0.05, tolerance = 0.002)
+  expect_equal(m$erro, stats::qt(0.975, 24) * 0.5 / 5)
+  expect_equal(tr_sampling_margin(n = 25, distribuicao = "z")$erro, stats::qnorm(0.975) * 0.5 / 5)
+  expect_equal(tr_sampling_margin(n = 385, distribuicao = "z")$erro, 0.05, tolerance = 0.002)
   d <- tr_sampling_margin(n = 400, deff = 2, taxa_resposta = 0.5)
-  expect_equal(d$erro, stats::qnorm(0.975) * sqrt(2 * 0.25 / 200))
+  expect_equal(d$erro, stats::qt(0.975, 199) * sqrt(2 * 0.25 / 200))
   expect_equal(utils::tail(d$passos$unidade, 1), "pontos")
   expect_error(tr_sampling_margin(n = 1), class = "tr_sampling_error_bad_option")
 })
@@ -15,13 +16,15 @@ test_that("margem por nível: unidade é AAS, agregado paga o deff de Kish", {
   t <- tr_sampling_margin_levels(u, "cap", "pop", "n", "reg")
   expect_equal(t$nivel_tipo, c("total", "reg", "reg", "unidade", "unidade", "unidade", "unidade"))
   a <- t[t$nivel == "A", ]
-  expect_equal(a$margem, stats::qnorm(0.975) * sqrt(0.25 / 25 * (1 - 25 / 1e6)))
+  # t com gl = UPAs − estratos: 25 − 1 na unidade, 50 − 2 no agregado.
+  expect_equal(a$gl, 24)
+  expect_equal(a$margem, stats::qt(0.975, 24) * sqrt(0.25 / 25 * (1 - 25 / 1e6)))
   x <- t[t$nivel == "X", ]
   expect_equal(x$deff_ponderacao, 1)  # populações iguais, n iguais: autoponderada
   y <- t[t$nivel == "Y", ]
   W <- c(0.9, 0.1)
   expect_equal(y$deff_ponderacao, 50 * sum(W^2 / 25))
-  expect_equal(y$margem, stats::qnorm(0.975) * sqrt(sum(W^2 * (1 - 25 / c(9e6, 1e6)) * 0.25 / 25)))
+  expect_equal(y$margem, stats::qt(0.975, 48) * sqrt(sum(W^2 * (1 - 25 / c(9e6, 1e6)) * 0.25 / 25)))
   expect_gt(y$margem, x$margem)
   expect_equal(nrow(tr_sampling_margin_levels(u, "cap", "pop", "n")), 5L)
   u2 <- u; u2$n[[1]] <- 1
@@ -48,13 +51,20 @@ comp <- tibble::tibble(variavel = c("sexo", "sexo", "cor", "cor", "cor"),
                        participacao = c(0.5, 0.5, 0.6, 0.35, 0.05))
 
 test_that("tamanho por grupos: o menor grupo manda", {
-  p <- tr_sampling_size_domains(comp, "variavel", "grupo", "participacao")
+  p <- tr_sampling_size_domains(comp, "variavel", "grupo", "participacao", distribuicao = "z")
   expect_equal(p$n, as.integer(ceiling(385 / 0.05)))
+  # Com t (gl = n_g − 1), o n por grupo é o menor n com t_{n−1}·√(0,25/n) ≤ 0,05: 387.
+  pt <- tr_sampling_size_domains(comp, "variavel", "grupo", "participacao")
+  ng <- pt$alocacao$n[[1]]
+  expect_lte(stats::qt(0.975, ng - 1) * sqrt(0.25 / ng), 0.05)
+  expect_gt(stats::qt(0.975, ng - 2) * sqrt(0.25 / (ng - 1)), 0.05)
   expect_true(p$alocacao$limitante[p$alocacao$grupo == "c"])
-  p2 <- tr_sampling_size_domains(comp, "variavel", "grupo", "participacao", participacao_minima = 0.1)
+  p2 <- tr_sampling_size_domains(comp, "variavel", "grupo", "participacao", participacao_minima = 0.1,
+                                  distribuicao = "z")
   expect_equal(p2$n, as.integer(ceiling(385 / 0.35)))
   expect_match(p2$nota, "cor: c", fixed = TRUE)
-  expect_equal(tr_sampling_size_domains(comp, "variavel", "grupo", "participacao", taxa_resposta = 0.5)$n,
+  expect_equal(tr_sampling_size_domains(comp, "variavel", "grupo", "participacao", taxa_resposta = 0.5,
+                                         distribuicao = "z")$n,
                as.integer(2 * ceiling(385 / 0.05)))
   ruim <- comp; ruim$participacao[[1]] <- 0.7
   expect_error(tr_sampling_size_domains(ruim, "variavel", "grupo", "participacao"), class = "tr_sampling_error_bad_option")
@@ -63,11 +73,13 @@ test_that("tamanho por grupos: o menor grupo manda", {
 })
 
 test_that("diferença detectável segue a fórmula e marca o que se sustenta", {
-  t <- tr_sampling_detectable_difference(comp, "variavel", "grupo", "participacao", n_total = 1000)
+  t <- tr_sampling_detectable_difference(comp, "variavel", "grupo", "participacao", n_total = 1000,
+                                         distribuicao = "z")
   expect_equal(nrow(t), 4L)
   mh <- t[t$variavel == "sexo", ]
-  k <- stats::qnorm(0.975) + stats::qnorm(0.8)
-  expect_equal(mh$diferenca_detectavel_pp, 100 * k * sqrt(0.25 * (1 / 500 + 1 / 500)))
+  # n iguais, z: a equação de Fleiss é a de stats::power.prop.test.
+  p2 <- stats::power.prop.test(n = 500, p1 = 0.5, power = 0.8, sig.level = 0.05, tol = 1e-12)$p2
+  expect_equal(mh$diferenca_detectavel_pp, 100 * (p2 - 0.5), tolerance = 1e-8)
   expect_true(mh$sustentavel)
   expect_false(t$sustentavel[t$grupo_a == "a" & t$grupo_b == "c"])
 })
@@ -96,9 +108,9 @@ test_that("raking bate todas as margens, e com uma variável é a pós-estratifi
 })
 
 test_that("margem por pergunta: pior caso por tipo, base e Thompson", {
-  niveis <- tr_sampling_margin_levels(u, "cap", "pop", "n", "reg")
+  niveis <- tr_sampling_margin_levels(u, "cap", "pop", "n", "reg", distribuicao = "z")
   q <- ex("perguntas_exemplo")
-  t <- tr_sampling_question_margins(q, niveis)
+  t <- tr_sampling_question_margins(q, niveis, distribuicao = "z")
   expect_equal(nrow(t), nrow(q) * nrow(niveis))
   a <- t[t$nivel == "A", ]
   z <- stats::qnorm(0.975)
@@ -110,7 +122,8 @@ test_that("margem por pergunta: pior caso por tipo, base e Thompson", {
   expect_true(is.na(a$margem_pp[a$tipo == "aberta"]))
   # Thompson: com n = 510 a margem simultânea de pior caso é 5 pontos.
   n510 <- tibble::tibble(nivel = "x", n = 510, deff = 1)
-  s <- tr_sampling_question_margins(tibble::tibble(pergunta = "p", tipo = "única", opcoes = 7, base = 1), n510)
+  s <- tr_sampling_question_margins(tibble::tibble(pergunta = "p", tipo = "única", opcoes = 7, base = 1), n510,
+                                    distribuicao = "z")
   expect_equal(s$margem_simultanea_pp, 5, tolerance = 0.01)
   expect_gt(s$margem_simultanea_pp, s$margem_pp)
   # A contra B: o dobro da margem de uma proporção; todos os 21 pares, Bonferroni.

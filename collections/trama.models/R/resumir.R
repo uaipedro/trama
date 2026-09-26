@@ -23,14 +23,31 @@
 .tr_models_soma_zero <- function(fit) {
   aj <- fit$ajuste
   fatores <- names(Filter(is.factor, fit$dados))
-  usados <- intersect(fatores, all.vars(stats::formula(aj)))
+  # Só os fatores da parte FIXA: o fator de agrupamento de um misto não entra
+  # na matriz dos fixos, e o contraste dele não tem o que mudar.
+  fixa <- if (fit$classe == "glmer") reformulas::nobars(stats::formula(aj)) else stats::formula(aj)
+  usados <- intersect(fatores, all.vars(fixa))
   ctr <- stats::setNames(rep(list("contr.sum"), length(usados)), usados)
-  if (fit$classe == "glm") {
-    stats::glm(stats::formula(aj), family = stats::family(aj), data = fit$dados,
-               contrasts = if (length(ctr)) ctr else NULL)
-  } else {
-    stats::lm(stats::formula(aj), data = fit$dados, contrasts = if (length(ctr)) ctr else NULL)
-  }
+  switch(fit$classe,
+    glm = stats::glm(stats::formula(aj), family = stats::family(aj), data = fit$dados,
+                     contrasts = if (length(ctr)) ctr else NULL),
+    glmer = {
+      r <- .tr_models_capturar(lme4::glmer(stats::formula(aj), data = as.data.frame(fit$dados),
+                                           family = stats::family(aj),
+                                           contrasts = if (length(ctr)) ctr else NULL))
+      r$valor
+    },
+    gls = {
+      # O nlme::gls não tem argumento 'contrasts': o contraste vai no próprio
+      # fator, que o model.matrix respeita. O resto da chamada (correlação,
+      # pesos, método) é o do ajuste original.
+      d <- as.data.frame(fit$dados)
+      for (v in usados) stats::contrasts(d[[v]]) <- stats::contr.sum(nlevels(d[[v]]))
+      cl <- aj$call
+      cl$data <- d
+      eval(cl)
+    },
+    stats::lm(stats::formula(aj), data = fit$dados, contrasts = if (length(ctr)) ctr else NULL))
 }
 
 #' O quadro do `stats`/`car`, com nomes em português e o QM calculado.
@@ -66,13 +83,13 @@
 
 #' O quadro de um GLM: desvio e razão de verossimilhança.
 #'
-#' Nas famílias com dispersão estimada (gaussiana, gama, quasipoisson) o teste
+#' Nas famílias com dispersão estimada (gaussiana, gama, quasipoisson, quasibinomial) o teste
 #' é F; nas de dispersão fixa (binomial, poisson), qui-quadrado. É a mesma
 #' escolha que o `anova.glm` recomenda, e o card diz qual foi.
 #' @noRd
 .tr_models_quadro_glm <- function(fit, tipo) {
   aj <- fit$ajuste
-  usa_f <- stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson")
+  usa_f <- stats::family(aj)$family %in% c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
   if (tipo == "I") {
     a <- as.data.frame(stats::anova(aj, test = if (usa_f) "F" else "Chisq"))
     a <- a[rownames(a) != "NULL", , drop = FALSE]
@@ -152,7 +169,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
   no <- "models/anova_table"
   # A curva da dose-resposta: o quadro dela é o desdobramento, feito no ajuste.
   if (identical(modelo$classe, "dose")) return(modelo$desdobramento)
-  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "split", "glmer"), no,
+  .tr_models_exigir(modelo, c("lm", "glm", "lmer", "split", "glmer", "gls"), no,
                     "Um modelo não linear não tem quadro de somas de quadrados; leia os parâmetros em 'models/coefficients'.")
   rodape <- list()
   coluna <- "F"
@@ -165,6 +182,29 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       nota <- "gl do denominador por Satterthwaite"
       data.frame(termo = rownames(a), gl = a$NumDF, gl_den = a$DenDF, sq = a$`Sum Sq`,
                  qm = a$`Mean Sq`, F = a$`F value`, p_valor = a$`Pr(>F)`)
+    },
+    gls = {
+      if (tipo == "II") {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         "'%s': no GLS há o quadro sequencial (tipo I) e o marginal (tipo III).", no)
+      }
+      m <- if (tipo == "III") .tr_models_ajustar(.tr_models_soma_zero(modelo), no) else modelo$ajuste
+      a <- .tr_models_ajustar(as.data.frame(stats::anova(m, type = if (tipo == "I") "sequential" else "marginal")), no)
+      a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
+      nota <- "F de Wald pela covariância do GLS"
+      data.frame(termo = rownames(a), gl = a$numDF, F = a$`F-value`, p_valor = a$`p-value`)
+    },
+    glmer = {
+      if (tipo == "I") {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         paste0("'%s': o GLM misto não tem SQ sequencial; use tipo_sq = 'II' ou 'III' ",
+                                "(qui-quadrado de Wald, car::Anova)."), no)
+      }
+      m <- if (tipo == "III") .tr_models_ajustar(.tr_models_soma_zero(modelo), no) else modelo$ajuste
+      a <- .tr_models_ajustar(as.data.frame(car::Anova(m, type = tipo)), no)
+      a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
+      coluna <- "qui2"; nota <- "qui-quadrado de Wald"
+      data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     },
     split = {
       if (tipo != "I") {
@@ -188,6 +228,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       nota <- "qui-quadrado de Wald"
       data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     })
+  if (tipo == "III") nota <- .tr_models_nota(nota, .tr_models_nota_covariavel_iii(modelo))
   cv <- .tr_models_cv(modelo)
   if (!is.null(cv$cv)) rodape[[if (modelo$classe == "split") "CV (b)" else "CV"]] <- .tr_models_pct(cv$cv)
   if (!is.null(cv$cv_a)) rodape[["CV (a)"]] <- .tr_models_pct(cv$cv_a)
@@ -196,9 +237,31 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
   .tr_models_efeitos(
     tibble::as_tibble(tab), sprintf("Quadro da ANOVA · SQ tipo %s", tipo), coluna_estat = coluna,
     rodape = rodape,
-    nota = .tr_models_nota(nota, .tr_models_nota_descarte(modelo$descartadas)),
+    nota = .tr_models_nota(nota, .tr_models_nota_fit(modelo)),
     fonte = switch(tipo, I = "Fisher (1925)", II = "Langsrud (2003); Fox & Weisberg (2019)",
                    III = "Yates (1934); Fox & Weisberg (2019)"))
+}
+
+#' Tipo III com covariável numérica em interação com fator.
+#'
+#' O `contr.sum` resolve o fator (efeito na média do outro fator), mas não a
+#' covariável: o efeito principal do fator é testado com a covariável em ZERO,
+#' que pode estar fora dos dados. É a convenção do SAS e do `car`; a nota diz
+#' onde o teste está sendo feito para que se centre a covariável se zero não
+#' tiver sentido.
+#' @noRd
+.tr_models_nota_covariavel_iii <- function(fit) {
+  fixa <- tryCatch(reformulas::nobars(stats::as.formula(fit$formula)), error = function(e) NULL)
+  if (is.null(fixa)) return("")
+  rot <- attr(stats::terms(fixa), "term.labels")
+  inter <- rot[grepl(":", rot, fixed = TRUE)]
+  if (!length(inter)) return("")
+  vars <- unique(unlist(lapply(inter, function(t) all.vars(stats::as.formula(paste("~", t))))))
+  num <- vars[vapply(vars, function(v) v %in% names(fit$dados) && is.numeric(fit$dados[[v]]), logical(1))]
+  if (!length(num)) return("")
+  sprintf(paste0("tipo III com %s em interação: os efeitos principais são testados em %s = 0; ",
+                 "centre a covariável se zero não estiver nos dados"),
+          paste(num, collapse = ", "), paste(num, collapse = " = 0, "))
 }
 
 #' Os efeitos que o card do modelo mostra: o quadro tipo I nos delineamentos, os
@@ -243,12 +306,21 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
 #'   (por desvio padrão da coluna da matriz de design; t e p não mudam).
 #' @param confianca nível do intervalo; as colunas saem `li_<nível>`,
 #'   `ls_<nível>` (`li_95` no padrão).
+#' @param intervalo `"padrão"` (o de cada modelo: t exato no `lm`, Wald no GLM
+#'   e no misto, perfilado na logística da `multi`), `"perfilado"` (GLM e
+#'   logística da `multi`: verossimilhança perfilada) ou `"Wald"`.
 #' @return objeto `tr_models_effects`; modelo de outra coleção pode trazer a
 #'   coluna `grupo` (a classe de cada linha numa logística multinomial).
 #' @export
-tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidade", confianca = 0.95) {
+tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidade", confianca = 0.95,
+                                   intervalo = "padrão") {
   .tr_models_modelo_conferir(modelo)
-  tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca)
+  # `intervalo` só vai ao método quando pedido: as classes que não o conhecem
+  # (e as de outras coleções) seguem recebendo a chamada de sempre.
+  if (identical(intervalo, "padrão")) {
+    return(tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca))
+  }
+  tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca, intervalo = intervalo)
 }
 
 #' Gráfico de floresta dos coeficientes.
@@ -346,10 +418,36 @@ tr_models_fit_stats <- function(modelo) {
   tr_models_stats(modelo)
 }
 
+#' Superdispersão: X² de Pearson / gl e desvio / gl, nas famílias de
+#' dispersão fixa (binomial, Poisson), do GLM e do GLM misto.
+#'
+#' Perto de 1, a variância é a da família; bem acima, há superdispersão. No
+#' misto os resíduos são os condicionais (dados os efeitos aleatórios) e o gl é
+#' o do `df.residual` do lme4 (n menos os parâmetros fixos e de variância) —
+#' a regra de bolso de Bolker et al. (2009). Na binomial 0/1 (uma tentativa por
+#' linha) a razão não mede superdispersão, e sai NA.
+#' @noRd
+.tr_models_dispersao <- function(fit) {
+  na <- c(pearson = NA_real_, desvio = NA_real_)
+  if (!fit$classe %in% c("glm", "glmer")) return(na)
+  aj <- fit$ajuste
+  fam <- stats::family(aj)$family
+  if (!fam %in% c("binomial", "poisson")) return(na)
+  if (fam == "binomial" && is.name(stats::formula(aj)[[2]])) return(na)
+  gl <- stats::df.residual(aj)
+  c(pearson = sum(stats::residuals(aj, type = "pearson")^2) / gl,
+    desvio = sum(stats::residuals(aj, type = "deviance")^2) / gl)
+}
+
 #' O misto do modelo: o próprio, ou o equivalente da parcela subdividida.
 #' @noRd
-.tr_models_misto <- function(fit, no) {
-  if (fit$classe %in% c("lmer", "glmer")) return(fit$ajuste)
+.tr_models_misto <- function(fit, no, glmer_ok = TRUE) {
+  if (fit$classe == "lmer" || (glmer_ok && fit$classe == "glmer")) return(fit$ajuste)
+  if (fit$classe == "glmer") {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' não se aplica ao GLM misto. Para testar um efeito aleatório, ajuste o ",
+                            "modelo sem ele e compare os dois no 'models/compare' (razão de verossimilhança)."), no)
+  }
   if (fit$classe == "split") return(fit$aux_misto)
   .tr_models_abort("tr_models_error_not_applicable",
                    "'%s' pede um modelo misto, e chegou %s. Ajuste um 'models/lmer'.", no, fit$rotulo)
@@ -370,8 +468,7 @@ tr_models_random_effects <- function(modelo) {
   # Proporção só para interceptos e resíduo: a variância de uma inclinação está
   # em outra escala (por unidade da covariável²), e somá-la com as outras dá
   # um número sem significado.
-  # No GLMM não há variância residual na escala da ligação para somar, e a
-  # proporção entre só os grupos diria outra coisa: fica NA.
+  # No GLM misto não há variância residual na mesma escala: sem proporção.
   soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)") & modelo$classe != "glmer"
   total <- sum(v$vcov[soma_ok])
   tibble::tibble(
@@ -409,6 +506,12 @@ tr_models_random_effects <- function(modelo) {
                      "'%s' não se aplica a %s. Olhe os resíduos em 'models/plot_diagnostics'.", no, fit$rotulo)
   }
   aj <- if (fit$classe == "split") fit$aux_lm else fit$ajuste
+  if (fit$classe == "gls") {
+    # Resíduos normalizados: descontada a correlação e a variância do modelo,
+    # são os que devem sair normais e independentes.
+    return(list(ajustado = as.numeric(stats::fitted(aj)), residuo = as.numeric(stats::residuals(aj, type = "normalized")),
+                padronizado = as.numeric(stats::residuals(aj, type = "normalized")), ajuste = aj))
+  }
   list(ajustado = as.numeric(stats::fitted(aj)), residuo = as.numeric(stats::residuals(aj)),
        padronizado = if (fit$classe == "lmer") as.numeric(stats::residuals(aj, type = "pearson", scaled = TRUE))
                      else as.numeric(stats::rstandard(aj)),
@@ -493,10 +596,10 @@ tr_models_plot_diagnostics <- function(modelo, aspecto = "1:1", tema = "padrão"
 tr_models_compare <- function(modelo, outro) {
   .tr_models_fit_conferir(modelo); .tr_models_fit_conferir(outro)
   no <- "models/compare"
-  if (modelo$classe != outro$classe || !modelo$classe %in% c("lm", "glm", "lmer", "glmer")) {
+  if (modelo$classe != outro$classe || !modelo$classe %in% c("lm", "glm", "lmer", "glmer", "gls")) {
     .tr_models_abort("tr_models_error_not_nested",
                      paste0("'%s': compara dois modelos da mesma família (dois lm, dois glm, dois ",
-                            "lmer ou dois glmer), e chegaram %s e %s."), no, modelo$rotulo, outro$rotulo)
+                            "lmer, dois glmer ou dois gls), e chegaram %s e %s."), no, modelo$rotulo, outro$rotulo)
   }
   if (nrow(modelo$dados) != nrow(outro$dados)) {
     .tr_models_abort("tr_models_error_not_nested",
@@ -509,7 +612,10 @@ tr_models_compare <- function(modelo, outro) {
     .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM têm famílias diferentes.", no)
   }
   ta <- .tr_models_termos(modelo); tb <- .tr_models_termos(outro)
-  gl_de <- function(f) if (f$classe %in% c("lmer", "glmer")) attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
+  if (modelo$classe == "glmer" && stats::family(modelo$ajuste)$family != stats::family(outro$ajuste)$family) {
+    .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM mistos têm famílias diferentes.", no)
+  }
+  gl_de <- function(f) if (f$classe %in% c("lmer", "glmer", "gls")) attr(stats::logLik(f$ajuste), "df") else length(stats::coef(f$ajuste))
   if (gl_de(modelo) <= gl_de(outro)) { menor <- modelo; maior <- outro; tm <- ta; tM <- tb }
   else { menor <- outro; maior <- modelo; tm <- tb; tM <- ta }
   if (!all(tm %in% tM) || gl_de(menor) == gl_de(maior)) {
@@ -521,17 +627,39 @@ tr_models_compare <- function(modelo, outro) {
   novos <- paste(setdiff(tM, tm), collapse = " + ")
   if (!nzchar(novos)) novos <- "estrutura aleatória"
   h0 <- sprintf("os termos a mais (%s) não melhoram o ajuste", novos)
-  if (menor$classe %in% c("lmer", "glmer")) {
-    a <- .tr_models_ajustar(.tr_models_capturar(stats::anova(menor$ajuste, maior$ajuste, refit = TRUE))$valor, no)
+  if (menor$classe %in% c("lmer", "glmer", "gls")) {
+    a <- if (menor$classe == "gls") {
+      m1 <- menor$ajuste; m2 <- maior$ajuste
+      # REML só compara estruturas de erro com os mesmos fixos; senão, ML.
+      if (!identical(ta[order(ta)], tb[order(tb)]) || m1$method != m2$method) {
+        m1 <- stats::update(m1, method = "ML"); m2 <- stats::update(m2, method = "ML")
+      }
+      x <- as.data.frame(stats::anova(m1, m2))
+      list(Chisq = c(NA, x$L.Ratio[[2]]), Df = c(NA, diff(x$df)), `Pr(>Chisq)` = c(NA, x$`p-value`[[2]]),
+           AIC = x$AIC)
+    } else if (menor$classe == "glmer") {
+      # Direto das verossimilhanças: o anova() do lme4 exige o mesmo objeto de
+      # dados, e o efeito por observação acrescenta a coluna '.obs'. Os dois já
+      # são de máxima verossimilhança.
+      ll <- c(stats::logLik(menor$ajuste), stats::logLik(maior$ajuste))
+      gl <- c(attr(stats::logLik(menor$ajuste), "df"), attr(stats::logLik(maior$ajuste), "df"))
+      x2 <- max(0, 2 * (ll[[2]] - ll[[1]]))
+      list(Chisq = c(NA, x2), Df = c(NA, diff(gl)), `Pr(>Chisq)` = c(NA, stats::pchisq(x2, diff(gl), lower.tail = FALSE)),
+           AIC = c(stats::AIC(menor$ajuste), stats::AIC(maior$ajuste)))
+    } else .tr_models_ajustar(.tr_models_capturar(stats::anova(menor$ajuste, maior$ajuste, refit = TRUE))$valor, no)
     return(.tr_models_teste("Razão de verossimilhança", h0, a$Chisq[[2]], "qui2", a$`Pr(>Chisq)`[[2]],
                             gl = as.character(a$Df[[2]]),
                             conclusao_sim = "o modelo maior ajusta melhor",
                             conclusao_nao = "não há evidência de que o modelo maior ajuste melhor",
-                            nota = sprintf("%sAIC %s × %s", if (menor$classe == "lmer") "reajustados por máxima verossimilhança; " else "",
+                            nota = sprintf(paste0(if (menor$classe == "glmer") "máxima verossimilhança (Laplace)"
+                                                  else "reajustados por máxima verossimilhança",
+                                                  "; AIC %s × %s",
+                                                  if (novos == "estrutura aleatória" || grepl("|", novos, fixed = TRUE))
+                                                    "; variância testada na fronteira (zero): p conservador" else ""),
                                            .tr_models_fmt(a$AIC[[1]], 5L), .tr_models_fmt(a$AIC[[2]], 5L)),
                             fonte = "Wilks (1938)"))
   }
-  usa_f <- menor$classe == "lm" || stats::family(menor$ajuste)$family %in% c("gaussian", "Gamma", "quasipoisson")
+  usa_f <- menor$classe == "lm" || stats::family(menor$ajuste)$family %in% c("gaussian", "Gamma", "quasipoisson", "quasibinomial")
   a <- .tr_models_ajustar(as.data.frame(stats::anova(menor$ajuste, maior$ajuste,
                                                      test = if (usa_f) "F" else "Chisq")), no)
   if (usa_f) {
@@ -556,12 +684,7 @@ tr_models_compare <- function(modelo, outro) {
 tr_models_random_test <- function(modelo) {
   .tr_models_fit_conferir(modelo)
   no <- "models/random_test"
-  aj <- .tr_models_misto(modelo, no)
-  if (modelo$classe == "glmer") {
-    .tr_models_abort("tr_models_error_not_applicable",
-                     paste0("'%s' não se aplica ao misto generalizado (o ranova é do lmerTest, só gaussiano). ",
-                            "Ajuste o modelo sem o termo e compare os dois em 'models/compare'."), no)
-  }
+  aj <- .tr_models_misto(modelo, no, glmer_ok = FALSE)
   r <- .tr_models_ajustar(as.data.frame(.tr_models_capturar(lmerTest::ranova(aj))$valor), no)
   termo <- rownames(r)
   termo[termo == "<none>"] <- "modelo completo"

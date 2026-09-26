@@ -20,11 +20,14 @@ tr_models_errors <- function() {
     tr_models_error_bad_formula = "a fórmula digitada não parseia, não tem resposta ou cita coluna inexistente",
     tr_models_error_not_numeric = "coluna usada como resposta ou medida não é numérica",
     tr_models_error_one_level = "fator do delineamento ou grupo com um nível só",
+    tr_models_error_positive_required = "coluna de probabilidade cujo nome não indica a classe positiva, com `positiva` vazia",
     tr_models_error_too_few_rows = "observações de menos para o modelo ou o teste",
     tr_models_error_no_residual_df = "o modelo não deixa grau de liberdade para o resíduo",
     tr_models_error_fit = "o ajuste ou o teste falhou dentro do R",
     tr_models_error_no_convergence = "o ajuste não linear (models/nls) não convergiu a partir do chute inicial",
     tr_models_error_not_applicable = "o bloco não se aplica a esse tipo de modelo",
+    tr_models_error_block_design =
+      "o teste não tem correção publicada para o delineamento: Bartlett com bloco (DBC, DQL; use o models/levene) ou Levene/Bartlett na parcela subdividida",
     tr_models_error_two_groups = "o teste compara dois grupos, e a coluna do grupo não tem dois",
     tr_models_error_not_nested = "os dois modelos comparados não são da mesma família ou não usam as mesmas linhas",
     tr_models_error_unknown_level =

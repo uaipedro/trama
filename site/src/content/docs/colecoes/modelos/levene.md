@@ -14,7 +14,7 @@ related: [models/bartlett, models/breusch_pagan]
 
 ## Quando usar
 
-Use para avaliar igualdade de variâncias entre grupos de tratamento a partir dos resíduos do ajuste.
+Use para avaliar igualdade de variâncias entre grupos de tratamento a partir dos resíduos do ajuste. Na parcela subdividida o bloco recusa: os resíduos vêm de dois estratos de erro e não há correção publicada; leia o painel escala-locação do `models/plot_diagnostics`.
 
 ## Configuração
 

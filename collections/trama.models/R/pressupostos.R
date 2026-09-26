@@ -58,21 +58,127 @@ tr_models_shapiro_residuals <- function(modelo) {
     fonte = "Shapiro & Wilk (1965)")
 }
 
+#' Delineamentos com bloco, onde Levene e Bartlett nos resíduos precisam de
+#' correção.
+#' @noRd
+.TR_MODELS_COM_BLOCO <- c("DBC", "fatorial_dbc", "DQL")
+
+#' Os fatores de controle (bloco; linha e coluna) de um delineamento com bloco.
+#' @noRd
+.tr_models_controles <- function(fit) {
+  if (fit$delineamento == "DQL") {
+    setdiff(all.vars(stats::as.formula(fit$formula)[[3]]), fit$tratamentos)
+  } else fit$bloco
+}
+
+#' Levene de O'Neill & Mathews (2002) para delineamento com bloco.
+#'
+#' Os resíduos de mínimos quadrados de um delineamento com bloco são
+#' correlacionados, e a ANOVA dos |resíduos| em tratamento + controles dá um F
+#' liberal. O'Neill & Mathews mostram que, no delineamento equilibrado, o teste
+#' de mínimos quadrados ponderados é o F comum vezes um multiplicador que só
+#' depende do desenho: a razão entre os quadrados médios esperados do resíduo e
+#' do tratamento na ANOVA de |e| sob H0. Com e ~ N(0, σ²R), R = I − H,
+#' Cov(|e_i|, |e_j|) = σ_i σ_j (2/π)(√(1 − ρ²) + ρ·asen ρ − 1), ρ = correlação
+#' dos resíduos; os quadrados médios esperados saem de tr(A Σ). No DBC isso
+#' reproduz a forma fechada do artigo (e o `oneilldbc` do ExpDes.pt); no DQL é
+#' a mesma conta, conferida por simulação nos testes. O multiplicador acerta a
+#' média do F, não a cauda: em desenho pequeno o teste fica conservador
+#' (tamanho a 5%, 20000 réplicas: DBC 5 x 6 4,6%, 4 x 3 2,9%; DQL 8 x 8 4,7%,
+#' 5 x 5 2,9%, 4 x 4 2,3%).
+#' @noRd
+.tr_models_levene_om <- function(modelo, g, no) {
+  d <- modelo$dados
+  ctrl <- .tr_models_controles(modelo)
+  dd <- d[, ctrl, drop = FALSE]
+  dd$.g <- g
+  Xc <- stats::model.matrix(stats::reformulate(.tr_models_bt(ctrl)), dd)
+  Xf <- stats::model.matrix(stats::reformulate(c(.tr_models_bt(ctrl), ".g")), dd)
+  proj <- function(X) { q <- qr(X); Q <- qr.Q(q)[, seq_len(q$rank), drop = FALSE]; list(H = tcrossprod(Q), k = q$rank) }
+  pc <- proj(Xc); pf <- proj(Xf)
+  n <- nrow(dd)
+  R <- diag(n) - pf$H
+  At <- pf$H - pc$H
+  glt <- pf$k - pc$k; glr <- n - pf$k
+  h <- diag(R)
+  if (glt < 1L || glr < 1L) {
+    .tr_models_abort("tr_models_error_no_residual_df",
+                     "'%s': o delineamento não deixa grau de liberdade para o teste nos |resíduos|.", no)
+  }
+  # Equilíbrio: cada tratamento o mesmo número de vezes em cada nível de cada
+  # controle (bloco; linha e coluna). Alavancas iguais sozinhas não bastam.
+  celas_iguais <- all(vapply(ctrl, function(v) length(unique(as.vector(table(g, dd[[v]])))) == 1L, TRUE))
+  if (!celas_iguais || diff(range(h)) > 1e-8 * max(h)) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s': o delineamento está desbalanceado (falta ou sobra parcela), e o Levene ",
+                            "de O'Neill & Mathews (2002) supõe o delineamento equilibrado. Confira os dados ",
+                            "ou use o 'models/plot_diagnostics' (painel escala-locação)."), no)
+  }
+  e <- as.vector(R %*% d[[modelo$resposta]])
+  z <- abs(e)
+  rho <- pmin(pmax(R / sqrt(tcrossprod(h)), -1), 1)
+  S <- (2 / pi) * (sqrt(1 - rho^2) + rho * asin(rho) - 1) * sqrt(tcrossprod(h))
+  f_mq <- (sum(z * (At %*% z)) / glt) / (sum(z * (R %*% z)) / glr)
+  m <- (sum(R * S) / glr) / (sum(At * S) / glt)
+  f <- m * f_mq
+  list(f = f, glt = glt, glr = glr, m = m, p = stats::pf(f, glt, glr, lower.tail = FALSE), ctrl = ctrl)
+}
+
+#' Levene e Bartlett recusam a parcela subdividida.
+#'
+#' O'Neill & Mathews (2002) corrigem um estrato de erro só. Nos resíduos do
+#' erro (b) o fator da parcela está confundido com a própria parcela (o "bloco"
+#' desse estrato), e a correção deixaria de testar a variância entre os níveis
+#' da parcela; o teste comum nesses resíduos correlacionados sai liberal ou
+#' conservador conforme o centro (10,5% e 2,5% de rejeição a 5% sob H0 no
+#' desenho da aveia, em simulação). Sem correção validada, recusa.
+#' @noRd
+.tr_models_recusar_split <- function(modelo, no) {
+  if (identical(modelo$classe, "split")) {
+    .tr_models_abort("tr_models_error_block_design",
+                     paste0("'%s': na parcela subdividida os resíduos vêm de dois estratos de erro, e o teste ",
+                            "não tem correção publicada para eles (a de O'Neill & Mathews supõe um estrato só). ",
+                            "Leia o painel escala-locação do 'models/plot_diagnostics' e, se as variâncias ",
+                            "diferirem, ajuste o misto no 'models/lmer'."), no)
+  }
+  invisible(NULL)
+}
+
 #' Levene: as variâncias dos grupos são iguais?
+#'
+#' No DIC e nos modelos de fórmula, ANOVA dos desvios absolutos dos resíduos em
+#' relação ao centro de cada grupo (`car::leveneTest`). Nos delineamentos com
+#' bloco (DBC, fatorial em DBC, DQL), o teste de O'Neill & Mathews (2002): ANOVA
+#' dos |resíduos| de mínimos quadrados em tratamento + bloco (+ linha e coluna)
+#' com o F corrigido; ali o centro é sempre o ajuste do modelo (média), e
+#' `centro` não muda o resultado.
 #' @param modelo objeto `tr_models_fit`.
 #' @param centro `"mediana"` (Brown-Forsythe, robusto; padrão) ou `"média"` (o
-#'   Levene original).
+#'   Levene original). Ignorado nos delineamentos com bloco.
 #' @return objeto `tr_models_test`.
 #' @export
 tr_models_levene <- function(modelo, centro = "mediana") {
   .tr_models_fit_conferir(modelo)
   no <- "models/levene"
   centro <- .tr_models_enum(centro, c("mediana", "média"), "centro")
+  .tr_models_recusar_split(modelo, no)
   r <- .tr_models_residuos(modelo, no, permitir_misto = FALSE)
   g <- .tr_models_grupos(modelo, no)
+  h0 <- sprintf("as variâncias são iguais entre os níveis de %s", paste(g$fatores, collapse = " × "))
+  if (!is.null(modelo$delineamento) && modelo$delineamento %in% .TR_MODELS_COM_BLOCO) {
+    om <- .tr_models_ajustar(.tr_models_levene_om(modelo, g$g, no), no)
+    return(.tr_models_teste(
+      "Levene (O'Neill-Mathews)", h0, om$f, "F", om$p, gl = sprintf("%d; %d", om$glt, om$glr),
+      conclusao_sim = "variâncias diferentes entre os grupos",
+      conclusao_nao = "não há evidência de variâncias diferentes",
+      nota = sprintf(paste0("|resíduos| de mínimos quadrados em tratamento + %s; F corrigido pelo ",
+                            "fator %.4f do delineamento (o centro é o ajuste do modelo)"),
+                     paste(om$ctrl, collapse = " + "), om$m),
+      fonte = "O'Neill & Mathews (2002)"))
+  }
   t <- .tr_models_ajustar(car::leveneTest(r$residuo, g$g, center = if (centro == "mediana") stats::median else mean), no)
   .tr_models_teste(
-    "Levene", sprintf("as variâncias são iguais entre os níveis de %s", paste(g$fatores, collapse = " × ")),
+    "Levene", h0,
     t$`F value`[[1]], "F", t$`Pr(>F)`[[1]], gl = sprintf("%d; %d", t$Df[[1]], t$Df[[2]]),
     conclusao_sim = "variâncias diferentes entre os grupos",
     conclusao_nao = "não há evidência de variâncias diferentes",
@@ -81,12 +187,24 @@ tr_models_levene <- function(modelo, centro = "mediana") {
 }
 
 #' Bartlett: as variâncias dos grupos são iguais?
+#'
+#' Só sem bloco: nos resíduos de um DBC/DQL o teste não tem correção publicada
+#' para a correlação dos resíduos, e o bloco recusa apontando o Levene de
+#' O'Neill & Mathews.
 #' @param modelo objeto `tr_models_fit`.
 #' @return objeto `tr_models_test`.
 #' @export
 tr_models_bartlett <- function(modelo) {
   .tr_models_fit_conferir(modelo)
   no <- "models/bartlett"
+  .tr_models_recusar_split(modelo, no)
+  if (!is.null(modelo$delineamento) && modelo$delineamento %in% .TR_MODELS_COM_BLOCO) {
+    .tr_models_abort("tr_models_error_block_design",
+                     paste0("'%s': %s tem bloco, e nos resíduos de um delineamento com bloco o Bartlett ",
+                            "não tem correção publicada para a correlação dos resíduos (sairia liberal). ",
+                            "Use o 'models/levene', que ali aplica a correção de O'Neill & Mathews (2002)."),
+                     no, modelo$rotulo)
+  }
   r <- .tr_models_residuos(modelo, no, permitir_misto = FALSE)
   g <- .tr_models_grupos(modelo, no)
   t <- .tr_models_ajustar(stats::bartlett.test(r$residuo, g$g), no)

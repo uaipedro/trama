@@ -68,7 +68,7 @@ f <- f |>
          from = "dbc_dados", label = "ANOVA · DBC", position = em(1, 1)) |>
   tr_add("dbc_medidas", "models/fit_stats", from = "dbc", label = "CV e R²", position = em(1, 1, 1.3)) |>
   tr_add("dbc_sw", "models/shapiro_residuals", from = "dbc", label = "Normalidade", position = em(1, 2)) |>
-  tr_add("dbc_bart", "models/bartlett", from = "dbc", label = "Homogeneidade", position = em(1, 2, 1)) |>
+  tr_add("dbc_lev", "models/levene", from = "dbc", label = "Homogeneidade", position = em(1, 2, 1)) |>
   tr_add("dbc_adit", "models/tukey_additivity", from = "dbc", label = "Aditividade", position = em(1, 2, 2)) |>
   tr_add("dbc_quadro", "models/anova_table", from = "dbc", label = "Quadro", position = em(1, 3)) |>
   tr_add("dbc_medias", "models/emmeans", especs = "hibrido", from = "dbc", label = "Tukey", position = em(1, 4)) |>

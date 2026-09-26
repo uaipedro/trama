@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- multi_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_multi(reg)
-  expect_length(nos, 23L)
+  expect_length(nos, 29L)  # 9.1b: roc, pr_curve, confusion, classify, logistic_coefficients e plot_odds da main migram para a models
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -40,7 +40,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
 test_that("todo gráfico da coleção é view/plot com os seis cosméticos e a ajuda deles", {
   reg <- multi_registry()
   graficos <- Filter(function(n) identical(n$outputs$out$type, "view/plot"), nos_multi(reg))
-  expect_length(graficos, 6L)
+  expect_length(graficos, 7L)
   comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
   for (n in graficos) {
     expect_equal(utils::tail(names(n$params), 6L), comuns, info = n$id)

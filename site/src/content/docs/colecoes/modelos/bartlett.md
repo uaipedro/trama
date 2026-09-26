@@ -14,7 +14,7 @@ related: [models/breusch_pagan, models/levene]
 
 ## Quando usar
 
-Use para testar igualdade de variâncias entre grupos quando a normalidade residual é plausível.
+Use para testar igualdade de variâncias entre grupos quando a normalidade residual é plausível. Na parcela subdividida o bloco recusa: os resíduos vêm de dois estratos de erro e não há correção publicada; leia o painel escala-locação do `models/plot_diagnostics`.
 
 ## Configuração
 

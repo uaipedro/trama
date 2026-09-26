@@ -9,6 +9,9 @@ tr_ml_split(
   resposta = "",
   proporcao = 0.75,
   estratificar = TRUE,
+  estrategia = "aleatoria",
+  ordem = "",
+  grupo = "",
   seed = 42L
 )
 }
@@ -21,10 +24,29 @@ tr_ml_split(
 
 \item{estratificar}{Se TRUE, preserva cada classe categórica nos dois lados.}
 
+\item{estrategia}{\code{"aleatoria"} (padrão) sorteia linhas; \code{"temporal"} põe
+no treino as linhas mais antigas segundo \code{ordem} e no teste as posteriores,
+sem partir instantes empatados; \code{"grupo"} sorteia grupos inteiros de
+\code{grupo} (nenhum grupo nos dois lados). Nas duas últimas \code{estratificar} é
+ignorado.}
+
+\item{ordem}{Coluna de tempo (número, data ou data-hora, sem ausentes) usada
+por \code{estrategia = "temporal"}.}
+
+\item{grupo}{Coluna que identifica indivíduo, lote ou área, usada por
+\code{estrategia = "grupo"}; \code{proporcao} passa a ser a fração dos grupos.}
+
 \item{seed}{Semente inteira; o estado RNG do chamador é restaurado.}
 }
 \value{
-Lista com tibbles treino e teste.
+Lista com tibbles treino e teste, marcados com o atributo
+\code{tr_ml_origem} (\code{papel} = \code{"treino"}/\code{"teste"} e \code{divisao}, um id da
+divisão, mais as impressões digitais das linhas do teste). Ajustar no
+teste (inclusive numa tabela que junta treino e teste) e avaliar o treino
+passam a ser recusados. A marca não cobre juntar com o teste à direita
+(\code{tr_join(outra, teste)}), remodelar (\code{pivot_longer}/\code{pivot_wider}),
+recriar a tabela à mão, reescrever ou tirar colunas da divisão, nem
+divisões feitas fora do \code{ml/split}; aí os blocos seguem como sem marca.
 }
 \description{
 Faz uma divisão reprodutível. Para alvos categóricos, amostra cada classe

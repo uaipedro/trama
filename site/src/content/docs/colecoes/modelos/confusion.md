@@ -20,6 +20,10 @@ Use depois de ajustar um classificador — o GLM binomial, a discriminante ou a 
 
 As duas entradas são opcionais, mas uma tem de estar ligada. Só `modelo`: avalia no treino pela Validação (`cruzada`, padrão, ou `resubstituição`). `modelo` e `dados`: prevê a tabela e compara com a resposta do modelo. Só `dados`: modo tabela, com Resposta e Previsto (padrão `previsto`) nomeando as colunas.
 
+**Tabela** — `matriz` (padrão) ou `métricas`: acurácia, acurácia balanceada (a média das revocações; Brodersen et al., 2010), kappa de Cohen (1960) e precisão, revocação e F1 por classe. Classe nunca prevista tem precisão e F1 indefinidos (NA), e não zero.
+
+**Permitir avaliar o treino** — com `dados` vindos do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) (a tabela leva a marca de treino/teste), previsões das linhas de treino são recusadas (`tr_ml_error_train_eval`): a medida no treino é otimista. Ligado, avalia assim mesmo e acrescenta a nota de otimismo. Tabela sem a marca é avaliada como chega.
+
 ## Exemplo
 
 ```r

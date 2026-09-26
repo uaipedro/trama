@@ -1,0 +1,162 @@
+[
+  {
+    "from": "multi/example",
+    "to": "multi/pca",
+    "n": 9
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/discriminant",
+    "n": 6
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/factor_analysis",
+    "n": 5
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/distance",
+    "n": 3
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/logistic",
+    "n": 3
+  },
+  {
+    "from": "multi/factor_analysis",
+    "to": "multi/fa_loadings",
+    "n": 3
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/biplot",
+    "n": 3
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/pca_variance",
+    "n": 3
+  },
+  {
+    "from": "multi/discriminant",
+    "to": "multi/discriminant_functions",
+    "n": 2
+  },
+  {
+    "from": "multi/discriminant",
+    "to": "multi/plot_discriminant",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/box_m",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/correlation_matrix",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/kmo_bartlett",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/parallel",
+    "n": 2
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/plot_correlation",
+    "n": 2
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/correlation_circle",
+    "n": 2
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/jackknife_pca",
+    "n": 2
+  },
+  {
+    "from": "data/filter",
+    "to": "multi/logistic",
+    "n": 1
+  },
+  {
+    "from": "data/slice_head",
+    "to": "multi/factor_analysis",
+    "n": 1
+  },
+  {
+    "from": "data/slice_head",
+    "to": "multi/logistic",
+    "n": 1
+  },
+  {
+    "from": "multi/cluster",
+    "to": "multi/plot_dendrogram",
+    "n": 1
+  },
+  {
+    "from": "multi/discriminant",
+    "to": "multi/jackknife_discriminant",
+    "n": 1
+  },
+  {
+    "from": "multi/distance",
+    "to": "multi/cluster",
+    "n": 1
+  },
+  {
+    "from": "multi/distance",
+    "to": "multi/tocher",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/cluster",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/manova",
+    "n": 1
+  },
+  {
+    "from": "multi/example",
+    "to": "multi/mardia",
+    "n": 1
+  },
+  {
+    "from": "multi/factor_analysis",
+    "to": "multi/jackknife_fa",
+    "n": 1
+  },
+  {
+    "from": "multi/factor_analysis",
+    "to": "multi/plot_loadings",
+    "n": 1
+  },
+  {
+    "from": "multi/logistic",
+    "to": "multi/jackknife_logistic",
+    "n": 1
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/pca_loadings",
+    "n": 1
+  },
+  {
+    "from": "multi/pca",
+    "to": "multi/scree",
+    "n": 1
+  }
+]

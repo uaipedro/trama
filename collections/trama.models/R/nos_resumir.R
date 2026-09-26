@@ -4,7 +4,10 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "data/test"; T <- "data/table"
   list(
-    trama::tr_node("models/anova_table", fn = tr_models_anova_table, label = "Quadro da ANOVA",
+    trama::tr_node("models/anova_table", version = 2L,
+      pressupostos = .tr_models_doc("models/anova_table")$pressupostos,
+      referencias = .tr_models_doc("models/anova_table")$referencias,
+      fn = tr_models_anova_table, label = "Quadro da ANOVA",
       category = "modelo_resumir", icon = trama::tr_icon("sheet"),
       description = "O quadro da análise de variância, com SQ tipo I, II ou III e a régua do p-valor por termo.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
@@ -50,13 +53,16 @@ tr_flow(reg) |>
 médias depois do F; `models/coefficients` para os coeficientes.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/coefficients", fn = tr_models_coefficients, label = "Coeficientes",
+    # Versão 2 (9.1b): `intervalo`, e a logística da `multi` com IC perfilado e
+    # Firth (da `multi/logistic_coefficients` v4 da main).
+    trama::tr_node("models/coefficients", version = 2L, fn = tr_models_coefficients, label = "Coeficientes",
       category = "modelo_resumir", icon = trama::tr_icon("variable"),
       description = "Estimativa, erro padrão, estatística, p-valor e intervalo de confiança de cada coeficiente.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
       params = list(exponenciar = B(FALSE, label = "Exponenciar (GLM)"),
                     escala = trama::tr_param_enum("unidade", .TR_MODELS_ESCALAS, label = "Escala"),
-                    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+                    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"),
+                    intervalo = trama::tr_param_enum("padrão", .TR_MODELS_INTERVALOS_COEF, label = "Intervalo")),
       help = .tr_models_ajuda(r"---[
 Os coeficientes do modelo, um por linha: estimativa, erro padrão, estatística
 (t ou z), p-valor e intervalo de confiança (95% no padrão; as colunas levam o
@@ -91,10 +97,28 @@ Com **exponenciar** e desvio padrão juntos, sai a razão de chances por DP.
 Uma logística multinomial (da `multi`) tem um coeficiente por classe para cada
 preditora: a tabela ganha a coluna `grupo`, e a régua mostra `classe · termo`.
 
+### Intervalo
+
+**padrão** é o de cada modelo: t exato no `lm`, Wald no GLM e no misto, e o da
+verossimilhança **perfilada** na logística da `multi` (binária; com
+`metodo = "firth"`, a penalizada de Firth, como no `logistf`), com o p da
+razão de verossimilhanças. O perfilado não supõe a log-verossimilhança
+quadrática e é o preferido em amostra pequena (Hosmer, Lemeshow & Sturdivant
+2013, sec. 1.4); com n grande coincide com o de Wald. **perfilado** pede o
+perfil também no GLM (`stats::confint`); **Wald** dá b ± z·EP.
+O `z` é sempre de Wald (b / EP): com o perfilado, z e p_valor vêm de aproximações
+diferentes e podem discordar perto de 5%, sobretudo no Firth e em amostra
+pequena. Heinze & Schemper (2002) dizem que os testes e intervalos da razão
+de verossimilhanças penalizadas "são muitas vezes preferíveis": leia o
+p_valor e o intervalo, e o z só como tamanho do efeito em EPs.
+Na logística multinomial o intervalo sai de Wald mesmo com `perfilado` (o
+`nnet::multinom` não tem perfil), e a nota diz.
+
 Na parcela subdividida os coeficientes misturam os dois erros, e o bloco recusa.
 ]---", r"---[
 - **Exponenciar** — só no GLM.
 - **Escala** — `unidade` (padrão) ou `desvio padrão` da preditora.
+- **Intervalo** — `padrão`, `perfilado` ou `Wald`.
 - **Confiança** — o nível do intervalo (padrão 0,95).
 ]---", r"---[
 Um quadro de efeitos (`models/effects`), com a régua por coeficiente.
@@ -108,7 +132,9 @@ tr_flow(reg) |>
 comparar níveis de um fator.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/effect_size", fn = tr_models_effect_size, label = "Tamanho de efeito (ANOVA)",
+    trama::tr_node("models/effect_size", fn = tr_models_effect_size,
+      pressupostos = .tr_models_doc("models/effect_size")$pressupostos,
+      referencias = .tr_models_doc("models/effect_size")$referencias, label = "Tamanho de efeito (ANOVA)",
       category = "modelo_resumir", icon = trama::tr_icon("ruler"),
       description = "Eta², eta² parcial e ômega² de cada termo da ANOVA: quanto da variação cada um explica.",
       inputs = list(modelo = Fm), outputs = list(out = T),
@@ -165,7 +191,7 @@ tr_flow(reg) |>
 O gráfico de regressão das teses: os pontos, a curva ajustada e, no canto, a
 equação e o R². Lê a curva de dois blocos:
 
-- **`models/dose_response`** — os pontos são as MÉDIAS das doses (a curva foi
+- **`models/polinomial`** — os pontos são as MÉDIAS das doses (a curva foi
   ajustada a elas), o R² é SQ da regressão / SQ de tratamentos, e na parábola a
   linha tracejada marca a dose de máxima eficiência técnica (MET) quando ela
   cai dentro das doses testadas.
@@ -185,11 +211,11 @@ tr_flow(reg) |>
   tr_add("adubo", "models/example", dataset = "adubo_dbc") |>
   tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "dose",
          bloco = "bloco", from = "adubo") |>
-  tr_add("reg", "models/dose_response", tratamento = "dose", from = "dbc") |>
+  tr_add("reg", "models/polinomial", tratamento = "dose", from = "dbc") |>
   tr_add("graf", "models/plot_regression", titulo = "Produção por dose de N",
          from = "reg")
 ]---", r"---[
-`models/dose_response`; `models/nls`; `models/plot_means` quando o tratamento
+`models/polinomial`; `models/nls`; `models/plot_means` quando o tratamento
 é qualitativo.
 ]---", grafico = TRUE)),
 
@@ -238,7 +264,7 @@ tr_flow(reg) |>
 uma ANOVA.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("models/fit_stats", fn = tr_models_fit_stats, label = "Medidas de ajuste",
+    trama::tr_node("models/fit_stats", version = 2L, fn = tr_models_fit_stats, label = "Medidas de ajuste",
       category = "modelo_resumir", icon = trama::tr_icon("gauge"),
       description = "R², R² ajustado, R² marginal e condicional, CV, AIC, BIC e log-verossimilhança, em colunas fixas.",
       inputs = list(modelo = Fm), outputs = list(out = T),
@@ -254,6 +280,11 @@ com NA onde a medida não existe, para que três modelos ligados num
 - `sigma` — desvio padrão residual.
 - `cv_pct` — coeficiente de variação (100 · √QM do resíduo / média). No
   experimento, é a medida de precisão que as revistas pedem.
+- `dispersao_pearson`, `desvio_por_gl` — GLM e GLM misto binomial ou Poisson:
+  X² de Pearson / gl do resíduo e desvio / gl. Perto de 1, a variância é a da
+  família; bem acima (digamos 1,5 ou mais), há superdispersão. No misto, os
+  resíduos são os condicionais e o gl desconta os parâmetros de variância
+  (Bolker et al. 2009). NA na binomial 0/1, em que a razão não mede nada.
 - `aic`, `bic`, `log_verossimilhanca` — para comparar modelos NÃO aninhados
   (menor AIC, melhor), ajustados nas mesmas linhas.
 ]---", r"---[
@@ -430,7 +461,10 @@ tr_flow(reg) |>
 os termos; `models/lmer`.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("models/compare", role = "avaliacao", fn = tr_models_compare, label = "Comparar modelos",
+    trama::tr_node("models/compare", 
+      pressupostos = .tr_models_doc("models/compare")$pressupostos,
+      referencias = .tr_models_doc("models/compare")$referencias,
+      role = "avaliacao", fn = tr_models_compare, label = "Comparar modelos",
       category = "modelo_resumir", icon = trama::tr_icon("git-compare"),
       description = "Dois modelos aninhados: os termos a mais melhoram o ajuste? (F ou razão de verossimilhança)",
       inputs = list(modelo = Fm, outro = Fm), outputs = list(out = TE),
@@ -464,7 +498,10 @@ tr_flow(reg) |>
 um misto; `models/anova_table` para os termos um a um.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/random_test", role = "avaliacao", fn = tr_models_random_test, label = "Teste dos aleatórios",
+    trama::tr_node("models/random_test", 
+      pressupostos = .tr_models_doc("models/random_test")$pressupostos,
+      referencias = .tr_models_doc("models/random_test")$referencias,
+      role = "avaliacao", fn = tr_models_random_test, label = "Teste dos aleatórios",
       category = "modelo_resumir", icon = trama::tr_icon("shuffle"),
       description = "Razão de verossimilhança para cada termo aleatório de um modelo misto.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
@@ -472,10 +509,6 @@ um misto; `models/anova_table` para os termos um a um.
 Tira cada termo aleatório do misto, um de cada vez, e testa por razão de
 verossimilhança se o ajuste piora (`lmerTest::ranova`). Uma inclinação aleatória
 `(Days | Subject)` é reduzida a `(1 | Subject)`; um intercepto `(1 | bloco)` sai.
-
-A hipótese nula põe a variância na FRONTEIRA (zero), onde a distribuição
-qui-quadrado não vale exatamente: o p-valor é conservador — maior do que
-deveria. Um termo que sai significativo aqui é seguro.
 ]---", r"---[
 Nenhum.
 ]---", r"---[
@@ -496,7 +529,10 @@ comparar duas estruturas escolhidas à mão.
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   N <- trama::tr_param_num
   list(
-    trama::tr_node("models/emmeans", fn = tr_models_emmeans, label = "Médias ajustadas",
+    trama::tr_node("models/emmeans", 
+      pressupostos = .tr_models_doc("models/emmeans")$pressupostos,
+      referencias = .tr_models_doc("models/emmeans")$referencias,
+      fn = tr_models_emmeans, label = "Médias ajustadas",
       category = "modelo_medias", icon = trama::tr_icon("chart-column"),
       description = "Médias ajustadas (emmeans) com intervalo de confiança e letras de comparação (Tukey e outros).",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
@@ -557,7 +593,10 @@ para o gráfico com título e proporção; `models/anova_factorial` para o
 desdobramento.
 ]---")),
 
-    trama::tr_node("models/pairwise", fn = tr_models_pairwise, label = "Comparações de médias",
+    trama::tr_node("models/pairwise", version = 2L,
+      pressupostos = .tr_models_doc("models/pairwise")$pressupostos,
+      referencias = .tr_models_doc("models/pairwise")$referencias,
+      fn = tr_models_pairwise, label = "Comparações de médias",
       category = "modelo_medias", icon = trama::tr_icon("git-compare"),
       description = "Todas as diferenças entre pares, ou cada tratamento contra um controle (Dunnett), com p-valor ajustado.",
       inputs = list(medias = "models/emm"), outputs = list(out = "models/effects"),
@@ -597,7 +636,10 @@ tr_flow(reg) |>
 `models/emmeans`; `models/plot_means`.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/linear_hypothesis", fn = tr_models_linear_hypothesis, label = "Contrastes (F)",
+    trama::tr_node("models/linear_hypothesis", 
+      pressupostos = .tr_models_doc("models/linear_hypothesis")$pressupostos,
+      referencias = .tr_models_doc("models/linear_hypothesis")$referencias,
+      fn = tr_models_linear_hypothesis, label = "Contrastes (F)",
       category = "modelo_medias", icon = trama::tr_icon("divide"),
       description = "Teste F da hipótese linear geral: você escreve os contrastes, nas médias de um fator ou nos coeficientes.",
       inputs = list(modelo = "models/fit"), outputs = list(out = "data/test"),
@@ -675,7 +717,10 @@ contrastes combinam; `models/coefficients` para os nomes dos coeficientes;
 `models/compare` quando a hipótese é tirar termos do modelo.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/duncan", fn = tr_models_duncan, label = "Duncan",
+    trama::tr_node("models/duncan", 
+      pressupostos = .tr_models_doc("models/duncan")$pressupostos,
+      referencias = .tr_models_doc("models/duncan")$referencias,
+      fn = tr_models_duncan, label = "Duncan",
       category = "modelo_medias", icon = trama::tr_icon("chart-column"),
       description = "Teste de Duncan (amplitude múltipla): letras de agrupamento das médias.",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
@@ -712,7 +757,138 @@ tr_flow(reg) |>
 `models/waller_duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
-    trama::tr_node("models/waller_duncan", fn = tr_models_waller_duncan, label = "Waller-Duncan",
+    trama::tr_node("models/scott_knott", version = 2L,
+      pressupostos = .tr_models_doc("models/scott_knott")$pressupostos,
+      referencias = .tr_models_doc("models/scott_knott")$referencias,
+      fn = tr_models_scott_knott, label = "Scott-Knott",
+      category = "modelo_medias", icon = trama::tr_icon("ungroup"),
+      description = "Scott-Knott: separa as médias em grupos sem sobreposição.",
+      inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
+      params = list(
+        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
+        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+      help = .tr_models_ajuda(r"---[
+O agrupamento de Scott & Knott (1974): ordena as médias, acha o corte que
+divide o conjunto em dois grupos com a maior soma de quadrados entre eles e
+testa esse corte pela razão de verossimilhança (qui-quadrado com k/(pi - 2)
+gl). Se o corte é significativo, repete dentro de cada lado. Cada média fica
+com UMA letra: os grupos não se sobrepõem, ao contrário do Tukey e do Duncan.
+
+O nível (alfa = 1 − confiança) vale para cada corte, não para o procedimento inteiro. Usa o QM e os gl
+do resíduo do modelo (na parcela subdividida, o erro (a) ou (b) do fator, e a
+nota diz qual). Pede termos ortogonais ao tratamento: com bloco incompleto,
+DBC com parcela perdida ou covariável o bloco recusa e aponta o
+`models/emmeans`. O DIC com repetições desiguais é aceito: cada corte usa
+s² = média de QM / rᵢ do grupo, como o pacote `ScottKnott` (versão 2 do nó).
+]---", r"---[
+- **Tratamento** — o fator (ou até 3, separados por vírgula).
+- **Confiança** — padrão 0,95: cada corte é testado a alfa = 1 − confiança (5%).
+]---", r"---[
+Médias com letras (`models/emm`), como no `models/duncan`.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("milho", "models/example", dataset = "milho_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "hibrido",
+         bloco = "bloco", from = "milho") |>
+  tr_add("sk", "models/scott_knott", tratamento = "hibrido", from = "dbc")
+]---", r"---[
+`models/duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
+]---")),
+
+    trama::tr_node("models/polinomial", version = 2L,
+      pressupostos = .tr_models_doc("models/polinomial")$pressupostos,
+      referencias = .tr_models_doc("models/polinomial")$referencias,
+      fn = tr_models_polinomial, label = "Regressão polinomial",
+      category = "modelo_medias", icon = trama::tr_icon("chart-spline"),
+      description = "Desdobra o tratamento quantitativo da ANOVA em linear, quadrático, cúbico... e ajusta a curva.",
+      inputs = list(modelo = "models/fit"), outputs = list(modelo = "models/fit", quadro = "models/effects"),
+      params = list(
+        tratamento = P("cols", "", label = "Tratamento (doses)", example = "dose"),
+        grau = trama::tr_param_enum("automático", .TR_MODELS_POLI_GRAUS, label = "Grau da curva"),
+        grau_max = N(3L, min = 1, max = 5, step = 1, label = "Maior grau testado"),
+        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+      help = .tr_models_ajuda(r"---[
+Quando o tratamento é QUANTITATIVO — doses de adubo, lâminas de irrigação,
+densidades, épocas —, o F da ANOVA diz se as doses diferem, mas a pergunta é
+como a resposta muda com a dose. O procedimento de livro desdobra os graus de
+liberdade do tratamento em componentes polinomiais e testa cada um contra o
+resíduo da ANOVA:
+
+| FV | GL |
+|---|---|
+| Tratamentos | k − 1 |
+| Linear | 1 |
+| Quadrático | 1 |
+| Cúbico | 1 |
+| Desvios da regressão | k − 1 − grau máximo |
+| Resíduo | o da ANOVA |
+
+Ligue o bloco ao modelo de um `models/anova_dic`, `models/anova_dbc` ou
+`models/anova_dql` em que a dose entrou como tratamento. Os níveis têm de ser
+números (vírgula decimal serve): é a distância entre eles que a regressão usa,
+e doses não equidistantes entram com os valores reais. Com níveis igualmente
+espaçados e repetições iguais são os polinômios ortogonais do livro; com
+espaçamento ou repetições desiguais, a mesma partição sequencial (o acréscimo
+de SQ de cada grau sobre os menores, depois do bloco).
+
+### O grau
+
+- **automático** — o maior componente significativo (a 1 − confiança), até o
+  maior grau testado. É a regra dos livros: um quadrático significativo com o
+  cúbico não significativo dá a parábola. Se nenhum é significativo, a curva é
+  a média geral (grau 0) e a nota diz isso.
+- **1** a **5** — o grau fixado.
+
+O quadro traz também a **falta de ajuste** do grau escolhido: tudo o que o
+tratamento explica e a curva não. Significativa, a curva não descreve bem as
+doses, mesmo com o componente significativo — o grau automático NÃO sobe por
+causa dela (a regra é a do componente), mas a nota do quadro e a dos
+coeficientes avisam. Com 3 doses e grau 2 (ou 4 doses e grau 3) a curva passa
+por todas as médias: R² = 1 por construção, e a nota também diz isso.
+
+### A curva
+
+Ajustada às médias das doses, com peso nas repetições e o erro da ANOVA nos
+erros padrão dos coeficientes (como fazem os programas de experimentação). O
+R² é o do livro, SQ da regressão / SQ de tratamentos — quanto da diferença
+entre as doses a curva explica, e não quanto da variação das parcelas.
+
+Na parábola sai a **dose de máxima eficiência técnica** (MET), −b₁ / (2 b₂): a
+dose de maior resposta prevista (ou de menor, com a parábola para cima). A nota
+avisa quando ela cai fora das doses testadas — aí é extrapolação.
+
+No fatorial, a regressão é dentro de cada nível do outro fator, e o bloco
+recusa: filtre um nível e ajuste, ou escreva o polinômio num `models/lm`.
+]---", r"---[
+- **Tratamento (doses)** — o fator de doses do modelo.
+- **Grau da curva** — `automático` (padrão) ou 1 a 5.
+- **Maior grau testado** — quantos componentes o quadro testa (padrão 3, até 5
+  e menor que o número de doses); sobe sozinho até o grau fixado.
+- **Confiança** — padrão 0,95: os componentes são testados a 5%, e os
+  coeficientes saem com IC 95%.
+]---", r"---[
+Duas saídas. **modelo** (`models/fit`): a curva, cujo card é o gráfico de
+regressão das teses — médias, curva, equação, R² e a MET; ligada a
+`models/coefficients` dá b₀, b₁, b₂ com o erro da ANOVA, e a `models/predict` a
+resposta prevista em outras doses. **quadro** (`models/effects`): o
+desdobramento, com a régua do p-valor por componente e a equação, o R² e a MET
+no rodapé.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("adubo", "models/example", dataset = "adubo_dbc") |>
+  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "dose",
+         bloco = "bloco", from = "adubo") |>
+  tr_add("reg", "models/polinomial", tratamento = "dose", from = "dbc")
+]---", r"---[
+`models/plot_regression` para a figura com título e rótulos;
+`models/coefficients`; `models/anova_dbc`; `models/nls` quando a curva não é
+um polinômio (platô, Mitscherlich).
+]---", teste = TRUE)),
+
+    trama::tr_node("models/waller_duncan", 
+      pressupostos = .tr_models_doc("models/waller_duncan")$pressupostos,
+      referencias = .tr_models_doc("models/waller_duncan")$referencias,
+      fn = tr_models_waller_duncan, label = "Waller-Duncan",
       category = "modelo_medias", icon = trama::tr_icon("chart-column"),
       description = "Teste de Waller-Duncan (bayesiano, razão K): letras de agrupamento das médias.",
       inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
@@ -751,44 +927,6 @@ tr_flow(reg) |>
   tr_add("waller", "models/waller_duncan", tratamento = "nitrogenio", from = "split")
 ]---", r"---[
 `models/duncan`; `models/emmeans`; `models/anova_table` para o F que o teste usa.
-]---")),
-
-    trama::tr_node("models/scott_knott", fn = tr_models_scott_knott, label = "Scott-Knott",
-      category = "modelo_medias", icon = trama::tr_icon("chart-column"),
-      description = "Teste de Scott-Knott: agrupa as médias em grupos sem sobreposição.",
-      inputs = list(modelo = "models/fit"), outputs = list(out = "models/emm"),
-      params = list(
-        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
-        confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
-      help = .tr_models_ajuda(r"---[
-O teste de Scott & Knott (1974) parte as médias ordenadas em grupos por
-divisões sucessivas: entre todos os cortes possíveis, escolhe o que deixa a
-maior soma de quadrados entre os dois lados e testa, por uma razão com
-distribuição qui-quadrado, se o corte é real. Se for, cada lado é partido de
-novo; se não, as médias daquele lado formam um grupo.
-
-A diferença para Tukey e Duncan é que os grupos **não se sobrepõem**: cada
-média tem UMA letra, nunca "ab". Com muitos tratamentos (cultivares, linhagens,
-clones) é o que deixa a tabela legível, e por isso é o teste de agrupamento mais
-usado nas revistas brasileiras de ciências agrárias.
-
-Usa o QM e os gl do resíduo do modelo; na parcela subdividida, o erro (a) para
-o fator da parcela e o (b) para o da subparcela, como no `models/duncan`. As
-médias são as da tabela: no desbalanceado, a nota avisa.
-]---", r"---[
-- **Tratamento** — o fator (ou até 3, separados por vírgula).
-- **Confiança** — padrão 0,95: os cortes são testados a alfa = 1 − confiança (5%).
-]---", r"---[
-Médias com letras (`models/emm`): o card é o gráfico com as letras, e a tabela
-sai pelo adaptador, como no `models/emmeans`.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("milho", "models/example", dataset = "milho_dbc") |>
-  tr_add("dbc", "models/anova_dbc", resposta = "producao", tratamento = "hibrido",
-         bloco = "bloco", from = "milho") |>
-  tr_add("sk", "models/scott_knott", tratamento = "hibrido", from = "dbc")
-]---", r"---[
-`models/duncan`; `models/emmeans` para o Tukey; `models/plot_means`.
 ]---")),
 
     trama::tr_node("models/plot_means", fn = tr_models_plot_means, label = "Gráfico de médias",

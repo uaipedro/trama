@@ -21,16 +21,18 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   expect_length(nos, 24L)
   for (n in nos) {
     expect_true(!is.null(n$help) && nzchar(trimws(n$help)), info = n$id)
-    expect_match(n$help, "## Descrição", fixed = TRUE, info = n$id)
-    expect_match(n$help, "## Valor", fixed = TRUE, info = n$id)
-    expect_match(n$help, "## Parâmetros", fixed = TRUE, info = n$id)
+    # Formato curto da data e da view (c865c5c).
+    expect_match(n$help, "## Uso principal", fixed = TRUE, info = n$id)
+    expect_match(n$help, "## Exemplo curto", fixed = TRUE, info = n$id)
+    expect_match(n$help, "## Usos relacionados", fixed = TRUE, info = n$id)
     # A seção de aparência é comparada INTEIRA, e não pelo título dela: um
     # `### Aparência` digitado à mão passaria numa busca por cabeçalho e
     # descreveria seis params que já mudaram de nome. O cabeçalho é convenção;
     # a constante é garantia — só passa quem colou `.TR_VIEW_AJUDA_APARENCIA`.
     # `view/save` não desenha, e as camadas herdam a aparência do gráfico de
     # entrada: nenhum dos quatro tem a seção nem os seis params.
-    if (!n$id %in% c("view/save", "view/reference", "view/fit_line", "view/annotate")) expect_true(grepl(.TR_VIEW_AJUDA_APARENCIA, n$help, fixed = TRUE), info = n$id)
+    # No formato curto a seção de aparência fica no site; os seis params
+    # cosméticos continuam cobrados no teste abaixo, na ordem.
 
     for (nm in names(n$params)) {
       p <- n$params[[nm]]
@@ -81,5 +83,5 @@ test_that("o catálogo sai com a ajuda inteira", {
   # O `help` só serve se atravessar a serialização: é no JSON do catálogo que
   # a interface o lê.
   cat_json <- trama::tr_catalog_json(view_registry())
-  expect_match(as.character(cat_json), "### Aparência", fixed = TRUE)
+  expect_match(as.character(cat_json), "## Usos relacionados", fixed = TRUE)
 })

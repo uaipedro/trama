@@ -53,7 +53,38 @@
     # `dados`, e um subconjunto deles desloca o nível de referência.
     d[[v]] <- factor(vistos, levels = niveis_ajuste)
   }
-  d
+  .tr_models_com_atributos(d, dados)
+}
+
+#' Os atributos de `origem` que não são de estrutura, copiados para `x`.
+#'
+#' Uma coleção pode marcar a tabela com um atributo que precisa viajar pela
+#' previsão — a `ml/split` marca treino e teste (`tr_ml_origem`), e é com essa
+#' marca que o modelo da ml recusa prever o teste que viu e que os avaliadores
+#' recusam avaliar o treino. A models não sabe o que a marca diz: só não a
+#' perde ao montar a tabela de novo.
+#' @noRd
+.tr_models_com_atributos <- function(x, origem) {
+  a <- attributes(origem)
+  for (nm in setdiff(names(a), c("names", "row.names", "class", "dim", "dimnames"))) attr(x, nm) <- a[[nm]]
+  x
+}
+
+#' A checagem de avaliação de quem marcou a tabela (a proveniência da `ml`).
+#'
+#' Sem marca, "" (nada a dizer). Com a marca do `ml/split`, a regra é a da
+#' `ml` (main, da77947): previsões do treino são recusadas
+#' (`tr_ml_error_train_eval`), salvo `permitir_treino`, que devolve a nota de
+#' otimismo e avisa. A regra mora na `ml` — é ela que sabe ler as impressões
+#' digitais das linhas —, e a marca só existe se a `ml` a escreveu.
+#' @noRd
+.tr_models_checar_avaliacao <- function(dados, permitir_treino) {
+  if (length(permitir_treino) != 1L || !is.logical(permitir_treino) || is.na(permitir_treino)) {
+    .tr_models_abort("tr_models_error_bad_option", "Param 'permitir_treino' tem que ser TRUE ou FALSE.")
+  }
+  if (is.null(dados) || is.null(attr(dados, "tr_ml_origem", exact = TRUE))) return("")
+  if (!requireNamespace("trama.ml", quietly = TRUE)) return("")
+  utils::getFromNamespace(".tr_ml_checar_avaliacao", "trama.ml")(dados, permitir_treino)
 }
 
 #' Colunas lado a lado, sem `dplyr` (que a coleção não importa).
@@ -132,5 +163,6 @@ tr_models_predict <- function(modelo, dados = NULL, validacao = "resubstituiçã
   }
   saida <- .tr_models_prev_colunas(p)
   base <- base[, setdiff(names(base), names(saida)), drop = FALSE]
-  .tr_models_juntar(base, saida)
+  # A marca da tabela prevista (a proveniência da `ml/split`) passa adiante.
+  .tr_models_com_atributos(.tr_models_juntar(base, saida), if (is.null(dados)) NULL else dados)
 }

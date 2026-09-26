@@ -122,12 +122,23 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
 
 # ---- Scott-Knott -------------------------------------------------------------
 #
-# Implementado aqui, e não pelo pacote `ScottKnott` (leve: emmeans + xtable):
-# o algoritmo cabe em trinta linhas, e o que pesa é escolher o erro — que já
-# está em `.tr_models_agricolae_base` (parcela subdividida com erro (a) ou (b),
-# combinações de fatores). Pelo pacote, a subdividida iria por outro caminho, e
-# as médias seriam as do `emmeans` num e as da tabela nos vizinhos. Os testes
-# conferem os grupos contra os do pacote nos exemplos documentados dele.
+# Um partidor só (`.tr_models_sk_grupos`), decidido na integração 9.2 contra o
+# pacote `ScottKnott` (1.4-0). A main tinha outro, com s² = QM / r fixo, e por
+# isso recusava repetições desiguais; o daqui usa s² = média de QM / rᵢ no grupo
+# que se parte, recalculada a cada nível — é o `ScottKnott:::MaxValue` (linha
+# `s2c <- 1/nclus * sum(standerror[k:g]^2)`). No balanceado as duas contas são a
+# mesma (média de constantes), e os grupos da main não mudam.
+#
+# O que continua recusado é o que tem razão estatística: termo não ortogonal
+# ao tratamento (bloco incompleto, DBC com parcela perdida, covariável), onde a
+# média da tabela não estima a do tratamento. Um DIC desbalanceado não tem outro
+# termo, a média da tabela é o estimador de mínimos quadrados de cada nível, e
+# a variância dela é QM / rᵢ — exatamente o que o s² por grupo usa.
+#
+# Implementado aqui, e não pelo pacote (leve: emmeans + xtable): o algoritmo
+# cabe em trinta linhas, e o que pesa é escolher o erro — que já está em
+# `.tr_models_agricolae_base` (parcela subdividida com erro (a) ou (b),
+# combinações de fatores).
 
 #' Partição recursiva de Scott & Knott (1974).
 #'
@@ -174,25 +185,51 @@ tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {
   grupo[order(ord)]
 }
 
-#' Teste de Scott-Knott.
+#' Agrupamento de Scott-Knott.
 #' @inheritParams tr_models_duncan
 #' @return objeto `tr_models_emm`.
 #' @export
 tr_models_scott_knott <- function(modelo, tratamento = "", confianca = 0.95) {
   .tr_models_fit_conferir(modelo)
   no <- "models/scott_knott"
+  # Glossário: o nível é `confianca` (a main usava `alfa`; migração na coleção).
   confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
   alfa <- 1 - confianca
   b <- .tr_models_agricolae_base(modelo, tratamento, no)
   trt <- droplevels(factor(b$trt))
-  medias <- tapply(b$y, trt, mean, na.rm = TRUE)
-  n <- tapply(!is.na(b$y), trt, sum)
-  # Desbalanceado: cada média leva a sua repetição, e o s² do sigma0 é a média
-  # de QM / rᵢ do grupo em partição, como o pacote `ScottKnott`.
-  g <- .tr_models_sk_grupos(as.vector(medias), b$qm, b$gl, as.vector(n), alfa)
-  alfabeto <- c(letters, LETTERS)
-  res <- list(means = data.frame(media = as.vector(medias), r = as.vector(n), row.names = names(medias)),
-              groups = data.frame(groups = alfabeto[g], row.names = names(medias)))
+  if (modelo$classe == "split" && !b$balanceado) {
+    # Na subdividida com parcela perdida os estratos de erro deixam de ser
+    # ortogonais: o QM do erro (a) ou (b) não é mais o de nenhuma média da tabela.
+    .tr_models_abort("tr_models_error_not_applicable",
+                     "'%s': parcela subdividida desbalanceada; os estratos de erro não são ortogonais. Use o 'models/emmeans'.", no)
+  }
+  if (modelo$classe == "lm") {
+    # Médias da tabela só estimam as do tratamento se todo outro termo do modelo
+    # for ortogonal a ele: fator com tabela cruzada proporcional, nenhuma
+    # covariável. Bloco incompleto (látice) e covariância pedem média ajustada,
+    # e aí as médias não têm mais a variância comum QM / r que o teste supõe.
+    outros <- setdiff(all.vars(stats::formula(modelo$ajuste)), c(modelo$resposta, b$trat))
+    for (v in outros) {
+      z <- modelo$dados[[v]]
+      if (is.numeric(z)) {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         "'%s': '%s' é covariável; as médias ajustadas não têm variância comum. Use o 'models/emmeans'.", no, v)
+      }
+      tab <- table(trt, z)
+      if (max(abs(tab - outer(rowSums(tab), colSums(tab)) / sum(tab))) > 1e-8) {
+        .tr_models_abort("tr_models_error_not_applicable",
+                         paste0("'%s': '%s' não é ortogonal ao tratamento (bloco incompleto ou desbalanceado): ",
+                                "as médias da tabela não estimam as do tratamento. Use o 'models/emmeans'."), no, v)
+      }
+    }
+  }
+  medias <- tapply(b$y, trt, mean)
+  # Repetições por nível: no desbalanceado ortogonal (DIC), cada média tem a sua
+  # variância QM / rᵢ, e o partidor tira a média delas dentro de cada grupo.
+  r <- as.vector(table(trt))
+  g <- .tr_models_sk_grupos(as.vector(medias), b$qm, b$gl, r, alfa)
+  res <- list(means = data.frame(media = as.vector(medias), r = r, row.names = names(medias)),
+              groups = data.frame(groups = ifelse(g <= 26L, letters[pmin(g, 26L)], paste0(letters[(g - 1L) %% 26L + 1L], (g - 1L) %/% 26L)), row.names = names(medias)))
   .tr_models_agricolae_emm(res, b, modelo, alfa, "scott-knott",
                            sprintf("grupos: Scott-Knott a %s%% (sem sobreposição)",
                                    formatC(100 * alfa, format = "fg", decimal.mark = ",")))

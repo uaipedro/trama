@@ -126,3 +126,25 @@ test_that("jackknife_logistic: coeficientes, EP de Wald ao lado, razões de chan
   sep <- tr_multi_logistic(iris_t(), resposta = "Species")
   expect_error(tr_multi_jackknife_logistic(sep), class = "tr_multi_error_separation")
 })
+
+test_that("os quatro nós: param `confianca` (versão 2); flow salvo com `nivel` abre migrado", {
+  reg <- multi_registry()
+  for (id in c("multi/jackknife_pca", "multi/jackknife_fa", "multi/jackknife_discriminant",
+               "multi/jackknife_logistic")) {
+    spec <- reg$nodes[[id]]
+    expect_gte(spec$version, 2L)
+    expect_true("confianca" %in% names(spec$params))
+    expect_false("nivel" %in% names(spec$params))
+    doc <- trama::tr_doc_parse(paste0(
+      '{"format":1,"rev":1,"nodes":{"j":{"type":"', id, '",',
+      '"type_version":1,"params":{"tabela":"resumo","nivel":0.9}}},"edges":[]}'))
+    mig <- trama::tr_doc_migrate(doc, reg)
+    expect_equal(mig$nodes$j$params, list(tabela = "resumo", confianca = 0.9))
+    expect_identical(mig$nodes$j$type_version, spec$version)
+    kinds <- vapply(trama::tr_doc_validate(doc, reg), function(p) p$kind, "")
+    expect_false(any(c("unknown_param", "version_drift") %in% kinds))
+  }
+  pca <- tr_multi_pca(datasets::USArrests, cols = "Murder, Assault, UrbanPop, Rape")
+  a <- tr_multi_jackknife_pca(pca, confianca = 0.9)
+  expect_equal(a$ic_sup - a$corrigida, stats::qt(.95, 49) * a$erro_padrao)
+})

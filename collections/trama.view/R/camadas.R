@@ -27,6 +27,7 @@
 .TR_VIEW_REFERENCIAS <- c("horizontal", "vertical", "diagonal")
 .TR_VIEW_ESTILOS_LINHA <- c("tracejada", "contínua", "pontilhada")
 .TR_VIEW_AJUSTES <- c("linear", "quadrática", "loess")
+.TR_VIEW_CANTOS <- c("automática", "sup. esq.", "sup. dir.", "inf. esq.", "inf. dir.")
 
 # O texto das camadas tem o tamanho do TEMA (80% do texto base), e não um
 # número fixo em mm: assim o `view/save`, que leva o texto a `texto_pt`
@@ -135,8 +136,9 @@ tr_reference <- function(grafico, tipo = "horizontal", valor = "0", inclinacao =
     # o painel inteiro em qualquer escala, e sem a coluna de painel cai em
     # todos. `from_theme(accent)` é a cor de destaque do tema já aplicado.
     lim <- sort(c(v, fim))
-    faixa <- if (tipo == "horizontal") data.frame(xmin = -Inf, xmax = Inf, ymin = lim[[1]], ymax = lim[[2]])
-             else data.frame(xmin = lim[[1]], xmax = lim[[2]], ymin = -Inf, ymax = Inf)
+    faixa <- if (tipo == "horizontal") data.frame(xmin = .tr_view_borda(p, "x"), xmax = Inf,
+                                                  ymin = lim[[1]], ymax = lim[[2]])
+             else data.frame(xmin = lim[[1]], xmax = lim[[2]], ymin = .tr_view_borda(p, "y"), ymax = Inf)
     p <- p + ggplot2::geom_rect(
       data = faixa, inherit.aes = FALSE, alpha = .15,
       ggplot2::aes(xmin = .data[["xmin"]], xmax = .data[["xmax"]], ymin = .data[["ymin"]],
@@ -214,9 +216,23 @@ tr_reference <- function(grafico, tipo = "horizontal", valor = "0", inclinacao =
 #' da `view`, e não o contrário, e o formatador de lá não é exportado.
 #' @noRd
 .tr_view_fmt <- function(x, digitos = 4L) {
-  formatC(signif(x, digitos), format = "fg", digits = digitos, decimal.mark = ",", flag = "#") |>
+  v <- formatC(signif(x, digitos), format = "fg", digits = digitos, decimal.mark = ",", flag = "#") |>
     trimws() |> sub(pattern = ",$", replacement = "")
+  # Sem zeros à direita ("2,78", não "2,780"), como `.tr_models_fmt_eq()` da
+  # `models`: o teste compara as duas, e o mesmo ajuste escreve a mesma
+  # equação nas duas coleções.
+  ifelse(grepl(",", v, fixed = TRUE), sub(",$", "", sub("0+$", "", v)), v)
 }
+
+#' A borda de baixo/esquerda de um eixo, como coordenada de dado.
+#'
+#' `-Inf` é a borda em escala linear; em escala log, `log10(-Inf)` é NaN e o
+#' ggplot avisa "NaNs produzidos" (era a origem do aviso nos eixos log), e `0`
+#' daria `-Inf` com o aviso "introduced infinite values". `1e-300` vira -300
+#' no log: finito, muito abaixo de qualquer dado, e o painel recorta — serve
+#' para o que se ESTENDE até a borda (a faixa), não para ancorar texto.
+#' @noRd
+.tr_view_borda <- function(p, eixo) if (length(.tr_view_escala_log(p, eixo))) 1e-300 else -Inf
 
 #' "ŷ = 1,23 + 0,45·x - 0,0021·x²   R² = 0,752".
 #' @noRd
@@ -242,7 +258,7 @@ tr_reference <- function(grafico, tipo = "horizontal", valor = "0", inclinacao =
 #' número escrito no gráfico tem de ser o da linha desenhada, e os dois saem
 #' do mesmo `lm`. Um ajuste por painel (facetas) e, com `por_cor`, por grupo
 #' de cor. Com eixo em log, o ajuste é na escala desenhada (log10), como o
-#' `geom_smooth` faria, e a equação diz `log(x)`.
+#' `geom_smooth` faria, e a equação diz `log₁₀(x)`.
 #'
 #' A faixa é o intervalo de CONFIANÇA da média (`predict(..., interval =
 #' "confidence")`), não o de predição: diz onde está a reta, não onde cairá
@@ -253,13 +269,15 @@ tr_reference <- function(grafico, tipo = "horizontal", valor = "0", inclinacao =
 #' @param confianca o nível do intervalo.
 #' @param equacao escrever equação e R² (linear e quadrática).
 #' @param por_cor uma linha por grupo de cor, se o gráfico tem cor discreta.
+#' @param posicao_equacao `"automática"` ou um canto (`"sup. esq."`...).
 #' @return o ggplot com a curva; o atributo `tr_view_ajustes` guarda os
 #'   coeficientes e o R² de cada grupo.
 #' @export
 tr_fit_line <- function(grafico, metodo = "linear", intervalo = TRUE, confianca = 0.95,
-                        equacao = TRUE, por_cor = TRUE) {
+                        equacao = TRUE, por_cor = TRUE, posicao_equacao = "automática") {
   p <- .tr_view_camada_entrada(grafico, "view/fit_line")
   metodo <- .tr_view_escolha(metodo, "metodo", .TR_VIEW_AJUSTES)
+  canto <- .tr_view_escolha(posicao_equacao, "posicao_equacao", .TR_VIEW_CANTOS)
   conf <- suppressWarnings(as.numeric(confianca))
   if (length(conf) != 1L || is.na(conf) || conf <= 0 || conf >= 1) {
     rlang::abort(sprintf("Param 'confianca': precisa ser um número entre 0 e 1 (ex.: 0,95), não '%s'.",
@@ -290,7 +308,7 @@ tr_fit_line <- function(grafico, metodo = "linear", intervalo = TRUE, confianca 
   tx <- if (is.null(lx)) identity else log10
   ty <- if (is.null(ly)) identity else log10
   inv <- if (is.null(ly)) identity else function(v) 10^v
-  rx <- if (is.null(lx)) "x" else "log(x)"; ry <- if (is.null(ly)) "ŷ" else "log(ŷ)"
+  rx <- if (is.null(lx)) "x" else "log₁₀(x)"; ry <- if (is.null(ly)) "ŷ" else "log₁₀(ŷ)"
   grau <- switch(metodo, linear = 1L, `quadrática` = 2L, loess = NA_integer_)
   minimo <- if (is.na(grau)) 6L else grau + 2L
 
@@ -303,9 +321,11 @@ tr_fit_line <- function(grafico, metodo = "linear", intervalo = TRUE, confianca 
   for (g in names(grupos)) {
     dg <- grupos[[g]]
     if (nrow(dg) < minimo || length(unique(dg$x)) < (if (is.na(grau)) 4L else grau + 1L)) {
-      rlang::abort(sprintf(paste0("'view/fit_line': o grupo '%s' tem %d ponto(s), e a curva %s precisa de pelo menos %d, ",
+      nome <- paste(vapply(c(cor, facetas), function(k) sprintf("%s = %s", k, as.character(dg[[k]][[1]])), ""),
+                    collapse = ", ")
+      rlang::abort(sprintf(paste0("'view/fit_line': o grupo %s tem %d ponto(s), e a curva %s precisa de pelo menos %d, ",
                                   "com X distintos. Desligue 'Uma por cor', filtre o grupo ou use a linear."),
-                           g, nrow(dg), metodo, minimo), class = "tr_view_error_too_few")
+                           nome, nrow(dg), metodo, minimo), class = "tr_view_error_too_few")
     }
     grade <- data.frame(x = seq(min(dg$x), max(dg$x), length.out = 100L))
     if (is.na(grau)) {
@@ -326,6 +346,7 @@ tr_fit_line <- function(grafico, metodo = "linear", intervalo = TRUE, confianca 
     curvas[[g]] <- cg
   }
   cv <- do.call(rbind, curvas)
+  cv_desenho <- cv
   # De volta à unidade dos dados: a escala do gráfico transforma de novo na
   # hora de desenhar, e assim a curva cai onde os pontos estão.
   if (!is.null(lx)) cv$x <- 10^cv$x
@@ -353,21 +374,84 @@ tr_fit_line <- function(grafico, metodo = "linear", intervalo = TRUE, confianca 
                               show.legend = if (is.null(cor)) FALSE else NA)
 
   if (isTRUE(equacao) && length(textos)) {
-    # Uma linha de texto por grupo, empilhadas no canto superior esquerdo de
-    # cada painel; com cor, na cor do grupo, que é a legenda da equação.
-    eq <- do.call(rbind, lapply(names(textos), function(g) {
-      r <- curvas[[g]][1L, c(chaves, ".grupo"), drop = FALSE]; r$.rotulo <- textos[[g]]; r
-    }))
-    eq$.vj <- if (length(facetas)) stats::ave(seq_len(nrow(eq)), eq[facetas], FUN = seq_along) else seq_len(nrow(eq))
-    eq$.vj <- 1.3 + 1.8 * (eq$.vj - 1)
-    m <- ggplot2::aes(x = -Inf, y = Inf, label = .data[[".rotulo"]], vjust = .data[[".vj"]],
-                      size = !!.TR_VIEW_TAMANHO_TEXTO)
-    if (!is.null(cor)) m$colour <- rlang::quo(.data[[!!cor]])
-    p <- p + ggplot2::geom_text(data = eq, mapping = m, inherit.aes = FALSE, hjust = -.04,
-                                show.legend = FALSE)
+    p <- .tr_view_equacoes(p, textos, curvas, d, cv_desenho, facetas, chaves, cor, canto,
+                           intervalo = isTRUE(intervalo), bx = if (is.null(lx)) identity else function(v) 10^v,
+                           by = inv)
   }
   attr(p, "tr_view_ajustes") <- ajustes
   p
+}
+
+#' As equações num canto de cada painel, com espaço aberto para elas.
+#'
+#' O canto `automática` é, em cada painel, o que tem MENOS pontos no quadrante
+#' de 25% × 25% da faixa, medido na escala desenhada (log incluso); empate
+#' fica na ordem sup. esq., sup. dir., inf. esq., inf. dir. — a de leitura.
+#'
+#' Escolher o canto não basta: com uma nuvem que ocupa o painel, todo canto
+#' tem ponto. Por isso a faixa do Y é ESTENDIDA do lado escolhido por um
+#' `geom_blank`, na altura proporcional ao número de linhas de equação, e o
+#' texto cai nessa faixa vazia. `geom_blank`, e não `expand =` numa escala:
+#' somar uma escala de Y trocaria a do gráfico (o log, os rótulos) calada.
+#'
+#' O texto é ancorado em coordenadas de DADO — a ponta da faixa aberta no Y,
+#' o mínimo ou o máximo do X do painel —, e não em `±Inf`: em eixo log,
+#' `-Inf` vira NaN com aviso, e não há outro valor que seja a borda exata.
+#' @noRd
+.tr_view_equacoes <- function(p, textos, curvas, d, cv, facetas, chaves, cor, canto, intervalo, bx, by) {
+  eq <- do.call(rbind, lapply(names(textos), function(g) {
+    r <- curvas[[g]][1L, c(chaves, ".grupo"), drop = FALSE]; r$.rotulo <- textos[[g]]; r
+  }))
+  chave_painel <- function(t) if (length(facetas)) interaction(t[facetas], drop = TRUE, lex.order = TRUE) else factor(rep("1", nrow(t)))
+  eq$.painel <- as.character(chave_painel(eq))
+  d$.painel <- as.character(chave_painel(d))
+  cv$.painel <- as.character(chave_painel(cv))
+  cantos <- .TR_VIEW_CANTOS[-1L]
+  brancos <- list()
+  eq$.canto <- NA_character_; eq$.xx <- NA_real_; eq$.yy <- NA_real_
+  for (pn in unique(eq$.painel)) {
+    pts <- d[d$.painel == pn, , drop = FALSE]
+    # A faixa do painel na escala desenhada inclui a curva e a faixa do IC,
+    # que podem passar dos pontos; `cv` ainda está na escala desenhada.
+    cc <- cv[cv$.painel == pn, , drop = FALSE]
+    ys <- c(pts$y, cc$.fit, if (intervalo) c(cc$.lwr, cc$.upr))
+    xr <- range(pts$x); yr <- range(ys, finite = TRUE)
+    dx <- diff(xr); dy <- diff(yr); if (dy == 0) dy <- 1
+    k <- canto
+    if (k == "automática") {
+      conta <- vapply(cantos, function(c) {
+        esq <- grepl("esq", c, fixed = TRUE)
+        sup <- startsWith(c, "sup")
+        sum((if (esq) pts$x <= xr[[1]] + .25 * dx else pts$x >= xr[[2]] - .25 * dx) &
+            (if (sup) pts$y >= yr[[2]] - .25 * dy else pts$y <= yr[[1]] + .25 * dy))
+      }, numeric(1))
+      k <- cantos[[which.min(conta)]]
+    }
+    eq$.canto[eq$.painel == pn] <- k
+    n <- sum(eq$.painel == pn)
+    # Faixa aberta: 9% da faixa do Y por linha de equação, mais uma folga —
+    # a altura de uma linha de texto num painel de card, com sobra.
+    faixa <- (.03 + .09 * n) * dy
+    yb <- if (startsWith(k, "sup")) yr[[2]] + faixa else yr[[1]] - faixa
+    b <- data.frame(.x = bx(xr[[1]]), .y = by(yb))
+    eq$.xx[eq$.painel == pn] <- bx(if (grepl("dir", k, fixed = TRUE)) xr[[2]] else xr[[1]])
+    eq$.yy[eq$.painel == pn] <- by(yb)
+    for (f in facetas) b[[f]] <- pts[[f]][[1]]
+    brancos[[pn]] <- b
+  }
+  p <- p + ggplot2::geom_blank(data = do.call(rbind, brancos), inherit.aes = FALSE,
+                               ggplot2::aes(x = .data[[".x"]], y = .data[[".y"]]))
+  ordem <- stats::ave(seq_len(nrow(eq)), eq$.painel, FUN = seq_along)
+  total <- stats::ave(seq_len(nrow(eq)), eq$.painel, FUN = length)
+  sup <- startsWith(eq$.canto, "sup"); dir <- grepl("dir", eq$.canto, fixed = TRUE)
+  eq$.hj <- ifelse(dir, 1, 0)
+  # Empilhadas a partir da ponta da faixa aberta: de cima para baixo no canto
+  # de cima; no de baixo, a última linha encosta na ponta e as outras sobem.
+  eq$.vj <- ifelse(sup, 1 + 1.8 * (ordem - 1), -1.8 * (total - ordem))
+  m <- ggplot2::aes(x = .data[[".xx"]], y = .data[[".yy"]], label = .data[[".rotulo"]],
+                    hjust = .data[[".hj"]], vjust = .data[[".vj"]], size = !!.TR_VIEW_TAMANHO_TEXTO)
+  if (!is.null(cor)) m$colour <- rlang::quo(.data[[!!cor]])
+  p + ggplot2::geom_text(data = eq, mapping = m, inherit.aes = FALSE, show.legend = FALSE)
 }
 
 # ---- Anotação ----------------------------------------------------------------
@@ -475,7 +559,8 @@ um ponto; `view/combine` depois das camadas."),
         intervalo = trama::tr_param_bool(TRUE, label = "Intervalo"),
         confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
         equacao = trama::tr_param_bool(TRUE, label = "Equação e R²"),
-        por_cor = trama::tr_param_bool(TRUE, label = "Uma por cor")),
+        por_cor = trama::tr_param_bool(TRUE, label = "Uma por cor"),
+        posicao_equacao = trama::tr_param_enum("automática", .TR_VIEW_CANTOS, label = "Posição da equação")),
       "## Descrição
 
 Acrescenta a um Disperso (ou a uma Linha) a reta ou curva ajustada aos
@@ -485,7 +570,8 @@ gráfico de entrada: o X e o Y dele, e nenhuma tabela a mais.
 
 Com painéis, há um ajuste por painel, e cada equação fica no seu. Com cor
 por grupo e **Uma por cor** ligado, uma curva por cor, na cor do grupo. Com
-eixo em log, o ajuste é na escala desenhada (log10), e a equação diz `log(x)`.
+eixo em log, o ajuste é na escala desenhada (log10), e a equação diz
+`log₁₀(x)` e `log₁₀(ŷ)`.
 
 A faixa é o intervalo de confiança da MÉDIA — onde está a reta —, e não o de
 predição, que diria onde cai a próxima observação e é bem mais largo.
@@ -502,6 +588,10 @@ reta aqui é para VER.
 - **Equação e R²** — escreve a equação com vírgula decimal, como nas teses.
 - **Uma por cor** — com cor por grupo no gráfico, uma curva por grupo;
   desligado, uma curva para todos os pontos.
+- **Posição da equação** — `automática` (padrão) põe as equações, em cada
+  painel, no canto com menos pontos; ou fixe `sup. esq.`, `sup. dir.`,
+  `inf. esq.`, `inf. dir.`. Nos dois casos o eixo Y ganha espaço daquele lado,
+  para o texto não cobrir os pontos.
 
 ## Valor
 
@@ -546,7 +636,7 @@ todos.
   Só para eixos numéricos.
 - **Texto** — o que escrever. Obrigatório.
 - **Seta até X**, **Seta até Y** — para onde a seta aponta. Os dois vazios,
-  sem seta; um só preenchido para o nó.
+  sem seta; preencher só um dos dois é erro.
 
 ## Valor
 

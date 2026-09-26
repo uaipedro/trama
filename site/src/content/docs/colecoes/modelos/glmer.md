@@ -1,24 +1,24 @@
 ---
-title: Misto generalizado
-description: "Ajusta um modelo misto generalizado (lme4::glmer), binomial ou Poisson, com efeitos aleatórios."
+title: GLM misto
+description: "Ajusta um GLM misto (lme4::glmer), binomial ou Poisson, com efeito por observação opcional."
 section: colecoes
 collection: modelos
 node: models/glmer
 category: ajustar
-related: [models/lmer, models/glm, models/random_effects]
+related: [models/glm, models/lmer, models/compare, models/random_effects]
 ---
 
 ## O que o bloco faz
 
-`models/glmer` ajusta um modelo misto generalizado com `lme4::glmer`: resposta binomial ou de contagem, como no `models/glm`, com efeitos aleatórios, como no `models/lmer`. A saída é `models/fit`.
+`models/glmer` ajusta um modelo linear generalizado com efeitos aleatórios (`lme4::glmer`, máxima verossimilhança pela aproximação de Laplace). A resposta é binomial (0/1, ou sucessos em n tentativas com `cbind(sucessos, fracassos)`) ou Poisson (contagem). A saída é `models/fit`.
 
 ## Quando usar
 
-Use para proporções ou contagens com dados agrupados: plantas doentes por parcela com bloco aleatório, insetos por armadilha com local aleatório, germinação por placa com lote aleatório.
+Quando a resposta não é normal e as observações vêm em grupos (rebanho, bloco, ninhada, sujeito). Com superdispersão, ligue **Efeito por observação**: ele soma `(1 | .obs)`, e a variância que sobra além da binomial ou da Poisson vira um componente de variância (Harrison 2014).
 
 ## Configuração
 
-Fórmula recebe os efeitos fixos e os termos aleatórios na sintaxe do `lme4`, como `(1 | bloco)`; para uma proporção com o total da linha, a resposta vai como `cbind(sucessos, fracassos)`. Sem fórmula, Resposta, Efeitos fixos e Grupo montam um intercepto aleatório por grupo. Família escolhe `binomial` (logit) ou `poisson` (log).
+Informe a fórmula com pelo menos um termo aleatório, ou resposta, efeitos fixos e grupo pelo atalho. Escolha a família.
 
 ## Exemplo
 
@@ -29,12 +29,13 @@ reg <- tr_registry()
 tr_use("trama.models", registry = reg)
 
 tr_flow(reg) |>
-  tr_add("dados", "models/example", dataset = "cbpp") |>
-  tr_add("resultado", "models/glmer", formula = "cbind(incidence, size - incidence) ~ period + (1 | herd)", familia = "binomial", from = "dados")
+  tr_add("carrapatos", "models/example", dataset = "grouseticks") |>
+  tr_add("gm", "models/glmer", resposta = "TICKS", fixos = "YEAR", grupo = "BROOD",
+         familia = "poisson", nivel_obs = TRUE, from = "carrapatos")
 ```
 
-A incidência de pleuropneumonia cai do primeiro para os outros períodos, com a variação entre rebanhos como efeito aleatório.
+Nos carrapatos de `grouseticks`, o efeito por observação tem variância 0,30 e a ninhada 1,52. Comparado no `models/compare` ao modelo sem ele, o AIC cai de 2038,6 para 1844,3 (razão de verossimilhança 196,3): a contagem é superdispersa.
 
 ## Como interpretar
 
-Os coeficientes estão na escala da ligação, com z de Wald; exponenciados em `models/coefficients`, são razões de chances (binomial) ou de taxas (Poisson). O quadro do `models/anova_table` sai por Wald, tipo II. Avisos de convergência ou de ajuste singular do `lme4` aparecem na nota dos coeficientes.
+Os coeficientes estão na escala da ligação (logit, log), com z de Wald; o `models/coefficients` os exponencia. As médias do `models/emmeans` são as do grupo típico (efeito aleatório zero), não médias populacionais. Não há resíduo normal a testar, e o quadro é de Wald, tipo II ou III. No exemplo `cbpp` do lme4, o bloco reproduz a saída do `lme4::glmer`: interceptos −1,3983, −0,9919, −1,1282 e −1,5797, variância do rebanho 0,4123 e AIC 194,1.

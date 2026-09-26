@@ -384,7 +384,10 @@ tr_multi_plot_discriminant <- function(modelo, x = 1L, y = 2L, elipses = TRUE, a
   L <- "models/fit"
   TB <- "data/table"
   list(
-    trama::tr_node("multi/discriminant", fn = tr_multi_discriminant, label = "Discriminante",
+    trama::tr_node("multi/discriminant",
+      pressupostos = .tr_multi_doc("multi/discriminant")$pressupostos,
+      referencias = .tr_multi_doc("multi/discriminant")$referencias,
+      fn = tr_multi_discriminant, label = "Discriminante",
       category = "multi_discriminante", icon = trama::tr_icon("split"),
       description = "Ajusta uma análise discriminante linear (LDA) ou quadrática (QDA) para separar grupos conhecidos.",
       inputs = list(dados = TB), outputs = list(out = L),
@@ -528,7 +531,10 @@ tr_flow(reg) |>
 que é outra pergunta — funções significativas não garantem classificar bem.
 ]---")),
 
-    trama::tr_node("multi/box_m", role = "avaliacao", fn = tr_multi_box_m, label = "M de Box",
+    trama::tr_node("multi/box_m",
+      pressupostos = .tr_multi_doc("multi/box_m")$pressupostos,
+      referencias = .tr_multi_doc("multi/box_m")$referencias,
+      role = "avaliacao", fn = tr_multi_box_m, label = "M de Box",
       category = "multi_discriminante", icon = trama::tr_icon("scale"),
       description = "Testa se as matrizes de covariância dos grupos são iguais: linear ou quadrática?",
       inputs = list(dados = TB), outputs = list(out = "data/test"),
@@ -550,10 +556,8 @@ p(p + 1)(g − 1)/2 graus de liberdade.
 
 ### Cuidado ao ler
 
-O M de Box é notoriamente SENSÍVEL: rejeita tanto por covariância diferente
-quanto por falta de normalidade (caudas pesadas), e com amostra grande rejeita
-por diferenças que não mudam a classificação. Por isso a decisão entre linear
-e quadrática não deve ser só dele: compare as duas pela taxa de acerto em
+Pela sensibilidade do teste (ver Pressupostos), a decisão entre linear e
+quadrática não deve ser só dele: compare as duas pela taxa de acerto em
 validação cruzada (`models/confusion`). A linear é mais robusta e costuma
 ganhar com grupos pequenos, mesmo com H0 rejeitada.
 

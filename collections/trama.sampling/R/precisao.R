@@ -11,11 +11,12 @@
 # vale para qualquer pergunta sim/não ou para cada alternativa de uma múltipla
 # escolha.
 
-#' A margem de uma proporção: z · √(deff · p(1 − p) / n · (1 − n/N)).
+#' A margem de uma proporção: q · √(deff · p(1 − p) / n · (1 − n/N)), com q o
+#' t de `gl` graus de liberdade (z com `gl = Inf`).
 #' @noRd
-.tr_sampling_margem <- function(n, p, conf, deff = 1, N = 0) {
+.tr_sampling_margem <- function(n, p, conf, deff = 1, N = 0, gl = Inf) {
   fpc <- ifelse(N > 0, pmax(0, 1 - n / N), 1)
-  .tr_sampling_z(conf) * sqrt(deff * p * (1 - p) / n * fpc)
+  .tr_sampling_q(conf, gl) * sqrt(deff * p * (1 - p) / n * fpc)
 }
 
 #' Lista "0, 1, 2" de números, validada.
@@ -42,11 +43,12 @@
 #' @param populacao tamanho da população (0: infinita).
 #' @param deff efeito do desenho esperado.
 #' @param taxa_resposta fração das entrevistas previstas que vira resposta.
+#' @param distribuicao `"t"` (gl = respostas − 1) ou `"z"`.
 #' @return um plano (`sampling/plan`) do tipo margem.
 #' @export
 tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = 0.95, populacao = 0,
-                               deff = 1, taxa_resposta = 1) {
-  cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta)
+                               deff = 1, taxa_resposta = 1, distribuicao = "t") {
+  cm <- .tr_sampling_comuns(confianca, populacao, deff, taxa_resposta, distribuicao)
   n <- .tr_sampling_num(n, "n", 2)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 1, aberto_min = TRUE)
   if (p >= 1) {
@@ -61,16 +63,19 @@ tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = 0.95, popu
   if (cm$deff != 1) {
     passos[[length(passos) + 1L]] <- c(sprintf("÷ deff %s = n efetivo", .tr_sampling_fmt(cm$deff)), ne, "entrevistas")
   }
-  E <- .tr_sampling_margem(nr, p, cm$conf, cm$deff, cm$N)
+  gl <- if (cm$distribuicao == "z") Inf else max(1, floor(nr) - 1)
+  E <- .tr_sampling_margem(nr, p, cm$conf, cm$deff, cm$N, gl)
   if (cm$N > 0) passos[[length(passos) + 1L]] <- c(sprintf("população finita (N = %s)", .tr_sampling_fmt(cm$N)), ne, "entrevistas")
-  passos[[length(passos) + 1L]] <- c("margem de erro (pontos percentuais)", 100 * E, "pontos")
+  passos[[length(passos) + 1L]] <- c(sprintf("margem de erro (pontos percentuais%s)", .tr_sampling_rotulo_q(gl)),
+                                     100 * E, "pontos")
   .tr_sampling_plano("margem", "Margem · proporção", nr,
                      tibble::tibble(passo = vapply(passos, `[[`, "", 1L),
                                     valor = as.numeric(vapply(passos, `[[`, "", 2L)),
                                     unidade = vapply(passos, `[[`, "", 3L)),
                      cm$conf, E,
                      parametros = list(medida = "proporção", p = p, N = cm$N, deff = cm$deff,
-                                       resposta = cm$resposta, n0 = ne),
+                                       resposta = cm$resposta, n0 = ne, gl = gl,
+                                       distribuicao = cm$distribuicao),
                      nota = if (p == 0.5) "p = 0,5: a margem vale para qualquer pergunta sim/não" else "")
 }
 
@@ -84,18 +89,21 @@ tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = 0.95, popu
 #' margem de cada agregado sai da variância estratificada exata, com correção
 #' finita, vezes o deff de agrupamento.
 #' @noRd
-.tr_sampling_niveis <- function(u, N, n, grupos, p, conf, deff) {
+.tr_sampling_niveis <- function(u, N, n, grupos, p, conf, deff, distribuicao = "t", upas = n) {
   linha <- function(tipo, nome, idx) {
     Nh <- N[idx]; nh <- n[idx]
+    # gl = UPAs − estratos (cada unidade é um estrato; as UPAs são as
+    # entrevistas, ou as redes na indicação).
+    gl <- if (distribuicao == "z") Inf else max(1, sum(upas[idx]) - length(idx))
     W <- Nh / sum(Nh)
     v <- sum(W^2 * pmax(0, 1 - nh / Nh) * p * (1 - p) / nh)
     kish <- sum(nh) * sum(W^2 / nh)
     # Calculado ANTES do tibble: dentro dele, a coluna `deff` recém-criada
     # sombrearia o argumento, e a margem sairia multiplicada pelo Kish de novo.
-    E <- .tr_sampling_z(conf) * sqrt(deff * v)
+    E <- .tr_sampling_q(conf, gl) * sqrt(deff * v)
     tibble::tibble(nivel_tipo = tipo, nivel = nome, unidades = length(idx), populacao = sum(Nh), n = sum(nh),
                    deff_ponderacao = kish, deff = kish * deff, n_efetivo = sum(nh) / (kish * deff),
-                   margem = E, margem_pp = 100 * E)
+                   gl = gl, margem = E, margem_pp = 100 * E)
   }
   partes <- list(linha("total", "Total", seq_along(u)))
   for (g in names(grupos)) {
@@ -151,12 +159,13 @@ tr_sampling_margin <- function(n = 400L, proporcao = 0.5, confianca = 0.95, popu
 #' @return tabela (`data/table`) com uma linha por nível.
 #' @export
 tr_sampling_margin_levels <- function(unidades, unidade = "", tamanho = "", n = "", grupos = "", deff = 1,
-                                      proporcao = 0.5, confianca = 0.95) {
+                                      proporcao = 0.5, confianca = 0.95, distribuicao = "t") {
+  distribuicao <- .tr_sampling_distrib(distribuicao)
   x <- .tr_sampling_unidades(unidades, unidade, tamanho, n, grupos)
   conf <- .tr_sampling_conf(confianca)
   deff <- .tr_sampling_num(deff, "deff", 0, aberto_min = TRUE)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 0.999, aberto_min = TRUE)
-  .tr_sampling_niveis(x$u, x$N, x$n, x$grupos, p, conf, deff)
+  .tr_sampling_niveis(x$u, x$N, x$n, x$grupos, p, conf, deff, distribuicao)
 }
 
 #' Margem de erro na expansão por indicação, por cenário.
@@ -164,13 +173,18 @@ tr_sampling_margin_levels <- function(unidades, unidade = "", tamanho = "", n = 
 #' @param convidados lista de quantos convidados por participante (ex.: `"0, 1, 2, 3"`).
 #' @param adesao fração dos convidados que de fato responde.
 #' @param icc lista de correlações intraclasse entre quem convida e os convidados.
+#' @param cv_rede coeficiente de variação do tamanho das redes (0: todas do
+#'   mesmo tamanho).
+#' @param distribuicao `"t"` (gl = participantes da base − unidades) ou `"z"`.
 #' @return tabela (`data/table`) com uma linha por cenário e nível.
 #' @export
 tr_sampling_referral <- function(unidades, unidade = "", tamanho = "", n = "", grupos = "",
                                  convidados = "0, 1, 2, 3, 5", adesao = 1, icc = "0.05, 0.1, 0.2",
-                                 proporcao = 0.5, confianca = 0.95) {
+                                 proporcao = 0.5, confianca = 0.95, cv_rede = 0, distribuicao = "t") {
   x <- .tr_sampling_unidades(unidades, unidade, tamanho, n, grupos)
   conf <- .tr_sampling_conf(confianca)
+  cv <- .tr_sampling_num(cv_rede, "cv_rede", 0, 10)
+  distribuicao <- .tr_sampling_distrib(distribuicao)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 0.999, aberto_min = TRUE)
   ks <- .tr_sampling_lista_num(convidados, "convidados", 0, 1000)
   rhos <- .tr_sampling_lista_num(icc, "icc", 0, 1)
@@ -179,11 +193,14 @@ tr_sampling_referral <- function(unidades, unidade = "", tamanho = "", n = "", g
   for (rho in rhos) for (k in ks) {
     # Cada participante da base vira uma "rede" de 1 + k·adesão respostas. As
     # respostas da mesma rede se parecem (amigos, vizinhos): o custo é o deff
-    # de conglomerado, 1 + (m − 1)·ICC.
+    # de conglomerado, 1 + (m − 1)·ICC, ou, com redes de tamanho desigual,
+    # 1 + ((CV² + 1)·m − 1)·ICC (Eldridge, Ashby & Kerry 2006). Sem convidados
+    # a rede é de uma pessoa só, e não há tamanho a variar. As UPAs são as
+    # redes (as sementes): é delas que saem os gl.
     m <- 1 + k * ad
-    dc <- 1 + (m - 1) * rho
+    dc <- .tr_sampling_deff_cv(m, if (k > 0) cv else 0, rho)
     nn <- pmin(x$N, x$n * m)
-    t <- .tr_sampling_niveis(x$u, x$N, nn, x$grupos, p, conf, dc)
+    t <- .tr_sampling_niveis(x$u, x$N, nn, x$grupos, p, conf, dc, distribuicao, upas = x$n)
     t <- tibble::add_column(t, convidados = k, adesao = ad, icc = rho, tamanho_rede = m, deff_agrupamento = dc,
                             .before = 1L)
     partes[[length(partes) + 1L]] <- t
@@ -208,12 +225,12 @@ tr_sampling_referral <- function(unidades, unidade = "", tamanho = "", n = "", g
 #' @export
 tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", participacao = "",
                                      erro = 0.05, proporcao = 0.5, confianca = 0.95, deff = 1,
-                                     taxa_resposta = 1, participacao_minima = 0) {
+                                     taxa_resposta = 1, participacao_minima = 0, distribuicao = "t") {
   d <- tibble::as_tibble(composicao)
   cv <- .tr_sampling_col(d, variavel, "variavel")
   cg <- .tr_sampling_col(d, grupo, "grupo")
   cp <- .tr_sampling_col(d, participacao, "participacao"); .tr_sampling_numerica(d, cp, "participacao")
-  cm <- .tr_sampling_comuns(confianca, 0, deff, taxa_resposta)
+  cm <- .tr_sampling_comuns(confianca, 0, deff, taxa_resposta, distribuicao)
   E <- .tr_sampling_num(erro, "erro", 0, 1, aberto_min = TRUE)
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 0.999, aberto_min = TRUE)
   pmin_ <- .tr_sampling_num(participacao_minima, "participacao_minima", 0, 1)
@@ -229,8 +246,12 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
                        paste(sprintf("%s (%s)", names(somas)[abs(somas - 1) > 0.02],
                                      .tr_sampling_fmt(somas[abs(somas - 1) > 0.02])), collapse = ", "))
   }
-  n0 <- .tr_sampling_z(cm$conf)^2 * p * (1 - p) / E^2
-  ng <- ceiling(n0 * cm$deff - 1e-9)
+  # n por grupo com t de ng − 1 gl (o domínio lido sozinho), por iteração.
+  n0_de_q <- function(q) q^2 * p * (1 - p) / E^2
+  sol <- .tr_sampling_resolver_t(cm$conf, cm$distribuicao,
+                                 function(q) as.integer(ceiling(n0_de_q(q) * cm$deff - 1e-9)), function(n) n - 1)
+  n0 <- n0_de_q(sol$q)
+  ng <- sol$n
   usa <- sh >= pmin_
   if (!any(usa)) {
     .tr_sampling_abort("tr_sampling_error_bad_option", "Nenhum grupo passa da participação mínima (%s).", pmin_)
@@ -241,7 +262,8 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
   n_contatos <- ceiling(n_total / cm$resposta - 1e-9)
   rotulos <- paste0(d[[cv]], ": ", d[[cg]])
   passos <- list(
-    c(sprintf("n por grupo para ± %s pontos", .tr_sampling_fmt(100 * E)), n0, "entrevistas"))
+    c(sprintf("n por grupo para ± %s pontos%s", .tr_sampling_fmt(100 * E), .tr_sampling_rotulo_q(sol$gl)), n0,
+      "entrevistas"))
   if (cm$deff != 1) passos[[length(passos) + 1L]] <- c(sprintf("× deff %s", .tr_sampling_fmt(cm$deff)), ng, "entrevistas")
   passos[[length(passos) + 1L]] <- c(sprintf("÷ participação do grupo limitante, %s (%s)", rotulos[[i_lim]],
                                              .tr_sampling_pct(sh[[i_lim]])), n_total, "entrevistas")
@@ -252,7 +274,8 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
   al <- tibble::tibble(estrato = rotulos, variavel = as.character(d[[cv]]), grupo = as.character(d[[cg]]),
                        participacao = sh, N = NA_real_, n = ng, n_total_necessario = total_g,
                        n_final = as.integer(esperado),
-                       margem_esperada_pp = 100 * .tr_sampling_margem(pmax(esperado, 1), p, cm$conf, cm$deff),
+                       margem_esperada_pp = 100 * .tr_sampling_margem(pmax(esperado, 1), p, cm$conf, cm$deff,
+                                                                        gl = if (cm$distribuicao == "z") Inf else pmax(esperado, 1) - 1),
                        fracao_amostral = NA_real_, considerado = usa, limitante = seq_along(sh) == i_lim)
   fora <- rotulos[!usa]
   .tr_sampling_plano("domínios", "Tamanho · grupos sem cota", n_contatos,
@@ -260,7 +283,8 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
                                     valor = as.numeric(vapply(passos, `[[`, "", 2L)),
                                     unidade = vapply(passos, `[[`, "", 3L)),
                      cm$conf, E, parametros = list(medida = "proporção", p = p, deff = cm$deff, resposta = cm$resposta,
-                                                   N = 0, n0 = n0),
+                                                   N = 0, n0 = n0, q = sol$q, gl = sol$gl,
+                                                   distribuicao = cm$distribuicao),
                      alocacao = al,
                      nota = .tr_sampling_nota(
                        sprintf("limitante: %s; com n = %s, o maior grupo passa de %s entrevistas", rotulos[[i_lim]],
@@ -270,14 +294,39 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
                        "supõe que a coleta traga cada grupo na proporção da população"))
 }
 
+#' A menor diferença δ detectável a partir de `pa`, num sentido.
+#'
+#' Fleiss, Levin & Paik (2003, cap. 4), duas proporções independentes com n
+#' desiguais, sem correção de continuidade: a diferença p_b − p_a = δ é
+#' detectável com nível α e poder 1 − β quando
+#'
+#'   δ = q_α·√(deff·p̄q̄·(c_a/n_a + c_b/n_b)) + q_β·√(deff·(p_a q_a c_a/n_a + p_b q_b c_b/n_b)),
+#'
+#' com p̄ = (n_a p_a + n_b p_b)/(n_a + n_b) e c = 1 − n/N a correção finita
+#' (1 sem população). Com n iguais, deff = 1 e sem correção é a equação de
+#' `stats::power.prop.test`. `sentido` −1 procura p_b abaixo de p_a.
+#' @return δ (Inf se nem p_b no extremo é detectável).
+#' @noRd
+.tr_sampling_dmd <- function(pa, na, nb, ca, cb, qa, qb, deff, sentido = 1) {
+  h <- function(d) {
+    pb <- pa + sentido * d
+    pbar <- (na * pa + nb * pb) / (na + nb)
+    d - qa * sqrt(deff * pbar * (1 - pbar) * (ca / na + cb / nb)) -
+      qb * sqrt(deff * (pa * (1 - pa) * ca / na + pb * (1 - pb) * cb / nb))
+  }
+  lim <- if (sentido > 0) 1 - pa else pa
+  if (lim <= 0 || h(lim) < 0) return(Inf)
+  stats::uniroot(h, c(0, lim), tol = 1e-12)$root
+}
+
 #' Diferença mínima detectável entre grupos de um mesmo recorte.
 #'
 #' Duas margens de ±10 pontos não dizem se dá para comparar os grupos: a
 #' pergunta de comparação é "qual a MENOR diferença entre os dois que a pesquisa
-#' conseguiria detectar?". Para duas proporções independentes, com nível α e
-#' poder 1 − β:
-#'
-#'   DMD = (z_{1−α/2} + z_{1−β}) · √(deff · p(1 − p) · (1/n_a + 1/n_b))
+#' conseguiria detectar?". A conta é a de duas proporções de Fleiss, Levin &
+#' Paik (2003), com a proporção de referência de cada grupo e, se a população
+#' do grupo é dada, a correção finita. A tabela traz o pior caso: as duas
+#' referências (a e b) e os dois sentidos (acima e abaixo).
 #'
 #' Se a diferença que importa (10 pontos, por padrão) é menor que a DMD, a
 #' comparação não se sustenta: um "não há diferença" seria falta de amostra.
@@ -287,16 +336,25 @@ tr_sampling_size_domains <- function(composicao, variavel = "", grupo = "", part
 #' @param n_total total da amostra (0: `tamanho` já é contagem).
 #' @param poder `"80%"` ou `"90%"`.
 #' @param diferenca_relevante diferença que importa detectar (0,10 = 10 pontos).
+#' @param proporcao proporção de referência comum (0,5 é o pior caso).
+#' @param proporcao_grupo coluna com a proporção de referência de cada grupo
+#'   (em branco: `proporcao` em todos).
+#' @param populacao coluna com a população de cada grupo, para a correção
+#'   finita (em branco: sem correção).
+#' @param distribuicao `"t"` (gl = n_a + n_b − 2) ou `"z"`.
 #' @inheritParams tr_sampling_margin
 #' @return tabela (`data/table`) com uma linha por par de grupos.
 #' @export
 tr_sampling_detectable_difference <- function(grupos, variavel = "", grupo = "", tamanho = "", n_total = 0,
                                               proporcao = 0.5, confianca = 0.95, poder = "80%", deff = 1,
-                                              diferenca_relevante = 0.10) {
+                                              diferenca_relevante = 0.10, proporcao_grupo = "",
+                                              populacao = "", distribuicao = "t") {
   d <- tibble::as_tibble(grupos)
   cv <- .tr_sampling_col(d, variavel, "variavel")
   cg <- .tr_sampling_col(d, grupo, "grupo")
   ct <- .tr_sampling_col(d, tamanho, "tamanho"); .tr_sampling_numerica(d, ct, "tamanho")
+  cp <- .tr_sampling_col_opcional(d, proporcao_grupo, "proporcao_grupo")
+  cN <- .tr_sampling_col_opcional(d, populacao, "populacao")
   conf <- .tr_sampling_conf(confianca)
   pod <- .tr_sampling_enum(poder, c("80%", "90%"), "poder")
   pod <- as.numeric(sub("%", "", pod, fixed = TRUE)) / 100
@@ -304,12 +362,31 @@ tr_sampling_detectable_difference <- function(grupos, variavel = "", grupo = "",
   p <- .tr_sampling_num(proporcao, "proporcao", 0, 0.999, aberto_min = TRUE)
   nt <- .tr_sampling_num(n_total, "n_total", 0)
   rel <- .tr_sampling_num(diferenca_relevante, "diferenca_relevante", 0, 1, aberto_min = TRUE)
+  distribuicao <- .tr_sampling_distrib(distribuicao)
   tam <- as.numeric(d[[ct]])
   ns <- if (nt > 0) tam * nt else tam
   if (anyNA(ns) || any(ns < 0)) {
     .tr_sampling_abort("tr_sampling_error_bad_size", "A coluna '%s' tem tamanho faltante ou negativo.", ct)
   }
-  k <- .tr_sampling_z(conf) + stats::qnorm(pod)
+  ps <- rep(p, nrow(d))
+  if (!is.null(cp)) {
+    .tr_sampling_numerica(d, cp, "proporcao_grupo")
+    ps <- as.numeric(d[[cp]])
+    if (anyNA(ps) || any(ps <= 0 | ps >= 1)) {
+      .tr_sampling_abort("tr_sampling_error_bad_size",
+                         "A coluna '%s' tem proporção faltante ou fora de (0, 1).", cp)
+    }
+  }
+  cs <- rep(1, nrow(d))
+  if (!is.null(cN)) {
+    .tr_sampling_numerica(d, cN, "populacao")
+    Ng <- as.numeric(d[[cN]])
+    if (anyNA(Ng) || any(Ng <= 0) || any(ns > Ng)) {
+      .tr_sampling_abort("tr_sampling_error_bad_size",
+                         "A coluna '%s' tem população faltante, zero ou menor que o n do grupo.", cN)
+    }
+    cs <- 1 - ns / Ng
+  }
   vars <- as.character(d[[cv]]); gs <- as.character(d[[cg]])
   partes <- list()
   for (v in unique(vars)) {
@@ -318,9 +395,21 @@ tr_sampling_detectable_difference <- function(grupos, variavel = "", grupo = "",
     pares <- utils::combn(idx, 2L)
     for (j in seq_len(ncol(pares))) {
       a <- pares[1, j]; b <- pares[2, j]
-      dmd <- if (ns[a] > 0 && ns[b] > 0) k * sqrt(deff * p * (1 - p) * (1 / ns[a] + 1 / ns[b])) else Inf
+      gl <- if (distribuicao == "z") Inf else max(1, ns[a] + ns[b] - 2)
+      qa <- .tr_sampling_q(conf, gl)
+      qb <- if (is.finite(gl)) stats::qt(pod, gl) else stats::qnorm(pod)
+      dmd <- if (ns[a] > 0 && ns[b] > 0) {
+        # O sentido que não cabe em (0, 1) (acima de 0,95 não há +10 pontos) não
+        # entra no pior caso.
+        ds <- c(.tr_sampling_dmd(ps[a], ns[a], ns[b], cs[a], cs[b], qa, qb, deff, 1),
+            .tr_sampling_dmd(ps[a], ns[a], ns[b], cs[a], cs[b], qa, qb, deff, -1),
+            .tr_sampling_dmd(ps[b], ns[b], ns[a], cs[b], cs[a], qa, qb, deff, 1),
+            .tr_sampling_dmd(ps[b], ns[b], ns[a], cs[b], cs[a], qa, qb, deff, -1))
+        if (any(is.finite(ds))) max(ds[is.finite(ds)]) else Inf
+      } else Inf
       partes[[length(partes) + 1L]] <- tibble::tibble(
         variavel = v, grupo_a = gs[a], grupo_b = gs[b], n_a = ns[a], n_b = ns[b],
+        p_a = ps[a], p_b = ps[b], gl = gl,
         # Acima de 100 pontos nenhuma diferença é detectável; o número maior que
         # isso só confundiria a leitura da tabela.
         diferenca_detectavel_pp = 100 * min(dmd, 1), sustentavel = dmd <= rel)
@@ -410,7 +499,8 @@ tr_sampling_plot_margins <- function(margens, meta = 5, aspecto = "16:9", tema =
 #' @export
 tr_sampling_question_margins <- function(perguntas, margens, pergunta = "pergunta", tipo = "tipo",
                                          opcoes = "opcoes", base = "base", nao_resposta = 0,
-                                         confianca = 0.95) {
+                                         confianca = 0.95, distribuicao = "t") {
+  distribuicao <- .tr_sampling_distrib(distribuicao)
   q <- tibble::as_tibble(perguntas)
   m <- tibble::as_tibble(margens)
   cq <- .tr_sampling_col(q, pergunta, "pergunta")
@@ -438,17 +528,22 @@ tr_sampling_question_margins <- function(perguntas, margens, pergunta = "pergunt
   if (any(b <= 0 | b > 1)) {
     .tr_sampling_abort("tr_sampling_error_bad_size", "A coluna '%s' tem base fora de (0, 1].", cb)
   }
-  z <- .tr_sampling_z(conf); alfa <- 1 - conf
+  alfa <- 1 - conf
   cenarios <- intersect(c("convidados", "adesao", "icc"), names(m))
   partes <- lapply(seq_len(nrow(m)), function(i) {
     fechada <- tipos != "aberta"
     nq <- m$n[[i]] * b * ifelse(fechada, 1 - nr, 1)
     de <- m$deff[[i]]
+    # gl: os do nível (coluna `gl` de `sampling/margin_levels`) — o domínio da
+    # pergunta não corta o desenho —, ou n − 1 numa tabela sem ela.
+    gl <- if (distribuicao == "z") Inf else if ("gl" %in% names(m)) m$gl[[i]] else max(1, m$n[[i]] - 1)
+    qq <- function(pr) if (is.finite(gl)) stats::qt(pr, gl) else stats::qnorm(pr)
+    z <- qq(1 - alfa / 2)
     ind <- ifelse(fechada, 100 * z * sqrt(de * 0.25 / nq), NA_real_)
     simul <- vapply(seq_along(tipos), function(j) {
       if (!tipos[[j]] %in% c("única", "escala") || is.na(k[[j]]) || k[[j]] < 3) return(NA_real_)
       ms <- 2:k[[j]]
-      100 * max(stats::qnorm(1 - alfa / (2 * ms)) * sqrt(de * (1 / ms) * (1 - 1 / ms) / nq[[j]]))
+      100 * max(qq(1 - alfa / (2 * ms)) * sqrt(de * (1 / ms) * (1 - 1 / ms) / nq[[j]]))
     }, 0)
     media <- ifelse(tipos == "escala" & !is.na(k), z * sqrt(de) * ((k - 1) / 2) / sqrt(nq), NA_real_)
     # Uma alternativa CONTRA outra da mesma pergunta. As duas vêm das mesmas
@@ -460,7 +555,7 @@ tr_sampling_question_margins <- function(perguntas, margens, pergunta = "pergunt
     compara <- tipos %in% c("única", "escala", "múltipla") & !is.na(k) & k >= 2
     dif <- ifelse(compara, 100 * z * sqrt(de / nq), NA_real_)
     pares <- ifelse(compara, k * (k - 1) / 2, NA_real_)
-    todos <- ifelse(compara & k >= 3, 100 * stats::qnorm(1 - alfa / (2 * pares)) * sqrt(de / nq), NA_real_)
+    todos <- ifelse(compara & k >= 3, 100 * qq(1 - alfa / (2 * pares)) * sqrt(de / nq), NA_real_)
     t <- tibble::tibble(pergunta = as.character(q[[cq]]), tipo = tipos, opcoes = k, base = b,
                         nivel_tipo = if ("nivel_tipo" %in% names(m)) m$nivel_tipo[[i]] else NA_character_,
                         nivel = m$nivel[[i]], n_respondentes = nq, deff = de,

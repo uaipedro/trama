@@ -18,7 +18,7 @@ Use para apontar o que o leitor deve notar: um outlier, o início de um tratamen
 
 ## Configuração
 
-**X** e **Y** aceitam vírgula decimal e valem para eixos numéricos. **Texto** é obrigatório. A seta precisa dos dois campos preenchidos, ou de nenhum. Com painéis, a anotação aparece em todos.
+**X** e **Y** aceitam vírgula decimal e valem para eixos numéricos. **Texto** é obrigatório. A seta precisa dos dois campos preenchidos, ou de nenhum: preencher só um dos dois é erro. Com painéis, a anotação aparece em todos.
 
 ## Exemplo
 

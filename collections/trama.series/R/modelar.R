@@ -104,9 +104,39 @@ tr_series_holt_winters <- function(serie, tendencia = TRUE, sazonalidade = TRUE,
 #' mudaria o nome das colunas a jusante, e um `data/filter` escrito sobre
 #' `ls_95` quebraria ao trocar o nível no card.
 #' @export
-tr_series_forecast <- function(modelo, horizonte = 12L) {
+tr_series_forecast <- function(modelo, horizonte = 12L, intervalo = "normal", .seed = NULL) {
   h <- .tr_series_int(horizonte, "horizonte", min = 1, max = 1000)
-  .tr_series_ajustar(forecast::forecast(modelo, h = h, level = c(80, 95)), "series/forecast")
+  intervalo <- .tr_series_enum(intervalo, c("normal", "bootstrap"), "intervalo")
+  if (intervalo == "normal") {
+    return(.tr_series_ajustar(forecast::forecast(modelo, h = h, level = c(80, 95)), "series/forecast"))
+  }
+  # Bootstrap dos resíduos (FPP3, sec. 5.5): 5000 trajetórias simuladas com
+  # erros reamostrados; os limites são quantis empíricos. Só ARIMA e ETS têm
+  # simulação no `forecast`; Holt-Winters do `stats` não.
+  if (!inherits(modelo, c("Arima", "ets"))) {
+    .tr_series_option("intervalo", intervalo,
+                      "normal (o bootstrap pede um modelo series/arima ou series/ets)")
+  }
+  semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+  .tr_series_com_semente(semente, .tr_series_ajustar(
+    forecast::forecast(modelo, h = h, level = c(80, 95), bootstrap = TRUE, npaths = 5000),
+    "series/forecast"))
+}
+
+#' Roda com a semente do nó e devolve o RNG como estava.
+#' @noRd
+.tr_series_com_semente <- function(seed, expr) {
+  tem <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+  if (tem) antigo <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  antigo_kind <- RNGkind()
+  on.exit({
+    do.call(RNGkind, as.list(antigo_kind))
+    if (tem) assign(".Random.seed", antigo, envir = globalenv())
+    else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) rm(".Random.seed", envir = globalenv())
+  }, add = TRUE)
+  RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+  set.seed(seed)
+  force(expr)
 }
 
 #' As previsões de referência: o que qualquer modelo tem de bater.
@@ -174,4 +204,118 @@ tr_series_accuracy <- function(previsao, real = NULL) {
   out <- as.data.frame(m, row.names = NULL)
   names(out) <- gsub("[^a-z0-9]+", "_", tolower(names(out)))
   tibble::as_tibble(cbind(metodo = previsao$method, conjunto = unname(conjunto), out))
+}
+
+#' Modelo de intervenção: ARIMA com regressor de degrau, pulso ou rampa.
+#'
+#' A forma de ordem zero de Box & Tiao (1975): y_t = ω I_t + N_t, com N_t
+#' ARIMA e I_t = 1 a partir da data (degrau), só na data (pulso) ou t − T + 1
+#' a partir dela (rampa). Estimação conjunta por máxima verossimilhança
+#' (`forecast::Arima(xreg = )`), com a diferenciação aplicada também ao
+#' regressor. Devolve a tabela dos coeficientes com erro-padrão, IC de 95%
+#' (Wald, normal) e p-valor.
+#' @export
+tr_series_intervencao <- function(serie, data, tipo = "degrau", p = 0L, d = 1L, q = 1L,
+                                  P = 0L, D = 0L, Q = 0L, constante = FALSE,
+                                  resposta = "imediata") {
+  tipo <- .tr_series_enum(tipo, c("degrau", "pulso", "rampa"), "tipo")
+  resposta <- .tr_series_enum(resposta, c("imediata", "gradual"), "resposta")
+  if (resposta == "gradual" && tipo == "rampa") {
+    .tr_series_abort("tr_series_error_bad_option",
+                     paste0("Param 'resposta': a resposta gradual vale para degrau e pulso ",
+                            "(função de transferência ω/(1 − δB) de Box & Tiao); rampa só com ",
+                            "resposta imediata."))
+  }
+  .tr_series_sem_na(serie, "series/intervencao")
+  .tr_series_minimo(serie, 12L, "series/intervencao", "um modelo de intervenção")
+  f <- stats::frequency(serie)
+  v <- .tr_series_periodo(.tr_series_obrigatorio(data, "data"), "data", f)
+  pos <- .tr_series_pos(v, f)
+  tt <- as.numeric(stats::time(serie))
+  i0 <- which(abs(tt - pos) < 1e-6 / f)
+  n <- length(serie)
+  if (length(i0) != 1L || i0 < 2L) {
+    .tr_series_abort("tr_series_error_bad_period",
+                     paste0("Param 'data': '%s' tem de ser um período DA série, depois da primeira ",
+                            "observação (%s a %s) — sem observação antes, não há nível de referência."),
+                     data, .tr_series_rotulo(stats::start(serie), f), .tr_series_rotulo(stats::end(serie), f))
+  }
+  idx <- seq_len(n)
+  reg <- switch(tipo,
+    degrau = as.numeric(idx >= i0),
+    pulso = as.numeric(idx == i0),
+    rampa = pmax(0, idx - i0 + 1))
+  ordem <- c(.tr_series_int(p, "p", 0, 5), .tr_series_int(d, "d", 0, 2), .tr_series_int(q, "q", 0, 5))
+  sazo <- c(.tr_series_int(P, "P", 0, 2), .tr_series_int(D, "D", 0, 1), .tr_series_int(Q, "Q", 0, 2))
+  if (sum(sazo) > 0L) .tr_series_sazonal(serie, "series/intervencao (parte sazonal P, D, Q)", ciclos = 1L)
+  ajusta <- function(xr, fixed = NULL) {
+    forecast::Arima(serie, order = ordem, seasonal = sazo, xreg = cbind(intervencao = xr),
+                    include.constant = isTRUE(constante), fixed = fixed,
+                    transform.pars = is.null(fixed))
+  }
+  if (resposta == "imediata") {
+    fit <- .tr_series_ajustar(ajusta(reg), "series/intervencao")
+    b <- stats::coef(fit)
+    se <- sqrt(diag(fit$var.coef))
+  } else {
+    # Box & Tiao (1975): y_t = ω/(1 − δB) I_t + N_t. Para δ fixo, o regressor
+    # filtrado x_t = I_t + δ x_{t−1} (zero antes da data) entra linear com
+    # coeficiente ω, e a verossimilhança perfilada em δ se maximiza numa
+    # dimensão (`optimize`). O erro-padrão vem da hessiana numérica da
+    # log-verossimilhança completa (ARMA, ω e δ juntos), não da condicional em
+    # δ. Oráculo: `TSA::arimax(transfer = list(c(1, 0)))` (Cryer & Chan 2008).
+    filtra <- function(dl) as.numeric(stats::filter(reg, dl, method = "recursive"))
+    o <- .tr_series_ajustar(
+      stats::optimize(function(dl) ajusta(filtra(dl))$loglik, c(-0.999, 0.999),
+                      maximum = TRUE, tol = 1e-8),
+      "series/intervencao")
+    delta <- o$maximum
+    fit <- .tr_series_ajustar(ajusta(filtra(delta)), "series/intervencao")
+    th <- c(stats::coef(fit), delta = delta)
+    k <- length(th)
+    nll <- function(t) -ajusta(filtra(t[[k]]), fixed = unname(t[-k]))$loglik
+    H <- tryCatch(stats::optimHess(th, nll), error = function(e) NULL)
+    V <- if (is.null(H)) NULL else tryCatch(solve(H), error = function(e) NULL)
+    se <- if (is.null(V)) rep(NA_real_, k) else { dv <- diag(V); ifelse(dv > 0, sqrt(abs(dv)), NA_real_) }
+    b <- th
+    names(se) <- names(b)
+    if (abs(delta) > 0.99) {
+      .tr_series_abort("tr_series_error_fit",
+                       paste0("'series/intervencao': o δ da resposta gradual foi para a borda ",
+                              "(%.3f); a resposta não se estabiliza — com degrau, experimente ",
+                              "a rampa; com pulso, o degrau."), delta)
+    }
+  }
+  if (anyNA(se) || any(!is.finite(se))) {
+    .tr_series_abort("tr_series_error_fit",
+                     "'series/intervencao': a matriz de covariância saiu singular; simplifique a ordem do ARIMA.")
+  }
+  z <- stats::qnorm(0.975)
+  tb <- tibble::tibble(
+    termo = names(b), estimativa = unname(b), erro_padrao = unname(se),
+    li_95 = unname(b - z * se), ls_95 = unname(b + z * se),
+    z = unname(b / se), p_valor = unname(2 * stats::pnorm(-abs(b / se))))
+  # Série em log: o efeito em porcentagem é exp(ω) − 1 (só faz sentido no
+  # degrau e no pulso, e só se a série foi logaritmizada — a coluna vem sempre
+  # e a ajuda diz quando lê-la).
+  tb$efeito_pct <- ifelse(tb$termo == "intervencao", 100 * (exp(tb$estimativa) - 1), NA_real_)
+  if (resposta == "gradual") {
+    # Com resposta gradual, ω é o efeito do PRIMEIRO período; o de longo prazo
+    # do degrau é ω/(1 − δ) (o pulso volta a zero). A linha de longo prazo tem
+    # erro-padrão pelo método delta, com a covariância completa.
+    tb$efeito_pct[tb$termo == "intervencao"] <- NA_real_
+    if (tipo == "degrau") {
+      w <- b[["intervencao"]]
+      lp <- w / (1 - delta)
+      gr <- c(1 / (1 - delta), w / (1 - delta)^2)
+      ii <- match(c("intervencao", "delta"), names(b))
+      se_lp <- if (is.null(V)) NA_real_ else sqrt(drop(t(gr) %*% V[ii, ii] %*% gr))
+      tb <- rbind(tb, tibble::tibble(
+        termo = "efeito_longo_prazo", estimativa = lp, erro_padrao = se_lp,
+        li_95 = lp - z * se_lp, ls_95 = lp + z * se_lp, z = lp / se_lp,
+        p_valor = 2 * stats::pnorm(-abs(lp / se_lp)), efeito_pct = 100 * (exp(lp) - 1)))
+    }
+  }
+  prim <- c("intervencao", "delta", "efeito_longo_prazo")
+  tb[order(match(tb$termo, prim, nomatch = 99L)), ]
 }

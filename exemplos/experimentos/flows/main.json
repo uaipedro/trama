@@ -46,14 +46,14 @@
     },
     "dic_lev": {
       "type": "models/levene",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Homogeneidade",
       "params": {},
       "seed": 204482820
     },
     "dic_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 184392210
@@ -69,7 +69,7 @@
     },
     "dic_dunnett": {
       "type": "models/pairwise",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Dunnett vs. controle",
       "params": {
         "metodo": "contra controle",
@@ -120,7 +120,7 @@
     },
     "dbc_medidas": {
       "type": "models/fit_stats",
-      "type_version": 1,
+      "type_version": 2,
       "label": "CV e R²",
       "params": {},
       "seed": 18666655
@@ -132,9 +132,9 @@
       "params": {},
       "seed": 54381306
     },
-    "dbc_bart": {
-      "type": "models/bartlett",
-      "type_version": 1,
+    "dbc_lev": {
+      "type": "models/levene",
+      "type_version": 3,
       "label": "Homogeneidade",
       "params": {},
       "seed": 93579540
@@ -148,7 +148,7 @@
     },
     "dbc_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 56912111
@@ -238,7 +238,7 @@
     },
     "dql_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 78818222
@@ -292,7 +292,7 @@
     },
     "fat_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro (interação!)",
       "params": {
         "tipo_sq": "II"
@@ -357,7 +357,7 @@
     },
     "npk_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 231560671
@@ -417,7 +417,7 @@
     },
     "sp_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro com erros (a) e (b)",
       "params": {},
       "seed": 91994540
@@ -513,14 +513,14 @@
     },
     "cont_lev": {
       "type": "models/levene",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Variâncias diferentes",
       "params": {},
       "seed": 243382936
     },
     "cont_glm": {
       "type": "models/glm",
-      "type_version": 1,
+      "type_version": 2,
       "label": "GLM Poisson",
       "params": {
         "resposta": "count",
@@ -531,7 +531,7 @@
     },
     "cont_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro de desvio",
       "params": {
         "tipo_sq": "II"
@@ -603,7 +603,7 @@
     },
     "rep_coef": {
       "type": "models/coefficients",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Efeito dos dias",
       "params": {},
       "seed": 1546747
@@ -619,7 +619,7 @@
     },
     "01M2TF81V21B51CE": {
       "type": "models/bartlett",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Bartlett",
       "params": {},
       "seed": 218638371
@@ -771,7 +771,7 @@
         "port": "out"
       },
       "to": {
-        "node": "dbc_bart",
+        "node": "dbc_lev",
         "port": "modelo"
       },
       "index": 1
@@ -838,7 +838,7 @@
       },
       "to": {
         "node": "dbc_tabela",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -1124,7 +1124,7 @@
       },
       "to": {
         "node": "sp_dose",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -1365,7 +1365,7 @@
       "dbc": [845, 2839],
       "dbc_medidas": [1325, 1735],
       "dbc_sw": [1325, 1990],
-      "dbc_bart": [1325, 2245],
+      "dbc_lev": [1325, 2245],
       "dbc_adit": [1325, 2500],
       "dbc_quadro": [1175, 2755],
       "dbc_medias": [1305, 3205],
@@ -1539,202 +1539,73 @@
         "order": 8
       }
     },
-    "folds": {
-      "dic_dados": {
-        "params": false
-      },
-      "dic_box": {
-        "params": false
-      },
-      "dic": {
-        "params": false
-      },
-      "dic_sw": {
-        "params": false
-      },
-      "dic_lev": {
-        "params": false
-      },
-      "dic_quadro": {
-        "params": false
-      },
-      "dic_medias": {
-        "params": false
-      },
-      "dic_dunnett": {
-        "params": false
-      },
-      "dic_kw": {
-        "params": false
-      },
-      "dic_contr": {
-        "params": false
-      },
-      "dbc_dados": {
-        "params": false
-      },
-      "dbc": {
-        "params": false
-      },
-      "dbc_medidas": {
-        "params": false
-      },
-      "dbc_sw": {
-        "params": false
-      },
-      "dbc_bart": {
-        "params": false
-      },
-      "dbc_adit": {
-        "params": false
-      },
-      "dbc_quadro": {
-        "params": false
-      },
-      "dbc_medias": {
-        "params": false
-      },
-      "dbc_contr": {
-        "params": false
-      },
-      "dbc_graf": {
-        "params": false
-      },
-      "dbc_tabela": {
-        "params": false
-      },
-      "dbc_duncan": {
-        "params": false
-      },
-      "dbc_waller": {
-        "params": false
-      },
-      "dql_dados": {
-        "params": false
-      },
-      "dql": {
-        "params": false
-      },
-      "dql_sw": {
-        "params": false
-      },
-      "dql_quadro": {
-        "params": false
-      },
-      "dql_medias": {
-        "params": false
-      },
-      "fat_dados": {
-        "params": false
-      },
-      "fat_box": {
-        "params": false
-      },
-      "fat": {
-        "params": false
-      },
-      "fat_diag": {
-        "params": false
-      },
-      "fat_quadro": {
-        "params": false
-      },
-      "fat_dose_supp": {
-        "params": false
-      },
-      "fat_supp_dose": {
-        "params": false
-      },
-      "fat_graf": {
-        "params": false
-      },
-      "npk_dados": {
-        "params": false
-      },
-      "npk": {
-        "params": false
-      },
-      "npk_sw": {
-        "params": false
-      },
-      "npk_quadro": {
-        "params": false
-      },
-      "npk_n": {
-        "params": false
-      },
-      "npk_k": {
-        "params": false
-      },
-      "sp_dados": {
-        "params": false
-      },
-      "sp": {
-        "params": false
-      },
-      "sp_sw": {
-        "params": false
-      },
-      "sp_var": {
-        "params": false
-      },
-      "sp_quadro": {
-        "params": false
-      },
-      "sp_contr": {
-        "params": false
-      },
-      "sp_n": {
-        "params": false
-      },
-      "sp_v": {
-        "params": false
-      },
-      "sp_dose": {
-        "params": false
-      },
-      "sp_linear": {
-        "params": false
-      },
-      "sp_quad": {
-        "params": false
-      },
-      "sp_cmp": {
-        "params": false
-      },
-      "cont_dados": {
-        "params": false
-      },
-      "cont_anova": {
-        "params": false
-      },
-      "cont_diag": {
-        "params": false
-      },
-      "cont_quadro": {
-        "params": false
-      },
-      "cont_medias": {
-        "params": false
-      },
-      "rep_dados": {
-        "params": false
-      },
-      "rep_graf": {
-        "params": false
-      },
-      "rep_cmp": {
-        "params": false
-      },
-      "rep_var": {
-        "params": false
-      },
-      "rep_coef": {
-        "params": false
-      },
-      "rep_lagarta": {
-        "params": false
-      }
-    }
+    "modes": {
+      "dic_dados": "preview",
+      "dic_box": "preview",
+      "dic": "preview",
+      "dic_sw": "preview",
+      "dic_lev": "preview",
+      "dic_quadro": "preview",
+      "dic_medias": "preview",
+      "dic_dunnett": "preview",
+      "dic_kw": "preview",
+      "dic_contr": "preview",
+      "dbc_dados": "preview",
+      "dbc": "preview",
+      "dbc_medidas": "preview",
+      "dbc_sw": "preview",
+      "dbc_lev": "preview",
+      "dbc_adit": "preview",
+      "dbc_quadro": "preview",
+      "dbc_medias": "preview",
+      "dbc_contr": "preview",
+      "dbc_graf": "preview",
+      "dbc_tabela": "preview",
+      "dbc_duncan": "preview",
+      "dbc_waller": "preview",
+      "dql_dados": "preview",
+      "dql": "preview",
+      "dql_sw": "preview",
+      "dql_quadro": "preview",
+      "dql_medias": "preview",
+      "fat_dados": "preview",
+      "fat_box": "preview",
+      "fat": "preview",
+      "fat_diag": "preview",
+      "fat_quadro": "preview",
+      "fat_dose_supp": "preview",
+      "fat_supp_dose": "preview",
+      "fat_graf": "preview",
+      "npk_dados": "preview",
+      "npk": "preview",
+      "npk_sw": "preview",
+      "npk_quadro": "preview",
+      "npk_n": "preview",
+      "npk_k": "preview",
+      "sp_dados": "preview",
+      "sp": "preview",
+      "sp_sw": "preview",
+      "sp_var": "preview",
+      "sp_quadro": "preview",
+      "sp_contr": "preview",
+      "sp_n": "preview",
+      "sp_v": "preview",
+      "sp_dose": "preview",
+      "sp_linear": "preview",
+      "sp_quad": "preview",
+      "sp_cmp": "preview",
+      "cont_dados": "preview",
+      "cont_anova": "preview",
+      "cont_diag": "preview",
+      "cont_quadro": "preview",
+      "cont_medias": "preview",
+      "rep_dados": "preview",
+      "rep_graf": "preview",
+      "rep_cmp": "preview",
+      "rep_var": "preview",
+      "rep_coef": "preview",
+      "rep_lagarta": "preview"
+    },
+    "notes": {}
   }
 }

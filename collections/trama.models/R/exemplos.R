@@ -7,7 +7,8 @@
 # hoje é o de amanhã, em qualquer computador.
 
 .TR_MODELS_EXEMPLOS <- c("PlantGrowth", "milho_dbc", "racao_dql", "adubo_dbc", "ToothGrowth", "warpbreaks",
-                         "npk", "aveia", "sleepstudy", "cbpp", "InsectSprays", "Puromycin", "mtcars", "cars")
+                         "npk", "aveia", "sleepstudy", "cbpp", "grouseticks", "InsectSprays", "Puromycin",
+                         "mtcars", "cars")
 
 #' Roda `expr` com semente própria, sem mexer na do usuário.
 #' @noRd
@@ -60,7 +61,7 @@
 #'
 #' 3 + 0,04 N − 0,00015 N² t/ha: a máxima eficiência técnica está em
 #' N = 0,04 / 0,0003 ≈ 133 kg/ha, dentro das doses testadas — o
-#' `models/dose_response` tem de escolher o grau 2 e achar a MET perto daí.
+#' `models/polinomial` tem de escolher o grau 2 e achar a MET perto daí.
 #' @noRd
 .tr_models_adubo <- function() {
   .tr_models_com_semente(1974L, {
@@ -92,9 +93,11 @@ tr_models_example <- function(dataset = "PlantGrowth") {
                      nitrogenio = factor(o$N), producao = o$Y)
     },
     sleepstudy = tibble::as_tibble(lme4::sleepstudy),
-    cbpp = tibble::as_tibble(lme4::cbpp),
     InsectSprays = tibble::as_tibble(datasets::InsectSprays),
     Puromycin = tibble::as_tibble(datasets::Puromycin),
     mtcars = tibble::as_tibble(cbind(modelo = rownames(datasets::mtcars), datasets::mtcars)),
-    cars = tibble::as_tibble(datasets::cars))
+    cars = tibble::as_tibble(datasets::cars),
+    cbpp = { d <- lme4::cbpp; tibble::tibble(rebanho = d$herd, periodo = d$period, casos = d$incidence,
+                                             sadios = d$size - d$incidence, tamanho = d$size) },
+    grouseticks = tibble::as_tibble(lme4::grouseticks))
 }

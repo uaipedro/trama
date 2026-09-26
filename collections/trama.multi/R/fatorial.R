@@ -269,7 +269,10 @@ tr_multi_plot_loadings <- function(fa, corte = 0.3, ordenar = TRUE, aspecto = "4
 .tr_multi_nos_fatorial <- function() {
   P <- trama::tr_param
   list(
-    trama::tr_node("multi/factor_analysis", fn = tr_multi_factor_analysis, label = "Análise fatorial",
+    trama::tr_node("multi/factor_analysis",
+      pressupostos = .tr_multi_doc("multi/factor_analysis")$pressupostos,
+      referencias = .tr_multi_doc("multi/factor_analysis")$referencias,
+      fn = tr_multi_factor_analysis, label = "Análise fatorial",
       category = "multi_fatorial", icon = trama::tr_icon("layers"),
       description = "Extrai fatores latentes (ML ou eixo principal), rotaciona e calcula escores.",
       inputs = list(dados = "data/table"), outputs = list(out = "multi/fa"),

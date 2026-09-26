@@ -16,7 +16,7 @@
     },
     "filtrar": {
       "type": "data/filter",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Filtrar",
       "params": {
         "expr": "valor > 180"
@@ -25,7 +25,7 @@
     },
     "total": {
       "type": "data/mutate",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Criar coluna",
       "params": {
         "name": "receita",
@@ -74,7 +74,7 @@
       },
       "to": {
         "node": "filtrar",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -85,7 +85,7 @@
       },
       "to": {
         "node": "total",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -96,7 +96,7 @@
       },
       "to": {
         "node": "porregiao",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -107,7 +107,7 @@
       },
       "to": {
         "node": "porproduto",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     },
@@ -118,7 +118,7 @@
       },
       "to": {
         "node": "ranking",
-        "port": "data"
+        "port": "dados"
       },
       "index": 1
     }
@@ -135,7 +135,7 @@
     "sizes": {},
     "views": {},
     "frames": {},
-    "folds": {},
-    "notes": {}
+    "notes": {},
+    "modes": {}
   }
 }

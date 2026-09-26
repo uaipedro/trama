@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import CollectionHero from "../../components/CollectionHero.astro";
 import NodeMini from "../../components/NodeMini.astro";
+import TemplatesSecao from "../../components/TemplatesSecao.astro";
 import { collections } from "../../data/collections";
 import { getNodeVisual } from "../../data/node-visuals";
 
@@ -11,12 +12,24 @@ export async function getStaticPaths() {
 }
 
 const collection = Astro.params.collection;
-const entries = (await getCollection("docs", ({ data }) => data.collection === collection))
-  .sort((a, b) =>
-    Number(Boolean(a.data.node)) - Number(Boolean(b.data.node)) ||
-    a.data.order - b.data.order ||
-    a.data.title.localeCompare(b.data.title, "pt-BR")
-  );
+const entries = await getCollection("docs", ({ data }) => data.collection === collection);
+const guides = entries
+  .filter(({ data }) => !data.node)
+  .sort((a, b) => a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, "pt-BR"));
+
+// Blocos agrupados pela categoria do registry, na ordem em que a coleção as
+// registra: o catálogo lê como o caminho de um fluxo, não como lista alfabética.
+const groups = new Map<string, { label: string; order: number; accent: string; blocks: typeof entries }>();
+for (const entry of entries.filter(({ data }) => data.node)) {
+  const visual = getNodeVisual(entry.data.node!);
+  const key = visual.category ?? "outros";
+  const group = groups.get(key) ?? { label: visual.categoryLabel ?? "Outros", order: visual.categoryOrder ?? Infinity, accent: visual.accent, blocks: [] };
+  group.blocks.push(entry);
+  groups.set(key, group);
+}
+const stages = [...groups.entries()]
+  .sort(([, a], [, b]) => a.order - b.order)
+  .map(([id, group]) => ({ id, ...group, blocks: group.blocks.sort((a, b) => a.data.title.localeCompare(b.data.title, "pt-BR")) }));
 const info = collections.find(({ id }) => id === collection)!;
 ---
 
@@ -25,24 +38,32 @@ const info = collections.find(({ id }) => id === collection)!;
     <CollectionHero {...info} />
     <section class="catalogue" aria-labelledby="catalogue-title">
       <div class="section-intro">
-        <p class="eyebrow">Catálogo da coleção</p>
-        <h2 id="catalogue-title">Blocos e guias.</h2>
+        <h2 id="catalogue-title">Blocos por etapa.</h2>
       </div>
-      <div class="catalogue-list">
-        {entries.map((entry) => {
-          const visual = entry.data.node ? getNodeVisual(entry.data.node) : undefined;
-          return (
-            <a class:list={["catalogue-entry", { "catalogue-entry--guide": !entry.data.node }]} href={`/trama/${entry.id}/`}>
-              {visual
-                ? <NodeMini label={entry.data.title} {...visual} />
-                : <span class="catalogue-entry__guide">guia</span>}
-              <span class="catalogue-entry__meta">{entry.data.node ?? "visão geral"}</span>
-              <span class="catalogue-entry__main"><strong>{entry.data.title}</strong><em>{entry.data.description}</em></span>
-              <span class="catalogue-entry__arrow" aria-hidden="true">→</span>
-            </a>
-          );
-        })}
-      </div>
+      {guides.length > 0 && (
+        <ul class="catalogue-guides">
+          {guides.map((entry) => (
+            <li><a href={`/trama/${entry.id}/`}><span>guia</span>{entry.data.title} <b aria-hidden="true">→</b></a></li>
+          ))}
+        </ul>
+      )}
+      <ol class="catalogue-flow">
+        {stages.map((stage) => (
+          <li class="catalogue-stage" id={`etapa-${stage.id}`} style={`--node-accent: ${stage.accent}`}>
+            <h3>{stage.label}</h3>
+            <ul>
+              {stage.blocks.map((entry) => (
+                <li>
+                  <a href={`/trama/${entry.id}/`} title={entry.data.description} aria-label={`${entry.data.title}: ${entry.data.description}`}>
+                    <NodeMini label={entry.data.title} {...getNodeVisual(entry.data.node!)} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
     </section>
+    <TemplatesSecao pkg={info.packageName} titulo="Templates prontos." />
   </div>
 </Base>

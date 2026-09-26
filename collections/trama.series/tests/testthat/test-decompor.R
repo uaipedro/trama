@@ -193,3 +193,78 @@ test_that("regressor colinear com a tendência é dito como tal", {
   expect_error(tr_series_regression(x, grau = 1L, regressor = t2),
                class = "tr_series_error_fit", regexp = "colinear")
 })
+
+# ---- Regressão com erro ARMA por GLS (revisão metodológica, fase 1) -----------
+# `erro = "arma"` troca o MQO por mínimos quadrados generalizados com erro
+# ARMA(p, q), estimado por máxima verossimilhança (`nlme::gls` + `corARMA`).
+# Dois oráculos independentes do `nlme`: o `stats::arima` com `xreg` (ML exata
+# da regressão com erro ARMA, outro código) e, para AR(1), o MQO sobre os dados
+# transformados de Prais-Winsten com o phi estimado — a álgebra do GLS.
+test_that("erro AR(1): coeficientes = stats::arima(xreg) por ML", {
+  x <- log(datasets::AirPassengers)
+  r <- tr_series_regression(x, grau = 1L, erro = "arma", ar = 1L, ma = 0L)
+  expect_s3_class(r$ajuste, "gls")
+  X <- r$matriz
+  a <- stats::arima(as.numeric(x), order = c(1, 0, 0), xreg = X[, -1], method = "ML",
+                    include.mean = TRUE, optim.control = list(maxit = 1000))
+  b <- stats::coef(r$ajuste)
+  expect_equal(unname(b), unname(stats::coef(a)[-1]), tolerance = 1e-3)
+  phi <- unname(stats::coef(r$ajuste$modelStruct$corStruct, unconstrained = FALSE))
+  expect_equal(phi, unname(stats::coef(a)[["ar1"]]), tolerance = 1e-3)
+  # Log-verossimilhança: as duas maximizam a MESMA função.
+  expect_equal(as.numeric(stats::logLik(r$ajuste)), a$loglik, tolerance = 1e-4)
+})
+
+test_that("erro AR(1): coeficientes = MQO de Prais-Winsten com o phi do GLS", {
+  x <- log(datasets::AirPassengers)
+  r <- tr_series_regression(x, grau = 2L, erro = "arma", ar = 1L)
+  phi <- unname(stats::coef(r$ajuste$modelStruct$corStruct, unconstrained = FALSE))
+  X <- r$matriz; y <- as.numeric(x); n <- length(y)
+  # Prais-Winsten: primeira linha escalada por sqrt(1 - phi²), demais quase-diferenças.
+  Xs <- rbind(sqrt(1 - phi^2) * X[1, ], X[-1, ] - phi * X[-n, ])
+  ys <- c(sqrt(1 - phi^2) * y[1], y[-1] - phi * y[-n])
+  b_pw <- stats::coef(stats::lm.fit(Xs, ys))
+  expect_equal(unname(stats::coef(r$ajuste)), unname(b_pw), tolerance = 1e-8)
+})
+
+test_that("erro ARMA: a decomposição continua fechando e o sazonal soma zero", {
+  x <- serie_mensal()
+  r <- tr_series_regression(x, erro = "arma", ar = 1L, ma = 1L)
+  expect_equal(as.numeric(r$tendencia + r$sazonal + r$resto), as.numeric(x), tolerance = 1e-8)
+  expect_equal(sum(tapply(as.numeric(r$sazonal), stats::cycle(x), mean)), 0, tolerance = 1e-8)
+  expect_equal(r$erro, "arma")
+  tab <- .tr_series_reg_tabela(r)
+  expect_equal(nrow(tab), 13L)
+  expect_equal(tab$estimativa, unname(stats::coef(r$ajuste)))
+})
+
+test_that("erro ARMA recusa ordem vazia, e o padrão segue MQO", {
+  x <- serie_mensal()
+  expect_error(tr_series_regression(x, erro = "arma", ar = 0L, ma = 0L),
+               class = "tr_series_error_bad_option")
+  expect_error(tr_series_regression(x, erro = "outro"), class = "tr_series_error_bad_option")
+  expect_s3_class(tr_series_regression(x)$ajuste, "lm")
+})
+
+test_that("GLS: série que o modelo reproduz exato é recusada como singular, não como falta de convergência", {
+  e <- tryCatch(tr_series_regression(stats::ts(rep(1:12, 5), frequency = 12), erro = "arma"),
+                condition = identity)
+  expect_s3_class(e, "tr_series_error_singular_fit")
+  expect_match(conditionMessage(e), "resíduo", fixed = TRUE)
+  expect_false(grepl("não convergiu", conditionMessage(e), fixed = TRUE))
+})
+
+test_that("GLS: AR perto da raiz unitária avisa (classe) e vai para a nota dos F", {
+  set.seed(21)
+  x <- stats::ts(as.numeric(stats::arima.sim(list(ar = 0.97), 200)) + 0.01 * (1:200))
+  expect_warning(r <- tr_series_regression(x, grau = 1L, sazonalidade = FALSE, erro = "arma"),
+                 class = "tr_series_warn_near_unit_root")
+  expect_match(r$aviso, "raiz", fixed = TRUE)
+  expect_match(tr_series_f_tendencia(r)$nota, "raiz", fixed = TRUE)
+  # Longe da raiz, sem aviso.
+  set.seed(22)
+  y <- stats::ts(as.numeric(stats::arima.sim(list(ar = 0.4), 120)) + 0.05 * (1:120))
+  expect_no_warning(r2 <- tr_series_regression(y, grau = 1L, sazonalidade = FALSE, erro = "arma"))
+  expect_null(r2$aviso)
+  expect_false(grepl("raiz", tr_series_f_tendencia(r2)$nota, fixed = TRUE))
+})

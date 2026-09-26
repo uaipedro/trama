@@ -1,0 +1,96 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Decomposição de série",
+  "descricao": "AirPassengers em log decomposto por STL, com o gráfico dos componentes.",
+  "colecoes": ["trama.series"],
+  "doc": {
+    "format": 1,
+    "rev": 7,
+    "collections": {
+      "series": "0.4.0"
+    },
+    "nodes": {
+      "pax": {
+        "type": "series/example",
+        "type_version": 1,
+        "label": "Série de exemplo",
+        "params": {
+          "dataset": "AirPassengers"
+        },
+        "seed": 241105342
+      },
+      "log": {
+        "type": "series/transform",
+        "type_version": 1,
+        "label": "Transformar",
+        "params": {
+          "metodo": "log"
+        },
+        "seed": 80772567
+      },
+      "decomp": {
+        "type": "series/stl",
+        "type_version": 1,
+        "label": "Decomposição STL",
+        "params": {},
+        "seed": 251230650
+      },
+      "grafico": {
+        "type": "series/plot_decomposition",
+        "type_version": 1,
+        "label": "Gráfico da decomposição",
+        "params": {},
+        "seed": 265575397
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "pax",
+          "port": "out"
+        },
+        "to": {
+          "node": "log",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "log",
+          "port": "out"
+        },
+        "to": {
+          "node": "decomp",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "decomp",
+          "port": "out"
+        },
+        "to": {
+          "node": "grafico",
+          "port": "decomposicao"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "pax": [0, 0],
+        "log": [360, 0],
+        "decomp": [720, 0],
+        "grafico": [1080, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "notes": {}
+    }
+  }
+}

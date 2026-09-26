@@ -43,3 +43,4 @@ test_that("histórico de tuning vira gráfico e valida o contrato", {
   expect_error(tr_ml_tuning_plot(h, "ausente"), class = "tr_ml_error_bad_tuning")
   expect_error(tr_ml_tuning_plot(h[, -2]), class = "tr_ml_error_bad_tuning")
 })
+

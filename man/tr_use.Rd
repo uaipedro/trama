@@ -14,7 +14,8 @@ tr_use(
 Aceita o objeto \code{tr_collection} direto, ou o nome de um pacote que exporte
 \code{trama_collection()}. Colisão de id é erro alto e cedo — mas agora é
 improvável por construção, já que id é qualificado por coleção.
-
+}
+\details{
 Pelo nome de pacote, as coleções de que ela depende (campo
 \code{Config/trama/requires} do DESCRIPTION, ver \code{.tr_collection_requires()})
 entram antes, recursivamente, pulando as que o registro já tem. É isso que

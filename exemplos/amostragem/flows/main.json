@@ -17,7 +17,7 @@
     },
     "plano_estr": {
       "type": "sampling/size_stratified",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Plano estratificado (Neyman)",
       "params": {
         "estrato": "regiao",
@@ -32,7 +32,7 @@
     },
     "plano_prop": {
       "type": "sampling/size_proportion",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Plano para proporção",
       "params": {
         "erro": 0.05,
@@ -49,7 +49,7 @@
     },
     "plano_cong": {
       "type": "sampling/size_cluster",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Plano por escolas",
       "params": {
         "tamanho_conglomerado": 10,
@@ -115,7 +115,7 @@
     },
     "irrigadas": {
       "type": "sampling/proportion",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Irrigadas por região",
       "params": {
         "variavel": "irrigada",
@@ -229,7 +229,7 @@
     },
     "reprov": {
       "type": "sampling/proportion",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Reprovação",
       "params": {
         "variavel": "reprovado",
@@ -280,7 +280,7 @@
     },
     "internet": {
       "type": "sampling/proportion",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Domicílios com internet",
       "params": {
         "variavel": "internet",
@@ -656,6 +656,7 @@
     "sizes": {},
     "views": {},
     "frames": {},
-    "folds": {}
+    "modes": {},
+    "notes": {}
   }
 }

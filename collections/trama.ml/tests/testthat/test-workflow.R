@@ -41,17 +41,17 @@ test_that("métricas de regressão e R2 indefinido", {
 
 test_that("classificação calcula macro e aceita classe ausente na previsão", {
   z <- .tr_ml_metricas(factor(c("a", "a", "b", "b")), factor(rep("a", 4), levels = c("a", "b")), "classificacao")
-  expect_equal(z$valor, c(0.5, 0.5, 1/3))
+  expect_equal(z$valor[1:3], c(0.5, 0.5, 1/3))
 })
 
 test_that("classes previstas fora do alvo não alteram a média sobre classes observadas", {
   z <- .tr_ml_metricas(c("a", "a", "b", "b"), c("a", "a", "c", "c"), "classificacao")
-  expect_equal(z$valor, c(0.5, 0.5, 0.5))
+  expect_equal(z$valor[1:3], c(0.5, 0.5, 0.5))
 })
 
 test_that("classificação aceita códigos numéricos", {
   z <- .tr_ml_metricas(c(0, 0, 1, 1), c(0, 1, 1, 1), "classificacao")
-  expect_equal(z$valor, c(0.75, 0.75, 11/15))
+  expect_equal(z$valor[1:3], c(0.75, 0.75, 11/15))
 })
 
 test_that("exemplos têm tamanhos e alvos esperados", {

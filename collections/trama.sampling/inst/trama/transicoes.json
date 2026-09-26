@@ -1,0 +1,182 @@
+[
+  {
+    "from": "sampling/example",
+    "to": "sampling/stratified",
+    "n": 8
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/srs",
+    "n": 7
+  },
+  {
+    "from": "sampling/simulate",
+    "to": "sampling/plot_simulation",
+    "n": 4
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/pps",
+    "n": 3
+  },
+  {
+    "from": "sampling/srs",
+    "to": "sampling/simulate",
+    "n": 3
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/mean",
+    "n": 3
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/proportion",
+    "n": 3
+  },
+  {
+    "from": "data/mutate",
+    "to": "sampling/margin_levels",
+    "n": 2
+  },
+  {
+    "from": "data/mutate",
+    "to": "sampling/referral",
+    "n": 2
+  },
+  {
+    "from": "sampling/design",
+    "to": "sampling/mean",
+    "n": 2
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/cluster",
+    "n": 2
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/design",
+    "n": 2
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/size_stratified",
+    "n": 2
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/two_stage",
+    "n": 2
+  },
+  {
+    "from": "sampling/pps",
+    "to": "sampling/total",
+    "n": 2
+  },
+  {
+    "from": "sampling/proportion",
+    "to": "sampling/plot_estimates",
+    "n": 2
+  },
+  {
+    "from": "sampling/size_proportion",
+    "to": "sampling/size_curve",
+    "n": 2
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/ratio",
+    "n": 2
+  },
+  {
+    "from": "sampling/stratified",
+    "to": "sampling/simulate",
+    "n": 2
+  },
+  {
+    "from": "sampling/cluster",
+    "to": "sampling/simulate",
+    "n": 1
+  },
+  {
+    "from": "sampling/design",
+    "to": "sampling/proportion",
+    "n": 1
+  },
+  {
+    "from": "sampling/design",
+    "to": "sampling/ratio",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/detectable_difference",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/question_margins",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/size_domains",
+    "n": 1
+  },
+  {
+    "from": "sampling/example",
+    "to": "sampling/systematic",
+    "n": 1
+  },
+  {
+    "from": "sampling/mean",
+    "to": "sampling/plot_estimates",
+    "n": 1
+  },
+  {
+    "from": "sampling/referral",
+    "to": "sampling/plot_margins",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_cluster",
+    "to": "sampling/two_stage",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_mean",
+    "to": "sampling/size_cluster",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_proportion",
+    "to": "sampling/size_cluster",
+    "n": 1
+  },
+  {
+    "from": "sampling/size_stratified",
+    "to": "sampling/stratified",
+    "n": 1
+  },
+  {
+    "from": "sampling/srs",
+    "to": "sampling/mean",
+    "n": 1
+  },
+  {
+    "from": "sampling/srs",
+    "to": "sampling/poststratify",
+    "n": 1
+  },
+  {
+    "from": "sampling/srs",
+    "to": "sampling/rake",
+    "n": 1
+  },
+  {
+    "from": "sampling/two_stage",
+    "to": "sampling/proportion",
+    "n": 1
+  }
+]

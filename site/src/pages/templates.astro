@@ -1,0 +1,21 @@
+---
+import Base from "../layouts/Base.astro";
+import TemplatesSecao from "../components/TemplatesSecao.astro";
+import { collections } from "../data/collections";
+import indice from "../data/templates.json";
+
+const grupos = collections.filter(({ packageName }) => indice.some((t) => t.pkg === packageName));
+---
+
+<Base title="Templates" description="Fluxos prontos para colar no canvas do trama.">
+  <div class="doc-shell" data-pagefind-body>
+    <header class="collection-hero">
+      <div>
+        <p class="eyebrow">Fluxos prontos</p>
+        <h1>Templates</h1>
+        <p class="lede">Copie um fluxo e cole no canvas do trama com Ctrl+V, ou baixe o .json e arraste para o canvas. Cada template roda com dados de exemplo.</p>
+      </div>
+    </header>
+    {grupos.map((c) => <TemplatesSecao pkg={c.packageName} titulo={`${c.title}.`} />)}
+  </div>
+</Base>

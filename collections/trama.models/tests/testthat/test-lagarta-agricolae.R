@@ -130,6 +130,28 @@ test_that("Scott-Knott desbalanceado: s² = média de QM/rᵢ do grupo, como o p
                         11.737, 12.367, 13.707, 12.724, 12.781, 10.732, 12.618, 12.466,
                         11.4, 15.076, 15.159, 15.544, 15.705, 15.319, 16.309, 15.969,
                         16.353, 16.461, 15.901))
+  # Referência fixada: ScottKnott::SK(aov(y ~ t), which = "t") do pacote 1.4-0
+  # dá F a, E b, C e D c, B d, A e — o nó (versão 2) tem de dar o mesmo.
   s <- tr_models_scott_knott(tr_models_anova_dic(d, "y", "t"), "t")
   expect_equal(s$tabela$grupo, c("e", "d", "c", "c", "b", "a"))
+  # O erro-padrão de cada média é o do seu r: sqrt(QM / rᵢ).
+  fit <- tr_models_anova_dic(d, "y", "t")
+  qm <- sum(stats::residuals(fit$ajuste)^2) / stats::df.residual(fit$ajuste)
+  expect_equal(s$tabela$erro_padrao, sqrt(qm / c(3, 5, 4, 5, 5, 5)), tolerance = 1e-12)
+  medias <- tapply(d$y, d$t, mean); r <- as.vector(table(d$t))
+  g <- .tr_models_sk_grupos(as.vector(medias), qm, stats::df.residual(fit$ajuste), r, 0.05)
+  expect_equal(c(letters, LETTERS)[g], c("e", "d", "c", "c", "b", "a"))
+})
+
+test_that("Scott-Knott: CRD2 do pacote ScottKnott (45 tratamentos) e InsectSprays", {
+  skip_if_not_installed("ScottKnott")
+  # Oráculo vivo (só na conferência; o pacote não é dependência): partição
+  # idêntica à do ScottKnott::SK nos dois conjuntos.
+  crd2 <- get(utils::data("CRD2", package = "ScottKnott", envir = environment()))$dfm
+  ref <- ScottKnott::SK(stats::aov(y ~ x, data = crd2), which = "x")$out$Result
+  g_ref <- stats::setNames(apply(ref[, -1, drop = FALSE], 1, function(z) which(trimws(z) != "")[[1]]), rownames(ref))
+  s <- tr_models_scott_knott(tr_models_anova_dic(crd2, "y", "x"), "x")
+  expect_equal(unname(s$tabela$grupo[match(names(g_ref), as.character(s$tabela$x))]), letters[g_ref])
+  # Valores fixados do pacote 1.4-0: quatro grupos (6, 33, 3, 3).
+  expect_equal(as.vector(table(s$tabela$grupo)), c(6L, 33L, 3L, 3L))
 })

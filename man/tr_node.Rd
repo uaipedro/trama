@@ -22,7 +22,10 @@ tr_node(
   icon = NULL,
   init = NULL,
   step = NULL,
-  role = NULL
+  role = NULL,
+  pressupostos = list(),
+  referencias = list(),
+  migracoes = list()
 )
 }
 \description{
@@ -57,4 +60,13 @@ driver, o preview e os testes a tratar as duas.
 \code{role} é o papel do bloco no fluxo (ver \code{\link[=tr_category]{tr_category()}}). Sem ele, vale o
 da categoria; declare só quando o bloco faz outra coisa que os vizinhos de
 paleta, como um "Prever" (leitura) dentro de "Modelar" (ajuste).
+
+\code{pressupostos} e \code{referencias} são listas de \code{\link[=tr_pressuposto]{tr_pressuposto()}} e
+\code{\link[=tr_ref]{tr_ref()}}: campos genéricos (o núcleo não sabe o que é normalidade), que o
+catálogo publica para a ajuda do editor e o site mostrarem igual.
+
+\code{migracoes} leva flows salvos com params antigos à versão atual: uma função
+\code{function(params) params} por versão de DESTINO, nomeada pelo número —
+\verb{list(}3\verb{ = function(p) \{ p$confianca <- p$nivel; p$nivel <- NULL; p \})}.
+Ver \code{\link[=tr_doc_migrate]{tr_doc_migrate()}}.
 }

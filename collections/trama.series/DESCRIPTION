@@ -1,6 +1,6 @@
 Package: trama.series
 Title: Time Series Collection for trama
-Version: 0.1.0
+Version: 0.4.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -24,6 +24,7 @@ Imports:
     trama.data,
     trama.view,
     forecast (>= 8.0),
+    nlme,
     urca,
     ggplot2 (>= 4.0.0),
     rlang,
@@ -33,10 +34,15 @@ Imports:
     utils
 Suggests:
     testthat (>= 3.0.0),
+    aTSA,
+    GeneCycle,
     png,
     randtests,
+    tseries,
     trend,
-    trama.models
+    modifiedmk,
+    trama.models,
+    TSA
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view

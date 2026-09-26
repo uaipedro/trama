@@ -21,3 +21,9 @@ tests/testthat/_problems/
 # Saídas geradas pelos fluxos de exemplo.
 exemplos/branco/resumo.csv
 exemplos/branco/saida_vendas.csv
+
+# Templates copiados das coleções no predev/prebuild (site/scripts/copiar-templates.mjs).
+site/public/templates/
+site/src/data/templates.json
+# CSS do editor escopado para o site (site/scripts/css-editor.mjs).
+site/src/styles/editor-card.css

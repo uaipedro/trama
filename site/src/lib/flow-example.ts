@@ -10,9 +10,14 @@ export interface FlowNode {
   params: [string, string][];
 }
 
+/** Aresta: origem, destino e, quando se sabe, a porta de cada lado. */
+export type FlowEdge = [string, string, string?, string?];
+
 export interface FlowGraph {
   nodes: FlowNode[];
-  edges: [string, string][];
+  edges: FlowEdge[];
+  /** Posição de cada nó no canvas (`ui.positions` do documento). */
+  positions?: Record<string, [number, number]>;
 }
 
 export interface FlowPosition {
@@ -234,7 +239,7 @@ function parsePipeline(segment: string): FlowGraph | null {
   if (calls.length === 0) return null;
 
   const nodes: FlowNode[] = [];
-  const edges: [string, string][] = [];
+  const edges: FlowEdge[] = [];
   const seenIds = new Set<string>();
 
   for (const call of calls) {
@@ -263,7 +268,11 @@ function parsePipeline(segment: string): FlowGraph | null {
     }
 
     nodes.push({ id, type, params });
-    for (const parent of from) edges.push([parent, id]);
+    // `from = "separar:teste"` escolhe a porta de saída.
+    for (const parent of from) {
+      const [no, porta] = parent.split(":");
+      edges.push(porta ? [no, id, porta] : [no, id]);
+    }
   }
 
   const idSet = new Set(nodes.map((n) => n.id));

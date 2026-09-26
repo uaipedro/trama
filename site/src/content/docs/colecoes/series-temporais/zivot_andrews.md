@@ -32,7 +32,7 @@ em torno de seis — estacionária dos dois lados, com um degrau no meio:
 ```
 bloco                     estatística   decisão a 5%   conclusão
 series/adf                     -1.57    não rejeita    não há evidência contra a raiz unitária
-series/zivot_andrews          -11.00    rejeita        estacionária, quebra na obs. 60
+series/zivot_andrews          -14.21    rejeita        estacionária, quebra na obs. 60
 ```
 
 O ADF erra a pergunta inteira; este acha o degrau na observação exata em que
@@ -94,11 +94,50 @@ palavras; a posição da quebra e o rótulo do período vão nas colunas extras.
 p-valor a partir dela seria inventar precisão que o pacote não dá. A decisão a
 5% vem do valor crítico.
 
-**Defasagens**: quantas diferenças defasadas entram na regressão. `0` usa a
-regra de sempre (a raiz cúbica de n - 1). Diferente do `series/adf`, aqui não há
-escolha por AIC: o número vale como foi dado. Defasagem demais numa série curta
-deixa a regressão da quebra sem graus de liberdade, e nesse caso o bloco recusa
-dizendo qual é o máximo — sem isso o `urca` morreria com um erro cru do R.
+**Defasagens**: quantas diferenças defasadas entram na regressão, e como se
+chega ao número — é o que limpa a autocorrelação do erro, e a tabela de
+críticos supõe que ela foi limpa.
+
+- **Escolha das defasagens = fixa** (padrão desde a versão 4) — o número
+  vale como foi dado, sem busca. **Defasagens** = `-1` (padrão) usa a regra
+  l4 de Schwert (1989), trunc(4·(n/100)^(1/4)) — 2 defasagens com 30
+  observações, 3 com 50, 4 com 100 —, limitada ao que a série comporta;
+  `0` é zero defasagens.
+- **t_sig** — a regra do artigo: do geral para o específico (Perron, 1989;
+  Zivot & Andrews, 1992), EM CADA CORTE. Para cada data candidata, parte do
+  teto e, enquanto o t da ÚLTIMA diferença defasada não for significativo a
+  10% (|t| < 1.645), tira uma; o t da raiz unitária daquele corte é o da
+  regressão com o número que sobrou, e o teste é o menor t entre os cortes.
+  **Defasagens** é o teto; `-1` usa a regra l12 de Schwert (1989),
+  trunc(12·(n/100)^(1/4)). A `nota` diz quantas ficaram no corte vencedor e
+  qual foi o teto.
+
+Por que o padrão deixou de ser a regra do artigo (versão 4): a busca em cada
+corte escolhe, entre muitos k, o que mais favorece a rejeição, e o nível em
+amostra finita sai muito acima do nominal. Medido sob passeio aleatório
+(modelo de nível, 1000 réplicas por tamanho; erro de Monte Carlo perto de 1
+ponto), rejeição a 5%:
+
+```
+n     t_sig (teto l12)   fixa l12      fixa l4 (padrão)
+30        29.3%          12.0% (k=8)    8.0% (k=2)
+50        19.8%           5.3% (k=10)   6.9% (k=3)
+100       14.6%           5.6% (k=12)   6.2% (k=4)
+```
+
+A l4 é a que menos erra na série curta; a l12 fica mais perto do nominal a
+partir de 50 observações, mas com 30 gasta oito defasagens e rejeita 12%. Com
+`t_sig` e menos de 100 observações a `nota` avisa; com `fixa` e menos de 40,
+também, porque nem a l4 chega aos 5% ali.
+
+Um teto (ou número fixo) grande demais para uma série curta deixa a regressão
+da quebra sem graus de liberdade, e nesse caso o bloco recusa dizendo qual é o
+máximo — sem isso o `urca` morreria com um erro cru do R.
+
+Com k = 8 fixo, no PNB de Nelson e Plosser (1909-1970, em log,
+`urca::nporg`), modelo de nível, o bloco dá t = -5.576 (real) e -5.824
+(nominal), quebra em 1929 — iguais ao `urca::ur.za`, e aos -5.58 e -5.82
+citados de Zivot e Andrews (1992), que não foram conferidos no PDF do artigo.
 
 ### Precisa de série, e de série que chegue
 
@@ -133,8 +172,10 @@ Teste raiz unitária permitindo uma quebra estrutural única cuja posição é e
 
 - **O que quebra** — `nível`, `inclinação` ou `ambas`; muda a regressão e a
   tabela de valores críticos junto.
-- **Defasagens** — quantas diferenças defasadas entram; `0` para a regra
-  automática.
+- **Defasagens** — com `fixa`, o número usado; com `t_sig`, o teto da busca.
+  `-1` (padrão) = regra de Schwert (l4 com `fixa`, l12 com `t_sig`); `0` =
+  nenhuma.
+- **Escolha das defasagens** — `fixa` (padrão) ou `t_sig`.
 
 ## Exemplo
 

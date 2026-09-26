@@ -5,7 +5,7 @@ section: colecoes
 collection: modelos
 node: models/nls
 category: ajustar
-related: [models/plot_regression, models/coefficients, models/dose_response]
+related: [models/plot_regression, models/coefficients, models/polinomial]
 ---
 
 ## O que o bloco faz

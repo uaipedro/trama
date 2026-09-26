@@ -96,3 +96,27 @@ test_that("[achado] sem a checagem, predict.lm() cru NÃO nomeia a coluna que fa
   # ambiente de avaliação da fórmula, não sobre a coluna de 'newdata'.
   expect_false(grepl("coluna", conditionMessage(e), fixed = TRUE))
 })
+
+# Oráculo de livro-texto (Draper & Smith 1998, cap. 3; Rencher & Schaalje
+# 2008, sec. 8.6): ŷ0 ± t(n−p) · s · sqrt(h0) na média e sqrt(1 + h0) na
+# observação nova, com h0 = x0'(X'X)⁻¹x0 — a conta à mão, sem predict().
+test_that("intervalos de confiança e de predição pela fórmula do livro", {
+  mt <- ex("mtcars")
+  m <- tr_models_lm(mt, formula = "mpg ~ wt + hp")
+  novos <- data.frame(wt = c(2.5, 3.5, 7), hp = c(100, 150, 400))
+  X <- cbind(1, mt$wt, mt$hp); y <- mt$mpg
+  XtXi <- solve(crossprod(X)); b <- XtXi %*% crossprod(X, y)
+  s <- sqrt(sum((y - X %*% b)^2) / (nrow(X) - 3))
+  X0 <- cbind(1, novos$wt, novos$hp)
+  h0 <- rowSums((X0 %*% XtXi) * X0)
+  tq <- qt(0.95, nrow(X) - 3)
+  yh <- as.vector(X0 %*% b)
+  pc <- tr_models_predict(m, novos, intervalo = "confianca", confianca = 0.9)
+  pp <- tr_models_predict(m, novos, intervalo = "predicao", confianca = 0.9)
+  expect_equal(pc$previsto, yh, tolerance = 1e-10)
+  expect_equal(pc$ls - pc$previsto, tq * s * sqrt(h0), tolerance = 1e-10)
+  expect_equal(pp$ls - pp$previsto, tq * s * sqrt(1 + h0), tolerance = 1e-10)
+  # wt = 7, hp = 400 está fora da nuvem (extrapolação): h0 bem maior que o
+  # maior leverage do ajuste — é o que o pressuposto manda olhar.
+  expect_gt(h0[[3]], max(stats::hatvalues(m$ajuste)))
+})

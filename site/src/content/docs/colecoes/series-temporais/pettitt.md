@@ -69,6 +69,29 @@ PRIMEIRO deles. Quando isso acontece a `nota` diz quantos empataram: são cortes
 igualmente bons, e ler o número publicado como o único ponto possível seria ler
 mais do que o teste disse.
 
+### Série autocorrelacionada: **Correção**
+
+Autocorrelação positiva imita ponto de mudança: sem correção, em série
+homogênea com AR(1) de seis décimos o teste rejeita em metade das vezes. Com
+**Correção** = `bootstrap_blocos`, o p-valor sai de um bootstrap de blocos
+móveis (Kundzewicz & Robson, 2004): blocos de round(√n) observações seguidas,
+sorteados com reposição e emendados, 1999 vezes; o p é a fração das
+reamostras com K* ≥ K. O ponto de mudança e o K não mudam. Usa a semente do
+nó. Medido em série homogênea, AR(1), 1000 réplicas por caso, rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     16.5%        3.5%
+0.3   120    18.1%        4.6%
+0.6   60     45.5%        8.7%
+0.6   120    54.8%        7.8%
+```
+
+Com autocorrelação moderada o nível é o nominal; com phi de seis décimos
+fica em 8% a 9%, longe dos 50% sem correção mas acima dos 5% — um "rejeita"
+apertado aí pede cautela. Poder, com um degrau de 1.5 no meio da série: 89%
+(phi 0.3, n = 60), 100% (0.3, 120), 59% (0.6, 60) e 86% (0.6, 120).
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
@@ -80,7 +103,8 @@ Localize uma possível mudança de nível em um único ponto da série. O teste 
 
 ## Configuração
 
-Nenhum. Uma entrada: **serie**.
+**correcao** — `nenhuma` (padrão) ou `bootstrap_blocos` (p por bootstrap de
+blocos móveis, para série autocorrelacionada). Uma entrada: **serie**.
 
 ## Exemplo
 

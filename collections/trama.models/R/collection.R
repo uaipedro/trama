@@ -16,7 +16,8 @@
 #' @export
 trama_collection <- function() {
   trama::tr_collection(
-    id = "models", version = "0.1.0", label = "Modelos",
+    id = "models", version = "0.3.0", label = "Modelos",
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.models")),
     js = "trama/index.js", css = "trama/models.css",
     types = list(models_fit_type(), models_effects_type(), models_emm_type()),
     adapters = .tr_models_adapters(),
@@ -72,16 +73,31 @@ trama_collection <- function() {
     # injeção não sobrescreve, um `escala = "unidade"` gravado fica.
     migrations = list(
       nodes = c(list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
-                     "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
+                     "multi/roc" = "models/roc", "multi/pr_curve" = "models/pr_curve",
+                     "multi/logistic_coefficients" = list(to = "models/coefficients",
                                                          params = list(exponenciar = TRUE)),
                      "multi/plot_odds" = list(to = "models/plot_coefficients",
-                                              params = list(exponenciar = TRUE, escala = "desvio padrão"))),
+                                              params = list(exponenciar = TRUE, escala = "desvio padrão")),
+                     # 9.2: a regressão de doses da branch virou o polinomial da main
+                     # (um bloco). Params e portas têm o mesmo nome; o grau dela
+                     # ("automático", "1".."3") é valor válido do enum daqui.
+                     "models/dose_response" = "models/polinomial"),
                 .tr_models_migracoes_ml()$nodes),
-      ports = list("models/predict" = list(novos = "dados")),
+      # O polinomial da main tinha uma saída só (`out`, o quadro); agora são
+      # `modelo` e `quadro`, e a aresta velha vai para o quadro.
+      ports = list("models/predict" = list(novos = "dados"), "models/polinomial" = list(out = "quadro")),
       params = c(.tr_models_migracoes_ml()$params, list(
       "models/coefficients" = list(nivel = list(to = "confianca")),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
       "models/duncan" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      # O Scott-Knott da main nasceu com `alfa`; o nó é o dela, o param o do glossário.
+      "models/scott_knott" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),
+      # O `grau` numérico da main era o MAIOR grau testado (a curva já era a do
+      # maior significativo, o `automático` de hoje): vira `grau_max`. O `when`
+      # só pega o número — o grau do enum é texto, e o doc migrado fica.
+      "models/polinomial" = list(alfa = list(to = "confianca", value = function(v) 1 - v),
+                                 grau = list(to = "grau", when = is.numeric,
+                                             value = function(v) list(grau_max = as.integer(v)))),
       "models/one_sample_t" = list(coluna = list(to = "variavel")),
       "models/shapiro" = list(coluna = list(to = "variavel")),
       # O enum da lagarta tinha o nível no nome ("IC 90%"); agora é "IC" + a
@@ -96,13 +112,13 @@ trama_collection <- function() {
 
 #' As migrações dos leitores que vieram da `ml` (Fase 4).
 #'
-#' Nós: `ml/<x>` -> `models/<x>`. Params, pelo id NOVO: `alvo` -> `resposta`
+#' Nós: `ml/<x>` -> `models/<x>` (a `ml/pr_curve` entrou na 9.2). Params, pelo id NOVO: `alvo` -> `resposta`
 #' (o glossário que a ml aplicava), `.pred` -> `previsto` e `.prob_<classe>`
 #' -> `prob_<classe>` (a classe saneada como nas colunas daqui) convertidos no lugar, e `tarefa` removido
 #' (`drop = TRUE`): o evaluate da models lê a tarefa do modelo.
 #' @noRd
 .tr_models_migracoes_ml <- function() {
-  ids <- c("predict", "evaluate", "confusion", "roc", "importance")
+  ids <- c("predict", "evaluate", "confusion", "roc", "importance", "pr_curve")
   resposta <- list(alvo = list(to = "resposta"))
   predito <- list(predito = list(to = "predito", when = function(v) identical(v, ".pred"),
                                  value = function(v) "previsto"))
@@ -113,5 +129,8 @@ trama_collection <- function() {
   list(nodes = stats::setNames(as.list(paste0("models/", ids)), paste0("ml/", ids)),
        params = list("models/evaluate" = c(resposta, predito, tarefa),
                      "models/confusion" = c(resposta, predito),
-                     "models/roc" = c(resposta, prob)))
+                     "models/roc" = c(resposta, prob),
+                     # 9.2: a `ml/pr_curve` da main nasceu com `alvo` e lia a
+                     # `.prob_<classe>` da `ml/predict`, como a `ml/roc`.
+                     "models/pr_curve" = c(resposta, prob)))
 }
