@@ -119,7 +119,7 @@ Recusas (card vermelho): fator com nome de coluna estrutural, número errado de
 fatores, estrutura sem grau de liberdade para o resíduo (quadrado latino 2 × 2,
 DBC de um bloco), gerador malformado, efeito principal confundido com blocos.
 Avisos (no plano, sem bloquear): interação dupla confundida, resolução III,
-modelo sem resíduo no fracionado, BIB não reduzido, quadrado latino com
+modelo sem resíduo no fracionado e no confundimento, BIB não reduzido, quadrado latino com
 t ≥ 7 (aproximadamente uniforme).
 ]---", r"---[
 - **Estrutura** — uma das treze acima.

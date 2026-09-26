@@ -48,10 +48,14 @@ acaso (MCAR), em qualquer distribuição.
 ### A análise sugerida
 
 Na normal sem covariável, o nó do plano com a resposta (param `resposta`, ou
-a fórmula prefixada). Com covariável, `models/lm` (ou `models/lmer`, se o
-plano tem termo aleatório) com a covariável na fórmula. Fora da normal,
-`models/glm` ou `models/glmer` com a família; como o `models/glmer` não tem
-gama, a gama com termo aleatório sugere o GLM só dos fixos, com aviso.
+a fórmula prefixada). Com covariável, `models/lm` (ou `models/lmer`, se a
+análise do delineamento tem termo aleatório, `(1 | ...)`) com a covariável na
+fórmula. Fora da normal, `models/glm` ou `models/glmer` com a família, pela
+mesma regra: é a fórmula do delineamento que decide, e não os
+`experiments/effect` — o bloco do DBC entra fixo mesmo quando o efeito dele
+foi simulado aleatório. Como o `models/glmer` não tem gama, a gama com termo
+aleatório na fórmula (o erro de parcela da subdividida, por exemplo) sugere o
+GLM só dos fixos, com aviso.
 
 ## Pressupostos
 

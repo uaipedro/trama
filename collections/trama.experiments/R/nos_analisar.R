@@ -44,7 +44,10 @@
       help = .tr_exp_an_ajuda_boxcox()),
 
     trama::tr_node("experiments/response_surface", version = 2L, fn = tr_experiments_response_surface,
-      label = "Superfície de resposta", category = "exp_analisar", icon = trama::tr_icon("chart-area"),
+      label = "Superfície de resposta", category = "exp_analisar",
+      # Ajusta o modelo (a porta `modelo` é um models/fit): papel de ajuste, e não
+      # a cor clara de leitura dos outros dois, que leem um ajuste pronto.
+      role = "ajuste", icon = trama::tr_icon("chart-area"),
       description = "Modelo de 1ª ou 2ª ordem em fatores codificados, análise canônica, falta de ajuste e contorno.",
       inputs = list(dados = T),
       outputs = list(modelo = Fm, quadro = EF, canonica = T, grafico = "view/plot"),

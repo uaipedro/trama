@@ -33,16 +33,16 @@ Um efeito fixo pode ser declarado pelos contrastes que ele contém, com a magnit
 
 Numa parcela subdividida, a irrigação é sorteada às parcelas e a variedade às subparcelas dentro delas: há dois erros. Se a parcela tem variação própria (o termo aleatório `bloco:parcela`), a irrigação precisa ser testada contra o erro de parcela. A análise ingênua — o fatorial em blocos, `models/anova_factorial` — a testa contra o resíduo das subparcelas.
 
-Medimos isso com `experiments/power`, com a irrigação **sem efeito** no modelo declarado (4 blocos, 2 irrigações, 3 variedades; bloco com sd 3, erro de parcela com sd 4, resíduo com sd 1), em 1000 réplicas:
+Medimos isso com `experiments/power`, com a irrigação **sem efeito** no modelo declarado (4 blocos, 2 irrigações, 3 variedades; bloco com sd 3, erro de parcela com sd 4, resíduo com sd 1), em 1000 réplicas — o código abaixo, com a semente padrão do card; sem o erro de parcela, é o mesmo fluxo sem o card `parc`:
 
-| Modelo verdadeiro | Análise | Taxa de rejeição de H0 (IC 95%) |
-| --- | --- | --- |
-| com erro de parcela | ingênua (`models/anova_factorial`) | 40,8% (37,7–43,9%) |
-| com erro de parcela | parcela subdividida (`models/anova_split_plot`) | 5,6% (4,8–6,5%), em 3000 réplicas¹ |
-| sem erro de parcela | ingênua | 6,2% (4,8–7,9%) |
-| sem erro de parcela | parcela subdividida | 4,1% (3,0–5,5%) |
+| Modelo verdadeiro | Análise | Taxa de rejeição de H0 (IC 95%) | `p_binomial` |
+| --- | --- | --- | --- |
+| com erro de parcela | ingênua (`models/anova_factorial`) | 38,4% (35,4–41,5%) | — |
+| com erro de parcela | parcela subdividida (`models/anova_split_plot`) | 5,6% (4,3–7,2%) | 0,38 |
+| sem erro de parcela | ingênua | 5,4% (4,1–7,0%) | 0,56 |
+| sem erro de parcela | parcela subdividida | 3,7% (2,6–5,1%) | 0,059 |
 
-¹ Em 1000 réplicas de uma semente saiu 7,2%; as 3000 (três sementes: 7,2%, 4,9% e 4,7%) dão 5,6%, e o teste binomial exato de "taxa = 5%" não rejeita (p = 0,13). O F da subdividida é o do `aov` com `Error(bloco:parcela)` (diferença de p < 1e-14), exato sob o modelo; a coluna `p_binomial` do `experiments/power` faz essa conferência.
+O `p_binomial` é o teste binomial exato de "taxa = 5%": nenhuma das três taxas perto de 5% se afasta dele a 5%. Com outra semente os números mudam dentro do erro de Monte Carlo (cerca de ±1,4 ponto em torno de 5%, ±3 em torno de 40%). O F da subdividida é o do `aov` com `Error(bloco:parcela)`, exato sob o modelo.
 
 Com erro de parcela, a análise ingênua rejeita uma H0 verdadeira em cerca de quatro de cada dez experimentos. O exemplo `exemplos/delineamentos` monta os dois casos lado a lado: plano → efeitos → erro → as duas ANOVAs → contrastes das variedades → componentes.
 
