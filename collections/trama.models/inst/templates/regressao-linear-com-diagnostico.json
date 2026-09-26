@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 7,
     "collections": {
-      "models": "0.1.0"
+      "models": "0.3.0"
     },
     "nodes": {
       "dados": {
@@ -31,7 +31,7 @@
       },
       "coeficientes": {
         "type": "models/coefficients",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Coeficientes",
         "params": {},
         "seed": 134407390
@@ -84,7 +84,7 @@
         "dados": [0, 0],
         "ajuste": [360, 0],
         "coeficientes": [720, 0],
-        "diagnostico": [720, 418]
+        "diagnostico": [720, 448]
       },
       "sizes": {},
       "views": {},

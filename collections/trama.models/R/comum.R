@@ -189,6 +189,19 @@
   if (n > 0L) sprintf("%d linha%s com faltante fora", n, if (n > 1L) "s" else "") else ""
 }
 
+#' Os avisos do otimizador (convergência, ajuste singular) em uma nota.
+#' @noRd
+.tr_models_nota_avisos <- function(avisos) {
+  if (!length(avisos)) return("")
+  paste0("o ajuste avisou: ", paste(avisos, collapse = " | "))
+}
+
+#' A nota que todo quadro de um modelo carrega: linhas fora e avisos do ajuste.
+#' @noRd
+.tr_models_nota_fit <- function(fit) {
+  .tr_models_nota(.tr_models_nota_descarte(fit$descartadas), if (is.null(fit$nota)) "" else fit$nota)
+}
+
 #' Junta pedaços de nota não vazios com "; ".
 #' @noRd
 .tr_models_nota <- function(...) {

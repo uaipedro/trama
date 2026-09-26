@@ -30,3 +30,7 @@ trama.models::tr_models_predict(m, d[1:3, ])
 ## Como interpretar
 
 O modelo produz `models/fit`, consumido por `models/predict` (e pelos avaliadores da coleção de modelos). Resposta numérica em `auto` indica regressão; resposta categórica indica classificação binária.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `models/predict`.

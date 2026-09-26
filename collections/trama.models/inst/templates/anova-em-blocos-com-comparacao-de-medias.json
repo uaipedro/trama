@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 7,
     "collections": {
-      "models": "0.1.0"
+      "models": "0.3.0"
     },
     "nodes": {
       "dados": {

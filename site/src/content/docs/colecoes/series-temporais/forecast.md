@@ -21,13 +21,22 @@ de 12 para 24 recomputa só este card.
 Os intervalos são o ponto. Uma previsão sem leque diz "vai dar 450"; com o
 leque, diz "entre 390 e 520 com 95% de chance" — e o leque ABRE com o
 horizonte, que é a informação mais honesta que um modelo dá sobre o próprio
-limite. Eles supõem resíduos sem autocorrelação e com variância constante:
-confira com `series/residuals` → `series/ljung_box` antes de confiar.
+limite. O que eles supõem está em Pressupostos, logo abaixo.
 
 Os níveis são sempre 80 e 95, porque são os que o gráfico e a tabela nomeiam
 (`li_80`, `ls_95`); um fluxo que filtra por `ls_95` não quebra.
 
 Série transformada é prevista na escala transformada.
+
+### Intervalo: normal ou bootstrap
+
+- **normal** (padrão) — os limites são quantis normais em torno da previsão,
+  com a variância do modelo. Supõe resíduos normais.
+- **bootstrap** — simula 5000 trajetórias futuras reamostrando os resíduos do
+  ajuste e toma os quantis empíricos (Hyndman & Athanasopoulos, FPP3). Não
+  supõe normalidade, só que os resíduos sejam independentes e de variância
+  constante. Usa a semente do nó: o mesmo fluxo dá o mesmo leque. Só para
+  `series/arima` e `series/ets`; com `series/holt_winters` o bloco recusa.
 
 ## Quando usar
 
@@ -36,6 +45,7 @@ Gere valores futuros a partir de um modelo ajustado e escolha o horizonte na uni
 ## Configuração
 
 - **Horizonte** — quantos períodos prever.
+- **Intervalo** — `normal` (padrão) ou `bootstrap`.
 
 ## Exemplo
 

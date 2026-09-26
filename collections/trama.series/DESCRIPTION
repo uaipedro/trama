@@ -1,6 +1,6 @@
 Package: trama.series
 Title: Time Series Collection for trama
-Version: 0.1.0
+Version: 0.4.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -41,7 +41,8 @@ Suggests:
     tseries,
     trend,
     modifiedmk,
-    trama.models
+    trama.models,
+    TSA
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view

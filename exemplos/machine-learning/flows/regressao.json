@@ -16,7 +16,7 @@
     },
     "divisao": {
       "type": "ml/split",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Separar treino / teste",
       "params": {
         "resposta": "mpg"
@@ -25,7 +25,7 @@
     },
     "linear": {
       "type": "ml/linear",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Linear / logística",
       "params": {
         "resposta": "mpg",
@@ -42,7 +42,7 @@
     },
     "linear_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "mpg"
@@ -51,7 +51,7 @@
     },
     "cart": {
       "type": "ml/cart",
-      "type_version": 2,
+      "type_version": 4,
       "label": "CART · árvore de decisão",
       "params": {
         "resposta": "mpg",
@@ -68,7 +68,7 @@
     },
     "cart_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "mpg"
@@ -77,7 +77,7 @@
     },
     "figs": {
       "type": "ml/figs",
-      "type_version": 1,
+      "type_version": 3,
       "label": "FIGS · soma de árvores",
       "params": {
         "resposta": "mpg",
@@ -94,7 +94,7 @@
     },
     "figs_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "mpg"
@@ -103,7 +103,7 @@
     },
     "forest": {
       "type": "ml/forest",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Random forest",
       "params": {
         "resposta": "mpg",
@@ -120,7 +120,7 @@
     },
     "forest_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "mpg"
@@ -129,7 +129,7 @@
     },
     "svm": {
       "type": "ml/svm",
-      "type_version": 1,
+      "type_version": 3,
       "label": "SVM · vetores de suporte",
       "params": {
         "resposta": "mpg",
@@ -146,7 +146,7 @@
     },
     "svm_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "mpg"
@@ -155,7 +155,7 @@
     },
     "xgboost": {
       "type": "ml/xgboost",
-      "type_version": 1,
+      "type_version": 3,
       "label": "XGBoost",
       "params": {
         "resposta": "mpg",
@@ -172,7 +172,7 @@
     },
     "xgboost_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "mpg"

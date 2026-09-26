@@ -1,4 +1,31 @@
-# trama.models (desenvolvimento)
+# trama.models 0.3.0
+
+Versão sobe de 0.1.0 para 0.3.0: a 0.2.0 era a que a main planejava pelo
+rigor metodológico (glmer, gls, friedman com Durbin/Skillings–Mack,
+quasibinomial, tipo III com contr.sum); a integração com a coesão das coleções
+muda resultados de novo (um Scott-Knott, polinomial com a dose-resposta,
+leitores da ml e da multi fundidos aqui) e sobe mais um minor.
+
+## Integração 9.1b (coesão × main)
+
+- `models/roc` (versão 3): IC de DeLong da AUC (`confianca`), corte de
+  Youden e AUC multiclasse de Hand & Till, portados da `ml/roc` e da
+  `multi/roc` da main, com os oráculos `pROC` de lá.
+- `models/confusion` (versão 2): `tabela = "métricas"` (acurácia, acurácia
+  balanceada, kappa, precisão/revocação/F1, da `multi/confusion`) e
+  `permitir_treino`.
+- `models/evaluate` (versão 3): precisão de classe nunca prevista é NA e sai
+  das médias macro e ponderada (a `ml/evaluate` v4 da main); `permitir_treino`.
+- `models/pr_curve` (versão 2): uma curva por classe com três ou mais classes
+  (da `multi/pr_curve`, que migra para cá); `permitir_treino`.
+- `models/coefficients` (versão 2): `intervalo` (`padrão`, `perfilado`,
+  `Wald`); a logística da multi sai com IC perfilado e Firth.
+- Proveniência da `ml/split`: `models/predict` leva a marca de treino/teste
+  adiante, e os avaliadores recusam avaliar o treino sem `permitir_treino`.
+- `models/gls` no contrato (coeficientes, medidas, resíduos, previsão), e
+  `models/fit_stats` com `dispersao_pearson`/`desvio_por_gl` em todo modelo.
+- `models/glmer`: o da main (nível por observação, recusas da binomial,
+  avisos na nota), com a nota de sobredispersão de Pearson > 1,5 da branch.
 
 ## Integração 9.2 (coesão das coleções)
 
@@ -15,6 +42,60 @@
   params e a porta `out` → `quadro`).
 - `models/pr_curve`: a curva precisão-revocação da `ml/pr_curve` (main), com os
   modos da `models/roc`; `ml/pr_curve` migra para ela.
+## Correções
+
+- `models/anova_table` (versão 2): o SQ tipo III do GLM misto (`car::Anova`) e o
+  marginal do GLS (`anova.gls`) usavam o contraste de tratamento, e com
+  interação testavam cada fator no nível de referência do outro. Agora o modelo
+  é reajustado com `contr.sum` nos fatores fixos, como já era no `lm`/`glm`.
+  Oráculos: `grouseticks`, `TICKS ~ YEAR * alt + (1 | BROOD)` Poisson, YEAR
+  χ² = 80,94 e alt 72,17 (antes 50,52 e 41,71); GLS AR(1) `y ~ trt * tempo`,
+  trt F = 8,653 (antes 2,140). O `lmerTest` já era invariante ao contraste
+  (teste de regressão). Tipo III com covariável numérica em interação ganha nota:
+  o efeito do fator é testado com a covariável em zero.
+- `models/glmer` (versão 2): os avisos do `lme4` (convergência, ajuste
+  singular) vão para a nota do modelo (campo `nota` do `models/fit`, lido pelo
+  card e pelos quadros). Recusa `nivel_obs` com resposta 0/1 (efeito por
+  observação não identificável numa tentativa) e resposta binomial de uma
+  coluna que não seja 0/1 (proporção ou sucessos sem o total: use `cbind`).
+- `models/fit_stats` (versão 2): colunas `dispersao_pearson` (X² de Pearson /
+  gl) e `desvio_por_gl` no GLM e no GLM misto binomial/Poisson, NA na binomial
+  0/1 — o pressuposto de superdispersão do `models/glmer` passa a ter o que
+  verificar. Oráculo: `sum(residuals(fit, "pearson")^2) / df.residual(fit)` do
+  lme4 (grouseticks, `TICKS ~ YEAR + (1 | BROOD)`: 1,692; desvio / gl 1,824).
+- `models/gls`: pressuposto novo sobre os gl — coeficientes e quadro usam n − p
+  do `nlme`, liberal com poucos grupos; alternativa, `models/lmer` com
+  Satterthwaite. O `models/emmeans` no GLS fixa `mode = "satterthwaite"` (antes
+  implícito no padrão do emmeans) e diz na nota que o quadro usa n − p.
+- `models/glm` (versão 2): a `quasibinomial` recusa resposta 0/1 não
+  agrupada (a dispersão não mede superdispersão numa tentativa por linha; use a
+  binomial); resposta de uma coluna fora de [0, 1] na binomial/quasibinomial
+  sai com erro de classe `tr_models_error_bad_option`, e não o do `stats::glm`.
+  Proporção em [0, 1] continua aceita na quasibinomial.
+- `models/friedman`: o pressuposto de bloco completo aponta o Skillings–Mack e
+  o Durbin para blocos incompletos, ainda sem bloco no trama.
+- `models/friedman` (versão 2): parâmetro `metodo` (`auto`, `friedman`,
+  `durbin`, `skillings_mack`). Os três respondem à mesma pergunta — algum
+  tratamento difere, com postos dentro do bloco — e mudam só no desenho que
+  aceitam, por isso ficam num bloco só. Em `auto` (padrão), blocos completos
+  usam o Friedman; blocos incompletos balanceados, o Durbin (1951; T1 na forma
+  de Conover 1999, com correção para empates); o resto, o Skillings–Mack (1981;
+  faltantes quaisquer, desenho conexo, empates sem correção). Antes o bloco
+  incompleto saía inteiro; isso agora só com `metodo = "friedman"`, e a nota
+  aponta o método que aproveitaria esses blocos. `durbin` fora de um BIB recusa
+  (`tr_models_error_not_applicable`) e aponta o `skillings_mack`. Oráculos:
+  sorvete de `agricolae::durbin.test` (atribuído a Conover 1999, p. 391),
+  T1 = 12, p = 0,0620, e o mesmo com empates (1e-12); exemplo de
+  `Skillings.Mack::Ski.Mack` (montagem, 9 blocos com 4 faltantes),
+  SM = 15,493, 3 gl, p = 0,00144, e faltantes ao acaso com empates (1e-8);
+  Skillings–Mack = `stats::friedman.test` em dados completos sem empate (20
+  sorteios, 1e-10). `Skillings.Mack` em Suggests. O `PMCMRplus::durbinTest` não
+  foi usado: não instala sem a biblioteca de sistema MPFR (dependência Rmpfr).
+- `models/gls` (versão 2): `correlacao = "car1"` (AR(1) em tempo contínuo,
+  `nlme::corCAR1(form = ~ tempo | grupo)`) para ocasiões desigualmente
+  espaçadas; com `"ar1"` e Tempo numérico desigual, a nota avisa que o AR(1)
+  conta posições. Os avisos do ajuste também vão para a nota. Oráculo: o
+  `nlme::gls` com `corCAR1` direto (logLik e erros padrão, 1e-6).
 
 ## Blocos novos
 
@@ -23,8 +104,10 @@
   repetida recusa; bloco incompleto sai inteiro, contado na nota), estatística
   corrigida para empates e W de Kendall como efeito. É a saída não paramétrica
   que os pressupostos do `models/anova_dbc` apontam. Validado contra
-  `stats::friedman.test` (1e-12) e o exemplo de Hollander & Wolfe (1973, p.
-  140; 22 jogadores × 3 métodos), S = 11,14 com correção para empates.
+  `stats::friedman.test` (1e-12) nos dados do exemplo de `?friedman.test`
+  (RoundingTimes, atribuídos a Hollander & Wolfe 1973; 22 jogadores × 3
+  métodos): S = 11,14 com correção para empates, valor calculado por nós, não
+  conferido na página do livro.
 - `models/scott_knott`: agrupamento de Scott & Knott (1974, *Biometrics*
   30:507-512, doi:10.2307/2529204) sobre o QM e os gl do erro do quadro, uma
   letra por média. Implementação própria das fórmulas do artigo. Recusa dados
@@ -43,8 +126,9 @@
   contra `lm` com as colunas de `poly()` em sequência (1e-10, também no DBC,
   com doses 0-400 desigualmente espaçadas e com repetições desiguais) e no
   exemplo do algodão de Montgomery (*Design and Analysis of Experiments*,
-  tabela 3.1): SQ 33,62, 343,21, 64,98 e 33,95 (valores lembrados do livro e
-  reproduzidos pelos dados; página não conferida).
+  5.ª ed., tabela 3.1): SQ 33,62, 343,21, 64,98 e 33,95, calculadas desses
+  dados e conferidas à mão pelos contrastes ortogonais (não copiadas de página
+  impressa).
 
 - `models/levene` (com bloco): o equilíbrio passa a exigir o mesmo número de
   parcelas em cada casela tratamento × bloco (e × linha, × coluna no DQL),

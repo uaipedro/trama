@@ -53,7 +53,7 @@
     },
     "dic_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 184392210
@@ -120,7 +120,7 @@
     },
     "dbc_medidas": {
       "type": "models/fit_stats",
-      "type_version": 1,
+      "type_version": 2,
       "label": "CV e R²",
       "params": {},
       "seed": 18666655
@@ -148,7 +148,7 @@
     },
     "dbc_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 56912111
@@ -238,7 +238,7 @@
     },
     "dql_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 78818222
@@ -292,7 +292,7 @@
     },
     "fat_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro (interação!)",
       "params": {
         "tipo_sq": "II"
@@ -357,7 +357,7 @@
     },
     "npk_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro",
       "params": {},
       "seed": 231560671
@@ -417,7 +417,7 @@
     },
     "sp_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro com erros (a) e (b)",
       "params": {},
       "seed": 91994540
@@ -520,7 +520,7 @@
     },
     "cont_glm": {
       "type": "models/glm",
-      "type_version": 1,
+      "type_version": 2,
       "label": "GLM Poisson",
       "params": {
         "resposta": "count",
@@ -531,7 +531,7 @@
     },
     "cont_quadro": {
       "type": "models/anova_table",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Quadro de desvio",
       "params": {
         "tipo_sq": "II"
@@ -603,7 +603,7 @@
     },
     "rep_coef": {
       "type": "models/coefficients",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Efeito dos dias",
       "params": {},
       "seed": 1546747

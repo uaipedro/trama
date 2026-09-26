@@ -1,6 +1,6 @@
 Package: trama.models
 Title: Statistical Models Collection for trama
-Version: 0.1.0
+Version: 0.3.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -34,6 +34,7 @@ Imports:
     lme4,
     reformulas,
     lmerTest,
+    nlme,
     MASS,
     agricolae,
     ggplot2 (>= 4.0.0),
@@ -48,7 +49,8 @@ Suggests:
     multcomp,
     ScottKnott,
     yardstick,
-    PRROC
+    PRROC,
+    Skillings.Mack
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view
 Remotes:

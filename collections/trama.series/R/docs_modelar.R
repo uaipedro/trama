@@ -10,7 +10,7 @@
   sem_quebra <- P(
     "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
     verificar = c("series/plot", "series/pettitt", "series/zivot_andrews"),
-    se_falhar = "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama.")
+    se_falhar = "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa).")
   hyndman_khandakar <- R(autores = c("Hyndman, R. J.", "Khandakar, Y."), ano = 2008,
                          titulo = "Automatic time series forecasting: the forecast package for R",
                          fonte = "Journal of Statistical Software, 27(3), 1-22",
@@ -42,11 +42,37 @@
         residuo_branco(),
         P("Para os **intervalos de previsão**, os resíduos são **normais**; a previsão pontual não depende disso.",
           verificar = c("series/residuals", "view/qq", "models/shapiro"),
-          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, leia os intervalos como aproximados; intervalos por bootstrap ainda sem bloco no trama."),
+          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, use **Intervalo** = `bootstrap` no `series/forecast`."),
         sem_quebra),
       referencias = list(L$box_jenkins, hyndman_khandakar, L$morettin, L$fpp3,
         I("forecast", "auto.arima",
           "Com Automático: busca passo a passo pelo menor AICc; `d` pelo KPSS e `D` pela força sazonal (padrões do pacote); `seasonal`, `allowdrift` e `allowmean` vêm dos params. Manual: `forecast::Arima(order, seasonal, include.constant)`, por máxima verossimilhança."))),
+
+    "series/intervencao" = list(
+      pressupostos = list(
+        P("A **data** da intervenção é conhecida de antemão, e não escolhida pelo maior salto da própria série: escolhê-la pelo dado e testá-la no mesmo dado torna o p-valor otimista.",
+          verificar = "series/plot",
+          se_falhar = "Para procurar a data, `series/pettitt` ou `series/zivot_andrews`; depois confirme em outra série ou período."),
+        P("Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
+          verificar = c("series/window", "series/arima", "series/ndiffs"),
+          se_falhar = "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e use-a aqui."),
+        P("Com **Resposta** = `imediata`, o efeito entra **inteiro na data** (forma de ordem zero); com `gradual`, segue ω/(1 − δB) com |δ| < 1 — uma resposta de outra forma (duas taxas, atraso) não é modelada.",
+          verificar = c("series/plot", "series/residuals"),
+          se_falhar = "Se o resíduo mostra o efeito chegando aos poucos, use `gradual`; se δ vai para a borda, troque o degrau pela rampa."),
+        residuo_branco(),
+        P("O IC e o p-valor são de **Wald** (normal assintótica da máxima verossimilhança): pedem resíduos aproximadamente normais e série não muito curta.",
+          verificar = c("series/residuals", "view/qq"))),
+      referencias = list(
+        R(autores = c("Box, G. E. P.", "Tiao, G. C."), ano = 1975,
+          titulo = "Intervention analysis with applications to economic and environmental problems",
+          fonte = "Journal of the American Statistical Association, 70(349), 70-79",
+          doi = "10.1080/01621459.1975.10480264"),
+        L$box_jenkins, L$fpp3,
+        R(autores = c("Cryer, J. D.", "Chan, K.-S."), ano = 2008,
+          titulo = "Time Series Analysis: With Applications in R", fonte = "2. ed. New York: Springer (cap. 11)",
+          doi = "10.1007/978-0-387-75959-3"),
+        I("forecast", "Arima",
+          "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8. Resposta gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ pela verossimilhança perfilada (`optimize` em (−0,999; 0,999)), erro-padrão pela hessiana numérica (`optimHess`) da verossimilhança completa; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles (degrau e pulso em 2001-09) a 1e-3."))),
 
     "series/ets" = list(
       pressupostos = list(
@@ -85,13 +111,13 @@
           se_falhar = "Refaça o modelo (ordem do ARIMA, família) antes de ler o leque."),
         P("Os resíduos são **normais e de variância constante**: os limites de 80% e 95% são quantis normais.",
           verificar = c("series/residuals", "view/qq", "models/shapiro"),
-          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Intervalos por bootstrap ainda sem bloco no trama."),
+          se_falhar = "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Sem normalidade, use **Intervalo** = `bootstrap` (ARIMA e ETS), que reamostra os resíduos e ainda supõe independência e variância constante."),
         P("O **futuro segue a mesma dinâmica** do passado usado no ajuste: nenhuma quebra, intervenção ou mudança de regime no horizonte. Quanto maior o horizonte, mais essa suposição pesa.",
           se_falhar = "Não há teste possível para o futuro; encurte o horizonte e compare com o `series/baseline` num período de teste (`series/window` + `series/accuracy`)."),
         P("O intervalo trata os **parâmetros estimados como conhecidos**: no ARIMA e no ETS a incerteza da estimação não entra, e o leque sai um pouco estreito em série curta.")),
       referencias = list(L$fpp3, L$box_jenkins,
         I("forecast", "forecast",
-          "`h` = horizonte, `level = c(80, 95)` fixos. Série transformada antes é prevista na escala transformada."))),
+          "`h` = horizonte, `level = c(80, 95)` fixos; com `bootstrap`, `bootstrap = TRUE, npaths = 5000` sob a semente do nó (Mersenne-Twister), conferido contra a mesma chamada a 1e-12. Série transformada antes é prevista na escala transformada."))),
 
     "series/baseline" = list(
       pressupostos = list(

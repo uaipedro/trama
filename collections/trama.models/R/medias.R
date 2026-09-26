@@ -12,7 +12,7 @@
 #' O modelo que o `emmeans` sabe usar, com a tabela ao lado.
 #' @noRd
 .tr_models_modelo_emm <- function(fit, no = "models/emmeans") {
-  .tr_models_exigir(fit, c("lm", "glm", "lmer", "split", "glmer"), no,
+  .tr_models_exigir(fit, c("lm", "glm", "lmer", "split", "glmer", "gls"), no,
                     "Médias ajustadas são por nível de fator; uma curva (dose-resposta, não linear) se lê em 'models/predict'.")
   if (fit$classe == "split") fit$aux_misto else fit$ajuste
 }
@@ -133,6 +133,9 @@ tr_models_emmeans <- function(modelo, especs = "", por = "", ajuste = "tukey", c
   aj <- .tr_models_modelo_emm(modelo)
   args <- list(aj, specs = esp, by = if (length(cond)) cond else NULL, data = modelo$dados)
   if (modelo$classe %in% c("lmer", "split")) args$lmer.df <- "satterthwaite"
+  # No GLS, Satterthwaite explícito (é o padrão do emmeans hoje, e não se
+  # depende do padrão): o gl n − p do nlme é liberal com poucos grupos.
+  if (modelo$classe == "gls") args$mode <- "satterthwaite"
   if (modelo$classe %in% c("glm", "glmer") && escala == "resposta") args$type <- "response"
   r <- .tr_models_ajustar(.tr_models_capturar(do.call(emmeans::emmeans, args)), no)
   grade <- r$valor
@@ -152,7 +155,9 @@ tr_models_emmeans <- function(modelo, especs = "", por = "", ajuste = "tukey", c
     sprintf("letras: %s a %s%%", ajuste, formatC(100 * alfa, format = "fg", decimal.mark = ",")),
     if (interacao) "o fator participa de interação: veja as médias com 'por'" else "",
     if (modelo$classe == "split") "gl de Satterthwaite pelo misto equivalente" else "",
-    if (modelo$classe %in% c("glm", "glmer") && escala == "resposta") "médias na escala da resposta" else "")
+    if (modelo$classe == "gls") "GLS: gl de Satterthwaite (o quadro e os coeficientes usam n − p, do nlme)" else "",
+    if (modelo$classe %in% c("glm", "glmer") && escala == "resposta") "médias na escala da resposta" else "",
+    if (modelo$classe == "glmer") "GLM misto: médias no efeito aleatório zero (sujeito típico), não médias populacionais" else "")
   .tr_models_emm_obj(grade, tibble::as_tibble(tab), esp, cond, ajuste, alfa, modelo$resposta, nota)
 }
 

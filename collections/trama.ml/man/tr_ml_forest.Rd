@@ -13,6 +13,7 @@ tr_ml_forest(
   mtry = 0L,
   min_n = 5L,
   max_depth = 3L,
+  importancia = "impureza",
   seed = 42L
 )
 }
@@ -33,6 +34,14 @@ colunas numéricas, exceto o resposta.}
 \item{min_n}{Mínimo por folha no CART; tamanho mínimo do nó em FIGS e ranger.}
 
 \item{max_depth}{Profundidade máxima das árvores (CART, forest e XGBoost).}
+
+\item{importancia}{Medida de importância da floresta (\code{ranger}):
+\code{"impureza"} (padrão, redução de Gini/variância, enviesada para
+preditores com muitos valores; Strobl et al. 2007), \code{"permutacao"}
+(aumento do erro fora da bolsa ao permutar o preditor, Breiman 2001: erro
+quadrático médio na regressão, erro de Brier na classificação) ou
+\code{"impureza_corrigida"} (AIR, Nembrini, König & Wright 2018). Ignorado
+pelos demais modelos.}
 
 \item{seed}{Semente local; o estado aleatório da sessão é preservado.}
 }

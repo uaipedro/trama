@@ -35,7 +35,7 @@ que melhoram o ajuste relativo em pelo menos \code{cp}; zero cresce a árvore
 máxima permitida por \code{max_depth} e \code{min_n}, depois podada.}
 
 \item{poda}{Poda do CART por custo-complexidade, escolhida pela validação
-cruzada de 10 folds do \code{rpart} (Breiman et al. 1984): \code{"1ep"} fica com a
+cruzada do \code{rpart} com min(10, n) folds (Breiman et al. 1984): \code{"1ep"} fica com a
 menor árvore cujo erro de validação não passa do mínimo mais um
 erro-padrão; \code{"minimo"}, com a de menor erro; \code{"nenhuma"} não poda.}
 

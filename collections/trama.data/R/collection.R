@@ -14,7 +14,7 @@ trama_collection <- function() {
   T <- "data/table"
   P <- trama::tr_param
   .tr_data_aplicar_ajuda_curta(trama::tr_collection(
-    id = "data", version = "0.1.0", label = "Dados", js = "trama/index.js",
+    id = "data", version = "0.2.0", label = "Dados", js = "trama/index.js",
     # `data/test` é o resultado de UM teste de hipótese, de qualquer coleção:
     # o mecanismo (construtor, regra de decisão, card, linha de tabela) é do
     # núcleo, que não registra tipo nenhum; o registro fica aqui porque toda

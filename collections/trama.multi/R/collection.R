@@ -17,7 +17,7 @@
 #' @export
 trama_collection <- function() {
   trama::tr_collection(
-    id = "multi", version = "0.1.0", label = "Multivariada",
+    id = "multi", version = "0.3.0", label = "Multivariada",
     # A discriminante e a logística saem como `models/fit` (tipo da
     # `trama.models`, que por isso carrega antes): prever, confundir e a ROC
     # são os blocos de lá.

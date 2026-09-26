@@ -4,7 +4,7 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "data/test"; T <- "data/table"
   list(
-    trama::tr_node("models/anova_table", 
+    trama::tr_node("models/anova_table", version = 2L,
       pressupostos = .tr_models_doc("models/anova_table")$pressupostos,
       referencias = .tr_models_doc("models/anova_table")$referencias,
       fn = tr_models_anova_table, label = "Quadro da ANOVA",
@@ -53,13 +53,16 @@ tr_flow(reg) |>
 médias depois do F; `models/coefficients` para os coeficientes.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/coefficients", fn = tr_models_coefficients, label = "Coeficientes",
+    # Versão 2 (9.1b): `intervalo`, e a logística da `multi` com IC perfilado e
+    # Firth (da `multi/logistic_coefficients` v4 da main).
+    trama::tr_node("models/coefficients", version = 2L, fn = tr_models_coefficients, label = "Coeficientes",
       category = "modelo_resumir", icon = trama::tr_icon("variable"),
       description = "Estimativa, erro padrão, estatística, p-valor e intervalo de confiança de cada coeficiente.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
       params = list(exponenciar = B(FALSE, label = "Exponenciar (GLM)"),
                     escala = trama::tr_param_enum("unidade", .TR_MODELS_ESCALAS, label = "Escala"),
-                    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+                    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"),
+                    intervalo = trama::tr_param_enum("padrão", .TR_MODELS_INTERVALOS_COEF, label = "Intervalo")),
       help = .tr_models_ajuda(r"---[
 Os coeficientes do modelo, um por linha: estimativa, erro padrão, estatística
 (t ou z), p-valor e intervalo de confiança (95% no padrão; as colunas levam o
@@ -94,10 +97,28 @@ Com **exponenciar** e desvio padrão juntos, sai a razão de chances por DP.
 Uma logística multinomial (da `multi`) tem um coeficiente por classe para cada
 preditora: a tabela ganha a coluna `grupo`, e a régua mostra `classe · termo`.
 
+### Intervalo
+
+**padrão** é o de cada modelo: t exato no `lm`, Wald no GLM e no misto, e o da
+verossimilhança **perfilada** na logística da `multi` (binária; com
+`metodo = "firth"`, a penalizada de Firth, como no `logistf`), com o p da
+razão de verossimilhanças. O perfilado não supõe a log-verossimilhança
+quadrática e é o preferido em amostra pequena (Hosmer, Lemeshow & Sturdivant
+2013, sec. 1.4); com n grande coincide com o de Wald. **perfilado** pede o
+perfil também no GLM (`stats::confint`); **Wald** dá b ± z·EP.
+O `z` é sempre de Wald (b / EP): com o perfilado, z e p_valor vêm de aproximações
+diferentes e podem discordar perto de 5%, sobretudo no Firth e em amostra
+pequena. Heinze & Schemper (2002) dizem que os testes e intervalos da razão
+de verossimilhanças penalizadas "são muitas vezes preferíveis": leia o
+p_valor e o intervalo, e o z só como tamanho do efeito em EPs.
+Na logística multinomial o intervalo sai de Wald mesmo com `perfilado` (o
+`nnet::multinom` não tem perfil), e a nota diz.
+
 Na parcela subdividida os coeficientes misturam os dois erros, e o bloco recusa.
 ]---", r"---[
 - **Exponenciar** — só no GLM.
 - **Escala** — `unidade` (padrão) ou `desvio padrão` da preditora.
+- **Intervalo** — `padrão`, `perfilado` ou `Wald`.
 - **Confiança** — o nível do intervalo (padrão 0,95).
 ]---", r"---[
 Um quadro de efeitos (`models/effects`), com a régua por coeficiente.
@@ -243,7 +264,7 @@ tr_flow(reg) |>
 uma ANOVA.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("models/fit_stats", fn = tr_models_fit_stats, label = "Medidas de ajuste",
+    trama::tr_node("models/fit_stats", version = 2L, fn = tr_models_fit_stats, label = "Medidas de ajuste",
       category = "modelo_resumir", icon = trama::tr_icon("gauge"),
       description = "R², R² ajustado, R² marginal e condicional, CV, AIC, BIC e log-verossimilhança, em colunas fixas.",
       inputs = list(modelo = Fm), outputs = list(out = T),
@@ -259,6 +280,11 @@ com NA onde a medida não existe, para que três modelos ligados num
 - `sigma` — desvio padrão residual.
 - `cv_pct` — coeficiente de variação (100 · √QM do resíduo / média). No
   experimento, é a medida de precisão que as revistas pedem.
+- `dispersao_pearson`, `desvio_por_gl` — GLM e GLM misto binomial ou Poisson:
+  X² de Pearson / gl do resíduo e desvio / gl. Perto de 1, a variância é a da
+  família; bem acima (digamos 1,5 ou mais), há superdispersão. No misto, os
+  resíduos são os condicionais e o gl desconta os parâmetros de variância
+  (Bolker et al. 2009). NA na binomial 0/1, em que a razão não mede nada.
 - `aic`, `bic`, `log_verossimilhanca` — para comparar modelos NÃO aninhados
   (menor AIC, melhor), ajustados nas mesmas linhas.
 ]---", r"---[

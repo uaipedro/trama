@@ -64,7 +64,7 @@ trama_collection <- function() {
   icone <- function(n) trama::tr_icon(n)
 
   trama::tr_collection(
-    id = "series", version = "0.1.0", label = "Séries temporais",
+    id = "series", version = "0.4.0", label = "Séries temporais",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.series")),
     # Sem `js`: o card do teste era o único script da coleção, e o tipo de teste
     # agora é o `data/test` (registrado pela `data`).
@@ -844,7 +844,9 @@ com a covariância do GLS (a `nota` do teste diz). Medido sem tendência nenhuma
 com erro AR(1) de phi = 0.6 (n = 120, 300 réplicas), o F de tendência rejeita a
 5% em 37% das vezes por MQO e em 8% pelo GLS; com phi = 0.9 são 69% e 17% — perto
 da raiz unitária o GLS melhora muito, mas ainda passa do nominal, e o caminho é
-diferenciar a série. O R² e o F do `summary` do MQO não existem no GLS: o card
+diferenciar a série; quando o AR estimado tem raiz inversa de 0.9 ou mais, o
+bloco avisa e a `nota` dos F diz. Série que o modelo reproduz sem resíduo é
+recusada (não há erro a modelar). O R² e o F do `summary` do MQO não existem no GLS: o card
 mostra o resumo do `gls`.
 
 ### Limites
@@ -987,6 +989,105 @@ diagnosticar; `series/ndiffs`, `series/acf` e `series/pacf` para escolher a
 ordem à mão; `series/ets` para a alternativa por suavização exponencial.
 ]---")),
 
+      trama::tr_node("series/intervencao",
+        pressupostos = .tr_series_doc("series/intervencao")$pressupostos,
+        referencias = .tr_series_doc("series/intervencao")$referencias,
+        fn = tr_series_intervencao, label = "Intervenção",
+        category = "serie_modelar", icon = icone("milestone"),
+        description = "ARIMA com degrau, pulso ou rampa numa data: quanto um evento mudou a série?",
+        inputs = list(serie = S), outputs = list(out = T),
+        params = list(
+          data = P("text", "", label = "Data da intervenção", example = "1983, 2"),
+          tipo = E("degrau", c("degrau", "pulso", "rampa"), label = "Tipo"),
+          p = I(0L, min = 0L, max = 5L, label = "p (AR)"),
+          d = I(1L, min = 0L, max = 2L, label = "d (diferenças)"),
+          q = I(1L, min = 0L, max = 5L, label = "q (MA)"),
+          P = I(0L, min = 0L, max = 2L, label = "P (AR sazonal)"),
+          D = I(0L, min = 0L, max = 1L, label = "D (diferença sazonal)"),
+          Q = I(0L, min = 0L, max = 2L, label = "Q (MA sazonal)"),
+          constante = B(FALSE, label = "Constante"),
+          resposta = E("imediata", c("imediata", "gradual"), label = "Resposta")),
+        help = .tr_series_ajuda(r"---[
+Mede o efeito de um EVENTO numa data conhecida — uma lei, uma mudança de
+política, um acidente — sobre a série: o modelo de intervenção de Box e Tiao
+(1975). A série é um ARIMA mais um regressor que liga na data:
+
+- **degrau** — 0 antes, 1 da data em diante: o nível MUDOU e ficou.
+- **pulso** — 1 só na data: um choque de um período.
+- **rampa** — 0 antes, 1, 2, 3, ... a partir da data: a inclinação mudou.
+
+O coeficiente ω do regressor é o efeito, estimado junto com o ARIMA por
+máxima verossimilhança; o erro-padrão já leva em conta a autocorrelação, o que
+uma comparação ingênua de médias antes e depois não faz.
+
+### A data vem de FORA
+
+A data é informada, não procurada: é o que se sabia antes de olhar o gráfico.
+Escolher a data pelo maior salto da própria série e depois testá-la aqui é
+testar a hipótese com o dado que a sugeriu, e o p-valor sai otimista. Para
+PROCURAR uma quebra, `series/pettitt` ou `series/zivot_andrews`.
+
+### Série em log
+
+Com a série no log (`series/transform`), o degrau é uma mudança
+PROPORCIONAL, e a coluna `efeito_pct` = 100·(exp(ω) − 1) a traduz em
+porcentagem. Sem log, ignore essa coluna: o efeito é o ω, na unidade da série.
+
+### A ordem do ARIMA
+
+Escolha a ordem do ruído no trecho ANTES da intervenção (`series/window` →
+`series/arima` automático) e repita aqui. Com diferenças (d ou D), o regressor
+é diferenciado junto: o degrau numa série diferenciada vira um pulso na
+diferença, e o ω continua sendo a mudança de nível.
+
+Com **Resposta** = `imediata` (padrão), é a forma de ordem zero: o efeito
+entra inteiro na data.
+
+### Resposta gradual
+
+Com **Resposta** = `gradual` (degrau ou pulso), o efeito entra pela função de
+transferência de Box e Tiao, ω/(1 − δB): no primeiro período ele vale ω, e
+depois cada período soma δ vezes o anterior. No degrau, o efeito cresce (ou
+encolhe) até o nível de longo prazo ω/(1 − δ), que sai numa linha própria
+(`efeito_longo_prazo`, com erro-padrão pelo método delta); no pulso, o choque
+se desfaz aos poucos, à razão δ por período. δ é estimado junto com o ARIMA
+por máxima verossimilhança (perfilada em δ), com erro-padrão da hessiana
+completa. Conferido contra o `TSA::arimax` (Cryer e Chan, 2008) no tráfego
+aéreo dos EUA depois de 11/09/2001: pulso gradual com ω = −0.346 e δ = 0.695,
+a menos de 1e-3. Um δ na borda (|δ| > 0.99) é recusado: a resposta não se
+estabiliza, e o degrau (ou a rampa) descreve melhor.
+
+### Faltantes
+
+Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue
+um `series/interpolate` antes.
+]---", r"---[
+- **Data da intervenção** — o período, como `1983, 2` (fevereiro de 1983) ou
+  só o ano numa série anual. Precisa haver ao menos uma observação antes.
+- **Tipo** — `degrau` (padrão), `pulso` ou `rampa`.
+- **p, d, q** e **P, D, Q** — a ordem do ARIMA do ruído.
+- **Constante** — média (ou deriva, com uma diferença) no modelo.
+- **Resposta** — `imediata` (padrão, ordem zero) ou `gradual` (ω/(1 − δB),
+  só degrau e pulso).
+]---", r"---[
+Uma tabela, uma linha por coeficiente, a da intervenção primeiro: `termo`,
+`estimativa`, `erro_padrao`, `li_95`, `ls_95` (IC de Wald), `z`, `p_valor` e
+`efeito_pct` (só na linha da intervenção). Com resposta gradual, vêm também
+a linha `delta` e, no degrau, `efeito_longo_prazo` (com o `efeito_pct` dele);
+o `efeito_pct` da linha `intervencao` fica vazio, porque ω é só o primeiro
+período.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
+  tr_add("log", "series/transform", from = "sb") |>
+  tr_add("lei", "series/intervencao", data = "1983, 2", p = 1L, d = 0L, q = 0L,
+         P = 1L, D = 1L, Q = 1L, from = "log")
+]---", r"---[
+`series/arima` para escolher a ordem do ruído; `series/pettitt` para
+procurar uma data de mudança que não se conhece; `series/window` para
+ajustar só o trecho anterior.
+]---")),
+
       trama::tr_node("series/ets",
         pressupostos = .tr_series_doc("series/ets")$pressupostos,
         referencias = .tr_series_doc("series/ets")$referencias,
@@ -1085,7 +1186,8 @@ tr_flow(reg) |>
         category = "serie_modelar", icon = icone("trending-up"),
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
         inputs = list(modelo = M), outputs = list(out = F),
-        params = list(horizonte = I(12L, min = 1L, max = 1000L, label = "Horizonte")),
+        params = list(horizonte = I(12L, min = 1L, max = 1000L, label = "Horizonte"),
+                      intervalo = E("normal", c("normal", "bootstrap"), label = "Intervalo")),
         help = .tr_series_ajuda(r"---[
 Projeta o modelo **Horizonte** períodos à frente, com a previsão pontual e os
 intervalos de 80% e 95%.
@@ -1103,8 +1205,19 @@ Os níveis são sempre 80 e 95, porque são os que o gráfico e a tabela nomeiam
 (`li_80`, `ls_95`); um fluxo que filtra por `ls_95` não quebra.
 
 Série transformada é prevista na escala transformada.
+
+### Intervalo: normal ou bootstrap
+
+- **normal** (padrão) — os limites são quantis normais em torno da previsão,
+  com a variância do modelo. Supõe resíduos normais.
+- **bootstrap** — simula 5000 trajetórias futuras reamostrando os resíduos do
+  ajuste e toma os quantis empíricos (Hyndman & Athanasopoulos, FPP3). Não
+  supõe normalidade, só que os resíduos sejam independentes e de variância
+  constante. Usa a semente do nó: o mesmo fluxo dá o mesmo leque. Só para
+  `series/arima` e `series/ets`; com `series/holt_winters` o bloco recusa.
 ]---", r"---[
 - **Horizonte** — quantos períodos prever.
+- **Intervalo** — `normal` (padrão) ou `bootstrap`.
 ]---", r"---[
 Uma previsão (`series/forecast`): o card mostra histórico e leque. Ligada a um
 nó da `data`, vira tabela com `tempo`, `previsto`, `li_80`, `ls_80`, `li_95` e
@@ -1472,7 +1585,7 @@ pede.
       trama::tr_node("series/zivot_andrews",
         pressupostos = .tr_series_doc("series/zivot_andrews")$pressupostos,
         referencias = .tr_series_doc("series/zivot_andrews")$referencias,
-        fn = tr_series_zivot_andrews, version = 2L,
+        fn = tr_series_zivot_andrews, version = 4L,
         label = "Zivot-Andrews",
         category = "serie_raiz", icon = icone("split"),
         description = "Zivot-Andrews: raiz unitária, com a quebra achada pelo próprio teste?",
@@ -1480,8 +1593,8 @@ pede.
         params = list(
           mudanca = E("ambas", c("nível", "inclinação", "ambas"),
                       label = "O que quebra"),
-          defasagens = I(0L, min = 0L, max = 50L, label = "Defasagens"),
-          selecao = E("t_sig", c("t_sig", "fixa"), label = "Escolha das defasagens")),
+          defasagens = I(-1L, min = -1L, max = 50L, label = "Defasagens (-1 = regra de Schwert)"),
+          selecao = E("fixa", c("fixa", "t_sig"), label = "Escolha das defasagens")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem RAIZ UNITÁRIA admitindo que ela possa ter sofrido uma
 QUEBRA ESTRUTURAL — e achando a data da quebra sozinho.
@@ -1504,7 +1617,7 @@ em torno de seis — estacionária dos dois lados, com um degrau no meio:
 ```
 bloco                     estatística   decisão a 5%   conclusão
 series/adf                     -1.57    não rejeita    não há evidência contra a raiz unitária
-series/zivot_andrews          -11.00    rejeita        estacionária, quebra na obs. 60
+series/zivot_andrews          -14.21    rejeita        estacionária, quebra na obs. 60
 ```
 
 O ADF erra a pergunta inteira; este acha o degrau na observação exata em que
@@ -1570,22 +1683,46 @@ p-valor a partir dela seria inventar precisão que o pacote não dá. A decisão
 chega ao número — é o que limpa a autocorrelação do erro, e a tabela de
 críticos supõe que ela foi limpa.
 
-- **Escolha das defasagens = t_sig** (padrão desde a versão 2) — a regra do
-  artigo: do geral para o específico (Perron, 1989; Zivot & Andrews, 1992).
-  Parte do teto e, enquanto o t da ÚLTIMA diferença defasada não for
-  significativo a 10% (|t| < 1.645), tira uma; o t é lido na regressão do corte
-  que o teste escolhe com aquele número. **Defasagens** é o teto; `0` usa a
-  regra de Schwert (1989), trunc(12·(n/100)^(1/4)), limitada ao que a série
-  comporta. A `nota` diz quantas ficaram e qual foi o teto.
-- **fixa** — o número vale como foi dado, sem busca; `0` usa a regra da versão
-  1 (a raiz cúbica de n - 1).
+- **Escolha das defasagens = fixa** (padrão desde a versão 4) — o número
+  vale como foi dado, sem busca. **Defasagens** = `-1` (padrão) usa a regra
+  l4 de Schwert (1989), trunc(4·(n/100)^(1/4)) — 2 defasagens com 30
+  observações, 3 com 50, 4 com 100 —, limitada ao que a série comporta;
+  `0` é zero defasagens.
+- **t_sig** — a regra do artigo: do geral para o específico (Perron, 1989;
+  Zivot & Andrews, 1992), EM CADA CORTE. Para cada data candidata, parte do
+  teto e, enquanto o t da ÚLTIMA diferença defasada não for significativo a
+  10% (|t| < 1.645), tira uma; o t da raiz unitária daquele corte é o da
+  regressão com o número que sobrou, e o teste é o menor t entre os cortes.
+  **Defasagens** é o teto; `-1` usa a regra l12 de Schwert (1989),
+  trunc(12·(n/100)^(1/4)). A `nota` diz quantas ficaram no corte vencedor e
+  qual foi o teto.
+
+Por que o padrão deixou de ser a regra do artigo (versão 4): a busca em cada
+corte escolhe, entre muitos k, o que mais favorece a rejeição, e o nível em
+amostra finita sai muito acima do nominal. Medido sob passeio aleatório
+(modelo de nível, 1000 réplicas por tamanho; erro de Monte Carlo perto de 1
+ponto), rejeição a 5%:
+
+```
+n     t_sig (teto l12)   fixa l12      fixa l4 (padrão)
+30        29.3%          12.0% (k=8)    8.0% (k=2)
+50        19.8%           5.3% (k=10)   6.9% (k=3)
+100       14.6%           5.6% (k=12)   6.2% (k=4)
+```
+
+A l4 é a que menos erra na série curta; a l12 fica mais perto do nominal a
+partir de 50 observações, mas com 30 gasta oito defasagens e rejeita 12%. Com
+`t_sig` e menos de 100 observações a `nota` avisa; com `fixa` e menos de 40,
+também, porque nem a l4 chega aos 5% ali.
 
 Um teto (ou número fixo) grande demais para uma série curta deixa a regressão
 da quebra sem graus de liberdade, e nesse caso o bloco recusa dizendo qual é o
 máximo — sem isso o `urca` morreria com um erro cru do R.
 
-Com k = 8 fixo, o bloco reproduz o artigo no PNB real de Nelson e Plosser
-(1909-1970, em log, `urca::nporg`), modelo de nível: t = -5.58, quebra em 1929.
+Com k = 8 fixo, no PNB de Nelson e Plosser (1909-1970, em log,
+`urca::nporg`), modelo de nível, o bloco dá t = -5.576 (real) e -5.824
+(nominal), quebra em 1929 — iguais ao `urca::ur.za`, e aos -5.58 e -5.82
+citados de Zivot e Andrews (1992), que não foram conferidos no PDF do artigo.
 
 ### Precisa de série, e de série que chegue
 
@@ -1614,8 +1751,10 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
 - **O que quebra** — `nível`, `inclinação` ou `ambas`; muda a regressão e a
   tabela de valores críticos junto.
-- **Defasagens** — quantas diferenças defasadas entram; `0` para a regra
-  automática.
+- **Defasagens** — com `fixa`, o número usado; com `t_sig`, o teto da busca.
+  `-1` (padrão) = regra de Schwert (l4 com `fixa`, l12 com `t_sig`); `0` =
+  nenhuma.
+- **Escolha das defasagens** — `fixa` (padrão) ou `t_sig`.
 ]---", r"---[
 Um teste (`data/test`), com a posição da quebra e o rótulo do período em
 colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de relatório:
@@ -1920,7 +2059,8 @@ inteiro; `series/regression`, que produz o ajuste.
         category = "serie_tendencia", icon = icone("trending-up"),
         description = "Mann-Kendall: a série tem tendência?",
         inputs = list(serie = S), outputs = list(out = TE),
-        params = list(correcao = E("nenhuma", c("nenhuma", "hamed_rao", "pre_branqueamento"),
+        params = list(correcao = E("nenhuma", c("nenhuma", "hamed_rao", "pre_branqueamento",
+                                                 "bootstrap_blocos"),
                                    label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem TENDÊNCIA. É o teste de tendência mais usado em
@@ -1982,9 +2122,17 @@ rejeita bem acima dos 5% nominais. Duas correções publicadas:
 - **pre_branqueamento** — Yue et al. (2002), o pré-branqueamento livre de
   tendência: tira a tendência de Sen, remove o AR(1) do resto pelo r1, devolve
   a tendência e testa a série resultante (uma observação a menos; pede 11).
-  A `nota` traz o r1.
+  A `nota` traz o r1. Como no artigo (passos 1 a 4, p. 1822-1823), o AR(1) é
+  removido sempre, significativo ou não; o r1 é o do `acf` (o do
+  `modifiedmk`), n/(n − 1) vezes menor que o da eq. 14a do artigo.
+- **bootstrap_blocos** — o mesmo S, com o p-valor de um bootstrap de blocos
+  móveis (Kundzewicz & Robson, 2004): a série é cortada em blocos de
+  round(√n) observações seguidas, sorteados com reposição e emendados, 1999
+  vezes; o p é a fração das reamostras com |S*| ≥ |S|. Os blocos guardam a
+  dependência de curto alcance e desmancham a tendência. Usa a semente do nó:
+  o mesmo fluxo dá o mesmo p. A `nota` traz o tamanho do bloco.
 
-As duas seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
+As duas primeiras seguem o `modifiedmk` (`mmkh` e `tfpwmk`), conferidas contra ele.
 Nenhuma devolve o nível nominal. Medido em série SEM tendência, erro AR(1)
 forte (phi de seis décimos) e 60 observações (2000 réplicas), o teste a 5% rejeitou em 31%
 das vezes sem correção, 21% com `hamed_rao` e 39% com `pre_branqueamento`; em
@@ -1996,16 +2144,39 @@ tendência PIORA o nível, como Hamed (2009) já apontava — a tendência de Se
 estimada na série autocorrelacionada volta somada. Use-o para reproduzir um
 trabalho que o aplicou, não como remédio. Em raros casos (até 1% das réplicas
 acima) a soma do Hamed-Rao sai negativa e o bloco recusa em vez de devolver
-NaN. Com autocorrelação forte, prefira modelar o erro (`series/regression` com
-**Erro** = `arma` e o `series/f_trend`).
+NaN.
+
+O `bootstrap_blocos` é a correção que mais se aproxima do nível, e ainda
+assim não o alcança com autocorrelação forte. Medido em série SEM tendência,
+AR(1), 1000 réplicas por caso (erro de Monte Carlo de 0.7 a 0.9 ponto),
+rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     16.0%        7.2%
+0.3   120    13.6%        5.5%
+0.6   60     31.0%        9.0%
+0.6   120    31.2%        7.7%
+```
+
+Com autocorrelação moderada e série de uns cem pontos ele devolve o nível;
+com phi de seis décimos, reduz o excesso de 31% para 8% a 9%, sem zerá-lo. O
+preço é poder: com uma tendência de 1.8 desvio do ruído ao longo da série, ele
+detecta em 77% (phi 0.3, n = 60), 96% (phi 0.3, n = 120), 43% (phi 0.6, n =
+60) e 66% (phi 0.6, n = 120) das vezes — menos que o teste sem correção, cujo
+poder aparente vem em parte do nível inflado. A regra de bloco do
+`modifiedmk::bbsmk` (autocorrelações significativas seguidas, mais um) dá
+blocos de 3 a 4 e rejeitou 17% a 19% com phi 0.6 (300 réplicas); por isso o
+bloco aqui é √n. Com autocorrelação forte, prefira modelar o erro
+(`series/regression` com **Erro** = `arma` e o `series/f_trend`).
 
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao` ou
-  `pre_branqueamento`.
+- **Correção para autocorrelação** — `nenhuma` (padrão), `hamed_rao`,
+  `pre_branqueamento` ou `bootstrap_blocos`.
 
 Uma entrada: **serie**.
 ]---", r"---[
@@ -2033,7 +2204,9 @@ tr_flow(reg) |>
         description = "Cox-Stuart: a série tem tendência?",
         inputs = list(serie = S), outputs = list(out = TE),
         params = list(
-          pareamento = E("terços", c("terços", "metades"), label = "Pareamento")),
+          pareamento = E("terços", c("terços", "metades"), label = "Pareamento"),
+          correcao = E("nenhuma", c("nenhuma", "bootstrap_blocos"),
+                       label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem TENDÊNCIA por um teste de SINAL: pareia observações
 distantes no tempo e conta quantas vezes a segunda é maior que a primeira. Se
@@ -2097,6 +2270,31 @@ pede pelo menos dezesseis observações: abaixo disso o terço da ponta fica com
 menos de seis pares, e com menos de seis pares nem o resultado mais extremo
 possível alcança o corte de 5% — o teste não teria como rejeitar nunca.
 
+### Série autocorrelacionada: **Correção**
+
+Os pares são tratados como independentes, e com autocorrelação positiva o teste
+rejeita demais. Com **Correção** = `bootstrap_blocos`, o p-valor sai de um
+bootstrap de blocos móveis (Kundzewicz & Robson, 2004): a série é cortada em
+blocos de round(√n) observações seguidas, sorteados com reposição e emendados,
+1999 vezes, e em cada reamostra se refaz a soma dos sinais dos pares, com o
+mesmo pareamento; o p é a fração com soma tão extrema quanto a observada. Usa
+a semente do nó. Medido em série SEM tendência, AR(1), pareamento em terços,
+1000 réplicas por caso, rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     11.1%        4.4%
+0.3   120     8.1%        3.8%
+0.6   60     22.8%        5.5%
+0.6   120    24.7%        6.6%
+```
+
+O nível volta para perto do nominal (um pouco conservador com phi 0.3; 6.6%
+com phi 0.6 e n = 120), e o preço é poder: com uma tendência de 1.8 unidades
+ao longo da série, 41% (phi 0.3, n = 60), 78% (0.3, 120), 24% (0.6, 60) e
+48% (0.6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
+autocorrelação, o `series/mann_kendall` com a mesma correção perde menos.
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
@@ -2105,7 +2303,9 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 **pareamento** — quais observações formam cada par. *Terços* (padrão) compara o
 primeiro terço com o último, descartando o miolo, como no artigo original;
 *metades* pareia cada observação com a que está meia série adiante, como na
-dissertação. Uma entrada: **serie**.
+dissertação. **correcao** — `nenhuma` (padrão) ou `bootstrap_blocos` (p por
+bootstrap de blocos móveis, para série autocorrelacionada). Uma entrada:
+**serie**.
 ]---", r"---[
 Um teste (`data/test`), com o M e o número de pares em colunas extras. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
@@ -2206,7 +2406,9 @@ jeito a aleatoriedade falhou; `series/ljung_box`, que também pergunta se a sér
         label = "Pettitt",
         category = "serie_tendencia", icon = icone("milestone"),
         description = "Pettitt: a série tem um ponto de mudança?",
-        inputs = list(serie = S), outputs = list(out = TE), params = list(),
+        inputs = list(serie = S), outputs = list(out = TE), params = list(
+          correcao = E("nenhuma", c("nenhuma", "bootstrap_blocos"),
+                       label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem um PONTO DE MUDANÇA: um instante a partir do qual ela passou
 a se comportar como outra série. A hipótese nula é a HOMOGENEIDADE — que o trecho
@@ -2266,12 +2468,36 @@ PRIMEIRO deles. Quando isso acontece a `nota` diz quantos empataram: são cortes
 igualmente bons, e ler o número publicado como o único ponto possível seria ler
 mais do que o teste disse.
 
+### Série autocorrelacionada: **Correção**
+
+Autocorrelação positiva imita ponto de mudança: sem correção, em série
+homogênea com AR(1) de seis décimos o teste rejeita em metade das vezes. Com
+**Correção** = `bootstrap_blocos`, o p-valor sai de um bootstrap de blocos
+móveis (Kundzewicz & Robson, 2004): blocos de round(√n) observações seguidas,
+sorteados com reposição e emendados, 1999 vezes; o p é a fração das
+reamostras com K* ≥ K. O ponto de mudança e o K não mudam. Usa a semente do
+nó. Medido em série homogênea, AR(1), 1000 réplicas por caso, rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     16.5%        3.5%
+0.3   120    18.1%        4.6%
+0.6   60     45.5%        8.7%
+0.6   120    54.8%        7.8%
+```
+
+Com autocorrelação moderada o nível é o nominal; com phi de seis décimos
+fica em 8% a 9%, longe dos 50% sem correção mas acima dos 5% — um "rejeita"
+apertado aí pede cautela. Poder, com um degrau de 1.5 no meio da série: 89%
+(phi 0.3, n = 60), 100% (0.3, 120), 59% (0.6, 60) e 86% (0.6, 120).
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum. Uma entrada: **serie**.
+**correcao** — `nenhuma` (padrão) ou `bootstrap_blocos` (p por bootstrap de
+blocos móveis, para série autocorrelacionada). Uma entrada: **serie**.
 ]---", r"---[
 Um teste (`data/test`), com a posição do ponto de mudança e o rótulo do período
 em colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de

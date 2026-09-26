@@ -28,20 +28,30 @@
 #'   que melhoram o ajuste relativo em pelo menos `cp`; zero cresce a árvore
 #'   máxima permitida por `max_depth` e `min_n`, depois podada.
 #' @param poda Poda do CART por custo-complexidade, escolhida pela validação
-#'   cruzada de 10 folds do `rpart` (Breiman et al. 1984): `"1ep"` fica com a
+#'   cruzada do `rpart` com min(10, n) folds (Breiman et al. 1984): `"1ep"` fica com a
 #'   menor árvore cujo erro de validação não passa do mínimo mais um
 #'   erro-padrão; `"minimo"`, com a de menor erro; `"nenhuma"` não poda.
 #' @param corte Na logística binária, a classe prevista é a segunda quando sua
 #'   probabilidade é maior ou igual a `corte` (entre 0 e 1, exclusivos).
 #'   Ignorado pelos demais modelos.
+#' @param importancia Medida de importância da floresta (`ranger`):
+#'   `"impureza"` (padrão, redução de Gini/variância, enviesada para
+#'   preditores com muitos valores; Strobl et al. 2007), `"permutacao"`
+#'   (aumento do erro fora da bolsa ao permutar o preditor, Breiman 2001: erro
+#'   quadrático médio na regressão, erro de Brier na classificação) ou
+#'   `"impureza_corrigida"` (AIR, Nembrini, König & Wright 2018). Ignorado
+#'   pelos demais modelos.
 #' @return Um `models/fit`: objeto de classe `c("tr_ml_fit", "tr_models_fit")`,
 #'   que responde ao contrato da `trama.models` (prever, avaliar, importância).
+#'   Guarda as impressões digitais das linhas de
+#'   treino (`treino_impressoes`), com que `models/predict` recusa prever linhas
+#'   do teste que o modelo viu.
 #' @export
 tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", tarefa = "auto",
                       seed = 42L, max_depth = 3L, min_n = 5L, max_splits = 6L,
                       trees = 200L, mtry = 0L, cost = 1, gamma = 0.1,
                       kernel = "radial", nrounds = 100L, eta = 0.1,
-                      cp = 0, poda = "1ep", corte = 0.5) {
+                      cp = 0, poda = "1ep", corte = 0.5, importancia = "impureza") {
   modelo <- .tr_ml_enum(modelo, c("linear", "cart", "figs", "forest", "svm", "xgboost"), "modelo")
   seed <- .tr_ml_int(seed, "seed", 0L); max_depth <- .tr_ml_int(max_depth, "max_depth", 1L)
   min_n <- .tr_ml_int(min_n, "min_n", 1L); max_splits <- .tr_ml_int(max_splits, "max_splits", 1L)
@@ -52,6 +62,7 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
   corte <- .tr_ml_num(corte, "corte", 0, TRUE)
   if (corte >= 1) .tr_ml_abort("tr_ml_error_bad_param", "Param 'corte' deve estar entre 0 e 1, exclusivos.")
   cp <- .tr_ml_num(cp, "cp", 0); poda <- .tr_ml_enum(poda, c("1ep", "minimo", "nenhuma"), "poda")
+  importancia <- .tr_ml_enum(importancia, c("impureza", "permutacao", "impureza_corrigida"), "importancia")
   d <- .tr_ml_dados(dados, resposta, preditores, tarefa)
   if (d$tarefa == "classificacao" && length(d$niveis) > 2L && modelo %in% c("linear", "figs")) {
     .tr_ml_abort("tr_ml_error_binary_only", "O modelo '%s' aceita classifica\u{E7}\u{E3}o com exatamente duas classes.", modelo)
@@ -92,7 +103,9 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
       extras$mtry <- mm
       ranger::ranger(f, treino, num.trees = trees, mtry = mm,
                      min.node.size = min_n, max.depth = max_depth,
-                     probability = d$tarefa == "classificacao", importance = "impurity", seed = seed)
+                     probability = d$tarefa == "classificacao", seed = seed,
+                     importance = c(impureza = "impurity", permutacao = "permutation",
+                                    impureza_corrigida = "impurity_corrected")[[importancia]])
     },
     svm = {
       .tr_ml_require("e1071", modelo)
@@ -123,7 +136,7 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
                             mtry = extras$mtry %||% mtry, cost = cost,
                             gamma = gamma, kernel = kernel,
                             nrounds = nrounds, eta = eta, cp = cp,
-                            poda = poda, corte = corte)
+                            poda = poda, corte = corte, importancia = importancia)
   # `resposta`, e não mais `alvo`: o modelo agora viaja como `models/fit`, e a
   # chave do cache mudou de qualquer forma com o tipo. `dados` são as colunas
   # USADAS, com os nomes originais: o modo "só modelo" dos avaliadores da
@@ -132,7 +145,9 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
   structure(list(ajuste = ajuste, modelo = modelo, tarefa = d$tarefa, resposta = d$resposta,
                  preditores = d$preditores, internos = d$internos, niveis = d$niveis,
                  n = d$n, seed = seed, extras = extras,
-                 dados = tibble::as_tibble(dados[c(d$resposta, d$preditores)]),
+                 dados = .tr_ml_sem_origem(tibble::as_tibble(dados[c(d$resposta, d$preditores)])),
+                 origem = .tr_ml_origem_curta(dados),
+                 treino_impressoes = .tr_ml_impressoes_treino(dados, d$impressoes),
                  rotulo = .tr_ml_rotulo(modelo, d$tarefa)),
             class = c("tr_ml_fit", "tr_models_fit"))
 }
@@ -152,6 +167,31 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
   limite <- tab[i_min, "xerror"] + if (poda == "1ep") tab[i_min, "xstd"] else 0
   i <- which(tab[, "xerror"] <= limite)[[1L]]
   list(metodo = poda, cp = unname(tab[i, "CP"]), divisoes = unname(tab[i, "nsplit"]), cptable = tab)
+}
+
+#' A proveniência na previsão (main, da77947/63ec621): prever o teste de outra
+#' divisão com um modelo ajustado no treino de uma divisão marcada é recusado
+#' (`tr_ml_error_split_mismatch`), e prever linhas do teste que o modelo viu no
+#' ajuste (pelas impressões digitais das linhas) também (`tr_ml_error_test_leak`).
+#' Chamada por `tr_models_predict_raw.tr_ml_fit()`, com a tabela que chegou ao
+#' `models/predict` (que leva o atributo `tr_ml_origem` adiante).
+#' @noRd
+.tr_ml_checar_previsao <- function(modelo, dados) {
+  o_dados <- .tr_ml_origem(dados); o_modelo <- modelo$origem
+  if (identical(o_dados$papel, "teste") && !is.null(o_modelo$divisao) &&
+      !identical(o_dados$divisao, o_modelo$divisao)) {
+    .tr_ml_abort("tr_ml_error_split_mismatch", paste(
+      "O modelo foi ajustado no treino de uma divis\u{E3}o e estas linhas s\u{E3}o o teste de outra:",
+      "parte delas pode ter estado no treino. Use o teste do mesmo `ml/split` do modelo."))
+  }
+  vistas <- .tr_ml_teste_no_treino(modelo, dados)
+  if (vistas > 0L) {
+    .tr_ml_abort("tr_ml_error_test_leak", paste(
+      "O modelo foi ajustado com %d linha(s) deste teste (ajuste antes de dividir, ou numa",
+      "tabela que cont\u{E9}m o teste): a previs\u{E3}o n\u{E3}o mede generaliza\u{E7}\u{E3}o. Ajuste s\u{F3}",
+      "na sa\u{ED}da treino do `ml/split`."), vistas)
+  }
+  invisible(TRUE)
 }
 
 #' A previsão crua do motor: classe (ou número) e a matriz de probabilidades.
@@ -310,7 +350,10 @@ tr_ml_rules <- function(modelo) {
 #'
 #' É o `tr_models_importance()` da ml (contrato.R) para CART, FIGS, floresta e
 #' XGBoost; a medida é a do motor (redução de impureza; ganho no XGBoost).
-#' @return tibble `termo`, `importancia`, `medida`, da maior para a menor.
+#' @return tibble `termo`, `importancia`, `medida` (o que o número mede, em
+#'   palavras), da maior para a menor; o código curto da medida no atributo
+#'   `medida`. Na floresta, a medida escolhida em `importancia` no ajuste
+#'   (main, fb874ad/8845ef2).
 #' @noRd
 .tr_ml_importancia_arvores <- function(modelo) {
   imp <- switch(modelo$modelo,
@@ -322,9 +365,29 @@ tr_ml_rules <- function(modelo) {
   nomes <- names(imp) %||% character()
   mapa <- match(nomes, modelo$internos)
   nomes[!is.na(mapa)] <- modelo$preditores[mapa[!is.na(mapa)]]
-  medida <- switch(modelo$modelo, cart = "redu\u{E7}\u{E3}o de impureza (rpart)",
-                   figs = "import\u{E2}ncia do figsr", forest = "redu\u{E7}\u{E3}o de impureza (ranger)",
-                   xgboost = "ganho (XGBoost)")
-  out <- tibble::tibble(termo = nomes, importancia = as.numeric(imp), medida = rep(medida, length(imp)))
-  out[order(-out$importancia), , drop = FALSE]
+  codigo <- if (modelo$modelo == "forest") modelo$extras$parametros$importancia %||% "impureza" else "impureza"
+  out <- tibble::tibble(termo = nomes, importancia = as.numeric(imp),
+                        medida = rep(.tr_ml_medida_importancia(modelo, codigo), length(nomes)))
+  out <- out[order(-out$importancia), , drop = FALSE]
+  attr(out, "medida") <- codigo
+  out
+}
+
+# O que o número de cada engine mede, em palavras. Na permutação do `ranger`,
+# o erro fora da bolsa é o EQM na regressão e, na floresta de probabilidade
+# (a nossa classificação), a média de (1 - p da classe observada)^2, uma forma
+# do erro de Brier; a importância é o aumento desse erro, não queda de acurácia.
+.tr_ml_medida_importancia <- function(modelo, codigo) {
+  cls <- modelo$tarefa == "classificacao"
+  switch(modelo$modelo,
+    cart = "redu\u{E7}\u{E3}o de impureza somada nos cortes, inclusive divis\u{F5}es substitutas (rpart)",
+    figs = "ganho de impureza somado nos cortes do FIGS, em % do total (figsr)",
+    xgboost = "Gain: fra\u{E7}\u{E3}o do ganho total das divis\u{F5}es que usam o preditor (xgboost)",
+    forest = switch(codigo,
+      impureza = if (cls) "redu\u{E7}\u{E3}o de impureza de Gini somada nas \u{E1}rvores (ranger)" else
+        "redu\u{E7}\u{E3}o de vari\u{E2}ncia somada nas \u{E1}rvores (ranger)",
+      impureza_corrigida = "impureza corrigida AIR (Nembrini et al. 2018; ranger)",
+      permutacao = if (cls) paste("permuta\u{E7}\u{E3}o: aumento do erro de Brier fora da bolsa,",
+                                  "m\u{E9}dia de (1 - p da classe observada)^2 (ranger)") else
+        "permuta\u{E7}\u{E3}o: aumento do erro quadr\u{E1}tico m\u{E9}dio fora da bolsa (ranger)"))
 }

@@ -6,6 +6,8 @@
 # os blocos antigos da ml, e a migração da trama.models os traz para os de lá.
 # Os nós são os que EXISTEM em cada documento, e não uma lista fixa: `main` foi
 # editado à mão e tem só CART e FIGS.
+# As métricas podem ter NA legítimo (precisão de classe nunca prevista, main
+# 095f4d9), então a checagem de finitude é só sobre as que existem.
 pkgload::load_all(".", quiet = TRUE)
 for (p in c("trama.data", "trama.view", "trama.models", "trama.ml"))
   pkgload::load_all(file.path("collections", p), quiet = TRUE, attach = FALSE)
@@ -23,7 +25,8 @@ for (arquivo in c("main", "regressao", "cart-vs-figs")) {
   tipos <- vapply(doc$nodes, `[[`, "", "type")
   for (id in names(tipos)[tipos == "models/evaluate"]) {
     tab <- trama::tr_value(doc, id, registry = reg, store = store)
-    stopifnot(nrow(tab) >= 3L, all(is.finite(tab$valor)), all(tab$n > 0))
+    v <- tab$valor[!is.na(tab$valor)]
+    stopifnot(nrow(tab) >= 3L, length(v) > 0, all(is.finite(v)), all(tab$n > 0))
     cat(arquivo, id, paste(tab$metrica, signif(tab$valor, 4), collapse = "; "), "\n")
   }
   # As regras de CART e FIGS: o ponto de cart-vs-figs é que saiam não-vazias.

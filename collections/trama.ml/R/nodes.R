@@ -25,9 +25,11 @@ tr_ml_figs <- function(dados, resposta = "", preditores = "", tarefa = "auto",
 #' @return Um modelo `tr_ml_fit`.
 #' @export
 tr_ml_forest <- function(dados, resposta = "", preditores = "", tarefa = "auto",
-                         trees = 200L, mtry = 0L, min_n = 5L, max_depth = 3L, seed = 42L) {
+                         trees = 200L, mtry = 0L, min_n = 5L, max_depth = 3L,
+                         importancia = "impureza", seed = 42L) {
   tr_ml_fit(dados, resposta, preditores, "forest", tarefa, seed = seed,
-            trees = trees, mtry = mtry, min_n = min_n, max_depth = max_depth)
+            trees = trees, mtry = mtry, min_n = min_n, max_depth = max_depth,
+            importancia = importancia)
 }
 
 #' Máquina de vetores de suporte com e1071.
@@ -68,7 +70,7 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
 .tr_ml_cols_param <- function() trama::tr_param("cols", "", label = "Preditores", example = "Sepal.Length, Petal.Length")
 .tr_ml_task_param <- function() trama::tr_param_enum("auto", c("auto", "regressao", "classificacao"), label = "Tarefa")
 .tr_ml_seed_param <- function() trama::tr_param_int(42L, min = 0L, label = "Semente")
-.tr_ml_estrategia_param <- function() trama::tr_param_enum("aleatoria", c("aleatoria", "temporal", "grupo"), label = "Estrat\u{E9}gia")
+.tr_ml_estrategia_param <- function() trama::tr_param_enum("aleatoria", c("aleatoria", "temporal", "grupo", "grupo_estratificado"), label = "Estrat\u{E9}gia")
 .tr_ml_ordem_param <- function() trama::tr_param("text", "", label = "Coluna de tempo", example = "data")
 .tr_ml_grupo_param <- function() trama::tr_param("text", "", label = "Coluna de grupo", example = "lote")
 
@@ -85,7 +87,7 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
     cart = list(fn = tr_ml_cart, icon = "git-fork", label = "CART \u{B7} \u{E1}rvore de decis\u{E3}o", category = "ml_simples",
       desc = "Uma \u{E1}rvore pequena para seguir cada decis\u{E3}o at\u{E9} a previs\u{E3}o.",
       details = "Usa `rpart`. Cada caminho da raiz at\u{E9} uma folha forma uma regra. Profundidade pequena facilita a leitura; \u{E1}rvores grandes podem sobreajustar. A tabela do card mostra regras e as previs\u{F5}es das folhas.",
-      version = 2L,
+      version = 4L,
       params = list(max_depth = depth, min_n = min_n,
         cp = trama::tr_param_num(0, min = 0, label = "Complexidade m\u{ED}nima (cp)"),
         poda = trama::tr_param_enum("1ep", c("1ep", "minimo", "nenhuma"), label = "Poda")),
@@ -99,8 +101,9 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
       desc = "Combina \u{E1}rvores aleatorizadas para regress\u{E3}o e classifica\u{E7}\u{E3}o.",
       details = "Usa `ranger`. \u{C1}rvores treinadas com bootstrap e subconjuntos de preditores s\u{E3}o agregadas. Import\u{E2}ncia ajuda a resumir a floresta, mas n\u{E3}o equivale a uma regra individual nem indica causalidade.",
       params = list(trees = trama::tr_param_int(200L, min = 1L, label = "\u{C1}rvores"),
-        mtry = trama::tr_param_int(0L, min = 0L, label = "Vari\u{E1}veis por divis\u{E3}o (0 = autom\u{E1}tico)"), min_n = min_n, max_depth = depth),
-      extra = "`trees`: n\u{FA}mero de \u{E1}rvores. `mtry`: preditores candidatos por divis\u{E3}o; zero usa a raiz quadrada do n\u{FA}mero de preditores, arredondada para baixo. `min_n`: tamanho m\u{ED}nimo do n\u{F3} a dividir conforme ranger, n\u{E3}o tamanho m\u{ED}nimo das folhas. `max_depth`: profundidade m\u{E1}xima de cada \u{E1}rvore."),
+        mtry = trama::tr_param_int(0L, min = 0L, label = "Vari\u{E1}veis por divis\u{E3}o (0 = autom\u{E1}tico)"), min_n = min_n, max_depth = depth,
+        importancia = trama::tr_param_enum("impureza", c("impureza", "permutacao", "impureza_corrigida"), label = "Import\u{E2}ncia")),
+      extra = "`importancia`: medida lida no `models/importance` \u{2014} impureza (padr\u{E3}o, enviesada para preditores cont\u{ED}nuos ou com muitos valores), permutacao (aumento do erro fora da bolsa ao embaralhar o preditor: erro de Brier na classifica\u{E7}\u{E3}o, erro quadr\u{E1}tico m\u{E9}dio na regress\u{E3}o) ou impureza_corrigida (AIR de Nembrini et al. 2018, sem esse vi\u{E9}s). `trees`: n\u{FA}mero de \u{E1}rvores. `mtry`: preditores candidatos por divis\u{E3}o; zero usa a raiz quadrada do n\u{FA}mero de preditores, arredondada para baixo. `min_n`: tamanho m\u{ED}nimo do n\u{F3} a dividir conforme ranger, n\u{E3}o tamanho m\u{ED}nimo das folhas. `max_depth`: profundidade m\u{E1}xima de cada \u{E1}rvore."),
     svm = list(fn = tr_ml_svm, icon = "move-diagonal", label = "SVM \u{B7} vetores de suporte", category = "ml_margem",
       desc = "Ajusta uma margem linear ou n\u{E3}o linear, com escala aprendida no treino.",
       details = "Usa `e1071`/LIBSVM. A padroniza\u{E7}\u{E3}o \u{E9} estimada somente no treino e reaplicada na previs\u{E3}o. Kernels n\u{E3}o lineares tornam a regra menos transparente.",
@@ -118,7 +121,7 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
   lapply(names(configs), function(id) {
     cfg <- configs[[id]]
     doc <- .tr_ml_doc(paste0("ml/", id))
-    trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label, version = cfg$version %||% 1L,
+    trama::tr_node(paste0("ml/", id), fn = cfg$fn, label = cfg$label, version = cfg$version %||% 3L,
       pressupostos = doc$pressupostos, referencias = doc$referencias,
       description = cfg$desc, category = cfg$category, icon = trama::tr_icon(cfg$icon),
       inputs = list(dados = "data/table"), outputs = list(out = "models/fit"),
@@ -136,7 +139,7 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
   T <- "data/table"; G <- "view/plot"; M <- "models/fit"
   visual <- function(...) trama.view::tr_view_props(...)
   list(
-    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, version = 2L,
+    trama::tr_node("ml/tune", role = "ajuste", tr_ml_tune, version = 4L,
       pressupostos = .tr_ml_doc("ml/tune")$pressupostos, referencias = .tr_ml_doc("ml/tune")$referencias, label = "Ajustar hiperpar\u{E2}metros",
       description = "Seleciona hiperpar\u{E2}metros por valida\u{E7}\u{E3}o cruzada e reajusta o vencedor no treino completo.",
       category = "ml_avaliar", icon = trama::tr_icon("sliders-horizontal"), inputs = list(dados = T),
@@ -151,11 +154,11 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
         estrategia = .tr_ml_estrategia_param(), ordem = .tr_ml_ordem_param(), grupo = .tr_ml_grupo_param(),
         seed = .tr_ml_seed_param()),
       help = .tr_ml_help("Avalia configura\u{E7}\u{F5}es nos mesmos folds, escolhe pela m\u{E9}dia e reajusta o vencedor em todas as linhas recebidas. Conecte somente treino; preserve o teste para a avalia\u{E7}\u{E3}o final.",
-        "`modelo`: fam\u{ED}lia a ajustar; com CART, cada ajuste ainda roda a valida\u{E7}\u{E3}o cruzada interna da poda 1-EP (at\u{E9} 10 ajustes extras por fold, custo cerca de 11 vezes maior), que escolhe a complexidade enquanto a busca escolhe `max_depth` e `min_n`. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `estrategia`: aleatoria (folds sorteados, estratificados pela classe), grupo (grupos inteiros de `grupo` por fold) ou temporal (origem m\u{F3}vel: os instantes de `ordem` formam folds + 1 blocos cont\u{ED}guos e cada fold treina nos blocos anteriores e valida no seguinte). `ordem` e `grupo` n\u{E3}o entram como preditores quando `preditores` fica vazio. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
+        "`modelo`: fam\u{ED}lia a ajustar; com CART, cada ajuste ainda roda a valida\u{E7}\u{E3}o cruzada interna da poda 1-EP (at\u{E9} 10 ajustes extras por fold, custo cerca de 11 vezes maior), que escolhe a complexidade enquanto a busca escolhe `max_depth` e `min_n`. `metrica`: auto usa RMSE em regress\u{E3}o e macro F1 em classifica\u{E7}\u{E3}o. `tentativas`: or\u{E7}amento da busca aleat\u{F3}ria. `folds`: parti\u{E7}\u{F5}es internas. `amplitude`: limites conservadores ou amplos. `estrategia`: aleatoria (folds sorteados, estratificados pela classe), grupo (grupos inteiros de `grupo` por fold), grupo_estratificado (grupos inteiros distribu\u{ED}dos para equilibrar as classes, s\u{F3} classifica\u{E7}\u{E3}o; avisa quando uma valida\u{E7}\u{E3}o tem uma classe s\u{F3}) ou temporal (origem m\u{F3}vel: os instantes de `ordem` formam folds + 1 blocos cont\u{ED}guos e cada fold treina nos blocos anteriores e valida no seguinte). `ordem` e `grupo` n\u{E3}o entram como preditores quando `preditores` fica vazio. `seed`: reproduz folds, configura\u{E7}\u{F5}es e ajustes.",
         "Duas sa\u{ED}das: o melhor modelo reajustado (`models/fit`) e uma tabela com todas as tentativas.",
         "d <- trama.ml::tr_ml_example('iris_binaria')\ntrama.ml::tr_ml_tune(d, resposta = 'Species', tentativas = 3, folds = 3)",
         "`ml/tuning_plot`, `models/predict`, `models/evaluate`.")),
-    trama::tr_node("ml/nested_cv", role = "avaliacao", tr_ml_nested_cv,
+    trama::tr_node("ml/nested_cv", role = "avaliacao", tr_ml_nested_cv, version = 3L,
       pressupostos = .tr_ml_doc("ml/nested_cv")$pressupostos, referencias = .tr_ml_doc("ml/nested_cv")$referencias,
       label = "Valida\u{E7}\u{E3}o cruzada aninhada",
       description = "Estima o desempenho do ajuste com busca de hiperpar\u{E2}metros sem reaproveitar as linhas da escolha.",

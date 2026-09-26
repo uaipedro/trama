@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 7,
     "collections": {
-      "ml": "0.2.0"
+      "ml": "0.5.0"
     },
     "nodes": {
       "dados": {
@@ -22,7 +22,7 @@
       },
       "arvore": {
         "type": "ml/cart",
-        "type_version": 2,
+        "type_version": 4,
         "label": "CART · árvore de decisão",
         "params": {
           "resposta": "Species",

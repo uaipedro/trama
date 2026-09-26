@@ -20,6 +20,7 @@ Use **Regressão logística** para modelar a probabilidade de uma classe em fun�
 - **Resposta** — classe conhecida.
 - **Preditores** — colunas numéricas; em branco, usa as numéricas menos a Resposta.
 - **Corte (binária)** — 0,5 por padrão (intervalo 0,01–0,99); aplica-se à logística binária, para prever o segundo nível.
+- **Método** — `ml` (máxima verossimilhança, padrão) ou `firth` (verossimilhança penalizada de Firth, só com dois grupos).
 
 ## Exemplo
 
@@ -38,7 +39,20 @@ O classificador estima as probabilidades de diabetes para cada linha de `pima`.
 
 ## Como interpretar
 
-Resposta escolhe a coluna do grupo; Preditores seleciona as variáveis numéricas; Corte define o limiar para o segundo grupo no caso binário e não se aplica à multinomial. Separação completa pode tornar coeficientes não finitos.
+Resposta escolhe a coluna do grupo; Preditores seleciona as variáveis numéricas; Corte define o limiar para o segundo grupo no caso binário e não se aplica à multinomial. Separação completa pode tornar coeficientes não finitos. Com `metodo = "firth"` eles ficam finitos e os intervalos do `models/coefficients` passam a ser perfilados.
+
+### Firth com quase separação
+
+Nos `vinhos`, só os cultivares B e C (71 e 48), com álcool, flavonoides e intensidade de cor, os dois grupos se separam e a ML não dá coeficientes. Com `metodo = "firth"`, o coeficiente dos flavonoides é −5,23 (IC 95% perfilado de −16,69 a −1,86; p = 0,00004) e o do álcool 8,35 (de 0,48 a 28,49; p = 0,033). Os intervalos são longos e assimétricos: é o que a pouca informação de dados quase separados permite dizer.
+
+```r
+tr_flow(reg) |>
+  tr_add("v", "multi/example", dataset = "vinhos") |>
+  tr_add("bc", "data/filter", expr = 'cultivar != "A"', from = "v") |>
+  tr_add("lg", "multi/logistic", resposta = "cultivar", preditores = "alcool, flavonoides, intensidade_cor",
+         metodo = "firth", from = "bc") |>
+  tr_add("rc", "models/coefficients", exponenciar = TRUE, from = "lg")
+```
 
 ## Veja também
 

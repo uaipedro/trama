@@ -1766,6 +1766,13 @@
         "default": 3
       },
       {
+        "name": "importancia",
+        "kind": "enum",
+        "label": "Importância",
+        "default": "impureza",
+        "choices": ["impureza", "permutacao", "impureza_corrigida"]
+      },
+      {
         "name": "seed",
         "kind": "integer",
         "label": "Semente",
@@ -1931,7 +1938,7 @@
         "kind": "enum",
         "label": "Estratégia",
         "default": "aleatoria",
-        "choices": ["aleatoria", "temporal", "grupo"]
+        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
       },
       {
         "name": "ordem",
@@ -2130,7 +2137,7 @@
         "kind": "enum",
         "label": "Estratégia",
         "default": "aleatoria",
-        "choices": ["aleatoria", "temporal", "grupo"]
+        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
       },
       {
         "name": "ordem",
@@ -2421,7 +2428,7 @@
         "kind": "enum",
         "label": "Estratégia",
         "default": "aleatoria",
-        "choices": ["aleatoria", "temporal", "grupo"]
+        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
       },
       {
         "name": "ordem",
@@ -3063,6 +3070,13 @@
         "kind": "number",
         "label": "Confiança",
         "default": 0.95
+      },
+      {
+        "name": "intervalo",
+        "kind": "enum",
+        "label": "Intervalo",
+        "default": "padrão",
+        "choices": ["padrão", "perfilado", "Wald"]
       }
     ],
     "icon": "variable"
@@ -3208,6 +3222,19 @@
         "label": "Previsto (modo tabela)",
         "default": "previsto",
         "example": "previsto"
+      },
+      {
+        "name": "tabela",
+        "kind": "enum",
+        "label": "Tabela",
+        "default": "matriz",
+        "choices": ["matriz", "métricas"]
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
       }
     ],
     "icon": "table"
@@ -3524,6 +3551,12 @@
         "label": "Previsto (modo tabela)",
         "default": "previsto",
         "example": "previsto"
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
       }
     ],
     "icon": "gauge"
@@ -3553,7 +3586,7 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "PlantGrowth",
-        "choices": ["PlantGrowth", "milho_dbc", "racao_dql", "adubo_dbc", "ToothGrowth", "warpbreaks", "npk", "aveia", "sleepstudy", "cbpp", "InsectSprays", "Puromycin", "mtcars", "cars"]
+        "choices": ["PlantGrowth", "milho_dbc", "racao_dql", "adubo_dbc", "ToothGrowth", "warpbreaks", "npk", "aveia", "sleepstudy", "cbpp", "grouseticks", "InsectSprays", "Puromycin", "mtcars", "cars"]
       }
     ],
     "icon": "database"
@@ -3681,6 +3714,13 @@
         "label": "Bloco",
         "default": "",
         "example": "bloco"
+      },
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "auto",
+        "choices": ["auto", "friedman", "durbin", "skillings_mack"]
       }
     ],
     "icon": "list-ordered"
@@ -3748,7 +3788,7 @@
     "accent": "#31765a",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Misto generalizado",
+    "label": "GLM misto",
     "category": "modelo_ajustar",
     "categoryLabel": "Ajustar",
     "categoryOrder": 15,
@@ -3777,28 +3817,28 @@
         "kind": "expr",
         "label": "Fórmula",
         "default": "",
-        "example": "cbind(incidence, size - incidence) ~ period + (1 | herd)"
+        "example": "cbind(casos, sadios) ~ periodo + (1 | rebanho)"
       },
       {
         "name": "resposta",
         "kind": "cols",
         "label": "Resposta (sem fórmula)",
         "default": "",
-        "example": "doente"
+        "example": "TICKS"
       },
       {
         "name": "fixos",
         "kind": "cols",
         "label": "Efeitos fixos (sem fórmula)",
         "default": "",
-        "example": "tratamento"
+        "example": "YEAR"
       },
       {
         "name": "grupo",
         "kind": "cols",
         "label": "Grupo aleatório (sem fórmula)",
         "default": "",
-        "example": "bloco"
+        "example": "BROOD"
       },
       {
         "name": "familia",
@@ -3806,9 +3846,87 @@
         "label": "Família",
         "default": "binomial",
         "choices": ["binomial", "poisson"]
+      },
+      {
+        "name": "nivel_obs",
+        "kind": "boolean",
+        "label": "Efeito por observação",
+        "default": false
       }
     ],
     "icon": "layers-2"
+  },
+  "models/gls": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "GLS (erro correlacionado)",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 15,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#14b8a6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "formula",
+        "kind": "expr",
+        "label": "Fórmula (efeitos fixos)",
+        "default": "",
+        "example": "Reaction ~ Days"
+      },
+      {
+        "name": "correlacao",
+        "kind": "enum",
+        "label": "Correlação no grupo",
+        "default": "ar1",
+        "choices": ["nenhuma", "ar1", "car1", "simetria_composta", "nao_estruturada"]
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (medidas repetidas)",
+        "default": "",
+        "example": "Subject"
+      },
+      {
+        "name": "tempo",
+        "kind": "cols",
+        "label": "Tempo (ocasião)",
+        "default": "",
+        "example": "Days"
+      },
+      {
+        "name": "variancia_por",
+        "kind": "cols",
+        "label": "Variância por (opcional)",
+        "default": "",
+        "example": "Days"
+      },
+      {
+        "name": "reml",
+        "kind": "boolean",
+        "label": "REML",
+        "default": true
+      }
+    ],
+    "icon": "chart-network"
   },
   "models/importance": {
     "accent": "#d3e9de",
@@ -4854,6 +4972,12 @@
         "example": "prob_sim"
       },
       {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
+      },
+      {
         "name": "aspecto",
         "kind": "enum",
         "label": "Proporção",
@@ -5156,6 +5280,18 @@
         "label": "Probabilidade (modo tabela)",
         "default": "",
         "example": "prob_1"
+      },
+      {
+        "name": "confianca",
+        "kind": "number",
+        "label": "Confiança do IC da AUC",
+        "default": 0.95
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
       },
       {
         "name": "aspecto",
@@ -6198,8 +6334,15 @@
       {
         "name": "confianca",
         "kind": "number",
-        "label": "Confiança",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -6249,8 +6392,15 @@
       {
         "name": "confianca",
         "kind": "number",
-        "label": "Confiança",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -6300,8 +6450,15 @@
       {
         "name": "confianca",
         "kind": "number",
-        "label": "Confiança",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -6351,8 +6508,15 @@
       {
         "name": "confianca",
         "kind": "number",
-        "label": "Confiança",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -6442,6 +6606,13 @@
         "kind": "number",
         "label": "Corte (binária)",
         "default": 0.5
+      },
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "ml",
+        "choices": ["ml", "firth"]
       }
     ],
     "icon": "chart-spline"
@@ -9652,6 +9823,13 @@
         "label": "Pareamento",
         "default": "terços",
         "choices": ["terços", "metades"]
+      },
+      {
+        "name": "correcao",
+        "kind": "enum",
+        "label": "Correção para autocorrelação",
+        "default": "nenhuma",
+        "choices": ["nenhuma", "bootstrap_blocos"]
       }
     ],
     "icon": "arrow-up-down"
@@ -9986,6 +10164,13 @@
         "kind": "integer",
         "label": "Horizonte",
         "default": 12
+      },
+      {
+        "name": "intervalo",
+        "kind": "enum",
+        "label": "Intervalo",
+        "default": "normal",
+        "choices": ["normal", "bootstrap"]
       }
     ],
     "icon": "trending-up"
@@ -10127,6 +10312,100 @@
     ],
     "params": [],
     "icon": "pipette"
+  },
+  "series/intervencao": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Intervenção",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 41,
+    "inputColor": "#34d399",
+    "outputColor": "#38bdf8",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "serie",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "data",
+        "kind": "text",
+        "label": "Data da intervenção",
+        "default": "",
+        "example": "1983, 2"
+      },
+      {
+        "name": "tipo",
+        "kind": "enum",
+        "label": "Tipo",
+        "default": "degrau",
+        "choices": ["degrau", "pulso", "rampa"]
+      },
+      {
+        "name": "p",
+        "kind": "integer",
+        "label": "p (AR)",
+        "default": 0
+      },
+      {
+        "name": "d",
+        "kind": "integer",
+        "label": "d (diferenças)",
+        "default": 1
+      },
+      {
+        "name": "q",
+        "kind": "integer",
+        "label": "q (MA)",
+        "default": 1
+      },
+      {
+        "name": "P",
+        "kind": "integer",
+        "label": "P (AR sazonal)",
+        "default": 0
+      },
+      {
+        "name": "D",
+        "kind": "integer",
+        "label": "D (diferença sazonal)",
+        "default": 0
+      },
+      {
+        "name": "Q",
+        "kind": "integer",
+        "label": "Q (MA sazonal)",
+        "default": 0
+      },
+      {
+        "name": "constante",
+        "kind": "boolean",
+        "label": "Constante",
+        "default": false
+      },
+      {
+        "name": "resposta",
+        "kind": "enum",
+        "label": "Resposta",
+        "default": "imediata",
+        "choices": ["imediata", "gradual"]
+      }
+    ],
+    "icon": "milestone"
   },
   "series/kpss": {
     "accent": "#8b3a62",
@@ -10357,7 +10636,7 @@
         "kind": "enum",
         "label": "Correção para autocorrelação",
         "default": "nenhuma",
-        "choices": ["nenhuma", "hamed_rao", "pre_branqueamento"]
+        "choices": ["nenhuma", "hamed_rao", "pre_branqueamento", "bootstrap_blocos"]
       }
     ],
     "icon": "trending-up"
@@ -10586,7 +10865,15 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "correcao",
+        "kind": "enum",
+        "label": "Correção para autocorrelação",
+        "default": "nenhuma",
+        "choices": ["nenhuma", "bootstrap_blocos"]
+      }
+    ],
     "icon": "milestone"
   },
   "series/phillips_perron": {
@@ -11355,15 +11642,15 @@
       {
         "name": "defasagens",
         "kind": "integer",
-        "label": "Defasagens",
-        "default": 0
+        "label": "Defasagens (-1 = regra de Schwert)",
+        "default": -1
       },
       {
         "name": "selecao",
         "kind": "enum",
         "label": "Escolha das defasagens",
-        "default": "t_sig",
-        "choices": ["t_sig", "fixa"]
+        "default": "fixa",
+        "choices": ["fixa", "t_sig"]
       }
     ],
     "icon": "split"

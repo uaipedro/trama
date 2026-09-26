@@ -18,12 +18,20 @@
 #' @param grupo Coluna que identifica indivíduo, lote ou área, usada por
 #'   `estrategia = "grupo"`; `proporcao` passa a ser a fração dos grupos.
 #' @param seed Semente inteira; o estado RNG do chamador é restaurado.
-#' @return Lista com tibbles treino e teste.
+#' @return Lista com tibbles treino e teste, marcados com o atributo
+#'   `tr_ml_origem` (`papel` = `"treino"`/`"teste"` e `divisao`, um id da
+#'   divisão, mais as impressões digitais das linhas do teste). Ajustar no
+#'   teste (inclusive numa tabela que junta treino e teste) e avaliar o treino
+#'   passam a ser recusados. A marca não cobre juntar com o teste à direita
+#'   (`tr_join(outra, teste)`), remodelar (`pivot_longer`/`pivot_wider`),
+#'   recriar a tabela à mão, reescrever ou tirar colunas da divisão, nem
+#'   divisões feitas fora do `ml/split`; aí os blocos seguem como sem marca.
 #' @export
 tr_ml_split <- function(dados, resposta = "", proporcao = 0.75,
                         estratificar = TRUE, estrategia = "aleatoria",
                         ordem = "", grupo = "", seed = 42L) {
   .tr_ml_validate_data(dados, resposta)
+  .tr_ml_exigir_nao_teste(dados)
   if (!is.numeric(proporcao) || length(proporcao) != 1L ||
       !is.finite(proporcao) || proporcao <= 0 || proporcao >= 1) {
     stop("proporcao deve ser um n\u{FA}mero finito estritamente entre 0 e 1.",
@@ -47,10 +55,9 @@ tr_ml_split <- function(dados, resposta = "", proporcao = 0.75,
   estrategia <- .tr_ml_enum(estrategia, c("aleatoria", "temporal", "grupo"), "estrategia")
   if (estrategia != "aleatoria") {
     idx <- .tr_ml_with_rng(seed, .tr_ml_split_dependente(dados, estrategia, proporcao, ordem, grupo))
-    return(list(treino = tibble::as_tibble(dados[idx, , drop = FALSE]),
-                teste = tibble::as_tibble(dados[-idx, , drop = FALSE])))
+    return(.tr_ml_split_saida(dados, idx))
   }
-  .tr_ml_with_rng(seed, {
+  idx <- .tr_ml_with_rng(seed, {
     if (isTRUE(estratificar) &&
         (is.factor(y) || is.character(y) || is.logical(y))) {
       classes <- unique(y)
@@ -71,11 +78,26 @@ tr_ml_split <- function(dados, resposta = "", proporcao = 0.75,
       nt <- min(n - 1L, max(1L, floor(n * proporcao)))
       idx <- sort(sample.int(n, nt, replace = FALSE))
     }
-    list(
-      treino = tibble::as_tibble(dados[idx, , drop = FALSE]),
-      teste = tibble::as_tibble(dados[-idx, , drop = FALSE])
-    )
+    idx
   })
+  .tr_ml_split_saida(dados, idx)
+}
+
+# Treino e teste marcados com a proveniência (ver R/proveniencia.R). A marca
+# anterior da entrada (dividir de novo um treino) é substituída.
+.tr_ml_split_saida <- function(dados, idx) {
+  id <- .tr_ml_divisao_id(dados, idx)
+  base <- tibble::as_tibble(dados)
+  attr(base, .tr_ml_origem_attr) <- NULL
+  # Impressões por linha nas colunas da divisão: o multiconjunto do teste e,
+  # para cada impressão dele, quantas cópias idênticas foram para o treino.
+  colunas <- .tr_ml_colunas_canonicas(names(base))
+  f <- .tr_ml_impressoes(base, colunas)
+  mc <- .tr_ml_multiconjunto(f[-idx])
+  teste <- list(impressao = mc$impressao, n_teste = mc$n,
+                n_treino = .tr_ml_contar(.tr_ml_multiconjunto(f[idx]), mc$impressao))
+  list(treino = .tr_ml_marcar(base[idx, , drop = FALSE], "treino", id, colunas, teste),
+       teste = .tr_ml_marcar(base[-idx, , drop = FALSE], "teste", id, colunas, teste))
 }
 
 #' As métricas que a busca de hiperparâmetros compara, fold a fold.
@@ -154,16 +176,23 @@ tr_ml_example <- function(nome = "iris") {
   classes <- unique(ys)
   n <- length(ys)
   acc <- mean(ys == ps)
-  # Por classe (um contra todos). Precisão de uma classe nunca prevista e F1
-  # sem acerto valem 0 (convenção zero_division = 0 do scikit-learn).
+  # Por classe (um contra todos). Precisão de uma classe nunca prevista é 0/0,
+  # indefinida: fica NA e sai das médias macro e ponderada (pesos
+  # renormalizados), como `zero_division = np.nan` do scikit-learn (>= 1.3);
+  # o padrão do scikit-learn ("warn") põe 0 e puxa a média para baixo. F1 sem
+  # acerto é 2TP/(2TP + FP + FN) = 0, definido para toda classe observada.
   por <- vapply(classes, function(k) {
     tp <- sum(ys == k & ps == k); fp <- sum(ys != k & ps == k); fn <- sum(ys == k & ps != k)
-    c(precision = if (tp + fp == 0) 0 else tp / (tp + fp),
+    c(precision = if (tp + fp == 0) NA_real_ else tp / (tp + fp),
       recall = tp / (tp + fn),
       f1 = if (tp == 0) 0 else 2 * tp / (2 * tp + fp + fn),
       suporte = tp + fn)
   }, numeric(4))
   w <- por["suporte", ] / n
+  media_def <- function(x, peso = rep(1, length(x))) {
+    ok <- !is.na(x)
+    if (!any(ok)) NA_real_ else sum(peso[ok] * x[ok]) / sum(peso[ok])
+  }
   # Kappa de Cohen (1960): concordância observada contra a esperada pelas
   # marginais da tabela observado x previsto (rótulos de ambos os lados).
   rotulos <- union(ys, ps)
@@ -175,8 +204,8 @@ tr_ml_example <- function(nome = "iris") {
                 "weighted_recall", "weighted_f1"),
     classe = NA_character_,
     valor = c(acc, mean(por["recall", ]), mean(por["f1", ]), kappa,
-              mean(por["precision", ]), mean(por["recall", ]),
-              sum(w * por["precision", ]), sum(w * por["recall", ]), sum(w * por["f1", ])),
+              media_def(por["precision", ]), mean(por["recall", ]),
+              media_def(por["precision", ], w), sum(w * por["recall", ]), sum(w * por["f1", ])),
     n = n)
   k <- length(classes)
   por_classe <- tibble::tibble(

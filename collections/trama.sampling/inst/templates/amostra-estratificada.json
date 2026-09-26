@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 7,
     "collections": {
-      "sampling": "0.1.0"
+      "sampling": "0.3.0"
     },
     "nodes": {
       "pop": {

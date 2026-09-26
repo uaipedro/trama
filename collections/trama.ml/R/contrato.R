@@ -51,6 +51,7 @@ tr_models_info.tr_ml_fit <- function(x) {
 
 #' @export
 tr_models_predict_raw.tr_ml_fit <- function(x, novos, ...) {
+  .tr_ml_checar_previsao(x, novos)
   p <- .tr_ml_prever(x, .tr_ml_novos_dados(x, novos))
   list(previsto = p$previsto, prob = p$prob, extra = NULL)
 }
@@ -64,7 +65,7 @@ tr_models_predict_raw.tr_ml_fit <- function(x, novos, ...) {
 #' @export
 tr_models_predict_cv.tr_ml_fit <- function(x, validacao = "resubstitui\u{E7}\u{E3}o") {
   validacao <- .tr_ml_enum(validacao, c("resubstitui\u{E7}\u{E3}o", "cruzada"), "validacao")
-  if (validacao != "cruzada") return(tr_models_predict_raw.tr_ml_fit(x, x$dados))
+  if (validacao != "cruzada") return(tr_models_predict_raw.tr_ml_fit(x, .tr_ml_sem_origem(x$dados)))
   # Modelo tunado: a busca já escolheu os hiperparâmetros pela nota nestas
   # linhas (e, com a mesma semente, nestas mesmas partições). Reavaliar por
   # cruzada devolveria a nota do vencedor, otimista por construção — viés de

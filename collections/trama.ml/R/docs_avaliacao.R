@@ -3,7 +3,7 @@
 .tr_ml_docs_avaliacao <- function() {
   P <- .tr_ml_P; I <- .tr_ml_impl; R <- trama::tr_ref
   L <- .tr_ml_livros(); C <- .tr_ml_comuns()
-  teste_fora <- P("As linhas avaliadas são do **teste**, que não participou do ajuste nem da escolha de hiperparâmetros. O bloco mede o que receber: no treino, ou num teste já usado para decidir, a medida sai otimista.",
+  teste_fora <- P("As linhas avaliadas são do **teste**, que não participou do ajuste nem da escolha de hiperparâmetros. Previsões do treino marcado pelo `ml/split` são recusadas, salvo `permitir_treino` (que acrescenta a nota de otimismo); tabelas sem essa marca (divisão feita por fora, treino e teste juntados) são medidas como chegam, e num teste já usado para decidir a medida também sai otimista — isso nenhuma marca detecta.",
     se_falhar = "Avalie a saída teste do `ml/split` passada pelo `models/predict`; se o teste já foi usado para escolher, separe um novo teste ou reporte a estimativa como otimista.")
   desequilibrio <- P("Com **classes desequilibradas**, a acurácia engana: prever sempre a classe maioritária já a deixa alta. A acurácia balanceada e o macro F1 dão peso igual a cada classe.",
     verificar = "data/group_summarise",
@@ -17,11 +17,13 @@
   list(
     "ml/tune" = list(
       pressupostos = list(
-        P("Entra **só o treino**: os folds saem das linhas recebidas e o vencedor é reajustado nelas todas. Se o teste entrar aqui, ele deixa de ser teste.",
+        P("Entra **só o treino**: os folds saem das linhas recebidas e o vencedor é reajustado nelas todas. Se o teste entrar aqui, ele deixa de ser teste — a saída teste do `ml/split` é recusada (`tr_ml_error_test_leak`); uma divisão feita por fora não tem marca e depende de você.",
           se_falhar = "Ligue a saída treino do `ml/split`; a teste vai só ao `models/predict`."),
         C$sem_vazamento,
         P("Os folds refletem a **dependência** dos dados: `aleatoria` (estratificada pela classe) supõe linhas independentes; `grupo` põe cada indivíduo, lote ou área num só fold; `temporal` usa origem móvel com janela crescente — cada fold treina no passado e valida no bloco seguinte, nunca no futuro do treino. Folds aleatórios com dados dependentes dão erro otimista (Roberts et al. 2017).",
           se_falhar = "Escolha `estrategia = \"grupo\"` com `grupo`, ou `\"temporal\"` com `ordem`, e use a mesma estratégia no `ml/split`."),
+        P("Na classificação, cada fold de validação precisa das **duas classes** (ou de todas): com folds por grupo e grupos de uma classe só, um fold pode validar uma classe apenas, e nele macro F1, kappa e acurácia balanceada degeneram. O bloco avisa e guarda a nota (`nota`).",
+          se_falhar = "Use `estrategia = \"grupo_estratificado\"`, que distribui os grupos inteiros equilibrando as classes entre os folds (como o StratifiedGroupKFold do scikit-learn), ou menos folds."),
         P("A **média dos folds do vencedor é otimista**: foi a melhor entre muitas tentativas, e parte da vantagem é sorte. Ela serve para escolher, não para reportar o desempenho.",
           verificar = "ml/tuning_plot",
           se_falhar = "Reporte o desempenho medido no teste com `models/predict` e `models/evaluate`. Sem teste separado (n pequeno), use o `ml/nested_cv`, que estima o procedimento inteiro sem reaproveitar as linhas da escolha."),
@@ -76,9 +78,13 @@
         P("Na divisão `grupo`, `proporcao` é a **fração dos grupos**; com grupos de tamanhos muito diferentes, a fração das linhas pode se afastar dela, e a estratificação por classe não é feita.",
           verificar = "data/group_summarise",
           se_falhar = "Conte linhas e classes por lado no `data/group_summarise`; se uma classe faltar no teste, mude a semente ou a proporção."),
+        P("As saídas levam a **proveniência** (atributo `tr_ml_origem`: papel treino/teste, um id da divisão e as impressões digitais das linhas do teste, com a contagem de cópias): ajustar no teste, ou numa tabela que junta treino e teste, é recusado; prever o teste com um modelo que viu linhas dele no ajuste é recusado; avaliar o treino, ou um teste misturado a linhas de fora, exige `permitir_treino` — o vazamento treino-teste de Kaufman et al. (2012) barrado por construção. A marca sobrevive ao cache, a filtros e a colunas novas.",
+          se_falhar = "Faça a divisão sempre no `ml/split`, antes de qualquer escolha."),
+        P("A marca **não cobre**: juntar com o teste à direita (`data/join` com o teste como segunda tabela), remodelar (`pivot_longer`/`pivot_wider`), recriar a tabela à mão, reescrever ou tirar colunas da divisão, e dividir fora do `ml/split`. Nesses casos os blocos seguem como sem marca.",
+          se_falhar = "Divida primeiro e transforme cada lado depois; se precisar de uma dessas operações, mantenha o teste longe dos ajustes você mesmo."),
         C$semente),
-      referencias = list(L$roberts, L$tashman, L$fpp3, L$islr, L$kuhn,
-        I("trama.ml", "tr_ml_split", "Implementação própria: sorteio estratificado pela classe (`aleatoria`); corte no instante da linha floor(n·proporção) na ordem do tempo, todas as linhas até ele no treino (`temporal`); sorteio de floor(G·proporção) grupos inteiros (`grupo`).")))
+      referencias = list(L$kaufman, L$roberts, L$tashman, L$fpp3, L$islr, L$kuhn,
+        I("trama.ml", "tr_ml_split", "Implementação própria: sorteio estratificado pela classe (`aleatoria`); corte no instante da linha floor(n·proporção) na ordem do tempo, todas as linhas até ele no treino (`temporal`); sorteio de floor(G·proporção) grupos inteiros (`grupo`); proveniência por atributo e impressões digitais xxHash64 das linhas do teste (`cli`).")))
 
   )
 }

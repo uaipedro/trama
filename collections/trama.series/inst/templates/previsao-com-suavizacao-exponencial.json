@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 7,
     "collections": {
-      "series": "0.1.0"
+      "series": "0.4.0"
     },
     "nodes": {
       "pax": {

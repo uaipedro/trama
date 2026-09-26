@@ -1,4 +1,11 @@
-# trama.sampling (desenvolvimento)
+# trama.sampling 0.3.0
+
+Versão sobe para 0.3.0: a 0.2.0 era a das mudanças de método da main
+(planejamento com t, Clopper-Pearson de Korn & Graubard); a coesão das
+coleções muda de novo (confiança numérica no glossário, a curva do plano
+inclui a confiança), e sobe mais um minor.
+
+## 0.2.0 (mudanças de método da main)
 
 ## Mudanças de método (revisão metodológica, 2026-09-25)
 

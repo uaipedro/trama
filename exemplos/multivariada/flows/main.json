@@ -157,7 +157,7 @@
     },
     "confusao": {
       "type": "models/confusion",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Confusão (validação cruzada)",
       "params": {},
       "seed": 145114738
@@ -198,7 +198,7 @@
     },
     "rc": {
       "type": "models/coefficients",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Razões de chances",
       "params": {
         "escala": "desvio padrão",
@@ -208,28 +208,28 @@
     },
     "roc_logit": {
       "type": "models/roc",
-      "type_version": 2,
+      "type_version": 3,
       "label": "ROC da logística",
       "params": {},
       "seed": 206583117
     },
     "conf_logit": {
       "type": "models/confusion",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Confusão (logística)",
       "params": {},
       "seed": 639201584
     },
     "conf_lda": {
       "type": "models/confusion",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Confusão (LDA)",
       "params": {},
       "seed": 452877310
     },
     "jk_pca": {
       "type": "multi/jackknife_pca",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Jackknife das cargas",
       "params": {
         "estatistica": "cargas"

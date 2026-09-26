@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 5,
     "collections": {
-      "data": "0.1.0"
+      "data": "0.2.0"
     },
     "nodes": {
       "carros": {

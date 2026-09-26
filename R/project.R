@@ -256,7 +256,12 @@ tr_project_new <- function(root, collections = character()) {
 #' @export
 tr_project_flow <- function(project, name = "main") {
   p <- file.path(project$flows_dir, paste0(name, ".json"))
-  if (file.exists(p)) tr_doc_migrate(tr_doc_read(p), project$registry) else tr_doc()
+  if (!file.exists(p)) return(tr_doc())
+  # Abrir é onde o flow velho encontra o registry: migra aqui, uma vez, e
+  # avisa. O arquivo só é regravado pelo autosave da próxima edição.
+  doc <- tr_doc_migrate(tr_doc_read(p), project$registry %||% .tr_default_registry)
+  for (m in .tr_migracoes_texto(attr(doc, "migracoes"))) message("trama: ", m)
+  doc
 }
 
 #' Grava o flow `name` do projeto em `flows/<name>.json`.

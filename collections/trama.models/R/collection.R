@@ -16,7 +16,7 @@
 #' @export
 trama_collection <- function() {
   trama::tr_collection(
-    id = "models", version = "0.1.0", label = "Modelos",
+    id = "models", version = "0.3.0", label = "Modelos",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.models")),
     js = "trama/index.js", css = "trama/models.css",
     types = list(models_fit_type(), models_effects_type(), models_emm_type()),
@@ -73,7 +73,8 @@ trama_collection <- function() {
     # injeção não sobrescreve, um `escala = "unidade"` gravado fica.
     migrations = list(
       nodes = c(list("multi/classify" = "models/predict", "multi/confusion" = "models/confusion",
-                     "multi/roc" = "models/roc", "multi/logistic_coefficients" = list(to = "models/coefficients",
+                     "multi/roc" = "models/roc", "multi/pr_curve" = "models/pr_curve",
+                     "multi/logistic_coefficients" = list(to = "models/coefficients",
                                                          params = list(exponenciar = TRUE)),
                      "multi/plot_odds" = list(to = "models/plot_coefficients",
                                               params = list(exponenciar = TRUE, escala = "desvio padrão")),

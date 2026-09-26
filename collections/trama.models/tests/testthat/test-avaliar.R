@@ -120,7 +120,7 @@ test_that("roc: a AUC e o corte batem com a logística da multi e com Mann-Whitn
                                             c("0", "1"))
   expect_equal(rd$curvas$auc[[1]], auc_ml)
   # modo tabela (probabilidade vazia = prob_<positiva>) e modelo + dados
-  expect_match(subtitulo(tr_models_roc(dados = tab, resposta = "am_f")), "AUC 0,943 · tabela", fixed = TRUE)
+  expect_match(subtitulo(tr_models_roc(dados = tab, resposta = "am_f")), "AUC 0,943 \\(IC 95% DeLong .*\\) · tabela")
   expect_match(subtitulo(tr_models_roc(g, mt)), "dados novos", fixed = TRUE)
   expect_match(subtitulo(tr_models_roc(g, positiva = "0")), "positivo: 0", fixed = TRUE)
 })
@@ -226,7 +226,9 @@ test_that("coefficients: batem com os da logística da multi (escala e confianç
   g <- logit()
   lg <- trama.multi::tr_multi_logistic(mt, resposta = "am_f", preditores = "wt, hp")
   for (esc in c("unidade", "desvio padrão")) {
-    ref <- tr_models_coefficients(lg, exponenciar = TRUE, escala = esc, confianca = 0.9)$tabela
+    # A logística da multi usa IC perfilado por padrão (main 495ea07): a comparação
+    # com o GLM (Wald) é pelo intervalo de Wald.
+    ref <- tr_models_coefficients(lg, exponenciar = TRUE, escala = esc, confianca = 0.9, intervalo = "Wald")$tabela
     t <- tr_models_coefficients(g, exponenciar = TRUE, escala = esc, confianca = 0.9)$tabela
     expect_equal(t$estimativa, ref$estimativa, tolerance = 1e-6, info = esc)
     expect_equal(t$li_90, ref$li_90, tolerance = 1e-6, info = esc)

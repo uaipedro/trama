@@ -25,8 +25,8 @@
       pressupostos = list(
         P("Com **Correção** `nenhuma`, sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva, comum em série ambiental, faz o teste rejeitar bem mais que o nível nominal.",
           verificar = c("series/acf", "series/ljung_box"),
-          se_falhar = "Troque a **Correção** para `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."),
-        P("Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009).",
+          se_falhar = "Troque a **Correção** para `bootstrap_blocos` (p por bootstrap de blocos móveis; o que mais se aproxima do nível), `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."),
+        P("Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 5,5% com phi = 0,3 e n = 120, mas 7,7% a 9,0% com phi = 0,6 (n = 120 e 60).",
           verificar = c("series/acf", "series/pacf"),
           se_falhar = "Com autocorrelação forte, modele o erro: `series/regression` com **Erro** = `arma` e o `series/f_trend`."),
         monotona, continua,
@@ -44,11 +44,20 @@
           titulo = "Enhancing the effectiveness of prewhitening in trend analysis of hydrologic data",
           fonte = "Journal of Hydrology, 368(1-4), 143-155", doi = "10.1016/j.jhydrol.2009.01.040",
           papel = "complementar"),
-        I("trama.series", "tr_series_mann_kendall", "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre."))),
+        R(autores = c("Kundzewicz, Z. W.", "Robson, A. J."), ano = 2004,
+          titulo = "Change detection in hydrological records—a review of the methodology",
+          fonte = "Hydrological Sciences Journal, 49(1), 7-19", doi = "10.1623/hysj.49.1.7.53993"),
+        R(autores = "Künsch, H. R.", ano = 1989,
+          titulo = "The jackknife and the bootstrap for general stationary observations",
+          fonte = "The Annals of Statistics, 17(3), 1217-1241", doi = "10.1214/aos/1176347265",
+          papel = "complementar"),
+        I("trama.series", "tr_series_mann_kendall", "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre. Conferido no texto de Yue et al. (2002, p. 1822-1823, passos 1 a 4): o AR(1) é removido SEMPRE, sem condição de significância; o teste do r1 (eq. B.1, 10% bilateral) só escolhe as estações da aplicação (p. 1825). Diferença documentada: o r1 do artigo é a eq. 14a, com 1/(n − k) no numerador e 1/n no denominador, isto é, n/(n − 1) vezes o r1 do `stats::acf` que o `modifiedmk::tfpwmk` e este bloco usam (com n = 60, 1,7% maior); segue-se o `modifiedmk`, que é o oráculo. `bootstrap_blocos`: blocos móveis de round(√n), inícios sorteados com reposição, 1999 reamostras, p = (1 + #{|S*| ≥ |S|})/(B + 1), semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."))),
 
     "series/cox_stuart" = list(
       pressupostos = list(
-        indep("Os pares são tratados como independentes; com autocorrelação o teste rejeita demais."),
+        P("Com **Correção** `nenhuma`, os pares são tratados como **independentes**; com autocorrelação o teste rejeita demais (medido, AR(1) phi = 0,6: 23% a 25% a 5%). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 3,8% a 6,6% (phi 0,3 e 0,6; n = 60 e 120).",
+          verificar = c("series/acf", "series/ljung_box"),
+          se_falhar = "Troque a **Correção** para `bootstrap_blocos`, ou use o `series/mann_kendall` com a mesma correção (mais poder)."),
         monotona, continua,
         P("Sobram **pelo menos 6 pares** depois dos empates (o bloco pede 16 observações); com menos, nem o resultado mais extremo rejeita a 5%.")),
       referencias = list(
@@ -56,7 +65,10 @@
           titulo = "Some quick sign tests for trend in location and dispersion",
           fonte = "Biometrika, 42(1-2), 80-95", doi = "10.1093/biomet/42.1-2.80"),
         L$morettin,
-        I("trama.series", "tr_series_cox_stuart", "Cálculo próprio: pares em terços (original) ou metades, empates descartados; `stats::binom.test` com menos de 20 pares, aproximação normal a partir de 20."))),
+        R(autores = c("Kundzewicz, Z. W.", "Robson, A. J."), ano = 2004,
+          titulo = "Change detection in hydrological records—a review of the methodology",
+          fonte = "Hydrological Sciences Journal, 49(1), 7-19", doi = "10.1623/hysj.49.1.7.53993"),
+        I("trama.series", "tr_series_cox_stuart", "Cálculo próprio: pares em terços (original) ou metades, empates descartados; `stats::binom.test` com menos de 20 pares, aproximação normal a partir de 20. `bootstrap_blocos`: soma dos sinais dos pares (mesmo pareamento) em blocos móveis de round(√n), 1999 reamostras, semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."))),
 
     "series/runs" = list(
       pressupostos = list(
@@ -77,7 +89,9 @@
 
     "series/pettitt" = list(
       pressupostos = list(
-        indep("Autocorrelação positiva imita ponto de mudança e faz o teste rejeitar demais."),
+        P("Com **Correção** `nenhuma`, sob H0 as observações são **independentes**: autocorrelação positiva imita ponto de mudança (medido, AR(1) phi = 0,6: 46% a 55% a 5%). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 3,5% a 4,6% com phi = 0,3 e 7,8% a 8,7% com phi = 0,6 (n = 60 e 120).",
+          verificar = c("series/acf", "series/ljung_box"),
+          se_falhar = "Troque a **Correção** para `bootstrap_blocos`; com autocorrelação forte, leia um \"rejeita\" apertado com cautela."),
         P("Há **no máximo um** ponto de mudança, de **locação** (a distribuição antes e depois difere no nível). Várias mudanças, ou uma tendência gradual, também rejeitam, e a posição apontada não é então uma quebra.",
           verificar = c("series/plot", "series/mann_kendall"),
           se_falhar = "Analise os trechos em separado (`series/window`)."),
@@ -88,7 +102,10 @@
           titulo = "A non-parametric approach to the change-point problem",
           fonte = "Journal of the Royal Statistical Society. Series C (Applied Statistics), 28(2), 126-135",
           doi = "10.2307/2346729"),
-        I("trama.series", "tr_series_pettitt", "Cálculo próprio: U_t acumulado de Mann-Whitney, K = max|U_t|, p ≈ 2·exp(−6K²/(n³ + n²)) limitado a 1."))),
+        R(autores = c("Kundzewicz, Z. W.", "Robson, A. J."), ano = 2004,
+          titulo = "Change detection in hydrological records—a review of the methodology",
+          fonte = "Hydrological Sciences Journal, 49(1), 7-19", doi = "10.1623/hysj.49.1.7.53993"),
+        I("trama.series", "tr_series_pettitt", "Cálculo próprio: U_t acumulado de Mann-Whitney, K = max|U_t|, p ≈ 2·exp(−6K²/(n³ + n²)) limitado a 1. `bootstrap_blocos`: K em blocos móveis de round(√n), 1999 reamostras, p = (1 + #{K* ≥ K})/(B + 1), semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."))),
 
     "series/seasonality_kw" = list(
       pressupostos = list(

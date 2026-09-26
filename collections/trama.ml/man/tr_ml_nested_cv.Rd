@@ -50,7 +50,10 @@ regressão e \code{"macro_f1"} em classificação.}
 \item{amplitude}{Limites \code{"conservadora"} ou \code{"ampla"} para a busca.}
 
 \item{estrategia}{Como formar os folds: \code{"aleatoria"} (padrão; estratificada
-pela classe), \code{"grupo"} (grupos inteiros de \code{grupo} por fold) ou
+pela classe), \code{"grupo"} (grupos inteiros de \code{grupo} por fold),
+\code{"grupo_estratificado"} (grupos inteiros, distribuídos para equilibrar as
+classes entre os folds, como o StratifiedGroupKFold do scikit-learn; só
+classificação) ou
 \code{"temporal"} (origem móvel com janela crescente: os instantes de \code{ordem}
 formam \code{folds + 1} blocos contíguos e cada fold valida o bloco seguinte ao
 treino).}
@@ -68,6 +71,8 @@ Tibble com uma linha por fold externo (\code{fold}, \code{n_treino},
 \code{n_validacao}, \code{tentativa}, \code{interna} = média dos folds internos do
 vencedor, otimista; \code{externa} = métrica na validação externa) e uma linha
 final \code{fold = "media"} com as médias; a estimativa honesta é \code{externa}.
+Com folds externos de validação de uma classe só, avisa e guarda a nota
+no atributo \code{nota}.
 }
 \description{
 Estima o desempenho de todo o procedimento de ajuste — busca de

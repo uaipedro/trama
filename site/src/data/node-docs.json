@@ -2,7 +2,7 @@
   "ml/cart": {
     "pressupostos": [
       {
-        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
         "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
       },
       {
@@ -31,7 +31,7 @@
       {
         "texto": "A **importância** (no `models/importance`) é a redução de impureza somada nos cortes (inclusive substitutos) de cada preditor, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
         "verificar": ["data/summary"],
-        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Na `ml/forest`, `importancia = \"impureza_corrigida\"` ou `\"permutacao\"` tiram o viés para preditores com muitos valores."
       }
     ],
     "referencias": [
@@ -73,14 +73,14 @@
         "pacote": "rpart",
         "funcao": "rpart",
         "versao": "4.1.24",
-        "nota": "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp, xval = 10)`; depois `prune(cp)` com o CP da linha do `cptable` escolhida pela regra 1-EP (ou do mínimo de `xerror`)."
+        "nota": "`method = \"anova\"` na regressão e `\"class\"` (Gini) na classificação; `rpart.control(maxdepth, minbucket = min_n, minsplit = 2·min_n, cp, xval = min(10, n))`; depois `prune(cp)` com o CP da linha do `cptable` escolhida pela regra 1-EP (ou do mínimo de `xerror`)."
       }
     ]
   },
   "ml/figs": {
     "pressupostos": [
       {
-        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
         "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
       },
       {
@@ -110,7 +110,7 @@
       {
         "texto": "A **importância** (no `models/importance`) é a redução de erro somada por preditor em todas as árvores, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
         "verificar": ["data/summary"],
-        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Na `ml/forest`, `importancia = \"impureza_corrigida\"` ou `\"permutacao\"` tiram o viés para preditores com muitos valores."
       }
     ],
     "referencias": [
@@ -134,7 +134,7 @@
   "ml/forest": {
     "pressupostos": [
       {
-        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
         "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
       },
       {
@@ -157,9 +157,9 @@
         "se_falhar": "Escolha `mtry`, `min_n` e `max_depth` no `ml/tune`; mais árvores só custam tempo."
       },
       {
-        "texto": "A **importância** (no `models/importance`) é a redução de impureza (Gini na classificação, variância na regressão) somada nas árvores, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
+        "texto": "A **importância** (no `models/importance`) segue `importancia`: `impureza` (padrão) soma a redução de Gini/variância e favorece preditores contínuos ou com muitos valores distintos (Strobl et al. 2007); `permutacao` mede o aumento do erro fora da bolsa ao embaralhar o preditor (Breiman 2001) — na classificação, o erro de Brier que o `ranger` usa na floresta de probabilidade, média de (1 − p da classe observada)², e não a queda de acurácia; na regressão, o erro quadrático médio e `impureza_corrigida` (AIR) subtrai a importância de uma cópia permutada, sem esse viés (Nembrini et al. 2018). Todas descrevem o ajuste, não o efeito, e preditores correlacionados repartem a importância entre si; as duas últimas podem dar valores negativos (preditor sem informação).",
         "verificar": ["data/summary"],
-        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+        "se_falhar": "Com preditores de tipos ou números de valores diferentes, use `impureza_corrigida` ou `permutacao`; leia o ranking como resumo, não como causa."
       },
       {
         "texto": "O resultado depende da **semente**: outra semente muda a divisão, os folds ou o próprio ajuste, e com poucos dados a diferença pode ser grande.",
@@ -201,6 +201,14 @@
         "doi": "10.1186/1471-2105-8-25"
       },
       {
+        "papel": "teoria",
+        "autores": ["Nembrini, S.", "König, I. R.", "Wright, M. N."],
+        "ano": 2018,
+        "titulo": "The revival of the Gini importance?",
+        "fonte": "Bioinformatics, 34(21), 3711-3718",
+        "doi": "10.1093/bioinformatics/bty373"
+      },
+      {
         "papel": "complementar",
         "autores": ["Wright, M. N.", "Ziegler, A."],
         "ano": 2017,
@@ -213,14 +221,14 @@
         "pacote": "ranger",
         "funcao": "ranger",
         "versao": "0.18.0",
-        "nota": "`num.trees = trees`, `mtry` (0 = ⌊√p⌋), `min.node.size = min_n`, `max.depth`, `importance = \"impurity\"`; na classificação, floresta de probabilidade (`probability = TRUE`)."
+        "nota": "`num.trees = trees`, `mtry` (0 = ⌊√p⌋), `min.node.size = min_n`, `max.depth`, `importance` = `\"impurity\"`, `\"permutation\"` ou `\"impurity_corrected\"` conforme `importancia`, `seed` do bloco; na classificação, floresta de probabilidade (`probability = TRUE`)."
       }
     ]
   },
   "ml/linear": {
     "pressupostos": [
       {
-        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
         "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
       },
       {
@@ -343,7 +351,7 @@
         "papel": "implementacao",
         "pacote": "trama.ml",
         "funcao": "tr_ml_nested_cv",
-        "versao": "0.2.0",
+        "versao": "0.5.0",
         "nota": "Implementação própria: folds externos formados como no `ml/tune`; em cada um, `tr_ml_tune` completo só no treino externo e a métrica do vencedor na validação externa."
       }
     ]
@@ -364,11 +372,27 @@
         "se_falhar": "Conte linhas e classes por lado no `data/group_summarise`; se uma classe faltar no teste, mude a semente ou a proporção."
       },
       {
+        "texto": "As saídas levam a **proveniência** (atributo `tr_ml_origem`: papel treino/teste, um id da divisão e as impressões digitais das linhas do teste, com a contagem de cópias): ajustar no teste, ou numa tabela que junta treino e teste, é recusado; prever o teste com um modelo que viu linhas dele no ajuste é recusado; avaliar o treino, ou um teste misturado a linhas de fora, exige `permitir_treino` — o vazamento treino-teste de Kaufman et al. (2012) barrado por construção. A marca sobrevive ao cache, a filtros e a colunas novas.",
+        "se_falhar": "Faça a divisão sempre no `ml/split`, antes de qualquer escolha."
+      },
+      {
+        "texto": "A marca **não cobre**: juntar com o teste à direita (`data/join` com o teste como segunda tabela), remodelar (`pivot_longer`/`pivot_wider`), recriar a tabela à mão, reescrever ou tirar colunas da divisão, e dividir fora do `ml/split`. Nesses casos os blocos seguem como sem marca.",
+        "se_falhar": "Divida primeiro e transforme cada lado depois; se precisar de uma dessas operações, mantenha o teste longe dos ajustes você mesmo."
+      },
+      {
         "texto": "O resultado depende da **semente**: outra semente muda a divisão, os folds ou o próprio ajuste, e com poucos dados a diferença pode ser grande.",
         "se_falhar": "Repita com outras sementes e leia a variação; não escolha a semente pelo resultado."
       }
     ],
     "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Kaufman, S.", "Rosset, S.", "Perlich, C.", "Stitelman, O."],
+        "ano": 2012,
+        "titulo": "Leakage in data mining: Formulation, detection, and avoidance",
+        "fonte": "ACM Transactions on Knowledge Discovery from Data, 6(4), 1-21",
+        "doi": "10.1145/2382577.2382579"
+      },
       {
         "papel": "teoria",
         "autores": ["Roberts, D. R.", "Bahn, V.", "Ciuti, S.", "Boyce, M. S.", "Elith, J.", "Guillera-Arroita, G.", "Hauenstein, S.", "Lahoz-Monfort, J. J.", "Schröder, B.", "Thuiller, W.", "Warton, D. I.", "Wintle, B. A.", "Hartig, F.", "Dormann, C. F."],
@@ -414,15 +438,15 @@
         "papel": "implementacao",
         "pacote": "trama.ml",
         "funcao": "tr_ml_split",
-        "versao": "0.2.0",
-        "nota": "Implementação própria: sorteio estratificado pela classe (`aleatoria`); corte no instante da linha floor(n·proporção) na ordem do tempo, todas as linhas até ele no treino (`temporal`); sorteio de floor(G·proporção) grupos inteiros (`grupo`)."
+        "versao": "0.5.0",
+        "nota": "Implementação própria: sorteio estratificado pela classe (`aleatoria`); corte no instante da linha floor(n·proporção) na ordem do tempo, todas as linhas até ele no treino (`temporal`); sorteio de floor(G·proporção) grupos inteiros (`grupo`); proveniência por atributo e impressões digitais xxHash64 das linhas do teste (`cli`)."
       }
     ]
   },
   "ml/svm": {
     "pressupostos": [
       {
-        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
         "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
       },
       {
@@ -504,7 +528,7 @@
   "ml/tune": {
     "pressupostos": [
       {
-        "texto": "Entra **só o treino**: os folds saem das linhas recebidas e o vencedor é reajustado nelas todas. Se o teste entrar aqui, ele deixa de ser teste.",
+        "texto": "Entra **só o treino**: os folds saem das linhas recebidas e o vencedor é reajustado nelas todas. Se o teste entrar aqui, ele deixa de ser teste — a saída teste do `ml/split` é recusada (`tr_ml_error_test_leak`); uma divisão feita por fora não tem marca e depende de você.",
         "se_falhar": "Ligue a saída treino do `ml/split`; a teste vai só ao `models/predict`."
       },
       {
@@ -515,6 +539,10 @@
       {
         "texto": "Os folds refletem a **dependência** dos dados: `aleatoria` (estratificada pela classe) supõe linhas independentes; `grupo` põe cada indivíduo, lote ou área num só fold; `temporal` usa origem móvel com janela crescente — cada fold treina no passado e valida no bloco seguinte, nunca no futuro do treino. Folds aleatórios com dados dependentes dão erro otimista (Roberts et al. 2017).",
         "se_falhar": "Escolha `estrategia = \"grupo\"` com `grupo`, ou `\"temporal\"` com `ordem`, e use a mesma estratégia no `ml/split`."
+      },
+      {
+        "texto": "Na classificação, cada fold de validação precisa das **duas classes** (ou de todas): com folds por grupo e grupos de uma classe só, um fold pode validar uma classe apenas, e nele macro F1, kappa e acurácia balanceada degeneram. O bloco avisa e guarda a nota (`nota`).",
+        "se_falhar": "Use `estrategia = \"grupo_estratificado\"`, que distribui os grupos inteiros equilibrando as classes entre os folds (como o StratifiedGroupKFold do scikit-learn), ou menos folds."
       },
       {
         "texto": "A **média dos folds do vencedor é otimista**: foi a melhor entre muitas tentativas, e parte da vantagem é sorte. Ela serve para escolher, não para reportar o desempenho.",
@@ -614,7 +642,7 @@
         "papel": "implementacao",
         "pacote": "trama.ml",
         "funcao": "tr_ml_tune",
-        "versao": "0.2.0",
+        "versao": "0.5.0",
         "nota": "Implementação própria: busca aleatória (log-uniforme para `cost`, `gamma` e `eta`) avaliada nos mesmos k folds (aleatórios estratificados, por grupo ou de origem móvel no tempo); o vencedor, pela média, é reajustado com `tr_ml_fit` em todas as linhas."
       }
     ]
@@ -622,7 +650,7 @@
   "ml/xgboost": {
     "pressupostos": [
       {
-        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+        "texto": "O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
         "se_falhar": "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."
       },
       {
@@ -645,9 +673,9 @@
         "se_falhar": "Escolha os três juntos no `ml/tune` (eta menor pede mais rodadas); nunca pare pelo desempenho no teste."
       },
       {
-        "texto": "A **importância** (no `models/importance`) é o ganho (Gain) somado nos cortes de cada preditor, medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
+        "texto": "A **importância** (no `models/importance`) é o Gain relativo: a fração do ganho total das divisões que usam cada preditor (soma 1), medida no treino: descreve o ajuste, não o efeito. Tende a favorecer preditores contínuos ou com muitos valores distintos, e preditores correlacionados repartem entre si a importância.",
         "verificar": ["data/summary"],
-        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Importância por permutação ou condicional ainda sem bloco no trama."
+        "se_falhar": "Leia a importância como resumo do modelo, não como ranking de causas. Na `ml/forest`, `importancia = \"impureza_corrigida\"` ou `\"permutacao\"` tiram o viés para preditores com muitos valores."
       }
     ],
     "referencias": [
@@ -699,7 +727,7 @@
       {
         "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
         "verificar": ["models/shapiro_residuals", "models/plot_diagnostics"],
-        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/friedman` (uma observação por bloco e tratamento)."
+        "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; sem modelo que sirva, o `models/friedman` (uma observação por bloco e tratamento; com blocos incompletos ele usa o Durbin ou o Skillings–Mack)."
       },
       {
         "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
@@ -958,7 +986,7 @@
         "verificar": ["models/shapiro_residuals", "models/levene", "models/plot_diagnostics"]
       },
       {
-        "texto": "No **tipo III**, os fatores estão em contrastes de soma zero (o bloco reajusta sozinho); no **tipo I**, a ordem dos termos na fórmula é a ordem das perguntas.",
+        "texto": "No **tipo III**, os fatores estão em contrastes de soma zero (o bloco reajusta sozinho, também no GLM misto e no GLS; o `lmerTest` já é invariante ao contraste). Uma **covariável numérica em interação** com fator não é centrada: o efeito principal do fator é testado com a covariável em zero, e a nota avisa. No **tipo I**, a ordem dos termos na fórmula é a ordem das perguntas.",
         "se_falhar": "No desbalanceado, prefira o tipo II quando não há interação, e o III quando há."
       }
     ],
@@ -986,6 +1014,13 @@
       },
       {
         "papel": "implementacao",
+        "pacote": "nlme",
+        "funcao": "anova.gls",
+        "versao": "3.1.168",
+        "nota": "No GLS, `type = \"sequential\"` (tipo I) ou `\"marginal\"` (tipo III, com os fatores reajustados em `contr.sum`)."
+      },
+      {
+        "papel": "implementacao",
         "pacote": "stats",
         "funcao": "anova",
         "versao": "4.6.0",
@@ -996,7 +1031,7 @@
         "pacote": "car",
         "funcao": "Anova",
         "versao": "3.1.5",
-        "nota": "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`."
+        "nota": "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo (também o `glmer`) é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`."
       }
     ]
   },
@@ -1079,7 +1114,7 @@
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "tr_models_breusch_pagan",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Cálculo próprio: regressão auxiliar com `stats::lm.fit` do quadrado dos resíduos na matriz do modelo, estatística n·R² (versão studentizada de Koenker, a mesma do padrão de `lmtest::bptest`)."
       }
     ]
@@ -1136,6 +1171,60 @@
       }
     ]
   },
+  "models/cohen_d": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes**, dentro e entre os dois grupos (grupos independentes, não pareados).",
+        "se_falhar": "Com o mesmo indivíduo medido duas vezes, o d de grupos independentes não é o efeito certo: use o `models/paired_t`."
+      },
+      {
+        "texto": "As **variâncias** dos dois grupos são parecidas: o d divide pelo desvio padrão COMBINADO, o mesmo do t de variâncias iguais.",
+        "verificar": ["models/levene", "view/boxplot"],
+        "se_falhar": "Com variâncias muito diferentes, o d combinado mistura duas escalas; relate as médias e os desvios de cada grupo."
+      },
+      {
+        "texto": "A resposta é aproximadamente **normal** em cada grupo: o intervalo é o normal de Hedges & Olkin, e a leitura em desvios padrão supõe a normal.",
+        "verificar": ["models/shapiro", "view/qq"]
+      },
+      {
+        "texto": "O intervalo é **aproximado** (normal, com o erro padrão de Hedges & Olkin 1985), bom a partir de uns 10 por grupo; com menos, fica estreito demais.",
+        "se_falhar": "Com grupos pequenos, prefira o g e leia o intervalo como indicativo."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cohen, J."],
+        "ano": 1988,
+        "titulo": "Statistical Power Analysis for the Behavioral Sciences",
+        "fonte": "2. ed. Hillsdale: Lawrence Erlbaum (reedição Routledge, 2013)",
+        "doi": "10.4324/9780203771587"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Hedges, L. V."],
+        "ano": 1981,
+        "titulo": "Distribution theory for Glass's estimator of effect size and related estimators",
+        "fonte": "Journal of Educational Statistics, 6(2), 107-128",
+        "doi": "10.3102/10769986006002107"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hedges, L. V.", "Olkin, I."],
+        "ano": 1985,
+        "titulo": "Statistical Methods for Meta-Analysis",
+        "fonte": "Academic Press",
+        "doi": "10.1016/C2009-0-03396-0"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.models",
+        "funcao": "tr_models_cohen_d",
+        "versao": "0.3.0",
+        "nota": "Conta própria: d com o DP combinado, g = J·d com J = 1 − 3/(4m − 1) (m = n1 + n2 − 2, Hedges 1981), EP² = (n1 + n2)/(n1 n2) + d²/(2(n1 + n2)). Conferido contra o t de `stats::t.test(var.equal = TRUE)` (d = t·√(1/n1 + 1/n2)) e contra o J exato Γ(m/2)/(√(m/2) Γ((m − 1)/2)) de Hedges (1981), a 1e-3."
+      }
+    ]
+  },
   "models/compare": {
     "pressupostos": [
       {
@@ -1185,7 +1274,7 @@
   "models/confusion": {
     "pressupostos": [
       {
-        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos. Previsões do treino marcado pelo `ml/split` são recusadas, salvo `permitir_treino` (que acrescenta a nota de otimismo); tabelas sem essa marca (divisão feita por fora, treino e teste juntados) são medidas como chegam, e num teste já usado para decidir a medida também sai otimista — isso nenhuma marca detecta.",
         "se_falhar": "Ligue a saída teste do `ml/split` em `dados`, ou deixe a `validacao` em `cruzada`; se o teste já foi usado para escolher, reporte a medida como otimista."
       },
       {
@@ -1224,11 +1313,35 @@
         "doi": "10.1007/978-1-0716-1418-1"
       },
       {
+        "papel": "teoria",
+        "autores": ["Cohen, J."],
+        "ano": 1960,
+        "titulo": "A coefficient of agreement for nominal scales",
+        "fonte": "Educational and Psychological Measurement, 20(1), 37-46",
+        "doi": "10.1177/001316446002000104"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Brodersen, K. H.", "Ong, C. S.", "Stephan, K. E.", "Buhmann, J. M."],
+        "ano": 2010,
+        "titulo": "The balanced accuracy and its posterior distribution",
+        "fonte": "20th International Conference on Pattern Recognition, 3121-3124",
+        "doi": "10.1109/ICPR.2010.764"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Sokolova, M.", "Lapalme, G."],
+        "ano": 2009,
+        "titulo": "A systematic analysis of performance measures for classification tasks",
+        "fonte": "Information Processing & Management, 45(4), 427-437",
+        "doi": "10.1016/j.ipm.2009.03.002"
+      },
+      {
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "tr_models_confusion",
-        "versao": "0.1.0",
-        "nota": "Cálculo próprio com `base::table` sobre os níveis da resposta, incluindo as contagens zero; sem `dados`, as previsões são as da validação cruzada do contrato (`tr_models_predict_cv`)."
+        "versao": "0.3.0",
+        "nota": "Cálculo próprio com `base::table` sobre os níveis da resposta, incluindo as contagens zero; sem `dados`, as previsões são as da validação cruzada do contrato (`tr_models_predict_cv`). Métricas (`tabela = \"métricas\"`) por implementação própria (porte da `multi/confusion` da main); kappa conferido contra `irr::kappa2` e `psych::cohen.kappa`."
       }
     ]
   },
@@ -1335,6 +1448,90 @@
       }
     ]
   },
+  "models/dunn": {
+    "pressupostos": [
+      {
+        "texto": "As observações são **independentes**, dentro e entre os grupos.",
+        "se_falhar": "Medidas repetidas no mesmo indivíduo pedem o `models/friedman`."
+      },
+      {
+        "texto": "A resposta é ao menos **ordinal**, e os grupos têm distribuições de **mesma forma**: só assim uma diferença de postos médios se lê como deslocamento (de mediana).",
+        "verificar": ["view/boxplot", "view/density"]
+      },
+      {
+        "texto": "É o **post hoc do Kruskal-Wallis**: faz sentido depois de ele rejeitar, e usa os postos da amostra INTEIRA.",
+        "verificar": ["models/kruskal"]
+      },
+      {
+        "texto": "A estatística z é **normal aproximada**: com grupos muito pequenos (menos de uns 5) o p é só indicativo."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Dunn, O. J."],
+        "ano": 1964,
+        "titulo": "Multiple comparisons using rank sums",
+        "fonte": "Technometrics, 6(3), 241-252",
+        "doi": "10.1080/00401706.1964.10490181"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Siegel, S.", "Castellan, N. J."],
+        "ano": 2006,
+        "titulo": "Estatística não-paramétrica para ciências do comportamento",
+        "fonte": "2. ed. Porto Alegre: Artmed"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.models",
+        "funcao": "tr_models_dunn",
+        "versao": "0.3.0",
+        "nota": "Conta própria (z dos postos médios com correção de empates; p ajustado por `stats::p.adjust` ou Šidák). Conferido contra `dunn.test::dunn.test(altp = TRUE)` 1.3.6, com empates, nas quatro correções (z a 1e-9, p a 1e-8)."
+      }
+    ]
+  },
+  "models/effect_size": {
+    "pressupostos": [
+      {
+        "texto": "O quadro da ANOVA é **válido**: o modelo está bem especificado e os erros cumprem os pressupostos do bloco que o ajustou (as SQ vêm dele).",
+        "verificar": ["models/plot_diagnostics", "models/shapiro_residuals", "models/levene"]
+      },
+      {
+        "texto": "Os fatores são **manipulados** (tratamentos do experimento): o ômega² parcial de Olejnik & Algina (2003) é o dessa situação. Com fator medido (sexo, idade), o eta² generalizado deles, que não está aqui, é o comparável entre estudos.",
+        "se_falhar": "Relate o eta² parcial e diga quais fatores são medidos."
+      },
+      {
+        "texto": "Com **SQ tipo II ou III** (desbalanceado) as somas não dão o total: o eta² usa a soma das SQ do quadro, e a coluna `base_eta2` avisa.",
+        "verificar": ["models/anova_table"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cohen, J."],
+        "ano": 1988,
+        "titulo": "Statistical Power Analysis for the Behavioral Sciences",
+        "fonte": "2. ed. Hillsdale: Lawrence Erlbaum (reedição Routledge, 2013)",
+        "doi": "10.4324/9780203771587"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Olejnik, S.", "Algina, J."],
+        "ano": 2003,
+        "titulo": "Generalized eta and omega squared statistics: measures of effect size for some common research designs",
+        "fonte": "Psychological Methods, 8(4), 434-447",
+        "doi": "10.1037/1082-989X.8.4.434"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.models",
+        "funcao": "tr_models_effect_size",
+        "versao": "0.3.0",
+        "nota": "Das SQ e QM do `tr_models_anova_table`, com o erro de cada termo (na subdividida, o (a) para a parcela e o (b) para o resto)."
+      }
+    ]
+  },
   "models/emmeans": {
     "pressupostos": [
       {
@@ -1402,7 +1599,7 @@
   "models/evaluate": {
     "pressupostos": [
       {
-        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos. Previsões do treino marcado pelo `ml/split` são recusadas, salvo `permitir_treino` (que acrescenta a nota de otimismo); tabelas sem essa marca (divisão feita por fora, treino e teste juntados) são medidas como chegam, e num teste já usado para decidir a medida também sai otimista — isso nenhuma marca detecta.",
         "se_falhar": "Ligue a saída teste do `ml/split` em `dados`, ou deixe a `validacao` em `cruzada`; se o teste já foi usado para escolher, reporte a medida como otimista."
       },
       {
@@ -1420,7 +1617,7 @@
         "se_falhar": "Leia o kappa junto da acurácia balanceada e das métricas por classe."
       },
       {
-        "texto": "Precisão, revocação e F1 **por classe** tratam cada classe contra as demais; com poucas linhas de uma classe (coluna `n`), os valores dela variam muito. Uma classe nunca prevista tem precisão 0 por convenção.",
+        "texto": "Precisão, revocação e F1 **por classe** tratam cada classe contra as demais; com poucas linhas de uma classe (coluna `n`), os valores dela variam muito. Uma classe nunca prevista tem precisão **indefinida** (0/0): sai NA e fica fora das médias macro e ponderada, como `zero_division = np.nan` do scikit-learn — o padrão do scikit-learn põe 0 e puxa a média para baixo, então compare com cuidado.",
         "verificar": ["models/confusion"],
         "se_falhar": "Confira as contagens na `models/confusion` antes de interpretar a classe."
       }
@@ -1470,7 +1667,7 @@
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "tr_models_evaluate",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Cálculo próprio: MAE, RMSE e R² = 1 − SQE/SQT; na classificação, por classe (um contra todos) precisão, revocação e F1, com médias macro sobre as classes observadas e ponderadas pelo suporte; acurácia balanceada = média das revocações; kappa = (po − pe)/(1 − pe) com pe das marginais; na binária, sensibilidade e especificidade da positiva."
       }
     ]
@@ -1515,11 +1712,19 @@
         "texto": "Os **blocos são independentes** entre si; dentro do bloco, cada tratamento foi sorteado a uma parcela."
       },
       {
-        "texto": "**Uma observação por bloco e tratamento**, com todos os tratamentos em todo bloco.",
-        "se_falhar": "Resuma as repetições (a média de cada casela) antes; bloco incompleto sai inteiro."
+        "texto": "**No máximo uma observação por bloco e tratamento.**",
+        "se_falhar": "Resuma as repetições (a média de cada casela) antes."
       },
       {
-        "texto": "A resposta é **contínua** ou ordinal; empates dentro do bloco são corrigidos na estatística."
+        "texto": "O **desenho casa com o método**: Friedman pede blocos completos; Durbin, blocos incompletos balanceados (k < t parcelas por bloco, r repetições por tratamento, todo par junto λ vezes); Skillings–Mack aceita faltantes quaisquer, desde que o desenho seja conexo.",
+        "se_falhar": "Deixe o método em `auto`, que escolhe pelo desenho. Com `durbin` num desenho que não é balanceado o bloco recusa e aponta o `skillings_mack`; com `friedman` forçado, bloco incompleto sai inteiro."
+      },
+      {
+        "texto": "Os faltantes do Skillings–Mack são **ao acaso**, não ligados ao tratamento ou à resposta.",
+        "se_falhar": "Se a parcela se perdeu por causa do tratamento (planta morta pela dose), o teste de postos não corrige o viés; trate a perda como resposta."
+      },
+      {
+        "texto": "A resposta é **contínua** ou ordinal. Empates dentro do bloco recebem posto médio; Friedman e Durbin corrigem a estatística, o Skillings–Mack não (fica conservador)."
       },
       {
         "texto": "O p-valor é o da aproximação qui-quadrado, boa com blocos e tratamentos não muito poucos (com 3 tratamentos, uns 10 blocos)."
@@ -1535,6 +1740,29 @@
         "doi": "10.1080/01621459.1937.10503522"
       },
       {
+        "papel": "teoria",
+        "autores": ["Durbin, J."],
+        "ano": 1951,
+        "titulo": "Incomplete blocks in ranking experiments",
+        "fonte": "British Journal of Statistical Psychology, 4(2), 85-90",
+        "doi": "10.1111/j.2044-8317.1951.tb00310.x"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Skillings, J. H.", "Mack, G. A."],
+        "ano": 1981,
+        "titulo": "On the use of a Friedman-type statistic in balanced and unbalanced block designs",
+        "fonte": "Technometrics, 23(2), 171-177",
+        "doi": "10.1080/00401706.1981.10486261"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Conover, W. J."],
+        "ano": 1999,
+        "titulo": "Practical Nonparametric Statistics",
+        "fonte": "3. ed. New York: Wiley"
+      },
+      {
         "papel": "livro-texto",
         "autores": ["Siegel, S.", "Castellan, N. J."],
         "ano": 2006,
@@ -1546,7 +1774,14 @@
         "pacote": "stats",
         "funcao": "friedman.test",
         "versao": "4.6.0",
-        "nota": "Postos dentro do bloco, estatística corrigida para empates, p-valor pela aproximação qui-quadrado; o W de Kendall é a estatística dividida por b(k - 1)."
+        "nota": "Friedman: postos dentro do bloco, estatística corrigida para empates, p-valor pela aproximação qui-quadrado; o W de Kendall é a estatística dividida por b(k - 1)."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama",
+        "funcao": "tr_models_friedman",
+        "versao": "0.1.0",
+        "nota": "Durbin e Skillings–Mack calculados no trama: T1 de Durbin na forma de Conover (1999), (t - 1) Σ(R_j - r(k + 1)/2)² / (A - C); Skillings–Mack como A' Σ⁻ A com a inversa generalizada, gl = posto de Σ. Conferidos com agricolae::durbin.test e Skillings.Mack::Ski.Mack."
       }
     ]
   },
@@ -1561,9 +1796,9 @@
         "verificar": ["models/plot_diagnostics", "models/residuals"]
       },
       {
-        "texto": "Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (desvio residual perto dos gl do resíduo).",
+        "texto": "Na binomial e na Poisson, a variância é a da família: **sem superdispersão** (`desvio_por_gl` e `dispersao_pearson` do `models/fit_stats` perto de 1).",
         "verificar": ["models/fit_stats"],
-        "se_falhar": "Na Poisson, use a família `quasipoisson`; na binomial agregada (`cbind(sucessos, fracassos)`), a `quasibinomial`. As duas estimam a dispersão pelo X² de Pearson / gl, e os testes passam a F. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão."
+        "se_falhar": "Na Poisson, use a família `quasipoisson`; na binomial agregada (`cbind(sucessos, fracassos)`), a `quasibinomial`. As duas estimam a dispersão pelo X² de Pearson / gl, e os testes passam a F. Em dados 0/1 (binomial não agregada), desvio perto dos gl não diz nada sobre superdispersão, e a `quasibinomial` recusa essa resposta."
       },
       {
         "texto": "Amostra **grande o bastante**: os testes e intervalos de um GLM são assintóticos."
@@ -1599,6 +1834,125 @@
         "funcao": "glm",
         "versao": "4.6.0",
         "nota": "Famílias `gaussian`, `binomial`, `poisson`, `quasipoisson`, `quasibinomial` na ligação canônica e `Gamma(link = \"log\")`; nas quasi, dispersão pelo X² de Pearson / gl e quadro com F."
+      }
+    ]
+  },
+  "models/glmer": {
+    "pressupostos": [
+      {
+        "texto": "Os **grupos** (rebanhos, blocos, sujeitos) são independentes entre si, e há grupos suficientes para estimar cada variância.",
+        "se_falhar": "Com poucos grupos (menos de 5 ou 6), trate o fator como fixo no `models/glm`."
+      },
+      {
+        "texto": "A resposta segue a **família** (binomial ou Poisson) condicional aos efeitos aleatórios, na ligação canônica (logit, log).",
+        "verificar": ["models/plot_diagnostics"]
+      },
+      {
+        "texto": "Os **efeitos aleatórios** são normais, com média zero.",
+        "verificar": ["models/random_effects", "models/plot_caterpillar"]
+      },
+      {
+        "texto": "**Sem superdispersão** além da que o modelo descreve: no `models/fit_stats`, `dispersao_pearson` (X² de Pearson dos resíduos condicionais / gl) perto de 1. Não se aplica à binomial 0/1.",
+        "verificar": ["models/fit_stats"],
+        "se_falhar": "Ligue o efeito por observação (`nivel_obs`) e compare os dois ajustes no `models/compare`."
+      },
+      {
+        "texto": "A **aproximação de Laplace** é boa: grupos com bastante informação (binomial com n não muito pequeno, contagens não quase todas zero). Os testes são de Wald (z) e assintóticos."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Bates, D.", "Mächler, M.", "Bolker, B.", "Walker, S."],
+        "ano": 2015,
+        "titulo": "Fitting linear mixed-effects models using lme4",
+        "fonte": "Journal of Statistical Software, 67(1), 1-48",
+        "doi": "10.18637/jss.v067.i01"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Bolker, B. M.", "Brooks, M. E.", "Clark, C. J.", "Geange, S. W.", "Poulsen, J. R.", "Stevens, M. H. H.", "White, J.-S. S."],
+        "ano": 2009,
+        "titulo": "Generalized linear mixed models: a practical guide for ecology and evolution",
+        "fonte": "Trends in Ecology & Evolution, 24(3), 127-135",
+        "doi": "10.1016/j.tree.2008.10.008"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Harrison, X. A."],
+        "ano": 2014,
+        "titulo": "Using observation-level random effects to model overdispersion in count data in ecology and evolution",
+        "fonte": "PeerJ, 2, e616",
+        "doi": "10.7717/peerj.616"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Breslow, N. E.", "Clayton, D. G."],
+        "ano": 1993,
+        "titulo": "Approximate inference in generalized linear mixed models",
+        "fonte": "Journal of the American Statistical Association, 88(421), 9-25",
+        "doi": "10.1080/01621459.1993.10594284"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["McCullagh, P.", "Nelder, J. A."],
+        "ano": 1989,
+        "titulo": "Generalized Linear Models",
+        "fonte": "2. ed. London: Chapman & Hall",
+        "doi": "10.1007/978-1-4899-3242-6"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "lme4",
+        "funcao": "glmer",
+        "versao": "2.0.1",
+        "nota": "Máxima verossimilhança pela aproximação de Laplace (`nAGQ = 1`); coeficientes com z de Wald; quadro pelo `car::Anova` (qui-quadrado de Wald, tipo II ou III). Conferido refazendo à mão a log-verossimilhança de Laplace grupo a grupo no `cbpp` (1e-5 relativo) e maximizando-a com `optim` (β e σ a 1e-3)."
+      }
+    ]
+  },
+  "models/gls": {
+    "pressupostos": [
+      {
+        "texto": "A relação entre a resposta e os preditores é a da **fórmula** (linear nos parâmetros, com as interações e curvaturas escritas).",
+        "verificar": ["models/plot_diagnostics"],
+        "se_falhar": "Acrescente termos (`poly(x, 2)`, `a * b`) ou transforme; teste o termo a mais com o `models/compare`."
+      },
+      {
+        "texto": "Os **grupos** (animais, parcelas) são independentes entre si; a correlação só existe DENTRO do grupo, com a estrutura escolhida.",
+        "verificar": ["models/compare"],
+        "se_falhar": "Compare estruturas (AR(1), simetria composta, não estruturada) no `models/compare`; a de menor AIC que ainda faz sentido."
+      },
+      {
+        "texto": "Com AR(1), as ocasiões são **igualmente espaçadas** e informadas em Tempo (ou as linhas estão na ordem do tempo): o AR(1) conta posições, não distância. Com Tempo numérico desigualmente espaçado, a nota do modelo avisa.",
+        "se_falhar": "Use `correlacao = \"car1\"` (AR(1) em tempo contínuo, `corCAR1`), que dá correlação phi^|t − s| na distância real."
+      },
+      {
+        "texto": "Os **resíduos normalizados** (descontada a correlação) são normais e de variância constante, salvo a variância por nível declarada.",
+        "verificar": ["models/plot_diagnostics", "models/shapiro_residuals"]
+      },
+      {
+        "texto": "A **não estruturada** estima uma correlação por par de ocasiões: pede muitos grupos para poucas ocasiões."
+      },
+      {
+        "texto": "Os **gl** dos testes t e F dos coeficientes e do quadro são os do `nlme`, n − p (número de observações menos parâmetros fixos): ignoram que a informação vem de poucos grupos e ficam **liberais** (p pequeno demais) com poucos sujeitos. As médias e comparações do `models/emmeans` usam gl de Satterthwaite, menores, e por isso os dois podem discordar perto de 5%.",
+        "se_falhar": "Com poucos grupos (digamos menos de 20), confira o efeito no `models/emmeans`/`models/pairwise` (Satterthwaite) ou ajuste o misto equivalente no `models/lmer`, que dá Satterthwaite ao quadro e aos coeficientes."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Pinheiro, J. C.", "Bates, D. M."],
+        "ano": 2000,
+        "titulo": "Mixed-effects models in S and S-PLUS",
+        "fonte": "Springer, New York",
+        "doi": "10.1007/b98882"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "nlme",
+        "funcao": "gls",
+        "versao": "3.1.168",
+        "nota": "`corAR1`, `corCAR1` (no tempo), `corCompSymm` ou `corSymm` na posição dentro do grupo, `varIdent` por nível; REML por padrão; testes de Wald com t e F nos gl n - p (liberais com poucos grupos; o `emmeans` usa Satterthwaite); comparação por razão de verossimilhança, reajustada por ML quando os fixos diferem."
       }
     ]
   },
@@ -1880,6 +2234,45 @@
       }
     ]
   },
+  "models/nls": {
+    "pressupostos": [
+      {
+        "texto": "A curva escolhida é a **forma certa** da relação (logística, Michaelis-Menten, assintótica, Gompertz ou linear-platô): o ajuste acha os melhores parâmetros DA curva, não a melhor curva.",
+        "verificar": ["models/plot_regression", "models/plot_diagnostics"],
+        "se_falhar": "Compare modelos pelo AIC no `models/fit_stats` e olhe os resíduos contra o x: tendência sobrando é forma errada."
+      },
+      {
+        "texto": "Os **erros** são independentes, normais e de **variância constante** (mínimos quadrados sem peso).",
+        "verificar": ["models/plot_diagnostics", "models/shapiro_residuals"],
+        "se_falhar": "Variância que cresce com a resposta pede transformar (log) os dois lados da curva, fora deste bloco."
+      },
+      {
+        "texto": "Há pontos **dos dois lados da mudança** (antes e depois do platô, da inflexão, da saturação): sem eles os parâmetros não se identificam e o erro padrão explode.",
+        "verificar": ["view/points"]
+      },
+      {
+        "texto": "Os intervalos dos parâmetros são de **Wald** (linearização em torno da estimativa): em amostra pequena e curva muito não linear nos parâmetros, eles saem simétricos quando a incerteza real não é.",
+        "verificar": ["models/coefficients"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Bates, D. M.", "Watts, D. G."],
+        "ano": 1988,
+        "titulo": "Nonlinear Regression Analysis and Its Applications",
+        "fonte": "New York: Wiley",
+        "doi": "10.1002/9780470316757"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "nls",
+        "versao": "4.6.0",
+        "nota": "Gauss-Newton com os self-starters `SSlogis`, `SSmicmen`, `SSasymp` e `SSgompertz`; o linear-platô parte de uma busca da quebra. Conferido contra os valores certificados do NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten), parâmetros a 1e-6, SQ residual a 1e-6 e erro padrão a 1e-5."
+      }
+    ]
+  },
   "models/one_sample_t": {
     "pressupostos": [
       {
@@ -2078,7 +2471,7 @@
   "models/pr_curve": {
     "pressupostos": [
       {
-        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos. Previsões do treino marcado pelo `ml/split` são recusadas, salvo `permitir_treino` (que acrescenta a nota de otimismo); tabelas sem essa marca (divisão feita por fora, treino e teste juntados) são medidas como chegam, e num teste já usado para decidir a medida também sai otimista — isso nenhuma marca detecta.",
         "se_falhar": "Ligue a saída teste do `ml/split` em `dados`, ou deixe a `validacao` em `cruzada`; se o teste já foi usado para escolher, reporte a medida como otimista."
       },
       {
@@ -2136,8 +2529,57 @@
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "tr_models_pr_curve",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Cálculo próprio (porte da `ml/pr_curve` da main): um ponto por limiar distinto (empates num degrau); AP = Σ ΔR·P; área com a interpolação de Davis & Goadrich integrada em forma fechada. Conferido contra `yardstick::average_precision` e `PRROC::pr.curve` (`auc.integral`)."
+      }
+    ]
+  },
+  "models/predict": {
+    "pressupostos": [
+      {
+        "texto": "As linhas novas estão **dentro da faixa** dos preditores do ajuste: fora dela é extrapolação, e a previsão (e o intervalo) supõe que a forma do modelo continua valendo onde não houve dado. Na regressão múltipla a faixa é a da nuvem conjunta, não a de cada coluna.",
+        "verificar": ["view/points", "models/residuals"],
+        "se_falhar": "Leia a previsão fora da faixa como hipótese, não como estimativa; o intervalo não cobre o erro de forma do modelo."
+      },
+      {
+        "texto": "O modelo está **bem especificado** e os pressupostos dele valem (os do bloco que o ajustou): a previsão herda a forma, e o intervalo herda a normalidade e a variância constante do erro.",
+        "verificar": ["models/plot_diagnostics", "models/shapiro_residuals"]
+      },
+      {
+        "texto": "O intervalo certo para a pergunta: **confiança** cobre a MÉDIA da resposta naquele x; **predição** cobre UMA observação nova, e é mais largo porque soma a variância do erro. Para dizer onde cairá a próxima parcela, é o de predição.",
+        "se_falhar": "Troque o param Intervalo."
+      },
+      {
+        "texto": "A unidade nova vem da **mesma população** do ajuste (mesmas condições, mesmos níveis de fator; o bloco recusa nível que o ajuste não viu)."
+      },
+      {
+        "texto": "A medida de acerto no próprio treino por **resubstituição** sai otimista.",
+        "verificar": ["models/evaluate"],
+        "se_falhar": "Use a validação `cruzada`, ou dados de teste separados."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Draper, N. R.", "Smith, H."],
+        "ano": 1998,
+        "titulo": "Applied Regression Analysis",
+        "fonte": "3. ed. New York: Wiley",
+        "doi": "10.1002/9781118625590"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Rencher, A. C.", "Schaalje, G. B."],
+        "ano": 2008,
+        "titulo": "Linear Models in Statistics",
+        "fonte": "2. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "predict",
+        "versao": "4.6.0",
+        "nota": "Pelo contrato de cada modelo (`predict.lm`, `predict.glm` com `type = \"response\"`, `predict.merMod`, `predict.nls`); intervalo só no `lm` (`interval = \"confidence\"`/`\"prediction\"`), conferido contra a fórmula ŷ0 ± t·s·√(h0) e √(1 + h0) com h0 = x0'(X'X)⁻¹x0 feita à mão (1e-10)."
       }
     ]
   },
@@ -2213,7 +2655,7 @@
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "step_rls",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Implementação própria da atualização recursiva de mínimos quadrados, com `P0 = lambda · I` e simetrização de `P` a cada passo."
       }
     ]
@@ -2221,7 +2663,7 @@
   "models/roc": {
     "pressupostos": [
       {
-        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos.",
+        "texto": "A medida que interessa é a **fora da amostra**: com o teste separado (`ml/split`) em `dados`, ou pela validação `cruzada` quando só o modelo está ligado. A resubstituição sai otimista, e mais ainda com muitos preditores e poucos casos. Previsões do treino marcado pelo `ml/split` são recusadas, salvo `permitir_treino` (que acrescenta a nota de otimismo); tabelas sem essa marca (divisão feita por fora, treino e teste juntados) são medidas como chegam, e num teste já usado para decidir a medida também sai otimista — isso nenhuma marca detecta.",
         "se_falhar": "Ligue a saída teste do `ml/split` em `dados`, ou deixe a `validacao` em `cruzada`; se o teste já foi usado para escolher, reporte a medida como otimista."
       },
       {
@@ -2234,7 +2676,19 @@
         "se_falhar": "Leia junto a matriz de confusão, a acurácia balanceada no `models/evaluate` e, com classe rara, a `models/pr_curve`."
       },
       {
-        "texto": "Com três ou mais classes, cada curva é **uma classe contra as outras**: a AUC de cada uma não soma nem resume o classificador inteiro."
+        "texto": "Com três ou mais classes, cada curva é **uma classe contra as outras**: a AUC de cada uma não soma nem resume o classificador inteiro. O resumo é a AUC multiclasse M de Hand & Till (2001), no subtítulo (sem `positiva`): média, sobre os pares de classes, da AUC do par; não depende das proporções das classes, mas pondera todos os pares igualmente e não tem intervalo.",
+        "se_falhar": "Para saber qual par se confunde, leia a matriz de confusão (`models/confusion`)."
+      },
+      {
+        "texto": "O **intervalo de DeLong** é assintótico (normal): com poucos positivos ou negativos, ou AUC perto de 1, a cobertura fica abaixo do nominal; o bloco corta os limites em [0, 1]. Com AUC = 0 ou 1 (variância zero) ou menos de duas linhas numa classe, o IC sai **indisponível** (NA), com a nota em `auc_nota` e na legenda; a curva e a AUC continuam.",
+        "se_falhar": "Leia o intervalo como aproximado e a largura como sinal de pouca informação; aumente a amostra da classe rara ou repita a divisão com outras sementes."
+      },
+      {
+        "texto": "Com validação cruzada, as probabilidades vêm de n ajustes, e o intervalo as trata como **um escore fixo**: a incerteza de ter estimado o modelo não entra."
+      },
+      {
+        "texto": "O **corte de Youden** é escolhido nas mesmas linhas em que é lido: a sensibilidade e a especificidade nele são otimistas, e J pesa igualmente falso positivo e falso negativo, o que raramente reflete os custos reais.",
+        "se_falhar": "Escolha o corte num conjunto de validação (ou pelos custos do problema) e leia o desempenho dele no teste, com o `models/confusion`."
       }
     ],
     "referencias": [
@@ -2263,11 +2717,43 @@
         "doi": "10.1371/journal.pone.0118432"
       },
       {
+        "papel": "teoria",
+        "autores": ["DeLong, E. R.", "DeLong, D. M.", "Clarke-Pearson, D. L."],
+        "ano": 1988,
+        "titulo": "Comparing the areas under two or more correlated receiver operating characteristic curves: a nonparametric approach",
+        "fonte": "Biometrics, 44(3), 837-845",
+        "doi": "10.2307/2531595"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Hand, D. J.", "Till, R. J."],
+        "ano": 2001,
+        "titulo": "A simple generalisation of the area under the ROC curve for multiple class classification problems",
+        "fonte": "Machine Learning, 45(2), 171-186",
+        "doi": "10.1023/A:1010920819831"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Youden, W. J."],
+        "ano": 1950,
+        "titulo": "Index for rating diagnostic tests",
+        "fonte": "Cancer, 3(1), 32-35",
+        "doi": "10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Robin, X.", "Turck, N.", "Hainard, A.", "Tiberti, N.", "Lisacek, F.", "Sanchez, J.-C.", "Müller, M."],
+        "ano": 2011,
+        "titulo": "pROC: an open-source package for R and S+ to analyze and compare ROC curves",
+        "fonte": "BMC Bioinformatics, 12, 77",
+        "doi": "10.1186/1471-2105-12-77"
+      },
+      {
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "tr_models_roc",
-        "versao": "0.1.0",
-        "nota": "Cálculo próprio: um ponto por escore distinto (empates andam na diagonal) e AUC de Mann-Whitney com meio ponto por empate, igual à área trapezoidal da curva."
+        "versao": "0.3.0",
+        "nota": "Cálculo próprio: um ponto por escore distinto (empates andam na diagonal) e AUC de Mann-Whitney com meio ponto por empate, igual à área trapezoidal da curva; IC de DeLong pelas componentes estruturais (normal, cortado em [0, 1]), conferido contra `pROC::ci.auc(method = \"delong\")` a 1e-8; corte de Youden = máximo de sensibilidade + especificidade − 1 (empate: maior limiar), conferido contra `pROC::coords(best.method = \"youden\")`; M de Hand & Till conferido contra `pROC::multiclass.roc` a 1e-10. Portes da `ml/roc` e da `multi/roc` da main."
       }
     ]
   },
@@ -2461,7 +2947,7 @@
         "papel": "implementacao",
         "pacote": "trama.models",
         "funcao": "tr_models_tukey_additivity",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Cálculo próprio com `stats::lm` e `stats::anova`: acrescenta o quadrado do valor ajustado ao modelo aditivo (bloco + tratamento, ou linha + coluna + tratamento no DQL) e testa esse termo com 1 gl."
       }
     ]
@@ -2595,8 +3081,107 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_box_m",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Implementação própria: M = (N − g) ln|Sₚ| − Σ(nᵢ − 1) ln|Sᵢ| com a correção de Box para a qui-quadrado, p(p + 1)(g − 1)/2 gl."
+      }
+    ]
+  },
+  "multi/cluster": {
+    "pressupostos": [
+      {
+        "texto": "Cada linha é **um indivíduo** (um genótipo, um acesso): com repetições do experimento, resuma antes (média por genótipo).",
+        "verificar": ["data/group_summarise"]
+      },
+      {
+        "texto": "As variáveis estão numa **escala comparável**, ou a distância cuida disso: na euclidiana crua a variável de maior variância domina; a padronizada, a Mahalanobis e a Gower corrigem.",
+        "se_falhar": "Use a `euclidiana padronizada` (ou Padronizar ligado no agrupamento)."
+      },
+      {
+        "texto": "A **ligação** combina com a distância: o Ward supõe distância euclidiana (sobre Mahalanobis usa a raiz do D²; sobre Gower é aproximado); UPGMA, completo e simples aceitam qualquer dissimilaridade.",
+        "verificar": ["multi/distance"]
+      },
+      {
+        "texto": "O dendrograma **representa bem** a matriz: correlação cofenética acima de ~0,7 (Sokal & Rohlf 1962). Abaixo disso, os grupos do corte dizem pouco sobre as distâncias reais.",
+        "verificar": ["multi/plot_dendrogram"],
+        "se_falhar": "Troque a ligação (o UPGMA costuma dar a maior cofenética) ou leia a matriz direto no mapa de calor do `multi/distance`."
+      },
+      {
+        "texto": "O **número de grupos** é uma escolha, não uma estimativa: nenhum teste aqui diz que há k grupos. Todo agrupamento acha grupos, até em dados sem estrutura.",
+        "verificar": ["multi/plot_dendrogram", "multi/tocher"],
+        "se_falhar": "Corte onde os ramos são longos, e confira se o Tocher na mesma matriz dá grupos parecidos."
+      },
+      {
+        "texto": "No **k-means**, os grupos são aproximadamente esféricos e de tamanhos parecidos, e o ótimo é LOCAL (por isso 25 partidas e a semente do nó)."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Lance, G. N.", "Williams, W. T."],
+        "ano": 1967,
+        "titulo": "A general theory of classificatory sorting strategies: 1. Hierarchical systems",
+        "fonte": "The Computer Journal, 9(4), 373-380",
+        "doi": "10.1093/comjnl/9.4.373"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Ward, J. H."],
+        "ano": 1963,
+        "titulo": "Hierarchical grouping to optimize an objective function",
+        "fonte": "Journal of the American Statistical Association, 58(301), 236-244",
+        "doi": "10.1080/01621459.1963.10500845"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Murtagh, F.", "Legendre, P."],
+        "ano": 2014,
+        "titulo": "Ward's hierarchical agglomerative clustering method: which algorithms implement Ward's criterion?",
+        "fonte": "Journal of Classification, 31(3), 274-295",
+        "doi": "10.1007/s00357-014-9161-z"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Sokal, R. R.", "Rohlf, F. J."],
+        "ano": 1962,
+        "titulo": "The comparison of dendrograms by objective methods",
+        "fonte": "Taxon, 11(2), 33-40",
+        "doi": "10.2307/1217208"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Hartigan, J. A.", "Wong, M. A."],
+        "ano": 1979,
+        "titulo": "Algorithm AS 136: a k-means clustering algorithm",
+        "fonte": "Applied Statistics, 28(1), 100-108",
+        "doi": "10.2307/2346830"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cruz, C. D.", "Regazzi, A. J.", "Carneiro, P. C. S."],
+        "ano": 2012,
+        "titulo": "Modelos biométricos aplicados ao melhoramento genético",
+        "fonte": "v. 1, 4. ed. Viçosa: Editora UFV (ISBN 978-85-7269-433-9)"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "hclust",
+        "versao": "4.6.0",
+        "nota": "`average`, `ward.D2`, `complete`, `single`; cofenética por `stats::cophenetic`, corte por `stats::cutree`. Alturas de fusão conferidas contra `cluster::agnes` nas quatro ligações (1e-10)."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "kmeans",
+        "versao": "4.6.0",
+        "nota": "Hartigan-Wong, `nstart = 25`, `iter.max = 100`."
       }
     ]
   },
@@ -2674,6 +3259,85 @@
         "funcao": "lda",
         "versao": "7.3.65",
         "nota": "`lda(x, grouping, prior)` na linear e `MASS::qda` na quadrática; a validação cruzada da classificação é o `CV = TRUE` delas. Wilks, correlações canônicas e o M de Box são implementação própria."
+      }
+    ]
+  },
+  "multi/distance": {
+    "pressupostos": [
+      {
+        "texto": "Cada linha é **um indivíduo** (um genótipo, um acesso): com repetições do experimento, resuma antes (média por genótipo).",
+        "verificar": ["data/group_summarise"]
+      },
+      {
+        "texto": "**Sem faltantes** nas variáveis (o bloco recusa).",
+        "se_falhar": "Ligue um `data/drop_na` antes, ou impute fora."
+      },
+      {
+        "texto": "As variáveis estão numa **escala comparável**, ou a distância cuida disso: na euclidiana crua a variável de maior variância domina; a padronizada, a Mahalanobis e a Gower corrigem.",
+        "se_falhar": "Use a `euclidiana padronizada` (ou Padronizar ligado no agrupamento)."
+      },
+      {
+        "texto": "Na **Mahalanobis**, a covariância S é a das próprias linhas e é **inversível** (mais linhas que variáveis, sem variável combinação exata das outras). Com a tabela de médias, o D² é descritivo: o dos livros de melhoramento usa a covariância RESIDUAL do experimento.",
+        "verificar": ["multi/correlation_matrix"],
+        "se_falhar": "Tire a variável redundante; para o D² com a covariância residual, faça a conta fora com a matriz E da MANOVA."
+      },
+      {
+        "texto": "As variáveis medem **caracteres diferentes**: na euclidiana, duas muito correlacionadas contam o mesmo caráter duas vezes.",
+        "verificar": ["multi/correlation_matrix"],
+        "se_falhar": "Use a Mahalanobis, que desconta a correlação."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Mahalanobis, P. C."],
+        "ano": 1936,
+        "titulo": "On the generalised distance in statistics",
+        "fonte": "Proceedings of the National Institute of Sciences of India, 2; reimpresso em Sankhyā A, 80(Supl. 1), 1-7, 2018",
+        "doi": "10.1007/s13171-019-00164-5"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Gower, J. C."],
+        "ano": 1971,
+        "titulo": "A general coefficient of similarity and some of its properties",
+        "fonte": "Biometrics, 27(4), 857-871",
+        "doi": "10.2307/2528823"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cruz, C. D.", "Regazzi, A. J.", "Carneiro, P. C. S."],
+        "ano": 2012,
+        "titulo": "Modelos biométricos aplicados ao melhoramento genético",
+        "fonte": "v. 1, 4. ed. Viçosa: Editora UFV (ISBN 978-85-7269-433-9)"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "dist",
+        "versao": "4.6.0",
+        "nota": "Euclidiana crua e padronizada (`scale`); o D² de Mahalanobis como euclidiana ao quadrado em X R⁻¹ (S = R'R pela Cholesky), conferido par a par contra `stats::mahalanobis` (1e-8)."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "cluster",
+        "funcao": "daisy",
+        "versao": "2.1.8.2",
+        "nota": "`metric = \"gower\"`; conferido contra a fórmula de Gower (1971) num exemplo resolvido à mão."
       }
     ]
   },
@@ -2767,8 +3431,8 @@
   "multi/jackknife_discriminant": {
     "pressupostos": [
       {
-        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
-        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados em conglomerados (várias linhas do mesmo talhão, animal, escola) a variância sai subestimada. Em série temporal, nenhuma das duas versões serve.",
+        "se_falhar": "Com conglomerados, informe a coluna em `grupo`: cada réplica tira o grupo inteiro (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001), e o erro padrão passa a tratar o grupo como a unidade independente."
       },
       {
         "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
@@ -2822,6 +3486,22 @@
       },
       {
         "papel": "livro-texto",
+        "autores": ["Shao, J.", "Tu, D."],
+        "ano": 1995,
+        "titulo": "The Jackknife and Bootstrap",
+        "fonte": "New York: Springer (Springer Series in Statistics)",
+        "doi": "10.1007/978-1-4612-0795-5"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Kott, P. S."],
+        "ano": 2001,
+        "titulo": "The delete-a-group jackknife",
+        "fonte": "Journal of Official Statistics, 17(4), 521-526",
+        "url": "https://www.scb.se/contentassets/ca21efb41fee47d293bbee5bf7be7fb3/the-delete-a-group-jackknife.pdf"
+      },
+      {
+        "papel": "livro-texto",
         "autores": ["Johnson, R. A.", "Wichern, D. W."],
         "ano": 2007,
         "titulo": "Applied Multivariate Statistical Analysis",
@@ -2831,16 +3511,16 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_jackknife",
-        "versao": "0.1.0",
-        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+        "versao": "0.3.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP. Com `grupo`, G reajustes sem um grupo e as mesmas fórmulas com G; EP conferido contra o `survey` com réplicas JK1 (`as.svrepdesign(type = \"JK1\")`) na média e na razão, a 1e-10."
       }
     ]
   },
   "multi/jackknife_fa": {
     "pressupostos": [
       {
-        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
-        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados em conglomerados (várias linhas do mesmo talhão, animal, escola) a variância sai subestimada. Em série temporal, nenhuma das duas versões serve.",
+        "se_falhar": "Com conglomerados, informe a coluna em `grupo`: cada réplica tira o grupo inteiro (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001), e o erro padrão passa a tratar o grupo como a unidade independente."
       },
       {
         "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
@@ -2893,6 +3573,22 @@
         "doi": "10.1007/978-1-4899-4541-9"
       },
       {
+        "papel": "livro-texto",
+        "autores": ["Shao, J.", "Tu, D."],
+        "ano": 1995,
+        "titulo": "The Jackknife and Bootstrap",
+        "fonte": "New York: Springer (Springer Series in Statistics)",
+        "doi": "10.1007/978-1-4612-0795-5"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Kott, P. S."],
+        "ano": 2001,
+        "titulo": "The delete-a-group jackknife",
+        "fonte": "Journal of Official Statistics, 17(4), 521-526",
+        "url": "https://www.scb.se/contentassets/ca21efb41fee47d293bbee5bf7be7fb3/the-delete-a-group-jackknife.pdf"
+      },
+      {
         "papel": "complementar",
         "autores": ["Lorenzo-Seva, U.", "ten Berge, J. M. F."],
         "ano": 2006,
@@ -2904,16 +3600,16 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_jackknife",
-        "versao": "0.1.0",
-        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+        "versao": "0.3.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP. Com `grupo`, G reajustes sem um grupo e as mesmas fórmulas com G; EP conferido contra o `survey` com réplicas JK1 (`as.svrepdesign(type = \"JK1\")`) na média e na razão, a 1e-10."
       }
     ]
   },
   "multi/jackknife_logistic": {
     "pressupostos": [
       {
-        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
-        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados em conglomerados (várias linhas do mesmo talhão, animal, escola) a variância sai subestimada. Em série temporal, nenhuma das duas versões serve.",
+        "se_falhar": "Com conglomerados, informe a coluna em `grupo`: cada réplica tira o grupo inteiro (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001), e o erro padrão passa a tratar o grupo como a unidade independente."
       },
       {
         "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
@@ -2963,6 +3659,22 @@
       },
       {
         "papel": "livro-texto",
+        "autores": ["Shao, J.", "Tu, D."],
+        "ano": 1995,
+        "titulo": "The Jackknife and Bootstrap",
+        "fonte": "New York: Springer (Springer Series in Statistics)",
+        "doi": "10.1007/978-1-4612-0795-5"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Kott, P. S."],
+        "ano": 2001,
+        "titulo": "The delete-a-group jackknife",
+        "fonte": "Journal of Official Statistics, 17(4), 521-526",
+        "url": "https://www.scb.se/contentassets/ca21efb41fee47d293bbee5bf7be7fb3/the-delete-a-group-jackknife.pdf"
+      },
+      {
+        "papel": "livro-texto",
         "autores": ["Hosmer, D. W.", "Lemeshow, S.", "Sturdivant, R. X."],
         "ano": 2013,
         "titulo": "Applied Logistic Regression",
@@ -2973,16 +3685,16 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_jackknife",
-        "versao": "0.1.0",
-        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+        "versao": "0.3.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP. Com `grupo`, G reajustes sem um grupo e as mesmas fórmulas com G; EP conferido contra o `survey` com réplicas JK1 (`as.svrepdesign(type = \"JK1\")`) na média e na razão, a 1e-10."
       }
     ]
   },
   "multi/jackknife_pca": {
     "pressupostos": [
       {
-        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados agrupados ou em série a variância sai subestimada.",
-        "se_falhar": "Jackknife por grupo (tirar um bloco inteiro) ainda sem bloco no trama (lacuna registrada)."
+        "texto": "As linhas são **independentes e identicamente distribuídas**: o jackknife tira uma linha de cada vez, e com dados em conglomerados (várias linhas do mesmo talhão, animal, escola) a variância sai subestimada. Em série temporal, nenhuma das duas versões serve.",
+        "se_falhar": "Com conglomerados, informe a coluna em `grupo`: cada réplica tira o grupo inteiro (jackknife apagar-um-grupo; Shao & Tu 1995; Kott 2001), e o erro padrão passa a tratar o grupo como a unidade independente."
       },
       {
         "texto": "A estatística é uma função **suave** dos dados: o jackknife falha em estatísticas que saltam (quantis, e autovalores quase iguais que trocam de ordem entre réplicas), e o erro padrão sai inflado.",
@@ -3032,6 +3744,22 @@
       },
       {
         "papel": "livro-texto",
+        "autores": ["Shao, J.", "Tu, D."],
+        "ano": 1995,
+        "titulo": "The Jackknife and Bootstrap",
+        "fonte": "New York: Springer (Springer Series in Statistics)",
+        "doi": "10.1007/978-1-4612-0795-5"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Kott, P. S."],
+        "ano": 2001,
+        "titulo": "The delete-a-group jackknife",
+        "fonte": "Journal of Official Statistics, 17(4), 521-526",
+        "url": "https://www.scb.se/contentassets/ca21efb41fee47d293bbee5bf7be7fb3/the-delete-a-group-jackknife.pdf"
+      },
+      {
+        "papel": "livro-texto",
         "autores": ["Johnson, R. A.", "Wichern, D. W."],
         "ano": 2007,
         "titulo": "Applied Multivariate Statistical Analysis",
@@ -3041,8 +3769,8 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_jackknife",
-        "versao": "0.1.0",
-        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP."
+        "versao": "0.3.0",
+        "nota": "Implementação própria: n reajustes sem uma linha; viés (n − 1)(média − θ), erro padrão √((n − 1)/n · Σ(θ₍ᵢ₎ − média)²) e intervalo corrigida ± t(n − 1) · EP. Com `grupo`, G reajustes sem um grupo e as mesmas fórmulas com G; EP conferido contra o `survey` com réplicas JK1 (`as.svrepdesign(type = \"JK1\")`) na média e na razão, a 1e-10."
       }
     ]
   },
@@ -3110,7 +3838,7 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_kmo_bartlett",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Implementação própria: KMO e MSA pelas correlações parciais da inversa de R; χ² = −(n − 1 − (2p + 5)/6) ln|R| com p(p − 1)/2 gl."
       }
     ]
@@ -3127,12 +3855,12 @@
       },
       {
         "texto": "**Sem separação** completa: se algum grupo é isolado sem sobreposição, os coeficientes vão ao infinito. O bloco detecta e avisa em `separacao`.",
-        "se_falhar": "A classificação continua valendo; para descrever o que separa, use a `multi/discriminant` ou tire o preditor que isola os grupos. Logística penalizada (Firth) ainda sem bloco no trama (lacuna registrada)."
+        "se_falhar": "Na binária, use `metodo = \"firth\"`: a verossimilhança penalizada dá coeficientes finitos e intervalos perfilados (Heinze & Schemper 2002). A classificação continua valendo nos dois métodos."
       },
       {
         "texto": "**Eventos suficientes por preditor**: com poucos casos no grupo menor (a regra usual é pelo menos 10 por preditor), coeficientes e erros de Wald ficam viesados.",
         "verificar": ["data/group_summarise", "multi/jackknife_logistic"],
-        "se_falhar": "Use menos preditores."
+        "se_falhar": "Use menos preditores; na binária, `metodo = \"firth\"` reduz o viés de ordem 1/n dos coeficientes (Firth 1993)."
       },
       {
         "texto": "Sem **colinearidade** exata entre os preditores (o bloco recusa senão).",
@@ -3170,6 +3898,22 @@
         "doi": "10.1016/S0895-4356(96)00236-3"
       },
       {
+        "papel": "teoria",
+        "autores": ["Firth, D."],
+        "ano": 1993,
+        "titulo": "Bias reduction of maximum likelihood estimates",
+        "fonte": "Biometrika, 80(1), 27-38",
+        "doi": "10.1093/biomet/80.1.27"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Heinze, G.", "Schemper, M."],
+        "ano": 2002,
+        "titulo": "A solution to the problem of separation in logistic regression",
+        "fonte": "Statistics in Medicine, 21(16), 2409-2419",
+        "doi": "10.1002/sim.1047"
+      },
+      {
         "papel": "livro-texto",
         "autores": ["Hosmer, D. W.", "Lemeshow, S.", "Sturdivant, R. X."],
         "ano": 2013,
@@ -3191,6 +3935,95 @@
         "funcao": "glm",
         "versao": "4.6.0",
         "nota": "Dois grupos: `glm(family = binomial())`. Três ou mais: `nnet::multinom(maxit = 1000)`. Separação detectada por regra própria sobre as probabilidades ajustadas."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_logistic",
+        "versao": "0.3.0",
+        "nota": "`metodo = \"firth\"`: implementação própria (Newton na verossimilhança penalizada, intervalos perfilados por `uniroot`), conferida contra `logistf::logistf` no `sex2` (coeficientes a 1e-6, limites e p a 1e-4). EP pela inversa da informação de Fisher em β̂; o `logistf` usa (X'W(1 + h)X)⁻¹."
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_models_coefs.tr_multi_logit",
+        "versao": "0.3.0",
+        "nota": "Os coeficientes da logística no `models/coefficients` (antes `multi/logistic_coefficients`). ML binária: IC da verossimilhança perfilada por `uniroot` no desvio perfilado (β_j como offset no `glm.fit`) e p da razão de verossimilhanças; conferido contra o `confint` do `glm` (perfil do MASS) a 1e-4 com grade fina e contra `drop1(test = \"LRT\")` a 1e-10. Multinomial: Wald (sem implementação de referência do perfil para o `multinom`)."
+      }
+    ]
+  },
+  "multi/manova": {
+    "pressupostos": [
+      {
+        "texto": "As observações (parcelas) são **independentes**.",
+        "se_falhar": "Medidas repetidas no tempo pedem um modelo de medidas repetidas, fora deste bloco."
+      },
+      {
+        "texto": "Os resíduos são **normais multivariados**.",
+        "verificar": ["multi/mardia", "view/qq"],
+        "se_falhar": "Transforme as respostas assimétricas (log) e prefira a de Pillai; com tratamentos de mesmo número de repetições as quatro estatísticas sofrem menos."
+      },
+      {
+        "texto": "A **matriz de covariância** é a mesma em todos os tratamentos.",
+        "verificar": ["multi/box_m"],
+        "se_falhar": "Use a de Pillai, a mais robusta a covariâncias diferentes (Olson 1976), e mantenha os tratamentos com o mesmo número de repetições; o M de Box rejeita com facilidade."
+      },
+      {
+        "texto": "Há **mais repetições do que respostas**: o resíduo precisa de graus de liberdade (o bloco recusa senão), e com poucas o teste tem pouco poder."
+      },
+      {
+        "texto": "Com **bloco**, o modelo é aditivo (sem interação bloco × tratamento), como no DBC.",
+        "verificar": ["models/tukey_additivity"]
+      },
+      {
+        "texto": "O F de **Roy** é um limite superior: o p-valor dele sai otimista."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Wilks, S. S."],
+        "ano": 1932,
+        "titulo": "Certain generalizations in the analysis of variance",
+        "fonte": "Biometrika, 24(3-4), 471-494",
+        "doi": "10.1093/biomet/24.3-4.471"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Pillai, K. C. S."],
+        "ano": 1955,
+        "titulo": "Some new test criteria in multivariate analysis",
+        "fonte": "The Annals of Mathematical Statistics, 26(1), 117-121",
+        "doi": "10.1214/aoms/1177728599"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Olson, C. L."],
+        "ano": 1976,
+        "titulo": "On choosing a test statistic in multivariate analysis of variance",
+        "fonte": "Psychological Bulletin, 83(4), 579-586",
+        "doi": "10.1037/0033-2909.83.4.579"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Johnson, R. A.", "Wichern, D. W."],
+        "ano": 2007,
+        "titulo": "Applied Multivariate Statistical Analysis",
+        "fonte": "6. ed. Upper Saddle River: Pearson Prentice Hall"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Ferreira, D. F."],
+        "ano": 2018,
+        "titulo": "Estatística multivariada",
+        "fonte": "3. ed. Lavras: Editora UFLA"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "stats",
+        "funcao": "summary.manova",
+        "versao": "4.6.0",
+        "nota": "`manova(Y ~ bloco + tratamento)`, SQ sequencial; conferido contra `car::Manova` (H e E próprias, Pillai e Wilks com e sem bloco, a 1e-8)."
       }
     ]
   },
@@ -3246,7 +4079,7 @@
         "papel": "implementacao",
         "pacote": "trama.multi",
         "funcao": "tr_multi_mardia",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Implementação própria com a covariância de divisor n (Mardia 1970; `MVN::mardia` com `use_population = TRUE`); a correção de amostra pequena usa o fator k de Mardia (1974), o mesmo de `MVN::mardia` e `psych::mardia`. Conferido contra `psych::mardia` reescalado (divisor n − 1)."
       }
     ]
@@ -3327,6 +4160,48 @@
       }
     ]
   },
+  "multi/tocher": {
+    "pressupostos": [
+      {
+        "texto": "Cada linha é **um indivíduo** (um genótipo, um acesso): com repetições do experimento, resuma antes (média por genótipo).",
+        "verificar": ["data/group_summarise"]
+      },
+      {
+        "texto": "A matriz de distância é a **adequada** aos caracteres (em melhoramento, o D² de Mahalanobis ou a euclidiana padronizada): o Tocher só reorganiza a matriz que recebe.",
+        "verificar": ["multi/distance"]
+      },
+      {
+        "texto": "O critério θ (a maior das menores distâncias) supõe que **a distância média dentro de um grupo fica abaixo da distância entre grupos**; indivíduos muito isolados viram grupos de um, e o último grupo pode juntar os que sobraram.",
+        "se_falhar": "Leia os grupos de um como indivíduos divergentes, e confira contra o dendrograma do `multi/cluster`."
+      },
+      {
+        "texto": "O resultado **depende da ordem** de formação (cada grupo começa pelo par mais próximo que sobra): não há teste nem medida de ajuste."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Rao, C. R."],
+        "ano": 1952,
+        "titulo": "Advanced Statistical Methods in Biometric Research",
+        "fonte": "New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cruz, C. D.", "Regazzi, A. J.", "Carneiro, P. C. S."],
+        "ano": 2012,
+        "titulo": "Modelos biométricos aplicados ao melhoramento genético",
+        "fonte": "v. 1, 4. ed. Viçosa: Editora UFV (ISBN 978-85-7269-433-9)"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.multi",
+        "funcao": "tr_multi_tocher",
+        "versao": "0.3.0",
+        "nota": "Implementação própria do algoritmo de Cruz, Regazzi & Carneiro (inclusão enquanto a distância média do candidato ao grupo não passa de θ); conferida num exemplo resolvido à mão e contra `biotools::tocher` no `garlicdist` (θ a 1e-6)."
+      }
+    ]
+  },
   "sampling/detectable_difference": {
     "pressupostos": [
       {
@@ -3371,7 +4246,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_detectable_difference",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Menor δ com δ = q_{1−α/2}·√(deff·p̄q̄·(c_a/n_a + c_b/n_b)) + q_{poder}·√(deff·(p_a q_a c_a/n_a + p_b q_b c_b/n_b)), p_b = p_a ± δ, p̄ ponderada por n, c = 1 − n/N (ou 1); resolvido por uniroot; q = t com n_a + n_b − 2 gl ou z. Com n iguais, z e sem fpc é stats::power.prop.test."
       }
     ]
@@ -3415,7 +4290,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_margin",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "E = q·√(deff·p(1 − p)/n·(1 − n/N)), q = t com n − 1 gl (ou z se declarado) e n = entrevistas × taxa de resposta; a correção finita só com N > 0."
       }
     ]
@@ -3466,7 +4341,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_margin_levels",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Variância estratificada Σ W_h²(1 − n_h/N_h)·p(1 − p)/n_h vezes o deff de agrupamento; deff de ponderação de Kish n·Σ W_h²/n_h; q = t com gl = entrevistas − unidades do nível (ou z se declarado)."
       }
     ]
@@ -3531,7 +4406,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_mean",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
       }
     ]
@@ -3580,7 +4455,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_poststratify",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "w* = w·N_g/N̂_g; na variância, z é trocado pelo resíduo da regressão ponderada nas indicadoras dos pós-estratos (linearização do estimador calibrado)."
       }
     ]
@@ -3681,7 +4556,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_proportion",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
       }
     ]
@@ -3735,7 +4610,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_question_margins",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Pior caso por tipo com q = t nos gl do nível (coluna gl da tabela de margens, ou n − 1) ou z se declarado: p = 0,5; simultânea de Thompson (max sobre m de q_{α/(2m)}·√((1/m)(1 − 1/m)/n)); diferença √(deff/n); todos os pares com Bonferroni sobre k(k − 1)/2; escala com desvio (k − 1)/2."
       }
     ]
@@ -3785,7 +4660,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_rake",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Ajuste proporcional iterativo (uma variável por rodada, até as margens baterem ou o limite de rodadas); variância pelo resíduo da regressão ponderada nas indicadoras de todas as variáveis calibradas."
       }
     ]
@@ -3855,7 +4730,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_ratio",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
       }
     ]
@@ -3911,7 +4786,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_referral",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Para cada cenário (k, ICC), refaz as margens de tr_sampling_margin_levels com n × (1 + k·adesão), o deff de agrupamento 1 + ((CV² + 1)·m − 1)·ICC multiplicado (CV só com k > 0) e q = t com gl = sementes − unidades (ou z)."
       }
     ]
@@ -3947,7 +4822,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_simulate",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Re-sorteia pela receita guardada na amostra (seleção e calibração), estima com o mesmo motor do conglomerado último e resume viés relativo, EP empírico, EP estimado (raiz da média das variâncias), REQM e cobertura do intervalo t."
       }
     ]
@@ -3995,7 +4870,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_size_cluster",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "n₀ do plano refeito com q = t (gl = conglomerados − 1, menor número que se sustenta) ou z, × deff = 1 + ((CV² + 1)·m̄ − 1)·ρ, ÷ m̄ para número de conglomerados, correção finita com M e ÷ taxa de resposta; o deff e a correção finita do plano ligado são trocados."
       }
     ]
@@ -4031,7 +4906,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_size_domains",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "n por grupo = q²·p(1 − p)/E² × deff, q = t com n_g − 1 gl (menor n que se sustenta) ou z; total = maior n_g/participação_g entre os grupos considerados; ÷ taxa de resposta; sem correção finita."
       }
     ]
@@ -4071,7 +4946,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_size_mean",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "n₀ = (q·S/E)², q = t com gl = n − 1 (menor n cuja margem com os gl dele cabe na pedida) ou z se declarado; depois × deff, n/(1 + n/N) e ÷ taxa de resposta, nessa ordem; erro relativo usa E = e·média."
       }
     ]
@@ -4111,7 +4986,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_size_proportion",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "n₀ = q²·p(1 − p)/E², q = t com gl = n − 1 (menor n cuja margem com os gl dele cabe na pedida) ou z se declarado; depois × deff, n/(1 + n/N) e ÷ taxa de resposta."
       }
     ]
@@ -4159,7 +5034,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_size_stratified",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "n = Σ W_h²S_h²/a_h / ((E/z)² + Σ W_h S_h²/N), com a_h da alocação (proporcional, Neyman, ótima, igual); inteiros, mínimo 2 e máximo N_h por estrato; q = t com gl = n − H (menor n que se sustenta) ou z se declarado."
       }
     ]
@@ -4229,7 +5104,7 @@
         "papel": "implementacao",
         "pacote": "trama.sampling",
         "funcao": "tr_sampling_total",
-        "versao": "0.1.0",
+        "versao": "0.3.0",
         "nota": "Motor próprio (não chama o survey): variância do conglomerado último com linearização de Taylor, Σ_h (1 − f_h)·n_h/(n_h − 1)·Σ_c (Z_hc − Z̄_h)², a mesma de survey::svydesign(ids, strata, fpc); correção finita só quando o desenho a declara (f_h = n_h/N_h de unidades primárias); intervalo t com gl = unidades primárias − estratos; domínio sem cortar a amostra."
       }
     ]
@@ -4363,12 +5238,12 @@
       {
         "texto": "Para os **intervalos de previsão**, os resíduos são **normais**; a previsão pontual não depende disso.",
         "verificar": ["series/residuals", "view/qq", "models/shapiro"],
-        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, leia os intervalos como aproximados; intervalos por bootstrap ainda sem bloco no trama."
+        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Se não forem normais, use **Intervalo** = `bootstrap` no `series/forecast`."
       },
       {
         "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
         "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
-        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama."
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa)."
       }
     ],
     "referencias": [
@@ -4495,9 +5370,9 @@
   "series/cox_stuart": {
     "pressupostos": [
       {
-        "texto": "Sob H0 as observações são **independentes** (sem autocorrelação). Os pares são tratados como independentes; com autocorrelação o teste rejeita demais.",
+        "texto": "Com **Correção** `nenhuma`, os pares são tratados como **independentes**; com autocorrelação o teste rejeita demais (medido, AR(1) phi = 0,6: 23% a 25% a 5%). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 3,8% a 6,6% (phi 0,3 e 0,6; n = 60 e 120).",
         "verificar": ["series/acf", "series/ljung_box"],
-        "se_falhar": "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Este teste não tem versão para dado autocorrelacionado: leia o p-valor como otimista e, para tendência, use o `series/mann_kendall` com **Correção** `hamed_rao` ou `pre_branqueamento`."
+        "se_falhar": "Troque a **Correção** para `bootstrap_blocos`, ou use o `series/mann_kendall` com a mesma correção (mais poder)."
       },
       {
         "texto": "A tendência procurada é **monótona** (um sentido só). Uma série que sobe e depois desce pode sair sem tendência nenhuma.",
@@ -4528,11 +5403,19 @@
         "fonte": "2. ed. São Paulo: Blucher"
       },
       {
+        "papel": "teoria",
+        "autores": ["Kundzewicz, Z. W.", "Robson, A. J."],
+        "ano": 2004,
+        "titulo": "Change detection in hydrological records—a review of the methodology",
+        "fonte": "Hydrological Sciences Journal, 49(1), 7-19",
+        "doi": "10.1623/hysj.49.1.7.53993"
+      },
+      {
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_cox_stuart",
-        "versao": "0.1.0",
-        "nota": "Cálculo próprio: pares em terços (original) ou metades, empates descartados; `stats::binom.test` com menos de 20 pares, aproximação normal a partir de 20."
+        "versao": "0.4.0",
+        "nota": "Cálculo próprio: pares em terços (original) ou metades, empates descartados; `stats::binom.test` com menos de 20 pares, aproximação normal a partir de 20. `bootstrap_blocos`: soma dos sinais dos pares (mesmo pareamento) em blocos móveis de round(√n), 1999 reamostras, semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."
       }
     ]
   },
@@ -4609,7 +5492,7 @@
       {
         "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
         "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
-        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama."
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa)."
       }
     ],
     "referencias": [
@@ -4683,7 +5566,7 @@
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_f_global",
-        "versao": "0.1.0",
+        "versao": "0.4.0",
         "nota": "Com regressão de erro ARMA (GLS): F de Wald b'V⁻¹b/q do bloco, com a covariância do `gls`, q e n - p graus de liberdade; conferido refazendo a conta à mão (1e-8)."
       }
     ]
@@ -4737,7 +5620,7 @@
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_f_global",
-        "versao": "0.1.0",
+        "versao": "0.4.0",
         "nota": "Com regressão de erro ARMA (GLS): F de Wald b'V⁻¹b/q do bloco, com a covariância do `gls`, q e n - p graus de liberdade; conferido refazendo a conta à mão (1e-8)."
       }
     ]
@@ -4791,7 +5674,7 @@
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_f_global",
-        "versao": "0.1.0",
+        "versao": "0.4.0",
         "nota": "Com regressão de erro ARMA (GLS): F de Wald b'V⁻¹b/q do bloco, com a covariância do `gls`, q e n - p graus de liberdade; conferido refazendo a conta à mão (1e-8)."
       }
     ]
@@ -4806,7 +5689,7 @@
       {
         "texto": "Os resíduos são **normais e de variância constante**: os limites de 80% e 95% são quantis normais.",
         "verificar": ["series/residuals", "view/qq", "models/shapiro"],
-        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Intervalos por bootstrap ainda sem bloco no trama."
+        "se_falhar": "A série de resíduos vira tabela no fio (coluna `valor`). Variância crescente: modele o log (`series/transform`). Sem normalidade, use **Intervalo** = `bootstrap` (ARIMA e ETS), que reamostra os resíduos e ainda supõe independência e variância constante."
       },
       {
         "texto": "O **futuro segue a mesma dinâmica** do passado usado no ajuste: nenhuma quebra, intervenção ou mudança de regime no horizonte. Quanto maior o horizonte, mais essa suposição pesa.",
@@ -4837,7 +5720,7 @@
         "pacote": "forecast",
         "funcao": "forecast",
         "versao": "9.0.2",
-        "nota": "`h` = horizonte, `level = c(80, 95)` fixos. Série transformada antes é prevista na escala transformada."
+        "nota": "`h` = horizonte, `level = c(80, 95)` fixos; com `bootstrap`, `bootstrap = TRUE, npaths = 5000` sob a semente do nó (Mersenne-Twister), conferido contra a mesma chamada a 1e-12. Série transformada antes é prevista na escala transformada."
       }
     ]
   },
@@ -4860,7 +5743,7 @@
       {
         "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
         "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
-        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`). Modelo de intervenção (ARIMA com regressor de degrau) ainda sem bloco no trama."
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa)."
       }
     ],
     "referencias": [
@@ -4901,6 +5784,74 @@
         "funcao": "HoltWinters",
         "versao": "4.6.0",
         "nota": "α, β e γ minimizam a soma dos quadrados dos erros de um passo (`optim`); `beta = FALSE` e `gamma = FALSE` desligam tendência e sazonalidade. Sem verossimilhança: não há AIC."
+      }
+    ]
+  },
+  "series/intervencao": {
+    "pressupostos": [
+      {
+        "texto": "A **data** da intervenção é conhecida de antemão, e não escolhida pelo maior salto da própria série: escolhê-la pelo dado e testá-la no mesmo dado torna o p-valor otimista.",
+        "verificar": ["series/plot"],
+        "se_falhar": "Para procurar a data, `series/pettitt` ou `series/zivot_andrews`; depois confirme em outra série ou período."
+      },
+      {
+        "texto": "Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
+        "verificar": ["series/window", "series/arima", "series/ndiffs"],
+        "se_falhar": "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e use-a aqui."
+      },
+      {
+        "texto": "Com **Resposta** = `imediata`, o efeito entra **inteiro na data** (forma de ordem zero); com `gradual`, segue ω/(1 − δB) com |δ| < 1 — uma resposta de outra forma (duas taxas, atraso) não é modelada.",
+        "verificar": ["series/plot", "series/residuals"],
+        "se_falhar": "Se o resíduo mostra o efeito chegando aos poucos, use `gradual`; se δ vai para a borda, troque o degrau pela rampa."
+      },
+      {
+        "texto": "Os resíduos do modelo são **ruído branco**: sem autocorrelação sobrando. Autocorrelação nos resíduos quer dizer estrutura que o modelo deixou para trás, e intervalos estreitos demais.",
+        "verificar": ["series/residuals", "series/ljung_box", "series/acf"],
+        "se_falhar": "Ligue `series/residuals` → `series/ljung_box` (com `graus` = parâmetros estimados). Se rejeitar, mude a ordem do `series/arima` (veja a `series/acf` e a `series/pacf` dos resíduos) ou troque de família (`series/ets`)."
+      },
+      {
+        "texto": "O IC e o p-valor são de **Wald** (normal assintótica da máxima verossimilhança): pedem resíduos aproximadamente normais e série não muito curta.",
+        "verificar": ["series/residuals", "view/qq"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Box, G. E. P.", "Tiao, G. C."],
+        "ano": 1975,
+        "titulo": "Intervention analysis with applications to economic and environmental problems",
+        "fonte": "Journal of the American Statistical Association, 70(349), 70-79",
+        "doi": "10.1080/01621459.1975.10480264"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Box, G. E. P.", "Jenkins, G. M.", "Reinsel, G. C.", "Ljung, G. M."],
+        "ano": 2015,
+        "titulo": "Time Series Analysis: Forecasting and Control",
+        "fonte": "5. ed. Hoboken: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
+        "ano": 2021,
+        "titulo": "Forecasting: Principles and Practice",
+        "fonte": "3. ed. Melbourne: OTexts",
+        "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Cryer, J. D.", "Chan, K.-S."],
+        "ano": 2008,
+        "titulo": "Time Series Analysis: With Applications in R",
+        "fonte": "2. ed. New York: Springer (cap. 11)",
+        "doi": "10.1007/978-0-387-75959-3"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "forecast",
+        "funcao": "Arima",
+        "versao": "9.0.2",
+        "nota": "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8. Resposta gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ pela verossimilhança perfilada (`optimize` em (−0,999; 0,999)), erro-padrão pela hessiana numérica (`optimHess`) da verossimilhança completa; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles (degrau e pulso em 2001-09) a 1e-3."
       }
     ]
   },
@@ -5007,10 +5958,10 @@
       {
         "texto": "Com **Correção** `nenhuma`, sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva, comum em série ambiental, faz o teste rejeitar bem mais que o nível nominal.",
         "verificar": ["series/acf", "series/ljung_box"],
-        "se_falhar": "Troque a **Correção** para `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."
+        "se_falhar": "Troque a **Correção** para `bootstrap_blocos` (p por bootstrap de blocos móveis; o que mais se aproxima do nível), `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."
       },
       {
-        "texto": "Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009).",
+        "texto": "Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 5,5% com phi = 0,3 e n = 120, mas 7,7% a 9,0% com phi = 0,6 (n = 120 e 60).",
         "verificar": ["series/acf", "series/pacf"],
         "se_falhar": "Com autocorrelação forte, modele o erro: `series/regression` com **Erro** = `arma` e o `series/f_trend`."
       },
@@ -5067,11 +6018,27 @@
         "doi": "10.1016/j.jhydrol.2009.01.040"
       },
       {
+        "papel": "teoria",
+        "autores": ["Kundzewicz, Z. W.", "Robson, A. J."],
+        "ano": 2004,
+        "titulo": "Change detection in hydrological records—a review of the methodology",
+        "fonte": "Hydrological Sciences Journal, 49(1), 7-19",
+        "doi": "10.1623/hysj.49.1.7.53993"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Künsch, H. R."],
+        "ano": 1989,
+        "titulo": "The jackknife and the bootstrap for general stationary observations",
+        "fonte": "The Annals of Statistics, 17(3), 1217-1241",
+        "doi": "10.1214/aos/1176347265"
+      },
+      {
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_mann_kendall",
-        "versao": "0.1.0",
-        "nota": "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre."
+        "versao": "0.4.0",
+        "nota": "Cálculo próprio: S sobre todos os pares, variância com correção de empates, Z com correção de continuidade e p-valor normal bilateral. `hamed_rao` e `pre_branqueamento` seguem `modifiedmk::mmkh` e `modifiedmk::tfpwmk` (conferidos a 1e-8): autocorrelações dos postos em todas as defasagens, só as significativas a 5%; r1 aplicado sempre. Conferido no texto de Yue et al. (2002, p. 1822-1823, passos 1 a 4): o AR(1) é removido SEMPRE, sem condição de significância; o teste do r1 (eq. B.1, 10% bilateral) só escolhe as estações da aplicação (p. 1825). Diferença documentada: o r1 do artigo é a eq. 14a, com 1/(n − k) no numerador e 1/n no denominador, isto é, n/(n − 1) vezes o r1 do `stats::acf` que o `modifiedmk::tfpwmk` e este bloco usam (com n = 60, 1,7% maior); segue-se o `modifiedmk`, que é o oráculo. `bootstrap_blocos`: blocos móveis de round(√n), inícios sorteados com reposição, 1999 reamostras, p = (1 + #{|S*| ≥ |S|})/(B + 1), semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."
       }
     ]
   },
@@ -5120,7 +6087,7 @@
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_fisher",
-        "versao": "0.1.0",
+        "versao": "0.4.0",
         "nota": "Cálculo próprio sobre `stats::spec.pgram(taper = 0, detrend = remover == \"reta\", fast = FALSE)`, sem a ordenada de Nyquist: g = maior ordenada / soma, p pela série exata de Fisher (todos os termos), zα = quantil exato a 5%. Conferido contra `GeneCycle::fisher.g.test` (igual a 1e-10)."
       }
     ]
@@ -5128,9 +6095,9 @@
   "series/pettitt": {
     "pressupostos": [
       {
-        "texto": "Sob H0 as observações são **independentes** (sem autocorrelação). Autocorrelação positiva imita ponto de mudança e faz o teste rejeitar demais.",
+        "texto": "Com **Correção** `nenhuma`, sob H0 as observações são **independentes**: autocorrelação positiva imita ponto de mudança (medido, AR(1) phi = 0,6: 46% a 55% a 5%). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 3,5% a 4,6% com phi = 0,3 e 7,8% a 8,7% com phi = 0,6 (n = 60 e 120).",
         "verificar": ["series/acf", "series/ljung_box"],
-        "se_falhar": "Olhe a `series/acf` da série sem a tendência (resto do `series/stl` via `series/component`). Este teste não tem versão para dado autocorrelacionado: leia o p-valor como otimista e, para tendência, use o `series/mann_kendall` com **Correção** `hamed_rao` ou `pre_branqueamento`."
+        "se_falhar": "Troque a **Correção** para `bootstrap_blocos`; com autocorrelação forte, leia um \"rejeita\" apertado com cautela."
       },
       {
         "texto": "Há **no máximo um** ponto de mudança, de **locação** (a distribuição antes e depois difere no nível). Várias mudanças, ou uma tendência gradual, também rejeitam, e a posição apontada não é então uma quebra.",
@@ -5154,11 +6121,19 @@
         "doi": "10.2307/2346729"
       },
       {
+        "papel": "teoria",
+        "autores": ["Kundzewicz, Z. W.", "Robson, A. J."],
+        "ano": 2004,
+        "titulo": "Change detection in hydrological records—a review of the methodology",
+        "fonte": "Hydrological Sciences Journal, 49(1), 7-19",
+        "doi": "10.1623/hysj.49.1.7.53993"
+      },
+      {
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_pettitt",
-        "versao": "0.1.0",
-        "nota": "Cálculo próprio: U_t acumulado de Mann-Whitney, K = max|U_t|, p ≈ 2·exp(−6K²/(n³ + n²)) limitado a 1."
+        "versao": "0.4.0",
+        "nota": "Cálculo próprio: U_t acumulado de Mann-Whitney, K = max|U_t|, p ≈ 2·exp(−6K²/(n³ + n²)) limitado a 1. `bootstrap_blocos`: K em blocos móveis de round(√n), 1999 reamostras, p = (1 + #{K* ≥ K})/(B + 1), semente do nó; conferido contra o mesmo bootstrap escrito à mão com a mesma semente (igual exatamente)."
       }
     ]
   },
@@ -5237,7 +6212,7 @@
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_phillips_perron",
-        "versao": "0.1.0",
+        "versao": "0.4.0",
         "nota": "`constante`: Z(t) pela forma geral (Hamilton 1994, eq. 17.6.8), Newey-West com janela trunc(4·(n/100)^(1/4)) e pesos de Bartlett; p-valor pela superfície de resposta de MacKinnon (1996), `urca::punitroot(trend = \"c\", statistic = \"t\")` com N = n − 1, sem borda. Conferido: Z(t) contra `aTSA::pp.test` (tipo 2) a 1e-10; o p devolve 1/5/10% nos críticos assintóticos de MacKinnon (2010) e fica a menos de 0,002 das colunas de 1% e 5% de Fuller (1976, tab. 8.5.2)."
       }
     ]
@@ -5262,6 +6237,11 @@
       {
         "texto": "Do grau 2 em diante, as potências cruas do tempo são **quase colineares**: os coeficientes de tendência não se leem um a um.",
         "se_falhar": "Leia a tendência pelo `series/f_trend`, que testa o bloco inteiro."
+      },
+      {
+        "texto": "Com **regressor** ligado: o efeito dele é **contemporâneo** (x no mesmo instante, sem defasagem) e **exógeno** (y não volta a mexer em x). Duas séries que só compartilham tendência produzem regressão espúria: o p do β sai pequeno sem relação nenhuma, sobretudo com erro autocorrelacionado.",
+        "verificar": ["series/ljung_box", "series/adf"],
+        "se_falhar": "Deixe a tendência no modelo (grau ≥ 1), ligue **Erro = arma** se o resto for autocorrelacionado, e com séries de raiz unitária diferencie as duas antes (`series/diff`)."
       }
     ],
     "referencias": [
@@ -5279,6 +6259,14 @@
         "titulo": "Forecasting: Principles and Practice",
         "fonte": "3. ed. Melbourne: OTexts",
         "url": "https://otexts.com/fpp3/"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Granger, C. W. J.", "Newbold, P."],
+        "ano": 1974,
+        "titulo": "Spurious regressions in econometrics",
+        "fonte": "Journal of Econometrics, 2(2), 111-120",
+        "doi": "10.1016/0304-4076(74)90034-7"
       },
       {
         "papel": "implementacao",
@@ -5349,7 +6337,7 @@
         "papel": "implementacao",
         "pacote": "trama.series",
         "funcao": "tr_series_runs",
-        "versao": "0.1.0",
+        "versao": "0.4.0",
         "nota": "Cálculo próprio: símbolos acima/abaixo da mediana (iguais à mediana fora da conta), Z pela média e variância do número de sequências, p-valor normal bilateral, sem correção de continuidade."
       }
     ]
@@ -5466,9 +6454,9 @@
         "verificar": ["series/plot"]
       },
       {
-        "texto": "As **defasagens** bastam para deixar o erro da regressão sem autocorrelação. Com `t_sig` (padrão) o número é escolhido do geral para o específico, como no artigo; com `fixa` vale o que foi dado.",
+        "texto": "As **defasagens** bastam para deixar o erro da regressão sem autocorrelação. Com `fixa` (padrão) vale o número dado, e `-1` é a regra l4 de Schwert (1989), trunc(4·(n/100)^(1/4)); com `t_sig` o número é escolhido do geral para o específico em cada corte, como no artigo, mas rejeita bem acima do nominal abaixo de 100 observações (medido: 29% a 5% com n = 30).",
         "verificar": ["series/pacf"],
-        "se_falhar": "Suba o teto em **Defasagens** (o bloco diz o máximo que cabe)."
+        "se_falhar": "Suba o número em **Defasagens** (o bloco diz o máximo que cabe)."
       },
       {
         "texto": "Série de **pelo menos 20** observações, e de preferência 40 ou mais: abaixo disso o teste rejeita mais que o nível nominal."
@@ -5511,7 +6499,7 @@
         "pacote": "urca",
         "funcao": "ur.za",
         "versao": "1.3.4",
-        "nota": "`model = \"intercept\"`, `\"trend\"` ou `\"both\"`, `lag` = k. Com `t_sig`, k sai do geral para o específico a partir do teto (0 = trunc(12·(n/100)^(1/4))), t da última defasagem a 10% na regressão do corte escolhido; com `fixa`, k dado (0 = trunc((n - 1)^(1/3))). A coleção refaz o mínimo do t só nos cortes entre 15% e 85% da série e usa os críticos de `z@cval`. Reproduz Zivot & Andrews (1992) no PNB real de Nelson-Plosser: -5,58, 1929."
+        "nota": "`model = \"intercept\"`, `\"trend\"` ou `\"both\"`, `lag` = k. Com `fixa`: `lag` = k dado (-1 = trunc(4·(n/100)^(1/4)), 0 = nenhuma), mínimo do t do `ur.za` só nos cortes entre 15% e 85% da série. Com `t_sig`: cálculo próprio (`lm.fit`, a mesma regressão do `ur.za`, conferida a 1e-10), k do geral para o específico em CADA corte a partir do teto (-1 = trunc(12·(n/100)^(1/4))), |t| da última defasagem ≥ 1,645, e mínimo dos t nos cortes; conferido contra a força bruta com a regressão do `ur.za` a 1e-10. Críticos de `z@cval`. Com k = 8 fixo, PNB real e nominal de Nelson-Plosser (`urca::nporg`): -5,576 e -5,824, 1929 (recalculados no `ur.za`)."
       }
     ]
   }

@@ -20,6 +20,8 @@ tr_errors <- function() {
     tr_error_bad_icon = "tr_icon() sem 'name' nem 'svg', com os dois, ou com valor que não é string única",
     tr_error_bad_id = "id de tipo, nó ou coleção fora do formato 'colecao/nome'",
     tr_error_bad_init = "formal de 'init' de tr_node() que não é param do nó",
+    tr_error_bad_migration = "'migracoes' de tr_node() mal declaradas: sem nome, versão de destino fora de 2..version, ou item que não é função",
+    tr_error_migration = "migração de params de um nó falhou ou não devolveu lista nomeada ao abrir/validar/rodar um documento de versão antiga",
     tr_error_bad_name = "nome de projeto vazio, com separador de caminho, ou que não é uma string única",
     tr_error_bad_op = "op malformada, ou valor de op inválido (seed, posição)",
     tr_error_bad_output = "fn não devolveu todas as portas de saída declaradas",

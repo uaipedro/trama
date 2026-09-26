@@ -1,6 +1,6 @@
 Package: trama.view
 Title: Plotting Collection for trama
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),

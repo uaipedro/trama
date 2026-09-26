@@ -136,7 +136,8 @@ tr_models_predict_cv.tr_multi_logit <- function(x, validacao = "resubstituição
   for (i in seq_len(n)) {
     sem <- x
     # Sem hessiana: o reajuste só prevê a observação deixada de fora.
-    sem$ajuste <- .tr_multi_logit_ajuste(X[-i, , drop = FALSE], g[-i], no, hess = FALSE)
+    sem$ajuste <- .tr_multi_logit_ajuste(X[-i, , drop = FALSE], g[-i], no, hess = FALSE,
+                                         metodo = if (is.null(x$metodo)) "ml" else x$metodo)
     pr <- .tr_multi_logit_prever(sem, X[i, , drop = FALSE])
     prob[i, ] <- pr$prob[1, ]
     classe[i] <- as.character(pr$classe)
@@ -158,21 +159,56 @@ tr_models_predict_cv.tr_multi_logit <- function(x, validacao = "resubstituição
 #' Mesmas colunas de um GLM da models (`termo`, `estimativa`, `erro_padrao`,
 #' `z`, `p_valor`, `li_<nível>`, `ls_<nível>`), mais `grupo`: o grupo cuja
 #' chance a linha modela contra a referência (um só na binária, um por grupo na
-#' multinomial). `exponenciar` dá a razão de chances e o intervalo de Wald
+#' multinomial). `exponenciar` dá a razão de chances e o intervalo
 #' exponenciado — o que a antiga `multi/logistic_coefficients` mostrava.
+#'
+#' `intervalo` (a lógica da `multi/logistic_coefficients` v4 da main, 495ea07,
+#' 531cd34): `"padrão"` e `"perfilado"` dão o IC da verossimilhança perfilada e
+#' o p da razão de verossimilhanças — penalizadas no Firth (Heinze & Schemper
+#' 2002), do desvio perfilado na ML binária (Venables & Ripley 2002, sec.
+#' 7.2); na multinomial saem de Wald, e a nota diz. `"Wald"` dá exp(b ± z·EP)
+#' e 2Φ(−|z|). O `z` é sempre de Wald (b / EP).
 #' @export
-tr_models_coefs.tr_multi_logit <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
+tr_models_coefs.tr_multi_logit <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95,
+                                           intervalo = "padrão", ...) {
   no <- "models/coefficients"
   escala <- .tr_multi_enum(escala, .TR_MULTI_ESCALAS_OR, "escala")
   confianca <- .tr_multi_num(confianca, "confianca", min = 0.5, max = 0.999)
+  intervalo <- .tr_multi_enum(intervalo, c("padrão", .TR_MULTI_INTERVALOS_OR), "intervalo")
+  if (intervalo == "padrão") intervalo <- "perfilado"
   .tr_multi_sem_separacao(x, no)
   d <- .tr_multi_logit_coefs(x, escala)
-  q <- stats::qnorm((1 + confianca) / 2)
   z <- d$coeficiente / d$erro_padrao
+  firth <- inherits(x$ajuste, "tr_multi_firth")
+  binaria_ml <- !firth && identical(x$tipo, "binária")
+  if (intervalo == "perfilado" && firth) {
+    aj <- x$ajuste
+    ic <- vapply(seq_along(aj$coefficients), function(j) .tr_multi_firth_ic(aj, j, confianca), numeric(2))
+    lo <- ic[1, ] * d$escala_dp; hi <- ic[2, ] * d$escala_dp
+    pv <- vapply(seq_along(aj$coefficients), function(j) .tr_multi_firth_p(aj, j), 0)
+    tipo_ic <- "perfilado (verossimilhança penalizada de Firth); p da razão de verossimilhanças penalizadas"
+  } else if (intervalo == "perfilado" && binaria_ml) {
+    aj <- x$ajuste
+    X <- stats::model.matrix(aj); y <- aj$y
+    b <- unname(stats::coef(aj)); ep <- unname(sqrt(diag(stats::vcov(aj))))
+    dev <- aj$deviance
+    ic <- vapply(seq_along(b), function(j) .tr_multi_logit_ic_perfil(X, y, b, ep, dev, j, confianca),
+                 numeric(2))
+    lo <- ic[1, ] * d$escala_dp; hi <- ic[2, ] * d$escala_dp
+    pv <- vapply(seq_along(b), function(j) {
+      stats::pchisq(max(0, .tr_multi_logit_desvio_perfil(X, y, j, 0) - dev), 1, lower.tail = FALSE)
+    }, 0)
+    tipo_ic <- "perfilado; p da razão de verossimilhanças"
+  } else {
+    q <- stats::qnorm((1 + confianca) / 2)
+    lo <- d$coeficiente - q * d$erro_padrao; hi <- d$coeficiente + q * d$erro_padrao
+    pv <- 2 * stats::pnorm(-abs(z))
+    tipo_ic <- if (intervalo == "perfilado") "de Wald (a multinomial não tem perfil)" else "de Wald"
+  }
   tab <- tibble::tibble(grupo = d$grupo, termo = d$termo, estimativa = d$coeficiente,
-                        erro_padrao = d$erro_padrao, z = z, p_valor = 2 * stats::pnorm(-abs(z)),
-                        li = d$coeficiente - q * d$erro_padrao, ls = d$coeficiente + q * d$erro_padrao)
-  nota <- sprintf("Wald; referência: '%s'", x$niveis[[1]])
+                        erro_padrao = d$erro_padrao, z = z, p_valor = pv, li = lo, ls = hi)
+  nota <- sprintf("IC %s; z de Wald; referência: '%s'", tipo_ic, x$niveis[[1]])
+  if (firth) nota <- paste0(nota, "; logística de Firth")
   if (isTRUE(exponenciar)) {
     tab$estimativa <- exp(tab$estimativa); tab$li <- exp(tab$li); tab$ls <- exp(tab$ls)
     tab$erro_padrao <- NULL

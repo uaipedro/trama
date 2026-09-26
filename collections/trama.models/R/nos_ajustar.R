@@ -37,9 +37,6 @@ delineamento ou modelo.
 
 - **sleepstudy** — tempo de reação (`Reaction`) de 18 pessoas (`Subject`) ao
   longo de 10 dias de privação de sono (`Days`). O exemplo do `lme4`.
-- **cbpp** — pleuropneumonia bovina (`lme4::cbpp`): casos novos
-  (`incidence`) entre os animais (`size`) de 15 rebanhos (`herd`) em 4 períodos
-  (`period`). Proporção com rebanho aleatório: o `models/glmer` binomial.
 - **InsectSprays** — contagem de insetos (`count`) sob 6 inseticidas (`spray`).
   Contagem com variância que cresce com a média: GLM Poisson.
 - **Puromycin** — velocidade de reação (`rate`) pela concentração de substrato
@@ -48,6 +45,11 @@ delineamento ou modelo.
 - **mtcars** — 32 carros, consumo (`mpg`) e 10 características, com o nome em
   `modelo`. Regressão múltipla; `am` e `vs` servem para GLM binomial.
 - **cars** — distância de frenagem (`dist`) pela velocidade (`speed`).
+- **cbpp** — pleuropneumonia bovina (`lme4::cbpp`): `casos` e `sadios` de
+  `tamanho` animais por `rebanho` (15) e `periodo` (4). GLM misto binomial.
+- **grouseticks** — carrapatos (`TICKS`) em filhotes de lagópode por ninhada
+  (`BROOD`), local (`LOCATION`) e ano (`YEAR`); `lme4::grouseticks`. GLM misto
+  Poisson com superdispersão.
 ]---", r"---[
 - **Conjunto** — qual conjunto carregar.
 ]---", r"---[
@@ -130,7 +132,7 @@ tr_flow(reg) |>
 contínua.
 ]---")),
 
-    trama::tr_node("models/glm", 
+    trama::tr_node("models/glm", version = 2L,
       pressupostos = .tr_models_doc("models/glm")$pressupostos,
       referencias = .tr_models_doc("models/glm")$referencias,
       fn = tr_models_glm, label = "Modelo linear generalizado",
@@ -179,6 +181,125 @@ tr_flow(reg) |>
 `models/coefficients` com exponenciar para razão de taxas ou de chances;
 `models/anova_table` para o quadro de desvio; `models/emmeans` para as médias na
 escala da resposta.
+]---")),
+
+    trama::tr_node("models/glmer", version = 2L,
+      pressupostos = .tr_models_doc("models/glmer")$pressupostos,
+      referencias = .tr_models_doc("models/glmer")$referencias,
+      fn = tr_models_glmer, label = "GLM misto",
+      category = "modelo_ajustar", icon = trama::tr_icon("layers-2"),
+      description = "Ajusta um GLM misto (lme4::glmer), binomial ou Poisson, com efeito por observação opcional.",
+      inputs = list(dados = T), outputs = list(out = Fm),
+      params = list(
+        formula = P("expr", "", label = "Fórmula", example = "cbind(casos, sadios) ~ periodo + (1 | rebanho)"),
+        resposta = P("cols", "", label = "Resposta (sem fórmula)", example = "TICKS"),
+        fixos = P("cols", "", label = "Efeitos fixos (sem fórmula)", example = "YEAR"),
+        grupo = P("cols", "", label = "Grupo aleatório (sem fórmula)", example = "BROOD"),
+        familia = E("binomial", c("binomial", "poisson"), label = "Família"),
+        nivel_obs = B(FALSE, label = "Efeito por observação")),
+      help = .tr_models_ajuda(paste0(r"---[
+O `models/glm` com efeitos aleatórios: a resposta é binomial (0/1, ou
+sucessos em n tentativas com `cbind(sucessos, fracassos)` na fórmula) ou
+Poisson (contagem), e os grupos (rebanho, bloco, ninhada) entram como
+intercepto aleatório, na sintaxe do `lme4`: `(1 | rebanho)`.
+
+O ajuste é por máxima verossimilhança com a aproximação de Laplace
+(`lme4::glmer`). Os coeficientes saem na escala da ligação (logit, log), com z
+de Wald; o `models/coefficients` exponencia (razão de chances, de taxas). As
+médias do `models/emmeans` são as do grupo típico (efeito aleatório zero), não
+médias populacionais.
+
+### Superdispersão
+
+**Efeito por observação** soma `(1 | .obs)`, um intercepto aleatório por linha:
+a variância a mais que a binomial ou a Poisson vira um componente de variância.
+Compare com e sem no `models/compare` (razão de verossimilhança; a variância
+testada está na fronteira do espaço, e o p sai conservador).
+
+Com resposta 0/1 (uma tentativa por linha) o efeito por observação não é
+identificável e o bloco recusa; ele serve a `cbind(sucessos, fracassos)` e a
+contagens. Uma resposta de uma coluna na binomial tem de ser 0/1: proporção ou
+número de sucessos sem o total é recusado (escreva o `cbind`).
+
+Os avisos do ajuste (não convergência, ajuste singular) vão para a nota do
+modelo e dos quadros que saem dele.
+
+Não há resíduo normal a testar (Shapiro, Levene e Breusch-Pagan recusam) nem
+SQ sequencial: o quadro é de Wald, tipo II ou III.
+]---", .tr_models_ajuda_faltantes()), r"---[
+- **Fórmula** — com pelo menos um termo aleatório.
+- **Resposta**, **Efeitos fixos**, **Grupo aleatório** — o atalho sem fórmula.
+- **Família** — binomial (logit) ou Poisson (log).
+- **Efeito por observação** — soma `(1 | .obs)` para a superdispersão.
+]---", r"---[
+Um modelo (`models/fit`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carrapatos", "models/example", dataset = "grouseticks") |>
+  tr_add("gm", "models/glmer", resposta = "TICKS", fixos = "YEAR", grupo = "BROOD",
+         familia = "poisson", nivel_obs = TRUE, from = "carrapatos")
+]---", r"---[
+`models/glm` sem efeito aleatório; `models/lmer` para resposta contínua;
+`models/random_effects`; `models/compare`.
+]---")),
+
+    trama::tr_node("models/gls", version = 2L,
+      pressupostos = .tr_models_doc("models/gls")$pressupostos,
+      referencias = .tr_models_doc("models/gls")$referencias,
+      fn = tr_models_gls, label = "GLS (erro correlacionado)",
+      category = "modelo_ajustar", icon = trama::tr_icon("chart-network"),
+      description = "Ajusta mínimos quadrados generalizados (nlme::gls): AR(1), simetria composta ou não estruturada no erro, variância por nível.",
+      inputs = list(dados = T), outputs = list(out = Fm),
+      params = list(
+        formula = P("expr", "", label = "Fórmula (efeitos fixos)", example = "Reaction ~ Days"),
+        correlacao = E("ar1", .TR_MODELS_CORRELACOES, label = "Correlação no grupo"),
+        grupo = P("cols", "", label = "Grupo (medidas repetidas)", example = "Subject"),
+        tempo = P("cols", "", label = "Tempo (ocasião)", example = "Days"),
+        variancia_por = P("cols", "", label = "Variância por (opcional)", example = "Days"),
+        reml = B(TRUE, label = "REML")),
+      help = .tr_models_ajuda(paste0(r"---[
+Regressão ou ANOVA com o erro CORRELACIONADO dentro de cada grupo — as medidas
+repetidas de um animal, de uma parcela no tempo. É a saída quando a parcela
+subdividida no tempo não pode supor esfericidade (`nlme::gls`).
+
+- **ar1** — a correlação cai com a distância entre as ocasiões (phi, phi²...),
+  contada em POSIÇÕES: vale para ocasiões igualmente espaçadas. Com Tempo
+  numérico desigualmente espaçado, a nota avisa.
+- **car1** — AR(1) em tempo contínuo (`corCAR1`): correlação phi^|t − s| na
+  distância real entre as ocasiões. Pede Tempo numérico; é a escolha para
+  ocasiões desigualmente espaçadas (dias 0, 7, 14, 42).
+- **simetria_composta** — a mesma correlação entre quaisquer duas ocasiões: é
+  o que a análise de parcela subdividida supõe.
+- **nao_estruturada** — uma correlação por par de ocasiões.
+- **nenhuma** — erro independente (útil com **Variância por**).
+
+**Tempo** ordena as ocasiões dentro do grupo (sem ele, vale a ordem das
+linhas). **Variância por** dá uma variância a cada nível da coluna.
+
+Compare estruturas no `models/compare` (razão de verossimilhança; reajusta por
+ML quando os efeitos fixos diferem). Os testes dos coeficientes e do quadro
+são de Wald, com t e F nos gl n - p do `nlme` (n observações, p parâmetros
+fixos): com poucos grupos esses gl são grandes demais e os p-valores,
+liberais. O `models/emmeans` usa gl de Satterthwaite (menores); com poucos
+sujeitos, prefira-o, ou o misto equivalente no `models/lmer`. Os resíduos são
+os normalizados.
+]---", .tr_models_ajuda_faltantes()), r"---[
+- **Fórmula (efeitos fixos)** — sem termos aleatórios.
+- **Correlação no grupo** — ar1 (padrão), car1, simetria_composta, nao_estruturada ou nenhuma.
+- **Grupo** — a unidade com medidas repetidas.
+- **Tempo** — a ocasião (opcional).
+- **Variância por** — coluna com variância própria por nível (opcional).
+- **REML** — padrão; desligado, máxima verossimilhança.
+]---", r"---[
+Um modelo (`models/fit`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("sono", "models/example", dataset = "sleepstudy") |>
+  tr_add("gls", "models/gls", formula = "Reaction ~ Days", correlacao = "ar1",
+         grupo = "Subject", tempo = "Days", from = "sono")
+]---", r"---[
+`models/lmer` para efeitos aleatórios; `models/anova_split_plot`;
+`models/compare` para escolher a estrutura.
 ]---")),
 
     trama::tr_node("models/lmer", 
@@ -237,73 +358,6 @@ tr_flow(reg) |>
 `models/random_effects` para as variâncias; `models/random_test` para testar os
 termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos;
 `models/glmer` para proporção ou contagem.
-]---")),
-
-    trama::tr_node("models/glmer", fn = tr_models_glmer,
-      pressupostos = .tr_models_doc("models/glmer")$pressupostos,
-      referencias = .tr_models_doc("models/glmer")$referencias, label = "Misto generalizado",
-      category = "modelo_ajustar", icon = trama::tr_icon("layers-2"),
-      description = "Ajusta um modelo misto generalizado (lme4::glmer), binomial ou Poisson, com efeitos aleatórios.",
-      inputs = list(dados = T), outputs = list(out = Fm),
-      params = list(
-        formula = P("expr", "", label = "Fórmula", example = "cbind(incidence, size - incidence) ~ period + (1 | herd)"),
-        resposta = P("cols", "", label = "Resposta (sem fórmula)", example = "doente"),
-        fixos = P("cols", "", label = "Efeitos fixos (sem fórmula)", example = "tratamento"),
-        grupo = P("cols", "", label = "Grupo aleatório (sem fórmula)", example = "bloco"),
-        familia = E("binomial", .TR_MODELS_FAMILIAS_MISTO, label = "Família")),
-      help = .tr_models_ajuda(paste0(r"---[
-O modelo misto para resposta que não é contínua (`lme4::glmer`): a parte
-generalizada do `models/glm` — a resposta segue a família escolhida, ligada aos
-preditores por logit ou log — com os efeitos aleatórios do `models/lmer`.
-
-É o modelo de proporção de plantas doentes por parcela com bloco aleatório, de
-contagem de insetos por armadilha com local aleatório, de germinação por
-placa com lote aleatório.
-
-| família | resposta | ligação |
-|---|---|---|
-| `binomial` | 0/1, sim/não, ou `cbind(sucessos, fracassos)` | logit |
-| `poisson` | contagem | log |
-
-### A fórmula
-
-Como no `models/lmer`: os termos aleatórios entre parênteses, `(1 | bloco)`.
-Para uma proporção com o total de cada linha, a resposta vai na fórmula como
-`cbind(doentes, total - doentes)`. Sem fórmula, **Resposta**, **Efeitos fixos**
-e **Grupo** montam `resposta ~ fixos + (1 | grupo)`.
-
-### Os testes
-
-Sem REML nem Satterthwaite: os coeficientes saem com z de Wald, e o quadro do
-`models/anova_table` por Wald, tipo II. Avisos de convergência e de ajuste
-singular do `lme4` aparecem na nota dos coeficientes — ajuste singular quer
-dizer que a variância de algum grupo foi estimada em zero.
-
-### Superdispersão
-
-Na Poisson e na binomial com total, a variância é fixada pela média. Se ela é
-maior, um efeito aleatório por observação (`(1 | parcela)`, com uma linha por
-parcela) absorve o excesso. Na Poisson o bloco mede isso: a razão de Pearson
-(Σ resíduos de Pearson² / gl do resíduo) sai em `razao_dispersao` nas medidas,
-e acima de 1,5 a nota dos coeficientes avisa que os p-valores de Wald estão
-pequenos demais.
-]---", .tr_models_ajuda_faltantes()), r"---[
-- **Fórmula** — com pelo menos um termo aleatório.
-- **Resposta**, **Efeitos fixos**, **Grupo aleatório** — o atalho sem fórmula.
-- **Família** — `binomial` (padrão) ou `poisson`.
-]---", r"---[
-Um modelo (`models/fit`). O card mostra o AIC e os coeficientes com a régua do
-p-valor (z de Wald), na escala da ligação.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("gado", "models/example", dataset = "cbpp") |>
-  tr_add("misto", "models/glmer", formula = "cbind(incidence, size - incidence) ~ period + (1 | herd)",
-         familia = "binomial", from = "gado")
-]---", r"---[
-`models/coefficients` com exponenciar para razão de chances ou de taxas;
-`models/emmeans` para as proporções por nível na escala da resposta;
-`models/random_effects` e `models/plot_caterpillar` para os grupos;
-`models/compare` para testar um termo.
 ]---")),
 
     trama::tr_node("models/nls", fn = tr_models_nls,

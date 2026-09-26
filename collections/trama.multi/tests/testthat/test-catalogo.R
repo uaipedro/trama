@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- multi_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_multi(reg)
-  expect_length(nos, 29L)
+  expect_length(nos, 29L)  # 9.1b: roc, pr_curve, confusion, classify, logistic_coefficients e plot_odds da main migram para a models
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)

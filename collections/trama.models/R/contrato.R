@@ -22,7 +22,7 @@
 # método falta. Um default que "funcionasse" para qualquer modelo teria de
 # adivinhar campos, e o erro sairia longe do lugar que o causou.
 
-.TR_MODELS_CLASSES <- c("lm", "glm", "lmer", "split", "glmer", "nls", "dose")
+.TR_MODELS_CLASSES <- c("lm", "glm", "lmer", "split", "glmer", "gls", "nls", "dose")
 .TR_MODELS_VALIDACOES <- c("resubstituição", "cruzada")
 .TR_MODELS_TAREFAS <- c("regressao", "classificacao")
 
@@ -315,11 +315,13 @@ tr_models_info.tr_models_glm <- tr_models_info.tr_models_glmer <- function(x) {
 # Registro dos quatro de uma vez: os métodos comuns são os mesmos, e escrever
 # 4 × 3 funções idênticas só convidaria uma a divergir. O NAMESPACE declara os
 # `S3method()` apontando para estes nomes.
-tr_models_info.tr_models_lm <-
+tr_models_info.tr_models_lm <- tr_models_info.tr_models_gls <-
   tr_models_info.tr_models_lmer <- tr_models_info.tr_models_split <- .tr_models_info_proprio
 tr_models_card.tr_models_lm <- tr_models_card.tr_models_glm <- tr_models_card.tr_models_glmer <-
+  tr_models_card.tr_models_gls <-
   tr_models_card.tr_models_lmer <- tr_models_card.tr_models_split <- .tr_models_card_proprio
 tr_models_as_table.tr_models_lm <- tr_models_as_table.tr_models_glm <- tr_models_as_table.tr_models_glmer <-
+  tr_models_as_table.tr_models_gls <-
   tr_models_as_table.tr_models_lmer <- function(x) tr_models_coefficients(x)$tabela
 # A parcela subdividida não tem coeficientes que se leiam: sai o quadro.
 tr_models_as_table.tr_models_split <- function(x) tr_models_anova_table(x)$tabela
@@ -336,11 +338,15 @@ tr_models_as_table.tr_models_split <- function(x) tr_models_anova_table(x)$tabel
   # Os valores saem do objeto ANTES do `tibble()`: lá dentro, `modelo` já é a
   # coluna recém-criada, e `modelo$formula` falharia sobre uma string.
   rotulo <- modelo$rotulo; fml <- modelo$formula; n <- nrow(modelo$dados)
+  # X² de Pearson / gl e desvio / gl (GLM e GLM misto binomial/Poisson; NA no
+  # resto e na binomial 0/1): o que o pressuposto de superdispersão verifica.
+  disp <- .tr_models_dispersao(modelo)
   tibble::tibble(
     modelo = rotulo, formula = fml, n = n,
     gl_residuo = gl_res,
     r2 = r2, r2_ajustado = r2a, r2_marginal = r2m, r2_condicional = r2c,
     desvio_explicado = dexp, sigma = sig, cv_pct = cv,
+    dispersao_pearson = disp[["pearson"]], desvio_por_gl = disp[["desvio"]],
     aic = if (is.null(ll)) na else stats::AIC(aj), bic = if (is.null(ll)) na else stats::BIC(aj),
     log_verossimilhanca = if (is.null(ll)) na else as.numeric(ll))
 }
@@ -374,12 +380,12 @@ tr_models_stats.tr_models_lmer <- function(x) {
 #' distribuição na escala da ligação, que muda com a família e a ligação): as
 #' medidas são as de verossimilhança.
 #' @export
-tr_models_stats.tr_models_glmer <- function(x) {
-  linha <- .tr_models_stats_linha(x, x$ajuste, gl_res = NA_real_)
-  # A razão de Pearson (Poisson; NA na binomial), que a nota dos coeficientes
-  # usa para avisar sobredispersão acima de 1,5.
-  linha$razao_dispersao <- x$dispersao %||% NA_real_
-  linha
+tr_models_stats.tr_models_glmer <- function(x) .tr_models_stats_linha(x, x$ajuste, gl_res = NA_real_)
+#' GLS: sigma do `nlme` e gl do resíduo n − p (os dos coeficientes e do quadro).
+#' @export
+tr_models_stats.tr_models_gls <- function(x) {
+  aj <- x$ajuste
+  .tr_models_stats_linha(x, aj, sig = aj$sigma, gl_res = as.numeric(aj$dims$N - aj$dims$p))
 }
 
 # ---- coefs ------------------------------------------------------------------------
@@ -391,8 +397,9 @@ tr_models_coefs.tr_models_lm <- function(x, exponenciar = FALSE, escala = "unida
   .tr_models_coefs_mq(x, exponenciar, escala, confianca)
 }
 #' @export
-tr_models_coefs.tr_models_glm <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
-  .tr_models_coefs_mq(x, exponenciar, escala, confianca)
+tr_models_coefs.tr_models_glm <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95,
+                                          intervalo = "padrão", ...) {
+  .tr_models_coefs_mq(x, exponenciar, escala, confianca, intervalo)
 }
 #' @export
 tr_models_coefs.tr_models_lmer <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
@@ -426,8 +433,26 @@ tr_models_coefs.tr_models_glmer <- function(x, exponenciar = FALSE, escala = "un
     nota <- "estimativa e intervalo exponenciados (razão de chances ou de taxas)"
   }
   .tr_models_coefs_efeitos(x, .tr_models_coefs_ic_nomes(tab, confianca), "z",
-                           .tr_models_nota(nota, .tr_models_nota_escala(escala),
-                                           if (length(x$avisos)) paste(x$avisos, collapse = " | ") else ""))
+                           .tr_models_nota(nota, .tr_models_nota_escala(escala)))
+}
+#' Coeficientes do GLS: t com n − p gl e intervalo do `nlme::intervals`.
+#' @export
+tr_models_coefs.tr_models_gls <- function(x, exponenciar = FALSE, escala = "unidade", confianca = 0.95, ...) {
+  confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
+  if (isTRUE(exponenciar)) {
+    .tr_models_exigir(x, c("glm", "glmer"), "models/coefficients",
+                      "Exponenciar só faz sentido num GLM com ligação log ou logit.")
+  }
+  aj <- x$ajuste
+  s <- summary(aj)$tTable
+  ic <- nlme::intervals(aj, which = "coef", level = confianca)$coef
+  tab <- data.frame(termo = rownames(s), estimativa = s[, "Value"], erro_padrao = s[, "Std.Error"],
+                    t = s[, "t-value"], p_valor = s[, "p-value"],
+                    li = ic[rownames(s), "lower"], ls = ic[rownames(s), "upper"])
+  tab <- .tr_models_coefs_escala(tab, stats::model.matrix(stats::formula(aj), data = as.data.frame(x$dados)), escala)
+  .tr_models_coefs_efeitos(x, .tr_models_coefs_ic_nomes(tab, confianca), "t",
+                           .tr_models_nota(sprintf("t com %d gl (n - p)", as.integer(aj$dims$N - aj$dims$p)),
+                                           .tr_models_nota_escala(escala)))
 }
 #' @export
 tr_models_coefs.tr_models_split <- function(x, ...) {
@@ -468,20 +493,28 @@ tr_models_coefs.tr_models_split <- function(x, ...) {
   tab
 }
 
-.tr_models_coefs_mq <- function(x, exponenciar, escala = "unidade", confianca = 0.95) {
+.TR_MODELS_INTERVALOS_COEF <- c("padrão", "perfilado", "Wald")
+
+.tr_models_coefs_mq <- function(x, exponenciar, escala = "unidade", confianca = 0.95, intervalo = "padrão") {
   confianca <- .tr_models_num(confianca, "confianca", min = 0.5, max = 0.999)
+  intervalo <- .tr_models_enum(intervalo, .TR_MODELS_INTERVALOS_COEF, "intervalo")
   aj <- x$ajuste
   glm <- x$classe == "glm"
   # `summary.lm` explícito: nos delineamentos o ajuste é um `aov`, e o
   # `summary()` dele é o quadro, sem coeficientes.
   s <- if (glm) stats::coef(summary(aj)) else stats::coef(stats::summary.lm(aj))
-  ic <- if (glm) stats::confint.default(aj, level = confianca) else stats::confint(aj, level = confianca)
+  # GLM: Wald no padrão (como sempre); `perfilado` é o perfil de
+  # verossimilhança do `stats::confint` (o do MASS), com z e p de Wald.
+  perfil <- glm && intervalo == "perfilado"
+  ic <- if (perfil) suppressMessages(stats::confint(aj, level = confianca))
+        else if (glm) stats::confint.default(aj, level = confianca) else stats::confint(aj, level = confianca)
   coluna <- if (grepl("^z", colnames(s)[3])) "z" else "t"
   tab <- data.frame(termo = rownames(s), estimativa = s[, 1], erro_padrao = s[, 2],
                     estat = s[, 3], p_valor = s[, 4], li = ic[rownames(s), 1], ls = ic[rownames(s), 2])
   names(tab)[names(tab) == "estat"] <- coluna
   tab <- .tr_models_coefs_escala(tab, stats::model.matrix(aj), escala)
-  nota <- if (glm) "intervalo de Wald, na escala da ligação" else ""
+  nota <- if (perfil) "intervalo da verossimilhança perfilada (stats::confint), na escala da ligação; z e p de Wald"
+          else if (glm) "intervalo de Wald, na escala da ligação" else ""
   if (isTRUE(exponenciar)) {
     .tr_models_exigir(x, "glm", "models/coefficients",
                       "Exponenciar só faz sentido num GLM com ligação log ou logit.")
@@ -497,7 +530,7 @@ tr_models_coefs.tr_models_split <- function(x, ...) {
   rownames(tab) <- NULL
   .tr_models_efeitos(tibble::as_tibble(tab), "Coeficientes", coluna_estat = coluna,
                      rodape = list(n = as.character(nrow(x$dados))),
-                     nota = .tr_models_nota(nota, .tr_models_nota_descarte(x$descartadas)),
+                     nota = .tr_models_nota(nota, .tr_models_nota_fit(x)),
                      fonte = "")
 }
 
@@ -529,6 +562,11 @@ tr_models_resid.tr_models_glm <- function(x) {
 #' @export
 tr_models_resid.tr_models_glmer <- function(x) {
   .tr_models_resid_tabela(x, x$ajuste, stats::residuals(x$ajuste, type = "pearson"), tipo = "deviance")
+}
+#' GLS: resíduos normalizados (descontadas a correlação e a variância do modelo).
+#' @export
+tr_models_resid.tr_models_gls <- function(x) {
+  .tr_models_resid_tabela(x, x$ajuste, stats::residuals(x$ajuste, type = "normalized"))
 }
 #' @export
 tr_models_resid.tr_models_lmer <- function(x) {
@@ -570,6 +608,8 @@ tr_models_predict_raw.tr_models_glm <- tr_models_predict_raw.tr_models_glmer <- 
 }
 #' @export
 tr_models_predict_raw.tr_models_lmer <- function(x, novos, ...) .tr_models_predict_ajuste(x, novos, ...)
+#' @export
+tr_models_predict_raw.tr_models_gls <- function(x, novos, ...) .tr_models_predict_ajuste(x, novos, ...)
 #' @export
 tr_models_predict_raw.tr_models_split <- function(x, novos, ...) .tr_models_split_sem_predict()
 
@@ -645,6 +685,11 @@ tr_models_predict_cv.tr_models_lmer <- function(x, validacao = "resubstituição
   .tr_models_prev(as.numeric(stats::fitted(x$ajuste)))
 }
 #' @export
+tr_models_predict_cv.tr_models_gls <- function(x, validacao = "resubstituição") {
+  if (.tr_models_validacao(validacao) == "cruzada") .tr_models_sem_cruzada(x)
+  .tr_models_prev(as.numeric(stats::fitted(x$ajuste)))
+}
+#' @export
 tr_models_predict_cv.tr_models_glmer <- function(x, validacao = "resubstituição") {
   if (.tr_models_validacao(validacao) == "cruzada") .tr_models_sem_cruzada(x)
   p <- as.numeric(stats::fitted(x$ajuste))  # no `glmer`, já na escala da resposta
@@ -683,6 +728,8 @@ tr_models_importance.tr_models_glm <- function(x) .tr_models_importancia_t(x)
 tr_models_importance.tr_models_lmer <- function(x) .tr_models_sem_importancia(x)
 #' @export
 tr_models_importance.tr_models_glmer <- function(x) .tr_models_sem_importancia(x)
+#' @export
+tr_models_importance.tr_models_gls <- function(x) .tr_models_sem_importancia(x)
 #' @export
 tr_models_importance.tr_models_split <- function(x) .tr_models_sem_importancia(x)
 

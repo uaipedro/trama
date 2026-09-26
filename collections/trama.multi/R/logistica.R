@@ -54,7 +54,8 @@
 #' hessiana nos n reajustes da validação cruzada, que só leem as probabilidades
 #' (a hessiana só serve aos erros padrão do `summary`).
 #' @noRd
-.tr_multi_logit_ajuste <- function(X, g, no, hess = TRUE) {
+.tr_multi_logit_ajuste <- function(X, g, no, hess = TRUE, metodo = "ml") {
+  if (identical(metodo, "firth")) return(.tr_multi_firth(X, g, no))
   d <- .tr_multi_logit_df(X)
   d$.y <- g
   f <- stats::as.formula(paste(".y ~", paste(names(d)[names(d) != ".y"], collapse = " + ")))
@@ -76,7 +77,11 @@
   d <- .tr_multi_logit_df(X)
   niv <- modelo$niveis
   if (identical(modelo$tipo, "binária")) {
-    p2 <- unname(stats::predict(modelo$ajuste, newdata = d, type = "response"))
+    p2 <- if (inherits(modelo$ajuste, "tr_multi_firth")) {
+      stats::plogis(drop(cbind(1, unname(X)) %*% modelo$ajuste$coefficients))
+    } else {
+      unname(stats::predict(modelo$ajuste, newdata = d, type = "response"))
+    }
     prob <- cbind(1 - p2, p2)
     classe <- ifelse(p2 >= modelo$corte, niv[[2]], niv[[1]])
   } else {
@@ -106,7 +111,8 @@
 #' Recusa o que depende dos coeficientes quando há separação.
 #' @noRd
 .tr_multi_sem_separacao <- function(modelo, no) {
-  if (length(modelo$separacao)) {
+  # Firth dá estimativa finita com separação: é justamente para isso.
+  if (length(modelo$separacao) && !identical(modelo$metodo, "firth")) {
     # Na binária os dois grupos saem separados juntos (isolar um é isolar o
     # outro): a frase vai para o plural em vez de "o grupo 'a', 'b' é".
     sep <- sprintf("'%s'", modelo$separacao)
@@ -121,7 +127,7 @@
                            "nenhuma sobreposição, e os coeficientes vão ao infinito ",
                            "(o que o otimizador devolve é arbitrário). A CLASSIFICAÇÃO continua ",
                            "valendo (`models/confusion`, `models/roc`); para descrever o que separa, ",
-                           "use a `multi/discriminant`, ou tire o preditor que isola os grupos."),
+                           "use `metodo = \"firth\"` (logística penalizada, binária) ou a `multi/discriminant`."),
                     no, quem)
   }
   invisible(modelo)
@@ -133,12 +139,21 @@
 #' @param preditores colunas preditoras; em branco, todas as numéricas menos a resposta.
 #' @param corte na binária, a probabilidade do segundo grupo a partir da qual
 #'   se prevê ele.
+#' @param metodo `"ml"` (máxima verossimilhança) ou `"firth"` (verossimilhança
+#'   penalizada de Firth; só com dois grupos).
 #' @return modelo `models/fit` de classe `tr_multi_logit`.
 #' @export
-tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5) {
+tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5, metodo = "ml") {
   no <- "multi/logistic"
   corte <- .tr_multi_num(corte, "corte", min = 0.01, max = 0.99)
+  metodo <- .tr_multi_enum(metodo, .TR_MULTI_METODOS_LOGIT, "metodo")
   gr <- .tr_multi_grupos(dados, resposta, preditores, no, param = "resposta")
+  if (metodo == "firth" && nlevels(gr$g) != 2L) {
+    .tr_multi_abort("tr_multi_error_bad_option",
+                    paste0("'%s': a logística de Firth do trama é só binária, e a coluna '%s' tem %d ",
+                           "grupos. Use `metodo = \"ml\"` (multinomial) ou filtre dois grupos."),
+                    no, gr$grupo, nlevels(gr$g))
+  }
   .tr_multi_grupo_minimo(gr$g, 2L, no,
                          "Com uma observação só, o grupo não tem como ter probabilidade estimada.")
   # A matriz dos preditores singular deixa coeficientes NA no `glm` (e em
@@ -148,14 +163,17 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
                     paste0("'%s': os preditores são colineares — algum é combinação exata dos ",
                            "outros, e o coeficiente dele não se identifica. Tire o redundante."), no)
   }
-  ajuste <- .tr_multi_logit_ajuste(gr$X, gr$g, no)
+  ajuste <- .tr_multi_logit_ajuste(gr$X, gr$g, no, metodo = metodo)
   tipo <- if (nlevels(gr$g) == 2L) "binária" else "multinomial"
   m <- .tr_multi_logit_obj(ajuste, tipo, gr$grupo, gr$preditores, levels(gr$g),
                            tibble::as_tibble(dados), if (tipo == "binária") corte else NA_real_,
                            character())
+  m$metodo <- metodo
   m$separacao <- .tr_multi_separados(.tr_multi_logit_prever(m, gr$X)$prob, gr$g)
   m
 }
+
+.TR_MULTI_METODOS_LOGIT <- c("ml", "firth")
 
 .TR_MULTI_ESCALAS_OR <- c("unidade", "desvio padrão")
 
@@ -168,7 +186,10 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
 #' @noRd
 .tr_multi_logit_coefs <- function(modelo, escala = "unidade") {
   termos <- c("(intercepto)", modelo$preditores)
-  if (identical(modelo$tipo, "binária")) {
+  if (inherits(modelo$ajuste, "tr_multi_firth")) {
+    b <- matrix(modelo$ajuste$coefficients, nrow = 1L, dimnames = list(modelo$niveis[[2]], termos))
+    se <- matrix(sqrt(diag(modelo$ajuste$vcov)), nrow = 1L, dimnames = dimnames(b))
+  } else if (identical(modelo$tipo, "binária")) {
     cs <- stats::coef(summary(modelo$ajuste))
     b <- matrix(cs[, 1], nrow = 1L, dimnames = list(modelo$niveis[[2]], termos))
     se <- matrix(cs[, 2], nrow = 1L, dimnames = dimnames(b))
@@ -179,6 +200,7 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
     b <- s$coefficients; se <- s$standard.errors
     dimnames(b) <- dimnames(se) <- list(modelo$niveis[-1L], termos)
   }
+  dp <- rep(1, length(termos))
   if (identical(escala, "desvio padrão")) {
     X <- .tr_multi_logit_X(modelo, modelo$dados)
     dp <- c(1, apply(X, 2L, stats::sd))
@@ -190,7 +212,42 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
              referencia = modelo$niveis[[1]],
              termo = rep(termos, times = nrow(b)),
              coeficiente = as.vector(t(b)), erro_padrao = as.vector(t(se)),
+             escala_dp = rep(dp, times = nrow(b)),
              stringsAsFactors = FALSE)
+}
+
+.TR_MULTI_INTERVALOS_OR <- c("perfilado", "Wald")
+
+#' Desvio da logística ML binária com β_j fixado em `v` (os outros livres).
+#'
+#' O perfil: β_j entra como offset, e o `glm.fit` maximiza nos outros. A
+#' separação que só aparece com β_j fixo longe dá aviso do `glm.fit`, calado:
+#' o desvio que ele devolve continua sendo o ínfimo naquela direção.
+#' @noRd
+.tr_multi_logit_desvio_perfil <- function(X, y, j, v) {
+  f <- suppressWarnings(stats::glm.fit(X[, -j, drop = FALSE], y, offset = X[, j] * v,
+                                       family = stats::binomial(),
+                                       control = stats::glm.control(epsilon = 1e-12, maxit = 100L)))
+  f$deviance
+}
+
+#' IC da verossimilhança perfilada de um coeficiente da logística ML binária.
+#'
+#' Os limites são os β_j em que D(β_j) − D(β̂) = χ²₁(confiança), com D o desvio
+#' perfilado (Venables & Ripley 2002, sec. 7.2; Hosmer, Lemeshow & Sturdivant
+#' 2013, sec. 1.4). O perfil é monótono de cada lado de β̂: a busca abre a
+#' partir de β̂ ± 2·EP até trocar de sinal e fecha com `uniroot`. Mesma
+#' definição do `MASS::confint` (que interpola uma spline no perfil em grade).
+#' @noRd
+.tr_multi_logit_ic_perfil <- function(X, y, b, ep, dev, j, confianca) {
+  alvo <- stats::qchisq(confianca, 1)
+  f <- function(v) .tr_multi_logit_desvio_perfil(X, y, j, v) - dev - alvo
+  lado <- function(s) {
+    passo <- 2 * ep[[j]]; fora <- b[[j]] + s * passo; k <- 0L
+    while (f(fora) < 0 && k < 60L) { passo <- passo * 2; fora <- b[[j]] + s * passo; k <- k + 1L }
+    stats::uniroot(f, sort(c(b[[j]], fora)), tol = 1e-12, maxiter = 1000L)$root
+  }
+  c(lado(-1), lado(1))
 }
 
 # ---------------------------------------------------------------------------
@@ -211,7 +268,8 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
       params = list(
         resposta = P("cols", "", label = "Resposta (grupo)", example = "diabetes"),
         preditores = P("cols", "", label = "Preditores", example = "glicose, imc, idade"),
-        corte = trama::tr_param_num(0.5, min = 0.01, max = 0.99, label = "Corte (binária)")),
+        corte = trama::tr_param_num(0.5, min = 0.01, max = 0.99, label = "Corte (binária)"),
+        metodo = trama::tr_param_enum("ml", .TR_MULTI_METODOS_LOGIT, label = "Método")),
       help = .tr_multi_ajuda(r"---[
 Modela a PROBABILIDADE de cada observação pertencer a cada grupo a partir das
 medidas, e classifica pelo grupo mais provável. É a irmã da
@@ -247,10 +305,19 @@ cai. A `models/roc` mostra essa troca inteira e marca o corte escolhido.
 Se um grupo é separável dos outros SEM nenhuma sobreposição (setosa na `iris`,
 o cultivar C nos `vinhos` com as seis medidas), a verossimilhança cresce sem
 limite e os coeficientes vão ao infinito. A classificação continua certa, e o
-modelo sai; o card avisa em `separacao`, e os nós que leem coeficientes
-(`models/coefficients`, `models/plot_coefficients`, `multi/jackknife_logistic`)
-recusam. É sinal de que a pergunta "o que separa" é mais bem respondida pela
-discriminante.
+modelo sai; o card avisa em `separacao`, e com `metodo = "ml"` os nós que leem
+coeficientes (`models/coefficients`, `models/plot_coefficients`,
+`multi/jackknife_logistic`) recusam.
+
+### Firth
+
+Com `metodo = "firth"` (só dois grupos), o ajuste maximiza a verossimilhança
+penalizada de Firth (1993), l(β) + ½ log|I(β)|. A penalidade tira o viés de
+ordem 1/n da máxima verossimilhança — útil com poucos eventos por preditor — e
+dá coeficientes FINITOS mesmo com separação (Heinze & Schemper, 2002). Os
+intervalos do `models/coefficients` passam a ser os da verossimilhança
+penalizada perfilada, e os p-valores, os da razão de verossimilhanças
+penalizadas, como no pacote `logistf`. Com n grande, ML e Firth quase coincidem.
 
 ### Recusas
 
@@ -263,6 +330,8 @@ preditores numéricos, preditor não numérico, constante ou colinear.
   numéricas menos o grupo.
 - **Corte (binária)** — probabilidade do segundo grupo a partir da qual se
   prevê ele. Ignorado com três ou mais grupos.
+- **Método** — `ml` (máxima verossimilhança, padrão) ou `firth` (penalizada,
+  só com dois grupos).
 ]---", r"---[
 Um modelo (`models/fit`). O card mostra as razões de chances (ou a ROC por
 resubstituição, se há separação). Ligado a um nó de tabela, vira o treino

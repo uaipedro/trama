@@ -8,8 +8,8 @@
     "format": 1,
     "rev": 13,
     "collections": {
-      "ml": "0.2.0",
-      "models": "0.1.0"
+      "ml": "0.5.0",
+      "models": "0.3.0"
     },
     "nodes": {
       "dados": {
@@ -23,7 +23,7 @@
       },
       "separar": {
         "type": "ml/split",
-        "type_version": 1,
+        "type_version": 3,
         "label": "Separar treino / teste",
         "params": {
           "resposta": "Species",
@@ -33,7 +33,7 @@
       },
       "floresta": {
         "type": "ml/forest",
-        "type_version": 1,
+        "type_version": 3,
         "label": "Random forest",
         "params": {
           "resposta": "Species",
@@ -50,7 +50,7 @@
       },
       "avaliar": {
         "type": "models/evaluate",
-        "type_version": 2,
+        "type_version": 3,
         "label": "Avaliar previsões",
         "params": {
           "resposta": "Species"
@@ -59,7 +59,7 @@
       },
       "confusao": {
         "type": "models/confusion",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Matriz de confusão",
         "params": {
           "resposta": "Species"
@@ -142,7 +142,7 @@
         "floresta": [720, 0],
         "prever": [1080, 0],
         "avaliar": [1440, 0],
-        "confusao": [1440, 568]
+        "confusao": [1440, 598]
       },
       "sizes": {},
       "views": {},

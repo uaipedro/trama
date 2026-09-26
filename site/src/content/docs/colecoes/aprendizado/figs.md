@@ -30,3 +30,7 @@ trama.ml::tr_ml_rules(m)
 ## Como interpretar
 
 As regras mostram contribuições por árvore; some as contribuições para obter a previsão. `ml/tree_plot` desenha uma árvore selecionada, enquanto a saída final permanece a soma.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `ml/predict`.

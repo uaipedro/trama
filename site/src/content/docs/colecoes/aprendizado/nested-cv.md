@@ -17,7 +17,7 @@ Quando não há linhas para um teste separado, ou quando se quer saber quanto da
 
 ## Configuração
 
-Os mesmos parâmetros do `ml/tune` (`modelo`, `metrica`, `tentativas`, `amplitude`, `estrategia`, `ordem`, `grupo`, `seed`), mais `folds_externos`; `folds` são as partições internas de cada busca. O custo é folds externos × tentativas × folds internos ajustes.
+Os mesmos parâmetros do `ml/tune` (`modelo`, `metrica`, `tentativas`, `amplitude`, `estrategia`, `ordem`, `grupo`, `seed`), mais `folds_externos`; `folds` são as partições internas de cada busca. O custo é folds externos × tentativas × folds internos ajustes. A estratégia `grupo_estratificado` também vale aqui; folds externos de validação com uma classe só geram aviso e a nota no atributo `nota`.
 
 ## Exemplo
 
@@ -29,3 +29,7 @@ trama.ml::tr_ml_nested_cv(d, resposta = "Species", tentativas = 5, folds_externo
 ## Como interpretar
 
 Uma linha por fold externo e a linha `media`. No exemplo, a `interna` média é 0,904 e a `externa` 0,890 (macro F1): a diferença é o otimismo da seleção. Reporte a `externa`; o modelo a usar sai de um `ml/tune` em todas as linhas.
+
+### Teste recusado
+
+A saída `teste` do [`ml/split`](/trama/colecoes/aprendizado/separar-treino-teste/) é recusada aqui (`tr_ml_error_test_leak`): ajustar nela treinaria no teste. Ligue a saída `treino`; o teste vai só ao `ml/predict`.

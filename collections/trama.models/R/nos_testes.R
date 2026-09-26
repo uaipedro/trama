@@ -424,31 +424,43 @@ tr_flow(reg) |>
 os termos de uma ANOVA.
 ]---")),
 
-    trama::tr_node("models/friedman",
+    trama::tr_node("models/friedman", version = 2L,
       pressupostos = .tr_models_doc("models/friedman")$pressupostos,
       referencias = .tr_models_doc("models/friedman")$referencias,
       fn = tr_models_friedman, label = "Friedman",
       category = "modelo_testes", icon = trama::tr_icon("list-ordered"),
-      description = "Friedman: os tratamentos diferem dentro dos blocos? (DBC não paramétrico)",
+      description = "Friedman, Durbin ou Skillings–Mack: os tratamentos diferem dentro dos blocos? (DBC não paramétrico, blocos completos ou incompletos)",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
         resposta = P("cols", "", label = "Resposta", example = "producao"),
         tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
-        bloco = P("cols", "", label = "Bloco", example = "bloco")),
+        bloco = P("cols", "", label = "Bloco", example = "bloco"),
+        metodo = E("auto", .TR_MODELS_METODOS_FRIEDMAN, label = "Método")),
       help = .tr_models_ajuda(r"---[
 A alternativa não paramétrica ao `models/anova_dbc`: ordena os tratamentos
 DENTRO de cada bloco e compara as somas de postos. Útil quando os resíduos do
 DBC não são normais e nenhuma transformação resolve.
 
 Pede uma observação por bloco e tratamento: com repetições, resuma antes (a
-média de cada casela). Bloco a que falta tratamento sai inteiro, e a nota conta
-quantos. Empates dentro do bloco recebem posto médio e a estatística é
-corrigida. O efeito é o W de Kendall (0 = blocos sem concordância, 1 = mesma
-ordem em todo bloco). Rejeitar diz que ALGUM tratamento difere, não qual.
+média de cada casela). O método segue o desenho:
+
+- **Friedman** (blocos completos). Empates recebem posto médio e a estatística
+  é corrigida; o efeito é o W de Kendall (0 = blocos sem concordância, 1 = mesma
+  ordem em todo bloco).
+- **Durbin** (blocos incompletos balanceados: todo bloco com o mesmo número de
+  tratamentos, todo tratamento o mesmo número de vezes, todo par junto o mesmo
+  número de vezes). Corrige empates. Desenho que não é balanceado recusa.
+- **Skillings–Mack** (faltantes quaisquer, desde que o desenho seja conexo).
+  Bloco com uma observação só sai. Empates recebem posto médio, sem correção.
+
+Em **auto** (padrão) o bloco escolhe pelo desenho e a nota diz qual usou. Com
+**friedman** forçado, bloco incompleto sai inteiro e a nota conta quantos.
+Rejeitar diz que ALGUM tratamento difere, não qual.
 ]---", r"---[
 - **Resposta** — coluna numérica.
 - **Tratamento** — coluna dos tratamentos.
 - **Bloco** — coluna dos blocos.
+- **Método** — `auto`, `friedman`, `durbin` ou `skillings_mack`.
 ]---", r"---[
 Um teste (`data/test`).
 ]---", r"---[

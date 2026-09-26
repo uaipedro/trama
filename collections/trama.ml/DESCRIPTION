@@ -1,6 +1,6 @@
 Package: trama.ml
 Title: Interpretable and Classical Machine Learning for trama
-Version: 0.2.0
+Version: 0.5.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -26,6 +26,7 @@ Imports:
     trama.models,
     tibble,
     rlang,
+    cli (>= 3.6.0),
     ggplot2,
     stats,
     utils,
@@ -34,6 +35,9 @@ Suggests:
     figsr (>= 0.1.1),
     rpart,
     ranger,
+    yardstick,
+    PRROC,
+    pROC,
     e1071,
     xgboost (>= 3.0.0),
     testthat (>= 3.0.0),

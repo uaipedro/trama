@@ -20,6 +20,8 @@ Use para ler o tamanho e a incerteza de cada coeficiente; use médias ajustadas 
 
 Exponenciar transforma estimativas e intervalos; em GLM com ligação log ou logit, resulta em razões de taxas ou chances. Escala `desvio padrão` dá o efeito de subir um desvio padrão da preditora (t e p não mudam), o que compara preditoras em unidades diferentes. Confiança escolhe o nível do intervalo; as colunas levam o nível no nome (`li_95`, `li_90`).
 
+**Intervalo** — `padrão` (o de cada modelo: t exato no `lm`, Wald no GLM e no misto, verossimilhança perfilada na logística da coleção multivariada), `perfilado` (também no GLM, pelo `stats::confint`) ou `Wald`. Na logística binária, o perfilado vem com o p da razão de verossimilhanças; com `metodo = "firth"` na logística, é o da verossimilhança penalizada (Heinze & Schemper, 2002). O `z` é sempre de Wald, e com o perfilado z e p podem discordar perto de 5%. Na multinomial o intervalo sai de Wald, e a nota diz.
+
 ## Exemplo
 
 ```r

@@ -83,3 +83,12 @@ test_that("pelo motor", {
     trama::tr_add("m", "multi/mardia", grupo = "Species", from = "i")
   expect_equal(nrow(rodar(f, "m")), 9L)
 })
+
+test_that("n pequeno (< 20 no grupo ou na tabela): aviso de teste assintótico", {
+  expect_warning(r <- tr_multi_mardia(datasets::USArrests[1:15, ]), "assintótic",
+                 class = "tr_multi_warning_small_n")
+  expect_equal(nrow(r), 3L)
+  expect_no_warning(tr_multi_mardia(datasets::USArrests[1:20, ]))
+  d <- iris[c(1:50, 51:60, 101:150), ]
+  expect_warning(tr_multi_mardia(d, grupo = "Species"), "versicolor")
+})

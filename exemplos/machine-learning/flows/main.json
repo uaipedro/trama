@@ -9,7 +9,7 @@
   "nodes": {
     "divisao": {
       "type": "ml/split",
-      "type_version": 1,
+      "type_version": 3,
       "label": "Separar treino / teste",
       "params": {
         "estratificar": true,
@@ -19,7 +19,7 @@
     },
     "cart": {
       "type": "ml/cart",
-      "type_version": 2,
+      "type_version": 4,
       "label": "CART · árvore de decisão",
       "params": {
         "tarefa": "classificacao",
@@ -37,7 +37,7 @@
     },
     "cart_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "HeartDisease"
@@ -46,7 +46,7 @@
     },
     "figs": {
       "type": "ml/figs",
-      "type_version": 1,
+      "type_version": 3,
       "label": "FIGS · soma de árvores",
       "params": {
         "tarefa": "classificacao",
@@ -64,7 +64,7 @@
     },
     "figs_avaliar": {
       "type": "models/evaluate",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Avaliar previsões",
       "params": {
         "resposta": "HeartDisease"

@@ -50,7 +50,11 @@
                    doi = "10.1016/j.csda.2017.11.003", papel = "complementar"),
     kuhn = R(autores = c("Kuhn, M.", "Johnson, K."), ano = 2013,
              titulo = "Applied Predictive Modeling", fonte = "New York: Springer",
-             doi = "10.1007/978-1-4614-6849-3", papel = "livro-texto")
+             doi = "10.1007/978-1-4614-6849-3", papel = "livro-texto"),
+    kaufman = R(autores = c("Kaufman, S.", "Rosset, S.", "Perlich, C.", "Stitelman, O."), ano = 2012,
+                titulo = "Leakage in data mining: Formulation, detection, and avoidance",
+                fonte = "ACM Transactions on Knowledge Discovery from Data, 6(4), 1-21",
+                doi = "10.1145/2382577.2382579", papel = "teoria")
   )
 }
 
@@ -59,7 +63,7 @@
 .tr_ml_comuns <- function() {
   P <- .tr_ml_P
   list(
-    so_treino = P("O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. O bloco não tem como saber o que recebeu.",
+    so_treino = P("O bloco recebe **só o treino**: o teste foi separado antes (no `ml/split`) e não entra em nenhuma escolha — nem de preditores, nem de hiperparâmetros, nem de tratamento de faltantes. A saída teste do `ml/split` vem marcada e é recusada aqui (`tr_ml_error_test_leak`); a marca sobrevive ao cache e a filtros, mas não a uma divisão feita por fora nem a juntar treino e teste — nesses casos o bloco não tem como saber o que recebeu.",
       se_falhar = "Refaça o fluxo com o `ml/split` no início; a saída teste só vai ao `models/predict`. Hiperparâmetros se escolhem no `ml/tune`, com validação cruzada dentro do treino."),
     sem_vazamento = P("Nenhum preditor **revela a resposta** (identificador, código que a embute, medida tomada depois do desfecho).",
       verificar = "data/summary",

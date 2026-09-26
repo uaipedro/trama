@@ -245,3 +245,26 @@ test_that("erro ARMA recusa ordem vazia, e o padrão segue MQO", {
   expect_error(tr_series_regression(x, erro = "outro"), class = "tr_series_error_bad_option")
   expect_s3_class(tr_series_regression(x)$ajuste, "lm")
 })
+
+test_that("GLS: série que o modelo reproduz exato é recusada como singular, não como falta de convergência", {
+  e <- tryCatch(tr_series_regression(stats::ts(rep(1:12, 5), frequency = 12), erro = "arma"),
+                condition = identity)
+  expect_s3_class(e, "tr_series_error_singular_fit")
+  expect_match(conditionMessage(e), "resíduo", fixed = TRUE)
+  expect_false(grepl("não convergiu", conditionMessage(e), fixed = TRUE))
+})
+
+test_that("GLS: AR perto da raiz unitária avisa (classe) e vai para a nota dos F", {
+  set.seed(21)
+  x <- stats::ts(as.numeric(stats::arima.sim(list(ar = 0.97), 200)) + 0.01 * (1:200))
+  expect_warning(r <- tr_series_regression(x, grau = 1L, sazonalidade = FALSE, erro = "arma"),
+                 class = "tr_series_warn_near_unit_root")
+  expect_match(r$aviso, "raiz", fixed = TRUE)
+  expect_match(tr_series_f_tendencia(r)$nota, "raiz", fixed = TRUE)
+  # Longe da raiz, sem aviso.
+  set.seed(22)
+  y <- stats::ts(as.numeric(stats::arima.sim(list(ar = 0.4), 120)) + 0.05 * (1:120))
+  expect_no_warning(r2 <- tr_series_regression(y, grau = 1L, sazonalidade = FALSE, erro = "arma"))
+  expect_null(r2$aviso)
+  expect_false(grepl("raiz", tr_series_f_tendencia(r2)$nota, fixed = TRUE))
+})

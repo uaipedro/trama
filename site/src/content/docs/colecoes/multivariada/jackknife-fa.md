@@ -19,7 +19,8 @@ Use **Jackknife da fatorial** para localizar respondentes influentes e avaliar e
 
 - **Estatística** — `cargas` (padrão) ou `comunalidades`.
 - **Tabela** — `resumo` (padrão) ou `pseudovalores`.
-- **Confiança** — 0,95 por padrão, entre 0,5 e 0,999.
+- **Confiança do intervalo** (`confianca`) — 0,95 por padrão, entre 0,5 e 0,999. Até a versão 1 do bloco o param se chamava `nivel`; fluxo salvo com `nivel` abre migrado.
+- **Grupo (apagar-um-grupo)** — em branco (padrão), tira uma linha por vez. Com dados em conglomerados (várias linhas do mesmo talhão, animal ou lote), informe a coluna do conglomerado: cada réplica tira o grupo inteiro e o erro padrão usa o número de grupos G no lugar de n, com intervalo t(G − 1) — a variância JK1 de amostragem (Shao & Tu, 1995; Kott, 2001). Viés, corrigida e pseudovalores com G só valem com grupos do mesmo tamanho: com tamanhos diferentes saem NA, o intervalo centra na estimativa da amostra toda e a coluna `nota` diz por quê. Com menos de 5 grupos o bloco avisa (o EP tem poucos graus de liberdade). Os pseudovalores saem um por grupo.
 
 ## Exemplo
 

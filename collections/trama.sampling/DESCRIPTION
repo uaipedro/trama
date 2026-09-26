@@ -1,6 +1,6 @@
 Package: trama.sampling
 Title: Survey Sampling Collection for trama
-Version: 0.1.0
+Version: 0.3.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),

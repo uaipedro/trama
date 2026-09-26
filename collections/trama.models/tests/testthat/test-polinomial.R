@@ -4,8 +4,11 @@
 # sai em `$quadro` e a curva em `$modelo`.
 
 algodao <- function() {
-  # Montgomery, Design and Analysis of Experiments, tabela 3.1: resistência à
-  # tração pela % de algodão, 5 níveis igualmente espaçados, 5 repetições.
+  # Dados de Montgomery, Design and Analysis of Experiments (5.ª ed.), tabela
+  # 3.1: resistência à tração pela % de algodão, 5 níveis igualmente
+  # espaçados, 5 repetições. As SQ por grau abaixo são CALCULADAS desses dados
+  # e conferidas à mão pelos contrastes ortogonais — não copiadas de página
+  # impressa do livro.
   data.frame(algodao = rep(seq(15, 35, 5), each = 5),
              resistencia = c(7, 7, 15, 11, 9, 12, 17, 12, 18, 18, 14, 18, 18, 19, 19,
                              19, 25, 22, 19, 23, 7, 10, 11, 15, 11))
@@ -13,7 +16,7 @@ algodao <- function() {
 
 linha <- function(t, termo) t$tabela[t$tabela$termo == termo, ]
 
-test_that("polinomial reproduz Montgomery (SQ 33,62; 343,21; 64,98; 33,95) e o lm com poly()", {
+test_that("polinomial nos dados de Montgomery (SQ 33,62; 343,21; 64,98; 33,95) e o lm com poly()", {
   d <- algodao()
   m <- tr_models_anova_dic(d, "resistencia", "algodao")
   r <- tr_models_polinomial(m, "algodao", grau_max = 3L)
@@ -24,6 +27,12 @@ test_that("polinomial reproduz Montgomery (SQ 33,62; 343,21; 64,98; 33,95) e o l
   expect_equal(round(linha(t, "Cúbico")$sq, 2), 64.98)
   expect_equal(round(linha(t, "Desvios da regressão")$sq, 2), 33.95)  # o quártico, com grau máximo 3
   expect_equal(linha(t, "Desvios da regressão")$gl, 1)
+  # À mão: contrastes ortogonais para 5 níveis, SQ = (sum c T)^2 / (r sum c^2).
+  tot <- tapply(d$resistencia, d$algodao, sum)
+  cc <- list(c(-2, -1, 0, 1, 2), c(2, -1, -2, -1, 2), c(-1, 2, 0, -2, 1), c(1, -4, 6, -4, 1))
+  sq_mao <- vapply(cc, function(k) sum(k * tot)^2 / (5 * sum(k^2)), numeric(1))
+  expect_equal(c(linha(t, "Linear")$sq, linha(t, "Quadrático")$sq, linha(t, "Cúbico")$sq,
+                 linha(t, "Desvios da regressão")$sq), sq_mao, tolerance = 1e-10)
   # Oráculo: sequencial de lm(y ~ poly(x, 4)) coluna a coluna.
   p <- stats::poly(d$algodao, 4)
   a <- anova(stats::lm(d$resistencia ~ p[, 1] + p[, 2] + p[, 3] + p[, 4]))

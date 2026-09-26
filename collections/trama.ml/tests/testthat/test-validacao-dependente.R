@@ -77,3 +77,49 @@ test_that("tune com folds por grupo/temporais não usa ordem nem grupo como pred
   a <- tr_ml_tune(mtcars[, c("mpg", "wt", "hp")], "mpg", tentativas = 3, folds = 3, seed = 19)
   expect_equal(a$estrategia, "aleatoria")
 })
+
+# Grupos puros (cada lote com uma só classe): folds por grupo podem validar
+# uma classe só, e aí macro F1, kappa e acurácia balanceada degeneram.
+dados_puros <- function(nl = 12L) {
+  set.seed(2)
+  tibble::tibble(lote = rep(sprintf("L%02d", seq_len(nl)), each = 5),
+                 y = factor(rep(rep(c("a", "b"), length.out = nl), each = 5)),
+                 x = rnorm(5 * nl) + rep(rep(c(0, 1), length.out = nl), each = 5))
+}
+
+test_that("tune e nested_cv avisam fold de validação com uma classe só", {
+  d <- dados_puros(4L)                       # 4 folds de 1 lote: toda validação é pura
+  expect_warning(z <- tr_ml_tune(d, "y", preditores = "x", tentativas = 1, folds = 4,
+                                 estrategia = "grupo", grupo = "lote"), "uma classe")
+  expect_match(z$nota, "uma classe")
+  expect_warning(n <- tr_ml_nested_cv(dados_puros(16L), "y", preditores = "x", tentativas = 1,
+                                      folds_externos = 16, folds = 2, estrategia = "grupo",
+                                      grupo = "lote"), "uma classe")
+  expect_match(attr(n, "nota"), "uma classe")
+  # sem folds puros, sem nota
+  expect_no_warning(z <- tr_ml_tune(dados_dep(), "y", preditores = "x", tentativas = 1, folds = 3,
+                                    estrategia = "grupo", grupo = "lote"))
+  expect_null(z$nota)
+})
+
+test_that("grupo_estratificado: grupos inteiros e as classes em cada validação", {
+  d <- dados_puros(12L)
+  for (sd in 1:10) {
+    g <- .tr_ml_with_seed(sd, .tr_ml_folds(d, "grupo_estratificado", 4L, y = d$y, grupo = "lote"))
+    expect_length(g, 4L)
+    expect_equal(sort(unlist(lapply(g, `[[`, "validacao"))), 1:60)   # cada linha valida uma vez
+    for (f in g) {
+      expect_length(intersect(d$lote[f$treino], d$lote[f$validacao]), 0L)
+      expect_equal(sort(c(f$treino, f$validacao)), 1:60)
+      expect_setequal(unique(as.character(d$y[f$validacao])), c("a", "b"))
+    }
+    expect_true(all(vapply(g, function(f) length(unique(d$lote[f$validacao])), 1) == 3))
+  }
+  g1 <- .tr_ml_with_seed(5, .tr_ml_folds(d, "grupo_estratificado", 4L, y = d$y, grupo = "lote"))
+  expect_identical(g1, .tr_ml_with_seed(5, .tr_ml_folds(d, "grupo_estratificado", 4L, y = d$y, grupo = "lote")))
+  expect_no_warning(tr_ml_tune(d, "y", preditores = "x", tentativas = 1, folds = 4,
+                               estrategia = "grupo_estratificado", grupo = "lote"))
+  expect_error(tr_ml_tune(tibble::tibble(lote = rep(1:4, 5), y = rnorm(20), x = rnorm(20)), "y", preditores = "x",
+                          tentativas = 1, folds = 2, estrategia = "grupo_estratificado", grupo = "lote"),
+               class = "tr_ml_error_bad_option")
+})

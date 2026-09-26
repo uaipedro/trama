@@ -1,3 +1,113 @@
+# trama.ml 0.5.0
+
+Versão sobe de 0.4.0 para 0.5.0: com a coesão das coleções os ajustes saem
+como `models/fit`, os parâmetros seguem o glossário (`resposta`,
+`preditores`) e prever/avaliar/importância são os blocos da `trama.models`.
+
+## Integração 9.1b (coesão × main)
+
+- Proveniência do `ml/split` (main): continua aqui; a recusa de prever o
+  teste que o modelo viu roda no `tr_models_predict_raw()` da ml, e a recusa
+  de avaliar o treino nos avaliadores da models (`permitir_treino`).
+- `ml/forest` com `importancia` (impureza, permutação, impureza corrigida),
+  lida no `models/importance`, com a medida descrita.
+- DeLong/Youden da `ml/roc` e a precisão NA da `ml/evaluate` foram para
+  `models/roc` e `models/evaluate`.
+
+## 0.4.0
+
+Versão sobe de 0.3.0: a revisão quebrou o isolamento do teste de 0.3.0 e as
+correções mudam resultados. Blocos que mudam de comportamento sobem de
+versão: `ml/split` 3, `ml/predict` 3, `ml/evaluate` 4, `ml/confusion` 3,
+`ml/roc` 5, `ml/pr_curve` 3, `ml/tune` 4, `ml/nested_cv` 3,
+`ml/importance` 2, `ml/cart` 4 e os demais modelos 3. Nova dependência:
+`cli` (>= 3.6.0), pelo xxHash64 vetorizado.
+
+## Proveniência por linha
+
+- `ml/split` grava na marca das duas saídas as impressões digitais das
+  linhas do teste: xxHash64 do conteúdo de cada linha nas colunas da divisão
+  (números pelo valor binário exato), como multiconjunto — cópias no teste e
+  cópias idênticas que o sorteio pôs no treino. Todo modelo guarda as
+  impressões do seu treino, qualquer que seja a marca da entrada.
+- `ml/predict` recusa (`tr_ml_error_test_leak`) prever linhas do teste que o
+  modelo viu: ajuste na tabela inteira antes de dividir, numa cópia sem marca
+  do teste ou no treino de outra divisão (B1).
+- Ajuste, `ml/tune`, `ml/nested_cv` e nova divisão recusam uma tabela que
+  junta treino e teste (`rbind`, `bind_rows`, `data/bind_rows`), mesmo com a
+  marca de treino (B2).
+- Os avaliadores recusam (`tr_ml_error_train_eval`) uma tabela marcada como
+  teste que traz linhas de fora dele — previsões do treino juntadas às do
+  teste, ou o teste repetido — salvo `permitir_treino` (B4).
+- Linhas repetidas legítimas dos dois lados não disparam: a contagem de cópias
+  as separa de vazamento.
+- Custo medido em 100 mil linhas: ~1 s para as impressões e ~7 MB no modelo;
+  os folds internos de `ml/tune` e `ml/nested_cv` não as recalculam.
+- O que a marca não cobre, por construção, está documentado (B3): juntar com
+  o teste à direita, remodelar (`pivot_longer`/`pivot_wider`), recriar a
+  tabela à mão, reescrever ou tirar colunas da divisão e dividir fora do
+  `ml/split`.
+
+## Avaliação
+
+- `ml/roc`: com AUC = 0 ou 1 a variância de DeLong é zero; o IC sai NA com a
+  explicação em `auc_nota`, em vez de um intervalo de largura zero. Com menos
+  de duas linhas numa classe, o IC também sai NA com nota (a curva e a AUC
+  seguem; o `multi/roc` faz o mesmo).
+- `ml/evaluate`: precisão de classe nunca prevista é indefinida (0/0): sai NA
+  e fica fora das médias macro e ponderada (pesos renormalizados), como
+  `zero_division = np.nan` do scikit-learn. Antes valia 0 (o padrão do
+  scikit-learn), o que puxava as médias para baixo.
+- `ml/tune` e `ml/nested_cv` avisam, e guardam em `nota`, folds de validação
+  com uma classe só (macro F1, kappa e acurácia balanceada degeneram). Nova
+  estratégia `grupo_estratificado`: grupos inteiros distribuídos para
+  equilibrar as classes entre os folds (critério do StratifiedGroupKFold).
+
+## Importância
+
+- `ml/importance` ganha a coluna `medida`, que diz o que cada número mede. Na
+  floresta de classificação (floresta de probabilidade), a permutação é o
+  aumento do erro de Brier do `ranger` — média de (1 − p da classe
+  observada)² fora da bolsa —, não a queda de acurácia, como a documentação
+  dizia; na regressão, do erro quadrático médio. O XGBoost é rotulado como
+  Gain relativo (fração do ganho total, soma 1).
+
+# trama.ml 0.3.0
+
+Versão sobe de 0.2.0: o isolamento do teste passa a ser imposto. Blocos que
+mudam de comportamento sobem de versão: `ml/split` 2, `ml/predict` 2,
+`ml/evaluate` 3, `ml/confusion` 2, `ml/roc` 4, `ml/pr_curve` 2, `ml/tune` 3,
+`ml/nested_cv` 2, `ml/cart` 3 e os demais modelos 2.
+
+## Isolamento do teste por construção
+
+- `ml/split` marca as saídas com o atributo `tr_ml_origem` (`papel` =
+  `"treino"`/`"teste"` e `divisao`, id que depende só dos dados e das linhas
+  sorteadas). Escolhemos atributo, e não coluna oculta: o tipo `data/table`
+  guarda em RDS, que preserva atributos na ida e volta do store e na releitura
+  do cache; subconjunto, `dplyr::filter` e colunas novas também os preservam; e
+  os dados, o card e a exportação ficam iguais.
+- Ajustar (`ml/<modelo>`, `ml/tune`, `ml/nested_cv`) ou dividir de novo a
+  saída teste é recusado com `tr_ml_error_test_leak` — o vazamento
+  treino-teste de Kaufman, Rosset, Perlich & Stitelman (2012,
+  doi:10.1145/2382577.2382579). O modelo guarda a origem do treino.
+- `ml/predict` propaga a marca e recusa o teste de outra divisão com um modelo
+  ajustado no treino de uma divisão marcada (`tr_ml_error_split_mismatch`).
+- `ml/evaluate`, `ml/confusion`, `ml/roc` e `ml/pr_curve` ganham
+  `permitir_treino` (padrão `FALSE`): previsões das linhas de treino marcadas
+  são recusadas com `tr_ml_error_train_eval`. Com `TRUE`, o resultado é o
+  mesmo número de antes, com aviso e a nota “avaliação no treino é otimista”
+  (coluna `nota`; legenda do gráfico). Erro por padrão, e não só aviso, porque
+  num fluxo de blocos o aviso se perde no card e o número otimista segue
+  adiante como se fosse do teste; medir o treino de propósito (comparar com o
+  teste, ver sobreajuste) continua possível com uma escolha explícita.
+- Tabelas sem a marca (divisão feita por fora, treino e teste juntados) seguem
+  como antes; os pressupostos dizem que ali o isolamento depende do usuário. A
+  validação interna do `ml/tune` mede os folds de um treino marcado sem
+  recusa: a validação de cada fold não ajustou o modelo do fold.
+- Validação: testes de cada caminho, inclusive no fluxo real com o store e a
+  segunda execução lida do cache, e pelo `store`/`restore` do `data/table`.
+
 # trama.ml 0.2.0
 
 - Integração 9.2: a `ml/pr_curve` foi para a `trama.models` como
@@ -81,3 +191,17 @@ positiva) e `ml/cart` (poda), com os nós em versão 2.
   à mão de 5 linhas (AP 0,7556; área 0,7161 em forma fechada),
   `yardstick::average_precision` (1e-10) e `PRROC::pr.curve` `auc.integral`
   (1e-8), com empates.
+- `ml/roc` (versão 3): intervalo de confiança da AUC por DeLong, DeLong &
+  Clarke-Pearson (1988), parâmetro `confianca` (padrão 0,95), e corte de
+  Youden (1950) marcado no gráfico; os dados do gráfico ganham `limiar`,
+  `auc_ep`, `auc_inf`, `auc_sup`, `youden_limiar`, `youden_j` e `youden`. AUC
+  inalterada. Validação: `pROC` (AUC 1e-10; IC e variância de DeLong 1e-8 em
+  90/95/99%; sensibilidade, especificidade e J do `coords(best.method =
+  "youden")` 1e-12, com empates); AUC = 1 dá erro-padrão 0.
+- `ml/forest`: parâmetro `importancia` = `impureza` (padrão, resultado
+  anterior, versão mantida), `permutacao` (Breiman 2001) ou
+  `impureza_corrigida` (AIR; Nembrini, König & Wright 2018), lida pelo
+  `ml/importance` (atributo `medida`). Motivo: a impureza favorece preditores
+  com muitos valores (Strobl et al. 2007). Validação: chamada direta do
+  `ranger` com os mesmos argumentos e semente, igual a 1e-12 nas três
+  medidas (regressão) e na permutação da floresta de probabilidade.

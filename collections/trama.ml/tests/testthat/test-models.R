@@ -54,6 +54,7 @@ test_that("CART expõe regras e importância com nomes originais", {
   expect_true("valor" %in% names(r))
   i <- trama.models::tr_models_importance(m)
   expect_named(i, c("termo", "importancia", "medida"))
+  expect_match(i$medida[[1]], "impureza.*substitutas")
   expect_true(all(i$termo %in% m$preditores))
   expect_true(all(diff(i$importancia) <= 0))
 })
@@ -366,4 +367,53 @@ test_that("poda do CART com n < 10 usa min(10, n) folds: deixa-um-fora exato", {
     expect_true(all(is.finite(prever(m, d)$previsto)))
   }
   expect_equal(tr_ml_fit(mtcars, "mpg", "wt", modelo = "cart")$extras$poda$folds, 10L)
+})
+
+test_that("importância da floresta: permutação e impureza corrigida iguais ao ranger direto", {
+  skip_if_not_installed("ranger")
+  # Oráculo: chamada direta do ranger com os mesmos argumentos e semente.
+  set.seed(8)
+  d <- data.frame(y = rnorm(120), x1 = rnorm(120), x2 = sample(1:3, 120, TRUE),
+                  ruido = runif(120))
+  d$y <- d$y + 2 * d$x1
+  for (nome in c("impureza", "permutacao", "impureza_corrigida")) {
+    eng <- c(impureza = "impurity", permutacao = "permutation", impureza_corrigida = "impurity_corrected")[[nome]]
+    m <- tr_ml_forest(d, "y", "x1, x2, ruido", trees = 150, min_n = 5, max_depth = 3, importancia = nome, seed = 11)
+    ref <- ranger::ranger(y ~ x1 + x2 + ruido, d, num.trees = 150, mtry = 1, min.node.size = 5,
+                          max.depth = 3, importance = eng, seed = 11)
+    imp <- trama.models::tr_models_importance(m)
+    expect_equal(attr(imp, "medida"), nome)
+    expect_equal(imp$importancia[match(names(ref$variable.importance), imp$termo)],
+                 unname(ref$variable.importance), tolerance = 1e-12, info = nome)
+    expect_equal(imp$termo[[1]], "x1")
+  }
+  # Classificação (floresta de probabilidade) com permutação.
+  dc <- data.frame(y = factor(ifelse(d$x1 > 0, "a", "b")), d[c("x1", "x2", "ruido")])
+  m <- tr_ml_forest(dc, "y", "x1, x2, ruido", trees = 100, importancia = "permutacao", seed = 3)
+  ref <- ranger::ranger(y ~ x1 + x2 + ruido, dc, num.trees = 100, mtry = 1, min.node.size = 5,
+                        max.depth = 3, probability = TRUE, importance = "permutation", seed = 3)
+  expect_equal(trama.models::tr_models_importance(m)$importancia[match(names(ref$variable.importance), trama.models::tr_models_importance(m)$termo)],
+               unname(ref$variable.importance), tolerance = 1e-12)
+  # a medida é visível e diz o que a permutação mede em cada tarefa: na
+  # floresta de probabilidade, aumento do erro de Brier do ranger (média de
+  # (1 - p da classe observada)^2 fora da bolsa), não queda de acurácia
+  expect_true(all(grepl("Brier", trama.models::tr_models_importance(m)$medida)))
+  expect_false(any(grepl("acur", trama.models::tr_models_importance(m)$medida)))
+  mr <- tr_ml_forest(d, "y", "x1, x2, ruido", trees = 50, importancia = "permutacao", seed = 3)
+  expect_true(all(grepl("quadr", trama.models::tr_models_importance(mr)$medida)))
+  expect_match(trama.models::tr_models_importance(tr_ml_forest(d, "y", "x1, x2", trees = 20))$medida[[1]], "redu.*vari")
+  # o erro que o ranger reporta na floresta de probabilidade é essa média
+  expect_equal(ref$prediction.error,
+               mean((1 - ref$predictions[cbind(seq_len(nrow(dc)), as.integer(dc$y))])^2), tolerance = 1e-12)
+  expect_error(tr_ml_forest(d, "y", importancia = "gini"), class = "tr_ml_error_bad_option")
+})
+
+test_that("importância do XGBoost é o Gain relativo, rotulado como tal", {
+  skip_if_not_installed("xgboost")
+  m <- tr_ml_xgboost(tr_ml_example("iris_binaria"), "Species", nrounds = 10)
+  i <- trama.models::tr_models_importance(m)
+  expect_match(i$medida[[1]], "Gain")
+  expect_equal(sum(i$importancia), 1, tolerance = 1e-6)      # fração do ganho total
+  skip_if_not_installed("figsr")
+  expect_match(trama.models::tr_models_importance(tr_ml_figs(tr_ml_example("iris_binaria"), "Species"))$medida[[1]], "FIGS")
 })

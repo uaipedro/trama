@@ -1,6 +1,6 @@
 Package: trama.multi
 Title: Multivariate Analysis Collection for trama
-Version: 0.1.0
+Version: 0.3.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -48,6 +48,9 @@ Suggests:
     testthat (>= 3.0.0),
     png,
     GPArotation,
+    irr,
+    logistf,
+    pROC,
     psych,
     withr
 Config/testthat/edition: 3
