@@ -219,8 +219,8 @@ tr_models_rls_fn <- function(dados, resposta = "y", preditores = "", lambda = 1e
       inputs = list(dados = trama::tr_port(T, stream = TRUE)),
       outputs = list(out = trama::tr_port(T, stream = TRUE)),
       params = list(
-        resposta = P("cols", "y", label = "Resposta", example = "y"),
-        preditores = P("cols", "", label = "Preditores (em branco = as demais colunas do ponto)", example = "x"),
+        resposta = trama::tr_param_col("y", label = "Resposta", role = "numerica", example = "y"),
+        preditores = trama::tr_param_col("", label = "Preditores (em branco = as demais colunas do ponto)", role = "numerica", multi = TRUE, suggest = FALSE, example = "x"),
         lambda = N(1e6, min = 1e-6, label = "Prior difusa (lambda)")),
       init = init_rls, step = step_rls,
       help = .tr_models_ajuda(r"---[

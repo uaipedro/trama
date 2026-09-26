@@ -113,7 +113,7 @@ F1; `models/predict` para ver os casos.
       inputs = list(modelo = opc(Fm), dados = opc(T)), outputs = list(out = "view/plot"),
       params = .tr_models_props(
         validacao = validacao, positiva = positiva, resposta = resposta,
-        probabilidade = P("cols", "", label = "Probabilidade (modo tabela)", example = "prob_1"),
+        probabilidade = trama::tr_param_col("", label = "Probabilidade (modo tabela)", role = "numerica", from = "dados", example = "prob_1"),
         confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança do IC da AUC"),
         permitir_treino = permitir_treino,
         .aspecto = "1:1"),
@@ -187,7 +187,7 @@ tr_flow(reg) |>
       inputs = list(modelo = opc(Fm), dados = opc(T)), outputs = list(out = "view/plot"),
       params = .tr_models_props(
         validacao = validacao, positiva = positiva, resposta = resposta,
-        probabilidade = P("cols", "", label = "Probabilidade (modo tabela)", example = "prob_sim"),
+        probabilidade = trama::tr_param_col("", label = "Probabilidade (modo tabela)", role = "numerica", from = "dados", example = "prob_sim"),
         permitir_treino = permitir_treino,
         .aspecto = "16:9"),
       help = .tr_models_ajuda(paste0(r"---[

@@ -253,9 +253,9 @@ tr_flow(reg) |>
       params = list(
         formula = P("expr", "", label = "Fórmula (efeitos fixos)", example = "Reaction ~ Days"),
         correlacao = E("ar1", .TR_MODELS_CORRELACOES, label = "Correlação no grupo"),
-        grupo = P("cols", "", label = "Grupo (medidas repetidas)", example = "Subject"),
-        tempo = P("cols", "", label = "Tempo (ocasião)", example = "Days"),
-        variancia_por = P("cols", "", label = "Variância por (opcional)", example = "Days"),
+        grupo = trama::tr_param_col("", label = "Grupo (medidas repetidas)", role = "categorica", example = "Subject"),
+        tempo = trama::tr_param_col("", label = "Tempo (ocasião)", role = "qualquer", suggest = FALSE, example = "Days"),
+        variancia_por = trama::tr_param_col("", label = "Variância por (opcional)", role = "categorica", suggest = FALSE, example = "Days"),
         reml = B(TRUE, label = "REML")),
       help = .tr_models_ajuda(paste0(r"---[
 Regressão ou ANOVA com o erro CORRELACIONADO dentro de cada grupo — as medidas
@@ -311,9 +311,9 @@ tr_flow(reg) |>
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
         formula = P("expr", "", label = "Fórmula", example = "Reaction ~ Days + (Days | Subject)"),
-        resposta = P("cols", "", label = "Resposta (sem fórmula)", example = "Reaction"),
-        fixos = P("cols", "", label = "Efeitos fixos (sem fórmula)", example = "Days"),
-        grupo = P("cols", "", label = "Grupo aleatório (sem fórmula)", example = "Subject"),
+        resposta = trama::tr_param_col("", label = "Resposta (sem fórmula)", role = "qualquer", suggest = FALSE, example = "Reaction"),
+        fixos = trama::tr_param_col("", label = "Efeitos fixos (sem fórmula)", role = "qualquer", multi = TRUE, suggest = FALSE, example = "Days"),
+        grupo = trama::tr_param_col("", label = "Grupo aleatório (sem fórmula)", role = "categorica", suggest = FALSE, example = "Subject"),
         reml = B(TRUE, label = "REML")),
       help = .tr_models_ajuda(paste0(r"---[
 Ajusta um modelo linear misto: efeitos FIXOS, que se quer estimar (dose,
@@ -367,8 +367,8 @@ termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos;
       description = "Ajusta uma curva não linear pronta (logística, Michaelis-Menten, Gompertz, platô...) sem pedir chute.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "rate"),
-        preditor = P("cols", "", label = "Preditor", example = "conc"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "rate"),
+        preditor = trama::tr_param_col("", label = "Preditor", role = "numerica", example = "conc"),
         modelo = E("logístico", .TR_MODELS_NLS, label = "Modelo")),
       help = .tr_models_ajuda(paste0(r"---[
 Ajusta por mínimos quadrados não lineares (`stats::nls`) uma das curvas que as
@@ -441,8 +441,8 @@ a regressão da dose depois da ANOVA, ligue o modelo ao `models/polinomial`.
       description = "Análise de variância de um delineamento inteiramente casualizado.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "weight"),
-        tratamento = P("cols", "", label = "Tratamento", example = "group")),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "weight"),
+        tratamento = trama::tr_param_col("", label = "Tratamento", role = "categorica", example = "group")),
       help = .tr_models_ajuda(paste0(r"---[
 ANOVA do delineamento inteiramente casualizado (DIC): os tratamentos foram
 sorteados nas parcelas sem restrição nenhuma. Modelo `resposta ~ tratamento`.
@@ -474,9 +474,9 @@ tr_flow(reg) |>
       description = "Análise de variância de um delineamento em blocos casualizados.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "producao"),
-        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
-        bloco = P("cols", "", label = "Bloco", example = "bloco")),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "producao"),
+        tratamento = trama::tr_param_col("", label = "Tratamento", role = "categorica", example = "hibrido"),
+        bloco = trama::tr_param_col("", label = "Bloco", role = "categorica", example = "bloco")),
       help = .tr_models_ajuda(paste0(r"---[
 ANOVA do delineamento em blocos casualizados (DBC): cada bloco recebe todos os
 tratamentos, sorteados dentro dele. Modelo `resposta ~ bloco + tratamento`.
@@ -510,10 +510,10 @@ combinação de fatores.
       description = "Análise de variância de um delineamento em quadrado latino.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "ganho_peso"),
-        tratamento = P("cols", "", label = "Tratamento", example = "racao"),
-        linha = P("cols", "", label = "Linha", example = "periodo"),
-        coluna = P("cols", "", label = "Coluna", example = "lote")),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "ganho_peso"),
+        tratamento = trama::tr_param_col("", label = "Tratamento", role = "categorica", example = "racao"),
+        linha = trama::tr_param_col("", label = "Linha", role = "categorica", example = "periodo"),
+        coluna = trama::tr_param_col("", label = "Coluna", role = "categorica", example = "lote")),
       help = .tr_models_ajuda(paste0(r"---[
 ANOVA do quadrado latino (DQL): duas restrições de casualização cruzadas —
 período e animal, linha e coluna do galpão —, com cada tratamento uma vez em
@@ -544,9 +544,9 @@ tr_flow(reg) |>
       description = "Análise de variância de um fatorial com 2 ou 3 fatores, em DIC ou em blocos.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "len"),
-        fatores = P("cols", "", label = "Fatores (2 ou 3)", example = "supp, dose"),
-        bloco = P("cols", "", label = "Bloco (opcional)", example = "block")),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "len"),
+        fatores = trama::tr_param_col("", label = "Fatores (2 ou 3)", role = "categorica", multi = TRUE, example = "supp, dose"),
+        bloco = trama::tr_param_col("", label = "Bloco (opcional)", role = "categorica", suggest = FALSE, example = "block")),
       help = .tr_models_ajuda(paste0(r"---[
 ANOVA de um experimento fatorial: os tratamentos são as combinações de 2 ou 3
 fatores. Modelo com todas as interações — `resposta ~ A * B` ou
@@ -584,10 +584,10 @@ outro na subparcela.
       description = "Análise de variância de parcelas subdivididas em blocos, com os erros (a) e (b).",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "producao"),
-        parcela = P("cols", "", label = "Fator da parcela", example = "variedade"),
-        subparcela = P("cols", "", label = "Fator da subparcela", example = "nitrogenio"),
-        bloco = P("cols", "", label = "Bloco", example = "bloco")),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "producao"),
+        parcela = trama::tr_param_col("", label = "Fator da parcela", role = "categorica", example = "variedade"),
+        subparcela = trama::tr_param_col("", label = "Fator da subparcela", role = "categorica", example = "nitrogenio"),
+        bloco = trama::tr_param_col("", label = "Bloco", role = "categorica", example = "bloco")),
       help = .tr_models_ajuda(paste0(r"---[
 ANOVA de parcelas subdivididas em blocos: um fator é sorteado nas parcelas
 grandes (irrigação, variedade, preparo do solo) e o outro nas subparcelas dentro

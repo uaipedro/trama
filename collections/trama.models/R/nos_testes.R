@@ -189,8 +189,8 @@ Um teste (`data/test`).
       description = "t de Welch (ou de Student): as médias de dois grupos independentes são iguais?",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "len"),
-        grupo = P("cols", "", label = "Grupo (2 níveis)", example = "supp"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "len"),
+        grupo = trama::tr_param_col("", label = "Grupo (2 níveis)", role = "categorica", example = "supp"),
         variancias_iguais = B(FALSE, label = "Variâncias iguais (Student)"),
         alternativa = ALT()),
       help = .tr_models_ajuda(r"---[
@@ -227,8 +227,8 @@ tr_flow(reg) |>
       description = "t pareado: a média das diferenças entre duas medidas na mesma unidade é zero?",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        antes = P("cols", "", label = "Primeira medida", example = "antes"),
-        depois = P("cols", "", label = "Segunda medida", example = "depois"),
+        antes = trama::tr_param_col("", label = "Primeira medida", role = "numerica", example = "antes"),
+        depois = trama::tr_param_col("", label = "Segunda medida", role = "numerica", example = "depois"),
         alternativa = ALT()),
       help = .tr_models_ajuda(r"---[
 Compara duas medidas feitas na MESMA unidade — antes e depois, lado esquerdo e
@@ -261,7 +261,7 @@ medidas na mesma unidade.
       description = "t para uma amostra: a média da coluna é igual a um valor de referência?",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        variavel = P("cols", "", label = "Variável", example = "weight"),
+        variavel = trama::tr_param_col("", label = "Variável", role = "numerica", example = "weight"),
         mu = N(0, label = "Valor de referência"),
         alternativa = ALT()),
       help = .tr_models_ajuda(r"---[
@@ -288,8 +288,8 @@ tr_flow(reg) |>
       description = "Wilcoxon-Mann-Whitney: dois grupos independentes têm a mesma locação? (não paramétrico)",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "len"),
-        grupo = P("cols", "", label = "Grupo (2 níveis)", example = "supp"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "len"),
+        grupo = trama::tr_param_col("", label = "Grupo (2 níveis)", role = "categorica", example = "supp"),
         alternativa = ALT()),
       help = .tr_models_ajuda(r"---[
 A alternativa não paramétrica ao `models/t_test`: compara os POSTOS dos dois
@@ -319,8 +319,8 @@ tr_flow(reg) |>
       description = "Kruskal-Wallis: dois ou mais grupos vêm da mesma distribuição? (não paramétrico)",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "count"),
-        grupo = P("cols", "", label = "Grupo", example = "spray")),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "count"),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "spray")),
       help = .tr_models_ajuda(r"---[
 A alternativa não paramétrica ao `models/anova_dic`: compara os postos de dois
 ou mais grupos. Útil quando os resíduos da ANOVA não são normais e nenhuma
@@ -349,8 +349,8 @@ tr_flow(reg) |>
       description = "Comparações de Dunn entre pares de grupos, o post hoc do Kruskal-Wallis, com p-valor ajustado.",
       inputs = list(dados = T), outputs = list(out = "models/effects"),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "count"),
-        grupo = P("cols", "", label = "Grupo", example = "spray"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "count"),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "spray"),
         ajuste = trama::tr_param_enum("holm", c("holm", "bonferroni", "sidak", "nenhum"), label = "Ajuste")),
       help = .tr_models_ajuda(r"---[
 Depois de um `models/kruskal` que rejeita, o Dunn (1964) diz QUAIS pares de
@@ -391,8 +391,8 @@ tr_flow(reg) |>
       description = "d de Cohen e g de Hedges entre dois grupos, com intervalo de confiança.",
       inputs = list(dados = T), outputs = list(out = T),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "len"),
-        grupo = P("cols", "", label = "Grupo (2 níveis)", example = "supp"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "len"),
+        grupo = trama::tr_param_col("", label = "Grupo (2 níveis)", role = "categorica", example = "supp"),
         confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
       help = .tr_models_ajuda(r"---[
 A diferença entre as médias de dois grupos em unidades de desvio padrão: o
@@ -432,9 +432,9 @@ os termos de uma ANOVA.
       description = "Friedman, Durbin ou Skillings–Mack: os tratamentos diferem dentro dos blocos? (DBC não paramétrico, blocos completos ou incompletos)",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "producao"),
-        tratamento = P("cols", "", label = "Tratamento", example = "hibrido"),
-        bloco = P("cols", "", label = "Bloco", example = "bloco"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "producao"),
+        tratamento = trama::tr_param_col("", label = "Tratamento", role = "categorica", example = "hibrido"),
+        bloco = trama::tr_param_col("", label = "Bloco", role = "categorica", example = "bloco"),
         metodo = E("auto", .TR_MODELS_METODOS_FRIEDMAN, label = "Método")),
       help = .tr_models_ajuda(r"---[
 A alternativa não paramétrica ao `models/anova_dbc`: ordena os tratamentos
@@ -480,8 +480,8 @@ tr_flow(reg) |>
       description = "Qui-quadrado de independência entre duas colunas categóricas.",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        linha = P("cols", "", label = "Linha", example = "wool"),
-        coluna = P("cols", "", label = "Coluna", example = "tension"),
+        linha = trama::tr_param_col("", label = "Linha", role = "categorica", example = "wool"),
+        coluna = trama::tr_param_col("", label = "Coluna", role = "categorica", example = "tension"),
         correcao = B(FALSE, label = "Correção de Yates (2 × 2)")),
       help = .tr_models_ajuda(r"---[
 Testa se duas variáveis categóricas são independentes, a partir da tabela de
@@ -515,8 +515,8 @@ tr_flow(reg) |>
       description = "Teste exato de Fisher: duas colunas categóricas são independentes?",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        linha = P("cols", "", label = "Linha", example = "am"),
-        coluna = P("cols", "", label = "Coluna", example = "vs")),
+        linha = trama::tr_param_col("", label = "Linha", role = "categorica", example = "am"),
+        coluna = trama::tr_param_col("", label = "Coluna", role = "categorica", example = "vs")),
       help = .tr_models_ajuda(r"---[
 O teste de independência EXATO, sem a aproximação do qui-quadrado: vale com
 qualquer contagem. É o que se usa quando o `models/chisq` avisa que há esperados
@@ -546,8 +546,8 @@ variáveis.
       description = "Correlação de Pearson, Spearman ou Kendall entre duas colunas, com o teste de que ela é zero.",
       inputs = list(dados = T), outputs = list(out = TE),
       params = list(
-        x = P("cols", "", label = "X", example = "wt"),
-        y = P("cols", "", label = "Y", example = "mpg"),
+        x = trama::tr_param_col("", label = "X", role = "numerica", example = "wt"),
+        y = trama::tr_param_col("", label = "Y", role = "numerica", example = "mpg"),
         metodo = E("pearson", c("pearson", "spearman", "kendall"), label = "Método")),
       help = .tr_models_ajuda(r"---[
 Estima a correlação entre duas colunas numéricas e testa se ela é zero.
@@ -578,7 +578,7 @@ tr_flow(reg) |>
       category = "modelo_testes", icon = trama::tr_icon("chart-area"),
       description = "Shapiro-Wilk: uma coluna tem distribuição normal?",
       inputs = list(dados = T), outputs = list(out = TE),
-      params = list(variavel = P("cols", "", label = "Variável", example = "weight")),
+      params = list(variavel = trama::tr_param_col("", label = "Variável", role = "numerica", example = "weight")),
       help = .tr_models_ajuda(r"---[
 Testa se os valores de UMA coluna vêm de uma distribuição normal.
 

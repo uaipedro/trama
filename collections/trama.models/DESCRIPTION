@@ -1,6 +1,6 @@
 Package: trama.models
 Title: Statistical Models Collection for trama
-Version: 0.3.3
+Version: 0.3.4
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
