@@ -48,9 +48,10 @@ export function Engrenagem() {
 // `completo`) e pelo `ParamsDock` (modo `mini`/`preview`, painel na borda da
 // tela). `id` só entra pra formar a `key` do widget — o resto é `spec` +
 // valores + callback, sem nada de posição no card.
-export function ParamsList({ id, spec, params, onParam, lista }) {
+export function ParamsList({ id, spec, params, onParam, lista, colunas }) {
   return h("div", { className: "tr-params" }, (lista || paramsVisiveis(spec, params)).map((p) => {
     const W = getWidget(p.kind);
+    const ctx = p.kind === "cols" ? ctxColunas(id, spec, params, p, colunas) : undefined;
     // `div`, e não `label`: o `<label>` repassa o clique ao primeiro
     // controle rotulável de dentro, e com botões ali (segmentado, chave)
     // clicar no texto "Tipo" escolhia a primeira opção. Sem `htmlFor`
@@ -65,7 +66,7 @@ export function ParamsList({ id, spec, params, onParam, lista }) {
       h("span", { key: "n", title: p.label ? `${p.label} (${p.name})` : p.name }, rotulo),
       // O widget entra num Fragment com `key` porque vai num array ao lado
       // do rótulo, e o elemento que a coleção devolve não tem chave.
-      W ? h(React.Fragment, { key: "w" }, W(p, params[p.name], (v) => onParam(id, p.name, v)))
+      W ? h(React.Fragment, { key: "w" }, W(p, params[p.name], (v) => onParam(id, p.name, v), ctx))
         : h("input", { key: "w", className: "nodrag", type: "text",
                        defaultValue: JSON.stringify(params[p.name] ?? p.default),
                        onBlur: (e) => { try { onParam(id, p.name, JSON.parse(e.target.value)); }
@@ -74,11 +75,34 @@ export function ParamsList({ id, spec, params, onParam, lista }) {
   }));
 }
 
+// Contexto do widget `cols` (runtime.js) para UM param: o schema da tabela
+// que chega na porta dele (`from`, ou a primeira entrada do bloco) e a marca
+// de sugestão. `params` do ctx são só os `cols` DA MESMA PORTA: `sugerir`
+// (colunas.js) recebe um schema só, e "coluna já usada" só faz sentido entre
+// params que olham pra mesma tabela. Sem `colunas` (quem chama não é o card,
+// ou o editor é velho) o widget recebe `undefined` e fica no campo de texto.
+const portaDe = (spec, p) => p.from ?? spec.inputs?.[0]?.name;
+function ctxColunas(id, spec, params, p, c) {
+  if (!c) return undefined;
+  const porta = portaDe(spec, p);
+  const sugerido = (c.sugeridos || []).includes(p.name);
+  return {
+    colunas: c.entradas?.[porta] || null,
+    sugerido,
+    motivo: sugerido ? (c.motivos?.[p.name] || "escolhida automaticamente pela entrada") : null,
+    sugestoes: c.sugestoes !== false,
+    sugeridos: c.sugeridos || [],
+    valores: params,
+    params: (spec.params || []).filter((q) => q.kind === "cols" && portaDe(spec, q) === porta),
+    onSugerir: (value, motivo) => c.onSugerir(id, p.name, value, motivo),
+  };
+}
+
 // Rodapé de parâmetros do card aberto. A faixa ("▸ Parâmetros") dobra e
 // desdobra; aberta, mostra só os primeiros `LIMITE_PARAMS_CARD` VISÍVEIS (os
 // que o `when` esconde nem contam), e a engrenagem abre o formulário inteiro
 // no meio da tela. Dobrar é preferência de trabalho, não do documento.
-export function ParamsRodape({ id, spec, params, onParam, dobrado, onDobrar, onTodos }) {
+export function ParamsRodape({ id, spec, params, onParam, dobrado, onDobrar, onTodos, colunas }) {
   const vis = paramsVisiveis(spec, params);
   if (!vis.length) return null;
   const noCard = vis.slice(0, LIMITE_PARAMS_CARD);
@@ -98,9 +122,15 @@ export function ParamsRodape({ id, spec, params, onParam, dobrado, onDobrar, onT
                     title: dica("params-todos"), "aria-label": "todos os parâmetros",
                     onClick: (e) => { e.stopPropagation(); onTodos(id); } }, h(Engrenagem)),
     ]),
-    dobrado ? null : h(ParamsList, { key: "pl", id, spec, params, onParam, lista: noCard }),
+    dobrado ? null : h(ParamsList, { key: "pl", id, spec, params, onParam, lista: noCard, colunas }),
   ]);
 }
+
+// O pedaço de `data` (montado em `decorated`, editor.js) que `ParamsList`
+// precisa para os params `cols`. Objeto novo por render é inofensivo aqui:
+// vai como prop de componente, não para dentro de `data` do React Flow.
+export const colunasDoNo = (d) => ({ entradas: d.entradas, sugeridos: d.sugeridos, motivos: d.motivos,
+                                     sugestoes: d.sugestoes, onSugerir: d.onSugerir });
 
 // Formulário inteiro de um card, no meio da tela (engrenagem ou P). O
 // preview vai ao lado, vivo, pra ver o efeito do que se muda sem o card
@@ -126,7 +156,8 @@ export function ParamsModal({ node, categories, preview, onClose }) {
         h("div", { key: "b", className: "tr-pmodal-body" }, [
           h("div", { key: "f", className: "tr-pmodal-form" },
             vis.length
-              ? h(ParamsList, { id: node.id, spec, params: node.data.params, onParam: node.data.onParam, lista: vis })
+              ? h(ParamsList, { id: node.id, spec, params: node.data.params, onParam: node.data.onParam, lista: vis,
+                                colunas: colunasDoNo(node.data) })
               : h("div", { className: "tr-empty" }, "este bloco não tem parâmetros")),
           preview ? h("div", { key: "p", className: "tr-pmodal-preview" }, preview) : null,
         ]),

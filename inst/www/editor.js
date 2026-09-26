@@ -26,7 +26,7 @@ import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
-import { ModoPicker, ModoToggle, Engrenagem, ParamsRodape, ParamsModal, Vista, AtalhosPanel } from "./modos-ui.js";
+import { ModoPicker, ModoToggle, Engrenagem, ParamsRodape, ParamsModal, Vista, AtalhosPanel, colunasDoNo } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
@@ -104,6 +104,10 @@ function docToFlow(doc, catalog) {
       // bloco de apresentação do documento.
       data: { nodeType: n.type, label: n.label, params: n.params || {}, spec: byId[n.type],
               seed: n.seed,
+              // Params `cols` preenchidos por sugestão (e não pelo usuário): o
+              // select os mostra com o selo "sugerido", e só estes (mais os
+              // vazios) podem ser re-sugeridos quando a entrada troca.
+              sugeridos: n.sugeridos || [],
               view: (doc.ui && doc.ui.views && doc.ui.views[id]) || null,
               size: (doc.ui && doc.ui.sizes && doc.ui.sizes[id]) || null,
               modo: (doc.ui && doc.ui.modes && doc.ui.modes[id]) || null },
@@ -728,7 +732,7 @@ function NdNode({ id, data, selected }) {
     // Parâmetros embaixo de tudo, dobráveis (`ParamsRodape`, modos-ui.js).
     mini ? null : h(ParamsRodape, { key: "pm", id, spec, params: data.params, onParam: data.onParam,
                                     dobrado: data.dobrado, onDobrar: data.onDobrar,
-                                    onTodos: data.onTodos }),
+                                    onTodos: data.onTodos, colunas: colunasDoNo(data) }),
     // O mini tem largura automática, então fica sem alça.
     mini ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
   ]);
@@ -1635,7 +1639,7 @@ function App() {
   // e fazer os cards re-renderizarem quando a lista muda. `marca` vem na mesma
   // mensagem e mora aqui, e não no runtime: quem a usa é a exportação de
   // frame, não o card.
-  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null, marca: true });
+  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null, marca: true, sugestoes: true });
   const [doc, setDoc] = useState(null);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -1812,6 +1816,14 @@ function App() {
   const sizesRef = useRef({});      // tamanho arrastado localmente, antes do eco
   const modosRef = useRef({});      // modo escolhido localmente, antes do eco
   const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
+  // Marca "sugerido" local, antes do eco: por nó, `{nome: true|false}` por
+  // cima de `data.sugeridos`. Mesmo papel de `paramsRef` — sem ele, o selo só
+  // apareceria (ou sumiria) quando o documento voltasse.
+  const sugeridosRef = useRef({});
+  // O PORQUÊ de cada sugestão (`motivo` de colunas.js), por nó e param. Não
+  // viaja no documento — é explicação de tela, não estado —, então NÃO é
+  // zerado no eco; um documento recarregado mostra o selo com uma dica genérica.
+  const motivosRef = useRef({});
   const clipboardRef = useRef(null); // último Ctrl+C: snapshot de blocos/frames/notas
   const colagensRef = useRef(0);     // colagens seguidas do mesmo clipboard, pro deslocamento em cascata
   const projetoRef = useRef(null);  // raiz do projeto aberto, pro handler de `project`
@@ -1899,14 +1911,62 @@ function App() {
   // remede, emite mudança de dimensão, chama setNodes, e o ciclo não fecha —
   // o renderizador congela. É o mesmo laço que o insumo documenta em
   // `onNodesChange`, aqui pela outra ponta.
-  const onParam = useCallback((nodeId, name, value) => {
+  //
+  // `origem: "sugestao"` marca o param como sugerido no documento (o selo do
+  // select); sem origem, a op DESMARCA — é o que faz qualquer escolha à mão,
+  // inclusive reescolher o mesmo valor, virar escolha do usuário, que nenhuma
+  // sugestão futura pisa.
+  const onParam = useCallback((nodeId, name, value, origem, motivo) => {
     // Atualiza o param NO REF de estado, não recriando o array de nós — o
     // objetivo é o mesmo laço de realimentação: cada `setNodes` faz o React
     // Flow remedir todos os cards.
-    paramsRef.current[nodeId] = { ...(paramsRef.current[nodeId] || {}), [name]: value };
+    marcarLocal(nodeId, [{ name, value, motivo }], !!origem);
     bumpTick();
-    pushOp({ op: "set_param", node: nodeId, name, value });
+    pushOp(origem ? { op: "set_param", node: nodeId, name, value, origem }
+                  : { op: "set_param", node: nodeId, name, value });
   }, [bumpTick]);
+  // O pedido "sugerir: X" do select, com o flag desligado. Estável como
+  // `onParam` (entra em `data`).
+  const onSugerir = useCallback((nodeId, name, value, motivo) =>
+    onParam(nodeId, name, value, "sugestao", motivo), [onParam]);
+
+  // Otimismo de param + marca, compartilhado por `onParam` e pelas sugestões
+  // automáticas (que saem num batch com o connect, não por `onParam`). Só
+  // refs: é chamado de dentro do handler de mensagens também.
+  function marcarLocal(nodeId, sugs, sugerido) {
+    const pr = { ...(paramsRef.current[nodeId] || {}) };
+    const sg = { ...(sugeridosRef.current[nodeId] || {}) };
+    const mt = { ...(motivosRef.current[nodeId] || {}) };
+    for (const s of sugs) {
+      pr[s.name] = s.value;
+      sg[s.name] = sugerido;
+      if (sugerido && s.motivo) mt[s.name] = s.motivo;
+    }
+    paramsRef.current[nodeId] = pr;
+    sugeridosRef.current[nodeId] = sg;
+    motivosRef.current[nodeId] = mt;
+  }
+
+  // Schema da tabela que chega em cada porta de entrada, por nó:
+  // `entradas[alvo][porta] = schema`. Lido do handle da porta de SAÍDA de onde
+  // a aresta vem (`handles` em `stateRef`, preenchido por `unitState`). Porta
+  // sem aresta, ou com a origem ainda sem rodar, fica de fora — o widget `cols`
+  // cai no campo de texto. Nó de região sem `handles` por porta usa o `handle`
+  // único: é o palpite que `firstHandle` já faz pro preview.
+  const entradas = useMemo(() => {
+    const out = {};
+    for (const e of edges) {
+      const schema = schemaDaSaida(e.source, e.sourceHandle);
+      if (!schema) continue;
+      (out[e.target] ||= {})[e.targetHandle] = schema;
+    }
+    return out;
+  }, [edges, tick]);
+  function schemaDaSaida(no, porta) {
+    const st = stateRef.current[no];
+    if (!st) return null;
+    return (st.handles ? st.handles[porta]?.schema : st.handle?.schema) || null;
+  }
 
   // V: card selecionado em tela cheia (`Vista`, modos-ui.js). Só com exatamente
   // UM card — mais de um não tem um óbvio pra mostrar, e frame/nota não têm
@@ -2173,14 +2233,31 @@ function App() {
                       dobrado: dobras[n.id] ?? paramsDobradosDe(n.data),
                       onDobrar, onTodos, onSoltar, onPrender, onVista, onAutoTamanho,
                       typeColors, categories, onParam, onView, onResize, onModo,
-                      onReseed, onAbrirProximo: abrirProximo, temas } };
+                      onReseed, onAbrirProximo: abrirProximo, temas,
+                      // Contexto dos params `cols` (`ParamsList`, modos-ui.js).
+                      // `entradas[n.id]` é o mesmo objeto enquanto nem arestas
+                      // nem handles mudam; a marca local vai por cima da do
+                      // documento, como `paramsRef` vai por cima dos params.
+                      entradas: entradas[n.id] || null,
+                      sugeridos: sugeridosDe(n.id, n.data.sugeridos),
+                      motivos: motivosRef.current[n.id] || null,
+                      sugestoes: temas.sugestoes, onSugerir } };
   })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
+     entradas, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
+
+  function sugeridosDe(id, doDoc) {
+    const loc = sugeridosRef.current[id];
+    if (!loc) return doDoc || [];
+    const s = new Set(doDoc || []);
+    for (const [k, v] of Object.entries(loc)) v ? s.add(k) : s.delete(k);
+    return [...s];
+  }
 
   const comFios = useMemo(() => {
     const fios = decorated.filter((n) => n.type === "trSolto").map((n) => ({
@@ -2208,7 +2285,10 @@ function App() {
         setTemas({ temas: m.temas || {}, tema_padrao: m.tema_padrao ?? null,
                    // `?? true` pro servidor velho (ou uma mensagem que perdeu
                    // o campo) não desligar a marca sem ninguém ter pedido.
-                   marca: m.marca ?? true });
+                   marca: m.marca ?? true,
+                   // Mesmo `?? true`: o flag nasce ligado quando o projeto
+                   // não diz nada (`trama.json` sem `sugestoes`).
+                   sugestoes: m.sugestoes ?? true });
         return;
       }
 
@@ -2221,6 +2301,7 @@ function App() {
         sizesRef.current = {};
         modosRef.current = {};
         seedsRef.current = {};
+        sugeridosRef.current = {};
         setDoc(m.doc);
         const { nodes: novos, edges: e, needsLayout } = docToFlow(m.doc, catalogRef.current);
         // `docToFlow` refaz cada card sem `measured`, e até o React Flow medir
@@ -2563,9 +2644,14 @@ function App() {
     if (k === "running") { out.state = "running"; out.error = null; out.progress = null; out.partial = false; }
     else if (k === "done") {
       out.state = "done"; out.error = null; out.duration = m.duration;
-      out.handle = firstHandle(m.handles); out.partial = false; out.progress = null;
+      out.handle = firstHandle(m.handles); out.handles = m.handles || null;
+      out.partial = false; out.progress = null;
     } else if (k === "cached") {
       out.state = "cached"; out.error = null; out.handle = firstHandle(m.handles);
+      // Todos os handles, por porta: `handle` é só o da primeira saída (o que o
+      // preview mostra), mas o schema que alimenta os params `cols` de quem
+      // está a jusante é o da porta de onde a aresta sai.
+      out.handles = m.handles || null;
       out.partial = false; out.progress = null;
     } else if (k === "failed") { out.state = "failed"; out.error = { message: m.message, traceback: m.traceback }; }
     else if (k === "blocked") { out.state = "blocked"; out.error = null; }
