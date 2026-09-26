@@ -132,6 +132,10 @@ tr_doc_migrate <- function(doc, registry = .tr_default_registry) {
     }
   }
   doc <- .tr_doc_migrate_versoes(doc, registry, pular = renomeados)
+  # Param renomeado/removido não pode deixar a marca de sugerido para trás.
+  # Não conta como mudança: a marca é dica de UI, e a limpeza se refaz a
+  # cada leitura.
+  doc$nodes <- lapply(doc$nodes, .tr_sugeridos_limpos)
   if (mudou || length(attr(doc, "migracoes"))) attr(doc, "migrated") <- TRUE
   doc
 }

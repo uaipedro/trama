@@ -276,8 +276,31 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
     rlang::abort(sprintf("Param '%s' não existe em '%s'.", op$name, n$type),
                  class = "tr_error_unknown_param")
   }
+  if (!is.null(op$origem) && !identical(op$origem, "sugestao")) {
+    rlang::abort(sprintf("'origem' desconhecida em set_param: %s.", paste(format(op$origem), collapse = ", ")),
+                 class = "tr_error_bad_op")
+  }
   doc$nodes[[op$node]]$params[[op$name]] <- .tr_check_param_value(pspec, op$value, op$name)
+  # `sugeridos` marca os params cujo valor veio da sugestão automática, não
+  # de uma escolha. É o que deixa o front refazer a sugestão quando a entrada
+  # muda sem nunca pisar no que alguém escolheu: qualquer set_param sem
+  # `origem` é escolha e tira a marca. Mora na op (e não num campo à parte)
+  # porque o undo é replay do log — a marca volta junto com o valor.
+  sug <- setdiff(as.character(doc$nodes[[op$node]]$sugeridos), op$name)
+  if (identical(op$origem, "sugestao")) sug <- c(sug, op$name)
+  doc$nodes[[op$node]]$sugeridos <- if (length(sug)) sug else NULL
   list(doc = doc, op = op)
+}
+
+#' `sugeridos` só pode citar params que o nó TEM: depois de migração que
+#' renomeia/remove param, ou de edição à mão, um nome velho ficaria marcado
+#' para sempre. Ausente (documento antigo) e vazio são a mesma coisa: campo
+#' nenhum.
+#' @noRd
+.tr_sugeridos_limpos <- function(n) {
+  sug <- intersect(as.character(unlist(n$sugeridos)), names(n$params))
+  n$sugeridos <- if (length(sug)) sug else NULL
+  n
 }
 
 .tr_op_set_seed <- function(doc, op, registry) {

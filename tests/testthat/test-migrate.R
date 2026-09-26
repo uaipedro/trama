@@ -162,3 +162,12 @@ test_that("nó renomeado pela coleção não roda as funções de versão do des
   expect_identical(tr_doc_migrate(doc, reg)$nodes, doc$nodes)
   expect_length(tr_doc_validate(doc_velho(1L, '{"nivel":0.8}', tipo = "m/velho"), reg), 0)
 })
+
+test_that("param renomeado na migração não deixa marca de sugerido velha", {
+  reg <- migra_registry_colecao(list(params = list("m/ic" = list(alfa = list(
+    to = "nivel", value = function(v) 1 - v)))))
+  d <- doc_velho(1L, '{"alfa":0.1}')
+  d$nodes$a$sugeridos <- "alfa"
+  doc <- tr_doc_migrate(d, reg)
+  expect_null(doc$nodes$a$sugeridos)
+})

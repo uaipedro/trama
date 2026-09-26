@@ -467,3 +467,40 @@ test_that("set_solto guarda c(x, y, w, h) e valida o que recebe", {
   expect_error(tr_doc_apply(d, list(op = "set_solto", node = "zzz", x = 1, y = 2, w = 3, h = 4), m$reg),
                class = "tr_error_unknown_node")
 })
+
+test_that("set_param com origem sugestao marca; sem origem desmarca", {
+  x <- mk(); doc <- add(x$doc, x$reg, "t/const", id = "a")
+  expect_null(doc$nodes$a$sugeridos)
+  doc <- tr_doc_apply(doc, list(op = "set_param", node = "a", name = "value", value = 2,
+                                origem = "sugestao"), x$reg)
+  expect_identical(doc$nodes$a$sugeridos, "value")
+  doc <- tr_doc_apply(doc, list(op = "set_param", node = "a", name = "value", value = 2,
+                                origem = "sugestao"), x$reg)
+  expect_identical(doc$nodes$a$sugeridos, "value")
+  doc <- tr_doc_apply(doc, list(op = "set_param", node = "a", name = "value", value = 3), x$reg)
+  expect_null(doc$nodes$a$sugeridos)
+  expect_false("sugeridos" %in% names(doc$nodes$a))
+  expect_error(tr_doc_apply(doc, list(op = "set_param", node = "a", name = "value", value = 3,
+                                      origem = "robo"), x$reg), class = "tr_error_bad_op")
+})
+
+test_that("sugeridos sobrevive a gravar e ler, como array", {
+  x <- mk(); doc <- add(x$doc, x$reg, "t/const", id = "a")
+  doc <- tr_doc_apply(doc, list(op = "set_param", node = "a", name = "value", value = 2,
+                                origem = "sugestao"), x$reg)
+  j <- as.character(tr_doc_json(doc))
+  expect_match(j, '"sugeridos": \\["value"\\]')
+  back <- tr_doc_parse(j)
+  expect_identical(back$nodes$a$sugeridos, "value")
+  # nome que não é param do nó some na leitura
+  sujo <- sub('"sugeridos": \\["value"\\]', '"sugeridos": ["value", "velho"]', j)
+  expect_identical(tr_doc_parse(sujo)$nodes$a$sugeridos, "value")
+})
+
+test_that("undo (replay) devolve a marca de sugerido junto com o valor", {
+  x <- mk(); base <- add(x$doc, x$reg, "t/const", id = "a")
+  ops <- list(list(op = "set_param", node = "a", name = "value", value = 2, origem = "sugestao"),
+              list(op = "set_param", node = "a", name = "value", value = 5))
+  doc <- trama:::.tr_undo_doc(base, ops[1], current_rev = 10L, registry = x$reg)
+  expect_identical(doc$nodes$a$sugeridos, "value")
+})

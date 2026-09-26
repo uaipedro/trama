@@ -16,7 +16,11 @@ tr_doc_json <- function(doc) {
   doc <- .tr_as_doc(doc)
   out <- unclass(doc)
   out$nodes <- .tr_empty_obj(lapply(out$nodes, function(n) {
-    n$params <- .tr_empty_obj(n$params); n
+    n$params <- .tr_empty_obj(n$params)
+    # `I()`: com `auto_unbox` um só sugerido sairia string, e o front
+    # iteraria sobre as letras.
+    if (length(n$sugeridos)) n$sugeridos <- I(as.character(n$sugeridos))
+    n
   }))
   out$collections <- .tr_empty_obj(out$collections)
   out$ui$positions <- .tr_empty_obj(out$ui$positions)
@@ -68,7 +72,7 @@ tr_doc_parse <- function(txt) {
   doc$nodes <- lapply(doc$nodes %||% list(), function(n) {
     n$params <- lapply(n$params %||% list(), .tr_resimplify)
     n$seed <- if (is.null(n$seed)) NULL else as.integer(n$seed)
-    n
+    .tr_sugeridos_limpos(n)
   })
   doc$edges <- doc$edges %||% list()
   doc$collections <- doc$collections %||% list()
