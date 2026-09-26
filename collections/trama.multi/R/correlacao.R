@@ -157,7 +157,7 @@ tr_multi_correlation_matrix <- function(dados, cols = "", matriz = "correlação
         cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "alcool, fenois_totais, flavonoides"),
         matriz = trama::tr_param_enum("correlação", c("correlação", "covariância"), label = "Matriz"),
         metodo = trama::tr_param_enum("pearson", c("pearson", "spearman", "kendall"), label = "Método"),
-        grupo = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "cultivar")),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "cultivar", suggest = FALSE)),
       help = .tr_multi_ajuda(r"---[
 A matriz de correlação (ou de covariância) entre as variáveis, como TABELA: uma
 linha e uma coluna por variável, com o nome da linha em `variavel`. É a matriz

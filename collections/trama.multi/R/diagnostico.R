@@ -274,7 +274,7 @@ ver a matriz; `multi/factor_analysis` para fatorar.
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
       params = list(
         cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Sepal.Length, Sepal.Width, Petal.Length"),
-        grupo = trama::tr_param_col("", label = "Grupo (opcional)", role = "categorica", example = "Species"),
+        grupo = trama::tr_param_col("", label = "Grupo (opcional)", role = "categorica", example = "Species", suggest = FALSE),
         confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança")),
       help = .tr_multi_ajuda(r"---[
 Testa se as variáveis, JUNTAS, seguem uma normal multivariada — o que a

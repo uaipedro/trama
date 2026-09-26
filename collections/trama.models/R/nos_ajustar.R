@@ -192,9 +192,9 @@ escala da resposta.
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
         formula = P("expr", "", label = "Fórmula", example = "cbind(casos, sadios) ~ periodo + (1 | rebanho)"),
-        resposta = trama::tr_param_col("", label = "Resposta (sem fórmula)", role = "qualquer", example = "TICKS"),
-        fixos = trama::tr_param_col("", label = "Efeitos fixos (sem fórmula)", role = "qualquer", multi = TRUE, example = "YEAR"),
-        grupo = trama::tr_param_col("", label = "Grupo aleatório (sem fórmula)", role = "categorica", example = "BROOD"),
+        resposta = trama::tr_param_col("", label = "Resposta (sem fórmula)", role = "qualquer", example = "TICKS", suggest = FALSE),
+        fixos = trama::tr_param_col("", label = "Efeitos fixos (sem fórmula)", role = "qualquer", multi = TRUE, example = "YEAR", suggest = FALSE),
+        grupo = trama::tr_param_col("", label = "Grupo aleatório (sem fórmula)", role = "categorica", example = "BROOD", suggest = FALSE),
         familia = E("binomial", c("binomial", "poisson"), label = "Família"),
         nivel_obs = B(FALSE, label = "Efeito por observação")),
       help = .tr_models_ajuda(paste0(r"---[

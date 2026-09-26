@@ -15,7 +15,7 @@
       params = .tr_view_props(
         x   = trama::tr_param_col("", label = "Eixo X", role = "qualquer", example = "mes"),
         y   = trama::tr_param_col("", label = "Eixo Y", role = "numerica", example = "receita"),
-        cor = trama::tr_param_col("", label = "Empilhar por", role = "categorica", example = "regiao"),
+        cor = trama::tr_param_col("", label = "Empilhar por", role = "categorica", example = "regiao", suggest = FALSE),
         painel = PAINEL),
       help = paste0("## Descrição
 
@@ -213,8 +213,8 @@ tr_flow(reg) |>
       params = .tr_view_props(
         x = trama::tr_param_col("", label = "Eixo X", role = "numerica", example = "renda"),
         y = trama::tr_param_col("", label = "Eixo Y", role = "numerica", example = "populacao"),
-        rotulo = trama::tr_param_col("", label = "Rótulo", role = "qualquer", example = "municipio"),
-        cor = trama::tr_param_col("", label = "Cor por", role = "qualquer", example = "regiao"),
+        rotulo = trama::tr_param_col("", label = "Rótulo", role = "qualquer", example = "municipio", suggest = FALSE),
+        cor = trama::tr_param_col("", label = "Cor por", role = "qualquer", example = "regiao", suggest = FALSE),
         evitar = trama::tr_param_bool(TRUE, label = "Omitir rótulos sobrepostos"),
         log = trama::tr_param_enum("nenhum", .TR_VIEW_LOG, label = "Eixo em log"),
         painel = PAINEL),
@@ -290,7 +290,7 @@ quem ganha o rótulo; `data/filter` para ficar só com os pontos que merecem nom
       inputs = list(dados = T), outputs = list(out = G),
       params = .tr_view_props(
         x = trama::tr_param_col("", label = "Medida", role = "numerica", example = "valor"),
-        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "regiao"),
+        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "regiao", suggest = FALSE),
         suavidade = trama::tr_param_num(1, min = 0.2, max = 5, step = 0.1, label = "Suavidade"),
         log = trama::tr_param_bool(FALSE, label = "Eixo em log"),
         painel = PAINEL),
@@ -358,7 +358,7 @@ grupos sem escolher suavidade nenhuma.", .TR_VIEW_AJUDA_APARENCIA)),
       params = .tr_view_props(
         y = trama::tr_param_col("", label = "Medida", role = "numerica", example = "valor"),
         x = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "regiao"),
-        cor = trama::tr_param_col("", label = "Preencher por", role = "categorica", example = "produto"),
+        cor = trama::tr_param_col("", label = "Preencher por", role = "categorica", example = "produto", suggest = FALSE),
         caixa = trama::tr_param_bool(TRUE, label = "Caixa por dentro"),
         pontos = trama::tr_param_bool(FALSE, label = "Mostrar observações"),
         log = trama::tr_param_bool(FALSE, label = "Eixo em log"),
@@ -428,7 +428,7 @@ pergunta é a média de cada grupo.", .TR_VIEW_AJUDA_APARENCIA)),
       inputs = list(dados = T), outputs = list(out = G),
       params = .tr_view_props(
         x = trama::tr_param_col("", label = "Medida", role = "numerica", example = "valor"),
-        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "regiao"),
+        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "regiao", suggest = FALSE),
         log = trama::tr_param_bool(FALSE, label = "Eixo em log"),
         painel = PAINEL),
       help = paste0("## Descrição
@@ -490,7 +490,7 @@ imediata; `view/qq` para comparar a distribuição com a normal.", .TR_VIEW_AJUD
       inputs = list(dados = T), outputs = list(out = G),
       params = .tr_view_props(
         y = trama::tr_param_col("", label = "Medida", role = "numerica", example = "valor"),
-        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "regiao"),
+        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "regiao", suggest = FALSE),
         painel = PAINEL),
       help = paste0("## Descrição
 
@@ -554,7 +554,7 @@ tr_flow(reg) |>
       params = .tr_view_props(
         y = trama::tr_param_col("", label = "Medida", role = "numerica", example = "altura"),
         x = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "tratamento"),
-        cor = trama::tr_param_col("", label = "Cor por", role = "categorica", example = "bloco"),
+        cor = trama::tr_param_col("", label = "Cor por", role = "categorica", example = "bloco", suggest = FALSE),
         estilo = trama::tr_param_enum("colmeia", .TR_VIEW_ESTILOS_FAIXA, label = "Estilo"),
         resumo = trama::tr_param_enum("mediana", .TR_VIEW_RESUMOS, label = "Traço de resumo"),
         log = trama::tr_param_bool(FALSE, label = "Eixo em log"),
@@ -636,7 +636,7 @@ mesma unidade aparece em mais de um grupo.", .TR_VIEW_AJUDA_APARENCIA))
       params = .tr_view_props(
         x = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "regiao"),
         y = trama::tr_param_col("", label = "Medida", role = "numerica", example = "valor"),
-        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "produto"),
+        cor = trama::tr_param_col("", label = "Separar por", role = "categorica", example = "produto", suggest = FALSE),
         barra = trama::tr_param_enum("IC", .TR_VIEW_BARRAS_ERRO, label = "Barra"),
         confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
                                     barra = "IC"),
@@ -716,7 +716,7 @@ a tabela de médias como tabela.", .TR_VIEW_AJUDA_APARENCIA)),
       params = .tr_view_props(
         x = trama::tr_param_col("", label = "Categoria", role = "categorica", example = "municipio"),
         y = trama::tr_param_col("", label = "Valor", role = "numerica", example = "producao"),
-        cor = trama::tr_param_col("", label = "Cor por", role = "categorica", example = "safra"),
+        cor = trama::tr_param_col("", label = "Cor por", role = "categorica", example = "safra", suggest = FALSE),
         estilo = trama::tr_param_enum("pontos", .TR_VIEW_ESTILOS_PONTOS, label = "Estilo"),
         ordenar = trama::tr_param_bool(TRUE, label = "Ordenar pelo valor"),
         painel = PAINEL),
@@ -861,7 +861,7 @@ tabela longa.", .TR_VIEW_AJUDA_APARENCIA)),
         x = trama::tr_param_col("", label = "Condição", role = "categorica", example = "fase"),
         y = trama::tr_param_col("", label = "Medida", role = "numerica", example = "altura"),
         unidade = trama::tr_param_col("", label = "Unidade", role = "qualquer", example = "planta"),
-        cor = trama::tr_param_col("", label = "Cor por", role = "categorica", example = "tratamento"),
+        cor = trama::tr_param_col("", label = "Cor por", role = "categorica", example = "tratamento", suggest = FALSE),
         media = trama::tr_param_bool(TRUE, label = "Linha da média"),
         painel = PAINEL),
       help = paste0("## Descrição

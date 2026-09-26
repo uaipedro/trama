@@ -71,8 +71,8 @@ tr_ml_linear <- function(dados, resposta = "", preditores = "", tarefa = "auto",
 .tr_ml_task_param <- function() trama::tr_param_enum("auto", c("auto", "regressao", "classificacao"), label = "Tarefa")
 .tr_ml_seed_param <- function() trama::tr_param_int(42L, min = 0L, label = "Semente")
 .tr_ml_estrategia_param <- function() trama::tr_param_enum("aleatoria", c("aleatoria", "temporal", "grupo", "grupo_estratificado"), label = "Estrat\u{E9}gia")
-.tr_ml_ordem_param <- function() trama::tr_param_col("", label = "Coluna de tempo", role = "qualquer", example = "data")
-.tr_ml_grupo_param <- function() trama::tr_param_col("", label = "Coluna de grupo", role = "categorica", example = "lote")
+.tr_ml_ordem_param <- function() trama::tr_param_col("", label = "Coluna de tempo", role = "qualquer", example = "data", suggest = FALSE)
+.tr_ml_grupo_param <- function() trama::tr_param_col("", label = "Coluna de grupo", role = "categorica", example = "lote", suggest = FALSE)
 
 .tr_ml_model_nodes <- function() {
   common <- list(resposta = .tr_ml_target_param(), preditores = .tr_ml_cols_param(), tarefa = .tr_ml_task_param())
