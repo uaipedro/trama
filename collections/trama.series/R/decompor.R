@@ -114,7 +114,8 @@ tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
 #' @export
 tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
                                  contraste = "soma_zero", regressor = NULL,
-                                 erro = "independente", ar = 1L, ma = 0L) {
+                                 erro = "independente", ar = 1L, ma = 0L,
+                                 excluir = "", remover_ns = FALSE, alfa = 0.05) {
   grau <- .tr_series_int(grau, "grau", min = 0, max = 3)
   contraste <- .tr_series_enum(contraste, c("soma_zero", "categoria_base"), "contraste")
   erro <- .tr_series_enum(erro, c("independente", "arma"), "erro")
@@ -133,13 +134,19 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
   }
   .tr_series_sem_na(serie, "series/regression")
   if (isTRUE(sazonalidade)) .tr_series_sazonal(serie, "series/regression")
+  remover_ns <- isTRUE(remover_ns)
+  alfa <- suppressWarnings(as.numeric(alfa))
+  if (remover_ns && (length(alfa) != 1L || is.na(alfa) || alfa <= 0 || alfa >= 1)) {
+    .tr_series_abort("tr_series_error_bad_option", "Param 'alfa': um número entre 0 e 1, como 0.05.")
+  }
+  fora <- if (isTRUE(sazonalidade)) .tr_series_estacoes_fora(serie, excluir) else character()
   # Graus de liberdade, e não só tamanho: o guard tem de conhecer o número de
   # PARÂMETROS do modelo. Com `grau >= frequência` o ajuste chega a zero graus
   # residuais e nenhum coeficiente falta — o `anyNA(coef)` abaixo não pega, e o
   # que sai é R² ajustado NaN, p-valor NaN e uma decomposição de aparência
   # perfeita. Dois graus é o mínimo para que erro-padrão e p-valor queiram
   # dizer alguma coisa.
-  n_saz <- if (isTRUE(sazonalidade)) as.integer(stats::frequency(serie)) - 1L else 0L
+  n_saz <- if (isTRUE(sazonalidade)) as.integer(stats::frequency(serie)) - max(1L, length(fora)) else 0L
   n_x <- if (is.null(xreg)) 0L else 1L
   n_par <- 1L + grau + n_saz + n_x
   if (length(serie) < n_par + 2L) {
@@ -151,73 +158,115 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
                      length(serie), n_par, grau, n_saz, n_x, length(serie) - n_par)
   }
 
-  dados <- data.frame(y = as.numeric(serie))
-  tt <- seq_along(serie)
-  for (g in seq_len(grau)) dados[[paste0("t", g)]] <- tt^g
-  if (!is.null(xreg)) dados$regressor <- xreg
-  if (isTRUE(sazonalidade)) {
-    f <- as.integer(stats::frequency(serie))
-    dados$estacao <- factor(as.integer(stats::cycle(serie)), levels = seq_len(f),
-                            labels = .tr_series_estacoes(f))
-    # O contraste é posto NO FATOR, e não no `contrasts=` do `lm`: assim
-    # qualquer reajuste feito a partir de `fit$model` (é o que o teste parcial
-    # da significância faz) herda a mesma parametrização, sem ter de
-    # recarregá-la.
-    stats::contrasts(dados$estacao) <-
-      if (contraste == "soma_zero") stats::contr.sum else stats::contr.treatment
-  }
-
-  fit <- stats::lm(y ~ ., data = dados)
-  if (!is.null(xreg) && is.na(stats::coef(fit)[["regressor"]])) {
-    .tr_series_abort("tr_series_error_fit",
-                     paste0("O regressor é colinear com a tendência e/ou a sazonalidade: ele é uma ",
-                            "combinação exata dos outros termos, e seu coeficiente não se estima. ",
-                            "Ligue outro regressor, ou baixe o grau / desligue a sazonalidade."))
-  }
-  X <- stats::model.matrix(fit)
-  # Os rótulos dos termos vão junto com a matriz: é por `assign` que o F de
-  # Wald acha as colunas de um bloco quando o ajuste é GLS.
-  attr(X, "rotulos") <- attr(stats::terms(fit), "term.labels")
-  aviso <- NULL
-  if (erro == "arma" && !anyNA(stats::coef(fit))) {
-    # Mínimos quadrados generalizados com erro ARMA(p, q) (Morettin & Toloi
-    # 2006; Pinheiro & Bates 2000), por máxima verossimilhança — e não REML —
-    # para que o ajuste seja a MESMA função que o `stats::arima(xreg = )`
-    # maximiza, que é o oráculo dos testes. O `lm` acima fica só como checagem
-    # de posto; os F passam a ser de Wald sobre o `vcov` do GLS.
-    # Sem resíduo não há erro a modelar: a série que o polinômio e as dummies
-    # reproduzem exatamente deixa o GLS singular, e isso não é "não convergiu".
-    rss <- sum(stats::residuals(fit)^2)
-    if (rss <= 1e-12 * max(1, sum((dados$y - mean(dados$y))^2))) {
-      .tr_series_abort("tr_series_error_singular_fit",
-                       paste0("'series/regression': o modelo reproduz a série exatamente (resíduo ",
-                              "nulo), e sem resíduo não há erro ARMA a estimar. Use erro = ",
-                              "'independente', ou baixe o grau / desligue a sazonalidade."))
+  # O ajuste é função das estações que ficam FORA: a eliminação dos meses não
+  # significativos reajusta até todo mês que sobra ter p <= alfa.
+  ajustar <- function(fora) {
+    dados <- data.frame(y = as.numeric(serie))
+    tt <- seq_along(serie)
+    for (g in seq_len(grau)) dados[[paste0("t", g)]] <- tt^g
+    if (!is.null(xreg)) dados$regressor <- xreg
+    if (isTRUE(sazonalidade) && length(fora)) {
+      # Estações fora do modelo viram UM nível base, "demais": o efeito delas é
+      # o mesmo, e cada dummy que fica é a diferença para esse grupo. Por isso
+      # o contraste é o de categoria base — com soma zero, "tirar um mês" não
+      # quer dizer "esse mês não tem efeito".
+      rot <- .tr_series_estacoes(as.integer(stats::frequency(serie)))
+      lab <- rot[as.integer(stats::cycle(serie))]
+      lab[lab %in% fora] <- "demais"
+      dados$estacao <- factor(lab, levels = c("demais", setdiff(rot, fora)))
+      stats::contrasts(dados$estacao) <- stats::contr.treatment
+    } else if (isTRUE(sazonalidade)) {
+      f <- as.integer(stats::frequency(serie))
+      dados$estacao <- factor(as.integer(stats::cycle(serie)), levels = seq_len(f),
+                              labels = .tr_series_estacoes(f))
+      # O contraste é posto NO FATOR, e não no `contrasts=` do `lm`: assim
+      # qualquer reajuste feito a partir de `fit$model` (é o que o teste parcial
+      # da significância faz) herda a mesma parametrização, sem ter de
+      # recarregá-la.
+      stats::contrasts(dados$estacao) <-
+        if (contraste == "soma_zero") stats::contr.sum else stats::contr.treatment
     }
-    fit <- tryCatch(
-      nlme::gls(y ~ ., data = dados, method = "ML",
-                correlation = nlme::corARMA(p = ar, q = ma, form = ~ 1)),
-      error = function(e) {
-        if (grepl("singular", conditionMessage(e), fixed = TRUE)) {
-          .tr_series_abort("tr_series_error_singular_fit",
-                           paste0("'series/regression': o ajuste com erro ARMA(%d, %d) ficou ",
-                                  "singular (%s) — resíduo quase nulo ou termos colineares. ",
-                                  "Baixe o grau, desligue a sazonalidade ou use erro = 'independente'."),
+
+    fit <- stats::lm(y ~ ., data = dados)
+    if (!is.null(xreg) && is.na(stats::coef(fit)[["regressor"]])) {
+      .tr_series_abort("tr_series_error_fit",
+                       paste0("O regressor é colinear com a tendência e/ou a sazonalidade: ele é uma ",
+                              "combinação exata dos outros termos, e seu coeficiente não se estima. ",
+                              "Ligue outro regressor, ou baixe o grau / desligue a sazonalidade."))
+    }
+    X <- stats::model.matrix(fit)
+    # Os rótulos dos termos vão junto com a matriz: é por `assign` que o F de
+    # Wald acha as colunas de um bloco quando o ajuste é GLS.
+    attr(X, "rotulos") <- attr(stats::terms(fit), "term.labels")
+    aviso <- NULL
+    if (erro == "arma" && !anyNA(stats::coef(fit))) {
+      # Mínimos quadrados generalizados com erro ARMA(p, q) (Morettin & Toloi
+      # 2006; Pinheiro & Bates 2000), por máxima verossimilhança — e não REML —
+      # para que o ajuste seja a MESMA função que o `stats::arima(xreg = )`
+      # maximiza, que é o oráculo dos testes. O `lm` acima fica só como checagem
+      # de posto; os F passam a ser de Wald sobre o `vcov` do GLS.
+      # Sem resíduo não há erro a modelar: a série que o polinômio e as dummies
+      # reproduzem exatamente deixa o GLS singular, e isso não é "não convergiu".
+      rss <- sum(stats::residuals(fit)^2)
+      if (rss <= 1e-12 * max(1, sum((dados$y - mean(dados$y))^2))) {
+        .tr_series_abort("tr_series_error_singular_fit",
+                         paste0("'series/regression': o modelo reproduz a série exatamente (resíduo ",
+                                "nulo), e sem resíduo não há erro ARMA a estimar. Use erro = ",
+                                "'independente', ou baixe o grau / desligue a sazonalidade."))
+      }
+      fit <- tryCatch(
+        nlme::gls(y ~ ., data = dados, method = "ML",
+                  correlation = nlme::corARMA(p = ar, q = ma, form = ~ 1)),
+        error = function(e) {
+          if (grepl("singular", conditionMessage(e), fixed = TRUE)) {
+            .tr_series_abort("tr_series_error_singular_fit",
+                             paste0("'series/regression': o ajuste com erro ARMA(%d, %d) ficou ",
+                                    "singular (%s) — resíduo quase nulo ou termos colineares. ",
+                                    "Baixe o grau, desligue a sazonalidade ou use erro = 'independente'."),
+                             ar, ma, conditionMessage(e))
+          }
+          .tr_series_abort("tr_series_error_fit",
+                           paste0("O ajuste com erro ARMA(%d, %d) não convergiu (%s). Baixe a ",
+                                  "ordem do erro, ou use erro = 'independente'."),
                            ar, ma, conditionMessage(e))
-        }
-        .tr_series_abort("tr_series_error_fit",
-                         paste0("O ajuste com erro ARMA(%d, %d) não convergiu (%s). Baixe a ",
-                                "ordem do erro, ou use erro = 'independente'."),
-                         ar, ma, conditionMessage(e))
-      })
-    aviso <- .tr_series_aviso_raiz(fit, ar)
+        })
+      aviso <- .tr_series_aviso_raiz(fit, ar)
+    }
+    if (anyNA(stats::coef(fit))) {
+      .tr_series_abort("tr_series_error_fit",
+                       paste0("O ajuste ficou indeterminado (%d coeficientes sem estimativa): a série é ",
+                              "curta demais para %d termos. Baixe o grau ou desligue a sazonalidade."),
+                       sum(is.na(stats::coef(fit))), length(stats::coef(fit)))
+    }
+    list(fit = fit, X = X, dados = dados, aviso = aviso)
   }
-  if (anyNA(stats::coef(fit))) {
-    .tr_series_abort("tr_series_error_fit",
-                     paste0("O ajuste ficou indeterminado (%d coeficientes sem estimativa): a série é ",
-                            "curta demais para %d termos. Baixe o grau ou desligue a sazonalidade."),
-                     sum(is.na(stats::coef(fit))), length(stats::coef(fit)))
+  # A eliminação parte dos desvios em relação à média do ano (soma zero): com
+  # categoria base, a primeira estação seria a referência e nunca sairia.
+  contraste_pedido <- contraste
+  if (remover_ns) contraste <- "soma_zero"
+  a <- ajustar(fora)
+  removidos <- character()
+  if (remover_ns && isTRUE(sazonalidade)) {
+    rot <- .tr_series_estacoes(as.integer(stats::frequency(serie)))
+    repeat {
+      p <- .tr_series_p_estacoes(a$fit, a$X, a$dados)
+      if (!length(p) || max(p) <= alfa) break
+      # Sem nenhuma estação sobrando, o modelo fica sem sazonalidade — e sem
+      # nada, se não houver tendência nem regressor: aí para antes.
+      if (length(p) == 1L && grau == 0L && is.null(xreg)) break
+      pior <- names(p)[which.max(p)]
+      fora <- c(fora, pior); removidos <- c(removidos, pior)
+      if (all(rot %in% fora)) { sazonalidade <- FALSE; fora <- character() }
+      a <- ajustar(fora)
+      if (!isTRUE(sazonalidade)) break
+    }
   }
+  if (contraste != contraste_pedido) {
+    contraste <- contraste_pedido
+    if (!length(fora)) a <- ajustar(fora)
+  }
+  if (length(fora)) contraste <- "categoria_base"
+  fit <- a$fit; X <- a$X; dados <- a$dados; aviso <- a$aviso
 
   # O sazonal sai da PARTE do preditor linear que vem das dummies, e não dos
   # coeficientes pelo nome: com `contr.sum` o último período não tem
@@ -245,6 +294,8 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
                  efeito_regressor = if (!is.null(efeito)) como_ts(efeito),
                  erro = erro, ordem = if (erro == "arma") c(ar = ar, ma = ma) else NULL,
                  aviso = aviso,
+                 estacoes_fora = if (length(fora)) fora else removidos,
+                 estacoes_removidas = removidos, alfa = if (remover_ns) alfa,
                  matriz = X,
                  tendencia = como_ts(as.numeric(stats::fitted(fit)) - saz - (efeito %||% 0)),
                  sazonal = como_ts(saz),
@@ -295,4 +346,50 @@ tr_series_regression <- function(serie, grau = 1L, sazonalidade = TRUE,
                         "segura o nível dos F; considere diferenciar a série"), m)
   rlang::warn(paste0("'series/regression': ", msg), class = "tr_series_warn_near_unit_root")
   msg
+}
+
+#' As estações que o usuário tirou à mão: rótulos ("fev") ou números (2).
+#' @noRd
+.tr_series_estacoes_fora <- function(serie, excluir) {
+  excluir <- trimws(paste(excluir, collapse = ","))
+  if (!nzchar(excluir)) return(character())
+  rot <- .tr_series_estacoes(as.integer(stats::frequency(serie)))
+  pedidos <- trimws(strsplit(excluir, "[,;[:space:]]+")[[1]])
+  pedidos <- pedidos[nzchar(pedidos)]
+  num <- suppressWarnings(as.integer(pedidos))
+  out <- ifelse(!is.na(num) & num >= 1L & num <= length(rot), rot[pmax(1L, pmin(num, length(rot)))],
+                rot[match(tolower(pedidos), tolower(rot))])
+  if (anyNA(out)) {
+    .tr_series_abort("tr_series_error_bad_option",
+                     "Param 'excluir': '%s' não é termo sazonal desta série (período do ciclo). Use %s, ou os números de 1 a %d.",
+                     paste(pedidos[is.na(out)], collapse = "', '"),
+                     paste(utils::head(rot, 3), collapse = ", "), length(rot))
+  }
+  out <- unique(out)
+  if (length(out) >= length(rot)) {
+    .tr_series_abort("tr_series_error_bad_option",
+                     "Param 'excluir': todos os termos sazonais ficariam fora. Desligue a sazonalidade.")
+  }
+  out
+}
+
+#' O p-valor de cada estação que está no modelo, bilateral por t.
+#'
+#' Pela linha do contraste do fator, e não pelo coeficiente: com soma zero a
+#' última estação não tem coeficiente próprio (é menos a soma das outras), e
+#' é pela linha dela na matriz de contraste que o p dela sai. Com o nível
+#' "demais", o p é o da diferença para esse grupo.
+#' @noRd
+.tr_series_p_estacoes <- function(fit, X, dados) {
+  C <- stats::contrasts(dados$estacao)
+  cols <- which(attr(X, "assign") == match("estacao", attr(X, "rotulos")))
+  b <- stats::coef(fit)[cols]
+  V <- stats::vcov(fit)[cols, cols, drop = FALSE]
+  gl <- nrow(X) - ncol(X)
+  niveis <- setdiff(rownames(C), "demais")
+  vapply(niveis, function(l) {
+    a <- C[l, ]
+    t <- sum(a * b) / sqrt(drop(t(a) %*% V %*% a))
+    2 * stats::pt(-abs(t), gl)
+  }, numeric(1))
 }

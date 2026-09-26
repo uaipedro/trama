@@ -262,10 +262,60 @@ series_regression_type <- function() {
            p_valor_f = signif(stats::pf(fs[[1]], fs[[2]], fs[[3]], lower.tail = FALSE), 3),
            observacoes = length(x$serie))
     },
+    # O card é o do `models/fit` (topo, destaques, F global, régua do p por
+    # coeficiente), cujo renderer vem no JS da `trama.models`: sem ela
+    # carregada o renderer não existe no navegador, e o card volta ao texto.
     preview = function(x, ctx) {
+      if (isNamespaceLoaded("trama.models")) {
+        return(trama::tr_preview("models/fit", data = .tr_series_reg_card(x)))
+      }
       txt <- paste(utils::capture.output(summary(x$ajuste)), collapse = "\n")
       trama::tr_preview("trama/text", data = list(text = txt))
     }
+  )
+}
+
+#' Os dados do card `models/fit` para a regressão da série.
+#' @noRd
+.tr_series_reg_card <- function(x) {
+  estrelas <- function(p) {
+    if (is.na(p)) "" else if (p < 0.001) "***" else if (p < 0.01) "**" else
+      if (p < 0.05) "*" else if (p < 0.1) "." else "ns"
+  }
+  fmt <- function(v) formatC(signif(v, 3), format = "fg", digits = 3, decimal.mark = ",")
+  gls <- inherits(x$ajuste, "gls")
+  destaques <- list()
+  if (!gls) {
+    s <- summary(x$ajuste)
+    destaques <- list(list(rotulo = "R²", valor = s$r.squared, barra = TRUE, pct = FALSE),
+                      list(rotulo = "R² aj.", valor = s$adj.r.squared, barra = TRUE, pct = FALSE))
+  }
+  destaques[[length(destaques) + 1L]] <- list(rotulo = "AIC", valor = stats::AIC(x$ajuste),
+                                              barra = FALSE, pct = FALSE)
+  p_f <- tryCatch(tr_series_f_global(x)$p_valor, error = function(e) NA_real_)
+  tab <- .tr_series_reg_tabela(x)
+  termos <- c(sprintf("tendência de grau %d", x$grau),
+              if (x$sazonalidade) "sazonalidade" else NULL,
+              if (!is.null(x$efeito_regressor)) "regressor" else NULL)
+  list(
+    rotulo = if (gls) sprintf("Regressão · erro ARMA(%d, %d)", x$ordem[["ar"]], x$ordem[["ma"]])
+             else "Regressão · MQO",
+    formula = paste("série ~", paste(termos, collapse = " + ")),
+    n = length(x$serie), descartadas = 0L,
+    nota = paste(c(if (length(x$estacoes_removidas))
+                     sprintf("sem efeito próprio a α = %s: %s", format(x$alfa),
+                             paste(x$estacoes_removidas, collapse = ", ")),
+                   if (!length(x$estacoes_removidas) && length(x$estacoes_fora))
+                     sprintf("fora do modelo: %s", paste(x$estacoes_fora, collapse = ", ")),
+                   x$aviso), collapse = "; "),
+    destaques = destaques,
+    global = if (is.na(p_f)) NULL else list(rotulo = "F global", p = p_f, estrelas = estrelas(p_f)),
+    efeitos_titulo = "Coeficientes",
+    linhas = lapply(seq_len(nrow(tab)), function(i) {
+      p <- tab$p_valor[[i]]
+      list(termo = tab$termo[[i]], p = if (is.na(p)) NULL else p, estrelas = estrelas(p),
+           detalhe = paste("t", fmt(tab$estatistica_t[[i]])))
+    })
   )
 }
 

@@ -1,3 +1,8 @@
+# trama.series 0.4.3
+
+* `series/regression`: termos sazonais podem sair do modelo — à mão (**Excluir termos sazonais**) ou por eliminação para trás dos não significativos (**Remover termos sazonais não significativos**, com α). Os que saem viram o nível base `demais`, com contraste de categoria base.
+* O card de `series/regression` usa o card de modelo da `trama.models` (R², AIC, F global, régua do p por coeficiente) quando ela está carregada; sem ela, continua o resumo em texto.
+
 # trama.series 0.4.1
 
 * Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.

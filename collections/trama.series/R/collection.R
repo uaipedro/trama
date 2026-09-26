@@ -793,13 +793,19 @@ p-valor por componente; `series/ljung_box` para testar o resto.
                       sazonalidade = B(TRUE, label = "Sazonalidade"),
                       contraste = trama::tr_when(E("soma_zero", c("soma_zero", "categoria_base"),
                                     label = "Contraste"), sazonalidade = TRUE),
+                      excluir = trama::tr_when(P("text", "", label = "Excluir termos sazonais",
+                                  example = "fev, mar"), sazonalidade = TRUE),
+                      remover_ns = trama::tr_when(B(FALSE, label = "Remover termos sazonais não significativos"),
+                                     sazonalidade = TRUE),
+                      alfa = trama::tr_when(trama::tr_param_num(0.05, min = 0.001, max = 0.5, step = 0.01,
+                               label = "α da remoção"), remover_ns = TRUE),
                       erro = E("independente", c("independente", "arma"), label = "Erro"),
                       ar = trama::tr_when(I(1L, min = 0L, max = 3L, label = "Ordem AR do erro"), erro = "arma"),
                       ma = trama::tr_when(I(0L, min = 0L, max = 3L, label = "Ordem MA do erro"), erro = "arma")),
         help = .tr_series_ajuda(r"---[
 Ajusta um modelo EXPLÍCITO para os componentes da série:
 
-`valor = tendência(t) + sazonal(estação) + erro`
+`valor = tendência(t) + sazonal(período) + erro`
 
 A tendência é um polinômio no tempo (`t`, `t²`, `t³`), e a sazonalidade, uma
 variável indicadora por período — onze dummies numa série mensal. É a
@@ -828,6 +834,29 @@ Muda como os coeficientes são lidos, e **não** a decomposição:
 Em ambos, o componente sazonal devolvido é centrado em zero e a tendência
 absorve a média — senão a mesma série daria duas decomposições diferentes por
 causa de uma escolha de leitura.
+
+### Tirar termos sazonais do modelo
+
+Nem todo mês precisa de termo próprio. Os termos sazonais que saem viram UM
+nível de referência, **demais**: o efeito deles é o mesmo, e cada termo
+sazonal que fica é a diferença para esse grupo. Por isso, com termos fora, o
+contraste passa a ser o de categoria base (com soma zero, "tirar um mês" não
+quer dizer "esse mês não tem efeito"), e o componente sazonal continua
+centrado em zero.
+
+- **Excluir termos sazonais** — à mão, por nome (`fev, mar`) ou número (`2, 3`).
+- **Remover termos sazonais não significativos** — eliminação para trás: parte
+  dos desvios de cada mês em relação à média do ano, tira o de maior p-valor
+  se ele passar do **α da remoção**, reajusta contra o grupo **demais** e
+  repete até todo termo que sobrou ter p ≤ α. Se nenhum sobrar, o modelo
+  fica sem sazonalidade. O card diz quais saíram.
+
+Os p-valores do modelo final vêm do mesmo dado que escolheu os termos, e por
+isso saem **otimistas**: não leia o p de um mês que sobreviveu como a prova de
+que ele tem efeito. Para o que o bloco quer — um componente sazonal enxuto —
+isso não é problema, e é o que a prática recomenda: o modelo se valida depois,
+pelo resto, que tem de ser ruído branco (`series/component` (`resto`) →
+`series/ljung_box`), e não pelos p-valores de quem escolheu os termos.
 
 ### Erro autocorrelacionado
 
@@ -860,7 +889,7 @@ em vermelho.
 A entrada opcional **regressor** recebe outra série — uma covariável, como a
 renda ou a temperatura — que entra no mesmo ajuste:
 
-`valor = tendência(t) + sazonal(estação) + β·regressor + erro`
+`valor = tendência(t) + sazonal(período) + β·regressor + erro`
 
 O coeficiente `regressor` sai na tabela com erro-padrão e p-valor: é o efeito
 da covariável descontadas tendência e sazonalidade, e os F de tendência e de
@@ -894,6 +923,10 @@ logo depois do último ponto. Para prever, `series/arima` ou `series/ets`.
 - **Grau da tendência** — 0 (sem tendência) a 3.
 - **Sazonalidade** — inclui as dummies de período.
 - **Contraste** — `soma_zero` ou `categoria_base`.
+- **Excluir termos sazonais** — nomes ou números separados por vírgula; saem para o
+  grupo **demais**.
+- **Remover termos sazonais não significativos** e **α da remoção** —
+  eliminação para trás dos termos com p > α (padrão 0.05).
 - **regressor** (entrada, opcional) — uma série usada como covariável.
 - **Erro** — `independente` (MQO, padrão) ou `arma` (GLS com erro ARMA).
 - **Ordem AR do erro** e **Ordem MA do erro** — p e q do erro ARMA, de 0 a 3
