@@ -24,6 +24,7 @@ tr_doc_json <- function(doc) {
   out$ui$views <- .tr_empty_obj(out$ui$views)
   out$ui$frames <- .tr_empty_obj(out$ui$frames)
   out$ui$modes <- .tr_empty_obj(out$ui$modes)
+  out$ui$soltos <- .tr_empty_obj(out$ui$soltos)
   out$ui$notes <- .tr_empty_obj(out$ui$notes)
   out$edges <- unname(out$edges)
   jsonlite::toJSON(out, auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)
@@ -90,6 +91,7 @@ tr_doc_parse <- function(txt) {
   }
   doc$ui$folds <- NULL
   doc$ui$modes <- .tr_empty_obj(modes)
+  doc$ui$soltos <- .tr_empty_obj(lapply(doc$ui$soltos %||% list(), .tr_resimplify))
   doc$ui$notes <- .tr_empty_obj(doc$ui$notes %||% list())
   structure(doc, class = "tr_doc")
 }

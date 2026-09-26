@@ -12,7 +12,8 @@
       inputs = list(modelo = Fm, dados = trama::tr_port(T, required = FALSE)), outputs = list(out = T),
       params = list(validacao = E("resubstituição", .TR_MODELS_VALIDACOES, label = "Validação (sem dados)"),
                     intervalo = E("nenhum", .TR_MODELS_PREVER_INTERVALOS, label = "Intervalo"),
-                    confianca = N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+                    confianca = trama::tr_when(N(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"),
+                                                intervalo = c("confianca", "predicao"))),
       help = .tr_models_ajuda(r"---[
 Aplica um modelo já ajustado (`models/fit`) a uma tabela NOVA, e devolve as
 mesmas colunas de `dados` com a previsão anexada. Sem `dados` ligada, prevê as

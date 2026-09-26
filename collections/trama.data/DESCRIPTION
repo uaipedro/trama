@@ -1,6 +1,6 @@
 Package: trama.data
 Title: Data Wrangling Collection for trama
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -14,7 +14,7 @@ Description: Nodes for loading, reshaping and summarising tabular data in a
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-    trama,
+    trama (>= 0.2.0),
     janitor,
     dplyr (>= 1.1.0),
     readr,

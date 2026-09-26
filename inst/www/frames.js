@@ -86,6 +86,20 @@ export function organizar(nodes, edges) {
     .sort((a, b) => (a.data?.order ?? 0) - (b.data?.order ?? 0));
   const cards = nodes.filter((n) => n.type === "ndNode");
   const rect = Object.fromEntries(nodes.map((n) => [n.id, rectOf(n)]));
+  // Preview solto (`trSolto`, editor.js) é rígido em relação ao card dono:
+  // o layout nunca mexe na posição de um em relação ao outro. O card ocupa,
+  // pra efeito de espaço, o retângulo que envolve os dois (`rect`), e o
+  // resultado volta pro canto do card somando o deslocamento `anexo`. Quem é
+  // de qual frame continua decidido pelo card sozinho (`donos`/`unidades`
+  // leem `nodes`): imagem pendurada pra fora do frame não tira o card dele.
+  const anexo = {};
+  nodes.filter((n) => n.type === "trSolto" && rect[n.data?.alvo]).forEach((s) => {
+    const c = rect[s.data.alvo], r = rect[s.id];
+    const x = Math.min(c.x, r.x), y = Math.min(c.y, r.y);
+    const u = { x, y, w: Math.max(c.x + c.w, r.x + r.w) - x, h: Math.max(c.y + c.h, r.y + r.h) - y };
+    anexo[s.data.alvo] = { dx: c.x - x, dy: c.y - y, sid: s.id, sx: r.x - c.x, sy: r.y - c.y };
+    rect[s.data.alvo] = u;
+  });
   const par = (e) => [e.source, e.target];
 
   // Por dentro: tamanho final do frame e posição de cada card relativa ao
@@ -196,6 +210,15 @@ export function organizar(nodes, edges) {
       out.frames[id] = { x: r.x + dx, y: r.y + dy, w: r.w, h: r.h };
     });
     u.membros.cards.forEach((id) => { out.cards[id] = { x: fixo[id].x + dx, y: fixo[id].y + dy }; });
+  });
+  // Do canto do envelope pro canto do card, e a imagem no mesmo lugar em
+  // relação a ele que tinha antes.
+  out.soltos = {};
+  Object.entries(anexo).forEach(([id, a]) => {
+    const p = out.cards[id];
+    if (!p) return;
+    out.cards[id] = { x: p.x + a.dx, y: p.y + a.dy };
+    out.soltos[a.sid] = { x: out.cards[id].x + a.sx, y: out.cards[id].y + a.sy };
   });
   out.notes = notasComFrame(nodes, rect, out.frames);
   return out;

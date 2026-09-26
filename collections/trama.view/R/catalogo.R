@@ -638,7 +638,8 @@ mesma unidade aparece em mais de um grupo.", .TR_VIEW_AJUDA_APARENCIA))
         y = P("cols", "", label = "Medida", example = "valor"),
         cor = P("cols", "", label = "Separar por", example = "produto"),
         barra = trama::tr_param_enum("IC", .TR_VIEW_BARRAS_ERRO, label = "Barra"),
-        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
+        confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
+                                    barra = "IC"),
         painel = PAINEL),
       help = paste0("## Descrição
 

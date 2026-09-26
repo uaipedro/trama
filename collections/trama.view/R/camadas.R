@@ -502,8 +502,8 @@ tr_annotate <- function(grafico, x = "", y = "", texto = "", seta_x = "", seta_y
       list(
         tipo = trama::tr_param_enum("horizontal", .TR_VIEW_REFERENCIAS, label = "Tipo"),
         valor = P("text", "0", label = "Valor", example = "10; 20"),
-        inclinacao = trama::tr_param_num(1, label = "Inclinação"),
-        ate = P("text", "", label = "Faixa até", example = "25"),
+        inclinacao = trama::tr_when(trama::tr_param_num(1, label = "Inclinação"), tipo = "diagonal"),
+        ate = trama::tr_when(P("text", "", label = "Faixa até", example = "25"), tipo = c("horizontal", "vertical")),
         texto = P("text", "", label = "Texto", example = "limite legal"),
         estilo = trama::tr_param_enum("tracejada", .TR_VIEW_ESTILOS_LINHA, label = "Estilo")),
       "## Descrição
@@ -557,10 +557,12 @@ um ponto; `view/combine` depois das camadas."),
       list(
         metodo = trama::tr_param_enum("linear", .TR_VIEW_AJUSTES, label = "Método"),
         intervalo = trama::tr_param_bool(TRUE, label = "Intervalo"),
-        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
-        equacao = trama::tr_param_bool(TRUE, label = "Equação e R²"),
+        confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
+                                    intervalo = TRUE),
+        equacao = trama::tr_when(trama::tr_param_bool(TRUE, label = "Equação e R²"), metodo = c("linear", "quadrática")),
         por_cor = trama::tr_param_bool(TRUE, label = "Uma por cor"),
-        posicao_equacao = trama::tr_param_enum("automática", .TR_VIEW_CANTOS, label = "Posição da equação")),
+        posicao_equacao = trama::tr_when(trama::tr_param_enum("automática", .TR_VIEW_CANTOS, label = "Posição da equação"),
+                                          metodo = c("linear", "quadrática"), equacao = TRUE)),
       "## Descrição
 
 Acrescenta a um Disperso (ou a uma Linha) a reta ou curva ajustada aos

@@ -10,10 +10,10 @@
     parametros = P("text", "", label = "Params da análise", example = "fatores = irrigacao, variedade; bloco = bloco"),
     termo = P("text", "", label = "Termo testado", example = "irrigacao"),
     conjunto = E("nenhum", .TR_EXP_AV_CONJUNTOS, label = "Contraste: conjunto"),
-    contraste = P("text", "", label = "Contraste: linha", example = "linear"),
-    contrastes = P("expr", "", label = "Contrastes (digitados)", example = "A vs B: A - B"),
-    controle = P("text", "", label = "Controle", example = "testemunha"),
-    doses = P("text", "", label = "Doses (valores dos níveis)", example = "0 50 100 150"))
+    contraste = trama::tr_when(P("text", "", label = "Contraste: linha", example = "linear"), conjunto = c("polinomiais", "helmert", "controle", "digitados")),
+    contrastes = trama::tr_when(P("expr", "", label = "Contrastes (digitados)", example = "A vs B: A - B"), conjunto = "digitados"),
+    controle = trama::tr_when(P("text", "", label = "Controle", example = "testemunha"), conjunto = "controle"),
+    doses = trama::tr_when(P("text", "", label = "Doses (valores dos níveis)", example = "0 50 100 150"), conjunto = "polinomiais"))
   list(
     trama::tr_node("experiments/power", version = 2L, fn = tr_experiments_power, label = "Poder",
       category = "exp_avaliar", icon = trama::tr_icon("gauge"), stochastic = TRUE,

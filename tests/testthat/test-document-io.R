@@ -64,6 +64,7 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
   expect_match(as.character(tr_doc_json(back)), '"sizes"\\s*:\\s*\\{\\}')
   expect_identical(back$ui$frames, stats::setNames(list(), character(0)))
   expect_identical(back$ui$modes, stats::setNames(list(), character(0)))
+  expect_identical(back$ui$soltos, stats::setNames(list(), character(0)))
   expect_identical(back$ui$notes, stats::setNames(list(), character(0)))
 })
 
@@ -72,7 +73,7 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
 # três linhas de `tr_doc_json` passa despercebido pela suíte inteira.
 test_that("documento novo serializa os mapas de ui como objeto", {
   j <- as.character(tr_doc_json(tr_doc()))
-  for (k in c("positions", "sizes", "views", "frames", "modes", "notes")) {
+  for (k in c("positions", "sizes", "views", "frames", "modes", "soltos", "notes")) {
     expect_match(j, sprintf('"%s"\\s*:\\s*\\{\\}', k))
   }
 })
@@ -257,4 +258,15 @@ test_that("value com lista nomeada deriva params; presente vence; erro mantém v
   reg <- migr_registry(list(params = list("t/add" = list(k = quebra))))
   doc <- tr_doc_parse('{"format":1,"nodes":{"s":{"type":"t/add","params":{"k":"95%"}}},"edges":[]}')
   expect_equal(tr_doc_migrate(doc, reg)$nodes$s$params, list(k = "95%"))
+})
+
+test_that("modo solto e a caixa do preview sobrevivem à ida e volta pelo JSON", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "solto"), m$reg)
+  d <- tr_doc_apply(d, list(op = "set_solto", node = "a", x = 10, y = -20, w = 400, h = 300), m$reg)
+  j <- as.character(tr_doc_json(d))
+  expect_match(j, '"soltos"\\s*:\\s*\\{\\s*"a"\\s*:\\s*\\[')
+  back <- tr_doc_parse(j)
+  expect_identical(back$ui$modes$a, "solto")
+  expect_equal(back$ui$soltos$a, c(10, -20, 400, 300))
 })

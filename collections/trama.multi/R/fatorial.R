@@ -281,7 +281,8 @@ tr_multi_plot_loadings <- function(fa, corte = 0.3, ordenar = TRUE, aspecto = "4
         fatores = trama::tr_param_int(2L, min = 1, label = "Fatores"),
         metodo = trama::tr_param_enum("ml", .TR_MULTI_METODOS_AF, label = "Método"),
         rotacao = trama::tr_param_enum("varimax", .TR_MULTI_ROTACOES, label = "Rotação"),
-        normalizar = trama::tr_param_bool(TRUE, label = "Normalização de Kaiser"),
+        normalizar = trama::tr_when(trama::tr_param_bool(TRUE, label = "Normalização de Kaiser"),
+          rotacao = setdiff(.TR_MULTI_ROTACOES, "nenhuma")),
         escores = trama::tr_param_enum("regressão", .TR_MULTI_ESCORES, label = "Escores")),
       help = .tr_multi_ajuda(r"---[
 Análise fatorial exploratória: supõe que as correlações entre muitas variáveis

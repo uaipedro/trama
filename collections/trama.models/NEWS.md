@@ -1,3 +1,7 @@
+# trama.models 0.3.1
+
+* Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.
+
 # trama.models 0.3.0
 
 Versão sobe de 0.1.0 para 0.3.0: a 0.2.0 era a que a main planejava pelo

@@ -16,6 +16,7 @@ tr_errors <- function() {
     tr_error_bad_collection = "objeto não é tr_collection",
     tr_error_bad_docs = "tr_ref() malformada, ou 'pressupostos'/'referencias' de tr_node() com item que não veio de tr_pressuposto()/tr_ref()",
     tr_error_bad_format = "documento ou template em formato/versão não suportado",
+    tr_error_bad_when = "'when' de tr_when() malformado, ou citando param que não é do mesmo nó",
     tr_error_bad_help = "'help' de tr_node() não é uma string única",
     tr_error_bad_icon = "tr_icon() sem 'name' nem 'svg', com os dois, ou com valor que não é string única",
     tr_error_bad_id = "id de tipo, nó ou coleção fora do formato 'colecao/nome'",

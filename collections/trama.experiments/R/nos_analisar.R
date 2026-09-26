@@ -26,10 +26,11 @@
       params = list(
         fator = P("cols", "", label = "Fator", example = "nitrogenio"),
         conjunto = E("polinomiais", .TR_EXP_AN_CONJUNTOS, label = "Conjunto"),
-        contrastes = P("expr", "", label = "Contrastes (digitados)",
-                       example = "ctrl vs trat: 2 -1 -1; trt1 vs trt2: trt1 - trt2"),
-        controle = P("text", "", label = "Controle", example = "ctrl"),
-        doses = P("text", "", label = "Doses (valores dos níveis)", example = "0 30 60 120"),
+        contrastes = trama::tr_when(P("expr", "", label = "Contrastes (digitados)",
+                       example = "ctrl vs trat: 2 -1 -1; trt1 vs trt2: trt1 - trt2"), conjunto = "digitados"),
+        controle = trama::tr_when(P("text", "", label = "Controle", example = "ctrl"), conjunto = "controle"),
+        doses = trama::tr_when(P("text", "", label = "Doses (valores dos níveis)", example = "0 30 60 120"),
+                               conjunto = "polinomiais"),
         dentro = P("cols", "", label = "Dentro de (desdobrar)", example = "variedade")),
       help = .tr_exp_an_ajuda_contrasts()),
 

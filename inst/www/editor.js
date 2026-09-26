@@ -13,7 +13,7 @@ import {
   ReactFlow, Background, BackgroundVariant, MiniMap, Controls,
   Handle, Position, applyNodeChanges, applyEdgeChanges, SelectionMode,
   useReactFlow, ReactFlowProvider,
-  BaseEdge, getSmoothStepPath, useInternalNode, EdgeLabelRenderer,
+  BaseEdge, getSmoothStepPath, getBezierPath, useInternalNode, EdgeLabelRenderer, NodeResizer,
 } from "@xyflow/react";
 import { h, getRenderer, getViews, Segmented, setThemes } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
@@ -23,9 +23,10 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
-import { MODOS, modoDe, mostraPreview, mostraParams, precisaPainel, nomeDaTecla, dica,
+import { cosmetica } from "./ops.js";
+import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
-import { ModoPicker, ParamsList, ParamsDock, Vista, AtalhosPanel } from "./modos-ui.js";
+import { ModoPicker, ModoToggle, ParamsRodape, ParamsModal, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
@@ -167,8 +168,23 @@ function docToFlow(doc, catalog) {
       data: { kind: n.kind, text: n.text, src: n.src, fit: n.fit,
               escala: n.escala, fundo: n.fundo, color: n.color },
     }));
-  return { nodes: [...frames, ...notes, ...(missing ? autoLayout(nodes, edges) : nodes)],
+  const cards = missing ? autoLayout(nodes, edges) : nodes;
+  const soltos = cards.filter((n) => n.data.modo === "solto")
+    .map((n) => noSolto(n, doc.ui?.soltos?.[n.id]));
+  return { nodes: [...frames, ...notes, ...cards, ...soltos],
            edges, needsLayout: missing > 0 };
+}
+
+// Nó do preview solto de um card. Sem geometria gravada (acabou de soltar,
+// ou documento escrito à mão), nasce à direita do card, no tamanho que o
+// preview tinha nele. `base` é esse tamanho de desenho, que dá a proporção.
+const SOLTO_PREFIXO = "solto:";
+function noSolto(card, geo) {
+  const [cw, ch] = card.data.size || [];
+  const base = [cw || MIN_W, ch || MIN_H];
+  const [x, y, w, hh] = geo || [card.position.x + base[0] + 60, card.position.y, base[0], base[1]];
+  return { id: SOLTO_PREFIXO + card.id, type: "trSolto", position: { x, y }, width: w, height: hh,
+           data: { alvo: card.id, base } };
 }
 
 const edgeId = (e) =>
@@ -459,6 +475,71 @@ function StreamControls({ region, ctl, onCmd, progress }) {
   ]);
 }
 
+// O preview sabe o espaço que pede: quando um resultado NOVO chega e o
+// conteúdo rola além do que a faixa mostra (tabela larga, gráfico alto), o
+// card cresce até caber, com teto (`tamanhoPedido`, modos.js). Vira uma op
+// `resize` como a da alça — altura DECLARADA, não derivada do conteúdo a cada
+// quadro: mede uma vez por resultado (a chave do handle), então não há laço
+// de remedição. Só cresce; encolher de volta é gesto do usuário.
+function useAutoTamanho(pvRef, id, data, mini) {
+  const visto = useRef(null);
+  const chave = data.handle?.preview ? `${data.handle.key ?? JSON.stringify(data.handle.preview)}|${data.view ?? ""}` : null;
+  useEffect(() => {
+    if (mini || !chave || visto.current === chave) return;
+    if (data.state !== "done" && data.state !== "cached") return;
+    visto.current = chave;
+    // Dois quadros: o renderer (tabela, imagem) pode montar e só então ter
+    // tamanho; imagem ainda carregando mede 0 e não pede nada.
+    let raf2;
+    const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => {
+      const wrap = pvRef.current, card = wrap?.closest(".tr-node");
+      const pv = wrap?.querySelector(".tr-preview");
+      if (!pv || !card) return;
+      const t = tamanhoPedido({ cardW: card.offsetWidth, prevH: pv.clientHeight,
+                                clientW: pv.clientWidth, clientH: pv.clientHeight,
+                                scrollW: pv.scrollWidth, scrollH: pv.scrollHeight });
+      if (t) data.onResize(id, t.w, t.h);
+    }); });
+    return () => { cancelAnimationFrame(raf1); if (raf2) cancelAnimationFrame(raf2); };
+  }, [chave, data.state, mini]);
+}
+
+// Preview SOLTO: o preview de um card desplugado dele, flutuando no canvas
+// como uma imagem. O conteúdo é desenhado no tamanho que tinha no card (a
+// base, `data.base`) e escalado pra caber na caixa mantendo a proporção —
+// redimensionar amplia a imagem em vez de abrir espaço vazio. A roda dá zoom
+// no conteúdo (e arrastar, com zoom, anda por ele); duplo clique volta ao
+// tamanho da caixa. Nó próprio (`trSolto`, id `solto:<card>`), com posição e
+// tamanho em `ui.soltos`.
+function SoltoNode({ id, data, selected }) {
+  const [bw, bh] = data.base;
+  const escala = Math.min((data.w || bw) / bw, (data.h || bh) / bh);
+  const ini = useRef(null);
+  return h("div", { className: "tr-solto" + (selected ? " tr-solto-sel" : "") }, [
+    h("div", { key: "c", className: "tr-solto-corpo" },
+      h("div", { className: "tr-solto-base",
+                 style: { width: bw, height: bh, transform: `scale(${escala})` } },
+        h(Preview, { state: data.state, handle: data.handle, error: data.error, progress: data.progress,
+                     partial: data.partial, view: data.view, label: data.label }))),
+    h("div", { key: "ac", className: "tr-pv-acoes tr-solto-acoes nodrag" }, [
+      h("span", { key: "t", className: "tr-solto-titulo" }, data.label),
+      h("button", { key: "p", type: "button", title: "prender de volta no card",
+                    onClick: (e) => { e.stopPropagation(); data.onPrender(data.alvo); } },
+        h(Icon, { icon: { kind: "set", value: "pin-off" }, className: "tr-node-icon" })),
+      h("button", { key: "v", type: "button", title: dica("vista"),
+                    onClick: (e) => { e.stopPropagation(); data.onVista(data.alvo); } },
+        h(Icon, { icon: { kind: "set", value: "maximize-2" }, className: "tr-node-icon" })),
+    ]),
+    h(Handle, { key: "hf", type: "target", position: Position.Left, id: "__fio", isConnectable: false,
+                style: FIO_INVISIVEL }),
+    h(NodeResizer, { key: "rz", isVisible: !!selected, keepAspectRatio: true, minWidth: 80, minHeight: 50,
+                     onResizeStart: (_e, p) => { ini.current = `${p.width}x${p.height}`; },
+                     onResizeEnd: (_e, p) => {
+                       if (`${p.width}x${p.height}` !== ini.current) data.onSoltoRect(data.alvo, p);
+                     } }),
+  ]);
+}
+
 function NdNode({ id, data, selected }) {
   const spec = data.spec;
   if (!spec) {
@@ -468,8 +549,8 @@ function NdNode({ id, data, selected }) {
   }
   const cat = data.categories?.[spec.category];
   const modo = modoDe(data);
-  const mini = modo === "mini";
-  const semPreview = !mostraPreview(modo), semParams = !mostraParams(modo);
+  const mini = ehMini(modo), solto = modo === "solto";
+  const semPreview = mini;
   const falhou = data.state === "failed" || data.state === "invalid";
   const frac = data.progress?.fraction;
   // Contorno sutil pra todo card que é MEMBRO de uma região de fluxo —
@@ -497,6 +578,8 @@ function NdNode({ id, data, selected }) {
   // cheios. `--tr-w` dimensiona o card, `--tr-h` só a faixa de preview.
   // Ausente, cada variável some do `style` e o padrão do CSS vale.
   const [w, hgt] = data.size || [];
+  const pvRef = useRef(null);
+  useAutoTamanho(pvRef, id, data, mini);
   return h("div", { className: cls, style: {
     "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined,
     // O mini pinta só o bloco do ícone com a cor da categoria; o resto é a
@@ -551,7 +634,15 @@ function NdNode({ id, data, selected }) {
       // Sempre visível, na ponta direita — onde ficavam os botões de fold. O
       // `?` de ajuda saiu do cabeçalho junto com eles: a ajuda do bloco agora
       // é o H (Fase 2.3).
-      h(ModoPicker, { key: "md", value: modo, onChange: (m) => data.onModo(id, m) }),
+      // Solto: o preview está fora, flutuando; o ícone lembra disso e o
+      // clique o traz de volta pro card.
+      solto
+        ? h("button", { key: "sl", className: "tr-fold-btn tr-solto-marca nodrag",
+                        title: "preview solto — prender de volta no card",
+                        onClick: (e) => { e.stopPropagation(); data.onPrender(id); } },
+            h(Icon, { icon: { kind: "set", value: "pin-off" }, className: "tr-node-icon" }))
+        : null,
+      h(ModoToggle, { key: "md", mini, onChange: (m) => data.onModo(id, m) }),
     ]),
     // Visível enquanto a região RODA (dobrado ou não — esconder com o preview
     // recolhido tiraria justamente o botão de pausa de quem recolheu o card
@@ -570,9 +661,21 @@ function NdNode({ id, data, selected }) {
                             ctl: (data.streamCtl || {})[data.streamSource.id],
                             onCmd: data.onStreamCmd, progress: data.progress })
       : null,
-    semPreview ? null : h(Preview, { key: "pv", state: data.state, handle: data.handle, error: data.error,
-                 progress: data.progress, partial: data.partial, view: cur?.id,
-                 label: data.label || spec.label }),
+    semPreview ? null : h("div", { key: "pv", ref: pvRef, className: "tr-pv-wrap" }, [
+      h(Preview, { key: "p", state: data.state, handle: data.handle, error: data.error,
+                   progress: data.progress, partial: data.partial, view: cur?.id,
+                   label: data.label || spec.label }),
+      // Ações do preview, só no hover: soltar (vira uma imagem própria no
+      // canvas e o card encolhe pra miniatura) e ampliar (V).
+      data.handle?.preview ? h("div", { key: "ac", className: "tr-pv-acoes nodrag" }, [
+        h("button", { key: "s", type: "button", title: "soltar o preview do card",
+                      onClick: (e) => { e.stopPropagation(); data.onSoltar(id); } },
+          h(Icon, { icon: { kind: "set", value: "pin" }, className: "tr-node-icon" })),
+        h("button", { key: "v", type: "button", title: dica("vista"),
+                      onClick: (e) => { e.stopPropagation(); data.onVista(id); } },
+          h(Icon, { icon: { kind: "set", value: "maximize-2" }, className: "tr-node-icon" })),
+      ]) : null,
+    ]),
     semPreview ? null : h("div", { key: "tabs", className: "tr-tabs" },
       views.length === 0
         ? h("span", { key: "-", className: "tr-tab-idle" }, "—")
@@ -584,14 +687,6 @@ function NdNode({ id, data, selected }) {
               title: v.label,
               onClick: (e) => { e.stopPropagation(); data.onView(id, v.id); },
             }, v.label))),
-    // Sem parâmetros no card (modo mini ou preview): não há mais pílula pra
-    // reabri-los ali — quem escondeu os parâmetros edita pelo painel à
-    // esquerda (Fase 3). Aqui só resta decidir se desenha a lista ou nada.
-    // O corpo da lista (o porquê do `div` em vez de `label`, o Fragment com
-    // `key`, o fallback de `input` sem widget) mora em `ParamsList`
-    // (modos-ui.js), reaproveitado aqui e no `ParamsDock`.
-    semParams ? null
-      : h(ParamsList, { key: "pm", id, spec, params: data.params, onParam: data.onParam }),
     h("div", { key: "po", className: "tr-ports" }, [
       h("div", { key: "in", className: "tr-in" }, (spec.inputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port" }, [
@@ -617,13 +712,18 @@ function NdNode({ id, data, selected }) {
             } }, "+"),
         ]))),
     ]),
+    solto ? h(Handle, { key: "hf", type: "source", position: Position.Right, id: "__fio",
+                        isConnectable: false, style: FIO_INVISIVEL }) : null,
+    // Parâmetros embaixo de tudo, dobráveis (`ParamsRodape`, modos-ui.js).
+    mini ? null : h(ParamsRodape, { key: "pm", id, spec, params: data.params, onParam: data.onParam,
+                                    dobrado: data.dobrado, onDobrar: data.onDobrar,
+                                    onTodos: data.onTodos }),
     // O mini tem largura automática, então fica sem alça.
-    mini ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize,
-                            hGuardada: semPreview ? (hgt || MIN_H) : undefined }),
+    mini ? null : h(Grip, { key: "gr", nodeId: id, onResize: data.onResize }),
   ]);
 }
 
-const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode };
+const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode };
 
 // As portas (`Handle`) ficam sempre declaradas Left/Right — o PONTO e o LADO
 // de entrada/saída da aresta nunca mudam aqui, só a rota até lá. O problema
@@ -788,7 +888,40 @@ function TrAresta({ id, source, target, sourceX, sourceY, sourcePosition,
   ]);
 }
 
-const edgeTypes = { trAresta: TrAresta };
+// Fio entre um card e o preview que se soltou dele: tracejado, sem seta, do
+// meio do lado de um que dá pro outro, pra
+// continuar dizendo "isto é daquele card" onde quer que os dois estejam. Não
+// é aresta do documento: nasce de `ui.soltos` e não se seleciona nem apaga.
+// Lado do retângulo por onde o fio sai: o do eixo em que o outro está mais
+// longe, pra a curva sair "de frente" pra ele.
+function ladoPara(r, alvo) {
+  const cx = (r.x1 + r.x2) / 2, cy = (r.y1 + r.y2) / 2;
+  const dx = (alvo.x - cx) / (r.x2 - r.x1 || 1), dy = (alvo.y - cy) / (r.y2 - r.y1 || 1);
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0 ? { pos: Position.Right, x: r.x2, y: cy } : { pos: Position.Left, x: r.x1, y: cy };
+  }
+  return dy >= 0 ? { pos: Position.Bottom, x: cx, y: r.y2 } : { pos: Position.Top, x: cx, y: r.y1 };
+}
+// Curva bezier, e não o roteamento das arestas: o fio não desvia de nada, só
+// diz de quem é a imagem.
+function TrFio({ source, target }) {
+  const a = useInternalNode(source), b = useInternalNode(target);
+  if (!a || !b) return null;
+  const ra = retanguloDoNo(a), rb = retanguloDoNo(b);
+  const ca = { x: (ra.x1 + ra.x2) / 2, y: (ra.y1 + ra.y2) / 2 };
+  const cb = { x: (rb.x1 + rb.x2) / 2, y: (rb.y1 + rb.y2) / 2 };
+  const p = ladoPara(ra, cb), q = ladoPara(rb, ca);
+  const [d] = getBezierPath({ sourceX: p.x, sourceY: p.y, sourcePosition: p.pos,
+                              targetX: q.x, targetY: q.y, targetPosition: q.pos });
+  return h("g", { className: "tr-fio" }, [
+    h("path", { key: "l", d }),
+    h("circle", { key: "a", cx: p.x, cy: p.y, r: 3.5 }),
+    h("circle", { key: "b", cx: q.x, cy: q.y, r: 3.5 }),
+  ]);
+}
+const FIO_INVISIVEL = { opacity: 0, pointerEvents: "none", width: 1, height: 1, minWidth: 0, minHeight: 0, border: 0 };
+
+const edgeTypes = { trAresta: TrAresta, trFio: TrFio };
 
 function fmtDur(s) {
   if (s < 1) return `${Math.round(s * 1000)}ms`;
@@ -1448,14 +1581,6 @@ const slugArquivo = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g
 
 // --- App -------------------------------------------------------------------
 
-// Espelha `.tr_presentation_ops` (R/document.R): op cosmética não recomputa
-// nada, então não pode pintar o canvas inteiro de "na fila". Batch é cosmético
-// só se TODA op dentro dele for, a mesma regra de `tr_op_semantic()`.
-const COSMETICAS = new Set(["move", "rename", "resize", "set_view",
-  "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode"]);
-const cosmetica = (op) =>
-  op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);
-
 // Ícones da toolbar: traço de 1.75 em grade de 24, herdando `currentColor`
 // pra seguir o tema e o estado ligado sem CSS por ícone.
 const ICONES = {
@@ -1587,15 +1712,20 @@ function App() {
     try { localStorage.setItem("trama.modoNovo", modoNovo); } catch (_) {}
   }, [modoNovo]);
   const modoNovoRef = useRef(modoNovo); modoNovoRef.current = modoNovo;
-  // Painel de parâmetros recolhido ou não: preferência de como trabalhar,
-  // global a todos os cards e guardada no navegador — recolher e sair
-  // clicando em outros cards não pode reabrir o painel a cada clique.
-  const [painelRecolhido, setPainelRecolhido] = useState(() => {
-    try { return localStorage.getItem("trama.painelParams") === "recolhido"; } catch (_) { return false; }
+  // Parâmetros dobrados por card: preferência de como trabalhar, guardada no
+  // navegador e fora do documento (como o modo da paleta). Sem entrada, vale
+  // o que o documento antigo dizia (`preview` escondia os parâmetros).
+  const [dobras, setDobras] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("trama.paramsDobrados") || "{}") || {}; }
+    catch (_) { return {}; }
   });
   useEffect(() => {
-    try { localStorage.setItem("trama.painelParams", painelRecolhido ? "recolhido" : "aberto"); } catch (_) {}
-  }, [painelRecolhido]);
+    try { localStorage.setItem("trama.paramsDobrados", JSON.stringify(dobras)); } catch (_) {}
+  }, [dobras]);
+  const onDobrar = useCallback((nodeId, v) => setDobras((d) => ({ ...d, [nodeId]: v })), []);
+  // Card com o formulário inteiro aberto no meio da tela (engrenagem ou P).
+  const [paramsDe, setParamsDe] = useState(null);
+  const onTodos = useCallback((nodeId) => setParamsDe(nodeId), []);
   // Prancheta: popover aberto e o último pedido feito, como preferência do
   // navegador (mesma doutrina da proporção acima). A proporção NÃO é guardada
   // aqui: é a mesma `aspectoNovo` da toolbar, pra as duas nunca discordarem.
@@ -1865,9 +1995,37 @@ function App() {
   // documento, então o ref segura o modo até o próximo documento chegar.
   const onModo = useCallback((nodeId, modo) => {
     modosRef.current[nodeId] = modo;
+    // Sair de `solto` leva junto o nó do preview flutuante. A geometria
+    // continua em `ui.soltos`, pra soltar de novo cair no mesmo lugar.
+    if (modo !== "solto") setNodes((ns) => ns.filter((n) => n.id !== SOLTO_PREFIXO + nodeId));
     bumpTick();
     pushOp({ op: "set_mode", node: nodeId, modo });
   }, [bumpTick]);
+  // Soltar: o card vira miniatura e o preview ganha um nó próprio ao lado.
+  // A geometria sai no MESMO batch do modo, pra o documento nunca ter um
+  // card solto sem caixa (e o desfazer voltar os dois de uma vez).
+  const onSoltar = useCallback((nodeId) => {
+    const card = nodesRef.current.find((n) => n.id === nodeId);
+    if (!card) return;
+    const c = { ...card, data: { ...card.data, size: sizesRef.current[nodeId] ?? card.data.size } };
+    const sn = noSolto(c, null);
+    modosRef.current[nodeId] = "solto";
+    setNodes((ns) => [...ns.filter((n) => n.id !== sn.id), sn]);
+    bumpTick();
+    pushOp({ op: "batch", ops: [
+      { op: "set_mode", node: nodeId, modo: "solto" },
+      { op: "set_solto", node: nodeId, x: Math.round(sn.position.x), y: Math.round(sn.position.y),
+        w: Math.round(sn.width), h: Math.round(sn.height) }] });
+  }, [bumpTick]);
+  const onPrender = useCallback((nodeId) => onModo(nodeId, "completo"), [onModo]);
+  const onSoltoRect = useCallback((nodeId, p) => {
+    const id = SOLTO_PREFIXO + nodeId;
+    setNodes((ns) => ns.map((n) => (n.id !== id ? n
+      : { ...n, position: { x: p.x, y: p.y }, width: p.width, height: p.height })));
+    pushOp({ op: "set_solto", node: nodeId, x: Math.round(p.x), y: Math.round(p.y),
+             w: Math.round(p.width), h: Math.round(p.height) });
+  }, []);
+  const onVista = useCallback((nodeId) => setVista(nodeId), []);
 
   // Comando vivo pra fonte de uma região: play, pause, um passo, tempo. Não é
   // op — não passa por `pushOp` nem carrega `base_rev` — é o precedente de
@@ -1932,7 +2090,23 @@ function App() {
   }, []);
   // Memoizado pela mesma razão: o array passado ao React Flow só pode mudar
   // quando algo de verdade mudou.
-  const decorated = useMemo(() => nodes.map((n) => {
+  // O nó solto mostra o preview do card dono: segunda passada, depois que o
+  // card já tem estado, vista e tamanho decorados. Card que não está mais
+  // solto (modo trocado localmente antes do eco) some da lista.
+  const comSoltos = (ns) => {
+    const cards = Object.fromEntries(ns.filter((n) => n.type === "ndNode").map((n) => [n.id, n]));
+    return ns.flatMap((n) => {
+      if (n.type !== "trSolto") return [n];
+      const c = cards[n.data.alvo];
+      if (!c || c.data.modo !== "solto") return [];
+      const d = c.data;
+      return [{ ...n, data: { ...n.data, state: d.state, handle: d.handle, error: d.error,
+                              progress: d.progress, partial: d.partial, view: d.view,
+                              label: d.label || d.spec?.label, w: n.width, h: n.height,
+                              onPrender, onVista, onSoltoRect } }];
+    });
+  };
+  const decorated = useMemo(() => comSoltos(nodes.map((n) => {
     if (n.type === "trFrame") {
       return { ...n, data: { ...n.data, editing: editFrame === n.id,
                               onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } };
@@ -1965,24 +2139,26 @@ function App() {
                       streamSource: regiaoFonte(n.id),
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
+                      dobrado: dobras[n.id] ?? paramsDobradosDe(n.data),
+                      onDobrar, onTodos, onSoltar, onPrender, onVista,
                       typeColors, categories, onParam, onView, onResize, onModo,
                       onReseed, onAbrirProximo: abrirProximo, temas } };
-  }),
+  })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
+     dobras, onDobrar, onTodos, onSoltar, onPrender, onVista, onSoltoRect,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
-  // Card do painel de parâmetros à esquerda (Fase 3): existe fora da
-  // apresentação, com exatamente UM card selecionado, que não mostra os
-  // próprios parâmetros (mini ou só preview — `precisaPainel`). Mais de um
-  // selecionado já tem a barra de seleção pra modo em massa; o painel é por
-  // card, então não tenta decidir qual dos vários mostrar.
-  const selDecorado = decorated.filter((n) => n.selected);
-  const noDoPainel = !present && selDecorado.length === 1 && selDecorado[0].type === "ndNode"
-    && selDecorado[0].data.spec && precisaPainel(modoDe(selDecorado[0].data))
-    ? selDecorado[0] : null;
+  const comFios = useMemo(() => {
+    const fios = decorated.filter((n) => n.type === "trSolto").map((n) => ({
+      id: "fio:" + n.data.alvo, type: "trFio", source: n.data.alvo, sourceHandle: "__fio",
+      target: n.id, targetHandle: "__fio", selectable: false, deletable: false, focusable: false,
+      zIndex: -1 }));
+    return fios.length ? [...edges, ...fios] : edges;
+  }, [edges, decorated]);
+  const noDosParams = paramsDe && decorated.find((n) => n.id === paramsDe && n.type === "ndNode");
 
   // Card aberto em `Vista` (V). Se ele for apagado enquanto aberto, some daqui
   // sozinho — `vista` fica com um id obsoleto, inofensivo (só reabriria se o
@@ -2051,6 +2227,10 @@ function App() {
 
       if (m.type === "op_applied") {
         revRef.current = m.rev;
+        // Rede de segurança do espelho de `ops.js`: o servidor diz se a op
+        // recomputa. Não recomputando, nenhuma run vai tirar os cards do "na
+        // fila" que `pushOp` pintou — volta ao repouso aqui.
+        if (m.semantic === false) liberarPendentes();
         return;
       }
 
@@ -2418,6 +2598,10 @@ function App() {
       const x = Math.round(c.position.x), y = Math.round(c.position.y);
       if (tipo[c.id] === "trFrame") return { op: "update_frame", frame: c.id, x, y };
       if (tipo[c.id] === "trNota") return { op: "update_note", note: c.id, x, y };
+      if (tipo[c.id] === "trSolto") {
+        const n = nodesRef.current.find((k) => k.id === c.id);
+        return { op: "set_solto", node: n.data.alvo, x, y, w: Math.round(n.width), h: Math.round(n.height) };
+      }
       return { op: "move", node: c.id, x, y };
     }));
   }, []);
@@ -2498,6 +2682,12 @@ function App() {
       if (!tipo[id]) return;
       if (tipo[id] === "trFrame") ops.push({ op: "remove_frame", frame: id });
       else if (tipo[id] === "trNota") ops.push({ op: "remove_note", note: id });
+      // Apagar o preview solto não apaga nada: ele volta pro card.
+      else if (tipo[id] === "trSolto") {
+        const alvoId = id.slice(SOLTO_PREFIXO.length);
+        if (!alvo.has(alvoId)) { modosRef.current[alvoId] = "completo";
+                                 ops.push({ op: "set_mode", node: alvoId, modo: "completo" }); }
+      }
       else ops.push({ op: "remove_node", node: id });
     });
     edgesRef.current.forEach((e) => {
@@ -2950,10 +3140,15 @@ function App() {
     // Organizar seguinte, já tinha outro dono. A mesma lista serve pro
     // "mudou?" abaixo, pra comparar com a régua do layout.
     const ns = comMedidas(nodesRef.current);
-    const { cards, frames, notes } = organizar(ns, edgesRef.current);
+    const { cards, frames, notes, soltos } = organizar(ns, edgesRef.current);
     const ops = [];
     ns.forEach((n) => {
-      const f = frames[n.id], c = cards[n.id], nt = notes[n.id];
+      const f = frames[n.id], c = cards[n.id], nt = notes[n.id], so = soltos[n.id];
+      if (so && (so.x !== n.position.x || so.y !== n.position.y)) {
+        ops.push({ op: "set_solto", node: n.data.alvo, x: Math.round(so.x), y: Math.round(so.y),
+                   w: Math.round(n.width), h: Math.round(n.height) });
+        return;
+      }
       if (f) {
         const r = rectOf(n);
         const op = { op: "update_frame", frame: n.id };
@@ -2968,7 +3163,8 @@ function App() {
       }
     });
     setNodes((atual) => atual.map((n) => {
-      const f = frames[n.id], c = cards[n.id], nt = notes[n.id];
+      const f = frames[n.id], c = cards[n.id], nt = notes[n.id], so = soltos[n.id];
+      if (so) return { ...n, position: so };
       if (f) return { ...n, position: { x: f.x, y: f.y }, width: f.w, height: f.h };
       if (c) return { ...n, position: c };
       return nt ? { ...n, position: nt } : n;
@@ -3160,13 +3356,32 @@ function App() {
   // W/A/S/D e a barra de seleção levam DIRETO a um modo — não é alternar: o
   // mesmo gesto repetido não desfaz. Órfão (sem spec) fica de fora: não tem
   // preview nem parâmetro pra mostrar ou esconder.
-  const definirModo = (modo) => {
-    const muda = alvos().filter((n) => n.data.spec
-      && (modosRef.current[n.id] ?? modoDe(n.data)) !== modo);
+  // "alternar" (S): se algum alvo está aberto, todos viram miniatura; senão
+  // todos abrem — o mesmo gesto repetido volta, e a seleção mista converge.
+  const definirModo = (pedido) => {
+    const com = alvos().filter((n) => n.data.spec);
+    const atual = (n) => modoDe({ modo: modosRef.current[n.id] ?? n.data.modo });
+    const modo = pedido !== "alternar" ? pedido
+      : com.some((n) => !ehMini(atual(n))) ? "mini" : "completo";
+    const muda = com.filter((n) => atual(n) !== modo);
     if (muda.length === 0) return;
     muda.forEach((n) => { modosRef.current[n.id] = modo; });
+    const sai = new Set(muda.map((n) => SOLTO_PREFIXO + n.id));
+    setNodes((ns) => ns.filter((n) => !sai.has(n.id)));
     bumpTick();
     pushMany(muda.map((n) => ({ op: "set_mode", node: n.id, modo })));
+  };
+  // W: dobra/desdobra os parâmetros dos alvos (todos pro mesmo lado).
+  const dobrarParams = () => {
+    const com = alvos().filter((n) => n.data.spec);
+    if (!com.length) return;
+    const dob = (n) => dobras[n.id] ?? paramsDobradosDe(n.data);
+    const v = !com.some(dob);
+    setDobras((d) => ({ ...d, ...Object.fromEntries(com.map((n) => [n.id, v])) }));
+  };
+  const abrirParams = () => {
+    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+    if (sel.length === 1) setParamsDe(sel[0].id);
   };
 
   // Um lugar só pra restaurar: atalho, barra de seleção e menu do card. Quem
@@ -3354,10 +3569,11 @@ function App() {
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
     "mod+g": frameDaSelecao,
     "mod+shift+c": () => copiarTemplate(),
-    "w": () => definirModo("preview"),
+    "w": dobrarParams,
     "a": () => definirModo("mini"),
-    "s": () => definirModo("params"),
+    "s": () => definirModo("alternar"),
     "d": () => definirModo("completo"),
+    "p": abrirParams,
     "shift+r": restaurarAlvos,
     "v": abrirVista,
     "h": ajuda,
@@ -3508,7 +3724,7 @@ function App() {
     // Restaurar age sobre a mesma seleção que Apagar — dois itens do mesmo
     // menu com alcances diferentes enganam. Frame fica de fora (ver
     // `restaurarTamanhos`).
-    const frame = new Set(nodes.filter((n) => n.type === "trFrame" || n.type === "trNota").map((n) => n.id));
+    const frame = new Set(nodes.filter((n) => n.type !== "ndNode").map((n) => n.id));
     const cards = alvo.filter((id) => !frame.has(id));
     // Agindo sobre a seleção, as ligações escolhidas vão junto — é o que a
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
@@ -3579,7 +3795,7 @@ function App() {
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
       h(MeioCtx.Provider, { key: "rf", value: present ? null : abrirMeio }, h(ReactFlow, {
-        nodes: decorated, edges, nodeTypes, edgeTypes,
+        nodes: decorated, edges: comFios, nodeTypes, edgeTypes,
         // Conectores em ângulo reto com cantos arredondados; a direção da
         // curva (TrAresta) é recalculada por par de cards a cada render,
         // pra nunca cortar por cima do card vizinho quando o arranjo foge
@@ -3686,9 +3902,12 @@ function App() {
                                             edges.filter((e) => e.selected).map((e) => e.id)) },
           "Apagar"),
       ]) : null,
-      noDoPainel
-        ? h(ParamsDock, { key: "dock", node: noDoPainel, recolhido: painelRecolhido,
-                          onRecolher: setPainelRecolhido, categories })
+      noDosParams
+        ? h(ParamsModal, { key: "pmodal", node: noDosParams, categories, onClose: () => setParamsDe(null),
+                           preview: h(Preview, { state: noDosParams.data.state, handle: noDosParams.data.handle,
+                                                 error: noDosParams.data.error, progress: noDosParams.data.progress,
+                                                 partial: noDosParams.data.partial, view: noDosParams.data.view,
+                                                 label: noDosParams.data.label || noDosParams.data.spec.label }) })
         : null,
       noDaVista ? h(Vista, { key: "vista", node: noDaVista, assetUrl, onClose: fecharVista }) : null,
       ferramenta === "frame"

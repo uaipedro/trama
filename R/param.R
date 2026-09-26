@@ -17,6 +17,44 @@ tr_param <- function(kind, default, label = NULL, ...) {
             class = "tr_param")
 }
 
+#' Mostra o param só sob condição sobre outros params do mesmo nó.
+#'
+#' `tr_when(tr_param_num(0.05), metodo = c("holm", "bonferroni"))` só exibe o
+#' campo quando `metodo` vale um dos valores dados. Várias condições valem
+#' juntas (E). Os valores podem ser texto, lógico ou número.
+#'
+#' É puramente de interface: param escondido guarda o valor e continua indo
+#' para `fn`. Que cada nome citado seja outro param do nó é conferido em
+#' [tr_node()] (`tr_error_bad_when`), porque o param sozinho não conhece os
+#' irmãos.
+#' @param p Um param de [tr_param()].
+#' @param ... Condições nomeadas: `<param> = <valores permitidos>`.
+#' @return `p` com `when` preenchido.
+#' @export
+tr_when <- function(p, ...) {
+  if (!inherits(p, "tr_param")) {
+    rlang::abort("tr_when(): 'p' não veio de tr_param().", class = "tr_error_bad_when")
+  }
+  conds <- list(...)
+  nms <- names(conds)
+  if (!length(conds) || is.null(nms) || any(is.na(nms) | !nzchar(nms))) {
+    rlang::abort("tr_when(): toda condição é nomeada pelo param que ela olha.",
+                 class = "tr_error_bad_when")
+  }
+  if (anyDuplicated(nms)) {
+    rlang::abort("tr_when(): param repetido nas condições.", class = "tr_error_bad_when")
+  }
+  for (nm in nms) {
+    v <- conds[[nm]]
+    if (!(is.character(v) || is.logical(v) || is.numeric(v)) || !length(v) || anyNA(v)) {
+      rlang::abort(sprintf("tr_when(): valores de '%s' têm que ser texto, lógico ou número, sem NA.", nm),
+                   class = "tr_error_bad_when")
+    }
+  }
+  p$when <- conds
+  p
+}
+
 #' Param numérico (ponto flutuante).
 #' @export
 tr_param_num  <- function(default, min = NA, max = NA, step = NULL, label = NULL, unit = NA_character_)

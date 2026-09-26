@@ -3,29 +3,44 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { h, getWidget, getRenderer, getViews } from "trama";
-import { MODOS, ATALHOS, dica, modoDe } from "./modos.js";
+import { ATALHOS, dica, ehMini, paramsVisiveis, LIMITE_PARAMS_CARD } from "./modos.js";
 import { corDaCategoria } from "./papeis.js";
 
-// Dois retângulos empilhados, cheio = parte visível. O mini é um quadradinho
-// só, porque o card mini não tem nenhuma das duas partes.
-export function ModoIcone({ modo }) {
-  const r = (y, cheio) => h("rect", { key: y, x: 2, y, width: 12, height: 5, rx: 1,
-    fill: cheio ? "currentColor" : "none", stroke: "currentColor", strokeWidth: 1.4 });
-  return h("svg", { viewBox: "0 0 16 16", width: 14, height: 14, "aria-hidden": true },
-    modo === "mini"
-      ? h("rect", { x: 5, y: 5, width: 6, height: 6, rx: 1, fill: "currentColor" })
-      : [r(2, modo !== "params"), r(9, modo !== "preview")]);
+// Um botão só no cabeçalho: miniatura <-> aberto. O ícone mostra pra onde
+// o clique LEVA (setas pra dentro recolhe, pra fora abre), como o botão de
+// janela do sistema. `nodrag` porque vive dentro do card.
+export function ModoToggle({ mini, onChange, className }) {
+  const seta = mini
+    ? "M9 3h4v4M13 3l-4.5 4.5M7 13H3V9M3 13l4.5-4.5"
+    : "M13 7H9V3M9 7l4.5-4.5M3 9h4v4M7 9l-4.5 4.5";
+  return h("button", {
+    type: "button", className: "tr-modo-btn nodrag " + (className || ""),
+    title: dica(mini ? "modo-completo" : "modo-mini"),
+    "aria-label": mini ? "abrir card" : "miniatura",
+    onClick: (e) => { e.stopPropagation(); onChange(mini ? "completo" : "mini"); },
+  }, h("svg", { viewBox: "0 0 16 16", width: 14, height: 14, "aria-hidden": true, fill: "none",
+                stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round" },
+       h("path", { d: seta })));
 }
 
-// Segmentado de quatro ícones. `nodrag` porque também vive dentro do card.
+// Dois botões (miniatura, aberto) pra barra de seleção e a paleta, onde não
+// há um estado único pra alternar.
 export function ModoPicker({ value, onChange, className }) {
   return h("div", { className: "tr-modo-picker nodrag " + (className || ""), role: "group",
                     "aria-label": "modo do card" },
-    MODOS.map((m) => h("button", {
+    [["mini", "Miniatura"], ["completo", "Aberto"]].map(([m, r]) => h("button", {
       key: m, type: "button", title: dica(`modo-${m}`), "aria-pressed": value === m,
-      className: "tr-modo-btn" + (value === m ? " tr-on" : ""),
+      className: "tr-modo-txt" + (value === m ? " tr-on" : ""),
       onClick: (e) => { e.stopPropagation(); onChange(m); },
-    }, h(ModoIcone, { modo: m }))));
+    }, r)));
+}
+
+function Engrenagem() {
+  return h("svg", { viewBox: "0 0 24 24", width: 13, height: 13, "aria-hidden": true, fill: "none",
+                    stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }, [
+    h("circle", { key: "c", cx: 12, cy: 12, r: 3 }),
+    h("path", { key: "p", d: "M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" }),
+  ]);
 }
 
 // Lista de parâmetros de um nó: mesmo corpo que morava inline em `NdNode`
@@ -33,8 +48,8 @@ export function ModoPicker({ value, onChange, className }) {
 // `completo`) e pelo `ParamsDock` (modo `mini`/`preview`, painel na borda da
 // tela). `id` só entra pra formar a `key` do widget — o resto é `spec` +
 // valores + callback, sem nada de posição no card.
-export function ParamsList({ id, spec, params, onParam }) {
-  return h("div", { className: "tr-params" }, (spec.params || []).map((p) => {
+export function ParamsList({ id, spec, params, onParam, lista }) {
+  return h("div", { className: "tr-params" }, (lista || paramsVisiveis(spec, params)).map((p) => {
     const W = getWidget(p.kind);
     // `div`, e não `label`: o `<label>` repassa o clique ao primeiro
     // controle rotulável de dentro, e com botões ali (segmentado, chave)
@@ -59,30 +74,63 @@ export function ParamsList({ id, spec, params, onParam }) {
   }));
 }
 
-// Parâmetros de um card que não os mostra (mini ou só preview), na borda
-// esquerda da TELA — não presos ao card, como o painel de propriedades do
-// Excalidraw. Recolhido vira só uma alça; o recolhimento vale pra todos os
-// cards, porque é uma preferência de como trabalhar, não de um bloco.
-export function ParamsDock({ node, recolhido, onRecolher, categories }) {
+// Rodapé de parâmetros do card aberto. A faixa ("▸ Parâmetros") dobra e
+// desdobra; aberta, mostra só os primeiros `LIMITE_PARAMS_CARD` VISÍVEIS (os
+// que o `when` esconde nem contam), e a engrenagem abre o formulário inteiro
+// no meio da tela. Dobrar é preferência de trabalho, não do documento.
+export function ParamsRodape({ id, spec, params, onParam, dobrado, onDobrar, onTodos }) {
+  const vis = paramsVisiveis(spec, params);
+  if (!vis.length) return null;
+  const noCard = vis.slice(0, LIMITE_PARAMS_CARD);
+  const resto = vis.length - noCard.length;
+  return h("div", { className: "tr-pfoot" + (dobrado ? " tr-pfoot-dobrado" : "") }, [
+    h("div", { key: "bar", className: "tr-pfoot-bar" }, [
+      h("button", { key: "t", type: "button", className: "tr-pfoot-toggle nodrag",
+                    title: dica("params"), "aria-expanded": !dobrado,
+                    onClick: (e) => { e.stopPropagation(); onDobrar(id, !dobrado); } }, [
+        h("span", { key: "s", className: "tr-pfoot-seta", "aria-hidden": true }, "▸"),
+        h("span", { key: "l" }, "Parâmetros"),
+        h("span", { key: "n", className: "tr-pfoot-n" }, String(vis.length)),
+      ]),
+      resto > 0 && !dobrado
+        ? h("span", { key: "r", className: "tr-pfoot-resto" }, `+${resto}`) : null,
+      h("button", { key: "g", type: "button", className: "tr-pfoot-gear nodrag",
+                    title: dica("params-todos"), "aria-label": "todos os parâmetros",
+                    onClick: (e) => { e.stopPropagation(); onTodos(id); } }, h(Engrenagem)),
+    ]),
+    dobrado ? null : h(ParamsList, { key: "pl", id, spec, params, onParam, lista: noCard }),
+  ]);
+}
+
+// Formulário inteiro de um card, no meio da tela (engrenagem ou P). O
+// preview vai ao lado, vivo, pra ver o efeito do que se muda sem o card
+// quebrar com um campo largo. Mesmo backdrop do lightbox: Esc e clique fora
+// fecham.
+export function ParamsModal({ node, categories, preview, onClose }) {
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); onClose(); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
   const { spec } = node.data;
   const cor = corDaCategoria(categories?.[spec.category], spec);
-  if (recolhido) {
-    return h("button", { className: "tr-dock-alca nodrag", title: "mostrar parâmetros",
-                         onClick: () => onRecolher(false) }, "›");
-  }
-  const nParams = (spec.params || []).length;
-  return h("aside", { className: "tr-dock nowheel", "aria-label": "parâmetros do bloco" }, [
-    h("div", { key: "hd", className: "tr-dock-head", style: { borderColor: cor } }, [
-      h(ModoIcone, { key: "m", modo: modoDe(node.data) }),
-      h("strong", { key: "t" }, node.data.label || spec.label),
-      h("button", { key: "x", className: "tr-dock-fechar", title: "recolher",
-                    onClick: () => onRecolher(true) }, "‹"),
-    ]),
-    nParams
-      ? h(ParamsList, { key: "pl", id: node.id, spec, params: node.data.params,
-                        onParam: node.data.onParam })
-      : h("div", { key: "e", className: "tr-empty" }, "este bloco não tem parâmetros"),
-  ]);
+  const vis = paramsVisiveis(spec, node.data.params);
+  return ReactDOM.createPortal(
+    h("div", { className: "tr-lightbox", role: "dialog", "aria-label": "parâmetros", onClick: onClose },
+      h("div", { className: "tr-pmodal tr-modal", onClick: (e) => e.stopPropagation() }, [
+        h("div", { key: "hd", className: "tr-pmodal-head", style: { borderColor: cor } }, [
+          h("strong", { key: "t" }, node.data.label || spec.label),
+          h("button", { key: "x", className: "tr-lightbox-close tr-pmodal-x", title: "fechar (Esc)",
+                        onClick: onClose }, "×"),
+        ]),
+        h("div", { key: "b", className: "tr-pmodal-body" }, [
+          h("div", { key: "f", className: "tr-pmodal-form" },
+            vis.length
+              ? h(ParamsList, { id: node.id, spec, params: node.data.params, onParam: node.data.onParam, lista: vis })
+              : h("div", { className: "tr-empty" }, "este bloco não tem parâmetros")),
+          preview ? h("div", { key: "p", className: "tr-pmodal-preview" }, preview) : null,
+        ]),
+      ])), document.body);
 }
 
 // Tela cheia do card selecionado (V). Mesmo overlay do lightbox de imagem

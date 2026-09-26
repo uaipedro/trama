@@ -1,3 +1,7 @@
+# trama.ml 0.5.1
+
+* Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.
+
 # trama.ml 0.5.0
 
 Versão sobe de 0.4.0 para 0.5.0: com a coesão das coleções os ajustes saem

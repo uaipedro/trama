@@ -96,7 +96,7 @@ conversa é sobre a taxa de resposta, e não sobre a margem.
       params = list(
         variavel = P("cols", "", label = "Variável do piloto", example = "producao_t"),
         desvio_padrao = N(10, min = 0, label = "Desvio padrão"),
-        media = N(0, label = "Média esperada (erro relativo)"),
+        media = trama::tr_when(N(0, label = "Média esperada (erro relativo)"), tipo_erro = "relativo"),
         erro = N(1, min = 0, label = "Margem de erro"),
         tipo_erro = E("absoluto", c("absoluto", "relativo"), label = "Tipo de erro"),
         confianca = CONF(), populacao = POP(), deff = DEFF(), taxa_resposta = RESP(), distribuicao = E("t", .TR_SAMPLING_DISTRIBUICOES, label = "Distribuição")),
@@ -194,7 +194,7 @@ tr_flow(reg) |>
         estrato = P("cols", "", label = "Estrato", example = "regiao"),
         tamanho = P("cols", "", label = "Tamanho (N_h)", example = "N"),
         desvio = P("cols", "", label = "Desvio (S_h)", example = "desvio_producao"),
-        custo = P("cols", "", label = "Custo (alocação ótima)", example = "custo"),
+        custo = trama::tr_when(P("cols", "", label = "Custo (alocação ótima)", example = "custo"), alocacao = "ótima"),
         alocacao = E("neyman", c("proporcional", "neyman", "ótima", "igual"), label = "Alocação"),
         erro = N(0, min = 0, label = "Margem de erro da média"),
         n_total = I(0L, min = 0L, label = "n total (vence a margem)"),

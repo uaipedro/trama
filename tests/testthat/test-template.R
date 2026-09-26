@@ -78,7 +78,8 @@ test_that("recorte mantém só os nós pedidos e as arestas internas", {
 test_that("ops do template inserem com ids novos e na origem pedida", {
   reg <- test_registry()
   doc <- tr_doc_apply(doc_soma(reg), list(op = "resize", node = "s", w = 320, h = 200), reg)
-  doc <- tr_doc_apply(doc, list(op = "set_mode", node = "s", modo = "mini"), reg)
+  doc <- tr_doc_apply(doc, list(op = "set_mode", node = "s", modo = "solto"), reg)
+  doc <- tr_doc_apply(doc, list(op = "set_solto", node = "s", x = 400, y = 60, w = 250, h = 180), reg)
   doc <- tr_doc_apply(doc, list(op = "add_frame", id = "f", x = 100, y = 50, w = 600, h = 300,
                                 title = "Grupo"), reg)
   doc <- tr_doc_apply(doc, list(op = "add_note", id = "n", x = 150, y = 300, w = 80, h = 40,
@@ -97,7 +98,8 @@ test_that("ops do template inserem com ids novos e na origem pedida", {
   expect_equal(res$ui$positions[[soma]], c(1300, 500))
   expect_equal(res$nodes[[const]]$params$value, 7)
   expect_equal(res$ui$sizes[[soma]], c(320, 200))
-  expect_equal(res$ui$modes[[soma]], "mini")
+  expect_equal(res$ui$modes[[soma]], "solto")
+  expect_equal(res$ui$soltos[[soma]], c(1300, 510, 250, 180))
   expect_equal(res$edges[[1]]$from$node, const)
   expect_equal(res$edges[[1]]$to$node, soma)
   f <- res$ui$frames[[1]]

@@ -123,7 +123,9 @@ test_that("remover nó leva junto o estado cosmético dele", {
   doc <- tr_doc_apply(d0, list(op = "resize", node = "a", w = 480, h = 300), x$reg)
   doc <- tr_doc_apply(doc, list(op = "set_view", node = "a", view = "resumo"), x$reg)
   doc <- tr_doc_apply(doc, list(op = "set_mode", node = "a", modo = "mini"), x$reg)
+  doc <- tr_doc_apply(doc, list(op = "set_solto", node = "a", x = 1, y = 2, w = 300, h = 200), x$reg)
   doc <- tr_doc_apply(doc, list(op = "remove_node", node = "a"), x$reg)
+  expect_null(doc$ui$soltos[["a"]])
   expect_null(doc$ui$positions[["a"]])
   expect_null(doc$ui$sizes[["a"]])
   expect_null(doc$ui$views[["a"]])
@@ -224,7 +226,7 @@ test_that("batch é semântico se QUALQUER op dentro dele for", {
 })
 
 test_that("ops de frame e set_mode são cosméticas", {
-  for (o in c("add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode")) {
+  for (o in c("add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode", "set_solto")) {
     expect_false(tr_op_semantic(list(op = o)), info = o)
   }
 })
@@ -447,4 +449,21 @@ test_that("o documento volta ao front quando a estrutura muda, inclusive dentro 
   expect_false(.tr_op_echoes_doc(list(op = "set_mode")))
   expect_false(.tr_op_echoes_doc(list(op = "batch", ops = list(list(op = "move"), list(op = "update_frame")))))
   expect_true(.tr_op_echoes_doc(list(op = "batch", ops = list(list(op = "move"), list(op = "remove_node")))))
+})
+
+test_that("set_mode aceita 'solto'", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- tr_doc_apply(d, list(op = "set_mode", node = "a", modo = "solto"), m$reg)
+  expect_identical(d$ui$modes$a, "solto")
+})
+
+test_that("set_solto guarda c(x, y, w, h) e valida o que recebe", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- tr_doc_apply(d, list(op = "set_solto", node = "a", x = -5, y = 10.5, w = 320, h = 240), m$reg)
+  expect_equal(d$ui$soltos$a, c(-5, 10.5, 320, 240))
+  expect_error(tr_doc_apply(d, list(op = "set_solto", node = "a", x = 1, y = 2, w = 3), m$reg),
+               class = "tr_error_bad_op")
+  expect_error(tr_doc_apply(d, list(op = "set_solto", node = "a", x = "1", y = 2, w = 3, h = 4), m$reg))
+  expect_error(tr_doc_apply(d, list(op = "set_solto", node = "zzz", x = 1, y = 2, w = 3, h = 4), m$reg),
+               class = "tr_error_unknown_node")
 })

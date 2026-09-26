@@ -16,7 +16,8 @@ tr_doc <- function() {
     collections = list(),
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
-              frames = list(), modes = list(), notes = list())
+              frames = list(), modes = list(), soltos = list(),
+              notes = list())
   ), class = "tr_doc")
 }
 
@@ -29,7 +30,7 @@ tr_doc <- function() {
 #' esquecer vira "recomputou à toa" — barulhento e inofensivo.
 .tr_presentation_ops <- c("rename", "move", "resize", "set_view",
                           "add_frame", "update_frame", "remove_frame",
-                          "reorder_frames", "set_mode",
+                          "reorder_frames", "set_mode", "set_solto",
                           "add_note", "update_note", "remove_note")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
@@ -131,7 +132,7 @@ tr_op_semantic <- function(op) {
     set_view = .tr_op_set_view,
     add_frame = .tr_op_add_frame, update_frame = .tr_op_update_frame,
     remove_frame = .tr_op_remove_frame, reorder_frames = .tr_op_reorder_frames,
-    set_mode = .tr_op_set_mode,
+    set_mode = .tr_op_set_mode, set_solto = .tr_op_set_solto,
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
     connect = .tr_op_connect, disconnect = .tr_op_disconnect,
@@ -243,6 +244,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   doc$ui$sizes[[op$node]] <- NULL
   doc$ui$views[[op$node]] <- NULL
   doc$ui$modes[[op$node]] <- NULL
+  doc$ui$soltos[[op$node]] <- NULL
   doc$edges <- Filter(function(e) e$from$node != op$node && e$to$node != op$node, doc$edges)
   # Sem isto o documento continuaria declarando dependência de uma coleção
   # cujo último nó acabou de sair — e exigiria instalá-la pra abrir.
@@ -578,9 +580,13 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   list(doc = doc, op = op)
 }
 
-# Quatro modos de exibição do card, do menor pro maior. `completo` é o padrão
-# e a ausência já diz isso: só entra no documento o card que desvia dele.
-.tr_modes <- c("mini", "params", "preview", "completo")
+# Modos de exibição do card. `completo` é o padrão e a ausência já diz isso:
+# só entra no documento o card que desvia dele. O editor oferece três: `mini`,
+# `completo` e `solto` (card em mini, preview destacado flutuando no canvas
+# como uma caixa de imagem, geometria em `ui$soltos`). `params` e `preview`
+# ficam aceitos só por documento antigo: o front lê os dois como `completo`,
+# e `preview` significa ainda "params começam recolhidos".
+.tr_modes <- c("mini", "params", "preview", "completo", "solto")
 
 .tr_op_set_mode <- function(doc, op, registry) {
   .tr_require(op, c("node", "modo")); .tr_node_or_abort(doc, op$node)
@@ -590,6 +596,18 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
                  class = "tr_error_bad_op")
   }
   doc$ui$modes[[op$node]] <- if (identical(m, "completo")) NULL else m
+  list(doc = doc, op = op)
+}
+
+# Geometria do preview destacado de um card em modo `solto`: c(x, y, w, h).
+# Mora num mapa próprio, e não em `sizes`, porque o card continua existindo
+# (em mini) e tem talhe seu. Não exige que o modo seja `solto`: o front guarda
+# a caixa pra quando o card voltar a soltar, e a ordem das ops num batch fica
+# livre. É apresentação pura, como `resize`.
+.tr_op_set_solto <- function(doc, op, registry) {
+  .tr_require(op, c("node", "x", "y", "w", "h")); .tr_node_or_abort(doc, op$node)
+  doc$ui$soltos[[op$node]] <- c(.tr_scalar_num(op$x, "x"), .tr_scalar_num(op$y, "y"),
+                                .tr_scalar_num(op$w, "w"), .tr_scalar_num(op$h, "h"))
   list(doc = doc, op = op)
 }
 

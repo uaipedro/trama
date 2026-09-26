@@ -141,3 +141,34 @@ test_that("transição com n não positivo aborta", {
 test_that("sem transições, o campo some do catálogo", {
   expect_false("transitions" %in% names(tr_catalog(test_registry())))
 })
+
+test_that("tr_when anexa condições e recusa o malformado", {
+  p <- tr_when(tr_param_num(0.05), metodo = c("holm", "bonferroni"), ajustar = TRUE)
+  expect_equal(p$when, list(metodo = c("holm", "bonferroni"), ajustar = TRUE))
+  expect_error(tr_when(0.05, metodo = "holm"), class = "tr_error_bad_when")
+  expect_error(tr_when(tr_param_num(1)), class = "tr_error_bad_when")
+  expect_error(tr_when(tr_param_num(1), "holm"), class = "tr_error_bad_when")
+  expect_error(tr_when(tr_param_num(1), metodo = list("a")), class = "tr_error_bad_when")
+})
+
+test_that("when sai no catálogo com cada valor como array", {
+  n <- tr_node("t/w", fn = function(metodo, alfa) alfa,
+               description = "Testa params condicionais.",
+               params = list(metodo = tr_param_enum("holm", c("holm", "none")),
+                             alfa = tr_when(tr_param_num(0.05), metodo = "holm")))
+  col <- tr_collection(id = "t", nodes = list(n))
+  reg <- tr_registry(); tr_use(col, registry = reg)
+  j <- as.character(tr_catalog_json(reg))
+  expect_match(j, '"when":\\{"metodo":\\["holm"\\]\\}')
+})
+
+test_that("when que cita param inexistente é recusado na declaração", {
+  expect_error(
+    tr_node("t/w", fn = function(alfa) alfa, description = "x",
+            params = list(alfa = tr_when(tr_param_num(0.05), metodo = "holm"))),
+    class = "tr_error_bad_when")
+  expect_error(
+    tr_node("t/w", fn = function(alfa) alfa, description = "x",
+            params = list(alfa = tr_when(tr_param_num(0.05), alfa = 1))),
+    class = "tr_error_bad_when")
+})

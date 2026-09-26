@@ -830,8 +830,10 @@ problema é o tipo da coluna, e não o buraco nela."),
                       type    = trama::tr_param_enum("numero",
                                   c("numero","inteiro","texto","data","fator","logico"),
                                   label = "Para"),
-                      format  = P("text", "", label = "Formato da data", example = "%d/%m/%Y"),
-                      decimal = trama::tr_param_enum(".", c(".", ","), label = "Decimal")),
+                      format  = trama::tr_when(P("text", "", label = "Formato da data", example = "%d/%m/%Y"),
+                                                type = "data"),
+                      decimal = trama::tr_when(trama::tr_param_enum(".", c(".", ","), label = "Decimal"),
+                                                type = c("numero", "inteiro", "data"))),
         help = "## Descrição
 
 Converte as colunas escolhidas para número, inteiro, texto, data, fator ou
@@ -1962,7 +1964,7 @@ A tabela com a coluna recodificada (faixas saem como fator ordenado pelas faixas
         inputs = list(dados = T), outputs = list(out = T),
         params = list(
           n = trama::tr_param_int(10L, min = 0L, label = "N (0 = usar a fração)"),
-          fracao = trama::tr_param_num(0.1, min = 0, max = 10, label = "Fração"),
+          fracao = trama::tr_when(trama::tr_param_num(0.1, min = 0, max = 10, label = "Fração"), n = 0L),
           reposicao = trama::tr_param_bool(FALSE, label = "Com reposição"),
           grupo = P("cols", "", label = "Por grupo", example = "tratamento")),
         help = r"---[## Descrição

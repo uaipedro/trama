@@ -30,6 +30,9 @@
 .tr_json_param <- function(nm, p) {
   out <- .tr_json_drop_empty(c(list(name = nm), unclass(p)))
   if (!is.null(out$choices)) out$choices <- I(as.character(out$choices))
+  # Cada valor de `when` sai array SEMPRE: `metodo = "holm"` sozinho viraria
+  # string e o front testaria pertinência em letras.
+  if (!is.null(out$when)) out$when <- lapply(out$when, I)
   out
 }
 

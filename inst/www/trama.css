@@ -125,11 +125,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-node:not(.tr-node-mini) .tr-node-head::after{content:"";flex:none;width:9px;height:9px;margin-left:2px;
   border-radius:50%;background:radial-gradient(circle at 35% 30%,#e5e5e5,#8a8a8a 55%,#4a4a4a);
   box-shadow:inset 0 0 0 1px #0004}
-.tr-node.tr-state-done .tr-node-head::after,.tr-node.tr-state-cached .tr-node-head::after{
+.tr-node:not(.tr-node-mini).tr-state-done .tr-node-head::after,.tr-node:not(.tr-node-mini).tr-state-cached .tr-node-head::after{
   background:radial-gradient(circle at 35% 30%,#bff5c9,#22c55e 55%,#146c33);box-shadow:0 0 6px #22c55e,inset 0 0 0 1px #0004}
-.tr-node.tr-state-running .tr-node-head::after,.tr-node.tr-state-pending .tr-node-head::after{
+.tr-node:not(.tr-node-mini).tr-state-running .tr-node-head::after,.tr-node:not(.tr-node-mini).tr-state-pending .tr-node-head::after{
   background:radial-gradient(circle at 35% 30%,#fff1c2,#f59e0b 55%,#7a4d05);box-shadow:0 0 8px #f59e0b}
-.tr-node.tr-state-failed .tr-node-head::after,.tr-node.tr-state-invalid .tr-node-head::after{
+.tr-node:not(.tr-node-mini).tr-state-failed .tr-node-head::after,.tr-node:not(.tr-node-mini).tr-state-invalid .tr-node-head::after{
   background:radial-gradient(circle at 35% 30%,#ffd0cc,#ef4444 55%,#7a130d);box-shadow:0 0 8px #ef4444}
 .tr-fold-btn{background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
   padding:0;display:inline-flex;line-height:1}
@@ -682,6 +682,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-exporting .tr-grip,.tr-presenting .tr-grip,
 .tr-exporting .tr-fold-btn,.tr-presenting .tr-fold-btn,
 .tr-exporting .tr-modo-picker,.tr-presenting .tr-modo-picker,
+.tr-exporting .tr-modo-btn,.tr-presenting .tr-modo-btn,
+.tr-exporting .tr-pv-acoes,.tr-presenting .tr-pv-acoes,
+.tr-exporting .tr-pfoot-gear,.tr-presenting .tr-pfoot-gear,
 .tr-exporting .tr-dur,.tr-presenting .tr-dur,
 .tr-exporting .tr-dot,.tr-presenting .tr-dot,
 .tr-exporting .react-flow__resize-control,
@@ -1037,28 +1040,24 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-selbar>button{background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
   border-radius:5px;padding:3px 9px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
 .tr-selbar>button:hover{border-color:var(--tr-accent)}
-/* Painel de parâmetros: borda esquerda do canvas, largura fixa, rolagem
-   própria. `nowheel` no elemento deixa a roda rolar a lista em vez de dar zoom.
-   Centrado na vertical, na mesma altura da alça (`.tr-dock-alca`) que o abre.
-   O `max-height` deixa 67px de folga em cima e embaixo, o que ainda livra a
-   toolbar (`.tr-toolbar`, `top:12px;left:12px`) quando a lista é longa. */
-.tr-dock{position:absolute;left:12px;top:50%;transform:translateY(-50%);max-height:calc(100% - 134px);width:280px;z-index:8;
-  display:flex;flex-direction:column;background:var(--tr-panel);border:1px solid var(--tr-line);
-  border-radius:10px;box-shadow:0 6px 24px var(--tr-shadow);overflow:hidden}
-.tr-dock-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-left:4px solid;
-  border-bottom:1px solid var(--tr-line)}
-.tr-dock-head strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tr-dock-fechar,.tr-dock-alca{background:none;border:0;color:var(--tr-fg);cursor:pointer;font-size:18px}
-.tr-dock .tr-params{overflow:auto;padding:10px 12px}
-/* No painel há largura de sobra na vertical, não na horizontal: rótulo em
-   cima, inteiro e podendo quebrar linha, e o controle embaixo. */
-.tr-dock .tr-params{gap:9px}
-.tr-dock .tr-param{grid-template-columns:1fr;gap:3px}
-.tr-dock .tr-param>span{white-space:normal;overflow:visible}
-.tr-dock .tr-toggle{justify-self:start}
-.tr-dock-alca{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:8;
-  background:var(--tr-panel);border:1px solid var(--tr-line);border-left:0;border-radius:0 8px 8px 0;
-  padding:14px 4px}
+/* Formulário inteiro de parâmetros (engrenagem / P), no meio da tela: form
+   à esquerda com rótulo em cima do campo (largura de sobra), preview vivo à
+   direita. Sem preview, só o form, mais estreito. */
+.tr-pmodal{display:flex;flex-direction:column;width:min(1040px,92vw);max-height:88vh;
+  background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:12px;
+  box-shadow:0 8px 40px var(--tr-shadow-hi);overflow:hidden}
+.tr-pmodal-head{position:relative;display:flex;align-items:center;gap:8px;padding:12px 44px 12px 14px;
+  border-left:5px solid;border-bottom:1px solid var(--tr-line);font-size:14px}
+.tr-pmodal-x{position:absolute;top:4px;right:8px}
+.tr-pmodal-body{display:grid;grid-template-columns:minmax(300px,380px) 1fr;min-height:0;flex:1}
+.tr-pmodal-body:not(:has(.tr-pmodal-preview)){grid-template-columns:1fr}
+.tr-pmodal-form{overflow:auto;border-right:1px solid var(--tr-line)}
+.tr-pmodal-form .tr-params{gap:10px;padding:14px}
+.tr-pmodal-form .tr-param{grid-template-columns:1fr;gap:4px;font-size:12px}
+.tr-pmodal-form .tr-param>span{white-space:normal;overflow:visible}
+.tr-pmodal-form .tr-toggle{justify-self:start}
+.tr-pmodal-preview{overflow:auto;padding:12px;min-height:280px}
+.tr-pmodal-preview .tr-preview{height:auto;min-height:100%;border:0;overflow:visible;font-size:12px}
 .react-flow__selection,.react-flow__nodesselection-rect{
   background:color-mix(in srgb,var(--tr-accent) 8%,transparent);border:1px solid var(--tr-accent)}
 /* Depois de uma seleção por caixa o xyflow cobre os cards escolhidos com este
@@ -1211,3 +1210,65 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 
 /* Marca discreta dos 5 primeiros do sugestor na paleta (arrasto de porta). */
 .tr-palette-sug{flex:none;width:6px;height:6px;border-radius:50%;background:var(--tr-accent);opacity:.75}
+
+/* --- Card: toggle de modo, rodapé de parâmetros, preview que se solta --- */
+.tr-node .tr-modo-btn{margin-left:auto}
+.tr-node-mini .tr-modo-btn{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
+  margin:0;opacity:0;transition:opacity .12s;
+  background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line)}
+.tr-node-mini:hover .tr-modo-btn,.tr-node-mini.tr-node-sel .tr-modo-btn{opacity:1}
+.tr-node-mini .tr-solto-marca{position:static;opacity:.7;background:none}
+.tr-modo-txt{background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
+  padding:2px 7px;border-radius:4px;font:inherit;font-size:11px}
+.tr-modo-txt:hover{opacity:1}
+.tr-modo-txt.tr-on{opacity:1;background:var(--tr-hover)}
+
+/* Faixa de parâmetros: sempre embaixo do card, dobrável. */
+.tr-pfoot{border-top:1px solid var(--tr-line)}
+.tr-pfoot-bar{display:flex;align-items:center;gap:4px;height:24px;padding:0 5px 0 4px}
+.tr-pfoot-toggle{display:flex;align-items:center;gap:5px;flex:1;min-width:0;height:100%;
+  background:none;border:0;color:var(--tr-dim);font:inherit;font-size:11px;cursor:pointer;text-align:left}
+.tr-pfoot-toggle:hover{color:var(--tr-fg)}
+.tr-pfoot-seta{display:inline-block;font-size:9px;transition:transform .12s;transform:rotate(90deg)}
+.tr-pfoot-dobrado .tr-pfoot-seta{transform:none}
+.tr-pfoot-n{font-size:10px;padding:0 5px;border-radius:8px;background:var(--tr-field);color:var(--tr-dim)}
+.tr-pfoot-resto{font-size:10px;color:var(--tr-dim)}
+.tr-pfoot-gear{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  background:none;border:0;border-radius:4px;color:var(--tr-dim);cursor:pointer}
+.tr-pfoot-gear:hover{color:var(--tr-fg);background:var(--tr-hover)}
+.tr-pfoot .tr-params{padding-top:2px}
+
+/* Ações do preview: aparecem no hover, no canto de cima, sem mexer em nada. */
+.tr-pv-wrap{position:relative}
+.tr-pv-acoes{position:absolute;top:5px;right:6px;display:flex;gap:3px;opacity:0;
+  transition:opacity .12s;z-index:2}
+.tr-pv-wrap:hover .tr-pv-acoes,.tr-solto:hover .tr-pv-acoes{opacity:1}
+.tr-pv-acoes button{display:inline-flex;padding:4px;border-radius:5px;cursor:pointer;
+  background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line);
+  box-shadow:0 1px 4px var(--tr-shadow)}
+.tr-pv-acoes button:hover{border-color:var(--tr-accent)}
+
+/* Preview solto: uma imagem no canvas. O conteúdo desenha no tamanho que tinha
+   no card e escala pra caixa (transform), então ampliar não abre vazio. */
+.tr-solto{width:100%;height:100%;position:relative;border-radius:6px;background:var(--tr-panel);
+  box-shadow:0 2px 0 #0002,0 10px 24px var(--tr-shadow)}
+.tr-solto-sel{outline:2px solid var(--tr-accent);outline-offset:2px}
+.tr-solto-corpo{width:100%;height:100%;overflow:hidden;border-radius:6px}
+/* O conteúdo é imagem: não recebe ponteiro. Assim a roda e o arrasto vão pro
+   canvas mesmo quando o renderer marca `nowheel` (tabela que rola no card). */
+.tr-solto-corpo{pointer-events:none}
+.tr-solto-base{transform-origin:0 0}
+.tr-solto-base .tr-preview{height:100%;min-height:0;border:0;overflow:hidden}
+.tr-solto-acoes{align-items:center}
+.tr-solto-titulo{font-size:11px;padding:2px 7px;border-radius:5px;background:var(--tr-panel);
+  color:var(--tr-dim);border:1px solid var(--tr-line);max-width:180px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+/* O cabeçalho recebe inline a tinta da categoria (branca nas cores escuras),
+   feita pra faixa colorida; na miniatura o texto fica sobre a placa do card,
+   então a cor volta a ser a do tema. */
+.tr-node-mini .tr-node-head{color:var(--tr-fg)!important;font-weight:600}
+.tr-node-mini .tr-node-title{opacity:.92}
+/* Fio card <-> preview solto. */
+.tr-fio path{fill:none;stroke:var(--tr-dim);stroke-width:1.5;stroke-dasharray:4 5;opacity:.7}
+.tr-fio circle{fill:var(--tr-panel);stroke:var(--tr-dim);stroke-width:1.5}

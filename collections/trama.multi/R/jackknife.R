@@ -460,7 +460,8 @@ o intervalo fica largo, como deve; com menos de 5 grupos o bloco avisa. Os pseud
   list(
     estatistica = trama::tr_param_enum(padrao, opcoes, label = "Estatística"),
     tabela = trama::tr_param_enum("resumo", .TR_MULTI_JK_TABELAS, label = "Tabela"),
-    confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança do intervalo"),
+    confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança do intervalo"),
+      tabela = "resumo"),
     grupo = trama::tr_param("cols", "", label = "Grupo (apagar-um-grupo)", example = "talhao"))
 }
 

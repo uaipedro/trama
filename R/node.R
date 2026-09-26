@@ -124,6 +124,17 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
       rlang::abort(sprintf("Param '%s' de '%s' não veio de tr_param().", nm, id), class = "tr_error_bad_param")
     }
   }
+  # `when` (ver `tr_when()`) só se confere aqui: o param sozinho não conhece
+  # os irmãos. Um nome errado não quebraria nada no R — faria o front esconder
+  # o campo para sempre, sem erro, que é o pior jeito de falhar.
+  for (nm in names(params)) {
+    alvos <- names(params[[nm]]$when)
+    ruins <- setdiff(alvos, setdiff(names(params), nm))
+    if (length(ruins)) {
+      rlang::abort(sprintf("Nó '%s': 'when' do param '%s' cita o que não é outro param do nó: %s.",
+                           id, nm, paste(ruins, collapse = ", ")), class = "tr_error_bad_when")
+    }
+  }
 
   # Validação alto e cedo (herdada do insumo, e vale a pena): um argumento de
   # `fn` sem input/param correspondente é erro de declaração que, sem esta

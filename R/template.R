@@ -76,20 +76,23 @@ tr_template_parse <- function(txt) {
 #' @export
 tr_template_read <- function(path) tr_template_parse(paste(readLines(path, warn = FALSE), collapse = "\n"))
 
-# Canto superior esquerdo do grupo (nós, frames, notas) vira (0,0): quem cola
+# Canto superior esquerdo do grupo (nós, frames, notas, previews soltos) vira (0,0): quem cola
 # decide a posição, e o template não carrega o lugar onde nasceu.
 .tr_template_normalize <- function(doc) {
   xs <- c(vapply(doc$ui$positions, function(p) as.numeric(p[[1]]), numeric(1)),
           vapply(doc$ui$frames, function(f) as.numeric(f$x), numeric(1)),
-          vapply(doc$ui$notes, function(n) as.numeric(n$x), numeric(1)))
+          vapply(doc$ui$notes, function(n) as.numeric(n$x), numeric(1)),
+          vapply(doc$ui$soltos, function(b) as.numeric(b[[1]]), numeric(1)))
   ys <- c(vapply(doc$ui$positions, function(p) as.numeric(p[[2]]), numeric(1)),
           vapply(doc$ui$frames, function(f) as.numeric(f$y), numeric(1)),
-          vapply(doc$ui$notes, function(n) as.numeric(n$y), numeric(1)))
+          vapply(doc$ui$notes, function(n) as.numeric(n$y), numeric(1)),
+          vapply(doc$ui$soltos, function(b) as.numeric(b[[2]]), numeric(1)))
   if (!length(xs)) return(doc)
   dx <- min(xs); dy <- min(ys)
   doc$ui$positions <- .tr_empty_obj(lapply(doc$ui$positions, function(p) c(p[[1]] - dx, p[[2]] - dy)))
   doc$ui$frames <- .tr_empty_obj(lapply(doc$ui$frames, function(f) { f$x <- f$x - dx; f$y <- f$y - dy; f }))
   doc$ui$notes <- .tr_empty_obj(lapply(doc$ui$notes, function(n) { n$x <- n$x - dx; n$y <- n$y - dy; n }))
+  doc$ui$soltos <- .tr_empty_obj(lapply(doc$ui$soltos, function(b) c(b[[1]] - dx, b[[2]] - dy, b[[3]], b[[4]])))
   doc
 }
 
@@ -120,7 +123,7 @@ tr_doc_subset <- function(doc, ids = NULL) {
   keep <- function(m) .tr_empty_obj(m[intersect(names(m), ids)])
   doc$nodes <- keep(doc$nodes)
   doc$edges <- Filter(function(e) e$from$node %in% ids && e$to$node %in% ids, doc$edges)
-  for (k in c("positions", "sizes", "views", "modes", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
+  for (k in c("positions", "sizes", "views", "modes", "soltos", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
   # O manifesto encolhe junto: o template não deve exigir coleção que nenhum
   # nó recortado usa.
   usadas <- unique(vapply(doc$nodes, function(n) .tr_collection_of(n$type), ""))
@@ -160,6 +163,14 @@ tr_template_op <- function(tpl, origin = c(0, 0)) {
       list(op = "set_view", node = novo[[id]], view = d$ui$views[[id]])
     if (!is.null(d$ui$modes[[id]])) depois[[length(depois) + 1]] <-
       list(op = "set_mode", node = novo[[id]], modo = d$ui$modes[[id]])
+    # A caixa do preview solto é geometria do canvas: anda com a origem, como
+    # a posição do card, pra não ficar para trás quando o modelo cai longe.
+    so <- d$ui$soltos[[id]]
+    if (!is.null(so)) {
+      p <- at(so[[1]], so[[2]])
+      depois[[length(depois) + 1]] <- list(op = "set_solto", node = novo[[id]],
+                                           x = p[1], y = p[2], w = so[[3]], h = so[[4]])
+    }
   }
   for (id in names(d$ui$notes)) {
     n <- d$ui$notes[[id]]; p <- at(n$x, n$y)

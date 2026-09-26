@@ -407,7 +407,8 @@ tr_flow(reg) |>
       params = .tr_models_props(
         grupo = P("cols", "", label = "Grupo aleatório", example = "Subject"),
         intervalo = E("IC", .TR_MODELS_INTERVALOS, label = "Intervalo"),
-        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
+        confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança (IC)"),
+                                    intervalo = "IC"),
         faixa_desvio = B(TRUE, label = "Faixa de ±1 desvio padrão"),
         ordenar = B(TRUE, label = "Ordenar pelo efeito"),
         .aspecto = "3:4", .legenda = "abaixo"),
@@ -602,7 +603,7 @@ desdobramento.
       inputs = list(medias = "models/emm"), outputs = list(out = "models/effects"),
       params = list(
         metodo = E("todos os pares", c("todos os pares", "contra controle"), label = "Comparar"),
-        controle = P("text", "", label = "Controle", example = "ctrl"),
+        controle = trama::tr_when(P("text", "", label = "Controle", example = "ctrl"), metodo = "contra controle"),
         ajuste = E("tukey", c(.TR_MODELS_AJUSTES, "dunnett"), label = "Ajuste")),
       help = .tr_models_ajuda(r"---[
 As comparações que estão por trás das letras, uma por linha: a diferença, o erro

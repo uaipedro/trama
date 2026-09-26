@@ -1,3 +1,7 @@
+# trama.experiments 0.2.1
+
+* Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.
+
 # trama.experiments 0.2.0
 
 * Os nove blocos passam a declarar pressupostos e referências ESTRUTURADOS

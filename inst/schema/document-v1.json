@@ -114,6 +114,18 @@
             "additionalProperties": false
           }
         },
+        "modes": {
+          "description": "Modo de exibição por card. Ausente = completo. O editor oferece mini, completo e solto; params e preview só vêm de documento antigo e são lidos como completo (preview = params recolhidos).",
+          "type": "object",
+          "additionalProperties": { "enum": ["mini", "params", "preview", "completo", "solto"] }
+        },
+        "soltos": {
+          "description": "Caixa do preview destacado de um card em modo solto: [x, y, w, h] em coordenadas do canvas.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4
+          }
+        },
         "folds": {
           "description": "Partes recolhidas/expandidas de cada card. Chave ausente = preview e params abertos, mini desligado.",
           "type": "object",

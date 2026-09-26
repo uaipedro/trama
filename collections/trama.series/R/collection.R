@@ -336,7 +336,7 @@ defasada.
         description = "Log, raiz ou Box-Cox: estabiliza a variância que cresce com o nível.",
         inputs = list(serie = S), outputs = list(out = S),
         params = list(metodo = E("log", c("log", "raiz", "boxcox"), label = "Método"),
-                      lambda = P("text", "", label = "λ (Box-Cox)", example = "0.5")),
+                      lambda = trama::tr_when(P("text", "", label = "λ (Box-Cox)", example = "0.5"), metodo = "boxcox")),
         help = .tr_series_ajuda(r"---[
 Aplica uma transformação que ACHATA a variação quando ela cresce com o nível
 da série. Em `AirPassengers` a oscilação de cada ano é maior que a do anterior
@@ -532,9 +532,9 @@ trecho com buraco em vez de inventá-lo.
         inputs = list(serie = S), outputs = list(out = S),
         params = list(metodo = E("linear", c("linear", "polinomial", "loess", "diferenca"),
                                  label = "Método"),
-                      grau = I(2L, min = 2L, max = 5L, label = "Grau (polinomial)"),
-                      suavidade = trama::tr_param_num(0.75, min = 0.05, max = 1, step = 0.05,
-                                                      label = "Suavidade (loess)")),
+                      grau = trama::tr_when(I(2L, min = 2L, max = 5L, label = "Grau (polinomial)"), metodo = "polinomial"),
+                      suavidade = trama::tr_when(trama::tr_param_num(0.75, min = 0.05, max = 1, step = 0.05,
+                                                      label = "Suavidade (loess)"), metodo = "loess")),
         help = .tr_series_ajuda(r"---[
 Estima a tendência da série e a TIRA, deixando o resto — sazonalidade
 incluída. É o "ajusto uma reta e subtraio" feito num nó só, com a tendência
@@ -791,11 +791,11 @@ p-valor por componente; `series/ljung_box` para testar o resto.
         outputs = list(out = R),
         params = list(grau = I(1L, min = 0L, max = 3L, label = "Grau da tendência"),
                       sazonalidade = B(TRUE, label = "Sazonalidade"),
-                      contraste = E("soma_zero", c("soma_zero", "categoria_base"),
-                                    label = "Contraste"),
+                      contraste = trama::tr_when(E("soma_zero", c("soma_zero", "categoria_base"),
+                                    label = "Contraste"), sazonalidade = TRUE),
                       erro = E("independente", c("independente", "arma"), label = "Erro"),
-                      ar = I(1L, min = 0L, max = 3L, label = "Ordem AR do erro"),
-                      ma = I(0L, min = 0L, max = 3L, label = "Ordem MA do erro")),
+                      ar = trama::tr_when(I(1L, min = 0L, max = 3L, label = "Ordem AR do erro"), erro = "arma"),
+                      ma = trama::tr_when(I(0L, min = 0L, max = 3L, label = "Ordem MA do erro"), erro = "arma")),
         help = .tr_series_ajuda(r"---[
 Ajusta um modelo EXPLÍCITO para os componentes da série:
 
@@ -928,14 +928,14 @@ oscilação cresce com o nível.
         inputs = list(serie = S), outputs = list(out = M),
         params = list(
           automatico = B(TRUE, label = "Automático"),
-          sazonal = B(TRUE, label = "Parte sazonal (automático)"),
+          sazonal = trama::tr_when(B(TRUE, label = "Parte sazonal (automático)"), automatico = TRUE),
           constante = B(TRUE, label = "Constante / deriva"),
-          p = I(1L, min = 0L, max = 5L, label = "p (AR)"),
-          d = I(1L, min = 0L, max = 2L, label = "d (diferenças)"),
-          q = I(1L, min = 0L, max = 5L, label = "q (MA)"),
-          P = I(0L, min = 0L, max = 2L, label = "P (AR sazonal)"),
-          D = I(0L, min = 0L, max = 1L, label = "D (diferença sazonal)"),
-          Q = I(0L, min = 0L, max = 2L, label = "Q (MA sazonal)")),
+          p = trama::tr_when(I(1L, min = 0L, max = 5L, label = "p (AR)"), automatico = FALSE),
+          d = trama::tr_when(I(1L, min = 0L, max = 2L, label = "d (diferenças)"), automatico = FALSE),
+          q = trama::tr_when(I(1L, min = 0L, max = 5L, label = "q (MA)"), automatico = FALSE),
+          P = trama::tr_when(I(0L, min = 0L, max = 2L, label = "P (AR sazonal)"), automatico = FALSE),
+          D = trama::tr_when(I(0L, min = 0L, max = 1L, label = "D (diferença sazonal)"), automatico = FALSE),
+          Q = trama::tr_when(I(0L, min = 0L, max = 2L, label = "Q (MA sazonal)"), automatico = FALSE)),
         help = .tr_series_ajuda(r"---[
 Ajusta um modelo ARIMA(p,d,q)(P,D,Q)[ciclo]: a série depois de `d` diferenças
 simples e `D` sazonais é explicada pelos seus `p` valores anteriores (AR), pelos
@@ -947,7 +947,7 @@ defasagem de ciclo por vez.
 Com **Automático** ligado, a ordem é escolhida pelo algoritmo de Hyndman e
 Khandakar (`forecast::auto.arima`): testes de raiz unitária decidem `d` e `D`, e
 uma busca pelo menor AICc decide o resto. **As seis ordens do card são
-ignoradas** — o card não sabe esconder campo, então a regra fica escrita aqui.
+ignoradas** — e o card as esconde enquanto ele está ligado.
 O resumo do card mostra a ordem escolhida (`ARIMA(0,1,1)(0,1,1)[12]`), e o
 caminho natural é rodar automático, ler, e só então fixar à mão se quiser.
 
@@ -1150,7 +1150,8 @@ grande família; `series/baseline` para a referência que o modelo tem de bater.
         inputs = list(serie = S), outputs = list(out = M),
         params = list(tendencia = B(TRUE, label = "Tendência"),
                       sazonalidade = B(TRUE, label = "Sazonalidade"),
-                      tipo = E("aditiva", c("aditiva", "multiplicativa"), label = "Sazonalidade do tipo")),
+                      tipo = trama::tr_when(E("aditiva", c("aditiva", "multiplicativa"), label = "Sazonalidade do tipo"),
+                                    sazonalidade = TRUE)),
         help = .tr_series_ajuda(r"---[
 O método de Holt-Winters como o `stats` o implementa: três equações de
 suavização exponencial — nível, tendência e sazonalidade —, com as constantes

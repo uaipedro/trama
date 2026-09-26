@@ -92,7 +92,7 @@ ordenação.
         estrato = P("cols", "", label = "Estrato", example = "regiao"),
         n = I(0L, min = 0L, label = "n total"),
         alocacao = E("proporcional", c("proporcional", "igual", "neyman"), label = "Alocação"),
-        variavel_auxiliar = P("cols", "", label = "Variável do Neyman", example = "producao_t")),
+        variavel_auxiliar = trama::tr_when(P("cols", "", label = "Variável do Neyman", example = "producao_t"), alocacao = "neyman")),
       help = .tr_sampling_ajuda(r"---[
 A amostra estratificada: o cadastro é dividido em estratos (regiões, redes,
 faixas de tamanho) e uma AAS independente é sorteada em cada um. Ganha da AAS
