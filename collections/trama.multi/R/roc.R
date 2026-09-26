@@ -179,7 +179,7 @@ prática usual; a variância do próprio ajuste não entra).
 Com AUC 0 ou 1 (separação perfeita) a variância de DeLong é zero, e com
 menos de dois casos numa classe ela não existe: nos dois casos a AUC sai
 com "IC indisponível" e a legenda do gráfico diz por quê, sem recusar a
-curva (como na `ml/roc`). Não depende do corte, e por isso compara modelos melhor que a taxa
+curva (como na ROC da coleção de aprendizado de máquina). Não depende do corte, e por isso compara modelos melhor que a taxa
 de acerto quando os grupos são desbalanceados (no `pima`, um terço tem
 diabetes: prever "não" para todas já acerta 67%).
 
