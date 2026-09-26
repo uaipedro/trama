@@ -1,5 +1,10 @@
 # trama.experiments 0.2.0
 
+* `experiments/design` (versão 4): o param `alfa` do composto central virou
+  `distancia_axial` (o glossário reserva `alfa` para significância) e aceita,
+  além de `rotacional` e `face`, um número positivo. Fluxos salvos com `alfa`
+  abrem migrados (`migrations`), e o re-sorteio lê planos antigos.
+
 * `experiments/design` (versão 3): no crossover, a coluna `residual` não tem
   mais o nível `nenhum` (que coincidia com o 1º período e fazia o `lme4`
   descartar uma coluna). No 1º período ela leva o primeiro tratamento, a

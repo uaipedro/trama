@@ -72,7 +72,8 @@
 #'   grupos).
 #' @param confundir efeito(s) confundido(s) com blocos, em letras (`"ABC"`).
 #' @param geradores geradores do fracionado (`"D = ABC; E = ABD"`).
-#' @param alfa `rotacional` ou `face` (composto central).
+#' @param distancia_axial `rotacional`, `face` ou um número positivo: a distância
+#'   α dos pontos axiais do composto central.
 #' @param pontos_centrais pontos centrais do composto central.
 #' @param tamanho_bloco k, parcelas por bloco no BIB.
 #' @param tempos tempos das medidas repetidas (`"0, 30, 60"`).
@@ -84,12 +85,12 @@
 #' @export
 tr_experiments_design <- function(estrutura = "dbc", fatores = "tratamento: A, B, C, D", repeticoes = 0L,
                                   delineamento_base = "dbc", confundir = "", geradores = "",
-                                  alfa = "rotacional", pontos_centrais = 4L, tamanho_bloco = 3L,
+                                  distancia_axial = "rotacional", pontos_centrais = 4L, tamanho_bloco = 3L,
                                   tempos = "", locais = 3L, colunas_grade = 0L, covariaveis = "",
                                   .seed = 1L) {
   receita <- list(estrutura = estrutura, fatores = fatores, repeticoes = repeticoes,
                   delineamento_base = delineamento_base, confundir = confundir, geradores = geradores,
-                  alfa = alfa, pontos_centrais = pontos_centrais, tamanho_bloco = tamanho_bloco,
+                  distancia_axial = distancia_axial, pontos_centrais = pontos_centrais, tamanho_bloco = tamanho_bloco,
                   tempos = tempos, locais = locais, colunas_grade = colunas_grade, covariaveis = covariaveis)
   estrutura <- .tr_exp_enum(estrutura, .TR_EXP_ESTRUTURAS, "estrutura")
   f <- .tr_exp_fatores(fatores)
@@ -99,7 +100,7 @@ tr_experiments_design <- function(estrutura = "dbc", fatores = "tratamento: A, B
     fatores = f, r = if (rep_in > 0L) rep_in else .TR_EXP_R_PADRAO[[estrutura]], r_dado = rep_in > 0L,
     delineamento_base = .tr_exp_enum(delineamento_base, c("dbc", "dic"), "delineamento_base"),
     confundir = confundir, geradores = geradores,
-    alfa = .tr_exp_enum(alfa, c("rotacional", "face"), "alfa"),
+    distancia_axial = .tr_exp_distancia_axial(distancia_axial),
     pontos_centrais = .tr_exp_int(pontos_centrais, "pontos_centrais", 0L, 50L),
     tamanho_bloco = .tr_exp_int(tamanho_bloco, "tamanho_bloco", 2L, 100L),
     tempos = tempos, locais = .tr_exp_int(locais, "locais", 1L, 100L),
@@ -156,7 +157,10 @@ tr_experiments_design <- function(estrutura = "dbc", fatores = "tratamento: A, B
 #' @export
 tr_experiments_randomize <- function(plano, .seed = 1L) {
   .tr_exp_plano_conferir(plano)
-  do.call(tr_experiments_design, c(plano$receita, list(.seed = .seed)))
+  rec <- plano$receita
+  # Plano salvo antes da versão 4 do nó guarda o param com o nome antigo.
+  if ("alfa" %in% names(rec)) names(rec)[names(rec) == "alfa"] <- "distancia_axial"
+  do.call(tr_experiments_design, c(rec, list(.seed = .seed)))
 }
 
 #' @export
@@ -172,4 +176,17 @@ print.tr_experiments_plan <- function(x, ...) {
   if (!is.null(x$resposta)) cat("resposta", x$resposta$nome, "·", x$resposta$distribuicao, "\n")
   print(x$unidades, ...)
   invisible(x)
+}
+
+# `rotacional`, `face` ou um número positivo (ponto ou vírgula decimal).
+.tr_exp_distancia_axial <- function(x) {
+  x <- trimws(as.character(x))
+  if (length(x) == 1L && x %in% c("rotacional", "face")) return(x)
+  v <- suppressWarnings(as.numeric(sub(",", ".", x, fixed = TRUE)))
+  if (length(v) != 1L || is.na(v) || !is.finite(v) || v <= 0) {
+    .tr_experiments_abort("tr_experiments_error_bad_option",
+                          "'distancia_axial' é 'rotacional', 'face' ou um número positivo, e não '%s'.",
+                          paste(x, collapse = ", "))
+  }
+  v
 }

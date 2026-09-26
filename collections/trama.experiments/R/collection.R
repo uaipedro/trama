@@ -24,6 +24,10 @@ trama_collection <- function() {
       trama::tr_category("exp_analisar", "Analisar", role = "leitura"),
       trama::tr_category("exp_avaliar", "Avaliar", role = "avaliacao")
     ),
-    nodes = nos
+    nodes = nos,
+    # Glossário de params (docs/glossario-parametros.md): `alfa` é nome proibido
+    # (significância/confiança); a distância axial do composto central virou
+    # `distancia_axial` na versão 4 do nó, e fluxos salvos abrem já migrados.
+    migrations = list(params = list("experiments/design" = list(alfa = list(to = "distancia_axial"))))
   )
 }

@@ -4,7 +4,7 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; I <- trama::tr_param_int
   PL <- "experiments/plan"
   list(
-    trama::tr_node("experiments/design", version = 3L, fn = tr_experiments_design, label = "Delineamento",
+    trama::tr_node("experiments/design", version = 4L, fn = tr_experiments_design, label = "Delineamento",
       category = "exp_planejar", icon = trama::tr_icon("grid-3x3"), stochastic = TRUE,
       description = "Declara o delineamento (fatores, blocos, unidades) e sorteia a alocação.",
       inputs = list(), outputs = list(out = PL),
@@ -16,7 +16,8 @@
         delineamento_base = E("dbc", c("dbc", "dic"), label = "Base (fatorial, subdividida, grupos)"),
         confundir = P("text", "", label = "Confundir com blocos", example = "ABC"),
         geradores = P("text", "", label = "Geradores do fracionado", example = "D = ABC"),
-        alfa = E("rotacional", c("rotacional", "face"), label = "α do composto central"),
+        distancia_axial = P("text", "rotacional", label = "Distância axial α (composto central)",
+                            example = "rotacional, face ou 1.5"),
         pontos_centrais = I(4L, min = 0L, max = 50L, label = "Pontos centrais"),
         tamanho_bloco = I(3L, min = 2L, max = 100L, label = "Parcelas por bloco (BIB)"),
         tempos = P("text", "", label = "Tempos (medidas repetidas)", example = "0, 30, 60, 90"),
@@ -68,7 +69,8 @@ As estruturas, e como cada uma sorteia:
   **Geradores**, a fração 2^(k−p) que eles definem, que precisa ter
   resolução V ou mais (com 5 fatores, `E = ABCD` dá 16 pontos em vez de 32).
   α rotacional = n_F^(1/4), com n_F os pontos da porção fatorial (2 com
-  n_F = 16), ou 1 (face). Escala codificada; a ordem das corridas é sorteada.
+  n_F = 16), 1 (face) ou o número dado em **Distância axial**. Escala
+  codificada; a ordem das corridas é sorteada.
 - **parcela_subdividida** — o 1º fator na parcela, sorteado no bloco (ou entre
   todas as parcelas, com Base `dic`); o 2º na subparcela, sorteado DENTRO de
   cada parcela: dois estágios, dois erros.
@@ -133,7 +135,9 @@ t ≥ 7 (aproximadamente uniforme).
 - **Confundir com blocos** — efeitos em letras, `ABC` ou `ABC; ABD`.
 - **Geradores do fracionado** — `D = ABC; E = -ABD`. No composto central,
   definem a fração da porção fatorial (resolução V ou mais).
-- **α do composto central**, **Pontos centrais**.
+- **Distância axial α (composto central)** — `rotacional` (n_F^(1/4)), `face`
+  (1) ou um número positivo (`1.5`).
+- **Pontos centrais**.
 - **Parcelas por bloco (BIB)** — k.
 - **Tempos (medidas repetidas)** — `0, 30, 60`.
 - **Locais (grupos)**.

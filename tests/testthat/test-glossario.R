@@ -46,8 +46,7 @@ excecoes <- c(
   "models/anova_dql: coluna",     # fator coluna do quadrado latino
   "models/chisq: coluna",         # variável nas colunas da tabela de contingência
   "models/fisher_exact: coluna",  # idem
-  "sampling/proportion: nivel",   # categoria da variável, não nível de confiança
-  "experiments/design: alfa"      # distância axial do composto central, não significância
+  "sampling/proportion: nivel"    # categoria da variável, não nível de confiança
 )
 
 violacoes_glossario <- function(nos) {

@@ -128,7 +128,7 @@ test_that("composto central: pontos iguais aos do rsm::ccd (rotacional e face)",
   skip_if_not_installed("rsm")
   for (k in 2:3) for (tipo in c("rotacional", "face")) {
     nomes <- paste0("x", seq_len(k))
-    p <- ds("composto_central", paste(nomes, collapse = "; "), alfa = tipo, pontos_centrais = 3L)
+    p <- ds("composto_central", paste(nomes, collapse = "; "), distancia_axial = tipo, pontos_centrais = 3L)
     o <- as.data.frame(rsm::ccd(k, n0 = c(3, 0), alpha = if (tipo == "face") "faces" else "rotatable",
                                 randomize = FALSE, oneblock = TRUE))
     chave <- function(d) sort(apply(round(as.matrix(d[nomes]), 10), 1, paste, collapse = ","))
@@ -136,6 +136,31 @@ test_that("composto central: pontos iguais aos do rsm::ccd (rotacional e face)",
   }
   p <- ds("composto_central", "x1; x2")
   expect_equal(p$extras$alfa, sqrt(2), tolerance = 1e-12)
+})
+
+test_that("composto central: distância axial numérica, recusa e plano antigo com `alfa`", {
+  p <- ds("composto_central", "x1; x2", distancia_axial = "1.5", pontos_centrais = 2L)
+  expect_equal(p$extras$alfa, 1.5)
+  expect_equal(p$extras$tipo_alfa, "dado")
+  expect_equal(sort(unique(abs(p$unidades$x1))), c(0, 1, 1.5))
+  expect_equal(ds("composto_central", "x1; x2", distancia_axial = "1,5")$extras$alfa, 1.5)
+  for (ruim in c("0", "-1", "rotatable", "")) {
+    expect_error(ds("composto_central", "x1; x2", distancia_axial = ruim), class = "tr_experiments_error_bad_option")
+  }
+  # Plano salvo antes da versão 4 guarda `alfa` na receita: o re-sorteio lê.
+  velho <- p
+  names(velho$receita)[names(velho$receita) == "distancia_axial"] <- "alfa"
+  expect_equal(tr_experiments_randomize(velho, .seed = 3L)$extras$alfa, 1.5)
+})
+
+test_that("migração: fluxo salvo com `alfa` abre com `distancia_axial`", {
+  reg <- experiments_registry()
+  doc <- trama::tr_flow_doc(trama::tr_flow(reg) |>
+    trama::tr_add("p", "experiments/design", estrutura = "composto_central", fatores = "x1; x2"))
+  doc$nodes$p$params$alfa <- "face"
+  m <- trama::tr_doc_migrate(doc, registry = reg)
+  expect_equal(m$nodes$p$params$distancia_axial, "face")
+  expect_null(m$nodes$p$params$alfa)
 })
 
 test_that("composto central com porção fatorial fracionada (k = 5, E = ABCD) igual ao rsm::ccd", {

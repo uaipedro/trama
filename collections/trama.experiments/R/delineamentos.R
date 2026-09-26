@@ -423,7 +423,9 @@
     nf <- 2L^k
     cubo <- sapply(seq_len(k), function(j) ifelse(((seq_len(nf) - 1L) %/% 2L^(j - 1L)) %% 2L == 0L, -1, 1))
   }
-  alfa <- if (s$alfa == "rotacional") nf^(1 / 4) else 1
+  da <- s$distancia_axial
+  alfa <- if (is.numeric(da)) da else if (da == "rotacional") nf^(1 / 4) else 1
+  tipo_alfa <- if (is.numeric(da)) "dado" else da
   axial <- matrix(0, 2L * k, k)
   for (j in seq_len(k)) axial[2L * j - 1L, j] <- -alfa; for (j in seq_len(k)) axial[2L * j, j] <- alfa
   centro <- matrix(0, s$pontos_centrais, k)
@@ -446,12 +448,12 @@
        posicoes = .tr_exp_grade_auto(N, s$colunas_grade), eixos = c("ordem de execução", "ordem de execução"),
        tipo_geo = "sequencia",
        analise = list(no = "models/lm", params = list(formula = formula)), avisos = avisos,
-       extras = list(alfa = alfa, tipo_alfa = s$alfa, n_fatorial = nf, n_axial = 2L * k,
+       extras = list(alfa = alfa, tipo_alfa = tipo_alfa, n_fatorial = nf, n_axial = 2L * k,
                      n_central = s$pontos_centrais,
                      relacao_definicao = if (!is.null(fr)) fr$relacao, resolucao = if (!is.null(fr)) fr$resolucao),
        rotulo = sprintf("Composto central · %d fatores%s, α = %s (%s), %d centrais", k,
                         if (!is.null(fr)) sprintf(", fatorial 2^(%d−%d)", k, fr$p) else "",
-                        format(signif(alfa, 4)), s$alfa, s$pontos_centrais))
+                        format(signif(alfa, 4)), tipo_alfa, s$pontos_centrais))
 }
 
 # ---- parcelas subdivididas ----------------------------------------------------
