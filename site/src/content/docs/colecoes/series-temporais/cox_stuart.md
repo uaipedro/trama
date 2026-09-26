@@ -73,6 +73,31 @@ pede pelo menos dezesseis observações: abaixo disso o terço da ponta fica com
 menos de seis pares, e com menos de seis pares nem o resultado mais extremo
 possível alcança o corte de 5% — o teste não teria como rejeitar nunca.
 
+### Série autocorrelacionada: **Correção**
+
+Os pares são tratados como independentes, e com autocorrelação positiva o teste
+rejeita demais. Com **Correção** = `bootstrap_blocos`, o p-valor sai de um
+bootstrap de blocos móveis (Kundzewicz & Robson, 2004): a série é cortada em
+blocos de round(√n) observações seguidas, sorteados com reposição e emendados,
+1999 vezes, e em cada reamostra se refaz a soma dos sinais dos pares, com o
+mesmo pareamento; o p é a fração com soma tão extrema quanto a observada. Usa
+a semente do nó. Medido em série SEM tendência, AR(1), pareamento em terços,
+1000 réplicas por caso, rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     11.1%        4.4%
+0.3   120     8.1%        3.8%
+0.6   60     22.8%        5.5%
+0.6   120    24.7%        6.6%
+```
+
+O nível volta para perto do nominal (um pouco conservador com phi 0,3; 6,6%
+com phi 0,6 e n = 120), e o preço é poder: com uma tendência de 1,8 unidades
+ao longo da série, 41% (phi 0,3, n = 60), 78% (0,3, 120), 24% (0,6, 60) e
+48% (0,6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
+autocorrelação, o `series/mann_kendall` com a mesma correção perde menos.
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
@@ -87,7 +112,9 @@ Teste uma tendência monotônica comparando pares de observações ao longo do t
 **pareamento** — quais observações formam cada par. *Terços* (padrão) compara o
 primeiro terço com o último, descartando o miolo, como no artigo original;
 *metades* pareia cada observação com a que está meia série adiante, como na
-dissertação. Uma entrada: **serie**.
+dissertação. **correcao** — `nenhuma` (padrão) ou `bootstrap_blocos` (p por
+bootstrap de blocos móveis, para série autocorrelacionada). Uma entrada:
+**serie**.
 
 ## Exemplo
 

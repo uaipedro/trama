@@ -2046,7 +2046,9 @@ tr_flow(reg) |>
         description = "Cox-Stuart: a série tem tendência?",
         inputs = list(serie = S), outputs = list(out = TE),
         params = list(
-          pareamento = E("terços", c("terços", "metades"), label = "Pareamento")),
+          pareamento = E("terços", c("terços", "metades"), label = "Pareamento"),
+          correcao = E("nenhuma", c("nenhuma", "bootstrap_blocos"),
+                       label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem TENDÊNCIA por um teste de SINAL: pareia observações
 distantes no tempo e conta quantas vezes a segunda é maior que a primeira. Se
@@ -2110,6 +2112,31 @@ pede pelo menos dezesseis observações: abaixo disso o terço da ponta fica com
 menos de seis pares, e com menos de seis pares nem o resultado mais extremo
 possível alcança o corte de 5% — o teste não teria como rejeitar nunca.
 
+### Série autocorrelacionada: **Correção**
+
+Os pares são tratados como independentes, e com autocorrelação positiva o teste
+rejeita demais. Com **Correção** = `bootstrap_blocos`, o p-valor sai de um
+bootstrap de blocos móveis (Kundzewicz & Robson, 2004): a série é cortada em
+blocos de round(√n) observações seguidas, sorteados com reposição e emendados,
+1999 vezes, e em cada reamostra se refaz a soma dos sinais dos pares, com o
+mesmo pareamento; o p é a fração com soma tão extrema quanto a observada. Usa
+a semente do nó. Medido em série SEM tendência, AR(1), pareamento em terços,
+1000 réplicas por caso, rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     11.1%        4.4%
+0.3   120     8.1%        3.8%
+0.6   60     22.8%        5.5%
+0.6   120    24.7%        6.6%
+```
+
+O nível volta para perto do nominal (um pouco conservador com phi 0,3; 6,6%
+com phi 0,6 e n = 120), e o preço é poder: com uma tendência de 1,8 unidades
+ao longo da série, 41% (phi 0,3, n = 60), 78% (0,3, 120), 24% (0,6, 60) e
+48% (0,6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
+autocorrelação, o `series/mann_kendall` com a mesma correção perde menos.
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
@@ -2118,7 +2145,9 @@ Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligu
 **pareamento** — quais observações formam cada par. *Terços* (padrão) compara o
 primeiro terço com o último, descartando o miolo, como no artigo original;
 *metades* pareia cada observação com a que está meia série adiante, como na
-dissertação. Uma entrada: **serie**.
+dissertação. **correcao** — `nenhuma` (padrão) ou `bootstrap_blocos` (p por
+bootstrap de blocos móveis, para série autocorrelacionada). Uma entrada:
+**serie**.
 ]---", r"---[
 Um teste (`series/test`), com o M e o número de pares em colunas extras. Ligado
 numa entrada de tabela, ele vira UMA linha de relatório: um `data/bind_rows`
@@ -2219,7 +2248,9 @@ jeito a aleatoriedade falhou; `series/ljung_box`, que também pergunta se a sér
         label = "Pettitt",
         category = "serie_tendencia", icon = icone("milestone"),
         description = "Pettitt: a série tem um ponto de mudança?",
-        inputs = list(serie = S), outputs = list(out = TE), params = list(),
+        inputs = list(serie = S), outputs = list(out = TE), params = list(
+          correcao = E("nenhuma", c("nenhuma", "bootstrap_blocos"),
+                       label = "Correção para autocorrelação")),
         help = .tr_series_ajuda(r"---[
 Testa se a série tem um PONTO DE MUDANÇA: um instante a partir do qual ela passou
 a se comportar como outra série. A hipótese nula é a HOMOGENEIDADE — que o trecho
@@ -2279,12 +2310,36 @@ PRIMEIRO deles. Quando isso acontece a `nota` diz quantos empataram: são cortes
 igualmente bons, e ler o número publicado como o único ponto possível seria ler
 mais do que o teste disse.
 
+### Série autocorrelacionada: **Correção**
+
+Autocorrelação positiva imita ponto de mudança: sem correção, em série
+homogênea com AR(1) de seis décimos o teste rejeita em metade das vezes. Com
+**Correção** = `bootstrap_blocos`, o p-valor sai de um bootstrap de blocos
+móveis (Kundzewicz & Robson, 2004): blocos de round(√n) observações seguidas,
+sorteados com reposição e emendados, 1999 vezes; o p é a fração das
+reamostras com K* ≥ K. O ponto de mudança e o K não mudam. Usa a semente do
+nó. Medido em série homogênea, AR(1), 1000 réplicas por caso, rejeição a 5%:
+
+```
+phi   n     nenhuma   bootstrap_blocos
+0.3   60     16.5%        3.5%
+0.3   120    18.1%        4.6%
+0.6   60     45.5%        8.7%
+0.6   120    54.8%        7.8%
+```
+
+Com autocorrelação moderada o nível é o nominal; com phi de seis décimos
+fica em 8% a 9%, longe dos 50% sem correção mas acima dos 5% — um "rejeita"
+apertado aí pede cautela. Poder, com um degrau de 1,5 no meio da série: 89%
+(phi 0,3, n = 60), 100% (0,3, 120), 59% (0,6, 60) e 86% (0,6, 120).
+
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue um
 `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
-Nenhum. Uma entrada: **serie**.
+**correcao** — `nenhuma` (padrão) ou `bootstrap_blocos` (p por bootstrap de
+blocos móveis, para série autocorrelacionada). Uma entrada: **serie**.
 ]---", r"---[
 Um teste (`series/test`), com a posição do ponto de mudança e o rótulo do período
 em colunas extras. Ligado numa entrada de tabela, ele vira UMA linha de

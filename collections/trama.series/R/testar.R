@@ -828,8 +828,9 @@ tr_series_mann_kendall <- function(serie, correcao = "nenhuma", .seed = NULL) {
 #' cada um com contraste menor. O param não é cosmético: os dois caminhos dão
 #' estatísticas diferentes na mesma série, e é por isso que a escolha vai na nota.
 #' @export
-tr_series_cox_stuart <- function(serie, pareamento = "terços") {
+tr_series_cox_stuart <- function(serie, pareamento = "terços", correcao = "nenhuma", .seed = NULL) {
   par <- .tr_series_enum(pareamento, c("terços", "metades"), "pareamento")
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "bootstrap_blocos"), "correcao")
   .tr_series_sem_na(serie, "series/cox_stuart")
   # Dezesseis, e não os dez do Mann-Kendall: aqui quem manda não é o tamanho da
   # série, é quantos PARES sobram depois do descarte. Em terços, dezesseis
@@ -890,6 +891,20 @@ tr_series_cox_stuart <- function(serie, pareamento = "terços") {
   # o k, que é o que explica um M pequeno numa série grande.
   nota <- sprintf("pareamento em %s: %d pares, %s", par, k,
                   if (exata) "binomial exata" else "aproximação normal")
+  if (correcao == "bootstrap_blocos") {
+    # A estatística reamostrada é a soma dos sinais dos pares, D = 2M − k (par
+    # empatado soma zero, o mesmo descarte), com o MESMO pareamento.
+    dsinal <- function(z) {
+      aa <- z[seq_len(c0)]
+      bb2 <- if (par == "terços") z[(n - c0 + 1L):n] else z[(c0 + 1L):(2L * c0)]
+      sum(sign(bb2 - aa))
+    }
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    bb <- .tr_series_boot_blocos(x, dsinal, seed = semente)
+    p <- bb$p
+    nota <- sprintf("%s; p por bootstrap de blocos móveis (%d reamostras, blocos de %d, semente do nó) no lugar da %s",
+                    nota, bb$B, bb$l, if (exata) "binomial" else "normal")
+  }
   if (descartados > 0L) {
     nota <- sprintf("%s; %d par%s empatado%s descartado%s", nota, descartados,
                     if (descartados == 1L) "" else "es", if (descartados == 1L) "" else "s",
@@ -1003,7 +1018,8 @@ tr_series_runs <- function(serie) {
 #' daqui é o lugar mais fácil da coleção para um copiar-colar mentir: ela nomeia
 #' QUANDO a série mudou e cala sobre direção, de propósito.
 #' @export
-tr_series_pettitt <- function(serie) {
+tr_series_pettitt <- function(serie, correcao = "nenhuma", .seed = NULL) {
+  correcao <- .tr_series_enum(correcao, c("nenhuma", "bootstrap_blocos"), "correcao")
   .tr_series_sem_na(serie, "series/pettitt")
   # Onze, e não os dez do Mann-Kendall, e o número foi MEDIDO, não escolhido: com
   # dez observações o maior K possível é 25 — a série monotônica, conferida por
@@ -1024,6 +1040,12 @@ tr_series_pettitt <- function(serie) {
   # Eq. 3.11. O `min(1, )` não é cosmético: a aproximação PASSA de 1 em série
   # curta e homogênea, e um p-valor de 1,4 sairia do card como se fosse número.
   p <- min(1, 2 * exp(-6 * K^2 / (n^3 + n^2)))
+  if (correcao == "bootstrap_blocos") {
+    kpet <- function(z) max(abs(cumsum(rowSums(sign(outer(z, z, "-"))))))
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    bb <- .tr_series_boot_blocos(x, kpet, seed = semente)
+    p <- bb$p
+  }
   quando <- .tr_series_rotulo_em(serie, ponto)
   # Numa série sem calendário — vetor cru, ou `ts` que começa em 1 — o rótulo é o
   # próprio índice, e "observação 30 (30)" é ruído que ensina a ignorar o
@@ -1043,7 +1065,10 @@ tr_series_pettitt <- function(serie) {
     nota <- sprintf("%s; %d cortes empatam no mesmo K máximo, e o reportado é o primeiro deles",
                     nota, empatados)
   }
-  if (p >= 1) {
+  if (correcao == "bootstrap_blocos") {
+    nota <- sprintf("%s; p por bootstrap de blocos móveis (%d reamostras, blocos de %d, semente do nó)",
+                    nota, bb$B, bb$l)
+  } else if (p >= 1) {
     # Sem esta ressalva, um p-valor preso no teto sai do card como "p = 1", que
     # se lê como certeza de homogeneidade — e é só a aproximação estourando.
     nota <- paste0(nota, "; p-valor aproximado preso em 1 (a fórmula passa de 1 ",

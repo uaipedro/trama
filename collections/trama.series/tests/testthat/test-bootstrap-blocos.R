@@ -43,6 +43,18 @@ test_that("Mann-Kendall bootstrap_blocos = bootstrap à mão com a mesma semente
                          tr_series_mann_kendall(x, correcao = "bootstrap_blocos", .seed = 7L)$p_valor))
 })
 
+test_that("Cox-Stuart e Pettitt bootstrap_blocos = bootstrap à mão com a mesma semente", {
+  x <- serie_ar(5, 72, 0.6, 0.02)
+  expect_identical(tr_series_cox_stuart(x, correcao = "bootstrap_blocos", .seed = 9L)$p_valor,
+                   boot_mao(as.numeric(x), d_cs, 9L))
+  expect_identical(tr_series_pettitt(x, correcao = "bootstrap_blocos", .seed = 9L)$p_valor,
+                   boot_mao(as.numeric(x), k_pet, 9L))
+  # A estatística e o ponto não mudam; só o p.
+  expect_equal(tr_series_pettitt(x, correcao = "bootstrap_blocos", .seed = 9L)$extra$ponto_de_mudanca,
+               tr_series_pettitt(x)$extra$ponto_de_mudanca)
+  expect_error(tr_series_pettitt(x, correcao = "hamed_rao"), class = "tr_series_error_bad_option")
+})
+
 test_that("o bootstrap não mexe no RNG de quem chama", {
   set.seed(123); a <- stats::runif(1)
   set.seed(123); invisible(tr_series_mann_kendall(serie_ar(1, 40, 0.5), correcao = "bootstrap_blocos"))

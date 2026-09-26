@@ -2,6 +2,20 @@
 
 ## Rigor metodológico (fase 3, revisão)
 
+- `series/cox_stuart` e `series/pettitt`: nova `correcao =
+  "bootstrap_blocos"` (padrão `nenhuma`, sem mudança), o mesmo bootstrap de
+  blocos móveis do `series/mann_kendall` (blocos de round(√n), 1999
+  reamostras, semente do nó) sobre a soma dos sinais dos pares (Cox-Stuart,
+  mesmo pareamento) e sobre K (Pettitt; ponto de mudança inalterado).
+  Oráculo da mecânica: bootstrap à mão com a mesma semente, igual
+  exatamente. Medido sem tendência/ruptura, AR(1), 1000 réplicas por caso,
+  rejeição a 5% (nenhuma → bootstrap), n = 60 / 120: Cox-Stuart phi 0,3:
+  11,1 → 4,4% / 8,1 → 3,8%; phi 0,6: 22,8 → 5,5% / 24,7 → 6,6%. Pettitt phi
+  0,3: 16,5 → 3,5% / 18,1 → 4,6%; phi 0,6: 45,5 → 8,7% / 54,8 → 7,8%. Poder:
+  Cox-Stuart (tendência 1,8) 41 / 78% (phi 0,3), 24 / 48% (0,6); Pettitt
+  (degrau 1,5) 89 / 100% (0,3), 59 / 86% (0,6). Com phi = 0,6 o Pettitt fica
+  acima do nominal — documentado.
+
 - `series/mann_kendall` (`pre_branqueamento`): regra de Yue et al. (2002)
   conferida no texto (Hydrol. Process. 16:1807-1829, p. 1822-1823): o AR(1)
   é removido sempre, sem condição de significância — o teste do r1 (eq. B.1,
