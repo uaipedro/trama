@@ -35,16 +35,6 @@ Devolve:
 Na parcela subdividida, o perfil é o do modelo de efeitos fixos com bloco ×
 parcela como fator (o que dá os resíduos do erro b).
 
-## Pressupostos
-
-- Resposta estritamente positiva: y^λ não é definido para y ≤ 0. Se houver
-  zeros, some uma constante antes (`data/mutate`) e registre isso.
-- Existe uma potência que normaliza e estabiliza a variância ao mesmo tempo — o
-  método escolhe o λ pela verossimilhança normal; confira os resíduos do modelo
-  transformado (`models/shapiro_residuals`, `models/levene`) depois.
-- A transformação muda a escala da interpretação: as médias transformadas de
-  volta são medianas, não médias, na escala original.
-
 ## Parâmetros
 
 - **λ mínimo**, **λ máximo**, **Passo** — a grade do perfil; o padrão, −2 a 2
@@ -68,15 +58,6 @@ tr_flow(reg) |>
          from = "fios") |>
   tr_add("bc", "experiments/boxcox", from = "fat")
 ```
-
-## Referências
-
-- Box, G. E. P. & Cox, D. R. (1964). An analysis of transformations. *Journal of
-  the Royal Statistical Society, Series B*, 26(2), 211–243 (com a discussão,
-  até 252). doi:10.1111/j.2517-6161.1964.tb00553.x. (Os dados de venenos e
-  tratamentos, `boot::poisons`, são deste artigo e estão nos testes.)
-- Venables, W. N. & Ripley, B. D. (2002). *Modern Applied Statistics with S*,
-  4th ed. Springer. (`MASS::boxcox`.)
 
 ## Veja também
 

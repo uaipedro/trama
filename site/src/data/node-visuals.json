@@ -143,7 +143,14 @@
         "kind": "enum",
         "label": "Para",
         "default": "numero",
-        "choices": ["numero", "inteiro", "texto", "data", "fator", "logico"]
+        "choices": [
+          "numero",
+          "inteiro",
+          "texto",
+          "data",
+          "fator",
+          "logico"
+        ]
       },
       {
         "name": "format",
@@ -157,7 +164,10 @@
         "kind": "enum",
         "label": "Decimal",
         "default": ".",
-        "choices": [".", ","]
+        "choices": [
+          ".",
+          ","
+        ]
       }
     ],
     "icon": "arrow-right-left"
@@ -263,7 +273,54 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "mtcars",
-        "choices": ["airquality", "anscombe", "attenu", "attitude", "beaver1", "beaver2", "BOD", "cars", "ChickWeight", "chickwts", "CO2", "DNase", "esoph", "faithful", "Formaldehyde", "freeny", "Indometh", "infert", "InsectSprays", "iris", "LifeCycleSavings", "Loblolly", "longley", "morley", "mtcars", "npk", "Orange", "OrchardSprays", "penguins", "penguins_raw", "PlantGrowth", "pressure", "Puromycin", "quakes", "randu", "rock", "sleep", "stackloss", "swiss", "Theoph", "ToothGrowth", "trees", "USArrests", "USJudgeRatings", "warpbreaks", "women"]
+        "choices": [
+          "airquality",
+          "anscombe",
+          "attenu",
+          "attitude",
+          "beaver1",
+          "beaver2",
+          "BOD",
+          "cars",
+          "ChickWeight",
+          "chickwts",
+          "CO2",
+          "DNase",
+          "esoph",
+          "faithful",
+          "Formaldehyde",
+          "freeny",
+          "Indometh",
+          "infert",
+          "InsectSprays",
+          "iris",
+          "LifeCycleSavings",
+          "Loblolly",
+          "longley",
+          "morley",
+          "mtcars",
+          "npk",
+          "Orange",
+          "OrchardSprays",
+          "penguins",
+          "penguins_raw",
+          "PlantGrowth",
+          "pressure",
+          "Puromycin",
+          "quakes",
+          "randu",
+          "rock",
+          "sleep",
+          "stackloss",
+          "swiss",
+          "Theoph",
+          "ToothGrowth",
+          "trees",
+          "USArrests",
+          "USJudgeRatings",
+          "warpbreaks",
+          "women"
+        ]
       }
     ],
     "icon": "flask-conical"
@@ -522,7 +579,13 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "inner",
-        "choices": ["inner", "left", "right", "full", "anti"]
+        "choices": [
+          "inner",
+          "left",
+          "right",
+          "full",
+          "anti"
+        ]
       }
     ],
     "icon": "combine"
@@ -715,7 +778,12 @@
         "kind": "enum",
         "label": "Separador",
         "default": ",",
-        "choices": [",", ";", "\t", "|"]
+        "choices": [
+          ",",
+          ";",
+          "\t",
+          "|"
+        ]
       },
       {
         "name": "na",
@@ -915,7 +983,10 @@
         "kind": "enum",
         "label": "Faixa fechada à",
         "default": "direita",
-        "choices": ["direita", "esquerda"]
+        "choices": [
+          "direita",
+          "esquerda"
+        ]
       },
       {
         "name": "nome",
@@ -960,7 +1031,11 @@
         "kind": "enum",
         "label": "O quê",
         "default": "ambos",
-        "choices": ["linhas", "colunas", "ambos"]
+        "choices": [
+          "linhas",
+          "colunas",
+          "ambos"
+        ]
       }
     ],
     "icon": "eraser"
@@ -1510,190 +1585,17 @@
     "icon": "archive"
   },
   "experiments/boxcox": {
-    "accent": "#d3e9de",
+    "accent": "#31765a",
     "hasInput": true,
     "hasOutput": true,
     "label": "Box-Cox",
-    "category": "exp_analisar",
-    "categoryLabel": "Analisar",
-    "categoryOrder": 55,
-    "inputColor": "#14b8a6",
-    "outputColor": "#f472b6",
-    "role": "leitura",
-    "inputs": [
-      {
-        "name": "modelo",
-        "color": "#14b8a6",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#f472b6",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "resumo",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "perfil",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "lambda_min",
-        "kind": "number",
-        "label": "λ mínimo",
-        "default": -2
-      },
-      {
-        "name": "lambda_max",
-        "kind": "number",
-        "label": "λ máximo",
-        "default": 2
-      },
-      {
-        "name": "passo",
-        "kind": "number",
-        "label": "Passo",
-        "default": 0.1
-      },
-      {
-        "name": "confianca",
-        "kind": "number",
-        "label": "Confiança",
-        "default": 0.95
-      },
-      {
-        "name": "aspecto",
-        "kind": "enum",
-        "label": "Proporção",
-        "default": "4:3",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
-      },
-      {
-        "name": "tema",
-        "kind": "theme",
-        "label": "Tema",
-        "default": "padrão"
-      },
-      {
-        "name": "titulo",
-        "kind": "text",
-        "label": "Título",
-        "default": "",
-        "example": "Receita por região"
-      },
-      {
-        "name": "rotulo_x",
-        "kind": "text",
-        "label": "Rótulo do X",
-        "default": "",
-        "example": "Região"
-      },
-      {
-        "name": "rotulo_y",
-        "kind": "text",
-        "label": "Rótulo do Y",
-        "default": "",
-        "example": "Receita (R$)"
-      },
-      {
-        "name": "legenda",
-        "kind": "enum",
-        "label": "Legenda",
-        "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
-      }
-    ],
     "icon": "chart-line"
   },
   "experiments/contrasts": {
-    "accent": "#d3e9de",
+    "accent": "#31765a",
     "hasInput": true,
     "hasOutput": true,
     "label": "Contrastes",
-    "category": "exp_analisar",
-    "categoryLabel": "Analisar",
-    "categoryOrder": 55,
-    "inputColor": "#14b8a6",
-    "outputColor": "#eab308",
-    "role": "leitura",
-    "inputs": [
-      {
-        "name": "modelo",
-        "color": "#14b8a6",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#eab308",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "ortogonalidade",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "fator",
-        "kind": "cols",
-        "label": "Fator",
-        "default": "",
-        "example": "nitrogenio"
-      },
-      {
-        "name": "conjunto",
-        "kind": "enum",
-        "label": "Conjunto",
-        "default": "polinomiais",
-        "choices": ["polinomiais", "helmert", "controle", "fatorial 2^k", "digitados"]
-      },
-      {
-        "name": "contrastes",
-        "kind": "expr",
-        "label": "Contrastes (digitados)",
-        "default": "",
-        "example": "ctrl vs trat: 2 -1 -1; trt1 vs trt2: trt1 - trt2"
-      },
-      {
-        "name": "controle",
-        "kind": "text",
-        "label": "Controle",
-        "default": "",
-        "example": "ctrl"
-      },
-      {
-        "name": "doses",
-        "kind": "text",
-        "label": "Doses (valores dos níveis)",
-        "default": "",
-        "example": "0 30 60 120"
-      },
-      {
-        "name": "dentro",
-        "kind": "cols",
-        "label": "Dentro de (desdobrar)",
-        "default": "",
-        "example": "variedade"
-      }
-    ],
     "icon": "divide"
   },
   "experiments/design": {
@@ -1701,108 +1603,6 @@
     "hasInput": false,
     "hasOutput": true,
     "label": "Delineamento",
-    "category": "exp_planejar",
-    "categoryLabel": "Planejar",
-    "categoryOrder": 54,
-    "outputColor": "#65a30d",
-    "role": "preparacao",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "estrutura",
-        "kind": "enum",
-        "label": "Estrutura",
-        "default": "dbc",
-        "choices": ["dic", "dbc", "dql", "fatorial", "confundimento", "fracionado", "composto_central", "parcela_subdividida", "faixas", "bib", "medidas_repetidas", "crossover", "grupos"]
-      },
-      {
-        "name": "fatores",
-        "kind": "text",
-        "label": "Fatores",
-        "default": "tratamento: A, B, C, D",
-        "example": "irrigacao: baixa, alta; variedade: A, B, C"
-      },
-      {
-        "name": "repeticoes",
-        "kind": "integer",
-        "label": "Repetições (0 = padrão)",
-        "default": 0
-      },
-      {
-        "name": "delineamento_base",
-        "kind": "enum",
-        "label": "Base (fatorial, subdividida, grupos)",
-        "default": "dbc",
-        "choices": ["dbc", "dic"]
-      },
-      {
-        "name": "confundir",
-        "kind": "text",
-        "label": "Confundir com blocos",
-        "default": "",
-        "example": "ABC"
-      },
-      {
-        "name": "geradores",
-        "kind": "text",
-        "label": "Geradores do fracionado",
-        "default": "",
-        "example": "D = ABC"
-      },
-      {
-        "name": "distancia_axial",
-        "kind": "text",
-        "label": "Distância axial α (composto central)",
-        "default": "rotacional",
-        "example": "rotacional, face ou 1.5"
-      },
-      {
-        "name": "pontos_centrais",
-        "kind": "integer",
-        "label": "Pontos centrais",
-        "default": 4
-      },
-      {
-        "name": "tamanho_bloco",
-        "kind": "integer",
-        "label": "Parcelas por bloco (BIB)",
-        "default": 3
-      },
-      {
-        "name": "tempos",
-        "kind": "text",
-        "label": "Tempos (medidas repetidas)",
-        "default": "",
-        "example": "0, 30, 60, 90"
-      },
-      {
-        "name": "locais",
-        "kind": "integer",
-        "label": "Locais (grupos)",
-        "default": 3
-      },
-      {
-        "name": "colunas_grade",
-        "kind": "integer",
-        "label": "Colunas da grade (0 = automática)",
-        "default": 0
-      },
-      {
-        "name": "covariaveis",
-        "kind": "text",
-        "label": "Covariáveis observadas",
-        "default": "",
-        "example": "peso_inicial"
-      }
-    ],
     "icon": "grid-3x3"
   },
   "experiments/effect": {
@@ -1810,124 +1610,6 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Efeito",
-    "category": "exp_planejar",
-    "categoryLabel": "Planejar",
-    "categoryOrder": 54,
-    "inputColor": "#65a30d",
-    "outputColor": "#65a30d",
-    "role": "preparacao",
-    "inputs": [
-      {
-        "name": "plano",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "tipo",
-        "kind": "enum",
-        "label": "Tipo",
-        "default": "intercepto",
-        "choices": ["intercepto", "fixo", "aleatorio", "interacao", "quantitativo", "covariavel"]
-      },
-      {
-        "name": "fator",
-        "kind": "text",
-        "label": "Fator(es)",
-        "default": "",
-        "example": "bloco:parcela"
-      },
-      {
-        "name": "valor",
-        "kind": "number",
-        "label": "Valor (intercepto)",
-        "default": 0
-      },
-      {
-        "name": "efeitos",
-        "kind": "text",
-        "label": "Efeitos por nível ou célula",
-        "default": "",
-        "example": "baixa = 0, alta = 2"
-      },
-      {
-        "name": "conjunto",
-        "kind": "enum",
-        "label": "Declarar por",
-        "default": "por nível",
-        "choices": ["por nível", "polinomiais", "helmert", "controle", "digitados"]
-      },
-      {
-        "name": "magnitudes",
-        "kind": "text",
-        "label": "Magnitudes dos contrastes",
-        "default": "",
-        "example": "linear = 4, quadratico = 1, cubico = 0"
-      },
-      {
-        "name": "doses",
-        "kind": "text",
-        "label": "Doses (valores dos níveis)",
-        "default": "",
-        "example": "0, 50, 100, 150"
-      },
-      {
-        "name": "controle",
-        "kind": "text",
-        "label": "Controle",
-        "default": "",
-        "example": "testemunha"
-      },
-      {
-        "name": "contrastes",
-        "kind": "expr",
-        "label": "Contrastes (digitados)",
-        "default": "",
-        "example": "A vs B: A - B"
-      },
-      {
-        "name": "sd",
-        "kind": "number",
-        "label": "Desvio-padrão (aleatório; covariável gerada)",
-        "default": 1
-      },
-      {
-        "name": "coeficientes",
-        "kind": "text",
-        "label": "Coeficientes (quantitativo)",
-        "default": "",
-        "example": "0.5, -0.02"
-      },
-      {
-        "name": "inclinacao",
-        "kind": "number",
-        "label": "Inclinação (covariável)",
-        "default": 0
-      },
-      {
-        "name": "media",
-        "kind": "number",
-        "label": "Média (covariável)",
-        "default": 0
-      },
-      {
-        "name": "nome",
-        "kind": "text",
-        "label": "Nome do termo",
-        "default": "",
-        "example": "erro_parcela"
-      }
-    ],
     "icon": "plus"
   },
   "experiments/error": {
@@ -1935,106 +1617,6 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Erro",
-    "category": "exp_planejar",
-    "categoryLabel": "Planejar",
-    "categoryOrder": 54,
-    "inputColor": "#65a30d",
-    "outputColor": "#65a30d",
-    "role": "preparacao",
-    "inputs": [
-      {
-        "name": "plano",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "resposta",
-        "kind": "text",
-        "label": "Resposta",
-        "default": "y"
-      },
-      {
-        "name": "distribuicao",
-        "kind": "enum",
-        "label": "Distribuição",
-        "default": "normal",
-        "choices": ["normal", "poisson", "binomial", "gama"]
-      },
-      {
-        "name": "sd",
-        "kind": "number",
-        "label": "Desvio-padrão (normal)",
-        "default": 1
-      },
-      {
-        "name": "sd_por",
-        "kind": "text",
-        "label": "sd por nível de",
-        "default": "",
-        "example": "irrigacao"
-      },
-      {
-        "name": "sds",
-        "kind": "text",
-        "label": "sd de cada nível",
-        "default": "",
-        "example": "baixa = 1, alta = 3"
-      },
-      {
-        "name": "ensaios",
-        "kind": "integer",
-        "label": "Ensaios (binomial)",
-        "default": 10
-      },
-      {
-        "name": "forma",
-        "kind": "number",
-        "label": "Forma (gama)",
-        "default": 2
-      },
-      {
-        "name": "correlacao",
-        "kind": "enum",
-        "label": "Correlação no indivíduo",
-        "default": "independente",
-        "choices": ["independente", "simetria_composta", "ar1"]
-      },
-      {
-        "name": "rho",
-        "kind": "number",
-        "label": "ρ",
-        "default": 0.5
-      },
-      {
-        "name": "caudas_gl",
-        "kind": "number",
-        "label": "Caudas pesadas: gl da t (0 = não)",
-        "default": 0
-      },
-      {
-        "name": "assimetria",
-        "kind": "number",
-        "label": "Assimetria (0 = não)",
-        "default": 0
-      },
-      {
-        "name": "perdidas",
-        "kind": "number",
-        "label": "Proporção perdida",
-        "default": 0
-      }
-    ],
     "icon": "sigma"
   },
   "experiments/power": {
@@ -2042,158 +1624,6 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Poder",
-    "category": "exp_avaliar",
-    "categoryLabel": "Avaliar",
-    "categoryOrder": 56,
-    "inputColor": "#65a30d",
-    "outputColor": "#f472b6",
-    "role": "avaliacao",
-    "inputs": [
-      {
-        "name": "plano",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#f472b6",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "tabela",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "analise",
-        "kind": "text",
-        "label": "Análise (nó de models)",
-        "default": "",
-        "example": "models/anova_factorial"
-      },
-      {
-        "name": "parametros",
-        "kind": "text",
-        "label": "Params da análise",
-        "default": "",
-        "example": "fatores = irrigacao, variedade; bloco = bloco"
-      },
-      {
-        "name": "termo",
-        "kind": "text",
-        "label": "Termo testado",
-        "default": "",
-        "example": "irrigacao"
-      },
-      {
-        "name": "conjunto",
-        "kind": "enum",
-        "label": "Contraste: conjunto",
-        "default": "nenhum",
-        "choices": ["nenhum", "polinomiais", "helmert", "controle", "digitados"]
-      },
-      {
-        "name": "contraste",
-        "kind": "text",
-        "label": "Contraste: linha",
-        "default": "",
-        "example": "linear"
-      },
-      {
-        "name": "contrastes",
-        "kind": "expr",
-        "label": "Contrastes (digitados)",
-        "default": "",
-        "example": "A vs B: A - B"
-      },
-      {
-        "name": "controle",
-        "kind": "text",
-        "label": "Controle",
-        "default": "",
-        "example": "testemunha"
-      },
-      {
-        "name": "doses",
-        "kind": "text",
-        "label": "Doses (valores dos níveis)",
-        "default": "",
-        "example": "0 50 100 150"
-      },
-      {
-        "name": "replicas",
-        "kind": "integer",
-        "label": "Réplicas",
-        "default": 200
-      },
-      {
-        "name": "significancia",
-        "kind": "number",
-        "label": "Significância (α)",
-        "default": 0.05
-      },
-      {
-        "name": "confianca",
-        "kind": "number",
-        "label": "Confiança do IC",
-        "default": 0.95
-      },
-      {
-        "name": "repeticoes",
-        "kind": "text",
-        "label": "Grade de repetições",
-        "default": "",
-        "example": "3, 4, 6, 8"
-      },
-      {
-        "name": "aspecto",
-        "kind": "enum",
-        "label": "Proporção",
-        "default": "4:3",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
-      },
-      {
-        "name": "tema",
-        "kind": "theme",
-        "label": "Tema",
-        "default": "padrão"
-      },
-      {
-        "name": "titulo",
-        "kind": "text",
-        "label": "Título",
-        "default": "",
-        "example": "Receita por região"
-      },
-      {
-        "name": "rotulo_x",
-        "kind": "text",
-        "label": "Rótulo do X",
-        "default": "",
-        "example": "Região"
-      },
-      {
-        "name": "rotulo_y",
-        "kind": "text",
-        "label": "Rótulo do Y",
-        "default": "",
-        "example": "Receita (R$)"
-      },
-      {
-        "name": "legenda",
-        "kind": "enum",
-        "label": "Legenda",
-        "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
-      }
-    ],
     "icon": "gauge"
   },
   "experiments/randomization_test": {
@@ -2201,165 +1631,6 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Teste de aleatorização",
-    "category": "exp_avaliar",
-    "categoryLabel": "Avaliar",
-    "categoryOrder": 56,
-    "inputColor": "#65a30d",
-    "outputColor": "#f472b6",
-    "role": "avaliacao",
-    "inputs": [
-      {
-        "name": "plano",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "dados",
-        "color": "#38bdf8",
-        "required": false,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#f472b6",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "tabela",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "distribuicao",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "resposta",
-        "kind": "text",
-        "label": "Resposta",
-        "default": "",
-        "example": "y"
-      },
-      {
-        "name": "analise",
-        "kind": "text",
-        "label": "Análise (nó de models)",
-        "default": "",
-        "example": "models/anova_factorial"
-      },
-      {
-        "name": "parametros",
-        "kind": "text",
-        "label": "Params da análise",
-        "default": "",
-        "example": "fatores = irrigacao, variedade; bloco = bloco"
-      },
-      {
-        "name": "termo",
-        "kind": "text",
-        "label": "Termo testado",
-        "default": "",
-        "example": "irrigacao"
-      },
-      {
-        "name": "conjunto",
-        "kind": "enum",
-        "label": "Contraste: conjunto",
-        "default": "nenhum",
-        "choices": ["nenhum", "polinomiais", "helmert", "controle", "digitados"]
-      },
-      {
-        "name": "contraste",
-        "kind": "text",
-        "label": "Contraste: linha",
-        "default": "",
-        "example": "linear"
-      },
-      {
-        "name": "contrastes",
-        "kind": "expr",
-        "label": "Contrastes (digitados)",
-        "default": "",
-        "example": "A vs B: A - B"
-      },
-      {
-        "name": "controle",
-        "kind": "text",
-        "label": "Controle",
-        "default": "",
-        "example": "testemunha"
-      },
-      {
-        "name": "doses",
-        "kind": "text",
-        "label": "Doses (valores dos níveis)",
-        "default": "",
-        "example": "0 50 100 150"
-      },
-      {
-        "name": "replicas",
-        "kind": "integer",
-        "label": "Re-sorteios",
-        "default": 999
-      },
-      {
-        "name": "metodo",
-        "kind": "enum",
-        "label": "Método",
-        "default": "automático",
-        "choices": ["automático", "monte carlo", "exato"]
-      },
-      {
-        "name": "aspecto",
-        "kind": "enum",
-        "label": "Proporção",
-        "default": "4:3",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
-      },
-      {
-        "name": "tema",
-        "kind": "theme",
-        "label": "Tema",
-        "default": "padrão"
-      },
-      {
-        "name": "titulo",
-        "kind": "text",
-        "label": "Título",
-        "default": "",
-        "example": "Receita por região"
-      },
-      {
-        "name": "rotulo_x",
-        "kind": "text",
-        "label": "Rótulo do X",
-        "default": "",
-        "example": "Região"
-      },
-      {
-        "name": "rotulo_y",
-        "kind": "text",
-        "label": "Rótulo do Y",
-        "default": "",
-        "example": "Receita (R$)"
-      },
-      {
-        "name": "legenda",
-        "kind": "enum",
-        "label": "Legenda",
-        "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
-      }
-    ],
     "icon": "shuffle"
   },
   "experiments/response_surface": {
@@ -2367,203 +1638,13 @@
     "hasInput": true,
     "hasOutput": true,
     "label": "Superfície de resposta",
-    "category": "exp_analisar",
-    "categoryLabel": "Analisar",
-    "categoryOrder": 55,
-    "inputColor": "#38bdf8",
-    "outputColor": "#14b8a6",
-    "role": "ajuste",
-    "inputs": [
-      {
-        "name": "dados",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "modelo",
-        "color": "#14b8a6",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "quadro",
-        "color": "#eab308",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "canonica",
-        "color": "#38bdf8",
-        "required": true,
-        "multiple": false
-      },
-      {
-        "name": "grafico",
-        "color": "#f472b6",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "resposta",
-        "kind": "cols",
-        "label": "Resposta",
-        "default": "",
-        "example": "rendimento"
-      },
-      {
-        "name": "fatores",
-        "kind": "cols",
-        "label": "Fatores codificados",
-        "default": "",
-        "example": "x1, x2"
-      },
-      {
-        "name": "ordem",
-        "kind": "enum",
-        "label": "Ordem",
-        "default": "2",
-        "choices": ["1", "2"]
-      },
-      {
-        "name": "bloco",
-        "kind": "cols",
-        "label": "Bloco (opcional)",
-        "default": "",
-        "example": "bloco"
-      },
-      {
-        "name": "aspecto",
-        "kind": "enum",
-        "label": "Proporção",
-        "default": "1:1",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
-      },
-      {
-        "name": "tema",
-        "kind": "theme",
-        "label": "Tema",
-        "default": "padrão"
-      },
-      {
-        "name": "titulo",
-        "kind": "text",
-        "label": "Título",
-        "default": "",
-        "example": "Receita por região"
-      },
-      {
-        "name": "rotulo_x",
-        "kind": "text",
-        "label": "Rótulo do X",
-        "default": "",
-        "example": "Região"
-      },
-      {
-        "name": "rotulo_y",
-        "kind": "text",
-        "label": "Rótulo do Y",
-        "default": "",
-        "example": "Receita (R$)"
-      },
-      {
-        "name": "legenda",
-        "kind": "enum",
-        "label": "Legenda",
-        "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
-      }
-    ],
     "icon": "chart-area"
   },
   "experiments/view": {
-    "accent": "#d3e9de",
+    "accent": "#976523",
     "hasInput": true,
     "hasOutput": true,
     "label": "Ver o plano",
-    "category": "exp_planejar",
-    "categoryLabel": "Planejar",
-    "categoryOrder": 54,
-    "inputColor": "#65a30d",
-    "outputColor": "#f472b6",
-    "role": "leitura",
-    "inputs": [
-      {
-        "name": "plano",
-        "color": "#65a30d",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
-      {
-        "name": "out",
-        "color": "#f472b6",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [
-      {
-        "name": "aba",
-        "kind": "enum",
-        "label": "Aba",
-        "default": "mapa",
-        "choices": ["mapa", "hierarquia", "combinacoes", "ordem", "componentes"]
-      },
-      {
-        "name": "por",
-        "kind": "enum",
-        "label": "Componentes por",
-        "default": "tratamento",
-        "choices": ["tratamento", "unidade"]
-      },
-      {
-        "name": "aspecto",
-        "kind": "enum",
-        "label": "Proporção",
-        "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
-      },
-      {
-        "name": "tema",
-        "kind": "theme",
-        "label": "Tema",
-        "default": "padrão"
-      },
-      {
-        "name": "titulo",
-        "kind": "text",
-        "label": "Título",
-        "default": "",
-        "example": "Receita por região"
-      },
-      {
-        "name": "rotulo_x",
-        "kind": "text",
-        "label": "Rótulo do X",
-        "default": "",
-        "example": "Região"
-      },
-      {
-        "name": "rotulo_y",
-        "kind": "text",
-        "label": "Rótulo do Y",
-        "default": "",
-        "example": "Receita (R$)"
-      },
-      {
-        "name": "legenda",
-        "kind": "enum",
-        "label": "Legenda",
-        "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
-      }
-    ],
     "icon": "layout-grid"
   },
   "ml/cart": {
@@ -2613,7 +1694,11 @@
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "max_depth",
@@ -2638,7 +1723,11 @@
         "kind": "enum",
         "label": "Poda",
         "default": "1ep",
-        "choices": ["1ep", "minimo", "nenhuma"]
+        "choices": [
+          "1ep",
+          "minimo",
+          "nenhuma"
+        ]
       },
       {
         "name": "seed",
@@ -2674,7 +1763,11 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "iris",
-        "choices": ["iris", "iris_binaria", "mtcars"]
+        "choices": [
+          "iris",
+          "iris_binaria",
+          "mtcars"
+        ]
       }
     ],
     "icon": "database"
@@ -2726,7 +1819,11 @@
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "max_splits",
@@ -2796,7 +1893,11 @@
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "trees",
@@ -2827,7 +1928,11 @@
         "kind": "enum",
         "label": "Importância",
         "default": "impureza",
-        "choices": ["impureza", "permutacao", "impureza_corrigida"]
+        "choices": [
+          "impureza",
+          "permutacao",
+          "impureza_corrigida"
+        ]
       },
       {
         "name": "seed",
@@ -2885,7 +1990,11 @@
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "corte",
@@ -2949,21 +2058,41 @@
         "kind": "enum",
         "label": "Modelo",
         "default": "cart",
-        "choices": ["cart", "figs", "forest", "svm", "xgboost"]
+        "choices": [
+          "cart",
+          "figs",
+          "forest",
+          "svm",
+          "xgboost"
+        ]
       },
       {
         "name": "tarefa",
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "metrica",
         "kind": "enum",
         "label": "Métrica",
         "default": "auto",
-        "choices": ["auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1", "kappa", "weighted_f1"]
+        "choices": [
+          "auto",
+          "mae",
+          "rmse",
+          "r2",
+          "accuracy",
+          "balanced_accuracy",
+          "macro_f1",
+          "kappa",
+          "weighted_f1"
+        ]
       },
       {
         "name": "tentativas",
@@ -2988,14 +2117,22 @@
         "kind": "enum",
         "label": "Espaço de busca",
         "default": "conservadora",
-        "choices": ["conservadora", "ampla"]
+        "choices": [
+          "conservadora",
+          "ampla"
+        ]
       },
       {
         "name": "estrategia",
         "kind": "enum",
         "label": "Estratégia",
         "default": "aleatoria",
-        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
+        "choices": [
+          "aleatoria",
+          "temporal",
+          "grupo",
+          "grupo_estratificado"
+        ]
       },
       {
         "name": "ordem",
@@ -3067,7 +2204,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -3101,7 +2244,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-scatter"
@@ -3194,7 +2341,12 @@
         "kind": "enum",
         "label": "Estratégia",
         "default": "aleatoria",
-        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
+        "choices": [
+          "aleatoria",
+          "temporal",
+          "grupo",
+          "grupo_estratificado"
+        ]
       },
       {
         "name": "ordem",
@@ -3266,7 +2418,11 @@
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "cost",
@@ -3285,7 +2441,12 @@
         "kind": "enum",
         "label": "Kernel",
         "default": "radial",
-        "choices": ["linear", "radial", "polynomial", "sigmoid"]
+        "choices": [
+          "linear",
+          "radial",
+          "polynomial",
+          "sigmoid"
+        ]
       },
       {
         "name": "seed",
@@ -3353,7 +2514,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -3387,7 +2554,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "network"
@@ -3445,21 +2616,41 @@
         "kind": "enum",
         "label": "Modelo",
         "default": "cart",
-        "choices": ["cart", "figs", "forest", "svm", "xgboost"]
+        "choices": [
+          "cart",
+          "figs",
+          "forest",
+          "svm",
+          "xgboost"
+        ]
       },
       {
         "name": "tarefa",
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "metrica",
         "kind": "enum",
         "label": "Métrica",
         "default": "auto",
-        "choices": ["auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1", "kappa", "weighted_f1"]
+        "choices": [
+          "auto",
+          "mae",
+          "rmse",
+          "r2",
+          "accuracy",
+          "balanced_accuracy",
+          "macro_f1",
+          "kappa",
+          "weighted_f1"
+        ]
       },
       {
         "name": "tentativas",
@@ -3478,14 +2669,22 @@
         "kind": "enum",
         "label": "Espaço de busca",
         "default": "conservadora",
-        "choices": ["conservadora", "ampla"]
+        "choices": [
+          "conservadora",
+          "ampla"
+        ]
       },
       {
         "name": "estrategia",
         "kind": "enum",
         "label": "Estratégia",
         "default": "aleatoria",
-        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
+        "choices": [
+          "aleatoria",
+          "temporal",
+          "grupo",
+          "grupo_estratificado"
+        ]
       },
       {
         "name": "ordem",
@@ -3550,7 +2749,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -3584,7 +2789,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-no-axes-combined"
@@ -3636,7 +2845,11 @@
         "kind": "enum",
         "label": "Tarefa",
         "default": "auto",
-        "choices": ["auto", "regressao", "classificacao"]
+        "choices": [
+          "auto",
+          "regressao",
+          "classificacao"
+        ]
       },
       {
         "name": "nrounds",
@@ -3965,7 +3178,11 @@
         "kind": "enum",
         "label": "Soma de quadrados",
         "default": "I",
-        "choices": ["I", "II", "III"]
+        "choices": [
+          "I",
+          "II",
+          "III"
+        ]
       }
     ],
     "icon": "sheet"
@@ -4120,7 +3337,10 @@
         "kind": "enum",
         "label": "Escala",
         "default": "unidade",
-        "choices": ["unidade", "desvio padrão"]
+        "choices": [
+          "unidade",
+          "desvio padrão"
+        ]
       },
       {
         "name": "confianca",
@@ -4133,7 +3353,11 @@
         "kind": "enum",
         "label": "Intervalo",
         "default": "padrão",
-        "choices": ["padrão", "perfilado", "Wald"]
+        "choices": [
+          "padrão",
+          "perfilado",
+          "Wald"
+        ]
       }
     ],
     "icon": "variable"
@@ -4264,7 +3488,10 @@
         "kind": "enum",
         "label": "Validação (só modelo)",
         "default": "cruzada",
-        "choices": ["resubstituição", "cruzada"]
+        "choices": [
+          "resubstituição",
+          "cruzada"
+        ]
       },
       {
         "name": "resposta",
@@ -4285,7 +3512,10 @@
         "kind": "enum",
         "label": "Tabela",
         "default": "matriz",
-        "choices": ["matriz", "métricas"]
+        "choices": [
+          "matriz",
+          "métricas"
+        ]
       },
       {
         "name": "permitir_treino",
@@ -4343,7 +3573,11 @@
         "kind": "enum",
         "label": "Método",
         "default": "pearson",
-        "choices": ["pearson", "spearman", "kendall"]
+        "choices": [
+          "pearson",
+          "spearman",
+          "kendall"
+        ]
       }
     ],
     "icon": "trending-up"
@@ -4439,7 +3673,12 @@
         "kind": "enum",
         "label": "Ajuste",
         "default": "holm",
-        "choices": ["holm", "bonferroni", "sidak", "nenhum"]
+        "choices": [
+          "holm",
+          "bonferroni",
+          "sidak",
+          "nenhum"
+        ]
       }
     ],
     "icon": "git-compare"
@@ -4477,7 +3716,11 @@
         "kind": "enum",
         "label": "Soma de quadrados",
         "default": "I",
-        "choices": ["I", "II", "III"]
+        "choices": [
+          "I",
+          "II",
+          "III"
+        ]
       }
     ],
     "icon": "ruler"
@@ -4529,7 +3772,13 @@
         "kind": "enum",
         "label": "Ajuste das letras",
         "default": "tukey",
-        "choices": ["tukey", "bonferroni", "holm", "sidak", "nenhum"]
+        "choices": [
+          "tukey",
+          "bonferroni",
+          "holm",
+          "sidak",
+          "nenhum"
+        ]
       },
       {
         "name": "confianca",
@@ -4542,7 +3791,10 @@
         "kind": "enum",
         "label": "Escala (GLM)",
         "default": "resposta",
-        "choices": ["resposta", "ligação"]
+        "choices": [
+          "resposta",
+          "ligação"
+        ]
       }
     ],
     "icon": "chart-column"
@@ -4586,7 +3838,10 @@
         "kind": "enum",
         "label": "Validação (só modelo)",
         "default": "cruzada",
-        "choices": ["resubstituição", "cruzada"]
+        "choices": [
+          "resubstituição",
+          "cruzada"
+        ]
       },
       {
         "name": "positiva",
@@ -4643,7 +3898,23 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "PlantGrowth",
-        "choices": ["PlantGrowth", "milho_dbc", "racao_dql", "adubo_dbc", "ToothGrowth", "warpbreaks", "npk", "aveia", "sleepstudy", "cbpp", "grouseticks", "InsectSprays", "Puromycin", "mtcars", "cars"]
+        "choices": [
+          "PlantGrowth",
+          "milho_dbc",
+          "racao_dql",
+          "adubo_dbc",
+          "ToothGrowth",
+          "warpbreaks",
+          "npk",
+          "aveia",
+          "sleepstudy",
+          "cbpp",
+          "grouseticks",
+          "InsectSprays",
+          "Puromycin",
+          "mtcars",
+          "cars"
+        ]
       }
     ],
     "icon": "database"
@@ -4777,7 +4048,12 @@
         "kind": "enum",
         "label": "Método",
         "default": "auto",
-        "choices": ["auto", "friedman", "durbin", "skillings_mack"]
+        "choices": [
+          "auto",
+          "friedman",
+          "durbin",
+          "skillings_mack"
+        ]
       }
     ],
     "icon": "list-ordered"
@@ -4836,7 +4112,14 @@
         "kind": "enum",
         "label": "Família",
         "default": "poisson",
-        "choices": ["gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial"]
+        "choices": [
+          "gaussiana",
+          "binomial",
+          "poisson",
+          "gama",
+          "quasipoisson",
+          "quasibinomial"
+        ]
       }
     ],
     "icon": "chart-spline"
@@ -4902,7 +4185,10 @@
         "kind": "enum",
         "label": "Família",
         "default": "binomial",
-        "choices": ["binomial", "poisson"]
+        "choices": [
+          "binomial",
+          "poisson"
+        ]
       },
       {
         "name": "nivel_obs",
@@ -4953,7 +4239,13 @@
         "kind": "enum",
         "label": "Correlação no grupo",
         "default": "ar1",
-        "choices": ["nenhuma", "ar1", "car1", "simetria_composta", "nao_estruturada"]
+        "choices": [
+          "nenhuma",
+          "ar1",
+          "car1",
+          "simetria_composta",
+          "nao_estruturada"
+        ]
       },
       {
         "name": "grupo",
@@ -5093,7 +4385,10 @@
         "kind": "enum",
         "label": "Centro",
         "default": "mediana",
-        "choices": ["mediana", "média"]
+        "choices": [
+          "mediana",
+          "média"
+        ]
       }
     ],
     "icon": "scale"
@@ -5307,7 +4602,13 @@
         "kind": "enum",
         "label": "Modelo",
         "default": "logístico",
-        "choices": ["logístico", "Michaelis-Menten", "exponencial assintótico", "Gompertz", "linear-platô"]
+        "choices": [
+          "logístico",
+          "Michaelis-Menten",
+          "exponencial assintótico",
+          "Gompertz",
+          "linear-platô"
+        ]
       }
     ],
     "icon": "chart-spline"
@@ -5358,7 +4659,11 @@
         "kind": "enum",
         "label": "Alternativa",
         "default": "bilateral",
-        "choices": ["bilateral", "menor", "maior"]
+        "choices": [
+          "bilateral",
+          "menor",
+          "maior"
+        ]
       }
     ],
     "icon": "target"
@@ -5410,7 +4715,11 @@
         "kind": "enum",
         "label": "Alternativa",
         "default": "bilateral",
-        "choices": ["bilateral", "menor", "maior"]
+        "choices": [
+          "bilateral",
+          "menor",
+          "maior"
+        ]
       }
     ],
     "icon": "link"
@@ -5448,7 +4757,10 @@
         "kind": "enum",
         "label": "Comparar",
         "default": "todos os pares",
-        "choices": ["todos os pares", "contra controle"]
+        "choices": [
+          "todos os pares",
+          "contra controle"
+        ]
       },
       {
         "name": "controle",
@@ -5462,7 +4774,14 @@
         "kind": "enum",
         "label": "Ajuste",
         "default": "tukey",
-        "choices": ["tukey", "bonferroni", "holm", "sidak", "nenhum", "dunnett"]
+        "choices": [
+          "tukey",
+          "bonferroni",
+          "holm",
+          "sidak",
+          "nenhum",
+          "dunnett"
+        ]
       }
     ],
     "icon": "git-compare"
@@ -5507,7 +4826,11 @@
         "kind": "enum",
         "label": "Intervalo",
         "default": "IC",
-        "choices": ["IC", "± 1 EP", "± 2 EP"]
+        "choices": [
+          "IC",
+          "± 1 EP",
+          "± 2 EP"
+        ]
       },
       {
         "name": "confianca",
@@ -5532,7 +4855,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "3:4",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -5566,7 +4895,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "abaixo",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "list-ordered"
@@ -5610,7 +4943,10 @@
         "kind": "enum",
         "label": "Escala",
         "default": "unidade",
-        "choices": ["unidade", "desvio padrão"]
+        "choices": [
+          "unidade",
+          "desvio padrão"
+        ]
       },
       {
         "name": "confianca",
@@ -5623,14 +4959,23 @@
         "kind": "enum",
         "label": "Ordenar",
         "default": "modelo",
-        "choices": ["modelo", "estimativa"]
+        "choices": [
+          "modelo",
+          "estimativa"
+        ]
       },
       {
         "name": "aspecto",
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -5664,7 +5009,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-bar"
@@ -5702,7 +5051,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "1:1",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -5736,7 +5091,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "microscope"
@@ -5780,7 +5139,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -5814,7 +5179,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-no-axes-column"
@@ -5864,7 +5233,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "4:3",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -5898,7 +5273,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-line"
@@ -5949,7 +5328,14 @@
         "kind": "enum",
         "label": "Grau da curva",
         "default": "automático",
-        "choices": ["automático", "1", "2", "3", "4", "5"]
+        "choices": [
+          "automático",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
       },
       {
         "name": "grau_max",
@@ -6005,7 +5391,10 @@
         "kind": "enum",
         "label": "Validação (só modelo)",
         "default": "cruzada",
-        "choices": ["resubstituição", "cruzada"]
+        "choices": [
+          "resubstituição",
+          "cruzada"
+        ]
       },
       {
         "name": "positiva",
@@ -6039,7 +5428,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -6073,7 +5468,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-line"
@@ -6117,14 +5516,21 @@
         "kind": "enum",
         "label": "Validação (sem dados)",
         "default": "resubstituição",
-        "choices": ["resubstituição", "cruzada"]
+        "choices": [
+          "resubstituição",
+          "cruzada"
+        ]
       },
       {
         "name": "intervalo",
         "kind": "enum",
         "label": "Intervalo",
         "default": "nenhum",
-        "choices": ["nenhum", "confianca", "predicao"]
+        "choices": [
+          "nenhum",
+          "confianca",
+          "predicao"
+        ]
       },
       {
         "name": "confianca",
@@ -6315,7 +5721,10 @@
         "kind": "enum",
         "label": "Validação (só modelo)",
         "default": "cruzada",
-        "choices": ["resubstituição", "cruzada"]
+        "choices": [
+          "resubstituição",
+          "cruzada"
+        ]
       },
       {
         "name": "positiva",
@@ -6355,7 +5764,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "1:1",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -6389,7 +5804,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-line"
@@ -6559,7 +5978,11 @@
         "kind": "enum",
         "label": "Alternativa",
         "default": "bilateral",
-        "choices": ["bilateral", "menor", "maior"]
+        "choices": [
+          "bilateral",
+          "menor",
+          "maior"
+        ]
       }
     ],
     "icon": "equal-not"
@@ -6685,7 +6108,11 @@
         "kind": "enum",
         "label": "Alternativa",
         "default": "bilateral",
-        "choices": ["bilateral", "menor", "maior"]
+        "choices": [
+          "bilateral",
+          "menor",
+          "maior"
+        ]
       }
     ],
     "icon": "list-ordered"
@@ -6755,7 +6182,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "1:1",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -6789,7 +6222,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-scatter"
@@ -6898,7 +6335,13 @@
         "kind": "enum",
         "label": "Método",
         "default": "UPGMA",
-        "choices": ["UPGMA", "Ward.D2", "completo", "simples", "k-means"]
+        "choices": [
+          "UPGMA",
+          "Ward.D2",
+          "completo",
+          "simples",
+          "k-means"
+        ]
       },
       {
         "name": "grupos",
@@ -6954,7 +6397,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "1:1",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -6988,7 +6437,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "orbit"
@@ -7033,14 +6486,21 @@
         "kind": "enum",
         "label": "Matriz",
         "default": "correlação",
-        "choices": ["correlação", "covariância"]
+        "choices": [
+          "correlação",
+          "covariância"
+        ]
       },
       {
         "name": "metodo",
         "kind": "enum",
         "label": "Método",
         "default": "pearson",
-        "choices": ["pearson", "spearman", "kendall"]
+        "choices": [
+          "pearson",
+          "spearman",
+          "kendall"
+        ]
       },
       {
         "name": "grupo",
@@ -7099,14 +6559,20 @@
         "kind": "enum",
         "label": "Método",
         "default": "linear",
-        "choices": ["linear", "quadrática"]
+        "choices": [
+          "linear",
+          "quadrática"
+        ]
       },
       {
         "name": "priors",
         "kind": "enum",
         "label": "Priors",
         "default": "proporcionais",
-        "choices": ["proporcionais", "iguais"]
+        "choices": [
+          "proporcionais",
+          "iguais"
+        ]
       }
     ],
     "icon": "split"
@@ -7144,7 +6610,12 @@
         "kind": "enum",
         "label": "Tabela",
         "default": "funções",
-        "choices": ["funções", "coeficientes", "padronizados", "estrutura"]
+        "choices": [
+          "funções",
+          "coeficientes",
+          "padronizados",
+          "estrutura"
+        ]
       }
     ],
     "icon": "sigma"
@@ -7189,7 +6660,12 @@
         "kind": "enum",
         "label": "Distância",
         "default": "euclidiana padronizada",
-        "choices": ["euclidiana padronizada", "euclidiana", "mahalanobis", "gower"]
+        "choices": [
+          "euclidiana padronizada",
+          "euclidiana",
+          "mahalanobis",
+          "gower"
+        ]
       },
       {
         "name": "rotulo",
@@ -7226,7 +6702,17 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "iris",
-        "choices": ["iris", "USArrests", "estados", "caranguejos", "vinhos", "questionario", "harman_fisicas", "harman_24_testes", "pima"]
+        "choices": [
+          "iris",
+          "USArrests",
+          "estados",
+          "caranguejos",
+          "vinhos",
+          "questionario",
+          "harman_fisicas",
+          "harman_24_testes",
+          "pima"
+        ]
       }
     ],
     "icon": "database"
@@ -7264,7 +6750,11 @@
         "kind": "enum",
         "label": "Matriz",
         "default": "padrão",
-        "choices": ["padrão", "estrutura", "correlação entre fatores"]
+        "choices": [
+          "padrão",
+          "estrutura",
+          "correlação entre fatores"
+        ]
       },
       {
         "name": "ordenar",
@@ -7321,14 +6811,24 @@
         "kind": "enum",
         "label": "Método",
         "default": "ml",
-        "choices": ["ml", "paf"]
+        "choices": [
+          "ml",
+          "paf"
+        ]
       },
       {
         "name": "rotacao",
         "kind": "enum",
         "label": "Rotação",
         "default": "varimax",
-        "choices": ["nenhuma", "varimax", "quartimax", "equamax", "promax", "oblimin"]
+        "choices": [
+          "nenhuma",
+          "varimax",
+          "quartimax",
+          "equamax",
+          "promax",
+          "oblimin"
+        ]
       },
       {
         "name": "normalizar",
@@ -7341,7 +6841,11 @@
         "kind": "enum",
         "label": "Escores",
         "default": "regressão",
-        "choices": ["regressão", "bartlett", "nenhum"]
+        "choices": [
+          "regressão",
+          "bartlett",
+          "nenhum"
+        ]
       }
     ],
     "icon": "layers"
@@ -7379,14 +6883,21 @@
         "kind": "enum",
         "label": "Estatística",
         "default": "correlação canônica",
-        "choices": ["correlação canônica", "autovalores", "coeficientes padronizados"]
+        "choices": [
+          "correlação canônica",
+          "autovalores",
+          "coeficientes padronizados"
+        ]
       },
       {
         "name": "tabela",
         "kind": "enum",
         "label": "Tabela",
         "default": "resumo",
-        "choices": ["resumo", "pseudovalores"]
+        "choices": [
+          "resumo",
+          "pseudovalores"
+        ]
       },
       {
         "name": "confianca",
@@ -7437,14 +6948,20 @@
         "kind": "enum",
         "label": "Estatística",
         "default": "cargas",
-        "choices": ["cargas", "comunalidades"]
+        "choices": [
+          "cargas",
+          "comunalidades"
+        ]
       },
       {
         "name": "tabela",
         "kind": "enum",
         "label": "Tabela",
         "default": "resumo",
-        "choices": ["resumo", "pseudovalores"]
+        "choices": [
+          "resumo",
+          "pseudovalores"
+        ]
       },
       {
         "name": "confianca",
@@ -7495,14 +7012,20 @@
         "kind": "enum",
         "label": "Estatística",
         "default": "coeficientes",
-        "choices": ["coeficientes", "razões de chances"]
+        "choices": [
+          "coeficientes",
+          "razões de chances"
+        ]
       },
       {
         "name": "tabela",
         "kind": "enum",
         "label": "Tabela",
         "default": "resumo",
-        "choices": ["resumo", "pseudovalores"]
+        "choices": [
+          "resumo",
+          "pseudovalores"
+        ]
       },
       {
         "name": "confianca",
@@ -7553,14 +7076,21 @@
         "kind": "enum",
         "label": "Estatística",
         "default": "autovalores",
-        "choices": ["autovalores", "proporção", "cargas"]
+        "choices": [
+          "autovalores",
+          "proporção",
+          "cargas"
+        ]
       },
       {
         "name": "tabela",
         "kind": "enum",
         "label": "Tabela",
         "default": "resumo",
-        "choices": ["resumo", "pseudovalores"]
+        "choices": [
+          "resumo",
+          "pseudovalores"
+        ]
       },
       {
         "name": "confianca",
@@ -7669,7 +7199,10 @@
         "kind": "enum",
         "label": "Método",
         "default": "ml",
-        "choices": ["ml", "firth"]
+        "choices": [
+          "ml",
+          "firth"
+        ]
       }
     ],
     "icon": "chart-spline"
@@ -7728,7 +7261,12 @@
         "kind": "enum",
         "label": "Estatística",
         "default": "Pillai",
-        "choices": ["Pillai", "Wilks", "Hotelling-Lawley", "Roy"]
+        "choices": [
+          "Pillai",
+          "Wilks",
+          "Hotelling-Lawley",
+          "Roy"
+        ]
       }
     ],
     "icon": "layers"
@@ -7911,7 +7449,10 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "correlações",
-        "choices": ["correlações", "autovetores"]
+        "choices": [
+          "correlações",
+          "autovetores"
+        ]
       },
       {
         "name": "componentes",
@@ -8004,7 +7545,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "1:1",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -8038,7 +7585,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "grid-3x3"
@@ -8088,7 +7639,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -8122,7 +7679,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "git-fork"
@@ -8178,7 +7739,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -8212,7 +7779,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-scatter"
@@ -8262,7 +7833,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "4:3",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -8296,7 +7873,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "grid-3x3"
@@ -8334,7 +7915,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -8368,7 +7955,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-no-axes-combined"
@@ -8455,7 +8046,10 @@
         "kind": "enum",
         "label": "Probabilidade",
         "default": "iguais",
-        "choices": ["iguais", "proporcional ao tamanho"]
+        "choices": [
+          "iguais",
+          "proporcional ao tamanho"
+        ]
       }
     ],
     "icon": "group"
@@ -8591,7 +8185,10 @@
         "kind": "enum",
         "label": "Poder",
         "default": "80%",
-        "choices": ["80%", "90%"]
+        "choices": [
+          "80%",
+          "90%"
+        ]
       },
       {
         "name": "deff",
@@ -8624,7 +8221,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "git-compare"
@@ -8654,7 +8254,15 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "fazendas",
-        "choices": ["fazendas", "estratos_fazendas", "escolas", "escolas_resumo", "perfil_escolas", "perguntas_exemplo", "domicilios"]
+        "choices": [
+          "fazendas",
+          "estratos_fazendas",
+          "escolas",
+          "escolas_resumo",
+          "perfil_escolas",
+          "perguntas_exemplo",
+          "domicilios"
+        ]
       }
     ],
     "icon": "database"
@@ -8720,7 +8328,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "ruler"
@@ -8804,7 +8415,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "layers-plus"
@@ -8893,7 +8507,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -8927,7 +8547,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "crosshair"
@@ -8971,7 +8595,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -9005,7 +8635,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-no-axes-column"
@@ -9043,7 +8677,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -9077,7 +8717,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-candlestick"
@@ -9243,7 +8887,12 @@
         "kind": "enum",
         "label": "Intervalo",
         "default": "logit",
-        "choices": ["logit", "wilson", "clopper_pearson", "wald"]
+        "choices": [
+          "logit",
+          "wilson",
+          "clopper_pearson",
+          "wald"
+        ]
       }
     ],
     "icon": "chart-pie"
@@ -9327,7 +8976,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "list-checks"
@@ -9553,7 +9205,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "network"
@@ -9598,7 +9253,10 @@
         "kind": "enum",
         "label": "Estimador",
         "default": "média",
-        "choices": ["média", "total"]
+        "choices": [
+          "média",
+          "total"
+        ]
       },
       {
         "name": "repeticoes",
@@ -9672,7 +9330,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "boxes"
@@ -9710,7 +9371,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -9744,7 +9411,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-spline"
@@ -9839,7 +9510,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "users"
@@ -9902,7 +9576,10 @@
         "kind": "enum",
         "label": "Tipo de erro",
         "default": "absoluto",
-        "choices": ["absoluto", "relativo"]
+        "choices": [
+          "absoluto",
+          "relativo"
+        ]
       },
       {
         "name": "confianca",
@@ -9933,7 +9610,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "calculator"
@@ -9999,7 +9679,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "percent"
@@ -10065,7 +9748,12 @@
         "kind": "enum",
         "label": "Alocação",
         "default": "neyman",
-        "choices": ["proporcional", "neyman", "ótima", "igual"]
+        "choices": [
+          "proporcional",
+          "neyman",
+          "ótima",
+          "igual"
+        ]
       },
       {
         "name": "erro",
@@ -10096,7 +9784,10 @@
         "kind": "enum",
         "label": "Distribuição",
         "default": "t",
-        "choices": ["t", "z"]
+        "choices": [
+          "t",
+          "z"
+        ]
       }
     ],
     "icon": "layers"
@@ -10208,7 +9899,11 @@
         "kind": "enum",
         "label": "Alocação",
         "default": "proporcional",
-        "choices": ["proporcional", "igual", "neyman"]
+        "choices": [
+          "proporcional",
+          "igual",
+          "neyman"
+        ]
       },
       {
         "name": "variavel_auxiliar",
@@ -10385,7 +10080,10 @@
         "kind": "enum",
         "label": "Primeiro estágio",
         "default": "proporcional ao tamanho",
-        "choices": ["iguais", "proporcional ao tamanho"]
+        "choices": [
+          "iguais",
+          "proporcional ao tamanho"
+        ]
       }
     ],
     "icon": "git-fork"
@@ -10465,7 +10163,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -10499,7 +10203,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-column"
@@ -10537,7 +10245,10 @@
         "kind": "enum",
         "label": "Termos determinísticos",
         "default": "constante",
-        "choices": ["constante", "tendência"]
+        "choices": [
+          "constante",
+          "tendência"
+        ]
       },
       {
         "name": "defasagens",
@@ -10587,7 +10298,11 @@
         "kind": "enum",
         "label": "Função",
         "default": "soma",
-        "choices": ["soma", "media", "ultimo"]
+        "choices": [
+          "soma",
+          "media",
+          "ultimo"
+        ]
       }
     ],
     "icon": "calendar-days"
@@ -10710,7 +10425,12 @@
         "kind": "enum",
         "label": "Método",
         "default": "ingênuo sazonal",
-        "choices": ["média", "ingênuo", "ingênuo sazonal", "deriva"]
+        "choices": [
+          "média",
+          "ingênuo",
+          "ingênuo sazonal",
+          "deriva"
+        ]
       },
       {
         "name": "horizonte",
@@ -10803,7 +10523,12 @@
         "kind": "enum",
         "label": "Operação",
         "default": "a - b",
-        "choices": ["a - b", "a + b", "a / b", "a * b"]
+        "choices": [
+          "a - b",
+          "a + b",
+          "a / b",
+          "a * b"
+        ]
       }
     ],
     "icon": "combine"
@@ -10841,7 +10566,14 @@
         "kind": "enum",
         "label": "Componente",
         "default": "dessazonalizada",
-        "choices": ["tendencia", "sazonal", "resto", "dessazonalizada", "sem_tendencia", "regressor"]
+        "choices": [
+          "tendencia",
+          "sazonal",
+          "resto",
+          "dessazonalizada",
+          "sem_tendencia",
+          "regressor"
+        ]
       }
     ],
     "icon": "square-split-horizontal"
@@ -10879,14 +10611,20 @@
         "kind": "enum",
         "label": "Pareamento",
         "default": "terços",
-        "choices": ["terços", "metades"]
+        "choices": [
+          "terços",
+          "metades"
+        ]
       },
       {
         "name": "correcao",
         "kind": "enum",
         "label": "Correção para autocorrelação",
         "default": "nenhuma",
-        "choices": ["nenhuma", "bootstrap_blocos"]
+        "choices": [
+          "nenhuma",
+          "bootstrap_blocos"
+        ]
       }
     ],
     "icon": "arrow-up-down"
@@ -10924,7 +10662,10 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "aditiva",
-        "choices": ["aditiva", "multiplicativa"]
+        "choices": [
+          "aditiva",
+          "multiplicativa"
+        ]
       }
     ],
     "icon": "layers-2"
@@ -10962,7 +10703,12 @@
         "kind": "enum",
         "label": "Método",
         "default": "linear",
-        "choices": ["linear", "polinomial", "loess", "diferenca"]
+        "choices": [
+          "linear",
+          "polinomial",
+          "loess",
+          "diferenca"
+        ]
       },
       {
         "name": "grau",
@@ -11012,7 +10758,10 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "simples",
-        "choices": ["simples", "sazonal"]
+        "choices": [
+          "simples",
+          "sazonal"
+        ]
       },
       {
         "name": "ordem",
@@ -11063,7 +10812,11 @@
         "kind": "enum",
         "label": "Tendência amortecida",
         "default": "auto",
-        "choices": ["auto", "sim", "não"]
+        "choices": [
+          "auto",
+          "sim",
+          "não"
+        ]
       }
     ],
     "icon": "waves-horizontal"
@@ -11093,7 +10846,49 @@
         "kind": "enum",
         "label": "Série",
         "default": "AirPassengers",
-        "choices": ["airmiles", "AirPassengers", "austres", "BJsales", "BJsales.lead", "co2", "discoveries", "EuStockMarkets$CAC", "EuStockMarkets$DAX", "EuStockMarkets$FTSE", "EuStockMarkets$SMI", "fdeaths", "freeny.y", "JohnsonJohnson", "LakeHuron", "ldeaths", "lh", "lynx", "mdeaths", "nhtemp", "Nile", "nottem", "presidents", "Seatbelts$drivers", "Seatbelts$DriversKilled", "Seatbelts$front", "Seatbelts$kms", "Seatbelts$law", "Seatbelts$PetrolPrice", "Seatbelts$rear", "Seatbelts$VanKilled", "sunspot.m2014", "sunspot.month", "sunspot.year", "sunspots", "treering", "UKDriverDeaths", "UKgas", "USAccDeaths", "uspop", "WWWusage"]
+        "choices": [
+          "airmiles",
+          "AirPassengers",
+          "austres",
+          "BJsales",
+          "BJsales.lead",
+          "co2",
+          "discoveries",
+          "EuStockMarkets$CAC",
+          "EuStockMarkets$DAX",
+          "EuStockMarkets$FTSE",
+          "EuStockMarkets$SMI",
+          "fdeaths",
+          "freeny.y",
+          "JohnsonJohnson",
+          "LakeHuron",
+          "ldeaths",
+          "lh",
+          "lynx",
+          "mdeaths",
+          "nhtemp",
+          "Nile",
+          "nottem",
+          "presidents",
+          "Seatbelts$drivers",
+          "Seatbelts$DriversKilled",
+          "Seatbelts$front",
+          "Seatbelts$kms",
+          "Seatbelts$law",
+          "Seatbelts$PetrolPrice",
+          "Seatbelts$rear",
+          "Seatbelts$VanKilled",
+          "sunspot.m2014",
+          "sunspot.month",
+          "sunspot.year",
+          "sunspots",
+          "treering",
+          "UKDriverDeaths",
+          "UKgas",
+          "USAccDeaths",
+          "uspop",
+          "WWWusage"
+        ]
       }
     ],
     "icon": "activity"
@@ -11227,7 +11022,10 @@
         "kind": "enum",
         "label": "Intervalo",
         "default": "normal",
-        "choices": ["normal", "bootstrap"]
+        "choices": [
+          "normal",
+          "bootstrap"
+        ]
       }
     ],
     "icon": "trending-up"
@@ -11335,7 +11133,10 @@
         "kind": "enum",
         "label": "Sazonalidade do tipo",
         "default": "aditiva",
-        "choices": ["aditiva", "multiplicativa"]
+        "choices": [
+          "aditiva",
+          "multiplicativa"
+        ]
       }
     ],
     "icon": "trending-up-down"
@@ -11410,7 +11211,11 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "degrau",
-        "choices": ["degrau", "pulso", "rampa"]
+        "choices": [
+          "degrau",
+          "pulso",
+          "rampa"
+        ]
       },
       {
         "name": "p",
@@ -11459,7 +11264,10 @@
         "kind": "enum",
         "label": "Resposta",
         "default": "imediata",
-        "choices": ["imediata", "gradual"]
+        "choices": [
+          "imediata",
+          "gradual"
+        ]
       }
     ],
     "icon": "milestone"
@@ -11497,7 +11305,10 @@
         "kind": "enum",
         "label": "Termos determinísticos",
         "default": "constante",
-        "choices": ["constante", "tendência"]
+        "choices": [
+          "constante",
+          "tendência"
+        ]
       }
     ],
     "icon": "test-tubes"
@@ -11578,7 +11389,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -11612,7 +11429,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-scatter"
@@ -11693,7 +11514,12 @@
         "kind": "enum",
         "label": "Correção para autocorrelação",
         "default": "nenhuma",
-        "choices": ["nenhuma", "hamed_rao", "pre_branqueamento", "bootstrap_blocos"]
+        "choices": [
+          "nenhuma",
+          "hamed_rao",
+          "pre_branqueamento",
+          "bootstrap_blocos"
+        ]
       }
     ],
     "icon": "trending-up"
@@ -11774,7 +11600,11 @@
         "kind": "enum",
         "label": "Teste",
         "default": "kpss",
-        "choices": ["kpss", "adf", "pp"]
+        "choices": [
+          "kpss",
+          "adf",
+          "pp"
+        ]
       }
     ],
     "icon": "hash"
@@ -11818,7 +11648,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -11852,7 +11688,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-bar"
@@ -11890,7 +11730,10 @@
         "kind": "enum",
         "label": "Remover antes",
         "default": "reta",
-        "choices": ["reta", "media"]
+        "choices": [
+          "reta",
+          "media"
+        ]
       }
     ],
     "icon": "signal"
@@ -11928,7 +11771,10 @@
         "kind": "enum",
         "label": "Correção para autocorrelação",
         "default": "nenhuma",
-        "choices": ["nenhuma", "bootstrap_blocos"]
+        "choices": [
+          "nenhuma",
+          "bootstrap_blocos"
+        ]
       }
     ],
     "icon": "milestone"
@@ -11966,7 +11812,10 @@
         "kind": "enum",
         "label": "Termos determinísticos",
         "default": "tendência",
-        "choices": ["constante", "tendência"]
+        "choices": [
+          "constante",
+          "tendência"
+        ]
       }
     ],
     "icon": "flask-conical"
@@ -12030,7 +11879,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12064,7 +11919,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-line"
@@ -12102,7 +11961,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "4:3",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12136,7 +12001,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "file-chart-line"
@@ -12180,7 +12049,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12214,7 +12089,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-area"
@@ -12270,14 +12149,20 @@
         "kind": "enum",
         "label": "Contraste",
         "default": "soma_zero",
-        "choices": ["soma_zero", "categoria_base"]
+        "choices": [
+          "soma_zero",
+          "categoria_base"
+        ]
       },
       {
         "name": "erro",
         "kind": "enum",
         "label": "Erro",
         "default": "independente",
-        "choices": ["independente", "arma"]
+        "choices": [
+          "independente",
+          "arma"
+        ]
       },
       {
         "name": "ar",
@@ -12387,7 +12272,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12421,7 +12312,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-spline"
@@ -12532,7 +12427,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12566,7 +12467,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-no-axes-combined"
@@ -12604,7 +12509,11 @@
         "kind": "enum",
         "label": "Método",
         "default": "log",
-        "choices": ["log", "raiz", "boxcox"]
+        "choices": [
+          "log",
+          "raiz",
+          "boxcox"
+        ]
       },
       {
         "name": "lambda",
@@ -12694,7 +12603,11 @@
         "kind": "enum",
         "label": "O que quebra",
         "default": "ambas",
-        "choices": ["nível", "inclinação", "ambas"]
+        "choices": [
+          "nível",
+          "inclinação",
+          "ambas"
+        ]
       },
       {
         "name": "defasagens",
@@ -12707,7 +12620,10 @@
         "kind": "enum",
         "label": "Escolha das defasagens",
         "default": "fixa",
-        "choices": ["fixa", "t_sig"]
+        "choices": [
+          "fixa",
+          "t_sig"
+        ]
       }
     ],
     "icon": "split"
@@ -12839,7 +12755,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12873,7 +12795,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-area"
@@ -12932,7 +12858,11 @@
         "kind": "enum",
         "label": "Posição",
         "default": "empilhar",
-        "choices": ["empilhar", "lado a lado", "proporção"]
+        "choices": [
+          "empilhar",
+          "lado a lado",
+          "proporção"
+        ]
       },
       {
         "name": "ordenar",
@@ -12964,7 +12894,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -12998,7 +12934,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-bar"
@@ -13056,7 +12996,12 @@
         "kind": "enum",
         "label": "Eixo em log",
         "default": "nenhum",
-        "choices": ["nenhum", "X", "Y", "ambos"]
+        "choices": [
+          "nenhum",
+          "X",
+          "Y",
+          "ambos"
+        ]
       },
       {
         "name": "painel",
@@ -13070,7 +13015,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13104,7 +13055,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "grid-3x3"
@@ -13182,7 +13137,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13216,7 +13177,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-candlestick"
@@ -13260,7 +13225,12 @@
         "kind": "enum",
         "label": "Etiquetas",
         "default": "A, B, C",
-        "choices": ["nenhuma", "A, B, C", "a, b, c", "1, 2, 3"]
+        "choices": [
+          "nenhuma",
+          "A, B, C",
+          "a, b, c",
+          "1, 2, 3"
+        ]
       },
       {
         "name": "legenda_comum",
@@ -13273,7 +13243,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13307,7 +13283,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "layout-grid"
@@ -13378,7 +13358,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13412,7 +13398,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-spline"
@@ -13471,7 +13461,10 @@
         "kind": "enum",
         "label": "Estilo",
         "default": "pontos",
-        "choices": ["pontos", "pirulito"]
+        "choices": [
+          "pontos",
+          "pirulito"
+        ]
       },
       {
         "name": "ordenar",
@@ -13491,7 +13484,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13525,7 +13524,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "lollipop"
@@ -13590,7 +13593,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13624,7 +13633,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "dumbbell"
@@ -13689,7 +13702,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13723,7 +13742,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-no-axes-combined"
@@ -13761,7 +13784,11 @@
         "kind": "enum",
         "label": "Método",
         "default": "linear",
-        "choices": ["linear", "quadrática", "loess"]
+        "choices": [
+          "linear",
+          "quadrática",
+          "loess"
+        ]
       },
       {
         "name": "intervalo",
@@ -13792,7 +13819,13 @@
         "kind": "enum",
         "label": "Posição da equação",
         "default": "automática",
-        "choices": ["automática", "sup. esq.", "sup. dir.", "inf. esq.", "inf. dir."]
+        "choices": [
+          "automática",
+          "sup. esq.",
+          "sup. dir.",
+          "inf. esq.",
+          "inf. dir."
+        ]
       }
     ],
     "icon": "trending-up"
@@ -13857,7 +13890,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -13891,7 +13930,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "layout-grid"
@@ -13949,7 +13992,10 @@
         "kind": "enum",
         "label": "Posição",
         "default": "empilhar",
-        "choices": ["empilhar", "sobrepor"]
+        "choices": [
+          "empilhar",
+          "sobrepor"
+        ]
       },
       {
         "name": "log",
@@ -13969,7 +14015,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14003,7 +14055,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-column"
@@ -14075,7 +14131,12 @@
         "kind": "enum",
         "label": "Eixo em log",
         "default": "nenhum",
-        "choices": ["nenhum", "X", "Y", "ambos"]
+        "choices": [
+          "nenhum",
+          "X",
+          "Y",
+          "ambos"
+        ]
       },
       {
         "name": "painel",
@@ -14089,7 +14150,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14123,7 +14190,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "tags"
@@ -14188,7 +14259,12 @@
         "kind": "enum",
         "label": "Eixo em log",
         "default": "nenhum",
-        "choices": ["nenhum", "X", "Y", "ambos"]
+        "choices": [
+          "nenhum",
+          "X",
+          "Y",
+          "ambos"
+        ]
       },
       {
         "name": "painel",
@@ -14202,7 +14278,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14236,7 +14318,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-line"
@@ -14295,7 +14381,11 @@
         "kind": "enum",
         "label": "Barra",
         "default": "IC",
-        "choices": ["IC", "erro padrão", "desvio padrão"]
+        "choices": [
+          "IC",
+          "erro padrão",
+          "desvio padrão"
+        ]
       },
       {
         "name": "confianca",
@@ -14315,7 +14405,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14349,7 +14445,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "git-commit-vertical"
@@ -14428,7 +14528,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14462,7 +14568,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "git-compare-arrows"
@@ -14520,7 +14630,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14554,7 +14670,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-column-decreasing"
@@ -14613,14 +14733,23 @@
         "kind": "enum",
         "label": "Tendência",
         "default": "nenhuma",
-        "choices": ["nenhuma", "linear", "suave"]
+        "choices": [
+          "nenhuma",
+          "linear",
+          "suave"
+        ]
       },
       {
         "name": "log",
         "kind": "enum",
         "label": "Eixo em log",
         "default": "nenhum",
-        "choices": ["nenhum", "X", "Y", "ambos"]
+        "choices": [
+          "nenhum",
+          "X",
+          "Y",
+          "ambos"
+        ]
       },
       {
         "name": "painel",
@@ -14634,7 +14763,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14668,7 +14803,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "chart-scatter"
@@ -14727,7 +14866,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -14761,7 +14906,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "trending-up"
@@ -14799,7 +14948,11 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "horizontal",
-        "choices": ["horizontal", "vertical", "diagonal"]
+        "choices": [
+          "horizontal",
+          "vertical",
+          "diagonal"
+        ]
       },
       {
         "name": "valor",
@@ -14833,7 +14986,11 @@
         "kind": "enum",
         "label": "Estilo",
         "default": "tracejada",
-        "choices": ["tracejada", "contínua", "pontilhada"]
+        "choices": [
+          "tracejada",
+          "contínua",
+          "pontilhada"
+        ]
       }
     ],
     "icon": "separator-horizontal"
@@ -14878,7 +15035,11 @@
         "kind": "enum",
         "label": "Formato",
         "default": "png",
-        "choices": ["pdf", "png", "tiff"]
+        "choices": [
+          "pdf",
+          "png",
+          "tiff"
+        ]
       },
       {
         "name": "largura_mm",
@@ -14961,14 +15122,21 @@
         "kind": "enum",
         "label": "Estilo",
         "default": "colmeia",
-        "choices": ["colmeia", "espalhado"]
+        "choices": [
+          "colmeia",
+          "espalhado"
+        ]
       },
       {
         "name": "resumo",
         "kind": "enum",
         "label": "Traço de resumo",
         "default": "mediana",
-        "choices": ["nenhum", "média", "mediana"]
+        "choices": [
+          "nenhum",
+          "média",
+          "mediana"
+        ]
       },
       {
         "name": "log",
@@ -14988,7 +15156,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -15022,7 +15196,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "grip-vertical"
@@ -15106,7 +15284,13 @@
         "kind": "enum",
         "label": "Proporção",
         "default": "16:9",
-        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+        "choices": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "2:1"
+        ]
       },
       {
         "name": "tema",
@@ -15140,7 +15324,11 @@
         "kind": "enum",
         "label": "Legenda",
         "default": "direita",
-        "choices": ["direita", "abaixo", "nenhuma"]
+        "choices": [
+          "direita",
+          "abaixo",
+          "nenhuma"
+        ]
       }
     ],
     "icon": "audio-waveform"

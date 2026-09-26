@@ -5,7 +5,7 @@ section: colecoes
 collection: experimentos
 node: experiments/contrasts
 category: "Analisar"
-related: [models/linear_hypothesis, models/dose_response, models/emmeans, experiments/boxcox]
+related: [models/linear_hypothesis, models/polinomial, models/emmeans, experiments/boxcox]
 ---
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
@@ -78,21 +78,6 @@ balanceado, `sq` é o SQ do livro, est² / Σ(cᵢ²/rᵢ), com rᵢ as observa�
 cada média; no desbalanceado os dois diferem, e o do livro sai à parte, na
 coluna `sq_livro`.
 
-## Pressupostos
-
-- Modelo linear com erro normal, independente e de variância constante (ANOVA,
-  `lm`, misto ou parcela subdividida); GLM é recusado — lá o contraste vive na
-  escala da ligação e não tem SQ que some (use `models/linear_hypothesis`).
-- Contrastes **planejados** antes de ver os dados: o p de cada linha não é
-  corrigido para multiplicidade. Contrastes escolhidos depois de olhar as médias
-  pedem Scheffé ou outra correção.
-- No desbalanceado, as médias são as ajustadas do `emmeans`; `sq` é o SQ
-  extra do teste (F × QM do erro), e o SQ de livro (est² / Σ cᵢ²/rᵢ), que aí
-  não é o do teste, vai para `sq_livro`. Os SQ extras não somam o SQ do
-  tratamento, e o rodapé diz isso.
-- Polinômios exigem fator quantitativo: os níveis têm de ser números, ou os
-  valores vão em **Doses**.
-
 ## Parâmetros
 
 - **Fator** — o fator cujas médias se contrastam. No conjunto `fatorial 2^k`,
@@ -129,26 +114,10 @@ tr_flow(reg) |>
          doses = "0 0.2 0.4 0.6", dentro = "variedade", from = "split")
 ```
 
-## Referências
-
-- Dunnett, C. W. (1955). A multiple comparison procedure for comparing several
-  treatments with a control. *Journal of the American Statistical Association*,
-  50(272), 1096–1121. doi:10.1080/01621459.1955.10501294
-- Montgomery, D. C. (2017). *Design and Analysis of Experiments*, 9th ed.
-  Wiley. Cap. 3 (contrastes e contrastes ortogonais; o exemplo 3.1, da taxa de
-  gravação, reproduzido nos testes) e cap. 6 (o fatorial 2^k como contrastes;
-  o 2² do processo químico da seção 6.2, reproduzido nos testes).
-- Pimentel-Gomes, F. (2009). *Curso de Estatística Experimental*, 15ª ed. FEALQ.
-- Searle, S. R. (1971). *Linear Models*. Wiley.
-- Lenth, R. V. `emmeans`: Estimated Marginal Means (pacote R), usado para as
-  estimativas e os erros padrão.
-- Fox, J. & Weisberg, S. `car` (pacote R): o `linearHypothesis`, cujo SQ extra é
-  o `sq` de cada linha.
-
 ## Veja também
 
 `models/linear_hypothesis` para o F conjunto dos mesmos contrastes;
-`models/dose_response` para a curva ajustada às doses; `models/emmeans` para as
+`models/polinomial` para a curva ajustada às doses; `models/emmeans` para as
 médias que os contrastes combinam; `experiments/boxcox` quando os resíduos pedem
 transformação.
 

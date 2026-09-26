@@ -36,16 +36,6 @@ O modelo sai como `models/fit` comum (o `lm` do `models/lm`): resíduos,
 pressupostos, coeficientes e previsão funcionam nele. Com bloco, o bloco entra
 aditivo, e o b0 da canônica e do contorno é a média dos blocos.
 
-## Pressupostos
-
-- Fatores já codificados; a canônica só tem leitura nessa escala.
-- Erro normal, independente e de variância constante, como em todo `lm`.
-- O modelo de 2ª ordem é uma aproximação local: vale dentro da região
-  experimentada, e o ponto estacionário fora dela não é recomendação.
-- Falta de ajuste só se testa com pontos repetidos; o erro puro vem das
-  repetições no mesmo ponto. Com bloco, é o resíduo de `y ~ bloco + ponto`
-  (o bloco aditivo, como no modelo), a conta do `rsm` e de Myers et al.
-
 ## Parâmetros
 
 - **Resposta** — coluna numérica.
@@ -71,18 +61,6 @@ tr_flow(reg) |>
   tr_add("rsm", "experiments/response_surface", resposta = "rendimento",
          fatores = "x1, x2", ordem = "2", from = "ccd")
 ```
-
-## Referências
-
-- Box, G. E. P. & Wilson, K. B. (1951). On the experimental attainment of
-  optimum conditions. *Journal of the Royal Statistical Society, Series B*,
-  13(1), 1–38 (com a discussão, até 45). doi:10.1111/j.2517-6161.1951.tb00067.x.
-- Myers, R. H., Montgomery, D. C. & Anderson-Cook, C. M. (2009). *Response
-  Surface Methodology*, 3rd ed. Wiley. (Os dados do processo químico em dois
-  blocos, `rsm::ChemReact`, são da tabela 7.6 desta edição, como cita a
-  documentação do `rsm`, e estão nos testes.)
-- Lenth, R. V. (2009). Response-Surface Methods in R, Using rsm. *Journal of
-  Statistical Software*, 32(7). doi:10.18637/jss.v032.i07.
 
 ## Veja também
 

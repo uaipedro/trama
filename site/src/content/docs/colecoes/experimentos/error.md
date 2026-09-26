@@ -57,12 +57,6 @@ foi simulado aleatório. Como o `models/glmer` não tem gama, a gama com termo
 aleatório na fórmula (o erro de parcela da subdividida, por exemplo) sugere o
 GLM só dos fixos, com aviso.
 
-## Pressupostos
-
-Nenhum sobre dados: é simulação. O resíduo é independente entre unidades,
-salvo a correlação declarada dentro do indivíduo. A perda é completamente ao
-acaso (MCAR), que é o caso em que a análise dos dados restantes não tem viés.
-
 ## Parâmetros
 
 - **Resposta** — nome da coluna (não pode existir no plano).
@@ -95,17 +89,6 @@ tr_flow(reg) |>
   tr_add("sp", "models/anova_split_plot", resposta = "producao", parcela = "irrigacao",
          subparcela = "variedade", bloco = "bloco", from = "y")
 ```
-
-## Referências
-
-- McCullagh, P.; Nelder, J. A. *Generalized Linear Models*. 2. ed. London:
-  Chapman & Hall, 1989. (Famílias e funções de ligação.)
-- Littell, R. C.; Milliken, G. A.; Stroup, W. W.; Wolfinger, R. D.;
-  Schabenberger, O. *SAS for Mixed Models*. 2. ed. Cary: SAS Institute, 2006.
-  (Simetria composta e AR(1) em medidas repetidas.)
-- Johnson, N. L.; Kotz, S.; Balakrishnan, N. *Continuous Univariate
-  Distributions*, v. 1. 2. ed. New York: Wiley, 1994. (Assimetria da gama,
-  2/√k.)
 
 ## Veja também
 

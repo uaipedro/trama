@@ -130,10 +130,11 @@
 #' @noRd
 .tr_exp_perm <- function(x) x[sample.int(length(x))]
 
-#' As páginas de ajuda, com as seções na ordem de `?funcao`, mais a de
-#' referências e, nos nós estocásticos, a do sorteio.
+#' As páginas de ajuda, com as seções na ordem de `?funcao` e, nos nós
+#' estocásticos, a do sorteio. Pressupostos e referências vêm estruturados
+#' (`.tr_exp_doc`), não da prosa.
 #' @noRd
-.tr_exp_ajuda <- function(descricao, parametros, valor, exemplos, veja, referencias = NULL,
+.tr_exp_ajuda <- function(descricao, parametros, valor, exemplos, veja,
                           grafico = FALSE, semente = FALSE) {
   paste0("## Descrição\n\n", trimws(descricao),
          "\n\n## Parâmetros\n\n", trimws(parametros),
@@ -141,7 +142,6 @@
          "\n\n## Exemplos\n\n```r\n", trimws(exemplos), "\n```",
          "\n\n## Veja também\n\n", trimws(veja),
          if (semente) paste0("\n", .tr_exp_ajuda_semente()) else "",
-         if (!is.null(referencias)) paste0("\n\n### Referências\n\n", trimws(referencias)) else "",
          if (grafico) paste0("\n", trama.view::tr_view_help_appearance()) else "")
 }
 

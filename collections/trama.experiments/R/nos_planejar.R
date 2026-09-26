@@ -7,6 +7,8 @@
     trama::tr_node("experiments/design", version = 4L, fn = tr_experiments_design, label = "Delineamento",
       category = "exp_planejar", icon = trama::tr_icon("grid-3x3"), stochastic = TRUE,
       description = "Declara o delineamento (fatores, blocos, unidades) e sorteia a alocação.",
+      pressupostos = .tr_exp_doc("experiments/design")$pressupostos,
+      referencias = .tr_exp_doc("experiments/design")$referencias,
       inputs = list(), outputs = list(out = PL),
       params = list(
         estrutura = E("dbc", .TR_EXP_ESTRUTURAS, label = "Estrutura"),
@@ -162,41 +164,13 @@ tr_flow(reg) |>
 ]---", r"---[
 `experiments/view` para o mapa, a hierarquia, as combinações e a ordem;
 `models/anova_split_plot` e as demais ANOVAs para analisar.
-]---", referencias = r"---[
-- Banzatto, D. A.; Kronka, S. N. *Experimentação agrícola*. 4. ed. Jaboticabal:
-  FUNEP, 2006.
-- Montgomery, D. C. *Design and Analysis of Experiments*. 9. ed. Hoboken:
-  Wiley, 2017.
-- Cochran, W. G.; Cox, G. M. *Experimental Designs*. 2. ed. New York: Wiley,
-  1957.
-- Box, G. E. P.; Hunter, J. S.; Hunter, W. G. *Statistics for Experimenters*.
-  2. ed. Hoboken: Wiley, 2005.
-- Box, G. E. P.; Wilson, K. B. On the experimental attainment of optimum
-  conditions. *Journal of the Royal Statistical Society B*, 13(1), 1–38
-  (discussão, 38–45), 1951. doi:10.1111/j.2517-6161.1951.tb00067.x
-- Williams, E. J. Experimental designs balanced for the estimation of residual
-  effects of treatments. *Australian Journal of Scientific Research A*, 2(2),
-  149–168, 1949. doi:10.1071/CH9490149
-- Jones, B.; Kenward, M. G. *Design and Analysis of Cross-Over Trials*. 3. ed.
-  Boca Raton: CRC Press, 2014.
-- Fisher, R. A.; Yates, F. *Statistical Tables for Biological, Agricultural
-  and Medical Research*. 6. ed. Edinburgh: Oliver and Boyd, 1963 (as
-  tabelas de quadrados latinos).
-- Jacobson, M. T.; Matthews, P. Generating uniformly distributed random Latin
-  squares. *Journal of Combinatorial Designs*, 4(6), 405–437, 1996.
-  doi:10.1002/(SICI)1520-6610(1996)4:6<405::AID-JCD3>3.0.CO;2-J
-- Bose, R. C. On the construction of balanced incomplete block designs.
-  *Annals of Eugenics*, 9(4), 353–399, 1939.
-  doi:10.1111/j.1469-1809.1939.tb02219.x
-- OEIS A000315: número de quadrados latinos reduzidos de ordem n.
-  https://oeis.org/A000315
-- Bailey, R. A. *Design of Comparative Experiments*. Cambridge: Cambridge
-  University Press, 2008.
 ]---", semente = TRUE)),
 
     trama::tr_node("experiments/view", fn = tr_experiments_view, label = "Ver o plano",
       category = "exp_planejar", role = "leitura", icon = trama::tr_icon("layout-grid"),
       description = "Mapa, hierarquia, combinações ou ordem de execução de um plano.",
+      pressupostos = .tr_exp_doc("experiments/view")$pressupostos,
+      referencias = .tr_exp_doc("experiments/view")$referencias,
       inputs = list(plano = PL), outputs = list(out = "view/plot"),
       params = c(list(aba = E("mapa", .TR_EXP_ABAS, label = "Aba"),
                       por = E("tratamento", .TR_EXP_POR, label = "Componentes por")), .tr_exp_props()),

@@ -47,14 +47,6 @@ Empates contam como "≥" (tolerância relativa de 10⁻⁸). A tabela traz tamb
 o p do quadro (o do F de Snedecor): em dados normais os dois ficam perto
 (Pitman, 1938).
 
-## Pressupostos
-
-Só a aleatorização: que a alocação observada saiu do sorteio descrito no plano
-e que, sob H0, a resposta de cada unidade não depende do tratamento que ela
-recebeu. Não pede normalidade nem variâncias iguais. A hipótese testada é a
-nula exata (efeito zero em toda unidade), mais forte que a igualdade de
-médias.
-
 ## Parâmetros
 
 - **Resposta** — em branco, a do plano. Com **dados** ligado, a tabela precisa
@@ -97,29 +89,6 @@ tr_flow(reg) |>
   tr_add("y", "experiments/error", sd = 1, from = "t") |>
   tr_add("ta", "experiments/randomization_test", from = "y")
 ```
-
-## Referências
-
-- Fisher, R. A. *The Design of Experiments*. Edinburgh: Oliver and Boyd,
-  1935. (Cap. III: os dados de Darwin em *Zea mays*.)
-- Pitman, E. J. G. Significance tests which may be applied to samples from
-  any populations. *Supplement to the Journal of the Royal Statistical
-  Society*, v. 4, n. 1, p. 119–130, 1937. DOI: 10.2307/2984124.
-- Pitman, E. J. G. Significance tests which may be applied to samples from
-  any populations. III. The analysis of variance test. *Biometrika*, v. 29,
-  n. 3/4, p. 322–335, 1938. DOI: 10.2307/2332008.
-- Edgington, E. S.; Onghena, P. *Randomization Tests*. 4. ed. Boca Raton:
-  Chapman & Hall/CRC, 2007.
-- Hinkelmann, K.; Kempthorne, O. *Design and Analysis of Experiments*, v. 1.
-  2. ed. Hoboken: Wiley, 2008. (Aleatorização e análise pela
-  aleatorização.)
-- Phipson, B.; Smyth, G. K. Permutation p-values should never be zero.
-  *Statistical Applications in Genetics and Molecular Biology*, v. 9, n. 1,
-  2010. DOI: 10.2202/1544-6115.1585.
-- Hothorn, T.; Hornik, K.; van de Wiel, M. A.; Zeileis, A. Implementing a
-  class of permutation tests: the coin package. *Journal of Statistical
-  Software*, v. 28, n. 8, 2008. DOI: 10.18637/jss.v028.i08. (O oráculo dos
-  testes.)
 
 ## Veja também
 

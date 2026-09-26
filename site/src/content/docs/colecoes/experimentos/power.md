@@ -48,13 +48,6 @@ Um ajuste por réplica e ponto da grade: 200 réplicas de uma ANOVA levam
 poucos segundos. O erro de Monte Carlo da taxa é √(p(1 − p)/R): com R = 200 e
 p = 0,5, 0,035; o IC já o mostra.
 
-## Pressupostos
-
-Os do modelo declarado na cadeia: é ele que gera cada resposta. O resultado
-vale para esse modelo — poder com σ declarado maior ou menor que o real é
-poder de outro experimento. O plano precisa guardar os argumentos dos termos
-(desde a versão 0.2.0 da coleção).
-
 ## Parâmetros
 
 - **Análise (nó de models)** — em branco, a do plano (`plano$analise`, a que o
@@ -101,20 +94,6 @@ tr_flow(reg) |>
   tr_add("y", "experiments/error", sd = 1, from = "t") |>
   tr_add("poder", "experiments/power", replicas = 20L, repeticoes = "3, 5", from = "y")
 ```
-
-## Referências
-
-- Oliveira, I. R. C.; Ferreira, D. F. Multivariate extension of chi-squared
-  univariate normality test. *Journal of Statistical Computation and
-  Simulation*, v. 80, n. 5, p. 513–526, 2010. DOI: 10.1080/00949650902731377.
-- Clopper, C. J.; Pearson, E. S. The use of confidence or fiducial limits
-  illustrated in the case of the binomial. *Biometrika*, v. 26, n. 4,
-  p. 404–413, 1934. DOI: 10.1093/biomet/26.4.404.
-- Montgomery, D. C. *Design and Analysis of Experiments*. 9. ed. Hoboken:
-  Wiley, 2017. (Poder pelo F não central, cap. 3 — o oráculo dos testes.)
-- Gelman, A.; Hill, J. *Data Analysis Using Regression and
-  Multilevel/Hierarchical Models*. Cambridge: Cambridge University Press, 2007.
-  (Poder por simulação de dados falsos, cap. 20.)
 
 ## Veja também
 

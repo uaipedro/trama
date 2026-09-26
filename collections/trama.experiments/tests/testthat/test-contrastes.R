@@ -115,8 +115,13 @@ test_that("recusas: GLM, doses que não são números, fator numérico", {
 
 test_that("os nós de análise têm ajuda completa e params iguais aos do fn", {
   for (n in .tr_experiments_nos_analisar()) {
-    for (s in c("## Descrição", "## Pressupostos", "## Parâmetros", "## Valor", "## Exemplos",
-                "## Referências", "## Veja também")) expect_match(n$help, s, fixed = TRUE, info = n$id)
+    for (s in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos",
+                "## Veja também")) expect_match(n$help, s, fixed = TRUE, info = n$id)
+    # Pressupostos e referências vêm estruturados, não da prosa.
+    expect_no_match(n$help, "## Referências", fixed = TRUE)
+    expect_gte(length(n$pressupostos), 1L)
+    papeis <- vapply(n$referencias, function(r) r$papel, character(1))
+    expect_true(any(papeis %in% c("teoria", "livro-texto")) && any(papeis == "implementacao"), info = n$id)
     f <- formals(n$fn)
     for (nm in names(n$params)) {
       expect_true(nm %in% names(f), info = paste(n$id, nm))

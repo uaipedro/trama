@@ -20,6 +20,8 @@
     trama::tr_node("experiments/contrasts", version = 3L, fn = tr_experiments_contrasts, label = "Contrastes",
       category = "exp_analisar", icon = trama::tr_icon("divide"),
       description = "Abre o SQ do tratamento: uma linha por contraste (polinomiais, Helmert, controle, 2^k ou digitados), com a conferência da soma e da ortogonalidade.",
+      pressupostos = .tr_exp_doc("experiments/contrasts")$pressupostos,
+      referencias = .tr_exp_doc("experiments/contrasts")$referencias,
       inputs = list(modelo = Fm), outputs = list(out = EF, ortogonalidade = T),
       params = list(
         fator = P("cols", "", label = "Fator", example = "nitrogenio"),
@@ -34,6 +36,8 @@
     trama::tr_node("experiments/boxcox", version = 2L, fn = tr_experiments_boxcox, label = "Box-Cox",
       category = "exp_analisar", icon = trama::tr_icon("chart-line"),
       description = "Perfil de verossimilhança em λ: a potência da resposta que normaliza o erro, com IC e a transformação sugerida.",
+      pressupostos = .tr_exp_doc("experiments/boxcox")$pressupostos,
+      referencias = .tr_exp_doc("experiments/boxcox")$referencias,
       inputs = list(modelo = Fm), outputs = list(out = "view/plot", resumo = T, perfil = T),
       params = c(list(
         lambda_min = N(-2, min = -10, max = 10, step = 0.5, label = "λ mínimo"),
@@ -49,6 +53,8 @@
       # a cor clara de leitura dos outros dois, que leem um ajuste pronto.
       role = "ajuste", icon = trama::tr_icon("chart-area"),
       description = "Modelo de 1ª ou 2ª ordem em fatores codificados, análise canônica, falta de ajuste e contorno.",
+      pressupostos = .tr_exp_doc("experiments/response_surface")$pressupostos,
+      referencias = .tr_exp_doc("experiments/response_surface")$referencias,
       inputs = list(dados = T),
       outputs = list(modelo = Fm, quadro = EF, canonica = T, grafico = "view/plot"),
       params = c(list(

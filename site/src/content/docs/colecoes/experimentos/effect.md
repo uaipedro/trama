@@ -63,12 +63,6 @@ interação, todas as células presentes no plano; o nome do termo não se repet
 nenhum termo depois de `experiments/error`. Efeito aleatório com um nível por
 unidade avisa que se confunde com o resíduo.
 
-## Pressupostos
-
-Nenhum sobre dados: é simulação. O que se declara é o modelo verdadeiro; o
-efeito aleatório é normal de média zero; o fixo é "soma zero" quando declarado
-por contraste (e o que se digitar, quando por nível).
-
 ## Parâmetros
 
 - **Tipo** — ver a tabela.
@@ -108,14 +102,6 @@ tr_flow(reg) |>
   tr_add("dose", "experiments/effect", tipo = "fixo", fator = "dose", conjunto = "polinomiais",
          magnitudes = "linear = 4, quadratico = 1, cubico = 0", from = "mu")
 ```
-
-## Referências
-
-- Montgomery, D. C. *Design and Analysis of Experiments*. 9. ed. Hoboken:
-  Wiley, 2017. (Contrastes e contrastes ortogonais, cap. 3.)
-- Gelman, A.; Hill, J. *Data Analysis Using Regression and
-  Multilevel/Hierarchical Models*. Cambridge: Cambridge University Press, 2007.
-  (Simulação de dados falsos para conferir a análise, cap. 8.)
 
 ## Veja também
 

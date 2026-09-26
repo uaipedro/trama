@@ -1,5 +1,10 @@
 # trama.experiments 0.2.0
 
+* Os nove blocos passam a declarar pressupostos e referências ESTRUTURADOS
+  (`tr_pressuposto`, `tr_ref` com papel teoria/livro-texto/implementacao), em
+  `R/docs_blocos.R`; as seções "Pressupostos" e "Referências" saem da prosa da
+  ajuda, e a página as monta do nó. As referências são as já conferidas.
+
 * `experiments/design` (versão 4): o param `alfa` do composto central virou
   `distancia_axial` (o glossário reserva `alfa` para significância) e aceita,
   além de `rotacional` e `face`, um número positivo. Fluxos salvos com `alfa`

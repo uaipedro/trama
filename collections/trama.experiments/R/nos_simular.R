@@ -9,6 +9,8 @@
     trama::tr_node("experiments/effect", version = 2L, fn = tr_experiments_effect, label = "Efeito",
       category = "exp_planejar", icon = trama::tr_icon("plus"), stochastic = TRUE,
       description = "Soma um termo à resposta simulada: intercepto, fixo (por nível ou por contraste), aleatório, interação, quantitativo ou covariável.",
+      pressupostos = .tr_exp_doc("experiments/effect")$pressupostos,
+      referencias = .tr_exp_doc("experiments/effect")$referencias,
       inputs = list(plano = PL), outputs = list(out = PL),
       params = list(
         tipo = E("intercepto", .TR_EXP_EF_TIPOS, label = "Tipo"),
@@ -30,6 +32,8 @@
     trama::tr_node("experiments/error", fn = tr_experiments_error, label = "Erro",
       category = "exp_planejar", icon = trama::tr_icon("sigma"), stochastic = TRUE,
       description = "Soma os termos, sorteia o resíduo (normal, Poisson, binomial ou gama) e fecha a coluna de resposta.",
+      pressupostos = .tr_exp_doc("experiments/error")$pressupostos,
+      referencias = .tr_exp_doc("experiments/error")$referencias,
       inputs = list(plano = PL), outputs = list(out = PL),
       params = list(
         resposta = P("text", "y", label = "Resposta"),
@@ -100,10 +104,6 @@ interação, todas as células presentes no plano; o nome do termo não se repet
 nenhum termo depois de `experiments/error`. Efeito aleatório com um nível por
 unidade avisa que se confunde com o resíduo.
 ]---", r"---[
-Nenhum sobre dados: é simulação. O que se declara é o modelo verdadeiro; o
-efeito aleatório é normal de média zero; o fixo é "soma zero" quando declarado
-por contraste (e o que se digitar, quando por nível).
-]---", r"---[
 - **Tipo** — ver a tabela.
 - **Fator(es)** — coluna(s) do plano: `irrigacao`, `bloco:parcela`, `dose:irrigacao`.
 - **Valor (intercepto)**.
@@ -135,12 +135,6 @@ tr_flow(reg) |>
   tr_add("mu", "experiments/effect", tipo = "intercepto", valor = 20, from = "plano") |>
   tr_add("dose", "experiments/effect", tipo = "fixo", fator = "dose", conjunto = "polinomiais",
          magnitudes = "linear = 4, quadratico = 1, cubico = 0", from = "mu")
-]---", r"---[
-- Montgomery, D. C. *Design and Analysis of Experiments*. 9. ed. Hoboken:
-  Wiley, 2017. (Contrastes e contrastes ortogonais, cap. 3.)
-- Gelman, A.; Hill, J. *Data Analysis Using Regression and
-  Multilevel/Hierarchical Models*. Cambridge: Cambridge University Press, 2007.
-  (Simulação de dados falsos para conferir a análise, cap. 8.)
 ]---", r"---[
 `experiments/error` para fechar a resposta; `experiments/view` (aba
 `componentes`); `experiments/contrasts` para recuperar o contraste declarado.
@@ -192,10 +186,6 @@ foi simulado aleatório. Como o `models/glmer` não tem gama, a gama com termo
 aleatório na fórmula (o erro de parcela da subdividida, por exemplo) sugere o
 GLM só dos fixos, com aviso.
 ]---", r"---[
-Nenhum sobre dados: é simulação. O resíduo é independente entre unidades,
-salvo a correlação declarada dentro do indivíduo. A perda é completamente ao
-acaso (MCAR), que é o caso em que a análise dos dados restantes não tem viés.
-]---", r"---[
 - **Resposta** — nome da coluna (não pode existir no plano).
 - **Distribuição** — `normal`, `poisson`, `binomial`, `gama`.
 - **Desvio-padrão (normal)**; **sd por nível de** + **sd de cada nível**
@@ -220,15 +210,6 @@ tr_flow(reg) |>
   tr_add("y", "experiments/error", resposta = "producao", sd = 1, from = "ep") |>
   tr_add("sp", "models/anova_split_plot", resposta = "producao", parcela = "irrigacao",
          subparcela = "variedade", bloco = "bloco", from = "y")
-]---", r"---[
-- McCullagh, P.; Nelder, J. A. *Generalized Linear Models*. 2. ed. London:
-  Chapman & Hall, 1989. (Famílias e funções de ligação.)
-- Littell, R. C.; Milliken, G. A.; Stroup, W. W.; Wolfinger, R. D.;
-  Schabenberger, O. *SAS for Mixed Models*. 2. ed. Cary: SAS Institute, 2006.
-  (Simetria composta e AR(1) em medidas repetidas.)
-- Johnson, N. L.; Kotz, S.; Balakrishnan, N. *Continuous Univariate
-  Distributions*, v. 1. 2. ed. New York: Wiley, 1994. (Assimetria da gama,
-  2/√k.)
 ]---", r"---[
 `experiments/effect`; `experiments/view` (aba `componentes`);
 `models/anova_split_plot`, `models/glm`, `models/glmer`, `models/lmer`.
