@@ -394,6 +394,23 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-numf{display:grid;gap:2px;min-width:0}
 .tr-param input.tr-invalid{border-color:var(--tr-err)}
 .tr-field-err{color:var(--tr-err);font-size:10px;line-height:1.2}
+/* Widget `cols` (runtime.js). O campo e o que vem embaixo dele (selo, aviso)
+   empilham na coluna do valor. O `.tr-expr` volta aqui porque o widget subiu
+   da coleção data pro núcleo: um bloco de gráfico sem a data carregada ainda
+   mostra nomes de coluna em monoespaçado. */
+.tr-cols{display:grid;gap:2px;min-width:0}
+.tr-cols .tr-expr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px}
+.tr-cols-chips{display:flex;flex-wrap:wrap;gap:2px;max-height:48px;overflow:auto}
+.tr-cols-chip{border:1px solid var(--tr-line);border-radius:8px;background:var(--tr-field);color:var(--tr-fg);
+  font:inherit;font-size:10px;padding:0 5px;cursor:pointer}
+.tr-cols-chip-fora{color:var(--tr-dim)}
+.tr-cols-usar{margin-left:4px;border:1px solid currentColor;border-radius:8px;background:none;color:inherit;
+  font:inherit;padding:0 5px;cursor:pointer}
+/* Preenchido por sugestão, não pelo usuário: valor em itálico e um selo
+   discreto; o porquê fica no `title` do bloco. Some na primeira escolha à mão. */
+.tr-sugerido select,.tr-sugerido textarea{font-style:italic}
+.tr-sug-pill{justify-self:start;font-size:9px;line-height:1.4;padding:0 5px;border-radius:7px;
+  background:var(--tr-line);color:var(--tr-dim);font-style:italic;cursor:help}
 
 /* O respiro de baixo é 14px, e não 7px, por causa da alça: com 7px ela cobria
    4 dos 9 pixels de alvo do handle da última porta de saída — que é a porta que

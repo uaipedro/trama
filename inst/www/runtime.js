@@ -18,6 +18,7 @@ import ReactDOM from "react-dom";
 // (a dependência do núcleo usa `all_files = TRUE`). E nenhuma coleção precisa
 // dele pelo nome: as regras chegam a elas através destes widgets.
 import { layoutEnum, validarNumero } from "./params.js";
+import { anotado, opcoes, sugerir, sumidas, alternativa } from "./colunas.js";
 import { MARCAS, NIVEIS, posicao, estrelas, faixa, venceu, num, numP, eixoEfeito } from "./teste.js";
 
 export const h = React.createElement;
@@ -518,6 +519,105 @@ registerWidget("text", (spec, value, onChange) => {
     onBlur: (e) => { if (e.target.value !== atual) onChange(e.target.value); },
     onKeyDown: (e) => { if (e.key === "Enter") e.target.blur(); },
   });
+});
+// `cols`: nome(s) de coluna da tabela que chega na entrada. Morava na coleção
+// `data` como textarea; subiu pro núcleo porque qualquer coleção declara
+// params de coluna (`tr_param_col()`), e porque só o editor sabe o schema da
+// entrada — chega no 4º argumento, `ctx` (montado por `ParamsList`,
+// modos-ui.js). Três formas:
+//   - sem `ctx.colunas` (entrada desligada, ou ainda não rodou): o textarea de
+//     sempre, idêntico ao antigo da coleção `data` — sem tabela não há o que
+//     listar, e o usuário ainda pode digitar;
+//   - anotado com uma coluna só: `<select>`, as que servem ao papel primeiro,
+//     as outras num grupo à parte (servir é conselho, não trava);
+//   - sem anotação, ou `multi`: o textarea, com as colunas da entrada em chips
+//     clicáveis embaixo.
+// Qualquer escolha daqui sai por `onChange` — `set_param` sem origem —, o que
+// desmarca o "sugerido": escolha à mão nunca é pisada por sugestão.
+const colsVazio = (v) => v === "" || v === null || v === undefined;
+function colsTexto(spec, atual, onChange) {
+  return h("textarea", {
+    // `key` no valor pelo mesmo motivo do widget `text`: o eco de fora (undo,
+    // sugestão, "usar Y") precisa reaparecer num campo não controlado.
+    key: "v" + String(atual), className: "nodrag tr-expr", rows: 2, spellCheck: false,
+    defaultValue: atual,
+    placeholder: spec.example ?? "col1, col2",
+    title: spec.example ? `ex.: ${spec.example}` : undefined,
+    onBlur: (e) => { if (e.target.value !== atual) onChange(e.target.value); },
+  });
+}
+registerWidget("cols", (spec, value, onChange, ctx) => {
+  const atual = value ?? spec.default ?? "";
+  const schema = ctx?.colunas;
+  if (!schema) return colsTexto(spec, atual, onChange);
+  const lista = opcoes(spec, schema);
+  const serve = lista.filter((o) => o.serve), outras = lista.filter((o) => !o.serve);
+  const falta = sumidas([spec], { [spec.name]: atual }, schema)[0];
+  let campo;
+  if (anotado(spec) && !spec.multi) {
+    // Flag desligado e campo vazio: a sugestão fica a um clique, como
+    // primeira opção — pedir é o gesto, então sai COM origem (selo).
+    const sug = !ctx.sugestoes && colsVazio(atual)
+      ? sugerir(ctx.params, ctx.valores, ctx.sugeridos, schema).find((s) => s.name === spec.name)
+      : null;
+    const opt = (o) => h("option", { key: o.nome, value: o.nome }, o.nome);
+    campo = h("select", {
+      key: "s", className: "nodrag", value: atual,
+      onChange: (e) => {
+        const v = e.target.value;
+        if (sug && v === "\u0000sugerir") ctx.onSugerir(sug.value, sug.motivo);
+        else onChange(v);
+      },
+    }, [
+      sug ? h("option", { key: "\u0000s", value: "\u0000sugerir" }, `sugerir: ${sug.value}`) : null,
+      h("option", { key: "\u0000v", value: "" }, "—"),
+      // Valor que não está mais na tabela continua visível (desabilitado): um
+      // select que mostrasse "—" esconderia que há um valor, e qual.
+      falta ? h("option", { key: "\u0000f", value: atual, disabled: true }, `${atual} (sumiu)`) : null,
+      ...serve.map(opt),
+      outras.length ? h("optgroup", { key: "\u0000o", label: "outras" }, outras.map(opt)) : null,
+    ]);
+  } else {
+    // Chip acrescenta ao que está NO CAMPO (lido do DOM), não ao valor do
+    // documento: o texto digitado e ainda não comitado não pode se perder.
+    // `onMouseDown` + `preventDefault` segura o foco no textarea, senão o
+    // blur comitaria antes e o clique somaria sobre o valor velho.
+    const somar = (e, nome) => {
+      e.preventDefault();
+      const ta = e.currentTarget.closest(".tr-cols")?.querySelector("textarea");
+      const agora = (ta ? ta.value : String(atual)).trim();
+      const novo = agora ? `${agora.replace(/,\s*$/, "")}, ${nome}` : nome;
+      if (ta) ta.value = novo;
+      onChange(novo);
+    };
+    campo = h("div", { key: "t", className: "tr-cols-multi" }, [
+      colsTexto(spec, atual, onChange),
+      h("div", { key: "c", className: "tr-cols-chips" }, [...serve, ...outras].map((o) =>
+        h("button", { key: o.nome, type: "button", tabIndex: -1,
+                      className: "nodrag tr-cols-chip" + (o.serve ? "" : " tr-cols-chip-fora"),
+                      title: `acrescentar ${o.nome} (${o.papel})`,
+                      onMouseDown: (e) => somar(e, o.nome) }, o.nome))),
+    ]);
+  }
+  let aviso = null;
+  if (falta) {
+    const alt = alternativa(spec, falta.faltam[0], schema);
+    const troca = () => {
+      const nomes = String(atual).split(",").map((x) => x.trim()).filter(Boolean);
+      onChange(nomes.map((n) => (n === falta.faltam[0] ? alt : n)).join(", "));
+    };
+    aviso = h("div", { key: "a", className: "tr-field-err" }, [
+      `${falta.faltam.join(", ")} não existe na entrada`,
+      alt ? h("button", { key: "u", type: "button", className: "nodrag tr-cols-usar",
+                          onClick: (e) => { e.stopPropagation(); troca(); } }, `usar ${alt}`) : null,
+    ]);
+  }
+  return h("div", { className: "tr-cols" + (ctx.sugerido ? " tr-sugerido" : ""),
+                    title: ctx.sugerido ? ctx.motivo : undefined }, [
+    campo,
+    ctx.sugerido ? h("span", { key: "p", className: "tr-sug-pill" }, "sugerido") : null,
+    aviso,
+  ]);
 });
 registerWidget("boolean", (spec, value, onChange) =>
   h(Toggle, { value: !!(value ?? spec.default), onChange }));
