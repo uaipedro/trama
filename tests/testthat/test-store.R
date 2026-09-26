@@ -149,3 +149,43 @@ test_that("regravar a mesma chave é idempotente", {
   expect_length(list.files(file.path(s$root, "objects")), 1)
   expect_length(list.files(file.path(s$root, "tmp")), 0)
 })
+
+test_that("schema: papéis, ordem e distintos de uma tabela", {
+  sc <- trama:::.tr_df_schema(iris)
+  expect_equal(vapply(sc$colunas, `[[`, "", "nome"), names(iris))
+  expect_equal(vapply(sc$colunas, `[[`, "", "papel"), c(rep("numerica", 4), "categorica"))
+  expect_equal(sc$colunas[[5]]$n_distintos, 3L)
+  expect_false(sc$truncado); expect_false(sc$amostra)
+  df <- data.frame(d = as.Date("2020-01-01") + 0:1, t = as.POSIXct("2020-01-01", tz = "UTC") + 0:1,
+                   l = c(TRUE, NA))
+  df$lst <- list(1, "a")
+  sc <- trama:::.tr_df_schema(df)
+  expect_equal(vapply(sc$colunas, `[[`, "", "papel"), c("tempo", "tempo", "categorica", "outra"))
+  expect_true(sc$colunas[[3]]$tem_na)
+  expect_null(trama:::.tr_df_schema(list(a = 1)))
+  expect_null(trama:::.tr_df_schema(1:3))
+})
+
+test_that("schema: tetos de colunas e de linhas", {
+  larga <- as.data.frame(matrix(1, nrow = 1, ncol = 501))
+  sc <- trama:::.tr_df_schema(larga)
+  expect_true(sc$truncado); expect_length(sc$colunas, 500)
+  longa <- data.frame(x = seq_len(10001))
+  sc <- trama:::.tr_df_schema(longa)
+  expect_true(sc$amostra); expect_equal(sc$colunas[[1]]$n_distintos, 10000L)
+})
+
+test_that("schema vai no handle e tabela de 1 coluna sai como array no JSON", {
+  s <- tmp_store()
+  ty <- tr_type("t/df", version = 1L)
+  tr_store_put(s, "k1", data.frame(a = 1:3), ty)
+  raw <- jsonlite::read_json(file.path(s$root, "handles", "k1.json"), simplifyVector = FALSE)
+  expect_type(raw$schema$colunas, "list")
+  expect_null(names(raw$schema$colunas))
+  expect_equal(raw$schema$colunas[[1]]$nome, "a")
+  expect_equal(raw$schema$colunas[[1]]$papel, "numerica")
+  expect_match(paste(readLines(file.path(s$root, "handles", "k1.json")), collapse = ""),
+               '"colunas":\\[\\{', fixed = FALSE)
+  h <- tr_store_put(s, "k2", list(v = 1), tr_get_type("t/box", store_registry()))
+  expect_null(h$schema)
+})

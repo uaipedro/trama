@@ -170,11 +170,52 @@ tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duratio
     summary = if (is.null(type_spec$summary)) NULL else
       tryCatch(type_spec$summary(value), error = function(e) NULL),
     preview = preview,
+    # Schema das colunas quando o valor é tabela: o front usa para oferecer
+    # as colunas certas nos params de coluna, sem abrir o objeto. Falhar aqui
+    # não pode derrubar o put — o artefato já está gravado e vale mais que
+    # a dica.
+    schema = tryCatch(.tr_df_schema(value), error = function(e) NULL),
     duration = if (is.na(duration)) NULL else duration,
     created = as.numeric(Sys.time())
   )
   .tr_write_handle(store, key, handle)
   handle
+}
+
+#' Schema de uma tabela, na forma que o front consome em `handle$schema`.
+#'
+#' `NULL` para o que não é data.frame. Os tetos existem porque o handle é lido
+#' a cada troca de estado: 500 colunas bastam para um select (`truncado` avisa
+#' que há mais) e `n_distintos`/`tem_na` olham só as primeiras 10 000 linhas
+#' (`amostra` avisa que cortou) — contar distintos de uma tabela de milhões a
+#' cada execução custaria mais que o nó.
+#'
+#' `colunas` é lista SEM nomes de propósito: com `auto_unbox = TRUE` uma lista
+#' nomeada vira objeto e perde a ordem garantida; sem nomes, sai array mesmo
+#' com uma coluna só.
+#' @noRd
+.tr_df_schema <- function(value, max_cols = 500L, max_rows = 10000L) {
+  if (!is.data.frame(value)) return(NULL)
+  n <- nrow(value)
+  amostra <- n > max_rows
+  idx <- if (amostra) seq_len(max_rows) else seq_len(n)
+  nomes <- names(value)
+  truncado <- length(nomes) > max_cols
+  if (truncado) nomes <- nomes[seq_len(max_cols)]
+  colunas <- lapply(seq_along(nomes), function(j) {
+    x <- value[[j]]
+    papel <- if (inherits(x, c("Date", "POSIXt"))) "tempo"
+      else if (is.numeric(x)) "numerica"
+      else if (is.factor(x) || is.character(x) || is.logical(x)) "categorica"
+      else "outra"
+    # Lista-coluna e afins: distintos/NA não têm leitura simples, e `unique`
+    # sobre objetos arbitrários pode ser caro ou falhar.
+    xs <- if (is.atomic(x)) x[idx] else NULL
+    list(nome = nomes[[j]], papel = papel, classe = class(x)[[1]],
+         n_distintos = if (is.null(xs)) NULL else length(unique(xs)),
+         tem_na = if (is.null(xs)) NULL else anyNA(xs))
+  })
+  list(colunas = colunas, truncado = truncado, amostra = amostra)
 }
 
 #' Erro é VALOR, não exceção que some.
