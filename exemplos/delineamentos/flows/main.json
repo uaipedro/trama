@@ -1,0 +1,574 @@
+{
+  "format": 1,
+  "rev": 82,
+  "collections": {
+    "experiments": "0.2.0",
+    "models": "0.1.0"
+  },
+  "nodes": {
+    "com_plano": {
+      "type": "experiments/design",
+      "type_version": 3,
+      "label": "Parcela subdividida",
+      "params": {
+        "estrutura": "parcela_subdividida",
+        "fatores": "irrigacao: baixa, alta; variedade: A, B, C",
+        "repeticoes": 4
+      },
+      "seed": 11
+    },
+    "com_mapa": {
+      "type": "experiments/view",
+      "type_version": 1,
+      "label": "Quem é unidade de quê",
+      "params": {
+        "aba": "hierarquia"
+      },
+      "seed": 22797663
+    },
+    "com_mu": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Intercepto μ = 50",
+      "params": {
+        "tipo": "intercepto",
+        "valor": 50
+      },
+      "seed": 172029297
+    },
+    "com_bloco": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Bloco aleatório (sd 3)",
+      "params": {
+        "tipo": "aleatorio",
+        "fator": "bloco",
+        "sd": 3
+      },
+      "seed": 12
+    },
+    "com_irr": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Irrigação sem efeito (H0 verdadeira)",
+      "params": {
+        "tipo": "fixo",
+        "fator": "irrigacao",
+        "efeitos": "baixa = 0, alta = 0"
+      },
+      "seed": 220012255
+    },
+    "com_var": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Variedade: A vs demais = −3, C vs B = 2",
+      "params": {
+        "tipo": "fixo",
+        "fator": "variedade",
+        "conjunto": "controle",
+        "controle": "A",
+        "magnitudes": "-3, 2"
+      },
+      "seed": 110776404
+    },
+    "com_parc": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Erro de parcela (sd 4)",
+      "params": {
+        "tipo": "aleatorio",
+        "fator": "bloco:parcela",
+        "sd": 4
+      },
+      "seed": 13
+    },
+    "com_y": {
+      "type": "experiments/error",
+      "type_version": 1,
+      "label": "Erro de subparcela (sd 1)",
+      "params": {
+        "resposta": "producao",
+        "sd": 1
+      },
+      "seed": 14
+    },
+    "com_split": {
+      "type": "models/anova_split_plot",
+      "type_version": 1,
+      "label": "Parcela subdividida",
+      "params": {
+        "resposta": "producao",
+        "parcela": "irrigacao",
+        "subparcela": "variedade",
+        "bloco": "bloco"
+      },
+      "seed": 181523237
+    },
+    "com_ingenua": {
+      "type": "models/anova_factorial",
+      "type_version": 1,
+      "label": "Ingênua: fatorial em blocos",
+      "params": {
+        "resposta": "producao",
+        "fatores": "irrigacao, variedade",
+        "bloco": "bloco"
+      },
+      "seed": 222623236
+    },
+    "com_contr": {
+      "type": "experiments/contrasts",
+      "type_version": 2,
+      "label": "Variedades contra A",
+      "params": {
+        "fator": "variedade",
+        "conjunto": "controle",
+        "controle": "A"
+      },
+      "seed": 172955916
+    },
+    "com_comp": {
+      "type": "experiments/view",
+      "type_version": 1,
+      "label": "A resposta, termo a termo",
+      "params": {
+        "aba": "componentes"
+      },
+      "seed": 96577954
+    },
+    "sem_plano": {
+      "type": "experiments/design",
+      "type_version": 3,
+      "label": "Parcela subdividida",
+      "params": {
+        "estrutura": "parcela_subdividida",
+        "fatores": "irrigacao: baixa, alta; variedade: A, B, C",
+        "repeticoes": 4
+      },
+      "seed": 11
+    },
+    "sem_mapa": {
+      "type": "experiments/view",
+      "type_version": 1,
+      "label": "Quem é unidade de quê",
+      "params": {
+        "aba": "hierarquia"
+      },
+      "seed": 64460208
+    },
+    "sem_mu": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Intercepto μ = 50",
+      "params": {
+        "tipo": "intercepto",
+        "valor": 50
+      },
+      "seed": 53986744
+    },
+    "sem_bloco": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Bloco aleatório (sd 3)",
+      "params": {
+        "tipo": "aleatorio",
+        "fator": "bloco",
+        "sd": 3
+      },
+      "seed": 12
+    },
+    "sem_irr": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Irrigação sem efeito (H0 verdadeira)",
+      "params": {
+        "tipo": "fixo",
+        "fator": "irrigacao",
+        "efeitos": "baixa = 0, alta = 0"
+      },
+      "seed": 30027772
+    },
+    "sem_var": {
+      "type": "experiments/effect",
+      "type_version": 1,
+      "label": "Variedade: A vs demais = −3, C vs B = 2",
+      "params": {
+        "tipo": "fixo",
+        "fator": "variedade",
+        "conjunto": "controle",
+        "controle": "A",
+        "magnitudes": "-3, 2"
+      },
+      "seed": 184997518
+    },
+    "sem_y": {
+      "type": "experiments/error",
+      "type_version": 1,
+      "label": "Erro de subparcela (sd 1)",
+      "params": {
+        "resposta": "producao",
+        "sd": 1
+      },
+      "seed": 14
+    },
+    "sem_split": {
+      "type": "models/anova_split_plot",
+      "type_version": 1,
+      "label": "Parcela subdividida",
+      "params": {
+        "resposta": "producao",
+        "parcela": "irrigacao",
+        "subparcela": "variedade",
+        "bloco": "bloco"
+      },
+      "seed": 54957445
+    },
+    "sem_ingenua": {
+      "type": "models/anova_factorial",
+      "type_version": 1,
+      "label": "Ingênua: fatorial em blocos",
+      "params": {
+        "resposta": "producao",
+        "fatores": "irrigacao, variedade",
+        "bloco": "bloco"
+      },
+      "seed": 22160702
+    },
+    "sem_contr": {
+      "type": "experiments/contrasts",
+      "type_version": 2,
+      "label": "Variedades contra A",
+      "params": {
+        "fator": "variedade",
+        "conjunto": "controle",
+        "controle": "A"
+      },
+      "seed": 65059367
+    },
+    "sem_comp": {
+      "type": "experiments/view",
+      "type_version": 1,
+      "label": "A resposta, termo a termo",
+      "params": {
+        "aba": "componentes"
+      },
+      "seed": 257616731
+    }
+  },
+  "edges": [
+    {
+      "from": {
+        "node": "com_plano",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_mapa",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_plano",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_mu",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_mu",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_bloco",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_bloco",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_irr",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_irr",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_var",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_var",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_parc",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_parc",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_y",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_y",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_split",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_y",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_ingenua",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_split",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_contr",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "com_y",
+        "port": "out"
+      },
+      "to": {
+        "node": "com_comp",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_plano",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_mapa",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_plano",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_mu",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_mu",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_bloco",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_bloco",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_irr",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_irr",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_var",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_var",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_y",
+        "port": "plano"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_y",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_split",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_y",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_ingenua",
+        "port": "dados"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_split",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_contr",
+        "port": "modelo"
+      },
+      "index": 1
+    },
+    {
+      "from": {
+        "node": "sem_y",
+        "port": "out"
+      },
+      "to": {
+        "node": "sem_comp",
+        "port": "plano"
+      },
+      "index": 1
+    }
+  ],
+  "ui": {
+    "positions": {
+      "com_plano": [40, 90],
+      "com_mapa": [40, 420],
+      "com_mu": [370, 90],
+      "com_bloco": [370, 420],
+      "com_irr": [370, 750],
+      "com_var": [700, 90],
+      "com_parc": [700, 420],
+      "com_y": [700, 750],
+      "com_split": [1030, 90],
+      "com_ingenua": [1030, 552],
+      "com_contr": [1360, 90],
+      "com_comp": [1690, 90],
+      "sem_plano": [40, 1090],
+      "sem_mapa": [40, 1420],
+      "sem_mu": [370, 1090],
+      "sem_bloco": [370, 1420],
+      "sem_irr": [370, 1750],
+      "sem_var": [700, 1090],
+      "sem_y": [700, 1750],
+      "sem_split": [1030, 1090],
+      "sem_ingenua": [1030, 1552],
+      "sem_contr": [1360, 1090],
+      "sem_comp": [1690, 1090]
+    },
+    "sizes": {
+      "com_split": [300, 300],
+      "com_ingenua": [300, 300],
+      "com_comp": [320, 320],
+      "sem_split": [300, 300],
+      "sem_ingenua": [300, 300],
+      "sem_comp": [320, 320]
+    },
+    "views": {},
+    "frames": {
+      "01M3DJWZQ7D2BDFF": {
+        "x": 10,
+        "y": 20,
+        "w": 2020,
+        "h": 920,
+        "title": "Com erro de parcela — só a análise de parcela subdividida mantém o tipo I",
+        "aspect": "livre",
+        "color": "vermelho",
+        "order": 1
+      },
+      "01M3DJWZRGA06A41": {
+        "x": 10,
+        "y": 1020,
+        "w": 2020,
+        "h": 920,
+        "title": "Sem erro de parcela — as duas análises concordam",
+        "aspect": "livre",
+        "color": "verde",
+        "order": 2
+      }
+    },
+    "modes": {
+      "com_plano": "preview",
+      "com_mapa": "preview",
+      "com_mu": "preview",
+      "com_bloco": "preview",
+      "com_irr": "preview",
+      "com_var": "preview",
+      "com_parc": "preview",
+      "com_y": "preview",
+      "com_split": "preview",
+      "com_ingenua": "preview",
+      "com_contr": "preview",
+      "com_comp": "preview",
+      "sem_plano": "preview",
+      "sem_mapa": "preview",
+      "sem_mu": "preview",
+      "sem_bloco": "preview",
+      "sem_irr": "preview",
+      "sem_var": "preview",
+      "sem_y": "preview",
+      "sem_split": "preview",
+      "sem_ingenua": "preview",
+      "sem_contr": "preview",
+      "sem_comp": "preview"
+    },
+    "notes": {}
+  }
+}
