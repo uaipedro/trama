@@ -492,7 +492,7 @@ o resumo mostrou como texto e devia ser número."),
         description = "Mostra as linhas repetidas nas colunas escolhidas, com a contagem.",
         icon = trama::tr_icon("copy"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols = P("cols", "", label = "Colunas", example = "regiao, produto")),
+        params = list(cols = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, suggest = FALSE, example = "regiao, produto")),
         help = "## Descrição
 
 Mostra apenas as linhas que se repetem nas colunas escolhidas, acrescentando a
@@ -627,7 +627,7 @@ agressivo; `data/summary` para ver antes quanta coisa falta em cada coluna."),
         description = "Mantém uma linha por combinação das colunas escolhidas (ou da linha inteira, se vazio).",
         icon = trama::tr_icon("copy-x"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols = P("cols", "", label = "Colunas", example = "regiao, produto")),
+        params = list(cols = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, suggest = FALSE, example = "regiao, produto")),
         help = "## Descrição
 
 Guarda uma linha por combinação das colunas escolhidas e descarta as demais.
@@ -672,7 +672,7 @@ repetidas fica."),
         description = "Renomeia colunas: a primeira de 'De' vira a primeira de 'Para'.",
         icon = trama::tr_icon("pencil-line"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(from = P("cols", "", label = "De", example = "regiao, valor"),
+        params = list(from = trama::tr_param_col("", label = "De", role = "qualquer", multi = TRUE, example = "regiao, valor"),
                       to   = P("cols", "", label = "Para", example = "uf, preco")),
         help = "## Descrição
 
@@ -727,7 +727,7 @@ outra."),
         description = "Descarta as linhas com valor faltante nas colunas escolhidas (ou em qualquer uma, se vazio).",
         icon = trama::tr_icon("circle-slash"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols = P("cols", "", label = "Colunas", example = "valor, qtd")),
+        params = list(cols = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, suggest = FALSE, example = "valor, qtd")),
         help = "## Descrição
 
 Descarta as linhas que têm valor faltante nas colunas escolhidas. Com
@@ -774,7 +774,7 @@ decidir."),
         description = "Substitui os valores faltantes das colunas escolhidas por um valor fixo.",
         icon = trama::tr_icon("paint-bucket"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols  = P("cols", "", label = "Colunas", example = "valor, qtd"),
+        params = list(cols  = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, example = "valor, qtd"),
                       value = P("text", "0", label = "Substituir por", example = "0")),
         help = "## Descrição
 
@@ -826,7 +826,7 @@ problema é o tipo da coluna, e não o buraco nela."),
         description = "Converte colunas para número, inteiro, texto, data, fator ou lógico.",
         icon = trama::tr_icon("arrow-right-left"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols    = P("cols", "", label = "Colunas", example = "valor, qtd"),
+        params = list(cols    = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, example = "valor, qtd"),
                       type    = trama::tr_param_enum("numero",
                                   c("numero","inteiro","texto","data","fator","logico"),
                                   label = "Para"),
@@ -917,7 +917,7 @@ antes de converter."),
         icon = trama::tr_icon("list-filter"),
         inputs = list(dados = T), outputs = list(out = T),
         params = list(expr = P("expr", "", label = "Condição", example = "valor > 100"),
-                      by   = P("cols", "", label = "Por grupo", example = "regiao")),
+                      by   = trama::tr_param_col("", label = "Por grupo", role = "categorica", multi = TRUE, suggest = FALSE, example = "regiao")),
         help = "## Descrição
 
 Mantém as linhas em que a condição é verdadeira e descarta as demais. A
@@ -974,7 +974,7 @@ tr_flow(reg) |>
         params = list(name = P("text", "nova", label = "Nome", example = "participacao"),
                       expr = P("expr", "", label = "Expressão",
                                example = "valor / sum(valor)"),
-                      by   = P("cols", "", label = "Por grupo", example = "regiao")),
+                      by   = trama::tr_param_col("", label = "Por grupo", role = "categorica", multi = TRUE, suggest = FALSE, example = "regiao")),
         help = "## Descrição
 
 Acrescenta uma ou mais colunas à tabela, ou substitui a coluna de mesmo nome.
@@ -1046,7 +1046,7 @@ uma coluna a mais; `data/convert` para acertar o tipo antes de calcular."),
         description = "Mantém apenas as colunas escolhidas — ou, com a chave ligada, joga fora só elas.",
         icon = trama::tr_icon("columns-3"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols   = P("cols", "", label = "Colunas", example = "regiao, valor"),
+        params = list(cols   = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, example = "regiao, valor"),
                       remove = trama::tr_param_bool(FALSE, label = "Remover em vez de manter")),
         help = "## Descrição
 
@@ -1100,7 +1100,7 @@ decidir quais valem a pena guardar."),
         category = "transform", description = "Ordena as linhas pelas colunas escolhidas.",
         icon = trama::tr_icon("arrow-up-down"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols = P("cols", "", label = "Colunas", example = "valor"),
+        params = list(cols = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, example = "valor"),
                       desc = trama::tr_param_bool(FALSE, label = "Decrescente")),
         help = "## Descrição
 
@@ -1154,7 +1154,7 @@ tr_flow(reg) |>
         icon = trama::tr_icon("list-start"),
         inputs = list(dados = T), outputs = list(out = T),
         params = list(n  = trama::tr_param_int(10, 1, 10000, label = "N"),
-                      by = P("cols", "", label = "Por grupo", example = "regiao")),
+                      by = trama::tr_param_col("", label = "Por grupo", role = "categorica", multi = TRUE, suggest = FALSE, example = "regiao")),
         help = "## Descrição
 
 Guarda as N primeiras linhas da tabela, na ordem em que ela chega, e descarta o
@@ -1211,7 +1211,7 @@ condição em vez de por posição."),
         description = "Transforma várias colunas em duas: uma com o nome, outra com o valor.",
         icon = trama::tr_icon("unfold-vertical"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(cols      = P("cols", "", label = "Colunas", example = "jan, fev, mar"),
+        params = list(cols      = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, example = "jan, fev, mar"),
                       names_to  = P("text", "nome", label = "Nome vai para", example = "mes"),
                       values_to = P("text", "valor", label = "Valor vai para",
                                     example = "faturamento")),
@@ -1272,9 +1272,9 @@ o empilhamento costuma destravar."),
         description = "Transforma os valores de uma coluna em colunas novas.",
         icon = trama::tr_icon("unfold-horizontal"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(names_from  = P("text", "", label = "Nomes vêm de", example = "mes"),
-                      values_from = P("text", "", label = "Valores vêm de",
-                                      example = "faturamento"),
+        params = list(names_from  = trama::tr_param_col("", label = "Nomes vêm de", role = "categorica", example = "mes"),
+                      values_from = trama::tr_param_col("", label = "Valores vêm de",
+                                      role = "qualquer", example = "faturamento"),
                       values_fill = P("text", "", label = "Preencher vazio com",
                                       example = "0")),
         help = "## Descrição
@@ -1346,7 +1346,7 @@ resolve a chave repetida."),
         category = "aggregate", description = "Agrupa por colunas e calcula um ou mais resumos.",
         icon = trama::tr_icon("sigma"),
         inputs = list(dados = T), outputs = list(out = T),
-        params = list(by   = P("cols", "", label = "Agrupar por", example = "regiao"),
+        params = list(by   = trama::tr_param_col("", label = "Agrupar por", role = "categorica", multi = TRUE, example = "regiao"),
                       name = P("text", "n", label = "Nome", example = "receita, pedidos"),
                       expr = P("expr", "dplyr::n()", label = "Resumo",
                                example = "sum(valor), dplyr::n()")),
@@ -1432,7 +1432,7 @@ DIFERENTES lado a lado; `data/pivot_wider` para espalhar o resumo em colunas."),
         category = "aggregate", description = "Junta duas tabelas por colunas em comum.",
         icon = trama::tr_icon("combine"),
         inputs = list(left = T, right = T), outputs = list(out = T),
-        params = list(by   = P("cols", "", label = "Por", example = "regiao"),
+        params = list(by   = trama::tr_param_col("", label = "Por", role = "qualquer", multi = TRUE, example = "regiao"),
                       type = trama::tr_param_enum("inner", c("inner","left","right","full","anti"),
                                                   label = "Tipo")),
         help = "## Descrição
@@ -1555,7 +1555,7 @@ sobreposição que o empilhamento costuma produzir."),
         outputs = list(out = trama::tr_port(T, stream = TRUE)),
         params = list(
           lote = trama::tr_param_int(1, min = 1, label = "Linhas por passo"),
-          ordenar_por = P("cols", "", label = "Ordenar por", example = "data, regiao"),
+          ordenar_por = trama::tr_param_col("", label = "Ordenar por", role = "qualquer", multi = TRUE, suggest = FALSE, example = "data, regiao"),
           max_passos = trama::tr_param_int(0, min = 0,
                                            label = "Máximo de passos (0 = todos)")),
         help = "## Descrição
@@ -1863,7 +1863,7 @@ planilha."),
         description = "Separa uma coluna de texto em várias pelo separador (parcela_A_1 → parcela, A, 1).",
         inputs = list(dados = T), outputs = list(out = T),
         params = list(
-          variavel = P("cols", "", label = "Coluna", example = "codigo"),
+          variavel = trama::tr_param_col("", label = "Coluna", role = "qualquer", example = "codigo"),
           nomes = P("text", "", label = "Novas colunas", example = "local, tratamento, repeticao"),
           separador = P("text", "_", label = "Separador", example = "_"),
           remover = trama::tr_param_bool(TRUE, label = "Remover a original")),
@@ -1894,7 +1894,7 @@ A tabela com as colunas novas (texto; converta num `data/convert` se forem núme
         description = "Junta várias colunas numa só, com um separador.",
         inputs = list(dados = T), outputs = list(out = T),
         params = list(
-          cols = P("cols", "", label = "Colunas", example = "dia, mes, ano"),
+          cols = trama::tr_param_col("", label = "Colunas", role = "qualquer", multi = TRUE, example = "dia, mes, ano"),
           nome = P("text", "junto", label = "Nome", example = "data"),
           separador = P("text", "_", label = "Separador", example = "/"),
           remover = trama::tr_param_bool(TRUE, label = "Remover as originais")),
@@ -1923,7 +1923,7 @@ A tabela com a coluna nova, de texto.
         description = "Troca valores de uma coluna (a=x; b=y) ou fatia um número em faixas.",
         inputs = list(dados = T), outputs = list(out = T),
         params = list(
-          variavel = P("cols", "", label = "Coluna", example = "tratamento"),
+          variavel = trama::tr_param_col("", label = "Coluna", role = "qualquer", example = "tratamento"),
           niveis = P("text", "", label = "Níveis (de=para)", example = "T1=testemunha; T2=adubado"),
           cortes = P("text", "", label = "Cortes das faixas", example = "0; 10; 20; Inf"),
           rotulos = P("text", "", label = "Rótulos das faixas", example = "baixo; médio; alto"),
@@ -1966,7 +1966,7 @@ A tabela com a coluna recodificada (faixas saem como fator ordenado pelas faixas
           n = trama::tr_param_int(10L, min = 0L, label = "N (0 = usar a fração)"),
           fracao = trama::tr_when(trama::tr_param_num(0.1, min = 0, max = 10, label = "Fração"), n = 0L),
           reposicao = trama::tr_param_bool(FALSE, label = "Com reposição"),
-          grupo = P("cols", "", label = "Por grupo", example = "tratamento")),
+          grupo = trama::tr_param_col("", label = "Por grupo", role = "categorica", multi = TRUE, suggest = FALSE, example = "tratamento")),
         help = r"---[## Descrição
 
 Sorteia linhas da tabela com a semente do nó: o mesmo card dá a mesma amostra
