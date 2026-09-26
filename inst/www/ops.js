@@ -6,7 +6,7 @@
 // lê a lista do R e falha se as duas divergirem. Batch é cosmético só se TODA
 // op dentro dele for, a mesma regra de `tr_op_semantic()`.
 export const COSMETICAS = new Set(["rename", "move", "resize", "set_view",
-  "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode", "set_solto",
+  "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode", "set_solto", "set_preview_oculto",
   "add_note", "update_note", "remove_note"]);
 export const cosmetica = (op) =>
   op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);

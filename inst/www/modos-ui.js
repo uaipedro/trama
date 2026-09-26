@@ -43,6 +43,17 @@ export function Engrenagem() {
   ]);
 }
 
+// Olho do "ocultar preview", no mesmo traço da engrenagem. `riscado` é o
+// estado oculto: o botão mostra o que o preview É agora, não o que vai ser.
+export function Olho({ riscado } = {}) {
+  return h("svg", { viewBox: "0 0 24 24", width: 13, height: 13, "aria-hidden": true, fill: "none",
+                    stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }, [
+    h("path", { key: "o", d: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" }),
+    h("circle", { key: "p", cx: 12, cy: 12, r: 3 }),
+    riscado ? h("path", { key: "r", d: "M3 3l18 18" }) : null,
+  ]);
+}
+
 // Lista de parâmetros de um nó: mesmo corpo que morava inline em `NdNode`
 // (editor.js), extraído pra ser reaproveitado pelo card (modo `params`/
 // `completo`) e pelo `ParamsDock` (modo `mini`/`preview`, painel na borda da

@@ -17,7 +17,7 @@ tr_doc <- function() {
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
               frames = list(), modes = list(), soltos = list(),
-              notes = list())
+              notes = list(), ocultos = list())
   ), class = "tr_doc")
 }
 
@@ -31,6 +31,7 @@ tr_doc <- function() {
 .tr_presentation_ops <- c("rename", "move", "resize", "set_view",
                           "add_frame", "update_frame", "remove_frame",
                           "reorder_frames", "set_mode", "set_solto",
+                          "set_preview_oculto",
                           "add_note", "update_note", "remove_note")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
@@ -133,6 +134,7 @@ tr_op_semantic <- function(op) {
     add_frame = .tr_op_add_frame, update_frame = .tr_op_update_frame,
     remove_frame = .tr_op_remove_frame, reorder_frames = .tr_op_reorder_frames,
     set_mode = .tr_op_set_mode, set_solto = .tr_op_set_solto,
+    set_preview_oculto = .tr_op_set_preview_oculto,
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
     connect = .tr_op_connect, disconnect = .tr_op_disconnect,
@@ -245,6 +247,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   doc$ui$views[[op$node]] <- NULL
   doc$ui$modes[[op$node]] <- NULL
   doc$ui$soltos[[op$node]] <- NULL
+  doc$ui$ocultos[[op$node]] <- NULL
   doc$edges <- Filter(function(e) e$from$node != op$node && e$to$node != op$node, doc$edges)
   # Sem isto o documento continuaria declarando dependência de uma coleção
   # cujo último nó acabou de sair — e exigiria instalá-la pra abrir.
@@ -631,6 +634,21 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   .tr_require(op, c("node", "x", "y", "w", "h")); .tr_node_or_abort(doc, op$node)
   doc$ui$soltos[[op$node]] <- c(.tr_scalar_num(op$x, "x"), .tr_scalar_num(op$y, "y"),
                                 .tr_scalar_num(op$w, "w"), .tr_scalar_num(op$h, "h"))
+  list(doc = doc, op = op)
+}
+
+# Preview escondido no card: só a faixa some, o nó continua executando (é
+# apresentação, como `set_mode`). Mapa à parte e não um modo novo porque
+# ocultar é ortogonal a mini/completo: quem volta de mini pro completo quer
+# reencontrar o preview como o deixou. Só `TRUE` entra no documento; a
+# ausência já diz "visível".
+.tr_op_set_preview_oculto <- function(doc, op, registry) {
+  .tr_require(op, c("node", "oculto")); .tr_node_or_abort(doc, op$node)
+  o <- op$oculto
+  if (!is.logical(o) || length(o) != 1L || is.na(o)) {
+    rlang::abort("oculto deve ser TRUE ou FALSE.", class = "tr_error_bad_op")
+  }
+  doc$ui$ocultos[[op$node]] <- if (o) TRUE else NULL
   list(doc = doc, op = op)
 }
 

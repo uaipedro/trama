@@ -517,3 +517,37 @@ test_that("undo (replay) devolve a marca de sugerido junto com o valor", {
   doc <- trama:::.tr_undo_doc(base, ops[1], current_rev = 10L, registry = x$reg)
   expect_identical(doc$nodes$a$sugeridos, "value")
 })
+
+test_that("set_preview_oculto guarda só TRUE, valida e é cosmética", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  expect_false(tr_op_semantic(list(op = "set_preview_oculto")))
+  d <- tr_doc_apply(d, list(op = "set_preview_oculto", node = "a", oculto = TRUE), m$reg)
+  expect_true(d$ui$ocultos$a)
+  d <- tr_doc_apply(d, list(op = "set_preview_oculto", node = "a", oculto = FALSE), m$reg)
+  expect_null(d$ui$ocultos$a)
+  for (bad in list("sim", 1, NA, c(TRUE, FALSE))) {
+    expect_error(tr_doc_apply(d, list(op = "set_preview_oculto", node = "a", oculto = bad), m$reg),
+                 class = "tr_error_bad_op")
+  }
+  expect_error(tr_doc_apply(d, list(op = "set_preview_oculto", node = "a"), m$reg),
+               class = "tr_error_bad_op")
+  expect_error(tr_doc_apply(d, list(op = "set_preview_oculto", node = "zz", oculto = TRUE), m$reg),
+               class = "tr_error_unknown_node")
+})
+
+test_that("preview oculto sobrevive a gravar/ler, some com o nó e volta no undo", {
+  m <- mk(); base <- add(m$doc, m$reg, "t/const", id = "a")
+  base <- add(base, m$reg, "t/const", id = "b")
+  d <- tr_doc_apply(base, list(op = "set_preview_oculto", node = "a", oculto = TRUE), m$reg)
+  back <- tr_doc_parse(tr_doc_json(d))
+  expect_true(back$ui$ocultos$a)
+  expect_null(back$ui$ocultos$b)
+  # ausente no JSON = visível; `false` escrito à mão também
+  j <- sub('"ocultos": \\{[^}]*\\}', '"ocultos": {"a": false}', tr_doc_json(d))
+  expect_null(tr_doc_parse(j)$ui$ocultos$a)
+  expect_null(tr_doc_apply(d, list(op = "remove_node", node = "a"), m$reg)$ui$ocultos$a)
+  ops <- list(list(op = "set_preview_oculto", node = "a", oculto = TRUE),
+              list(op = "set_preview_oculto", node = "a", oculto = FALSE))
+  u <- trama:::.tr_undo_doc(base, ops[1], current_rev = 10L, registry = m$reg)
+  expect_true(u$ui$ocultos$a)
+})

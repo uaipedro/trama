@@ -27,7 +27,7 @@ import { cosmetica, afetados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
 import { anotado, sugerir as sugerirColunas } from "./colunas.js";
-import { ModoPicker, ModoToggle, Engrenagem, ParamsRodape, ParamsModal, Vista, AtalhosPanel, colunasDoNo } from "./modos-ui.js";
+import { ModoPicker, ModoToggle, Engrenagem, Olho, ParamsRodape, ParamsModal, Vista, AtalhosPanel, colunasDoNo } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
@@ -111,7 +111,8 @@ function docToFlow(doc, catalog) {
               sugeridos: n.sugeridos || [],
               view: (doc.ui && doc.ui.views && doc.ui.views[id]) || null,
               size: (doc.ui && doc.ui.sizes && doc.ui.sizes[id]) || null,
-              modo: (doc.ui && doc.ui.modes && doc.ui.modes[id]) || null },
+              modo: (doc.ui && doc.ui.modes && doc.ui.modes[id]) || null,
+              previewOculto: !!(doc.ui && doc.ui.ocultos && doc.ui.ocultos[id]) },
     };
   });
   // Aresta de FLUXO: a porta de SAÍDA de onde ela sai, OU a porta de ENTRADA
@@ -555,7 +556,13 @@ function NdNode({ id, data, selected }) {
   const cat = data.categories?.[spec.category];
   const modo = modoDe(data);
   const mini = ehMini(modo), solto = modo === "solto";
-  const semPreview = mini;
+  // Ocultar só vale pro preview preso ao card: no `solto` o card já é mini e
+  // o preview flutuante é a razão de ter soltado — escondê-lo junto seria
+  // um segundo jeito de fazer o que "prender de volta" já faz. Por isso o
+  // olho não aparece no solto (nem no mini), e o estado gravado espera o
+  // card voltar ao completo.
+  const oculto = !mini && !!data.previewOculto;
+  const semPreview = mini || oculto;
   const falhou = data.state === "failed" || data.state === "invalid";
   const frac = data.progress?.fraction;
   // Contorno sutil pra todo card que é MEMBRO de uma região de fluxo —
@@ -584,7 +591,9 @@ function NdNode({ id, data, selected }) {
   // Ausente, cada variável some do `style` e o padrão do CSS vale.
   const [w, hgt] = data.size || [];
   const pvRef = useRef(null);
-  useAutoTamanho(pvRef, id, data, mini);
+  // Oculto conta como mini aqui: sem faixa não há o que medir, e o preview
+  // que reaparece é medido de novo em vez de herdar a marca de "já visto".
+  useAutoTamanho(pvRef, id, data, semPreview);
   return h("div", { className: cls, style: {
     "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined,
     // O mini pinta só o bloco do ícone com a cor da categoria; o resto é a
@@ -647,6 +656,14 @@ function NdNode({ id, data, selected }) {
                         onClick: (e) => { e.stopPropagation(); data.onPrender(id); } },
             h(Icon, { icon: { kind: "set", value: "pin-off" }, className: "tr-node-icon" }))
         : null,
+      // Preview oculto: o olho riscado fica no cabeçalho (a faixa onde ele
+      // morava sumiu), senão não haveria como mostrar de volta.
+      oculto
+        ? h("button", { key: "ol", type: "button", className: "tr-fold-btn nodrag",
+                        title: "mostrar preview", "aria-label": "mostrar preview",
+                        onClick: (e) => { e.stopPropagation(); data.onOcultar(id, false); } },
+            h(Olho, { riscado: true }))
+        : null,
       // Na miniatura os botões flutuam acima do card, no hover: abrir e, com
       // parâmetros, a engrenagem — editar sem ter de abrir o card.
       mini
@@ -687,6 +704,9 @@ function NdNode({ id, data, selected }) {
         h("button", { key: "s", type: "button", title: "soltar o preview do card",
                       onClick: (e) => { e.stopPropagation(); data.onSoltar(id); } },
           h(Icon, { icon: { kind: "set", value: "pin" }, className: "tr-node-icon" })),
+        h("button", { key: "o", type: "button", title: "ocultar preview", "aria-label": "ocultar preview",
+                      onClick: (e) => { e.stopPropagation(); data.onOcultar(id, true); } },
+          h(Olho)),
         h("button", { key: "v", type: "button", title: dica("vista"),
                       onClick: (e) => { e.stopPropagation(); data.onVista(id); } },
           h(Icon, { icon: { kind: "set", value: "maximize-2" }, className: "tr-node-icon" })),
@@ -1816,6 +1836,7 @@ function App() {
   const viewsRef = useRef({});      // vista escolhida localmente, antes do eco
   const sizesRef = useRef({});      // tamanho arrastado localmente, antes do eco
   const modosRef = useRef({});      // modo escolhido localmente, antes do eco
+  const ocultosRef = useRef({});    // preview oculto localmente, antes do eco
   const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
   // Marca "sugerido" local, antes do eco: por nó, `{nome: true|false}` por
   // cima de `data.sugeridos`. Mesmo papel de `paramsRef` — sem ele, o selo só
@@ -2166,6 +2187,14 @@ function App() {
         w: Math.round(sn.width), h: Math.round(sn.height) }] });
   }, [bumpTick]);
   const onPrender = useCallback((nodeId) => onModo(nodeId, "completo"), [onModo]);
+  // Só apresentação: o nó segue executando com o preview escondido. A altura
+  // encolhe sozinha (a faixa sai do fluxo e o React Flow remede o card), então
+  // não vai `resize` nenhum — o tamanho gravado é o da faixa, e volta intacto.
+  const onOcultar = useCallback((nodeId, oculto) => {
+    ocultosRef.current[nodeId] = oculto;
+    bumpTick();
+    pushOp({ op: "set_preview_oculto", node: nodeId, oculto });
+  }, [bumpTick]);
   const onSoltoRect = useCallback((nodeId, p) => {
     const id = SOLTO_PREFIXO + nodeId;
     setNodes((ns) => ns.map((n) => (n.id !== id ? n
@@ -2278,6 +2307,7 @@ function App() {
                       view: viewsRef.current[n.id] ?? n.data.view,
                       size: sizesRef.current[n.id] ?? n.data.size,
                       modo: modosRef.current[n.id] ?? n.data.modo,
+                      previewOculto: ocultosRef.current[n.id] ?? n.data.previewOculto,
                       seed: seedsRef.current[n.id] ?? n.data.seed,
                       // Membro de QUALQUER região: contorno do card (8.1). Fonte de
                       // UMA região: controles de fluxo (8.2) — os dois lidos do
@@ -2288,7 +2318,7 @@ function App() {
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
                       dobrado: dobras[n.id] ?? paramsDobradosDe(n.data),
-                      onDobrar, onTodos, onSoltar, onPrender, onVista, onAutoTamanho,
+                      onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onAutoTamanho,
                       typeColors, categories, onParam, onView, onResize, onModo,
                       onReseed, onAbrirProximo: abrirProximo, temas,
                       // Contexto dos params `cols` (`ParamsList`, modos-ui.js).
@@ -2304,7 +2334,7 @@ function App() {
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
      entradas, onSugerir,
-     dobras, onDobrar, onTodos, onSoltar, onPrender, onVista, onSoltoRect, onAutoTamanho,
+     dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
@@ -2358,6 +2388,7 @@ function App() {
         viewsRef.current = {};
         sizesRef.current = {};
         modosRef.current = {};
+        ocultosRef.current = {};
         seedsRef.current = {};
         sugeridosRef.current = {};
         setDoc(m.doc);
@@ -3654,7 +3685,8 @@ function App() {
                               // O modo pode ter mudado localmente (W/A/S/D, paleta)
                               // antes do eco: `nodesRef` ainda mostra o antigo, então
                               // o retrato sempre confere `modosRef` primeiro.
-                              data: { ...n.data, modo: modosRef.current[n.id] ?? n.data.modo } })),
+                              data: { ...n.data, modo: modosRef.current[n.id] ?? n.data.modo,
+                                      previewOculto: ocultosRef.current[n.id] ?? n.data.previewOculto } })),
       edges: es.map((e) => ({ source: e.source, sourceHandle: e.sourceHandle,
                               target: e.target, targetHandle: e.targetHandle })),
     };
@@ -3679,6 +3711,7 @@ function App() {
                     label: n.data.label, params: n.data.params || {}, seed: n.data.seed });
         if (n.data.size) depois.push({ op: "resize", node: id, w: n.data.size[0], h: n.data.size[1] });
         if (n.data.modo && n.data.modo !== "completo") depois.push({ op: "set_mode", node: id, modo: n.data.modo });
+        if (n.data.previewOculto) depois.push({ op: "set_preview_oculto", node: id, oculto: true });
       } else if (n.type === "trFrame") {
         criam.push({ op: "add_frame", id, x, y, w: n.width, h: n.height,
                     title: n.data.title, aspect: n.data.aspect, color: n.data.color });
