@@ -1273,3 +1273,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* Fio card <-> preview solto. */
 .tr-fio path{fill:none;stroke:var(--tr-dim);stroke-width:1.5;stroke-dasharray:4 5;opacity:.7}
 .tr-fio circle{fill:var(--tr-panel);stroke:var(--tr-dim);stroke-width:1.5}
+
+/* Botão da toolbar trabalhando (Organizar): o ícone gira e o clique trava até
+   o servidor confirmar. Com menos movimento, só pulsa. */
+.tr-tb-ocupado{cursor:progress;color:var(--tr-accent)!important}
+.tr-tb-ocupado svg{animation:tr-gira .9s linear infinite}
+@keyframes tr-gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.tr-tb-ocupado svg{animation:tr-pulse 1.4s ease-in-out infinite}}

@@ -1618,11 +1618,13 @@ function Icone({ nome }) {
 }
 // Botão só com ícone: o nome vai pra `aria-label` e pra dica, com o atalho
 // (`dica`) quando houver. `temOpcoes` desenha o triângulo de "tem mais aqui".
-function BotaoIcone({ icone, rotulo, dica: atalho, extra, on, temOpcoes, ...resto }) {
-  const titulo = [atalho || rotulo, extra].filter(Boolean).join(" · ");
+function BotaoIcone({ icone, rotulo, dica: atalho, extra, on, temOpcoes, ocupado, ...resto }) {
+  const titulo = ocupado ? `${rotulo}…` : [atalho || rotulo, extra].filter(Boolean).join(" · ");
   return h("button", { ...resto, type: "button", "aria-label": rotulo, title: titulo,
-                       "aria-pressed": on ? true : undefined,
-                       className: "tr-tb-btn" + (on ? " tr-on" : "") + (temOpcoes ? " tr-tb-opcoes" : "") },
+                       "aria-pressed": on ? true : undefined, "aria-busy": ocupado || undefined,
+                       disabled: ocupado || resto.disabled,
+                       className: "tr-tb-btn" + (on ? " tr-on" : "") + (temOpcoes ? " tr-tb-opcoes" : "")
+                         + (ocupado ? " tr-tb-ocupado" : "") },
     h(Icone, { nome: icone }));
 }
 
@@ -2254,6 +2256,7 @@ function App() {
         return;
       }
 
+      if ((m.type === "op_applied" || m.type === "op_rejected") && m.seq === organizandoSeq.current) fimOrganizar();
       if (m.type === "op_applied") {
         revRef.current = m.rev;
         // Rede de segurança do espelho de `ops.js`: o servidor diz se a op
@@ -2590,7 +2593,7 @@ function App() {
       });
       bumpTick();
     }
-    sendOp(op, revRef.current);
+    return sendOp(op, revRef.current);
   }
 
   // Várias ops de um gesto viajam num `batch`: uma revisão, um passo de undo.
@@ -2598,8 +2601,8 @@ function App() {
   // revisão no eco) e o servidor recusaria todas menos a primeira, que é o
   // que "Organizar" fazia até aqui.
   function pushMany(ops) {
-    if (ops.length === 0) return;
-    pushOp(ops.length === 1 ? ops[0] : { op: "batch", ops });
+    if (ops.length === 0) return null;
+    return pushOp(ops.length === 1 ? ops[0] : { op: "batch", ops });
   }
 
   const onNodesChange = useCallback((ch) => {
@@ -3167,7 +3170,26 @@ function App() {
   // isso, apertar duas vezes deixaria um passo vazio na pilha. `update_frame`
   // não devolve o documento, então o tamanho novo do frame entra no estado
   // aqui mesmo, como no arrasto.
+  // O Organizar mexe em todos os cards de uma vez, e num fluxo grande o
+  // redesenho leva um tempo: o botão fica "ocupado" (gira, travado) do clique
+  // até o servidor confirmar o lote, pra ninguém clicar de novo achando que
+  // não pegou. O cálculo roda no quadro SEGUINTE, depois de o botão já ter
+  // aparecido ocupado; o prazo solta o botão se a resposta nunca vier.
+  const [organizando, setOrganizando] = useState(false);
+  const organizandoSeq = useRef(null);
+  const fimOrganizar = useCallback(() => { organizandoSeq.current = null; setOrganizando(false); }, []);
   const organizarTudo = () => {
+    if (organizando) return;
+    setOrganizando(true);
+    requestAnimationFrame(() => setTimeout(() => {
+      let seq = null;
+      try { seq = organizarAgora(); } finally {
+        if (seq == null) fimOrganizar();
+        else { organizandoSeq.current = seq; setTimeout(() => { if (organizandoSeq.current === seq) fimOrganizar(); }, 15000); }
+      }
+    }, 0));
+  };
+  const organizarAgora = () => {
     // Medida do card lida do DOM (`comMedidas`): card mais baixo do que é
     // deixava o frame pequeno demais, o card vazava pela borda e, no
     // Organizar seguinte, já tinha outro dono. A mesma lista serve pro
@@ -3206,7 +3228,7 @@ function App() {
     // fora da tela. Enquadra no quadro seguinte, depois de o React Flow
     // já ter as posições novas.
     requestAnimationFrame(() => rf.fitView({ maxZoom: 1, padding: 0.25, duration: 300 }));
-    pushMany(ops);
+    return pushMany(ops);
   };
 
   // Frames na ordem de slide, com o retângulo atual (que o gesto local pode
@@ -4043,7 +4065,7 @@ function App() {
          h("span", { key: "t" }, projeto ? (projeto.root.split("/").filter(Boolean).pop() || projeto.root)
                                          : "projeto")]),
       h("span", { key: "s1", className: "tr-toolbar-sep", "aria-hidden": true }),
-      h(BotaoIcone, { key: "l", icone: "organizar", rotulo: "Organizar", onClick: organizarTudo }),
+      h(BotaoIcone, { key: "l", icone: "organizar", rotulo: "Organizar", onClick: organizarTudo, ocupado: organizando }),
       // Proporção e prancheta são opções do Frame, não ferramentas à parte:
       // saem da barra e abrem no botão direito (ou no triângulo do canto).
       h(BotaoIcone, { key: "f", icone: "frame", rotulo: "Frame", dica: dica("frame"),
