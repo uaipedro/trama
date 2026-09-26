@@ -126,10 +126,7 @@
   L
 }
 
-#' Controle contra a média dos demais, e os demais entre si por Helmert.
-#'
-#' O primeiro contraste é a pergunta; os outros completam um conjunto de k − 1
-#' para que o SQ do tratamento se feche — e, com réplicas iguais, ortogonal.
+#' Cada tratamento contra o controle: `B vs A`, `C vs A`... (k − 1 linhas).
 #' @noRd
 .tr_exp_an_controle <- function(niveis, controle, no) {
   k <- length(niveis)
@@ -139,15 +136,11 @@
                      "'%s': o controle '%s' não é nível do fator (%s).", no, controle, paste(niveis, collapse = ", "))
   }
   outros <- niveis[-i]
-  L <- matrix(0, k, k, dimnames = list(NULL, niveis))[seq_len(k - 1L), , drop = FALSE]
-  L[1, ] <- -1; L[1, i] <- k - 1
-  nomes <- sprintf("%s vs demais", controle)
-  if (k > 2L) {
-    H <- .tr_exp_an_helmert(outros)
-    L[-1, outros] <- H
-    nomes <- c(nomes, rownames(H))
-  }
-  rownames(L) <- nomes
+  # Cada tratamento contra o controle (as comparações de Dunnett, 1955):
+  # k − 1 contrastes linearmente independentes, NÃO ortogonais entre si.
+  L <- matrix(0, k - 1L, k, dimnames = list(sprintf("%s vs %s", outros, controle), niveis))
+  L[, i] <- -1
+  for (j in seq_along(outros)) L[j, outros[[j]]] <- 1
   L
 }
 

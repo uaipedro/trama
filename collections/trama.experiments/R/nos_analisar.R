@@ -17,7 +17,7 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; N <- trama::tr_param_num
   Fm <- "models/fit"; EF <- "models/effects"; T <- "data/table"
   list(
-    trama::tr_node("experiments/contrasts", version = 2L, fn = tr_experiments_contrasts, label = "Contrastes",
+    trama::tr_node("experiments/contrasts", version = 3L, fn = tr_experiments_contrasts, label = "Contrastes",
       category = "exp_analisar", icon = trama::tr_icon("divide"),
       description = "Abre o SQ do tratamento: uma linha por contraste (polinomiais, Helmert, controle, 2^k ou digitados), com a conferência da soma e da ortogonalidade.",
       inputs = list(modelo = Fm), outputs = list(out = EF, ortogonalidade = T),

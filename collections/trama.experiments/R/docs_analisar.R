@@ -21,7 +21,7 @@
 
 .tr_exp_an_ajuda_contrasts <- function() .tr_exp_an_ajuda(r"---[
 **Tudo é contraste.** Com k tratamentos, o SQ do tratamento é a soma de k − 1
-contrastes ortogonais; a tendência linear de doses, o controle contra o resto, o
+contrastes ortogonais; a tendência linear de doses, cada tratamento contra o controle, o
 efeito principal e a interação de um fatorial são todos contrastes. Este bloco
 lê um modelo já ajustado e abre a ANOVA: **uma linha por contraste**, com
 estimativa Σ cᵢ ȳᵢ, SQ, F e p.
@@ -34,8 +34,10 @@ estimativa Σ cᵢ ȳᵢ, SQ, F e p.
   níveis igualmente espaçados. No caso igualmente espaçado e balanceado, são os
   inteiros das tabelas (`-3 -1 1 3`, `1 -1 -1 1`, `-1 3 -3 1`).
 - **helmert** — cada nível contra a média dos anteriores.
-- **controle** — o controle contra a média dos demais, e os demais entre si por
-  Helmert, completando k − 1 contrastes.
+- **controle** — cada tratamento contra o controle (`B vs A`, `C vs A`…, as
+  comparações de Dunnett), k − 1 contrastes. Não são ortogonais (todos usam a
+  média do controle), então os SQ não somam o do tratamento; o p de cada linha
+  é o de uma comparação, sem o ajuste de Dunnett para as k − 1 juntas.
 - **fatorial 2^k** — os efeitos principais e as interações de 2 a 5 fatores de
   dois níveis, como contrastes de sinais ±1 nas médias das células (o SEGUNDO
   nível de cada fator é o alto, +1). A coluna
@@ -125,6 +127,9 @@ tr_flow(reg) |>
   tr_add("pol", "experiments/contrasts", fator = "nitrogenio", conjunto = "polinomiais",
          doses = "0 0.2 0.4 0.6", dentro = "variedade", from = "split")
 ]---", r"---[
+- Dunnett, C. W. (1955). A multiple comparison procedure for comparing several
+  treatments with a control. *Journal of the American Statistical Association*,
+  50(272), 1096–1121. doi:10.1080/01621459.1955.10501294
 - Montgomery, D. C. (2017). *Design and Analysis of Experiments*, 9th ed.
   Wiley. Cap. 3 (contrastes e contrastes ortogonais; o exemplo 3.1, da taxa de
   gravação, reproduzido nos testes) e cap. 6 (o fatorial 2^k como contrastes;

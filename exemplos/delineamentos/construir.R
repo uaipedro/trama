@@ -59,8 +59,8 @@ caso <- function(f, linha, p, parcela) {
   ultimo <- id("irr")
   f <- f |>
     tr_add(id("var"), "experiments/effect", tipo = "fixo", fator = "variedade", conjunto = "controle",
-           controle = "A", magnitudes = "-3, 2", from = ultimo,
-           label = "Variedade: A vs demais = −3, C vs B = 2", position = em(linha, 2))
+           controle = "A", magnitudes = "0.5, 2.5", from = ultimo,
+           label = "Variedade: B vs A = 0,5, C vs A = 2,5", position = em(linha, 2))
   ultimo <- id("var")
   if (parcela) {
     f <- f |>

@@ -1,5 +1,14 @@
 # trama.experiments 0.2.0
 
+* `experiments/design` (versão 3): no crossover, a coluna `residual` não tem
+  mais o nível `nenhum` (que coincidia com o 1º período e fazia o `lme4`
+  descartar uma coluna). No 1º período ela leva o primeiro tratamento, a
+  referência: mesmo espaço ajustado e mesmo F de t − 1 gl, matriz de posto
+  completo, coeficientes = diferenças para o residual do 1º tratamento (Jones
+  & Kenward, 2014). `residual` passa a nome reservado e papel do contrato.
+* Ajuda: como ler de volta a magnitude de um produto de contrastes com
+  `dentro`; aviso da gama com aleatório diz que o teste da parcela é liberal;
+  referências conferidas em catálogo (notas "a conferir" removidas).
 * `experiments/power` (novo, categoria Avaliar): poder por simulação de Monte
   Carlo. Refaz a cadeia `design → effect → error` guardada no plano com
   sementes derivadas, roda a análise do plano (ou outro nó de models, ou uma

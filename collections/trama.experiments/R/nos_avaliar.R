@@ -15,7 +15,7 @@
     controle = P("text", "", label = "Controle", example = "testemunha"),
     doses = P("text", "", label = "Doses (valores dos níveis)", example = "0 50 100 150"))
   list(
-    trama::tr_node("experiments/power", fn = tr_experiments_power, label = "Poder",
+    trama::tr_node("experiments/power", version = 2L, fn = tr_experiments_power, label = "Poder",
       category = "exp_avaliar", icon = trama::tr_icon("gauge"), stochastic = TRUE,
       description = "Repete a cadeia effect → error e a análise N vezes e conta as rejeições: poder (ou erro tipo I) com IC, e a curva por nº de repetições.",
       inputs = list(plano = PL), outputs = list(out = "view/plot", tabela = T),
@@ -27,7 +27,7 @@
         .tr_exp_an_props(.aspecto = "4:3")),
       help = .tr_exp_ajuda_power()),
 
-    trama::tr_node("experiments/randomization_test", fn = tr_experiments_randomization_test,
+    trama::tr_node("experiments/randomization_test", version = 2L, fn = tr_experiments_randomization_test,
       label = "Teste de aleatorização", category = "exp_avaliar", icon = trama::tr_icon("shuffle"), stochastic = TRUE,
       description = "Re-sorteia a alocação pela receita do delineamento, mantendo a resposta de cada unidade, e situa o F observado na distribuição do sorteio.",
       inputs = list(plano = PL, dados = trama::tr_port(T, required = FALSE)),
@@ -108,8 +108,12 @@ poder de outro experimento. O plano precisa guardar os argumentos dos termos
 `out`: o gráfico da taxa de rejeição (ponto e IC; linha na grade), com α
 tracejado. `tabela`: uma linha por ponto da grade — `repeticoes`, `unidades`,
 `replicas` (as que ajustaram), `falhas`, `rejeicoes`, `taxa`, `li`, `ls`,
-`confianca`, `significancia`, `hipotese` (H0 verdadeira ou falsa no modelo
-declarado), `analise` e `teste`.
+`confianca`, `significancia`, `p_binomial`, `hipotese` (H0 verdadeira ou
+falsa no modelo declarado), `analise` e `teste`. Com H0 verdadeira,
+`p_binomial` é o p do teste binomial exato de "taxa = α" (`binom.test(rejeicoes,
+replicas, p = significancia)`): p pequeno diz que o teste não mantém o tipo I
+nominal, e não ruído de Monte Carlo (o critério de Oliveira & Ferreira, 2010);
+com H0 falsa, NA.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("plano", "experiments/design", estrutura = "dic", fatores = "t: A, B, C, D", repeticoes = 4L) |>
@@ -119,6 +123,9 @@ tr_flow(reg) |>
   tr_add("y", "experiments/error", sd = 1, from = "t") |>
   tr_add("poder", "experiments/power", replicas = 20L, repeticoes = "3, 5", from = "y")
 ]---", r"---[
+- Oliveira, I. R. C.; Ferreira, D. F. Multivariate extension of chi-squared
+  univariate normality test. *Journal of Statistical Computation and
+  Simulation*, v. 80, n. 5, p. 513–526, 2010. DOI: 10.1080/00949650902731377.
 - Clopper, C. J.; Pearson, E. S. The use of confidence or fiducial limits
   illustrated in the case of the binomial. *Biometrika*, v. 26, n. 4,
   p. 404–413, 1934. DOI: 10.1093/biomet/26.4.404.
@@ -196,8 +203,7 @@ tr_flow(reg) |>
   tr_add("ta", "experiments/randomization_test", from = "y")
 ]---", r"---[
 - Fisher, R. A. *The Design of Experiments*. Edinburgh: Oliver and Boyd,
-  1935. (Cap. III: os dados de Darwin em *Zea mays*.) (edição a
-  conferir no catálogo)
+  1935. (Cap. III: os dados de Darwin em *Zea mays*.)
 - Pitman, E. J. G. Significance tests which may be applied to samples from
   any populations. *Supplement to the Journal of the Royal Statistical
   Society*, v. 4, n. 1, p. 119–130, 1937. DOI: 10.2307/2984124.
@@ -205,10 +211,10 @@ tr_flow(reg) |>
   any populations. III. The analysis of variance test. *Biometrika*, v. 29,
   n. 3/4, p. 322–335, 1938. DOI: 10.2307/2332008.
 - Edgington, E. S.; Onghena, P. *Randomization Tests*. 4. ed. Boca Raton:
-  Chapman & Hall/CRC, 2007. (ISBN a conferir no catálogo)
+  Chapman & Hall/CRC, 2007.
 - Hinkelmann, K.; Kempthorne, O. *Design and Analysis of Experiments*, v. 1.
   2. ed. Hoboken: Wiley, 2008. (Aleatorização e análise pela
-  aleatorização.) (a conferir no catálogo)
+  aleatorização.)
 - Phipson, B.; Smyth, G. K. Permutation p-values should never be zero.
   *Statistical Applications in Genetics and Molecular Biology*, v. 9, n. 1,
   2010. DOI: 10.2202/1544-6115.1585.

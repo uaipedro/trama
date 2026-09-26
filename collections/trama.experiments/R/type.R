@@ -32,7 +32,8 @@
 # - `rotulo`: frase curta ("DBC · 4 tratamentos × 5 blocos").
 # - `fatores`: data.frame, uma linha por fator (tratamento, bloco, tempo,
 #   covariável...), colunas `nome`, `papel` (tratamento, bloco, agrupamento,
-#   tempo, covariavel), `niveis` (coluna-lista), `unidade` (nível da hierarquia
+#   tempo, covariavel, residual — o tratamento do período anterior no
+#   crossover), `niveis` (coluna-lista), `unidade` (nível da hierarquia
 #   em que é aplicado), `escopo` (entre quais unidades é sorteado),
 #   `mecanismo` (livre, restrito, em estágios, sem sorteio) e `justificativa`
 #   (por que não há sorteio, quando não há).

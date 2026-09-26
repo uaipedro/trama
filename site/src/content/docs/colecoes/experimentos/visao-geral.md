@@ -27,7 +27,7 @@ Antes de existir dado, a resposta é montada por uma cadeia de `experiments/effe
 
 ## Tudo é contraste
 
-Um efeito fixo pode ser declarado pelos contrastes que ele contém, com a magnitude de cada um (polinomiais, Helmert, controle ou digitados). `experiments/contrasts` faz o caminho de volta: abre o SQ do tratamento em uma linha por contraste, com estimativa, erro padrão, F e p, e confere que os SQ somam o do tratamento. Os mesmos conjuntos e coeficientes servem aos dois lados, então a estimativa devolvida está na mesma escala da magnitude declarada.
+Um efeito fixo pode ser declarado pelos contrastes que ele contém, com a magnitude de cada um (polinomiais, Helmert, controle ou digitados). `experiments/contrasts` faz o caminho de volta: abre o SQ do tratamento em uma linha por contraste, com estimativa, erro padrão, F e p, e confere se os SQ somam o do tratamento (só um conjunto completo e ortogonal soma; `controle`, cada tratamento contra o controle, não é ortogonal). Os mesmos conjuntos e coeficientes servem aos dois lados, então a estimativa devolvida está na mesma escala da magnitude declarada.
 
 ## O caso da parcela subdividida
 
@@ -38,9 +38,11 @@ Medimos isso com `experiments/power`, com a irrigação **sem efeito** no modelo
 | Modelo verdadeiro | Análise | Taxa de rejeição de H0 (IC 95%) |
 | --- | --- | --- |
 | com erro de parcela | ingênua (`models/anova_factorial`) | 40,8% (37,7–43,9%) |
-| com erro de parcela | parcela subdividida (`models/anova_split_plot`) | 7,2% (5,7–9,0%) |
+| com erro de parcela | parcela subdividida (`models/anova_split_plot`) | 5,6% (4,8–6,5%), em 3000 réplicas¹ |
 | sem erro de parcela | ingênua | 6,2% (4,8–7,9%) |
 | sem erro de parcela | parcela subdividida | 4,1% (3,0–5,5%) |
+
+¹ Em 1000 réplicas de uma semente saiu 7,2%; as 3000 (três sementes: 7,2%, 4,9% e 4,7%) dão 5,6%, e o teste binomial exato de "taxa = 5%" não rejeita (p = 0,13). O F da subdividida é o do `aov` com `Error(bloco:parcela)` (diferença de p < 1e-14), exato sob o modelo; a coluna `p_binomial` do `experiments/power` faz essa conferência.
 
 Com erro de parcela, a análise ingênua rejeita uma H0 verdadeira em cerca de quatro de cada dez experimentos. O exemplo `exemplos/delineamentos` monta os dois casos lado a lado: plano → efeitos → erro → as duas ANOVAs → contrastes das variedades → componentes.
 
@@ -58,7 +60,7 @@ tr_flow(reg) |>
   tr_add("irr", "experiments/effect", tipo = "fixo", fator = "irrigacao",
          efeitos = "baixa = 0, alta = 0", from = "bloco") |>
   tr_add("var", "experiments/effect", tipo = "fixo", fator = "variedade",
-         conjunto = "controle", controle = "A", magnitudes = "-3, 2", from = "irr") |>
+         conjunto = "controle", controle = "A", magnitudes = "0.5, 2.5", from = "irr") |>
   tr_add("parc", "experiments/effect", tipo = "aleatorio", fator = "bloco:parcela", sd = 4, from = "var") |>
   tr_add("y", "experiments/error", resposta = "producao", sd = 1, from = "parc") |>
   tr_add("poder", "experiments/power", analise = "models/anova_factorial",

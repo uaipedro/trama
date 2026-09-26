@@ -227,16 +227,44 @@ test_that("crossover: Williams igual ao crossdes e balanceado para o efeito resi
   expect_true(all(table(p$unidades$individuo, p$unidades$t) == 1L))
 })
 
-test_that("crossover: coluna do efeito residual e fórmula com ela, t − 1 gl", {
+test_that("crossover: coluna do efeito residual e fórmula com ela, t − 1 gl, posto completo", {
   p <- ds("crossover", "t: A, B, C, D", repeticoes = 2L, .seed = 6L)
   u <- as.data.frame(p$unidades)
-  expect_true(all(u$residual[u$periodo == "1"] == "nenhum"))
+  # No 1º período não há residual: a coluna leva a referência (o 1º nível).
+  expect_true(all(u$residual[u$periodo == "1"] == "A"))
+  expect_equal(levels(u$residual), c("A", "B", "C", "D"))
   for (i in which(u$periodo != "1")) expect_equal(as.character(u$residual[i]), as.character(u$t[i - 1L]))
   expect_match(p$analise$params$formula, "residual", fixed = TRUE)
   set.seed(1); u$y <- stats::rnorm(nrow(u))
   a <- stats::anova(stats::lm(y ~ individuo + periodo + t + residual, u))
   expect_equal(a["residual", "Df"], 3L)
+  X <- stats::model.matrix(~ periodo + t + residual, u)
+  expect_equal(qr(X)$rank, ncol(X))
+  # Mesmo espaço ajustado do modelo com o nível "nenhum" no 1º período.
+  nen <- factor(ifelse(u$periodo == "1", "nenhum", as.character(u$residual)), levels = c("nenhum", "A", "B", "C", "D"))
+  expect_equal(stats::fitted(stats::lm(y ~ individuo + periodo + t + residual, u)),
+               stats::fitted(stats::lm(y ~ individuo + periodo + t + nen, u)), tolerance = 1e-10)
   expect_error(ds("crossover", "residual: A, B"), class = "tr_experiments_error_reserved_name")
+})
+
+test_that("crossover: o lmer sugerido ajusta sem descartar coluna e recupera o residual simulado", {
+  # λ = (0, 2, -1, 0.5) para A..D (A é a referência; 1º período sem residual).
+  # 24 indivíduos, σ = 0,5: EP de cada diferença ≈ 0,17; tolerância 0,6 (> 3 EP).
+  p <- ds("crossover", "t: A, B, C, D", repeticoes = 6L, .seed = 3L)
+  p <- tr_experiments_effect(p, "intercepto", valor = 10)
+  p <- tr_experiments_effect(p, "fixo", "residual", efeitos = "A = 0, B = 2, C = -1, D = 0.5")
+  p <- tr_experiments_effect(p, "aleatorio", "individuo", sd = 1, .seed = 5L)
+  y <- tr_experiments_error(p, sd = 0.5, .seed = 8L)
+  u <- as.data.frame(y$unidades)
+  expect_equal(u$.ef_residual[u$periodo == "1"], rep(0, sum(u$periodo == "1")))
+  f <- stats::as.formula(y$analise$params$formula)
+  msgs <- character()
+  fit <- withCallingHandlers(lme4::lmer(f, data = u),
+                             message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") },
+                             warning = function(w) { msgs <<- c(msgs, conditionMessage(w)); invokeRestart("muffleWarning") })
+  expect_false(any(grepl("rank deficient", msgs)))
+  b <- lme4::fixef(fit)
+  expect_lt(max(abs(b[c("residualB", "residualC", "residualD")] - c(2, -1, 0.5))), 0.6)
 })
 
 test_that("grupos: o mesmo DBC em cada local, com sorteio independente", {

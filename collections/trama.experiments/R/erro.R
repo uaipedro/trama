@@ -104,7 +104,7 @@
   familia <- c(poisson = "poisson", binomial = "binomial", gama = "gama")[[dist]]
   if (aleatorio && dist == "gama") {
     rhs <- trimws(gsub("\\s*\\+\\s*\\(1 \\| [^)]*\\)", "", rhs))
-    avisos <- "gama com termo aleatório: 'models/glmer' não tem a família gama; a análise sugerida é o GLM só com os fixos (o erro da parcela fica de fora)."
+    avisos <- "gama com termo aleatório: 'models/glmer' não tem a família gama; a análise sugerida é o GLM só com os fixos (o erro da parcela fica de fora, e o teste do fator da parcela sai liberal: taxa de erro tipo I acima de α)."
     aleatorio <- FALSE
   }
   list(analise = list(no = if (aleatorio) "models/glmer" else "models/glm",

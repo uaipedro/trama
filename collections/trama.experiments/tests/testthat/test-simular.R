@@ -44,7 +44,8 @@ test_that("a conversão contraste -> efeitos é a analítica, e a conferência �
   h <- ef(ds("dic", "t: A, B, C", 2L), "fixo", "t", conjunto = "helmert", magnitudes = "3, -2")
   expect_equal(h$termos[[1]]$conversao$conferencia, c(3, -2), tolerance = 1e-12)
   expect_equal(sum(h$termos[[1]]$verdadeiro$efeito), 0, tolerance = 1e-12)
-  k <- ef(ds("dic", "t: ctrl, A, B", 2L), "fixo", "t", conjunto = "controle", controle = "ctrl", magnitudes = "6, 0")
+  k <- ef(ds("dic", "t: ctrl, A, B", 2L), "fixo", "t", conjunto = "controle", controle = "ctrl", magnitudes = "-3, -3")
+  expect_equal(k$termos[[1]]$conversao$contraste, c("A vs ctrl", "B vs ctrl"))
   expect_equal(k$termos[[1]]$verdadeiro$efeito, c(2, -1, -1), tolerance = 1e-12)
 })
 
@@ -261,4 +262,25 @@ test_that("(g) pelo motor: design -> effect ×N -> error -> anova_split_plot e -
   expect_equal(nrow(ct$tabela), 2L)
   expect_s3_class(rodar(f, "comp"), "ggplot")
   expect_error(tr_experiments_view(ds("dbc"), "componentes"), class = "tr_experiments_error_bad_option")
+})
+
+test_that("o experiments/contrasts recupera a magnitude declarada, conjunto por conjunto", {
+  # σ = 0,001: a estimativa é a magnitude a menos de 1e-2 (EP ~ 1e-3).
+  rec <- function(fatores, conj, mag, ...) {
+    p <- ef(ds("dic", fatores, 3L, .seed = 5), "fixo", "t", conjunto = conj, magnitudes = mag, ...)
+    u <- tr_experiments_error(p, sd = 0.001, .seed = 9)$unidades
+    fit <- trama.models::tr_models_anova_dic(u, "y", "t")
+    tr_experiments_contrasts(fit, "t", conj, ...)$out$tabela$estimativa
+  }
+  expect_equal(rec("t: A, B, C, D", "helmert", "3, -2, 5"), c(3, -2, 5), tolerance = 1e-2)
+  expect_equal(rec("t: c, A, B, C", "controle", "6, 1, -2", controle = "c"), c(6, 1, -2), tolerance = 1e-2)
+  expect_equal(rec("t: A, B, C", "digitados", "2, 3", contrastes = "1 -1 0; 1 0 -1"), c(2, 3), tolerance = 1e-2)
+  # Produto de contrastes: a magnitude é Σⱼ dⱼ · (contraste no nível j de `dentro`).
+  p <- ef(ds("fatorial", "dose: 0, 50, 100; irr: a, b, c", 2L, .seed = 3), "interacao", "dose:irr",
+          conjunto = "polinomiais", doses = "dose: 0, 50, 100; irr: 0, 1, 2",
+          magnitudes = "Linear:Linear = 2, Quadratico:Linear = 1")
+  u <- tr_experiments_error(p, sd = 0.001, .seed = 1)$unidades
+  fit <- trama.models::tr_models_anova_factorial(u, "y", "dose, irr")
+  e <- tr_experiments_contrasts(fit, "dose", "polinomiais", doses = "0, 50, 100", dentro = "irr")$out$tabela$estimativa
+  expect_equal(c(e[[5]] - e[[1]], e[[6]] - e[[2]]), c(2, 1), tolerance = 1e-2)
 })

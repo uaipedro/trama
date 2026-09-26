@@ -15,7 +15,7 @@
 #' @noRd
 .TR_EXP_RESERVADOS <- c("unidade", "ordem", "padrao", "bloco", "parcela", "subparcela", "linha",
                         "coluna", "individuo", "tempo", "periodo", "sequencia", "local",
-                        "repeticao", "tipo_ponto", "faixa_linha", "faixa_coluna", "posicao")
+                        "repeticao", "tipo_ponto", "faixa_linha", "faixa_coluna", "posicao", "residual")
 
 #' O campo veio preenchido?
 #' @noRd

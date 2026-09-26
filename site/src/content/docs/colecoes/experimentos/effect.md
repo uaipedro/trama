@@ -49,7 +49,11 @@ plano.
 
 Na **interação**, `polinomiais` ou `helmert` são aplicados a cada fator e as
 magnitudes são dos **produtos** (`Linear:alta vs baixa = 2`); os efeitos de
-célula saem com margens nulas.
+célula saem com margens nulas. Para ler a magnitude de volta, desdobre no
+`experiments/contrasts` (Fator = o primeiro, Dentro de = o segundo): a
+magnitude do produto é Σⱼ dⱼ · (estimativa do contraste no nível j), com dⱼ
+os coeficientes do contraste do segundo fator — em `Linear:Linear` com três
+níveis, a estimativa no terceiro menos a do primeiro.
 
 ### Validação contra o plano
 
@@ -77,7 +81,8 @@ por contraste (e o que se digitar, quando por nível).
   (nome sem caixa e sem acento) ou só os números, na ordem dos contrastes.
 - **Doses** — valores numéricos dos níveis, na ordem (polinomiais e
   quantitativo). Com dois fatores: `dose: 0, 50, 100; irrigacao: 0, 1`.
-- **Controle** — o nível controle (conjunto `controle`).
+- **Controle** — o nível controle (conjunto `controle`: as magnitudes são as
+  diferenças de cada tratamento para ele, `B vs A`, `C vs A`…).
 - **Contrastes (digitados)** — sintaxe do `models/linear_hypothesis`.
 - **Desvio-padrão** — do efeito aleatório; ou da covariável, quando ela é
   gerada.
@@ -107,7 +112,7 @@ tr_flow(reg) |>
 ## Referências
 
 - Montgomery, D. C. *Design and Analysis of Experiments*. 9. ed. Hoboken:
-  Wiley, 2017. (Contrastes ortogonais e polinômios ortogonais, cap. 3.)
+  Wiley, 2017. (Contrastes e contrastes ortogonais, cap. 3.)
 - Gelman, A.; Hill, J. *Data Analysis Using Regression and
   Multilevel/Hierarchical Models*. Cambridge: Cambridge University Press, 2007.
   (Simulação de dados falsos para conferir a análise, cap. 8.)

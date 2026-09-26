@@ -101,8 +101,7 @@ tr_flow(reg) |>
 ## Referências
 
 - Fisher, R. A. *The Design of Experiments*. Edinburgh: Oliver and Boyd,
-  1935. (Cap. III: os dados de Darwin em *Zea mays*.) (edição a
-  conferir no catálogo)
+  1935. (Cap. III: os dados de Darwin em *Zea mays*.)
 - Pitman, E. J. G. Significance tests which may be applied to samples from
   any populations. *Supplement to the Journal of the Royal Statistical
   Society*, v. 4, n. 1, p. 119–130, 1937. DOI: 10.2307/2984124.
@@ -110,10 +109,10 @@ tr_flow(reg) |>
   any populations. III. The analysis of variance test. *Biometrika*, v. 29,
   n. 3/4, p. 322–335, 1938. DOI: 10.2307/2332008.
 - Edgington, E. S.; Onghena, P. *Randomization Tests*. 4. ed. Boca Raton:
-  Chapman & Hall/CRC, 2007. (ISBN a conferir no catálogo)
+  Chapman & Hall/CRC, 2007.
 - Hinkelmann, K.; Kempthorne, O. *Design and Analysis of Experiments*, v. 1.
   2. ed. Hoboken: Wiley, 2008. (Aleatorização e análise pela
-  aleatorização.) (a conferir no catálogo)
+  aleatorização.)
 - Phipson, B.; Smyth, G. K. Permutation p-values should never be zero.
   *Statistical Applications in Genetics and Molecular Biology*, v. 9, n. 1,
   2010. DOI: 10.2202/1544-6115.1585.

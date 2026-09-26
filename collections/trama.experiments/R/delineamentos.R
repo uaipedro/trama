@@ -626,11 +626,16 @@
                       sequencia = .tr_exp_id(rep(seq_ind, each = t), ns),
                       periodo = .tr_exp_id(rep(seq_len(t), ni), t))
   u[[nome]] <- factor(niv[rot[as.vector(t(W[seq_ind, , drop = FALSE]))]], levels = niv)
-  # Efeito residual (carryover): o tratamento do período anterior; no 1º
-  # período não há, e o nível "nenhum" (referência) fica confundido com ele.
+  # Efeito residual (carryover): o tratamento do período anterior. No 1º
+  # período não há residual (λ = 0 em Jones & Kenward). Um nível "nenhum"
+  # coincidiria com o 1º período (coluna redundante, que o lme4 descarta com
+  # aviso). Como os residuais só são estimáveis como diferenças e o efeito do
+  # período absorve qualquer constante do 1º período, a coluna leva ali o
+  # nível de REFERÊNCIA (o 1º tratamento): o espaço ajustado, o F de t − 1 gl
+  # e as diferenças λⱼ − λₖ são os mesmos, e a matriz tem posto completo.
   ant <- c(NA, as.character(u[[nome]])[-nrow(u)])
-  ant[u$periodo == "1"] <- "nenhum"
-  u$residual <- factor(ant, levels = c("nenhum", niv))
+  ant[u$periodo == "1"] <- niv[[1]]
+  u$residual <- factor(ant, levels = niv)
   seqs <- apply(W, 1L, function(w) paste(niv[rot[w]], collapse = " → "))
   list(unidades = u,
        fatores = rbind(
@@ -639,8 +644,8 @@
                        "fixado pela sequência sorteada ao indivíduo", "restrito"),
          .tr_exp_fator("periodo", "tempo", seq_len(t), "período", "—", "sem sorteio",
                        "os períodos se sucedem no tempo; o balanço vem das sequências"),
-         .tr_exp_fator("residual", "residual", c("nenhum", niv), "período do indivíduo", "—", "sem sorteio",
-                       "o tratamento do período anterior (efeito residual); segue da sequência")),
+         .tr_exp_fator("residual", "residual", niv, "período do indivíduo", "—", "sem sorteio",
+                       sprintf("o tratamento do período anterior (efeito residual); no 1º período, a referência '%s'", niv[[1]]))),
        hierarquia = .tr_exp_hier(c("sequência", "indivíduo", "período"), c("sequencia", "individuo", "unidade"),
                                  c(NA, "sequência", "indivíduo"), c(ns, ni, nrow(u))),
        posicoes = data.frame(linha = rep(seq_len(ni), each = t), coluna = rep(seq_len(t), ni)),

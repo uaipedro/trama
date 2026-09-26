@@ -6,9 +6,12 @@
 
 cadeia <- function(p, termos, erro = list(sd = 1), .seed = 1L) tr_experiments_simulate(p, termos, erro, .seed = .seed)
 mu <- list(tipo = "intercepto", valor = 10)
+# Taxa compatível com o alvo: o teste binomial exato de H0: p = alvo não
+# rejeita a 0,1% (Oliveira & Ferreira, 2010), e o alvo cai no IC de
+# Clopper-Pearson de 99,9%.
 dentro <- function(x, n, alvo) {
-  ic <- stats::binom.test(x, n, conf.level = 0.999)$conf.int
-  alvo >= ic[[1]] && alvo <= ic[[2]]
+  b <- stats::binom.test(x, n, p = alvo, conf.level = 0.999)
+  b$p.value > 0.001 && alvo >= b$conf.int[[1]] && alvo <= b$conf.int[[2]]
 }
 
 test_that("poder: tabela, gráfico, IC de Clopper-Pearson, semente reprodutível e console intocado", {
@@ -125,6 +128,8 @@ test_that("(c) parcela subdividida sem efeito de irrigação: a ingênua erra o 
   expect_equal(sp$analise, "models/anova_split_plot")
   expect_equal(sp$hipotese, "H0 verdadeira: taxa = erro tipo I")
   expect_true(dentro(sp$rejeicoes, sp$replicas, 0.05))
+  expect_equal(sp$p_binomial, stats::binom.test(sp$rejeicoes, sp$replicas, p = 0.05)$p.value)
+  expect_true(is.na(ing$p_binomial) || ing$p_binomial < 0.001)
   expect_gt(ing$taxa, 0.15)
 })
 

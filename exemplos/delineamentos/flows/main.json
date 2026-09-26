@@ -24,21 +24,21 @@
       "params": {
         "aba": "hierarquia"
       },
-      "seed": 22797663
+      "seed": 245727193
     },
     "com_mu": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Intercepto μ = 50",
       "params": {
         "tipo": "intercepto",
         "valor": 50
       },
-      "seed": 172029297
+      "seed": 73817659
     },
     "com_bloco": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Bloco aleatório (sd 3)",
       "params": {
         "tipo": "aleatorio",
@@ -49,31 +49,31 @@
     },
     "com_irr": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Irrigação sem efeito (H0 verdadeira)",
       "params": {
         "tipo": "fixo",
         "fator": "irrigacao",
         "efeitos": "baixa = 0, alta = 0"
       },
-      "seed": 220012255
+      "seed": 232552887
     },
     "com_var": {
       "type": "experiments/effect",
-      "type_version": 1,
-      "label": "Variedade: A vs demais = −3, C vs B = 2",
+      "type_version": 2,
+      "label": "Variedade: B vs A = 0,5, C vs A = 2,5",
       "params": {
         "tipo": "fixo",
         "fator": "variedade",
         "conjunto": "controle",
         "controle": "A",
-        "magnitudes": "-3, 2"
+        "magnitudes": "0.5, 2.5"
       },
-      "seed": 110776404
+      "seed": 114252354
     },
     "com_parc": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Erro de parcela (sd 4)",
       "params": {
         "tipo": "aleatorio",
@@ -102,7 +102,7 @@
         "subparcela": "variedade",
         "bloco": "bloco"
       },
-      "seed": 181523237
+      "seed": 99689248
     },
     "com_ingenua": {
       "type": "models/anova_factorial",
@@ -113,18 +113,18 @@
         "fatores": "irrigacao, variedade",
         "bloco": "bloco"
       },
-      "seed": 222623236
+      "seed": 184400925
     },
     "com_contr": {
       "type": "experiments/contrasts",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Variedades contra A",
       "params": {
         "fator": "variedade",
         "conjunto": "controle",
         "controle": "A"
       },
-      "seed": 172955916
+      "seed": 18348182
     },
     "com_comp": {
       "type": "experiments/view",
@@ -133,7 +133,7 @@
       "params": {
         "aba": "componentes"
       },
-      "seed": 96577954
+      "seed": 188650706
     },
     "sem_plano": {
       "type": "experiments/design",
@@ -153,21 +153,21 @@
       "params": {
         "aba": "hierarquia"
       },
-      "seed": 64460208
+      "seed": 225003740
     },
     "sem_mu": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Intercepto μ = 50",
       "params": {
         "tipo": "intercepto",
         "valor": 50
       },
-      "seed": 53986744
+      "seed": 176884510
     },
     "sem_bloco": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Bloco aleatório (sd 3)",
       "params": {
         "tipo": "aleatorio",
@@ -178,27 +178,27 @@
     },
     "sem_irr": {
       "type": "experiments/effect",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Irrigação sem efeito (H0 verdadeira)",
       "params": {
         "tipo": "fixo",
         "fator": "irrigacao",
         "efeitos": "baixa = 0, alta = 0"
       },
-      "seed": 30027772
+      "seed": 154103883
     },
     "sem_var": {
       "type": "experiments/effect",
-      "type_version": 1,
-      "label": "Variedade: A vs demais = −3, C vs B = 2",
+      "type_version": 2,
+      "label": "Variedade: B vs A = 0,5, C vs A = 2,5",
       "params": {
         "tipo": "fixo",
         "fator": "variedade",
         "conjunto": "controle",
         "controle": "A",
-        "magnitudes": "-3, 2"
+        "magnitudes": "0.5, 2.5"
       },
-      "seed": 184997518
+      "seed": 24000703
     },
     "sem_y": {
       "type": "experiments/error",
@@ -220,7 +220,7 @@
         "subparcela": "variedade",
         "bloco": "bloco"
       },
-      "seed": 54957445
+      "seed": 238585794
     },
     "sem_ingenua": {
       "type": "models/anova_factorial",
@@ -231,18 +231,18 @@
         "fatores": "irrigacao, variedade",
         "bloco": "bloco"
       },
-      "seed": 22160702
+      "seed": 16679676
     },
     "sem_contr": {
       "type": "experiments/contrasts",
-      "type_version": 2,
+      "type_version": 3,
       "label": "Variedades contra A",
       "params": {
         "fator": "variedade",
         "conjunto": "controle",
         "controle": "A"
       },
-      "seed": 65059367
+      "seed": 20512276
     },
     "sem_comp": {
       "type": "experiments/view",
@@ -251,7 +251,7 @@
       "params": {
         "aba": "componentes"
       },
-      "seed": 257616731
+      "seed": 202409534
     }
   },
   "edges": [
@@ -523,7 +523,7 @@
     },
     "views": {},
     "frames": {
-      "01M3DJWZQ7D2BDFF": {
+      "01M3DKDDP4179EE1": {
         "x": 10,
         "y": 20,
         "w": 2020,
@@ -533,7 +533,7 @@
         "color": "vermelho",
         "order": 1
       },
-      "01M3DJWZRGA06A41": {
+      "01M3DKDDQKAF60B7": {
         "x": 10,
         "y": 1020,
         "w": 2020,

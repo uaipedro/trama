@@ -86,11 +86,15 @@ As estruturas, e como cada uma sorteia:
   o quadrado e o espelho (2t sequências). Cada tratamento é precedido por cada
   outro o mesmo número de vezes, o balanço para o efeito residual. As
   sequências são sorteadas aos indivíduos. A coluna `residual` é o
-  tratamento do período anterior (`nenhum` no 1º período), e a análise
-  sugerida é `~ periodo + trat + residual + (1 | individuo)`. Como `nenhum`
-  coincide com o 1º período, a matriz do modelo tem uma coluna redundante: o
-  `lme4` avisa e a descarta, e o efeito residual fica com t − 1 graus de
-  liberdade.
+  tratamento do período anterior; no 1º período, onde não há residual, ela
+  leva o primeiro tratamento (a referência). Como os efeitos residuais só se
+  estimam como diferenças e o efeito do período absorve a constante do 1º
+  período, isso equivale a λ = 0 no 1º período (Jones & Kenward, 2014) e
+  deixa a matriz com posto completo. A análise sugerida é
+  `~ periodo + trat + residual + (1 | individuo)`: o residual tem t − 1
+  graus de liberdade, e cada coeficiente é a diferença para o residual do
+  primeiro tratamento. Ao simular um residual com `experiments/effect`, dê
+  efeito 0 ao primeiro tratamento.
 - **grupos** — o mesmo delineamento (DIC, DBC ou fatorial) em cada um dos
   **Locais**, com sorteio independente por local. Na análise sugerida cada
   termo de tratamento — efeitos principais e todas as interações — ganha a
@@ -178,9 +182,11 @@ semente do console (`set.seed()`) não é tocada.
 - Williams, E. J. Experimental designs balanced for the estimation of residual
   effects of treatments. *Australian Journal of Scientific Research A*, 2(2),
   149–168, 1949. doi:10.1071/CH9490149
+- Jones, B.; Kenward, M. G. *Design and Analysis of Cross-Over Trials*. 3. ed.
+  Boca Raton: CRC Press, 2014.
 - Fisher, R. A.; Yates, F. *Statistical Tables for Biological, Agricultural
-  and Medical Research*. 6. ed. Edinburgh: Oliver and Boyd, 1963 (introdução
-  às tabelas de quadrados latinos; a conferir a página).
+  and Medical Research*. 6. ed. Edinburgh: Oliver and Boyd, 1963 (as
+  tabelas de quadrados latinos).
 - Jacobson, M. T.; Matthews, P. Generating uniformly distributed random Latin
   squares. *Journal of Combinatorial Designs*, 4(6), 405–437, 1996.
   doi:10.1002/(SICI)1520-6610(1996)4:6<405::AID-JCD3>3.0.CO;2-J

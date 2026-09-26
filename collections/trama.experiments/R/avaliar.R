@@ -217,6 +217,8 @@ tr_experiments_power <- function(plano, analise = "", parametros = "", termo = "
     tibble::tibble(repeticoes = if (is.na(r)) as.integer(plano$receita$repeticoes) else r, unidades = nrow(d$unidades),
                    replicas = n, falhas = replicas - n, rejeicoes = x, taxa = if (n) x / n else NA_real_,
                    li = ic[[1]], ls = ic[[2]], confianca = confianca, significancia = significancia,
+                   # Sob H0 verdadeira: p do teste binomial exato de taxa = α.
+                   p_binomial = if (isTRUE(h0) && n) stats::binom.test(x, n, p = significancia)$p.value else NA_real_,
                    hipotese = if (is.na(h0)) "não conferida" else if (h0) "H0 verdadeira: taxa = erro tipo I" else "H0 falsa: taxa = poder",
                    analise = an$id,
                    teste = if (alvo$conjunto == "nenhum") alvo$termo else sprintf("%s (%s) de %s", alvo$contraste, alvo$conjunto, alvo$termo))

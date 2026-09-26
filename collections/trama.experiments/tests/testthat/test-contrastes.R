@@ -62,12 +62,15 @@ test_that("Montgomery seç. 6.2: o 2² como contrastes dá os SQ e os efeitos do
   expect_equal(sum(t$sq), sum(anova(m$ajuste)$`Sum Sq`[1:3]), tolerance = 1e-8)
 })
 
-test_that("controle contra os demais completa um conjunto ortogonal (balanceado)", {
+test_that("controle: cada tratamento contra o controle (Dunnett), não ortogonal", {
   m <- trama.models::tr_models_anova_dic(dados_gravacao(), "taxa", "potencia")
   r <- tr_experiments_contrasts(m, "potencia", "controle", controle = "200")
-  expect_equal(r$out$tabela$termo[[1]], "200 vs demais")
-  expect_equal(r$out$tabela$coeficientes[[1]], "-1 -1 3 -1")
-  expect_match(r$out$rodape$soma, "^confere")
+  t <- r$out$tabela
+  expect_equal(t$termo, c("160 vs 200", "180 vs 200", "220 vs 200"))
+  expect_equal(t$coeficientes, c("1 0 -1 0", "0 1 -1 0", "0 0 -1 1"))
+  d <- as.data.frame(dados_gravacao()); med <- tapply(d$taxa, as.character(d$potencia), mean)
+  expect_equal(t$estimativa, as.numeric(med[c("160", "180", "220")] - med[["200"]]), tolerance = 1e-10)
+  expect_match(r$out$rodape$soma, "não ortogonais")
 })
 
 test_that("parcela subdividida: cada contraste usa o seu erro (a ou b)", {

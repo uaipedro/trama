@@ -83,8 +83,12 @@ poder de outro experimento. O plano precisa guardar os argumentos dos termos
 `out`: o gráfico da taxa de rejeição (ponto e IC; linha na grade), com α
 tracejado. `tabela`: uma linha por ponto da grade — `repeticoes`, `unidades`,
 `replicas` (as que ajustaram), `falhas`, `rejeicoes`, `taxa`, `li`, `ls`,
-`confianca`, `significancia`, `hipotese` (H0 verdadeira ou falsa no modelo
-declarado), `analise` e `teste`.
+`confianca`, `significancia`, `p_binomial`, `hipotese` (H0 verdadeira ou
+falsa no modelo declarado), `analise` e `teste`. Com H0 verdadeira,
+`p_binomial` é o p do teste binomial exato de "taxa = α" (`binom.test(rejeicoes,
+replicas, p = significancia)`): p pequeno diz que o teste não mantém o tipo I
+nominal, e não ruído de Monte Carlo (o critério de Oliveira & Ferreira, 2010);
+com H0 falsa, NA.
 
 ## Exemplos
 
@@ -100,6 +104,9 @@ tr_flow(reg) |>
 
 ## Referências
 
+- Oliveira, I. R. C.; Ferreira, D. F. Multivariate extension of chi-squared
+  univariate normality test. *Journal of Statistical Computation and
+  Simulation*, v. 80, n. 5, p. 513–526, 2010. DOI: 10.1080/00949650902731377.
 - Clopper, C. J.; Pearson, E. S. The use of confidence or fiducial limits
   illustrated in the case of the binomial. *Biometrika*, v. 26, n. 4,
   p. 404–413, 1934. DOI: 10.1093/biomet/26.4.404.
