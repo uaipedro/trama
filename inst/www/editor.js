@@ -498,7 +498,7 @@ function useAutoTamanho(pvRef, id, data, mini) {
       const t = tamanhoPedido({ cardW: card.offsetWidth, prevH: pv.clientHeight,
                                 clientW: pv.clientWidth, clientH: pv.clientHeight,
                                 scrollW: pv.scrollWidth, scrollH: pv.scrollHeight });
-      if (t) data.onResize(id, t.w, t.h);
+      if (t) data.onAutoTamanho(id, t.w, t.h);
     }); });
     return () => { cancelAnimationFrame(raf1); if (raf2) cancelAnimationFrame(raf2); };
   }, [chave, data.state, mini]);
@@ -1956,6 +1956,24 @@ function App() {
     bumpTick();
     pushOp({ op: "resize", node: nodeId, w, h: hgt });
   }, [bumpTick]);
+  // Crescimento automático do preview (`useAutoTamanho`): ao abrir um
+  // projeto, vários cards pedem espaço no mesmo instante. Um `resize` por card
+  // sairia todo com a MESMA revisão, e o servidor recusaria todos menos o
+  // primeiro ("revisão defasada") — o front ficava descompassado e o gesto
+  // seguinte (o Organizar, por exemplo) era recusado junto. Junta os pedidos
+  // de um instante num batch só: uma revisão, um passo de desfazer.
+  const autoFila = useRef({});
+  const onAutoTamanho = useCallback((nodeId, w, hgt) => {
+    const vazia = !Object.keys(autoFila.current).length;
+    autoFila.current[nodeId] = [w, hgt];
+    sizesRef.current[nodeId] = [w, hgt];
+    bumpTick();
+    if (!vazia) return;
+    setTimeout(() => {
+      const fila = autoFila.current; autoFila.current = {};
+      pushMany(Object.entries(fila).map(([node, [ww, hh]]) => ({ op: "resize", node, w: ww, h: hh })));
+    }, 120);
+  }, [bumpTick]);
 
   // Estáveis pelo mesmo motivo de `onParam`. Frame não tem ref de otimismo
   // como params e tamanhos: ele já é nó do React Flow, e o gesto (arrasto,
@@ -2151,14 +2169,14 @@ function App() {
                       streamCtl: streamCtlRef.current,
                       onStreamCmd,
                       dobrado: dobras[n.id] ?? paramsDobradosDe(n.data),
-                      onDobrar, onTodos, onSoltar, onPrender, onVista,
+                      onDobrar, onTodos, onSoltar, onPrender, onVista, onAutoTamanho,
                       typeColors, categories, onParam, onView, onResize, onModo,
                       onReseed, onAbrirProximo: abrirProximo, temas } };
   })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
-     dobras, onDobrar, onTodos, onSoltar, onPrender, onVista, onSoltoRect,
+     dobras, onDobrar, onTodos, onSoltar, onPrender, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
 
