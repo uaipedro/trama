@@ -484,6 +484,19 @@ test_that("set_param com origem sugestao marca; sem origem desmarca", {
                                       origem = "robo"), x$reg), class = "tr_error_bad_op")
 })
 
+test_that("a marca de sugerido não muda chave de cache nem script exportado", {
+  # A marca é do editor (refazer a sugestão sem pisar em escolha); se ela
+  # vazasse para a chave, aceitar uma sugestão recalcularia o nó à toa.
+  x <- mk(); base <- add(x$doc, x$reg, "t/const", id = "a")
+  sug <- tr_doc_apply(base, list(op = "set_param", node = "a", name = "value", value = 2,
+                                 origem = "sugestao"), x$reg)
+  esc <- tr_doc_apply(base, list(op = "set_param", node = "a", name = "value", value = 2), x$reg)
+  expect_identical(sug$nodes$a$sugeridos, "value")
+  expect_identical(tr_plan_keys(tr_plan(sug, registry = x$reg)),
+                   tr_plan_keys(tr_plan(esc, registry = x$reg)))
+  expect_identical(tr_export_code(sug, x$reg), tr_export_code(esc, x$reg))
+})
+
 test_that("sugeridos sobrevive a gravar e ler, como array", {
   x <- mk(); doc <- add(x$doc, x$reg, "t/const", id = "a")
   doc <- tr_doc_apply(doc, list(op = "set_param", node = "a", name = "value", value = 2,

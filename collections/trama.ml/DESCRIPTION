@@ -1,6 +1,6 @@
 Package: trama.ml
 Title: Interpretable and Classical Machine Learning for trama
-Version: 0.5.1
+Version: 0.5.2
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -20,7 +20,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.2.0),
+    trama (>= 0.3.0),
     trama.data,
     trama.view,
     trama.models,

@@ -190,6 +190,9 @@ tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duratio
 #' (`amostra` avisa que cortou) — contar distintos de uma tabela de milhões a
 #' cada execução custaria mais que o nó.
 #'
+#' Em fator, `n_distintos` conta os valores OBSERVADOS na amostra (NA incluso),
+#' não `nlevels()`: nível declarado e ausente não é opção de sugestão.
+#'
 #' `colunas` é lista SEM nomes de propósito: com `auto_unbox = TRUE` uma lista
 #' nomeada vira objeto e perde a ordem garantida; sem nomes, sai array mesmo
 #' com uma coluna só.
