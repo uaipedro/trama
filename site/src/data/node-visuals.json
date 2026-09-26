@@ -1326,6 +1326,19 @@
         "default": 5
       },
       {
+        "name": "cp",
+        "kind": "number",
+        "label": "Complexidade mínima (cp)",
+        "default": 0
+      },
+      {
+        "name": "poda",
+        "kind": "enum",
+        "label": "Poda",
+        "default": "1ep",
+        "choices": ["1ep", "minimo", "nenhuma"]
+      },
+      {
         "name": "seed",
         "kind": "integer",
         "label": "Semente",
@@ -1375,6 +1388,12 @@
         "label": "Coluna prevista",
         "default": ".pred",
         "example": ".pred"
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
       }
     ],
     "icon": "grid-3x3"
@@ -1427,6 +1446,12 @@
         "label": "Tarefa",
         "default": "auto",
         "choices": ["auto", "regressao", "classificacao"]
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
       }
     ],
     "icon": "gauge"
@@ -1605,6 +1630,13 @@
         "default": 3
       },
       {
+        "name": "importancia",
+        "kind": "enum",
+        "label": "Importância",
+        "default": "impureza",
+        "choices": ["impureza", "permutacao", "impureza_corrigida"]
+      },
+      {
         "name": "seed",
         "kind": "integer",
         "label": "Semente",
@@ -1693,6 +1725,12 @@
         "choices": ["auto", "regressao", "classificacao"]
       },
       {
+        "name": "corte",
+        "kind": "number",
+        "label": "Corte de probabilidade",
+        "default": 0.5
+      },
+      {
         "name": "seed",
         "kind": "integer",
         "label": "Semente",
@@ -1700,6 +1738,223 @@
       }
     ],
     "icon": "chart-spline"
+  },
+  "ml/nested_cv": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Validação cruzada aninhada",
+    "category": "ml_avaliar",
+    "categoryLabel": "Prever e avaliar",
+    "categoryOrder": 47,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "alvo",
+        "kind": "text",
+        "label": "Resposta",
+        "default": "",
+        "example": "Species"
+      },
+      {
+        "name": "cols",
+        "kind": "cols",
+        "label": "Preditores",
+        "default": "",
+        "example": "Sepal.Length, Petal.Length"
+      },
+      {
+        "name": "modelo",
+        "kind": "enum",
+        "label": "Modelo",
+        "default": "cart",
+        "choices": ["cart", "figs", "forest", "svm", "xgboost"]
+      },
+      {
+        "name": "tarefa",
+        "kind": "enum",
+        "label": "Tarefa",
+        "default": "auto",
+        "choices": ["auto", "regressao", "classificacao"]
+      },
+      {
+        "name": "metrica",
+        "kind": "enum",
+        "label": "Métrica",
+        "default": "auto",
+        "choices": ["auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1", "kappa", "weighted_f1"]
+      },
+      {
+        "name": "tentativas",
+        "kind": "integer",
+        "label": "Tentativas",
+        "default": 10
+      },
+      {
+        "name": "folds_externos",
+        "kind": "integer",
+        "label": "Folds externos",
+        "default": 5
+      },
+      {
+        "name": "folds",
+        "kind": "integer",
+        "label": "Folds internos",
+        "default": 3
+      },
+      {
+        "name": "amplitude",
+        "kind": "enum",
+        "label": "Espaço de busca",
+        "default": "conservadora",
+        "choices": ["conservadora", "ampla"]
+      },
+      {
+        "name": "estrategia",
+        "kind": "enum",
+        "label": "Estratégia",
+        "default": "aleatoria",
+        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
+      },
+      {
+        "name": "ordem",
+        "kind": "text",
+        "label": "Coluna de tempo",
+        "default": "",
+        "example": "data"
+      },
+      {
+        "name": "grupo",
+        "kind": "text",
+        "label": "Coluna de grupo",
+        "default": "",
+        "example": "lote"
+      },
+      {
+        "name": "seed",
+        "kind": "integer",
+        "label": "Semente",
+        "default": 42
+      }
+    ],
+    "icon": "layers"
+  },
+  "ml/pr_curve": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Curva precisão-revocação",
+    "category": "ml_inspecionar",
+    "categoryLabel": "Inspecionar",
+    "categoryOrder": 48,
+    "inputColor": "#38bdf8",
+    "outputColor": "#f472b6",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "alvo",
+        "kind": "text",
+        "label": "Resposta",
+        "default": "",
+        "example": "Species"
+      },
+      {
+        "name": "probabilidade",
+        "kind": "text",
+        "label": "Probabilidade",
+        "default": "",
+        "example": ".prob_sim"
+      },
+      {
+        "name": "positiva",
+        "kind": "text",
+        "label": "Classe positiva",
+        "default": "",
+        "example": "sim"
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "16:9",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "chart-line"
   },
   "ml/predict": {
     "accent": "#d3e9de",
@@ -1873,6 +2128,18 @@
         "example": "sim"
       },
       {
+        "name": "confianca",
+        "kind": "number",
+        "label": "Confiança",
+        "default": 0.95
+      },
+      {
+        "name": "permitir_treino",
+        "kind": "boolean",
+        "label": "Permitir avaliar o treino",
+        "default": false
+      },
+      {
         "name": "aspecto",
         "kind": "enum",
         "label": "Proporção",
@@ -1998,6 +2265,27 @@
         "kind": "boolean",
         "label": "Estratificar classes",
         "default": true
+      },
+      {
+        "name": "estrategia",
+        "kind": "enum",
+        "label": "Estratégia",
+        "default": "aleatoria",
+        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
+      },
+      {
+        "name": "ordem",
+        "kind": "text",
+        "label": "Coluna de tempo",
+        "default": "",
+        "example": "data"
+      },
+      {
+        "name": "grupo",
+        "kind": "text",
+        "label": "Coluna de grupo",
+        "default": "",
+        "example": "lote"
       },
       {
         "name": "seed",
@@ -2248,7 +2536,7 @@
         "kind": "enum",
         "label": "Métrica",
         "default": "auto",
-        "choices": ["auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1"]
+        "choices": ["auto", "mae", "rmse", "r2", "accuracy", "balanced_accuracy", "macro_f1", "kappa", "weighted_f1"]
       },
       {
         "name": "tentativas",
@@ -2268,6 +2556,27 @@
         "label": "Espaço de busca",
         "default": "conservadora",
         "choices": ["conservadora", "ampla"]
+      },
+      {
+        "name": "estrategia",
+        "kind": "enum",
+        "label": "Estratégia",
+        "default": "aleatoria",
+        "choices": ["aleatoria", "temporal", "grupo", "grupo_estratificado"]
+      },
+      {
+        "name": "ordem",
+        "kind": "text",
+        "label": "Coluna de tempo",
+        "default": "",
+        "example": "data"
+      },
+      {
+        "name": "grupo",
+        "kind": "text",
+        "label": "Coluna de grupo",
+        "default": "",
+        "example": "lote"
       },
       {
         "name": "seed",
@@ -2844,7 +3153,7 @@
         "name": "correcao",
         "kind": "boolean",
         "label": "Correção de Yates (2 × 2)",
-        "default": true
+        "default": false
       }
     ],
     "icon": "table"
@@ -3108,7 +3417,7 @@
         "kind": "enum",
         "label": "Conjunto",
         "default": "PlantGrowth",
-        "choices": ["PlantGrowth", "milho_dbc", "racao_dql", "ToothGrowth", "warpbreaks", "npk", "aveia", "sleepstudy", "InsectSprays", "mtcars", "cars"]
+        "choices": ["PlantGrowth", "milho_dbc", "racao_dql", "ToothGrowth", "warpbreaks", "npk", "aveia", "sleepstudy", "InsectSprays", "mtcars", "cars", "cbpp", "grouseticks"]
       }
     ],
     "icon": "database"
@@ -3188,6 +3497,65 @@
     "params": [],
     "icon": "gauge"
   },
+  "models/friedman": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Friedman",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 18,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "resposta",
+        "kind": "cols",
+        "label": "Resposta",
+        "default": "",
+        "example": "producao"
+      },
+      {
+        "name": "tratamento",
+        "kind": "cols",
+        "label": "Tratamento",
+        "default": "",
+        "example": "hibrido"
+      },
+      {
+        "name": "bloco",
+        "kind": "cols",
+        "label": "Bloco",
+        "default": "",
+        "example": "bloco"
+      },
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "auto",
+        "choices": ["auto", "friedman", "durbin", "skillings_mack"]
+      }
+    ],
+    "icon": "list-ordered"
+  },
   "models/glm": {
     "accent": "#31765a",
     "hasInput": true,
@@ -3242,10 +3610,154 @@
         "kind": "enum",
         "label": "Família",
         "default": "poisson",
-        "choices": ["gaussiana", "binomial", "poisson", "gama", "quasipoisson"]
+        "choices": ["gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial"]
       }
     ],
     "icon": "chart-spline"
+  },
+  "models/glmer": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "GLM misto",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 13,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#14b8a6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "formula",
+        "kind": "expr",
+        "label": "Fórmula",
+        "default": "",
+        "example": "cbind(casos, sadios) ~ periodo + (1 | rebanho)"
+      },
+      {
+        "name": "resposta",
+        "kind": "cols",
+        "label": "Resposta (sem fórmula)",
+        "default": "",
+        "example": "TICKS"
+      },
+      {
+        "name": "fixos",
+        "kind": "cols",
+        "label": "Efeitos fixos (sem fórmula)",
+        "default": "",
+        "example": "YEAR"
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo aleatório (sem fórmula)",
+        "default": "",
+        "example": "BROOD"
+      },
+      {
+        "name": "familia",
+        "kind": "enum",
+        "label": "Família",
+        "default": "binomial",
+        "choices": ["binomial", "poisson"]
+      },
+      {
+        "name": "nivel_obs",
+        "kind": "boolean",
+        "label": "Efeito por observação",
+        "default": false
+      }
+    ],
+    "icon": "layers-2"
+  },
+  "models/gls": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "GLS (erro correlacionado)",
+    "category": "modelo_ajustar",
+    "categoryLabel": "Ajustar",
+    "categoryOrder": 13,
+    "inputColor": "#38bdf8",
+    "outputColor": "#14b8a6",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#14b8a6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "formula",
+        "kind": "expr",
+        "label": "Fórmula (efeitos fixos)",
+        "default": "",
+        "example": "Reaction ~ Days"
+      },
+      {
+        "name": "correlacao",
+        "kind": "enum",
+        "label": "Correlação no grupo",
+        "default": "ar1",
+        "choices": ["nenhuma", "ar1", "car1", "simetria_composta", "nao_estruturada"]
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (medidas repetidas)",
+        "default": "",
+        "example": "Subject"
+      },
+      {
+        "name": "tempo",
+        "kind": "cols",
+        "label": "Tempo (ocasião)",
+        "default": "",
+        "example": "Days"
+      },
+      {
+        "name": "variancia_por",
+        "kind": "cols",
+        "label": "Variância por (opcional)",
+        "default": "",
+        "example": "Days"
+      },
+      {
+        "name": "reml",
+        "kind": "boolean",
+        "label": "REML",
+        "default": true
+      }
+    ],
+    "icon": "chart-network"
   },
   "models/kruskal": {
     "accent": "#8b3a62",
@@ -3895,6 +4407,56 @@
     ],
     "icon": "chart-no-axes-column"
   },
+  "models/polinomial": {
+    "accent": "#d3e9de",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Regressão polinomial",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
+    "inputColor": "#14b8a6",
+    "outputColor": "#eab308",
+    "role": "leitura",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#14b8a6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#eab308",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "tratamento",
+        "kind": "cols",
+        "label": "Tratamento (numérico)",
+        "default": "",
+        "example": "dose"
+      },
+      {
+        "name": "grau",
+        "kind": "number",
+        "label": "Maior grau",
+        "default": 3
+      },
+      {
+        "name": "alfa",
+        "kind": "number",
+        "label": "Nível (alfa)",
+        "default": 0.05
+      }
+    ],
+    "icon": "chart-spline"
+  },
   "models/predict": {
     "accent": "#d3e9de",
     "hasInput": true,
@@ -4079,6 +4641,50 @@
       }
     ],
     "icon": "activity"
+  },
+  "models/scott_knott": {
+    "accent": "#d3e9de",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Scott-Knott",
+    "category": "modelo_medias",
+    "categoryLabel": "Médias",
+    "categoryOrder": 16,
+    "inputColor": "#14b8a6",
+    "outputColor": "#8b5cf6",
+    "role": "leitura",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#14b8a6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#8b5cf6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "tratamento",
+        "kind": "cols",
+        "label": "Tratamento",
+        "default": "",
+        "example": "hibrido"
+      },
+      {
+        "name": "alfa",
+        "kind": "number",
+        "label": "Nível (alfa)",
+        "default": 0.05
+      }
+    ],
+    "icon": "ungroup"
   },
   "models/shapiro": {
     "accent": "#8b3a62",
@@ -4559,6 +5165,13 @@
         "label": "Validação",
         "default": "cruzada",
         "choices": ["cruzada", "resubstituição"]
+      },
+      {
+        "name": "tabela",
+        "kind": "enum",
+        "label": "Tabela",
+        "default": "matriz",
+        "choices": ["matriz", "métricas"]
       }
     ],
     "icon": "grid-3x3"
@@ -4991,10 +5604,17 @@
         "choices": ["resumo", "pseudovalores"]
       },
       {
-        "name": "nivel",
+        "name": "confianca",
         "kind": "number",
-        "label": "Nível do intervalo",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -5042,10 +5662,17 @@
         "choices": ["resumo", "pseudovalores"]
       },
       {
-        "name": "nivel",
+        "name": "confianca",
         "kind": "number",
-        "label": "Nível do intervalo",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -5093,10 +5720,17 @@
         "choices": ["resumo", "pseudovalores"]
       },
       {
-        "name": "nivel",
+        "name": "confianca",
         "kind": "number",
-        "label": "Nível do intervalo",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -5144,10 +5778,17 @@
         "choices": ["resumo", "pseudovalores"]
       },
       {
-        "name": "nivel",
+        "name": "confianca",
         "kind": "number",
-        "label": "Nível do intervalo",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (apagar-um-grupo)",
+        "default": "",
+        "example": "talhao"
       }
     ],
     "icon": "repeat"
@@ -5237,6 +5878,13 @@
         "kind": "number",
         "label": "Corte (binária)",
         "default": 0.5
+      },
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "ml",
+        "choices": ["ml", "firth"]
       }
     ],
     "icon": "chart-spline"
@@ -5277,13 +5925,71 @@
         "choices": ["unidade", "desvio padrão"]
       },
       {
-        "name": "nivel",
+        "name": "confianca",
         "kind": "number",
-        "label": "Nível do intervalo",
+        "label": "Confiança do intervalo",
         "default": 0.95
+      },
+      {
+        "name": "intervalo",
+        "kind": "enum",
+        "label": "Intervalo",
+        "default": "perfilado",
+        "choices": ["perfilado", "Wald"]
       }
     ],
     "icon": "sigma"
+  },
+  "multi/mardia": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Normalidade multivariada (Mardia)",
+    "category": "multi_diagnostico",
+    "categoryLabel": "Diagnóstico",
+    "categoryOrder": 20,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
+    "role": "inspecao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "cols",
+        "kind": "cols",
+        "label": "Variáveis",
+        "default": "",
+        "example": "Sepal.Length, Sepal.Width, Petal.Length"
+      },
+      {
+        "name": "grupo",
+        "kind": "cols",
+        "label": "Grupo (opcional)",
+        "default": "",
+        "example": "Species"
+      },
+      {
+        "name": "confianca",
+        "kind": "number",
+        "label": "Confiança",
+        "default": 0.95
+      }
+    ],
+    "icon": "stethoscope"
   },
   "multi/parallel": {
     "accent": "#75539b",
@@ -5797,6 +6503,85 @@
     ],
     "icon": "chart-bar"
   },
+  "multi/pr_curve": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Curva precisão-revocação",
+    "category": "multi_discriminante",
+    "categoryLabel": "Classificação",
+    "categoryOrder": 23,
+    "inputColor": "#fb923c",
+    "outputColor": "#f472b6",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "validacao",
+        "kind": "enum",
+        "label": "Validação",
+        "default": "cruzada",
+        "choices": ["cruzada", "resubstituição"]
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "1:1",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "chart-line"
+  },
   "multi/roc": {
     "accent": "#8b3a62",
     "hasInput": true,
@@ -5831,6 +6616,12 @@
         "label": "Validação",
         "default": "cruzada",
         "choices": ["cruzada", "resubstituição"]
+      },
+      {
+        "name": "confianca",
+        "kind": "number",
+        "label": "Confiança da AUC",
+        "default": 0.95
       },
       {
         "name": "aspecto",
@@ -6150,6 +6941,27 @@
         "kind": "number",
         "label": "Diferença que importa",
         "default": 0.1
+      },
+      {
+        "name": "proporcao_grupo",
+        "kind": "cols",
+        "label": "Proporção de cada grupo (coluna)",
+        "default": "",
+        "example": "p"
+      },
+      {
+        "name": "populacao",
+        "kind": "cols",
+        "label": "População de cada grupo (coluna)",
+        "default": "",
+        "example": "N"
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "git-compare"
@@ -6240,6 +7052,13 @@
         "kind": "number",
         "label": "Taxa de resposta",
         "default": 1
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "ruler"
@@ -6318,6 +7137,13 @@
         "label": "Confiança",
         "default": "95%",
         "choices": ["90%", "95%", "99%"]
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "layers-plus"
@@ -6752,6 +7578,13 @@
         "label": "Confiança",
         "default": "95%",
         "choices": ["90%", "95%", "99%"]
+      },
+      {
+        "name": "intervalo",
+        "kind": "enum",
+        "label": "Intervalo",
+        "default": "logit",
+        "choices": ["logit", "wilson", "clopper_pearson", "wald"]
       }
     ],
     "icon": "chart-pie"
@@ -6830,6 +7663,13 @@
         "label": "Confiança",
         "default": "95%",
         "choices": ["90%", "95%", "99%"]
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "list-checks"
@@ -7045,6 +7885,19 @@
         "label": "Confiança",
         "default": "95%",
         "choices": ["90%", "95%", "99%"]
+      },
+      {
+        "name": "cv_rede",
+        "kind": "number",
+        "label": "CV do tamanho das redes",
+        "default": 0
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "network"
@@ -7152,6 +8005,19 @@
         "kind": "number",
         "label": "Conglomerados na população (0 = infinitos)",
         "default": 0
+      },
+      {
+        "name": "cv_tamanho",
+        "kind": "number",
+        "label": "CV do tamanho dos conglomerados",
+        "default": 0
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "boxes"
@@ -7313,6 +8179,13 @@
         "kind": "number",
         "label": "Ignorar grupos abaixo de",
         "default": 0
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "users"
@@ -7401,6 +8274,13 @@
         "kind": "number",
         "label": "Taxa de resposta",
         "default": 1
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "calculator"
@@ -7461,6 +8341,13 @@
         "kind": "number",
         "label": "Taxa de resposta",
         "default": 1
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "percent"
@@ -7552,6 +8439,13 @@
         "kind": "number",
         "label": "Taxa de resposta",
         "default": 1
+      },
+      {
+        "name": "distribuicao",
+        "kind": "enum",
+        "label": "Distribuição",
+        "default": "t",
+        "choices": ["t", "z"]
       }
     ],
     "icon": "layers"
@@ -8292,6 +9186,13 @@
         "label": "Pareamento",
         "default": "terços",
         "choices": ["terços", "metades"]
+      },
+      {
+        "name": "correcao",
+        "kind": "enum",
+        "label": "Correção para autocorrelação",
+        "default": "nenhuma",
+        "choices": ["nenhuma", "bootstrap_blocos"]
       }
     ],
     "icon": "arrow-up-down"
@@ -8570,7 +9471,15 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "remover",
+        "kind": "enum",
+        "label": "Remover antes",
+        "default": "reta",
+        "choices": ["reta", "media"]
+      }
+    ],
     "icon": "signal"
   },
   "series/forecast": {
@@ -8606,6 +9515,13 @@
         "kind": "integer",
         "label": "Horizonte",
         "default": 12
+      },
+      {
+        "name": "intervalo",
+        "kind": "enum",
+        "label": "Intervalo",
+        "default": "normal",
+        "choices": ["normal", "bootstrap"]
       }
     ],
     "icon": "trending-up"
@@ -8747,6 +9663,100 @@
     ],
     "params": [],
     "icon": "pipette"
+  },
+  "series/intervencao": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Intervenção",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 36,
+    "inputColor": "#34d399",
+    "outputColor": "#38bdf8",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "serie",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "data",
+        "kind": "text",
+        "label": "Data da intervenção",
+        "default": "",
+        "example": "1983, 2"
+      },
+      {
+        "name": "tipo",
+        "kind": "enum",
+        "label": "Tipo",
+        "default": "degrau",
+        "choices": ["degrau", "pulso", "rampa"]
+      },
+      {
+        "name": "p",
+        "kind": "integer",
+        "label": "p (AR)",
+        "default": 0
+      },
+      {
+        "name": "d",
+        "kind": "integer",
+        "label": "d (diferenças)",
+        "default": 1
+      },
+      {
+        "name": "q",
+        "kind": "integer",
+        "label": "q (MA)",
+        "default": 1
+      },
+      {
+        "name": "P",
+        "kind": "integer",
+        "label": "P (AR sazonal)",
+        "default": 0
+      },
+      {
+        "name": "D",
+        "kind": "integer",
+        "label": "D (diferença sazonal)",
+        "default": 0
+      },
+      {
+        "name": "Q",
+        "kind": "integer",
+        "label": "Q (MA sazonal)",
+        "default": 0
+      },
+      {
+        "name": "constante",
+        "kind": "boolean",
+        "label": "Constante",
+        "default": false
+      },
+      {
+        "name": "resposta",
+        "kind": "enum",
+        "label": "Resposta",
+        "default": "imediata",
+        "choices": ["imediata", "gradual"]
+      }
+    ],
+    "icon": "milestone"
   },
   "series/kpss": {
     "accent": "#8b3a62",
@@ -9001,7 +10011,15 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "correcao",
+        "kind": "enum",
+        "label": "Correção para autocorrelação",
+        "default": "nenhuma",
+        "choices": ["nenhuma", "hamed_rao", "pre_branqueamento", "bootstrap_blocos"]
+      }
+    ],
     "icon": "trending-up"
   },
   "series/moving_average": {
@@ -9190,7 +10208,15 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "correcao",
+        "kind": "enum",
+        "label": "Correção para autocorrelação",
+        "default": "nenhuma",
+        "choices": ["nenhuma", "bootstrap_blocos"]
+      }
+    ],
     "icon": "milestone"
   },
   "series/phillips_perron": {
@@ -9220,7 +10246,15 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "deterministico",
+        "kind": "enum",
+        "label": "Termos determinísticos",
+        "default": "tendência",
+        "choices": ["constante", "tendência"]
+      }
+    ],
     "icon": "flask-conical"
   },
   "series/plot": {
@@ -9503,6 +10537,25 @@
         "label": "Contraste",
         "default": "soma_zero",
         "choices": ["soma_zero", "categoria_base"]
+      },
+      {
+        "name": "erro",
+        "kind": "enum",
+        "label": "Erro",
+        "default": "independente",
+        "choices": ["independente", "arma"]
+      },
+      {
+        "name": "ar",
+        "kind": "integer",
+        "label": "Ordem AR do erro",
+        "default": 1
+      },
+      {
+        "name": "ma",
+        "kind": "integer",
+        "label": "Ordem MA do erro",
+        "default": 0
       }
     ],
     "icon": "trending-up"
@@ -9882,8 +10935,15 @@
       {
         "name": "defasagens",
         "kind": "integer",
-        "label": "Defasagens",
-        "default": 0
+        "label": "Defasagens (-1 = regra de Schwert)",
+        "default": -1
+      },
+      {
+        "name": "selecao",
+        "kind": "enum",
+        "label": "Escolha das defasagens",
+        "default": "fixa",
+        "choices": ["fixa", "t_sig"]
       }
     ],
     "icon": "split"
