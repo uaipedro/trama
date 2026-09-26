@@ -259,7 +259,7 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, onSave, onClose
   ]);
   // Também do projeto, não de tema: ligado, conectar uma tabela preenche os
   // params de coluna com o selo "sugerido"; desligado, nada é preenchido
-  // sozinho e o select só oferece "sugerir: X" a pedido.
+  // sozinho e o select oferece "sugerir: X" a pedido (ligado também, em campo vazio).
   const edicao = h("div", { key: "ed", className: "tr-settings-editor" }, [
     h("h4", { key: "t" }, "Edição"),
     h(Campo, { key: "s", rotulo: "sugerir colunas ao conectar" },

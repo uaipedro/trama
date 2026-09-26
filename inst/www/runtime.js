@@ -555,9 +555,11 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
   const falta = sumidas([spec], { [spec.name]: atual }, schema)[0];
   let campo;
   if (anotado(spec) && !spec.multi) {
-    // Flag desligado e campo vazio: a sugestão fica a um clique, como
-    // primeira opção — pedir é o gesto, então sai COM origem (selo).
-    const sug = !ctx.sugestoes && colsVazio(atual)
+    // Campo vazio: a sugestão fica a um clique, como primeira opção — pedir
+    // é o gesto, então sai COM origem (selo). Com o flag desligado é o único
+    // caminho; ligado, cobre o que ficou vazio sem connect novo (documento
+    // aberto de fora, param limpo à mão).
+    const sug = colsVazio(atual)
       ? sugerir(ctx.params, ctx.valores, ctx.sugeridos, schema).find((s) => s.name === spec.name)
       : null;
     const opt = (o) => h("option", { key: o.nome, value: o.nome }, o.nome);
@@ -588,7 +590,20 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
       const agora = (ta ? ta.value : String(atual)).trim();
       const novo = agora ? `${agora.replace(/,\s*$/, "")}, ${nome}` : nome;
       if (ta) ta.value = novo;
+      // O `key` do textarea é o valor: o eco o remonta e o foco se perde.
+      // Devolve o foco (cursor no fim) ao textarea NOVO, achado pelo bloco.
+      const bloco = e.currentTarget.closest(".tr-cols");
+      const focado = ta && document.activeElement === ta;
       onChange(novo);
+      if (focado && bloco) {
+        let n = 0;
+        const refoca = () => {
+          const t = bloco.querySelector("textarea");
+          if (t && t !== ta) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+          else if (n++ < 10) requestAnimationFrame(refoca);
+        };
+        requestAnimationFrame(refoca);
+      }
     };
     campo = h("div", { key: "t", className: "tr-cols-multi" }, [
       colsTexto(spec, atual, onChange),

@@ -1933,7 +1933,7 @@ function App() {
     pushOp(origem ? { op: "set_param", node: nodeId, name, value, origem }
                   : { op: "set_param", node: nodeId, name, value });
   }, [bumpTick]);
-  // O pedido "sugerir: X" do select, com o flag desligado. Estável como
+  // O pedido "sugerir: X" do select (campo vazio, flag ligado ou não). Estável como
   // `onParam` (entra em `data`).
   const onSugerir = useCallback((nodeId, name, value, motivo) =>
     onParam(nodeId, name, value, "sugestao", motivo), [onParam]);
@@ -1960,7 +1960,10 @@ function App() {
   // a aresta vem (`handles` em `stateRef`, preenchido por `unitState`). Porta
   // sem aresta, ou com a origem ainda sem rodar, fica de fora — o widget `cols`
   // cai no campo de texto. Nó de região sem `handles` por porta usa o `handle`
-  // único: é o palpite que `firstHandle` já faz pro preview.
+  // único: é o palpite que `firstHandle` já faz pro preview. O memo recalcula
+  // a cada `tick` (um por quadro com evento de execução), então o objeto de
+  // um nó é novo a cada rajada — barato: `data` já é refeito ali de qualquer
+  // jeito, e o que importa pro laço de remedição é não criar FUNÇÃO nova.
   const entradas = useMemo(() => {
     const out = {};
     for (const e of edges) {
@@ -1988,7 +1991,10 @@ function App() {
     if (!ps.some(anotado)) return [];
     const chave = alvo + "\u0000" + porta;
     const schema = schemaDaSaida(origem, saida);
-    if (!schema) { pendentesRef.current[chave] = true; return []; }
+    // `visto: false` até algum documento trazer a aresta: o connect pode estar
+    // na fila de `enviarProx` (Tab encadeado, insert no meio), e um eco
+    // anterior, que ainda não pode contê-la, não é motivo pra esquecer.
+    if (!schema) { pendentesRef.current[chave] = { visto: false }; return []; }
     delete pendentesRef.current[chave];
     const val = valores || { ...(no?.data.params || {}), ...(paramsRef.current[alvo] || {}) };
     const sugs = sugerirColunas(ps, val, sugeridosDe(alvo, no?.data.sugeridos), schema);
@@ -2356,11 +2362,17 @@ function App() {
         sugeridosRef.current = {};
         setDoc(m.doc);
         const { nodes: novos, edges: e, needsLayout } = docToFlow(m.doc, catalogRef.current);
-        // Entrada pendente de sugestão que o documento não liga mais (foi
-        // desligada, ou o undo levou o connect): esquece.
-        for (const k of Object.keys(pendentesRef.current)) {
+        // Entrada pendente de sugestão: a primeira vez que um documento traz
+        // a aresta, ela conta como ligada; depois disso, um documento SEM ela
+        // (desligada, ou o undo levou o connect) a esquece. Antes de ser vista,
+        // a ausência só quer dizer que o connect ainda não ecoou. Connect
+        // recusado deixa a pendência órfã — inofensiva: só dispararia se a
+        // mesma porta fosse ligada de novo, e aí sugerir é o certo.
+        for (const [k, pend] of Object.entries(pendentesRef.current)) {
           const [alvo, porta] = k.split("\u0000");
-          if (!e.some((x) => x.target === alvo && x.targetHandle === porta)) delete pendentesRef.current[k];
+          const liga = e.some((x) => x.target === alvo && x.targetHandle === porta);
+          if (liga) pend.visto = true;
+          else if (pend.visto) delete pendentesRef.current[k];
         }
         // `docToFlow` refaz cada card sem `measured`, e até o React Flow medir
         // de novo o `rectOf` via o card como 0x0: Ctrl+G enquadrava errado e o
@@ -2679,7 +2691,13 @@ function App() {
   //     regex pra rotear a mensagem SÓ pro card certo é frágil: quebra se o
   //     texto mudar de forma, e ainda deixaria os outros cards mudos de novo.
   //     Preferimos a garantia que não depende de parsear prosa.)
-  function regionMemberPatch(m, patch, id, regiao) {
+  function regionMemberPatch(m, bruto, id, regiao) {
+    // `handles` (o mapa por porta que `unitState` guarda pro schema dos params
+    // `cols`) é chaveado pelos nomes QUALIFICADOS da região, não pelas portas
+    // do card: `handles[porta]` nunca acharia nada e ainda impediria o
+    // `schemaDaSaida` de cair no `handle` único. E num membro interior o mapa
+    // nem é dele. Zerado (e não só omitido) pra não sobrar um de antes.
+    const patch = "handles" in bruto ? { ...bruto, handles: null } : bruto;
     if (regiao.roles[id] === "collapse") {
       if (!m.handles) return patch;
       const nomes = regiao.outputs[id] || [];
