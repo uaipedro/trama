@@ -75,6 +75,37 @@ tr_param_bool <- function(default = FALSE, label = NULL) tr_param("boolean", isT
 #' @export
 tr_param_enum <- function(default, choices, label = NULL) tr_param("enum", default, label, choices = choices)
 
+#' Param de coluna(s) da tabela que chega por uma entrada.
+#'
+#' `role` diz que tipo de coluna serve; `multi = FALSE` é uma coluna só (select);
+#' `from` nomeia a entrada (padrão: a primeira do nó). Continua `kind = "cols"`:
+#' o valor é texto ("a" ou "a, b"), igual aos `cols` já existentes — quem já
+#' declara `tr_param("cols", ...)` segue valendo, só sem as anotações que
+#' deixam o front oferecer as colunas do `schema` da entrada.
+#'
+#' `role` inválido aborta com `tr_error_bad_param` e não com o erro cru de
+#' `match.arg`: é erro de declaração da coleção, da mesma família dos outros
+#' que `tr_node()` levanta.
+#' @param default Valor inicial (texto).
+#' @param label Rótulo do campo.
+#' @param role `"numerica"`, `"categorica"`, `"tempo"` ou `"qualquer"`.
+#' @param multi `TRUE` aceita várias colunas separadas por vírgula.
+#' @param from Nome da entrada cujas colunas servem; `NULL` é a primeira.
+#' @param example Exemplo mostrado no campo.
+#' @export
+tr_param_col <- function(default = "", label = NULL, role = "qualquer", multi = FALSE,
+                         from = NULL, example = NULL) {
+  papeis <- c("numerica", "categorica", "tempo", "qualquer")
+  if (!is.character(role) || length(role) != 1L || !role %in% papeis) {
+    rlang::abort(sprintf("tr_param_col(): 'role' deve ser um de: %s.", paste(papeis, collapse = ", ")),
+                 class = "tr_error_bad_param")
+  }
+  if (!is.null(from) && (!is.character(from) || length(from) != 1L || is.na(from) || !nzchar(from))) {
+    rlang::abort("tr_param_col(): 'from' deve ser o nome de uma entrada do nó.", class = "tr_error_bad_param")
+  }
+  tr_param("cols", default, label, role = role, multi = isTRUE(multi), from = from, example = example)
+}
+
 #' Param de tema de gráfico.
 #'
 #' O valor é `"padrão"` ou o nome de um tema do projeto; o `fn` recebe a

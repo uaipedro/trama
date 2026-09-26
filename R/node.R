@@ -136,6 +136,17 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     }
   }
 
+  # `from` de `tr_param_col()` idem: nome de entrada errado deixaria o front
+  # procurando o schema numa porta que não existe — select sempre vazio, sem
+  # dizer por quê.
+  for (nm in names(params)) {
+    from <- params[[nm]]$from
+    if (!is.null(from) && !from %in% names(inputs)) {
+      rlang::abort(sprintf("Nó '%s': 'from' do param '%s' cita '%s', que não é entrada do nó.",
+                           id, nm, from), class = "tr_error_bad_param")
+    }
+  }
+
   # Validação alto e cedo (herdada do insumo, e vale a pena): um argumento de
   # `fn` sem input/param correspondente é erro de declaração que, sem esta
   # checagem, só apareceria como "argumento ausente, sem padrão" no primeiro

@@ -172,3 +172,40 @@ test_that("when que cita param inexistente é recusado na declaração", {
             params = list(alfa = tr_when(tr_param_num(0.05), alfa = 1))),
     class = "tr_error_bad_when")
 })
+
+test_that("tr_param_col anota role/multi/from e recusa o malformado", {
+  p <- tr_param_col(role = "numerica", multi = TRUE, from = "dados")
+  expect_equal(p$kind, "cols")
+  expect_equal(p$role, "numerica"); expect_true(p$multi); expect_equal(p$from, "dados")
+  expect_equal(tr_param_col()$role, "qualquer")
+  expect_false(tr_param_col()$multi)
+  expect_error(tr_param_col(role = "texto"), class = "tr_error_bad_param")
+  expect_error(tr_param_col(role = c("numerica", "tempo")), class = "tr_error_bad_param")
+  expect_error(tr_param_col(from = ""), class = "tr_error_bad_param")
+})
+
+test_that("from de tr_param_col precisa ser entrada do nó", {
+  expect_error(
+    tr_node("t/c", fn = function(x, col) x, description = "x",
+            inputs = list(x = "t/box"), params = list(col = tr_param_col(from = "y"))),
+    class = "tr_error_bad_param")
+  expect_s3_class(
+    tr_node("t/c", fn = function(x, col) x, description = "x",
+            inputs = list(x = "t/box"), params = list(col = tr_param_col(from = "x"))),
+    "tr_node")
+})
+
+test_that("param de coluna leva role/multi/from ao catálogo; ausentes somem", {
+  ty <- tr_type("t/df", version = 1L)
+  n <- tr_node("t/c", fn = function(x, a, b) x, description = "Testa param de coluna.",
+               inputs = list(x = "t/df"), outputs = list(out = "t/df"),
+               params = list(a = tr_param_col(role = "numerica", from = "x", example = "peso"),
+                             b = tr_param_col(multi = TRUE)))
+  reg <- tr_registry(); tr_use(tr_collection(id = "t", types = list(ty), nodes = list(n)), registry = reg)
+  cat <- jsonlite::fromJSON(as.character(tr_catalog_json(reg)), simplifyVector = FALSE)
+  ps <- cat$nodes[[1]]$params
+  expect_equal(ps[[1]]$role, "numerica"); expect_false(ps[[1]]$multi); expect_equal(ps[[1]]$from, "x")
+  expect_equal(ps[[1]]$example, "peso")
+  expect_equal(ps[[2]]$role, "qualquer"); expect_true(ps[[2]]$multi)
+  expect_false("from" %in% names(ps[[2]])); expect_false("example" %in% names(ps[[2]]))
+})
