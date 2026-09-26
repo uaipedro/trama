@@ -147,8 +147,8 @@ com título e proporção escolhidos.
         description = "Monta uma série a partir de uma coluna de valores e, opcionalmente, uma de tempo.",
         inputs = list(dados = T), outputs = list(out = S),
         params = list(
-          valor = P("cols", "", label = "Valor", example = "vendas"),
-          tempo = P("cols", "", label = "Tempo", example = "mes"),
+          valor = trama::tr_param_col("", label = "Valor", role = "numerica", example = "vendas"),
+          tempo = trama::tr_param_col("", label = "Tempo", role = "qualquer", example = "mes"),
           frequencia = I(12L, min = 1L, max = 366L, label = "Frequência"),
           inicio = P("text", "", label = "Início", example = "2019, 7")),
         help = .tr_series_ajuda(r"---[

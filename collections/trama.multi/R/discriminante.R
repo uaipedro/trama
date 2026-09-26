@@ -539,8 +539,8 @@ que é outra pergunta — funções significativas não garantem classificar bem
       description = "Testa se as matrizes de covariância dos grupos são iguais: linear ou quadrática?",
       inputs = list(dados = TB), outputs = list(out = "data/test"),
       params = list(
-        grupo = P("cols", "", label = "Grupo", example = "cultivar"),
-        cols = P("cols", "", label = "Variáveis", example = "alcool, flavonoides")),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "cultivar"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "alcool, flavonoides")),
       help = .tr_multi_ajuda(r"---[
 A discriminante LINEAR supõe que todos os grupos têm a mesma matriz de
 covariância — a mesma forma e inclinação da nuvem de pontos, só deslocada. O M

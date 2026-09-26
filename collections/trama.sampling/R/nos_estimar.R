@@ -40,7 +40,7 @@ tr_flow(reg) |>
       category = "amostra_estimar", icon = trama::tr_icon("sigma"),
       description = "Estima a média da população, com o erro padrão e o intervalo do desenho.",
       inputs = list(amostra = S), outputs = list(out = ES),
-      params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"), por = POR(),
+      params = list(variavel = trama::tr_param_col("", label = "Variável", role = "numerica", example = "producao_t"), por = POR(),
                     confianca = CONF()),
       pressupostos = .tr_sampling_press_estimar(),
       referencias = .tr_sampling_refs_estimar("tr_sampling_mean"),
@@ -59,7 +59,7 @@ desproporcional ou numa PPS, a média simples estaria errada.
       category = "amostra_estimar", icon = trama::tr_icon("square-sigma"),
       description = "Estima o total da população (Horvitz-Thompson), com o erro do desenho.",
       inputs = list(amostra = S), outputs = list(out = ES),
-      params = list(variavel = P("cols", "", label = "Variável", example = "producao_t"), por = POR(),
+      params = list(variavel = trama::tr_param_col("", label = "Variável", role = "numerica", example = "producao_t"), por = POR(),
                     confianca = CONF()),
       pressupostos = c(.tr_sampling_press_estimar(), list(trama::tr_pressuposto(
         "Os pesos estão na **escala da população** (somam o N): o total depende do peso inteiro, e não só das proporções entre os pesos.",

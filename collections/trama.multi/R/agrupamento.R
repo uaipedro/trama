@@ -497,7 +497,7 @@ tr_multi_tocher <- function(distancia) {
       description = "Dissimilaridade entre as linhas: euclidiana, padronizada, D² de Mahalanobis ou Gower.",
       inputs = list(dados = TB), outputs = list(out = "multi/dist"),
       params = list(
-        cols = P("cols", "", label = "Variáveis", example = "Murder, Assault, UrbanPop, Rape"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Murder, Assault, UrbanPop, Rape"),
         metodo = trama::tr_param_enum("euclidiana padronizada", .TR_MULTI_DISTANCIAS, label = "Distância"),
         rotulo = P("cols", "", label = "Rótulo das linhas", example = "nome")),
       help = .tr_multi_ajuda(r"---[
@@ -564,7 +564,7 @@ entre linhas.
                     distancia = trama::tr_port("multi/dist", required = FALSE)),
       outputs = list(out = "multi/cluster"),
       params = list(
-        cols = P("cols", "", label = "Variáveis", example = "Murder, Assault, UrbanPop, Rape"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Murder, Assault, UrbanPop, Rape"),
         padronizar = trama::tr_param_bool(TRUE, label = "Padronizar"),
         rotulo = P("cols", "", label = "Rótulo das linhas", example = "nome"),
         metodo = trama::tr_param_enum("UPGMA", c(names(.TR_MULTI_LIGACOES), "k-means"), label = "Método"),

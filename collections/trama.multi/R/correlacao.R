@@ -154,10 +154,10 @@ tr_multi_correlation_matrix <- function(dados, cols = "", matriz = "correlação
       description = "Matriz de correlação ou de covariância como tabela, geral ou por grupo.",
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
       params = list(
-        cols = trama::tr_param("cols", "", label = "Variáveis", example = "alcool, fenois_totais, flavonoides"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "alcool, fenois_totais, flavonoides"),
         matriz = trama::tr_param_enum("correlação", c("correlação", "covariância"), label = "Matriz"),
         metodo = trama::tr_param_enum("pearson", c("pearson", "spearman", "kendall"), label = "Método"),
-        grupo = trama::tr_param("cols", "", label = "Grupo", example = "cultivar")),
+        grupo = trama::tr_param_col("", label = "Grupo", role = "categorica", example = "cultivar")),
       help = .tr_multi_ajuda(r"---[
 A matriz de correlação (ou de covariância) entre as variáveis, como TABELA: uma
 linha e uma coluna por variável, com o nome da linha em `variavel`. É a matriz
@@ -233,7 +233,7 @@ que partem desta matriz.
       description = "Mapa de calor da matriz de correlação, ordenado para mostrar os blocos.",
       inputs = list(dados = "data/table"), outputs = list(out = "view/plot"),
       params = .tr_multi_props(
-        cols = trama::tr_param("cols", "", label = "Variáveis", example = "ans1, ans2, soc1, soc2"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "ans1, ans2, soc1, soc2"),
         ordenar = trama::tr_param_bool(TRUE, label = "Ordenar por agrupamento"),
         valores = trama::tr_param_bool(TRUE, label = "Mostrar valores"),
         .aspecto = "1:1"),

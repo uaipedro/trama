@@ -89,8 +89,8 @@ quantas (`n = 38 (2 fora)`). As outras colunas da tabela não contam.
       description = "Ajusta um modelo linear (lm) pelas colunas ou por uma fórmula digitada.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "mpg"),
-        preditores = P("cols", "", label = "Preditores", example = "wt, hp"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "mpg"),
+        preditores = trama::tr_param_col("", label = "Preditores", role = "qualquer", multi = TRUE, example = "wt, hp"),
         formula = P("expr", "", label = "Fórmula (vence as colunas)", example = "mpg ~ wt * hp + I(wt^2)")),
       help = .tr_models_ajuda(paste0(r"---[
 Ajusta um modelo linear por mínimos quadrados (`stats::lm`).
@@ -140,8 +140,8 @@ contínua.
       description = "Ajusta um GLM (binomial, Poisson, gama...) pelas colunas ou por uma fórmula.",
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
-        resposta = P("cols", "", label = "Resposta", example = "count"),
-        preditores = P("cols", "", label = "Preditores", example = "spray"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "qualquer", example = "count"),
+        preditores = trama::tr_param_col("", label = "Preditores", role = "qualquer", multi = TRUE, example = "spray"),
         formula = P("expr", "", label = "Fórmula (vence as colunas)", example = "am ~ wt + hp"),
         familia = E("poisson", .TR_MODELS_FAMILIAS, label = "Família")),
       help = .tr_models_ajuda(paste0(r"---[
@@ -192,9 +192,9 @@ escala da resposta.
       inputs = list(dados = T), outputs = list(out = Fm),
       params = list(
         formula = P("expr", "", label = "Fórmula", example = "cbind(casos, sadios) ~ periodo + (1 | rebanho)"),
-        resposta = P("cols", "", label = "Resposta (sem fórmula)", example = "TICKS"),
-        fixos = P("cols", "", label = "Efeitos fixos (sem fórmula)", example = "YEAR"),
-        grupo = P("cols", "", label = "Grupo aleatório (sem fórmula)", example = "BROOD"),
+        resposta = trama::tr_param_col("", label = "Resposta (sem fórmula)", role = "qualquer", example = "TICKS"),
+        fixos = trama::tr_param_col("", label = "Efeitos fixos (sem fórmula)", role = "qualquer", multi = TRUE, example = "YEAR"),
+        grupo = trama::tr_param_col("", label = "Grupo aleatório (sem fórmula)", role = "categorica", example = "BROOD"),
         familia = E("binomial", c("binomial", "poisson"), label = "Família"),
         nivel_obs = B(FALSE, label = "Efeito por observação")),
       help = .tr_models_ajuda(paste0(r"---[

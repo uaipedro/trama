@@ -83,7 +83,7 @@ tr_multi_manova <- function(dados, respostas = "", tratamento = "", bloco = "", 
       description = "Análise de variância multivariada: os tratamentos diferem no conjunto das respostas?",
       inputs = list(dados = "data/table"), outputs = list(out = "data/test"),
       params = list(
-        respostas = P("cols", "", label = "Respostas", example = "alcool, flavonoides, magnesio"),
+        respostas = trama::tr_param_col("", label = "Respostas", role = "numerica", multi = TRUE, example = "alcool, flavonoides, magnesio"),
         tratamento = P("cols", "", label = "Tratamento", example = "cultivar"),
         bloco = P("cols", "", label = "Bloco", example = "bloco"),
         estatistica = trama::tr_param_enum("Pillai", names(.TR_MULTI_MANOVA), label = "Estatística")),

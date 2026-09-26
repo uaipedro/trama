@@ -34,8 +34,8 @@ Tabela sem a marca é avaliada como chega.
   Fm <- "models/fit"; T <- "data/table"
   opc <- function(tipo) trama::tr_port(tipo, required = FALSE)
   validacao <- E(.TR_MODELS_VALIDACAO_PADRAO, .TR_MODELS_VALIDACOES, label = "Validação (só modelo)")
-  resposta <- P("cols", "", label = "Resposta (modo tabela)", example = "am")
-  predito <- P("cols", "previsto", label = "Previsto (modo tabela)", example = "previsto")
+  resposta <- trama::tr_param_col("", label = "Resposta (modo tabela)", role = "qualquer", from = "dados", example = "am")
+  predito <- trama::tr_param_col("previsto", label = "Previsto (modo tabela)", role = "qualquer", from = "dados", example = "previsto")
   positiva <- P("text", "", label = "Classe positiva", example = "1")
   permitir_treino <- trama::tr_param_bool(FALSE, label = "Permitir avaliar o treino")
   list(

@@ -40,7 +40,7 @@
 #' cosméticos — é param do desenho, não da aparência.
 #' @noRd
 .tr_view_painel_param <- function() {
-  trama::tr_param("cols", "", label = "Painéis por", example = "regiao")
+  trama::tr_param_col("", label = "Painéis por", role = "categorica", example = "regiao")
 }
 
 #' Proporção -> polegadas, com o LADO MAIOR fixo em 8.

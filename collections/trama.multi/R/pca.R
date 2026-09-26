@@ -311,7 +311,7 @@ tr_multi_correlation_circle <- function(pca, x = 1L, y = 2L, aspecto = "1:1", te
       category = "multi_pca", icon = trama::tr_icon("axis-3d"),
       description = "Resume variáveis correlacionadas em poucos componentes que não se correlacionam.",
       inputs = list(dados = "data/table"), outputs = list(out = "multi/pca"),
-      params = list(cols = P("cols", "", label = "Variáveis", example = "Murder, Assault, UrbanPop, Rape"),
+      params = list(cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Murder, Assault, UrbanPop, Rape"),
                     padronizar = B(TRUE, label = "Padronizar")),
       help = .tr_multi_ajuda(r"---[
 A análise de componentes principais (PCA) troca p variáveis correlacionadas por

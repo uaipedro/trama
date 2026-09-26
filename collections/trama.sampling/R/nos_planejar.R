@@ -94,7 +94,7 @@ conversa é sobre a taxa de resposta, e não sobre a margem.
       description = "Quantas unidades sortear para estimar uma média com a margem de erro desejada?",
       inputs = list(piloto = trama::tr_port(T, required = FALSE)), outputs = list(out = PL),
       params = list(
-        variavel = P("cols", "", label = "Variável do piloto", example = "producao_t"),
+        variavel = trama::tr_param_col("", label = "Variável do piloto", role = "numerica", example = "producao_t"),
         desvio_padrao = N(10, min = 0, label = "Desvio padrão"),
         media = trama::tr_when(N(0, label = "Média esperada (erro relativo)"), tipo_erro = "relativo"),
         erro = N(1, min = 0, label = "Margem de erro"),

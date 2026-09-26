@@ -213,7 +213,7 @@ tr_multi_mardia <- function(dados, cols = "", grupo = "", confianca = 0.95) {
       category = "multi_diagnostico", icon = trama::tr_icon("stethoscope"),
       description = "A matriz tem correlação para fatorar? KMO global, MSA por variável e esfericidade de Bartlett.",
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
-      params = list(cols = P("cols", "", label = "Variáveis", example = "ans1, ans2, ans3, soc1, soc2")),
+      params = list(cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "ans1, ans2, ans3, soc1, soc2")),
       help = .tr_multi_ajuda(r"---[
 Responde, antes de uma análise fatorial (`multi/factor_analysis`) ou de uma
 PCA (`multi/pca`), se as variáveis têm correlação suficiente para valer a pena.
@@ -273,8 +273,8 @@ ver a matriz; `multi/factor_analysis` para fatorar.
       description = "Assimetria e curtose multivariadas de Mardia: as variáveis, juntas, são normais multivariadas? Por grupo, se houver.",
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
       params = list(
-        cols = P("cols", "", label = "Variáveis", example = "Sepal.Length, Sepal.Width, Petal.Length"),
-        grupo = P("cols", "", label = "Grupo (opcional)", example = "Species"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "Sepal.Length, Sepal.Width, Petal.Length"),
+        grupo = trama::tr_param_col("", label = "Grupo (opcional)", role = "categorica", example = "Species"),
         confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, label = "Confiança")),
       help = .tr_multi_ajuda(r"---[
 Testa se as variáveis, JUNTAS, seguem uma normal multivariada — o que a
@@ -335,7 +335,7 @@ tr_flow(reg) |>
       description = "Quantos fatores reter: autovalores observados contra os de dados aleatórios (Horn).",
       inputs = list(dados = "data/table"), outputs = list(out = "data/table"),
       params = list(
-        cols = P("cols", "", label = "Variáveis", example = "ans1, ans2, ans3, soc1, soc2"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "ans1, ans2, ans3, soc1, soc2"),
         repeticoes = trama::tr_param_int(100L, min = 10, max = 10000, label = "Repetições"),
         percentil = trama::tr_param_int(95L, min = 50, max = 99, label = "Percentil")),
       help = .tr_multi_ajuda(r"---[

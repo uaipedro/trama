@@ -277,7 +277,7 @@ tr_multi_plot_loadings <- function(fa, corte = 0.3, ordenar = TRUE, aspecto = "4
       description = "Extrai fatores latentes (ML ou eixo principal), rotaciona e calcula escores.",
       inputs = list(dados = "data/table"), outputs = list(out = "multi/fa"),
       params = list(
-        cols = P("cols", "", label = "Variáveis", example = "ans1, ans2, ans3, soc1, soc2, soc3"),
+        cols = trama::tr_param_col("", label = "Variáveis", role = "numerica", multi = TRUE, example = "ans1, ans2, ans3, soc1, soc2, soc3"),
         fatores = trama::tr_param_int(2L, min = 1, label = "Fatores"),
         metodo = trama::tr_param_enum("ml", .TR_MULTI_METODOS_AF, label = "Método"),
         rotacao = trama::tr_param_enum("varimax", .TR_MULTI_ROTACOES, label = "Rotação"),

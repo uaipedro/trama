@@ -36,7 +36,7 @@
       referencias = .tr_exp_doc("experiments/randomization_test")$referencias,
       inputs = list(plano = PL, dados = trama::tr_port(T, required = FALSE)),
       outputs = list(out = "view/plot", tabela = T, distribuicao = T),
-      params = c(list(resposta = P("text", "", label = "Resposta", example = "y")), alvo, list(
+      params = c(list(resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", from = "dados", example = "y")), alvo, list(
         replicas = I(999L, min = 19L, max = 100000L, label = "Re-sorteios"),
         metodo = E("automático", .TR_EXP_AV_METODOS, label = "Método")),
         .tr_exp_an_props(.aspecto = "4:3")),
