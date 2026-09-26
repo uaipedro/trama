@@ -59,10 +59,10 @@
       inputs = list(dados = T),
       outputs = list(modelo = Fm, quadro = EF, canonica = T, grafico = "view/plot"),
       params = c(list(
-        resposta = P("cols", "", label = "Resposta", example = "rendimento"),
-        fatores = P("cols", "", label = "Fatores codificados", example = "x1, x2"),
+        resposta = trama::tr_param_col("", label = "Resposta", role = "numerica", example = "rendimento"),
+        fatores = trama::tr_param_col("", label = "Fatores codificados", role = "numerica", multi = TRUE, example = "x1, x2"),
         ordem = E("2", .TR_EXP_AN_ORDENS, label = "Ordem"),
-        bloco = P("cols", "", label = "Bloco (opcional)", example = "bloco")),
+        bloco = trama::tr_param_col("", label = "Bloco (opcional)", role = "categorica", suggest = FALSE, example = "bloco")),
         .tr_exp_an_props(.aspecto = "1:1")),
       help = .tr_exp_an_ajuda_superficie())
   )
