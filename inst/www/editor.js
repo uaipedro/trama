@@ -23,7 +23,7 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
-import { cosmetica } from "./ops.js";
+import { cosmetica, afetados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
 import { ModoPicker, ModoToggle, ParamsRodape, ParamsModal, Vista, AtalhosPanel } from "./modos-ui.js";
@@ -2551,8 +2551,12 @@ function App() {
     // "Na fila" na hora, antes de qualquer resposta: sem isso os cards ficam
     // em branco em silêncio até a primeira mensagem chegar. O servidor manda
     // o estado real conforme roda; aqui é só feedback imediato.
+    // Só o card mexido e quem vem depois dele (`afetados`, ops.js): mexer num
+    // gráfico não pode fazer a tabela que o alimenta piscar "na fila".
     if (!cosmetica(op)) {
+      const alvo = afetados(op, edgesRef.current.map((e) => [e.source, e.target]));
       Object.keys(stateRef.current).forEach((k) => {
+        if (alvo && !alvo.has(k)) return;
         stateRef.current[k] = { ...stateRef.current[k], state: "pending" };
       });
       bumpTick();

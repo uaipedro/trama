@@ -10,3 +10,32 @@ export const COSMETICAS = new Set(["rename", "move", "resize", "set_view",
   "add_note", "update_note", "remove_note"]);
 export const cosmetica = (op) =>
   op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);
+
+// Cards que uma op semântica pode mudar: o nó mexido e tudo que vem DEPOIS
+// dele nas ligações. Quem vem antes não recomputa (a chave de cache dele não
+// depende de nada a jusante), então não pode piscar "na fila". `arestas` é
+// `[[origem, destino], ...]` do grafo ANTES da op. `null` = não sei (op nova
+// sem regra aqui): quem chama pinta todos, que é o comportamento antigo.
+function sementes(op, out) {
+  switch (op.op) {
+    case "batch": return op.ops.every((o) => sementes(o, out));
+    case "set_param": case "set_seed": out.add(op.node); return true;
+    case "connect": case "disconnect": out.add(op.to_node); return true;
+    // Some do grafo: quem dependia dele é que muda.
+    case "remove_node": out.add(op.node); return true;
+    // Nó novo não tem estado a pintar; as ligações dele vêm em `connect`.
+    case "add_node": return true;
+    default: return COSMETICAS.has(op.op);
+  }
+}
+export function afetados(op, arestas) {
+  const alvo = new Set();
+  if (!sementes(op, alvo)) return null;
+  const saem = new Map();
+  arestas.forEach(([a, b]) => { if (!saem.has(a)) saem.set(a, []); saem.get(a).push(b); });
+  const fila = [...alvo];
+  while (fila.length) {
+    (saem.get(fila.pop()) || []).forEach((b) => { if (!alvo.has(b)) { alvo.add(b); fila.push(b); } });
+  }
+  return alvo;
+}

@@ -1,6 +1,6 @@
 Package: trama
 Title: Interactive Node-Graph Computation with Live Previews
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
