@@ -342,7 +342,9 @@ tr_flow(reg) |>
 `models/wilcoxon` para dois grupos; `models/friedman` com bloco.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/dunn", fn = tr_models_dunn, label = "Dunn",
+    trama::tr_node("models/dunn", fn = tr_models_dunn,
+      pressupostos = .tr_models_doc("models/dunn")$pressupostos,
+      referencias = .tr_models_doc("models/dunn")$referencias, label = "Dunn",
       category = "modelo_testes", icon = trama::tr_icon("git-compare"),
       description = "Comparações de Dunn entre pares de grupos, o post hoc do Kruskal-Wallis, com p-valor ajustado.",
       inputs = list(dados = T), outputs = list(out = "models/effects"),
@@ -382,7 +384,9 @@ tr_flow(reg) |>
 `models/kruskal`; `models/pairwise` para as médias de um modelo.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/cohen_d", fn = tr_models_cohen_d, label = "Tamanho de efeito (dois grupos)",
+    trama::tr_node("models/cohen_d", fn = tr_models_cohen_d,
+      pressupostos = .tr_models_doc("models/cohen_d")$pressupostos,
+      referencias = .tr_models_doc("models/cohen_d")$referencias, label = "Tamanho de efeito (dois grupos)",
       category = "modelo_testes", icon = trama::tr_icon("ruler"),
       description = "d de Cohen e g de Hedges entre dois grupos, com intervalo de confiança.",
       inputs = list(dados = T), outputs = list(out = T),

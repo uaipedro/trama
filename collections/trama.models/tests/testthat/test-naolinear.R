@@ -67,3 +67,28 @@ test_that("Michaelis-Menten no Puromycin bate com o nls direto", {
   ref <- stats::nls(rate ~ SSmicmen(conc, Vm, K), data = datasets::Puromycin)
   expect_equal(stats::coef(m$ajuste), stats::coef(ref))
 })
+
+# Oráculo publicado: NIST StRD, regressão não linear (valores certificados,
+# https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml). Rat42 é a logística
+# b1 / (1 + exp(b2 − b3·x)) = SSlogis com Asym = b1, xmid = b2/b3, scal = 1/b3;
+# Misra1d é b1·b2·x/(1 + b2·x) = Michaelis-Menten com Vm = b1, K = 1/b2.
+test_that("NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten) batem com os certificados", {
+  rat42 <- data.frame(y = c(8.93, 10.8, 18.59, 22.33, 39.35, 56.11, 61.73, 64.62, 67.08),
+                      x = c(9, 14, 21, 28, 42, 57, 63, 70, 79))
+  m <- tr_models_nls(rat42, "y", "x", "logístico")
+  cf <- stats::coef(m$ajuste)
+  b <- c(7.2462237576E+01, 2.6180768402E+00, 6.7359200066E-02)
+  expect_equal(unname(cf), c(b[1], b[2] / b[3], 1 / b[3]), tolerance = 1e-6)
+  expect_equal(sum(stats::residuals(m$ajuste)^2), 8.0565229338, tolerance = 1e-7)
+  # EP de Asym = EP certificado de b1 (a mesma coordenada).
+  expect_equal(tr_models_coefficients(m)$tabela$erro_padrao[[1]], 1.7340283401, tolerance = 1e-5)
+
+  misra <- data.frame(
+    y = c(10.07, 14.73, 17.94, 23.93, 29.61, 35.18, 40.02, 44.82, 50.76, 55.05, 61.01, 66.40, 75.47, 81.78),
+    x = c(77.6, 114.9, 141.1, 190.8, 239.9, 289.0, 332.8, 378.4, 434.8, 477.3, 536.8, 593.1, 689.1, 760.0))
+  mm <- tr_models_nls(misra, "y", "x", "Michaelis-Menten")
+  cm <- stats::coef(mm$ajuste)
+  expect_equal(unname(cm), c(4.3736970754E+02, 1 / 3.0227324449E-04), tolerance = 1e-6)
+  expect_equal(sum(stats::residuals(mm$ajuste)^2), 5.6419295283E-02, tolerance = 1e-6)
+  expect_equal(tr_models_coefficients(mm)$tabela$erro_padrao[[1]], 3.6489174345, tolerance = 1e-5)
+})

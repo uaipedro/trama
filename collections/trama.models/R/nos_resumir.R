@@ -111,7 +111,9 @@ tr_flow(reg) |>
 comparar níveis de um fator.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/effect_size", fn = tr_models_effect_size, label = "Tamanho de efeito (ANOVA)",
+    trama::tr_node("models/effect_size", fn = tr_models_effect_size,
+      pressupostos = .tr_models_doc("models/effect_size")$pressupostos,
+      referencias = .tr_models_doc("models/effect_size")$referencias, label = "Tamanho de efeito (ANOVA)",
       category = "modelo_resumir", icon = trama::tr_icon("ruler"),
       description = "Eta², eta² parcial e ômega² de cada termo da ANOVA: quanto da variação cada um explica.",
       inputs = list(modelo = Fm), outputs = list(out = T),

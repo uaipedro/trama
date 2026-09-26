@@ -239,7 +239,9 @@ termos aleatórios; `models/anova_table` e `models/coefficients` para os fixos;
 `models/glmer` para proporção ou contagem.
 ]---")),
 
-    trama::tr_node("models/glmer", fn = tr_models_glmer, label = "Misto generalizado",
+    trama::tr_node("models/glmer", fn = tr_models_glmer,
+      pressupostos = .tr_models_doc("models/glmer")$pressupostos,
+      referencias = .tr_models_doc("models/glmer")$referencias, label = "Misto generalizado",
       category = "modelo_ajustar", icon = trama::tr_icon("layers-2"),
       description = "Ajusta um modelo misto generalizado (lme4::glmer), binomial ou Poisson, com efeitos aleatórios.",
       inputs = list(dados = T), outputs = list(out = Fm),
@@ -304,7 +306,9 @@ tr_flow(reg) |>
 `models/compare` para testar um termo.
 ]---")),
 
-    trama::tr_node("models/nls", fn = tr_models_nls, label = "Regressão não linear",
+    trama::tr_node("models/nls", fn = tr_models_nls,
+      pressupostos = .tr_models_doc("models/nls")$pressupostos,
+      referencias = .tr_models_doc("models/nls")$referencias, label = "Regressão não linear",
       category = "modelo_ajustar", icon = trama::tr_icon("chart-spline"),
       description = "Ajusta uma curva não linear pronta (logística, Michaelis-Menten, Gompertz, platô...) sem pedir chute.",
       inputs = list(dados = T), outputs = list(out = Fm),

@@ -71,3 +71,32 @@ test_that("Poisson sobredispersa: razão de Pearson nas medidas e nota nos coefi
   g2 <- tr_models_glmer(d, resposta = "m", fixos = "trat", grupo = "bloco", familia = "poisson")
   expect_false(grepl("sobredispersão", tr_models_coefficients(g2)$nota))
 })
+
+# Oráculo de teoria (Breslow & Clayton 1993; Bates et al. 2015): com um
+# intercepto aleatório por rebanho, a log-verossimilhança do glmer (Laplace,
+# nAGQ = 1) é, grupo a grupo, h(b̂) + ½log(2π) − ½log(−h''(b̂)), com
+# h(b) = Σ log Bin(y | logit⁻¹(xβ + b)) + log N(b; 0, σ²). Refeita à mão nos
+# parâmetros do ajuste; e maximizada à mão (optim) devolve os mesmos β e σ.
+test_that("glmer: log-verossimilhança de Laplace refeita à mão, e o máximo dela", {
+  g <- cbpp_fit()
+  d <- as.data.frame(ex("cbpp"))
+  X <- stats::model.matrix(~ period, d)
+  laplace <- function(beta, sigma) {
+    eta0 <- as.vector(X %*% beta)
+    sum(vapply(split(seq_len(nrow(d)), d$herd), function(i) {
+      h <- function(b) sum(stats::dbinom(d$incidence[i], d$size[i], stats::plogis(eta0[i] + b), log = TRUE)) +
+        stats::dnorm(b, 0, sigma, log = TRUE)
+      bh <- stats::optimize(h, c(-10, 10), maximum = TRUE, tol = 1e-12)$maximum
+      p <- stats::plogis(eta0[i] + bh)
+      h2 <- -sum(d$size[i] * p * (1 - p)) - 1 / sigma^2
+      h(bh) + 0.5 * log(2 * pi) - 0.5 * log(-h2)
+    }, 0))
+  }
+  beta <- lme4::fixef(g$ajuste); sigma <- sqrt(unlist(lme4::VarCorr(g$ajuste)))
+  # 1e-5 relativo: o modo condicional do lme4 sai do PIRLS com a tolerância dele.
+  expect_equal(laplace(beta, sigma), as.numeric(stats::logLik(g$ajuste)), tolerance = 1e-5)
+  opt <- stats::optim(c(beta, log(sigma)), function(p) -laplace(p[1:4], exp(p[5])),
+                      method = "BFGS", control = list(reltol = 1e-12))
+  expect_equal(unname(opt$par[1:4]), unname(beta), tolerance = 1e-3)
+  expect_equal(unname(exp(opt$par[5])), unname(sigma), tolerance = 1e-3)
+})

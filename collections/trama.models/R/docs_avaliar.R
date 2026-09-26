@@ -100,6 +100,24 @@
           titulo = "A Relationship between the Average Precision and the Area Under the ROC Curve",
           fonte = "Proceedings of the 2015 International Conference on the Theory of Information Retrieval (ICTIR), 349-352",
           doi = "10.1145/2808194.2809481", papel = "complementar"),
-        I("trama.models", "tr_models_pr_curve", "Cálculo próprio (porte da `ml/pr_curve` da main): um ponto por limiar distinto (empates num degrau); AP = Σ ΔR·P; área com a interpolação de Davis & Goadrich integrada em forma fechada. Conferido contra `yardstick::average_precision` e `PRROC::pr.curve` (`auc.integral`).")))
+        I("trama.models", "tr_models_pr_curve", "Cálculo próprio (porte da `ml/pr_curve` da main): um ponto por limiar distinto (empates num degrau); AP = Σ ΔR·P; área com a interpolação de Davis & Goadrich integrada em forma fechada. Conferido contra `yardstick::average_precision` e `PRROC::pr.curve` (`auc.integral`)."))),
+    "models/predict" = list(
+      pressupostos = list(
+        P("As linhas novas estão **dentro da faixa** dos preditores do ajuste: fora dela é extrapolação, e a previsão (e o intervalo) supõe que a forma do modelo continua valendo onde não houve dado. Na regressão múltipla a faixa é a da nuvem conjunta, não a de cada coluna.",
+          verificar = c("view/points", "models/residuals"),
+          se_falhar = "Leia a previsão fora da faixa como hipótese, não como estimativa; o intervalo não cobre o erro de forma do modelo."),
+        P("O modelo está **bem especificado** e os pressupostos dele valem (os do bloco que o ajustou): a previsão herda a forma, e o intervalo herda a normalidade e a variância constante do erro.",
+          verificar = c("models/plot_diagnostics", "models/shapiro_residuals")),
+        P("O intervalo certo para a pergunta: **confiança** cobre a MÉDIA da resposta naquele x; **predição** cobre UMA observação nova, e é mais largo porque soma a variância do erro. Para dizer onde cairá a próxima parcela, é o de predição.",
+          se_falhar = "Troque o param Intervalo."),
+        P("A unidade nova vem da **mesma população** do ajuste (mesmas condições, mesmos níveis de fator; o bloco recusa nível que o ajuste não viu)."),
+        P("A medida de acerto no próprio treino por **resubstituição** sai otimista.",
+          verificar = "models/evaluate",
+          se_falhar = "Use a validação `cruzada`, ou dados de teste separados.")),
+      referencias = list(
+        R(autores = c("Draper, N. R.", "Smith, H."), ano = 1998, titulo = "Applied Regression Analysis",
+          fonte = "3. ed. New York: Wiley", doi = "10.1002/9781118625590", papel = "livro-texto"),
+        .tr_models_livros()$rencher,
+        I("stats", "predict", "Pelo contrato de cada modelo (`predict.lm`, `predict.glm` com `type = \"response\"`, `predict.merMod`, `predict.nls`); intervalo só no `lm` (`interval = \"confidence\"`/`\"prediction\"`), conferido contra a fórmula ŷ0 ± t·s·√(h0) e √(1 + h0) com h0 = x0'(X'X)⁻¹x0 feita à mão (1e-10).")))
   )
 }

@@ -97,6 +97,52 @@
       referencias = list(
         R(autores = "Plackett, R. L.", ano = 1950, titulo = "Some theorems in least squares",
           fonte = "Biometrika, 37(1-2), 149-157", doi = "10.1093/biomet/37.1-2.149"),
-        I("trama.models", "step_rls", "Implementação própria da atualização recursiva de mínimos quadrados, com `P0 = lambda · I` e simetrização de `P` a cada passo.")))
+        I("trama.models", "step_rls", "Implementação própria da atualização recursiva de mínimos quadrados, com `P0 = lambda · I` e simetrização de `P` a cada passo."))),
+    "models/glmer" = list(
+      pressupostos = list(
+        P("A resposta, **dado** o efeito aleatório, segue a família escolhida (binomial ou Poisson) com a ligação canônica, e a média se liga aos preditores pela fórmula.",
+          verificar = c("models/residuals", "models/plot_diagnostics")),
+        P("Os **efeitos aleatórios** são normais, com média zero e independentes entre os grupos.",
+          verificar = c("models/random_effects", "models/plot_caterpillar")),
+        P("Na Poisson (e na binomial agregada), **sem superdispersão** que o efeito aleatório não absorva: a razão X² de Pearson / gl perto de 1.",
+          verificar = "models/fit_stats",
+          se_falhar = "Acima de ~1,5 os erros padrão saem pequenos demais: ponha um efeito aleatório por observação (`(1 | obs)`), ou ajuste o `models/glm` quasi sem o aleatório."),
+        P("Há **grupos suficientes** (mais de 5 ou 6 níveis do fator aleatório) e os grupos são independentes entre si.",
+          se_falhar = "Com poucos grupos, trate o fator como fixo no `models/glm`."),
+        P("A verossimilhança é a **aproximação de Laplace** (um ponto de quadratura), e os testes dos coeficientes são de **Wald** (z): assintóticos, e fracos com poucos grupos ou com muitas contagens baixas (binomial com probabilidades perto de 0 ou 1).",
+          verificar = "models/compare",
+          se_falhar = "Para um termo específico, prefira a razão de verossimilhanças do `models/compare` ao z de Wald.")),
+      referencias = list(
+        R(autores = c("Breslow, N. E.", "Clayton, D. G."), ano = 1993,
+          titulo = "Approximate inference in generalized linear mixed models",
+          fonte = "Journal of the American Statistical Association, 88(421), 9-25",
+          doi = "10.1080/01621459.1993.10594284"),
+        lme4,
+        R(autores = c("McCullagh, P.", "Nelder, J. A."), ano = 1989, titulo = "Generalized Linear Models",
+          fonte = "2. ed. London: Chapman & Hall", doi = "10.1007/978-1-4899-3242-6", papel = "livro-texto"),
+        R(autores = c("Bolker, B. M.", "Brooks, M. E.", "Clark, C. J.", "Geange, S. W.", "Poulsen, J. R.",
+                      "Stevens, M. H. H.", "White, J.-S. S."), ano = 2009,
+          titulo = "Generalized linear mixed models: a practical guide for ecology and evolution",
+          fonte = "Trends in Ecology & Evolution, 24(3), 127-135", doi = "10.1016/j.tree.2008.10.008",
+          papel = "complementar"),
+        I("lme4", "glmer", "Laplace (`nAGQ = 1`, o padrão). Conferido refazendo à mão a log-verossimilhança de Laplace grupo a grupo no `cbpp` (1e-5 relativo) e maximizando-a com `optim` (β e σ a 1e-3)."))),
+
+    "models/nls" = list(
+      pressupostos = list(
+        P("A curva escolhida é a **forma certa** da relação (logística, Michaelis-Menten, assintótica, Gompertz ou linear-platô): o ajuste acha os melhores parâmetros DA curva, não a melhor curva.",
+          verificar = c("models/plot_regression", "models/plot_diagnostics"),
+          se_falhar = "Compare modelos pelo AIC no `models/fit_stats` e olhe os resíduos contra o x: tendência sobrando é forma errada."),
+        P("Os **erros** são independentes, normais e de **variância constante** (mínimos quadrados sem peso).",
+          verificar = c("models/plot_diagnostics", "models/shapiro_residuals"),
+          se_falhar = "Variância que cresce com a resposta pede transformar (log) os dois lados da curva, fora deste bloco."),
+        P("Há pontos **dos dois lados da mudança** (antes e depois do platô, da inflexão, da saturação): sem eles os parâmetros não se identificam e o erro padrão explode.",
+          verificar = "view/points"),
+        P("Os intervalos dos parâmetros são de **Wald** (linearização em torno da estimativa): em amostra pequena e curva muito não linear nos parâmetros, eles saem simétricos quando a incerteza real não é.",
+          verificar = "models/coefficients")),
+      referencias = list(
+        R(autores = c("Bates, D. M.", "Watts, D. G."), ano = 1988,
+          titulo = "Nonlinear Regression Analysis and Its Applications", fonte = "New York: Wiley",
+          doi = "10.1002/9780470316757", papel = "livro-texto"),
+        I("stats", "nls", "Gauss-Newton com os self-starters `SSlogis`, `SSmicmen`, `SSasymp` e `SSgompertz`; o linear-platô parte de uma busca da quebra. Conferido contra os valores certificados do NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten), parâmetros a 1e-6, SQ residual a 1e-6 e erro padrão a 1e-5.")))
   )
 }
