@@ -89,8 +89,8 @@ phi   n     nenhuma   bootstrap_blocos
 
 Com autocorrelação moderada o nível é o nominal; com phi de seis décimos
 fica em 8% a 9%, longe dos 50% sem correção mas acima dos 5% — um "rejeita"
-apertado aí pede cautela. Poder, com um degrau de 1,5 no meio da série: 89%
-(phi 0,3, n = 60), 100% (0,3, 120), 59% (0,6, 60) e 86% (0,6, 120).
+apertado aí pede cautela. Poder, com um degrau de 1.5 no meio da série: 89%
+(phi 0.3, n = 60), 100% (0.3, 120), 59% (0.6, 60) e 86% (0.6, 120).
 
 ### Faltantes
 

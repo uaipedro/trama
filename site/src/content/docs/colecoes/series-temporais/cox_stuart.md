@@ -92,10 +92,10 @@ phi   n     nenhuma   bootstrap_blocos
 0.6   120    24.7%        6.6%
 ```
 
-O nível volta para perto do nominal (um pouco conservador com phi 0,3; 6,6%
-com phi 0,6 e n = 120), e o preço é poder: com uma tendência de 1,8 unidades
-ao longo da série, 41% (phi 0,3, n = 60), 78% (0,3, 120), 24% (0,6, 60) e
-48% (0,6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
+O nível volta para perto do nominal (um pouco conservador com phi 0.3; 6.6%
+com phi 0.6 e n = 120), e o preço é poder: com uma tendência de 1.8 unidades
+ao longo da série, 41% (phi 0.3, n = 60), 78% (0.3, 120), 24% (0.6, 60) e
+48% (0.6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
 autocorrelação, o `series/mann_kendall` com a mesma correção perde menos.
 
 ### Faltantes

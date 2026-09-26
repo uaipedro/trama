@@ -1990,7 +1990,7 @@ NaN.
 
 O `bootstrap_blocos` é a correção que mais se aproxima do nível, e ainda
 assim não o alcança com autocorrelação forte. Medido em série SEM tendência,
-AR(1), 1000 réplicas por caso (erro de Monte Carlo de 0,7 a 0,9 ponto),
+AR(1), 1000 réplicas por caso (erro de Monte Carlo de 0.7 a 0.9 ponto),
 rejeição a 5%:
 
 ```
@@ -2003,12 +2003,12 @@ phi   n     nenhuma   bootstrap_blocos
 
 Com autocorrelação moderada e série de uns cem pontos ele devolve o nível;
 com phi de seis décimos, reduz o excesso de 31% para 8% a 9%, sem zerá-lo. O
-preço é poder: com uma tendência de 1,8 desvio do ruído ao longo da série, ele
-detecta em 77% (phi 0,3, n = 60), 96% (phi 0,3, n = 120), 43% (phi 0,6, n =
-60) e 66% (phi 0,6, n = 120) das vezes — menos que o teste sem correção, cujo
+preço é poder: com uma tendência de 1.8 desvio do ruído ao longo da série, ele
+detecta em 77% (phi 0.3, n = 60), 96% (phi 0.3, n = 120), 43% (phi 0.6, n =
+60) e 66% (phi 0.6, n = 120) das vezes — menos que o teste sem correção, cujo
 poder aparente vem em parte do nível inflado. A regra de bloco do
 `modifiedmk::bbsmk` (autocorrelações significativas seguidas, mais um) dá
-blocos de 3 a 4 e rejeitou 17% a 19% com phi 0,6 (300 réplicas); por isso o
+blocos de 3 a 4 e rejeitou 17% a 19% com phi 0.6 (300 réplicas); por isso o
 bloco aqui é √n. Com autocorrelação forte, prefira modelar o erro
 (`series/regression` com **Erro** = `arma` e o `series/f_tendencia`).
 
@@ -2131,10 +2131,10 @@ phi   n     nenhuma   bootstrap_blocos
 0.6   120    24.7%        6.6%
 ```
 
-O nível volta para perto do nominal (um pouco conservador com phi 0,3; 6,6%
-com phi 0,6 e n = 120), e o preço é poder: com uma tendência de 1,8 unidades
-ao longo da série, 41% (phi 0,3, n = 60), 78% (0,3, 120), 24% (0,6, 60) e
-48% (0,6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
+O nível volta para perto do nominal (um pouco conservador com phi 0.3; 6.6%
+com phi 0.6 e n = 120), e o preço é poder: com uma tendência de 1.8 unidades
+ao longo da série, 41% (phi 0.3, n = 60), 78% (0.3, 120), 24% (0.6, 60) e
+48% (0.6, 120). O Cox-Stuart já é o de menor poder dos testes de tendência; com
 autocorrelação, o `series/mann_kendall` com a mesma correção perde menos.
 
 ### Faltantes
@@ -2330,8 +2330,8 @@ phi   n     nenhuma   bootstrap_blocos
 
 Com autocorrelação moderada o nível é o nominal; com phi de seis décimos
 fica em 8% a 9%, longe dos 50% sem correção mas acima dos 5% — um "rejeita"
-apertado aí pede cautela. Poder, com um degrau de 1,5 no meio da série: 89%
-(phi 0,3, n = 60), 100% (0,3, 120), 59% (0,6, 60) e 86% (0,6, 120).
+apertado aí pede cautela. Poder, com um degrau de 1.5 no meio da série: 89%
+(phi 0.3, n = 60), 100% (0.3, 120), 59% (0.6, 60) e 86% (0.6, 120).
 
 ### Faltantes
 

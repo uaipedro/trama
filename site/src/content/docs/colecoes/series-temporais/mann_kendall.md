@@ -111,7 +111,7 @@ NaN.
 
 O `bootstrap_blocos` é a correção que mais se aproxima do nível, e ainda
 assim não o alcança com autocorrelação forte. Medido em série SEM tendência,
-AR(1), 1000 réplicas por caso (erro de Monte Carlo de 0,7 a 0,9 ponto),
+AR(1), 1000 réplicas por caso (erro de Monte Carlo de 0.7 a 0.9 ponto),
 rejeição a 5%:
 
 ```
@@ -124,12 +124,12 @@ phi   n     nenhuma   bootstrap_blocos
 
 Com autocorrelação moderada e série de uns cem pontos ele devolve o nível;
 com phi de seis décimos, reduz o excesso de 31% para 8% a 9%, sem zerá-lo. O
-preço é poder: com uma tendência de 1,8 desvio do ruído ao longo da série, ele
-detecta em 77% (phi 0,3, n = 60), 96% (phi 0,3, n = 120), 43% (phi 0,6, n =
-60) e 66% (phi 0,6, n = 120) das vezes — menos que o teste sem correção, cujo
+preço é poder: com uma tendência de 1.8 desvio do ruído ao longo da série, ele
+detecta em 77% (phi 0.3, n = 60), 96% (phi 0.3, n = 120), 43% (phi 0.6, n =
+60) e 66% (phi 0.6, n = 120) das vezes — menos que o teste sem correção, cujo
 poder aparente vem em parte do nível inflado. A regra de bloco do
 `modifiedmk::bbsmk` (autocorrelações significativas seguidas, mais um) dá
-blocos de 3 a 4 e rejeitou 17% a 19% com phi 0,6 (300 réplicas); por isso o
+blocos de 3 a 4 e rejeitou 17% a 19% com phi 0.6 (300 réplicas); por isso o
 bloco aqui é √n. Com autocorrelação forte, prefira modelar o erro
 (`series/regression` com **Erro** = `arma` e o `series/f_tendencia`).
 
