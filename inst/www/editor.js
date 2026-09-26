@@ -4163,12 +4163,13 @@ function App() {
       ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null), onOpen: setHelpFor })
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
-            marca: temas.marca,
+            marca: temas.marca, sugestoes: temas.sugestoes,
             // `seq` porque o input do Shiny ignora valor idêntico ao anterior:
             // voltar a um estado já enviado (desfazer uma cor à mão) não
             // chegaria ao servidor.
             onSave: (m) => sendInput("tr_themes", { temas: m.temas, tema_padrao: m.tema_padrao,
-                                                    marca: m.marca, seq: Date.now() }),
+                                                    marca: m.marca, sugestoes: m.sugestoes,
+                                                    seq: Date.now() }),
             onClose: () => setPainelConfig(false) })
       : painelTemplates
         ? h(TemplatesPanel, { key: "templates", templates,

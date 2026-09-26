@@ -26,7 +26,10 @@ export const TEMA_BASE = { base: "minimal", tamanho: 13, fonte: "sans", fundo: "
 export function copiar(estado) {
   return { temas: JSON.parse(JSON.stringify((estado && estado.temas) || {})),
            tema_padrao: estado?.tema_padrao ?? null,
-           marca: estado?.marca ?? true };
+           marca: estado?.marca ?? true,
+           // Flag do projeto: sugerir colunas ao conectar. Viaja no mesmo
+           // rascunho da marca (mesma mensagem `tr_themes`); ausente = ligado.
+           sugestoes: estado?.sugestoes ?? true };
 }
 
 // "novo tema", "novo tema 2", … — o primeiro sem número porque quase sempre

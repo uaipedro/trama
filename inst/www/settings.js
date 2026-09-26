@@ -87,8 +87,8 @@ function Campo({ rotulo, children }) {
 
 const primeiro = (e) => e.tema_padrao ?? Object.keys(e.temas)[0] ?? null;
 
-export function SettingsPanel({ temas, padrao, marca, onSave, onClose }) {
-  const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca }));
+export function SettingsPanel({ temas, padrao, marca, sugestoes, onSave, onClose }) {
+  const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca, sugestoes }));
   // O ref anda junto do estado e é lido nos callbacks: o `change` da cor chega
   // depois de uma rajada de `input`, e o fechamento do render anterior veria
   // um rascunho velho.
@@ -96,16 +96,16 @@ export function SettingsPanel({ temas, padrao, marca, onSave, onClose }) {
   const [sel, setSel] = React.useState(() => primeiro(rascunho));
   const [renome, setRenome] = React.useState(null);   // {texto, erro} ou null
 
-  const servidor = JSON.stringify(copiar({ temas, tema_padrao: padrao, marca }));
+  const servidor = JSON.stringify(copiar({ temas, tema_padrao: padrao, marca, sugestoes }));
   const servRef = React.useRef(servidor);
   servRef.current = servidor;
 
   React.useEffect(() => {
-    const r = copiar({ temas, tema_padrao: padrao, marca });
+    const r = copiar({ temas, tema_padrao: padrao, marca, sugestoes });
     rascRef.current = r;
     setRascunho(r);
     setSel((s) => (s != null && Object.hasOwn(r.temas, s) ? s : primeiro(r)));
-  }, [temas, padrao, marca]);
+  }, [temas, padrao, marca, sugestoes]);
 
   const aplicar = (r, salvar) => {
     rascRef.current = r;
@@ -257,6 +257,16 @@ export function SettingsPanel({ temas, padrao, marca, onSave, onClose }) {
                   title: "carimba o hexágono do trama no canto do PNG",
                   onChange: (v) => aplicar({ ...copiar(rascRef.current), marca: v }, true) })),
   ]);
+  // Também do projeto, não de tema: ligado, conectar uma tabela preenche os
+  // params de coluna com o selo "sugerido"; desligado, nada é preenchido
+  // sozinho e o select só oferece "sugerir: X" a pedido.
+  const edicao = h("div", { key: "ed", className: "tr-settings-editor" }, [
+    h("h4", { key: "t" }, "Edição"),
+    h(Campo, { key: "s", rotulo: "sugerir colunas ao conectar" },
+      h(Toggle, { value: rascunho.sugestoes,
+                  title: "preenche X, Y e afins com colunas da tabela de entrada",
+                  onChange: (v) => aplicar({ ...copiar(rascRef.current), sugestoes: v }, true) })),
+  ]);
 
   return h("aside", { className: "tr-settings" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
@@ -270,6 +280,7 @@ export function SettingsPanel({ temas, padrao, marca, onSave, onClose }) {
       acoes,
       editor,
       exportacao,
+      edicao,
     ]),
   ]);
 }
