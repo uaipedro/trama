@@ -263,3 +263,27 @@ test("notasComFrame: contêiner que não se moveu (fora de framesNovos) também 
   const out = notasComFrame(nodes, rect, {});
   assert.deepEqual(out, {});
 });
+
+test("tamanho de nota: nascença por kind e piso na tela", async () => {
+  const { tamanhoNota, minimoNota, pisoNota } = await import("../../inst/www/geometria.js");
+  assert.deepEqual(tamanhoNota("markdown"), { w: 280, h: 160 });
+  assert.deepEqual(tamanhoNota("imagem"), { w: 320, h: 220 });
+  // kind desconhecido cai no markdown, nunca em undefined
+  assert.deepEqual(tamanhoNota("x"), tamanhoNota("markdown"));
+  const m = minimoNota("imagem");
+  assert.deepEqual(pisoNota("imagem", 80, 40), m);
+  assert.deepEqual(pisoNota("markdown", 500, 300), { w: 500, h: 300 });
+  // sem tamanho (0 ou ausente) vira o de nascença, não o mínimo
+  assert.deepEqual(pisoNota("markdown", 0, undefined), tamanhoNota("markdown"));
+});
+
+test("NOTA_TAMANHO espelha .tr_note_tamanho do R", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { NOTA_TAMANHO } = await import("../../inst/www/geometria.js");
+  const r = readFileSync(new URL("../../R/document.R", import.meta.url), "utf8");
+  const m = r.match(/\.tr_note_tamanho <- list\(([^\n]*)\)\n/);
+  assert.ok(m, ".tr_note_tamanho não encontrado");
+  const doR = Object.fromEntries([...m[1].matchAll(/(\w+) = c\((\d+), (\d+)\)/g)]
+    .map((x) => [x[1], { w: +x[2], h: +x[3] }]));
+  assert.deepEqual(doR, NOTA_TAMANHO);
+});

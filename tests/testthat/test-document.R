@@ -551,3 +551,14 @@ test_that("preview oculto sobrevive a gravar/ler, some com o nó e volta no undo
   u <- trama:::.tr_undo_doc(base, ops[1], current_rev = 10L, registry = m$reg)
   expect_true(u$ui$ocultos$a)
 })
+
+test_that("add_note sem w/h nasce no tamanho do kind, e o eco leva o tamanho", {
+  m <- mk()
+  res <- tr_submit(m$doc, list(seq = 1, base_rev = 0,
+                               op = list(op = "add_note", x = 0, y = 0, kind = "imagem")), m$reg)
+  n <- res$doc$ui$notes[[res$op$id]]
+  expect_equal(c(n$w, n$h), c(320, 220))
+  expect_equal(c(res$op$w, res$op$h), c(320, 220))
+  d <- tr_doc_apply(m$doc, list(op = "add_note", x = 0, y = 0, kind = "markdown"), m$reg)
+  expect_equal(c(d$ui$notes[[1]]$w, d$ui$notes[[1]]$h), c(280, 160))
+})

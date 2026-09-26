@@ -44,15 +44,17 @@
 import React from "react";
 import { NodeResizer } from "@xyflow/react";
 import { h, useLightbox } from "trama";
-import { FRAME_COLORS } from "./geometria.js";
+import { FRAME_COLORS, minimoNota, tamanhoNota } from "./geometria.js";
 import { Markdown } from "./markdown.js";
 
 // Largura e altura mínimas do bloco: piso da alça e do desenho com a
 // ferramenta de nota. Bem menores que as do frame — uma nota pode ser um
 // post-it pequeno — mas ainda grandes o bastante pra segurar a alça do
 // resizer e não sumir num clique seco.
-export const NOTA_MIN_W = 80;
-export const NOTA_MIN_H = 40;
+// O piso agora é por kind (`minimoNota`, geometria.js); estes ficam como o
+// menor dos dois pra quem só quer um número.
+export const NOTA_MIN_W = minimoNota("markdown").w;
+export const NOTA_MIN_H = minimoNota("markdown").h;
 
 // Mesma chave de comparação do frame: o retângulo do resizer arredondado como
 // a op grava, pra saber se o gesto de fato mudou alguma coisa.
@@ -123,7 +125,8 @@ export function NotaNode({ id, data, selected }) {
 
   return h("div", { className: cls, onDoubleClick }, [
     h("div", { key: "c", className: "tr-nota-corpo" }, corpo),
-    h(NodeResizer, { key: "rz", isVisible: !!selected, minWidth: NOTA_MIN_W, minHeight: NOTA_MIN_H,
+    h(NodeResizer, { key: "rz", isVisible: !!selected, minWidth: minimoNota(data.kind).w,
+                     minHeight: minimoNota(data.kind).h,
                      onResizeStart, onResizeEnd }),
   ]);
 }
@@ -165,11 +168,11 @@ function NotaImagem({ src, fit, imagens, onEscolher }) {
 
 // A ferramenta de desenhar nota: mesmo padrão de `FrameDraw`, sem proporção
 // fixa — nota não é slide, é sempre livre, e por isso não recebe `aspect`. No
-// clique seco (sem arrasto) nasce um retângulo do tamanho MÍNIMO centrado no
-// ponto, em vez dos 960×540 do frame: uma nota pequena de post-it não pede um
-// bloco enorme por padrão.
+// clique seco (sem arrasto) nasce um retângulo do tamanho de NASCENÇA do
+// kind centrado no ponto: nascer no mínimo deixava o bloco ilegível, e quem
+// quer menor arrasta um retângulo (que ainda respeita o piso).
 const CLIQUE = 6;
-export function NotaDraw({ toFlow, onDone }) {
+export function NotaDraw({ toFlow, onDone, kind }) {
   const [box, setBox] = React.useState(null);
   const ini = React.useRef(null);
   const local = (e) => {
@@ -195,12 +198,14 @@ export function NotaDraw({ toFlow, onDone }) {
       if (!a) return;
       const p0 = toFlow(a.tela);
       if (Math.hypot(e.clientX - a.tela.x, e.clientY - a.tela.y) < CLIQUE) {
-        onDone({ x: p0.x - NOTA_MIN_W / 2, y: p0.y - NOTA_MIN_H / 2, w: NOTA_MIN_W, h: NOTA_MIN_H });
+        const t = tamanhoNota(kind);
+        onDone({ x: p0.x - t.w / 2, y: p0.y - t.h / 2, w: t.w, h: t.h });
         return;
       }
       const p1 = toFlow({ x: e.clientX, y: e.clientY });
-      const w = Math.max(NOTA_MIN_W, Math.abs(p1.x - p0.x));
-      const hh = Math.max(NOTA_MIN_H, Math.abs(p1.y - p0.y));
+      const m = minimoNota(kind);
+      const w = Math.max(m.w, Math.abs(p1.x - p0.x));
+      const hh = Math.max(m.h, Math.abs(p1.y - p0.y));
       // Ancorado no ponto de partida, mesma razão de `FrameDraw`: com o piso,
       // `min(p0.x, p1.x)` faria o bloco passar do início num arrasto pra
       // esquerda menor que o mínimo.

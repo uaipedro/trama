@@ -17,6 +17,23 @@ export const ratioOf = (aspect) => ASPECTS[aspect] ?? null;
 // (`.tr-frame-<cor>`), onde pode ser reajustado sem migrar documento nenhum.
 export const FRAME_COLORS = ["azul", "verde", "amarelo", "laranja", "rosa", "roxo", "cinza"];
 
+// Tamanho de nascença de cada kind de nota (espelha `.tr_note_tamanho`,
+// R/document.R) e o piso abaixo do qual o bloco fica ilegível: o markdown
+// precisa de umas duas linhas de texto na escala "nota", a imagem de área
+// pra se reconhecer o que é. Antes o piso era um só (80×40) e o clique seco
+// criava a nota exatamente nele — era por isso que nasciam espremidas.
+export const NOTA_TAMANHO = { markdown: { w: 280, h: 160 }, imagem: { w: 320, h: 220 } };
+export const NOTA_MIN = { markdown: { w: 160, h: 80 }, imagem: { w: 160, h: 120 } };
+const kindNota = (kind) => (kind === "imagem" ? "imagem" : "markdown");
+export const tamanhoNota = (kind) => ({ ...NOTA_TAMANHO[kindNota(kind)] });
+export const minimoNota = (kind) => ({ ...NOTA_MIN[kindNota(kind)] });
+// Leva w/h ao piso do kind. Ausente ou zero conta como "sem tamanho" e vira o
+// de nascença, não o mínimo: é o caso de documento escrito à mão.
+export function pisoNota(kind, w, hh) {
+  const m = minimoNota(kind), t = tamanhoNota(kind);
+  return { w: w > 0 ? Math.max(m.w, w) : t.w, h: hh > 0 ? Math.max(m.h, hh) : t.h };
+}
+
 // Padrões do card enquanto ele não foi medido. Largura e altura repetem
 // `NODE_W`/`NODE_H` do editor.js, e o preview o `.tr-preview` do trama.css;
 // copiados, e não importados, porque o editor importa esta geometria (via

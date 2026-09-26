@@ -21,6 +21,7 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
          MARCA } from "./frames.js";
 import { NotaNode, NotaDraw } from "./notas.js";
+import { pisoNota } from "./geometria.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados } from "./ops.js";
@@ -170,7 +171,10 @@ function docToFlow(doc, catalog) {
     }));
   const notes = Object.entries((doc.ui && doc.ui.notes) || {})
     .map(([id, n]) => ({
-      id, type: "trNota", position: { x: n.x, y: n.y }, width: n.w, height: n.h,
+      // Piso só na TELA: nota antiga gravada minúscula abre legível, mas o
+      // documento só muda se alguém redimensionar (aí o resizer já grava ≥ piso).
+      id, type: "trNota", position: { x: n.x, y: n.y },
+      width: pisoNota(n.kind, n.w, n.h).w, height: pisoNota(n.kind, n.w, n.h).h,
       data: { kind: n.kind, text: n.text, src: n.src, fit: n.fit,
               escala: n.escala, fundo: n.fundo, color: n.color },
     }));
@@ -2150,8 +2154,11 @@ function App() {
   // projeto — `src` gravado no documento é o caminho relativo a ela.
   const resolverSrc = useCallback((rel) => `trama-imagens/${rel}`, []);
   const onNotaRect = useCallback((id, p) => {
-    pushOp({ op: "update_note", note: id, x: Math.round(p.x), y: Math.round(p.y),
-             w: Math.round(p.width), h: Math.round(p.height) });
+    // O resizer já respeita o piso; isto cobre o arredondamento e quem chame
+    // sem passar por ele.
+    const kind = nodesRef.current.find((n) => n.id === id)?.data.kind;
+    const t = pisoNota(kind, Math.round(p.width), Math.round(p.height));
+    pushOp({ op: "update_note", note: id, x: Math.round(p.x), y: Math.round(p.y), w: t.w, h: t.h });
   }, []);
   const onNotaEdit = useCallback((id, patch) => {
     setNodes((ns) => ns.map((n) => (n.id !== id ? n : { ...n, data: { ...n.data, ...patch } })));
@@ -4180,7 +4187,7 @@ function App() {
         ? h(FrameDraw, { key: "fd", toFlow: rf.screenToFlowPosition, onDone: criarFrame,
                          aspect: aspectoNovo }) : null,
       (ferramenta === "markdown" || ferramenta === "imagem")
-        ? h(NotaDraw, { key: "nd", toFlow: rf.screenToFlowPosition,
+        ? h(NotaDraw, { key: "nd", toFlow: rf.screenToFlowPosition, kind: ferramenta,
                         onDone: (r) => criarNota(ferramenta, r) }) : null,
       // `key` muda a cada slide: remonta o indicador e reinicia o fade.
       // O número passa pelo mesmo teto do efeito que corrige `present.i`: no

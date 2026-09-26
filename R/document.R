@@ -487,6 +487,10 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
 # ENTRA num (pelo mesmo pertencimento geométrico dos cards).
 
 .tr_note_kinds   <- c("markdown", "imagem")
+# Tamanho de nascença de cada kind quando a op não traz `w`/`h`: um parágrafo
+# curto legível e uma imagem em 16:11. Espelhado em `NOTA_TAMANHO`
+# (inst/www/geometria.js), e `tests/js/geometria.test.mjs` confere os dois.
+.tr_note_tamanho <- list(markdown = c(280, 160), imagem = c(320, 220))
 .tr_note_escalas <- c("letreiro", "nota")
 .tr_note_fundos  <- c("nenhum", "cartao")
 .tr_note_fits    <- c("contain", "cover")
@@ -553,13 +557,15 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
 # `color = "nenhuma"` é o padrão porque bloco de texto quer ser texto, e não
 # um retângulo colorido: a cor é acento que se escolhe, não ponto de partida.
 .tr_op_add_note <- function(doc, op, registry) {
-  .tr_require(op, c("x", "y", "w", "h", "kind"))
+  .tr_require(op, c("x", "y", "kind"))
   id <- op$id %||% .tr_new_id()
   .tr_check_node_id(id)
   if (!is.null(doc$ui$notes[[id]])) {
     rlang::abort(sprintf("Id de nota já existe: '%s'.", id), class = "tr_error_duplicate_id")
   }
   kind <- .tr_note_field("kind", op$kind)
+  op$w <- op$w %||% .tr_note_tamanho[[kind]][[1]]
+  op$h <- op$h %||% .tr_note_tamanho[[kind]][[2]]
   n <- list(
     x = .tr_note_field("x", op$x), y = .tr_note_field("y", op$y),
     w = .tr_note_field("w", op$w), h = .tr_note_field("h", op$h),
