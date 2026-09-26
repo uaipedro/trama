@@ -489,10 +489,16 @@ tr_server <- function(project, flow = "main",
       # manifesto, e não a lista devolvida pelo verbo: depois de uma recusa no
       # meio, o painel tem que mostrar o que está NO ARQUIVO — senão a chave
       # fica ligada na tela e desligada no disco.
+      # `sugestoes` é o oposto da marca: AUSENTE quer dizer "não mexa". O campo
+      # chegou depois, e um cliente que ainda não o manda não pode desligar
+      # (nem religar) as sugestões de ninguém. Presente, é conferido antes de
+      # qualquer escrita, pelo mesmo motivo da marca.
       ok <- tryCatch({
         .tr_check_marca(m$marca)
+        if (!is.null(m$sugestoes)) .tr_check_marca(m$sugestoes, campo = "sugestoes")
         tr_project_set_themes(raiz, m$temas, m$tema_padrao)
         tr_project_set_marca(raiz, mostrar = m$marca)
+        if (!is.null(m$sugestoes)) tr_project_set_sugestoes(raiz, ligar = m$sugestoes)
         TRUE
       }, error = avisar(FALSE))
       # Falha na RELEITURA também vira aviso, e não silêncio: sem isto o painel

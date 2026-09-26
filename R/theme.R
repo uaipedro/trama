@@ -81,10 +81,14 @@
 #' pedido do painel ANTES de gravar os temas, já que os dois campos chegam no
 #' mesmo gesto. `NA` cai junto com o resto: "talvez carimbe" não é resposta que
 #' a exportação saiba usar.
+#'
+#' `campo` existe porque `sugestoes` é a mesma forma de chave (booleano do
+#' manifesto, conferido nos mesmos três lugares) e a mensagem tem que nomear
+#' a chave certa.
 #' @noRd
-.tr_check_marca <- function(marca, onde = "") {
+.tr_check_marca <- function(marca, onde = "", campo = "marca") {
   if (!(is.logical(marca) && length(marca) == 1L && !is.na(marca)))
-    rlang::abort(paste0("marca precisa ser true ou false", onde, "."),
+    rlang::abort(paste0(campo, " precisa ser true ou false", onde, "."),
                  class = "tr_error_bad_theme")
   marca
 }
@@ -113,8 +117,11 @@
                          paste(padrao, collapse = ",")), class = "tr_error_bad_theme")
   # Ausente vale TRUE: projeto feito antes deste campo continua exportando com
   # a marca, que é o padrão anunciado.
+  # `sugestoes` idem: ausente é ligada — o editor pré-preenche params de
+  # coluna ao conectar, marcando-os "sugerido".
   list(temas = temas, tema_padrao = padrao,
-       marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"))
+       marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"),
+       sugestoes = .tr_check_marca(cfg$sugestoes %||% TRUE, " em trama.json", campo = "sugestoes"))
 }
 
 #' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
@@ -248,6 +255,24 @@ tr_project_set_marca <- function(root, mostrar) {
   invisible(.tr_settings_at(raiz))
 }
 
+#' Liga ou desliga as sugestões automáticas de params de coluna.
+#'
+#' Espelha `tr_project_set_marca()`: chave própria do manifesto, validada antes
+#' de abrir o arquivo, e o resto do `trama.json` volta como estava. Desligada,
+#' o editor não pré-preenche nada ao conectar; o que já foi sugerido fica.
+#' @param root Pasta do projeto (precisa ter `trama.json`).
+#' @param ligar `TRUE` para sugerir, `FALSE` para não sugerir.
+#' @return Os settings do projeto já com a flag nova, invisível.
+#' @export
+tr_project_set_sugestoes <- function(root, ligar) {
+  .tr_check_project(root)
+  raiz <- normalizePath(root, mustWork = TRUE)
+  .tr_check_marca(ligar, " no argumento 'ligar'", campo = "sugestoes")
+  .tr_cfg_rewrite(file.path(raiz, "trama.json"), "as sugestões",
+                  function(cfg) { cfg$sugestoes <- ligar; cfg })
+  invisible(.tr_settings_at(raiz))
+}
+
 #' Settings como estão NO ARQUIVO, e não como a sessão acha que estão.
 #'
 #' Existe para quem acabou de gravar (ou tentou gravar) e precisa devolver a
@@ -268,7 +293,8 @@ tr_project_set_marca <- function(root, mostrar) {
 .tr_settings_json <- function(settings) {
   list(temas = lapply(settings$temas, function(t) { t$paleta <- I(t$paleta); t }),
        tema_padrao = settings$tema_padrao,
-       marca = settings$marca)
+       marca = settings$marca,
+       sugestoes = settings$sugestoes %||% TRUE)
 }
 
 #' Resolve um tema pelo nome, fora de um projeto.

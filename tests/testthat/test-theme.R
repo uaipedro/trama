@@ -343,3 +343,33 @@ test_that("tr_theme usa os settings do projeto quando dados", {
   expect_equal(tr_theme("padrão", s)$nome, "rel")
   expect_equal(tr_theme_names(s), "rel")
 })
+
+test_that("sugestoes vale TRUE ausente e recusa o que não é booleano", {
+  expect_true(.tr_settings(list())$sugestoes)
+  expect_false(.tr_settings(list(sugestoes = FALSE))$sugestoes)
+  err <- expect_error(.tr_settings(list(sugestoes = "sim")), class = "tr_error_bad_theme")
+  expect_match(conditionMessage(err), "sugestoes", fixed = TRUE)
+  expect_error(.tr_settings(list(sugestoes = NA)), class = "tr_error_bad_theme")
+  expect_true(.tr_settings_json(.tr_settings(list()))$sugestoes)
+})
+
+test_that("tr_project_set_sugestoes grava, relê e preserva o resto", {
+  root <- withr::local_tempdir()
+  tr_project_new(root, collections = "trama.data")
+  tr_project_set_marca(root, mostrar = FALSE)
+  devolvido <- tr_project_set_sugestoes(root, ligar = FALSE)
+  expect_false(devolvido$sugestoes); expect_false(devolvido$marca)
+  cfg <- jsonlite::fromJSON(file.path(root, "trama.json"), simplifyVector = FALSE)
+  expect_false(cfg$sugestoes)
+  expect_equal(unlist(cfg$collections), "trama.data")
+  expect_true(tr_project_set_sugestoes(root, ligar = TRUE)$sugestoes)
+  err <- expect_error(tr_project_set_sugestoes(root, ligar = "sim"), class = "tr_error_bad_theme")
+  expect_match(conditionMessage(err), "'ligar'", fixed = TRUE)
+})
+
+test_that("gravar temas e marca preserva as sugestões", {
+  root <- withr::local_tempdir(); tr_project_new(root)
+  tr_project_set_sugestoes(root, ligar = FALSE)
+  tr_project_set_themes(root, list(), "claro")
+  expect_false(tr_project_set_marca(root, mostrar = TRUE)$sugestoes)
+})

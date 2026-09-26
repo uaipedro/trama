@@ -526,3 +526,35 @@ test_that("upload de dado com nome invalido avisa e nao grava", {
     expect_false(file.exists(file.path(dirname(p1$root), "fora.csv")))
   })
 })
+
+test_that("tr_themes: sugestoes ausente não mexe; presente grava; inválida recusa tudo", {
+  p1 <- projeto_falso()
+  f <- file.path(p1$root, "trama.json")
+
+  shiny::testServer(tr_server(p1, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    ultimo <- function() {
+      t <- Filter(function(m) identical(m$type, "themes"), msgs)
+      t[[length(t)]]
+    }
+    session$setInputs(tr_ready = 1)
+    expect_true(ultimo()$sugestoes)
+
+    session$setInputs(tr_themes = list(temas = list(rel = list()), tema_padrao = "rel",
+                                       marca = TRUE, sugestoes = FALSE, seq = 1))
+    expect_false(jsonlite::fromJSON(f)$sugestoes)
+    expect_false(ultimo()$sugestoes)
+
+    # Cliente antigo, sem o campo: as sugestões ficam como estão.
+    session$setInputs(tr_themes = list(temas = list(rel = list()), tema_padrao = "rel",
+                                       marca = TRUE, seq = 2))
+    expect_false(jsonlite::fromJSON(f)$sugestoes)
+    expect_false(rv_project()$settings$sugestoes)
+
+    antes <- readBin(f, "raw", file.size(f))
+    session$setInputs(tr_themes = list(temas = list(rel = list()), tema_padrao = "rel",
+                                       marca = FALSE, sugestoes = "sim", seq = 3))
+    expect_identical(readBin(f, "raw", file.size(f)), antes)
+  })
+})
