@@ -8,9 +8,11 @@ test_that("todo nó tem help no formato, e todo campo de texto tem exemplo", {
 
   for (n in reg$nodes) {
     expect_true(!is.null(n$help) && nzchar(trimws(n$help)), info = n$id)
-    expect_match(n$help, "## Descrição", fixed = TRUE, info = n$id)
-    expect_match(n$help, "## Valor", fixed = TRUE, info = n$id)
-    if (length(n$params)) expect_match(n$help, "## Parâmetros", fixed = TRUE, info = n$id)
+    # Formato curto da data e da view (c865c5c): uso, exemplo e usos
+    # relacionados; a referência longa fica no site.
+    expect_match(n$help, "## Uso principal", fixed = TRUE, info = n$id)
+    expect_match(n$help, "## Exemplo curto", fixed = TRUE, info = n$id)
+    expect_match(n$help, "## Usos relacionados", fixed = TRUE, info = n$id)
 
     for (nm in names(n$params)) {
       p <- n$params[[nm]]
@@ -22,5 +24,5 @@ test_that("todo nó tem help no formato, e todo campo de texto tem exemplo", {
 
 test_that("o help chega inteiro ao catálogo", {
   cat_json <- trama::tr_catalog_json(data_registry())
-  expect_match(as.character(cat_json), "## Descrição", fixed = TRUE)
+  expect_match(as.character(cat_json), "## Uso principal", fixed = TRUE)
 })
