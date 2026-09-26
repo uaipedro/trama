@@ -490,7 +490,9 @@ tr_multi_tocher <- function(distancia) {
   P <- trama::tr_param
   TB <- "data/table"
   list(
-    trama::tr_node("multi/distance", fn = tr_multi_distance, label = "Matriz de distância",
+    trama::tr_node("multi/distance", fn = tr_multi_distance,
+      pressupostos = .tr_multi_doc("multi/distance")$pressupostos,
+      referencias = .tr_multi_doc("multi/distance")$referencias, label = "Matriz de distância",
       category = "multi_agrupamento", icon = trama::tr_icon("ruler"),
       description = "Dissimilaridade entre as linhas: euclidiana, padronizada, D² de Mahalanobis ou Gower.",
       inputs = list(dados = TB), outputs = list(out = "multi/dist"),
@@ -553,7 +555,9 @@ otimização; `multi/correlation_matrix` para a matriz entre VARIÁVEIS, e não
 entre linhas.
 ]---")),
 
-    trama::tr_node("multi/cluster", fn = tr_multi_cluster, label = "Agrupamento",
+    trama::tr_node("multi/cluster", fn = tr_multi_cluster,
+      pressupostos = .tr_multi_doc("multi/cluster")$pressupostos,
+      referencias = .tr_multi_doc("multi/cluster")$referencias, label = "Agrupamento",
       category = "multi_agrupamento", icon = trama::tr_icon("network"),
       description = "Agrupamento hierárquico (UPGMA, Ward, completo, simples) ou k-means, com corte em k grupos.",
       inputs = list(dados = trama::tr_port(TB, required = FALSE),
@@ -678,7 +682,9 @@ tr_flow(reg) |>
 matriz.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("multi/tocher", fn = tr_multi_tocher, label = "Tocher",
+    trama::tr_node("multi/tocher", fn = tr_multi_tocher,
+      pressupostos = .tr_multi_doc("multi/tocher")$pressupostos,
+      referencias = .tr_multi_doc("multi/tocher")$referencias, label = "Tocher",
       category = "multi_agrupamento", icon = trama::tr_icon("boxes"),
       description = "Método de otimização de Tocher sobre uma matriz de distância: grupos e distância média.",
       inputs = list(distancia = "multi/dist"), outputs = list(out = TB),

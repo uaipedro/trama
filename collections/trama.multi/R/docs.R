@@ -42,7 +42,7 @@
 #' Pressupostos e referências de um nó (listas vazias se não houver).
 #' @noRd
 .tr_multi_doc <- function(id) {
-  todos <- c(.tr_multi_docs_fatorial(), .tr_multi_docs_classificacao(),
+  todos <- c(.tr_multi_docs_fatorial(), .tr_multi_docs_classificacao(), .tr_multi_docs_agrupamento(),
              .tr_multi_docs_jackknife())
   d <- todos[[id]]
   list(pressupostos = if (is.null(d$pressupostos)) list() else d$pressupostos,

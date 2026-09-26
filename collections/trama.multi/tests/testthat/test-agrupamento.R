@@ -163,3 +163,30 @@ test_that("os nós rodam no motor, com a matriz ligada no agrupamento", {
   expect_equal(ag$distancia$metodo, "euclidiana padronizada")
   expect_s3_class(rodar(f, "toc"), "tbl_df")
 })
+
+# Oráculo independente do `hclust`: `cluster::agnes` (Kaufman & Rousseeuw),
+# outro código para as mesmas ligações de Lance & Williams. Alturas de fusão
+# e partição em k grupos iguais (1e-10).
+test_that("UPGMA, completo, simples e Ward batem com cluster::agnes", {
+  d <- tr_multi_distance(usa(), rotulo = "nome")
+  metodos <- c(UPGMA = "average", completo = "complete", simples = "single", Ward.D2 = "ward")
+  for (nome in names(metodos)) {
+    m <- metodos[[nome]]
+    ag <- tr_multi_cluster(distancia = d, metodo = nome, grupos = 4L)
+    ref <- cluster::agnes(d$d, diss = TRUE, method = m)
+    expect_equal(sort(ag$arvore$height), sort(ref$height), tolerance = 1e-10, info = m)
+    gr <- stats::cutree(stats::as.hclust(ref), k = 4L)
+    expect_equal(as.vector(table(ag$grupos, gr) > 0) |> sum(), 4L, info = m)
+  }
+})
+
+# Oráculo de teoria (Gower 1971): d_ij = Σ_k δ_ijk / p, com δ = |x_ik − x_jk| /
+# amplitude_k no numérico e 0/1 (igual/diferente) no qualitativo — feito à
+# mão num exemplo de três indivíduos.
+test_that("Gower: exemplo resolvido pela fórmula de Gower (1971)", {
+  df <- data.frame(altura = c(10, 20, 30), cor = c("a", "a", "b"), peso = c(1, 5, 3))
+  d <- as.matrix(tr_multi_distance(df, metodo = "gower")$d)
+  expect_equal(d[1, 2], (10 / 20 + 0 + 4 / 4) / 3)
+  expect_equal(d[1, 3], (20 / 20 + 1 + 2 / 4) / 3)
+  expect_equal(d[2, 3], (10 / 20 + 1 + 2 / 4) / 3)
+})

@@ -34,3 +34,25 @@ test_that("recusas: respostas em branco, uma resposta só, tratamento de um nív
   expect_error(tr_multi_manova(ir1, respostas = "Sepal.Length, Sepal.Width", tratamento = "Species"),
                class = "tr_multi_error_one_group")
 })
+
+# Oráculo de outro pacote: `car::Manova` (Fox & Weisberg), que monta as
+# matrizes H e E por conta própria (SQ tipo II; com bloco antes e sem
+# interação, tipo II do tratamento = sequencial). Estatística, F e p a 1e-8.
+test_that("Pillai e Wilks batem com car::Manova, com e sem bloco", {
+  skip_if_not_installed("car")
+  ir <- tr_multi_example("iris")
+  set.seed(1); ir$bloco <- factor(rep(1:5, 30))
+  Y <- as.matrix(ir[, c("Sepal.Length", "Sepal.Width", "Petal.Length")])
+  for (com in c(FALSE, TRUE)) {
+    fit <- if (com) stats::lm(Y ~ bloco + Species, data = ir) else stats::lm(Y ~ Species, data = ir)
+    for (e in c("Pillai", "Wilks")) {
+      ref <- summary(car::Manova(fit), test = e)$multivariate.tests$Species
+      eig <- Re(eigen(qr.coef(qr(ref$SSPE), ref$SSPH), only.values = TRUE)$values)
+      st <- if (e == "Pillai") car:::Pillai(eig, ref$df, ref$df.residual) else car:::Wilks(eig, ref$df, ref$df.residual)
+      t <- tr_multi_manova(ir, respostas = "Sepal.Length, Sepal.Width, Petal.Length",
+                           tratamento = "Species", bloco = if (com) "bloco" else "", estatistica = e)
+      expect_equal(t$estatistica, st[[2L]], tolerance = 1e-8, info = paste(e, com))
+      expect_equal(t$extra[[tolower(e)]], st[[1L]], tolerance = 1e-8, info = paste(e, com))
+    }
+  }
+})

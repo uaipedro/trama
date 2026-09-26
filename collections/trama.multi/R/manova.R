@@ -76,7 +76,9 @@ tr_multi_manova <- function(dados, respostas = "", tratamento = "", bloco = "", 
 .tr_multi_nos_manova <- function() {
   P <- trama::tr_param
   list(
-    trama::tr_node("multi/manova", role = "avaliacao", fn = tr_multi_manova, label = "MANOVA",
+    trama::tr_node("multi/manova", role = "avaliacao", fn = tr_multi_manova,
+      pressupostos = .tr_multi_doc("multi/manova")$pressupostos,
+      referencias = .tr_multi_doc("multi/manova")$referencias, label = "MANOVA",
       category = "multi_manova", icon = trama::tr_icon("layers"),
       description = "Análise de variância multivariada: os tratamentos diferem no conjunto das respostas?",
       inputs = list(dados = "data/table"), outputs = list(out = "data/test"),
