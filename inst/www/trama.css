@@ -1213,10 +1213,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 
 /* --- Card: toggle de modo, rodapé de parâmetros, preview que se solta --- */
 .tr-node .tr-modo-btn{margin-left:auto}
-.tr-node-mini .tr-modo-btn{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
-  margin:0;opacity:0;transition:opacity .12s;
-  background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line)}
-.tr-node-mini:hover .tr-modo-btn,.tr-node-mini.tr-node-sel .tr-modo-btn{opacity:1}
+.tr-mini-acoes{position:absolute;top:-26px;left:50%;transform:translateX(-50%);display:flex;gap:3px;
+  opacity:0;transition:opacity .12s}
+.tr-mini-acoes .tr-modo-btn{margin:0;background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line)}
+.tr-node-mini:hover .tr-mini-acoes,.tr-node-mini.tr-node-sel .tr-mini-acoes{opacity:1}
+.tr-exporting .tr-mini-acoes,.tr-presenting .tr-mini-acoes{display:none}
 .tr-node-mini .tr-solto-marca{position:static;opacity:.7;background:none}
 .tr-modo-txt{background:none;border:0;color:inherit;opacity:.6;cursor:pointer;
   padding:2px 7px;border-radius:4px;font:inherit;font-size:11px}

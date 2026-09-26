@@ -26,7 +26,7 @@ import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
-import { ModoPicker, ModoToggle, ParamsRodape, ParamsModal, Vista, AtalhosPanel } from "./modos-ui.js";
+import { ModoPicker, ModoToggle, Engrenagem, ParamsRodape, ParamsModal, Vista, AtalhosPanel } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
@@ -642,7 +642,18 @@ function NdNode({ id, data, selected }) {
                         onClick: (e) => { e.stopPropagation(); data.onPrender(id); } },
             h(Icon, { icon: { kind: "set", value: "pin-off" }, className: "tr-node-icon" }))
         : null,
-      h(ModoToggle, { key: "md", mini, onChange: (m) => data.onModo(id, m) }),
+      // Na miniatura os botões flutuam acima do card, no hover: abrir e, com
+      // parâmetros, a engrenagem — editar sem ter de abrir o card.
+      mini
+        ? h("div", { key: "md", className: "tr-mini-acoes nodrag" }, [
+            (spec.params || []).length
+              ? h("button", { key: "g", type: "button", className: "tr-modo-btn",
+                              title: dica("params-todos"), "aria-label": "parâmetros",
+                              onClick: (e) => { e.stopPropagation(); data.onTodos(id); } }, h(Engrenagem))
+              : null,
+            h(ModoToggle, { key: "t", mini, onChange: (m) => data.onModo(id, m) }),
+          ])
+        : h(ModoToggle, { key: "md", mini, onChange: (m) => data.onModo(id, m) }),
     ]),
     // Visível enquanto a região RODA (dobrado ou não — esconder com o preview
     // recolhido tiraria justamente o botão de pausa de quem recolheu o card
