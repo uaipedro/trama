@@ -3774,6 +3774,8 @@ function App() {
   // enxergarem as funções do render atual.
   const inserirTemplateRef = useRef(inserirTemplate); inserirTemplateRef.current = inserirTemplate;
   const colarRef = useRef(colar); colarRef.current = colar;
+  // Quantos blocos o último Ctrl+C levou, até o `copy` do navegador consumir.
+  const copiaInternaRef = useRef(0);
 
   // Duplicar (menu de contexto): copiar + colar num só passo, sem tocar o
   // clipboard — um Ctrl+V depois de duplicar continua colando o que o
@@ -3894,8 +3896,11 @@ function App() {
         if (selecaoDeTexto) return;
         const sel = nodesRef.current.filter((n) => n.selected);
         if (!sel.length) return;
-        e.preventDefault();
+        // SEM `preventDefault`: o navegador segue e dispara o `copy` abaixo,
+        // que troca o clipboard do SISTEMA. Sem isso, um template copiado
+        // antes continuava lá e vencia este Ctrl+C no próximo Ctrl+V.
         copiar();
+        copiaInternaRef.current = sel.length;
         return;
       }
       // Ctrl+V não é tratado aqui: o `paste` abaixo é quem decide, porque só
@@ -3920,9 +3925,22 @@ function App() {
       if (ehTemplate(texto)) { e.preventDefault(); inserirTemplateRef.current(texto); return; }
       if (clipboardRef.current) { e.preventDefault(); colarRef.current(); }
     };
+    // O `copy` que segue um Ctrl+C de blocos: grava no clipboard do sistema um
+    // texto que não é template, e o `paste` cai no clipboard interno.
+    const onCopy = (e) => {
+      const n = copiaInternaRef.current;
+      copiaInternaRef.current = 0;
+      if (!n || !e.clipboardData) return;
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", n > 1 ? `${n} blocos do trama` : "1 bloco do trama");
+    };
     window.addEventListener("keydown", onKey);
     window.addEventListener("paste", onPaste);
-    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("paste", onPaste); };
+    window.addEventListener("copy", onCopy);
+    return () => {
+      window.removeEventListener("keydown", onKey); window.removeEventListener("paste", onPaste);
+      window.removeEventListener("copy", onCopy);
+    };
   }, []);
 
   if (!catalog || !doc) return h("div", { className: "tr-loading" }, "carregando…");
@@ -4002,9 +4020,10 @@ function App() {
     // Agindo sobre a seleção, as ligações escolhidas vão junto — é o que a
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
     const ligacoes = alvo.length > 1 ? edges.filter((e) => e.selected).map((e) => e.id) : [];
+    // Template de UM bloco não é template: os dois itens só com seleção.
     return [
-      h("button", { key: "tpl", onClick: () => abrirSalvarTemplate(alvo) }, "Salvar como template…"),
-      h("button", { key: "tplc", onClick: () => copiarTemplate(alvo) }, "Copiar como template"),
+      alvo.length > 1 ? h("button", { key: "tpl", onClick: () => abrirSalvarTemplate(alvo) }, "Salvar como template…") : null,
+      alvo.length > 1 ? h("button", { key: "tplc", onClick: () => copiarTemplate(alvo) }, "Copiar como template") : null,
       h("button", { key: "du", onClick: () => { duplicar(alvo); setMenu(null); } },
         alvo.length > 1 ? `Duplicar ${alvo.length} selecionados` : "Duplicar"),
       h("button", { key: "d", onClick: () => apagar(alvo, ligacoes) },
