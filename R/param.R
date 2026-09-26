@@ -92,9 +92,12 @@ tr_param_enum <- function(default, choices, label = NULL) tr_param("enum", defau
 #' @param multi `TRUE` aceita várias colunas separadas por vírgula.
 #' @param from Nome da entrada cujas colunas servem; `NULL` é a primeira.
 #' @param example Exemplo mostrado no campo.
+#' @param suggest `FALSE` tira o param do preenchimento automático ao conectar
+#'   (o select ainda oferece "sugerir" a pedido). Para params opcionais:
+#'   preenchê-los sozinho mudaria a análise sem o usuário pedir.
 #' @export
 tr_param_col <- function(default = "", label = NULL, role = "qualquer", multi = FALSE,
-                         from = NULL, example = NULL) {
+                         from = NULL, example = NULL, suggest = TRUE) {
   papeis <- c("numerica", "categorica", "tempo", "qualquer")
   if (!is.character(role) || length(role) != 1L || !role %in% papeis) {
     rlang::abort(sprintf("tr_param_col(): 'role' deve ser um de: %s.", paste(papeis, collapse = ", ")),
@@ -103,7 +106,11 @@ tr_param_col <- function(default = "", label = NULL, role = "qualquer", multi = 
   if (!is.null(from) && (!is.character(from) || length(from) != 1L || is.na(from) || !nzchar(from))) {
     rlang::abort("tr_param_col(): 'from' deve ser o nome de uma entrada do nó.", class = "tr_error_bad_param")
   }
-  tr_param("cols", default, label, role = role, multi = isTRUE(multi), from = from, example = example)
+  if (!is.logical(suggest) || length(suggest) != 1L || is.na(suggest)) {
+    rlang::abort("tr_param_col(): 'suggest' deve ser TRUE ou FALSE.", class = "tr_error_bad_param")
+  }
+  tr_param("cols", default, label, role = role, multi = isTRUE(multi), from = from, example = example,
+           suggest = suggest)
 }
 
 #' Param de tema de gráfico.

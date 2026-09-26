@@ -560,7 +560,7 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
     // caminho; ligado, cobre o que ficou vazio sem connect novo (documento
     // aberto de fora, param limpo à mão).
     const sug = colsVazio(atual)
-      ? sugerir(ctx.params, ctx.valores, ctx.sugeridos, schema).find((s) => s.name === spec.name)
+      ? sugerir(ctx.params, ctx.valores, ctx.sugeridos, schema, { forcar: spec.name }).find((s) => s.name === spec.name)
       : null;
     const opt = (o) => h("option", { key: o.nome, value: o.nome }, o.nome);
     campo = h("select", {

@@ -16,7 +16,7 @@ const iris = {
 };
 const mtcars = { colunas: [col("mpg", "numerica"), col("cyl", "numerica"), col("disp", "numerica")], truncado: false };
 const num = (name, extra = {}) => ({ name, kind: "cols", role: "numerica", multi: false, ...extra });
-const cat = (name) => ({ name, kind: "cols", role: "categorica", multi: false });
+const cat = (name, extra = {}) => ({ name, kind: "cols", role: "categorica", multi: false, ...extra });
 
 test("anotado exige kind cols e role", () => {
   assert.equal(anotado(num("x")), true);
@@ -52,15 +52,22 @@ test("re-sugere o que veio de sugestão quando a tabela muda", () => {
 test("re-sugestão sem mudança não gera entrada", () => {
   assert.deepEqual(sugerir([num("x"), num("y")], { x: "Sepal.Length", y: "Sepal.Width" }, ["x", "y"], iris), []);
 });
-test("categórica pula coluna com cara de id", () => {
+test("categórica pula coluna com cara de id e não cai nela sem alternativa", () => {
   const s = { colunas: [col("id", "categorica", 150), col("grupo", "categorica", 4)], truncado: false };
   assert.equal(sugerir([cat("g")], {}, [], s)[0].value, "grupo");
   const s2 = { colunas: [col("id", "categorica", 150)], truncado: false };
-  assert.equal(sugerir([cat("g")], {}, [], s2)[0].value, "id");
+  assert.deepEqual(sugerir([cat("g")], {}, [], s2), []);
 });
 test("sem coluna que sirva não sugere nem limpa", () => {
   assert.deepEqual(sugerir([cat("g")], {}, [], mtcars), []);
   assert.deepEqual(sugerir([cat("g")], { g: "x" }, ["g"], mtcars), []);
+});
+test("suggest: false fica fora ao conectar, mas sai a pedido com forcar", () => {
+  const ps = [num("x"), cat("cor", { suggest: false })];
+  assert.deepEqual(sugerir(ps, {}, [], iris).map((r) => r.name), ["x"]);
+  const r = sugerir(ps, {}, [], iris, { forcar: "cor" });
+  assert.equal(r.find((s) => s.name === "cor").value, "Species");
+  assert.deepEqual(opsDeSugestao("n", ps, {}, [], iris).map((o) => o.name), ["x"]);
 });
 test("multi e não anotado nunca são sugeridos", () => {
   assert.deepEqual(sugerir([num("x", { multi: true })], {}, [], iris), []);

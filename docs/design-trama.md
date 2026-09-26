@@ -473,16 +473,19 @@ fronteira e as cores estão em [`linguagem-visual.md`](linguagem-visual.md).
   núcleo — é o mesmo princípio do dispatch por id.
 - **Param de coluna: `tr_param_col()`.** `tr_param_col(default, label, role =
   "numerica" | "categorica" | "tempo" | "qualquer", multi = FALSE, from = NULL,
-  example)` é um `kind = "cols"` anotado. Com `multi = FALSE`, o editor mostra
+  example, suggest = TRUE)` é um `kind = "cols"` anotado. Com `multi = FALSE`, o editor mostra
   um select alimentado pelo `schema` do handle da entrada (`from`, ou a
   primeira porta) — `handle$schema` traz `colunas` (nome, classe,
   `n_distintos`, `tem_na`), `truncado` e `amostra` — e, ao conectar, SUGERE a
   primeira coluna que serve e não está em outro param anotado, na ordem da
-  declaração (`categorica` prefere 2–30 níveis). O valor sugerido entra por
+  declaração (`categorica` só aceita 2–30 níveis; sem isso, não sugere). O valor sugerido entra por
   `set_param` com `origem = "sugestao"` e fica em `sugeridos` no nó; qualquer
   edição sem `origem` é escolha e tira a marca. A marca não entra na chave de
   cache nem no script exportado. `multi = TRUE` é lista de colunas e nunca é
   sugerido; `tr_param("cols")` sem anotação continua texto livre com chips.
+  `suggest = FALSE` marca param OPCIONAL (cor, rótulo, painéis, grupo
+  opcional): nunca é preenchido ao conectar — mudaria a análise sem pedido —,
+  mas o select ainda oferece "sugerir: X" a pedido quando vazio.
   A sugestão desliga por projeto (`sugestoes` nas configurações). Anote só
   quando o `fn` deixa o papel inequívoco; na dúvida, `qualquer`.
 
