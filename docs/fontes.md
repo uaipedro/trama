@@ -38,12 +38,15 @@ mesmas séries (BACK, 2001, revisado no capítulo 2).
 
 ## Referência de cada bloco
 
-> **Conferir antes de publicar.** As referências marcadas "referência padrão"
-> (KPSS, Phillips-Perron, Ljung-Box, Box-Pierce) e as da seção "Outras fontes"
-> (Hyndman & Athanasopoulos, Cleveland et al., Hyndman & Khandakar, Hyndman et
-> al.) foram escritas de memória e **não foram conferidas** contra os artigos.
-> As marcadas "sim" foram copiadas da lista de referências da dissertação. A
-> edição de Hyndman & Athanasopoulos citada pelo código ("cap. 4") é suposta.
+> **Fonte da verdade das referências: os blocos, não esta tabela.** Em
+> 2026-09-25 as referências de `trama.series` foram conferidas no Crossref
+> (autor, ano, título, periódico, volume, páginas) e gravadas como `tr_ref()` em
+> `collections/trama.series/R/docs*.R` — incluindo KPSS, Phillips-Perron,
+> Ljung-Box, Box-Pierce e as de Hyndman et al.; Cleveland et al. (1990) na
+> listagem do Journal of Official Statistics; Hyndman & Athanasopoulos pela URL
+> oficial (FPP3). As linhas desta tabela marcadas "referência padrão" e "Outras
+> fontes" foram escritas de memória antes disso e **não** foram corrigidas uma a
+> uma: em caso de divergência, vale o `docs*.R`.
 
 A coluna `fonte` é o texto que o bloco devolve no campo `fonte` e que aparece na
 vista `detalhe` do card. A referência completa está no formato ABNT e, quando
