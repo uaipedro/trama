@@ -26,6 +26,7 @@ import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
+import { anotado, sugerir as sugerirColunas } from "./colunas.js";
 import { ModoPicker, ModoToggle, Engrenagem, ParamsRodape, ParamsModal, Vista, AtalhosPanel, colunasDoNo } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
@@ -1824,6 +1825,13 @@ function App() {
   // viaja no documento — é explicação de tela, não estado —, então NÃO é
   // zerado no eco; um documento recarregado mostra o selo com uma dica genérica.
   const motivosRef = useRef({});
+  // Flag `sugestoes` do projeto (mensagem `themes`), lido pelos callbacks
+  // estáveis de conexão — estado não chegaria neles sem mudar a identidade.
+  const sugestoesRef = useRef(true);
+  // Entradas recém-ligadas cuja origem ainda não tem schema (não rodou, ou é
+  // um bloco que acabou de nascer): `alvo\u0000porta -> true`. A sugestão sai
+  // UMA vez, quando o schema daquela porta chega (`resolverPendentes`).
+  const pendentesRef = useRef({});
   const clipboardRef = useRef(null); // último Ctrl+C: snapshot de blocos/frames/notas
   const colagensRef = useRef(0);     // colagens seguidas do mesmo clipboard, pro deslocamento em cascata
   const projetoRef = useRef(null);  // raiz do projeto aberto, pro handler de `project`
@@ -1962,6 +1970,49 @@ function App() {
     }
     return out;
   }, [edges, tick]);
+  // Ops de sugestão para a entrada `porta` de `alvo`, recém-ligada a
+  // `origem`/`saida`. É o ÚNICO gatilho automático de sugestão: ligar (ou
+  // religar) uma entrada. Re-execução a montante com o mesmo schema não passa
+  // por aqui, e schema diferente sem conexão nova só acende o aviso de coluna
+  // sumida — trocar colunas por baixo do usuário sem gesto dele é mágica
+  // demais. Sem schema ainda, fica pendente. `specAlvo`/`valores` vêm de quem
+  // chama quando o alvo é um bloco que ainda não voltou do servidor.
+  // Atualiza os refs otimistas (params e selo) como `onParam` faz.
+  function sugestoesAoLigar(alvo, porta, origem, saida, specAlvo, valores) {
+    if (!sugestoesRef.current) return [];
+    const no = nodesRef.current.find((n) => n.id === alvo);
+    const spec = specAlvo || no?.data.spec;
+    if (!spec) return [];
+    const primeira = spec.inputs?.[0]?.name;
+    const ps = (spec.params || []).filter((p) => p.kind === "cols" && (p.from ?? primeira) === porta);
+    if (!ps.some(anotado)) return [];
+    const chave = alvo + "\u0000" + porta;
+    const schema = schemaDaSaida(origem, saida);
+    if (!schema) { pendentesRef.current[chave] = true; return []; }
+    delete pendentesRef.current[chave];
+    const val = valores || { ...(no?.data.params || {}), ...(paramsRef.current[alvo] || {}) };
+    const sugs = sugerirColunas(ps, val, sugeridosDe(alvo, no?.data.sugeridos), schema);
+    if (!sugs.length) return [];
+    marcarLocal(alvo, sugs, true);
+    return sugs.map(({ name, value }) => ({ op: "set_param", node: alvo, name, value, origem: "sugestao" }));
+  }
+  // Chamado a cada evento de unidade: alguma entrada pendente ganhou schema?
+  // A aresta é procurada no estado atual — se ela ainda não ecoou, a pendência
+  // espera o próximo evento; se foi desligada, `document` a descarta.
+  function resolverPendentes() {
+    const chaves = Object.keys(pendentesRef.current);
+    if (!chaves.length) return;
+    if (!sugestoesRef.current) { pendentesRef.current = {}; return; }
+    const ops = [];
+    for (const k of chaves) {
+      const [alvo, porta] = k.split("\u0000");
+      const e = edgesRef.current.find((x) => x.target === alvo && x.targetHandle === porta);
+      if (e) ops.push(...sugestoesAoLigar(alvo, porta, e.source, e.sourceHandle));
+    }
+    if (ops.length) { bumpTick(); pushMany(ops); }
+  }
+  const valoresPadrao = (spec) => Object.fromEntries((spec?.params || []).map((p) => [p.name, p.default]));
+
   function schemaDaSaida(no, porta) {
     const st = stateRef.current[no];
     if (!st) return null;
@@ -2289,6 +2340,7 @@ function App() {
                    // Mesmo `?? true`: o flag nasce ligado quando o projeto
                    // não diz nada (`trama.json` sem `sugestoes`).
                    sugestoes: m.sugestoes ?? true });
+        sugestoesRef.current = m.sugestoes ?? true;
         return;
       }
 
@@ -2304,6 +2356,12 @@ function App() {
         sugeridosRef.current = {};
         setDoc(m.doc);
         const { nodes: novos, edges: e, needsLayout } = docToFlow(m.doc, catalogRef.current);
+        // Entrada pendente de sugestão que o documento não liga mais (foi
+        // desligada, ou o undo levou o connect): esquece.
+        for (const k of Object.keys(pendentesRef.current)) {
+          const [alvo, porta] = k.split("\u0000");
+          if (!e.some((x) => x.target === alvo && x.targetHandle === porta)) delete pendentesRef.current[k];
+        }
         // `docToFlow` refaz cada card sem `measured`, e até o React Flow medir
         // de novo o `rectOf` via o card como 0x0: Ctrl+G enquadrava errado e o
         // frame arrastado não levava card nenhum (com a janela escondida, sem
@@ -2564,6 +2622,7 @@ function App() {
       // pra saber em qual card pintar.
       stateRef.current[m.node] = { ...(stateRef.current[m.node] || {}), ...patch };
       bumpTick();
+      if (patch.handles || patch.handle) resolverPendentes();
       return;
     }
     // Evento DE UNIDADE de uma região (running/done/cached/failed/blocked/
@@ -2576,6 +2635,7 @@ function App() {
       stateRef.current[id] = { ...(stateRef.current[id] || {}), ...regionMemberPatch(m, patch, id, regiao) };
     });
     bumpTick();
+    resolverPendentes();
   }
 
   // O patch de UM membro da região, a partir do evento da unidade inteira.
@@ -2842,9 +2902,15 @@ function App() {
     return sel.length > 1 && sel.includes(id) ? sel : [id];
   };
 
+  // Com o flag `sugestoes`, as colunas sugeridas vão no MESMO batch do
+  // connect: um passo de undo desfaz a ligação e o preenchimento juntos.
+  // Religar uma porta já ligada é o mesmo caminho — `sugerir` só mexe no que
+  // está vazio ou ainda marcado como sugerido.
   const onConnect = useCallback((c) => {
-    pushOp({ op: "connect", from_node: c.source, from_port: c.sourceHandle,
-             to_node: c.target, to_port: c.targetHandle });
+    const sug = sugestoesAoLigar(c.target, c.targetHandle, c.source, c.sourceHandle);
+    if (sug.length) bumpTick();
+    pushMany([{ op: "connect", from_node: c.source, from_port: c.sourceHandle,
+                to_node: c.target, to_port: c.targetHandle }, ...sug]);
   }, []);
 
   const isValidConnection = useCallback((c) => {
@@ -2999,12 +3065,17 @@ function App() {
                        w: n.measured?.width ?? n.width ?? MIN_W, h: n.measured?.height ?? n.height ?? 200 }))
         .concat(filaProxRef.current.map((f) => ({ ...f.pos, w: MIN_W, h: f.h ?? hMeio })));
       pm.y = vaoPerto(caixasMeio, { x: pm.x, y: pm.y, w: MIN_W, h: hMeio }, 30);
+      const specMeio = catalogRef.current?.nodes.find((x) => x.id === tipoId);
       const opsMeio = [
         { op: "disconnect", from_node: a.source, from_port: a.sourceHandle,
           to_node: a.target, to_port: a.targetHandle, index: a.index },
         ...opsAdd(tipoId, pm, nid),
         { op: "connect", from_node: a.source, from_port: a.sourceHandle, to_node: nid, to_port: porta },
         { op: "connect", from_node: nid, from_port: saidaMeio, to_node: a.target, to_port: a.targetHandle },
+        // O bloco do meio lê a origem (que pode já ter schema); o destino passa
+        // a ler o bloco novo, que ainda não rodou — fica pendente.
+        ...sugestoesAoLigar(nid, porta, a.source, a.sourceHandle, specMeio, valoresPadrao(specMeio)),
+        ...sugestoesAoLigar(a.target, a.targetHandle, nid, saidaMeio),
       ];
       // Com inserts encadeados na fila (ou o último ainda em voo), este entra
       // atrás deles: sair antes mandaria uma revisão que eles tornam defasada.
@@ -3045,9 +3116,12 @@ function App() {
                                  { limite: 600, passoX: origemModo ? -300 : 300, colunas: 6 }));
     const nid = novoId();
     // Em "origem", `porta` é a SAÍDA do bloco novo e a conexão vai dele ao alvo.
+    const specNovo = cat.nodes.find((x) => x.id === tipoId);
     const ops = [...opsAdd(tipoId, pos, nid), origemModo
       ? { op: "connect", from_node: nid, from_port: porta, to_node: p.de, to_port: p.porta }
-      : { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta }];
+      : { op: "connect", from_node: p.de, from_port: p.porta, to_node: nid, to_port: porta },
+      ...(origemModo ? sugestoesAoLigar(p.de, p.porta, nid, porta)
+                     : sugestoesAoLigar(nid, porta, p.de, p.porta, specNovo, valoresPadrao(specNovo)))];
     // O servidor recusa op com revisão defasada: se a origem ainda não ecoou
     // (Tab rápido), o insert espera na fila e sai quando ela chegar.
     enviarProx(ops, nid, { pos: { ...pos }, h: hNovo });
