@@ -28,7 +28,7 @@ export function Proximo({ catalog, de, tipo, tipoPara, modo = "proximo", present
   const porId = useMemo(() => Object.fromEntries((catalog.nodes || []).map((n) => [n.id, n])), [catalog]);
   const categoria = useMemo(() => Object.fromEntries((catalog.categories || []).map((c) => [c.id, c])), [catalog]);
   const resultados = useMemo(() => mostrarFantasma(sugestoes, q)
-    ? buscarFantasma(ranking.filter((s) => s.score > 0), catalog, q) : [],
+    ? buscarFantasma(ranking, catalog, q) : [],
     [ranking, catalog, q, sugestoes]);
 
   useEffect(() => { setFoco(resultados.length ? 0 : -1); }, [q, resultados.length]);

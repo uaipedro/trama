@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buscarFantasma, moverFantasma, mostrarFantasma, yDosFantasmas } from "../../inst/www/fantasmas.js";
+import { buscarFantasma, moverFantasma, mostrarFantasma, pontoBusca, yDosFantasmas } from "../../inst/www/fantasmas.js";
 
 const catalog = { nodes: [
   { id: "a/one", label: "Ler CSV", description: "Lê uma tabela" },
@@ -41,4 +41,24 @@ test("previews descem para não cobrir filhos existentes da saída", () => {
   assert.equal(yDosFantasmas(100, [{ y: 120, h: 180 }], 250), 316);
   assert.equal(yDosFantasmas(100, [{ y: 500, h: 180 }], 250), 100);
   assert.equal(yDosFantasmas(100, []), 100);
+});
+
+test("busca acha bloco que o sugestor não pontuou (ANOVA saindo do CSV)", () => {
+  const cat = { nodes: [
+    { id: "data/filter", label: "Filtrar", description: "Mantém linhas" },
+    { id: "models/anova_dbc", label: "ANOVA · DBC", description: "Blocos casualizados" },
+  ] };
+  const r = [{ id: "data/filter", score: 3 }, { id: "models/anova_dbc", score: 0 }];
+  assert.deepEqual(buscarFantasma(r, cat).map((s) => s.id), ["data/filter"]);
+  assert.deepEqual(buscarFantasma(r, cat, "anova").map((s) => s.id), ["models/anova_dbc"]);
+  assert.deepEqual(buscarFantasma(r, cat, "anv").map((s) => s.id), ["models/anova_dbc"]);
+  assert.deepEqual(buscarFantasma(r, cat, "dbc anova").map((s) => s.id), ["models/anova_dbc"]);
+});
+
+test("busca ignora acento e caixa e põe início de palavra na frente", () => {
+  assert.deepEqual(buscarFantasma(ranked, catalog, "grafico").map((s) => s.id), ["b/three"]);
+  assert.equal(pontoBusca("res", "Resumo"), 3);
+  assert.equal(pontoBusca("sum", "Resumo"), 2);
+  assert.equal(pontoBusca("rsm", "Resumo"), 1);
+  assert.equal(pontoBusca("xyz", "Resumo"), -1);
 });
