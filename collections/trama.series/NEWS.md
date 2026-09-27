@@ -1,3 +1,7 @@
+# trama.series 0.4.4
+
+* `series/component` corta as pontas sem valor (o meio ciclo que a média móvel da decomposição clássica perde em cada lado): a série que sai segue direto para `series/kpss`, `series/acf` e afins. Faltante no meio continua faltante.
+
 # trama.series 0.4.3
 
 * `series/regression`: termos sazonais podem sair do modelo — à mão (**Excluir termos sazonais**) ou por eliminação para trás dos não significativos (**Remover termos sazonais não significativos**, com α). Os que saem viram o nível base `demais`, com contraste de categoria base.

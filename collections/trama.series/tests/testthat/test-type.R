@@ -87,7 +87,19 @@ test_that("tipo da regressão: guard, identidade, resumo e card de texto", {
   expect_true(s$sazonalidade)
   expect_gt(s$r2_ajustado, 0.8)
   expect_lt(s$p_valor_f, 0.001)
-  expect_equal(ty$preview(r, ctx_tmp())$renderer, "trama/text")
+  # Card de modelo quando a `trama.models` (dona do renderer) está carregada;
+  # texto sem ela.
+  pv <- ty$preview(r, ctx_tmp())
+  if (isNamespaceLoaded("trama.models")) {
+    expect_equal(pv$renderer, "models/fit")
+    expect_equal(pv$data$global$rotulo, "F global")
+    expect_length(pv$data$linhas, length(stats::coef(r$ajuste)))
+  } else {
+    expect_equal(pv$renderer, "trama/text")
+  }
+  card <- .tr_series_reg_card(r)
+  expect_equal(card$n, length(r$serie))
+  expect_equal(vapply(card$destaques, `[[`, "", "rotulo"), c("R²", "R² aj.", "AIC"))
   expect_error(ty$store(serie_mensal(), tempfile()),
                class = "tr_series_error_not_a_regression")
 })

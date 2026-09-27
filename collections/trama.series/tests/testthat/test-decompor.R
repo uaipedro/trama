@@ -22,7 +22,10 @@ test_that("multiplicativa multiplica, e dessazonalizada divide", {
   tend <- tr_series_component(d, "tendencia")
   expect_equal(attr(tend, "tr_series_nome"), "tendência")
   attr(tend, "tr_series_nome") <- NULL
-  expect_identical(tend, d$tendencia)
+  # Sem as pontas que a média móvel perde: elas não são faltantes, e o bloco
+  # seguinte (um KPSS, um ACF) não pode parar por causa delas.
+  expect_false(anyNA(tend))
+  expect_identical(tend, stats::na.omit(d$tendencia), ignore_attr = "na.action")
 })
 
 test_that("decompor recusa série anual, curta, com faltante ou não positiva", {
@@ -117,10 +120,12 @@ test_that("sem_tendencia: série menos a tendência na aditiva, dividida na mult
                  .tr_series_reg_decomp(tr_series_regression(x)))) {
     st <- tr_series_component(d, "sem_tendencia")
     expect_true(stats::is.ts(st))
-    expect_equal(stats::tsp(st), stats::tsp(x))
-    # Somar a tendência de volta reconstrói a série (NA das pontas da clássica
-    # ficam NA dos dois lados).
-    expect_equal(as.numeric(st + d$tendencia), as.numeric(ifelse(is.na(d$tendencia), NA, x)))
+    expect_equal(stats::frequency(st), stats::frequency(x))
+    expect_false(anyNA(st))
+    # Somar a tendência de volta reconstrói a série, sem as pontas que a média
+    # móvel da clássica perde.
+    expect_equal(as.numeric(st + d$tendencia),
+                 as.numeric(stats::window(x, stats::start(st), stats::end(st))))
   }
   # Regressão de grau 1: é a série menos a reta de mínimos quadrados em t,
   # com a sazonalidade dentro.
@@ -129,7 +134,8 @@ test_that("sem_tendencia: série menos a tendência na aditiva, dividida na mult
   expect_equal(as.numeric(st), as.numeric(r$sazonal + r$resto))
   m <- tr_series_decompose(x, "multiplicativa")
   sm <- tr_series_component(m, "sem_tendencia")
-  expect_equal(as.numeric(sm * m$tendencia), as.numeric(ifelse(is.na(m$tendencia), NA, x)))
+  expect_equal(as.numeric(sm * m$tendencia),
+               as.numeric(stats::window(x, stats::start(sm), stats::end(sm))))
   # Fator em torno de 1, e não de zero: a divisão, e não a subtração.
   expect_equal(mean(sm, na.rm = TRUE), 1, tolerance = .02)
 })

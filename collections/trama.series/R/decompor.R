@@ -80,6 +80,15 @@ tr_series_component <- function(decomposicao, componente = "dessazonalizada") {
     dessazonalizada = if (mult) d$observado / d$sazonal else d$observado - d$sazonal,
     sem_tendencia = if (mult) d$observado / d$tendencia else d$observado - d$tendencia)
   out <- .tr_series_uni(out)
+  # As pontas sem valor não são faltantes: são as observações que a média
+  # móvel da decomposição clássica perde nos dois lados (meio ciclo em cada
+  # um). Saem com `window`, que mantém o tempo; NA no MEIO da série continua
+  # sendo faltante de verdade, e os blocos seguintes recusam como antes.
+  ok <- which(!is.na(out))
+  if (length(ok) && (ok[[1]] > 1L || ok[[length(ok)]] < length(out))) {
+    tt <- stats::time(out)
+    out <- stats::window(out, start = tt[[ok[[1]]]], end = tt[[ok[[length(ok)]]]])
+  }
   # O nome legível do componente viaja com a série: é o que o `series/plot`
   # escreve na legenda quando ela entra como `sobreposta`. Atributo e não
   # classe: a série continua um `ts` comum para todo o resto.
