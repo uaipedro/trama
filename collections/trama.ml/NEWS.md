@@ -1,3 +1,9 @@
+# trama.ml 0.5.4
+
+* `ml/tree_plot` agora desenha uma árvore da floresta aleatória, padroniza a
+  precisão dos valores e limiares e reserva margem para que os rótulos não
+  sejam cortados. A versão do bloco sobe para 2.
+
 # trama.ml 0.5.1
 
 * Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.

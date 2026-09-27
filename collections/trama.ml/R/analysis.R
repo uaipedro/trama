@@ -40,7 +40,7 @@ NULL
   nodes
 }
 
-.tr_ml_cart_plot_data <- function(modelo) {
+.tr_ml_cart_plot_data <- function(modelo, casas = 3L) {
   fr <- modelo$ajuste$frame
   ids <- as.integer(row.names(fr))
   decisao <- valor <- rep(NA_character_, nrow(fr)); valor_num <- rep(NA_real_, nrow(fr)); pos <- 1L
@@ -55,7 +55,8 @@ NULL
       variavel <- modelo$preditores[match(row.names(modelo$ajuste$splits)[[pos]], modelo$internos)]
       operador <- if (unname(sp[1L, "ncat"]) < 0) " < " else " >= "
       decisao[[i]] <- paste0(variavel, operador,
-                             format(unname(sp[1L, "index"]), digits = 17L))
+                             formatC(unname(sp[1L, "index"]), format = "f", digits = casas,
+                                     big.mark = ".", decimal.mark = ","))
       pos <- pos + 1L + fr$ncompete[[i]] + fr$nsurrogate[[i]]
     }
   }
@@ -66,7 +67,7 @@ NULL
     nome_qualidade = "impureza")
 }
 
-.tr_ml_figs_plot_data <- function(modelo, arvore) {
+.tr_ml_figs_plot_data <- function(modelo, arvore, casas = 3L) {
   arvore <- .tr_ml_int(arvore, "arvore", 1L)
   if (arvore > length(modelo$ajuste$trees)) {
     .tr_ml_abort("tr_ml_error_bad_param", "Param 'arvore' excede o n\u{FA}mero de \u{E1}rvores do FIGS.")
@@ -80,7 +81,8 @@ NULL
   decisao <- vapply(tr, function(no) {
     if (no$is_leaf) return(NA_character_)
     variavel <- modelo$preditores[match(no$feature, modelo$internos)]
-    paste0(variavel, " <= ", format(no$split_val, digits = 17L))
+    paste0(variavel, " <= ", formatC(no$split_val, format = "f", digits = casas,
+                                      big.mark = ".", decimal.mark = ","))
   }, character(1))
   ramo <- vapply(ids, function(id) {
     p <- which(vapply(tr, function(no) identical(no$left_child, id) || identical(no$right_child, id), logical(1)))
@@ -95,10 +97,51 @@ NULL
     qualidade = vapply(tr, `[[`, numeric(1), "gain"), nome_qualidade = "ganho")
 }
 
-#' Visualizar uma árvore CART ou uma das árvores do FIGS
-#' @param modelo Modelo CART ou FIGS devolvido por [tr_ml_fit()]; outro modelo
+.tr_ml_forest_plot_data <- function(modelo, arvore, casas = 3L) {
+  arvore <- .tr_ml_int(arvore, "arvore", 1L)
+  if (!requireNamespace("ranger", quietly = TRUE))
+    .tr_ml_abort("tr_ml_error_missing_engine", "Instale 'ranger' para visualizar esta floresta.")
+  if (arvore > modelo$ajuste$num.trees)
+    .tr_ml_abort("tr_ml_error_bad_param", "Param 'arvore' excede o número de árvores da floresta.")
+  tr <- ranger::treeInfo(modelo$ajuste, tree = arvore)
+  ids <- tr$nodeID
+  pai <- vapply(ids, function(id) {
+    i <- which(tr$leftChild == id | tr$rightChild == id)
+    if (length(i)) tr$nodeID[[i[[1L]]]] else NA_integer_
+  }, integer(1))
+  ramo <- vapply(ids, function(id) {
+    i <- which(tr$leftChild == id | tr$rightChild == id)
+    if (!length(i)) return(NA_character_)
+    if (tr$leftChild[[i[[1L]]]] == id) "sim" else "não"
+  }, character(1))
+  folha <- tr$terminal
+  valor <- rep(NA_character_, length(ids))
+  valor_num <- rep(NA_real_, length(ids))
+  if ("prediction" %in% names(tr)) {
+    valor[folha] <- as.character(tr$prediction[folha])
+    if (is.numeric(tr$prediction)) valor_num[folha] <- tr$prediction[folha]
+  } else {
+    probs <- grep("^pred\\.", names(tr), value = TRUE)
+    if (length(probs)) {
+      classe <- sub("^pred\\.", "", probs)
+      valor[folha] <- vapply(which(folha), function(i) classe[[which.max(unlist(tr[i, probs, drop = FALSE]))]], character(1))
+    }
+  }
+  decisao <- rep(NA_character_, length(ids))
+  variaveis <- modelo$preditores[match(tr$splitvarName, modelo$internos)]
+  variaveis[is.na(variaveis)] <- tr$splitvarName[is.na(variaveis)]
+  decisao[!folha] <- paste0(variaveis[!folha], " <= ",
+                            formatC(tr$splitval[!folha], format = "f", digits = casas,
+                                    big.mark = ".", decimal.mark = ","))
+  tibble::tibble(id = ids + 1L, pai = ifelse(is.na(pai), NA_integer_, pai + 1L), ramo = ramo,
+    folha = folha, decisao = decisao, valor = valor, valor_num = valor_num,
+    n = NA_integer_, qualidade = NA_real_, nome_qualidade = "impureza")
+}
+
+#' Visualizar uma árvore CART, FIGS ou de uma floresta aleatória
+#' @param modelo Modelo CART, FIGS ou floresta devolvido por [tr_ml_fit()]; outro modelo
 #'   é recusado com erro `tr_ml_error_not_fit`.
-#' @param arvore Índice positivo da árvore do FIGS. Ignorado pelo CART.
+#' @param arvore Índice positivo da árvore no FIGS ou na floresta. Ignorado pelo CART.
 #' @param mostrar_n Inclui em cada nó o número de observações que o alcançam.
 #' @param mostrar_impureza Inclui a impureza do CART ou o ganho do FIGS.
 #' @param casas Número inteiro, de zero a seis, de casas decimais nos rótulos.
@@ -117,23 +160,25 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
                             titulo = "", rotulo_x = "", rotulo_y = "",
                             legenda = "direita") {
   .tr_ml_exigir_fit(modelo, "ml/tree_plot")
-  if (!modelo$modelo %in% c("cart", "figs"))
-    .tr_ml_abort("tr_ml_error_not_applicable", "A visualiza\u{E7}\u{E3}o de \u{E1}rvore aceita apenas CART e FIGS.")
-  nodes <- if (modelo$modelo == "cart") .tr_ml_cart_plot_data(modelo) else
-    .tr_ml_figs_plot_data(modelo, arvore)
+  if (!modelo$modelo %in% c("cart", "figs", "forest"))
+    .tr_ml_abort("tr_ml_error_not_applicable", "A visualiza\u{E7}\u{E3}o de \u{E1}rvore aceita apenas CART, FIGS e floresta aleat\u{F3}ria.")
   if (length(mostrar_n) != 1L || !is.logical(mostrar_n) || is.na(mostrar_n) ||
       length(mostrar_impureza) != 1L || !is.logical(mostrar_impureza) || is.na(mostrar_impureza))
     .tr_ml_abort("tr_ml_error_bad_param", "'mostrar_n' e 'mostrar_impureza' devem ser TRUE ou FALSE.")
   casas <- .tr_ml_int(casas, "casas", 0L)
   if (casas > 6L) .tr_ml_abort("tr_ml_error_bad_param", "Param 'casas' n\u{E3}o pode superar 6.")
-  numero <- function(x) formatC(x, format = "f", digits = casas)
+  nodes <- switch(modelo$modelo, cart = .tr_ml_cart_plot_data(modelo, casas),
+    figs = .tr_ml_figs_plot_data(modelo, arvore, casas),
+    forest = .tr_ml_forest_plot_data(modelo, arvore, casas))
+  numero <- function(x) formatC(x, format = "f", digits = casas, big.mark = ".", decimal.mark = ",")
   valor_rotulo <- ifelse(is.finite(nodes$valor_num), numero(nodes$valor_num), nodes$valor)
   nodes$label <- ifelse(nodes$folha,
     paste0(if (modelo$modelo == "figs") "contribui\u{E7}\u{E3}o: " else "previs\u{E3}o: ", valor_rotulo),
     nodes$decisao)
-  if (mostrar_n) nodes$label <- paste0(nodes$label, "\nn = ", nodes$n)
-  if (mostrar_impureza) nodes$label <- paste0(nodes$label, "\n", nodes$nome_qualidade,
-                                               " = ", numero(nodes$qualidade))
+  if (mostrar_n && any(!is.na(nodes$n))) nodes$label <- ifelse(!is.na(nodes$n),
+    paste0(nodes$label, "\nn = ", nodes$n), nodes$label)
+  if (mostrar_impureza && any(is.finite(nodes$qualidade))) nodes$label <- ifelse(is.finite(nodes$qualidade),
+    paste0(nodes$label, "\n", nodes$nome_qualidade, " = ", numero(nodes$qualidade)), nodes$label)
   nodes <- .tr_ml_tree_layout(nodes)
   edges <- nodes[!is.na(nodes$pai), ]
   p <- ggplot2::ggplot(nodes, ggplot2::aes(x = .data$x, y = .data$y)) +
@@ -143,13 +188,18 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
     ggplot2::geom_label(data = edges,
       ggplot2::aes(x = (.data$x_pai + .data$x) / 2, y = (.data$y_pai + .data$y) / 2,
                    label = .data$ramo), inherit.aes = FALSE, size = 2.7,
-      label.size = 0, fill = "white") +
+      label.size = 0, fill = "white", colour = "#172033") +
     ggplot2::geom_label(ggplot2::aes(label = .data$label, fill = .data$folha),
-                        label.size = .25, size = 3.2, show.legend = FALSE) +
+                        label.size = .25, size = 3, label.padding = grid::unit(0.16, "lines"),
+                        colour = "#172033", show.legend = FALSE) +
     ggplot2::scale_fill_manual(values = c(`FALSE` = "#dbeafe", `TRUE` = "#dcfce7")) +
-    ggplot2::labs(x = NULL, y = NULL) + ggplot2::theme(axis.text = ggplot2::element_blank(),
-      axis.ticks = ggplot2::element_blank(), panel.grid = ggplot2::element_blank())
-  .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(add = 0.65)) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(add = 0.75)) +
+    ggplot2::coord_cartesian(clip = "off") + ggplot2::labs(x = NULL, y = NULL)
+  p <- .tr_ml_finish_plot(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+  p + ggplot2::theme(axis.text = ggplot2::element_blank(),
+    axis.ticks = ggplot2::element_blank(), axis.title = ggplot2::element_blank(),
+    panel.grid = ggplot2::element_blank(), plot.margin = ggplot2::margin(14, 24, 14, 24))
 }
 
 #' Gráfico de resíduos de regressão

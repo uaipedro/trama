@@ -2,7 +2,7 @@
 % Please edit documentation in R/analysis.R
 \name{tr_ml_tree_plot}
 \alias{tr_ml_tree_plot}
-\title{Visualizar uma árvore CART ou uma das árvores do FIGS}
+\title{Visualizar uma árvore CART, FIGS ou de uma floresta aleatória}
 \usage{
 tr_ml_tree_plot(
   modelo,
@@ -19,10 +19,10 @@ tr_ml_tree_plot(
 )
 }
 \arguments{
-\item{modelo}{Modelo CART ou FIGS devolvido por \code{\link[=tr_ml_fit]{tr_ml_fit()}}; outro modelo
+\item{modelo}{Modelo CART, FIGS ou floresta devolvido por \code{\link[=tr_ml_fit]{tr_ml_fit()}}; outro modelo
 é recusado com erro \code{tr_ml_error_not_fit}.}
 
-\item{arvore}{Índice positivo da árvore do FIGS. Ignorado pelo CART.}
+\item{arvore}{Índice positivo da árvore no FIGS ou na floresta. Ignorado pelo CART.}
 
 \item{mostrar_n}{Inclui em cada nó o número de observações que o alcançam.}
 
@@ -47,5 +47,5 @@ ou \code{"2:1"}.}
 Objeto \code{ggplot} com os nós, ramos e folhas da árvore selecionada.
 }
 \description{
-Visualizar uma árvore CART ou uma das árvores do FIGS
+Visualizar uma árvore CART, FIGS ou de uma floresta aleatória
 }

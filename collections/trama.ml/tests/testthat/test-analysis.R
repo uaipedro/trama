@@ -23,6 +23,15 @@ test_that("visualizador desenha CART e recusa modelos sem árvore legível", {
     expect_s3_class(pf, "ggplot")
     expect_true(any(grepl("ganho", pf$data$label, fixed = TRUE)))
   }
+
+  if (requireNamespace("ranger", quietly = TRUE)) {
+    floresta <- tr_ml_forest(iris, "Species", "Sepal.Length, Petal.Length", trees = 3)
+    pf <- tr_ml_tree_plot(floresta)
+    expect_s3_class(pf, "ggplot")
+    expect_gt(nrow(pf$data), 1L)
+    expect_match(pf$data$label[pf$data$folha][[1L]], "previsão:")
+    expect_error(tr_ml_tree_plot(floresta, arvore = 4L), class = "tr_ml_error_bad_param")
+  }
 })
 
 test_that("diagnóstico de resíduos mostra erro contra previsão", {
@@ -43,4 +52,3 @@ test_that("histórico de tuning vira gráfico e valida o contrato", {
   expect_error(tr_ml_tuning_plot(h, "ausente"), class = "tr_ml_error_bad_tuning")
   expect_error(tr_ml_tuning_plot(h[, -2]), class = "tr_ml_error_bad_tuning")
 })
-
