@@ -144,6 +144,17 @@ test_that("a região vira UMA unidade, com as saídas do colapso", {
   expect_lt(which(names(plan$units) == "colapsa"), which(names(plan$units) == "depois"))
 })
 
+test_that("nó de tipo desconhecido em outro ramo não desfaz a região", {
+  reg <- mem_registry()
+  doc <- tr_flow_doc(mem_flow(reg) |> tr_add("orfao", "m/mostra", from = "tab"))
+  doc$nodes$orfao$type <- "series/nao_existe"
+
+  plan <- tr_plan(doc, registry = reg)
+  expect_equal(plan$units[["colapsa"]]$kind, "stream_region")
+  expect_match(plan$units[["orfao"]]$invalid, "unknown_node_type")
+  expect_false("colapsa" %in% vapply(tr_plan_blocked(plan), function(u) u$node, ""))
+})
+
 test_that("nó interior não tem unidade nem chave", {
   plan <- mem_plan(mem_registry())
   expect_null(plan$units[["acumula"]])

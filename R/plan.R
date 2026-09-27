@@ -32,11 +32,17 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
   # varredura a cada visita e repetiria a recusa. Documento sem porta de fluxo
   # devolve `list()` sem percorrer nada, então o caminho de sempre não paga por
   # isto — e não fica sabendo que fluxo existe.
-  # A detecção de fluxo depende do catálogo. Se há tipos desconhecidos, eles
-  # não podem participar de uma região; deixam-se essas arestas no plano
-  # comum, onde o nó desconhecido será marcado como não executável.
-  tem_desconhecido <- any(vapply(doc$nodes, function(n) is.null(registry$nodes[[n$type]]), logical(1)))
-  regions <- if (tem_desconhecido) list() else .tr_stream_regions(doc, registry)
+  # A detecção de fluxo lê o catálogo, então nó de tipo desconhecido não pode
+  # entrar nela. Tira-se só ele (e suas arestas): as regiões do resto do grafo
+  # continuam valendo, e o nó segue no plano comum como não executável.
+  desconhecidos <- names(Filter(function(n) is.null(registry$nodes[[n$type]]), doc$nodes))
+  doc_conhecido <- doc
+  if (length(desconhecidos)) {
+    doc_conhecido$nodes <- doc$nodes[setdiff(names(doc$nodes), desconhecidos)]
+    doc_conhecido$edges <- Filter(function(e) !e$from$node %in% desconhecidos &&
+                                    !e$to$node %in% desconhecidos, doc$edges)
+  }
+  regions <- .tr_stream_regions(doc_conhecido, registry)
   region_of <- list(); region_unit <- list()
   for (r in regions) for (id in r$nodes) {
     region_of[[id]] <- r$id
