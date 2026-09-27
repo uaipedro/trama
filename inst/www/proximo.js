@@ -10,6 +10,7 @@ import { sugerir, sugerirOrigem, intermediarios } from "./sugestor.js";
 import { lerHistorico } from "./historico.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { moverFoco, alturaNova, primeiroVao, vaoPerto, vaoAoLado } from "./proximo-foco.js";
+import { motivoPrincipal } from "./motivo-proximo.js";
 
 export { moverFoco, alturaNova, primeiroVao, vaoPerto, vaoAoLado };
 
@@ -19,20 +20,7 @@ const MARGEM = 8;
 const casa = (n, termo) =>
   !termo || `${n.label} ${n.description || ""} ${n.id}`.toLowerCase().includes(termo);
 
-// O motivo de maior peso vira a dica da tagzinha.
-export function motivoPrincipal(s, { deLabel, historico, de, origem }) {
-  const [chave] = Object.entries(s.motivos || {}).filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])[0] || [];
-  switch (chave) {
-    case "transicao": return origem ? `aparece antes de ${deLabel} nos exemplos`
-      : `aparece depois de ${deLabel} nos exemplos`;
-    case "historico": return `usado por você ${historico?.[origem ? `${s.id}>${de}` : `${de}>${s.id}`] || 1}×`;
-    case "relacionado": return origem ? `cita ${deLabel} na ajuda` : `citado na ajuda de ${deLabel}`;
-    case "etapa": return origem ? "etapa anterior" : "próxima etapa";
-    case "contexto": return "combina com o fluxo";
-    default: return "";
-  }
-}
+export { motivoPrincipal };
 
 // `modo`: "proximo" (padrão) sugere o que vem depois de `de`, cuja saída tem
 // `tipo`; "origem" sugere o que vem ANTES de `de`, cuja entrada espera `tipo`,
