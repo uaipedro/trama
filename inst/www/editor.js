@@ -24,7 +24,7 @@ import { NotaNode, NotaDraw } from "./notas.js";
 import { pisoNota } from "./geometria.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
-import { cosmetica, afetados } from "./ops.js";
+import { cosmetica, afetados, tocados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
 import { anotado, sugerir as sugerirColunas } from "./colunas.js";
@@ -2452,6 +2452,17 @@ function App() {
         // recomputa. Não recomputando, nenhuma run vai tirar os cards do "na
         // fila" que `pushOp` pintou — volta ao repouso aqui.
         if (m.semantic === false) liberarPendentes();
+        // Veio do canal de controle: acende os cards que o agente mexeu. O
+        // `document` chega logo depois deste eco, então espera o card existir.
+        if (m.autor === "agente") setTimeout(() => {
+          const raiz = wrapRef.current || document;
+          tocados(m.op).forEach((id) => {
+            const el = raiz.querySelector(`.react-flow__node[data-id="${CSS.escape(id)}"]`);
+            if (!el) return;
+            el.classList.remove("tr-agente"); void el.offsetWidth; el.classList.add("tr-agente");
+            setTimeout(() => el.classList.remove("tr-agente"), 1800);
+          });
+        }, 120);
         return;
       }
 

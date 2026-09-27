@@ -19,7 +19,12 @@ tr_flow <- function(registry = .tr_default_registry, doc = tr_doc()) {
 .tr_as_doc <- function(x) if (inherits(x, "tr_flow")) x$doc else x
 
 .tr_flow_apply <- function(flow, op) {
-  flow$doc <- tr_doc_apply(flow$doc, op, flow$registry); flow
+  res <- .tr_apply(flow$doc, op, flow$registry)
+  flow$doc <- res$doc
+  # Gravador opcional: o canal de controle monta ops com esta DSL e precisa
+  # delas (normalizadas) para mandar ao editor, não só do documento final.
+  if (!is.null(flow$ops)) flow$ops[[length(flow$ops) + 1L]] <- res$op
+  flow
 }
 
 #' Acrescenta um nó. `...` são params (nomeados). `from` liga a saída de um ou

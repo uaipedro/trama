@@ -39,3 +39,11 @@ export function afetados(op, arestas) {
   }
   return alvo;
 }
+
+// Nós que uma op nomeia diretamente — o que o editor destaca quando a op veio
+// do canal de controle (`autor: "agente"`), pra quem olha a tela ver onde o
+// agente mexeu. Diferente de `afetados`: aqui é o gesto, não a propagação.
+export function tocados(op) {
+  if (op.op === "batch") return [...new Set(op.ops.flatMap(tocados))];
+  return [op.id, op.node, op.from_node, op.to_node].filter((x) => typeof x === "string");
+}

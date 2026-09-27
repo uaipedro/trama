@@ -10,7 +10,8 @@ tr_param_col(
   role = "qualquer",
   multi = FALSE,
   from = NULL,
-  example = NULL
+  example = NULL,
+  suggest = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ tr_param_col(
 \item{from}{Nome da entrada cujas colunas servem; \code{NULL} é a primeira.}
 
 \item{example}{Exemplo mostrado no campo.}
+
+\item{suggest}{\code{FALSE} tira o param do preenchimento automático ao conectar
+(o select ainda oferece "sugerir" a pedido). Para params opcionais:
+preenchê-los sozinho mudaria a análise sem o usuário pedir.}
 }
 \description{
 \code{role} diz que tipo de coluna serve; \code{multi = FALSE} é uma coluna só (select);

@@ -9,6 +9,7 @@ tr_app(
   flow = "main",
   executor = tr_executor_sequential(),
   port = getOption("trama.port", tr_port_default()),
+  controle = getOption("trama.controle", TRUE),
   ...
 )
 }
@@ -18,6 +19,11 @@ Shiny) para que a URL do editor seja sempre a mesma; se estiver ocupada,
 \code{tr_app()} procura a próxima livre e anuncia no console. Mude o padrão da
 sessão com \code{options(trama.port = ...)}, ou passe \code{port = NULL} para deixar
 o Shiny sortear.}
+
+\item{controle}{Sobe o canal de controle para agentes (\code{trama-agente} na linha de
+comando; ver \code{vignette}/site "Agentes"): servidor em 127.0.0.1 com token
+gravado em \code{.trama/control-agente.json}. Desligue com
+\code{options(trama.controle = FALSE)}.}
 }
 \description{
 Os assets do front vêm de \code{inst/www} via \code{htmltools::htmlDependency()}, e

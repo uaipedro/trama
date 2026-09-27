@@ -1297,3 +1297,8 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-tb-ocupado svg{animation:tr-gira .9s linear infinite}
 @keyframes tr-gira{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.tr-tb-ocupado svg{animation:tr-pulse 1.4s ease-in-out infinite}}
+
+/* Card mexido pelo canal de controle (agente): um halo que some sozinho. */
+.react-flow__node.tr-agente{animation:tr-agente 1.8s ease-out}
+@keyframes tr-agente{0%{box-shadow:0 0 0 3px var(--tr-accent);border-radius:10px}100%{box-shadow:0 0 0 12px transparent;border-radius:10px}}
+@media (prefers-reduced-motion:reduce){.react-flow__node.tr-agente{animation:none;outline:2px solid var(--tr-accent)}}

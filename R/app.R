@@ -10,16 +10,20 @@
 #'   `tr_app()` procura a próxima livre e anuncia no console. Mude o padrão da
 #'   sessão com `options(trama.port = ...)`, ou passe `port = NULL` para deixar
 #'   o Shiny sortear.
+#' @param controle Sobe o canal de controle para agentes (`trama-agente` na linha de
+#'   comando; ver `vignette`/site "Agentes"): servidor em 127.0.0.1 com token
+#'   gravado em `.trama/control-agente.json`. Desligue com
+#'   `options(trama.controle = FALSE)`.
 #' @export
 tr_app <- function(project = tr_project("."), flow = "main",
                    executor = tr_executor_sequential(),
-                   port = getOption("trama.port", tr_port_default()), ...) {
+                   port = getOption("trama.port", tr_port_default()),
+                   controle = getOption("trama.controle", TRUE), ...) {
   # Desligar aqui, não em `tr_server`: `onStop` roda uma vez por PROCESSO
   # (quando o app inteiro encerra), enquanto `onSessionEnded` roda por
   # SESSÃO. Um pool de daemons pertence ao processo, não à sessão — matar os
   # daemons no fim de uma sessão derrubaria outras abas ainda abertas.
   shiny::onStop(function() executor$shutdown())
-
   dots <- list(...)
   if (!is.null(port) && is.null(dots$options$port)) {
     livre <- tr_port_free(port)
@@ -27,6 +31,14 @@ tr_app <- function(project = tr_project("."), flow = "main",
       message(sprintf("trama: porta %d ocupada, subindo em %d.", port, livre))
     }
     dots$options <- utils::modifyList(dots$options %||% list(), list(port = livre))
+  }
+  if (isTRUE(controle)) {
+    # Porta do canal escolhida DEPOIS da do editor, para nunca tomar a dele.
+    base <- dots$options$port %||% tr_port_default()
+    ok <- tryCatch({ tr_control_start(project$root, tr_port_free(base + 1L)); TRUE }, error = function(e) {
+      message("trama: canal de controle não subiu: ", conditionMessage(e)); FALSE
+    })
+    if (ok) shiny::onStop(tr_control_stop)
   }
 
   do.call(shiny::shinyApp,

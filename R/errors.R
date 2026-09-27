@@ -87,6 +87,7 @@ tr_errors <- function() {
       "região de fluxo PARADA por comando entre passos — não é falha: o checkpoint fica, ",
       "a chave de saída continua vazia e o scheduler trata como cancelamento"),
     tr_error_template_exists = "tr_template_save() sem overwrite sobre arquivo que já existe",
+    tr_error_control = "canal de controle chamado sem editor aberto no processo",
     tr_error_type_mismatch = "tipos de porta incompatíveis e sem adaptador",
     tr_error_unknown_adapter = "adaptador da aresta não registrado no worker",
     tr_error_unknown_edge = "disconnect de aresta que não existe",

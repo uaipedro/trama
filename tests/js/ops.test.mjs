@@ -26,3 +26,13 @@ test("afetados: o nó mexido e só quem vem depois", () => {
                    ["anova", "graf", "salvar", "tab"]);
   assert.equal(afetados({ op: "op_nova" }, ar), null);
 });
+
+test("tocados: nós nomeados pela op, sem repetir, atravessando batch", async () => {
+  const { tocados } = await import("../../inst/www/ops.js");
+  assert.deepEqual(tocados({ op: "add_node", id: "a", type: "t" }), ["a"]);
+  assert.deepEqual(tocados({ op: "batch", ops: [
+    { op: "add_node", id: "b", type: "t" },
+    { op: "connect", from_node: "a", from_port: "out", to_node: "b", to_port: "in" },
+  ] }), ["b", "a"]);
+  assert.deepEqual(tocados({ op: "set_view", view: {} }), []);
+});

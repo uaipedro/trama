@@ -53,8 +53,15 @@ tr_server <- function(project, flow = "main",
     # um callback do `later`, fora de qualquer contexto reativo do Shiny.
     exec <- new.env(parent = emptyenv()); exec$sched <- NULL; exec$logger <- NULL
 
+    # Último estado de cada nó, para o canal de controle responder `result`
+    # sem reconstruir o plano. Environment pela mesma razão de `exec`.
+    estado <- new.env(parent = emptyenv())
+
     forward <- function(ev) {
       if (!is.null(exec$logger)) exec$logger$log(ev)
+      if (!is.null(ev$node) && !ev$type %in% c("progress", "partial")) {
+        estado[[ev$node]] <- list(status = ev$type, message = ev$message, handles = ev$handles)
+      }
       ev$unit_type <- ev$type
       ev$type <- if (identical(ev$unit_type, "run_finished")) "run_finished" else "unit"
       session$sendCustomMessage("tr_event", ev)
@@ -223,7 +230,10 @@ tr_server <- function(project, flow = "main",
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
                             problems = tr_doc_validate(doc, novo$registry)))
       avisar_migracoes(doc)
+      for (k in ls(estado)) rm(list = k, envir = estado)
       run_now(doc)
+      s <- .tr_control$sessoes[[session$token]]
+      if (!is.null(s)) .tr_control_arquivo(s)
     }
 
     # O front avisa quando montou. Mandar catálogo/documento antes correria o
@@ -243,6 +253,11 @@ tr_server <- function(project, flow = "main",
                             problems = tr_doc_validate(doc, rv_project()$registry)))
       avisar_migracoes(doc)
       run_now(doc)
+      .tr_control_registrar(session$token, list(
+        session = session, raiz = function() rv_project()$root, fluxo = rv_flow,
+        doc = rv_doc, registry = function() rv_project()$registry,
+        store = function() rv_project()$store, aplicar = aplicar,
+        desfazer = desfazer, estado = estado))
     }, once = TRUE)
 
     # O corpo de `tr_op` virou função porque inserir template também é uma op
@@ -250,6 +265,7 @@ tr_server <- function(project, flow = "main",
     # gesto, e duplicar este caminho deixaria os dois divergirem.
     aplicar <- function(env) {
       res <- tr_submit(rv_doc(), env, rv_project()$registry)
+      agente <- identical(env$autor, "agente")
       if (!isTRUE(res$ok)) {
         send("op_rejected", list(seq = env$seq, reason = res$reason, message = res$message,
                                  class = res$class, rev = rv_doc()$rev))
@@ -259,14 +275,14 @@ tr_server <- function(project, flow = "main",
         # sobre um documento que não mudou.
         send("document", list(doc = jsonlite::fromJSON(tr_doc_json(rv_doc()),
                                                        simplifyVector = FALSE)))
-        return(invisible())
+        return(invisible(res))
       }
       rv_doc(res$doc)
       # A op NORMALIZADA (id/seed materializados) é a que entra no log: é o que
       # faz o replay reconstruir o mesmo documento, e não um nó de id novo.
       log[[length(log) + 1L]] <<- res$op
       send("op_applied", list(seq = res$seq, rev = res$rev, op = res$op,
-                              semantic = res$semantic))
+                              semantic = res$semantic, autor = env$autor))
 
       # Op ESTRUTURAL manda o documento junto. O princípio que importa é o
       # front não empurrar o grafo inteiro PRA CIMA a cada tecla — devolver o
@@ -276,12 +292,20 @@ tr_server <- function(project, flow = "main",
       # resultado. Param, posição, tamanho e recolhimento continuam só no eco;
       # a lista de quem devolve o documento é `.tr_doc_echo_ops`, em
       # `R/document.R`.
-      if (.tr_op_echoes_doc(res$op)) {
+      # Op do agente não foi aplicada otimisticamente pelo front — nem param
+      # nem posição —, então o documento vai sempre.
+      if (agente || .tr_op_echoes_doc(res$op)) {
         send("document", list(doc = jsonlite::fromJSON(tr_doc_json(res$doc),
                                                        simplifyVector = FALSE)))
       }
       if (autosave) save_now(res$doc)
-      if (isTRUE(res$semantic)) run_now(res$doc)
+      if (isTRUE(res$semantic)) {
+        # O estado do run anterior não vale mais: sem isto, `result` logo após
+        # a op devolveria o resultado velho como se fosse o novo.
+        for (k in ls(estado)) estado[[k]]$status <- "queued"
+        run_now(res$doc)
+      }
+      invisible(res)
     }
 
     shiny::observeEvent(input$tr_op, aplicar(input$tr_op))
@@ -390,7 +414,7 @@ tr_server <- function(project, flow = "main",
                error = avisar())
     })
 
-    shiny::observeEvent(input$tr_undo, {
+    desfazer <- function() {
       # Undo por REPLAY do log sem a última op, sobre o `base_doc` desta sessão
       # e não sobre o vazio — ver `.tr_undo_doc()`. O valor do input não
       # carrega nada (é só um carimbo que muda); quem sabe o que desfazer é o
@@ -414,7 +438,9 @@ tr_server <- function(project, flow = "main",
                             problems = tr_doc_validate(doc, rv_project()$registry)))
       if (autosave) save_now(doc)
       run_now(doc)
-    })
+    }
+
+    shiny::observeEvent(input$tr_undo, desfazer())
 
     # `seq` pelo mesmo motivo de `tr_op`: `input$x` ignora valor idêntico
     # consecutivo, e entrar numa pasta, voltar e entrar de novo manda o mesmo
@@ -544,6 +570,7 @@ tr_server <- function(project, flow = "main",
     })
 
     session$onSessionEnded(function() {
+      .tr_control_remover(session$token)
       if (!is.null(exec$sched) && !exec$sched$finished()) exec$sched$handoff(character())
       if (!is.null(exec$logger)) exec$logger$close()
       # `isolate` porque este callback roda fora de contexto reativo: ler o

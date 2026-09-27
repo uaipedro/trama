@@ -1,0 +1,5 @@
+#!/usr/bin/env Rscript
+# CLI do canal de controle: fala com o editor aberto por trama::tr_app().
+# Instale com: ln -s "$(Rscript -e 'cat(system.file("bin/trama-agente", package="trama"))')" ~/.local/bin/trama-agente
+res <- trama::tr_cli(commandArgs(TRUE))
+quit(status = if (isTRUE(res$ok)) 0L else 1L, save = "no")
