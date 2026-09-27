@@ -98,16 +98,47 @@ test_that("cmd add --from vira UM batch: nó, posição sem sobrepor e ligação
     para <- vapply(Filter(function(e) e$to$node == "s", rv_doc()$edges), function(e) e$to$port, "")
     expect_setequal(para, c("a", "b"))
 
-    # Dois filhos da mesma origem não nascem no mesmo ponto.
+    # Filhos da mesma origem e cards com dimensões muito diferentes continuam
+    # em colunas distintas: altura desconhecida do preview não causa colisão.
+    doc <- rv_doc(); doc$ui$sizes <- list(a = c(320, 900), s = c(700, 1200)); rv_doc(doc)
     tr_control_cmd(list(cmd = "add", type = "t/add", id = "s2", from = list("a")))
+    doc <- rv_doc(); doc$ui$sizes$s2 <- c(280, 180); rv_doc(doc)
+    tr_control_cmd(list(cmd = "add", type = "t/add", id = "s3", from = list("a")))
     pos <- rv_doc()$ui$positions
-    expect_false(isTRUE(all.equal(pos$s, pos$s2)))
+    novos <- pos[c("s", "s2", "s3")]
+    expect_equal(length(unique(vapply(novos, `[[`, 0, 1))), 3L)
+    largura <- vapply(c("s", "s2", "s3"), function(no) {
+      rv_doc()$ui$sizes[[no]][[1]] %||% 300
+    }, 0)
+    x <- vapply(novos, `[[`, 0, 1)
+    ord <- order(x)
+    expect_true(all(x[ord][-length(ord)] + largura[ord][-length(ord)] < x[ord][-1]))
 
     r <- tr_control_cmd(list(cmd = "set", node = "a", params = list(value = 5)))
     expect_true(r$ok)
     expect_equal(rv_doc()$nodes$a$params$value, 5)
 
     expect_error(tr_control_cmd(list(cmd = "link", from = "a", to = "nao_existe")), "nao_existe")
+  })
+})
+
+test_that("op aplicada continua confirmada depois de trabalho lento", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p, autosave = FALSE), {
+    session$sendCustomMessage <- function(type, message) NULL
+    session$setInputs(tr_ready = 1)
+    aplicar <- session$env$aplicar
+    session$env$aplicar <- function(env) {
+      res <- aplicar(env)
+      Sys.sleep(0.15) # representa o executor sequencial preso num bloco pesado
+      res
+    }
+
+    r <- tr_control_op(list(op = "add_node", id = "confirmado", type = "t/const"))
+    expect_true(r$ok)
+    expect_equal(r$rev, rv_doc()$rev)
+    expect_true("confirmado" %in% names(rv_doc()$nodes))
   })
 })
 

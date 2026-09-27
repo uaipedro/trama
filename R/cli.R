@@ -154,7 +154,10 @@ tr_cli <- function(args = commandArgs(TRUE)) {
     url <- paste0(url, "?", paste(names(query), vapply(query, curl::curl_escape, ""),
                                   sep = "=", collapse = "&"))
   }
-  h <- curl::new_handle(timeout = 60)
+  # O handler do editor compartilha o loop com o executor sequencial. Um
+  # timeout finito pode vencer depois de aplicar a op e induzir repetição.
+  # timeout=0 no libcurl significa aguardar sem limite até a resposta final.
+  h <- curl::new_handle(timeout = 0)
   curl::handle_setheaders(h, Authorization = paste("Bearer", cx$token),
                           `Content-Type` = "application/json")
   if (identical(metodo, "POST")) {
@@ -162,8 +165,8 @@ tr_cli <- function(args = commandArgs(TRUE)) {
       jsonlite::toJSON(corpo, auto_unbox = TRUE, null = "null", digits = NA)))
   }
   r <- tryCatch(curl::curl_fetch_memory(url, handle = h), error = function(e) {
-    rlang::abort(paste0("Editor não respondeu (", conditionMessage(e), "). ",
-                        "Se ele está rodando algo pesado, espere e tente de novo."))
+    rlang::abort(paste0("Não foi possível confirmar a resposta do editor (", conditionMessage(e),"). ",
+                        "Consulte trama-agente state antes de repetir a operação."))
   })
   jsonlite::fromJSON(rawToChar(r$content), simplifyVector = FALSE)
 }

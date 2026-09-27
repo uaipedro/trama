@@ -61,5 +61,7 @@ abrir. Um bloco que ainda não rodou responde `idle`.
 - Fala com a aba aberta mais recentemente. Outras abas continuam funcionando,
   mas não recebem as edições do agente até recarregar.
 - Com execução sequencial, o editor não responde enquanto calcula um bloco
-  pesado; o CLI espera até 60 s e avisa.
+  pesado. O CLI aguarda a resposta definitiva sem limite de 60 s; uma operação
+  só retorna depois que o editor confirma se foi aplicada ou recusada. Não repita
+  uma edição por causa da demora.
 - Não há aprovação de operação: o agente edita direto, e você desfaz.

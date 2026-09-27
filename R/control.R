@@ -224,17 +224,20 @@ tr_control_cmd <- function(m) {
   id <- m$id %||% .tr_new_id()
   pos <- doc$ui$positions
   origem <- if (length(m$from)) .tr_split_ref(m$from[[1]])$node
-  xs <- vapply(pos, function(p) p[[1]], 0)
-  # Sem posição, o card não pode nascer em cima de outro: à direita da
-  # origem, ou à direita de tudo. Arrumar a tela continua sendo do humano.
-  p <- if (!is.null(m$position)) unlist(m$position)
-       else if (!is.null(origem) && !is.null(pos[[origem]])) pos[[origem]] + c(340, 0)
-       else c(if (length(xs)) max(xs) + 340 else 0, 0)
-  # Dois filhos da mesma origem cairiam no mesmo ponto: desce até achar vaga.
-  if (is.null(m$position)) {
-    ocupado <- function(q) any(vapply(pos, function(o) abs(o[[1]] - q[[1]]) < 300 &&
-                                                         abs(o[[2]] - q[[2]]) < 400, TRUE))
-    while (ocupado(p)) p[[2]] <- p[[2]] + 420
+  xs <- vapply(pos, function(p) as.numeric(p[[1]]), 0)
+  larguras <- vapply(names(pos), function(no) {
+    sz <- doc$ui$sizes[[no]]
+    if (is.null(sz) || length(sz) < 1L) 300 else as.numeric(sz[[1]])
+  }, 0)
+  # Altura de gráfico/tabela pode crescer depois do run; sem saber sua altura
+  # futura, a garantia geométrica é abrir coluna após todos os cards. Continua
+  # alinhando com a origem para manter o filho fácil de localizar.
+  if (!is.null(m$position)) {
+    p <- unlist(m$position)
+  } else {
+    x <- if (length(xs)) max(xs + larguras) + 60 else 0
+    y <- if (!is.null(origem) && !is.null(pos[[origem]])) pos[[origem]][[2]] else 0
+    p <- c(x, y)
   }
   do.call(tr_add, c(list(fl, id, m$type), m$params %||% list(),
                     list(from = if (length(m$from)) unlist(m$from), label = m$label,
