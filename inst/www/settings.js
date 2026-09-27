@@ -87,7 +87,7 @@ function Campo({ rotulo, children }) {
 
 const primeiro = (e) => e.tema_padrao ?? Object.keys(e.temas)[0] ?? null;
 
-export function SettingsPanel({ temas, padrao, marca, sugestoes, onSave, onClose }) {
+export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProximo = true, onSugestoesProximo, onSave, onClose }) {
   const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca, sugestoes }));
   // O ref anda junto do estado e é lido nos callbacks: o `change` da cor chega
   // depois de uma rajada de `input`, e o fechamento do render anterior veria
@@ -267,6 +267,12 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, onSave, onClose
                   title: "preenche X, Y e afins com colunas da tabela de entrada",
                   onChange: (v) => aplicar({ ...copiar(rascRef.current), sugestoes: v }, true) })),
   ]);
+  const proximos = h("div", { key: "prox", className: "tr-settings-editor" }, [
+    h("h4", { key: "t" }, "Sugestões de próximos blocos"),
+    h(Campo, { key: "s", rotulo: `Sugestões: ${sugestoesProximo ? "ligadas" : "desligadas"}` },
+      h(Toggle, { value: sugestoesProximo, title: "mostra três blocos sugeridos ao abrir a busca",
+                  onChange: onSugestoesProximo })),
+  ]);
 
   return h("aside", { className: "tr-settings" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
@@ -280,7 +286,7 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, onSave, onClose
       acoes,
       editor,
       exportacao,
-      edicao,
+      edicao, proximos,
     ]),
   ]);
 }
