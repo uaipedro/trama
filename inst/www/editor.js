@@ -33,7 +33,6 @@ import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
-import { candidatosFantasma, posicionarFantasma, acaoTeclaFantasma, alvoEditavel } from "./fantasmas.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -764,24 +763,7 @@ function NdNode({ id, data, selected }) {
   ]);
 }
 
-function FantasmaNode({ data }) {
-  return h("button", { type: "button", className: "tr-fantasma nodrag nopan",
-    title: data.motivo, "aria-label": `Aceitar ${data.label}: ${data.motivo}`,
-    onClick: data.onAccept, onKeyDown: (e) => {
-      if (alvoEditavel(e.target)) return;
-      const acao = acaoTeclaFantasma(e.key);
-      if (!acao) return;
-      e.preventDefault(); e.stopPropagation();
-      (acao === "aceitar" ? data.onAccept : data.onDismiss)?.();
-    } }, [h("strong", { key: "l" }, `+ ${data.label}`),
-      h("span", { key: "m" }, data.motivo),
-      h("small", { key: "k" }, "Tab aceita · Esc descarta"),
-      h("span", { key: "d", className: "tr-fantasma-descartar", onClick: (e) => {
-        e.stopPropagation(); data.onDismiss?.();
-      } }, "Descartar")]);
-}
-const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode,
-  trFantasma: FantasmaNode };
+const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode };
 
 // As portas (`Handle`) ficam sempre declaradas Left/Right — o PONTO e o LADO
 // de entrada/saída da aresta nunca mudam aqui, só a rota até lá. O problema
@@ -971,7 +953,7 @@ function TrFio({ source, target, data }) {
   const p = ladoPara(ra, cb), q = ladoPara(rb, ca);
   const [d] = getBezierPath({ sourceX: p.x, sourceY: p.y, sourcePosition: p.pos,
                               targetX: q.x, targetY: q.y, targetPosition: q.pos });
-  return h("g", { className: data?.fantasma ? "tr-fio tr-fio-sugestao" : "tr-fio" }, [
+  return h("g", { className: "tr-fio" }, [
     h("path", { key: "l", d }),
     h("circle", { key: "a", cx: p.x, cy: p.y, r: 3.5 }),
     h("circle", { key: "b", cx: q.x, cy: q.y, r: 3.5 }),
@@ -1768,15 +1750,6 @@ function App() {
     } catch (_) {}
     return "completo";
   });
-  const [modoFantasma, setModoFantasma] = useState(() => {
-    try {
-      const m = localStorage.getItem("trama.modoFantasma");
-      return ["desligado", "demanda", "ligado"].includes(m) ? m : "demanda";
-    } catch (_) { return "demanda"; }
-  });
-  useEffect(() => { try { localStorage.setItem("trama.modoFantasma", modoFantasma); } catch (_) {} }, [modoFantasma]);
-  const descartadosFantasmaRef = useRef(new Set());
-  const [tickFantasma, setTickFantasma] = useState(0);
   useEffect(() => {
     try { localStorage.setItem("trama.modoNovo", modoNovo); } catch (_) {}
   }, [modoNovo]);
@@ -3253,26 +3226,6 @@ function App() {
   const presentes = useMemo(() => (presentesChave ? [...new Set(presentesChave.split("\n"))] : []),
     [presentesChave]);
 
-  const fantasmasUi = useMemo(() => {
-    if (present || !catalog || modoFantasma === "desligado") return [];
-    const sugestoes = candidatosFantasma({ catalog, nodes, edges, modo: modoFantasma,
-      descartados: [...descartadosFantasmaRef.current], historico: lerHistorico() });
-    const ocupados = nodes.filter((n) => n.type === "ndNode").map((n) => ({
-      x: n.position.x, y: n.position.y, w: n.measured?.width ?? n.width ?? MIN_W,
-      h: n.measured?.height ?? n.height ?? 200 }));
-    return sugestoes.map((s) => {
-      const pos = posicionarFantasma(s.position, ocupados);
-      ocupados.push({ x: pos.x, y: pos.y, w: 220, h: 86 });
-      const contexto = { de: s.origem, deTipo: s.tipoOrigem, porta: s.portaOrigem,
-        tipo: catalog.nodes?.find((n) => n.id === s.tipoOrigem)?.outputs?.find((o) => o.name === s.portaOrigem)?.type };
-      return { id: `tr-fantasma:${s.id}`, type: "trFantasma", position: pos,
-        width: 220, height: 86, selectable: false, draggable: false,
-        connectable: false, focusable: true, data: { ...s,
-          onAccept: () => inserirProximo(s.bloco, s.porta, { encadear: false }, contexto),
-          onDismiss: () => { descartadosFantasmaRef.current.add(s.id); setTickFantasma((v) => v + 1); } } };
-    });
-  }, [nodes, edges, catalog, modoFantasma, present, tickFantasma, inserirProximo]);
-
   // Clicar na paleta cai numa cascata a partir do canto visível, em vez de um
   // ponto fixo: sem isso todo nó novo nasce exatamente em cima do anterior.
   const addPicked = useCallback((typeId) => {
@@ -4145,10 +4098,7 @@ function App() {
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
       h(MeioCtx.Provider, { key: "rf", value: present ? null : abrirMeio }, h(ReactFlow, {
-        nodes: [...decorated, ...fantasmasUi], edges: [...comFios, ...fantasmasUi.map((n) => ({
-          id: `fio:${n.id}`, type: "trFio", source: n.data.origem, target: n.id,
-          sourceHandle: n.data.portaOrigem, selectable: false, focusable: false,
-          deletable: false, data: { fantasma: true }, zIndex: -1 }))], nodeTypes, edgeTypes,
+        nodes: decorated, edges: comFios, nodeTypes, edgeTypes,
         // Conectores em ângulo reto com cantos arredondados; a direção da
         // curva (TrAresta) é recalculada por par de cards a cada render,
         // pra nunca cortar por cima do card vizinho quando o arranjo foge
@@ -4364,10 +4314,6 @@ function App() {
          h("span", { key: "t" }, projeto ? (projeto.root.split("/").filter(Boolean).pop() || projeto.root)
                                          : "projeto")]),
       h("span", { key: "s1", className: "tr-toolbar-sep", "aria-hidden": true }),
-      h("div", { key: "fg", className: "tr-fantasma-modos", role: "group", "aria-label": "Sugestões de próximo bloco" },
-        [["desligado", "Sugestões desligadas"], ["demanda", "Sugestões sob demanda"], ["ligado", "Sugestões ligadas"]].map(([v, label]) =>
-          h("button", { key: v, type: "button", title: label, "aria-pressed": modoFantasma === v,
-            onClick: () => setModoFantasma(v) }, v === "desligado" ? "Fantasmas off" : v === "demanda" ? "Fantasmas foco" : "Fantasmas on"))),
       h(BotaoIcone, { key: "l", icone: "organizar", rotulo: "Organizar", onClick: organizarTudo, ocupado: organizando }),
       // Proporção e prancheta são opções do Frame, não ferramentas à parte:
       // saem da barra e abrem no botão direito (ou no triângulo do canto).
