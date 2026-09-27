@@ -4,6 +4,7 @@
 // de I pra III não muda o quadro, e é verdade: o `milho_dbc` é balanceado.
 import type { Roteiro } from "../motor/roteiro";
 import { CAPTURA_ANOVA } from "../trama/captura-anova";
+import { MEDIAS } from "../trama/catalogo-modelos";
 
 export const anovaModos: Roteiro = {
   id: "AnovaModos",
@@ -17,7 +18,7 @@ export const anovaModos: Roteiro = {
       resultado: { tipo: "quadro", quadro: CAPTURA_ANOVA.quadro } },
     medias: { spec: CAPTURA_ANOVA.mediasSpec, x: 560, y: 250, duracao: "0,4s",
       tamanho: { largura: 420, preview: 236 },
-      resultado: { tipo: "imagem", src: CAPTURA_ANOVA.imagem } },
+      resultado: { tipo: "grafico", medias: MEDIAS } },  // transcrito: ver captura-anova.ts
   },
   planos: [
     { faz: "entra", bloco: "dados", legenda: "um exemplo pronto: milho em blocos" },
