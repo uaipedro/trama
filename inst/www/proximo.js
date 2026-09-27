@@ -4,12 +4,12 @@ import { h } from "trama";
 import { sugerir, sugerirOrigem, intermediarios } from "./sugestor.js";
 import { lerHistorico } from "./historico.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
-import { moverFantasma, buscarFantasma } from "./fantasmas.js";
+import { moverFantasma, buscarFantasma, mostrarFantasma } from "./fantasmas.js";
 import { moverFoco, alturaNova, primeiroVao, vaoPerto, vaoAoLado } from "./proximo-foco.js";
 
 export { moverFoco, alturaNova, primeiroVao, vaoPerto, vaoAoLado };
 
-export function Proximo({ catalog, de, tipo, tipoPara, modo = "proximo", presentes, x, y,
+export function Proximo({ catalog, de, tipo, tipoPara, modo = "proximo", presentes, x, y, sugestoes = true,
                           onEscolher, onFechar, renderIcone }) {
   const [q, setQ] = useState("");
   const [foco, setFoco] = useState(0);
@@ -27,8 +27,9 @@ export function Proximo({ catalog, de, tipo, tipoPara, modo = "proximo", present
   }, [catalog, de, tipo, tipoPara, modo, presentes, historico]);
   const porId = useMemo(() => Object.fromEntries((catalog.nodes || []).map((n) => [n.id, n])), [catalog]);
   const categoria = useMemo(() => Object.fromEntries((catalog.categories || []).map((c) => [c.id, c])), [catalog]);
-  const resultados = useMemo(() => buscarFantasma(ranking.filter((s) => s.score > 0), catalog, q),
-    [ranking, catalog, q]);
+  const resultados = useMemo(() => mostrarFantasma(sugestoes, q)
+    ? buscarFantasma(ranking.filter((s) => s.score > 0), catalog, q) : [],
+    [ranking, catalog, q, sugestoes]);
 
   useEffect(() => { setFoco(resultados.length ? 0 : -1); }, [q, resultados.length]);
   useEffect(() => { input.current?.focus(); }, []);
@@ -74,6 +75,6 @@ export function Proximo({ catalog, de, tipo, tipoPara, modo = "proximo", present
             h("strong", { key: "name" }, n.label || n.id)]),
           h("span", { key: "role", className: "tr-prox-ghost-role" }, cat?.label || n.category || "bloco"),
         ]);
-    })) : h("div", { key: "v", className: "tr-prox-vazio" }, "nenhum bloco compatível"),
+    })) : q ? h("div", { key: "v", className: "tr-prox-vazio" }, "nenhum bloco compatível") : null,
   ]);
 }

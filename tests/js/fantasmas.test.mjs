@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buscarFantasma, moverFantasma } from "../../inst/www/fantasmas.js";
+import { buscarFantasma, moverFantasma, mostrarFantasma, yDosFantasmas } from "../../inst/www/fantasmas.js";
 
 const catalog = { nodes: [
   { id: "a/one", label: "Ler CSV", description: "Lê uma tabela" },
@@ -29,4 +29,16 @@ test("setas percorrem os resultados e tratam lista vazia", () => {
   assert.equal(moverFantasma(-1, 3, "ArrowDown"), 0);
   assert.equal(moverFantasma(0, 0, "ArrowDown"), -1);
   assert.equal(moverFantasma(1, 3, "Enter"), 1);
+});
+
+test("preferência desligada oculta previews até a busca receber texto", () => {
+  assert.equal(mostrarFantasma(false, "  "), false);
+  assert.equal(mostrarFantasma(false, "anova"), true);
+  assert.equal(mostrarFantasma(true, ""), true);
+});
+
+test("previews descem para não cobrir filhos existentes da saída", () => {
+  assert.equal(yDosFantasmas(100, [{ y: 120, h: 180 }], 250), 316);
+  assert.equal(yDosFantasmas(100, [{ y: 500, h: 180 }], 250), 100);
+  assert.equal(yDosFantasmas(100, []), 100);
 });

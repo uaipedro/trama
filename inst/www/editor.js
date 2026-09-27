@@ -31,6 +31,7 @@ import { anotado, sugerir as sugerirColunas } from "./colunas.js";
 import { ModoPicker, ModoToggle, Engrenagem, Olho, ParamsRodape, ParamsModal, Vista, AtalhosPanel, colunasDoNo } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
 import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
+import { yDosFantasmas } from "./fantasmas.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 
@@ -1753,6 +1754,13 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem("trama.modoNovo", modoNovo); } catch (_) {}
   }, [modoNovo]);
+  const [sugestoesProximo, setSugestoesProximo] = useState(() => {
+    try { return localStorage.getItem("trama.sugestoesProximo") !== "false"; }
+    catch (_) { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trama.sugestoesProximo", String(sugestoesProximo)); } catch (_) {}
+  }, [sugestoesProximo]);
   const modoNovoRef = useRef(modoNovo); modoNovoRef.current = modoNovo;
   // Parâmetros dobrados por card: preferência de como trabalhar, guardada no
   // navegador e fora do documento (como o modo da paleta). Sem entrada, vale
@@ -2253,8 +2261,13 @@ function App() {
   const fecharProx = useCallback(() => setProx(null), []);
   const abrirProximo = useCallback((nodeId, porta, x, y) => {
     const t = tipoDaSaida(nodeId, porta);
-    if (t) setProx({ de: nodeId, deTipo: t.nodeType, porta, tipo: t.tipo, x, y });
-  }, []);
+    if (t) {
+      const filhos = edgesRef.current.filter((e) => e.source === nodeId && e.sourceHandle === porta)
+        .map((e) => nodesRef.current.find((n) => n.id === e.target)).filter(Boolean)
+        .map((n) => { const p = rf.flowToScreenPosition(n.position); return { y: p.y, h: n.measured?.height ?? n.height ?? 220 }; });
+      setProx({ de: nodeId, deTipo: t.nodeType, porta, tipo: t.tipo, x, y: yDosFantasmas(y, filhos) });
+    }
+  }, [rf]);
   // Modo "meio": o "+" no meio de uma aresta. Filtra o que entra no tipo da
   // origem E alimenta a entrada do destino.
   const abrirMeio = useCallback((e, x, y) => {
@@ -4252,6 +4265,7 @@ function App() {
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
             marca: temas.marca, sugestoes: temas.sugestoes,
+            sugestoesProximo, onSugestoesProximo: setSugestoesProximo,
             // `seq` porque o input do Shiny ignora valor idêntico ao anterior:
             // voltar a um estado já enviado (desfazer uma cor à mão) não
             // chegaria ao servidor.
@@ -4279,7 +4293,7 @@ function App() {
     prox && !present && catalog
       ? h(Proximo, { key: `prox-${prox.modo || "p"}-${prox.de}-${prox.porta}`, catalog,
           de: prox.deTipo, modo: prox.modo, tipoPara: prox.tipoPara,
-          tipo: prox.tipo, presentes, x: prox.x, y: prox.y,
+          tipo: prox.tipo, presentes, x: prox.x, y: prox.y, sugestoes: sugestoesProximo,
           onEscolher: inserirProximo, onFechar: fecharProx,
           renderIcone: (n) => (n.icon && ICON_KINDS.has(n.icon.kind)
             // Sem `color`: o ícone herda a tinta da faixa colorida da pílula.
