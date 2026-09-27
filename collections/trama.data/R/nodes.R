@@ -88,7 +88,9 @@ tr_read_parquet <- function(path, .ctx = NULL) {
   .tr_data_need("arrow", "data/read_parquet")
   .tr_data_obrigatorio(path, "path")
   if (!is.null(.ctx)) path <- .ctx$path(path)
-  tibble::as_tibble(arrow::read_parquet(path))
+  # Sem mmap: a tabela lida prendia o arquivo mapeado e, no Windows, regravar
+  # o mesmo caminho no fluxo (ler -> mudar -> gravar) falhava com erro 1224.
+  tibble::as_tibble(arrow::read_parquet(path, mmap = FALSE))
 }
 
 #' `sheet` é TEXTO, não número, pra aceitar nome de planilha ou posição no

@@ -1,3 +1,7 @@
+# trama.series 0.4.5
+
+* Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).
+
 # trama.series 0.4.4
 
 * `series/component` corta as pontas sem valor (o meio ciclo que a média móvel da decomposição clássica perde em cada lado): a série que sai segue direto para `series/kpss`, `series/acf` e afins. Faltante no meio continua faltante.

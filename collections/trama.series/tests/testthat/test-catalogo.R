@@ -222,6 +222,10 @@ test_that("a decisão do código sobre faltante está escrita na página, nos do
 })
 
 test_that("o fn de todo nó está exportado no NAMESPACE", {
+  # system.file acha o NAMESPACE tanto na árvore (load_all) quanto no pacote
+  # instalado do R CMD check, onde "../../NAMESPACE" não existe.
+  .ns_arquivo <- system.file("NAMESPACE", package = "trama.series")
+  expect_true(file.exists(.ns_arquivo))
   # O NAMESPACE desta coleção é escrito à MÃO: não tem cabeçalho de roxygen e
   # está em ordem de fonte, então o `roxygenise()` o ignora em silêncio e uma
   # `@export` esquecida não aparece em lugar nenhum. O app nem repara — o
@@ -239,8 +243,7 @@ test_that("o fn de todo nó está exportado no NAMESPACE", {
   # varredura sumiria em silêncio justamente onde mais importa — e uma
   # varredura que pula é uma varredura que não faz nada, que é o defeito que
   # ela existe para pegar.
-  expect_true(file.exists("../../NAMESPACE"))
-  linhas <- grep("^export\\(", readLines("../../NAMESPACE"), value = TRUE)
+    linhas <- grep("^export\\(", readLines(.ns_arquivo), value = TRUE)
   exportados <- sub("^export\\((.*)\\)$", "\\1", linhas)
 
   ns <- asNamespace("trama.series")
@@ -289,6 +292,8 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
   # NAMESPACE, um skip faria esta conferência sumir calada onde o caminho não
   # resolve.
   caminho <- "../../../../docs/fontes.md"
+  # docs/ é do repositório, não do pacote: no R CMD check não existe.
+  skip_if_not(file.exists(caminho), "docs/fontes.md fora da árvore do repositório")
   expect_true(file.exists(caminho))
   doc <- paste(readLines(caminho, encoding = "UTF-8"), collapse = "\n")
 

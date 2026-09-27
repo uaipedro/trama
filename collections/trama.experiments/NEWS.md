@@ -1,3 +1,7 @@
+# trama.experiments 0.2.4
+
+* Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).
+
 # trama.experiments 0.2.1
 
 * Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.

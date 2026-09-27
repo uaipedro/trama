@@ -102,10 +102,13 @@ test_that("o catálogo sai com a ajuda e os adaptadores", {
 })
 
 test_that("o fn de todo nó está exportado no NAMESPACE", {
+  # system.file acha o NAMESPACE tanto na árvore (load_all) quanto no pacote
+  # instalado do R CMD check, onde "../../NAMESPACE" não existe.
+  .ns_arquivo <- system.file("NAMESPACE", package = "trama.models")
+  expect_true(file.exists(.ns_arquivo))
   # O NAMESPACE é escrito à MÃO; a fonte da verdade é o ARQUIVO, e não
   # `getNamespaceExports()`, porque o `load_all` da suíte exporta tudo.
-  expect_true(file.exists("../../NAMESPACE"))
-  linhas <- grep("^export\\(", readLines("../../NAMESPACE"), value = TRUE)
+    linhas <- grep("^export\\(", readLines(.ns_arquivo), value = TRUE)
   exportados <- sub("^export\\((.*)\\)$", "\\1", linhas)
   ns <- asNamespace("trama.models")
   fns <- Filter(is.function, mget(ls(ns, all.names = TRUE), envir = ns, inherits = FALSE))

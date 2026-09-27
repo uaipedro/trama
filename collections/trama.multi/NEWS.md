@@ -1,3 +1,7 @@
+# trama.multi 0.3.5
+
+* Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).
+
 # trama.multi 0.3.1
 
 * Parâmetros que só valem para certa escolha de outro parâmetro agora declaram `trama::tr_when()` e somem do card quando não se aplicam. Exige `trama (>= 0.2.0)`.
