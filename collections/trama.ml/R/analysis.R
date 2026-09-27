@@ -26,7 +26,16 @@ NULL
     if (is.na(p)) 0L else profundidade(p) + 1L
   }
   y <- -vapply(ids, profundidade, integer(1))
-  folhas <- ids[nodes$folha]
+  # A ordem das folhas sai de um percurso em profundidade com o ramo "sim"
+  # primeiro, não da ordem das linhas: no FIGS a lista de nós não segue a
+  # árvore, e o ramo "não" chegava a ser desenhado à esquerda do "sim".
+  filhos <- lapply(filhos, function(ch) ch[order(nodes$ramo[match(ch, ids)] != "sim")])
+  folhas <- character()
+  percorre <- function(id) {
+    ch <- filhos[[as.character(id)]]
+    if (!length(ch)) folhas <<- c(folhas, as.character(id)) else for (c in ch) percorre(c)
+  }
+  for (r in ids[is.na(nodes$pai)]) percorre(r)
   x_folha <- stats::setNames(seq_along(folhas), folhas)
   pos_x <- function(id) {
     ch <- filhos[[as.character(id)]]
@@ -38,6 +47,15 @@ NULL
   nodes$x_pai <- nodes$x[match(nodes$pai, ids)]
   nodes$y_pai <- nodes$y[match(nodes$pai, ids)]
   nodes
+}
+
+# Número de rótulo: vírgula decimal, no máximo `casas` casas e sem zeros à
+# direita — "2,45", nunca "2,450", que se lê como dois mil quatrocentos e
+# cinquenta.
+.tr_ml_rotulo_num <- function(x, casas) {
+  s <- formatC(round(x, casas), format = "f", digits = casas, big.mark = ".", decimal.mark = ",")
+  if (casas > 0L) s <- sub(",$", "", sub("0+$", "", s))
+  s
 }
 
 .tr_ml_cart_plot_data <- function(modelo, casas = 3L) {
@@ -55,8 +73,7 @@ NULL
       variavel <- modelo$preditores[match(row.names(modelo$ajuste$splits)[[pos]], modelo$internos)]
       operador <- if (unname(sp[1L, "ncat"]) < 0) " < " else " >= "
       decisao[[i]] <- paste0(variavel, operador,
-                             formatC(unname(sp[1L, "index"]), format = "f", digits = casas,
-                                     big.mark = ".", decimal.mark = ","))
+                             .tr_ml_rotulo_num(unname(sp[1L, "index"]), casas))
       pos <- pos + 1L + fr$ncompete[[i]] + fr$nsurrogate[[i]]
     }
   }
@@ -81,8 +98,7 @@ NULL
   decisao <- vapply(tr, function(no) {
     if (no$is_leaf) return(NA_character_)
     variavel <- modelo$preditores[match(no$feature, modelo$internos)]
-    paste0(variavel, " <= ", formatC(no$split_val, format = "f", digits = casas,
-                                      big.mark = ".", decimal.mark = ","))
+    paste0(variavel, " <= ", .tr_ml_rotulo_num(no$split_val, casas))
   }, character(1))
   ramo <- vapply(ids, function(id) {
     p <- which(vapply(tr, function(no) identical(no$left_child, id) || identical(no$right_child, id), logical(1)))
@@ -131,11 +147,11 @@ NULL
   variaveis <- modelo$preditores[match(tr$splitvarName, modelo$internos)]
   variaveis[is.na(variaveis)] <- tr$splitvarName[is.na(variaveis)]
   decisao[!folha] <- paste0(variaveis[!folha], " <= ",
-                            formatC(tr$splitval[!folha], format = "f", digits = casas,
-                                    big.mark = ".", decimal.mark = ","))
+                            .tr_ml_rotulo_num(tr$splitval[!folha], casas))
   tibble::tibble(id = ids + 1L, pai = ifelse(is.na(pai), NA_integer_, pai + 1L), ramo = ramo,
     folha = folha, decisao = decisao, valor = valor, valor_num = valor_num,
-    n = NA_integer_, qualidade = NA_real_, nome_qualidade = "impureza")
+    n = as.integer(tr$numSamples %||% rep(NA_integer_, length(ids))),
+    qualidade = tr$splitStat %||% rep(NA_real_, length(ids)), nome_qualidade = "ganho")
 }
 
 #' Visualizar uma árvore CART, FIGS ou de uma floresta aleatória
@@ -170,7 +186,7 @@ tr_ml_tree_plot <- function(modelo, arvore = 1L, mostrar_n = TRUE,
   nodes <- switch(modelo$modelo, cart = .tr_ml_cart_plot_data(modelo, casas),
     figs = .tr_ml_figs_plot_data(modelo, arvore, casas),
     forest = .tr_ml_forest_plot_data(modelo, arvore, casas))
-  numero <- function(x) formatC(x, format = "f", digits = casas, big.mark = ".", decimal.mark = ",")
+  numero <- function(x) .tr_ml_rotulo_num(x, casas)
   valor_rotulo <- ifelse(is.finite(nodes$valor_num), numero(nodes$valor_num), nodes$valor)
   nodes$label <- ifelse(nodes$folha,
     paste0(if (modelo$modelo == "figs") "contribui\u{E7}\u{E3}o: " else "previs\u{E3}o: ", valor_rotulo),

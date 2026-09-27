@@ -104,6 +104,9 @@ tr_ml_fit <- function(dados, resposta = "", preditores = "", modelo = "cart", ta
       ranger::ranger(f, treino, num.trees = trees, mtry = mm,
                      min.node.size = min_n, max.depth = max_depth,
                      probability = d$tarefa == "classificacao", seed = seed,
+                     # Guarda n e ganho por nó para o `ml/tree_plot`; não
+                     # muda o ajuste nem a previsão.
+                     node.stats = TRUE,
                      importance = c(impureza = "impurity", permutacao = "permutation",
                                     impureza_corrigida = "impurity_corrected")[[importancia]])
     },

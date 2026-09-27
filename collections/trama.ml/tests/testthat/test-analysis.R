@@ -52,3 +52,14 @@ test_that("histórico de tuning vira gráfico e valida o contrato", {
   expect_error(tr_ml_tuning_plot(h, "ausente"), class = "tr_ml_error_bad_tuning")
   expect_error(tr_ml_tuning_plot(h[, -2]), class = "tr_ml_error_bad_tuning")
 })
+
+test_that("árvore desenha o ramo 'sim' à esquerda e limiares sem zeros inúteis", {
+  m <- tr_ml_figs(mtcars, "mpg", "wt, hp, disp, cyl")
+  nos <- .tr_ml_tree_layout(.tr_ml_figs_plot_data(m, 1L, 3L))
+  for (p in unique(stats::na.omit(nos$pai))) {
+    ch <- nos[!is.na(nos$pai) & nos$pai == p, ]
+    expect_lt(ch$x[ch$ramo == "sim"], ch$x[ch$ramo == "n\u{E3}o"])
+  }
+  expect_equal(.tr_ml_rotulo_num(c(2.4500000000000002, 266.9, 5, 1234.5), 3L),
+               c("2,45", "266,9", "5", "1.234,5"))
+})

@@ -2,7 +2,9 @@
 
 * `ml/tree_plot` agora desenha uma árvore da floresta aleatória, padroniza a
   precisão dos valores e limiares e reserva margem para que os rótulos não
-  sejam cortados. A versão do bloco sobe para 2.
+  sejam cortados. Limiares com vírgula decimal e sem zeros à direita
+  (`2,45`); texto legível no tema escuro; eixos e grade removidos; o ramo
+  "sim" sempre à esquerda (no FIGS saía trocado). A versão do bloco sobe para 2.
 
 # trama.ml 0.5.1
 
