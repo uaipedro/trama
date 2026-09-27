@@ -12,6 +12,7 @@
 // paleta do tema `claro` (`R/theme.R`), o que é uma representação fiel do
 // desenho, não o arquivo que o R produz.
 import React from "react";
+import { staticFile } from "remotion";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { tema } from "../theme";
 import { Estrelas, Regua, estrelas, num } from "./Regua";
@@ -431,5 +432,7 @@ export const Preview: React.FC<{ resultado: Resultado; desde: number; vista: num
       );
     case "grafico":
       return <GraficoMedias medias={resultado.medias} desde={desde} />;
+    case "imagem":
+      return <img src={staticFile(resultado.src)} style={{ width: "100%", height: "100%", objectFit: "contain" }} />;
   }
 };

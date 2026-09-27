@@ -1,23 +1,23 @@
 // src/roteiros/anova-modos.ts — a ANOVA do milho, mostrando os modos do card.
 //
-// Dados reais (ver `trama/catalogo-modelos.ts`). Trocar a soma de quadrados
+// Dados reais (`capturas/anova-modos.json`). Trocar a soma de quadrados
 // de I pra III não muda o quadro, e é verdade: o `milho_dbc` é balanceado.
 import type { Roteiro } from "../motor/roteiro";
-import { FIT, MEDIAS, MILHO, QUADRO_ANOVA, SPECS } from "../trama/catalogo-modelos";
+import { CAPTURA_ANOVA } from "../trama/captura-anova";
 
 export const anovaModos: Roteiro = {
   id: "AnovaModos",
   blocos: {
-    dados: { spec: SPECS.exemplo, x: 0, y: 170, modo: "mini", duracao: "6ms",
-      resultado: { tipo: "tabela", tabela: MILHO } },
-    anova: { spec: SPECS.anova_dbc, x: 200, y: 110, modo: "params", duracao: "31ms",
-      resultado: { tipo: "modelo", modelo: FIT } },
-    quadro: { spec: SPECS.anova_table, x: 560, y: -80, modo: "preview", duracao: "12ms",
+    dados: { spec: CAPTURA_ANOVA.dados, x: 0, y: 170, modo: "mini", duracao: "6ms",
+      resultado: { tipo: "tabela", tabela: CAPTURA_ANOVA.tabela } },
+    anova: { spec: CAPTURA_ANOVA.anova, x: 200, y: 110, modo: "params", duracao: "31ms",
+      resultado: { tipo: "modelo", modelo: CAPTURA_ANOVA.fit } },
+    quadro: { spec: CAPTURA_ANOVA.quadroSpec, x: 560, y: -80, modo: "preview", duracao: "12ms",
       tamanho: { largura: 390, preview: 150 },
-      resultado: { tipo: "quadro", quadro: QUADRO_ANOVA } },
-    medias: { spec: SPECS.emmeans, x: 560, y: 250, duracao: "0,4s",
+      resultado: { tipo: "quadro", quadro: CAPTURA_ANOVA.quadro } },
+    medias: { spec: CAPTURA_ANOVA.mediasSpec, x: 560, y: 250, duracao: "0,4s",
       tamanho: { largura: 420, preview: 236 },
-      resultado: { tipo: "grafico", medias: MEDIAS } },
+      resultado: { tipo: "imagem", src: CAPTURA_ANOVA.imagem } },
   },
   planos: [
     { faz: "entra", bloco: "dados", legenda: "um exemplo pronto: milho em blocos" },

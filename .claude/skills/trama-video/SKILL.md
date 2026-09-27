@@ -23,6 +23,13 @@ som, painel de parâmetros e acabamento. Cada roteiro vira automaticamente:
 4. `cd tools/video && npx tsc --noEmit` precisa passar sem erro.
 5. **Olhe o resultado** (obrigatório, veja "Verificar").
 
+Para o roteiro `anova-modos`, specs e previews vêm da captura real em
+`tools/video/capturas/anova-modos.json`. Para atualizá-la, com o editor do trama
+aberto no projeto descartável, rode `cd tools/video && npm run capturar` (ou
+defina `TRAMA_DEV` para o checkout do pacote). O comando lê
+`capturas/anova-modos.fluxo.json` e atualiza também os PNGs em
+`public/capturas/anova-modos/`. Os demais roteiros seguem os catálogos atuais.
+
 ## Blocos: o que existe no canvas
 
 ```ts

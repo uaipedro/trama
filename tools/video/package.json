@@ -16,6 +16,7 @@
     "render:divulgacao-vertical": "remotion render src/index.ts SiteVerticalDivulgacao out/trama-vertical.mp4 --codec h264 --crf 18 --overwrite",
     "sfx": "node scripts/sfx.mjs",
     "sincronizar": "sh scripts/sincronizar.sh",
+    "capturar": "Rscript scripts/capturar.R capturas/anova-modos.fluxo.json",
     "tipos": "tsc --noEmit"
   },
   "dependencies": {

@@ -14,7 +14,14 @@ npm run render            # os dois, renderizados e masterizados
 npm run render:modelos    # só o de modelos
 npm run verificar         # folha de contato + medição de loudness dos dois
 npm run studio            # pré-visualização interativa
+npm run capturar          # recaptura o fluxo anova-modos no trama aberto
 ```
+
+`npm run capturar` precisa do pacote R `trama` (ou `TRAMA_DEV` apontando para
+o checkout) e do editor aberto no projeto descartável. Ele refaz o fluxo de
+`capturas/anova-modos.fluxo.json`, atualiza `capturas/anova-modos.json` e copia
+os arquivos de preview para `public/capturas/anova-modos/`. O roteiro
+`anova-modos` lê essa captura diretamente.
 
 Fica fora do pacote R: `^tools$` está no `.Rbuildignore`, então nada daqui entra
 num `R CMD check` nem no tarball.
@@ -46,7 +53,7 @@ em ângulo reto da `TrAresta` do editor. A aparência vem de `src/trama-app.css`
 `inst/www/trama.css`, `collections/trama.data/inst/trama/data.css` e
 `collections/trama.models/inst/trama/models.css`.
 
-Os specs dos blocos são transcritos dos `collection.R`/`nos_*.R` das coleções —
+Nos outros roteiros, os specs dos blocos são transcritos dos `collection.R`/`nos_*.R` das coleções —
 rótulo, categoria, ícone, portas e params, com o widget que `layoutEnum` escolhe
 para cada enum (por isso o `Separador` é segmentado inline, o `Tipo` do Juntar é
 segmentado largo e o `Conjunto` da `models`, com onze opções, é um `select`).
@@ -79,12 +86,12 @@ isto — cinco híbridos em quatro blocos, com o H3 acima dos demais, "para o Tu
 ter de separar o H3". É o que as letras do vídeo mostram, e quem rodar em casa vê
 os mesmos R², CV, F, p e letras.
 
-A **única** coisa redesenhada é o gráfico de médias: no app ele é um PNG que o
-ggplot2 gera pelo `trama.view`, e um renderizador de vídeo não roda R. Ele é
-desenhado em SVG com a geometria do `tr_models_plot_means` (pontos, barras de
-IC, letras acima do limite superior, expansão de 5% embaixo e 12% em cima) e a
-paleta do tema `claro` de `R/theme.R` — representação fiel do desenho, não o
-arquivo que o R produz.
+O roteiro `anova-modos` usa `capturas/anova-modos.json` como fonte dos specs e
+resultados. Tabela, ajuste e quadro numérico vêm dos previews capturados. O
+preview de médias vem como PNG, então o vídeo exibe esse arquivo do trama sem
+redesenhá-lo nem transcrever pontos. Recapture com `npm run capturar` quando
+alterar o fluxo ou os blocos no app. Os outros roteiros continuam usando os
+catálogos transcritos.
 
 ## O que cada arquivo decide
 

@@ -87,7 +87,8 @@ export type Resultado =
   | { tipo: "tabela"; tabela: Tabela }
   | { tipo: "modelo"; modelo: CardDeModelo }
   | { tipo: "quadro"; quadro: Quadro }
-  | { tipo: "grafico"; medias: Medias };
+  | { tipo: "grafico"; medias: Medias }
+  | { tipo: "imagem"; src: string };
 
 export type NoFluxo = {
   id: string;
