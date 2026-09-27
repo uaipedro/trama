@@ -1,0 +1,12 @@
+{
+  "id": "anova-modos",
+  "passos": [
+    {"cmd": "add", "type": "models/example", "id": "dados", "params": {"dataset": "milho_dbc"}},
+    {"cmd": "add", "type": "models/anova_dbc", "id": "anova", "from": ["dados"],
+     "params": {"resposta": "producao", "tratamento": "hibrido", "bloco": "bloco"}},
+    {"cmd": "add", "type": "models/anova_table", "id": "quadro", "from": ["anova"], "params": {"tipo_sq": "I"}},
+    {"cmd": "add", "type": "models/emmeans", "id": "medias", "from": ["anova"],
+     "params": {"especs": "hibrido", "ajuste": "tukey"}}
+  ],
+  "capturar": ["dados", "anova", "quadro", "medias"]
+}

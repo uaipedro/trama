@@ -28,6 +28,12 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   res <- tryCatch(.tr_cli_run(a), error = function(e) {
     list(ok = FALSE, reason = "cli", message = conditionMessage(e))
   })
+  if (!is.null(res$uso)) {
+    # Ajuda é para ler, não para parsear.
+    cat("trama-agente <comando> [args]  (saída em JSON)\n\n",
+        paste0("  ", res$uso, collapse = "\n"), "\n", sep = "")
+    return(invisible(res))
+  }
   cat(jsonlite::toJSON(res, auto_unbox = TRUE, null = "null", na = "null",
                        digits = NA, pretty = TRUE), "\n")
   invisible(res)
