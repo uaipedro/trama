@@ -32,7 +32,11 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
   # varredura a cada visita e repetiria a recusa. Documento sem porta de fluxo
   # devolve `list()` sem percorrer nada, então o caminho de sempre não paga por
   # isto — e não fica sabendo que fluxo existe.
-  regions <- .tr_stream_regions(doc, registry)
+  # A detecção de fluxo depende do catálogo. Se há tipos desconhecidos, eles
+  # não podem participar de uma região; deixam-se essas arestas no plano
+  # comum, onde o nó desconhecido será marcado como não executável.
+  tem_desconhecido <- any(vapply(doc$nodes, function(n) is.null(registry$nodes[[n$type]]), logical(1)))
+  regions <- if (tem_desconhecido) list() else .tr_stream_regions(doc, registry)
   region_of <- list(); region_unit <- list()
   for (r in regions) for (id in r$nodes) {
     region_of[[id]] <- r$id
@@ -58,8 +62,12 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     if (!isTRUE(port$multiple)) es <- es[1]
     refs <- lapply(es, function(e) {
       up_outs <- resolve(e$from$node)
-      up_spec <- tr_get_node(doc$nodes[[e$from$node]]$type, registry)
-      out_type <- up_spec$outputs[[e$from$port]]$type
+      up_node <- doc$nodes[[e$from$node]]
+      up_spec <- registry$nodes[[up_node$type]]
+      # Tipo desconhecido não fornece metadados de saída. O valor jamais
+      # chegará ao worker; usar o tipo de destino só permite completar o
+      # plano e propagar o bloqueio.
+      out_type <- if (is.null(up_spec)) port$type else up_spec$outputs[[e$from$port]]$type
       # Adaptador entra por AQUI, na aresta — nunca como nó. Só o id viaja;
       # o worker resolve a função no registro dele.
       ad <- if (identical(out_type, port$type)) NULL
@@ -273,6 +281,26 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     node <- doc$nodes[[id]]
     if (is.null(node)) rlang::abort(sprintf("Nó '%s' não existe.", id), class = "tr_error_unknown_node")
 
+    spec <- registry$nodes[[node$type]]
+    if (is.null(spec)) {
+      visiting <<- c(visiting, id)
+      ports <- unique(vapply(Filter(function(e) e$from$node == id, doc$edges),
+                             function(e) e$from$port, ""))
+      if (length(ports) == 0L) ports <- ""
+      key <- rlang::hash(list("unknown_node_type", node$type, id, doc$rev))
+      outs <- stats::setNames(lapply(ports, function(p) .tr_out_key(key, p)), ports)
+      units[[id]] <<- list(kind = "node", node = id, node_type = node$type,
+        node_version = NULL, key = key, outputs = outs, output_types = character(),
+        inputs = list(), params = node$params %||% list(), seed = node$seed,
+        wants_ctx = FALSE, wants_seed = FALSE, cached = FALSE, failed = FALSE,
+        handles = NULL, blocked_by = character(),
+        invalid = paste0("unknown_node_type:", node$type))
+      out_keys[[id]] <<- outs
+      bad <<- c(bad, id)
+      visiting <<- setdiff(visiting, id)
+      return(outs)
+    }
+
     rid <- region_of[[id]]
     if (!is.null(rid)) {
       region <- regions[[rid]]
@@ -295,8 +323,6 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     }
 
     visiting <<- c(visiting, id)
-    spec <- tr_get_node(node$type, registry)
-
     incoming <- by_target[[id]] %||% list()
     inputs <- list(); input_keys <- list(); adapter_prints <- list()
     upstream <- character(); invalid <- character()

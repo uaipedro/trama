@@ -17,6 +17,23 @@ test_that("plano é pull-based: só o fecho do alvo entra", {
   expect_setequal(names(tr_plan(doc, registry = reg)$units), c("c", "i", "solto"))
 })
 
+test_that("tipo de nó desconhecido bloqueia só seu ramo", {
+  reg <- store_registry()
+  doc <- build(reg, list(
+    list(op = "add_node", type = "t/const", id = "c", params = list(v = 2)),
+    list(op = "add_node", type = "t/inc", id = "i"),
+    list(op = "add_node", type = "t/const", id = "ind", params = list(v = 9)),
+    list(op = "connect", from_node = "c", from_port = "out", to_node = "i", to_port = "x")))
+  doc$nodes$c$type <- "series/nao_existe"
+
+  p <- tr_plan(doc, registry = reg)
+  expect_true("c" %in% names(p$units))
+  expect_match(p$units$c$invalid, "unknown_node_type")
+  expect_equal(p$units$i$blocked_by, "c")
+  expect_setequal(vapply(tr_plan_blocked(p), function(u) u$node, ""), c("c", "i"))
+  expect_true("ind" %in% vapply(tr_plan_pending(p), function(u) u$node, ""))
+})
+
 test_that("ordem é topológica: input antes do consumidor", {
   reg <- store_registry()
   p <- tr_plan(chain(reg), registry = reg)

@@ -448,6 +448,26 @@ test_that("um 'to_stream' solto (sem colapso) vira BANNER, não sessão travada 
   })
 })
 
+test_that("run_now planeja documento com tipo desconhecido sem abortar", {
+  reg <- store_registry()
+  root <- withr::local_tempdir("proj-tipo-desconhecido")
+  tr_project_new(root, character())
+  proj <- tr_project_at(root, reg)
+  doc <- build(reg, list(
+    list(op = "add_node", type = "t/const", id = "c", params = list(v = 2)),
+    list(op = "add_node", type = "t/inc", id = "i"),
+    list(op = "connect", from_node = "c", from_port = "out", to_node = "i", to_port = "x")))
+  doc$nodes$c$type <- "series/nao_existe"
+  tr_project_save(proj, doc)
+
+  expect_no_error(shiny::testServer(tr_server(proj, autosave = FALSE), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+    expect_true(any(vapply(msgs, function(m) identical(m$type, "unit"), logical(1))))
+  }))
+})
+
 # PROVA DE MUTAÇÃO 7: tirando o `tryCatch`/`if (is.null(plan)) return(...)` em
 # `run_now()` (R/transport.R) — voltando a `plan <- tr_plan(...)` cru —,
 # rodando só este arquivo (saída real, medida):
