@@ -9,9 +9,6 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | Canônico | O que é | Substitui |
 |---|---|---|
 | `confianca` | nível de confiança de intervalos, valor livre, default 0.95 | `alfa` (valor = 1 − alfa), `nivel` |
-| `semente` | semente inteira para reproduzir uma sequência aleatória | — |
-| `repeticoes` | número de reamostras ou repetições de Monte Carlo | — |
-| `estratos` | coluna que define grupos independentes de reamostragem | — |
 | `quantidade` | estimando ou conjunto de medidas calculadas | — |
 | `significancia` | α de um teste de hipótese (rejeita quando p < α), default 0.05; quando o nó também tem intervalo, o nível dele segue em `confianca` (experiments/power) | — |
 | `resposta` | coluna explicada pelo modelo | `alvo` (ml), `grupo` quando é a resposta (multi/discriminant, multi/logistic) |
@@ -42,6 +39,7 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `separador` | texto literal que separa/junta valores (data/separate, data/unite) | — |
 | `fracao` | fração das linhas, 0–1 (data/sample) | — |
 | `reposicao` | sortear com reposição (data/sample) | — |
+| `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo (models/bootstrap, models/permutation) | `replicas` (experiments) |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 
 ## Homônimos permitidos
