@@ -103,3 +103,14 @@ não de conta):
   `models/confusion`, `models/roc` e `models/pr_curve` ganharam
   `permitir_treino`.
 - Jackknife por grupo (51d6d28) fica na `multi`, com `confianca`.
+
+## Influência e colinearidade em modelos lineares (27/09/2026)
+
+`models/coefficients` versão 3 acrescenta VIF/GVIF somente a `lm` com dois ou
+mais termos preditores. Os valores seguem `car::vif`; para termos com múltiplos
+graus de liberdade também se apresenta GVIF^(1/(2·gl)), conforme Fox & Monette
+(1992, doi:10.1080/01621459.1992.10475190). `models/influence` aplica
+`stats::influence.measures` a `lm`; alavanca, resíduo estudentizado, Cook,
+DFFITS, DFBETAS e a marca influente são confrontados com essa função a 1e-10.
+A linha 4/n no gráfico de Cook é triagem visual, não regra automática de
+exclusão. Testes: `collections/trama.models/tests/testthat/test-resumir.R`.

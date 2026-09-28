@@ -40,6 +40,31 @@ test_that("coeficientes batem com o summary e exponenciam no GLM", {
   expect_error(tr_models_coefficients(l, exponenciar = TRUE), class = "tr_models_error_not_applicable")
 })
 
+test_that("VIF/GVIF e influência batem com os oráculos car e stats", {
+  d <- as.data.frame(USArrests)
+  m <- tr_models_lm(d, formula = "Murder ~ Assault + UrbanPop + Rape")
+  got <- tr_models_coefficients(m)$tabela
+  ref <- car::vif(m$ajuste)
+  expect_equal(got$vif[match(names(ref), got$termo)], unname(ref), tolerance = 1e-10)
+  expect_true(all(is.na(got$vif[got$termo == "(Intercept)"])))
+  d$regiao <- factor(rep(c("A", "B", "C"), length.out = nrow(d)))
+  mf <- tr_models_lm(d, formula = "Murder ~ Assault + UrbanPop + regiao")
+  gf <- tr_models_coefficients(mf)$tabela
+  rf <- car::vif(mf$ajuste)
+  linhas <- which(grepl("^regiao", gf$termo))
+  expect_equal(gf$vif[linhas], rep(rf["regiao", "GVIF"], length(linhas)), tolerance = 1e-10)
+  expect_equal(gf$gvif_ajustado[linhas], rep(rf["regiao", "GVIF^(1/(2*Df))"], length(linhas)), tolerance = 1e-10)
+
+  infl <- tr_models_influence(m)
+  refi <- stats::influence.measures(m$ajuste)
+  expect_equal(infl$tabela$alavanca, as.numeric(stats::hatvalues(m$ajuste)), tolerance = 1e-10)
+  expect_equal(infl$tabela$residuo_estudentizado, as.numeric(stats::rstudent(m$ajuste)), tolerance = 1e-10)
+  expect_equal(infl$tabela$cook, as.numeric(stats::cooks.distance(m$ajuste)), tolerance = 1e-10)
+  expect_equal(infl$tabela$dffits, as.numeric(stats::dffits(m$ajuste)), tolerance = 1e-10)
+  expect_equal(infl$tabela$influente, as.logical(apply(refi$is.inf, 1L, any)))
+  expect_equal(infl$tabela$dfbetas_X1_, as.numeric(refi$infmat[, "dfb.1_"]), tolerance = 1e-10)
+})
+
 test_that("medidas de ajuste têm sempre as mesmas colunas", {
   mt <- ex("mtcars")
   a <- tr_models_fit_stats(tr_models_lm(mt, formula = "mpg ~ wt"))

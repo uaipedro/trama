@@ -317,10 +317,74 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidad
   .tr_models_modelo_conferir(modelo)
   # `intervalo` só vai ao método quando pedido: as classes que não o conhecem
   # (e as de outras coleções) seguem recebendo a chamada de sempre.
-  if (identical(intervalo, "padrão")) {
-    return(tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca))
+  res <- if (identical(intervalo, "padrão")) {
+    tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca)
+  } else tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca, intervalo = intervalo)
+  if (identical(modelo$classe, "lm")) {
+    mm <- stats::model.matrix(modelo$ajuste)
+    if (length(attr(stats::terms(modelo$ajuste), "term.labels")) >= 2L) {
+      vv <- car::vif(modelo$ajuste)
+      tab <- as.data.frame(res$tabela)
+      tab$vif <- NA_real_
+      tab$gvif_ajustado <- NA_real_
+      if (is.matrix(vv)) {
+        terminos <- attr(stats::terms(modelo$ajuste), "term.labels")
+        atribuicao <- attr(mm, "assign")
+        coefs <- names(stats::coef(modelo$ajuste))
+        for (j in seq_along(rownames(vv))) {
+          colunas <- colnames(mm)[atribuicao == match(rownames(vv)[j], terminos)]
+          idx <- match(intersect(colunas, coefs), tab$termo)
+          idx <- idx[!is.na(idx)]
+          tab$vif[idx] <- vv[j, "GVIF"]
+          tab$gvif_ajustado[idx] <- vv[j, "GVIF^(1/(2*Df))"]
+        }
+      } else {
+        terminos <- attr(stats::terms(modelo$ajuste), "term.labels")
+        atribuicao <- attr(mm, "assign")
+        coefs <- names(stats::coef(modelo$ajuste))
+        for (j in seq_along(vv)) {
+          colunas <- colnames(mm)[atribuicao == match(names(vv)[j], terminos)]
+          idx <- match(intersect(colunas, coefs), tab$termo)
+          idx <- idx[!is.na(idx)]
+          tab$vif[idx] <- unname(vv[j])
+        }
+      }
+      res$tabela <- tibble::as_tibble(tab)
+    }
   }
-  tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca, intervalo = intervalo)
+  res
+}
+
+#' Medidas de influência por observação para um ajuste linear.
+#' @param modelo objeto `models/fit` de classe `lm`.
+#' @return `tr_models_effects` com uma linha por observação.
+#' @export
+tr_models_influence <- function(modelo, aspecto = "16:9", tema = "padrão", titulo = "",
+                                rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  .tr_models_modelo_conferir(modelo)
+  .tr_models_exigir(modelo, "lm", "models/influence", "Use um ajuste linear `lm`.")
+  aj <- modelo$ajuste
+  ref <- stats::influence.measures(aj)
+  sm <- ref$infmat
+  n <- nrow(sm)
+  tab <- data.frame(observacao = seq_len(n), alavanca = as.numeric(stats::hatvalues(aj)),
+                    residuo_estudentizado = as.numeric(stats::rstudent(aj)),
+                    cook = as.numeric(stats::cooks.distance(aj)),
+                    dffits = as.numeric(stats::dffits(aj)), check.names = FALSE)
+  db <- sm[, grepl("^dfb\\.", colnames(sm)), drop = FALSE]
+  if (ncol(db)) {
+    colnames(db) <- paste0("dfbetas_", make.names(sub("^dfb\\.", "", colnames(db))))
+    tab <- cbind(tab, db)
+  }
+  tab$influente <- as.logical(apply(ref$is.inf, 1L, any))
+  out <- ggplot2::ggplot(tab, ggplot2::aes(x = .data[["observacao"]], y = .data[["cook"]])) +
+    ggplot2::geom_hline(yintercept = 4 / n, linetype = "dashed", colour = .TR_MODELS_COR) +
+    ggplot2::geom_point(ggplot2::aes(colour = .data[["influente"]])) +
+    ggplot2::geom_text(data = tab[tab$influente, , drop = FALSE], ggplot2::aes(label = .data[["observacao"]]),
+                       nudge_y = max(tab$cook, na.rm = TRUE) * .03, show.legend = FALSE) +
+    ggplot2::labs(x = "Observação", y = "Distância de Cook", colour = "Influente")
+  out <- trama.view::tr_view_finish(out, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+  list(tabela = tibble::as_tibble(tab), out = out)
 }
 
 #' Gráfico de floresta dos coeficientes.
