@@ -55,7 +55,7 @@ médias depois do F; `models/coefficients` para os coeficientes.
 
     # Versão 2 (9.1b): `intervalo`, e a logística da `multi` com IC perfilado e
     # Firth (da `multi/logistic_coefficients` v4 da main).
-    trama::tr_node("models/coefficients", version = 2L, fn = tr_models_coefficients, label = "Coeficientes",
+    trama::tr_node("models/coefficients", version = 3L, fn = tr_models_coefficients, label = "Coeficientes",
       category = "modelo_resumir", icon = trama::tr_icon("variable"),
       description = "Estimativa, erro padrão, estatística, p-valor e intervalo de confiança de cada coeficiente.",
       inputs = list(modelo = Fm), outputs = list(out = EF),
@@ -115,6 +115,11 @@ Na logística multinomial o intervalo sai de Wald mesmo com `perfilado` (o
 `nnet::multinom` não tem perfil), e a nota diz.
 
 Na parcela subdividida os coeficientes misturam os dois erros, e o bloco recusa.
+
+Em `lm` com pelo menos dois preditores, a tabela também traz **vif** por termo.
+Para termos com mais de um grau de liberdade (fatores), usa o GVIF e apresenta
+`gvif_ajustado = GVIF^(1/(2·gl))`, comparável ao VIF de um grau de liberdade.
+O intercepto e modelos sem dois preditores ficam sem essas medidas.
 ]---", r"---[
 - **Exponenciar** — só no GLM.
 - **Escala** — `unidade` (padrão) ou `desvio padrão` da preditora.
@@ -330,6 +335,35 @@ tr_flow(reg) |>
 `models/lmer`; `models/random_test` para testar se um termo aleatório é
 necessário.
 ]---")),
+
+    trama::tr_node("models/influence", fn = tr_models_influence, label = "Influência",
+      category = "modelo_resumir", icon = trama::tr_icon("microscope"),
+      description = "Alavanca, resíduo estudentizado, Cook, DFFITS, DFBETAS e observações influentes.",
+      inputs = list(modelo = Fm), outputs = list(tabela = T, out = "view/plot"),
+      params = .tr_models_props(.aspecto = "16:9"),
+      help = .tr_models_ajuda(r"---[
+Uma linha por observação com alavanca, resíduo estudentizado, distância de
+Cook, DFFITS, DFBETAS e a marca **influente** do `stats::influence.measures`.
+O gráfico mostra a distância de Cook; a linha tracejada é 4/n, uma régua de
+triagem, e as observações marcadas pelo diagnóstico são rotuladas.
+
+Influência mede quanto o ajuste muda ao retirar uma observação; não é um teste
+para excluir dados. Confira a observação no caderno e ajuste o modelo conforme
+o processo que gerou os dados.
+
+Os parâmetros de aparência valem para o gráfico.
+]---", r"---[
+Só os parâmetros de aparência.
+]---", r"---[
+Tabela (`data/table`) e gráfico (`view/plot`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carros", "models/example", dataset = "mtcars") |>
+  tr_add("ajuste", "models/lm", formula = "mpg ~ wt + hp", from = "carros") |>
+  tr_add("influencia", "models/influence", from = "ajuste")
+]---", r"---[
+`models/plot_diagnostics`; `models/residuals`.
+]---", grafico = TRUE)),
 
     trama::tr_node("models/residuals", fn = tr_models_residuals, label = "Resíduos",
       category = "modelo_resumir", icon = trama::tr_icon("chart-scatter"),

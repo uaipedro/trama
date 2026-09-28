@@ -27,6 +27,13 @@
   indep <- P("As observações são **independentes**.",
              se_falhar = "Medidas repetidas ou agrupadas (mesmo animal, parcela, local) pedem o `models/lmer`.")
   list(
+    "models/coefficients" = list(
+      referencias = list(
+        R(autores = c("Fox, J.", "Monette, G."), ano = 1992,
+          titulo = "Generalized collinearity diagnostics",
+          fonte = "Journal of the American Statistical Association, 87(417), 178-183",
+          doi = "10.1080/01621459.1992.10475190"),
+        I("car", "vif", "O VIF/GVIF é calculado pela `car::vif` no ajuste lm; GVIF ajustado é GVIF^(1/(2·gl))."))),
     "models/lm" = list(
       pressupostos = list(linear, indep, normal, homog,
         P("Sem **colinearidade** forte entre os preditores: com ela os coeficientes ficam instáveis e os erros padrão, grandes.",
@@ -160,6 +167,14 @@
         R(autores = c("Bates, D. M.", "Watts, D. G."), ano = 1988,
           titulo = "Nonlinear Regression Analysis and Its Applications", fonte = "New York: Wiley",
           doi = "10.1002/9780470316757", papel = "livro-texto"),
-        I("stats", "nls", "Gauss-Newton com os self-starters `SSlogis`, `SSmicmen`, `SSasymp` e `SSgompertz`; o linear-platô parte de uma busca da quebra. Conferido contra os valores certificados do NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten), parâmetros a 1e-6, SQ residual a 1e-6 e erro padrão a 1e-5.")))
+        I("stats", "nls", "Gauss-Newton com os self-starters `SSlogis`, `SSmicmen`, `SSasymp` e `SSgompertz`; o linear-platô parte de uma busca da quebra. Conferido contra os valores certificados do NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten), parâmetros a 1e-6, SQ residual a 1e-6 e erro padrão a 1e-5."))),
+
+    "models/influence" = list(
+      pressupostos = list(P("A observação corresponde à unidade independente usada no ajuste; o diagnóstico é relativo ao modelo ajustado.")),
+      referencias = list(
+        R(autores = c("Belsley, D. A.", "Kuh, E.", "Welsch, R. E."), ano = 1980,
+          titulo = "Regression Diagnostics: Identifying Influential Data and Sources of Collinearity",
+          fonte = "New York: Wiley", doi = "10.1002/0471725153", papel = "livro-texto"),
+        I("stats", "influence.measures", "A tabela e a indicação Inf seguem `stats::influence.measures`; Cook, DFFITS, resíduos estudentizados, alavancas e DFBETAS são comparados diretamente à função de referência.")))
   )
 }
