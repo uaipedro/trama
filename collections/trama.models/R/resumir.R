@@ -373,7 +373,11 @@ tr_models_influence <- function(modelo, aspecto = "16:9", tema = "padrão", titu
                     dffits = as.numeric(stats::dffits(aj)), check.names = FALSE)
   db <- sm[, grepl("^dfb\\.", colnames(sm)), drop = FALSE]
   if (ncol(db)) {
-    colnames(db) <- paste0("dfbetas_", make.names(sub("^dfb\\.", "", colnames(db))))
+    # `influence.measures` abrevia os nomes (`dfb.Ntrg`); as colunas saem na
+    # ordem dos coeficientes, então o nome vem de `coef()`, por extenso.
+    termos <- names(stats::coef(aj))[!is.na(stats::coef(aj))]
+    termos[termos == "(Intercept)"] <- "intercepto"
+    colnames(db) <- paste0("dfbetas_", tr_models_clean_name(termos))
     tab <- cbind(tab, db)
   }
   tab$influente <- as.logical(apply(ref$is.inf, 1L, any))

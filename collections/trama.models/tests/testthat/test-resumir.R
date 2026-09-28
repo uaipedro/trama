@@ -62,7 +62,10 @@ test_that("VIF/GVIF e influência batem com os oráculos car e stats", {
   expect_equal(infl$tabela$cook, as.numeric(stats::cooks.distance(m$ajuste)), tolerance = 1e-10)
   expect_equal(infl$tabela$dffits, as.numeric(stats::dffits(m$ajuste)), tolerance = 1e-10)
   expect_equal(infl$tabela$influente, as.logical(apply(refi$is.inf, 1L, any)))
-  expect_equal(infl$tabela$dfbetas_X1_, as.numeric(refi$infmat[, "dfb.1_"]), tolerance = 1e-10)
+  dfb <- refi$infmat[, grepl("^dfb\\.", colnames(refi$infmat)), drop = FALSE]
+  nossas <- grep("^dfbetas_", names(infl$tabela), value = TRUE)
+  expect_equal(nossas[[1]], "dfbetas_intercepto")
+  expect_equal(unname(as.matrix(infl$tabela[nossas])), unname(dfb), tolerance = 1e-10)
 })
 
 test_that("medidas de ajuste têm sempre as mesmas colunas", {
