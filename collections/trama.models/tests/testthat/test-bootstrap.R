@@ -71,3 +71,9 @@ test_that("reamostra sem um nível é descartada e contada; o resto segue", {
   expect_true(all(is.na(got$tabela$li_bca)))  # jackknife sem o único "b" não estima
   expect_error(tr_models_bootstrap(tr_models_glm(d, formula = "y ~ g")), "aceita ajuste lm")
 })
+
+test_that("NA em 'Reamostrar dentro de' dá erro claro", {
+  d <- data.frame(y = c(1, 4, 7, 10, 2, 5, 8, 12), g = factor(rep(c("a", "b"), each = 4)),
+                  bloco = factor(c(1, 2, 3, NA, 1, 2, 3, 4)))
+  expect_error(tr_models_bootstrap(tr_models_lm(d, formula = "y ~ g"), grupo = "bloco", reamostras = 99L), "tem NA")
+})

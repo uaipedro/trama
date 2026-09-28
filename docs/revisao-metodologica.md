@@ -114,3 +114,27 @@ graus de liberdade também se apresenta GVIF^(1/(2·gl)), conforme Fox & Monette
 DFFITS, DFBETAS e a marca influente são confrontados com essa função a 1e-10.
 A linha 4/n no gráfico de Cook é triagem visual, não regra automática de
 exclusão. Testes: `collections/trama.models/tests/testthat/test-resumir.R`.
+
+## Permutação e bootstrap sobre `lm` (27/09/2026)
+
+`models/permutation` permuta a resposta (dentro de **grupo**, quando dado) com
+a matriz do modelo fixa e recalcula o F sequencial (tipo I) do termo pelos
+efeitos Q'y da QR do ajuste, o mesmo cálculo do `anova.lm`; o bloco confere
+que reproduz o F observado antes de permutar. p = (b + 1)/(B + 1) (Phipson e
+Smyth, 2010), empates por tolerância 1e-8. Oráculos: permutação escrita à mão
+com `anova(lm())` na mesma semente (1e-12) e `coin::oneway_test` Monte Carlo no
+PlantGrowth (dentro de 4·√2 erros-padrão binomiais). Distinto do
+`experiments/randomization_test`, que re-sorteia pela receita do plano.
+
+`models/bootstrap` reamostra casos (`boot::boot`, estratificado pelo fator nas
+médias e diferenças) e reajusta por `lm.fit`; toda quantidade é `L β`, com L
+fixa na grade de referência original (médias = `emmeans` do ajuste original).
+IC percentil e BCa do `boot::boot.ci`; conferidos contra `boot`/`boot.ci`
+aplicados à estatística escrita à mão (`coef(lm())`, `tapply` das médias) na
+mesma semente, a 1e-10. Decisão: valores a menos de 1e-9 (relativo) de t0
+viram t0 antes do BCa — com resposta discreta, reamostras com média exatamente
+igual à observada são comuns, e o ruído de ponto flutuante decidia se entravam
+em `t < t0` (medido: BCa diferia na 4ª casa entre duas estatísticas
+matematicamente iguais). Reamostras de posto incompleto são descartadas e
+contadas; nesse caso a influência do BCa vem do jackknife, e o BCa fica NA
+quando o jackknife não estima. Testes: `test-permutation.R`, `test-bootstrap.R`.

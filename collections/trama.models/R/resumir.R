@@ -322,12 +322,18 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidad
   } else tr_models_coefs(modelo, exponenciar = exponenciar, escala = escala, confianca = confianca, intervalo = intervalo)
   if (identical(modelo$classe, "lm")) {
     mm <- stats::model.matrix(modelo$ajuste)
+    # Com interação, o VIF de um termo depende da origem das variáveis (não
+    # centradas, a interação é quase colinear com os efeitos principais por
+    # construção) e não tem leitura; o `car` só avisa. Fica NA.
+    ordem <- attr(stats::terms(modelo$ajuste), "order")
     if (length(attr(stats::terms(modelo$ajuste), "term.labels")) >= 2L) {
-      vv <- car::vif(modelo$ajuste)
       tab <- as.data.frame(res$tabela)
       tab$vif <- NA_real_
       tab$gvif_ajustado <- NA_real_
-      if (is.matrix(vv)) {
+      vv <- if (all(ordem == 1L)) car::vif(modelo$ajuste) else NULL
+      if (is.null(vv)) {
+        # com interação: fica NA (ver acima)
+      } else if (is.matrix(vv)) {
         terminos <- attr(stats::terms(modelo$ajuste), "term.labels")
         atribuicao <- attr(mm, "assign")
         coefs <- names(stats::coef(modelo$ajuste))

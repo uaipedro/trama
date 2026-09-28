@@ -1,6 +1,6 @@
 Package: trama.models
 Title: Statistical Models Collection for trama
-Version: 0.3.5
+Version: 0.4.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -29,6 +29,7 @@ Imports:
     trama (>= 0.3.1),
     trama.data,
     trama.view,
+    boot,
     car,
     emmeans,
     lme4,
@@ -51,7 +52,7 @@ Suggests:
     yardstick,
     PRROC,
     Skillings.Mack,
-    boot
+    coin
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view
 Remotes:

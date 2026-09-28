@@ -2,12 +2,12 @@
 
 .tr_models_f_termo <- function(ajuste, termo = "") {
   quadro <- stats::anova(ajuste)
-  termos <- rownames(quadro)
+  termos <- setdiff(trimws(rownames(quadro)), "Residuals")
   if (!length(termos)) .tr_models_abort("tr_models_error_bad_option", "'models/permutation': o ajuste não tem termos testáveis.")
   if (is.null(termo) || !nzchar(termo)) termo <- termos[[1L]]
   i <- match(termo, termos)
   if (is.na(i)) .tr_models_abort("tr_models_error_bad_option", "'models/permutation': termo '%s' não está no quadro da ANOVA. Escolha: %s.", termo, paste(termos, collapse = ", "))
-  list(nome = termo, F = unname(quadro$`F value`[i]), p = unname(quadro$`Pr(>F)`[i]))
+  list(nome = termo, F = unname(quadro$`F value`[match(termo, trimws(rownames(quadro)))]), p = unname(quadro$`Pr(>F)`[match(termo, trimws(rownames(quadro)))]))
 }
 
 #' Testa um termo por permutação da resposta, mantendo fixa a matriz do modelo.
@@ -30,6 +30,7 @@ tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9
   resposta <- all.vars(stats::formula(modelo$ajuste)[[2L]])[[1L]]
   grupos <- if (is.null(grupo) || !nzchar(grupo)) rep.int(1L, length(y)) else {
     if (!grupo %in% names(dados)) .tr_models_abort("tr_models_error_bad_option", "'Dentro de' precisa ser uma coluna dos dados do ajuste: '%s'.", grupo)
+    if (anyNA(dados[[grupo]])) .tr_models_abort("tr_models_error_bad_option", "'models/permutation': 'Dentro de' ('%s') tem NA; essas linhas não teriam com quem trocar. Filtre ou recodifique antes.", grupo)
     as.integer(factor(dados[[grupo]]))
   }
   estratos <- split(seq_along(y), grupos)
@@ -82,14 +83,18 @@ tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9
       reamostras = trama::tr_param_int(9999L, min = 99L, max = 100000L, label = "Reamostras")),
       .tr_models_props(.aspecto = "16:9")),
     help = .tr_models_ajuda(r"---[
-Permuta os valores da resposta entre as linhas do ajuste e reajusta o modelo em
-cada repetição. Compara o F sequencial do **Termo** escolhido (tipo I) com os
+Permuta os valores da resposta entre as linhas do ajuste, mantendo os
+preditores, e recalcula o F em cada repetição (pela mesma decomposição QR do
+ajuste, sem reajustar: a matriz do modelo não muda). Compara o F sequencial do **Termo** escolhido (tipo I) com os
 F simulados; em branco, usa o primeiro termo do quadro da ANOVA. O p-valor
 Monte Carlo é `(excedências + 1) / (reamostras + 1)`, contando empates com
 tolerância `1e-8`. A tabela também mostra o p teórico do F.
 
 **Dentro de** restringe as permutações às linhas do mesmo nível (por exemplo,
-bloco). Vazio permuta entre todas as linhas.
+bloco). Vazio permuta entre todas as linhas. Quando o termo vem depois de
+outro que tem efeito (DBC: `bloco + tratamento`), as linhas só são trocáveis
+sob H0 dentro do bloco: use **Dentro de** = bloco, senão o teste deixa de ser
+exato.
 
 Aplica-se a ajuste linear (`lm`), incluindo ANOVAs de efeitos fixos que geram
 `lm`. Quando o experimento tem plano de randomização conhecido, prefira o

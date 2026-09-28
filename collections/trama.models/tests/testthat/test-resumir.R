@@ -140,3 +140,10 @@ test_that("tipo III com covariável em interação avisa que o fator é testado 
   expect_equal(q$tabela$F[q$tabela$termo == "a"], car::Anova(ref, type = 3)["a", "F value"], tolerance = 1e-10)
   expect_equal(tr_models_anova_table(tr_models_lm(d, formula = "y ~ a + x"), "III")$nota, "")
 })
+
+test_that("VIF fica NA com interação", {
+  fit <- tr_models_lm(datasets::warpbreaks, formula = "breaks ~ wool * tension")
+  tab <- tr_models_coefficients(fit)$tabela
+  expect_true("vif" %in% names(tab))
+  expect_true(all(is.na(tab$vif)))
+})

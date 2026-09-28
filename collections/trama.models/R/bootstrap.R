@@ -69,6 +69,7 @@ tr_models_bootstrap <- function(modelo, quantidade = "coeficientes", especs = ""
   estrato <- if (nzchar(grupo)) {
     if (!grupo %in% names(modelo$dados)) .tr_models_abort("tr_models_error_bad_option", "'%s': Grupo '%s' não é coluna dos dados do ajuste.", no, grupo)
     g <- if (grupo %in% names(mf)) mf[[grupo]] else modelo$dados[[grupo]][as.integer(rownames(mf))]
+    if (anyNA(g)) .tr_models_abort("tr_models_error_bad_option", "'%s': 'Reamostrar dentro de' ('%s') tem NA. Filtre ou recodifique antes.", no, grupo)
     as.integer(factor(g))
   } else rep(1L, length(y))
 

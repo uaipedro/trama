@@ -33,7 +33,7 @@
           titulo = "Generalized collinearity diagnostics",
           fonte = "Journal of the American Statistical Association, 87(417), 178-183",
           doi = "10.1080/01621459.1992.10475190"),
-        I("car", "vif", "O VIF/GVIF é calculado pela `car::vif` no ajuste lm; GVIF ajustado é GVIF^(1/(2·gl))."))),
+        I("car", "vif", "O VIF/GVIF é calculado pela `car::vif` no ajuste lm sem interação; GVIF ajustado é GVIF^(1/(2·gl)). Com interação fica NA (depende da origem das variáveis)."))),
     "models/lm" = list(
       pressupostos = list(linear, indep, normal, homog,
         P("Sem **colinearidade** forte entre os preditores: com ela os coeficientes ficam instáveis e os erros padrão, grandes.",

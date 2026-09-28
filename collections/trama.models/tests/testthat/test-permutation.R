@@ -64,3 +64,12 @@ test_that("models/permutation com k grupos concorda com a coin (PlantGrowth)", {
   expect_named(got$distribuicao, c("quantidade", "reamostra", "valor"))
   expect_equal(got$tabela$p_teorico, stats::anova(fit$ajuste)$`Pr(>F)`[1])
 })
+
+test_that("models/permutation recusa Residuals e NA em 'Dentro de'", {
+  d <- data.frame(y = c(1, 4, 7, 10, 2, 5, 8, 12), g = factor(rep(c("a", "b"), each = 4)),
+                  bloco = factor(c(1, 2, 3, NA, 1, 2, 3, 4)))
+  fit <- tr_models_lm(d[c("y", "g")], formula = "y ~ g")
+  expect_error(tr_models_permutation(fit, termo = "Residuals", reamostras = 99L), "não está no quadro")
+  fit2 <- tr_models_lm(d, formula = "y ~ g")
+  expect_error(tr_models_permutation(fit2, grupo = "bloco", reamostras = 99L), "tem NA")
+})

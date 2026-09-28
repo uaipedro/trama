@@ -1,3 +1,11 @@
+# trama.models 0.4.0
+
+* `models/bootstrap`: bootstrap de casos de um ajuste `lm` — coeficientes, médias marginais ou diferenças entre elas — com erro-padrão, IC percentil e BCa (`boot::boot.ci`) e fração de reamostras com o mesmo sinal. Saída `distribuicao` longa (`quantidade`, `reamostra`, `valor`).
+* `models/permutation`: teste de permutação do F de um termo de um `lm`, sem plano de experimento; opcional dentro de estratos. Mesmas três saídas.
+* `models/influence`: alavanca, resíduo estudentizado, Cook, DFFITS e DFBETAS por linha, com gráfico de Cook.
+* `models/coefficients` (versão 3): coluna `vif` (e `gvif_ajustado` para fatores) em `lm` com dois ou mais termos.
+* `boot` passa a Imports.
+
 # trama.models 0.3.5
 
 * Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).
