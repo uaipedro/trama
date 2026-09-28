@@ -12,16 +12,15 @@
 
 #' Testa um termo por permutação da resposta, mantendo fixa a matriz do modelo.
 #' @export
-tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9999L, semente = 1L,
+tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9999L,
                                  aspecto = "16:9", tema = "padrão", titulo = "",
-                                 rotulo_x = "", rotulo_y = "", legenda = "direita") {
+                                 rotulo_x = "", rotulo_y = "", legenda = "direita", .seed = 1L) {
   .tr_models_fit_conferir(modelo)
   if (!identical(modelo$classe, "lm")) {
     .tr_models_abort("tr_models_error_bad_option", "'models/permutation' aceita apenas lm; o ajuste recebido é '%s'.", modelo$classe)
   }
-  B <- as.integer(reamostras); semente <- as.integer(semente)
+  B <- as.integer(reamostras)
   if (length(B) != 1L || is.na(B) || B < 1L) .tr_models_abort("tr_models_error_bad_option", "'Reamostras' deve ser um inteiro positivo.")
-  if (length(semente) != 1L || is.na(semente)) .tr_models_abort("tr_models_error_bad_option", "'Semente' deve ser um inteiro.")
   obs <- .tr_models_f_termo(modelo$ajuste, termo)
   dados <- as.data.frame(modelo$dados)
   y <- stats::model.response(stats::model.frame(modelo$ajuste))
@@ -34,26 +33,36 @@ tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9
     as.integer(factor(dados[[grupo]]))
   }
   estratos <- split(seq_along(y), grupos)
-  old_seed_exists <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-  if (old_seed_exists) old_seed <- get(".Random.seed", envir = .GlobalEnv)
-  on.exit(if (old_seed_exists) assign(".Random.seed", old_seed, envir = .GlobalEnv) else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv), add = TRUE)
-  set.seed(semente)
   f <- stats::formula(modelo$ajuste)
-  simulados <- numeric(B)
-  for (b in seq_len(B)) {
+  # A matriz do modelo não muda sob permutação da resposta: a QR é a mesma, e
+  # o F sequencial (tipo I) sai dos efeitos `Q'y` como no `anova.lm` — a SQ de
+  # cada termo é a soma dos efeitos das colunas dele; a do resíduo, a dos que
+  # sobram. Mil vezes mais barato que reajustar e chamar `anova()`.
+  aj <- modelo$ajuste
+  qr <- aj$qr
+  r <- aj$rank
+  asgn <- attr(stats::model.matrix(aj), "assign")[qr$pivot[seq_len(r)]]
+  nomes <- attr(stats::terms(aj), "term.labels")
+  k <- match(obs$nome, nomes)
+  gl_termo <- sum(asgn == k); gl_res <- length(y) - r
+  f_de <- function(yy) {
+    ef <- base::qr.qty(qr, yy)
+    (sum(ef[seq_len(r)][asgn == k]^2) / gl_termo) / (sum(ef[-seq_len(r)]^2) / gl_res)
+  }
+  if (!isTRUE(all.equal(f_de(y), obs$F, tolerance = 1e-10))) {
+    .tr_models_abort("tr_models_error_bad_option", "'models/permutation': não consegui reproduzir o F de '%s' pela decomposição do ajuste.", obs$nome)
+  }
+  simulados <- .tr_models_com_semente(.seed, vapply(seq_len(B), function(b) {
     yp <- y
     for (ii in estratos) yp[ii] <- y[ii][sample.int(length(ii))]
-    d <- dados
-    d[[resposta]] <- yp
-    fit <- stats::lm(f, data = d, na.action = stats::na.fail, contrasts = modelo$ajuste$contrasts)
-    simulados[b] <- .tr_models_f_termo(fit, obs$nome)$F
-  }
+    f_de(yp)
+  }, numeric(1)))
   tol <- 1e-8
   excede <- sum(simulados >= obs$F - tol)
   tabela <- tibble::tibble(termo = obs$nome, F_observado = obs$F, p_permutacao = (excede + 1) / (B + 1),
                            p_teorico = obs$p, reamostras = B, excedencias = excede)
-  distribuicao <- tibble::tibble(reamostra = seq_len(B), F = simulados)
-  grafico <- ggplot2::ggplot(distribuicao, ggplot2::aes(x = F)) +
+  distribuicao <- tibble::tibble(quantidade = paste0("F ", obs$nome), reamostra = seq_len(B), valor = simulados)
+  grafico <- ggplot2::ggplot(distribuicao, ggplot2::aes(x = .data[["valor"]])) +
     ggplot2::geom_histogram(bins = 30, fill = "#5B7C99", color = "white") +
     ggplot2::geom_vline(xintercept = obs$F, color = "#B34D4D", linewidth = 1) +
     ggplot2::labs(x = "F sob permutação", y = "Contagem", title = paste("Permutação ·", obs$nome))
@@ -65,13 +74,12 @@ tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9
   list(trama::tr_node("models/permutation", fn = tr_models_permutation,
     pressupostos = .tr_models_doc("models/permutation")$pressupostos,
     referencias = .tr_models_doc("models/permutation")$referencias,
-    label = "Permutação", category = "modelo_testes", icon = trama::tr_icon("shuffle"),
+    label = "Permutação", stochastic = TRUE, category = "modelo_testes", icon = trama::tr_icon("shuffle"),
     description = "Testa um termo do ajuste linear permutando a resposta e compara o F observado com a distribuição empírica.",
     inputs = list(modelo = "models/fit"), outputs = list(out = "view/plot", tabela = "data/table", distribuicao = "data/table"),
     params = c(list(termo = trama::tr_param("text", "", label = "Termo", example = "tratamento"),
       grupo = trama::tr_param_col("", label = "Dentro de", role = "categorica", suggest = FALSE, example = "bloco"),
-      reamostras = trama::tr_param_num(9999, min = 99, max = 100000, step = 100, label = "Reamostras"),
-      semente = trama::tr_param_num(1, min = 0, max = 2147483647, step = 1, label = "Semente")),
+      reamostras = trama::tr_param_int(9999L, min = 99L, max = 100000L, label = "Reamostras")),
       .tr_models_props(.aspecto = "16:9")),
     help = .tr_models_ajuda(r"---[
 Permuta os valores da resposta entre as linhas do ajuste e reajusta o modelo em
@@ -91,11 +99,11 @@ randomização do delineamento.
 - **Termo** — rótulo de uma linha do quadro da ANOVA; vazio usa o primeiro.
 - **Dentro de** — coluna que define grupos independentes de permutação.
 - **Reamostras** — quantidade de permutações (padrão 9999).
-- **Semente** — semente do gerador aleatório.
 - **Aspecto, Tema, Título, Rótulos dos eixos, Legenda** — aparência do gráfico.
 ]---", r"---[
 Gráfico da distribuição dos F permutados, tabela com p de permutação e teórico,
-e tabela longa com um F por repetição.
+e `distribuicao` longa (`quantidade`, `reamostra`, `valor`), um F por
+repetição. A semente é a do card: o mesmo card dá a mesma distribuição.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dados", "models/example", dataset = "PlantGrowth") |>
