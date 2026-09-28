@@ -4,6 +4,36 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "data/test"; T <- "data/table"
   list(
+    trama::tr_node("models/bootstrap", fn = tr_models_bootstrap, label = "Bootstrap",
+      category = "modelo_resumir", icon = trama::tr_icon("shuffle"),
+      description = "Intervalos percentil e BCa para os coeficientes de um modelo linear.",
+      inputs = list(modelo = Fm), outputs = list(tabela = T, distribuicao = T, out = "view/plot"),
+      params = c(list(quantidade = E("coeficientes", "coeficientes", label = "Quantidade"),
+        estratos = P("text", "", label = "Estratos", example = "grupo", suggest = FALSE), repeticoes = trama::tr_param_num(1999, min = 99, max = 100000, step = 100, label = "Repetições"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança"),
+        semente = trama::tr_param_num(1, min = 0, max = 2147483647, step = 1, label = "Semente")), .tr_models_props()),
+      help = .tr_models_ajuda(r"---[
+Reamostra linhas com reposição e reajusta um modelo linear. Mostra estimativa,
+viés, erro padrão, intervalos percentil e BCa, fração com o mesmo sinal, número
+de reamostras válidas e quantas falharam. É possível amostrar dentro de uma
+coluna de estratos.
+]---", r"---[
+- **Confiança** — nível dos intervalos percentil e BCa.
+- **Quantidade** — coeficientes do modelo.
+- **Estratos** — coluna que define grupos amostrados separadamente.
+- **Repetições** — número de reamostras.
+- **Semente** — início reproduzível da sequência aleatória.
+]---", r"---[
+Tabelas de resultados e distribuição das estimativas.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("dados", "models/example", dataset = "cars") |>
+  tr_add("ajuste", "models/lm", resposta = "dist", preditores = "speed", from = "dados") |>
+  tr_add("boot", "models/bootstrap", repeticoes = 1999, from = "ajuste")
+]---", r"---[
+`boot::boot` e `boot::boot.ci` (percentil e BCa); para comparação de médias,
+use `models/emmeans`.
+]---", teste = TRUE, grafico = TRUE)),
     trama::tr_node("models/anova_table", version = 2L,
       pressupostos = .tr_models_doc("models/anova_table")$pressupostos,
       referencias = .tr_models_doc("models/anova_table")$referencias,
