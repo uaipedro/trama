@@ -1,0 +1,24 @@
+Package: trama.python
+Title: Python (scikit-learn) Models for trama - Proof of Concept
+Version: 0.0.1
+Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+    role = c("aut", "cre"))
+Description: Proof of concept of a trama collection whose nodes run Python
+    through 'reticulate'. Fits are 'models/fit' objects that implement the
+    'trama.models' contract, so the R readers (predict, evaluate, ROC,
+    importance) work on them unchanged. The core package is not touched.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1)
+Imports:
+    trama (>= 0.3.1),
+    trama.data,
+    trama.models,
+    reticulate (>= 1.41),
+    tibble
+Suggests:
+    testthat (>= 3.0.0),
+    pkgload,
+    mirai
+Config/testthat/edition: 3
+Config/trama/requires: trama.data, trama.view, trama.models

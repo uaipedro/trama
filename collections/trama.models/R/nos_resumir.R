@@ -4,6 +4,64 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "data/test"; T <- "data/table"
   list(
+    trama::tr_node("models/bootstrap", fn = tr_models_bootstrap, label = "Bootstrap",
+      category = "modelo_resumir", icon = trama::tr_icon("shuffle"), stochastic = TRUE,
+      description = "Reamostra as linhas, reajusta e dá erro-padrão, IC percentil e BCa e estabilidade do sinal de coeficientes, médias ou diferenças.",
+      pressupostos = .tr_models_doc("models/bootstrap")$pressupostos,
+      referencias = .tr_models_doc("models/bootstrap")$referencias,
+      inputs = list(modelo = Fm), outputs = list(out = "view/plot", tabela = T, distribuicao = T),
+      params = c(list(quantidade = E("coeficientes", .TR_MODELS_BOOT_QUANTIDADES, label = "Quantidade"),
+        especs = trama::tr_when(trama::tr_param_col("", label = "Fator das médias", role = "categorica", example = "tratamento"),
+                                quantidade = c("médias", "diferenças")),
+        grupo = trama::tr_param_col("", label = "Reamostrar dentro de", role = "categorica", suggest = FALSE, example = "bloco"),
+        reamostras = trama::tr_param_int(1999L, min = 99L, max = 100000L, label = "Reamostras"),
+        confianca = trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01, label = "Confiança")),
+        .tr_models_props(.aspecto = "16:9")),
+      help = .tr_models_ajuda(r"---[
+**Bootstrap de casos** (Efron e Tibshirani, 1993, cap. 9; Davison e Hinkley,
+1997, cap. 6): sorteia as linhas do ajuste com reposição, reajusta o
+modelo e recalcula a quantidade, **Reamostras** vezes. O espalhamento das
+estimativas é a incerteza delas. Responde "quão estável é a estimativa?"; para
+"há efeito?", use `models/permutation`.
+
+- `coeficientes` — os coeficientes do modelo. `mesmo_sinal` é a fração de
+  reamostras em que o coeficiente manteve o sinal da estimativa: perto de 1, o
+  sentido do efeito é estável.
+- `médias` — as médias marginais de **Fator das médias** (as do
+  `models/emmeans`; com covariável, na média original dela).
+- `diferenças` — todos os pares de médias, o nível posterior menos o anterior
+  (`T3 - T1`).
+
+Nas médias e diferenças, a reamostragem é feita **dentro de cada nível** do
+fator (o n de cada tratamento fica fixo, como no experimento). Reamostra que
+perde um nível ou fica com posto incompleto é descartada e contada.
+
+Intervalos do `boot::boot.ci`: **percentil** e **BCa** (corrige viés e
+assimetria; com poucas reamostras fica instável, use 1999 ou mais).
+]---", r"---[
+- **Quantidade** — `coeficientes`, `médias` ou `diferenças`.
+- **Fator das médias** — em branco, o primeiro fator do modelo.
+- **Reamostrar dentro de** — estratos; em branco, o fator das médias (médias e
+  diferenças) ou nenhum (coeficientes).
+- **Reamostras** — B (padrão 1999).
+- **Confiança** — nível dos intervalos.
+- **Aspecto, Tema, Título, Rótulos dos eixos, Legenda** — aparência do gráfico.
+]---", r"---[
+`out`: histograma de cada quantidade, com a estimativa e o IC percentil.
+`tabela`: `quantidade`, `estimativa`, `vies`, `erro_padrao`, `li_perc`,
+`ls_perc`, `li_bca`, `ls_bca`, `mesmo_sinal`, `reamostras`, `descartadas`.
+`distribuicao`: longa, `quantidade`, `reamostra`, `valor` — um valor por
+reamostra; ligue num `view/histogram` com painel por `quantidade`, ou num
+`data/group_summarise` para outro quantil. A semente é a do card.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("dados", "models/example", dataset = "PlantGrowth") |>
+  tr_add("ajuste", "models/anova_dic", resposta = "weight", tratamento = "group", from = "dados") |>
+  tr_add("boot", "models/bootstrap", quantidade = "diferenças", from = "ajuste")
+]---", r"---[
+`models/permutation` para o teste; `models/emmeans` e `models/coefficients`
+para os intervalos teóricos que este bloco confere.
+]---", teste = TRUE, grafico = TRUE)),
     trama::tr_node("models/anova_table", version = 2L,
       pressupostos = .tr_models_doc("models/anova_table")$pressupostos,
       referencias = .tr_models_doc("models/anova_table")$referencias,
