@@ -39,6 +39,9 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `fracao` | fração das linhas, 0–1 (data/sample) | — |
 | `reposicao` | sortear com reposição (data/sample) | — |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
+| `termo` | linha do quadro da ANOVA que será testada (models/permutation) | — |
+| `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo | — |
+| `semente` | inteiro que inicializa o gerador aleatório do nó | — |
 
 ## Homônimos permitidos
 
