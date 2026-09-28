@@ -38,7 +38,7 @@ trama_collection <- function() {
     ),
     nodes = c(.tr_models_nos_fonte(), .tr_models_nos_ajustar(), .tr_models_nos_anova(),
               .tr_models_nos_resumir(), .tr_models_nos_medias(),
-              .tr_models_nos_pressupostos(), .tr_models_nos_testes(),
+              .tr_models_nos_pressupostos(), .tr_models_nos_testes(), .tr_models_nos_permutation(),
               .tr_models_nos_prever(), .tr_models_nos_avaliar(), .tr_models_nos_online()),
     # Glossário de params (docs/glossario-parametros.md): fluxos salvos com os
     # nomes antigos abrem já migrados. `alfa` vira `confianca` com o valor

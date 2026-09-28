@@ -24,7 +24,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- models_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_models(reg)
-  expect_length(nos, 57L)  # + models/influence
+  expect_length(nos, 59L)  # + influence, permutation, bootstrap
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -40,7 +40,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
 test_that("todo gráfico da coleção é view/plot com os seis cosméticos e a ajuda deles", {
   reg <- models_registry()
   graficos <- Filter(function(n) identical(n$outputs$out$type, "view/plot"), nos_models(reg))
-  expect_length(graficos, 8L)  # + models/influence
+  expect_length(graficos, 10L)  # + influence, permutation, bootstrap
   comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
   for (n in graficos) {
     expect_equal(utils::tail(names(n$params), 6L), comuns, info = n$id)
