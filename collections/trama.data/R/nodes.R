@@ -350,6 +350,15 @@ tr_mutate <- function(dados, name, expr, by = "") {
 #' salvo na versão 1 não traz o param, e o default do spec o preenche.
 #' @export
 tr_select <- function(dados, cols, remove = FALSE) {
+  # Seletor escrito como R (`starts_with("x")`, `where(is.numeric)`), de uma
+  # lista fechada; a lista de nomes de sempre segue pelo caminho abaixo.
+  if (!length(.as_cols(cols))) return(dados)
+  sel <- .tr_data_seletor(cols, dados)
+  if (!is.null(sel)) {
+    return(.tr_data_eval(
+      if (isTRUE(remove)) dplyr::select(dados, !c(!!!sel)) else dplyr::select(dados, !!!sel),
+      "cols", dados))
+  }
   cols <- .as_cols(cols)
   if (!length(cols)) return(dados)
   # Valida ANTES do verbo, nunca aninhado dentro dele: o dplyr embrulha a

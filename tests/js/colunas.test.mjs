@@ -97,3 +97,19 @@ test("opsDeSugestao no formato do set_param", () => {
     { op: "set_param", node: "n1", name: "x", value: "Sepal.Length", origem: "sugestao" },
   ]);
 });
+
+test("sumidas não acusa seletor escrito como R, mas ainda acusa nome sumido", () => {
+  const p = { name: "cols", kind: "cols", multi: true };
+  assert.deepEqual(sumidas([p], { cols: 'starts_with("Sepal", ignore.case = TRUE)' }, iris), []);
+  assert.deepEqual(sumidas([p], { cols: "Sepal.Length:Petal.Width" }, iris), []);
+  assert.deepEqual(sumidas([p], { cols: "Sepal.Length, mpg" }, iris), [{ name: "cols", faltam: ["mpg"] }]);
+});
+
+test("sumidas acusa o nome simples sumido mesmo ao lado de seletor ou de nome com parêntese", () => {
+  const p = { name: "cols", kind: "cols", multi: true };
+  assert.deepEqual(sumidas([p], { cols: 'starts_with("Sepal"), zz' }, iris), [{ name: "cols", faltam: ["zz"] }]);
+  const com = { colunas: [col("Preço (R$)", "numerica")], truncado: false };
+  assert.deepEqual(sumidas([p], { cols: "Preço (R$), zz" }, com), [{ name: "cols", faltam: ["zz"] }]);
+  const dois = { colunas: [col("a:b", "numerica")], truncado: false };
+  assert.deepEqual(sumidas([p], { cols: "a:b" }, dois), []);
+});

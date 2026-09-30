@@ -65,7 +65,9 @@ export function sumidas(params, valores, schema) {
   const out = [];
   for (const p of params) {
     if (p.kind !== "cols") continue;
-    const faltam = nomes((valores || {})[p.name]).filter((n) => !existe.has(n));
+    // Pedaço com `(`, `)` ou `:` é seletor escrito como R (`starts_with("x")`,
+    // `a:c`): quem valida é o R. O nome simples sumido continua sendo acusado.
+    const faltam = nomes((valores || {})[p.name]).filter((n) => !existe.has(n) && !/[():]/.test(n));
     if (faltam.length) out.push({ name: p.name, faltam });
   }
   return out;
