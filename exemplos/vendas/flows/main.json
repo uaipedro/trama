@@ -6,11 +6,12 @@
   },
   "nodes": {
     "ler": {
-      "type": "data/read_csv",
+      "type": "data/read",
       "type_version": 1,
       "label": "Ler CSV",
       "params": {
-        "path": "vendas.csv"
+        "path": "vendas.csv",
+        "formato": "csv"
       },
       "seed": 19942611
     },
@@ -136,6 +137,8 @@
     "views": {},
     "frames": {},
     "notes": {},
-    "modes": {}
+    "modes": {},
+    "soltos": {},
+    "ocultos": {}
   }
 }

@@ -6,7 +6,7 @@ collection: dados
 node: data/write_parquet
 category: saida
 order: 31
-related: [data/read_parquet, data/write_rds]
+related: [data/read, data/write_rds]
 ---
 
 ## O que o bloco faz
@@ -37,4 +37,4 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-O nó grava e repassa a tabela. `data/read_parquet` lê o resultado de volta.
+O nó grava e repassa a tabela. `data/read` lê o resultado de volta.

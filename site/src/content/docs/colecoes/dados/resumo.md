@@ -6,7 +6,7 @@ collection: dados
 node: data/summary
 category: conhecer
 order: 3
-related: [data/read_csv, data/group_summarise]
+related: [data/read, data/group_summarise]
 ---
 
 ## O que o bloco faz

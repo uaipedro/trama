@@ -7,11 +7,12 @@
   },
   "nodes": {
     "ler_caixa": {
-      "type": "data/read_csv",
+      "type": "data/read",
       "type_version": 1,
       "label": "Livro-caixa da Ecovila",
       "params": {
-        "path": "dados/lancamentos_financeiros.csv"
+        "path": "dados/lancamentos_financeiros.csv",
+        "formato": "csv"
       },
       "seed": 20260921
     },
@@ -328,6 +329,8 @@
     "modes": {
       "histograma": "preview",
       "boxplot_anos": "preview"
-    }
+    },
+    "soltos": {},
+    "ocultos": {}
   }
 }

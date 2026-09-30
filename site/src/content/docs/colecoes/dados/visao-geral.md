@@ -4,7 +4,7 @@ description: Leia, inspecione, transforme e grave tabelas em uma ordem que prese
 section: colecoes
 collection: dados
 order: 1
-related: [data/read_csv, data/summary, data/filter, data/group_summarise]
+related: [data/read, data/summary, data/filter, data/group_summarise]
 ---
 
 ## Da fonte à saída
@@ -13,7 +13,7 @@ A coleção `trama.data` fornece tabelas ao fluxo, descreve sua estrutura, prepa
 
 | Etapa | Nós | Decisão |
 | --- | --- | --- |
-| Ler ou criar | `data/read_csv`, `data/read_excel`, `data/read_json`, `data/read_rds`, `data/read_parquet`, `data/example`, `data/generate` | Escolha o formato da fonte ou produza dados simulados. |
+| Ler ou criar | `data/read`, `data/example`, `data/public`, `data/generate` | Leia arquivo ou link em qualquer formato, carregue uma base de pacote ou produza dados simulados. |
 | Inspecionar | `data/summary`, `data/get_dupes` | Verifique tipos, faltantes, extremos e chaves repetidas. |
 | Preparar | `data/clean_names`, `data/remove_empty`, `data/distinct`, `data/rename`, `data/drop_na`, `data/replace_na`, `data/convert` | Ajuste nomes, duplicidades, ausências e tipos segundo o significado dos dados. |
 | Transformar | `data/filter`, `data/mutate`, `data/select`, `data/arrange`, `data/slice_head`, `data/sample`, `data/separate`, `data/unite`, `data/recode`, `data/pivot_longer`, `data/pivot_wider` | Selecione registros, calcule colunas e ajuste a forma da tabela. |
@@ -32,7 +32,7 @@ reg <- tr_registry()
 tr_use("trama.data", registry = reg)
 
 tr_flow(reg) |>
-  tr_add("ler", "data/read_csv", path = "dados/vendas.csv",
+  tr_add("ler", "data/read", path = "dados/vendas.csv",
          delim = ";", na = "NA, -, n/d") |>
   tr_add("perfil", "data/summary", from = "ler") |>
   tr_add("faltantes", "data/arrange", cols = "faltantes", desc = TRUE,

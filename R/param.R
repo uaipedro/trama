@@ -46,6 +46,7 @@ tr_when <- function(p, ...) {
   }
   for (nm in nms) {
     v <- conds[[nm]]
+    if (inherits(v, "tr_when_padrao")) next
     if (!(is.character(v) || is.logical(v) || is.numeric(v)) || !length(v) || anyNA(v)) {
       rlang::abort(sprintf("tr_when(): valores de '%s' têm que ser texto, lógico ou número, sem NA.", nm),
                    class = "tr_error_bad_when")
@@ -55,15 +56,36 @@ tr_when <- function(p, ...) {
   p
 }
 
+#' Condição de [tr_when()] por padrão de texto: o param aparece quando o valor
+#' do outro casa com a expressão regular (sem diferenciar maiúsculas). Serve
+#' para o que uma lista de valores não expressa, como "o caminho é um link":
+#' `tr_when(p, path = tr_when_padrao("^https?://"))`.
+#' @param padrao Expressão regular, na sintaxe comum ao R e ao JavaScript.
+#' @export
+tr_when_padrao <- function(padrao) {
+  if (!is.character(padrao) || length(padrao) != 1L || is.na(padrao) || !nzchar(padrao)) {
+    rlang::abort("tr_when_padrao(): 'padrao' tem que ser um texto.", class = "tr_error_bad_when")
+  }
+  ok <- tryCatch({ grepl(padrao, "", perl = TRUE); TRUE }, error = function(e) FALSE, warning = function(w) FALSE)
+  if (!ok) rlang::abort(sprintf("tr_when_padrao(): expressão inválida: %s", padrao),
+                        class = "tr_error_bad_when")
+  structure(list(padrao = padrao), class = "tr_when_padrao")
+}
+
 #' Param numérico (ponto flutuante).
 #' @export
 tr_param_num  <- function(default, min = NA, max = NA, step = NULL, label = NULL, unit = NA_character_)
   tr_param("number", default, label, min = min, max = max, step = step, unit = unit)
 
 #' Param inteiro.
+#'
+#' `botao` troca o campo por um botão com esse texto, que soma 1 ao valor a
+#' cada clique: é o gesto "faça de novo" (baixar de novo, sortear de novo)
+#' expresso como param, então entra no hash, no undo e no documento como
+#' qualquer outro, e o bloco decide o que fazer quando o número sobe.
 #' @export
-tr_param_int  <- function(default, min = NA, max = NA, label = NULL)
-  tr_param("integer", as.integer(default), label, min = min, max = max)
+tr_param_int  <- function(default, min = NA, max = NA, label = NULL, botao = NULL)
+  tr_param("integer", as.integer(default), label, min = min, max = max, botao = botao)
 
 #' Param de texto livre.
 #' @export

@@ -6,7 +6,7 @@ collection: dados
 node: data/write_rds
 category: saida
 order: 30
-related: [data/read_rds, data/write_csv]
+related: [data/read, data/write_csv]
 ---
 
 ## O que o bloco faz
@@ -37,4 +37,4 @@ tr_flow(reg) |>
 
 ## Como interpretar
 
-O nó grava e repassa a tabela. `data/read_rds` recupera o arquivo em outro fluxo.
+O nó grava e repassa a tabela. `data/read` recupera o arquivo em outro fluxo.

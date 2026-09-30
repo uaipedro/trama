@@ -1361,3 +1361,10 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
   .tr-bases-filtros{display:none}
   .tr-bases-lista{border-right:0;border-bottom:1px solid var(--tr-line)}
 }
+
+/* Param inteiro com `botao`: o gesto "de novo" num botão, com a contagem ao lado. */
+.tr-contador{display:flex;align-items:center;gap:8px}
+.tr-contador-btn{background:var(--tr-bg);color:var(--tr-fg);border:1px solid var(--tr-line);
+                 border-radius:5px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}
+.tr-contador-btn:hover{border-color:var(--tr-accent);color:var(--tr-accent)}
+.tr-contador small{color:var(--tr-dim);font-variant-numeric:tabular-nums}

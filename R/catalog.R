@@ -32,7 +32,9 @@
   if (!is.null(out$choices)) out$choices <- I(as.character(out$choices))
   # Cada valor de `when` sai array SEMPRE: `metodo = "holm"` sozinho viraria
   # string e o front testaria pertinência em letras.
-  if (!is.null(out$when)) out$when <- lapply(out$when, I)
+  # Padrão (`tr_when_padrao()`) vai como objeto `{padrao}`, não como array.
+  if (!is.null(out$when)) out$when <- lapply(out$when, function(v)
+    if (inherits(v, "tr_when_padrao")) unclass(v) else I(v))
   out
 }
 

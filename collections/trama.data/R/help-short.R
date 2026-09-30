@@ -41,7 +41,7 @@
 
 .tr_data_aplicar_ajuda_curta <- function(colecao) {
   guias <- c(
-    "data/read" = "https://uaipedro.github.io/trama/colecoes/dados/ler-csv/",
+    "data/read" = "https://uaipedro.github.io/trama/colecoes/dados/ler-dados/",
     "data/summary" = "https://uaipedro.github.io/trama/colecoes/dados/resumo/",
     "data/group_summarise" = "https://uaipedro.github.io/trama/colecoes/dados/agrupar-e-resumir/"
   )
