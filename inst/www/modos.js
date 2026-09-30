@@ -109,7 +109,7 @@ export const ATALHOS = [
   { id: "params-todos", grupo: "Card", teclas: ["P"], rotulo: "Todos os parâmetros" },
   { id: "vista", grupo: "Card", teclas: ["V"], rotulo: "Ver em tela cheia" },
   { id: "tamanho", grupo: "Card", teclas: ["Shift+R"], rotulo: "Restaurar tamanho" },
-  { id: "proximo", grupo: "Card", teclas: ["+"], rotulo: "Próximo bloco" },
+  { id: "proximo", grupo: "Card", teclas: ["+", "Tab"], rotulo: "Próximo bloco" },
   { id: "ajuda", grupo: "Geral", teclas: ["H"], rotulo: "Ajuda do bloco / atalhos" },
   { id: "desfazer", grupo: "Geral", teclas: ["Ctrl+Z"], rotulo: "Desfazer" },
   { id: "tudo", grupo: "Geral", teclas: ["Ctrl+A"], rotulo: "Selecionar tudo" },

@@ -3931,6 +3931,17 @@ function App() {
       // ele enxerga o clipboard do SISTEMA. `preventDefault` no keydown
       // mataria o próprio evento `paste`.
       if (nome === "mod+v") return;
+      // Tab = o "+" do card selecionado. Fora da tabela porque sem um card
+      // selecionado o Tab tem que seguir andando o foco do navegador.
+      // Na apresentação a tabela não tem "+", e o Tab também não abre nada.
+      if (nome === "tab") {
+        const abrir = atalhosRef.current["+"];
+        const sel = nodesRef.current.filter((n) => n.selected);
+        if (!abrir || sel.length !== 1 || sel[0].type !== "ndNode") return;
+        e.preventDefault();
+        abrir();
+        return;
+      }
       const fn = atalhosRef.current[nome];
       if (!fn) return;
       e.preventDefault();
