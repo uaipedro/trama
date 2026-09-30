@@ -1,6 +1,6 @@
 Package: trama.models
 Title: Statistical Models Collection for trama
-Version: 0.4.0
+Version: 0.5.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -39,12 +39,14 @@ Imports:
     MASS,
     agricolae,
     ggplot2 (>= 4.0.0),
+    generics,
     rlang,
     tibble,
     datasets,
     stats,
     utils
 Suggests:
+    broom,
     testthat (>= 3.0.0),
     png,
     multcomp,

@@ -138,3 +138,27 @@ em `t < t0` (medido: BCa diferia na 4ª casa entre duas estatísticas
 matematicamente iguais). Reamostras de posto incompleto são descartadas e
 contadas; nesse caso a influência do BCa vem do jackknife, e o BCa fica NA
 quando o jackknife não estima. Testes: `test-permutation.R`, `test-bootstrap.R`.
+
+## Seleção multimodelo e ponte tidy (30/09/2026)
+
+`models/select` ranqueia modelos por AICc = AIC + 2k(k+1)/(n−k−1) (Hurvich e
+Tsai, 1989, doi:10.1093/biomet/76.2.297) e pesos de Akaike exp(−Δ/2)
+normalizados (Burnham e Anderson, 2002, cap. 2, doi:10.1007/b97636). k conta os
+parâmetros de variância (`attr(logLik, "df")`), como `stats::AIC`. Misto e GLS
+são reajustados por ML: REML não compara efeitos fixos diferentes. Com
+n−k−1 ≤ 0 o AICc não existe e o modelo sai sem peso. Recusa respostas
+diferentes (`log(y)` × `y`) e números de linhas diferentes. Oráculo: AIC/BIC
+contra `stats::AIC/BIC`; AICc e pesos contra a fórmula fechada escrita à mão, a
+1e-10 e, com `MuMIn` 1.48.19, contra `MuMIn::AICc` e `MuMIn::Weights` (lm; o
+teste pula onde o pacote não existe). Referências conferidas na fonte via
+Crossref em 30/09/2026: Hurvich e Tsai (1989), Biometrika 76(2): 297–307, título
+e autores confirmados; Burnham e Anderson, *Model Selection and Multimodel
+Inference* (Springer, doi 10.1007/b97636): título, editora e DOI confirmados,
+mas o registro do DOI dá o ano de 2004 (publicação online) e não diz a edição;
+o texto cita 2002, 2ª ed., como é usual, e o número de página das faixas de
+delta (2, 4–7, 10) **não foi conferido** — está de memória e o help não cita
+página. Fica aberto: mistos, GLS e nls não têm oráculo `MuMIn` próprio (o AIC
+deles vem de `logLik`).
+`tidy()`, `glance()` e `augment()` só renomeiam colunas dos leitores do
+contrato; oráculo `broom` (lm, glm) a 1e-8. Testes:
+`collections/trama.models/tests/testthat/test-select.R`, `test-tidy.R`.
