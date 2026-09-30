@@ -1,3 +1,7 @@
+# trama.models 0.5.1
+
+* `models/select`: o help da regra do delta diz que a transição entre as faixas é gradual, e a referência (Burnham e Anderson 2002, 2ª ed.) foi conferida na fonte.
+
 # trama.models 0.5.0
 
 * `tidy()`, `glance()` e `augment()` para todo `models/fit` (métodos de `generics`, reexportados). Só traduzem os nomes de coluna dos leitores do contrato para os do `broom`; nenhum número muda. `generics` passa a Imports.

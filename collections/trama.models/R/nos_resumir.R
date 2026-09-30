@@ -20,7 +20,7 @@ modelos **não precisam ser aninhados**: liga-se um cabo por modelo.
   converge para o AIC com n grande), `AIC` ou `BIC`.
 - `delta` — diferença para o melhor. Regra de bolso de Burnham e Anderson: até 2,
   o modelo tem suporte substancial; de 4 a 7, bem menos; acima de 10, essencialmente
-  nenhum. É triagem, não um teste.
+  nenhum; entre as faixas a transição é gradual. É triagem, não um teste.
 - `peso` — peso de Akaike: a probabilidade relativa de o modelo ser o melhor
   **do conjunto**. Muda se o conjunto muda.
 - `razao_evidencia` — peso do melhor dividido pelo do modelo.
