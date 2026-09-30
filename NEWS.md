@@ -7,6 +7,7 @@
   um R à parte (com confirmação), "Baixar CSV" e "Adicionar ao canvas", que
   insere o bloco declarado pela base. Novas funções: `tr_dataset()`,
   `tr_datasets()` e `tr_dataset_load()`.
+* Colar um link sozinho no canvas cria um bloco "Ler dados" com ele.
 
 # trama 0.4.0
 

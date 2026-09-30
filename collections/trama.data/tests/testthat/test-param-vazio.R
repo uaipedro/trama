@@ -20,7 +20,7 @@
 # defaults do spec: `tr_pivot_longer()` com `cols` vazio devolve a tabela antes
 # de olhar para `names_to`, e o teste passaria sem testar nada.
 args_validos <- function() list(
-  "data/read_excel"      = list(path = "planilha.xlsx", sheet = "1"),
+  "data/read"      = list(path = "planilha.xlsx", sheet = "1"),
   "data/generate"        = list(n = 10L, expr = "x = rnorm(n)"),
   "data/public"          = list(pacote = "datasets", dataset = "mtcars"),
   "data/mutate"          = list(dados = df_exemplo(), name = "nova",
@@ -38,7 +38,7 @@ args_validos <- function() list(
 # Exceção é DECLARADA, com motivo, nunca silenciosa: cada uma destas é um campo
 # que nasce preenchido E tem um comportamento honesto para o vazio.
 excecoes <- function() c(
-  "data/read_csv:na" =
+  "data/read:na" =
     paste("célula vazia conta como faltante SEMPRE, então o campo vazio quer",
           "dizer 'nenhuma marca além dela' — que é o piso, não um card incompleto"),
   "data/replace_na:value" =
@@ -53,7 +53,7 @@ test_that("todo param de texto com default não vazio recusa o branco, classific
   for (n in reg$nodes) {
     # Sem o pacote de Suggests, o nó aborta ANTES da checagem do branco, por
     # `tr_data_error_missing_package` — e não é isso que se está medindo.
-    if (identical(n$id, "data/read_excel") && !requireNamespace("readxl", quietly = TRUE)) next
+    if (identical(n$id, "data/read") && !requireNamespace("readxl", quietly = TRUE)) next
 
     for (nm in names(n$params)) {
       p <- n$params[[nm]]
@@ -101,7 +101,7 @@ test_that("param que nasce vazio no spec continua sendo 'desligado'", {
   expect_identical(tr_write_csv(d, ""), d)
 })
 
-# O `na` do `data/read_csv` é exceção declarada acima — e é exceção porque o
+# O `na` do `data/read` é exceção declarada acima — e é exceção porque o
 # vazio ali tem significado, não porque ninguém olhou. Aqui está o significado.
 test_that("read_csv sem marcas de faltante ainda lê a célula vazia como faltante", {
   p <- tempfile(fileext = ".csv"); on.exit(unlink(p), add = TRUE)

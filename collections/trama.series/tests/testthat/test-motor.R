@@ -27,7 +27,7 @@ test_that("tabela da data volta a ser série, e segue por operador, teste e grá
   utils::write.csv(data.frame(mes = seq(as.Date("2019-01-01"), by = "month", length.out = 60),
                               y = cumsum(stats::rnorm(60)))[sample(60), ], csv, row.names = FALSE)
   f <- trama::tr_flow(reg) |>
-    trama::tr_add("ler", "data/read_csv", path = csv) |>
+    trama::tr_add("ler", "data/read", path = csv) |>
     trama::tr_add("serie", "series/from_table", valor = "y", tempo = "mes", from = "ler") |>
     trama::tr_add("d", "series/diff", from = "serie") |>
     trama::tr_add("teste", "series/adf", from = "d") |>

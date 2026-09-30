@@ -118,7 +118,7 @@ Um gráfico (um `patchwork`, que é um ggplot), que pode seguir para
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"ensaio.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"ensaio.csv\") |>
   tr_add(\"a\", \"view/boxplot\", x = \"tratamento\", y = \"resposta\", from = \"ler\") |>
   tr_add(\"b\", \"view/points\", x = \"dose\", y = \"resposta\", from = \"ler\") |>
   tr_add(\"fig\", \"view/combine\", por_linha = 2, tema = \"clássico\",

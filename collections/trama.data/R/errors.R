@@ -23,6 +23,7 @@ tr_data_errors <- function() {
     tr_data_error_not_a_table =
       paste("o nó recebeu ou produziu um objeto que não é tabela; o tipo data/table",
             "recusa guardá-lo"),
+    tr_data_error_download = "link do data/read não pôde ser baixado (rede, 404, resposta vazia)",
     tr_data_error_missing_file =
       "caminho de .rds aponta pra arquivo (leitura) ou pasta (gravação) que não existe",
     tr_data_error_stream_columns =

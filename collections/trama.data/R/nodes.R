@@ -85,7 +85,7 @@ tr_read_rds <- function(path, .ctx = NULL) {
 
 #' @export
 tr_read_parquet <- function(path, .ctx = NULL) {
-  .tr_data_need("arrow", "data/read_parquet")
+  .tr_data_need("arrow", "data/read")
   .tr_data_obrigatorio(path, "path")
   if (!is.null(.ctx)) path <- .ctx$path(path)
   # Sem mmap: a tabela lida prendia o arquivo mapeado e, no Windows, regravar
@@ -101,7 +101,7 @@ tr_read_parquet <- function(path, .ctx = NULL) {
 #' sem classe e sem dizer qual campo do card estava vazio.
 #' @export
 tr_read_excel <- function(path, sheet = 1, .ctx = NULL) {
-  .tr_data_need("readxl", "data/read_excel")
+  .tr_data_need("readxl", "data/read")
   .tr_data_obrigatorio(path, "path")
   .tr_data_obrigatorio(sheet, "sheet")
   if (!is.null(.ctx)) path <- .ctx$path(path)

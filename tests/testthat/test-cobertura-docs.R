@@ -73,7 +73,7 @@ test_that("blocos inferenciais têm pressupostos e referências (ou estão pende
   exigidos <- cob_exigidos(reg)
   expect_true(all(c("models/t_test", "models/lm", "models/anova_dbc", "sampling/mean",
                     "series/arima", "multi/pca", "ml/forest") %in% exigidos))
-  expect_false(any(c("data/read_csv", "data/filter", "view/histogram",
+  expect_false(any(c("data/read", "data/filter", "view/histogram",
                      "models/example", "series/plot") %in% exigidos))
   expect_true(all(.cob_incluir %in% ls(reg$nodes)))
 

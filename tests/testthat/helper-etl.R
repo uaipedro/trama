@@ -26,7 +26,7 @@ fixture_csv <- function() {
 
 etl_doc <- function(reg, csv) {
   ops <- list(
-    list(op = "add_node", type = "data/read_csv", id = "ler", params = list(path = csv)),
+    list(op = "add_node", type = "data/read", id = "ler", params = list(path = csv)),
     list(op = "add_node", type = "data/filter", id = "filtrar",
          params = list(expr = "valor > 8")),
     list(op = "add_node", type = "data/mutate", id = "calc",

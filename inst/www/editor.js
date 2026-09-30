@@ -35,6 +35,7 @@ import { yDosFantasmas } from "./fantasmas.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
+import { linkDeDados } from "./links.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -3176,6 +3177,8 @@ function App() {
   // Id do bloco recém-inserido: o documento que ecoa o batch refaz os nós
   // sem seleção, e é ali que ele ganha o `selected`.
   const selNovoRef = useRef(null);
+  const colarLinkRef = useRef(null);
+  colarLinkRef.current = (link) => addAt("data/read", centroDaTela(), { params: { path: link } });
 
   // Insere o bloco à direita da origem, já conectado, num batch só (um passo
   // de undo). Colidindo com um card, desce até achar vão.
@@ -3408,7 +3411,7 @@ function App() {
   // ver R/transport.R) manda o conteúdo como STRING, lido no navegador com
   // `FileReader.readAsText`. Excel/Parquet/RDS são binários e exigiriam um
   // caminho de transporte à parte (base64) — fora de escopo por ora.
-  const EXT_NODE_LEITURA = { csv: "data/read_csv", json: "data/read_json" };
+  const EXT_NODE_LEITURA = { csv: "data/read", json: "data/read" };
 
   // Lê o arquivo e manda pro servidor gravar em `data/`; a posição e o tipo
   // de nó ficam pendentes (por `id`) até a resposta (`data_upload_ok` ou
@@ -4101,6 +4104,11 @@ function App() {
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       const texto = e.clipboardData?.getData("text/plain") || "";
       if (ehTemplate(texto)) { e.preventDefault(); inserirTemplateRef.current(texto); return; }
+      // Link colado sozinho vira "Ler dados" com o link, no centro da tela.
+      const link = linkDeDados(texto);
+      if (link && catalogRef.current?.nodes.some((n) => n.id === "data/read")) {
+        e.preventDefault(); colarLinkRef.current(link); return;
+      }
       if (clipboardRef.current) { e.preventDefault(); colarRef.current(); }
     };
     // O `copy` que segue um Ctrl+C de blocos: grava no clipboard do sistema um
