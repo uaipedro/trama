@@ -9,6 +9,10 @@
   `tr_datasets()` e `tr_dataset_load()`.
 * Colar um link sozinho no canvas cria um bloco "Ler dados" com ele.
 
+# trama 0.4.1
+
+* O aviso "não existe na entrada" do campo de colunas (`sumidas`, em `colunas.js`) não acusa mais valores escritos como seletor (`starts_with("x")`, `a:c`): quem valida é o R. Necessário para o `data/select` da `trama.data` 0.3.0, que passa a aceitar seletores.
+
 # trama 0.4.0
 
 * Próximo bloco como fantasmas. O "+" do card, ou soltar um conector no vazio,

@@ -1,6 +1,15 @@
-# trama.models 0.4.1
+# trama.models 0.5.2
 
 * Dez bases de regressão e GLM no catálogo de bases (`carData`, `MASS`, `faraway`).
+
+# trama.models 0.5.1
+
+* `models/select`: o help da regra do delta diz que a transição entre as faixas é gradual, e a referência (Burnham e Anderson 2002, 2ª ed.) foi conferida na fonte.
+
+# trama.models 0.5.0
+
+* `tidy()`, `glance()` e `augment()` para todo `models/fit` (métodos de `generics`, reexportados). Só traduzem os nomes de coluna dos leitores do contrato para os do `broom`; nenhum número muda. `generics` passa a Imports.
+* `models/select`: ranqueia dois ou mais modelos da mesma resposta (não precisam ser aninhados) por AICc, AIC ou BIC, com delta, pesos de Akaike e razão de evidência. Porta variádica; mistos e GLS reajustados por máxima verossimilhança.
 
 # trama.models 0.4.0
 

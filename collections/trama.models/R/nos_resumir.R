@@ -4,6 +4,53 @@
   P <- trama::tr_param; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   Fm <- "models/fit"; EF <- "models/effects"; TE <- "data/test"; T <- "data/table"
   list(
+    trama::tr_node("models/select", fn = tr_models_select, label = "Selecionar modelos",
+      category = "modelo_resumir", icon = trama::tr_icon("list-ordered"),
+      description = "Ranqueia vários modelos da mesma resposta por AICc, AIC ou BIC, com diferença, pesos de Akaike e razão de evidência.",
+      pressupostos = .tr_models_doc("models/select")$pressupostos,
+      referencias = .tr_models_doc("models/select")$referencias,
+      inputs = list(modelos = trama::tr_port(Fm, multiple = TRUE)), outputs = list(out = T),
+      params = list(criterio = E("AICc", .TR_MODELS_CRITERIOS, label = "Critério")),
+      help = .tr_models_ajuda(r"---[
+Ranqueia **dois ou mais modelos** da mesma resposta, na mesma tabela, por um
+critério de informação (Burnham e Anderson, 2002). Diferente do `models/compare`, os
+modelos **não precisam ser aninhados**: liga-se um cabo por modelo.
+
+- **Critério** — `AICc` (o padrão: corrige o AIC para amostra pequena;
+  converge para o AIC com n grande), `AIC` ou `BIC`.
+- `delta` — diferença para o melhor. Regra de bolso de Burnham e Anderson: até 2,
+  o modelo tem suporte substancial; de 4 a 7, bem menos; acima de 10, essencialmente
+  nenhum; entre as faixas a transição é gradual. É triagem, não um teste.
+- `peso` — peso de Akaike: a probabilidade relativa de o modelo ser o melhor
+  **do conjunto**. Muda se o conjunto muda.
+- `razao_evidencia` — peso do melhor dividido pelo do modelo.
+
+Não lê família quasi (sem verossimilhança) e não mistura resposta discreta
+(binomial, Poisson) com contínua (gaussiana, gama). Numa binomial com
+`cbind`, o n do AICc e do BIC é o número de linhas (`nobs`), não o de tentativas.
+
+Os modelos precisam ter a mesma resposta (escrita igual: `log(y)` e `y` não se
+comparam) e as mesmas linhas. Modelos mistos e GLS são reajustados por máxima
+verossimilhança antes de comparar. Com n − k − 1 ≤ 0 o AICc não existe e o
+modelo vai para o fim, sem peso.
+
+O ranking diz qual modelo o conjunto sustenta, não se algum deles é bom:
+confira os pressupostos do vencedor.
+]---", r"---[
+**Critério**: `AICc`, `AIC` ou `BIC`.
+]---", r"---[
+Tabela (`data/table`), do melhor ao pior.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carros", "models/example", dataset = "mtcars") |>
+  tr_add("m1", "models/lm", formula = "mpg ~ wt", from = "carros") |>
+  tr_add("m2", "models/lm", formula = "mpg ~ wt + hp", from = "carros") |>
+  tr_add("m3", "models/lm", formula = "mpg ~ wt * hp", from = "carros") |>
+  tr_add("ranking", "models/select", from = c("m1", "m2", "m3"))
+]---", r"---[
+`models/compare` para dois modelos aninhados (teste); `models/fit_stats` para as medidas de um só.
+]---")),
+
     trama::tr_node("models/bootstrap", fn = tr_models_bootstrap, label = "Bootstrap",
       category = "modelo_resumir", icon = trama::tr_icon("shuffle"), stochastic = TRUE,
       description = "Reamostra as linhas, reajusta e dá erro-padrão, IC percentil e BCa e estabilidade do sinal de coeficientes, médias ou diferenças.",

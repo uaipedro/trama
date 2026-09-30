@@ -879,7 +879,13 @@ Campo em branco é nó desligado: a tabela passa inteira, com ou sem a chave.
 
 - **Colunas** — colunas a manter (ou a remover), separadas por vírgula. No modo
   manter, a ordem digitada é a ordem da saída; no modo remover, a saída fica na
-  ordem original da tabela.
+  ordem original da tabela. Também aceita seletores escritos como no R, de uma
+  lista fechada: `starts_with(\"valor\")`, `ends_with()`, `contains()`,
+  `matches()`, `where(is.numeric)` (ou `is.character`, `is.factor`,
+  `is.logical`, `is.integer`, `is.double`), `everything()`, `last_col()`, o
+  intervalo `a:c` e os combinadores `c()`, `!`, `-`, `&` e `|`. Nomes e
+  seletores se misturam: `regiao, where(is.numeric)`. Qualquer outra função é
+  recusada — o campo não roda código livre.
 - **Remover em vez de manter** — inverte o sentido da lista.
 
 ## Valor

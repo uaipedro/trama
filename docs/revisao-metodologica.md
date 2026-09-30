@@ -138,3 +138,31 @@ em `t < t0` (medido: BCa diferia na 4ª casa entre duas estatísticas
 matematicamente iguais). Reamostras de posto incompleto são descartadas e
 contadas; nesse caso a influência do BCa vem do jackknife, e o BCa fica NA
 quando o jackknife não estima. Testes: `test-permutation.R`, `test-bootstrap.R`.
+
+## Seleção multimodelo e ponte tidy (30/09/2026)
+
+`models/select` ranqueia modelos por AICc = AIC + 2k(k+1)/(n−k−1) (Hurvich e
+Tsai, 1989, doi:10.1093/biomet/76.2.297) e pesos de Akaike exp(−Δ/2)
+normalizados (Burnham e Anderson, 2002, cap. 2, doi:10.1007/b97636). k conta os
+parâmetros de variância (`attr(logLik, "df")`), como `stats::AIC`. Misto e GLS
+são reajustados por ML: REML não compara efeitos fixos diferentes. Com
+n−k−1 ≤ 0 o AICc não existe e o modelo sai sem peso. Recusa respostas
+diferentes (`log(y)` × `y`) e números de linhas diferentes. Oráculo: AIC/BIC
+contra `stats::AIC/BIC`; AICc e pesos contra a fórmula fechada escrita à mão, a
+1e-10 e, com `MuMIn` 1.48.19, contra `MuMIn::AICc` e `MuMIn::Weights` (lm; o
+teste pula onde o pacote não existe). Referências conferidas na fonte em 30/09/2026.
+Hurvich e Tsai (1989), Biometrika 76(2): 297–307: título, autores, volume e
+páginas confirmados no Crossref. Burnham e Anderson, *Model Selection and
+Multimodel Inference: A Practical Information-Theoretic Approach*, 2ª ed.,
+Springer, 2002, ISBN 0-387-95364-7: título, editora, DOI, edição e ano
+confirmados (catálogo da Springer e de bibliotecas); o Crossref dá 2004 para o
+DOI porque é a data da publicação online, e a citação usual é 2002. Faixas do
+delta: a de Δ < 2 (suporte substancial), a de 4 a 7 (bem menos) e a de
+Δ > 10 (essencialmente nenhum) aparecem, atribuídas a esse livro, em textos
+que o citam; **a página exata não foi conferida** (nenhuma fonte acessível a
+cita), então o help não cita página e diz que a transição entre as faixas é
+gradual. Fica aberto abrir o livro para fixar seção e página. Também: mistos, GLS e nls não têm oráculo `MuMIn` próprio (o AIC
+deles vem de `logLik`).
+`tidy()`, `glance()` e `augment()` só renomeiam colunas dos leitores do
+contrato; oráculo `broom` (lm, glm) a 1e-8. Testes:
+`collections/trama.models/tests/testthat/test-select.R`, `test-tidy.R`.

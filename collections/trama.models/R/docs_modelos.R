@@ -169,6 +169,20 @@
           doi = "10.1002/9780470316757", papel = "livro-texto"),
         I("stats", "nls", "Gauss-Newton com os self-starters `SSlogis`, `SSmicmen`, `SSasymp` e `SSgompertz`; o linear-platô parte de uma busca da quebra. Conferido contra os valores certificados do NIST StRD: Rat42 (logístico) e Misra1d (Michaelis-Menten), parâmetros a 1e-6, SQ residual a 1e-6 e erro padrão a 1e-5."))),
 
+    "models/select" = list(
+      pressupostos = list(
+        P("Os modelos respondem \u00e0 mesma resposta, na mesma escala e nas mesmas linhas."),
+        P("O conjunto de modelos \u00e9 definido antes de olhar os dados; os pesos valem s\u00f3 dentro dele."),
+        P("A verossimilhan\u00e7a de cada modelo \u00e9 a de m\u00e1xima verossimilhan\u00e7a (REML n\u00e3o compara efeitos fixos diferentes).")),
+      referencias = list(
+        R(autores = c("Burnham, K. P.", "Anderson, D. R."), ano = 2002,
+          titulo = "Model Selection and Multimodel Inference: A Practical Information-Theoretic Approach, 2nd ed.",
+          fonte = "New York: Springer", doi = "10.1007/b97636", papel = "livro-texto"),
+        R(autores = c("Hurvich, C. M.", "Tsai, C.-L."), ano = 1989,
+          titulo = "Regression and time series model selection in small samples",
+          fonte = "Biometrika 76(2): 297-307", doi = "10.1093/biomet/76.2.297", papel = "teoria"),
+        I("stats", "AIC/BIC/logLik", "AIC e BIC conferidos contra `stats::AIC` e `stats::BIC`; AICc e pesos de Akaike contra `MuMIn::AICc` e `MuMIn::Weights` (MuMIn 1.48.19), a 1e-10, no lm."))),
+
     "models/influence" = list(
       pressupostos = list(P("A observação corresponde à unidade independente usada no ajuste; o diagnóstico é relativo ao modelo ajustado.")),
       referencias = list(
