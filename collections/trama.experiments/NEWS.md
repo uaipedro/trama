@@ -1,3 +1,7 @@
+# trama.experiments 0.2.5
+
+* Dezesseis ensaios publicados no catálogo de bases (`agridat`, `MASS`, `agricolae`).
+
 # trama.experiments 0.2.4
 
 * Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).

@@ -1,0 +1,58 @@
+#' Ensaios publicados, para os delineamentos da coleção. Fonte, dimensões e
+#' licença conferidas no Rd e no DESCRIPTION de cada pacote (30/09/2026).
+#' @noRd
+.tr_experiments_bases <- function() {
+  b <- trama.data::tr_base_publica
+  cc <- "Cochran & Cox (1957), Experimental Designs, 2a ed."
+  list(
+    b("agridat", "cochran.crd", "Sarna da batata com tratamentos de enxofre",
+      temas = c("DIC", "experimentos"), n = 32, variaveis = 4, fonte = cc, licenca = "MIT"),
+    b("agridat", "mead.strawberry", "Produção de morango em blocos",
+      temas = c("DBC", "experimentos"), n = 32, variaveis = 5,
+      fonte = "Via R. Mead, anterior a 1968 (segundo Besag)", licenca = "MIT"),
+    b("agridat", "cochran.latin", "Quadrado latino em trigo",
+      temas = c("quadrado latino", "experimentos"), n = 36, variaveis = 4, fonte = cc,
+      licenca = "MIT"),
+    b("agridat", "cochran.factorial", "Fatorial 2x2x2x2 em feijão",
+      temas = c("fatorial", "experimentos"), n = 32, variaveis = 8,
+      fonte = paste0(cc, ", p. 160"), licenca = "MIT"),
+    b("agridat", "yates.oats", "Parcelas subdivididas de aveia (Rothamsted)",
+      temas = c("parcelas subdivididas", "experimentos", "modelos mistos"), n = 72, variaveis = 8,
+      fonte = "Rothamsted Experimental Station, Report for 1931, p. 143", licenca = "MIT"),
+    b("agridat", "john.alpha", "Látice alfa de aveia",
+      temas = c("blocos incompletos", "experimentos"), n = 72, variaveis = 7,
+      fonte = "John & Williams (1995), Cyclic and Computer Generated Designs, p. 146",
+      licenca = "MIT"),
+    b("agridat", "cochran.lattice", "Látice balanceado em algodão",
+      temas = c("blocos incompletos", "experimentos"), n = 80, variaveis = 5,
+      fonte = paste0(cc, ", p. 490"), licenca = "MIT"),
+    b("agridat", "gomez.fractionalfactorial", "Fatorial fracionado 1/2 de 2^6 em arroz",
+      temas = c("fatorial", "experimentos"), n = 64, variaveis = 12,
+      fonte = "Gomez & Gomez (1984), Statistical Procedures for Agricultural Research, p. 171",
+      licenca = "MIT"),
+    b("agridat", "lucas.switchback", "Ensaio de reversão em vacas leiteiras",
+      temas = c("crossover", "experimentos"), n = 36, variaveis = 5,
+      fonte = "Lucas (1956), Journal of Dairy Science 39, 146-154", licenca = "MIT"),
+    b("agridat", "fisher.barley", "Cevada: 5 variedades, 6 locais, 2 anos",
+      temas = c("multiambiente", "experimentos"), n = 60, variaveis = 4,
+      fonte = "Fisher (1935), The Design of Experiments", licenca = "MIT"),
+    b("agridat", "besag.elbatan", "Trigo em blocos com tendência espacial forte",
+      temas = c("DBC", "espacial", "experimentos"), n = 150, variaveis = 4,
+      fonte = "Besag & Higdon (1999), JRSS B 61, 691-746", licenca = "MIT"),
+    b("agridat", "ratkowsky.onions", "Produção de cebola por densidade de plantio",
+      temas = c("regressão não linear"), n = 84, variaveis = 3,
+      fonte = "Ratkowsky (1983), Nonlinear Regression Modeling", licenca = "MIT"),
+    b("MASS", "npk", "Fatorial clássico N, P, K em ervilha",
+      temas = c("fatorial", "DBC", "experimentos"), n = 24, variaveis = 5,
+      fonte = "Imperial College, London, M.Sc. exercise sheet", licenca = "GPL-2 | GPL-3"),
+    b("MASS", "oats", "Aveia em parcelas subdivididas (Yates)",
+      temas = c("parcelas subdivididas", "experimentos"), n = 72, variaveis = 4,
+      fonte = "Yates (1935), JRSS Suppl. 2, 181-247", licenca = "GPL-2 | GPL-3"),
+    b("agricolae", "plots", "Parcelas subdivididas (International Potato Center)",
+      temas = c("parcelas subdivididas", "experimentos"), n = 18, variaveis = 5,
+      fonte = "International Potato Center (CIP)", licenca = "GPL"),
+    b("agricolae", "cotton", "Algodão: linhagens, épocas e locais",
+      temas = c("fatorial", "DBC", "experimentos"), n = 96, variaveis = 5,
+      fonte = "Calzada Benza, Métodos estadísticos para la investigación (UNALM)", licenca = "GPL")
+  )
+}

@@ -1,3 +1,7 @@
+# trama.models 0.4.1
+
+* Dez bases de regressão e GLM no catálogo de bases (`carData`, `MASS`, `faraway`).
+
 # trama.models 0.4.0
 
 * `models/bootstrap`: bootstrap de casos de um ajuste `lm` — coeficientes, médias marginais ou diferenças entre elas — com erro-padrão, IC percentil e BCa (`boot::boot.ci`) e fração de reamostras com o mesmo sinal. Saída `distribuicao` longa (`quantidade`, `reamostra`, `valor`).

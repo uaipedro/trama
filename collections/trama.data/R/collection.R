@@ -15,6 +15,7 @@ trama_collection <- function() {
   P <- trama::tr_param
   .tr_data_aplicar_ajuda_curta(trama::tr_collection(
     id = "data", version = "0.2.0", label = "Dados", js = "trama/index.js",
+    datasets = .tr_data_bases(),
     # `data/test` é o resultado de UM teste de hipótese, de qualquer coleção:
     # o mecanismo (construtor, regra de decisão, card, linha de tabela) é do
     # núcleo, que não registra tipo nenhum; o registro fica aqui porque toda
@@ -360,6 +361,49 @@ tr_flow(reg) |>
 
 `data/read_csv` quando o dado é seu e está em arquivo; `data/summary` para o
 primeiro olhar em qualquer tabela."),
+
+      trama::tr_node("data/public", fn = tr_public, label = "Base pública",
+        category = "source",
+        description = "Carrega uma base publicada num pacote R (livros, ensaios clássicos, dados abertos).",
+        icon = trama::tr_icon("database"),
+        outputs = list(out = T),
+        params = list(pacote = P("text", "datasets", label = "Pacote", example = "agridat"),
+                      dataset = P("text", "mtcars", label = "Base", example = "yates.oats")),
+        help = "## Descrição
+
+Carrega uma tabela publicada num pacote R: os dados dos livros de estatística
+(`carData`, `MASS`, `ISLR2`), ensaios agronômicos clássicos (`agridat`,
+`agricolae`) e conjuntos abertos (`palmerpenguins`, `gapminder`). É o bloco que
+o **catálogo de bases** põe no canvas: lá dá para buscar por tema, ver a fonte
+e a licença, instalar o pacote e baixar a base como CSV.
+
+O fluxo guarda só o nome do pacote e da base, não o dado: quem abre o projeto
+em outra máquina precisa do pacote instalado, e o card avisa quando falta.
+
+Como no `data/example`, nome de linha informativo vira a coluna `nome`, e
+objeto que não é tabela é recusado.
+
+## Parâmetros
+
+- **Pacote** — o pacote R que publica a base.
+- **Base** — o nome do objeto no pacote, como em `data(nome, package = pacote)`.
+
+## Valor
+
+Uma tabela.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"ensaio\", \"data/public\", pacote = \"agridat\", dataset = \"yates.oats\") |>
+  tr_add(\"olhar\", \"data/summary\", from = \"ensaio\")
+```
+
+## Veja também
+
+`data/example` para os conjuntos que vêm com o R; `data/read_csv` quando o
+dado é seu."),
 
       trama::tr_node("data/generate", fn = tr_generate, label = "Gerar dados",
         category = "source", stochastic = TRUE,

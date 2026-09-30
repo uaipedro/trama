@@ -16,6 +16,7 @@
 #' @export
 trama_collection <- function() {
   trama::tr_collection(
+    datasets = .tr_models_bases(),
     id = "models", version = "0.3.0", label = "Modelos",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.models")),
     js = "trama/index.js", css = "trama/models.css",

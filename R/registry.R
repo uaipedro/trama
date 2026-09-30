@@ -10,7 +10,7 @@ tr_registry <- function() {
   reg$types <- list(); reg$nodes <- list(); reg$adapters <- list()
   reg$categories <- list(); reg$collections <- list()
   reg$migrations <- list(nodes = list(), params = list(), ports = list())
-  reg$transitions <- list()
+  reg$transitions <- list(); reg$datasets <- list()
   structure(reg, class = "tr_registry")
 }
 
@@ -136,8 +136,16 @@ tr_use <- function(collection, registry = .tr_default_registry,
     }
   }
 
+  # A base aponta para um bloco que carrega o dado; bloco inexistente seria
+  # um item no modal que falha só quando alguém o escolhe.
+  for (d in col$datasets) if (is.null(nodes[[d$node]])) {
+    rlang::abort(sprintf("Base '%s' usa bloco desconhecido: '%s'.", d$id, d$node),
+                 class = "tr_error_unknown_node")
+  }
+
   registry$types <- types; registry$nodes <- nodes; registry$adapters <- adapters
   registry$migrations <- mig
+  registry$datasets[[col$id]] <- if (length(col$datasets)) col$datasets
   for (k in col$categories) registry$categories[[k$id]] <- k
   # Guardadas por coleção: a regra de namespace do `to` garante que duas
   # coleções nunca declaram o mesmo par, então concatenar no catálogo basta.

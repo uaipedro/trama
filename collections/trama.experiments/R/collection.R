@@ -16,6 +16,7 @@ trama_collection <- function() {
            # deixa a coleção carregar mesmo antes de eles existirem.
            if (exists(".tr_experiments_nos_analisar", mode = "function")) .tr_experiments_nos_analisar())
   trama::tr_collection(
+    datasets = .tr_experiments_bases(),
     id = "experiments", version = "0.2.0", label = "Experimentos",
     types = list(experiments_plan_type()),
     adapters = .tr_experiments_adapters(),

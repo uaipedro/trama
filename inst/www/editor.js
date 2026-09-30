@@ -34,6 +34,7 @@ import { Proximo, vaoAoLado, vaoPerto, alturaNova } from "./proximo.js";
 import { yDosFantasmas } from "./fantasmas.js";
 import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
+import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -1622,6 +1623,139 @@ const slugArquivo = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g
 
 // --- App -------------------------------------------------------------------
 
+// Catálogo de bases públicas: o que as coleções declaram (`tr_dataset()`),
+// com busca, filtros por tema e pacote, e o detalhe da base escolhida. Os
+// dados só chegam sob demanda: a prévia é pedida ao selecionar uma base
+// instalada, e instalar pede confirmação na própria linha de ações — é
+// `install.packages` na máquina de quem usa, e tem que ser um gesto explícito.
+// A lista vem a cada abertura (`tr_datasets_list`) porque `instalado` muda.
+function BasesModal({ bases, previews, instalando, onPreview, onInstall, onAdd, onCsv, onClose }) {
+  const [termo, setTermo] = useState("");
+  const [tema, setTema] = useState("");
+  const [pacote, setPacote] = useState("");
+  const [selId, setSelId] = useState(null);
+  const [confirmar, setConfirmar] = useState(false);
+  const buscaRef = useRef(null);
+  useEffect(() => { buscaRef.current?.focus(); }, []);
+  useEffect(() => {
+    const esc = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+  const todas = bases || [];
+  const lista = useMemo(() => filtrarBases(todas, { termo, tema, pacote }), [todas, termo, tema, pacote]);
+  const temas = useMemo(() => temasDe(todas), [todas]);
+  const pacotes = useMemo(() => pacotesDe(todas), [todas]);
+  // A seleção segue a lista: filtrou e a escolhida sumiu, vale a primeira.
+  const sel = lista.find((b) => b.id === selId) || lista[0] || null;
+  useEffect(() => { setConfirmar(false); }, [sel?.id]);
+  useEffect(() => {
+    if (sel?.instalado && !previews[sel.id]) onPreview(sel.id);
+  }, [sel?.id, sel?.instalado]);
+  const mover = (d) => {
+    if (!lista.length) return;
+    const i = Math.max(0, lista.findIndex((b) => b.id === sel?.id));
+    setSelId(lista[Math.min(lista.length - 1, Math.max(0, i + d))].id);
+  };
+  const inst = sel ? instalando[sel.pacote] : null;
+  const pv = sel ? previews[sel.id] : null;
+
+  const detalhe = !sel ? h("div", { className: "tr-bases-vazio" },
+      bases ? "Nenhuma base com esses filtros." : "Carregando o catálogo…")
+    : h("div", { className: "tr-bases-det" }, [
+      h("div", { key: "id", className: "tr-bases-id" }, `${sel.pacote}::${sel.nome}`),
+      h("h3", { key: "t" }, sel.titulo),
+      sel.descricao ? h("p", { key: "d", className: "tr-bases-desc" }, sel.descricao) : null,
+      h("dl", { key: "m", className: "tr-bases-meta" }, [
+        dimensao(sel) ? h(Fragment, { key: "tam" }, h("dt", null, "Tamanho"), h("dd", null, dimensao(sel))) : null,
+        sel.fonte ? h(Fragment, { key: "fon" }, h("dt", null, "Fonte"), h("dd", null, sel.fonte)) : null,
+        sel.licenca ? h(Fragment, { key: "lic" }, h("dt", null, "Licença"), h("dd", null, sel.licenca)) : null,
+        sel.url ? h(Fragment, { key: "url" }, h("dt", null, "Página"),
+                   h("dd", null, h("a", { href: sel.url, target: "_blank", rel: "noreferrer" }, sel.url))) : null,
+      ]),
+      (sel.temas || []).length ? h("div", { key: "tm", className: "tr-bases-chips" },
+        sel.temas.map((t) => h("button", { key: t, className: "tr-bases-chip" + (t === tema ? " tr-on" : ""),
+                                           onClick: () => setTema(t === tema ? "" : t) }, t))) : null,
+      h("div", { key: "pv", className: "tr-bases-prev" },
+        !sel.instalado
+          ? h("p", { className: "tr-bases-nota" },
+              `O pacote ${sel.pacote} não está instalado neste R. Instale para ver a prévia e usar a base.`)
+          : !pv || pv.carregando ? h("p", { className: "tr-bases-nota" }, "Carregando prévia…")
+          : pv.erro ? h("p", { className: "tr-bases-nota tr-bases-erro" }, pv.erro)
+          : h("div", { className: "tr-bases-tab" },
+              h("table", null, [
+                h("thead", { key: "h" }, h("tr", null, pv.preview.colunas.map((c) =>
+                  h("th", { key: c.nome, title: c.classe }, [c.nome, h("small", { key: "k" }, c.classe)])))),
+                h("tbody", { key: "b" }, pv.preview.linhas.map((l, i) => h("tr", { key: i },
+                  l.map((v, j) => h("td", { key: j, className: typeof v === "number" ? "tr-num" : "" },
+                    v == null ? "NA" : String(v)))))),
+              ]))),
+      inst?.estado === "erro" ? h("pre", { key: "log", className: "tr-bases-log" }, inst.log || "Falhou.") : null,
+      h("div", { key: "ac", className: "tr-dialog-actions tr-bases-acoes" },
+        !sel.instalado
+          ? (inst?.estado === "instalando"
+              ? [h("span", { key: "s", className: "tr-bases-nota" }, `Instalando ${sel.pacote}… pode levar alguns minutos.`)]
+              : confirmar
+                ? [h("span", { key: "q", className: "tr-bases-nota" },
+                     `Instalar o pacote ${sel.pacote} no seu R (install.packages)?`),
+                   h("button", { key: "n", onClick: () => setConfirmar(false) }, "Cancelar"),
+                   h("button", { key: "s", className: "tr-primario",
+                                 onClick: () => { setConfirmar(false); onInstall(sel.pacote); } }, "Instalar")]
+                : [h("button", { key: "i", className: "tr-primario", onClick: () => setConfirmar(true) },
+                     inst?.estado === "erro" ? `Tentar instalar ${sel.pacote} de novo` : `Instalar ${sel.pacote}`)])
+          : [h("button", { key: "c", onClick: () => onCsv(sel) }, "Baixar CSV"),
+             h("button", { key: "a", className: "tr-primario", onClick: () => onAdd(sel) }, "Adicionar ao canvas")]),
+    ]);
+
+  return h("div", { className: "tr-lightbox tr-modal", onClick: (e) => { if (e.target === e.currentTarget) onClose(); } },
+    h("div", { className: "tr-dialog tr-bases", role: "dialog", "aria-modal": "true", "aria-label": "Catálogo de bases" }, [
+      h("div", { key: "top", className: "tr-bases-top" }, [
+        h("div", { key: "t", className: "tr-bases-titulo" }, [
+          h("strong", { key: "a" }, "Bases públicas"),
+          h("span", { key: "b" }, bases ? `${lista.length} de ${todas.length}` : ""),
+        ]),
+        h("input", { key: "q", ref: buscaRef, className: "tr-dialog-name tr-bases-busca", value: termo,
+                     placeholder: "buscar por assunto, livro, pacote… (ex.: parcelas subdivididas)",
+                     onChange: (e) => setTermo(e.target.value),
+                     onKeyDown: (e) => {
+                       if (e.key === "ArrowDown") { e.preventDefault(); mover(1); }
+                       else if (e.key === "ArrowUp") { e.preventDefault(); mover(-1); }
+                       else if (e.key === "Enter" && sel?.instalado) onAdd(sel);
+                     } }),
+        h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)", onClick: onClose }, "×"),
+      ]),
+      h("div", { key: "corpo", className: "tr-bases-corpo" }, [
+        h("nav", { key: "f", className: "tr-bases-filtros" }, [
+          h("div", { key: "tt", className: "tr-pop-rot" }, "Tema"),
+          h("button", { key: "todos", className: "tr-bases-filtro" + (!tema ? " tr-on" : ""), onClick: () => setTema("") },
+            [h("span", { key: "a" }, "todos"), h("small", { key: "b" }, todas.length)]),
+          ...temas.map((t) => h("button", { key: "t" + t.valor, className: "tr-bases-filtro" + (t.valor === tema ? " tr-on" : ""),
+                                            onClick: () => setTema(t.valor === tema ? "" : t.valor) },
+            [h("span", { key: "a" }, t.valor), h("small", { key: "b" }, t.total)])),
+          h("div", { key: "pt", className: "tr-pop-rot" }, "Pacote"),
+          h("select", { key: "ps", className: "tr-dialog-name", value: pacote, onChange: (e) => setPacote(e.target.value) }, [
+            h("option", { key: "", value: "" }, "todos"),
+            ...pacotes.map((p) => h("option", { key: p.valor, value: p.valor }, `${p.valor} (${p.total})`)),
+          ]),
+        ]),
+        h("div", { key: "l", className: "tr-bases-lista", role: "listbox" },
+          lista.map((b) => h("button", { key: b.id, role: "option", "aria-selected": b.id === sel?.id,
+                                         className: "tr-bases-item" + (b.id === sel?.id ? " tr-on" : ""),
+                                         onClick: () => setSelId(b.id), onDoubleClick: () => b.instalado && onAdd(b) }, [
+            h("span", { key: "t", className: "tr-bases-item-t" }, b.titulo),
+            h("span", { key: "m", className: "tr-bases-item-m" }, [
+              h("code", { key: "c" }, `${b.pacote}::${b.nome}`),
+              dimensao(b) ? h("span", { key: "d" }, dimensao(b)) : null,
+              h("span", { key: "s", className: "tr-bases-selo" + (b.instalado ? " tr-ok" : ""),
+                          title: b.instalado ? "pacote instalado" : "pacote não instalado" },
+                b.instalado ? "instalado" : instalando[b.pacote]?.estado === "instalando" ? "instalando…" : "a instalar"),
+            ]),
+          ]))),
+        h("div", { key: "d", className: "tr-bases-lado" }, detalhe),
+      ]),
+    ]));
+}
+
 // Ícones da toolbar: traço de 1.75 em grade de 24, herdando `currentColor`
 // pra seguir o tema e o estado ligado sem CSS por ícone.
 const ICONES = {
@@ -1639,6 +1773,7 @@ const ICONES = {
   recalcular: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
   baixar: "M12 4v11M7 10l5 5 5-5M5 20h14",
   template: "M12 3 3 8l9 5 9-5zM3 12.5l9 5 9-5M3 17l9 5 9-5",
+  bases: "M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3",
 };
 function Icone({ nome }) {
   return h("svg", { className: "tr-ic", viewBox: "0 0 24 24", width: 18, height: 18, fill: "none",
@@ -1691,6 +1826,11 @@ function App() {
   const [painelTemplates, setPainelTemplates] = useState(false);
   const painelTemplatesRef = useRef(false); painelTemplatesRef.current = painelTemplates;
   const [templates, setTemplates] = useState(null); // lista do servidor; null = ainda não veio
+  // Catálogo de bases: lista do servidor, prévias por id e instalações por pacote.
+  const [painelBases, setPainelBases] = useState(false);
+  const [bases, setBases] = useState(null);
+  const [previewsBase, setPreviewsBase] = useState({});
+  const [instalando, setInstalando] = useState({});
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [opcoesFrame, setOpcoesFrame] = useState(false);
   // Clique fora fecha os popovers da toolbar; dentro deles ou no botão que os
@@ -2573,6 +2713,20 @@ function App() {
         return;
       }
       if (m.type === "templates") { setTemplates(m.templates || []); return; }
+      if (m.type === "datasets") { setBases(m.datasets || []); return; }
+      if (m.type === "dataset_preview") {
+        setPreviewsBase((p) => ({ ...p, [m.id]: m.erro ? { erro: m.erro } : { preview: m.preview } }));
+        return;
+      }
+      if (m.type === "dataset_csv") { exportText(m.texto, `${m.nome}.csv`, "text/csv;charset=utf-8"); return; }
+      if (m.type === "dataset_install") {
+        setInstalando((s) => ({ ...s, [m.pacote]: { estado: m.estado, log: m.log } }));
+        if (m.estado === "ok") {
+          setBanner(`Pacote ${m.pacote} instalado.`);
+          setPreviewsBase((p) => Object.fromEntries(Object.entries(p).filter(([id]) => !id.startsWith(`${m.pacote}::`))));
+        }
+        return;
+      }
       if (m.type === "template_conflict") {
         setTemplateDlg((d) => d && d.seq === m.seq
           ? { ...d, conflito: { nome: m.nome, destino: d.destino }, enviando: false } : d);
@@ -4349,6 +4503,8 @@ function App() {
       h(BotaoIcone, { key: "tpl", icone: "template", rotulo: "Templates", on: painelTemplates,
                       onClick: () => { setHelpFor(null); setPainelConfig(false); setPainelAtalhos(false);
                                        setPainelFrames(false); setPainelTemplates((v) => !v); } }),
+      h(BotaoIcone, { key: "bases", icone: "bases", rotulo: "Bases públicas", on: painelBases,
+                      onClick: () => { setPainelBases(true); setPreviewsBase((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => v.preview))); sendInput("tr_datasets_list", { seq: ++seqCounter }); } }),
       h(BotaoIcone, { key: "aj", icone: "ajuda", rotulo: "Ajuda e atalhos", dica: dica("ajuda"),
                       on: painelAtalhos || !!helpFor, onClick: ajuda }),
       h(BotaoIcone, { key: "more", icone: "mais", rotulo: "Mais ações", on: menuAcoes,
@@ -4422,6 +4578,18 @@ function App() {
                             sendInput("tr_project_import", { seq: ++seqCounter, path: p, nome, conteudo }); },
       onColarTemplate: (conteudo) => inserirTemplate(conteudo, centroDaTela()),
       onClose: fecharDialogo }) : null,
+    painelBases ? h(BasesModal, { key: "bases", bases, previews: previewsBase, instalando,
+      onPreview: (id) => {
+        setPreviewsBase((p) => ({ ...p, [id]: { carregando: true } }));
+        sendInput("tr_dataset_preview", { seq: ++seqCounter, id });
+      },
+      onInstall: (pacote) => {
+        setInstalando((s) => ({ ...s, [pacote]: { estado: "instalando" } }));
+        sendInput("tr_dataset_install", { seq: ++seqCounter, pacote });
+      },
+      onCsv: (b) => sendInput("tr_dataset_csv", { seq: ++seqCounter, id: b.id }),
+      onAdd: (b) => { addAt(b.node, centroDaTela(), { params: b.params }); setPainelBases(false); },
+      onClose: () => setPainelBases(false) }) : null,
     templateDlg ? h(TemplateDialog, { key: "td", quantos: templateDlg.ids?.length || 0,
       destinoPadrao: projeto?.origem === "launcher" ? "biblioteca" : "projeto",
       conflito: templateDlg.conflito, enviando: templateDlg.enviando,

@@ -154,9 +154,7 @@ tr_example <- function(dataset = "mtcars") {
   # nome natural (modelo, estado, província, ano) e escolher um por conjunto é
   # a lista à mão outra vez. Nenhum dos nove tem coluna `nome` — são todos em
   # inglês —, então não há colisão a tratar.
-  rn <- rownames(x)
-  tibble::as_tibble(
-    x, rownames = if (identical(rn, as.character(seq_len(nrow(x))))) NULL else "nome")
+  .tr_data_tabela(x)
 }
 
 #' Os conjuntos ofertados: todo `data.frame` do pacote `datasets`, derivado na
@@ -181,6 +179,46 @@ tr_example <- function(dataset = "mtcars") {
     is.data.frame(tryCatch(get(n, envir = asNamespace("datasets")), error = function(e) NULL))
   }, itens)
   tabelas[order(tolower(tabelas))]
+}
+
+#' Base publicada por um pacote R qualquer: o irmão do `tr_example()` para o
+#' que não vem com o R. É o bloco que o catálogo de bases insere no canvas; o
+#' fluxo guarda `pacote` + `dataset`, não o dado.
+#'
+#' `utils::data()` e não `get()` no namespace: é o caminho que funciona tanto
+#' para pacote com `LazyData` quanto sem. Pacote ausente é erro classificado
+#' que diz como resolver, e não um "objeto não encontrado" do R. Mesma regra
+#' de tabela e de rowname do `tr_example()`.
+#' @export
+tr_public <- function(pacote = "datasets", dataset = "mtcars") {
+  pacote <- .tr_data_obrigatorio(pacote, "pacote")
+  dataset <- .tr_data_obrigatorio(dataset, "dataset")
+  if (!nzchar(system.file(package = pacote))) {
+    rlang::abort(sprintf(
+      "O pacote '%s' não está instalado. Instale pelo catálogo de bases ou com install.packages(\"%s\").",
+      pacote, pacote), class = "tr_data_error_missing_package")
+  }
+  env <- new.env(parent = emptyenv())
+  ok <- tryCatch({ utils::data(list = dataset, package = pacote, envir = env); TRUE },
+                 warning = function(w) FALSE)
+  x <- if (ok && exists(dataset, envir = env, inherits = FALSE)) get(dataset, envir = env)
+  if (is.null(x)) {
+    rlang::abort(sprintf("O pacote '%s' não tem uma base chamada '%s'.", pacote, dataset),
+                 class = "tr_data_error_bad_option")
+  }
+  if (!is.data.frame(x)) {
+    rlang::abort(sprintf("'%s::%s' não é uma tabela (é %s).", pacote, dataset, class(x)[1]),
+                 class = "tr_data_error_not_a_table")
+  }
+  .tr_data_tabela(x)
+}
+
+#' Tabela com rowname informativo virando a coluna `nome` (ver `tr_example()`).
+#' @noRd
+.tr_data_tabela <- function(x) {
+  rn <- rownames(x)
+  tibble::as_tibble(
+    x, rownames = if (identical(rn, as.character(seq_len(nrow(x))))) NULL else "nome")
 }
 
 #' Fonte que FABRICA o dado, irmã do `tr_example()` que apenas carrega um que
