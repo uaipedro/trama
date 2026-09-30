@@ -29,6 +29,10 @@ test("when esconde parâmetro que não vale pro seletor, contando o default", ()
                    ["metodo", "alfa", "peso", "usar"]);
   assert.equal(paramVisivel({ when: { n: [1] } }, { n: "1" }), true);
   assert.equal(paramVisivel({ when: { a: ["x"], b: ["y"] } }, { a: "x", b: "z" }), false);
+  assert.equal(paramVisivel({ when: { path: { padrao: "^https?://" } } }, { path: "HTTPS://x.org/a.csv" }), true);
+  assert.equal(paramVisivel({ when: { path: { padrao: "^https?://" } } }, { path: "dados.csv" }), false);
+  assert.equal(paramVisivel({ when: { path: { padrao: "^https?://" } } }, {}), false);
+  assert.equal(paramVisivel({ when: { path: { padrao: "((" } } }, { path: "x" }), false);
   assert.equal(paramVisivel({}, {}), true);
 });
 

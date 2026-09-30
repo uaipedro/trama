@@ -105,8 +105,8 @@ test_that("join com duas entradas roda", {
   utils::write.csv(data.frame(regiao = c("sul", "norte"), gerente = c("ana", "beto")),
                    lookup, row.names = FALSE)
   ops <- list(
-    list(op = "add_node", type = "data/read_csv", id = "a", params = list(path = csv)),
-    list(op = "add_node", type = "data/read_csv", id = "b", params = list(path = lookup)),
+    list(op = "add_node", type = "data/read", id = "a", params = list(path = csv)),
+    list(op = "add_node", type = "data/read", id = "b", params = list(path = lookup)),
     list(op = "add_node", type = "data/join", id = "j", params = list(by = "regiao")),
     list(op = "connect", from_node = "a", from_port = "out", to_node = "j", to_port = "left"),
     list(op = "connect", from_node = "b", from_port = "out", to_node = "j", to_port = "right"))
@@ -116,7 +116,7 @@ test_that("join com duas entradas roda", {
   expect_equal(nrow(out), 6L)
 })
 
-test_that("data/read_csv resolve path relativo contra a raiz do projeto, não o cwd do daemon", {
+test_that("data/read resolve path relativo contra a raiz do projeto, não o cwd do daemon", {
   skip_if_no_data()
   reg <- etl_registry()
   root <- tempfile("proj"); dir.create(root)
@@ -124,7 +124,7 @@ test_that("data/read_csv resolve path relativo contra a raiz do projeto, não o 
                    file.path(root, "vendas.csv"), row.names = FALSE)
   s <- tr_store(file.path(root, ".trama", "store"), project_root = root)
   doc <- build(reg, list(
-    list(op = "add_node", type = "data/read_csv", id = "ler", params = list(path = "vendas.csv"))))
+    list(op = "add_node", type = "data/read", id = "ler", params = list(path = "vendas.csv"))))
 
   withr::with_dir(tempdir(), {          # cwd DIFERENTE da raiz do projeto
     out <- tr_value(doc, "ler", reg, s)
@@ -136,6 +136,6 @@ test_that("data/read_csv resolve path relativo contra a raiz do projeto, não o 
 test_that("nível 1: as funções da coleção são chamáveis direto", {
   skip_if_no_data()
   reg <- etl_registry()
-  d <- tr_fn("data/read_csv", reg)(fixture_csv())
+  d <- tr_fn("data/read", reg)(fixture_csv())
   expect_equal(nrow(tr_fn("data/filter", reg)(d, "valor > 8")), 5L)
 })

@@ -7,11 +7,12 @@
   },
   "nodes": {
     "01M2WWBTQ0ABEE33": {
-      "type": "data/read_json",
+      "type": "data/read",
       "type_version": 1,
       "label": "Ler JSON",
       "params": {
-        "path": "spotify_2026.json"
+        "path": "spotify_2026.json",
+        "formato": "json"
       },
       "seed": 92774657
     },
@@ -180,6 +181,8 @@
     "notes": {},
     "modes": {
       "01M2WWT07Z413425": "preview"
-    }
+    },
+    "soltos": {},
+    "ocultos": {}
   }
 }

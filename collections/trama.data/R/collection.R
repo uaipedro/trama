@@ -15,6 +15,7 @@ trama_collection <- function() {
   P <- trama::tr_param
   .tr_data_aplicar_ajuda_curta(trama::tr_collection(
     id = "data", version = "0.2.0", label = "Dados", js = "trama/index.js",
+    datasets = .tr_data_bases(),
     # `data/test` é o resultado de UM teste de hipótese, de qualquer coleção:
     # o mecanismo (construtor, regra de decisão, card, linha de tabela) é do
     # núcleo, que não registra tipo nenhum; o registro fica aqui porque toda
@@ -24,7 +25,7 @@ trama_collection <- function() {
     types = list(data_table_type(), trama::tr_test_type("data/test")),
     adapters = list(trama::tr_adapter("data/test", "data/table",
                                       function(x) tibble::as_tibble(trama::tr_test_table(x)))),
-    migrations = list(ports = .tr_data_migracoes()),
+    migrations = list(ports = .tr_data_migracoes(), nodes = .tr_data_migracoes_ler()),
     categories = list(
       trama::tr_category("source",    "Fonte", role = "origem"),
       # Conhecer vem logo depois de trazer: a ordem daqui é a ordem dos grupos
@@ -51,263 +52,29 @@ trama_collection <- function() {
       trama::tr_category("sink",      "Saída", role = "saida")
     ),
     nodes = list(
-      trama::tr_node("data/read_csv", fn = tr_read_csv, label = "Ler CSV",
-        category = "source", description = "Lê um arquivo delimitado do disco.",
+      trama::tr_node("data/read", fn = tr_read, label = "Ler dados",
+        category = "source",
+        description = "Lê uma tabela de arquivo ou de link (CSV, JSON, RDS, Parquet, Excel, .zip).",
         icon = trama::tr_icon("file-spreadsheet"),
         outputs = list(out = T),
-        params = list(path  = P("path", "", label = "Arquivo", example = "vendas.csv"),
-                      delim = trama::tr_param_enum(",", c(",", ";", "\t", "|"), label = "Separador"),
-                      na    = P("text", "NA", label = "Marcas de faltante",
-                                example = "NA, -, sem dado")),
-        pure = FALSE, fingerprint = .tr_data_file_print,
-        help = "## Descrição
-
-Lê um arquivo de texto delimitado e devolve a tabela correspondente. O tipo de
-cada coluna é deduzido do conteúdo do arquivo: coluna com número escrito à
-brasileira (`1.234,56`) chega como texto, e só vira número num nó
-**Converter tipo**.
-
-Caminho relativo é resolvido a partir da pasta do projeto; caminho absoluto
-passa direto.
-
-Célula VAZIA conta sempre como faltante, e nenhum ajuste desliga isso: `a,,b`
-tem um buraco no meio em qualquer ferramenta de dados, e um texto vazio que se
-faz passar por valor presente atravessa o fluxo inteiro em silêncio — o
-`data/drop_na` não descarta a linha, o `data/remove_empty` não a vê e o
-`data/summary` reporta zero faltantes numa coluna cheia de buracos. **Marcas de
-faltante** ACRESCENTA a esse piso os textos que, naquele arquivo, também
-significam ausência.
-
-O nó é impuro, e por isso declara uma impressão digital do arquivo — caminho,
-tamanho e data de modificação. Editar o CSV no disco muda essa impressão, o
-resultado guardado deixa de valer e o fluxo recomputa daqui para frente. É o
-que impede a tela mostrar dado velho depois que o arquivo mudou.
-
-## Parâmetros
-
-- **Arquivo** — caminho do arquivo, relativo à pasta do projeto. Campo
-  obrigatório: em branco, o nó para e pede o preenchimento.
-- **Separador** — caractere entre os campos. Planilha exportada em português
-  costuma sair com `;`.
-- **Marcas de faltante** — os textos que, neste arquivo, significam valor
-  ausente, separados por vírgula: `NA, -, sem dado`. A célula vazia já conta
-  como faltante sempre, então o campo em branco não é erro — quer dizer apenas
-  \"nenhuma marca além da célula vazia\". Espaço em volta de cada marca é
-  aparado.
-
-## Valor
-
-Uma tabela, uma linha por linha do arquivo. Arquivo inexistente falha com o
-caminho procurado na mensagem.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\", delim = \";\",
-         na = \"NA, -, sem dado\") |>
-  tr_add(\"olhar\", \"data/summary\", from = \"ler\")
-```
-
-## Veja também
-
-`data/summary` para conferir o que veio; `data/convert` para as colunas que
-chegaram como texto; `data/write_csv` para gravar de volta."),
-
-      trama::tr_node("data/read_json", fn = tr_read_json, label = "Ler JSON",
-        category = "source", description = "Lê dados tabulares de um arquivo JSON.",
-        icon = trama::tr_icon("braces"),
-        outputs = list(out = T),
-        params = list(path = P("path", "", label = "Arquivo", example = "vendas.json")),
-        pure = FALSE, fingerprint = .tr_data_file_print,
-        help = "## Descrição
-
-Lê um arquivo JSON tabular e devolve uma tabela. O formato mais comum é um
-array de objetos, em que cada objeto representa uma linha e cada chave vira
-uma coluna. Um objeto de vetores com o mesmo comprimento também é aceito.
-
-Valores `null` viram valores faltantes. Objetos ou arrays aninhados podem virar
-colunas compostas, conforme a simplificação feita pelo pacote `jsonlite`.
-
-Caminho relativo é resolvido a partir da pasta do projeto; caminho absoluto
-passa direto. Como todo leitor, o nó é impuro e declara uma impressão digital
-do arquivo — caminho, tamanho e data de modificação —, então editar o JSON faz
-o fluxo recomputar.
-
-## Parâmetros
-
-- **Arquivo** — caminho do `.json`, relativo à pasta do projeto. Campo
-  obrigatório.
-
-## Valor
-
-Uma tabela no formato `tibble`. JSON que não representa dados tabulares falha
-em vez de produzir um card verde com um objeto incompatível.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_json\", path = \"vendas.json\") |>
-  tr_add(\"olhar\", \"data/summary\", from = \"ler\")
-```
-
-## Veja também
-
-`data/read_csv` para arquivos delimitados; `data/summary` para conferir a
-estrutura que foi lida."),
-
-      trama::tr_node("data/read_rds", fn = tr_read_rds, label = "Ler RDS",
-        category = "source", description = "Lê um objeto R gravado em .rds.",
-        icon = trama::tr_icon("file-box"),
-        outputs = list(out = T),
-        params = list(path = P("path", "", label = "Arquivo", example = "vendas.rds")),
-        pure = FALSE, fingerprint = .tr_data_file_print,
-        help = "## Descrição
-
-Lê um objeto gravado no formato `.rds`, o formato binário do próprio R. Ao
-contrário do CSV, nada é deduzido: fator continua fator, data continua data, e
-as colunas voltam exatamente como estavam quando foram gravadas.
-
-O objeto guardado precisa ser mesmo uma tabela. Um `.rds` com um modelo, uma
-lista ou um vetor faz o nó falhar no fluxo, dizendo o que veio no lugar — antes
-valia qualquer objeto, e o resultado era um card verde com uma tabela plausível
-de zero colunas.
-
-Quem recusa é a porta de SAÍDA, não a leitura: o guard mora no tipo
-`data/table`, por onde passa todo valor que qualquer nó entrega ao fluxo. É por
-isso que ele vale para a coleção inteira sem cada nó precisar lembrar — e
-também por que chamar `tr_read_rds()` direto no console devolve o objeto como
-ele está, seja lá o que for. No console, quem lê é quem confere; no fluxo, o
-tipo confere por você.
-
-Arquivo inexistente é conferido aqui, e não pelo R: cru, a leitura de `.rds`
-falha com \"não é possível abrir a conexão\", sem dizer qual caminho. Esta é
-justamente a falha de quem renomeou um arquivo ou moveu o projeto.
-
-Como todo leitor, o nó é impuro e declara a impressão digital do arquivo —
-caminho, tamanho e data de modificação —, de modo que regravar o `.rds` faz o
-fluxo recomputar.
-
-## Parâmetros
-
-- **Arquivo** — caminho do `.rds`, relativo à pasta do projeto. Campo
-  obrigatório.
-
-## Valor
-
-A tabela como foi gravada, com os mesmos tipos.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_rds\", path = \"saida/vendas.rds\") |>
-  tr_add(\"olhar\", \"data/summary\", from = \"ler\")
-```
-
-## Veja também
-
-`data/write_rds` grava neste mesmo formato; `data/read_csv` para dado que vem
-de texto."),
-
-      trama::tr_node("data/read_parquet", fn = tr_read_parquet, label = "Ler Parquet",
-        category = "source", description = "Lê uma tabela em formato Parquet.",
-        icon = trama::tr_icon("file-digit"),
-        outputs = list(out = T),
-        params = list(path = P("path", "", label = "Arquivo", example = "vendas.parquet")),
-        pure = FALSE, fingerprint = .tr_data_file_print,
-        help = "## Descrição
-
-Lê uma tabela em Parquet — formato colunar e comprimido, que guarda o tipo de
-cada coluna junto com os dados. Nada é deduzido na leitura, e arquivos grandes
-ocupam bem menos disco que o CSV equivalente.
-
-Depende do pacote `arrow`, que é sugerido e não obrigatório: sem ele
-instalado, o nó falha logo de saída dizendo o comando de instalação, em vez de
-reclamar de função inexistente.
-
-Como todo leitor, é impuro e declara a impressão digital do arquivo — caminho,
-tamanho e data de modificação —, então reescrever o arquivo no disco faz o
-fluxo recomputar.
-
-## Parâmetros
-
-- **Arquivo** — caminho do `.parquet`, relativo à pasta do projeto. Campo
-  obrigatório.
-
-## Valor
-
-Uma tabela, sempre como `tibble`. Arquivo inexistente falha com o caminho na
-mensagem.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_parquet\", path = \"vendas.parquet\") |>
-  tr_add(\"olhar\", \"data/summary\", from = \"ler\")
-```
-
-## Veja também
-
-`data/write_parquet` grava neste mesmo formato; `data/read_csv` para dado que
-vem de texto."),
-
-      trama::tr_node("data/read_excel", fn = tr_read_excel, label = "Ler Excel",
-        category = "source", description = "Lê uma planilha de um arquivo .xlsx ou .xls.",
-        icon = trama::tr_icon("sheet"),
-        outputs = list(out = T),
-        params = list(path  = P("path", "", label = "Arquivo", example = "vendas.xlsx"),
-                      sheet = P("text", "1", label = "Planilha", example = "Plan1")),
-        pure = FALSE, fingerprint = .tr_data_file_print,
-        help = "## Descrição
-
-Lê uma planilha de um arquivo `.xlsx` ou `.xls` e devolve a tabela.
-
-A planilha é indicada pelo nome ou pela posição, no mesmo campo: `1` é a
-primeira planilha do arquivo, e `Plan1` é a planilha com esse nome.
-
-Texto que é um número inteiro vale SEMPRE como posição, e não há como escapar
-disso. Uma aba chamada `2026` — que é como se batiza a aba do ano — não é
-alcançável pelo nome: `2026` no campo pede a planilha de número 2026, que o
-arquivo não tem, e o nó para dizendo que ela não existe. Nesse caso, use a
-POSIÇÃO da aba (`1`, `2`, …) ou renomeie a aba para algo que não seja só
-dígitos (`ano 2026`).
-
-Depende do pacote `readxl`, que é sugerido e não obrigatório: sem ele
-instalado, o nó falha logo de saída dizendo o comando de instalação.
-
-Como todo leitor, é impuro e declara a impressão digital do arquivo — caminho,
-tamanho e data de modificação —, então salvar a planilha de novo faz o fluxo
-recomputar.
-
-## Parâmetros
-
-- **Arquivo** — caminho do `.xlsx` ou `.xls`, relativo à pasta do projeto.
-  Campo obrigatório.
-- **Planilha** — nome da planilha ou a sua posição no arquivo. Número inteiro
-  é sempre lido como posição, nunca como nome. Também é obrigatório: sem
-  planilha não há tabela a produzir.
-
-## Valor
-
-Uma tabela com o conteúdo da planilha. O tipo de cada coluna vem do que o Excel
-guardou — célula formatada como texto chega como texto, mesmo parecendo número.
-
-## Exemplos
-
-```r
-tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_excel\", path = \"vendas.xlsx\", sheet = \"Base\") |>
-  tr_add(\"nomes\", \"data/clean_names\", from = \"ler\") |>
-  tr_add(\"olhar\", \"data/summary\", from = \"nomes\")
-```
-
-## Veja também
-
-`data/clean_names`, porque cabeçalho de planilha costuma vir com acento e
-espaço; `data/convert` para a coluna que veio como texto."),
+        params = list(
+          path    = P("path", "", label = "Arquivo ou link",
+                      example = "vendas.csv ou https://.../dados.csv"),
+          formato = trama::tr_param_enum("auto", .tr_ler_formatos, label = "Formato"),
+          # Só aparecem quando valem: o botão para link, a escolha para .zip.
+          copia   = trama::tr_when(trama::tr_param_int(0, min = 0, label = "Cópia do link",
+                                                       botao = "Baixar de novo"),
+                                   path = trama::tr_when_padrao("^https?://")),
+          membro  = trama::tr_when(P("text", "", label = "Arquivo no zip", example = "dados/2024.csv"),
+                                   path = trama::tr_when_padrao("\\.zip([?#].*)?$")),
+          delim   = trama::tr_when(trama::tr_param_enum(",", c(",", ";", "\t", "|"), label = "Separador"),
+                                   formato = c("auto", "csv")),
+          na      = trama::tr_when(P("text", "NA", label = "Marcas de faltante", example = "NA, -, sem dado"),
+                                   formato = c("auto", "csv")),
+          sheet   = trama::tr_when(P("text", "1", label = "Planilha", example = "Plan1"),
+                                   formato = c("auto", "excel"))),
+        pure = FALSE, fingerprint = .tr_ler_print,
+        help = ""),
 
       trama::tr_node("data/example", fn = tr_example, label = "Dados de exemplo",
         category = "source",
@@ -358,8 +125,51 @@ tr_flow(reg) |>
 
 ## Veja também
 
-`data/read_csv` quando o dado é seu e está em arquivo; `data/summary` para o
+`data/read` quando o dado é seu e está em arquivo; `data/summary` para o
 primeiro olhar em qualquer tabela."),
+
+      trama::tr_node("data/public", fn = tr_public, label = "Base pública",
+        category = "source",
+        description = "Carrega uma base publicada num pacote R (livros, ensaios clássicos, dados abertos).",
+        icon = trama::tr_icon("database"),
+        outputs = list(out = T),
+        params = list(pacote = P("text", "datasets", label = "Pacote", example = "agridat"),
+                      dataset = P("text", "mtcars", label = "Base", example = "yates.oats")),
+        help = "## Descrição
+
+Carrega uma tabela publicada num pacote R: os dados dos livros de estatística
+(`carData`, `MASS`, `ISLR2`), ensaios agronômicos clássicos (`agridat`,
+`agricolae`) e conjuntos abertos (`palmerpenguins`, `gapminder`). É o bloco que
+o **catálogo de bases** põe no canvas: lá dá para buscar por tema, ver a fonte
+e a licença, instalar o pacote e baixar a base como CSV.
+
+O fluxo guarda só o nome do pacote e da base, não o dado: quem abre o projeto
+em outra máquina precisa do pacote instalado, e o card avisa quando falta.
+
+Como no `data/example`, nome de linha informativo vira a coluna `nome`, e
+objeto que não é tabela é recusado.
+
+## Parâmetros
+
+- **Pacote** — o pacote R que publica a base.
+- **Base** — o nome do objeto no pacote, como em `data(nome, package = pacote)`.
+
+## Valor
+
+Uma tabela.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"ensaio\", \"data/public\", pacote = \"agridat\", dataset = \"yates.oats\") |>
+  tr_add(\"olhar\", \"data/summary\", from = \"ensaio\")
+```
+
+## Veja também
+
+`data/example` para os conjuntos que vêm com o R; `data/read` quando o
+dado é seu."),
 
       trama::tr_node("data/generate", fn = tr_generate, label = "Gerar dados",
         category = "source", stochastic = TRUE,
@@ -454,7 +264,7 @@ de datas e o de uma coluna numérica moram na mesma coluna do resultado, e uma
 só delas não pode ser das duas. Para comparar como número, converta depois.
 
 `faltantes` conta o valor ausente do R — o que inclui a célula vazia de um CSV,
-que o `data/read_csv` lê como faltante, e não como texto vazio. Se a contagem
+que o `data/read` lê como faltante, e não como texto vazio. Se a contagem
 sair zero numa coluna que você sabe furada, o buraco virou algum texto
 particular do arquivo (`-`, `n/d`): declare-o em **Marcas de faltante** na
 leitura.
@@ -475,7 +285,7 @@ Uma tabela com sete colunas e uma linha por coluna da entrada.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"perfil\", \"data/summary\", from = \"ler\") |>
   tr_add(\"furadas\", \"data/arrange\", cols = \"faltantes\", desc = TRUE, from = \"perfil\")
 ```
@@ -523,7 +333,7 @@ Sem repetição nenhuma, a tabela sai vazia — o que já é a resposta.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"repetidas\", \"data/get_dupes\", cols = \"regiao, produto\", from = \"ler\")
 ```
 
@@ -564,7 +374,7 @@ colunas nunca muda.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_excel\", path = \"vendas.xlsx\", sheet = \"1\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.xlsx\", sheet = \"1\") |>
   tr_add(\"nomes\", \"data/clean_names\", from = \"ler\") |>
   tr_add(\"olhar\", \"data/summary\", from = \"nomes\")
 ```
@@ -592,7 +402,7 @@ valores existem, e apagá-los seria decidir por quem está analisando. Basta um
 valor presente para a linha ou a coluna ficar.
 
 Isso NÃO deixa de fora a linha em branco do CSV: célula vazia de arquivo
-delimitado chega como faltante (ver `data/read_csv`), não como texto vazio, e
+delimitado chega como faltante (ver `data/read`), não como texto vazio, e
 uma linha inteira de vírgulas é removida como se espera.
 
 Aplicar aos dois sentidos não tem ordem: como só sai o que é vazio por
@@ -611,7 +421,7 @@ intacta.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_excel\", path = \"vendas.xlsx\", sheet = \"1\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.xlsx\", sheet = \"1\") |>
   tr_add(\"faxina\", \"data/remove_empty\", which = \"ambos\", from = \"ler\") |>
   tr_add(\"olhar\", \"data/summary\", from = \"faxina\")
 ```
@@ -657,7 +467,7 @@ A tabela com uma linha por combinação distinta. As colunas continuam as mesmas
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"recentes\", \"data/arrange\", cols = \"data\", desc = TRUE, from = \"ler\") |>
   tr_add(\"unicas\", \"data/distinct\", cols = \"cliente\", from = \"recentes\")
 ```
@@ -706,7 +516,7 @@ A tabela com as colunas renomeadas, na mesma posição e com o mesmo conteúdo.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"nomes\", \"data/rename\", to = \"uf, preco\") |>
   tr_link(\"ler\", \"nomes\") |>
   tr_set(\"nomes\", from = \"regiao, valor\")
@@ -740,7 +550,7 @@ colunas de que a análise depende é quase sempre o que se quer.
 
 Faltante aqui é o valor ausente do R. Zero é valor presente, e a linha que o
 contém fica. Texto vazio TAMBÉM é valor presente — mas repare que célula vazia
-de CSV não chega como texto vazio: o `data/read_csv` a lê como faltante, e essa
+de CSV não chega como texto vazio: o `data/read` a lê como faltante, e essa
 linha cai aqui.
 
 ## Parâmetros
@@ -812,7 +622,7 @@ preservados. O número de linhas nunca muda.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"cheio\", \"data/replace_na\", cols = \"qtd\", value = \"0\", from = \"ler\")
 ```
 
@@ -891,7 +701,7 @@ soma, média e ordenação por grandeza só existem depois daqui.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\", delim = \";\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\", delim = \";\") |>
   tr_add(\"olhar\", \"data/summary\", from = \"ler\") |>
   tr_add(\"valor\", \"data/convert\", cols = \"valor\", decimal = \",\", from = \"ler\") |>
   tr_set(\"valor\", type = \"numero\") |>
@@ -955,7 +765,7 @@ colunas continuam as mesmas.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"ler\") |>
   tr_add(\"campeas\", \"data/filter\", expr = \"valor == max(valor)\",
          by = \"regiao\", from = \"ler\")
@@ -1025,7 +835,7 @@ número de linhas nunca muda.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"parte\", \"data/mutate\", name = \"participacao\",
          expr = \"valor / sum(valor)\", by = \"regiao\", from = \"ler\") |>
   tr_add(\"pos\", \"data/mutate\", name = \"posicao, participacao\",
@@ -1090,7 +900,7 @@ A tabela com o subconjunto de colunas escolhido. O número de linhas nunca muda.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"essencial\", \"data/select\", cols = \"regiao, produto, valor\",
          from = \"ler\") |>
   tr_add(\"sem_id\", \"data/select\", cols = \"id_interno\", remove = TRUE,
@@ -1143,7 +953,7 @@ entra ou sai.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"maiores\", \"data/arrange\", cols = \"valor\", desc = TRUE,
          from = \"ler\") |>
   tr_add(\"top10\", \"data/slice_head\", n = 10L, from = \"maiores\")
@@ -1201,7 +1011,7 @@ mesmas.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"maiores\", \"data/arrange\", cols = \"valor\", desc = TRUE,
          from = \"ler\") |>
   tr_add(\"top3\", \"data/slice_head\", n = 3L, by = \"regiao\", from = \"maiores\")
@@ -1261,7 +1071,7 @@ de linhas fica multiplicado pela quantidade de colunas empilhadas.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_excel\", path = \"vendas.xlsx\", sheet = \"1\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.xlsx\", sheet = \"1\") |>
   tr_add(\"alto\", \"data/pivot_longer\", cols = \"jan, fev, mar\",
          names_to = \"mes\", values_to = \"faturamento\", from = \"ler\") |>
   tr_add(\"total\", \"data/group_summarise\", by = \"mes\", name = \"receita\",
@@ -1333,7 +1143,7 @@ coluna por valor distinto de **Nomes vêm de**.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"mensal\", \"data/group_summarise\", by = \"cliente, mes\",
          name = \"faturamento\", expr = \"sum(valor)\", from = \"ler\") |>
   tr_add(\"largo\", \"data/pivot_wider\", names_from = \"mes\",
@@ -1419,7 +1229,7 @@ seguintes recebem uma tabela comum.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"painel\", \"data/group_summarise\", by = \"regiao\",
          name = \"receita, pedidos\",
          expr = \"sum(valor), dplyr::n()\", from = \"ler\")
@@ -1485,8 +1295,8 @@ o das duas entradas somadas.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"pedidos\", \"data/read_csv\", path = \"pedidos.csv\") |>
-  tr_add(\"clientes\", \"data/read_csv\", path = \"clientes.csv\") |>
+  tr_add(\"pedidos\", \"data/read\", path = \"pedidos.csv\") |>
+  tr_add(\"clientes\", \"data/read\", path = \"clientes.csv\") |>
   tr_add(\"junta\", \"data/join\", by = \"cliente_id\",
          from = c(\"pedidos\", \"clientes\")) |>
   tr_set(\"junta\", type = \"left\")
@@ -1541,9 +1351,9 @@ Uma tabela com a soma das linhas das entradas, e com a união das colunas delas.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"jan\", \"data/read_csv\", path = \"vendas-01.csv\") |>
-  tr_add(\"fev\", \"data/read_csv\", path = \"vendas-02.csv\") |>
-  tr_add(\"mar\", \"data/read_csv\", path = \"vendas-03.csv\") |>
+  tr_add(\"jan\", \"data/read\", path = \"vendas-01.csv\") |>
+  tr_add(\"fev\", \"data/read\", path = \"vendas-02.csv\") |>
+  tr_add(\"mar\", \"data/read\", path = \"vendas-03.csv\") |>
   tr_add(\"ano\", \"data/bind_rows\", from = c(\"jan\", \"fev\", \"mar\")) |>
   tr_add(\"olhar\", \"data/summary\", from = \"ano\")
 ```
@@ -1618,7 +1428,7 @@ o do **Sair de fluxo**, na outra ponta.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"entra\", \"data/to_stream\", lote = 1L, ordenar_por = \"data\",
          from = \"ler\") |>
   tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"entra\") |>
@@ -1684,7 +1494,7 @@ primeiro passo e a coluna `passo` na frente.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"entra\", \"data/to_stream\", lote = 1L, from = \"ler\") |>
   tr_add(\"grandes\", \"data/filter\", expr = \"valor > 100\", from = \"entra\") |>
   tr_add(\"sai\", \"data/from_stream\", from = \"grandes\")
@@ -1739,7 +1549,7 @@ A mesma tabela que entrou, intacta, para quem estiver ligado adiante.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"total\", \"data/group_summarise\", by = \"regiao\", name = \"receita\",
          expr = \"sum(valor)\", from = \"ler\") |>
   tr_add(\"grava\", \"data/write_csv\", path = \"saida/resumo.csv\",
@@ -1748,7 +1558,7 @@ tr_flow(reg) |>
 
 ## Veja também
 
-`data/read_csv` lê de volta; `data/write_rds` quando os tipos das colunas
+`data/read` lê de volta; `data/write_rds` quando os tipos das colunas
 precisam sobreviver; `data/write_parquet` para arquivo grande."),
 
       trama::tr_node("data/write_rds", fn = tr_write_rds, label = "Gravar RDS",
@@ -1794,7 +1604,7 @@ A mesma tabela que entrou, intacta, para quem estiver ligado adiante.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\", delim = \";\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\", delim = \";\") |>
   tr_add(\"limpo\", \"data/drop_na\", cols = \"valor\", from = \"ler\") |>
   tr_add(\"grava\", \"data/write_rds\", path = \"saida/vendas.rds\",
          from = \"limpo\")
@@ -1802,7 +1612,7 @@ tr_flow(reg) |>
 
 ## Veja também
 
-`data/read_rds` lê de volta; `data/write_csv` quando o arquivo precisa ser lido
+`data/read` lê de volta; `data/write_csv` quando o arquivo precisa ser lido
 por outro programa; `data/write_parquet` para arquivo grande que ainda assim
 guarda os tipos."),
 
@@ -1852,7 +1662,7 @@ A mesma tabela que entrou, intacta, para quem estiver ligado adiante.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"limpo\", \"data/drop_na\", cols = \"valor\", from = \"ler\") |>
   tr_add(\"grava\", \"data/write_parquet\", path = \"saida/vendas.parquet\",
          from = \"limpo\")
@@ -1860,7 +1670,7 @@ tr_flow(reg) |>
 
 ## Veja também
 
-`data/read_parquet` lê de volta; `data/write_rds` quando a tabela precisa voltar
+`data/read` lê de volta; `data/write_rds` quando a tabela precisa voltar
 idêntica; `data/write_csv` quando o arquivo será aberto num editor de
 planilha."),
 

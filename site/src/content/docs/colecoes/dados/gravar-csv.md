@@ -6,7 +6,7 @@ collection: dados
 node: data/write_csv
 category: saida
 order: 29
-related: [data/read_csv, data/write_rds]
+related: [data/read, data/write_rds]
 ---
 
 ## O que o bloco faz

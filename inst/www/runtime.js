@@ -490,8 +490,17 @@ export function NumberField({ spec, value, onChange }) {
 
 registerWidget("number", (spec, value, onChange) =>
   h(NumberField, { spec, value: value ?? spec.default, onChange }));
-registerWidget("integer", (spec, value, onChange) =>
-  h(NumberField, { spec, value: value ?? spec.default, onChange }));
+// Com `botao` (ver `tr_param_int()`), o inteiro é um contador de "de novo":
+// clicar soma 1, e o número fica ao lado só como registro de quantas vezes.
+registerWidget("integer", (spec, value, onChange) => {
+  const v = value ?? spec.default;
+  if (!spec.botao) return h(NumberField, { spec, value: v, onChange });
+  return h("div", { className: "tr-contador" }, [
+    h("button", { key: "b", type: "button", className: "nodrag tr-contador-btn",
+                  onClick: (e) => { e.stopPropagation(); onChange((Number(v) || 0) + 1); } }, spec.botao),
+    v ? h("small", { key: "n", title: "vezes" }, `×${v}`) : null,
+  ]);
+});
 // `example` é campo livre de `tr_param()` e chega aqui pelo catálogo. Vale a
 // pena o núcleo conhecê-lo: campo de texto vazio não tem como ensinar o formato
 // que espera, e um exemplo em cinza custa uma linha.

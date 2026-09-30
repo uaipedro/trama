@@ -1,3 +1,7 @@
+# trama.series 0.4.6
+
+* Exemplos da ajuda usam `data/read`.
+
 # trama.series 0.4.5
 
 * Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).

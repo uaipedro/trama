@@ -53,11 +53,14 @@
 #'   sugestor. O `to` tem que ser da própria coleção: quem é sugerido é o dono
 #'   do dado, e assim `models` pode declarar `data/ler -> models/ajuste` sem o
 #'   núcleo saber o que é ler nem ajustar. Ver [tr_transitions_read()].
+#' @param datasets Bases públicas que a coleção oferece no catálogo de bases,
+#'   cada uma um [tr_dataset()]. Só metadados: o dado fica no pacote que o
+#'   publica e é baixado quando escolhido.
 #' @export
 tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
                           nodes = list(), adapters = list(), categories = list(),
                           js = NULL, css = NULL, transitions = NULL,
-                          migrations = list()) {
+                          migrations = list(), datasets = list()) {
   if (!grepl("^[a-z][a-z0-9_]*$", id)) {
     rlang::abort(sprintf("Id de coleção inválido: '%s'.", id), class = "tr_error_bad_id")
   }
@@ -79,11 +82,16 @@ tr_collection <- function(id, version = "0.0.0", label = id, types = list(),
     rlang::abort(sprintf("Coleção '%s' declara nó fora do próprio namespace: '%s'.", id, n$id),
                  class = "tr_error_foreign_id")
   }
+  for (d in datasets) if (!inherits(d, "tr_dataset")) {
+    rlang::abort(sprintf("Coleção '%s': 'datasets' aceita só tr_dataset().", id),
+                 class = "tr_error_bad_dataset")
+  }
   migrations <- .tr_check_migrations(migrations, id)
   transitions <- .tr_check_transitions(transitions, id)
   structure(list(id = id, label = label, version = version, types = types,
                  nodes = nodes, adapters = adapters, categories = categories,
-                 js = js, css = css, transitions = transitions, migrations = migrations),
+                 js = js, css = css, transitions = transitions, migrations = migrations,
+                 datasets = unname(datasets)),
             class = "tr_collection")
 }
 

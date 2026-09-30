@@ -1,3 +1,7 @@
+# trama.models 0.5.2
+
+* Dez bases de regressão e GLM no catálogo de bases (`carData`, `MASS`, `faraway`).
+
 # trama.models 0.5.1
 
 * `models/select`: o help da regra do delta diz que a transição entre as faixas é gradual, e a referência (Burnham e Anderson 2002, 2ª ed.) foi conferida na fonte.

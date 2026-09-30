@@ -102,9 +102,9 @@ test_that("read_json recusa raiz que não representa tabela", {
 })
 
 test_that("pacote de Suggests ausente vira erro classificado, em primeira ordem", {
-  expect_error(.tr_data_need("pacote_que_nao_existe_xyz", "data/read_parquet"),
+  expect_error(.tr_data_need("pacote_que_nao_existe_xyz", "data/read"),
                class = "tr_data_error_missing_package")
-  e <- tryCatch(.tr_data_need("pacote_que_nao_existe_xyz", "data/read_parquet"),
+  e <- tryCatch(.tr_data_need("pacote_que_nao_existe_xyz", "data/read"),
                 error = identity)
   expect_equal(class(e)[[1]], "tr_data_error_missing_package")
 })
@@ -113,8 +113,8 @@ test_that("cada leitor declara fingerprint sensível ao arquivo", {
   reg <- data_registry()
   ctx <- list(path = function(p) p)
   p <- tempfile(fileext = ".rds"); saveRDS(df_exemplo(), p)
-  for (id in c("data/read_csv", "data/read_json", "data/read_rds",
-               "data/read_parquet", "data/read_excel")) {
+  for (id in c("data/read", "data/read", "data/read",
+               "data/read", "data/read")) {
     fp <- reg$nodes[[id]]$fingerprint
     expect_true(is.function(fp), info = id)
     antes <- fp(list(path = p), ctx)
@@ -134,8 +134,8 @@ test_that("fingerprint é estável quando o arquivo não muda, e igual nos cinco
                    .tr_data_file_print(list(path = p), ctx))
 
   reg <- data_registry()
-  ids <- c("data/read_csv", "data/read_json", "data/read_rds",
-           "data/read_parquet", "data/read_excel")
+  ids <- c("data/read", "data/read", "data/read",
+           "data/read", "data/read")
   chaves <- vapply(ids, function(id) reg$nodes[[id]]$fingerprint(list(path = p), ctx), "")
   expect_equal(length(unique(chaves)), 1L)
 })
@@ -432,7 +432,7 @@ test_that("caminho só de espaços: nível 1 e motor concordam nos três gravado
 })
 
 # ---- Round-trip do par CSV ---------------------------------------------
-# O par `data/write_csv` -> `data/read_csv` era o buraco maior da suíte:
+# O par `data/write_csv` -> `data/read` era o buraco maior da suíte:
 # `tr_write_csv()` podia virar um no-op COMPLETO sem quebrar nada (nada olhava
 # o arquivo gravado, só que a tabela era repassada adiante), e `delim` e `na`
 # do leitor não tinham uma única asserção — um leitor que ignorasse os dois
@@ -573,7 +573,7 @@ test_that("cada conjunto de exemplo é o conjunto que o card diz ser", {
 test_that("aresta salva na porta `data` abre na porta `dados`", {
   reg <- data_registry()
   doc <- list(
-    nodes = list(ler = list(type = "data/read_csv", params = list(path = "x.csv")),
+    nodes = list(ler = list(type = "data/read", params = list(path = "x.csv")),
                  filtra = list(type = "data/filter", params = list())),
     edges = list(list(from = list(node = "ler", port = "out"),
                       to = list(node = "filtra", port = "data"))))

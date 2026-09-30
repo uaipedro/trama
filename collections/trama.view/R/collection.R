@@ -147,7 +147,7 @@ por aí que se chega ao que a coleção não expõe como param.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"nuvem\", \"view/points\", x = \"qtd\", y = \"valor\", cor = \"regiao\",
          titulo = \"Valor por quantidade\", from = \"ler\")
 ```
@@ -156,7 +156,7 @@ Com muitas linhas, agregue antes:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"por_cliente\", \"data/group_summarise\", by = \"cliente\",
          name = \"receita\", expr = \"sum(valor)\", from = \"ler\") |>
   tr_add(\"nuvem\", \"view/points\", x = \"cliente\", y = \"receita\",
@@ -257,7 +257,7 @@ Uma série por região, com o mês já como data:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"mensal\", \"data/group_summarise\", by = \"mes, regiao\",
          name = \"receita\", expr = \"sum(valor)\", from = \"ler\") |>
   tr_add(\"serie\", \"view/line\", x = \"mes\", y = \"receita\", cor = \"regiao\",
@@ -371,7 +371,7 @@ de outro modo espreme todo o miolo em duas classes.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"forma\", \"view/histogram\", x = \"valor\", classes = 40L,
          titulo = \"Distribuição do valor por pedido\", from = \"ler\")
 ```
@@ -384,7 +384,7 @@ com nome de argumento de `tr_add()` se preenche depois, e este é o caso.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"num\", \"data/convert\", cols = \"valor\", from = \"ler\") |>
   tr_set(\"num\", type = \"numero\") |>
   tr_add(\"forma\", \"view/histogram\", x = \"valor\", from = \"num\")
@@ -491,7 +491,7 @@ Um gráfico. No card, a imagem na proporção escolhida; no console,
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"caixas\", \"view/boxplot\", y = \"valor\", x = \"regiao\",
          titulo = \"Valor do pedido por região\", from = \"ler\")
 ```
@@ -500,7 +500,7 @@ Uma caixa só, da amostra inteira:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"geral\", \"view/boxplot\", y = \"valor\", from = \"ler\")
 ```
 
@@ -635,7 +635,7 @@ Contagem, com **Altura** em branco:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"quantos\", \"view/bars\", x = \"regiao\",
          titulo = \"Pedidos por região\", from = \"ler\")
 ```
@@ -644,7 +644,7 @@ Média por região — agregada antes, porque a barra somaria:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"media\", \"data/group_summarise\", by = \"regiao\",
          name = \"valor_medio\", expr = \"mean(valor)\", from = \"ler\") |>
   tr_add(\"barras\", \"view/bars\", x = \"regiao\", y = \"valor_medio\",

@@ -187,7 +187,7 @@ O próprio gráfico, sem mudança, para seguir no fluxo. No console,
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"ensaio.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"ensaio.csv\") |>
   tr_add(\"box\", \"view/boxplot\", x = \"tratamento\", y = \"resposta\",
          tema = \"clássico\", from = \"ler\") |>
   tr_add(\"grava\", \"view/save\", path = \"figuras/figura1.tiff\",

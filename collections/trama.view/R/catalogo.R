@@ -61,7 +61,7 @@ ggplot comum, somável.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"mensal\", \"data/group_summarise\", by = \"mes, regiao\",
          name = \"receita\", expr = \"sum(valor)\", from = \"ler\") |>
   tr_add(\"pilha\", \"view/area\", x = \"mes\", y = \"receita\", cor = \"regiao\",
@@ -126,7 +126,7 @@ contagem em log, quando umas poucas casas muito cheias apagam o resto.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"grade\", \"view/bin2d\", x = \"qtd\", y = \"valor\", classes = 30L,
          from = \"ler\")
 ```
@@ -196,7 +196,7 @@ Quantos pedidos por região e mês:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"calor\", \"view/heatmap\", x = \"mes\", y = \"regiao\", rotulos = TRUE,
          from = \"ler\")
 ```
@@ -266,7 +266,7 @@ Só os 20 maiores recebem ponto e nome:
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"municipios.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"municipios.csv\") |>
   tr_add(\"ordem\", \"data/arrange\", cols = \"populacao\", desc = TRUE, from = \"ler\") |>
   tr_add(\"top\", \"data/slice_head\", n = 20L, from = \"ordem\") |>
   tr_add(\"nomes\", \"view/labels\", x = \"renda\", y = \"populacao\",
@@ -340,7 +340,7 @@ ggplot comum, somável.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"forma\", \"view/density\", x = \"valor\", cor = \"regiao\",
          from = \"ler\")
 ```
@@ -410,7 +410,7 @@ comum, somável.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"violinos\", \"view/violin\", y = \"valor\", x = \"regiao\",
          from = \"ler\")
 ```
@@ -473,7 +473,7 @@ comum, somável.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"acumulada\", \"view/ecdf\", x = \"valor\", cor = \"regiao\",
          from = \"ler\")
 ```
@@ -537,7 +537,7 @@ Um gráfico. No console, `tr_qq(df, \"valor\")` devolve um ggplot comum, somáve
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"normal\", \"view/qq\", y = \"valor\", painel = \"regiao\",
          from = \"ler\")
 ```
@@ -612,7 +612,7 @@ ponto foi desenhado.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"ensaio.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"ensaio.csv\") |>
   tr_add(\"faixas\", \"view/strip\", y = \"altura\", x = \"tratamento\",
          cor = \"bloco\", from = \"ler\")
 ```
@@ -698,7 +698,7 @@ Um gráfico. O objeto guarda a tabela calculada em `p$data`, com `n`, `media`,
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"medias\", \"view/means\", x = \"regiao\", y = \"valor\",
          barra = \"IC\", confianca = 0.9, from = \"ler\")
 ```
@@ -772,7 +772,7 @@ Um gráfico. O objeto guarda a tabela agregada em `p$data`.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"producao.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"producao.csv\") |>
   tr_add(\"ranking\", \"view/dotplot\", x = \"municipio\", y = \"producao\",
          from = \"ler\")
 ```
@@ -839,7 +839,7 @@ categorias. O objeto guarda a tabela agregada em `p$data`.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"vendas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"vendas.csv\") |>
   tr_add(\"anual\", \"data/group_summarise\", by = \"regiao, ano\",
          name = \"receita\", expr = \"sum(valor)\", from = \"ler\") |>
   tr_add(\"halteres\", \"view/dumbbell\", x = \"regiao\", cor = \"ano\",
@@ -916,7 +916,7 @@ um ggplot comum, somável.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"medidas.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"medidas.csv\") |>
   tr_add(\"pares\", \"view/paired\", x = \"fase\", y = \"altura\",
          unidade = \"planta\", cor = \"tratamento\", from = \"ler\")
 ```
@@ -984,7 +984,7 @@ até 0,8.
 
 ```r
 tr_flow(reg) |>
-  tr_add(\"ler\", \"data/read_csv\", path = \"inspecao.csv\") |>
+  tr_add(\"ler\", \"data/read\", path = \"inspecao.csv\") |>
   tr_add(\"pareto\", \"view/pareto\", x = \"defeito\", y = \"custo\",
          from = \"ler\")
 ```

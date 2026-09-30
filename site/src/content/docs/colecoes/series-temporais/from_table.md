@@ -12,7 +12,7 @@ related: [series/interpolate, series/example]
 ## O que o bloco faz
 
 Transforma uma coluna de uma tabela numa série temporal. É a porta de entrada
-de todo dado seu: lido por `data/read_csv`, limpo e filtrado na coleção
+de todo dado seu: lido por `data/read`, limpo e filtrado na coleção
 `data`, e só então virado série aqui.
 
 ### A frequência é declarada aqui, uma vez
@@ -85,7 +85,7 @@ dados <- data.frame(
 write.csv(dados, arquivo, row.names = FALSE)
 
 tr_flow(reg) |>
-  tr_add("ler", "data/read_csv", path = arquivo) |>
+  tr_add("ler", "data/read", path = arquivo) |>
   tr_add("serie", "series/from_table", valor = "vendas", tempo = "mes",
          frequencia = 12L, from = "ler")
 ```
@@ -96,6 +96,6 @@ Uma série (`series/ts`), que o card mostra como gráfico.
 
 ## Veja também
 
-`data/read_csv` e `data/read_excel` para ler; `data/group_summarise` para
+`data/read` para ler; `data/group_summarise` para
 agregar dias em meses antes; `data/mutate` para simular uma coluna;
 `series/example` para as séries que vêm com o R.

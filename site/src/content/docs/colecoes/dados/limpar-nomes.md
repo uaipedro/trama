@@ -6,7 +6,7 @@ collection: dados
 node: data/clean_names
 category: limpar
 order: 11
-related: [data/rename, data/read_excel]
+related: [data/rename, data/read]
 ---
 
 ## O que o bloco faz

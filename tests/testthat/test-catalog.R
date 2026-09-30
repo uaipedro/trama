@@ -213,3 +213,20 @@ test_that("param de coluna leva role/multi/from ao catálogo; ausentes somem", {
   expect_true(ps[[1]]$suggest); expect_false(ps[[2]]$suggest)
   expect_false("from" %in% names(ps[[2]])); expect_false("example" %in% names(ps[[2]]))
 })
+
+test_that("param inteiro com botao leva o texto ao catálogo; sem botao, o campo some", {
+  com <- .tr_json_param("n", tr_param_int(0, min = 0, botao = "De novo"))
+  sem <- .tr_json_param("n", tr_param_int(0))
+  expect_equal(com$botao, "De novo")
+  expect_null(sem$botao)
+  expect_equal(.tr_check_param_value(tr_param_int(0, min = 0, botao = "x"), 3, "n"), 3L)
+})
+
+test_that("tr_when_padrao vai ao catálogo como objeto {padrao}", {
+  p <- tr_when(tr_param_text(""), path = tr_when_padrao("^https?://"), modo = "a")
+  j <- jsonlite::fromJSON(jsonlite::toJSON(.tr_json_param("x", p), auto_unbox = TRUE), simplifyVector = FALSE)
+  expect_equal(j$when$path, list(padrao = "^https?://"))
+  expect_equal(j$when$modo, list("a"))
+  expect_error(tr_when_padrao(""), class = "tr_error_bad_when")
+  expect_error(tr_when_padrao("(("), class = "tr_error_bad_when")
+})

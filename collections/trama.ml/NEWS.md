@@ -1,3 +1,7 @@
+# trama.ml 0.5.5
+
+* Sete bases do ISLR2 no catálogo de bases.
+
 # trama.ml 0.5.4
 
 * `ml/tree_plot` agora desenha uma árvore da floresta aleatória, padroniza a

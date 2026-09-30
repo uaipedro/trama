@@ -1,3 +1,14 @@
+# trama 0.5.0
+
+* Catálogo de bases públicas. As coleções declaram bases de pacotes R
+  (`tr_collection(datasets = list(tr_dataset(...)))`), só com metadados:
+  fonte, tamanho, temas e licença. O botão "Bases públicas" da barra abre um
+  modal com busca, filtro por tema e pacote, prévia, instalação do pacote em
+  um R à parte (com confirmação), "Baixar CSV" e "Adicionar ao canvas", que
+  insere o bloco declarado pela base. Novas funções: `tr_dataset()`,
+  `tr_datasets()` e `tr_dataset_load()`.
+* Colar um link sozinho no canvas cria um bloco "Ler dados" com ele.
+
 # trama 0.4.1
 
 * O aviso "não existe na entrada" do campo de colunas (`sumidas`, em `colunas.js`) não acusa mais valores escritos como seletor (`starts_with("x")`, `a:c`): quem valida é o R. Necessário para o `data/select` da `trama.data` 0.3.0, que passa a aceitar seletores.

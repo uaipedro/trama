@@ -10,7 +10,7 @@ trama_collection <- function() {
   # 0.5.0 = a 0.4.0 da main mais a coesão (leitores na models, parâmetros do
   # glossário, tipo `models/fit`), que muda resultados; o tipo `ml/fit`
   # não volta: os ajustes saem em `models/fit` (contrato da Fase 4).
-  trama::tr_collection("ml", version = "0.5.0", label = "Machine learning",
+  trama::tr_collection("ml", datasets = .tr_ml_bases(), version = "0.5.0", label = "Machine learning",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.ml")),
     categories = list(
       trama::tr_category("ml_dados", "Preparar", role = "preparacao"),

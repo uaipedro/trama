@@ -33,6 +33,10 @@ export function paramVisivel(p, valores) {
   if (!w) return true;
   return Object.entries(w).every(([nome, aceitos]) => {
     const v = valores?.[nome];
+    // `{padrao}` (`tr_when_padrao`): expressão regular sobre o valor como texto.
+    if (aceitos && !Array.isArray(aceitos) && typeof aceitos === "object" && aceitos.padrao) {
+      try { return new RegExp(aceitos.padrao, "i").test(String(v ?? "")); } catch { return false; }
+    }
     return (Array.isArray(aceitos) ? aceitos : [aceitos]).some((a) => String(a) === String(v));
   });
 }

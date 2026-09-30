@@ -79,7 +79,7 @@ test_that("os exemplos da ajuda rodam como DSL de verdade", {
     blocos <- regmatches(n$help, gregexpr("```r\n.*?\n```", n$help))[[1]]
     for (b in blocos) {
       codigo <- sub("^```r\n", "", sub("\n```$", "", b))
-      if (grepl("data/read_csv", codigo, fixed = TRUE)) next
+      if (grepl("data/read", codigo, fixed = TRUE)) next
       expect_no_error(eval(parse(text = codigo), envir = env), message = n$id)
     }
   }

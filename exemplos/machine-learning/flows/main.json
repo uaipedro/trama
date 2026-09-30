@@ -72,17 +72,18 @@
       "seed": 105942658
     },
     "01M2RPCXVC0349CC": {
-      "type": "data/read_csv",
+      "type": "data/read",
       "type_version": 1,
       "label": "Ler CSV",
       "params": {
-        "path": "heart.csv"
+        "path": "heart.csv",
+        "formato": "csv"
       },
       "seed": 117261368
     },
     "01M2TC7PSZF96B49": {
       "type": "ml/tree_plot",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Visualizar árvores",
       "params": {
         "tema": "claro"
@@ -91,7 +92,7 @@
     },
     "01M2TC9D5V41DAAE": {
       "type": "ml/tree_plot",
-      "type_version": 1,
+      "type_version": 2,
       "label": "Visualizar árvores",
       "params": {
         "tema": "claro"
@@ -295,6 +296,8 @@
       "01M2TC7PSZF96B49": "preview",
       "01M2TC9D5V41DAAE": "preview"
     },
-    "notes": {}
+    "notes": {},
+    "soltos": {},
+    "ocultos": {}
   }
 }

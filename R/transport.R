@@ -380,6 +380,58 @@ tr_server <- function(project, flow = "main",
       send("templates", list(templates = tr_template_list(rv_project()$root, rv_project()$registry)))
     })
 
+    # Catálogo de bases públicas. A lista vai a cada abertura do modal porque
+    # `instalado` muda com o editor aberto. Prévia e CSV rodam o bloco que a
+    # coleção declarou para a base (`tr_dataset_load()`): o barramento só
+    # decodifica e responde. `seq` pelo mesmo motivo de `tr_browse`.
+    enviar_bases <- function() {
+      send("datasets", list(datasets = tr_datasets(rv_project()$registry)))
+    }
+    shiny::observeEvent(input$tr_datasets_list, enviar_bases())
+
+    shiny::observeEvent(input$tr_dataset_preview, {
+      id <- as.character(input$tr_dataset_preview$id)[1]
+      res <- tryCatch(list(preview = .tr_dataset_preview(tr_dataset_load(id, rv_project()$registry))),
+                      error = function(e) list(erro = conditionMessage(e)))
+      send("dataset_preview", c(list(id = id), res))
+    })
+
+    shiny::observeEvent(input$tr_dataset_csv, {
+      id <- as.character(input$tr_dataset_csv$id)[1]
+      texto <- tryCatch({
+        x <- as.data.frame(tr_dataset_load(id, rv_project()$registry))
+        con <- textConnection("out", "w", local = TRUE)
+        on.exit(close(con))
+        utils::write.csv(x, con, row.names = FALSE)
+        paste(out, collapse = "\n")
+      }, error = avisar())
+      if (!is.null(texto)) send("dataset_csv", list(id = id, nome = sub(".*::", "", id), texto = texto))
+    })
+
+    # Instalar roda num R à parte (`.tr_install_bg()`); este handler volta na
+    # hora, e o resultado chega depois pelo `later`, junto da lista relida.
+    shiny::observeEvent(input$tr_dataset_install, {
+      pacote <- as.character(input$tr_dataset_install$pacote)[1]
+      # Só pacote de base do catálogo: o modal promete instalar o que uma base
+      # declarada pede, não qualquer nome que chegue pelo canal.
+      pacotes <- vapply(tr_datasets(rv_project()$registry), function(d) d$pacote, "")
+      if (!pacote %in% pacotes) {
+        send("warning", list(message = sprintf("'%s' não é pacote de nenhuma base do catálogo.", pacote)))
+        return(invisible())
+      }
+      ok <- tryCatch({
+        # O retorno chega por `later`, FORA de contexto reativo: ler
+        # `rv_project()` ali sem `isolate` aborta e derruba o app inteiro
+        # (medido no editor aberto). E qualquer outra falha vira aviso.
+        .tr_install_bg(pacote, function(ok, log) shiny::isolate(tryCatch({
+          send("dataset_install", list(pacote = pacote, estado = if (ok) "ok" else "erro", log = log))
+          enviar_bases()
+        }, error = avisar())))
+        TRUE
+      }, error = avisar(FALSE))
+      if (isTRUE(ok)) send("dataset_install", list(pacote = pacote, estado = "instalando"))
+    })
+
     shiny::observeEvent(input$tr_rerun, { run_now(rv_doc()) })
 
     # Código é gerado no servidor porque só o registro conhece as funções R e

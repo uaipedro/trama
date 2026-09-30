@@ -15,7 +15,8 @@ tr_collection(
   js = NULL,
   css = NULL,
   transitions = NULL,
-  migrations = list()
+  migrations = list(),
+  datasets = list()
 )
 }
 \arguments{
@@ -69,6 +70,10 @@ saídas.
 }
 
 Aplicadas por \code{tr_doc_migrate()} quando um fluxo é aberto.}
+
+\item{datasets}{Bases públicas que a coleção oferece no catálogo de bases,
+cada uma um \code{\link[=tr_dataset]{tr_dataset()}}. Só metadados: o dado fica no pacote que o
+publica e é baixado quando escolhido.}
 }
 \description{
 Uma coleção é o que um pacote de domínio exporta. \code{js} aponta pra um módulo

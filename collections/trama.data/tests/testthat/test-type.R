@@ -31,7 +31,7 @@ test_that("store do data/table aceita data.frame e tibble", {
 })
 
 # A prova de ponta a ponta, no motor de verdade: um `.rds` com um `lm` dentro
-# lido por `data/read_rds`. Antes, isto passava verde com preview de tabela de
+# lido por `data/read`. Antes, isto passava verde com preview de tabela de
 # zero colunas.
 test_that("nó que produz não-tabela falha no PRÓPRIO nó, no motor", {
   reg <- data_registry()
@@ -40,7 +40,7 @@ test_that("nó que produz não-tabela falha no PRÓPRIO nó, no motor", {
   saveRDS(stats::lm(mpg ~ cyl, datasets::mtcars), p)
 
   doc <- trama::tr_doc_apply(trama::tr_doc(),
-    list(op = "add_node", type = "data/read_rds", id = "ler",
+    list(op = "add_node", type = "data/read", id = "ler",
          params = list(path = p)), reg)
   ev <- list()
   trama::tr_run(doc, registry = reg, store = s,

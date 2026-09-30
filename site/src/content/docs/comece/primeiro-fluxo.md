@@ -3,7 +3,7 @@ title: Primeiro fluxo
 description: Crie uma análise pequena com uma tabela de exemplo, uma inspeção e um gráfico.
 section: comece
 order: 1
-related: [data/read_csv, data/summary, view/points]
+related: [data/read, data/summary, view/points]
 ---
 
 ## Instalação

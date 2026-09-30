@@ -6,7 +6,7 @@ collection: dados
 node: data/group_summarise
 category: agregar
 order: 4
-related: [data/summary, data/read_csv]
+related: [data/summary, data/read]
 ---
 
 ## O que o bloco faz

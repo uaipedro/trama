@@ -4,8 +4,11 @@
 \alias{tr_param_int}
 \title{Param inteiro.}
 \usage{
-tr_param_int(default, min = NA, max = NA, label = NULL)
+tr_param_int(default, min = NA, max = NA, label = NULL, botao = NULL)
 }
 \description{
-Param inteiro.
+\code{botao} troca o campo por um botão com esse texto, que soma 1 ao valor a
+cada clique: é o gesto "faça de novo" (baixar de novo, sortear de novo)
+expresso como param, então entra no hash, no undo e no documento como
+qualquer outro, e o bloco decide o que fazer quando o número sobe.
 }

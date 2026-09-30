@@ -1,6 +1,6 @@
 Package: trama.experiments
 Title: Experimental Design Collection for trama
-Version: 0.2.4
+Version: 0.2.5
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -24,8 +24,8 @@ Encoding: UTF-8
 Depends:
     R (>= 4.1)
 Imports:
-    trama (>= 0.3.1),
-    trama.data,
+    trama (>= 0.5.0),
+    trama.data (>= 0.4.0),
     trama.view,
     trama.models,
     emmeans,
