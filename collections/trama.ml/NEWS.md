@@ -1,3 +1,7 @@
+# trama.ml 0.5.6
+
+* Template "Árvore de decisão" regenerado com `ml/tree_plot` versão 2 (saía com a versão 1 e abria com aviso de versão defasada).
+
 # trama.ml 0.5.5
 
 * Sete bases do ISLR2 no catálogo de bases.
