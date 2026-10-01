@@ -122,7 +122,7 @@ tr_control_stop <- function() {
   tryCatch({
     res <- switch(rota,
       "GET /state"   = tr_control_state(),
-      "GET /catalog" = tr_control_catalog(q$tipo),
+      "GET /catalog" = tr_control_catalog(q$tipo, q$busca),
       "GET /result"  = tr_control_result(q$node),
       "POST /op"     = tr_control_op(corpo$op, corpo$base_rev),
       "POST /cmd"    = tr_control_cmd(corpo),
@@ -154,6 +154,7 @@ tr_control_state <- function() {
       list(id = id, type = n$type, label = n$label, params = params,
            status = st$status %||% "idle", message = st$message)
     })
+    nos <- .tr_control_com_causa(nos, doc$edges)
     arestas <- lapply(doc$edges, function(e) {
       paste0(e$from$node, ":", e$from$port, " -> ", e$to$node, ":", e$to$port)
     })
@@ -163,9 +164,11 @@ tr_control_state <- function() {
 }
 
 #' Catálogo enxuto: o bastante para montar um fluxo sem abrir a doc de cada
-#' bloco. Com `tipo`, o bloco inteiro como o editor o vê.
+#' bloco. Com `tipo`, o bloco inteiro como o editor o vê. Com `busca`, só os
+#' blocos que casam, do melhor para o pior (o catálogo inteiro passa de 50 KB,
+#' caro demais para o agente ler a cada pergunta).
 #' @noRd
-tr_control_catalog <- function(tipo = NULL) {
+tr_control_catalog <- function(tipo = NULL, busca = NULL, limite = 12L) {
   s <- .tr_control_sessao()
   cat <- tr_catalog(shiny::isolate(s$registry()))
   nos <- cat$nodes %||% cat
@@ -175,7 +178,20 @@ tr_control_catalog <- function(tipo = NULL) {
     return(list(ok = TRUE, node = achado[[1]]))
   }
   portas <- function(ps) vapply(ps %||% list(), function(p) paste0(p$name, ":", p$type), "")
-  list(ok = TRUE, nodes = lapply(nos, function(n) list(
+  if (!is.null(busca)) {
+    pontos <- vapply(nos, function(n) {
+      .tr_busca_ponto(busca, paste(n$label %||% "", n$description %||% "", n$id %||% n$type))
+    }, 0)
+    # Letras em sequência (1 ponto por palavra) numa descrição longa casam
+    # quase tudo. Havendo casamento de verdade, esse ruído sai.
+    n_palavras <- length(strsplit(trimws(busca), "\\s+")[[1]])
+    minimo <- if (length(pontos) && max(pontos) > n_palavras) n_palavras + 1 else 1
+    ordem <- order(-pontos, seq_along(nos))
+    nos <- nos[ordem[pontos[ordem] >= minimo]]
+    total <- length(nos)
+    nos <- utils::head(nos, limite)
+  }
+  list(ok = TRUE, total = if (!is.null(busca)) total, nodes = lapply(nos, function(n) list(
     type = n$id %||% n$type, label = n$label, description = n$description,
     inputs = portas(n$inputs), outputs = portas(n$outputs),
     params = vapply(n$params %||% list(), function(p) p$name %||% "", "")
@@ -267,6 +283,69 @@ tr_control_result <- function(node) {
       if (!is.null(pv$files)) pv$files <- lapply(pv$files, function(f) file.path(store$root, f))
       list(type = h$type, summary = h$summary, schema = h$schema, preview = pv)
     })
-    list(ok = TRUE, node = node, status = st$status, message = st$message, outputs = saidas)
+    causa <- if (identical(st$status, "blocked")) {
+      status <- vapply(names(s$doc()$nodes), function(id) s$estado[[id]]$status %||% "idle", "")
+      .tr_control_causa(node, status, s$doc()$edges)
+    }
+    list(ok = TRUE, node = node, status = st$status, message = st$message,
+         causa = causa, outputs = saidas)
   })
+}
+
+# Diagnóstico -------------------------------------------------------------
+
+#' Por que um nó está `blocked`: sobe pelas arestas até os ancestrais que
+#' falharam (`failed`/`invalid`), sem passar deles. O card bloqueado não tem
+#' mensagem própria; sem isto o agente teria de caçar o culpado nó a nó.
+#' @param status Vetor nomeado id -> status.
+#' @return Lista de `list(node, status)`, vazia se nada acima falhou.
+#' @noRd
+.tr_control_causa <- function(node, status, edges) {
+  pais <- function(id) unique(vapply(Filter(function(e) identical(e$to$node, id), edges),
+                                     function(e) e$from$node, ""))
+  visto <- character(); fila <- pais(node); achados <- character()
+  while (length(fila)) {
+    id <- fila[[1]]; fila <- fila[-1]
+    if (id %in% visto) next
+    visto <- c(visto, id)
+    if ((status[[id]] %||% "idle") %in% c("failed", "invalid")) achados <- c(achados, id)
+    else fila <- c(fila, pais(id))
+  }
+  lapply(achados, function(id) list(node = id, status = status[[id]]))
+}
+
+.tr_control_com_causa <- function(nos, edges) {
+  status <- stats::setNames(vapply(nos, function(n) n$status, ""), vapply(nos, function(n) n$id, ""))
+  lapply(nos, function(n) {
+    if (identical(n$status, "blocked")) n$causa <- .tr_control_causa(n$id, status, edges)
+    n
+  })
+}
+
+#' Busca aproximada, a mesma do "+" do editor (`pontoBusca` em
+#' `inst/www/fantasmas.js`): sem acento nem caixa, toda palavra do termo tem
+#' de casar. Início de palavra vale 3, trecho no meio 2, letras em sequência 1
+#' ("anv" acha "ANOVA"); uma palavra que não casa zera o bloco.
+#' @noRd
+.tr_busca_ponto <- function(termo, texto) {
+  norm <- function(x) tolower(iconv(x, to = "ASCII//TRANSLIT", sub = ""))
+  qs <- strsplit(trimws(norm(termo)), "\\s+")[[1]]
+  qs <- qs[nzchar(qs)]
+  if (!length(qs)) return(0)
+  t <- norm(texto)
+  palavras <- strsplit(t, "[^a-z0-9]+")[[1]]
+  palavras <- palavras[nzchar(palavras)]
+  subseq <- function(q, w) {
+    cs <- strsplit(q, "")[[1]]; i <- 1L
+    for (c in strsplit(w, "")[[1]]) if (c == cs[[i]]) { i <- i + 1L; if (i > length(cs)) return(TRUE) }
+    FALSE
+  }
+  total <- 0
+  for (q in qs) {
+    total <- total + if (any(startsWith(palavras, q))) 3
+      else if (grepl(q, t, fixed = TRUE)) 2
+      else if (any(vapply(palavras, subseq, TRUE, q = q)) || subseq(q, gsub("\\s+", "", t))) 1
+      else return(0)
+  }
+  total
 }

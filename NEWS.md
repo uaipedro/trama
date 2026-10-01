@@ -1,3 +1,7 @@
+# trama 0.5.1
+
+* `trama-agente`: `catalog --busca termo` devolve só os blocos que casam (a mesma busca do "+"), em vez do catálogo inteiro; toda edição aceita `--wait N`, que espera o fluxo rodar e devolve em `efeito` o status dos nós tocados e dos que estão abaixo deles. Nó `blocked` (em `state`, `result` e `efeito`) traz `causa`: os ancestrais que falharam.
+
 # trama 0.5.0
 
 * Catálogo de bases públicas. As coleções declaram bases de pacotes R

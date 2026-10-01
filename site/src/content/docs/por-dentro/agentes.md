@@ -40,6 +40,7 @@ Rode de dentro da pasta do projeto. Toda saída é JSON; recusa sai com
 ```bash
 trama-agente state                         # nós, parâmetros, status, ligações
 trama-agente catalog                       # blocos disponíveis, com portas
+trama-agente catalog --busca anova         # só os blocos que casam, melhor primeiro
 trama-agente catalog models/lm             # um bloco inteiro: params, escolhas, ajuda
 trama-agente add data/example --id dados dataset=iris
 trama-agente add models/lm --id ajuste --from dados
@@ -49,6 +50,11 @@ trama-agente result coef --wait 30         # status, resumo, preview; gráfico c
 trama-agente rm coef
 trama-agente undo
 ```
+
+O catálogo inteiro passa de 50 KB. Para achar um bloco, prefira `--busca`: é
+a mesma busca do "+" do editor (sem acento nem caixa, toda palavra tem de
+casar) e devolve até 12 blocos com o `total` que casou. Ela procura no texto
+dos blocos, não em sinônimos: se "normalidade" não achar, tente "normal".
 
 `valor` é lido como JSON quando dá (`n=3`, `x=true`, listas) e como texto
 quando não (`coluna=peso`). `add --from` liga o bloco novo à primeira entrada
@@ -78,6 +84,29 @@ operações, com os campos que cada uma exige, está em `R/document.R`
 (`.tr_op_fn()` e as funções `.tr_op_*`). Campo faltando volta como recusa
 nomeando o campo.
 
+### Editar e ver o efeito
+
+Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`) aceita
+`--wait N`: espera até N segundos o fluxo parar de rodar e devolve, em
+`efeito`, o status do que a edição tocou e de tudo abaixo. Um passo só em vez
+de editar e depois consultar cada bloco:
+
+```bash
+trama-agente set ajuste 'preditores=["wt","xyz"]' --wait 30
+```
+
+```json
+"efeito": [
+  {"node": "ajuste", "status": "failed",
+   "message": "Param 'preditores': coluna inexistente: xyz. Disponíveis: ..."},
+  {"node": "coef", "status": "blocked",
+   "causa": [{"node": "ajuste", "status": "failed"}]}
+]
+```
+
+Sem `--wait`, a edição volta assim que aplicada e o resultado chega depois.
+Depois de `rm` e `undo` o efeito lista o fluxo inteiro.
+
 ## O que o agente vê
 
 `result` não dispara execução: devolve o último estado do bloco nesta sessão.
@@ -100,7 +129,8 @@ abrir. Um bloco que ainda não rodou responde `idle`.
 ```
 
 `status` é `done`, `cached`, `failed` (com `message`), `invalid`, `blocked`,
-`running` ou `queued`. `summary` e `schema` descrevem tabelas (linhas,
+`running` ou `queued`. Um bloco `blocked` não tem mensagem própria; `causa`
+aponta os blocos acima dele que falharam. `summary` e `schema` descrevem tabelas (linhas,
 colunas, tipos); `preview.data` é o que o card desenha; `preview.files.png`,
 quando existe, é o caminho absoluto da imagem. `result --wait N` espera até N
 segundos o bloco sair de `queued`/`running`.

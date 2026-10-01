@@ -155,3 +155,65 @@ test_that("result não executa: nó que não rodou diz que não rodou", {
     expect_error(tr_control_result("zz"), "desconhecido")
   })
 })
+
+test_that("busca aproximada casa como o '+' do editor", {
+  expect_equal(.tr_busca_ponto("anova", "ANOVA em DIC"), 3)
+  expect_equal(.tr_busca_ponto("anv", "ANOVA em DIC"), 1)          # letras em sequência
+  expect_equal(.tr_busca_ponto("regressao", "Regressão linear"), 3) # sem acento
+  expect_equal(.tr_busca_ponto("gress", "Regressão linear"), 2)     # trecho no meio
+  expect_equal(.tr_busca_ponto("anova zzz", "ANOVA em DIC"), 0)     # toda palavra casa
+  expect_equal(.tr_busca_ponto("  ", "ANOVA"), 0)
+})
+
+test_that("catalog --busca devolve só o que casa, melhor primeiro, com total", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p, autosave = FALSE), {
+    session$sendCustomMessage <- function(type, message) NULL
+    session$setInputs(tr_ready = 1)
+    tudo <- tr_control_catalog()
+    r <- tr_control_catalog(busca = "t/add")
+    expect_true(r$ok)
+    expect_equal(r$nodes[[1]]$type, "t/add")
+    expect_lt(length(r$nodes), length(tudo$nodes))
+    expect_equal(r$total, length(r$nodes))
+    expect_length(tr_control_catalog(busca = "zzzqqq")$nodes, 0L)
+    expect_length(tr_control_catalog(busca = "t", limite = 2L)$nodes, 2L)
+    expect_null(tudo$total)
+    # "ad" casa "t/add" de verdade; o que só casa por letras soltas sai.
+    expect_true(all(vapply(tr_control_catalog(busca = "ad")$nodes,
+                           function(n) grepl("ad", tolower(paste(n$type, n$label, n$description))), TRUE)))
+  })
+})
+
+test_that("nó bloqueado aponta o ancestral que falhou, sem passar dele", {
+  e <- function(de, para) list(from = list(node = de, port = "out"), to = list(node = para, port = "x"))
+  edges <- list(e("a", "b"), e("b", "c"), e("c", "d"), e("x", "d"))
+  status <- c(a = "failed", b = "blocked", c = "blocked", d = "blocked", x = "done")
+  expect_equal(.tr_control_causa("d", status, edges), list(list(node = "a", status = "failed")))
+  status[["b"]] <- "invalid"
+  expect_equal(.tr_control_causa("d", status, edges), list(list(node = "b", status = "invalid")))
+  expect_length(.tr_control_causa("x", status, edges), 0L)
+
+  nos <- lapply(names(status), function(id) list(id = id, status = status[[id]]))
+  com <- .tr_control_com_causa(nos, edges)
+  expect_null(com[[1]]$causa)
+  expect_equal(com[[4]]$causa[[1]]$node, "b")
+})
+
+test_that("--wait: tocados pela op e tudo abaixo deles", {
+  op <- list(op = "batch", ops = list(
+    list(op = "add_node", id = "m"),
+    list(op = "connect", from_node = "d", to_node = "m")))
+  expect_equal(.tr_cli_tocados(op), "m")
+  expect_equal(.tr_cli_tocados(list(op = "set_param", node = "d")), "d")
+  expect_null(.tr_cli_tocados(list(op = "remove_node", node = "d")))
+
+  st <- list(nodes = lapply(c("d", "m", "c", "g", "z"), function(id) list(id = id)),
+             edges = list("d:out -> m:dados", "m:out -> c:modelo", "d:out -> g:dados"))
+  ids <- function(x) vapply(x, function(n) n$id, "")
+  expect_equal(ids(.tr_cli_abaixo(st, "m")), c("m", "c"))
+  expect_equal(ids(.tr_cli_abaixo(st, "d")), c("d", "m", "c", "g"))
+  expect_equal(ids(.tr_cli_abaixo(st, NULL)), c("d", "m", "c", "g", "z"))
+  expect_equal(ids(.tr_cli_abaixo(list(nodes = st$nodes, edges = list()), "z")), "z")
+})

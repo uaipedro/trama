@@ -6,7 +6,7 @@
 #'
 #' ```
 #' trama-agente state                       # fluxo na tela: nós, status, arestas
-#' trama-agente catalog [tipo]              # blocos disponíveis / um bloco inteiro
+#' trama-agente catalog [tipo] [--busca T]  # blocos disponíveis / um bloco / os que casam
 #' trama-agente add <tipo> [--id X] [--from no[:porta]]... [--label L] [param=valor]...
 #' trama-agente link <no[:porta]> <no[:porta]>
 #' trama-agente set <no> param=valor...
@@ -16,6 +16,11 @@
 #' trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 #' trama-agente undo
 #' ```
+#'
+#' Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`) aceita
+#' `--wait N`: espera até N segundos o fluxo parar de rodar e devolve, em
+#' `efeito`, o status dos nós tocados e de tudo abaixo deles. Nó `blocked`
+#' traz `causa`, os ancestrais que falharam.
 #'
 #' `valor` é lido como JSON quando dá (`n=3`, `x=true`, `v=["a","b"]`) e como
 #' texto quando não (`coluna=peso`). `--projeto DIR` escolhe qual editor
@@ -41,7 +46,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
 
 .tr_cli_uso <- c(
   "state                                   fluxo na tela: nós, params, status, ligações",
-  "catalog [tipo]                          blocos disponíveis; com tipo, params/escolhas/ajuda",
+  "catalog [tipo] [--busca termo]          blocos disponíveis; com tipo, params/escolhas/ajuda",
   "add <tipo> [--id X] [--from no[:porta]]... [--label L] [param=valor]...",
   "link <no[:porta]> <no[:porta]>          porta omitida = primeira compatível",
   "set <no> param=valor...",
@@ -50,6 +55,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   "apply <arquivo.json>                    lista de ops como um passo de desfazer",
   "result <no> [--wait segundos]           status, resumo, preview, PNG",
   "undo                                    desfaz a última edição (sua ou do humano)",
+  "--wait N em qualquer edição: espera rodar e devolve 'efeito' (status abaixo, causa do bloqueio).",
   "valor: JSON quando dá (n=3, x=true, 'cols=[\"a\",\"b\"]'), senão texto.",
   "--projeto DIR escolhe o editor quando há mais de um.")
 
@@ -90,9 +96,21 @@ tr_cli <- function(args = commandArgs(TRUE)) {
     return(list(ok = TRUE, uso = .tr_cli_uso))
   }
   cx <- .tr_cli_conexao(a$opt$projeto)
+  res <- .tr_cli_despachar(a, cx, p, precisa)
+  espera <- as.numeric(a$opt$wait %||% 0)
+  if (a$cmd %in% .tr_cli_edicoes && isTRUE(res$ok) && espera > 0) {
+    res$efeito <- .tr_cli_efeito(cx, .tr_cli_tocados(res$op), espera)
+  }
+  res
+}
+
+.tr_cli_edicoes <- c("add", "link", "set", "rm", "op", "apply", "undo")
+
+.tr_cli_despachar <- function(a, cx, p, precisa) {
   switch(a$cmd,
     state   = .tr_cli_http(cx, "GET", "/state"),
-    catalog = .tr_cli_http(cx, "GET", "/catalog", query = if (length(p)) list(tipo = p[[1]])),
+    catalog = .tr_cli_http(cx, "GET", "/catalog",
+                           query = Filter(Negate(is.null), list(tipo = if (length(p)) p[[1]], busca = a$opt$busca))),
     add = {
       precisa(1, "trama add <tipo> [--id X] [--from no] [param=valor]...")
       .tr_cli_http(cx, "POST", "/cmd", list(
@@ -119,6 +137,53 @@ tr_cli <- function(args = commandArgs(TRUE)) {
       .tr_cli_result(cx, p[[1]], as.numeric(a$opt$wait %||% 0)) },
     undo = .tr_cli_http(cx, "POST", "/undo", list()),
     rlang::abort(paste0("Comando desconhecido: '", a$cmd, "'. Veja 'trama-agente help'.")))
+}
+
+#' Nós que a op mexeu diretamente. `remove_node` e `undo` não deixam nó para
+#' apontar: devolvem `NULL`, e o efeito vira o fluxo inteiro.
+#' @noRd
+.tr_cli_tocados <- function(op) {
+  if (is.null(op)) return(NULL)
+  switch(op$op %||% "",
+    batch = unique(unlist(lapply(op$ops, .tr_cli_tocados))),
+    add_node = op$id,
+    connect = , disconnect = op$to_node,
+    remove_node = NULL,
+    op$node)
+}
+
+#' Tocados mais tudo abaixo deles, depois que o fluxo parar de rodar.
+#' @noRd
+.tr_cli_efeito <- function(cx, tocados, espera) {
+  fim <- Sys.time() + espera
+  repeat {
+    st <- .tr_cli_http(cx, "GET", "/state")
+    if (!isTRUE(st$ok)) return(NULL)
+    nos <- .tr_cli_abaixo(st, tocados)
+    rodando <- any(vapply(nos, function(n) n$status %in% c("queued", "running"), TRUE))
+    if (!rodando || Sys.time() >= fim) break
+    Sys.sleep(0.3)
+  }
+  lapply(nos, function(n) Filter(Negate(is.null),
+    list(node = n$id, status = n$status, message = n$message, causa = if (length(n$causa)) n$causa)))
+}
+
+#' Nós de `st$nodes` que são `tocados` ou descendem deles (pelas arestas
+#' "de:porta -> para:porta" do state). `tocados` NULL = todos.
+#' @noRd
+.tr_cli_abaixo <- function(st, tocados) {
+  if (is.null(tocados)) return(st$nodes)
+  pares <- do.call(rbind, lapply(st$edges, function(e) {
+    lados <- strsplit(e, " -> ", fixed = TRUE)[[1]]
+    sub(":[^:]*$", "", lados)
+  }))
+  alcance <- tocados
+  repeat {
+    novos <- if (is.null(pares)) character() else setdiff(pares[pares[, 1] %in% alcance, 2], alcance)
+    if (!length(novos)) break
+    alcance <- c(alcance, novos)
+  }
+  Filter(function(n) n$id %in% alcance, st$nodes)
 }
 
 #' Espera o nó sair de "na fila/rodando". Execução é assíncrona: a op volta
