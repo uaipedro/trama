@@ -187,12 +187,38 @@ Também consultada, p. 15: a fonte descreve transformação log quando a amplitu
 cresce proporcionalmente à média. `tr_ref` e o texto de pressuposto refletem
 essas afirmações verificadas.
 
-Oráculo numérico PENDENTE: o artigo não publica os valores da série agrupada,
-inclinação, erro-padrão ou estatística t; o portal da base de dados citada não
-fornece cópia histórica garantida dos valores de 2009–2018. Assim, o teste do
-oráculo publicado fica `skip()` com TODO e tolerância planejada de 5e-6 no p,
-sem números inventados. A validação algébrica do cálculo é contra `lm` na mesma
-entrada a 1e-12, não substitui o oráculo independente. Referência bibliográfica
-e recomendações procedimentais foram conferidas no PDF acessível; não foi
-possível conferir no livro de Morettin & Toloi nem reconstruir o resultado do
-Gretl. Testes: `test-testar.R`, `test-catalogo.R`.
+Oráculo numérico: o `rmplot` do gretl 2023c (pacote de referência, outro
+código) no AirPassengers dá 12 sub-amostras de 12, inclinação 0,560685 e
+p = 4,78409e-10; o bloco bate nos 6 algarismos impressos, e na tabela de
+amplitude e média por bloco. Divergência declarada: com bloco final incompleto
+o gretl o usa (AirPassengers até 1958:06 dá 0,43901) e o bloco o descarta, porque
+a amplitude de um bloco menor é menor por construção. Não foi possível conferir
+no livro de Morettin & Toloi. Testes: `test-testar.R`, `test-catalogo.R`.
+
+## Séries: regressão por fórmula, componentes com inferência (30/09/2026)
+
+`series/regression` v2 ajusta uma fórmula sobre `valor`, `t`, `periodo`, `ano`
+e `regressor` e sai como `models/fit` (`trama.models::tr_models_as_fit`, 0.6.0).
+Migração da v1: grau 1 → `t`, grau g ≥ 2 → `poly(t, g, raw = TRUE)` (um termo,
+para o F do bloco ser uma linha do quadro), sazonalidade → `periodo`,
+`alfa` → `confianca = 1 − alfa`. Oráculos:
+
+- coeficientes da fórmula padrão e da migrada de grau 2 contra `lm` direto com
+  o fator do mês em `contr.sum` (1e-8 a 1e-10);
+- F de cada bloco (`models/anova_table`, tipo III) contra o F parcial de
+  `anova(reduzido, completo)` (1e-8); com erro AR(1), contra o F de Wald
+  b'V⁻¹b/q refeito à mão (1e-6); o tamanho com erro AR(1) (37% → 8%) segue;
+- previsão contra `forecast::tslm(y ~ trend + season)` (média e limites de 80 e
+  95%, 1e-8); com erro ARMA, contra `forecast::Arima(xreg = )` do mesmo desenho
+  (1e-6), cujos coeficientes batem com os do GLS a 1e-3 (mesma verossimilhança
+  ML); com regressor, contra `predict.lm` com o regressor futuro.
+
+Os três F (`series/f_global`, `f_seasonal`, `f_trend`) saíram: migram para
+`models/fit_stats` e `models/anova_table` com `tipo_sq = "III"`. `series/detrend`
+v2 ganha a saída `ajuste` (`valor ~ t` ou `poly(t, g, raw = TRUE)`, conferido
+contra `lm`; loess e diferença dão a reta como referência, dito na nota).
+`series/deseasonalize` (novo) ajusta `valor ~ t + periodo` por padrão
+(controlando a tendência) ou `valor ~ periodo`, conferido contra `lm` e, sem
+tendência, contra as médias de período centradas (1e-10). Com ciclos
+incompletos, os dois avisam e recomendam a regressão conjunta. Testes:
+`test-decompor.R`, `test-operar.R`, `test-testar.R`, `test-motor.R`.

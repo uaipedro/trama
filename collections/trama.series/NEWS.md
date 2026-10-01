@@ -1,5 +1,11 @@
 # trama.series 0.5.0
 
+* `series/regression` agora ajusta uma FÓRMULA sobre `valor`, `t`, `periodo`, `ano` e `regressor`, e sai como `models/fit`: coeficientes, quadro da ANOVA, estatísticas e diagnóstico são os blocos da `trama.models`. Fluxos antigos migram (grau e sazonalidade viram a fórmula; `alfa` vira `confianca`).
+* `series/f_global`, `series/f_seasonal` e `series/f_trend` saíram: os fluxos abrem com `models/fit_stats` e `models/anova_table` (tipo III).
+* `series/detrend` ganhou a saída `ajuste`, com a tendência como modelo.
+* `series/deseasonalize` (Tirar sazonalidade): estima o efeito de cada período, com testes, e o tira da série.
+* `series/forecast` prevê também o ajuste de uma regressão da série, com o regressor futuro na entrada `futuro`.
+* Depende de `trama.models (>= 0.6.0)`.
 * `series/range_mean`: teste e gráfico da relação amplitude–média por blocos, para orientar a transformação de variância.
 
 # trama.series 0.4.6

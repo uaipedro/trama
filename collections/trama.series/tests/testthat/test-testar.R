@@ -47,10 +47,25 @@ test_that("amplitude–média calcula blocos, inclinação, erro-padrão e gráf
   expect_length(parcial$out$extra$pontos$media, 3L)
 })
 
-test_that("oráculo publicado de amplitude–média (Zucoloto et al., 2018)", {
-  skip("TODO: obter os dados mensais de exportação usados no artigo e reproduzir o Gretl; a fonte publica p=0,168045, mas não publica a série agrupada nem inclinação/EP/t para conferir numericamente.")
-  # O artigo informa p = 0,168045 para H0: inclinação = 0 (grupos de 12 meses).
-  # Tolerância pretendida: abs(p - 0.168045) <= 5e-6 após recuperar os dados.
+test_that("amplitude–média = rmplot do gretl 2023c no AirPassengers (pacote de referência)", {
+  # `rmplot ap` no gretl 2023c (gretlcli, série mensal 1949:01-1960:12): 12
+  # sub-amostras de 12, "inclinação da amplitude versus média = 0,560685",
+  # "p-valor para H0: inclinação = 0 é 4,78409e-10". Tolerância: os 6
+  # algarismos que o gretl imprime.
+  t <- tr_series_range_mean(datasets::AirPassengers)$out
+  expect_equal(t$extra$inclinacao, 0.560685, tolerance = 1e-6)
+  expect_equal(t$p_valor, 4.78409e-10, tolerance = 1e-5)
+  expect_equal(nrow(t$extra$pontos), 12L)
+  # Primeira e última linha da tabela do gretl (amplitude, média).
+  expect_equal(unname(unlist(t$extra$pontos[1, c("amplitude", "media")])), c(44, 126.667), tolerance = 1e-5)
+  expect_equal(unname(unlist(t$extra$pontos[12, c("amplitude", "media")])), c(232, 476.167), tolerance = 1e-5)
+  # Divergência declarada: o gretl usa o bloco final incompleto (1958:01-06
+  # numa série que acaba em 1958:06); aqui ele sai. Com o recorte nos blocos
+  # completos, os dois coincidem — o gretl dá 0,43901 com o bloco incompleto.
+  a <- tr_series_range_mean(stats::window(datasets::AirPassengers, end = c(1958, 6)))$out
+  b <- tr_series_range_mean(stats::window(datasets::AirPassengers, end = c(1957, 12)))$out
+  expect_equal(a$extra$inclinacao, b$extra$inclinacao)
+  expect_false(isTRUE(all.equal(a$extra$inclinacao, 0.43901, tolerance = 1e-4)))
 })
 
 test_that("tabela de críticos sem o nível da decisão é erro tipado, não índice cru", {

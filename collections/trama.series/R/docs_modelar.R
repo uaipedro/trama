@@ -161,5 +161,9 @@
       verificar = c("series/range_mean", "series/plot"),
       se_falhar = "Se a inclinação for significativa e positiva, avalie `series/transform` com log ou Box-Cox e repita o diagnóstico.")),
     referencias = list(fonte,
-      I("trama.series", "tr_series_range_mean", "Agrupa blocos completos consecutivos; regressão OLS amplitude ~ média; teste t bilateral da inclinação igual a zero, p pela distribuição t com n_bloco − 2 graus de liberdade."))))
+      I("trama.series", "tr_series_range_mean", "Agrupa blocos completos consecutivos; regressão OLS amplitude ~ média; teste t bilateral da inclinação igual a zero, p pela distribuição t com n_bloco − 2 graus de liberdade. Conferido contra o `rmplot` do gretl 2023c no AirPassengers (inclinação 0,560685, p = 4,78409e-10, a 6 algarismos); diverge do gretl quando a série termina no meio de um bloco, porque o gretl usa o bloco incompleto e aqui ele sai."),
+      trama::tr_ref(autores = c("Cottrell, A.", "Lucchetti, R."), ano = 2023,
+                    titulo = "Gretl User's Guide: Gnu Regression, Econometrics and Time-series Library",
+                    fonte = "versão 2023c; comando rmplot", url = "https://gretl.sourceforge.net/",
+                    papel = "complementar"))))
 }
