@@ -4,7 +4,7 @@
 
 nos_series <- function(reg) Filter(function(n) startsWith(n$id, "series/"), reg$nodes)
 
-test_that("a coleção carrega sobre data e view, e não sozinha", {
+test_that("a coleção carrega sobre data, view e models, e não sozinha", {
   expect_no_error(series_registry())
   reg <- trama::tr_registry()
   err <- tryCatch(trama::tr_use(trama_collection(), registry = reg), condition = identity)
@@ -12,7 +12,7 @@ test_that("a coleção carrega sobre data e view, e não sozinha", {
   reg <- trama::tr_registry()
   trama::tr_use("trama.data", registry = reg)
   err <- tryCatch(trama::tr_use(trama_collection(), registry = reg), condition = identity)
-  expect_match(conditionMessage(err), "view/plot", fixed = TRUE)
+  expect_match(conditionMessage(err), "view/plot|models/fit")
 })
 
 test_that("as categorias não pisam nas das outras coleções", {
@@ -30,7 +30,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- series_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_series(reg)
-  expect_length(nos, 47L)  # 9.1b: + series/intervencao (main)
+  expect_length(nos, 45L)  # 0.5.0: - três F (viraram leitores da models) + series/deseasonalize
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -161,7 +161,7 @@ test_that("todo número decimal da prosa existe como literal no código do nó",
   # vazia POR CONSTRUÇÃO. Quem vier depois não deve "consertar" isso alargando o
   # regex: ele voltaria a pescar tupla de ARIMA e valor de exemplo, que foi de
   # onde vieram as onze exceções que esta forma existe para não ter.
-  expect_gte(length(testes), 15L)
+  expect_gte(length(testes), 12L)  # 0.5.0: os três F da regressão viraram leitores da models
   for (n in testes) {
     corpo <- paste(deparse(body(removeSource(n$fn))), collapse = "\n")
     numeros <- unique(regmatches(n$help, gregexpr("\\b\\d+,\\d+\\b", n$help))[[1]])
@@ -264,7 +264,7 @@ test_that("todo bloco de teste explica os pontinhos, com o texto comum", {
   reg <- series_registry()
   testes <- Filter(function(n) identical(n$outputs$out$type, "data/test"), nos_series(reg))
   # Piso pelo mesmo motivo da varredura de decimais: laço sobre lista vazia é verde.
-  expect_gte(length(testes), 15L)
+  expect_gte(length(testes), 12L)  # 0.5.0: os três F da regressão viraram leitores da models
   secao <- .tr_series_ajuda_pontinhos()
   for (n in testes) {
     expect_true(grepl(secao, n$help, fixed = TRUE), info = n$id)
@@ -299,7 +299,7 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
 
   reg <- series_registry()
   testes <- Filter(function(n) identical(n$outputs$out$type, "data/test"), nos_series(reg))
-  expect_gte(length(testes), 15L)
+  expect_gte(length(testes), 12L)  # 0.5.0: os três F da regressão viraram leitores da models
   ap <- datasets::AirPassengers
   ajuste <- tr_series_regression(ap)
   # Uma linha da tabela: "| `series/x` | fonte | ...". A fonte tem de estar NA
@@ -334,8 +334,12 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
 # com o novo — e a aresta continua ligada, porque as portas não mudaram.
 test_that("fluxos salvos com os ids antigos abrem com os novos", {
   reg <- series_registry()
-  antigos <- c("series/f_sazonal" = "series/f_seasonal",
-               "series/f_tendencia" = "series/f_trend",
+  # Os F da regressão (0.5.0) seguem a cadeia até os leitores da models.
+  antigos <- c("series/f_sazonal" = "models/anova_table",
+               "series/f_tendencia" = "models/anova_table",
+               "series/f_seasonal" = "models/anova_table",
+               "series/f_trend" = "models/anova_table",
+               "series/f_global" = "models/fit_stats",
                "series/kruskal_wallis" = "series/seasonality_kw",
                "series/fisher" = "series/periodicity_fisher")
   for (velho in names(antigos)) {
@@ -344,6 +348,14 @@ test_that("fluxos salvos com os ids antigos abrem com os novos", {
     expect_equal(m$nodes$n$type, antigos[[velho]], info = velho)
     expect_false(is.null(reg$nodes[[antigos[[velho]]]]), info = velho)
   }
+  # O F do bloco sazonal vira o quadro marginal (tipo III) e a aresta da
+  # regressão chega na entrada certa.
+  doc <- list(nodes = list(r = list(type = "series/regression", params = list()),
+                           f = list(type = "series/f_seasonal", params = list())),
+              edges = list(list(from = list(node = "r", port = "out"), to = list(node = "f", port = "ajuste"))))
+  m <- trama::tr_doc_migrate(doc, reg)
+  expect_equal(m$nodes$f$params$tipo_sq, "III")
+  expect_equal(m$edges[[1]]$to$port, "modelo")
 })
 
 test_that("nenhum nó declara os tipos de teste antigos", {

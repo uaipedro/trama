@@ -55,7 +55,7 @@
 #' @export
 trama_collection <- function() {
   S <- "series/ts"; D <- "series/decomposition"; M <- "series/model"; F <- "series/forecast"
-  R <- "series/regression"; TE <- "data/test"
+  FIT <- "models/fit"; TE <- "data/test"
   T <- "data/table"; G <- "view/plot"
   P <- trama::tr_param
   I <- trama::tr_param_int
@@ -64,12 +64,12 @@ trama_collection <- function() {
   icone <- function(n) trama::tr_icon(n)
 
   trama::tr_collection(
-    id = "series", version = "0.4.0", label = "Séries temporais",
+    id = "series", version = "0.5.0", label = "Séries temporais",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.series")),
     # Sem `js`: o card do teste era o único script da coleção, e o tipo de teste
     # agora é o `data/test` (registrado pela `data`).
     types = list(series_ts_type(), series_decomposition_type(), series_model_type(),
-                 series_forecast_type(), series_regression_type()),
+                 series_forecast_type()),
     adapters = .tr_series_adapters(),
     # Glossário (docs/glossario-parametros.md): id em inglês que diga a
     # PERGUNTA, como os outros da coleção. `kruskal_wallis` e `fisher` diziam o
@@ -526,10 +526,12 @@ tr_flow(reg) |>
 trecho com buraco em vez de inventá-lo.
 ]---")),
 
-      trama::tr_node("series/detrend", fn = tr_series_detrend, label = "Tirar tendência",
+      trama::tr_node("series/detrend", fn = tr_series_detrend, label = "Tirar tendência", version = 2L,
+        # v2: ganhou a saída `ajuste` (os params não mudaram).
+        migracoes = list(`2` = function(params) params),
         category = "serie_operar", icon = icone("trending-down"),
-        description = "Estima a tendência e a subtrai da série, mantendo a sazonalidade.",
-        inputs = list(serie = S), outputs = list(out = S),
+        description = "Estima a tendência e a subtrai da série, mantendo a sazonalidade; o ajuste sai com os efeitos.",
+        inputs = list(serie = S), outputs = list(out = S, ajuste = FIT),
         params = list(metodo = E("linear", c("linear", "polinomial", "loess", "diferenca"),
                                  label = "Método"),
                       grau = trama::tr_when(I(2L, min = 2L, max = 5L, label = "Grau (polinomial)"), metodo = "polinomial"),
@@ -553,6 +555,21 @@ escolhida às claras:
   mesma conta de `series/diff` simples; está aqui para comparar com os outros
   métodos no mesmo card.
 
+### O ajuste
+
+A segunda saída, **ajuste**, é a tendência como modelo (`models/fit`):
+`valor ~ t` (linear) ou `valor ~ poly(t, g, raw = TRUE)` (polinomial, potências
+cruas). Ligue em `models/coefficients` para a inclinação com erro-padrão e
+p-valor, em `models/fit_stats` para R² e F, em `series/forecast` para projetar
+a reta. `loess` e `diferenca` não têm coeficientes: o ajuste delas é a reta de
+mínimos quadrados, como referência, e a nota do card diz isso.
+
+A tendência é estimada SEM a sazonalidade. Com ciclos completos (a série começa
+no primeiro período e termina no último) isso é o mesmo que estimar as duas
+juntas; com ciclos incompletos, não é, e o bloco avisa: para o ajuste conjunto,
+`series/regression`. Os erros-padrão supõem resíduos independentes, o que série
+temporal raramente cumpre — confira o resto com `series/ljung_box`.
+
 A tendência estimada vai junto com a série, como atributo `tendencia` —
 no console, `attr(saida, "tendencia")` —, e `saída + tendência` devolve a
 série original.
@@ -575,7 +592,7 @@ tinha.
 ]---", r"---[
 Uma série (`series/ts`) sem a tendência, no mesmo tempo da original (um
 período mais curta na diferença), com a tendência estimada no atributo
-`tendencia`.
+`tendencia`; e o **ajuste** (`models/fit`) da tendência.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
@@ -586,6 +603,63 @@ tr_flow(reg) |>
 decomposição; `series/combine` para subtrair uma tendência estimada em outro
 lugar; `series/diff` para diferenças de ordem maior ou sazonais;
 `series/moving_average` para ver a tendência sem tirá-la.
+]---")),
+
+      trama::tr_node("series/deseasonalize", fn = tr_series_deseasonalize, label = "Tirar sazonalidade",
+        pressupostos = .tr_series_doc("series/deseasonalize")$pressupostos,
+        referencias = .tr_series_doc("series/deseasonalize")$referencias,
+        category = "serie_operar", icon = icone("waves-arrow-down"),
+        description = "Estima o efeito de cada período e o subtrai da série; o ajuste sai com os efeitos e os testes.",
+        inputs = list(serie = S), outputs = list(out = S, ajuste = FIT),
+        params = list(controlar_tendencia = B(TRUE, label = "Controlar a tendência"),
+                      contraste = E("soma_zero", c("soma_zero", "categoria_base"), label = "Contraste"),
+                      excluir = P("text", "", label = "Excluir termos sazonais", example = "fev, mar"),
+                      remover_ns = B(FALSE, label = "Remover termos sazonais não significativos"),
+                      confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01,
+                                    label = "Confiança da remoção"), remover_ns = TRUE)),
+        help = .tr_series_ajuda(r"---[
+Estima o efeito de cada período do ciclo (cada mês, numa mensal) por regressão
+em variáveis indicadoras e TIRA esse efeito da série, deixando a tendência e o
+resto. A segunda saída, **ajuste**, é o modelo: os efeitos com erro-padrão e
+p-valor em `models/coefficients`, o F da sazonalidade (linha `periodo`) em
+`models/anova_table`.
+
+**Controlar a tendência** (padrão) ajusta `valor ~ t + periodo` e tira só o
+sazonal: numa série que cresce, dezembro tem média acima de janeiro só por vir
+depois, e as indicadoras sozinhas chamariam isso de sazonalidade. Desligado, o
+ajuste é `valor ~ periodo` — cada efeito é a média do período menos a média
+geral, o certo só para série sem tendência.
+
+**Contraste**, **Excluir termos sazonais** e **Remover termos sazonais não
+significativos** funcionam como em `series/regression`: soma zero (desvio da
+média do ciclo) ou categoria base (diferença para o primeiro período); os
+períodos que saem formam o grupo **demais**; a remoção para trás deixa os
+p-valores finais otimistas.
+
+O bloco não aceita faltantes (interpole antes com `series/interpolate`), e
+pede série com ciclo (frequência maior que 1). A sazonalidade é FIXA (o mesmo
+efeito todo ano) e ADITIVA. Se a oscilação
+cresce com o nível, `series/transform` com `log` antes. Para sazonalidade que
+muda com os anos, `series/stl`. Com ciclos incompletos o bloco avisa; o ajuste
+conjunto com tudo que se quiser é `series/regression`.
+]---", r"---[
+- **Controlar a tendência** — inclui `t` no ajuste (padrão).
+- **Contraste** — `soma_zero` ou `categoria_base`.
+- **Excluir termos sazonais** — nomes ou números separados por vírgula.
+- **Remover termos sazonais não significativos** e **Confiança da remoção**.
+]---", r"---[
+A série dessazonalizada (`series/ts`), com o componente no atributo `sazonal`;
+e o **ajuste** (`models/fit`) com os efeitos.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("pax", "series/example") |>
+  tr_add("log", "series/transform", metodo = "log", from = "pax") |>
+  tr_add("dessaz", "series/deseasonalize", from = "log") |>
+  tr_add("coef", "models/coefficients", from = "dessaz:ajuste")
+]---", r"---[
+`series/regression` para o ajuste conjunto; `series/component` com
+`dessazonalizada` para a mesma conta a partir da clássica ou da STL;
+`series/seasonality_kw` para testar sazonalidade sem supor normalidade.
 ]---")),
 
       trama::tr_node("series/combine", fn = tr_series_combine, label = "Operar duas séries",
@@ -622,7 +696,7 @@ Uma série (`series/ts`) no período em comum das duas entradas.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("reg", "series/regression", grau = 1L, from = "pax") |>
+  tr_add("reg", "series/regression", formula = "valor ~ t", from = "pax") |>
   tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
   tr_add("sem", "series/combine", operacao = "a - b", from = "pax") |>
   tr_link("tend", "sem:b")
@@ -781,173 +855,141 @@ tr_flow(reg) |>
 p-valor por componente; `series/ljung_box` para testar o resto.
 ]---")),
 
-      trama::tr_node("series/regression",
+      trama::tr_node("series/regression", version = 2L,
         pressupostos = .tr_series_doc("series/regression")$pressupostos,
         referencias = .tr_series_doc("series/regression")$referencias,
         fn = tr_series_regression, label = "Regressão dos componentes",
         category = "serie_decompor", icon = icone("trending-up"),
-        description = "Estima tendência e sazonalidade por regressão, com coeficientes e p-valores.",
+        description = "Ajusta uma fórmula no tempo, no período e num regressor, com coeficientes e p-valores.",
         inputs = list(serie = S, regressor = trama::tr_port(S, required = FALSE)),
-        outputs = list(out = R),
-        params = list(grau = I(1L, min = 0L, max = 3L, label = "Grau da tendência"),
-                      sazonalidade = B(TRUE, label = "Sazonalidade"),
-                      contraste = trama::tr_when(E("soma_zero", c("soma_zero", "categoria_base"),
-                                    label = "Contraste"), sazonalidade = TRUE),
-                      excluir = trama::tr_when(P("text", "", label = "Excluir termos sazonais",
-                                  example = "fev, mar"), sazonalidade = TRUE),
-                      remover_ns = trama::tr_when(B(FALSE, label = "Remover termos sazonais não significativos"),
-                                     sazonalidade = TRUE),
-                      alfa = trama::tr_when(trama::tr_param_num(0.05, min = 0.001, max = 0.5, step = 0.01,
-                               label = "α da remoção"), remover_ns = TRUE),
+        outputs = list(out = FIT),
+        # v2: a tendência polinomial e a sazonalidade viraram a FÓRMULA, e o α
+        # da remoção virou `confianca` (glossário). Grau g vira `t` (g = 1) ou
+        # `poly(t, g, raw = TRUE)`, um termo só, para que o F do bloco de
+        # tendência continue sendo uma linha do quadro da ANOVA.
+        migracoes = list(`2` = function(params) {
+          g <- as.integer(params$grau %||% 1L)
+          saz <- !isFALSE(params$sazonalidade)
+          termos <- c(if (g == 1L) "t" else if (g >= 2L) sprintf("poly(t, %d, raw = TRUE)", g),
+                      if (saz) "periodo")
+          params$formula <- paste("valor ~", if (length(termos)) paste(termos, collapse = " + ") else "1")
+          if (!is.null(params$alfa)) params$confianca <- 1 - as.numeric(params$alfa)
+          params$grau <- NULL; params$sazonalidade <- NULL; params$alfa <- NULL
+          params
+        }),
+        params = list(formula = P("text", "valor ~ t + periodo", label = "Fórmula",
+                                  example = "valor ~ t + I(t^2) + periodo"),
+                      contraste = E("soma_zero", c("soma_zero", "categoria_base"), label = "Contraste"),
+                      excluir = P("text", "", label = "Excluir termos sazonais", example = "fev, mar"),
+                      remover_ns = B(FALSE, label = "Remover termos sazonais não significativos"),
+                      confianca = trama::tr_when(trama::tr_param_num(0.95, min = 0.5, max = 0.999, step = 0.01,
+                                    label = "Confiança da remoção"), remover_ns = TRUE),
                       erro = E("independente", c("independente", "arma"), label = "Erro"),
                       ar = trama::tr_when(I(1L, min = 0L, max = 3L, label = "Ordem AR do erro"), erro = "arma"),
                       ma = trama::tr_when(I(0L, min = 0L, max = 3L, label = "Ordem MA do erro"), erro = "arma")),
         help = .tr_series_ajuda(r"---[
-Ajusta um modelo EXPLÍCITO para os componentes da série:
+Ajusta uma regressão da série escrita como FÓRMULA, sobre nomes que o bloco
+constrói a partir da própria série:
 
-`valor = tendência(t) + sazonal(período) + erro`
+- `valor` — a série (a resposta);
+- `t` — o tempo, 1, 2, ..., n;
+- `periodo` — o período do ciclo (jan, ..., dez numa mensal), como fator;
+- `ano` — o ano civil de cada observação;
+- `regressor` — a série ligada na entrada de mesmo nome (entra sozinho quando
+  ligado e a fórmula não o cita).
 
-A tendência é um polinômio no tempo (`t`, `t²`, `t³`), e a sazonalidade, uma
-variável indicadora por período — onze dummies numa série mensal. É a
-decomposição que se faz com regressão, e a diferença para `series/decompose` e
-`series/stl` é que aqui cada componente tem COEFICIENTE, erro-padrão e
-p-valor: dá para testar se ele existe, em vez de olhar o gráfico e achar.
+O padrão, `valor ~ t + periodo`, é a decomposição por regressão: tendência
+linear e um efeito por período. `valor ~ poly(t, 2, raw = TRUE) + periodo`
+curva a tendência num termo só; `valor ~ t * periodo` deixa o efeito sazonal
+mudar com o tempo; `valor ~ t + regressor` troca a sazonalidade por uma
+covariável. Vale a sintaxe de fórmula do R (`I(t^2)`, `log(t)`, `:`, `*`).
+
+Tirar só a tendência ou só a sazonalidade, com os efeitos de cada uma, é
+`series/detrend` e `series/deseasonalize`. Este bloco é o ajuste CONJUNTO — o
+que vale com anos incompletos, com regressor, com erro autocorrelacionado ou
+com qualquer termo que os outros dois não cobrem.
 
 ### O que sai
 
-O card mostra o ajuste como um estatístico o lê: coeficientes, significância,
-R² e o F global. Ligado num nó da `data`, vira a tabela de coeficientes
-(`termo`, `estimativa`, `erro_padrao`, `estatistica_t`, `p_valor`). Ligado em
-`series/component` ou `series/plot_decomposition`, vira decomposição — os
-componentes estimados, que somam a série de volta.
+Um modelo (`models/fit`): coeficientes, erro-padrão e p-valor em
+`models/coefficients`; o F de cada termo em `models/anova_table` (o F da
+sazonalidade é a linha `periodo`; o da tendência, a linha do termo em `t`);
+R², AIC e o F global em `models/fit_stats`; resíduos e diagnóstico nos blocos
+da `trama.models`. Ligado em `series/component` ou `series/plot_decomposition`,
+vira decomposição: tendência, sazonal, efeito do regressor e resto, que somam
+a série de volta. Ligado em `series/forecast`, prevê: o futuro de `t`,
+`periodo` e `ano` é conhecido; o do regressor entra pela entrada `futuro`.
 
 ### Contraste
 
-Muda como os coeficientes são lidos, e **não** a decomposição:
-
-- **soma_zero** — cada coeficiente sazonal é o desvio daquele período em
-  relação à média do ano, e os desvios somam zero. É a convenção da
-  decomposição clássica, e o que torna o sazonal daqui comparável ao de lá.
-- **categoria_base** — cada coeficiente é a diferença para o primeiro período
-  (janeiro, numa mensal). É o `summary()` do R, e o que se vê no livro-texto.
-
-Em ambos, o componente sazonal devolvido é centrado em zero e a tendência
-absorve a média — senão a mesma série daria duas decomposições diferentes por
-causa de uma escolha de leitura.
+Muda como os coeficientes de `periodo` são lidos, e **não** a decomposição:
+**soma_zero** — desvio de cada período em relação à média do ciclo (convenção
+da decomposição clássica); **categoria_base** — diferença para o primeiro
+período (o `summary()` do R). Em ambos o componente sazonal devolvido é
+centrado em zero e a tendência absorve a média.
 
 ### Tirar termos sazonais do modelo
 
-Nem todo mês precisa de termo próprio. Os termos sazonais que saem viram UM
-nível de referência, **demais**: o efeito deles é o mesmo, e cada termo
-sazonal que fica é a diferença para esse grupo. Por isso, com termos fora, o
-contraste passa a ser o de categoria base (com soma zero, "tirar um mês" não
-quer dizer "esse mês não tem efeito"), e o componente sazonal continua
-centrado em zero.
-
-- **Excluir termos sazonais** — à mão, por nome (`fev, mar`) ou número (`2, 3`).
-- **Remover termos sazonais não significativos** — eliminação para trás: parte
-  dos desvios de cada mês em relação à média do ano, tira o de maior p-valor
-  se ele passar do **α da remoção**, reajusta contra o grupo **demais** e
-  repete até todo termo que sobrou ter p ≤ α. Se nenhum sobrar, o modelo
-  fica sem sazonalidade. O card diz quais saíram.
-
-Os p-valores do modelo final vêm do mesmo dado que escolheu os termos, e por
-isso saem **otimistas**: não leia o p de um mês que sobreviveu como a prova de
-que ele tem efeito. Para o que o bloco quer — um componente sazonal enxuto —
-isso não é problema, e é o que a prática recomenda: o modelo se valida depois,
-pelo resto, que tem de ser ruído branco (`series/component` (`resto`) →
-`series/ljung_box`), e não pelos p-valores de quem escolheu os termos.
+Os períodos que saem viram UM nível de referência, **demais**, e cada termo
+que fica é a diferença para esse grupo (o contraste passa a ser o de categoria
+base). **Excluir termos sazonais** tira à mão (`fev, mar` ou `2, 3`);
+**Remover termos sazonais não significativos** faz a eliminação para trás até
+todo termo que sobrou ter p ≤ 1 − **Confiança da remoção**. Os p-valores do
+modelo final vêm do mesmo dado que escolheu os termos e saem **otimistas**; o
+modelo se valida pelo resto (`series/component` com `resto` →
+`series/ljung_box`). Só valem com `periodo` na fórmula.
 
 ### Erro autocorrelacionado
 
-O padrão (**Erro = independente**) é mínimos quadrados ordinários, que supõe
-erros independentes. Em série temporal o erro quase sempre é autocorrelacionado,
-e aí os erros-padrão saem pequenos demais e os p-valores — dos coeficientes e dos
-três F — OTIMISTAS. Confira: `series/component` (`resto`) → `series/ljung_box`.
-
-**Erro = arma** ajusta a mesma regressão por mínimos quadrados generalizados com
-erro ARMA(p, q) (`nlme::gls` com `corARMA`, por máxima verossimilhança), com
-**Ordem AR do erro** = p e **Ordem MA do erro** = q; AR(1) é o ponto de partida
-usual. Os coeficientes passam a ser os do GLS, e os três F viram testes de Wald
-com a covariância do GLS (a `nota` do teste diz). Medido sem tendência nenhuma e
-com erro AR(1) de phi = 0.6 (n = 120, 300 réplicas), o F de tendência rejeita a
-5% em 37% das vezes por MQO e em 8% pelo GLS; com phi = 0.9 são 69% e 17% — perto
-da raiz unitária o GLS melhora muito, mas ainda passa do nominal, e o caminho é
-diferenciar a série; quando o AR estimado tem raiz inversa de 0.9 ou mais, o
-bloco avisa e a `nota` dos F diz. Série que o modelo reproduz sem resíduo é
-recusada (não há erro a modelar). O R² e o F do `summary` do MQO não existem no GLS: o card
-mostra o resumo do `gls`.
+**Erro = independente** é mínimos quadrados ordinários. Em série temporal o
+erro quase sempre é autocorrelacionado, e aí os erros-padrão saem pequenos
+demais e os p-valores OTIMISTAS. **Erro = arma** ajusta a mesma fórmula por
+mínimos quadrados generalizados com erro ARMA(p, q) (`nlme::gls` com
+`corARMA`, por máxima verossimilhança); os F passam a ser de Wald com a
+covariância do GLS. Medido sem tendência e com erro AR(1) de phi = 0.6 (n =
+120, 300 réplicas), o F de tendência rejeita a 5% em 37% das vezes por MQO e
+em 8% pelo GLS; com phi = 0.9 são 69% e 17% — perto da raiz unitária o
+caminho é diferenciar, e o bloco avisa quando a raiz inversa do AR passa de
+0.9.
 
 ### Limites
 
-O bloco não aceita faltantes, e sazonalidade pede frequência maior que 1. Grau 0
-com sazonalidade desligada (e sem regressor) não tem o que estimar, e para o nó
-em vermelho.
+O bloco não aceita faltantes; `periodo` pede frequência maior que 1; pelo menos dois graus de
+liberdade residuais. A regressão é ADITIVA: se a oscilação cresce com o nível,
+`series/transform` com `log` antes (e `series/range_mean` para decidir). Termo
+polinomial em `t` extrapola mal: um grau 3 dispara logo depois do último
+ponto, e a previsão herda isso.
 
 ### Regressor
 
-A entrada opcional **regressor** recebe outra série — uma covariável, como a
-renda ou a temperatura — que entra no mesmo ajuste:
-
-`valor = tendência(t) + sazonal(período) + β·regressor + erro`
-
-O coeficiente `regressor` sai na tabela com erro-padrão e p-valor: é o efeito
-da covariável descontadas tendência e sazonalidade, e os F de tendência e de
-sazonalidade passam a ser os descontado o regressor. Na decomposição, o efeito
-`β·regressor` é um componente PRÓPRIO, **regressor**, e a tendência continua
-sendo só do tempo (intercepto + polinômio):
-`série = tendência + sazonal + regressor + resto`. `series/component` tira o
-`regressor` como série, e `series/plot_decomposition` ganha um painel para ele.
-
-O regressor tem de ter a mesma frequência e cobrir o período inteiro da série
-(sobrar dos lados não faz mal; faltar é erro — recorte a série com
-`series/window`), sem faltantes nesse período.
-
-A decomposição daqui é sempre ADITIVA. Se a oscilação sazonal cresce com o
-nível (como em `AirPassengers`), passe a série por `series/transform` com
-`log` antes: no log, o efeito multiplicativo vira soma, e os componentes
-estimados são fatores quando voltam da exponencial.
-
-As potências do tempo são cruas (`t`, `t²`, `t³`) e fortemente
-correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
-tem número de condição de 7,3 milhões, e `t³` sai com p = 0,46 enquanto o F do
-bloco de tendência é esmagador. Do **grau 2 em diante, os p-valores individuais
-dos termos de tendência não se leem um a um** — quem quer saber se há tendência
-lê o F do bloco, em `series/f_trend`. Os coeficientes sazonais não
-sofrem disso.
-
-O nó não prevê, e é de propósito: tendência polinomial fora da amostra é das
-extrapolações mais perigosas que existem — um grau 3 dispara para o infinito
-logo depois do último ponto. Para prever, `series/arima` ou `series/ets`.
+A entrada opcional **regressor** recebe outra série (renda, temperatura), com a
+mesma frequência e cobrindo o período inteiro da série, sem faltantes. O
+coeficiente sai com erro-padrão e p-valor, descontados os outros termos; na
+decomposição, o efeito é um componente PRÓPRIO, **regressor**.
 ]---", r"---[
-- **Grau da tendência** — 0 (sem tendência) a 3.
-- **Sazonalidade** — inclui as dummies de período.
-- **Contraste** — `soma_zero` ou `categoria_base`.
-- **Excluir termos sazonais** — nomes ou números separados por vírgula; saem para o
-  grupo **demais**.
-- **Remover termos sazonais não significativos** e **α da remoção** —
-  eliminação para trás dos termos com p > α (padrão 0.05).
+- **Fórmula** — sobre `valor`, `t`, `periodo`, `ano` e `regressor`.
+- **Contraste** — `soma_zero` ou `categoria_base`, para os termos de `periodo`.
+- **Excluir termos sazonais** — nomes ou números separados por vírgula.
+- **Remover termos sazonais não significativos** e **Confiança da remoção** —
+  eliminação para trás dos termos com p > 1 − confiança (padrão 0.95).
 - **regressor** (entrada, opcional) — uma série usada como covariável.
 - **Erro** — `independente` (MQO, padrão) ou `arma` (GLS com erro ARMA).
-- **Ordem AR do erro** e **Ordem MA do erro** — p e q do erro ARMA, de 0 a 3
-  (não os dois zero). Só valem com `arma`.
+- **Ordem AR do erro** e **Ordem MA do erro** — p e q do erro ARMA, de 0 a 3.
 ]---", r"---[
-Uma regressão (`series/regression`): o card traz o resumo do ajuste.
-`series/f_global`, `series/f_seasonal` e `series/f_trend` testam os blocos;
-`series/component` extrai um componente como série; ligada à `data`, vira a
-tabela de coeficientes.
+Um modelo (`models/fit`), lido pelos blocos da `trama.models`, por
+`series/component` (componentes) e por `series/forecast` (previsão).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
-  tr_add("reg", "series/regression", grau = 2L, from = "pax") |>
-  tr_add("f", "series/f_global", from = "reg") |>
+  tr_add("reg", "series/regression", formula = "valor ~ poly(t, 2, raw = TRUE) + periodo", from = "pax") |>
+  tr_add("coef", "models/coefficients", from = "reg") |>
   tr_add("resto", "series/component", componente = "resto", from = "reg") |>
   tr_add("ruido", "series/ljung_box", from = "resto")
 ]---", r"---[
-`series/f_global`, `series/f_seasonal` e `series/f_trend` para a
-significância dos blocos; `series/decompose` e `series/stl` para as
-decomposições não paramétricas; `series/transform` para ajustar em log quando a
-oscilação cresce com o nível.
+`series/detrend` e `series/deseasonalize` para um componente só;
+`models/anova_table` e `models/fit_stats` para os F; `series/forecast` para
+prever; `series/decompose` e `series/stl` para as decomposições não
+paramétricas.
 ]---")),
 
 # ---- Modelar ----------------------------------------------------------------
@@ -1219,7 +1261,10 @@ tr_flow(reg) |>
         role = "leitura", fn = tr_series_forecast, label = "Prever",
         category = "serie_modelar", icon = icone("trending-up"),
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
-        inputs = list(modelo = M), outputs = list(out = F),
+        inputs = list(modelo = trama::tr_port(M, required = FALSE),
+                      ajuste = trama::tr_port(FIT, required = FALSE),
+                      futuro = trama::tr_port(S, required = FALSE)),
+        outputs = list(out = F),
         params = list(horizonte = I(12L, min = 1L, max = 1000L, label = "Horizonte"),
                       intervalo = E("normal", c("normal", "bootstrap"), label = "Intervalo")),
         help = .tr_series_ajuda(r"---[
@@ -1240,6 +1285,19 @@ Os níveis são sempre 80 e 95, porque são os que o gráfico e a tabela nomeiam
 
 Série transformada é prevista na escala transformada.
 
+### Previsão de uma regressão da série
+
+No lugar do **modelo**, a entrada **ajuste** recebe a saída de
+`series/regression`, `series/detrend` ou `series/deseasonalize`: a fórmula é
+projetada com o futuro de `t`, `periodo` e `ano`, que a série determina. Se a
+fórmula usa o **regressor**, o futuro dele não é conhecido aqui: ligue em
+**futuro** a série do regressor que continue depois do fim da série por pelo
+menos **Horizonte** períodos. Com erro independente, o leque é o intervalo de
+predição da regressão (t de Student); com erro ARMA, a mesma regressão é
+reajustada por `forecast::Arima(xreg = )` — a mesma verossimilhança do GLS —
+e o leque propaga o erro ARMA. Termo polinomial em `t` extrapola mal, e o
+leque não mostra isso: ele supõe que a fórmula continua valendo.
+
 ### Intervalo: normal ou bootstrap
 
 - **normal** (padrão) — os limites são quantis normais em torno da previsão,
@@ -1251,7 +1309,10 @@ Série transformada é prevista na escala transformada.
   `series/arima` e `series/ets`; com `series/holt_winters` o bloco recusa.
 ]---", r"---[
 - **Horizonte** — quantos períodos prever.
-- **Intervalo** — `normal` (padrão) ou `bootstrap`.
+- **Intervalo** — `normal` (padrão) ou `bootstrap` (só com modelo ARIMA ou ETS).
+- **modelo** ou **ajuste** (entradas, uma das duas) — o modelo de série ou a
+  regressão da série.
+- **futuro** (entrada, opcional) — o regressor depois do fim da série.
 ]---", r"---[
 Uma previsão (`series/forecast`): o card mostra histórico e leque. Ligada a um
 nó da `data`, vira tabela com `tempo`, `previsto`, `li_80`, `ls_80`, `li_95` e
@@ -1947,144 +2008,6 @@ defasagem está a autocorrelação.
 
 # ---- Testar: os F da regressão ----------------------------------------------
 
-      trama::tr_node("series/f_global",
-        pressupostos = .tr_series_doc("series/f_global")$pressupostos,
-        referencias = .tr_series_doc("series/f_global")$referencias,
-        fn = tr_series_f_global, label = "F global",
-        category = "serie_regressao", icon = icone("sigma"),
-        description = "Teste F do modelo inteiro: a regressão explica alguma coisa?",
-        inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
-        help = .tr_series_ajuda(r"---[
-Testa o ajuste de `series/regression` INTEIRO. H0 é "todos os coeficientes,
-fora o intercepto, são nulos" — nenhum termo explica a série: p-valor pequeno quer dizer que o modelo — tendência e sazonalidade
-juntas — captura parte do movimento.
-
-Diz que há sinal, não de onde ele vem. Para separar, `series/f_seasonal` e
-`series/f_trend`, que testam cada bloco por si.
-
-### Por que em BLOCO
-
-É a razão de os três blocos de F existirem. Com onze dummies mensais, olhar
-onze p-valores é onze chances de encontrar um "significativo" por acaso; a
-pergunta honesta é se o CONJUNTO delas melhora o ajuste. Os coeficientes um a
-um continuam disponíveis: ligue a regressão num nó da `data`.
-
-### Com um bloco só, este teste se repete
-
-Numa regressão sem sazonalidade (ou de grau 0), o modelo tem um bloco de
-termos apenas — e aí o F global e o F parcial daquele bloco são o MESMO teste.
-Os dois cards mostram números idênticos. É esperado, não é defeito.
-]---", r"---[
-Nenhum. Uma entrada: **ajuste**, vindo de `series/regression`.
-]---", r"---[
-Um teste (`data/test`). Ligado numa entrada de tabela, ele vira UMA linha de
-relatório: um `data/bind_rows` junta os três F num só quadro.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("pax", "series/example") |>
-  tr_add("reg", "series/regression", from = "pax") |>
-  tr_add("f", "series/f_global", from = "reg")
-]---", r"---[
-`series/f_seasonal` e `series/f_trend`, o mesmo F bloco a bloco;
-`series/regression`, que produz o ajuste; `series/ljung_box` para conferir a
-autocorrelação do resto.
-]---", teste = TRUE)),
-
-      trama::tr_node("series/f_seasonal",
-        pressupostos = .tr_series_doc("series/f_seasonal")$pressupostos,
-        referencias = .tr_series_doc("series/f_seasonal")$referencias,
-        fn = tr_series_f_sazonal, label = "F do bloco sazonal",
-        category = "serie_regressao", icon = icone("calendar-range"),
-        description = "Teste F do bloco sazonal da regressão: há sazonalidade?",
-        inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
-        help = .tr_series_ajuda(r"---[
-Testa os coeficientes sazonais de um ajuste de `series/regression` EM BLOCO.
-H0 é "os coeficientes sazonais são todos nulos": rejeitar é concluir que há
-sazonalidade.
-
-O F parcial compara o ajuste com e sem o bloco — reajusta a regressão sem as
-dummies e mede o quanto o encaixe piorou.
-
-### Por que em BLOCO
-
-Com onze dummies mensais, olhar onze p-valores é onze chances de encontrar um
-"significativo" por acaso. A pergunta honesta é se o CONJUNTO delas melhora o
-ajuste, e é o que este teste mede. Os coeficientes um a um continuam
-disponíveis: ligue a regressão num nó da `data`.
-
-### A regressão precisa ter o bloco
-
-Regressão ligada sem sazonalidade é cartão vermelho, e não um card verde
-dizendo que não há: o bloco não foi testado, ele nunca existiu. Ligue a
-sazonalidade no `series/regression`.
-]---", r"---[
-Nenhum. Uma entrada: **ajuste**, vindo de `series/regression` com sazonalidade
-ligada.
-]---", r"---[
-Um teste (`data/test`). Ligado numa entrada de tabela, vira uma linha de
-relatório.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("pax", "series/example") |>
-  tr_add("reg", "series/regression", from = "pax") |>
-  tr_add("f", "series/f_seasonal", from = "reg")
-]---", r"---[
-`series/f_trend`, o mesmo teste no outro bloco; `series/f_global`, o
-modelo inteiro; `series/seasonal_plot` para ver a sazonalidade que o teste
-mede.
-]---", teste = TRUE)),
-
-      trama::tr_node("series/f_trend",
-        pressupostos = .tr_series_doc("series/f_trend")$pressupostos,
-        referencias = .tr_series_doc("series/f_trend")$referencias,
-        fn = tr_series_f_tendencia,
-        label = "F do bloco de tendência",
-        category = "serie_regressao", icon = icone("trending-up-down"),
-        description = "Teste F do bloco de tendência da regressão: há tendência?",
-        inputs = list(ajuste = R), outputs = list(out = TE), params = list(),
-        help = .tr_series_ajuda(r"---[
-Testa os termos do polinômio de tendência de um ajuste de `series/regression`
-EM BLOCO. H0 é "os coeficientes do polinômio são todos nulos": rejeitar é
-concluir que há tendência.
-
-O F parcial compara o ajuste com e sem o bloco — reajusta a regressão sem os
-termos de tendência e mede o quanto o encaixe piorou.
-
-Se a regressão tem **regressor** ligado, ele fica nos dois ajustes: o teste é
-da tendência TEMPORAL dado o regressor — "sobra tendência depois de descontar
-a covariável?".
-
-### Por que em BLOCO
-
-Num polinômio de grau 2 ou 3, o termo linear e o quadrático dividem o mesmo
-sinal, e nenhum dos dois aparece sozinho: olhar os p-valores um a um faria
-concluir que não há tendência nenhuma quando há. A pergunta honesta é se o
-CONJUNTO dos termos melhora o ajuste. Os coeficientes um a um continuam
-disponíveis: ligue a regressão num nó da `data`.
-
-### A regressão precisa ter o bloco
-
-Regressão de grau 0 é cartão vermelho, e não um card verde dizendo que não há
-tendência: o bloco não foi testado, ele nunca existiu. Suba o grau no
-`series/regression`.
-]---", r"---[
-Nenhum. Uma entrada: **ajuste**, vindo de `series/regression` com grau 1 ou
-mais.
-]---", r"---[
-Um teste (`data/test`). Ligado numa entrada de tabela, vira uma linha de
-relatório.
-]---", r"---[
-tr_flow(reg) |>
-  tr_add("pax", "series/example") |>
-  tr_add("reg", "series/regression", grau = 2L, from = "pax") |>
-  tr_add("f", "series/f_trend", from = "reg")
-]---", r"---[
-`series/f_seasonal`, o mesmo teste no outro bloco; `series/f_global`, o modelo
-inteiro; `series/regression`, que produz o ajuste.
-]---", teste = TRUE)),
-
-# ---- Testar: tendência ------------------------------------------------------
-
       trama::tr_node("series/mann_kendall",
         pressupostos = .tr_series_doc("series/mann_kendall")$pressupostos,
         referencias = .tr_series_doc("series/mann_kendall")$referencias,
@@ -2109,7 +2032,7 @@ costuma estar abaixo. A estatística Z é o S padronizado.
 
 Não supõe distribuição nenhuma para a série. É por isso que ele é o padrão onde
 o dado não é normal, que é o caso da maior parte das variáveis ambientais. O
-`series/f_trend` responde à mesma pergunta, mas cobra normalidade do erro em
+F da tendência (`series/regression` → `models/anova_table`) responde à mesma pergunta, mas cobra normalidade do erro em
 troca; quando os dois concordam, a conclusão tem chão.
 
 ### A tendência é MONOTÔNICA
@@ -2202,7 +2125,7 @@ poder aparente vem em parte do nível inflado. A regra de bloco do
 `modifiedmk::bbsmk` (autocorrelações significativas seguidas, mais um) dá
 blocos de 3 a 4 e rejeitou 17% a 19% com phi 0.6 (300 réplicas); por isso o
 bloco aqui é √n. Com autocorrelação forte, prefira modelar o erro
-(`series/regression` com **Erro** = `arma` e o `series/f_trend`).
+(`series/regression` com **Erro** = `arma` e o F da tendência (`series/regression` → `models/anova_table`)).
 
 ### Faltantes
 
@@ -2223,7 +2146,7 @@ tr_flow(reg) |>
   tr_add("mk", "series/mann_kendall", from = "nilo") |>
   tr_add("mk_hr", "series/mann_kendall", correcao = "hamed_rao", from = "nilo")
 ]---", r"---[
-`series/f_trend`, a mesma pergunta pela regressão; `series/adf` e
+F da tendência (`series/regression` → `models/anova_table`), a mesma pergunta pela regressão; `series/adf` e
 `series/kpss`, que perguntam por estacionariedade e não por tendência;
 `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.
@@ -2350,7 +2273,7 @@ tr_flow(reg) |>
   tr_add("cs", "series/cox_stuart", from = "nilo")
 ]---", r"---[
 `series/mann_kendall`, a mesma pergunta contando todos os pares — a dissertação
-compara os dois, e vale rodar os dois; `series/f_trend`, a mesma pergunta
+compara os dois, e vale rodar os dois; F da tendência (`series/regression` → `models/anova_table`), a mesma pergunta
 pela regressão; `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.
 ]---", teste = TRUE)),
@@ -2565,7 +2488,7 @@ sempre alto e julho é sempre baixo, as somas se afastam e o H cresce. H0 é "as
 estações têm a mesma distribuição" — sem sazonalidade —, e rejeitar é concluir
 que há.
 
-É o irmão não paramétrico do `series/f_seasonal`, que responde à mesma pergunta
+É o irmão não paramétrico do F da sazonalidade (`series/regression` → `models/anova_table`), que responde à mesma pergunta
 pedindo erro normal em troca.
 
 ### Sazonalidade determinística
@@ -2660,7 +2583,7 @@ tr_flow(reg) |>
   tr_add("d", "series/diff", from = "pax") |>
   tr_add("kw", "series/seasonality_kw", from = "d")
 ]---", r"---[
-`series/f_seasonal`, a mesma pergunta pedindo erro normal em troca;
+F da sazonalidade (`series/regression` → `models/anova_table`), a mesma pergunta pedindo erro normal em troca;
 `series/diff` para tirar a tendência antes do teste, ou para a diferença sazonal
 quando a sazonalidade é estocástica; `series/transform`, o log que estabiliza a
 variância e que NÃO muda este teste; `series/seasonal_plot` e `series/subseries`
@@ -2861,7 +2784,7 @@ tr_flow(reg) |>
 # A tendência linear sobre a série, antes de tirá-la:
 tr_flow(reg) |>
   tr_add("ap", "series/example", dataset = "AirPassengers") |>
-  tr_add("reg", "series/regression", grau = 1L, from = "ap") |>
+  tr_add("reg", "series/regression", formula = "valor ~ t", from = "ap") |>
   tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
   tr_add("g", "series/plot", from = c("ap", "tend"))
 ]---", r"---[

@@ -226,124 +226,14 @@ series_forecast_type <- function() {
                  li_95 = nivel(x$lower, 95), ls_95 = nivel(x$upper, 95))
 }
 
-#' `series/regression`: o ajuste paramétrico dos componentes.
-#'
-#' Guarda o `lm` inteiro — os testes parciais reajustam a partir dele — mais a
-#' série e os componentes já separados, que é o que os adaptadores servem sem
-#' recalcular nada.
-#'
-#' O preview é TEXTO, pelo mesmo motivo de `series/model`: o que se lê num
-#' ajuste é a tabela de coeficientes com as estrelas, o R² e o F. O gráfico dos
-#' componentes está a um fio de distância, pelo adaptador para a decomposição.
-#' @noRd
-series_regression_type <- function() {
-  trama::tr_type(
-    "series/regression", version = 1L, label = "Regressão", color = "#c084fc", ext = "rds",
-    store = function(x, path) {
-      if (!inherits(x, "tr_series_reg")) {
-        .tr_series_abort("tr_series_error_not_a_regression",
-                         "O nó produziu um objeto '%s', não uma regressão de série.", class(x)[[1]])
-      }
-      saveRDS(x, path, compress = FALSE)
-    },
-    restore = function(path) readRDS(path),
-    summary = function(x) {
-      if (inherits(x$ajuste, "gls")) {
-        f <- tr_series_f_global(x)
-        return(list(grau = x$grau, sazonalidade = x$sazonalidade,
-                    erro = sprintf("ARMA(%d, %d)", x$ordem[["ar"]], x$ordem[["ma"]]),
-                    p_valor_f = signif(f$p_valor, 3),
-                    observacoes = length(x$serie)))
-      }
-      s <- summary(x$ajuste)
-      fs <- s$fstatistic
-      list(grau = x$grau, sazonalidade = x$sazonalidade,
-           r2_ajustado = round(s$adj.r.squared, 3),
-           p_valor_f = signif(stats::pf(fs[[1]], fs[[2]], fs[[3]], lower.tail = FALSE), 3),
-           observacoes = length(x$serie))
-    },
-    # O card é o do `models/fit` (topo, destaques, F global, régua do p por
-    # coeficiente), cujo renderer vem no JS da `trama.models`: sem ela
-    # carregada o renderer não existe no navegador, e o card volta ao texto.
-    preview = function(x, ctx) {
-      if (isNamespaceLoaded("trama.models")) {
-        return(trama::tr_preview("models/fit", data = .tr_series_reg_card(x)))
-      }
-      txt <- paste(utils::capture.output(summary(x$ajuste)), collapse = "\n")
-      trama::tr_preview("trama/text", data = list(text = txt))
-    }
-  )
-}
-
-#' Os dados do card `models/fit` para a regressão da série.
-#' @noRd
-.tr_series_reg_card <- function(x) {
-  estrelas <- function(p) {
-    if (is.na(p)) "" else if (p < 0.001) "***" else if (p < 0.01) "**" else
-      if (p < 0.05) "*" else if (p < 0.1) "." else "ns"
-  }
-  fmt <- function(v) formatC(signif(v, 3), format = "fg", digits = 3, decimal.mark = ",")
-  gls <- inherits(x$ajuste, "gls")
-  destaques <- list()
-  if (!gls) {
-    s <- summary(x$ajuste)
-    destaques <- list(list(rotulo = "R²", valor = s$r.squared, barra = TRUE, pct = FALSE),
-                      list(rotulo = "R² aj.", valor = s$adj.r.squared, barra = TRUE, pct = FALSE))
-  }
-  destaques[[length(destaques) + 1L]] <- list(rotulo = "AIC", valor = stats::AIC(x$ajuste),
-                                              barra = FALSE, pct = FALSE)
-  p_f <- tryCatch(tr_series_f_global(x)$p_valor, error = function(e) NA_real_)
-  tab <- .tr_series_reg_tabela(x)
-  termos <- c(sprintf("tendência de grau %d", x$grau),
-              if (x$sazonalidade) "sazonalidade" else NULL,
-              if (!is.null(x$efeito_regressor)) "regressor" else NULL)
-  list(
-    rotulo = if (gls) sprintf("Regressão · erro ARMA(%d, %d)", x$ordem[["ar"]], x$ordem[["ma"]])
-             else "Regressão · MQO",
-    formula = paste("série ~", paste(termos, collapse = " + ")),
-    n = length(x$serie), descartadas = 0L,
-    nota = paste(c(if (length(x$estacoes_removidas))
-                     sprintf("sem efeito próprio a α = %s: %s", format(x$alfa),
-                             paste(x$estacoes_removidas, collapse = ", ")),
-                   if (!length(x$estacoes_removidas) && length(x$estacoes_fora))
-                     sprintf("fora do modelo: %s", paste(x$estacoes_fora, collapse = ", ")),
-                   x$aviso), collapse = "; "),
-    destaques = destaques,
-    global = if (is.na(p_f)) NULL else list(rotulo = "F global", p = p_f, estrelas = estrelas(p_f)),
-    efeitos_titulo = "Coeficientes",
-    linhas = lapply(seq_len(nrow(tab)), function(i) {
-      p <- tab$p_valor[[i]]
-      list(termo = tab$termo[[i]], p = if (is.na(p)) NULL else p, estrelas = estrelas(p),
-           detalhe = paste("t", fmt(tab$estatistica_t[[i]])))
-    })
-  )
-}
-
-#' Regressão -> decomposição. É o adaptador que dá de graça o
-#' `series/component`, o `series/plot_decomposition` e a força do card: os
-#' componentes já vêm separados do ajuste, e `metodo` é campo que o tipo da
-#' decomposição já tinha.
-#' @noRd
-.tr_series_reg_decomp <- function(x) {
-  .tr_series_decomp(x$serie, x$tendencia, x$sazonal, x$resto, "aditiva", "regressão",
-                    regressor = x$efeito_regressor)
-}
-
-#' Regressão -> tabela de coeficientes.
-#' @noRd
-.tr_series_reg_tabela <- function(x) {
-  s <- stats::coef(summary(x$ajuste))
-  tibble::tibble(termo = rownames(s), estimativa = as.numeric(s[, 1]),
-                 erro_padrao = as.numeric(s[, 2]), estatistica_t = as.numeric(s[, 3]),
-                 p_valor = as.numeric(s[, 4]))
-}
-
 .tr_series_adapters <- function() {
   list(
     trama::tr_adapter("series/ts", "data/table", .tr_series_tabela),
     trama::tr_adapter("series/decomposition", "data/table", .tr_series_decomp_tabela),
     trama::tr_adapter("series/forecast", "data/table", .tr_series_forecast_tabela),
-    trama::tr_adapter("series/regression", "data/table", .tr_series_reg_tabela),
-    trama::tr_adapter("series/regression", "series/decomposition", .tr_series_reg_decomp)
+    # O ajuste de uma série carrega os componentes: é por este adaptador que o
+    # `series/component` e o `series/plot_decomposition` os leem. Um
+    # `models/fit` que não veio de série é recusado com classe.
+    trama::tr_adapter("models/fit", "series/decomposition", .tr_series_fit_decomp)
   )
 }

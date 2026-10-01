@@ -61,7 +61,7 @@ test_that("previews dos tipos gráficos são PNG pela view", {
 
 test_that("série no tempo com sobreposta: duas linhas no mesmo eixo, com legenda", {
   x <- serie_mensal()
-  tend <- tr_series_component(tr_series_regression(x, grau = 1L), "tendencia")
+  tend <- tr_series_component(.tr_series_fit_decomp(tr_series_regression(x)), "tendencia")
   p <- tr_series_plot(x, sobreposta = tend)
   b <- ggplot2::ggplot_build(p)
   expect_equal(length(unique(b$data[[1]]$colour)), 2L)
@@ -94,7 +94,7 @@ test_that("pelo motor: série em 'serie' e tendência em 'sobreposta'", {
   reg <- series_registry(); s <- trama::tr_store(tempfile())
   f <- trama::tr_flow(reg) |>
     trama::tr_add("ap", "series/example", dataset = "AirPassengers") |>
-    trama::tr_add("reg", "series/regression", grau = 1L, from = "ap") |>
+    trama::tr_add("reg", "series/regression", formula = "valor ~ t", from = "ap") |>
     trama::tr_add("tend", "series/component", componente = "tendencia", from = "reg") |>
     trama::tr_add("g", "series/plot", from = c("ap", "tend"))
   p <- trama::tr_value(f$doc, "g", registry = reg, store = s)

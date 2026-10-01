@@ -493,161 +493,12 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
   )
 }
 
-#' O ajuste que chegou é mesmo uma regressão?
-#'
-#' Os três blocos de F recebem um `tr_series_reg`, e não uma série. Sem o
-#' guard, o `ajuste$ajuste` de um objeto qualquer é NULL e o `summary` devolve
-#' um erro cru, sem classe e sem dizer qual nó reclamou.
-#' @noRd
-.tr_series_exige_reg <- function(ajuste, no) {
-  if (!inherits(ajuste, "tr_series_reg")) {
-    .tr_series_abort("tr_series_error_not_a_regression",
-                     "'%s' recebeu um objeto '%s', não uma regressão.", no, class(ajuste)[[1]])
-  }
-  invisible(ajuste)
-}
-
-#' O miolo dos dois F de bloco.
-#'
-#' Sazonal e tendência são o MESMO teste com outro conjunto de termos: o que
-#' muda entre eles é a lista de rótulos que sai da fórmula, e mais nada.
-#' Copiado duas vezes, uma correção feita de um lado só faria os dois blocos
-#' discordarem sobre o que é um F parcial.
-#' @noRd
-.tr_series_f_parcial <- function(ajuste, rotulo, h0, termos, sim, nao) {
-  fit <- ajuste$ajuste
-  if (inherits(fit, "gls")) {
-    # Erro ARMA: não há reajuste por MQO que valha; o F é o de Wald sobre os
-    # coeficientes do bloco, com a covariância do GLS.
-    cols <- .tr_series_colunas_termos(ajuste, termos)
-    return(.tr_series_f_wald(ajuste, cols, rotulo, h0, sim, nao, "F de Wald do bloco"))
-  }
-  # Teste PARCIAL: reajusta sem o bloco e compara. O reajuste sai de
-  # `fit$model`, que carrega o fator com o contraste já posto — por isso o
-  # contraste é atribuído ao fator, e não ao `lm`, em `tr_series_regression`.
-  resto <- setdiff(attr(stats::terms(fit), "term.labels"), termos)
-  forma <- stats::reformulate(if (length(resto)) resto else "1", response = "y")
-  a <- stats::anova(stats::lm(forma, data = fit$model), fit)
-  pv <- a$`Pr(>F)`[[2]]
-  gl <- as.integer(a$Df[[2]])
-  .tr_series_teste(
-    rotulo, h0, a$F[[2]], "F",
-    p_valor = pv,
-    sentido = "menor",
-    conclusao_sim = sim,
-    conclusao_nao = nao,
-    # Quantos termos o bloco tinha — é por este número que se confere que o
-    # reajuste derrubou o bloco inteiro, e só ele.
-    nota = sprintf("F parcial, %d %s no numerador", gl, if (gl == 1L) "grau" else "graus"),
-    fonte = "Morettin & Toloi (2006)")
-}
-
-#' Colunas da matriz de desenho que pertencem a um conjunto de termos.
-#' @noRd
-.tr_series_colunas_termos <- function(ajuste, termos) {
-  X <- ajuste$matriz
-  which(attr(X, "assign") %in% match(termos, attr(X, "rotulos")))
-}
-
-#' F de Wald de um bloco de coeficientes do GLS: b' V^-1 b / q, com q e
-#' n - p graus de liberdade (Pinheiro & Bates 2000, sec. 5.4).
-#' @noRd
-.tr_series_f_wald <- function(ajuste, cols, rotulo, h0, sim, nao, tipo) {
-  fit <- ajuste$ajuste
-  b <- stats::coef(fit)[cols]
-  V <- stats::vcov(fit)[cols, cols, drop = FALSE]
-  q <- length(cols)
-  gl2 <- length(stats::fitted(fit)) - length(stats::coef(fit))
-  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
-  o <- ajuste$ordem
-  .tr_series_teste(
-    rotulo, h0, Fv, "F",
-    p_valor = stats::pf(Fv, q, gl2, lower.tail = FALSE),
-    sentido = "menor",
-    conclusao_sim = sim,
-    conclusao_nao = nao,
-    nota = paste0(sprintf("%s com erro ARMA(%d, %d) por GLS, %d %s no numerador e %d no denominador",
-                          tipo, o[["ar"]], o[["ma"]], q, if (q == 1L) "grau" else "graus", gl2),
-                  if (!is.null(ajuste$aviso)) paste0("; ", ajuste$aviso) else ""),
-    fonte = "Morettin & Toloi (2006)")
-}
-
-#' O bloco pedido não está no ajuste.
-#' @noRd
-.tr_series_sem_bloco <- function(no, bloco, saida) {
-  .tr_series_abort("tr_series_error_no_block",
-                   paste0("'%s' testa o bloco %s, e a regressão ligada não o tem. %s no ",
-                          "'series/regression', ou tire este bloco do fluxo."),
-                   no, bloco, saida)
-}
-
-#' F global: o modelo explica alguma coisa?
-#'
-#' H0 é que NENHUM termo explica a série: rejeitar é concluir que o ajuste
-#' inteiro — tendência e sazonalidade juntas — captura parte do movimento. Diz
-#' se há sinal, não de onde ele vem; para separar, os dois F de bloco.
-#' @export
-tr_series_f_global <- function(ajuste) {
-  .tr_series_exige_reg(ajuste, "series/f_global")
-  if (inherits(ajuste$ajuste, "gls")) {
-    cols <- which(colnames(ajuste$matriz) != "(Intercept)")
-    return(.tr_series_f_wald(ajuste, cols, "F global",
-                             "todos os coeficientes, fora o intercepto, são nulos",
-                             "o modelo explica parte da série",
-                             "não há evidência de que o modelo explique a série", "F de Wald global"))
-  }
-  s <- summary(ajuste$ajuste)
-  fs <- s$fstatistic
-  p <- stats::pf(fs[[1]], fs[[2]], fs[[3]], lower.tail = FALSE)
-  .tr_series_teste(
-    "F global", "todos os coeficientes, fora o intercepto, são nulos", fs[[1]], "F",
-    p_valor = p,
-    sentido = "menor",
-    conclusao_sim = "o modelo explica parte da série",
-    conclusao_nao = "não há evidência de que o modelo explique a série",
-    nota = sprintf("%d e %d graus de liberdade", as.integer(fs[[2]]), as.integer(fs[[3]])),
-    fonte = "Morettin & Toloi (2006)")
-}
-
-#' F do bloco sazonal: há sazonalidade?
-#'
-#' Testa as onze dummies de uma mensal EM BLOCO, e não uma a uma: com onze
-#' p-valores individuais são onze chances de achar um "significativo" por
-#' acaso.
-#' @export
-tr_series_f_sazonal <- function(ajuste) {
-  .tr_series_exige_reg(ajuste, "series/f_seasonal")
-  if (!isTRUE(ajuste$sazonalidade)) {
-    .tr_series_sem_bloco("series/f_seasonal", "sazonal", "Ligue a sazonalidade")
-  }
-  .tr_series_f_parcial(ajuste, "F do bloco sazonal",
-                       "os coeficientes sazonais são todos nulos", "estacao",
-                       "há sazonalidade", "não há evidência de sazonalidade")
-}
-
-#' F do bloco de tendência: há tendência?
-#'
-#' Testa os termos do polinômio EM BLOCO. Com grau 2 ou 3, o linear e o
-#' quadrático dividem o mesmo sinal e nenhum dos dois aparece sozinho —
-#' olhá-los um a um faria concluir que não há tendência nenhuma.
-#' @export
-tr_series_f_tendencia <- function(ajuste) {
-  .tr_series_exige_reg(ajuste, "series/f_trend")
-  if (ajuste$grau == 0L) {
-    .tr_series_sem_bloco("series/f_trend", "de tendência", "Suba o grau do polinômio")
-  }
-  .tr_series_f_parcial(ajuste, "F do bloco de tendência",
-                       "os coeficientes do polinômio são todos nulos",
-                       paste0("t", seq_len(ajuste$grau)),
-                       "há tendência", "não há evidência de tendência")
-}
-
 #' Mann-Kendall: a série tem tendência?
 #'
 #' O teste de tendência mais usado em climatologia, e não paramétrico: conta,
 #' par a par, quantas vezes o futuro supera o passado. Não supõe distribuição
 #' nenhuma, que é por que ele é o padrão justamente onde a série não é normal —
-#' o `series/f_trend` mede a mesma coisa pedindo erro normal em troca.
+#' o F da tendência (`series/regression` → `models/anova_table`) mede a mesma coisa pedindo erro normal em troca.
 #'
 #' A tendência que ele enxerga é MONOTÔNICA: numa série que sobe e depois desce,
 #' os pares de um lado cancelam os do outro e o teste pode sair sem tendência
@@ -1073,7 +924,7 @@ tr_series_pettitt <- function(serie, correcao = "nenhuma", .seed = NULL) {
 #' O não paramétrico da sazonalidade, e o primeiro bloco da categoria: põe TODAS
 #' as observações em postos e pergunta se a soma dos postos muda de uma estação
 #' para outra. Janeiro sempre alto e julho sempre baixo afastam as somas, e o H
-#' cresce. O `series/f_seasonal` responde à mesma pergunta pedindo erro normal em
+#' cresce. O F da sazonalidade (`series/regression` → `models/anova_table`) responde à mesma pergunta pedindo erro normal em
 #' troca.
 #'
 #' A sazonalidade que ele enxerga é DETERMINÍSTICA: o padrão que se repete igual

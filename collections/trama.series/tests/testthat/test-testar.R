@@ -552,89 +552,51 @@ test_that("diferenças necessárias: simples e sazonal, e NA com motivo na anual
   expect_match(a$nota[[2]], "ciclo")
 })
 
-test_that("os F não mudam com o contraste", {
-  # O contraste é posto no FATOR, e não no `contrasts=` do `lm`, para que o
-  # reajuste a partir de `fit$model` no F parcial herde a parametrização. Se
-  # alguém o mudar de lugar, os F parciais passam a depender do contraste — e
-  # nada mais pegaria. Ano incompleto de propósito: com desenho balanceado a
-  # igualdade sairia de graça.
+# ---- Os F da regressão: agora o quadro da ANOVA da models (0.5.0) ------------
+# Os três blocos de F saíram; os mesmos números vêm do `models/anova_table`
+# (tipo III) e do `models/fit_stats` sobre o ajuste da série. Oráculo: o F
+# parcial de `stats::anova(reduzido, completo)` e o F do `summary.lm`.
+quadro <- function(fit) trama.models::tr_models_anova_table(fit, tipo_sq = "III")$tabela
+linha <- function(q, termo) q[q$termo == termo, , drop = FALSE]
+
+test_that("F de cada bloco = F parcial do anova(reduzido, completo), e não muda com o contraste", {
   x <- stats::window(datasets::AirPassengers, start = c(1949, 9), end = c(1952, 2))
-  a <- tr_series_regression(x, contraste = "soma_zero")
-  b <- tr_series_regression(x, contraste = "categoria_base")
-  for (f in list(tr_series_f_global, tr_series_f_sazonal, tr_series_f_tendencia)) {
-    expect_equal(f(a)$estatistica, f(b)$estatistica, tolerance = 1e-8)
-    expect_equal(f(a)$p_valor, f(b)$p_valor, tolerance = 1e-8)
-  }
+  a <- tr_series_regression(x, formula = "valor ~ poly(t, 2, raw = TRUE) + periodo")
+  b <- tr_series_regression(x, formula = "valor ~ poly(t, 2, raw = TRUE) + periodo",
+                            contraste = "categoria_base")
+  qa <- quadro(a); qb <- quadro(b)
+  expect_equal(qa$F, qb$F, tolerance = 1e-8)
+  d <- a$dados
+  completo <- stats::lm(valor ~ poly(t, 2, raw = TRUE) + periodo, data = d)
+  sem_saz <- stats::lm(valor ~ poly(t, 2, raw = TRUE), data = d)
+  sem_tend <- stats::lm(valor ~ periodo, data = d)
+  fs <- stats::anova(sem_saz, completo); ft <- stats::anova(sem_tend, completo)
+  expect_equal(linha(qa, "periodo")$F, fs$F[[2]], tolerance = 1e-8)
+  expect_equal(linha(qa, "periodo")$p_valor, fs$`Pr(>F)`[[2]], tolerance = 1e-8)
+  expect_equal(linha(qa, "poly(t, 2, raw = TRUE)")$F, ft$F[[2]], tolerance = 1e-8)
+  expect_equal(linha(qa, "periodo")$gl, 11)
+  # O F global é o do summary.lm.
+  fsum <- summary(a$ajuste)$fstatistic
+  expect_equal(unname(fsum[["value"]]), unname(summary(completo)$fstatistic[["value"]]), tolerance = 1e-8)
 })
 
-test_that("sem sinal, nenhum dos três F rejeita", {
-  # O outro sentido do controle: um F que só sabe dizer "rejeita" acharia
-  # tendência e sazonalidade em ruído puro, e ninguém repararia.
+test_that("sem sinal, os F não rejeitam; na mensal, rejeitam", {
   set.seed(7)
   ruido <- stats::ts(stats::rnorm(120), frequency = 12, start = c(2010, 1))
-  a <- tr_series_regression(ruido)
-  for (f in list(tr_series_f_global, tr_series_f_sazonal, tr_series_f_tendencia)) {
-    expect_equal(f(a)$decisao_5, "não rejeita H0")
-  }
+  q <- quadro(tr_series_regression(ruido))
+  expect_true(all(q$p_valor[q$termo %in% c("t", "periodo")] > 0.05))
+  q2 <- quadro(tr_series_regression(serie_mensal()))
+  expect_true(all(q2$p_valor[q2$termo %in% c("t", "periodo")] < 0.05))
 })
 
-test_that("os três F da regressão rejeitam na mensal, cada um no seu bloco", {
-  a <- tr_series_regression(serie_mensal())
-  g <- tr_series_f_global(a)
-  s <- tr_series_f_sazonal(a)
-  d <- tr_series_f_tendencia(a)
-  for (t in list(g, s, d)) {
-    expect_s3_class(t, "tr_series_test")
-    expect_equal(t$rotulo_estat, "F")
-    expect_equal(t$sentido, "menor")
-    expect_equal(t$decisao_5, "rejeita H0")
-    expect_true(t$p_valor < 0.05)
-    expect_match(t$fonte, "Morettin")
-  }
-  expect_equal(g$teste, "F global")
-  expect_equal(s$teste, "F do bloco sazonal")
-  expect_equal(d$teste, "F do bloco de tendência")
-  expect_equal(g$conclusao, "o modelo explica parte da série")
-  expect_equal(s$conclusao, "há sazonalidade")
-  expect_equal(d$conclusao, "há tendência")
-  # O reajuste do F parcial tem de derrubar SÓ o bloco pedido: onze dummies na
-  # mensal, e `grau` no polinômio. Um numerador com o número errado de graus é
-  # um teste de outra hipótese nula, com cara de certo.
-  expect_match(s$nota, "11 graus no numerador")
-  expect_match(d$nota, "1 grau no numerador")
-})
-
-test_that("o bloco que não existe no ajuste é cartão vermelho, e diz qual falta", {
-  # Um bloco dedicado não pode omitir a si mesmo: sairia um card verde
-  # testando outra coisa.
-  sem_saz <- tr_series_regression(serie_mensal(), sazonalidade = FALSE)
-  err <- tryCatch(tr_series_f_sazonal(sem_saz), error = identity)
-  expect_s3_class(err, "tr_series_error_no_block")
-  expect_match(conditionMessage(err), "sazonal")
-  sem_tend <- tr_series_regression(serie_mensal(), grau = 0L)
-  err2 <- tryCatch(tr_series_f_tendencia(sem_tend), error = identity)
-  expect_s3_class(err2, "tr_series_error_no_block")
-  expect_match(conditionMessage(err2), "tendência")
-  # O F global existe para qualquer ajuste: com um bloco só, é o F daquele bloco.
-  expect_equal(tr_series_f_global(sem_saz)$estatistica,
-               tr_series_f_tendencia(sem_saz)$estatistica, tolerance = 1e-8)
-})
-
-test_that("os três F recusam o que não é regressão", {
-  for (f in list(tr_series_f_global, tr_series_f_sazonal, tr_series_f_tendencia)) {
-    expect_error(f(serie_mensal()), class = "tr_series_error_not_a_regression")
-  }
-})
-
-test_that("os três F atravessam o adaptador de tabela", {
-  a <- tr_series_regression(serie_mensal())
-  for (t in list(tr_series_f_global(a), tr_series_f_sazonal(a), tr_series_f_tendencia(a))) {
-    tb <- tabela_teste(t)
-    expect_equal(nrow(tb), 1L)
-    expect_equal(tb$teste, t$teste)
-    expect_false(is.na(tb$p_valor))
-  }
-})
+# ---- F com erro ARMA (GLS): Wald F, refeito à mão ------------------------------
+wald_f <- function(fit, idx) {
+  b <- stats::coef(fit)[idx]; V <- stats::vcov(fit)[idx, idx, drop = FALSE]
+  q <- length(idx)
+  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
+  c(F = Fv, p = stats::pf(Fv, q, length(stats::fitted(fit)) - length(stats::coef(fit)),
+                           lower.tail = FALSE))
+}
 
 # Uma reta com ruído: o caso em que a resposta é conhecida de antemão, e os três
 # números vão crus porque é assim que se percebe a fórmula mexida.
@@ -1703,42 +1665,27 @@ test_that("teto de defasagens que não cabe é recusado também na seleção", {
                class = "tr_series_error_bad_option")
 })
 
-# ---- F com erro ARMA (GLS): Wald F, refeito à mão ------------------------------
-wald_f <- function(fit, idx) {
-  b <- stats::coef(fit)[idx]; V <- stats::vcov(fit)[idx, idx, drop = FALSE]
-  q <- length(idx)
-  Fv <- as.numeric(t(b) %*% solve(V, b)) / q
-  c(F = Fv, p = stats::pf(Fv, q, length(stats::fitted(fit)) - length(stats::coef(fit)),
-                           lower.tail = FALSE))
-}
-
-test_that("os três F com erro AR(1) são o F de Wald do GLS", {
+test_that("com erro AR(1), o F do quadro marginal é o F de Wald do GLS", {
   x <- log(datasets::AirPassengers)
-  r <- tr_series_regression(x, grau = 2L, erro = "arma", ar = 1L)
+  r <- tr_series_regression(x, formula = "valor ~ poly(t, 2, raw = TRUE) + periodo", erro = "arma", ar = 1L)
   nm <- names(stats::coef(r$ajuste))
-  g <- tr_series_f_global(r); s <- tr_series_f_sazonal(r); d <- tr_series_f_tendencia(r)
-  for (par in list(list(g, which(nm != "(Intercept)")),
-                   list(s, grep("^estacao", nm)),
-                   list(d, match(c("t1", "t2"), nm)))) {
-    w <- wald_f(r$ajuste, par[[2]])
-    expect_equal(par[[1]]$estatistica, w[["F"]], tolerance = 1e-8)
-    expect_equal(par[[1]]$p_valor, w[["p"]], tolerance = 1e-8)
-    expect_match(par[[1]]$nota, "erro ARMA(1, 0)", fixed = TRUE)
-  }
-  expect_match(s$nota, "11 graus no numerador")
+  q <- quadro(r)
+  ws <- wald_f(r$ajuste, grep("^periodo", nm))
+  wt <- wald_f(r$ajuste, grep("^poly", nm))
+  expect_equal(linha(q, "periodo")$F, ws[["F"]], tolerance = 1e-6)
+  expect_equal(linha(q, "poly(t, 2, raw = TRUE)")$F, wt[["F"]], tolerance = 1e-6)
 })
 
 test_that("com erro AR(1) o F de MQO é otimista e o do GLS chega perto do nominal", {
   # O motivo da opção. Sem tendência nenhuma, erro AR(1) com phi = 0,6, n = 120:
   # medido em 300 réplicas, o F de tendência do MQO rejeita em 37% e o do GLS
-  # em 8%. Com phi = 0,9 são 69% e 17%: o GLS melhora muito, mas o F de Wald
-  # ainda passa do nominal perto da raiz unitária (a página avisa).
+  # em 8%.
   set.seed(21)
   rej <- replicate(150, {
     e <- stats::arima.sim(list(ar = 0.6), 120)
     x <- stats::ts(as.numeric(e), frequency = 12)
-    c(tr_series_f_tendencia(tr_series_regression(x, sazonalidade = FALSE))$p_valor < 0.05,
-      tr_series_f_tendencia(tr_series_regression(x, sazonalidade = FALSE, erro = "arma"))$p_valor < 0.05)
+    c(linha(quadro(tr_series_regression(x, formula = "valor ~ t")), "t")$p_valor < 0.05,
+      linha(quadro(tr_series_regression(x, formula = "valor ~ t", erro = "arma")), "t")$p_valor < 0.05)
   })
   expect_gt(mean(rej[1, ]), 0.25)
   expect_lt(mean(rej[2, ]), 0.12)

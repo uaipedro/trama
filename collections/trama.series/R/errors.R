@@ -51,11 +51,7 @@ tr_series_errors <- function() {
     tr_series_error_not_a_forecast =
       "o nó produziu um objeto que não é previsão, e o tipo series/forecast o recusa",
     tr_series_error_not_a_regression =
-      "o nó produziu um objeto que não é regressão de série, e o tipo series/regression o recusa",
-    tr_series_error_empty_model =
-      "a regressão ficou sem nenhum termo a estimar (grau 0 e sem sazonalidade)",
-    tr_series_error_no_block =
-      "o bloco de F testa um bloco de termos que a regressão ligada não tem",
+      "um bloco que lê o ajuste de uma série recebeu um models/fit que não veio de series/regression, detrend ou deseasonalize",
     tr_series_error_bad_criticos =
       paste0("o bloco não trouxe como decidir: nem p-valor nem tabela de críticos, ",
              "ou tabela sem o nível da decisão nomeado")
