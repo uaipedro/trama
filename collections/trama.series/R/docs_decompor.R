@@ -60,6 +60,9 @@
 
     "series/regression" = list(
       pressupostos = list(forma, erro_indep, erro_normal,
+        P("A variância é **constante no tempo**: a dispersão da série não deve crescer com o nível.",
+          verificar = c("series/range_mean", "series/plot"),
+          se_falhar = "Avalie log ou Box-Cox com `series/transform` antes da regressão."),
         P("Do grau 2 em diante, as potências cruas do tempo são **quase colineares**: os coeficientes de tendência não se leem um a um.",
           se_falhar = "Leia a tendência pelo `series/f_trend`, que testa o bloco inteiro."),
         P("Com **regressor** ligado: o efeito dele é **contemporâneo** (x no mesmo instante, sem defasagem) e **exógeno** (y não volta a mexer em x). Duas séries que só compartilham tendência produzem regressão espúria: o p do β sai pequeno sem relação nenhuma, sobretudo com erro autocorrelacionado.",

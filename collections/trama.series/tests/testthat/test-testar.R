@@ -27,6 +27,32 @@ test_that("o construtor monta o registro e escolhe a conclusão pela decisão", 
   expect_equal(names(t$criticos), c("10%", "5%", "1%"))
 })
 
+test_that("amplitude–média calcula blocos, inclinação, erro-padrão e gráfico", {
+  medias <- c(10, 20, 30, 40, 50, 60)
+  amplitudes <- c(1, 4, 2, 6, 5, 3)
+  x <- stats::ts(unlist(Map(function(m, a) c(m, m + a, m + a / 3, m + a / 2),
+                            medias, amplitudes)), frequency = 4)
+  z <- tr_series_range_mean(x)
+  expect_named(z, c("out", "grafico"))
+  expect_s3_class(z$out, "tr_series_test")
+  expect_s3_class(z$grafico, "ggplot")
+  expect_length(z$out$extra$pontos$media, 6L)
+  fit <- stats::lm(amplitude ~ media, data = z$out$extra$pontos)
+  expect_equal(z$out$extra$inclinacao, unname(coef(fit)[[2]]), tolerance = 1e-12)
+  expect_equal(z$out$extra$erro_padrao, unname(summary(fit)$coefficients[2, 2]), tolerance = 1e-12)
+  expect_equal(z$out$estatistica, unname(summary(fit)$coefficients[2, 3]), tolerance = 1e-12)
+  expect_equal(z$out$p_valor, unname(summary(fit)$coefficients[2, 4]), tolerance = 1e-12)
+  parcial <- tr_series_range_mean(stats::ts(c(1, 1, 2, 3, 2, 3, 3, 7,
+                                                10, 11, 13, 19, 21), frequency = 4))
+  expect_length(parcial$out$extra$pontos$media, 3L)
+})
+
+test_that("oráculo publicado de amplitude–média (Zucoloto et al., 2018)", {
+  skip("TODO: obter os dados mensais de exportação usados no artigo e reproduzir o Gretl; a fonte publica p=0,168045, mas não publica a série agrupada nem inclinação/EP/t para conferir numericamente.")
+  # O artigo informa p = 0,168045 para H0: inclinação = 0 (grupos de 12 meses).
+  # Tolerância pretendida: abs(p - 0.168045) <= 5e-6 após recuperar os dados.
+})
+
 test_that("tabela de críticos sem o nível da decisão é erro tipado, não índice cru", {
   # Os críticos do `urca` não têm contrato entre um teste e outro, e os dois
   # casos abaixo são os que de fato chegam: o `ur.za` entrega SEM NOMES e em

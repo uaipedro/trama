@@ -69,6 +69,7 @@ consta da lista de referências da dissertação, foi copiada de lá.
 | `series/pettitt` | Pettitt (1979) | PETTITT, A. A non-parametric approach to the change-point problem. Journal of the Royal Statistical Society, Malden, v. 28, n. 2, p. 126–135, 1979. | sim |
 | `series/seasonality_kw` | Morettin & Toloi (2006) | MORETTIN, P. A.; TOLOI, C. M. Análise de Séries Temporais. 2. ed. São Paulo: Edgard Blucher, 2006. 564 p. | sim (§3.5.1) |
 | `series/periodicity_fisher` | Morais (2012) | MORAIS, T. S. T. d. Estudo temporal do nível médio do mar em diferentes oceanos. 2012. 110 p. Dissertação (Mestrado em Estatística e Experimentação Agropecuária) — Universidade Federal de Lavras, Lavras, 2012. | sim (§3.5.2) |
+| `series/range_mean` | Zucoloto, Giarola & Rocha (2018) | ZUCOLOTO, A. C.; GIAROLA, L. T. P.; ROCHA, R. C. Modelagem da exportação brasileira de automóveis. Revista Eletrônica Matemática e Estatística em Foco, v. 6, n. 1, p. 12–23, 2018. | sim (procedimento, p. 15; oráculo numérico pendente) |
 
 Observações sobre a tabela:
 

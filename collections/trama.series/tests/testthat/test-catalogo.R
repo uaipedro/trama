@@ -30,7 +30,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- series_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_series(reg)
-  expect_length(nos, 47L)  # 9.1b: + series/intervencao (main)
+  expect_length(nos, 48L)  # + series/range_mean
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -212,7 +212,7 @@ test_that("a decisão do código sobre faltante está escrita na página, nos do
   # pergunta que o bloco não faz.
   testes <- Filter(function(n) identical(n$outputs$out$type, "data/test") &&
                      identical(n$inputs[[1]]$type, "series/ts"), nos_series(reg))
-  expect_length(testes, 12L)
+  expect_length(testes, 13L)
   for (n in testes) {
     corpo <- paste(deparse(body(removeSource(n$fn))), collapse = "\n")
     if (grepl(".tr_series_sem_na", corpo, fixed = TRUE)) next
@@ -314,6 +314,7 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
   for (n in testes) {
     entrada <- if (identical(n$inputs[[1]]$type, "series/regression")) ajuste else ap
     t <- n$fn(entrada)
+    if (is.list(t) && !is.null(t$out)) t <- t$out
     expect_true(nzchar(t$fonte), info = n$id)
     expect_true(n$id %in% names(tabela), info = paste(n$id, "não tem linha em docs/fontes.md"))
     if (n$id %in% names(tabela)) {

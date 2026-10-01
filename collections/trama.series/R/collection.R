@@ -64,7 +64,7 @@ trama_collection <- function() {
   icone <- function(n) trama::tr_icon(n)
 
   trama::tr_collection(
-    id = "series", version = "0.4.0", label = "Séries temporais",
+    id = "series", version = "0.5.0", label = "Séries temporais",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.series")),
     # Sem `js`: o card do teste era o único script da coleção, e o tipo de teste
     # agora é o `data/test` (registrado pela `data`).
@@ -95,6 +95,7 @@ trama_collection <- function() {
       trama::tr_category("serie_tendencia", "Tendência", role = "avaliacao"),
       trama::tr_category("serie_sazonal",   "Sazonalidade", role = "avaliacao"),
       trama::tr_category("serie_regressao", "Regressão", role = "avaliacao"),
+      trama::tr_category("serie_variancia", "Variância", role = "avaliacao"),
       trama::tr_category("serie_ver",       "Ver", role = "inspecao")
     ),
     nodes = list(
@@ -1946,6 +1947,41 @@ defasagem está a autocorrelação.
 ]---", teste = TRUE)),
 
 # ---- Testar: os F da regressão ----------------------------------------------
+
+      trama::tr_node("series/range_mean", fn = tr_series_range_mean, label = "Amplitude × média",
+        pressupostos = .tr_series_doc("series/range_mean")$pressupostos,
+        referencias = .tr_series_doc("series/range_mean")$referencias,
+        category = "serie_variancia", icon = icone("chart-scatter"),
+        description = "Testa se a amplitude dos blocos cresce com seu nível médio.",
+        inputs = list(serie = S), outputs = list(out = TE, grafico = G),
+        params = c(list(tamanho = I(0L, min = 0L, max = 10000L, label = "Tamanho do bloco")),
+                   .tr_series_props(.aspecto = "4:3")),
+        help = .tr_series_ajuda(r"---[
+Divide a série em blocos completos consecutivos, calcula a média e a amplitude
+(máximo − mínimo) de cada bloco e testa a inclinação da regressão amplitude ~
+média. **Tamanho do bloco** vale 0 para usar a frequência/ciclo declarado
+(12 para mensal, por exemplo); qualquer tamanho positivo substitui esse padrão.
+A série não aceita faltantes.
+
+Inclinação positiva com p < 0,05 sugere que a dispersão cresce com o nível:
+avalie log ou Box-Cox em `series/transform`. Um resultado não significativo
+não prova variância constante. O card traz inclinação, erro-padrão, t e p; o
+gráfico mostra os pontos e a reta.
+]---", r"---[
+- **Tamanho do bloco** — 0 usa o ciclo da série; valores positivos escolhem o
+  número de observações por bloco. O trecho incompleto no fim é descartado.
+- **Proporção**, **Tema**, **Título**, **Rótulo do X/Y** e **Legenda** — aparência
+  do gráfico.
+]---", r"---[
+Um teste (`data/test`) e um gráfico (`view/plot`).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("serie", "series/example", dataset = "AirPassengers") |>
+  tr_add("am", "series/range_mean", from = "serie")
+]---", r"---[
+`series/transform` para aplicar log ou Box-Cox depois do diagnóstico;
+`series/plot` para inspecionar a série no tempo.
+]---", grafico = TRUE, teste = TRUE)),
 
       trama::tr_node("series/f_global",
         pressupostos = .tr_series_doc("series/f_global")$pressupostos,
