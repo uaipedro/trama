@@ -76,49 +76,19 @@ test_that("o ano do rótulo vem do arredondamento, e não do piso", {
   expect_equal(substr(rot, 1, 4), format(tt$tempo, "%Y"))
 })
 
-test_that("tipo da regressão: guard, identidade, resumo e card de texto", {
-  ty <- series_regression_type()
+test_that("o ajuste da série viaja como models/fit e o adaptador dá a decomposição", {
+  reg <- series_registry()
+  ty <- reg$types[["models/fit"]]
   r <- tr_series_regression(serie_mensal())
   f <- tempfile(fileext = ".rds")
   ty$store(r, f)
-  expect_s3_class(ty$restore(f), "tr_series_reg")
-  s <- ty$summary(r)
-  expect_equal(s$grau, 1L)
-  expect_true(s$sazonalidade)
-  expect_gt(s$r2_ajustado, 0.8)
-  expect_lt(s$p_valor_f, 0.001)
-  # Card de modelo quando a `trama.models` (dona do renderer) está carregada;
-  # texto sem ela.
-  pv <- ty$preview(r, ctx_tmp())
-  if (isNamespaceLoaded("trama.models")) {
-    expect_equal(pv$renderer, "models/fit")
-    expect_equal(pv$data$global$rotulo, "F global")
-    expect_length(pv$data$linhas, length(stats::coef(r$ajuste)))
-  } else {
-    expect_equal(pv$renderer, "trama/text")
-  }
-  card <- .tr_series_reg_card(r)
-  expect_equal(card$n, length(r$serie))
-  expect_equal(vapply(card$destaques, `[[`, "", "rotulo"), c("R²", "R² aj.", "AIC"))
-  expect_error(ty$store(serie_mensal(), tempfile()),
-               class = "tr_series_error_not_a_regression")
-})
-
-test_that("adaptadores da regressão: decomposição que fecha, e coeficientes em tabela", {
-  r <- tr_series_regression(serie_mensal())
-  d <- .tr_series_reg_decomp(r)
+  r2 <- ty$restore(f)
+  expect_equal(stats::coef(r2$ajuste), stats::coef(r$ajuste))
+  # A fórmula sobrevive ao RDS e prevê do outro lado.
+  expect_length(tr_series_forecast(ajuste = r2, horizonte = 3L)$mean, 3L)
+  d <- .tr_series_fit_decomp(r2)
   expect_s3_class(d, "tr_series_decomp")
-  expect_equal(d$metodo, "regressão")
-  expect_equal(as.numeric(d$tendencia + d$sazonal + d$resto), as.numeric(serie_mensal()),
-               tolerance = 1e-8)
-  expect_gt(.tr_series_forca(d)[["sazonal"]], 0.5)
-  tab <- .tr_series_reg_tabela(r)
-  expect_equal(names(tab), c("termo", "estimativa", "erro_padrao", "estatistica_t", "p_valor"))
-  expect_equal(tab$termo[[1]], "(Intercept)")
-  expect_equal(nrow(tab), 13L)
-  pares <- vapply(.tr_series_adapters(), function(a) paste(a$from, a$to), character(1))
-  expect_true("series/regression data/table" %in% pares)
-  expect_true("series/regression series/decomposition" %in% pares)
+  expect_equal(as.numeric(d$tendencia + d$sazonal + d$resto), as.numeric(serie_mensal()), tolerance = 1e-8)
 })
 
 test_that("store de data/test recusa o que não tem a forma de um teste", {

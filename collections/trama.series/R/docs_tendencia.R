@@ -28,7 +28,7 @@
           se_falhar = "Troque a **Correção** para `bootstrap_blocos` (p por bootstrap de blocos móveis; o que mais se aproxima do nível), `hamed_rao` (variância corrigida pelas autocorrelações dos postos) ou `pre_branqueamento` (remove o AR(1) antes do teste)."),
         P("Com `hamed_rao`, a dependência está nas **autocorrelações significativas** dos postos da série sem a tendência de Sen; com `pre_branqueamento`, ela é um **AR(1)** e a tendência é **linear** (Sen). Nenhuma das duas devolve o nível nominal: medido sem tendência, AR(1) phi = 0,6, n = 60, rejeitam a 5% em 21% (`hamed_rao`) e 39% (`pre_branqueamento`, pior que os 31% sem correção; Hamed 2009). Com `bootstrap_blocos`, a dependência é de **curto alcance** (cabe em blocos de √n): medido, 5,5% com phi = 0,3 e n = 120, mas 7,7% a 9,0% com phi = 0,6 (n = 120 e 60).",
           verificar = c("series/acf", "series/pacf"),
-          se_falhar = "Com autocorrelação forte, modele o erro: `series/regression` com **Erro** = `arma` e o `series/f_trend`."),
+          se_falhar = "Com autocorrelação forte, modele o erro: `series/regression` com **Erro** = `arma` e o F da tendência (`series/regression` → `models/anova_table`)."),
         monotona, continua,
         P("Pelo menos **10** observações para a aproximação normal de S.")),
       referencias = list(

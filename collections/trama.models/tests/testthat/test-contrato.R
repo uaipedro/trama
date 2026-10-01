@@ -121,3 +121,15 @@ test_that("tr_models_clean_name saneia níveis para prob_<nivel>", {
   expect_equal(tr_models_clean_name(c("Iris setosa", "não-germinou", "a b", "a-b", "")),
                c("Iris_setosa", "não_germinou", "a_b", "a_b_1", "grupo"))
 })
+
+test_that("tr_models_as_fit embrulha lm e gls de fora, e os leitores aceitam", {
+  d <- datasets::mtcars
+  a <- tr_models_as_fit(stats::lm(mpg ~ wt, data = d), "lm", "De fora", mpg ~ wt, d, "mpg",
+                        extra = list(origem = "teste"))
+  expect_s3_class(a, c("tr_models_lm", "tr_models_fit"))
+  expect_equal(a$origem, "teste")
+  expect_equal(tr_models_info(a)$resposta, "mpg")
+  expect_s3_class(tr_models_coefficients(a), "tr_models_effects")
+  expect_error(tr_models_as_fit(stats::lm(mpg ~ wt, data = d), "glm", "x", mpg ~ wt, d, "mpg"),
+               class = "tr_models_error_bad_option")
+})

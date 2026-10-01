@@ -104,9 +104,25 @@ tr_series_holt_winters <- function(serie, tendencia = TRUE, sazonalidade = TRUE,
 #' mudaria o nome das colunas a jusante, e um `data/filter` escrito sobre
 #' `ls_95` quebraria ao trocar o nível no card.
 #' @export
-tr_series_forecast <- function(modelo, horizonte = 12L, intervalo = "normal", .seed = NULL) {
+#'
+#' Com `ajuste` (a saída de `series/regression`, `series/detrend` ou
+#' `series/deseasonalize`) em vez de `modelo`, prevê a fórmula: o futuro de
+#' `t`, `periodo` e `ano` sai da série; o do regressor, de `futuro`.
+tr_series_forecast <- function(modelo = NULL, horizonte = 12L, intervalo = "normal", ajuste = NULL,
+                               futuro = NULL, .seed = NULL) {
   h <- .tr_series_int(horizonte, "horizonte", min = 1, max = 1000)
   intervalo <- .tr_series_enum(intervalo, c("normal", "bootstrap"), "intervalo")
+  if (is.null(modelo) == is.null(ajuste)) {
+    .tr_series_abort("tr_series_error_bad_option",
+                     paste0("'series/forecast': ligue um modelo (ARIMA, ETS, Holt-Winters) OU o ajuste de ",
+                            "uma regressão da série — um dos dois."))
+  }
+  if (!is.null(ajuste)) {
+    if (intervalo != "normal") {
+      .tr_series_option("intervalo", intervalo, "normal (o bootstrap pede um modelo series/arima ou series/ets)")
+    }
+    return(.tr_series_prever_fit(ajuste, h, futuro))
+  }
   if (intervalo == "normal") {
     return(.tr_series_ajustar(forecast::forecast(modelo, h = h, level = c(80, 95)), "series/forecast"))
   }

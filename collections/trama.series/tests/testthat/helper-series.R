@@ -16,13 +16,14 @@ tabela_mensal <- function() {
   )
 }
 
-# A `series` NÃO carrega sozinha: as portas são `data/table` (da `data`) e
-# `view/plot` (da `view`). A ordem aqui é a mesma que o `trama.json` de um
+# A `series` NÃO carrega sozinha: as portas são `data/table` (da `data`),
+# `view/plot` (da `view`) e `models/fit` (da `models`, onde saem os ajustes). A ordem aqui é a mesma que o `trama.json` de um
 # projeto precisa ter.
 series_registry <- function() {
   reg <- trama::tr_registry()
   trama::tr_use("trama.data", registry = reg)
   trama::tr_use("trama.view", registry = reg)
+  trama::tr_use("trama.models", registry = reg)
   trama::tr_use(trama_collection(), registry = reg)
   reg
 }

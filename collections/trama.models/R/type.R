@@ -79,6 +79,32 @@
             class = c(paste0("tr_models_", classe), "tr_models_fit"))
 }
 
+#' Embrulha um ajuste feito por outra coleção como `models/fit`.
+#'
+#' Para a coleção que monta o próprio ajuste (a regressão de uma série, com o
+#' tempo e o período construídos por ela) e quer que todos os leitores da
+#' models o aceitem sem reimplementar o contrato: `classe` escolhe os métodos
+#' (`"lm"` ou `"gls"`), e o resto é o mesmo objeto que os blocos daqui
+#' produzem.
+#' @param ajuste o objeto `lm` ou `gls` já ajustado.
+#' @param classe `"lm"` ou `"gls"`.
+#' @param rotulo texto do topo do card.
+#' @param formula a fórmula do ajuste.
+#' @param dados a tabela usada no ajuste.
+#' @param resposta nome da coluna resposta.
+#' @param nota aviso do ajuste, em texto (`""` se não houver).
+#' @param extra lista de campos a mais que a coleção guarda no objeto (e que os
+#'   leitores daqui ignoram).
+#' @return objeto `tr_models_fit`.
+#' @export
+tr_models_as_fit <- function(ajuste, classe, rotulo, formula, dados, resposta, nota = "", extra = list()) {
+  classe <- .tr_models_enum(classe, c("lm", "gls"), "classe")
+  fit <- .tr_models_fit_obj(ajuste, classe, rotulo, formula, tibble::as_tibble(dados), resposta,
+                            nota = nota)
+  for (nm in names(extra)) fit[[nm]] <- extra[[nm]]
+  fit
+}
+
 .tr_models_fit_conferir <- function(fit) {
   .tr_models_guard(fit, "tr_models_fit", .TR_MODELS_CAMPOS_FIT, "tr_models_error_not_a_fit",
                    "um modelo ajustado")

@@ -34,7 +34,7 @@
           verificar = c("series/ndiffs", "series/adf", "series/kpss"),
           se_falhar = "Use o `series/ndiffs` para o número de diferenças e fixe `d` e `D` (ou deixe o automático, que decide `d` pelo KPSS e `D` pela força sazonal). Diferenças DEMAIS também é erro: aparece como MA com coeficiente perto de -1."),
         P("A **variância é constante** no tempo. Oscilação que cresce com o nível não é modelada pelo ARIMA.",
-          verificar = "series/plot",
+          verificar = c("series/range_mean", "series/plot"),
           se_falhar = "Transforme antes com `series/transform` (log ou Box-Cox) e modele a série transformada."),
         P("O **ciclo declarado** da série (a frequência) é o período sazonal verdadeiro: a parte sazonal (P, D, Q) usa defasagens múltiplas dele.",
           verificar = c("series/seasonal_plot", "series/acf", "series/periodicity_fisher"),
@@ -51,7 +51,7 @@
     "series/intervencao" = list(
       pressupostos = list(
         P("A **data** da intervenção é conhecida de antemão, e não escolhida pelo maior salto da própria série: escolhê-la pelo dado e testá-la no mesmo dado torna o p-valor otimista.",
-          verificar = "series/plot",
+          verificar = c("series/range_mean", "series/plot"),
           se_falhar = "Para procurar a data, `series/pettitt` ou `series/zivot_andrews`; depois confirme em outra série ou período."),
         P("Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
           verificar = c("series/window", "series/arima", "series/ndiffs"),
@@ -77,7 +77,7 @@
     "series/ets" = list(
       pressupostos = list(
         P("A série é descrita por **nível, tendência e sazonalidade** que evoluem por suavização exponencial, com o erro entrando de forma aditiva (A) ou multiplicativa (M). Erro, tendência ou sazonalidade **multiplicativos pedem série positiva**.",
-          verificar = "series/plot",
+          verificar = c("series/range_mean", "series/plot"),
           se_falhar = "Com zeros ou negativos, fixe as letras em `A` (ou use `Z`, que as evita) ou modele com `series/arima`."),
         P("O **ciclo sazonal** é o declarado na série, e de **no máximo 24** períodos.",
           verificar = c("series/seasonal_plot", "series/periodicity_fisher"),
@@ -96,7 +96,7 @@
         P("A série tem **nível, tendência localmente linear e sazonalidade de ciclo fixo** (as chaves ligadas), que mudam devagar: é o que três equações de suavização conseguem acompanhar.",
           verificar = c("series/plot", "series/seasonal_plot")),
         P("Na sazonalidade **multiplicativa**, a amplitude da oscilação é **proporcional ao nível**; na aditiva, constante.",
-          verificar = "series/plot",
+          verificar = c("series/range_mean", "series/plot"),
           se_falhar = "Troque o tipo, ou use `series/transform` (log) e a aditiva."),
         residuo_branco("Os erros de previsão de um passo"),
         sem_quebra),
@@ -148,4 +148,22 @@
         I("forecast", "accuracy",
           "Sem **real**: `accuracy(previsao)`, só o treino. Com **real**: `accuracy(previsao, real)`, que compara nos períodos em comum; a coleção recusa antes se não houver nenhum.")))
   )
+}
+
+.tr_series_docs_variancia <- function() {
+  P <- .tr_series_P; I <- .tr_series_impl; R <- trama::tr_ref
+  fonte <- R(autores = c("Zucoloto, A. C.", "Giarola, L. T. P.", "Rocha, R. C."), ano = 2018,
+    titulo = "Modelagem da exportação brasileira de automóveis",
+    fonte = "Revista Eletrônica Matemática e Estatística em Foco, 6(1), 12–23",
+    url = "https://seer.ufu.br/index.php/matematicaeestatisticaemfoco/article/download/39080/22266/179091")
+  list("series/range_mean" = list(
+    pressupostos = list(P("Os blocos consecutivos têm o mesmo tamanho (exceto o trecho final, descartado), e a relação linear entre amplitude e média é usada como diagnóstico de variância: inclinação positiva significativa sugere transformação; ausência de evidência não prova variância constante.",
+      verificar = c("series/range_mean", "series/plot"),
+      se_falhar = "Se a inclinação for significativa e positiva, avalie `series/transform` com log ou Box-Cox e repita o diagnóstico.")),
+    referencias = list(fonte,
+      I("trama.series", "tr_series_range_mean", "Agrupa blocos completos consecutivos; regressão OLS amplitude ~ média; teste t bilateral da inclinação igual a zero, p pela distribuição t com n_bloco − 2 graus de liberdade. Conferido contra o `rmplot` do gretl 2023c no AirPassengers (inclinação 0,560685, p = 4,78409e-10, a 6 algarismos); diverge do gretl quando a série termina no meio de um bloco, porque o gretl usa o bloco incompleto e aqui ele sai."),
+      trama::tr_ref(autores = c("Cottrell, A.", "Lucchetti, R."), ano = 2023,
+                    titulo = "Gretl User's Guide: Gnu Regression, Econometrics and Time-series Library",
+                    fonte = "versão 2023c; comando rmplot", url = "https://gretl.sourceforge.net/",
+                    papel = "complementar"))))
 }

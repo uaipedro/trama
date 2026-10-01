@@ -68,22 +68,31 @@ test_that("decomposição vira tabela, e resíduo vira histograma da view", {
   expect_s3_class(rodar(f, "hist"), "ggplot")
 })
 
-test_that("regressão atravessa a aresta: tabela de coeficientes de um lado, componentes do outro", {
+test_that("regressão atravessa a aresta: leitores da models de um lado, componentes do outro", {
   reg <- series_registry()
   f <- trama::tr_flow(reg) |>
     trama::tr_add("pax", "series/example") |>
-    trama::tr_add("reg", "series/regression", grau = 2L, from = "pax") |>
-    trama::tr_add("coef", "data/arrange", cols = "p_valor", from = "reg") |>
-    trama::tr_add("f", "series/f_global", from = "reg") |>
+    trama::tr_add("reg", "series/regression", formula = "valor ~ poly(t, 2, raw = TRUE) + periodo",
+                  from = "pax") |>
+    trama::tr_add("coef", "models/coefficients", from = "reg") |>
+    trama::tr_add("anova", "models/anova_table", tipo_sq = "III", from = "reg") |>
     trama::tr_add("resto", "series/component", componente = "resto", from = "reg") |>
     trama::tr_add("ruido", "series/ljung_box", from = "resto") |>
-    trama::tr_add("graf", "series/plot_decomposition", from = "reg")
-  expect_equal(names(rodar(f, "coef")),
-               c("termo", "estimativa", "erro_padrao", "estatistica_t", "p_valor"))
-  expect_equal(rodar(f, "f")$teste, "F global")
+    trama::tr_add("graf", "series/plot_decomposition", from = "reg") |>
+    trama::tr_add("prev", "series/forecast", horizonte = 6L, from = "reg") |>
+    trama::tr_add("dessaz", "series/deseasonalize", from = "pax") |>
+    trama::tr_add("coef2", "models/coefficients", from = "dessaz:ajuste") |>
+    trama::tr_add("tend", "series/detrend", from = "pax") |>
+    trama::tr_add("coef3", "models/coefficients", from = "tend:ajuste")
+  expect_s3_class(rodar(f, "coef"), "tr_models_effects")
+  q <- rodar(f, "anova")$tabela
+  expect_true(all(c("poly(t, 2, raw = TRUE)", "periodo") %in% q$termo))
   expect_equal(stats::frequency(rodar(f, "resto")), 12)
   expect_equal(rodar(f, "ruido")$teste, "Ljung-Box")
   expect_s3_class(rodar(f, "graf"), "ggplot")
+  expect_length(rodar(f, "prev")$mean, 6L)
+  expect_s3_class(rodar(f, "coef2"), "tr_models_effects")
+  expect_s3_class(rodar(f, "coef3"), "tr_models_effects")
 })
 
 test_that("uma série NÃO entra onde o motor não tem adaptador", {

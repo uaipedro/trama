@@ -1,3 +1,7 @@
+# trama.models 0.6.0
+
+* `tr_models_as_fit()`: outra coleção embrulha um `lm` ou `gls` que ela mesma ajustou como `models/fit`, e todos os leitores daqui (coeficientes, ANOVA, estatísticas, diagnóstico) o aceitam. A `trama.series` usa isso na regressão dos componentes.
+
 # trama.models 0.5.2
 
 * Dez bases de regressão e GLM no catálogo de bases (`carData`, `MASS`, `faraway`).

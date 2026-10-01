@@ -17,7 +17,7 @@
 trama_collection <- function() {
   trama::tr_collection(
     datasets = .tr_models_bases(),
-    id = "models", version = "0.3.0", label = "Modelos",
+    id = "models", version = "0.4.0", label = "Modelos",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.models")),
     js = "trama/index.js", css = "trama/models.css",
     types = list(models_fit_type(), models_effects_type(), models_emm_type()),
@@ -82,11 +82,19 @@ trama_collection <- function() {
                      # 9.2: a regressão de doses da branch virou o polinomial da main
                      # (um bloco). Params e portas têm o mesmo nome; o grau dela
                      # ("automático", "1".."3") é valor válido do enum daqui.
-                     "models/dose_response" = "models/polinomial"),
+                     "models/dose_response" = "models/polinomial",
+                     # Os F da regressão de série (trama.series 0.5.0) viraram os
+                     # leitores daqui: a regressão passou a sair em `models/fit`.
+                     # Com a tendência num termo só, o F do bloco é a linha dela
+                     # no quadro marginal; o tipo III vale também com erro ARMA.
+                     "series/f_global" = "models/fit_stats",
+                     "series/f_seasonal" = list(to = "models/anova_table", params = list(tipo_sq = "III")),
+                     "series/f_trend" = list(to = "models/anova_table", params = list(tipo_sq = "III"))),
                 .tr_models_migracoes_ml()$nodes),
       # O polinomial da main tinha uma saída só (`out`, o quadro); agora são
       # `modelo` e `quadro`, e a aresta velha vai para o quadro.
-      ports = list("models/predict" = list(novos = "dados"), "models/polinomial" = list(out = "quadro")),
+      ports = list("models/predict" = list(novos = "dados"), "models/polinomial" = list(out = "quadro"),
+                   "models/fit_stats" = list(ajuste = "modelo"), "models/anova_table" = list(ajuste = "modelo")),
       params = c(.tr_models_migracoes_ml()$params, list(
       "models/coefficients" = list(nivel = list(to = "confianca")),
       "models/emmeans" = list(alfa = list(to = "confianca", value = function(v) 1 - v)),

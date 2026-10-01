@@ -194,7 +194,7 @@ tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0
     x <- as.numeric(serie)
     out <- diff(serie)
     attr(out, "tendencia") <- como_ts(x[-length(x)], stats::tsp(serie)[[1]] + 1 / f)
-    return(out)
+    return(list(out = out, ajuste = .tr_series_detrend_fit(serie, metodo, 1L, NULL)))
   }
   tt <- seq_along(serie)
   y <- as.numeric(serie)
@@ -205,6 +205,7 @@ tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0
     .tr_series_minimo(serie, 5L, "series/detrend", "a tendência loess",
                       validas = sum(!is.na(serie)))
     fit <- stats::loess(y ~ tt, span = suavidade, degree = 2L, na.action = stats::na.exclude)
+    g <- 1L
   } else {
     g <- if (metodo == "linear") 1L else .tr_series_int(grau, "grau", min = 2, max = 5)
     .tr_series_minimo(serie, g + 3L, "series/detrend", sprintf("um polinômio de grau %d", g),
@@ -214,7 +215,7 @@ tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0
   tend <- as.numeric(stats::predict(fit, newdata = data.frame(tt = tt)))
   out <- como_ts(y - tend)
   attr(out, "tendencia") <- como_ts(tend)
-  out
+  list(out = out, ajuste = .tr_series_detrend_fit(serie, metodo, g, tend))
 }
 
 #' Opera duas séries ponto a ponto: a − b, a + b, a / b, a × b.

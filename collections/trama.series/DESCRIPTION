@@ -1,6 +1,6 @@
 Package: trama.series
 Title: Time Series Collection for trama
-Version: 0.4.6
+Version: 0.5.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -23,6 +23,7 @@ Imports:
     trama (>= 0.3.0),
     trama.data,
     trama.view,
+    trama.models (>= 0.6.0),
     forecast (>= 8.0),
     nlme,
     urca,
@@ -41,12 +42,12 @@ Suggests:
     tseries,
     trend,
     modifiedmk,
-    trama.models,
     TSA
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
-Config/trama/requires: trama.data, trama.view
+Config/trama/requires: trama.data, trama.view, trama.models
 Remotes:
     uaipedro/trama,
     trama.data=github::uaipedro/trama/collections/trama.data,
-    trama.view=github::uaipedro/trama/collections/trama.view
+    trama.view=github::uaipedro/trama/collections/trama.view,
+    trama.models=github::uaipedro/trama/collections/trama.models
