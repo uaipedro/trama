@@ -1,20 +1,54 @@
 {
-  "trama": "0.1.3",
+  "trama": "0.1.4",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
-  "repos": ["https://uaipedro.r-universe.dev"],
+  "repos": [
+    "https://uaipedro.r-universe.dev"
+  ],
   "core": {
-    "trama": "0.4.0",
-    "trama.data": "0.2.3",
-    "trama.view": "0.2.3",
-    "trama.launcher": "0.1.2"
+    "trama": "0.5.1",
+    "trama.data": "0.4.0",
+    "trama.view": "0.2.4",
+    "trama.launcher": "0.2.0"
   },
   "collections": {
-    "trama.experiments": {"version": "0.2.3", "title": "Experimentos", "requires": ["trama.models"]},
-    "trama.ml": {"version": "0.5.4", "title": "Aprendizado de máquina", "requires": ["trama.models"]},
-    "trama.models": {"version": "0.3.4", "title": "Modelos estatísticos", "requires": []},
-    "trama.multi": {"version": "0.3.4", "title": "Análise multivariada", "requires": ["trama.models"]},
-    "trama.sampling": {"version": "0.3.4", "title": "Amostragem", "requires": []},
-    "trama.series": {"version": "0.4.4", "title": "Séries temporais", "requires": []}
+    "trama.experiments": {
+      "version": "0.2.5",
+      "title": "Experimentos",
+      "requires": [
+        "trama.models"
+      ]
+    },
+    "trama.ml": {
+      "version": "0.5.5",
+      "title": "Aprendizado de máquina",
+      "requires": [
+        "trama.models"
+      ]
+    },
+    "trama.models": {
+      "version": "0.6.0",
+      "title": "Modelos estatísticos",
+      "requires": []
+    },
+    "trama.multi": {
+      "version": "0.3.5",
+      "title": "Análise multivariada",
+      "requires": [
+        "trama.models"
+      ]
+    },
+    "trama.sampling": {
+      "version": "0.3.5",
+      "title": "Amostragem",
+      "requires": []
+    },
+    "trama.series": {
+      "version": "0.5.0",
+      "title": "Séries temporais",
+      "requires": [
+        "trama.models"
+      ]
+    }
   }
 }
