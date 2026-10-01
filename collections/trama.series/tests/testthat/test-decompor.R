@@ -329,6 +329,9 @@ test_that("migração v1 -> v2 escreve a fórmula e dá os mesmos coeficientes d
   expect_equal(p$confianca, 0.9)
   expect_null(p$grau); expect_null(p$alfa)
   expect_equal(mig(list(grau = 0L, sazonalidade = FALSE))$formula, "valor ~ 1")
+  # Sem sazonalidade, excluir/remover da v1 eram ignorados; a v2 os recusaria.
+  q <- mig(list(grau = 1L, sazonalidade = FALSE, excluir = "fev", remover_ns = TRUE))
+  expect_s3_class(do.call(tr_series_regression, c(list(serie_mensal()), q)), "tr_models_fit")
   # O ajuste antigo de grau 2 era lm(y ~ t1 + t2 + estacao) com potências cruas.
   x <- serie_mensal()
   fit <- tr_series_regression(x, formula = mig(list(grau = 2L))$formula)
@@ -395,4 +398,22 @@ test_that("forecast pede modelo OU ajuste, e o adaptador recusa modelo que não 
   expect_error(tr_series_forecast(ajuste = fit, intervalo = "bootstrap"), class = "tr_series_error_bad_option")
   lm_fit <- trama.models::tr_models_lm(datasets::mtcars, formula = "mpg ~ wt")
   expect_error(.tr_series_fit_decomp(lm_fit), class = "tr_series_error_not_a_regression")
+})
+
+test_that("previsão ARMA com base dependente dos dados (poly ortogonal) usa a base do ajuste", {
+  y <- stats::window(log(datasets::AirPassengers), end = c(1958, 12))
+  a <- tr_series_forecast(ajuste = tr_series_regression(y, "valor ~ poly(t, 2) + periodo", erro = "arma"), horizonte = 6L)
+  b <- tr_series_forecast(ajuste = tr_series_regression(y, "valor ~ poly(t, 2, raw = TRUE) + periodo", erro = "arma"), horizonte = 6L)
+  # Mesma família de modelos, outra base: a previsão é a mesma.
+  expect_equal(as.numeric(a$mean), as.numeric(b$mean), tolerance = 1e-4)
+  expect_length(tr_series_forecast(ajuste = tr_series_regression(y, "valor ~ poly(t, 2) + periodo", erro = "arma"),
+                                   horizonte = 1L)$mean, 1L)
+})
+
+test_that("previsão do detrend com faltante mantém ajustados e resíduos no tempo da série", {
+  x <- serie_mensal(); x[5] <- NA
+  fc <- tr_series_forecast(ajuste = tr_series_detrend(x, "linear")$ajuste, horizonte = 3L)
+  expect_equal(length(fc$fitted), length(x))
+  expect_equal(stats::tsp(fc$fitted), stats::tsp(x))
+  expect_true(is.na(fc$fitted[5]))
 })

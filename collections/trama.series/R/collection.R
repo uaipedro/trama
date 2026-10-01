@@ -874,6 +874,9 @@ p-valor por componente; `series/ljung_box` para testar o resto.
           termos <- c(if (g == 1L) "t" else if (g >= 2L) sprintf("poly(t, %d, raw = TRUE)", g),
                       if (saz) "periodo")
           params$formula <- paste("valor ~", if (length(termos)) paste(termos, collapse = " + ") else "1")
+          # Na v1 estes ficavam escondidos (e ignorados) sem sazonalidade; na
+          # v2 sem `periodo` eles são erro.
+          if (!saz) { params$excluir <- NULL; params$remover_ns <- NULL }
           if (!is.null(params$alfa)) params$confianca <- 1 - as.numeric(params$alfa)
           params$grau <- NULL; params$sazonalidade <- NULL; params$alfa <- NULL
           params
@@ -902,7 +905,8 @@ constrói a partir da própria série:
 O padrão, `valor ~ t + periodo`, é a decomposição por regressão: tendência
 linear e um efeito por período. `valor ~ poly(t, 2, raw = TRUE) + periodo`
 curva a tendência num termo só; `valor ~ t * periodo` deixa o efeito sazonal
-mudar com o tempo; `valor ~ t + regressor` troca a sazonalidade por uma
+mudar com o tempo (na decomposição, a parte `t:periodo` vai para a tendência,
+e o componente sazonal fica o efeito fixo); `valor ~ t + regressor` troca a sazonalidade por uma
 covariável. Vale a sintaxe de fórmula do R (`I(t^2)`, `log(t)`, `:`, `*`).
 
 Tirar só a tendência ou só a sazonalidade, com os efeitos de cada uma, é

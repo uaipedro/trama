@@ -333,8 +333,12 @@ tr_series_regression <- function(serie, formula = "valor ~ t + periodo", contras
   inicio <- fim + 1 / fr
   como_ts <- function(v) stats::ts(v, start = inicio, frequency = fr)
   if (identical(r$erro, "arma")) {
-    X <- stats::model.matrix(stats::delete.response(stats::terms(f)), data = ajuste$dados)
-    Xn <- stats::model.matrix(stats::delete.response(stats::terms(f)), data = novos)
+    # Os `terms` do `lm` equivalente, e não os da fórmula crua: eles levam o
+    # `predvars`, e é ele que faz `poly(t, 2)`, `scale(t)` ou `ns(t)` no futuro
+    # usarem a base do ajuste em vez de recalculá-la sobre os h pontos novos.
+    tl <- stats::delete.response(stats::terms(stats::lm(f, data = ajuste$dados)))
+    X <- stats::model.matrix(tl, data = ajuste$dados)
+    Xn <- stats::model.matrix(tl, data = novos)
     tira <- colnames(X) == "(Intercept)"
     o <- r$ordem
     arima <- .tr_series_ajustar(
@@ -359,8 +363,10 @@ tr_series_regression <- function(serie, formula = "valor ~ t + periodo", contras
     mean = como_ts(p80[, "fit"]),
     lower = lim(p80[, "lwr"], p95[, "lwr"]), upper = lim(p80[, "upr"], p95[, "upr"]),
     x = serie,
-    fitted = stats::ts(as.numeric(stats::fitted(fit)), start = stats::start(serie), frequency = fr),
-    residuals = stats::ts(as.numeric(stats::residuals(fit)), start = stats::start(serie), frequency = fr)),
+    # Pelo resto da série, e não por `fitted(fit)`: com faltante (detrend) o
+    # ajuste tem menos linhas que a série, e o `ts` sairia deslocado no tempo.
+    fitted = serie - r$resto,
+    residuals = r$resto),
     class = "forecast")
 }
 
