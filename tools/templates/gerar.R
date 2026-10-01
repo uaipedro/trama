@@ -16,7 +16,14 @@ suppressMessages({
   pkgs <- c("trama.data", "trama.view", "trama.models", "trama.ml",
             "trama.multi", "trama.series", "trama.sampling")
   reg <- tr_registry()
-  for (p in pkgs) tr_use(p, registry = reg)
+  # As coleções também da árvore: com o instalado, um bloco que subiu de
+  # versão depois da última instalação saía no JSON com a versão velha, e o
+  # template nascia com `version_drift`.
+  for (p in pkgs) {
+    pkgload::load_all(file.path("collections", p), quiet = TRUE,
+                      export_all = FALSE, attach = FALSE)
+    tr_use(p, registry = reg)
+  }
 })
 
 # Colunas por profundidade topológica (fontes à esquerda). Sem isso, todos

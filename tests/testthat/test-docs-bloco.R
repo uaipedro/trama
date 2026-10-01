@@ -176,7 +176,10 @@ test_that("catálogo lê packageVersion uma vez por pacote", {
     tr_node("v/b", fn = function() 1, description = "B.", outputs = list(out = "v/num"),
             referencias = refs))), registry = reg)
   n <- 0L
-  local_mocked_bindings(.tr_pkg_version = function(p) { n <<- n + 1L; "9.9" })
+  # `.package` explícito: na suíte inteira outros testes carregam coleções com
+  # pkgload, e sem ele o testthat não sabe em qual pacote trocar a função.
+  local_mocked_bindings(.tr_pkg_version = function(p) { n <<- n + 1L; "9.9" },
+                        .package = "trama")
   cat <- tr_catalog(reg)
   expect_equal(n, 1L)
   expect_equal(cat$nodes[[1]]$referencias[[1]]$versao, "9.9")

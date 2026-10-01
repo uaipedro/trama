@@ -32,7 +32,7 @@
       },
       "desenho": {
         "type": "ml/tree_plot",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Visualizar árvores",
         "params": {},
         "seed": 144962519
@@ -91,7 +91,9 @@
       "views": {},
       "frames": {},
       "modes": {},
-      "notes": {}
+      "soltos": {},
+      "notes": {},
+      "ocultos": {}
     }
   }
 }

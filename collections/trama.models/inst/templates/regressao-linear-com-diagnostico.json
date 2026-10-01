@@ -31,7 +31,7 @@
       },
       "coeficientes": {
         "type": "models/coefficients",
-        "type_version": 2,
+        "type_version": 3,
         "label": "Coeficientes",
         "params": {},
         "seed": 134407390
@@ -90,7 +90,9 @@
       "views": {},
       "frames": {},
       "modes": {},
-      "notes": {}
+      "soltos": {},
+      "notes": {},
+      "ocultos": {}
     }
   }
 }
