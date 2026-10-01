@@ -70,6 +70,9 @@
 
     "series/regression" = list(
       pressupostos = list(forma, erro_indep, erro_normal,
+        P("A variância é **constante no tempo**: a dispersão da série não deve crescer com o nível.",
+          verificar = c("series/range_mean", "series/plot"),
+          se_falhar = "Avalie log ou Box-Cox com `series/transform` antes da regressão."),
         P("Potências cruas do tempo (`t`, `I(t^2)`, `I(t^3)`) como termos separados são **quase colineares**: os coeficientes de tendência não se leem um a um.",
           se_falhar = "Escreva a tendência num termo só, `poly(t, 2, raw = TRUE)`, e leia o F da linha dela no `models/anova_table` (tipo III), que testa o bloco inteiro."),
         P("A tendência é **determinística**. Uma série com raiz unitária — passeio aleatório — produz tendência aparente e F significativo sem tendência nenhuma (regressão espúria).",

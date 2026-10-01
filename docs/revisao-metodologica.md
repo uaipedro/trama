@@ -166,3 +166,33 @@ deles vem de `logLik`).
 `tidy()`, `glance()` e `augment()` só renomeiam colunas dos leitores do
 contrato; oráculo `broom` (lm, glm) a 1e-8. Testes:
 `collections/trama.models/tests/testthat/test-select.R`, `test-tidy.R`.
+
+## Amplitude–média em séries (30/09/2026)
+
+`series/range_mean` agrupa observações consecutivas em blocos completos (padrão
+igual à frequência/ciclo declarado), calcula média e amplitude (máximo menos
+mínimo) e ajusta OLS amplitude ~ média. O p-valor bilateral testa inclinação
+zero com t e n_blocos − 2 graus de liberdade. Inclinação positiva significativa
+orienta a avaliar log/Box-Cox; ausência de significância não prova
+homocedasticidade. O trecho incompleto final é descartado. O gráfico mostra os
+pontos e a reta.
+
+Fonte metodológica consultada: Zucoloto, Giarola e Rocha (2018), “Modelagem da
+exportação brasileira de automóveis”, *Revista Eletrônica Matemática e
+Estatística em Foco*, 6(1), 12–23,
+[PDF](https://seer.ufu.br/index.php/matematicaeestatisticaemfoco/article/download/39080/22266/179091),
+p. 15. A fonte especifica grupos de 12, amplitude versus média, teste t da
+inclinação e H0: inclinação zero; relata p = 0,168045 para a série Bovespa.
+Também consultada, p. 15: a fonte descreve transformação log quando a amplitude
+cresce proporcionalmente à média. `tr_ref` e o texto de pressuposto refletem
+essas afirmações verificadas.
+
+Oráculo numérico PENDENTE: o artigo não publica os valores da série agrupada,
+inclinação, erro-padrão ou estatística t; o portal da base de dados citada não
+fornece cópia histórica garantida dos valores de 2009–2018. Assim, o teste do
+oráculo publicado fica `skip()` com TODO e tolerância planejada de 5e-6 no p,
+sem números inventados. A validação algébrica do cálculo é contra `lm` na mesma
+entrada a 1e-12, não substitui o oráculo independente. Referência bibliográfica
+e recomendações procedimentais foram conferidas no PDF acessível; não foi
+possível conferir no livro de Morettin & Toloi nem reconstruir o resultado do
+Gretl. Testes: `test-testar.R`, `test-catalogo.R`.

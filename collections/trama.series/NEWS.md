@@ -1,3 +1,7 @@
+# trama.series 0.5.0
+
+* `series/range_mean`: teste e gráfico da relação amplitude–média por blocos, para orientar a transformação de variância.
+
 # trama.series 0.4.6
 
 * Exemplos da ajuda usam `data/read`.

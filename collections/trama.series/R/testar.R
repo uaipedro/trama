@@ -39,6 +39,57 @@
                  nota = nota, fonte = fonte, extra = extra, classe = "tr_series_test")
 }
 
+#' Diagnóstico amplitude–média para variância não constante.
+#'
+#' Agrupa observações consecutivas, calcula média e amplitude de cada bloco e
+#' testa a inclinação da regressão amplitude ~ média.
+#' @export
+tr_series_range_mean <- function(serie, tamanho = stats::frequency(serie),
+                                 aspecto = "4:3", tema = "claro", titulo = "",
+                                 rotulo_x = "Média do bloco", rotulo_y = "Amplitude do bloco",
+                                 legenda = "direita") {
+  .tr_series_sem_na(serie, "series/range_mean")
+  x <- as.numeric(serie)
+  k <- .tr_series_int(tamanho, "tamanho", min = 0L)
+  if (k == 0L) k <- as.integer(stats::frequency(serie))
+  if (k < 2L) k <- 2L
+  if (length(x) < 3L * k)
+    .tr_series_abort("tr_series_error_too_short",
+                     "'series/range_mean': são necessários ao menos três blocos completos (3 × tamanho).")
+  grupos <- split(x, ceiling(seq_along(x) / k))
+  # Apenas blocos completos: descartar a borda incompleta evita que ela tenha
+  # amplitude calculada com menos observações que os demais.
+  grupos <- grupos[lengths(grupos) == k]
+  medias <- vapply(grupos, mean, numeric(1))
+  amplitudes <- vapply(grupos, function(z) diff(range(z)), numeric(1))
+  dados <- data.frame(media = medias, amplitude = amplitudes)
+  ajuste <- stats::lm(amplitude ~ media, data = dados)
+  co <- summary(ajuste)$coefficients
+  inclinacao <- unname(co["media", "Estimate"])
+  ep <- unname(co["media", "Std. Error"])
+  estat <- unname(co["media", "t value"])
+  p <- unname(co["media", "Pr(>|t|)"])
+  h <- "a amplitude independe da média (inclinação = 0)"
+  conclusao_sim <- if (inclinacao > 0)
+    "a amplitude cresce com o nível; avalie log/Box-Cox" else
+    "há associação negativa; inspecione os pontos antes de escolher transformação"
+  conclusao_nao <- "não há evidência de relação; não há indicação deste diagnóstico para transformar"
+  leitura <- if (p < 0.05) conclusao_sim else conclusao_nao
+  teste <- .tr_series_teste("Amplitude–média", h, estat, "t", p_valor = p,
+    conclusao_sim = conclusao_sim, conclusao_nao = conclusao_nao,
+    nota = sprintf("inclinação = %.6g; erro-padrão = %.6g; %d blocos de %d observações; %s",
+                   inclinacao, ep, nrow(dados), k, leitura),
+    fonte = "Zucoloto, Giarola & Rocha (2018)",
+    extra = list(inclinacao = inclinacao, erro_padrao = ep, estatistica = estat,
+                 p_valor = p, leitura = leitura, pontos = dados))
+  grafico <- ggplot2::ggplot(dados, ggplot2::aes(x = .data[["media"]], y = .data[["amplitude"]])) +
+    ggplot2::geom_point() + ggplot2::geom_smooth(method = "lm", formula = y ~ x, se = FALSE) +
+    ggplot2::labs(x = rotulo_x, y = rotulo_y)
+  grafico <- trama.view::tr_view_finish(grafico, aspecto, tema, titulo,
+                                        rotulo_x, rotulo_y, legenda)
+  list(out = teste, grafico = grafico)
+}
+
 #' ADF: a série tem raiz unitária?
 #'
 #' H0 é a RAIZ UNITÁRIA, e isso inverte a leitura de quem está acostumado a

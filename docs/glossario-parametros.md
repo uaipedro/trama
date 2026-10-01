@@ -25,6 +25,7 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `validacao` | como prever o treino: `resubstituição` ou `cruzada` | — |
 | `preditor` | a coluna explicativa única de um modelo de uma preditora (models/nls) | — (não usar `preditores` quando só cabe uma) |
 | `grau` | grau da curva de um polinômio (models/polinomial): `automático` ou `1`–`5` | — |
+| `tamanho` | número de observações em cada bloco consecutivo (series/range_mean); 0 usa a frequência da série | — |
 | `grau_max` | maior grau testado no desdobramento polinomial (models/polinomial) | `grau` numérico (models/polinomial versão 1) |
 | `equacao` | escrever a equação e o R² no gráfico (bool), em models/plot_regression e view/fit_line | — |
 | `intervalo` | desenhar a faixa do intervalo de confiança (bool); o nível vai em `confianca` | — |
