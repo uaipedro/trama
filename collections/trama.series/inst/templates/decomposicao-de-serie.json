@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 7,
     "collections": {
-      "series": "0.4.0"
+      "series": "0.5.0"
     },
     "nodes": {
       "pax": {
@@ -90,7 +90,9 @@
       "views": {},
       "frames": {},
       "modes": {},
-      "notes": {}
+      "soltos": {},
+      "notes": {},
+      "ocultos": {}
     }
   }
 }
