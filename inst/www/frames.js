@@ -407,12 +407,15 @@ async function inlineIcons(root) {
 // `.tr-exporting` (que tira o destaque da ligação escolhida), o traço
 // computado vira estilo inline; a volta está no retorno.
 function inlineEdges(root) {
-  const paths = [...root.querySelectorAll(".react-flow__edge-path")];
+  // Todo traço de ligação, não só o fio: o trilho por baixo dele e o fio
+  // fantasma também. E o `fill` junto: sem ele o clone pinta o caminho com o
+  // preto padrão do SVG, e cada curva vira uma mancha preta no PNG.
+  const paths = [...root.querySelectorAll(".react-flow__edge path, .tr-fio path")];
   const antes = paths.map((p) => p.getAttribute("style"));
   paths.forEach((p) => {
     const cs = getComputedStyle(p);
-    p.style.stroke = cs.stroke;
-    p.style.strokeWidth = cs.strokeWidth;
+    for (const k of ["fill", "stroke", "strokeWidth", "strokeOpacity", "strokeDasharray", "opacity"])
+      p.style[k] = cs[k];
   });
   return () => paths.forEach((p, i) =>
     (antes[i] == null ? p.removeAttribute("style") : p.setAttribute("style", antes[i])));

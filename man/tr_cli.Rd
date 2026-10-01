@@ -19,7 +19,7 @@ pelo script \code{trama-agente}, status 1.
 }
 \details{
 \if{html}{\out{<div class="sourceCode">}}\preformatted{trama-agente state                       # fluxo na tela: nós, status, arestas
-trama-agente catalog [tipo]              # blocos disponíveis / um bloco inteiro
+trama-agente catalog [tipo] [--busca T]  # blocos disponíveis / um bloco / os que casam
 trama-agente add <tipo> [--id X] [--from no[:porta]]... [--label L] [param=valor]...
 trama-agente link <no[:porta]> <no[:porta]>
 trama-agente set <no> param=valor...
@@ -29,6 +29,11 @@ trama-agente apply <arquivo.json>        # lista de ops como um passo de undo
 trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 trama-agente undo
 }\if{html}{\out{</div>}}
+
+Toda edição (\code{add}, \code{link}, \code{set}, \code{rm}, \code{op}, \code{apply}, \code{undo}) aceita
+\verb{--wait N}: espera até N segundos o fluxo parar de rodar e devolve, em
+\code{efeito}, o status dos nós tocados e de tudo abaixo deles. Nó \code{blocked}
+traz \code{causa}, os ancestrais que falharam.
 
 \code{valor} é lido como JSON quando dá (\code{n=3}, \code{x=true}, \verb{v=["a","b"]}) e como
 texto quando não (\code{coluna=peso}). \verb{--projeto DIR} escolhe qual editor

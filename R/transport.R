@@ -440,9 +440,14 @@ tr_server <- function(project, flow = "main",
     shiny::observeEvent(input$tr_export_code, {
       req <- input$tr_export_code
       formato <- if (identical(req$format, "quarto")) "quarto" else "r"
-      titulo <- paste0(basename(rv_project()$root), " — ", rv_flow())
+      # O fluxo único de todo projeto se chama "main": no título ele só
+      # atrapalha. Com mais fluxos, o nome é o que os distingue.
+      proj <- rv_project()
+      titulo <- basename(proj$root)
+      if (!identical(rv_flow(), "main")) titulo <- paste0(titulo, " — ", rv_flow())
       code <- tryCatch(
-        tr_export_code(rv_doc(), rv_project()$registry, format = formato, title = titulo),
+        tr_export_code(rv_doc(), proj$registry, format = formato, title = titulo,
+                       settings = proj$settings),
         error = avisar()
       )
       if (!is.null(code)) send("export_code", list(format = formato, code = code))

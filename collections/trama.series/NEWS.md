@@ -1,3 +1,9 @@
+# trama.series 0.5.1
+
+* `tr_series_as_decomposition()` exportada: é o adaptador de `models/fit` para decomposição, e o script exportado pelo editor passa a chamá-lo pelo nome público em vez de `trama.series:::`.
+* Série, decomposição e previsão aparecem como gráfico no relatório Quarto exportado (`report` do tipo).
+* Depende de `trama (>= 0.5.2)`.
+
 # trama.series 0.5.0
 
 * `series/regression` agora ajusta uma FÓRMULA sobre `valor`, `t`, `periodo`, `ano` e `regressor`, e sai como `models/fit`: coeficientes, quadro da ANOVA, estatísticas e diagnóstico são os blocos da `trama.models`. Fluxos antigos migram (grau e sazonalidade viram a fórmula; `alfa` vira `confianca`).

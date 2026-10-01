@@ -61,7 +61,7 @@ test_that("previews dos tipos gráficos são PNG pela view", {
 
 test_that("série no tempo com sobreposta: duas linhas no mesmo eixo, com legenda", {
   x <- serie_mensal()
-  tend <- tr_series_component(.tr_series_fit_decomp(tr_series_regression(x)), "tendencia")
+  tend <- tr_series_component(tr_series_as_decomposition(tr_series_regression(x)), "tendencia")
   p <- tr_series_plot(x, sobreposta = tend)
   b <- ggplot2::ggplot_build(p)
   expect_equal(length(unique(b$data[[1]]$colour)), 2L)

@@ -136,7 +136,7 @@ test_that("regressão recusa fórmula fora do vocabulário, série anual com per
 test_that("sem_tendencia: série menos a tendência na aditiva, dividida na multiplicativa", {
   x <- serie_mensal()
   for (d in list(tr_series_decompose(x), tr_series_stl(x),
-                 .tr_series_fit_decomp(reg(x)$fit))) {
+                 tr_series_as_decomposition(reg(x)$fit))) {
     st <- tr_series_component(d, "sem_tendencia")
     expect_true(stats::is.ts(st))
     expect_equal(stats::frequency(st), stats::frequency(x))
@@ -148,7 +148,7 @@ test_that("sem_tendencia: série menos a tendência na aditiva, dividida na mult
   }
   # Regressão de grau 1: é a série menos a reta de mínimos quadrados em t,
   # com a sazonalidade dentro.
-  r <- .tr_series_fit_decomp(reg(x, grau = 1L)$fit)
+  r <- tr_series_as_decomposition(reg(x, grau = 1L)$fit)
   st <- tr_series_component(r, "sem_tendencia")
   expect_equal(as.numeric(st), as.numeric(r$sazonal + r$resto))
   m <- tr_series_decompose(x, "multiplicativa")
@@ -199,7 +199,7 @@ test_that("com regressor, a tendência é só do tempo e o regressor é o quarto
   tt <- seq_along(y)
   expect_lt(max(abs(stats::residuals(stats::lm(as.numeric(r$tendencia) ~ tt + I(tt^2))))), 1e-8)
   expect_lt(abs(stats::cor(diff(as.numeric(r$tendencia)), diff(as.numeric(z)))), .05)
-  d <- .tr_series_fit_decomp(r$fit)
+  d <- tr_series_as_decomposition(r$fit)
   expect_equal(as.numeric(d$tendencia + d$sazonal + d$regressor + d$resto), as.numeric(y))
   expect_equal(as.numeric(tr_series_component(d, "regressor")),
                stats::coef(r$ajuste)[["regressor"]] * as.numeric(z))
@@ -208,7 +208,7 @@ test_that("com regressor, a tendência é só do tempo e o regressor é o quarto
   expect_s3_class(tr_series_plot_decomposition(d), "ggplot")
   expect_error(tr_series_component(tr_series_stl(x), "regressor"),
                class = "tr_series_error_no_component")
-  expect_error(tr_series_component(.tr_series_fit_decomp(reg(x)$fit), "regressor"),
+  expect_error(tr_series_component(tr_series_as_decomposition(reg(x)$fit), "regressor"),
                class = "tr_series_error_no_component")
 })
 
@@ -311,7 +311,7 @@ test_that("ano, interação e regressor entram pela fórmula", {
   expect_true("ano" %in% names(stats::coef(a$ajuste)))
   b <- tr_series_regression(x, formula = "valor ~ t * periodo")
   expect_length(stats::coef(b$ajuste), 24L)
-  d <- .tr_series_fit_decomp(b)
+  d <- tr_series_as_decomposition(b)
   expect_equal(as.numeric(d$tendencia + d$sazonal + d$resto), as.numeric(x), tolerance = 1e-8)
   set.seed(3)
   z <- stats::ts(stats::rnorm(length(x)), start = stats::start(x), frequency = 12)
@@ -397,7 +397,7 @@ test_that("forecast pede modelo OU ajuste, e o adaptador recusa modelo que não 
   fit <- tr_series_regression(x)
   expect_error(tr_series_forecast(ajuste = fit, intervalo = "bootstrap"), class = "tr_series_error_bad_option")
   lm_fit <- trama.models::tr_models_lm(datasets::mtcars, formula = "mpg ~ wt")
-  expect_error(.tr_series_fit_decomp(lm_fit), class = "tr_series_error_not_a_regression")
+  expect_error(tr_series_as_decomposition(lm_fit), class = "tr_series_error_not_a_regression")
 })
 
 test_that("previsão ARMA com base dependente dos dados (poly ortogonal) usa a base do ajuste", {
@@ -433,4 +433,13 @@ test_that("remoção para trás: todo termo sazonal que sobra tem p <= 1 - confi
   b <- tr_series_regression(x, remover_ns = TRUE, confianca = 0.99)
   expect_gte(length(b$serie_reg$estacoes_removidas), length(a$serie_reg$estacoes_removidas))
   expect_error(tr_series_regression(x, remover_ns = TRUE, confianca = 5), "confianca")
+})
+
+test_that("o script exportado chama a decomposição do ajuste pelo nome público", {
+  # O adaptador models/fit -> series/decomposition entra no script gerado
+  # (`tr_export_code`); interno, ele sairia como `trama.series:::`.
+  expect_identical(trama:::.tr_export_fn_ref(tr_series_as_decomposition),
+                   "trama.series::tr_series_as_decomposition")
+  expect_identical(trama:::.tr_export_fn_ref(trama::tr_get_type("series/ts", series_registry())$report),
+                   "trama.series::tr_series_plot")
 })

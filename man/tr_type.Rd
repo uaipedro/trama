@@ -13,7 +13,8 @@ tr_type(
   restore = NULL,
   ext = "rds",
   preview = NULL,
-  summary = NULL
+  summary = NULL,
+  report = NULL
 )
 }
 \description{
@@ -31,6 +32,11 @@ Tipo é nominal; classe R é detalhe de implementação de um tipo.
 \code{preview(x, ctx)} devolve um artefato — \code{tr_preview()} — cujo \code{renderer} é
 um id de string resolvido no front. Dispatch por id, nunca por \code{inherits()}:
 é o que permite uma coleção trazer visualização nova sem tocar no núcleo.
+
+\code{report(x)} é opcional e diz como o valor aparece num relatório exportado
+(\code{\link[=tr_export_code]{tr_export_code()}}): uma função EXPORTADA de pacote, que o documento chama
+sobre a saída (\code{tr_series_plot(x)} para uma série). Sem ele, o relatório
+imprime o objeto. Função e não preview porque o relatório roda sem o Trama.
 
 Sem \code{store}/\code{restore}, cai em RDS — suficiente pra tipo que é objeto R
 comum (data.frame, lista, escalar).

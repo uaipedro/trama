@@ -8,7 +8,8 @@ tr_export_code(
   doc,
   registry = .tr_default_registry,
   format = c("r", "quarto"),
-  title = "Análise"
+  title = "Análise",
+  settings = NULL
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ tr_export_code(
 \item{format}{\code{"r"} para um script R ou \code{"quarto"} para um documento Quarto.}
 
 \item{title}{Título usado no documento Quarto.}
+
+\item{settings}{Configurações do projeto, para resolver params de tema como
+o executor resolve.}
 }
 \value{
 Uma string única pronta para ser gravada em um arquivo \code{.R} ou \code{.qmd}.
@@ -31,6 +35,17 @@ ele pode ser aberto e executado como qualquer outro script R, desde que os
 pacotes das coleções estejam instalados.
 }
 \details{
+Cada nó vira uma variável com o nome do card (\code{correlograma_acf}, e não o
+id), e um nó de várias saídas é UMA variável: quem a consome lê
+\code{ajuste$out}. Os params passados são os efetivos, os mesmos que o executor
+passa, omitidos só quando coincidem com o default literal da própria
+função: o script calcula o que o canvas calculou, sem repetir o óbvio.
+
+No formato Quarto, cada card é um chunk; os frames viram seções, na ordem
+de slide, e as notas viram texto no lugar em que estão. As saídas que
+nenhum fio consome são as que o fluxo produziu para ser LIDAS, e o
+documento as mostra (pelo \code{report} do tipo, quando há; senão, o \code{print}).
+
 Fluxos ponto a ponto ainda dependem do executor do Trama e, por isso, são
 recusados em vez de gerar um script que calcularia outra coisa.
 }

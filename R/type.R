@@ -14,13 +14,21 @@
 #' um id de string resolvido no front. Dispatch por id, nunca por `inherits()`:
 #' é o que permite uma coleção trazer visualização nova sem tocar no núcleo.
 #'
+#' `report(x)` é opcional e diz como o valor aparece num relatório exportado
+#' ([tr_export_code()]): uma função EXPORTADA de pacote, que o documento chama
+#' sobre a saída (`tr_series_plot(x)` para uma série). Sem ele, o relatório
+#' imprime o objeto. Função e não preview porque o relatório roda sem o Trama.
+#'
 #' Sem `store`/`restore`, cai em RDS — suficiente pra tipo que é objeto R
 #' comum (data.frame, lista, escalar).
 #' @export
 tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
                     store = NULL, restore = NULL, ext = "rds",
-                    preview = NULL, summary = NULL) {
+                    preview = NULL, summary = NULL, report = NULL) {
   .tr_check_id(id, "id de tipo")
+  if (!is.null(report) && !is.function(report)) {
+    rlang::abort(sprintf("'report' de '%s' não é função.", id), class = "tr_error_bad_type")
+  }
   if (!is.null(store) && !is.function(store)) {
     rlang::abort(sprintf("'store' de '%s' não é função.", id), class = "tr_error_bad_type")
   }
@@ -33,7 +41,7 @@ tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
   structure(list(
     id = id, version = as.integer(version), label = label %||% id, color = color,
     store = store, restore = restore, ext = ext,
-    preview = preview, summary = summary
+    preview = preview, summary = summary, report = report
   ), class = "tr_type")
 }
 

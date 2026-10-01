@@ -1,3 +1,10 @@
+# trama 0.5.2
+
+* Exportar como Quarto gera um relatório, e não um bloco de código: um chunk por card, os frames como seções (na ordem de slide), as notas como texto, as saídas que nenhum fio consome à mostra, cabeçalho com sumário, código recolhível e HTML autocontido, versões dos pacotes no início e `sessionInfo()` no fim.
+* O script exportado (R ou Quarto) nomeia as variáveis pelo rótulo do card (`correlograma_acf`, não o id), trata nó de várias saídas como uma variável lida por porta (`ajuste$out`) e passa os params EFETIVOS, como o executor: antes, um param não tocado caía no default da função, que pode diferir do default do bloco. Params iguais ao default literal da função são omitidos; o tema vira uma variável só no topo.
+* `tr_type(report = )`: função exportada que mostra o valor no relatório exportado (uma série vira o gráfico dela). Sem ela, o relatório imprime o objeto.
+* Exportar uma imagem de frame não pinta mais as ligações de preto.
+
 # trama 0.5.1
 
 * `options(trama.encerrar_ao_fechar = TRUE)` faz o processo do editor encerrar alguns segundos depois de a última janela fechar. O launcher liga essa opção ao abrir um projeto.

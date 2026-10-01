@@ -86,7 +86,7 @@ test_that("o ajuste da série viaja como models/fit e o adaptador dá a decompos
   expect_equal(stats::coef(r2$ajuste), stats::coef(r$ajuste))
   # A fórmula sobrevive ao RDS e prevê do outro lado.
   expect_length(tr_series_forecast(ajuste = r2, horizonte = 3L)$mean, 3L)
-  d <- .tr_series_fit_decomp(r2)
+  d <- tr_series_as_decomposition(r2)
   expect_s3_class(d, "tr_series_decomp")
   expect_equal(as.numeric(d$tendencia + d$sazonal + d$resto), as.numeric(serie_mensal()), tolerance = 1e-8)
 })

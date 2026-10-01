@@ -184,3 +184,87 @@ test_that("tr_export_code embrulha o mesmo script em um documento Quarto", {
   expect_match(quarto, "```\\{r\\}")
   expect_no_match(quarto, "trama::")
 })
+
+# Coleção do teste do relatório: rótulos de verdade, um default de spec que
+# difere do da função, um tipo com `report` e uma saída que ninguém consome.
+export_registry <- function() {
+  reg <- tr_registry()
+  tr_use(tr_collection("x", types = list(
+    tr_type("x/num"),
+    tr_type("x/vis", report = function(x) paste("visto", x))
+  ), nodes = list(
+    tr_node("x/fonte", fn = function(valor = 1) valor, label = "Valor de partida",
+            description = "Fonte.", outputs = list(out = "x/num"),
+            params = list(valor = tr_param_num(1))),
+    tr_node("x/escala", fn = function(x, fator = 1) x * fator, label = "Escala",
+            description = "Default do spec diferente do da função.",
+            inputs = list(x = "x/num"), outputs = list(out = "x/num"),
+            params = list(fator = tr_param_num(10))),
+    tr_node("x/ajuste", fn = function(x) list(out = x + 1, ajuste = x * 2), label = "Ajuste",
+            description = "Duas saídas.", inputs = list(x = "x/num"),
+            outputs = list(out = "x/num", ajuste = "x/vis"))
+  )), registry = reg)
+  reg
+}
+
+test_that("o script exportado usa o rótulo do card, params efetivos e uma variável por nó", {
+  reg <- export_registry()
+  doc <- tr_doc()
+  for (op in list(
+    list(op = "add_node", type = "x/fonte", id = "cmupd9cxqigl035cr", params = list(valor = 3)),
+    list(op = "add_node", type = "x/escala", id = "cmupddntkae642ex1"),
+    list(op = "add_node", type = "x/ajuste", id = "cmupdemxf6pxw5p6p"),
+    list(op = "add_node", type = "x/escala", id = "cmupdew8afk9q1zyj"),
+    list(op = "connect", from_node = "cmupd9cxqigl035cr", from_port = "out", to_node = "cmupddntkae642ex1", to_port = "x"),
+    list(op = "connect", from_node = "cmupddntkae642ex1", from_port = "out", to_node = "cmupdemxf6pxw5p6p", to_port = "x"),
+    list(op = "connect", from_node = "cmupdemxf6pxw5p6p", from_port = "out", to_node = "cmupdew8afk9q1zyj", to_port = "x")
+  )) doc <- tr_doc_apply(doc, op, reg)
+
+  code <- tr_export_code(doc, reg)
+  expect_no_match(code, "cmupd")
+  # Rótulo vira nome; repetido ganha sufixo.
+  expect_match(code, "valor_de_partida <- ", fixed = TRUE)
+  expect_match(code, "escala_2 <- ", fixed = TRUE)
+  # Nó de várias saídas é uma variável só, lida por porta.
+  expect_match(code, "(x = ajuste$out", fixed = TRUE)
+  expect_no_match(code, "_resultado")
+  # O default do spec (10) vai escrito: o da função (1) daria outra conta.
+  expect_match(code, "fator = 10", fixed = TRUE)
+
+  env <- new.env(parent = globalenv())
+  eval(parse(text = code), envir = env)
+  expect_equal(env$escala_2, (3 * 10 + 1) * 10)
+
+  # O executor calcula o mesmo número.
+  store <- tr_store(withr::local_tempdir())
+  expect_equal(tr_value(doc, "cmupdew8afk9q1zyj", registry = reg, store = store), env$escala_2)
+})
+
+test_that("o Quarto tem um chunk por card, seções dos frames, notas e as saídas finais à mostra", {
+  reg <- export_registry()
+  doc <- tr_doc()
+  for (op in list(
+    list(op = "add_node", type = "x/fonte", id = "a", position = list(0, 0)),
+    list(op = "add_node", type = "x/ajuste", id = "b", position = list(1200, 0)),
+    list(op = "connect", from_node = "a", from_port = "out", to_node = "b", to_port = "x"),
+    list(op = "add_frame", id = "f2", x = 1000, y = -100, w = 800, h = 600, title = "Ajuste"),
+    list(op = "add_frame", id = "f1", x = -100, y = -100, w = 800, h = 600, title = "Dados"),
+    list(op = "reorder_frames", frames = list("f1", "f2")),
+    list(op = "add_note", id = "n", x = 1100, y = -50, kind = "markdown", text = "O ajuste dobra.")
+  )) doc <- tr_doc_apply(doc, op, reg)
+
+  q <- tr_export_code(doc, reg, format = "quarto", title = "T")
+  expect_match(q, "embed-resources: true", fixed = TRUE)
+  pos <- function(x) regexpr(x, q, fixed = TRUE)[[1]]
+  expect_true(all(c(pos("## Dados"), pos("## Ajuste"), pos("O ajuste dobra.")) > 0))
+  expect_lt(pos("## Dados"), pos("valor_de_partida <-"))
+  expect_lt(pos("valor_de_partida <-"), pos("## Ajuste"))
+  expect_lt(pos("## Ajuste"), pos("O ajuste dobra."))
+  expect_lt(pos("O ajuste dobra."), pos("ajuste <-"))
+  expect_match(q, "#| label: valor-de-partida", fixed = TRUE)
+  # As duas saídas de `b` ficam sem consumidor: a de tipo com `report` passa
+  # por ele, a outra é impressa.
+  expect_match(q, "ajuste$out\n", fixed = TRUE)
+  expect_match(q, "paste\\(\"visto\", x\\)\\)\\(ajuste\\$ajuste\\)")
+  expect_match(q, "sessionInfo()", fixed = TRUE)
+})

@@ -45,7 +45,10 @@ series_ts_type <- function() {
     # distância pelo adaptador. `2:1` porque série é comprida por natureza.
     preview = function(x, ctx) {
       trama.view::tr_view_render(tr_series_plot(x, aspecto = "2:1"), ctx)
-    }
+    },
+    # No relatório exportado, a série também é o gráfico: o `print` de um
+    # `ts` é uma grade de números.
+    report = tr_series_plot
   )
 }
 
@@ -102,7 +105,8 @@ series_decomposition_type <- function() {
     },
     preview = function(x, ctx) {
       trama.view::tr_view_render(tr_series_plot_decomposition(x, aspecto = "4:3"), ctx)
-    }
+    },
+    report = tr_series_plot_decomposition
   )
 }
 
@@ -211,7 +215,8 @@ series_forecast_type <- function() {
     },
     preview = function(x, ctx) {
       trama.view::tr_view_render(tr_series_plot_forecast(x, aspecto = "2:1"), ctx)
-    }
+    },
+    report = tr_series_plot_forecast
   )
 }
 
@@ -234,6 +239,6 @@ series_forecast_type <- function() {
     # O ajuste de uma série carrega os componentes: é por este adaptador que o
     # `series/component` e o `series/plot_decomposition` os leem. Um
     # `models/fit` que não veio de série é recusado com classe.
-    trama::tr_adapter("models/fit", "series/decomposition", .tr_series_fit_decomp)
+    trama::tr_adapter("models/fit", "series/decomposition", tr_series_as_decomposition)
   )
 }

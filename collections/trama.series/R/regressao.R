@@ -283,10 +283,18 @@ tr_series_regression <- function(serie, formula = "valor ~ t + periodo", contras
   invisible(ajuste$serie_reg)
 }
 
-#' `models/fit` de série -> decomposição: o que dá de graça o
-#' `series/component` e o `series/plot_decomposition`.
-#' @noRd
-.tr_series_fit_decomp <- function(x) {
+#' Decomposição de um ajuste de série.
+#'
+#' Converte o `models/fit` de `series/regression`, `series/detrend` ou
+#' `series/deseasonalize` na decomposição aditiva (tendência, sazonal, resto e,
+#' se houver, o efeito da covariável) que `tr_series_component()` e
+#' `tr_series_plot_decomposition()` leem. É o adaptador que o editor põe no fio
+#' entre os dois tipos; exportado para o script gerado chamá-lo pelo nome.
+#'
+#' @param x Ajuste produzido por um dos nós de regressão de série.
+#' @return Objeto `tr_series_decomp`.
+#' @export
+tr_series_as_decomposition <- function(x) {
   r <- .tr_series_exige_fit_serie(x, "series/component")
   .tr_series_decomp(r$serie, r$tendencia, r$sazonal, r$resto, "aditiva", "regressão",
                     regressor = r$efeito_regressor)
