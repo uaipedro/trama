@@ -226,3 +226,26 @@ body.tl-ocupado [data-acao],body.tl-ocupado .tl-card:not(:disabled){opacity:.55;
   .tl-content{padding:20px 16px 48px}
   .tl-topbar{padding:12px 16px}
 }
+
+/* --- Sair, Console e Logs --- */
+.tl-nav-sair:hover{color:var(--tr-err)}
+.tl-console-saida,.tl-log-corpo{background:var(--tr-field);border:1px solid var(--tr-line);border-radius:10px;
+  font:12.5px/1.5 ui-monospace,"Cascadia Mono",Consolas,monospace;padding:12px 14px;margin:0;
+  white-space:pre-wrap;word-break:break-word;overflow:auto}
+.tl-console-saida{height:min(52vh,460px)}
+.tl-console-saida:empty::before{content:"Nenhum comando ainda.";color:var(--tr-dim)}
+.tl-console-cmd{color:var(--tr-accent)}
+.tl-console-erro,.tl-log-erro{color:var(--tr-err)}
+.tl-log-aviso{color:#e0a92b}
+.tl-console-rodando{color:var(--tr-dim);font-style:italic}
+.tl-console-entrada{display:flex;align-items:flex-start;gap:8px;margin-top:10px}
+.tl-console-prompt{font:13px/2.2 ui-monospace,Consolas,monospace;color:var(--tr-accent)}
+.tl-console-entrada textarea{flex:1;resize:vertical;min-height:36px;max-height:40vh;background:var(--tr-field);
+  border:1px solid var(--tr-edge);border-radius:8px;color:var(--tr-fg);padding:7px 10px;
+  font:13px/1.5 ui-monospace,Consolas,monospace}
+.tl-console-dica{font-size:12px;margin-top:6px}
+.tl-logs-barra{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.tl-logs-barra select{flex:1;min-width:0;max-width:420px;background:var(--tr-field);color:var(--tr-fg);
+  border:1px solid var(--tr-edge);border-radius:8px;padding:6px 10px;font:inherit}
+.tl-log-corpo{height:min(62vh,560px)}
+.tl-encerrado{display:grid;place-items:center;min-height:100vh;text-align:center;color:var(--tr-dim)}

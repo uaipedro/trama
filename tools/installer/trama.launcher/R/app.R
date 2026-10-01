@@ -24,8 +24,45 @@ NULL
 tl_ui <- function() {
   www_launcher <- system.file("www", package = "trama.launcher")
   if (nzchar(www_launcher)) shiny::addResourcePath("tl-www", www_launcher)
-  shiny::htmlTemplate(file.path(www_launcher, "launcher.html"))
+  shiny::htmlTemplate(file.path(www_launcher, "launcher.html"), token = .tl_token())
 }
+
+#' Segredo desta execução do launcher, embutido no HTML da tela de início e
+#' exigido nas ações perigosas (console, Sair). Escutar só em 127.0.0.1 não
+#' basta: o Shiny não confere a origem do websocket, e qualquer página aberta
+#' no navegador poderia conectar e mandar um comando. Outra origem não
+#' consegue ler o HTML, então não tem o token.
+#' @noRd
+.tl_token <- local({
+  token <- NULL
+  function() {
+    if (is.null(token)) token <<- paste(sprintf("%02x", .tl_bytes_aleatorios(24L)), collapse = "")
+    token
+  }
+})
+
+#' `n` bytes aleatórios sem dependência nova: `/dev/urandom` onde existe; no
+#' Windows, `runif` semeado com relógio em microssegundos, PID, tempo de CPU
+#' e endereço de memória (ASLR), sem mexer na semente global.
+#' @noRd
+.tl_bytes_aleatorios <- function(n) {
+  if (file.exists("/dev/urandom")) {
+    con <- file("/dev/urandom", "rb", raw = TRUE)
+    on.exit(close(con))
+    return(as.integer(readBin(con, "raw", n)))
+  }
+  endereco <- strtoi(substr(gsub("[^0-9a-f]", "", format(new.env())), 1, 7), 16L)
+  semente <- (as.numeric(Sys.time()) * 1e6 + Sys.getpid() * 7919 + sum(proc.time()) * 1e3 + endereco) %%
+    .Machine$integer.max
+  velha <- if (exists(".Random.seed", envir = globalenv())) get(".Random.seed", envir = globalenv())
+  on.exit(if (!is.null(velha)) assign(".Random.seed", velha, envir = globalenv()))
+  set.seed(as.integer(semente))
+  as.integer(floor(stats::runif(n) * 256))
+}
+
+#' A ação veio da tela de início (tem o token desta execução)?
+#' @noRd
+.tl_token_ok <- function(valor) identical(valor, .tl_token())
 
 #' Versão de `r_exigido`/`r_instalado` como texto, para o payload JSON — sem
 #' isso `getRversion()` (um objeto `R_system_version`) e `NA_character_`
@@ -416,6 +453,64 @@ tl_server <- function(input, output, session) {
     rodar_acao("Voltando versão…", function(progresso) tl_rollback())
   })
 
+  # Editor que caiu: some da lista de abertos e avisa, com o log dele.
+  shiny::observe({
+    shiny::invalidateLater(2000)
+    caiu <- tl_projects_verificar()
+    if (!length(caiu)) return(invisible(NULL))
+    for (caminho in caiu) {
+      session$sendCustomMessage("tl-editor-caiu", list(
+        nome = basename(caminho), log = basename(tl_project_log(caminho))
+      ))
+    }
+    atualizar_projetos()
+  })
+
+  shiny::observeEvent(input$tl_sair, {
+    if (!.tl_token_ok(input$tl_sair$token)) return(invisible(NULL))
+    tl_projects_encerrar()
+    session$sendCustomMessage("tl-encerrado", list())
+    later::later(shiny::stopApp, 0.5)
+  })
+
+  # Aba Logs: o cliente pede (ao abrir a aba e a cada poucos segundos) e
+  # recebe a lista de arquivos e o fim do escolhido.
+  shiny::observeEvent(input$tl_log_pedir, {
+    arquivos <- tl_logs_listar()
+    nome <- input$tl_log_pedir$nome
+    if (is.null(nome) || !(nome %in% arquivos)) nome <- if (length(arquivos)) arquivos[[1]] else NULL
+    session$sendCustomMessage("tl-log", list(
+      arquivos = as.list(arquivos), nome = nome, linhas = as.list(tl_log_ler(nome))
+    ))
+  })
+
+  # Console: um comando por vez; a saída é lida do arquivo enquanto roda.
+  console_job <- shiny::reactiveVal(NULL)
+  shiny::observeEvent(input$tl_console_rodar, {
+    if (!.tl_token_ok(input$tl_console_rodar$token)) return(invisible(NULL))
+    codigo <- input$tl_console_rodar$codigo
+    if (!is.null(console_job()) || is.null(codigo) || !nzchar(trimws(codigo))) return(invisible(NULL))
+    if (!nzchar(tl_state_read()$atual)) {
+      shiny::showNotification("Instale o trama antes de usar o console.", type = "warning")
+      return(invisible(NULL))
+    }
+    console_job(tl_console_rodar(codigo))
+  })
+  shiny::observe({
+    job <- console_job()
+    if (is.null(job)) return(invisible(NULL))
+    estado <- tl_console_ler(job)
+    session$sendCustomMessage("tl-console", list(
+      id = estado$id, saida = as.list(estado$saida), fim = estado$fim, ok = estado$ok
+    ))
+    if (estado$fim) {
+      tl_console_registrar(job, estado)
+      console_job(NULL)
+    } else {
+      shiny::invalidateLater(400)
+    }
+  })
+
   shiny::observeEvent(input$tl_abrir_logs, {
     dir.create(tl_log_dir(), recursive = TRUE, showWarnings = FALSE)
     utils::browseURL(tl_log_dir())
@@ -424,4 +519,4 @@ tl_server <- function(input, output, session) {
 
 #' Monta a `shinyApp` da tela de início.
 #' @noRd
-tl_app <- function() shiny::shinyApp(ui = tl_ui(), server = tl_server)
+tl_app <- function() shiny::shinyApp(ui = tl_ui(), server = .tl_encerrar_sozinho(tl_server))

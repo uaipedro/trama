@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="tl-token" content="{{ token }}">
 <title>Trama</title>
 {{ headContent() }}
 <link rel="icon" href="tl-www/icon.png">
@@ -45,12 +46,32 @@
           <span class="tl-nav-dot" id="tl-nav-dot-atualizacao" hidden aria-hidden="true"></span>
         </button>
       </li>
+      <li role="presentation">
+        <button type="button" class="tl-nav-item" data-view="console" role="tab"
+                id="tl-tab-console" aria-controls="view-console" aria-selected="false">
+          <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="m7.5 9.5 3 2.5-3 2.5"/><path d="M12.5 15h4"/></svg>
+          <span>Console</span>
+        </button>
+      </li>
+      <li role="presentation">
+        <button type="button" class="tl-nav-item" data-view="logs" role="tab"
+                id="tl-tab-logs" aria-controls="view-logs" aria-selected="false">
+          <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3.5 3.5v13.5H6Z"/><path d="M9 11h6M9 14.5h6M9 18h4"/></svg>
+          <span>Logs</span>
+          <span class="tl-nav-dot" id="tl-nav-dot-logs" hidden aria-hidden="true"></span>
+        </button>
+      </li>
     </ul>
     <div class="tl-sidebar-footer">
       <button type="button" class="tl-nav-item" data-view="ajuda" role="tab"
               id="tl-tab-ajuda" aria-controls="view-ajuda" aria-selected="false">
         <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.4 2.4 0 1 1 3.6 2.1c-.9.55-1.2.95-1.2 1.85"/><path d="M12 16.6h.01"/></svg>
         <span>Ajuda</span>
+      </button>
+      <button type="button" class="tl-nav-item tl-nav-sair" id="tl-btn-sair"
+              title="Fecha os projetos abertos e encerra o trama">
+        <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v8"/><path d="M7.2 6.6a7.5 7.5 0 1 0 9.6 0"/></svg>
+        <span>Sair</span>
       </button>
     </div>
   </nav>
@@ -138,6 +159,32 @@
         </div>
       </section>
 
+      <section id="view-console" class="tl-view" data-view="console" role="tabpanel"
+               aria-labelledby="tl-tab-console" tabindex="-1" hidden>
+        <h2 class="tl-titulo-view">Console</h2>
+        <p class="tl-dim">Roda R com os pacotes do trama, para instalar ou conferir pacotes.
+          Cada comando começa num R novo: variáveis não passam de um comando para o outro.</p>
+        <div id="tl-console-saida" class="tl-console-saida" role="log" aria-live="polite"></div>
+        <div class="tl-console-entrada">
+          <span class="tl-console-prompt" aria-hidden="true">&gt;</span>
+          <textarea id="tl-console-cmd" rows="1" spellcheck="false" autocomplete="off"
+                    aria-label="Comando R" placeholder='install.packages("pacote")'></textarea>
+          <button type="button" class="tl-btn tl-btn-primario tl-btn-sm" id="tl-console-rodar">Rodar</button>
+        </div>
+        <p class="tl-dim tl-console-dica">Enter roda · Shift+Enter quebra linha · ↑/↓ histórico</p>
+      </section>
+
+      <section id="view-logs" class="tl-view" data-view="logs" role="tabpanel"
+               aria-labelledby="tl-tab-logs" tabindex="-1" hidden>
+        <h2 class="tl-titulo-view">Logs</h2>
+        <div class="tl-logs-barra">
+          <select id="tl-log-arquivo" aria-label="Arquivo de log"></select>
+          <button type="button" class="tl-btn tl-btn-sm" id="tl-log-copiar">Copiar</button>
+          <button type="button" class="tl-btn tl-btn-sm" data-acao="tl_abrir_logs">Abrir pasta</button>
+        </div>
+        <pre id="tl-log-corpo" class="tl-log-corpo" tabindex="0"></pre>
+      </section>
+
       <section id="view-ajuda" class="tl-view" data-view="ajuda" role="tabpanel"
                aria-labelledby="tl-tab-ajuda" tabindex="-1" hidden>
         <h2 class="tl-titulo-view">Ajuda</h2>
@@ -145,7 +192,7 @@
         <p>Dúvidas, sugestões ou problemas: abra uma questão em
           <a href="https://github.com/uaipedro/trama/issues" target="_blank" rel="noopener">github.com/uaipedro/trama/issues</a>.
         </p>
-        <p>Se algo deu errado numa instalação ou atualização, o log fica na pasta de logs (aba Atualização → Abrir pasta de logs).</p>
+        <p>Se algo deu errado numa instalação ou atualização, o log aparece na aba Logs.</p>
       </section>
 
     </main>

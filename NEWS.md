@@ -1,5 +1,6 @@
 # trama 0.5.1
 
+* `options(trama.encerrar_ao_fechar = TRUE)` faz o processo do editor encerrar alguns segundos depois de a última janela fechar. O launcher liga essa opção ao abrir um projeto.
 * `trama-agente`: `catalog --busca termo` devolve só os blocos que casam (a mesma busca do "+"), em vez do catálogo inteiro; toda edição aceita `--wait N`, que espera o fluxo rodar e devolve em `efeito` o status dos nós tocados e dos que estão abaixo deles. Nó `blocked` (em `state`, `result` e `efeito`) traz `causa`: os ancestrais que falharam.
 
 # trama 0.5.0

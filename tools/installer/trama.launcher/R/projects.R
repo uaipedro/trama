@@ -255,19 +255,28 @@ tl_project_open <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
   pid_file <- .tl_pid_file(caminho)
   dir.create(dirname(pid_file), recursive = TRUE, showWarnings = FALSE)
   unlink(pid_file)
+  # Saída do editor vai para o log do projeto. O editor encerra sozinho
+  # quando a janela fecha (`trama.encerrar_ao_fechar`) e, ao terminar
+  # normalmente, apaga o próprio PID: PID que sobra é crash
+  # (`tl_projects_verificar()`, em R/processos.R).
   cmd <- sprintf(
     paste0(
+      "%s; ",
       "Sys.setenv(TRAMA_LAUNCHER = \"1\"); ",
       "writeLines(as.character(Sys.getpid()), %s); ",
       ".libPaths(c(%s, .Library)); ",
-      "trama::tr_app(trama::tr_project(%s), port = %d, options = list(launch.browser = FALSE))"
+      "options(trama.encerrar_ao_fechar = TRUE); ",
+      "print(trama::tr_app(trama::tr_project(%s), port = %d, options = list(launch.browser = FALSE))); ",
+      "unlink(%s)"
     ),
-    deparse(pid_file), deparse(lib), deparse(caminho), porta
+    .tl_log_sink_codigo(.tl_log_girar(tl_project_log(caminho))),
+    deparse(pid_file), deparse(lib), deparse(caminho), porta, deparse(pid_file)
   )
   rscript <- file.path(R.home("bin"), "Rscript")
   executar(rscript, c("--vanilla", "-e", shQuote(cmd)), wait = FALSE)
   assign(caminho, porta, envir = .tl_processos_projeto)
   assign(caminho, pid_file, envir = .tl_pids_projeto)
+  if (.tl_trama_encerra_sozinho(lib)) assign(caminho, TRUE, envir = .tl_encerra_sozinho)
 
   abrir_janela(sprintf("http://127.0.0.1:%d", porta))
   invisible(porta)
@@ -351,10 +360,7 @@ tl_project_restart <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
 
   pid <- tl_project_pid(caminho)
   matar(pid)
-  rm(list = caminho, envir = .tl_processos_projeto)
-  if (exists(caminho, envir = .tl_pids_projeto, inherits = FALSE)) {
-    rm(list = caminho, envir = .tl_pids_projeto)
-  }
+  .tl_esquecer_projeto(caminho)
 
   # Dá um instante para a porta antiga soltar antes de checar de novo —
   # sem isso, `tl_project_open()` acharia (por uma checagem de socket que

@@ -1,6 +1,6 @@
 Package: trama.launcher
 Title: Instalador e Launcher do trama
-Version: 0.1.3
+Version: 0.2.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -20,7 +20,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
     jsonlite,
+    later,
     shiny,
+    stats,
     utils,
     tools
 Suggests:

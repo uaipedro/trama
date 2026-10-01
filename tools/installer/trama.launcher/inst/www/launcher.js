@@ -9,8 +9,11 @@
 (function () {
   "use strict";
 
-  var VIEWS = ["inicio", "projetos", "colecoes", "atualizacao", "ajuda"];
+  var VIEWS = ["inicio", "projetos", "colecoes", "atualizacao", "console", "logs", "ajuda"];
   var estado = { colecoes: [], projetos: [] };
+  // Segredo desta execução do launcher, exigido pelo servidor no console e
+  // no Sair (ver .tl_token() em R/app.R).
+  var TOKEN = (document.querySelector('meta[name="tl-token"]') || {}).content || "";
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -50,6 +53,136 @@
     if (opts.focoCampo) {
       var campo = document.getElementById(opts.focoCampo);
       if (campo) campo.focus();
+    }
+    if (nome === "logs") {
+      var dot = document.getElementById("tl-nav-dot-logs");
+      if (dot) dot.hidden = true;
+      pedirLog();
+    }
+  }
+
+  // --- logs ---------------------------------------------------------------
+  // O servidor manda a lista de arquivos e o fim do escolhido; enquanto a aba
+  // está à vista, o cliente pede de novo a cada poucos segundos.
+  var logDesejado = null;
+
+  function pedirLog() {
+    if (!window.Shiny || !Shiny.setInputValue) return;
+    var sel = document.getElementById("tl-log-arquivo");
+    var nome = logDesejado || (sel && sel.value) || null;
+    logDesejado = null;
+    Shiny.setInputValue("tl_log_pedir", { nome: nome, t: Date.now() }, { priority: "event" });
+  }
+
+  function classeLinha(l) {
+    if (/^(Erro|Error|Execution halted)/.test(l) || /(^|\s)(Erro|Error)( em| in)?\b.*:/.test(l)) return "tl-log-erro";
+    if (/^(Aviso|Warning|Mensagens de aviso)/.test(l)) return "tl-log-aviso";
+    return "";
+  }
+
+  function linhasHtml(linhas) {
+    return linhas.map(function (l) {
+      var c = classeLinha(l);
+      return c ? '<span class="' + c + '">' + esc(l) + "</span>" : esc(l);
+    }).join("\n");
+  }
+
+  function receberLog(msg) {
+    var sel = document.getElementById("tl-log-arquivo");
+    var corpo = document.getElementById("tl-log-corpo");
+    if (!sel || !corpo) return;
+    sel.innerHTML = (msg.arquivos || []).map(function (a) {
+      return '<option value="' + esc(a) + '"' + (a === msg.nome ? " selected" : "") + ">" + esc(a) + "</option>";
+    }).join("");
+    var noFim = corpo.scrollHeight - corpo.scrollTop - corpo.clientHeight < 40;
+    corpo.innerHTML = (msg.linhas || []).length ? linhasHtml(msg.linhas) : '<span class="tl-dim">Vazio.</span>';
+    if (noFim) corpo.scrollTop = corpo.scrollHeight;
+  }
+
+  function copiarLog() {
+    var corpo = document.getElementById("tl-log-corpo");
+    if (!corpo || !navigator.clipboard) return;
+    navigator.clipboard.writeText(corpo.textContent).then(function () { anunciar("Log copiado."); });
+  }
+
+  function editorCaiu(msg) {
+    var dot = document.getElementById("tl-nav-dot-logs");
+    if (dot) dot.hidden = false;
+    var texto = "O projeto " + msg.nome + " fechou com erro.";
+    anunciar(texto);
+    if (window.Shiny && Shiny.notifications) {
+      Shiny.notifications.show({
+        html: esc(texto) + ' <a href="#logs" data-ver-log="' + esc(msg.log) + '">Ver log</a>',
+        type: "error", duration: null
+      });
+    }
+  }
+
+  function encerrado() {
+    if (document.querySelector(".tl-encerrado")) return;
+    document.body.innerHTML =
+      '<div class="tl-encerrado"><p>O trama foi encerrado.<br>Pode fechar esta janela.</p></div>';
+    window.close();
+  }
+
+  // --- console ------------------------------------------------------------
+  var historico = [];
+  var posHistorico = 0;
+  var blocoAtual = null;
+
+  function rodarConsole() {
+    var campo = document.getElementById("tl-console-cmd");
+    var saida = document.getElementById("tl-console-saida");
+    if (!campo || !saida || blocoAtual) return;
+    var codigo = campo.value;
+    if (!codigo.trim()) return;
+    historico.push(codigo);
+    posHistorico = historico.length;
+    campo.value = "";
+
+    var bloco = document.createElement("div");
+    bloco.innerHTML =
+      '<span class="tl-console-cmd">' + esc(codigo.split("\n").map(function (l) { return "> " + l; }).join("\n")) +
+      '</span>\n<span class="tl-console-resultado"></span><span class="tl-console-rodando">rodando…</span>';
+    saida.appendChild(bloco);
+    saida.scrollTop = saida.scrollHeight;
+    blocoAtual = bloco;
+    document.getElementById("tl-console-rodar").disabled = true;
+    Shiny.setInputValue("tl_console_rodar", { codigo: codigo, token: TOKEN, t: Date.now() }, { priority: "event" });
+  }
+
+  function receberConsole(msg) {
+    if (!blocoAtual) return;
+    var linhas = msg.saida || [];
+    blocoAtual.querySelector(".tl-console-resultado").innerHTML =
+      linhas.map(function (l) {
+        var c = classeLinha(l);
+        return c ? '<span class="' + (c === "tl-log-erro" ? "tl-console-erro" : c) + '">' + esc(l) + "</span>" : esc(l);
+      }).join("\n") + (linhas.length ? "\n" : "");
+    var saida = document.getElementById("tl-console-saida");
+    saida.scrollTop = saida.scrollHeight;
+    if (msg.fim) {
+      var rodando = blocoAtual.querySelector(".tl-console-rodando");
+      if (rodando) rodando.remove();
+      blocoAtual = null;
+      document.getElementById("tl-console-rodar").disabled = false;
+      document.getElementById("tl-console-cmd").focus();
+    }
+  }
+
+  function teclaConsole(e) {
+    var campo = e.target;
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      rodarConsole();
+    } else if (e.key === "ArrowUp" && campo.selectionStart === 0 && historico.length) {
+      e.preventDefault();
+      posHistorico = Math.max(0, posHistorico - 1);
+      campo.value = historico[posHistorico];
+    } else if (e.key === "ArrowDown" && campo.selectionEnd === campo.value.length && posHistorico < historico.length) {
+      e.preventDefault();
+      posHistorico += 1;
+      campo.value = posHistorico < historico.length ? historico[posHistorico] : "";
     }
   }
 
@@ -378,6 +511,12 @@
     Shiny.addCustomMessageHandler("tl-projetos", renderProjetos);
     Shiny.addCustomMessageHandler("tl-colecoes-projeto", receberColecoesProjeto);
     Shiny.addCustomMessageHandler("tl-projeto-faltando", receberProjetoFaltando);
+    Shiny.addCustomMessageHandler("tl-log", receberLog);
+    Shiny.addCustomMessageHandler("tl-console", receberConsole);
+    Shiny.addCustomMessageHandler("tl-editor-caiu", editorCaiu);
+    Shiny.addCustomMessageHandler("tl-encerrado", encerrado);
+    if (viewAtual() === "logs") pedirLog();
+    setInterval(function () { if (viewAtual() === "logs" && !document.hidden) pedirLog(); }, 2500);
   }
 
   function abrirPastaExistente() {
@@ -394,6 +533,27 @@
       var navBtn = e.target.closest(".tl-nav-item, .tl-status-pill");
       if (navBtn && navBtn.dataset.view) {
         mostrarView(navBtn.dataset.view);
+        return;
+      }
+      if (e.target.closest("#tl-btn-sair")) {
+        Shiny.setInputValue("tl_sair", { token: TOKEN, t: Date.now() }, { priority: "event" });
+        // A tela muda já no clique: o R vai embora em seguida e a resposta
+        // dele pode não chegar antes da conexão cair.
+        setTimeout(encerrado, 300);
+        return;
+      }
+      var verLog = e.target.closest("[data-ver-log]");
+      if (verLog) {
+        logDesejado = verLog.dataset.verLog;
+        mostrarView("logs");
+        return;
+      }
+      if (e.target.id === "tl-log-copiar") {
+        copiarLog();
+        return;
+      }
+      if (e.target.id === "tl-console-rodar") {
+        rodarConsole();
         return;
       }
       if (document.body.classList.contains("tl-ocupado")) return;
@@ -459,6 +619,11 @@
     window.addEventListener("hashchange", function () {
       mostrarView(viewAtual(), { semHash: true });
     });
+
+    var cmd = document.getElementById("tl-console-cmd");
+    if (cmd) cmd.addEventListener("keydown", teclaConsole);
+    var selLog = document.getElementById("tl-log-arquivo");
+    if (selLog) selLog.addEventListener("change", pedirLog);
 
     var busca = document.getElementById("tl-busca");
     if (busca) busca.addEventListener("input", function () { filtrarProjetos(busca.value); });

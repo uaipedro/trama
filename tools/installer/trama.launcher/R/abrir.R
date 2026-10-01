@@ -35,6 +35,11 @@ abrir <- function(porta = 8725L, ja_rodando = .tl_launcher_rodando, abrir_janela
   if (nzchar(s$atual)) .libPaths(c(tl_lib_dir(s$atual), .Library))
 
   headless <- nzchar(Sys.getenv("TRAMA_HEADLESS"))
+  # Sem terminal à vista, o que o launcher escreve vai para `launcher.log`
+  # (aba Logs). Numa sessão interativa (desenvolvimento) fica no console.
+  if (!interactive()) {
+    eval(parse(text = .tl_log_sink_codigo(.tl_log_girar(.tl_log_arquivo("launcher")))), globalenv())
+  }
   shiny::runApp(
     tl_app(),
     port = .tl_porta_livre(porta),

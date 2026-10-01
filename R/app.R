@@ -41,8 +41,32 @@ tr_app <- function(project = tr_project("."), flow = "main",
     if (ok) shiny::onStop(tr_control_stop)
   }
 
-  do.call(shiny::shinyApp,
-          c(list(ui = tr_ui(project), server = tr_server(project, flow, executor)), dots))
+  server <- tr_server(project, flow, executor)
+  if (isTRUE(getOption("trama.encerrar_ao_fechar", FALSE))) {
+    server <- .tr_encerrar_ao_fechar(server)
+  }
+  do.call(shiny::shinyApp, c(list(ui = tr_ui(project), server = server), dots))
+}
+
+#' Embrulha o server para o processo encerrar quando a última janela fecha.
+#'
+#' Ligado por `options(trama.encerrar_ao_fechar = TRUE)`, que o launcher passa
+#' ao abrir um projeto: sem terminal, ninguém mataria o R do editor. A espera
+#' cobre o recarregar da página, que fecha uma sessão e abre outra.
+#' @noRd
+.tr_encerrar_ao_fechar <- function(server, espera = 15, parar = shiny::stopApp) {
+  # Sem `force`, a promessa de `server` só é lida na primeira sessão, quando
+  # o nome em quem chamou já aponta para este embrulho: recursão infinita.
+  force(server)
+  abertas <- 0L
+  function(input, output, session) {
+    abertas <<- abertas + 1L
+    session$onSessionEnded(function() {
+      abertas <<- abertas - 1L
+      later::later(function() if (abertas == 0L) parar(), espera)
+    })
+    server(input, output, session)
+  }
 }
 
 #' Porta padrão do editor: 8726, que é "TRAM" no teclado do telefone.

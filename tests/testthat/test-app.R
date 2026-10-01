@@ -126,3 +126,31 @@ test_that("tr_port_free falha quando não há porta na janela", {
   on.exit(close(con))
   expect_error(tr_port_free(livre, tentativas = 1L), "nenhuma porta livre")
 })
+
+test_that("encerrar_ao_fechar para o app só quando a última sessão fecha", {
+  paradas <- 0L
+  srv <- .tr_encerrar_ao_fechar(function(input, output, session) NULL,
+                                espera = 0, parar = function() paradas <<- paradas + 1L)
+  sessao <- function() {
+    fim <- NULL
+    list(obj = list(onSessionEnded = function(f) fim <<- f), fechar = function() fim())
+  }
+  a <- sessao(); b <- sessao()
+  srv(NULL, NULL, a$obj); srv(NULL, NULL, b$obj)
+  a$fechar(); later::run_now(0.1)
+  expect_equal(paradas, 0L)
+  # Recarregar: fecha e reabre antes da espera vencer.
+  b$fechar(); c <- sessao(); srv(NULL, NULL, c$obj); later::run_now(0.1)
+  expect_equal(paradas, 0L)
+  c$fechar(); later::run_now(0.1)
+  expect_equal(paradas, 1L)
+})
+
+test_that("tr_app com encerrar_ao_fechar não embrulha o próprio embrulho", {
+  withr::local_options(trama.encerrar_ao_fechar = TRUE, trama.controle = FALSE)
+  proj <- tr_project_new(withr::local_tempdir())
+  app <- tr_app(tr_project(proj), port = NULL)
+  expect_s3_class(app, "shiny.appobj")
+  sessao <- shiny::MockShinySession$new()
+  expect_no_error(shiny::testServer(app, {}, session = sessao))
+})

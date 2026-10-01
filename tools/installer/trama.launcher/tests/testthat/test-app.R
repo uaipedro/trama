@@ -293,3 +293,21 @@ test_that("Salvar coleções de um projeto grava trama.json e instala o que falt
   expect_equal(tl_project_collections(caminho), c("trama.data", "trama.ml"))
   expect_true(dir.exists(file.path(tl_lib_dir("2026.10"), "trama.ml")))
 })
+
+test_that("console e Sair sem o token da tela de início são ignorados", {
+  local_home()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste,
+    tl_console_rodar = function(codigo, ...) list(id = "x", saida = "", status = "", pid = ""),
+    tl_projects_encerrar = function(...) stop("não devia encerrar")
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+  shiny::testServer(tl_server, {
+    session$setInputs(tl_console_rodar = list(codigo = "1", token = "chute"))
+    expect_null(console_job())
+    session$setInputs(tl_sair = list(token = "chute"))
+    session$setInputs(tl_console_rodar = list(codigo = "1", token = .tl_token()))
+    expect_equal(console_job()$id, "x")
+  })
+})
