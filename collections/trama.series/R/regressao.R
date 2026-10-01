@@ -226,7 +226,15 @@ tr_series_regression <- function(serie, formula = "valor ~ t + periodo", contras
     stats::contrasts(x) <- stats::contr.treatment
   } else {
     x <- factor(ciclo, levels = seq_len(f), labels = rot)
-    stats::contrasts(x) <- if (contraste == "soma_zero") stats::contr.sum else stats::contr.treatment
+    if (contraste == "soma_zero") {
+      # Matriz com nome nas colunas: sem isto o `contr.sum` numera (periodo1,
+      # periodo2...) e o card não diz qual mês é qual.
+      m <- stats::contr.sum(rot)
+      colnames(m) <- rot[-f]
+      stats::contrasts(x) <- m
+    } else {
+      stats::contrasts(x) <- stats::contr.treatment
+    }
   }
   x
 }
