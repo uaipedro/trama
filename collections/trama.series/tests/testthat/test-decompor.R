@@ -417,3 +417,20 @@ test_that("previsão do detrend com faltante mantém ajustados e resíduos no te
   expect_equal(stats::tsp(fc$fitted), stats::tsp(x))
   expect_true(is.na(fc$fitted[5]))
 })
+
+test_that("remoção para trás: todo termo sazonal que sobra tem p <= 1 - confianca", {
+  # Adaptado do teste escrito na sessão paralela (stash "series alfa->confianca v2").
+  x <- log(serie_mensal())
+  for (conf in c(0.95, 0.99)) {
+    r <- tr_series_regression(x, remover_ns = TRUE, confianca = conf)
+    expect_equal(r$serie_reg$alfa, 1 - conf)
+    co <- summary(r$ajuste)$coefficients
+    p <- co[grepl("^periodo", rownames(co)), "Pr(>|t|)"]
+    expect_true(all(p <= 1 - conf), info = paste("confianca", conf))
+  }
+  # Mais confiança, critério mais duro: não sobra MAIS termo que antes.
+  a <- tr_series_regression(x, remover_ns = TRUE, confianca = 0.95)
+  b <- tr_series_regression(x, remover_ns = TRUE, confianca = 0.99)
+  expect_gte(length(b$serie_reg$estacoes_removidas), length(a$serie_reg$estacoes_removidas))
+  expect_error(tr_series_regression(x, remover_ns = TRUE, confianca = 5), "confianca")
+})
