@@ -170,8 +170,8 @@ tr_series_interpolate <- function(serie) {
 #'
 #' É o "estimo num lm e depois subtraio" num nó só. A sazonalidade FICA —
 #' quem quer tirá-la junto usa a decomposição —, e a tendência estimada vai
-#' pendurada na série como atributo `tendencia` (um `ts` no mesmo tempo): é o
-#' que permite conferir, no console, que `saída + tendência` devolve a série.
+#' sai na segunda porta (`tendencia`, um `ts` no mesmo tempo da saída), e
+#' `saída + tendência` devolve a série.
 #'
 #' O polinômio é ortogonal (`poly()`), e não cru como o da `series/regression`:
 #' aqui só o AJUSTE importa, não a leitura dos coeficientes, e `t⁵` cru numa
@@ -193,8 +193,7 @@ tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0
     .tr_series_minimo(serie, 3L, "series/detrend", "a diferença")
     x <- as.numeric(serie)
     out <- diff(serie)
-    attr(out, "tendencia") <- como_ts(x[-length(x)], stats::tsp(serie)[[1]] + 1 / f)
-    return(list(out = out, ajuste = .tr_series_detrend_fit(serie, metodo, 1L, NULL)))
+    return(list(out = out, tendencia = como_ts(x[-length(x)], stats::tsp(serie)[[1]] + 1 / f)))
   }
   tt <- seq_along(serie)
   y <- as.numeric(serie)
@@ -214,8 +213,9 @@ tr_series_detrend <- function(serie, metodo = "linear", grau = 2L, suavidade = 0
   }
   tend <- as.numeric(stats::predict(fit, newdata = data.frame(tt = tt)))
   out <- como_ts(y - tend)
-  attr(out, "tendencia") <- como_ts(tend)
-  list(out = out, ajuste = .tr_series_detrend_fit(serie, metodo, g, tend))
+  # Só linear e polinomial têm coeficientes; loess fica com o gráfico no card.
+  if (metodo != "loess") out <- .tr_series_com_card(out, .tr_series_detrend_fit(serie, metodo, g))
+  list(out = out, tendencia = como_ts(tend))
 }
 
 #' Opera duas séries ponto a ponto: a − b, a + b, a / b, a × b.

@@ -43,13 +43,36 @@ series_ts_type <- function() {
     # O card de uma série é o GRÁFICO dela: 25 linhas de `tempo, valor` não
     # dizem nada que o traço não diga melhor, e a tabela continua a um fio de
     # distância pelo adaptador. `2:1` porque série é comprida por natureza.
+    # Série que sai de `series/detrend`/`series/deseasonalize` traz o ajuste do
+    # componente removido, e o card dela mostra os coeficientes (o que se quer
+    # ler ali: o termo, o p-valor), como o da `series/regression`.
     preview = function(x, ctx) {
+      fit <- .tr_series_card_ajuste(x)
+      if (!is.null(fit)) return(trama.models::tr_models_card(fit, ctx))
       trama.view::tr_view_render(tr_series_plot(x, aspecto = "2:1"), ctx)
     },
     # No relatório exportado, a série também é o gráfico: o `print` de um
     # `ts` é uma grade de números.
     report = tr_series_plot
   )
+}
+
+#' Pendura o ajuste no card da série, carimbado com valores e calendário.
+#'
+#' Atributo comum vaza: `log(x)`, `x - 1` e `stats::lag(x)` o carregam adiante,
+#' e o card do nó seguinte mostraria coeficientes que não são dele. O carimbo
+#' faz o ajuste valer só para a série exata que o produziu.
+#' @noRd
+.tr_series_com_card <- function(x, fit) {
+  attr(x, "card_ajuste") <- list(fit = fit, valores = as.numeric(x), tsp = stats::tsp(x))
+  x
+}
+
+.tr_series_card_ajuste <- function(x) {
+  c <- attr(x, "card_ajuste")
+  if (is.null(c) || !identical(c$tsp, stats::tsp(x)) ||
+      !identical(c$valores, as.numeric(x))) return(NULL)
+  c$fit
 }
 
 .tr_series_guard_ts <- function(x) {
@@ -239,6 +262,9 @@ series_forecast_type <- function() {
     # O ajuste de uma série carrega os componentes: é por este adaptador que o
     # `series/component` e o `series/plot_decomposition` os leem. Um
     # `models/fit` que não veio de série é recusado com classe.
-    trama::tr_adapter("models/fit", "series/decomposition", tr_series_as_decomposition)
+    trama::tr_adapter("models/fit", "series/decomposition", tr_series_as_decomposition),
+    # O ARIMA vai aos blocos de modelo (comparar, selecionar, coeficientes)
+    # pelo contrato da `trama.models`; ver `arima_fit.R`.
+    trama::tr_adapter("series/model", "models/fit", tr_series_as_fit)
   )
 }

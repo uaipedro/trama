@@ -1,3 +1,10 @@
+# trama.series 0.6.0
+
+* `series/detrend` (v3) e `series/deseasonalize` (v2): o card mostra os coeficientes do componente removido (termo, estimativa, erro-padrão, p-valor), como o da `series/regression`. As saídas passam a ser a série sem o componente (`out`) e o componente (`tendencia` ou `sazonal`), as duas como série. A saída `ajuste` saiu: fluxo que a ligava acusa porta inexistente. Para medidas de ajuste e previsão da tendência, `series/regression`.
+* ACF, PACF, Ljung-Box e Box-Pierce: o campo **Defasagens** em 0 aparece vazio, com "0 = automático" em cinza.
+* O ARIMA liga direto nos blocos de modelo (adaptador `series/model` → `models/fit`, `tr_series_as_fit()`): `models/compare` testa ordens aninhadas pela razão de verossimilhança (mesma série, mesmos d e D), `models/select` ordena por AICc (o do `forecast`) e `models/coefficients` dá o teste z de cada coeficiente. ETS e Holt-Winters são recusados com aviso.
+* Depende de `trama (>= 0.5.3)` e `trama.models (>= 0.6.1)`.
+
 # trama.series 0.5.1
 
 * `tr_series_as_decomposition()` exportada: é o adaptador de `models/fit` para decomposição, e o script exportado pelo editor passa a chamá-lo pelo nome público em vez de `trama.series:::`.

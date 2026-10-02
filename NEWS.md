@@ -1,3 +1,7 @@
+# trama 0.5.3
+
+* `tr_param_int(vazio = , example = )`: `vazio` é o valor que o campo vazio representa (o "automático"). Com o param nesse valor, o campo aparece vazio com `example` em cinza, e apagar o número volta a ele em vez de acusar "obrigatório".
+
 # trama 0.5.2
 
 * Exportar como Quarto gera um relatório, e não um bloco de código: um chunk por card, os frames como seções (na ordem de slide), as notas como texto, as saídas que nenhum fio consome à mostra, cabeçalho com sumário, código recolhível e HTML autocontido, versões dos pacotes no início e `sessionInfo()` no fim.

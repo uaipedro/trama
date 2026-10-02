@@ -222,3 +222,25 @@ contra `lm`; loess e diferença dão a reta como referência, dito na nota).
 tendência, contra as médias de período centradas (1e-10). Com ciclos
 incompletos, os dois avisam e recomendam a regressão conjunta. Testes:
 `test-decompor.R`, `test-operar.R`, `test-testar.R`, `test-motor.R`.
+
+Em 01/10/2026 (`trama.series` 0.6.0), `series/detrend` v3 e
+`series/deseasonalize` v2 trocam a saída `ajuste` pelo componente removido
+(`tendencia`/`sazonal`, série), e os coeficientes vão para o card da série sem o
+componente. As contas não mudam e seguem conferidas contra `lm` (1e-10).
+Loess e diferença deixam de mostrar a reta de referência: o card delas é o
+gráfico, sem coeficiente que não corresponde ao que foi removido.
+
+## ARIMA em `models/compare` e `models/select` (01/10/2026)
+
+`trama.series` 0.6.0 / `trama.models` 0.6.1. O ARIMA chega aos blocos de modelo
+por adaptador (`series/model` → `models/fit`); nenhum bloco novo. Razão de
+verossimilhança `2(ℓ₁ − ℓ₀)` ~ χ² com gl = diferença de parâmetros (Wilks,
+1938), aceita só entre ajustes da MESMA série com os mesmos d, D e período e
+coeficientes do menor contidos no maior; com d diferente as verossimilhanças
+são de séries diferentes. Seleção com `k` = coeficientes livres + variância e
+`n` = observações efetivas (`nobs`), o que reproduz o AICc e o BIC do
+`forecast` (Hyndman e Athanasopoulos, 2021, sec. 9.8). Coeficientes com
+erro-padrão da matriz de informação e teste z. Validação (1e-8, série `lh`):
+estatística, gl e p contra `lmtest::lrtest`; AICc e BIC contra `forecast::Arima`;
+estimativa, erro-padrão e p contra `lmtest::coeftest`. Teste:
+`collections/trama.series/tests/testthat/test-arima-fit.R`.

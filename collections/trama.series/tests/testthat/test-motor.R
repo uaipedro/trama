@@ -81,9 +81,9 @@ test_that("regressão atravessa a aresta: leitores da models de um lado, compone
     trama::tr_add("graf", "series/plot_decomposition", from = "reg") |>
     trama::tr_add("prev", "series/forecast", horizonte = 6L, from = "reg") |>
     trama::tr_add("dessaz", "series/deseasonalize", from = "pax") |>
-    trama::tr_add("coef2", "models/coefficients", from = "dessaz:ajuste") |>
+    trama::tr_add("saz", "series/plot", from = "dessaz:sazonal") |>
     trama::tr_add("tend", "series/detrend", from = "pax") |>
-    trama::tr_add("coef3", "models/coefficients", from = "tend:ajuste")
+    trama::tr_add("tendg", "series/plot", from = "tend:tendencia")
   expect_s3_class(rodar(f, "coef"), "tr_models_effects")
   q <- rodar(f, "anova")$tabela
   expect_true(all(c("poly(t, 2, raw = TRUE)", "periodo") %in% q$termo))
@@ -91,8 +91,8 @@ test_that("regressão atravessa a aresta: leitores da models de um lado, compone
   expect_equal(rodar(f, "ruido")$teste, "Ljung-Box")
   expect_s3_class(rodar(f, "graf"), "ggplot")
   expect_length(rodar(f, "prev")$mean, 6L)
-  expect_s3_class(rodar(f, "coef2"), "tr_models_effects")
-  expect_s3_class(rodar(f, "coef3"), "tr_models_effects")
+  expect_s3_class(rodar(f, "saz"), "ggplot")
+  expect_s3_class(rodar(f, "tendg"), "ggplot")
 })
 
 test_that("uma série NÃO entra onde o motor não tem adaptador", {

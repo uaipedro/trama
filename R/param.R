@@ -83,9 +83,18 @@ tr_param_num  <- function(default, min = NA, max = NA, step = NULL, label = NULL
 #' cada clique: é o gesto "faça de novo" (baixar de novo, sortear de novo)
 #' expresso como param, então entra no hash, no undo e no documento como
 #' qualquer outro, e o bloco decide o que fazer quando o número sobe.
+#'
+#' `vazio` é o valor que o campo VAZIO representa (tipicamente o "automático",
+#' como `0` defasagens): com ele igual ao valor, o campo aparece vazio, com
+#' `example` em cinza dizendo o que o vazio quer dizer, e apagar o número volta
+#' a ele em vez de acusar "obrigatório".
+#' @param vazio Valor que o campo vazio representa, ou `NULL`.
+#' @param example Texto em cinza no campo vazio.
 #' @export
-tr_param_int  <- function(default, min = NA, max = NA, label = NULL, botao = NULL)
-  tr_param("integer", as.integer(default), label, min = min, max = max, botao = botao)
+tr_param_int  <- function(default, min = NA, max = NA, label = NULL, botao = NULL,
+                          vazio = NULL, example = NULL)
+  tr_param("integer", as.integer(default), label, min = min, max = max, botao = botao,
+           vazio = if (!is.null(vazio)) as.integer(vazio), example = example)
 
 #' Param de texto livre.
 #' @export

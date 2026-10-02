@@ -403,16 +403,14 @@ tr_series_as_decomposition <- function(x) {
   msg
 }
 
-#' O ajuste da tendência de `series/detrend`, como `models/fit`.
+#' Os coeficientes da tendência de `series/detrend`, como `models/fit`.
 #'
-#' Linear e polinomial têm coeficientes: `valor ~ t` e
+#' Só linear e polinomial chegam aqui: `valor ~ t` e
 #' `valor ~ poly(t, g, raw = TRUE)` (potências cruas, para que cada
-#' coeficiente seja o de t^k e a previsão seja a do mesmo polinômio). Loess e
-#' diferença não têm: a saída é a reta de mínimos quadrados, dita como
-#' referência na nota e no rótulo, para que o fio continue existindo sem
-#' fingir que a tendência removida tem p-valor.
+#' coeficiente seja o de t^k). O ajuste vai para o card da série sem
+#' tendência.
 #' @noRd
-.tr_series_detrend_fit <- function(serie, metodo, grau, tendencia) {
+.tr_series_detrend_fit <- function(serie, metodo, grau) {
   g <- if (metodo == "polinomial") grau else 1L
   formula <- if (g == 1L) "valor ~ t" else sprintf("valor ~ poly(t, %d, raw = TRUE)", g)
   f <- .tr_series_formula(formula, FALSE)
@@ -420,10 +418,6 @@ tr_series_as_decomposition <- function(x) {
   ok <- !is.na(base$valor)
   fit <- stats::lm(f, data = base[ok, , drop = FALSE])
   aviso <- .tr_series_aviso_ciclos(serie, "series/detrend")
-  referencia <- metodo %in% c("loess", "diferenca")
-  nota <- paste(c(if (referencia) sprintf(paste0("o método '%s' não tem coeficientes: este ajuste é a ",
-                                                 "reta de mínimos quadrados, só como referência"), metodo),
-                  aviso), collapse = "; ")
   ajustado <- rep(NA_real_, length(serie)); ajustado[ok] <- stats::fitted(fit)
   como_ts <- function(v) stats::ts(v, start = stats::start(serie), frequency = stats::frequency(serie))
   info <- list(serie = serie, formula = paste(deparse(f, width.cutoff = 500L), collapse = " "),
@@ -431,9 +425,9 @@ tr_series_as_decomposition <- function(x) {
                estacoes_removidas = character(), erro = "independente", ordem = NULL, aviso = aviso,
                tendencia = como_ts(ajustado), sazonal = como_ts(rep(0, length(serie))),
                resto = como_ts(as.numeric(serie) - ajustado), efeito_regressor = NULL)
-  rotulo <- if (referencia) "Tendência · reta de referência" else sprintf("Tendência · %s", formula)
-  out <- trama.models::tr_models_as_fit(fit, "lm", rotulo, f, base[ok, , drop = FALSE], "valor",
-                                        nota = nota, extra = list(serie_reg = info))
+  out <- trama.models::tr_models_as_fit(fit, "lm", sprintf("Tendência · %s", formula), f,
+                                        base[ok, , drop = FALSE], "valor",
+                                        nota = paste(aviso, collapse = "; "), extra = list(serie_reg = info))
   out$descartadas <- sum(!ok)
   out
 }
@@ -458,7 +452,5 @@ tr_series_deseasonalize <- function(serie, controlar_tendencia = TRUE, contraste
   fit$rotulo <- sprintf("Sazonalidade · %s", fit$serie_reg$formula)
   if (!is.null(aviso)) fit$nota <- paste(c(if (nzchar(fit$nota)) fit$nota, aviso), collapse = "; ")
   sazonal <- fit$serie_reg$sazonal
-  out <- serie - sazonal
-  attr(out, "sazonal") <- sazonal
-  list(out = out, ajuste = fit)
+  list(out = .tr_series_com_card(serie - sazonal, fit), sazonal = sazonal)
 }

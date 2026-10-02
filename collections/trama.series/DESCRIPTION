@@ -1,6 +1,6 @@
 Package: trama.series
 Title: Time Series Collection for trama
-Version: 0.5.1
+Version: 0.6.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -20,10 +20,10 @@ Encoding: UTF-8
 Depends:
     R (>= 4.1)
 Imports:
-    trama (>= 0.5.2),
+    trama (>= 0.5.3),
     trama.data,
     trama.view,
-    trama.models (>= 0.6.0),
+    trama.models (>= 0.6.1),
     forecast (>= 8.0),
     nlme,
     urca,

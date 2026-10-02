@@ -17,7 +17,7 @@ import ReactDOM from "react-dom";
 // `./trama-<versão>/runtime.js` — o `params.js` vizinho sai do mesmo diretório
 // (a dependência do núcleo usa `all_files = TRUE`). E nenhuma coleção precisa
 // dele pelo nome: as regras chegam a elas através destes widgets.
-import { layoutEnum, validarNumero } from "./params.js";
+import { layoutEnum, textoNumero, validarNumero } from "./params.js";
 import { anotado, opcoes, sugerir, sumidas, alternativa } from "./colunas.js";
 import { MARCAS, NIVEIS, posicao, estrelas, faixa, venceu, num, numP, eixoEfeito } from "./teste.js";
 
@@ -442,7 +442,7 @@ export function Toggle({ value, onChange, title }) {
 // porque é preciso segurar o texto inválido na tela junto da mensagem; o eco
 // externo entra pelo `useEffect`.
 export function NumberField({ spec, value, onChange }) {
-  const salvo = value == null ? "" : String(value);
+  const salvo = textoNumero(spec, value);
   const [texto, setTexto] = React.useState(salvo);
   const [erro, setErro] = React.useState(null);
   // Valor do documento mudou por fora (desfazer, outra aba, o próprio eco do
@@ -459,7 +459,7 @@ export function NumberField({ spec, value, onChange }) {
     if (!r.ok) { setErro(r.erro); return; }
     // Comparado como texto: documento antigo pode guardar "30" como string, e
     // 30 !== "30" mandaria uma op que não muda nada.
-    if (String(r.valor) !== salvo) onChange(r.valor);
+    if (textoNumero(spec, r.valor) !== salvo) onChange(r.valor);
     // Mesmo valor escrito de outro jeito ("30,0" num inteiro que já é 30): não
     // há eco para ressincronizar, então o campo volta sozinho à forma salva.
     else setTexto(salvo);
@@ -471,6 +471,7 @@ export function NumberField({ spec, value, onChange }) {
     h("input", {
       key: "i", type: "text", inputMode: "decimal", value: texto,
       className: "nodrag" + (erro ? " tr-invalid" : ""),
+      placeholder: spec.example,
       title: limites.length ? limites.join(" · ") : undefined,
       "aria-invalid": erro ? true : undefined,
       onChange: (e) => {

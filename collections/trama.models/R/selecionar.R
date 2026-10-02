@@ -15,6 +15,8 @@
 #' @return lista com `ll`, `k` (parâmetros, variância inclusa), `n`.
 #' @noRd
 .tr_models_info_ic <- function(fit) {
+  proprio <- tr_models_loglik(fit)
+  if (!is.null(proprio)) return(proprio)
   aj <- fit$ajuste
   if (fit$classe == "lmer") aj <- lme4::refitML(aj)
   else if (fit$classe == "gls" && !identical(aj$method, "ML")) aj <- stats::update(aj, method = "ML")
@@ -57,7 +59,7 @@ tr_models_select <- function(modelos, criterio = "AICc") {
                      "'%s' compara dois ou mais modelos; ligue mais um na entrada.", no)
   }
   for (m in modelos) .tr_models_modelo_conferir(m)
-  ruim <- Filter(function(m) !m$classe %in% .TR_MODELS_SELECT_CLASSES, modelos)
+  ruim <- Filter(function(m) !m$classe %in% .TR_MODELS_SELECT_CLASSES && is.null(tr_models_loglik(m)), modelos)
   if (length(ruim)) {
     .tr_models_abort("tr_models_error_not_applicable",
                      paste0("'%s' não lê %s: precisa de log-verossimilhança (lm, glm, lmer, glmer, gls ",

@@ -527,12 +527,14 @@ tr_flow(reg) |>
 trecho com buraco em vez de inventá-lo.
 ]---")),
 
-      trama::tr_node("series/detrend", fn = tr_series_detrend, label = "Tirar tendência", version = 2L,
+      trama::tr_node("series/detrend", fn = tr_series_detrend, label = "Tirar tendência", version = 3L,
         # v2: ganhou a saída `ajuste` (os params não mudaram).
-        migracoes = list(`2` = function(params) params),
+        # v3: `ajuste` sai; a tendência vira a saída `tendencia` e os
+        # coeficientes vão para o card (params iguais).
+        migracoes = list(`2` = function(params) params, `3` = function(params) params),
         category = "serie_operar", icon = icone("trending-down"),
-        description = "Estima a tendência e a subtrai da série, mantendo a sazonalidade; o ajuste sai com os efeitos.",
-        inputs = list(serie = S), outputs = list(out = S, ajuste = FIT),
+        description = "Estima a tendência e a subtrai da série, mantendo a sazonalidade; o card mostra os coeficientes.",
+        inputs = list(serie = S), outputs = list(out = S, tendencia = S),
         params = list(metodo = E("linear", c("linear", "polinomial", "loess", "diferenca"),
                                  label = "Método"),
                       grau = trama::tr_when(I(2L, min = 2L, max = 5L, label = "Grau (polinomial)"), metodo = "polinomial"),
@@ -556,24 +558,22 @@ escolhida às claras:
   mesma conta de `series/diff` simples; está aqui para comparar com os outros
   métodos no mesmo card.
 
-### O ajuste
+### O card e as saídas
 
-A segunda saída, **ajuste**, é a tendência como modelo (`models/fit`):
-`valor ~ t` (linear) ou `valor ~ poly(t, g, raw = TRUE)` (polinomial, potências
-cruas). Ligue em `models/coefficients` para a inclinação com erro-padrão e
-p-valor, em `models/fit_stats` para R² e F, em `series/forecast` para projetar
-a reta. `loess` e `diferenca` não têm coeficientes: o ajuste delas é a reta de
-mínimos quadrados, como referência, e a nota do card diz isso.
+O card mostra os coeficientes da tendência — termo, estimativa, erro-padrão e
+p-valor —, como o da `series/regression`: `valor ~ t` (linear) ou
+`valor ~ poly(t, g, raw = TRUE)` (polinomial, potências cruas). `loess` e
+`diferenca` não têm coeficientes, e o card delas é o gráfico.
+
+São duas saídas, as duas séries: `out`, a série sem a tendência, e
+`tendencia`, a tendência removida. `out + tendencia` devolve a série. Para
+medidas de ajuste (R², F) ou para projetar a reta, `series/regression`.
 
 A tendência é estimada SEM a sazonalidade. Com ciclos completos (a série começa
 no primeiro período e termina no último) isso é o mesmo que estimar as duas
 juntas; com ciclos incompletos, não é, e o bloco avisa: para o ajuste conjunto,
 `series/regression`. Os erros-padrão supõem resíduos independentes, o que série
 temporal raramente cumpre — confira o resto com `series/ljung_box`.
-
-A tendência estimada vai junto com a série, como atributo `tendencia` —
-no console, `attr(saida, "tendencia")` —, e `saída + tendência` devolve a
-série original.
 
 Nos três métodos com modelo (linear, polinomial, loess), a sazonalidade FICA
 na saída; na diferença ela sobra só como variação entre meses vizinhos, com
@@ -591,9 +591,9 @@ tinha.
 - **Grau (polinomial)** — de 2 a 5. Só vale para `polinomial`.
 - **Suavidade (loess)** — maior que 0 e até 1. Só vale para `loess`.
 ]---", r"---[
-Uma série (`series/ts`) sem a tendência, no mesmo tempo da original (um
-período mais curta na diferença), com a tendência estimada no atributo
-`tendencia`; e o **ajuste** (`models/fit`) da tendência.
+`out`: a série (`series/ts`) sem a tendência, no mesmo tempo da original (um
+período mais curta na diferença); `tendencia`: a tendência removida, no mesmo
+tempo de `out`.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
@@ -606,12 +606,15 @@ lugar; `series/diff` para diferenças de ordem maior ou sazonais;
 `series/moving_average` para ver a tendência sem tirá-la.
 ]---")),
 
-      trama::tr_node("series/deseasonalize", fn = tr_series_deseasonalize, label = "Tirar sazonalidade",
+      trama::tr_node("series/deseasonalize", fn = tr_series_deseasonalize, label = "Tirar sazonalidade", version = 2L,
+        # v2: `ajuste` sai; o componente vira a saída `sazonal` e os
+        # coeficientes vão para o card (params iguais).
+        migracoes = list(`2` = function(params) params),
         pressupostos = .tr_series_doc("series/deseasonalize")$pressupostos,
         referencias = .tr_series_doc("series/deseasonalize")$referencias,
         category = "serie_operar", icon = icone("waves-arrow-down"),
-        description = "Estima o efeito de cada período e o subtrai da série; o ajuste sai com os efeitos e os testes.",
-        inputs = list(serie = S), outputs = list(out = S, ajuste = FIT),
+        description = "Estima o efeito de cada período e o subtrai da série; o card mostra os efeitos e os p-valores.",
+        inputs = list(serie = S), outputs = list(out = S, sazonal = S),
         params = list(controlar_tendencia = B(TRUE, label = "Controlar a tendência"),
                       contraste = E("soma_zero", c("soma_zero", "categoria_base"), label = "Contraste"),
                       excluir = P("text", "", label = "Excluir termos sazonais", example = "fev, mar"),
@@ -621,8 +624,10 @@ lugar; `series/diff` para diferenças de ordem maior ou sazonais;
         help = .tr_series_ajuda(r"---[
 Estima o efeito de cada período do ciclo (cada mês, numa mensal) por regressão
 em variáveis indicadoras e TIRA esse efeito da série, deixando a tendência e o
-resto. A segunda saída, **ajuste**, é o modelo: os efeitos com erro-padrão e
-p-valor em `models/coefficients`, o F da sazonalidade (linha `periodo`) em
+resto. O card mostra os efeitos estimados com erro-padrão e p-valor, como o
+da `series/regression`; as saídas são `out`, a série dessazonalizada, e
+`sazonal`, o componente removido (`out + sazonal` devolve a série). Para o F
+da sazonalidade, `series/regression` com a mesma fórmula e
 `models/anova_table`.
 
 **Controlar a tendência** (padrão) ajusta `valor ~ t + periodo` e tira só o
@@ -649,14 +654,14 @@ conjunto com tudo que se quiser é `series/regression`.
 - **Excluir termos sazonais** — nomes ou números separados por vírgula.
 - **Remover termos sazonais não significativos** e **Confiança da remoção**.
 ]---", r"---[
-A série dessazonalizada (`series/ts`), com o componente no atributo `sazonal`;
-e o **ajuste** (`models/fit`) com os efeitos.
+`out`: a série dessazonalizada (`series/ts`); `sazonal`: o componente
+removido, no mesmo tempo.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
   tr_add("log", "series/transform", metodo = "log", from = "pax") |>
   tr_add("dessaz", "series/deseasonalize", from = "log") |>
-  tr_add("coef", "models/coefficients", from = "dessaz:ajuste")
+  tr_add("efeito", "series/plot", from = "dessaz:sazonal")
 ]---", r"---[
 `series/regression` para o ajuste conjunto; `series/component` com
 `dessazonalizada` para a mesma conta a partir da clássica ou da STL;
@@ -1883,7 +1888,7 @@ apontou antes de acreditar nela.
         category = "serie_autocorr", icon = icone("audio-waveform"),
         description = "Ljung-Box: a série é ruído branco, ou sobrou autocorrelação?",
         inputs = list(serie = S), outputs = list(out = TE),
-        params = list(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens"),
+        params = list(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens", vazio = 0L, example = "0 = automático"),
                       graus = I(0L, min = 0L, max = 20L, label = "Graus do modelo")),
         help = .tr_series_ajuda(r"---[
 Testa se as primeiras autocorrelações da série são, EM CONJUNTO, zero — isto
@@ -1952,7 +1957,7 @@ correção de amostra pequena.
         category = "serie_autocorr", icon = icone("activity"),
         description = "Box-Pierce: a série é ruído branco? (a fórmula original, sem correção)",
         inputs = list(serie = S), outputs = list(out = TE),
-        params = list(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens"),
+        params = list(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens", vazio = 0L, example = "0 = automático"),
                       graus = I(0L, min = 0L, max = 20L, label = "Graus do modelo")),
         help = .tr_series_ajuda(r"---[
 Testa se as primeiras autocorrelações da série são, EM CONJUNTO, zero — se a
@@ -2839,7 +2844,7 @@ padrão sazonal; `series/plot_decomposition` para os componentes.
         category = "serie_ver", icon = icone("chart-column"),
         description = "A autocorrelação da série em cada defasagem, com a banda do ruído branco.",
         inputs = list(serie = S), outputs = list(out = G),
-        params = .tr_series_props(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens")),
+        params = .tr_series_props(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens", vazio = 0L, example = "0 = automático")),
         help = .tr_series_ajuda(r"---[
 O correlograma: para cada defasagem k, a correlação da série com ela mesma k
 períodos antes. É o retrato da memória da série.
@@ -2883,7 +2888,7 @@ tr_flow(reg) |>
         category = "serie_ver", icon = icone("chart-bar"),
         description = "A correlação com a defasagem k, descontadas as defasagens intermediárias.",
         inputs = list(serie = S), outputs = list(out = G),
-        params = .tr_series_props(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens")),
+        params = .tr_series_props(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens", vazio = 0L, example = "0 = automático")),
         help = .tr_series_ajuda(r"---[
 A autocorrelação PARCIAL: a correlação da série com ela mesma k períodos
 antes, depois de descontar o que as defasagens 1 a k−1 já explicam. Se hoje

@@ -1,3 +1,7 @@
+# trama.models 0.6.1
+
+* Contrato ganha `tr_models_loglik()` e `tr_models_nesting()` (opcionais): um modelo de outra coleção que os implementa entra no `models/compare` (razão de verossimilhança) e no `models/select` (AIC, AICc, BIC). A `trama.series` usa isso para o ARIMA.
+
 # trama.models 0.6.0
 
 * `tr_models_as_fit()`: outra coleção embrulha um `lm` ou `gls` que ela mesma ajustou como `models/fit`, e todos os leitores daqui (coeficientes, ANOVA, estatísticas, diagnóstico) o aceitam. A `trama.series` usa isso na regressão dos componentes.

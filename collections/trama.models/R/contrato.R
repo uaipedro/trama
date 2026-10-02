@@ -136,6 +136,38 @@ tr_models_unserialize <- function(x) UseMethod("tr_models_unserialize")
 #' @export
 tr_models_as_table <- function(x) UseMethod("tr_models_as_table")
 
+#' Verossimilhança e aninhamento para `models/compare` e `models/select`
+#'
+#' Opcionais. As classes daqui (lm, glm, lmer, glmer, gls, nls) são lidas por
+#' dentro; um modelo de outra coleção entra nos dois blocos implementando:
+#'
+#' - `tr_models_loglik(x)`: `list(ll, k, n)` — log-verossimilhança MÁXIMA, nº
+#'   de parâmetros estimados (variância incluída) e nº de observações que
+#'   entram na verossimilhança. É o que `models/select` usa no AIC, AICc e BIC.
+#' - `tr_models_nesting(x, outro)`: `x` está aninhado em `outro`? Devolve o
+#'   texto dos termos a mais (vai na hipótese nula do teste) ou aborta dizendo
+#'   por que não; `models/compare` faz então a razão de verossimilhança com
+#'   `tr_models_loglik()`.
+#'
+#' O default dos dois é `NULL`: "não implementa".
+#' @param x,outro modelos (`tr_models_fit`).
+#' @name tr_models_likelihood
+NULL
+
+#' @rdname tr_models_likelihood
+#' @export
+tr_models_loglik <- function(x) UseMethod("tr_models_loglik")
+#' @rdname tr_models_likelihood
+#' @export
+tr_models_loglik.default <- function(x) NULL
+
+#' @rdname tr_models_likelihood
+#' @export
+tr_models_nesting <- function(x, outro) UseMethod("tr_models_nesting")
+#' @rdname tr_models_likelihood
+#' @export
+tr_models_nesting.default <- function(x, outro) NULL
+
 # ---- Porteiro (método em tr_models_fit) -----------------------------------------
 
 #' RDS antigo: classe só `"tr_models_fit"`, subclasse derivada de `$classe`.

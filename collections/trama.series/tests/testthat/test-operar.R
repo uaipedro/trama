@@ -90,7 +90,7 @@ test_that("detrend linear: reta pura + ruído sai com média e inclinação zero
   expect_equal(unname(stats::coef(stats::lm(as.numeric(s) ~ seq_along(s)))[[2]]), 0,
                tolerance = 1e-8)
   # A tendência guardada reconstrói a série, e a inclinação dela é a da reta.
-  tend <- attr(s, "tendencia")
+  tend <- tr_series_detrend(x, "linear")$tendencia
   expect_equal(as.numeric(s + tend), as.numeric(x))
   expect_equal(unname(diff(as.numeric(tend))[[1]]), 0.5, tolerance = .02)
 })
@@ -108,7 +108,7 @@ test_that("detrend polinomial e loess tiram a curva; faltante fica faltante", {
   xn <- x; xn[10] <- NA
   ln <- tr_series_detrend(xn, "linear")$out
   expect_true(is.na(ln[10])); expect_equal(sum(is.na(ln)), 1L)
-  expect_false(anyNA(attr(ln, "tendencia")))
+  expect_false(anyNA(tr_series_detrend(xn, "linear")$tendencia))
   expect_error(tr_series_detrend(x, "polinomial", grau = 6L), class = "tr_series_error_bad_option")
   expect_error(tr_series_detrend(x, "loess", suavidade = 0), class = "tr_series_error_bad_option")
   expect_error(tr_series_detrend(x, "cubica"), class = "tr_series_error_bad_option")
@@ -118,12 +118,12 @@ test_that("detrend polinomial e loess tiram a curva; faltante fica faltante", {
 
 test_that("detrend por diferença perde a 1ª observação e mantém o calendário", {
   x <- serie_mensal()
-  d <- tr_series_detrend(x, "diferenca")$out
+  r <- tr_series_detrend(x, "diferenca"); d <- r$out
   expect_equal(length(d), length(x) - 1L)
   expect_equal(stats::start(d), c(1949, 2))
   expect_equal(stats::end(d), stats::end(x))
   expect_equal(as.numeric(d), as.numeric(diff(x)))
-  expect_equal(as.numeric(d + attr(d, "tendencia")), as.numeric(x)[-1])
+  expect_equal(as.numeric(d + r$tendencia), as.numeric(x)[-1])
 })
 
 test_that("combine alinha pela interseção do tempo e faz a conta", {
@@ -162,35 +162,35 @@ test_that("combine recusa grades de tempo defasadas na mesma frequência", {
 test_that("detrend linear e polinomial: o ajuste é o lm do polinômio cru em t (oráculo: lm direto)", {
   set.seed(42)
   x <- stats::ts(10 + 0.5 * (1:120) + stats::rnorm(120), start = c(2000, 1), frequency = 12)
-  a <- tr_series_detrend(x, "linear")$ajuste
+  card <- function(r) .tr_series_card_ajuste(r$out)
+  a <- card(tr_series_detrend(x, "linear"))
   expect_s3_class(a, "tr_models_fit")
   tt <- 1:120
   o <- stats::lm(as.numeric(x) ~ tt)
   expect_equal(unname(stats::coef(a$ajuste)), unname(stats::coef(o)), tolerance = 1e-10)
   expect_equal(unname(stats::coef(summary(a$ajuste))[, 4]), unname(stats::coef(summary(o))[, 4]),
                tolerance = 1e-10)
-  p <- tr_series_detrend(x, "polinomial", grau = 3L)$ajuste
+  r3 <- tr_series_detrend(x, "polinomial", grau = 3L); p <- card(r3)
   o3 <- stats::lm(as.numeric(x) ~ tt + I(tt^2) + I(tt^3))
   expect_equal(unname(stats::coef(p$ajuste)), unname(stats::coef(o3)), tolerance = 1e-8)
   # A tendência do ajuste é a que o bloco tirou.
-  expect_equal(as.numeric(p$serie_reg$tendencia), as.numeric(attr(tr_series_detrend(x, "polinomial", grau = 3L)$out, "tendencia")),
+  expect_equal(as.numeric(p$serie_reg$tendencia), as.numeric(r3$tendencia),
                tolerance = 1e-8)
 })
 
-test_that("detrend loess e diferença: ajuste de referência, dito na nota", {
+test_that("detrend loess e diferença não têm coeficientes no card; faltante é contado", {
   x <- serie_mensal()
-  l <- tr_series_detrend(x, "loess")$ajuste
-  expect_match(l$nota, "referência", fixed = TRUE)
-  expect_match(l$rotulo, "referência", fixed = TRUE)
+  expect_null(.tr_series_card_ajuste(tr_series_detrend(x, "loess")$out))
+  expect_null(.tr_series_card_ajuste(tr_series_detrend(x, "diferenca")$out))
   xn <- x; xn[10] <- NA
-  an <- tr_series_detrend(xn, "linear")$ajuste
+  an <- .tr_series_card_ajuste(tr_series_detrend(xn, "linear")$out)
   expect_equal(an$descartadas, 1L)
 })
 
 test_that("ciclos incompletos avisam e recomendam a regressão conjunta", {
   x <- stats::window(datasets::AirPassengers, start = c(1949, 3), end = c(1955, 8))
   expect_warning(r <- tr_series_detrend(x, "linear"), class = "tr_series_warn_incomplete_cycles")
-  expect_match(r$ajuste$nota, "series/regression", fixed = TRUE)
+  expect_match(.tr_series_card_ajuste(r$out)$nota, "series/regression", fixed = TRUE)
   expect_warning(tr_series_deseasonalize(x), class = "tr_series_warn_incomplete_cycles")
   expect_no_warning(tr_series_detrend(datasets::AirPassengers, "linear"))
 })
@@ -200,14 +200,23 @@ test_that("deseasonalize: efeitos = lm com dummies; a série perde só o sazonal
   r <- tr_series_deseasonalize(x)
   tt <- seq_along(x); mes <- factor(stats::cycle(x)); stats::contrasts(mes) <- stats::contr.sum
   o <- stats::lm(as.numeric(x) ~ tt + mes)
-  expect_equal(unname(stats::coef(r$ajuste$ajuste)), unname(stats::coef(o)), tolerance = 1e-10)
-  expect_equal(as.numeric(r$out + attr(r$out, "sazonal")), as.numeric(x), tolerance = 1e-10)
+  expect_equal(unname(stats::coef(.tr_series_card_ajuste(r$out)$ajuste)), unname(stats::coef(o)), tolerance = 1e-10)
+  expect_equal(as.numeric(r$out + r$sazonal), as.numeric(x), tolerance = 1e-10)
   # Sem controlar a tendência: só as dummies, e os efeitos viram médias de período.
   s <- tr_series_deseasonalize(x, controlar_tendencia = FALSE)
   medias <- tapply(as.numeric(x), stats::cycle(x), mean)
-  expect_equal(as.numeric(attr(s$out, "sazonal"))[1:12], as.numeric(medias - mean(medias)), tolerance = 1e-10)
+  expect_equal(as.numeric(s$sazonal)[1:12], as.numeric(medias - mean(medias)), tolerance = 1e-10)
   # Remoção e exclusão passam adiante.
   e <- tr_series_deseasonalize(x, excluir = "fev, mar")
-  expect_true(any(grepl("demais", names(stats::coef(e$ajuste$ajuste))) == FALSE))
+  expect_true(any(grepl("demais", names(stats::coef(.tr_series_card_ajuste(e$out)$ajuste))) == FALSE))
   expect_error(tr_series_deseasonalize(stats::ts(1:20)), class = "tr_series_error_no_season")
+})
+
+test_that("o card com coeficientes vale só para a série exata que o produziu", {
+  r <- tr_series_detrend(serie_mensal(), "linear")
+  expect_s3_class(.tr_series_card_ajuste(r$out), "tr_models_fit")
+  # Atributo vaza em log, aritmética e lag; o carimbo barra os três.
+  expect_null(.tr_series_card_ajuste(r$out + 1))
+  expect_null(.tr_series_card_ajuste(stats::lag(r$out, 1)))
+  expect_null(.tr_series_card_ajuste(tr_series_deseasonalize(serie_mensal())$out * 2))
 })

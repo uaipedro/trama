@@ -663,13 +663,55 @@ tr_models_plot_diagnostics <- function(modelo, aspecto = "1:1", tema = "padrão"
   unique(c(fixos, grupos))
 }
 
+#' Razão de verossimilhança para modelos que se declaram pelo contrato.
+#'
+#' Modelo de outra coleção (o ARIMA da `series`) entra no `models/compare`
+#' implementando `tr_models_nesting()` e `tr_models_loglik()`. Devolve `NULL`
+#' quando nenhum dos dois implementa: o caminho das classes daqui segue.
+#' Estatística `2 (ll_maior − ll_menor)`, qui-quadrado com a diferença de
+#' parâmetros como gl (Wilks, 1938).
+#' @noRd
+.tr_models_compare_proprio <- function(modelo, outro, no) {
+  la <- tr_models_loglik(modelo); lb <- tr_models_loglik(outro)
+  if (is.null(la) && is.null(lb)) return(NULL)
+  if (is.null(la) || is.null(lb) || !identical(class(modelo)[[1]], class(outro)[[1]])) {
+    .tr_models_abort("tr_models_error_not_nested",
+                     "'%s': compara dois modelos da mesma família, e chegaram %s e %s.",
+                     no, modelo$rotulo, outro$rotulo)
+  }
+  if (la$k > lb$k) { tmp <- modelo; modelo <- outro; outro <- tmp; tl <- la; la <- lb; lb <- tl }
+  novos <- tr_models_nesting(modelo, outro)
+  if (la$n != lb$n) {
+    .tr_models_abort("tr_models_error_not_nested",
+                     "'%s': os modelos usaram %d e %d observações; a comparação mediria os dados, não o termo.",
+                     no, as.integer(la$n), as.integer(lb$n))
+  }
+  gl <- lb$k - la$k
+  if (gl <= 0) {
+    .tr_models_abort("tr_models_error_not_nested",
+                     "'%s': %s e %s têm o mesmo número de parâmetros; não há termo a mais para testar.",
+                     no, modelo$rotulo, outro$rotulo)
+  }
+  x2 <- max(0, 2 * (lb$ll - la$ll))
+  .tr_models_teste("Razão de verossimilhança",
+                   sprintf("os termos a mais (%s) não melhoram o ajuste", novos),
+                   x2, "qui2", stats::pchisq(x2, gl, lower.tail = FALSE), gl = as.character(gl),
+                   conclusao_sim = "o modelo maior ajusta melhor",
+                   conclusao_nao = "não há evidência de que o modelo maior ajuste melhor",
+                   nota = "teste assintótico; termos no limite do espaço de parâmetros o deixam conservador",
+                   fonte = "Wilks (1938)")
+}
+
 #' Dois modelos aninhados: o termo a mais melhora o ajuste?
 #' @param modelo,outro objetos `tr_models_fit` da mesma família, nas mesmas linhas.
 #' @return objeto `tr_models_test`.
 #' @export
 tr_models_compare <- function(modelo, outro) {
-  .tr_models_fit_conferir(modelo); .tr_models_fit_conferir(outro)
   no <- "models/compare"
+  .tr_models_modelo_conferir(modelo); .tr_models_modelo_conferir(outro)
+  lr <- .tr_models_compare_proprio(modelo, outro, no)
+  if (!is.null(lr)) return(lr)
+  .tr_models_fit_conferir(modelo); .tr_models_fit_conferir(outro)
   if (modelo$classe != outro$classe || !modelo$classe %in% c("lm", "glm", "lmer", "glmer", "gls")) {
     .tr_models_abort("tr_models_error_not_nested",
                      paste0("'%s': compara dois modelos da mesma família (dois lm, dois glm, dois ",

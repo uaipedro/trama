@@ -1,7 +1,7 @@
 // tests/js/params.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { layoutEnum, validarNumero, milhar, contagemDoPasso } from "../../inst/www/params.js";
+import { layoutEnum, textoNumero, validarNumero, milhar, contagemDoPasso } from "../../inst/www/params.js";
 
 test("proporção cabe ao lado do rótulo", () => {
   assert.equal(layoutEnum(["16:9", "4:3", "1:1", "3:4", "2:1"]), "inline");
@@ -69,4 +69,12 @@ test("contagemDoPasso sem número reconhecível não inventa passo", () => {
   assert.equal(contagemDoPasso("computando…"), null);
   assert.equal(contagemDoPasso(null), null);
   assert.equal(contagemDoPasso(undefined), null);
+});
+test("campo com `vazio`: vazio vale o automático e o automático aparece vazio", () => {
+  const spec = { kind: "integer", min: 0, vazio: 0, example: "0 = automático" };
+  assert.deepEqual(validarNumero(spec, ""), { ok: true, valor: 0 });
+  assert.equal(textoNumero(spec, 0), "");
+  assert.equal(textoNumero(spec, 24), "24");
+  assert.equal(textoNumero({ kind: "integer" }, 0), "0");
+  assert.equal(textoNumero({ kind: "integer" }, null), "");
 });

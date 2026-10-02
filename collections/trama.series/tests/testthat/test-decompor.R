@@ -410,9 +410,9 @@ test_that("previsão ARMA com base dependente dos dados (poly ortogonal) usa a b
                                    horizonte = 1L)$mean, 1L)
 })
 
-test_that("previsão do detrend com faltante mantém ajustados e resíduos no tempo da série", {
+test_that("previsão do ajuste da tendência com faltante mantém ajustados e resíduos no tempo da série", {
   x <- serie_mensal(); x[5] <- NA
-  fc <- tr_series_forecast(ajuste = tr_series_detrend(x, "linear")$ajuste, horizonte = 3L)
+  fc <- tr_series_forecast(ajuste = .tr_series_card_ajuste(tr_series_detrend(x, "linear")$out), horizonte = 3L)
   expect_equal(length(fc$fitted), length(x))
   expect_equal(stats::tsp(fc$fitted), stats::tsp(x))
   expect_true(is.na(fc$fitted[5]))

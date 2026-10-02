@@ -51,9 +51,17 @@ export function contagemDoPasso(mensagem) {
 
 // Vírgula decimal é aceita: a interface fala português e "2,5" é o que se
 // digita. `Number("")` dá 0, por isso o vazio é tratado antes.
+// O texto que o campo mostra para o valor salvo: vazio quando o valor é o
+// `vazio` do param (o "automático"), para o `example` aparecer em cinza.
+export function textoNumero(spec, value) {
+  if (value == null) return "";
+  if (spec.vazio != null && Number(value) === Number(spec.vazio)) return "";
+  return String(value);
+}
+
 export function validarNumero(spec, texto) {
   const t = String(texto ?? "").trim().replace(",", ".");
-  if (t === "") return { ok: false, erro: "obrigatório" };
+  if (t === "") return spec.vazio != null ? { ok: true, valor: spec.vazio } : { ok: false, erro: "obrigatório" };
   const v = Number(t);
   if (!Number.isFinite(v)) return { ok: false, erro: "precisa ser número" };
   if (spec.kind === "integer" && !Number.isInteger(v)) return { ok: false, erro: "precisa ser inteiro" };

@@ -17,6 +17,8 @@ tr_series_errors <- function() {
     tr_series_error_unknown_column = "param nomeia coluna que não existe na tabela de entrada",
     tr_series_error_blank_param = "param obrigatório deixado em branco no card",
     tr_series_error_bad_option = "param de escolha ou número fora do conjunto aceito",
+    tr_series_error_not_arima = "modelo de série que não é ARIMA ligado a um bloco de modelo",
+    tr_series_error_not_nested = "dois ARIMA comparados que não estão aninhados (série, diferenças ou termos)",
     tr_series_error_not_numeric = "a coluna do valor da série não é numérica",
     tr_series_error_duplicate_time =
       "a coluna do tempo repete um instante: a série teria dois valores no mesmo período",
