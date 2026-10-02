@@ -10,6 +10,7 @@ const AVAILABLE_COLLECTIONS = [
   { value: "trama.models", label: "Modelos estatísticos" },
   { value: "trama.multi", label: "Multivariada" },
   { value: "trama.sampling", label: "Amostragem" },
+  { value: "trama.sql", label: "Consultas SQL" },
 ];
 
 export async function createCommand(name: string): Promise<void> {

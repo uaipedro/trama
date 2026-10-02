@@ -1,0 +1,20 @@
+Package: trama.sql
+Title: SQL Queries for trama Data Flows
+Version: 0.1.0
+Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
+Description: Query local files and databases with SQL and return tables to trama flows.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1)
+Imports:
+    trama (>= 0.3.1),
+    DBI,
+    duckdb
+Suggests:
+    RSQLite,
+    testthat (>= 3.0.0),
+    pkgload,
+    arrow
+Config/testthat/edition: 3
+Config/trama/requires: trama.data
+Config/roxygen2/version: 8.0.0

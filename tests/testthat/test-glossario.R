@@ -8,7 +8,7 @@
 
 colecoes_glossario <- c(
   "trama.data", "trama.view", "trama.models", "trama.series",
-  "trama.multi", "trama.sampling", "trama.ml", "trama.experiments"
+  "trama.multi", "trama.sampling", "trama.ml", "trama.experiments", "trama.sql"
 )
 
 # Proibidos em qualquer nó, pelo nome (proibido -> canônico).
