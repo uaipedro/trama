@@ -44,6 +44,11 @@
     "subdir": "collections/trama.series"
   },
   {
+    "package": "trama.sql",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "collections/trama.sql"
+  },
+  {
     "package": "trama.launcher",
     "url": "https://github.com/uaipedro/trama",
     "subdir": "tools/installer/trama.launcher"

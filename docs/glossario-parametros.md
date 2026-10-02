@@ -44,6 +44,9 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 | `termo` | linha do quadro da ANOVA que será testada (models/permutation) | — |
 | `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo | — |
+| `caminho` | pasta, arquivo ou banco local que fornece tabelas para consulta SQL (sql/source) | — |
+| `consulta` | instrução SQL de leitura (sql/query) | — |
+| `fonte` | porta de entrada da fonte consultável por SQL (sql/query) | — |
 
 ## Homônimos permitidos
 

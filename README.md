@@ -95,6 +95,7 @@ As coleções separam a infraestrutura de execução dos diferentes domínios de
 | `trama.sampling` | Procedimentos de amostragem |
 | `trama.experiments` | Planejamento e sorteio de experimentos, contrastes e superfície de resposta |
 | `trama.ml` | Classificação, regressão, avaliação e regras interpretáveis |
+| `trama.sql` | Fontes locais e consultas SQL que devolvem tabelas ao fluxo |
 
 `trama.data` é a coleção de referência. Seus blocos abrangem fontes, inspeção, limpeza, transformação, reformatação, agregação, regiões de fluxo e gravação.
 

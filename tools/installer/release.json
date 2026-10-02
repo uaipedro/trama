@@ -49,6 +49,13 @@
       "requires": [
         "trama.models"
       ]
+    },
+    "trama.sql": {
+      "version": "0.1.0",
+      "title": "Consultas SQL",
+      "requires": [
+        "trama.data"
+      ]
     }
   }
 }
