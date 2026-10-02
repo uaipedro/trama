@@ -4,6 +4,7 @@ trama_collection <- function() {
   sql_type <- trama::tr_type("sql/source", version = 1L, label = "Fonte SQL",
     preview = function(x, ctx) trama::tr_preview("sql/source", data = list(tabelas = x$tabelas)))
   trama::tr_collection("sql", version = "0.1.0", label = "SQL",
+    js = "trama/index.js", css = "trama/sql.css",
     types = list(sql_type),
     categories = list(trama::tr_category("source", "Fonte", role = "origem"),
                       trama::tr_category("transform", "Consultar", role = "preparacao")),

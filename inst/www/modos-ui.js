@@ -62,7 +62,7 @@ export function Olho({ riscado } = {}) {
 export function ParamsList({ id, spec, params, onParam, lista, colunas }) {
   return h("div", { className: "tr-params" }, (lista || paramsVisiveis(spec, params)).map((p) => {
     const W = getWidget(p.kind);
-    const ctx = p.kind === "cols" ? ctxColunas(id, spec, params, p, colunas) : undefined;
+    const ctx = p.kind === "cols" ? ctxColunas(id, spec, params, p, colunas) : ctxWidget(id, params, colunas);
     // `div`, e não `label`: o `<label>` repassa o clique ao primeiro
     // controle rotulável de dentro, e com botões ali (segmentado, chave)
     // clicar no texto "Tipo" escolhia a primeira opção. Sem `htmlFor`
@@ -109,6 +109,14 @@ function ctxColunas(id, spec, params, p, c) {
   };
 }
 
+// Contexto de todo widget que não é `cols`: de que nó ele é, os valores dos
+// outros params e o handle que chega em cada porta de entrada. Genérico de
+// propósito: o núcleo não lê nada disso, só entrega. É o que deixa um widget
+// de coleção (o editor SQL, por exemplo) saber o que está ligado no bloco.
+function ctxWidget(id, params, c) {
+  return { id, valores: params, entradas: c?.handlesEntrada || {} };
+}
+
 // Rodapé de parâmetros do card aberto. A faixa ("▸ Parâmetros") dobra e
 // desdobra; aberta, mostra só os primeiros `LIMITE_PARAMS_CARD` VISÍVEIS (os
 // que o `when` esconde nem contam), e a engrenagem abre o formulário inteiro
@@ -140,7 +148,8 @@ export function ParamsRodape({ id, spec, params, onParam, dobrado, onDobrar, onT
 // O pedaço de `data` (montado em `decorated`, editor.js) que `ParamsList`
 // precisa para os params `cols`. Objeto novo por render é inofensivo aqui:
 // vai como prop de componente, não para dentro de `data` do React Flow.
-export const colunasDoNo = (d) => ({ entradas: d.entradas, sugeridos: d.sugeridos, motivos: d.motivos,
+export const colunasDoNo = (d) => ({ entradas: d.entradas, handlesEntrada: d.handlesEntrada,
+                                     sugeridos: d.sugeridos, motivos: d.motivos,
                                      sugestoes: d.sugestoes, onSugerir: d.onSugerir });
 
 // Formulário inteiro de um card, no meio da tela (engrenagem ou P). O

@@ -1,5 +1,6 @@
 # trama 0.5.3
 
+* Widget de coleção recebe `ctx` também fora do kind `cols`: `{ id, valores, entradas }` — o nó, os valores dos params e o handle que chega em cada porta. É o que deixa um widget (o editor SQL de `trama.sql`) saber o que está ligado no bloco sem o núcleo saber o que há no handle.
 * `tr_param_int(vazio = , example = )`: `vazio` é o valor que o campo vazio representa (o "automático"). Com o param nesse valor, o campo aparece vazio com `example` em cinza, e apagar o número volta a ele em vez de acusar "obrigatório".
 
 # trama 0.5.2

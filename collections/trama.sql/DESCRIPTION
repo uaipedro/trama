@@ -7,7 +7,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.3.1),
+    trama (>= 0.5.3),
     DBI,
     duckdb
 Suggests:

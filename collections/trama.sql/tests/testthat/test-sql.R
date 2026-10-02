@@ -59,5 +59,28 @@ test_that("fingerprint acompanha tamanho e mtime e SQL mutável é recusado", {
   Sys.sleep(1.1); writeLines(c("x", "123456"), f)
   expect_false(identical(unchanged, .tr_sql_fingerprint(p)))
   expect_error(tr_sql_query(list(tipo = "arquivo", caminho = f), "DELETE FROM x"), "SELECT ou WITH")
+  expect_error(tr_sql_query(list(tipo = "arquivo", caminho = f), "WITH a AS (SELECT 1) DELETE FROM x"), "leitura")
+  fonte <- tr_sql_source(f)
+  expect_equal(tr_sql_query(fonte, "SELECT 'delete' AS acao")$acao, "delete")
   expect_error(tr_sql_query(list(tipo = "arquivo", caminho = f), "DROP TABLE x"), "SELECT ou WITH")
+})
+
+test_that("arquivo alterado muda o valor da fonte (chave de cache da consulta)", {
+  f <- tempfile(fileext = ".csv"); writeLines("x\n1", f)
+  antes <- tr_sql_source(f)
+  Sys.sleep(1.1); writeLines("x\n2", f)
+  depois <- tr_sql_source(f)
+  expect_identical(antes$tabelas, depois$tabelas)
+  expect_false(identical(antes, depois))
+  nome <- depois$tabelas[[1]]$nome
+  expect_equal(tr_sql_query(depois, paste("SELECT x FROM", nome))$x, 2)
+})
+
+test_that("caminho relativo resolve pela raiz do projeto (ctx), na fonte e no fingerprint", {
+  raiz <- tempfile(); dir.create(file.path(raiz, "dados"), recursive = TRUE)
+  writeLines("x\n1", file.path(raiz, "dados", "a.csv"))
+  ctx <- list(path = function(p) file.path(raiz, p))
+  expect_equal(tr_sql_source("dados", .ctx = ctx)$tabelas[[1]]$nome, "a")
+  fp <- .tr_sql_fingerprint(list(caminho = "dados"), ctx)
+  expect_equal(nrow(fp$arquivos), 1L)
 })

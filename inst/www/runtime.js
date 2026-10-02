@@ -52,6 +52,11 @@ function normalizeRenderer(id, def) {
 }
 
 export function registerRenderer(id, def) { renderers[id] = normalizeRenderer(id, def); }
+// Widget: `(spec, value, onChange, ctx) => elemento`. Chamado como função, não
+// como componente: quem precisa de estado devolve `h(SeuComponente, ...)`.
+// `ctx` do kind `cols` é o das colunas (abaixo); o de qualquer outro kind é
+// `{ id, valores, entradas }` — o nó, os valores dos params e o handle que
+// chega em cada porta de entrada (`entradas[porta]`, vazio sem ligação).
 export function registerWidget(kind, component) { widgets[kind] = component; }
 // Devolve a forma NORMALIZADA (`{views:[...]}`), nunca a função crua: o editor
 // não pode ver as duas formas.

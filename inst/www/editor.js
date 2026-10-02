@@ -2147,6 +2147,19 @@ function App() {
     }
     return out;
   }, [edges, tick]);
+  // Handle que chega em cada porta de entrada, por nó — o mesmo laço de
+  // `entradas`, mas o handle inteiro (preview, summary, schema). É o que um
+  // widget de coleção lê no `ctx` (`ParamsList`, modos-ui.js) sem o núcleo
+  // saber o que há dentro: o editor SQL acha ali as tabelas da fonte.
+  const handlesEntrada = useMemo(() => {
+    const out = {};
+    for (const e of edges) {
+      const st = stateRef.current[e.source];
+      const hd = st && (st.handles ? st.handles[e.sourceHandle] : st.handle);
+      if (hd) (out[e.target] ||= {})[e.targetHandle] = hd;
+    }
+    return out;
+  }, [edges, tick]);
   // Ops de sugestão para a entrada `porta` de `alvo`, recém-ligada a
   // `origem`/`saida`. É o ÚNICO gatilho automático de sugestão: ligar (ou
   // religar) uma entrada. Re-execução a montante com o mesmo schema não passa
@@ -2487,6 +2500,7 @@ function App() {
                       // nem handles mudam; a marca local vai por cima da do
                       // documento, como `paramsRef` vai por cima dos params.
                       entradas: entradas[n.id] || null,
+                      handlesEntrada: handlesEntrada[n.id] || null,
                       sugeridos: sugeridosDe(n.id, n.data.sugeridos),
                       motivos: motivosRef.current[n.id] || null,
                       sugestoes: temas.sugestoes, onSugerir } };
@@ -2494,7 +2508,7 @@ function App() {
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
-     entradas, onSugerir,
+     entradas, handlesEntrada, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);

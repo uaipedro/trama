@@ -1,0 +1,41 @@
+/* Editor SQL (index.js). Cores só dos tokens do núcleo (`--tr-*`, trama.css),
+   pra seguir o tema claro/escuro sem regra própria. */
+.tr-sql{display:flex;flex-direction:column;gap:4px;min-width:0;width:100%}
+.tr-sql-main{display:flex;flex-direction:column;min-width:0;flex:1}
+.tr-sql-cm .cm-editor{background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
+  border-radius:4px;font-size:12px;max-height:180px}
+.tr-sql-cm .cm-editor.cm-focused{outline:1px solid var(--tr-accent)}
+.tr-sql-cm .cm-scroller{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.45}
+.tr-sql-cm .cm-gutters{background:transparent;border-right:1px solid var(--tr-line);color:var(--tr-dim)}
+.tr-sql-cm .cm-activeLine,.tr-sql-cm .cm-activeLineGutter{background:var(--tr-hover)}
+.tr-sql-cm .cm-tooltip{background:var(--tr-panel);color:var(--tr-fg);border:1px solid var(--tr-line)}
+.tr-sql-cm .cm-tooltip-autocomplete ul li[aria-selected]{background:var(--tr-accent);color:var(--tr-accent-fg)}
+.tr-sql-barra{display:flex;gap:4px;align-items:center;margin-top:4px;font-size:11px}
+.tr-sql-barra button,.tr-sql-tabelas button{background:transparent;color:var(--tr-fg);border:1px solid var(--tr-line);
+  border-radius:3px;padding:1px 6px;font-size:11px;cursor:pointer}
+.tr-sql-barra button:hover,.tr-sql-tabelas button:hover{background:var(--tr-hover)}
+.tr-sql-barra .tr-sql-rodar{margin-left:auto;border-color:var(--tr-accent)}
+.tr-sql-barra .tr-sql-rodar:disabled{opacity:.4;cursor:not-allowed}
+.tr-sql-status{color:var(--tr-dim);margin-right:auto}
+.tr-sql-status.tr-sql-erro{color:var(--tr-err)}
+.tr-sql-status.tr-sql-aviso{color:#e4b66d}
+.tr-sql-tabelas{display:flex;flex-wrap:wrap;gap:3px}
+.tr-sql-vazio{color:var(--tr-dim);font-size:11px;font-style:italic}
+/* Ampliado: tabelas à esquerda com as colunas, editor ocupando o resto. */
+.tr-sql-grande{flex-direction:row;width:min(1100px,92vw);height:min(720px,86vh);background:var(--tr-panel);
+  border:1px solid var(--tr-line);border-radius:8px;padding:12px;gap:12px}
+.tr-sql-grande .tr-sql-tabelas{flex-direction:column;flex-wrap:nowrap;width:220px;overflow:auto}
+.tr-sql-grande .tr-sql-tabela>button{font-weight:600;width:100%;text-align:left}
+.tr-sql-colunas{display:flex;flex-wrap:wrap;gap:2px;margin:3px 0 8px 8px}
+.tr-sql-colunas button{border:none;color:var(--tr-dim)}
+.tr-sql-grande .tr-sql-cm{flex:1;min-height:0}
+.tr-sql-grande .tr-sql-cm .cm-editor{height:100%;max-height:none;font-size:14px}
+.tr-sql-fonte{font-size:12px;overflow:auto}
+.tr-sql-fonte summary{cursor:pointer}
+.tr-sql-fonte summary span,.tr-sql-fonte em{color:var(--tr-dim)}
+.tr-sql-fonte ul{margin:2px 0 6px 14px;padding:0}
+/* No card, o editor ocupa a largura toda: rótulo em cima, como o
+   `.tr-param-longo` do núcleo. */
+.tr-param:has(> .tr-sql){grid-template-columns:1fr;gap:2px}
+.tr-sql-barra{flex-wrap:wrap}
+.tr-sql-cm .cm-tooltip-lint,.tr-sql-cm .cm-tooltip-hover{min-width:240px;max-width:360px}

@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "description": "Monta collections/trama.sql/inst/trama/vendor/sql-vendor.js (CodeMirror 6 + lang-sql + node-sql-parser PostgreSQL + sql-formatter).",
+  "scripts": {
+    "build": "esbuild entry.js --bundle --format=esm --minify --legal-comments=eof --outfile=../../collections/trama.sql/inst/trama/vendor/sql-vendor.js"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/lint": "^6.9.7",
+    "codemirror": "^6.0.2",
+    "node-sql-parser": "^5.4.0",
+    "sql-formatter": "^15.9.0",
+    "esbuild": "^0.28.2"
+  }
+}
