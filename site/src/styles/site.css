@@ -300,3 +300,12 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 @media (max-width: 560px) { .prose .glossario-caixa__lista { grid-template-columns: minmax(0, 1fr); gap: 0; }.prose .glossario-caixa__lista dd { margin-bottom: var(--space-sm); } }
 .prose dfn.glossario-termo { font-style: normal; }
 html[data-facilitador="on"] .prose dfn.glossario-termo { text-decoration: underline dotted color-mix(in oklch, var(--blue) 60%, transparent); text-underline-offset: .2em; cursor: help; }
+
+/* Dica do toggle Contexto (Base.astro): balão sob o botão, sem empurrar o cabeçalho. */
+.header-tools { position: relative; }
+.depth-hint { position: absolute; top: calc(100% + .6rem); right: 0; z-index: 30; width: min(19rem, calc(100vw - 2.5rem)); padding: var(--space-sm) var(--space-md); border: 1px solid color-mix(in oklch, var(--blue) 40%, var(--paper)); background: var(--blue-wash); color: var(--ink); font-size: .84rem; line-height: 1.45; box-shadow: 4px 4px 0 color-mix(in oklch, var(--blue) 14%, var(--paper)); }
+.depth-hint[hidden] { display: none; }
+.depth-hint::before { content: ""; position: absolute; top: -.45rem; right: 2rem; width: .8rem; height: .8rem; background: var(--blue-wash); border-top: 1px solid color-mix(in oklch, var(--blue) 40%, var(--paper)); border-left: 1px solid color-mix(in oklch, var(--blue) 40%, var(--paper)); transform: rotate(45deg); }
+.depth-hint p { margin: 0; }
+.depth-hint button { margin-top: var(--space-xs); padding: .2rem .6rem; border: 1px solid var(--blue); border-radius: 6px; background: var(--paper); color: var(--blue-dark); font: inherit; font-weight: 650; cursor: pointer; }
+.depth-hint button:hover { background: var(--paper-strong); }
