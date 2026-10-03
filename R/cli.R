@@ -1,8 +1,9 @@
 #' Linha de comando do canal de controle.
 #'
 #' Fala com o editor aberto (`tr_app()`) pelo servidor de `R/control.R`. Toda
-#' saída é JSON em stdout, para agente ler; recusa sai com `ok: false` e,
-#' pelo script `trama-agente`, status 1.
+#' saída é JSON em stdout, para agente ler, inclusive `help` e erro de
+#' argumento; recusa sai com `ok: false` e, pelo script `trama-agente`,
+#' status 1.
 #'
 #' ```
 #' trama-agente state                       # fluxo na tela: nós, status, arestas
@@ -29,16 +30,15 @@
 #' @return A resposta do editor (lista), invisível; imprime o JSON.
 #' @export
 tr_cli <- function(args = commandArgs(TRUE)) {
-  a <- .tr_cli_parse(args)
-  res <- tryCatch(.tr_cli_run(a), error = function(e) {
+  # Nenhum erro escapa do envelope: argumento malformado vira
+  # `reason: "args"`, falha adiante vira `reason: "cli"`. Agente lê stdout
+  # como JSON sempre, sem backtrace de R no meio.
+  a <- tryCatch(.tr_cli_parse(args), error = function(e) {
+    list(erro = list(ok = FALSE, reason = "args", message = conditionMessage(e)))
+  })
+  res <- if (!is.null(a$erro)) a$erro else tryCatch(.tr_cli_run(a), error = function(e) {
     list(ok = FALSE, reason = "cli", message = conditionMessage(e))
   })
-  if (!is.null(res$uso)) {
-    # Ajuda é para ler, não para parsear.
-    cat("trama-agente <comando> [args]  (saída em JSON)\n\n",
-        paste0("  ", res$uso, collapse = "\n"), "\n", sep = "")
-    return(invisible(res))
-  }
   cat(jsonlite::toJSON(res, auto_unbox = TRUE, null = "null", na = "null",
                        digits = NA, pretty = TRUE), "\n")
   invisible(res)
@@ -59,6 +59,9 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   "valor: JSON quando dá (n=3, x=true, 'cols=[\"a\",\"b\"]'), senão texto.",
   "--projeto DIR escolhe o editor quando há mais de um.")
 
+# Opções sem valor. `--json` é aceita e ignorada: a saída já é sempre JSON.
+.tr_cli_bandeiras <- c("json", "offline")
+
 .tr_cli_parse <- function(args) {
   pos <- character(); opt <- list(from = character())
   i <- 1L
@@ -66,6 +69,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
     x <- args[[i]]
     if (startsWith(x, "--")) {
       nm <- substring(x, 3L)
+      if (nm %in% .tr_cli_bandeiras) { opt[[nm]] <- TRUE; i <- i + 1L; next }
       if (i == length(args)) rlang::abort(sprintf("'%s' sem valor.", x))
       opt[[nm]] <- c(if (nm == "from") opt$from, args[[i + 1L]])
       i <- i + 2L
@@ -93,7 +97,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   p <- a$pos
   precisa <- function(n, uso) if (length(p) < n) rlang::abort(paste("Uso:", uso))
   if (is.null(a$cmd) || is.na(a$cmd) || a$cmd %in% c("help", "ajuda", "-h")) {
-    return(list(ok = TRUE, uso = .tr_cli_uso))
+    return(list(ok = TRUE, comando = "trama-agente <comando> [args]", uso = .tr_cli_uso))
   }
   cx <- .tr_cli_conexao(a$opt$projeto)
   res <- .tr_cli_despachar(a, cx, p, precisa)
