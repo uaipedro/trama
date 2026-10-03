@@ -263,3 +263,13 @@ está instalado. A fórmula de Tomczak e Tomczak foi conferida por meio do
 `effectsize`, que a cita, e não no artigo. Shapiro-Wilk com n > 5000 passa a
 recusar com `tr_models_error_too_many_rows` (antes, a classe de "de menos").
 Teste: `collections/trama.models/tests/testthat/test-testes.R`.
+
+## Aviso do tipo I com desenho desbalanceado (02/10/2026)
+
+`models/anova_table` num `lm` com `tipo_sq = "I"` compara a SQ sequencial de
+cada termo com a do tipo II (`car::Anova`); se alguma difere (relativo 1e-8),
+a nota diz que aquela SQ depende da ordem dos termos e aponta o tipo II
+(Langsrud, 2003). O padrão continua "I" (decisão de quem analisa) e os números
+não mudam, por isso a versão do nó fica. Teste em `ToothGrowth` (balanceado,
+sem aviso) e sem as 5 primeiras linhas (aviso só em `supp`, cuja SQ muda mais
+de 1 unidade ao trocar a ordem): `collections/trama.models/tests/testthat/test-resumir.R`.
