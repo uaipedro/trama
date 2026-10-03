@@ -1,13 +1,13 @@
 {
-  "trama": "0.1.6",
+  "trama": "0.1.7",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": [
     "https://uaipedro.r-universe.dev"
   ],
   "core": {
-    "trama": "0.5.3",
-    "trama.data": "0.4.0",
+    "trama": "0.5.4",
+    "trama.data": "0.4.1",
     "trama.view": "0.2.4",
     "trama.launcher": "0.2.0"
   },
@@ -27,7 +27,7 @@
       ]
     },
     "trama.models": {
-      "version": "0.6.1",
+      "version": "0.6.2",
       "title": "Modelos estatísticos",
       "requires": []
     },
