@@ -24,8 +24,8 @@ export function afterSection(tree: Root, titulo: string): number {
   return end;
 }
 
-export function insertNodeDocs(tree: Root, docs: NodeDocs, resolve: ResolveBlock, lang = SITE_LANG): void {
-  const secoes: Element[] = [...pressupostosHast(docs.pressupostos, resolve, lang), ...referenciasHast(docs.referencias, lang)];
+export function insertNodeDocs(tree: Root, docs: NodeDocs, resolve: ResolveBlock, lang = SITE_LANG, bibHref?: string): void {
+  const secoes: Element[] = [...pressupostosHast(docs.pressupostos, resolve, lang), ...referenciasHast(docs.referencias, lang, bibHref)];
   if (!secoes.length) return;
   let at = afterSection(tree, "Quando usar");
   if (at < 0) at = afterSection(tree, "O que o bloco faz");
@@ -74,6 +74,7 @@ export function rehypeNodeDocs(options: RehypeNodeDocsOptions = {}) {
     if (!node) return;
     const docs = loadDocs(dataPath)[node];
     if (!docs) return;
-    insertNodeDocs(tree, docs, blockResolver(options.base), options.lang);
+    const prefix = (options.base ?? "/").replace(/\/+$/, "");
+    insertNodeDocs(tree, docs, blockResolver(options.base), options.lang, `${prefix}/referencias/`);
   };
 }

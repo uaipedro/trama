@@ -260,3 +260,15 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .prose .node-ref__ver, .prose .node-ref__nota { color: var(--ink-soft); }
 .prose .node-ref__nota { display: block; margin-top: var(--space-2xs); font-size: .92rem; }
 .prose h2#referencias + h3, .prose .node-refs + h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+
+/* Bibliografia (src/pages/referencias.astro) */
+.bib-indice { display: flex; flex-wrap: wrap; gap: var(--space-xs); padding: var(--space-lg) 0 0; }
+.bib-indice a { display: inline-flex; gap: .4rem; align-items: baseline; padding: .3rem .7rem; border: 1px solid var(--line); border-radius: 6px; text-decoration: none; font-family: var(--font-display); font-weight: 650; }
+.bib-indice a:hover { border-color: var(--ink-soft); }
+.bib-indice span { color: var(--ink-soft); font-size: .8rem; }
+.prose.bib { max-width: 72ch; }
+.prose.bib h2 { scroll-margin-top: 6rem; }
+.prose .bib-grupo__desc { color: var(--ink-soft); }
+.prose .bib-citado { display: block; margin-top: var(--space-2xs); font-size: .88rem; color: var(--ink-soft); }
+.prose .node-ref:target { background: var(--blue-wash); }
+.prose .node-refs__bib { margin-top: var(--space-sm); font-size: .92rem; }

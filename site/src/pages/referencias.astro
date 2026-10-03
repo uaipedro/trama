@@ -1,0 +1,62 @@
+---
+// Bibliografia completa: todas as referências dos blocos (node-docs.json),
+// sem repetição, por papel, com links de volta para os blocos que as citam.
+import { toHtml } from "hast-util-to-html";
+import Base from "../layouts/Base.astro";
+import docs from "../data/node-docs.json";
+import { agregarReferencias, resumoReferencias } from "../lib/bibliografia";
+import { referenciaHast, type NodeDocs } from "../lib/node-docs";
+import { blockResolver } from "../lib/rehype-node-docs";
+
+const dados = docs as unknown as Record<string, NodeDocs>;
+const grupos = agregarReferencias(dados);
+const resumo = resumoReferencias(dados);
+const resolve = blockResolver("/trama");
+const descricoes: Record<string, string> = {
+  teoria: "O artigo ou livro em que o método foi proposto ou demonstrado.",
+  "livro-texto": "Onde o método é explicado com exemplos resolvidos; bom ponto de partida para estudar.",
+  implementacao: "O pacote e a função R cuja conta o bloco reproduz ou com que foi conferido.",
+  complementar: "Leituras que discutem limites, variantes ou cuidados do método."
+};
+const entradaHtml = (ref: Parameters<typeof referenciaHast>[0]) => toHtml(referenciaHast(ref).children);
+---
+
+<Base title="Referências" description="Todas as obras e pacotes que fundamentam os blocos do trama, com os blocos que citam cada uma.">
+  <div class="doc-shell" data-pagefind-body>
+    <header class="collection-hero">
+      <div>
+        <p class="eyebrow">Fontes</p>
+        <h1>Referências</h1>
+        <p class="lede">
+          Cada bloco estatístico do trama declara de onde vem o método que ele calcula.
+          {`Esta página reúne essas fontes: ${resumo.obras} obras citadas por ${resumo.blocosComReferencias} blocos, ${resumo.obrasComDoi} delas com DOI. Ao lado de cada uma estão os blocos que a usam.`}
+        </p>
+      </div>
+    </header>
+    <nav class="bib-indice" aria-label="Grupos da bibliografia">
+      {grupos.map((g) => <a href={`#${g.papel}`}>{g.rotulo} <span>{g.entradas.length}</span></a>)}
+    </nav>
+    <div class="prose bib">
+      {grupos.map((g) => (
+        <section aria-labelledby={g.papel}>
+          <h2 id={g.papel}>{g.rotulo}</h2>
+          <p class="bib-grupo__desc">{descricoes[g.papel]}</p>
+          <ul class="node-refs">
+            {g.entradas.map((e) => (
+              <li class="node-ref" id={e.id}>
+                <Fragment set:html={entradaHtml(e.ref)} />
+                <span class="bib-citado">
+                  <span class="node-docs__rot">Citado em</span>{" "}
+                  {e.blocos.map((id, i) => {
+                    const alvo = resolve(id);
+                    return <>{i > 0 && ", "}{alvo ? <a href={`${alvo.href}#referencias`} title={id}>{alvo.label}</a> : <code>{id}</code>}</>;
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </div>
+</Base>
