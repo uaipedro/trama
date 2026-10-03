@@ -42,3 +42,12 @@
 .tr-quadro .tr-q-est{width:22px;padding-left:2px}
 .tr-q-residuo td{color:var(--tr-dim)}
 .tr-q-total td{border-top:1px solid var(--tr-edge);font-weight:600;border-bottom:0}
+/* Mini-forest do card de ajuste (vista "coef."). */
+.tr-mf-forest{display:flex;gap:6px;align-items:flex-start;margin-top:3px}
+.tr-mf-forest-termos{flex:1;min-width:0;font-size:9.5px;padding-top:2px}
+.tr-mf-forest-termos>div{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-mf-forest-est{color:var(--tr-dim)}
+.tr-mf-forest-zero{stroke:var(--tr-dim);stroke-dasharray:2 2;stroke-width:1}
+.tr-mf-forest svg line{stroke-width:1.5}
+.tr-mf-forest-sig line,.tr-mf-forest-sig circle{stroke:#a78bfa;fill:#a78bfa}
+.tr-mf-forest-nulo line,.tr-mf-forest-nulo circle{stroke:var(--tr-dim);fill:var(--tr-dim);opacity:.6}

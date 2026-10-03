@@ -4,6 +4,12 @@
 * `models/anova_table` com SQ tipo I avisa quando a SQ de um termo depende da ordem na fórmula (desenho desbalanceado); o padrão não muda.
 * Quadro do GLM misto: a nota diz que o qui-quadrado é de Wald e sugere a razão de verossimilhança em `models/compare`.
 * `models/shapiro` com mais de 5000 valores recusa com a classe nova `tr_models_error_too_many_rows`.
+* Card do `models/fit` ganha a vista "coef.": mini-forest com a estimativa
+  e o IC de cada coeficiente (sem o intercepto) e a linha do zero; IC que
+  cruza o zero fica apagado. Os números são os do quadro de coeficientes que
+  o card já calculava — nada novo é estimado. Modelos cujo quadro é a ANOVA
+  (delineamentos, parcela subdividida) mostram "sem coeficientes com
+  intervalo".
 
 # trama.models 0.6.1
 
