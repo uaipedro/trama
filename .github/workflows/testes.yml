@@ -1,0 +1,107 @@
+# Testes em PR e push na main, e a suíte inteira uma vez por semana.
+#
+# Usa tools/check.R, que escolhe os testes pelo diff: em PR compara com a
+# branch de destino; em push na main, com o commit anterior ao push
+# (github.event.before), para não dar falso verde depois do merge. O agendado
+# e o manual rodam --tudo.
+
+name: Testes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      _R_CHECK_FORCE_SUGGESTS_: false
+    steps:
+      - name: Obter o repositório (histórico inteiro, para o diff)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Dependências R de todos os DESCRIPTION
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          # Instala (com cache) as dependências do DESCRIPTION da raiz; as das
+          # coleções vêm no passo seguinte, lidas dos DESCRIPTION delas.
+          extra-packages: any::pkgload, any::testthat, any::withr
+
+      - name: Dependências das coleções (Imports, Depends, Suggests)
+        shell: Rscript {0}
+        run: |
+          base <- rownames(installed.packages(priority = "base"))
+          campos <- c("Depends", "Imports", "Suggests", "LinkingTo")
+          pkgs <- unlist(lapply(Sys.glob("collections/*/DESCRIPTION"), function(d) {
+            x <- read.dcf(d, fields = campos)
+            x <- unlist(strsplit(x[!is.na(x)], ","))
+            trimws(sub("\\(.*", "", x))
+          }))
+          pkgs <- setdiff(unique(pkgs[nzchar(pkgs)]), c("R", base))
+          pkgs <- pkgs[!grepl("^trama", pkgs)]
+          falta <- setdiff(pkgs, rownames(installed.packages()))
+          cat("Instalando:", falta, "\n")
+          if (length(falta)) pak::pak(falta, upgrade = FALSE)
+
+      - name: Dependências do site
+        run: npm ci --prefix site
+
+      - name: Pisos trama (>= x) das coleções
+        run: Rscript tools/versoes.R --estrito
+
+      - name: Testes afetados (PR)
+        if: github.event_name == 'pull_request'
+        run: Rscript tools/check.R --base "origin/${{ github.base_ref }}"
+
+      - name: Testes afetados (push na main)
+        if: github.event_name == 'push'
+        run: |
+          antes="${{ github.event.before }}"
+          if [ -z "$antes" ] || [ "$antes" = "0000000000000000000000000000000000000000" ]; then
+            antes="HEAD~1"
+          fi
+          Rscript tools/check.R --base "$antes"
+
+      - name: Suíte inteira (semanal / manual)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: Rscript tools/check.R --tudo
+
+      - name: Módulos JS do editor
+        run: node --test 'tests/js/*.test.mjs'
+
+      - name: Lixo de execução dos testes
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testthat-problems
+          path: |
+            **/_problems/
+            **/testthat-problems.rds
+          if-no-files-found: ignore
