@@ -11,6 +11,8 @@
   (delineamentos, parcela subdividida) mostram "sem coeficientes com
   intervalo".
 
+* `models/glm` (versão 3): família `binomial negativa` (`MASS::glm.nb`), para contagem superdispersa com theta de máxima verossimilhança; o `models/compare` reestima o theta em cada modelo (`anova.negbin`). Conferida contra o `MASS` no exemplo `quine` de Venables e Ripley (2002, sec. 7.4) e contra a máxima verossimilhança direta.
+
 # trama.models 0.6.1
 
 * Contrato ganha `tr_models_loglik()` e `tr_models_nesting()` (opcionais): um modelo de outra coleção que os implementa entra no `models/compare` (razão de verossimilhança) e no `models/select` (AIC, AICc, BIC). A `trama.series` usa isso para o ARIMA.

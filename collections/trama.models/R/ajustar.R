@@ -69,11 +69,26 @@ tr_models_lm <- function(dados, resposta = "", preditores = "", formula = "") {
                      descartadas = p$descartadas)
 }
 
-.TR_MODELS_FAMILIAS <- c("gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial")
+.TR_MODELS_FAMILIAS <- c("gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial",
+                         "binomial negativa")
+
+#' A família de um ajuste do GLM, com a binomial negativa sem o theta no nome.
+#'
+#' O `MASS::glm.nb` chama a família de `"Negative Binomial(1.2749)"`: o theta
+#' estimado entra no nome, e dois ajustes da mesma família pareceriam de
+#' famílias diferentes. Aqui ela vira `"negbin"`.
+#' @noRd
+.tr_models_familia_glm <- function(aj) {
+  fam <- stats::family(aj)$family
+  if (startsWith(fam, "Negative Binomial")) "negbin" else fam
+}
 
 #' Modelo linear generalizado.
 #' @param familia `"gaussiana"`, `"binomial"`, `"poisson"`, `"gama"`,
-#'   `"quasipoisson"` ou `"quasibinomial"`, cada uma com a ligação canônica (log na gama).
+#'   `"quasipoisson"`, `"quasibinomial"` ou `"binomial negativa"`, cada uma com
+#'   a ligação canônica (log na gama e na binomial negativa). A binomial
+#'   negativa é ajustada pelo `MASS::glm.nb`, com o theta (V(mu) = mu + mu²/theta)
+#'   estimado por máxima verossimilhança.
 #' @inheritParams tr_models_lm
 #' @return objeto `tr_models_fit`.
 #' @export
@@ -110,14 +125,19 @@ tr_models_glm <- function(dados, resposta = "", preditores = "", formula = "", f
                               "para 'cbind(sucessos, fracassos)' ou proporções."))
     }
   }
-  if (familia %in% c("poisson", "quasipoisson") && any(p$dados[[resp]] < 0)) {
+  if (familia %in% c("poisson", "quasipoisson", "binomial negativa") && any(p$dados[[resp]] < 0)) {
     .tr_models_abort("tr_models_error_bad_option",
                      "'models/glm': a família %s é de contagem, e a resposta '%s' tem valor negativo.",
                      familia, resp)
   }
-  ajuste <- .tr_models_ajustar(stats::glm(f, family = fam, data = p$dados), "models/glm")
+  ajuste <- .tr_models_ajustar(
+    if (familia == "binomial negativa") MASS::glm.nb(f, data = p$dados)
+    else stats::glm(f, family = fam, data = p$dados), "models/glm")
   .tr_models_gl_residuo(ajuste, "models/glm")
-  .tr_models_fit_obj(ajuste, "glm", sprintf("GLM · %s", familia), f, p$dados, resp,
+  rotulo <- if (familia == "binomial negativa") {
+    sprintf("GLM · binomial negativa (theta = %s)", .tr_models_fmt(ajuste$theta, 4L))
+  } else sprintf("GLM · %s", familia)
+  .tr_models_fit_obj(ajuste, "glm", rotulo, f, p$dados, resp,
                      descartadas = p$descartadas)
 }
 

@@ -276,3 +276,22 @@ a nota diz que aquela SQ depende da ordem dos termos e aponta o tipo II
 não mudam, por isso a versão do nó fica. Teste em `ToothGrowth` (balanceado,
 sem aviso) e sem as 5 primeiras linhas (aviso só em `supp`, cuja SQ muda mais
 de 1 unidade ao trocar a ordem): `collections/trama.models/tests/testthat/test-resumir.R`.
+
+## Binomial negativa no `models/glm` (02/10/2026)
+
+`trama.models` 0.6.2, `models/glm` versão 3. Família `binomial negativa` por
+`MASS::glm.nb`: NB2, V(μ) = μ + μ²/θ, ligação log, θ por máxima verossimilhança
+alternada com o IRLS (Lawless, 1987, doi:10.2307/3314912; Venables e Ripley,
+2002, sec. 7.4, doi:10.1007/978-0-387-21706-2 — seção conferida no script
+`ch07.R` do MASS). O `models/compare` usa o `anova.negbin` (razão de
+verossimilhança com θ reestimado em cada modelo); o quadro tipo I fixa o θ do
+modelo completo (aviso do próprio MASS), o tipo II/III é o do `car`; a validação
+cruzada reestima θ sem a linha. Validação: coeficientes, θ, EP(θ), EP dos
+coeficientes e log-verossimilhança contra `MASS::glm.nb` no exemplo do livro
+(`quine`, `Days ~ .^4`), 1e-8; θ e coeficientes contra máxima verossimilhança
+direta por `optim` sobre `dnbinom` (`Days ~ Eth + Sex + Age + Lrn`), 1e-4
+(tolerância do otimizador), log-verossimilhança 1e-8; razão de verossimilhança
+contra `anova.negbin`, 1e-8; tipo II contra `car::Anova`, 1e-8. Os valores
+impressos do livro não foram conferidos página a página (a referência numérica é o
+pacote do mesmo autor). Teste:
+`collections/trama.models/tests/testthat/test-binomial-negativa.R`.
