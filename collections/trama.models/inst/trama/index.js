@@ -164,6 +164,10 @@ function Coeficientes({ artifact }) {
           ]);
         }),
       ]),
+      // A estimativa em número: na escala comum, um coeficiente pequeno ao
+      // lado de um grande vira um ponto no zero, e só o número diz quanto é.
+      h("div", { key: "v", className: "tr-mf-forest-vals" }, s.pontos.map((p, i) =>
+        h("div", { key: i, style: { height: LH } }, num(p.est)))),
     ]),
   ]);
 }

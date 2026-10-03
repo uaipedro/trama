@@ -47,6 +47,8 @@
 .tr-mf-forest-termos{flex:1;min-width:0;font-size:9.5px;padding-top:2px}
 .tr-mf-forest-termos>div{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr-mf-forest-est{color:var(--tr-dim)}
+.tr-mf-forest-vals{font-size:9px;font-variant-numeric:tabular-nums;text-align:right;padding-top:2px;color:var(--tr-dim)}
+.tr-mf-forest-vals>div{line-height:13px;white-space:nowrap}
 .tr-mf-forest-zero{stroke:var(--tr-dim);stroke-dasharray:2 2;stroke-width:1}
 .tr-mf-forest svg line{stroke-width:1.5}
 .tr-mf-forest-sig line,.tr-mf-forest-sig circle{stroke:#a78bfa;fill:#a78bfa}
