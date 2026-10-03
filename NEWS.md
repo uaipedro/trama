@@ -1,5 +1,11 @@
 # trama 0.5.4
 
+* Robustez do motor: o fluxo é gravado de forma atômica (crash no autosave não trunca mais `flows/main.json`); worker que morre (falta de memória, daemon morto) não vira erro cacheado; `fingerprint()` que lança invalida só o nó em vez de abortar o plano; handle sem objeto não conta como cache; o GC não apaga o `tmp/` de workers em voo; uma cadeia de `pump` por run; preview parcial com caminho relativo (gráfico em branco durante o run); arquivo de progresso atômico.
+* A impressão digital das funções segue helpers de outras coleções do registro (inclusive `pkg::nome`): mudar um helper de `trama.models` invalida o cache dos blocos de `trama.experiments` que o usam.
+* Proveniência: cada handle registra a versão do R e de cada pacote de coleção que o produziu; `tr_provenance(projeto)` lista isso por nó.
+* O Quarto exportado ganha a seção "Referências dos métodos", com as `tr_ref` dos blocos usados no fluxo.
+* Editor: limite de erro por card (renderer que lança não derruba a página), aviso quando o Shiny não conecta, refazer (Ctrl+Shift+Z / Ctrl+Y), revisão das ops em voo (duas edições rápidas não são mais recusadas) e cards memoizados.
+* `trama-agente`: erros sempre em JSON; `catalog`, `explain` e `validate` funcionam sem o editor aberto.
 * O componente de um renderer recebe `entradas`: os handles que chegam nas portas de entrada do card (os mesmos do `ctx` dos widgets). O núcleo só repassa; é o que deixa uma coleção comparar a saída com a entrada — o `data/table` mostra "−12 linhas".
 
 # trama 0.5.3
