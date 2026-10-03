@@ -140,7 +140,12 @@
   # deles e não nos outros muda a FORMA do JSON que o front consome.
   escreve <- function(cur) {
     cur$at <- as.numeric(Sys.time())
-    jsonlite::write_json(cur, path, auto_unbox = TRUE, null = "null", digits = NA)
+    # Via `.tr_atomic`: o coordenador lê este arquivo a cada 50 ms, e uma
+    # escrita pela metade custava o tick (o leitor tolera JSON truncado, mas
+    # perde o campo que só aquele tick trazia).
+    .tr_atomic(store, path, function(tmp) {
+      jsonlite::write_json(cur, tmp, auto_unbox = TRUE, null = "null", digits = NA)
+    })
     invisible(TRUE)
   }
   c(list(
