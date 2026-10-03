@@ -53,3 +53,16 @@ test_that(".seed sem stochastic explícito ainda muda a chave quando a seed muda
   key2 <- tr_plan(doc2, registry = reg)$keys[["a"]]
   expect_false(identical(key1, key2))
 })
+
+test_that("fingerprint segue helpers de outras coleções (homes), qualificados ou não", {
+  qual <- function(x) stats::median(x)
+  solto <- function(x) median(x)
+  # Fora de `homes`, o helper do outro pacote não entra na chave.
+  expect_identical(.tr_fn_fingerprint(qual), .tr_fn_fingerprint(qual, homes = "utils"))
+  # Dentro, entra: mudar o helper mudaria a chave.
+  expect_false(identical(.tr_fn_fingerprint(qual), .tr_fn_fingerprint(qual, homes = "stats")))
+  expect_false(identical(.tr_fn_fingerprint(solto), .tr_fn_fingerprint(solto, homes = "stats")))
+  expect_identical(.tr_fn_fingerprint(qual, homes = "stats"), .tr_fn_fingerprint(qual, homes = "stats"))
+  expect_equal(.tr_qualified_refs(function() { stats::median(1); stats::sd(2); stats::median(3) }, "stats"),
+               list(c("stats", "median"), c("stats", "sd")))
+})
