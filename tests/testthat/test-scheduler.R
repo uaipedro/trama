@@ -294,3 +294,20 @@ test_that("handle sob chave de região existe se, e só se, a região rodou", {
     expect_null(p2$units$c1$handles)
   }
 })
+
+test_that("worker morto falha o run mas NÃO vira erro cacheado", {
+  reg <- store_registry(); s <- tmp_store(); ev <- list()
+  ex <- fake_async_executor(ticks = 1L)
+  ex$collect <- function(tok) list(ok = FALSE, error = list(message = "daemon morreu",
+                                                         class = "tr_error_worker_died"))
+  doc <- chain_doc(reg)
+  sch <- tr_scheduler(tr_plan(doc, registry = reg, store = s), reg, s, ex,
+                      on_event = function(e) ev[[length(ev) + 1]] <<- e)
+  n <- 0L
+  while (!sch$step()) { n <- n + 1L; expect_lt(n, 50L) }
+  expect_true("failed" %in% vapply(ev, function(e) e$type, ""))
+  # Próximo plano tenta de novo em vez de ler o erro do store.
+  p <- tr_plan(doc, registry = reg, store = s)
+  expect_false(p$units$a$failed)
+  expect_true("a" %in% vapply(tr_plan_pending(p), function(u) u$node, ""))
+})

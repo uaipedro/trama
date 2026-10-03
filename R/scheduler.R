@@ -204,7 +204,12 @@ tr_scheduler <- function(plan, registry = .tr_default_registry, store,
         st$skipped <- c(st$skipped, saidas_de(u))
         prune(saidas_de(u))
       } else {
-        for (k in unlist(u$outputs)) {
+        # Worker que MORREU (OOM, segfault de C, daemon morto por fora) não é
+        # erro do nó: é transitório. Gravá-lo sob a chave determinística deixaria
+        # o card vermelho pra sempre, até um `tr_retry()` que ninguém sabe que
+        # existe. O evento `failed` sai igual; só não vira cache.
+        transitorio <- identical(res$error$class, "tr_error_worker_died")
+        if (!transitorio) for (k in unlist(u$outputs)) {
           tr_store_put_error(store, k, res$error$message, class = res$error$class,
                              traceback = res$error$traceback, node_type = u$node_type,
                              collections = u$collections)
