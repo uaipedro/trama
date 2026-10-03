@@ -107,6 +107,28 @@ trama-agente set ajuste 'preditores=["wt","xyz"]' --wait 30
 Sem `--wait`, a edição volta assim que aplicada e o resultado chega depois.
 Depois de `rm` e `undo` o efeito lista o fluxo inteiro.
 
+### Sem editor aberto
+
+Três comandos não precisam do editor: leem as coleções instaladas (ou as de
+`--colecoes trama.data,trama.models`). Com `TRAMA_DEV`, as coleções vêm de
+`collections/` do repositório.
+
+```bash
+trama-agente catalog --offline --busca anova   # catalog cai aqui sozinho quando não há editor
+trama-agente explain models/lm                 # bloco inteiro: params, portas, ajuda, referências
+trama-agente validate fluxo.json               # lê, migra e valida um fluxo ou template
+```
+
+`validate` aceita o `.json` de um fluxo (`flows/*.json`) ou um template.
+As coleções vêm de `--colecoes`, do template ou do `trama.json` do projeto
+acima do arquivo. A resposta traz `ok`, `migrated` e `problems`, a mesma
+lista de `state` (`unknown_param`, `type_mismatch`,
+`missing_required_input`...). Útil para conferir um fluxo escrito à mão antes
+de abri-lo.
+
+`help` também sai em JSON, e argumento malformado volta como
+`{"ok": false, "reason": "args"}`.
+
 ## O que o agente vê
 
 `result` não dispara execução: devolve o último estado do bloco nesta sessão.

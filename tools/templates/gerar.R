@@ -11,20 +11,40 @@
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+# Coleções descobertas em collections/, dependências antes (Imports/Depends
+# entre trama.*, como em tools/check.R). Coleção nova entra sozinha; a que não
+# tem exemplo abaixo é carregada (outra pode depender dela) e avisada no fim.
+descobrir <- function() {
+  nomes <- basename(list.dirs("collections", recursive = FALSE))
+  deps <- lapply(setNames(nomes, nomes), function(c) {
+    d <- read.dcf(file.path("collections", c, "DESCRIPTION"))
+    campos <- intersect(c("Depends", "Imports"), colnames(d))
+    intersect(trimws(sub("\\(.*", "", unlist(strsplit(paste(d[, campos], collapse = ","), ",")))), nomes)
+  })
+  ordem <- character()
+  visita <- function(x) { for (d in deps[[x]]) visita(d); if (!x %in% ordem) ordem <<- c(ordem, x) }
+  for (n in nomes) visita(n)
+  ordem
+}
+
 suppressMessages({
   pkgload::load_all(".", quiet = TRUE)  # o trama da árvore, não o instalado
-  pkgs <- c("trama.data", "trama.view", "trama.models", "trama.ml",
-            "trama.multi", "trama.series", "trama.sampling")
+  pkgs <- descobrir()
   reg <- tr_registry()
   # As coleções também da árvore: com o instalado, um bloco que subiu de
   # versão depois da última instalação saía no JSON com a versão velha, e o
   # template nascia com `version_drift`.
+  falhas <- character()
   for (p in pkgs) {
-    pkgload::load_all(file.path("collections", p), quiet = TRUE,
-                      export_all = FALSE, attach = FALSE)
-    tr_use(p, registry = reg)
+    tryCatch({
+      pkgload::load_all(file.path("collections", p), quiet = TRUE,
+                        export_all = FALSE, attach = FALSE)
+      tr_use(p, registry = reg)
+      TRUE
+    }, error = function(e) { falhas[[p]] <<- conditionMessage(e); FALSE })
   }
 })
+for (p in names(falhas)) message("não carregou: ", p, " (", falhas[[p]], ")")
 
 # Colunas por profundidade topológica (fontes à esquerda). Sem isso, todos
 # nasceriam no mesmo ponto.
@@ -186,3 +206,5 @@ for (ex in exemplos) {
                            overwrite = TRUE)
   message("gravado: ", path)
 }
+com_exemplo <- unique(vapply(exemplos, `[[`, "", "pkg"))
+for (p in setdiff(pkgs, com_exemplo)) message("sem exemplo, pulada: ", p)
