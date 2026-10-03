@@ -135,6 +135,9 @@ test_that("glmer reproduz a saída do lme4::glmer no cbpp: fixos, variância do 
   # Quadro: qui-quadrado de Wald do car::Anova.
   q <- tr_models_anova_table(g, "II")
   expect_equal(q$tabela$p_valor[[1]], car::Anova(ref, type = "II")$`Pr(>Chisq)`[[1]], tolerance = 1e-4)
+  # O card diz que é Wald e aponta a razão de verossimilhança.
+  expect_match(q$nota, "qui-quadrado de Wald", fixed = TRUE)
+  expect_match(q$nota, "models/compare", fixed = TRUE)
 })
 
 test_that("glmer com efeito por observação reproduz o gm2 do lme4", {

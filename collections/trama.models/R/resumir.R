@@ -73,6 +73,13 @@
   tab
 }
 
+#' Nota do quadro do GLM misto: o qui-quadrado do `car::Anova` é de Wald,
+#' assintótico, liberal com poucos grupos (Bolker et al. 2009).
+#' @noRd
+.TR_MODELS_NOTA_WALD_GLMER <- paste0(
+  "qui-quadrado de Wald (assintótico; liberal com poucos grupos): para um efeito fixo, ",
+  "prefira a razão de verossimilhança entre modelos com e sem o termo em 'models/compare'")
+
 #' Aviso do tipo I com termos não ortogonais.
 #'
 #' A SQ sequencial de um termo é a do termo ajustado só pelos que vêm ANTES na
@@ -227,7 +234,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       m <- if (tipo == "III") .tr_models_ajustar(.tr_models_soma_zero(modelo), no) else modelo$ajuste
       a <- .tr_models_ajustar(as.data.frame(car::Anova(m, type = tipo)), no)
       a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
-      coluna <- "qui2"; nota <- "qui-quadrado de Wald"
+      coluna <- "qui2"; nota <- .TR_MODELS_NOTA_WALD_GLMER
       data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     },
     split = {
@@ -249,7 +256,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       }
       a <- .tr_models_ajustar(as.data.frame(car::Anova(modelo$ajuste, type = 2)), no)
       coluna <- "qui2"
-      nota <- "qui-quadrado de Wald"
+      nota <- .TR_MODELS_NOTA_WALD_GLMER
       data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     })
   if (tipo == "III") nota <- .tr_models_nota(nota, .tr_models_nota_covariavel_iii(modelo))
