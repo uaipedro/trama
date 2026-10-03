@@ -8,6 +8,8 @@ category: ajustar
 related: [models/plot_regression, models/coefficients, models/polinomial]
 ---
 
+**Use quando** a resposta segue uma curva conhecida, como crescimento que se estabiliza, saturação ou um platô a partir de certa dose.
+
 ## O que o bloco faz
 
 `models/nls` ajusta por mínimos quadrados não lineares uma das curvas prontas — logístico, Michaelis-Menten, exponencial assintótico, Gompertz ou linear-platô — com a resposta e uma preditora numérica. Os valores iniciais saem dos próprios dados. A saída é `models/fit`.

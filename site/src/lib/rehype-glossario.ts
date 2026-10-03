@@ -13,7 +13,7 @@ import { afterSection } from "./rehype-node-docs.ts";
 export function insertGlossario(tree: Root, node: string, glossarioHref: string, extra = ""): void {
   const termos = selecionarTermos(`${extra} ${textoDaPagina(tree)}`, node, GLOSSARIO, { deBloco: TERMOS_DE_BLOCO });
   if (!termos.length) return;
-  marcarPrimeiraMencao(tree, termos);
+  marcarPrimeiraMencao(tree, termos, glossarioHref);
   const at = afterSection(tree, "O que o bloco faz");
   tree.children.splice(at < 0 ? 0 : at, 0, caixaGlossario(termos, glossarioHref));
 }

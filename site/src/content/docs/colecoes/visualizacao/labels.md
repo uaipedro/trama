@@ -8,6 +8,8 @@ category: relacao
 related: [view/points, view/dotplot, data/filter]
 ---
 
+**Use quando** você quer escrever o nome de algumas observações ao lado dos seus pontos num gráfico de duas medidas.
+
 ## O que o bloco faz
 
 `view/labels` posiciona um nome junto de cada observação num gráfico de duas medidas.

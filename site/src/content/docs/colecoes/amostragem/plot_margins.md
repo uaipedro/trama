@@ -7,6 +7,8 @@ node: sampling/plot_margins
 related: [sampling/margin_levels, sampling/referral]
 ---
 
+**Use quando** você calculou margens de erro por nível ou por cenário de indicação e quer vê-las num gráfico contra a meta.
+
 ## O que o bloco faz
 
 Desenha a tabela de `sampling/margin_levels` ou de `sampling/referral`: uma

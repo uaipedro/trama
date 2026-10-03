@@ -8,6 +8,8 @@ category: pressupostos
 related: [models/levene, models/plot_diagnostics]
 ---
 
+**Use quando** você ajustou um modelo linear e quer testar se os resíduos (os erros) são normais.
+
 ## O que o bloco faz
 
 `models/shapiro_residuals` Aplica Shapiro–Wilk aos resíduos do ajuste (resíduo b em parcela subdividida). A saída é `data/test`.

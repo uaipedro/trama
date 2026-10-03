@@ -7,6 +7,8 @@ node: ml/tree_plot
 related: ["ml/cart", "ml/figs", "ml/rules"]
 ---
 
+**Use quando** você quer ver o desenho de uma árvore CART ou FIGS, com os limiares de cada ramo e os valores previstos.
+
 ## O que o bloco faz
 
 Desenha uma árvore CART completa ou uma árvore escolhida da soma FIGS.

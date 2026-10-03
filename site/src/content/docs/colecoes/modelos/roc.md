@@ -8,6 +8,8 @@ category: avaliar
 related: [models/confusion, models/evaluate]
 ---
 
+**Use quando** você quer avaliar um classificador em todos os cortes de probabilidade, sem escolher um só, sobretudo com classes desbalanceadas.
+
 ## O que o bloco faz
 
 `models/roc` desenha, para cada corte de probabilidade, a sensibilidade contra 1 − especificidade, com a área sob a curva (AUC) no subtítulo. A saída é `view/plot`.

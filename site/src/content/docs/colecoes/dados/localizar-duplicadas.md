@@ -9,6 +9,8 @@ order: 10
 related: [data/distinct, data/join]
 ---
 
+**Use quando** você desconfia que há registros repetidos e quer ver quais são e quantas vezes aparecem antes de decidir o que fazer.
+
 ## O que o bloco faz
 
 Agrupa as linhas pela combinação de colunas escolhida e devolve as combinações repetidas com o número de ocorrências.

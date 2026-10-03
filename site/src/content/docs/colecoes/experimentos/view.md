@@ -10,6 +10,8 @@ related: [experiments/design, experiments/effect, experiments/error]
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
+**Use quando** você quer ver o plano do experimento: o mapa das parcelas, quem é unidade de quê, as combinações ou a ordem de execução.
+
 ## O que o bloco faz
 
 Desenha um plano de `experiments/design` (ou o que sai de `experiments/effect`

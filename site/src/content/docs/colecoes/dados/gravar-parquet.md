@@ -9,6 +9,8 @@ order: 31
 related: [data/read, data/write_rds]
 ---
 
+**Use quando** você quer guardar ou compartilhar uma tabela grande num arquivo compacto no formato Parquet.
+
 ## O que o bloco faz
 
 Escreve a tabela em Parquet, formato colunar, e encaminha a mesma tabela para as etapas seguintes.

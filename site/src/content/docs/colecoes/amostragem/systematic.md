@@ -7,6 +7,8 @@ node: sampling/systematic
 related: [sampling/srs, sampling/stratified, sampling/simulate]
 ---
 
+**Use quando** você tem uma lista em ordem e quer sortear um ponto de partida e pegar uma unidade a cada intervalo fixo.
+
 ## O que o bloco faz
 
 A amostra sistemática: com intervalo k = N/n, sorteia um começo entre 0 e k e

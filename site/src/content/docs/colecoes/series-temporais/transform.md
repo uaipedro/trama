@@ -9,6 +9,8 @@ order: 2
 related: [series/decompose, series/ets]
 ---
 
+**Use quando** a oscilação da série cresce junto com o nível dela e você quer estabilizá-la com log, raiz ou Box-Cox.
+
 ## O que o bloco faz
 
 Aplica uma transformação que ACHATA a variação quando ela cresce com o nível

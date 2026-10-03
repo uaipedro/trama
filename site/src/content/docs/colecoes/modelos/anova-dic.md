@@ -8,6 +8,8 @@ category: anova
 related: [models/emmeans, models/shapiro_residuals]
 ---
 
+**Use quando** os tratamentos foram sorteados entre unidades parecidas, sem blocos, e você quer saber se as médias dos tratamentos diferem.
+
 ## O que o bloco faz
 
 `models/anova_dic` Ajusta `resposta ~ tratamento` para delineamento inteiramente casualizado e produz `models/fit`. A saída é `models/fit`.

@@ -9,6 +9,8 @@ order: 2
 related: [series/accuracy, series/forecast]
 ---
 
+**Use quando** você quer previsões simples (média, último valor, mesmo mês do ano anterior) para servir de régua contra os modelos mais elaborados.
+
 ## O que o bloco faz
 
 Previsões que não estimam nada, e é por isso que servem: são a régua. Um

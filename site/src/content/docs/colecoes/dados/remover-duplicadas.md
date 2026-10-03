@@ -9,6 +9,8 @@ order: 13
 related: [data/get_dupes, data/arrange]
 ---
 
+**Use quando** você precisa de uma linha só para cada combinação das colunas escolhidas, descartando as repetições.
+
 ## O que o bloco faz
 
 Mantém a primeira linha de cada combinação distinta nas colunas selecionadas, preservando a ordem da tabela.

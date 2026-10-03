@@ -9,6 +9,8 @@ order: 19
 related: [data/group_summarise, data/convert]
 ---
 
+**Use quando** você precisa de uma coluna calculada a partir das outras em cada linha, como converter unidade ou somar duas medidas.
+
 ## O que o bloco faz
 
 Avalia cada expressão para as linhas da tabela e cria ou substitui a coluna nomeada sem agregar os registros.

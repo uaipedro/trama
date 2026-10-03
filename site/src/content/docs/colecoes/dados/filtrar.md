@@ -9,6 +9,8 @@ order: 18
 related: [data/mutate, data/arrange]
 ---
 
+**Use quando** você quer ficar só com as linhas que atendem a uma condição, como as plantas acima de certa altura.
+
 ## O que o bloco faz
 
 Retém as linhas para as quais a condição R retorna `TRUE`; condições falsas ou faltantes não entram na saída.

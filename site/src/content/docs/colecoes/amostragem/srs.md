@@ -7,6 +7,8 @@ node: sampling/srs
 related: [sampling/systematic, sampling/stratified, sampling/size_mean, sampling/simulate]
 ---
 
+**Use quando** você tem a lista completa da população e quer sortear n unidades, todas com a mesma chance.
+
 ## O que o bloco faz
 
 A amostra aleatória simples (AAS): n unidades sorteadas do cadastro, todas com

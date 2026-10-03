@@ -8,6 +8,8 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
+**Use quando** você quer resumir o quanto o modelo se ajusta aos dados (R², AIC, BIC…) ou comparar modelos ajustados à mesma resposta e aos mesmos dados.
+
 ## O que o bloco faz
 
 `models/fit_stats` Reúne medidas de ajuste compatíveis com o modelo em colunas fixas. A saída é uma tabela `data/table`.

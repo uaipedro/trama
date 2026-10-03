@@ -9,6 +9,8 @@ order: 26
 related: [data/join, data/distinct]
 ---
 
+**Use quando** você tem várias tabelas com as mesmas colunas, como um arquivo por ano, e quer juntar todas numa só, uma embaixo da outra.
+
 ## O que o bloco faz
 
 Acrescenta linhas de várias tabelas e alinha as colunas pelos nomes; a sequência das entradas define a sequência dos blocos de linhas.

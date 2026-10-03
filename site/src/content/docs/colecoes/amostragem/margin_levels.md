@@ -7,6 +7,8 @@ node: sampling/margin_levels
 related: [sampling/referral, sampling/plot_margins, sampling/question_margins]
 ---
 
+**Use quando** você já sabe quantas entrevistas fará em cada unidade e quer ver a margem de erro no total, em cada região e em cada unidade de uma vez.
+
 ## O que o bloco faz
 
 A margem de erro de uma proporção em todos os níveis de agregação de uma vez: o

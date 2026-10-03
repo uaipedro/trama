@@ -7,6 +7,8 @@ node: multi/jackknife_logistic
 related: [multi/logistic, models/coefficients, models/roc]
 ---
 
+**Use quando** você ajustou uma logística e quer achar linhas influentes e uma outra estimativa do erro padrão dos coeficientes.
+
 ## O que o bloco faz
 
 O bloco `multi/jackknife_logistic` refaz a logística sem cada observação e estima incerteza e influência em coeficientes ou razões de chances. O bloco recebe o modelo (`models/fit`) de uma `multi/logistic`.

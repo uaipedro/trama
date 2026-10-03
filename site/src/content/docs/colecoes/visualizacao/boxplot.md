@@ -8,6 +8,8 @@ category: distribuicao
 related: [view/histogram, view/violin, view/means]
 ---
 
+**Use quando** você quer comparar entre grupos a mediana, a dispersão e os valores extremos de uma medida.
+
 ## O que o bloco faz
 
 `view/boxplot` resume uma medida numérica por grupo. A linha dentro da caixa marca a mediana; a caixa cobre o intervalo do primeiro ao terceiro quartil; os bigodes alcançam valores até 1,5 vezes o intervalo interquartil além da caixa. Valores fora desse alcance aparecem como pontos.

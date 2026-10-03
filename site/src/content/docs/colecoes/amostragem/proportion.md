@@ -7,6 +7,8 @@ node: sampling/proportion
 related: [sampling/size_proportion, sampling/plot_estimates, sampling/mean]
 ---
 
+**Use quando** você tem uma amostra sorteada e quer estimar a porcentagem da população em cada categoria de uma variável, com o erro do desenho.
+
 ## O que o bloco faz
 
 A proporção da população em cada categoria: a média ponderada do indicador

@@ -9,6 +9,8 @@ order: 2
 related: [series/acf, series/arima]
 ---
 
+**Use quando** você quer ver a dependência da série em cada defasagem descontando as defasagens do meio, em geral junto com a ACF para escolher um modelo.
+
 ## O que o bloco faz
 
 A autocorrelação PARCIAL: a correlação da série com ela mesma k períodos

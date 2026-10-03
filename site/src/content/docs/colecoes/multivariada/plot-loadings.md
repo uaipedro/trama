@@ -7,6 +7,8 @@ node: multi/plot_loadings
 related: [multi/fa_loadings, multi/factor_analysis, multi/parallel]
 ---
 
+**Use quando** você fez uma análise fatorial e quer ver quais itens se agrupam em cada fator e quais carregam em mais de um.
+
 ## O que o bloco faz
 
 O bloco `multi/plot_loadings` apresenta as cargas fatoriais de padrão como mapa de calor; a saída é um gráfico. O bloco recebe `multi/fa`.

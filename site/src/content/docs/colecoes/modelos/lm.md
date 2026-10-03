@@ -8,6 +8,8 @@ category: ajustar
 related: [models/coefficients, models/plot_diagnostics]
 ---
 
+**Use quando** a resposta é numérica contínua e você quer descrevê-la como uma combinação linear de uma ou mais preditoras.
+
 ## O que o bloco faz
 
 `models/lm` Ajusta uma regressão por mínimos quadrados e produz `models/fit`. A saída é `models/fit`.

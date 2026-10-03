@@ -9,6 +9,8 @@ order: 26
 related: [data/slice_head, data/filter]
 ---
 
+**Use quando** você quer sortear algumas linhas da tabela, sempre as mesmas, para olhar um pedaço dos dados ou reamostrar com reposição.
+
 ## O que o bloco faz
 
 Sorteia **N** (`n`) linhas, ou a **Fração** (`fracao`) quando N é 0, com a semente do bloco: a mesma amostra toda vez. **Com reposição** (`reposicao`) permite bootstrap. **Por grupo** (`grupo`) sorteia dentro de cada estrato.

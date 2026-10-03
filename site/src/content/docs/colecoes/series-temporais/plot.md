@@ -9,6 +9,8 @@ order: 2
 related: [series/seasonal_plot, series/plot_decomposition, series/detrend]
 ---
 
+**Use quando** você quer desenhar a série ao longo do tempo, com opções de título e tema para o relatório, ou com uma segunda série por cima.
+
 ## O que o bloco faz
 
 A série como linha no tempo, que é o primeiro gráfico de qualquer análise:

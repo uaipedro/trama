@@ -8,6 +8,8 @@ category: comparacao
 related: [view/dumbbell, view/strip, data/group_summarise]
 ---
 
+**Use quando** as mesmas unidades foram medidas em dois ou mais momentos ou condições, e você quer ver a mudança de cada uma.
+
 ## O que o bloco faz
 
 `view/paired` liga medidas repetidas da mesma unidade entre condições.

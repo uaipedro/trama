@@ -9,6 +9,8 @@ order: 2
 related: [series/pacf, series/ljung_box, series/lag_plot]
 ---
 
+**Use quando** você quer ver o quanto cada valor da série se parece com os valores de períodos anteriores, para notar tendência, sazonalidade ou escolher um modelo.
+
 ## O que o bloco faz
 
 O correlograma: para cada defasagem k, a correlação da série com ela mesma k

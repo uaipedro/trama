@@ -9,6 +9,8 @@ order: 2
 related: [series/decompose, series/stl, series/component]
 ---
 
+**Use quando** você quer estimar tendência e sazonalidade por regressão, com coeficientes e p-valores para testar cada parte.
+
 ## O que o bloco faz
 
 Ajusta um modelo EXPLÍCITO para os componentes da série:

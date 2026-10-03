@@ -9,6 +9,8 @@ order: 2
 related: [series/ljung_box, series/acf]
 ---
 
+**Use quando** você ajustou um modelo e quer os resíduos como série para checar se ele deixou alguma estrutura para trás.
+
 ## O que o bloco faz
 
 O que o modelo NÃO explicou: a série menos o valor ajustado de um passo à

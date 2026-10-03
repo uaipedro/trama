@@ -90,3 +90,16 @@ test("TERMOS_DE_BLOCO: termos existem e blocos têm página", async () => {
   const ids = selecionarTermos("Ajusta tratamento e blocos.", "models/anova_dbc", GLOSSARIO, { deBloco: TERMOS_DE_BLOCO }).map((t) => t.id);
   for (const id of ["anova", "bloco", "delineamento"]) assert.ok(ids.includes(id), id);
 });
+
+test("casamento exige palavra inteira, também com acento (sem sufixo nem prefixo)", () => {
+  const fator = termo("fator");
+  assert.equal(contarMencoes("Num experimento fatorial, fatoriais.", fator), 0, "'fatorial' não é 'fator'");
+  assert.equal(contarMencoes("o fator e os fatores", fator), 2);
+  const fic: TermoGlossario = { id: "x", termo: "Média", explicacao: "x.", termos: ["média"] };
+  assert.equal(contarMencoes("médias e submédia, médiaé", fic), 0);
+  assert.equal(contarMencoes("a média, (média) média.", fic), 3);
+  const arvore: Root = { type: "root", children: [{ type: "element", tagName: "p", properties: {},
+    children: [{ type: "text", value: "Um fatorial com um fator." }] }] };
+  marcarPrimeiraMencao(arvore, [fator], "/g/");
+  assert.match(toHtml(arvore), /fatorial com um <a class="glossario-link" href="\/g\/#fator"><dfn[^>]*>fator<\/dfn><\/a>/);
+});

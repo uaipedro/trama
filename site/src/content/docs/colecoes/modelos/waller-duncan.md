@@ -8,6 +8,8 @@ category: medias
 related: [models/duncan, models/emmeans]
 ---
 
+**Use quando** o seu plano de análise pede o teste de Waller-Duncan, com uma razão K entre os custos dos erros, para agrupar médias.
+
 ## O que o bloco faz
 
 `models/waller_duncan` Aplica Waller–Duncan às médias e retorna grupos por letras. A saída é `models/emm`.

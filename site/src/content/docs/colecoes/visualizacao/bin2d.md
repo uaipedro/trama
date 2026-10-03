@@ -8,6 +8,8 @@ category: relacao
 related: [view/points, view/heatmap, data/filter]
 ---
 
+**Use quando** o gráfico de dispersão tem tantos pontos sobrepostos que vira uma mancha, e você quer ver onde eles se concentram.
+
 ## O que o bloco faz
 
 `view/bin2d` conta observações em células de uma grade definida por duas medidas.

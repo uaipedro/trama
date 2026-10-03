@@ -10,6 +10,8 @@ related: [models/residuals, models/predict, experiments/boxcox]
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
+**Use quando** seu experimento varia doses ou níveis de fatores quantitativos e você quer descrever como a resposta muda com eles e onde fica o ponto de máximo, de mínimo ou a direção de subida.
+
 ## O que o bloco faz
 
 Ajusta a superfície de resposta aos fatores **codificados** (−1, 0, +1, ±α) —

@@ -8,6 +8,8 @@ category: avaliar
 related: [models/roc, models/evaluate, models/predict]
 ---
 
+**Use quando** você ajustou um classificador e quer ver, classe por classe, quais casos ele acerta e com quais classes ele confunde.
+
 ## O que o bloco faz
 
 `models/confusion` conta, para cada classe real, em qual classe o modelo pôs cada caso. A saída é `data/table` no formato largo: `real`, uma coluna por classe prevista, `total`, `acertos`, `taxa_acerto` e a linha `total` com o acerto geral.

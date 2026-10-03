@@ -7,6 +7,8 @@ node: multi/fa_loadings
 related: [multi/factor_analysis, multi/plot_loadings, multi/parallel]
 ---
 
+**Use quando** você fez uma análise fatorial e quer ver quanto cada item se liga a cada fator e se os fatores se correlacionam.
+
 ## O que o bloco faz
 
 O bloco `multi/fa_loadings` extrai uma tabela de cargas de padrão, de estrutura ou de correlações entre fatores, além dos diagnósticos por variável. O bloco recebe `multi/fa`.

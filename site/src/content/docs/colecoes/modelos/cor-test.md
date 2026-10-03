@@ -8,6 +8,8 @@ category: testes
 related: [models/chisq, models/fisher_exact]
 ---
 
+**Use quando** você quer medir a associação entre duas colunas numéricas e testar se a correlação é diferente de zero.
+
 ## O que o bloco faz
 
 `models/cor_test` Estima e testa correlação entre duas colunas. A saída é `data/test`.

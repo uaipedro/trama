@@ -8,6 +8,8 @@ category: distribuicao
 related: [view/boxplot, view/violin, view/paired]
 ---
 
+**Use quando** os grupos têm poucas observações e você quer ver cada valor individual em vez de só um resumo.
+
 ## O que o bloco faz
 
 `view/strip` mostra cada observação em uma faixa por grupo, com deslocamento horizontal para reduzir sobreposição.

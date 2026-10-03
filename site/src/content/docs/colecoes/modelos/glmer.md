@@ -8,6 +8,8 @@ category: ajustar
 related: [models/glm, models/lmer, models/compare, models/random_effects]
 ---
 
+**Use quando** a resposta é uma contagem ou um sim/não e as observações vêm em grupos, como animais do mesmo rebanho ou parcelas do mesmo bloco.
+
 ## O que o bloco faz
 
 `models/glmer` ajusta um modelo linear generalizado com efeitos aleatórios (`lme4::glmer`, máxima verossimilhança pela aproximação de Laplace). A resposta é binomial (0/1, ou sucessos em n tentativas com `cbind(sucessos, fracassos)`) ou Poisson (contagem). A saída é `models/fit`.

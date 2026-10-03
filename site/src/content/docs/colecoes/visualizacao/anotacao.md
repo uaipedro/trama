@@ -8,6 +8,8 @@ category: camadas
 related: [view/labels, view/reference, view/points]
 ---
 
+**Use quando** você quer escrever um texto num ponto do gráfico, com ou sem seta, para chamar a atenção do leitor para algo.
+
 ## O que o bloco faz
 
 `view/annotate` recebe um gráfico e escreve um texto no ponto (X, Y), nas unidades dos eixos. Com **Seta até X** e **Seta até Y**, desenha uma seta do texto até esse ponto.

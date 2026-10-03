@@ -9,6 +9,8 @@ order: 2
 related: [series/forecast, series/baseline, series/accuracy]
 ---
 
+**Use quando** você fez uma previsão e quer o gráfico do histórico com a previsão e seus intervalos.
+
 ## O que o bloco faz
 
 O histórico em cinza, a previsão em cor, e os dois leques: o escuro é o

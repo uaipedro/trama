@@ -9,6 +9,8 @@ order: 2
 related: [series/adf, series/phillips_perron, series/plot]
 ---
 
+**Use quando** você quer testar se a série tem raiz unitária admitindo que ela pode ter sofrido uma quebra, com a data achada pelo próprio teste.
+
 ## O que o bloco faz
 
 Testa se a série tem RAIZ UNITÁRIA admitindo que ela possa ter sofrido uma

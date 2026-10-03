@@ -8,6 +8,8 @@ category: relacao
 related: [view/bars, view/bin2d, data/group_summarise]
 ---
 
+**Use quando** você quer ver padrões no cruzamento de duas variáveis categóricas, com cada combinação colorida pela contagem ou soma.
+
 ## O que o bloco faz
 
 `view/heatmap` resume cada par de categorias numa célula colorida pela contagem ou soma.

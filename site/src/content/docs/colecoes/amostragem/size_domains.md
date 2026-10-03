@@ -7,6 +7,8 @@ node: sampling/size_domains
 related: [sampling/detectable_difference, sampling/size_proportion, sampling/rake]
 ---
 
+**Use quando** você quer a mesma margem de erro dentro de cada grupo de perfil, sem usar cotas, e precisa saber quantas entrevistas fazer no total.
+
 ## O que o bloco faz
 
 O tamanho da amostra quando a margem tem de valer DENTRO de cada grupo de

@@ -9,6 +9,8 @@ order: 2
 related: [series/regression, series/f_seasonal, series/f_trend]
 ---
 
+**Use quando** você ajustou uma regressão de tendência e sazonalidade e quer saber se o modelo, como um todo, explica alguma coisa da série.
+
 ## O que o bloco faz
 
 Testa o ajuste de `series/regression` INTEIRO. H0 é "todos os coeficientes,

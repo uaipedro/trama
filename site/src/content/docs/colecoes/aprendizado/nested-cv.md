@@ -7,6 +7,8 @@ node: ml/nested_cv
 related: ["ml/tune", "ml/split", "models/evaluate"]
 ---
 
+**Use quando** você ajustou hiperparâmetros com validação cruzada e quer uma estimativa honesta do desempenho, sem o otimismo de ter escolhido o melhor.
+
 ## O que o bloco faz
 
 Cada fold externo roda um `ml/tune` completo só no seu treino e mede o vencedor na sua validação, que a busca nunca viu. A média da coluna `externa` estima o desempenho do procedimento inteiro — busca incluída.

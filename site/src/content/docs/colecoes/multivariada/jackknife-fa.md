@@ -7,6 +7,8 @@ node: multi/jackknife_fa
 related: [multi/factor_analysis, multi/fa_loadings, multi/parallel]
 ---
 
+**Use quando** você fez uma análise fatorial e quer achar respondentes influentes e ver se as cargas dos itens são estáveis.
+
 ## O que o bloco faz
 
 O bloco `multi/jackknife_fa` refaz a análise fatorial sem cada observação e estima erro padrão e influência de cargas rotacionadas ou comunalidades. O bloco recebe `multi/fa`.

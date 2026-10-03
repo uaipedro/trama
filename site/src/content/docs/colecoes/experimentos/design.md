@@ -10,6 +10,8 @@ related: [experiments/view, models/anova_split_plot]
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
+**Use quando** você está planejando um experimento e quer declarar o delineamento, como blocos casualizados, e sortear qual tratamento vai em cada parcela.
+
 ## O que o bloco faz
 
 Declara um experimento e sorteia a alocação dos tratamentos às unidades. O

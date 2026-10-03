@@ -8,6 +8,8 @@ category: medias
 related: [models/anova_dbc, models/plot_regression, models/coefficients]
 ---
 
+**Use quando** o tratamento é uma dose (adubo, lâmina, densidade) e a pergunta é como a resposta muda com a dose, e não só se as doses diferem.
+
 ## O que o bloco faz
 
 `models/polinomial` recebe o modelo de uma ANOVA (`models/anova_dic`, `models/anova_dbc` ou `models/anova_dql`) em que o tratamento é uma dose, desdobra a soma de quadrados de tratamentos em componentes linear, quadrático, cúbico... (1 gl cada, testados com o QM do resíduo da ANOVA) e ajusta a curva do grau escolhido. Tem duas saídas: `modelo` (`models/fit`, a curva, que vai para `models/coefficients`, `models/predict` e `models/plot_regression`) e `quadro` (`models/effects`, o desdobramento, com a equação, o R² e a dose de máxima eficiência técnica no rodapé).

@@ -8,6 +8,8 @@ category: medias
 related: [models/emmeans, models/linear_hypothesis, models/scott_knott]
 ---
 
+**Use quando** o seu plano de análise pede o teste de Duncan para agrupar as médias dos tratamentos em letras.
+
 ## O que o bloco faz
 
 `models/duncan` Aplica o teste de Duncan às médias do tratamento e retorna grupos por letras. A saída é `models/emm`.

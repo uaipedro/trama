@@ -7,6 +7,8 @@ node: ml/xgboost
 related: ["ml/split", "models/predict", "models/evaluate", "models/importance", "ml/tune"]
 ---
 
+**Use quando** você quer prever uma resposta com árvores ajustadas em sequência, cada uma corrigindo os erros das anteriores.
+
 ## O que o bloco faz
 
 Ajusta árvores sequencialmente, cada rodada acrescentando correções ao conjunto para regressão ou classificação.

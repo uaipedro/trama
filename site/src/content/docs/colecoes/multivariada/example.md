@@ -7,6 +7,8 @@ node: multi/example
 related: [multi/pca, multi/factor_analysis]
 ---
 
+**Use quando** você quer experimentar uma técnica multivariada com um conjunto de dados pronto, sem ler um arquivo.
+
 ## O que o bloco faz
 
 O bloco `multi/example` carrega o conjunto selecionado e devolve sua tabela em `data/table`. Os dados incluem conjuntos reais do R e simulados com estrutura conhecida. O bloco não recebe entrada.

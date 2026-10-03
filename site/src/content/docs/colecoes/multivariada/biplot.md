@@ -7,6 +7,8 @@ node: multi/biplot
 related: [multi/pca, multi/pca_loadings, multi/correlation_circle]
 ---
 
+**Use quando** você fez uma PCA e quer ver no mesmo gráfico onde ficam as observações e para onde apontam as variáveis.
+
 ## O que o bloco faz
 
 O bloco `multi/biplot` representa escores das observações e setas das variáveis no plano de dois componentes selecionados. A saída é um gráfico. O bloco recebe `multi/pca`.

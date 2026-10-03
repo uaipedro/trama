@@ -8,6 +8,8 @@ category: resumir
 related: [models/polinomial, models/nls, models/plot_means]
 ---
 
+**Use quando** você quer a figura com os pontos, a curva ajustada, a equação e o R² de uma regressão polinomial ou não linear.
+
 ## O que o bloco faz
 
 `models/plot_regression` desenha a curva ajustada por `models/polinomial` ou `models/nls` com os pontos, a equação e o R². A saída é `view/plot`.

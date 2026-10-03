@@ -8,6 +8,8 @@ category: comparacao
 related: [view/bars, view/dotplot, data/mutate]
 ---
 
+**Use quando** você quer descobrir quais poucas categorias respondem pela maior parte das ocorrências ou dos valores.
+
 ## O que o bloco faz
 
 `view/pareto` ordena categorias por contribuição e apresenta o percentual acumulado.

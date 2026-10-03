@@ -9,6 +9,8 @@ order: 24
 related: [data/pivot_longer, data/group_summarise]
 ---
 
+**Use quando** sua tabela está em formato longo e você quer uma coluna para cada categoria, como um valor por mês lado a lado.
+
 ## O que o bloco faz
 
 Cria uma coluna de saída para cada valor da variável escolhida em **Nomes vêm de**, preenchendo-a com os valores de outra coluna.

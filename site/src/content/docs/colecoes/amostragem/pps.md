@@ -7,6 +7,8 @@ node: sampling/pps
 related: [sampling/total, sampling/cluster, sampling/two_stage]
 ---
 
+**Use quando** você quer que unidades maiores tenham mais chance de serem sorteadas, porque a variável que interessa cresce com o tamanho delas.
+
 ## O que o bloco faz
 
 A amostra com probabilidade proporcional ao tamanho (PPS): a unidade com o

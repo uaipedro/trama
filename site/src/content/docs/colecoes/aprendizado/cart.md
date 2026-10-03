@@ -7,6 +7,8 @@ node: ml/cart
 related: ["ml/split", "models/predict", "ml/rules", "ml/tree_plot", "models/importance"]
 ---
 
+**Use quando** você quer prever uma resposta com regras simples do tipo "se X passa de tal valor, então…", que dá para ler numa árvore.
+
 ## O que o bloco faz
 
 Ajusta uma árvore de decisão para regressão ou classificação; cada caminho até uma folha corresponde a uma regra.

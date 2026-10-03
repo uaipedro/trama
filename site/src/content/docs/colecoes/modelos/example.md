@@ -8,6 +8,8 @@ category: fonte
 related: [models/anova_dic, models/lm]
 ---
 
+**Use quando** você quer experimentar uma técnica com um conjunto de dados pronto antes de usar os seus próprios dados.
+
 ## O que o bloco faz
 
 `models/example` Carrega o conjunto selecionado como tabela. A saída é uma tabela `data/table`. A saída é `data/table`.

@@ -8,6 +8,8 @@ category: resumir
 related: [models/anova_table, models/cohen_d]
 ---
 
+**Use quando** além do p-valor da ANOVA você precisa dizer quanto da variação cada fator explica, como pedem as normas da APA.
+
 ## O que o bloco faz
 
 `models/effect_size` calcula, para cada termo do quadro da ANOVA, o eta² (fração da variação total), o eta² parcial (o termo contra o próprio erro) o ômega² (o eta² corrigido do viés em amostra pequena) e o ômega² parcial de Olejnik & Algina (2003), com o erro do próprio termo. Bloco, linha e coluna ficam de fora: são controle da casualização. A saída é uma tabela.

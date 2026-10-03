@@ -9,6 +9,8 @@ order: 15
 related: [data/replace_na, data/summary]
 ---
 
+**Use quando** a análise precisa que certas colunas tenham valor em todas as linhas e você decidiu descartar as linhas com faltantes nelas.
+
 ## O que o bloco faz
 
 Retém as linhas em que todas as colunas selecionadas têm valor observado.

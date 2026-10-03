@@ -7,6 +7,8 @@ node: sampling/rake
 related: [sampling/poststratify, sampling/design, sampling/simulate]
 ---
 
+**Use quando** você conhece os totais da população de várias variáveis separadas (sexo, idade, região), mas não do cruzamento delas, e quer ajustar os pesos para bater todos.
+
 ## O que o bloco faz
 
 A calibração por várias variáveis: os pesos são ajustados para que a amostra

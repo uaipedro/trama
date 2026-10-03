@@ -7,6 +7,8 @@ node: multi/scree
 related: [multi/pca_variance, multi/pca]
 ---
 
+**Use quando** você fez uma PCA e quer ver graficamente onde a variância explicada para de cair muito (o cotovelo).
+
 ## O que o bloco faz
 
 O bloco `multi/scree` desenha a proporção explicada por componente como barras e a proporção acumulada como linha. Recebe um modelo PCA e produz um gráfico. O bloco recebe `multi/pca`.

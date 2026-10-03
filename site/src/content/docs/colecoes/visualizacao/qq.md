@@ -8,6 +8,8 @@ category: distribuicao
 related: [view/histogram, view/density, view/ecdf]
 ---
 
+**Use quando** você quer conferir se uma medida, em especial os resíduos de um modelo, se parece com uma distribuição normal.
+
 ## O que o bloco faz
 
 `view/qq` compara os quantis observados de uma medida com os quantis teóricos normais.

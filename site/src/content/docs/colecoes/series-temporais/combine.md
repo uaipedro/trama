@@ -9,6 +9,8 @@ order: 2
 related: [series/detrend, series/component, series/aggregate]
 ---
 
+**Use quando** você quer somar, subtrair, dividir ou multiplicar duas séries, ponto a ponto, no período que elas têm em comum.
+
 ## O que o bloco faz
 
 Faz a conta ponto a ponto entre duas séries: `a − b`, `a + b`, `a / b` ou

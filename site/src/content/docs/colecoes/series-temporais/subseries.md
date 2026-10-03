@@ -9,6 +9,8 @@ order: 2
 related: [series/seasonal_plot, series/aggregate]
 ---
 
+**Use quando** você quer ver como cada mês (ou trimestre) evoluiu ao longo dos anos, num painel por estação.
+
 ## O que o bloco faz
 
 Um painel por estação (mês, trimestre), com os anos em sequência dentro de

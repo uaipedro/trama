@@ -8,6 +8,8 @@ category: resumir
 related: [models/coefficients, models/glm, models/effect_size]
 ---
 
+**Use quando** você quer mostrar numa figura quais preditores têm efeito e em que direção, cada um com o seu intervalo de confiança.
+
 ## O que o bloco faz
 
 `models/plot_coefficients` desenha os coeficientes do modelo em gráfico de floresta: um ponto por termo na estimativa, a barra no intervalo de confiança e uma linha tracejada na referência (0, ou 1 quando exponenciado). O intercepto fica de fora. A saída é um gráfico.

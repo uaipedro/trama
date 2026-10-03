@@ -9,6 +9,8 @@ order: 30
 related: [data/read, data/write_csv]
 ---
 
+**Use quando** você quer salvar a tabela para abrir depois no R exatamente como estava, com os tipos de cada coluna.
+
 ## O que o bloco faz
 
 Serializa a tabela em RDS no caminho indicado e encaminha a mesma tabela para as etapas seguintes.

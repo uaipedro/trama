@@ -7,6 +7,8 @@ node: ml/example
 related: ["ml/split", "ml/linear"]
 ---
 
+**Use quando** você quer aprender ou testar ajuste e avaliação de modelos com tabelas didáticas conhecidas, como iris e mtcars.
+
 ## O que o bloco faz
 
 Fornece iris, iris binária ou mtcars como tabela reprodutível para explorar ajuste e avaliação.

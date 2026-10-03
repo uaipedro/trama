@@ -8,6 +8,8 @@ category: comparacao
 related: [view/boxplot, view/bars, view/violin]
 ---
 
+**Use quando** sua pergunta é sobre a média de cada grupo e você quer mostrar junto a incerteza, como o intervalo de confiança.
+
 ## O que o bloco faz
 
 `view/means` calcula a média por grupo e mostra uma barra de incerteza ou dispersão.

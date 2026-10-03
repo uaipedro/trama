@@ -9,6 +9,8 @@ order: 2
 related: [series/residuals, series/ljung_box, series/arima]
 ---
 
+**Use quando** você já ajustou um modelo e quer prever os próximos períodos, com intervalos que mostram a incerteza.
+
 ## O que o bloco faz
 
 Projeta o modelo **Horizonte** períodos à frente, com a previsão pontual e os

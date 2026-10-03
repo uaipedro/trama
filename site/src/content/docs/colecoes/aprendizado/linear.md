@@ -7,6 +7,8 @@ node: ml/linear
 related: ["ml/split", "models/predict", "models/evaluate"]
 ---
 
+**Use quando** você quer um modelo simples de referência, uma regressão linear ou logística, para comparar com modelos mais complexos.
+
 ## O que o bloco faz
 
 Ajusta mínimos quadrados para resposta numérica ou regressão logística binária para resposta categórica de duas classes.

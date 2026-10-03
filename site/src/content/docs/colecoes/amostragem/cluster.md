@@ -7,6 +7,8 @@ node: sampling/cluster
 related: [sampling/two_stage, sampling/size_cluster, sampling/simulate]
 ---
 
+**Use quando** você tem só a lista de grupos (municípios, escolas, quarteirões), e não das pessoas, e quer sortear alguns grupos e entrevistar todo mundo dentro deles.
+
 ## O que o bloco faz
 
 A amostra de conglomerados em UM estágio: sorteia conglomerados (municípios,

@@ -7,6 +7,8 @@ node: sampling/example
 related: [sampling/srs, sampling/design]
 ---
 
+**Use quando** você quer praticar amostragem com uma população simulada em que a resposta certa é conhecida, ou com uma amostra já coletada.
+
 ## O que o bloco faz
 
 Carrega um conjunto pensado para ensinar amostragem. Os dois primeiros são

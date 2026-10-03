@@ -9,6 +9,8 @@ order: 4
 related: [data/summary, data/read]
 ---
 
+**Use quando** você quer um resumo numérico, como média ou contagem, da tabela inteira ou de cada grupo, por exemplo a média da produção em cada tratamento.
+
 ## O que o bloco faz
 
 `data/group_summarise` calcula uma ou mais medidas sobre a tabela. Com grupos,

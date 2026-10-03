@@ -8,6 +8,8 @@ category: testes
 related: [models/chisq, models/cor_test]
 ---
 
+**Use quando** você quer testar a associação entre duas variáveis categóricas numa tabela pequena, em que o qui-quadrado não é confiável.
+
 ## O que o bloco faz
 
 `models/fisher_exact` Testa independência entre colunas categóricas pelo teste exato de Fisher. A saída é `data/test`.

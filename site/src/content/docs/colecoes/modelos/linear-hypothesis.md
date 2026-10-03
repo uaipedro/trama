@@ -8,6 +8,8 @@ category: medias
 related: [models/duncan, models/emmeans]
 ---
 
+**Use quando** a sua pergunta combina várias médias ou coeficientes num contraste que você mesmo escreve e quer testar de uma vez.
+
 ## O que o bloco faz
 
 `models/linear_hypothesis` Avalia contrastes lineares conjuntos por teste F. A saída é `data/test`.

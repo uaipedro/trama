@@ -7,6 +7,8 @@ node: multi/factor_analysis
 related: [multi/parallel, multi/fa_loadings, multi/plot_loadings]
 ---
 
+**Use quando** você suspeita que alguns poucos fatores não observados, como ansiedade num questionário, explicam a correlação entre os itens.
+
 ## O que o bloco faz
 
 O bloco `multi/factor_analysis` estima fatores comuns às variáveis, aplica rotação e pode calcular escores; o resultado é um modelo fatorial. O bloco recebe `data/table`.

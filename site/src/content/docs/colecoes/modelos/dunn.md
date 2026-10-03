@@ -8,6 +8,8 @@ category: testes
 related: [models/kruskal, models/pairwise]
 ---
 
+**Use quando** o Kruskal-Wallis deu diferença e você quer saber quais pares de grupos diferem entre si.
+
 ## O que o bloco faz
 
 `models/dunn` compara todos os pares de grupos pelos postos médios (Dunn, 1964), usando os postos da amostra inteira e a correção de empates. A saída é um quadro de efeitos (`models/effects`), um par por linha, com a diferença dos postos médios, o `z` e o p-valor ajustado.

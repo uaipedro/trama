@@ -7,6 +7,8 @@ node: sampling/plot_simulation
 related: [sampling/simulate, sampling/plot_estimates]
 ---
 
+**Use quando** você simulou vários desenhos de amostra e quer comparar lado a lado qual deles erra menos em relação ao valor verdadeiro.
+
 ## O que o bloco faz
 
 Uma faixa por simulação ligada: o violino das estimativas, a caixa com a

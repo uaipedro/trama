@@ -9,6 +9,8 @@ order: 2
 related: [series/lag_plot, series/diff]
 ---
 
+**Use quando** você quer deslocar a série alguns períodos no tempo para colocá-la ao lado da sua versão atrasada.
+
 ## O que o bloco faz
 
 Desloca a série k períodos para frente no tempo: o valor que era de janeiro

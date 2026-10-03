@@ -8,6 +8,8 @@ category: resumir
 related: [models/coefficients, models/fit_stats, models/effect_size]
 ---
 
+**Use quando** você já ajustou um modelo e quer o quadro da ANOVA com o teste de cada termo, escolhendo o tipo de soma de quadrados quando os dados são desbalanceados.
+
 ## O que o bloco faz
 
 `models/anova_table` Monta o quadro de efeitos com graus de liberdade, somas de quadrados, estatísticas e p-valores. A saída é `models/effects`.

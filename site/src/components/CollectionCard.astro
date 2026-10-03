@@ -5,19 +5,17 @@ type Collection = (typeof collections)[number];
 
 interface Props {
   collection: Collection;
+  instalada?: boolean;
 }
 
-const { collection } = Astro.props;
+const { collection, instalada = false } = Astro.props;
 ---
 
-<a class="collection-card" href={`/trama/colecoes/${collection.id}/`}>
-  <span class="collection-card__icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><use href={`/trama/icons/lucide.svg#${collection.icon}`} /></svg>
-  </span>
-  <span class="collection-card__text">
-    <strong>{collection.packageName}</strong>
-    <span>{collection.title}</span>
+<a class="catalogue-entry collection-entry" href={`/trama/colecoes/${collection.id}/`}>
+  <span class="catalogue-entry__meta">{collection.packageName}{instalada && <span class="collection-entry__badge">vem instalada</span>}</span>
+  <span class="catalogue-entry__main">
+    <strong>{collection.title}</strong>
     <em>{collection.description}</em>
   </span>
-  <span class="collection-card__arrow" aria-hidden="true">↗</span>
+  <span class="catalogue-entry__arrow" aria-hidden="true">→</span>
 </a>

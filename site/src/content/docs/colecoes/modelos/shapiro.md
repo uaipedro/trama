@@ -8,6 +8,8 @@ category: testes
 related: [models/chisq, models/cor_test]
 ---
 
+**Use quando** você quer testar se os valores de uma coluna seguem uma distribuição normal.
+
 ## O que o bloco faz
 
 `models/shapiro` Aplica Shapiro–Wilk a uma coluna (3–5000 observações). A saída é `data/test`.

@@ -8,6 +8,8 @@ category: figura
 related: [view/points, view/boxplot, view/bars]
 ---
 
+**Use quando** você quer juntar vários gráficos numa figura só, com painéis A, B, C, como nas figuras de artigo ou tese.
+
 ## O que o bloco faz
 
 `view/combine` junta dois ou mais gráficos numa figura só, em linha ou em grade, com uma etiqueta em cada painel (A, B, C). O tema escolhido no painel vale para todos os gráficos, qualquer que fosse o tema de cada um.

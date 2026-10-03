@@ -8,6 +8,8 @@ category: comparacao
 related: [view/bars, view/dumbbell, data/group_summarise]
 ---
 
+**Use quando** você quer ordenar muitas categorias com nome por contagem ou total, num ranking fácil de ler.
+
 ## O que o bloco faz
 
 `view/dotplot` resume categorias em pontos num ranking horizontal.

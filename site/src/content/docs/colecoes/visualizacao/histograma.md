@@ -9,6 +9,8 @@ order: 3
 related: [view/density, view/ecdf, view/boxplot]
 ---
 
+**Use quando** você quer ver como os valores de uma medida numérica se distribuem: onde se concentram, se são assimétricos ou se há valores fora do comum.
+
 ## O que o bloco faz
 
 `view/histogram` divide uma medida numérica em faixas e mostra a contagem de observações em cada faixa. Cada barra representa uma faixa, não uma categoria agregada.

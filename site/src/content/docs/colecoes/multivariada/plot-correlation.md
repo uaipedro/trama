@@ -7,6 +7,8 @@ node: multi/plot_correlation
 related: [multi/correlation_matrix, multi/pca]
 ---
 
+**Use quando** você quer enxergar de uma vez quais grupos de variáveis andam juntos antes de uma PCA ou análise fatorial.
+
 ## O que o bloco faz
 
 O bloco `multi/plot_correlation` calcula correlações de Pearson entre colunas e as exibe como mapa de calor. A saída é um gráfico. O bloco recebe `data/table`.

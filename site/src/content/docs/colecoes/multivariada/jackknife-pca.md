@@ -7,6 +7,8 @@ node: multi/jackknife_pca
 related: [multi/pca, multi/pca_loadings, multi/biplot]
 ---
 
+**Use quando** você fez uma PCA e quer saber se alguma observação sozinha muda a variância explicada ou as cargas.
+
 ## O que o bloco faz
 
 O bloco `multi/jackknife_pca` remove cada observação sucessivamente, refaz a PCA e estima viés, erro padrão, intervalo e influência em autovalores, proporções ou cargas. O bloco recebe `multi/pca`.

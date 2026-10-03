@@ -9,6 +9,8 @@ order: 2
 related: [series/seasonality_kw, series/interpolate, series/window]
 ---
 
+**Use quando** você desconfia que a série tem um ciclo escondido e quer testar se o maior pico do periodograma é maior do que o acaso daria.
+
 ## O que o bloco faz
 
 Procura uma PERIODICIDADE ESCONDIDA. Decompõe a série nas ondas de todos os

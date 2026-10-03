@@ -9,6 +9,8 @@ order: 2
 related: [series/stl, series/decompose, series/component]
 ---
 
+**Use quando** você decompôs a série e quer ver a série, a tendência, a sazonalidade e o resto em painéis empilhados.
+
 ## O que o bloco faz
 
 Desenha a série e os três componentes — tendência, sazonal, resto — em

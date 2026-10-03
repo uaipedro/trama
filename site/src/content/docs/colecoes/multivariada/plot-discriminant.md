@@ -7,6 +7,8 @@ node: multi/plot_discriminant
 related: [multi/discriminant_functions, models/confusion, models/predict]
 ---
 
+**Use quando** você ajustou uma discriminante e quer ver num gráfico o quanto os grupos se separam ou se sobrepõem.
+
 ## O que o bloco faz
 
 O bloco `multi/plot_discriminant` plota os escores das funções discriminantes por grupo, com centróides e elipses opcionais. O bloco recebe o modelo (`models/fit`) de uma `multi/discriminant`.

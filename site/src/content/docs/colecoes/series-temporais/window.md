@@ -9,6 +9,8 @@ order: 2
 related: [series/accuracy, series/transform, series/moving_average]
 ---
 
+**Use quando** você quer recortar a série entre um início e um fim, por exemplo para separar o período de treino do de teste.
+
 ## O que o bloco faz
 
 Recorta a série no tempo. O uso mais importante é separar TREINO de TESTE:

@@ -9,6 +9,8 @@ order: 2
 related: [series/decompose, series/stl, series/plot]
 ---
 
+**Use quando** você quer suavizar a série com médias de períodos vizinhos para enxergar melhor a tendência.
+
 ## O que o bloco faz
 
 Troca cada valor pela média dos k vizinhos. É a forma mais simples de ver a

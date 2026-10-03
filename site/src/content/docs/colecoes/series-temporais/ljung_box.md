@@ -9,6 +9,8 @@ order: 2
 related: [series/residuals, series/box_pierce, series/adf]
 ---
 
+**Use quando** você quer saber se sobrou dependência entre os valores, por exemplo nos resíduos de um modelo, ou se eles já parecem ruído branco.
+
 ## O que o bloco faz
 
 Testa se as primeiras autocorrelações da série são, EM CONJUNTO, zero — isto

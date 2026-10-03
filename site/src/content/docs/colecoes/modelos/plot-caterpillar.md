@@ -8,6 +8,8 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
+**Use quando** você ajustou um modelo misto e quer ver o efeito previsto de cada nível do grupo aleatório e quais se afastam da média.
+
 ## O que o bloco faz
 
 `models/plot_caterpillar` Ordena efeitos aleatórios por grupo e mostra intervalos. A saída é `view/plot`.

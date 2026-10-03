@@ -6,29 +6,25 @@ order: 1
 related: [data/read, data/summary, view/points]
 ---
 
-## Instalação
+Ao final desta página você terá um fluxo de três blocos: uma tabela de
+exemplo (`mtcars`), um resumo das colunas e um gráfico de dispersão do
+consumo (`mpg`) contra o peso (`wt`), com os pontos coloridos pelo número de
+cilindros (`cyl`).
 
-### Antes de instalar
-
-O caminho mais simples usa o `trama-cli`. Ele precisa do **Node.js 20 ou
-superior**; confira no terminal com `node --version`. Se o comando não existir
-ou mostrar uma versão anterior, instale uma versão atual pelo
-[site do Node.js](https://nodejs.org/).
-
-Você não precisa instalar R separadamente: o `trama-cli` baixa uma versão
-portátil e prepara o núcleo do Trama junto com as coleções Dados e
-Visualização.
-
-### Instale e crie um projeto
-
-```bash
-npm install -g @uaipedro/trama-cli
-trama create meu-primeiro-fluxo
+```r
+tr_flow(reg) |>
+  tr_add("carros", "data/example", dataset = "mtcars") |>
+  tr_add("resumo", "data/summary", from = "carros") |>
+  tr_add("grafico", "view/points", x = "wt", y = "mpg", cor = "cyl", from = "carros")
 ```
 
-O segundo comando cria a pasta do projeto, pergunta se você quer acrescentar
-outras coleções e abre o editor no navegador. Para este guia, siga sem marcar
-coleções extras: Dados e Visualização já estão disponíveis.
+O canvas acima é o mesmo fluxo que você vai montar no editor; a aba ao lado
+mostra o código R equivalente.
+
+**Já instalou o trama?** Abra o editor e siga a partir de
+[Finalidade](#finalidade).
+**Ainda não?** Comece pela [Instalação](/trama/por-dentro/instalacao/) e volte
+aqui com o editor aberto.
 
 ## Finalidade
 
@@ -43,8 +39,9 @@ resultado, produz outro e deixa esse resultado disponível para inspeção.
 
 ## Um primeiro caminho
 
-No editor que acabou de abrir, acrescente os blocos **Dados de exemplo**,
-**Resumo** e **Disperso**. Ligue a saída de um bloco à entrada do próximo.
+No editor, acrescente os blocos **Dados de exemplo**,
+**Resumo** e **Disperso**. Ligue a saída de **Dados de exemplo** à entrada
+de **Resumo** e à entrada de **Disperso**.
 
 Escolha `mtcars` em **Dados de exemplo**. Em **Disperso**, use `wt` no eixo X,
 `mpg` no eixo Y e `cyl` em **Cor por**. O gráfico mostra uma marca por linha da

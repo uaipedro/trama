@@ -9,6 +9,8 @@ order: 2
 related: [series/window, series/aggregate, series/decompose]
 ---
 
+**Use quando** a série tem valores faltando e você quer preenchê-los de um jeito que respeite a tendência e a sazonalidade.
+
 ## O que o bloco faz
 
 Estima os valores faltantes a partir da própria série: numa série sem

@@ -8,6 +8,8 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
+**Use quando** você ajustou uma regressão ou ANOVA e quer olhar os resíduos para checar forma, normalidade e dispersão.
+
 ## O que o bloco faz
 
 `models/plot_diagnostics` Desenha resíduos versus ajustados, Q-Q normal, escala-localização e histograma. A saída é `view/plot`.

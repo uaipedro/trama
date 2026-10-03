@@ -7,6 +7,8 @@ node: ml/svm
 related: ["ml/split", "models/predict", "models/evaluate", "models/roc"]
 ---
 
+**Use quando** você quer um modelo de previsão que pode traçar uma fronteira reta ou curva entre as classes, ou ajustar uma resposta numérica.
+
 ## O que o bloco faz
 
 Ajusta uma máquina de vetores de suporte para regressão ou classificação, com kernel configurável.

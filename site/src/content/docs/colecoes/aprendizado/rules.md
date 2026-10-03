@@ -7,6 +7,8 @@ node: ml/rules
 related: ["ml/cart", "ml/figs", "ml/tree_plot", "models/importance"]
 ---
 
+**Use quando** você quer ver numa tabela as regras de uma árvore CART ou FIGS, caminho por caminho, para conferi-las ou exportá-las.
+
 ## O que o bloco faz
 
 Expõe os caminhos e valores das folhas de um modelo CART ou as folhas/contribuições das árvores FIGS.

@@ -7,6 +7,8 @@ node: multi/pca_loadings
 related: [multi/pca_variance, multi/biplot, multi/correlation_circle]
 ---
 
+**Use quando** você fez uma PCA e quer saber quais variáveis definem cada componente e em que direção.
+
 ## O que o bloco faz
 
 O bloco `multi/pca_loadings` extrai uma tabela com as variáveis nas linhas e componentes nas colunas, como correlações variável-componente ou autovetores. O bloco recebe `multi/pca`.

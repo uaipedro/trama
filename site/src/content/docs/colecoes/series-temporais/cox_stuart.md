@@ -9,6 +9,8 @@ order: 2
 related: [series/mann_kendall, series/interpolate, series/window]
 ---
 
+**Use quando** você quer testar se a série tem tendência com um teste simples, que só conta se os valores sobem ou descem.
+
 ## O que o bloco faz
 
 Testa se a série tem TENDÊNCIA por um teste de SINAL: pareia observações

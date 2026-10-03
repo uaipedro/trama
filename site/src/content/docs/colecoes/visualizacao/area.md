@@ -8,6 +8,8 @@ category: relacao
 related: [view/line, view/bars, data/group_summarise]
 ---
 
+**Use quando** você quer mostrar como o total de séries positivas e a parte de cada uma mudam ao longo do tempo ou de outra ordem.
+
 ## O que o bloco faz
 
 `view/area` mostra o total e a composição de séries ao longo de um eixo ordenado.

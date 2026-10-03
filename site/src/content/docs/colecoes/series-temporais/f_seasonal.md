@@ -9,6 +9,8 @@ order: 2
 related: [series/regression, series/f_trend, series/f_global]
 ---
 
+**Use quando** você ajustou uma regressão de tendência e sazonalidade e quer testar se a sazonalidade existe, olhando todos os meses de uma vez.
+
 ## O que o bloco faz
 
 Testa os coeficientes sazonais de um ajuste de `series/regression` EM BLOCO.

@@ -8,6 +8,8 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
+**Use quando** você ajustou um modelo misto e quer saber quanto da variação da resposta vem de cada termo aleatório.
+
 ## O que o bloco faz
 
 `models/random_effects` Extrai componentes de variância e proporções dos efeitos aleatórios. A saída é uma tabela `data/table`.

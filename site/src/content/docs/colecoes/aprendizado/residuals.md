@@ -7,6 +7,8 @@ node: ml/residuals
 related: ["models/predict", "models/evaluate"]
 ---
 
+**Use quando** você ajustou um modelo de regressão e quer ver se os erros de previsão mostram algum padrão, curvatura ou dispersão crescente.
+
 ## O que o bloco faz
 
 Compara valores previstos numéricos aos resíduos observados menos previstos.

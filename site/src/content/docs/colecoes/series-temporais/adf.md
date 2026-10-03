@@ -9,6 +9,8 @@ order: 2
 related: [series/interpolate, series/window, series/kpss]
 ---
 
+**Use quando** você quer testar se a série precisa ser diferenciada porque seu nível passeia sem voltar (raiz unitária).
+
 ## O que o bloco faz
 
 Testa se a série tem RAIZ UNITÁRIA — a não estacionariedade que faz o nível

@@ -1,0 +1,254 @@
+---
+// Fluxo vivo da home: três blocos de verdade (Dados de exemplo → Resumo e
+// Disperso) com a saída REAL do trama, exportada por tools/site/export-hero.R.
+// Sem JavaScript, a figura já mostra o estado inicial completo (mtcars, Resumo).
+import hero from "../data/hero.json";
+import visuais from "../data/node-visuals.json";
+
+const conjuntos = Object.keys(hero) as (keyof typeof hero)[];
+const inicial = hero.mtcars;
+const cor = (tipo: string) => (visuais as Record<string, { accent?: string }>)[tipo]?.accent ?? "#64748b";
+const blocos = [
+  { id: "dados", tipo: "data/example", titulo: "Dados de exemplo" },
+  { id: "resumo", tipo: "data/summary", titulo: "Resumo" },
+  { id: "grafico", tipo: "view/points", titulo: "Disperso" }
+];
+---
+
+<figure class="fluxo-vivo" data-fluxo-vivo>
+  <div class="fluxo-vivo__meta">
+    <span><i aria-hidden="true"></i> fluxo vivo</span>
+    <span>saída real do trama</span>
+  </div>
+
+  <div class="fluxo-vivo__grafo">
+    <svg class="fluxo-vivo__fios" aria-hidden="true"></svg>
+    {blocos.map((b) => (
+      <div class={`fv-bloco fv-bloco--${b.id}`} data-bloco={b.id} data-estado="feito" style={`--fv-cor: ${cor(b.tipo)}`}>
+        <button class="fv-bloco__cab" type="button" aria-pressed={b.id === "resumo" ? "true" : "false"} data-inspecionar={b.id}>
+          <i class="fv-bloco__estado" aria-hidden="true"></i>
+          <span>{b.titulo}</span>
+        </button>
+        {b.id === "dados" && (
+          <div class="fv-bloco__param" role="group" aria-label="Conjunto de dados">
+            {conjuntos.map((c) => (
+              <button type="button" data-conjunto={c} aria-pressed={c === "mtcars" ? "true" : "false"}>{c}</button>
+            ))}
+          </div>
+        )}
+        {b.id === "grafico" && <p class="fv-bloco__nota" data-eixos>{inicial.eixos.y} × {inicial.eixos.x}</p>}
+        {b.id === "resumo" && <p class="fv-bloco__nota" data-ncol>{inicial.colunas} colunas</p>}
+      </div>
+    ))}
+  </div>
+
+  <div class="fluxo-vivo__painel">
+    <div class="fluxo-vivo__abas" role="tablist" aria-label="O que ver do bloco">
+      <button type="button" role="tab" aria-selected="true" data-aba="resultado">Resultado</button>
+      <button type="button" role="tab" aria-selected="false" data-aba="codigo">Código R</button>
+      <span class="fluxo-vivo__rotulo" data-rotulo>Resumo · {inicial.nome}</span>
+    </div>
+    <div class="fluxo-vivo__saida" data-saida>
+      <table>
+        <thead><tr><th>coluna</th><th>tipo</th><th>faltantes</th><th>distintos</th><th>mínimo</th><th>máximo</th></tr></thead>
+        <tbody>
+          {inicial.resumo.map((r) => (
+            <tr><td>{r.coluna}</td><td>{r.tipo}</td><td>{r.faltantes}</td><td>{r.distintos}</td><td>{r.minimo}</td><td>{r.maximo}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="sr-only" aria-live="polite" data-aviso></p>
+  <figcaption>Troque o conjunto no primeiro bloco: o resumo e o gráfico refazem a conta. Clique num bloco para ver o que sai dele.</figcaption>
+</figure>
+
+<script>
+  import hero from "../data/hero.json";
+
+  type Conjunto = (typeof hero)["mtcars"];
+  const CORES = ["#5fd4c4", "#f2b84b", "#ef7fb0", "#a98cf0", "#7fd27a", "#7ab8f5"];
+  const raiz = document.querySelector<HTMLElement>("[data-fluxo-vivo]");
+  if (raiz) iniciar(raiz);
+
+  function iniciar(raiz: HTMLElement) {
+    const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const svg = raiz.querySelector<SVGSVGElement>(".fluxo-vivo__fios")!;
+    const grafo = raiz.querySelector<HTMLElement>(".fluxo-vivo__grafo")!;
+    const saida = raiz.querySelector<HTMLElement>("[data-saida]")!;
+    const rotulo = raiz.querySelector<HTMLElement>("[data-rotulo]")!;
+    const aviso = raiz.querySelector<HTMLElement>("[data-aviso]")!;
+    const bloco = (id: string) => raiz.querySelector<HTMLElement>(`[data-bloco="${id}"]`)!;
+    let atual: Conjunto = hero.mtcars;
+    let inspecionado = "resumo";
+    let aba = "resultado";
+    let rodada = 0;
+
+    // --- fios -------------------------------------------------------------
+    const NS = "http://www.w3.org/2000/svg";
+    let fios: SVGPathElement[] = [];
+    function desenharFios() {
+      const base = grafo.getBoundingClientRect();
+      const de = bloco("dados").getBoundingClientRect();
+      const x0 = de.right - base.left, y0 = de.top - base.top + 20;
+      svg.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
+      svg.replaceChildren();
+      fios = ["resumo", "grafico"].map((id) => {
+        const r = bloco(id).getBoundingClientRect();
+        const x1 = r.left - base.left, y1 = r.top - base.top + 20;
+        const dx = Math.max(24, (x1 - x0) / 2);
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", `M${x0},${y0} C${x0 + dx},${y0} ${x1 - dx},${y1} ${x1},${y1}`);
+        svg.append(p);
+        return p;
+      });
+    }
+    new ResizeObserver(desenharFios).observe(grafo);
+
+    function pulso(fio: SVGPathElement, ms: number) {
+      return new Promise<void>((fim) => {
+        const c = document.createElementNS(NS, "circle");
+        c.setAttribute("r", "4");
+        svg.append(c);
+        const total = fio.getTotalLength();
+        const t0 = performance.now();
+        const passo = (t: number) => {
+          const k = Math.min(1, (t - t0) / ms);
+          const e = 1 - Math.pow(1 - k, 3);
+          const pt = fio.getPointAtLength(e * total);
+          c.setAttribute("cx", String(pt.x));
+          c.setAttribute("cy", String(pt.y));
+          if (k < 1) requestAnimationFrame(passo);
+          else { c.remove(); fim(); }
+        };
+        requestAnimationFrame(passo);
+      });
+    }
+
+    const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const estado = (id: string, e: string) => { bloco(id).dataset.estado = e; };
+
+    // --- execução encenada: a ordem é a do motor (fonte, depois os dois) ----
+    async function rodar(nome: keyof typeof hero) {
+      const minha = ++rodada;
+      atual = hero[nome];
+      raiz.querySelectorAll<HTMLButtonElement>("[data-conjunto]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.conjunto === nome)));
+      if (calmo) { atualizarNotas(); mostrar(); return; }
+      ["dados", "resumo", "grafico"].forEach((id) => estado(id, "espera"));
+      estado("dados", "rodando");
+      await espera(320);
+      if (minha !== rodada) return;
+      estado("dados", "feito");
+      await Promise.all(fios.map((f) => pulso(f, 520)));
+      if (minha !== rodada) return;
+      estado("resumo", "rodando"); estado("grafico", "rodando");
+      atualizarNotas();
+      await espera(260);
+      if (minha !== rodada) return;
+      estado("resumo", "feito"); estado("grafico", "feito");
+      mostrar();
+      aviso.textContent = `Fluxo refeito com ${atual.nome}: ${atual.linhas} linhas, ${atual.colunas} colunas.`;
+    }
+
+    function atualizarNotas() {
+      raiz.querySelector("[data-ncol]")!.textContent = `${atual.colunas} colunas`;
+      raiz.querySelector("[data-eixos]")!.textContent = `${atual.eixos.y} × ${atual.eixos.x}`;
+    }
+
+    // --- painel ------------------------------------------------------------
+    const esc = (v: unknown) => String(v ?? "NA").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+    const fmt = (v: unknown) => typeof v === "number" ? String(Math.round(v * 1000) / 1000) : v;
+    const tabela = (cab: string[], linhas: unknown[][]) =>
+      `<table><thead><tr>${cab.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${linhas.map((l) => `<tr>${l.map((v) => `<td>${esc(fmt(v))}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+
+    function codigo() {
+      const e = atual.eixos;
+      return `<pre><code>tr_flow(reg) |&gt;
+  tr_add("dados", "data/example", dataset = "${atual.nome}") |&gt;
+  tr_add("resumo", "data/summary", from = "dados") |&gt;
+  tr_add("grafico", "view/points", x = "${e.x}", y = "${e.y}",
+         cor = "${e.cor}", from = "dados")</code></pre>`;
+    }
+
+    function mostrar() {
+      const titulos: Record<string, string> = { dados: "Dados de exemplo", resumo: "Resumo", grafico: "Disperso" };
+      rotulo.textContent = `${titulos[inspecionado]} · ${atual.nome}`;
+      const trocar = () => {
+        if (aba === "codigo") { saida.innerHTML = codigo(); return; }
+        if (inspecionado === "grafico") { dispersao(); return; }
+        if (inspecionado === "dados") {
+          const cols = atual.nomes.slice(0, 6);
+          saida.innerHTML = tabela(cols, atual.cabeca.map((l) => cols.map((c) => (l as Record<string, unknown>)[c])));
+          return;
+        }
+        saida.innerHTML = tabela(["coluna", "tipo", "faltantes", "distintos", "mínimo", "máximo"],
+          atual.resumo.map((r) => [r.coluna, r.tipo, r.faltantes, r.distintos, r.minimo, r.maximo]));
+      };
+      const vt = (document as Document & { startViewTransition?: (f: () => void) => unknown }).startViewTransition;
+      if (vt && !calmo && !(inspecionado === "grafico" && aba === "resultado" && saida.querySelector("svg"))) vt.call(document, trocar);
+      else trocar();
+    }
+
+    // Os pontos são reaproveitados entre conjuntos: cada um desliza até a nova
+    // posição em vez de o gráfico ser trocado inteiro.
+    function dispersao() {
+      const W = 600, H = 300, M = { l: 44, r: 14, t: 14, b: 34 };
+      const p = atual.pontos as { x: number; y: number; g: string }[];
+      const xs = p.map((d) => d.x), ys = p.map((d) => d.y);
+      const [x0, x1] = [Math.min(...xs), Math.max(...xs)], [y0, y1] = [Math.min(...ys), Math.max(...ys)];
+      const sx = (v: number) => M.l + ((v - x0) / (x1 - x0 || 1)) * (W - M.l - M.r);
+      const sy = (v: number) => H - M.b - ((v - y0) / (y1 - y0 || 1)) * (H - M.t - M.b);
+      const grupos = [...new Set(p.map((d) => d.g))];
+      let s = saida.querySelector<SVGSVGElement>("svg.fv-disp");
+      if (!s) {
+        saida.innerHTML = `<svg class="fv-disp" viewBox="0 0 ${W} ${H}" role="img"><g class="fv-eixos"></g><g class="fv-pontos"></g></svg><p class="fv-legenda"></p>`;
+        s = saida.querySelector<SVGSVGElement>("svg.fv-disp")!;
+      }
+      s.setAttribute("aria-label", `Dispersão de ${atual.eixos.y} contra ${atual.eixos.x}, cor por ${atual.eixos.cor}, ${p.length} pontos`);
+      s.querySelector(".fv-eixos")!.innerHTML =
+        `<line x1="${M.l}" y1="${H - M.b}" x2="${W - M.r}" y2="${H - M.b}"/><line x1="${M.l}" y1="${M.t}" x2="${M.l}" y2="${H - M.b}"/>` +
+        `<text x="${M.l}" y="${H - 12}">${fmt(x0)}</text><text x="${W - M.r}" y="${H - 12}" text-anchor="end">${fmt(x1)}</text>` +
+        `<text x="${(W + M.l) / 2}" y="${H - 12}" text-anchor="middle" class="fv-titulo">${esc(atual.eixos.x)}</text>` +
+        `<text x="${M.l - 6}" y="${H - M.b}" text-anchor="end">${fmt(y0)}</text><text x="${M.l - 6}" y="${M.t + 8}" text-anchor="end">${fmt(y1)}</text>` +
+        `<text x="${M.l - 6}" y="${(H - M.b + M.t) / 2}" text-anchor="end" class="fv-titulo">${esc(atual.eixos.y)}</text>`;
+      const g = s.querySelector(".fv-pontos")!;
+      const velhos = [...g.children] as SVGCircleElement[];
+      p.forEach((d, i) => {
+        let c = velhos[i];
+        if (!c) {
+          c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          c.setAttribute("r", "4.5");
+          c.style.transform = `translate(${sx(d.x)}px, ${H - M.b}px)`;
+          c.style.opacity = "0";
+          g.append(c);
+          c.getBoundingClientRect();
+        }
+        c.style.opacity = "1";
+        c.style.fill = CORES[grupos.indexOf(d.g) % CORES.length];
+        c.style.transform = `translate(${sx(d.x)}px, ${sy(d.y)}px)`;
+      });
+      velhos.slice(p.length).forEach((c) => { c.style.opacity = "0"; setTimeout(() => c.remove(), 500); });
+      saida.querySelector(".fv-legenda")!.innerHTML = `<span>${esc(atual.eixos.cor)}:</span> ` +
+        grupos.map((k, i) => `<span><i style="background:${CORES[i % CORES.length]}"></i>${esc(k)}</span>`).join("");
+    }
+
+    // --- eventos -----------------------------------------------------------
+    raiz.addEventListener("click", (ev) => {
+      const alvo = (ev.target as HTMLElement).closest<HTMLElement>("button");
+      if (!alvo) return;
+      if (alvo.dataset.conjunto) { void rodar(alvo.dataset.conjunto as keyof typeof hero); return; }
+      if (alvo.dataset.inspecionar) {
+        inspecionado = alvo.dataset.inspecionar;
+        raiz.querySelectorAll("[data-inspecionar]").forEach((b) => b.setAttribute("aria-pressed", String(b === alvo)));
+        if (inspecionado !== "grafico") saida.querySelector("svg.fv-disp")?.remove();
+        mostrar();
+        return;
+      }
+      if (alvo.dataset.aba) {
+        aba = alvo.dataset.aba;
+        raiz.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b === alvo)));
+        mostrar();
+      }
+    });
+  }
+</script>

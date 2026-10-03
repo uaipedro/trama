@@ -7,6 +7,8 @@ node: multi/manova
 related: [multi/box_m, multi/discriminant, models/anova_dbc]
 ---
 
+**Use quando** você mediu várias respostas ao mesmo tempo e quer saber se os tratamentos diferem considerando todas juntas.
+
 ## O que o bloco faz
 
 O bloco `multi/manova` testa se os tratamentos diferem no vetor de médias de várias respostas ao mesmo tempo (`stats::manova`), com bloco opcional (DBC). A saída é um teste (`data/test`).

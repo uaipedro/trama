@@ -8,6 +8,8 @@ category: anova
 related: [models/emmeans, models/anova_dbc]
 ---
 
+**Use quando** há duas fontes de variação cruzadas no experimento (linhas e colunas) e cada tratamento aparece uma vez em cada linha e em cada coluna.
+
 ## O que o bloco faz
 
 `models/anova_dql` Ajusta `resposta ~ linha + coluna + tratamento` para quadrado latino. A saída é `models/fit`.

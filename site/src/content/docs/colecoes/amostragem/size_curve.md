@@ -7,6 +7,8 @@ node: sampling/size_curve
 related: [sampling/size_mean, sampling/size_proportion]
 ---
 
+**Use quando** você quer ver como o tamanho da amostra cresce conforme a margem de erro diminui, para decidir quanta precisão vale o custo.
+
 ## O que o bloco faz
 
 Desenha o n contra a margem de erro, com os mesmos ajustes do plano ligado

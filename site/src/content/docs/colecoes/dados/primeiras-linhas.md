@@ -9,6 +9,8 @@ order: 22
 related: [data/arrange, data/filter]
 ---
 
+**Use quando** você quer só as primeiras linhas da tabela ou de cada grupo, por exemplo os cinco maiores depois de ordenar.
+
 ## O que o bloco faz
 
 Retém as primeiras `N` linhas na ordem recebida, ou as primeiras `N` de cada grupo quando **Por grupo** está preenchido.

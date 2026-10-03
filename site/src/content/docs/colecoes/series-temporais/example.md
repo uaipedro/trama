@@ -9,6 +9,8 @@ order: 2
 related: [series/from_table, series/plot]
 ---
 
+**Use quando** você quer praticar com uma das séries temporais que vêm com o R, como a de passageiros aéreos.
+
 ## O que o bloco faz
 
 Carrega uma das séries temporais do pacote `datasets` do R. São exatamente os

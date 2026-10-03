@@ -7,6 +7,8 @@ node: multi/correlation_matrix
 related: [multi/plot_correlation, multi/kmo_bartlett]
 ---
 
+**Use quando** você quer os valores das correlações (ou covariâncias) entre várias variáveis, na tabela toda ou dentro de grupos.
+
 ## O que o bloco faz
 
 O bloco `multi/correlation_matrix` calcula uma matriz de correlação ou covariância e a devolve em formato tabular, com nomes de variáveis nas linhas e colunas. O bloco recebe `data/table`.

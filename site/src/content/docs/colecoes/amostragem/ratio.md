@@ -7,6 +7,8 @@ node: sampling/ratio
 related: [sampling/mean, sampling/total, sampling/plot_estimates]
 ---
 
+**Use quando** você quer estimar uma razão entre dois totais da população, como produção por hectare ou renda por morador.
+
 ## O que o bloco faz
 
 A razão entre dois totais, R = Σ w·y / Σ w·x: toneladas por hectare, renda por

@@ -7,6 +7,8 @@ node: sampling/question_margins
 related: [sampling/margin_levels, sampling/referral]
 ---
 
+**Use quando** você tem o questionário e uma tabela de margens por nível e quer saber a margem de erro de cada pergunta no pior caso.
+
 ## O que o bloco faz
 
 Cruza o QUESTIONÁRIO com os níveis de uma tabela de margens (de

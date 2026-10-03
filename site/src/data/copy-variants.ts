@@ -8,8 +8,8 @@ export const variants = [
     name: "Controle (atual)",
     copy: {
       subtitle: "R em blocos executáveis",
-      title: "Seu raciocínio, visível.",
-      lede: "O trama organiza funções R em fluxos que você monta, executa e inspeciona etapa por etapa.",
+      title: "Seu raciocínio, visível",
+      lede: "O trama organiza funções R em fluxos que você monta, executa e inspeciona etapa por etapa. O código R continua lá quando você quiser lê-lo.",
       ctaPrimary: "Comece por aqui",
       ctaSecondary: "Explore as coleções",
       metaDescription: "R em blocos executáveis."
@@ -20,9 +20,9 @@ export const variants = [
     name: "Monte bloco a bloco",
     copy: {
       subtitle: "Monte suas análises bloco a bloco",
-      title: "Seu raciocínio, visível.",
+      title: "Análise em R, bloco a bloco, com o resultado de cada passo à vista",
       lede: "Um programa de análise com o poder do R: você encaixa as etapas, vê o resultado de cada uma e muda qualquer passo sem refazer o resto.",
-      ctaPrimary: "Comece por aqui",
+      ctaPrimary: "Monte seu primeiro fluxo",
       ctaSecondary: "Explore as coleções",
       metaDescription: "Monte suas análises bloco a bloco, com o poder do R."
     }
@@ -32,9 +32,9 @@ export const variants = [
     name: "Passo a passo",
     copy: {
       subtitle: "Análises construídas passo a passo",
-      title: "Seu raciocínio, visível.",
+      title: "Do dado ao gráfico, cada etapa à vista",
       lede: "Do dado ao gráfico, cada etapa vira um bloco na tela. É o R fazendo as contas, e você enxergando o caminho inteiro.",
-      ctaPrimary: "Comece por aqui",
+      ctaPrimary: "Monte seu primeiro fluxo",
       ctaSecondary: "Explore as coleções",
       metaDescription: "Análises construídas passo a passo, com o R por baixo."
     }
@@ -44,7 +44,7 @@ export const variants = [
     name: "Programa de análise",
     copy: {
       subtitle: "Um programa de análise, feito sobre o R",
-      title: "Seu raciocínio, visível.",
+      title: "Um programa de análise que não esconde o R",
       lede: "Leia, limpe, modele e visualize num canvas. Cada bloco mostra o que entrou e o que saiu, e o código R continua lá quando você quiser.",
       ctaPrimary: "Comece por aqui",
       ctaSecondary: "Explore as coleções",

@@ -8,6 +8,8 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
+**Use quando** você tem dois modelos, um com termos a mais que o outro, e quer saber se esses termos melhoram o ajuste.
+
 ## O que o bloco faz
 
 `models/compare` Compara dois modelos aninhados por teste F ou razão de verossimilhanças. A saída é `data/test`.

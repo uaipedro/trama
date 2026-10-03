@@ -8,6 +8,8 @@ category: anova
 related: [models/emmeans, models/tukey_additivity, models/polinomial]
 ---
 
+**Use quando** seu experimento foi montado em blocos, cada bloco recebe todos os tratamentos, e você quer saber se os tratamentos diferem descontando a diferença entre blocos.
+
 ## O que o bloco faz
 
 `models/anova_dbc` Ajusta `resposta ~ bloco + tratamento` e produz `models/fit`. A saída é `models/fit`.

@@ -9,6 +9,8 @@ order: 2
 related: [series/mann_kendall, series/cox_stuart, series/interpolate]
 ---
 
+**Use quando** você quer saber se a série mudou de comportamento a partir de algum instante e quando isso aconteceu.
+
 ## O que o bloco faz
 
 Testa se a série tem um PONTO DE MUDANÇA: um instante a partir do qual ela passou

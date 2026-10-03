@@ -9,6 +9,8 @@ order: 21
 related: [data/slice_head, data/filter]
 ---
 
+**Use quando** você quer ver as linhas numa ordem, como do maior para o menor valor, ou precisa ordenar antes de pegar as primeiras.
+
 ## O que o bloco faz
 
 Reordena as linhas pelos valores das colunas escolhidas, em ordem crescente ou decrescente.

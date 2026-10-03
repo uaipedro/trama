@@ -7,6 +7,8 @@ node: sampling/poststratify
 related: [sampling/stratified, sampling/design, sampling/simulate]
 ---
 
+**Use quando** você conhece o total de cada grupo na população (pelo censo, por exemplo) e quer ajustar os pesos para que a amostra bata esses totais.
+
 ## O que o bloco faz
 
 A pós-estratificação: quando o total de cada grupo na população é conhecido (o

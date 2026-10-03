@@ -8,6 +8,8 @@ category: medias
 related: [models/duncan, models/emmeans, models/plot_means]
 ---
 
+**Use quando** você tem muitos tratamentos numa ANOVA balanceada e quer separá-los em grupos de médias que não se sobrepõem.
+
 ## O que o bloco faz
 
 `models/scott_knott` agrupa as médias de um tratamento pelo método de Scott & Knott (1974): ordena as médias, acha o corte que divide o conjunto em dois grupos com a maior soma de quadrados entre eles, testa esse corte pela razão de verossimilhança e repete dentro de cada lado enquanto o corte for significativo. A saída é `models/emm`, com uma letra por média.

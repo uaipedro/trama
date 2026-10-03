@@ -7,6 +7,8 @@ node: sampling/mean
 related: [sampling/total, sampling/ratio, sampling/plot_estimates, sampling/simulate]
 ---
 
+**Use quando** você tem uma amostra sorteada e quer estimar a média de uma variável na população, com erro padrão e intervalo que respeitam o jeito como a amostra foi tirada.
+
 ## O que o bloco faz
 
 A média da população, estimada pela média PONDERADA da amostra (Σ w·y / Σ w).
