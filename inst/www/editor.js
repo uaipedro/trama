@@ -222,7 +222,34 @@ function pickView(handle, view) {
   return views.find((x) => x.id === view) || views[0] || null;
 }
 
-function Preview({ state, handle, error, progress, partial, view, label }) {
+// Renderer de coleção é código de terceiro rodando na árvore principal: uma
+// exceção (dado inesperado em `artifact.data`) sem limite derrubaria o React
+// inteiro e deixaria a página em branco. O limite é por card — só aquele card
+// mostra o erro, com o stack no `title`. `chave` muda quando o handle/vista
+// muda, e aí o limite tenta de novo: resultado novo merece nova chance.
+class LimiteDeErro extends React.Component {
+  constructor(props) { super(props); this.state = { erro: null }; }
+  static getDerivedStateFromError(erro) { return { erro }; }
+  componentDidCatch(erro) { console.error("[trama] renderer lançou:", erro); }
+  componentDidUpdate(prev) {
+    if (this.state.erro && prev.chave.some((x, i) => x !== this.props.chave[i])) this.setState({ erro: null });
+  }
+  render() {
+    const e = this.state.erro;
+    if (!e) return this.props.children;
+    return h("div", { className: "tr-preview tr-preview-error", title: String((e && e.stack) || e) },
+      h("div", { className: "tr-err-msg" },
+        `erro no renderer ${this.props.renderer || "?"}: ${(e && e.message) || e}`));
+  }
+}
+
+function Preview(props) {
+  const art = props.handle && props.handle.preview;
+  return h(LimiteDeErro, { renderer: art && art.renderer, chave: [props.handle, props.view, props.state] },
+    h(PreviewCru, props));
+}
+
+function PreviewCru({ state, handle, error, progress, partial, view, label }) {
   if (error) {
     return h("div", { className: "tr-preview tr-preview-error", title: error.traceback || "" },
       [h("div", { key: "m", className: "tr-err-msg" }, error.message)]);
