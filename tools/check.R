@@ -29,7 +29,10 @@ colecoes <- basename(list.dirs("collections", recursive = FALSE))
 # Grafo: dependências de cada coleção entre os pacotes trama*.
 deps <- lapply(setNames(colecoes, colecoes), function(c) {
   d <- read.dcf(file.path("collections", c, "DESCRIPTION"))
-  campos <- intersect(c("Depends", "Imports", "Suggests", "LinkingTo"), colnames(d))
+  # `Config/trama/requires` é dependência de coleção que não está nos campos
+  # do R (trama.sql precisa de trama.data): sem ele, a coleção não carregava a
+  # outra e o teste só passava onde ela estava instalada.
+  campos <- intersect(c("Depends", "Imports", "Suggests", "LinkingTo", "Config/trama/requires"), colnames(d))
   nomes <- trimws(sub("\\(.*", "", unlist(strsplit(paste(d[, campos], collapse = ","), ","))))
   intersect(nomes, colecoes)
 })
