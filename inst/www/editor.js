@@ -3557,6 +3557,7 @@ function App() {
   // não era a última aplicada. O valor não carrega nada: `Date.now()` só
   // garante que cada Ctrl+Z seja um evento distinto.
   const desfazer = () => sendInput("tr_undo", Date.now());
+  const refazer = () => sendInput("tr_redo", Date.now());
 
   const selecionar = (sim) => {
     setNodes((ns) => ns.map((n) => (!!n.selected === sim ? n : { ...n, selected: sim })));
@@ -4078,6 +4079,8 @@ function App() {
   } : {
     ...navFrames,
     "mod+z": desfazer,
+    "mod+shift+z": refazer,
+    "mod+y": refazer,
     "mod+a": () => selecionar(true),
     "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); setMenuAcoes(false); setOpcoesFrame(false); },
     "f": apresentar,

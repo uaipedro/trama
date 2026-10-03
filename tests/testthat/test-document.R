@@ -562,3 +562,28 @@ test_that("add_note sem w/h nasce no tamanho do kind, e o eco leva o tamanho", {
   d <- tr_doc_apply(m$doc, list(op = "add_note", x = 0, y = 0, kind = "markdown"), m$reg)
   expect_equal(c(d$ui$notes[[1]]$w, d$ui$notes[[1]]$h), c(280, 160))
 })
+
+test_that("desfazer e refazer andam pelo log; op nova cabe ao chamador zerar", {
+  x <- mk(); base <- add(x$doc, x$reg, "t/const", id = "a")
+  ops <- list(list(op = "set_param", node = "a", name = "value", value = 2),
+              list(op = "set_param", node = "a", name = "value", value = 5))
+  passo <- trama:::.tr_historia_passo
+  expect_null(passo(base, list(), list(), "desfazer", 3L, x$reg))
+  expect_null(passo(base, ops, list(), "refazer", 3L, x$reg))
+  expect_null(passo(NULL, ops, list(), "desfazer", 3L, x$reg))
+
+  u1 <- passo(base, ops, list(), "desfazer", 10L, x$reg)
+  expect_equal(u1$doc$nodes$a$params$value, 2)
+  expect_identical(u1$doc$rev, 11L)
+  expect_length(u1$log, 1L); expect_identical(u1$refeito, ops[2])
+  u2 <- passo(base, u1$log, u1$refeito, "desfazer", 11L, x$reg)
+  expect_length(u2$log, 0L); expect_identical(u2$refeito, ops)  # topo primeiro
+
+  r1 <- passo(base, u2$log, u2$refeito, "refazer", 12L, x$reg)
+  expect_equal(r1$doc$nodes$a$params$value, 2)
+  r2 <- passo(base, r1$log, r1$refeito, "refazer", 13L, x$reg)
+  expect_equal(r2$doc$nodes$a$params$value, 5)
+  expect_identical(r2$log, ops); expect_length(r2$refeito, 0L)
+  # a revisão só avança, nunca volta
+  expect_identical(r2$doc$rev, 14L)
+})
