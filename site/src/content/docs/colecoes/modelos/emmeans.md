@@ -8,8 +8,6 @@ category: medias
 related: [models/pairwise, models/plot_means]
 ---
 
-**Use quando** você quer comparar as médias dos níveis de um fator descontando os outros termos do modelo, inclusive com dados desbalanceados.
-
 ## O que o bloco faz
 
 `models/emmeans` Calcula médias marginais ajustadas com intervalos e letras de comparação. A saída é `models/emm`.

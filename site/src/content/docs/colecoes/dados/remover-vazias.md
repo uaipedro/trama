@@ -9,8 +9,6 @@ order: 12
 related: [data/drop_na, data/summary]
 ---
 
-**Use quando** a planilha veio com linhas ou colunas totalmente em branco e você quer retirá-las.
-
 ## O que o bloco faz
 
 Remove linhas, colunas ou ambos quando todos os seus valores são faltantes.

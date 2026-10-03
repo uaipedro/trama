@@ -9,8 +9,6 @@ order: 2
 related: [series/component, series/stl, series/plot_decomposition]
 ---
 
-**Use quando** você quer separar a série em tendência, sazonalidade e resto pelo método clássico de médias móveis.
-
 ## O que o bloco faz
 
 Separa a série em três componentes, pelo método que se ensina primeiro:

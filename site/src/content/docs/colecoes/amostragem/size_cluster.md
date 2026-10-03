@@ -7,8 +7,6 @@ node: sampling/size_cluster
 related: [sampling/cluster, sampling/two_stage, sampling/mean]
 ---
 
-**Use quando** você já calculou o tamanho para uma amostra aleatória simples, mas vai sortear grupos (escolas, municípios) e quer saber quantos grupos precisa.
-
 ## O que o bloco faz
 
 Leva um plano de AAS (de `sampling/size_mean` ou `sampling/size_proportion`) a

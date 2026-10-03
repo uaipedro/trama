@@ -9,8 +9,6 @@ order: 25
 related: [data/get_dupes, data/bind_rows]
 ---
 
-**Use quando** você tem duas tabelas que compartilham uma coluna de identificação e quer reunir as informações delas lado a lado.
-
 ## O que o bloco faz
 
 Relaciona as tabelas das entradas esquerda e direita pelas chaves indicadas e combina suas colunas nas linhas correspondentes.

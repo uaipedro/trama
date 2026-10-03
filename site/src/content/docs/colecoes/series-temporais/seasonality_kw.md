@@ -9,8 +9,6 @@ order: 2
 related: [series/f_seasonal, series/diff, series/transform]
 ---
 
-**Use quando** você quer testar se a série tem sazonalidade sem supor nenhuma distribuição para os dados.
-
 ## O que o bloco faz
 
 Testa se a série tem SAZONALIDADE sem supor distribuição nenhuma. Põe todas as

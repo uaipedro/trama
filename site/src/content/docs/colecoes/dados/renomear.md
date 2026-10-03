@@ -9,8 +9,6 @@ order: 14
 related: [data/clean_names, data/select]
 ---
 
-**Use quando** algumas colunas têm nomes ruins e você quer trocá-los sem mexer nos valores.
-
 ## O que o bloco faz
 
 Substitui nomes de colunas segundo duas listas posicionais; os valores e a ordem das colunas permanecem iguais.

@@ -7,8 +7,6 @@ node: multi/logistic
 related: [models/coefficients, models/plot_coefficients, models/roc]
 ---
 
-**Use quando** você quer modelar a probabilidade de cada caso pertencer a uma classe a partir de medidas observadas.
-
 ## O que o bloco faz
 
 O bloco `multi/logistic` ajusta logística binária para dois grupos ou multinomial para três ou mais e devolve um classificador com probabilidades previstas. O bloco recebe `data/table`.

@@ -7,8 +7,6 @@ node: ml/tune
 related: ["ml/split", "models/predict", "models/evaluate", "ml/tuning_plot"]
 ---
 
-**Use quando** você quer escolher as configurações de um modelo, como a profundidade da árvore, comparando-as por validação cruzada nos dados de treino.
-
 ## O que o bloco faz
 
 Avalia configurações por validação cruzada nos dados recebidos e reajusta a melhor configuração em todas as linhas.

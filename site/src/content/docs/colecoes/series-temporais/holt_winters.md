@@ -9,8 +9,6 @@ order: 2
 related: [series/ets, series/forecast]
 ---
 
-**Use quando** você quer prever com o método clássico de Holt-Winters, que suaviza nível, tendência e sazonalidade.
-
 ## O que o bloco faz
 
 O método de Holt-Winters como o `stats` o implementa: três equações de

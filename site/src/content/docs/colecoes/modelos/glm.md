@@ -8,8 +8,6 @@ category: ajustar
 related: [models/coefficients, models/emmeans]
 ---
 
-**Use quando** a resposta não é uma medida contínua normal, e sim uma contagem, um sim/não ou uma medida positiva assimétrica.
-
 ## O que o bloco faz
 
 `models/glm` Ajusta um modelo linear generalizado e produz `models/fit`. A saída é `models/fit`.

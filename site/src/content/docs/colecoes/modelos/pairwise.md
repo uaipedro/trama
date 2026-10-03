@@ -8,8 +8,6 @@ category: medias
 related: [models/emmeans, models/linear_hypothesis]
 ---
 
-**Use quando** você já tem as médias ajustadas e quer comparar todos os pares ou cada tratamento contra um controle, com p-valor ajustado.
-
 ## O que o bloco faz
 
 `models/pairwise` Compara médias ajustadas em pares ou contra um controle, com p-valores ajustados. A saída é `models/effects`.

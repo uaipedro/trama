@@ -7,8 +7,6 @@ node: sampling/detectable_difference
 related: [sampling/size_domains, sampling/margin_levels]
 ---
 
-**Use quando** você vai comparar grupos na pesquisa (mulheres e homens, por exemplo) e quer saber qual a menor diferença entre as proporções que o tamanho previsto consegue perceber.
-
 ## O que o bloco faz
 
 Responde se dá para COMPARAR grupos: para cada par de categorias de uma mesma

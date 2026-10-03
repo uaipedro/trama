@@ -8,8 +8,6 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
-**Use quando** você quer a tabela com os valores ajustados e os resíduos para achar observações que o modelo explica mal.
-
 ## O que o bloco faz
 
 `models/residuals` Produz dados do ajuste com valores ajustados, resíduos e resíduos padronizados. A saída é uma tabela `data/table`.

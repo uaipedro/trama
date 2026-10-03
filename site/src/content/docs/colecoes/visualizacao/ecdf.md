@@ -8,8 +8,6 @@ category: distribuicao
 related: [view/density, view/histogram, view/qq]
 ---
 
-**Use quando** você quer comparar distribuições vendo a proporção de observações até cada valor, sem escolher faixas nem suavidade.
-
 ## O que o bloco faz
 
 `view/ecdf` mostra a proporção de observações menor ou igual a cada valor.

@@ -7,8 +7,6 @@ node: multi/distance
 related: [multi/cluster, multi/tocher, multi/correlation_matrix]
 ---
 
-**Use quando** você quer medir o quanto cada par de indivíduos é diferente, como primeiro passo de um estudo de diversidade genética.
-
 ## O que o bloco faz
 
 O bloco `multi/distance` calcula a distância entre cada par de linhas (genótipos, cultivares, acessos) a partir de uma `data/table`. A saída é do tipo `multi/dist`; o card é o mapa de calor da matriz, ordenado pelo UPGMA.

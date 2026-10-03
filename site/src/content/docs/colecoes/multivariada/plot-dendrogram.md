@@ -7,8 +7,6 @@ node: multi/plot_dendrogram
 related: [multi/cluster, multi/tocher]
 ---
 
-**Use quando** você fez um agrupamento e quer a figura da árvore com o corte e os grupos coloridos.
-
 ## O que o bloco faz
 
 O bloco `multi/plot_dendrogram` desenha a árvore de um `multi/cluster`: altura de junção no eixo, ramos abaixo do corte na cor do grupo, corte tracejado e a correlação cofenética no subtítulo. Num k-means, mostra os grupos no plano das duas primeiras componentes.

@@ -10,8 +10,6 @@ related: [experiments/effect, experiments/error, experiments/contrasts, experime
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
-**Use quando** você está planejando um experimento e quer saber quantas repetições são necessárias para detectar uma diferença do tamanho que importa.
-
 ## O que o bloco faz
 
 Poder por **simulação de Monte Carlo**, sem fórmula fechada por delineamento:

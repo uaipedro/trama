@@ -8,8 +8,6 @@ category: resumir
 related: [models/anova_table, models/coefficients]
 ---
 
-**Use quando** você ajustou um modelo misto e quer testar se cada termo aleatório é necessário.
-
 ## O que o bloco faz
 
 `models/random_test` Testa termos aleatórios por razão de verossimilhanças. A saída é `models/effects`.

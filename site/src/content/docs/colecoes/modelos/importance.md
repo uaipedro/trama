@@ -8,8 +8,6 @@ category: resumir
 related: [models/coefficients]
 ---
 
-**Use quando** você quer ordenar as preditoras de um modelo pelo peso que cada uma tem nele.
-
 ## O que o bloco faz
 
 `models/importance` devolve uma tabela `termo`, `importancia`, `medida`, ordenada. A medida depende do modelo: |t| (ou |z|) dos coeficientes no `lm` e no GLM, redução de impureza nas árvores de machine learning.

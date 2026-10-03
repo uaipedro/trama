@@ -7,8 +7,6 @@ node: sampling/referral
 related: [sampling/margin_levels, sampling/plot_margins, sampling/question_margins]
 ---
 
-**Use quando** cada participante vai convidar outras pessoas e você quer saber quanto a margem de erro melhora com isso, já que pessoas indicadas costumam ser parecidas.
-
 ## O que o bloco faz
 
 A expansão por indicação: cada participante da coleta de base convida k

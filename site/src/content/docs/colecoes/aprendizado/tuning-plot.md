@@ -7,8 +7,6 @@ node: ml/tuning_plot
 related: ["ml/tune", "models/evaluate"]
 ---
 
-**Use quando** você fez uma busca de configurações e quer ver como o desempenho variou entre as tentativas.
-
 ## O que o bloco faz
 
 Plota a métrica média por tentativa com o melhor valor acumulado ou relaciona um hiperparâmetro à métrica.

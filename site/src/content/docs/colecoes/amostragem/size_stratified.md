@@ -7,8 +7,6 @@ node: sampling/size_stratified
 related: [sampling/stratified, sampling/size_mean, sampling/size_curve]
 ---
 
-**Use quando** a população está dividida em grupos (estratos) e você quer saber o tamanho total da amostra e quantas unidades sortear em cada grupo.
-
 ## O que o bloco faz
 
 Calcula o n de uma amostra ESTRATIFICADA e o reparte entre os estratos. A

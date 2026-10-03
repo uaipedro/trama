@@ -9,8 +9,6 @@ order: 2
 related: [series/regression, series/f_seasonal, series/f_global]
 ---
 
-**Use quando** você ajustou uma regressão de tendência e sazonalidade e quer testar se a tendência existe.
-
 ## O que o bloco faz
 
 Testa os termos do polinômio de tendência de um ajuste de `series/regression`

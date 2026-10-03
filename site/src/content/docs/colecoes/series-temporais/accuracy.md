@@ -9,8 +9,6 @@ order: 2
 related: [series/window, series/baseline]
 ---
 
-**Use quando** você fez uma previsão e quer medir o tamanho do erro dela, no período usado para ajustar e, se tiver, nos dados que o modelo não viu.
-
 ## O que o bloco faz
 
 Calcula as medidas de erro de uma previsão:

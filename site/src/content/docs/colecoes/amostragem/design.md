@@ -7,8 +7,6 @@ node: sampling/design
 related: [sampling/poststratify, sampling/rake, sampling/proportion, sampling/ratio]
 ---
 
-**Use quando** você recebeu os dados de uma pesquisa já coletada, com colunas de peso, estrato ou conglomerado, e precisa informar isso antes de calcular médias e erros.
-
 ## O que o bloco faz
 
 Transforma a base de uma pesquisa JÁ COLETADA em amostra com desenho. É a porta

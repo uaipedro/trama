@@ -8,8 +8,6 @@ category: ajustar
 related: [models/lmer, models/anova_split_plot, models/compare]
 ---
 
-**Use quando** a mesma unidade foi medida várias vezes no tempo e você quer modelar a correlação entre essas medidas em vez de supô-la constante.
-
 ## O que o bloco faz
 
 `models/gls` ajusta uma regressão ou ANOVA por mínimos quadrados generalizados (`nlme::gls`), com o erro correlacionado dentro de cada grupo: AR(1), AR(1) em tempo contínuo (`car1`, para ocasiões desigualmente espaçadas), simetria composta ou não estruturada. Opcionalmente, cada nível de uma coluna tem variância própria (`varIdent`). A saída é `models/fit`.

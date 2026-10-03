@@ -9,8 +9,6 @@ order: 2
 related: [series/arima, series/pettitt, series/window]
 ---
 
-**Use quando** um evento numa data conhecida (uma lei, uma mudança de política) pode ter mudado a série e você quer medir o tamanho desse efeito.
-
 ## O que o bloco faz
 
 Mede o efeito de um EVENTO numa data conhecida — uma lei, uma mudança de

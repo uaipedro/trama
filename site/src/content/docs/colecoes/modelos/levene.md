@@ -8,8 +8,6 @@ category: pressupostos
 related: [models/bartlett, models/breusch_pagan]
 ---
 
-**Use quando** você quer conferir, a partir dos resíduos do ajuste, se a variância é a mesma em todos os tratamentos.
-
 ## O que o bloco faz
 
 `models/levene` Compara variâncias residuais entre grupos de efeitos fixos. A saída é `data/test`.

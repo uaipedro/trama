@@ -7,8 +7,6 @@ node: multi/cluster
 related: [multi/distance, multi/plot_dendrogram, multi/tocher]
 ---
 
-**Use quando** você quer descobrir quem se parece com quem, juntando indivíduos (genótipos, propriedades…) em grupos.
-
 ## O que o bloco faz
 
 O bloco `multi/cluster` junta os indivíduos em grupos. Recebe a tabela (entrada `dados`, distância euclidiana nas variáveis) **ou** uma matriz do `multi/distance` (entrada `distancia`). O card é o dendrograma com o corte.

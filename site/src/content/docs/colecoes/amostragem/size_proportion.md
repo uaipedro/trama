@@ -7,8 +7,6 @@ node: sampling/size_proportion
 related: [sampling/size_mean, sampling/size_domains, sampling/size_cluster, sampling/proportion]
 ---
 
-**Use quando** você está planejando a pesquisa e quer saber quantas unidades sortear para estimar uma porcentagem com a margem de erro desejada.
-
 ## O que o bloco faz
 
 O tamanho de uma amostra aleatória simples para estimar uma PROPORÇÃO p com

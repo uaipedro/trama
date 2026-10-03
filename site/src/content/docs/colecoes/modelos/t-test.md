@@ -8,8 +8,6 @@ category: testes
 related: [models/paired_t, models/wilcoxon, models/cohen_d]
 ---
 
-**Use quando** você quer saber se a média de uma resposta numérica difere entre dois grupos independentes.
-
 ## O que o bloco faz
 
 `models/t_test` Compara médias de dois grupos independentes pelo teste t. A saída é `data/test`.

@@ -95,10 +95,9 @@ export function textoDaPagina(tree: Root): string {
 /**
  * Envolve a primeira menção de cada termo, em parágrafos e itens de lista,
  * num `<dfn class="glossario-termo" title="...">`. O CSS só o destaca com o
- * Contexto ligado; desligado, é texto comum. Com `glossarioHref`, a marca vai
- * dentro de um link para o verbete (`<glossario>#<id>`).
+ * Contexto ligado; desligado, é texto comum.
  */
-export function marcarPrimeiraMencao(tree: Root, termos: TermoGlossario[], glossarioHref?: string): void {
+export function marcarPrimeiraMencao(tree: Root, termos: TermoGlossario[]): void {
   const pendentes = new Map(termos.map((t) => [t.id, t]));
   const visitar = (pai: Root | Element, emProsa: boolean) => {
     for (let i = 0; i < pai.children.length && pendentes.size; i += 1) {
@@ -119,9 +118,7 @@ export function marcarPrimeiraMencao(tree: Root, termos: TermoGlossario[], gloss
       const antes = n.value.slice(0, idx), achado = n.value.slice(idx, idx + len), depois = n.value.slice(idx + len);
       const novos: ElementContent[] = [];
       if (antes) novos.push(tx(antes));
-      const dfn = el("dfn", "glossario-termo", [tx(achado)], { title: `${t.termo}: ${t.explicacao}` });
-      // Com o endereço do glossário, a primeira menção leva ao verbete.
-      novos.push(glossarioHref ? el("a", "glossario-link", [dfn], { href: `${glossarioHref}#${t.id}` }) : dfn);
+      novos.push(el("dfn", "glossario-termo", [tx(achado)], { title: `${t.termo}: ${t.explicacao}` }));
       if (depois) novos.push(tx(depois));
       (pai.children as ElementContent[]).splice(i, 1, ...novos);
       pendentes.delete(t.id);

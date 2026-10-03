@@ -7,8 +7,6 @@ node: sampling/two_stage
 related: [sampling/cluster, sampling/size_cluster, sampling/design]
 ---
 
-**Use quando** você vai sortear grupos (setores, escolas) e, dentro de cada grupo sorteado, algumas unidades (domicílios, alunos).
-
 ## O que o bloco faz
 
 A amostra em DOIS estágios: sorteia m conglomerados (primeiro estágio) e, dentro

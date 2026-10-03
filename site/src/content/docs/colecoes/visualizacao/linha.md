@@ -8,8 +8,6 @@ category: relacao
 related: [view/points, view/area, data/convert]
 ---
 
-**Use quando** você quer ver como uma medida muda ao longo do tempo, da dose ou de outra ordem em que ligar os pontos faz sentido.
-
 ## O que o bloco faz
 
 `view/line` liga os valores de Y seguindo a ordem de X. Quando **Uma linha por** está preenchido, cada grupo recebe sua própria série; quando está vazio, todas as linhas formam uma série.

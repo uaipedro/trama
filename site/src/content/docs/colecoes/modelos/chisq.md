@@ -8,8 +8,6 @@ category: testes
 related: [models/cor_test, models/fisher_exact]
 ---
 
-**Use quando** você tem duas variáveis categóricas e quer saber se elas estão associadas numa tabela de contingência.
-
 ## O que o bloco faz
 
 `models/chisq` Testa independência entre duas colunas categóricas pelo qui-quadrado. A saída é `data/test`.

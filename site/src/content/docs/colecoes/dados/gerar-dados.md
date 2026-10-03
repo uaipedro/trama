@@ -9,8 +9,6 @@ order: 9
 related: [data/example, data/summary]
 ---
 
-**Use quando** você quer simular uma tabela de dados com regras definidas por você para testar um fluxo ou montar um exemplo.
-
 ## O que o bloco faz
 
 Avalia expressões R para formar colunas de uma tabela simulada. Colunas nomeadas podem usar os valores criados antes delas.

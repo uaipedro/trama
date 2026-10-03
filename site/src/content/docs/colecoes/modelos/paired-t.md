@@ -8,8 +8,6 @@ category: testes
 related: [models/chisq, models/cor_test]
 ---
 
-**Use quando** cada unidade foi medida duas vezes, como antes e depois de um tratamento, e você quer saber se a diferença média é zero.
-
 ## O que o bloco faz
 
 `models/paired_t` Testa se a média das diferenças entre duas medidas pareadas é zero. A saída é `data/test`.

@@ -9,8 +9,6 @@ order: 27
 related: [data/from_stream, data/filter]
 ---
 
-**Use quando** você quer processar a tabela em pedaços, um lote de linhas de cada vez, e ver o resultado parcial de cada passo.
-
 ## O que o bloco faz
 
 Ordena, se solicitado, e divide a tabela em pontos de até `lote` linhas para abrir uma região processada etapa por etapa.

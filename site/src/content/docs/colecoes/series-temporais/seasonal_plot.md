@@ -9,8 +9,6 @@ order: 2
 related: [series/subseries, series/stl]
 ---
 
-**Use quando** você quer ver o formato da sazonalidade, com uma linha por ano, e se ele mudou ao longo dos anos.
-
 ## O que o bloco faz
 
 Cada ano vira uma linha, e o eixo horizontal é o ciclo — jan a dez numa série

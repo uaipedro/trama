@@ -26,13 +26,6 @@ pt <- function(x) if (is.list(x)) x$pt %||% x[[1]] else x
 `%||%` <- function(a, b) if (is.null(a)) b else a
 aspas <- function(x) paste0('"', gsub('"', '\\\\"', x), '"')
 
-# "Use quando …": uma frase em linguagem simples, opcional, por bloco, em
-# tools/site/use-quando.json ({"<id>": "texto sem o 'Use quando'"}). Fica fora
-# do tr_node para não mexer na versão dos nós; bloco sem entrada não ganha a
-# linha.
-arq_quando <- "tools/site/use-quando.json"
-use_quando <- if (file.exists(arq_quando)) jsonlite::fromJSON(arq_quando, simplifyVector = FALSE) else list()
-
 saida <- file.path("site/src/content/docs/colecoes", pasta)
 dir.create(saida, recursive = TRUE, showWarnings = FALSE)
 ordem_cat <- c()
@@ -45,11 +38,6 @@ for (id in ids) {
   relacionados <- unique(unlist(regmatches(veja, gregexpr("`[a-z_]+/[a-z_0-9]+`", veja))))
   relacionados <- setdiff(gsub("`", "", relacionados), id)
   corpo <- sub("^## Descrição", "## O que o bloco faz", trimws(ajuda))
-  quando <- use_quando[[id]]
-  if (!is.null(quando)) {
-    quando <- sub("[.]?$", ".", trimws(quando))
-    corpo <- paste0("**Use quando** ", quando, "\n\n", corpo)
-  }
   md <- c(
     "---",
     paste0("title: ", aspas(pt(node$label))),

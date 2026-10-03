@@ -9,8 +9,6 @@ order: 2
 related: [series/adf, series/kpss, series/interpolate]
 ---
 
-**Use quando** você quer testar se a série tem raiz unitária, como no ADF, mas por um caminho que não exige escolher defasagens.
-
 ## O que o bloco faz
 
 Testa se a série tem RAIZ UNITÁRIA, a mesma hipótese nula do `series/adf`.

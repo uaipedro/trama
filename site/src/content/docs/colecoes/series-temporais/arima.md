@@ -9,8 +9,6 @@ order: 2
 related: [series/transform, series/forecast, series/residuals]
 ---
 
-**Use quando** você quer ajustar um modelo ARIMA à série, deixando a ordem ser escolhida automaticamente ou escolhendo-a você mesmo.
-
 ## O que o bloco faz
 
 Ajusta um modelo ARIMA(p,d,q)(P,D,Q)[ciclo]: a série depois de `d` diferenças

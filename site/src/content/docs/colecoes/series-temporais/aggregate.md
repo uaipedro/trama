@@ -9,8 +9,6 @@ order: 2
 related: [series/interpolate, series/moving_average]
 ---
 
-**Use quando** você tem uma série em frequência alta, como mensal, e quer juntá-la em trimestres ou anos.
-
 ## O que o bloco faz
 
 Junta os períodos em blocos maiores: 12 meses viram um ano (**Nova

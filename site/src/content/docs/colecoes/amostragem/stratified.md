@@ -7,8 +7,6 @@ node: sampling/stratified
 related: [sampling/size_stratified, sampling/poststratify, sampling/simulate]
 ---
 
-**Use quando** a população está dividida em grupos (regiões, redes) e você quer sortear separadamente dentro de cada um, garantindo que todos apareçam.
-
 ## O que o bloco faz
 
 A amostra estratificada: o cadastro é dividido em estratos (regiões, redes,

@@ -9,8 +9,6 @@ order: 2
 related: [series/holt_winters, series/arima, series/baseline]
 ---
 
-**Use quando** você quer prever com suavização exponencial, deixando o modelo escolher se há tendência e sazonalidade e como elas entram.
-
 ## O que o bloco faz
 
 Ajusta um modelo de suavização exponencial — a família que inclui Holt e

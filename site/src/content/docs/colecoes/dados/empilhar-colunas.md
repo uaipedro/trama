@@ -9,8 +9,6 @@ order: 23
 related: [data/pivot_wider, data/group_summarise]
 ---
 
-**Use quando** seus dados têm uma coluna para cada mês, tratamento ou repetição, e você precisa deles numa coluna só de nomes e outra de valores.
-
 ## O que o bloco faz
 
 Converte cada coluna selecionada em observações de uma coluna de nomes e outra de valores, mantendo as demais colunas como identificadores.

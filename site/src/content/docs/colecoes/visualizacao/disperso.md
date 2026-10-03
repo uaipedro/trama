@@ -9,8 +9,6 @@ order: 2
 related: [view/line, view/bin2d, view/labels, data/group_summarise]
 ---
 
-**Use quando** você quer ver se duas medidas numéricas andam juntas, com um ponto para cada linha da tabela.
-
 ## O que o bloco faz
 
 `view/points` representa cada linha da tabela como um ponto nas coordenadas de duas colunas. Cor por distingue grupos sem alterar a quantidade de pontos. O nó não agrega as observações.

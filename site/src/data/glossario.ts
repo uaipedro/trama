@@ -200,21 +200,6 @@ export const GLOSSARIO: TermoGlossario[] = [
     termos: ["contraste", "contrastes"],
     explicacao: "Uma comparação planejada entre médias de tratamentos, escrita como soma de médias com pesos que somam zero (por exemplo, a média do controle contra a média dos adubados).",
     aprofundar: { autor: "Montgomery", ano: 2017 } },
-  // SQ, ortogonal: Montgomery (2017), cap. 3 (partição da SQ; contrastes
-  // ortogonais). Helmert: documentação do R, ?contr.helmert
-  // (pacote stats) — "contrast the second level with the first, the third
-  // with the average of the first two, and so on".
-  { id: "soma-de-quadrados", termo: "Soma de quadrados (SQ)", colecoes: ["experiments", "models"],
-    termos: ["soma de quadrados", "somas de quadrados", "sq"],
-    explicacao: "A soma dos desvios ao quadrado em relação a uma média, uma medida de variação. Na análise de variância, a SQ total se divide em partes, como a dos tratamentos e a do resíduo.",
-    aprofundar: { autor: "Montgomery", ano: 2017 } },
-  { id: "ortogonal", termo: "Contrastes ortogonais", colecoes: ["experiments"],
-    termos: ["contrastes ortogonais", "contraste ortogonal", "ortogonal", "ortogonais", "ortogonalidade"],
-    explicacao: "Dois contrastes são ortogonais quando a soma dos produtos de seus coeficientes é zero (com repetições iguais). Um conjunto de contrastes ortogonais entre a tratamentos tem no máximo a − 1 deles e divide a SQ de tratamentos em partes independentes, de um grau de liberdade cada.",
-    aprofundar: { autor: "Montgomery", ano: 2017 } },
-  { id: "helmert", termo: "Contrastes de Helmert", colecoes: ["experiments", "models"],
-    termos: ["helmert", "contrastes de helmert", "contraste de helmert"],
-    explicacao: "Um conjunto de contrastes que compara o segundo nível com o primeiro, o terceiro com a média dos dois primeiros, e assim por diante. É uma codificação padrão do R (contr.helmert) e seus contrastes são ortogonais entre si." },
   { id: "comparacoes-multiplas", termo: "Comparações múltiplas", colecoes: ["models", "experiments"],
     termos: ["comparações múltiplas", "comparação múltipla", "tukey", "scott-knott", "duncan", "dunnett", "bonferroni", "comparações duas a duas"],
     explicacao: "Comparar muitos pares de tratamentos aumenta a chance de achar alguma diferença só por acaso. Os procedimentos de comparações múltiplas (Tukey, Dunnett, Scott-Knott...) controlam essa chance de formas diferentes, e por isso podem discordar entre si.",

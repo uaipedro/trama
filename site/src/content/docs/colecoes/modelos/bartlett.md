@@ -8,8 +8,6 @@ category: pressupostos
 related: [models/breusch_pagan, models/levene]
 ---
 
-**Use quando** você quer conferir se a variância dos resíduos é a mesma em todos os tratamentos e os resíduos parecem normais.
-
 ## O que o bloco faz
 
 `models/bartlett` Testa igualdade de variâncias residuais entre grupos. A saída é `data/test`.

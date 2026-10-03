@@ -9,8 +9,6 @@ order: 2
 related: [series/diff, series/interpolate, series/window]
 ---
 
-**Use quando** você quer saber quantas diferenças, simples e sazonais, a série precisa para ficar estacionária antes de modelar.
-
 ## O que o bloco faz
 
 Responde, antes de montar o `series/diff` ou de fixar o `d` e o `D` de um

@@ -8,8 +8,6 @@ category: ajustar
 related: [models/random_effects, models/random_test, models/glmer]
 ---
 
-**Use quando** as observações vêm em grupos (pessoas, blocos, locais) e a variação entre esses grupos deve entrar no modelo como efeito aleatório.
-
 ## O que o bloco faz
 
 `models/lmer` Ajusta um modelo misto com `lme4` e produz `models/fit`; os p-valores dos efeitos fixos usam aproximação de Satterthwaite. A saída é `models/fit`.

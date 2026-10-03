@@ -9,8 +9,6 @@ order: 29
 related: [data/read, data/write_rds]
 ---
 
-**Use quando** você quer salvar a tabela num arquivo que planilhas e outros programas abrem.
-
 ## O que o bloco faz
 
 Escreve a tabela em CSV no caminho indicado e encaminha a mesma tabela para as etapas seguintes.

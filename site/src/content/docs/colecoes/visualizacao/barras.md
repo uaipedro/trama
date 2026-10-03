@@ -8,8 +8,6 @@ category: comparacao
 related: [view/means, view/dotplot, view/heatmap, data/group_summarise]
 ---
 
-**Use quando** você quer comparar contagens ou totais entre categorias, como o número de plantas em cada tratamento.
-
 ## O que o bloco faz
 
 `view/bars` desenha uma barra por categoria. Sem **Altura**, cada barra conta linhas; com **Altura**, soma os valores dessa coluna dentro de cada categoria.

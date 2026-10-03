@@ -8,8 +8,6 @@ category: distribuicao
 related: [view/boxplot, view/strip, view/means]
 ---
 
-**Use quando** você quer comparar entre grupos a forma da distribuição de uma medida, inclusive se há mais de um pico.
-
 ## O que o bloco faz
 
 `view/violin` mostra a densidade espelhada de uma medida em cada grupo.

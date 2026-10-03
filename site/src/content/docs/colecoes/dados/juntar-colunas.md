@@ -9,8 +9,6 @@ order: 24
 related: [data/separate]
 ---
 
-**Use quando** a informação está espalhada em várias colunas, como dia, mês e ano, e você quer juntá-las numa coluna só.
-
 ## O que o bloco faz
 
 Cola os valores das **Colunas** (`cols`), na ordem dada, com o **Separador** entre eles, numa coluna **Nome** (`nome`) posta onde estava a primeira. Faltante vira o texto `NA`.

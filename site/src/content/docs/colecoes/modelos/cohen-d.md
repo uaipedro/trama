@@ -8,8 +8,6 @@ category: testes
 related: [models/t_test, models/effect_size]
 ---
 
-**Use quando** você comparou as médias de dois grupos e quer dizer de quanto elas diferem, em desvios padrão, além de se diferem.
-
 ## O que o bloco faz
 
 `models/cohen_d` mede a diferença entre as médias de dois grupos em desvios padrão: o d de Cohen (com o desvio padrão combinado) e o g de Hedges (o d corrigido do viés em amostras pequenas), cada um com intervalo de confiança. A saída é uma tabela de duas linhas.

@@ -10,8 +10,6 @@ related: [experiments/design, experiments/power, experiments/contrasts, models/a
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
-**Use quando** você quer testar o efeito dos tratamentos sem depender da suposição de normalidade, usando o próprio sorteio do experimento.
-
 ## O que o bloco faz
 
 O **teste de aleatorização** de Fisher: a justificativa do teste vem do

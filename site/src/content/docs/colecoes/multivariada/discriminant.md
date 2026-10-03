@@ -7,8 +7,6 @@ node: multi/discriminant
 related: [models/predict, models/confusion, multi/box_m]
 ---
 
-**Use quando** os grupos já são conhecidos nos dados de treino e você quer classificar casos pelas medidas observadas.
-
 ## O que o bloco faz
 
 O bloco `multi/discriminant` ajusta LDA ou QDA com grupo conhecido e preditores numéricos e devolve um classificador. O bloco recebe `data/table`.

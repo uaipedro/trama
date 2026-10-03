@@ -9,8 +9,6 @@ order: 8
 related: [data/summary, data/generate]
 ---
 
-**Use quando** você quer praticar ou testar um fluxo com uma tabela que já vem com o R, sem precisar de arquivo.
-
 ## O que o bloco faz
 
 Carrega um conjunto tabular do pacote `datasets` instalado com R. Nomes de linha com identificadores informativos, como modelos de carro em `mtcars`, viram a coluna `nome`.

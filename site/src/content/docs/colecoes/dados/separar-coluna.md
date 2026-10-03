@@ -9,8 +9,6 @@ order: 23
 related: [data/unite, data/convert]
 ---
 
-**Use quando** uma coluna de texto junta várias informações, como local_tratamento_repetição, e você quer separá-las em colunas.
-
 ## O que o bloco faz
 
 Parte uma coluna de texto (`parcela_A_1`) em várias (`local`, `tratamento`, `repeticao`) pelo **Separador**, literal. As colunas novas entram no lugar da original. Linha com número de partes diferente do número de nomes para o bloco, nomeando a linha.

@@ -7,8 +7,6 @@ node: sampling/simulate
 related: [sampling/plot_simulation, sampling/srs, sampling/stratified, sampling/cluster]
 ---
 
-**Use quando** você tem a população inteira e quer avaliar um desenho de amostra repetindo o sorteio muitas vezes para ver viés, erro padrão e cobertura.
-
 ## O que o bloco faz
 
 Avalia o DESENHO, e não a amostra: pega a receita guardada na amostra ligada

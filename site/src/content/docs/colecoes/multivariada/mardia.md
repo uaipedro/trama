@@ -7,8 +7,6 @@ node: multi/mardia
 related: [multi/box_m, multi/discriminant, multi/kmo_bartlett]
 ---
 
-**Use quando** você vai usar um método que supõe normalidade multivariada e quer testar isso nas variáveis em conjunto, não uma por uma.
-
 ## O que o bloco faz
 
 O bloco `multi/mardia` calcula a assimetria b₁,ₚ e a curtose b₂,ₚ multivariadas de Mardia (1970), com o teste qui-quadrado da assimetria (também com a correção de amostra pequena de Mardia, 1974) e o teste normal da curtose. O bloco recebe `data/table` e devolve uma tabela.

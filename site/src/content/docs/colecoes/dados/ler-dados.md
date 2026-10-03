@@ -9,8 +9,6 @@ order: 2
 related: [data/summary, data/clean_names, data/public]
 ---
 
-**Use quando** você quer trazer seus dados para o fluxo a partir de um arquivo, como CSV ou Excel, ou de um link.
-
 ## O que o bloco faz
 
 `data/read` lê uma tabela e a coloca no fluxo. O mesmo bloco serve para

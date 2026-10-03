@@ -9,8 +9,6 @@ order: 20
 related: [data/rename, data/pivot_longer]
 ---
 
-**Use quando** você quer ficar só com as colunas que interessam à análise ou retirar algumas que atrapalham.
-
 ## O que o bloco faz
 
 Mantém as colunas selecionadas ou remove apenas essas colunas quando **Remover em vez de manter** está ligado.

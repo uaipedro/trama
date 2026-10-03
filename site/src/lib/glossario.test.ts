@@ -98,8 +98,4 @@ test("casamento exige palavra inteira, também com acento (sem sufixo nem prefix
   const fic: TermoGlossario = { id: "x", termo: "Média", explicacao: "x.", termos: ["média"] };
   assert.equal(contarMencoes("médias e submédia, médiaé", fic), 0);
   assert.equal(contarMencoes("a média, (média) média.", fic), 3);
-  const arvore: Root = { type: "root", children: [{ type: "element", tagName: "p", properties: {},
-    children: [{ type: "text", value: "Um fatorial com um fator." }] }] };
-  marcarPrimeiraMencao(arvore, [fator], "/g/");
-  assert.match(toHtml(arvore), /fatorial com um <a class="glossario-link" href="\/g\/#fator"><dfn[^>]*>fator<\/dfn><\/a>/);
 });

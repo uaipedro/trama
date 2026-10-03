@@ -8,8 +8,6 @@ category: avaliar
 related: [models/lm, models/glm, models/confusion, models/evaluate]
 ---
 
-**Use quando** você já ajustou um modelo e quer aplicá-lo a linhas novas para obter a previsão de cada uma.
-
 ## O que o bloco faz
 
 `models/predict` anexa a previsão de cada observação a dados novos — ou, sem `dados` ligada, às linhas do próprio ajuste. A saída é `data/table` com `previsto`, `prob_<nível>` na classificação e, quando pedidos, limites.

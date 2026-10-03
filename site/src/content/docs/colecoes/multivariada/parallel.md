@@ -7,8 +7,6 @@ node: multi/parallel
 related: [multi/kmo_bartlett, multi/factor_analysis]
 ---
 
-**Use quando** você quer decidir quantos componentes ou fatores manter, comparando com o que dados sem estrutura dariam.
-
 ## O que o bloco faz
 
 O bloco `multi/parallel` compara os autovalores observados aos quantis de autovalores de matrizes aleatórias com o mesmo tamanho. Devolve uma tabela com autovalores observados, referências simuladas e a indicação `reter`. O bloco recebe `data/table`.

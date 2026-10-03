@@ -9,8 +9,6 @@ order: 11
 related: [data/rename, data/read]
 ---
 
-**Use quando** os nomes das colunas vieram com espaços, acentos ou maiúsculas e ficam difíceis de usar nas expressões.
-
 ## O que o bloco faz
 
 Normaliza os nomes das colunas para minúsculas e separadores com sublinhado, facilitando seu uso em expressões R.

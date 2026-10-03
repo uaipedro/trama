@@ -7,8 +7,6 @@ node: sampling/plot_estimates
 related: [sampling/mean, sampling/proportion, sampling/total, sampling/ratio]
 ---
 
-**Use quando** você estimou algo por grupo e quer um gráfico com o intervalo de confiança de cada grupo, destacando os que ficaram imprecisos demais.
-
 ## O que o bloco faz
 
 O gráfico de uma estimativa: um ponto e o intervalo de confiança por domínio (e

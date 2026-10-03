@@ -9,8 +9,6 @@ order: 28
 related: [data/to_stream, data/summary]
 ---
 
-**Use quando** você processou a tabela em lotes e quer reunir os resultados de todos os passos numa tabela só.
-
 ## O que o bloco faz
 
 Reúne as tabelas dos pontos da região em uma tabela histórica; opcionalmente acrescenta a coluna `passo` com a posição de cada ponto.

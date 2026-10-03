@@ -8,8 +8,6 @@ category: distribuicao
 related: [view/histogram, view/ecdf, view/violin]
 ---
 
-**Use quando** você quer ver a forma da distribuição de uma medida numérica como uma curva suave, sem escolher faixas.
-
 ## O que o bloco faz
 
 `view/density` estima uma curva suavizada para mostrar a forma de uma medida numérica.

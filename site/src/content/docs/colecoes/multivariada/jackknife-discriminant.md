@@ -7,8 +7,6 @@ node: multi/jackknife_discriminant
 related: [multi/discriminant, multi/discriminant_functions, models/confusion]
 ---
 
-**Use quando** você ajustou uma discriminante e quer saber se alguma observação sozinha muda os resultados das funções.
-
 ## O que o bloco faz
 
 O bloco `multi/jackknife_discriminant` refaz LDA sem cada observação e estima incerteza das correlações canônicas, autovalores ou coeficientes padronizados. O bloco recebe o modelo (`models/fit`) de uma `multi/discriminant`.

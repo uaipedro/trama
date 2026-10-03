@@ -8,8 +8,6 @@ category: medias
 related: [models/duncan, models/emmeans, models/scott_knott]
 ---
 
-**Use quando** você quer apresentar numa figura as médias, os seus intervalos e as letras de comparação.
-
 ## O que o bloco faz
 
 `models/plot_means` representa médias com intervalos e, opcionalmente, letras. A saída é `view/plot`. O eixo diz a origem: "média ajustada" quando vêm do `models/emmeans`, "média" quando são as da tabela (Duncan, Waller-Duncan, Scott-Knott), sempre com o nível de confiança pedido.

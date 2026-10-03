@@ -7,8 +7,6 @@ node: multi/pca_variance
 related: [multi/pca, multi/scree, multi/pca_loadings]
 ---
 
-**Use quando** você fez uma PCA e quer ver quanto da variância cada componente explica para decidir quantos manter.
-
 ## O que o bloco faz
 
 O bloco `multi/pca_variance` extrai do modelo PCA uma tabela com um registro por componente e as colunas `autovalor`, `desvio`, `proporcao` e `acumulada`. O bloco recebe `multi/pca`.

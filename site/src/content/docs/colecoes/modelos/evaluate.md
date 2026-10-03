@@ -8,8 +8,6 @@ category: avaliar
 related: [models/fit_stats, models/confusion, models/predict]
 ---
 
-**Use quando** você quer saber quanto o modelo erra (ou acerta) em casos que ele não viu no ajuste.
-
 ## O que o bloco faz
 
 `models/evaluate` mede a previsão numa tabela `metrica`, `valor`, `n`. Regressão: `mae`, `rmse` e `r2` de previsão. Classificação: `accuracy`, `balanced_accuracy`, `macro_f1`, `kappa` e, com duas classes, `sensitivity` e `specificity` da classe positiva.

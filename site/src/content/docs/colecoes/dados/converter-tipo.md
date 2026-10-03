@@ -9,8 +9,6 @@ order: 17
 related: [data/summary, data/mutate]
 ---
 
-**Use quando** uma coluna de números ou datas chegou como texto, e você precisa dela no tipo certo para fazer contas ou gráficos.
-
 ## O que o bloco faz
 
 Converte as colunas selecionadas para o tipo indicado, interpretando números e datas segundo os parâmetros de formato.

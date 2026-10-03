@@ -9,8 +9,6 @@ order: 2
 related: [series/transform, series/decompose, series/regression]
 ---
 
-**Use quando** você quer separar tendência, sazonalidade e resto deixando a sazonalidade mudar devagar com os anos e sem que um mês estranho distorça tudo.
-
 ## O que o bloco faz
 
 Separa tendência, sazonalidade e resto por regressão local (loess) — o

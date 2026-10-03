@@ -10,8 +10,6 @@ related: [experiments/effect, experiments/view, models/anova_split_plot, models/
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
-**Use quando** você declarou os efeitos de um experimento simulado e falta sortear o erro para obter a coluna de resposta.
-
 ## O que o bloco faz
 
 Fecha a resposta: soma os termos dos `experiments/effect`, sorteia o resíduo e

@@ -8,8 +8,6 @@ category: figura
 related: [view/combine, data/write_csv]
 ---
 
-**Use quando** você quer gravar o gráfico num arquivo PDF, PNG ou TIFF no tamanho e na resolução pedidos pela revista.
-
 ## O que o bloco faz
 
 `view/save` grava o gráfico que recebe num arquivo e o repassa adiante, sem mudança. O tamanho é dado em milímetros e a resolução em dpi, como nas instruções aos autores.

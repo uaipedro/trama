@@ -7,8 +7,6 @@ node: multi/discriminant_functions
 related: [multi/discriminant, multi/plot_discriminant, models/confusion]
 ---
 
-**Use quando** você ajustou uma discriminante e quer saber quanto cada função separa os grupos e como ela combina as variáveis.
-
 ## O que o bloco faz
 
 O bloco `multi/discriminant_functions` calcula estatísticas das funções discriminantes ou devolve seus coeficientes como tabela. O bloco recebe o modelo (`models/fit`) de uma `multi/discriminant`.

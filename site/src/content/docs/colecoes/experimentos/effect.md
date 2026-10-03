@@ -10,8 +10,6 @@ related: [experiments/error, experiments/view, experiments/contrasts]
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
-**Use quando** você está simulando um experimento e quer dizer quanto cada tratamento, bloco ou outro termo soma à resposta.
-
 ## O que o bloco faz
 
 Soma **um** termo à resposta que o experimento vai ter, antes de ela existir.

@@ -7,8 +7,6 @@ node: sampling/total
 related: [sampling/mean, sampling/ratio, sampling/plot_estimates]
 ---
 
-**Use quando** você tem uma amostra sorteada e quer estimar um total da população, como quanto se produziu ou quantos domicílios têm algo.
-
 ## O que o bloco faz
 
 O total da população pelo estimador de Horvitz-Thompson: Σ w·y, em que cada

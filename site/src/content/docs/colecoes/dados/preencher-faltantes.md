@@ -9,8 +9,6 @@ order: 16
 related: [data/drop_na, data/convert]
 ---
 
-**Use quando** valores faltantes numa coluna têm um significado conhecido, como zero ocorrências, e você quer preenchê-los com esse valor.
-
 ## O que o bloco faz
 
 Substitui valores `NA` nas colunas escolhidas pelo valor informado, mantendo as linhas da tabela.

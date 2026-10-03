@@ -7,8 +7,6 @@ node: multi/kmo_bartlett
 related: [multi/parallel, multi/factor_analysis]
 ---
 
-**Use quando** você vai fazer uma análise fatorial e quer saber antes se as variáveis são correlacionadas o bastante para isso.
-
 ## O que o bloco faz
 
 O bloco `multi/kmo_bartlett` calcula KMO global, MSA por variável e esfericidade de Bartlett a partir das correlações entre variáveis. Devolve uma tabela. O bloco recebe `data/table`.

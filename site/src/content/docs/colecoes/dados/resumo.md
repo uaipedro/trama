@@ -9,8 +9,6 @@ order: 3
 related: [data/read, data/group_summarise]
 ---
 
-**Use quando** você acabou de abrir uma tabela e quer conhecer cada coluna: tipo, quantos faltantes, valores mínimo e máximo.
-
 ## O que o bloco faz
 
 `data/summary` organiza um perfil da tabela, com uma linha para cada coluna.

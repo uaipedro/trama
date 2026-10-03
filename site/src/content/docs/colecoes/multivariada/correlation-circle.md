@@ -7,8 +7,6 @@ node: multi/correlation_circle
 related: [multi/pca_loadings, multi/biplot, multi/pca]
 ---
 
-**Use quando** você fez uma PCA e quer ver quais variáveis estão bem representadas num plano e como se relacionam com os eixos.
-
 ## O que o bloco faz
 
 O bloco `multi/correlation_circle` plota, no círculo unitário, a correlação de cada variável com dois componentes de uma PCA. O bloco recebe `multi/pca`.

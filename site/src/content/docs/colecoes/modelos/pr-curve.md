@@ -8,8 +8,6 @@ category: avaliar
 related: [models/roc, models/predict, models/confusion]
 ---
 
-**Use quando** a classe que interessa é rara e você quer ver quantos dos alarmes do classificador são verdadeiros em cada corte.
-
 ## O que o bloco faz
 
 Ordena as linhas pela probabilidade da classe positiva e mostra, em cada corte, a precisão (dos previstos positivos, quantos são) contra a revocação (dos positivos, quantos foram achados). Calcula a precisão média (AP) e desenha a prevalência como a linha do acaso.

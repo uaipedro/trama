@@ -8,8 +8,6 @@ category: testes
 related: [models/dunn, models/chisq, models/cor_test]
 ---
 
-**Use quando** você quer comparar três ou mais grupos independentes sem supor normalidade, usando postos.
-
 ## O que o bloco faz
 
 `models/kruskal` Compara dois ou mais grupos pelo teste de Kruskal–Wallis. A saída é `data/test`.

@@ -9,8 +9,6 @@ order: 2
 related: [series/mann_kendall, series/interpolate, series/window]
 ---
 
-**Use quando** você quer testar se os valores da série se sucedem ao acaso, contando as sequências acima e abaixo da mediana.
-
 ## O que o bloco faz
 
 Testa se a série foi gerada ao ACASO. Também chamado teste de sequências de

@@ -13,12 +13,12 @@ interface Props {
 const { title, description = "R em blocos executáveis." } = Astro.props;
 const pageTitle = title === "trama" ? title : `${title} · trama`;
 // Navegação curta, só links. A seção ativa é o link de prefixo mais longo
-// Instalação fica no Primeiro fluxo, na home e no rodapé.
+// (Instalação mora dentro de Por dentro, mas acende sozinha).
 const navLinks = [
   { href: "/trama/colecoes/", label: "Coleções" },
   { href: "/trama/comece/primeiro-fluxo/", label: "Primeiro fluxo" },
   { href: "/trama/templates/", label: "Templates" },
-  { href: "/trama/rigor/", label: "Rigor" },
+  { href: "/trama/por-dentro/instalacao/", label: "Instalação" },
   { href: "/trama/por-dentro/", label: "Por dentro" }
 ];
 const currentNav = navLinks
@@ -111,12 +111,12 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           <span>Buscar</span>
           <kbd>/</kbd>
         </button>
-        <button class="depth-toggle" type="button" aria-pressed="true" aria-describedby="dica-contexto" data-depth-toggle aria-label="Explicações extras para iniciantes" title="Mostra ou esconde explicações extras para quem está começando; o texto principal não muda.">
+        <button class="depth-toggle" type="button" aria-pressed="true" aria-describedby="dica-contexto" data-depth-toggle title="Liga ou desliga as caixas de contexto: explicações extras para quem está começando, sem mudar o texto principal.">
           <span class="toggle-orbit" aria-hidden="true"></span>
-          <span class="toggle-copy">Explicações</span>
+          <span class="toggle-copy">Contexto</span>
         </button>
         <div class="depth-hint" id="dica-contexto" role="note" hidden data-depth-hint>
-          <p><strong>Explicações</strong> mostra caixas “Antes de continuar” e destaca termos com a definição ao passar o mouse. Desligue quando já conhecer os conceitos; a escolha fica guardada.</p>
+          <p><strong>Contexto</strong> mostra caixas “Antes de continuar” e destaca termos com a definição ao passar o mouse. Desligue quando já conhecer os conceitos; a escolha fica guardada.</p>
           <button type="button" data-depth-hint-close>Entendi</button>
         </div>
       </div>
@@ -172,16 +172,8 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       const syncFlowVideos = () => {
         document.querySelectorAll("[data-flow-video]").forEach((video) => {
           if (!(video instanceof HTMLVideoElement)) return;
-          // Movimento reduzido: nada toca sozinho; os controles nativos
-          // deixam a pessoa tocar quando quiser.
-          if (motionQuery.matches) {
-            video.removeAttribute("autoplay");
-            video.controls = true;
-            video.pause();
-          } else {
-            video.controls = false;
-            video.play().catch(() => undefined);
-          }
+          if (motionQuery.matches) video.pause();
+          else video.play().catch(() => undefined);
         });
       };
       syncFlowVideos();

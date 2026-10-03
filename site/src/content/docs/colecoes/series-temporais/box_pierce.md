@@ -9,8 +9,6 @@ order: 2
 related: [series/ljung_box, series/adf, series/kpss]
 ---
 
-**Use quando** você precisa da versão original do teste de ruído branco, para reproduzir um trabalho; no uso comum, prefira o Ljung-Box.
-
 ## O que o bloco faz
 
 Testa se as primeiras autocorrelações da série são, EM CONJUNTO, zero — se a

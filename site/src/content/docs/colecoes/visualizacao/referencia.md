@@ -8,8 +8,6 @@ category: camadas
 related: [view/fit_line, view/annotate, view/points]
 ---
 
-**Use quando** você quer acrescentar ao gráfico uma linha de comparação, como um limite, uma meta ou a reta y = x.
-
 ## O que o bloco faz
 
 `view/reference` recebe um gráfico e devolve o mesmo gráfico com uma ou mais linhas de referência: horizontal (y = valor), vertical (x = valor) ou diagonal (y = valor + inclinação·x). Com **Faixa até**, sombreia a faixa entre o valor e esse número. O tema, a proporção e os rótulos continuam os do gráfico de entrada.

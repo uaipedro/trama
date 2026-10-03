@@ -8,8 +8,6 @@ category: camadas
 related: [view/points, view/reference, models/plot_regression]
 ---
 
-**Use quando** você quer mostrar no gráfico de dispersão a reta ou curva de tendência, com a equação e o R², sem fazer testes.
-
 ## O que o bloco faz
 
 `view/fit_line` recebe um Disperso (ou uma Linha) e acrescenta a reta ou curva ajustada aos próprios pontos do gráfico, com a faixa do intervalo de confiança e, na linear e na quadrática, a equação e o R² no canto. Os dados são o X e o Y do gráfico de entrada; não há tabela a ligar.

@@ -7,8 +7,6 @@ node: multi/pca
 related: [multi/pca_variance, multi/pca_loadings, multi/biplot]
 ---
 
-**Use quando** você tem muitas variáveis correlacionadas e quer resumi-las em poucos componentes para explorar padrões.
-
 ## O que o bloco faz
 
 O bloco `multi/pca` centraliza as variáveis e ajusta `stats::prcomp`, retornando um modelo com escores, autovetores e variância dos componentes. O bloco recebe `data/table`.

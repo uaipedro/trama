@@ -8,8 +8,6 @@ category: pressupostos
 related: [models/bartlett, models/breusch_pagan]
 ---
 
-**Use quando** o experimento é em blocos e você quer saber se bloco e tratamento interagem, em vez de somar seus efeitos.
-
 ## O que o bloco faz
 
 `models/tukey_additivity` Testa aditividade entre bloco e tratamento. A saída é `data/test`.

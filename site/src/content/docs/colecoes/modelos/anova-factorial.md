@@ -8,8 +8,6 @@ category: anova
 related: [models/emmeans, models/anova_split_plot]
 ---
 
-**Use quando** o experimento testa dois ou três fatores juntos e você quer saber o efeito de cada um e se o efeito de um depende do outro (interação).
-
 ## O que o bloco faz
 
 `models/anova_factorial` Ajusta efeitos principais e todas as interações de dois ou três fatores. A saída é `models/fit`.

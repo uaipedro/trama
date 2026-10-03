@@ -7,8 +7,6 @@ node: ml/split
 related: ["ml/cart", "models/predict"]
 ---
 
-**Use quando** você vai ajustar um modelo e quer separar parte dos dados para testar depois, em linhas que o modelo nunca viu.
-
 ## O que o bloco faz
 
 Divide as linhas em duas tabelas reprodutivelmente e pode preservar a proporção de cada classe.
@@ -28,7 +26,7 @@ d <- trama.ml::tr_ml_example("iris_binaria")
 s <- trama.ml::tr_ml_split(d, resposta = "Species", proporcao = 0.75, seed = 42)
 nrow(s$treino); nrow(s$teste)
 
-# Dados com tempo: todo o teste é posterior ao treino
+# Dados com tempo: todo o teste é posterior ao treino.
 e <- data.frame(dia = rep(1:20, each = 3), y = factor(rep(c("a", "b"), 30)), x = 1:60)
 t <- trama.ml::tr_ml_split(e, resposta = "y", proporcao = 0.7, estrategia = "temporal", ordem = "dia")
 range(t$treino$dia); range(t$teste$dia)   # 1-14 e 15-20

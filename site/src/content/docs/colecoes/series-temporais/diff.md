@@ -9,8 +9,6 @@ order: 2
 related: [series/ndiffs, series/adf, series/kpss]
 ---
 
-**Use quando** você quer trocar cada valor pela variação em relação ao período anterior ou ao mesmo período do ciclo anterior, para tirar tendência ou sazonalidade.
-
 ## O que o bloco faz
 
 Troca cada valor pela variação em relação a um valor anterior. É a operação

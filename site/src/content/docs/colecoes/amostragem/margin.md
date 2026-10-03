@@ -7,8 +7,6 @@ node: sampling/margin
 related: [sampling/margin_levels, sampling/size_proportion]
 ---
 
-**Use quando** o número de entrevistas já está decidido (pelo orçamento, por exemplo) e você quer saber qual margem de erro ele dá para uma proporção.
-
 ## O que o bloco faz
 
 O caminho contrário do `sampling/size_proportion`: o n já está dado (o campo

@@ -10,8 +10,6 @@ related: [models/shapiro_residuals, models/levene, data/mutate, experiments/cont
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
-**Use quando** os resíduos do modelo não parecem normais ou a variância cresce com a média, e você quer saber se transformar a resposta (logaritmo, raiz…) resolve.
-
 ## O que o bloco faz
 
 Procura a potência λ da resposta que torna o erro do modelo o mais próximo de

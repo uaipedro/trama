@@ -9,8 +9,6 @@ order: 2
 related: [series/stl, series/decompose, series/regression]
 ---
 
-**Use quando** você decompôs a série e quer seguir só com uma parte dela, como a tendência, o resto ou a série sem sazonalidade.
-
 ## O que o bloco faz
 
 Devolve um dos componentes de uma decomposição como série, para seguir

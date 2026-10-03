@@ -9,8 +9,6 @@ order: 2
 related: [series/f_trend, series/plot, series/runs]
 ---
 
-**Use quando** você quer testar se a série tem tendência sem supor nenhuma distribuição para os dados, como é comum com chuva, vazão ou temperatura.
-
 ## O que o bloco faz
 
 Testa se a série tem TENDÊNCIA. É o teste de tendência mais usado em

@@ -8,8 +8,6 @@ category: resumir
 related: [models/anova_table, models/compare, models/plot_coefficients]
 ---
 
-**Use quando** você quer ler cada coeficiente do modelo com o seu erro padrão, p-valor e intervalo de confiança.
-
 ## O que o bloco faz
 
 `models/coefficients` Produz estimativa, erro padrão, estatística, p-valor e intervalo de 95% para cada coeficiente. A saída é `models/effects`.

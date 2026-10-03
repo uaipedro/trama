@@ -9,8 +9,6 @@ order: 2
 related: [series/acf, series/lag]
 ---
 
-**Use quando** você quer ver, em gráficos de dispersão, como cada valor da série se relaciona com os valores de alguns períodos antes.
-
 ## O que o bloco faz
 
 Um disperso por defasagem: no painel k, cada ponto é o valor de um período

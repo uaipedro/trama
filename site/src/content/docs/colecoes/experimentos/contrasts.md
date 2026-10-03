@@ -10,8 +10,6 @@ related: [models/linear_hypothesis, models/polinomial, models/emmeans, experimen
 
 <!-- Gerado por tools/site/export-collection-pages.R a partir da ajuda do bloco. -->
 
-**Use quando** você já tem a ANOVA de um experimento e quer saber de onde vem a diferença entre os tratamentos: se a resposta sobe com a dose, se cada tratamento difere do controle, ou outra comparação planejada antes de ver os dados.
-
 ## O que o bloco faz
 
 **Tudo é contraste.** Com k tratamentos, o SQ do tratamento é a soma de k − 1

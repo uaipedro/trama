@@ -7,8 +7,6 @@ node: ml/figs
 related: ["ml/split", "models/predict", "ml/rules", "ml/tree_plot"]
 ---
 
-**Use quando** você quer um modelo de previsão explicado por uma soma de poucas árvores pequenas, fáceis de ler.
-
 ## O que o bloco faz
 
 Ajusta uma soma de árvores pequenas sob um orçamento global de divisões para regressão ou classificação binária.

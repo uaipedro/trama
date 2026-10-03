@@ -8,8 +8,6 @@ category: testes
 related: [models/chisq, models/cor_test]
 ---
 
-**Use quando** você quer comparar dois grupos independentes sem supor normalidade, usando postos, quando o teste t não representa bem a pergunta.
-
 ## O que o bloco faz
 
 `models/wilcoxon` Compara localização de dois grupos independentes por postos. A saída é `data/test`.

@@ -8,8 +8,6 @@ category: pressupostos
 related: [models/bartlett, models/levene]
 ---
 
-**Use quando** você quer saber se a dispersão dos resíduos muda conforme os valores dos preditores, como quando o erro cresce com x.
-
 ## O que o bloco faz
 
 `models/breusch_pagan` Testa se a variância residual depende dos preditores. A saída é `data/test`.

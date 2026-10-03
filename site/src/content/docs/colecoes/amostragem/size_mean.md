@@ -7,8 +7,6 @@ node: sampling/size_mean
 related: [sampling/size_proportion, sampling/size_cluster, sampling/size_curve, sampling/srs]
 ---
 
-**Use quando** você está planejando a pesquisa e quer saber quantas unidades sortear para estimar uma média com a margem de erro desejada.
-
 ## O que o bloco faz
 
 O tamanho de uma amostra aleatória simples para estimar uma MÉDIA com margem

@@ -9,8 +9,6 @@ order: 2
 related: [series/interpolate, series/example]
 ---
 
-**Use quando** seus dados estão numa tabela e você precisa transformar uma coluna de valores numa série temporal, dizendo a frequência.
-
 ## O que o bloco faz
 
 Transforma uma coluna de uma tabela numa série temporal. É a porta de entrada

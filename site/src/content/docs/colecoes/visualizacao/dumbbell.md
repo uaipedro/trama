@@ -8,8 +8,6 @@ category: comparacao
 related: [view/paired, view/dotplot, data/pivot_longer]
 ---
 
-**Use quando** você quer comparar, dentro de cada categoria, os valores de duas ou mais condições, como antes e depois.
-
 ## O que o bloco faz
 
 `view/dumbbell` mostra dois ou mais valores por categoria e liga os extremos com um segmento.

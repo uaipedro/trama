@@ -8,8 +8,6 @@ category: testes
 related: [models/chisq, models/cor_test]
 ---
 
-**Use quando** você quer saber se a média de uma coluna é igual a um valor de referência definido antes.
-
 ## O que o bloco faz
 
 `models/one_sample_t` Compara a média de uma coluna com valor de referência. A saída é `data/test`.

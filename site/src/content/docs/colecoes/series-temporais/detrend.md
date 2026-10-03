@@ -9,8 +9,6 @@ order: 2
 related: [series/component, series/combine, series/diff, series/moving_average]
 ---
 
-**Use quando** você quer tirar a tendência da série e ficar com o que sobra, sazonalidade incluída.
-
 ## O que o bloco faz
 
 Estima a tendência da série e a TIRA, deixando o resto — sazonalidade

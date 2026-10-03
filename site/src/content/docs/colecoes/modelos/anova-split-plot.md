@@ -8,8 +8,6 @@ category: anova
 related: [models/anova_table, models/lmer]
 ---
 
-**Use quando** um fator foi sorteado em parcelas grandes e outro em subparcelas dentro delas, e cada fator precisa ser testado com o seu próprio erro.
-
 ## O que o bloco faz
 
 `models/anova_split_plot` Ajusta parcelas subdivididas com erros separados por estrato. A saída é `models/fit`.

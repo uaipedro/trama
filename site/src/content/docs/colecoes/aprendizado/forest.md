@@ -7,8 +7,6 @@ node: ml/forest
 related: ["ml/split", "models/predict", "models/evaluate", "models/importance"]
 ---
 
-**Use quando** você quer prever uma resposta que pode depender dos preditores de forma não linear ou com interações, usando muitas árvores.
-
 ## O que o bloco faz
 
 Combina árvores aleatorizadas e agrega suas previsões para regressão ou classificação.

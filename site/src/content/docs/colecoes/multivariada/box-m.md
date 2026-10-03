@@ -7,8 +7,6 @@ node: multi/box_m
 related: [multi/discriminant, models/confusion]
 ---
 
-**Use quando** você vai usar a discriminante e quer testar se os grupos têm a mesma matriz de covariância, para escolher entre LDA e QDA.
-
 ## O que o bloco faz
 
 O bloco `multi/box_m` calcula o teste M de Box para igualdade das matrizes de covariância dos grupos. O bloco recebe `data/table`.

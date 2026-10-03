@@ -8,8 +8,6 @@ category: testes
 related: [models/anova_dbc, models/kruskal]
 ---
 
-**Use quando** o experimento é em blocos com um fator, os resíduos não são normais e nenhuma transformação resolve, ou nem todo bloco recebe todos os tratamentos.
-
 ## O que o bloco faz
 
 `models/friedman` ordena os tratamentos dentro de cada bloco e compara as somas de postos. É a alternativa por postos ao `models/anova_dbc`, com blocos completos ou incompletos. A saída é `models/test`.

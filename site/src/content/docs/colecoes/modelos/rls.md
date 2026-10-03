@@ -8,8 +8,6 @@ category: ajustar
 related: [models/glm, models/lm]
 ---
 
-**Use quando** os dados chegam um ponto de cada vez e a regressão precisa se atualizar a cada observação, dentro de uma região de fluxo.
-
 ## O que o bloco faz
 
 `models/rls` Atualiza coeficientes ponto a ponto e emite previsão anterior ao ponto, valor observado e resíduo. A saída é um fluxo de tabela com previsto, real e resíduo por ponto.
