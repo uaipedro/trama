@@ -1,3 +1,10 @@
+# trama.models 0.6.2
+
+* Tamanhos de efeito: épsilon² dos postos no `models/kruskal`, bisserial de postos no `models/wilcoxon` (coluna `extra_r_bisserial_postos`), V de Cramér e resíduos padronizados ajustados no `models/chisq`. Conferidos com o `effectsize`.
+* `models/anova_table` com SQ tipo I avisa quando a SQ de um termo depende da ordem na fórmula (desenho desbalanceado); o padrão não muda.
+* Quadro do GLM misto: a nota diz que o qui-quadrado é de Wald e sugere a razão de verossimilhança em `models/compare`.
+* `models/shapiro` com mais de 5000 valores recusa com a classe nova `tr_models_error_too_many_rows`.
+
 # trama.models 0.6.1
 
 * Contrato ganha `tr_models_loglik()` e `tr_models_nesting()` (opcionais): um modelo de outra coleção que os implementa entra no `models/compare` (razão de verossimilhança) e no `models/select` (AIC, AICc, BIC). A `trama.series` usa isso para o ARIMA.
