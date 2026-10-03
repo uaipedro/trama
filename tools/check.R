@@ -11,7 +11,8 @@
 #
 # Regras:
 #   collections/X/**          -> X e toda coleção que depende de X (transitivo)
-#   R/, inst/ (exceto www)    -> núcleo e todas as coleções
+#   R/foo.R                   -> núcleo e coleções que usam algo de foo.R (--amplo: todas)
+#   inst/ (exceto www), DESCRIPTION, NAMESPACE -> núcleo e todas as coleções
 #   inst/www/**, tests/js/**  -> testes node
 #   site/**                   -> testes do site
 #   docs/**, *.md             -> nada
@@ -52,6 +53,43 @@ ordem_carga <- function(c) {
   visita(c)
   vistos
 }
+
+# Coleções que usam algo de um arquivo R/ do núcleo: as funções definidas nele
+# mais quem as chama dentro do núcleo (transitivo), procuradas como símbolo ou
+# string no código e nos testes de cada coleção. Arquivo apagado ou que não
+# parseia cai no conservador (todas). `--amplo` desliga.
+usuarios_nucleo <- local({
+  cache <- NULL
+  nomes <- function(x) unique(c(all.names(x), unlist(rapply(as.list(x), function(v) v, classes = "character", how = "unlist"))))
+  tokens <- function(f) tryCatch({
+    e <- parse(f, keep.source = FALSE)
+    unique(c(all.names(e), unlist(lapply(e, function(x) tryCatch(nomes(x), error = function(err) character())))))
+  }, error = function(err) NULL)
+  monta <- function() {
+    defs <- character(); usa <- list()
+    for (f in list.files("R", full.names = TRUE)) for (x in as.list(parse(f, keep.source = FALSE))) {
+      if (is.call(x) && as.character(x[[1]])[1] %in% c("<-", "=") && is.name(x[[2]])) {
+        n <- as.character(x[[2]]); defs[n] <- f; usa[[n]] <- all.names(x[[3]])
+      }
+    }
+    inv <- list()
+    for (n in names(usa)) for (g in intersect(unique(usa[[n]]), names(defs))) inv[[g]] <- c(inv[[g]], n)
+    toks <- lapply(setNames(colecoes, colecoes), function(c) unique(unlist(lapply(
+      list.files(file.path("collections", c), pattern = "\\.R$", recursive = TRUE, full.names = TRUE), tokens))))
+    list(defs = defs, inv = inv, toks = toks)
+  }
+  function(f) {
+    if (!file.exists(f)) return(colecoes)
+    if (is.null(cache)) cache <<- tryCatch(monta(), error = function(e) FALSE)
+    if (isFALSE(cache)) return(colecoes)
+    fila <- vis <- names(cache$defs)[cache$defs == f]
+    if (!length(vis)) return(colecoes)
+    while (length(fila)) {
+      nv <- setdiff(cache$inv[[fila[1]]], vis); fila <- c(fila[-1], nv); vis <- c(vis, nv)
+    }
+    names(Filter(function(t) any(vis %in% t), cache$toks))
+  }
+})
 
 arquivos_mudados <- function() {
   base <- opt("--base")
@@ -117,7 +155,10 @@ if (flag("--tudo")) {
       pareado <- if (partes[1] == "R") sub("\\.R$", "", partes[2])
       tem_par <- !is.null(pareado) && file.exists(file.path("tests/testthat", paste0("test-", pareado, ".R")))
       marca("trama", if (rapido && tem_par) pareado)
-      if (!rapido) for (c in colecoes) marca(c)
+      if (!rapido) {
+        alcance <- if (partes[1] == "R" && !flag("--amplo")) usuarios_nucleo(f) else colecoes
+        for (c in dependentes(alcance)) marca(c)
+      }
     } else if (partes[1] == "tests" && identical(partes[2], "testthat")) {
       nome <- partes[length(partes)]
       marca("trama", if (grepl("^test-.*\\.R$", nome)) sub("^test-(.*)\\.R$", "\\1", nome))

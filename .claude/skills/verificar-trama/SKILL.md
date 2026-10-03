@@ -26,7 +26,7 @@ Mexer em `trama.data` roda quase tudo; em `trama.series`, só ela.
 
 ## Gotchas
 
-- Mudar `R/` do núcleo roda todas as coleções. Em iteração use `--rapido`; rode o completo uma vez no fim.
+- Mudar `R/foo.R` do núcleo roda só as coleções que usam (símbolo ou string, direto ou via quem chama no núcleo) algo de `foo.R`, mais os dependentes delas. App, sessão, transporte, projeto, CLI não chegam a coleção nenhuma. `--amplo` volta ao antigo (todas). `inst/`, DESCRIPTION e NAMESPACE do núcleo ainda rodam todas. Em iteração use `--rapido`; rode o completo uma vez no fim.
 - Subir só `Version:` no DESCRIPTION não dispara testes (é ignorado de propósito).
 - Templates (`collections/*/inst/templates`) também são testados pelo núcleo em `test-template.R`.
 - Falha deixa `tests/testthat/_problems/` e `testthat-problems.rds`: lixo, não commitar.
