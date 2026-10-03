@@ -102,6 +102,19 @@ tr_store_has <- function(store, key) {
   file.exists(.tr_obj_path(store, key, h$ext %||% "rds"))
 }
 
+#' O handle de `key`, ou `NULL` se ele aponta pra um objeto que não existe.
+#'
+#' É o que o plano usa pra decidir cache: mesmo critério de `tr_store_has()`,
+#' mas devolvendo o handle que o plano já precisa guardar na unidade. Handle
+#' órfão marcaria `cached = TRUE` e o jusante explodiria com
+#' `tr_error_missing_object` — erro que ainda seria cacheado sob a chave DELE.
+#' @noRd
+.tr_store_handle_live <- function(store, key) {
+  h <- tr_store_handle(store, key)
+  if (is.null(h) || !is.null(h$error)) return(h)
+  if (file.exists(.tr_obj_path(store, key, h$ext %||% "rds"))) h else NULL
+}
+
 #' Handle ilegível conta como ausente, nunca como exceção.
 #'
 #' Sem isto, um único JSON truncado (worker morto, disco cheio) abortava
