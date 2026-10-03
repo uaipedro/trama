@@ -260,7 +260,10 @@ referência `effectsize` 1.0.3 (`rank_epsilon_squared`, `rank_biserial`,
 `cramers_v(adjust = FALSE)`) em `InsectSprays`, `ToothGrowth` e `mtcars`
 (cyl × gear); valores anotados no teste e conferidos ao vivo quando o pacote
 está instalado. A fórmula de Tomczak e Tomczak foi conferida por meio do
-`effectsize`, que a cita, e não no artigo. Shapiro-Wilk com n > 5000 passa a
+`effectsize`, que a cita, e não no artigo. Cramér (1946), *Mathematical
+Methods of Statistics* (Princeton University Press), conferido no catálogo da
+editora (press.princeton.edu) e da De Gruyter (reimpressão,
+doi:10.1515/9781400883868); a página da fórmula não foi conferida. Shapiro-Wilk com n > 5000 passa a
 recusar com `tr_models_error_too_many_rows` (antes, a classe de "de menos").
 Teste: `collections/trama.models/tests/testthat/test-testes.R`.
 
