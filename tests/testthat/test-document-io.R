@@ -270,3 +270,16 @@ test_that("modo solto e a caixa do preview sobrevivem à ida e volta pelo JSON",
   expect_identical(back$ui$modes$a, "solto")
   expect_equal(back$ui$soltos$a, c(10, -20, 400, 300))
 })
+
+test_that("tr_doc_write é atômico: falha não trunca o fluxo anterior", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  dir <- withr::local_tempdir(); path <- file.path(dir, "main.json")
+  tr_doc_write(d, path)
+  antes <- readLines(path)
+  expect_length(list.files(dir, pattern = "\\.part$", all.files = TRUE), 0)
+  # Renomear por cima de um diretório falha: o arquivo antigo tem que ficar.
+  alvo <- file.path(dir, "sub"); dir.create(alvo)
+  expect_error(tr_doc_write(d, alvo), class = "tr_error_project_write")
+  expect_identical(readLines(path), antes)
+  expect_length(list.files(dir, pattern = "\\.part$", all.files = TRUE), 0)
+})

@@ -36,9 +36,25 @@ tr_doc_json <- function(doc) {
 }
 
 #' Grava o documento em `path` como JSON.
+#'
+#' Grava num temporário da MESMA pasta e renomeia, como `.tr_atomic` no store:
+#' o autosave roda a cada op, e um crash ou disco cheio no meio do
+#' `writeLines` truncaria o fluxo do usuário — o único artefato que não se
+#' recompõe. Falhar deixa o arquivo anterior intacto.
 #' @export
 tr_doc_write <- function(doc, path) {
-  writeLines(tr_doc_json(doc), path)
+  json <- tr_doc_json(doc)
+  tmp <- tempfile(".trama-", tmpdir = dirname(path), fileext = ".part")
+  on.exit(unlink(tmp), add = TRUE)
+  ok <- tryCatch({
+    writeLines(json, tmp)
+    suppressWarnings(file.rename(tmp, path))
+  }, error = function(e) e)
+  if (!isTRUE(ok)) {
+    rlang::abort(sprintf(
+      "N\u00e3o foi poss\u00edvel gravar o fluxo em '%s'. Verifique a permiss\u00e3o de escrita e o espa\u00e7o em disco.",
+      path), class = "tr_error_project_write", parent = if (inherits(ok, "error")) ok)
+  }
   invisible(doc)
 }
 
