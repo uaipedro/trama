@@ -41,10 +41,15 @@
 
 #' Pressupostos e referências de um nó (listas vazias se não houver).
 #' @noRd
-.tr_multi_doc <- function(id) {
-  todos <- c(.tr_multi_docs_fatorial(), .tr_multi_docs_classificacao(), .tr_multi_docs_agrupamento(),
-             .tr_multi_docs_jackknife())
-  d <- todos[[id]]
-  list(pressupostos = if (is.null(d$pressupostos)) list() else d$pressupostos,
-       referencias = if (is.null(d$referencias)) list() else d$referencias)
-}
+.tr_multi_doc <- local({
+  # Os docs são constantes: monta uma vez. Remontar a cada nó deixava
+  # `trama_collection()` quadrático (todos os docs validados por nó).
+  todos <- NULL
+  function(id) {
+    if (is.null(todos)) todos <<- c(.tr_multi_docs_fatorial(), .tr_multi_docs_classificacao(), .tr_multi_docs_agrupamento(),
+               .tr_multi_docs_jackknife())
+    d <- todos[[id]]
+    list(pressupostos = if (is.null(d$pressupostos)) list() else d$pressupostos,
+         referencias = if (is.null(d$referencias)) list() else d$referencias)
+  }
+})

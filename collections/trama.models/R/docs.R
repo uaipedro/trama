@@ -47,10 +47,15 @@
 
 #' Pressupostos e referências de um nó (listas vazias se não houver).
 #' @noRd
-.tr_models_doc <- function(id) {
-  todos <- c(.tr_models_docs_testes(), .tr_models_docs_anova(),
-             .tr_models_docs_medias(), .tr_models_docs_modelos(), .tr_models_docs_avaliar(), .tr_models_docs_efeito(),
-             .tr_models_docs_reamostrar(), .tr_models_docs_bootstrap())
-  d <- todos[[id]]
-  list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
-}
+.tr_models_doc <- local({
+  # Os docs são constantes: monta uma vez. Remontar a cada nó deixava
+  # `trama_collection()` quadrático (todos os docs validados por nó).
+  todos <- NULL
+  function(id) {
+    if (is.null(todos)) todos <<- c(.tr_models_docs_testes(), .tr_models_docs_anova(),
+               .tr_models_docs_medias(), .tr_models_docs_modelos(), .tr_models_docs_avaliar(), .tr_models_docs_efeito(),
+               .tr_models_docs_reamostrar(), .tr_models_docs_bootstrap())
+    d <- todos[[id]]
+    list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
+  }
+})

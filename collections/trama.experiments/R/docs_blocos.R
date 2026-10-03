@@ -240,7 +240,13 @@
 
 #' Pressupostos e referências de um nó (listas vazias se não houver).
 #' @noRd
-.tr_exp_doc <- function(id) {
-  d <- .tr_exp_docs()[[id]]
-  list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
-}
+.tr_exp_doc <- local({
+  # Os docs são constantes: monta uma vez. Remontar a cada nó deixava
+  # `trama_collection()` quadrático (todos os docs validados por nó).
+  todos <- NULL
+  function(id) {
+    if (is.null(todos)) todos <<- .tr_exp_docs()
+    d <- todos[[id]]
+    list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
+  }
+})
