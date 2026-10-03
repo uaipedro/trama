@@ -65,4 +65,4 @@ Pacote com `DESCRIPTION` (`Config/trama/requires`), `NAMESPACE` exportando
 `trama_collection`, `R/collection.R` e `tests/testthat/`. Listas fixas que
 ainda precisam do nome: `colecoes_glossario` em
 `tests/testthat/test-glossario.R` e `tools/site/export-node-docs.R`.
-`tools/check.R` descobre sozinho.
+`tools/check.R` e `tools/templates/gerar.R` descobrem sozinhos.
