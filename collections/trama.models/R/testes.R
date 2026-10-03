@@ -153,6 +153,9 @@ tr_models_wilcoxon <- function(dados, resposta = "", grupo = "", alternativa = "
   r <- .tr_models_ajustar(.tr_models_capturar(
     stats::wilcox.test(y[g == a], y[g == b], alternative = .tr_models_alt_r(alt), conf.int = TRUE)), no)
   t <- r$valor
+  # Correlação bisserial de postos (Cureton 1956; Kerby 2014): r = 2W/(n1 n2) − 1,
+  # positiva quando o primeiro grupo tende a valores maiores.
+  r_rb <- 2 * unname(t$statistic) / (sum(g == a) * sum(g == b)) - 1
   .tr_models_teste(
     "Wilcoxon-Mann-Whitney", sprintf("as distribuições de %s e %s têm a mesma locação", a, b),
     t$statistic, "W", t$p.value,
@@ -162,8 +165,10 @@ tr_models_wilcoxon <- function(dados, resposta = "", grupo = "", alternativa = "
       list(rotulo = sprintf("diferença de locação (%s − %s)", a, b), valor = unname(t$estimate),
            li = t$conf.int[[1]], ls = t$conf.int[[2]]),
     nota = .tr_models_nota(sprintf("n = %d e %d", sum(g == a), sum(g == b)), td$nota,
-                           if (any(grepl("ties|empate", r$avisos))) "empates: p-valor pela aproximação normal" else ""),
-    fonte = "Wilcoxon (1945); Mann & Whitney (1947)")
+                           if (any(grepl("ties|empate", r$avisos))) "empates: p-valor pela aproximação normal" else "",
+                           sprintf("bisserial de postos r = %.3f", r_rb)),
+    extra = list(r_bisserial_postos = r_rb),
+    fonte = "Wilcoxon (1945); Mann & Whitney (1947); Kerby (2014)")
 }
 
 #' Kruskal-Wallis: dois ou mais grupos.
@@ -182,11 +187,16 @@ tr_models_kruskal <- function(dados, resposta = "", grupo = "") {
     .tr_models_abort("tr_models_error_one_level", "'%s': a coluna '%s' tem um grupo só.", no, grp)
   }
   t <- .tr_models_ajustar(stats::kruskal.test(td$d[[resp]], g), no)
+  # Épsilon² dos postos (Tomczak & Tomczak 2014): H / ((n² − 1) / (n + 1)),
+  # que é H / (n − 1). Sem IC: não há intervalo analítico publicado.
+  n <- length(g)
   .tr_models_teste(
     "Kruskal-Wallis", sprintf("as distribuições de %s são iguais entre os níveis de %s", resp, grp),
     t$statistic, "H", t$p.value, gl = as.character(t$parameter),
     conclusao_sim = "algum grupo difere",
     conclusao_nao = "não há evidência de diferença entre os grupos",
+    efeito = list(rotulo = "épsilon² dos postos", valor = unname(t$statistic) / (n - 1),
+                  li = NA_real_, ls = NA_real_),
     nota = .tr_models_nota(sprintf("%d grupos, n = %d", nlevels(g), length(g)), td$nota),
     fonte = "Kruskal & Wallis (1952)")
 }
@@ -448,14 +458,29 @@ tr_models_chisq <- function(dados, linha = "", coluna = "", correcao = FALSE) {
   r <- .tr_models_capturar(stats::chisq.test(ct$tab, correct = isTRUE(correcao)))
   t <- r$valor
   poucos <- mean(t$expected < 5)
+  # V de Cramér (1946): sqrt(qui2 / (n (min(l, c) − 1))). Viesado para cima em
+  # amostra pequena (Bergsma 2013). Resíduos padronizados ajustados (Agresti
+  # 2002, sec. 3.3.1): |r| > 2 marca a casela que puxa a associação.
+  n <- sum(ct$tab)
+  v <- sqrt(unname(t$statistic) / (n * (min(dim(ct$tab)) - 1)))
+  rp <- t$stdres
+  fortes <- which(abs(rp) > 2, arr.ind = TRUE)
+  txt_rp <- if (nrow(fortes)) {
+    paste0("resíduos padronizados |r| > 2: ",
+           paste(sprintf("%s/%s (%+.2f)", rownames(rp)[fortes[, 1]], colnames(rp)[fortes[, 2]], rp[fortes]),
+                 collapse = ", "))
+  } else ""
   .tr_models_teste(
     "Qui-quadrado", sprintf("%s e %s são independentes", ct$l, ct$c), t$statistic, "qui2", t$p.value,
     gl = as.character(t$parameter),
     conclusao_sim = sprintf("%s e %s estão associadas", ct$l, ct$c),
     conclusao_nao = "não há evidência de associação",
-    nota = .tr_models_nota(sprintf("tabela %d × %d, n = %d", nrow(ct$tab), ncol(ct$tab), sum(ct$tab)), ct$nota,
-                           if (poucos > 0.2) sprintf("%.0f%% das caselas com esperado < 5: prefira 'models/fisher_exact'", 100 * poucos) else ""),
-    extra = list(menor_esperado = min(t$expected)),
+    efeito = list(rotulo = "V de Cramér", valor = v, li = NA_real_, ls = NA_real_),
+    nota = .tr_models_nota(sprintf("tabela %d × %d, n = %d", nrow(ct$tab), ncol(ct$tab), n), ct$nota,
+                           if (poucos > 0.2) sprintf("%.0f%% das caselas com esperado < 5: prefira 'models/fisher_exact'", 100 * poucos) else "",
+                           "V de Cramér superestima a associação em amostra pequena (Bergsma 2013)",
+                           txt_rp),
+    extra = list(menor_esperado = min(t$expected), maior_residuo_padronizado = rp[which.max(abs(rp))]),
     fonte = "Pearson (1900)")
 }
 

@@ -280,7 +280,7 @@ tr_flow(reg) |>
 `models/t_test`; `models/shapiro` para conferir a normalidade da coluna.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/wilcoxon", 
+    trama::tr_node("models/wilcoxon", version = 2L,
       pressupostos = .tr_models_doc("models/wilcoxon")$pressupostos,
       referencias = .tr_models_doc("models/wilcoxon")$referencias,
       fn = tr_models_wilcoxon, label = "Wilcoxon-Mann-Whitney",
@@ -311,7 +311,7 @@ tr_flow(reg) |>
 `models/t_test`; `models/kruskal` para mais de dois grupos.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/kruskal", 
+    trama::tr_node("models/kruskal", version = 2L,
       pressupostos = .tr_models_doc("models/kruskal")$pressupostos,
       referencias = .tr_models_doc("models/kruskal")$referencias,
       fn = tr_models_kruskal, label = "Kruskal-Wallis",
@@ -472,7 +472,7 @@ tr_flow(reg) |>
 `models/anova_dbc`; `models/kruskal` sem bloco.
 ]---", teste = TRUE)),
 
-    trama::tr_node("models/chisq", version = 2L,
+    trama::tr_node("models/chisq", version = 3L,
       pressupostos = .tr_models_doc("models/chisq")$pressupostos,
       referencias = .tr_models_doc("models/chisq")$referencias,
       fn = tr_models_chisq, label = "Qui-quadrado",
