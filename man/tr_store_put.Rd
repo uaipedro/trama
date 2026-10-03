@@ -13,7 +13,8 @@ tr_store_put(
   type_spec,
   node_type = NULL,
   duration = NA_real_,
-  collections = NULL
+  collections = NULL,
+  env = NULL
 )
 }
 \description{

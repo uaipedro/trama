@@ -87,14 +87,14 @@
     ty <- tr_type("trama/marker")
     return(list(tr_store_put(store, unit$outputs[[1]], TRUE, ty,
                              node_type = unit$node_type, collections = unit$collections,
-                             duration = duration)))
+                             duration = duration, env = .tr_env_print(registry))))
   }
   if (length(ports) == 1L) {
     ty <- tr_get_type(unit$output_types[[ports]], registry)
     return(stats::setNames(list(
       tr_store_put(store, unit$outputs[[ports]], value, ty,
                    node_type = unit$node_type, collections = unit$collections,
-                   duration = duration)), ports))
+                   duration = duration, env = .tr_env_print(registry))), ports))
   }
   # Múltiplas saídas: o `fn` devolve uma lista nomeada pelas portas. Erro alto
   # e cedo se faltar alguma — senão a porta ficaria sem artefato e o consumidor
@@ -111,8 +111,23 @@
     ty <- tr_get_type(unit$output_types[[pn]], registry)
     tr_store_put(store, unit$outputs[[pn]], value[[pn]], ty,
                  node_type = unit$node_type, collections = unit$collections,
-                 duration = duration)
+                 duration = duration, env = .tr_env_print(registry))
   }), ports)
+}
+
+#' Com que versões o artefato foi produzido: R, o núcleo e cada pacote de
+#' coleção do registro.
+#'
+#' A chave não inclui versão de dependência (gap aceito em `hash.R`), então o
+#' handle é o único lugar onde dá para saber, depois, que um resultado em cache
+#' veio de outro R ou de outra versão da coleção. `tr_provenance()` lê isto.
+#' @noRd
+.tr_env_print <- function(registry) {
+  ver <- function(p) tryCatch(as.character(getNamespaceVersion(p)), error = function(e) NA_character_)
+  pkgs <- unique(c("trama", .tr_registry_packages(registry)))
+  pkgs <- sort(pkgs[!is.na(pkgs) & nzchar(pkgs)], method = "radix")
+  list(r = paste(R.version$major, R.version$minor, sep = "."),
+       packages = as.list(stats::setNames(vapply(pkgs, ver, ""), pkgs)))
 }
 
 #' `.ctx` — progresso e resultado parcial de dentro de um nó longo.

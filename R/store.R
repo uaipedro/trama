@@ -140,7 +140,7 @@ tr_store_handle <- function(store, key) {
 #' que é onde a informação sempre esteve.
 #' @export
 tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duration = NA_real_,
-                         collections = NULL) {
+                         collections = NULL, env = NULL) {
   ext <- type_spec$ext %||% "rds"
   obj <- .tr_obj_path(store, key, ext)
   .tr_atomic(store, obj, function(tmp) {
@@ -189,7 +189,10 @@ tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duratio
     # a dica.
     schema = tryCatch(.tr_df_schema(value), error = function(e) NULL),
     duration = if (is.na(duration)) NULL else duration,
-    created = as.numeric(Sys.time())
+    created = as.numeric(Sys.time()),
+    # Proveniência: versões de R e dos pacotes que produziram o valor (ver
+    # `.tr_env_print()`). Ausente em quem grava sem passar pelo worker.
+    env = env
   )
   .tr_write_handle(store, key, handle)
   handle

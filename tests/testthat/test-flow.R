@@ -268,3 +268,29 @@ test_that("o Quarto tem um chunk por card, seções dos frames, notas e as saíd
   expect_match(q, "paste\\(\"visto\", x\\)\\)\\(ajuste\\$ajuste\\)")
   expect_match(q, "sessionInfo()", fixed = TRUE)
 })
+
+test_that("o Quarto exportado lista as referências dos blocos usados, sem repetir", {
+  ref <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
+                titulo = "An analysis of transformations", fonte = "JRSS B 26(2)",
+                doi = "10.1111/j.2517-6161.1964.tb00553.x")
+  impl <- tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm")
+  reg <- tr_registry()
+  tr_use(tr_collection("r", types = list(tr_type("r/num")), nodes = list(
+    tr_node("r/a", fn = function() 1, label = "Bloco A", description = "A.",
+            outputs = list(out = "r/num"), referencias = list(ref, impl)),
+    tr_node("r/b", fn = function(x) x, label = "Bloco B", description = "B.",
+            inputs = list(x = "r/num"), outputs = list(out = "r/num"), referencias = list(ref))
+  )), registry = reg)
+  doc <- tr_flow(reg) |> tr_add("a", "r/a") |> tr_add("b", "r/b", from = "a") |> tr_flow_doc()
+
+  q <- tr_export_code(doc, reg, format = "quarto")
+  expect_match(q, "## Referências dos métodos", fixed = TRUE)
+  expect_match(q, "Box, G. E. P.; Cox, D. R. (1964). An analysis of transformations.", fixed = TRUE)
+  expect_match(q, "<https://doi.org/10.1111/j.2517-6161.1964.tb00553.x> *(Bloco A, Bloco B)*", fixed = TRUE)
+  expect_match(q, "Pacote R `stats`, função `lm()`", fixed = TRUE)
+  expect_equal(lengths(regmatches(q, gregexpr("An analysis of transformations", q))), 1L)
+  # Fluxo sem referências não ganha seção vazia.
+  expect_no_match(tr_export_code(tr_flow(test_registry()) |> tr_add("o", "t/const", value = 2) |>
+                                   tr_flow_doc(), test_registry(), format = "quarto"),
+                  "Referências dos métodos")
+})
