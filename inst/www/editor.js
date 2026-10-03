@@ -60,10 +60,30 @@ function shinyReady() {
 // chamado — a página fica em "carregando…" para sempre, sem erro nenhum.
 // Poderíamos depender de `window.$`, mas amarrar o editor ao jQuery só pra
 // isso é pior que um laço de 50ms que morre no primeiro acerto.
+// Passado o prazo, a espera NÃO desiste: um R carregando pacotes pesados pode
+// demorar mais que 10 s e ainda conectar. Mas o "carregando…" eterno sem pista
+// é o pior desfecho, então um aviso visível sobe (fora do React, que pode nem
+// ter montado nada útil) e some sozinho se a conexão vier.
 function onShinyReady(fn, tries = 200) {
-  if (shinyReady()) return fn();
-  if (tries <= 0) return console.error("[trama] Shiny não ficou pronto.");
-  setTimeout(() => onShinyReady(fn, tries - 1), 50);
+  if (shinyReady()) { avisoConexao(false); return fn(); }
+  if (tries === 0) {
+    console.error("[trama] Shiny não ficou pronto.");
+    avisoConexao(true);
+  }
+  setTimeout(() => onShinyReady(fn, tries - 1), tries > 0 ? 50 : 500);
+}
+function avisoConexao(mostrar) {
+  let el = document.getElementById("tr-aviso-conexao");
+  if (!mostrar) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div");
+  el.id = "tr-aviso-conexao";
+  el.className = "tr-boot-error";
+  el.setAttribute("role", "alert");
+  el.textContent = "O editor não conseguiu conectar ao R. Confira se a sessão do R " +
+    "ainda está rodando (o console mostra erros) e recarregue a página. " +
+    "Continuo tentando em segundo plano.";
+  document.body.prepend(el);
 }
 
 function sendOp(op, baseRev) {
