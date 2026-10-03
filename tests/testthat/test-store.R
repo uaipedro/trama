@@ -199,3 +199,16 @@ test_that("GC preserva o tmp/ recente (worker em voo) e limpa o velho", {
   expect_true(file.exists(vivo))
   expect_false(file.exists(morto))
 })
+
+test_that("preview parcial devolve arquivos relativos à raiz do store", {
+  s <- tmp_store()
+  ty <- tr_type("t/img", version = 1L, store = function(x, path) saveRDS(x, path),
+                restore = readRDS, ext = "rds",
+                preview = function(x, ctx) {
+                  f <- ctx$file("png"); writeLines("png", f)
+                  tr_preview("trama/image", files = list(png = f))
+                })
+  art <- .tr_partial_preview(1, ty, s, "k1")
+  expect_identical(art$files, list(png = "tmp/k1-partial.png"))
+  expect_true(file.exists(file.path(s$root, art$files$png)))
+})

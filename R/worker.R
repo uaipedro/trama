@@ -198,9 +198,16 @@
 .tr_partial_preview <- function(value, type, store, stem) {
   if (is.null(type) || is.null(type$preview)) return(NULL)
   ctx <- list(file = function(e) file.path(store$root, "tmp", paste0(stem, "-partial.", e)))
-  tryCatch(type$preview(value, ctx),
-           error = function(e) list(renderer = "trama/error",
-                                    data = list(message = conditionMessage(e))))
+  art <- tryCatch(type$preview(value, ctx),
+                  error = function(e) list(renderer = "trama/error",
+                                           data = list(message = conditionMessage(e))))
+  # Relativo à raiz, como em `tr_store_put()`: o front monta
+  # `trama-store/<rel>`, e um caminho absoluto aqui virava 404 — gráfico em
+  # branco enquanto a unidade roda.
+  if (!is.null(art$files)) {
+    art$files <- as.list(vapply(art$files, function(f) .tr_relpath(store, f), ""))
+  }
+  art
 }
 
 #' Avisa sobre nome de campo QUASE certo em `ctx_extra`.
