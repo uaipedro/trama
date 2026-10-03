@@ -29,8 +29,10 @@
   usados <- intersect(fatores, all.vars(fixa))
   ctr <- stats::setNames(rep(list("contr.sum"), length(usados)), usados)
   switch(fit$classe,
-    glm = stats::glm(stats::formula(aj), family = stats::family(aj), data = fit$dados,
-                     contrasts = if (length(ctr)) ctr else NULL),
+    glm = if (inherits(aj, "negbin")) {
+      MASS::glm.nb(stats::formula(aj), data = fit$dados, contrasts = if (length(ctr)) ctr else NULL)
+    } else stats::glm(stats::formula(aj), family = stats::family(aj), data = fit$dados,
+                      contrasts = if (length(ctr)) ctr else NULL),
     glmer = {
       r <- .tr_models_capturar(lme4::glmer(stats::formula(aj), data = as.data.frame(fit$dados),
                                            family = stats::family(aj),
@@ -724,7 +726,8 @@ tr_models_compare <- function(modelo, outro) {
                             "'data/drop_na', e ajuste os dois na mesma tabela."),
                      no, nrow(modelo$dados), nrow(outro$dados))
   }
-  if (modelo$classe %in% c("glm", "glmer") && stats::family(modelo$ajuste)$family != stats::family(outro$ajuste)$family) {
+  if (modelo$classe %in% c("glm", "glmer") &&
+      .tr_models_familia_glm(modelo$ajuste) != .tr_models_familia_glm(outro$ajuste)) {
     .tr_models_abort("tr_models_error_not_nested", "'%s': os dois GLM têm famílias diferentes.", no)
   }
   ta <- .tr_models_termos(modelo); tb <- .tr_models_termos(outro)
@@ -773,6 +776,18 @@ tr_models_compare <- function(modelo, outro) {
                                                   if (novos == "estrutura aleatória" || grepl("|", novos, fixed = TRUE))
                                                     "; variância testada na fronteira (zero): p conservador" else ""),
                                            .tr_models_fmt(a$AIC[[1]], 5L), .tr_models_fmt(a$AIC[[2]], 5L)),
+                            fonte = "Wilks (1938)"))
+  }
+  if (inherits(menor$ajuste, "negbin")) {
+    # Binomial negativa: o `anova.negbin` do MASS compara 2 × log-verossimilhança,
+    # cada modelo com o SEU theta de máxima verossimilhança (Venables e Ripley
+    # 2002, sec. 7.4); o desvio de cada um, medido no próprio theta, não se subtrai.
+    a <- .tr_models_ajustar(as.data.frame(stats::anova(menor$ajuste, maior$ajuste)), no)
+    return(.tr_models_teste("Razão de verossimilhança", h0, a$`LR stat.`[[2]], "qui2", a$`Pr(Chi)`[[2]],
+                            gl = as.character(a$df[[2]]),
+                            conclusao_sim = "o modelo maior ajusta melhor",
+                            conclusao_nao = "não há evidência de que o modelo maior ajuste melhor",
+                            nota = "theta reestimado em cada modelo",
                             fonte = "Wilks (1938)"))
   }
   usa_f <- menor$classe == "lm" || stats::family(menor$ajuste)$family %in% c("gaussian", "Gamma", "quasipoisson", "quasibinomial")

@@ -132,7 +132,7 @@ tr_flow(reg) |>
 contínua.
 ]---")),
 
-    trama::tr_node("models/glm", version = 2L,
+    trama::tr_node("models/glm", version = 3L,
       pressupostos = .tr_models_doc("models/glm")$pressupostos,
       referencias = .tr_models_doc("models/glm")$referencias,
       fn = tr_models_glm, label = "Modelo linear generalizado",
@@ -154,6 +154,7 @@ função de ligação.
 | `binomial` | 0/1, sim/não | logit |
 | `poisson` | contagem | log |
 | `quasipoisson` | contagem com variância maior que a média | log |
+| `binomial negativa` | contagem com variância maior que a média (mu + mu²/theta, theta estimado; `MASS::glm.nb`) | log |
 | `quasibinomial` | sucessos em n tentativas (`cbind(sucessos, fracassos)`) com variância maior que a binomial | logit |
 | `gama` | contínua positiva, assimétrica | log |
 | `gaussiana` | contínua (o mesmo que `models/lm`) | identidade |
@@ -165,7 +166,9 @@ preenchida, vence.
 
 Numa Poisson a variância é igual à média. Quando o desvio residual é muito
 maior que os graus de liberdade do resíduo, a variância é maior, os erros
-padrão ficam pequenos demais e os p-valores, otimistas.
+padrão ficam pequenos demais e os p-valores, otimistas. A `binomial negativa`
+modela essa variância extra com um parâmetro theta (mostrado no topo do card);
+a `quasipoisson` só infla os erros padrão.
 ]---", .tr_models_ajuda_faltantes()), r"---[
 - **Resposta**, **Preditores**, **Fórmula** — como no `models/lm`.
 - **Família** — a distribuição da resposta (tabela acima).

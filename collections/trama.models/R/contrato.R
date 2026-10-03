@@ -683,8 +683,11 @@ tr_models_predict_raw.tr_models_split <- function(x, novos, ...) .tr_models_spli
   d <- x$dados
   vapply(seq_len(nrow(d)), function(i) {
     tryCatch({
-      m <- suppressWarnings(stats::glm(stats::formula(x$ajuste), family = stats::family(x$ajuste),
-                                        data = d[-i, , drop = FALSE]))
+      # Binomial negativa: o theta é reestimado sem a linha, como os coeficientes.
+      m <- suppressWarnings(if (inherits(x$ajuste, "negbin")) {
+        MASS::glm.nb(stats::formula(x$ajuste), data = d[-i, , drop = FALSE])
+      } else stats::glm(stats::formula(x$ajuste), family = stats::family(x$ajuste),
+                        data = d[-i, , drop = FALSE]))
       as.numeric(stats::predict(m, newdata = d[i, , drop = FALSE], type = "response"))
     }, error = function(e) NA_real_)
   }, numeric(1))
