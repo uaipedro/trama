@@ -13,3 +13,8 @@
 ^tools$
 ^\.claude$
 ^tests/js$
+^CITATION\.cff$
+^codemeta\.json$
+^CONTRIBUTING\.md$
+^CODE_OF_CONDUCT\.md$
+^\.github$

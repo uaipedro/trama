@@ -29,3 +29,10 @@ site/src/data/templates.json
 site/src/styles/editor-card.css
 **/tests/testthat/_problems/
 **/testthat-problems.rds
+
+# Lixo de execução e artefatos locais.
+artifacts/
+Rplots.pdf
+quarto.pdf
+_problems/
+testthat-problems.rds
