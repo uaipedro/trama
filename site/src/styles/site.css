@@ -283,3 +283,20 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .rigor-registro { margin-top: var(--space-lg); border: 1px solid var(--line); padding: var(--space-sm) var(--space-md); overflow-wrap: anywhere; }
 .rigor-registro summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; color: var(--blue-dark); }
 .rigor-registro h3 { font-size: 1.35rem; }
+
+/* Glossário (src/pages/glossario.astro e caixas de rehype-glossario.ts) */
+.prose.glossario { max-width: 72ch; }
+.prose.glossario h2 { scroll-margin-top: 6rem; margin-top: var(--space-2xl); }
+.glossario-lista { margin: 0; }
+.glossario-item { padding: var(--space-sm) 0; border-bottom: 1px solid var(--line); scroll-margin-top: 6rem; }
+.glossario-item:target { background: var(--blue-wash); }
+.glossario-item dt { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; color: var(--ink); }
+.glossario-item dd { margin: var(--space-2xs) 0 0; }
+.glossario-item dd p { margin: 0; }
+.prose .glossario-item__ref { margin-top: var(--space-xs); font-size: .88rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.prose .glossario-caixa__lista { display: grid; grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); gap: var(--space-xs) var(--space-md); margin: var(--space-sm) 0 0; }
+.prose .glossario-caixa__lista dt { font-family: var(--font-display); font-weight: 700; }
+.prose .glossario-caixa__lista dd { margin: 0; font-size: .94rem; }
+@media (max-width: 560px) { .prose .glossario-caixa__lista { grid-template-columns: minmax(0, 1fr); gap: 0; }.prose .glossario-caixa__lista dd { margin-bottom: var(--space-sm); } }
+.prose dfn.glossario-termo { font-style: normal; }
+html[data-facilitador="on"] .prose dfn.glossario-termo { text-decoration: underline dotted color-mix(in oklch, var(--blue) 60%, transparent); text-underline-offset: .2em; cursor: help; }
