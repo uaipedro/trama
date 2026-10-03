@@ -5,7 +5,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { h, registerWidget, registerRenderer } from "trama";
-import { resumoColuna, colunasOcultas } from "./perfil.js";
+import { resumoColuna, colunasOcultas, deltaTabela } from "./perfil.js";
 
 // `expr`: expressão de R. Textarea em vez de input porque condição e resumo
 // crescem, e commit no blur (não a cada tecla) evita mandar op por caractere.
@@ -107,7 +107,7 @@ function PerfilCel({ p, amostrado }) {
 // comum continua arrastando o card — sem disputa, porque um clique com
 // modificador não gera deslocamento (o xyflow só inicia drag com deslocamento
 // de verdade).
-function Table({ artifact, label }) {
+function Table({ artifact, label, handle, entradas }) {
   const [aberto, setAberto] = React.useState(false);
   React.useEffect(() => {
     if (!aberto) return;
@@ -121,6 +121,9 @@ function Table({ artifact, label }) {
   const vazio = !rows.length || !cols.length;
   const perfil = artifact.data && artifact.data.perfil;
   const ocultas = colunasOcultas(artifact.data && artifact.data.ncol, cols.length);
+  // Selo do que o bloco fez com a tabela que entrou: `entradas` são os handles
+  // das portas de entrada, repassados pelo núcleo sem olhar dentro.
+  const delta = deltaTabela(handle || { preview: artifact }, entradas);
 
   const overlay = aberto ? ReactDOM.createPortal(
     h("div", { className: "tr-lightbox", onClick: () => setAberto(false) },
@@ -136,6 +139,8 @@ function Table({ artifact, label }) {
     title: "ctrl/⌘+clique para ver no padrão ABNT",
     onClick: (e) => { if (e.ctrlKey || e.metaKey) { e.stopPropagation(); setAberto(true); } },
   }, [
+    delta.length ? h("div", { key: "d", className: "tr-delta" }, delta.map((d, i) =>
+      h("span", { key: i, className: `tr-delta-${d.tipo}`, title: d.titulo }, d.texto))) : null,
     vazio
       ? h("div", { key: "e", className: "tr-empty" }, cols.length ? "sem linhas" : "sem colunas")
       : h("table", { key: "tb", className: "tr-table" }, [

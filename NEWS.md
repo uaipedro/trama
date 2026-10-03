@@ -1,3 +1,7 @@
+# trama 0.5.4
+
+* O componente de um renderer recebe `entradas`: os handles que chegam nas portas de entrada do card (os mesmos do `ctx` dos widgets). O núcleo só repassa; é o que deixa uma coleção comparar a saída com a entrada — o `data/table` mostra "−12 linhas".
+
 # trama 0.5.3
 
 * Widget de coleção recebe `ctx` também fora do kind `cols`: `{ id, valores, entradas }` — o nó, os valores dos params e o handle que chega em cada porta. É o que deixa um widget (o editor SQL de `trama.sql`) saber o que está ligado no bloco sem o núcleo saber o que há no handle.

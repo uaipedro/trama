@@ -5,6 +5,10 @@
   frequentes (fator/texto/lógica). Medido em até 5.000 linhas espaçadas da
   tabela inteira, não nas 25 mostradas. O card recebe no máximo 30 colunas
   ("+N col" indica o resto).
+* Selo de delta no card: quando a tabela que sai tem outro número de linhas
+  ou colunas que a única tabela que entra, aparece "−12 linhas" / "+2 col"
+  (passe o mouse para ver `1.000 → 988` e a porcentagem). Exige
+  trama >= 0.5.4.
 
 # trama.data 0.4.0
 

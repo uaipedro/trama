@@ -222,7 +222,10 @@ function pickView(handle, view) {
   return views.find((x) => x.id === view) || views[0] || null;
 }
 
-function Preview({ state, handle, error, progress, partial, view, label }) {
+// `entradas`: handles que chegam nas portas de entrada do card (`handlesEntrada`),
+// repassados ao componente do renderer sem o núcleo olhar dentro — é o que
+// deixa uma coleção comparar a saída com a entrada (ex.: "−12 linhas").
+function Preview({ state, handle, error, progress, partial, view, label, entradas }) {
   if (error) {
     return h("div", { className: "tr-preview tr-preview-error", title: error.traceback || "" },
       [h("div", { key: "m", className: "tr-err-msg" }, error.message)]);
@@ -240,7 +243,7 @@ function Preview({ state, handle, error, progress, partial, view, label }) {
       // parcial chega seria a aba mentindo sobre o que está na tela.
       const v = pickView(handle, view);
       return h("div", { className: "tr-preview tr-partial" },
-        [bar, v ? h(v.component, { key: "p", artifact: handle.preview, handle, assetUrl, label }) : null]);
+        [bar, v ? h(v.component, { key: "p", artifact: handle.preview, handle, assetUrl, label, entradas }) : null]);
     }
     return h("div", { className: "tr-preview tr-busy" }, bar);
   }
@@ -261,7 +264,7 @@ function Preview({ state, handle, error, progress, partial, view, label }) {
   }
   const v = pickView(handle, view);
   return h("div", { className: "tr-preview" },
-    h(v.component, { artifact: art, handle, assetUrl, label }));
+    h(v.component, { artifact: art, handle, assetUrl, label, entradas }));
 }
 
 // --- Markdown --------------------------------------------------------------
@@ -704,7 +707,7 @@ function NdNode({ id, data, selected }) {
     semPreview ? null : h("div", { key: "pv", ref: pvRef, className: "tr-pv-wrap" }, [
       h(Preview, { key: "p", state: data.state, handle: data.handle, error: data.error,
                    progress: data.progress, partial: data.partial, view: cur?.id,
-                   label: data.label || spec.label }),
+                   label: data.label || spec.label, entradas: data.handlesEntrada }),
       // Ações do preview, só no hover: soltar (vira uma imagem própria no
       // canvas e o card encolhe pra miniatura) e ampliar (V).
       data.handle?.preview ? h("div", { key: "ac", className: "tr-pv-acoes nodrag" }, [
