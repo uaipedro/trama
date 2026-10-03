@@ -96,6 +96,9 @@ export interface ResumoBib {
   obras: number;
   obrasComDoi: number;
   citacoes: number;
+  implementacoes: number;
+  pressupostos: number;
+  pressupostosComVerificacao: number;
 }
 
 /** Números para a página de rigor, calculados no build. */
@@ -109,6 +112,9 @@ export function resumoReferencias(docs: Record<string, NodeDocs>): ResumoBib {
     blocosComPressupostos: valores.filter((d) => d.pressupostos.length > 0).length,
     obras: obras.length,
     obrasComDoi: obras.filter((e) => e.ref.doi).length,
-    citacoes: valores.reduce((s, d) => s + d.referencias.length, 0)
+    citacoes: valores.reduce((s, d) => s + d.referencias.length, 0),
+    implementacoes: grupos.flatMap((g) => g.entradas).length - obras.length,
+    pressupostos: valores.reduce((s, d) => s + d.pressupostos.length, 0),
+    pressupostosComVerificacao: valores.reduce((s, d) => s + d.pressupostos.filter((p) => p.verificar?.length).length, 0)
   };
 }

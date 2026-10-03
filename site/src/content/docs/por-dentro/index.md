@@ -79,3 +79,11 @@ mudaram.
 Esse protocolo é o que permite que o editor visual, o documento JSON e a DSL
 em R representem exatamente o mesmo fluxo, sem transferir objetos R ativos
 entre processos.
+
+## Fontes e conferência das contas
+
+Cada bloco estatístico compara a sua conta com um resultado publicado e cita a
+fonte do método. [Como sabemos que está certo](/trama/rigor/) descreve essa
+conferência e traz o registro de revisão metodológica;
+[Referências](/trama/referencias/) lista todas as obras citadas e os blocos que
+as usam.

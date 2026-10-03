@@ -1,0 +1,69 @@
+---
+// Política de rigor numérico do trama, em linguagem de quem usa. Os números
+// saem de node-docs.json no build; o registro de revisão é lido de
+// docs/revisao-metodologica.md (raiz do repositório) a cada build, então a
+// página nunca fica atrás do arquivo.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { createMarkdownProcessor } from "@astrojs/markdown-remark";
+import Base from "../layouts/Base.astro";
+import docs from "../data/node-docs.json";
+import { resumoReferencias } from "../lib/bibliografia";
+import type { NodeDocs } from "../lib/node-docs";
+
+const r = resumoReferencias(docs as unknown as Record<string, NodeDocs>);
+const pct = (a: number, b: number) => `${Math.round((100 * a) / b)}%`;
+
+const caminhoRevisao = join(process.cwd(), "..", "docs", "revisao-metodologica.md");
+const revisaoMd = readFileSync(caminhoRevisao, "utf8")
+  .replace(/^# .*\n/, "")            // o título vira o h2 desta página
+  .replace(/^(#{2,5}) /gm, "#$1 ");  // e os níveis descem um degrau
+const processador = await createMarkdownProcessor();
+const revisaoHtml = (await processador.render(revisaoMd)).code;
+---
+
+<Base title="Como sabemos que está certo" description="Como o trama confere as contas dos blocos estatísticos: oráculo publicado, tolerância declarada, referências conferidas na fonte e versão que sobe quando o resultado muda.">
+  <div class="doc-shell" data-pagefind-body>
+    <header class="collection-hero">
+      <div>
+        <p class="eyebrow">Rigor numérico</p>
+        <h1>Como sabemos que está certo</h1>
+        <p class="lede">Um bloco estatístico só entra no trama quando a conta dele bate com um resultado publicado por outra pessoa. Esta página explica o que isso quer dizer e mostra o registro de cada conferência.</p>
+      </div>
+    </header>
+
+    <dl class="rigor-numeros">
+      <div><dt>{r.blocosComReferencias}</dt><dd>blocos estatísticos com a fonte do método citada na ajuda</dd></div>
+      <div><dt>{r.obras}</dt><dd>obras citadas, {r.obrasComDoi} com DOI ({pct(r.obrasComDoi, r.obras)})</dd></div>
+      <div><dt>{r.implementacoes}</dt><dd>funções ou pacotes R de referência cuja conta os blocos reproduzem</dd></div>
+      <div><dt>{r.pressupostos}</dt><dd>pressupostos declarados em {r.blocosComPressupostos} blocos; {r.pressupostosComVerificacao} apontam o bloco que os verifica</dd></div>
+    </dl>
+    <p class="rigor-nota">Números calculados a partir das ajudas dos blocos no momento em que o site foi gerado.</p>
+
+    <div class="prose rigor">
+      <h2 id="as-quatro-regras">As quatro regras</h2>
+
+      <h3>1. A conta é comparada com um resultado publicado</h3>
+      <p>Cada bloco estatístico precisa de um teste automático que roda a conta e compara o resultado com um <strong>oráculo</strong>: um exemplo resolvido de livro ou artigo, ou a saída de um pacote R de referência (por exemplo, <code>stats::aov</code>, <code>survey::svymean</code>, <code>pROC::ci.auc</code>). O oráculo é sempre de fora do trama; o bloco não pode conferir a si mesmo.</p>
+
+      <h3>2. A tolerância é declarada</h3>
+      <p>Computadores arredondam. Por isso o teste diz quanto de diferença aceita: “igual ao <code>survey</code> até a 6.ª casa decimal” se escreve tolerância 1e-6. Quando o resultado depende de sorteio (bootstrap, permutação, validação cruzada), o teste fixa a semente ou confere uma propriedade estatística, como a taxa de erro tipo I perto do nível nominal.</p>
+
+      <h3>3. As referências são conferidas na fonte</h3>
+      <p>As seções <em>Pressupostos</em> e <em>Referências</em> de cada página de bloco vêm do próprio código do bloco. Autor, ano, título e DOI são conferidos no artigo ou no Crossref, nunca escritos de memória. Cada referência tem um papel: <strong>teoria</strong> (onde o método nasceu), <strong>livro-texto</strong> (onde estudar), <strong>implementação</strong> (o pacote cuja conta o bloco reproduz) e <strong>complementar</strong>. A lista inteira está em <a href="/trama/referencias/">Referências</a>.</p>
+
+      <h3>4. Mudou o resultado, sobe a versão</h3>
+      <p>Se uma correção muda o número que um bloco devolve, ou muda um valor padrão, a versão do bloco sobe. O fluxo salvo guarda a versão de cada bloco, e o trama avisa quando ele é aberto com uma versão diferente. A mudança fica registrada abaixo, com o motivo, a fonte e o commit.</p>
+
+      <h2 id="pressupostos">Pressupostos que avisam</h2>
+      <p>Um teste estatístico só vale sob certas condições: resíduos normais, variâncias parecidas, observações independentes. Cada bloco lista essas condições na ajuda. Quando existe um bloco que verifica a condição, o pressuposto aponta para ele (“Verificar”) e diz o que fazer se ela falhar (“Se falhar”). Ligue o <strong>Contexto</strong> no topo da página para ver também a explicação dos termos.</p>
+
+      <h2 id="revisao-metodologica">Registro de revisão metodológica</h2>
+      <p>Ao documentar os pressupostos e as referências, apareceram divergências entre a implementação e a teoria. Cada uma foi registrada, e as resolvidas levam o oráculo, a tolerância e o commit da correção. O texto abaixo é o arquivo <a href="https://github.com/uaipedro/trama/blob/main/docs/revisao-metodologica.md"><code>docs/revisao-metodologica.md</code></a> do repositório, lido a cada publicação do site.</p>
+      <details class="rigor-registro">
+        <summary>Abrir o registro completo</summary>
+        <div set:html={revisaoHtml} />
+      </details>
+    </div>
+  </div>
+</Base>

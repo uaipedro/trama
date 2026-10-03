@@ -272,3 +272,14 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .prose .bib-citado { display: block; margin-top: var(--space-2xs); font-size: .88rem; color: var(--ink-soft); }
 .prose .node-ref:target { background: var(--blue-wash); }
 .prose .node-refs__bib { margin-top: var(--space-sm); font-size: .92rem; }
+
+/* Rigor (src/pages/rigor.astro) */
+.rigor-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-md); margin: var(--space-xl) 0 0; }
+.rigor-numeros > div { padding: var(--space-md); border: 1px solid var(--line); background: var(--paper-strong); }
+.rigor-numeros dt { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--blue-dark); line-height: 1.1; }
+.rigor-numeros dd { margin: var(--space-2xs) 0 0; color: var(--ink-soft); font-size: .92rem; }
+.rigor-nota { color: var(--ink-soft); font-size: .82rem; }
+.prose.rigor { max-width: 72ch; }
+.rigor-registro { margin-top: var(--space-lg); border: 1px solid var(--line); padding: var(--space-sm) var(--space-md); overflow-wrap: anywhere; }
+.rigor-registro summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; color: var(--blue-dark); }
+.rigor-registro h3 { font-size: 1.35rem; }

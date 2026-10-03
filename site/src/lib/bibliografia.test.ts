@@ -43,7 +43,8 @@ test("encontrarReferencia acha pelo sobrenome e ano", () => {
 
 test("resumo conta blocos, obras e DOI", () => {
   assert.deepEqual(resumoReferencias(fixture), {
-    blocos: 3, blocosComReferencias: 2, blocosComPressupostos: 1, obras: 2, obrasComDoi: 1, citacoes: 5
+    blocos: 3, blocosComReferencias: 2, blocosComPressupostos: 1, obras: 2, obrasComDoi: 1, citacoes: 5,
+    implementacoes: 1, pressupostos: 1, pressupostosComVerificacao: 0
   });
 });
 
