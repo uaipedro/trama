@@ -320,3 +320,13 @@ test_that("Levene e Bartlett na parcela subdividida recusam (sem correção publ
   # o Shapiro nos resíduos (b) continua valendo
   expect_s3_class(tr_models_shapiro_residuals(sp), "tr_models_test")
 })
+
+test_that("shapiro com n > 5000 recusa com classe de 'demais', não de 'de menos'", {
+  # stats::shapiro.test só aceita 3 <= n <= 5000 (Royston 1995, AS R94).
+  d <- data.frame(x = stats::qnorm(stats::ppoints(5001)))
+  err <- tryCatch(tr_models_shapiro(d, "x"), condition = identity)
+  expect_s3_class(err, "tr_models_error_too_many_rows")
+  expect_false(inherits(err, "tr_models_error_too_few_rows"))
+  expect_match(conditionMessage(err), "5001", fixed = TRUE)
+  expect_s3_class(tr_models_shapiro(d[1:5000, , drop = FALSE], "x"), "tr_models_test")
+})

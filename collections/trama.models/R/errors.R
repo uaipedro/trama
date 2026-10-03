@@ -22,6 +22,8 @@ tr_models_errors <- function() {
     tr_models_error_one_level = "fator do delineamento ou grupo com um nível só",
     tr_models_error_positive_required = "coluna de probabilidade cujo nome não indica a classe positiva, com `positiva` vazia",
     tr_models_error_too_few_rows = "observações de menos para o modelo ou o teste",
+    tr_models_error_too_many_rows =
+      "observações demais para o teste: o Shapiro-Wilk do R (Royston 1995) só está definido até n = 5000",
     tr_models_error_no_residual_df = "o modelo não deixa grau de liberdade para o resíduo",
     tr_models_error_fit = "o ajuste ou o teste falhou dentro do R",
     tr_models_error_no_convergence = "o ajuste não linear (models/nls) não convergiu a partir do chute inicial",

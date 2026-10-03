@@ -520,7 +520,10 @@ tr_models_shapiro <- function(dados, variavel = "") {
   x <- .tr_models_numerica(dados, .tr_models_col(dados, variavel, "variavel"), "variavel")
   td <- .tr_models_teste_dados(dados, x, no)
   if (nrow(td$d) > 5000L) {
-    .tr_models_abort("tr_models_error_too_few_rows", "'%s': o Shapiro-Wilk aceita até 5000 valores, e há %d.",
+    .tr_models_abort("tr_models_error_too_many_rows",
+                     paste0("'%s': o Shapiro-Wilk só está definido até 5000 valores (aproximação de Royston, 1995), ",
+                            "e há %d. Com n tão grande qualquer desvio mínimo rejeita: olhe o QQ-plot, ",
+                            "ou teste uma amostra de até 5000 linhas."),
                      no, nrow(td$d))
   }
   t <- .tr_models_ajustar(stats::shapiro.test(td$d[[x]]), no)
