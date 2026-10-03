@@ -21,3 +21,4 @@
 .tr-delta>span{padding:0 5px;border-radius:8px;font-variant-numeric:tabular-nums}
 .tr-delta-menos{color:#b45309;background:color-mix(in srgb,#f59e0b 16%,transparent)}
 .tr-delta-mais{color:#0369a1;background:color-mix(in srgb,#38bdf8 16%,transparent)}
+.tr-perfil-top .tr-perfil-mais{font-size:7.5px;line-height:9px}

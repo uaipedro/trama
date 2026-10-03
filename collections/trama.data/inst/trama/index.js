@@ -84,11 +84,17 @@ function PerfilCel({ p, amostrado }) {
           key: i, x: i * (W / r.barras.length) + 0.5, width: W / r.barras.length - 1,
           y: H - Math.max(b * H, b > 0 ? 1 : 0), height: Math.max(b * H, b > 0 ? 1 : 0) })))
     : r.top
-      ? h("div", { key: "f", className: "tr-perfil-top" }, r.top.map((t, i) =>
-          h("div", { key: i, className: "tr-perfil-nivel", title: `${t.nivel}: ${Math.round(t.prop * 100)}%` }, [
-            h("span", { key: "b", style: { width: `${Math.max(2, t.prop * 100)}%` } }),
-            h("em", { key: "t" }, t.nivel),
-          ])))
+      // Só o nível mais comum, numa linha: três níveis empilhados empurravam
+      // as linhas de dados para fora do card. Os outros vão no `title`.
+      ? h("div", { key: "f", className: "tr-perfil-top",
+                   title: r.top.map((t) => `${t.nivel}: ${Math.round(t.prop * 100)}%`).join("\n") },
+          [h("div", { key: 0, className: "tr-perfil-nivel" }, [
+             h("span", { key: "b", style: { width: `${Math.max(2, r.top[0].prop * 100)}%` } }),
+             h("em", { key: "t" }, r.top[0].nivel),
+           ]),
+           (r.top.length - 1 + (r.resto || 0)) > 0
+             ? h("div", { key: "m", className: "tr-perfil-mais" }, `+${r.top.length - 1 + (r.resto || 0)} níveis`)
+             : null])
       : null;
   const titulo = [r.tipo, r.naTexto, r.faixa, r.resto ? `+${r.resto} níveis` : null,
                   amostrado ? "perfil numa amostra" : null].filter(Boolean).join(" · ");
