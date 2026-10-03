@@ -1,6 +1,6 @@
 # Revisão metodológica
 
-Divergências entre implementação e teoria encontradas ao documentar pressupostos e referências. Nada aqui foi corrigido: cada item espera decisão.
+Divergências entre implementação e teoria encontradas ao documentar pressupostos e referências, e o que se decidiu sobre cada uma. Item marcado **Resolvido** traz o commit, a referência conferida, o oráculo e a tolerância; os demais esperam decisão.
 
 ## trama.sampling
 
