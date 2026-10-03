@@ -213,9 +213,48 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
              "# Código R gerado pelo editor.",
              "# Renderize a partir da pasta do projeto para preservar caminhos relativos.",
              preambulo, "```", "")
-  fim <- c("## Ambiente", "", "```{r}", "#| label: ambiente", "#| code-fold: true",
+  fim <- c(.tr_export_referencias(doc, registry),
+           "## Ambiente", "", "```{r}", "#| label: ambiente", "#| code-fold: true",
            "sessionInfo()", "```", "")
   paste(c(yaml, setup, corpo, fim), collapse = "\n")
+}
+
+# "Referências dos métodos": as `tr_ref` dos blocos usados no fluxo, sem
+# repetição, cada uma com os blocos que a citam. O relatório exportado sai
+# dizendo de onde vem cada conta — é o que um leitor (ou banca) precisa para
+# conferir o método, e a coleção já declarou isso no bloco.
+.tr_export_referencias <- function(doc, registry) {
+  tipos <- unique(vapply(doc$nodes, function(n) n$type, ""))
+  vistos <- list()
+  for (ty in sort(tipos, method = "radix")) {
+    spec <- tryCatch(tr_get_node(ty, registry), error = function(e) NULL)
+    if (is.null(spec)) next
+    for (r in spec$referencias %||% list()) {
+      txt <- .tr_export_ref_texto(r)
+      if (is.null(txt)) next
+      vistos[[txt]] <- unique(c(vistos[[txt]], spec$label %||% ty))
+    }
+  }
+  if (!length(vistos)) return(character())
+  ordem <- order(names(vistos), method = "radix")
+  itens <- vapply(ordem, function(i) {
+    sprintf("- %s *(%s)*", names(vistos)[[i]], paste(vistos[[i]], collapse = ", "))
+  }, "")
+  c("## Refer\u00eancias dos m\u00e9todos", "", itens, "")
+}
+
+.tr_export_ref_texto <- function(r) {
+  if (identical(r$papel, "implementacao")) {
+    v <- tryCatch(as.character(utils::packageVersion(r$pacote)), error = function(e) NULL)
+    return(sprintf("Pacote R `%s`, fun\u00e7\u00e3o `%s()`%s.", r$pacote, r$funcao,
+                   if (is.null(v)) "" else paste0(", vers\u00e3o ", v)))
+  }
+  if (is.null(r$autores) || is.null(r$titulo)) return(NULL)
+  partes <- c(sprintf("%s (%s). %s.", paste(r$autores, collapse = "; "), r$ano %||% "s.d.", r$titulo),
+              if (!is.null(r$fonte)) paste0(r$fonte, "."),
+              if (!is.null(r$doi)) sprintf("<https://doi.org/%s>", r$doi)
+              else if (!is.null(r$url)) sprintf("<%s>", r$url))
+  paste(partes, collapse = " ")
 }
 
 # Versões dos pacotes de que o script depende, na hora da exportação: é o que
