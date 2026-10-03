@@ -78,3 +78,32 @@ tr_replay <- function(ops, registry = .tr_default_registry, doc = tr_doc()) {
   doc$rev <- as.integer(current_rev) + 1L
   doc
 }
+
+#' Um passo de desfazer ou refazer sobre o par (log, refeito).
+#'
+#' Refazer é o espelho barato do undo por replay: a op desfeita sai do fim do
+#' `log` e vai para o topo de `refeito`; refazer a devolve ao log e reaplica.
+#' A op é a NORMALIZADA (id/seed materializados), então refazer recria o mesmo
+#' nó, não um de id novo. Qualquer op nova zera `refeito` (quem faz isso é o
+#' chamador, em `aplicar()`): refazer depois de editar reaplicaria uma op
+#' pensada para um documento que já não existe.
+#'
+#' Devolve `NULL` quando não há o que fazer; erro de replay propaga, e o
+#' chamador mantém log e pilha como estavam.
+#' @noRd
+.tr_historia_passo <- function(base, log, refeito, direcao, current_rev,
+                               registry = .tr_default_registry) {
+  direcao <- match.arg(direcao, c("desfazer", "refazer"))
+  if (is.null(base)) return(NULL)
+  if (direcao == "desfazer") {
+    if (length(log) == 0L) return(NULL)
+    op <- log[[length(log)]]
+    log <- log[-length(log)]
+    refeito <- c(list(op), refeito)
+  } else {
+    if (length(refeito) == 0L) return(NULL)
+    log <- c(log, refeito[1])
+    refeito <- refeito[-1]
+  }
+  list(doc = .tr_undo_doc(base, log, current_rev, registry), log = log, refeito = refeito)
+}

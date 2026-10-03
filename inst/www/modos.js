@@ -116,6 +116,7 @@ export const ATALHOS = [
   { id: "proximo", grupo: "Card", teclas: ["+", "Tab"], rotulo: "Próximo bloco" },
   { id: "ajuda", grupo: "Geral", teclas: ["H"], rotulo: "Ajuda do bloco / atalhos" },
   { id: "desfazer", grupo: "Geral", teclas: ["Ctrl+Z"], rotulo: "Desfazer" },
+  { id: "refazer", grupo: "Geral", teclas: ["Ctrl+Shift+Z", "Ctrl+Y"], rotulo: "Refazer" },
   { id: "tudo", grupo: "Geral", teclas: ["Ctrl+A"], rotulo: "Selecionar tudo" },
   { id: "copiar-template", grupo: "Geral", teclas: ["Ctrl+Shift+C"], rotulo: "Copiar como template" },
   { id: "apresentar", grupo: "Frames", teclas: ["F"], rotulo: "Apresentar / sair" },

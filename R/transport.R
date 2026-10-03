@@ -35,6 +35,7 @@ tr_server <- function(project, flow = "main",
     # só cresce com op APLICADA, na ordem em que foi aplicada, por construção.
     base_doc <- NULL
     log      <- list()
+    refeito  <- list()  # ops desfeitas, topo primeiro; ver `.tr_historia_passo()`
 
     send <- function(type, payload = list()) {
       session$sendCustomMessage("tr_event", c(list(type = type), payload))
@@ -225,6 +226,7 @@ tr_server <- function(project, flow = "main",
       doc <- tr_project_flow(novo, padrao)
       base_doc <<- doc
       log      <<- list()
+      refeito  <<- list()
       rv_doc(doc)
       # Fluxo antigo abre migrado (`tr_project_flow()`); regravar já deixa o
       # disco no formato novo, sem esperar a primeira edição.
@@ -251,6 +253,7 @@ tr_server <- function(project, flow = "main",
       # empilham, e é sobre ele que o undo reaplica o log.
       base_doc <<- doc
       log      <<- list()
+      refeito  <<- list()
       # Mesmo motivo de `abrir()`: o fluxo inicial também pode ter vindo migrado.
       if (autosave && isTRUE(attr(doc, "migrated"))) save_now(doc)
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
@@ -285,6 +288,7 @@ tr_server <- function(project, flow = "main",
       # A op NORMALIZADA (id/seed materializados) é a que entra no log: é o que
       # faz o replay reconstruir o mesmo documento, e não um nó de id novo.
       log[[length(log) + 1L]] <<- res$op
+      refeito <<- list()
       send("op_applied", list(seq = res$seq, rev = res$rev, op = res$op,
                               semantic = res$semantic, autor = env$autor))
 
@@ -475,33 +479,36 @@ tr_server <- function(project, flow = "main",
                error = avisar())
     })
 
-    desfazer <- function() {
-      # Undo por REPLAY do log sem a última op, sobre o `base_doc` desta sessão
-      # e não sobre o vazio — ver `.tr_undo_doc()`. O valor do input não
-      # carrega nada (é só um carimbo que muda); quem sabe o que desfazer é o
-      # log daqui. Sem base (undo antes do ready) ou sem op nenhuma, não há o
-      # que desfazer: ignora.
-      if (is.null(base_doc) || length(log) == 0L) return(invisible())
-      novo <- log[-length(log)]
+    # Undo e redo por REPLAY do log sobre o `base_doc` desta sessão, e não
+    # sobre o vazio — ver `.tr_undo_doc()` e `.tr_historia_passo()`. O valor
+    # do input não carrega nada (é só um carimbo que muda); quem sabe o que
+    # desfazer é o log daqui. Sem base (antes do ready) ou sem passo, ignora.
+    historia <- function(direcao) {
       erro <- NULL
-      doc <- tryCatch(.tr_undo_doc(base_doc, novo, rv_doc()$rev, rv_project()$registry),
-                      error = function(e) { erro <<- conditionMessage(e); NULL })
-      # Replay que falha NÃO encurta o log: o documento continua o de antes, e
+      r <- tryCatch(.tr_historia_passo(base_doc, log, refeito, direcao,
+                                       rv_doc()$rev, rv_project()$registry),
+                    error = function(e) { erro <<- conditionMessage(e); NULL })
+      # Replay que falha NÃO mexe no log: o documento continua o de antes, e
       # o log tem que continuar descrevendo ele. E o usuário fica sabendo — um
       # Ctrl+Z que não faz nada, sem aviso, parece tecla quebrada.
-      if (is.null(doc)) {
-        send("warning", list(message = paste0("Não foi possível desfazer: ", erro)))
+      if (!is.null(erro)) {
+        send("warning", list(message = paste0("Não foi possível ", direcao, ": ", erro)))
         return(invisible())
       }
-      log <<- novo
+      if (is.null(r)) return(invisible())
+      log <<- r$log
+      refeito <<- r$refeito
+      doc <- r$doc
       rv_doc(doc)
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
                             problems = tr_doc_validate(doc, rv_project()$registry)))
       if (autosave) save_now(doc)
       run_now(doc)
     }
+    desfazer <- function() historia("desfazer")
 
     shiny::observeEvent(input$tr_undo, desfazer())
+    shiny::observeEvent(input$tr_redo, historia("refazer"))
 
     # `seq` pelo mesmo motivo de `tr_op`: `input$x` ignora valor idêntico
     # consecutivo, e entrar numa pasta, voltar e entrar de novo manda o mesmo

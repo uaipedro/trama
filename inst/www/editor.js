@@ -36,6 +36,8 @@ import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
 import { linkDeDados } from "./links.js";
+import { criarFilaOps } from "./fila-ops.js";
+import { reusarNos } from "./reuso.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -60,10 +62,30 @@ function shinyReady() {
 // chamado — a página fica em "carregando…" para sempre, sem erro nenhum.
 // Poderíamos depender de `window.$`, mas amarrar o editor ao jQuery só pra
 // isso é pior que um laço de 50ms que morre no primeiro acerto.
+// Passado o prazo, a espera NÃO desiste: um R carregando pacotes pesados pode
+// demorar mais que 10 s e ainda conectar. Mas o "carregando…" eterno sem pista
+// é o pior desfecho, então um aviso visível sobe (fora do React, que pode nem
+// ter montado nada útil) e some sozinho se a conexão vier.
 function onShinyReady(fn, tries = 200) {
-  if (shinyReady()) return fn();
-  if (tries <= 0) return console.error("[trama] Shiny não ficou pronto.");
-  setTimeout(() => onShinyReady(fn, tries - 1), 50);
+  if (shinyReady()) { avisoConexao(false); return fn(); }
+  if (tries === 0) {
+    console.error("[trama] Shiny não ficou pronto.");
+    avisoConexao(true);
+  }
+  setTimeout(() => onShinyReady(fn, tries - 1), tries > 0 ? 50 : 500);
+}
+function avisoConexao(mostrar) {
+  let el = document.getElementById("tr-aviso-conexao");
+  if (!mostrar) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div");
+  el.id = "tr-aviso-conexao";
+  el.className = "tr-boot-error";
+  el.setAttribute("role", "alert");
+  el.textContent = "O editor não conseguiu conectar ao R. Confira se a sessão do R " +
+    "ainda está rodando (o console mostra erros) e recarregue a página. " +
+    "Continuo tentando em segundo plano.";
+  document.body.prepend(el);
 }
 
 function sendOp(op, baseRev) {
@@ -222,7 +244,34 @@ function pickView(handle, view) {
   return views.find((x) => x.id === view) || views[0] || null;
 }
 
-function Preview({ state, handle, error, progress, partial, view, label }) {
+// Renderer de coleção é código de terceiro rodando na árvore principal: uma
+// exceção (dado inesperado em `artifact.data`) sem limite derrubaria o React
+// inteiro e deixaria a página em branco. O limite é por card — só aquele card
+// mostra o erro, com o stack no `title`. `chave` muda quando o handle/vista
+// muda, e aí o limite tenta de novo: resultado novo merece nova chance.
+class LimiteDeErro extends React.Component {
+  constructor(props) { super(props); this.state = { erro: null }; }
+  static getDerivedStateFromError(erro) { return { erro }; }
+  componentDidCatch(erro) { console.error("[trama] renderer lançou:", erro); }
+  componentDidUpdate(prev) {
+    if (this.state.erro && prev.chave.some((x, i) => x !== this.props.chave[i])) this.setState({ erro: null });
+  }
+  render() {
+    const e = this.state.erro;
+    if (!e) return this.props.children;
+    return h("div", { className: "tr-preview tr-preview-error", title: String((e && e.stack) || e) },
+      h("div", { className: "tr-err-msg" },
+        `erro no renderer ${this.props.renderer || "?"}: ${(e && e.message) || e}`));
+  }
+}
+
+function Preview(props) {
+  const art = props.handle && props.handle.preview;
+  return h(LimiteDeErro, { renderer: art && art.renderer, chave: [props.handle, props.view, props.state] },
+    h(PreviewCru, props));
+}
+
+function PreviewCru({ state, handle, error, progress, partial, view, label }) {
   if (error) {
     return h("div", { className: "tr-preview tr-preview-error", title: error.traceback || "" },
       [h("div", { key: "m", className: "tr-err-msg" }, error.message)]);
@@ -766,7 +815,9 @@ function NdNode({ id, data, selected }) {
   ]);
 }
 
-const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode };
+// `React.memo`: com `decorated` devolvendo o mesmo objeto para o card que não
+// mudou (reuso.js), um evento de execução re-renderiza só o card tocado.
+const nodeTypes = { ndNode: React.memo(NdNode), trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode };
 
 // As portas (`Handle`) ficam sempre declaradas Left/Right — o PONTO e o LADO
 // de entrada/saída da aresta nunca mudam aqui, só a rota até lá. O problema
@@ -1983,7 +2034,16 @@ function App() {
   // mensagem não muda nada visualmente — só gasta.
   const [tick, setTick] = useState(0);
   const tickPending = useRef(false);
-  const revRef = useRef(0);
+  // Revisão de partida de cada op: a confirmada mais as que estão em voo
+  // (fila-ops.js). Só a confirmada fazia a segunda de duas ops rápidas
+  // voltar recusada como `stale_rev`.
+  const filaOpsRef = useRef(null);
+  if (!filaOpsRef.current) filaOpsRef.current = criarFilaOps();
+  const enviarOp = (op) => {
+    const seq = sendOp(op, filaOpsRef.current.base());
+    filaOpsRef.current.enviada(seq);
+    return seq;
+  };
   const stateRef = useRef({});      // por nó: state, handle, error, duration
   const paramsRef = useRef({});     // params editados localmente, antes do eco
   const viewsRef = useRef({});      // vista escolhida localmente, antes do eco
@@ -2385,7 +2445,9 @@ function App() {
                : cmd === "pause" ? { estado: "paused", tempo: atual.tempo }
                : cmd === "tempo" ? { estado: atual.estado, tempo }
                : atual; // "step" não muda estado nenhum pra mostrar
-    streamCtlRef.current[key] = novo;
+    // Objeto NOVO, não mutação: o card só re-renderiza se `data` mudar
+    // (reuso.js compara por identidade abaixo do primeiro nível).
+    streamCtlRef.current = { ...streamCtlRef.current, [key]: novo };
     bumpTick();
     sendInput("tr_stream_cmd", { key, cmd, tempo: tempo ?? null, seq: ++seqCounter });
   }, [bumpTick]);
@@ -2457,7 +2519,7 @@ function App() {
                               onPrender, onVista, onSoltoRect } }];
     });
   };
-  const decorated = useMemo(() => comSoltos(nodes.map((n) => {
+  const decoradoCru = useMemo(() => comSoltos(nodes.map((n) => {
     if (n.type === "trFrame") {
       return { ...n, data: { ...n.data, editing: editFrame === n.id,
                               onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } };
@@ -2512,6 +2574,15 @@ function App() {
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
+  // Nó cujo `data` redecorado é igual ao da rodada anterior volta como o
+  // MESMO objeto (reuso.js): sem isso todo `tick` re-renderizava todos os
+  // cards, previews de coleção inclusive.
+  const reusoRef = useRef(null);
+  const decorated = useMemo(() => {
+    const r = reusarNos(reusoRef.current, decoradoCru);
+    reusoRef.current = r.mapa;
+    return r.nos;
+  }, [decoradoCru]);
 
   function sugeridosDe(id, doDoc) {
     const loc = sugeridosRef.current[id];
@@ -2556,7 +2627,7 @@ function App() {
       }
 
       if (m.type === "document") {
-        revRef.current = m.doc.rev || 0;
+        filaOpsRef.current.documento(m.doc.rev);
         // Params locais já foram pro servidor e voltam no documento — o ref só
         // existia pro intervalo entre digitar e o eco chegar.
         paramsRef.current = {};
@@ -2605,7 +2676,7 @@ function App() {
         if (needsLayout) {
           const mv = n.filter((x) => x.type === "ndNode").map((x) => ({
             op: "move", node: x.id, x: x.position.x, y: x.position.y }));
-          if (mv.length) sendOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv }, revRef.current);
+          if (mv.length) enviarOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv });
         }
         if (m.problems?.length) {
           setBanner(m.problems.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
@@ -2615,7 +2686,7 @@ function App() {
 
       if ((m.type === "op_applied" || m.type === "op_rejected") && m.seq === organizandoSeq.current) fimOrganizar();
       if (m.type === "op_applied") {
-        revRef.current = m.rev;
+        filaOpsRef.current.aplicada(m.seq, m.rev);
         // Rede de segurança do espelho de `ops.js`: o servidor diz se a op
         // recomputa. Não recomputando, nenhuma run vai tirar os cards do "na
         // fila" que `pushOp` pintou — volta ao repouso aqui.
@@ -2637,7 +2708,7 @@ function App() {
       if (m.type === "op_rejected") {
         // A corrida do insumo (documento antigo, cache servido, preview
         // parado, sem erro) aqui é sempre explícita.
-        revRef.current = m.rev ?? revRef.current;
+        filaOpsRef.current.recusada(m.seq, m.rev);
         // Recusado com inserts encadeados na fila: eles dependem do bloco que
         // não entrou (ou sairiam de novo com revisão velha). Descarta a fila
         // em vez de deixá-la presa até recarregar.
@@ -2988,13 +3059,12 @@ function App() {
       });
       bumpTick();
     }
-    return sendOp(op, revRef.current);
+    return enviarOp(op);
   }
 
   // Várias ops de um gesto viajam num `batch`: uma revisão, um passo de undo.
-  // Soltas, a segunda já sairia com `base_rev` velho (o front só avança a
-  // revisão no eco) e o servidor recusaria todas menos a primeira, que é o
-  // que "Organizar" fazia até aqui.
+  // Soltas, cada uma seria um passo de undo e uma recomputação; e, se uma
+  // fosse recusada, as de trás cairiam junto (fila-ops.js).
   function pushMany(ops) {
     if (ops.length === 0) return null;
     return pushOp(ops.length === 1 ? ops[0] : { op: "batch", ops });
@@ -3510,6 +3580,7 @@ function App() {
   // não era a última aplicada. O valor não carrega nada: `Date.now()` só
   // garante que cada Ctrl+Z seja um evento distinto.
   const desfazer = () => sendInput("tr_undo", Date.now());
+  const refazer = () => sendInput("tr_redo", Date.now());
 
   const selecionar = (sim) => {
     setNodes((ns) => ns.map((n) => (!!n.selected === sim ? n : { ...n, selected: sim })));
@@ -4031,6 +4102,8 @@ function App() {
   } : {
     ...navFrames,
     "mod+z": desfazer,
+    "mod+shift+z": refazer,
+    "mod+y": refazer,
     "mod+a": () => selecionar(true),
     "escape": () => { selecionar(false); setMenu(null); setFerramenta(null); setMenuAcoes(false); setOpcoesFrame(false); },
     "f": apresentar,
