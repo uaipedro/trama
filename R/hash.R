@@ -15,15 +15,20 @@
 #' cada patch release, inclusive dos nós que não mudaram. `tr_bust()` é a
 #' válvula.
 #' @noRd
-.tr_fn_fingerprint <- function(fn, max_depth = 4L) {
+.tr_fn_fingerprint <- function(fn, max_depth = 4L, homes = character()) {
   home <- environment(fn)
   seen <- new.env(parent = emptyenv())
   parts <- c(rlang::hash(list(body(fn), formals(fn))))
+  home_ns <- if (isNamespace(home)) environmentName(home) else character()
+  # Namespaces seguidos: o da própria coleção e os das OUTRAS coleções do
+  # registro (`homes`). Coleção depende de coleção (`experiments` usa helpers de
+  # `models`), e sem isto mudar um helper de `trama.models` servia resultado
+  # velho em `trama.experiments` — o mesmo furo do `body()`, uma camada acima.
+  seguidos <- union(home_ns, homes)
 
   same_home <- function(f) {
     e <- environment(f)
-    !is.null(e) && (identical(e, home) ||
-      (isNamespace(e) && isNamespace(home) && identical(environmentName(e), environmentName(home))))
+    !is.null(e) && (identical(e, home) || (isNamespace(e) && environmentName(e) %in% seguidos))
   }
 
   walk <- function(f, depth) {
@@ -45,13 +50,61 @@
         parts <<- c(parts, g, rlang::hash(list(body(obj), formals(obj))))
         walk(obj, depth - 1L)
       } else {
-        if (!exists(g, envir = home, inherits = FALSE)) next
+        if (!exists(g, envir = home, inherits = FALSE) &&
+            !(isNamespace(fenv) && environmentName(fenv) %in% seguidos &&
+              exists(g, envir = fenv, inherits = FALSE))) next
         parts <<- c(parts, g, rlang::hash(obj))
       }
+    }
+    # `outra.colecao::helper()`: o símbolo `helper` sozinho não resolve no
+    # ambiente de quem chama, então o laço acima não o vê.
+    for (q in .tr_qualified_refs(f, seguidos)) {
+      tag <- paste0(q[[2]], "@", q[[1]])
+      if (!is.null(seen[[tag]])) next
+      seen[[tag]] <- TRUE
+      obj <- tryCatch(get(q[[2]], envir = asNamespace(q[[1]]), inherits = FALSE),
+                      error = function(e) NULL)
+      if (is.null(obj)) next
+      parts <<- c(parts, tag, if (is.function(obj)) rlang::hash(list(body(obj), formals(obj))) else rlang::hash(obj))
+      if (is.function(obj)) walk(obj, depth - 1L)
     }
   }
   walk(fn, max_depth)
   rlang::hash(parts)
+}
+
+#' Chamadas `pkg::nome` e `pkg:::nome` no corpo de `f`, só de pacotes em
+#' `pkgs`. Devolve uma lista de pares `c(pkg, nome)`, em ordem estável.
+#' @noRd
+.tr_qualified_refs <- function(f, pkgs) {
+  if (!length(pkgs) || !is.function(f)) return(list())
+  out <- list()
+  walk <- function(e) {
+    if (is.call(e)) {
+      op <- e[[1]]
+      if ((identical(op, as.name("::")) || identical(op, as.name(":::"))) && length(e) == 3L) {
+        pkg <- as.character(e[[2]]); nm <- as.character(e[[3]])
+        if (pkg %in% pkgs) out[[length(out) + 1L]] <<- c(pkg, nm)
+        return(invisible())
+      }
+    }
+    if (is.call(e) || is.pairlist(e) || is.expression(e)) {
+      for (i in seq_along(e)) {
+        el <- tryCatch(e[[i]], error = function(err) NULL)
+        if (!is.null(el)) walk(el)
+      }
+    }
+  }
+  walk(body(f))
+  if (!length(out)) return(out)
+  k <- vapply(out, paste, "", collapse = "::")
+  out[!duplicated(k)][order(k[!duplicated(k)], method = "radix")]
+}
+
+#' Os pacotes das coleções do registro: os namespaces que o fingerprint segue.
+#' @noRd
+.tr_registry_homes <- function(registry) {
+  unique(unname(unlist(lapply(registry$collections, function(c) c$package))))
 }
 
 #' Nomes referenciados no corpo de uma função — todos os símbolos da árvore
@@ -98,7 +151,7 @@
   k <- paste0(id, "@", version)
   hit <- registry$prints[[k]]
   if (!is.null(hit)) return(hit)
-  val <- .tr_fn_fingerprint(fn)
+  val <- .tr_fn_fingerprint(fn, homes = .tr_registry_homes(registry))
   registry$prints[[k]] <- val
   val
 }
@@ -120,7 +173,7 @@
   val <- rlang::hash(c(
     type_id, ty$version, ty$ext,
     unlist(lapply(list(ty$store, ty$restore, ty$preview, ty$summary), function(f) {
-      if (is.function(f)) .tr_fn_fingerprint(f) else "-"
+      if (is.function(f)) .tr_fn_fingerprint(f, homes = .tr_registry_homes(registry)) else "-"
     }))
   ))
   registry$prints[[k]] <- val

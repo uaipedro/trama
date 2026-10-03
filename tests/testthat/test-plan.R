@@ -300,3 +300,33 @@ test_that("fingerprint é memoizado por coleção e zerado ao recarregar", {
   expect_lt(t2, 2)
   expect_gt(length(ls(reg$prints)), 0)
 })
+
+test_that("handle órfão (objeto apagado por fora) não conta como cache", {
+  reg <- store_registry(); s <- tmp_store()
+  doc <- chain(reg)
+  k <- tr_plan(doc, registry = reg, store = s)$units$c$outputs$out
+  tr_store_put(s, k, list(v = 10), tr_get_type("t/box", reg), node_type = "t/const")
+  expect_true(tr_plan(doc, registry = reg, store = s)$units$c$cached)
+
+  unlink(list.files(file.path(s$root, "objects"), full.names = TRUE, recursive = TRUE))
+  p <- tr_plan(doc, registry = reg, store = s)
+  expect_false(p$units$c$cached)
+  expect_setequal(vapply(tr_plan_pending(p), function(u) u$node, ""), c("c", "i"))
+})
+
+test_that("fingerprint que lança invalida só o nó, e o resto do grafo planeja", {
+  reg <- store_registry()
+  tr_use(tr_collection(id = "fp", version = "1.0.0", nodes = list(
+    tr_node("fp/quebra", fn = function() list(v = 1), outputs = list(out = "t/box"),
+            description = "Lê o mundo e falha ao tirar a impressão digital.",
+            pure = FALSE, fingerprint = function(params) stop("arquivo sumiu"))
+  )), registry = reg)
+  doc <- build(reg, list(
+    list(op = "add_node", type = "fp/quebra", id = "q"),
+    list(op = "add_node", type = "t/const", id = "ok", params = list(v = 3))))
+
+  p <- tr_plan(doc, registry = reg)
+  expect_match(p$units$q$invalid, "fingerprint: arquivo sumiu", fixed = TRUE)
+  expect_length(p$units$ok$invalid, 0)
+  expect_equal(unname(vapply(tr_plan_pending(p), function(u) u$node, "")), "ok")
+})

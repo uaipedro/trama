@@ -102,6 +102,19 @@ tr_store_has <- function(store, key) {
   file.exists(.tr_obj_path(store, key, h$ext %||% "rds"))
 }
 
+#' O handle de `key`, ou `NULL` se ele aponta pra um objeto que não existe.
+#'
+#' É o que o plano usa pra decidir cache: mesmo critério de `tr_store_has()`,
+#' mas devolvendo o handle que o plano já precisa guardar na unidade. Handle
+#' órfão marcaria `cached = TRUE` e o jusante explodiria com
+#' `tr_error_missing_object` — erro que ainda seria cacheado sob a chave DELE.
+#' @noRd
+.tr_store_handle_live <- function(store, key) {
+  h <- tr_store_handle(store, key)
+  if (is.null(h) || !is.null(h$error)) return(h)
+  if (file.exists(.tr_obj_path(store, key, h$ext %||% "rds"))) h else NULL
+}
+
 #' Handle ilegível conta como ausente, nunca como exceção.
 #'
 #' Sem isto, um único JSON truncado (worker morto, disco cheio) abortava
@@ -289,7 +302,13 @@ tr_store_gc <- function(store, keep = character(), max_age_days = 7) {
     if (!is.null(h) && (h$created %||% 0) > cutoff) next
     .tr_drop_key(store, key); removed <- removed + 1L
   }
-  unlink(list.files(file.path(store$root, "tmp"), full.names = TRUE))
+  # Só o `tmp/` VELHO: um worker em voo (outra aba, daemon que ainda não
+  # morreu depois do `handoff`) grava ali o `.part` que vai renomear, o arquivo
+  # de `.ctx$file` e o preview parcial. Apagar tudo trocava o resultado dele por
+  # `tr_error_store_write`. Uma hora cobre qualquer escrita viva.
+  tmps <- list.files(file.path(store$root, "tmp"), full.names = TRUE)
+  velhos <- tmps[as.numeric(file.mtime(tmps)) < as.numeric(Sys.time()) - 3600]
+  unlink(velhos, recursive = TRUE)
   .tr_gc_stream(store, cutoff)
   removed
 }

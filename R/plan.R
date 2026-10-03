@@ -189,12 +189,9 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     for (id in region$nodes) {
       spec <- specs[[id]]
       if (isTRUE(spec$pure)) next
-      fp <- spec$fingerprint
-      externals[[id]] <- if (length(formals(fp)) >= 2L) {
-        fp(members[[id]]$params, .tr_fp_ctx(store))
-      } else {
-        fp(members[[id]]$params)
-      }
+      fp <- .tr_fp_call(spec$fingerprint, members[[id]]$params, store)
+      if (!is.null(fp$erro)) invalid <- c(invalid, fp$erro)
+      externals[[id]] <- fp$valor
     }
     nonce <- if (any(vapply(specs, function(s) isTRUE(s$volatile), logical(1)))) {
       .tr_entropy_hex(16L)
@@ -228,7 +225,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       out_keys[[cid]] <<- stats::setNames(as.list(ks), ports)
     }
 
-    handles <- if (is.null(store)) list() else lapply(outs, function(k) tr_store_handle(store, k))
+    handles <- if (is.null(store)) list() else lapply(outs, function(k) .tr_store_handle_live(store, k))
     failed <- any(vapply(handles, tr_handle_failed, logical(1)))
     cached <- length(handles) > 0 && !failed &&
       all(vapply(handles, function(h) !is.null(h), logical(1)))
@@ -357,9 +354,9 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     # impressão digital tem que olhar o MESMO arquivo — senão o mtime lido é o
     # de um arquivo que não existe, e a chave nunca muda.
     external <- if (isTRUE(spec$pure)) NULL else {
-      fp <- spec$fingerprint
-      if (length(formals(fp)) >= 2L) fp(.tr_effective_params(spec, node, settings), .tr_fp_ctx(store))
-      else fp(.tr_effective_params(spec, node, settings))
+      fp <- .tr_fp_call(spec$fingerprint, .tr_effective_params(spec, node, settings), store)
+      if (!is.null(fp$erro)) invalid <- c(invalid, fp$erro)
+      fp$valor
     }
     nonce <- if (isTRUE(spec$volatile)) .tr_entropy_hex(16L) else NULL
     ordered <- if (length(input_keys)) input_keys[order(names(input_keys), method = "radix")] else input_keys
@@ -375,7 +372,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
              function(pn) .tr_out_key(unit_key, pn))
     }
 
-    handles <- if (is.null(store)) list() else lapply(outs, function(k) tr_store_handle(store, k))
+    handles <- if (is.null(store)) list() else lapply(outs, function(k) .tr_store_handle_live(store, k))
     failed <- any(vapply(handles, tr_handle_failed, logical(1)))
     cached <- length(handles) > 0 && !failed &&
       all(vapply(handles, function(h) !is.null(h), logical(1)))
@@ -540,4 +537,16 @@ print.tr_plan <- function(x, ...) {
     cat(sprintf("  %-10s %-18s %-22s %s\n", st, u$node, u$node_type, substr(u$key, 1, 12)))
   }
   invisible(x)
+}
+
+#' Chama o `fingerprint()` de um nó impuro sem deixar a exceção derrubar o
+#' plano inteiro. Arquivo que sumiu, permissão negada: o nó vira `invalid` com
+#' o motivo legível, e os ramos independentes seguem rodando. Antes, um único
+#' leitor quebrado abortava `tr_plan()` e nada rodava.
+#' @noRd
+.tr_fp_call <- function(fp, params, store) {
+  tryCatch(
+    list(valor = if (length(formals(fp)) >= 2L) fp(params, .tr_fp_ctx(store)) else fp(params)),
+    error = function(e) list(valor = NULL, erro = paste0("fingerprint: ", conditionMessage(e)))
+  )
 }

@@ -189,3 +189,26 @@ test_that("schema vai no handle e tabela de 1 coluna sai como array no JSON", {
   h <- tr_store_put(s, "k2", list(v = 1), tr_get_type("t/box", store_registry()))
   expect_null(h$schema)
 })
+
+test_that("GC preserva o tmp/ recente (worker em voo) e limpa o velho", {
+  s <- tmp_store()
+  vivo <- file.path(s$root, "tmp", "vivo.part"); writeLines("x", vivo)
+  morto <- file.path(s$root, "tmp", "morto.part"); writeLines("x", morto)
+  Sys.setFileTime(morto, Sys.time() - 2 * 3600)
+  tr_store_gc(s)
+  expect_true(file.exists(vivo))
+  expect_false(file.exists(morto))
+})
+
+test_that("preview parcial devolve arquivos relativos à raiz do store", {
+  s <- tmp_store()
+  ty <- tr_type("t/img", version = 1L, store = function(x, path) saveRDS(x, path),
+                restore = readRDS, ext = "rds",
+                preview = function(x, ctx) {
+                  f <- ctx$file("png"); writeLines("png", f)
+                  tr_preview("trama/image", files = list(png = f))
+                })
+  art <- .tr_partial_preview(1, ty, s, "k1")
+  expect_identical(art$files, list(png = "tmp/k1-partial.png"))
+  expect_true(file.exists(file.path(s$root, art$files$png)))
+})

@@ -70,14 +70,18 @@ tr_server <- function(project, flow = "main",
     # Bombeia o scheduler: um passo, e reagenda enquanto não acabou. É o que
     # deixa o processo do Shiny livre entre passos — a sessão responde a ops
     # (inclusive a que vai SUPERAR este run) enquanto o pool computa.
-    pump <- function() {
-      s <- exec$sched
-      if (is.null(s) || s$finished()) return(invisible())
+    #
+    # Cada cadeia é DONA de um scheduler: `run_now` troca `exec$sched` e chama
+    # `pump()` de novo, e a cadeia antiga tem que morrer aí. Relendo
+    # `exec$sched` a cada volta, ela adotava o scheduler novo e cada op feita
+    # durante um run somava mais um laço de 50 ms bombeando o mesmo scheduler.
+    pump <- function(s = exec$sched) {
+      if (is.null(s) || !identical(s, exec$sched) || s$finished()) return(invisible())
       tryCatch(s$step(), error = function(e) {
         send("warning", list(message = paste0("Falha no scheduler: ", conditionMessage(e))))
         exec$sched <- NULL
       })
-      if (!is.null(exec$sched) && !exec$sched$finished()) later::later(pump, 0.05)
+      if (identical(s, exec$sched) && !s$finished()) later::later(function() pump(s), 0.05)
     }
 
     run_now <- function(doc) {
