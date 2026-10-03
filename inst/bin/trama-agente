@@ -1,13 +1,37 @@
 #!/usr/bin/env Rscript
 # CLI do canal de controle: fala com o editor aberto por trama::tr_app().
 # Instale com: ln -s "$(Rscript -e 'cat(system.file("bin/trama-agente", package="trama"))')" ~/.local/bin/trama-agente
-# Desenvolvendo o trama: TRAMA_DEV=<raiz do repo> carrega o código de lá.
+# Desenvolvendo o trama: TRAMA_DEV=<raiz do repo> carrega o código de lá,
+# inclusive as coleções de collections/ para os comandos sem editor
+# (catalog --offline, explain, validate).
+args <- commandArgs(TRUE)
 dev <- Sys.getenv("TRAMA_DEV")
 if (nzchar(dev)) {
   suppressMessages(pkgload::load_all(dev, quiet = TRUE))
   tr_cli <- get("tr_cli", envir = asNamespace("trama"))
+  sem_editor <- c("explain", "validate")
+  if (any(args %in% sem_editor) || ("catalog" %in% args)) {
+    # Coleções da árvore, dependências antes (Imports entre trama.*).
+    dirs <- list.dirs(file.path(dev, "collections"), recursive = FALSE)
+    nomes <- basename(dirs)
+    deps <- lapply(setNames(dirs, nomes), function(d) {
+      x <- read.dcf(file.path(d, "DESCRIPTION"))
+      campos <- intersect(c("Depends", "Imports"), colnames(x))
+      intersect(trimws(sub("\\(.*", "", unlist(strsplit(paste(x[, campos], collapse = ","), ",")))), nomes)
+    })
+    feitos <- character()
+    carrega <- function(n) {
+      if (n %in% feitos) return()
+      for (d in deps[[n]]) carrega(d)
+      feitos <<- c(feitos, n)
+      tryCatch(suppressMessages(pkgload::load_all(file.path(dev, "collections", n), quiet = TRUE,
+                                                  export_all = FALSE, attach = FALSE)),
+               error = function(e) message("trama-agente: ", n, " ignorada (", conditionMessage(e), ")"))
+    }
+    for (n in nomes) carrega(n)
+  }
 } else {
   tr_cli <- trama::tr_cli
 }
-res <- tr_cli(commandArgs(TRUE))
+res <- tr_cli(args)
 quit(status = if (isTRUE(res$ok)) 0L else 1L, save = "no")

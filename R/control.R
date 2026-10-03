@@ -170,7 +170,13 @@ tr_control_state <- function() {
 #' @noRd
 tr_control_catalog <- function(tipo = NULL, busca = NULL, limite = 12L) {
   s <- .tr_control_sessao()
-  cat <- tr_catalog(shiny::isolate(s$registry()))
+  .tr_catalogo_enxuto(tr_catalog(shiny::isolate(s$registry())), tipo, busca, limite)
+}
+
+#' Corpo de `tr_control_catalog()` sobre um catálogo já montado: o CLI
+#' offline usa o mesmo recorte sem editor aberto.
+#' @noRd
+.tr_catalogo_enxuto <- function(cat, tipo = NULL, busca = NULL, limite = 12L) {
   nos <- cat$nodes %||% cat
   if (!is.null(tipo)) {
     achado <- Filter(function(n) identical(n$id %||% n$type, tipo), nos)

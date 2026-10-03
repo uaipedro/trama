@@ -16,7 +16,13 @@
 #' trama-agente apply <arquivo.json>        # lista de ops como um passo de undo
 #' trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 #' trama-agente undo
+#' trama-agente explain <tipo>              # sem editor: o bloco inteiro
+#' trama-agente validate <arquivo.json>     # sem editor: lê, migra e valida
 #' ```
+#'
+#' `catalog`, `explain` e `validate` funcionam sem editor aberto, sobre as
+#' coleções instaladas (ou `--colecoes a,b`). `catalog` só faz isso quando
+#' não acha editor ou com `--offline`.
 #'
 #' Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`) aceita
 #' `--wait N`: espera até N segundos o fluxo parar de rodar e devolve, em
@@ -55,6 +61,11 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   "apply <arquivo.json>                    lista de ops como um passo de desfazer",
   "result <no> [--wait segundos]           status, resumo, preview, PNG",
   "undo                                    desfaz a última edição (sua ou do humano)",
+  "--- sem editor aberto ---",
+  "catalog ... [--offline]                 sem editor (ou com --offline), lê das coleções instaladas",
+  "explain <tipo>                          bloco inteiro: params, portas, ajuda, referências",
+  "validate <arquivo.json>                 lê, migra e valida um fluxo ou template",
+  "--colecoes a,b escolhe as coleções do modo sem editor (padrão: todas as trama.* instaladas).",
   "--wait N em qualquer edição: espera rodar e devolve 'efeito' (status abaixo, causa do bloqueio).",
   "valor: JSON quando dá (n=3, x=true, 'cols=[\"a\",\"b\"]'), senão texto.",
   "--projeto DIR escolhe o editor quando há mais de um.")
@@ -99,13 +110,97 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   if (is.null(a$cmd) || is.na(a$cmd) || a$cmd %in% c("help", "ajuda", "-h")) {
     return(list(ok = TRUE, comando = "trama-agente <comando> [args]", uso = .tr_cli_uso))
   }
-  cx <- .tr_cli_conexao(a$opt$projeto)
+  if (a$cmd %in% .tr_cli_offline || (a$cmd == "catalog" && isTRUE(a$opt$offline))) {
+    return(.tr_cli_sem_editor(a, p, precisa))
+  }
+  cx <- tryCatch(.tr_cli_conexao(a$opt$projeto), error = function(e) {
+    if (a$cmd == "catalog") NULL else stop(e)
+  })
+  if (is.null(cx)) return(.tr_cli_sem_editor(a, p, precisa))
+  if (a$cmd == "catalog") {
+    # Arquivo de controle velho (editor fechado sem limpar) também cai no
+    # registro local: catálogo é leitura, repetir não custa nada.
+    return(tryCatch(.tr_cli_despachar(a, cx, p, precisa),
+                    error = function(e) .tr_cli_sem_editor(a, p, precisa)))
+  }
   res <- .tr_cli_despachar(a, cx, p, precisa)
   espera <- as.numeric(a$opt$wait %||% 0)
   if (a$cmd %in% .tr_cli_edicoes && isTRUE(res$ok) && espera > 0) {
     res$efeito <- .tr_cli_efeito(cx, .tr_cli_tocados(res$op), espera)
   }
   res
+}
+
+# Comandos que não precisam do editor. `catalog` só cai aqui sem editor
+# aberto ou com `--offline`; `validate` e `explain` sempre.
+.tr_cli_offline <- c("validate", "explain")
+
+.tr_cli_sem_editor <- function(a, p, precisa, registro = NULL) {
+  reg <- function() registro %||% .tr_cli_registro(a$opt$colecoes)
+  switch(a$cmd,
+    catalog = c(.tr_catalogo_enxuto(tr_catalog(reg()), tipo = if (length(p)) p[[1]],
+                                    busca = a$opt$busca),
+                offline = TRUE),
+    explain = {
+      precisa(1, "trama explain <tipo>")
+      c(.tr_catalogo_enxuto(tr_catalog(reg()), tipo = p[[1]]), offline = TRUE)
+    },
+    validate = {
+      precisa(1, "trama validate <arquivo.json>")
+      .tr_cli_validate(p[[1]], a$opt$colecoes, registro)
+    })
+}
+
+#' Registro sem editor: as coleções pedidas (`--colecoes a,b`) ou todas as
+#' `trama.*` carregadas ou instaladas. Coleção que não carrega fica de fora
+#' com aviso no stderr, em vez de derrubar o comando.
+#' @noRd
+.tr_cli_registro <- function(colecoes = NULL) {
+  pkgs <- if (length(colecoes)) trimws(strsplit(colecoes, ",", fixed = TRUE)[[1]]) else {
+    nomes <- union(loadedNamespaces(), rownames(utils::installed.packages()))
+    sort(unique(grep("^trama[.]", nomes, value = TRUE)))
+  }
+  reg <- tr_registry()
+  for (p in pkgs) {
+    if (p %in% .tr_registry_packages(reg)) next
+    tryCatch(tr_use(p, registry = reg), error = function(e) {
+      message(sprintf("trama-agente: cole\u00e7\u00e3o '%s' ignorada (%s)", p, conditionMessage(e)))
+    })
+  }
+  reg
+}
+
+#' Lê um documento (`.json` de fluxo) ou template, migra e valida. As
+#' coleções vêm de `--colecoes`, do template, do `trama.json` do projeto
+#' acima do arquivo ou, por fim, de todas as disponíveis.
+#' @noRd
+.tr_cli_validate <- function(path, colecoes = NULL, registro = NULL) {
+  if (!file.exists(path)) rlang::abort(sprintf("Arquivo n\u00e3o encontrado: '%s'.", path))
+  txt <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  bruto <- jsonlite::fromJSON(txt, simplifyVector = FALSE)
+  if (identical(bruto$trama, "template")) {
+    if (is.null(colecoes) && length(bruto$colecoes)) colecoes <- paste(unlist(bruto$colecoes), collapse = ",")
+    txt <- as.character(jsonlite::toJSON(bruto$doc, auto_unbox = TRUE, null = "null", digits = NA))
+  }
+  if (is.null(colecoes) && is.null(registro)) {
+    d <- dirname(normalizePath(path))
+    repeat {
+      cfg <- file.path(d, "trama.json")
+      if (file.exists(cfg)) {
+        cols <- unlist(jsonlite::read_json(cfg)$collections)
+        if (length(cols)) colecoes <- paste(cols, collapse = ",")
+        break
+      }
+      pai <- dirname(d); if (identical(pai, d)) break; d <- pai
+    }
+  }
+  doc <- tr_doc_parse(txt)
+  reg <- registro %||% .tr_cli_registro(colecoes)
+  migrado <- tr_doc_migrate(doc, reg)
+  problemas <- tr_doc_validate(doc, reg)
+  list(ok = !length(problemas), file = path, nodes = length(doc$nodes),
+       edges = length(doc$edges), migrated = isTRUE(attr(migrado, "migrated")),
+       collections = .tr_registry_packages(reg), problems = problemas)
 }
 
 .tr_cli_edicoes <- c("add", "link", "set", "rm", "op", "apply", "undo")
