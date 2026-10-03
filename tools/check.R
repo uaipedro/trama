@@ -7,6 +7,7 @@
 #   Rscript tools/check.R --plano         # mostra o que rodaria, sem rodar
 #   Rscript tools/check.R --tudo          # suíte inteira
 #   Rscript tools/check.R trama.series    # alvo explícito (+ dependentes)
+#   Rscript tools/check.R --jobs 1        # sem paralelismo (padrão: núcleos - 1)
 #
 # Regras:
 #   collections/X/**          -> X e toda coleção que depende de X (transitivo)
@@ -142,16 +143,17 @@ if (plano$js) cat("  node               tests/js\n")
 if (plano$site) cat("  site               src/lib/*.test.ts\n")
 if (flag("--plano")) quit(status = 0)
 
-falhas <- character()
-roda <- function(nome, cmd, argumentos) {
-  cat(sprintf("\n== %s\n", nome))
-  t0 <- Sys.time()
-  status <- system2(cmd, argumentos)
-  cat(sprintf("-- %s: %s em %.0fs\n", nome, if (status == 0) "ok" else "FALHOU",
-              as.numeric(difftime(Sys.time(), t0, units = "secs"))))
-  if (status != 0) falhas <<- c(falhas, nome)
-}
+# Cada pacote roda num Rscript próprio, em paralelo; a saída vai para um log e
+# é impressa inteira quando o job termina, para não intercalar.
+jobs_max <- as.integer(opt("--jobs") %||% max(1L, parallel::detectCores() - 1L))
+# Jobs em paralelo já ocupam os núcleos; BLAS/OpenMP multithread em cada um
+# só disputa CPU.
+if (jobs_max > 1) Sys.setenv(OMP_NUM_THREADS = 1, OPENBLAS_NUM_THREADS = 1, MKL_NUM_THREADS = 1)
+logs <- file.path(tempdir(), "check")
+dir.create(logs, showWarnings = FALSE)
 
+job <- function(nome, cmd, argumentos) list(nome = nome, cmd = cmd, args = argumentos)
+fila <- list()
 for (p in alvos) {
   dir_pkg <- if (p == "trama") "." else file.path("collections", p)
   cargas <- if (p == "trama") character() else ordem_carga(p)
@@ -163,12 +165,42 @@ for (p in alvos) {
     paste0(sprintf("suppressMessages(pkgload::load_all('collections/%s', quiet = TRUE));", cargas), collapse = ""),
     sprintf("r <- testthat::test_dir('%s/tests/testthat', filter = %s, stop_on_failure = FALSE, reporter = 'summary', load_package = 'none');",
             dir_pkg, if (is.null(filtro)) "NULL" else deparse(paste0("^(", paste(filtro, collapse = "|"), ")$"))),
-    "d <- as.data.frame(r); quit(status = as.integer(sum(d$failed) + sum(d$error) > 0))"
+    "d <- as.data.frame(r);",
+    # Onde o tempo vai: os arquivos mais lentos do pacote.
+    "a <- sort(tapply(d$real, d$file, sum), decreasing = TRUE);",
+    "cat('\\nmais lentos:', paste(sprintf('%s %.1fs', names(a), a)[seq_len(min(5, length(a)))], collapse = ', '), '\\n');",
+    "quit(status = as.integer(sum(d$failed) + sum(d$error) > 0))"
   )
-  roda(p, "Rscript", c("-e", shQuote(codigo)))
+  fila[[length(fila) + 1]] <- job(p, "Rscript", c("-e", shQuote(codigo)))
 }
-if (plano$js) roda("node", "node", c("--test", shQuote("tests/js/*.test.mjs")))
-if (plano$site) roda("site", "npm", c("--prefix", "site", "test", "--silent"))
+if (plano$js) fila[[length(fila) + 1]] <- job("node", "node", c("--test", shQuote("tests/js/*.test.mjs")))
+if (plano$site) fila[[length(fila) + 1]] <- job("site", "npm", c("--prefix", "site", "test", "--silent"))
+
+cat(sprintf("\n%d job(s), até %d em paralelo\n", length(fila), jobs_max))
+t_total <- Sys.time()
+falhas <- character()
+rodando <- list()
+proximo <- 1L
+repeat {
+  while (length(rodando) < jobs_max && proximo <= length(fila)) {
+    j <- fila[[proximo]]; proximo <- proximo + 1L
+    log <- file.path(logs, paste0(j$nome, ".log"))
+    proc <- parallel::mcparallel(system2(j$cmd, j$args, stdout = log, stderr = log))
+    rodando[[as.character(proc$pid)]] <- list(nome = j$nome, log = log, t0 = Sys.time(), proc = proc)
+  }
+  if (!length(rodando)) break
+  feitos <- parallel::mccollect(lapply(rodando, `[[`, "proc"), wait = FALSE, timeout = 1)
+  for (pid in names(feitos)) {
+    r <- rodando[[pid]]; status <- feitos[[pid]]
+    ok <- is.numeric(status) && status == 0
+    cat(sprintf("\n== %s\n", r$nome)); cat(readLines(r$log, warn = FALSE), sep = "\n")
+    cat(sprintf("-- %s: %s em %.0fs\n", r$nome, if (ok) "ok" else "FALHOU",
+                as.numeric(difftime(Sys.time(), r$t0, units = "secs"))))
+    if (!ok) falhas <- c(falhas, r$nome)
+    rodando[[pid]] <- NULL
+  }
+}
+cat(sprintf("\nTotal: %.0fs\n", as.numeric(difftime(Sys.time(), t_total, units = "secs"))))
 
 if (length(falhas)) { cat("\nFalhou:", paste(falhas, collapse = ", "), "\n"); quit(status = 1) }
 cat("\nTudo ok.\n")

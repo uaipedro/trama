@@ -17,6 +17,8 @@ Rscript tools/check.R trama.models # alvo explícito: suíte inteira dele (+ dep
 
 Saída 0 = ok; 1 = falha, com o nome do pacote no fim.
 
+Os pacotes rodam em paralelo (um Rscript cada, até núcleos − 1; `--jobs N` muda, `--jobs 1` serializa). A saída de cada um sai inteira quando ele termina, com a linha `mais lentos:` mostrando os 5 arquivos que mais custaram.
+
 ## Grafo (lido dos DESCRIPTION)
 
 `trama` ← `trama.data` ← `trama.view` ← {`models`, `series`, `sampling`} ; `models` ← {`experiments`, `ml`, `multi`}.
