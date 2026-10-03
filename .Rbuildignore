@@ -13,3 +13,4 @@
 ^tools$
 ^\.claude$
 ^tests/js$
+^inst/www/AGENTS\.md$
