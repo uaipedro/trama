@@ -189,3 +189,13 @@ test_that("schema vai no handle e tabela de 1 coluna sai como array no JSON", {
   h <- tr_store_put(s, "k2", list(v = 1), tr_get_type("t/box", store_registry()))
   expect_null(h$schema)
 })
+
+test_that("GC preserva o tmp/ recente (worker em voo) e limpa o velho", {
+  s <- tmp_store()
+  vivo <- file.path(s$root, "tmp", "vivo.part"); writeLines("x", vivo)
+  morto <- file.path(s$root, "tmp", "morto.part"); writeLines("x", morto)
+  Sys.setFileTime(morto, Sys.time() - 2 * 3600)
+  tr_store_gc(s)
+  expect_true(file.exists(vivo))
+  expect_false(file.exists(morto))
+})

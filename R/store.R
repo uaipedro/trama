@@ -302,7 +302,13 @@ tr_store_gc <- function(store, keep = character(), max_age_days = 7) {
     if (!is.null(h) && (h$created %||% 0) > cutoff) next
     .tr_drop_key(store, key); removed <- removed + 1L
   }
-  unlink(list.files(file.path(store$root, "tmp"), full.names = TRUE))
+  # Só o `tmp/` VELHO: um worker em voo (outra aba, daemon que ainda não
+  # morreu depois do `handoff`) grava ali o `.part` que vai renomear, o arquivo
+  # de `.ctx$file` e o preview parcial. Apagar tudo trocava o resultado dele por
+  # `tr_error_store_write`. Uma hora cobre qualquer escrita viva.
+  tmps <- list.files(file.path(store$root, "tmp"), full.names = TRUE)
+  velhos <- tmps[as.numeric(file.mtime(tmps)) < as.numeric(Sys.time()) - 3600]
+  unlink(velhos, recursive = TRUE)
   .tr_gc_stream(store, cutoff)
   removed
 }
