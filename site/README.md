@@ -75,3 +75,20 @@ As seções Pressupostos e Referências das páginas de bloco (frontmatter
 árvore por `Rscript tools/site/export-node-docs.R` (na raiz). O script apaga
 `node_modules/.astro/data-store.json` para o Astro não servir páginas antigas;
 o plugin (`src/lib/rehype-node-docs.ts`) relê o JSON quando ele muda.
+
+## Glossário e caixas de contexto
+
+`src/data/glossario.ts` guarda os termos estatísticos (explicação de 1 a 3
+frases e, opcionalmente, uma obra para aprofundar que já esteja em
+`node-docs.json` — o teste recusa as outras). A página `/glossario/` lista
+todos. Nas páginas de bloco, `src/lib/rehype-glossario.ts` escolhe de 2 a 5
+termos pelas menções no texto, pela coleção e por `TERMOS_DE_BLOCO`, insere
+uma caixa "Antes de continuar" depois de "O que o bloco faz" e marca a
+primeira menção de cada termo com `<dfn>`. As duas coisas obedecem ao toggle
+Contexto. Depois de mudar o glossário, apague
+`node_modules/.astro/data-store.json` para o Astro não reaproveitar páginas
+já renderizadas.
+
+A bibliografia (`/referencias/`) e a página de rigor (`/rigor/`) também saem
+de `node-docs.json`; a de rigor lê `../docs/revisao-metodologica.md` a cada
+build.

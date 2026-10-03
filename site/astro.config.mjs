@@ -2,6 +2,7 @@ import { defineConfig } from "astro/config";
 import { rehypeDocLinks } from "./src/lib/rehype-doc-links.ts";
 import { rehypeFlowExample } from "./src/lib/rehype-flow-example.ts";
 import { rehypeNodeDocs } from "./src/lib/rehype-node-docs.ts";
+import { rehypeGlossario } from "./src/lib/rehype-glossario.ts";
 
 const base = "/trama";
 
@@ -10,6 +11,6 @@ export default defineConfig({
   base,
   output: "static",
   markdown: {
-    rehypePlugins: [rehypeFlowExample, [rehypeNodeDocs, { base }], rehypeDocLinks]
+    rehypePlugins: [rehypeFlowExample, [rehypeNodeDocs, { base }], [rehypeGlossario, { base }], rehypeDocLinks]
   }
 });

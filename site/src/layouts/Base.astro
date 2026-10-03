@@ -111,10 +111,14 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           <span>Buscar</span>
           <kbd>/</kbd>
         </button>
-        <button class="depth-toggle" type="button" aria-pressed="true" data-depth-toggle title="Liga ou desliga as caixas de contexto: explicações extras para quem está começando, sem mudar o texto principal.">
+        <button class="depth-toggle" type="button" aria-pressed="true" aria-describedby="dica-contexto" data-depth-toggle title="Liga ou desliga as caixas de contexto: explicações extras para quem está começando, sem mudar o texto principal.">
           <span class="toggle-orbit" aria-hidden="true"></span>
           <span class="toggle-copy">Contexto</span>
         </button>
+        <div class="depth-hint" id="dica-contexto" role="note" hidden data-depth-hint>
+          <p><strong>Contexto</strong> mostra caixas “Antes de continuar” e destaca termos com a definição ao passar o mouse. Desligue quando já conhecer os conceitos; a escolha fica guardada.</p>
+          <button type="button" data-depth-hint-close>Entendi</button>
+        </div>
       </div>
     </div></header>
     <main id="conteudo">
@@ -126,7 +130,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </dialog>
     <footer class="site-footer">
       <p><strong>trama</strong> — R em blocos executáveis.</p>
-      <p><a href="https://github.com/uaipedro/trama">Código no GitHub</a> · <a href="/trama/por-dentro/instalacao/">Instalação</a></p>
+      <p><a href="https://github.com/uaipedro/trama">Código no GitHub</a> · <a href="/trama/por-dentro/instalacao/">Instalação</a> · <a href="/trama/glossario/">Glossário</a> · <a href="/trama/referencias/">Referências</a> · <a href="/trama/rigor/">Como sabemos que está certo</a></p>
     </footer>
     <script is:inline>
       const key = "trama-camada-facilitadora";
@@ -143,10 +147,25 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
         }
       });
       updateToggle();
+      // Dica do toggle: aparece nas três primeiras páginas visitadas e some
+      // de vez quando a pessoa usa o toggle ou clica em "Entendi".
+      const dicaKey = "trama-contexto-dica";
+      const dica = document.querySelector("[data-depth-hint]");
+      const vistas = Number(store.get(dicaKey) ?? "0");
+      if (dica && vistas >= 0 && vistas < 3) {
+        dica.hidden = false;
+        store.set(dicaKey, String(vistas + 1));
+      }
+      const fecharDica = () => {
+        if (dica) dica.hidden = true;
+        store.set(dicaKey, "-1");
+      };
+      document.querySelector("[data-depth-hint-close]")?.addEventListener("click", fecharDica);
       button?.addEventListener("click", () => {
         root.dataset.facilitador = root.dataset.facilitador === "off" ? "on" : "off";
         store.set(key, root.dataset.facilitador);
         updateToggle();
+        fecharDica();
       });
 
       const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");

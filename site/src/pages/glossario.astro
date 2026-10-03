@@ -1,0 +1,53 @@
+---
+// Glossário estatístico (src/data/glossario.ts). Cada termo pode apontar uma
+// obra para aprofundar, sempre uma que já está na bibliografia dos blocos.
+import { toHtml } from "hast-util-to-html";
+import Base from "../layouts/Base.astro";
+import docs from "../data/node-docs.json";
+import { GLOSSARIO } from "../data/glossario";
+import { agregarReferencias, encontrarReferencia } from "../lib/bibliografia";
+import { referenciaHast, type NodeDocs } from "../lib/node-docs";
+
+const grupos = agregarReferencias(docs as unknown as Record<string, NodeDocs>);
+const termos = [...GLOSSARIO].sort((a, b) => a.termo.localeCompare(b.termo, "pt-BR", { sensitivity: "base" }));
+const inicial = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+const letras = [...new Set(termos.map((t) => inicial(t.termo)))];
+const obra = (t: (typeof GLOSSARIO)[number]) => {
+  const e = t.aprofundar && encontrarReferencia(grupos, t.aprofundar.autor, t.aprofundar.ano);
+  return e ? { id: e.id, html: toHtml(referenciaHast(e.ref).children) } : undefined;
+};
+---
+
+<Base title="Glossário" description="Os conceitos estatísticos que as páginas de bloco usam, explicados em poucas frases, com onde estudar cada um.">
+  <div class="doc-shell" data-pagefind-body>
+    <header class="collection-hero">
+      <div>
+        <p class="eyebrow">Contexto</p>
+        <h1>Glossário</h1>
+        <p class="lede">Os conceitos estatísticos que aparecem nas páginas de bloco, em poucas frases. Com o <strong>Contexto</strong> ligado, cada página de bloco mostra os termos dela numa caixa “Antes de continuar”.</p>
+      </div>
+    </header>
+    <nav class="bib-indice" aria-label="Letras do glossário">
+      {letras.map((l) => <a href={`#letra-${l}`}>{l}</a>)}
+    </nav>
+    <div class="prose glossario">
+      {letras.map((l) => (
+        <section aria-labelledby={`letra-${l}`}>
+          <h2 id={`letra-${l}`}>{l}</h2>
+          <dl class="glossario-lista">
+            {termos.filter((t) => inicial(t.termo) === l).map((t) => {
+              const o = obra(t);
+              return <div class="glossario-item" id={t.id}>
+                <dt>{t.termo}</dt>
+                <dd>
+                  <p>{t.explicacao}</p>
+                  {o && <p class="glossario-item__ref"><span class="node-docs__rot">Onde aprofundar</span> <Fragment set:html={o.html} /> <a href={`/trama/referencias/#${o.id}`}>na bibliografia</a></p>}
+                </dd>
+              </div>;
+            })}
+          </dl>
+        </section>
+      ))}
+    </div>
+  </div>
+</Base>

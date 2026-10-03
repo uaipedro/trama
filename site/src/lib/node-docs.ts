@@ -104,7 +104,7 @@ export function pressupostosHast(items: Pressuposto[], resolve: ResolveBlock, la
   return [el("h2", null, [t("Pressupostos")], { id: "pressupostos" }), el("ul", "node-press", li)];
 }
 
-function referenciaHast(r: Referencia, lang: string): Element {
+export function referenciaHast(r: Referencia, lang = SITE_LANG): Element {
   const partes: ElementContent[] = [];
   if (r.papel === "implementacao" && r.pacote) {
     // Como o editor: sem função, só o pacote.
@@ -130,7 +130,8 @@ function referenciaHast(r: Referencia, lang: string): Element {
   return el("li", "node-ref", partes);
 }
 
-export function referenciasHast(items: Referencia[], lang = SITE_LANG): Element[] {
+/** `bibHref`: página da bibliografia completa; se dado, um link fecha a seção. */
+export function referenciasHast(items: Referencia[], lang = SITE_LANG, bibHref?: string): Element[] {
   if (!items.length) return [];
   const grupos = PAPEIS_REF.flatMap(([papel, rot]) => {
     const grupo = items.filter((r) => r.papel === papel);
@@ -138,5 +139,8 @@ export function referenciasHast(items: Referencia[], lang = SITE_LANG): Element[
       ? [el("h3", null, [t(rot)]), el("ul", "node-refs", grupo.map((r) => referenciaHast(r, lang)))]
       : [];
   });
-  return [el("h2", null, [t("Referências")], { id: "referencias" }), ...grupos];
+  const bib = bibHref
+    ? [el("p", "node-refs__bib", [el("a", null, [t("Ver a bibliografia completa do trama")], { href: bibHref })])]
+    : [];
+  return [el("h2", null, [t("Referências")], { id: "referencias" }), ...grupos, ...bib];
 }
