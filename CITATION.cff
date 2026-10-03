@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "Se usar o trama, cite-o com os metadados abaixo."
+type: software
+title: "trama: Interactive Node-Graph Computation with Live Previews"
+version: 0.5.3
+license: MIT
+repository-code: "https://github.com/uaipedro/trama"
+url: "https://github.com/uaipedro/trama"
+authors:
+  - given-names: Pedro
+    family-names: Mambelli Fernandes
+    email: pedromambelli@gmail.com
+    orcid: "https://orcid.org/0009-0001-1695-279X"
+  - given-names: João Paulo Assis
+    family-names: Bonifácio
+    orcid: "https://orcid.org/0009-0009-2335-8391"
+abstract: >-
+  Build and run computation graphs interactively. Nodes are typed R functions
+  with declared ports and parameters; a flow is a plain JSON document;
+  execution is pull-based, content-addressed and incremental. Domain knowledge
+  lives entirely in registrable collections, never in the core.
+keywords:
+  - R
+  - shiny
+  - visual programming
+  - statistics
