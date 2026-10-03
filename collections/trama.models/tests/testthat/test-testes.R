@@ -320,3 +320,51 @@ test_that("Levene e Bartlett na parcela subdividida recusam (sem correção publ
   # o Shapiro nos resíduos (b) continua valendo
   expect_s3_class(tr_models_shapiro_residuals(sp), "tr_models_test")
 })
+
+test_that("shapiro com n > 5000 recusa com classe de 'demais', não de 'de menos'", {
+  # stats::shapiro.test só aceita 3 <= n <= 5000 (Royston 1995, AS R94).
+  d <- data.frame(x = stats::qnorm(stats::ppoints(5001)))
+  err <- tryCatch(tr_models_shapiro(d, "x"), condition = identity)
+  expect_s3_class(err, "tr_models_error_too_many_rows")
+  expect_false(inherits(err, "tr_models_error_too_few_rows"))
+  expect_match(conditionMessage(err), "5001", fixed = TRUE)
+  expect_s3_class(tr_models_shapiro(d[1:5000, , drop = FALSE], "x"), "tr_models_test")
+})
+
+# Oráculo dos tamanhos de efeito: pacote de referência effectsize 1.0.3
+# (rank_epsilon_squared, rank_biserial, cramers_v(adjust = FALSE)), valores
+# anotados à mão com 12 dígitos; se o pacote estiver instalado, confere ao vivo.
+# Tolerância 1e-9.
+test_that("Kruskal-Wallis reporta épsilon² dos postos (Tomczak & Tomczak 2014)", {
+  kw <- tr_models_kruskal(ex("InsectSprays"), "count", "spray")
+  expect_equal(kw$efeito$valor, 0.770300628484, tolerance = 1e-9)
+  expect_true(is.na(kw$efeito$li))
+  if (requireNamespace("effectsize", quietly = TRUE)) {
+    expect_equal(kw$efeito$valor, effectsize::rank_epsilon_squared(count ~ spray, data = ex("InsectSprays"),
+                                                                   ci = NULL)[[1]], tolerance = 1e-9)
+  }
+})
+
+test_that("Wilcoxon reporta a bisserial de postos (Kerby 2014)", {
+  w <- tr_models_wilcoxon(ex("ToothGrowth"), "len", "supp")
+  expect_equal(w$extra$r_bisserial_postos, 0.278888888889, tolerance = 1e-9)
+  expect_match(w$nota, "bisserial de postos r = 0.279", fixed = TRUE)
+  if (requireNamespace("effectsize", quietly = TRUE)) {
+    expect_equal(w$extra$r_bisserial_postos,
+                 effectsize::rank_biserial(len ~ supp, data = ex("ToothGrowth"), ci = NULL)[[1]], tolerance = 1e-9)
+  }
+})
+
+test_that("qui-quadrado reporta V de Cramér e os resíduos padronizados", {
+  mt <- ex("mtcars")
+  q <- tr_models_chisq(mt, "cyl", "gear")
+  expect_equal(q$efeito$valor, 0.530865502569, tolerance = 1e-9)
+  expect_match(q$nota, "Bergsma", fixed = TRUE)
+  # resíduos ajustados (Agresti 2002, 3.3.1) = chisq.test()$stdres: maior |r| é 8 cil./3 marchas
+  expect_equal(q$extra$maior_residuo_padronizado, 3.882879, tolerance = 1e-6)
+  expect_match(q$nota, "8/3 (+3.88)", fixed = TRUE)
+  if (requireNamespace("effectsize", quietly = TRUE)) {
+    expect_equal(q$efeito$valor, effectsize::cramers_v(table(mt$cyl, mt$gear), adjust = FALSE, ci = NULL)[[1]],
+                 tolerance = 1e-9)
+  }
+})

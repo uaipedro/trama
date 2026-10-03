@@ -147,3 +147,23 @@ test_that("VIF fica NA com interação", {
   expect_true("vif" %in% names(tab))
   expect_true(all(is.na(tab$vif)))
 })
+
+test_that("quadro tipo I avisa quando o desenho é desbalanceado, sem mudar o padrão", {
+  tg <- ex("ToothGrowth"); tg$dose <- factor(tg$dose)
+  # Balanceado (10 por casela): tipo I = tipo II, nada a avisar.
+  bal <- tr_models_anova_table(tr_models_lm(tg, formula = "len ~ supp * dose"))
+  expect_false(grepl("desbalanceados", bal$nota, fixed = TRUE))
+  # Desbalanceado: a SQ sequencial de supp muda com a ordem (Langsrud 2003).
+  des <- tg[-(1:5), ]
+  q <- tr_models_anova_table(tr_models_lm(des, formula = "len ~ supp * dose"))
+  expect_match(q$nota, "desbalanceados", fixed = TRUE)
+  expect_match(q$nota, "supp", fixed = TRUE)
+  expect_false(grepl("supp:dose", sub(".*SQ de ([^ ]+(, [^ ]+)*) depende.*", "\\1", q$nota), fixed = TRUE))
+  s_primeiro <- stats::anova(stats::lm(len ~ supp + dose, des))["supp", "Sum Sq"]
+  s_segundo <- stats::anova(stats::lm(len ~ dose + supp, des))["supp", "Sum Sq"]
+  expect_gt(abs(s_primeiro - s_segundo), 1)
+  # O padrão continua o tipo I, e os tipos II e III não levam o aviso.
+  expect_identical(formals(tr_models_anova_table)$tipo_sq, "I")
+  expect_false(grepl("desbalanceados", tr_models_anova_table(tr_models_lm(des, formula = "len ~ supp * dose"), "II")$nota,
+                     fixed = TRUE))
+})

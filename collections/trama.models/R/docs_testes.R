@@ -140,7 +140,13 @@
         R(autores = c("Hodges, J. L.", "Lehmann, E. L."), ano = 1963, titulo = "Estimates of location based on rank tests",
           fonte = "The Annals of Mathematical Statistics, 34(2), 598-611", doi = "10.1214/aoms/1177704172",
           papel = "complementar"),
+        R(autores = "Cureton, E. E.", ano = 1956, titulo = "Rank-biserial correlation",
+          fonte = "Psychometrika, 21(3), 287-290", doi = "10.1007/BF02289138", papel = "complementar"),
+        R(autores = "Kerby, D. S.", ano = 2014,
+          titulo = "The simple difference formula: an approach to teaching nonparametric correlation",
+          fonte = "Comprehensive Psychology, 3", doi = "10.2466/11.IT.3.1", papel = "complementar"),
         L$siegel,
+        I("trama", "tr_models_wilcoxon", "Bisserial de postos r = 2W/(n1 n2) - 1 na coluna extra; conferida com effectsize::rank_biserial (1.0.3)."),
         I("stats", "wilcox.test", "`conf.int = TRUE` (estimador de Hodges-Lehmann); p-valor exato sem empates e n < 50, aproximação normal com correção de continuidade nos demais."))),
 
     "models/kruskal" = list(
@@ -154,7 +160,11 @@
           titulo = "Use of ranks in one-criterion variance analysis",
           fonte = "Journal of the American Statistical Association, 47(260), 583-621",
           doi = "10.1080/01621459.1952.10483441"),
+        R(autores = c("Tomczak, M.", "Tomczak, E."), ano = 2014,
+          titulo = "The need to report effect size estimates revisited. An overview of some recommended measures of effect size",
+          fonte = "Trends in Sport Sciences, 21(1)", papel = "complementar"),
         L$siegel,
+        I("trama", "tr_models_kruskal", "Efeito: épsilon² dos postos, H / (n - 1); conferido com effectsize::rank_epsilon_squared (1.0.3)."),
         I("stats", "kruskal.test", "H com correção para empates, p-valor pela aproximação qui-quadrado."))),
 
     "models/friedman" = list(
@@ -201,7 +211,13 @@
           doi = "10.2307/2983604", papel = "complementar"),
         R(autores = "Agresti, A.", ano = 2002, titulo = "Categorical Data Analysis", fonte = "2. ed. Hoboken: Wiley",
           doi = "10.1002/0471249688", papel = "complementar"),
+        R(autores = "Cramér, H.", ano = 1946, titulo = "Mathematical Methods of Statistics",
+          fonte = "Princeton: Princeton University Press", papel = "complementar"),
+        R(autores = "Bergsma, W.", ano = 2013, titulo = "A bias-correction for Cramér's V and Tschuprow's T",
+          fonte = "Journal of the Korean Statistical Society, 42(3), 323-328", doi = "10.1016/j.jkss.2012.10.002",
+          papel = "complementar"),
         L$siegel,
+        I("trama", "tr_models_chisq", "Efeito: V de Cramér, sqrt(X² / (n (min(l, c) - 1))), sem correção de viés (a nota avisa); resíduos padronizados ajustados de chisq.test()$stdres, |r| > 2 listados na nota. V conferido com effectsize::cramers_v(adjust = FALSE) (1.0.3)."),
         I("stats", "chisq.test", "`correct = FALSE` por padrão no bloco: X² de Pearson sem correção, porque a de Yates deixa o teste conservador (Agresti 2002); a opção **Correção de Yates** liga `correct = TRUE`, que só age em 2 × 2. Validado contra a forma fechada do 2 × 2 no exemplo do Physicians' Health Study (Agresti)."))),
 
     "models/fisher_exact" = list(

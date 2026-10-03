@@ -73,6 +73,37 @@
   tab
 }
 
+#' Nota do quadro do GLM misto: o qui-quadrado do `car::Anova` é de Wald,
+#' assintótico, liberal com poucos grupos (Bolker et al. 2009).
+#' @noRd
+.TR_MODELS_NOTA_WALD_GLMER <- paste0(
+  "qui-quadrado de Wald (assintótico; liberal com poucos grupos): para um efeito fixo, ",
+  "prefira a razão de verossimilhança entre modelos com e sem o termo em 'models/compare'")
+
+#' Aviso do tipo I com termos não ortogonais.
+#'
+#' A SQ sequencial de um termo é a do termo ajustado só pelos que vêm ANTES na
+#' fórmula. Com termos ortogonais (delineamento balanceado, sem covariável
+#' correlacionada) ela coincide com a do tipo II; quando não coincide, a ordem
+#' dos termos muda o teste (Langsrud 2003). O padrão não muda — é decisão de
+#' quem analisa —, mas o card diz.
+#' @noRd
+.tr_models_nota_ordem_i <- function(fit) {
+  aj <- fit$ajuste
+  a1 <- tryCatch(as.data.frame(stats::anova(aj)), error = function(e) NULL)
+  a2 <- tryCatch(as.data.frame(car::Anova(aj, type = 2)), error = function(e) NULL)
+  if (is.null(a1) || is.null(a2)) return("")
+  termos <- setdiff(intersect(trimws(rownames(a1)), trimws(rownames(a2))), "Residuals")
+  if (length(termos) < 2L) return("")
+  s1 <- a1$`Sum Sq`[match(termos, trimws(rownames(a1)))]
+  s2 <- a2$`Sum Sq`[match(termos, trimws(rownames(a2)))]
+  difere <- abs(s1 - s2) > 1e-8 * pmax(1, abs(s1))
+  if (!any(difere)) return("")
+  sprintf(paste0("dados desbalanceados ou termos não ortogonais: no tipo I a SQ de %s depende da ordem ",
+                 "dos termos na fórmula; para testar cada efeito ajustado pelos demais, use o tipo II"),
+          paste(termos[difere], collapse = ", "))
+}
+
 #' Acrescenta a linha do Total (gl n − 1, SQ total corrigida pela média).
 #' @noRd
 .tr_models_com_total <- function(tab, fit) {
@@ -203,7 +234,7 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       m <- if (tipo == "III") .tr_models_ajustar(.tr_models_soma_zero(modelo), no) else modelo$ajuste
       a <- .tr_models_ajustar(as.data.frame(car::Anova(m, type = tipo)), no)
       a <- a[rownames(a) != "(Intercept)", , drop = FALSE]
-      coluna <- "qui2"; nota <- "qui-quadrado de Wald"
+      coluna <- "qui2"; nota <- .TR_MODELS_NOTA_WALD_GLMER
       data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     },
     split = {
@@ -225,10 +256,11 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
       }
       a <- .tr_models_ajustar(as.data.frame(car::Anova(modelo$ajuste, type = 2)), no)
       coluna <- "qui2"
-      nota <- "qui-quadrado de Wald"
+      nota <- .TR_MODELS_NOTA_WALD_GLMER
       data.frame(termo = rownames(a), gl = a$Df, qui2 = a$Chisq, p_valor = a$`Pr(>Chisq)`)
     })
   if (tipo == "III") nota <- .tr_models_nota(nota, .tr_models_nota_covariavel_iii(modelo))
+  if (tipo == "I" && identical(modelo$classe, "lm")) nota <- .tr_models_nota(nota, .tr_models_nota_ordem_i(modelo))
   cv <- .tr_models_cv(modelo)
   if (!is.null(cv$cv)) rodape[[if (modelo$classe == "split") "CV (b)" else "CV"]] <- .tr_models_pct(cv$cv)
   if (!is.null(cv$cv_a)) rodape[["CV (a)"]] <- .tr_models_pct(cv$cv_a)

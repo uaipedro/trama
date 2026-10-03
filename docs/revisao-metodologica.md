@@ -244,3 +244,32 @@ erro-padrão da matriz de informação e teste z. Validação (1e-8, série `lh`
 estatística, gl e p contra `lmtest::lrtest`; AICc e BIC contra `forecast::Arima`;
 estimativa, erro-padrão e p contra `lmtest::coeftest`. Teste:
 `collections/trama.series/tests/testthat/test-arima-fit.R`.
+
+## Tamanhos de efeito nos testes não paramétricos e no qui-quadrado (02/10/2026)
+
+`trama.models` 0.6.2. `models/kruskal` (v2) passa a dar no efeito o épsilon²
+dos postos, H / (n − 1) (Tomczak e Tomczak, 2014), sem IC. `models/wilcoxon`
+(v2) mantém o deslocamento de Hodges-Lehmann como efeito e acrescenta a
+bisserial de postos r = 2W/(n₁n₂) − 1 (Cureton, 1956; Kerby, 2014) na nota e em
+`extra_r_bisserial_postos`. `models/chisq` (v3) dá o V de Cramér (1946),
+√(X² / (n (min(l, c) − 1))), sem correção de viés, com nota de que superestima
+em amostra pequena (Bergsma, 2013), e os resíduos padronizados ajustados
+(`chisq.test()$stdres`; Agresti, 2002, sec. 3.3.1) com |r| > 2 na nota e o
+maior em `extra_maior_residuo_padronizado`. Validação (1e-9): pacote de
+referência `effectsize` 1.0.3 (`rank_epsilon_squared`, `rank_biserial`,
+`cramers_v(adjust = FALSE)`) em `InsectSprays`, `ToothGrowth` e `mtcars`
+(cyl × gear); valores anotados no teste e conferidos ao vivo quando o pacote
+está instalado. A fórmula de Tomczak e Tomczak foi conferida por meio do
+`effectsize`, que a cita, e não no artigo. Shapiro-Wilk com n > 5000 passa a
+recusar com `tr_models_error_too_many_rows` (antes, a classe de "de menos").
+Teste: `collections/trama.models/tests/testthat/test-testes.R`.
+
+## Aviso do tipo I com desenho desbalanceado (02/10/2026)
+
+`models/anova_table` num `lm` com `tipo_sq = "I"` compara a SQ sequencial de
+cada termo com a do tipo II (`car::Anova`); se alguma difere (relativo 1e-8),
+a nota diz que aquela SQ depende da ordem dos termos e aponta o tipo II
+(Langsrud, 2003). O padrão continua "I" (decisão de quem analisa) e os números
+não mudam, por isso a versão do nó fica. Teste em `ToothGrowth` (balanceado,
+sem aviso) e sem as 5 primeiras linhas (aviso só em `supp`, cuja SQ muda mais
+de 1 unidade ao trocar a ordem): `collections/trama.models/tests/testthat/test-resumir.R`.
