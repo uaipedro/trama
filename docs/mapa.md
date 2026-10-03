@@ -7,13 +7,13 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | Caminho | O que é |
 | --- | --- |
 | `R/` | Núcleo (pacote `trama`). Sem domínio. |
-| `inst/www/` | Editor no navegador (JS sem build). `runtime.js` é o contrato que as coleções importam. |
+| `inst/www/` | Editor no navegador (JS sem build). `runtime.js` é o contrato que as coleções importam. Mapa dos módulos: `inst/www/AGENTS.md`. |
 | `inst/schema/` | JSON Schema do documento (`document-v1.json`) e do template (`template-v1.json`). |
 | `tests/testthat/` | Testes do núcleo. `tests/js/` testa os módulos puros do editor com `node --test`. |
-| `collections/trama.*` | Coleções de blocos; cada uma é um pacote R com testes próprios. |
+| `collections/trama.*` | Coleções de blocos; cada uma é um pacote R com testes próprios. Anatomia e checklist de bloco novo: `collections/AGENTS.md` e skill `novo-bloco`. |
 | `site/` | Site de documentação (Astro). Publicado pelo `.github/workflows/docs.yml`. |
 | `tools/check.R` | Roteador de testes (ver skill `verificar-trama`). |
-| `tools/templates/gerar.R` | Gera os templates JSON das coleções. |
+| `tools/templates/gerar.R` | Gera os templates JSON das coleções (descobre as coleções; sem exemplo, pula). |
 | `tools/site/` | Exporta docs e visuais dos nós para o site. |
 | `tools/installer/` | Instalador e r-universe. `tools/launcher/` está **obsoleto** (`DEPRECATED.md`). |
 | `tools/sugestor/` | Mineração e avaliação do sugestor de próximo bloco. |
@@ -32,7 +32,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `document.R`, `document-io.R`, `migrate.R` | Documento `.trama`, leitura/gravação e migrações. |
 | `project.R`, `store.R`, `run.R`, `runs.R`, `session.R` | Projeto, cache de resultados e histórico de execuções. |
 | `app.R` | App Shiny que serve o editor. |
-| `control.R`, `cli.R` | Canal de controle para agentes (HTTP local + token) e o CLI `trama-agente` (`inst/bin/`). |
+| `control.R`, `cli.R` | Canal de controle para agentes (HTTP local + token) e o CLI `trama-agente` (`inst/bin/`); `catalog`, `explain` e `validate` rodam sem editor. |
 | `template.R`, `theme.R`, `export.R` | Templates, temas de gráfico, exportação. |
 | `docs-bloco.R`, `test-card.R` | Documentação por bloco e `tr_test` para coleções. |
 
@@ -50,8 +50,10 @@ Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `
 | `trama.ml` | Aprendizado de máquina. |
 | `trama.series` | Séries temporais. |
 | `trama.sampling` | Amostragem. |
+| `trama.sql` | Consulta SQL local (DuckDB) devolvendo tabelas. |
+| `trama.python` | Prova de conceito: modelos scikit-learn via Python. |
 
-Dentro de uma coleção: `R/collection.R` registra tudo; `R/nos_*.R` declara os blocos; os demais arquivos têm a lógica pura; `R/docs*.R` guarda a documentação; `inst/templates/` tem os templates gerados.
+Dentro de uma coleção: `R/collection.R` registra tudo; os `tr_node` ficam em `R/nos_*.R`, `R/nodes.R` ou no próprio `collection.R`, conforme a coleção; os demais arquivos têm a lógica pura; `R/docs*.R` guarda a documentação; `inst/templates/` tem os templates gerados.
 
 ## Documentos: o que vale
 

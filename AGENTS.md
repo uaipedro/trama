@@ -25,7 +25,8 @@ Antes de assumir onde algo está, leia `docs/mapa.md`. Vocabulário (papel, ajus
 ## Mexer na trama aberta
 
 Com o editor de pé (`tr_app()`), `inst/bin/trama-agente` edita e lê o fluxo da
-tela: `help`, `state`, `catalog`, `add`, `link`, `set`, `result`, `undo`. No
+tela: `help`, `state`, `catalog`, `add`, `link`, `set`, `result`, `undo`. Sem
+editor: `catalog`, `explain <tipo>`, `validate <fluxo.json>`. No
 repo, rode com `TRAMA_DEV=$PWD Rscript inst/bin/trama-agente ...`. Uso e
 formatos: `site/src/content/docs/por-dentro/agentes.md`.
 
