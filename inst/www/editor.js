@@ -37,6 +37,7 @@ import { sugerir } from "./sugestor.js";
 import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
 import { linkDeDados } from "./links.js";
 import { criarFilaOps } from "./fila-ops.js";
+import { reusarNos } from "./reuso.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -814,7 +815,9 @@ function NdNode({ id, data, selected }) {
   ]);
 }
 
-const nodeTypes = { ndNode: NdNode, trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode };
+// `React.memo`: com `decorated` devolvendo o mesmo objeto para o card que não
+// mudou (reuso.js), um evento de execução re-renderiza só o card tocado.
+const nodeTypes = { ndNode: React.memo(NdNode), trFrame: FrameNode, trNota: NotaNode, trSolto: SoltoNode };
 
 // As portas (`Handle`) ficam sempre declaradas Left/Right — o PONTO e o LADO
 // de entrada/saída da aresta nunca mudam aqui, só a rota até lá. O problema
@@ -2442,7 +2445,9 @@ function App() {
                : cmd === "pause" ? { estado: "paused", tempo: atual.tempo }
                : cmd === "tempo" ? { estado: atual.estado, tempo }
                : atual; // "step" não muda estado nenhum pra mostrar
-    streamCtlRef.current[key] = novo;
+    // Objeto NOVO, não mutação: o card só re-renderiza se `data` mudar
+    // (reuso.js compara por identidade abaixo do primeiro nível).
+    streamCtlRef.current = { ...streamCtlRef.current, [key]: novo };
     bumpTick();
     sendInput("tr_stream_cmd", { key, cmd, tempo: tempo ?? null, seq: ++seqCounter });
   }, [bumpTick]);
@@ -2514,7 +2519,7 @@ function App() {
                               onPrender, onVista, onSoltoRect } }];
     });
   };
-  const decorated = useMemo(() => comSoltos(nodes.map((n) => {
+  const decoradoCru = useMemo(() => comSoltos(nodes.map((n) => {
     if (n.type === "trFrame") {
       return { ...n, data: { ...n.data, editing: editFrame === n.id,
                               onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd } };
@@ -2569,6 +2574,15 @@ function App() {
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
+  // Nó cujo `data` redecorado é igual ao da rodada anterior volta como o
+  // MESMO objeto (reuso.js): sem isso todo `tick` re-renderizava todos os
+  // cards, previews de coleção inclusive.
+  const reusoRef = useRef(null);
+  const decorated = useMemo(() => {
+    const r = reusarNos(reusoRef.current, decoradoCru);
+    reusoRef.current = r.mapa;
+    return r.nos;
+  }, [decoradoCru]);
 
   function sugeridosDe(id, doDoc) {
     const loc = sugeridosRef.current[id];
