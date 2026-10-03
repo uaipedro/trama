@@ -36,6 +36,7 @@ import { registrar, lerHistorico } from "./historico.js";
 import { sugerir } from "./sugestor.js";
 import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
 import { linkDeDados } from "./links.js";
+import { criarFilaOps } from "./fila-ops.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -2030,7 +2031,16 @@ function App() {
   // mensagem não muda nada visualmente — só gasta.
   const [tick, setTick] = useState(0);
   const tickPending = useRef(false);
-  const revRef = useRef(0);
+  // Revisão de partida de cada op: a confirmada mais as que estão em voo
+  // (fila-ops.js). Só a confirmada fazia a segunda de duas ops rápidas
+  // voltar recusada como `stale_rev`.
+  const filaOpsRef = useRef(null);
+  if (!filaOpsRef.current) filaOpsRef.current = criarFilaOps();
+  const enviarOp = (op) => {
+    const seq = sendOp(op, filaOpsRef.current.base());
+    filaOpsRef.current.enviada(seq);
+    return seq;
+  };
   const stateRef = useRef({});      // por nó: state, handle, error, duration
   const paramsRef = useRef({});     // params editados localmente, antes do eco
   const viewsRef = useRef({});      // vista escolhida localmente, antes do eco
@@ -2603,7 +2613,7 @@ function App() {
       }
 
       if (m.type === "document") {
-        revRef.current = m.doc.rev || 0;
+        filaOpsRef.current.documento(m.doc.rev);
         // Params locais já foram pro servidor e voltam no documento — o ref só
         // existia pro intervalo entre digitar e o eco chegar.
         paramsRef.current = {};
@@ -2652,7 +2662,7 @@ function App() {
         if (needsLayout) {
           const mv = n.filter((x) => x.type === "ndNode").map((x) => ({
             op: "move", node: x.id, x: x.position.x, y: x.position.y }));
-          if (mv.length) sendOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv }, revRef.current);
+          if (mv.length) enviarOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv });
         }
         if (m.problems?.length) {
           setBanner(m.problems.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
@@ -2662,7 +2672,7 @@ function App() {
 
       if ((m.type === "op_applied" || m.type === "op_rejected") && m.seq === organizandoSeq.current) fimOrganizar();
       if (m.type === "op_applied") {
-        revRef.current = m.rev;
+        filaOpsRef.current.aplicada(m.seq, m.rev);
         // Rede de segurança do espelho de `ops.js`: o servidor diz se a op
         // recomputa. Não recomputando, nenhuma run vai tirar os cards do "na
         // fila" que `pushOp` pintou — volta ao repouso aqui.
@@ -2684,7 +2694,7 @@ function App() {
       if (m.type === "op_rejected") {
         // A corrida do insumo (documento antigo, cache servido, preview
         // parado, sem erro) aqui é sempre explícita.
-        revRef.current = m.rev ?? revRef.current;
+        filaOpsRef.current.recusada(m.seq, m.rev);
         // Recusado com inserts encadeados na fila: eles dependem do bloco que
         // não entrou (ou sairiam de novo com revisão velha). Descarta a fila
         // em vez de deixá-la presa até recarregar.
@@ -3035,13 +3045,12 @@ function App() {
       });
       bumpTick();
     }
-    return sendOp(op, revRef.current);
+    return enviarOp(op);
   }
 
   // Várias ops de um gesto viajam num `batch`: uma revisão, um passo de undo.
-  // Soltas, a segunda já sairia com `base_rev` velho (o front só avança a
-  // revisão no eco) e o servidor recusaria todas menos a primeira, que é o
-  // que "Organizar" fazia até aqui.
+  // Soltas, cada uma seria um passo de undo e uma recomputação; e, se uma
+  // fosse recusada, as de trás cairiam junto (fila-ops.js).
   function pushMany(ops) {
     if (ops.length === 0) return null;
     return pushOp(ops.length === 1 ? ops[0] : { op: "batch", ops });
