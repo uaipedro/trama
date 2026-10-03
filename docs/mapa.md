@@ -9,7 +9,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `R/` | Núcleo (pacote `trama`). Sem domínio. |
 | `inst/www/` | Editor no navegador (JS sem build). `runtime.js` é o contrato que as coleções importam. |
 | `inst/schema/` | JSON Schema do documento (`document-v1.json`) e do template (`template-v1.json`). |
-| `tests/testthat/` | Testes do núcleo. `tests/js/` testa os módulos puros do editor com `node --test`. |
+| `tests/testthat/` | Testes do núcleo. `tests/js/` testa os módulos puros do editor com `node --test 'tests/js/*.test.mjs'` (com glob: passar o diretório faz o Node tratá-lo como arquivo e falhar). |
 | `collections/trama.*` | Coleções de blocos; cada uma é um pacote R com testes próprios. |
 | `site/` | Site de documentação (Astro). Publicado pelo `.github/workflows/docs.yml`. |
 | `tools/check.R` | Roteador de testes (ver skill `verificar-trama`). |
