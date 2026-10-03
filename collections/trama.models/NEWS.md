@@ -1,3 +1,12 @@
+# trama.models 0.6.2
+
+* Card do `models/fit` ganha a vista "coef.": mini-forest com a estimativa
+  e o IC de cada coeficiente (sem o intercepto) e a linha do zero; IC que
+  cruza o zero fica apagado. Os números são os do quadro de coeficientes que
+  o card já calculava — nada novo é estimado. Modelos cujo quadro é a ANOVA
+  (delineamentos, parcela subdividida) mostram "sem coeficientes com
+  intervalo".
+
 # trama.models 0.6.1
 
 * Contrato ganha `tr_models_loglik()` e `tr_models_nesting()` (opcionais): um modelo de outra coleção que os implementa entra no `models/compare` (razão de verossimilhança) e no `models/select` (AIC, AICc, BIC). A `trama.series` usa isso para o ARIMA.

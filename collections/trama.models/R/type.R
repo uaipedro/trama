@@ -154,7 +154,34 @@ models_fit_type <- function() {
     destaques = destaques,
     global = .tr_models_teste_global(fit),
     efeitos_titulo = if (is.null(efeitos)) NULL else efeitos$titulo,
-    linhas = if (is.null(efeitos)) list() else .tr_models_linhas_sig(efeitos)
+    linhas = if (is.null(efeitos)) list() else .tr_models_linhas_sig(efeitos),
+    forest = .tr_models_forest(efeitos)
+  )
+}
+
+#' Pontos do mini-forest do card: estimativa e intervalo de cada coeficiente,
+#' TIRADOS do quadro que o card já calculou (`tr_models_coefficients`) — nada
+#' se estima aqui. Sem colunas de intervalo (quadro da ANOVA), NULL. O
+#' intercepto sai: está noutra escala e espremeria o resto contra o zero.
+#' @noRd
+.tr_models_forest <- function(ef, max_termos = 12L) {
+  if (is.null(ef)) return(NULL)
+  t <- ef$tabela
+  col_li <- grep("^li_", names(t), value = TRUE)[1]
+  col_ls <- grep("^ls_", names(t), value = TRUE)[1]
+  if (!"estimativa" %in% names(t) || is.na(col_li) || is.na(col_ls)) return(NULL)
+  t <- t[!as.character(t$termo) %in% c("(Intercept)", "(Intercepto)"), , drop = FALSE]
+  t <- t[is.finite(t$estimativa) & is.finite(t[[col_li]]) & is.finite(t[[col_ls]]), , drop = FALSE]
+  if (!nrow(t)) return(NULL)
+  t <- utils::head(t, max_termos)
+  list(
+    nivel = sub("^li_", "", col_li),
+    pontos = lapply(seq_len(nrow(t)), function(i) {
+      termo <- as.character(t$termo[[i]])
+      if ("grupo" %in% names(t) && !is.na(t$grupo[[i]])) termo <- paste0(t$grupo[[i]], " · ", termo)
+      list(termo = termo, est = t$estimativa[[i]], li = t[[col_li]][[i]], ls = t[[col_ls]][[i]],
+           estrelas = .tr_models_estrelas(t$p_valor[[i]]))
+    })
   )
 }
 

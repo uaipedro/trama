@@ -7,6 +7,7 @@
 // reaproveitam a `Regua` e as `Estrelas` do núcleo em vez de redesenhá-las.
 
 import { h, registerRenderer, Regua, Estrelas, num, numP } from "trama";
+import { escalaForest } from "./forest.js";
 
 // ---- models/effects --------------------------------------------------------------
 
@@ -137,9 +138,40 @@ function EfeitosDoModelo({ artifact }) {
   ]);
 }
 
+// Mini-forest: um traço por coeficiente (IC) com o ponto da estimativa e a
+// linha do zero. Os números vêm prontos do R (`.tr_models_forest`); aqui só
+// se posiciona. IC que cruza o zero fica apagado.
+function Coeficientes({ artifact }) {
+  const d = artifact.data || {};
+  const f = d.forest;
+  const W = 120, LH = 13;
+  const s = f && escalaForest(f.pontos, W);
+  if (!s) return h("div", { className: "tr-empty" }, "sem coeficientes com intervalo");
+  const H = s.pontos.length * LH + 4;
+  return h("div", { className: "tr-me" }, [
+    h("div", { key: "t", className: "tr-mt-nome" }, `Coeficientes · IC ${f.nivel}%`),
+    h("div", { key: "g", className: "tr-mf-forest" }, [
+      h("div", { key: "n", className: "tr-mf-forest-termos" }, s.pontos.map((p, i) =>
+        h("div", { key: i, style: { height: LH }, title: `${p.termo}: ${num(p.est)} [${num(p.li)}; ${num(p.ls)}]` },
+          [p.termo, p.estrelas ? h("span", { key: "e", className: "tr-mf-forest-est" }, ` ${p.estrelas}`) : null]))),
+      h("svg", { key: "s", width: W, height: H, viewBox: `0 0 ${W} ${H}` }, [
+        h("line", { key: "z", x1: s.zero, x2: s.zero, y1: 0, y2: H, className: "tr-mf-forest-zero" }),
+        ...s.pontos.map((p, i) => {
+          const y = i * LH + LH / 2 + 2;
+          return h("g", { key: i, className: p.cruza ? "tr-mf-forest-nulo" : "tr-mf-forest-sig" }, [
+            h("line", { key: "l", x1: p.xli, x2: p.xls, y1: y, y2: y }),
+            h("circle", { key: "c", cx: p.x, cy: y, r: 2.5 }),
+          ]);
+        }),
+      ]),
+    ]),
+  ]);
+}
+
 registerRenderer("models/fit", {
   views: [
     { id: "ajuste", label: "ajuste", component: Ajuste },
     { id: "efeitos", label: "efeitos", component: EfeitosDoModelo },
+    { id: "coeficientes", label: "coef.", component: Coeficientes },
   ],
 });
