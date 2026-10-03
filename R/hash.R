@@ -53,7 +53,7 @@
         if (!exists(g, envir = home, inherits = FALSE) &&
             !(isNamespace(fenv) && environmentName(fenv) %in% seguidos &&
               exists(g, envir = fenv, inherits = FALSE))) next
-        parts <<- c(parts, g, rlang::hash(obj))
+        parts <<- c(parts, g, .tr_hash_valor(obj))
       }
     }
     # `outra.colecao::helper()`: o símbolo `helper` sozinho não resolve no
@@ -65,7 +65,7 @@
       obj <- tryCatch(get(q[[2]], envir = asNamespace(q[[1]]), inherits = FALSE),
                       error = function(e) NULL)
       if (is.null(obj)) next
-      parts <<- c(parts, tag, if (is.function(obj)) rlang::hash(list(body(obj), formals(obj))) else rlang::hash(obj))
+      parts <<- c(parts, tag, .tr_hash_valor(obj))
       if (is.function(obj)) walk(obj, depth - 1L)
     }
   }
@@ -388,4 +388,39 @@ tr_bust <- function(store, collection = NULL) {
   # não cobre o despausar, e está aqui escrito em vez de descoberto.
   unlink(file.path(store$root, "stream"), recursive = TRUE)
   invisible(n)
+}
+
+#' Hash de uma constante referenciada pelo nó, estável entre processos.
+#'
+#' `rlang::hash()` de uma closure ou de um ambiente cru varia com o endereço
+#' de memória em alguns builds (visto no CI, R 4.6.1: dois ambientes de
+#' conteúdo idêntico, dois hashes). Uma constante que é ou contém função ou
+#' ambiente (um `tr_type`, um ambiente de estado) dava ao mesmo documento duas
+#' chaves (`test-stream-driver.R`). Aqui a função entra como corpo + formals,
+#' o mesmo critério das funções do fecho, o ambiente pelo conteúdo, e a lista
+#' é percorrida.
+#' @noRd
+.tr_hash_valor <- function(x) {
+  vistos <- list()
+  norm <- function(v, prof) {
+    if (is.function(v)) return(list(body(v), formals(v)))
+    if (is.environment(v)) {
+      # Ambiente entra pelo CONTEÚDO, ordenado: o `rlang::hash()` de um
+      # ambiente cru varia com o endereço de memória em alguns builds (CI),
+      # e dois ambientes iguais davam chaves diferentes. Namespace e global
+      # entram pelo nome; ciclo e profundidade param a descida.
+      if (isNamespace(v) || identical(v, globalenv()) || identical(v, emptyenv()) ||
+          identical(v, baseenv())) return(paste0("<env:", environmentName(v), ">"))
+      if (prof <= 0L || any(vapply(vistos, identical, logical(1), v))) return("<env>")
+      vistos[[length(vistos) + 1L]] <<- v
+      return(lapply(as.list(v, all.names = TRUE, sorted = TRUE), norm, prof - 1L))
+    }
+    if (is.list(v) && !is.data.frame(v)) {
+      out <- lapply(v, norm, prof)
+      attributes(out) <- attributes(v)
+      return(out)
+    }
+    v
+  }
+  rlang::hash(norm(x, 4L))
 }

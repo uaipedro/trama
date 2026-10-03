@@ -66,3 +66,14 @@ test_that("fingerprint segue helpers de outras coleções (homes), qualificados 
   expect_equal(.tr_qualified_refs(function() { stats::median(1); stats::sd(2); stats::median(3) }, "stats"),
                list(c("stats", "median"), c("stats", "sd")))
 })
+
+test_that("constante que é ou contém ambiente/função tem hash pelo conteúdo", {
+  mk <- function() { e <- new.env(parent = emptyenv()); e$x <- list(1, "a"); e }
+  expect_identical(.tr_hash_valor(mk()), .tr_hash_valor(mk()))
+  expect_identical(.tr_hash_valor(list(f = function(x) x + 1, e = mk())),
+                   .tr_hash_valor(list(f = function(x) x + 1, e = mk())))
+  e2 <- mk(); e2$x <- list(2)
+  expect_false(identical(.tr_hash_valor(mk()), .tr_hash_valor(e2)))
+  cic <- new.env(); cic$eu <- cic
+  expect_type(.tr_hash_valor(cic), "character")
+})
