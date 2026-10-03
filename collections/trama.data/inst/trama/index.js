@@ -5,6 +5,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { h, registerWidget, registerRenderer } from "trama";
+import { resumoColuna, colunasOcultas } from "./perfil.js";
 
 // `expr`: expressão de R. Textarea em vez de input porque condição e resumo
 // crescem, e commit no blur (não a cada tecla) evita mandar op por caractere.
@@ -70,6 +71,37 @@ function AbntTable({ artifact, label }) {
   ]);
 }
 
+// Célula de perfil sob o nome da coluna: selo de tipo + barra de NA + forma
+// (mini-histograma SVG ou até 3 níveis). Medido em R numa amostra da tabela
+// INTEIRA, não nas 25 linhas mostradas — o title diz quando foi amostrado.
+function PerfilCel({ p, amostrado }) {
+  const r = resumoColuna(p);
+  if (!r) return h("th", { className: "tr-perfil" });
+  const W = 48, H = 14;
+  const forma = r.barras
+    ? h("svg", { key: "f", className: "tr-perfil-hist", width: W, height: H, viewBox: `0 0 ${W} ${H}` },
+        r.barras.map((b, i) => h("rect", {
+          key: i, x: i * (W / r.barras.length) + 0.5, width: W / r.barras.length - 1,
+          y: H - Math.max(b * H, b > 0 ? 1 : 0), height: Math.max(b * H, b > 0 ? 1 : 0) })))
+    : r.top
+      ? h("div", { key: "f", className: "tr-perfil-top" }, r.top.map((t, i) =>
+          h("div", { key: i, className: "tr-perfil-nivel", title: `${t.nivel}: ${Math.round(t.prop * 100)}%` }, [
+            h("span", { key: "b", style: { width: `${Math.max(2, t.prop * 100)}%` } }),
+            h("em", { key: "t" }, t.nivel),
+          ])))
+      : null;
+  const titulo = [r.tipo, r.naTexto, r.faixa, r.resto ? `+${r.resto} níveis` : null,
+                  amostrado ? "perfil numa amostra" : null].filter(Boolean).join(" · ");
+  return h("th", { className: "tr-perfil", title: titulo }, [
+    h("div", { key: "l", className: "tr-perfil-linha" }, [
+      h("span", { key: "t", className: `tr-perfil-tipo tr-perfil-${r.tipo}` }, r.tipo),
+      h("span", { key: "n", className: "tr-perfil-na" },
+        h("span", { style: { width: `${r.na * 100}%` } })),
+    ]),
+    forma,
+  ]);
+}
+
 // Mesma tabela compacta do núcleo (`Table` em runtime.js), com o gesto de
 // ampliar que o `Image` do núcleo já usa: Ctrl/⌘+clique abre o overlay, clique
 // comum continua arrastando o card — sem disputa, porque um clique com
@@ -87,6 +119,8 @@ function Table({ artifact, label }) {
   const rows = (artifact.data && artifact.data.rows) || [];
   const cols = (artifact.data && artifact.data.columns) || (rows[0] ? Object.keys(rows[0]) : []);
   const vazio = !rows.length || !cols.length;
+  const perfil = artifact.data && artifact.data.perfil;
+  const ocultas = colunasOcultas(artifact.data && artifact.data.ncol, cols.length);
 
   const overlay = aberto ? ReactDOM.createPortal(
     h("div", { className: "tr-lightbox", onClick: () => setAberto(false) },
@@ -105,7 +139,12 @@ function Table({ artifact, label }) {
     vazio
       ? h("div", { key: "e", className: "tr-empty" }, cols.length ? "sem linhas" : "sem colunas")
       : h("table", { key: "tb", className: "tr-table" }, [
-          h("thead", { key: "h" }, h("tr", null, cols.map((c) => h("th", { key: c }, c)))),
+          h("thead", { key: "h" }, [
+            h("tr", { key: "n" }, [...cols.map((c) => h("th", { key: c }, c)),
+              ocultas ? h("th", { key: "+", className: "tr-perfil-mais" }, `+${ocultas} col`) : null]),
+            perfil ? h("tr", { key: "p" }, cols.map((c) =>
+              h(PerfilCel, { key: c, p: perfil[c], amostrado: artifact.data.amostrado }))) : null,
+          ]),
           h("tbody", { key: "b" }, rows.map((r, i) =>
             h("tr", { key: i }, cols.map((c) => h("td", { key: c }, fmtCell(r[c]).na
               ? h("span", { className: "tr-na" }, "NA") : fmtCell(r[c]).text))))),

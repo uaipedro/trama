@@ -1,3 +1,11 @@
+# trama.data 0.4.1
+
+* Card do `data/table` ganha uma linha de perfil sob o cabeçalho: tipo da
+  coluna, barra de NA e mini-histograma (numérica) ou até três níveis mais
+  frequentes (fator/texto/lógica). Medido em até 5.000 linhas espaçadas da
+  tabela inteira, não nas 25 mostradas. O card recebe no máximo 30 colunas
+  ("+N col" indica o resto).
+
 # trama.data 0.4.0
 
 * Bloco único "Ler dados" (`data/read`, função `tr_read()`) no lugar de Ler
