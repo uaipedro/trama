@@ -69,7 +69,7 @@ Sem pendências abertas (25/09/2026).
 - **`series/fisher`** — o periodograma é calculado com `detrend = TRUE` (tira uma reta antes), e o p-valor usa só o primeiro termo da série exata de Fisher (1929, doi:10.1098/rspa.1929.0151), conservador; a ordenada de Nyquist (série de tamanho par) entra na soma de g. A ajuda documenta os três; a formulação original supõe ruído branco gaussiano sem remoção de tendência. **Resolvido** em 498d4a6: a divergência era real em dois pontos e foi corrigida — a ordenada de Nyquist sai (χ² com 1 gl contra 2 das outras; m = ⌊(N − 1)/2⌋) e o p-valor é a série exata inteira; o crítico publicado é o quantil exato a 5%. A remoção da reta vira parâmetro `remover` (`reta`, padrão da dissertação; `media`, formulação original); `series/fisher` versão 2. Validação: `GeneCycle::fisher.g.test` (Wichert, Fokianos & Strimmer 2004, doi:10.1093/bioinformatics/btg364) igual a 1e-10 em seis séries do `datasets` com `media`, e nos resíduos da reta com `reta`; crítico com um termo igual à fórmula fechada (m = 5: 0,6838). Decisões das cinco séries da página inalteradas (p do `lh`: 0,052 → 0,062).
 - **Erro autocorrelacionado nas regressões** — `series/regression` e os três F (`series/f_global`, `series/f_sazonal`, `series/f_tendencia`) usam mínimos quadrados ordinários, e o erro de série temporal costuma ser autocorrelacionado: p-valores otimistas. Regressão com erro ARMA / mínimos quadrados generalizados ainda sem bloco no trama (Morettin & Toloi 2006, *Análise de séries temporais*, 2. ed.). A entrada `regressor` do `series/regression` está declarada e recusa uso. **Resolvido** em 9996d62: `series/regression` ganha `erro = "arma"` (`nlme::gls` + `corARMA(p = ar, q = ma)`, ML; Pinheiro & Bates 2000, doi:10.1007/b98882), padrão MQO sem mudança de resultado (versões mantidas); com GLS os três F viram F de Wald com a covariância do GLS. Validação: `stats::arima(xreg = , method = "ML")` (coeficientes 1e-3, log-verossimilhança 1e-4), MQO de Prais-Winsten com o phi estimado (1e-8), F de Wald refeito à mão (1e-8). Tamanho medido sem tendência, AR(1), n = 120: MQO 37% / GLS 8% (phi 0,6); 69% / 17% (phi 0,9) — perto da raiz unitária o GLS ainda passa do nominal (documentado). Não validado contra exemplo resolvido de livro (Cochrane-Orcutt): sem texto acessível para conferir. **Revisão (5be3a70):** GLS singular (série reproduzida sem resíduo) recusado com `tr_series_error_singular_fit` em vez de "não convergiu"; AR do erro com raiz inversa ≥ 0,9 emite `tr_series_warn_near_unit_root` e vai para a `nota` dos três F.
 - **Testes de tendência com dependência serial** — `series/mann_kendall`, `series/cox_stuart` e `series/pettitt` supõem observações independentes; não há Mann-Kendall modificado nem pré-branqueamento (Hamed & Rao 1998, doi:10.1016/S0022-1694(97)00125-X). Lacuna: ainda sem bloco no trama. **Resolvido em parte** em 87dbce3: `series/mann_kendall` ganha `correcao` = `hamed_rao` (Hamed & Rao 1998) ou `pre_branqueamento` (livre de tendência; Yue et al. 2002, doi:10.1002/hyp.1095). Validação: `modifiedmk::mmkh` e `::tfpwmk` (1.6) a 1e-8 (diferença medida < 1e-14) em seis séries, com empates. Medido sem tendência, AR(1), 2000 réplicas, rejeição a 5% (nenhuma / Hamed-Rao / pré-branqueamento): phi 0,6, n = 60: 30,7% / 21,1% / 39,4%; ruído branco: 5,1% / 8,5% / 4,7% — nenhuma correção devolve o nível e o pré-branqueamento piora (Hamed 2009, doi:10.1016/j.jhydrol.2009.01.040); documentado. **Revisão:** `correcao = "bootstrap_blocos"` (blocos móveis de round(√n), 1999 reamostras, semente do nó; Kundzewicz & Robson 2004, doi:10.1623/hysj.49.1.7.53993) no `series/mann_kendall` (8dd2edb) e no `series/cox_stuart` e `series/pettitt` (cfb1f3e). Oráculo da mecânica: bootstrap à mão com a mesma semente, igual exatamente. Nível medido (AR(1), sem tendência, 1000 réplicas, 5%; n = 60/120): MK phi 0,3 7,2/5,5%, phi 0,6 9,0/7,7% (sem correção 31%); Cox-Stuart 4,4/3,8% e 5,5/6,6%; Pettitt 3,5/4,6% e 8,7/7,8% — nominal com autocorrelação moderada, acima dele com phi 0,6 (documentado; opção, não padrão). Pré-branqueamento conferido na fonte (61fdd23): Yue et al. (2002, p. 1822-1823) removem o AR(1) sempre, sem teste de significância (o teste B.1 só seleciona estações); o r1 da eq. 14a é n/(n − 1) vezes o do `acf` usado pelo `modifiedmk` — documentado.
-- **Lacunas de modelagem** — sem intervalos de previsão por bootstrap, sem modelo de intervenção (ARIMA com regressor de degrau/pulso) e sem teste de raiz unitária com duas quebras; os pressupostos de `series/arima`, `series/ets`, `series/forecast` e `series/zivot_andrews` apontam para essas lacunas. **Resolvido em parte:** intervalos por bootstrap em `series/forecast` (57fc01e; `intervalo = "bootstrap"`, oráculo `forecast::forecast(bootstrap = TRUE, npaths = 5000)` com a mesma semente, 1e-12) e bloco `series/intervencao` (e5235ac; Box & Tiao 1975, doi:10.1080/01621459.1975.10480264, forma de ordem zero com degrau/pulso/rampa; oráculo `forecast::Arima(xreg = )` a 1e-8; Seatbelts com degrau = coluna `law`: ω = −0,2397, EP 0,0433 — valores de Harvey & Durbin 1986 não conferidos). Resposta gradual **resolvida** em 201df6a: `resposta = "gradual"`, ω/(1 − δB) para degrau e pulso, δ perfilado, EP pela hessiana completa; oráculo `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 (Cryer & Chan 2008, cap. 11, doi:10.1007/978-0-387-75959-3) no airmiles 2001-09, a 1e-3 (pulso: ω = −0,3459, δ = 0,6947). **Pendente:** raiz unitária com duas quebras (ver Pendências).
+- **Lacunas de modelagem** — sem intervalos de previsão por bootstrap, sem modelo de intervenção (ARIMA com regressor de degrau/pulso) e sem teste de raiz unitária com duas quebras; os pressupostos de `series/arima`, `series/ets`, `series/forecast` e `series/zivot_andrews` apontam para essas lacunas. **Resolvido em parte:** intervalos por bootstrap em `series/forecast` (57fc01e; `intervalo = "bootstrap"`, oráculo `forecast::forecast(bootstrap = TRUE, npaths = 5000)` com a mesma semente, 1e-12) e bloco `series/intervencao` (e5235ac; Box & Tiao 1975, doi:10.1080/01621459.1975.10480264, forma de ordem zero com degrau/pulso/rampa; oráculo `forecast::Arima(xreg = )` a 1e-8; Seatbelts com degrau = coluna `law`: ω = −0,2397, EP 0,0433 — valores de Harvey & Durbin 1986 não conferidos). Resposta gradual **resolvida** em 201df6a (o bloco foi refeito na 0.7.0: ver "Intervenções declaradas antes do modelo"): `resposta = "gradual"`, ω/(1 − δB) para degrau e pulso, δ perfilado, EP pela hessiana completa; oráculo `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 (Cryer & Chan 2008, cap. 11, doi:10.1007/978-0-387-75959-3) no airmiles 2001-09, a 1e-3 (pulso: ω = −0,3459, δ = 0,6947). **Pendente:** raiz unitária com duas quebras (ver Pendências).
 
 ## Integração 9.1b (coesão das coleções × main, 25/09/2026)
 
@@ -295,3 +295,46 @@ contra `anova.negbin`, 1e-8; tipo II contra `car::Anova`, 1e-8. Os valores
 impressos do livro não foram conferidos página a página (a referência numérica é o
 pacote do mesmo autor). Teste:
 `collections/trama.models/tests/testthat/test-binomial-negativa.R`.
+
+## Intervenções declaradas antes do modelo; detecção de Chen & Liu (05/10/2026)
+
+`trama.series` 0.7.0. `series/intervencao` (v2) deixou de ajustar: só anota a
+série (carimbo com valores e calendário), e o `series/arima` estima as
+intervenções junto com o ARMA. Tipos: pulso (AO), degrau (LS), rampa e
+inovacional (IO) (Fox, 1972, doi:10.1111/j.2517-6161.1972.tb00912.x; Chen e
+Liu, 1993, doi:10.1080/01621459.1993.10594321); dinâmica gradual ω/(1 − δB)
+de Box e Tiao (1975). Mudou o resultado do bloco (tabela → série), por isso
+v2 com migração dos params (`resposta` → `dinamica`, ordens saem).
+
+- **Imediatas**: `forecast::Arima(xreg = )`, uma coluna por intervenção.
+  Oráculo: a mesma chamada a 1e-8 (Seatbelts, degrau = coluna `law`, ω =
+  −0,2397; Nile com rampa e pulso juntos, coeficientes e EP).
+- **Gradual**: δ perfilado, EP pela hessiana da verossimilhança completa,
+  agora com δ contado no AIC/AICc/BIC e no `k` do `models/select` (antes o
+  bloco não reportava AIC). Oráculo inalterado: `TSA::arimax` 1.3.1 no
+  airmiles a 1e-3. Previsão: o regressor continua o filtro (pulso decai como
+  δ^h, conferido a 1e-12).
+- **Inovacional**: regressor = pesos ψ do modelo inteiro (AR com (1 − B)^d
+  (1 − B^s)^D, MA) a partir da data, recalculados até o ponto fixo (|Δcoef| <
+  1e-8; quando o `optim` oscila no 3º–4º algarismo, como no SARIMA(1,1,1)(1,1,1)
+  do log(AirPassengers), aceita-se variação relativa < 1e-3, e o reajuste com o
+  regressor final confere a 1e-3). Oráculo: `tsoutliers::outliers.effects(pars = coefs2poly(ajuste))`
+  0.6-10 a 1e-8 (Nile, ARIMA(1,1,1) e AR(2); Seatbelts sazonal com d = D = 1)
+  e reajuste `Arima(xreg = )` com esse regressor a 1e-6. O `tso` usa os
+  parâmetros da etapa anterior; aqui são os do próprio ajuste. O EP de ω trata
+  ψ como conhecido (limitação declarada na ajuda).
+- **Automático com intervenções**: `auto.arima(xreg = )` com os regressores na
+  forma imediata; com IO ou gradual, a ordem escolhida é reajustada inteira (a
+  ordem é escolhida num modelo aproximado — limitação declarada).
+- **Recusas**: previsão `bootstrap` com intervenções (o `simulate.Arima` do
+  forecast 9.0.2 não recebe o `xreg` futuro nem a deriva); ETS, Holt-Winters e
+  `series/regression` recusam série com intervenções em vez de ignorá-las.
+- **`series/detect_interventions`**: `tsoutliers::tso()` (Chen e Liu, 1993),
+  tipos AO/LS/TC/IO, valor crítico do pacote (3 a 4 pelo n) ou informado,
+  modelo ligado (`tsmethod = "arima"` com a ordem dele) ou automático.
+  Oráculo: igualdade com a mesma chamada; no Nilo, degrau em 1899 (ω =
+  −242,2, t = −9,05), a data da barragem de Assuã (Cobb, 1978,
+  doi:10.1093/biomet/65.2.243). O pulso de 1913 que o `tso` também acha não foi
+  conferido contra a literatura.
+
+Teste: `collections/trama.series/tests/testthat/test-intervencao.R`.

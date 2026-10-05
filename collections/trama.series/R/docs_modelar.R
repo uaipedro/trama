@@ -10,7 +10,7 @@
   sem_quebra <- P(
     "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
     verificar = c("series/plot", "series/pettitt", "series/zivot_andrews"),
-    se_falhar = "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa).")
+    se_falhar = "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, declare-a com `series/intervencao` antes do `series/arima`, que estima o efeito.")
   hyndman_khandakar <- R(autores = c("Hyndman, R. J.", "Khandakar, Y."), ano = 2008,
                          titulo = "Automatic time series forecasting: the forecast package for R",
                          fonte = "Journal of Statistical Software, 27(3), 1-22",
@@ -27,6 +27,17 @@
   winters <- R(autores = "Winters, P. R.", ano = 1960,
                titulo = "Forecasting sales by exponentially weighted moving averages",
                fonte = "Management Science, 6(3), 324-342", doi = "10.1287/mnsc.6.3.324")
+  box_tiao <- R(autores = c("Box, G. E. P.", "Tiao, G. C."), ano = 1975,
+                titulo = "Intervention analysis with applications to economic and environmental problems",
+                fonte = "Journal of the American Statistical Association, 70(349), 70-79",
+                doi = "10.1080/01621459.1975.10480264")
+  chen_liu <- R(autores = c("Chen, C.", "Liu, L.-M."), ano = 1993,
+                titulo = "Joint estimation of model parameters and outlier effects in time series",
+                fonte = "Journal of the American Statistical Association, 88(421), 284-297",
+                doi = "10.1080/01621459.1993.10594321")
+  fox <- R(autores = "Fox, A. J.", ano = 1972, titulo = "Outliers in time series",
+           fonte = "Journal of the Royal Statistical Society, Series B, 34(3), 350-363",
+           doi = "10.1111/j.2517-6161.1972.tb00912.x")
   list(
     "series/arima" = list(
       pressupostos = list(
@@ -46,33 +57,48 @@
         sem_quebra),
       referencias = list(L$box_jenkins, hyndman_khandakar, L$morettin, L$fpp3,
         I("forecast", "auto.arima",
-          "Com Automático: busca passo a passo pelo menor AICc; `d` pelo KPSS e `D` pela força sazonal (padrões do pacote); `seasonal`, `allowdrift` e `allowmean` vêm dos params. Manual: `forecast::Arima(order, seasonal, include.constant)`, por máxima verossimilhança."))),
+          "Com Automático: busca passo a passo pelo menor AICc; `d` pelo KPSS e `D` pela força sazonal (padrões do pacote); `seasonal`, `allowdrift` e `allowmean` vêm dos params. Manual: `forecast::Arima(order, seasonal, include.constant)`, por máxima verossimilhança."),
+        box_tiao, chen_liu,
+        I("trama.series", "tr_series_arima",
+          "Com intervenções declaradas: `forecast::Arima(xreg = )` com uma coluna por intervenção (pulso, degrau, rampa), conferido contra a mesma chamada a 1e-8 (Seatbelts, degrau = coluna `law`). Gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ perfilado (`optimize` em (−0,999; 0,999)), EP pela hessiana numérica (`optimHess`) da verossimilhança completa, δ contado no AIC; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles a 1e-3. Inovacional: regressor = pesos ψ do modelo inteiro (com as diferenças) a partir da data, recalculados até o ponto fixo (|Δcoef| < 1e-8); o regressor confere com `tsoutliers::outliers.effects(pars = coefs2poly(ajuste))` a 1e-8, e o ajuste com o `Arima(xreg = )` desse regressor a 1e-6."))),
 
     "series/intervencao" = list(
       pressupostos = list(
         P("A **data** da intervenção é conhecida de antemão, e não escolhida pelo maior salto da própria série: escolhê-la pelo dado e testá-la no mesmo dado torna o p-valor otimista.",
-          verificar = c("series/range_mean", "series/plot"),
-          se_falhar = "Para procurar a data, `series/pettitt` ou `series/zivot_andrews`; depois confirme em outra série ou período."),
-        P("Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
-          verificar = c("series/window", "series/arima", "series/ndiffs"),
-          se_falhar = "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e use-a aqui."),
-        P("Com **Resposta** = `imediata`, o efeito entra **inteiro na data** (forma de ordem zero); com `gradual`, segue ω/(1 − δB) com |δ| < 1 — uma resposta de outra forma (duas taxas, atraso) não é modelada.",
+          verificar = c("series/plot"),
+          se_falhar = "Para procurar datas, `series/detect_interventions` ou `series/pettitt`; trate o achado como hipótese e confirme em outra série ou período."),
+        P("O **tipo** descreve a forma do efeito: um período (pulso), nível que muda e fica (degrau), inclinação que muda (rampa), choque que segue a dinâmica do ruído (inovacional) ou efeito que cresce ou se desfaz à razão δ (gradual, |δ| < 1). Forma errada deixa o efeito nos resíduos.",
           verificar = c("series/plot", "series/residuals"),
-          se_falhar = "Se o resíduo mostra o efeito chegando aos poucos, use `gradual`; se δ vai para a borda, troque o degrau pela rampa."),
-        residuo_branco(),
-        P("O IC e o p-valor são de **Wald** (normal assintótica da máxima verossimilhança): pedem resíduos aproximadamente normais e série não muito curta.",
-          verificar = c("series/residuals", "view/qq"))),
-      referencias = list(
-        R(autores = c("Box, G. E. P.", "Tiao, G. C."), ano = 1975,
-          titulo = "Intervention analysis with applications to economic and environmental problems",
-          fonte = "Journal of the American Statistical Association, 70(349), 70-79",
-          doi = "10.1080/01621459.1975.10480264"),
-        L$box_jenkins, L$fpp3,
+          se_falhar = "Olhe os resíduos do `series/arima` perto da data; troque o tipo ou a dinâmica e compare os AIC com `models/select`."),
+        P("Fora da intervenção, a série é um **ARIMA estável** da ordem do modelo, com a mesma dinâmica antes e depois.",
+          verificar = c("series/window", "series/arima", "series/ndiffs"),
+          se_falhar = "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e fixe-a no modelo com a intervenção."),
+        P("A intervenção é declarada na **série que vai ao modelo**: transformação, recorte ou diferença depois dela mudariam o sentido do efeito (o `series/arima` recusa).")),
+      referencias = list(box_tiao, fox, chen_liu, L$morettin, L$box_jenkins,
         R(autores = c("Cryer, J. D.", "Chan, K.-S."), ano = 2008,
           titulo = "Time Series Analysis: With Applications in R", fonte = "2. ed. New York: Springer (cap. 11)",
           doi = "10.1007/978-0-387-75959-3"),
-        I("forecast", "Arima",
-          "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8. Resposta gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ pela verossimilhança perfilada (`optimize` em (−0,999; 0,999)), erro-padrão pela hessiana numérica (`optimHess`) da verossimilhança completa; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles (degrau e pulso em 2001-09) a 1e-3."))),
+        I("trama.series", "tr_series_intervencao",
+          "Só valida a data e anota a intervenção na série (atributo carimbado com valores e calendário); a estimação é do `series/arima`."))),
+
+    "series/detect_interventions" = list(
+      pressupostos = list(
+        P("A série é um **ARIMA** (o do modelo ligado ou o escolhido pelo `auto.arima`) mais alguns efeitos pontuais; a assinatura de cada tipo nos resíduos depende desse modelo, e um modelo mal especificado gera candidatos espúrios.",
+          verificar = c("series/arima", "series/residuals", "series/ljung_box"),
+          se_falhar = "Ajuste o modelo à mão (`series/arima`) e ligue-o na entrada **modelo**."),
+        P("É uma **busca múltipla** (todo instante, todo tipo): mesmo com valor crítico 3 a 4, a chance de um candidato espúrio cresce com o tamanho da série. Os candidatos são hipóteses, não intervenções confirmadas.",
+          se_falhar = "Declare com `series/intervencao` só o que tiver explicação externa."),
+        P("Um **degrau** detectado se confunde com raiz unitária: diferenças de menos inventam degraus, e de mais os absorvem.",
+          verificar = c("series/zivot_andrews", "series/ndiffs"))),
+      referencias = list(chen_liu, fox, L$morettin,
+        R(autores = "Cobb, G. W.", ano = 1978,
+          titulo = "The problem of the Nile: Conditional solution to a changepoint problem",
+          fonte = "Biometrika, 65(2), 243-251", doi = "10.1093/biomet/65.2.243", papel = "complementar"),
+        R(autores = "López-de-Lacalle, J.", ano = 2024, titulo = "tsoutliers: Detection of Outlying Observations in Time Series",
+          fonte = "Pacote R, versão 0.6-10", url = "https://CRAN.R-project.org/package=tsoutliers",
+          papel = "complementar"),
+        I("tsoutliers", "tso",
+          "`types` dos params (AO, LS, TC, IO), `cval` = valor crítico (omitido com 0: regra do pacote, 3 até n = 50, 4 a partir de 450), `delta = 0,7` para TC. Com **modelo**: `tsmethod = \"arima\"` com a ordem dele; sem: `auto.arima`. Conferido contra a mesma chamada (igualdade exata) e, no Nilo, o degrau de 1899 (barragem de Assuã; Cobb 1978) com ω = −242,2, t = −9,05."))),
 
     "series/ets" = list(
       pressupostos = list(

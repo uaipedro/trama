@@ -23,6 +23,7 @@
 tr_series_regression <- function(serie, formula = "valor ~ t + periodo", contraste = "soma_zero",
                                  regressor = NULL, erro = "independente", ar = 1L, ma = 0L,
                                  excluir = "", remover_ns = FALSE, confianca = 0.95) {
+  .tr_series_sem_intervencao(serie, "series/regression")
   no <- "series/regression"
   contraste <- .tr_series_enum(contraste, c("soma_zero", "categoria_base"), "contraste")
   erro <- .tr_series_enum(erro, c("independente", "arma"), "erro")

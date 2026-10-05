@@ -47,6 +47,8 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `caminho` | pasta, arquivo ou banco local que fornece tabelas para consulta SQL (sql/source) | — |
 | `consulta` | instrução SQL de leitura (sql/query) | — |
 | `fonte` | porta de entrada da fonte consultável por SQL (sql/query) | — |
+| `dinamica` | forma no tempo do efeito de uma intervenção: `imediata` ou `gradual` (ω/(1 − δB)) (series/intervencao) | `resposta` (series/intervencao versão 1) |
+| `valor_critico` | limiar de \|t\| acima do qual um candidato é marcado numa busca múltipla; 0 = regra automática (series/detect_interventions) | — |
 
 ## Homônimos permitidos
 

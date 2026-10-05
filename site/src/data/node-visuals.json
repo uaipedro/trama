@@ -10870,7 +10870,7 @@
     "accent": "#31765a",
     "hasInput": true,
     "hasOutput": true,
-    "label": "ARIMA",
+    "label": "ARIMA / SARIMA",
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 41,
@@ -11202,6 +11202,73 @@
       }
     ],
     "icon": "layers-2"
+  },
+  "series/detect_interventions": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Detectar intervenções",
+    "category": "serie_modelar",
+    "categoryLabel": "Modelar",
+    "categoryOrder": 41,
+    "inputColor": "#34d399",
+    "outputColor": "#38bdf8",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "serie",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "modelo",
+        "color": "#f59e0b",
+        "required": false,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "pulso",
+        "kind": "boolean",
+        "label": "Pulso (AO)",
+        "default": true
+      },
+      {
+        "name": "degrau",
+        "kind": "boolean",
+        "label": "Degrau (LS)",
+        "default": true
+      },
+      {
+        "name": "temporaria",
+        "kind": "boolean",
+        "label": "Temporária (TC)",
+        "default": true
+      },
+      {
+        "name": "inovacional",
+        "kind": "boolean",
+        "label": "Inovacional (IO)",
+        "default": false
+      },
+      {
+        "name": "valor_critico",
+        "kind": "number",
+        "label": "Valor crítico",
+        "default": 0
+      }
+    ],
+    "icon": "scan-search"
   },
   "series/detrend": {
     "accent": "#976523",
@@ -11653,7 +11720,7 @@
     "categoryLabel": "Modelar",
     "categoryOrder": 41,
     "inputColor": "#34d399",
-    "outputColor": "#38bdf8",
+    "outputColor": "#34d399",
     "role": "ajuste",
     "inputs": [
       {
@@ -11666,7 +11733,7 @@
     "outputs": [
       {
         "name": "out",
-        "color": "#38bdf8",
+        "color": "#34d399",
         "required": true,
         "multiple": false
       }
@@ -11684,54 +11751,12 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "degrau",
-        "choices": ["degrau", "pulso", "rampa"]
+        "choices": ["pulso", "degrau", "rampa", "inovacional"]
       },
       {
-        "name": "p",
-        "kind": "integer",
-        "label": "p (AR)",
-        "default": 0
-      },
-      {
-        "name": "d",
-        "kind": "integer",
-        "label": "d (diferenças)",
-        "default": 1
-      },
-      {
-        "name": "q",
-        "kind": "integer",
-        "label": "q (MA)",
-        "default": 1
-      },
-      {
-        "name": "P",
-        "kind": "integer",
-        "label": "P (AR sazonal)",
-        "default": 0
-      },
-      {
-        "name": "D",
-        "kind": "integer",
-        "label": "D (diferença sazonal)",
-        "default": 0
-      },
-      {
-        "name": "Q",
-        "kind": "integer",
-        "label": "Q (MA sazonal)",
-        "default": 0
-      },
-      {
-        "name": "constante",
-        "kind": "boolean",
-        "label": "Constante",
-        "default": false
-      },
-      {
-        "name": "resposta",
+        "name": "dinamica",
         "kind": "enum",
-        "label": "Resposta",
+        "label": "Dinâmica",
         "default": "imediata",
         "choices": ["imediata", "gradual"]
       }

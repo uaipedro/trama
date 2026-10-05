@@ -1007,9 +1007,9 @@ paramétricas.
       trama::tr_node("series/arima",
         pressupostos = .tr_series_doc("series/arima")$pressupostos,
         referencias = .tr_series_doc("series/arima")$referencias,
-        fn = tr_series_arima, label = "ARIMA",
+        fn = tr_series_arima, label = "ARIMA / SARIMA",
         category = "serie_modelar", icon = icone("sigma"),
-        description = "Ajusta um ARIMA sazonal, automático ou com a ordem escolhida.",
+        description = "Ajusta um ARIMA ou SARIMA (com parte sazonal), automático ou com a ordem escolhida; estima as intervenções declaradas antes.",
         inputs = list(serie = S), outputs = list(out = M),
         params = list(
           automatico = B(TRUE, label = "Automático"),
@@ -1051,6 +1051,38 @@ estimada, porque não é identificável.
 Transformação (log, Box-Cox) não é param daqui: é o `series/transform` antes,
 visível no fio.
 
+### SARIMA
+
+A parte sazonal (P, D, Q) usa o ciclo da série: 12 numa mensal, 4 numa
+trimestral. Um SARIMA(0,1,1)(0,1,1)[12] — o "modelo das companhias aéreas" de
+Box e Jenkins — é Automático desligado, d = 1, q = 1, D = 1, Q = 1.
+
+### Intervenções
+
+Se a série chega de blocos `series/intervencao`, cada intervenção declarada
+vira um termo do modelo (`degrau_1983_fev`, `pulso_1913`), estimado por máxima
+verossimilhança junto com o ARMA (Box e Tiao, 1975): o erro-padrão do efeito já
+leva em conta a autocorrelação. Pulso, degrau e rampa entram como regressores;
+com diferenças, o regressor é diferenciado junto e o ω continua sendo o efeito
+na série original. O **inovacional** entra filtrado pelos pesos ψ do próprio
+modelo, recalculados até o ψ do regressor ser o do ajuste que ele produz
+(ponto fixo, até a precisão do otimizador; o erro-padrão de ω trata ψ como
+conhecido). A **gradual** tem o δ
+estimado por verossimilhança perfilada e entra no AIC; o card mostra δ e o
+efeito de longo prazo, e `models/coefficients` dá os erros-padrão com a
+covariância completa.
+
+No Automático com intervenções, a busca escolhe a ordem com os regressores na
+forma imediata; com inovacional ou gradual, a ordem escolhida é reajustada com
+eles inteiros. A previsão (`series/forecast`) estende cada efeito sozinha: o
+pulso volta a zero, o degrau fica, a rampa segue. O intervalo `bootstrap` não
+vale com intervenções (o `forecast` não simula com os regressores); use o
+`normal`. ETS, Holt-Winters e `series/regression` não estimam intervenções e
+recusam a série que chega com elas.
+
+Com intervenções, este bloco não aceita faltantes: série com buraco põe o nó
+em vermelho. Ligue um `series/interpolate` antes.
+
 Falha de ajuste ("non-stationary AR part") para o nó com a mensagem do
 `forecast` logo abaixo da nossa.
 ]---", r"---[
@@ -1060,8 +1092,8 @@ Falha de ajuste ("non-stationary AR part") para o nó com a mensagem do
 - **p**, **d**, **q** — ordens da parte não sazonal (só no manual).
 - **P**, **D**, **Q** — ordens da parte sazonal (só no manual).
 ]---", r"---[
-Um modelo (`series/model`). O card mostra os coeficientes; o resumo, o nome do
-modelo, o AIC e o desvio dos resíduos.
+Um modelo (`series/model`). O card mostra os coeficientes (e as intervenções,
+se houver); o resumo, o nome do modelo, o AIC e o desvio dos resíduos.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
@@ -1071,76 +1103,75 @@ tr_flow(reg) |>
 ]---", r"---[
 `series/forecast` para prever; `series/residuals` e `series/ljung_box` para
 diagnosticar; `series/ndiffs`, `series/acf` e `series/pacf` para escolher a
-ordem à mão; `series/ets` para a alternativa por suavização exponencial.
+ordem à mão; `series/intervencao` para declarar eventos;
+`series/detect_interventions` para procurá-los; `series/ets` para a
+alternativa por suavização exponencial.
 ]---")),
 
-      trama::tr_node("series/intervencao",
+      trama::tr_node("series/intervencao", version = 2L,
+        # v2: o bloco só DECLARA a intervenção (carimba a série); o ajuste é do
+        # `series/arima`. As ordens do ARIMA saem dos params e `resposta`
+        # vira `dinamica` (o glossário reserva `resposta` para a coluna
+        # explicada). A saída deixa de ser tabela: o fluxo antigo religa a
+        # série num `series/arima`.
+        migracoes = list(`2` = function(params) {
+          params$dinamica <- params$resposta %||% "imediata"
+          params[c("resposta", "p", "d", "q", "P", "D", "Q", "constante")] <- NULL
+          params
+        }),
         pressupostos = .tr_series_doc("series/intervencao")$pressupostos,
         referencias = .tr_series_doc("series/intervencao")$referencias,
         fn = tr_series_intervencao, label = "Intervenção",
         category = "serie_modelar", icon = icone("milestone"),
-        description = "ARIMA com degrau, pulso ou rampa numa data: quanto um evento mudou a série?",
-        inputs = list(serie = S), outputs = list(out = T),
+        description = "Declara um evento numa data (pulso, degrau, rampa ou inovacional) para o modelo seguinte estimar.",
+        inputs = list(serie = S), outputs = list(out = S),
         params = list(
           data = P("text", "", label = "Data da intervenção", example = "1983, 2"),
-          tipo = E("degrau", c("degrau", "pulso", "rampa"), label = "Tipo"),
-          p = I(0L, min = 0L, max = 5L, label = "p (AR)"),
-          d = I(1L, min = 0L, max = 2L, label = "d (diferenças)"),
-          q = I(1L, min = 0L, max = 5L, label = "q (MA)"),
-          P = I(0L, min = 0L, max = 2L, label = "P (AR sazonal)"),
-          D = I(0L, min = 0L, max = 1L, label = "D (diferença sazonal)"),
-          Q = I(0L, min = 0L, max = 2L, label = "Q (MA sazonal)"),
-          constante = B(FALSE, label = "Constante"),
-          resposta = E("imediata", c("imediata", "gradual"), label = "Resposta")),
+          tipo = E("degrau", c("pulso", "degrau", "rampa", "inovacional"), label = "Tipo"),
+          dinamica = trama::tr_when(E("imediata", c("imediata", "gradual"), label = "Dinâmica"),
+                                    tipo = c("pulso", "degrau"))),
         help = .tr_series_ajuda(r"---[
-Mede o efeito de um EVENTO numa data conhecida — uma lei, uma mudança de
-política, um acidente — sobre a série: o modelo de intervenção de Box e Tiao
-(1975). A série é um ARIMA mais um regressor que liga na data:
+Marca na série um EVENTO numa data conhecida — uma lei, uma greve, um dado
+errado — para o modelo seguinte (`series/arima`) estimar o efeito dele junto
+com a dinâmica da série. O bloco não ajusta nada: devolve a mesma série,
+com a intervenção anotada. Para declarar várias, encadeie vários blocos.
 
-- **degrau** — 0 antes, 1 da data em diante: o nível MUDOU e ficou.
-- **pulso** — 1 só na data: um choque de um período.
-- **rampa** — 0 antes, 1, 2, 3, ... a partir da data: a inclinação mudou.
+É a análise de intervenção de Box e Tiao (1975), com os quatro tipos que a
+literatura de outliers usa (Fox, 1972; Chen e Liu, 1993; Morettin e Toloi,
+2006):
 
-O coeficiente ω do regressor é o efeito, estimado junto com o ARIMA por
-máxima verossimilhança; o erro-padrão já leva em conta a autocorrelação, o que
-uma comparação ingênua de médias antes e depois não faz.
+- **pulso** — o outlier ADITIVO (AO): 1 só na data. Um período fora do
+  lugar, e a série volta como se nada tivesse acontecido.
+- **degrau** — a mudança de NÍVEL (LS): 0 antes, 1 da data em diante.
+- **rampa** — a mudança de INCLINAÇÃO: 0 antes, 1, 2, 3, ... a partir da data.
+- **inovacional** — o outlier INOVACIONAL (IO): um choque no ruído da data,
+  que se propaga pela dinâmica do próprio modelo, ψ(B) = θ(B)/φ(B). Num
+  modelo com raiz unitária ele vira um degrau; num AR estável, um eco que se
+  apaga. Por depender do modelo, só existe dentro do ajuste — e é por isso
+  que a intervenção é declarada aqui e estimada lá.
+
+### Dinâmica gradual
+
+Com **Dinâmica** = `gradual` (pulso ou degrau), o efeito entra pela função
+de transferência ω/(1 − δB): no primeiro período vale ω, e cada período soma
+δ vezes o anterior. O pulso gradual se desfaz à razão δ por período (é a
+mudança temporária, TC, que a detecção usa com δ = 0,7 fixo; aqui δ é
+estimado); o degrau gradual cresce até o nível de longo prazo ω/(1 − δ). Uma
+intervenção gradual por modelo.
 
 ### A data vem de FORA
 
-A data é informada, não procurada: é o que se sabia antes de olhar o gráfico.
-Escolher a data pelo maior salto da própria série e depois testá-la aqui é
-testar a hipótese com o dado que a sugeriu, e o p-valor sai otimista. Para
-PROCURAR uma quebra, `series/pettitt` ou `series/zivot_andrews`.
+A data é o que se sabia antes de olhar o gráfico. Escolhê-la pelo maior salto
+da própria série e depois testá-la é usar o dado que sugeriu a hipótese, e o
+p-valor sai otimista. Para PROCURAR datas, `series/detect_interventions`
+(e trate o que ela achar como hipótese a explicar).
 
-### Série em log
+### Logo antes do modelo
 
-Com a série no log (`series/transform`), o degrau é uma mudança
-PROPORCIONAL, e a coluna `efeito_pct` = 100·(exp(ω) − 1) a traduz em
-porcentagem. Sem log, ignore essa coluna: o efeito é o ω, na unidade da série.
-
-### A ordem do ARIMA
-
-Escolha a ordem do ruído no trecho ANTES da intervenção (`series/window` →
-`series/arima` automático) e repita aqui. Com diferenças (d ou D), o regressor
-é diferenciado junto: o degrau numa série diferenciada vira um pulso na
-diferença, e o ω continua sendo a mudança de nível.
-
-Com **Resposta** = `imediata` (padrão), é a forma de ordem zero: o efeito
-entra inteiro na data.
-
-### Resposta gradual
-
-Com **Resposta** = `gradual` (degrau ou pulso), o efeito entra pela função de
-transferência de Box e Tiao, ω/(1 − δB): no primeiro período ele vale ω, e
-depois cada período soma δ vezes o anterior. No degrau, o efeito cresce (ou
-encolhe) até o nível de longo prazo ω/(1 − δ), que sai numa linha própria
-(`efeito_longo_prazo`, com erro-padrão pelo método delta); no pulso, o choque
-se desfaz aos poucos, à razão δ por período. δ é estimado junto com o ARIMA
-por máxima verossimilhança (perfilada em δ), com erro-padrão da hessiana
-completa. Conferido contra o `TSA::arimax` (Cryer e Chan, 2008) no tráfego
-aéreo dos EUA depois de 11/09/2001: pulso gradual com ω = −0.346 e δ = 0.695,
-a menos de 1e-3. Um δ na borda (|δ| > 0.99) é recusado: a resposta não se
-estabiliza, e o degrau (ou a rampa) descreve melhor.
+A intervenção vale para a série exata em que foi declarada. Um
+`series/transform`, `series/window` ou `series/diff` DEPOIS dela muda o
+sentido do efeito, e o `series/arima` para em vermelho pedindo para trazer os
+blocos de intervenção para depois da transformação.
 
 ### Faltantes
 
@@ -1149,28 +1180,100 @@ um `series/interpolate` antes.
 ]---", r"---[
 - **Data da intervenção** — o período, como `1983, 2` (fevereiro de 1983) ou
   só o ano numa série anual. Precisa haver ao menos uma observação antes.
-- **Tipo** — `degrau` (padrão), `pulso` ou `rampa`.
-- **p, d, q** e **P, D, Q** — a ordem do ARIMA do ruído.
-- **Constante** — média (ou deriva, com uma diferença) no modelo.
-- **Resposta** — `imediata` (padrão, ordem zero) ou `gradual` (ω/(1 − δB),
-  só degrau e pulso).
+- **Tipo** — `pulso` (AO), `degrau` (LS, padrão), `rampa` ou `inovacional` (IO).
+- **Dinâmica** — `imediata` (padrão) ou `gradual` (ω/(1 − δB)); só pulso e degrau.
 ]---", r"---[
-Uma tabela, uma linha por coeficiente, a da intervenção primeiro: `termo`,
-`estimativa`, `erro_padrao`, `li_95`, `ls_95` (IC de Wald), `z`, `p_valor` e
-`efeito_pct` (só na linha da intervenção). Com resposta gradual, vêm também
-a linha `delta` e, no degrau, `efeito_longo_prazo` (com o `efeito_pct` dele);
-o `efeito_pct` da linha `intervencao` fica vazio, porque ω é só o primeiro
-período.
+A mesma série (`series/ts`), com a intervenção declarada. O coeficiente sai
+no `series/arima` com o nome do tipo e da data (`degrau_1983_fev`).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
   tr_add("log", "series/transform", from = "sb") |>
-  tr_add("lei", "series/intervencao", data = "1983, 2", p = 1L, d = 0L, q = 0L,
-         P = 1L, D = 1L, Q = 1L, from = "log")
+  tr_add("lei", "series/intervencao", data = "1983, 2", tipo = "degrau", from = "log") |>
+  tr_add("arima", "series/arima", automatico = FALSE, p = 1L, d = 0L, q = 0L,
+         P = 1L, D = 1L, Q = 1L, constante = FALSE, from = "lei") |>
+  tr_add("coef", "models/coefficients", from = "arima")
 ]---", r"---[
-`series/arima` para escolher a ordem do ruído; `series/pettitt` para
-procurar uma data de mudança que não se conhece; `series/window` para
-ajustar só o trecho anterior.
+`series/arima` para estimar; `models/coefficients` para o teste de cada
+efeito; `series/forecast` para prever com o efeito; `series/detect_interventions`
+para procurar datas candidatas; `series/pettitt` e `series/zivot_andrews` para
+testar uma quebra desconhecida.
+]---")),
+
+      trama::tr_node("series/detect_interventions",
+        pressupostos = .tr_series_doc("series/detect_interventions")$pressupostos,
+        referencias = .tr_series_doc("series/detect_interventions")$referencias,
+        fn = tr_series_detect_interventions, label = "Detectar intervenções",
+        category = "serie_modelar", icon = icone("scan-search"),
+        description = "Procura datas candidatas a intervenção (pulso, degrau, temporária, inovacional) pelo método de Chen e Liu.",
+        inputs = list(serie = S, modelo = trama::tr_port(M, required = FALSE)), outputs = list(out = T),
+        params = list(
+          pulso = B(TRUE, label = "Pulso (AO)"),
+          degrau = B(TRUE, label = "Degrau (LS)"),
+          temporaria = B(TRUE, label = "Temporária (TC)"),
+          inovacional = B(FALSE, label = "Inovacional (IO)"),
+          valor_critico = trama::tr_param_num(0, min = 0, max = 10, step = 0.1, label = "Valor crítico")),
+        help = .tr_series_ajuda(r"---[
+Procura, sem data informada, os instantes em que a série tem um efeito que o
+modelo não explica: o procedimento de Chen e Liu (1993), o mesmo do
+`tsoutliers::tso()`.
+
+1. Ajusta um ARIMA (o do **modelo** ligado ou, sem ele, um automático) e
+   calcula os resíduos.
+2. Em cada instante e para cada tipo, estima o efeito que haveria ali e a
+   estatística t dele. Cada tipo deixa uma assinatura diferente nos
+   resíduos: o inovacional, um resíduo grande isolado; o pulso, um resíduo
+   grande seguido do eco dos pesos π do modelo; degrau e temporária, os
+   seus.
+3. Marca o maior |t| acima do **Valor crítico**, remove o efeito, reajusta e
+   procura de novo.
+4. Estima tudo junto e descarta os que deixaram de passar.
+
+Os tipos: **pulso** (outlier aditivo, AO), **degrau** (mudança de nível, LS),
+**temporária** (TC, um pulso que se desfaz à razão δ = 0,7 por período) e
+**inovacional** (IO). O padrão são os três primeiros, como no `tsoutliers`.
+
+### É exploratório
+
+São dezenas de testes (cada instante, cada tipo), e por isso o valor crítico
+é alto (3 a 4). Ainda assim, numa série longa aparecem candidatos por acaso.
+Cada data é uma hipótese — "o que aconteceu em 1913?" — e não uma
+intervenção confirmada. A que tiver explicação entra no modelo por
+`series/intervencao` (temporária vira pulso com dinâmica gradual), e o
+p-valor que sair dali é otimista, porque a data veio do próprio dado.
+
+Um degrau achado aqui se confunde com raiz unitária: um modelo com
+diferença demais absorve o degrau, e um com diferença de menos inventa
+degraus. Confira com `series/zivot_andrews`.
+
+### Valor crítico
+
+0 (padrão) usa a regra do `tsoutliers`: 3 para séries de até 50
+observações, 4 a partir de 450, e uma reta entre os dois.
+
+### Faltantes
+
+Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue
+um `series/interpolate` antes.
+]---", r"---[
+- **modelo** (entrada, opcional) — um `series/arima`; a busca usa a ordem
+  dele (sem as intervenções declaradas). Sem ele, a ordem é escolhida pelo
+  `auto.arima`.
+- **Pulso (AO)**, **Degrau (LS)**, **Temporária (TC)**, **Inovacional (IO)** —
+  que tipos procurar.
+- **Valor crítico** — o |t| mínimo; 0 = a regra pelo tamanho da série.
+]---", r"---[
+Uma tabela, uma linha por candidato, na ordem do tempo: `data`, `tipo`,
+`sigla` (AO, LS, TC, IO), `indice` (a posição na série), `efeito` (o ω
+estimado, na unidade da série) e `t`. Sem candidatos, a tabela vem vazia.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("nilo", "series/example", dataset = "Nile") |>
+  tr_add("busca", "series/detect_interventions", from = "nilo")
+]---", r"---[
+`series/intervencao` para declarar o que for explicado; `series/pettitt` e
+`series/zivot_andrews` para testar uma única quebra; `series/residuals` para
+ver os resíduos do modelo.
 ]---")),
 
       trama::tr_node("series/ets",

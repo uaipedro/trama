@@ -107,13 +107,18 @@ test_that("intervenção roda no motor (exemplo da ajuda) e o bootstrap usa a se
   f <- trama::tr_flow(reg) |>
     trama::tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
     trama::tr_add("log", "series/transform", from = "sb") |>
-    trama::tr_add("lei", "series/intervencao", data = "1983, 2", p = 1L, d = 0L, q = 0L,
-                  P = 1L, D = 1L, Q = 1L, from = "log") |>
+    trama::tr_add("lei", "series/intervencao", data = "1983, 2", from = "log") |>
+    trama::tr_add("arima", "series/arima", automatico = FALSE, p = 1L, d = 0L, q = 0L,
+                  P = 1L, D = 1L, Q = 1L, constante = FALSE, from = "lei") |>
+    trama::tr_add("coef", "models/coefficients", from = "arima") |>
+    trama::tr_add("prev_lei", "series/forecast", from = "arima") |>
     trama::tr_add("ets", "series/ets", from = "log") |>
     trama::tr_add("prev", "series/forecast", intervalo = "bootstrap", from = "ets")
-  out <- rodar(f, "lei")
-  expect_equal(out$termo[[1]], "intervencao")
-  expect_lt(out$ls_95[[1]], 0)
+  out <- trama.models::tr_models_as_table(rodar(f, "arima") |> tr_series_as_fit())
+  expect_equal(out$termo[[4]], "degrau_1983_fev")
+  expect_lt(out$ls_95[[4]], 0)
+  expect_length(rodar(f, "prev_lei")$mean, 12L)
+  expect_true("degrau_1983_fev" %in% rodar(f, "coef")$tabela$termo)
   a <- rodar(f, "prev"); b <- rodar(f, "prev")
   expect_identical(a$upper, b$upper)
 })

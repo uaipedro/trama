@@ -1,3 +1,10 @@
+# trama.series 0.7.0
+
+* `series/intervencao` (v2) só **declara** a intervenção: devolve a mesma série com o evento anotado, e quem estima é o `series/arima`. Encadeie vários blocos para várias intervenções. Tipos: `pulso` (outlier aditivo, AO), `degrau` (mudança de nível, LS), `rampa` e o novo `inovacional` (IO, choque que passa pela dinâmica do modelo; Fox 1972, Chen & Liu 1993). O param `resposta` virou `dinamica` (`imediata`/`gradual`) e as ordens do ARIMA saíram do bloco. Fluxos antigos migram os params, mas a saída deixou de ser tabela: religue a série num `series/arima` e leia os efeitos em `models/coefficients`.
+* `series/arima` ("ARIMA / SARIMA") estima as intervenções declaradas na série: pulso, degrau e rampa por `xreg`; gradual com δ perfilado (contado no AIC, EP pela hessiana completa); inovacional pelos pesos ψ do próprio modelo, até o ponto fixo. `series/forecast` estende cada efeito no horizonte sozinho (só intervalo `normal`; o `bootstrap` é recusado com intervenções). ETS, Holt-Winters e `series/regression` recusam série com intervenções declaradas, em vez de ignorá-las.
+* Novo bloco `series/detect_interventions`: procura datas candidatas a intervenção pelo método de Chen & Liu (1993), via `tsoutliers::tso()`, com o modelo ligado ou um automático.
+* Depende de `tsoutliers`.
+
 # trama.series 0.6.0
 
 * `series/detrend` (v3) e `series/deseasonalize` (v2): o card mostra os coeficientes do componente removido (termo, estimativa, erro-padrão, p-valor), como o da `series/regression`. As saídas passam a ser a série sem o componente (`out`) e o componente (`tendencia` ou `sazonal`), as duas como série. A saída `ajuste` saiu: fluxo que a ligava acusa porta inexistente. Para medidas de ajuste e previsão da tendência, `series/regression`.

@@ -186,8 +186,7 @@ series_model_type <- function() {
     restore = function(path) readRDS(path),
     summary = function(x) .tr_series_modelo_resumo(x),
     preview = function(x, ctx) {
-      txt <- paste(utils::capture.output(print(x)), collapse = "\n")
-      trama::tr_preview("trama/text", data = list(text = txt))
+      trama::tr_preview("trama/text", data = list(text = .tr_series_modelo_texto(x)))
     }
   )
 }
@@ -210,7 +209,9 @@ series_model_type <- function() {
 }
 
 .tr_series_modelo_resumo <- function(m) {
-  aic <- tryCatch(stats::AIC(m), error = function(e) NA_real_)
+  # `m$aic` primeiro: no ARIMA com intervenção gradual ele já conta o δ, que
+  # o `stats::AIC()` (pelo `logLik`) não vê.
+  aic <- if (is.numeric(m$aic)) m$aic else tryCatch(stats::AIC(m), error = function(e) NA_real_)
   list(metodo = .tr_series_metodo(m),
        aic = if (is.finite(aic)) round(aic, 2) else NA_real_,
        observacoes = length(m$x),

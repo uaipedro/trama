@@ -30,7 +30,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- series_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_series(reg)
-  expect_length(nos, 46L)  # 0.5.0: - três F (viraram leitores da models) + deseasonalize + range_mean
+  expect_length(nos, 47L)  # 0.5.0: - três F (viraram leitores da models) + deseasonalize + range_mean; 0.7.0: + detect_interventions
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)

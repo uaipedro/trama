@@ -1,125 +1,91 @@
 ---
 title: Intervenção
-description: "ARIMA com degrau, pulso ou rampa numa data: quanto um evento mudou a série?"
+description: "Declara um evento numa data (pulso, degrau, rampa ou inovacional) para o modelo seguinte estimar."
 section: colecoes
 collection: series-temporais
 node: series/intervencao
 category: Modelar
 order: 2
-related: [series/arima, series/pettitt, series/window]
+related: [series/arima, models/coefficients, series/forecast, series/detect_interventions, series/pettitt, series/zivot_andrews]
 ---
 
 ## O que o bloco faz
 
-Mede o efeito de um EVENTO numa data conhecida — uma lei, uma mudança de
-política, um acidente — sobre a série: o modelo de intervenção de Box e Tiao
-(1975). A série é um ARIMA mais um regressor que liga na data:
+Marca na série um EVENTO numa data conhecida — uma lei, uma greve, um dado
+errado — para o modelo seguinte (`series/arima`) estimar o efeito dele junto
+com a dinâmica da série. O bloco não ajusta nada: devolve a mesma série,
+com a intervenção anotada. Para declarar várias, encadeie vários blocos.
 
-- **degrau** — 0 antes, 1 da data em diante: o nível MUDOU e ficou.
-- **pulso** — 1 só na data: um choque de um período.
-- **rampa** — 0 antes, 1, 2, 3, ... a partir da data: a inclinação mudou.
+É a análise de intervenção de Box e Tiao (1975), com os quatro tipos que a
+literatura de outliers usa (Fox, 1972; Chen e Liu, 1993; Morettin e Toloi,
+2006):
 
-O coeficiente ω do regressor é o efeito, estimado junto com o ARIMA por
-máxima verossimilhança; o erro-padrão já leva em conta a autocorrelação, o que
-uma comparação ingênua de médias antes e depois não faz.
+- **pulso** — o outlier ADITIVO (AO): 1 só na data. Um período fora do
+  lugar, e a série volta como se nada tivesse acontecido.
+- **degrau** — a mudança de NÍVEL (LS): 0 antes, 1 da data em diante.
+- **rampa** — a mudança de INCLINAÇÃO: 0 antes, 1, 2, 3, ... a partir da data.
+- **inovacional** — o outlier INOVACIONAL (IO): um choque no ruído da data,
+  que se propaga pela dinâmica do próprio modelo, ψ(B) = θ(B)/φ(B). Num
+  modelo com raiz unitária ele vira um degrau; num AR estável, um eco que se
+  apaga. Por depender do modelo, só existe dentro do ajuste — e é por isso
+  que a intervenção é declarada aqui e estimada lá.
+
+### Dinâmica gradual
+
+Com **Dinâmica** = `gradual` (pulso ou degrau), o efeito entra pela função
+de transferência ω/(1 − δB): no primeiro período vale ω, e cada período soma
+δ vezes o anterior. O pulso gradual se desfaz à razão δ por período (é a
+mudança temporária, TC, que a detecção usa com δ = 0,7 fixo; aqui δ é
+estimado); o degrau gradual cresce até o nível de longo prazo ω/(1 − δ). Uma
+intervenção gradual por modelo.
 
 ### A data vem de FORA
 
-A data é informada, não procurada: é o que se sabia antes de olhar o gráfico.
-Escolher a data pelo maior salto da própria série e depois testá-la aqui é
-testar a hipótese com o dado que a sugeriu, e o p-valor sai otimista. Para
-PROCURAR uma quebra, `series/pettitt` ou `series/zivot_andrews`.
+A data é o que se sabia antes de olhar o gráfico. Escolhê-la pelo maior salto
+da própria série e depois testá-la é usar o dado que sugeriu a hipótese, e o
+p-valor sai otimista. Para PROCURAR datas, `series/detect_interventions`
+(e trate o que ela achar como hipótese a explicar).
 
-### Série em log
+### Logo antes do modelo
 
-Com a série no log (`series/transform`), o degrau é uma mudança
-PROPORCIONAL, e a coluna `efeito_pct` = 100·(exp(ω) − 1) a traduz em
-porcentagem. Sem log, ignore essa coluna: o efeito é o ω, na unidade da série.
-
-### A ordem do ARIMA
-
-Escolha a ordem do ruído no trecho ANTES da intervenção (`series/window` →
-`series/arima` automático) e repita aqui. Com diferenças (d ou D), o regressor
-é diferenciado junto: o degrau numa série diferenciada vira um pulso na
-diferença, e o ω continua sendo a mudança de nível.
-
-Com **Resposta** = `imediata` (padrão), é a forma de ordem zero: o efeito
-entra inteiro na data.
-
-### Resposta gradual
-
-Com **Resposta** = `gradual` (degrau ou pulso), o efeito entra pela função de
-transferência de Box e Tiao, ω/(1 − δB): no primeiro período ele vale ω, e
-depois cada período soma δ vezes o anterior. No degrau, o efeito cresce (ou
-encolhe) até o nível de longo prazo ω/(1 − δ), que sai numa linha própria
-(`efeito_longo_prazo`, com erro-padrão pelo método delta); no pulso, o choque
-se desfaz aos poucos, à razão δ por período. δ é estimado junto com o ARIMA
-por máxima verossimilhança (perfilada em δ), com erro-padrão da hessiana
-completa. Conferido contra o `TSA::arimax` (Cryer e Chan, 2008) no tráfego
-aéreo dos EUA depois de 11/09/2001: pulso gradual com ω = −0.346 e δ = 0.695,
-a menos de 1e-3. Um δ na borda (|δ| > 0.99) é recusado: a resposta não se
-estabiliza, e o degrau (ou a rampa) descreve melhor.
+A intervenção vale para a série exata em que foi declarada. Um
+`series/transform`, `series/window` ou `series/diff` DEPOIS dela muda o
+sentido do efeito, e o `series/arima` para em vermelho pedindo para trazer os
+blocos de intervenção para depois da transformação.
 
 ### Faltantes
 
 Este bloco não aceita faltantes: série com buraco põe o nó em vermelho. Ligue
 um `series/interpolate` antes.
 
-## Quando usar
-
-Meça quanto um evento de data conhecida mudou a série, com erro-padrão que
-respeita a autocorrelação. No exemplo, a lei do cinto de segurança no Reino
-Unido (fevereiro de 1983) sobre o log dos motoristas mortos ou feridos
-(`Seatbelts`), com ruído ARIMA(1,0,0)(1,1,1)₁₂. Rodando o exemplo:
-
-```
-termo         estimativa   erro-padrão   IC 95%              p           efeito
-intervencao     -0,2397       0,0433     [-0,325; -0,155]    3,1e-08     -21,3%
-ar1              0,5527       0,0736
-sar1             0,1387       0,1168
-sma1            -0,8958       0,1147
-```
-
-Queda estimada de 21% no nível depois da lei. O ajuste é o mesmo do
-`forecast::Arima` com o degrau como `xreg` (conferido a 1e-8), e o degrau é
-idêntico à coluna `law` do próprio `Seatbelts`.
-
-## Configuração
+## Parâmetros
 
 - **Data da intervenção** — o período, como `1983, 2` (fevereiro de 1983) ou
   só o ano numa série anual. Precisa haver ao menos uma observação antes.
-- **Tipo** — `degrau` (padrão), `pulso` ou `rampa`.
-- **p, d, q** e **P, D, Q** — a ordem do ARIMA do ruído.
-- **Constante** — média (ou deriva, com uma diferença) no modelo.
-- **Resposta** — `imediata` (padrão, ordem zero) ou `gradual` (ω/(1 − δB),
-  só degrau e pulso).
+- **Tipo** — `pulso` (AO), `degrau` (LS, padrão), `rampa` ou `inovacional` (IO).
+- **Dinâmica** — `imediata` (padrão) ou `gradual` (ω/(1 − δB)); só pulso e degrau.
 
-## Exemplo
+## Valor
+
+A mesma série (`series/ts`), com a intervenção declarada. O coeficiente sai
+no `series/arima` com o nome do tipo e da data (`degrau_1983_fev`).
+
+## Exemplos
 
 ```r
-library(trama)
-
-reg <- tr_registry()
-tr_use("trama.series", registry = reg)
-
 tr_flow(reg) |>
   tr_add("sb", "series/example", dataset = "Seatbelts$drivers") |>
   tr_add("log", "series/transform", from = "sb") |>
-  tr_add("lei", "series/intervencao", data = "1983, 2", p = 1L, d = 0L, q = 0L,
-         P = 1L, D = 1L, Q = 1L, from = "log")
+  tr_add("lei", "series/intervencao", data = "1983, 2", tipo = "degrau", from = "log") |>
+  tr_add("arima", "series/arima", automatico = FALSE, p = 1L, d = 0L, q = 0L,
+         P = 1L, D = 1L, Q = 1L, constante = FALSE, from = "lei") |>
+  tr_add("coef", "models/coefficients", from = "arima")
 ```
-
-## Como interpretar
-
-Uma tabela, uma linha por coeficiente, a da intervenção primeiro: `termo`,
-`estimativa`, `erro_padrao`, `li_95`, `ls_95` (IC de Wald), `z`, `p_valor` e
-`efeito_pct` (só na linha da intervenção). Com resposta gradual, vêm também
-a linha `delta` e, no degrau, `efeito_longo_prazo` (com o `efeito_pct` dele);
-o `efeito_pct` da linha `intervencao` fica vazio, porque ω é só o primeiro
-período.
 
 ## Veja também
 
-`series/arima` para escolher a ordem do ruído; `series/pettitt` para
-procurar uma data de mudança que não se conhece; `series/window` para
-ajustar só o trecho anterior.
+`series/arima` para estimar; `models/coefficients` para o teste de cada
+efeito; `series/forecast` para prever com o efeito; `series/detect_interventions`
+para procurar datas candidatas; `series/pettitt` e `series/zivot_andrews` para
+testar uma quebra desconhecida.
+

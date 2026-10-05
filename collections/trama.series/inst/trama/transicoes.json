@@ -325,6 +325,11 @@
     "n": 1
   },
   {
+    "from": "series/intervencao",
+    "to": "series/arima",
+    "n": 1
+  },
+  {
     "from": "series/transform",
     "to": "series/pacf",
     "n": 1

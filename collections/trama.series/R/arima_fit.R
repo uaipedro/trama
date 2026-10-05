@@ -43,6 +43,8 @@ tr_series_as_fit <- function(x) {
   cf <- names(stats::coef(x))
   if ("intercept" %in% cf) r <- paste(r, "com média")
   if ("drift" %in% cf) r <- paste(r, "com deriva")
+  ni <- length(x$tr_intervencoes$lista)
+  if (ni) r <- paste(r, if (ni == 1L) "e 1 intervenção" else sprintf("e %d intervenções", ni))
   r
 }
 
@@ -50,7 +52,10 @@ tr_series_as_fit <- function(x) {
 #' verossimilhança: os coeficientes livres mais a variância — a mesma conta do
 #' `forecast` (`npar = length(coef[mask]) + 1`).
 #' @noRd
-.tr_series_arima_npar <- function(aj) length(stats::coef(aj)[aj$mask]) + 1L
+.tr_series_arima_npar <- function(aj) {
+  # O δ de uma intervenção gradual foi estimado fora do `coef` (perfilado).
+  length(stats::coef(aj)[aj$mask]) + 1L + !is.null(aj$tr_intervencoes$gradual)
+}
 
 #' Verossimilhança no contrato: `n` é o número de observações efetivas
 #' (`nobs`: a série menos as perdidas nas diferenças), o que dá o AICc do
@@ -110,6 +115,10 @@ tr_models_coefs.tr_series_arima_fit <- function(x, exponenciar = FALSE, escala =
   aj <- x$ajuste
   est <- stats::coef(aj)[aj$mask]
   ep <- sqrt(diag(aj$var.coef))
+  if (!is.null(aj$tr_intervencoes$gradual)) {
+    g <- .tr_series_interv_gradual_coefs(aj)
+    est <- g$est; ep <- g$ep[names(est)]
+  }
   z <- est / ep
   q <- stats::qnorm(1 - (1 - confianca) / 2)
   pct <- sub(".", "_", as.character(round(100 * confianca, 1)), fixed = TRUE)
@@ -159,7 +168,7 @@ tr_models_importance.tr_series_arima_fit <- function(x) {
 
 #' @export
 tr_models_card.tr_series_arima_fit <- function(x, ctx) {
-  trama::tr_preview("trama/text", data = list(text = paste(utils::capture.output(print(x$ajuste)), collapse = "\n")))
+  trama::tr_preview("trama/text", data = list(text = .tr_series_modelo_texto(x$ajuste)))
 }
 
 #' @export

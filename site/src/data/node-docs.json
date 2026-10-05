@@ -5732,7 +5732,7 @@
       },
       {
         "texto": "A **variância é constante** no tempo. Oscilação que cresce com o nível não é modelada pelo ARIMA.",
-        "verificar": ["series/plot"],
+        "verificar": ["series/range_mean", "series/plot"],
         "se_falhar": "Transforme antes com `series/transform` (log ou Box-Cox) e modele a série transformada."
       },
       {
@@ -5753,7 +5753,7 @@
       {
         "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
         "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
-        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa)."
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, declare-a com `series/intervencao` antes do `series/arima`, que estima o efeito."
       }
     ],
     "referencias": [
@@ -5793,6 +5793,29 @@
         "funcao": "auto.arima",
         "versao": "9.0.2",
         "nota": "Com Automático: busca passo a passo pelo menor AICc; `d` pelo KPSS e `D` pela força sazonal (padrões do pacote); `seasonal`, `allowdrift` e `allowmean` vêm dos params. Manual: `forecast::Arima(order, seasonal, include.constant)`, por máxima verossimilhança."
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Box, G. E. P.", "Tiao, G. C."],
+        "ano": 1975,
+        "titulo": "Intervention analysis with applications to economic and environmental problems",
+        "fonte": "Journal of the American Statistical Association, 70(349), 70-79",
+        "doi": "10.1080/01621459.1975.10480264"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Chen, C.", "Liu, L.-M."],
+        "ano": 1993,
+        "titulo": "Joint estimation of model parameters and outlier effects in time series",
+        "fonte": "Journal of the American Statistical Association, 88(421), 284-297",
+        "doi": "10.1080/01621459.1993.10594321"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "trama.series",
+        "funcao": "tr_series_arima",
+        "versao": "0.7.0",
+        "nota": "Com intervenções declaradas: `forecast::Arima(xreg = )` com uma coluna por intervenção (pulso, degrau, rampa), conferido contra a mesma chamada a 1e-8 (Seatbelts, degrau = coluna `law`). Gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ perfilado (`optimize` em (−0,999; 0,999)), EP pela hessiana numérica (`optimHess`) da verossimilhança completa, δ contado no AIC; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles a 1e-3. Inovacional: regressor = pesos ψ do modelo inteiro (com as diferenças) a partir da data, recalculados até o ponto fixo (|Δcoef| < 1e-8); o regressor confere com `tsoutliers::outliers.effects(pars = coefs2poly(ajuste))` a 1e-8, e o ajuste com o `Arima(xreg = )` desse regressor a 1e-6."
       }
     ]
   },
@@ -5977,11 +6000,76 @@
       }
     ]
   },
+  "series/detect_interventions": {
+    "pressupostos": [
+      {
+        "texto": "A série é um **ARIMA** (o do modelo ligado ou o escolhido pelo `auto.arima`) mais alguns efeitos pontuais; a assinatura de cada tipo nos resíduos depende desse modelo, e um modelo mal especificado gera candidatos espúrios.",
+        "verificar": ["series/arima", "series/residuals", "series/ljung_box"],
+        "se_falhar": "Ajuste o modelo à mão (`series/arima`) e ligue-o na entrada **modelo**."
+      },
+      {
+        "texto": "É uma **busca múltipla** (todo instante, todo tipo): mesmo com valor crítico 3 a 4, a chance de um candidato espúrio cresce com o tamanho da série. Os candidatos são hipóteses, não intervenções confirmadas.",
+        "se_falhar": "Declare com `series/intervencao` só o que tiver explicação externa."
+      },
+      {
+        "texto": "Um **degrau** detectado se confunde com raiz unitária: diferenças de menos inventam degraus, e de mais os absorvem.",
+        "verificar": ["series/zivot_andrews", "series/ndiffs"]
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Chen, C.", "Liu, L.-M."],
+        "ano": 1993,
+        "titulo": "Joint estimation of model parameters and outlier effects in time series",
+        "fonte": "Journal of the American Statistical Association, 88(421), 284-297",
+        "doi": "10.1080/01621459.1993.10594321"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Fox, A. J."],
+        "ano": 1972,
+        "titulo": "Outliers in time series",
+        "fonte": "Journal of the Royal Statistical Society, Series B, 34(3), 350-363",
+        "doi": "10.1111/j.2517-6161.1972.tb00912.x"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["Cobb, G. W."],
+        "ano": 1978,
+        "titulo": "The problem of the Nile: Conditional solution to a changepoint problem",
+        "fonte": "Biometrika, 65(2), 243-251",
+        "doi": "10.1093/biomet/65.2.243"
+      },
+      {
+        "papel": "complementar",
+        "autores": ["López-de-Lacalle, J."],
+        "ano": 2024,
+        "titulo": "tsoutliers: Detection of Outlying Observations in Time Series",
+        "fonte": "Pacote R, versão 0.6-10",
+        "url": "https://CRAN.R-project.org/package=tsoutliers"
+      },
+      {
+        "papel": "implementacao",
+        "pacote": "tsoutliers",
+        "funcao": "tso",
+        "versao": "0.6.10",
+        "nota": "`types` dos params (AO, LS, TC, IO), `cval` = valor crítico (omitido com 0: regra do pacote, 3 até n = 50, 4 a partir de 450), `delta = 0,7` para TC. Com **modelo**: `tsmethod = \"arima\"` com a ordem dele; sem: `auto.arima`. Conferido contra a mesma chamada (igualdade exata) e, no Nilo, o degrau de 1899 (barragem de Assuã; Cobb 1978) com ω = −242,2, t = −9,05."
+      }
+    ]
+  },
   "series/ets": {
     "pressupostos": [
       {
         "texto": "A série é descrita por **nível, tendência e sazonalidade** que evoluem por suavização exponencial, com o erro entrando de forma aditiva (A) ou multiplicativa (M). Erro, tendência ou sazonalidade **multiplicativos pedem série positiva**.",
-        "verificar": ["series/plot"],
+        "verificar": ["series/range_mean", "series/plot"],
         "se_falhar": "Com zeros ou negativos, fixe as letras em `A` (ou use `Z`, que as evita) ou modele com `series/arima`."
       },
       {
@@ -6002,7 +6090,7 @@
       {
         "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
         "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
-        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa)."
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, declare-a com `series/intervencao` antes do `series/arima`, que estima o efeito."
       }
     ],
     "referencias": [
@@ -6242,7 +6330,7 @@
       },
       {
         "texto": "Na sazonalidade **multiplicativa**, a amplitude da oscilação é **proporcional ao nível**; na aditiva, constante.",
-        "verificar": ["series/plot"],
+        "verificar": ["series/range_mean", "series/plot"],
         "se_falhar": "Troque o tipo, ou use `series/transform` (log) e a aditiva."
       },
       {
@@ -6253,7 +6341,7 @@
       {
         "texto": "O processo que gerou a série é **o mesmo do começo ao fim**: sem quebra estrutural nem intervenção no meio. O modelo aprende uma dinâmica só, e uma mudança de regime a contamina.",
         "verificar": ["series/plot", "series/pettitt", "series/zivot_andrews"],
-        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, meça o efeito com `series/intervencao` (ARIMA com degrau, pulso ou rampa)."
+        "se_falhar": "Ajuste só o trecho depois da quebra (`series/window`), ou, com a data conhecida, declare-a com `series/intervencao` antes do `series/arima`, que estima o efeito."
       }
     ],
     "referencias": [
@@ -6302,26 +6390,20 @@
       {
         "texto": "A **data** da intervenção é conhecida de antemão, e não escolhida pelo maior salto da própria série: escolhê-la pelo dado e testá-la no mesmo dado torna o p-valor otimista.",
         "verificar": ["series/plot"],
-        "se_falhar": "Para procurar a data, `series/pettitt` ou `series/zivot_andrews`; depois confirme em outra série ou período."
+        "se_falhar": "Para procurar datas, `series/detect_interventions` ou `series/pettitt`; trate o achado como hipótese e confirme em outra série ou período."
       },
       {
-        "texto": "Fora da intervenção, a série é um **ARIMA estável** da ordem dada (estacionário depois das diferenças) e a dinâmica é a mesma antes e depois — só o nível (degrau), um período (pulso) ou a inclinação (rampa) muda.",
-        "verificar": ["series/window", "series/arima", "series/ndiffs"],
-        "se_falhar": "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e use-a aqui."
-      },
-      {
-        "texto": "Com **Resposta** = `imediata`, o efeito entra **inteiro na data** (forma de ordem zero); com `gradual`, segue ω/(1 − δB) com |δ| < 1 — uma resposta de outra forma (duas taxas, atraso) não é modelada.",
+        "texto": "O **tipo** descreve a forma do efeito: um período (pulso), nível que muda e fica (degrau), inclinação que muda (rampa), choque que segue a dinâmica do ruído (inovacional) ou efeito que cresce ou se desfaz à razão δ (gradual, |δ| < 1). Forma errada deixa o efeito nos resíduos.",
         "verificar": ["series/plot", "series/residuals"],
-        "se_falhar": "Se o resíduo mostra o efeito chegando aos poucos, use `gradual`; se δ vai para a borda, troque o degrau pela rampa."
+        "se_falhar": "Olhe os resíduos do `series/arima` perto da data; troque o tipo ou a dinâmica e compare os AIC com `models/select`."
       },
       {
-        "texto": "Os resíduos do modelo são **ruído branco**: sem autocorrelação sobrando. Autocorrelação nos resíduos quer dizer estrutura que o modelo deixou para trás, e intervalos estreitos demais.",
-        "verificar": ["series/residuals", "series/ljung_box", "series/acf"],
-        "se_falhar": "Ligue `series/residuals` → `series/ljung_box` (com `graus` = parâmetros estimados). Se rejeitar, mude a ordem do `series/arima` (veja a `series/acf` e a `series/pacf` dos resíduos) ou troque de família (`series/ets`)."
+        "texto": "Fora da intervenção, a série é um **ARIMA estável** da ordem do modelo, com a mesma dinâmica antes e depois.",
+        "verificar": ["series/window", "series/arima", "series/ndiffs"],
+        "se_falhar": "Identifique a ordem no trecho anterior (`series/window` → `series/arima` automático) e fixe-a no modelo com a intervenção."
       },
       {
-        "texto": "O IC e o p-valor são de **Wald** (normal assintótica da máxima verossimilhança): pedem resíduos aproximadamente normais e série não muito curta.",
-        "verificar": ["series/residuals", "view/qq"]
+        "texto": "A intervenção é declarada na **série que vai ao modelo**: transformação, recorte ou diferença depois dela mudariam o sentido do efeito (o `series/arima` recusa)."
       }
     ],
     "referencias": [
@@ -6334,19 +6416,34 @@
         "doi": "10.1080/01621459.1975.10480264"
       },
       {
+        "papel": "teoria",
+        "autores": ["Fox, A. J."],
+        "ano": 1972,
+        "titulo": "Outliers in time series",
+        "fonte": "Journal of the Royal Statistical Society, Series B, 34(3), 350-363",
+        "doi": "10.1111/j.2517-6161.1972.tb00912.x"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Chen, C.", "Liu, L.-M."],
+        "ano": 1993,
+        "titulo": "Joint estimation of model parameters and outlier effects in time series",
+        "fonte": "Journal of the American Statistical Association, 88(421), 284-297",
+        "doi": "10.1080/01621459.1993.10594321"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Morettin, P. A.", "Toloi, C. M. C."],
+        "ano": 2006,
+        "titulo": "Análise de séries temporais",
+        "fonte": "2. ed. São Paulo: Blucher"
+      },
+      {
         "papel": "livro-texto",
         "autores": ["Box, G. E. P.", "Jenkins, G. M.", "Reinsel, G. C.", "Ljung, G. M."],
         "ano": 2015,
         "titulo": "Time Series Analysis: Forecasting and Control",
         "fonte": "5. ed. Hoboken: Wiley"
-      },
-      {
-        "papel": "livro-texto",
-        "autores": ["Hyndman, R. J.", "Athanasopoulos, G."],
-        "ano": 2021,
-        "titulo": "Forecasting: Principles and Practice",
-        "fonte": "3. ed. Melbourne: OTexts",
-        "url": "https://otexts.com/fpp3/"
       },
       {
         "papel": "teoria",
@@ -6358,10 +6455,10 @@
       },
       {
         "papel": "implementacao",
-        "pacote": "forecast",
-        "funcao": "Arima",
-        "versao": "9.0.2",
-        "nota": "`xreg` = o regressor (degrau, pulso ou rampa), `order`, `seasonal`, `include.constant` dos params; máxima verossimilhança. Erro-padrão de `var.coef`, IC e p de Wald; conferido contra a mesma chamada a 1e-8. Resposta gradual: regressor filtrado x_t = I_t + δx_{t−1}, δ pela verossimilhança perfilada (`optimize` em (−0,999; 0,999)), erro-padrão pela hessiana numérica (`optimHess`) da verossimilhança completa; conferido contra `TSA::arimax(transfer = list(c(1, 0)))` 1.3.1 no airmiles (degrau e pulso em 2001-09) a 1e-3."
+        "pacote": "trama.series",
+        "funcao": "tr_series_intervencao",
+        "versao": "0.7.0",
+        "nota": "Só valida a data e anota a intervenção na série (atributo carimbado com valores e calendário); a estimação é do `series/arima`."
       }
     ]
   },
