@@ -77,3 +77,15 @@
       "A **escala da amostragem** alcança a escala da dependência: há pares a distâncias curtas o bastante para enxergar a estrutura.",
       se_falhar = "Variograma plano desde a primeira classe pode ser malha grossa demais, não ausência de estrutura."))
 }
+
+.tr_spatial_press_ajuste <- function() {
+  list(
+    trama::tr_pressuposto(
+      "O modelo ajustado é **definido positivo**: as quatro famílias oferecidas são, com pepita e contribuição não negativas e alcance positivo.",
+      verificar = "spatial/variogram_fit",
+      se_falhar = "Ajuste que devolve parâmetro negativo é recusado por este bloco: troque a família ou os valores iniciais."),
+    trama::tr_pressuposto(
+      "As classes de distância **curtas** estão bem estimadas: a krigagem usa sobretudo a vizinhança próxima.",
+      verificar = "spatial/variogram",
+      se_falhar = "Aumente o número de classes ou baixe a distância máxima para detalhar a origem."))
+}

@@ -15,7 +15,7 @@ trama_collection <- function() {
   trama::tr_collection(
     id = "spatial", version = "0.1.0", label = "Geoestatística",
     js = "trama/index.js", css = "trama/spatial.css",
-    types = list(spatial_points_type(), spatial_variogram_type()),
+    types = list(spatial_points_type(), spatial_variogram_type(), spatial_model_type()),
     adapters = .tr_spatial_adapters(),
     # As abas seguem o CAMINHO de uma análise geoestatística: declarar o objeto
     # espacial, olhar, medir a dependência, modelá-la, e só então interpolar.
