@@ -23,7 +23,7 @@ Imports:
     trama (>= 0.5.3),
     trama.data,
     trama.view,
-    trama.models (>= 0.6.1),
+    trama.models (>= 0.6.3),
     forecast (>= 8.0),
     nlme,
     tsoutliers,

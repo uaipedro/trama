@@ -27,7 +27,7 @@ tr_series_as_fit <- function(x) {
   }
   dados <- tibble::tibble(valor = as.numeric(x$x))
   structure(list(ajuste = x, classe = "arima", rotulo = .tr_series_arima_rotulo(x),
-                 formula = "valor ~ 1", dados = dados, resposta = "valor", nota = "",
+                 formula = "valor ~ 1", dados = dados, resposta = "valor", nota = .tr_series_interv_nota(x),
                  descartadas = sum(is.na(x$x))),
             class = c("tr_series_arima_fit", "tr_models_fit"))
 }
@@ -135,8 +135,14 @@ tr_models_coefs.tr_series_arima_fit <- function(x, exponenciar = FALSE, escala =
 #' @export
 tr_models_stats.tr_series_arima_fit <- function(x) {
   aj <- x$ajuste
+  # As colunas fixas do contrato, com NA onde a medida não existe num ARIMA
+  # (R², CV...): o card padrão as lê pelo nome.
+  na <- NA_real_
   tibble::tibble(modelo = x$rotulo, formula = x$formula, n = as.numeric(aj$nobs),
-                 sigma = sqrt(aj$sigma2), aic = aj$aic, aicc = aj$aicc, bic = aj$bic,
+                 gl_residuo = na, r2 = na, r2_ajustado = na, r2_marginal = na, r2_condicional = na,
+                 desvio_explicado = na, sigma = sqrt(aj$sigma2), cv_pct = na,
+                 dispersao_pearson = na, desvio_por_gl = na,
+                 aic = aj$aic, aicc = aj$aicc, bic = aj$bic,
                  log_verossimilhanca = as.numeric(aj$loglik))
 }
 
@@ -168,7 +174,9 @@ tr_models_importance.tr_series_arima_fit <- function(x) {
 
 #' @export
 tr_models_card.tr_series_arima_fit <- function(x, ctx) {
-  trama::tr_preview("trama/text", data = list(text = .tr_series_modelo_texto(x$ajuste)))
+  # Um coeficiente por linha, com p-valor e estrelas, como os modelos da
+  # `trama.models` (o `print` do forecast os põe em colunas e sem teste).
+  trama.models::tr_models_card_padrao(x, ctx)
 }
 
 #' @export

@@ -186,6 +186,7 @@ series_model_type <- function() {
     restore = function(path) readRDS(path),
     summary = function(x) .tr_series_modelo_resumo(x),
     preview = function(x, ctx) {
+      if (inherits(x, "Arima")) return(trama.models::tr_models_card_padrao(tr_series_as_fit(x), ctx))
       trama::tr_preview("trama/text", data = list(text = .tr_series_modelo_texto(x)))
     }
   )

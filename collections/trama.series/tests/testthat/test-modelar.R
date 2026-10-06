@@ -73,9 +73,14 @@ test_that("resíduos são série, e o tipo modelo recusa o que não é modelo", 
   expect_error(series_model_type()$store(serie_mensal(), tempfile()), class = "tr_series_error_not_a_model")
   s <- series_model_type()$summary(m)
   expect_true(all(c("metodo", "aic", "observacoes", "sigma") %in% names(s)))
+  # ARIMA: o card dos modelos, um coeficiente por linha com p-valor.
   art <- series_model_type()$preview(m, ctx_tmp())
-  expect_equal(art$renderer, "trama/text")
-  expect_match(art$data$text, "ARIMA")
+  expect_equal(art$renderer, "models/fit")
+  expect_match(art$data$rotulo, "ARIMA")
+  expect_true(all(vapply(art$data$linhas, function(l) is.numeric(l$p), NA)))
+  # ETS e Holt-Winters seguem com o texto do ajuste.
+  e <- series_model_type()$preview(tr_series_ets(serie_mensal()), ctx_tmp())
+  expect_equal(e$renderer, "trama/text")
 })
 
 test_that("acurácia: treino sozinho, treino e teste, e série real que não cobre", {

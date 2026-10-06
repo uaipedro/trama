@@ -1,3 +1,7 @@
+# trama.models 0.6.3
+
+* `tr_models_card_padrao()` exportada: o card padrão de um `models/fit` (medidas e um coeficiente por linha, com p-valor), para as coleções irmãs usarem no `tr_models_card()` da sua classe.
+
 # trama.models 0.6.2
 
 * Tamanhos de efeito: épsilon² dos postos no `models/kruskal`, bisserial de postos no `models/wilcoxon` (coluna `extra_r_bisserial_postos`), V de Cramér e resíduos padronizados ajustados no `models/chisq`. Conferidos com o `effectsize`.

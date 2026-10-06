@@ -344,6 +344,17 @@ tr_models_info.tr_models_glm <- tr_models_info.tr_models_glmer <- function(x) {
   trama::tr_preview("models/fit", data = .tr_models_fit_preview(x))
 }
 
+#' O card padrão de um modelo: medidas, teste global e um coeficiente por
+#' linha, com p-valor e estrelas.
+#'
+#' Exportado para as coleções irmãs implementarem `tr_models_card()` da sua
+#' classe com o mesmo card dos modelos daqui, sem copiá-lo. Pede só os
+#' métodos do contrato (`tr_models_stats()`, `tr_models_coefs()`).
+#' @param x Um `models/fit`.
+#' @param ctx Contexto do preview.
+#' @export
+tr_models_card_padrao <- function(x, ctx = NULL) .tr_models_card_proprio(x, ctx)
+
 # Registro dos quatro de uma vez: os métodos comuns são os mesmos, e escrever
 # 4 × 3 funções idênticas só convidaria uma a divergir. O NAMESPACE declara os
 # `S3method()` apontando para estes nomes.

@@ -1,5 +1,6 @@
 # trama.series 0.7.1
 
+* O card do ARIMA é o card dos modelos: um coeficiente por linha, com p-valor e estrelas (antes, o texto do `forecast`, com os coeficientes em colunas e sem teste). A nota diz o que cada termo de intervenção mede. Depende de `trama.models (>= 0.6.3)`.
 * `series/intervencao`: o card mostra a série, e não os coeficientes do bloco anterior (Tirar sazonalidade, Tirar tendência) que vazavam para ele.
 
 # trama.series 0.7.0

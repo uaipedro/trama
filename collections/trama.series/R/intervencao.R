@@ -355,3 +355,16 @@ tr_series_detect_interventions <- function(serie, modelo = NULL, pulso = TRUE, d
   }
   invisible(serie)
 }
+
+#' A nota do card do ARIMA: o que cada termo de intervenção mede.
+#' @noRd
+.tr_series_interv_nota <- function(m) {
+  iv <- m$tr_intervencoes
+  if (is.null(iv)) return("")
+  desc <- c(pulso = "pulso", degrau = "degrau", rampa = "rampa", inovacional = "inovacional")
+  partes <- vapply(iv$lista, function(s) sprintf("%s = %s%s em %s", s$termo, desc[[s$tipo]],
+                                                 if (s$dinamica == "gradual") " gradual" else "", s$rotulo), "")
+  nota <- paste0("Intervenções: ", paste(partes, collapse = "; "))
+  if (!is.null(iv$gradual)) nota <- paste0(nota, "; delta e efeito de longo prazo com EP da covariância completa")
+  nota
+}
