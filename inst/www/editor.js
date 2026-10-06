@@ -40,6 +40,7 @@ import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
 import { linkDeDados } from "./links.js";
 import { criarRoteador, caminhoComCantos, meioDaLinha } from "./rotas.js";
 import { criarFilaOps } from "./fila-ops.js";
+import { nomeDaSaida, rotuloDaEntrada } from "./saidas.js";
 import { reusarNos } from "./reuso.js";
 
 const NODE_W = 240, NODE_H = 190;
@@ -122,6 +123,8 @@ function autoLayout(nodes, edges) {
 
 function docToFlow(doc, catalog) {
   const byId = catalog ? Object.fromEntries(catalog.nodes.map((n) => [n.id, n])) : {};
+  const arestasDoc = (doc.edges || []).map((e) => ({ source: e.from.node, sourceHandle: e.from.port,
+    target: e.to.node, targetHandle: e.to.port }));
   let missing = 0;
   const nodes = Object.entries(doc.nodes || {}).map(([id, n]) => {
     const pos = (doc.ui && doc.ui.positions && doc.ui.positions[id]) || null;
@@ -141,7 +144,10 @@ function docToFlow(doc, catalog) {
               view: (doc.ui && doc.ui.views && doc.ui.views[id]) || null,
               size: (doc.ui && doc.ui.sizes && doc.ui.sizes[id]) || null,
               modo: (doc.ui && doc.ui.modes && doc.ui.modes[id]) || null,
-              previewOculto: !!(doc.ui && doc.ui.ocultos && doc.ui.ocultos[id]) },
+              previewOculto: !!(doc.ui && doc.ui.ocultos && doc.ui.ocultos[id]),
+              saidas: (doc.ui && doc.ui.saidas && doc.ui.saidas[id]) || {},
+              rotulosEntradas: Object.fromEntries((byId[n.type]?.inputs || []).map((p) => [p.name,
+                rotuloDaEntrada({ node: id, port: p.name }, arestasDoc, doc.ui?.saidas || {})])) },
     };
   });
   // Aresta de FLUXO: a porta de SAÍDA de onde ela sai, OU a porta de ENTRADA
@@ -608,6 +614,23 @@ function SoltoNode({ id, data, selected }) {
   ]);
 }
 
+function PortName({ id, porta, nome, onSave }) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState("");
+  const input = useRef(null);
+  const encerrado = useRef(false);
+  useEffect(() => { if (editando) input.current?.focus(); }, [editando]);
+  const salvar = () => { if (!encerrado.current) { encerrado.current = true; onSave(id, porta, valor); } setEditando(false); };
+  if (editando) return h("input", { ref: input, className: "tr-saida-input nodrag nopan", value: valor,
+    "aria-label": `Nome da saída ${porta}`, onChange: (e) => setValor(e.target.value),
+    onBlur: salvar, onPointerDown: (e) => e.stopPropagation(),
+    onKeyDown: (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); salvar(); }
+      if (e.key === "Escape") { e.preventDefault(); encerrado.current = true; setEditando(false); } } });
+  return h("span", { className: "tr-saida-label", onDoubleClick: (e) => {
+    e.stopPropagation(); encerrado.current = false; setValor(nome || ""); setEditando(true);
+  } }, nome || porta);
+}
+
 function NdNode({ id, data, selected }) {
   const spec = data.spec;
   if (!spec) {
@@ -791,11 +814,12 @@ function NdNode({ id, data, selected }) {
           h(Handle, { key: "h", type: "target", position: Position.Left, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
           mini ? null : h("span", { key: "n", title: p.type },
-            p.name + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
+            (data.rotulosEntradas?.[p.name] || p.name) + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
         ]))),
       h("div", { key: "out", className: "tr-out" }, (spec.outputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port tr-port-out" }, [
-          mini ? null : h("span", { key: "n", title: p.type }, p.name),
+          mini ? null : h("span", { key: "n", title: `${p.name} · ${p.type}` },
+            h(PortName, { id, porta: p.name, nome: nomeDaSaida(data.saidas, id, p.name), onSave: data.onSaida })),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
           // "+" do próximo bloco: some no mini (e na apresentação, pelo CSS).
@@ -2295,6 +2319,13 @@ function App() {
     pushOp({ op: "update_frame", frame: id, x: Math.round(p.x), y: Math.round(p.y),
              w: Math.round(p.width), h: Math.round(p.height) });
   }, []);
+
+  const onSaida = useCallback((nodeId, porta, valor) => {
+    const nome = String(valor || "").trim();
+    setNodes((ns) => ns.map((n) => n.id !== nodeId ? n : { ...n, data: { ...n.data,
+      saidas: Object.fromEntries(Object.entries({ ...n.data.saidas, [porta]: nome }).filter(([, v]) => v)) } }));
+    pushOp({ op: "set_saida", node: nodeId, port: porta, nome });
+  }, []);
   const onFrameEdit = useCallback((id, patch) => {
     setNodes((ns) => ns.map((n) => (n.id !== id ? n : {
       ...n, data: { ...n.data, ...patch }, ...(patch.h != null ? { height: patch.h } : {}) })));
@@ -2501,7 +2532,7 @@ function App() {
                       onStreamCmd,
                       dobrado: dobras[n.id] ?? paramsDobradosDe(n.data),
                       onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onAutoTamanho,
-                      typeColors, categories, onParam, onView, onResize, onModo,
+                      typeColors, categories, onParam, onView, onResize, onModo, onSaida,
                       onReseed, onAbrirProximo: abrirProximo, temas,
                       // Contexto dos params `cols` (`ParamsList`, modos-ui.js).
                       // `entradas[n.id]` é o mesmo objeto enquanto nem arestas
@@ -2515,7 +2546,7 @@ function App() {
   })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
-    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
+    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onSaida, onReseed, tick, temas, abrirProximo,
      entradas, handlesEntrada, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
@@ -4133,6 +4164,8 @@ function App() {
       if (n.type === "ndNode") {
         criam.push({ op: "add_node", id, type: n.data.nodeType, position: [x, y],
                     label: n.data.label, params: n.data.params || {}, seed: n.data.seed });
+        Object.entries(n.data.saidas || {}).forEach(([port, nome]) =>
+          depois.push({ op: "set_saida", node: id, port, nome }));
         if (n.data.size) depois.push({ op: "resize", node: id, w: n.data.size[0], h: n.data.size[1] });
         if (n.data.modo && n.data.modo !== "completo") depois.push({ op: "set_mode", node: id, modo: n.data.modo });
         if (n.data.previewOculto) depois.push({ op: "set_preview_oculto", node: id, oculto: true });

@@ -465,6 +465,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-port{position:relative;height:15px;display:flex;align-items:center;padding:0 10px;
          color:var(--tr-dim)}
 .tr-port-out{justify-content:flex-end}
+.tr-saida-label{cursor:text;white-space:nowrap}
+.tr-saida-input{width:110px;min-width:0;height:15px;padding:0 3px;border:1px solid var(--tr-line);
+  border-radius:3px;background:var(--tr-bg);color:var(--tr-fg);font:inherit;text-align:right}
 /* Porta lateral: uma seta na cor do TIPO (`--porta-cor`, vinda do catálogo),
    metade para fora da borda, apontando no sentido do fluxo — entrada e saída
    apontam para a direita. Sem carcaça: a forma já é o objeto. O ponto de
