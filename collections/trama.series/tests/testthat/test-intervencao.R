@@ -184,6 +184,64 @@ test_that("bordas: data fora, duplicada, gradual onde não cabe, carimbo vencido
                "transformação", class = "tr_series_error_bad_option")
 })
 
+# Várias no mesmo bloco: o oráculo é o encadeamento, cujo ajuste já confere
+# com o `forecast::Arima(xreg = )` acima. Mesmo carimbo, mesmo ajuste.
+test_that("várias datas por ';' e tabela de datas valem o mesmo que encadear blocos", {
+  x <- sb()
+  enc <- tr_series_intervencao(tr_series_intervencao(x, "1975, 1", "degrau"), "1983, 2", "degrau")
+  um <- tr_series_intervencao(x, "1975, 1; 1983, 2", "degrau")
+  expect_identical(attr(um, "intervencoes"), attr(enc, "intervencoes"))
+  tab <- tibble::tibble(quando = c("1975 jan", NA, "1983, 2"))
+  expect_identical(attr(tr_series_intervencao(x, datas = tab, tempo = "quando"), "intervencoes"),
+                   attr(enc, "intervencoes"))
+  datas <- tibble::tibble(data = as.Date(c("1975-01-01", "1983-02-15")))
+  expect_identical(attr(tr_series_intervencao(x, datas = datas), "intervencoes"), attr(enc, "intervencoes"))
+  # Param e tabela se somam, na ordem: as do param primeiro. Tabela sem
+  # coluna `tipo` usa o param, então tudo sai pulso.
+  s <- tr_series_intervencao(x, "1970, 6", "pulso", datas = datas)
+  expect_equal(vapply(.tr_series_intervencoes(s, "t"), `[[`, "", "termo"),
+               c("pulso_1970_jun", "pulso_1975_jan", "pulso_1983_fev"))
+  ord <- list(automatico = FALSE, p = 1L, d = 0L, q = 0L, P = 1L, D = 1L, Q = 1L, constante = FALSE)
+  expect_equal(stats::coef(do.call(tr_series_arima, c(list(um), ord))),
+               stats::coef(do.call(tr_series_arima, c(list(enc), ord))), tolerance = 1e-10)
+})
+
+test_that("tabela da detecção liga direto: data, tipo e temporária como pulso gradual", {
+  skip_if_not_installed("tsoutliers")
+  y <- datasets::Nile
+  det <- tr_series_detect_interventions(y)
+  s <- tr_series_intervencao(y, datas = det)
+  l <- .tr_series_intervencoes(s, "t")
+  esperado <- ifelse(det$tipo == "temporaria", "pulso", det$tipo)
+  expect_equal(vapply(l, `[[`, "", "tipo"), esperado)
+  expect_equal(vapply(l, `[[`, 0, "indice"), det$indice)
+  expect_equal(vapply(l, `[[`, "", "dinamica"), ifelse(det$tipo == "temporaria", "gradual", "imediata"))
+  # Trimestral: o rótulo "1960 T3" que o pacote escreve volta a ser lido.
+  q <- datasets::UKgas
+  i <- tr_series_intervencao(q, datas = tibble::tibble(data = "1975 T3", tipo = "pulso"))
+  expect_equal(.tr_series_intervencoes(i, "t")[[1]]$termo, "pulso_1975_T3")
+})
+
+test_that("várias no bloco: bordas", {
+  x <- sb()
+  expect_error(tr_series_intervencao(x), class = "tr_series_error_blank_param")
+  expect_error(tr_series_intervencao(x, "1975, 1; 1975, 1"), class = "tr_series_error_bad_option")
+  expect_error(tr_series_intervencao(x, datas = tibble::tibble(dia = "1975, 1")),
+               class = "tr_series_error_unknown_column")
+  expect_error(tr_series_intervencao(x, datas = tibble::tibble(data = "1975, 1", tipo = "salto")),
+               class = "tr_series_error_bad_option")
+  expect_error(tr_series_intervencao(x, datas = tibble::tibble(data = c("1975, 1", "1980, 1"),
+                                                             tipo = "temporaria")),
+               "temporária", class = "tr_series_error_bad_option")
+  expect_error(tr_series_intervencao(x, "1990, 1; 1975, 1"), class = "tr_series_error_bad_period")
+})
+
+test_that("migração da v2 para a v3 não mexe nos params", {
+  no <- Filter(function(n) n$id == "series/intervencao", trama_collection()$nodes)[[1]]
+  v2 <- list(data = "1983, 2", tipo = "pulso", dinamica = "gradual")
+  expect_identical(no$migracoes[["3"]](v2), v2)
+})
+
 test_that("migração da v1: ordens saem, resposta vira dinamica", {
   no <- Filter(function(n) n$id == "series/intervencao", trama_collection()$nodes)[[1]]
   v1 <- list(data = "1983, 2", tipo = "pulso", p = 1L, d = 0L, q = 0L, P = 1L, D = 1L, Q = 1L,

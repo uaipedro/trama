@@ -350,3 +350,13 @@ bloco é proporcional à classe mais cheia; classe ocupada sobe pelo menos um
 degrau, para não se confundir com vazia. Níveis: fração entre os não-faltantes,
 já que `faltantes` é coluna própria. O perfil que ficava no card de toda
 tabela saiu.
+
+## Várias intervenções num bloco (06/10/2026)
+
+`series/intervencao` (versão 3) aceita várias datas e uma tabela de datas. O
+modelo não mudou: cada data vira o mesmo termo que viraria num bloco
+encadeado. Oráculo: equivalência com o encadeamento (carimbo idêntico e
+coeficientes do `series/arima` a 1e-10), cujo ajuste já confere com
+`forecast::Arima(xreg = )` a 1e-8. Na tabela da detecção, a temporária (TC,
+δ = 0,7 fixo no `tsoutliers`) entra como pulso gradual com δ estimado — a
+mesma forma ω/(1 − δB) —, e o limite de uma gradual por modelo continua.

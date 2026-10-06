@@ -38,6 +38,8 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `respostas` | várias colunas resposta de um mesmo teste (multi/manova) | — |
 | `tratamento`, `bloco` | colunas do fator em teste e do bloco (models/anova_*, multi/manova) | — |
 | `separador` | texto literal que separa/junta valores (data/separate, data/unite) | — |
+| `tempo` | coluna com o tempo/a data de cada linha (series/from_table, series/intervencao) | — |
+| `datas` | porta de entrada de uma tabela de datas, uma por linha (series/intervencao) | — |
 | `fracao` | fração das linhas, 0–1 (data/sample) | — |
 | `reposicao` | sortear com reposição (data/sample) | — |
 | `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo (models/bootstrap, models/permutation) | `replicas` (experiments) |

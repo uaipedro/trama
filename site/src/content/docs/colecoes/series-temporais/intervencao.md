@@ -1,6 +1,6 @@
 ---
-title: Intervenção
-description: "Declara um evento numa data (pulso, degrau, rampa ou inovacional) para o modelo seguinte estimar."
+title: Intervenções
+description: "Declara eventos em uma ou mais datas (pulso, degrau, rampa ou inovacional) para o modelo seguinte estimar."
 section: colecoes
 collection: series-temporais
 node: series/intervencao
@@ -11,10 +11,20 @@ related: [series/arima, models/coefficients, series/forecast, series/detect_inte
 
 ## O que o bloco faz
 
-Marca na série um EVENTO numa data conhecida — uma lei, uma greve, um dado
-errado — para o modelo seguinte (`series/arima`) estimar o efeito dele junto
-com a dinâmica da série. O bloco não ajusta nada: devolve a mesma série,
-com a intervenção anotada. Para declarar várias, encadeie vários blocos.
+Marca na série EVENTOS em datas conhecidas — uma lei, uma greve, um dado
+errado — para o modelo seguinte (`series/arima`) estimar o efeito de cada um
+junto com a dinâmica da série. O bloco não ajusta nada: devolve a mesma
+série, com as intervenções anotadas.
+
+Há três jeitos de declarar várias, e eles se somam:
+
+- várias datas no mesmo bloco, separadas por `;` (`1975, 1; 1983, 2`), todas
+  com o mesmo tipo;
+- uma tabela na entrada **datas**, uma intervenção por linha — a saída do
+  `series/detect_interventions` liga direto, cada linha com o tipo que a
+  busca achou;
+- blocos encadeados, um depois do outro, cada um com o seu tipo. A série que
+  já tem intervenções recebe mais.
 
 É a análise de intervenção de Box e Tiao (1975), com os quatro tipos que a
 literatura de outliers usa (Fox, 1972; Chen e Liu, 1993; Morettin e Toloi,
@@ -39,12 +49,23 @@ mudança temporária, TC, que a detecção usa com δ = 0,7 fixo; aqui δ é
 estimado); o degrau gradual cresce até o nível de longo prazo ω/(1 − δ). Uma
 intervenção gradual por modelo.
 
+### Tabela de datas
+
+A coluna das datas é a **Coluna de data**; em branco, a coluna `data`. Ela
+pode trazer texto (`1983, 2`, `1983 fev`, `1983 T1`, `1913`), datas de
+calendário (série anual, trimestral ou mensal) ou o tempo decimal da série.
+Se a tabela tiver uma coluna `tipo`, ela manda sobre o param **Tipo**, linha
+a linha; a `temporaria` da detecção entra como pulso gradual. Linha com data
+em branco é ignorada.
+
 ### A data vem de FORA
 
 A data é o que se sabia antes de olhar o gráfico. Escolhê-la pelo maior salto
 da própria série e depois testá-la é usar o dado que sugeriu a hipótese, e o
 p-valor sai otimista. Para PROCURAR datas, `series/detect_interventions`
-(e trate o que ela achar como hipótese a explicar).
+(e trate o que ela achar como hipótese a explicar). Ligar a tabela da busca
+direto aqui é cômodo, mas os p-valores do modelo seguinte continuam
+otimistas pelo mesmo motivo.
 
 ### Logo antes do modelo
 
@@ -60,15 +81,19 @@ um `series/interpolate` antes.
 
 ## Parâmetros
 
-- **Data da intervenção** — o período, como `1983, 2` (fevereiro de 1983) ou
-  só o ano numa série anual. Precisa haver ao menos uma observação antes.
+- **datas** (entrada, opcional) — tabela com uma data por linha (e, se
+  quiser, o `tipo` de cada uma).
+- **Datas** — o período, como `1983, 2` (fevereiro de 1983) ou só o ano numa
+  série anual; várias separadas por `;`. Precisa haver ao menos uma
+  observação antes de cada uma. Pode ficar em branco se a tabela vier ligada.
+- **Coluna de data** — a coluna da tabela com as datas; em branco, `data`.
 - **Tipo** — `pulso` (AO), `degrau` (LS, padrão), `rampa` ou `inovacional` (IO).
 - **Dinâmica** — `imediata` (padrão) ou `gradual` (ω/(1 − δB)); só pulso e degrau.
 
 ## Valor
 
-A mesma série (`series/ts`), com a intervenção declarada. O coeficiente sai
-no `series/arima` com o nome do tipo e da data (`degrau_1983_fev`).
+A mesma série (`series/ts`), com as intervenções declaradas. Cada coeficiente
+sai no `series/arima` com o nome do tipo e da data (`degrau_1983_fev`).
 
 ## Exemplos
 

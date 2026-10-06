@@ -23,45 +23,56 @@
 
 .TR_SERIES_INTERV_TIPOS <- c("pulso", "degrau", "rampa", "inovacional")
 
-#' Declara uma intervenção na série, para o modelo seguinte estimar.
+#' Declara intervenções na série, para o modelo seguinte estimar.
 #'
-#' Devolve a mesma série, com a intervenção somada às que já vinham
-#' declaradas. `pulso` é o outlier aditivo (AO), `degrau` a mudança de nível
-#' (LS), `rampa` a mudança de inclinação e `inovacional` o choque que passa
-#' pela dinâmica do modelo (IO). Com `dinamica = "gradual"` (pulso e degrau),
-#' o efeito entra por ω/(1 − δB), de Box & Tiao (1975).
+#' Devolve a mesma série, com as intervenções somadas às que já vinham
+#' declaradas (encadear blocos acumula). `data` aceita várias datas separadas
+#' por `;` ("1975, 1; 1983, 2"), todas com o mesmo `tipo` e a mesma
+#' `dinamica`. A tabela `datas` acrescenta uma intervenção por linha, com a
+#' data na coluna `tempo` (padrão: a coluna `data`, a que o
+#' `series/detect_interventions` devolve) e, se a tabela tiver coluna `tipo`,
+#' o tipo de cada linha — `temporaria` vira pulso gradual.
+#'
+#' `pulso` é o outlier aditivo (AO), `degrau` a mudança de nível (LS),
+#' `rampa` a mudança de inclinação e `inovacional` o choque que passa pela
+#' dinâmica do modelo (IO). Com `dinamica = "gradual"` (pulso e degrau), o
+#' efeito entra por ω/(1 − δB), de Box & Tiao (1975).
 #' @export
-tr_series_intervencao <- function(serie, data, tipo = "degrau", dinamica = "imediata") {
+tr_series_intervencao <- function(serie, data = "", tipo = "degrau", dinamica = "imediata",
+                                  datas = NULL, tempo = "") {
   tipo <- .tr_series_enum(tipo, .TR_SERIES_INTERV_TIPOS, "tipo")
   dinamica <- .tr_series_enum(dinamica, c("imediata", "gradual"), "dinamica")
-  if (dinamica == "gradual" && !tipo %in% c("pulso", "degrau")) {
-    .tr_series_abort("tr_series_error_bad_option",
-                     paste0("Param 'dinamica': a resposta gradual ω/(1 − δB) de Box & Tiao vale para ",
-                            "pulso e degrau; '%s' só com dinâmica imediata."), tipo)
-  }
   .tr_series_sem_na(serie, "series/intervencao")
-  f <- stats::frequency(serie)
-  v <- .tr_series_periodo(.tr_series_obrigatorio(data, "data"), "data", f)
-  tt <- as.numeric(stats::time(serie))
-  i0 <- which(abs(tt - .tr_series_pos(v, f)) < 1e-6 / f)
-  if (length(i0) != 1L || i0 < 2L) {
-    .tr_series_abort("tr_series_error_bad_period",
-                     paste0("Param 'data': '%s' tem de ser um período DA série, depois da primeira ",
-                            "observação (%s a %s) — sem observação antes, não há nível de referência."),
-                     data, .tr_series_rotulo(stats::start(serie), f), .tr_series_rotulo(stats::end(serie), f))
+  pedidos <- list()
+  txt <- trimws(strsplit(as.character(data %||% ""), ";", fixed = TRUE)[[1]])
+  for (d in txt[nzchar(txt)]) pedidos[[length(pedidos) + 1L]] <- list(valor = d, tipo = tipo, dinamica = dinamica)
+  if (!is.null(datas)) pedidos <- c(pedidos, .tr_series_interv_da_tabela(datas, tempo, tipo, dinamica))
+  if (!length(pedidos)) {
+    .tr_series_abort("tr_series_error_blank_param",
+                     paste0("'series/intervencao': informe ao menos uma data em 'data' (várias separadas ",
+                            "por ';') ou ligue uma tabela de datas na entrada 'datas'."))
   }
-  ja <- .tr_series_intervencoes(serie, "series/intervencao")
-  nova <- list(tipo = tipo, dinamica = dinamica, indice = i0, rotulo = .tr_series_rotulo_em(serie, i0))
-  nova$termo <- .tr_series_interv_termo(nova)
-  if (nova$termo %in% vapply(ja, `[[`, "", "termo")) {
-    .tr_series_abort("tr_series_error_bad_option",
-                     "'series/intervencao': a série já tem %s em %s declarado antes.", tipo, nova$rotulo)
+  todas <- .tr_series_intervencoes(serie, "series/intervencao")
+  for (pd in pedidos) {
+    if (pd$dinamica == "gradual" && !pd$tipo %in% c("pulso", "degrau")) {
+      .tr_series_abort("tr_series_error_bad_option",
+                       paste0("Param 'dinamica': a resposta gradual ω/(1 − δB) de Box & Tiao vale para ",
+                              "pulso e degrau; '%s' só com dinâmica imediata."), pd$tipo)
+    }
+    i0 <- .tr_series_interv_indice(serie, pd$valor)
+    nova <- list(tipo = pd$tipo, dinamica = pd$dinamica, indice = i0, rotulo = .tr_series_rotulo_em(serie, i0))
+    nova$termo <- .tr_series_interv_termo(nova)
+    if (nova$termo %in% vapply(todas, `[[`, "", "termo")) {
+      .tr_series_abort("tr_series_error_bad_option",
+                       "'series/intervencao': a série já tem %s em %s declarado antes.", pd$tipo, nova$rotulo)
+    }
+    todas <- c(todas, list(nova))
   }
-  todas <- c(ja, list(nova))
   if (sum(vapply(todas, function(s) s$dinamica == "gradual", NA)) > 1L) {
     .tr_series_abort("tr_series_error_bad_option",
                      paste0("'series/intervencao': só uma intervenção gradual por modelo — cada uma traz ",
-                            "um δ, e mais de um δ não se separa bem numa série só."))
+                            "um δ, e mais de um δ não se separa bem numa série só. Uma temporária (TC) ",
+                            "da detecção conta como gradual."))
   }
   # O card do ajuste de cima (os coeficientes de um `series/deseasonalize`,
   # por exemplo) vale para a série de valores idênticos, e esta é idêntica:
@@ -69,6 +80,82 @@ tr_series_intervencao <- function(serie, data, tipo = "degrau", dinamica = "imed
   attr(serie, "card_ajuste") <- NULL
   attr(serie, "intervencoes") <- list(lista = todas, valores = as.numeric(serie), tsp = stats::tsp(serie))
   serie
+}
+
+#' Uma intervenção por linha da tabela `datas`.
+#'
+#' Sem `tempo`, a coluna `data` — o nome que o `series/detect_interventions`
+#' usa, para a busca ligar direto. Coluna `tipo` na tabela manda sobre o
+#' param, linha a linha: é o tipo que a detecção achou. A temporária (TC) da
+#' detecção é o pulso que se desfaz, isto é, o pulso gradual daqui.
+#' @noRd
+.tr_series_interv_da_tabela <- function(datas, tempo, tipo, dinamica) {
+  datas <- as.data.frame(datas)
+  col <- if (nzchar(tempo %||% "")) tempo else "data"
+  if (!col %in% names(datas)) {
+    .tr_series_abort("tr_series_error_unknown_column",
+                     paste0("'series/intervencao': a tabela de datas não tem a coluna '%s'. Escolha em ",
+                            "'Coluna de data' qual coluna traz as datas."), col)
+  }
+  v <- datas[[col]]
+  tipos <- if ("tipo" %in% names(datas)) as.character(datas$tipo) else rep(tipo, length(v))
+  out <- list()
+  for (i in seq_along(v)) {
+    if (is.na(v[i])) next
+    ti <- tipos[[i]]
+    di <- dinamica
+    if (identical(ti, "temporaria")) { ti <- "pulso"; di <- "gradual" }
+    if (is.na(ti) || !ti %in% .TR_SERIES_INTERV_TIPOS) {
+      .tr_series_abort("tr_series_error_bad_option",
+                       paste0("'series/intervencao': tipo '%s' na linha %d da tabela de datas; use pulso, ",
+                              "degrau, rampa, inovacional ou temporaria."), ti, i)
+    }
+    if (!ti %in% c("pulso", "degrau")) di <- "imediata"
+    out[[length(out) + 1L]] <- list(valor = v[i], tipo = ti, dinamica = di)
+  }
+  out
+}
+
+#' Posição na série de uma data dada como texto ("1983, 2", "1983 fev",
+#' "1983 T1", "1913"), como `Date` ou como tempo decimal do `ts`.
+#'
+#' Os rótulos "1983 fev" e "1983 T1" são os que o pacote escreve (a coluna
+#' `data` da detecção): ler de volta o que se escreveu é o que deixa a busca
+#' ligar direto no bloco.
+#' @noRd
+.tr_series_interv_indice <- function(serie, valor) {
+  f <- stats::frequency(serie)
+  tt <- as.numeric(stats::time(serie))
+  rotulo <- if (inherits(valor, c("Date", "POSIXt"))) format(valor) else as.character(valor)
+  pos <- if (inherits(valor, c("Date", "POSIXt"))) {
+    lt <- as.POSIXlt(valor)
+    ano <- lt$year + 1900
+    if (f == 12) ano + lt$mon / 12 else if (f == 4) ano + (lt$mon %/% 3) / 4 else if (f == 1) ano else {
+      .tr_series_abort("tr_series_error_bad_period",
+                       paste0("'series/intervencao': data de calendário só em série anual, trimestral ou ",
+                              "mensal; nesta (frequência %g), escreva 'ano, período'."), f)
+    }
+  } else if (is.numeric(valor)) {
+    valor
+  } else {
+    m <- regmatches(rotulo, regexec("^\\s*(-?[0-9]+)\\s+([[:alpha:]]{3})\\s*$", rotulo))[[1]]
+    q <- regmatches(rotulo, regexec("^\\s*(-?[0-9]+)\\s+T([1-4])\\s*$", rotulo))[[1]]
+    if (length(m) && f == 12 && tolower(m[[3]]) %in% .TR_SERIES_MESES) {
+      as.numeric(m[[2]]) + (match(tolower(m[[3]]), .TR_SERIES_MESES) - 1) / 12
+    } else if (length(q) && f == 4) {
+      as.numeric(q[[2]]) + (as.numeric(q[[3]]) - 1) / 4
+    } else {
+      .tr_series_pos(.tr_series_periodo(rotulo, "data", f), f)
+    }
+  }
+  i0 <- which(abs(tt - pos) < 1e-6 / f)
+  if (length(i0) != 1L || i0 < 2L) {
+    .tr_series_abort("tr_series_error_bad_period",
+                     paste0("Param 'data': '%s' tem de ser um período DA série, depois da primeira ",
+                            "observação (%s a %s) — sem observação antes, não há nível de referência."),
+                     rotulo, .tr_series_rotulo(stats::start(serie), f), .tr_series_rotulo(stats::end(serie), f))
+  }
+  i0
 }
 
 #' Nome do coeficiente: tipo e data, como "degrau_1983_fev".

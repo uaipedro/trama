@@ -1,3 +1,15 @@
+# trama.series 0.8.0
+
+* `series/intervencao` (v3) passa a se chamar "Intervenções" e declara várias
+  num bloco só: datas separadas por `;` no param `data` (`1975, 1; 1983, 2`)
+  e/ou uma tabela na nova entrada opcional `datas`, uma intervenção por
+  linha, com a data na coluna `tempo` (padrão `data`). Se a tabela tiver
+  coluna `tipo`, ela manda linha a linha; a `temporaria` vira pulso gradual.
+  A saída do `series/detect_interventions` liga direto. As datas aceitam
+  também os rótulos que o pacote escreve (`1983 fev`, `1983 T1`) e datas de
+  calendário. Encadear blocos continua somando. Quem escrevia `1983; 2` para
+  um período agora tem duas datas: use vírgula.
+
 # trama.series 0.7.1
 
 * O card do ARIMA é o card dos modelos: um coeficiente por linha, com p-valor e estrelas (antes, o texto do `forecast`, com os coeficientes em colunas e sem teste). A nota diz o que cada termo de intervenção mede. Depende de `trama.models (>= 0.6.3)`.

@@ -36,8 +36,10 @@ São dezenas de testes (cada instante, cada tipo), e por isso o valor crítico
 é alto (3 a 4). Ainda assim, numa série longa aparecem candidatos por acaso.
 Cada data é uma hipótese — "o que aconteceu em 1913?" — e não uma
 intervenção confirmada. A que tiver explicação entra no modelo por
-`series/intervencao` (temporária vira pulso com dinâmica gradual), e o
-p-valor que sair dali é otimista, porque a data veio do próprio dado.
+`series/intervencao`: a tabela liga direto na entrada **datas** dele (filtre
+antes as linhas que não quer), e a temporária vira pulso com dinâmica
+gradual. O p-valor que sair dali é otimista, porque a data veio do próprio
+dado.
 
 Um degrau achado aqui se confunde com raiz unitária: um modelo com
 diferença demais absorve o degrau, e um com diferença de menos inventa
