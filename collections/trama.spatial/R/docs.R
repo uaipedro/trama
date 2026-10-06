@@ -62,3 +62,18 @@
          "\n\n## Exemplos\n\n```r\n", trimws(exemplos), "\n```",
          "\n\n## Veja também\n\n", trimws(veja), "\n")
 }
+
+.tr_spatial_press_variograma <- function() {
+  list(
+    trama::tr_pressuposto(
+      "**Hipótese intrínseca**: a esperança da diferença entre dois pontos é zero e a variância dessa diferença depende só do vetor que os separa, não de onde estão.",
+      verificar = "spatial/explore",
+      se_falhar = "Remova a tendência de larga escala no parâmetro 'Tendência removida' deste bloco."),
+    trama::tr_pressuposto(
+      "**Isotropia**, quando o variograma é omnidirecional: a dependência é a mesma em todas as direções.",
+      verificar = "spatial/variogram",
+      se_falhar = "Calcule o variograma em direções diferentes e compare o alcance de cada uma."),
+    trama::tr_pressuposto(
+      "A **escala da amostragem** alcança a escala da dependência: há pares a distâncias curtas o bastante para enxergar a estrutura.",
+      se_falhar = "Variograma plano desde a primeira classe pode ser malha grossa demais, não ausência de estrutura."))
+}
