@@ -373,3 +373,11 @@ test_that("gravar temas e marca preserva as sugestões", {
   tr_project_set_themes(root, list(), "claro")
   expect_false(tr_project_set_marca(root, mostrar = TRUE)$sugestoes)
 })
+
+test_that("tr_project() numa pasta sem manifesto cria o trama.json e o tema grava", {
+  raiz <- withr::local_tempdir()
+  tr_project(raiz)
+  expect_true(file.exists(file.path(raiz, "trama.json")))
+  tr_project_set_themes(raiz, .tr_settings_at(raiz)$temas, "claro")
+  expect_identical(.tr_settings_at(raiz)$tema_padrao, "claro")
+})

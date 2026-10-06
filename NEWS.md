@@ -1,3 +1,7 @@
+# trama 0.5.8
+
+* `tr_project()` numa pasta sem `trama.json` passa a criar o manifesto. Antes o projeto abria, mas salvar um tema falhava com "lexical error: invalid char in json text".
+
 # trama 0.5.7
 
 * Editor: tema **papel** (preto no branco, sem relevo, sombra nem cor de categoria) para imprimir ou projetar sem cor. Escolhido no menu "…" ou em Configurações › Aparência do editor; vale também para os PNG dos frames. Layout e posição dos cards não mudam.

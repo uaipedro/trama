@@ -164,7 +164,7 @@
 #' conseguiu gravar precisa saber o que se perdeu, não só o caminho.
 #' @noRd
 .tr_cfg_rewrite <- function(cfg_path, oque, muda) {
-  cfg <- muda(jsonlite::fromJSON(cfg_path, simplifyVector = FALSE))
+  cfg <- muda(.tr_cfg_ler(cfg_path))
   if (!is.null(cfg$collections)) cfg$collections <- I(as.character(unlist(cfg$collections)))
   json <- enc2utf8(as.character(jsonlite::toJSON(cfg, auto_unbox = TRUE, pretty = TRUE, digits = NA)))
   tmp <- tempfile(".trama-", tmpdir = dirname(cfg_path), fileext = ".part")
@@ -281,7 +281,17 @@ tr_project_set_sugestoes <- function(root, ligar) {
 #' @noRd
 .tr_settings_at <- function(root) {
   cfg_path <- file.path(root, "trama.json")
-  .tr_settings(jsonlite::fromJSON(cfg_path, simplifyVector = FALSE))
+  .tr_settings(.tr_cfg_ler(cfg_path))
+}
+
+#' Lê o trama.json; ausente é manifesto vazio. Projeto aberto antes de existir
+#' manifesto (pasta só com `flows/`) é válido, e o `fromJSON` direto num
+#' caminho inexistente toma o CAMINHO por texto JSON: "lexical error: invalid
+#' char in json text" ao salvar um tema.
+#' @noRd
+.tr_cfg_ler <- function(cfg_path) {
+  if (!file.exists(cfg_path)) return(list())
+  jsonlite::fromJSON(cfg_path, simplifyVector = FALSE)
 }
 
 #' Settings no formato que o front recebe.

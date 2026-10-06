@@ -13,7 +13,12 @@
 tr_project <- function(root = ".", collections = character(), create = TRUE) {
   root <- normalizePath(root, mustWork = FALSE)
   cfg_path <- file.path(root, "trama.json")
-  if (create) .tr_project_dirs(root)
+  # `create` cria o projeto INTEIRO, manifesto incluído: pasta só com `flows/`
+  # abria normalmente, mas salvar um tema (que reescreve o trama.json) falhava
+  # com "lexical error: invalid char in json text".
+  if (create && !file.exists(cfg_path)) {
+    tr_project_new(root, collections)
+  } else if (create) .tr_project_dirs(root)
   cfg <- if (file.exists(cfg_path)) jsonlite::fromJSON(cfg_path, simplifyVector = FALSE) else list()
   cols <- if (length(collections)) as.character(collections) else unlist(cfg$collections)
   settings <- .tr_settings(cfg)
