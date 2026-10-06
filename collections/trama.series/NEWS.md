@@ -1,3 +1,7 @@
+# trama.series 0.7.1
+
+* `series/intervencao`: o card mostra a série, e não os coeficientes do bloco anterior (Tirar sazonalidade, Tirar tendência) que vazavam para ele.
+
 # trama.series 0.7.0
 
 * `series/intervencao` (v2) só **declara** a intervenção: devolve a mesma série com o evento anotado, e quem estima é o `series/arima`. Encadeie vários blocos para várias intervenções. Tipos: `pulso` (outlier aditivo, AO), `degrau` (mudança de nível, LS), `rampa` e o novo `inovacional` (IO, choque que passa pela dinâmica do modelo; Fox 1972, Chen & Liu 1993). O param `resposta` virou `dinamica` (`imediata`/`gradual`) e as ordens do ARIMA saíram do bloco. Fluxos antigos migram os params, mas a saída deixou de ser tabela: religue a série num `series/arima` e leia os efeitos em `models/coefficients`.

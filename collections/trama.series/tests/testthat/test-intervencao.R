@@ -19,6 +19,10 @@ test_that("declarar não ajusta: devolve a mesma série, com as intervenções e
   l <- .tr_series_intervencoes(s, "teste")
   expect_equal(vapply(l, `[[`, "", "termo"), c("degrau_1983_fev", "pulso_1975_jan"))
   expect_equal(vapply(l, `[[`, 0, "indice"), c(170, 73))
+  # O card do ajuste de cima não passa para a intervenção.
+  d <- tr_series_deseasonalize(x)$out
+  expect_false(is.null(.tr_series_card_ajuste(d)))
+  expect_null(.tr_series_card_ajuste(tr_series_intervencao(d, "1983, 2")))
 })
 
 test_that("degrau em 1983-02 no Seatbelts: o regressor é a coluna law, e o ajuste é o do forecast::Arima", {

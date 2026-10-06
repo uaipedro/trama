@@ -63,6 +63,10 @@ tr_series_intervencao <- function(serie, data, tipo = "degrau", dinamica = "imed
                      paste0("'series/intervencao': só uma intervenção gradual por modelo — cada uma traz ",
                             "um δ, e mais de um δ não se separa bem numa série só."))
   }
+  # O card do ajuste de cima (os coeficientes de um `series/deseasonalize`,
+  # por exemplo) vale para a série de valores idênticos, e esta é idêntica:
+  # sem tirá-lo, o card da intervenção mostraria coeficientes que não são dela.
+  attr(serie, "card_ajuste") <- NULL
   attr(serie, "intervencoes") <- list(lista = todas, valores = as.numeric(serie), tsp = stats::tsp(serie))
   serie
 }
