@@ -1,4 +1,9 @@
-# trama
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="80" viewBox="0 0 320 80">
+  <text x="0" y="60" font-family="Helvetica, Arial, sans-serif"
+        font-size="64" font-weight="700" fill="#8b949e">
+    t<tspan fill="#9b51e0">r</tspan>ama
+  </text>
+</svg>
 
 ![Identidade visual do trama: R em blocos, diagramas que rodam](tools/video/out/ab_full.png)
 
