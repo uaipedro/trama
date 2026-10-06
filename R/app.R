@@ -144,7 +144,7 @@ tr_ui <- function(project) {
       # daí em diante (troca na toolbar, mudança do sistema).
       htmltools::tags$script(htmltools::HTML(paste0(
         "(function(){try{var p=localStorage.getItem('trama.temaApp')||'sistema';",
-        "if(p!=='claro'&&p!=='escuro')p='sistema';",
+        "if(p!=='claro'&&p!=='escuro'&&p!=='papel')p='sistema';",
         "var c=p==='sistema'?(matchMedia('(prefers-color-scheme: light)').matches?'claro':'escuro'):p;",
         "document.documentElement.dataset.tema=c;}catch(e){}})();"))),
       htmltools::tags$meta(name = "viewport", content = "width=device-width, initial-scale=1"),

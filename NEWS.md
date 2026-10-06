@@ -1,3 +1,8 @@
+# trama 0.5.7
+
+* Editor: tema **papel** (preto no branco, sem relevo, sombra nem cor de categoria) para imprimir ou projetar sem cor. Escolhido no menu "…" ou em Configurações › Aparência do editor; vale também para os PNG dos frames. Layout e posição dos cards não mudam.
+* PNG dos frames: as setas das portas voltam à imagem (os fios terminavam no ar, a alguns pixels do card) e a exportação não falha mais quando algum card tem coluna vazia com sugestão ("não foi possível exportar").
+
 # trama 0.5.6
 
 * Editor: os fios entre cards passam a ser roteados em ângulo reto por um roteador que enxerga todos os cards (nenhum fio atravessa um bloco que não é a origem nem o destino) e separa em faixas paralelas os fios que dividem o mesmo corredor. Fio sem rota possível volta ao traçado anterior.

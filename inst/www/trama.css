@@ -60,6 +60,39 @@
         radial-gradient(circle at 60% 70%,#0000000a 0 1px,transparent 1.5px) 0 0/9px 9px,
         linear-gradient(165deg,#e8e5df,#dbd7cf);
       color-scheme:light}
+/* Tema papel: para imprimir ou projetar sem cor. Só tinta preta sobre branco,
+   sem relevo, sombra nem textura; mexe em cor e acabamento, nunca em medida —
+   layout e posição dos cards são os mesmos dos outros temas. As cores de DADO
+   (categoria, tipo da porta, frame, nota) aqui viram cinza de propósito: o que
+   identifica o bloco no papel é o nome e o ícone. A borda vermelha de falha
+   fica, porque é estado e não enfeite. */
+:root[data-tema="papel"]{--tr-head-sombra:transparent;--tr-bg:#ffffff;--tr-panel:#ffffff;--tr-line:#000000;
+      --tr-fg:#000000;--tr-dim:#555555;--tr-accent:#000000;--tr-accent-fg:#fff;--tr-accent-ink:#fff;
+      --tr-field:#ffffff;--tr-edge:#000000;--tr-hover:#eeeeee;--tr-dots:#cccccc;--tr-ink:#000000;
+      --tr-shadow:transparent;--tr-shadow-hi:rgba(0,0,0,.15);
+      --tr-backdrop:rgba(255,255,255,.85);--tr-err-bg:#ffffff;--tr-err-fg:#000000;
+      --tr-stream:#000000;
+      --tr-card:#ffffff;--tr-card-hi:#ffffff;--tr-card-line:#000000;
+      --tr-fio:#000000;
+      --tr-papel-origem:#ffffff;--tr-papel-preparacao:#ffffff;--tr-papel-inspecao:#ffffff;
+      --tr-papel-ajuste:#ffffff;--tr-papel-avaliacao:#ffffff;--tr-papel-saida:#ffffff;
+      --tr-papel-origem-ink:#000;--tr-papel-preparacao-ink:#000;--tr-papel-inspecao-ink:#000;
+      --tr-papel-ajuste-ink:#000;--tr-papel-avaliacao-ink:#000;--tr-papel-saida-ink:#000;
+      --tr-papel-leitura:#f0f0f0;--tr-papel-leitura-ink:#000;
+      --tr-bancada:#ffffff;
+      color-scheme:light}
+/* A cor de categoria chega INLINE (editor.js), então só `!important` a vence. */
+:root[data-tema="papel"] .tr-node{--tr-cat:#ffffff!important;--tr-cat-ink:#000!important;
+  background:#fff;box-shadow:none}
+:root[data-tema="papel"] .tr-node-head{background:#fff!important;color:#000!important;
+  background-image:none!important;box-shadow:inset 0 -1px 0 #000;text-shadow:none}
+:root[data-tema="papel"] .tr-node-sel{box-shadow:0 0 0 2px #000}
+:root[data-tema="papel"] .react-flow__handle{filter:none;--porta-cor:#000!important}
+:root[data-tema="papel"] .react-flow__handle::before{background:#000}
+:root[data-tema="papel"] .tr-fio-trilho{stroke-opacity:0}
+:root[data-tema="papel"] :is(.tr-frame,.tr-nota){--tr-fc:#d9d9d9}
+:root[data-tema="papel"] .tr-node-mini{box-shadow:none}
+:root[data-tema="papel"] .tr-node-mini .tr-node-icon-main{background:#fff;color:#000;box-shadow:inset -1px 0 0 #000}
 *{box-sizing:border-box}
 body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
      font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -718,17 +751,18 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-exporting .tr-dot,.tr-presenting .tr-dot,
 .tr-exporting .react-flow__resize-control,
 .tr-exporting .react-flow__nodesselection{display:none}
-/* Handles SOMEM, mas continuam ocupando lugar. O xyflow remede as bordas dos
-   handles com `getBoundingClientRect` quando o card muda de tamanho; com
-   `display:none` elas mediam 0x0 na origem, a ligação ancorava num ponto
-   falso, e o erro ficava depois de sair do modo, até a próxima remedição. */
-.tr-exporting .react-flow__handle,.tr-presenting .react-flow__handle{visibility:hidden}
+/* Handles FICAM no PNG e na apresentação: desde que viraram setas na borda do
+   card, são o ponto onde o fio encosta. Escondidos, o fio terminava no ar, a
+   alguns pixels do card. (Nunca `display:none` aqui: o xyflow remede as bordas
+   dos handles com `getBoundingClientRect`, e 0x0 ancoraria a ligação num ponto
+   falso até a próxima remedição.) */
 /* Card com falha guarda a borda vermelha no PNG: a falha é informação do slide,
    a seleção não. */
 .tr-exporting .tr-node-sel:not(.tr-state-failed){border-color:var(--tr-line)}
 .tr-exporting .tr-frame-sel{box-shadow:none}
 /* O halo do bloco em foco não vai ao PNG: fica só a sombra do card. */
 .tr-exporting .tr-node-sel{box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 3px 0 #0003,0 12px 22px #0006}
+:root[data-tema="papel"] .tr-exporting .tr-node-sel{box-shadow:none}
 .tr-exporting .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-edge)}
 /* Duas classes, pra vencer `.tr-app-help` quando o painel estava aberto. */
 .tr-app.tr-presenting{grid-template-columns:1fr}

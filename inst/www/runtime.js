@@ -578,15 +578,20 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
       ? sugerir(ctx.params, ctx.valores, ctx.sugeridos, schema, { forcar: spec.name }).find((s) => s.name === spec.name)
       : null;
     const opt = (o) => h("option", { key: o.nome, value: o.nome }, o.nome);
+    // Sentinela com U+2060 (invisível, não é nome de coluna real) e não NUL:
+    // o PNG do frame serializa o card como XML, e um NUL no `value` tornava o
+    // SVG inválido — a exportação inteira falhava ("não foi possível exportar")
+    // sempre que algum card tinha coluna vazia com sugestão.
+    const SUGERIR = "\u2060sugerir";
     campo = h("select", {
       key: "s", className: "nodrag", value: atual,
       onChange: (e) => {
         const v = e.target.value;
-        if (sug && v === "\u0000sugerir") ctx.onSugerir(sug.value, sug.motivo);
+        if (sug && v === SUGERIR) ctx.onSugerir(sug.value, sug.motivo);
         else onChange(v);
       },
     }, [
-      sug ? h("option", { key: "\u0000s", value: "\u0000sugerir" }, `sugerir: ${sug.value}`) : null,
+      sug ? h("option", { key: "\u0000s", value: SUGERIR }, `sugerir: ${sug.value}`) : null,
       h("option", { key: "\u0000v", value: "" }, "—"),
       // Valor que não está mais na tabela continua visível (desabilitado): um
       // select que mostrasse "—" esconderia que há um valor, e qual.

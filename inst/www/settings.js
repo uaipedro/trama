@@ -13,6 +13,15 @@ import { h, Segmented, NumberField, Toggle } from "trama";
 import { layoutEnum } from "./params.js";
 import { HEX, copiar, erroNome, duplicar, renomear, apagar } from "./temas.js";
 
+// Tema do APP (cor do editor, não dos gráficos): preferência deste navegador,
+// como as sugestões de próximos. Mora aqui porque o menu da barra e o painel
+// mostram a mesma escolha. "papel" é preto no branco, sem relevo nem cor de
+// categoria — pra imprimir, projetar sem cor e exportar frames assim.
+export const TEMAS_APP = [{ value: "claro", label: "☀", title: "tema claro" },
+                          { value: "sistema", label: "◐", title: "seguir o sistema" },
+                          { value: "escuro", label: "☾", title: "tema escuro" },
+                          { value: "papel", label: "▤", title: "papel: preto no branco, para imprimir" }];
+
 const BASES = [{ value: "minimal", label: "mínimo" }, { value: "bw", label: "bordas" },
                { value: "classic", label: "clássico" }];
 const FONTES = [{ value: "sans", label: "sem serifa" }, { value: "serif", label: "serifa" },
@@ -87,7 +96,8 @@ function Campo({ rotulo, children }) {
 
 const primeiro = (e) => e.tema_padrao ?? Object.keys(e.temas)[0] ?? null;
 
-export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProximo = true, onSugestoesProximo, onSave, onClose }) {
+export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProximo = true, onSugestoesProximo,
+                              temaApp, onTemaApp, onSave, onClose }) {
   const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca, sugestoes }));
   // O ref anda junto do estado e é lido nos callbacks: o `change` da cor chega
   // depois de uma rajada de `input`, e o fechamento do render anterior veria
@@ -274,6 +284,12 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProxim
                   onChange: onSugestoesProximo })),
   ]);
 
+  const aparencia = onTemaApp ? h("div", { key: "apar", className: "tr-settings-editor" }, [
+    h("h4", { key: "t" }, "Aparência do editor"),
+    h(Campo, { key: "s", rotulo: "tema (deste navegador; vale também para os PNG dos frames)" },
+      h(Segmented, { value: temaApp, onChange: onTemaApp, title: "tema do app", options: TEMAS_APP })),
+  ]) : null;
+
   return h("aside", { className: "tr-settings" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t" }, "Configurações"),
@@ -286,7 +302,7 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProxim
       acoes,
       editor,
       exportacao,
-      edicao, proximos,
+      edicao, proximos, aparencia,
     ]),
   ]);
 }

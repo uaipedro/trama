@@ -23,7 +23,7 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas } from "./geometria.js";
 import { empilhar, alinhar, alinharA, distribuir, grupoDe, gruposDe, expandirGrupos } from "./alinhar.js";
-import { SettingsPanel } from "./settings.js";
+import { SettingsPanel, TEMAS_APP } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados, tocados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
@@ -1961,7 +1961,7 @@ function App() {
   const [temaApp, setTemaApp] = useState(() => {
     try {
       const t = localStorage.getItem("trama.temaApp");
-      if (t === "claro" || t === "escuro" || t === "sistema") return t;
+      if (TEMAS_APP.some((x) => x.value === t)) return t;
     } catch (_) {}
     return "sistema";
   });
@@ -4748,6 +4748,7 @@ function App() {
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
             marca: temas.marca, sugestoes: temas.sugestoes,
             sugestoesProximo, onSugestoesProximo: setSugestoesProximo,
+            temaApp, onTemaApp: setTemaApp,
             // `seq` porque o input do Shiny ignora valor idêntico ao anterior:
             // voltar a um estado já enviado (desfazer uma cor à mão) não
             // chegaria ao servidor.
@@ -4854,9 +4855,7 @@ function App() {
       // O tema mora aqui: na barra ele só ocupava lugar, e some em tela estreita.
       h("div", { key: "tema", className: "tr-pop-tema", onClick: (e) => e.stopPropagation() },
         h(Segmented, { value: temaApp, onChange: setTemaApp, title: "tema do app",
-                       options: [{ value: "claro", label: "☀", title: "tema claro" },
-                                 { value: "sistema", label: "◐", title: "seguir o sistema" },
-                                 { value: "escuro", label: "☾", title: "tema escuro" }] })),
+                       options: TEMAS_APP })),
       h("button", { key: "cfg", className: "tr-pop-item" + (painelConfig ? " tr-on" : ""),
                     onClick: () => { setHelpFor(null); setPainelFrames(false); setPainelAtalhos(false);
                                      setPainelTemplates(false); setPainelConfig((v) => !v); } },
