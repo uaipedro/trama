@@ -5,7 +5,25 @@
 // com ponta fora de `nos` é ignorada. A navegação segue a ESTRUTURA do grafo,
 // não a geometria: → filho, ← pai, ↑/↓ irmãos (blocos com o mesmo pai).
 
-const porPosicao = (a, b) => a.y - b.y || a.x - b.x || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+const porId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+// Ordem de leitura de um grafo que corre da esquerda para a direita: por
+// COLUNA primeiro (o mais perto vem antes), e dentro da coluna de cima para
+// baixo. Blocos cujo x difere menos que `FOLGA_COLUNA` são a mesma coluna
+// (um arrasto de poucos pixels não troca a ordem). Só y faria o filho distante
+// que está um pouco mais alto passar à frente do vizinho logo à direita.
+const FOLGA_COLUNA = 120;
+function ordenar(lista) {
+  const porX = [...lista].sort((a, b) => a.x - b.x || porId(a, b));
+  const coluna = new Map();
+  let c = 0;
+  porX.forEach((n, i) => {
+    if (i > 0 && n.x - porX[i - 1].x > FOLGA_COLUNA) c++;
+    coluna.set(n.id, c);
+  });
+  return [...lista].sort((a, b) =>
+    coluna.get(a.id) - coluna.get(b.id) || a.y - b.y || a.x - b.x || porId(a, b));
+}
 
 function estrutura(nos, arestas) {
   const por = new Map(nos.map((n) => [n.id, n]));
@@ -20,14 +38,14 @@ function estrutura(nos, arestas) {
     filhos.get(a.source).push(por.get(a.target));
     pais.get(a.target).push(por.get(a.source));
   }
-  for (const l of [...filhos.values(), ...pais.values()]) l.sort(porPosicao);
+  for (const m of [filhos, pais]) for (const [k, l] of m) m.set(k, ordenar(l));
   return { por, filhos, pais };
 }
 
 // Blocos sem pai, de cima para baixo.
 export function fontes(nos, arestas) {
   const { pais } = estrutura(nos, arestas);
-  return nos.filter((n) => pais.get(n.id).length === 0).sort(porPosicao).map((n) => n.id);
+  return ordenar(nos.filter((n) => pais.get(n.id).length === 0)).map((n) => n.id);
 }
 
 // Bloco mais perto de `centro` (`{x, y}`, no espaço do fluxo); null se não há.
@@ -55,7 +73,7 @@ export function vizinho(nos, arestas, id, tecla, pai = null) {
     if (f) return { id: f.id, pai: id };
     // Folha: segue para o próximo irmão; sem irmão adiante, sobe até o
     // ancestral que tenha um, para a seta nunca parar no meio do fluxo.
-    const raizes = nos.filter((n) => pais.get(n.id).length === 0).sort(porPosicao);
+    const raizes = ordenar(nos.filter((n) => pais.get(n.id).length === 0));
     let cur = id, p = pai;
     for (let guarda = nos.length; guarda > 0 && cur; guarda--) {
       const ps = pais.get(cur);
@@ -71,7 +89,7 @@ export function vizinho(nos, arestas, id, tecla, pai = null) {
   if (tecla === "left") return ref ? { id: ref.id, pai: pais.get(ref.id)[0]?.id ?? null } : null;
   if (tecla === "up" || tecla === "down") {
     const grupo = ref ? filhos.get(ref.id)
-      : nos.filter((n) => pais.get(n.id).length === 0).sort(porPosicao);
+      : ordenar(nos.filter((n) => pais.get(n.id).length === 0));
     const i = grupo.findIndex((n) => n.id === id) + (tecla === "down" ? 1 : -1);
     if (i < 0 || i >= grupo.length) return null;
     return { id: grupo[i].id, pai: ref ? ref.id : null };

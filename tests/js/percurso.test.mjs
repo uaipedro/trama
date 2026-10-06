@@ -78,3 +78,19 @@ test("bloco mais perto do centro", () => {
   assert.equal(maisPerto(nos, { x: 390, y: 90 }), "d");
   assert.equal(maisPerto([], { x: 0, y: 0 }), null);
 });
+
+test("o filho mais perto (coluna da esquerda) vem antes do mais alto, porém distante", () => {
+  // q está mais alto mas 600 à direita; r está logo ali, um pouco abaixo
+  const ns = [n("p", 0, 0), n("q", 600, 0), n("r", 300, 100), n("t", 300, 300)];
+  const as = [e("p", "q"), e("p", "r"), e("p", "t")];
+  assert.equal(vizinho(ns, as, "p", "right").id, "r");
+  assert.equal(vizinho(ns, as, "r", "down", "p").id, "t");
+  assert.equal(vizinho(ns, as, "t", "down", "p").id, "q");
+  assert.equal(vizinho(ns, as, "q", "up", "p").id, "t");
+});
+
+test("x quase igual é a mesma coluna: manda a altura", () => {
+  const ns = [n("p", 0, 0), n("q", 300, 200), n("r", 340, 0)];
+  const as = [e("p", "q"), e("p", "r")];
+  assert.equal(vizinho(ns, as, "p", "right").id, "r");
+});
