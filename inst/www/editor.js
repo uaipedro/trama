@@ -787,7 +787,7 @@ function NdNode({ id, data, selected }) {
       h("div", { key: "out", className: "tr-out" }, (spec.outputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port tr-port-out" }, [
           mini ? null : h("span", { key: "n", title: `${p.name} · ${p.type}` },
-            h(PortName, { id, porta: p.name, nome: nomeDaSaida(data.saidas, id, p.name), onSave: data.onSaida })),
+            h(PortName, { id, porta: p.name, nome: nomeDaSaida({ [id]: data.saidas }, id, p.name), onSave: data.onSaida })),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
           // "+" do próximo bloco: some no mini (e na apresentação, pelo CSS).

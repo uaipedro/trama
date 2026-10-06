@@ -15,7 +15,10 @@ function sobrasMarkdown(node, dentroCodigo = false, achados = []) {
     if (/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(texto)) achados.push("tabela");
     if (/###/.test(texto)) achados.push("###");
     if (/\]\(/.test(texto)) achados.push("](");
-    if (/\*x\*/.test(texto)) achados.push("*x*");
+    if (/(^|[\s(])\*[^\s*][^*]*\*(?=[\s.,;:)]|$)/.test(texto)) achados.push("*itálico*");
+    if (/\*\*/.test(texto)) achados.push("**");
+    if (/&(quot|amp|lt|gt|#39);/.test(texto)) achados.push("entidade");
+    if (/^#{1,6}\s/.test(texto)) achados.push("título");
     return achados;
   }
   if (Array.isArray(node)) { for (const filho of node) sobrasMarkdown(filho, dentroCodigo, achados); return achados; }

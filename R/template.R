@@ -123,7 +123,7 @@ tr_doc_subset <- function(doc, ids = NULL) {
   keep <- function(m) .tr_empty_obj(m[intersect(names(m), ids)])
   doc$nodes <- keep(doc$nodes)
   doc$edges <- Filter(function(e) e$from$node %in% ids && e$to$node %in% ids, doc$edges)
-  for (k in c("positions", "sizes", "views", "modes", "soltos", "ocultos", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
+  for (k in c("positions", "sizes", "views", "modes", "soltos", "ocultos", "saidas", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
   # Grupo recortado só fica inteiro: com membro de fora ele não faria sentido.
   doc$ui$grupos <- .tr_empty_obj(Filter(function(m) all(m %in% ids), doc$ui$grupos %||% list()))
   # O manifesto encolhe junto: o template não deve exigir coleção que nenhum
@@ -165,6 +165,8 @@ tr_template_op <- function(tpl, origin = c(0, 0)) {
       list(op = "set_view", node = novo[[id]], view = d$ui$views[[id]])
     if (!is.null(d$ui$modes[[id]])) depois[[length(depois) + 1]] <-
       list(op = "set_mode", node = novo[[id]], modo = d$ui$modes[[id]])
+    for (porta in names(d$ui$saidas[[id]])) depois[[length(depois) + 1]] <-
+      list(op = "set_saida", node = novo[[id]], port = porta, nome = d$ui$saidas[[id]][[porta]])
     if (isTRUE(d$ui$ocultos[[id]])) depois[[length(depois) + 1]] <-
       list(op = "set_preview_oculto", node = novo[[id]], oculto = TRUE)
     # A caixa do preview solto é geometria do canvas: anda com a origem, como

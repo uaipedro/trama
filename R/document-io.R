@@ -114,9 +114,10 @@ tr_doc_parse <- function(txt) {
   }
   doc$ui$folds <- NULL
   doc$ui$modes <- .tr_empty_obj(modes)
-  doc$ui$saidas <- .tr_empty_obj(lapply(doc$ui$saidas %||% list(), function(portas) {
-    .tr_empty_obj(lapply(portas, function(nome) trimws(as.character(nome)[[1]])))
-  }))
+  doc$ui$saidas <- .tr_empty_obj(Filter(length, lapply(doc$ui$saidas %||% list(), function(portas) {
+    nomes <- Filter(function(n) is.character(n) && length(n) == 1L && !is.na(n) && nzchar(trimws(n)), portas)
+    .tr_empty_obj(lapply(nomes, trimws))
+  })))
   doc$ui$soltos <- .tr_empty_obj(lapply(doc$ui$soltos %||% list(), .tr_resimplify))
   # Só `TRUE` é gravado; um `false` escrito à mão vale o mesmo que ausente.
   doc$ui$ocultos <- .tr_empty_obj(Filter(isTRUE, doc$ui$ocultos %||% list()))

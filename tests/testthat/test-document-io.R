@@ -293,3 +293,16 @@ test_that("tr_doc_write é atômico: falha não trunca o fluxo anterior", {
   expect_identical(readLines(path), antes)
   expect_length(list.files(dir, pattern = "\\.part$", all.files = TRUE), 0)
 })
+
+test_that("ui.saidas escrito à mão: vazio, não-texto e em branco são descartados", {
+  doc <- mk()$doc
+  doc$ui$saidas <- list(a = list(x = list(), y = 3, z = "  ", w = " Vendas "), b = list())
+  out <- tr_doc_parse(tr_doc_json(doc))
+  expect_equal(out$ui$saidas, list(a = list(w = "Vendas")))
+})
+
+test_that("set_saida recusa porta que não é saída do nó", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  expect_error(tr_doc_apply(d, list(op = "set_saida", node = "a", port = "nada", nome = "X"), m$reg),
+               class = "tr_error_bad_op")
+})

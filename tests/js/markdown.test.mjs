@@ -154,3 +154,9 @@ test("Markdown resolve src da imagem com resolverSrc e nunca usa innerHTML/dange
   assert.ok(!/dangerouslySetInnerHTML\s*[:=]/.test(fonte));
   assert.ok(!/\.innerHTML\s*=/.test(fonte));
 });
+
+test("aspas e & aparecem como texto, não como entidade", () => {
+  const json = JSON.stringify(tokensDe('**0 é "periódica"**: a & b, `x < "y"`'));
+  assert.ok(!/&quot;|&amp;|&lt;/.test(json), json);
+  assert.ok(json.includes('\\"periódica\\"'));
+});

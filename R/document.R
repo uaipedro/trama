@@ -701,6 +701,10 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
       !is.character(op$nome) || length(op$nome) != 1L || is.na(op$nome)) {
     rlang::abort("port e nome devem ser textos únicos.", class = "tr_error_bad_op")
   }
+  spec <- if (!is.null(registry)) registry$nodes[[doc$nodes[[op$node]]$type]]
+  if (!is.null(spec) && !op$port %in% names(spec$outputs)) {
+    rlang::abort(sprintf("'%s' não é saída de %s.", op$port, spec$id %||% ""), class = "tr_error_bad_op")
+  }
   portas <- doc$ui$saidas[[op$node]] %||% list()
   nome <- trimws(op$nome)
   if (!nzchar(nome)) portas[[op$port]] <- NULL else portas[[op$port]] <- nome

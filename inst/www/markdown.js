@@ -71,16 +71,21 @@ function inlineFilhos(tokens, resolverSrc) {
   return (tokens || []).map((t) => inlineNode(t, resolverSrc));
 }
 
+// O lexer do marked já devolve `text`/`codespan` com entidades HTML (`&quot;`,
+// `&amp;`...); como o React escapa de novo, desfaz aqui para não aparecerem cruas.
+const ENTIDADES = { "&quot;": '"', "&#39;": "'", "&lt;": "<", "&gt;": ">", "&amp;": "&" };
+const desescapar = (s) => String(s ?? "").replace(/&(quot|#39|lt|gt|amp);/g, (m) => ENTIDADES[m]);
+
 function inlineNode(t, resolverSrc) {
   switch (t.type) {
     case "text":
-      return { tipo: "texto", texto: t.text };
+      return { tipo: "texto", texto: desescapar(t.text) };
     case "strong":
       return { tipo: "negrito", filhos: inlineFilhos(t.tokens, resolverSrc) };
     case "em":
       return { tipo: "italico", filhos: inlineFilhos(t.tokens, resolverSrc) };
     case "codespan":
-      return { tipo: "codigo_inline", texto: t.text };
+      return { tipo: "codigo_inline", texto: desescapar(t.text) };
     case "link":
       if (!esquemaPermitido(t.href)) return { tipo: "literal", raw: t.raw };
       return { tipo: "link", href: t.href, filhos: inlineFilhos(t.tokens, resolverSrc) };
