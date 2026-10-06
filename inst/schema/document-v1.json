@@ -119,6 +119,11 @@
           "type": "object",
           "additionalProperties": { "enum": ["mini", "params", "preview", "completo", "solto"] }
         },
+        "saidas": {
+          "description": "Nomes visuais de saídas, por nó e porta. Não afetam a execução.",
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
         "soltos": {
           "description": "Caixa do preview destacado de um card em modo solto: [x, y, w, h] em coordenadas do canvas.",
           "type": "object",

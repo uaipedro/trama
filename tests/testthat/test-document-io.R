@@ -73,7 +73,7 @@ test_that("documento sem ui.sizes/ui.views abre e sai como objeto, não array", 
 # três linhas de `tr_doc_json` passa despercebido pela suíte inteira.
 test_that("documento novo serializa os mapas de ui como objeto", {
   j <- as.character(tr_doc_json(tr_doc()))
-  for (k in c("positions", "sizes", "views", "frames", "modes", "soltos", "notes")) {
+  for (k in c("positions", "sizes", "views", "frames", "modes", "saidas", "soltos", "notes")) {
     expect_match(j, sprintf('"%s"\\s*:\\s*\\{\\}', k))
   }
 })
@@ -88,6 +88,16 @@ test_that("frames e modes sobrevivem à ida e volta pelo JSON", {
                list(x = -10, y = 5.5, w = 1600, h = 900, title = "Leitura",
                     aspect = "16:9", color = "azul", order = 1L))
   expect_identical(back$ui$modes$a, "params")
+})
+
+test_that("ui.saidas sobrevive à ida e volta do documento e é cosmética", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- tr_doc_apply(d, list(op = "set_saida", node = "a", port = "out", nome = "Vendas SP"), m$reg)
+  back <- tr_doc_parse(tr_doc_json(d))
+  expect_identical(back$ui$saidas$a$out, "Vendas SP")
+  expect_false(tr_op_semantic(list(op = "set_saida", node = "a", port = "out", nome = "Vendas")))
+  d <- tr_doc_apply(d, list(op = "remove_node", node = "a"), m$reg)
+  expect_null(d$ui$saidas$a)
 })
 
 test_that("folds antigos viram modes na leitura", {
