@@ -85,6 +85,23 @@ test("link relativo (sem esquema) é permitido", () => {
   assert.equal(p.filhos[0].href, "./pagina");
 });
 
+test("renderiza construções reais das ajudas das coleções", () => {
+  const tabelaFonte = readFileSync(new URL("../../collections/trama.experiments/R/nos_simular.R", import.meta.url), "utf8");
+  const tabelaReal = tabelaFonte.slice(tabelaFonte.indexOf("| Tipo | Lê |"), tabelaFonte.indexOf("### Por contraste"));
+  assert.equal(tokensDe(tabelaReal).find((n) => n.tipo === "tabela")?.linhas.length, 6);
+
+  const headings = readFileSync(new URL("../../collections/trama.experiments/R/docs_analisar.R", import.meta.url), "utf8");
+  assert.ok(tokensDe(headings).some((n) => n.tipo === "titulo" && n.nivel === 3));
+
+  const ordered = readFileSync(new URL("../../collections/trama.multi/R/agrupamento.R", import.meta.url), "utf8");
+  const orderedReal = ordered.slice(ordered.indexOf("1. θ é a maior"), ordered.indexOf("### Como ler", ordered.indexOf("1. θ é a maior")));
+  assert.equal(tokensDe(orderedReal).find((n) => n.tipo === "lista")?.ordenada, true);
+
+  const shortHelp = readFileSync(new URL("../../collections/trama.data/R/help-short.R", import.meta.url), "utf8");
+  assert.match(shortHelp, /\[Ver no site do trama\]\(/);
+  assert.equal(tokensDe("[Ver no site do trama](https://trama.example)")[0].filhos[0].tipo, "link");
+});
+
 test("imagem resolve src pela função injetada", () => {
   const resolverSrc = (rel) => `trama-imagens/${rel}`;
   const [p] = tokensDe("![alt](logo.png)", resolverSrc);

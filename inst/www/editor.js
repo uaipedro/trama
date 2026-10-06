@@ -41,6 +41,7 @@ import { linkDeDados } from "./links.js";
 import { criarRoteador, caminhoComCantos, meioDaLinha } from "./rotas.js";
 import { criarFilaOps } from "./fila-ops.js";
 import { reusarNos } from "./reuso.js";
+import { Markdown } from "./markdown.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -338,39 +339,6 @@ function mdInline(t) {
   }
   if (last < t.length) parts.push(t.slice(last));
   return parts;
-}
-
-function md(text) {
-  const lines = (text || "").split("\n"); const out = [];
-  let i = 0, k = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (l.startsWith("```")) {
-      const buf = []; i++;
-      while (i < lines.length && !lines[i].startsWith("```")) buf.push(lines[i++]);
-      i++;
-      out.push(h("pre", { key: k++ }, h("code", null, buf.join("\n"))));
-    } else if (l.startsWith("## ")) {
-      out.push(h("h4", { key: k++ }, l.slice(3))); i++;
-    } else if (l.startsWith("- ")) {
-      const items = [];
-      while (i < lines.length && lines[i].startsWith("- ")) {
-        let t = lines[i++].slice(2);
-        // Item de lista quebrado em várias linhas: a continuação vem indentada
-        // e pertence ao item anterior, não a um parágrafo novo.
-        while (i < lines.length && /^\s+\S/.test(lines[i])) t += " " + lines[i++].trim();
-        items.push(t);
-      }
-      out.push(h("ul", { key: k++ }, items.map((t, j) => h("li", { key: j }, mdInline(t)))));
-    } else if (!l.trim()) {
-      i++;
-    } else {
-      const buf = [];
-      while (i < lines.length && lines[i].trim() && !/^(## |- |```)/.test(lines[i])) buf.push(lines[i++]);
-      out.push(h("p", { key: k++ }, mdInline(buf.join(" "))));
-    }
-  }
-  return out;
 }
 
 // --- Nó genérico -----------------------------------------------------------
@@ -1163,12 +1131,47 @@ function Help({ catalog, typeId, onClose, onOpen }) {
   const spec = (catalog.nodes || []).find((n) => n.id === typeId);
   const titulo = useRef(null);
   const veioDeChip = useRef(false);
+  const dialogRef = useRef(null);
+  const [secAtiva, setSecAtiva] = useState(0);
   // Depois que um chip troca o painel, o foco vai para o título da nova ajuda.
   useEffect(() => {
     if (veioDeChip.current && titulo.current) titulo.current.focus();
     veioDeChip.current = false;
   }, [typeId]);
+  useEffect(() => {
+    const fecharEsc = (e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
+    document.addEventListener("keydown", fecharEsc);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener("keydown", fecharEsc);
+  }, [typeId]);
+  useEffect(() => {
+    const root = dialogRef.current?.querySelector(".tr-ajuda-conteudo");
+    if (!root || !window.IntersectionObserver) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visivel = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visivel) setSecAtiva(Number(visivel.target.dataset.indice));
+    }, { root, rootMargin: "-8% 0px -78% 0px" });
+    root.querySelectorAll("[data-indice]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [typeId]);
   if (!spec) return null;
+  const secoesMd = [];
+  if (spec.help) {
+    const linhas = spec.help.split("\n");
+    let atual = null;
+    let abertura = [];
+    let emCodigo = false;
+    for (const linha of linhas) {
+      if (/^\s*```/.test(linha)) emCodigo = !emCodigo;
+      if (!emCodigo && /^##\s+/.test(linha)) {
+        if (!atual && abertura.some((l) => l.trim())) secoesMd.push({ titulo: "Ajuda", texto: abertura.join("\n") });
+        atual = { titulo: linha.replace(/^##\s+/, "").trim(), texto: linha };
+        secoesMd.push(atual);
+      } else if (atual) atual.texto += `\n${linha}`;
+      else abertura.push(linha);
+    }
+    if (!secoesMd.length) secoesMd.push({ titulo: "Ajuda", texto: spec.help });
+  }
   const nos = catalog.nodes || [];
   const press = spec.pressupostos || [];
   const refs = spec.referencias || [];
@@ -1207,20 +1210,35 @@ function Help({ catalog, typeId, onClose, onOpen }) {
       ]) : null;
     }),
   ]) : null;
-  return h("aside", { className: "tr-help" }, [
+  const secoesIndice = [
+    ...secoesMd.map((s, i) => ({ id: `tr-help-md-${i}`, titulo: s.titulo })),
+    ...(press.length ? [{ id: "tr-help-press", titulo: "Pressupostos" }] : []),
+    ...(refs.length ? [{ id: "tr-help-refs", titulo: "Referências" }] : []),
+  ];
+  return h("div", { className: "tr-lightbox tr-modal tr-ajuda", onClick: (e) => { if (e.target === e.currentTarget) onClose(); } },
+    h("div", { ref: dialogRef, className: "tr-dialog tr-ajuda-dialog", role: "dialog", "aria-modal": "true",
+               "aria-label": `Ajuda: ${spec.label || spec.id}`, tabIndex: -1 }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t", ref: titulo, tabIndex: -1 }, spec.label || spec.id),
-      h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
+      h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)",
                     onClick: onClose }, "×"),
     ]),
-    h("code", { key: "id", className: "tr-help-id" }, spec.id),
-    h("div", { key: "b", className: "tr-help-body" }, [
-      spec.description && !descricaoRepete(spec.description, spec.help) ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
-      secPress, secRefs,
-      spec.help ? h("div", { key: "md" }, md(spec.help))
-        : (!spec.description && !secPress && !secRefs ? h("p", { key: "0" }, "sem ajuda") : null),
+    h("div", { key: "layout", className: "tr-ajuda-layout" }, [
+      h("nav", { key: "idx", className: "tr-ajuda-indice", "aria-label": "Seções da ajuda" },
+        secoesIndice.map((s, i) => h("button", { key: s.id, type: "button",
+          className: i === secAtiva ? "tr-ajuda-link tr-ajuda-ativa" : "tr-ajuda-link",
+          onClick: () => dialogRef.current?.querySelector(`#${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }) }, s.titulo))),
+      h("div", { key: "b", className: "tr-help-body tr-ajuda-conteudo" }, [
+        h("code", { key: "id", className: "tr-help-id" }, spec.id),
+        spec.description && !descricaoRepete(spec.description, spec.help) ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
+        ...secoesMd.map((s, i) => h("section", { key: `md-${i}`, id: `tr-help-md-${i}`, "data-indice": i, className: "tr-ajuda-secao" },
+          Markdown({ texto: s.texto, h }))),
+        press.length ? h("section", { key: "pr", id: "tr-help-press", "data-indice": secoesMd.length, className: "tr-ajuda-secao" }, secPress) : null,
+        refs.length ? h("section", { key: "rf", id: "tr-help-refs", "data-indice": secoesMd.length + (press.length ? 1 : 0), className: "tr-ajuda-secao" }, secRefs) : null,
+        !spec.description && !secPress && !secRefs && !spec.help ? h("p", { key: "0" }, "sem ajuda") : null,
+      ]),
     ]),
-  ]);
+  ]));
 }
 
 function compatible(catalog, from, to) {
@@ -2230,6 +2248,7 @@ function App() {
   // F1: com UM card selecionado, a ajuda dele (o que era o "?" do cabeçalho);
   // sem isso, a lista de atalhos. H de novo fecha o que estiver aberto.
   const ajuda = () => {
+    if (present) return;
     if (helpFor || painelAtalhos) { setHelpFor(null); setPainelAtalhos(false); return; }
     const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
     setPainelFrames(false); setPainelConfig(false); setPainelTemplates(false);
@@ -4561,7 +4580,7 @@ function App() {
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
-  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
+  return h("div", { className: ["tr-app", painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "", desenrolar ? "tr-desenrolando" : "",
                                 abrindo || templateDlg ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
