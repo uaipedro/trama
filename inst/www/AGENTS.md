@@ -20,6 +20,7 @@ de nó, de dado ou categoria.
 | `markdown.js` | Markdown para React sem HTML cru. | via `h` | `markdown.test.mjs` |
 | `ops.js` | Espelho das ops cosméticas de `R/document.R`. | não | `ops.test.mjs` |
 | `sugestor.js`, `fantasmas.js`, `historico.js`, `proximo.js`, `proximo-foco.js` | Próximo bloco: ranking, previews, histórico, popover, teclado. | `proximo.js` sim | `sugestor`, `fantasmas`, `historico`, `proximo.test.mjs` |
+| `percurso.js` | Setas entre blocos (pai, filho, irmãos) e ordem do Desenrolar. | não | `percurso.test.mjs` |
 | `papeis.js` | Cor do card pela categoria. | não | `papeis.test.mjs` |
 | `bases.js`, `links.js` | Catálogo de bases; link colado vira bloco de leitura. | não | `bases`, `links.test.mjs` |
 | `teste.js` | Regras do card de teste de hipótese. | não | `teste.test.mjs` |

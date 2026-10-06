@@ -103,6 +103,18 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
          border:1px solid var(--tr-card-line);border-radius:9px;
          box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 3px 0 #0003,0 12px 22px #0006}
 .tr-node-sel{border-color:var(--tr-accent)}
+/* Halo externo do bloco em foco (setas): leve, por fora, sem mexer na borda. */
+.tr-node-sel{box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 3px 0 #0003,0 12px 22px #0006,
+             0 0 0 4px color-mix(in srgb,var(--tr-accent) 18%,transparent),
+             0 0 26px color-mix(in srgb,var(--tr-accent) 30%,transparent)}
+/* Desenrolar: o bloco alcançado nasce suave (opacidade no nó do xyflow, escala
+   no card: a `transform` do nó é a posição dele). Somente leitura, sem cromo. */
+@keyframes tr-nasce{from{opacity:0}to{opacity:1}}
+@keyframes tr-nasce-card{from{transform:scale(.94)}to{transform:none}}
+.tr-nasce{animation:tr-nasce .35s ease-out}
+.tr-nasce>.tr-node{animation:tr-nasce-card .35s ease-out}
+.tr-desenrolando .react-flow__minimap,.tr-desenrolando .tr-selbar{display:none}
+@media (prefers-reduced-motion:reduce){.tr-nasce,.tr-nasce>.tr-node{animation:none}}
 .tr-state-running{border-color:var(--tr-accent)}
 .tr-state-failed{border-color:var(--tr-err)}
 /* Contorno sutil de MEMBRO DE REGIÃO (Tarefa 8.1) — `outline`, não `border`:
@@ -715,6 +727,8 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    a seleção não. */
 .tr-exporting .tr-node-sel:not(.tr-state-failed){border-color:var(--tr-line)}
 .tr-exporting .tr-frame-sel{box-shadow:none}
+/* O halo do bloco em foco não vai ao PNG: fica só a sombra do card. */
+.tr-exporting .tr-node-sel{box-shadow:inset 0 1px 0 #ffffff40,inset 0 -2px 0 #0002,0 3px 0 #0003,0 12px 22px #0006}
 .tr-exporting .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-edge)}
 /* Duas classes, pra vencer `.tr-app-help` quando o painel estava aberto. */
 .tr-app.tr-presenting{grid-template-columns:1fr}

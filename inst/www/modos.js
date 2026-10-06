@@ -124,6 +124,8 @@ export const ATALHOS = [
   { id: "frame-sel", grupo: "Frames", teclas: ["Ctrl+G"], rotulo: "Frame da seleção" },
   { id: "frame-n", grupo: "Frames", teclas: ["1…9", "0"], rotulo: "Ir ao frame 1…10" },
   { id: "frame-passo", grupo: "Frames", teclas: [",", "."], rotulo: "Frame anterior / próximo" },
+  { id: "navegar", grupo: "Blocos", teclas: ["←", "→", "↑", "↓"], rotulo: "Andar pelos blocos (pai, filho, irmãos)" },
+  { id: "desenrolar", grupo: "Blocos", teclas: ["R"], rotulo: "Desenrolar a trama / sair" },
   { id: "markdown", grupo: "Notas", teclas: ["M"], rotulo: "Nota markdown" },
   { id: "imagem", grupo: "Notas", teclas: ["I"], rotulo: "Nota imagem" },
 ];

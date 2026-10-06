@@ -27,6 +27,7 @@ import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados, tocados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
          frameVizinho } from "./modos.js";
+import { fontes as fontesDoGrafo, maisPerto as blocoMaisPerto, vizinho as vizinhoNoGrafo } from "./percurso.js";
 import { anotado, sugerir as sugerirColunas } from "./colunas.js";
 import { ModoPicker, ModoToggle, Engrenagem, Olho, ParamsRodape, ParamsModal, Vista, AtalhosPanel, colunasDoNo } from "./modos-ui.js";
 import { corDaCategoria, tintaDaCategoria } from "./papeis.js";
@@ -3522,6 +3523,7 @@ function App() {
 
   const onDrop = useCallback((ev) => {
     ev.preventDefault();
+    if (desenrolarRef.current) return;
     // Item do painel de templates: vem antes dos arquivos porque nem é
     // arquivo — é o caminho que o servidor listou.
     const arqTpl = ev.dataTransfer.getData("application/trama-template");
@@ -3756,6 +3758,7 @@ function App() {
 
   const apresentar = () => {
     if (framesOrd.length === 0) return;
+    setDesenrolar(null);
     selecionar(false); setMenu(null); setFerramenta(null); setPrancheta(null);
     // Começa no frame ATUAL (o último navegado), não sempre no primeiro: F
     // depois de já ter ido ao slide 4 no modo edição entra apresentando dali.
@@ -3775,6 +3778,90 @@ function App() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   };
   const sairRef = useRef(null); sairRef.current = sairApresentacao;
+
+  // --- Setas e Desenrolar ---------------------------------------------------
+  // Só `ui`, nada vai ao documento nem ao desfazer. As setas andam pela
+  // estrutura do grafo (percurso.js); selecionar É o foco. No Desenrolar tudo
+  // fica oculto e cada bloco alcançado nasce e fica: `desenrolar.vistos`.
+  const [desenrolar, setDesenrolar] = useState(null);       // {vistos: string[]} | null
+  const desenrolarRef = useRef(null); desenrolarRef.current = desenrolar;
+  const paiDeRef = useRef({});     // id -> pai por onde se chegou nele
+  const blocosDoGrafo = () => nodesRef.current.filter((n) => n.type === "ndNode")
+    .map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
+  const arestasDoGrafo = () => edgesRef.current.map((e) => ({ source: e.source, target: e.target }));
+  const irAoBloco = (id) => {
+    setNodes((ns) => ns.map((n) => (!!n.selected === (n.id === id) ? n : { ...n, selected: n.id === id })));
+    setEdges((es) => es.map((e) => (e.selected ? { ...e, selected: false } : e)));
+    // Espera o bloco ser medido (e, no Desenrolar, montado) antes de enquadrar.
+    setTimeout(() => {
+      const n = nodesRef.current.find((x) => x.id === id);
+      const b = wrapRef.current?.getBoundingClientRect();
+      if (!n || !b) return;
+      const w = n.measured?.width ?? n.width ?? MIN_W, hh = n.measured?.height ?? n.height ?? MIN_H;
+      const a = rf.flowToScreenPosition({ x: n.position.x, y: n.position.y });
+      const z = rf.getZoom();
+      const dentro = a.x >= b.left + 40 && a.y >= b.top + 40
+        && a.x + w * z <= b.right - 40 && a.y + hh * z <= b.bottom - 40;
+      if (!dentro || desenrolarRef.current)
+        rf.setCenter(n.position.x + w / 2, n.position.y + hh / 2,
+                     { zoom: Math.min(1, Math.max(0.5, z)), duration: 350 });
+    }, 60);
+  };
+  const andar = (tecla) => {
+    // Overlay aberto (painéis, "+", menu): as setas são dele, não do canvas.
+    if (prox || paramsDe || vista || menu || helpFor || painelFrames || painelConfig
+        || painelAtalhos || painelTemplates) return;
+    const blocos = blocosDoGrafo();
+    if (!blocos.length) return;
+    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+    const atual = sel.length === 1 ? sel[0].id : null;
+    // Sem um bloco só selecionado, a seta apenas escolhe o mais perto do
+    // centro (ou, no Desenrolar, o último visto): o ponto de partida.
+    if (!atual) {
+      const vistos = desenrolarRef.current?.vistos;
+      const base = vistos ? blocos.filter((b) => vistos.includes(b.id)) : blocos;
+      const id = blocoMaisPerto(base, centroDaTela());
+      if (id) irAoBloco(id);
+      return;
+    }
+    const d = vizinhoNoGrafo(blocos, arestasDoGrafo(), atual, tecla, paiDeRef.current[atual]);
+    if (!d) return;
+    paiDeRef.current[d.id] = d.pai;
+    if (desenrolarRef.current)
+      setDesenrolar((p) => p && (p.vistos.includes(d.id) ? p : { ...p, vistos: [...p.vistos, d.id] }));
+    irAoBloco(d.id);
+  };
+  const desenrolarTrama = () => {
+    if (presentRef.current) return;
+    const blocos = blocosDoGrafo();
+    if (!blocos.length) return;
+    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+    const ini = sel.length === 1 ? sel[0].id : fontesDoGrafo(blocos, arestasDoGrafo())[0];
+    setMenu(null); setProx(null); setFerramenta(null); setPrancheta(null);
+    paiDeRef.current = {};
+    setDesenrolar({ vistos: [ini] });
+    irAoBloco(ini);
+  };
+  const enrolarTrama = () => setDesenrolar(null);
+  // O que o Desenrolar mostra: só os blocos vistos (e os soltos presos a
+  // eles); frames e notas ficam fora. Ligação só com as duas pontas vistas.
+  const vistaDesenrolar = useMemo(() => {
+    if (!desenrolar) return null;
+    const vistos = new Set(desenrolar.vistos);
+    const ver = (n) => n.type === "ndNode" ? vistos.has(n.id)
+      : n.type === "trSolto" ? vistos.has(n.data?.alvo) : false;
+    return { ver, vistos };
+  }, [desenrolar]);
+  const nosNaTela = useMemo(() => !vistaDesenrolar ? decorated
+    : decorated.map((n) => (vistaDesenrolar.ver(n) ? { ...n, className: "tr-nasce" } : { ...n, hidden: true })),
+    [decorated, vistaDesenrolar]);
+  const fiosNaTela = useMemo(() => !vistaDesenrolar ? comFios
+    : comFios.map((e) => {
+      const v = vistaDesenrolar.vistos;
+      // O fio de um solto sai do bloco: basta o bloco estar visto.
+      const ok = e.type === "trFio" ? v.has(e.source) : v.has(e.source) && v.has(e.target);
+      return ok ? e : { ...e, hidden: true };
+    }), [comFios, vistaDesenrolar]);
 
   const passo = (d) => setPresent((p) => p && {
     ...p, i: Math.max(0, Math.min(framesOrdRef.current.length - 1, p.i + d)) });
@@ -4094,6 +4181,8 @@ function App() {
   const numeros = Object.fromEntries(
     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((k, i) => [k, () => irAoFrame(i)]));
   const navFrames = { ...numeros, ",": () => passoFrame(-1), ".": () => passoFrame(1) };
+  const setas = { "arrowright": () => andar("right"), "arrowleft": () => andar("left"),
+                  "arrowup": () => andar("up"), "arrowdown": () => andar("down") };
   atalhosRef.current = present ? {
     ...navFrames,
     "arrowright": () => passo(1), "pagedown": () => passo(1), " ": () => passo(1),
@@ -4102,8 +4191,15 @@ function App() {
     "end": () => setPresent((p) => p && { ...p, i: framesOrdRef.current.length - 1 }),
     "escape": sairApresentacao,
     "f": sairApresentacao,
+  } : desenrolar ? {
+    // Desenrolar é só leitura: nada de editar, só andar, sair ou ajuda.
+    ...setas,
+    "escape": enrolarTrama, "r": enrolarTrama, "f": enrolarTrama,
+    "h": ajuda,
   } : {
     ...navFrames,
+    ...setas,
+    "r": desenrolarTrama,
     "mod+z": desfazer,
     "mod+shift+z": refazer,
     "mod+y": refazer,
@@ -4200,6 +4296,7 @@ function App() {
     // pode sequestrar o Ctrl+V interno. Campo de texto focado não é conosco;
     // diálogo e lightbox recuam como no keydown.
     const onPaste = (e) => {
+      if (desenrolarRef.current) return;
       const t = e.target;
       if (abrindoRef.current || document.querySelector(".tr-lightbox")) return;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
@@ -4338,6 +4435,7 @@ function App() {
   // (abrir o navegador) bloqueado — senão soltar um bloco da paleta fora do
   // canvas também dispararia isto à toa.
   const onDragOverGlobal = (e) => {
+    if (desenrolarRef.current) return;
     if ((e.dataTransfer?.types || []).includes("Files")) e.preventDefault();
   };
   const onDropGlobal = (e) => {
@@ -4365,7 +4463,7 @@ function App() {
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
   return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
-                                present ? "tr-presenting" : "",
+                                present ? "tr-presenting" : "", desenrolar ? "tr-desenrolando" : "",
                                 abrindo || templateDlg ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
     h("div", { key: "canvas", className: "tr-canvas", ref: wrapRef,
@@ -4374,7 +4472,7 @@ function App() {
                onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; },
                onDrop },
       h(MeioCtx.Provider, { key: "rf", value: present ? null : abrirMeio }, h(ReactFlow, {
-        nodes: decorated, edges: comFios, nodeTypes, edgeTypes,
+        nodes: nosNaTela, edges: fiosNaTela, nodeTypes, edgeTypes,
         // Conectores em ângulo reto com cantos arredondados; a direção da
         // curva (TrAresta) é recalculada por par de cards a cada render,
         // pra nunca cortar por cima do card vizinho quando o arranjo foge
@@ -4386,9 +4484,9 @@ function App() {
         onBeforeDelete,
         // Na apresentação o menu também some: ele traz "Apagar", e o slide é
         // somente leitura.
-        onNodeContextMenu: (ev, n) => (present ? ev.preventDefault()
+        onNodeContextMenu: (ev, n) => (present || desenrolar ? ev.preventDefault()
           : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
-        onEdgeContextMenu: (ev, e) => (present ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
+        onEdgeContextMenu: (ev, e) => (present || desenrolar ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
         onPaneClick: () => { setMenu(null); setMenuAcoes(false); }, onNodeClick: () => setMenu(null),
         // A andada automática até o bloco novo não fecha o popover encadeado;
         // um arrasto do usuário fecha e, enquanto dura, trava a andada.
@@ -4405,7 +4503,11 @@ function App() {
         // `onWheel`). Com o Shift apertado o xyflow tira o `panOnDrag` do
         // d3-zoom sozinho, por isso os dois gestos não brigam pelo mesmo arrasto.
         // Apresentação é somente leitura: nada arrasta, liga, seleciona nem apaga.
-        nodesDraggable: !present, nodesConnectable: !present, elementsSelectable: !present,
+        // As setas são nossas (percurso.js): sem isto o xyflow também as usaria
+        // para mover o nó focado. Desenrolar também é só leitura.
+        disableKeyboardA11y: true,
+        nodesDraggable: !present && !desenrolar, nodesConnectable: !present && !desenrolar,
+        elementsSelectable: !present,
         selectionOnDrag: false, selectionKeyCode: "Shift", selectionMode: SelectionMode.Partial,
         // O `Space` sai junto com o diálogo pelo mesmo motivo do `deleteKeyCode`
         // logo abaixo: o `useKeyPress` que o observa dá `preventDefault` no
@@ -4433,7 +4535,7 @@ function App() {
         // `useKeyPress` com `actInsideInputWithModifier: false`, então
         // Shift+Backspace ali não age. Não é contrato nosso, e desligar a
         // tecla não depende disso.)
-        deleteKeyCode: present || abrindo ? null : ["Delete", "Backspace"],
+        deleteKeyCode: present || abrindo || desenrolar ? null : ["Delete", "Backspace"],
         // Sem isto um frame selecionado subiria por cima dos cards.
         elevateNodesOnSelect: false,
         fitView: true, fitViewOptions: { maxZoom: 1, padding: 0.25 },
