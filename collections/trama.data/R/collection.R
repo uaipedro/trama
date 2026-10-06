@@ -246,14 +246,25 @@ tr_add(\"ensaio\", \"data/generate\", n = 60L,
 primeiro olhar; `view/points` para ver a nuvem que você acabou de simular."),
 
       trama::tr_node("data/summary", fn = tr_summary, label = "Resumo", category = "inspect",
-        description = "Uma linha por coluna: tipo, faltantes, distintos, mínimo, máximo e um exemplo.",
+        version = 2L,
+        description = "Uma linha por coluna: tipo, faltantes, distintos, mínimo, máximo, distribuição e um exemplo.",
         icon = trama::tr_icon("clipboard-list"),
         inputs = list(dados = T), outputs = list(out = T),
         help = "## Descrição
 
 Descreve a tabela de entrada: uma linha para cada coluna dela, com `coluna`,
-`tipo`, `faltantes`, `distintos`, `minimo`, `maximo` e `exemplo`. É o nó que se
-liga logo depois da fonte para saber o que de fato chegou.
+`tipo`, `faltantes`, `distintos`, `minimo`, `maximo`, `distribuicao` e
+`exemplo`. É o nó que se liga logo depois da fonte para saber o que de fato
+chegou — e o único lugar onde a forma das colunas aparece: o card de tabela
+comum mostra só as linhas.
+
+`distribuicao` desenha a forma em texto. Numa coluna numérica, é um
+histograma de 10 classes de mesma largura entre o mínimo e o máximo, cada
+classe um bloco (`▁▃▇▅▂`); classe vazia fica no bloco mais baixo, e coluna de
+um valor só sai `constante`. Em texto, fator e lógico, são os três níveis mais
+frequentes com a porcentagem entre os não-faltantes (`a 40% · b 20% · c 20%
+(+1)`, o `+1` contando os níveis que ficaram de fora). Datas e listas saem em
+branco.
 
 O resultado é uma TABELA como qualquer outra do fluxo — ordenável, filtrável, e
 com nós ligáveis adiante. Ordenar por `faltantes` acha a coluna furada; ordenar
@@ -279,7 +290,7 @@ pluga aqui para entender, sai sem mínimo mas com exemplo.
 
 ## Valor
 
-Uma tabela com sete colunas e uma linha por coluna da entrada.
+Uma tabela com oito colunas e uma linha por coluna da entrada.
 
 ## Exemplos
 

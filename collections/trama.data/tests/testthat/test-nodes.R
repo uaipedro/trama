@@ -818,3 +818,40 @@ test_that("vírgula sobrando é ignorada em mutate; campo só de vírgula é bra
   expect_equal(class(err)[[1]], "tr_data_error_blank_param")
   expect_match(conditionMessage(err), "name")
 })
+
+# Oráculo das classes: `graphics::hist()` com as mesmas 11 quebras, fechado à
+# esquerda e com o máximo na última classe (`right = FALSE`,
+# `include.lowest = TRUE`). Contagem inteira: igualdade exata.
+test_that("classes da distribuição batem com hist(right = FALSE)", {
+  set.seed(20261006)
+  for (x in list(stats::rnorm(500), stats::rexp(300), c(1:9, 9), stats::runif(50) * 1e6)) {
+    br <- seq(min(x), max(x), length.out = 11L)
+    ref <- graphics::hist(x, breaks = br, right = FALSE, include.lowest = TRUE,
+                          plot = FALSE)$counts
+    expect_identical(trama.data:::.tr_data_classes(x), as.integer(ref))
+  }
+})
+
+test_that("resumo ganha distribuicao: sparkline, níveis e vazios", {
+  d <- tibble::tibble(
+    x    = c(1, 1, 1, 1, 10, NA),
+    k    = rep(5, 6),
+    g    = factor(c("a", "a", "b", "c", "d", NA)),
+    lgl  = c(TRUE, TRUE, TRUE, FALSE, NA, NA),
+    dia  = as.Date("2026-01-01") + 0:5,
+    nada = NA_real_)
+  out <- tr_summary(d)
+  dist <- stats::setNames(out$distribuicao, out$coluna)
+
+  # 4 na primeira classe (bloco cheio); 1 na última, 1/4 da maior: o piso
+  # mais ceiling(7/4) = 2 degraus. Classes vazias no bloco mais baixo.
+  expect_identical(dist[["x"]], paste0("\u2588", strrep("\u2581", 8), "\u2583"))
+  expect_identical(dist[["k"]], "constante")
+  # Fração entre os não-faltantes (5), três mais frequentes, +1 de fora.
+  expect_identical(dist[["g"]], "a 40% \u00b7 b 20% \u00b7 c 20% (+1)")
+  expect_identical(dist[["lgl"]], "TRUE 75% \u00b7 FALSE 25%")
+  expect_true(is.na(dist[["dia"]]))
+  expect_true(is.na(dist[["nada"]]))
+  expect_equal(names(out), c("coluna", "tipo", "faltantes", "distintos",
+                             "minimo", "maximo", "distribuicao", "exemplo"))
+})

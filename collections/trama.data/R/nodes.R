@@ -677,8 +677,42 @@ tr_summary <- function(dados) {
     distintos = unname(vapply(dados, function(v) length(unique(v[!is.na(v)])), 0L)),
     minimo    = unname(vapply(dados, extremo, "", qual = min)),
     maximo    = unname(vapply(dados, extremo, "", qual = max)),
+    distribuicao = unname(vapply(dados, .tr_data_distribuicao, "")),
     exemplo   = unname(vapply(dados, primeiro, ""))
   )
+}
+
+# Contagens de 10 classes de mesma largura entre o mínimo e o máximo, fechadas
+# à esquerda e a última fechada dos dois lados — o `hist(right = FALSE)` do R.
+.tr_data_classes <- function(x, k = 10L) {
+  r <- range(x)
+  if (r[[1]] == r[[2]]) return(c(length(x), integer(k - 1L)))
+  as.integer(tabulate(pmin(k, 1L + floor(k * (x - r[[1]]) / (r[[2]] - r[[1]]))), k))
+}
+
+# A forma de uma coluna numa célula de texto, para o resumo continuar tabela:
+# numérica vira sparkline de blocos (classe vazia é o bloco mais baixo, e
+# qualquer classe ocupada sobe pelo menos um degrau, para não sumir); texto,
+# fator e lógico, os três níveis mais frequentes com a fração entre os
+# não-faltantes. Data e lista ficam sem — histograma de data pede eixo.
+.tr_data_distribuicao <- function(v) {
+  if (is.logical(v) || is.factor(v) || is.character(v)) {
+    ok <- as.character(v[!is.na(v)])
+    if (!length(ok)) return(NA_character_)
+    tb <- sort(table(ok), decreasing = TRUE)
+    k <- min(3L, length(tb))
+    txt <- paste0(names(tb)[seq_len(k)], " ", round(100 * tb[seq_len(k)] / length(ok)), "%",
+                  collapse = " \u00b7 ")
+    if (length(tb) > k) txt <- sprintf("%s (+%d)", txt, length(tb) - k)
+    return(txt)
+  }
+  if (!is.numeric(v) || inherits(v, "Date") || inherits(v, "POSIXt")) return(NA_character_)
+  ok <- v[is.finite(v)]
+  if (!length(ok)) return(NA_character_)
+  if (min(ok) == max(ok)) return("constante")
+  n <- .tr_data_classes(ok)
+  nivel <- ifelse(n == 0L, 1L, 1L + pmax(1L, ceiling(7 * n / max(n))))
+  paste(intToUtf8(0x2580L + nivel, multiple = TRUE), collapse = "")
 }
 
 #' Converter tipo de coluna.

@@ -1,3 +1,13 @@
+# trama.data 0.4.2
+
+* O card do `data/table` volta a mostrar só as linhas: sai a linha de perfil
+  (selo de tipo, barra de NA, mini-histograma, níveis). Repetida em cada
+  bloco do fluxo, poluía mais do que informava. O "+N col" fica.
+* `data/summary` (versão 2) ganha a coluna `distribuicao`: histograma de 10
+  classes em blocos de texto (`▁▃▇▅▂`) nas numéricas, os três níveis mais
+  frequentes com a porcentagem entre os não-faltantes em texto, fator e
+  lógico. Classes conferidas contra `graphics::hist(right = FALSE)`.
+
 # trama.data 0.4.1
 
 * Card do `data/table` ganha uma linha de perfil sob o cabeçalho: tipo da

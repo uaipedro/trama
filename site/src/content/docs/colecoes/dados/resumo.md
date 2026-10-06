@@ -13,11 +13,15 @@ related: [data/read, data/group_summarise]
 
 `data/summary` organiza um perfil da tabela, com uma linha para cada coluna.
 Ele apresenta tipo, quantidade de valores faltantes, quantidade de valores
-distintos, mínimo, máximo e um exemplo observado.
+distintos, mínimo, máximo, a distribuição e um exemplo observado.
 
 O perfil sai como tabela com os campos `coluna`, `tipo`, `faltantes`,
-`distintos`, `minimo`, `maximo` e `exemplo`; outros nós podem ordenar essa
-tabela para priorizar colunas com ausências.
+`distintos`, `minimo`, `maximo`, `distribuicao` e `exemplo`; outros nós podem
+ordenar essa tabela para priorizar colunas com ausências.
+
+`distribuicao` é o único lugar do fluxo onde a forma das colunas aparece: nas
+numéricas, um histograma de 10 classes desenhado em blocos (`▁▃▇▅▂`); em texto,
+fator e lógico, os três níveis mais frequentes com a porcentagem.
 
 ## Quando usar
 

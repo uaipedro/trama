@@ -338,3 +338,15 @@ v2 com migração dos params (`resposta` → `dinamica`, ordens saem).
   conferido contra a literatura.
 
 Teste: `collections/trama.series/tests/testthat/test-intervencao.R`.
+
+## Distribuição no `data/summary` (06/10/2026)
+
+O `data/summary` (versão 2) ganhou `distribuicao`. Numa coluna numérica: 10
+classes de mesma largura entre mínimo e máximo, fechadas à esquerda, com o
+máximo na última. Oráculo: `graphics::hist(breaks = seq(min, max, length.out
+= 11), right = FALSE, include.lowest = TRUE)$counts`, com igualdade exata em
+normal, exponencial, inteiros com empate na borda e escala 1e6. A altura do
+bloco é proporcional à classe mais cheia; classe ocupada sobe pelo menos um
+degrau, para não se confundir com vazia. Níveis: fração entre os não-faltantes,
+já que `faltantes` é coluna própria. O perfil que ficava no card de toda
+tabela saiu.
