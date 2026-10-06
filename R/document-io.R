@@ -28,6 +28,7 @@ tr_doc_json <- function(doc) {
   out$ui$views <- .tr_empty_obj(out$ui$views)
   out$ui$frames <- .tr_empty_obj(out$ui$frames)
   out$ui$modes <- .tr_empty_obj(out$ui$modes)
+  out$ui$saidas <- .tr_empty_obj(lapply(out$ui$saidas %||% list(), .tr_empty_obj))
   out$ui$soltos <- .tr_empty_obj(out$ui$soltos)
   out$ui$ocultos <- .tr_empty_obj(out$ui$ocultos)
   out$ui$notes <- .tr_empty_obj(out$ui$notes)
@@ -113,6 +114,9 @@ tr_doc_parse <- function(txt) {
   }
   doc$ui$folds <- NULL
   doc$ui$modes <- .tr_empty_obj(modes)
+  doc$ui$saidas <- .tr_empty_obj(lapply(doc$ui$saidas %||% list(), function(portas) {
+    .tr_empty_obj(lapply(portas, function(nome) trimws(as.character(nome)[[1]])))
+  }))
   doc$ui$soltos <- .tr_empty_obj(lapply(doc$ui$soltos %||% list(), .tr_resimplify))
   # Só `TRUE` é gravado; um `false` escrito à mão vale o mesmo que ausente.
   doc$ui$ocultos <- .tr_empty_obj(Filter(isTRUE, doc$ui$ocultos %||% list()))

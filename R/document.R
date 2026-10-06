@@ -16,7 +16,7 @@ tr_doc <- function() {
     collections = list(),
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
-              frames = list(), modes = list(), soltos = list(),
+              frames = list(), modes = list(), saidas = list(), soltos = list(),
               notes = list(), ocultos = list(), grupos = list())
   ), class = "tr_doc")
 }
@@ -30,7 +30,7 @@ tr_doc <- function() {
 #' esquecer vira "recomputou à toa" — barulhento e inofensivo.
 .tr_presentation_ops <- c("rename", "move", "resize", "set_view",
                           "add_frame", "update_frame", "remove_frame",
-                          "reorder_frames", "set_mode", "set_solto",
+                          "reorder_frames", "set_mode", "set_saida", "set_solto",
                           "set_preview_oculto",
                           "add_note", "update_note", "remove_note",
                           "add_grupo", "remove_grupo")
@@ -52,7 +52,7 @@ tr_op_semantic <- function(op) {
 #' @noRd
 .tr_doc_echo_ops <- c("add_node", "remove_node", "connect", "disconnect",
                       "add_frame", "remove_frame", "reorder_frames",
-                      "add_note", "remove_note", "add_grupo", "remove_grupo")
+                      "add_note", "remove_note", "add_grupo", "remove_grupo", "set_saida")
 
 .tr_op_echoes_doc <- function(op) {
   if (identical(op$op, "batch")) return(any(vapply(op$ops, .tr_op_echoes_doc, logical(1))))
@@ -135,6 +135,7 @@ tr_op_semantic <- function(op) {
     add_frame = .tr_op_add_frame, update_frame = .tr_op_update_frame,
     remove_frame = .tr_op_remove_frame, reorder_frames = .tr_op_reorder_frames,
     set_mode = .tr_op_set_mode, set_solto = .tr_op_set_solto,
+    set_saida = .tr_op_set_saida,
     set_preview_oculto = .tr_op_set_preview_oculto,
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
@@ -248,6 +249,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   doc$ui$sizes[[op$node]] <- NULL
   doc$ui$views[[op$node]] <- NULL
   doc$ui$modes[[op$node]] <- NULL
+  doc$ui$saidas[[op$node]] <- NULL
   doc$ui$soltos[[op$node]] <- NULL
   doc$ui$ocultos[[op$node]] <- NULL
   doc <- .tr_grupos_sem(doc, op$node)
@@ -690,6 +692,20 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
                  class = "tr_error_bad_op")
   }
   doc$ui$modes[[op$node]] <- if (identical(m, "completo")) NULL else m
+  list(doc = doc, op = op)
+}
+
+.tr_op_set_saida <- function(doc, op, registry) {
+  .tr_require(op, c("node", "port", "nome")); .tr_node_or_abort(doc, op$node)
+  if (!is.character(op$port) || length(op$port) != 1L || is.na(op$port) || !nzchar(op$port) ||
+      !is.character(op$nome) || length(op$nome) != 1L || is.na(op$nome)) {
+    rlang::abort("port e nome devem ser textos únicos.", class = "tr_error_bad_op")
+  }
+  portas <- doc$ui$saidas[[op$node]] %||% list()
+  nome <- trimws(op$nome)
+  if (!nzchar(nome)) portas[[op$port]] <- NULL else portas[[op$port]] <- nome
+  if (length(portas)) doc$ui$saidas[[op$node]] <- portas
+  else doc$ui$saidas[[op$node]] <- NULL
   list(doc = doc, op = op)
 }
 
