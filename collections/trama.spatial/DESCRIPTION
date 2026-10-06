@@ -1,0 +1,46 @@
+Package: trama.spatial
+Title: Geostatistics Collection for trama
+Version: 0.1.0
+Authors@R: c(
+    person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0001-1695-279X")),
+    person("João Paulo Assis", "Bonifácio", , "jpab.27@hotmail.com",
+           role = "aut",
+           comment = c(ORCID = "0009-0009-2335-8391"))
+  )
+Description: Nodes for geostatistics in a trama graph: declaring a regionalised
+    variable with coordinates, projection and boundary; exploratory spatial
+    display; classical and robust empirical variograms, omnidirectional or
+    directional, with large-scale trend removed; fitting spherical, exponential,
+    Gaussian and Matern models by ordinary and weighted least squares or REML,
+    reporting nugget, partial sill, range and practical range; and ordinary and
+    simple kriging onto a boundary-clipped grid, carrying the kriging variance so
+    the prediction map always has an uncertainty map beside it. The point object
+    carries its coordinates, projection and boundary, so no later node asks for
+    them again. Builds on trama.data for tables and trama.view for plots.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    trama (>= 0.5.9),
+    trama.data,
+    trama.view,
+    gstat,
+    sf,
+    ggplot2 (>= 4.0.0),
+    rlang,
+    tibble,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    geoR,
+    jsonlite
+Config/testthat/edition: 3
+Config/trama/requires: trama.data, trama.view
+Remotes:
+    uaipedro/trama,
+    trama.data=github::uaipedro/trama/collections/trama.data,
+    trama.view=github::uaipedro/trama/collections/trama.view
