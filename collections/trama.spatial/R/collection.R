@@ -26,6 +26,32 @@ trama_collection <- function() {
       trama::tr_category("espacial_variograma", "Variograma", role = "ajuste"),
       trama::tr_category("espacial_predizer",   "Predizer", role = "ajuste")
     ),
-    nodes = list()
+    nodes = .tr_spatial_nos_fonte(),
+    datasets = list(
+      trama::tr_dataset(
+        "trama.spatial", "milho_pr", "Rendimento do milho no Paraná",
+        node = "spatial/example", params = list(dataset = "milho_pr"),
+        descricao = "389 sedes municipais, com o rendimento da soja como covariável e a borda do estado.",
+        fonte = "IBGE/SIDRA, tabela 5457 (Produção Agrícola Municipal), 2023; sedes municipais e malha estadual do IBGE.",
+        n = 389L, temas = c("agricultura", "solo"),
+        licenca = "Dados abertos do IBGE: uso, redistribuição e reuso livres, citada a fonte.",
+        url = "https://sidra.ibge.gov.br/tabela/5457"),
+      trama::tr_dataset(
+        "trama.spatial", "cafe_mg", "Rendimento do café em Minas Gerais",
+        node = "spatial/example", params = list(dataset = "cafe_mg"),
+        descricao = "496 sedes municipais e a borda do estado; dependência espacial moderada.",
+        fonte = "IBGE/SIDRA, tabela 5457 (Produção Agrícola Municipal), 2023; sedes municipais e malha estadual do IBGE.",
+        n = 496L, temas = c("agricultura", "solo"),
+        licenca = "Dados abertos do IBGE: uso, redistribuição e reuso livres, citada a fonte.",
+        url = "https://sidra.ibge.gov.br/tabela/5457"),
+      trama::tr_dataset(
+        "trama.spatial", "milho_se", "Rendimento do milho em Sergipe",
+        node = "spatial/example", params = list(dataset = "milho_se"),
+        descricao = "68 sedes municipais e a borda do estado; conjunto pequeno, para exemplo rápido.",
+        fonte = "IBGE/SIDRA, tabela 5457 (Produção Agrícola Municipal), 2023; sedes municipais e malha estadual do IBGE.",
+        n = 68L, temas = c("agricultura", "solo"),
+        licenca = "Dados abertos do IBGE: uso, redistribuição e reuso livres, citada a fonte.",
+        url = "https://sidra.ibge.gov.br/tabela/5457")
+    )
   )
 }

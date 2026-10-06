@@ -44,3 +44,4 @@ Remotes:
     uaipedro/trama,
     trama.data=github::uaipedro/trama/collections/trama.data,
     trama.view=github::uaipedro/trama/collections/trama.view
+LazyData: true
