@@ -1,3 +1,7 @@
+# trama 0.5.6
+
+* Editor: os fios entre cards passam a ser roteados em ângulo reto por um roteador que enxerga todos os cards (nenhum fio atravessa um bloco que não é a origem nem o destino) e separa em faixas paralelas os fios que dividem o mesmo corredor. Fio sem rota possível volta ao traçado anterior.
+
 # trama 0.5.5
 
 * Editor: **grupos** (Ctrl+G agrupa, Ctrl+Alt+G desagrupa; gravados no fluxo em `ui.grupos`, ops `add_grupo`/`remove_grupo`), **empilhar** na vertical (V) e na horizontal (H), **alinhar** por passos com Ctrl+setas, **espaçar igualmente**, e menu de contexto no vazio do canvas. O frame da seleção passa a Ctrl+Shift+G; a ajuda vai para F1, a vista em tela cheia para P e os parâmetros para Shift+P.
