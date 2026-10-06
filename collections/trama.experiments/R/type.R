@@ -98,6 +98,8 @@
 experiments_plan_type <- function() {
   trama::tr_type(
     "experiments/plan", version = 1L, label = "Plano de experimento", color = .TR_EXP_COR, ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_exp_plano_conferir(x)
       saveRDS(x, path, compress = FALSE)

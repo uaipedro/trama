@@ -1,3 +1,7 @@
+# trama 0.5.9
+
+* `tr_type(tema = TRUE)`: o preview do tipo é um gráfico que segue o tema padrão do projeto. O padrão entra na chave das saídas desse tipo (trocar o tema redesenha o card) e vale como `"padrão"` enquanto o preview roda. Antes, o card de uma série, decomposição, PCA etc. ficava no tema embutido escuro num projeto claro.
+
 # trama 0.5.8
 
 * `tr_project()` numa pasta sem `trama.json` passa a criar o manifesto. Antes o projeto abria, mas salvar um tema falhava com "lexical error: invalid char in json text".

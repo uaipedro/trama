@@ -21,10 +21,17 @@
 #'
 #' Sem `store`/`restore`, cai em RDS — suficiente pra tipo que é objeto R
 #' comum (data.frame, lista, escalar).
+#'
+#' `tema = TRUE` diz que o `preview` desenha um GRÁFICO com o tema `"padrão"`.
+#' Aí o tema padrão do projeto entra na chave das saídas desse tipo (trocar o
+#' padrão redesenha o card) e vale como `"padrão"` enquanto o preview roda —
+#' sem isto o card de uma série ficava no tema embutido, escuro, num projeto
+#' todo claro.
+#' @param tema O preview é um gráfico que segue o tema padrão do projeto.
 #' @export
 tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
                     store = NULL, restore = NULL, ext = "rds",
-                    preview = NULL, summary = NULL, report = NULL) {
+                    preview = NULL, summary = NULL, report = NULL, tema = FALSE) {
   .tr_check_id(id, "id de tipo")
   if (!is.null(report) && !is.function(report)) {
     rlang::abort(sprintf("'report' de '%s' não é função.", id), class = "tr_error_bad_type")
@@ -41,7 +48,7 @@ tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
   structure(list(
     id = id, version = as.integer(version), label = label %||% id, color = color,
     store = store, restore = restore, ext = ext,
-    preview = preview, summary = summary, report = report
+    preview = preview, summary = summary, report = report, tema = isTRUE(tema)
   ), class = "tr_type")
 }
 

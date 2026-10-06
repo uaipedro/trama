@@ -35,6 +35,8 @@
 .tr_sampling_rds_type <- function(id, label, color, classe, conferir, preview, summary = NULL) {
   trama::tr_type(
     id, version = 1L, label = label, color = color, ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       conferir(x)
       saveRDS(x, path, compress = FALSE)

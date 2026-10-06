@@ -87,14 +87,14 @@
     ty <- tr_type("trama/marker")
     return(list(tr_store_put(store, unit$outputs[[1]], TRUE, ty,
                              node_type = unit$node_type, collections = unit$collections,
-                             duration = duration, env = .tr_env_print(registry))))
+                             duration = duration, env = .tr_env_print(registry), tema = unit$tema)))
   }
   if (length(ports) == 1L) {
     ty <- tr_get_type(unit$output_types[[ports]], registry)
     return(stats::setNames(list(
       tr_store_put(store, unit$outputs[[ports]], value, ty,
                    node_type = unit$node_type, collections = unit$collections,
-                   duration = duration, env = .tr_env_print(registry))), ports))
+                   duration = duration, env = .tr_env_print(registry), tema = unit$tema)), ports))
   }
   # Múltiplas saídas: o `fn` devolve uma lista nomeada pelas portas. Erro alto
   # e cedo se faltar alguma — senão a porta ficaria sem artefato e o consumidor
@@ -111,7 +111,7 @@
     ty <- tr_get_type(unit$output_types[[pn]], registry)
     tr_store_put(store, unit$outputs[[pn]], value[[pn]], ty,
                  node_type = unit$node_type, collections = unit$collections,
-                 duration = duration, env = .tr_env_print(registry))
+                 duration = duration, env = .tr_env_print(registry), tema = unit$tema)
   }), ports)
 }
 

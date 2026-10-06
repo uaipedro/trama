@@ -47,6 +47,8 @@
 multi_pca_type <- function() {
   trama::tr_type(
     "multi/pca", version = 1L, label = "PCA", color = .TR_MULTI_COR, ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_multi_guard(x, "tr_multi_pca", .TR_MULTI_CAMPOS_PCA, "tr_multi_error_not_a_pca",
                       "uma análise de componentes principais")
@@ -91,6 +93,8 @@ multi_pca_type <- function() {
 multi_fa_type <- function() {
   trama::tr_type(
     "multi/fa", version = 1L, label = "Análise fatorial", color = "#c084fc", ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_multi_guard(x, "tr_multi_fa", .TR_MULTI_CAMPOS_FA, "tr_multi_error_not_a_fa",
                       "uma análise fatorial")

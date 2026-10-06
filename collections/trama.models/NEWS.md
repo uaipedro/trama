@@ -1,3 +1,7 @@
+# trama.models 0.6.4
+
+* Cards que são gráfico seguem o tema padrão do projeto (antes ficavam no tema embutido, escuro). Requer trama 0.5.9.
+
 # trama.models 0.6.3
 
 * `tr_models_card_padrao()` exportada: o card padrão de um `models/fit` (medidas e um coeficiente por linha, com p-valor), para as coleções irmãs usarem no `tr_models_card()` da sua classe.

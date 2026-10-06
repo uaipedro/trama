@@ -14,8 +14,12 @@ tr_type(
   ext = "rds",
   preview = NULL,
   summary = NULL,
-  report = NULL
+  report = NULL,
+  tema = FALSE
 )
+}
+\arguments{
+\item{tema}{O preview é um gráfico que segue o tema padrão do projeto.}
 }
 \description{
 \strong{O tipo carrega a própria persistência} (\code{store}/\code{restore}/\code{ext}). É aqui
@@ -40,4 +44,10 @@ imprime o objeto. Função e não preview porque o relatório roda sem o Trama.
 
 Sem \code{store}/\code{restore}, cai em RDS — suficiente pra tipo que é objeto R
 comum (data.frame, lista, escalar).
+
+\code{tema = TRUE} diz que o \code{preview} desenha um GRÁFICO com o tema \code{"padrão"}.
+Aí o tema padrão do projeto entra na chave das saídas desse tipo (trocar o
+padrão redesenha o card) e vale como \code{"padrão"} enquanto o preview roda —
+sem isto o card de uma série ficava no tema embutido, escuro, num projeto
+todo claro.
 }

@@ -14,8 +14,9 @@ A resposta do editor (lista), invisível; imprime o JSON.
 }
 \description{
 Fala com o editor aberto (\code{tr_app()}) pelo servidor de \code{R/control.R}. Toda
-saída é JSON em stdout, para agente ler; recusa sai com \code{ok: false} e,
-pelo script \code{trama-agente}, status 1.
+saída é JSON em stdout, para agente ler, inclusive \code{help} e erro de
+argumento; recusa sai com \code{ok: false} e, pelo script \code{trama-agente},
+status 1.
 }
 \details{
 \if{html}{\out{<div class="sourceCode">}}\preformatted{trama-agente state                       # fluxo na tela: nós, status, arestas
@@ -28,7 +29,13 @@ trama-agente op '<json>'                 # op crua (ver schema do documento)
 trama-agente apply <arquivo.json>        # lista de ops como um passo de undo
 trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 trama-agente undo
+trama-agente explain <tipo>              # sem editor: o bloco inteiro
+trama-agente validate <arquivo.json>     # sem editor: lê, migra e valida
 }\if{html}{\out{</div>}}
+
+\code{catalog}, \code{explain} e \code{validate} funcionam sem editor aberto, sobre as
+coleções instaladas (ou \verb{--colecoes a,b}). \code{catalog} só faz isso quando
+não acha editor ou com \code{--offline}.
 
 Toda edição (\code{add}, \code{link}, \code{set}, \code{rm}, \code{op}, \code{apply}, \code{undo}) aceita
 \verb{--wait N}: espera até N segundos o fluxo parar de rodar e devolve, em

@@ -1,3 +1,7 @@
+# trama.experiments 0.2.6
+
+* Cards que são gráfico seguem o tema padrão do projeto (antes ficavam no tema embutido, escuro). Requer trama 0.5.9.
+
 # trama.experiments 0.2.5
 
 * Dezesseis ensaios publicados no catálogo de bases (`agridat`, `MASS`, `agricolae`).

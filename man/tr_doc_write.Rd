@@ -7,5 +7,8 @@
 tr_doc_write(doc, path)
 }
 \description{
-Grava o documento em \code{path} como JSON.
+Grava num temporário da MESMA pasta e renomeia, como \code{.tr_atomic} no store:
+o autosave roda a cada op, e um crash ou disco cheio no meio do
+\code{writeLines} truncaria o fluxo do usuário — o único artefato que não se
+recompõe. Falhar deixa o arquivo anterior intacto.
 }

@@ -1,3 +1,7 @@
+# trama.series 0.8.1
+
+* Cards que são gráfico seguem o tema padrão do projeto (antes ficavam no tema embutido, escuro). Requer trama 0.5.9.
+
 # trama.series 0.8.0
 
 * `series/intervencao` (v3) passa a se chamar "Intervenções" e declara várias

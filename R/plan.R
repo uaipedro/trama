@@ -177,7 +177,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     # `preview`, `store` e `summary` dele são código gravado no store. O tipo de
     # porta interna fica fora — nada dela vai ao disco.
     type_prints <- lapply(stats::setNames(region$collapse, region$collapse), function(cid)
-      lapply(specs[[cid]]$outputs, function(p) .tr_type_fingerprint(registry, p$type)))
+      lapply(specs[[cid]]$outputs, function(p) .tr_type_print_tema(registry, p$type, settings)))
 
     # Membro IMPURO e membro VOLÁTIL: a liftabilidade isenta nó `online` por
     # completo (Fase 2), então os dois chegam até aqui sem recusa. Tratados como
@@ -246,6 +246,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       collections = sort(unique(vapply(region$nodes,
                                        function(id) .tr_collection_of(doc$nodes[[id]]$type), ""))),
       key = unit_key, outputs = outs, output_types = out_types,
+      tema = .tr_preview_tema(out_types, registry, settings),
       inputs = inputs, params = list(), seed = NULL,
       # `.ctx` é contrato da UNIDADE, não de `fn` membro nenhum: nó elevado tem
       # `.ctx` proibido (Fase 2) e `init`/`step` não o recebem.
@@ -360,7 +361,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
     }
     nonce <- if (isTRUE(spec$volatile)) .tr_entropy_hex(16L) else NULL
     ordered <- if (length(input_keys)) input_keys[order(names(input_keys), method = "radix")] else input_keys
-    type_prints <- lapply(spec$outputs, function(p) .tr_type_fingerprint(registry, p$type))
+    type_prints <- lapply(spec$outputs, function(p) .tr_type_print_tema(registry, p$type, settings))
     fn_print <- .tr_print_cached(registry, spec$id, spec$version, spec$fn)
 
     unit_key <- .tr_unit_key(spec, node, ordered, adapter_prints, type_prints,
@@ -389,6 +390,7 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       node = id, node_type = node$type, node_version = spec$version,
       key = unit_key, outputs = outs,
       output_types = vapply(spec$outputs, function(p) p$type, ""),
+      tema = .tr_preview_tema(vapply(spec$outputs, function(p) p$type, ""), registry, settings),
       inputs = inputs, params = .tr_effective_params(spec, node, settings), seed = node$seed,
       wants_ctx = ".ctx" %in% names(formals(spec$fn)),
       wants_seed = .tr_wants_seed(spec$fn),

@@ -14,7 +14,8 @@ tr_store_put(
   node_type = NULL,
   duration = NA_real_,
   collections = NULL,
-  env = NULL
+  env = NULL,
+  tema = NULL
 )
 }
 \description{

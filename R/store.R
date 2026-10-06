@@ -140,7 +140,7 @@ tr_store_handle <- function(store, key) {
 #' que é onde a informação sempre esteve.
 #' @export
 tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duration = NA_real_,
-                         collections = NULL, env = NULL) {
+                         collections = NULL, env = NULL, tema = NULL) {
   ext <- type_spec$ext %||% "rds"
   obj <- .tr_obj_path(store, key, ext)
   .tr_atomic(store, obj, function(tmp) {
@@ -152,6 +152,14 @@ tr_store_put <- function(store, key, value, type_spec, node_type = NULL, duratio
     ctx <- list(file = function(e) {
       p <- .tr_preview_path(store, key, e); dir.create(dirname(p), showWarnings = FALSE, recursive = TRUE); p
     })
+    # `tema`: os settings do projeto para o "padrão" do gráfico do preview
+    # (tipos `tema = TRUE`; ver `.tr_preview_tema`). Opção, e não campo do
+    # `ctx`, porque quem resolve o tema é o `tr_view_finish()` lá no fundo,
+    # chamado sem `ctx` por funções públicas das coleções.
+    if (!is.null(tema)) {
+      velho <- options(trama.preview_settings = tema)
+      on.exit(options(velho), add = TRUE)
+    }
     art <- tryCatch(type_spec$preview(value, ctx), error = function(e) {
       list(renderer = "trama/error", data = list(message = conditionMessage(e)))
     })

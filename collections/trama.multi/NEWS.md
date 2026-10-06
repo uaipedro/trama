@@ -1,3 +1,7 @@
+# trama.multi 0.3.6
+
+* Cards que são gráfico seguem o tema padrão do projeto (antes ficavam no tema embutido, escuro). Requer trama 0.5.9.
+
 # trama.multi 0.3.5
 
 * Testes passam no `R CMD check` do pacote instalado (antes liam arquivos da árvore do repositório).

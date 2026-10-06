@@ -113,6 +113,8 @@ tr_models_as_fit <- function(ajuste, classe, rotulo, formula, dados, resposta, n
 models_fit_type <- function() {
   trama::tr_type(
     "models/fit", version = 1L, label = "Modelo", color = .TR_MODELS_COR, ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     # O funil é o CONTRATO, não os campos: qualquer `tr_models_fit` com um
     # `tr_models_info()` válido entra (os campos fixos só se conferem nas
     # classes daqui). Grava-se o que `tr_models_serialize()` devolve — o objeto
@@ -361,6 +363,8 @@ models_effects_type <- function() {
 models_emm_type <- function() {
   trama::tr_type(
     "models/emm", version = 1L, label = "Médias ajustadas", color = "#8b5cf6", ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_models_emm_conferir(x)
       saveRDS(x, path, compress = FALSE)

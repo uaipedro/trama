@@ -381,3 +381,24 @@ test_that("tr_project() numa pasta sem manifesto cria o trama.json e o tema grav
   tr_project_set_themes(raiz, .tr_settings_at(raiz)$temas, "claro")
   expect_identical(.tr_settings_at(raiz)$tema_padrao, "claro")
 })
+
+test_that("tipo com tema: padrão do projeto entra na chave e vale no preview", {
+  reg <- tr_registry()
+  reg$types[["t/graf"]] <- tr_type("t/graf", tema = TRUE)
+  reg$types[["t/tab"]] <- tr_type("t/tab")
+  s <- .tr_settings(list())
+  claro <- s; claro$tema_padrao <- "claro"
+  expect_false(identical(.tr_type_print_tema(reg, "t/graf", s), .tr_type_print_tema(reg, "t/graf", claro)))
+  expect_identical(.tr_type_print_tema(reg, "t/tab", s), .tr_type_print_tema(reg, "t/tab", claro))
+  expect_null(.tr_preview_tema("t/tab", reg, claro))
+
+  st <- tr_store(withr::local_tempdir())
+  visto <- NULL
+  ty <- tr_type("t/graf", tema = TRUE, preview = function(x, ctx) {
+    visto <<- .tr_theme_resolve("padrão", NULL)$nome
+    tr_preview("trama/text", data = list(text = "ok"))
+  })
+  tr_store_put(st, "k1", 1, ty, tema = .tr_preview_tema("t/graf", reg, claro))
+  expect_identical(visto, "claro")
+  expect_null(getOption("trama.preview_settings"))
+})

@@ -29,6 +29,8 @@
 series_ts_type <- function() {
   trama::tr_type(
     "series/ts", version = 1L, label = "Série", color = .TR_SERIES_COR, ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_series_guard_ts(x)
       saveRDS(x, path, compress = FALSE)
@@ -111,6 +113,8 @@ series_ts_type <- function() {
 series_decomposition_type <- function() {
   trama::tr_type(
     "series/decomposition", version = 1L, label = "Decomposição", color = "#a3e635",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     ext = "rds",
     store = function(x, path) {
       if (!inherits(x, "tr_series_decomp")) {
@@ -224,6 +228,8 @@ series_model_type <- function() {
 series_forecast_type <- function() {
   trama::tr_type(
     "series/forecast", version = 1L, label = "Previsão", color = "#f472b6", ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       if (!inherits(x, "forecast")) {
         .tr_series_abort("tr_series_error_not_a_forecast",

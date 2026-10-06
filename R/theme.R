@@ -130,7 +130,10 @@
 #' projeto) usa os embutidos.
 #' @noRd
 .tr_theme_resolve <- function(valor, settings) {
-  s <- settings %||% .tr_settings(list())
+  # Sem settings, vale o do preview em curso (ver `.tr_preview_tema`): é assim
+  # que o "padrão" de um gráfico desenhado pelo `preview` de um tipo segue o
+  # projeto, e não o embutido.
+  s <- settings %||% getOption("trama.preview_settings") %||% .tr_settings(list())
   ok <- is.character(valor) && length(valor) == 1L && !is.na(valor)
   nome <- if (!ok || identical(valor, "padrão")) s$tema_padrao else valor
   ausente <- !nome %in% names(s$temas)
@@ -145,7 +148,8 @@
 
 #' Reescreve o manifesto mexendo só no que `muda` mexeu.
 #'
-#' Lê o arquivo inteiro e devolve o arquivo inteiro: `tr_project()` não escreve
+#' Lê o arquivo inteiro e devolve o arquivo inteiro: fora a criação (pasta sem
+#' manifesto), `tr_project()` não escreve
 #' o manifesto de propósito, e nenhum verbo daqui pode virar a porta dos fundos
 #' disso apagando chave que não é dele.
 #'
@@ -342,3 +346,25 @@ tr_theme <- function(tema = "padrão", settings = NULL) {
 #' @return Vetor de nomes.
 #' @export
 tr_theme_names <- function(settings = NULL) names((settings %||% .tr_settings(list()))$temas)
+
+#' Settings de tema que o preview de um tipo `tema = TRUE` enxerga.
+#'
+#' Só temas e padrão: é o que a unidade carrega até o worker (que pode ser
+#' outro processo) e o que `.tr_theme_resolve()` lê. `NULL` quando nenhuma
+#' saída do nó é de tipo com tema, pra não pesar a unidade à toa.
+#' @noRd
+.tr_preview_tema <- function(tipos, registry, settings) {
+  com_tema <- any(vapply(tipos, function(t) isTRUE(registry$types[[t]]$tema), logical(1)))
+  if (!com_tema) return(NULL)
+  s <- settings %||% .tr_settings(list())
+  list(temas = s$temas, tema_padrao = s$tema_padrao)
+}
+
+#' O que entra na chave de um tipo com tema: a DEFINIÇÃO do padrão, não o
+#' nome, pra editar a cor do tema padrão também redesenhar o card.
+#' @noRd
+.tr_type_print_tema <- function(registry, type_id, settings) {
+  base <- .tr_type_fingerprint(registry, type_id)
+  if (!isTRUE(registry$types[[type_id]]$tema)) return(base)
+  c(base, rlang::hash(.tr_theme_resolve("padrão", settings %||% .tr_settings(list()))))
+}

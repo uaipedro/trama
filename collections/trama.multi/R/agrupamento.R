@@ -40,6 +40,8 @@
 multi_dist_type <- function() {
   trama::tr_type(
     "multi/dist", version = 1L, label = "Matriz de distância", color = "#fb923c", ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_multi_guard(x, "tr_multi_dist", .TR_MULTI_CAMPOS_DIST, "tr_multi_error_not_a_dist",
                       "uma matriz de distância")
@@ -78,6 +80,8 @@ multi_dist_type <- function() {
 multi_cluster_type <- function() {
   trama::tr_type(
     "multi/cluster", version = 1L, label = "Agrupamento", color = "#34d399", ext = "rds",
+    # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
+    tema = TRUE,
     store = function(x, path) {
       .tr_multi_guard(x, "tr_multi_cluster", .TR_MULTI_CAMPOS_CLUSTER,
                       "tr_multi_error_not_a_cluster", "um agrupamento")
