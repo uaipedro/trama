@@ -1,3 +1,8 @@
+# trama 0.5.10
+
+* Saídas nomeadas: duplo clique no rótulo de uma saída dá a ela um nome; o card mostra o nome e toda entrada ligada mostra `porta ← nome`. Fica em `ui.saidas` do documento (op `set_saida`, cosmética: não muda resultado), acompanha desfazer, cópia, duplicação e templates.
+* A ajuda do bloco (F1) abre num modal com índice das seções, no lugar do painel lateral. O Markdown da ajuda passa pelo mesmo renderizador das notas: tabelas, `###`, listas numeradas, links e itálico deixam de sair crus, e aspas não aparecem mais como `&quot;`.
+
 # trama 0.5.9
 
 * `tr_type(tema = TRUE)`: o preview do tipo é um gráfico que segue o tema padrão do projeto. O padrão entra na chave das saídas desse tipo (trocar o tema redesenha o card) e vale como `"padrão"` enquanto o preview roda. Antes, o card de uma série, decomposição, PCA etc. ficava no tema embutido escuro num projeto claro.
