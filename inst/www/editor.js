@@ -21,7 +21,8 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
          MARCA } from "./frames.js";
 import { NotaNode, NotaDraw } from "./notas.js";
-import { pisoNota } from "./geometria.js";
+import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas } from "./geometria.js";
+import { empilhar, alinhar, alinharA, distribuir, grupoDe, gruposDe, expandirGrupos } from "./alinhar.js";
 import { SettingsPanel } from "./settings.js";
 import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados, tocados } from "./ops.js";
@@ -759,7 +760,7 @@ function NdNode({ id, data, selected }) {
                    progress: data.progress, partial: data.partial, view: cur?.id,
                    label: data.label || spec.label, entradas: data.handlesEntrada }),
       // Ações do preview, só no hover: soltar (vira uma imagem própria no
-      // canvas e o card encolhe pra miniatura) e ampliar (V).
+      // canvas e o card encolhe pra miniatura) e ampliar (P).
       data.handle?.preview ? h("div", { key: "ac", className: "tr-pv-acoes nodrag" }, [
         h("button", { key: "s", type: "button", title: "soltar o preview do card",
                       onClick: (e) => { e.stopPropagation(); data.onSoltar(id); } },
@@ -1816,6 +1817,17 @@ function BasesModal({ bases, previews, instalando, onPreview, onInstall, onAdd, 
 // pra seguir o tema e o estado ligado sem CSS por ícone.
 const ICONES = {
   pasta: "M3 7.5a2 2 0 0 1 2-2h3.6l2 2.2H19a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+  agrupar: "M4 4h16v16H4zM8 8h5v5H8zM11 11h5v5h-5z",
+  "empilhar-v": "M7 4h10v5H7zM7 15h10v5H7zM12 9v6",
+  "empilhar-h": "M4 7h5v10H4zM15 7h5v10h-5zM9 12h6",
+  "al-esq": "M4 3v18M8 7h12M8 14h7",
+  "al-centro-h": "M12 3v18M5 7h14M8 14h8",
+  "al-dir": "M20 3v18M4 7h12M9 14h7",
+  "al-topo": "M3 4h18M7 8v12M14 8v7",
+  "al-meio": "M3 12h18M7 5v14M14 8v8",
+  "al-base": "M3 20h18M7 4v12M14 9v7",
+  "dist-h": "M4 3v18M20 3v18M9 8h6v8H9z",
+  "dist-v": "M3 4h18M3 20h18M8 9h8v6H8z",
   organizar: "M4 4h6v5H4zM14 15h6v5h-6zM4 15h6v5H4zM7 9v6M7 12h10v3",
   frame: "M7 3v18M17 3v18M3 7h18M3 17h18",
   texto: "M5 7V5h14v2M12 5v14M9 19h6",
@@ -1858,13 +1870,16 @@ function App() {
   // frame, não o card.
   const [temas, setTemas] = useState({ temas: {}, tema_padrao: null, marca: true, sugestoes: true });
   const [doc, setDoc] = useState(null);
+  // `ui.grupos` do documento: {idGrupo: [ids]}. Lido por ref nos handlers que
+  // não se refazem a cada render (seleção, atalhos).
+  const gruposRef = useRef({}); gruposRef.current = doc?.ui?.grupos || {};
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [dragType, setDragType] = useState(null);
   const [dragFrom, setDragFrom] = useState(null);
   const [banner, setBanner] = useState(null);
   const [helpFor, setHelpFor] = useState(null);
-  const [vista, setVista] = useState(null); // id do card aberto em tela cheia (V)
+  const [vista, setVista] = useState(null); // id do card aberto em tela cheia (P)
   const [painelAtalhos, setPainelAtalhos] = useState(false);
   const [menu, setMenu] = useState(null);   // {kind, id, x, y}
   const [ferramenta, setFerramenta] = useState(null);   // "frame" | null
@@ -1922,7 +1937,7 @@ function App() {
   // repetido), por isso é state.
   const uploadsPendentesRef = useRef({});
   const [conflitoUpload, setConflitoUpload] = useState(null); // {id, nome} | null
-  // Proporção dos frames NOVOS (Shift+F e Ctrl+G). É preferência de quem usa este
+  // Proporção dos frames NOVOS (Shift+F e Ctrl+Shift+G). É preferência de quem usa este
   // navegador, e não estado do documento: não vira op, não entra no desfazer,
   // e abrir o mesmo projeto em outra máquina não herda a escolha. Cada frame
   // continua guardando a própria proporção no documento. `localStorage` pode
@@ -2285,7 +2300,7 @@ function App() {
   };
   const fecharVista = useCallback(() => setVista(null), []);
 
-  // H: com UM card selecionado, a ajuda dele (o que era o "?" do cabeçalho);
+  // F1: com UM card selecionado, a ajuda dele (o que era o "?" do cabeçalho);
   // sem isso, a lista de atalhos. H de novo fecha o que estiver aberto.
   const ajuda = () => {
     if (helpFor || painelAtalhos) { setHelpFor(null); setPainelAtalhos(false); return; }
@@ -2605,7 +2620,7 @@ function App() {
   }, [edges, decorated]);
   const noDosParams = paramsDe && decorated.find((n) => n.id === paramsDe && n.type === "ndNode");
 
-  // Card aberto em `Vista` (V). Se ele for apagado enquanto aberto, some daqui
+  // Card aberto em `Vista` (P). Se ele for apagado enquanto aberto, some daqui
   // sozinho — `vista` fica com um id obsoleto, inofensivo (só reabriria se o
   // mesmo id voltasse a existir, o que undo pode fazer, e aí reabrir é certo).
   const noDaVista = vista && decorated.find((n) => n.id === vista);
@@ -3088,6 +3103,21 @@ function App() {
       l.itens.forEach((k) => extra.push({ id: k.id, type: "position", dragging: c.dragging,
                                           position: { x: k.x + dx, y: k.y + dy } }));
     });
+    // Selecionar (ou soltar) um membro de grupo faz o mesmo com o grupo todo.
+    const grupos = gruposRef.current;
+    if (Object.keys(grupos).length) {
+      const vivos = new Set(nodesRef.current.map((n) => n.id));
+      const tratados = new Set(ch.filter((c) => c.type === "select").map((c) => c.id));
+      ch.filter((c) => c.type === "select").forEach((c) => {
+        const g = grupoDe(grupos, c.id);
+        if (!g) return;
+        grupos[g].forEach((m) => {
+          if (tratados.has(m) || !vivos.has(m)) return;
+          tratados.add(m);
+          extra.push({ id: m, type: "select", selected: c.selected });
+        });
+      });
+    }
     const todas = extra.length ? [...ch, ...extra] : ch;
     setNodes((ns) => applyNodeChanges(todas, ns));
     // `dimensions` e `select` não têm significado pro documento e chegam a
@@ -3129,13 +3159,27 @@ function App() {
     // distribui delta: frame levado não leva ninguém.
     const vistos = new Set(dragged.map((d) => d.id));
     const levar = {};
+    // A lista de arrastados é congelada pelo xyflow no começo do gesto, e a
+    // seleção do grupo pode ainda não ter chegado nela (arrastar sem clicar
+    // antes): quem ficou de fora anda com o arrastado, como um item levado.
+    const grupos = gruposRef.current;
+    if (Object.keys(grupos).length) {
+      dragged.forEach((d) => {
+        const mates = expandirGrupos([d.id], grupos, new Set(ns.map((n) => n.id)))
+          .filter((id) => !vistos.has(id));
+        if (!mates.length) return;
+        mates.forEach((id) => vistos.add(id));
+        levar[d.id] = { x0: d.position.x, y0: d.position.y,
+                        itens: mates.map((id) => ({ id, x: byId[id].position.x, y: byId[id].position.y })) };
+      });
+    }
     dragged.filter((d) => d.type === "trFrame").forEach((f) => {
       const alvo = byId[f.id] || f;
       const itens = [...containedFrames(alvo, ns), ...containedCards(alvo, ns), ...containedNotes(alvo, ns)]
         .filter((id) => !vistos.has(id));
       itens.forEach((id) => vistos.add(id));
-      levar[f.id] = { x0: f.position.x, y0: f.position.y,
-                      itens: itens.map((id) => ({ id, x: byId[id].position.x, y: byId[id].position.y })) };
+      const novos = itens.map((id) => ({ id, x: byId[id].position.x, y: byId[id].position.y }));
+      levar[f.id] = { x0: f.position.x, y0: f.position.y, itens: [...(levar[f.id]?.itens || []), ...novos] };
     });
     arrastoRef.current = levar;
   }, []);
@@ -3623,6 +3667,73 @@ function App() {
     const x1 = Math.max(...rs.map((r) => r.x + r.w)), y1 = Math.max(...rs.map((r) => r.y + r.h));
     const f = fitAspect({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, aspectoNovo);
     pushOp({ op: "add_frame", ...f, aspect: aspectoNovo, title: tituloNovo() });
+  };
+
+  // --- Grupos, empilhar, alinhar, distribuir ---------------------------------
+  // Agem sobre a seleção de cards, notas e frames (o "solto" é preview, não
+  // bloco). A conta mora em `alinhar.js`; aqui só se mede, se aplica e se sobe
+  // UM batch, pra um Ctrl+Z desfazer o gesto inteiro.
+  const agrupaveis = () => comMedidas(nodesRef.current.filter((n) =>
+    n.selected && (n.type === "ndNode" || n.type === "trFrame" || n.type === "trNota")));
+  const rectsSel = () => agrupaveis().map((n) => ({ id: n.id, ...rectOf(n) }));
+
+  // `mvs`: `[{id, x?, y?}]` na posição de cada item. Frame que anda leva o que
+  // está inteiro dentro dele (como no arrasto), a menos que esse item já tenha
+  // o próprio destino ou esteja na seleção.
+  const aplicarMovimentos = (mvs) => {
+    if (!mvs.length) return;
+    const ns = comMedidas(nodesRef.current);
+    const por = Object.fromEntries(ns.map((n) => [n.id, n]));
+    const alvo = new Map();
+    mvs.forEach((m) => {
+      const n = por[m.id];
+      if (n) alvo.set(m.id, { x: m.x ?? n.position.x, y: m.y ?? n.position.y });
+    });
+    const naSelecao = new Set(ns.filter((n) => n.selected).map((n) => n.id));
+    [...alvo.keys()].filter((id) => por[id].type === "trFrame").forEach((id) => {
+      const f = por[id], d = alvo.get(id);
+      const dx = d.x - f.position.x, dy = d.y - f.position.y;
+      if (!dx && !dy) return;
+      [...contidosFrames(f, ns), ...contidosCards(f, ns), ...contidosNotas(f, ns)].forEach((k) => {
+        if (alvo.has(k) || naSelecao.has(k)) return;
+        alvo.set(k, { x: por[k].position.x + dx, y: por[k].position.y + dy });
+      });
+    });
+    const ops = [];
+    const novo = {};
+    alvo.forEach((d, id) => {
+      const n = por[id];
+      const x = Math.round(d.x), y = Math.round(d.y);
+      if (x === n.position.x && y === n.position.y) return;
+      novo[id] = { x, y };
+      if (n.type === "trFrame") ops.push({ op: "update_frame", frame: id, x, y });
+      else if (n.type === "trNota") ops.push({ op: "update_note", note: id, x, y });
+      else ops.push({ op: "move", node: id, x, y });
+    });
+    if (!ops.length) return;
+    setNodes((atual) => atual.map((n) => (novo[n.id] ? { ...n, position: novo[n.id] } : n)));
+    pushMany(ops);
+  };
+  const empilharSel = (sentido) => aplicarMovimentos(empilhar(rectsSel(), sentido));
+  const alinharPasso = (dir) => aplicarMovimentos(alinhar(rectsSel(), dir));
+  const alinharLado = (lado) => aplicarMovimentos(alinharA(rectsSel(), lado));
+  const distribuirSel = (sentido) => aplicarMovimentos(distribuir(rectsSel(), sentido));
+
+  const agrupar = () => {
+    const ids = agrupaveis().map((n) => n.id);
+    if (ids.length < 2) return;
+    const grupos = gruposRef.current;
+    const vivos = new Set(nodesRef.current.map((n) => n.id));
+    // Sem aninhar: quem já está num grupo o leva inteiro pro novo, e o antigo
+    // sai no mesmo batch.
+    const antigos = gruposDe(ids, grupos);
+    const membros = expandirGrupos(ids, grupos, vivos);
+    if (antigos.length === 1 && grupos[antigos[0]].length === membros.length) return;
+    pushMany([...antigos.map((g) => ({ op: "remove_grupo", grupo: g })), { op: "add_grupo", membros }]);
+  };
+  const desagrupar = () => {
+    const gs = gruposDe(agrupaveis().map((n) => n.id), gruposRef.current);
+    pushMany(gs.map((g) => ({ op: "remove_grupo", grupo: g })));
   };
 
   // O pack inteiro é UM batch: uma revisão, um passo de desfazer, e a ordem
@@ -4195,7 +4306,7 @@ function App() {
     // Desenrolar é só leitura: nada de editar, só andar, sair ou ajuda.
     ...setas,
     "escape": enrolarTrama, "r": enrolarTrama, "f": enrolarTrama,
-    "h": ajuda,
+    "f1": ajuda,
   } : {
     ...navFrames,
     ...setas,
@@ -4209,16 +4320,22 @@ function App() {
     "shift+f": () => setFerramenta((t) => (t === "frame" ? null : "frame")),
     "m": () => setFerramenta((t) => (t === "markdown" ? null : "markdown")),
     "i": () => setFerramenta((t) => (t === "imagem" ? null : "imagem")),
-    "mod+g": frameDaSelecao,
+    "mod+g": agrupar,
+    "mod+alt+g": desagrupar,
+    "mod+shift+g": frameDaSelecao,
+    "v": () => empilharSel("v"),
+    "h": () => empilharSel("h"),
+    "mod+arrowleft": () => alinharPasso("left"), "mod+arrowright": () => alinharPasso("right"),
+    "mod+arrowup": () => alinharPasso("up"), "mod+arrowdown": () => alinharPasso("down"),
     "mod+shift+c": () => copiarTemplate(),
     "w": dobrarParams,
     "a": () => definirModo("mini"),
     "s": () => definirModo("alternar"),
     "d": () => definirModo("completo"),
-    "p": abrirParams,
+    "shift+p": abrirParams,
     "shift+r": restaurarAlvos,
-    "v": abrirVista,
-    "h": ajuda,
+    "p": abrirVista,
+    "f1": ajuda,
     "+": abrirProximoDaSelecao,
   };
   useEffect(() => {
@@ -4244,7 +4361,7 @@ function App() {
       if (e.key === " " && t && t.tagName === "BUTTON") t.blur();
       // Digitar um parâmetro não pode apagar card nem disparar atalho.
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      // Lightbox — imagem ampliada, `Vista` (V) ou o painel ABNT — é dono do
+      // Lightbox — imagem ampliada, `Vista` (P) ou o painel ABNT — é dono do
       // teclado em QUALQUER modo: W/A/S/D e números mexeriam no canvas
       // escondido atrás dele, e o Esc que o fecha também limparia a seleção
       // (ou, em apresentação, encerraria o slide). Cada overlay tem o próprio
@@ -4330,6 +4447,38 @@ function App() {
   if (!catalog || !doc) return h("div", { className: "tr-loading" }, "carregando…");
 
   function menuItens(m) {
+    if (m.kind === "vazio") {
+      const sel = nodes.filter((n) => n.selected && (n.type === "ndNode" || n.type === "trFrame" || n.type === "trNota"));
+      const k = sel.length;
+      const temGrupo = gruposDe(sel.map((n) => n.id), gruposRef.current).length > 0;
+      const temCard = sel.some((n) => n.type === "ndNode");
+      const item = (key, rotulo, fn, ok = true) =>
+        h("button", { key, disabled: !ok, onClick: () => { setMenu(null); fn(); } }, rotulo);
+      const linha = (key, titulo, botoes) => h("div", { key, className: "tr-menu-row", title: titulo },
+        botoes.map(([id, rot, fn, ok]) => h("button", { key: id, title: rot, "aria-label": rot, disabled: !ok,
+                                                       onClick: () => { setMenu(null); fn(); } },
+                                            h(Icone, { nome: id }))));
+      return [
+        item("ag", "Agrupar", agrupar, k > 1),
+        item("dg", "Desagrupar", desagrupar, temGrupo),
+        item("fr", "Criar frame com a seleção", frameDaSelecao, temCard),
+        linha("em", "empilhar", [
+          ["empilhar-v", "Empilhar na vertical (V)", () => empilharSel("v"), k > 1],
+          ["empilhar-h", "Empilhar na horizontal (H)", () => empilharSel("h"), k > 1]]),
+        linha("al", "alinhar", [
+          ["al-esq", "Alinhar à esquerda", () => alinharLado("esq"), k > 1],
+          ["al-centro-h", "Centralizar na horizontal", () => alinharLado("centro-h"), k > 1],
+          ["al-dir", "Alinhar à direita", () => alinharLado("dir"), k > 1],
+          ["al-topo", "Alinhar ao topo", () => alinharLado("topo"), k > 1],
+          ["al-meio", "Centralizar na vertical", () => alinharLado("meio"), k > 1],
+          ["al-base", "Alinhar à base", () => alinharLado("base"), k > 1]]),
+        linha("di", "espaçar igualmente", [
+          ["dist-h", "Espaçar igualmente na horizontal", () => distribuirSel("h"), k > 2],
+          ["dist-v", "Espaçar igualmente na vertical", () => distribuirSel("v"), k > 2]]),
+        item("co", "Colar", colar),
+        item("td", "Selecionar tudo", () => selecionar(true)),
+      ];
+    }
     if (m.kind === "aresta") {
       return [h("button", { key: "d", onClick: () => apagar([], [m.id]) }, "Apagar ligação")];
     }
@@ -4487,6 +4636,7 @@ function App() {
         onNodeContextMenu: (ev, n) => (present || desenrolar ? ev.preventDefault()
           : abrirMenu(ev, n.type === "trFrame" ? "frame" : n.type === "trNota" ? "nota" : "no", n.id)),
         onEdgeContextMenu: (ev, e) => (present || desenrolar ? ev.preventDefault() : abrirMenu(ev, "aresta", e.id)),
+        onPaneContextMenu: (ev) => (present || desenrolar ? ev.preventDefault() : abrirMenu(ev, "vazio", null)),
         onPaneClick: () => { setMenu(null); setMenuAcoes(false); }, onNodeClick: () => setMenu(null),
         // A andada automática até o bloco novo não fecha o popover encadeado;
         // um arrasto do usuário fecha e, enquanto dura, trava a andada.
@@ -4570,6 +4720,23 @@ function App() {
                         style: { left: menu.x, top: menu.y } }, menuItens(menu)) : null,
       selecionados.length > 1 ? h("div", { key: "sel", className: "tr-selbar" }, [
         h("span", { key: "n", className: "tr-selbar-n" }, `${selecionados.length} selecionados`),
+        h("button", { key: "ag", title: dica("agrupar"), onClick: agrupar, "aria-label": "Agrupar" }, h(Icone, { nome: "agrupar" })),
+        gruposDe(selecionados.map((n) => n.id), gruposRef.current).length
+          ? h("button", { key: "dg", title: dica("desagrupar"), onClick: desagrupar }, "Desagrupar") : null,
+        h("span", { key: "ali", className: "tr-selbar-alinhar" }, [
+          ["empilhar-v", "Empilhar na vertical (V)", () => empilharSel("v")],
+          ["empilhar-h", "Empilhar na horizontal (H)", () => empilharSel("h")],
+          ["al-esq", "Alinhar à esquerda", () => alinharLado("esq")],
+          ["al-centro-h", "Centralizar na horizontal", () => alinharLado("centro-h")],
+          ["al-dir", "Alinhar à direita", () => alinharLado("dir")],
+          ["al-topo", "Alinhar ao topo", () => alinharLado("topo")],
+          ["al-meio", "Centralizar na vertical", () => alinharLado("meio")],
+          ["al-base", "Alinhar à base", () => alinharLado("base")],
+          ...(selecionados.filter((n) => n.type !== "trSolto").length > 2 ? [
+            ["dist-h", "Espaçar igualmente na horizontal", () => distribuirSel("h")],
+            ["dist-v", "Espaçar igualmente na vertical", () => distribuirSel("v")]] : []),
+        ].map(([id, rot, fn]) => h("button", { key: id, title: rot, "aria-label": rot, onClick: fn },
+                                   h(Icone, { nome: id })))),
         // Só com algum card na seleção: com só frames (e ligações) os quatro
         // agiriam sobre nada, e botão que não faz nada é botão que mente.
         ...(selecionados.some((n) => n.type === "ndNode") ? [

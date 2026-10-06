@@ -124,6 +124,8 @@ tr_doc_subset <- function(doc, ids = NULL) {
   doc$nodes <- keep(doc$nodes)
   doc$edges <- Filter(function(e) e$from$node %in% ids && e$to$node %in% ids, doc$edges)
   for (k in c("positions", "sizes", "views", "modes", "soltos", "ocultos", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
+  # Grupo recortado só fica inteiro: com membro de fora ele não faria sentido.
+  doc$ui$grupos <- .tr_empty_obj(Filter(function(m) all(m %in% ids), doc$ui$grupos %||% list()))
   # O manifesto encolhe junto: o template não deve exigir coleção que nenhum
   # nó recortado usa.
   usadas <- unique(vapply(doc$nodes, function(n) .tr_collection_of(n$type), ""))

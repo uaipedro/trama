@@ -587,3 +587,56 @@ test_that("desfazer e refazer andam pelo log; op nova cabe ao chamador zerar", {
   # a revisão só avança, nunca volta
   expect_identical(r2$doc$rev, 14L)
 })
+
+test_that("grupos: add_grupo materializa id, valida e é cosmética com eco", {
+  m <- mk()
+  d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- add(d, m$reg, "t/const", id = "b")
+  d <- add(d, m$reg, "t/const", id = "c")
+  expect_false(tr_op_semantic(list(op = "add_grupo")))
+  expect_false(tr_op_semantic(list(op = "remove_grupo")))
+  expect_true(trama:::.tr_op_echoes_doc(list(op = "add_grupo")))
+  expect_true(trama:::.tr_op_echoes_doc(list(op = "remove_grupo")))
+  r <- trama:::.tr_op_add_grupo(d, list(op = "add_grupo", membros = list("a", "b")), m$reg)
+  id <- r$op$id
+  expect_match(id, "^[0-9A-Z]{16}$")
+  expect_equal(r$doc$ui$grupos[[id]], c("a", "b"))
+  expect_error(tr_doc_apply(d, list(op = "add_grupo", membros = list("a")), m$reg),
+               class = "tr_error_bad_op")
+  expect_error(tr_doc_apply(d, list(op = "add_grupo", membros = list("a", "zz")), m$reg),
+               class = "tr_error_unknown_node")
+  d1 <- tr_doc_apply(d, list(op = "add_grupo", id = "g1", membros = list("a", "b")), m$reg)
+  # sem aninhar: quem já está num grupo não entra em outro
+  expect_error(tr_doc_apply(d1, list(op = "add_grupo", membros = list("b", "c")), m$reg),
+               class = "tr_error_bad_op")
+  expect_error(tr_doc_apply(d1, list(op = "add_grupo", id = "g1", membros = list("c", "c")), m$reg),
+               class = "tr_error_duplicate_id")
+  d2 <- tr_doc_apply(d1, list(op = "remove_grupo", grupo = "g1"), m$reg)
+  expect_null(d2$ui$grupos$g1)
+  expect_error(tr_doc_apply(d2, list(op = "remove_grupo", grupo = "g1"), m$reg),
+               class = "tr_error_unknown_node")
+})
+
+test_that("grupos: sobrevivem a gravar/ler e encolhem quando um membro sai", {
+  m <- mk()
+  d <- add(m$doc, m$reg, "t/const", id = "a")
+  d <- add(d, m$reg, "t/const", id = "b")
+  d <- add(d, m$reg, "t/const", id = "c")
+  d <- tr_doc_apply(d, list(op = "add_grupo", id = "g1", membros = list("a", "b", "c")), m$reg)
+  back <- tr_doc_parse(tr_doc_json(d))
+  expect_equal(back$ui$grupos$g1, c("a", "b", "c"))
+  # com 3 membros, tirar um deixa o grupo; com 2, o grupo some
+  d2 <- tr_doc_apply(d, list(op = "remove_node", node = "c"), m$reg)
+  expect_equal(d2$ui$grupos$g1, c("a", "b"))
+  d3 <- tr_doc_apply(d2, list(op = "remove_node", node = "b"), m$reg)
+  expect_null(d3$ui$grupos$g1)
+  # um membro só no JSON não vira string solta
+  dd <- tr_doc_apply(d2, list(op = "remove_grupo", grupo = "g1"), m$reg)
+  expect_length(dd$ui$grupos, 0L)
+  # frame também sai do grupo ao ser removido
+  f <- tr_doc_apply(add(m$doc, m$reg, "t/const", id = "a"),
+                    list(op = "add_frame", id = "f", x = 0, y = 0, w = 100, h = 100), m$reg)
+  f <- add(f, m$reg, "t/const", id = "b")
+  f <- tr_doc_apply(f, list(op = "add_grupo", id = "g", membros = list("a", "f")), m$reg)
+  expect_null(tr_doc_apply(f, list(op = "remove_frame", frame = "f"), m$reg)$ui$grupos$g)
+})

@@ -17,7 +17,7 @@ tr_doc <- function() {
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
               frames = list(), modes = list(), soltos = list(),
-              notes = list(), ocultos = list())
+              notes = list(), ocultos = list(), grupos = list())
   ), class = "tr_doc")
 }
 
@@ -32,7 +32,8 @@ tr_doc <- function() {
                           "add_frame", "update_frame", "remove_frame",
                           "reorder_frames", "set_mode", "set_solto",
                           "set_preview_oculto",
-                          "add_note", "update_note", "remove_note")
+                          "add_note", "update_note", "remove_note",
+                          "add_grupo", "remove_grupo")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
 #' @export
@@ -51,7 +52,7 @@ tr_op_semantic <- function(op) {
 #' @noRd
 .tr_doc_echo_ops <- c("add_node", "remove_node", "connect", "disconnect",
                       "add_frame", "remove_frame", "reorder_frames",
-                      "add_note", "remove_note")
+                      "add_note", "remove_note", "add_grupo", "remove_grupo")
 
 .tr_op_echoes_doc <- function(op) {
   if (identical(op$op, "batch")) return(any(vapply(op$ops, .tr_op_echoes_doc, logical(1))))
@@ -137,6 +138,7 @@ tr_op_semantic <- function(op) {
     set_preview_oculto = .tr_op_set_preview_oculto,
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
+    add_grupo = .tr_op_add_grupo, remove_grupo = .tr_op_remove_grupo,
     connect = .tr_op_connect, disconnect = .tr_op_disconnect,
     batch = .tr_op_batch,
     rlang::abort(sprintf("Op desconhecida: '%s'.", name),
@@ -248,6 +250,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   doc$ui$modes[[op$node]] <- NULL
   doc$ui$soltos[[op$node]] <- NULL
   doc$ui$ocultos[[op$node]] <- NULL
+  doc <- .tr_grupos_sem(doc, op$node)
   doc$edges <- Filter(function(e) e$from$node != op$node && e$to$node != op$node, doc$edges)
   # Sem isto o documento continuaria declarando dependência de uma coleção
   # cujo último nó acabou de sair — e exigiria instalá-la pra abrir.
@@ -462,6 +465,7 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
 .tr_op_remove_frame <- function(doc, op, registry) {
   .tr_require(op, "frame"); .tr_frame_or_abort(doc, op$frame)
   doc$ui$frames[[op$frame]] <- NULL
+  doc <- .tr_grupos_sem(doc, op$frame)
   list(doc = doc, op = op)
 }
 
@@ -609,6 +613,64 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
 .tr_op_remove_note <- function(doc, op, registry) {
   .tr_require(op, "note"); .tr_note_or_abort(doc, op$note)
   doc$ui$notes[[op$note]] <- NULL
+  doc <- .tr_grupos_sem(doc, op$note)
+  list(doc = doc, op = op)
+}
+
+# --- Grupos ----------------------------------------------------------------
+# Conjunto de cards, notas e frames que se seleciona e se move junto, sem
+# moldura nem título (quem tem moldura é o frame). Mora em `ui.grupos`
+# (id -> ids dos membros), fora da chave de cache: é só apresentação. Não
+# aninha: um item pertence a no máximo UM grupo, e agrupar de novo quem já
+# está num grupo é pedir os dois para sumirem (o front manda `remove_grupo`
+# dos antigos no mesmo batch).
+
+.tr_ids_agrupaveis <- function(doc) {
+  c(names(doc$nodes), names(doc$ui$frames), names(doc$ui$notes))
+}
+
+# Tira `id` de todo grupo; grupo que sobra com menos de 2 membros some.
+.tr_grupos_sem <- function(doc, id) {
+  for (g in names(doc$ui$grupos %||% list())) {
+    m <- setdiff(as.character(unlist(doc$ui$grupos[[g]])), id)
+    doc$ui$grupos[[g]] <- if (length(m) >= 2L) m else NULL
+  }
+  doc
+}
+
+# `id` é materializado e ecoado, como o de `add_frame`: o undo por replay
+# reconstrói o mesmo grupo.
+.tr_op_add_grupo <- function(doc, op, registry) {
+  .tr_require(op, "membros")
+  id <- op$id %||% .tr_new_id()
+  .tr_check_node_id(id)
+  if (!is.null(doc$ui$grupos[[id]])) {
+    rlang::abort(sprintf("Id de grupo já existe: '%s'.", id), class = "tr_error_duplicate_id")
+  }
+  m <- unique(as.character(unlist(op$membros)))
+  if (length(m) < 2L) {
+    rlang::abort("Um grupo precisa de pelo menos 2 membros.", class = "tr_error_bad_op")
+  }
+  falta <- setdiff(m, .tr_ids_agrupaveis(doc))
+  if (length(falta)) {
+    rlang::abort(sprintf("Membro de grupo que não existe: '%s'.", falta[[1]]),
+                 class = "tr_error_unknown_node")
+  }
+  ja <- intersect(m, unlist(doc$ui$grupos, use.names = FALSE))
+  if (length(ja)) {
+    rlang::abort(sprintf("'%s' já está em outro grupo.", ja[[1]]), class = "tr_error_bad_op")
+  }
+  doc$ui$grupos[[id]] <- m
+  op$id <- id; op$membros <- m
+  list(doc = doc, op = op)
+}
+
+.tr_op_remove_grupo <- function(doc, op, registry) {
+  .tr_require(op, "grupo")
+  if (is.null(doc$ui$grupos[[op$grupo]])) {
+    rlang::abort(sprintf("Grupo que não existe: '%s'.", op$grupo), class = "tr_error_unknown_node")
+  }
+  doc$ui$grupos[[op$grupo]] <- NULL
   list(doc = doc, op = op)
 }
 

@@ -74,12 +74,15 @@ export function tamanhoPedido({ cardW, prevH, clientW, clientH, scrollW, scrollH
 // Shift de outras teclas em outros layouts: os quatro viram `,`/`.` sem
 // `shift+`, pra navegar entre frames funcionar com ou sem Shift.
 export function nomeDaTecla(e) {
-  const k = e.key.toLowerCase();
+  // AltGr chega como Ctrl+Alt: não é atalho. Com Alt (Option no Mac) a tecla
+  // vira outro caractere ("©"), então a letra vem de `code`.
+  if (e.getModifierState?.("AltGraph")) return "altgr";
+  const k = e.altKey && /^Key[A-Z]$/.test(e.code || "") ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
   if (k === "<" || k === ",") return (e.ctrlKey || e.metaKey ? "mod+" : "") + ",";
   if (k === ">" || k === ".") return (e.ctrlKey || e.metaKey ? "mod+" : "") + ".";
   // "+" pede Shift no teclado principal e não no numérico: vira sempre "+".
   if (k === "+") return (e.ctrlKey || e.metaKey ? "mod+" : "") + "+";
-  return (e.ctrlKey || e.metaKey ? "mod+" : "") + (e.shiftKey ? "shift+" : "") + k;
+  return (e.ctrlKey || e.metaKey ? "mod+" : "") + (e.altKey ? "alt+" : "") + (e.shiftKey ? "shift+" : "") + k;
 }
 
 // `frames` é `framesOrd` do editor: `{id, x, y, w, h}` na ordem de slide.
@@ -110,18 +113,23 @@ export const ATALHOS = [
   { id: "modo-completo", grupo: "Card", teclas: ["D"], rotulo: "Aberto" },
   { id: "modo-alternar", grupo: "Card", teclas: ["S"], rotulo: "Alternar miniatura / aberto" },
   { id: "params", grupo: "Card", teclas: ["W"], rotulo: "Mostrar / dobrar parâmetros" },
-  { id: "params-todos", grupo: "Card", teclas: ["P"], rotulo: "Todos os parâmetros" },
-  { id: "vista", grupo: "Card", teclas: ["V"], rotulo: "Ver em tela cheia" },
+  { id: "params-todos", grupo: "Card", teclas: ["Shift+P"], rotulo: "Todos os parâmetros" },
+  { id: "vista", grupo: "Card", teclas: ["P"], rotulo: "Ver em tela cheia" },
   { id: "tamanho", grupo: "Card", teclas: ["Shift+R"], rotulo: "Restaurar tamanho" },
   { id: "proximo", grupo: "Card", teclas: ["+", "Tab"], rotulo: "Próximo bloco" },
-  { id: "ajuda", grupo: "Geral", teclas: ["H"], rotulo: "Ajuda do bloco / atalhos" },
+  { id: "ajuda", grupo: "Geral", teclas: ["F1"], rotulo: "Ajuda do bloco / atalhos" },
   { id: "desfazer", grupo: "Geral", teclas: ["Ctrl+Z"], rotulo: "Desfazer" },
   { id: "refazer", grupo: "Geral", teclas: ["Ctrl+Shift+Z", "Ctrl+Y"], rotulo: "Refazer" },
   { id: "tudo", grupo: "Geral", teclas: ["Ctrl+A"], rotulo: "Selecionar tudo" },
   { id: "copiar-template", grupo: "Geral", teclas: ["Ctrl+Shift+C"], rotulo: "Copiar como template" },
+  { id: "agrupar", grupo: "Organizar", teclas: ["Ctrl+G"], rotulo: "Agrupar" },
+  { id: "desagrupar", grupo: "Organizar", teclas: ["Ctrl+Alt+G"], rotulo: "Desagrupar" },
+  { id: "empilhar-v", grupo: "Organizar", teclas: ["V"], rotulo: "Empilhar na vertical" },
+  { id: "empilhar-h", grupo: "Organizar", teclas: ["H"], rotulo: "Empilhar na horizontal" },
+  { id: "alinhar", grupo: "Organizar", teclas: ["Ctrl+←", "Ctrl+→", "Ctrl+↑", "Ctrl+↓"], rotulo: "Alinhar (um passo: início, centro, fim)" },
   { id: "apresentar", grupo: "Frames", teclas: ["F"], rotulo: "Apresentar / sair" },
   { id: "frame", grupo: "Frames", teclas: ["Shift+F"], rotulo: "Desenhar frame" },
-  { id: "frame-sel", grupo: "Frames", teclas: ["Ctrl+G"], rotulo: "Frame da seleção" },
+  { id: "frame-sel", grupo: "Frames", teclas: ["Ctrl+Shift+G"], rotulo: "Frame da seleção" },
   { id: "frame-n", grupo: "Frames", teclas: ["1…9", "0"], rotulo: "Ir ao frame 1…10" },
   { id: "frame-passo", grupo: "Frames", teclas: [",", "."], rotulo: "Frame anterior / próximo" },
   { id: "navegar", grupo: "Blocos", teclas: ["←", "→", "↑", "↓"], rotulo: "Andar pelos blocos (pai, filho, irmãos)" },

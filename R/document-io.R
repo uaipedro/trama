@@ -31,6 +31,7 @@ tr_doc_json <- function(doc) {
   out$ui$soltos <- .tr_empty_obj(out$ui$soltos)
   out$ui$ocultos <- .tr_empty_obj(out$ui$ocultos)
   out$ui$notes <- .tr_empty_obj(out$ui$notes)
+  out$ui$grupos <- .tr_empty_obj(lapply(out$ui$grupos %||% list(), I))
   out$edges <- unname(out$edges)
   jsonlite::toJSON(out, auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)
 }
@@ -116,6 +117,7 @@ tr_doc_parse <- function(txt) {
   # Só `TRUE` é gravado; um `false` escrito à mão vale o mesmo que ausente.
   doc$ui$ocultos <- .tr_empty_obj(Filter(isTRUE, doc$ui$ocultos %||% list()))
   doc$ui$notes <- .tr_empty_obj(doc$ui$notes %||% list())
+  doc$ui$grupos <- .tr_empty_obj(lapply(doc$ui$grupos %||% list(), function(m) as.character(unlist(m))))
   structure(doc, class = "tr_doc")
 }
 

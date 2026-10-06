@@ -184,7 +184,7 @@ export function ParamsModal({ node, categories, preview, onClose }) {
       ])), document.body);
 }
 
-// Tela cheia do card selecionado (V). Mesmo overlay do lightbox de imagem
+// Tela cheia do card selecionado (P). Mesmo overlay do lightbox de imagem
 // (`.tr-lightbox`), pra o Esc e o clique fora terem o mesmo sentido. O
 // conteúdo vem do renderer: `expand` quando ele declara, senão a vista atual
 // do card, maior. Funciona com o card em mini, porque não depende do preview
@@ -192,7 +192,7 @@ export function ParamsModal({ node, categories, preview, onClose }) {
 export function Vista({ node, assetUrl, onClose }) {
   React.useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape" || e.key === "v" || e.key === "V") { e.preventDefault(); onClose(); }
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") { e.preventDefault(); onClose(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -232,7 +232,7 @@ export function Vista({ node, assetUrl, onClose }) {
     ]), document.body);
 }
 
-// Painel de atalhos (H), mesma família visual do `Help` de editor.js
+// Painel de atalhos (F1), mesma família visual do `Help` de editor.js
 // (`aside.tr-help`, cabeçalho com título + ×): agrupado por `grupo` na ordem
 // em que `ATALHOS` os declara, que é a mesma fonte que `dica()` usa nos
 // botões — os dois nunca discordam porque leem a mesma tabela.
@@ -241,7 +241,7 @@ export function AtalhosPanel({ onClose }) {
   return h("aside", { className: "tr-help tr-atalhos" }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t" }, "Atalhos"),
-      h("button", { key: "x", className: "tr-help-close", title: "fechar (H)",
+      h("button", { key: "x", className: "tr-help-close", title: "fechar (F1)",
                     onClick: onClose }, "×"),
     ]),
     h("div", { key: "b", className: "tr-help-body" },

@@ -7,7 +7,7 @@
 // op dentro dele for, a mesma regra de `tr_op_semantic()`.
 export const COSMETICAS = new Set(["rename", "move", "resize", "set_view",
   "add_frame", "update_frame", "remove_frame", "reorder_frames", "set_mode", "set_solto", "set_preview_oculto",
-  "add_note", "update_note", "remove_note"]);
+  "add_note", "update_note", "remove_note", "add_grupo", "remove_grupo"]);
 export const cosmetica = (op) =>
   op.op === "batch" ? op.ops.every(cosmetica) : COSMETICAS.has(op.op);
 

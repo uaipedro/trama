@@ -31,7 +31,7 @@ const widgets = {};
 // A vista recebe o mesmo `{artifact, handle, assetUrl}` de sempre: vistas são
 // leituras diferentes do que JÁ trafega, não payloads paralelos. Uma vista que
 // precise de dado novo é escolha explícita do `preview` do tipo.
-// `expand` é a leitura em tela cheia do artefato (tecla V). Opcional: sem
+// `expand` é a leitura em tela cheia do artefato (tecla P). Opcional: sem
 // ele, a vista em tela cheia usa a própria vista do card, maior.
 function normalizeRenderer(id, def) {
   if (typeof def === "function") {
@@ -200,7 +200,7 @@ function ErrorView({ artifact }) {
   return h("div", { className: "tr-err" }, (artifact.data && artifact.data.message) || "erro");
 }
 
-// A vista em tela cheia (V) da imagem: mesmo arquivo do card, só que sem o
+// A vista em tela cheia (P) da imagem: mesmo arquivo do card, só que sem o
 // recorte do `.tr-preview`. Não reusa `Image` (que embute o gesto de
 // ctrl/⌘+clique do lightbox) — aqui quem abre e fecha é a `Vista` de
 // `modos-ui.js`, então o corpo é só a `<img>`.

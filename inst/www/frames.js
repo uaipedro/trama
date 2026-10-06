@@ -633,7 +633,7 @@ export function FramePanel({ frames, exportando, onGo, onReorder, onRename, onAs
     ]),
     h("div", { key: "b", className: "tr-frames-body" }, vazio
       ? h("p", { className: "tr-frames-empty" },
-          "Nenhum frame ainda. Use Shift+F, ou Ctrl+G com cards selecionados.")
+          "Nenhum frame ainda. Use Shift+F, ou Ctrl+Shift+G com cards selecionados.")
       // `div` com papel de botão, e não `<button draggable>`: o Firefox não
       // começa arrasto em botão. Por isso o teclado é ensinado à mão (Tab chega
       // pelo `tabIndex`, Enter e Espaço enquadram). O `stopPropagation` segura

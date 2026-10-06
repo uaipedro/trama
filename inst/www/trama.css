@@ -325,7 +325,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    (Estatística Básica) pra tabela de resultado; texto continua à esquerda. */
 .tr-abnt td.tr-abnt-num{text-align:right;font-variant-numeric:tabular-nums}
 
-/* Vista em tela cheia (V): corpo dentro do painel ABNT/lightbox existente. */
+/* Vista em tela cheia (P): corpo dentro do painel ABNT/lightbox existente. */
 .tr-vista-corpo{min-width:60vw;max-height:88vh;overflow:auto}
 
 /* O `zoom-out` do lightbox anuncia "clique e eu fecho", e este não fecha. */
@@ -1008,7 +1008,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-help-ref-fn{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .tr-help-ref-ver,.tr-help-ref-nota{color:var(--tr-dim)}
 
-/* Painel de atalhos (H) */
+/* Painel de atalhos (F1) */
 .tr-atalhos section{padding:8px 16px}
 .tr-atalhos dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0}
 .tr-atalhos dt{display:flex;gap:4px}
@@ -1053,6 +1053,12 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-menu button{display:block;width:100%;text-align:left;background:none;
   border:0;color:var(--tr-fg);font:inherit;font-size:12px;padding:5px 9px;
   border-radius:3px;cursor:pointer}
+.tr-menu button:disabled{opacity:.4;pointer-events:none}
+.tr-menu .tr-menu-row .tr-ic{display:block}
+.tr-selbar-alinhar{display:inline-flex;gap:2px}
+.tr-selbar-alinhar>button{background:var(--tr-field);color:var(--tr-fg);border:1px solid var(--tr-line);
+  border-radius:4px;padding:2px 3px;cursor:pointer;display:inline-flex}
+.tr-selbar-alinhar>button:hover{border-color:var(--tr-accent)}
 .tr-menu button:hover{background:var(--tr-accent);color:var(--tr-accent-ink)}
 
 /* Barra de seleção: aparece com mais de um item selecionado e é onde as ações

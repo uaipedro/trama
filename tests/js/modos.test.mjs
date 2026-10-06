@@ -82,3 +82,16 @@ test("dica junta rótulo e teclas; ATALHOS tem ids únicos", () => {
   const ids = ATALHOS.map((a) => a.id);
   assert.equal(new Set(ids).size, ids.length);
 });
+
+test("nomeDaTecla leva o Alt: Ctrl+Alt+G não é Ctrl+G", () => {
+  assert.equal(nomeDaTecla({ key: "g", ctrlKey: true, altKey: true }), "mod+alt+g");
+  assert.equal(nomeDaTecla({ key: "G", ctrlKey: true, shiftKey: true }), "mod+shift+g");
+  assert.equal(nomeDaTecla({ key: "ArrowLeft", ctrlKey: true }), "mod+arrowleft");
+  assert.equal(nomeDaTecla({ key: "F1" }), "f1");
+});
+
+test("nomeDaTecla: Option no Mac vem de code, e AltGr não é atalho", () => {
+  assert.equal(nomeDaTecla({ key: "©", code: "KeyG", ctrlKey: true, altKey: true }), "mod+alt+g");
+  assert.equal(nomeDaTecla({ key: "g", code: "KeyG", ctrlKey: true, altKey: true,
+                             getModifierState: (m) => m === "AltGraph" }), "altgr");
+});
