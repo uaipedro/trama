@@ -465,6 +465,9 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-port{position:relative;height:15px;display:flex;align-items:center;padding:0 10px;
          color:var(--tr-dim)}
 .tr-port-out{justify-content:flex-end}
+.tr-saida-label{cursor:text;white-space:nowrap}
+.tr-saida-input{width:110px;min-width:0;height:15px;padding:0 3px;border:1px solid var(--tr-line);
+  border-radius:3px;background:var(--tr-bg);color:var(--tr-fg);font:inherit;text-align:right}
 /* Porta lateral: uma seta na cor do TIPO (`--porta-cor`, vinda do catálogo),
    metade para fora da borda, apontando no sentido do fluxo — entrada e saída
    apontam para a direita. Sem carcaça: a forma já é o objeto. O ponto de
@@ -766,7 +769,7 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-exporting .react-flow__edge.selected .react-flow__edge-path{stroke:var(--tr-edge)}
 /* Duas classes, pra vencer `.tr-app-help` quando o painel estava aberto. */
 .tr-app.tr-presenting{grid-template-columns:1fr}
-.tr-presenting .tr-palette,.tr-presenting .tr-help,.tr-presenting .tr-frames,
+.tr-presenting .tr-palette,.tr-presenting .tr-frames,
 .tr-presenting .tr-settings,
 .tr-presenting .tr-toolbar,.tr-presenting .tr-selbar,
 .tr-presenting .react-flow__minimap,.tr-presenting .react-flow__controls,
@@ -931,13 +934,18 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 }
 @media(max-width:600px){
   .tr-app,.tr-app-help{grid-template-columns:minmax(0,1fr)}
-  .tr-palette,.tr-help,.tr-frames{position:absolute;right:0;bottom:0;top:auto;width:100%;height:36%;z-index:3;border-top:1px solid var(--tr-line)}
+  .tr-palette,.tr-frames{position:absolute;right:0;bottom:0;top:auto;width:100%;height:36%;z-index:3;border-top:1px solid var(--tr-line)}
   .tr-toolbar{max-width:calc(100% - 24px)}
   .tr-toolbar-proj span{max-width:70px}
   .tr-tb-btn{width:30px;height:30px}
   .tr-welcome{top:32%;left:50%;width:calc(100% - 28px)}
   .tr-welcome-steps{display:none}
   .tr-next-step{bottom:38%;left:50%;max-width:calc(100% - 28px)}
+  .tr-ajuda-dialog{width:96vw;height:92vh;max-height:92vh}
+  .tr-ajuda-layout{grid-template-columns:112px minmax(0,1fr)}
+  .tr-ajuda-indice{padding:8px 4px}
+  .tr-ajuda-link{padding:6px;font-size:11px}
+  .tr-ajuda-conteudo{padding:12px;font-size:12px}
 }
 /* `z-index:6` é o valor de repouso: acima da toolbar (5) e ABAIXO do menu de
    contexto (20) — elevado sempre, um menu aberto na faixa de baixo à esquerda
@@ -997,11 +1005,26 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 /* O banner é posicionado contra a largura da paleta; com o painel aberto a
    coluna é mais larga, e sem isto a faixa de erro passa por baixo dele. */
 .tr-app-help .tr-banner{right:380px}
-.tr-help{background:var(--tr-panel);border-left:1px solid var(--tr-line);
-  display:flex;flex-direction:column;overflow:hidden}
+.tr-ajuda-dialog{width:min(1040px,94vw);height:min(82vh,calc(100vh - 120px));max-height:none;overflow:hidden}
+.tr-ajuda .tr-help-head{flex:none;border-bottom:1px solid var(--tr-line);padding:12px 16px}
+.tr-ajuda-layout{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);flex:1;min-height:0}
+.tr-ajuda-indice{overflow:auto;padding:12px 8px;border-right:1px solid var(--tr-line)}
+.tr-ajuda-link{display:block;width:100%;padding:6px 9px;border:0;border-radius:5px;background:transparent;
+  color:var(--tr-dim);text-align:left;font:inherit;font-size:12px;cursor:pointer}
+.tr-ajuda-link:hover,.tr-ajuda-ativa{background:var(--tr-hover);color:var(--tr-fg)}
+.tr-ajuda-conteudo{min-width:0;padding:16px 24px;overflow:auto;font-size:13px;line-height:1.6;scroll-behavior:smooth}
+.tr-ajuda-secao{scroll-margin-top:12px}
+.tr-ajuda-conteudo h1,.tr-ajuda-conteudo h2{margin:0 0 10px;font-size:18px}
+.tr-ajuda-conteudo h3{margin:16px 0 7px;font-size:15px}
+.tr-ajuda-conteudo table{border-collapse:collapse;display:block;max-width:100%;overflow:auto;margin:10px 0}
+.tr-ajuda-conteudo th,.tr-ajuda-conteudo td{padding:5px 9px;border:1px solid var(--tr-line);text-align:left}
+.tr-ajuda-conteudo blockquote{margin:10px 0;padding:3px 12px;border-left:3px solid var(--tr-accent);color:var(--tr-dim)}
+.tr-ajuda-conteudo a{color:var(--tr-accent)}
+.tr-ajuda-conteudo ol,.tr-ajuda-conteudo ul{padding-left:22px;margin:6px 0 12px}
+.tr-ajuda-conteudo .tr-help-id{display:block;padding:0 0 8px}
+.tr-ajuda .tr-help-sec{margin-top:0}
 .tr-help-head{display:flex;align-items:center;justify-content:space-between;
   padding:10px 12px 4px;font-size:13px}
-.tr-help-close{background:none;border:0;color:var(--tr-fg);font-size:16px;cursor:pointer}
 .tr-help-id{padding:0 12px 8px;font-size:10.5px;opacity:.6}
 .tr-help-body{overflow:auto;padding:0 12px 16px;font-size:12px;line-height:1.55}
 .tr-help-body h4{margin:14px 0 4px;font-size:11px;text-transform:uppercase;

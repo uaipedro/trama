@@ -40,7 +40,9 @@ import { filtrarBases, temasDe, pacotesDe, dimensao } from "./bases.js";
 import { linkDeDados } from "./links.js";
 import { criarRoteador, caminhoComCantos, meioDaLinha } from "./rotas.js";
 import { criarFilaOps } from "./fila-ops.js";
+import { nomeDaSaida, rotuloDaEntrada } from "./saidas.js";
 import { reusarNos } from "./reuso.js";
+import { Markdown } from "./markdown.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -122,6 +124,8 @@ function autoLayout(nodes, edges) {
 
 function docToFlow(doc, catalog) {
   const byId = catalog ? Object.fromEntries(catalog.nodes.map((n) => [n.id, n])) : {};
+  const arestasDoc = (doc.edges || []).map((e) => ({ source: e.from.node, sourceHandle: e.from.port,
+    target: e.to.node, targetHandle: e.to.port }));
   let missing = 0;
   const nodes = Object.entries(doc.nodes || {}).map(([id, n]) => {
     const pos = (doc.ui && doc.ui.positions && doc.ui.positions[id]) || null;
@@ -141,7 +145,10 @@ function docToFlow(doc, catalog) {
               view: (doc.ui && doc.ui.views && doc.ui.views[id]) || null,
               size: (doc.ui && doc.ui.sizes && doc.ui.sizes[id]) || null,
               modo: (doc.ui && doc.ui.modes && doc.ui.modes[id]) || null,
-              previewOculto: !!(doc.ui && doc.ui.ocultos && doc.ui.ocultos[id]) },
+              previewOculto: !!(doc.ui && doc.ui.ocultos && doc.ui.ocultos[id]),
+              saidas: (doc.ui && doc.ui.saidas && doc.ui.saidas[id]) || {},
+              rotulosEntradas: Object.fromEntries((byId[n.type]?.inputs || []).map((p) => [p.name,
+                rotuloDaEntrada({ node: id, port: p.name }, arestasDoc, doc.ui?.saidas || {})])) },
     };
   });
   // Aresta de FLUXO: a porta de SAÍDA de onde ela sai, OU a porta de ENTRADA
@@ -338,39 +345,6 @@ function mdInline(t) {
   }
   if (last < t.length) parts.push(t.slice(last));
   return parts;
-}
-
-function md(text) {
-  const lines = (text || "").split("\n"); const out = [];
-  let i = 0, k = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (l.startsWith("```")) {
-      const buf = []; i++;
-      while (i < lines.length && !lines[i].startsWith("```")) buf.push(lines[i++]);
-      i++;
-      out.push(h("pre", { key: k++ }, h("code", null, buf.join("\n"))));
-    } else if (l.startsWith("## ")) {
-      out.push(h("h4", { key: k++ }, l.slice(3))); i++;
-    } else if (l.startsWith("- ")) {
-      const items = [];
-      while (i < lines.length && lines[i].startsWith("- ")) {
-        let t = lines[i++].slice(2);
-        // Item de lista quebrado em várias linhas: a continuação vem indentada
-        // e pertence ao item anterior, não a um parágrafo novo.
-        while (i < lines.length && /^\s+\S/.test(lines[i])) t += " " + lines[i++].trim();
-        items.push(t);
-      }
-      out.push(h("ul", { key: k++ }, items.map((t, j) => h("li", { key: j }, mdInline(t)))));
-    } else if (!l.trim()) {
-      i++;
-    } else {
-      const buf = [];
-      while (i < lines.length && lines[i].trim() && !/^(## |- |```)/.test(lines[i])) buf.push(lines[i++]);
-      out.push(h("p", { key: k++ }, mdInline(buf.join(" "))));
-    }
-  }
-  return out;
 }
 
 // --- Nó genérico -----------------------------------------------------------
@@ -608,6 +582,23 @@ function SoltoNode({ id, data, selected }) {
   ]);
 }
 
+function PortName({ id, porta, nome, onSave }) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState("");
+  const input = useRef(null);
+  const encerrado = useRef(false);
+  useEffect(() => { if (editando) input.current?.focus(); }, [editando]);
+  const salvar = () => { if (!encerrado.current) { encerrado.current = true; onSave(id, porta, valor); } setEditando(false); };
+  if (editando) return h("input", { ref: input, className: "tr-saida-input nodrag nopan", value: valor,
+    "aria-label": `Nome da saída ${porta}`, onChange: (e) => setValor(e.target.value),
+    onBlur: salvar, onPointerDown: (e) => e.stopPropagation(),
+    onKeyDown: (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); salvar(); }
+      if (e.key === "Escape") { e.preventDefault(); encerrado.current = true; setEditando(false); } } });
+  return h("span", { className: "tr-saida-label", onDoubleClick: (e) => {
+    e.stopPropagation(); encerrado.current = false; setValor(nome || ""); setEditando(true);
+  } }, nome || porta);
+}
+
 function NdNode({ id, data, selected }) {
   const spec = data.spec;
   if (!spec) {
@@ -791,11 +782,12 @@ function NdNode({ id, data, selected }) {
           h(Handle, { key: "h", type: "target", position: Position.Left, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
           mini ? null : h("span", { key: "n", title: p.type },
-            p.name + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
+            (data.rotulosEntradas?.[p.name] || p.name) + (p.multiple ? " (N)" : "") + (p.required ? "" : "?")),
         ]))),
       h("div", { key: "out", className: "tr-out" }, (spec.outputs || []).map((p) =>
         h("div", { key: p.name, className: "tr-port tr-port-out" }, [
-          mini ? null : h("span", { key: "n", title: p.type }, p.name),
+          mini ? null : h("span", { key: "n", title: `${p.name} · ${p.type}` },
+            h(PortName, { id, porta: p.name, nome: nomeDaSaida({ [id]: data.saidas }, id, p.name), onSave: data.onSaida })),
           h(Handle, { key: "h", type: "source", position: Position.Right, id: p.name,
                       style: { "--porta-cor": data.typeColors?.[p.type] || "#64748b" } }),
           // "+" do próximo bloco: some no mini (e na apresentação, pelo CSS).
@@ -1163,12 +1155,47 @@ function Help({ catalog, typeId, onClose, onOpen }) {
   const spec = (catalog.nodes || []).find((n) => n.id === typeId);
   const titulo = useRef(null);
   const veioDeChip = useRef(false);
+  const dialogRef = useRef(null);
+  const [secAtiva, setSecAtiva] = useState(0);
   // Depois que um chip troca o painel, o foco vai para o título da nova ajuda.
   useEffect(() => {
     if (veioDeChip.current && titulo.current) titulo.current.focus();
     veioDeChip.current = false;
   }, [typeId]);
+  useEffect(() => {
+    const fecharEsc = (e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
+    document.addEventListener("keydown", fecharEsc);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener("keydown", fecharEsc);
+  }, [typeId]);
+  useEffect(() => {
+    const root = dialogRef.current?.querySelector(".tr-ajuda-conteudo");
+    if (!root || !window.IntersectionObserver) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visivel = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visivel) setSecAtiva(Number(visivel.target.dataset.indice));
+    }, { root, rootMargin: "-8% 0px -78% 0px" });
+    root.querySelectorAll("[data-indice]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [typeId]);
   if (!spec) return null;
+  const secoesMd = [];
+  if (spec.help) {
+    const linhas = spec.help.split("\n");
+    let atual = null;
+    let abertura = [];
+    let emCodigo = false;
+    for (const linha of linhas) {
+      if (/^\s*```/.test(linha)) emCodigo = !emCodigo;
+      if (!emCodigo && /^##\s+/.test(linha)) {
+        if (!atual && abertura.some((l) => l.trim())) secoesMd.push({ titulo: "Ajuda", texto: abertura.join("\n") });
+        atual = { titulo: linha.replace(/^##\s+/, "").trim(), texto: linha };
+        secoesMd.push(atual);
+      } else if (atual) atual.texto += `\n${linha}`;
+      else abertura.push(linha);
+    }
+    if (!secoesMd.length) secoesMd.push({ titulo: "Ajuda", texto: spec.help });
+  }
   const nos = catalog.nodes || [];
   const press = spec.pressupostos || [];
   const refs = spec.referencias || [];
@@ -1207,20 +1234,35 @@ function Help({ catalog, typeId, onClose, onOpen }) {
       ]) : null;
     }),
   ]) : null;
-  return h("aside", { className: "tr-help" }, [
+  const secoesIndice = [
+    ...secoesMd.map((s, i) => ({ id: `tr-help-md-${i}`, titulo: s.titulo })),
+    ...(press.length ? [{ id: "tr-help-press", titulo: "Pressupostos" }] : []),
+    ...(refs.length ? [{ id: "tr-help-refs", titulo: "Referências" }] : []),
+  ];
+  return h("div", { className: "tr-lightbox tr-modal tr-ajuda", onClick: (e) => { if (e.target === e.currentTarget) onClose(); } },
+    h("div", { ref: dialogRef, className: "tr-dialog tr-ajuda-dialog", role: "dialog", "aria-modal": "true",
+               "aria-label": `Ajuda: ${spec.label || spec.id}`, tabIndex: -1 }, [
     h("div", { key: "hd", className: "tr-help-head" }, [
       h("strong", { key: "t", ref: titulo, tabIndex: -1 }, spec.label || spec.id),
-      h("button", { key: "x", className: "tr-help-close", title: "voltar à paleta",
+      h("button", { key: "x", className: "tr-dialog-close", title: "fechar (Esc)",
                     onClick: onClose }, "×"),
     ]),
-    h("code", { key: "id", className: "tr-help-id" }, spec.id),
-    h("div", { key: "b", className: "tr-help-body" }, [
-      spec.description && !descricaoRepete(spec.description, spec.help) ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
-      secPress, secRefs,
-      spec.help ? h("div", { key: "md" }, md(spec.help))
-        : (!spec.description && !secPress && !secRefs ? h("p", { key: "0" }, "sem ajuda") : null),
+    h("div", { key: "layout", className: "tr-ajuda-layout" }, [
+      h("nav", { key: "idx", className: "tr-ajuda-indice", "aria-label": "Seções da ajuda" },
+        secoesIndice.map((s, i) => h("button", { key: s.id, type: "button",
+          className: i === secAtiva ? "tr-ajuda-link tr-ajuda-ativa" : "tr-ajuda-link",
+          onClick: () => dialogRef.current?.querySelector(`#${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }) }, s.titulo))),
+      h("div", { key: "b", className: "tr-help-body tr-ajuda-conteudo" }, [
+        h("code", { key: "id", className: "tr-help-id" }, spec.id),
+        spec.description && !descricaoRepete(spec.description, spec.help) ? h("p", { key: "d", className: "tr-help-desc" }, spec.description) : null,
+        ...secoesMd.map((s, i) => h("section", { key: `md-${i}`, id: `tr-help-md-${i}`, "data-indice": i, className: "tr-ajuda-secao" },
+          Markdown({ texto: s.texto, h }))),
+        press.length ? h("section", { key: "pr", id: "tr-help-press", "data-indice": secoesMd.length, className: "tr-ajuda-secao" }, secPress) : null,
+        refs.length ? h("section", { key: "rf", id: "tr-help-refs", "data-indice": secoesMd.length + (press.length ? 1 : 0), className: "tr-ajuda-secao" }, secRefs) : null,
+        !spec.description && !secPress && !secRefs && !spec.help ? h("p", { key: "0" }, "sem ajuda") : null,
+      ]),
     ]),
-  ]);
+  ]));
 }
 
 function compatible(catalog, from, to) {
@@ -2230,6 +2272,7 @@ function App() {
   // F1: com UM card selecionado, a ajuda dele (o que era o "?" do cabeçalho);
   // sem isso, a lista de atalhos. H de novo fecha o que estiver aberto.
   const ajuda = () => {
+    if (present) return;
     if (helpFor || painelAtalhos) { setHelpFor(null); setPainelAtalhos(false); return; }
     const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
     setPainelFrames(false); setPainelConfig(false); setPainelTemplates(false);
@@ -2294,6 +2337,13 @@ function App() {
   const onFrameRect = useCallback((id, p) => {
     pushOp({ op: "update_frame", frame: id, x: Math.round(p.x), y: Math.round(p.y),
              w: Math.round(p.width), h: Math.round(p.height) });
+  }, []);
+
+  const onSaida = useCallback((nodeId, porta, valor) => {
+    const nome = String(valor || "").trim();
+    setNodes((ns) => ns.map((n) => n.id !== nodeId ? n : { ...n, data: { ...n.data,
+      saidas: Object.fromEntries(Object.entries({ ...n.data.saidas, [porta]: nome }).filter(([, v]) => v)) } }));
+    pushOp({ op: "set_saida", node: nodeId, port: porta, nome });
   }, []);
   const onFrameEdit = useCallback((id, patch) => {
     setNodes((ns) => ns.map((n) => (n.id !== id ? n : {
@@ -2501,7 +2551,7 @@ function App() {
                       onStreamCmd,
                       dobrado: dobras[n.id] ?? paramsDobradosDe(n.data),
                       onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onAutoTamanho,
-                      typeColors, categories, onParam, onView, onResize, onModo,
+                      typeColors, categories, onParam, onView, onResize, onModo, onSaida,
                       onReseed, onAbrirProximo: abrirProximo, temas,
                       // Contexto dos params `cols` (`ParamsList`, modos-ui.js).
                       // `entradas[n.id]` é o mesmo objeto enquanto nem arestas
@@ -2515,7 +2565,7 @@ function App() {
   })),
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
-    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onReseed, tick, temas, abrirProximo,
+    [nodes, typeColors, categories, onParam, onView, onResize, onModo, onSaida, onReseed, tick, temas, abrirProximo,
      entradas, handlesEntrada, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
@@ -4133,6 +4183,8 @@ function App() {
       if (n.type === "ndNode") {
         criam.push({ op: "add_node", id, type: n.data.nodeType, position: [x, y],
                     label: n.data.label, params: n.data.params || {}, seed: n.data.seed });
+        Object.entries(n.data.saidas || {}).forEach(([port, nome]) =>
+          depois.push({ op: "set_saida", node: id, port, nome }));
         if (n.data.size) depois.push({ op: "resize", node: id, w: n.data.size[0], h: n.data.size[1] });
         if (n.data.modo && n.data.modo !== "completo") depois.push({ op: "set_mode", node: id, modo: n.data.modo });
         if (n.data.previewOculto) depois.push({ op: "set_preview_oculto", node: id, oculto: true });
@@ -4561,7 +4613,7 @@ function App() {
   // `tr-app-dialog` existe só para o banner: ele precisa passar à frente do
   // diálogo QUANDO há diálogo, e voltar para trás do menu de contexto quando
   // não há (ver `.tr-banner` no CSS).
-  return h("div", { className: ["tr-app", helpFor || painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
+  return h("div", { className: ["tr-app", painelFrames || painelConfig || painelAtalhos || painelTemplates ? "tr-app-help" : "",
                                 present ? "tr-presenting" : "", desenrolar ? "tr-desenrolando" : "",
                                 abrindo || templateDlg ? "tr-app-dialog" : ""].filter(Boolean).join(" "),
                     onDragOver: onDragOverGlobal, onDrop: onDropGlobal }, [
