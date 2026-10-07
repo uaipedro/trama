@@ -220,25 +220,36 @@ if (plano$site) fila[[length(fila) + 1]] <- job("site", "npm", c("--prefix", "si
 cat(sprintf("\n%d job(s), até %d em paralelo\n", length(fila), jobs_max))
 t_total <- Sys.time()
 falhas <- character()
-rodando <- list()
-proximo <- 1L
-repeat {
-  while (length(rodando) < jobs_max && proximo <= length(fila)) {
-    j <- fila[[proximo]]; proximo <- proximo + 1L
-    log <- file.path(logs, paste0(j$nome, ".log"))
-    proc <- parallel::mcparallel(system2(j$cmd, j$args, stdout = log, stderr = log))
-    rodando[[as.character(proc$pid)]] <- list(nome = j$nome, log = log, t0 = Sys.time(), proc = proc)
+relatar <- function(nome, log, t0, ok) {
+  cat(sprintf("\n== %s\n", nome)); cat(readLines(log, warn = FALSE), sep = "\n")
+  cat(sprintf("-- %s: %s em %.0fs\n", nome, if (ok) "ok" else "FALHOU",
+              as.numeric(difftime(Sys.time(), t0, units = "secs"))))
+  if (!ok) falhas <<- c(falhas, nome)
+}
+if (.Platform$OS.type == "windows") {
+  # `mcparallel` é fork, que o Windows não tem: lá os jobs rodam um por vez.
+  for (j in fila) {
+    log <- file.path(logs, paste0(j$nome, ".log")); t0 <- Sys.time()
+    status <- system2(j$cmd, j$args, stdout = log, stderr = log)
+    relatar(j$nome, log, t0, is.numeric(status) && status == 0)
   }
-  if (!length(rodando)) break
-  feitos <- parallel::mccollect(lapply(rodando, `[[`, "proc"), wait = FALSE, timeout = 1)
-  for (pid in names(feitos)) {
-    r <- rodando[[pid]]; status <- feitos[[pid]]
-    ok <- is.numeric(status) && status == 0
-    cat(sprintf("\n== %s\n", r$nome)); cat(readLines(r$log, warn = FALSE), sep = "\n")
-    cat(sprintf("-- %s: %s em %.0fs\n", r$nome, if (ok) "ok" else "FALHOU",
-                as.numeric(difftime(Sys.time(), r$t0, units = "secs"))))
-    if (!ok) falhas <- c(falhas, r$nome)
-    rodando[[pid]] <- NULL
+} else {
+  rodando <- list()
+  proximo <- 1L
+  repeat {
+    while (length(rodando) < jobs_max && proximo <= length(fila)) {
+      j <- fila[[proximo]]; proximo <- proximo + 1L
+      log <- file.path(logs, paste0(j$nome, ".log"))
+      proc <- parallel::mcparallel(system2(j$cmd, j$args, stdout = log, stderr = log))
+      rodando[[as.character(proc$pid)]] <- list(nome = j$nome, log = log, t0 = Sys.time(), proc = proc)
+    }
+    if (!length(rodando)) break
+    feitos <- parallel::mccollect(lapply(rodando, `[[`, "proc"), wait = FALSE, timeout = 1)
+    for (pid in names(feitos)) {
+      r <- rodando[[pid]]; status <- feitos[[pid]]
+      relatar(r$nome, r$log, r$t0, is.numeric(status) && status == 0)
+      rodando[[pid]] <- NULL
+    }
   }
 }
 cat(sprintf("\nTotal: %.0fs\n", as.numeric(difftime(Sys.time(), t_total, units = "secs"))))

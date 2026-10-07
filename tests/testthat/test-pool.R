@@ -46,7 +46,7 @@ test_that("handoff cancela unidade em voo no pool e o progresso chega como event
   }))
   on.exit(ex$shutdown(), add = TRUE)
   s <- tmp_store(); ev <- list(); rec <- function(e) ev[[length(ev) + 1]] <<- e
-  doc1 <- build(reg, list(list(op = "add_node", type = "slow/sleep", id = "z", params = list(secs = 3))))
+  doc1 <- build(reg, list(list(op = "add_node", type = "slow/sleep", id = "z", params = list(secs = 10))))
   s1 <- tr_scheduler(tr_plan(doc1, registry = reg, store = s), reg, s, ex, rec)
   t0 <- Sys.time()
   while (!s1$step() && !any(vapply(ev, function(e) identical(e$type, "progress"), TRUE))) Sys.sleep(0.05)
@@ -55,7 +55,7 @@ test_that("handoff cancela unidade em voo no pool e o progresso chega como event
   plan2 <- tr_plan(doc2, registry = reg, store = s)
   expect_length(s1$handoff(unlist(plan2$keys)), 0L)
   s2 <- tr_scheduler(plan2, reg, s, ex, rec); while (!s2$step()) Sys.sleep(0.02)
-  expect_lt(as.numeric(Sys.time() - t0, units = "secs"), 3)   # não esperou os 3s do cancelado
+  expect_lt(as.numeric(Sys.time() - t0, units = "secs"), 8)   # não esperou os 10s do cancelado (folga para o CI)
   expect_equal(tr_store_get(s, s2$result()$results$z$out$key, tr_get_type("slow/x", reg)), 0.1)
 })
 
