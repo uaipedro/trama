@@ -215,14 +215,6 @@ test_that("o adaptador para data/table dá uma linha por parâmetro, numérico, 
   expect_equal(unique(mt$kappa), 2)
 })
 
-test_that("o preview do tipo aguenta um modelo montado à mão, sem variograma", {
-  m <- tr_spatial_variogram_fit(vp())
-  m$variograma <- NULL
-  p <- .tr_spatial_modelo_preview(m)
-  expect_length(p$classes, 0L)
-  expect_equal(p$alcance, m$alcance)
-})
-
 test_that("o tipo spatial/model recusa o que não é modelo e aceita o modelo", {
   ty <- spatial_model_type()
   expect_error(ty$store(list(a = 1), tempfile()), class = "tr_spatial_error_not_a_model")

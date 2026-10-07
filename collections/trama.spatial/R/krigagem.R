@@ -154,13 +154,13 @@ tr_spatial_kriging <- function(pontos, modelo, tipo = "ordinaria", media = NA,
   viz <- if (is.na(vizinhos_max) && is.na(dist_max)) "global" else paste(
     c(if (!is.na(vizinhos_max)) sprintf("ate %d vizinhos", as.integer(vizinhos_max)),
       if (!is.na(dist_max)) sprintf("raio de %g", as.numeric(dist_max))), collapse = ", ")
-  nota <- paste(c(modelo$nota, sprintf("Grade de %d celulas (resolucao %d).",
+  nota <- paste(c(modelo$nota, sprintf("Grade de %d células (resolução %d).",
                                        nrow(grade), as.integer(resolucao))), collapse = " ")
   nota <- trimws(nota)
   sem <- sum(is.na(grade$predito))
   if (sem > 0L) {
     nota <- paste(c(nota, sprintf(paste(
-      "%d de %d celulas ficaram sem predicao: nenhum ponto dentro da vizinhanca (%s).",
+      "%d de %d células ficaram sem predição: nenhum ponto dentro da vizinhança (%s).",
       "Aumente o raio ou deixe-o vazio."), sem, nrow(grade), viz)), collapse = " ")
   }
   structure(list(

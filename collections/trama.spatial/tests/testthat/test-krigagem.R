@@ -129,7 +129,7 @@ test_that("a krigagem ordinária devolve a grade com predito, variância e erro-
   expect_equal(s$tipo, "ordinaria")
   expect_equal(s$vizinhanca, "global")
   expect_equal(s$resolucao, 20L)
-  expect_match(s$nota, sprintf("Grade de %d celulas (resolucao 20)", nrow(s$grade)), fixed = TRUE)
+  expect_match(s$nota, sprintf("Grade de %d células (resolução 20)", nrow(s$grade)), fixed = TRUE)
   expect_equal(s$variavel, x$p$variavel)
   expect_identical(s$borda, x$p$borda)
   expect_equal(s$modelo$familia, x$m$familia)
@@ -235,10 +235,10 @@ test_that("célula sem ponto dentro do raio fica sem predição, e a nota conta 
   sem <- sum(is.na(s$grade$predito))
   expect_gt(sem, 0L)
   expect_equal(is.na(s$grade$predito), is.na(s$grade$variancia))
-  expect_match(s$nota, sprintf("%d de %d celulas ficaram sem predicao", sem, nrow(s$grade)),
+  expect_match(s$nota, sprintf("%d de %d células ficaram sem predição", sem, nrow(s$grade)),
                fixed = TRUE)
   # Com a vizinhança global não há aviso nenhum.
-  expect_false(grepl("sem predicao", tr_spatial_kriging(x$p, x$m, resolucao = 12L)$nota))
+  expect_false(grepl("sem predição", tr_spatial_kriging(x$p, x$m, resolucao = 12L)$nota))
 })
 
 test_that("a coordenada de `novos` é lida pelo nome, na ordem que vier", {
@@ -320,15 +320,6 @@ test_that("o tipo spatial/surface recusa o que não é superfície e guarda a su
   r <- ty$restore(f)
   expect_equal(r$grade$predito, s$grade$predito)
   expect_s3_class(r, "tr_spatial_surface")
-})
-
-test_that("o preview da superfície carrega a grade e os quartis", {
-  x <- pm()
-  s <- tr_spatial_kriging(x$p, x$m, resolucao = 10L)
-  p <- .tr_spatial_superficie_preview(s)
-  expect_equal(p$celulas, nrow(s$grade))
-  expect_length(p$quartis_predito, 5L)
-  expect_equal(p$quartis_predito[[3]], signif(stats::median(s$grade$predito), 6))
 })
 
 test_that("o nó registra, declara as portas certas e roda no motor", {

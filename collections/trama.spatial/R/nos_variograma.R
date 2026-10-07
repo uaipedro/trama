@@ -4,6 +4,43 @@
   E <- trama::tr_param_enum; N <- trama::tr_param_num; I <- trama::tr_param_int
   PT <- "spatial/points"; VG <- "spatial/variogram"
   list(
+    trama::tr_node("spatial/explore", fn = tr_spatial_explore, label = "Explorar",
+      category = "espacial_explorar", icon = trama::tr_icon("layout-grid"),
+      description = "Quatro vistas da variável: postplot por quartil na borda, contra cada coordenada e a distribuição.",
+      inputs = list(pontos = PT), outputs = list(out = "view/plot"),
+      params = .tr_spatial_props(
+        painel = E("completo", .TR_SPATIAL_PAINEIS, label = "Painel")),
+      help = paste0(.tr_spatial_ajuda(r"---[
+O que olhar antes de medir dependência espacial. O painel completo reúne quatro
+vistas: o **mapa dos pontos** pintados por quartil da variável, dentro da borda;
+a **variável contra a coordenada X** e **contra a Y**; e a **distribuição**.
+
+Os gráficos contra as coordenadas são onde tendência de larga escala aparece:
+uma nuvem que sobe ou desce de um lado a outro do domínio é tendência, e o
+variograma não a distingue de dependência espacial. Se ela está ali, remova-a
+no bloco `spatial/variogram` (param **Tendência removida**) antes de ajustar.
+
+No mapa o quartil vai em **tamanho e cor ao mesmo tempo**, para que o gráfico
+leia em preto e branco e para quem não distingue as cores. Os eixos do mapa
+têm sempre a mesma escala (`coord_equal`): proporção diferente entre X e Y
+distorceria a geometria, que é o que o mapa existe para mostrar. Uma variável
+sem variação sai com uma só classe, e um empate de quartis funde classes.
+]---", r"---[
+- **Painel** — `completo` (padrão), ou só um: `mapa`, `x`, `y`, `histograma`.
+  Os cosméticos abaixo valem para o painel inteiro.
+]---", r"---[
+Um gráfico (`view/plot`). No painel completo é uma composição de quatro
+gráficos (um `patchwork`, que continua sendo um ggplot).
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("p", "spatial/example", dataset = "milho_pr") |>
+  tr_add("e", "spatial/explore", painel = "completo", from = "p")
+]---", r"---[
+`spatial/variogram` para medir a dependência, com a tendência removida se o
+painel a mostrou.
+]---"), "
+", trama.view::tr_view_help_appearance())),
+
     trama::tr_node("spatial/variogram", fn = tr_spatial_variogram, label = "Variograma",
       category = "espacial_variograma", icon = trama::tr_icon("chart-scatter"),
       description = "Variograma empírico, clássico ou robusto, omnidirecional ou numa direção.",

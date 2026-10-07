@@ -54,6 +54,45 @@ tr_flow(reg) |>
 ]---", r"---[
 `spatial/variogram_fit` para o modelo que esta krigagem consome; `spatial/map`
 para ver o predito e o erro-padrão.
-]---"))
+]---")),
+
+    trama::tr_node("spatial/map", fn = tr_spatial_map, label = "Mapa da superfície",
+      category = "espacial_predizer", icon = trama::tr_icon("map"),
+      description = "Desenha a superfície krigada, ou o erro-padrão dela, sobre a borda e os pontos.",
+      inputs = list(superficie = "spatial/surface"), outputs = list(out = "view/plot"),
+      params = .tr_spatial_props(
+        mostrar = E("predito", .TR_SPATIAL_MOSTRAR, label = "Mostrar"),
+        isolinhas = trama::tr_param_bool(FALSE, label = "Isolinhas"),
+        pontos = trama::tr_param_bool(TRUE, label = "Pontos amostrais")),
+      help = paste0(.tr_spatial_ajuda(r"---[
+Desenha a superfície da krigagem. **O mapa do erro-padrão é o par honesto do
+mapa do predito**: o predito é liso e convincente em qualquer lugar, e só o
+erro-padrão mostra onde ele vale pouco, longe dos pontos e perto das bordas.
+Por isso os dois saem do mesmo bloco, escolhidos por **Mostrar**: o mapa honesto
+nunca é mais difícil de pedir que o bonito. Leia um com o outro, e não publique
+o predito sozinho.
+
+Os eixos têm sempre a mesma escala (`coord_equal`). Célula sem predição (nenhum
+ponto dentro do **Raio** da krigagem) sai em cinza, e não em branco, para que não
+se confunda com a borda.
+]---", r"---[
+- **Mostrar** — `predito` (padrão) ou `erro-padrao`.
+- **Isolinhas** — curvas de nível sobre a superfície.
+- **Pontos amostrais** — as localizações medidas, por cima; mostram de onde
+  vem a informação.
+]---", r"---[
+Um gráfico (`view/plot`): a grade em `geom_raster`, a borda do domínio e,
+quando ligados, as isolinhas e os pontos.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("p", "spatial/example", dataset = "milho_se") |>
+  tr_add("v", "spatial/variogram", from = "p") |>
+  tr_add("m", "spatial/variogram_fit", from = "v") |>
+  tr_add("k", "spatial/kriging", from = c("p", "m")) |>
+  tr_add("mapa", "spatial/map", mostrar = "erro-padrao", from = "k")
+]---", r"---[
+`spatial/kriging`, que produz a superfície.
+]---"), "
+", trama.view::tr_view_help_appearance()))
   )
 }

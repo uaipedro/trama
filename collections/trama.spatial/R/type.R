@@ -105,28 +105,9 @@ spatial_variogram_type <- function() {
                     "tr_spatial_error_not_a_model", "um modelo ajustado")
 }
 
-# O card do modelo é gráfico (empírico + curva); até o gráfico existir, o
-# preview é o de dados.
-.tr_spatial_modelo_preview <- function(x) {
-  v <- x$variograma$tabela
-  # Um modelo montado à mão (sem variograma empírico) também tem preview.
-  classes <- if (is.null(x$variograma)) list() else lapply(seq_len(nrow(v)), function(i) {
-    list(u = v$u[[i]], gamma = v$gamma[[i]], np = v$np[[i]])
-  })
-  c(list(familia = x$familia, metodo = x$metodo, pepita = x$pepita,
-         contribuicao = x$contribuicao, alcance = x$alcance,
-         alcance_pratico = x$alcance_pratico, patamar = x$patamar,
-         grau_dependencia = x$grau_dependencia, sqr = .tr_spatial_nulo(x$sqr),
-         kappa = .tr_spatial_nulo(x$kappa), unidade = .tr_spatial_nulo(x$variograma$unidade),
-         classes = classes,
-         nota = x$nota),
-    .tr_spatial_linhas_json(.tr_spatial_modelo_tabela(x)))
-}
-
 spatial_model_type <- function() {
   .tr_spatial_rds_type("spatial/model", "Modelo de variograma", "#8b5cf6", .tr_spatial_modelo_conferir,
-                       function(x, ctx) trama::tr_preview("spatial/model",
-                                                          data = .tr_spatial_modelo_preview(x)))
+                       function(x, ctx) trama.view::tr_view_render(.tr_spatial_plot_modelo(x), ctx))
 }
 
 #' Modelo -> tabela: uma linha por parâmetro numérico, com família, método e
@@ -155,24 +136,10 @@ spatial_model_type <- function() {
                     "tr_spatial_error_not_a_surface", "uma superficie predita")
 }
 
-# O card da superficie e o mapa; ate o mapa existir, o preview e o de dados.
-.tr_spatial_superficie_preview <- function(x) {
-  g <- x$grade
-  q <- function(v) as.list(signif(stats::quantile(v, c(0, .25, .5, .75, 1), na.rm = TRUE,
-                                                  names = FALSE), 6))
-  c(list(variavel = x$variavel, tipo = x$tipo, vizinhanca = x$vizinhanca,
-         resolucao = x$resolucao, celulas = nrow(g),
-         unidade = .tr_spatial_nulo(x$unidade),
-         quartis_predito = q(g$predito), quartis_erro_padrao = q(g$erro_padrao),
-         nota = x$nota),
-    .tr_spatial_linhas_json(g))
-}
-
 spatial_surface_type <- function() {
   .tr_spatial_rds_type("spatial/surface", "Superfície predita", "#0d9488",
                        .tr_spatial_superficie_conferir,
-                       function(x, ctx) trama::tr_preview("spatial/surface",
-                                                          data = .tr_spatial_superficie_preview(x)))
+                       function(x, ctx) trama.view::tr_view_render(tr_spatial_map(x), ctx))
 }
 
 #' Superfície -> tabela: uma linha por célula da grade, com coordenadas, predito,
