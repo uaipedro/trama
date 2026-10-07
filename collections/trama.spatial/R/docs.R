@@ -89,3 +89,21 @@
       verificar = "spatial/variogram",
       se_falhar = "Aumente o número de classes ou baixe a distância máxima para detalhar a origem."))
 }
+
+.tr_spatial_press_krigagem <- function() {
+  list(
+    trama::tr_pressuposto(
+      "O **modelo de dependência** ligado descreve estes dados: foi ajustado ao variograma deles, no mesmo suporte e na mesma unidade.",
+      verificar = "spatial/variogram_fit",
+      se_falhar = "Ajuste o variograma destes pontos antes de krigar."),
+    trama::tr_pressuposto(
+      "**Estacionariedade de segunda ordem** na área krigada: média constante e covariância que só depende da distância.",
+      verificar = "spatial/explore",
+      se_falhar = "Havendo tendência de larga escala, remova-a no variograma ('Tendência removida')."),
+    trama::tr_pressuposto(
+      "A média da população é **conhecida de fora dos dados** (só na krigagem simples).",
+      se_falhar = "Não a conhecendo, use a ordinária, que a estima junto com a predição."),
+    trama::tr_pressuposto(
+      "A predição fica **dentro da área amostrada**: krigagem interpola, não extrapola.",
+      se_falhar = "Fora do envelope dos pontos o erro-padrão cresce rápido; leia o mapa de erro antes de usar a borda."))
+}

@@ -15,7 +15,8 @@ trama_collection <- function() {
   trama::tr_collection(
     id = "spatial", version = "0.1.0", label = "Geoestatística",
     js = "trama/index.js", css = "trama/spatial.css",
-    types = list(spatial_points_type(), spatial_variogram_type(), spatial_model_type()),
+    types = list(spatial_points_type(), spatial_variogram_type(), spatial_model_type(),
+                  spatial_surface_type()),
     adapters = .tr_spatial_adapters(),
     # As abas seguem o CAMINHO de uma análise geoestatística: declarar o objeto
     # espacial, olhar, medir a dependência, modelá-la, e só então interpolar.
@@ -26,7 +27,8 @@ trama_collection <- function() {
       trama::tr_category("espacial_variograma", "Variograma", role = "ajuste"),
       trama::tr_category("espacial_predizer",   "Predizer", role = "ajuste")
     ),
-    nodes = c(.tr_spatial_nos_fonte(), .tr_spatial_nos_variograma()),
+    nodes = c(.tr_spatial_nos_fonte(), .tr_spatial_nos_variograma(),
+              .tr_spatial_nos_predizer()),
     datasets = list(
       trama::tr_dataset(
         "trama.spatial", "milho_pr", "Rendimento do milho no Paraná",

@@ -145,8 +145,44 @@ spatial_model_type <- function() {
     familia = x$familia, metodo = x$metodo, kappa = as.numeric(x$kappa))
 }
 
+# ---- spatial/surface -----------------------------------------------------------
+
+.TR_SPATIAL_CAMPOS_SUPERFICIE <- c("grade", "tipo", "modelo", "pontos", "borda",
+                                   "resolucao", "vizinhanca", "variavel", "unidade", "nota")
+
+.tr_spatial_superficie_conferir <- function(x) {
+  .tr_spatial_guard(x, "tr_spatial_surface", .TR_SPATIAL_CAMPOS_SUPERFICIE,
+                    "tr_spatial_error_not_a_surface", "uma superficie predita")
+}
+
+# O card da superficie e o mapa; ate o mapa existir, o preview e o de dados.
+.tr_spatial_superficie_preview <- function(x) {
+  g <- x$grade
+  q <- function(v) as.list(signif(stats::quantile(v, c(0, .25, .5, .75, 1), na.rm = TRUE,
+                                                  names = FALSE), 6))
+  c(list(variavel = x$variavel, tipo = x$tipo, vizinhanca = x$vizinhanca,
+         resolucao = x$resolucao, celulas = nrow(g),
+         unidade = .tr_spatial_nulo(x$unidade),
+         quartis_predito = q(g$predito), quartis_erro_padrao = q(g$erro_padrao),
+         nota = x$nota),
+    .tr_spatial_linhas_json(g))
+}
+
+spatial_surface_type <- function() {
+  .tr_spatial_rds_type("spatial/surface", "Superfície predita", "#0d9488",
+                       .tr_spatial_superficie_conferir,
+                       function(x, ctx) trama::tr_preview("spatial/surface",
+                                                          data = .tr_spatial_superficie_preview(x)))
+}
+
+#' Superfície -> tabela: uma linha por célula da grade, com coordenadas, predito,
+#' variância e erro-padrão.
+#' @noRd
+.tr_spatial_superficie_tabela <- function(x) x$grade
+
 .tr_spatial_adapters <- function() {
   list(trama::tr_adapter("spatial/points", "data/table", .tr_spatial_pontos_tabela),
        trama::tr_adapter("spatial/variogram", "data/table", .tr_spatial_vario_tabela),
-       trama::tr_adapter("spatial/model", "data/table", .tr_spatial_modelo_tabela))
+       trama::tr_adapter("spatial/model", "data/table", .tr_spatial_modelo_tabela),
+       trama::tr_adapter("spatial/surface", "data/table", .tr_spatial_superficie_tabela))
 }

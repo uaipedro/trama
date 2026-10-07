@@ -107,14 +107,46 @@ tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
     notas <- c(notas, sprintf(
       "%d ponto(s) coincidente(s): a variação entre eles entra no efeito pepita.", dup))
   }
+  borda <- .tr_spatial_borda(borda)
+  .tr_spatial_borda_contem(borda, coords)
   structure(list(
     dados = tibble::as_tibble(dados), coords = coords, coord_cols = c(cx, cy),
     variavel = cz, crs = obj_crs,
     unidade = if (nzchar(trimws(unidade))) trimws(unidade) else NA_character_,
-    borda = .tr_spatial_borda(borda), covariaveis = cov,
+    borda = borda, covariaveis = cov,
     rotulo = if (nzchar(trimws(nome))) trimws(nome) else cz,
     nota = paste(notas, collapse = " ")),
     class = "tr_spatial_points")
+}
+
+# Folga, em unidades de coordenada, entre a borda e o ponto mais afastado dela.
+# Os exemplos da coleção têm até 673 m de ponto fora do polígono (a sede cai
+# fora da malha simplificada), então 2 km NÃO pode ser apertado. Está em metros:
+# com coordenadas em outra unidade a folga é outra, e é pela escala dos dados
+# em metros que a coleção trabalha.
+.TR_SPATIAL_FOLGA_BORDA <- 2000
+
+#' Uma borda que não contém os dados está errada: escala, projeção, ordem das
+#' colunas ou lugar. A guarda mora aqui, onde a borda entra no sistema.
+#' @noRd
+.tr_spatial_borda_contem <- function(borda, coords) {
+  if (is.null(borda)) return(invisible(NULL))
+  fora <- tryCatch({
+    zona <- sf::st_buffer(sf::st_sfc(sf::st_polygon(list(borda))), .TR_SPATIAL_FOLGA_BORDA)
+    pts <- sf::st_as_sf(as.data.frame(coords), coords = 1:2)
+    lengths(sf::st_intersects(pts, zona)) == 0L
+  }, error = function(e) {
+    .tr_spatial_abort("tr_spatial_error_bad_border", paste(
+      "A borda não forma um polígono utilizável:", conditionMessage(e)))
+  })
+  if (any(fora)) {
+    .tr_spatial_abort("tr_spatial_error_bad_border", sprintf(paste(
+      "%d de %d pontos amostrais ficam fora da borda (a mais de %g de distância dela).",
+      "A borda provavelmente está em outra unidade, outra projeção ou outro lugar",
+      "que as coordenadas, ou com x e y trocados."),
+      sum(fora), length(fora), .TR_SPATIAL_FOLGA_BORDA))
+  }
+  invisible(NULL)
 }
 
 #' Normaliza a borda numa matriz n×2 fechada, ou NULL.
