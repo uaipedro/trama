@@ -26,6 +26,8 @@ tr_spatial_errors <- function() {
     tr_spatial_error_no_points = "krigagem sem pontos: não foram conectados e o modelo montado à mão não os traz",
     tr_spatial_error_points_mismatch = "os pontos conectados não são os dados com que o modelo foi ajustado",
     tr_spatial_error_empty_grid = "a grade ficou vazia depois do recorte na borda",
+    tr_spatial_error_empty_surface =
+      "nenhuma célula da superfície recebeu predição: a vizinhança exclui todos os pontos",
     tr_spatial_error_bad_border = "a borda não é um polígono fechado utilizável",
     tr_spatial_error_negative_variance =
       "a variância de krigagem saiu negativa: o modelo não é definido positivo",

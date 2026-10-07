@@ -90,6 +90,39 @@ tr_spatial_grid <- function(pontos, resolucao = 60L) {
   g
 }
 
+#' O texto da vizinhança, como aparece na nota e na mensagem de erro.
+#'
+#' Vive aqui, e não dentro de `tr_spatial_kriging`, porque a guarda da superfície
+#' vazia é levantada em `tr_spatial_kriging_em` e precisa da mesma frase.
+#' @noRd
+.tr_spatial_viz_texto <- function(vizinhos_max, dist_max) {
+  if (is.na(vizinhos_max) && is.na(dist_max)) return("global")
+  paste(c(if (!is.na(vizinhos_max)) sprintf("até %d vizinhos", as.integer(vizinhos_max)),
+          if (!is.na(dist_max)) sprintf("raio de %g", as.numeric(dist_max))), collapse = ", ")
+}
+
+#' Número arredondado, no separador de milhar brasileiro, sem notação científica.
+#' @noRd
+.tr_spatial_num <- function(x) {
+  format(round(as.numeric(x)), big.mark = ".", decimal.mark = ",", scientific = FALSE,
+         trim = TRUE)
+}
+
+#' Distância típica (mediana) ao vizinho mais próximo entre os pontos amostrais.
+#'
+#' Serve à mensagem de erro: sem a escala dos dados a pessoa não sabe que raio
+#' pôr, e o raio está na unidade das coordenadas, que varia por conjunto. Numa
+#' amostra de até 500 pontos, porque a matriz de distâncias é quadrática e o
+#' número aqui é só ordem de grandeza.
+#' @noRd
+.tr_spatial_dist_vizinho <- function(coords) {
+  co <- as.matrix(coords)
+  if (nrow(co) > 500L) co <- co[sample.int(nrow(co), 500L), , drop = FALSE]
+  d <- as.matrix(stats::dist(co))
+  diag(d) <- Inf
+  stats::median(apply(d, 1L, min))
+}
+
 #' Krigagem em pontos arbitrários. É aqui que a conta acontece.
 #'
 #' `novos` traz as duas colunas de coordenada, pelo nome quando ambas existem e
@@ -132,8 +165,22 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
       "ou acrescente um efeito pepita."))
   }
   v[ok] <- pmax(v[ok], 0)
-  data.frame(novos, predito = as.numeric(k$var1.pred), variancia = v,
-             erro_padrao = sqrt(v))
+  pred <- as.numeric(k$var1.pred)
+  # Superficie 100% NA NAO e resultado. O mapa desenha os tiles com na.rm =
+  # TRUE, entao ela sai como painel vazio: um mapa plausivel, de uma cor so, sem
+  # informacao nenhuma. Achado de teste humano no editor, com raio de 1 metro em
+  # coordenadas UTM. NA PARCIAL continua nota, porque e legitimo na borda.
+  if (length(pred) && all(is.na(pred))) {
+    .tr_spatial_abort("tr_spatial_error_empty_surface", sprintf(paste(
+      "Nenhuma das %s células recebeu predição: a vizinhança (%s) exclui todos os pontos.",
+      "Nestes dados o vizinho mais próximo está a %s (mediana) e o alcance do modelo é %s,",
+      "na unidade das coordenadas. Use um raio dessa ordem de grandeza,",
+      "ou deixe-o vazio para krigar com todos os pontos."),
+      .tr_spatial_num(length(pred)), .tr_spatial_viz_texto(vizinhos_max, dist_max),
+      .tr_spatial_num(.tr_spatial_dist_vizinho(pontos$coords)),
+      .tr_spatial_num(modelo$alcance)))
+  }
+  data.frame(novos, predito = pred, variancia = v, erro_padrao = sqrt(v))
 }
 
 #' De onde vêm os pontos da krigagem.
@@ -226,9 +273,7 @@ tr_spatial_kriging <- function(pontos = NULL, modelo, tipo = "ordinaria", media 
   .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max)
   g <- tr_spatial_grid(pontos, resolucao)
   grade <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media, vizinhos_max, dist_max)
-  viz <- if (is.na(vizinhos_max) && is.na(dist_max)) "global" else paste(
-    c(if (!is.na(vizinhos_max)) sprintf("até %d vizinhos", as.integer(vizinhos_max)),
-      if (!is.na(dist_max)) sprintf("raio de %g", as.numeric(dist_max))), collapse = ", ")
+  viz <- .tr_spatial_viz_texto(vizinhos_max, dist_max)
   nota <- paste(c(modelo$nota, sprintf("Grade de %d células (resolução %d).",
                                        nrow(grade), as.integer(resolucao))), collapse = " ")
   nota <- trimws(nota)

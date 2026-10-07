@@ -241,6 +241,34 @@ test_that("célula sem ponto dentro do raio fica sem predição, e a nota conta 
   expect_false(grepl("sem predição", tr_spatial_kriging(x$p, x$m, resolucao = 12L)$nota))
 })
 
+test_that("superfície em que NENHUMA célula foi predita é erro, e não mapa de uma cor só", {
+  x <- pm()
+  # Raio de 1 na unidade das coordenadas (metro, nos exemplos): nenhuma célula
+  # tem ponto dentro dele. Foi o que um teste humano no editor produziu — e a
+  # superfície 100% NA voltava como resultado válido, que o mapa desenhava como
+  # painel vazio, porque a camada de tiles usa `na.rm = TRUE`. Mapa plausível e
+  # sem informação nenhuma: o modo de falha que sai VERDE.
+  e <- expect_error(tr_spatial_kriging(x$p, x$m, resolucao = 12L, dist_max = 1),
+                    class = "tr_spatial_error_empty_surface")
+  msg <- conditionMessage(e)
+  # A mensagem precisa dar a ESCALA, senão a pessoa não sabe que raio pôr.
+  expect_match(msg, "raio de 1", fixed = TRUE)
+  expect_match(msg, "vizinho mais próximo")
+  # E o mesmo vale para a vizinhança por contagem combinada com raio inútil.
+  expect_error(tr_spatial_kriging(x$p, x$m, resolucao = 12L, vizinhos_max = 10L, dist_max = 1),
+               class = "tr_spatial_error_empty_surface")
+  # A guarda é do fim do caminho: `tr_spatial_kriging_em` em alvos arbitrários
+  # também não devolve uma tabela toda NA.
+  expect_error(tr_spatial_kriging_em(x$p, x$m, novos = x$p$coords + 1e6, dist_max = 1),
+               class = "tr_spatial_error_empty_surface")
+  # Guarda contra o corte frouxo: NA PARCIAL continua nota, não erro.
+  g <- tr_spatial_grid(x$p, 12L)
+  passo <- min(diff(sort(unique(g[[1]]))))
+  s <- tr_spatial_kriging(x$p, x$m, resolucao = 12L, dist_max = passo / 10)
+  expect_gt(sum(is.na(s$grade$predito)), 0L)
+  expect_lt(sum(is.na(s$grade$predito)), nrow(s$grade))
+})
+
 test_that("a coordenada de `novos` é lida pelo nome, na ordem que vier", {
   x <- pm()
   alvo <- x$p$coords[1:3, ] + 1000

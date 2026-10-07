@@ -47,7 +47,9 @@ krigagem para com erro em vez de interpolar outro conjunto.
   deixa o resultado mais local, mas vizinhança pequena demais produz emenda
   visível entre regiões. O raio está na unidade das coordenadas (metros, nos
   exemplos); célula sem nenhum ponto dentro do raio fica sem predição, e a nota
-  diz quantas.
+  diz quantas. Se **nenhuma** célula for predita — raio fora da escala dos
+  dados, como 1 em coordenadas UTM — o bloco para com erro em vez de devolver
+  um mapa vazio, e a mensagem diz a que distância está o vizinho mais próximo.
 ]---", r"---[
 Uma superfície predita (`spatial/surface`). O adaptador para `data/table` dá uma
 linha por célula, com as coordenadas, `predito`, `variancia` e `erro_padrao`.
