@@ -88,6 +88,18 @@ test_that("o padrão da tolerância angular faz o direcional ter menos pares que
   expect_equal(d$tabela$gamma, r$v, tolerance = 1e-8)
 })
 
+# O padrão que a pessoa recebe no editor é o do nó, não o da função. Os dois
+# precisam concordar, e um mutante que mude só um deles tem de morrer aqui.
+test_that("os padrões dos params do nó spatial/variogram são os da função", {
+  no <- spatial_registry()$nodes[["spatial/variogram"]]
+  formais <- formals(tr_spatial_variogram)
+  expect_equal(no$params$tolerancia$default, formais$tolerancia)
+  expect_equal(no$params$tolerancia$default, 22.5)
+  for (nm in intersect(names(no$params), names(formais))) {
+    expect_equal(no$params[[nm]]$default, eval(formais[[nm]]), info = nm)
+  }
+})
+
 test_that("o adaptador para data/table dá uma linha por classe", {
   v <- tr_spatial_variogram(tr_spatial_example("milho_pr"))
   t <- .tr_spatial_vario_tabela(v)

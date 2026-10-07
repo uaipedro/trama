@@ -42,6 +42,8 @@ test_that("variável que é coluna de coordenada é recusada", {
 test_that("covariável que é coluna de coordenada é recusada, e as outras passam", {
   expect_error(tr_spatial_coordinates(tab(), "leste", "norte", "z", covariaveis = "alt, norte"),
                class = "tr_spatial_error_bad_coords")
+  expect_error(tr_spatial_coordinates(tab(), "leste", "norte", "z", covariaveis = "leste"),
+               class = "tr_spatial_error_bad_coords")
   p <- tr_spatial_coordinates(tab(), "leste", "norte", "z", covariaveis = "alt")
   expect_equal(p$covariaveis, "alt")
 })
