@@ -80,6 +80,19 @@ tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
   }
   cz <- .tr_spatial_col1(dados, variavel, "Variável")
   cov <- .tr_spatial_cols(dados, covariaveis, "Covariáveis")
+  # O variograma padroniza as colunas de coordenada no lugar (ver variograma.R).
+  # Variável ou covariável que seja uma delas seria padronizada junto, e o
+  # variograma sairia errado por sd(x)^2, sem erro e com gráfico plausível.
+  if (cz %in% c(cx, cy)) {
+    .tr_spatial_abort("tr_spatial_error_bad_coords", sprintf(
+      "Variável: a coluna '%s' é uma das coordenadas. Use uma coluna de valores, não de posição.", cz))
+  }
+  colide <- intersect(cov, c(cx, cy))
+  if (length(colide)) {
+    .tr_spatial_abort("tr_spatial_error_bad_coords", sprintf(
+      "Covariáveis: %s é coordenada, e não pode ser também covariável.",
+      paste(sprintf("'%s'", colide), collapse = ", ")))
+  }
   obj_crs <- .tr_spatial_crs(crs)
 
   notas <- character()

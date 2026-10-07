@@ -36,8 +36,7 @@ Imports:
     utils
 Suggests:
     testthat (>= 3.0.0),
-    geoR,
-    jsonlite
+    geoR
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view
 Remotes:

@@ -47,7 +47,7 @@
 #' Matérn: sem forma fechada, resolvido numericamente, na parametrização do
 #' `gstat` e do `geoR`: correlação `2^(1-k)/gamma(k) (h/phi)^k K_k(h/phi)`, SEM o
 #' `sqrt(2 kappa)` da parametrização de Stein. Conferido contra `variogramLine`
-#' em kappa 0,3, 0,5, 1, 2,5 e 7: só em 0,5 as duas fórmulas coincidem.
+#' em kappa 0,3, 0,5, 1, 2,5 e 10: só em 0,5 as duas fórmulas coincidem.
 #' @noRd
 .tr_spatial_alcance_pratico <- function(familia, alcance, kappa = 0.5) {
   switch(familia,
@@ -233,6 +233,9 @@ tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
     familia = familia, pepita = pepita, contribuicao = contrib, alcance = alc,
     alcance_pratico = pratico,
     patamar = pepita + contrib, kappa = kap, metodo = metodo, sqr = crit[[k]],
+    # Dependência RELATIVA (Cambardella): pepita/patamar. Menor = dependência
+    # espacial mais FORTE. O nome do campo é contrato publicado; o sentido está
+    # dito na ajuda do bloco.
     grau_dependencia = pepita / (pepita + contrib),
     variograma = variograma, nota = paste(notas, collapse = " ")),
     class = "tr_spatial_model")

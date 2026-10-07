@@ -29,6 +29,23 @@ test_that("coordenada ou variável não numérica é erro", {
                class = "tr_spatial_error_not_numeric")
 })
 
+# O variograma padroniza as colunas de coordenada no lugar; uma variável ou
+# covariável que fosse uma delas sairia padronizada junto, e o gamma errado por
+# sd(x)^2, sem erro nenhum.
+test_that("variável que é coluna de coordenada é recusada", {
+  expect_error(tr_spatial_coordinates(tab(), x = "leste", y = "norte", variavel = "leste"),
+               class = "tr_spatial_error_bad_coords")
+  expect_error(tr_spatial_coordinates(tab(), x = "leste", y = "norte", variavel = "norte"),
+               class = "tr_spatial_error_bad_coords")
+})
+
+test_that("covariável que é coluna de coordenada é recusada, e as outras passam", {
+  expect_error(tr_spatial_coordinates(tab(), "leste", "norte", "z", covariaveis = "alt, norte"),
+               class = "tr_spatial_error_bad_coords")
+  p <- tr_spatial_coordinates(tab(), "leste", "norte", "z", covariaveis = "alt")
+  expect_equal(p$covariaveis, "alt")
+})
+
 # Review Focus 1: variograma em graus é erro silencioso e caro.
 test_that("CRS geográfico é recusado, mandando projetar", {
   d <- data.frame(lon = seq(-45, -44, length.out = 20),

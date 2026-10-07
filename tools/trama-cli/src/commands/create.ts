@@ -11,6 +11,7 @@ const AVAILABLE_COLLECTIONS = [
   { value: "trama.multi", label: "Multivariada" },
   { value: "trama.sampling", label: "Amostragem" },
   { value: "trama.sql", label: "Consultas SQL" },
+  { value: "trama.spatial", label: "Geoestatística" },
 ];
 
 export async function createCommand(name: string): Promise<void> {

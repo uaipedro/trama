@@ -56,6 +56,12 @@ validação cruzada.
 Um modelo ajustado (`spatial/model`). O adaptador para `data/table` dá uma linha
 por parâmetro numérico, pronta para comparar duas famílias com `data/bind_rows`.
 
+A linha `grau_dependencia` é a **dependência relativa**, pepita dividida pelo
+patamar (Cambardella et al., 1994): **quanto menor, mais forte a dependência
+espacial**. Perto de 0 quase toda a variância é estrutura espacial; perto de 1
+é quase tudo pepita, e o variograma é praticamente plano. O nome do campo não
+muda, mas o sentido é este, e é o inverso do que o nome sugere.
+
 ## Exemplos
 
 ```r

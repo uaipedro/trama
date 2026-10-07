@@ -29,8 +29,8 @@
   if (identical(tipo, "simples") &&
       (!is.numeric(media) || length(media) != 1L || !is.finite(media))) {
     .tr_spatial_abort("tr_spatial_error_no_mean", paste(
-      "Krigagem simples supoe a media da populacao CONHECIDA, e ela nao foi informada.",
-      "Preencha 'Media', ou use a krigagem ordinaria, que a estima a partir dos dados."))
+      "Krigagem simples supõe a média da população CONHECIDA, e ela não foi informada.",
+      "Preencha 'Média', ou use a krigagem ordinária, que a estima a partir dos dados."))
   }
   # NA puro e logico; o campo vazio do card chega assim.
   vazio <- function(x) length(x) == 1L && is.na(x)
@@ -44,7 +44,7 @@
   }
   if (!vazio(dist_max) && !positivo(dist_max, FALSE)) {
     .tr_spatial_abort("tr_spatial_error_bad_option",
-      "Raio: use um numero positivo, ou deixe vazio para krigar com todos.")
+      "Raio: use um número positivo, ou deixe vazio para krigar com todos.")
   }
   invisible(tipo)
 }
@@ -83,8 +83,8 @@ tr_spatial_grid <- function(pontos, resolucao = 60L) {
   }
   if (!nrow(g)) {
     .tr_spatial_abort("tr_spatial_error_empty_grid", paste(
-      "A grade ficou vazia depois do recorte na borda: nenhuma celula caiu dentro dela.",
-      "Confira se a borda esta na mesma unidade e na mesma ordem de colunas que as coordenadas."))
+      "A grade ficou vazia depois do recorte na borda: nenhuma célula caiu dentro dela.",
+      "Confira se a borda está na mesma unidade e na mesma ordem de colunas que as coordenadas."))
   }
   rownames(g) <- NULL
   g
@@ -126,9 +126,9 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
   # erro grosseiro para dados em escala unitaria.
   if (any(v[ok] < -1e-8 * (modelo$pepita + modelo$contribuicao))) {
     .tr_spatial_abort("tr_spatial_error_negative_variance", paste(
-      "A variancia de krigagem saiu negativa em alguma celula:",
-      "o modelo ajustado nao e definido positivo nesta configuracao.",
-      "Troque a familia (o gaussiano sem pepita e o caso mais comum)",
+      "A variância de krigagem saiu negativa em alguma célula:",
+      "o modelo ajustado não é definido positivo nesta configuração.",
+      "Troque a família (o gaussiano sem pepita é o caso mais comum)",
       "ou acrescente um efeito pepita."))
   }
   v[ok] <- pmax(v[ok], 0)
@@ -150,8 +150,8 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
   if (is.null(pontos)) {
     if (is.null(do_modelo)) {
       .tr_spatial_abort("tr_spatial_error_no_points", paste(
-        "A krigagem precisa dos pontos, e este modelo nao traz os seus",
-        "(foi montado sem variograma empirico). Conecte os pontos na entrada 'pontos'."))
+        "A krigagem precisa dos pontos, e este modelo não traz os seus",
+        "(foi montado sem variograma empírico). Conecte os pontos na entrada 'pontos'."))
     }
     .tr_spatial_pontos_conferir(do_modelo)
     return(do_modelo)
@@ -176,32 +176,32 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
     list(co = co[o, , drop = FALSE], z = z[o])
   }
   if (!identical(pontos$variavel, do_modelo$variavel)) {
-    motivo <- sprintf("a variavel e '%s' nos pontos e '%s' no modelo",
+    motivo <- sprintf("a variável é '%s' nos pontos e '%s' no modelo",
                       pontos$variavel, do_modelo$variavel)
   } else if (!identical(as.character(pontos$coord_cols), as.character(do_modelo$coord_cols))) {
-    motivo <- "as colunas de coordenada sao outras"
+    motivo <- "as colunas de coordenada são outras"
   } else if (!identical(dim(pontos$coords), dim(do_modelo$coords))) {
-    motivo <- sprintf("ha %d pontos e o modelo foi ajustado com %d",
+    motivo <- sprintf("há %d pontos e o modelo foi ajustado com %d",
                       nrow(pontos$coords), nrow(do_modelo$coords))
   } else {
     a <- canon(pontos); b <- canon(do_modelo)
     if (!isTRUE(all.equal(a$co, b$co, tolerance = 0))) {
-      motivo <- "as coordenadas dos pontos nao sao as do modelo"
+      motivo <- "as coordenadas dos pontos não são as do modelo"
     } else if (!isTRUE(all.equal(a$z, b$z, tolerance = 0))) {
-      motivo <- "os valores da variavel nao sao os do modelo"
+      motivo <- "os valores da variável não são os do modelo"
     }
   }
   if (!is.null(motivo)) {
     # A frase sobre releitura so cabe quando a diferenca esta nos numeros: com
     # outra variavel ou outro tamanho, mandaria procurar erro de precisao onde
     # o erro e de ligacao.
-    numerico <- grepl("coordenadas dos pontos|valores da variavel", motivo)
+    numerico <- grepl("coordenadas dos pontos|valores da variável", motivo)
     .tr_spatial_abort("tr_spatial_error_points_mismatch", paste0(
-      "Os pontos conectados nao sao os dados com que o modelo foi ajustado: ", motivo, ". ",
-      "A ordem das linhas nao importa. ",
-      if (numerico) paste0("Os numeros precisam ser identicos: dados relidos de um arquivo, ",
-                           "ou arredondados, ja nao sao os mesmos. ") else "",
-      "Krigar outro conjunto com este modelo da um mapa plausivel e errado. ",
+      "Os pontos conectados não são os dados com que o modelo foi ajustado: ", motivo, ". ",
+      "A ordem das linhas não importa. ",
+      if (numerico) paste0("Os números precisam ser idênticos: dados relidos de um arquivo, ",
+                           "ou arredondados, já não são os mesmos. ") else "",
+      "Krigar outro conjunto com este modelo dá um mapa plausível e errado. ",
       "Ajuste o modelo nestes pontos, ou desconecte a entrada 'pontos' para usar os do modelo."))
   }
   invisible(TRUE)
@@ -227,7 +227,7 @@ tr_spatial_kriging <- function(pontos = NULL, modelo, tipo = "ordinaria", media 
   g <- tr_spatial_grid(pontos, resolucao)
   grade <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media, vizinhos_max, dist_max)
   viz <- if (is.na(vizinhos_max) && is.na(dist_max)) "global" else paste(
-    c(if (!is.na(vizinhos_max)) sprintf("ate %d vizinhos", as.integer(vizinhos_max)),
+    c(if (!is.na(vizinhos_max)) sprintf("até %d vizinhos", as.integer(vizinhos_max)),
       if (!is.na(dist_max)) sprintf("raio de %g", as.numeric(dist_max))), collapse = ", ")
   nota <- paste(c(modelo$nota, sprintf("Grade de %d células (resolução %d).",
                                        nrow(grade), as.integer(resolucao))), collapse = " ")

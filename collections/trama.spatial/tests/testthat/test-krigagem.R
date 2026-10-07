@@ -217,13 +217,13 @@ test_that("a vizinhança local muda o resultado e fica registrada", {
   g <- tr_spatial_kriging(x$p, x$m, resolucao = 15L)
   l <- tr_spatial_kriging(x$p, x$m, resolucao = 15L, vizinhos_max = 10L)
   expect_false(isTRUE(all.equal(g$grade$predito, l$grade$predito)))
-  expect_equal(l$vizinhanca, "ate 10 vizinhos")
+  expect_equal(l$vizinhanca, "até 10 vizinhos")
   # O raio sai dos dados: um quarto da diagonal da área dos pontos.
   raio <- 0.25 * sqrt(sum(apply(x$p$coords, 2, function(v) diff(range(v)))^2))
   r <- tr_spatial_kriging(x$p, x$m, resolucao = 15L, dist_max = raio)
   expect_equal(r$vizinhanca, sprintf("raio de %g", raio))
   both <- tr_spatial_kriging(x$p, x$m, resolucao = 15L, vizinhos_max = 10L, dist_max = raio)
-  expect_equal(both$vizinhanca, sprintf("ate 10 vizinhos, raio de %g", raio))
+  expect_equal(both$vizinhanca, sprintf("até 10 vizinhos, raio de %g", raio))
 })
 
 test_that("célula sem ponto dentro do raio fica sem predição, e a nota conta quantas", {
@@ -411,11 +411,11 @@ test_that("pontos conectados que não são os do modelo são recusados, dizendo 
   falha(refaz(d), "coordenadas", "coordenada")
   # 3. Os mesmos números sob outro nome de variável: só quem compara o nome pega.
   d <- p$dados; d$z_copia <- d[[v]]
-  falha(refaz(d, "z_copia"), "variavel", "nome")
+  falha(refaz(d, "z_copia"), "variável", "nome")
   # 4. Um ponto a menos.
   falha(refaz(p$dados[-i, ]), sprintf("%d pontos", nrow(p$dados) - 1L), "tamanho")
   # 5. Outro conjunto inteiro, que é o caso do erro humano.
-  falha(tr_spatial_example("cafe_mg"), "pontos|variavel|coordenadas", "outro conjunto")
+  falha(tr_spatial_example("cafe_mg"), "pontos|variável|coordenadas", "outro conjunto")
 })
 
 test_that("sem pontos e com modelo montado à mão, o erro manda conectar os pontos", {
@@ -443,7 +443,7 @@ test_that("no motor, o nó roda só com o modelo ligado, e recusa pontos de outr
     trama::tr_add("q", "spatial/example", dataset = "cafe_mg") |>
     trama::tr_add("k", "spatial/kriging", resolucao = 12L, from = "m") |>
     trama::tr_link("q", "k:pontos")
-  expect_error(rodar(errado, "k"), "nao sao os dados com que o modelo foi ajustado")
+  expect_error(rodar(errado, "k"), "não são os dados com que o modelo foi ajustado")
 })
 
 test_that("a ordem das linhas não importa; arredondar os valores importa, e a mensagem admite a releitura", {
@@ -486,7 +486,7 @@ test_that("a ordem das linhas não importa; arredondar os valores importa, e a m
   e2 <- expect_error(tr_spatial_kriging(tr_spatial_coordinates(d2, p$coord_cols[[1]],
                        p$coord_cols[[2]], "z_copia", borda = p$borda), x$m, resolucao = 10L),
                      class = "tr_spatial_error_points_mismatch")
-  expect_match(conditionMessage(e2), "variavel")
+  expect_match(conditionMessage(e2), "variável")
   expect_false(grepl("relidos", conditionMessage(e2)))
   expect_s3_class(tr_spatial_kriging(cheio, mc, resolucao = 10L), "tr_spatial_surface")
 })
