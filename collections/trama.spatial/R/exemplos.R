@@ -39,15 +39,15 @@ tr_spatial_example <- function(dataset = "milho_pr") {
   }
   switch(dataset,
     milho_pr = tr_spatial_coordinates(
-      spatial_milho_pr$dados, x = "leste", y = "norte", variavel = "milho_kg_ha",
+      trama.spatial::spatial_milho_pr$dados, x = "leste", y = "norte", variavel = "milho_kg_ha",
       covariaveis = "soja_kg_ha", crs = "31982", unidade = "m",
-      nome = "Rendimento do milho — Paraná", borda = spatial_milho_pr$borda),
+      nome = "Rendimento do milho — Paraná", borda = trama.spatial::spatial_milho_pr$borda),
     cafe_mg = tr_spatial_coordinates(
-      spatial_cafe_mg$dados, x = "leste", y = "norte", variavel = "cafe_kg_ha",
+      trama.spatial::spatial_cafe_mg$dados, x = "leste", y = "norte", variavel = "cafe_kg_ha",
       crs = "31983", unidade = "m",
-      nome = "Rendimento do café — Minas Gerais", borda = spatial_cafe_mg$borda),
+      nome = "Rendimento do café — Minas Gerais", borda = trama.spatial::spatial_cafe_mg$borda),
     milho_se = tr_spatial_coordinates(
-      spatial_milho_se$dados, x = "leste", y = "norte", variavel = "milho_kg_ha",
+      trama.spatial::spatial_milho_se$dados, x = "leste", y = "norte", variavel = "milho_kg_ha",
       crs = "31984", unidade = "m",
-      nome = "Rendimento do milho — Sergipe", borda = spatial_milho_se$borda))
+      nome = "Rendimento do milho — Sergipe", borda = trama.spatial::spatial_milho_se$borda))
 }

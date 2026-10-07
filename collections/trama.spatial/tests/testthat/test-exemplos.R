@@ -69,3 +69,15 @@ test_that("cada conjunto declara proveniência e licença no catálogo de bases"
     expect_false(grepl("CONFERID|TODO|TBD|<", d$licenca), info = d$id)
   }
 })
+
+# Guarda de regressão: o nome nu de um dado de LazyData só resolve com o pacote
+# ANEXADO (library); o editor carrega a coleção por namespace, sem anexar, e o
+# bloco falhava com "objeto 'spatial_milho_pr' não encontrado". Por isso o
+# código chama `trama.spatial::spatial_*`. Sob load_all o pacote está anexado e
+# o erro real não aparece, então a guarda lê o corpo da função.
+test_that("os dados embutidos são chamados por pacote::nome, não pelo nome nu", {
+  corpo <- paste(deparse(body(tr_spatial_example)), collapse = " ")
+  nus <- regmatches(corpo, gregexpr("(?<![[:alnum:]_.:])spatial_(milho_pr|cafe_mg|milho_se)",
+                                    corpo, perl = TRUE))[[1]]
+  expect_length(nus, 0L)
+})
