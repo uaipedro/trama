@@ -269,14 +269,21 @@ tr_series_intervencao <- function(serie, data = "", tipo = "degrau", dinamica = 
     # oscila no 3º ou 4º algarismo de um passo para o outro e o ponto fixo
     # exato não chega; aí aceita-se a variação relativa < 1e-3, que é o ruído
     # do próprio otimizador.
+    # Como a oscilação não é monótona, o último passo pode cair fora do ruído
+    # mesmo quando um anterior caiu dentro (varia entre plataformas); então
+    # guarda-se o passo de menor variação relativa como reserva.
     ok <- FALSE
+    melhor <- NULL; melhor_rel <- Inf
     for (it in seq_len(100L)) {
       antes <- stats::coef(fit)
       fit <- .tr_series_ajustar(ajusta(.tr_series_interv_matriz(lista, n, fit = fit)), no)
       dif <- abs(stats::coef(fit) - antes)
       if (max(dif) < 1e-8) { ok <- TRUE; break }
+      rel <- max(dif / pmax(abs(antes), 1e-2))
+      if (rel < melhor_rel) { melhor <- fit; melhor_rel <- rel }
     }
     if (!ok && max(dif / pmax(abs(antes), 1e-2)) < 1e-3) ok <- TRUE
+    if (!ok && melhor_rel < 1e-3) { fit <- melhor; ok <- TRUE }
     if (!ok) {
       .tr_series_abort("tr_series_error_fit",
                        paste0("'%s': o ajuste com intervenção inovacional não se estabilizou em 100 passos; ",

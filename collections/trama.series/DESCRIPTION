@@ -1,6 +1,6 @@
 Package: trama.series
 Title: Time Series Collection for trama
-Version: 0.8.1
+Version: 0.8.2
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
