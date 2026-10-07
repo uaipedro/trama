@@ -13030,6 +13030,501 @@
     ],
     "icon": "split"
   },
+  "spatial/coordinates": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Declarar coordenadas",
+    "category": "espacial_preparar",
+    "categoryLabel": "Preparar",
+    "categoryOrder": 59,
+    "inputColor": "#38bdf8",
+    "outputColor": "#0e7490",
+    "role": "preparacao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "x",
+        "kind": "cols",
+        "label": "Coordenada X",
+        "default": "",
+        "example": "leste"
+      },
+      {
+        "name": "y",
+        "kind": "cols",
+        "label": "Coordenada Y",
+        "default": "",
+        "example": "norte"
+      },
+      {
+        "name": "variavel",
+        "kind": "cols",
+        "label": "Variável",
+        "default": "",
+        "example": "milho_kg_ha"
+      },
+      {
+        "name": "covariaveis",
+        "kind": "cols",
+        "label": "Covariáveis",
+        "default": "",
+        "example": "soja_kg_ha"
+      },
+      {
+        "name": "crs",
+        "kind": "text",
+        "label": "CRS (EPSG)",
+        "default": ""
+      },
+      {
+        "name": "unidade",
+        "kind": "text",
+        "label": "Unidade da distância",
+        "default": ""
+      },
+      {
+        "name": "nome",
+        "kind": "text",
+        "label": "Nome",
+        "default": ""
+      }
+    ],
+    "icon": "map-pin"
+  },
+  "spatial/example": {
+    "accent": "#275d8c",
+    "hasInput": false,
+    "hasOutput": true,
+    "label": "Exemplo espacial",
+    "category": "espacial_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 58,
+    "outputColor": "#0e7490",
+    "role": "origem",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "dataset",
+        "kind": "enum",
+        "label": "Conjunto",
+        "default": "milho_pr",
+        "choices": ["milho_pr", "cafe_mg", "milho_se"]
+      }
+    ],
+    "icon": "database"
+  },
+  "spatial/explore": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Explorar",
+    "category": "espacial_explorar",
+    "categoryLabel": "Explorar",
+    "categoryOrder": 60,
+    "inputColor": "#0e7490",
+    "outputColor": "#f472b6",
+    "role": "inspecao",
+    "inputs": [
+      {
+        "name": "pontos",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "vista",
+        "kind": "enum",
+        "label": "Vista",
+        "default": "completo",
+        "choices": ["completo", "mapa", "x", "y", "histograma"]
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "1:1",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "layout-grid"
+  },
+  "spatial/kriging": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Krigagem",
+    "category": "espacial_predizer",
+    "categoryLabel": "Predizer",
+    "categoryOrder": 62,
+    "inputColor": "#0e7490",
+    "outputColor": "#0d9488",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "pontos",
+        "color": "#0e7490",
+        "required": false,
+        "multiple": false
+      },
+      {
+        "name": "modelo",
+        "color": "#8b5cf6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#0d9488",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "tipo",
+        "kind": "enum",
+        "label": "Tipo",
+        "default": "ordinaria",
+        "choices": ["ordinaria", "simples"]
+      },
+      {
+        "name": "media",
+        "kind": "number",
+        "label": "Média conhecida",
+        "default": null
+      },
+      {
+        "name": "resolucao",
+        "kind": "integer",
+        "label": "Resolução",
+        "default": 60
+      },
+      {
+        "name": "vizinhos_max",
+        "kind": "number",
+        "label": "Vizinhos",
+        "default": null
+      },
+      {
+        "name": "dist_max",
+        "kind": "number",
+        "label": "Raio",
+        "default": null
+      }
+    ],
+    "icon": "grid-3x3"
+  },
+  "spatial/map": {
+    "accent": "#d3e9de",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Mapa da superfície",
+    "category": "espacial_predizer",
+    "categoryLabel": "Predizer",
+    "categoryOrder": 62,
+    "inputColor": "#0d9488",
+    "outputColor": "#f472b6",
+    "role": "leitura",
+    "inputs": [
+      {
+        "name": "superficie",
+        "color": "#0d9488",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "mostrar",
+        "kind": "enum",
+        "label": "Mostrar",
+        "default": "predito",
+        "choices": ["predito", "erro-padrao"]
+      },
+      {
+        "name": "isolinhas",
+        "kind": "boolean",
+        "label": "Isolinhas",
+        "default": false
+      },
+      {
+        "name": "pontos",
+        "kind": "boolean",
+        "label": "Pontos amostrais",
+        "default": true
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "1:1",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "map"
+  },
+  "spatial/variogram": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Variograma",
+    "category": "espacial_variograma",
+    "categoryLabel": "Variograma",
+    "categoryOrder": 61,
+    "inputColor": "#0e7490",
+    "outputColor": "#6366f1",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "pontos",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#6366f1",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "estimador",
+        "kind": "enum",
+        "label": "Estimador",
+        "default": "classico",
+        "choices": ["classico", "robusto"]
+      },
+      {
+        "name": "n_classes",
+        "kind": "integer",
+        "label": "Classes",
+        "default": 15
+      },
+      {
+        "name": "dist_max",
+        "kind": "number",
+        "label": "Distância máxima",
+        "default": null
+      },
+      {
+        "name": "tendencia",
+        "kind": "enum",
+        "label": "Tendência removida",
+        "default": "constante",
+        "choices": ["constante", "1a ordem", "2a ordem", "covariavel"]
+      },
+      {
+        "name": "direcao",
+        "kind": "number",
+        "label": "Direção (graus do Norte)",
+        "default": null
+      },
+      {
+        "name": "tolerancia",
+        "kind": "number",
+        "label": "Tolerância angular",
+        "default": 22.5
+      },
+      {
+        "name": "pares_min",
+        "kind": "integer",
+        "label": "Mínimo de pares",
+        "default": 30
+      }
+    ],
+    "icon": "chart-scatter"
+  },
+  "spatial/variogram_fit": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Ajustar modelo",
+    "category": "espacial_variograma",
+    "categoryLabel": "Variograma",
+    "categoryOrder": 61,
+    "inputColor": "#6366f1",
+    "outputColor": "#8b5cf6",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "variograma",
+        "color": "#6366f1",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#8b5cf6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "familia",
+        "kind": "enum",
+        "label": "Família",
+        "default": "esferico",
+        "choices": ["esferico", "exponencial", "gaussiano", "matern"]
+      },
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "WLS-Cressie",
+        "choices": ["WLS-Cressie", "WLS-np", "OLS"]
+      },
+      {
+        "name": "pepita_fixa",
+        "kind": "boolean",
+        "label": "Pepita fixa",
+        "default": false
+      },
+      {
+        "name": "pepita_inicial",
+        "kind": "number",
+        "label": "Pepita inicial",
+        "default": null
+      },
+      {
+        "name": "contribuicao_inicial",
+        "kind": "number",
+        "label": "Contribuição inicial",
+        "default": null
+      },
+      {
+        "name": "alcance_inicial",
+        "kind": "number",
+        "label": "Alcance inicial",
+        "default": null
+      },
+      {
+        "name": "kappa",
+        "kind": "number",
+        "label": "Kappa (Matérn)",
+        "default": 0.5
+      }
+    ],
+    "icon": "spline"
+  },
   "view/annotate": {
     "accent": "#75539b",
     "hasInput": true,

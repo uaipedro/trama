@@ -49,7 +49,7 @@ mini <- function(z = c(3, 9, 4, 1, 7, 5, 8, 2), borda = NULL, unidade = "") {
 
 test_that("os cinco painéis desenham, e o completo compõe os quatro", {
   p <- fx()$p
-  for (pn in c("completo", "mapa", "x", "y", "histograma")) desenha(tr_spatial_explore(p, painel = pn))
+  for (pn in c("completo", "mapa", "x", "y", "histograma")) desenha(tr_spatial_explore(p, vista = pn))
   # O completo é um patchwork de QUATRO gráficos; o que `tr_combine` guarda é o
   # primeiro como base e os outros três em `patches`.
   g <- tr_spatial_explore(p)
@@ -148,10 +148,10 @@ test_that("o painel aguenta variável constante, sem borda, sem CRS e sem unidad
   expect_lt(length(unique(ggplot2::layer_data(tr_spatial_explore(q, "mapa"), 1L)$fill)), 4L)
 })
 
-test_that("painel fora do conjunto é erro de opção, antes de desenhar", {
+test_that("vista fora do conjunto é erro de opção, antes de desenhar", {
   p <- fx()$p
-  expect_error(tr_spatial_explore(p, painel = "sorte"), class = "tr_spatial_error_bad_option")
-  expect_error(tr_spatial_explore(p, painel = c("x", "y")), class = "tr_spatial_error_bad_option")
+  expect_error(tr_spatial_explore(p, vista = "sorte"), class = "tr_spatial_error_bad_option")
+  expect_error(tr_spatial_explore(p, vista = c("x", "y")), class = "tr_spatial_error_bad_option")
   expect_error(tr_spatial_explore(list()), class = "tr_spatial_error_not_points")
 })
 
@@ -304,7 +304,7 @@ test_that("os nós de gráfico registram, na ordem, sem rotulo, e rodam no motor
   ex <- Filter(function(n) n$id == "spatial/explore", nos)[[1]]
   mp <- Filter(function(n) n$id == "spatial/map", nos)[[1]]
   cosm <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
-  expect_equal(names(ex$params), c("painel", cosm))
+  expect_equal(names(ex$params), c("vista", cosm))
   expect_equal(names(mp$params), c("mostrar", "isolinhas", "pontos", cosm))
   expect_equal(ex$category, "espacial_explorar")
   expect_equal(mp$category, "espacial_predizer")
@@ -320,7 +320,7 @@ test_that("os nós de gráfico registram, na ordem, sem rotulo, e rodam no motor
   reg <- spatial_registry()
   fl <- trama::tr_flow(reg) |>
     trama::tr_add("p", "spatial/example", dataset = "milho_se") |>
-    trama::tr_add("e", "spatial/explore", painel = "mapa", from = "p") |>
+    trama::tr_add("e", "spatial/explore", vista = "mapa", from = "p") |>
     trama::tr_add("v", "spatial/variogram", from = "p") |>
     trama::tr_add("m", "spatial/variogram_fit", from = "v") |>
     trama::tr_add("k", "spatial/kriging", resolucao = 12L, from = c("p", "m")) |>

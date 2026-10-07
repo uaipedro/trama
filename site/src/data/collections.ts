@@ -48,6 +48,14 @@ export const collections = [
     description: "Planeje amostras, selecione unidades e estime medidas da população."
   },
   {
+    id: "espacial",
+    title: "Geoestatística",
+    packageName: "trama.spatial",
+    icon: "map",
+    eyebrow: "Coleção trama.spatial",
+    description: "Declare coordenadas, meça a dependência espacial, ajuste o variograma e interpole por krigagem."
+  },
+  {
     id: "experimentos",
     title: "Experimentos",
     packageName: "trama.experiments",

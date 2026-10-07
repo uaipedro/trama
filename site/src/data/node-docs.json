@@ -7109,5 +7109,212 @@
         "nota": "`model = \"intercept\"`, `\"trend\"` ou `\"both\"`, `lag` = k. Com `fixa`: `lag` = k dado (-1 = trunc(4·(n/100)^(1/4)), 0 = nenhuma), mínimo do t do `ur.za` só nos cortes entre 15% e 85% da série. Com `t_sig`: cálculo próprio (`lm.fit`, a mesma regressão do `ur.za`, conferida a 1e-10), k do geral para o específico em CADA corte a partir do teto (-1 = trunc(12·(n/100)^(1/4))), |t| da última defasagem ≥ 1,645, e mínimo dos t nos cortes; conferido contra a força bruta com a regressão do `ur.za` a 1e-10. Críticos de `z@cval`. Com k = 8 fixo, PNB real e nominal de Nelson-Plosser (`urca::nporg`): -5,576 e -5,824, 1929 (recalculados no `ur.za`)."
       }
     ]
+  },
+  "spatial/coordinates": {
+    "pressupostos": [
+      {
+        "texto": "As coordenadas estão **projetadas** e na mesma unidade nos dois eixos: a distância entre dois pontos é a euclidiana.",
+        "se_falhar": "Projete para um CRS métrico (o UTM da zona) antes e declare o código EPSG aqui."
+      },
+      {
+        "texto": "O **suporte amostral** é constante: todas as observações medem o mesmo volume ou área.",
+        "se_falhar": "Suporte diferente muda a variância e o patamar; agregue ao suporte comum antes de comparar."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Diggle, P. J.", "Ribeiro Jr., P. J."],
+        "ano": 2007,
+        "titulo": "Model-based Geostatistics",
+        "fonte": "New York: Springer (Springer Series in Statistics)"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Oliver, M. A.", "Webster, R."],
+        "ano": 2015,
+        "titulo": "Basic Steps in Geostatistics: The Variogram and Kriging",
+        "fonte": "Cham: Springer (SpringerBriefs in Agriculture)"
+      }
+    ]
+  },
+  "spatial/example": {
+    "pressupostos": [
+      {
+        "texto": "As coordenadas estão **projetadas** e na mesma unidade nos dois eixos: a distância entre dois pontos é a euclidiana.",
+        "se_falhar": "Projete para um CRS métrico (o UTM da zona) antes e declare o código EPSG aqui."
+      },
+      {
+        "texto": "O **suporte amostral** é constante: todas as observações medem o mesmo volume ou área.",
+        "se_falhar": "Suporte diferente muda a variância e o patamar; agregue ao suporte comum antes de comparar."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Isaaks, E. H.", "Srivastava, R. M."],
+        "ano": 1989,
+        "titulo": "An Introduction to Applied Geostatistics",
+        "fonte": "New York: Oxford University Press"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      }
+    ]
+  },
+  "spatial/kriging": {
+    "pressupostos": [
+      {
+        "texto": "O **modelo de dependência** ligado descreve estes dados: foi ajustado ao variograma deles, no mesmo suporte e na mesma unidade.",
+        "verificar": ["spatial/variogram_fit"],
+        "se_falhar": "Ajuste o variograma destes pontos antes de krigar."
+      },
+      {
+        "texto": "**Estacionariedade de segunda ordem** na área krigada: média constante e covariância que só depende da distância.",
+        "verificar": ["spatial/explore"],
+        "se_falhar": "Havendo tendência de larga escala, remova-a no variograma ('Tendência removida')."
+      },
+      {
+        "texto": "A média da população é **conhecida de fora dos dados** (só na krigagem simples).",
+        "se_falhar": "Não a conhecendo, use a ordinária, que a estima junto com a predição."
+      },
+      {
+        "texto": "A predição fica **dentro da área amostrada**: krigagem interpola, não extrapola.",
+        "se_falhar": "Fora do envelope dos pontos o erro-padrão cresce rápido; leia o mapa de erro antes de usar a borda."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Isaaks, E. H.", "Srivastava, R. M."],
+        "ano": 1989,
+        "titulo": "An Introduction to Applied Geostatistics",
+        "fonte": "New York: Oxford University Press"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      },
+      {
+        "papel": "implementacao",
+        "autores": ["Pebesma, E. J."],
+        "ano": 2004,
+        "titulo": "Multivariable Geostatistics in S: the gstat Package",
+        "fonte": "Computers & Geosciences, 30(7), 683-691",
+        "doi": "10.1016/j.cageo.2004.03.012",
+        "pacote": "gstat",
+        "funcao": "variogram",
+        "versao": "2.1.6"
+      }
+    ]
+  },
+  "spatial/variogram": {
+    "pressupostos": [
+      {
+        "texto": "**Hipótese intrínseca**: a esperança da diferença entre dois pontos é zero e a variância dessa diferença depende só do vetor que os separa, não de onde estão.",
+        "verificar": ["spatial/explore"],
+        "se_falhar": "Remova a tendência de larga escala no parâmetro 'Tendência removida' deste bloco."
+      },
+      {
+        "texto": "**Isotropia**, quando o variograma é omnidirecional: a dependência é a mesma em todas as direções.",
+        "verificar": ["spatial/variogram"],
+        "se_falhar": "Calcule o variograma em direções diferentes e compare o alcance de cada uma."
+      },
+      {
+        "texto": "A **escala da amostragem** alcança a escala da dependência: há pares a distâncias curtas o bastante para enxergar a estrutura.",
+        "se_falhar": "Variograma plano desde a primeira classe pode ser malha grossa demais, não ausência de estrutura."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "teoria",
+        "autores": ["Matheron, G."],
+        "ano": 1963,
+        "titulo": "Principles of Geostatistics",
+        "fonte": "Economic Geology, 58(8), 1246-1266",
+        "doi": "10.2113/gsecongeo.58.8.1246"
+      },
+      {
+        "papel": "teoria",
+        "autores": ["Cressie, N.", "Hawkins, D. M."],
+        "ano": 1980,
+        "titulo": "Robust Estimation of the Variogram: I",
+        "fonte": "Journal of the International Association for Mathematical Geology, 12(2), 115-125",
+        "doi": "10.1007/BF01035243"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Oliver, M. A.", "Webster, R."],
+        "ano": 2015,
+        "titulo": "Basic Steps in Geostatistics: The Variogram and Kriging",
+        "fonte": "Cham: Springer (SpringerBriefs in Agriculture)"
+      },
+      {
+        "papel": "implementacao",
+        "autores": ["Pebesma, E. J."],
+        "ano": 2004,
+        "titulo": "Multivariable Geostatistics in S: the gstat Package",
+        "fonte": "Computers & Geosciences, 30(7), 683-691",
+        "doi": "10.1016/j.cageo.2004.03.012",
+        "pacote": "gstat",
+        "funcao": "variogram",
+        "versao": "2.1.6"
+      }
+    ]
+  },
+  "spatial/variogram_fit": {
+    "pressupostos": [
+      {
+        "texto": "O modelo ajustado é **definido positivo**: as quatro famílias oferecidas são, com pepita e contribuição não negativas e alcance positivo.",
+        "verificar": ["spatial/variogram_fit"],
+        "se_falhar": "Ajuste que devolve parâmetro negativo é recusado por este bloco: troque a família ou os valores iniciais."
+      },
+      {
+        "texto": "As classes de distância **curtas** estão bem estimadas: a krigagem usa sobretudo a vizinhança próxima.",
+        "verificar": ["spatial/variogram"],
+        "se_falhar": "Aumente o número de classes ou baixe a distância máxima para detalhar a origem."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Oliver, M. A.", "Webster, R."],
+        "ano": 2015,
+        "titulo": "Basic Steps in Geostatistics: The Variogram and Kriging",
+        "fonte": "Cham: Springer (SpringerBriefs in Agriculture)"
+      },
+      {
+        "papel": "implementacao",
+        "autores": ["Pebesma, E. J."],
+        "ano": 2004,
+        "titulo": "Multivariable Geostatistics in S: the gstat Package",
+        "fonte": "Computers & Geosciences, 30(7), 683-691",
+        "doi": "10.1016/j.cageo.2004.03.012",
+        "pacote": "gstat",
+        "funcao": "variogram",
+        "versao": "2.1.6"
+      }
+    ]
   }
 }

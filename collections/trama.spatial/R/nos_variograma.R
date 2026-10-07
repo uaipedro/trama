@@ -9,7 +9,7 @@
       description = "Quatro vistas da variável: postplot por quartil na borda, contra cada coordenada e a distribuição.",
       inputs = list(pontos = PT), outputs = list(out = "view/plot"),
       params = .tr_spatial_props(
-        painel = E("completo", .TR_SPATIAL_PAINEIS, label = "Painel")),
+        vista = E("completo", .TR_SPATIAL_VISTAS, label = "Vista")),
       help = paste0(.tr_spatial_ajuda(r"---[
 O que olhar antes de medir dependência espacial. O painel completo reúne quatro
 vistas: o **mapa dos pontos** pintados por quartil da variável, dentro da borda;
@@ -26,7 +26,7 @@ têm sempre a mesma escala (`coord_equal`): proporção diferente entre X e Y
 distorceria a geometria, que é o que o mapa existe para mostrar. Uma variável
 sem variação sai com uma só classe, e um empate de quartis funde classes.
 ]---", r"---[
-- **Painel** — `completo` (padrão), ou só um: `mapa`, `x`, `y`, `histograma`.
+- **Vista** — `completo` (padrão), ou só um: `mapa`, `x`, `y`, `histograma`.
   Os cosméticos abaixo valem para o painel inteiro.
 ]---", r"---[
 Um gráfico (`view/plot`). No painel completo é uma composição de quatro
@@ -34,7 +34,7 @@ gráficos (um `patchwork`, que continua sendo um ggplot).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("p", "spatial/example", dataset = "milho_pr") |>
-  tr_add("e", "spatial/explore", painel = "completo", from = "p")
+  tr_add("e", "spatial/explore", vista = "completo", from = "p")
 ]---", r"---[
 `spatial/variogram` para medir a dependência, com a tendência removida se o
 painel a mostrou.

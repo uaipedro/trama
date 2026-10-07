@@ -62,7 +62,7 @@ tr_flow(reg) |>
 para ver o predito e o erro-padrão.
 ]---")),
 
-    trama::tr_node("spatial/map", fn = tr_spatial_map, label = "Mapa da superfície",
+    trama::tr_node("spatial/map", fn = tr_spatial_map, label = "Mapa da superfície", role = "leitura",
       category = "espacial_predizer", icon = trama::tr_icon("map"),
       description = "Desenha a superfície krigada, ou o erro-padrão dela, sobre a borda e os pontos.",
       inputs = list(superficie = "spatial/surface"), outputs = list(out = "view/plot"),

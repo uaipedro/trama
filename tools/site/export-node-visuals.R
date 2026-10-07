@@ -2,7 +2,8 @@
 
 # Atualiza as miniaturas do site a partir do mesmo catálogo usado pelo editor.
 packages <- c("trama.data", "trama.view", "trama.models", "trama.multi",
-              "trama.sampling", "trama.series", "trama.ml", "trama.experiments", "trama.sql")
+              "trama.sampling", "trama.series", "trama.ml", "trama.experiments", "trama.sql",
+              "trama.spatial")
 # O script roda da raiz do repositório: Rscript tools/site/export-node-visuals.R.
 stopifnot(file.exists("DESCRIPTION"), dir.exists("site/src/data"))
 `%||%` <- function(a, b) if (is.null(a)) b else a

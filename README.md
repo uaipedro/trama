@@ -22,7 +22,7 @@ pak::pak(c(
 ))
 ```
 
-As demais coleções são opcionais (`trama.series`, `trama.models`, `trama.multi`, `trama.sampling`, `trama.experiments`, `trama.ml`, `trama.sql`):
+As demais coleções são opcionais (`trama.series`, `trama.models`, `trama.multi`, `trama.sampling`, `trama.experiments`, `trama.ml`, `trama.sql`, `trama.spatial`):
 
 ```r
 pak::pak("uaipedro/trama/collections/trama.models")

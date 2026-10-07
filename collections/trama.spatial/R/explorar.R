@@ -6,7 +6,7 @@
 # precisa de eixos livres, e um facet impõe um só `coord` aos quatro. O
 # `patchwork` já é dependência da `view`; a `spatial` não declara nada novo.
 
-.TR_SPATIAL_PAINEIS <- c("completo", "mapa", "x", "y", "histograma")
+.TR_SPATIAL_VISTAS <- c("completo", "mapa", "x", "y", "histograma")
 
 #' Os quartis da variável, como fator ordenado, como no postplot do `geoR`.
 #'
@@ -92,26 +92,26 @@
 #' variável contra cada coordenada (é aqui que tendência de larga escala
 #' aparece) e a distribuição.
 #' @param pontos um objeto espacial (`spatial/points`).
-#' @param painel `"completo"`, `"mapa"`, `"x"`, `"y"` ou `"histograma"`.
+#' @param vista `"completo"`, `"mapa"`, `"x"`, `"y"` ou `"histograma"`.
 #' @param aspecto,tema,titulo,rotulo_x,rotulo_y,legenda cosméticos (ver `trama.view`).
 #' @return um ggplot (`view/plot`).
 #' @export
-tr_spatial_explore <- function(pontos, painel = "completo", aspecto = "1:1",
+tr_spatial_explore <- function(pontos, vista = "completo", aspecto = "1:1",
                                tema = "padrão", titulo = "", rotulo_x = "",
                                rotulo_y = "", legenda = "direita") {
   .tr_spatial_pontos_conferir(pontos)
-  if (!is.character(painel) || length(painel) != 1L || !painel %in% .TR_SPATIAL_PAINEIS) {
+  if (!is.character(vista) || length(vista) != 1L || !vista %in% .TR_SPATIAL_VISTAS) {
     .tr_spatial_abort("tr_spatial_error_bad_option", sprintf(
-      "Painel: escolha um de %s.", paste(.TR_SPATIAL_PAINEIS, collapse = ", ")))
+      "Vista: escolha um de %s.", paste(.TR_SPATIAL_VISTAS, collapse = ", ")))
   }
-  if (painel == "completo") {
+  if (vista == "completo") {
     return(trama.view::tr_combine(
       list(.tr_spatial_painel_mapa(pontos), .tr_spatial_painel_histograma(pontos),
            .tr_spatial_painel_coord(pontos, 1L), .tr_spatial_painel_coord(pontos, 2L)),
       por_linha = 2, etiquetas = "nenhuma", aspecto = aspecto, tema = tema,
       titulo = titulo, rotulo_x = rotulo_x, rotulo_y = rotulo_y, legenda = legenda))
   }
-  p <- switch(painel,
+  p <- switch(vista,
     mapa = .tr_spatial_painel_mapa(pontos),
     x = .tr_spatial_painel_coord(pontos, 1L),
     y = .tr_spatial_painel_coord(pontos, 2L),

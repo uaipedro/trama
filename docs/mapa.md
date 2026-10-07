@@ -38,7 +38,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 
 ## Coleções
 
-Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `sampling`}; `models` ← {`experiments`, `ml`, `multi`}.
+Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `sampling`, `spatial`}; `models` ← {`experiments`, `ml`, `multi`}.
 
 | Coleção | Domínio |
 | --- | --- |
@@ -50,6 +50,7 @@ Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `
 | `trama.ml` | Aprendizado de máquina. |
 | `trama.series` | Séries temporais. |
 | `trama.sampling` | Amostragem. |
+| `trama.spatial` | Geoestatística: variável regionalizada, variograma, krigagem. |
 | `trama.sql` | Consulta SQL local (DuckDB) devolvendo tabelas. |
 | `trama.python` | Prova de conceito: modelos scikit-learn via Python. |
 
