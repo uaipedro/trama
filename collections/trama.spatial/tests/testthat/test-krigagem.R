@@ -326,6 +326,8 @@ test_that("o nó registra, declara as portas certas e roda no motor", {
   reg <- spatial_registry()
   nd <- Filter(function(n) n$id == "spatial/kriging", trama_collection()$nodes)[[1]]
   expect_equal(names(nd$inputs), c("pontos", "modelo"))
+  expect_false(nd$inputs$pontos$required)
+  expect_true(nd$inputs$modelo$required)
   expect_equal(nd$version, 1L)
   nomes <- names(nd$params)
   expect_equal(nomes, c("tipo", "media", "resolucao", "vizinhos_max", "dist_max"))
@@ -349,4 +351,142 @@ test_that("o nó leva a superfície a uma tabela pelo adaptador", {
     trama::tr_add("t", "data/slice_head", from = "k")
   t <- rodar(fl, "t")
   expect_true(all(c("predito", "erro_padrao") %in% names(t)))
+})
+
+# ---- de onde vêm os pontos --------------------------------------------------------
+#
+# O modelo carrega os pontos com que foi ajustado. Cada teste abaixo vigia um ramo e
+# diz que implementação errada o derrubaria.
+
+# Os mesmos dados, refeitos do zero e com OUTRO rótulo e OUTRA nota: um objeto
+# diferente, mas a mesma variável regionalizada.
+refeito <- function(p, nome = "outro rótulo") {
+  tr_spatial_coordinates(p$dados, p$coord_cols[[1]], p$coord_cols[[2]], p$variavel,
+                         borda = p$borda, nome = nome)
+}
+
+test_that("sem pontos, a krigagem usa os do modelo, e não outros quaisquer", {
+  x <- pm()
+  s <- tr_spatial_kriging(modelo = x$m, resolucao = 12L)
+  # Mesmo resultado que passando os pontos de ajuste explicitamente.
+  expect_equal(s$grade, tr_spatial_kriging(x$p, x$m, resolucao = 12L)$grade)
+  expect_equal(s$pontos$coords, x$m$variograma$pontos$coords)
+  # Se a implementação pegasse os pontos de outro lugar (o primeiro exemplo, a
+  # sessão), o resultado só coincidiria por acaso. Troco os pontos embutidos por
+  # um conjunto de OUTRA região e confiro que a grade os acompanha.
+  outro <- tr_spatial_example("cafe_mg")
+  m2 <- x$m
+  m2$variograma$pontos <- outro
+  s2 <- tr_spatial_kriging(modelo = m2, resolucao = 12L)
+  expect_equal(range(s2$grade[[1]]), range(tr_spatial_grid(outro, 12L)[[1]]))
+  expect_gt(abs(mean(s2$grade[[1]]) - mean(s$grade[[1]])), 1e5)  # outro estado: centenas de km
+  expect_identical(s2$variavel, outro$variavel)
+})
+
+test_that("pontos conectados que são os mesmos dados passam, mesmo sendo outro objeto", {
+  x <- pm()
+  p2 <- refeito(x$p)
+  expect_false(identical(p2, x$p))  # a precondição: comparar o objeto inteiro reprovaria
+  s <- tr_spatial_kriging(p2, x$m, resolucao = 12L)
+  expect_equal(s$grade, tr_spatial_kriging(modelo = x$m, resolucao = 12L)$grade)
+})
+
+test_that("pontos conectados que não são os do modelo são recusados, dizendo por quê", {
+  x <- pm(); p <- x$p
+  cx <- p$coord_cols[[1]]; cy <- p$coord_cols[[2]]; v <- p$variavel
+  refaz <- function(d, variavel = v) {
+    tr_spatial_coordinates(d, cx, cy, variavel, borda = p$borda)
+  }
+  falha <- function(p2, trecho, rotulo) {
+    e <- expect_error(tr_spatial_kriging(p2, x$m, resolucao = 10L),
+                      class = "tr_spatial_error_points_mismatch", info = rotulo)
+    expect_match(conditionMessage(e), trecho, info = rotulo)
+  }
+  i <- 20L  # um ponto do MEIO: nenhum dos extremos da extensão
+  # 1. Um valor alterado, coordenadas intactas: só quem compara os valores pega.
+  d <- p$dados; d[[v]][i] <- d[[v]][i] + 1
+  falha(refaz(d), "valores", "valor")
+  # 2. Uma coordenada deslocada de 1 m, valores intactos, extensão intacta.
+  d <- p$dados; d[[cx]][i] <- d[[cx]][i] + 1
+  falha(refaz(d), "coordenadas", "coordenada")
+  # 3. Os mesmos números sob outro nome de variável: só quem compara o nome pega.
+  d <- p$dados; d$z_copia <- d[[v]]
+  falha(refaz(d, "z_copia"), "variavel", "nome")
+  # 4. Um ponto a menos.
+  falha(refaz(p$dados[-i, ]), sprintf("%d pontos", nrow(p$dados) - 1L), "tamanho")
+  # 5. Outro conjunto inteiro, que é o caso do erro humano.
+  falha(tr_spatial_example("cafe_mg"), "pontos|variavel|coordenadas", "outro conjunto")
+})
+
+test_that("sem pontos e com modelo montado à mão, o erro manda conectar os pontos", {
+  x <- pm()
+  m0 <- x$m; m0["variograma"] <- list(NULL)  # `<- NULL` apagaria o campo e a guarda do tipo o recusaria
+  e <- expect_error(tr_spatial_kriging(modelo = m0, resolucao = 10L),
+                    class = "tr_spatial_error_no_points")
+  expect_match(conditionMessage(e), "Conecte")
+  # E com os pontos explícitos o mesmo modelo krija: os oráculos dependem disto, e
+  # um erro de "falta de pontos" que disparasse sempre passaria no teste acima.
+  s <- tr_spatial_kriging(x$p, m0, resolucao = 10L)
+  expect_s3_class(s, "tr_spatial_surface")
+})
+
+test_that("no motor, o nó roda só com o modelo ligado, e recusa pontos de outro conjunto", {
+  reg <- spatial_registry()
+  base <- trama::tr_flow(reg) |>
+    trama::tr_add("p", "spatial/example", dataset = "milho_se") |>
+    trama::tr_add("v", "spatial/variogram", from = "p") |>
+    trama::tr_add("m", "spatial/variogram_fit", from = "v")
+  s <- rodar(trama::tr_add(base, "k", "spatial/kriging", resolucao = 12L, from = "m"), "k")
+  expect_s3_class(s, "tr_spatial_surface")
+  expect_equal(s$pontos$coords, pm()$p$coords)
+  errado <- base |>
+    trama::tr_add("q", "spatial/example", dataset = "cafe_mg") |>
+    trama::tr_add("k", "spatial/kriging", resolucao = 12L, from = "m") |>
+    trama::tr_link("q", "k:pontos")
+  expect_error(rodar(errado, "k"), "nao sao os dados com que o modelo foi ajustado")
+})
+
+test_that("a ordem das linhas não importa; arredondar os valores importa, e a mensagem admite a releitura", {
+  x <- pm(); p <- x$p
+  ref <- tr_spatial_kriging(modelo = x$m, resolucao = 10L)$grade
+  # As mesmas linhas, de trás para frente. Um 'sort' que ordene só por x, ou
+  # nenhum, quebra aqui (ou deixa empates em x em ordem arbitrária).
+  inv <- tr_spatial_coordinates(p$dados[rev(seq_len(nrow(p$dados))), ],
+                         p$coord_cols[[1]], p$coord_cols[[2]], p$variavel, borda = p$borda)
+  expect_false(isTRUE(all.equal(inv$coords, p$coords)))  # a precondição: a ordem mudou
+  expect_equal(tr_spatial_kriging(inv, x$m, resolucao = 10L)$grade, ref)
+  # Embaralhado ao acaso (semente fixa), com valores de z repetidos entre pontos.
+  set.seed(1); emb <- p$dados[sample(nrow(p$dados)), ]
+  pe <- tr_spatial_coordinates(emb, p$coord_cols[[1]], p$coord_cols[[2]], p$variavel, borda = p$borda)
+  expect_equal(tr_spatial_kriging(pe, x$m, resolucao = 10L)$grade, ref)
+  # Trocar os valores entre dois pontos (mesmo multiconjunto de z e de
+  # coordenadas, pareamento errado): só uma ordenação conjunta pega isto.
+  d <- p$dados; v <- p$variavel; d[[v]][c(3, 9)] <- d[[v]][c(9, 3)]
+  e <- expect_error(tr_spatial_kriging(tr_spatial_coordinates(d, p$coord_cols[[1]],
+                      p$coord_cols[[2]], v, borda = p$borda), x$m, resolucao = 10L),
+                    class = "tr_spatial_error_points_mismatch")
+  expect_match(conditionMessage(e), "valores")
+  # 6 algarismos significativos, como numa releitura de CSV. Os valores do
+  # exemplo já cabem em 6 algarismos (arredondá-los não mudaria nada), então o
+  # modelo é ajustado em valores de precisão cheia (z * pi) e os pontos
+  # conectados são os mesmos arredondados. Recusado, e a mensagem diz que
+  # releitura e arredondamento são uma causa possível.
+  d <- p$dados; d[[v]] <- d[[v]] * pi
+  cheio <- tr_spatial_coordinates(d, p$coord_cols[[1]], p$coord_cols[[2]], v, borda = p$borda)
+  mc <- tr_spatial_variogram_fit(tr_spatial_variogram(cheio))
+  expect_gt(max(abs(signif(d[[v]], 6) - d[[v]])), 0)  # a precondição: arredondar muda algo
+  rel <- cheio$dados; rel[[v]] <- signif(rel[[v]], 6)
+  e <- expect_error(tr_spatial_kriging(tr_spatial_coordinates(rel, p$coord_cols[[1]],
+                      p$coord_cols[[2]], v, borda = p$borda), mc, resolucao = 10L),
+                    class = "tr_spatial_error_points_mismatch")
+  expect_match(conditionMessage(e), "relidos")
+  # A frase sobre releitura só acompanha diferença NUMÉRICA: com outra variável
+  # ela mandaria procurar erro de precisão onde o erro é de ligação.
+  d2 <- p$dados; d2$z_copia <- d2[[v]]
+  e2 <- expect_error(tr_spatial_kriging(tr_spatial_coordinates(d2, p$coord_cols[[1]],
+                       p$coord_cols[[2]], "z_copia", borda = p$borda), x$m, resolucao = 10L),
+                     class = "tr_spatial_error_points_mismatch")
+  expect_match(conditionMessage(e2), "variavel")
+  expect_false(grepl("relidos", conditionMessage(e2)))
+  expect_s3_class(tr_spatial_kriging(cheio, mc, resolucao = 10L), "tr_spatial_surface")
 })

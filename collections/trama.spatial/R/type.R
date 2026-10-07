@@ -34,6 +34,7 @@
   q <- stats::quantile(z, c(0, .25, .5, .75, 1), names = FALSE)
   c(list(rotulo = x$rotulo, variavel = x$variavel, n = nrow(x$dados),
          unidade = .tr_spatial_nulo(x$unidade),
+         coord_cols = as.list(x$coord_cols),
          crs = if (inherits(x$crs, "crs")) x$crs$input else NULL,
          quartis = as.list(signif(q, 6)),
          tem_borda = !is.null(x$borda),

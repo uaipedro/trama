@@ -23,6 +23,8 @@ tr_spatial_errors <- function() {
     tr_spatial_error_no_convergence = "o ajuste não convergiu ou saiu singular a partir de todos os valores iniciais tentados, sem defeito de sinal ou de escala nos números devolvidos",
     tr_spatial_error_bad_fit = "o ajuste devolveu pepita, contribuição ou alcance inválido: negativo, ou alcance prático fora da escala dos dados (só singular ou sem convergência é no_convergence)",
     tr_spatial_error_no_mean = "krigagem simples pedida sem a média conhecida",
+    tr_spatial_error_no_points = "krigagem sem pontos: nao foram conectados e o modelo montado a mao nao os traz",
+    tr_spatial_error_points_mismatch = "os pontos conectados nao sao os dados com que o modelo foi ajustado",
     tr_spatial_error_empty_grid = "a grade ficou vazia depois do recorte na borda",
     tr_spatial_error_bad_border = "a borda não é um polígono fechado utilizável",
     tr_spatial_error_negative_variance =

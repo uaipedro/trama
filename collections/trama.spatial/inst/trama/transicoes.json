@@ -1,1 +1,9 @@
-[]
+[
+  {"from": "spatial/example", "to": "spatial/explore", "n": 3},
+  {"from": "spatial/example", "to": "spatial/variogram", "n": 3},
+  {"from": "spatial/coordinates", "to": "spatial/explore", "n": 3},
+  {"from": "spatial/coordinates", "to": "spatial/variogram", "n": 3},
+  {"from": "spatial/variogram", "to": "spatial/variogram_fit", "n": 3},
+  {"from": "spatial/variogram_fit", "to": "spatial/kriging", "n": 3},
+  {"from": "spatial/kriging", "to": "spatial/map", "n": 3}
+]

@@ -109,3 +109,13 @@ test_that("a borda normalizada é aceita por sf::st_polygon", {
   expect_no_error(g <- sf::st_polygon(list(b)))
   expect_true(as.numeric(sf::st_area(g)) > 0)
 })
+
+test_that("o preview dos pontos leva as colunas de coordenada, na ordem x, y", {
+  # O renderer lê `coord_cols` para não formatar coordenada como grandeza; sem
+  # o campo ele teria de adivinhar pelos valores.
+  d <- data.frame(leste = c(1.5, 2.25, 3, 4.5, 5), norte = c(9, 8.5, 7, 6.25, 5), z = 1:5)
+  p <- tr_spatial_coordinates(d, "leste", "norte", "z")
+  v <- .tr_spatial_pontos_preview(p)
+  expect_identical(unlist(v$coord_cols), c("leste", "norte"))
+  expect_true(all(unlist(v$coord_cols) %in% unlist(v$columns)))
+})

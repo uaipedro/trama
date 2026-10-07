@@ -18,6 +18,7 @@ trama_collection <- function() {
     types = list(spatial_points_type(), spatial_variogram_type(), spatial_model_type(),
                   spatial_surface_type()),
     adapters = .tr_spatial_adapters(),
+    transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.spatial")),
     # As abas seguem o CAMINHO de uma análise geoestatística: declarar o objeto
     # espacial, olhar, medir a dependência, modelá-la, e só então interpolar.
     categories = list(

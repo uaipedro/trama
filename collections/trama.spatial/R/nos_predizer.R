@@ -6,7 +6,8 @@
     trama::tr_node("spatial/kriging", fn = tr_spatial_kriging, label = "Krigagem",
       category = "espacial_predizer", icon = trama::tr_icon("grid-3x3"),
       description = "Interpola a variável numa grade recortada na borda, com o erro-padrão de cada célula.",
-      inputs = list(pontos = "spatial/points", modelo = "spatial/model"),
+      inputs = list(pontos = trama::tr_port("spatial/points", required = FALSE),
+                    modelo = "spatial/model"),
       outputs = list(out = "spatial/surface"),
       params = list(
         tipo = E("ordinaria", .TR_SPATIAL_TIPOS_KRIG, label = "Tipo"),
@@ -25,6 +26,11 @@ numa coordenada amostral devolve o valor observado — e, diferente de qualquer
 outro interpolador, **devolve o erro-padrão de cada célula**. O mapa do
 erro-padrão é o par honesto do mapa do predito: mostra onde a predição vale
 pouco. Use `spatial/map` para ver os dois.
+
+A entrada **pontos** é opcional: o modelo já carrega os pontos com que foi
+ajustado, e a krigagem usa esses. Conecte-a só se quiser ver o encadeamento
+explícito; se os pontos conectados não forem os mesmos dados do modelo, a
+krigagem para com erro em vez de interpolar outro conjunto.
 ]---", r"---[
 - **Tipo** — ordinária estima a média a partir dos dados e é o padrão.
   Simples supõe a média da população conhecida e pede que você a informe; é a
@@ -50,7 +56,7 @@ tr_flow(reg) |>
   tr_add("p", "spatial/example", dataset = "milho_pr") |>
   tr_add("v", "spatial/variogram", dist_max = 250000, from = "p") |>
   tr_add("m", "spatial/variogram_fit", familia = "esferico", from = "v") |>
-  tr_add("k", "spatial/kriging", resolucao = 40L, from = c("p", "m"))
+  tr_add("k", "spatial/kriging", resolucao = 40L, from = "m")
 ]---", r"---[
 `spatial/variogram_fit` para o modelo que esta krigagem consome; `spatial/map`
 para ver o predito e o erro-padrão.

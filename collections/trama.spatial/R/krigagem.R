@@ -136,9 +136,82 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
              erro_padrao = sqrt(v))
 }
 
+#' De onde vêm os pontos da krigagem.
+#'
+#' O modelo já carrega os pontos com que foi ajustado. Exigir os pontos de novo
+#' permitiria ajustar num conjunto e krigar noutro sem reclamação, que é
+#' resultado errado e plausível. Então: sem `pontos`, usa os do modelo; com
+#' `pontos` e com pontos no modelo, confere que são os MESMOS DADOS (variável,
+#' colunas de coordenada, coordenadas e valores, não identidade de objeto);
+#' sem nenhum dos dois (modelo montado à mão), pede para conectar.
+#' @noRd
+.tr_spatial_krig_pontos <- function(pontos, modelo) {
+  do_modelo <- modelo$variograma$pontos
+  if (is.null(pontos)) {
+    if (is.null(do_modelo)) {
+      .tr_spatial_abort("tr_spatial_error_no_points", paste(
+        "A krigagem precisa dos pontos, e este modelo nao traz os seus",
+        "(foi montado sem variograma empirico). Conecte os pontos na entrada 'pontos'."))
+    }
+    .tr_spatial_pontos_conferir(do_modelo)
+    return(do_modelo)
+  }
+  .tr_spatial_pontos_conferir(pontos)
+  if (!is.null(do_modelo)) {
+    .tr_spatial_pontos_iguais(pontos, do_modelo)
+  }
+  pontos
+}
+
+#' Compara DADOS, não objetos, e sem depender da ordem das linhas: a krigagem não
+#' depende dela, e recusar o mesmo conjunto com as linhas embaralhadas seria
+#' acusar de erro um fluxo certo. As duas listas vão para uma ordem canônica
+#' (x, depois y, depois o valor) antes de comparar.
+#' @noRd
+.tr_spatial_pontos_iguais <- function(pontos, do_modelo) {
+  motivo <- NULL
+  canon <- function(p) {
+    co <- unname(as.matrix(p$coords)); z <- as.numeric(p$dados[[p$variavel]])
+    o <- order(co[, 1], co[, 2], z)
+    list(co = co[o, , drop = FALSE], z = z[o])
+  }
+  if (!identical(pontos$variavel, do_modelo$variavel)) {
+    motivo <- sprintf("a variavel e '%s' nos pontos e '%s' no modelo",
+                      pontos$variavel, do_modelo$variavel)
+  } else if (!identical(as.character(pontos$coord_cols), as.character(do_modelo$coord_cols))) {
+    motivo <- "as colunas de coordenada sao outras"
+  } else if (!identical(dim(pontos$coords), dim(do_modelo$coords))) {
+    motivo <- sprintf("ha %d pontos e o modelo foi ajustado com %d",
+                      nrow(pontos$coords), nrow(do_modelo$coords))
+  } else {
+    a <- canon(pontos); b <- canon(do_modelo)
+    if (!isTRUE(all.equal(a$co, b$co, tolerance = 0))) {
+      motivo <- "as coordenadas dos pontos nao sao as do modelo"
+    } else if (!isTRUE(all.equal(a$z, b$z, tolerance = 0))) {
+      motivo <- "os valores da variavel nao sao os do modelo"
+    }
+  }
+  if (!is.null(motivo)) {
+    # A frase sobre releitura so cabe quando a diferenca esta nos numeros: com
+    # outra variavel ou outro tamanho, mandaria procurar erro de precisao onde
+    # o erro e de ligacao.
+    numerico <- grepl("coordenadas dos pontos|valores da variavel", motivo)
+    .tr_spatial_abort("tr_spatial_error_points_mismatch", paste0(
+      "Os pontos conectados nao sao os dados com que o modelo foi ajustado: ", motivo, ". ",
+      "A ordem das linhas nao importa. ",
+      if (numerico) paste0("Os numeros precisam ser identicos: dados relidos de um arquivo, ",
+                           "ou arredondados, ja nao sao os mesmos. ") else "",
+      "Krigar outro conjunto com este modelo da um mapa plausivel e errado. ",
+      "Ajuste o modelo nestes pontos, ou desconecte a entrada 'pontos' para usar os do modelo."))
+  }
+  invisible(TRUE)
+}
+
 #' Krigagem numa grade que cobre a área.
 #'
-#' @param pontos um objeto espacial (`spatial/points`).
+#' @param pontos um objeto espacial (`spatial/points`), opcional: sem ele, a
+#'   krigagem usa os pontos com que o modelo foi ajustado. Se vierem os dois e
+#'   não forem os mesmos dados, é erro.
 #' @param modelo um modelo ajustado (`spatial/model`).
 #' @param tipo `"ordinaria"` ou `"simples"`.
 #' @param media a média conhecida; obrigatória na simples.
@@ -146,8 +219,10 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
 #' @param vizinhos_max,dist_max vizinhança local; `NA` kriga globalmente.
 #' @return uma superfície predita (`spatial/surface`).
 #' @export
-tr_spatial_kriging <- function(pontos, modelo, tipo = "ordinaria", media = NA,
+tr_spatial_kriging <- function(pontos = NULL, modelo, tipo = "ordinaria", media = NA,
                                resolucao = 60L, vizinhos_max = NA, dist_max = NA) {
+  .tr_spatial_modelo_conferir(modelo)
+  pontos <- .tr_spatial_krig_pontos(pontos, modelo)
   .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max)
   g <- tr_spatial_grid(pontos, resolucao)
   grade <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media, vizinhos_max, dist_max)
