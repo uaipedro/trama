@@ -2,7 +2,7 @@
 
 Regra: **ids de nós em inglês** (`models/shapiro`, `ml/forest`), **parâmetros e portas em português** (`resposta`, `dados`). O mesmo conceito tem um nome só em todas as coleções — quem aprende um nó reconhece o parâmetro no próximo.
 
-A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e lista `id: param` de cada nome fora do glossário. Renomes antigos migram documentos via `tr_collection(migrations = ...)`.
+A trava é `tests/testthat/test-glossario.R`: lê o catálogo de todas as coleções e lista `id: param` de cada nome fora do glossário. Renomes antigos migram documentos via `tr_collection(migrations = ...)`.
 
 ## Nomes canônicos
 
@@ -45,7 +45,6 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo (models/bootstrap, models/permutation) | `replicas` (experiments) |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 | `termo` | linha do quadro da ANOVA que será testada (models/permutation) | — |
-| `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo | — |
 | `caminho` | pasta, arquivo ou banco local que fornece tabelas para consulta SQL (sql/source) | — |
 | `consulta` | instrução SQL de leitura (sql/query) | — |
 | `fonte` | porta de entrada da fonte consultável por SQL (sql/query) | — |

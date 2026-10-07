@@ -246,15 +246,17 @@ test_that("o nó roda no motor", {
 
 test_that("fit singular numa partida só é recusado como não convergência", {
   # Com a grade de partidas outra partida sempre ganha; a guarda do `singular`
-  # só morde quando as três iniciais são dadas (uma partida só). Estes números
-  # estão com TODOS os dígitos de propósito: com 7 algarismos significativos o
-  # gstat converge e o caso desaparece, e o teste deixaria de vigiar o que vigia.
-  # NÃO arredonde.
+  # só morde quando as três iniciais são dadas (uma partida só). Achar números
+  # que levem o gstat a um fit singular de verdade depende da plataforma (o que
+  # sai singular no Windows converge no Linux), então o `singular` é forçado:
+  # o que se testa é a leitura do atributo, não o otimizador.
+  orig <- gstat::fit.variogram
+  testthat::local_mocked_bindings(
+    fit.variogram = function(...) structure(orig(...), singular = TRUE),
+    .package = "gstat")
   expect_error(
-    tr_spatial_variogram_fit(vp("milho_se"),
-                             pepita_inicial = 1267481.3676470588,
-                             contribuicao_inicial = 1610110.0646837684,
-                             alcance_inicial = 14664.784671143658),
+    tr_spatial_variogram_fit(vp("milho_se"), pepita_inicial = 1.3e6,
+                             contribuicao_inicial = 1.6e6, alcance_inicial = 15000),
     class = "tr_spatial_error_no_convergence")
 })
 

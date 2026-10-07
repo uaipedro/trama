@@ -501,7 +501,13 @@ test_that("a ordem das linhas não importa; arredondar os valores importa, e a m
   # releitura e arredondamento são uma causa possível.
   d <- p$dados; d[[v]] <- d[[v]] * pi
   cheio <- tr_spatial_coordinates(d, p$coord_cols[[1]], p$coord_cols[[2]], v, borda = p$borda)
-  mc <- tr_spatial_variogram_fit(tr_spatial_variogram(cheio))
+  # Partida tirada do modelo de x$m com as variâncias escaladas por pi^2: sem
+  # ela a grade de partidas padrão cai, em algumas plataformas (Linux/CI), num
+  # ótimo com alcance negativo e o teste mede o otimizador, não a krigagem.
+  mc <- tr_spatial_variogram_fit(tr_spatial_variogram(cheio),
+                                 pepita_inicial = max(x$m$pepita, 1e-6) * pi^2,
+                                 contribuicao_inicial = x$m$contribuicao * pi^2,
+                                 alcance_inicial = x$m$alcance)
   expect_gt(max(abs(signif(d[[v]], 6) - d[[v]])), 0)  # a precondição: arredondar muda algo
   rel <- cheio$dados; rel[[v]] <- signif(rel[[v]], 6)
   e <- expect_error(tr_spatial_kriging(tr_spatial_coordinates(rel, p$coord_cols[[1]],
