@@ -312,6 +312,9 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
     sub("^\\| `(series/[a-z0-9_]+)` \\|.*$", "\\1", linhas))
 
   for (n in testes) {
+    # Série múltipla pede a coluna da resposta, que não existe no AirPassengers:
+    # a fonte desses blocos é conferida em test-mv-cointegracao.R.
+    if (identical(n$inputs[[1]]$type, "series/mts")) next
     entrada <- if (identical(n$inputs[[1]]$type, "series/regression")) ajuste else ap
     t <- n$fn(entrada)
     if (is.list(t) && !is.null(t$out)) t <- t$out
