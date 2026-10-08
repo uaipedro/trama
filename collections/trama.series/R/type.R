@@ -282,6 +282,9 @@ series_forecast_type <- function() {
     trama::tr_adapter("series/ts", "data/table", .tr_series_tabela),
     trama::tr_adapter("series/decomposition", "data/table", .tr_series_decomp_tabela),
     trama::tr_adapter("series/forecast", "data/table", .tr_series_forecast_tabela),
+    # Série múltipla: `tempo` e uma coluna por série (a forma larga, que o
+    # `series/from_table_mts` lê de volta).
+    trama::tr_adapter("series/mts", "data/table", .tr_series_mts_tabela),
     # O ajuste de uma série carrega os componentes: é por este adaptador que o
     # `series/component` e o `series/plot_decomposition` os leem. Um
     # `models/fit` que não veio de série é recusado com classe.

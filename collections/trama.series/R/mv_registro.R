@@ -60,7 +60,13 @@ coluna, todas no mesmo calendário. As regras de tempo são as do
 ]---", r"---[
 Uma série múltipla (`series/mts`).
 ]---", r"---[
-tr_series_from_table_mts(dados, valores = c("consumo", "renda"), tempo = "mes")
+tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
+  tr_add("j", "series/join", nomes = "dax, cac", from = c("a", "b")) |>
+  tr_add("tab", "data/select", cols = "tempo, dax, cac", from = "j") |>
+  tr_add("de_volta", "series/from_table_mts", valores = c("dax", "cac"), tempo = "tempo",
+         frequencia = 260L, from = "tab")
 ]---", r"---[
 `series/join` para juntar séries que já existem; `series/pick` para tirar uma.
 ]---")),
@@ -102,7 +108,11 @@ decompor ou ajustar um ARIMA nela.
 ]---", r"---[
 Uma série (`series/ts`).
 ]---", r"---[
-tr_series_pick(series, variavel = "renda")
+tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
+  tr_add("j", "series/join", nomes = "dax, cac", from = c("a", "b")) |>
+  tr_add("cac", "series/pick", variavel = "cac", from = "j")
 ]---", r"---[
 `series/join`.
 ]---")),
@@ -128,7 +138,8 @@ impulso-resposta.
 As séries devem ser estacionárias. Em nível e cointegradas, use o
 `series/vecm`; em nível e não cointegradas, diferencie antes. O card mostra os
 coeficientes de cada equação e o resumo, a maior raiz do polinômio: acima de 1,
-o VAR é instável.
+o VAR é instável. O bloco não aceita faltantes: interpole antes cada série
+(`series/interpolate`) ou recorte o período.
 ]---", r"---[
 - **Defasagens (p)** — 0 escolhe pelo critério, até o máximo.
 - **Critério** — AIC (padrão), HQ, SC (BIC) ou FPE.
@@ -138,9 +149,11 @@ o VAR é instável.
 Um ajuste multivariado (`series/var`).
 ]---", r"---[
 tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
   tr_add("j", "series/join", from = c("a", "b")) |>
   tr_add("v", "series/var", defasagens = 2L, from = "j") |>
-  tr_add("prev", "series/forecast", horizonte = 8L, from = c(var = "v"))
+  tr_add("prev", "series/forecast", horizonte = 8L, from = "v")
 ]---", r"---[
 `series/var_select` para comparar os critérios; `series/granger`;
 `series/irf`; `series/portmanteau_mv` para os resíduos.
