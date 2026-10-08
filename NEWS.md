@@ -1,3 +1,7 @@
+# trama 0.5.12
+
+* `tr_mcp()`: servidor MCP por stdio com os verbos do `trama-agente` como tools (`abrir`, `estado`, `catalogo`, `explicar`, `adicionar`, `ajustar`, `ligar`, `remover`, `resultado`, `desfazer`, `validar`). Sobe o editor em segundo plano quando não há um aberto e devolve gráficos como imagem. Registro de uma linha: `claude mcp add trama -- Rscript -e "trama::tr_mcp()"`.
+
 # trama 0.5.11
 
 * `tr_node_raiox(node)`: percorre a função do bloco e as funções internas do mesmo pacote e devolve as chamadas a outros pacotes (`stats::aov(...)`, `lmerTest::lmer(...)`), com o código, o arquivo e a linha. O site usa isso na seção Implementação de cada página de bloco, para mostrar onde a conta de fato é feita.

@@ -28,6 +28,16 @@ As demais coleções são opcionais (`trama.series`, `trama.models`, `trama.mult
 pak::pak("uaipedro/trama/collections/trama.models")
 ```
 
+## Com um assistente (MCP)
+
+Um assistente que fala MCP (Claude Code, Codex, Cursor, Claude Desktop) monta e lê o fluxo no editor aberto na tela:
+
+```bash
+claude mcp add trama -- Rscript -e "trama::tr_mcp()"
+```
+
+Passos do zero e as tools: [Assistente (MCP)](https://uaipedro.github.io/trama/por-dentro/mcp/).
+
 ## Primeiro fluxo
 
 ```r

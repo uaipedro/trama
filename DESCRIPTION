@@ -1,6 +1,6 @@
 Package: trama
 Title: Interactive Node-Graph Computation with Live Previews
-Version: 0.5.11
+Version: 0.5.12
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -34,12 +34,12 @@ Imports:
     htmltools,
     shiny,
     later,
+    curl,
     httpuv
 Suggests:
     testthat (>= 3.0.0),
     withr,
     mirai,
-    pkgload,
-    curl
+    pkgload
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
