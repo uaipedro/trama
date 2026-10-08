@@ -44,7 +44,7 @@
   function(id) {
     if (is.null(todos)) todos <<- c(.tr_series_docs_modelar(), .tr_series_docs_decompor(),
                .tr_series_docs_raiz(), .tr_series_docs_tendencia(),
-               .tr_series_docs_variancia())
+               .tr_series_docs_variancia(), .tr_series_docs_mv())
     d <- todos[[id]]
     list(pressupostos = d$pressupostos %||% list(), referencias = d$referencias %||% list())
   }

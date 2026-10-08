@@ -231,7 +231,8 @@ series_forecast_type <- function() {
     # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
     tema = TRUE,
     store = function(x, path) {
-      if (!inherits(x, "forecast")) {
+      # `mforecast`: a previsão de um VAR/VECM, uma `forecast` por série.
+      if (!inherits(x, c("forecast", "mforecast"))) {
         .tr_series_abort("tr_series_error_not_a_forecast",
                          "O nó produziu um objeto '%s', não uma previsão.", class(x)[[1]])
       }
@@ -239,6 +240,14 @@ series_forecast_type <- function() {
     },
     restore = function(path) readRDS(path),
     summary = function(x) {
+      if (inherits(x, "mforecast")) {
+        um <- x$forecast[[1]]
+        f <- stats::frequency(um$mean)
+        return(list(metodo = um$method, series = paste(names(x$forecast), collapse = ", "),
+                    horizonte = length(um$mean),
+                    de = .tr_series_rotulo(stats::start(um$mean), f),
+                    ate = .tr_series_rotulo(stats::end(um$mean), f)))
+      }
       f <- stats::frequency(x$mean)
       list(metodo = x$method, horizonte = length(x$mean),
            de = .tr_series_rotulo(stats::start(x$mean), f),
@@ -256,6 +265,12 @@ series_forecast_type <- function() {
 #' coluna do próprio R, e não num NA silencioso.
 #' @noRd
 .tr_series_forecast_tabela <- function(x) {
+  # Multivariada: as tabelas de cada série empilhadas, com a coluna `serie`.
+  if (inherits(x, "mforecast")) {
+    return(do.call(rbind, lapply(names(x$forecast), function(nm) {
+      tibble::add_column(.tr_series_forecast_tabela(x$forecast[[nm]]), serie = nm, .before = 1L)
+    })))
+  }
   nivel <- function(m, l) as.numeric(m[, match(l, x$level)])
   tibble::tibble(tempo = .tr_series_tempo(x$mean), previsto = as.numeric(x$mean),
                  li_80 = nivel(x$lower, 80), ls_80 = nivel(x$upper, 80),

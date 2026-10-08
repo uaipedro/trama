@@ -4,7 +4,7 @@
 \alias{tr_series_accuracy}
 \title{Medidas de erro da previsão, no treino e — se houver — no teste.}
 \usage{
-tr_series_accuracy(previsao, real = NULL)
+tr_series_accuracy(previsao, real = NULL, reais = NULL)
 }
 \description{
 Sem a série real, só a linha do treino: erro de um passo à frente dentro

@@ -28,6 +28,7 @@ Imports:
     nlme,
     tsoutliers,
     urca,
+    vars (>= 1.5),
     ggplot2 (>= 4.0.0),
     rlang,
     tibble,

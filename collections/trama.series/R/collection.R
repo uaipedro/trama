@@ -69,7 +69,7 @@ trama_collection <- function() {
     # Sem `js`: o card do teste era o único script da coleção, e o tipo de teste
     # agora é o `data/test` (registrado pela `data`).
     types = list(series_ts_type(), series_decomposition_type(), series_model_type(),
-                 series_forecast_type()),
+                 series_forecast_type(), series_mts_type(), series_var_type()),
     adapters = .tr_series_adapters(),
     # Glossário (docs/glossario-parametros.md): id em inglês que diga a
     # PERGUNTA, como os outros da coleção. `kruskal_wallis` e `fisher` diziam o
@@ -96,9 +96,11 @@ trama_collection <- function() {
       trama::tr_category("serie_sazonal",   "Sazonalidade", role = "avaliacao"),
       trama::tr_category("serie_regressao", "Regressão", role = "avaliacao"),
       trama::tr_category("serie_variancia", "Variância", role = "avaliacao"),
-      trama::tr_category("serie_ver",       "Ver", role = "inspecao")
+      trama::tr_category("serie_ver",       "Ver", role = "inspecao"),
+      trama::tr_category("serie_mv",        "Multivariada", role = "ajuste"),
+      trama::tr_category("serie_mv_testes", "Testes multivariados", role = "avaliacao")
     ),
-    nodes = list(
+    nodes = c(.tr_series_nos_mv(), list(
 
 # ---- Fonte ------------------------------------------------------------------
 
@@ -1408,7 +1410,8 @@ tr_flow(reg) |>
         description = "Prevê h períodos à frente com um modelo ajustado, com intervalos de 80 e 95%.",
         inputs = list(modelo = trama::tr_port(M, required = FALSE),
                       ajuste = trama::tr_port(FIT, required = FALSE),
-                      futuro = trama::tr_port(S, required = FALSE)),
+                      futuro = trama::tr_port(S, required = FALSE),
+                      var = trama::tr_port("series/var", required = FALSE)),
         outputs = list(out = F),
         params = list(horizonte = I(12L, min = 1L, max = 1000L, label = "Horizonte"),
                       intervalo = E("normal", c("normal", "bootstrap"), label = "Intervalo")),
@@ -1560,7 +1563,8 @@ a forma da distribuição.
         role = "avaliacao", fn = tr_series_accuracy, label = "Acurácia",
         category = "serie_modelar", icon = icone("square-sigma"),
         description = "Medidas de erro da previsão: no treino e, com a série real, no teste.",
-        inputs = list(previsao = F, real = trama::tr_port(S, required = FALSE)),
+        inputs = list(previsao = F, real = trama::tr_port(S, required = FALSE),
+                      reais = trama::tr_port("series/mts", required = FALSE)),
         outputs = list(out = T),
         help = .tr_series_ajuda(r"---[
 Calcula as medidas de erro de uma previsão:
@@ -3209,7 +3213,7 @@ tr_flow(reg) |>
 ]---", r"---[
 `series/forecast` e `series/baseline` para a previsão; `series/accuracy` para
 o erro.
-]---", grafico = TRUE))
+]---", grafico = TRUE)))
     )
   )
 }

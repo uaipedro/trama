@@ -275,9 +275,20 @@ tr_series_plot_decomposition <- function(decomposicao, aspecto = "4:3", tema = "
 tr_series_plot_forecast <- function(previsao, historico = 0L, aspecto = "16:9", tema = "padrão",
                                     titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   h <- .tr_series_int(historico, "historico", min = 0)
-  hist <- .tr_series_tabela(previsao$x)
-  if (h > 0L) hist <- utils::tail(hist, h)
+  multi <- inherits(previsao, "mforecast")
+  # Multivariada: uma faixa por série, eixo y livre, o mesmo desenho.
+  partes <- if (multi) previsao$forecast else list(previsao)
+  hist <- do.call(rbind, lapply(names(partes) %||% "", function(nm) {
+    d <- .tr_series_tabela(partes[[if (nzchar(nm)) nm else 1L]]$x)
+    if (h > 0L) d <- utils::tail(d, h)
+    d$serie <- nm
+    d
+  }))
   fc <- .tr_series_forecast_tabela(previsao)
+  if (multi) {
+    hist$serie <- factor(hist$serie, levels = names(partes))
+    fc$serie <- factor(fc$serie, levels = names(partes))
+  }
   p <- ggplot2::ggplot() +
     ggplot2::geom_ribbon(data = fc, ggplot2::aes(x = .data[["tempo"]], ymin = .data[["li_95"]],
                                                  ymax = .data[["ls_95"]]),
@@ -289,6 +300,7 @@ tr_series_plot_forecast <- function(previsao, historico = 0L, aspecto = "16:9", 
                        colour = .TR_SERIES_CINZA, na.rm = TRUE) +
     ggplot2::geom_line(data = fc, ggplot2::aes(x = .data[["tempo"]], y = .data[["previsto"]]),
                        colour = .TR_SERIES_COR, linewidth = .8) +
-    ggplot2::labs(x = "tempo", y = "valor", subtitle = previsao$method)
+    ggplot2::labs(x = "tempo", y = "valor", subtitle = if (multi) partes[[1]]$method else previsao$method)
+  if (multi) p <- p + ggplot2::facet_wrap(ggplot2::vars(.data[["serie"]]), ncol = 1L, scales = "free_y")
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }

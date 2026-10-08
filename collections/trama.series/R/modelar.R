@@ -131,13 +131,17 @@ tr_series_holt_winters <- function(serie, tendencia = TRUE, sazonalidade = TRUE,
 #' `series/deseasonalize`) em vez de `modelo`, prevê a fórmula: o futuro de
 #' `t`, `periodo` e `ano` sai da série; o do regressor, de `futuro`.
 tr_series_forecast <- function(modelo = NULL, horizonte = 12L, intervalo = "normal", ajuste = NULL,
-                               futuro = NULL, .seed = NULL) {
+                               futuro = NULL, var = NULL, .seed = NULL) {
   h <- .tr_series_int(horizonte, "horizonte", min = 1, max = 1000)
   intervalo <- .tr_series_enum(intervalo, c("normal", "bootstrap"), "intervalo")
-  if (is.null(modelo) == is.null(ajuste)) {
+  if (sum(!is.null(modelo), !is.null(ajuste), !is.null(var)) != 1L) {
     .tr_series_abort("tr_series_error_bad_option",
-                     paste0("'series/forecast': ligue um modelo (ARIMA, ETS, Holt-Winters) OU o ajuste de ",
-                            "uma regressão da série — um dos dois."))
+                     paste0("'series/forecast': ligue um modelo (ARIMA, ETS, Holt-Winters), o ajuste de ",
+                            "uma regressão da série OU um VAR/VECM — um dos três."))
+  }
+  if (!is.null(var)) {
+    if (intervalo != "normal") .tr_series_option("intervalo", intervalo, "normal (VAR e VECM)")
+    return(.tr_series_var_prever(var, h))
   }
   if (!is.null(ajuste)) {
     if (intervalo != "normal") {
@@ -224,7 +228,34 @@ tr_series_residuals <- function(modelo) .tr_series_uni(stats::residuals(modelo))
 #' vazia: é quase sempre o fio ligado na série de treino por engano, e uma
 #' tabela só com o treino pareceria resposta.
 #' @export
-tr_series_accuracy <- function(previsao, real = NULL) {
+tr_series_accuracy <- function(previsao, real = NULL, reais = NULL) {
+  if (!is.null(reais)) {
+    if (!inherits(previsao, "mforecast")) {
+      .tr_series_abort("tr_series_error_not_a_series",
+                       "'reais' (séries múltiplas) é para a previsão de um VAR/VECM; aqui ligue 'real'.")
+    }
+    real <- reais
+  }
+  # VAR/VECM: as medidas de cada série, empilhadas com a coluna `serie`. A
+  # série real, se vier, é múltipla (`series/mts`), e cada coluna confere a
+  # previsão da série de mesmo nome.
+  if (inherits(previsao, "mforecast")) {
+    if (!is.null(real)) .tr_series_guard_mts(real)
+    return(do.call(rbind, lapply(names(previsao$forecast), function(nm) {
+      r <- if (!is.null(real)) {
+        if (!nm %in% colnames(real)) {
+          .tr_series_abort("tr_series_error_no_overlap",
+                           "A série real não tem a coluna '%s', que a previsão tem.", nm)
+        }
+        .tr_series_uni(real[, nm])
+      }
+      tibble::add_column(tr_series_accuracy(previsao$forecast[[nm]], r), serie = nm, .before = 1L)
+    })))
+  }
+  if (!is.null(real) && stats::is.mts(real)) {
+    .tr_series_abort("tr_series_error_not_a_series",
+                     "A série real é múltipla e a previsão é de uma série só: escolha a coluna em 'series/pick'.")
+  }
   m <- if (is.null(real)) {
     forecast::accuracy(previsao)
   } else {

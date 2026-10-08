@@ -10,6 +10,7 @@ tr_series_forecast(
   intervalo = "normal",
   ajuste = NULL,
   futuro = NULL,
+  var = NULL,
   .seed = NULL
 )
 }
