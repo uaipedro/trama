@@ -45,14 +45,17 @@ tl_ui <- function() {
 #' Windows, `runif` semeado com relógio em microssegundos, PID, tempo de CPU
 #' e endereço de memória (ASLR), sem mexer na semente global.
 #' @noRd
-.tl_bytes_aleatorios <- function(n) {
-  if (file.exists("/dev/urandom")) {
-    con <- file("/dev/urandom", "rb", raw = TRUE)
+.tl_bytes_aleatorios <- function(n, urandom = "/dev/urandom", tempos = proc.time()) {
+  if (file.exists(urandom)) {
+    con <- file(urandom, "rb", raw = TRUE)
     on.exit(close(con))
     return(as.integer(readBin(con, "raw", n)))
   }
   endereco <- strtoi(substr(gsub("[^0-9a-f]", "", format(new.env())), 1, 7), 16L)
-  semente <- (as.numeric(Sys.time()) * 1e6 + Sys.getpid() * 7919 + sum(proc.time()) * 1e3 + endereco) %%
+  # `na.rm`: no Windows os tempos dos processos-filho de `proc.time()` são NA,
+  # e a semente NA derrubava o launcher na partida (set.seed recusa NA).
+  semente <- sum(as.numeric(Sys.time()) * 1e6, Sys.getpid() * 7919,
+                 sum(tempos, na.rm = TRUE) * 1e3, endereco, na.rm = TRUE) %%
     .Machine$integer.max
   velha <- if (exists(".Random.seed", envir = globalenv())) get(".Random.seed", envir = globalenv())
   on.exit(if (!is.null(velha)) assign(".Random.seed", velha, envir = globalenv()))

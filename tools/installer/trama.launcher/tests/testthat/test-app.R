@@ -311,3 +311,12 @@ test_that("console e Sair sem o token da tela de início são ignorados", {
     expect_equal(console_job()$id, "x")
   })
 })
+
+test_that("token sem /dev/urandom e com tempos-filho NA (o Windows) não derruba a partida", {
+  # No Windows, proc.time() traz NA nos tempos dos processos-filho, e a
+  # semente NA fazia set.seed() abortar o launcher (v0.1.8 e v0.1.9 no CI).
+  tempos <- proc.time(); tempos[4:5] <- NA
+  b <- .tl_bytes_aleatorios(24L, urandom = tempfile(), tempos = tempos)
+  expect_length(b, 24L)
+  expect_true(all(b >= 0L & b <= 255L))
+})
