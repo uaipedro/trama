@@ -138,7 +138,7 @@ junta vários testes num só quadro.
 ## Veja também
 
 `series/mann_kendall`, a mesma pergunta contando todos os pares — a dissertação
-compara os dois, e vale rodar os dois; `series/f_trend`, a mesma pergunta
+compara os dois, e vale rodar os dois; o F da tendência (`models/anova_table` sobre a `series/regression`), a mesma pergunta
 pela regressão; `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.
 

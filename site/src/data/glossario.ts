@@ -314,8 +314,8 @@ export const TERMOS_DE_BLOCO: Record<string, string[]> = {
   "estacionariedade": ["series/adf", "series/kpss", "series/phillips_perron", "series/zivot_andrews", "series/ndiffs", "series/diff"],
   "autocorrelacao": ["series/acf", "series/pacf", "series/lag_plot", "series/ljung_box", "series/box_pierce"],
   "ruido-branco": ["series/ljung_box", "series/box_pierce", "series/residuals"],
-  "tendencia": ["series/mann_kendall", "series/cox_stuart", "series/detrend", "series/f_trend"],
-  "sazonalidade": ["series/seasonal_plot", "series/subseries", "series/seasonality_kw", "series/f_seasonal", "series/stl", "series/decompose"],
+  "tendencia": ["series/mann_kendall", "series/cox_stuart", "series/detrend", "models/anova_table"],
+  "sazonalidade": ["series/seasonal_plot", "series/subseries", "series/seasonality_kw", "series/stl", "series/decompose"],
   "validacao-cruzada": ["ml/nested_cv", "ml/tune"],
   "sobreajuste": ["ml/tune", "ml/nested_cv"],
   "hiperparametro": ["ml/tune", "ml/tuning_plot"],
@@ -336,6 +336,6 @@ export const TERMOS_DE_BLOCO: Record<string, string[]> = {
   "margem-de-erro": ["sampling/margin", "sampling/margin_levels", "sampling/question_margins", "sampling/plot_margins"],
   "verossimilhanca": ["models/compare", "models/random_test"],
   "graus-de-liberdade": ["models/anova_table"],
-  "estatistica-f": ["models/anova_table", "series/f_global", "series/f_trend", "series/f_seasonal"],
+  "estatistica-f": ["models/anova_table", "models/fit_stats"],
   "coeficiente-de-determinacao": ["models/fit_stats"]
 };
