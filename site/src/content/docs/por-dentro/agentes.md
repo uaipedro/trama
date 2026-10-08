@@ -10,6 +10,9 @@ de comando `trama-agente`. Cada comando vira uma operação comum do editor:
 o card aparece e roda na hora, ganha um halo breve para você ver onde o
 agente mexeu, e `Ctrl+Z` desfaz como qualquer gesto seu.
 
+Para usar com um assistente que fala MCP (Claude Code, Codex, Cursor), veja
+[Assistente (MCP)](/trama/por-dentro/mcp/): os mesmos comandos, como tools.
+
 ## Ligar
 
 O canal sobe junto com o editor (`trama::tr_app()`). Ele só aceita conexões

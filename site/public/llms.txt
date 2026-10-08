@@ -1,0 +1,16 @@
+# trama
+
+> Editor visual de fluxos de análise estatística em R (pacote R + Shiny). Um assistente monta, roda e lê o fluxo aberto na tela da pessoa pelo servidor MCP `trama::tr_mcp()`.
+
+Documentação em português.
+
+## Para assistentes
+
+- [Assistente (MCP)](https://uaipedro.github.io/trama/por-dentro/mcp/): instalar do zero (R, pacotes, registro do servidor MCP em Claude Code, Codex, Claude Desktop, Cursor) e usar as tools.
+- [Agentes (CLI)](https://uaipedro.github.io/trama/por-dentro/agentes/): o mesmo controle pela linha de comando `trama-agente`.
+
+## Mais
+
+- [Instalação](https://uaipedro.github.io/trama/por-dentro/instalacao/)
+- [Primeiro fluxo](https://uaipedro.github.io/trama/comece/primeiro-fluxo/)
+- [Repositório](https://github.com/uaipedro/trama)
