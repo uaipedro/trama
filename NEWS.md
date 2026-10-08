@@ -1,3 +1,7 @@
+# trama 0.5.13
+
+* Exportar em Quarto não falha mais com "Character encoding must be UTF-8, Latin-1 or bytes" quando uma referência de coleção instalada tem acento sem marca de encoding (ex.: Banzatto & Kronka, *Experimentação agrícola*).
+
 # trama 0.5.12
 
 * `tr_mcp()`: servidor MCP por stdio com os verbos do `trama-agente` como tools (`abrir`, `estado`, `catalogo`, `explicar`, `adicionar`, `ajustar`, `ligar`, `remover`, `resultado`, `desfazer`, `validar`). Sobe o editor em segundo plano quando não há um aberto e devolve gráficos como imagem. Registro de uma linha: `claude mcp add trama -- Rscript -e "trama::tr_mcp()"`.

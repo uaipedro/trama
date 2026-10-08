@@ -232,6 +232,9 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
     for (r in spec$referencias %||% list()) {
       txt <- .tr_export_ref_texto(r)
       if (is.null(txt)) next
+      # Texto de coleção instalada pode vir sem marca de encoding, e a
+      # ordenação radix abaixo recusa string não-ASCII sem marca.
+      if (validUTF8(txt)) Encoding(txt) <- "UTF-8"
       vistos[[txt]] <- unique(c(vistos[[txt]], spec$label %||% ty))
     }
   }

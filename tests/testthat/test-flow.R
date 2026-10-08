@@ -269,6 +269,23 @@ test_that("o Quarto tem um chunk por card, seções dos frames, notas e as saíd
   expect_match(q, "sessionInfo()", fixed = TRUE)
 })
 
+test_that("referência com texto não-ASCII sem marca de encoding não derruba o Quarto", {
+  # Strings de coleção instalada podem chegar com Encoding "unknown"; a
+  # ordenação radix recusava ("Character encoding must be UTF-8, Latin-1 or
+  # bytes") e o export em Quarto falhava inteiro.
+  titulo <- "An\u00e1lise de vari\u00e2ncia"
+  Encoding(titulo) <- "unknown"
+  ref <- tr_ref(autores = "Banzatto, D. A.", ano = 2006, titulo = titulo, fonte = "Funep")
+  outra <- tr_ref(autores = "Box, G. E. P.", ano = 1964, titulo = "Transformations")
+  reg <- tr_registry()
+  tr_use(tr_collection("u", types = list(tr_type("u/num")), nodes = list(
+    tr_node("u/a", fn = function() 1, label = "A", description = "A.",
+            outputs = list(out = "u/num"), referencias = list(ref, outra))
+  )), registry = reg)
+  q <- tr_export_code(tr_flow(reg) |> tr_add("a", "u/a") |> tr_flow_doc(), reg, format = "quarto")
+  expect_match(q, "Banzatto, D. A. (2006). An\u00e1lise de vari\u00e2ncia.", fixed = TRUE)
+})
+
 test_that("o Quarto exportado lista as referências dos blocos usados, sem repetir", {
   ref <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
                 titulo = "An analysis of transformations", fonte = "JRSS B 26(2)",
