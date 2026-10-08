@@ -1,11 +1,14 @@
 ---
 // Bibliografia completa: todas as referências dos blocos (node-docs.json),
 // sem repetição, por papel, com links de volta para os blocos que as citam.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { toHtml } from "hast-util-to-html";
 import Base from "../layouts/Base.astro";
 import docs from "../data/node-docs.json";
-import { agregarReferencias, resumoReferencias } from "../lib/bibliografia";
-import { referenciaHast, type NodeDocs } from "../lib/node-docs";
+import { agregarReferencias, chaveReferencia, resumoReferencias } from "../lib/bibliografia";
+import { referenciaHast, type NodeDocs, type Referencia } from "../lib/node-docs";
+import { collections } from "../data/collections";
 import { blockResolver } from "../lib/rehype-node-docs";
 
 const dados = docs as unknown as Record<string, NodeDocs>;
@@ -19,6 +22,33 @@ const descricoes: Record<string, string> = {
   complementar: "Leituras que discutem limites, variantes ou cuidados do método."
 };
 const entradaHtml = (ref: Parameters<typeof referenciaHast>[0]) => toHtml(referenciaHast(ref).children);
+
+// Visão por bloco: cada bloco com as próprias fontes, separadas por papel, e
+// cada citação curta levando à entrada completa na bibliografia abaixo.
+const ancora = new Map(grupos.flatMap((g) => g.entradas).map((e) => [chaveReferencia(e.ref), e.id]));
+const citacaoCurta = (r: Referencia) => {
+  if (r.papel === "implementacao" && r.pacote && !r.autores?.length) return r.funcao ? `${r.pacote}::${r.funcao}` : r.pacote;
+  const sob = (r.autores ?? []).map((a) => a.split(",")[0].trim());
+  const nomes = sob.length > 2 ? `${sob[0]} et al.` : sob.join(" e ");
+  return r.ano ? `${nomes} (${r.ano})` : nomes;
+};
+// Situação do oráculo de cada bloco, lida de docs/cobertura-oraculos.md.
+const situacao = new Map(
+  readFileSync(join(process.cwd(), "..", "docs", "cobertura-oraculos.md"), "utf8")
+    .split("\n").filter((l) => l.startsWith("| `"))
+    .map((l) => { const [, id, sit] = l.split("|").map((x) => x.trim()); return [id.replace(/`/g, ""), sit]; })
+);
+const colunas: [Referencia["papel"], string][] = [["teoria", "Teoria"], ["livro-texto", "Livro-texto"], ["implementacao", "Implementação"], ["complementar", "Complementar"]];
+const porColecao = collections
+  .map((c) => {
+    const prefixo = c.packageName.replace(/^trama\./, "") + "/";
+    const blocos = Object.keys(dados)
+      .filter((id) => id.startsWith(prefixo) && dados[id].referencias.length)
+      .map((id) => ({ id, alvo: resolve(id), refs: dados[id].referencias }))
+      .sort((a, b) => (a.alvo?.label ?? a.id).localeCompare(b.alvo?.label ?? b.id, "pt"));
+    return { colecao: c, blocos };
+  })
+  .filter((g) => g.blocos.length);
 ---
 
 <Base title="Referências" description="Todas as obras e pacotes que fundamentam os blocos do trama, com os blocos que citam cada uma.">
@@ -29,18 +59,53 @@ const entradaHtml = (ref: Parameters<typeof referenciaHast>[0]) => toHtml(refere
         <h1>Referências</h1>
         <p class="lede">
           Cada bloco estatístico do trama declara de onde vem o método que ele calcula.
-          {` Esta página reúne essas fontes: ${resumo.obras} obras citadas por ${resumo.blocosComReferencias} blocos, ${resumo.obrasComDoi} delas com DOI. Ao lado de cada uma estão os blocos que a usam.`}
+          {` Esta página reúne essas fontes de dois jeitos: primeiro bloco por bloco, depois numa bibliografia única, com ${resumo.obras} obras (${resumo.obrasComDoi} com DOI) e os blocos que citam cada uma.`}
         </p>
-        <p><a href="/trama/rigor/">Como as referências e as contas são conferidas</a></p>
+        <p><a href="/trama/rigor/">Etapas de validação</a></p>
       </div>
     </header>
-    <nav class="bib-indice" aria-label="Grupos da bibliografia">
+    <nav class="bib-indice" aria-label="Seções da página">
+      <a href="#por-bloco">Fontes de cada bloco <span>{resumo.blocosComReferencias}</span></a>
+      <a href="#bibliografia">Bibliografia completa <span>{resumo.obras + resumo.implementacoes}</span></a>
+    </nav>
+
+    <section class="bib-blocos" aria-labelledby="por-bloco">
+      <h2 id="por-bloco">Fontes de cada bloco</h2>
+      <p class="bib-grupo__desc">Para cada bloco, as fontes separadas pelo papel que cumprem. Clique numa citação para ver a referência completa. “Própria do trama” indica que a conta é implementada pelo próprio trama, sem um pacote R de referência por trás. A última coluna diz se a conta do bloco é testada contra um oráculo externo, segundo o <a href="https://github.com/uaipedro/trama/blob/main/docs/cobertura-oraculos.md">levantamento de cobertura</a>.</p>
+      <nav class="bib-colecoes" aria-label="Coleções">
+        {porColecao.map((g) => <a href={`#col-${g.colecao.id}`}>{g.colecao.title} <span>{g.blocos.length}</span></a>)}
+      </nav>
+      {porColecao.map((g) => (
+        <div class="bib-colecao">
+          <h3 id={`col-${g.colecao.id}`}>{g.colecao.title}</h3>
+          <div class="bib-tabela-rolagem">
+            <table class="bib-tabela">
+              <thead><tr><th scope="col">Bloco</th>{colunas.map(([, rot]) => <th scope="col">{rot}</th>)}<th scope="col">Oráculo</th></tr></thead>
+              <tbody>
+                {g.blocos.map((b) => (
+                  <tr>
+                    <th scope="row">{b.alvo ? <a href={b.alvo.href}>{b.alvo.label}</a> : b.id}<code>{b.id}</code></th>
+                    {colunas.map(([papel]) => (
+                      <td>{b.refs.filter((r) => r.papel === papel).map((r, i) => <>{i > 0 && <br />}{r.papel === "implementacao" && r.pacote?.startsWith("trama") ? <span class="bib-propria" title={`${r.pacote}::${r.funcao ?? ""}`}>própria do trama</span> : <a href={`#${ancora.get(chaveReferencia(r))}`}>{citacaoCurta(r)}</a>}</>)}</td>
+                    ))}
+                    <td><span class={`bib-oraculo bib-oraculo--${(situacao.get(b.id) ?? "não levantado").replace(/\s/g, "-")}`}>{situacao.get(b.id) ?? "não levantado"}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </section>
+
+    <h2 id="bibliografia" class="bib-titulo">Bibliografia completa</h2>
+    <nav class="bib-indice bib-indice--papeis" aria-label="Grupos da bibliografia">
       {grupos.map((g) => <a href={`#${g.papel}`}>{g.rotulo} <span>{g.entradas.length}</span></a>)}
     </nav>
     <div class="prose bib">
       {grupos.map((g) => (
         <section aria-labelledby={g.papel}>
-          <h2 id={g.papel}>{g.rotulo}</h2>
+          <h3 id={g.papel}>{g.rotulo}</h3>
           <p class="bib-grupo__desc">{descricoes[g.papel]}</p>
           <ul class="node-refs">
             {g.entradas.map((e) => (

@@ -98,7 +98,7 @@ correlacionadas entre si: em `series/example` com grau 3, a matriz de desenho
 tem número de condição de 7,3 milhões, e `t³` sai com p = 0,46 enquanto o F do
 bloco de tendência é esmagador. Do **grau 2 em diante, os p-valores individuais
 dos termos de tendência não se leem um a um** — quem quer saber se há tendência
-lê o F do bloco, em `series/f_trend`. Os coeficientes sazonais não
+lê o F do termo de tendência no `models/anova_table` (soma de quadrados tipo III). Os coeficientes sazonais não
 sofrem disso.
 
 O nó não prevê, e é de propósito: tendência polinomial fora da amostra é das
@@ -126,11 +126,12 @@ library(trama)
 
 reg <- tr_registry()
 tr_use("trama.series", registry = reg)
+tr_use("trama.models", registry = reg)
 
 tr_flow(reg) |>
   tr_add("pax", "series/example") |>
   tr_add("reg", "series/regression", grau = 2L, from = "pax") |>
-  tr_add("f", "series/f_global", from = "reg") |>
+  tr_add("f", "models/fit_stats", from = "reg") |>
   tr_add("resto", "series/component", componente = "resto", from = "reg") |>
   tr_add("ruido", "series/ljung_box", from = "resto")
 ```
@@ -138,13 +139,13 @@ tr_flow(reg) |>
 ## Como interpretar
 
 Uma regressão (`series/regression`): o card traz o resumo do ajuste.
-`series/f_global`, `series/f_seasonal` e `series/f_trend` testam os blocos;
+`models/fit_stats` dá o F global e `models/anova_table`, com soma de quadrados tipo III, o F de cada bloco de termos;
 `series/component` extrai um componente como série; ligada à `data`, vira a
 tabela de coeficientes.
 
 ## Veja também
 
-`series/f_global`, `series/f_seasonal` e `series/f_trend` para a
+`models/fit_stats` e `models/anova_table` para a
 significância dos blocos; `series/decompose` e `series/stl` para as
 decomposições não paramétricas; `series/transform` para ajustar em log quando a
 oscilação cresce com o nível.

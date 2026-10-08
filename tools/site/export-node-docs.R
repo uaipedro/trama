@@ -54,8 +54,25 @@ local({
     press <- node$pressupostos %||% list()
     refs <- node$referencias %||% list()
     if (!length(press) && !length(refs)) next
+    # Raio-x: onde a conta de fato acontece. A chamada que coincide com uma
+    # referência de implementação é a principal; as outras vêm depois.
+    rx <- trama::tr_node_raiox(node)
+    impl <- vapply(Filter(function(r) identical(r$papel, "implementacao"), refs),
+                   function(r) paste0(r$pacote, "::", r$funcao %||% ""), "")
+    chamada <- function(ch) sem_nulos(list(
+      pacote = ch$pacote, funcao = ch$funcao, codigo = ch$codigo,
+      arquivo = if (!is.na(ch$arquivo)) ch$arquivo, linha = if (!is.na(ch$linha)) ch$linha,
+      dentro = ch$dentro,
+      principal = paste0(ch$pacote, "::", ch$funcao) %in% impl
+    ))
+    raiox <- sem_nulos(list(
+      funcao = rx$funcao,
+      arquivo = if (!is.na(rx$arquivo)) rx$arquivo, linha = if (!is.na(rx$linha)) rx$linha,
+      chamadas = I(unname(lapply(rx$chamadas, chamada)))
+    ))
     docs[[id]] <- list(pressupostos = I(unname(lapply(press, pressuposto))),
-                       referencias = I(unname(lapply(refs, referencia))))
+                       referencias = I(unname(lapply(refs, referencia))),
+                       raiox = raiox)
   }
   # Sem nenhum bloco documentado, grava {} (e não []): o site lê um mapa.
   json <- if (length(docs)) jsonlite::toJSON(docs, auto_unbox = TRUE, pretty = TRUE) else "{}"
@@ -65,6 +82,7 @@ local({
   # O Astro guarda o markdown renderizado em node_modules/.astro/data-store.json
   # e não sabe que as seções vêm deste JSON: sem apagar, dev/build servem as
   # páginas antigas.
-  store <- "site/node_modules/.astro/data-store.json"
-  if (file.exists(store)) unlink(store)
+  # O Astro 7 guarda em site/.astro/; versões anteriores, em node_modules/.astro/.
+  store <- c("site/.astro/data-store.json", "site/node_modules/.astro/data-store.json")
+  unlink(store[file.exists(store)])
 })

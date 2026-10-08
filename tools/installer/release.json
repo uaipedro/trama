@@ -1,19 +1,19 @@
 {
-  "trama": "0.1.7",
+  "trama": "0.1.8",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": [
     "https://uaipedro.r-universe.dev"
   ],
   "core": {
-    "trama": "0.5.4",
-    "trama.data": "0.4.1",
+    "trama": "0.5.10",
+    "trama.data": "0.4.2",
     "trama.view": "0.2.4",
     "trama.launcher": "0.2.0"
   },
   "collections": {
     "trama.experiments": {
-      "version": "0.2.5",
+      "version": "0.2.6",
       "title": "Experimentos",
       "requires": [
         "trama.models"
@@ -27,24 +27,24 @@
       ]
     },
     "trama.models": {
-      "version": "0.6.2",
+      "version": "0.6.4",
       "title": "Modelos estatísticos",
       "requires": []
     },
     "trama.multi": {
-      "version": "0.3.5",
+      "version": "0.3.6",
       "title": "Análise multivariada",
       "requires": [
         "trama.models"
       ]
     },
     "trama.sampling": {
-      "version": "0.3.5",
+      "version": "0.3.6",
       "title": "Amostragem",
       "requires": []
     },
     "trama.series": {
-      "version": "0.6.0",
+      "version": "0.8.1",
       "title": "Séries temporais",
       "requires": [
         "trama.models"

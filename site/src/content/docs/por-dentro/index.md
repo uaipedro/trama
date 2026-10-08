@@ -83,7 +83,7 @@ entre processos.
 ## Fontes e conferência das contas
 
 Cada bloco estatístico compara a sua conta com um resultado publicado e cita a
-fonte do método. [Como sabemos que está certo](/trama/rigor/) descreve essa
+fonte do método. [Etapas de validação](/trama/rigor/) descreve essa
 conferência e traz o registro de revisão metodológica;
 [Referências](/trama/referencias/) lista todas as obras citadas e os blocos que
 as usam.

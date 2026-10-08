@@ -6,7 +6,7 @@ collection: series-temporais
 node: series/mann_kendall
 category: Tendência
 order: 2
-related: [series/f_trend, series/plot, series/runs]
+related: [models/anova_table, series/plot, series/runs]
 ---
 
 ## O que o bloco faz
@@ -23,7 +23,7 @@ costuma estar abaixo. A estatística Z é o S padronizado.
 
 Não supõe distribuição nenhuma para a série. É por isso que ele é o padrão onde
 o dado não é normal, que é o caso da maior parte das variáveis ambientais. O
-`series/f_trend` responde à mesma pergunta, mas cobra normalidade do erro em
+O F da tendência (`models/anova_table` sobre a `series/regression`) responde à mesma pergunta, mas cobra normalidade do erro em
 troca; quando os dois concordam, a conclusão tem chão.
 
 ### A tendência é MONOTÔNICA
@@ -131,7 +131,7 @@ poder aparente vem em parte do nível inflado. A regra de bloco do
 `modifiedmk::bbsmk` (autocorrelações significativas seguidas, mais um) dá
 blocos de 3 a 4 e rejeitou 17% a 19% com phi 0.6 (300 réplicas); por isso o
 bloco aqui é √n. Com autocorrelação forte, prefira modelar o erro
-(`series/regression` com **Erro** = `arma` e o `series/f_tendencia`).
+(`series/regression` com **Erro** = `arma` e o `models/anova_table`).
 
 ### Faltantes
 
@@ -171,7 +171,7 @@ num só quadro.
 
 ## Veja também
 
-`series/f_trend`, a mesma pergunta pela regressão; `series/adf` e
+o F da tendência (`models/anova_table` sobre a `series/regression`), a mesma pergunta pela regressão; `series/adf` e
 `series/kpss`, que perguntam por estacionariedade e não por tendência;
 `series/plot` para ver se o movimento é mesmo de um sentido só;
 `series/example` para uma série com tendência à mão.

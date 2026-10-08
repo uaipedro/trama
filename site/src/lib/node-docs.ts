@@ -29,10 +29,35 @@ export interface Referencia {
   nota?: I18nText;
 }
 
+/** Uma chamada a função de outro pacote, achada no código do bloco. */
+export interface Chamada {
+  pacote: string;
+  funcao: string;
+  codigo: string;
+  arquivo?: string;
+  linha?: number;
+  /** Função do pacote do bloco em que a chamada aparece. */
+  dentro: string;
+  /** Coincide com uma referência de implementação. */
+  principal: boolean;
+}
+
+/** Raio-x (tr_node_raiox): a função do bloco e onde a conta acontece. */
+export interface Raiox {
+  funcao: string;
+  arquivo?: string;
+  linha?: number;
+  chamadas: Chamada[];
+}
+
 export interface NodeDocs {
   pressupostos: Pressuposto[];
   referencias: Referencia[];
+  raiox?: Raiox;
 }
+
+/** Código no GitHub, na main (o site é reconstruído a partir dela). */
+export const REPO_BLOB = "https://github.com/uaipedro/trama/blob/main/";
 
 /** Idioma do site. Só português por ora; o inglês entra trocando isto. */
 export const SITE_LANG = "pt";
@@ -131,13 +156,67 @@ export function referenciaHast(r: Referencia, lang = SITE_LANG): Element {
 }
 
 /** `bibHref`: página da bibliografia completa; se dado, um link fecha a seção. */
+const linkCodigo = (arquivo?: string, linha?: number): ElementContent[] =>
+  arquivo
+    ? [el("a", "node-raiox__onde", [t(`${arquivo.replace(/^collections\//, "")}${linha ? `:${linha}` : ""}`)],
+        { href: `${REPO_BLOB}${arquivo}${linha ? `#L${linha}` : ""}`, rel: "noopener" })]
+    : [];
+
+function chamadaHast(c: Chamada): Element {
+  return el("li", null, [
+    el("pre", "node-raiox__codigo", [el("code", null, [t(c.codigo)])]),
+    el("p", "node-raiox__meta", [t(`em ${c.dentro}() · `), ...linkCodigo(c.arquivo, c.linha)])
+  ]);
+}
+
+/**
+ * "No código": a chamada que faz a conta (a que coincide com a referência de
+ * implementação) e, recolhidas, as outras funções de pacotes que o bloco usa.
+ * Sem chamada principal, a conta é do próprio trama: aponta a função.
+ */
+export function raioxHast(rx: Raiox | undefined): Element[] {
+  if (!rx) return [];
+  const principais = rx.chamadas.filter((c) => c.principal);
+  const outras = rx.chamadas.filter((c) => !c.principal);
+  const out: Element[] = [el("p", "node-raiox__titulo", [
+    el("span", "node-docs__rot", [t("No código")]),
+    t(" O bloco chama "), el("code", null, [t(`${rx.funcao}()`)]), t(", em "), ...linkCodigo(rx.arquivo, rx.linha), t(".")
+  ])];
+  if (principais.length) {
+    out.push(el("p", null, [t(principais.length > 1 ? "A conta é feita nestas chamadas:" : "A conta é feita nesta chamada:")]));
+    out.push(el("ul", "node-raiox", principais.map(chamadaHast)));
+  } else {
+    out.push(el("p", null, [t("A conta é implementada pelo próprio trama, sem um pacote R de referência por trás.")]));
+  }
+  if (outras.length) {
+    out.push(el("details", "node-raiox__outras", [
+      el("summary", null, [t(`Outras funções de pacotes que o bloco usa (${outras.length})`)]),
+      el("ul", "node-raiox", outras.map(chamadaHast))
+    ]));
+  }
+  return out;
+}
+
+/**
+ * "Implementação": o pacote cuja conta o bloco reproduz e, logo abaixo, o
+ * raio-x com a chamada em que ela acontece. Vem antes das referências.
+ */
+export function implementacaoHast(items: Referencia[], raiox?: Raiox, lang = SITE_LANG): Element[] {
+  const impl = items.filter((r) => r.papel === "implementacao");
+  if (!impl.length && !raiox) return [];
+  return [
+    el("h2", null, [t("Implementação")], { id: "implementacao" }),
+    ...(impl.length ? [el("ul", "node-refs", impl.map((r) => referenciaHast(r, lang)))] : []),
+    ...raioxHast(raiox)
+  ];
+}
+
 export function referenciasHast(items: Referencia[], lang = SITE_LANG, bibHref?: string): Element[] {
-  if (!items.length) return [];
+  const obras = items.filter((r) => r.papel !== "implementacao");
+  if (!obras.length) return [];
   const grupos = PAPEIS_REF.flatMap(([papel, rot]) => {
-    const grupo = items.filter((r) => r.papel === papel);
-    return grupo.length
-      ? [el("h3", null, [t(rot)]), el("ul", "node-refs", grupo.map((r) => referenciaHast(r, lang)))]
-      : [];
+    const grupo = obras.filter((r) => r.papel === papel);
+    return grupo.length ? [el("h3", null, [t(rot)]), el("ul", "node-refs", grupo.map((r) => referenciaHast(r, lang)))] : [];
   });
   const bib = bibHref
     ? [el("p", "node-refs__bib", [el("a", null, [t("Ver a bibliografia completa do trama")], { href: bibHref })])]

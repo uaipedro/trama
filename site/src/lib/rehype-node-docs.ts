@@ -8,7 +8,7 @@ import { join } from "node:path";
 import type { Element, ElementContent, Root, RootContent } from "hast";
 import type { VFile } from "vfile";
 import { frontmatterField, nodePages } from "./rehype-doc-links.ts";
-import { pressupostosHast, referenciasHast, SITE_LANG, type NodeDocs, type ResolveBlock } from "./node-docs.ts";
+import { implementacaoHast, pressupostosHast, referenciasHast, SITE_LANG, type NodeDocs, type ResolveBlock } from "./node-docs.ts";
 
 const text = (node: ElementContent | RootContent): string =>
   node.type === "text" ? node.value : "children" in node ? node.children.map(text).join("") : "";
@@ -24,14 +24,23 @@ export function afterSection(tree: Root, titulo: string): number {
   return end;
 }
 
+// Pressupostos entram logo depois de "Quando usar" (ou de "O que o bloco
+// faz"): são parte da decisão de usar o bloco. Referências e implementação vão
+// para o fim, depois de configuração, exemplo e interpretação: dizem de onde o
+// método vem e onde a conta é feita, e não podem empurrar o uso para baixo.
 export function insertNodeDocs(tree: Root, docs: NodeDocs, resolve: ResolveBlock, lang = SITE_LANG, bibHref?: string): void {
-  const secoes: Element[] = [...pressupostosHast(docs.pressupostos, resolve, lang), ...referenciasHast(docs.referencias, lang, bibHref)];
-  if (!secoes.length) return;
+  const press = pressupostosHast(docs.pressupostos, resolve, lang);
+  const fontes = [...implementacaoHast(docs.referencias, docs.raiox, lang), ...referenciasHast(docs.referencias, lang, bibHref)];
+  if (fontes.length) tree.children.push(el("section", "node-fontes", fontes));
+  if (!press.length) return;
   let at = afterSection(tree, "Quando usar");
   if (at < 0) at = afterSection(tree, "O que o bloco faz");
   if (at < 0) at = tree.children.length;
-  tree.children.splice(at, 0, ...secoes);
+  tree.children.splice(at, 0, ...press);
 }
+
+const el = (tagName: string, className: string, children: Element[]): Element =>
+  ({ type: "element", tagName, properties: { className: [className] }, children });
 
 function titleOf(page: string): string | undefined {
   const dir = join(process.cwd(), "src/content/docs");

@@ -76,9 +76,11 @@
       "views": {},
       "frames": {},
       "modes": {},
+      "saidas": {},
       "soltos": {},
       "notes": {},
-      "ocultos": {}
+      "ocultos": {},
+      "grupos": {}
     }
   }
 }

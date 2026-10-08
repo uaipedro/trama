@@ -6,7 +6,7 @@ collection: series-temporais
 node: series/seasonality_kw
 category: Tendência
 order: 2
-related: [series/f_seasonal, series/diff, series/transform]
+related: [models/anova_table, series/diff, series/transform]
 ---
 
 ## O que o bloco faz
@@ -18,7 +18,7 @@ sempre alto e julho é sempre baixo, as somas se afastam e o H cresce. H0 é "as
 estações têm a mesma distribuição" — sem sazonalidade —, e rejeitar é concluir
 que há.
 
-É o irmão não paramétrico do `series/f_seasonal`, que responde à mesma pergunta
+É o irmão não paramétrico do F da sazonalidade (`models/anova_table` sobre a `series/regression`), que responde à mesma pergunta
 pedindo erro normal em troca.
 
 ### Sazonalidade determinística
@@ -132,7 +132,7 @@ junta vários testes num só quadro.
 
 ## Veja também
 
-`series/f_seasonal`, a mesma pergunta pedindo erro normal em troca;
+o F da sazonalidade (`models/anova_table` sobre a `series/regression`), a mesma pergunta pedindo erro normal em troca;
 `series/diff` para tirar a tendência antes do teste, ou para a diferença sazonal
 quando a sazonalidade é estocástica; `series/transform`, o log que estabiliza a
 variância e que NÃO muda este teste; `series/seasonal_plot` e `series/subseries`

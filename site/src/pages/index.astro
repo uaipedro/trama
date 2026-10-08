@@ -1,60 +1,175 @@
 ---
 import Base from "../layouts/Base.astro";
-import CollectionCard from "../components/CollectionCard.astro";
 import { collections } from "../data/collections";
-import { control } from "../data/copy-variants";
+import docs from "../data/node-docs.json";
+import { resolveText, type NodeDocs } from "../lib/node-docs";
+import { blockResolver } from "../lib/rehype-node-docs";
+import { resumoReferencias } from "../lib/bibliografia";
 
+// O exemplo da home é a ajuda real da ANOVA em DBC, lida do mesmo JSON das
+// páginas de bloco. Os pressupostos se dividem pelo campo `verificar`: os que
+// apontam um bloco são avaliados com os dados; os outros dependem do
+// planejamento. Se a ajuda mudar, a home muda junto.
+const todos = docs as unknown as Record<string, NodeDocs>;
+const dbc = todos["models/anova_dbc"];
+const resolver = blockResolver("/trama");
+const inline = (texto: string) =>
+  texto
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+const comDados = dbc.pressupostos.filter((p) => p.verificar?.length);
+const doPlanejamento = dbc.pressupostos.filter((p) => !p.verificar?.length);
+const autoresCurtos = (a: string[]) =>
+  a.map((x) => x.split(",")[0].replace("Pimentel-Gomes", "Pimentel-Gomes")).join(" e ");
+const livros = dbc.referencias.filter((x) => x.papel !== "implementacao");
+const impl = dbc.referencias.find((x) => x.papel === "implementacao");
+const r = resumoReferencias(todos);
+const extenso = (n: number) => ["zero", "um", "dois", "três", "quatro", "cinco", "seis"][n] ?? String(n);
+const Extenso = (n: number) => { const e = extenso(n); return e[0].toUpperCase() + e.slice(1); };
 ---
 
-<Base title="trama" description={control.copy.metaDescription}>
+<Base title="trama" description="Análise estatística em R, bloco a bloco. Cada bloco mostra o próprio resultado e traz os pressupostos do método e as referências em que ele se apoia.">
   <div data-pagefind-body>
   <section class="home-hero">
     <div class="home-hero__copy">
-      <p class="home-hero__subtitle" data-copy="subtitle">{control.copy.subtitle}</p>
-      <h1 data-copy="title">{control.copy.title}</h1>
-      <p class="lede" data-copy="lede">{control.copy.lede}</p>
+      <h1 class="home-hero__titulo">Análise estatística em R, bloco a bloco</h1>
+      <p class="lede">No trama, cada etapa da análise é um bloco: um lê os dados, outro ajusta o modelo, outro faz o teste ou desenha o gráfico. O resultado de cada etapa fica à mostra, e os blocos estatísticos vêm acompanhados dos pressupostos do método e das referências em que ele se apoia.</p>
       <div class="home-hero__actions">
-        <a class="button button--primary" href="/trama/comece/primeiro-fluxo/"><span data-copy="ctaPrimary">{control.copy.ctaPrimary}</span> <span aria-hidden="true">→</span></a>
-        <a class="text-link" href="/trama/colecoes/"><span data-copy="ctaSecondary">{control.copy.ctaSecondary}</span></a>
+        <a class="button button--primary" href="/trama/comece/primeiro-fluxo/">Fazer o primeiro fluxo <span aria-hidden="true">→</span></a>
+        <a class="text-link" href="/trama/por-dentro/instalacao/">Como instalar</a>
       </div>
-      <p class="home-install-link"><a href="/trama/por-dentro/instalacao/">Instalar o trama</a> — programa para Windows e Linux, ou pacote no seu R.</p>
+      <p class="home-install-link">É livre e gratuito. Funciona como programa no Windows e no Linux ou como pacote do R.</p>
     </div>
     <figure class="flow-reel flow-reel--hero flow-reel--landscape">
-      <div class="flow-reel__meta"><span><i aria-hidden="true"></i> montagem real</span><span>Dados</span></div>
+      <div class="flow-reel__meta"><span><i aria-hidden="true"></i> montagem real</span><span>Modelos</span></div>
       <button class="flow-reel__fullscreen" type="button" data-flow-fullscreen aria-label="Abrir a montagem real em tela cheia">Tela cheia <span aria-hidden="true">↗</span></button>
-      <video data-flow-video autoplay muted loop playsinline preload="metadata" poster="/trama/montagens/fluxo-em-montagem.jpg">
-        <source src="/trama/montagens/fluxo-em-montagem.mp4" type="video/mp4" />
+      <video data-flow-video autoplay muted loop playsinline preload="metadata" poster="/trama/montagens/anova-dbc.jpg">
+        <source src="/trama/montagens/anova-dbc.mp4" type="video/mp4" />
         Seu navegador não consegue mostrar esta demonstração em vídeo.
       </video>
-      <figcaption>Ler, filtrar, agrupar e resumir: cada bloco mostra o próprio resultado.</figcaption>
+      <figcaption>ANOVA de um experimento em blocos casualizados, dos dados ao teste de médias.</figcaption>
     </figure>
   </section>
 
-  <section class="home-path" aria-labelledby="caminho-title">
-    <div class="home-path__copy">
-      <h2 id="caminho-title">Monte um primeiro fluxo em três blocos.</h2>
-      <p class="home-path__lede">Use uma tabela de exemplo para reconhecer a sequência: dado, inspeção e gráfico. Depois, troque o dado — não a forma de pensar.</p>
-      <p class="home-path__lede">Quando o fluxo cresce, o caminho continua ali: volte a qualquer bloco, confira o que entrou e saiu dele e siga a partir de uma etapa concreta.</p>
-      <a class="text-link home-path__link" href="/trama/comece/primeiro-fluxo/">Abrir o primeiro fluxo <span aria-hidden="true">→</span></a>
-    </div>
-    <figure class="flow-reel flow-reel--wide">
-      <div class="flow-reel__meta"><span><i aria-hidden="true"></i> fluxo conectado</span><span>Dados</span></div>
-      <button class="flow-reel__fullscreen" type="button" data-flow-fullscreen aria-label="Abrir o fluxo conectado em tela cheia">Tela cheia <span aria-hidden="true">↗</span></button>
-      <video data-flow-video autoplay muted loop playsinline preload="metadata" poster="/trama/montagens/fluxo-amplo.jpg">
-        <source src="/trama/montagens/fluxo-amplo.mp4" type="video/mp4" />
-        Seu navegador não consegue mostrar esta demonstração em vídeo.
-      </video>
-      <figcaption>Um fluxo real: ler, conhecer, filtrar, agregar e juntar.</figcaption>
-    </figure>
-  </section>
-
-  <section id="colecoes" class="home-collections" aria-labelledby="collections-title">
+  <section class="home-exemplo" aria-labelledby="exemplo-title">
     <div class="section-intro">
-      <h2 id="collections-title">Coleções disponíveis.</h2>
+      <h2 id="exemplo-title">Curadoria metodológica</h2>
+      <p class="home-path__lede">Escrever o código de uma análise ficou fácil. Saber se o método é adequado ao estudo e se a conta está certa continua exigindo cuidado, e no trama esse cuidado faz parte de cada bloco estatístico.</p>
     </div>
-    <div class="collection-cards">
-      {collections.map((collection) => <CollectionCard collection={collection} />)}
-    </div>
+    <dl class="curadoria">
+      <div>
+        <dt>A conta é testada</dt>
+        <dd>Testes automáticos comparam o resultado dos blocos com exemplos publicados ou com pacotes de referência, com tolerância declarada. Ainda há blocos sem esse teste, e a lista é pública. Se uma correção muda o resultado, a versão do bloco sobe e o fluxo salvo avisa.</dd>
+      </div>
+      <div>
+        <dt>O método é documentado</dt>
+        <dd>Cada bloco lista os pressupostos do método, indica como verificá-los e o que fazer quando não se sustentam. As referências são conferidas na fonte.</dd>
+      </div>
+      <div>
+        <dt>Os limites são declarados</dt>
+        <dd>O que depende do planejamento do estudo aparece como tal. Nenhum teste responde pela casualização ou pela independência das observações.</dd>
+      </div>
+    </dl>
   </section>
+
+  <section class="home-ajuda" aria-labelledby="ajuda-title">
+    <div class="section-intro">
+      <h2 id="ajuda-title">A documentação de cada bloco</h2>
+      <p class="home-path__lede">Um exemplo é a ANOVA em blocos casualizados. O bloco lista {extenso(dbc.pressupostos.length)} pressupostos. {Extenso(comDados.length)} podem ser avaliados com os próprios dados, e a ajuda indica o bloco que faz essa avaliação; {doPlanejamento.length === 1 ? "o outro depende" : "os outros dependem"} de como o experimento foi planejado.</p>
+    </div>
+    <div class="exemplo-ajuda">
+      <div class="exemplo-ajuda__col">
+        <h3>Avaliados com os dados</h3>
+        <ul class="exemplo-lista">
+          {comDados.map((p) => (
+            <li>
+              <p set:html={inline(resolveText(p.texto))} />
+              <p class="exemplo-lista__verif"><span>Verificar:</span>
+                {p.verificar!.map((id) => { const alvo = resolver(id); return alvo ? <a href={alvo.href}>{alvo.label}</a> : <code>{id}</code>; })}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class="exemplo-ajuda__col">
+        <h3>Garantidos pelo planejamento</h3>
+        <ul class="exemplo-lista exemplo-lista--estudo">
+          {doPlanejamento.map((p) => (
+            <li>
+              <p set:html={inline(resolveText(p.texto))} />
+              {p.se_falhar && <p class="exemplo-lista__falha" set:html={inline(resolveText(p.se_falhar))} />}
+            </li>
+          ))}
+        </ul>
+        <h3>De onde vem o método</h3>
+        <p class="exemplo-ajuda__refs">{livros.map((x, i) => <>{i > 0 && (i === livros.length - 1 ? " e " : ", ")}{autoresCurtos(x.autores ?? [])} ({x.ano})</>)}. A conta é feita pela função <code>{impl?.pacote}::{impl?.funcao}</code>.</p>
+        <a class="text-link" href="/trama/colecoes/modelos/anova-dbc/">Ajuda completa do bloco <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <p class="home-exemplo__nota">Hoje são {r.blocosComPressupostos} blocos com pressupostos documentados e {r.obras} obras citadas. Veja <a href="/trama/rigor/">como as contas são conferidas</a> e o registro de cada revisão.</p>
+  </section>
+
+  <section class="home-documento" aria-labelledby="documento-title">
+    <div class="home-documento__texto">
+      <h2 id="documento-title">A análise vira um documento</h2>
+      <p class="home-path__lede">Um fluxo pode ser exportado como script R ou como documento Quarto, que rodam sem o trama. Cada bloco vira um trecho de código com os parâmetros usados, e no final entram as referências dos métodos e as versões dos pacotes.</p>
+      <p class="home-path__lede">É o material que acompanha um relatório, um artigo ou uma lista de exercícios, e que outra pessoa consegue ler e executar.</p>
+    </div>
+    <figure class="home-documento__codigo">
+      <pre><code><span class="c">```{"{"}r{"}"}</span>
+anova_dbc &lt;- trama.models::tr_models_anova_dbc(
+  dados = exemplo_de_modelos, resposta = "producao",
+  tratamento = "hibrido", bloco = "bloco")
+<span class="c">```</span>
+
+<span class="h">## Referências dos métodos</span>
+
+- Banzatto, D. A.; Kronka, S. N. (2006).
+  Experimentação agrícola. 4. ed. Funep.
+- Pimentel-Gomes, F. (2009). Curso de
+  estatística experimental. 15. ed. FEALQ.
+- Pacote R `stats`, função `aov()`, versão 4.6.0.
+- Tukey, J. W. (1949). Comparing individual
+  means in the analysis of variance. Biometrics.</code></pre>
+      <figcaption>Trecho da exportação em Quarto do modelo “ANOVA em blocos com comparação de médias”, encurtado.</figcaption>
+    </figure>
+  </section>
+
+  <section class="home-comece" aria-labelledby="comece-title">
+    <h2 id="comece-title" class="h2-menor">Para começar</h2>
+    <ul class="comece-lista">
+      <li><a href="/trama/comece/primeiro-fluxo/"><strong>Primeiro fluxo</strong><span>Tutorial curto com uma tabela de exemplo: ler, examinar e fazer um gráfico.</span></a></li>
+      <li><a href="/trama/templates/"><strong>Modelos prontos</strong><span>Fluxos completos para abrir no editor, como a ANOVA acima.</span></a></li>
+      <li><a href="/trama/colecoes/"><strong>Coleções</strong><span>{collections.map((c) => c.title).join(", ")}.</span></a></li>
+      <li><a href="/trama/por-dentro/instalacao/"><strong>Instalação</strong><span>Programa para Windows e Linux, ou pacote do R.</span></a></li>
+    </ul>
+  </section>
+
+  <section class="home-roteiro" aria-labelledby="roteiro-title">
+    <div class="section-intro">
+      <h2 id="roteiro-title" class="h2-menor">O que está em andamento</h2>
+      <p class="home-path__lede">Os próximos passos são organizados pelos problemas que queremos resolver, e não por funcionalidade.</p>
+    </div>
+    <ol class="roteiro-lista">
+      <li>
+        <p class="roteiro-lista__estado">Em desenho</p>
+        <h3>Registrar como cada pressuposto foi avaliado</h3>
+        <p>Guardar no fluxo qual bloco serviu de evidência e com que resultado, e quem conferiu. Quando a evidência vier de um teste, o fluxo diz qual; o julgamento continua sendo de uma pessoa.</p>
+      </li>
+      <li>
+        <p class="roteiro-lista__estado">Em desenho</p>
+        <h3>Guardar as informações do estudo</h3>
+        <p>Delineamento, unidade experimental, origem dos dados e se a análise foi planejada ou exploratória. Os blocos perguntam só quando precisam, e "não sei" é uma resposta aceita.</p>
+      </li>
+      <li>
+        <p class="roteiro-lista__estado">Aberto a colaboração</p>
+        <h3>Revisão por professores e pesquisadores</h3>
+        <p>Cada revisão terá nome, data e a versão do bloco revisado. Ela cobre a implementação e a documentação do método, e não as análises feitas com ele.</p>
+      </li>
+    </ol>
+    <p class="home-roteiro__links"><a class="text-link" href="/trama/roteiro/">Roteiro completo</a> · <a class="text-link" href="https://github.com/uaipedro/trama/issues">Propor uma revisão ou apontar um problema</a></p>
+  </section>
+
   </div>
 </Base>

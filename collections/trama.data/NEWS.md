@@ -1,3 +1,7 @@
+# trama.data 0.4.3
+
+* Templates regenerados com o formato atual do documento (saídas nomeadas e grupos do trama 0.5.10); o `data/summary` passa à versão 2. Pede `trama (>= 0.5.10)`.
+
 # trama.data 0.4.2
 
 * O card do `data/table` volta a mostrar só as linhas: sai a linha de perfil
