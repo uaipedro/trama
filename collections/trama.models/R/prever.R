@@ -107,8 +107,8 @@
 #' Prevê a resposta de um modelo: em dados novos, ou no próprio treino.
 #'
 #' @param modelo Um `models/fit`. Não a parcela subdividida — o ajuste dela é
-#'   uma LISTA de modelos (`aovlist`, um por estrato de erro), sem um único
-#'   `predict()` que valha; o card diz para usar o misto equivalente.
+#'   um `lm` com `bloco:parcela` fixo, cujo `predict()` só vale para as
+#'   parcelas já vistas; o card diz para usar o misto equivalente.
 #' @param dados A tabela nova, ou `NULL`: sem ela, prevê as linhas do ajuste,
 #'   pela `validacao`.
 #' @param validacao Só sem `dados`: `"resubstituição"` (o modelo completo

@@ -144,31 +144,27 @@
   list(tabela = tab, coluna = if (usa_f) "F" else "qui2")
 }
 
-#' O quadro da parcela subdividida: os estratos numa tabela só.
+#' O quadro da parcela subdividida: os dois erros numa tabela só.
 #'
-#' O `summary.aovlist` não testa o bloco (fica sozinho no estrato dele); o
-#' quadro dos livros o testa contra o erro a, e é o que se faz aqui.
+#' Sai do `anova()` sequencial do `lm` com `bloco:parcela` fixo. A linha
+#' `bloco:parcela` é o erro a, que testa o bloco e o fator da parcela; o
+#' resíduo é o erro b, que testa a subparcela e a interação.
 #' @noRd
 .tr_models_quadro_split <- function(fit) {
-  s <- summary(fit$ajuste)
-  pega <- function(estrato) {
-    nm <- grep(paste0("^Error: ", estrato, "$"), names(s), value = TRUE)
-    if (!length(nm)) return(NULL)
-    a <- as.data.frame(s[[nm]][[1]])
-    data.frame(termo = trimws(rownames(a)), gl = a$Df, sq = a$`Sum Sq`, qm = a$`Mean Sq`,
-               F = if ("F value" %in% names(a)) a$`F value` else NA_real_,
-               p_valor = if ("Pr(>F)" %in% names(a)) a$`Pr(>F)` else NA_real_)
-  }
-  blc <- fit$bloco; a <- fit$tratamentos[[1]]
-  e1 <- pega(blc)
-  e2 <- pega(paste0(blc, ":", a))
-  e3 <- pega("Within")
-  e2$termo[e2$termo == "Residuals"] <- "Resíduo (a)"
-  e3$termo[e3$termo == "Residuals"] <- "Resíduo (b)"
-  qm_a <- e2$qm[e2$termo == "Resíduo (a)"]; gl_a <- e2$gl[e2$termo == "Resíduo (a)"]
-  e1$F <- e1$qm / qm_a
-  e1$p_valor <- stats::pf(e1$F, e1$gl, gl_a, lower.tail = FALSE)
-  .tr_models_com_total(rbind(e1, e2, e3), fit)
+  a <- as.data.frame(stats::anova(fit$ajuste))
+  tab <- data.frame(termo = trimws(rownames(a)), gl = a$Df, sq = a$`Sum Sq`, qm = a$`Mean Sq`,
+                    F = a$`F value`, p_valor = a$`Pr(>F)`)
+  blc <- fit$bloco; pa <- fit$tratamentos[[1]]
+  ea <- tab$termo %in% c(paste0(blc, ":", pa), paste0(pa, ":", blc))
+  tab$termo[ea] <- "Resíduo (a)"
+  tab$termo[tab$termo == "Residuals"] <- "Resíduo (b)"
+  tab$F[ea] <- NA_real_; tab$p_valor[ea] <- NA_real_
+  i <- tab$termo %in% c(blc, pa)
+  qm_a <- tab$qm[ea]; gl_a <- tab$gl[ea]
+  tab$F[i] <- tab$qm[i] / qm_a
+  tab$p_valor[i] <- stats::pf(tab$F[i], tab$gl[i], gl_a, lower.tail = FALSE)
+  # Na ordem dos livros: bloco, parcela, erro a, subparcela, interação, erro b.
+  .tr_models_com_total(tab[c(which(i), which(ea), which(!i & !ea)), ], fit)
 }
 
 #' CV% e média geral, nos modelos em que fazem sentido (resposta numérica,

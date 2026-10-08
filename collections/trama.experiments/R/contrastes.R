@@ -243,14 +243,13 @@
 #'
 #' Soma os termos cujas variáveis estão todas em `alvo` e que contêm `fator`:
 #' sem desdobramento, só o termo do fator; desdobrado dentro de B, fator + fator:B;
-#' no 2^k, todos os termos do tratamento. Na parcela subdividida, procura em
-#' todos os estratos do `aov` com `Error()`. No misto genérico não há quadro de
+#' no 2^k, todos os termos do tratamento. Na parcela subdividida, o quadro é o
+#' do `lm` com `bloco:parcela` fixo (o termo do bloco fica fora do alvo). No misto genérico não há quadro de
 #' SQ comparável, e a conferência fica em branco.
 #' @noRd
 .tr_exp_an_sq_alvo <- function(modelo, fatores, alvo) {
   quadro <- switch(modelo$classe,
-    lm = { a <- as.data.frame(stats::anova(modelo$ajuste)); list(a) },
-    split = lapply(summary(modelo$ajuste), function(s) as.data.frame(s[[1]])),
+    lm = , split = list(as.data.frame(stats::anova(modelo$ajuste))),
     NULL)
   if (is.null(quadro)) return(list(sq = NA_real_, gl = NA_real_))
   sq <- 0; gl <- 0; achou <- FALSE

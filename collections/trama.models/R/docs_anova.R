@@ -22,19 +22,19 @@
   aditiv <- P("**Aditividade**: o efeito do tratamento é o mesmo em todo bloco (não há interação bloco × tratamento).",
               verificar = "models/tukey_additivity",
               se_falhar = "Uma transformação (quase sempre o log) costuma devolver a aditividade.")
-  aov_nota <- "`aov` com os fatores do desenho convertidos em fator; o quadro é a soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
+  lm_nota <- "`lm` com os fatores do desenho convertidos em fator; o quadro é o `anova()` dele, soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
   list(
     "models/anova_dic" = list(
       pressupostos = list(casualizacao("nas parcelas sem restrição"),
         P("As parcelas são **homogêneas**: não há fonte de variação conhecida (área, dia, lote) que devesse ter virado bloco.",
           se_falhar = "Se houve bloco, use o `models/anova_dbc`."),
         normal_dic, homog_dic),
-      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
+      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "lm", lm_nota))),
 
     "models/anova_dbc" = list(
       pressupostos = list(casualizacao("dentro de cada bloco, com todos os tratamentos em todo bloco"),
         aditiv, normal_dbc, homog),
-      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
+      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "lm", lm_nota))),
 
     "models/anova_dql" = list(
       pressupostos = list(casualizacao("com cada tratamento uma vez em cada linha e em cada coluna"),
@@ -42,7 +42,7 @@
           verificar = "models/tukey_additivity",
           se_falhar = "Transforme a resposta; o delineamento não tem gl para estimar essas interações."),
         normal, homog),
-      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
+      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "lm", lm_nota))),
 
     "models/anova_factorial" = list(
       pressupostos = list(casualizacao("entre as combinações dos fatores (nas parcelas, ou dentro dos blocos)"),
@@ -52,7 +52,7 @@
         P("Todas as combinações dos fatores foram observadas; com parcelas perdidas, o quadro sequencial depende da ordem dos fatores.",
           verificar = "models/anova_table",
           se_falhar = "No desbalanceado, leia o `models/anova_table` com SQ tipo II ou III e compare médias ajustadas no `models/emmeans`.")),
-      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "aov", aov_nota))),
+      referencias = list(L$banzatto, L$pimentel, L$montgomery, I("stats", "lm", lm_nota))),
 
     "models/anova_split_plot" = list(
       pressupostos = list(
@@ -66,7 +66,7 @@
         P("Se a subparcela é **tempo** ou medida repetida (não sorteada dentro da parcela), a análise com dois erros supõe **esfericidade** (simetria composta): a correlação entre duas medidas da mesma parcela é igual para qualquer par de tempos.",
           se_falhar = "Sem esfericidade (tempos próximos mais correlacionados que distantes), o F da subparcela fica liberal. O `models/lmer` só aceita efeitos aleatórios, não uma estrutura de correlação no erro (como AR(1)); é lacuna registrada na revisão metodológica.")),
       referencias = list(L$banzatto, L$pimentel, L$montgomery,
-        I("stats", "aov", "Com `Error(bloco/parcela)`: o quadro sai dos estratos, com o bloco testado contra o erro (a). Médias e comparações usam o misto equivalente em `lmerTest::lmer` com `(1 | bloco:parcela)`."))),
+        I("stats", "lm", "Com `bloco:parcela` fixo: o quadro é o `anova()` sequencial, com o bloco e a parcela testados contra `bloco:parcela` (erro a) e a subparcela e a interação contra o resíduo (erro b). Médias e comparações usam o misto equivalente em `lmerTest::lmer` com `(1 | bloco:parcela)`."))),
 
     "models/anova_table" = list(
       pressupostos = list(
@@ -76,7 +76,7 @@
           se_falhar = "No desbalanceado, prefira o tipo II quando não há interação, e o III quando há.")),
       referencias = list(L$searle, L$fox, L$montgomery,
         I("nlme", "anova.gls", "No GLS, `type = \"sequential\"` (tipo I) ou `\"marginal\"` (tipo III, com os fatores reajustados em `contr.sum`)."),
-        I("stats", "anova", "Tipo I (`lm`, `aov`, `glm`: F ou qui-quadrado conforme a dispersão da família); no misto, `anova` do `lmerTest` com gl de Satterthwaite."),
+        I("stats", "anova", "Tipo I (`lm`, `glm`: F ou qui-quadrado conforme a dispersão da família); no misto, `anova` do `lmerTest` com gl de Satterthwaite."),
         I("car", "Anova", "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo (também o `glmer`) é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`.")))
   )
 }

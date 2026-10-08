@@ -368,11 +368,12 @@ tr_models_gls <- function(dados, formula = "", correlacao = "ar1", grupo = "", t
 
 # ---- Delineamentos ------------------------------------------------------------
 
-#' O miolo de todo delineamento: conferir, fatorar e ajustar o `aov`.
+#' O miolo de todo delineamento: conferir, fatorar e ajustar o `lm`.
 #'
-#' `aov`, e não `lm`: é o mesmo ajuste, com a classe que o `emmeans`, o `car` e
-#' o `summary` tratam como experimento. Os fatores do desenho viram fator AQUI —
-#' é a diferença entre estes blocos e o `models/lm`.
+#' `lm`, e não `aov`: é o mesmo ajuste, e o `lm` é o geral — o quadro sai do
+#' `anova()` (SQ sequencial, idêntico ao `summary.aov`), e `emmeans` e `car`
+#' tratam os dois igual. Os fatores do desenho viram fator AQUI — é a diferença
+#' entre estes blocos e o `models/lm`.
 #' @noRd
 .tr_models_delineamento <- function(dados, resposta, tratamentos, controles, rhs, rotulo, sigla, no) {
   resp <- .tr_models_col(dados, resposta, "resposta")
@@ -386,7 +387,7 @@ tr_models_gls <- function(dados, formula = "", correlacao = "ar1", grupo = "", t
   p <- .tr_models_preparar(dados, c(resp, fatores), no, fatores = fatores)
   f <- stats::as.formula(paste(.tr_models_bt(resp), "~", rhs))
   environment(f) <- globalenv()
-  ajuste <- .tr_models_ajustar(stats::aov(f, data = p$dados), no)
+  ajuste <- .tr_models_ajustar(stats::lm(f, data = p$dados), no)
   .tr_models_gl_residuo(ajuste, no)
   .tr_models_fit_obj(ajuste, "lm", paste("ANOVA ·", rotulo), f, p$dados, resp,
                      delineamento = sigla, tratamentos = tratamentos,
@@ -432,7 +433,7 @@ tr_models_anova_dql <- function(dados, resposta = "", tratamento = "", linha = "
                                  paste(.tr_models_bt(lin), "+", .tr_models_bt(col), "+", .tr_models_bt(trat)),
                                  "DQL", "DQL", "models/anova_dql")
   # O quadrado latino tem o MESMO número de linhas, colunas e tratamentos. Fora
-  # disso o `aov` ajusta sem reclamar, e o quadro é de outro delineamento.
+  # disso o `lm` ajusta sem reclamar, e o quadro é de outro delineamento.
   k <- vapply(c(lin, col, trat), function(v) nlevels(fit$dados[[v]]), 1L)
   if (length(unique(k)) != 1L) {
     .tr_models_abort("tr_models_error_bad_option",
@@ -468,10 +469,12 @@ tr_models_anova_factorial <- function(dados, resposta = "", fatores = "", bloco 
 #' interação. Um `lm` com um erro só testaria o fator da parcela contra o erro
 #' errado — com gl a mais e p-valor pequeno demais, que é o engano clássico.
 #'
-#' Guarda três ajustes: o `aov` com `Error()` (o quadro), um `lm` com
-#' `bloco:parcela` fixo (os resíduos do erro b, para os pressupostos) e o
-#' `lmer` com `(1 | bloco:parcela)`, que dá os mesmos F no balanceado e é o
-#' que o `emmeans` sabe usar — sobre o `aovlist` ele devolve erro padrão NaN.
+#' Ajusta um `lm` com `bloco:parcela` fixo: o quadro sequencial dele tem os
+#' dois erros (`bloco:parcela` é o erro a; o resíduo, o erro b), e o bloco e o
+#' fator da parcela são testados contra o erro a — o mesmo quadro do
+#' `aov(... + Error(bloco/parcela))`, sem o `aovlist`. Guarda também o `lmer`
+#' com `(1 | bloco:parcela)`, que dá os mesmos F no balanceado e é o que o
+#' `emmeans` usa nas médias e comparações.
 #' @inheritParams tr_models_anova_dic
 #' @param parcela coluna do fator da parcela.
 #' @param subparcela coluna do fator da subparcela.
@@ -491,14 +494,12 @@ tr_models_anova_split_plot <- function(dados, resposta = "", parcela = "", subpa
   p <- .tr_models_preparar(dados, c(resp, a, b, blc), no, fatores = c(a, b, blc))
   R <- .tr_models_bt(resp); A <- .tr_models_bt(a); B <- .tr_models_bt(b); K <- .tr_models_bt(blc)
   fm <- function(txt) { f <- stats::as.formula(txt); environment(f) <- globalenv(); f }
-  f <- fm(sprintf("%s ~ %s + %s * %s + Error(%s/%s)", R, K, A, B, K, A))
-  ajuste <- .tr_models_ajustar(stats::aov(f, data = p$dados), no)
-  aux_lm <- .tr_models_ajustar(stats::lm(fm(sprintf("%s ~ %s + %s + %s:%s + %s + %s:%s", R, K, A, K, A, B, A, B)),
-                                         data = p$dados), no)
-  .tr_models_gl_residuo(aux_lm, no)
+  f <- fm(sprintf("%s ~ %s + %s + %s:%s + %s + %s:%s", R, K, A, K, A, B, A, B))
+  ajuste <- .tr_models_ajustar(stats::lm(f, data = p$dados), no)
+  .tr_models_gl_residuo(ajuste, no)
   aux <- .tr_models_ajustar(.tr_models_capturar(
     lmerTest::lmer(fm(sprintf("%s ~ %s + %s * %s + (1 | %s:%s)", R, K, A, B, K, A)), data = p$dados)), no)
   .tr_models_fit_obj(ajuste, "split", "ANOVA · parcela subdividida", f, p$dados, resp,
                      delineamento = "split_plot", tratamentos = c(a, b), bloco = blc,
-                     aux_lm = aux_lm, aux_misto = .tr_models_embutir_dados(aux$valor, p$dados), descartadas = p$descartadas)
+                     aux_lm = ajuste, aux_misto = .tr_models_embutir_dados(aux$valor, p$dados), descartadas = p$descartadas)
 }

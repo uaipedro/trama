@@ -61,6 +61,7 @@ test_that("delineamentos reproduzem o quadro do aov e transformam o desenho em f
   d <- ex("ToothGrowth")
   fa <- tr_models_anova_factorial(d, "len", "supp, dose")
   expect_true(is.factor(fa$dados$dose))
+  expect_identical(class(fa$ajuste), "lm")
   ref <- summary(stats::aov(len ~ supp * factor(dose), data = d))[[1]]
   q <- tr_models_anova_table(fa)$tabela
   expect_equal(q$F[1:3], unname(ref$`F value`[1:3]), tolerance = 1e-10)
@@ -97,6 +98,15 @@ test_that("parcela subdividida: erros (a) e (b) como no livro, e o misto dá os 
                           "variedade:nitrogenio", "Resíduo (b)", "Total"))
   expect_equal(q$gl, c(5, 2, 10, 3, 6, 45, 71))
   expect_equal(sum(q$sq[q$termo != "Total"]), q$sq[q$termo == "Total"])
+  # O `lm` com bloco:parcela fixo dá o quadro dos estratos do `aov` com Error().
+  expect_identical(class(sp$ajuste), "lm")
+  ref <- summary(stats::aov(producao ~ factor(bloco) + factor(variedade) * factor(nitrogenio) +
+                              Error(factor(bloco) / factor(variedade)), data = av))
+  ea <- as.data.frame(ref[[2]][[1]]); eb <- as.data.frame(ref[[3]][[1]])
+  expect_equal(q$F[q$termo == "variedade"], ea$`F value`[1], tolerance = 1e-10)
+  expect_equal(q$qm[q$termo == "Resíduo (a)"], ea$`Mean Sq`[2], tolerance = 1e-10)
+  expect_equal(q$F[q$termo %in% c("nitrogenio", "variedade:nitrogenio")], eb$`F value`[1:2], tolerance = 1e-10)
+  expect_equal(q$qm[q$termo == "Resíduo (b)"], eb$`Mean Sq`[3], tolerance = 1e-10)
   a3 <- as.data.frame(stats::anova(sp$aux_misto, type = 3))
   expect_equal(q$F[q$termo == "variedade"], a3["variedade", "F value"], tolerance = 1e-6)
   expect_equal(q$F[q$termo == "nitrogenio"], a3["nitrogenio", "F value"], tolerance = 1e-6)

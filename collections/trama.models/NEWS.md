@@ -1,3 +1,8 @@
+# trama.models 0.6.6
+
+* Delineamentos (DIC, DBC, DQL, fatorial) ajustados com `lm` em vez de `aov`; o quadro sai do `anova()` do `lm`, com os mesmos números.
+* Parcela subdividida sem `aov(... + Error())`: `lm` com `bloco:parcela` fixo, bloco e parcela testados contra o erro (a), subparcela e interação contra o erro (b). Mesmo quadro dos estratos. Um ajuste salvo em RDS antes desta versão precisa ser refeito.
+
 # trama.models 0.6.5
 
 * Templates regenerados com o formato atual do documento (saídas nomeadas e grupos do trama 0.5.10). Pede `trama (>= 0.5.10)`.

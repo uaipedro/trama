@@ -73,9 +73,15 @@ test_that("controle: cada tratamento contra o controle (Dunnett), não ortogonal
   expect_match(r$out$rodape$soma, "não ortogonais")
 })
 
+# Oráculo independente do ajuste: o `aov` com `Error()` sobre os mesmos dados.
+quadro_estratos <- function(ms) {
+  summary(stats::aov(producao ~ bloco + variedade * nitrogenio + Error(bloco / variedade),
+                     data = as.data.frame(ms$dados)))
+}
+
 test_that("parcela subdividida: cada contraste usa o seu erro (a ou b)", {
   ms <- split_aveia()
-  q <- summary(ms$ajuste)
+  q <- quadro_estratos(ms)
   erro_a <- q[["Error: bloco:variedade"]][[1]]; erro_b <- q[["Error: Within"]][[1]]
   qm_a <- erro_a["Residuals", "Mean Sq"]; qm_b <- erro_b["Residuals", "Mean Sq"]
   v <- tr_experiments_contrasts(ms, "variedade", "helmert")$out$tabela
@@ -94,7 +100,7 @@ test_that("desdobramento da interação: soma = SQ(N) + SQ(N × V), estimativas 
                                 dentro = "variedade")
   t <- r$out$tabela
   expect_equal(nrow(t), 9L)
-  w <- summary(ms$ajuste)[["Error: Within"]][[1]]
+  w <- quadro_estratos(ms)[["Error: Within"]][[1]]
   alvo <- sum(w[trimws(rownames(w)) %in% c("nitrogenio", "variedade:nitrogenio"), "Sum Sq"])
   expect_equal(sum(t$sq), alvo, tolerance = 1e-8)
   em <- summary(emmeans::contrast(emmeans::emmeans(ms$aux_misto, "nitrogenio", by = "variedade"), "poly"))

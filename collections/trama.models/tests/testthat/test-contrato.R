@@ -80,7 +80,7 @@ test_that("predict_cv: resubstituição é o ajustado; a cruzada do lm é o LOO 
     unname(predict(lm(mpg ~ wt + hp, data = mt[-i, ]), newdata = mt[i, ]))
   }, numeric(1))
   expect_equal(tr_models_predict_cv(m, "cruzada")$previsto, loo)
-  # O delineamento (um `aov`) pela mesma fórmula fechada.
+  # O delineamento (um `lm`) pela mesma fórmula fechada.
   d <- milho_dbc()$dados
   loo_d <- vapply(seq_len(nrow(d)), function(i) {
     unname(predict(lm(producao ~ bloco + hibrido, data = d[-i, ]), newdata = d[i, ]))

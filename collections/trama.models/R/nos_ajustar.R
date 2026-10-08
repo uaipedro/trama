@@ -610,7 +610,9 @@ sai para os dois erros.
 
 ### Por dentro
 
-O quadro é o do `aov` com `Error(bloco/parcela)`. As médias e comparações usam
+O quadro é o `anova()` de um `lm` com `bloco:parcela` fixo: bloco e parcela
+testados contra `bloco:parcela` (erro a), o resto contra o resíduo (erro b) —
+o mesmo quadro do `aov` com `Error(bloco/parcela)`. As médias e comparações usam
 o misto equivalente `(1 | bloco:parcela)`, que dá os mesmos F no balanceado e
 erros padrão corretos para cada comparação; os pressupostos usam os resíduos do
 erro (b). Para dados desbalanceados, ajuste esse misto no `models/lmer`.

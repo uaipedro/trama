@@ -543,8 +543,7 @@ tr_models_coefs.tr_models_split <- function(x, ...) {
   intervalo <- .tr_models_enum(intervalo, .TR_MODELS_INTERVALOS_COEF, "intervalo")
   aj <- x$ajuste
   glm <- x$classe == "glm"
-  # `summary.lm` explícito: nos delineamentos o ajuste é um `aov`, e o
-  # `summary()` dele é o quadro, sem coeficientes.
+  # `summary.lm` explícito: vale para qualquer ajuste de mínimos quadrados.
   s <- if (glm) stats::coef(summary(aj)) else stats::coef(stats::summary.lm(aj))
   # GLM: Wald no padrão (como sempre); `perfilado` é o perfil de
   # verossimilhança do `stats::confint` (o do MASS), com z e p de Wald.
@@ -658,8 +657,8 @@ tr_models_predict_raw.tr_models_split <- function(x, novos, ...) .tr_models_spli
 
 .tr_models_split_sem_predict <- function() {
   .tr_models_abort("tr_models_error_not_applicable",
-                   paste0("'models/predict' não se aplica à parcela subdividida: o ajuste é uma ",
-                          "lista de modelos (aovlist, um por estrato de erro), sem um predict() só. ",
+                   paste0("'models/predict' não se aplica à parcela subdividida: o ajuste trata ",
+                          "a parcela (bloco:parcela) como efeito fixo e só prevê as parcelas já vistas. ",
                           "Ajuste o misto equivalente em 'models/lmer' para prever."))
 }
 

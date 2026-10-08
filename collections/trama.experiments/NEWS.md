@@ -1,3 +1,7 @@
+# trama.experiments 0.2.7
+
+* Contrastes na parcela subdividida leem o quadro do `lm` com `bloco:parcela` fixo. Requer trama.models 0.6.6.
+
 # trama.experiments 0.2.6
 
 * Cards que são gráfico seguem o tema padrão do projeto (antes ficavam no tema embutido, escuro). Requer trama 0.5.9.

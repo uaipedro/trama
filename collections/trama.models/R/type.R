@@ -48,8 +48,8 @@
 
 #' Monta o objeto do modelo.
 #'
-#' - `ajuste`: o `lm`/`aov`, `glm`, `lmerModLmerTest` ou, na parcela
-#'   subdividida, o `aovlist`.
+#' - `ajuste`: o `lm`, `glm` ou `lmerModLmerTest`; na parcela subdividida, o
+#'   `lm` com `bloco:parcela` fixo.
 #' - `classe`: `"lm"`, `"glm"`, `"lmer"` ou `"split"`. A classe S3 é
 #'   `c("tr_models_<classe>", "tr_models_fit")`, e é por ela que os genéricos do
 #'   contrato (`contrato.R`) despacham; o campo fica para os leitores que não são
@@ -61,8 +61,8 @@
 #'   depois do RDS.
 #' - `resposta`; `delineamento` (`NULL` fora dos blocos de ANOVA);
 #'   `tratamentos` (os fatores de tratamento, sem o bloco); `bloco`.
-#' - `aux_lm`: `lm` com os mesmos resíduos do erro de dentro (só na parcela
-#'   subdividida); `aux_misto`: o `lmer` equivalente, para as médias.
+#' - `aux_lm`: na parcela subdividida, o próprio `ajuste` (resíduos do erro
+#'   b); `aux_misto`: o `lmer` equivalente, para as médias.
 #' - `descartadas`: linhas com faltante que ficaram fora.
 #' - `nota`: o que o ajuste avisou (convergência, ajuste singular), em texto.
 #'   Fora de `.TR_MODELS_CAMPOS_FIT` de propósito: um RDS salvo antes dela

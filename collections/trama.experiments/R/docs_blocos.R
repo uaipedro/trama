@@ -45,7 +45,7 @@
   L <- .tr_exp_refs()
   sorteio_card <- "A semente é do card (não da sessão): o mesmo documento sorteia sempre os mesmos valores."
   anova_tab <- I("trama.models", "tr_models_anova_table",
-    "O p de cada réplica é o do termo no quadro de ANOVA (SQ tipo I) do modelo ajustado pela análise escolhida (`stats::aov`, `lme4`/`lmerTest` na parcela subdividida).")
+    "O p de cada réplica é o do termo no quadro de ANOVA (SQ tipo I) do modelo ajustado pela análise escolhida (`stats::lm`; `lme4`/`lmerTest` na parcela subdividida).")
   list(
     "experiments/design" = list(
       pressupostos = list(

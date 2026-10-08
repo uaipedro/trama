@@ -454,3 +454,23 @@ Teste: `collections/trama.spatial/tests/testthat/test-krigagem-oraculo.R`.
 
 Fora desta versão, e sem oráculo: a escolha entre famílias e a validação
 cruzada (`spatial/validation`, em `docs/propostas-blocos-estatistica-trama.md`).
+
+## Delineamentos ajustados com `lm` em vez de `aov` (08/10/2026)
+
+DIC, DBC, DQL e fatorial (`models/anova_dic`, `anova_dbc`, `anova_dql`,
+`anova_factorial`) passam a ajustar com `stats::lm`, por orientação do prof.
+Júlio Bueno: o `lm` é o modelo geral e o `aov` é só um invólucro dele. O quadro
+sai do `anova()` do `lm`, com a mesma soma de quadrados sequencial do
+`summary.aov`; `emmeans`, `car::Anova` e os testes de médias usam o mesmo
+ajuste. Os resultados não mudam (oráculo: `test-ajustar.R`, F do fatorial do
+`ToothGrowth` contra `summary(aov())`, tolerância 1e-10), por isso nenhuma
+`version` de nó sobe.
+
+A parcela subdividida (`models/anova_split_plot`) também deixa o
+`aov(... + Error(bloco/parcela))`: ajusta um `lm` com `bloco:parcela` fixo, e o
+quadro sai do `anova()` sequencial dele, com bloco e parcela testados contra
+`bloco:parcela` (erro a) e subparcela e interação contra o resíduo (erro b). É
+o quadro dos estratos (oráculo: `test-ajustar.R`, F e QM dos dois erros contra
+`summary(aov(... + Error()))` nos dados `aveia`, tolerância 1e-10). Médias e
+comparações seguem no `lmer` equivalente. Nenhum `stats::aov` resta no código
+das coleções.
