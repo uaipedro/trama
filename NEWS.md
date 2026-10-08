@@ -1,3 +1,7 @@
+# trama 0.5.11
+
+* `tr_node_raiox(node)`: percorre a função do bloco e as funções internas do mesmo pacote e devolve as chamadas a outros pacotes (`stats::aov(...)`, `lmerTest::lmer(...)`), com o código, o arquivo e a linha. O site usa isso na seção Implementação de cada página de bloco, para mostrar onde a conta de fato é feita.
+
 # trama 0.5.10
 
 * Saídas nomeadas: duplo clique no rótulo de uma saída dá a ela um nome; o card mostra o nome e toda entrada ligada mostra `porta ← nome`. Fica em `ui.saidas` do documento (op `set_saida`, cosmética: não muda resultado), acompanha desfazer, cópia, duplicação e templates.
