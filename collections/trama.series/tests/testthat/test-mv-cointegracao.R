@@ -27,15 +27,16 @@ test_that("Engle-Granger: p-valor de N = 1 igual ao punitroot (1e-10)", {
 })
 
 test_that("Engle-Granger: críticos assintóticos de MacKinnon para N = 2, constante", {
-  # Os críticos de MacKinnon (2010) para 2 variáveis e constante são -3,90,
-  # -3,34 e -3,04 a 1, 5 e 10%. O PDF do artigo (qed_wp_1227) NÃO foi aberto na
-  # conferência: o certificado do host falhou. O valor aqui vem da superfície
-  # de MacKinnon (1996) que o urca implementa, e a comparação é a duas casas.
+  # Oráculo publicado: MacKinnon (2010), "Critical values for cointegration
+  # tests", Queen's Economics Department WP 1227, Tabela 3, N = 2, τc,
+  # coeficiente assintótico β∞: −3,89644 (1%), −3,33613 (5%), −3,04445 (10%)
+  # — conferido no PDF em 08/10/2026. O urca implementa a superfície de
+  # MacKinnon (1996), que difere da de 2010 na 4ª casa: tolerância 5e-4.
   q <- c(0.01, 0.05, 0.10)
   crit <- vapply(q, function(p) {
     stats::uniroot(function(x) .tr_series_eg_p(x, 0, 2) - p, c(-6, -1), tol = 1e-10)$root
   }, numeric(1))
-  expect_equal(round(crit, 2), c(-3.90, -3.34, -3.04))
+  expect_lte(max(abs(crit - c(-3.89644, -3.33613, -3.04445))), 5e-4)
 })
 
 test_that("Engle-Granger: N variáveis e tendência entram na superfície", {
