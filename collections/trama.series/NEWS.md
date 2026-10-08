@@ -1,3 +1,7 @@
+# trama.series 0.8.3
+
+* Templates regenerados com o formato atual do documento (saídas nomeadas e grupos do trama 0.5.10). Pede `trama (>= 0.5.10)`.
+
 # trama.series 0.8.2
 
 * `series/arima` com intervenção inovacional: quando a iteração do ponto fixo oscila sem estabilizar no último passo, usa o passo de menor variação, se ele estiver no ruído do otimizador, em vez de dar erro. Ajustes que já convergiam não mudam.

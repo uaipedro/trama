@@ -1,3 +1,7 @@
+# trama.multi 0.3.7
+
+* Templates regenerados com o formato atual do documento (saídas nomeadas e grupos do trama 0.5.10). Pede `trama (>= 0.5.10)`.
+
 # trama.multi 0.3.6
 
 * Cards que são gráfico seguem o tema padrão do projeto (antes ficavam no tema embutido, escuro). Requer trama 0.5.9.

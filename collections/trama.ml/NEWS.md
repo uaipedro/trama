@@ -1,3 +1,7 @@
+# trama.ml 0.5.7
+
+* Templates regenerados com o formato atual do documento (saídas nomeadas e grupos do trama 0.5.10). Pede `trama (>= 0.5.10)`.
+
 # trama.ml 0.5.6
 
 * Template "Árvore de decisão" regenerado com `ml/tree_plot` versão 2 (saía com a versão 1 e abria com aviso de versão defasada).
