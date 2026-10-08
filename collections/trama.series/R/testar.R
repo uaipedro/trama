@@ -20,7 +20,7 @@
 #' `urca` não dá.
 #' @noRd
 .tr_series_teste <- function(teste, h0, estatistica, rotulo_estat, p_valor = NA_real_,
-                             criticos = NULL, sentido = "menor",
+                             criticos = NULL, sentido = "menor", gl = NA_character_,
                              conclusao_sim, conclusao_nao, nota = "", fonte, extra = NULL) {
   sentido <- .tr_series_enum(sentido, c("menor", "maior"), "sentido")
   # Um teste precisa de ALGUMA fonte de decisão. O núcleo também recusa, mas
@@ -34,7 +34,7 @@
   # do teste existe pra pôr no erro. Sem o nível de 5% nomeado, a decisão
   # leria NA e viraria um "não rejeita H0" confiante.
   if (!is.null(criticos)) .tr_series_criticos(criticos, teste)
-  trama::tr_test(teste, h0, estatistica, rotulo_estat, p_valor = p_valor, criticos = criticos,
+  trama::tr_test(teste, h0, estatistica, rotulo_estat, p_valor = p_valor, gl = gl, criticos = criticos,
                  sentido = sentido, conclusao_sim = conclusao_sim, conclusao_nao = conclusao_nao,
                  nota = nota, fonte = fonte, extra = extra, classe = "tr_series_test")
 }

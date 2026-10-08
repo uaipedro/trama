@@ -223,12 +223,12 @@ tr_series_portmanteau_mv <- function(modelo, metodo = "ljung_box", defasagens = 
   rotulo <- if (metodo == "ljung_box") "Ljung-Box multivariado" else "Box-Pierce multivariado"
   .tr_series_teste(
     rotulo, sprintf("não há autocorrelação nos resíduos até a defasagem %d", h),
-    as.numeric(s$statistic), "qui-quadrado", p_valor = as.numeric(s$p.value),
+    as.numeric(s$statistic), "qui-quadrado", p_valor = as.numeric(s$p.value), gl = df,
     conclusao_sim = "resíduos autocorrelacionados: o modelo deixa dinâmica de fora",
     conclusao_nao = "não há evidência de autocorrelação nos resíduos",
-    nota = sprintf("h = %d; gl = %d (K² (h − p), com K = %d e p = %d)%s",
+    nota = sprintf("h = %d; gl = %d (K² (h − p), com K = %d e p = %d%s)",
                    h, df, aj$K, p,
-                   if (identical(modelo$tipo, "VECM")) "; VECM: o vars soma K aos gl" else ""),
+                   if (identical(modelo$tipo, "VECM")) sprintf(", mais %d do VECM, como no vars", df - aj$K^2 * (h - p)) else ""),
     fonte = "Hosking (1980)",
     extra = list(defasagens = h, graus_liberdade = df, metodo = metodo))
 }
@@ -244,6 +244,7 @@ tr_series_normality_mv <- function(modelo) {
   .tr_series_teste(
     "Jarque-Bera multivariado", "os resíduos são normais multivariados",
     as.numeric(jb$statistic), "qui-quadrado", p_valor = as.numeric(jb$p.value),
+    gl = as.numeric(jb$parameter),
     conclusao_sim = "resíduos não normais: confira assimetria e curtose no extra",
     conclusao_nao = "não há evidência contra a normalidade multivariada",
     nota = sprintf("assimetria p = %.4g; curtose p = %.4g", as.numeric(sk$p.value), as.numeric(ku$p.value)),
@@ -260,6 +261,7 @@ tr_series_arch_mv <- function(modelo, defasagens = 5L) {
   .tr_series_teste(
     "ARCH multivariado", "não há efeito ARCH nos resíduos",
     as.numeric(a$statistic), "qui-quadrado", p_valor = as.numeric(a$p.value),
+    gl = as.numeric(a$parameter),
     conclusao_sim = "há heterocedasticidade condicional: erros-padrão podem estar otimistas",
     conclusao_nao = "não há evidência de efeito ARCH",
     nota = sprintf("%d defasagens; gl = %d", k, as.numeric(a$parameter)),

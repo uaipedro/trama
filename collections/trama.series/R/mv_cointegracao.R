@@ -73,11 +73,18 @@ tr_series_engle_granger <- function(series, resposta = "", deterministico = "con
     extra = list(coeficientes = coefs, defasagens = p_lags, observacoes = m))
 }
 
+# Os três casos do `urca::ca.jo`, pelo que FAZEM (conferido no código do
+# ca.jo): `const` = constante só dentro da relação de cointegração; `trend` =
+# tendência dentro da relação e constante livre no VECM; `none` = constante
+# livre no VECM (tendência linear nos dados) — não é "sem determinístico".
+.TR_SERIES_ECDET <- c("constante restrita" = "const", "tendência restrita" = "trend",
+                      "constante livre" = "none")
+
 #' Mapeia o determinístico do usuário para o `ecdet` do `urca::ca.jo`.
 #' @noRd
 .tr_series_ecdet <- function(deterministico) {
-  d <- .tr_series_enum(deterministico, c("constante", "tendência", "nenhum"), "deterministico")
-  c(constante = "const", "tendência" = "trend", nenhum = "none")[[d]]
+  d <- .tr_series_enum(deterministico, names(.TR_SERIES_ECDET), "deterministico")
+  .TR_SERIES_ECDET[[d]]
 }
 
 #' Johansen: quantas relações de cointegração? Traço ou autovalor máximo.
@@ -88,7 +95,7 @@ tr_series_engle_granger <- function(series, resposta = "", deterministico = "con
 #' a hipótese não é rejeitada (a regra sequencial usual).
 #' @export
 tr_series_johansen <- function(series, metodo = "traco", defasagens = 2L,
-                               deterministico = "constante", sazonal = FALSE) {
+                               deterministico = "constante restrita", sazonal = FALSE) {
   .tr_series_guard_mts(series)
   .tr_series_sem_na(series, "series/johansen")
   met <- .tr_series_enum(metodo, c("traco", "autovalor"), "metodo")
@@ -138,7 +145,7 @@ tr_series_johansen <- function(series, metodo = "traco", defasagens = 2L,
 #' posto sugerido. O ajuste viaja como `series/var` (tipo `VECM`), com o
 #' `cajorls` e o `ca.jo` guardados para o card e a previsão.
 #' @export
-tr_series_vecm <- function(series, posto = 1L, defasagens = 2L, deterministico = "constante",
+tr_series_vecm <- function(series, posto = 1L, defasagens = 2L, deterministico = "constante restrita",
                            sazonal = FALSE) {
   .tr_series_guard_mts(series)
   .tr_series_sem_na(series, "series/vecm")
@@ -232,7 +239,7 @@ cada série é I(1) antes.
       params = list(
         metodo = E("traco", c("traco", "autovalor"), label = "Estatística"),
         defasagens = I(2L, min = 2L, max = 50L, label = "Defasagens (K, em nível)", example = "2"),
-        deterministico = E("constante", c("constante", "tendência", "nenhum"), label = "Determinístico"),
+        deterministico = E("constante restrita", names(.TR_SERIES_ECDET), label = "Determinístico"),
         sazonal = B(FALSE, label = "Dummies sazonais")),
       help = .tr_series_ajuda(r"---[
 Conta quantas relações de cointegração há entre as séries, pelo procedimento de
@@ -250,9 +257,17 @@ padrão aqui.
 
 ### Determinísticos
 
-Os termos determinísticos são restritos ao espaço de cointegração (o caso
-usual de Johansen): constante, tendência, ou nenhum. Dummies sazonais entram
-centradas, e pedem série com ciclo.
+Três casos, pelo que entra em cada parte do modelo:
+
+- **constante restrita** (padrão) — a constante só dentro da relação de
+  cointegração: as séries não têm tendência, e o equilíbrio tem nível.
+- **constante livre** — constante solta no VECM: as séries têm tendência
+  linear, a relação de cointegração não.
+- **tendência restrita** — tendência dentro da relação e constante livre: a
+  própria relação de equilíbrio tem tendência.
+
+Os críticos mudam com o caso. Dummies sazonais entram centradas, e pedem série
+com ciclo.
 
 ### Faltantes
 
@@ -262,7 +277,8 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 - **Estatística** — traço (padrão) ou autovalor máximo.
 - **Defasagens (K)** — defasagens do VAR em nível, no mínimo 2 (o VECM tem K - 1
   em diferença).
-- **Determinístico** — constante, tendência ou nenhum.
+- **Determinístico** — constante restrita, constante livre ou tendência
+  restrita (ver acima).
 - **Dummies sazonais** — centradas por período, para série com ciclo.
 ]---", r"---[
 Uma tabela (`data/table`) com uma linha por posto: `hipotese`, `estatistica`,
@@ -288,7 +304,7 @@ escolhido aqui.
       params = list(
         posto = I(1L, min = 1L, max = 10L, label = "Posto (r)", example = "1"),
         defasagens = I(2L, min = 2L, max = 50L, label = "Defasagens (K, em nível)", example = "2"),
-        deterministico = E("constante", c("constante", "tendência", "nenhum"), label = "Determinístico"),
+        deterministico = E("constante restrita", names(.TR_SERIES_ECDET), label = "Determinístico"),
         sazonal = B(FALSE, label = "Dummies sazonais")),
       help = .tr_series_ajuda(r"---[
 Ajusta um modelo de correção de erro (VECM) para séries cointegradas: as
@@ -310,8 +326,9 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 ]---", r"---[
 - **Posto (r)** — número de relações de cointegração, de 1 a k - 1.
 - **Defasagens (K)** — defasagens do VAR em nível, no mínimo 2.
-- **Determinístico** — constante, tendência ou nenhum (restrito ao espaço de
-  cointegração).
+- **Determinístico** — constante restrita (só na relação de cointegração),
+  constante livre (no VECM: séries com tendência) ou tendência restrita
+  (tendência na relação, constante livre).
 - **Dummies sazonais** — centradas por período, para série com ciclo.
 ]---", r"---[
 Um ajuste multivariado (`series/var`, tipo VECM).

@@ -173,7 +173,7 @@ tr_flow(reg) |>
   aj <- modelo$ajuste
   if (!inherits(aj, "varest")) return(aj)
   args <- list(y = aj$y, p = aj$p, type = aj$type)
-  if (any(startsWith(colnames(aj$datamat), "sd"))) {
+  if (any(grepl("^sd[0-9]+$", colnames(aj$datamat)))) {
     args$season <- as.integer(stats::frequency(modelo$serie))
   }
   aj$call <- as.call(c(list(quote(vars::VAR)), args))

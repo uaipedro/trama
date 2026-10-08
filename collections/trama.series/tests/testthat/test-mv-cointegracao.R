@@ -55,7 +55,7 @@ test_that("Johansen: traço e autovalor iguais ao ca.jo do denmark (1e-10)", {
     ca <- urca::ca.jo(sjd, ecdet = "const", type = met, K = 2, spec = "longrun", season = 4)
     nome <- if (met == "eigen") "autovalor" else "traco"
     out <- tr_series_johansen(serie, metodo = nome, defasagens = 2L,
-                              deterministico = "constante", sazonal = TRUE)
+                              deterministico = "constante restrita", sazonal = TRUE)
     # A linha r0 da tabela é a linha k - r0 do ca.jo: a ordem se inverte.
     expect_equal(unname(out$estatistica), unname(rev(ca@teststat)), tolerance = 1e-10)
     expect_equal(unname(out$critico_10), unname(rev(ca@cval[, "10pct"])), tolerance = 1e-10)

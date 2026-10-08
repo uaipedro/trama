@@ -24,9 +24,13 @@
                             "séries no mesmo calendário)."), class(x)[[1]])
   }
   nm <- colnames(x)
-  if (is.null(nm) || anyNA(nm) || any(!nzchar(nm)) || anyDuplicated(nm)) {
+  # Nomes sintáticos do R: o `vars` e o `urca` os passam por `make.names`, e
+  # um nome com espaço ou acento deixaria de casar nos blocos seguintes.
+  if (is.null(nm) || anyNA(nm) || any(!nzchar(nm)) || anyDuplicated(nm) ||
+      !identical(nm, make.names(nm, unique = TRUE)) || any(grepl("[^A-Za-z0-9._]", nm))) {
     .tr_series_abort("tr_series_error_not_multivariate",
-                     "A série múltipla precisa de um nome único por coluna; chegou: %s.",
+                     paste0("A série múltipla precisa de um nome único por coluna, só com letras sem ",
+                            "acento, dígitos, '.' e '_' (começando por letra); chegou: %s."),
                      paste(nm %||% "(sem nomes)", collapse = ", "))
   }
   invisible(x)
@@ -153,17 +157,22 @@ series_var_type <- function() {
     restore = function(path) readRDS(path),
     summary = function(x) {
       raizes <- if (inherits(x$ajuste, "varest")) max(vars::roots(x$ajuste)) else NA_real_
-      list(metodo = .tr_series_var_rotulo(x), series = paste(colnames(x$serie), collapse = ", "),
+      list(metodo = .tr_series_var_rotulo(x), nota = x$nota, series = paste(colnames(x$serie), collapse = ", "),
            observacoes = nrow(x$serie),
            maior_raiz = if (is.finite(raizes)) round(raizes, 4) else NA_real_)
     },
+    # O card é a tabela dos coeficientes (equação, termo, estimativa, t, p),
+    # no mesmo formato do card de tabela da `data`; o rótulo do modelo e a
+    # nota (critério, estabilidade) ficam no resumo.
     preview = function(x, ctx) {
-      cf <- .tr_series_var_coefs(x)
-      cf$estimativa <- signif(cf$estimativa, 4); cf$erro_padrao <- signif(cf$erro_padrao, 3)
+      cf <- as.data.frame(.tr_series_var_coefs(x))
+      for (col in c("estimativa", "erro_padrao")) cf[[col]] <- signif(cf[[col]], 4)
       cf$t <- round(cf$t, 2); cf$p_valor <- signif(cf$p_valor, 3)
-      trama::tr_preview("trama/text", data = list(text = paste0(
-        .tr_series_var_rotulo(x), if (nzchar(x$nota)) paste0("\n", x$nota) else "", "\n\n",
-        paste(utils::capture.output(print(as.data.frame(cf), row.names = FALSE)), collapse = "\n"))))
+      mostra <- utils::head(cf, 25L)
+      trama::tr_preview("data/table", data = list(
+        columns = as.list(names(mostra)),
+        rows = lapply(seq_len(nrow(mostra)), function(i) as.list(mostra[i, , drop = TRUE])),
+        nrow = nrow(cf), ncol = ncol(cf)))
     }
   )
 }
@@ -206,14 +215,21 @@ tr_series_join <- function(series, nomes = "") {
       if (is.character(a) && length(a) == 1L && nzchar(a)) a else paste0("serie_", i)
     }, character(1))
   }
-  nm <- make.unique(nm, sep = "_")
+  # Nomes que o `vars`/`urca` aceitam: sem acento, espaço vira `_`.
+  limpo <- iconv(nm, to = "ASCII//TRANSLIT", sub = "")
+  limpo <- gsub("[^A-Za-z0-9._]+", "_", limpo)
+  limpo <- make.names(limpo, unique = TRUE)
+  renomeadas <- nm != limpo
+  nm <- limpo
   x <- do.call(stats::ts.intersect, unname(series))
   if (is.null(x) || NROW(x) < 1L) {
     .tr_series_abort("tr_series_error_no_overlap", "'series/join': as séries não têm nenhum período em comum.")
   }
   x <- stats::ts(unclass(x), start = stats::start(x), frequency = stats::frequency(x), names = nm)
   perdidos <- max(vapply(series, length, integer(1))) - nrow(x)
-  if (perdidos > 0L) attr(x, "nota") <- sprintf("recortada no período comum: %d observação(ões) a menos que a série mais longa", perdidos)
+  notas <- c(if (perdidos > 0L) sprintf("recortada no período comum: %d observação(ões) a menos que a série mais longa", perdidos),
+             if (any(renomeadas)) sprintf("nomes ajustados: %s", paste(nm[renomeadas], collapse = ", ")))
+  if (length(notas)) attr(x, "nota") <- paste(notas, collapse = "; ")
   x
 }
 

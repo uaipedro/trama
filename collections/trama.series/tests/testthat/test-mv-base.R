@@ -114,3 +114,25 @@ test_that("os nós multivariados rodam no grafo", {
   tab <- trama::tr_value(trama::tr_flow_doc(fl), "j", registry = fl$registry, store = s)
   expect_equal(colnames(tab), c("dax", "cac"))
 })
+
+test_that("nomes com espaço e acento viram nomes que o vars aceita, e a cadeia segue", {
+  # Revisão de 08/10: com "emprego total" o vars renomeava por dentro e
+  # previsão, IRF e Granger deixavam de achar a coluna.
+  e <- canada()
+  s <- lapply(1:3, function(i) .tr_series_uni(e[, i]))
+  j <- tr_series_join(s, nomes = "emprego total, produção, 1rw")
+  expect_equal(colnames(j), c("emprego_total", "producao", "X1rw"))
+  expect_match(attr(j, "nota"), "nomes ajustados")
+  v <- tr_series_var(j, defasagens = 2L)
+  expect_s3_class(tr_series_forecast(var = v, horizonte = 2L), "mforecast")
+  expect_s3_class(tr_series_granger(v, causa = "emprego_total"), "tr_series_test")
+  expect_s3_class(tr_series_irf(v, horizonte = 3L, reamostras = 0L), "ggplot")
+  x <- e[, 1:2]; colnames(x) <- c("emprego total", "prod")
+  expect_error(.tr_series_guard_mts(x), class = "tr_series_error_not_multivariate")
+})
+
+test_that("série chamada sd... não liga as sazonais no bootstrap do IRF", {
+  e <- canada()[, 1:2]; colnames(e) <- c("sdx", "prod")
+  v <- tr_series_var(e, defasagens = 2L)
+  expect_null(as.list(.tr_series_ajuste_congelado(v)$call)$season)
+})
