@@ -38,6 +38,10 @@ tr_series_errors <- function() {
     tr_series_error_fit = "o ajuste do modelo falhou",
     tr_series_error_no_overlap =
       "duas séries que o nó alinha pelo tempo não têm o período em comum que a conta pede",
+    tr_series_error_vecm_granger =
+      "o teste de Granger pede um VAR em nível (series/var); um VECM chegou e não é aceito",
+    tr_series_error_granger_sem_resto =
+      "a causa de Granger cobre todas as séries do VAR: não sobra nenhuma para ela prever",
     tr_series_error_no_component =
       "o componente pedido não existe nesta decomposição (regressor fora de uma regressão com covariável)",
     tr_series_error_misaligned =
