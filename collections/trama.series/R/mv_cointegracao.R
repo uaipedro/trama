@@ -213,8 +213,10 @@ Um teste (`data/test`). A estatística é o t do ADF nos resíduos; o p-valor é
 de MacKinnon para N variáveis, e a decisão a 5% sai dele.
 ]---", r"---[
 tr_flow(reg) |>
-  tr_add("j", "series/join", nomes = "consumo, renda", from = c("consumo", "renda")) |>
-  tr_add("eg", "series/engle_granger", resposta = "consumo", from = "j")
+  tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+  tr_add("j", "series/join", nomes = "dax, cac", from = c("dax", "cac")) |>
+  tr_add("eg", "series/engle_granger", resposta = "dax", from = "j")
 ]---", r"---[
 `series/johansen`, que conta as relações de cointegração de uma vez; `series/vecm`,
 para modelar as séries cointegradas; `series/adf` e `series/kpss`, para checar que
@@ -268,7 +270,9 @@ Uma tabela (`data/table`) com uma linha por posto: `hipotese`, `estatistica`,
 sugerido.
 ]---", r"---[
 tr_flow(reg) |>
-  tr_add("j", "series/join", nomes = "consumo, renda", from = c("consumo", "renda")) |>
+  tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+  tr_add("j", "series/join", nomes = "dax, cac", from = c("dax", "cac")) |>
   tr_add("jo", "series/johansen", metodo = "traco", defasagens = 2L, from = "j")
 ]---", r"---[
 `series/engle_granger` para uma resposta só; `series/vecm`, com o posto
@@ -313,7 +317,9 @@ um `series/interpolate` antes, ou recorte a parte cheia com `series/window`.
 Um ajuste multivariado (`series/var`, tipo VECM).
 ]---", r"---[
 tr_flow(reg) |>
-  tr_add("j", "series/join", nomes = "consumo, renda", from = c("consumo", "renda")) |>
+  tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+  tr_add("j", "series/join", nomes = "dax, cac", from = c("dax", "cac")) |>
   tr_add("v", "series/vecm", posto = 1L, defasagens = 2L, from = "j")
 ]---", r"---[
 `series/johansen`, para escolher o posto; `series/forecast`, para prever.

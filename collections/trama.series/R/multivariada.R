@@ -269,10 +269,11 @@ tr_series_var <- function(series, defasagens = 0L, max_defasagens = 8L, criterio
   k <- ncol(series)
   .tr_series_minimo(series[, 1], k * max(p, if (p == 0L) pmax else p) + 10L, "series/var",
                     "estimar as equações com essas defasagens")
-  aj <- .tr_series_ajustar(
-    if (p == 0L) vars::VAR(series, lag.max = pmax, ic = criterio, type = det, season = saz)
-    else vars::VAR(series, p = p, type = det, season = saz),
-    "series/var")
+  # `do.call` com VALORES: o `vars` guarda a chamada e o bootstrap (irf) a
+  # refaz com `update()`; com símbolos, `det` viraria `stats::det` lá dentro.
+  args <- list(y = series, type = det, season = saz)
+  args <- c(args, if (p == 0L) list(lag.max = pmax, ic = criterio) else list(p = p))
+  aj <- .tr_series_ajustar(do.call(vars::VAR, args), "series/var")
   nota <- if (p == 0L) sprintf("p = %d escolhido por %s (até %d)", aj$p, criterio, pmax) else ""
   if (max(vars::roots(aj)) >= 1) nota <- paste(c(nota[nzchar(nota)], "VAR instável: há raiz com módulo >= 1 (diferencie ou use VECM)"), collapse = "; ")
   .tr_series_var(aj, series, "VAR", nota = nota)

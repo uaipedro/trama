@@ -28,6 +28,8 @@ Este bloco não tem parâmetros.
 Uma série múltipla (`series/mts`) com os resíduos.
 ]---", r"---[
 tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
   tr_add("j", "series/join", from = c("a", "b")) |>
   tr_add("v", "series/var", defasagens = 2L, from = "j") |>
   tr_add("res", "series/residuals_mv", from = c(modelo = "v"))
@@ -77,6 +79,8 @@ Um teste (`data/test`): estatística qui-quadrado, p-valor, e nota com `h` e os
 graus de liberdade.
 ]---", r"---[
 tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
   tr_add("j", "series/join", from = c("a", "b")) |>
   tr_add("v", "series/var", defasagens = 2L, from = "j") |>
   tr_add("lb", "series/portmanteau_mv", defasagens = 12L, from = c(modelo = "v"))
@@ -110,6 +114,8 @@ Este bloco não tem parâmetros.
 Um teste (`data/test`). Assimetria e curtose separadas no `extra`.
 ]---", r"---[
 tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
   tr_add("j", "series/join", from = c("a", "b")) |>
   tr_add("v", "series/var", defasagens = 2L, from = "j") |>
   tr_add("jb", "series/normality_mv", from = c(modelo = "v"))
@@ -143,6 +149,8 @@ graus de liberdade.
 Um teste (`data/test`).
 ]---", r"---[
 tr_flow(reg) |>
+  tr_add("a", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("b", "series/example", dataset = "EuStockMarkets$CAC") |>
   tr_add("j", "series/join", from = c("a", "b")) |>
   tr_add("v", "series/var", defasagens = 2L, from = "j") |>
   tr_add("arch", "series/arch_mv", defasagens = 5L, from = c(modelo = "v"))

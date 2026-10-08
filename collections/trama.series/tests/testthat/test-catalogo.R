@@ -30,7 +30,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
   reg <- series_registry()
   digitaveis <- c("expr", "cols", "path", "text")
   nos <- nos_series(reg)
-  expect_length(nos, 47L)  # 0.5.0: - três F (viraram leitores da models) + deseasonalize + range_mean; 0.7.0: + detect_interventions
+  expect_length(nos, 63L)  # 0.9.0: + 16 multivariados; 0.5.0: - três F (viraram leitores da models) + deseasonalize + range_mean; 0.7.0: + detect_interventions
   for (n in nos) {
     for (secao in c("## Descrição", "## Parâmetros", "## Valor", "## Exemplos", "## Veja também")) {
       expect_match(n$help, secao, fixed = TRUE, info = n$id)
@@ -46,7 +46,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
 test_that("todo gráfico da coleção é view/plot com os seis cosméticos e a ajuda deles", {
   reg <- series_registry()
   graficos <- Filter(function(n) identical(n$outputs$out$type, "view/plot"), nos_series(reg))
-  expect_length(graficos, 10L)
+  expect_length(graficos, 11L)
   comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
   for (n in graficos) {
     expect_equal(utils::tail(names(n$params), 6L), comuns, info = n$id)
@@ -302,6 +302,9 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
   expect_gte(length(testes), 12L)  # 0.5.0: os três F da regressão viraram leitores da models
   ap <- datasets::AirPassengers
   ajuste <- tr_series_regression(ap)
+  e <- new.env(); utils::data("Canada", package = "vars", envir = e)
+  canada <- e$Canada
+  var_canada <- tr_series_var(canada, defasagens = 2L)
   # Uma linha da tabela: "| `series/x` | fonte | ...". A fonte tem de estar NA
   # linha do bloco, e não em qualquer lugar do documento — "Morettin & Toloi
   # (2006)" aparece várias vezes, e casar no texto solto deixaria passar a
@@ -312,11 +315,13 @@ test_that("toda fonte de bloco de teste está em docs/fontes.md, e toda linha de
     sub("^\\| `(series/[a-z0-9_]+)` \\|.*$", "\\1", linhas))
 
   for (n in testes) {
-    # Série múltipla pede a coluna da resposta, que não existe no AirPassengers:
-    # a fonte desses blocos é conferida em test-mv-cointegracao.R.
-    if (identical(n$inputs[[1]]$type, "series/mts")) next
-    entrada <- if (identical(n$inputs[[1]]$type, "series/regression")) ajuste else ap
-    t <- n$fn(entrada)
+    # Os multivariados: o Canada (série múltipla) ou um VAR(2) dele.
+    tipo <- n$inputs[[1]]$type
+    t <- if (identical(tipo, "series/mts")) n$fn(canada, resposta = "e")
+         else if (identical(tipo, "series/var")) {
+           if ("causa" %in% names(formals(n$fn))) n$fn(var_canada, causa = "e") else n$fn(var_canada)
+         }
+         else n$fn(if (identical(tipo, "series/regression")) ajuste else ap)
     if (is.list(t) && !is.null(t$out)) t <- t$out
     expect_true(nzchar(t$fonte), info = n$id)
     expect_true(n$id %in% names(tabela), info = paste(n$id, "não tem linha em docs/fontes.md"))

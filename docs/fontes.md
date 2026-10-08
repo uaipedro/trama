@@ -68,6 +68,10 @@ consta da lista de referências da dissertação, foi copiada de lá.
 | `series/periodicity_fisher` | Morais (2012) | MORAIS, T. S. T. d. Estudo temporal do nível médio do mar em diferentes oceanos. 2012. 110 p. Dissertação (Mestrado em Estatística e Experimentação Agropecuária) — Universidade Federal de Lavras, Lavras, 2012. | sim (§3.5.2) |
 | `series/range_mean` | Zucoloto, Giarola & Rocha (2018) | ZUCOLOTO, A. C.; GIAROLA, L. T. P.; ROCHA, R. C. Modelagem da exportação brasileira de automóveis. Revista Eletrônica Matemática e Estatística em Foco, v. 6, n. 1, p. 12–23, 2018. | sim (procedimento, p. 15; oráculo numérico pendente) |
 | `series/engle_granger` | Engle & Granger (1987); MacKinnon (1996) | ENGLE, R. F.; GRANGER, C. W. J. Co-integration and error correction: representation, estimation, and testing. Econometrica, v. 55, n. 2, p. 251–276, 1987. MACKINNON, J. G. Numerical distribution functions for unit root and cointegration tests. Journal of Applied Econometrics, v. 11, n. 6, p. 601–618, 1996. | **não** — referência padrão |
+| `series/granger` | Granger (1969); Pfaff (2008), vars::causality | GRANGER, C. W. J. Investigating causal relations by econometric models and cross-spectral methods. Econometrica, v. 37, n. 3, p. 424–438, 1969. PFAFF, B. VAR, SVAR and SVEC models: implementation within R package vars. Journal of Statistical Software, v. 27, n. 4, p. 1–32, 2008. | **não** — referência padrão |
+| `series/portmanteau_mv` | Hosking (1980) | HOSKING, J. R. M. The multivariate portmanteau statistic. Journal of the American Statistical Association, v. 75, n. 371, p. 602–608, 1980. | **não** — referência padrão |
+| `series/normality_mv` | Jarque & Bera (1987) | JARQUE, C. M.; BERA, A. K. A test for normality of observations and regression residuals. International Statistical Review, v. 55, n. 2, p. 163–172, 1987. | **não** — referência padrão |
+| `series/arch_mv` | Lütkepohl (2005) | LÜTKEPOHL, H. New introduction to multiple time series analysis. Berlin: Springer, 2005. | **não** — referência padrão |
 
 Observações sobre a tabela:
 

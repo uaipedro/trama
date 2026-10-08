@@ -177,9 +177,11 @@ Um teste (`data/test`) com H0 "causa não Granger-causa resto", a estatística
 (F para Wald, qui-quadrado para Toda-Yamamoto) e o p-valor.
 ]---", r"---[
 tr_flow(reg) |>
-  tr_add("j", "series/join", nomes = "renda, consumo", from = c("renda", "consumo")) |>
+  tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+  tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+  tr_add("j", "series/join", nomes = "dax, cac", from = c("dax", "cac")) |>
   tr_add("v", "series/var", defasagens = 2L, from = "j") |>
-  tr_add("g", "series/granger", causa = "renda", metodo = "toda_yamamoto", from = c(ajuste = "v"))
+  tr_add("g", "series/granger", causa = "dax", metodo = "toda_yamamoto", from = c(ajuste = "v"))
 ]---", r"---[
 `series/var`, que ajusta o modelo; `series/var_select`, para escolher p antes;
 `series/irf`, o efeito dinâmico de um choque.
