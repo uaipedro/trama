@@ -13,10 +13,8 @@ can <- function() {
 #   A defasagem é a do `ccf` em observações (lag * frequência), conferida a 1e-12.
 # - series/var_select: `vars::VARselect` com o mesmo `lag.max`, `type` e `season`;
 #   tolerância 1e-10 nos critérios.
-# - Vinheta do vars: a seleção publicada para `VARselect(Canada, lag.max = 8,
-#   type = "both")` NÃO está instalada no pacote (não há `doc/` em
-#   `system.file("doc", package = "vars")`); o teste de seleção publicada fica
-#   pendente até conferir o número na fonte.
+# - Publicado: a tabela de `VARselect(Canada, lag.max = 8, type = "both")`
+#   impressa em Pfaff (2008, JSS), conferida no PDF; último teste do arquivo.
 
 test_that("ccf: valores iguais aos do stats::ccf a 1e-12, em frequência 4", {
   x <- can()[, "e"]
@@ -111,4 +109,23 @@ test_that("var_select: sazonal em série sem ciclo e série com faltante são er
   m2 <- m; m2[5, "a"] <- NA
   err <- tryCatch(tr_series_var_select(m2), condition = identity)
   expect_s3_class(err, "tr_series_error_missing_values")
+})
+
+test_that("var_select reproduz a tabela publicada em Pfaff (2008, JSS 27(4), p. 17-18)", {
+  # `VARselect(Canada, lag.max = 8, type = "both")` impresso no artigo
+  # (doi:10.18637/jss.v027.i04), conferido no PDF em 08/10/2026. Tolerância: os
+  # 7 decimais impressos (5e-8 absoluto).
+  tab <- tr_series_var_select(can(), max_defasagens = 8L, deterministico = "ambos")
+  publicado <- rbind(
+    AIC = c(-6.2725791, -6.6366697, -6.7711769, -6.6346092, -6.3981322, -6.3077048, -6.0707273, -6.0615969),
+    HQ  = c(-5.9784294, -6.1464203, -6.0848278, -5.7521604, -5.3195837, -5.0330565, -4.5999792, -4.3947490),
+    SC  = c(-5.5365580, -5.4099679, -5.0537944, -4.4265460, -3.6993884, -3.1182803, -2.3906220, -1.8908109),
+    FPE = c(0.0018898, 0.0013195, 0.0011660, 0.0013632, 0.0017821, 0.0020442, 0.0027686, 0.0030601))
+  for (cr in rownames(publicado)) {
+    expect_lte(max(abs(tab[[cr]] - publicado[cr, ])), 5e-8 + 1e-12)
+  }
+  # Seleção publicada: AIC e FPE em 3, HQ em 2, SC em 1.
+  expect_match(tab$escolhida[tab$defasagem == 3L], "AIC")
+  expect_match(tab$escolhida[tab$defasagem == 2L], "HQ")
+  expect_match(tab$escolhida[tab$defasagem == 1L], "SC")
 })
