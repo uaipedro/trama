@@ -46,7 +46,7 @@ test_that("todo nó tem help no formato, e todo campo digitável tem exemplo", {
 test_that("todo gráfico da coleção é view/plot com os seis cosméticos e a ajuda deles", {
   reg <- series_registry()
   graficos <- Filter(function(n) identical(n$outputs$out$type, "view/plot"), nos_series(reg))
-  expect_length(graficos, 8L)
+  expect_length(graficos, 10L)
   comuns <- c("aspecto", "tema", "titulo", "rotulo_x", "rotulo_y", "legenda")
   for (n in graficos) {
     expect_equal(utils::tail(names(n$params), 6L), comuns, info = n$id)
