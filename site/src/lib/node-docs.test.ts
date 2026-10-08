@@ -46,13 +46,13 @@ const h2 = (s: string) => ({ type: "element" as const, tagName: "h2", properties
 const p = (s: string) => ({ type: "element" as const, tagName: "p", properties: {}, children: [{ type: "text" as const, value: s }] });
 const resolve = (id: string) => id === "models/qq" ? { href: "/trama/colecoes/modelos/qq/", label: "QQ" } : undefined;
 
-test("seções entram depois de 'Quando usar', na ordem e com os rótulos do editor", () => {
+test("pressupostos entram depois de 'Quando usar'; referências, no fim", () => {
   const tree: Root = { type: "root", children: [h2("O que o bloco faz"), p("a"), h2("Quando usar"), p("b"), h2("Exemplo")] };
   insertNodeDocs(tree, fixture, resolve);
   const html = toHtml(tree);
   const pos = (s: string) => html.indexOf(s);
-  assert.ok(pos("<p>b</p>") < pos("Pressupostos") && pos("Pressupostos") < pos("Referências") && pos("Referências") < pos(">Exemplo"));
-  assert.ok(pos(">Teoria<") < pos(">Livro-texto<") && pos(">Livro-texto<") < pos(">Implementação<"));
+  assert.ok(pos("<p>b</p>") < pos("Pressupostos") && pos("Pressupostos") < pos(">Exemplo") && pos(">Exemplo") < pos("Referências"));
+  assert.ok(pos(">Implementação<") < pos("Referências") && pos(">Teoria<") < pos(">Livro-texto<"));
   assert.match(html, /Verificar:.*href="\/trama\/colecoes\/modelos\/qq\/"/);
   assert.match(html, /<code class="node-press__chip">x\/sem_pagina<\/code>/);
   assert.match(html, /Se falhar: .*<code>models\/kruskal<\/code>/);
