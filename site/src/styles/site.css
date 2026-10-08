@@ -137,16 +137,6 @@ html[data-js="true"][data-facilitador="off"] .facilitador { display: none; }
 .search-dialog__close:hover { color: var(--ink); }
 .search-dialog #search { margin-top: var(--space-md); }
 
-/* Barra de comparação de variantes de copy (?ab) */
-.ab-bar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-md); min-height: 2rem; padding: var(--space-2xs) var(--space-md); background: var(--ink); color: var(--paper); font-size: .78rem; }
-.ab-bar span { color: oklch(85% .015 210); }
-.ab-bar label { display: inline-flex; align-items: center; gap: .4rem; color: var(--paper); font-weight: 600; }
-.ab-bar select { min-height: 1.5rem; padding: .1rem .3rem; border: 1px solid oklch(60% .02 210); background: var(--ink); color: var(--paper); font: inherit; }
-.ab-bar[hidden] { display: none; }
-@media (max-width: 480px) { .ab-bar span { display: none; } }
-
-/* Evita FOUC da variante de copy salva (?ab) */
-html[data-copy-pending] [data-copy] { visibility: hidden; }
 /* canvas de exemplo */
 .flow-example { margin: var(--space-xl) 0; border: 1px solid var(--line); background: var(--paper-strong); }
 .flow-example [role="tablist"] { display: flex; gap: .25rem; padding: .5rem .5rem 0; }
@@ -259,7 +249,7 @@ html[data-copy-pending] [data-copy] { visibility: hidden; }
 .prose .node-ref { padding: var(--space-xs) 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .prose .node-ref__ver, .prose .node-ref__nota { color: var(--ink-soft); }
 .prose .node-ref__nota { display: block; margin-top: var(--space-2xs); font-size: .92rem; }
-.prose h2#referencias + h3, .prose .node-refs + h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+.prose h2#referencias + h3, .prose .node-refs + h3, .prose .node-raiox + h3, .prose .node-raiox__outras + h3, .prose .node-raiox__titulo ~ p + h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
 
 /* Bibliografia (src/pages/referencias.astro) */
 .bib-indice { display: flex; flex-wrap: wrap; gap: var(--space-xs); padding: var(--space-lg) 0 0; }
@@ -309,3 +299,127 @@ html[data-facilitador="on"] .prose dfn.glossario-termo { text-decoration: underl
 .depth-hint p { margin: 0; }
 .depth-hint button { margin-top: var(--space-xs); padding: .2rem .6rem; border: 1px solid var(--blue); border-radius: 6px; background: var(--paper); color: var(--blue-dark); font: inherit; font-weight: 650; cursor: pointer; }
 .depth-hint button:hover { background: var(--paper-strong); }
+
+/* home: exemplo de ajuda de bloco e próximo passo */
+.home-exemplo, .home-estudo { max-width: 86rem; margin: 0 auto; padding: var(--space-4xl) max(1.25rem, 4vw); border-top: 1px solid var(--line); }
+.exemplo-ajuda { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2xl); margin-top: var(--space-2xl); padding: var(--space-xl); border: 1px solid var(--line); background: var(--paper-strong); }
+.exemplo-ajuda h3 { margin: 0 0 var(--space-md); font-size: 1.05rem; }
+.exemplo-ajuda__col > h3:not(:first-child) { margin-top: var(--space-xl); }
+.exemplo-lista { display: grid; gap: var(--space-sm); margin: 0; padding: 0; list-style: none; }
+.exemplo-lista li { padding: var(--space-md); background: var(--paper); border-left: 3px solid var(--teal); }
+.exemplo-lista--estudo li { border-left-color: var(--ink-soft); }
+.exemplo-lista p { margin: 0; font-size: .94rem; }
+.exemplo-lista code, .exemplo-ajuda__refs code { padding: .1em .25em; background: var(--paper-strong); color: var(--blue-dark); font-family: var(--font-code); font-size: .85em; }
+.exemplo-lista__verif { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: var(--space-xs) !important; color: var(--ink-soft); font-size: .84rem !important; }
+.exemplo-lista__verif span { font-family: var(--font-display); font-weight: 700; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+.exemplo-lista__verif a { padding: .1rem .5rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
+.exemplo-lista__falha { margin-top: var(--space-xs) !important; color: var(--ink-soft); }
+.exemplo-ajuda__refs { margin: 0 0 var(--space-md); font-size: .94rem; color: var(--ink-soft); }
+.home-exemplo__nota { margin: var(--space-lg) 0 0; color: var(--ink-soft); font-size: .92rem; }
+@media (max-width: 760px) { .exemplo-ajuda { grid-template-columns: minmax(0, 1fr); padding: var(--space-md); } }
+.home-hero__titulo { font-size: clamp(2.4rem, 4.6vw, 4rem); max-width: 16ch; }
+.curadoria { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-xl); margin: var(--space-2xl) 0 0; padding: var(--space-lg) 0 0; border-top: 1px solid var(--line); }
+.curadoria dt { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; }
+.curadoria dd { margin: var(--space-xs) 0 0; color: var(--ink-soft); }
+.exemplo-titulo { margin: var(--space-3xl) 0 0; font-size: 1.3rem; }
+.exemplo-intro { max-width: 64ch; margin: var(--space-sm) 0 0; color: var(--ink-soft); }
+.exemplo-titulo + .exemplo-intro + .exemplo-ajuda { margin-top: var(--space-lg); }
+@media (max-width: 760px) { .curadoria { grid-template-columns: minmax(0, 1fr); } }
+
+/* home: documento exportado, andamento e começo */
+.home-documento, .home-roteiro, .home-comece { max-width: 86rem; margin: 0 auto; padding: var(--space-4xl) max(1.25rem, 4vw); border-top: 1px solid var(--line); }
+.home-documento { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: var(--space-3xl); align-items: center; }
+.home-documento__codigo { margin: 0; border: 1px solid oklch(30% .03 200); background: oklch(19% .025 200); }
+.home-documento__codigo pre { margin: 0; overflow-x: auto; padding: var(--space-lg); color: oklch(92% .015 220); font-family: var(--font-code); font-size: .8rem; line-height: 1.6; }
+.home-documento__codigo .c { color: oklch(65% .02 210); }
+.home-documento__codigo .h { color: oklch(80% .1 182); font-weight: 700; }
+.home-documento__codigo figcaption { padding: .72rem var(--space-md); border-top: 1px solid oklch(30% .03 200); color: oklch(82% .018 200); font-size: .82rem; }
+.roteiro-lista { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-xl); margin: var(--space-2xl) 0 var(--space-lg); padding: var(--space-lg) 0 0; border-top: 1px solid var(--line); list-style: none; }
+.roteiro-lista h3 { margin: var(--space-xs) 0 var(--space-xs); font-size: 1.15rem; }
+.roteiro-lista p { margin: 0; color: var(--ink-soft); }
+.roteiro-lista__estado { font-family: var(--font-display); font-size: .74rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--blue-dark) !important; }
+.home-roteiro__links { margin: var(--space-lg) 0 0; color: var(--ink-soft); }
+.home-roteiro { padding-bottom: 7rem; }
+.comece-lista { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-md); margin: var(--space-xl) 0 0; padding: 0; list-style: none; }
+.comece-lista a { display: grid; gap: var(--space-xs); height: 100%; padding: var(--space-lg); border: 1px solid var(--line); background: var(--paper-strong); text-decoration: none; }
+.comece-lista a:hover strong { color: var(--blue-dark); }
+.comece-lista strong { font-family: var(--font-display); font-size: 1.1rem; }
+.comece-lista span { color: var(--ink-soft); font-size: .9rem; }
+@media (max-width: 960px) { .home-documento, .roteiro-lista { grid-template-columns: minmax(0, 1fr); } .comece-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .comece-lista { grid-template-columns: minmax(0, 1fr); } }
+
+/* home: ritmo entre seções (layout) */
+/* A curadoria é o centro da página: faixa de fundo inteira, mais ar em cima e
+   embaixo; o exemplo dentro dela fica no papel claro, sem caixa sobre caixa. */
+.home-exemplo { max-width: none; padding: var(--space-4xl) max(1.25rem, calc((100vw - 86rem) / 2 + 4vw)); background: var(--paper-strong); border-top: 0; }
+.home-exemplo .curadoria { border-top-color: color-mix(in oklch, var(--line) 80%, var(--ink-soft)); }
+.home-exemplo .exemplo-ajuda { background: var(--paper); }
+.home-exemplo .exemplo-lista li { background: var(--paper-strong); }
+.exemplo-titulo { margin-top: var(--space-4xl); }
+/* Depois da faixa, a seção do documento dispensa a linha de cima. */
+.home-documento { border-top: 0; padding-block: var(--space-4xl); }
+/* Seções de apoio: título menor e menos ar, para a hierarquia ficar clara. */
+.h2-menor { font-size: clamp(1.6rem, 2.4vw, 2.2rem); }
+.home-comece { padding-block: var(--space-3xl); }
+.home-comece .comece-lista { margin-top: var(--space-lg); }
+.comece-lista a { align-content: start; height: 100%; }
+.home-roteiro { padding-block: var(--space-3xl) var(--space-4xl); }
+.home-roteiro .home-path__lede { margin-top: var(--space-sm); font-size: 1rem; }
+.home-roteiro .roteiro-lista { margin-top: var(--space-xl); }
+/* documentação de cada bloco: dobra própria, depois da faixa da curadoria */
+.home-ajuda { max-width: 86rem; margin: 0 auto; padding: var(--space-4xl) max(1.25rem, 4vw); }
+.home-ajuda .exemplo-ajuda { margin-top: var(--space-xl); }
+.home-ajuda + .home-documento { border-top: 1px solid var(--line); }
+
+/* referências: fontes de cada bloco */
+.bib-blocos { padding-top: var(--space-3xl); }
+.bib-blocos > h2, .bib-titulo { font-size: clamp(1.75rem, 3vw, 2.55rem); }
+.bib-blocos > .bib-grupo__desc { max-width: 64ch; margin: var(--space-sm) 0 0; color: var(--ink-soft); }
+.bib-colecoes { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); margin: var(--space-lg) 0 0; }
+.bib-colecoes a { text-decoration: none; font-family: var(--font-display); font-weight: 650; }
+.bib-colecoes a:hover { color: var(--blue-dark); }
+.bib-colecoes span { color: var(--ink-soft); font-size: .8rem; font-weight: 500; }
+.bib-colecao { margin-top: var(--space-2xl); }
+.bib-colecao h3 { margin: 0 0 var(--space-sm); font-size: 1.3rem; }
+.bib-tabela-rolagem { overflow-x: auto; }
+.bib-tabela { width: 100%; min-width: 46rem; border-collapse: collapse; font-size: .88rem; }
+.bib-tabela th, .bib-tabela td { padding: .55rem .5rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.bib-tabela thead th { color: var(--ink-soft); font-family: var(--font-display); font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.bib-tabela tbody th { width: 22%; font-weight: 600; }
+.bib-tabela tbody th code { display: block; margin-top: .15rem; color: var(--ink-soft); font-family: var(--font-code); font-size: .72rem; font-weight: 400; }
+.bib-tabela td a { text-decoration-color: color-mix(in oklch, var(--blue) 40%, transparent); text-underline-offset: .18em; }
+.bib-tabela tbody tr:hover { background: var(--paper-strong); }
+.bib-titulo { margin: var(--space-4xl) 0 0; padding-top: var(--space-xl); border-top: 1px solid var(--line); }
+.bib-indice--papeis { padding-top: var(--space-md); }
+.prose.bib h3 { margin-top: var(--space-2xl); font-size: 1.3rem; }
+.bib-tabela { table-layout: fixed; }
+.bib-propria { color: var(--ink-soft); font-style: italic; }
+.bib-tabela thead th:last-child { width: 9%; }
+.bib-oraculo { white-space: nowrap; font-size: .8rem; }
+.bib-oraculo--com-oráculo { color: var(--teal); font-weight: 600; }
+.bib-oraculo--parcial { color: var(--ink-soft); }
+.bib-oraculo--sem-oráculo, .bib-oraculo--não-levantado { color: oklch(52% .12 40); }
+
+/* raio-x do bloco, dentro de Implementação */
+.prose .node-raiox__titulo { margin-top: var(--space-md); }
+.prose .node-raiox { list-style: none; padding: 0; margin: var(--space-xs) 0 var(--space-md); display: grid; gap: var(--space-sm); }
+.prose .node-raiox pre.node-raiox__codigo { margin: 0; padding: var(--space-sm) var(--space-md); font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.prose .node-raiox__meta { margin: .25rem 0 0; color: var(--ink-soft); font-size: .82rem; }
+.prose .node-raiox__meta, .prose .node-raiox__titulo { font-variant-ligatures: none; }
+.prose .node-raiox__outras summary { cursor: pointer; color: var(--ink-soft); font-size: .9rem; }
+
+/* página de bloco: hierarquia */
+/* Títulos de seção proporcionais ao texto curto que costumam ter. */
+.doc-page .prose h2 { margin: var(--space-2xl) 0 var(--space-sm); font-size: clamp(1.45rem, 2.2vw, 1.85rem); }
+.doc-page .prose > h2:first-child { margin-top: 0; }
+/* Caixa de termos: apoio, não protagonista. */
+.prose blockquote.glossario-caixa { padding: var(--space-md) var(--space-lg); background: transparent; border: 0; border-left: 3px solid color-mix(in oklch, var(--blue) 45%, var(--paper)); font-size: .9rem; }
+.prose .glossario-caixa__lista dd { font-size: .88rem; color: var(--ink-soft); }
+/* Fontes e implementação: bloco próprio no fim, separado do uso. */
+.prose .node-fontes { margin-top: var(--space-3xl); padding: var(--space-lg) var(--space-xl) var(--space-xl); background: var(--paper-strong); border-top: 3px solid var(--teal); }
+.prose .node-fontes > h2 { margin-top: 0; }
+.prose .node-fontes .node-ref { border-bottom-color: color-mix(in oklch, var(--line) 70%, var(--paper)); }
+.prose .node-fontes pre.node-raiox__codigo { background: var(--ink); }
+.doc-page .related h2 { font-size: clamp(1.45rem, 2.2vw, 1.85rem); }
+.prose .node-fontes > h2 + .node-refs, .prose .node-fontes > h2 + h3 { margin-top: var(--space-sm); }
+.prose .node-fontes > h2:not(:first-child) { margin-top: var(--space-2xl); padding-top: var(--space-lg); border-top: 1px solid var(--line); }

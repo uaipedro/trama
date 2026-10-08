@@ -3,7 +3,6 @@
 // ajustam o card e precisam vir depois.
 import "../styles/editor-card.css";
 import "../styles/site.css";
-import { variants } from "../data/copy-variants";
 
 interface Props {
   title: string;
@@ -69,24 +68,9 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       };
       document.documentElement.dataset.js = "true";
       document.documentElement.dataset.facilitador = store.get("trama-camada-facilitadora") ?? "on";
-
-      const pendingAbOn = store.get("trama-ab") === "1";
-      const pendingVariant = store.get("trama-variante");
-      if (pendingAbOn && pendingVariant && pendingVariant !== "controle") {
-        document.documentElement.setAttribute("data-copy-pending", "");
-      }
     </script>
   </head>
   <body>
-    <div class="ab-bar" hidden data-ab-bar>
-      <span>modo comparação — só você vê</span>
-      <label>Variante
-        <select data-ab-select>
-          {variants.map((variant) => <option value={variant.id}>{variant.name}</option>)}
-        </select>
-      </label>
-    </div>
-    <script type="application/json" id="ab-variants" set:html={JSON.stringify(variants)} />
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <header class="site-bar"><div class="site-header">
       <a class="brand" href="/trama/" aria-label="trama — página inicial">
@@ -130,7 +114,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
     </dialog>
     <footer class="site-footer">
       <p><strong>trama</strong> — R em blocos executáveis.</p>
-      <p><a href="https://github.com/uaipedro/trama">Código no GitHub</a> · <a href="/trama/por-dentro/instalacao/">Instalação</a> · <a href="/trama/glossario/">Glossário</a> · <a href="/trama/referencias/">Referências</a> · <a href="/trama/rigor/">Como sabemos que está certo</a></p>
+      <p><a href="https://github.com/uaipedro/trama">Código no GitHub</a> · <a href="/trama/por-dentro/instalacao/">Instalação</a> · <a href="/trama/glossario/">Glossário</a> · <a href="/trama/referencias/">Referências</a> · <a href="/trama/rigor/">Etapas de validação</a></p>
     </footer>
     <script is:inline>
       const key = "trama-camada-facilitadora";
@@ -152,7 +136,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       const dicaKey = "trama-contexto-dica";
       const dica = document.querySelector("[data-depth-hint]");
       const vistas = Number(store.get(dicaKey) ?? "0");
-      if (dica && vistas >= 0 && vistas < 3) {
+      if (dica && vistas >= 0 && vistas < 3 && !document.querySelector(".home-hero")) {
         dica.hidden = false;
         store.set(dicaKey, String(vistas + 1));
       }
@@ -249,44 +233,6 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
           }
         }
       });
-
-      const abKey = "trama-variante";
-      const all = JSON.parse(document.getElementById("ab-variants")?.textContent ?? "[]");
-      const validIds = new Set(all.map((v) => v.id));
-      const params = new URLSearchParams(location.search);
-      if (params.get("ab") === "0") store.remove("trama-ab");
-      else if (params.has("ab")) store.set("trama-ab", "1");
-      const paramVariant = params.get("v");
-      if (paramVariant) {
-        store.set(abKey, validIds.has(paramVariant) ? paramVariant : "controle");
-      }
-      const abOn = store.get("trama-ab") === "1";
-      const applyVariant = (id) => {
-        const v = all.find((x) => x.id === id) ?? all[0];
-        if (!v) return;
-        document.querySelectorAll("[data-copy]").forEach((el) => {
-          const text = v.copy[el.dataset.copy];
-          if (text) el.textContent = text;
-        });
-        document.documentElement.dataset.variante = v.id;
-      };
-      if (abOn) {
-        const abBar = document.querySelector("[data-ab-bar]");
-        const abSelect = document.querySelector("[data-ab-select]");
-        abBar?.removeAttribute("hidden");
-        const stored = store.get(abKey);
-        const current = validIds.has(stored) ? stored : "controle";
-        if (current !== stored) store.set(abKey, current);
-        if (abSelect) abSelect.value = current;
-        applyVariant(current);
-        abSelect?.addEventListener("change", () => {
-          const next = validIds.has(abSelect.value) ? abSelect.value : "controle";
-          abSelect.value = next;
-          store.set(abKey, next);
-          applyVariant(next);
-        });
-      }
-      document.documentElement.removeAttribute("data-copy-pending");
     </script>
     <script is:inline>
       // Abas Canvas | Código R dos exemplos das docs (canvas de exemplo).

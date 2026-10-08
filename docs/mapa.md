@@ -63,6 +63,6 @@ Dentro de uma coleção: `R/collection.R` registra tudo; os `tr_node` ficam em `
 | `docs/glossario-parametros.md` | Canônico e travado por teste. |
 | `docs/linguagem-visual.md`, `docs/guia-estilo-site.md`, `docs/guia-documentacao.md` | Canônico: convenções. |
 | `docs/colecao-dados.md`, `docs/colecao-graficos.md` | Canônico por coleção. |
-| `docs/revisao-metodologica.md`, `docs/fontes.md`, `docs/pendencias-referencias.md` | Registro vivo de rigor e referências. |
+| `docs/revisao-metodologica.md`, `docs/fontes.md`, `docs/pendencias-referencias.md`, `docs/cobertura-oraculos.md` | Registro vivo de rigor e referências. |
 | `docs/future-ideas/`, `docs/propostas-*.md`, `docs/visao-*.md` | Proposta, não decisão. |
 | `docs/plans/` | Histórico local. Em conflito com o código, vale o código. |
