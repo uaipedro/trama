@@ -5297,7 +5297,7 @@
         "papel": "implementacao",
         "pacote": "trama",
         "funcao": "tr_models_chisq",
-        "versao": "0.5.10",
+        "versao": "0.5.11",
         "nota": "Efeito: V de Cramér, sqrt(X² / (n (min(l, c) - 1))), sem correção de viés (a nota avisa); resíduos padronizados ajustados de chisq.test()$stdres, |r| > 2 listados na nota. V conferido com effectsize::cramers_v(adjust = FALSE) (1.0.3)."
       },
       {
@@ -6904,7 +6904,7 @@
         "papel": "implementacao",
         "pacote": "trama",
         "funcao": "tr_models_friedman",
-        "versao": "0.5.10",
+        "versao": "0.5.11",
         "nota": "Durbin e Skillings–Mack calculados no trama: T1 de Durbin na forma de Conover (1999), (t - 1) Σ(R_j - r(k + 1)/2)² / (A - C); Skillings–Mack como A' Σ⁻ A com a inversa generalizada, gl = posto de Σ. Conferidos com agricolae::durbin.test e Skillings.Mack::Ski.Mack."
       }
     ],
@@ -7572,7 +7572,7 @@
         "papel": "implementacao",
         "pacote": "trama",
         "funcao": "tr_models_kruskal",
-        "versao": "0.5.10",
+        "versao": "0.5.11",
         "nota": "Efeito: épsilon² dos postos, H / (n - 1); conferido com effectsize::rank_epsilon_squared (1.0.3)."
       },
       {
@@ -9678,7 +9678,7 @@
         "papel": "implementacao",
         "pacote": "trama",
         "funcao": "tr_models_scott_knott",
-        "versao": "0.5.10",
+        "versao": "0.5.11",
         "nota": "Implementação própria das fórmulas de Scott & Knott (1974): médias da tabela, s2 das médias = média de QM / rᵢ no grupo partido (QM / r no balanceado), qui-quadrado com k/(pi - 2) gl; conferida contra `ScottKnott::SK` 1.4-0 (DIC, DBC, DIC desbalanceado, InsectSprays, CRD2)."
       }
     ],
@@ -10815,7 +10815,7 @@
         "papel": "implementacao",
         "pacote": "trama",
         "funcao": "tr_models_wilcoxon",
-        "versao": "0.5.10",
+        "versao": "0.5.11",
         "nota": "Bisserial de postos r = 2W/(n1 n2) - 1 na coluna extra; conferida com effectsize::rank_biserial (1.0.3)."
       },
       {
