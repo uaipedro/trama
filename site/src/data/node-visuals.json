@@ -5,7 +5,7 @@
     "hasOutput": true,
     "label": "Ordenar",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -274,7 +274,7 @@
     "hasOutput": true,
     "label": "Filtrar",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -533,7 +533,7 @@
     "hasOutput": true,
     "label": "Criar coluna",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -755,6 +755,19 @@
         "choices": ["auto", "csv", "json", "rds", "parquet", "excel"]
       },
       {
+        "name": "copia",
+        "kind": "integer",
+        "label": "Cópia do link",
+        "default": 0
+      },
+      {
+        "name": "membro",
+        "kind": "text",
+        "label": "Arquivo no zip",
+        "default": "",
+        "example": "dados/2024.csv"
+      },
+      {
         "name": "delim",
         "kind": "enum",
         "label": "Separador",
@@ -774,19 +787,6 @@
         "label": "Planilha",
         "default": "1",
         "example": "Plan1"
-      },
-      {
-        "name": "membro",
-        "kind": "text",
-        "label": "Arquivo no zip",
-        "default": "",
-        "example": "dados/2024.csv"
-      },
-      {
-        "name": "copia",
-        "kind": "integer",
-        "label": "Cópia do link",
-        "default": 0
       }
     ],
     "icon": "file-spreadsheet"
@@ -797,7 +797,7 @@
     "hasOutput": true,
     "label": "Recodificar",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -998,7 +998,7 @@
     "hasOutput": true,
     "label": "Amostrar linhas",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -1054,7 +1054,7 @@
     "hasOutput": true,
     "label": "Selecionar",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -1098,7 +1098,7 @@
     "hasOutput": true,
     "label": "Separar coluna",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -1156,7 +1156,7 @@
     "hasOutput": true,
     "label": "Primeiras N",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -1280,7 +1280,7 @@
     "hasOutput": true,
     "label": "Juntar colunas",
     "category": "transform",
-    "categoryLabel": "Transformar",
+    "categoryLabel": "Consultar",
     "categoryOrder": 4,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
@@ -1453,7 +1453,7 @@
     "label": "Box-Cox",
     "category": "exp_analisar",
     "categoryLabel": "Analisar",
-    "categoryOrder": 55,
+    "categoryOrder": 58,
     "inputColor": "#14b8a6",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -1561,7 +1561,7 @@
     "label": "Contrastes",
     "category": "exp_analisar",
     "categoryLabel": "Analisar",
-    "categoryOrder": 55,
+    "categoryOrder": 58,
     "inputColor": "#14b8a6",
     "outputColor": "#eab308",
     "role": "leitura",
@@ -1640,7 +1640,7 @@
     "label": "Delineamento",
     "category": "exp_planejar",
     "categoryLabel": "Planejar",
-    "categoryOrder": 54,
+    "categoryOrder": 57,
     "outputColor": "#65a30d",
     "role": "preparacao",
     "inputs": [],
@@ -1749,7 +1749,7 @@
     "label": "Efeito",
     "category": "exp_planejar",
     "categoryLabel": "Planejar",
-    "categoryOrder": 54,
+    "categoryOrder": 57,
     "inputColor": "#65a30d",
     "outputColor": "#65a30d",
     "role": "preparacao",
@@ -1874,7 +1874,7 @@
     "label": "Erro",
     "category": "exp_planejar",
     "categoryLabel": "Planejar",
-    "categoryOrder": 54,
+    "categoryOrder": 57,
     "inputColor": "#65a30d",
     "outputColor": "#65a30d",
     "role": "preparacao",
@@ -1981,7 +1981,7 @@
     "label": "Poder",
     "category": "exp_avaliar",
     "categoryLabel": "Avaliar",
-    "categoryOrder": 56,
+    "categoryOrder": 59,
     "inputColor": "#65a30d",
     "outputColor": "#f472b6",
     "role": "avaliacao",
@@ -2140,7 +2140,7 @@
     "label": "Teste de aleatorização",
     "category": "exp_avaliar",
     "categoryLabel": "Avaliar",
-    "categoryOrder": 56,
+    "categoryOrder": 59,
     "inputColor": "#65a30d",
     "outputColor": "#f472b6",
     "role": "avaliacao",
@@ -2306,7 +2306,7 @@
     "label": "Superfície de resposta",
     "category": "exp_analisar",
     "categoryLabel": "Analisar",
-    "categoryOrder": 55,
+    "categoryOrder": 58,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -2424,7 +2424,7 @@
     "label": "Ver o plano",
     "category": "exp_planejar",
     "categoryLabel": "Planejar",
-    "categoryOrder": 54,
+    "categoryOrder": 57,
     "inputColor": "#65a30d",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -2510,7 +2510,7 @@
     "label": "CART · árvore de decisão",
     "category": "ml_simples",
     "categoryLabel": "Interpretáveis",
-    "categoryOrder": 49,
+    "categoryOrder": 52,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -2593,7 +2593,7 @@
     "label": "Dados para aprender",
     "category": "ml_dados",
     "categoryLabel": "Preparar",
-    "categoryOrder": 48,
+    "categoryOrder": 51,
     "outputColor": "#38bdf8",
     "role": "preparacao",
     "inputs": [],
@@ -2623,7 +2623,7 @@
     "label": "FIGS · soma de árvores",
     "category": "ml_simples",
     "categoryLabel": "Interpretáveis",
-    "categoryOrder": 49,
+    "categoryOrder": 52,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -2693,7 +2693,7 @@
     "label": "Random forest",
     "category": "ml_ensembles",
     "categoryLabel": "Conjuntos de árvores",
-    "categoryOrder": 50,
+    "categoryOrder": 53,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -2782,7 +2782,7 @@
     "label": "Linear / logística",
     "category": "ml_simples",
     "categoryLabel": "Interpretáveis",
-    "categoryOrder": 49,
+    "categoryOrder": 52,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -2846,7 +2846,7 @@
     "label": "Validação cruzada aninhada",
     "category": "ml_avaliar",
     "categoryLabel": "Prever e avaliar",
-    "categoryOrder": 52,
+    "categoryOrder": 55,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
     "role": "avaliacao",
@@ -2964,7 +2964,7 @@
     "label": "Analisar resíduos",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 53,
+    "categoryOrder": 56,
     "inputColor": "#38bdf8",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -3050,7 +3050,7 @@
     "label": "Ler regras das árvores",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 53,
+    "categoryOrder": 56,
     "inputColor": "#14b8a6",
     "outputColor": "#38bdf8",
     "role": "leitura",
@@ -3080,7 +3080,7 @@
     "label": "Separar treino / teste",
     "category": "ml_dados",
     "categoryLabel": "Preparar",
-    "categoryOrder": 48,
+    "categoryOrder": 51,
     "inputColor": "#38bdf8",
     "outputColor": "#38bdf8",
     "role": "preparacao",
@@ -3163,7 +3163,7 @@
     "label": "SVM · vetores de suporte",
     "category": "ml_margem",
     "categoryLabel": "Vetores de suporte",
-    "categoryOrder": 51,
+    "categoryOrder": 54,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -3240,7 +3240,7 @@
     "label": "Visualizar árvores",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 53,
+    "categoryOrder": 56,
     "inputColor": "#14b8a6",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -3336,7 +3336,7 @@
     "label": "Ajustar hiperparâmetros",
     "category": "ml_avaliar",
     "categoryLabel": "Prever e avaliar",
-    "categoryOrder": 52,
+    "categoryOrder": 55,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -3454,7 +3454,7 @@
     "label": "Visualizar tuning",
     "category": "ml_inspecionar",
     "categoryLabel": "Inspecionar",
-    "categoryOrder": 53,
+    "categoryOrder": 56,
     "inputColor": "#38bdf8",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -3533,7 +3533,7 @@
     "label": "XGBoost",
     "category": "ml_ensembles",
     "categoryLabel": "Conjuntos de árvores",
-    "categoryOrder": 50,
+    "categoryOrder": 53,
     "inputColor": "#38bdf8",
     "outputColor": "#14b8a6",
     "role": "ajuste",
@@ -4890,7 +4890,7 @@
         "kind": "enum",
         "label": "Família",
         "default": "poisson",
-        "choices": ["gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial"]
+        "choices": ["gaussiana", "binomial", "poisson", "gama", "quasipoisson", "quasibinomial", "binomial negativa"]
       }
     ],
     "icon": "chart-spline"
@@ -10687,6 +10687,12 @@
         "color": "#34d399",
         "required": false,
         "multiple": false
+      },
+      {
+        "name": "reais",
+        "color": "#2dd4bf",
+        "required": false,
+        "multiple": false
       }
     ],
     "outputs": [
@@ -10707,7 +10713,7 @@
     "label": "Correlograma (ACF)",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#34d399",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -10732,7 +10738,8 @@
         "name": "defasagens",
         "kind": "integer",
         "label": "Defasagens",
-        "default": 0
+        "default": 0,
+        "example": "0 = automático"
       },
       {
         "name": "aspecto",
@@ -10865,6 +10872,43 @@
       }
     ],
     "icon": "calendar-days"
+  },
+  "series/arch_mv": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "ARCH multivariado",
+    "category": "serie_mv_testes",
+    "categoryLabel": "Testes multivariados",
+    "categoryOrder": 50,
+    "inputColor": "#fb923c",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens (ARCH)",
+        "default": 5
+      }
+    ],
+    "icon": "test-tube"
   },
   "series/arima": {
     "accent": "#31765a",
@@ -11027,7 +11071,8 @@
         "name": "defasagens",
         "kind": "integer",
         "label": "Defasagens",
-        "default": 0
+        "default": 0,
+        "example": "0 = automático"
       },
       {
         "name": "graus",
@@ -11037,6 +11082,91 @@
       }
     ],
     "icon": "activity"
+  },
+  "series/ccf": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Correlação cruzada (CCF)",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 48,
+    "inputColor": "#34d399",
+    "outputColor": "#f472b6",
+    "role": "inspecao",
+    "inputs": [
+      {
+        "name": "x",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "y",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens",
+        "default": 0,
+        "example": "0 = automático"
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "16:9",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "chart-column"
   },
   "series/combine": {
     "accent": "#976523",
@@ -11203,6 +11333,75 @@
     ],
     "icon": "layers-2"
   },
+  "series/deseasonalize": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Tirar sazonalidade",
+    "category": "serie_operar",
+    "categoryLabel": "Operar",
+    "categoryOrder": 39,
+    "inputColor": "#34d399",
+    "outputColor": "#34d399",
+    "role": "preparacao",
+    "inputs": [
+      {
+        "name": "serie",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "sazonal",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "controlar_tendencia",
+        "kind": "boolean",
+        "label": "Controlar a tendência",
+        "default": true
+      },
+      {
+        "name": "contraste",
+        "kind": "enum",
+        "label": "Contraste",
+        "default": "soma_zero",
+        "choices": ["soma_zero", "categoria_base"]
+      },
+      {
+        "name": "excluir",
+        "kind": "text",
+        "label": "Excluir termos sazonais",
+        "default": "",
+        "example": "fev, mar"
+      },
+      {
+        "name": "remover_ns",
+        "kind": "boolean",
+        "label": "Remover termos sazonais não significativos",
+        "default": false
+      },
+      {
+        "name": "confianca",
+        "kind": "number",
+        "label": "Confiança da remoção",
+        "default": 0.95
+      }
+    ],
+    "icon": "waves-arrow-down"
+  },
   "series/detect_interventions": {
     "accent": "#31765a",
     "hasInput": true,
@@ -11295,6 +11494,12 @@
         "color": "#34d399",
         "required": true,
         "multiple": false
+      },
+      {
+        "name": "tendencia",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
       }
     ],
     "params": [
@@ -11363,6 +11568,58 @@
       }
     ],
     "icon": "diff"
+  },
+  "series/engle_granger": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Engle-Granger",
+    "category": "serie_mv_testes",
+    "categoryLabel": "Testes multivariados",
+    "categoryOrder": 50,
+    "inputColor": "#2dd4bf",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "resposta",
+        "kind": "text",
+        "label": "Resposta",
+        "default": "",
+        "example": "consumo"
+      },
+      {
+        "name": "deterministico",
+        "kind": "enum",
+        "label": "Determinístico",
+        "default": "constante",
+        "choices": ["constante", "tendência"]
+      },
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens do ADF",
+        "default": 0,
+        "example": "0 = pela regra automática"
+      }
+    ],
+    "icon": "test-tube"
   },
   "series/ets": {
     "accent": "#31765a",
@@ -11439,21 +11696,21 @@
     ],
     "icon": "activity"
   },
-  "series/f_global": {
-    "accent": "#8b3a62",
+  "series/fevd": {
+    "accent": "#75539b",
     "hasInput": true,
     "hasOutput": true,
-    "label": "F global",
-    "category": "serie_regressao",
-    "categoryLabel": "Regressão",
-    "categoryOrder": 46,
-    "inputColor": "#c084fc",
-    "outputColor": "#ef4444",
-    "role": "avaliacao",
+    "label": "Decomposição da variância",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 48,
+    "inputColor": "#fb923c",
+    "outputColor": "#f472b6",
+    "role": "inspecao",
     "inputs": [
       {
-        "name": "ajuste",
-        "color": "#c084fc",
+        "name": "modelo",
+        "color": "#fb923c",
         "required": true,
         "multiple": false
       }
@@ -11461,73 +11718,61 @@
     "outputs": [
       {
         "name": "out",
-        "color": "#ef4444",
+        "color": "#f472b6",
         "required": true,
         "multiple": false
       }
     ],
-    "params": [],
-    "icon": "sigma"
-  },
-  "series/f_seasonal": {
-    "accent": "#8b3a62",
-    "hasInput": true,
-    "hasOutput": true,
-    "label": "F do bloco sazonal",
-    "category": "serie_regressao",
-    "categoryLabel": "Regressão",
-    "categoryOrder": 46,
-    "inputColor": "#c084fc",
-    "outputColor": "#ef4444",
-    "role": "avaliacao",
-    "inputs": [
+    "params": [
       {
-        "name": "ajuste",
-        "color": "#c084fc",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
+        "name": "horizonte",
+        "kind": "integer",
+        "label": "Horizonte",
+        "default": 10
+      },
       {
-        "name": "out",
-        "color": "#ef4444",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "params": [],
-    "icon": "calendar-range"
-  },
-  "series/f_trend": {
-    "accent": "#8b3a62",
-    "hasInput": true,
-    "hasOutput": true,
-    "label": "F do bloco de tendência",
-    "category": "serie_regressao",
-    "categoryLabel": "Regressão",
-    "categoryOrder": 46,
-    "inputColor": "#c084fc",
-    "outputColor": "#ef4444",
-    "role": "avaliacao",
-    "inputs": [
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "4:3",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
       {
-        "name": "ajuste",
-        "color": "#c084fc",
-        "required": true,
-        "multiple": false
-      }
-    ],
-    "outputs": [
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
       {
-        "name": "out",
-        "color": "#ef4444",
-        "required": true,
-        "multiple": false
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
       }
     ],
-    "params": [],
-    "icon": "trending-up-down"
+    "icon": "chart-column-stacked"
   },
   "series/forecast": {
     "accent": "#d3e9de",
@@ -11544,7 +11789,25 @@
       {
         "name": "modelo",
         "color": "#f59e0b",
-        "required": true,
+        "required": false,
+        "multiple": false
+      },
+      {
+        "name": "ajuste",
+        "color": "#14b8a6",
+        "required": false,
+        "multiple": false
+      },
+      {
+        "name": "futuro",
+        "color": "#34d399",
+        "required": false,
+        "multiple": false
+      },
+      {
+        "name": "var",
+        "color": "#fb923c",
+        "required": false,
         "multiple": false
       }
     ],
@@ -11631,6 +11894,108 @@
     ],
     "icon": "table-rows-split"
   },
+  "series/from_table_mts": {
+    "accent": "#275d8c",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Tabela para séries",
+    "category": "serie_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 38,
+    "inputColor": "#38bdf8",
+    "outputColor": "#2dd4bf",
+    "role": "origem",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "valores",
+        "kind": "cols",
+        "label": "Valores",
+        "example": "consumo, renda"
+      },
+      {
+        "name": "tempo",
+        "kind": "cols",
+        "label": "Tempo",
+        "default": "",
+        "example": "mes"
+      },
+      {
+        "name": "frequencia",
+        "kind": "integer",
+        "label": "Frequência",
+        "default": 12
+      },
+      {
+        "name": "inicio",
+        "kind": "text",
+        "label": "Início",
+        "default": "",
+        "example": "2019, 7"
+      }
+    ],
+    "icon": "table-columns-split"
+  },
+  "series/granger": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Causalidade de Granger",
+    "category": "serie_mv_testes",
+    "categoryLabel": "Testes multivariados",
+    "categoryOrder": 50,
+    "inputColor": "#fb923c",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "ajuste",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "causa",
+        "kind": "text",
+        "label": "Causa",
+        "default": "",
+        "example": "renda"
+      },
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "wald",
+        "choices": ["wald", "toda_yamamoto"]
+      }
+    ],
+    "icon": "arrow-right-left"
+  },
   "series/holt_winters": {
     "accent": "#31765a",
     "hasInput": true,
@@ -11715,7 +12080,7 @@
     "accent": "#31765a",
     "hasInput": true,
     "hasOutput": true,
-    "label": "Intervenção",
+    "label": "Intervenções",
     "category": "serie_modelar",
     "categoryLabel": "Modelar",
     "categoryOrder": 41,
@@ -11727,6 +12092,12 @@
         "name": "serie",
         "color": "#34d399",
         "required": true,
+        "multiple": false
+      },
+      {
+        "name": "datas",
+        "color": "#38bdf8",
+        "required": false,
         "multiple": false
       }
     ],
@@ -11742,9 +12113,16 @@
       {
         "name": "data",
         "kind": "text",
-        "label": "Data da intervenção",
+        "label": "Datas",
         "default": "",
-        "example": "1983, 2"
+        "example": "1975, 1; 1983, 2"
+      },
+      {
+        "name": "tempo",
+        "kind": "cols",
+        "label": "Coluna de data",
+        "default": "",
+        "example": "data"
       },
       {
         "name": "tipo",
@@ -11762,6 +12140,219 @@
       }
     ],
     "icon": "milestone"
+  },
+  "series/irf": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Impulso-resposta",
+    "category": "serie_ver",
+    "categoryLabel": "Ver",
+    "categoryOrder": 48,
+    "inputColor": "#fb923c",
+    "outputColor": "#f472b6",
+    "role": "inspecao",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "impulso",
+        "kind": "text",
+        "label": "Impulso",
+        "default": "",
+        "example": "prod"
+      },
+      {
+        "name": "respostas",
+        "kind": "text",
+        "label": "Respostas",
+        "default": "",
+        "example": "e, U"
+      },
+      {
+        "name": "horizonte",
+        "kind": "integer",
+        "label": "Horizonte",
+        "default": 10
+      },
+      {
+        "name": "ortogonal",
+        "kind": "boolean",
+        "label": "Ortogonal (Cholesky)",
+        "default": true
+      },
+      {
+        "name": "acumulada",
+        "kind": "boolean",
+        "label": "Acumulada",
+        "default": false
+      },
+      {
+        "name": "reamostras",
+        "kind": "integer",
+        "label": "Reamostras",
+        "default": 100,
+        "example": "0 = sem banda"
+      },
+      {
+        "name": "confianca",
+        "kind": "number",
+        "label": "Confiança",
+        "default": 0.95
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "16:9",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "waves-horizontal"
+  },
+  "series/johansen": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Johansen",
+    "category": "serie_mv_testes",
+    "categoryLabel": "Testes multivariados",
+    "categoryOrder": 50,
+    "inputColor": "#2dd4bf",
+    "outputColor": "#38bdf8",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Estatística",
+        "default": "traco",
+        "choices": ["traco", "autovalor"]
+      },
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens (K, em nível)",
+        "default": 2,
+        "example": "2"
+      },
+      {
+        "name": "deterministico",
+        "kind": "enum",
+        "label": "Determinístico",
+        "default": "constante restrita",
+        "choices": ["constante restrita", "tendência restrita", "constante livre"]
+      },
+      {
+        "name": "sazonal",
+        "kind": "boolean",
+        "label": "Dummies sazonais",
+        "default": false
+      }
+    ],
+    "icon": "test-tube"
+  },
+  "series/join": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Juntar séries",
+    "category": "serie_mv",
+    "categoryLabel": "Multivariada",
+    "categoryOrder": 49,
+    "inputColor": "#34d399",
+    "outputColor": "#2dd4bf",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#34d399",
+        "required": true,
+        "multiple": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "nomes",
+        "kind": "text",
+        "label": "Nomes",
+        "default": "",
+        "example": "consumo, renda"
+      }
+    ],
+    "icon": "combine"
   },
   "series/kpss": {
     "accent": "#8b3a62",
@@ -11845,7 +12436,7 @@
     "label": "Gráfico de defasagens",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#34d399",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -11948,7 +12539,8 @@
         "name": "defasagens",
         "kind": "integer",
         "label": "Defasagens",
-        "default": 0
+        "default": 0,
+        "example": "0 = automático"
       },
       {
         "name": "graus",
@@ -12078,6 +12670,36 @@
     ],
     "icon": "hash"
   },
+  "series/normality_mv": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Normalidade multivariada",
+    "category": "serie_mv_testes",
+    "categoryLabel": "Testes multivariados",
+    "categoryOrder": 50,
+    "inputColor": "#fb923c",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [],
+    "icon": "test-tube"
+  },
   "series/pacf": {
     "accent": "#75539b",
     "hasInput": true,
@@ -12085,7 +12707,7 @@
     "label": "Autocorrelação parcial (PACF)",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#34d399",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -12110,7 +12732,8 @@
         "name": "defasagens",
         "kind": "integer",
         "label": "Defasagens",
-        "default": 0
+        "default": 0,
+        "example": "0 = automático"
       },
       {
         "name": "aspecto",
@@ -12270,6 +12893,44 @@
     ],
     "icon": "flask-conical"
   },
+  "series/pick": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Escolher série",
+    "category": "serie_mv",
+    "categoryLabel": "Multivariada",
+    "categoryOrder": 49,
+    "inputColor": "#2dd4bf",
+    "outputColor": "#34d399",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "variavel",
+        "kind": "text",
+        "label": "Série",
+        "default": "",
+        "example": "renda"
+      }
+    ],
+    "icon": "list-filter"
+  },
   "series/plot": {
     "accent": "#75539b",
     "hasInput": true,
@@ -12277,7 +12938,7 @@
     "label": "Série no tempo",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#34d399",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -12375,7 +13036,7 @@
     "label": "Gráfico da decomposição",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#a3e635",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -12447,7 +13108,7 @@
     "label": "Gráfico da previsão",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#f472b6",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -12518,6 +13179,135 @@
     ],
     "icon": "chart-area"
   },
+  "series/portmanteau_mv": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Portmanteau multivariado",
+    "category": "serie_mv_testes",
+    "categoryLabel": "Testes multivariados",
+    "categoryOrder": 50,
+    "inputColor": "#fb923c",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Estatística",
+        "default": "ljung_box",
+        "choices": ["ljung_box", "box_pierce"]
+      },
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens (h)",
+        "default": 0,
+        "example": "0 = automático"
+      }
+    ],
+    "icon": "test-tube"
+  },
+  "series/range_mean": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Amplitude × média",
+    "category": "serie_variancia",
+    "categoryLabel": "Variância",
+    "categoryOrder": 47,
+    "inputColor": "#34d399",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "serie",
+        "color": "#34d399",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "grafico",
+        "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "tamanho",
+        "kind": "integer",
+        "label": "Tamanho do bloco",
+        "default": 0
+      },
+      {
+        "name": "aspecto",
+        "kind": "enum",
+        "label": "Proporção",
+        "default": "4:3",
+        "choices": ["16:9", "4:3", "1:1", "3:4", "2:1"]
+      },
+      {
+        "name": "tema",
+        "kind": "theme",
+        "label": "Tema",
+        "default": "padrão"
+      },
+      {
+        "name": "titulo",
+        "kind": "text",
+        "label": "Título",
+        "default": "",
+        "example": "Receita por região"
+      },
+      {
+        "name": "rotulo_x",
+        "kind": "text",
+        "label": "Rótulo do X",
+        "default": "",
+        "example": "Região"
+      },
+      {
+        "name": "rotulo_y",
+        "kind": "text",
+        "label": "Rótulo do Y",
+        "default": "",
+        "example": "Receita (R$)"
+      },
+      {
+        "name": "legenda",
+        "kind": "enum",
+        "label": "Legenda",
+        "default": "direita",
+        "choices": ["direita", "abaixo", "nenhuma"]
+      }
+    ],
+    "icon": "chart-scatter"
+  },
   "series/regression": {
     "accent": "#31765a",
     "hasInput": true,
@@ -12527,7 +13317,7 @@
     "categoryLabel": "Decompor",
     "categoryOrder": 40,
     "inputColor": "#34d399",
-    "outputColor": "#c084fc",
+    "outputColor": "#14b8a6",
     "role": "ajuste",
     "inputs": [
       {
@@ -12546,23 +13336,18 @@
     "outputs": [
       {
         "name": "out",
-        "color": "#c084fc",
+        "color": "#14b8a6",
         "required": true,
         "multiple": false
       }
     ],
     "params": [
       {
-        "name": "grau",
-        "kind": "integer",
-        "label": "Grau da tendência",
-        "default": 1
-      },
-      {
-        "name": "sazonalidade",
-        "kind": "boolean",
-        "label": "Sazonalidade",
-        "default": true
+        "name": "formula",
+        "kind": "text",
+        "label": "Fórmula",
+        "default": "valor ~ t + periodo",
+        "example": "valor ~ t + I(t^2) + periodo"
       },
       {
         "name": "contraste",
@@ -12585,10 +13370,10 @@
         "default": false
       },
       {
-        "name": "alfa",
+        "name": "confianca",
         "kind": "number",
-        "label": "α da remoção",
-        "default": 0.05
+        "label": "Confiança da remoção",
+        "default": 0.95
       },
       {
         "name": "erro",
@@ -12642,6 +13427,36 @@
     "params": [],
     "icon": "scan-line"
   },
+  "series/residuals_mv": {
+    "accent": "#d3e9de",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Resíduos (múltiplos)",
+    "category": "serie_mv",
+    "categoryLabel": "Multivariada",
+    "categoryOrder": 49,
+    "inputColor": "#fb923c",
+    "outputColor": "#2dd4bf",
+    "role": "leitura",
+    "inputs": [
+      {
+        "name": "modelo",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [],
+    "icon": "scan-line"
+  },
   "series/runs": {
     "accent": "#8b3a62",
     "hasInput": true,
@@ -12679,7 +13494,7 @@
     "label": "Gráfico sazonal",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#34d399",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -12824,7 +13639,7 @@
     "label": "Subséries sazonais",
     "category": "serie_ver",
     "categoryLabel": "Ver",
-    "categoryOrder": 47,
+    "categoryOrder": 48,
     "inputColor": "#34d399",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -12934,6 +13749,178 @@
     ],
     "icon": "square-function"
   },
+  "series/var": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "VAR",
+    "category": "serie_mv",
+    "categoryLabel": "Multivariada",
+    "categoryOrder": 49,
+    "inputColor": "#2dd4bf",
+    "outputColor": "#fb923c",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens (p)",
+        "default": 0,
+        "example": "0 = pelo critério"
+      },
+      {
+        "name": "max_defasagens",
+        "kind": "integer",
+        "label": "Máximo de defasagens",
+        "default": 8
+      },
+      {
+        "name": "criterio",
+        "kind": "enum",
+        "label": "Critério",
+        "default": "AIC",
+        "choices": ["AIC", "HQ", "SC", "FPE"]
+      },
+      {
+        "name": "deterministico",
+        "kind": "enum",
+        "label": "Determinístico",
+        "default": "constante",
+        "choices": ["constante", "tendência", "ambos", "nenhum"]
+      },
+      {
+        "name": "sazonal",
+        "kind": "boolean",
+        "label": "Dummies sazonais",
+        "default": false
+      }
+    ],
+    "icon": "network"
+  },
+  "series/var_select": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Defasagens do VAR",
+    "category": "serie_mv",
+    "categoryLabel": "Multivariada",
+    "categoryOrder": 49,
+    "inputColor": "#2dd4bf",
+    "outputColor": "#38bdf8",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "max_defasagens",
+        "kind": "integer",
+        "label": "Máximo de defasagens",
+        "default": 8
+      },
+      {
+        "name": "deterministico",
+        "kind": "enum",
+        "label": "Determinístico",
+        "default": "constante",
+        "choices": ["constante", "tendência", "ambos", "nenhum"]
+      },
+      {
+        "name": "sazonal",
+        "kind": "boolean",
+        "label": "Dummies sazonais",
+        "default": false
+      }
+    ],
+    "icon": "table"
+  },
+  "series/vecm": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "VECM",
+    "category": "serie_mv",
+    "categoryLabel": "Multivariada",
+    "categoryOrder": 49,
+    "inputColor": "#2dd4bf",
+    "outputColor": "#fb923c",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "series",
+        "color": "#2dd4bf",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#fb923c",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "posto",
+        "kind": "integer",
+        "label": "Posto (r)",
+        "default": 1,
+        "example": "1"
+      },
+      {
+        "name": "defasagens",
+        "kind": "integer",
+        "label": "Defasagens (K, em nível)",
+        "default": 2,
+        "example": "2"
+      },
+      {
+        "name": "deterministico",
+        "kind": "enum",
+        "label": "Determinístico",
+        "default": "constante restrita",
+        "choices": ["constante restrita", "tendência restrita", "constante livre"]
+      },
+      {
+        "name": "sazonal",
+        "kind": "boolean",
+        "label": "Dummies sazonais",
+        "default": false
+      }
+    ],
+    "icon": "network"
+  },
   "series/window": {
     "accent": "#976523",
     "hasInput": true,
@@ -13037,7 +14024,7 @@
     "label": "Declarar coordenadas",
     "category": "espacial_preparar",
     "categoryLabel": "Preparar",
-    "categoryOrder": 59,
+    "categoryOrder": 61,
     "inputColor": "#38bdf8",
     "outputColor": "#0e7490",
     "role": "preparacao",
@@ -13114,7 +14101,7 @@
     "label": "Exemplo espacial",
     "category": "espacial_fonte",
     "categoryLabel": "Fonte",
-    "categoryOrder": 58,
+    "categoryOrder": 60,
     "outputColor": "#0e7490",
     "role": "origem",
     "inputs": [],
@@ -13144,7 +14131,7 @@
     "label": "Explorar",
     "category": "espacial_explorar",
     "categoryLabel": "Explorar",
-    "categoryOrder": 60,
+    "categoryOrder": 62,
     "inputColor": "#0e7490",
     "outputColor": "#f472b6",
     "role": "inspecao",
@@ -13223,7 +14210,7 @@
     "label": "Krigagem",
     "category": "espacial_predizer",
     "categoryLabel": "Predizer",
-    "categoryOrder": 62,
+    "categoryOrder": 64,
     "inputColor": "#0e7490",
     "outputColor": "#0d9488",
     "role": "ajuste",
@@ -13291,7 +14278,7 @@
     "label": "Mapa da superfície",
     "category": "espacial_predizer",
     "categoryLabel": "Predizer",
-    "categoryOrder": 62,
+    "categoryOrder": 64,
     "inputColor": "#0d9488",
     "outputColor": "#f472b6",
     "role": "leitura",
@@ -13382,7 +14369,7 @@
     "label": "Variograma",
     "category": "espacial_variograma",
     "categoryLabel": "Variograma",
-    "categoryOrder": 61,
+    "categoryOrder": 63,
     "inputColor": "#0e7490",
     "outputColor": "#6366f1",
     "role": "ajuste",
@@ -13457,7 +14444,7 @@
     "label": "Ajustar modelo",
     "category": "espacial_variograma",
     "categoryLabel": "Variograma",
-    "categoryOrder": 61,
+    "categoryOrder": 63,
     "inputColor": "#6366f1",
     "outputColor": "#8b5cf6",
     "role": "ajuste",
@@ -13524,6 +14511,72 @@
       }
     ],
     "icon": "spline"
+  },
+  "sql/query": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Consultar com SQL",
+    "category": "transform",
+    "categoryLabel": "Consultar",
+    "categoryOrder": 4,
+    "inputColor": "#64748b",
+    "outputColor": "#38bdf8",
+    "role": "preparacao",
+    "inputs": [
+      {
+        "name": "fonte",
+        "color": "#64748b",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "consulta",
+        "kind": "sql",
+        "label": "Consulta",
+        "default": "",
+        "example": "SELECT * FROM vendas"
+      }
+    ]
+  },
+  "sql/source": {
+    "accent": "#275d8c",
+    "hasInput": false,
+    "hasOutput": true,
+    "label": "Fonte SQL",
+    "category": "source",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 1,
+    "outputColor": "#64748b",
+    "role": "origem",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#64748b",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "caminho",
+        "kind": "text",
+        "label": "Caminho",
+        "default": "",
+        "example": "dados/"
+      }
+    ]
   },
   "view/annotate": {
     "accent": "#75539b",

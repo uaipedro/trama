@@ -249,10 +249,12 @@ test_that("fit singular numa partida só é recusado como não convergência", {
   # só morde quando as três iniciais são dadas (uma partida só). Achar números
   # que levem o gstat a um fit singular de verdade depende da plataforma (o que
   # sai singular no Windows converge no Linux), então o `singular` é forçado:
-  # o que se testa é a leitura do atributo, não o otimizador.
-  orig <- gstat::fit.variogram
+  # o que se testa é a leitura do atributo, não o otimizador. O mock devolve o
+  # próprio modelo inicial (números válidos) marcado singular: com o ajuste de
+  # verdade por baixo, no Linux os números saíam inválidos (alcance negativo) e
+  # o erro virava `bad_fit`, que é o certo pela regra de `errors.R`.
   testthat::local_mocked_bindings(
-    fit.variogram = function(...) structure(orig(...), singular = TRUE),
+    fit.variogram = function(object, model, ...) structure(model, singular = TRUE),
     .package = "gstat")
   expect_error(
     tr_spatial_variogram_fit(vp("milho_se"), pepita_inicial = 1.3e6,
@@ -279,9 +281,18 @@ test_that("alcance prático ABAIXO da menor distância é recusado", {
     w$tabela <- tibble::tibble(u = u, gamma = g, np = 500L, direcao = NA_real_)
     w
   }
+  # O que o gstat devolve aqui depende da plataforma (no CI Linux, alcance
+  # negativo antes de chegar à escala): o mock fixa o alcance devolvido (abaixo
+  # da 1a distância, 10 km) e o teste confere a guarda, não o otimizador.
+  testthat::local_mocked_bindings(
+    fit.variogram = function(object, model, ...) {
+      model$range[[2]] <- alcance_devolvido; model
+    }, .package = "gstat")
+  alcance_devolvido <- 9100 / sqrt(3)  # gaussiano: prático = sqrt(3) * phi = 9,1 km
   e <- expect_error(tr_spatial_variogram_fit(sintetico(1500), familia = "gaussiano"),
                     class = "tr_spatial_error_bad_fit")
   expect_match(conditionMessage(e), "fora da escala")
+  alcance_devolvido <- 2000                   # esférico: prático = alcance = 2,0 km
   e <- expect_error(tr_spatial_variogram_fit(sintetico(3000), familia = "esferico"),
                     class = "tr_spatial_error_bad_fit")
   expect_match(conditionMessage(e), "fora da escala")
