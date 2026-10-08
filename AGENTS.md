@@ -8,7 +8,7 @@ Antes de assumir onde algo está, leia `docs/mapa.md`. Vocabulário (papel, ajus
 
 - **Núcleo sem domínio.** Nada de estatística, dplyr ou ggplot em `R/`. `tests/testthat/helper-collection.R` testa o núcleo com uma coleção falsa — mantenha assim.
 - **Rigor numérico.** Bloco ou mudança estatística precisa de teste com oráculo publicado (exemplo resolvido ou pacote de referência, tolerância declarada) e de `tr_ref`/`tr_pressuposto` conferidos na fonte, nunca de memória. Mudou resultado ou padrão → sobe `version` do nó. Registrar em `docs/revisao-metodologica.md`.
-- **Um verbo, um bloco.** Prever, avaliar, ROC, importância, coeficientes existem só em `trama.models`. Coleções produzem `models/fit` (contrato em `collections/trama.models/R/contrato.R`), não tipo próprio.
+- **Um verbo, um bloco.** Prever, avaliar, ROC, importância, coeficientes existem só em `trama.models`. Coleções produzem `models/fit` (contrato em `collections/trama.models/R/contrato.R`), não tipo próprio. Exceção: `trama.spatial` — a krigagem prediz uma superfície em grade com erro-padrão por célula, que `predict_raw` não expressa; `spatial/model` e `spatial/surface` são tipos próprios para não puxar `trama.models` só para um variograma.
 - **Glossário de params é travado** (`docs/glossario-parametros.md`, `tests/testthat/test-glossario.R`). Renomear param = migração (`tr_node(migracoes=)` / `tr_collection(migrations=)`).
 - **Params de coluna** usam `tr_param_col(...)`; opcionais (cor, rótulo, painel) com `suggest = FALSE`.
 - **Repo público.** Dados de cliente e `docs/plans/` (local, no `.gitignore`) nunca são commitados.

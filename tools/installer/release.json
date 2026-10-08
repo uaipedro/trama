@@ -56,6 +56,14 @@
       "requires": [
         "trama.data"
       ]
+    },
+    "trama.spatial": {
+      "version": "0.1.0",
+      "title": "Geoestatística",
+      "requires": [
+        "trama.data",
+        "trama.view"
+      ]
     }
   }
 }

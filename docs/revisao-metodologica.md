@@ -362,3 +362,95 @@ coeficientes do `series/arima` a 1e-10), cujo ajuste já confere com
 `forecast::Arima(xreg = )` a 1e-8. Na tabela da detecção, a temporária (TC,
 δ = 0,7 fixo no `tsoutliers`) entra como pulso gradual com δ estimado — a
 mesma forma ω/(1 − δB) —, e o limite de uma gradual por modelo continua.
+
+## Coleção `trama.spatial`: variograma, ajuste e krigagem (06/10/2026)
+
+`trama.spatial` 0.1.0, sobre `gstat` 2.1.6 (Pebesma, 2004,
+doi:10.1016/j.cageo.2004.03.012). Os três blocos estatísticos e o que cada
+teste afirma de fato.
+
+**`spatial/variogram`** (versão 1). Variograma empírico: estimador clássico de
+Matheron (1963, doi:10.2113/gsecongeo.58.8.1246) ou robusto de Cressie e Hawkins
+(1980, doi:10.1007/BF01035243), em classes de mesma largura, omnidirecional ou
+numa direção (graus a partir do Norte), com remoção de tendência (constante,
+1ª ou 2ª ordem, covariável). Oráculo: `geoR::variog` 1.9.6 nas MESMAS classes
+passadas aos dois pacotes: clássico, robusto (`estimator.type = "modulus"`),
+direcional a 30 e a 60 graus (nunca 45, ponto fixo da conversão errada) e
+tendência de 1ª e de 2ª ordem. Tolerância declarada 1e-8 em gamma; concordância
+medida ~1e-14. Teste: `collections/trama.spatial/tests/testthat/test-variograma-geor.R`.
+
+- **Achado: precisão do `gstat` na tendência polinomial.** Com as coordenadas
+  em metros UTM (~1e6), o termo de 2ª ordem vale ~1e12 e a regressão da
+  tendência sai mal condicionada: o `gstat` errou 5,5e-8 (relativo) contra a
+  referência exata, e o `geoR` 1,4e-13 (medidas feitas durante o desenvolvimento,
+  contra uma referência exata montada à parte: nenhum teste do repositório
+  afirma estes números, e não são oráculo). O bloco centra e padroniza as colunas
+  da regressão; os resíduos de um polinômio não mudam sob mudança afim das
+  coordenadas, e as posições dos pares seguem nas coordenadas originais. Depois
+  disso o `gstat` ficou a 1,1e-15 da referência exata na 2ª ordem (também
+  medida, não asserida). O que os testes afirmam é a concordância com
+  `geoR::variog` na tolerância de 1e-8, que cobre a 1ª e a 2ª ordem; ela não foi
+  afrouxada.
+
+**`spatial/variogram_fit`** (versão 1). Ajuste de esférico, exponencial,
+gaussiano ou Matérn por mínimos quadrados (`gstat::fit.variogram`; WLS-Cressie
+com peso N/γ², WLS-np e OLS), com várias partidas fixas e o ajuste válido de
+menor critério. Alcance prático fechado por família (esférico = phi,
+exponencial ≈ 3 phi, gaussiano ≈ √3 phi, Matérn pela raiz de γ = 95% do
+patamar). Oráculos, e o que cada um prova:
+
+- Alcance prático contra a raiz de γ(h) = 0,95 do patamar resolvida
+  numericamente (tolerância 2e-3: 3 e √3 são arredondamentos convencionais, de
+  erro relativo medido 1,4e-3 e 7,4e-4) e, no Matérn, contra
+  `gstat::variogramLine` (1e-6) em kappa 0,3, 0,5, 1, 2,5 e 10.
+- Minimização: o ajuste tem critério menor que o de parâmetros perturbados
+  (alcance ×2 e ÷2, contribuição ×2), nos três métodos, em `milho_pr` e
+  `cafe_mg`; o `sqr` do bloco é esse critério recalculado (1e-9). Exceção: com
+  `milho_pr`, exponencial e WLS-np o ajuste não é identificado (alcance prático
+  ~17 vezes a maior distância), e o teste afirma a **recusa** do bloco
+  (`expect_error`, `tr_spatial_error_bad_fit`), não uma minimização.
+- Campo simulado de verdade conhecida (pepita 1, contribuição 9, alcance 50),
+  por intervalo e não por ponto.
+- `geoR::variofit(weights = "cressie")`: concordância de **ordem de
+  grandeza**, tolerância 0,35 em pepita, contribuição e alcance. É frouxa de
+  propósito e não prova igualdade numérica. Sobre o mesmo variograma empírico
+  (que bate entre os dois pacotes), o `fit.method = 2` do `gstat` e o
+  `weights = "cressie"` do `geoR` chegam a parâmetros até ~26% diferentes
+  (alcance do exponencial e do esférico em `milho_pr`): minimizam critérios
+  próximos mas não idênticos, com otimizadores diferentes. O teste existe para
+  pegar erro grosseiro (parâmetro trocado, escala errada, modelo errado).
+
+Teste: `collections/trama.spatial/tests/testthat/test-ajuste-oraculo.R`.
+
+- **Achado: o `gstat` devolve ajuste ruim sem erro.** Singular e não
+  convergido saem com `attr(fit, "singular")` e um aviso, e o resultado pode
+  parecer plausível. O bloco lê o atributo, captura o aviso, confere sinais e
+  checa o alcance prático contra a escala dos dados; o que falha vira erro
+  nomeado, e pepita negativa nunca é consertada em silêncio (o erro indica
+  `pepita_fixa` com `pepita_inicial = 0`).
+
+**`spatial/kriging`** (versão 1). Krigagem ordinária e simples, com vizinhança
+global ou local (`nmax`, `maxdist`) e erro-padrão por célula (`gstat::krige`).
+Oráculos, do mais forte ao mais barato:
+
+1. Sistema de krigagem resolvido à mão com `solve()`, sem pacote de
+   geoestatística (Isaaks e Srivastava, 1989, cap. 12), com a covariância de
+   cada família escrita no teste; cobre pepita > 0, alcance prático diferente
+   de phi, Matérn em kappa 1,5, esférico com pontos além do alcance, vizinhança
+   e raio. Tolerância 1e-8. Nos cinco pontos de Isaaks (exponencial, alvo
+   (30, 60)): predito 13,7683147552 e variância 3,5802184923, valores que o
+   teste afirma a 1e-8. Medido durante o desenvolvimento, e não asserido por
+   teste: mão, `gstat` e `geoR` diferem de 0 a 1,8e-15.
+2. `geoR::krige.conv`, ordinária em dados reais e em metros, simples com média
+   diferente da amostral, e Matérn de kappa 1,5. Tolerância 1e-6.
+3. Exatidão: no ponto amostral, o predito é o observado e a variância é zero
+   quando a pepita é zero (1e-6).
+
+Teste: `collections/trama.spatial/tests/testthat/test-krigagem-oraculo.R`.
+
+- **Achado: krigagem simples sem média.** `gstat::krige` aceita a simples sem
+  `beta` e resolve com média zero, em silêncio. O bloco recusa antes
+  (`media` obrigatória na simples) e passa `beta` explicitamente.
+
+Fora desta versão, e sem oráculo: a escolha entre famílias e a validação
+cruzada (`spatial/validation`, em `docs/propostas-blocos-estatistica-trama.md`).

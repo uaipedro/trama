@@ -3,7 +3,7 @@
 # mesmo módulo Markdown do editor (via Node, que é o ambiente de teste dele).
 suppressPackageStartupMessages(pkgload::load_all(".", quiet = TRUE, export_all = TRUE))
 colecoes <- c("trama.data", "trama.view", "trama.models", "trama.sampling", "trama.series",
-              "trama.multi", "trama.ml", "trama.experiments", "trama.sql", "trama.python")
+              "trama.multi", "trama.ml", "trama.experiments", "trama.sql", "trama.python", "trama.spatial")
 reg <- tr_registry()
 for (p in colecoes) {
   caminho <- file.path("collections", p)

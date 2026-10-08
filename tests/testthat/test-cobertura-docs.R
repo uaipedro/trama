@@ -30,7 +30,8 @@
                   "sampling/rake")
 
 .cob_colecoes <- c("trama.data", "trama.view", "trama.models", "trama.sampling",
-                   "trama.series", "trama.multi", "trama.ml", "trama.experiments", "trama.sql")
+                   "trama.series", "trama.multi", "trama.ml", "trama.experiments", "trama.sql",
+                   "trama.spatial")
 
 cob_registry <- function() {
   raiz <- "../../collections"

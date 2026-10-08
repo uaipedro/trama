@@ -17,7 +17,8 @@ if (!exists("registry", inherits = FALSE)) {
   suppressMessages({
     pkgload::load_all(".", quiet = TRUE)
     colecoes <- c("trama.data", "trama.view", "trama.models", "trama.multi",
-                  "trama.sampling", "trama.series", "trama.ml", "trama.experiments", "trama.sql")
+                  "trama.sampling", "trama.series", "trama.ml", "trama.experiments", "trama.sql",
+                  "trama.spatial")
     for (package in colecoes) {
       pkgload::load_all(file.path("collections", package), quiet = TRUE,
                         export_all = FALSE, helpers = FALSE)

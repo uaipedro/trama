@@ -172,7 +172,7 @@ test_that("templates das coleções validam, não carregam caminho e rodam", {
   arquivos <- Sys.glob(test_path("../../collections/*/inst/templates/*.json"))
   skip_if(!length(arquivos), "sem templates de coleção nesta árvore")
   pkgs <- c("trama.data", "trama.view", "trama.models", "trama.ml",
-            "trama.multi", "trama.series", "trama.sampling")
+            "trama.multi", "trama.series", "trama.sampling", "trama.spatial")
   for (p in pkgs) skip_if_not_installed(p)
   reg <- tr_registry()
   suppressMessages(for (p in pkgs) tr_use(p, registry = reg))

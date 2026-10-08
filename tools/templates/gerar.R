@@ -213,7 +213,19 @@ exemplos <- list(
          tr_add("pop", "sampling/example", dataset = "fazendas") |>
          tr_add("amostra", "sampling/stratified", estrato = "regiao", n = 240L, from = "pop") |>
          tr_add("media", "sampling/mean", variavel = "producao_t", por = "regiao", from = "amostra") |>
-         tr_add("grafico", "sampling/plot_estimates", from = "media"))
+         tr_add("grafico", "sampling/plot_estimates", from = "media")),
+  list(pkg = "trama.spatial", nome = "Krigagem com mapa do predito e do erro-padrão",
+       descricao = "Produtividade de milho no Paraná: variograma, ajuste, krigagem ordinária e os mapas do predito e do erro-padrão lado a lado.",
+       flow = tr_flow(reg) |>
+         tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+         tr_add("explorar", "spatial/explore", from = "pontos") |>
+         tr_add("variograma", "spatial/variogram", from = "pontos") |>
+         tr_add("ajuste", "spatial/variogram_fit", from = "variograma") |>
+         tr_add("krigagem", "spatial/kriging", from = "ajuste") |>
+         # O predito é liso em qualquer lugar; só o erro-padrão mostra onde ele
+         # vale pouco. Os dois mapas ficam lado a lado, de propósito.
+         tr_add("mapa_predito", "spatial/map", mostrar = "predito", from = "krigagem") |>
+         tr_add("mapa_erro", "spatial/map", mostrar = "erro-padrao", from = "krigagem"))
 )
 
 raiz <- if (dir.exists("collections")) "." else stop("Rode na raiz do repositório.")

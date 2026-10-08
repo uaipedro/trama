@@ -1,0 +1,45 @@
+/* Folha da coleção `spatial`. Prefixo `tr-sp-` em tudo: a folha carrega DEPOIS do
+   trama.css e na mesma especificidade, e classe genérica aqui refinaria o núcleo
+   sem querer. Só tokens do editor: o tema claro, o escuro e o de papel valem sem
+   um segundo conjunto de cores. */
+
+.tr-sp{height:100%;display:flex;flex-direction:column;gap:4px;min-width:0;min-height:0;container-type:size}
+.tr-sp-topo{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+.tr-sp-var{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tr-sp-n{flex:none;font-size:11px;color:var(--tr-dim);font-variant-numeric:tabular-nums}
+.tr-sp-rot,.tr-sp-nota,.tr-sp-pontas{font-size:9.5px;color:var(--tr-dim);overflow:hidden;text-overflow:ellipsis}
+.tr-sp-nota{white-space:nowrap}
+/* `flex:none`: sem isso o flex encolhe a linha de texto a zero (overflow:hidden
+   zera o mínimo) em vez de encolher o desenho, e a legenda some em silêncio. */
+.tr-sp-resumo{font-size:10px;color:var(--tr-fg);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-sp-topo,.tr-sp-resumo,.tr-sp-rot,.tr-sp-nota,.tr-sp-pontas,.tr-sp-quartis,.tr-sp-rodape{flex:none}
+.tr-sp-pontas{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums}
+
+/* O desenho ocupa o que sobra do card e nunca estica: o `meet` do SVG mantém a
+   razão, e `min-height:0` deixa o flex encolhê-lo em vez de estourar o card. */
+.tr-sp-svg{display:block;width:100%;flex:1 1 auto;min-height:36px;min-width:0;
+           background:var(--tr-field);border-radius:4px;box-shadow:inset 0 0 0 1px var(--tr-line)}
+.tr-sp-vario{flex:0 1 auto;height:auto;aspect-ratio:300/180}
+.tr-sp-borda{fill:none;stroke:var(--tr-edge);stroke-width:1.2}
+.tr-sp-pt{fill:var(--tr-accent);stroke:var(--tr-fg);stroke-opacity:.55;stroke-width:.6}
+.tr-sp-eixo{stroke:var(--tr-edge);stroke-width:1}
+.tr-sp-liga{fill:none;stroke:var(--tr-dim);stroke-width:1;opacity:.5}
+
+.tr-sp-quartis{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:9.5px;color:var(--tr-dim)}
+.tr-sp-q{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tr-sp-q-sim{width:12px;height:12px;flex:none}
+
+.tr-sp-tab{display:none;flex:none;overflow:auto;max-height:7.2em;font-size:9px;border-top:1px solid var(--tr-line)}
+/* A tabela só cabe quando o card foi esticado: no 132px padrão ela empurraria o
+   postplot para fora. A aba `tabela` do card mostra as linhas em qualquer altura. */
+@container (min-height: 230px){.tr-sp-tab{display:block}}
+.tr-sp-tab table{border-collapse:collapse;width:100%}
+.tr-sp-tab th,.tr-sp-tab td{padding:1px 5px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tr-sp-tab th{color:var(--tr-dim);font-weight:500}
+
+.tr-sp-rodape{display:flex;flex-wrap:wrap;gap:1px 10px;font-size:9.5px;color:var(--tr-fg)}
+.tr-sp-rodape span{white-space:nowrap}
+
+/* No 132px padrão só cabe o essencial: nome, desenho, legenda. O resto aparece
+   quando o card é esticado. */
+@container (max-height: 175px){.tr-sp-rot,.tr-sp-pontas,.tr-sp-nota{display:none}}
