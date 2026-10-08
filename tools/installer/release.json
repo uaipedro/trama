@@ -13,7 +13,7 @@
   },
   "collections": {
     "trama.experiments": {
-      "version": "0.2.6",
+      "version": "0.2.7",
       "title": "Experimentos",
       "requires": [
         "trama.models"
@@ -27,7 +27,7 @@
       ]
     },
     "trama.models": {
-      "version": "0.6.5",
+      "version": "0.6.6",
       "title": "Modelos estatísticos",
       "requires": []
     },
