@@ -184,9 +184,30 @@ if (plano$js) cat("  node               tests/js\n")
 if (plano$site) cat("  site               src/lib/*.test.ts\n")
 if (flag("--plano")) quit(status = 0)
 
+# Um check por vez NA MÁQUINA: sessões e agentes em paralelo rodando cada um o
+# seu check multiplicavam os jobs. O segundo espera o primeiro (flock).
+if (.Platform$OS.type != "windows" && nzchar(Sys.which("flock")) && !nzchar(Sys.getenv("TRAMA_CHECK_TRAVA"))) {
+  trava <- file.path(Sys.getenv("TMPDIR", "/tmp"), "trama-check.lock")
+  cat(sprintf("\n(aguardando outro check, se houver: %s)\n", trava))
+  Sys.setenv(TRAMA_CHECK_TRAVA = "1")
+  a <- commandArgs(trailingOnly = FALSE)
+  script <- sub("^--file=", "", grep("^--file=", a, value = TRUE)[[1]])
+  quit(status = system2("flock", c(shQuote(trava), "Rscript", shQuote(script),
+                                   shQuote(commandArgs(trailingOnly = TRUE)))))
+}
+
 # Cada pacote roda num Rscript próprio, em paralelo; a saída vai para um log e
 # é impressa inteira quando o job termina, para não intercalar.
-jobs_max <- as.integer(opt("--jobs") %||% max(1L, parallel::detectCores() - 1L))
+# Teto pelos núcleos E pela memória: cada job carrega núcleo + coleções
+# (~1,5 GB), e 11 deles numa máquina de 16 GB, com duas sessões rodando o
+# check ao mesmo tempo, travaram o computador (08/10/2026).
+mem_livre_gb <- function() {
+  l <- tryCatch(grep("^MemAvailable:", readLines("/proc/meminfo"), value = TRUE), error = function(e) character())
+  if (length(l)) as.numeric(gsub("[^0-9]", "", l)) / 1024^2 else NA_real_
+}
+jobs_auto <- min(4L, max(1L, parallel::detectCores() %/% 2L))
+if (is.finite(mem_livre_gb())) jobs_auto <- min(jobs_auto, max(1L, as.integer(mem_livre_gb() %/% 2)))
+jobs_max <- as.integer(opt("--jobs") %||% jobs_auto)
 # Jobs em paralelo já ocupam os núcleos; BLAS/OpenMP multithread em cada um
 # só disputa CPU.
 if (jobs_max > 1) Sys.setenv(OMP_NUM_THREADS = 1, OPENBLAS_NUM_THREADS = 1, MKL_NUM_THREADS = 1)
@@ -240,7 +261,10 @@ if (.Platform$OS.type == "windows") {
     while (length(rodando) < jobs_max && proximo <= length(fila)) {
       j <- fila[[proximo]]; proximo <- proximo + 1L
       log <- file.path(logs, paste0(j$nome, ".log"))
-      proc <- parallel::mcparallel(system2(j$cmd, j$args, stdout = log, stderr = log))
+      # `nice`: o check cede a CPU ao resto da máquina (editor, navegador).
+      cmd <- if (nzchar(Sys.which("nice"))) "nice" else j$cmd
+      args <- if (cmd == "nice") c("-n", "10", j$cmd, j$args) else j$args
+      proc <- parallel::mcparallel(system2(cmd, args, stdout = log, stderr = log))
       rodando[[as.character(proc$pid)]] <- list(nome = j$nome, log = log, t0 = Sys.time(), proc = proc)
     }
     if (!length(rodando)) break
