@@ -1,3 +1,18 @@
+# trama.series 0.9.0
+
+* Séries multivariadas. Tipo novo `series/mts` (várias séries no mesmo
+  calendário, uma por coluna) e `series/var` (ajuste VAR ou VECM). Blocos:
+  `series/join`, `series/pick`, `series/from_table_mts`; `series/var`,
+  `series/var_select`, `series/vecm`; `series/ccf`; `series/granger` (Wald ou
+  Toda-Yamamoto); `series/engle_granger` e `series/johansen`; `series/irf` e
+  `series/fevd`; `series/portmanteau_mv`, `series/normality_mv`,
+  `series/arch_mv` e `series/residuals_mv`. Implementação do `vars` (agora em
+  Imports) e do `urca`.
+* `series/forecast` ganha a entrada `var`: prevê VAR e VECM, com intervalos de
+  80 e 95% por série. `series/plot_forecast`, a tabela da previsão e
+  `series/accuracy` (nova entrada `reais`) leem a previsão multivariada.
+* Template "Cointegração e VAR": testa a cointegração antes, e modela os retornos quando não há.
+
 # trama.series 0.8.2
 
 * `series/arima` com intervenção inovacional: quando a iteração do ponto fixo oscila sem estabilizar no último passo, usa o passo de menor variação, se ele estiver no ruído do otimizador, em vez de dar erro. Ajustes que já convergiam não mudam.

@@ -190,6 +190,23 @@ exemplos <- list(
          tr_add("modelo", "series/ets", from = "pax") |>
          tr_add("previsao", "series/forecast", horizonte = 24L, from = "modelo") |>
          tr_add("grafico", "series/plot_forecast", from = "previsao")),
+  list(pkg = "trama.series", nome = "Cointegração e VAR",
+       descricao = "DAX e CAC em log: Johansen não acha relação de cointegração, então o VAR é ajustado nos retornos, com Granger, impulso-resposta e diagnóstico dos resíduos.",
+       flow = tr_flow(reg) |>
+         tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+         tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+         tr_add("log_dax", "series/transform", metodo = "log", from = "dax") |>
+         tr_add("log_cac", "series/transform", metodo = "log", from = "cac") |>
+         tr_add("niveis", "series/join", nomes = "dax, cac", from = c("log_dax", "log_cac")) |>
+         tr_add("johansen", "series/johansen", metodo = "traco", defasagens = 2L, from = "niveis") |>
+         tr_add("ret_dax", "series/diff", from = "log_dax") |>
+         tr_add("ret_cac", "series/diff", from = "log_cac") |>
+         tr_add("retornos", "series/join", nomes = "dax, cac", from = c("ret_dax", "ret_cac")) |>
+         tr_add("ordem", "series/var_select", max_defasagens = 8L, from = "retornos") |>
+         tr_add("var", "series/var", criterio = "SC", from = "retornos") |>
+         tr_add("granger", "series/granger", causa = "dax", from = "var") |>
+         tr_add("impulso", "series/irf", horizonte = 10L, from = "var") |>
+         tr_add("residuos", "series/portmanteau_mv", from = "var")),
   list(pkg = "trama.sampling", nome = "Amostra estratificada",
        descricao = "Amostra de 240 fazendas estratificada por região e média de produção por estrato.",
        flow = tr_flow(reg) |>

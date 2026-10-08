@@ -51,6 +51,11 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo das 7 coleções e
 | `fonte` | porta de entrada da fonte consultável por SQL (sql/query) | — |
 | `dinamica` | forma no tempo do efeito de uma intervenção: `imediata` ou `gradual` (ω/(1 − δB)) (series/intervencao) | `resposta` (series/intervencao versão 1) |
 | `valor_critico` | limiar de \|t\| acima do qual um candidato é marcado numa busca múltipla; 0 = regra automática (series/detect_interventions) | — |
+| `causa` | série (ou séries, separadas por vírgula) cuja precedência preditiva se testa (series/granger) | — |
+| `posto` | número de relações de cointegração do VECM (series/vecm) | — |
+| `impulso` | série que recebe o choque numa função de impulso-resposta (series/irf); `respostas` são as que o sentem | — |
+| `nomes` | nomes das séries ligadas a uma porta variádica, na ordem dos fios (series/join) | — |
+| `valores` | colunas numéricas, uma por série, de uma série múltipla (series/from_table_mts); o plural de `valor` | — |
 
 ## Homônimos permitidos
 

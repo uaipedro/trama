@@ -1,0 +1,320 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Cointegração e VAR",
+  "descricao": "DAX e CAC em log: Johansen não acha relação de cointegração, então o VAR é ajustado nos retornos, com Granger, impulso-resposta e diagnóstico dos resíduos.",
+  "colecoes": ["trama.series"],
+  "doc": {
+    "format": 1,
+    "rev": 28,
+    "collections": {
+      "series": "0.5.0"
+    },
+    "nodes": {
+      "dax": {
+        "type": "series/example",
+        "type_version": 1,
+        "label": "Série de exemplo",
+        "params": {
+          "dataset": "EuStockMarkets$DAX"
+        },
+        "seed": 181936490
+      },
+      "cac": {
+        "type": "series/example",
+        "type_version": 1,
+        "label": "Série de exemplo",
+        "params": {
+          "dataset": "EuStockMarkets$CAC"
+        },
+        "seed": 48817754
+      },
+      "log_dax": {
+        "type": "series/transform",
+        "type_version": 1,
+        "label": "Transformar",
+        "params": {
+          "metodo": "log"
+        },
+        "seed": 91511902
+      },
+      "log_cac": {
+        "type": "series/transform",
+        "type_version": 1,
+        "label": "Transformar",
+        "params": {
+          "metodo": "log"
+        },
+        "seed": 177736851
+      },
+      "niveis": {
+        "type": "series/join",
+        "type_version": 1,
+        "label": "Juntar séries",
+        "params": {
+          "nomes": "dax, cac"
+        },
+        "seed": 229111042
+      },
+      "johansen": {
+        "type": "series/johansen",
+        "type_version": 1,
+        "label": "Johansen",
+        "params": {
+          "metodo": "traco",
+          "defasagens": 2
+        },
+        "seed": 243600823
+      },
+      "ret_dax": {
+        "type": "series/diff",
+        "type_version": 1,
+        "label": "Diferença",
+        "params": {},
+        "seed": 117710789
+      },
+      "ret_cac": {
+        "type": "series/diff",
+        "type_version": 1,
+        "label": "Diferença",
+        "params": {},
+        "seed": 31336765
+      },
+      "retornos": {
+        "type": "series/join",
+        "type_version": 1,
+        "label": "Juntar séries",
+        "params": {
+          "nomes": "dax, cac"
+        },
+        "seed": 256968123
+      },
+      "ordem": {
+        "type": "series/var_select",
+        "type_version": 1,
+        "label": "Defasagens do VAR",
+        "params": {
+          "max_defasagens": 8
+        },
+        "seed": 207742154
+      },
+      "var": {
+        "type": "series/var",
+        "type_version": 1,
+        "label": "VAR",
+        "params": {
+          "criterio": "SC"
+        },
+        "seed": 72011236
+      },
+      "granger": {
+        "type": "series/granger",
+        "type_version": 1,
+        "label": "Causalidade de Granger",
+        "params": {
+          "causa": "dax"
+        },
+        "seed": 166777736
+      },
+      "impulso": {
+        "type": "series/irf",
+        "type_version": 1,
+        "label": "Impulso-resposta",
+        "params": {
+          "horizonte": 10
+        },
+        "seed": 245921198
+      },
+      "residuos": {
+        "type": "series/portmanteau_mv",
+        "type_version": 1,
+        "label": "Portmanteau multivariado",
+        "params": {},
+        "seed": 221234374
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "dax",
+          "port": "out"
+        },
+        "to": {
+          "node": "log_dax",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "cac",
+          "port": "out"
+        },
+        "to": {
+          "node": "log_cac",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "log_dax",
+          "port": "out"
+        },
+        "to": {
+          "node": "niveis",
+          "port": "series"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "log_cac",
+          "port": "out"
+        },
+        "to": {
+          "node": "niveis",
+          "port": "series"
+        },
+        "index": 2
+      },
+      {
+        "from": {
+          "node": "niveis",
+          "port": "out"
+        },
+        "to": {
+          "node": "johansen",
+          "port": "series"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "log_dax",
+          "port": "out"
+        },
+        "to": {
+          "node": "ret_dax",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "log_cac",
+          "port": "out"
+        },
+        "to": {
+          "node": "ret_cac",
+          "port": "serie"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ret_dax",
+          "port": "out"
+        },
+        "to": {
+          "node": "retornos",
+          "port": "series"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ret_cac",
+          "port": "out"
+        },
+        "to": {
+          "node": "retornos",
+          "port": "series"
+        },
+        "index": 2
+      },
+      {
+        "from": {
+          "node": "retornos",
+          "port": "out"
+        },
+        "to": {
+          "node": "ordem",
+          "port": "series"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "retornos",
+          "port": "out"
+        },
+        "to": {
+          "node": "var",
+          "port": "series"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "var",
+          "port": "out"
+        },
+        "to": {
+          "node": "granger",
+          "port": "ajuste"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "var",
+          "port": "out"
+        },
+        "to": {
+          "node": "impulso",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "var",
+          "port": "out"
+        },
+        "to": {
+          "node": "residuos",
+          "port": "modelo"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "dax": [0, 0],
+        "cac": [0, 448],
+        "log_dax": [360, 0],
+        "log_cac": [360, 448],
+        "niveis": [720, 0],
+        "johansen": [1080, 0],
+        "ret_dax": [720, 448],
+        "ret_cac": [720, 866],
+        "retornos": [1080, 448],
+        "ordem": [1440, 448],
+        "var": [1440, 866],
+        "granger": [1800, 866],
+        "impulso": [1800, 1344],
+        "residuos": [1800, 2062]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "saidas": {},
+      "soltos": {},
+      "notes": {},
+      "ocultos": {},
+      "grupos": {}
+    }
+  }
+}

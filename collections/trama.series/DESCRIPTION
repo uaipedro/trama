@@ -1,6 +1,6 @@
 Package: trama.series
 Title: Time Series Collection for trama
-Version: 0.8.2
+Version: 0.9.0
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -13,7 +13,9 @@ Description: Nodes for time series in a trama graph: operators (differencing,
     lags, transforms, windows, moving averages, aggregation), classical and
     STL decomposition, ARIMA, ETS and Holt-Winters models with forecasts and
     benchmarks, stationarity and white-noise tests, and series-specific plots
-    such as correlograms, seasonal and lag plots. Builds on trama.data for
+    such as correlograms, seasonal and lag plots; multivariate series with
+    VAR and VECM models, Granger causality, Engle-Granger and Johansen
+    cointegration tests, impulse responses and residual diagnostics. Builds on trama.data for
     tables and on trama.view for plots, without duplicating either.
 License: MIT + file LICENSE
 Encoding: UTF-8
