@@ -1,31 +1,38 @@
 {
   "trama": "template",
   "versao": 1,
-  "nome": "Krigagem com mapa do predito e do erro-padrão",
-  "descricao": "Produtividade de milho no Paraná: variograma, ajuste, krigagem ordinária e os mapas do predito e do erro-padrão lado a lado.",
+  "nome": "Declarar coordenadas e fechar a borda no casco convexo",
+  "descricao": "Uma tabela de pontos vira objeto espacial: coordenadas, projeção, unidade e a borda pelo casco convexo da amostra, que recorta a grade da krigagem sem precisar de arquivo de contorno.",
   "colecoes": ["trama.spatial"],
   "doc": {
     "format": 1,
-    "rev": 13,
+    "rev": 12,
     "collections": {
       "spatial": "0.1.0"
     },
     "nodes": {
-      "pontos": {
+      "tabela": {
         "type": "spatial/example",
         "type_version": 1,
         "label": "Exemplo espacial",
         "params": {
           "dataset": "milho_pr"
         },
-        "seed": 259502235
+        "seed": 89086696
       },
-      "explorar": {
-        "type": "spatial/explore",
+      "pontos": {
+        "type": "spatial/coordinates",
         "type_version": 1,
-        "label": "Explorar",
-        "params": {},
-        "seed": 85413771
+        "label": "Declarar coordenadas",
+        "params": {
+          "x": "leste",
+          "y": "norte",
+          "variavel": "milho_kg_ha",
+          "crs": "31982",
+          "unidade": "m",
+          "borda_modo": "casco convexo dos pontos"
+        },
+        "seed": 259502235
       },
       "variograma": {
         "type": "spatial/variogram",
@@ -48,34 +55,25 @@
         "params": {},
         "seed": 264400552
       },
-      "mapa_predito": {
+      "mapa": {
         "type": "spatial/map",
         "type_version": 1,
         "label": "Mapa da superfície",
         "params": {
           "mostrar": "predito"
         },
-        "seed": 171831031
-      },
-      "mapa_erro": {
-        "type": "spatial/map",
-        "type_version": 1,
-        "label": "Mapa da superfície",
-        "params": {
-          "mostrar": "erro-padrao"
-        },
-        "seed": 73014793
+        "seed": 13021669
       }
     },
     "edges": [
       {
         "from": {
-          "node": "pontos",
+          "node": "tabela",
           "port": "out"
         },
         "to": {
-          "node": "explorar",
-          "port": "pontos"
+          "node": "pontos",
+          "port": "dados"
         },
         "index": 1
       },
@@ -103,6 +101,17 @@
       },
       {
         "from": {
+          "node": "pontos",
+          "port": "out"
+        },
+        "to": {
+          "node": "krigagem",
+          "port": "pontos"
+        },
+        "index": 1
+      },
+      {
+        "from": {
           "node": "ajuste",
           "port": "out"
         },
@@ -118,18 +127,7 @@
           "port": "out"
         },
         "to": {
-          "node": "mapa_predito",
-          "port": "superficie"
-        },
-        "index": 1
-      },
-      {
-        "from": {
-          "node": "krigagem",
-          "port": "out"
-        },
-        "to": {
-          "node": "mapa_erro",
+          "node": "mapa",
           "port": "superficie"
         },
         "index": 1
@@ -137,13 +135,12 @@
     ],
     "ui": {
       "positions": {
-        "pontos": [0, 0],
-        "explorar": [360, 0],
-        "variograma": [360, 538],
-        "ajuste": [720, 538],
-        "krigagem": [1080, 538],
-        "mapa_predito": [1440, 538],
-        "mapa_erro": [1440, 1136]
+        "tabela": [0, 0],
+        "pontos": [360, 0],
+        "variograma": [720, 0],
+        "ajuste": [1080, 0],
+        "krigagem": [1440, 0],
+        "mapa": [1800, 0]
       },
       "sizes": {},
       "views": {},

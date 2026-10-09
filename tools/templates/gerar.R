@@ -225,7 +225,27 @@ exemplos <- list(
          # O predito é liso em qualquer lugar; só o erro-padrão mostra onde ele
          # vale pouco. Os dois mapas ficam lado a lado, de propósito.
          tr_add("mapa_predito", "spatial/map", mostrar = "predito", from = "krigagem") |>
-         tr_add("mapa_erro", "spatial/map", mostrar = "erro-padrao", from = "krigagem"))
+         tr_add("mapa_erro", "spatial/map", mostrar = "erro-padrao", from = "krigagem")),
+  # Declarar o objeto espacial a partir de uma TABELA, que é o caminho de quem
+  # traz dado próprio, e fechar a borda pelo casco convexo dos pontos — a opção
+  # que não precisa de arquivo. O adaptador `spatial/points` -> `data/table`
+  # entra na aresta e o motor o insere sozinho, sem caixa na tela.
+  #
+  # O fluxo NÃO lê arquivo: nenhum template do repositório lê, e um caminho
+  # literal num JSON quebraria na execução de quem abrisse o exemplo. A leitura
+  # de vetor se demonstra na ajuda de `spatial/read_points` e de
+  # `spatial/boundary`, com caminho de exemplo.
+  list(pkg = "trama.spatial", nome = "Declarar coordenadas e fechar a borda no casco convexo",
+       descricao = "Uma tabela de pontos vira objeto espacial: coordenadas, projeção, unidade e a borda pelo casco convexo da amostra, que recorta a grade da krigagem sem precisar de arquivo de contorno.",
+       flow = tr_flow(reg) |>
+         tr_add("tabela", "spatial/example", dataset = "milho_pr") |>
+         tr_add("pontos", "spatial/coordinates", x = "leste", y = "norte",
+                variavel = "milho_kg_ha", crs = "31982", unidade = "m",
+                borda_modo = "casco convexo dos pontos", from = "tabela") |>
+         tr_add("variograma", "spatial/variogram", from = "pontos") |>
+         tr_add("ajuste", "spatial/variogram_fit", from = "variograma") |>
+         tr_add("krigagem", "spatial/kriging", from = c("pontos", "ajuste")) |>
+         tr_add("mapa", "spatial/map", mostrar = "predito", from = "krigagem"))
 )
 
 raiz <- if (dir.exists("collections")) "." else stop("Rode na raiz do repositório.")

@@ -165,6 +165,36 @@ test_that("arquivo de pontos é recusado pelo leitor de borda", {
                class = "tr_spatial_error_wrong_geometry")
 })
 
+# ---- o caminho do dado próprio, de ponta a ponta -------------------------------
+#
+# É o que a 0.1.0 não permitia: sem porta de borda, a grade da krigagem para dado
+# do usuário era o retângulo da extensão. Aqui os dados de um exemplo são
+# GRAVADOS como arquivos de verdade e lidos de volta, como um usuário faria.
+
+test_that("do arquivo ao mapa: arquivo de pontos e de borda chegam à krigagem", {
+  p0 <- tr_spatial_example("milho_se")
+  pts <- sf::st_as_sf(p0$dados, coords = p0$coord_cols, crs = p0$crs,
+                      remove = TRUE)
+  arq_pts <- fx_arquivo(pts, "gpkg")
+  arq_bd <- fx_arquivo(sf::st_sf(id = 1L, geometry = sf::st_sfc(
+    sf::st_polygon(list(p0$borda)), crs = p0$crs)), "gpkg")
+
+  d <- tr_spatial_read_points(arq_pts, nomes_coords = "leste,norte")
+  b <- tr_spatial_boundary(arq_bd)
+  p <- tr_spatial_coordinates(d, x = "leste", y = "norte", variavel = p0$variavel,
+                              crs = "31984", unidade = "m", borda = b)
+  expect_false(is.null(p$borda))
+  expect_equal(nrow(p$dados), nrow(p0$dados))
+
+  v <- tr_spatial_variogram(p)
+  m <- tr_spatial_variogram_fit(v, familia = "esferico")
+  s <- tr_spatial_kriging(p, m, resolucao = 30L)
+  expect_true(all(c("predito", "variancia") %in% names(s$grade)))
+  expect_true(any(!is.na(s$grade$predito)))
+  expect_lt(nrow(s$grade), 30L * 30L)        # a borda recortou a grade
+  expect_false(is.null(s$borda))
+})
+
 test_that("a borda lida pode ser reprojetada na leitura", {
   bd <- tr_spatial_boundary(fx_arquivo(fx_poligono(31982), "gpkg"),
                             crs_saida = "4674")
