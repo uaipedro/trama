@@ -42,3 +42,37 @@ test_that("a versão da coleção é a mesma no DESCRIPTION e no tr_collection",
   d <- read.dcf(system.file("DESCRIPTION", package = "trama.spatial"))[1, "Version"]
   expect_equal(trama_collection()$version, unname(d))
 })
+
+test_that("toda função marcada @export está no NAMESPACE", {
+  # O NAMESPACE desta coleção é escrito À MÃO. Sob `pkgload::load_all` todas as
+  # funções ficam visíveis, então um `@export` esquecido passa pela suíte inteira
+  # e só aparece no pacote INSTALADO — que é como o editor carrega a coleção.
+  # Foi o que aconteceu na 0.2.0: dez funções novas ficaram de fora, e só a
+  # chamada por namespace pegou. Este teste fecha o buraco.
+  dir_r <- system.file("..", package = "trama.spatial")
+  raiz <- if (dir.exists(file.path(dir_r, "R"))) dir_r else
+    normalizePath(file.path(dirname(system.file("DESCRIPTION",
+                                                package = "trama.spatial")), ".."))
+  skip_if_not(dir.exists(file.path(raiz, "R")), "fonte R/ não disponível")
+  linhas <- unlist(lapply(dir(file.path(raiz, "R"), "[.]R$", full.names = TRUE),
+                          readLines, warn = FALSE))
+  i <- grep("^#'[[:space:]]*@export[[:space:]]*$", linhas)
+  nomes <- character()
+  for (k in i) {
+    # a declaração vem depois do bloco roxygen
+    j <- k + 1L
+    while (j <= length(linhas) && grepl("^#'", linhas[[j]])) j <- j + 1L
+    if (j <= length(linhas)) {
+      m <- regmatches(linhas[[j]],
+                      regexec("^([a-zA-Z._][a-zA-Z0-9._]*)[[:space:]]*<-[[:space:]]*function",
+                              linhas[[j]]))[[1]]
+      if (length(m) == 2L) nomes <- c(nomes, m[[2]])
+    }
+  }
+  nomes <- unique(nomes)
+  expect_gt(length(nomes), 10L)
+  ns <- readLines(file.path(raiz, "NAMESPACE"), warn = FALSE)
+  exportados <- regmatches(ns, regexpr("(?<=^export[(])[^)]+", ns, perl = TRUE))
+  faltam <- setdiff(nomes, exportados)
+  expect_equal(faltam, character(0))
+})

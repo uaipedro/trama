@@ -2,18 +2,6 @@
 
 .TR_SPATIAL_MOSTRAR <- c("predito", "erro-padrao")
 
-#' Mapa da superfície predita, ou do erro-padrão.
-#'
-#' O mapa do erro-padrão é o par honesto do mapa do predito: mostra onde a
-#' predição vale pouco. Por isso os dois saem do mesmo bloco, com um param, em
-#' vez de só o bonito sair fácil.
-#' @param superficie uma superfície (`spatial/surface`).
-#' @param mostrar `"predito"` ou `"erro-padrao"`.
-#' @param isolinhas acrescenta curvas de nível.
-#' @param pontos desenha as localizações amostrais por cima.
-#' @param aspecto,tema,titulo,rotulo_x,rotulo_y,legenda cosméticos.
-#' @return um ggplot (`view/plot`).
-#' @export
 #' O rótulo da legenda do mapa.
 #'
 #' Superfície vinda de indicador é PROBABILIDADE, e apresentá-la com o nome da
@@ -31,6 +19,18 @@
   paste("erro-padrão de", x$variavel)
 }
 
+#' Mapa da superfície predita, ou do erro-padrão.
+#'
+#' O mapa do erro-padrão é o par honesto do mapa do predito: mostra onde a
+#' predição vale pouco. Por isso os dois saem do mesmo bloco, com um param, em
+#' vez de só o bonito sair fácil.
+#' @param superficie uma superfície (`spatial/surface`).
+#' @param mostrar `"predito"` ou `"erro-padrao"`.
+#' @param isolinhas acrescenta curvas de nível.
+#' @param pontos desenha as localizações amostrais por cima.
+#' @param aspecto,tema,titulo,rotulo_x,rotulo_y,legenda cosméticos.
+#' @return um ggplot (`view/plot`).
+#' @export
 tr_spatial_map <- function(superficie, mostrar = "predito", isolinhas = FALSE,
                            pontos = TRUE, aspecto = "1:1", tema = "padrão",
                            titulo = "", rotulo_x = "", rotulo_y = "",

@@ -90,7 +90,9 @@ test_that("a faixa contém a própria mediana das simulações", {
 })
 
 test_that("o envelope padrão fecha em tempo de card no maior exemplo", {
-  skip_on_cran()
+  # Sem `skip_on_cran()`: a coleção não vai ao CRAN, o teste custa ~2 s, e sob
+  # `test_dir` o skip o desligava — um guarda de custo que não roda não guarda
+  # nada.
   p <- tr_spatial_example("cafe_mg")      # 496 pontos, o maior dos três
   t <- system.time(tr_spatial_anisotropy(p, envelope = TRUE, n_sim = 19L,
                                          semente = 1, pares_min = 1L))[["elapsed"]]
