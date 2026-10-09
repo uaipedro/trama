@@ -140,7 +140,8 @@
 tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
                                      metodo = "WLS-Cressie", pepita_fixa = FALSE,
                                      pepita_inicial = NA, contribuicao_inicial = NA,
-                                     alcance_inicial = NA, kappa = 0.5) {
+                                     alcance_inicial = NA, kappa = 0.5,
+                                     razao = 1, angulo = 0) {
   .tr_spatial_vario_conferir(variograma)
   if (!familia %in% .TR_SPATIAL_FAMILIAS) {
     .tr_spatial_abort("tr_spatial_error_bad_option", sprintf(
@@ -153,6 +154,21 @@ tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
   if (!is.numeric(kappa) || length(kappa) != 1L || !is.finite(kappa) ||
       kappa < 0.1 || kappa > 10) {
     .tr_spatial_abort("tr_spatial_error_bad_option", "Kappa: use um número entre 0,1 e 10.")
+  }
+  # Anisotropia GEOMÉTRICA: a razão é maior eixo / menor eixo, e o ângulo aponta
+  # o MAIOR. Aceitar razão < 1 daria duas representações do mesmo modelo, e o
+  # card mostraria ângulos diferentes para a mesma anisotropia.
+  if (!is.numeric(razao) || length(razao) != 1L || !is.finite(razao) || razao < 1) {
+    .tr_spatial_abort("tr_spatial_error_bad_option", paste(
+      "Razão de anisotropia: use um número a partir de 1 (1 = isotrópico).",
+      "A razão é maior eixo / menor eixo, e o Ângulo aponta o eixo MAIOR —",
+      "para pôr o eixo maior na outra direção, gire o Ângulo 90 graus."))
+  }
+  if (!is.numeric(angulo) || length(angulo) != 1L || !is.finite(angulo) ||
+      angulo < 0 || angulo >= 180) {
+    .tr_spatial_abort("tr_spatial_error_bad_option", paste(
+      "Ângulo de anisotropia: use um número de 0 (inclusive) a 180 (exclusive),",
+      "em graus, no sentido horário a partir do Norte."))
   }
   pepita_fixa <- isTRUE(pepita_fixa)
   t <- variograma$tabela
@@ -228,10 +244,17 @@ tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
       "está mal identificado e é uma extrapolação."),
       format(signif(pratico, 4)), .TR_SPATIAL_PRATICO_AVISO, format(signif(max(t$u), 4)))
   }
+  if (razao > 1) {
+    notas <- c(notas, sprintf(paste(
+      "Anisotropia geométrica informada: razão %g, eixo maior a %g graus.",
+      "O ajuste não a estima — ela vem do que você leu no bloco de anisotropia."),
+      razao, angulo))
+  }
   if (nzchar(variograma$nota)) notas <- c(notas, variograma$nota)
   structure(list(
     familia = familia, pepita = pepita, contribuicao = contrib, alcance = alc,
-    alcance_pratico = pratico,
+    alcance_pratico = pratico, razao = as.numeric(razao),
+    angulo = as.numeric(angulo),
     patamar = pepita + contrib, kappa = kap, metodo = metodo, sqr = crit[[k]],
     # Dependência RELATIVA (Cambardella): pepita/patamar. Menor = dependência
     # espacial mais FORTE. O nome do campo é contrato publicado; o sentido está
@@ -245,7 +268,17 @@ tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
 #' @noRd
 .tr_spatial_vgm_model <- function(x) {
   .tr_spatial_modelo_conferir(x)
+  # `anis = c(angulo, 1/razao)`: conferido em 2026-10-09 que o `vgm` guarda
+  # ang1 = angulo e anis1 = 1/razao, e que `anis = c(0, 1)` é no-op EXATO
+  # (diferença 0 em três direções) — por isso razão 1 preserva o resultado de
+  # documento antigo, e não há bump de version nem migração.
+  #
+  # O ajuste NÃO estima anisotropia: `fit.variogram` não usa `dir.hor` e
+  # preserva ang1/anis1 em vez de ajustá-los. Os dois números são do usuário.
+  razao <- x$razao %||% 1
+  angulo <- x$angulo %||% 0
   gstat::vgm(psill = x$contribuicao, model = unname(.TR_SPATIAL_VGM[[x$familia]]),
              range = x$alcance, nugget = x$pepita,
-             kappa = if (is.na(x$kappa)) 0.5 else x$kappa)
+             kappa = if (is.na(x$kappa)) 0.5 else x$kappa,
+             anis = c(angulo, 1 / razao))
 }

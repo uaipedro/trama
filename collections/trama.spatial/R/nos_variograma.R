@@ -124,7 +124,9 @@ ver a tendência antes.
         pepita_inicial = N(NA, min = 0, label = "Pepita inicial"),
         contribuicao_inicial = N(NA, min = 0, label = "Contribuição inicial"),
         alcance_inicial = N(NA, min = 0, label = "Alcance inicial"),
-        kappa = N(0.5, min = 0.1, max = 10, label = "Kappa (Matérn)")),
+        kappa = N(0.5, min = 0.1, max = 10, label = "Kappa (Matérn)"),
+        razao = N(1, min = 1, label = "Razão de anisotropia"),
+        angulo = N(0, min = 0, max = 179.999, label = "Ângulo do eixo maior")),
       pressupostos = .tr_spatial_press_ajuste(),
       referencias = list(.tr_spatial_refs()$cressie, .tr_spatial_refs()$oliver,
                          .tr_spatial_refs()$pebesma),
@@ -165,6 +167,17 @@ validação cruzada.
   pepita inicial 0.
 - **Kappa** — só para Matérn: 0,5 reproduz o exponencial, valores altos
   aproximam o gaussiano.
+- **Razão de anisotropia** — maior eixo dividido pelo menor. 1 é isotrópico, e
+  não muda nada em relação ao comportamento anterior. Razão menor que 1 é
+  recusada: para pôr o eixo maior na outra direção, gire o ângulo 90 graus.
+- **Ângulo do eixo maior** — graus, horário a partir do Norte, de 0 a 180.
+  Aponta a direção de maior continuidade, a de alcance mais longo.
+
+Os dois números de anisotropia **não são estimados aqui**: você os lê no card do
+bloco `spatial/anisotropy` e os digita. O motor de ajuste não usa a direção dos
+pares — ele preserva a anisotropia que recebe em vez de ajustá-la —, e as três
+maneiras de estimá-la que testamos devolvem razão perto de 3 até para campos
+isotrópicos.
 ]---", r"---[
 Um modelo ajustado (`spatial/model`). O adaptador para `data/table` dá uma linha
 por parâmetro numérico, pronta para comparar duas famílias com `data/bind_rows`.

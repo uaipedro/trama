@@ -99,6 +99,10 @@ spatial_variogram_type <- function() {
 
 # ---- spatial/model -------------------------------------------------------------
 
+# `razao` e `angulo` (anisotropia geométrica, 0.2.0) NÃO entram na lista de
+# campos obrigatórios de propósito: exigi-los recusaria modelo gravado pela
+# 0.1.x e modelo montado à mão nos oráculos da krigagem, que é objeto legítimo.
+# Quem os consome usa `%||%` com 1 e 0, que é exatamente o caso isotrópico.
 .TR_SPATIAL_CAMPOS_MODELO <- c("familia", "pepita", "contribuicao", "alcance",
                                "alcance_pratico", "patamar", "kappa", "metodo", "sqr",
                                "grau_dependencia", "variograma", "nota")
