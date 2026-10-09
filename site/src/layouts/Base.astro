@@ -136,7 +136,7 @@ const socialImage = new URL("/trama/og-trama.png", Astro.site);
       const dicaKey = "trama-contexto-dica";
       const dica = document.querySelector("[data-depth-hint]");
       const vistas = Number(store.get(dicaKey) ?? "0");
-      if (dica && vistas >= 0 && vistas < 3 && !document.querySelector(".home-hero")) {
+      if (dica && vistas >= 0 && vistas < 3 && !document.querySelector(".home-hero, .hc")) {
         dica.hidden = false;
         store.set(dicaKey, String(vistas + 1));
       }

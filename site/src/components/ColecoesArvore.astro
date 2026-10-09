@@ -1,0 +1,127 @@
+---
+// Coleções como continuação do fluxo do hero: o fio desce do card "Coleções",
+// contorna pela esquerda ao lado do título e entra em Dados; dali a árvore
+// segue na horizontal, na ordem em que uma análise costuma andar. Cada
+// coleção é um card quadrado (ícone em cima, nome embaixo) com a orelha
+// "ver mais" no canto, que abre o catálogo da home nessa coleção.
+import { collections } from "../data/collections";
+import Catalogo from "./Catalogo.astro";
+
+// Coluna e linha na grade, e de onde chegam os fios. As fontes (Dados e
+// SQL) alimentam a Visualização, de onde partem as análises; uma coleção
+// pode receber mais de um fio (Experimentos parte de três).
+const ARVORE: Record<string, { col: number; lin: number; de: string[]; papel: string }> = {
+  dados:              { col: 1, lin: 4, de: [], papel: "origem" },
+  sql:                { col: 1, lin: 2, de: [], papel: "origem" },
+  visualizacao:       { col: 2, lin: 3, de: ["dados", "sql"], papel: "saida" },
+  amostragem:         { col: 3, lin: 1, de: ["visualizacao"], papel: "preparacao" },
+  modelos:            { col: 3, lin: 2, de: ["visualizacao"], papel: "ajuste" },
+  espacial:           { col: 3, lin: 3, de: ["visualizacao"], papel: "avaliacao" },
+  multivariada:       { col: 3, lin: 4, de: ["visualizacao"], papel: "inspecao" },
+  "series-temporais": { col: 3, lin: 5, de: ["visualizacao"], papel: "inspecao" },
+  experimentos:       { col: 4, lin: 2, de: ["amostragem", "modelos", "espacial"], papel: "preparacao" },
+  aprendizado:        { col: 4, lin: 5, de: ["series-temporais"], papel: "ajuste" },
+};
+
+// SQL ainda não tem página no site (a coleção existe em collections/trama.sql):
+// o card leva ao índice de coleções até a documentação dela chegar.
+const SQL = { id: "sql", title: "SQL", icon: "database-zap", description: "Consulte arquivos locais e bancos de dados com SQL e traga as tabelas para o fluxo.", href: "/trama/colecoes/" };
+const itens = [...collections.map((c) => ({ ...c, href: `/trama/colecoes/${c.id}/` })), SQL].filter((c) => ARVORE[c.id]);
+const fios: [string, string][] = itens.flatMap((c) => ARVORE[c.id].de.map((de) => [de, c.id] as [string, string]));
+---
+
+<section class="hca" id="colecoes" aria-labelledby="colecoes-titulo" data-hcs>
+  <div class="hca__palco">
+    <div class="hca__intro">
+      <h2 id="colecoes-titulo">Coleções</h2>
+      <p>Os blocos vêm agrupados em coleções que conversam entre si: a tabela que sai de Dados ou de uma consulta SQL vira gráfico, e dali segue para um modelo, uma amostra ou um experimento.</p>
+    </div>
+    <div class="hca__mundo" data-hcs-mundo>
+      <svg class="hcs__fios" aria-hidden="true" data-hcs-fios>
+        <g data-fio=">dados" data-forma="entra"><path class="trilho" /><path class="fio" /><path class="pulso" /></g>
+        {fios.map(([a, b]) => <g data-fio={`${a}>${b}`} data-forma="h"><path class="trilho" /><path class="fio" /><path class="pulso" /></g>)}
+      </svg>
+      {itens.map((c) => (
+        <article class="hc-card hca-card" data-hc-card={c.id} data-cat-abre={c.id} title={c.description}
+          style={`--cat:var(--tr-papel-${ARVORE[c.id].papel});grid-column:${ARVORE[c.id].col};grid-row:${ARVORE[c.id].lin}`}>
+          <span class="hca-card__icone" aria-hidden="true"><svg viewBox="0 0 24 24"><use href={`/trama/icons/lucide.svg#${c.icon}`} /></svg></span>
+          <h3 class="hca-card__nome">{c.title}</h3>
+          <span class="hc-card__luz" aria-hidden="true"></span>
+          <i class="hc-porta hc-porta--in" aria-hidden="true"></i>
+          <i class="hc-porta hc-porta--out" aria-hidden="true"></i>
+          <a class="hc-orelha" href={c.href} aria-label={`Ver mais: ${c.title}`}><span>ver mais</span><i aria-hidden="true"></i></a>
+        </article>
+      ))}
+    </div>
+  </div>
+  <Catalogo />
+</section>
+
+<style is:global>
+  @property --dobra { syntax: "<length>"; inherits: true; initial-value: 14px; }
+  /* As seções não pintam fundo: o pontilhado é do .canvas-continuo, o mesmo
+     papel do hero, para o fluxo descer sem emenda. */
+  .canvas-continuo { --hc-pontos: radial-gradient(circle, #b9c0cb 0 1px, transparent 1.4px);
+    background: var(--hc-pontos) 0 0 / 16px 16px, #f3f4f6; border-bottom: 1px solid var(--line); }
+  .hca { position: relative; overflow-x: clip; padding: clamp(2rem, 5vw, 4rem) max(1.25rem, 4vw) clamp(3rem, 7vw, 6rem); }
+  .hca__palco { position: relative; max-width: 72rem; margin: 0 auto; display: grid; grid-template-columns: minmax(14rem, 22rem) 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: start; }
+  .hca__intro { padding-top: 2.5rem; }
+  .hca__intro p { margin: 1rem 0 0; color: var(--ink-soft); font-size: 1.1rem; line-height: 1.5; }
+  .hca__mundo { position: relative; display: grid; grid-template-columns: repeat(4, 6.75rem); grid-auto-rows: 6.75rem; column-gap: clamp(2.5rem, 4.5vw, 4.25rem); row-gap: .9rem; justify-content: start; }
+  .hca__mundo .hcs__fios { overflow: visible; }
+
+  .hca-card { position: relative; width: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .55rem; padding: .8rem .5rem 1.2rem; text-align: center; cursor: pointer; transition: transform 200ms var(--ease-out), box-shadow 200ms; }
+  .hca-card:hover { transform: translateY(-2px); box-shadow: 0 1px 0 #fff inset, 0 16px 30px -14px rgba(20,30,50,.45); }
+  .hca-card__icone { display: grid; place-items: center; width: 2.9rem; height: 2.9rem; border-radius: 9px; background: var(--cat); color: #fff; background-image: linear-gradient(180deg, #ffffff22, #0000 60%); box-shadow: inset 0 -1px 0 #0000002e; }
+  .hca-card__icone svg { width: 1.4rem; height: 1.4rem; fill: none; stroke: currentColor; stroke-width: 2; }
+  .hca-card__nome { margin: 0; font: 600 .84rem/1.15 var(--font-body); letter-spacing: 0; color: #1b2130; }
+  .hca-card .hc-card__luz { position: absolute; top: .5rem; right: .5rem; background: #0001; }
+  .hca-card .hc-porta--in, .hca-card .hc-porta--out { top: calc(50% - 9.5px); }
+
+  /* orelha: o papel descola no canto e mostra "ver mais" */
+  .hc-orelha { position: absolute; right: 0; bottom: 0; display: flex; align-items: flex-end; justify-content: flex-end; width: 100%; height: 100%; padding: 0 1.7rem .3rem 0; border-radius: 10px; color: var(--cat); font: 700 .66rem/1 var(--font-body); text-decoration: none; }
+  .hc-orelha span { opacity: 0; transform: translateX(4px); transition: opacity 200ms, transform 260ms var(--ease-out); }
+  .hc-orelha i { position: absolute; right: -1px; bottom: -1px; width: var(--dobra); height: var(--dobra);
+    background: linear-gradient(315deg, #f3f4f6 50%, color-mix(in oklch, var(--cat) 40%, #e9e6df) 50%);
+    border-radius: 6px 0 9px 0; box-shadow: -2px -2px 4px -1px rgba(20,30,50,.2); transition: width 260ms var(--ease-out), height 260ms var(--ease-out); }
+  .hca-card:hover, .hca-card:focus-within { --dobra: 24px; }
+  .hca-card:hover .hc-orelha span, .hc-orelha:focus-visible span { opacity: 1; transform: none; }
+
+  @media (max-width: 960px) {
+    .hca__palco { grid-template-columns: minmax(0, 1fr); }
+    .hca__intro { padding-top: 0; }
+    .hca__mundo { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); grid-auto-rows: 7rem; column-gap: .9rem; row-gap: .9rem; }
+    .hca-card { grid-column: auto !important; grid-row: auto !important; height: auto !important; }
+    .hca .hcs__fios, .hca .hc-porta { display: none !important; }
+  }
+</style>
+
+<script>
+  import { ligarFios, rodar } from "../lib/hero-fios";
+
+  const raiz = document.querySelector<HTMLElement>("[data-hcs]")!;
+  const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const largo = matchMedia("(min-width: 961px)");
+  const mundo = raiz.querySelector<HTMLElement>("[data-hcs-mundo]")!;
+  const svg = raiz.querySelector<SVGSVGElement>("[data-hcs-fios]")!;
+  const cards = new Map([...mundo.querySelectorAll<HTMLElement>("[data-hc-card]")].map((c) => [c.dataset.hcCard!, c]));
+  const fios = ligarFios(svg, cards, mundo);
+  // o clique no card (ou na orelha) abre o catálogo: ver Catalogo.astro
+  const desenhar = () => largo.matches && fios.desenhar();
+  desenhar();
+  document.fonts.ready.then(desenhar); // a fonte muda a altura do título e move os cards
+  new ResizeObserver(desenhar).observe(raiz);
+  if (calmo) { for (const c of cards.values()) c.classList.add("is-pronto"); fios.ligarTodos(); }
+  else {
+    raiz.classList.add("is-vivo");
+    // Roda quando a seção chega, coluna por coluna, como a análise anda.
+    const ordem = [...cards.keys()].sort((a, b) =>
+      Number(cards.get(a)!.style.gridColumn) - Number(cards.get(b)!.style.gridColumn) || parseInt(cards.get(a)!.style.gridRow) - parseInt(cards.get(b)!.style.gridRow));
+    new IntersectionObserver((entradas, obs) => {
+      if (!entradas.some((e) => e.isIntersecting)) return;
+      obs.disconnect();
+      desenhar();
+      rodar(ordem, cards, svg, 150, 150);
+    }, { threshold: 0.3 }).observe(mundo);
+  }
+</script>

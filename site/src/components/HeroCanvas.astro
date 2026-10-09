@@ -1,0 +1,466 @@
+---
+// Primeira dobra da home: o próprio canvas do trama (fundo pontilhado claro)
+// com um fluxo cujos blocos são o caminho de quem chega ao site. Os cards
+// imitam o card do editor e podem ser arrastados; os fios acompanham.
+//
+// "Como usar" traz um vídeo curto que se solta do card como o preview solto
+// do editor (fio tracejado até o card, botão de prender de volta). A câmera
+// anda pelo canvas: "Instalar" abre para a direita com as formas de instalar,
+// e "Coleções" desce para a próxima seção, que continua o fluxo.
+
+interface Bloco {
+  id: string;
+  papel: string;
+  icone: string;
+  titulo: string;
+  x: number; // posição no mundo, em fração da largura/altura do hero
+  y: number;
+  grupo?: "instalar"; // blocos fora da vista inicial
+}
+
+const blocos: Bloco[] = [
+  { id: "usar", papel: "origem", icone: "circle-play", titulo: "Como usar", x: 0.40, y: 0.22 },
+  { id: "colecoes", papel: "inspecao", icone: "layers", titulo: "Coleções", x: 0.60, y: 0.50 },
+  { id: "instalar", papel: "ajuste", icone: "download", titulo: "Instalar", x: 0.81, y: 0.20 },
+
+  { id: "windows", papel: "ajuste", icone: "monitor", titulo: "Windows", x: 1.02, y: 0.04, grupo: "instalar" },
+  { id: "linux", papel: "ajuste", icone: "terminal", titulo: "Linux", x: 1.19, y: 0.30, grupo: "instalar" },
+  { id: "pacote", papel: "ajuste", icone: "package-open", titulo: "Pacote do R", x: 1.36, y: 0.64, grupo: "instalar" },
+];
+
+// [de, para, forma]: "h" sai pela direita e entra pela esquerda (o fio do
+// editor); "v" sai por baixo e entra por cima.
+// [de, para, forma, porta de saída, dobra em px] — os três de Instalar saem
+// de portas próprias e dobram em pontos diferentes, sem se cruzar.
+const fios: [string, string, "h" | "v", number?, number?][] = [
+  ["usar", "colecoes", "h"], ["colecoes", "instalar", "h"],
+  ["instalar", "windows", "h", 0, 26], ["instalar", "linux", "h", 1, 60], ["instalar", "pacote", "h", 2, 26],
+];
+const VIDEO = "/trama/montagens/fluxo-em-montagem";
+---
+
+<section class="hc" aria-labelledby="hc-titulo" data-hc data-vista="inicio">
+  <div class="hc__copy">
+    <h1 id="hc-titulo" class="hc__titulo"><span class="hc__marca">trama</span><span class="hc__mote">interface gráfica para fazer análises</span></h1>
+    <p class="hc__fina">Cada bloco representa um passo na sua linha de pensamento.</p>
+    <p class="hc__dica" aria-hidden="true">arraste os blocos pelo cabeçalho</p>
+  </div>
+  <button class="hc__voltar" type="button" data-hc-ir="inicio">← voltar ao fluxo</button>
+
+  <div class="hc__mundo" data-hc-mundo>
+    <svg class="hc__fios" data-hc-fios aria-hidden="true">
+      {fios.map(([a, b, f, saida, curva]) => <g data-fio={`${a}>${b}`} data-forma={f} data-saida={saida} data-curva={curva}><path class="trilho" /><path class="fio" /><path class="pulso" /></g>)}
+      <g data-fio="colecoes>" data-forma="desce" data-espera><path class="trilho" /><path class="fio" /><path class="pulso" /></g>
+      <g class="hc-fio-solto" data-hc-fio-solto style="display:none"><path /><circle r="4" /></g>
+    </svg>
+    {blocos.map((b) => (
+      <article class:list={["hc-card", b.grupo && `hc-card--${b.grupo}`]} data-hc-card={b.id} data-grupo={b.grupo} data-x={b.x} data-y={b.y} style={`--cat:var(--tr-papel-${b.papel})`}>
+        <header class="hc-card__head" data-hc-alca>
+          <svg class="hc-card__icone" viewBox="0 0 24 24" aria-hidden="true"><use href={`/trama/icons/lucide.svg#${b.icone}`} /></svg>
+          <h2 class="hc-card__titulo">{b.titulo}</h2>
+          <span class="hc-card__luz" aria-hidden="true"></span>
+        </header>
+        <i class="hc-porta hc-porta--in" aria-hidden="true"></i>
+        <i class="hc-porta hc-porta--out" aria-hidden="true"></i>
+        {b.id === "instalar" && <><i class="hc-porta hc-porta--out hc-porta--2" aria-hidden="true"></i><i class="hc-porta hc-porta--out hc-porta--3" aria-hidden="true"></i></>}
+        <i class="hc-porta hc-porta--topo" aria-hidden="true"></i>
+        <i class="hc-porta hc-porta--base" aria-hidden="true"></i>
+        <div class="hc-card__corpo">
+          {b.id === "usar" && <>
+            <button class="hc-thumb" type="button" data-hc-soltar aria-label="Soltar o vídeo de um minuto no canvas">
+              <video muted loop playsinline preload="metadata" poster={`${VIDEO}.jpg`}><source src={`${VIDEO}.mp4`} type="video/mp4" /></video>
+              <span class="hc-thumb__play" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="/trama/icons/lucide.svg#play" /></svg></span>
+              <span class="hc-thumb__pino" aria-hidden="true" title="soltar no canvas"><svg viewBox="0 0 24 24"><use href="/trama/icons/lucide.svg#pin-off" /></svg></span>
+            </button>
+            <p>Um fluxo montado do zero, em um minuto.</p>
+          </>}
+          {b.id === "colecoes" && <>
+            <p>Blocos agrupados em coleções que conversam entre si.</p>
+            <a class="hc-botao" href="#colecoes" data-hc-descer>Ver coleções <span aria-hidden="true">↓</span></a>
+          </>}
+          {b.id === "instalar" && <>
+            <p>Programa para Windows e Linux, ou pacote do R. Livre e gratuito.</p>
+            <button class="hc-botao" type="button" data-hc-ir="instalar">Como instalar <span aria-hidden="true">→</span></button>
+          </>}
+          {b.id === "windows" && <>
+            <p>Instalador com tudo incluído, sem precisar do R.</p>
+            <a class="hc-botao" href="https://github.com/uaipedro/trama/releases/latest/download/Trama-Setup.exe">Baixar Trama-Setup.exe</a>
+          </>}
+          {b.id === "linux" && <>
+            <p>Um comando no terminal:</p>
+            <div class="hc-cmd hc-cmd--copiar"><code data-hc-cmd>curl -fsSL https://raw.githubusercontent.com/uaipedro/trama/main/tools/installer/linux/install.sh | bash</code><button type="button" data-hc-copiar aria-label="Copiar o comando">Copiar</button></div>
+            <a class="hc-botao hc-botao--leve" href="/trama/por-dentro/instalacao/">Outras formas de instalar</a>
+          </>}
+          {b.id === "pacote" && <>
+            <p>Para quem já usa o R (4.1 ou posterior):</p>
+            <code class="hc-cmd">pak::pak("uaipedro/trama")</code>
+            <a class="hc-botao hc-botao--leve" href="/trama/por-dentro/instalacao/">Instalação completa</a>
+          </>}
+        </div>
+      </article>
+    ))}
+
+    <div class="hc-solto" data-hc-solto hidden>
+      <div class="hc-solto__tela" data-hc-tela-video></div>
+      <span class="hc-solto__titulo">Como usar</span>
+      <button class="hc-solto__fechar" type="button" data-hc-prender aria-label="Fechar o vídeo" title="fechar">×</button>
+      <button class="hc-solto__tela-cheia" type="button" data-hc-tela aria-label="Ver em tela cheia"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="/trama/icons/lucide.svg#maximize-2" /></svg>Tela cheia</button>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  .hc, .hcs, .hca {
+    --tr-papel-origem:#275d8c;--tr-papel-preparacao:#976523;--tr-papel-inspecao:#75539b;
+    --tr-papel-ajuste:#31765a;--tr-papel-avaliacao:#8b3a62;--tr-papel-saida:#59636b;
+    --hc-fio:#4b4f57;--hc-card:#fbfaf7;--hc-linha:#0000002b;
+    --hc-pontos: radial-gradient(circle, #b9c0cb 0 1px, transparent 1.4px);
+  }
+  .hc {
+    position: relative; overflow: hidden;
+    min-height: min(52rem, calc(100svh - 4rem));
+    display: grid; grid-template-columns: minmax(18rem, 32rem); align-items: center;
+    padding: clamp(2rem, 6vw, 5rem) max(1.25rem, 4vw);
+    background: var(--hc-pontos) var(--cam-x, 0px) var(--cam-y, 0px) / 16px 16px, radial-gradient(ellipse 70% 60% at 30% 40%, #fff 0, transparent 70%), #f3f4f6;
+    transition: background-position 900ms cubic-bezier(.65, 0, .25, 1);
+  }
+  .hc__copy { position: relative; z-index: 2; pointer-events: none; transition: opacity 500ms var(--ease-out), transform 900ms cubic-bezier(.65, 0, .25, 1); }
+  .hc[data-vista="instalar"] .hc__copy { opacity: 0; transform: translateX(-40%); }
+  .hc__titulo { display: grid; gap: .9rem; margin: 0; }
+  .hc__marca { font-size: clamp(4rem, 10vw, 8.5rem); letter-spacing: -.07em; line-height: .8; }
+  .hc__mote { font-size: clamp(1.7rem, 3.2vw, 2.9rem); letter-spacing: -.045em; line-height: 1.02; color: var(--ink); max-width: 16ch; }
+  .hc__fina { margin: 1.5rem 0 0; max-width: 30ch; color: var(--ink-soft); font-size: clamp(1.1rem, 1.5vw, 1.3rem); line-height: 1.45; }
+  .hc__dica { margin: 2rem 0 0; font-family: var(--font-code); font-size: .78rem; color: var(--ink-soft); opacity: .7; }
+  .hc__voltar { position: absolute; z-index: 4; top: 1.25rem; left: max(1.25rem, 4vw); padding: .5rem .8rem; border: 1px solid var(--hc-linha); border-radius: 8px; background: #fff; color: var(--ink); font-weight: 700; font-size: .85rem; cursor: pointer; box-shadow: 0 6px 16px -10px rgba(20,30,50,.4); opacity: 0; pointer-events: none; transform: translateY(-6px); transition: opacity 300ms, transform 300ms var(--ease-out); }
+  .hc:not([data-vista="inicio"]) .hc__voltar { opacity: 1; pointer-events: auto; transform: none; }
+
+  /* com JS, o canvas espera estar montado (ver `montar`) */
+  html[data-js] .hc:not(.is-montado) .hc__mundo { visibility: hidden; }
+  .hc__mundo { position: absolute; inset: 0; transition: transform 900ms cubic-bezier(.65, 0, .25, 1); }
+  .hc__fios, .hcs__fios { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  :is(.hc__fios, .hcs__fios) path { fill: none; }
+  :is(.hc__fios, .hcs__fios) .trilho { stroke: var(--hc-fio); stroke-opacity: .12; stroke-width: 7; }
+  :is(.hc__fios, .hcs__fios) .fio { stroke: var(--hc-fio); stroke-width: 2.2; }
+  :is(.hc__fios, .hcs__fios) .pulso { stroke: var(--cat, #3b6fd8); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 14 4000; opacity: 0; }
+  /* fio só aparece depois que as duas pontas entraram */
+  .is-vivo [data-fio] { opacity: 0; transition: opacity 250ms; }
+  .is-vivo [data-fio].is-ligado { opacity: 1; }
+
+  .hc-card {
+    position: absolute; left: 0; top: 0; width: 14.5rem;
+    background: var(--hc-card); border: 1px solid var(--hc-linha); border-radius: 10px;
+    box-shadow: 0 1px 0 #fff inset, 0 10px 24px -12px rgba(20,30,50,.35), 0 2px 4px rgba(20,30,50,.08);
+    font-size: .9rem; line-height: 1.4; color: #1b2130;
+  }
+  .hc-card.is-pego { box-shadow: 0 0 0 2px var(--cat), 0 22px 40px -16px rgba(20,30,50,.45); z-index: 3; }
+  .hc-card__head {
+    display: flex; align-items: center; gap: .55rem; min-height: 2.5rem; padding: 0 .7rem 0 0;
+    border-radius: 9px 9px 0 0; background: var(--cat); color: #fff; user-select: none;
+    background-image: linear-gradient(180deg, #ffffff22, #0000 60%);
+    box-shadow: inset 0 -1px 0 #0000002e;
+  }
+  .hc .hc-card__head { cursor: grab; touch-action: none; }
+  .hc-card.is-pego .hc-card__head { cursor: grabbing; }
+  .hc-card__icone { width: 2.5rem; height: 2.5rem; padding: .65rem; flex: none; stroke: currentColor; fill: none; stroke-width: 2; background: #0000001f; border-radius: 9px 0 0 0; align-self: stretch; }
+  .hc-card__titulo { flex: 1; margin: 0; font-family: var(--font-body); font-size: .92rem; font-weight: 600; letter-spacing: 0; line-height: 1.1; }
+  .hc-card__luz { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #ffffff55; box-shadow: inset 0 0 0 1px #0004; transition: background 300ms, box-shadow 300ms; }
+  .hc-card.is-rodando .hc-card__luz { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+  .hc-card.is-pronto .hc-card__luz { background: #22c55e; box-shadow: 0 0 7px #22c55e; }
+  .hc-card__corpo { padding: .75rem .85rem .85rem; }
+  .hc-card__corpo p { margin: 0; color: #3d4757; }
+
+  /* botão de verdade: cheio, na cor do bloco */
+  .hc-botao { display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; margin-top: .75rem; padding: .55rem .75rem; border: 0; border-radius: 7px; background: var(--cat); color: #fff; font: 700 .86rem/1.2 var(--font-body); text-decoration: none; cursor: pointer; box-shadow: 0 1px 0 #ffffff40 inset, 0 3px 8px -3px color-mix(in oklch, var(--cat) 70%, transparent); transition: transform 150ms var(--ease-out), filter 150ms; }
+  .hc-botao:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .hc-botao:active { transform: none; }
+  .hc-botao span { font-size: 1.05rem; }
+  .hc-botao--leve { background: transparent; color: var(--cat); box-shadow: inset 0 0 0 1.5px var(--cat); }
+  .hc-botao--leve:hover { background: color-mix(in oklch, var(--cat) 8%, transparent); filter: none; }
+  .hc-cmd { display: block; margin-top: .55rem; padding: .4rem .5rem; background: #1b2130; color: #d6f5e3; border-radius: 6px; font-family: var(--font-code); font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* o comando do Linux inteiro, quebrando onde dá, com cópia */
+  [data-hc-card="linux"], [data-hc-card="pacote"], [data-hc-card="windows"] { width: 24rem; }
+  .hc-cmd--copiar { display: flex; align-items: flex-start; gap: .5rem; white-space: normal; overflow: visible; padding: .5rem .5rem .5rem .6rem; }
+  .hc-cmd--copiar code { flex: 1; font: inherit; line-height: 1.45; word-break: break-all; user-select: all; }
+  .hc-cmd--copiar button { flex: none; padding: .25rem .5rem; border: 1px solid #ffffff33; border-radius: 5px; background: #ffffff14; color: #d6f5e3; font: 700 .7rem/1 var(--font-body); cursor: pointer; transition: background 150ms; }
+  .hc-cmd--copiar button:hover { background: #ffffff2a; }
+  .hc-cmd--copiar button.is-ok { background: #22c55e; border-color: #22c55e; color: #0b0e13; }
+  .hc-porta { position: absolute; top: .55rem; width: 15px; height: 19px; background: var(--cat); display: none;
+    clip-path: path("M1.2 3.2Q1.2 0.6 3.5 1.9L13.4 8.2Q15 9.5 13.4 10.8L3.5 17.1Q1.2 18.4 1.2 15.8Z"); }
+  .hc-porta--in { left: -6px; }
+  .hc-porta--out { right: -10px; }
+  .hc-porta--2 { top: 2.05rem; }
+  .hc-porta--3 { top: 3.55rem; }
+  .hc-porta--topo { top: -10px; left: calc(50% - 7px); transform: rotate(90deg); }
+  .hc-porta--base { top: auto; bottom: -14px; left: calc(50% - 7px); transform: rotate(90deg); }
+  .hc-card.tem-in .hc-porta--in, .hc-card.tem-out .hc-porta--out,
+  .hc-card.tem-topo .hc-porta--topo, .hc-card.tem-base .hc-porta--base { display: block; }
+
+  /* entrada */
+  .is-vivo .hc-card { opacity: 0; transform: translateY(10px) scale(.97); }
+  .is-vivo .hc-card.is-entrou { opacity: 1; transform: none; transition: opacity 450ms var(--ease-out), transform 550ms var(--ease-out); }
+
+  /* miniatura do vídeo no card e o preview solto */
+  .hc-thumb { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; margin: 0 0 .6rem; padding: 0; border: 1px solid var(--hc-linha); border-radius: 6px; overflow: hidden; background: #10262f; cursor: pointer; transition: opacity 300ms; }
+  .hc-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 400ms var(--ease-out); }
+  .hc-thumb:hover video { transform: scale(1.04); }
+  .hc-thumb__play { position: absolute; inset: 0; margin: auto; width: 2.6rem; height: 2.6rem; border-radius: 50%; display: grid; place-items: center; background: color-mix(in oklch, var(--cat) 88%, transparent); color: #fff; box-shadow: 0 6px 18px -6px #000a; transition: transform 200ms var(--ease-out), opacity 200ms; }
+  .hc-thumb:hover .hc-thumb__play { transform: scale(1.1); }
+  .hc-thumb__play svg { width: 1.1rem; height: 1.1rem; margin-left: 2px; fill: currentColor; stroke: currentColor; stroke-width: 2; }
+  .hc-thumb__pino { position: absolute; top: .35rem; right: .35rem; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 5px; background: #fbfaf7; color: #3d4757; border: 1px solid var(--hc-linha); }
+  .hc-thumb__pino svg { width: .85rem; height: .85rem; fill: none; stroke: currentColor; stroke-width: 2; }
+  .hc-card.is-solto .hc-thumb { opacity: .35; pointer-events: none; }
+  .hc-card.is-tocando .hc-thumb__play { opacity: 0; transform: scale(.6); }
+  .hc-card.is-tocando .hc-thumb:hover .hc-thumb__play { opacity: 1; transform: none; }
+
+  .hc-solto { position: absolute; z-index: 5; border-radius: 6px; background: #fbfaf7; box-shadow: 0 2px 0 #0002, 0 18px 40px -12px rgba(20,30,50,.45); cursor: grab; transform-origin: 0 0; touch-action: none; }
+  .hc-solto.is-pego { cursor: grabbing; }
+  .hc-solto[hidden] { display: none; }
+  .hc-solto__tela { aspect-ratio: 16 / 10; border-radius: 6px; overflow: hidden; background: #10262f; }
+  .hc-solto video { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  /* fechar: X vermelho no canto, sempre à vista; tela cheia: no próprio vídeo, embaixo */
+  .hc-solto__titulo { position: absolute; top: -2rem; left: 0; padding: .15rem .5rem; border-radius: 5px; background: #fbfaf7; border: 1px solid #dfe3ea; color: #5f6b7f; font-size: .72rem; }
+  .hc-solto__fechar { position: absolute; top: -.85rem; right: -.85rem; z-index: 1; display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 2px solid #fff; border-radius: 50%; background: #dc2626; color: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 12px -4px #7f1d1d99; transition: transform 150ms var(--ease-out), background 150ms; }
+  .hc-solto__fechar:hover { background: #b91c1c; transform: scale(1.08); }
+  .hc-solto__tela-cheia { position: absolute; right: .75rem; bottom: .75rem; display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .7rem; border: 0; border-radius: 7px; background: #0b0e13b3; color: #fff; font: 700 .8rem var(--font-body); cursor: pointer; backdrop-filter: blur(4px); opacity: .85; transition: opacity 150ms, background 150ms; }
+  .hc-solto__tela-cheia:hover { opacity: 1; background: #0b0e13e6; }
+  .hc-solto__tela-cheia svg { width: .95rem; height: .95rem; fill: none; stroke: currentColor; stroke-width: 2; }
+  .hc-fio-solto path { fill: none; stroke: #5f6b7f; stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .7; }
+  .hc-fio-solto circle { fill: #fbfaf7; stroke: #5f6b7f; stroke-width: 1.5; }
+  .hc[data-vista="video"] .hc__copy { opacity: 0; transform: translateX(-70%); }
+
+  @media (max-width: 960px) {
+    .hc { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 2rem; }
+    .hc__dica, .hc__voltar, .hc__fios { display: none; }
+    .hc__mundo { position: relative; transform: none !important; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4rem; }
+    .hc .hc-card { position: relative; left: auto !important; top: auto !important; width: 100%; max-width: 24rem; }
+    .hc .hc-porta { display: none !important; }
+    .hc-card--instalar { display: none; }
+    .hc[data-vista="instalar"] .hc-card--instalar { display: block; margin-left: 1.25rem; width: calc(100% - 1.25rem); }
+    [data-hc-card="usar"] { order: 0; }
+    [data-hc-card="colecoes"] { order: 1; }
+    [data-hc-card="instalar"] { order: 2; }
+    .hc-card--instalar { order: 3; }
+    .hc-solto { position: relative !important; left: auto !important; top: auto !important; width: 100% !important; order: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .is-vivo .hc-card, .is-vivo [data-fio] { opacity: 1; transform: none; }
+    .hc__mundo, .hc__copy, .hc { transition: none; }
+  }
+</style>
+
+<script>
+  import { ligarFios, rodar, revelar } from "../lib/hero-fios";
+
+  const raiz = document.querySelector<HTMLElement>("[data-hc]");
+  if (raiz) iniciar(raiz);
+
+  function iniciar(raiz: HTMLElement) {
+    // O vídeo do "Como usar" sai do card como o preview solto do editor: abre
+    // à esquerda do card, empurra o texto do hero e a câmera centraliza nele.
+    // Ao prender de volta, o mesmo <video> volta para a miniatura e segue
+    // tocando ali.
+    let fecharVideo = async () => {};
+    let centroVideo = { x: 0, y: 0 };
+    function solto() {
+      const el = mundo.querySelector<HTMLElement>("[data-hc-solto]")!;
+      const tela = el.querySelector<HTMLElement>("[data-hc-tela-video]")!;
+      const card = cards.get("usar")!;
+      const thumb = card.querySelector<HTMLElement>("[data-hc-soltar]")!;
+      const video = thumb.querySelector<HTMLVideoElement>("video")!;
+      const fio = svg.querySelector<SVGGElement>("[data-hc-fio-solto]")!;
+      const ACAO = "cubic-bezier(.65, 0, .25, 1)";
+      const thumbX = () => card.offsetLeft + thumb.offsetLeft, thumbY = () => card.offsetTop + thumb.offsetTop;
+
+      // fio tracejado: lado direito do solto -> lado esquerdo do card
+      const tracar = () => {
+        fio.style.display = el.hidden || !largo.matches ? "none" : "";
+        if (el.hidden) return;
+        const s = { x: el.offsetLeft + el.offsetWidth, y: el.offsetTop + el.offsetHeight / 2 };
+        const t = { x: card.offsetLeft, y: thumbY() + thumb.offsetHeight / 2 };
+        const k = Math.max(24, Math.abs(t.x - s.x) / 2);
+        fio.querySelector("path")!.setAttribute("d", `M${s.x},${s.y}C${s.x + k},${s.y} ${t.x - k},${t.y} ${t.x},${t.y}`);
+        const c = fio.querySelector("circle")!;
+        c.setAttribute("cx", String(t.x)); c.setAttribute("cy", String(t.y));
+      };
+      const desenhar0 = fios.desenhar;
+      fios.desenhar = () => { desenhar0(); tracar(); };
+
+      // Medido no mundo (offsets), para não brigar com a câmera andando.
+      const ateThumb = () =>
+        `translate(${thumbX() - el.offsetLeft}px, ${thumbY() - el.offsetTop}px) scale(${thumb.offsetWidth / el.offsetWidth}, ${thumb.offsetHeight / el.offsetHeight})`;
+
+      const soltar = () => {
+        if (!el.hidden) return;
+        el.hidden = false;
+        if (largo.matches) {
+          const W = mundo.clientWidth, H = mundo.clientHeight;
+          const w = Math.min(W * 0.62, 940, (H - 120) * 1.6);
+          el.style.width = `${w}px`;
+          const h = el.offsetHeight;
+          const x = card.offsetLeft - 56 - w, y = card.offsetTop + card.offsetHeight / 2 - h / 2;
+          el.style.left = `${x}px`; el.style.top = `${y}px`;
+          centroVideo = { x: x + w / 2, y: y + h / 2 };
+        }
+        tela.append(video);
+        video.play().catch(() => {});
+        card.classList.add("is-solto");
+        raiz.classList.add("tem-solto");
+        tracar();
+        camera("video");
+        if (!calmo) {
+          el.animate([{ transform: ateThumb(), borderRadius: "6px" }, { transform: "none" }], { duration: 900, easing: ACAO });
+          fio.animate([{ opacity: 0 }, { opacity: 0, offset: .7 }, { opacity: 1 }], { duration: 950 });
+        }
+      };
+      fecharVideo = async () => {
+        if (el.hidden) return;
+        camera("inicio");
+        fio.style.display = "none";
+        if (!calmo) await el.animate([{ transform: "none" }, { transform: ateThumb() }], { duration: 900, easing: ACAO }).finished;
+        thumb.prepend(video);
+        video.play().catch(() => {});
+        el.hidden = true;
+        card.classList.remove("is-solto");
+        card.classList.add("is-tocando");
+        raiz.classList.remove("tem-solto");
+      };
+      thumb.addEventListener("click", soltar);
+      el.querySelector("[data-hc-prender]")!.addEventListener("click", () => fecharVideo());
+      el.querySelector("[data-hc-tela]")!.addEventListener("click", () => video.requestFullscreen?.());
+
+      // arrasta pelo corpo, como o solto no canvas do editor
+      el.addEventListener("pointerdown", (e) => {
+        if (!largo.matches || e.button !== 0 || (e.target as Element).closest("button")) return;
+        e.preventDefault();
+        el.setPointerCapture(e.pointerId);
+        const x0 = e.clientX - el.offsetLeft, y0 = e.clientY - el.offsetTop;
+        el.classList.add("is-pego");
+        const mover = (ev: PointerEvent) => { el.style.left = `${ev.clientX - x0}px`; el.style.top = `${ev.clientY - y0}px`; tracar(); };
+        const soltarPonteiro = () => { el.classList.remove("is-pego"); el.removeEventListener("pointermove", mover); el.removeEventListener("pointerup", soltarPonteiro); };
+        el.addEventListener("pointermove", mover);
+        el.addEventListener("pointerup", soltarPonteiro);
+      });
+    }
+
+    const mundo = raiz.querySelector<HTMLElement>("[data-hc-mundo]")!;
+    const svg = raiz.querySelector<SVGSVGElement>("[data-hc-fios]")!;
+    const cards = new Map([...mundo.querySelectorAll<HTMLElement>("[data-hc-card]")].map((c) => [c.dataset.hcCard!, c]));
+    const largo = matchMedia("(min-width: 961px)");
+    const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pos = new Map<string, { x: number; y: number }>();
+    const fios = ligarFios(svg, cards, mundo);
+
+    const posicionar = () => {
+      if (largo.matches) {
+        const W = mundo.clientWidth, H = mundo.clientHeight;
+        for (const [id, c] of cards) {
+          if (c.dataset.movido) continue;
+          const p = { x: Number(c.dataset.x) * W, y: Number(c.dataset.y) * H };
+          pos.set(id, p);
+          c.style.left = `${p.x}px`; c.style.top = `${p.y}px`;
+        }
+      }
+      camera(raiz.dataset.vista!, false);
+      fios.desenhar();
+    };
+
+    // A câmera é o mundo andando ao contrário; o pontilhado vai junto.
+    function camera(vista: string, animar = true) {
+      raiz.dataset.vista = vista;
+      if (!largo.matches) { mundo.style.transform = ""; return; }
+      const W = mundo.clientWidth, H = mundo.clientHeight;
+      const [cx, cy] = vista === "instalar" ? [-0.66 * W, 0]
+        : vista === "video" ? [W / 2 - centroVideo.x, H / 2 - centroVideo.y] : [0, 0];
+      if (!animar) { mundo.style.transition = "none"; raiz.style.transition = "none"; }
+      raiz.style.setProperty("--cam-x", `${cx}px`);
+      raiz.style.setProperty("--cam-y", `${cy}px`);
+      mundo.style.transform = `translate(${cx}px, ${cy}px)`;
+      if (!animar) { mundo.offsetWidth; mundo.style.transition = ""; raiz.style.transition = ""; }
+    }
+
+    const ir = (alvo: string) => {
+      const antes = raiz.dataset.vista;
+      if (antes === "video") { fecharVideo(); return; }
+      const vista = antes === alvo ? "inicio" : alvo;
+      camera(vista);
+      if (vista !== "inicio" && !calmo) {
+        // ao chegar, o pedaço novo do fluxo "roda" na ordem
+        const novos = [...cards.values()].filter((c) => c.dataset.grupo === vista);
+        for (const c of novos) c.classList.remove("is-pronto");
+        setTimeout(() => rodar(novos.map((c) => c.dataset.hcCard!), cards, svg, 300), 650);
+      }
+    };
+    for (const b of raiz.querySelectorAll<HTMLButtonElement>("[data-hc-copiar]")) b.addEventListener("click", async () => {
+      const texto = b.parentElement!.querySelector("[data-hc-cmd]")!.textContent!;
+      try { await navigator.clipboard.writeText(texto); b.textContent = "Copiado"; b.classList.add("is-ok"); }
+      catch { getSelection()?.selectAllChildren(b.parentElement!.querySelector("[data-hc-cmd]")!); b.textContent = "Ctrl+C"; }
+      setTimeout(() => { b.textContent = "Copiar"; b.classList.remove("is-ok"); }, 1800);
+    });
+    for (const b of raiz.querySelectorAll<HTMLElement>("[data-hc-ir]")) b.addEventListener("click", () => ir(b.dataset.hcIr!));
+    addEventListener("keydown", (e) => { if (e.key === "Escape" && raiz.dataset.vista !== "inicio") ir("inicio"); });
+
+    // O fio que desce de Coleções só aparece quando a pessoa desce (botão
+    // ou rolagem): antes disso ele ficaria com a ponta solta no vazio.
+    const descida = svg.querySelector<SVGGElement>('[data-fio="colecoes>"]')!;
+    const aoRolar = () => { if (scrollY > 60) { revelar(descida); removeEventListener("scroll", aoRolar); } };
+    addEventListener("scroll", aoRolar, { passive: true });
+    raiz.querySelector("[data-hc-descer]")?.addEventListener("click", (e) => {
+      revelar(descida);
+      e.preventDefault();
+      document.getElementById("colecoes")?.scrollIntoView({ behavior: calmo ? "auto" : "smooth" });
+    });
+
+    // arrastar pelo cabeçalho, como no editor
+    for (const [id, c] of cards) {
+      const alca = c.querySelector<HTMLElement>("[data-hc-alca]")!;
+      alca.addEventListener("pointerdown", (e) => {
+        if (!largo.matches || e.button !== 0) return;
+        e.preventDefault();
+        alca.setPointerCapture(e.pointerId);
+        const p0 = pos.get(id)!, x0 = e.clientX, y0 = e.clientY;
+        c.classList.add("is-pego");
+        c.dataset.movido = "1";
+        raiz.querySelector(".hc__dica")?.remove();
+        const mover = (ev: PointerEvent) => {
+          const p = { x: p0.x + ev.clientX - x0, y: p0.y + ev.clientY - y0 };
+          pos.set(id, p);
+          c.style.left = `${p.x}px`; c.style.top = `${p.y}px`;
+          fios.desenhar();
+        };
+        const soltar = () => {
+          c.classList.remove("is-pego");
+          alca.removeEventListener("pointermove", mover);
+          alca.removeEventListener("pointerup", soltar);
+          alca.removeEventListener("pointercancel", soltar);
+        };
+        alca.addEventListener("pointermove", mover);
+        alca.addEventListener("pointerup", soltar);
+        alca.addEventListener("pointercancel", soltar);
+      });
+    }
+
+    solto();
+    if (!calmo) {
+      raiz.classList.add("is-vivo");
+      // Os blocos fora da vista já estão no lugar; só o fluxo visível roda.
+      for (const c of cards.values()) if (c.dataset.grupo) c.classList.add("is-entrou", "is-pronto");
+    }
+
+    // O canvas só aparece com as fontes carregadas e os cards no lugar: o
+    // texto do hero vem primeiro, o fluxo depois (sem cards no canto no F5).
+    const montar = () => {
+      if (raiz.classList.contains("is-montado")) return;
+      posicionar();
+      new ResizeObserver(posicionar).observe(mundo);
+      largo.addEventListener("change", posicionar);
+      requestAnimationFrame(() => {
+        raiz.classList.add("is-montado");
+        if (calmo) { for (const c of cards.values()) c.classList.add("is-pronto"); fios.ligarTodos(); }
+        else rodar(["usar", "colecoes", "instalar"], cards, svg, 520, 250);
+      });
+    };
+    document.fonts.ready.then(montar);
+    setTimeout(montar, 2500); // fonte que não chega não segura o canvas
+  }
+</script>

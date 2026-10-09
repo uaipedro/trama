@@ -1,0 +1,271 @@
+---
+// Catálogo das coleções na home: um blocão só, montado no build e escondido,
+// com uma aba por coleção, busca entre todos os blocos e os blocos por etapa
+// (como na página da coleção). Fica dentro da seção de coleções: ao abrir, o
+// texto e a árvore deslizam para a esquerda e ele entra pela direita como um
+// card do canvas, com o cabeçalho na cor da coleção. Trocar de aba não fecha
+// nada. A página da coleção fica a um botão. No celular vira folha por cima.
+import { getCollection } from "astro:content";
+import NodeMini from "./NodeMini.astro";
+import { collections } from "../data/collections";
+import nodeVisuals from "../data/node-visuals.json";
+import { getNodeVisual, type NodeVisual } from "../data/node-visuals";
+
+interface Bloco { titulo: string; descricao: string; href?: string; visual: NodeVisual }
+interface Etapa { id: string; label: string; ordem: number; accent: string; blocos: Bloco[] }
+interface Aba { id: string; titulo: string; icone: string; href?: string; descricao: string; etapas: Etapa[] }
+
+const docs = await getCollection("docs", ({ data }) => !!data.node);
+
+function etapas(blocos: Bloco[]): Etapa[] {
+  const grupos = new Map<string, Etapa>();
+  for (const b of blocos) {
+    const id = b.visual.category ?? "outros";
+    const g = grupos.get(id) ?? { id, label: b.visual.categoryLabel ?? "Outros", ordem: b.visual.categoryOrder ?? Infinity, accent: b.visual.accent, blocos: [] };
+    g.blocos.push(b);
+    grupos.set(id, g);
+  }
+  return [...grupos.values()].sort((a, b) => a.ordem - b.ordem)
+    .map((g) => ({ ...g, blocos: g.blocos.sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")) }));
+}
+
+const abas: Aba[] = collections.map((c) => ({
+  id: c.id, titulo: c.title, icone: c.icon, href: `/trama/colecoes/${c.id}/`, descricao: c.description,
+  etapas: etapas(docs.filter((e) => e.data.collection === c.id).map((e) => ({
+    titulo: e.data.title, descricao: e.data.description ?? "", href: `/trama/${e.id}/`, visual: getNodeVisual(e.data.node!),
+  }))),
+}));
+// SQL ainda não tem páginas no site: os blocos vêm do catálogo visual, sem link.
+const visuais = nodeVisuals as unknown as Record<string, NodeVisual>;
+abas.push({
+  id: "sql", titulo: "SQL", icone: "database-zap", descricao: "Consulte arquivos locais e bancos de dados com SQL e traga as tabelas para o fluxo.",
+  etapas: etapas(Object.entries(visuais).filter(([k]) => k.startsWith("sql/")).map(([k, v]) => ({ titulo: v.label ?? k, descricao: "", visual: v }))),
+});
+---
+
+<div class="cat" data-cat hidden>
+  <div class="cat__fundo" data-cat-fechar></div>
+  <section class="cat__painel" role="region" aria-label="Catálogo de blocos" data-cat-painel>
+    <header class="cat__titulo">
+      <span class="cat__titulo-icone" aria-hidden="true"><svg viewBox="0 0 24 24"><use data-cat-icone href="" /></svg></span>
+      <h2 data-cat-nome></h2>
+      <span class="hc-card__luz" aria-hidden="true"></span>
+      <button class="cat__x" type="button" data-cat-fechar aria-label="Fechar o catálogo">×</button>
+    </header>
+    <div class="cat__topo">
+      <label class="cat__busca">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="/trama/icons/lucide.svg#search" /></svg>
+        <input type="search" placeholder="Buscar bloco em todas as coleções" data-cat-busca autocomplete="off" />
+      </label>
+    </div>
+    <nav class="cat__abas" role="tablist" aria-label="Coleções">
+      {abas.map((a) => (
+        <button type="button" role="tab" class="cat__aba" data-cat-aba={a.id} aria-selected="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href={`/trama/icons/lucide.svg#${a.icone}`} /></svg>{a.titulo}
+        </button>
+      ))}
+    </nav>
+    <div class="cat__corpo" data-cat-corpo>
+      {abas.map((a) => (
+        <div class="cat__colecao" role="tabpanel" data-cat-colecao={a.id} hidden>
+          <div class="cat__cabeca">
+            <p>{a.descricao}</p>
+            {a.href
+              ? <a class="cat__ir" href={a.href}>Ir para a página da coleção <span aria-hidden="true">→</span></a>
+              : <span class="cat__ir cat__ir--mudo">Página da coleção em preparo</span>}
+          </div>
+          <ol class="cat__etapas">
+            {a.etapas.map((e) => (
+              <li class="cat__etapa" style={`--node-accent:${e.accent}`}>
+                <h3>{e.label}</h3>
+                <ul>
+                  {e.blocos.map((b) => (
+                    <li data-cat-bloco={`${b.titulo} ${b.descricao}`.toLowerCase()}>
+                      {b.href
+                        ? <a href={b.href} title={b.descricao}><NodeMini label={b.titulo} {...b.visual} /></a>
+                        : <span><NodeMini label={b.titulo} {...b.visual} /></span>}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+      <p class="cat__vazio" data-cat-vazio hidden>Nenhum bloco com esse nome.</p>
+    </div>
+  </section>
+</div>
+
+<style is:global>
+  /* desktop: blocão dentro da seção de coleções, à direita */
+  .cat { position: absolute; z-index: 3; top: clamp(2rem, 5vw, 4rem); bottom: clamp(2rem, 5vw, 4rem); right: max(1.25rem, 4vw); width: min(46rem, 54vw); }
+  .cat[hidden] { display: none; }
+  .cat__fundo { display: none; }
+  .cat__painel { position: absolute; inset: 0; display: grid; grid-template-rows: auto auto auto 1fr; overflow: hidden;
+    background: #fbfaf7; border: 1px solid #0000002b; border-radius: 12px; box-shadow: 0 1px 0 #fff inset, 0 24px 60px -24px rgba(20,30,50,.5), 0 2px 6px rgba(20,30,50,.1); }
+  .cat__titulo { display: flex; align-items: center; gap: .7rem; min-height: 3rem; padding-right: .45rem; background: var(--cat, #275d8c); background-image: linear-gradient(180deg, #ffffff22, #0000 60%); color: #fff; box-shadow: inset 0 -1px 0 #0000002e; transition: background-color 300ms; }
+  .cat__titulo-icone { display: grid; place-items: center; align-self: stretch; width: 3rem; background: #0000001f; border-radius: 11px 0 0 0; }
+  .cat__titulo-icone svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 2; }
+  .cat__titulo h2 { flex: 1; margin: 0; font: 600 1.05rem/1.1 var(--font-body); letter-spacing: 0; }
+  .cat__titulo .hc-card__luz { background: #22c55e; box-shadow: 0 0 7px #22c55e; }
+  .cat__titulo .cat__x { color: #fff; }
+  .cat__titulo .cat__x:hover { background: #ffffff26; }
+  .cat__topo { display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem .5rem; }
+  /* a seção abre espaço: texto e árvore deslizam para a esquerda */
+  .hca__palco { transition: transform 700ms cubic-bezier(.65, 0, .25, 1), opacity 500ms; }
+  .hca.is-catalogo .hca__palco { transform: translateX(calc(-1 * var(--empurra, 0px))); }
+  .hca.is-catalogo .hca__intro { opacity: .25; transition: opacity 500ms; }
+  .cat__busca { flex: 1; display: flex; align-items: center; gap: .5rem; height: 2.4rem; padding: 0 .75rem; border: 1px solid #dfe3ea; border-radius: 8px; background: #fff; }
+  .cat__busca:focus-within { border-color: #3b6fd8; box-shadow: 0 0 0 3px #3b6fd81f; }
+  .cat__busca svg { width: 1rem; height: 1rem; flex: none; fill: none; stroke: #5f6b7f; stroke-width: 2; }
+  .cat__busca input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 500 .95rem var(--font-body); color: #1b2130; }
+  .cat__x { width: 2.4rem; height: 2.4rem; border: 0; border-radius: 8px; background: none; font-size: 1.5rem; line-height: 1; color: #5f6b7f; cursor: pointer; }
+  .cat__x:hover { background: #eef1f5; }
+  .cat__abas { display: flex; gap: .25rem; padding: 0 .75rem; overflow-x: auto; scrollbar-width: thin; border-bottom: 1px solid #dfe3ea; }
+  .cat__aba { flex: none; display: inline-flex; align-items: center; gap: .4rem; padding: .55rem .7rem; border: 0; border-bottom: 2px solid transparent; background: none; color: #5f6b7f; font: 600 .82rem var(--font-body); cursor: pointer; }
+  .cat__aba svg { width: .95rem; height: .95rem; fill: none; stroke: currentColor; stroke-width: 2; }
+  .cat__aba:hover { color: #1b2130; }
+  .cat__aba[aria-selected="true"] { color: #1b2130; border-bottom-color: #1b2130; }
+  .cat.is-buscando .cat__aba[aria-selected="true"] { border-bottom-color: transparent; }
+  .cat__corpo { overflow-y: auto; padding: 1.25rem 1.25rem 2rem; overscroll-behavior: contain; }
+  .cat__cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin-bottom: 1.25rem; }
+  .cat__cabeca p { flex: 1 1 18rem; margin: 0; color: #3d4757; }
+  .cat__ir { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .8rem; border-radius: 7px; background: #1b2130; color: #fff; font: 700 .82rem var(--font-body); text-decoration: none; }
+  .cat__ir:hover { background: #2e3a52; }
+  .cat__ir--mudo { background: #eef1f5; color: #5f6b7f; }
+  .cat.is-buscando .cat__cabeca { display: none; }
+  .cat__etapas { display: grid; gap: 1.1rem; margin: 0; padding: 0; list-style: none; counter-reset: etapa; }
+  .cat__etapa h3 { display: flex; gap: .4rem; margin: 0 0 .5rem; color: #5f6b7f; font: 650 .82rem var(--font-display); letter-spacing: 0; counter-increment: etapa; }
+  .cat__etapa h3::before { content: counter(etapa); color: var(--node-accent); font-family: var(--font-code); }
+  .cat__etapa ul { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+  .cat__etapa a { display: block; text-decoration: none; border-radius: 7px; transition: transform 150ms var(--ease-out); }
+  .cat__etapa a:hover { transform: translateY(-2px); }
+  .cat__colecao + .cat__colecao.is-resultado { margin-top: 1.5rem; }
+  .cat__colecao.is-resultado::before { content: attr(data-titulo); display: block; margin-bottom: .6rem; font: 700 .75rem var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: #5f6b7f; }
+  .cat__vazio { color: #5f6b7f; }
+  @media (max-width: 960px) {
+    .cat { position: fixed; inset: 0; z-index: 50; width: auto; }
+    .cat__fundo { display: block; position: absolute; inset: 0; background: color-mix(in oklch, #1b2130 18%, transparent); }
+    .cat__painel { inset: 3rem 0 0; border-radius: 12px 12px 0 0; }
+    html.cat-aberto { overflow: hidden; }
+    .hca.is-catalogo .hca__palco { transform: none; }
+  }
+</style>
+
+<script>
+  const cat = document.querySelector<HTMLElement>("[data-cat]")!;
+  const painel = cat.querySelector<HTMLElement>("[data-cat-painel]")!;
+  const busca = cat.querySelector<HTMLInputElement>("[data-cat-busca]")!;
+  const corpo = cat.querySelector<HTMLElement>("[data-cat-corpo]")!;
+  const abas = [...cat.querySelectorAll<HTMLButtonElement>("[data-cat-aba]")];
+  const colecoes = [...cat.querySelectorAll<HTMLElement>("[data-cat-colecao]")];
+  const vazio = cat.querySelector<HTMLElement>("[data-cat-vazio]")!;
+  const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ACAO = "cubic-bezier(.65, 0, .25, 1)";
+  let atual = "";
+  let origem: HTMLElement | null = null;
+  for (const c of colecoes) c.dataset.titulo = abas.find((a) => a.dataset.catAba === c.dataset.catColecao)!.textContent!.trim();
+
+  const largo = matchMedia("(min-width: 961px)");
+  const secao = cat.closest<HTMLElement>(".hca");
+
+  // cabeçalho na cor e no ícone da coleção (os do card dela na árvore)
+  function pintar(id: string) {
+    const tile = document.querySelector<HTMLElement>(`[data-cat-abre="${id}"]`);
+    cat.style.setProperty("--cat", tile ? getComputedStyle(tile).getPropertyValue("--cat") : "#59636b");
+    cat.querySelector("[data-cat-icone]")!.setAttribute("href", tile?.querySelector("use")?.getAttribute("href") ?? "");
+    cat.querySelector("[data-cat-nome]")!.textContent = abas.find((a) => a.dataset.catAba === id)?.textContent?.trim() ?? "";
+  }
+
+  // quanto a árvore precisa andar para a esquerda para não ficar sob o blocão
+  function empurrar() {
+    if (!secao) return;
+    const mundo = secao.querySelector<HTMLElement>("[data-hcs-mundo]")!;
+    secao.style.removeProperty("--empurra");
+    const fim = mundo.getBoundingClientRect().right, inicio = cat.getBoundingClientRect().left;
+    secao.style.setProperty("--empurra", `${Math.max(0, fim - inicio + 56)}px`);
+  }
+
+  function mostrar(id: string) {
+    atual = id;
+    pintar(id);
+    busca.value = "";
+    filtrar();
+    for (const a of abas) a.setAttribute("aria-selected", String(a.dataset.catAba === id));
+    abas.find((a) => a.dataset.catAba === id)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    corpo.scrollTop = 0;
+    if (!calmo) corpo.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "ease-out" });
+  }
+
+  // Sem busca: só a aba atual. Com busca: os blocos que batem, de todas as
+  // coleções, agrupados por coleção.
+  function filtrar() {
+    const q = busca.value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    cat.classList.toggle("is-buscando", !!q);
+    let algum = false;
+    for (const c of colecoes) {
+      let n = 0;
+      for (const li of c.querySelectorAll<HTMLElement>("[data-cat-bloco]")) {
+        const ok = !q || li.dataset.catBloco!.normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q);
+        li.hidden = !ok; if (ok) n++;
+      }
+      for (const e of c.querySelectorAll<HTMLElement>(".cat__etapa")) e.hidden = !e.querySelector("[data-cat-bloco]:not([hidden])");
+      c.hidden = q ? n === 0 : c.dataset.catColecao !== atual;
+      c.classList.toggle("is-resultado", !!q);
+      if (!c.hidden) algum = true;
+    }
+    vazio.hidden = algum;
+  }
+
+  function abrir(id: string, card?: HTMLElement) {
+    origem = card ?? null;
+    const jaAberto = !cat.hidden;
+    cat.hidden = false;
+    mostrar(id);
+    if (largo.matches && secao) {
+      if (!jaAberto) {
+        empurrar();
+        secao.classList.add("is-catalogo");
+        secao.scrollIntoView({ behavior: calmo ? "auto" : "smooth", block: "nearest" });
+        if (!calmo) painel.animate([{ transform: "translateX(calc(100% + 6vw))", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 700, easing: ACAO });
+      }
+    } else {
+      document.documentElement.classList.add("cat-aberto");
+      if (!calmo) {
+        cat.querySelector(".cat__fundo")!.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+        painel.animate([{ transform: "translateY(100%)" }, { transform: "none" }], { duration: 450, easing: ACAO });
+      }
+    }
+    busca.focus({ preventScroll: true });
+  }
+
+  async function fechar() {
+    if (cat.hidden) return;
+    secao?.classList.remove("is-catalogo");
+    if (!calmo) {
+      await painel.animate(largo.matches
+        ? [{ transform: "none", opacity: 1 }, { transform: "translateX(calc(100% + 6vw))", opacity: 0 }]
+        : [{ transform: "none" }, { transform: "translateY(100%)" }],
+        { duration: largo.matches ? 600 : 380, easing: ACAO, fill: "forwards" }).finished;
+      for (const a of cat.getAnimations({ subtree: true })) a.cancel();
+    }
+    cat.hidden = true;
+    document.documentElement.classList.remove("cat-aberto");
+    origem?.querySelector<HTMLElement>("a")?.focus({ preventScroll: true });
+  }
+  addEventListener("resize", () => { if (!cat.hidden && largo.matches) empurrar(); });
+
+  for (const a of abas) a.addEventListener("click", () => mostrar(a.dataset.catAba!));
+  busca.addEventListener("input", filtrar);
+  for (const el of cat.querySelectorAll("[data-cat-fechar]")) el.addEventListener("click", fechar);
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !cat.hidden) { e.stopImmediatePropagation(); fechar(); } }, true);
+
+  // Card de coleção (ou sua orelha "ver mais") abre o catálogo nela.
+  document.addEventListener("click", (e) => {
+    const card = (e.target as Element).closest<HTMLElement>("[data-cat-abre]");
+    if (!card || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    abrir(card.dataset.catAbre!, card);
+  });
+</script>

@@ -423,3 +423,35 @@ html[data-facilitador="on"] .prose dfn.glossario-termo { text-decoration: underl
 .doc-page .related h2 { font-size: clamp(1.45rem, 2.2vw, 1.85rem); }
 .prose .node-fontes > h2 + .node-refs, .prose .node-fontes > h2 + h3 { margin-top: var(--space-sm); }
 .prose .node-fontes > h2:not(:first-child) { margin-top: var(--space-2xl); padding-top: var(--space-lg); border-top: 1px solid var(--line); }
+
+/* "Como estamos construindo": selo na emenda com o canvas e carrossel das
+   três frentes (documentação, curadoria, integração). */
+.construindo { position: relative; padding: 0 0 var(--space-3xl); background: var(--paper-strong); }
+.construindo__badge { position: relative; z-index: 1; width: fit-content; margin: 0 auto; transform: translateY(-50%); padding: .5rem 1rem; border: 1px solid var(--line); border-radius: 99px; background: var(--paper); color: var(--blue-dark); font-family: var(--font-display); font-size: .8rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; box-shadow: 0 6px 18px -10px rgba(20,30,50,.35); }
+.carrossel__abas { display: flex; justify-content: center; flex-wrap: wrap; gap: .4rem; margin: var(--space-md) auto 0; padding: 0 max(1.25rem, 4vw); }
+.carrossel__abas button { display: inline-flex; align-items: center; gap: .5rem; padding: .55rem .9rem; border: 1px solid transparent; border-radius: 99px; background: none; color: var(--ink-soft); font-weight: 700; font-size: .92rem; cursor: pointer; transition: background 200ms, color 200ms; }
+.carrossel__abas button span { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--paper); font-family: var(--font-code); font-size: .75rem; }
+.carrossel__abas button:hover { color: var(--ink); }
+.carrossel__abas button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.carrossel__abas button[aria-selected="true"] span { background: var(--paper); color: var(--ink); }
+.carrossel__trilho { display: flex; align-items: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.carrossel__trilho::-webkit-scrollbar { display: none; }
+.carrossel__trilho > .carrossel__slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; margin: 0; max-width: none; padding: var(--space-2xl) max(1.25rem, calc((100vw - 86rem) / 2 + 4vw)); background: none; border: 0; }
+.carrossel__setas { display: flex; justify-content: center; gap: .5rem; }
+.carrossel__setas button { width: 2.6rem; height: 2.6rem; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); color: var(--ink); font-size: 1.1rem; cursor: pointer; }
+.carrossel__setas button:hover { border-color: var(--ink-soft); }
+.carrossel__trilho > .home-documento { align-content: start; }
+/* sem título nos slides: o recheio começa logo abaixo das abas */
+.carrossel__trilho > .carrossel__slide { padding-top: var(--space-xl); padding-bottom: var(--space-xl); }
+.carrossel__slide > :first-child, .carrossel__slide .exemplo-ajuda:first-child { margin-top: 0; }
+/* selo da seção: botão; a cópia flutua no pé da tela enquanto a seção não chegou */
+.construindo__titulo { position: relative; z-index: 1; width: fit-content; margin: 0 auto; transform: translateY(-50%); font: inherit; letter-spacing: inherit; line-height: inherit; }
+.construindo__titulo .construindo__badge { transform: none; cursor: pointer; }
+.construindo__badge { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; transition: box-shadow 200ms, transform 200ms var(--ease-out); }
+.construindo__badge:hover { box-shadow: 0 10px 24px -10px rgba(20,30,50,.45); }
+.construindo__badge--flutua { position: fixed; z-index: 20; left: 50%; bottom: 1.25rem; margin: 0; transform: translate(-50%, 1rem); opacity: 0; pointer-events: none; transition: opacity 300ms, transform 400ms var(--ease-out); }
+.construindo__badge--flutua.is-visivel { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); animation: selo-flutua 2.6s ease-in-out 400ms infinite; }
+.construindo__badge--flutua span { display: inline-block; animation: selo-seta 2.6s ease-in-out infinite; }
+@keyframes selo-flutua { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+@keyframes selo-seta { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .construindo__badge--flutua.is-visivel, .construindo__badge--flutua span { animation: none; } }
