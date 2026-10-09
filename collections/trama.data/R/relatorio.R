@@ -41,6 +41,9 @@ tr_data_fmt_num <- function(v, digitos = 4L) {
   out <- formatC(signif(v, digitos), format = "fg", digits = digitos, big.mark = ".",
                  decimal.mark = ",")
   out[inteiro] <- formatC(v[inteiro], format = "d", big.mark = ".", decimal.mark = ",")
+  # Muito perto de zero, o "fg" desenrolaria vinte zeros: notação científica.
+  minusculo <- !is.na(v) & v != 0 & abs(v) < 1e-4
+  out[minusculo] <- formatC(v[minusculo], format = "e", digits = 2L, decimal.mark = ",")
   ifelse(is.na(v), "", trimws(out))
 }
 
@@ -106,10 +109,11 @@ tr_data_report_table <- function(x, max_linhas = 20L) {
   }
   rodape <- c(
     if (n > max_linhas) sprintf("Primeiras %d de %d linhas.", max_linhas, n)
-    else sprintf("%d %s × %d %s.", n, if (n == 1L) "linha" else "linhas",
-                 ncol(x), if (ncol(x) == 1L) "coluna" else "colunas"),
+    # Tabela inteira na página: o tamanho se vê, e o rodapé seria ruído.
+    else NULL,
     if (length(vazias)) sprintf("Colunas sem valor omitidas: %s.", paste(vazias, collapse = ", ")))
-  tr_data_report(c(tr_data_md_table(utils::head(df, max_linhas)), "", paste0("*", paste(rodape, collapse = " "), "*")))
+  tr_data_report(c(tr_data_md_table(utils::head(df, max_linhas)),
+                   if (length(rodape)) c("", paste0("*", paste(rodape, collapse = " "), "*"))))
 }
 
 #' Um teste de hipótese no relatório exportado.
@@ -141,4 +145,29 @@ tr_data_report_test <- function(x) {
     if (length(efeito)) c("", efeito),
     if (nzchar(x$nota %||% "")) c("", sprintf("*%s.*", sub("\\.$", "", x$nota))),
     if (nzchar(x$fonte %||% "")) c("", sprintf("Fonte: %s.", x$fonte))))
+}
+
+#' Um resumo (lista nomeada) no relatório exportado.
+#'
+#' Cada campo vira uma linha "medida | valor"; `NULL` e `NA` saem. É o que um
+#' tipo que já declara `summary` (o que a aba resumo do card mostra) usa para
+#' abrir o seu `report`.
+#'
+#' @param x lista nomeada de valores de comprimento 1.
+#' @param titulo título em negrito acima da tabela (`NULL`, nenhum).
+#' @return vetor de linhas de Markdown (para compor com outras partes em
+#'   `tr_data_report()`).
+#' @export
+tr_data_md_summary <- function(x, titulo = NULL) {
+  x <- Filter(function(v) length(v) == 1L && !is.na(v), x)
+  val <- vapply(names(x), function(n) {
+    v <- x[[n]]
+    if (grepl("^p_valor", n) && is.numeric(v)) tr_data_fmt_p(v)
+    else if (is.logical(v)) if (v) "sim" else "não"
+    else if (is.numeric(v)) tr_data_fmt_num(v)
+    else as.character(v)
+  }, "", USE.NAMES = FALSE)
+  df <- data.frame(medida = gsub("_", " ", names(x)), valor = val, stringsAsFactors = FALSE)
+  c(if (!is.null(titulo)) c(sprintf("**%s**", titulo), ""),
+    tr_data_md_table(df, c(medida = "Medida", valor = "Valor")))
 }

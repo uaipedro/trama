@@ -1,6 +1,6 @@
 # trama.data 0.4.4
 
-* Relatório Quarto exportado: `data/table` e `data/test` ganham `report`. A tabela sai em Markdown (até 20 linhas, sem colunas vazias, de pé quando é uma linha só e larga); o teste sai como linha de quadro com estatística, gl, p-valor e decisão, seguida da conclusão, da nota e da fonte — no lugar do `print` cru da lista. Novos `tr_data_report()`, `tr_data_md_table()`, `tr_data_fmt_num()`, `tr_data_fmt_p()`, base dos `report` das outras coleções.
+* Relatório Quarto exportado: `data/table` e `data/test` ganham `report`. A tabela sai em Markdown (até 20 linhas, sem colunas vazias, de pé quando é uma linha só e larga); o teste sai como linha de quadro com estatística, gl, p-valor e decisão, seguida da conclusão, da nota e da fonte — no lugar do `print` cru da lista. Novos `tr_data_report()`, `tr_data_md_table()`, `tr_data_fmt_num()`, `tr_data_fmt_p()`, `tr_data_md_summary()`, base dos `report` das outras coleções.
 
 # trama.data 0.4.3
 
