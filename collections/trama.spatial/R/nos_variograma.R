@@ -1,5 +1,21 @@
 # As declarações da aba Variograma.
 
+# O nó não expõe `.simular`: o registro exige que todo argumento da função tenha
+# param ou porta, e a injeção do simulador existe só para o teste do envelope
+# não depender do otimizador. Mesmo padrão de `.tr_spatial_coordinates_no`.
+.tr_spatial_anisotropy_no <- function(pontos, direcoes = "0,45,90,135",
+                                      estimador = "classico", dist_max = NA,
+                                      n_classes = 10L, tolerancia = 22.5,
+                                      tendencia = "constante", envelope = FALSE,
+                                      n_sim = 19L, semente = NA,
+                                      pares_min = 30L) {
+  tr_spatial_anisotropy(pontos, direcoes = direcoes, estimador = estimador,
+                        dist_max = dist_max, n_classes = n_classes,
+                        tolerancia = tolerancia, tendencia = tendencia,
+                        envelope = envelope, n_sim = n_sim, semente = semente,
+                        pares_min = pares_min)
+}
+
 .tr_spatial_nos_variograma <- function() {
   E <- trama::tr_param_enum; N <- trama::tr_param_num; I <- trama::tr_param_int
   PT <- "spatial/points"; VG <- "spatial/variogram"
@@ -167,7 +183,7 @@ tr_flow(reg) |>
 `spatial/kriging` para interpolar com este modelo.
 ]---")),
 
-    trama::tr_node("spatial/anisotropy", fn = tr_spatial_anisotropy,
+    trama::tr_node("spatial/anisotropy", fn = .tr_spatial_anisotropy_no,
       label = "Anisotropia", category = "espacial_variograma",
       icon = trama::tr_icon("compass"),
       description = "Variograma em várias direções de uma vez, para ver se a dependência espacial tem alcance diferente conforme a direção.",
@@ -180,7 +196,11 @@ tr_flow(reg) |>
         n_classes = I(10L, min = 3, max = 50, label = "Classes"),
         tolerancia = N(22.5, min = 0.1, max = 90, label = "Tolerância angular"),
         tendencia = E("constante", .TR_SPATIAL_TENDENCIAS, label = "Tendência"),
-        pares_min = I(30L, min = 1, label = "Mínimo de pares")),
+        pares_min = I(30L, min = 1, label = "Mínimo de pares"),
+        envelope = trama::tr_param_bool(FALSE, label = "Faixa de referência"),
+        n_sim = trama::tr_when(I(19L, min = 5, max = 999, label = "Simulações"),
+                               envelope = TRUE),
+        semente = trama::tr_when(N(NA, label = "Semente"), envelope = TRUE)),
       pressupostos = .tr_spatial_press_variograma(),
       referencias = list(.tr_spatial_refs()$isaaks, .tr_spatial_refs()$oliver),
       help = .tr_spatial_ajuda(r"---[
@@ -204,6 +224,14 @@ contrário não ajuda ninguém. Olhe as curvas, decida, e digite a razão e o
 Cada direção recebe só uma fração dos pares, então classes de menos ou
 tolerância estreita deixam direções sem pares bastantes; a nota do card diz
 quais ficaram de fora.
+
+A **faixa de referência** ajuda a calibrar o olho: ela mostra onde as curvas
+cairiam se a dependência fosse isotrópica, simulando campos isotrópicos nestes
+mesmos pontos. A hipótese que ela representa é "isotrópico com esta estrutura",
+e não "sem dependência nenhuma". **Não é teste**: medimos que a fração do
+observado dentro da faixa dá cerca de 0,95 sob isotropia e 0,84 sob anisotropia
+de razão 3, valores que se sobrepõem. O que separa é o padrão — curvas do eixo
+maior e do menor escapando de forma sistemática —, não a contagem.
 ]---", r"---[
 - **Direções** — graus separados por vírgula, de 0 a 180, no sentido horário a
   partir do Norte (a convenção da bússola). O variograma não distingue uma
@@ -215,6 +243,12 @@ quais ficaram de fora.
 - **Tolerância angular** — meia-abertura da janela de cada direção, em graus. A
   90 graus a janela cobre tudo e cada curva vira o omnidirecional.
 - **Tendência** — removida antes, como no `spatial/variogram`.
+- **Faixa de referência** — desenha, por direção, a faixa que curvas
+  **isotrópicas** ocupariam nestes mesmos pontos. Curva que escapa da própria
+  faixa, de forma sistemática, é o sinal de anisotropia.
+- **Simulações** — quantos campos isotrópicos simular (padrão 19). Mais
+  simulações dão faixa mais estável e card mais lento.
+- **Semente** — fixa a simulação, para o card não mudar a cada execução.
 ]---", r"---[
 Um objeto de anisotropia (`spatial/anisotropy`), com uma curva por direção.
 ]---", r"---[

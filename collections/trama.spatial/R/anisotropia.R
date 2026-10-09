@@ -47,6 +47,39 @@
   sort(v)
 }
 
+#' Faixa de referência: mínimo e máximo por direção e classe.
+#'
+#' Aritmética pura sobre a matriz de gammas simulados — é isso que tira o teste
+#' da faixa da dependência do otimizador.
+#' @param gammas matriz (direção × classe) por (simulação).
+#' @param chaves data.frame com `direcao` e `u`, na ordem das linhas de `gammas`.
+#' @noRd
+.tr_spatial_faixa <- function(gammas, chaves) {
+  data.frame(direcao = chaves$direcao, u = chaves$u,
+             inferior = apply(gammas, 1, min, na.rm = TRUE),
+             superior = apply(gammas, 1, max, na.rm = TRUE))
+}
+
+#' Simula campos sob ISOTROPIA, nas MESMAS posições dos pontos.
+#'
+#' As posições não mudam, então as classes de distância e a contagem de pares
+#' das simulações são idênticas às do observado: só gamma varia. É o que
+#' permite casar as duas tabelas linha a linha.
+#'
+#' Custo medido em 2026-10-09: 19 campos mais 19 variogramas direcionais em
+#' 1,6 s com 389 pontos, 0,34 s com 68.
+#' @noRd
+.tr_spatial_simular_iso <- function(pontos, modelo, n_sim) {
+  co <- as.data.frame(pontos$coords)
+  names(co) <- c(".sx", ".sy")
+  nd <- sf::st_as_sf(co, coords = c(".sx", ".sy"))
+  s <- gstat::krige(stats::as.formula(".z ~ 1"), locations = NULL, newdata = nd,
+                    model = .tr_spatial_vgm_model(modelo),
+                    nsim = as.integer(n_sim), dummy = TRUE, beta = 0,
+                    debug.level = 0)
+  as.matrix(sf::st_drop_geometry(s))
+}
+
 #' Variogramas direcionais, para diagnosticar anisotropia.
 #'
 #' Anisotropia é a dependência espacial ter alcance diferente conforme a
@@ -66,7 +99,9 @@
 tr_spatial_anisotropy <- function(pontos, direcoes = "0,45,90,135",
                                   estimador = "classico", dist_max = NA,
                                   n_classes = 10L, tolerancia = 22.5,
-                                  tendencia = "constante", pares_min = 30L) {
+                                  tendencia = "constante", envelope = FALSE,
+                                  n_sim = 19L, semente = NA, pares_min = 30L,
+                                  .simular = NULL) {
   .tr_spatial_pontos_conferir(pontos)
   dirs <- .tr_spatial_direcoes(direcoes)
   if (!estimador %in% .TR_SPATIAL_ESTIMADORES) {
@@ -117,11 +152,67 @@ tr_spatial_anisotropy <- function(pontos, direcoes = "0,45,90,135",
                "Sem pares bastantes nas direções %s, que ficaram de fora.",
                paste(faltam, collapse = ", ")),
              if (nzchar(pontos$nota)) pontos$nota)
+  faixa <- NULL
+  if (isTRUE(envelope)) {
+    n_sim <- suppressWarnings(as.integer(n_sim))
+    if (length(n_sim) != 1L || is.na(n_sim) || n_sim < 5L || n_sim > 999L) {
+      .tr_spatial_abort("tr_spatial_error_bad_option", paste(
+        "Simulações: use um inteiro de 5 a 999. Abaixo de 5 a faixa não é faixa;",
+        "acima de algumas centenas o card fica lento sem ganhar informação."))
+    }
+    if (!is.na(semente)) set.seed(as.integer(semente))
+    # O modelo da nula é ISOTRÓPICO, ajustado ao variograma OMNIDIRECIONAL com a
+    # mesma tendência e o mesmo corte — mas com o número de classes PADRÃO do
+    # `spatial/variogram`, não com o deste bloco. O bloco reduz as classes
+    # porque os pares se dividem entre as direções; o omnidirecional tem todos
+    # os pares, e com 10 classes o ajuste do menor conjunto (`milho_se`) não
+    # converge, enquanto com 15 converge (medido em 2026-10-09).
+    mod_iso <- try(tr_spatial_variogram_fit(tr_spatial_variogram(
+      pontos, estimador = estimador, dist_max = corte,
+      tendencia = tendencia, pares_min = 1L)), silent = TRUE)
+    if (inherits(mod_iso, "try-error")) {
+      .tr_spatial_abort("tr_spatial_error_no_convergence", paste(
+        "A faixa de referência precisa de um modelo isotrópico ajustado ao",
+        "variograma omnidirecional, e esse ajuste não convergiu:",
+        sub("
+.*", "", conditionMessage(attr(mod_iso, "condition"))),
+        "As curvas direcionais em si não dependem dele — desligue a faixa, ou",
+        "mude a distância máxima e as classes até o ajuste fechar."))
+    }
+    simular <- .simular %||% .tr_spatial_simular_iso
+    campos <- simular(pontos, mod_iso, n_sim)
+    if (!is.matrix(campos) || nrow(campos) != nrow(pontos$dados)) {
+      .tr_spatial_abort("tr_spatial_error_bad_option", paste(
+        "O simulador devolveu", nrow(campos), "linhas para",
+        nrow(pontos$dados), "pontos."))
+    }
+    chave <- paste(tab$direcao, round(tab$u, 6))
+    gam <- vapply(seq_len(ncol(campos)), function(j) {
+      ds <- dt$dados
+      ds$.zsim <- campos[, j]
+      vs <- gstat::variogram(stats::as.formula(".zsim ~ 1"),
+                             locations = dt$locations, data = ds,
+                             alpha = dirs, tol.hor = as.numeric(tolerancia),
+                             boundaries = lim[-1],
+                             cressie = identical(estimador, "robusto"))
+      g <- as.numeric(vs$gamma)[match(chave, paste(as.numeric(vs$dir.hor),
+                                                   round(as.numeric(vs$dist), 6)))]
+      g
+    }, numeric(nrow(tab)))
+    if (!is.matrix(gam)) gam <- matrix(gam, nrow = nrow(tab))
+    faixa <- .tr_spatial_faixa(gam, tab[, c("direcao", "u")])
+    notas <- c(notas, sprintf(paste(
+      "Faixa de referência de %d simulações sob isotropia (modelo ajustado ao",
+      "variograma omnidirecional). É referência visual, não teste de hipótese."),
+      n_sim))
+  }
   structure(list(
     tabela = tab, direcoes = dirs, estimador = estimador, dist_max = corte,
     n_classes = n_classes, tolerancia = as.numeric(tolerancia),
-    tendencia = tendencia, envelope = NULL, n_sim = NA_integer_,
-    semente = NA_real_, variavel = pontos$variavel, unidade = pontos$unidade,
+    tendencia = tendencia, envelope = faixa,
+    n_sim = if (isTRUE(envelope)) as.integer(n_sim) else NA_integer_,
+    semente = if (is.na(semente)) NA_real_ else as.numeric(semente),
+    variavel = pontos$variavel, unidade = pontos$unidade,
     pontos = pontos, nota = paste(notas, collapse = " ")),
     class = "tr_spatial_anisotropy")
 }
