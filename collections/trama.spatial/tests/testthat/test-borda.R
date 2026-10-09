@@ -25,3 +25,67 @@ test_that("menos de três pontos distintos não formam casco", {
   expect_error(tr_spatial_convex_hull(cbind(c(1, 1, 1), c(2, 2, 2))),
                class = "tr_spatial_error_bad_border")
 })
+
+# ---- a regra de projeção entre a borda e os pontos ------------------------------
+#
+# Reprojetar é conveniente e esconde erro de CRS do usuário, então a nota do
+# objeto diz sempre de qual projeção para qual. Borda em GRAU com pontos
+# projetados é reprojetada, e não recusada: a malha do IBGE vem em 4674, e a
+# recusa de grau vale para os PONTOS, cuja distância o variograma mede, não para
+# o recorte.
+
+borda_sfc <- function(epsg, esc = 1) {
+  sf::st_sfc(sf::st_polygon(list(cbind(
+    c(0, 1e5, 1e5, 0, 0) * esc, c(0, 0, 1e5, 1e5, 0) * esc))), crs = epsg)
+}
+
+borda_de <- function(epsg, fonte = "teste") {
+  tr_spatial_boundary_obj(
+    .tr_spatial_borda(sf::st_coordinates(borda_sfc(epsg))[, 1:2]),
+    sf::st_crs(epsg), fonte, "Borda", "")
+}
+
+test_that("borda no mesmo CRS dos pontos entra direto", {
+  b <- borda_de(31982)
+  out <- .tr_spatial_borda_crs(b, sf::st_crs(31982))
+  expect_equal(out, b$poligono)
+})
+
+test_that("borda em CRS diferente é reprojetada para o dos pontos", {
+  b <- borda_de(31982)
+  out <- .tr_spatial_borda_crs(b, sf::st_crs(31983))
+  expect_false(isTRUE(all.equal(as.numeric(out), as.numeric(b$poligono))))
+  volta <- sf::st_coordinates(sf::st_transform(
+    sf::st_sfc(sf::st_polygon(list(unname(out[, 1:2]))), crs = 31983), 31982))[, 1:2]
+  expect_equal(unname(volta), unname(b$poligono), tolerance = 1e-6)
+  expect_match(attr(out, "nota"), "reprojetada")
+})
+
+test_that("borda em graus com pontos projetados é reprojetada, não recusada", {
+  g <- sf::st_sfc(sf::st_polygon(list(cbind(
+    c(-52, -48, -48, -52, -52), c(-26, -26, -22, -22, -26)))), crs = 4674)
+  b <- tr_spatial_boundary_obj(.tr_spatial_borda(sf::st_coordinates(g)[, 1:2]),
+                               sf::st_crs(4674), "malha IBGE", "Paraná", "")
+  out <- .tr_spatial_borda_crs(b, sf::st_crs(31982))
+  expect_gt(max(abs(out)), 1e5)         # virou metro
+})
+
+test_that("pontos sem CRS e borda com CRS: aceita no mesmo plano, com nota", {
+  b <- borda_de(31982)
+  out <- .tr_spatial_borda_crs(b, NA)
+  # `out` carrega o atributo `nota`, então a comparação é de valor e de forma,
+  # não de objeto inteiro.
+  expect_equal(dim(out), dim(b$poligono))
+  expect_equal(as.numeric(out), as.numeric(b$poligono))
+  expect_match(attr(out, "nota"), "sem projeção declarada")
+})
+
+test_that("pontos com CRS e borda sem CRS: recusa", {
+  # A borda sem projeção se monta da matriz: `sf::st_sfc(crs = NA)` recusa o NA
+  # lógico, e o caso em teste é justamente o de não haver CRS.
+  pol <- cbind(c(0, 1e5, 1e5, 0, 0), c(0, 0, 1e5, 1e5, 0))
+  b <- tr_spatial_boundary_obj(.tr_spatial_borda(pol), NA, "teste", "Borda", "")
+  expect_error(.tr_spatial_borda_crs(b, sf::st_crs(31982)),
+               class = "tr_spatial_error_crs_mismatch")
+  expect_error(.tr_spatial_borda_crs(b, sf::st_crs(31982)), regexp = "31982")
+})

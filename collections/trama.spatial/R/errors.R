@@ -29,6 +29,8 @@ tr_spatial_errors <- function() {
     tr_spatial_error_empty_surface =
       "nenhuma célula da superfície recebeu predição: a vizinhança exclui todos os pontos",
     tr_spatial_error_bad_border = "a borda não é um polígono fechado utilizável",
+    tr_spatial_error_crs_mismatch =
+      "a borda não declara projeção e os pontos declaram: não há como saber em que plano a borda está",
     tr_spatial_error_negative_variance =
       "a variância de krigagem saiu negativa: o modelo não é definido positivo",
     tr_spatial_error_not_points = "o nó produziu objeto que não é de pontos, e o tipo spatial/points o recusa",
