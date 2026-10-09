@@ -38,6 +38,30 @@
   stats::as.formula(sprintf("%s ~ %s", z, rhs))
 }
 
+#' Fórmula, dados e `locations` prontos para o `gstat`, com a tendência pedida.
+#'
+#' As coordenadas em metro (~1e6) elevadas ao quadrado (~1e12) deixam a
+#' regressão da tendência mal condicionada no `gstat`: o erro relativo chegou a
+#' 5e-8 na 2a ordem, contra 1e-13 no `geoR`. Os resíduos de um polinômio não
+#' mudam com mudança afim das coordenadas, então a regressão usa as colunas
+#' CENTRADAS E PADRONIZADAS, e as posições dos pares seguem nas coordenadas
+#' originais, em `.x_`/`.y_`, que é o que `locations` aponta.
+#'
+#' Extraído de `tr_spatial_variogram()` para o `spatial/anisotropy` usar o mesmo
+#' caminho; `test-variograma-geor.R` é a rede que prende o comportamento.
+#' @noRd
+.tr_spatial_dados_tendencia <- function(pontos, tendencia) {
+  f <- .tr_spatial_formula(pontos, tendencia)
+  d <- as.data.frame(pontos$dados)
+  d$.x_ <- pontos$coords[, 1]
+  d$.y_ <- pontos$coords[, 2]
+  for (k in 1:2) {
+    col <- pontos$coord_cols[[k]]
+    d[[col]] <- (d[[col]] - mean(d[[col]])) / stats::sd(d[[col]])
+  }
+  list(formula = f, dados = d, locations = stats::as.formula("~ .x_ + .y_"))
+}
+
 #' O padrão do `gstat`: a diagonal da caixa envolvente dividida por três.
 #' @noRd
 .tr_spatial_corte_padrao <- function(coords) {
@@ -78,26 +102,16 @@ tr_spatial_variogram <- function(pontos, estimador = "classico", dist_max = NA,
   if (!is.na(direcao) && (!is.finite(direcao) || direcao < 0 || direcao > 360)) {
     .tr_spatial_abort("tr_spatial_error_bad_option", "Direção: use graus entre 0 e 360.")
   }
-  f <- .tr_spatial_formula(pontos, tendencia)
-  d <- as.data.frame(pontos$dados)
   corte <- if (is.na(dist_max)) .tr_spatial_corte_padrao(pontos$coords) else as.numeric(dist_max)
   if (!is.finite(corte) || corte <= 0) {
     .tr_spatial_abort("tr_spatial_error_bad_option", "Distância máxima: use um número positivo.")
   }
   lim <- seq(0, corte, length.out = n_classes + 1L)
-  # As coordenadas em metros (~1e6) elevadas ao quadrado (~1e12) deixam a
-  # regressão da tendência mal condicionada no `gstat`: o erro relativo chegou
-  # a 5e-8 na 2a ordem, contra 1e-13 no `geoR`. Os resíduos de um polinômio
-  # não mudam com a mudança afim das coordenadas, então a regressão usa as
-  # colunas centradas e padronizadas, e as posições dos pares seguem
-  # nas coordenadas originais (`.x_`, `.y_`).
-  d$.x_ <- pontos$coords[, 1]; d$.y_ <- pontos$coords[, 2]
-  for (k in 1:2) {
-    col <- pontos$coord_cols[[k]]
-    d[[col]] <- (d[[col]] - mean(d[[col]])) / stats::sd(d[[col]])
-  }
-  loc <- stats::as.formula("~ .x_ + .y_")
-  args <- list(object = f, locations = loc, data = d, boundaries = lim[-1],
+  # Centragem da tendência e `locations` nas coordenadas cruas: ver
+  # `.tr_spatial_dados_tendencia()`.
+  dt <- .tr_spatial_dados_tendencia(pontos, tendencia)
+  args <- list(object = dt$formula, locations = dt$locations, data = dt$dados,
+               boundaries = lim[-1],
                cressie = identical(estimador, "robusto"))
   if (!is.na(direcao)) { args$alpha <- as.numeric(direcao); args$tol.hor <- as.numeric(tolerancia) }
   v <- do.call(gstat::variogram, args)
