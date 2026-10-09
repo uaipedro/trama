@@ -43,3 +43,10 @@
 /* No 132px padrão só cabe o essencial: nome, desenho, legenda. O resto aparece
    quando o card é esticado. */
 @container (max-height: 175px){.tr-sp-rot,.tr-sp-pontas,.tr-sp-nota{display:none}}
+
+/* Legenda de direções do card de anisotropia: as cores são a única coisa que
+   liga curva a rumo, então a legenda não some quando o card encolhe. */
+.tr-sp-leg{display:flex;flex-wrap:wrap;gap:.35rem .6rem;font-size:.72rem;opacity:.85}
+.tr-sp-leg-i{display:inline-flex;align-items:center;gap:.25rem}
+.tr-sp-leg-i i{width:.6rem;height:.18rem;border-radius:1px;display:inline-block}
+.tr-sp-faixa{stroke:none}

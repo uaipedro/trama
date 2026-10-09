@@ -42,6 +42,7 @@ tr_spatial_errors <- function() {
       "a variância de krigagem saiu negativa: o modelo não é definido positivo",
     tr_spatial_error_not_points = "o nó produziu objeto que não é de pontos, e o tipo spatial/points o recusa",
     tr_spatial_error_not_a_boundary = "o nó produziu objeto que não é borda, e o tipo spatial/boundary o recusa",
+    tr_spatial_error_not_anisotropy = "o nó produziu objeto que não é de anisotropia, e o tipo spatial/anisotropy o recusa",
     tr_spatial_error_not_a_variogram =
       "o nó produziu objeto que não é variograma, e o tipo spatial/variogram o recusa",
     tr_spatial_error_not_a_model =

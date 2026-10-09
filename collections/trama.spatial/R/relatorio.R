@@ -48,6 +48,21 @@ tr_spatial_report_variogram <- function(x) {
 
 #' @rdname tr_spatial_report_points
 #' @export
+tr_spatial_report_anisotropy <- function(x) {
+  t <- as.data.frame(x$tabela)[, c("direcao", "u", "gamma", "np")]
+  .tr_spatial_md(
+    sprintf("**Variogramas direcionais de %s** (%s, direções %s, tolerância %g graus)",
+            x$variavel, x$estimador, paste(x$direcoes, collapse = ", "),
+            x$tolerancia),
+    "",
+    "A leitura é visual: alcances diferentes por direção sugerem anisotropia. O bloco não faz teste de hipótese.",
+    "", trama.data::tr_data_md_table(t, c(direcao = "Direção", u = "Distância",
+                                          gamma = "γ(h)", np = "Pares")),
+    if (nzchar(x$nota %||% "")) c("", sprintf("*%s*", x$nota)))
+}
+
+#' @rdname tr_spatial_report_points
+#' @export
 tr_spatial_report_model <- function(x) {
   res <- list(familia = x$familia, metodo = x$metodo, pepita = x$pepita, contribuicao = x$contribuicao,
               patamar = x$patamar, alcance = x$alcance, alcance_pratico = x$alcance_pratico,

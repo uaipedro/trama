@@ -125,3 +125,55 @@ tr_spatial_anisotropy <- function(pontos, direcoes = "0,45,90,135",
     pontos = pontos, nota = paste(notas, collapse = " ")),
     class = "tr_spatial_anisotropy")
 }
+
+.tr_spatial_aniso_conferir <- function(x) {
+  .tr_spatial_guard(x, "tr_spatial_anisotropy", .TR_SPATIAL_CAMPOS_ANISO,
+                    "tr_spatial_error_not_anisotropy", "um objeto de anisotropia")
+}
+
+#' Anisotropia -> tabela: uma linha por direção e classe; com envelope, as
+#' colunas da faixa entram ao lado.
+#' @noRd
+.tr_spatial_aniso_tabela <- function(x) {
+  .tr_spatial_aniso_conferir(x)
+  t <- as.data.frame(x$tabela)
+  if (!is.null(x$envelope)) {
+    t <- merge(t, as.data.frame(x$envelope), by = c("direcao", "u"), all.x = TRUE)
+    t <- t[order(t$direcao, t$u), , drop = FALSE]
+    rownames(t) <- NULL
+  }
+  t
+}
+
+#' O que o card da anisotropia mostra: uma curva por direção.
+#' @noRd
+.tr_spatial_aniso_preview <- function(x) {
+  faixa <- if (is.null(x$envelope)) NULL else as.data.frame(x$envelope)
+  curvas <- lapply(x$direcoes, function(d) {
+    cl <- x$tabela[x$tabela$direcao == d, , drop = FALSE]
+    if (!nrow(cl)) return(NULL)
+    fx <- if (is.null(faixa)) NULL else faixa[faixa$direcao == d, , drop = FALSE]
+    list(direcao = d,
+         classes = lapply(seq_len(nrow(cl)), function(i) {
+           list(u = cl$u[[i]], gamma = cl$gamma[[i]], np = cl$np[[i]])
+         }),
+         faixa = if (is.null(fx) || !nrow(fx)) NULL else
+           lapply(seq_len(nrow(fx)), function(i) {
+             list(u = fx$u[[i]], inferior = fx$inferior[[i]],
+                  superior = fx$superior[[i]])
+           }))
+  })
+  list(variavel = x$variavel, unidade = .tr_spatial_nulo(x$unidade),
+       estimador = x$estimador, tendencia = x$tendencia,
+       tolerancia = x$tolerancia, n_sim = .tr_spatial_nulo(x$n_sim),
+       curvas = Filter(Negate(is.null), curvas),
+       nota = .tr_spatial_nulo(x$nota))
+}
+
+spatial_anisotropy_type <- function() {
+  .tr_spatial_rds_type("spatial/anisotropy", "Anisotropia", "#7c3aed",
+                       .tr_spatial_aniso_conferir,
+                       function(x, ctx) trama::tr_preview(
+                         "spatial/anisotropy", data = .tr_spatial_aniso_preview(x)),
+                       report = tr_spatial_report_anisotropy)
+}

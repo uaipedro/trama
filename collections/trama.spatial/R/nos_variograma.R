@@ -165,6 +165,65 @@ tr_flow(reg) |>
   tr_add("m", "spatial/variogram_fit", familia = "esferico", from = "v")
 ]---", r"---[
 `spatial/kriging` para interpolar com este modelo.
+]---")),
+
+    trama::tr_node("spatial/anisotropy", fn = tr_spatial_anisotropy,
+      label = "Anisotropia", category = "espacial_variograma",
+      icon = trama::tr_icon("compass"),
+      description = "Variograma em várias direções de uma vez, para ver se a dependência espacial tem alcance diferente conforme a direção.",
+      inputs = list(pontos = "spatial/points"),
+      outputs = list(out = "spatial/anisotropy"),
+      params = list(
+        direcoes = trama::tr_param_text("0,45,90,135", label = "Direções"),
+        estimador = E("classico", .TR_SPATIAL_ESTIMADORES, label = "Estimador"),
+        dist_max = N(NA, min = 0, label = "Distância máxima"),
+        n_classes = I(10L, min = 3, max = 50, label = "Classes"),
+        tolerancia = N(22.5, min = 0.1, max = 90, label = "Tolerância angular"),
+        tendencia = E("constante", .TR_SPATIAL_TENDENCIAS, label = "Tendência"),
+        pares_min = I(30L, min = 1, label = "Mínimo de pares")),
+      pressupostos = .tr_spatial_press_variograma(),
+      referencias = list(.tr_spatial_refs()$isaaks, .tr_spatial_refs()$oliver),
+      help = .tr_spatial_ajuda(r"---[
+Anisotropia é a dependência espacial ter **alcance diferente conforme a
+direção**: a variável se parece consigo mesma por mais longe num rumo que no
+outro. O variograma omnidirecional esconde isso, porque mistura todas as
+direções numa curva só. Este bloco separa.
+
+A leitura é **visual**: curvas que sobem junto e estabilizam no mesmo lugar
+indicam isotropia; uma curva que estabiliza muito mais longe que as outras
+indica o eixo de maior continuidade. O bloco **não faz teste de hipótese**, e
+não devolve "razão de anisotropia".
+
+Isso é decisão medida, não omissão. Três maneiras de estimar razão e ângulo
+automaticamente foram testadas, e as três reprovaram; a menos ruim devolve
+razão perto de 3 para campos **isotrópicos**, indistinguível do que devolve
+para campos de razão 3 de verdade. Um número que não separa o caso do seu
+contrário não ajuda ninguém. Olhe as curvas, decida, e digite a razão e o
+ângulo no bloco `spatial/variogram_fit`.
+
+Cada direção recebe só uma fração dos pares, então classes de menos ou
+tolerância estreita deixam direções sem pares bastantes; a nota do card diz
+quais ficaram de fora.
+]---", r"---[
+- **Direções** — graus separados por vírgula, de 0 a 180, no sentido horário a
+  partir do Norte (a convenção da bússola). O variograma não distingue uma
+  direção da oposta, então 0 e 180 seriam a mesma curva.
+- **Estimador** — `classico` ou `robusto`, como no `spatial/variogram`.
+- **Distância máxima**, **Classes**, **Mínimo de pares** — o mesmo do
+  `spatial/variogram`, mas lembre que aqui os pares se dividem entre as
+  direções.
+- **Tolerância angular** — meia-abertura da janela de cada direção, em graus. A
+  90 graus a janela cobre tudo e cada curva vira o omnidirecional.
+- **Tendência** — removida antes, como no `spatial/variogram`.
+]---", r"---[
+Um objeto de anisotropia (`spatial/anisotropy`), com uma curva por direção.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+  tr_add("aniso", "spatial/anisotropy", direcoes = "0,45,90,135", from = "pontos")
+]---", r"---[
+`spatial/variogram` para uma direção só, ou nenhuma;
+`spatial/variogram_fit`, que é onde a razão e o ângulo são informados.
 ]---"))
   )
 }
