@@ -89,3 +89,31 @@ test_that("pontos com CRS e borda sem CRS: recusa", {
                class = "tr_spatial_error_crs_mismatch")
   expect_error(.tr_spatial_borda_crs(b, sf::st_crs(31982)), regexp = "31982")
 })
+
+# ---- borda a partir de uma geometria do sf -------------------------------------
+#
+# `.tr_spatial_borda()` guarda UM anel (matriz n×2). Um polígono com ilha
+# perderia o buraco em silêncio, e a grade da krigagem cobriria o que devia
+# excluir — por isso a contagem de anéis descartados vai na nota.
+
+test_that("polígono com anel interno: o buraco é descartado, e a nota diz quantos", {
+  fora <- cbind(c(0, 100, 100, 0, 0), c(0, 0, 100, 100, 0))
+  buraco <- cbind(c(40, 60, 60, 40, 40), c(40, 40, 60, 60, 40))
+  g <- sf::st_sfc(sf::st_polygon(list(fora, buraco[rev(seq_len(nrow(buraco))), ])),
+                  crs = 31982)
+  b <- .tr_spatial_boundary_de_sf(g, fonte = "teste.gpkg")
+  expect_equal(b$n_aneis_descartados, 1L)
+  expect_match(b$nota, "anel interno")
+  # a área é a do anel EXTERNO, sem o buraco
+  expect_equal(b$area, 100 * 100, tolerance = 1e-8)
+})
+
+test_that("sem anel interno, a nota não fala de anel e a contagem é zero", {
+  g <- sf::st_sfc(sf::st_polygon(list(cbind(c(0, 10, 10, 0, 0),
+                                           c(0, 0, 10, 10, 0)))), crs = 31982)
+  b <- .tr_spatial_boundary_de_sf(g, fonte = "simples.gpkg")
+  expect_equal(b$n_aneis_descartados, 0L)
+  expect_false(grepl("anel", b$nota))
+  expect_equal(b$area, 100, tolerance = 1e-8)
+  expect_equal(sf::st_crs(b$crs)$epsg, 31982L)
+})

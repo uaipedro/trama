@@ -66,6 +66,41 @@ tr_spatial_boundary_obj <- function(poligono, crs, fonte, rotulo, nota,
             class = "tr_spatial_boundary")
 }
 
+#' Borda a partir de uma geometria do `sf`: dissolve, conta anéis, normaliza.
+#'
+#' Uma malha estadual costuma vir como vários polígonos (ilhas, enclaves), e o
+#' tipo guarda um anel só. Dissolve com `st_union`, fica com o contorno de maior
+#' área, e **conta** o que descartou: anel interno perdido em silêncio faria a
+#' grade da krigagem cobrir o que a borda excluía.
+#'
+#' @param g geometria ou `sf` de polígonos.
+#' @param fonte texto de procedência, para o card.
+#' @param rotulo título; vazio usa o da fonte.
+#' @param nota nota adicional, concatenada às que este helper gera.
+#' @noRd
+.tr_spatial_boundary_de_sf <- function(g, fonte, rotulo = "", nota = "") {
+  un <- sf::st_union(sf::st_geometry(g))
+  pols <- suppressWarnings(sf::st_cast(un, "POLYGON", warn = FALSE))
+  if (!length(pols)) {
+    .tr_spatial_abort("tr_spatial_error_bad_border",
+      "A geometria não tem nenhum polígono utilizável depois de dissolvida.")
+  }
+  aneis <- sum(vapply(pols, function(p) max(0L, length(p) - 1L), 0L))
+  areas <- vapply(pols, function(p) {
+    as.numeric(sf::st_area(sf::st_sfc(sf::st_polygon(p[1]))))
+  }, 0)
+  maior <- pols[[which.max(areas)]]
+  n <- c(if (aneis > 0L) sprintf(
+           "%d anel interno descartado: a borda é o contorno externo.", aneis),
+         if (length(pols) > 1L) sprintf(
+           "%d polígonos dissolvidos; usado o de maior área.", length(pols)),
+         nota)
+  tr_spatial_boundary_obj(
+    maior[[1]], sf::st_crs(g), fonte,
+    if (nzchar(rotulo)) rotulo else as.character(fonte),
+    paste(n[nzchar(n)], collapse = " "), aneis)
+}
+
 #' A borda na projeção dos pontos.
 #'
 #' Cinco casos, e a razão de cada um está na ajuda do bloco `spatial/boundary`:
