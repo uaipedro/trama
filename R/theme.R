@@ -136,6 +136,16 @@
   pasta <- g$pasta %||% "gallery"
   if (!is.character(pasta) || length(pasta) != 1L || is.na(pasta) || !nzchar(trimws(pasta)))
     ruim("pasta", "um caminho não vazio")
+  # A galeria apaga da pasta o que o próprio manifesto dela lista. Relativa,
+  # então, não pode sair do projeto nem ser a raiz ou uma pasta do trama — um
+  # `.galeria.json` trazido junto num projeto compartilhado apagaria
+  # `trama.json` ou os fluxos. Absoluta vale: é escolha explícita de quem
+  # configura (uma pasta sincronizada, por exemplo).
+  partes <- strsplit(gsub("\\\\", "/", trimws(pasta)), "/", fixed = TRUE)[[1]]
+  partes <- partes[nzchar(partes) & partes != "."]
+  if (!grepl("^(/|[A-Za-z]:)", trimws(pasta)) &&
+      (!length(partes) || ".." %in% partes || partes[[1]] %in% c("flows", ".trama")))
+    ruim("pasta", "uma subpasta do projeto (sem '..', diferente da raiz, de flows/ e de .trama/) ou um caminho absoluto")
   imagens <- g$imagens %||% TRUE
   if (!is.logical(imagens) || length(imagens) != 1L || is.na(imagens)) ruim("imagens", "true ou false")
   formato <- g$formato %||% "png"

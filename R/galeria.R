@@ -68,6 +68,13 @@ tr_galeria_sincronizar <- function(root, store, registry, doc, settings = NULL, 
           file.exists(alvo)) {
         it$pronto <- TRUE
         mantidos[[length(mantidos) + 1L]] <- .tr_galeria_linha(it)
+      } else if (!is.null(prev) && identical(prev$versao, it$versao) &&
+                 file.exists(file.path(dir, prev$arquivo)) &&
+                 file.rename(file.path(dir, prev$arquivo), alvo)) {
+        # Só o nome mudou (card renomeado): renomeia o arquivo em vez de
+        # re-renderizar o gráfico inteiro.
+        it$pronto <- TRUE
+        mantidos[[length(mantidos) + 1L]] <- .tr_galeria_linha(it)
       } else {
         exportado <- tryCatch(.tr_galeria_exporta(store, registry, settings, it, g, dir),
                               error = function(e) e)
@@ -179,11 +186,12 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
   herdado <- function(it) {
     dono <- .tr_galeria_entrada(manifesto, it$node)
     if (is.null(dono) || is.null(dono$arquivo)) return(NULL)
-    ext <- ext_de(it)
-    stem <- sub(paste0("\\.", ext, "$"), "", dono$arquivo)
-    ok <- endsWith(dono$arquivo, paste0(".", ext)) &&
-      (identical(stem, it$nome) || startsWith(stem, paste0(it$nome, "-")))
-    if (ok) dono$arquivo
+    # Extensão livre: quem decide é o arquivo que o preview de fato gravou
+    # (um tipo que não honra `ctx$qualidade$formato` grava PNG mesmo pedindo
+    # JPEG). Exigir a extensão do formato faria o nome nunca bater e o
+    # gráfico ser re-renderizado a cada run.
+    stem <- tools::file_path_sans_ext(dono$arquivo)
+    if (identical(stem, it$nome) || startsWith(stem, paste0(it$nome, "-"))) dono$arquivo
   }
   # Primeiro os nomes herdados, para ninguém tomá-los na ordem do fluxo.
   usados <- character()
@@ -205,7 +213,7 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
       if (is.null(arq)) rlang::abort("Não achei nome livre para o item da galeria.", class = "tr_error_galeria")
       usados <- c(usados, arq)
     }
-    it$nome <- sub(paste0("\\.", ext, "$"), "", arq)
+    it$nome <- tools::file_path_sans_ext(arq)
     it$arquivo <- arq
     itens[[i]] <- it
   }
@@ -284,8 +292,9 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
     rlang::abort(sprintf("Preview de '%s' não produziu arquivo.", it$node), class = "tr_error_galeria")
   }
   origem <- origem[[1]]
-  ext <- tolower(tools::file_ext(origem))
+  ext <- tolower(tools::file_ext(origem[[1]]))
   if (!nzchar(ext)) ext <- .tr_galeria_ext(g$formato)
+  ext <- switch(ext, jpeg = "jpg", tiff = "tif", ext)
   arq <- paste0(it$nome, ".", ext)
   .tr_galeria_mover_bytes(readBin(origem, "raw", file.size(origem)), file.path(dir, arq))
   arq

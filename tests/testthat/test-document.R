@@ -695,3 +695,15 @@ test_that("trama.json: galeria com padrão, validada, gravada sem perder o resto
   expect_equal(s$galeria$pasta, "figuras"); expect_equal(s$galeria$dpi, 600)
   expect_false(s$marca)
 })
+
+test_that("ramo malformado some na leitura em vez de impedir o documento de abrir", {
+  m <- mk(); d <- m$doc
+  for (id in c("a", "a2")) d <- add(d, m$reg, "t/const", id = id)
+  j <- jsonlite::fromJSON(tr_doc_json(d), simplifyVector = FALSE)
+  j$ui$ramos <- list(ruim = list(origem = "a", pares = list(a = "a2")),
+                     sumiu = list(letra = "C", origem = "a", pares = list(a = "zz")),
+                     bom = list(letra = "B", origem = "a", pares = list(a = "a2"), desligados = list("a2", "zz")))
+  back <- tr_doc_parse(jsonlite::toJSON(j, auto_unbox = TRUE))
+  expect_equal(names(back$ui$ramos), "bom")
+  expect_equal(back$ui$ramos$bom$desligados, "a2")
+})

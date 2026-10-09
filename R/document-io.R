@@ -128,11 +128,19 @@ tr_doc_parse <- function(txt) {
   doc$ui$notes <- .tr_empty_obj(doc$ui$notes %||% list())
   doc$ui$grupos <- .tr_empty_obj(lapply(doc$ui$grupos %||% list(), function(m) as.character(unlist(m))))
   doc$ui$galeria <- .tr_empty_obj(Filter(function(v) isTRUE(v) || isFALSE(v), doc$ui$galeria %||% list()))
-  doc$ui$ramos <- .tr_empty_obj(lapply(doc$ui$ramos %||% list(), function(r) {
-    list(letra = as.character(r$letra)[[1]], origem = as.character(r$origem)[[1]],
-         pares = .tr_empty_obj(lapply(r$pares %||% list(), function(v) as.character(v)[[1]])),
-         desligados = as.character(unlist(r$desligados)))
-  }))
+  # Ramo é apresentação: um ramo malformado (editado à mão, nó que sumiu)
+  # some na leitura em vez de impedir o documento de abrir.
+  nos <- names(doc$nodes %||% list())
+  ramos <- lapply(doc$ui$ramos %||% list(), function(r) {
+    um <- function(v) if (is.character(v) && length(v) == 1L && !is.na(v) && nzchar(v)) v
+    letra <- um(r$letra); origem <- um(r$origem)
+    pares <- Filter(Negate(is.null), lapply(r$pares %||% list(), um))
+    pares <- pares[names(pares) %in% nos & unlist(pares, use.names = FALSE) %in% nos]
+    if (is.null(letra) || is.null(origem) || is.null(pares[[origem]])) return(NULL)
+    list(letra = letra, origem = origem, pares = .tr_empty_obj(pares),
+         desligados = intersect(as.character(unlist(r$desligados)), unlist(pares, use.names = FALSE)))
+  })
+  doc$ui$ramos <- .tr_empty_obj(Filter(Negate(is.null), ramos))
   structure(doc, class = "tr_doc")
 }
 

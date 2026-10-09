@@ -103,7 +103,10 @@ tr_server <- function(project, flow = "main",
           send("warning", list(message = paste0("Galeria: ", conditionMessage(e)))); NULL
         })
       if (is.null(itens)) return(invisible())
-      send("galeria", list(itens = unname(itens), base = galeria_base(proj)))
+      # Sem item, nada de criar a pasta: projeto que nunca usou a galeria
+      # não ganha um `gallery/` vazio só por ter sido aberto.
+      base <- if (length(itens)) galeria_base(proj)
+      send("galeria", list(itens = unname(itens), base = base))
     })
 
     # Bombeia o scheduler: um passo, e reagenda enquanto não acabou. É o que
@@ -362,6 +365,7 @@ tr_server <- function(project, flow = "main",
     # de um resultado já superado é descartada calada.
     shiny::observeEvent(input$tr_galeria_captura, {
       m <- input$tr_galeria_captura
+      if (!is.character(m$node) || length(m$node) != 1L || !is.character(m$png)) return()
       proj <- rv_project()
       hs <- galeria_handles()
       if (!identical(hs[[m$node]]$key, m$key)) return()

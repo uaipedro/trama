@@ -231,3 +231,28 @@ test_that("nome é estável: card que chega depois com o mesmo rótulo leva o su
   expect_equal(por_no$a$arquivo, "barras.png")
   expect_equal(por_no$b$arquivo, "barras-b.png")
 })
+
+test_that("formato jpeg não re-renderiza a cada sincronização; renomear só renomeia", {
+  root <- withr::local_tempdir(); store <- tmp_store(); s <- galeria_setup()
+  ajuste <- .tr_settings(list(galeria = list(formato = "jpeg")))
+  m <- galeria_doc(s$reg, store, list(
+    list(type = "g/const", id = "a", label = "Barras", key = "ka", tipo = "g/img", value = list(v = 1))))
+  it1 <- tr_galeria_sincronizar(root, store, s$reg, m$doc, ajuste, m$handles)
+  n1 <- length(s$log$qualidade)
+  it2 <- tr_galeria_sincronizar(root, store, s$reg, m$doc, ajuste, m$handles)
+  expect_equal(length(s$log$qualidade), n1)
+  expect_equal(it2[[1]]$arquivo, it1[[1]]$arquivo)
+  m$doc <- tr_doc_apply(m$doc, list(op = "rename", node = "a", label = "Colunas"), s$reg)
+  it3 <- tr_galeria_sincronizar(root, store, s$reg, m$doc, ajuste, m$handles)
+  expect_equal(length(s$log$qualidade), n1)
+  expect_equal(tools::file_path_sans_ext(it3[[1]]$arquivo), "colunas")
+  expect_true(file.exists(file.path(root, "gallery", it3[[1]]$arquivo)))
+  expect_false(file.exists(file.path(root, "gallery", it1[[1]]$arquivo)))
+})
+
+test_that("pasta da galeria não sai do projeto nem cai na raiz", {
+  for (ruim in c(".", "..", "../fora", "a/../..", "flows", ".trama/x", "./"))
+    expect_error(.tr_settings(list(galeria = list(pasta = ruim))), class = "tr_error_bad_theme")
+  expect_equal(.tr_settings(list(galeria = list(pasta = "figuras/finais")))$galeria$pasta, "figuras/finais")
+  expect_equal(.tr_settings(list(galeria = list(pasta = "/tmp/fig")))$galeria$pasta, "/tmp/fig")
+})
