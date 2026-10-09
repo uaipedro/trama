@@ -89,3 +89,85 @@ test_that("CRS de saída irreconhecível é recusado", {
                                       crs_saida = "epsg da minha cabeça"),
                class = "tr_spatial_error_bad_option")
 })
+
+# ---- o zip como ele chega de verdade -------------------------------------------
+#
+# `/vsizip/<zip>` sozinho não acha o .shp quando ele está numa SUBPASTA: o
+# caminho interno faz parte do DSN. E com duas camadas a escolha não pode ser
+# silenciosa.
+
+test_that("zip com o shapefile numa subpasta é lido", {
+  z <- fx_shp_zip(fx_pontos(31982), subpasta = "dados")
+  d <- tr_spatial_read_points(z)
+  expect_equal(nrow(d), 5L)
+  expect_true(all(c("x", "y") %in% names(d)))
+})
+
+test_that("zip com duas camadas exige escolha, e o erro lista as que há", {
+  raiz <- tempfile("multi"); dir.create(raiz)
+  sf::st_write(fx_pontos(31982), file.path(raiz, "sedes.shp"), quiet = TRUE,
+               append = FALSE)
+  sf::st_write(fx_pontos(31982, n = 3L), file.path(raiz, "postos.shp"),
+               quiet = TRUE, append = FALSE)
+  zip <- paste0(tempfile("vetor"), ".zip")
+  old <- setwd(raiz); utils::zip(zip, list.files("."), flags = "-q"); setwd(old)
+
+  expect_error(tr_spatial_read_points(zip), class = "tr_spatial_error_many_layers")
+  expect_error(tr_spatial_read_points(zip), regexp = "sedes")
+  expect_error(tr_spatial_read_points(zip), regexp = "postos")
+  expect_equal(nrow(tr_spatial_read_points(zip, camada = "postos")), 3L)
+  expect_equal(nrow(tr_spatial_read_points(zip, camada = "sedes")), 5L)
+  expect_error(tr_spatial_read_points(zip, camada = "inexistente"),
+               class = "tr_spatial_error_no_layer")
+})
+
+test_that("zip sem shapefile dentro dá erro que mostra o conteúdo", {
+  z <- paste0(tempfile("vazio"), ".zip")
+  raiz <- tempfile("v"); dir.create(raiz)
+  writeLines("a,b", file.path(raiz, "tabela.csv"))
+  old <- setwd(raiz); utils::zip(z, "tabela.csv", flags = "-q"); setwd(old)
+  expect_error(tr_spatial_read_points(z), class = "tr_spatial_error_no_layer")
+  expect_error(tr_spatial_read_points(z), regexp = "tabela.csv")
+})
+
+# ---- geometria múltipla --------------------------------------------------------
+
+test_that("MULTIPOINT é explodido em pontos, não recusado", {
+  mp <- sf::st_sf(v = 1L, geometry = sf::st_sfc(
+    sf::st_multipoint(cbind(c(10, 20, 30), c(40, 50, 60))), crs = 31982))
+  d <- tr_spatial_read_points(fx_arquivo(mp, "gpkg"))
+  expect_equal(nrow(d), 3L)
+  expect_equal(sort(d$x), c(10, 20, 30))
+})
+
+test_that("MULTIPOLYGON dissolve como borda, e fica o de maior área", {
+  a <- sf::st_polygon(list(cbind(c(0, 10, 10, 0, 0), c(0, 0, 10, 10, 0))))
+  b <- sf::st_polygon(list(cbind(c(30, 50, 50, 30, 30), c(30, 30, 50, 50, 30))))
+  mp <- sf::st_sf(id = 1L, geometry = sf::st_sfc(sf::st_multipolygon(list(a, b)),
+                                                 crs = 31982))
+  bd <- tr_spatial_boundary(fx_arquivo(mp, "gpkg"))
+  expect_s3_class(bd, "tr_spatial_boundary")
+  expect_equal(bd$area, 20 * 20, tolerance = 1e-8)
+  expect_match(bd$nota, "dissolvidos")
+})
+
+# ---- a borda lida de arquivo ---------------------------------------------------
+
+test_that("o EPSG da borda vem do .prj do shapefile zipado", {
+  bd <- tr_spatial_boundary(fx_shp_zip(fx_poligono(31982)))
+  expect_equal(sf::st_crs(bd$crs)$epsg, 31982L)
+  expect_equal(bd$area, 1e5 * 1e5, tolerance = 1e-6)
+  expect_match(bd$fonte, "\\.zip")
+})
+
+test_that("arquivo de pontos é recusado pelo leitor de borda", {
+  expect_error(tr_spatial_boundary(fx_arquivo(fx_pontos(31982), "gpkg")),
+               class = "tr_spatial_error_wrong_geometry")
+})
+
+test_that("a borda lida pode ser reprojetada na leitura", {
+  bd <- tr_spatial_boundary(fx_arquivo(fx_poligono(31982), "gpkg"),
+                            crs_saida = "4674")
+  expect_equal(sf::st_crs(bd$crs)$epsg, 4674L)
+  expect_lt(max(abs(bd$poligono)), 180)
+})
