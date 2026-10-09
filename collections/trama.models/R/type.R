@@ -378,7 +378,10 @@ models_emm_type <- function() {
     # O card é o GRÁFICO das médias com as letras: é a figura que vai para o
     # artigo, e a pergunta "quem difere de quem" se lê nela sem abrir nada.
     preview = function(x, ctx) trama.view::tr_view_render(tr_models_plot_means(x), ctx),
-    report = tr_models_report_emm
+    report = tr_models_report_emm,
+    # As médias quase sempre alimentam comparações ou gráfico; a tabela com as
+    # letras é o que se lê no relatório mesmo assim.
+    report_always = TRUE
   )
 }
 

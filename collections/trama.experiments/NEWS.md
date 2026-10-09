@@ -1,5 +1,6 @@
 # trama.experiments 0.2.8
 
+* `experiments/plan` aparece no relatório mesmo consumido (`report_always`). Pede `trama (>= 0.5.16)`.
 * Relatório Quarto exportado: `experiments/plan` (delineamento, termos simulados, avisos e as primeiras unidades) ganham `report` — tabelas em Markdown no lugar do `print` cru da lista. Pede `trama.data (>= 0.4.4)`.
 
 # trama.experiments 0.2.7
