@@ -254,8 +254,14 @@ exemplos <- list(
        descricao = "Variograma em quatro direcoes com faixa de referencia sob isotropia, ajuste com anisotropia geometrica, validacao cruzada do modelo e krigagem universal com tendencia de 1a ordem.",
        flow = tr_flow(reg) |>
          tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+         # `tendencia` TAMBEM aqui, e nao so no variograma: no milho_pr, que a
+         # ajuda descreve como "o caso que pede a remocao de tendencia", curvas
+         # direcionais sem remover tendencia sao dominadas por ela, e tendencia
+         # linear imita anisotropia perfeitamente. Diagnosticar numa hipotese e
+         # ajustar noutra foi achado da revisao de 2026-10-09.
          tr_add("aniso", "spatial/anisotropy", direcoes = "0,45,90,135",
-                envelope = TRUE, n_sim = 19L, semente = 42, from = "pontos") |>
+                tendencia = "1a ordem", envelope = TRUE, n_sim = 19L,
+                semente = 42, from = "pontos") |>
          tr_add("variograma", "spatial/variogram", tendencia = "1a ordem",
                 from = "pontos") |>
          tr_add("ajuste", "spatial/variogram_fit", familia = "esferico",

@@ -440,7 +440,18 @@ tr_spatial_kriging <- function(pontos = NULL, modelo, grade = NULL,
   viz <- .tr_spatial_viz_texto(vizinhos_max, dist_max)
   nota <- paste(c(modelo$nota,
                   if (identical(tipo, "universal"))
-                    sprintf("Krigagem universal, tendencia de %s.", tendencia),
+                    sprintf("Krigagem universal, tend\u00eancia de %s.", tendencia),
+                  # Tendência fora da universal não faz nada, e o param persiste
+                  # no documento quando se troca o Tipo: dizer que foi ignorada
+                  # é mais honesto que calar.
+                  if (!identical(tipo, "universal") &&
+                      !identical(tendencia, "constante"))
+                    sprintf(paste("A tend\u00eancia '%s' foi IGNORADA: s\u00f3 a krigagem",
+                                  "universal a usa."), tendencia),
+                  if (externa && !is.null(pontos$borda))
+                    paste("A grade ligada n\u00e3o \u00e9 recortada na borda: o contorno",
+                          "aparece no mapa, mas a predi\u00e7\u00e3o sai onde a grade",
+                          "pedir."),
                   if (externa)
                     sprintf(paste("Grade ligada na porta, com %d células: a",
                                   "resolução é ignorada."), nrow(grade_pred))

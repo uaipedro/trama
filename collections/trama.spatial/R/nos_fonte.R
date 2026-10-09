@@ -106,6 +106,9 @@ sua.
 ]---")),
 
     trama::tr_node("spatial/coordinates", fn = .tr_spatial_coordinates_no, label = "Declarar coordenadas",
+      # version 2 na 0.2.0: entrou a porta `borda`. Ver a nota do
+      # `spatial/kriging` sobre o gatilho de portas.
+      version = 2L,
       category = "espacial_preparar", icon = trama::tr_icon("map-pin"),
       description = "Transforma uma tabela em objeto espacial: diz quais colunas são as coordenadas, a variável, o CRS e a unidade.",
       inputs = list(dados = "data/table",

@@ -104,3 +104,54 @@ test_that("o tipo spatial/model guarda os dois campos novos", {
   expect_equal(volta$razao, 2)
   expect_equal(volta$angulo, 10)
 })
+
+# ---- o card do modelo, com anisotropia -----------------------------------------
+#
+# Achado C2 da revisão independente: `gstat::variogramLine` sem `dir` desenha a
+# direção LESTE. Com razão > 1 o card mostrava a curva de um eixo que o usuário
+# não escolheu, sobre os pontos do variograma OMNIDIRECIONAL, contradizendo o
+# campo `alcance_pratico` do mesmo objeto por um fator igual à razão.
+
+curva_do_card <- function(m) {
+  g <- .tr_spatial_plot_modelo(m)
+  camadas <- lapply(g$layers, function(l) l$data)
+  linha <- Filter(function(d) is.data.frame(d) && all(c("dist", "gamma") %in% names(d)),
+                  camadas)
+  expect_gt(length(linha), 0)
+  linha[[1]]
+}
+
+test_that("a curva do card segue o eixo MAIOR, e não a direção Leste", {
+  p <- tr_spatial_example("milho_se")
+  v <- tr_spatial_variogram(p)
+  # eixo maior ao NORTE (angulo 0): a curva Leste subiria 3x mais rápido
+  m <- tr_spatial_variogram_fit(v, familia = "exponencial", razao = 3, angulo = 0)
+  cur <- curva_do_card(m)
+  alvo <- 0.95 * m$patamar
+  i <- which(cur$gamma >= alvo)[1]
+  h95 <- if (is.na(i)) Inf else cur$dist[[i]]
+  # o alcance prático do objeto é o do eixo maior: a curva do card tem de
+  # concordar com ele, não ficar a um terço dele
+  expect_gt(h95, 0.5 * m$alcance_pratico)
+})
+
+test_that("com razao = 1 a curva do card não muda de comportamento", {
+  p <- tr_spatial_example("milho_se")
+  v <- tr_spatial_variogram(p)
+  m <- tr_spatial_variogram_fit(v, familia = "esferico")
+  cur <- curva_do_card(m)
+  expect_true(all(is.finite(cur$gamma)))
+  expect_true(is.unsorted(-cur$gamma) || all(diff(cur$gamma) >= -1e-9))  # não decresce
+  expect_lte(max(cur$gamma), m$patamar * 1.001)
+})
+
+test_that("o card diz em que direção a curva foi desenhada quando há anisotropia", {
+  p <- tr_spatial_example("milho_se")
+  v <- tr_spatial_variogram(p)
+  com <- .tr_spatial_plot_modelo(tr_spatial_variogram_fit(v, razao = 3, angulo = 60))
+  sem <- .tr_spatial_plot_modelo(tr_spatial_variogram_fit(v))
+  txt_com <- paste(unlist(com$labels), collapse = " ")
+  txt_sem <- paste(unlist(sem$labels), collapse = " ")
+  expect_match(txt_com, "60")
+  expect_false(grepl("direção do eixo maior", txt_sem))
+})

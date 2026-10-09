@@ -26,6 +26,7 @@
         "label": "Anisotropia",
         "params": {
           "direcoes": "0,45,90,135",
+          "tendencia": "1a ordem",
           "envelope": true,
           "n_sim": 19,
           "semente": 42
@@ -63,7 +64,7 @@
       },
       "krigagem": {
         "type": "spatial/kriging",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Krigagem",
         "params": {
           "tipo": "universal",

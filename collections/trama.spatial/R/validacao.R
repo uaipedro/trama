@@ -96,10 +96,21 @@ tr_spatial_validation <- function(pontos, modelo, metodo = "leave-one-out",
                z = res / sqrt(as.numeric(cv$var1.var)),
                dobra = as.integer(cv$fold))))
   met <- .tr_spatial_metricas(tab$observado, tab$predito, tab$variancia)
-  nota <- paste(
+  # A validação é sempre por krigagem ORDINÁRIA (`.z ~ 1`). Se o modelo veio de
+  # um variograma com tendência removida, o mapa que o usuário vai produzir é
+  # universal, e estas métricas julgam outro mapa. Validar com a tendência é
+  # feature própria; calar sobre isso não é opção, porque o MSDR é apresentado
+  # como o juiz do mapa de erro-padrão.
+  tend <- modelo$variograma$tendencia %||% "constante"
+  nota <- paste(c(
     sprintf("%s, %d pontos, vizinhança %s.", metodo, n,
             .tr_spatial_viz_texto(vizinhos_max, dist_max)),
-    sprintf("MSDR %.3f: %s.", met$msdr, .tr_spatial_msdr_texto(met$msdr)))
+    sprintf("MSDR %.3f: %s.", met$msdr, .tr_spatial_msdr_texto(met$msdr)),
+    if (!identical(tend, "constante")) sprintf(paste(
+      "Atenção: o modelo foi ajustado a um variograma com tendência de %s, e",
+      "esta validação prediz por krigagem ORDINÁRIA. Se o seu mapa for",
+      "universal, estas métricas julgam outro mapa."), tend)),
+    collapse = " ")
   structure(list(tabela = tab, metricas = met, metodo = metodo,
                  dobras = as.integer(nfold),
                  semente = if (is.na(semente)) NA_real_ else as.numeric(semente),

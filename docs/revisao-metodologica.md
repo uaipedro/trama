@@ -561,3 +561,86 @@ Teste: `test-validacao-geor.R`.
   leave-one-out. A expectativa teórica vale em média, não num conjunto: medido
   em `milho_se`, RMSE 1155,6 em leave-one-out contra 1134,7 em 3 dobras. O teste
   afirma apenas que os dois diferem e que as contagens de dobra conferem.
+
+### Krigagem universal, deriva externa e indicadora (09/10/2026)
+
+Completa a seção acima: estes três caminhos entraram na mesma versão e faltavam
+aqui — apontado pela revisão independente da branch.
+
+**`spatial/kriging`, `tipo = "universal"`** (versão 2 do nó). Tendência de 1ª
+ordem (plano), 2ª ordem (superfície quadrática) ou por covariável. Oráculo:
+`geoR::krige.conv` com `trend.d`/`trend.l`, **com a tendência dada como colunas
+centradas e padronizadas nos dois pacotes**. Tolerância 1e-6; concordância
+medida com `meuse` 3,7e-14 na 1ª ordem e 5,3e-14 na 2ª. Teste:
+`collections/trama.spatial/tests/testthat/test-universal-geor.R`.
+
+- **A centragem não é cosmética.** Em UTM cru o `geoR::krige.conv` com
+  `trend = "1st"`/`"2nd"` fica computacionalmente singular (condição recíproca
+  7,3e-17, medido). No `gstat` a versão crua funciona mas difere da centrada; a
+  diferença **relativa**, medida no `milho_pr` em 09/10, é 5,7e-14 na 1ª ordem e
+  3,6e-10 na 2ª — ou seja, o mal condicionamento castiga o termo quadrático
+  quatro ordens de grandeza mais. (O 3,7e-4 citado no desenho é do `meuse`,
+  cuja escala de coordenada é outra.) A krigagem com tendência é invariante a
+  reparametrização linear da base, então a versão centrada é a mesma conta,
+  melhor condicionada, e é a que o bloco usa. O teste assere a **relação** entre
+  as duas ordens, não só o valor.
+- O centro e a escala são sempre os do conjunto de ajuste, nas duas pontas: se
+  cada ponta centrasse pela própria média, a base da tendência mudaria entre
+  ajuste e predição e a predição sairia errada sem erro nenhum. Há teste.
+
+**Deriva externa (KED)**, `tendencia = "covariavel"`. Oráculo:
+`geoR::krige.conv` com `trend.d = ~cov` e `trend.l = ~cov`; concordância medida
+8,9e-16 no predito e 3,3e-16 na variância, tolerância 1e-6. Teste:
+`test-ked-geor.R`.
+
+- A covariável tem de ser conhecida em **toda célula** onde se prediz. O bloco
+  exige a grade na porta e recusa quando a covariável falta ou tem célula vazia,
+  em vez de preencher: interpolar a covariável por dentro deixaria o erro-padrão
+  do mapa subestimado sem avisar, porque o erro dessa interpolação não entra na
+  variância de krigagem. A mesma guarda passou a valer para os **pontos** depois
+  da revisão — covariável com faltante era aceita em silêncio e morria mais
+  tarde com mensagem crua do `model.frame`.
+
+**Débito do PR 1 fechado.** `tendencia = "covariavel"` no `spatial/variogram`
+estava exercitado e sem oráculo. Agora: `geoR::variog(trend = ~cov)`, tolerância
+1e-8, concordância medida 5,6e-16.
+
+**Krigagem indicadora.** A transformação (`spatial/indicator`) é conferida contra
+`as.numeric(z <= corte)` nos dois sentidos e no empate exato; a krigagem do
+indicador é a ordinária de uma variável 0/1, cujo oráculo é o de
+`test-krigagem-oraculo.R`, e a concordância medida com `geoR::krige.conv` sobre
+o indicador foi 6,9e-16. O predito é **recortado em [0,1]**: a krigagem é
+interpolador linear e sai do intervalo de verdade — medido, até 14 de 144
+células, com mínimo −0,105 e máximo 1,058 —, e a contagem do recorte vai na
+nota, porque recorte silencioso esconderia modelo ruim para a pergunta.
+
+### Achado: par empatado num limite de classe (09/10/2026)
+
+`gstat` e `geoR` **discordam** quando a distância de um par cai exatamente num
+limite de classe: o `gstat` inclui o limite superior, o `geoR` empurra o par
+para a classe seguinte. Medido com `meuse`, corte 1500 e 10 classes: `max|dnp|`
+= 1 e `max|dgamma|` = 2,96e-4 com tendência por covariável, e **4,43e-4 com
+tendência de 1ª ordem — que já estava testada a 1e-8**. Com um corte que não cai
+em nenhuma distância observada: `max|dnp|` = 0 e `max|dgamma|` = 5,6e-16.
+
+Nos três conjuntos do PR 1 o corte padrão não calha de empatar, e é por isso que
+aquela suíte está verde — sorte, não desenho. Os oráculos acrescentados na 0.2.0
+escolhem o corte de propósito e **asserem a premissa** no próprio teste
+(`sum(d %in% lim) == 0`): `test-ked-geor.R` para a covariável e
+`test-anisotropia-geor.R` para as quatro curvas direcionais, via o helper
+`corte_sem_empate()`. Os testes do PR 1 não foram alterados; o achado fica
+registrado aqui.
+
+### Achado: a nula do envelope tem de remover a mesma tendência (09/10/2026)
+
+Apontado pela revisão independente. O envelope do `spatial/anisotropy` comparava
+o observado **com** tendência removida contra campos simulados **sem** remoção
+nenhuma. Medido pelo revisor em 40 campos esféricos estacionários (n = 68, 10
+classes): gamma médio 0,9337 sem remover contra 0,8953 removendo 1ª ordem (razão
+0,959), e 1,2435 contra 1,1539 nas três classes mais longas (razão 0,928). A
+faixa ficava ~4% alta no geral e ~7% nas classes longas — exatamente as que
+separam anisotropia —, e o efeito era na direção ruim: as curvas observadas
+afundavam para dentro da faixa e o bloco deixava de mostrar as escapadas que são
+o único sinal útil. Corrigido: a simulação usa a mesma fórmula de tendência do
+observado. Teste com campos de tendência pura injetados, em que o resíduo tem de
+ser zero.

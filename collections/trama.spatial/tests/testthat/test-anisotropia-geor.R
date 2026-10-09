@@ -19,6 +19,23 @@
 # assimétricos não. Comparar por RÓTULO de direção é o que fecha essa brecha, e
 # o conjunto assimétrico a fecha de novo por outro caminho.
 
+# CORTE SEM EMPATE. O `gstat` inclui o limite superior da classe e o `geoR`
+# empurra o par para a seguinte: um par cuja distância cai EXATAMENTE num limite
+# desloca gamma em ~3e-4, muito acima da tolerância de 1e-8 — medido em
+# 2026-10-09. Os oráculos do PR 1 passam porque o corte padrão dos três
+# conjuntos não calha de empatar, o que é sorte, não desenho. Estes escolhem o
+# corte de propósito e ASSEREM a premissa.
+corte_sem_empate <- function(p, n_classes) {
+  d <- as.numeric(stats::dist(p$coords))
+  base <- .tr_spatial_corte_padrao(p$coords)
+  for (f in c(1, 0.998123, 0.996571, 0.994417, 0.991193)) {
+    corte <- base * f
+    lim <- seq(0, corte, length.out = n_classes + 1L)
+    if (!any(d %in% lim)) return(list(corte = corte, lim = lim))
+  }
+  stop("nenhum corte sem empate encontrado")
+}
+
 geo_aniso <- function(p) {
   geoR::as.geodata(cbind(p$coords, p$dados[[p$variavel]]),
                    coords.col = 1:2, data.col = 3)
@@ -27,8 +44,8 @@ geo_aniso <- function(p) {
 test_that("as curvas direcionais reproduzem geoR::variog4, direção por direção", {
   skip_if_not_installed("geoR")
   p <- tr_spatial_example("milho_pr")
-  corte <- .tr_spatial_corte_padrao(p$coords)
-  lim <- seq(0, corte, length.out = 11)
+  ce <- corte_sem_empate(p, 10L); corte <- ce$corte; lim <- ce$lim
+  expect_equal(sum(as.numeric(stats::dist(p$coords)) %in% lim), 0L)
   a <- tr_spatial_anisotropy(p, direcoes = "0,45,90,135", dist_max = corte,
                              n_classes = 10L, pares_min = 1L)
   o <- suppressMessages(geoR::variog4(
@@ -49,8 +66,8 @@ test_that("as curvas direcionais reproduzem geoR::variog4, direção por direç�
 test_that("um conjunto ASSIMÉTRICO de direções pinga a convenção de azimute", {
   skip_if_not_installed("geoR")
   p <- tr_spatial_example("milho_se")
-  corte <- .tr_spatial_corte_padrao(p$coords)
-  lim <- seq(0, corte, length.out = 7)
+  ce <- corte_sem_empate(p, 6L); corte <- ce$corte; lim <- ce$lim
+  expect_equal(sum(as.numeric(stats::dist(p$coords)) %in% lim), 0L)
   dirs <- c(0, 30, 60, 120)            # NÃO é invariante sob 90 - alpha
   a <- tr_spatial_anisotropy(p, direcoes = "0,30,60,120", dist_max = corte,
                              n_classes = 6L, pares_min = 1L)
@@ -70,8 +87,8 @@ test_that("um conjunto ASSIMÉTRICO de direções pinga a convenção de azimute
 test_that("o robusto direcional também reproduz o geoR", {
   skip_if_not_installed("geoR")
   p <- tr_spatial_example("milho_se")
-  corte <- .tr_spatial_corte_padrao(p$coords)
-  lim <- seq(0, corte, length.out = 7)
+  ce <- corte_sem_empate(p, 6L); corte <- ce$corte; lim <- ce$lim
+  expect_equal(sum(as.numeric(stats::dist(p$coords)) %in% lim), 0L)
   a <- tr_spatial_anisotropy(p, direcoes = "0,90", estimador = "robusto",
                              dist_max = corte, n_classes = 6L, pares_min = 1L)
   for (d in c(0, 90)) {
@@ -88,8 +105,8 @@ test_that("o robusto direcional também reproduz o geoR", {
 test_that("a tendência removida no direcional reproduz o geoR", {
   skip_if_not_installed("geoR")
   p <- tr_spatial_example("milho_se")
-  corte <- .tr_spatial_corte_padrao(p$coords)
-  lim <- seq(0, corte, length.out = 7)
+  ce <- corte_sem_empate(p, 6L); corte <- ce$corte; lim <- ce$lim
+  expect_equal(sum(as.numeric(stats::dist(p$coords)) %in% lim), 0L)
   a <- tr_spatial_anisotropy(p, direcoes = "0,90", tendencia = "1a ordem",
                              dist_max = corte, n_classes = 6L, pares_min = 1L)
   for (d in c(0, 90)) {

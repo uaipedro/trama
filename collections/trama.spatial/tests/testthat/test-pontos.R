@@ -138,3 +138,52 @@ test_that("o preview dos pontos leva as colunas de coordenada, na ordem x, y", {
   expect_identical(unlist(v$coord_cols), c("leste", "norte"))
   expect_true(all(unlist(v$coord_cols) %in% unlist(v$columns)))
 })
+
+# ---- grau com CRS vazio, e covariável com faltante ------------------------------
+#
+# Achados da revisão independente de 2026-10-09 (C1 e I7). O leitor de vetor
+# criou um caminho de um clique para os dois: um GeoJSON em lon/lat lido sem
+# `crs_saida` chegava aqui com o campo CRS vazio, virava "plano arbitrário", e o
+# variograma media distância em grau sem uma palavra.
+
+test_that("coordenada que parece grau com CRS vazio entra com NOTA explícita", {
+  set.seed(3)
+  d <- data.frame(lon = runif(30, -52, -49), lat = runif(30, -26, -23),
+                  z = rnorm(30, 100, 10))
+  p <- tr_spatial_coordinates(d, x = "lon", y = "lat", variavel = "z")
+  expect_s3_class(p, "tr_spatial_points")
+  expect_match(p$nota, "grau")
+  expect_match(p$nota, "CRS|projeção")
+})
+
+test_that("a nota de grau NÃO aparece quando o CRS é declarado", {
+  p <- tr_spatial_example("milho_se")
+  q <- tr_spatial_coordinates(p$dados, x = p$coord_cols[[1]],
+                              y = p$coord_cols[[2]], variavel = p$variavel,
+                              crs = "31984")
+  expect_false(grepl("parece estar em grau", q$nota))
+})
+
+test_that("a nota de grau NÃO aparece em coordenada projetada sem CRS", {
+  p <- tr_spatial_example("milho_se")   # UTM em metro, ~7e5 e ~8e6
+  q <- tr_spatial_coordinates(p$dados, x = p$coord_cols[[1]],
+                              y = p$coord_cols[[2]], variavel = p$variavel)
+  expect_false(grepl("parece estar em grau", q$nota))
+})
+
+test_that("covariável com valor faltante é recusada com erro nomeado", {
+  p <- tr_spatial_example("milho_se")
+  d <- p$dados
+  d$cov_furada <- seq_len(nrow(d))
+  d$cov_furada[5] <- NA
+  expect_error(
+    tr_spatial_coordinates(d, x = p$coord_cols[[1]], y = p$coord_cols[[2]],
+                           variavel = p$variavel, covariaveis = "cov_furada",
+                           crs = "31984"),
+    class = "tr_spatial_error_bad_coords")
+  expect_error(
+    tr_spatial_coordinates(d, x = p$coord_cols[[1]], y = p$coord_cols[[2]],
+                           variavel = p$variavel, covariaveis = "cov_furada",
+                           crs = "31984"),
+    regexp = "cov_furada")
+})

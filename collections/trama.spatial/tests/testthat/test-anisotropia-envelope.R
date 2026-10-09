@@ -63,7 +63,12 @@ test_that("sem envelope o campo fica nulo e n_sim não é inventado", {
 })
 
 test_that("a mesma semente dá o mesmo envelope, e sementes diferentes não", {
-  p <- tr_spatial_example("milho_se")
+  # Este teste PRECISA do simulador real — reprodutibilidade de um sorteio não
+  # se testa com simulador determinístico injetado —, então ele atravessa o
+  # ajuste da nula. Por isso usa `milho_pr`, cujo ajuste isotrópico converge
+  # tanto com 10 quanto com 15 classes (medido), e não `milho_se`, que fica a
+  # uma classe do vermelho.
+  p <- tr_spatial_example("milho_pr")
   f <- function(s) tr_spatial_anisotropy(p, direcoes = "0,90", envelope = TRUE,
                                          n_sim = 5L, semente = s,
                                          pares_min = 1L)$envelope
@@ -82,7 +87,8 @@ test_that("n_sim fora do aceitável é recusado", {
 
 test_that("a faixa contém a própria mediana das simulações", {
   # Propriedade elementar: mínimo <= mediana <= máximo, por direção e classe.
-  p <- tr_spatial_example("milho_se")
+  # Também atravessa o ajuste da nula; mesmo motivo do teste acima.
+  p <- tr_spatial_example("milho_pr")
   a <- tr_spatial_anisotropy(p, direcoes = "0,90", envelope = TRUE, n_sim = 9L,
                              semente = 1, pares_min = 1L)
   expect_true(all(a$envelope$inferior <= a$envelope$superior))
@@ -97,4 +103,44 @@ test_that("o envelope padrão fecha em tempo de card no maior exemplo", {
   t <- system.time(tr_spatial_anisotropy(p, envelope = TRUE, n_sim = 19L,
                                          semente = 1, pares_min = 1L))[["elapsed"]]
   expect_lt(t, 30)   # folga larga sobre o 1,6 s medido com 389 pontos
+})
+
+# ---- a nula precisa remover a MESMA tendência que o observado ------------------
+#
+# Achado I1 da revisão independente: o observado era calculado com a tendência
+# removida e os campos simulados com `.zsim ~ 1`, sem remover nada. Medido pelo
+# revisor em campos estacionários: a faixa ficava ~4% alta no geral e ~7% nas
+# classes longas — justamente as que separam anisotropia —, e as curvas
+# observadas afundavam para dentro da faixa.
+
+test_that("com tendência, a nula remove a mesma tendência do observado", {
+  # `milho_pr` e não `milho_se`: o help do bloco de exemplo descreve o Paraná
+  # como "o caso que pede a remoção de tendência", e o ajuste isotrópico da nula
+  # converge nele com as classes padrão — no Sergipe, com tendência, não
+  # converge (medido em 2026-10-09), e o bloco levanta no_convergence dizendo
+  # que só a faixa depende disso.
+  p <- tr_spatial_example("milho_pr")
+  n <- nrow(p$dados)
+  # Campos que são PURA tendência linear em x, sem ruído: removida a tendência
+  # de 1ª ordem, o resíduo é zero e gamma é zero. Se a nula não remover, gamma
+  # é grande. O teste distingue os dois casos sem ambiguidade.
+  x <- p$coords[, 1]
+  campos <- vapply(1:5, function(k) (x - mean(x)) / stats::sd(x) * k, numeric(n))
+  a <- tr_spatial_anisotropy(p, direcoes = "0,90", tendencia = "1a ordem",
+                             envelope = TRUE, n_sim = 5L, pares_min = 1L,
+                             .simular = function(...) campos)
+  escala <- stats::var(p$dados[[p$variavel]])
+  expect_lt(max(a$envelope$superior), 1e-6 * escala)
+})
+
+test_that("sem tendência, a nula segue sendo o campo como veio", {
+  p <- tr_spatial_example("milho_pr")
+  n <- nrow(p$dados)
+  x <- p$coords[, 1]
+  campos <- vapply(1:5, function(k) (x - mean(x)) / stats::sd(x) * k, numeric(n))
+  a <- tr_spatial_anisotropy(p, direcoes = "0,90", tendencia = "constante",
+                             envelope = TRUE, n_sim = 5L, pares_min = 1L,
+                             .simular = function(...) campos)
+  # sem remoção, a tendência pura produz gamma grande
+  expect_gt(max(a$envelope$superior), 1e-3)
 })

@@ -358,7 +358,7 @@ test_that("o nó registra, declara as portas certas e roda no motor", {
   expect_equal(names(nd$inputs), c("pontos", "modelo", "grade"))
   expect_false(nd$inputs$pontos$required)
   expect_true(nd$inputs$modelo$required)
-  expect_equal(nd$version, 1L)
+  expect_equal(nd$version, 2L)
   nomes <- names(nd$params)
   # `tendencia` entrou na 0.2.0, com a krigagem universal. A ordem é a da
   # declaração do nó, e o teste a fixa de propósito: param que troca de posição

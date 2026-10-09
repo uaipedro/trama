@@ -190,7 +190,14 @@ tr_spatial_anisotropy <- function(pontos, direcoes = "0,45,90,135",
     gam <- vapply(seq_len(ncol(campos)), function(j) {
       ds <- dt$dados
       ds$.zsim <- campos[, j]
-      vs <- gstat::variogram(stats::as.formula(".zsim ~ 1"),
+      # A MESMA tendência do observado, com `.zsim` no lugar da variável: o
+      # observado passa pela remoção por OLS dentro do `gstat`, e simular sem
+      # remover deixaria a faixa alta (medido pela revisão: ~4% no geral e ~7%
+      # nas classes longas, que são as que separam anisotropia). A nula da ajuda
+      # é "isotrópico com esta estrutura", não "sem remoção de tendência".
+      f_sim <- stats::as.formula(paste(".zsim ~",
+                                       paste(deparse(dt$formula[[3]]), collapse = " ")))
+      vs <- gstat::variogram(f_sim,
                              locations = dt$locations, data = ds,
                              alpha = dirs, tol.hor = as.numeric(tolerancia),
                              boundaries = lim[-1],

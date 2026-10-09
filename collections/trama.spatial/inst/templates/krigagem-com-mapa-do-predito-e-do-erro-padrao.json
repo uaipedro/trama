@@ -43,7 +43,7 @@
       },
       "krigagem": {
         "type": "spatial/kriging",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Krigagem",
         "params": {},
         "seed": 264400552

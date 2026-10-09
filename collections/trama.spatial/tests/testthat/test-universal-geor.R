@@ -101,10 +101,30 @@ test_that("a centragem muda o número na 2ª ordem: a nossa é a centrada", {
     stats::as.formula(".z ~ .rx + .ry + I(.rx^2) + I(.ry^2) + I(.rx * .ry)"),
     d, as_sf, .tr_spatial_vgm_model(m), debug.level = 0)
   expect_true(all(is.finite(nossa$predito)))
-  # a diferença existe e é pequena: é erro numérico do caso mal condicionado
-  dif <- max(abs(nossa$predito - cru$var1.pred))
-  expect_gt(dif, 0)
-  expect_lt(dif, 1)
+  # A faixa (0, 1) que estava aqui não prendia nada: passaria com 1e-300
+  # (centragem virada no-op) e com 0,99 (ordens de magnitude pior que o
+  # medido). Os números abaixo são medidos em `milho_pr` em 2026-10-09:
+  # diferença RELATIVA de 5,7e-14 na 1ª ordem e 3,6e-10 na 2ª. O 3,7e-4 da spec
+  # era do `meuse`, com outra escala de coordenada.
+  rel <- function(tend) {
+    nos <- tr_spatial_kriging_em(p, m, novos = novos, tipo = "universal",
+                                 tendencia = tend)
+    f <- if (tend == "1a ordem") ".z ~ .rx + .ry" else
+      ".z ~ .rx + .ry + I(.rx^2) + I(.ry^2) + I(.rx * .ry)"
+    cr <- gstat::krige(stats::as.formula(f), d, as_sf,
+                       .tr_spatial_vgm_model(m), debug.level = 0)
+    max(abs(nos$predito - cr$var1.pred)) / mean(abs(nos$predito))
+  }
+  r1 <- rel("1a ordem"); r2 <- rel("2a ordem")
+  # a centragem NÃO é no-op: a diferença existe nas duas ordens
+  expect_gt(r1, 1e-16)
+  expect_gt(r2, 1e-12)
+  # e o mal condicionamento castiga o termo QUADRÁTICO muito mais: é essa
+  # relação, e não o valor absoluto, que a centragem existe para evitar
+  expect_gt(r2 / r1, 100)
+  # as duas na ordem de grandeza medida, com folga de duas décadas
+  expect_lt(r1, 1e-11)
+  expect_lt(r2, 1e-7)
 })
 
 test_that("a universal exige tendência, e tendência sem universal não vale", {

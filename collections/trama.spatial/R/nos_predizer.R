@@ -4,6 +4,11 @@
   E <- trama::tr_param_enum; N <- trama::tr_param_num; I <- trama::tr_param_int
   list(
     trama::tr_node("spatial/kriging", fn = tr_spatial_kriging, label = "Krigagem",
+      # version 2 na 0.2.0: o conjunto de PORTAS mudou (entrou `grade`), e
+      # `collections/AGENTS.md` lista portas como gatilho de bump, junto de
+      # resultado e de padrão de param. Nenhuma migração é devida: porta e param
+      # novos são opcionais e documento antigo dá o mesmo resultado.
+      version = 2L,
       category = "espacial_predizer", icon = trama::tr_icon("grid-3x3"),
       description = "Interpola a variável numa grade recortada na borda, com o erro-padrão de cada célula.",
       inputs = list(pontos = trama::tr_port("spatial/points", required = FALSE),

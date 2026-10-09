@@ -22,7 +22,7 @@
       },
       "pontos": {
         "type": "spatial/coordinates",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Declarar coordenadas",
         "params": {
           "x": "leste",
@@ -50,7 +50,7 @@
       },
       "krigagem": {
         "type": "spatial/kriging",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Krigagem",
         "params": {},
         "seed": 264400552
