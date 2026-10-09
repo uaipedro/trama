@@ -101,8 +101,11 @@ test_that("o caso do desenho roda: modelo fora da região, predict elevado ponto
   # vez"): se o driver relesse o artefato a cada passo, um modelo IMPURO
   # acusaria — mas models/lm é puro, então leitura única ou N leituras do
   # MESMO artefato imutável dão o mesmo resultado, e é esse `expect_identical`
-  # que mede isso, não um teste à parte.
-  expect_identical(hist$previsto, lote$previsto)
+  # que mede isso, não um teste à parte. Tolerância de máquina, e não
+  # `identical`: no CI os dois caminhos já diferiram no 15º dígito (ordem de
+  # soma do BLAS), e uma releitura de artefato errado mudaria o valor muito
+  # além disso.
+  expect_equal(hist$previsto, lote$previsto, tolerance = 1e-12)
 })
 
 # ---- Blocker B0: `step_rls()` recebendo um ponto de MAIS de uma linha ------
