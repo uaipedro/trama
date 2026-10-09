@@ -1,5 +1,6 @@
 # trama.spatial 0.1.1
 
+* Relatório Quarto: o ajuste do variograma registra `gstat::fit.variogram` e a krigagem, `gstat::krige` (atributo `trama_ferramentas`), no lugar do `gstat::variogram` declarado para a coleção.
 * Relatório Quarto exportado: `spatial/points` (resumo e quartis), `spatial/variogram` (tabela por classe), `spatial/model` (parâmetros) e `spatial/surface` (o mapa do predito) ganham `report` — tabelas em Markdown no lugar do `print` cru da lista. Pede `trama.data (>= 0.4.4)`.
 
 # trama.spatial 0.1.0

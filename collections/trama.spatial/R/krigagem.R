@@ -283,9 +283,12 @@ tr_spatial_kriging <- function(pontos = NULL, modelo, tipo = "ordinaria", media 
       "%d de %d células ficaram sem predição: nenhum ponto dentro da vizinhança (%s).",
       "Aumente o raio ou deixe-o vazio."), sem, nrow(grade), viz)), collapse = " ")
   }
-  structure(list(
+  superficie <- structure(list(
     grade = tibble::as_tibble(grade), tipo = tipo, modelo = modelo, pontos = pontos,
     borda = pontos$borda, resolucao = as.integer(resolucao), vizinhanca = viz,
     variavel = pontos$variavel, unidade = pontos$unidade, nota = nota),
     class = "tr_spatial_surface")
+  # A krigagem é do gstat (o `tr_ref` comum da coleção declara o variograma,
+  # que não entra aqui). O recorte pela borda com o sf é geometria, não conta.
+  .tr_spatial_ferramentas(superficie, "gstat::krige")
 }
