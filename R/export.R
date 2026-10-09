@@ -16,6 +16,12 @@
 #' de slide, e as notas viram texto no lugar em que estão. As saídas que
 #' nenhum fio consome são as que o fluxo produziu para ser LIDAS, e o
 #' documento as mostra (pelo `report` do tipo, quando há; senão, o `print`).
+#' Uma saída consumida também aparece quando o tipo pede (`report_always` em
+#' [tr_type()]), salvo se quem a consome devolve o mesmo tipo.
+#'
+#' Gráfico que segue o tema "padrão" do projeto sai, no Quarto, num tema claro
+#' quando o padrão do projeto é escuro: o relatório é lido em página branca e
+#' impresso. Card com tema escolhido à mão fica com o que escolheu.
 #'
 #' Fluxos ponto a ponto ainda dependem do executor do Trama e, por isso, são
 #' recusados em vez de gerar um script que calcularia outra coisa.
@@ -33,6 +39,7 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
                            settings = NULL) {
   format <- match.arg(format)
   doc <- .tr_as_doc(doc)
+  if (identical(format, "quarto")) settings <- .tr_export_settings_relatorio(settings)
   .tr_export_check_supported(doc, registry)
 
   plan <- tr_plan(doc, targets = names(doc$nodes), registry = registry)
@@ -101,9 +108,10 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
 
     show <- character()
     for (pn in names(spec$outputs)) {
-      if (paste(id, pn) %in% consumed) next
+      ty <- tr_get_type(spec$outputs[[pn]]$type, registry)
+      if (paste(id, pn) %in% consumed && !.tr_export_mostra_consumida(doc, registry, id, pn, ty)) next
       expr <- .tr_export_out(vars, doc, registry, id, pn)
-      report <- tr_get_type(spec$outputs[[pn]]$type, registry)$report
+      report <- ty$report
       show <- c(show, if (is.function(report)) sprintf("%s(%s)", ref(report), expr) else expr)
     }
     blocks[[id]] <- list(code = code, show = show)
@@ -383,4 +391,40 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
     if (length(found)) return(paste0("base::", found[[1]]))
   }
   paste0("(", paste(deparse(fn), collapse = "\n"), ")")
+}
+
+# Saída consumida que o tipo pede para mostrar (`report_always`): aparece, a
+# menos que algum consumidor devolva o mesmo tipo — aí ela é um passo de uma
+# cadeia que refina o objeto, e quem aparece é o último elo.
+.tr_export_mostra_consumida <- function(doc, registry, id, pn, ty) {
+  if (!isTRUE(ty$report_always)) return(FALSE)
+  destinos <- Filter(function(e) identical(e$from$node, id) && identical(e$from$port, pn), doc$edges)
+  for (e in destinos) {
+    saidas <- tr_get_node(doc$nodes[[e$to$node]]$type, registry)$outputs
+    if (ty$id %in% vapply(saidas, function(o) o$type, "")) return(FALSE)
+  }
+  TRUE
+}
+
+# Luminância relativa de uma cor #rrggbb (WCAG), para saber se o tema é escuro.
+.tr_export_luminancia <- function(hex) {
+  v <- strtoi(substring(hex, c(2L, 4L, 6L), c(3L, 5L, 7L)), 16L) / 255
+  v <- ifelse(v <= 0.03928, v / 12.92, ((v + 0.055) / 1.055)^2.4)
+  sum(c(0.2126, 0.7152, 0.0722) * v)
+}
+
+# Settings do relatório: o "padrão" que é escuro troca pelo primeiro tema
+# claro do projeto (ou o `claro` embutido, se o projeto só declarou escuros).
+.tr_export_settings_relatorio <- function(settings) {
+  s <- settings %||% .tr_settings(list())
+  escuro <- function(nome) .tr_export_luminancia(s$temas[[nome]]$fundo) < 0.5
+  if (!escuro(s$tema_padrao)) return(s)
+  claros <- Filter(Negate(escuro), names(s$temas))
+  if (length(claros)) {
+    s$tema_padrao <- claros[[1]]
+  } else {
+    s$temas[["claro"]] <- .tr_temas_embutidos()[["claro"]]
+    s$tema_padrao <- "claro"
+  }
+  s
 }

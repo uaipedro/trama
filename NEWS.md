@@ -1,3 +1,8 @@
+# trama 0.5.16
+
+* Relatório Quarto: gráfico no tema "padrão" sai num tema claro quando o padrão do projeto é escuro (o primeiro claro do projeto, ou o `claro` embutido). Tema escolhido no card e script `.R` não mudam.
+* `tr_type(report_always = TRUE)`: a saída aparece no relatório mesmo consumida por um fio, salvo quando quem consome devolve o mesmo tipo (numa cadeia, só o último elo aparece).
+
 # trama 0.5.15
 
 * Galeria: sem marca, só entram sozinhos os blocos de visualização, que declaram `tr_node(galeria = TRUE)`. Gráfico de outro bloco (diagnóstico de modelo, coeficientes…) entra só marcado com ☆ ou Shift+G. Antes, todo preview de imagem entrava, e o rolo enchia.

@@ -311,3 +311,40 @@ test_that("o Quarto exportado lista as referências dos blocos usados, sem repet
                                    tr_flow_doc(), test_registry(), format = "quarto"),
                   "Referências dos métodos")
 })
+
+test_that("no Quarto, o tema padrão escuro vira claro; o escolhido à mão fica", {
+  reg <- tr_registry()
+  tr_use(tr_collection("g", types = list(tr_type("g/num")), nodes = list(
+    tr_node("g/graf", fn = function(tema = "padrão") tema$nome, label = "Gráfico", description = "G.",
+            outputs = list(out = "g/num"), params = list(tema = tr_param_theme()))
+  )), registry = reg)
+  f <- tr_flow(reg) |> tr_add("a", "g/graf") |> tr_add("b", "g/graf", tema = "escuro")
+  q <- tr_export_code(tr_flow_doc(f), reg, format = "quarto")
+  expect_match(q, "tema_claro <- list(nome = \"claro\"", fixed = TRUE)
+  expect_match(q, "tema_escuro <- list(nome = \"escuro\"", fixed = TRUE)
+  # O script .R segue o projeto: escuro.
+  r <- tr_export_code(tr_flow_doc(f), reg, format = "r")
+  expect_no_match(r, "tema_claro", fixed = TRUE)
+  # Projeto já claro: nada muda.
+  s <- .tr_settings(list(tema_padrao = "clássico"))
+  expect_identical(.tr_export_settings_relatorio(s)$tema_padrao, "clássico")
+})
+
+test_that("report_always mostra a saída consumida, menos no meio de uma cadeia do mesmo tipo", {
+  reg <- tr_registry()
+  tr_use(tr_collection("k", types = list(
+    tr_type("k/num"),
+    tr_type("k/plano", report = function(x) paste("plano", x), report_always = TRUE)
+  ), nodes = list(
+    tr_node("k/criar", fn = function() 1, label = "Criar", description = "C.", outputs = list(out = "k/plano")),
+    tr_node("k/refinar", fn = function(p) p + 1, label = "Refinar", description = "R.",
+            inputs = list(p = "k/plano"), outputs = list(out = "k/plano")),
+    tr_node("k/usar", fn = function(p) p * 10, label = "Usar", description = "U.",
+            inputs = list(p = "k/plano"), outputs = list(out = "k/num"))
+  )), registry = reg)
+  f <- tr_flow(reg) |> tr_add("a", "k/criar") |> tr_add("b", "k/refinar", from = "a") |>
+    tr_add("c", "k/usar", from = "b")
+  q <- tr_export_code(tr_flow_doc(f), reg, format = "quarto")
+  expect_match(q, "(refinar)", fixed = TRUE)
+  expect_no_match(q, "(criar)", fixed = TRUE)
+})
