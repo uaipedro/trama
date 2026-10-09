@@ -14,12 +14,12 @@
 
 #' Molde dos tipos da coleção: RDS, tema do projeto, store que confere antes de gravar.
 #' @noRd
-.tr_spatial_rds_type <- function(id, label, color, conferir, preview, summary = NULL) {
+.tr_spatial_rds_type <- function(id, label, color, conferir, preview, summary = NULL, report = NULL) {
   trama::tr_type(
     id, version = 1L, label = label, color = color, ext = "rds", tema = TRUE,
     store = function(x, path) { conferir(x); saveRDS(x, path, compress = FALSE) },
     restore = function(path) readRDS(path),
-    summary = summary, preview = preview)
+    summary = summary, preview = preview, report = report)
 }
 
 # ---- spatial/points ------------------------------------------------------------
@@ -51,7 +51,8 @@
 spatial_points_type <- function() {
   .tr_spatial_rds_type("spatial/points", "Pontos", "#0e7490", .tr_spatial_pontos_conferir,
                        function(x, ctx) trama::tr_preview("spatial/points",
-                                                          data = .tr_spatial_pontos_preview(x)))
+                                                          data = .tr_spatial_pontos_preview(x)),
+                       report = tr_spatial_report_points)
 }
 
 #' Pontos -> tabela: a tabela original, que já traz as coordenadas.
@@ -88,7 +89,8 @@ spatial_points_type <- function() {
 spatial_variogram_type <- function() {
   .tr_spatial_rds_type("spatial/variogram", "Variograma", "#6366f1", .tr_spatial_vario_conferir,
                        function(x, ctx) trama::tr_preview("spatial/variogram",
-                                                          data = .tr_spatial_vario_preview(x)))
+                                                          data = .tr_spatial_vario_preview(x)),
+                       report = tr_spatial_report_variogram)
 }
 
 #' Variograma -> tabela: uma linha por classe de distância.
@@ -108,7 +110,8 @@ spatial_variogram_type <- function() {
 
 spatial_model_type <- function() {
   .tr_spatial_rds_type("spatial/model", "Modelo de variograma", "#8b5cf6", .tr_spatial_modelo_conferir,
-                       function(x, ctx) trama.view::tr_view_render(.tr_spatial_plot_modelo(x), ctx))
+                       function(x, ctx) trama.view::tr_view_render(.tr_spatial_plot_modelo(x), ctx),
+                       report = tr_spatial_report_model)
 }
 
 #' Modelo -> tabela: uma linha por parâmetro numérico, com família, método e
@@ -140,7 +143,8 @@ spatial_model_type <- function() {
 spatial_surface_type <- function() {
   .tr_spatial_rds_type("spatial/surface", "Superfície predita", "#0d9488",
                        .tr_spatial_superficie_conferir,
-                       function(x, ctx) trama.view::tr_view_render(tr_spatial_map(x), ctx))
+                       function(x, ctx) trama.view::tr_view_render(tr_spatial_map(x), ctx),
+                       report = tr_spatial_report_surface)
 }
 
 #' Superfície -> tabela: uma linha por célula da grade, com coordenadas, predito,
