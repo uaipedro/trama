@@ -110,7 +110,8 @@ experiments_plan_type <- function() {
                                termos = length(x$termos),
                                resposta = if (is.null(x$resposta)) NA_character_ else x$resposta$nome),
     # O card é o MAPA: "onde caiu cada tratamento" se lê sem abrir nada.
-    preview = function(x, ctx) trama.view::tr_view_render(tr_experiments_view(x, "mapa"), ctx)
+    preview = function(x, ctx) trama.view::tr_view_render(tr_experiments_view(x, "mapa"), ctx),
+    report = tr_experiments_report_plan
   )
 }
 

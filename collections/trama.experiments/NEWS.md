@@ -1,3 +1,7 @@
+# trama.experiments 0.2.8
+
+* Relatório Quarto exportado: `experiments/plan` (delineamento, termos simulados, avisos e as primeiras unidades) ganham `report` — tabelas em Markdown no lugar do `print` cru da lista. Pede `trama.data (>= 0.4.4)`.
+
 # trama.experiments 0.2.7
 
 * Contrastes na parcela subdividida leem o quadro do `lm` com `bloco:parcela` fixo. Requer trama.models 0.6.6.
