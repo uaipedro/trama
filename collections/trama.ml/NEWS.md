@@ -1,3 +1,7 @@
+# trama.ml 0.5.8
+
+* Relatório Quarto: `tune` e `nested_cv` registram no resultado o motor que ajustou as tentativas (atributo `trama_ferramentas`).
+
 # trama.ml 0.5.7
 
 * Templates regenerados com o formato atual do documento (saídas nomeadas e grupos do trama 0.5.10). Pede `trama (>= 0.5.10)`.

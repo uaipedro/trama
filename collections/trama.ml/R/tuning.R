@@ -260,7 +260,23 @@ tr_ml_tune <- function(dados, resposta = "", preditores = "", modelo = "cart", t
          melhor_tentativa = melhor, metrica = metrica, minimizar = minimizar,
          folds = folds, estrategia = estrategia, seed = seed, nota = nota)
   })
-  structure(resultado, class = "tr_ml_tuning")
+  out <- structure(resultado, class = "tr_ml_tuning")
+  attr(out, "trama_ferramentas") <- .tr_ml_ferramenta_motor(modelo, tarefa)
+  out
+}
+
+#' A função do motor que ajusta cada tentativa: a da coleção (`ml/*`) de `modelo`.
+#' A regressão linear é `lm`; a classificação, `glm` binomial. Em `ml/tune` e
+#' `ml/nested_cv` o motor vem do param `modelo`, por isso o atributo é por ramo.
+#' @noRd
+.tr_ml_ferramenta_motor <- function(modelo, tarefa) {
+  switch(modelo,
+    linear = if (identical(tarefa, "regressao")) "stats::lm" else "stats::glm",
+    cart = "rpart::rpart",
+    figs = "figsr::figs",
+    forest = "ranger::ranger",
+    svm = "e1071::svm",
+    xgboost = "xgboost::xgb.train")
 }
 
 #' Validação cruzada aninhada
@@ -324,5 +340,6 @@ tr_ml_nested_cv <- function(dados, resposta = "", preditores = "", modelo = "car
                                    tentativa = NA_integer_, metrica = out$metrica[[1]],
                                    interna = mean(out$interna), externa = mean(out$externa)))
   if (!is.null(nota)) attr(out, "nota") <- nota
+  attr(out, "trama_ferramentas") <- .tr_ml_ferramenta_motor(modelo, tarefa)
   out
 }
