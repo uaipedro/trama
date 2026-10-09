@@ -33,6 +33,10 @@ tr_doc_json <- function(doc) {
   out$ui$ocultos <- .tr_empty_obj(out$ui$ocultos)
   out$ui$notes <- .tr_empty_obj(out$ui$notes)
   out$ui$grupos <- .tr_empty_obj(lapply(out$ui$grupos %||% list(), I))
+  out$ui$galeria <- .tr_empty_obj(out$ui$galeria)
+  out$ui$ramos <- .tr_empty_obj(lapply(out$ui$ramos %||% list(), function(r) {
+    r$pares <- .tr_empty_obj(r$pares); r$desligados <- I(as.character(unlist(r$desligados))); r
+  }))
   out$edges <- unname(out$edges)
   jsonlite::toJSON(out, auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)
 }
@@ -123,6 +127,20 @@ tr_doc_parse <- function(txt) {
   doc$ui$ocultos <- .tr_empty_obj(Filter(isTRUE, doc$ui$ocultos %||% list()))
   doc$ui$notes <- .tr_empty_obj(doc$ui$notes %||% list())
   doc$ui$grupos <- .tr_empty_obj(lapply(doc$ui$grupos %||% list(), function(m) as.character(unlist(m))))
+  doc$ui$galeria <- .tr_empty_obj(Filter(function(v) isTRUE(v) || isFALSE(v), doc$ui$galeria %||% list()))
+  # Ramo é apresentação: um ramo malformado (editado à mão, nó que sumiu)
+  # some na leitura em vez de impedir o documento de abrir.
+  nos <- names(doc$nodes %||% list())
+  ramos <- lapply(doc$ui$ramos %||% list(), function(r) {
+    um <- function(v) if (is.character(v) && length(v) == 1L && !is.na(v) && nzchar(v)) v
+    letra <- um(r$letra); origem <- um(r$origem)
+    pares <- Filter(Negate(is.null), lapply(r$pares %||% list(), um))
+    pares <- pares[names(pares) %in% nos & unlist(pares, use.names = FALSE) %in% nos]
+    if (is.null(letra) || is.null(origem) || is.null(pares[[origem]])) return(NULL)
+    list(letra = letra, origem = origem, pares = .tr_empty_obj(pares),
+         desligados = intersect(as.character(unlist(r$desligados)), unlist(pares, use.names = FALSE)))
+  })
+  doc$ui$ramos <- .tr_empty_obj(Filter(Negate(is.null), ramos))
   structure(doc, class = "tr_doc")
 }
 

@@ -1,3 +1,8 @@
+# trama 0.5.14
+
+* Galeria: G abre um rolo com as imagens da análise, e clicar numa miniatura abre o lightbox, com setas, "ir ao card" e "tirar da galeria". Gráficos entram sozinhos; qualquer outro card entra pela estrela ☆ do preview (ou Shift+G). Cada card tem um arquivo na pasta da galeria (`gallery/` por padrão), sempre a versão atual e com nome estável, regravado só quando o resultado muda. Gráficos são re-renderizados em qualidade de publicação (PNG a 300 dpi por padrão), e tabelas são fotografadas pelo editor. Pasta, formato, dpi e "gráficos entram sozinhos" ficam em `trama.json` (chave `galeria`), editáveis nas Configurações e pelo launcher. Op `set_galeria` (cosmética), `tr_project_set_galeria()`, `tr_galeria_sincronizar()`. O `preview` de um tipo recebe `ctx$qualidade` (dpi, formato) quando a galeria pede a versão de publicação.
+* Bifurcar: B copia o card selecionado e tudo o que vem depois dele, pendurado nas mesmas entradas, e abre os params da cópia para mudar a decisão. Os ramos levam selo (⑂ A, ⑂ B…). Params a jusante ficam espelhados entre gêmeos, exceto no card onde a decisão difere; clicar no selo de uma cópia a desliga do espelhamento. Selecionar um card acende os gêmeos, e a Vista (P) mostra os ramos lado a lado com a linha do que difere. Ops `add_ramo`, `remove_ramo` e `ligar_ramo` (cosméticas), em `ui.ramos`. O espelhamento é do editor: um `set` pelo `trama-agente` ou pelo MCP muda só o card nomeado.
+
 # trama 0.5.13
 
 * Exportar em Quarto não falha mais com "Character encoding must be UTF-8, Latin-1 or bytes" quando uma referência de coleção instalada tem acento sem marca de encoding (ex.: Banzatto & Kronka, *Experimentação agrícola*).

@@ -66,7 +66,48 @@ tr_server <- function(project, flow = "main",
       ev$unit_type <- ev$type
       ev$type <- if (identical(ev$unit_type, "run_finished")) "run_finished" else "unit"
       session$sendCustomMessage("tr_event", ev)
+      if (identical(ev$type, "run_finished"))
+        later::later(function() if (!session$isClosed()) galeria_sync(), 0)
     }
+
+    # Galeria: depois de cada run (e de cada marca, captura ou troca de
+    # settings) a pasta é sincronizada e o editor recebe a lista. A pasta é
+    # servida sob um prefixo que leva o hash do caminho: trocar de pasta troca
+    # a URL, e o navegador não serve a imagem da pasta antiga do cache.
+    galeria_handles <- function() {
+      hs <- list()
+      for (k in ls(estado)) {
+        h <- estado[[k]]$handles
+        if (!length(h)) next
+        com_pv <- Filter(function(x) !is.null(x$preview), h)
+        hs[[k]] <- if (length(com_pv)) com_pv[[1]] else h[[1]]
+      }
+      hs
+    }
+    galeria_base <- function(proj) {
+      dir <- file.path(proj$root, proj$settings$galeria$pasta %||% "gallery")
+      dir.create(dir, showWarnings = FALSE, recursive = TRUE)
+      prefixo <- paste0("trama-galeria-", substr(rlang::hash(normalizePath(dir)), 1, 10))
+      shiny::addResourcePath(prefixo, dir)
+      prefixo
+    }
+    # `isolate`: também roda de dentro de um callback do `later`, fora de
+    # contexto reativo.
+    galeria_sync <- function() if (!session$isClosed()) shiny::isolate({
+      proj <- rv_project()
+      doc <- rv_doc()
+      itens <- tryCatch(
+        tr_galeria_sincronizar(proj$root, proj$store, proj$registry, doc, proj$settings,
+                               galeria_handles()),
+        error = function(e) {
+          send("warning", list(message = paste0("Galeria: ", conditionMessage(e)))); NULL
+        })
+      if (is.null(itens)) return(invisible())
+      # Sem item, nada de criar a pasta: projeto que nunca usou a galeria
+      # não ganha um `gallery/` vazio só por ter sido aberto.
+      base <- if (length(itens)) galeria_base(proj)
+      send("galeria", list(itens = unname(itens), base = base))
+    })
 
     # Bombeia o scheduler: um passo, e reagenda enquanto não acabou. É o que
     # deixa o processo do Shiny livre entre passos — a sessão responde a ops
@@ -307,6 +348,7 @@ tr_server <- function(project, flow = "main",
                                                        simplifyVector = FALSE)))
       }
       if (autosave) save_now(res$doc)
+      if (.tr_op_toca_galeria(res$op)) galeria_sync()
       if (isTRUE(res$semantic)) {
         # O estado do run anterior não vale mais: sem isto, `result` logo após
         # a op devolveria o resultado velho como se fosse o novo.
@@ -317,6 +359,23 @@ tr_server <- function(project, flow = "main",
     }
 
     shiny::observeEvent(input$tr_op, aplicar(input$tr_op))
+
+    # PNG de um item de galeria que não é imagem (tabela, texto), fotografado
+    # pelo navegador. A key mandada tem de ser a do resultado atual: captura
+    # de um resultado já superado é descartada calada.
+    shiny::observeEvent(input$tr_galeria_captura, {
+      m <- input$tr_galeria_captura
+      if (!is.character(m$node) || length(m$node) != 1L || !is.character(m$png)) return()
+      proj <- rv_project()
+      hs <- galeria_handles()
+      if (!identical(hs[[m$node]]$key, m$key)) return()
+      ok <- tryCatch({
+        tr_galeria_captura(proj$root, proj$store, proj$registry, rv_doc(), proj$settings, hs,
+                           node = m$node, key = m$key, png = m$png)
+        TRUE
+      }, error = avisar(FALSE))
+      if (isTRUE(ok)) galeria_sync()
+    })
 
     # Colar/arrastar/importar template. O front só detectou a marca; parse,
     # remoção de dados e ids novos são daqui. Entra como um `batch` comum pelo
@@ -507,8 +566,8 @@ tr_server <- function(project, flow = "main",
     }
     desfazer <- function() historia("desfazer")
 
-    shiny::observeEvent(input$tr_undo, desfazer())
-    shiny::observeEvent(input$tr_redo, historia("refazer"))
+    shiny::observeEvent(input$tr_undo, { desfazer(); galeria_sync() })
+    shiny::observeEvent(input$tr_redo, { historia("refazer"); galeria_sync() })
 
     # `seq` pelo mesmo motivo de `tr_op`: `input$x` ignora valor idêntico
     # consecutivo, e entrar numa pasta, voltar e entrar de novo manda o mesmo
@@ -590,9 +649,12 @@ tr_server <- function(project, flow = "main",
       ok <- tryCatch({
         .tr_check_marca(m$marca)
         if (!is.null(m$sugestoes)) .tr_check_marca(m$sugestoes, campo = "sugestoes")
+        # `galeria` segue a regra de `sugestoes`: ausente = não mexa.
+        if (!is.null(m$galeria)) .tr_galeria_cfg(m$galeria)
         tr_project_set_themes(raiz, m$temas, m$tema_padrao)
         tr_project_set_marca(raiz, mostrar = m$marca)
         if (!is.null(m$sugestoes)) tr_project_set_sugestoes(raiz, ligar = m$sugestoes)
+        if (!is.null(m$galeria)) tr_project_set_galeria(raiz, m$galeria)
         TRUE
       }, error = avisar(FALSE))
       # Falha na RELEITURA também vira aviso, e não silêncio: sem isto o painel
@@ -601,6 +663,7 @@ tr_server <- function(project, flow = "main",
       s <- tryCatch(.tr_settings_at(raiz), error = avisar())
       if (!is.null(s)) { p <- rv_project(); p$settings <- s; rv_project(p) }
       enviar_temas()
+      galeria_sync()
       if (isTRUE(ok)) run_now(rv_doc())
     })
 

@@ -121,7 +121,40 @@
   # coluna ao conectar, marcando-os "sugerido".
   list(temas = temas, tema_padrao = padrao,
        marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"),
-       sugestoes = .tr_check_marca(cfg$sugestoes %||% TRUE, " em trama.json", campo = "sugestoes"))
+       sugestoes = .tr_check_marca(cfg$sugestoes %||% TRUE, " em trama.json", campo = "sugestoes"),
+       galeria = .tr_galeria_cfg(cfg$galeria))
+}
+
+#' Configuração da galeria em `trama.json` (chave `galeria`). Campo ausente
+#' vale o padrão: pasta `gallery/` relativa ao projeto, imagens entram
+#' sozinhas, PNG a 300 dpi.
+#' @noRd
+.tr_galeria_cfg <- function(g) {
+  g <- g %||% list()
+  ruim <- function(campo, esperado) rlang::abort(
+    sprintf("galeria.%s em trama.json deve ser %s.", campo, esperado), class = "tr_error_bad_theme")
+  pasta <- g$pasta %||% "gallery"
+  if (!is.character(pasta) || length(pasta) != 1L || is.na(pasta) || !nzchar(trimws(pasta)))
+    ruim("pasta", "um caminho não vazio")
+  # A galeria apaga da pasta o que o próprio manifesto dela lista. Relativa,
+  # então, não pode sair do projeto nem ser a raiz ou uma pasta do trama — um
+  # `.galeria.json` trazido junto num projeto compartilhado apagaria
+  # `trama.json` ou os fluxos. Absoluta vale: é escolha explícita de quem
+  # configura (uma pasta sincronizada, por exemplo).
+  partes <- strsplit(gsub("\\\\", "/", trimws(pasta)), "/", fixed = TRUE)[[1]]
+  partes <- partes[nzchar(partes) & partes != "."]
+  if (!grepl("^(/|[A-Za-z]:)", trimws(pasta)) &&
+      (!length(partes) || ".." %in% partes || partes[[1]] %in% c("flows", ".trama")))
+    ruim("pasta", "uma subpasta do projeto (sem '..', diferente da raiz, de flows/ e de .trama/) ou um caminho absoluto")
+  imagens <- g$imagens %||% TRUE
+  if (!is.logical(imagens) || length(imagens) != 1L || is.na(imagens)) ruim("imagens", "true ou false")
+  formato <- g$formato %||% "png"
+  if (!is.character(formato) || length(formato) != 1L || !formato %in% c("png", "jpeg", "tiff"))
+    ruim("formato", "png, jpeg ou tiff")
+  dpi <- g$dpi %||% 300
+  if (!is.numeric(dpi) || length(dpi) != 1L || is.na(dpi) || dpi < 72 || dpi > 1200)
+    ruim("dpi", "um número entre 72 e 1200")
+  list(pasta = trimws(pasta), imagens = imagens, formato = formato, dpi = as.numeric(dpi))
 }
 
 #' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
@@ -277,6 +310,24 @@ tr_project_set_sugestoes <- function(root, ligar) {
   invisible(.tr_settings_at(raiz))
 }
 
+#' Grava a configuração da galeria (`galeria` em `trama.json`).
+#'
+#' Mesmo molde de `tr_project_set_sugestoes()`: valida antes de abrir o
+#' arquivo e mexe só na chave `galeria`. Campo ausente em `galeria` vale o
+#' padrão (pasta `gallery`, imagens entram sozinhas, PNG a 300 dpi).
+#' @param root Pasta do projeto (precisa ter `trama.json`).
+#' @param galeria Lista com `pasta`, `imagens`, `formato` e `dpi`.
+#' @return Os settings do projeto já com a galeria nova, invisível.
+#' @export
+tr_project_set_galeria <- function(root, galeria) {
+  .tr_check_project(root)
+  raiz <- normalizePath(root, mustWork = TRUE)
+  g <- .tr_galeria_cfg(galeria)
+  .tr_cfg_rewrite(file.path(raiz, "trama.json"), "a galeria",
+                  function(cfg) { cfg$galeria <- g; cfg })
+  invisible(.tr_settings_at(raiz))
+}
+
 #' Settings como estão NO ARQUIVO, e não como a sessão acha que estão.
 #'
 #' Existe para quem acabou de gravar (ou tentou gravar) e precisa devolver a
@@ -308,7 +359,8 @@ tr_project_set_sugestoes <- function(root, ligar) {
   list(temas = lapply(settings$temas, function(t) { t$paleta <- I(t$paleta); t }),
        tema_padrao = settings$tema_padrao,
        marca = settings$marca,
-       sugestoes = settings$sugestoes %||% TRUE)
+       sugestoes = settings$sugestoes %||% TRUE,
+       galeria = settings$galeria %||% .tr_galeria_cfg(NULL))
 }
 
 #' Resolve um tema pelo nome, fora de um projeto.

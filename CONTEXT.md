@@ -19,3 +19,6 @@
 | Ajuste | Papel do bloco que constrói um objeto de análise (modelo, decomposição, PCA). |
 | Leitura | Papel do bloco que lê um ajuste já existente (quadro da ANOVA, coeficientes, previsões). Não é "análise" genérica: sem ajuste de onde sair, o bloco é inspeção. |
 | Tomada | A porta do card como aparece no canvas; a cor dela é a do tipo que passa pelo fio. |
+| Galeria | As imagens da análise num rolo (G) e numa pasta do projeto (`gallery/` por padrão), uma por card, sempre na versão atual e em qualidade de publicação. Gráficos entram sozinhos; outros cards entram marcados (☆). |
+| Bifurcar | Copiar um card e tudo o que vem depois dele, pendurado nas mesmas entradas, para ver o que muda quando só aquela decisão difere. A cópia forma um **ramo** (A é o original; B, C… as cópias). |
+| Gêmeo | O correspondente de um card num outro ramo. Gêmeos espelham params: mudar um muda os outros, exceto no card onde a decisão difere e nas cópias desligadas (clique no selo ⑂). |

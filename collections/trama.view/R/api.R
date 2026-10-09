@@ -65,9 +65,22 @@ tr_view_render <- function(p, ctx) {
   # 3.4 esse JÁ é o default do `ggsave`, então nem o tema futuro que não
   # pinte fundo precisaria dele. Argumento que não muda nada é pior que
   # ausente: o próximo leitor gasta tempo procurando o efeito.
+  #
+  # `ctx$qualidade` é a galeria pedindo o MESMO gráfico em qualidade de
+  # publicação (dpi e formato de `trama.json`); sem ela, é o preview do card.
+  q <- ctx$qualidade
+  if (is.null(q)) {
+    ggplot2::ggsave(f, plot = p, width = d[[1]], height = d[[2]], units = "in",
+                    dpi = 200, device = ragg::agg_png)
+    return(trama::tr_preview("trama/image", files = list(png = f)))
+  }
+  formato <- q$formato %||% "png"
+  dev <- switch(formato, png = ragg::agg_png, jpeg = ragg::agg_jpeg, tiff = ragg::agg_tiff,
+                rlang::abort(sprintf("Formato de galeria desconhecido: '%s'.", formato)))
+  f <- ctx$file(formato)
   ggplot2::ggsave(f, plot = p, width = d[[1]], height = d[[2]], units = "in",
-                  dpi = 200, device = ragg::agg_png)
-  trama::tr_preview("trama/image", files = list(png = f))
+                  dpi = q$dpi %||% 300, device = dev)
+  trama::tr_preview("trama/image", files = stats::setNames(list(f), formato))
 }
 
 #' A seção "Aparência" da ajuda, comum a todo gráfico.

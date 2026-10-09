@@ -131,6 +131,26 @@
             "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4
           }
         },
+        "galeria": {
+          "description": "Marca de galeria por card: true entra, false sai. Ausente = regra do projeto (imagens entram sozinhas se `galeria.imagens` em trama.json).",
+          "type": "object",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "ramos": {
+          "description": "Ramos de bifurcação. `pares` mapeia card original -> cópia; o editor espelha params entre gêmeos, exceto no par de `origem` (a decisão que difere) e nas cópias em `desligados`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["letra", "origem", "pares"],
+            "properties": {
+              "letra": { "type": "string" },
+              "origem": { "type": "string" },
+              "pares": { "type": "object", "additionalProperties": { "type": "string" } },
+              "desligados": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          }
+        },
         "folds": {
           "description": "Partes recolhidas/expandidas de cada card. Chave ausente = preview e params abertos, mini desligado.",
           "type": "object",

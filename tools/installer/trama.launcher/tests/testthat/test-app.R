@@ -320,3 +320,93 @@ test_that("token sem /dev/urandom e com tempos-filho NA (o Windows) não derruba
   expect_length(b, 24L)
   expect_true(all(b >= 0L & b <= 255L))
 })
+
+test_that("preferência de galeria vai para o estado e para o trama.json de projeto novo", {
+  base <- local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+
+  shiny::testServer(tl_server, {
+    session$setInputs(tl_galeria_padrao = list(pasta = "  figuras  "))
+    session$setInputs(
+      tl_novo_projeto_nome = "com-preferencia",
+      tl_novo_projeto_colecoes = list("trama.data")
+    )
+    session$setInputs(tl_novo_projeto = 1)
+  })
+
+  expect_equal(tl_state_read()$galeria_pasta, "figuras")
+  cfg <- jsonlite::fromJSON(file.path(base, "com-preferencia", "trama.json"), simplifyVector = FALSE)
+  expect_equal(cfg$galeria$pasta, "figuras")
+})
+
+test_that("sem preferência de galeria, projeto novo não grava galeria", {
+  base <- local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+
+  shiny::testServer(tl_server, {
+    session$setInputs(
+      tl_novo_projeto_nome = "sem-preferencia",
+      tl_novo_projeto_colecoes = list("trama.data")
+    )
+    session$setInputs(tl_novo_projeto = 1)
+  })
+
+  expect_equal(tl_state_read()$galeria_pasta, "")
+  cfg <- jsonlite::fromJSON(file.path(base, "sem-preferencia", "trama.json"), simplifyVector = FALSE)
+  expect_null(cfg$galeria)
+})
+
+test_that("limpar a preferência de galeria volta ao padrão (vazio)", {
+  local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_state_write(list(atual = "", anteriores = character(0), colecoes = character(0),
+                      recentes = character(0), galeria_pasta = "figuras"))
+
+  shiny::testServer(tl_server, {
+    session$setInputs(tl_galeria_padrao = list(pasta = ""))
+  })
+
+  expect_equal(tl_state_read()$galeria_pasta, "")
+})
+
+test_that("trocar a galeria de um projeto existente preserva o resto do trama.json", {
+  base <- local_home_e_projetos()
+  testthat::local_mocked_bindings(
+    tl_install_pkgs = fake_install_ok,
+    tl_manifest_fetch = manifesto_teste
+  )
+  tl_install_release(manifesto_teste(), colecoes = character(0))
+  caminho <- tl_project_new("galeria-existente")
+  writeLines(
+    jsonlite::toJSON(list(
+      collections = list("trama.data", "trama.view"),
+      settings = list(tema = "escuro"),
+      galeria = list(imagens = TRUE, formato = "png", dpi = 300)
+    ), auto_unbox = TRUE, pretty = TRUE),
+    file.path(caminho, "trama.json")
+  )
+
+  shiny::testServer(tl_server, {
+    session$setInputs(tl_salvar_galeria_projeto = list(caminho = caminho, pasta = "figuras/pesquisa"))
+  })
+
+  cfg <- jsonlite::fromJSON(file.path(caminho, "trama.json"), simplifyVector = FALSE)
+  expect_equal(cfg$galeria$pasta, "figuras/pesquisa")
+  expect_equal(cfg$galeria$imagens, TRUE)
+  expect_equal(cfg$galeria$formato, "png")
+  expect_equal(cfg$galeria$dpi, 300)
+  expect_equal(cfg$settings$tema, "escuro")
+  expect_equal(unlist(cfg$collections), c("trama.data", "trama.view"))
+  expect_equal(tl_project_galeria(caminho), "figuras/pesquisa")
+})

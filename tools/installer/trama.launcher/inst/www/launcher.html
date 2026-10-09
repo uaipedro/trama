@@ -137,6 +137,14 @@
           </div>
           <button type="button" class="tl-btn" id="tl-btn-abrir-pasta">Abrir pasta…</button>
         </div>
+        <div class="tl-form-row">
+          <div class="tl-campo">
+            <label for="tl-galeria-padrao">Pasta da galeria em projetos novos</label>
+            <input type="text" id="tl-galeria-padrao" autocomplete="off" placeholder="gallery">
+          </div>
+          <button type="button" class="tl-btn" id="tl-btn-galeria-padrao">Salvar</button>
+        </div>
+        <p class="tl-dim">Onde as imagens das análises são salvas. Vazio = gallery. Pode ser relativa ao projeto ou um caminho absoluto. Vale para projetos criados daqui em diante; cada projeto pode ter a sua (botão Galeria na lista).</p>
         <div id="tl-lista-projetos-full" class="tl-lista-projetos"></div>
       </section>
 
@@ -237,6 +245,24 @@
     <div class="tl-modal-acoes">
       <button type="button" class="tl-btn" data-fechar-modal>Cancelar</button>
       <button type="button" class="tl-btn tl-btn-primario" id="tl-modal-colecoes-salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="tl-modal-galeria-projeto" class="tl-modal-camada" hidden>
+  <div class="tl-modal" role="dialog" aria-modal="true" aria-labelledby="tl-modal-galeria-titulo">
+    <button type="button" class="tl-modal-fechar" data-fechar-modal aria-label="Fechar">
+      <svg class="tl-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <h2 id="tl-modal-galeria-titulo">Galeria do projeto</h2>
+    <p class="tl-modal-sub" id="tl-modal-galeria-sub"></p>
+    <div class="tl-modal-campo">
+      <label for="tl-modal-galeria-pasta">Pasta da galeria</label>
+      <input type="text" id="tl-modal-galeria-pasta" autocomplete="off">
+    </div>
+    <div class="tl-modal-acoes">
+      <button type="button" class="tl-btn" data-fechar-modal>Cancelar</button>
+      <button type="button" class="tl-btn tl-btn-primario" id="tl-modal-galeria-salvar">Salvar</button>
     </div>
   </div>
 </div>

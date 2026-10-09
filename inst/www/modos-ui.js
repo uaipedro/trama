@@ -189,7 +189,25 @@ export function ParamsModal({ node, categories, preview, onClose }) {
 // conteúdo vem do renderer: `expand` quando ele declara, senão a vista atual
 // do card, maior. Funciona com o card em mini, porque não depende do preview
 // estar montado no card.
-export function Vista({ node, assetUrl, onClose }) {
+// Corpo da Vista de UM card: `expand` quando o renderer declara, senão a
+// vista atual do card, maior.
+function corpoDaVista(node, assetUrl) {
+  const hd = node.data.handle;
+  const art = hd?.preview;
+  const r = art && getRenderer(art.renderer);
+  const label = node.data.label || node.data.spec?.label;
+  if (!r) return h("div", { className: "tr-empty" }, "sem preview");
+  if (r.expand) return h(r.expand, { artifact: art, handle: hd, assetUrl, label });
+  const views = getViews(art.renderer, hd);
+  const v = views.find((v) => v.id === node.data.view) || views[0];
+  return h("div", { className: "tr-vista-corpo" },
+    v ? h(v.component, { artifact: art, handle: hd, assetUrl, label }) : null);
+}
+
+// `ramos`: o card tem gêmeos em ramos bifurcados. Aí a Vista mostra um
+// painel por ramo, lado a lado (`[{ letra, node }]`, o próprio card
+// incluído), e `difere` diz qual decisão separa os ramos.
+export function Vista({ node, assetUrl, onClose, ramos = null, difere = null }) {
   React.useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape" || e.key === "p" || e.key === "P") { e.preventDefault(); onClose(); }
@@ -198,35 +216,37 @@ export function Vista({ node, assetUrl, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const hd = node.data.handle;
-  const art = hd?.preview;
-  const r = art && getRenderer(art.renderer);
-  const label = node.data.label || node.data.spec?.label;
-
-  let corpo;
-  if (!r) {
-    corpo = h("div", { className: "tr-empty" }, "sem preview");
-  } else if (r.expand) {
-    corpo = h(r.expand, { artifact: art, handle: hd, assetUrl, label });
+  const art = node.data.handle?.preview;
+  let conteudo;
+  if (ramos && ramos.length > 1) {
+    conteudo = h("div", { key: "c", className: "tr-abnt-panel tr-modal tr-vista-ramos",
+                          onClick: (e) => e.stopPropagation() }, [
+      h("div", { key: "g", className: "tr-vista-ramos-grade",
+                 style: { "--tr-ramos": ramos.length } },
+        ramos.map((r) => h("section", { key: r.node.id, className: "tr-vista-ramo" + (r.node.id === node.id ? " tr-vista-ramo-atual" : "") }, [
+          h("header", { key: "h", className: "tr-vista-ramo-cab" }, [
+            h("span", { key: "s", className: "tr-selo-ramo" }, "⑂ " + r.letra),
+            h("span", { key: "l" }, r.node.data.label || r.node.data.spec?.label || ""),
+          ]),
+          h("div", { key: "b", className: "tr-vista-ramo-corpo" }, corpoDaVista(r.node, assetUrl)),
+        ]))),
+      difere ? h("p", { key: "d", className: "tr-vista-difere" }, "difere: " + difere) : null,
+    ]);
   } else {
-    const views = getViews(art.renderer, hd);
-    const v = views.find((v) => v.id === node.data.view) || views[0];
-    corpo = h("div", { className: "tr-vista-corpo" },
-      v ? h(v.component, { artifact: art, handle: hd, assetUrl, label }) : null);
+    // Imagem crua (renderer `trama/image`) já vem com a classe `tr-lightbox-img`
+    // do lightbox — empacotar de novo num painel ABNT poria fundo e rolagem
+    // onde a imagem já cuida de proporção sozinha (`object-fit`). Todo outro
+    // renderer entra no mesmo painel do overlay ABNT (`tr-abnt-panel`), que já
+    // dá fundo e rolagem a uma vista maior que o card.
+    const corpo = corpoDaVista(node, assetUrl);
+    conteudo = art?.renderer === "trama/image"
+      ? h("div", { key: "c", className: "tr-modal", onClick: (e) => e.stopPropagation() }, corpo)
+      : h("div", { key: "c", className: "tr-abnt-panel tr-modal", onClick: (e) => e.stopPropagation() }, corpo);
   }
-
-  // Imagem crua (renderer `trama/image`) já vem com a classe `tr-lightbox-img`
-  // do lightbox — empacotar de novo num painel ABNT poria fundo e rolagem
-  // onde a imagem já cuida de proporção sozinha (`object-fit`). Todo outro
-  // renderer entra no mesmo painel do overlay ABNT (`tr-abnt-panel`), que já
-  // dá fundo e rolagem a uma vista maior que o card.
-  const conteudo = art?.renderer === "trama/image"
-    ? h("div", { key: "c", className: "tr-modal", onClick: (e) => e.stopPropagation() }, corpo)
-    : h("div", { key: "c", className: "tr-abnt-panel tr-modal", onClick: (e) => e.stopPropagation() }, corpo);
 
   return ReactDOM.createPortal(
     h("div", { className: "tr-lightbox", role: "dialog", onClick: onClose }, [
-      h("button", { key: "x", className: "tr-lightbox-close", title: "fechar (Esc ou V)",
+      h("button", { key: "x", className: "tr-lightbox-close", title: "fechar (Esc ou P)",
                     onClick: (e) => { e.stopPropagation(); onClose(); } }, "×"),
       conteudo,
     ]), document.body);
