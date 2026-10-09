@@ -1,0 +1,78 @@
+{
+ "duracao": 26.4,
+ "narracaoEm": 0.5,
+ "fechaEm": 18.35,
+ "fecha": {
+  "x": 288,
+  "y": 347.20001220703125,
+  "w": 384,
+  "h": 385.5999755859375,
+  "escala": 1.0
+ },
+ "chat": [
+  {
+   "tipo": "pedido",
+   "t": 0.2,
+   "texto": "Tenho um experimento em blocos casualizados: 4 blocos, adubo (A1, A2, A3) e irrigação (sem, com), 3 repetições do fatorial por bloco, resposta produção em t/ha. Simule dados plausíveis no trama e monte a análise: ANOVA fatorial, quadro, médias de adubo dentro de cada irrigação com Tukey e o gráfico. Depois me diga em duas frases o que concluir."
+  },
+  {
+   "tipo": "tool",
+   "t": 1.2,
+   "nome": "catalogo",
+   "alvo": "simular · dbc · anova · exemplo · tukey · desdobramento · gerar"
+  },
+  {
+   "tipo": "tool",
+   "t": 1.9,
+   "nome": "explicar",
+   "alvo": "data/generate · models/anova_factorial · models/emmeans"
+  },
+  {
+   "tipo": "tool",
+   "t": 2.87,
+   "fim": 4.91,
+   "nome": "adicionar",
+   "alvo": "dados  data/generate"
+  },
+  {
+   "tipo": "tool",
+   "t": 6.31,
+   "fim": 7.31,
+   "nome": "adicionar",
+   "alvo": "anova  models/anova_factorial"
+  },
+  {
+   "tipo": "tool",
+   "t": 8.71,
+   "fim": 9.44,
+   "nome": "adicionar",
+   "alvo": "quadro  models/anova_table"
+  },
+  {
+   "tipo": "tool",
+   "t": 10.84,
+   "fim": 14.19,
+   "nome": "adicionar",
+   "alvo": "tukey  models/emmeans"
+  },
+  {
+   "tipo": "tool",
+   "t": 15.59,
+   "fim": 15.97,
+   "nome": "resultado",
+   "alvo": "quadro"
+  },
+  {
+   "tipo": "tool",
+   "t": 17.37,
+   "fim": 17.75,
+   "nome": "resultado",
+   "alvo": "tukey"
+  },
+  {
+   "tipo": "resposta",
+   "t": 18.35,
+   "texto": "A interação adubo × irrigação é significativa. Por isso o efeito do adubo depende da água: só com irrigação a produção sobe de A1 para A2 e para A3, e sem irrigação os três adubos são estatisticamente iguais (média ≈ 4,3 t/ha). Em termos práticos, o adubo só compensa se houver irrigação, e a irrigação sozinha já responde pela maior parte da variação (SQ = 82,5, mais da metade do total)."
+  }
+ ]
+}

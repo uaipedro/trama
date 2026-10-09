@@ -8,6 +8,8 @@ const QUER = [
   "file-spreadsheet", "list-filter", "sigma", "combine", "clipboard-list",
   // vídeo da coleção `models`
   "database", "grid-3x3", "sheet", "chart-column", "git-compare",
+  // apresentação (fatorial)
+  "dices", "grid-2x2",
   // cromo do card e das cenas
   "chevron-down", "table", "package", "git-branch",
 ];

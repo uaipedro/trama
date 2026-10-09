@@ -30,8 +30,11 @@ for (passo in fluxo$passos) {
     http("POST", "/cmd", list(cmd = "rm", node = passo$id))
   }
 }
-# Cada passo é o corpo de um POST /cmd (`add`, `set`, `link`), igual ao CLI.
-for (passo in fluxo$passos) http("POST", "/cmd", passo)
+# Cada passo é o corpo de um POST /cmd (`add`, `set`, `link`), igual ao CLI;
+# passo com `op` vai cru para /op (ex.: `set_seed`, para repetir uma sessão).
+for (passo in fluxo$passos) {
+  if (!is.null(passo$op)) http("POST", "/op", list(op = passo)) else http("POST", "/cmd", passo)
+}
 
 png_dir <- file.path("public", "capturas", id)
 dir.create(png_dir, recursive = TRUE, showWarnings = FALSE)

@@ -15,6 +15,8 @@ import {
 } from "./scenes/SiteVerticalDivulgacao";
 
 import { Composicoes } from "./motor/Composicoes";
+import { AgenteAoVivo, DURACAO_AGENTE } from "./apresentacao/AgenteAoVivo";
+import { DURACAO_A, VisualMultiplo } from "./apresentacao/VisualMultiplo";
 import { ROTEIROS } from "./roteiros";
 
 carregarFontes();
@@ -23,6 +25,11 @@ export const Root: React.FC = () => (
   <>
     {/* Os vídeos feitos por roteiro (`src/roteiros/`): 4:3, vertical e stills. */}
     <Composicoes roteiros={ROTEIROS} />
+    {/* Segmentos da apresentação (`src/apresentacao/`). */}
+    <Composition id="ApresentacaoSegA" component={VisualMultiplo}
+      durationInFrames={DURACAO_A} fps={30} width={1440} height={1080} />
+    <Composition id="ApresentacaoF" component={AgenteAoVivo}
+      durationInFrames={DURACAO_AGENTE} fps={30} width={1440} height={1080} />
     <Composition
       id="TramaDemo"
       component={TramaDemo}

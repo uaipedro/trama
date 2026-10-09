@@ -1,0 +1,76 @@
+{
+ "id": "apresentacao-fatorial",
+ "passos": [
+  {
+   "cmd": "add",
+   "type": "data/generate",
+   "id": "dados",
+   "params": {
+    "n": 72,
+    "expr": "bloco = rep(paste0('B', 1:4), each = 18), adubo = rep(rep(c('A1','A2','A3'), each = 6), 4), irrigacao = rep(rep(rep(c('sem','com'), each = 3), 3), 4), producao = round(c(sem.A1 = 4.0, sem.A2 = 4.3, sem.A3 = 4.5, com.A1 = 5.0, com.A2 = 6.2, com.A3 = 7.4)[paste(rep(rep(rep(c('sem','com'), each = 3), 3), 4), rep(rep(c('A1','A2','A3'), each = 6), 4), sep = '.')] + c(-0.4, -0.1, 0.2, 0.3)[rep(1:4, each = 18)] + rnorm(n, 0, 0.5), 2)"
+   },
+   "label": "Dados simulados"
+  },
+  {
+   "op": "set_seed",
+   "node": "dados",
+   "value": 6467742
+  },
+  {
+   "cmd": "add",
+   "type": "models/anova_factorial",
+   "id": "anova",
+   "params": {
+    "resposta": "producao",
+    "fatores": "adubo, irrigacao",
+    "bloco": "bloco"
+   },
+   "from": [
+    "dados"
+   ]
+  },
+  {
+   "op": "set_seed",
+   "node": "anova",
+   "value": 225845347
+  },
+  {
+   "cmd": "add",
+   "type": "models/anova_table",
+   "id": "quadro",
+   "params": {},
+   "from": [
+    "anova"
+   ]
+  },
+  {
+   "op": "set_seed",
+   "node": "quadro",
+   "value": 182262352
+  },
+  {
+   "cmd": "add",
+   "type": "models/emmeans",
+   "id": "tukey",
+   "params": {
+    "especs": "adubo",
+    "por": "irrigacao",
+    "ajuste": "tukey"
+   },
+   "from": [
+    "anova"
+   ]
+  },
+  {
+   "op": "set_seed",
+   "node": "tukey",
+   "value": 51293926
+  }
+ ],
+ "capturar": [
+  "dados",
+  "anova",
+  "quadro",
+  "tukey"
+ ]
+}

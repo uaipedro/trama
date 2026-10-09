@@ -107,13 +107,14 @@ const CardModelo: React.FC<{ modelo: CardDeModelo; desde: number }> = ({ modelo,
         <Destaque key={d.rotulo} {...d} desde={desde + 4 + i * 3} />
       ))}
     </div>
-    <div className="tr-mf-global">
+    {/* Modelo sem teste global (ANOVA fatorial) não tem a faixa, como no editor. */}
+    {modelo.global && <div className="tr-mf-global">
       <div className="tr-mt-topo">
         <span className="tr-mt-rotulo">{`${modelo.global.rotulo} · p = ${num(modelo.global.p)}`}</span>
         <Estrelas est={estrelas(modelo.global.p)} />
       </div>
       <Regua p={modelo.global.p} mini desde={desde + 8} />
-    </div>
+    </div>}
   </div>
 );
 

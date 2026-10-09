@@ -1,5 +1,6 @@
 // Todos os roteiros. Um roteiro novo entra aqui e ganha, sozinho, as
 // composições `<id>`, `<id>-vertical` e um still por plano `still`.
 import { anovaModos } from "./anova-modos";
+import { apresentacaoA } from "./apresentacao-a";
 
-export const ROTEIROS = [anovaModos];
+export const ROTEIROS = [anovaModos, apresentacaoA];

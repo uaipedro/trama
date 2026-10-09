@@ -1,0 +1,930 @@
+{
+  "id": "apresentacao-fatorial",
+  "trama": "0.5.13",
+  "capturado_em": "2026-10-08",
+  "nos": {
+    "dados": {
+      "catalogo": {
+        "id": "data/generate",
+        "label": "Gerar dados",
+        "category": "source",
+        "version": 1,
+        "description": "Fabrica uma tabela a partir de expressões R, com semente própria.",
+        "help": "## Uso principal\n\nGera uma tabela a partir de expressões R, com semente para reprodução.\n\n## Exemplo curto\n\n`n: 100`; `x = rnorm(n)`\n\n## Usos relacionados\n\n`data/summary` descreve o resultado; `view/points` mostra duas variáveis geradas.",
+        "stochastic": true,
+        "icon": {
+          "kind": "set",
+          "value": "dices"
+        },
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "out",
+            "type": "data/table",
+            "required": true
+          }
+        ],
+        "params": [
+          {
+            "name": "n",
+            "kind": "integer",
+            "default": 100,
+            "label": "Tamanho (n)",
+            "min": 1
+          },
+          {
+            "name": "expr",
+            "kind": "expr",
+            "default": "x = rnorm(n)",
+            "label": "Colunas",
+            "example": "x = rnorm(n), y = 2 * x + rnorm(n, 0, 0.5)"
+          }
+        ],
+        "pressupostos": [],
+        "referencias": []
+      },
+      "params": {
+        "n": 72,
+        "expr": "bloco = rep(paste0('B', 1:4), each = 18), adubo = rep(rep(c('A1','A2','A3'), each = 6), 4), irrigacao = rep(rep(rep(c('sem','com'), each = 3), 3), 4), producao = round(c(sem.A1 = 4.0, sem.A2 = 4.3, sem.A3 = 4.5, com.A1 = 5.0, com.A2 = 6.2, com.A3 = 7.4)[paste(rep(rep(rep(c('sem','com'), each = 3), 3), 4), rep(rep(c('A1','A2','A3'), each = 6), 4), sep = '.')] + c(-0.4, -0.1, 0.2, 0.3)[rep(1:4, each = 18)] + rnorm(n, 0, 0.5), 2)"
+      },
+      "resultado": {
+        "status": "cached",
+        "outputs": {
+          "out": {
+            "type": "data/table",
+            "summary": {
+              "linhas": 72,
+              "colunas": 4,
+              "nomes": "bloco, adubo, irrigacao, producao"
+            },
+            "schema": {
+              "colunas": [
+                {
+                  "nome": "bloco",
+                  "papel": "categorica",
+                  "classe": "character",
+                  "n_distintos": 4,
+                  "tem_na": false
+                },
+                {
+                  "nome": "adubo",
+                  "papel": "categorica",
+                  "classe": "character",
+                  "n_distintos": 3,
+                  "tem_na": false
+                },
+                {
+                  "nome": "irrigacao",
+                  "papel": "categorica",
+                  "classe": "character",
+                  "n_distintos": 2,
+                  "tem_na": false
+                },
+                {
+                  "nome": "producao",
+                  "papel": "numerica",
+                  "classe": "numeric",
+                  "n_distintos": 68,
+                  "tem_na": false
+                }
+              ],
+              "truncado": false,
+              "amostra": false
+            },
+            "preview": {
+              "renderer": "data/table",
+              "data": {
+                "columns": [
+                  "bloco",
+                  "adubo",
+                  "irrigacao",
+                  "producao"
+                ],
+                "rows": [
+                  {
+                    "bloco": "B1",
+                    "adubo": "A1",
+                    "irrigacao": "sem",
+                    "producao": 4.04
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A1",
+                    "irrigacao": "sem",
+                    "producao": 2.99
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A1",
+                    "irrigacao": "sem",
+                    "producao": 3.8
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A1",
+                    "irrigacao": "com",
+                    "producao": 5.38
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A1",
+                    "irrigacao": "com",
+                    "producao": 4.31
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A1",
+                    "irrigacao": "com",
+                    "producao": 4.41
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A2",
+                    "irrigacao": "sem",
+                    "producao": 3.56
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A2",
+                    "irrigacao": "sem",
+                    "producao": 3.22
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A2",
+                    "irrigacao": "sem",
+                    "producao": 4.6
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A2",
+                    "irrigacao": "com",
+                    "producao": 5.41
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A2",
+                    "irrigacao": "com",
+                    "producao": 6.39
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A2",
+                    "irrigacao": "com",
+                    "producao": 6.08
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A3",
+                    "irrigacao": "sem",
+                    "producao": 4.75
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A3",
+                    "irrigacao": "sem",
+                    "producao": 4.64
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A3",
+                    "irrigacao": "sem",
+                    "producao": 3.72
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A3",
+                    "irrigacao": "com",
+                    "producao": 7.37
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A3",
+                    "irrigacao": "com",
+                    "producao": 6.71
+                  },
+                  {
+                    "bloco": "B1",
+                    "adubo": "A3",
+                    "irrigacao": "com",
+                    "producao": 6.07
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A1",
+                    "irrigacao": "sem",
+                    "producao": 4.45
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A1",
+                    "irrigacao": "sem",
+                    "producao": 3.81
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A1",
+                    "irrigacao": "sem",
+                    "producao": 3.36
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A1",
+                    "irrigacao": "com",
+                    "producao": 4.87
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A1",
+                    "irrigacao": "com",
+                    "producao": 3.83
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A1",
+                    "irrigacao": "com",
+                    "producao": 5.06
+                  },
+                  {
+                    "bloco": "B2",
+                    "adubo": "A2",
+                    "irrigacao": "sem",
+                    "producao": 3.56
+                  }
+                ],
+                "nrow": 72,
+                "ncol": 4
+              },
+              "files": null
+            }
+          }
+        }
+      }
+    },
+    "anova": {
+      "catalogo": {
+        "id": "models/anova_factorial",
+        "label": "ANOVA · fatorial",
+        "category": "modelo_anova",
+        "version": 1,
+        "description": "Análise de variância de um fatorial com 2 ou 3 fatores, em DIC ou em blocos.",
+        "help": "## Descrição\n\nANOVA de um experimento fatorial: os tratamentos são as combinações de 2 ou 3\nfatores. Modelo com todas as interações — `resposta ~ A * B` ou\n`resposta ~ bloco + A * B * C`. Com **Bloco** em branco, o fatorial é em DIC.\n\n### Leia a interação primeiro\n\nInteração significativa quer dizer que o efeito de um fator DEPENDE do nível do\noutro. Nesse caso a média de um fator somada sobre o outro esconde o que\naconteceu, e o que se compara é o desdobramento: no `models/emmeans`, as médias\nde `A` com `B` em **Por**. Sem interação, cada fator se lê sozinho.\n\n### As colunas do desenho viram fator\n\nTratamento, bloco, linha e coluna entram como FATOR mesmo quando são números:\ndose 50/100/150 é tratamento com 2 graus de liberdade, e não uma reta. Para\na regressão da dose depois da ANOVA, ligue o modelo ao `models/polinomial`.\n\n### Faltantes\n\nLinhas com faltante nas colunas do modelo ficam FORA do ajuste, e o card diz\nquantas (`n = 38 (2 fora)`). As outras colunas da tabela não contam.\n\n## Parâmetros\n\n- **Resposta** — coluna numérica.\n- **Fatores** — 2 ou 3 colunas, separadas por vírgula.\n- **Bloco** — coluna do bloco; em branco, DIC.\n\n## Valor\n\nUm modelo (`models/fit`). A vista **efeitos** mostra os fatores e as interações\ncom a régua de cada um.\n\n## Exemplos\n\n```r\ntr_flow(reg) |>\n  tr_add(\"dentes\", \"models/example\", dataset = \"ToothGrowth\") |>\n  tr_add(\"fat\", \"models/anova_factorial\", resposta = \"len\", fatores = \"supp, dose\", from = \"dentes\") |>\n  tr_add(\"desdobra\", \"models/emmeans\", especs = \"dose\", por = \"supp\", from = \"fat\")\n```\n\n## Veja também\n\n`models/anova_table` (tipo II ou III no desbalanceado); `models/emmeans` para o\ndesdobramento; `models/anova_split_plot` quando um fator está na parcela e o\noutro na subparcela.",
+        "stochastic": false,
+        "icon": {
+          "kind": "set",
+          "value": "grid-2x2"
+        },
+        "inputs": [
+          {
+            "name": "dados",
+            "type": "data/table",
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": "out",
+            "type": "models/fit",
+            "required": true
+          }
+        ],
+        "params": [
+          {
+            "name": "resposta",
+            "kind": "cols",
+            "default": "",
+            "label": "Resposta",
+            "role": "numerica",
+            "multi": false,
+            "example": "len",
+            "suggest": true
+          },
+          {
+            "name": "fatores",
+            "kind": "cols",
+            "default": "",
+            "label": "Fatores (2 ou 3)",
+            "role": "categorica",
+            "multi": true,
+            "example": "supp, dose",
+            "suggest": true
+          },
+          {
+            "name": "bloco",
+            "kind": "cols",
+            "default": "",
+            "label": "Bloco (opcional)",
+            "role": "categorica",
+            "multi": false,
+            "example": "block",
+            "suggest": false
+          }
+        ],
+        "pressupostos": [
+          {
+            "texto": "Os tratamentos foram **sorteados** entre as combinações dos fatores (nas parcelas, ou dentro dos blocos), e cada parcela é uma unidade experimental independente.",
+            "se_falhar": "Não há teste para isso: é o planejamento que garante. Sem sorteio, o F não tem a interpretação causal do experimento."
+          },
+          {
+            "texto": "Com bloco: **aditividade** entre bloco e as combinações de tratamento.",
+            "verificar": [
+              "models/tukey_additivity"
+            ]
+          },
+          {
+            "texto": "Os **erros** (resíduos) são normais — não a resposta crua.",
+            "verificar": [
+              "models/shapiro_residuals",
+              "models/plot_diagnostics"
+            ],
+            "se_falhar": "Transforme a resposta (log, raiz) ou, para contagens e proporções, use o `models/glm`; não há teste por postos para este delineamento no trama (o `models/friedman` é só para o DBC de um fator)."
+          },
+          {
+            "texto": "A **variância do erro é a mesma** em todos os tratamentos (homocedasticidade).",
+            "verificar": [
+              "models/levene",
+              "models/plot_diagnostics"
+            ],
+            "se_falhar": "Transforme a resposta (o log quando a variância cresce com a média) ou use o `models/glm` com família gama."
+          },
+          {
+            "texto": "Todas as combinações dos fatores foram observadas; com parcelas perdidas, o quadro sequencial depende da ordem dos fatores.",
+            "verificar": [
+              "models/anova_table"
+            ],
+            "se_falhar": "No desbalanceado, leia o `models/anova_table` com SQ tipo II ou III e compare médias ajustadas no `models/emmeans`."
+          }
+        ],
+        "referencias": [
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Banzatto, D. A.",
+              "Kronka, S. N."
+            ],
+            "ano": 2006,
+            "titulo": "Experimentação agrícola",
+            "fonte": "4. ed. Jaboticabal: Funep"
+          },
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Pimentel-Gomes, F."
+            ],
+            "ano": 2009,
+            "titulo": "Curso de estatística experimental",
+            "fonte": "15. ed. Piracicaba: FEALQ"
+          },
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Montgomery, D. C."
+            ],
+            "ano": 2017,
+            "titulo": "Design and Analysis of Experiments",
+            "fonte": "9. ed. Hoboken: Wiley"
+          },
+          {
+            "papel": "implementacao",
+            "pacote": "stats",
+            "funcao": "aov",
+            "versao": "4.6.0",
+            "nota": "`aov` com os fatores do desenho convertidos em fator; o quadro é a soma de quadrados sequencial (tipo I), que no balanceado coincide com as outras."
+          }
+        ]
+      },
+      "params": {
+        "resposta": "producao",
+        "fatores": "adubo, irrigacao",
+        "bloco": "bloco"
+      },
+      "resultado": {
+        "status": "cached",
+        "outputs": {
+          "out": {
+            "type": "models/fit",
+            "summary": null,
+            "schema": null,
+            "preview": {
+              "renderer": "models/fit",
+              "data": {
+                "rotulo": "ANOVA · fatorial em DBC",
+                "formula": "producao ~ bloco + adubo * irrigacao",
+                "n": 72,
+                "descartadas": 0,
+                "nota": "",
+                "destaques": [
+                  {
+                    "rotulo": "R²",
+                    "valor": 0.863484916219418,
+                    "barra": true,
+                    "pct": false
+                  },
+                  {
+                    "rotulo": "R² aj.",
+                    "valor": 0.846149667485376,
+                    "barra": true,
+                    "pct": false
+                  },
+                  {
+                    "rotulo": "CV",
+                    "valor": 10.9798884077506,
+                    "barra": false,
+                    "pct": true
+                  },
+                  {
+                    "rotulo": "AIC",
+                    "valor": 137.372862431559,
+                    "barra": false,
+                    "pct": false
+                  }
+                ],
+                "global": null,
+                "efeitos_titulo": "Quadro da ANOVA · SQ tipo I",
+                "linhas": [
+                  {
+                    "termo": "bloco",
+                    "p": 5.1024468861707e-06,
+                    "estrelas": "***",
+                    "detalhe": "F 11,3"
+                  },
+                  {
+                    "termo": "adubo",
+                    "p": 2.49825535807051e-10,
+                    "estrelas": "***",
+                    "detalhe": "F 32,1"
+                  },
+                  {
+                    "termo": "irrigacao",
+                    "p": 3.08375382936839e-23,
+                    "estrelas": "***",
+                    "detalhe": "F 242"
+                  },
+                  {
+                    "termo": "adubo:irrigacao",
+                    "p": 9.3580420069685e-10,
+                    "estrelas": "***",
+                    "detalhe": "F 29,4"
+                  },
+                  {
+                    "termo": "Resíduo",
+                    "p": null,
+                    "estrelas": "",
+                    "detalhe": null
+                  },
+                  {
+                    "termo": "Total",
+                    "p": null,
+                    "estrelas": "",
+                    "detalhe": null
+                  }
+                ],
+                "forest": null
+              },
+              "files": null
+            }
+          }
+        }
+      }
+    },
+    "quadro": {
+      "catalogo": {
+        "id": "models/anova_table",
+        "label": "Quadro da ANOVA",
+        "category": "modelo_resumir",
+        "version": 2,
+        "description": "O quadro da análise de variância, com SQ tipo I, II ou III e a régua do p-valor por termo.",
+        "help": "## Descrição\n\nO quadro da ANOVA de qualquer modelo da coleção: graus de liberdade, somas e\nquadrados médios, F e p-valor por termo, com CV e média geral no rodapé.\n\n### Tipo de soma de quadrados\n\n- **I (sequencial)** — cada termo ajustado pelos que vêm ANTES dele na fórmula.\n  A ordem importa. É o quadro dos livros de experimentação.\n- **II** — cada termo ajustado por todos os outros que não o contêm. Testa os\n  efeitos principais sem supor que a interação é zero, e é o que se recomenda\n  quando não há interação.\n- **III** — cada termo ajustado por todos os outros, inclusive as interações. É\n  o do SAS. O bloco reajusta com contrastes de soma zero antes, que é o que faz\n  o tipo III testar o efeito na MÉDIA dos outros fatores, e não num nível de\n  referência.\n\nNo experimento balanceado os três coincidem. Só diferem quando falta parcela.\n\n### Por modelo\n\n- `lm` e delineamentos: F.\n- GLM: desvio, com F nas famílias de dispersão estimada e qui-quadrado na\n  binomial e Poisson.\n- Misto: F com gl do denominador por Satterthwaite (coluna `gl_den`).\n- Parcela subdividida: os dois resíduos; só o tipo I.\n\n## Parâmetros\n\n- **Soma de quadrados** — `I`, `II` ou `III`.\n\n## Valor\n\nUm quadro de efeitos (`models/effects`). A vista **significância** mostra cada\ntermo com a régua do p-valor e as estrelas; a vista **tabela**, o quadro inteiro.\nLigado a um nó da coleção `data`, vira a tabela.\n\n## Exemplos\n\n```r\ntr_flow(reg) |>\n  tr_add(\"dentes\", \"models/example\", dataset = \"ToothGrowth\") |>\n  tr_add(\"fat\", \"models/anova_factorial\", resposta = \"len\", fatores = \"supp, dose\", from = \"dentes\") |>\n  tr_add(\"quadro\", \"models/anova_table\", tipo_sq = \"III\", from = \"fat\")\n```\n\n## Veja também\n\n`models/anova_dbc` e os outros delineamentos; `models/emmeans` para comparar as\nmédias depois do F; `models/coefficients` para os coeficientes.\n\n### Como ler o card do teste\n\nO topo diz o teste, as estrelas e a hipótese nula (**H0**). No meio, o número\ngrande e o **selo** da decisão ao nível de 5%: preenchido quando rejeita H0,\nvazado quando não rejeita. Embaixo, a conclusão em uma linha.\n\n**Quando o teste tem p-valor**, o número grande é o p-valor (abaixo de 1 em mil,\nescrito em potência de dez) e embaixo dele vem a **régua**:\n\n- a régua é o p-valor em escala logarítmica: quanto MAIS COMPRIDA a barra,\n  MENOR o p-valor e mais forte a evidência contra H0. A ponta marca onde o\n  p-valor está;\n- as marcas são os cortes de 10%, 5%, 1% e 1 em mil; a barra enche de vez\n  abaixo de 1 em dez mil;\n- as **estrelas** são as do `summary()` do R: `***` abaixo de 1 em mil, `**`\n  abaixo de 1%, `*` abaixo de 5%, `.` abaixo de 10% e `ns` acima. A cor da barra\n  fica mais forte a cada estrela; sem estrela, cinza.\n\n**Quando o teste só tem tabela de valores críticos** (sem p-valor), o número\ngrande é a estatística, e no lugar da régua vêm **três pontinhos**, dos cortes\nde 10%, 5% e 1%:\n\n- **preenchido** — a estatística passa do valor crítico daquele nível, na cauda\n  que o teste usa;\n- **na cor de destaque** — a decisão a 5% é rejeitar H0; **cinza** — não é: um\n  ponto cinza preenchido é um teste que vence só o corte de 10%;\n- **vazio** — não passa daquele corte.\n\nQuantos pontos acendem diz a FOLGA da decisão, não uma decisão diferente.\n\nA vista **detalhe** traz o registro inteiro: estatística, graus de liberdade,\np-valor ou valores críticos, o tamanho do efeito com o intervalo de 95%\ndesenhado contra a referência (quando o teste tem um), as partes de um teste\nconjunto, a nota e a fonte.\n\nNão rejeitar H0 não é provar H0: com poucas observações o teste deixa de\nrejeitar por falta de poder. A conclusão diz \"não há evidência\", e não \"é\nigual\", por isso.\n",
+        "stochastic": false,
+        "icon": {
+          "kind": "set",
+          "value": "sheet"
+        },
+        "inputs": [
+          {
+            "name": "modelo",
+            "type": "models/fit",
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": "out",
+            "type": "models/effects",
+            "required": true
+          }
+        ],
+        "params": [
+          {
+            "name": "tipo_sq",
+            "kind": "enum",
+            "default": "I",
+            "label": "Soma de quadrados",
+            "choices": [
+              "I",
+              "II",
+              "III"
+            ]
+          }
+        ],
+        "pressupostos": [
+          {
+            "texto": "Os pressupostos do **modelo** que entra (normalidade e variância constante do erro nos modelos lineares; família e ligação no GLM) valem: o quadro só lê o ajuste.",
+            "verificar": [
+              "models/shapiro_residuals",
+              "models/levene",
+              "models/plot_diagnostics"
+            ]
+          },
+          {
+            "texto": "No **tipo III**, os fatores estão em contrastes de soma zero (o bloco reajusta sozinho, também no GLM misto e no GLS; o `lmerTest` já é invariante ao contraste). Uma **covariável numérica em interação** com fator não é centrada: o efeito principal do fator é testado com a covariável em zero, e a nota avisa. No **tipo I**, a ordem dos termos na fórmula é a ordem das perguntas.",
+            "se_falhar": "No desbalanceado, prefira o tipo II quando não há interação, e o III quando há."
+          }
+        ],
+        "referencias": [
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Searle, S. R."
+            ],
+            "ano": 1971,
+            "titulo": "Linear Models",
+            "fonte": "New York: Wiley"
+          },
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Fox, J.",
+              "Weisberg, S."
+            ],
+            "ano": 2019,
+            "titulo": "An R Companion to Applied Regression",
+            "fonte": "3. ed. Thousand Oaks: Sage"
+          },
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Montgomery, D. C."
+            ],
+            "ano": 2017,
+            "titulo": "Design and Analysis of Experiments",
+            "fonte": "9. ed. Hoboken: Wiley"
+          },
+          {
+            "papel": "implementacao",
+            "pacote": "nlme",
+            "funcao": "anova.gls",
+            "versao": "3.1.168",
+            "nota": "No GLS, `type = \"sequential\"` (tipo I) ou `\"marginal\"` (tipo III, com os fatores reajustados em `contr.sum`)."
+          },
+          {
+            "papel": "implementacao",
+            "pacote": "stats",
+            "funcao": "anova",
+            "versao": "4.6.0",
+            "nota": "Tipo I (`lm`, `aov`, `glm`: F ou qui-quadrado conforme a dispersão da família); no misto, `anova` do `lmerTest` com gl de Satterthwaite."
+          },
+          {
+            "papel": "implementacao",
+            "pacote": "car",
+            "funcao": "Anova",
+            "versao": "3.1.5",
+            "nota": "Tipos II e III (`type = 2` ou `3`); no tipo III o modelo (também o `glmer`) é reajustado com `contr.sum`. No GLM, `test.statistic = \"F\"` ou `\"LR\"`."
+          }
+        ]
+      },
+      "params": {},
+      "resultado": {
+        "status": "cached",
+        "outputs": {
+          "out": {
+            "type": "models/effects",
+            "summary": null,
+            "schema": null,
+            "preview": {
+              "renderer": "models/effects",
+              "data": {
+                "titulo": "Quadro da ANOVA · SQ tipo I",
+                "linhas": [
+                  {
+                    "termo": "bloco",
+                    "p": 5.1024468861707e-06,
+                    "estrelas": "***",
+                    "detalhe": "F 11,3"
+                  },
+                  {
+                    "termo": "adubo",
+                    "p": 2.49825535807051e-10,
+                    "estrelas": "***",
+                    "detalhe": "F 32,1"
+                  },
+                  {
+                    "termo": "irrigacao",
+                    "p": 3.08375382936839e-23,
+                    "estrelas": "***",
+                    "detalhe": "F 242"
+                  },
+                  {
+                    "termo": "adubo:irrigacao",
+                    "p": 9.3580420069685e-10,
+                    "estrelas": "***",
+                    "detalhe": "F 29,4"
+                  },
+                  {
+                    "termo": "Resíduo",
+                    "p": null,
+                    "estrelas": "",
+                    "detalhe": null
+                  },
+                  {
+                    "termo": "Total",
+                    "p": null,
+                    "estrelas": "",
+                    "detalhe": null
+                  }
+                ],
+                "rodape": {
+                  "CV": "11,0%",
+                  "média": "5,323",
+                  "n": "72"
+                },
+                "nota": "",
+                "fonte": "Fisher (1925)",
+                "quadro": {
+                  "colunas": [
+                    {
+                      "chave": "termo",
+                      "rotulo": "FV"
+                    },
+                    {
+                      "chave": "gl",
+                      "rotulo": "GL"
+                    },
+                    {
+                      "chave": "sq",
+                      "rotulo": "SQ"
+                    },
+                    {
+                      "chave": "qm",
+                      "rotulo": "QM"
+                    },
+                    {
+                      "chave": "F",
+                      "rotulo": "Fc"
+                    },
+                    {
+                      "chave": "p_valor",
+                      "rotulo": "Pr > F"
+                    }
+                  ],
+                  "linhas": [
+                    {
+                      "termo": "bloco",
+                      "gl": 3,
+                      "sq": 11.5618486111111,
+                      "qm": 3.85394953703704,
+                      "F": 11.2826427519466,
+                      "p_valor": 5.1024468861707e-06
+                    },
+                    {
+                      "termo": "adubo",
+                      "gl": 2,
+                      "sq": 21.8986083333334,
+                      "qm": 10.9493041666667,
+                      "F": 32.0546717354989,
+                      "p_valor": 2.49825535807051e-10
+                    },
+                    {
+                      "termo": "irrigacao",
+                      "gl": 1,
+                      "sq": 82.5398347222222,
+                      "qm": 82.5398347222222,
+                      "F": 241.639766952299,
+                      "p_valor": 3.08375382936839e-23
+                    },
+                    {
+                      "termo": "adubo:irrigacao",
+                      "gl": 2,
+                      "sq": 20.1159194444445,
+                      "qm": 10.0579597222222,
+                      "F": 29.4452133502886,
+                      "p_valor": 9.3580420069685e-10
+                    },
+                    {
+                      "termo": "Resíduo",
+                      "gl": 63,
+                      "sq": 21.5196763888889,
+                      "qm": 0.341582164902998,
+                      "F": null,
+                      "p_valor": null
+                    },
+                    {
+                      "termo": "Total",
+                      "gl": 71,
+                      "sq": 157.6358875,
+                      "qm": null,
+                      "F": null,
+                      "p_valor": null
+                    }
+                  ],
+                  "estrelas": [
+                    "***",
+                    "***",
+                    "***",
+                    "***",
+                    "",
+                    ""
+                  ]
+                }
+              },
+              "files": null
+            }
+          }
+        }
+      }
+    },
+    "tukey": {
+      "catalogo": {
+        "id": "models/emmeans",
+        "label": "Médias ajustadas",
+        "category": "modelo_medias",
+        "version": 1,
+        "description": "Médias ajustadas (emmeans) com intervalo de confiança e letras de comparação (Tukey e outros).",
+        "help": "## Descrição\n\nAs médias ajustadas pelo modelo (`emmeans`), com erro padrão, intervalo de\nconfiança e as LETRAS: médias que compartilham uma letra não diferem ao nível\nescolhido. \"a\" é o grupo da maior média.\n\n### Médias ajustadas, e não médias da tabela\n\nA média ajustada é a que o modelo prevê para cada nível, fazendo a média sobre\nos outros fatores com peso igual. No balanceado é a média da tabela; quando falta\nparcela, ou há covariável, ela corrige o que a média crua mistura. É a LSMEANS do\nSAS, e é a que o Tukey compara.\n\n### Desdobramento\n\n**Médias de** diz os fatores comparados; **Por**, os fatores de condição. Com\n`dose` em Médias de e `supp` em Por, as doses são comparadas DENTRO de cada\nsuplemento, com letras separadas — o desdobramento de uma interação. Com\n`supp, dose` em Médias de, as seis combinações entram na mesma comparação.\n\n### Letras\n\nPelo algoritmo de inserir e absorver (Piepho 2004) sobre as comparações par a\npar com o ajuste escolhido: `tukey` (padrão), `bonferroni`, `holm`, `sidak` ou\n`nenhum` (o t sem correção, que infla o erro com muitas médias).\n\nO fator tem de ser FATOR no modelo: nos blocos de ANOVA isso é automático; no\n`models/lm`, use `factor()` na fórmula.\n\n## Parâmetros\n\n- **Médias de** — 1 a 3 fatores.\n- **Por** — fatores de condição (opcional).\n- **Ajuste das letras** — a correção das comparações.\n- **Confiança** — o nível de confiança do intervalo; as letras usam\n  alfa = 1 − confiança (padrão 0,95, letras a 5%).\n- **Escala (GLM)** — `resposta` (contagens, proporções) ou `ligação` (log,\n  logit). Não muda nada em modelo gaussiano.\n\n## Valor\n\nMédias ajustadas (`models/emm`). O card é o gráfico das médias com o intervalo e\nas letras; a vista **resumo** diz o ajuste. Ligado a um nó da coleção `data`,\nvira a tabela com as letras em `grupo` — pronta para o artigo.\n\n## Exemplos\n\n```r\ntr_flow(reg) |>\n  tr_add(\"milho\", \"models/example\", dataset = \"milho_dbc\") |>\n  tr_add(\"dbc\", \"models/anova_dbc\", resposta = \"producao\", tratamento = \"hibrido\",\n         bloco = \"bloco\", from = \"milho\") |>\n  tr_add(\"tukey\", \"models/emmeans\", especs = \"hibrido\", ajuste = \"tukey\", from = \"dbc\")\n```\n\n## Veja também\n\n`models/pairwise` para os p-valores de cada par e o Dunnett; `models/plot_means`\npara o gráfico com título e proporção; `models/anova_factorial` para o\ndesdobramento.",
+        "stochastic": false,
+        "icon": {
+          "kind": "set",
+          "value": "chart-column"
+        },
+        "inputs": [
+          {
+            "name": "modelo",
+            "type": "models/fit",
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": "out",
+            "type": "models/emm",
+            "required": true
+          }
+        ],
+        "params": [
+          {
+            "name": "especs",
+            "kind": "cols",
+            "default": "",
+            "label": "Médias de",
+            "example": "hibrido"
+          },
+          {
+            "name": "por",
+            "kind": "cols",
+            "default": "",
+            "label": "Por (desdobramento)",
+            "example": "supp"
+          },
+          {
+            "name": "ajuste",
+            "kind": "enum",
+            "default": "tukey",
+            "label": "Ajuste das letras",
+            "choices": [
+              "tukey",
+              "bonferroni",
+              "holm",
+              "sidak",
+              "nenhum"
+            ]
+          },
+          {
+            "name": "confianca",
+            "kind": "number",
+            "default": 0.95,
+            "label": "Confiança",
+            "min": 0.5,
+            "max": 0.999,
+            "step": 0.01
+          },
+          {
+            "name": "escala",
+            "kind": "enum",
+            "default": "resposta",
+            "label": "Escala (GLM)",
+            "choices": [
+              "resposta",
+              "ligação"
+            ]
+          }
+        ],
+        "pressupostos": [
+          {
+            "texto": "O **modelo** que entra atende aos seus pressupostos (erros normais, variância constante, independência): as comparações usam o erro padrão dele.",
+            "verificar": [
+              "models/shapiro_residuals",
+              "models/levene",
+              "models/plot_diagnostics"
+            ],
+            "se_falhar": "Acerte o modelo antes: transformação, `models/glm`, ou `models/lmer` para erros correlacionados."
+          },
+          {
+            "texto": "Sem **interação** relevante com outro fator; havendo, a média de um fator somada sobre o outro esconde o que aconteceu.",
+            "verificar": [
+              "models/anova_table"
+            ],
+            "se_falhar": "Compare dentro de cada nível do outro fator (**Por** no `models/emmeans`)."
+          },
+          {
+            "texto": "As médias ajustadas dão **peso igual** a cada nível dos outros fatores; é a população de referência que a comparação supõe."
+          }
+        ],
+        "referencias": [
+          {
+            "papel": "teoria",
+            "autores": [
+              "Searle, S. R.",
+              "Speed, F. M.",
+              "Milliken, G. A."
+            ],
+            "ano": 1980,
+            "titulo": "Population marginal means in the linear model: an alternative to least squares means",
+            "fonte": "The American Statistician, 34(4), 216-221",
+            "doi": "10.1080/00031305.1980.10483031"
+          },
+          {
+            "papel": "teoria",
+            "autores": [
+              "Kramer, C. Y."
+            ],
+            "ano": 1956,
+            "titulo": "Extension of multiple range tests to group means with unequal numbers of replications",
+            "fonte": "Biometrics, 12(3), 307-310",
+            "doi": "10.2307/3001469"
+          },
+          {
+            "papel": "complementar",
+            "autores": [
+              "Piepho, H.-P."
+            ],
+            "ano": 2004,
+            "titulo": "An algorithm for a letter-based representation of all-pairwise comparisons",
+            "fonte": "Journal of Computational and Graphical Statistics, 13(2), 456-466",
+            "doi": "10.1198/1061860043515"
+          },
+          {
+            "papel": "livro-texto",
+            "autores": [
+              "Montgomery, D. C."
+            ],
+            "ano": 2017,
+            "titulo": "Design and Analysis of Experiments",
+            "fonte": "9. ed. Hoboken: Wiley"
+          },
+          {
+            "papel": "implementacao",
+            "pacote": "emmeans",
+            "funcao": "emmeans",
+            "versao": "2.0.3",
+            "nota": "Grade de referência com pesos iguais; no misto e na parcela subdividida, `lmer.df = \"satterthwaite\"`; no GLM, `type = \"response\"` na escala da resposta."
+          },
+          {
+            "papel": "implementacao",
+            "pacote": "emmeans",
+            "funcao": "contrast",
+            "versao": "2.0.3",
+            "nota": "`\"pairwise\"` com o `adjust` escolhido (Tukey = Tukey-Kramer no desbalanceado), dentro de cada nível de **Por**; as letras saem do algoritmo de inserir e absorver, implementado no trama."
+          }
+        ]
+      },
+      "params": {
+        "especs": "adubo",
+        "por": "irrigacao",
+        "ajuste": "tukey"
+      },
+      "resultado": {
+        "status": "cached",
+        "outputs": {
+          "out": {
+            "type": "models/emm",
+            "summary": {
+              "medias": 6,
+              "fatores": "adubo",
+              "por": "irrigacao",
+              "letras": "tukey",
+              "nota": "letras: tukey a 5%"
+            },
+            "schema": null,
+            "preview": {
+              "renderer": "trama/image",
+              "data": null,
+              "files": {
+                "png": "capturas/apresentacao-fatorial/tukey-out.png"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

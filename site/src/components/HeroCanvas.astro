@@ -46,6 +46,7 @@ const VIDEO = "/trama/montagens/fluxo-em-montagem";
     <p class="hc__dica" aria-hidden="true">arraste os blocos pelo cabeçalho</p>
   </div>
   <button class="hc__voltar" type="button" data-hc-ir="inicio">← voltar ao fluxo</button>
+  <p class="hc__creditos">Criado por <strong>Pedro Mambelli</strong> e <strong>João Paulo Bonifácio</strong><br />powered by R, Shiny, React.js &amp; Claude</p>
 
   <div class="hc__mundo" data-hc-mundo>
     <svg class="hc__fios" data-hc-fios aria-hidden="true">
@@ -136,6 +137,10 @@ const VIDEO = "/trama/montagens/fluxo-em-montagem";
 
   /* com JS, o canvas espera estar montado (ver `montar`) */
   html[data-js] .hc:not(.is-montado) .hc__mundo { visibility: hidden; }
+  .hc__creditos { position: absolute; z-index: 2; right: max(1.25rem, 4vw); bottom: 1.1rem; margin: 0; text-align: right; color: var(--ink-soft); font-size: .76rem; line-height: 1.5; opacity: .8; pointer-events: none; transition: opacity 400ms; }
+  .hc__creditos strong { font-weight: 700; color: var(--ink); }
+  .hc:not([data-vista="inicio"]) .hc__creditos { opacity: 0; }
+  @media (max-width: 960px) { .hc__creditos { position: static; text-align: left; order: 9; } }
   .hc__mundo { position: absolute; inset: 0; transition: transform 900ms cubic-bezier(.65, 0, .25, 1); }
   .hc__fios, .hcs__fios { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   :is(.hc__fios, .hcs__fios) path { fill: none; }

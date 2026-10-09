@@ -69,7 +69,7 @@ export type CardDeModelo = {
   formula: string;
   n: number;
   destaques: Destaque[];
-  global: { rotulo: string; p: number };
+  global: { rotulo: string; p: number } | null;
 };
 
 export type Medias = {
