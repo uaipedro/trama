@@ -66,7 +66,8 @@ tr_server <- function(project, flow = "main",
       ev$unit_type <- ev$type
       ev$type <- if (identical(ev$unit_type, "run_finished")) "run_finished" else "unit"
       session$sendCustomMessage("tr_event", ev)
-      if (identical(ev$type, "run_finished")) later::later(galeria_sync, 0)
+      if (identical(ev$type, "run_finished"))
+        later::later(function() if (!session$isClosed()) galeria_sync(), 0)
     }
 
     # Galeria: depois de cada run (e de cada marca, captura ou troca de
@@ -92,7 +93,7 @@ tr_server <- function(project, flow = "main",
     }
     # `isolate`: também roda de dentro de um callback do `later`, fora de
     # contexto reativo.
-    galeria_sync <- function() shiny::isolate({
+    galeria_sync <- function() if (!session$isClosed()) shiny::isolate({
       proj <- rv_project()
       doc <- rv_doc()
       itens <- tryCatch(
