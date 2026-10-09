@@ -1,5 +1,5 @@
 {
-  "trama": "0.1.12",
+  "trama": "0.1.13",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": [
@@ -8,7 +8,7 @@
   "core": {
     "trama": "0.5.15",
     "trama.data": "0.4.3",
-    "trama.view": "0.2.7",
+    "trama.view": "0.2.8",
     "trama.launcher": "0.2.2"
   },
   "collections": {
