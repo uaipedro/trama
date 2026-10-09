@@ -29,8 +29,8 @@ trama_collection <- function() {
       trama::tr_category("espacial_variograma", "Variograma", role = "ajuste"),
       trama::tr_category("espacial_predizer",   "Predizer", role = "ajuste")
     ),
-    nodes = c(.tr_spatial_nos_fonte(), .tr_spatial_nos_variograma(),
-              .tr_spatial_nos_predizer()),
+    nodes = c(.tr_spatial_nos_fonte(), .tr_spatial_nos_entrada(),
+              .tr_spatial_nos_variograma(), .tr_spatial_nos_predizer()),
     datasets = list(
       trama::tr_dataset(
         "trama.spatial", "milho_pr", "Rendimento do milho no Paraná",
