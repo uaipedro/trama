@@ -17,7 +17,8 @@ tr_doc <- function() {
     nodes = list(), edges = list(),
     ui = list(positions = list(), sizes = list(), views = list(),
               frames = list(), modes = list(), saidas = list(), soltos = list(),
-              notes = list(), ocultos = list(), grupos = list())
+              notes = list(), ocultos = list(), grupos = list(),
+              galeria = list(), ramos = list())
   ), class = "tr_doc")
 }
 
@@ -31,7 +32,8 @@ tr_doc <- function() {
 .tr_presentation_ops <- c("rename", "move", "resize", "set_view",
                           "add_frame", "update_frame", "remove_frame",
                           "reorder_frames", "set_mode", "set_saida", "set_solto",
-                          "set_preview_oculto",
+                          "set_preview_oculto", "set_galeria",
+                          "add_ramo", "remove_ramo", "ligar_ramo",
                           "add_note", "update_note", "remove_note",
                           "add_grupo", "remove_grupo")
 
@@ -137,6 +139,9 @@ tr_op_semantic <- function(op) {
     set_mode = .tr_op_set_mode, set_solto = .tr_op_set_solto,
     set_saida = .tr_op_set_saida,
     set_preview_oculto = .tr_op_set_preview_oculto,
+    set_galeria = .tr_op_set_galeria,
+    add_ramo = .tr_op_add_ramo, remove_ramo = .tr_op_remove_ramo,
+    ligar_ramo = .tr_op_ligar_ramo,
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
     add_grupo = .tr_op_add_grupo, remove_grupo = .tr_op_remove_grupo,
@@ -252,7 +257,9 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   doc$ui$saidas[[op$node]] <- NULL
   doc$ui$soltos[[op$node]] <- NULL
   doc$ui$ocultos[[op$node]] <- NULL
+  doc$ui$galeria[[op$node]] <- NULL
   doc <- .tr_grupos_sem(doc, op$node)
+  doc <- .tr_ramos_sem(doc, op$node)
   doc$edges <- Filter(function(e) e$from$node != op$node && e$to$node != op$node, doc$edges)
   # Sem isto o documento continuaria declarando dependência de uma coleção
   # cujo último nó acabou de sair — e exigiria instalá-la pra abrir.
@@ -738,6 +745,104 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   }
   doc$ui$ocultos[[op$node]] <- if (o) TRUE else NULL
   list(doc = doc, op = op)
+}
+
+# Marca de galeria por card. Ausente = a regra do projeto (imagens entram
+# sozinhas se `galeria$imagens` estiver ligado); TRUE/FALSE é a escolha
+# explícita do usuário, que vence a regra. `valor = NULL` volta à regra.
+.tr_op_set_galeria <- function(doc, op, registry) {
+  .tr_require(op, "node"); .tr_node_or_abort(doc, op$node)
+  v <- op$valor
+  if (!is.null(v) && (!is.logical(v) || length(v) != 1L || is.na(v))) {
+    rlang::abort("valor deve ser TRUE, FALSE ou null.", class = "tr_error_bad_op")
+  }
+  doc$ui$galeria[[op$node]] <- v
+  list(doc = doc, op = op)
+}
+
+# --- Ramos (bifurcação) -----------------------------------------------------
+# Um ramo é a cópia de um card (`origem`) e de tudo a jusante dele, pendurada
+# nas mesmas entradas. `pares` liga cada card original ao seu gêmeo (original
+# -> cópia). O editor espelha params entre gêmeos, exceto no par da origem
+# (é a decisão que difere) e nas cópias em `desligados`. Mora em `ui`, fora
+# da chave de cache: o espelhamento vira `set_param` comum, e o motor nunca
+# precisa saber de ramo.
+
+.tr_ramo_or_abort <- function(doc, id) {
+  r <- doc$ui$ramos[[id]]
+  if (is.null(r)) rlang::abort(sprintf("Ramo que não existe: '%s'.", id), class = "tr_error_unknown_node")
+  r
+}
+
+# `id` materializado e ecoado, como em `add_grupo`.
+.tr_op_add_ramo <- function(doc, op, registry) {
+  .tr_require(op, c("letra", "origem", "pares"))
+  id <- op$id %||% .tr_new_id()
+  .tr_check_node_id(id)
+  if (!is.null(doc$ui$ramos[[id]])) {
+    rlang::abort(sprintf("Id de ramo já existe: '%s'.", id), class = "tr_error_duplicate_id")
+  }
+  letra <- op$letra
+  if (!is.character(letra) || length(letra) != 1L || is.na(letra) || !nzchar(letra)) {
+    rlang::abort("letra deve ser um texto não vazio.", class = "tr_error_bad_op")
+  }
+  pares <- op$pares
+  if (!is.list(pares) && !is.character(pares) || is.null(names(pares)) || !length(pares)) {
+    rlang::abort("pares deve mapear card original -> cópia.", class = "tr_error_bad_op")
+  }
+  pares <- lapply(as.list(pares), function(v) as.character(v)[[1]])
+  for (id_no in c(names(pares), unlist(pares))) .tr_node_or_abort(doc, id_no)
+  if (anyDuplicated(unlist(pares)) || length(intersect(names(pares), unlist(pares)))) {
+    rlang::abort("Cópia repetida ou card que é original e cópia no mesmo ramo.", class = "tr_error_bad_op")
+  }
+  if (!op$origem %in% names(pares)) {
+    rlang::abort("origem precisa estar entre os originais de pares.", class = "tr_error_bad_op")
+  }
+  doc$ui$ramos[[id]] <- list(letra = letra, origem = op$origem, pares = pares,
+                             desligados = character())
+  op$id <- id
+  list(doc = doc, op = op)
+}
+
+.tr_op_remove_ramo <- function(doc, op, registry) {
+  .tr_require(op, "ramo"); .tr_ramo_or_abort(doc, op$ramo)
+  doc$ui$ramos[[op$ramo]] <- NULL
+  list(doc = doc, op = op)
+}
+
+# Liga (`ligado = TRUE`) ou desliga uma cópia do espelhamento.
+.tr_op_ligar_ramo <- function(doc, op, registry) {
+  .tr_require(op, c("ramo", "node", "ligado"))
+  r <- .tr_ramo_or_abort(doc, op$ramo)
+  if (!op$node %in% unlist(r$pares)) {
+    rlang::abort(sprintf("'%s' não é cópia do ramo '%s'.", op$node, op$ramo), class = "tr_error_bad_op")
+  }
+  l <- op$ligado
+  if (!is.logical(l) || length(l) != 1L || is.na(l)) {
+    rlang::abort("ligado deve ser TRUE ou FALSE.", class = "tr_error_bad_op")
+  }
+  d <- setdiff(as.character(unlist(r$desligados)), op$node)
+  r$desligados <- if (l) d else c(d, op$node)
+  doc$ui$ramos[[op$ramo]] <- r
+  list(doc = doc, op = op)
+}
+
+# Card apagado sai de todo ramo; ramo que perde o par da origem some (sem a
+# decisão que difere, não há o que comparar).
+.tr_ramos_sem <- function(doc, id) {
+  for (rid in names(doc$ui$ramos %||% list())) {
+    r <- doc$ui$ramos[[rid]]
+    origem_copia <- r$pares[[r$origem]]
+    if (identical(r$origem, id) || identical(origem_copia, id)) {
+      doc$ui$ramos[[rid]] <- NULL
+      next
+    }
+    r$pares <- Filter(function(v) !identical(v, id), r$pares)
+    r$pares[[id]] <- NULL
+    r$desligados <- setdiff(as.character(unlist(r$desligados)), id)
+    doc$ui$ramos[[rid]] <- r
+  }
+  doc
 }
 
 # Documento gravado antes dos modos guardava três chaves soltas por card.

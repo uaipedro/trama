@@ -121,7 +121,30 @@
   # coluna ao conectar, marcando-os "sugerido".
   list(temas = temas, tema_padrao = padrao,
        marca = .tr_check_marca(cfg$marca %||% TRUE, " em trama.json"),
-       sugestoes = .tr_check_marca(cfg$sugestoes %||% TRUE, " em trama.json", campo = "sugestoes"))
+       sugestoes = .tr_check_marca(cfg$sugestoes %||% TRUE, " em trama.json", campo = "sugestoes"),
+       galeria = .tr_galeria_cfg(cfg$galeria))
+}
+
+#' Configuração da galeria em `trama.json` (chave `galeria`). Campo ausente
+#' vale o padrão: pasta `gallery/` relativa ao projeto, imagens entram
+#' sozinhas, PNG a 300 dpi.
+#' @noRd
+.tr_galeria_cfg <- function(g) {
+  g <- g %||% list()
+  ruim <- function(campo, esperado) rlang::abort(
+    sprintf("galeria.%s em trama.json deve ser %s.", campo, esperado), class = "tr_error_bad_theme")
+  pasta <- g$pasta %||% "gallery"
+  if (!is.character(pasta) || length(pasta) != 1L || is.na(pasta) || !nzchar(trimws(pasta)))
+    ruim("pasta", "um caminho não vazio")
+  imagens <- g$imagens %||% TRUE
+  if (!is.logical(imagens) || length(imagens) != 1L || is.na(imagens)) ruim("imagens", "true ou false")
+  formato <- g$formato %||% "png"
+  if (!is.character(formato) || length(formato) != 1L || !formato %in% c("png", "jpeg", "tiff"))
+    ruim("formato", "png, jpeg ou tiff")
+  dpi <- g$dpi %||% 300
+  if (!is.numeric(dpi) || length(dpi) != 1L || is.na(dpi) || dpi < 72 || dpi > 1200)
+    ruim("dpi", "um número entre 72 e 1200")
+  list(pasta = trimws(pasta), imagens = imagens, formato = formato, dpi = as.numeric(dpi))
 }
 
 #' `"padrão"` ou nome -> definição. Nome que sumiu (tema apagado, documento
@@ -308,7 +331,8 @@ tr_project_set_sugestoes <- function(root, ligar) {
   list(temas = lapply(settings$temas, function(t) { t$paleta <- I(t$paleta); t }),
        tema_padrao = settings$tema_padrao,
        marca = settings$marca,
-       sugestoes = settings$sugestoes %||% TRUE)
+       sugestoes = settings$sugestoes %||% TRUE,
+       galeria = settings$galeria %||% .tr_galeria_cfg(NULL))
 }
 
 #' Resolve um tema pelo nome, fora de um projeto.

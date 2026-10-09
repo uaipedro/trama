@@ -123,7 +123,9 @@ tr_doc_subset <- function(doc, ids = NULL) {
   keep <- function(m) .tr_empty_obj(m[intersect(names(m), ids)])
   doc$nodes <- keep(doc$nodes)
   doc$edges <- Filter(function(e) e$from$node %in% ids && e$to$node %in% ids, doc$edges)
-  for (k in c("positions", "sizes", "views", "modes", "soltos", "ocultos", "saidas", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
+  for (k in c("positions", "sizes", "views", "modes", "soltos", "ocultos", "galeria", "saidas", "frames", "notes")) doc$ui[[k]] <- keep(doc$ui[[k]])
+  # Ramo liga cards de dentro e de fora do recorte: no template, nenhum.
+  doc$ui$ramos <- .tr_empty_obj(list())
   # Grupo recortado só fica inteiro: com membro de fora ele não faria sentido.
   doc$ui$grupos <- .tr_empty_obj(Filter(function(m) all(m %in% ids), doc$ui$grupos %||% list()))
   # O manifesto encolhe junto: o template não deve exigir coleção que nenhum

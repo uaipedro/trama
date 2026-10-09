@@ -33,6 +33,10 @@ tr_doc_json <- function(doc) {
   out$ui$ocultos <- .tr_empty_obj(out$ui$ocultos)
   out$ui$notes <- .tr_empty_obj(out$ui$notes)
   out$ui$grupos <- .tr_empty_obj(lapply(out$ui$grupos %||% list(), I))
+  out$ui$galeria <- .tr_empty_obj(out$ui$galeria)
+  out$ui$ramos <- .tr_empty_obj(lapply(out$ui$ramos %||% list(), function(r) {
+    r$pares <- .tr_empty_obj(r$pares); r$desligados <- I(as.character(unlist(r$desligados))); r
+  }))
   out$edges <- unname(out$edges)
   jsonlite::toJSON(out, auto_unbox = TRUE, null = "null", digits = NA, pretty = TRUE)
 }
@@ -123,6 +127,12 @@ tr_doc_parse <- function(txt) {
   doc$ui$ocultos <- .tr_empty_obj(Filter(isTRUE, doc$ui$ocultos %||% list()))
   doc$ui$notes <- .tr_empty_obj(doc$ui$notes %||% list())
   doc$ui$grupos <- .tr_empty_obj(lapply(doc$ui$grupos %||% list(), function(m) as.character(unlist(m))))
+  doc$ui$galeria <- .tr_empty_obj(Filter(function(v) isTRUE(v) || isFALSE(v), doc$ui$galeria %||% list()))
+  doc$ui$ramos <- .tr_empty_obj(lapply(doc$ui$ramos %||% list(), function(r) {
+    list(letra = as.character(r$letra)[[1]], origem = as.character(r$origem)[[1]],
+         pares = .tr_empty_obj(lapply(r$pares %||% list(), function(v) as.character(v)[[1]])),
+         desligados = as.character(unlist(r$desligados)))
+  }))
   structure(doc, class = "tr_doc")
 }
 
