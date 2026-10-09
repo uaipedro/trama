@@ -269,55 +269,57 @@ test_that("o Quarto tem um chunk por card, seções dos frames, notas e as saíd
   expect_match(q, "sessionInfo()", fixed = TRUE)
 })
 
-test_that("rótulo não-ASCII sem marca de encoding não derruba a seção de software", {
-  # Strings de coleção instalada podem chegar com Encoding "unknown"; a
-  # ordenação radix recusava ("Character encoding must be UTF-8, Latin-1 or
-  # bytes") e o export em Quarto falhava inteiro.
-  rotulo <- "An\u00e1lise"
-  Encoding(rotulo) <- "unknown"
-  reg <- tr_registry()
-  tr_use(tr_collection("u", types = list(tr_type("u/num")), nodes = list(
-    tr_node("u/a", fn = function() 1, label = rotulo, description = "A.", outputs = list(out = "u/num"),
-            referencias = list(tr_ref(papel = "implementacao", pacote = "car", funcao = "Anova")))
-  )), registry = reg)
-  q <- tr_export_code(tr_flow(reg) |> tr_add("a", "u/a") |> tr_flow_doc(), reg, format = "quarto")
-  expect_match(q, "| An\u00e1lise | `car::Anova()` |", fixed = TRUE)
-})
+# Roda o chunk "software" de um Quarto exportado num ambiente com as
+# variáveis dos blocos e devolve o que ele imprimiria.
+rodar_software <- function(q, vars = list()) {
+  chunk <- sub("(?s)^.*#\\| results: asis\n(.*?)\n```.*$", "\\1", q, perl = TRUE)
+  env <- list2env(vars, envir = new.env(parent = globalenv()))
+  capture.output(eval(parse(text = chunk), envir = env))
+}
 
-test_that("o Quarto cita as ferramentas usadas, e não o método nem o livro-texto", {
+registro_software <- function() {
   teoria <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
                    titulo = "An analysis of transformations", fonte = "JRSS B 26(2)")
   livro <- tr_ref(papel = "livro-texto", autores = "Banzatto, D. A.", ano = 2006,
                   titulo = "Experimenta\u00e7\u00e3o agr\u00edcola")
+  impl <- function(p, f) tr_ref(papel = "implementacao", pacote = p, funcao = f)
   reg <- tr_registry()
   tr_use(tr_collection("r", types = list(tr_type("r/num")), nodes = list(
     tr_node("r/a", fn = function() 1, label = "Bloco A", description = "A.", outputs = list(out = "r/num"),
-            referencias = list(teoria, livro, tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm"))),
+            referencias = list(teoria, livro, impl("stats", "lm"))),
     tr_node("r/b", fn = function(x) x, label = "Bloco B", description = "B.",
             inputs = list(x = "r/num"), outputs = list(out = "r/num"),
-            referencias = list(tr_ref(papel = "implementacao", pacote = "car", funcao = "Anova"),
-                               tr_ref(papel = "implementacao", pacote = "car", funcao = "leveneTest")))
+            referencias = list(impl("car", "Anova"), impl("nlme", "anova.gls"))),
+    tr_node("r/c", fn = function(x) x, label = "Bloco \u00c7", description = "C.",
+            inputs = list(x = "r/num"), outputs = list(out = "r/num"))
   )), registry = reg)
-  doc <- tr_flow(reg) |> tr_add("a", "r/a") |> tr_add("b", "r/b", from = "a") |> tr_flow_doc()
+  reg
+}
 
+test_that("o Quarto cita as ferramentas usadas, e não o método nem o livro-texto", {
+  reg <- registro_software()
+  doc <- tr_flow(reg) |> tr_add("a", "r/a") |> tr_add("b", "r/b", from = "a") |>
+    tr_add("c", "r/c", from = "b") |> tr_flow_doc()
   q <- tr_export_code(doc, reg, format = "quarto")
   expect_match(q, "## Software", fixed = TRUE)
   expect_no_match(q, "Box, G. E. P.", fixed = TRUE)
   expect_no_match(q, "Banzatto", fixed = TRUE)
-  expect_match(q, "| Bloco A | `stats::lm()` |", fixed = TRUE)
-  expect_match(q, "| Bloco B | `car::Anova()`, `car::leveneTest()` |", fixed = TRUE)
-  # O `stats` é o R: cita-se o R (citation()), não o pacote da base.
-  expect_match(q, "pacotes <- \"car\"", fixed = TRUE)
-  # O chunk roda e devolve as citações.
-  chunk <- regmatches(q, regexpr("pacotes <- [^`]*", q))
-  out <- capture.output(eval(parse(text = chunk), envir = new.env()))
+
+  # Sem registro no resultado, vale o declarado; `stats` some (é o R).
+  out <- rodar_software(q, list(bloco_a = 1, bloco_b = 1, bloco_c = 1))
+  expect_true("| Bloco B | `car::Anova()`, `nlme::anova.gls()` |" %in% out)
+  expect_false(any(grepl("Bloco A", out)))
   expect_true(any(grepl("R Core Team", out)))
   expect_true(any(grepl("Fox", out)))
-  # Fluxo sem ferramenta declarada ainda cita o R.
-  q2 <- tr_export_code(tr_flow(test_registry()) |> tr_add("o", "t/const", value = 2) |> tr_flow_doc(),
-                       test_registry(), format = "quarto")
-  expect_match(q2, "pacotes <- character(0)", fixed = TRUE)
-  expect_no_match(q2, "| Bloco |", fixed = TRUE)
+
+  # O resultado diz o que rodou: só isso entra, inclusive num bloco que nada
+  # declara (e rótulo não-ASCII sem marca de encoding não derruba nada).
+  b <- structure(1, trama_ferramentas = "car::Anova")
+  c_ <- structure(list(out = structure(1, trama_ferramentas = c("stats::lm", "MASS::glm.nb"))))
+  out <- rodar_software(q, list(bloco_a = 1, bloco_b = b, bloco_c = c_))
+  expect_true("| Bloco B | `car::Anova()` |" %in% out)
+  expect_true("| Bloco \u00c7 | `MASS::glm.nb()` |" %in% out)
+  expect_false(any(grepl("Pinheiro", out)))
 })
 
 test_that("no Quarto, o tema padrão escuro vira claro; o escolhido à mão fica", {
