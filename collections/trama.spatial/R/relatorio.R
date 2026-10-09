@@ -28,6 +28,15 @@ tr_spatial_report_points <- function(x) {
 
 #' @rdname tr_spatial_report_points
 #' @export
+tr_spatial_report_boundary <- function(x) {
+  res <- list(fonte = x$fonte, area = x$area, vertices = x$n_vertices,
+              aneis_descartados = x$n_aneis_descartados,
+              projecao = if (inherits(x$crs, "crs")) x$crs$input else NA_character_)
+  .tr_spatial_md(trama.data::tr_data_md_summary(res, x$rotulo))
+}
+
+#' @rdname tr_spatial_report_points
+#' @export
 tr_spatial_report_variogram <- function(x) {
   t <- as.data.frame(x$tabela)[intersect(c("u", "gamma", "np"), names(x$tabela))]
   .tr_spatial_md(

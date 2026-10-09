@@ -154,6 +154,7 @@ spatial_surface_type <- function() {
 
 .tr_spatial_adapters <- function() {
   list(trama::tr_adapter("spatial/points", "data/table", .tr_spatial_pontos_tabela),
+       trama::tr_adapter("spatial/boundary", "data/table", .tr_spatial_borda_tabela),
        trama::tr_adapter("spatial/variogram", "data/table", .tr_spatial_vario_tabela),
        trama::tr_adapter("spatial/model", "data/table", .tr_spatial_modelo_tabela),
        trama::tr_adapter("spatial/surface", "data/table", .tr_spatial_superficie_tabela))

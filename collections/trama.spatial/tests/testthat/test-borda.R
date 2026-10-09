@@ -117,3 +117,45 @@ test_that("sem anel interno, a nota não fala de anel e a contagem é zero", {
   expect_equal(b$area, 100, tolerance = 1e-8)
   expect_equal(sf::st_crs(b$crs)$epsg, 31982L)
 })
+
+# ---- o tipo spatial/boundary ----------------------------------------------------
+
+test_that("o tipo guarda e devolve a borda sem perder polígono nem projeção", {
+  b <- borda_de(31982)
+  tipo <- spatial_boundary_type()
+  expect_equal(tipo$id, "spatial/boundary")
+  p <- tempfile(fileext = ".rds")
+  tipo$store(b, p)
+  volta <- tipo$restore(p)
+  expect_s3_class(volta, "tr_spatial_boundary")
+  expect_equal(volta$poligono, b$poligono)
+  expect_equal(sf::st_crs(volta$crs)$epsg, 31982L)
+  expect_equal(volta$area, b$area)
+})
+
+test_that("o store do tipo recusa o que não é borda", {
+  tipo <- spatial_boundary_type()
+  expect_error(tipo$store(list(a = 1), tempfile()),
+               class = "tr_spatial_error_not_a_boundary")
+  expect_error(tipo$store(tr_spatial_example("milho_se"), tempfile()),
+               class = "tr_spatial_error_not_a_boundary")
+})
+
+test_that("o adaptador para data/table dá uma linha por vértice", {
+  b <- borda_de(31982)
+  t <- .tr_spatial_borda_tabela(b)
+  expect_s3_class(t, "data.frame")
+  expect_equal(names(t), c("vertice", "x", "y"))
+  expect_equal(nrow(t), nrow(b$poligono))
+  expect_equal(t$vertice, seq_len(nrow(b$poligono)))
+  expect_equal(t$x, unname(b$poligono[, 1]))
+})
+
+test_that("a coleção registra o tipo spatial/boundary e o adaptador para tabela", {
+  co <- trama_collection()
+  ids <- vapply(co$types, function(x) x$id, "")
+  expect_true("spatial/boundary" %in% ids)
+  de <- vapply(co$adapters, function(a) a$from, "")
+  para <- vapply(co$adapters, function(a) a$to, "")
+  expect_true(any(de == "spatial/boundary" & para == "data/table"))
+})

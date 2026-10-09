@@ -66,6 +66,39 @@ tr_spatial_boundary_obj <- function(poligono, crs, fonte, rotulo, nota,
             class = "tr_spatial_boundary")
 }
 
+.tr_spatial_borda_conferir <- function(x) {
+  .tr_spatial_guard(x, "tr_spatial_boundary", .TR_SPATIAL_CAMPOS_BORDA,
+                    "tr_spatial_error_not_a_boundary", "uma borda")
+}
+
+#' O que o card da borda mostra.
+#' @noRd
+.tr_spatial_borda_preview <- function(x) {
+  list(rotulo = x$rotulo, fonte = x$fonte, area = signif(x$area, 6),
+       n_vertices = x$n_vertices, n_aneis = x$n_aneis_descartados,
+       crs = if (inherits(x$crs, "crs")) x$crs$input else NULL,
+       vertices = lapply(seq_len(nrow(x$poligono)), function(i) {
+         list(x = x$poligono[i, 1], y = x$poligono[i, 2])
+       }),
+       nota = .tr_spatial_nulo(x$nota))
+}
+
+spatial_boundary_type <- function() {
+  .tr_spatial_rds_type("spatial/boundary", "Borda", "#166534",
+                       .tr_spatial_borda_conferir,
+                       function(x, ctx) trama::tr_preview(
+                         "spatial/boundary", data = .tr_spatial_borda_preview(x)),
+                       report = tr_spatial_report_boundary)
+}
+
+#' Borda -> tabela: uma linha por vértice, na ordem do contorno.
+#' @noRd
+.tr_spatial_borda_tabela <- function(x) {
+  .tr_spatial_borda_conferir(x)
+  data.frame(vertice = seq_len(nrow(x$poligono)),
+             x = unname(x$poligono[, 1]), y = unname(x$poligono[, 2]))
+}
+
 #' Borda a partir de uma geometria do `sf`: dissolve, conta anéis, normaliza.
 #'
 #' Uma malha estadual costuma vir como vários polígonos (ilhas, enclaves), e o
