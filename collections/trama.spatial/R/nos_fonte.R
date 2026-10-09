@@ -14,7 +14,62 @@
 }
 
 .tr_spatial_nos_fonte <- function() {
+  E <- trama::tr_param_enum; N <- trama::tr_param_num
   list(
+    trama::tr_node("spatial/indicator", fn = tr_spatial_indicator,
+      label = "Indicador", category = "espacial_preparar",
+      icon = trama::tr_icon("toggle-left"),
+      description = "Transforma a variável num indicador 0/1 num valor de corte, para a krigagem estimar probabilidade em vez do valor.",
+      inputs = list(pontos = "spatial/points"),
+      outputs = list(out = "spatial/points"),
+      params = list(
+        corte = N(NA, label = "Corte"),
+        sentido = E("<=", .TR_SPATIAL_SENTIDOS, label = "Sentido")),
+      pressupostos = .tr_spatial_press_coords(),
+      referencias = list(.tr_spatial_refs()$isaaks, .tr_spatial_refs()$cressie),
+      help = .tr_spatial_ajuda(r"---[
+Troca a variável por um **indicador**: 1 onde ela satisfaz a condição, 0 onde
+não. Daí o fluxo segue igual — variograma, ajuste, krigagem —, e o que a
+krigagem estima passa a ser a **probabilidade** de a condição valer em cada
+célula, não o valor da variável.
+
+Serve à pergunta que o mapa do predito não responde: não "quanto", mas "qual a
+chance de passar deste limite". Teor acima do crítico, rendimento abaixo do que
+paga a lavoura, contaminante acima da norma.
+
+**Por que isto é um bloco, e não uma opção da krigagem.** A krigagem indicadora
+é a krigagem ordinária de uma variável 0/1, e o que a torna indicadora é o
+variograma ser o **do indicador**. Transformar aqui, antes do variograma,
+garante que o modelo ajustado descreva o indicador. Se o corte fosse uma opção
+do bloco de krigagem, ele receberia um modelo ajustado à variável contínua e
+krigaria o indicador com ele — resultado errado, sem erro nenhum na tela.
+
+O predito é recortado em **[0, 1]**: a krigagem é um interpolador linear e sai
+desse intervalo de verdade, sobretudo longe dos pontos. A nota do card diz
+quantas células precisaram do recorte, porque muitas delas são sinal de modelo
+ruim para a pergunta.
+]---", r"---[
+- **Corte** — o valor que separa, na unidade da variável original. Precisa cair
+  dentro do intervalo observado: fora dele o indicador sai constante, e o bloco
+  recusa.
+- **Sentido** — `<=` estima a probabilidade de **não exceder** o corte; `>`, a
+  de exceder. Os dois são complementares e somam 1.
+]---", r"---[
+Um objeto espacial (`spatial/points`) cuja variável é o indicador, marcado para
+que a krigagem e o mapa adiante o leiam como probabilidade.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+  tr_add("ind", "spatial/indicator", corte = 4000, from = "pontos") |>
+  tr_add("v", "spatial/variogram", from = "ind") |>
+  tr_add("m", "spatial/variogram_fit", from = "v") |>
+  tr_add("k", "spatial/kriging", from = c("ind", "m")) |>
+  tr_add("mapa", "spatial/map", from = "k")
+]---", r"---[
+`spatial/variogram`, que daqui mede a dependência do indicador;
+`spatial/explore` para ver a distribuição antes de escolher o corte.
+]---")),
+
     trama::tr_node("spatial/example", fn = tr_spatial_example, label = "Exemplo espacial",
       category = "espacial_fonte", icon = trama::tr_icon("database"),
       description = "Carrega um conjunto de exemplo do IBGE já como objeto espacial: coordenadas, projeção e borda do estado.",

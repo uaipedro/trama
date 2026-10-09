@@ -14,6 +14,23 @@
 #' @param aspecto,tema,titulo,rotulo_x,rotulo_y,legenda cosméticos.
 #' @return um ggplot (`view/plot`).
 #' @export
+#' O rótulo da legenda do mapa.
+#'
+#' Superfície vinda de indicador é PROBABILIDADE, e apresentá-la com o nome da
+#' variável original a venderia como rendimento, área ou teor — o erro que o
+#' recorte em [0,1] já evita no número, e que o rótulo evita na leitura.
+#' @noRd
+.tr_spatial_map_rotulo <- function(x, mostrar) {
+  if (identical(mostrar, "predito") && !is.null(x$indicador)) {
+    return(sprintf("Probabilidade de %s %s %s",
+                   x$indicador$variavel_original, x$indicador$sentido,
+                   format(signif(x$indicador$corte, 6))))
+  }
+  if (identical(mostrar, "predito")) return(x$variavel)
+  if (!is.null(x$indicador)) return("Erro-padrão da probabilidade")
+  paste("erro-padrão de", x$variavel)
+}
+
 tr_spatial_map <- function(superficie, mostrar = "predito", isolinhas = FALSE,
                            pontos = TRUE, aspecto = "1:1", tema = "padrão",
                            titulo = "", rotulo_x = "", rotulo_y = "",
@@ -27,7 +44,7 @@ tr_spatial_map <- function(superficie, mostrar = "predito", isolinhas = FALSE,
   g <- as.data.frame(superficie$grade)
   d <- data.frame(x = g[[cols[[1]]]], y = g[[cols[[2]]]],
                   valor = if (mostrar == "predito") g$predito else g$erro_padrao)
-  nome <- if (mostrar == "predito") superficie$variavel else paste("erro-padrão de", superficie$variavel)
+  nome <- .tr_spatial_map_rotulo(superficie, mostrar)
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["x"]], y = .data[["y"]])) +
     ggplot2::geom_raster(ggplot2::aes(fill = .data[["valor"]]))
   # Célula sem predição (nenhum ponto no raio) fica cinza, e não transparente:

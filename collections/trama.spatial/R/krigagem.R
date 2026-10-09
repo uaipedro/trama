@@ -330,7 +330,13 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
       .tr_spatial_num(.tr_spatial_dist_vizinho(pontos$coords)),
       .tr_spatial_num(modelo$alcance)))
   }
-  data.frame(novos, predito = pred, variancia = v, erro_padrao = sqrt(v))
+  pred <- .tr_spatial_recorta_indicador(pred, pontos)
+  out <- data.frame(novos, predito = as.numeric(pred), variancia = v,
+                    erro_padrao = sqrt(v))
+  if (!is.null(attr(pred, "n_recortadas"))) {
+    attr(out, "n_recortadas") <- attr(pred, "n_recortadas")
+  }
+  out
 }
 
 #' De onde vêm os pontos da krigagem.
@@ -449,8 +455,19 @@ tr_spatial_kriging <- function(pontos = NULL, modelo, grade = NULL,
       "%d de %d células ficaram sem predição: nenhum ponto dentro da vizinhança (%s).",
       "Aumente o raio ou deixe-o vazio."), sem, nrow(grade_pred), viz)), collapse = " ")
   }
+  rec <- attr(grade_pred, "n_recortadas")
+  if (!is.null(pontos$indicador)) {
+    nota <- paste(c(nota, sprintf(paste(
+      "O predito é a PROBABILIDADE de %s %s %s, recortada em [0, 1]%s."),
+      pontos$indicador$variavel_original, pontos$indicador$sentido,
+      format(signif(pontos$indicador$corte, 6)),
+      if (!is.null(rec) && rec > 0L)
+        sprintf(" (%d célula(s) precisaram do recorte)", rec) else "")),
+      collapse = " ")
+  }
   structure(list(
-    grade = tibble::as_tibble(grade_pred), tipo = tipo, modelo = modelo, pontos = pontos,
+    grade = tibble::as_tibble(grade_pred), tipo = tipo,
+    indicador = pontos$indicador, n_recortadas = rec, modelo = modelo, pontos = pontos,
     borda = pontos$borda, resolucao = as.integer(resolucao), vizinhanca = viz,
     variavel = pontos$variavel, unidade = pontos$unidade, nota = nota),
     class = "tr_spatial_surface")
