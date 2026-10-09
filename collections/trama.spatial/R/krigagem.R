@@ -102,6 +102,41 @@
   invisible(tipo)
 }
 
+#' A grade trazida pelo usuario, validada contra os pontos.
+#'
+#' O KED exige a covariavel EXAUSTIVA, conhecida em toda celula. Quem nao tem
+#' esse dado nao roda KED e recebe erro dizendo o que falta: a alternativa seria
+#' interpolar a covariavel por dentro, e ai o erro-padrao do mapa ficaria
+#' subestimado sem dizer, porque o erro da interpolacao nao se propaga.
+#'
+#' As colunas de coordenada tem de ter os MESMOS nomes declarados no
+#' `spatial/coordinates`: a grade vem de outro caminho (uma tabela lida de
+#' arquivo), e casar coluna por posicao trocaria leste por norte em silencio.
+#' @noRd
+.tr_spatial_grade_externa <- function(grade, pontos) {
+  g <- as.data.frame(grade)
+  faltam <- setdiff(pontos$coord_cols, names(g))
+  if (length(faltam)) {
+    .tr_spatial_abort("tr_spatial_error_missing_drift", sprintf(paste(
+      "A grade ligada nao tem a coluna %s. Ela precisa das mesmas colunas de",
+      "coordenada dos pontos (%s). Tem: %s."),
+      paste(faltam, collapse = ", "),
+      paste(pontos$coord_cols, collapse = ", "),
+      paste(names(g), collapse = ", ")))
+  }
+  ruins <- vapply(pontos$coord_cols, function(cc) sum(!is.finite(g[[cc]])), 0L)
+  if (any(ruins > 0L)) {
+    .tr_spatial_abort("tr_spatial_error_bad_coords", sprintf(
+      "A grade ligada tem %d celula(s) com coordenada faltante ou infinita.",
+      sum(ruins)))
+  }
+  if (!nrow(g)) {
+    .tr_spatial_abort("tr_spatial_error_empty_grid",
+      "A grade ligada nao tem nenhuma linha.")
+  }
+  g
+}
+
 #' Valida a vizinhança (`vizinhos_max`, `dist_max`).
 #'
 #' Extraída de `.tr_spatial_krig_opcoes()` porque a validação cruzada usa a
@@ -381,30 +416,41 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
 #' @param vizinhos_max,dist_max vizinhança local; `NA` kriga globalmente.
 #' @return uma superfície predita (`spatial/surface`).
 #' @export
-tr_spatial_kriging <- function(pontos = NULL, modelo, tipo = "ordinaria", media = NA,
+tr_spatial_kriging <- function(pontos = NULL, modelo, grade = NULL,
+                               tipo = "ordinaria", media = NA,
                                resolucao = 60L, vizinhos_max = NA, dist_max = NA,
                                tendencia = "constante") {
   .tr_spatial_modelo_conferir(modelo)
   pontos <- .tr_spatial_krig_pontos(pontos, modelo)
   .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max, tendencia)
-  g <- tr_spatial_grid(pontos, resolucao)
-  grade <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media, vizinhos_max,
-                                 dist_max, tendencia)
+  # Grade ligada VENCE a resolucao: ela e a unica forma de a deriva externa ter
+  # a covariavel em toda celula, e tambem serve a quem quer predizer em pontos
+  # escolhidos em vez de numa grade regular.
+  externa <- !is.null(grade)
+  g <- if (externa) .tr_spatial_grade_externa(grade, pontos) else
+    tr_spatial_grid(pontos, resolucao)
+  grade_pred <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media,
+                                      vizinhos_max, dist_max, tendencia)
   viz <- .tr_spatial_viz_texto(vizinhos_max, dist_max)
   nota <- paste(c(modelo$nota,
                   if (identical(tipo, "universal"))
                     sprintf("Krigagem universal, tendencia de %s.", tendencia),
-                  sprintf("Grade de %d células (resolução %d).",
-                          nrow(grade), as.integer(resolucao))), collapse = " ")
+                  if (externa)
+                    sprintf(paste("Grade ligada na porta, com %d células: a",
+                                  "resolução é ignorada."), nrow(grade_pred))
+                  else
+                    sprintf("Grade de %d células (resolução %d).",
+                            nrow(grade_pred), as.integer(resolucao))),
+                collapse = " ")
   nota <- trimws(nota)
-  sem <- sum(is.na(grade$predito))
+  sem <- sum(is.na(grade_pred$predito))
   if (sem > 0L) {
     nota <- paste(c(nota, sprintf(paste(
       "%d de %d células ficaram sem predição: nenhum ponto dentro da vizinhança (%s).",
-      "Aumente o raio ou deixe-o vazio."), sem, nrow(grade), viz)), collapse = " ")
+      "Aumente o raio ou deixe-o vazio."), sem, nrow(grade_pred), viz)), collapse = " ")
   }
   structure(list(
-    grade = tibble::as_tibble(grade), tipo = tipo, modelo = modelo, pontos = pontos,
+    grade = tibble::as_tibble(grade_pred), tipo = tipo, modelo = modelo, pontos = pontos,
     borda = pontos$borda, resolucao = as.integer(resolucao), vizinhanca = viz,
     variavel = pontos$variavel, unidade = pontos$unidade, nota = nota),
     class = "tr_spatial_surface")

@@ -7,7 +7,8 @@
       category = "espacial_predizer", icon = trama::tr_icon("grid-3x3"),
       description = "Interpola a variável numa grade recortada na borda, com o erro-padrão de cada célula.",
       inputs = list(pontos = trama::tr_port("spatial/points", required = FALSE),
-                    modelo = "spatial/model"),
+                    modelo = "spatial/model",
+                    grade = trama::tr_port("data/table", required = FALSE)),
       outputs = list(out = "spatial/surface"),
       params = list(
         tipo = E("ordinaria", .TR_SPATIAL_TIPOS_KRIG, label = "Tipo"),
@@ -48,6 +49,15 @@ não muda a conta (a krigagem com tendência é invariante a reparametrização
 linear da base) e evita o mal condicionamento que coordenada UTM crua produz no
 termo quadrático — medimos 3,7e-4 de diferença na 2ª ordem, e o `geoR` chega a
 ficar singular.
+
+A **deriva externa** (tendência por covariável) tem uma exigência que não dá
+para contornar: a covariável precisa ser conhecida em **toda célula** onde se
+prediz, e não só nos pontos amostrais. Por isso ela só roda com uma tabela
+ligada na porta **Grade**, trazendo as coordenadas e a covariável. O bloco
+recusa quando a covariável falta ou tem célula vazia, em vez de preencher por
+conta própria: interpolar a covariável por dentro deixaria o erro-padrão do mapa
+subestimado sem avisar, porque o erro dessa interpolação não entra na variância
+de krigagem.
 ]---", r"---[
 - **Tipo** — ordinária estima a média a partir dos dados e é o padrão.
   Simples supõe a média da população conhecida e pede que você a informe; é a
@@ -56,6 +66,11 @@ ficar singular.
   quadrática) ou `covariavel` (deriva externa, que exige a grade com a
   covariável, pela porta Grade). Tendência constante não aparece aqui porque
   universal com tendência constante é a própria ordinária.
+- **Grade** (porta) — uma tabela com as colunas de coordenada, que passa a ser
+  a grade de predição. Ligada, ela **vence a Resolução**. É o único caminho da
+  deriva externa, e serve também a quem quer predizer em pontos escolhidos em
+  vez de numa grade regular. As colunas de coordenada precisam ter os mesmos
+  nomes declarados no bloco Coordenadas.
 - **Média conhecida** — só na simples. Usar a média amostral aqui não é
   krigagem simples: é fingir que se conhece o que se estimou.
 - **Resolução** — pontos no lado maior da grade. A grade cobre os pontos e a
