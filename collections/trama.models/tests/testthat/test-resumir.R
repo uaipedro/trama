@@ -167,3 +167,39 @@ test_that("quadro tipo I avisa quando o desenho é desbalanceado, sem mudar o pa
   expect_false(grepl("desbalanceados", tr_models_anova_table(tr_models_lm(des, formula = "len ~ supp * dose"), "II")$nota,
                      fixed = TRUE))
 })
+
+# Oráculo: `statmod::qresid` 1.5.x (Dunn & Smyth 1996, mesmos autores), com a
+# mesma semente e o mesmo RNG: a conta e a ordem do sorteio são as mesmas, e a
+# tolerância é de arredondamento (1e-10). Gama e gaussiana não sorteiam.
+test_that("resíduo quantílico randomizado bate com o statmod::qresid em cada família", {
+  skip_if_not_installed("statmod")
+  skip_if_not_installed("MASS")
+  ins <- ex("InsectSprays")
+  mt <- ex("mtcars")
+  agr <- data.frame(s = c(3, 7, 9, 12, 15), f = c(17, 13, 11, 8, 5), dose = 1:5)
+  casos <- list(
+    poisson = tr_models_glm(ins, "count", "spray", familia = "poisson"),
+    binomial_01 = tr_models_glm(mt, "am", "wt", familia = "binomial"),
+    binomial_agrupada = tr_models_glm(agr, formula = "cbind(s, f) ~ dose", familia = "binomial"),
+    negbin = tr_models_glm(ins, "count", "spray", familia = "binomial negativa"),
+    gama = tr_models_glm(mt, "mpg", "wt", familia = "gama"),
+    gaussiana = tr_models_glm(mt, "mpg", "wt", familia = "gaussiana"))
+  for (k in names(casos)) {
+    r <- tr_models_residuals(casos[[k]], .seed = 42L)$residuo_quantilico
+    RNGkind("Mersenne-Twister", "Inversion", "Rejection"); set.seed(42L)
+    esperado <- unname(statmod::qresid(casos[[k]]$ajuste))
+    expect_equal(r, esperado, tolerance = 1e-10, label = k)
+  }
+})
+
+test_that("resíduo quantílico: semente reprodutível, quasi sem distribuição, só no GLM", {
+  g <- tr_models_glm(ex("InsectSprays"), "count", "spray", familia = "poisson")
+  expect_identical(tr_models_residuals(g, .seed = 3L)$residuo_quantilico,
+                   tr_models_residuals(g, .seed = 3L)$residuo_quantilico)
+  expect_false(identical(tr_models_residuals(g, .seed = 3L)$residuo_quantilico,
+                         tr_models_residuals(g, .seed = 4L)$residuo_quantilico))
+  q <- tr_models_glm(ex("InsectSprays"), "count", "spray", familia = "quasipoisson")
+  expect_true(all(is.na(tr_models_residuals(q)$residuo_quantilico)))
+  m <- tr_models_lm(ex("mtcars"), formula = "mpg ~ wt")
+  expect_false("residuo_quantilico" %in% names(tr_models_residuals(m)))
+})

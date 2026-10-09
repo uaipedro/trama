@@ -1,3 +1,7 @@
+# trama.models 0.6.8
+
+* `models/residuals` (versão 2): no GLM sai também `residuo_quantilico`, o resíduo quantílico normalizado randomizado de Dunn & Smyth (1996), N(0, 1) sob o modelo certo mesmo com resposta 0/1 ou contagens baixas. Binomial, Poisson, binomial negativa, gama e gaussiana; `NA` nas quasi. O sorteio usa a semente do card. Validado contra `statmod::qresid` (tolerância 1e-10).
+
 # trama.models 0.6.7
 
 * Relatório Quarto: os blocos cuja ferramenta depende da corrida registram no resultado a que rodou (atributo `trama_ferramentas`): `anova_table` (`stats::anova`, `car::Anova` ou `nlme::anova.gls`), `glm` (`MASS::glm.nb` só na binomial negativa), `linear_hypothesis`, `permutation`, `coefficients` (VIF do `car`, intervalos do `nlme`), `select`, `bootstrap`, `anova_split_plot` e `example`. A referência de implementação do `coin` saiu do `permutation`: ele é só oráculo dos testes.

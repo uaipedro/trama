@@ -481,3 +481,15 @@ F com `stats::anova` a cada permutação. A referência de implementação saiu 
 artigo do `coin` fica como referência do método); o relatório exportado, que
 agora cita as ferramentas que rodaram, deixaria de creditar um pacote que não
 roda. Nenhum resultado muda.
+
+## Resíduo quantílico randomizado no GLM (09/10/2026)
+
+`models/residuals` (versão 2) ganha `residuo_quantilico` no GLM: o resíduo
+quantílico normalizado randomizado de Dunn & Smyth (1996, JCGS 5(3), 236-244,
+doi 10.1080/10618600.1996.10474708, conferido no Crossref). Nas famílias
+discretas (binomial 0/1 e agrupada, Poisson, binomial negativa) sorteia `u`
+uniforme no salto da acumulada; gama e gaussiana são contínuas e não sorteiam;
+nas quasi não há distribuição, e a coluna sai `NA`. O nó passa a `stochastic`,
+com a semente do card. Oráculo: `statmod::qresid` com a mesma semente e o
+mesmo RNG, nas seis famílias, tolerância 1e-10 (`test-resumir.R`). As colunas
+que já existiam não mudam.

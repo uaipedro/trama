@@ -651,14 +651,63 @@ tr_models_random_effects <- function(modelo) {
        ajuste = aj)
 }
 
+#' Resíduos quantílicos normalizados randomizados de um GLM.
+#'
+#' Dunn & Smyth (1996): \eqn{r_i = \Phi^{-1}(u_i)}, com \eqn{u_i} a função de
+#' distribuição acumulada do modelo em \eqn{y_i}. Na resposta discreta
+#' (binomial, Poisson, binomial negativa) a acumulada salta em \eqn{y_i}, e
+#' \eqn{u_i} é sorteado uniforme entre \eqn{F(y_i^-)} e \eqn{F(y_i)}: é isso
+#' que tira as faixas que o resíduo de desvio tem com contagens baixas. Com o
+#' modelo certo, saem N(0, 1) exatos, qualquer que seja a família. Mesma conta
+#' do `statmod::qresid`, na mesma ordem de sorteio (um `runif` do tamanho de
+#' n). Nas famílias quasi não há distribuição para inverter: `NA`.
+#' @noRd
+.tr_models_qresid <- function(aj) {
+  familia <- .tr_models_familia_glm(aj)
+  y <- unname(aj$y)
+  mu <- as.numeric(stats::fitted(aj))
+  sortear <- function(a, b) stats::qnorm(stats::runif(length(y), min = a, max = b))
+  switch(familia,
+    binomial = {
+      n <- aj$prior.weights
+      k <- round(n * y)
+      sortear(stats::pbinom(k - 1, n, mu), stats::pbinom(k, n, mu))
+    },
+    poisson = sortear(stats::ppois(y - 1, mu), stats::ppois(y, mu)),
+    negbin = {
+      p <- aj$theta / (mu + aj$theta)
+      sortear(ifelse(y > 0, stats::pbeta(p, aj$theta, pmax(y, 1)), 0),
+              stats::pbeta(p, aj$theta, y + 1))
+    },
+    Gamma = {
+      w <- aj$prior.weights
+      disp <- sum(w * ((y - mu) / mu)^2) / aj$df.residual
+      stats::qnorm(stats::pgamma(w * y / mu / disp, w / disp, log.p = TRUE), log.p = TRUE)
+    },
+    gaussian = (y - mu) / sqrt(sum(aj$weights * aj$residuals^2) / aj$df.residual),
+    rep(NA_real_, length(y)))
+}
+
 #' Resíduos ao lado da tabela.
+#'
+#' No GLM sai também `residuo_quantilico`, o resíduo quantílico normalizado
+#' randomizado (Dunn & Smyth 1996): N(0, 1) sob o modelo certo, inclusive com
+#' contagens baixas ou resposta 0/1, onde o de desvio fica em faixas. O sorteio
+#' usa a semente do nó.
 #' @param modelo objeto `tr_models_fit`.
+#' @param .seed semente do nó (só o resíduo quantílico do GLM sorteia).
 #' @return a tabela usada no ajuste com `ajustado`, `residuo` e
-#'   `residuo_padronizado` à direita.
+#'   `residuo_padronizado` à direita; no GLM, também `residuo_quantilico`.
 #' @export
-tr_models_residuals <- function(modelo) {
+tr_models_residuals <- function(modelo, .seed = 1L) {
   .tr_models_modelo_conferir(modelo)
-  tr_models_resid(modelo)
+  d <- tr_models_resid(modelo)
+  if (identical(modelo$classe, "glm")) {
+    nome <- if ("residuo_quantilico" %in% names(modelo$dados)) "residuo_quantilico_modelo" else "residuo_quantilico"
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    d[[nome]] <- as.numeric(.tr_models_com_semente(semente, .tr_models_qresid(modelo$ajuste)))
+  }
+  d
 }
 
 #' Diagnóstico gráfico dos resíduos: quatro painéis.

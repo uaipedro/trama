@@ -4,15 +4,20 @@
 \alias{tr_models_residuals}
 \title{Resíduos ao lado da tabela.}
 \usage{
-tr_models_residuals(modelo)
+tr_models_residuals(modelo, .seed = 1L)
 }
 \arguments{
 \item{modelo}{objeto `tr_models_fit`.}
+
+\item{.seed}{semente do nó (só o resíduo quantílico do GLM sorteia).}
 }
 \value{
 a tabela usada no ajuste com `ajustado`, `residuo` e
-  `residuo_padronizado` à direita.
+  `residuo_padronizado` à direita; no GLM, também `residuo_quantilico`.
 }
 \description{
-Resíduos ao lado da tabela.
+No GLM sai também `residuo_quantilico`, o resíduo quantílico normalizado
+randomizado (Dunn & Smyth 1996): N(0, 1) sob o modelo certo, inclusive com
+contagens baixas ou resposta 0/1, onde o de desvio fica em faixas. O sorteio
+usa a semente do nó.
 }
