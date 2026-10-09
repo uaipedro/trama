@@ -1,0 +1,13 @@
+test_that("os tipos da multi vão ao relatório como tabelas", {
+  d <- tr_multi_example("iris")
+  r <- tr_multi_report_pca(tr_multi_pca(d))
+  expect_s3_class(r, "knit_asis")
+  expect_match(r, "**Autovalores**", fixed = TRUE)
+  expect_match(r, "| componente | autovalor |", fixed = TRUE)
+  expect_match(tr_multi_report_fa(tr_multi_factor_analysis(d, fatores = 1L)), "**Cargas de padrão**", fixed = TRUE)
+  dd <- tr_multi_distance(utils::head(as.data.frame(d), 8))
+  expect_match(tr_multi_report_dist(dd), "**Matriz de distância**", fixed = TRUE)
+  cl <- tr_multi_report_cluster(tr_multi_cluster(dados = d, grupos = 3L))
+  expect_match(cl, "| Grupo | n | Membros |", fixed = TRUE)
+  expect_match(cl, "(+35)", fixed = TRUE)
+})
