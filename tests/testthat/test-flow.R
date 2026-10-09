@@ -269,47 +269,55 @@ test_that("o Quarto tem um chunk por card, seções dos frames, notas e as saíd
   expect_match(q, "sessionInfo()", fixed = TRUE)
 })
 
-test_that("referência com texto não-ASCII sem marca de encoding não derruba o Quarto", {
+test_that("rótulo não-ASCII sem marca de encoding não derruba a seção de software", {
   # Strings de coleção instalada podem chegar com Encoding "unknown"; a
   # ordenação radix recusava ("Character encoding must be UTF-8, Latin-1 or
   # bytes") e o export em Quarto falhava inteiro.
-  titulo <- "An\u00e1lise de vari\u00e2ncia"
-  Encoding(titulo) <- "unknown"
-  ref <- tr_ref(autores = "Banzatto, D. A.", ano = 2006, titulo = titulo, fonte = "Funep")
-  outra <- tr_ref(autores = "Box, G. E. P.", ano = 1964, titulo = "Transformations")
+  rotulo <- "An\u00e1lise"
+  Encoding(rotulo) <- "unknown"
   reg <- tr_registry()
   tr_use(tr_collection("u", types = list(tr_type("u/num")), nodes = list(
-    tr_node("u/a", fn = function() 1, label = "A", description = "A.",
-            outputs = list(out = "u/num"), referencias = list(ref, outra))
+    tr_node("u/a", fn = function() 1, label = rotulo, description = "A.", outputs = list(out = "u/num"),
+            referencias = list(tr_ref(papel = "implementacao", pacote = "car", funcao = "Anova")))
   )), registry = reg)
   q <- tr_export_code(tr_flow(reg) |> tr_add("a", "u/a") |> tr_flow_doc(), reg, format = "quarto")
-  expect_match(q, "Banzatto, D. A. (2006). An\u00e1lise de vari\u00e2ncia.", fixed = TRUE)
+  expect_match(q, "| An\u00e1lise | `car::Anova()` |", fixed = TRUE)
 })
 
-test_that("o Quarto exportado lista as referências dos blocos usados, sem repetir", {
-  ref <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
-                titulo = "An analysis of transformations", fonte = "JRSS B 26(2)",
-                doi = "10.1111/j.2517-6161.1964.tb00553.x")
-  impl <- tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm")
+test_that("o Quarto cita as ferramentas usadas, e não o método nem o livro-texto", {
+  teoria <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
+                   titulo = "An analysis of transformations", fonte = "JRSS B 26(2)")
+  livro <- tr_ref(papel = "livro-texto", autores = "Banzatto, D. A.", ano = 2006,
+                  titulo = "Experimenta\u00e7\u00e3o agr\u00edcola")
   reg <- tr_registry()
   tr_use(tr_collection("r", types = list(tr_type("r/num")), nodes = list(
-    tr_node("r/a", fn = function() 1, label = "Bloco A", description = "A.",
-            outputs = list(out = "r/num"), referencias = list(ref, impl)),
+    tr_node("r/a", fn = function() 1, label = "Bloco A", description = "A.", outputs = list(out = "r/num"),
+            referencias = list(teoria, livro, tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm"))),
     tr_node("r/b", fn = function(x) x, label = "Bloco B", description = "B.",
-            inputs = list(x = "r/num"), outputs = list(out = "r/num"), referencias = list(ref))
+            inputs = list(x = "r/num"), outputs = list(out = "r/num"),
+            referencias = list(tr_ref(papel = "implementacao", pacote = "car", funcao = "Anova"),
+                               tr_ref(papel = "implementacao", pacote = "car", funcao = "leveneTest")))
   )), registry = reg)
   doc <- tr_flow(reg) |> tr_add("a", "r/a") |> tr_add("b", "r/b", from = "a") |> tr_flow_doc()
 
   q <- tr_export_code(doc, reg, format = "quarto")
-  expect_match(q, "## Referências dos métodos", fixed = TRUE)
-  expect_match(q, "Box, G. E. P.; Cox, D. R. (1964). An analysis of transformations.", fixed = TRUE)
-  expect_match(q, "<https://doi.org/10.1111/j.2517-6161.1964.tb00553.x> *(Bloco A, Bloco B)*", fixed = TRUE)
-  expect_match(q, "Pacote R `stats`, função `lm()`", fixed = TRUE)
-  expect_equal(lengths(regmatches(q, gregexpr("An analysis of transformations", q))), 1L)
-  # Fluxo sem referências não ganha seção vazia.
-  expect_no_match(tr_export_code(tr_flow(test_registry()) |> tr_add("o", "t/const", value = 2) |>
-                                   tr_flow_doc(), test_registry(), format = "quarto"),
-                  "Referências dos métodos")
+  expect_match(q, "## Software", fixed = TRUE)
+  expect_no_match(q, "Box, G. E. P.", fixed = TRUE)
+  expect_no_match(q, "Banzatto", fixed = TRUE)
+  expect_match(q, "| Bloco A | `stats::lm()` |", fixed = TRUE)
+  expect_match(q, "| Bloco B | `car::Anova()`, `car::leveneTest()` |", fixed = TRUE)
+  # O `stats` é o R: cita-se o R (citation()), não o pacote da base.
+  expect_match(q, "pacotes <- \"car\"", fixed = TRUE)
+  # O chunk roda e devolve as citações.
+  chunk <- regmatches(q, regexpr("pacotes <- [^`]*", q))
+  out <- capture.output(eval(parse(text = chunk), envir = new.env()))
+  expect_true(any(grepl("R Core Team", out)))
+  expect_true(any(grepl("Fox", out)))
+  # Fluxo sem ferramenta declarada ainda cita o R.
+  q2 <- tr_export_code(tr_flow(test_registry()) |> tr_add("o", "t/const", value = 2) |> tr_flow_doc(),
+                       test_registry(), format = "quarto")
+  expect_match(q2, "pacotes <- character(0)", fixed = TRUE)
+  expect_no_match(q2, "| Bloco |", fixed = TRUE)
 })
 
 test_that("no Quarto, o tema padrão escuro vira claro; o escolhido à mão fica", {

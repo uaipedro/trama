@@ -2,6 +2,7 @@
 
 * Relatório Quarto: gráfico no tema "padrão" sai num tema claro quando o padrão do projeto é escuro (o primeiro claro do projeto, ou o `claro` embutido). Tema escolhido no card e script `.R` não mudam.
 * `tr_type(report_always = TRUE)`: a saída aparece no relatório mesmo consumida por um fio, salvo quando quem consome devolve o mesmo tipo (numa cadeia, só o último elo aparece).
+* Relatório Quarto: "Referências dos métodos" vira "Software". O documento cita as ferramentas, não o método nem o livro-texto: uma tabela bloco → `pacote::função()` (das `tr_ref` de implementação) e um chunk que cita o R e cada pacote com `citation()` na hora de renderizar. As referências de teoria, livro-texto e complementares continuam na ajuda do bloco.
 
 # trama 0.5.15
 

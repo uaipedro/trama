@@ -126,7 +126,7 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
     for (b in blocks) lines <- c(lines, b$code, "")
     return(paste(lines, collapse = "\n"))
   }
-  .tr_export_quarto(doc, blocks, title, preambulo, registry)
+  .tr_export_quarto(doc, blocks, title, preambulo, registry, pkgs)
 }
 
 # Monta o .qmd. A ordem é a do plano refeita: entre os nós já liberados pelas
@@ -134,7 +134,7 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
 # e da esquerda. Assim o documento lê como o canvas, e nunca usa uma variável
 # antes de ela existir. Notas não têm dependência e entram na mesma fila,
 # pela mesma chave: uma nota no frame 2 sai depois do que o frame 1 calcula.
-.tr_export_quarto <- function(doc, blocks, title, preambulo, registry) {
+.tr_export_quarto <- function(doc, blocks, title, preambulo, registry, pkgs = character()) {
   frames <- doc$ui$frames %||% list()
   frames <- frames[order(vapply(frames, function(f) as.numeric(f$order %||% 0), numeric(1)))]
   pos <- doc$ui$positions %||% list()
@@ -221,51 +221,56 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
              "# Código R gerado pelo editor.",
              "# Renderize a partir da pasta do projeto para preservar caminhos relativos.",
              preambulo, "```", "")
-  fim <- c(.tr_export_referencias(doc, registry),
+  fim <- c(.tr_export_referencias(doc, registry, pkgs),
            "## Ambiente", "", "```{r}", "#| label: ambiente", "#| code-fold: true",
            "sessionInfo()", "```", "")
   paste(c(yaml, setup, corpo, fim), collapse = "\n")
 }
 
-# "Referências dos métodos": as `tr_ref` dos blocos usados no fluxo, sem
-# repetição, cada uma com os blocos que a citam. O relatório exportado sai
-# dizendo de onde vem cada conta — é o que um leitor (ou banca) precisa para
-# conferir o método, e a coleção já declarou isso no bloco.
-.tr_export_referencias <- function(doc, registry) {
+# "Software": o relatório cita as FERRAMENTAS que fizeram a conta, e não o
+# método nem o livro-texto que o ensina. Quem fez o Tukey foi o `emmeans`; é a
+# ele (e ao R) que o texto deve crédito, e é com ele que o leitor refaz a conta.
+# As `tr_ref` de teoria, livro-texto e complementar continuam na ajuda do
+# bloco, onde servem para estudar o método — no relatório eram referência por
+# referência.
+#
+# Duas partes: a tabela "bloco → pacote::função" (das `tr_ref` de
+# implementação, o que cada bloco usado chamou) e um chunk que cita cada pacote
+# com `citation()` NA HORA DE RENDERIZAR — a citação que o autor do pacote
+# pediu, na versão instalada de quem renderiza. Os pacotes da base viram uma
+# citação só, a do R.
+.TR_EXPORT_PACOTES_BASE <- c("base", "stats", "utils", "methods", "graphics", "grDevices", "grid",
+                             "splines", "stats4", "tools", "parallel", "compiler", "datasets")
+
+.tr_export_referencias <- function(doc, registry, pkgs = character()) {
   tipos <- unique(vapply(doc$nodes, function(n) n$type, ""))
-  vistos <- list()
+  usos <- list()
   for (ty in sort(tipos, method = "radix")) {
     spec <- tryCatch(tr_get_node(ty, registry), error = function(e) NULL)
     if (is.null(spec)) next
+    rotulo <- spec$label %||% ty
+    # Texto de coleção instalada pode vir sem marca de encoding, e a
+    # ordenação radix abaixo recusa string não-ASCII sem marca.
+    if (validUTF8(rotulo)) Encoding(rotulo) <- "UTF-8"
     for (r in spec$referencias %||% list()) {
-      txt <- .tr_export_ref_texto(r)
-      if (is.null(txt)) next
-      # Texto de coleção instalada pode vir sem marca de encoding, e a
-      # ordenação radix abaixo recusa string não-ASCII sem marca.
-      if (validUTF8(txt)) Encoding(txt) <- "UTF-8"
-      vistos[[txt]] <- unique(c(vistos[[txt]], spec$label %||% ty))
+      if (!identical(r$papel, "implementacao")) next
+      fn <- sprintf("`%s::%s()`", r$pacote, r$funcao)
+      usos[[rotulo]] <- unique(c(usos[[rotulo]], fn))
+      pkgs <- union(pkgs, r$pacote)
     }
   }
-  if (!length(vistos)) return(character())
-  ordem <- order(names(vistos), method = "radix")
-  itens <- vapply(ordem, function(i) {
-    sprintf("- %s *(%s)*", names(vistos)[[i]], paste(vistos[[i]], collapse = ", "))
-  }, "")
-  c("## Refer\u00eancias dos m\u00e9todos", "", itens, "")
-}
-
-.tr_export_ref_texto <- function(r) {
-  if (identical(r$papel, "implementacao")) {
-    v <- tryCatch(as.character(utils::packageVersion(r$pacote)), error = function(e) NULL)
-    return(sprintf("Pacote R `%s`, fun\u00e7\u00e3o `%s()`%s.", r$pacote, r$funcao,
-                   if (is.null(v)) "" else paste0(", vers\u00e3o ", v)))
+  pkgs <- sort(setdiff(pkgs, c(.TR_EXPORT_PACOTES_BASE, "trama")), method = "radix")
+  tabela <- if (length(usos)) {
+    nomes <- sort(names(usos), method = "radix")
+    c("| Bloco | Ferramenta |", "|:---|:---|",
+      sprintf("| %s | %s |", nomes, vapply(usos[nomes], paste, "", collapse = ", ")), "")
   }
-  if (is.null(r$autores) || is.null(r$titulo)) return(NULL)
-  partes <- c(sprintf("%s (%s). %s.", paste(r$autores, collapse = "; "), r$ano %||% "s.d.", r$titulo),
-              if (!is.null(r$fonte)) paste0(r$fonte, "."),
-              if (!is.null(r$doi)) sprintf("<https://doi.org/%s>", r$doi)
-              else if (!is.null(r$url)) sprintf("<%s>", r$url))
-  paste(partes, collapse = " ")
+  chunk <- c("```{r}", "#| label: software", "#| echo: false", "#| results: asis",
+             sprintf("pacotes <- %s", .tr_export_value(pkgs)),
+             "citar <- function(p) suppressWarnings(format(if (is.null(p)) citation() else citation(p), style = \"text\"))",
+             "cat(paste0(\"- \", c(citar(NULL), unlist(lapply(pacotes, citar)))), sep = \"\\n\")",
+             "```", "")
+  c("## Software", "", tabela, chunk)
 }
 
 # Versões dos pacotes de que o script depende, na hora da exportação: é o que
