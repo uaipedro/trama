@@ -27,6 +27,22 @@ test_that("tr_view_render grava o PNG que o tipo view/plot grava", {
   expect_equal(c(dims[[2]], dims[[1]]), c(1600, 800))
 })
 
+test_that("tr_view_render com ctx$qualidade grava no dpi e formato da galeria", {
+  skip_if_not_installed("png")
+  dir <- tempfile(); dir.create(dir)
+  ctx <- list(file = function(e) file.path(dir, paste0("g.", e)),
+              qualidade = list(dpi = 300, formato = "png"))
+  p <- tr_view_finish(ggplot2::ggplot(df_exemplo(), ggplot2::aes(valor, qtd)) +
+                        ggplot2::geom_point(), aspecto = "2:1")
+  art <- tr_view_render(p, ctx)
+  dims <- dim(png::readPNG(art$files$png))
+  expect_equal(c(dims[[2]], dims[[1]]), c(2400, 1200))
+  ctx$qualidade$formato <- "jpeg"
+  art <- tr_view_render(p, ctx)
+  expect_true(file.exists(art$files$jpeg))
+  expect_match(art$files$jpeg, "\\.jpeg$")
+})
+
 test_that("a seção de aparência exportada é a que os nós anexam", {
   expect_identical(tr_view_help_appearance(), .TR_VIEW_AJUDA_APARENCIA)
 })

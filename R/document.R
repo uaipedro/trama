@@ -54,7 +54,15 @@ tr_op_semantic <- function(op) {
 #' @noRd
 .tr_doc_echo_ops <- c("add_node", "remove_node", "connect", "disconnect",
                       "add_frame", "remove_frame", "reorder_frames",
-                      "add_note", "remove_note", "add_grupo", "remove_grupo", "set_saida")
+                      "add_note", "remove_note", "add_grupo", "remove_grupo", "set_saida",
+                      "set_galeria", "add_ramo", "remove_ramo", "ligar_ramo")
+
+# Ops que mudam o que está na galeria sem re-executar nada (a marca) ou que
+# podem ter apagado um card marcado.
+.tr_op_toca_galeria <- function(op) {
+  if (identical(op$op, "batch")) return(any(vapply(op$ops, .tr_op_toca_galeria, logical(1))))
+  isTRUE(op$op %in% c("set_galeria", "remove_node", "rename"))
+}
 
 .tr_op_echoes_doc <- function(op) {
   if (identical(op$op, "batch")) return(any(vapply(op$ops, .tr_op_echoes_doc, logical(1))))

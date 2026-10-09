@@ -88,6 +88,8 @@ function Miniatura({ tema }) {
       h("i", { key: i, style: { background: c } })));
 }
 
+export const GALERIA_PADRAO = { pasta: "gallery", imagens: true, formato: "png", dpi: 300 };
+
 function Campo({ rotulo, children }) {
   // Filhos como argumentos, não array: array pediria `key` ao filho que vem de fora.
   return h("div", { className: "tr-settings-field" },
@@ -96,9 +98,9 @@ function Campo({ rotulo, children }) {
 
 const primeiro = (e) => e.tema_padrao ?? Object.keys(e.temas)[0] ?? null;
 
-export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProximo = true, onSugestoesProximo,
+export function SettingsPanel({ temas, padrao, marca, sugestoes, galeria = GALERIA_PADRAO, sugestoesProximo = true, onSugestoesProximo,
                               temaApp, onTemaApp, onSave, onClose }) {
-  const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca, sugestoes }));
+  const [rascunho, setRascunho] = React.useState(() => copiar({ temas, tema_padrao: padrao, marca, sugestoes, galeria }));
   // O ref anda junto do estado e é lido nos callbacks: o `change` da cor chega
   // depois de uma rajada de `input`, e o fechamento do render anterior veria
   // um rascunho velho.
@@ -106,16 +108,16 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProxim
   const [sel, setSel] = React.useState(() => primeiro(rascunho));
   const [renome, setRenome] = React.useState(null);   // {texto, erro} ou null
 
-  const servidor = JSON.stringify(copiar({ temas, tema_padrao: padrao, marca, sugestoes }));
+  const servidor = JSON.stringify(copiar({ temas, tema_padrao: padrao, marca, sugestoes, galeria }));
   const servRef = React.useRef(servidor);
   servRef.current = servidor;
 
   React.useEffect(() => {
-    const r = copiar({ temas, tema_padrao: padrao, marca, sugestoes });
+    const r = copiar({ temas, tema_padrao: padrao, marca, sugestoes, galeria });
     rascRef.current = r;
     setRascunho(r);
     setSel((s) => (s != null && Object.hasOwn(r.temas, s) ? s : primeiro(r)));
-  }, [temas, padrao, marca, sugestoes]);
+  }, [temas, padrao, marca, sugestoes, galeria]);
 
   const aplicar = (r, salvar) => {
     rascRef.current = r;
@@ -277,6 +279,30 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProxim
                   title: "preenche X, Y e afins com colunas da tabela de entrada",
                   onChange: (v) => aplicar({ ...copiar(rascRef.current), sugestoes: v }, true) })),
   ]);
+  // Galeria: do projeto (vai para `trama.json`), pelo mesmo `onSave`. A pasta
+  // só é gravada ao sair do campo ou no Enter — a cada tecla, o servidor
+  // criaria uma pasta por prefixo digitado.
+  const gal = (k, v) => aplicar({ ...copiar(rascRef.current),
+                                  galeria: { ...rascRef.current.galeria, [k]: v } }, true);
+  const galeriaCampos = h("div", { key: "gal", className: "tr-settings-editor" }, [
+    h("h4", { key: "t" }, "Galeria (G)"),
+    h(Campo, { key: "i", rotulo: "gráficos entram sozinhos" },
+      h(Toggle, { value: rascunho.galeria.imagens,
+                  title: "todo card cujo preview é imagem vai para a galeria, salvo se desmarcado",
+                  onChange: (v) => gal("imagens", v) })),
+    h(Campo, { key: "p", rotulo: "pasta (relativa ao projeto)" },
+      h("input", { key: rascunho.galeria.pasta, type: "text", className: "tr-settings-input",
+                   defaultValue: rascunho.galeria.pasta, spellCheck: false,
+                   onBlur: (e) => { const v = e.target.value.trim();
+                                    if (v && v !== rascRef.current.galeria.pasta) gal("pasta", v); },
+                   onKeyDown: (e) => { if (e.key === "Enter") e.target.blur(); } })),
+    h(Campo, { key: "f", rotulo: "formato" },
+      h(Segmented, { options: ["png", "jpeg", "tiff"], value: rascunho.galeria.formato,
+                     onChange: (v) => gal("formato", v) })),
+    h(Campo, { key: "d", rotulo: "resolução (dpi)" },
+      h(Segmented, { options: ["150", "300", "600"], value: String(rascunho.galeria.dpi),
+                     onChange: (v) => gal("dpi", Number(v)) })),
+  ]);
   const proximos = h("div", { key: "prox", className: "tr-settings-editor" }, [
     h("h4", { key: "t" }, "Sugestões de próximos blocos"),
     h(Campo, { key: "s", rotulo: `Sugestões: ${sugestoesProximo ? "ligadas" : "desligadas"}` },
@@ -302,6 +328,7 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, sugestoesProxim
       acoes,
       editor,
       exportacao,
+      galeriaCampos,
       edicao, proximos, aparencia,
     ]),
   ]);

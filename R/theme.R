@@ -300,6 +300,24 @@ tr_project_set_sugestoes <- function(root, ligar) {
   invisible(.tr_settings_at(raiz))
 }
 
+#' Grava a configuração da galeria (`galeria` em `trama.json`).
+#'
+#' Mesmo molde de `tr_project_set_sugestoes()`: valida antes de abrir o
+#' arquivo e mexe só na chave `galeria`. Campo ausente em `galeria` vale o
+#' padrão (pasta `gallery`, imagens entram sozinhas, PNG a 300 dpi).
+#' @param root Pasta do projeto (precisa ter `trama.json`).
+#' @param galeria Lista com `pasta`, `imagens`, `formato` e `dpi`.
+#' @return Os settings do projeto já com a galeria nova, invisível.
+#' @export
+tr_project_set_galeria <- function(root, galeria) {
+  .tr_check_project(root)
+  raiz <- normalizePath(root, mustWork = TRUE)
+  g <- .tr_galeria_cfg(galeria)
+  .tr_cfg_rewrite(file.path(raiz, "trama.json"), "a galeria",
+                  function(cfg) { cfg$galeria <- g; cfg })
+  invisible(.tr_settings_at(raiz))
+}
+
 #' Settings como estão NO ARQUIVO, e não como a sessão acha que estão.
 #'
 #' Existe para quem acabou de gravar (ou tentou gravar) e precisa devolver a

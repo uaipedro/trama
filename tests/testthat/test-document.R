@@ -640,3 +640,58 @@ test_that("grupos: sobrevivem a gravar/ler e encolhem quando um membro sai", {
   f <- tr_doc_apply(f, list(op = "add_grupo", id = "g", membros = list("a", "f")), m$reg)
   expect_null(tr_doc_apply(f, list(op = "remove_frame", frame = "f"), m$reg)$ui$grupos$g)
 })
+
+test_that("set_galeria guarda TRUE/FALSE, null volta à regra, some com o nó", {
+  m <- mk(); d <- add(m$doc, m$reg, "t/const", id = "a")
+  expect_false(tr_op_semantic(list(op = "set_galeria")))
+  d <- tr_doc_apply(d, list(op = "set_galeria", node = "a", valor = FALSE), m$reg)
+  expect_false(d$ui$galeria$a)
+  back <- tr_doc_parse(tr_doc_json(d))
+  expect_false(back$ui$galeria$a)
+  d <- tr_doc_apply(d, list(op = "set_galeria", node = "a", valor = NULL), m$reg)
+  expect_null(d$ui$galeria$a)
+  expect_error(tr_doc_apply(d, list(op = "set_galeria", node = "a", valor = "sim"), m$reg),
+               class = "tr_error_bad_op")
+  d <- tr_doc_apply(d, list(op = "set_galeria", node = "a", valor = TRUE), m$reg)
+  d <- tr_doc_apply(d, list(op = "remove_node", node = "a"), m$reg)
+  expect_null(d$ui$galeria$a)
+})
+
+test_that("ramos: add, ligar, gravar/ler, remover nó e remover ramo", {
+  m <- mk(); d <- m$doc
+  for (id in c("a", "b", "a2", "b2")) d <- add(d, m$reg, "t/const", id = id)
+  for (k in c("add_ramo", "remove_ramo", "ligar_ramo")) expect_false(tr_op_semantic(list(op = k)))
+  d <- tr_doc_apply(d, list(op = "add_ramo", id = "r1", letra = "B", origem = "a",
+                            pares = list(a = "a2", b = "b2")), m$reg)
+  expect_equal(d$ui$ramos$r1$pares, list(a = "a2", b = "b2"))
+  d <- tr_doc_apply(d, list(op = "ligar_ramo", ramo = "r1", node = "b2", ligado = FALSE), m$reg)
+  expect_equal(d$ui$ramos$r1$desligados, "b2")
+  back <- tr_doc_parse(tr_doc_json(d))
+  expect_equal(back$ui$ramos$r1$desligados, "b2")
+  expect_equal(back$ui$ramos$r1$pares$b, "b2")
+  expect_error(tr_doc_apply(d, list(op = "ligar_ramo", ramo = "r1", node = "a", ligado = TRUE), m$reg),
+               class = "tr_error_bad_op")
+  expect_error(tr_doc_apply(d, list(op = "add_ramo", letra = "C", origem = "zz",
+                                    pares = list(a = "b")), m$reg), class = "tr_error_bad_op")
+  # apagar uma cópia comum tira só o par; apagar a cópia da origem dissolve o ramo
+  d2 <- tr_doc_apply(d, list(op = "remove_node", node = "b2"), m$reg)
+  expect_equal(names(d2$ui$ramos$r1$pares), "a")
+  expect_length(d2$ui$ramos$r1$desligados, 0)
+  d3 <- tr_doc_apply(d, list(op = "remove_node", node = "a2"), m$reg)
+  expect_null(d3$ui$ramos$r1)
+  d4 <- tr_doc_apply(d, list(op = "remove_ramo", ramo = "r1"), m$reg)
+  expect_null(d4$ui$ramos$r1)
+})
+
+test_that("trama.json: galeria com padrão, validada, gravada sem perder o resto", {
+  s <- trama:::.tr_settings(list())
+  expect_equal(s$galeria, list(pasta = "gallery", imagens = TRUE, formato = "png", dpi = 300))
+  expect_error(trama:::.tr_settings(list(galeria = list(dpi = 10))), class = "tr_error_bad_theme")
+  expect_error(trama:::.tr_settings(list(galeria = list(formato = "gif"))), class = "tr_error_bad_theme")
+  raiz <- tempfile(); dir.create(raiz)
+  jsonlite::write_json(list(collections = I("x"), marca = FALSE), file.path(raiz, "trama.json"), auto_unbox = TRUE)
+  dir.create(file.path(raiz, "flows"))
+  s <- tr_project_set_galeria(raiz, list(pasta = "figuras", dpi = 600))
+  expect_equal(s$galeria$pasta, "figuras"); expect_equal(s$galeria$dpi, 600)
+  expect_false(s$marca)
+})

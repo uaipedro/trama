@@ -23,7 +23,12 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
 import { NotaNode, NotaDraw } from "./notas.js";
 import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas } from "./geometria.js";
 import { empilhar, alinhar, alinharA, distribuir, grupoDe, gruposDe, expandirGrupos } from "./alinhar.js";
-import { SettingsPanel, TEMAS_APP } from "./settings.js";
+import { SettingsPanel, TEMAS_APP, GALERIA_PADRAO } from "./settings.js";
+import { naGaleria, opAlternarGaleria } from "./galeria.js";
+import { toPng } from "html-to-image";
+import { RoloGaleria, LightboxGaleria } from "./galeria-ui.js";
+import { planejarBifurcacao, espelhar, diferencas, selo as seloDoRamo, correspondentes,
+         ramoDaCopia } from "./fork.js";
 import { contagemDoPasso } from "./params.js";
 import { cosmetica, afetados, tocados } from "./ops.js";
 import { MODOS, modoDe, ehMini, paramsDobradosDe, tamanhoPedido, nomeDaTecla, dica,
@@ -626,7 +631,8 @@ function NdNode({ id, data, selected }) {
   // precisa dizer "isto roda dentro de um laço"); é uma marca POR CARD, que
   // continua certa se o autor arrastar os nós pra qualquer lugar do canvas.
   const cls = ["tr-node", selected ? "tr-node-sel" : "", `tr-state-${data.state || "idle"}`,
-              data.emRegiao ? "tr-node-region" : "", mini ? "tr-node-mini" : ""]
+              data.emRegiao ? "tr-node-region" : "", mini ? "tr-node-mini" : "",
+              data.gemeoDestaque ? "tr-gemeo-destaque" : ""]
     .filter(Boolean).join(" ");
 
   // A faixa é SEMPRE reservada, inclusive com uma vista só. As vistas dependem do
@@ -659,6 +665,21 @@ function NdNode({ id, data, selected }) {
       // componente, contexto invertido.
       spec.icon ? h(Icon, { key: "i", icon: spec.icon, className: "tr-node-icon tr-node-icon-main" }) : null,
       h("span", { key: "l", className: "tr-node-title" }, data.label || spec.label),
+      // Selo do ramo (bifurcação). Na cópia é botão: desliga/religa o
+      // espelhamento de params. Contorno = é aqui que a decisão difere.
+      data.ramo
+        ? h(data.ramo.copia ? "button" : "span", {
+            key: "rm",
+            className: "tr-selo-ramo nodrag" + (data.ramo.decide ? " tr-selo-origem" : "")
+              + (data.ramo.desligado ? " tr-selo-desligado" : ""),
+            title: `ramo ${data.ramo.letra}` + (data.ramo.decide ? " — a decisão difere aqui" : "")
+              + (data.ramo.copia ? (data.ramo.desligado
+                  ? " — desligado do espelhamento (clique para religar)"
+                  : " — params espelhados com os gêmeos (clique para desligar)") : ""),
+            ...(data.ramo.copia ? { type: "button",
+              onClick: (e) => { e.stopPropagation(); data.onLigarRamo(id); } } : {}),
+          }, "⑂ " + data.ramo.letra)
+        : null,
       // Mini não tem preview pra denunciar falha: a bolinha de estado, logo
       // depois do título, é quem fala por ele.
       mini
@@ -688,6 +709,10 @@ function NdNode({ id, data, selected }) {
         ? h("span", { key: "d", className: "tr-dur", title: "última execução real" },
             fmtDur(data.duration)) : null,
       data.state === "cached" ? h("span", { key: "c", className: "tr-dot", title: "cache" }) : null,
+      // Na galeria: a estrela cheia fica no cabeçalho, visível sem hover.
+      data.naGaleria && !mini
+        ? h("span", { key: "gal", className: "tr-galeria-selo", title: "na galeria (G abre o rolo)" }, "★")
+        : null,
       // Absoluta, por cima da borda de baixo do cabeçalho: uma barra que
       // entrasse no fluxo mudaria a altura do card quando a execução começa,
       // e altura em função do que chegou é o laço que trama.css evita. Sem
@@ -757,6 +782,13 @@ function NdNode({ id, data, selected }) {
         h("button", { key: "s", type: "button", title: "soltar o preview do card",
                       onClick: (e) => { e.stopPropagation(); data.onSoltar(id); } },
           h(Icon, { icon: { kind: "set", value: "pin" }, className: "tr-node-icon" })),
+        h("button", { key: "g", type: "button",
+                      className: data.naGaleria ? "tr-galeria-marca-on" : undefined,
+                      title: (data.naGaleria ? "tirar da galeria" : "pôr na galeria") + " (Shift+G)",
+                      "aria-label": data.naGaleria ? "tirar da galeria" : "pôr na galeria",
+                      "aria-pressed": !!data.naGaleria,
+                      onClick: (e) => { e.stopPropagation(); data.onGaleria(id); } },
+          data.naGaleria ? "★" : "☆"),
         h("button", { key: "o", type: "button", title: "ocultar preview", "aria-label": "ocultar preview",
                       onClick: (e) => { e.stopPropagation(); data.onOcultar(id, true); } },
           h(Olho)),
@@ -1837,7 +1869,8 @@ function App() {
   // e fazer os cards re-renderizarem quando a lista muda. `marca` vem na mesma
   // mensagem e mora aqui, e não no runtime: quem a usa é a exportação de
   // frame, não o card.
-  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null, marca: true, sugestoes: true });
+  const [temas, setTemas] = useState({ temas: {}, tema_padrao: null, marca: true, sugestoes: true,
+                                      galeria: GALERIA_PADRAO });
   const [doc, setDoc] = useState(null);
   // `ui.grupos` do documento: {idGrupo: [ids]}. Lido por ref nos handlers que
   // não se refazem a cada render (seleção, atalhos).
@@ -1849,6 +1882,15 @@ function App() {
   const [banner, setBanner] = useState(null);
   const [helpFor, setHelpFor] = useState(null);
   const [vista, setVista] = useState(null); // id do card aberto em tela cheia (P)
+  // Galeria: itens que o servidor sincronizou (mensagem `galeria`), o rolo
+  // aberto (G) e o item no lightbox (índice ou null).
+  const [galeria, setGaleria] = useState({ itens: [], base: null });
+  const [rolo, setRolo] = useState(false);
+  const [galeriaIdx, setGaleriaIdx] = useState(null);
+  const galeriaBaseRef = useRef(null);
+  // Lidos pelos callbacks estáveis (`useCallback` sem deps de estado).
+  const docRef = useRef(null); docRef.current = doc;
+  const temasRef = useRef(null); temasRef.current = temas;
   const [painelAtalhos, setPainelAtalhos] = useState(false);
   const [menu, setMenu] = useState(null);   // {kind, id, x, y}
   const [ferramenta, setFerramenta] = useState(null);   // "frame" | null
@@ -2037,6 +2079,7 @@ function App() {
   const viewsRef = useRef({});      // vista escolhida localmente, antes do eco
   const sizesRef = useRef({});      // tamanho arrastado localmente, antes do eco
   const modosRef = useRef({});      // modo escolhido localmente, antes do eco
+  const galeriaRef = useRef({});    // marca de galeria local, antes do eco (undefined = do documento)
   const ocultosRef = useRef({});    // preview oculto localmente, antes do eco
   const seedsRef = useRef({});      // semente re-sorteada localmente, antes do eco
   // Marca "sugerido" local, antes do eco: por nó, `{nome: true|false}` por
@@ -2269,6 +2312,34 @@ function App() {
   };
   const fecharVista = useCallback(() => setVista(null), []);
 
+  // B: bifurca o card selecionado. Ele e tudo a jusante são copiados e
+  // pendurados nas mesmas entradas; os params da cópia da origem abrem logo,
+  // porque mudar aquela decisão é a razão de bifurcar.
+  const bifurcar = () => {
+    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+    const d = docRef.current;
+    if (sel.length !== 1 || !d) return;
+    const positions = {}, sizes = {};
+    for (const n of nodesRef.current) {
+      if (n.type !== "ndNode") continue;
+      positions[n.id] = [n.position.x, n.position.y];
+      const w = n.measured?.width ?? n.width, hh = n.measured?.height ?? n.height;
+      if (w && hh) sizes[n.id] = [w, hh];
+    }
+    let plano;
+    try {
+      plano = planejarBifurcacao({ nodes: d.nodes, edges: d.edges, positions, sizes,
+                                   ramos: d.ui?.ramos || {} }, sel[0].id, novoId);
+    } catch (e) { console.warn("[trama] bifurcar:", e); return; }
+    plano.ops.forEach((op) => pushOp(op));
+    setParamsDe(plano.copias[sel[0].id]);
+  };
+  // Clique no selo de uma cópia: desliga (ou religa) ela do espelhamento.
+  const onLigarRamo = useCallback((nodeId) => {
+    const r = ramoDaCopia(docRef.current?.ui?.ramos, nodeId);
+    if (r) pushOp({ op: "ligar_ramo", ramo: r.ramo, node: nodeId, ligado: r.desligado });
+  }, []);
+
   // F1: com UM card selecionado, a ajuda dele (o que era o "?" do cabeçalho);
   // sem isso, a lista de atalhos. H de novo fecha o que estiver aberto.
   const ajuda = () => {
@@ -2420,6 +2491,50 @@ function App() {
     bumpTick();
     pushOp({ op: "set_preview_oculto", node: nodeId, oculto });
   }, [bumpTick]);
+  // Marca de galeria: a op volta à regra do projeto (`valor: null`) quando o
+  // desejado coincide com ela, então desmarcar e remarcar um gráfico não
+  // deixa resíduo no documento.
+  const onGaleria = useCallback((nodeId) => {
+    const n = nodesRef.current.find((x) => x.id === nodeId);
+    if (!n || n.type !== "ndNode") return;
+    const local = galeriaRef.current[nodeId];
+    const marca = local !== undefined ? local : docRef.current?.ui?.galeria?.[nodeId];
+    const renderer = stateRef.current[nodeId]?.handle?.preview?.renderer;
+    const op = opAlternarGaleria({ node: nodeId, marca, renderer,
+                                   imagensPadrao: temasRef.current.galeria?.imagens ?? true });
+    galeriaRef.current[nodeId] = op.valor;
+    bumpTick();
+    pushOp(op);
+  }, [bumpTick]);
+  // URL de um arquivo da galeria: o servidor serve a pasta sob `base` (que
+  // muda quando a pasta muda, para o navegador não servir a antiga).
+  const urlDaGaleria = useCallback((it) => (galeriaBaseRef.current && it.arquivo
+    ? `${galeriaBaseRef.current}/${encodeURIComponent(it.arquivo)}` : ""), []);
+  // Item que não é imagem (tabela, texto): o navegador fotografa o preview do
+  // card e manda o PNG. Só dá quando o preview está montado (card aberto, não
+  // em mini ou oculto); senão o item fica "gerando…" até o card abrir. A
+  // densidade segue o dpi da galeria (96 dpi = 1x).
+  const capturandoRef = useRef(new Set());
+  const capturarParaGaleria = useCallback(async (itens) => {
+    const dpi = temasRef.current?.galeria?.dpi ?? 300;
+    for (const it of itens) {
+      if (it.tipo !== "captura" || it.pronto || !it.key) continue;
+      const marca = it.node + ":" + it.key;
+      if (capturandoRef.current.has(marca)) continue;
+      const el = document.querySelector(`.react-flow__node[data-id="${CSS.escape(it.node)}"] .tr-preview`);
+      if (!el) continue;
+      capturandoRef.current.add(marca);
+      try {
+        const png = await toPng(el, { pixelRatio: Math.max(1, dpi / 96),
+                                      backgroundColor: getComputedStyle(el).backgroundColor || undefined });
+        sendInput("tr_galeria_captura", { node: it.node, key: it.key, png, seq: Date.now() });
+      } catch (e) {
+        console.warn("[trama] galeria: captura falhou", e);
+      } finally {
+        capturandoRef.current.delete(marca);
+      }
+    }
+  }, []);
   const onSoltoRect = useCallback((nodeId, p) => {
     const id = SOLTO_PREFIXO + nodeId;
     setNodes((ns) => ns.map((n) => (n.id !== id ? n
@@ -2515,6 +2630,25 @@ function App() {
                               onPrender, onVista, onSoltoRect } }];
     });
   };
+  // Ramos (bifurcação): o selo de cada card e, com UM card selecionado, os
+  // correspondentes dele nos outros ramos acesos — é assim que se acha o
+  // "mesmo gráfico" no ramo B sem procurar.
+  const ramosDoc = doc?.ui?.ramos;
+  const temRamos = !!ramosDoc && Object.keys(ramosDoc).length > 0;
+  const selUnico = useMemo(() => {
+    const sel = nodes.filter((n) => n.selected && n.type === "ndNode");
+    return sel.length === 1 ? sel[0].id : null;
+  }, [nodes]);
+  const destaqueGemeos = useMemo(
+    () => new Set(temRamos && selUnico ? correspondentes(ramosDoc, selUnico) : []),
+    [ramosDoc, temRamos, selUnico]);
+  const ramoDoCard = (id) => {
+    if (!temRamos) return null;
+    const s = seloDoRamo(ramosDoc, id);
+    if (!s.letra) return null;
+    const c = ramoDaCopia(ramosDoc, id);
+    return { letra: s.letra, decide: s.decide, copia: !!c, desligado: !!c?.desligado };
+  };
   const decoradoCru = useMemo(() => comSoltos(nodes.map((n) => {
     if (n.type === "trFrame") {
       return { ...n, data: { ...n.data, editing: editFrame === n.id,
@@ -2540,6 +2674,14 @@ function App() {
                       size: sizesRef.current[n.id] ?? n.data.size,
                       modo: modosRef.current[n.id] ?? n.data.modo,
                       previewOculto: ocultosRef.current[n.id] ?? n.data.previewOculto,
+                      naGaleria: naGaleria(
+                        n.id in galeriaRef.current ? galeriaRef.current[n.id] : doc?.ui?.galeria?.[n.id],
+                        stateRef.current[n.id]?.handle?.preview?.renderer,
+                        temas.galeria?.imagens ?? true),
+                      onGaleria,
+                      ramo: ramoDoCard(n.id),
+                      gemeoDestaque: destaqueGemeos.has(n.id),
+                      onLigarRamo,
                       seed: seedsRef.current[n.id] ?? n.data.seed,
                       // Membro de QUALQUER região: contorno do card (8.1). Fonte de
                       // UMA região: controles de fluxo (8.2) — os dois lidos do
@@ -2566,6 +2708,7 @@ function App() {
     // `temas` só muda quando chega mensagem `themes` (abrir projeto, salvar):
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onSaida, onReseed, tick, temas, abrirProximo,
+     doc, onGaleria, onLigarRamo, destaqueGemeos,
      entradas, handlesEntrada, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
@@ -2601,6 +2744,26 @@ function App() {
   // sozinho — `vista` fica com um id obsoleto, inofensivo (só reabriria se o
   // mesmo id voltasse a existir, o que undo pode fazer, e aí reabrir é certo).
   const noDaVista = vista && decorated.find((n) => n.id === vista);
+  // Vista de um card com correspondentes em outros ramos: um painel por ramo
+  // e a linha do que difere (o param da origem de cada ramo envolvido).
+  function vistaDosRamos(no) {
+    if (!temRamos) return {};
+    const ids = [no.id, ...correspondentes(ramosDoc, no.id)];
+    if (ids.length < 2) return {};
+    const fmt = (v) => (v == null ? "—" : typeof v === "string" ? v : JSON.stringify(v));
+    const ramos = ids.map((id) => ({ letra: seloDoRamo(ramosDoc, id).letra || "A",
+                                     node: decorated.find((n) => n.id === id) }))
+      .filter((r) => r.node).sort((x, y) => x.letra.localeCompare(y.letra));
+    const conj = new Set(ids);
+    const difere = Object.values(ramosDoc)
+      .filter((r) => Object.entries(r.pares).some(([a, b]) => conj.has(a) || conj.has(b)))
+      .map((r) => {
+        const ds = diferencas({ nodes: doc.nodes }, r);
+        return ds.length ? `${r.letra}: ` + ds.map((d) => `${d.param} = ${fmt(d.de)} → ${fmt(d.para)}`).join(", ")
+                         : `${r.letra}: (ainda igual à origem)`;
+      }).join(" · ");
+    return { ramos, difere };
+  }
 
   // --- Recepção ---
   useEffect(() => {
@@ -2617,8 +2780,16 @@ function App() {
                    marca: m.marca ?? true,
                    // Mesmo `?? true`: o flag nasce ligado quando o projeto
                    // não diz nada (`trama.json` sem `sugestoes`).
-                   sugestoes: m.sugestoes ?? true });
+                   sugestoes: m.sugestoes ?? true,
+                   galeria: m.galeria ?? GALERIA_PADRAO });
         sugestoesRef.current = m.sugestoes ?? true;
+        return;
+      }
+
+      if (m.type === "galeria") {
+        galeriaBaseRef.current = m.base || null;
+        setGaleria({ itens: m.itens || [], base: m.base || null });
+        capturarParaGaleria(m.itens || []);
         return;
       }
 
@@ -2631,6 +2802,7 @@ function App() {
         sizesRef.current = {};
         modosRef.current = {};
         ocultosRef.current = {};
+        galeriaRef.current = {};
         seedsRef.current = {};
         sugeridosRef.current = {};
         setDoc(m.doc);
@@ -3042,6 +3214,10 @@ function App() {
 
   // --- Envio ---
   function pushOp(op) {
+    // Ramos espelhados: um `set_param` leva junto o mesmo valor aos gêmeos
+    // (fork.js), no MESMO batch — um passo de undo para o gesto inteiro.
+    const extras = espelhar(op, docRef.current?.ui?.ramos);
+    if (extras.length) op = { op: "batch", ops: [op, ...extras] };
     // "Na fila" na hora, antes de qualquer resposta: sem isso os cards ficam
     // em branco em silêncio até a primeira mensagem chegar. O servidor manda
     // o estado real conforme roda; aqui é só feedback imediato.
@@ -4337,6 +4513,12 @@ function App() {
     "shift+p": abrirParams,
     "shift+r": restaurarAlvos,
     "p": abrirVista,
+    "b": bifurcar,
+    "g": () => setRolo((r) => !r),
+    "shift+g": () => {
+      const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+      for (const n of sel) onGaleria(n.id);
+    },
     "f1": ajuda,
     "+": abrirProximoDaSelecao,
   };
@@ -4368,7 +4550,7 @@ function App() {
       // escondido atrás dele, e o Esc que o fecha também limparia a seleção
       // (ou, em apresentação, encerraria o slide). Cada overlay tem o próprio
       // listener; este aqui só recua.
-      if (document.querySelector(".tr-lightbox")) return;
+      if (document.querySelector(".tr-lightbox, .tr-galeria-lb")) return;
       const nome = nomeDaTecla(e);
       // Ctrl+C/Ctrl+V ficam FORA da tabela de `atalhosRef`, de propósito: ela
       // dá `preventDefault` incondicional em qualquer tecla que tenha função,
@@ -4759,7 +4941,21 @@ function App() {
                                                  partial: noDosParams.data.partial, view: noDosParams.data.view,
                                                  label: noDosParams.data.label || noDosParams.data.spec.label }) })
         : null,
-      noDaVista ? h(Vista, { key: "vista", node: noDaVista, assetUrl, onClose: fecharVista }) : null,
+      noDaVista ? h(Vista, { key: "vista", node: noDaVista, assetUrl, onClose: fecharVista,
+                             ...vistaDosRamos(noDaVista) }) : null,
+      rolo && !present
+        ? h("div", { key: "rolo", className: "tr-galeria-dock" },
+            h(RoloGaleria, { itens: galeria.itens, urlDe: urlDaGaleria,
+                             onAbrir: (i) => setGaleriaIdx(i), onFechar: () => setRolo(false) }))
+        : null,
+      galeriaIdx != null && galeria.itens.length
+        ? h(LightboxGaleria, { key: "glb", itens: galeria.itens,
+                               indice: Math.min(galeriaIdx, galeria.itens.length - 1),
+                               urlDe: urlDaGaleria, onIndice: setGaleriaIdx,
+                               onFechar: () => setGaleriaIdx(null),
+                               onIrAoCard: (node) => { setGaleriaIdx(null); irAoBloco(node); },
+                               onTirar: (node) => onGaleria(node) })
+        : null,
       ferramenta === "frame"
         ? h(FrameDraw, { key: "fd", toFlow: rf.screenToFlowPosition, onDone: criarFrame,
                          aspect: aspectoNovo }) : null,
@@ -4798,7 +4994,7 @@ function App() {
       ? h(Help, { key: "help", catalog, typeId: helpFor, onClose: () => setHelpFor(null), onOpen: setHelpFor })
       : painelConfig
         ? h(SettingsPanel, { key: "cfg", temas: temas.temas, padrao: temas.tema_padrao,
-            marca: temas.marca, sugestoes: temas.sugestoes,
+            marca: temas.marca, sugestoes: temas.sugestoes, galeria: temas.galeria,
             sugestoesProximo, onSugestoesProximo: setSugestoesProximo,
             temaApp, onTemaApp: setTemaApp,
             // `seq` porque o input do Shiny ignora valor idêntico ao anterior:
@@ -4806,7 +5002,7 @@ function App() {
             // chegaria ao servidor.
             onSave: (m) => sendInput("tr_themes", { temas: m.temas, tema_padrao: m.tema_padrao,
                                                     marca: m.marca, sugestoes: m.sugestoes,
-                                                    seq: Date.now() }),
+                                                    galeria: m.galeria, seq: Date.now() }),
             onClose: () => setPainelConfig(false) })
       : painelTemplates
         ? h(TemplatesPanel, { key: "templates", templates,
