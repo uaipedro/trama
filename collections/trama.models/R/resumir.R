@@ -187,6 +187,22 @@
 
 .tr_models_pct <- function(x) paste0(formatC(x, format = "f", digits = 1, decimal.mark = ","), "%")
 
+#' Ferramentas que o quadro roda, no ramo que de fato corre: vão no atributo
+#' `trama_ferramentas` do resultado, e o relatório cita essas (não a declaração).
+#' @noRd
+.tr_models_ferramentas_quadro <- function(fit, tipo) {
+  III <- tipo == "III"
+  switch(fit$classe,
+    lm = if (tipo == "I") "stats::anova" else "car::Anova",
+    glm = c(if (III && inherits(fit$ajuste, "negbin")) "MASS::glm.nb",
+            if (tipo == "I") "stats::anova" else "car::Anova"),
+    lmer = "stats::anova",
+    gls = c(if (III) "nlme::gls", "nlme::anova.gls"),
+    glmer = c(if (III) "lme4::glmer", "car::Anova"),
+    split = "stats::anova",
+    character())
+}
+
 #' Quadro da ANOVA.
 #' @param modelo objeto `tr_models_fit`.
 #' @param tipo_sq `"I"` (sequencial), `"II"` ou `"III"`.
@@ -264,12 +280,14 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
   if (!is.null(cv$cv_a)) rodape[["CV (a)"]] <- .tr_models_pct(cv$cv_a)
   rodape[["média"]] <- .tr_models_fmt(cv$media, 4L)
   rodape[["n"]] <- as.character(nrow(modelo$dados))
-  .tr_models_efeitos(
+  out <- .tr_models_efeitos(
     tibble::as_tibble(tab), sprintf("Quadro da ANOVA · SQ tipo %s", tipo), coluna_estat = coluna,
     rodape = rodape,
     nota = .tr_models_nota(nota, .tr_models_nota_fit(modelo)),
     fonte = switch(tipo, I = "Fisher (1925)", II = "Langsrud (2003); Fox & Weisberg (2019)",
                    III = "Yates (1934); Fox & Weisberg (2019)"))
+  attr(out, "trama_ferramentas") <- .tr_models_ferramentas_quadro(modelo, tipo)
+  out
 }
 
 #' Tipo III com covariável numérica em interação com fator.
@@ -388,6 +406,16 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidad
       res$tabela <- tibble::as_tibble(tab)
     }
   }
+  # Ferramentas do ramo que correu: o VIF do `car` (lm sem interação) e os
+  # intervalos do `nlme` no gls. Ler o ajuste misto (`lme4::getME`) não se cita.
+  # `terms` só no lm: ajuste de outra coleção (o Firth da `multi`) não tem.
+  vif <- identical(modelo$classe, "lm") && {
+    tt <- stats::terms(modelo$ajuste)
+    length(attr(tt, "term.labels")) >= 2L && all(attr(tt, "order") == 1L)
+  }
+  attr(res, "trama_ferramentas") <- c(
+    if (vif) "car::vif",
+    if (identical(modelo$classe, "gls")) "nlme::intervals")
   res
 }
 
@@ -575,11 +603,12 @@ tr_models_random_effects <- function(modelo) {
   # No GLM misto não há variância residual na mesma escala: sem proporção.
   soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)") & modelo$classe != "glmer"
   total <- sum(v$vcov[soma_ok])
-  tibble::tibble(
+  out <- tibble::tibble(
     grupo = ifelse(v$grp == "Residual", "resíduo", v$grp), componente = comp,
     variancia = ifelse(e_var, v$vcov, NA_real_), desvio_padrao = ifelse(e_var, v$sdcor, NA_real_),
     correlacao = ifelse(e_var, NA_real_, v$sdcor),
     proporcao = ifelse(soma_ok, v$vcov / total, NA_real_))
+  out
 }
 
 #' Os resíduos que os pressupostos testam.

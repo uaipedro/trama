@@ -474,3 +474,10 @@ o quadro dos estratos (oráculo: `test-ajustar.R`, F e QM dos dois erros contra
 `summary(aov(... + Error()))` nos dados `aveia`, tolerância 1e-10). Médias e
 comparações seguem no `lmer` equivalente. Nenhum `stats::aov` resta no código
 das coleções.
+
+`models/permutation` declarava `coin::oneway_test; independence_test` como
+implementação, mas o `coin` só serve de oráculo nos testes: o bloco calcula o
+F com `stats::anova` a cada permutação. A referência de implementação saiu (o
+artigo do `coin` fica como referência do método); o relatório exportado, que
+agora cita as ferramentas que rodaram, deixaria de creditar um pacote que não
+roda. Nenhum resultado muda.

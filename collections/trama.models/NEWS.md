@@ -1,5 +1,6 @@
 # trama.models 0.6.7
 
+* Relatório Quarto: os blocos cuja ferramenta depende da corrida registram no resultado a que rodou (atributo `trama_ferramentas`): `anova_table` (`stats::anova`, `car::Anova` ou `nlme::anova.gls`), `glm` (`MASS::glm.nb` só na binomial negativa), `linear_hypothesis`, `permutation`, `coefficients` (VIF do `car`, intervalos do `nlme`), `select`, `bootstrap`, `anova_split_plot` e `example`. A referência de implementação do `coin` saiu do `permutation`: ele é só oráculo dos testes.
 * `models/emm` aparece no relatório mesmo consumido (`report_always`). Pede `trama (>= 0.5.16)`.
 * Relatório Quarto exportado: `models/fit`, `models/effects` e `models/emm` ganham `report`. O quadro da ANOVA, dos coeficientes e das comparações sai como tabela com cabeçalho de livro (FV, GL, Pr > F), rodapé (CV, média, n) e fonte; o modelo, com fórmula, medidas de ajuste, teste global e o quadro de efeitos; as médias, com as letras. Pede `trama.data (>= 0.4.4)`.
 
