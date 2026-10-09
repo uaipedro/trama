@@ -167,31 +167,44 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
 
 #' Atribui `arquivo` a cada item.
 #'
-#' Base = rótulo em ASCII. Duas bases iguais na mesma galeria viram `base-id`
-#' para os dois. Nome ocupado por arquivo que o manifesto não conhece (alheio)
-#' também cede a `base-id` e, se ainda ocupado, a `base-id-N`.
+#' Base = rótulo em ASCII. Nome é ESTÁVEL: o card que já tem arquivo no
+#' manifesto (com a mesma base e extensão) fica com ele, e quem chega depois
+#' com a mesma base — um ramo bifurcado, outro gráfico de mesmo rótulo — cede
+#' a `base-id` (e, se ocupado, `base-id-N`). Arquivo que o manifesto não
+#' conhece (alheio) nunca é tomado.
 #' @noRd
 .tr_galeria_nomes <- function(itens, dir, manifesto, g) {
   if (!length(itens)) return(itens)
-  bases <- vapply(itens, function(it) it$nome, "")
-  repetidas <- bases %in% bases[duplicated(bases)]
+  ext_de <- function(it) if (it$tipo == "imagem") .tr_galeria_ext(g$formato) else "png"
+  herdado <- function(it) {
+    dono <- .tr_galeria_entrada(manifesto, it$node)
+    if (is.null(dono) || is.null(dono$arquivo)) return(NULL)
+    ext <- ext_de(it)
+    stem <- sub(paste0("\\.", ext, "$"), "", dono$arquivo)
+    ok <- endsWith(dono$arquivo, paste0(".", ext)) &&
+      (identical(stem, it$nome) || startsWith(stem, paste0(it$nome, "-")))
+    if (ok) dono$arquivo
+  }
+  # Primeiro os nomes herdados, para ninguém tomá-los na ordem do fluxo.
   usados <- character()
+  arqs <- vector("list", length(itens))
+  for (i in seq_along(itens)) {
+    h <- herdado(itens[[i]])
+    if (!is.null(h) && !h %in% usados) { arqs[[i]] <- h; usados <- c(usados, h) }
+  }
   for (i in seq_along(itens)) {
     it <- itens[[i]]
-    ext <- if (it$tipo == "imagem") .tr_galeria_ext(g$formato) else "png"
-    dono <- .tr_galeria_entrada(manifesto, it$node)
-    proprio <- function(arq) !is.null(dono) && identical(dono$arquivo, arq)
-    sufixo <- paste0(it$nome, "-", .tr_galeria_slug(it$node, "card"))
-    # Ordem de tentativa: base, base-id, base-id-2, base-id-3...
-    candidatos <- c(if (!repetidas[[i]]) it$nome, sufixo, paste0(sufixo, "-", 2:999))
-    arq <- NULL
-    for (nome in candidatos) {
-      cand <- paste0(nome, ".", ext)
-      ocupado <- cand %in% usados || (file.exists(file.path(dir, cand)) && !proprio(cand))
-      if (!ocupado) { arq <- cand; break }
+    ext <- ext_de(it)
+    arq <- arqs[[i]]
+    if (is.null(arq)) {
+      sufixo <- paste0(it$nome, "-", .tr_galeria_slug(it$node, "card"))
+      for (nome in c(it$nome, sufixo, paste0(sufixo, "-", 2:999))) {
+        cand <- paste0(nome, ".", ext)
+        if (!cand %in% usados && !file.exists(file.path(dir, cand))) { arq <- cand; break }
+      }
+      if (is.null(arq)) rlang::abort("Não achei nome livre para o item da galeria.", class = "tr_error_galeria")
+      usados <- c(usados, arq)
     }
-    if (is.null(arq)) rlang::abort("Não achei nome livre para o item da galeria.", class = "tr_error_galeria")
-    usados <- c(usados, arq)
     it$nome <- sub(paste0("\\.", ext, "$"), "", arq)
     it$arquivo <- arq
     itens[[i]] <- it

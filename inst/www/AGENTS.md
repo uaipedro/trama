@@ -26,6 +26,8 @@ de nó, de dado ou categoria.
 | `bases.js`, `links.js` | Catálogo de bases; link colado vira bloco de leitura. | não | `bases`, `links.test.mjs` |
 | `teste.js` | Regras do card de teste de hipótese. | não | `teste.test.mjs` |
 | `temas.js` / `settings.js` | Regras de temas / painel de configurações. | não / sim | `temas.test.mjs` |
+| `galeria.js` / `galeria-ui.js` | Galeria (G): regra de pertencimento, op de marca, navegação / rolo e lightbox. | não / sim | `galeria.test.mjs` |
+| `fork.js` | Bifurcar (B): planeja o ramo, gêmeos, espelhamento de params, diferenças, selo. | não | `fork.test.mjs` |
 
 Testes em `tests/js/*.test.mjs`, rodados por `Rscript tools/check.R` (ou
 `node --test tests/js/`).

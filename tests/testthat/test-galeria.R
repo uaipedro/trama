@@ -215,3 +215,19 @@ test_that("captura grava o PNG e fica pronta; imagem não aceita captura", {
                                   png = jsonlite::base64_enc(charToRaw("nao e png"))),
                class = "tr_error_galeria")
 })
+
+test_that("nome é estável: card que chega depois com o mesmo rótulo leva o sufixo", {
+  root <- withr::local_tempdir(); store <- tmp_store(); s <- galeria_setup()
+  ajuste <- .tr_settings(list())
+  um <- list(type = "g/const", id = "a", label = "Barras", key = "ka", tipo = "g/img", value = list(v = 1))
+  m1 <- galeria_doc(s$reg, store, list(um))
+  tr_galeria_sincronizar(root, store, s$reg, m1$doc, ajuste, m1$handles)
+  expect_true(file.exists(file.path(root, "gallery", "barras.png")))
+  # A cópia (ramo bifurcado) entra com o mesmo rótulo; o original não muda de nome.
+  m2 <- galeria_doc(s$reg, store, list(
+    list(type = "g/const", id = "b", label = "Barras", key = "kb", tipo = "g/img", value = list(v = 2)), um))
+  it <- tr_galeria_sincronizar(root, store, s$reg, m2$doc, ajuste, m2$handles)
+  por_no <- stats::setNames(it, vapply(it, `[[`, "", "node"))
+  expect_equal(por_no$a$arquivo, "barras.png")
+  expect_equal(por_no$b$arquivo, "barras-b.png")
+})

@@ -2331,6 +2331,13 @@ function App() {
       plano = planejarBifurcacao({ nodes: d.nodes, edges: d.edges, positions, sizes,
                                    ramos: d.ui?.ramos || {} }, sel[0].id, novoId);
     } catch (e) { console.warn("[trama] bifurcar:", e); return; }
+    // A marca de galeria vai junto: o gráfico que estava na galeria no ramo
+    // A também aparece, com o do ramo B, no rolo.
+    const marcas = d.ui?.galeria || {};
+    for (const [orig, copia] of Object.entries(plano.copias)) {
+      const m = orig in galeriaRef.current ? galeriaRef.current[orig] : marcas[orig];
+      if (m === true || m === false) plano.ops[0].ops.push({ op: "set_galeria", node: copia, valor: m });
+    }
     plano.ops.forEach((op) => pushOp(op));
     setParamsDe(plano.copias[sel[0].id]);
   };
@@ -3217,7 +3224,13 @@ function App() {
     // Ramos espelhados: um `set_param` leva junto o mesmo valor aos gêmeos
     // (fork.js), no MESMO batch — um passo de undo para o gesto inteiro.
     const extras = espelhar(op, docRef.current?.ui?.ramos);
-    if (extras.length) op = { op: "batch", ops: [op, ...extras] };
+    if (extras.length) {
+      op = { op: "batch", ops: [op, ...extras] };
+      // `set_param` não ecoa o documento: sem isto o controle do gêmeo
+      // mostraria o valor velho até a próxima op estrutural.
+      for (const x of extras)
+        paramsRef.current[x.node] = { ...(paramsRef.current[x.node] || {}), [x.name]: x.value };
+    }
     // "Na fila" na hora, antes de qualquer resposta: sem isso os cards ficam
     // em branco em silêncio até a primeira mensagem chegar. O servidor manda
     // o estado real conforme roda; aqui é só feedback imediato.
