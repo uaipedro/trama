@@ -660,29 +660,47 @@ tr_models_random_effects <- function(modelo) {
 #' que tira as faixas que o resíduo de desvio tem com contagens baixas. Com o
 #' modelo certo, saem N(0, 1) exatos, qualquer que seja a família. Mesma conta
 #' do `statmod::qresid`, na mesma ordem de sorteio (um `runif` do tamanho de
-#' n). Nas famílias quasi não há distribuição para inverter: `NA`.
+#' n), mas finito na cauda de cima, onde o statmod dá Inf. Nas famílias quasi não há distribuição para inverter: `NA`.
 #' @noRd
 .tr_models_qresid <- function(aj) {
   familia <- .tr_models_familia_glm(aj)
   y <- unname(aj$y)
   mu <- as.numeric(stats::fitted(aj))
-  sortear <- function(a, b) stats::qnorm(stats::runif(length(y), min = a, max = b))
+  # `u = a + (b - a) U` é o `runif(min = a, max = b)` do statmod, sorteio por
+  # sorteio. Na cauda de cima `u` arredonda para 1 e `qnorm` dá Inf; ali a conta
+  # vai pela complementar `1 - u = (1 - b) + (b - a)(1 - U)`, com as caudas
+  # superiores calculadas direto (`lower.tail = FALSE`). Mesmo valor onde o
+  # statmod é finito; finito onde ele não é.
+  sortear <- function(a, b, a_sup, b_sup) {
+    U <- stats::runif(length(y))
+    u <- a + (b - a) * U
+    ifelse(u < 0.5, stats::qnorm(u), stats::qnorm(b_sup + (a_sup - b_sup) * (1 - U), lower.tail = FALSE))
+  }
+  continua <- function(lp_inf, lp_sup) {
+    ifelse(lp_inf < log(0.5), stats::qnorm(lp_inf, log.p = TRUE),
+           stats::qnorm(lp_sup, lower.tail = FALSE, log.p = TRUE))
+  }
   switch(familia,
     binomial = {
       n <- aj$prior.weights
       k <- round(n * y)
-      sortear(stats::pbinom(k - 1, n, mu), stats::pbinom(k, n, mu))
+      sortear(stats::pbinom(k - 1, n, mu), stats::pbinom(k, n, mu),
+              stats::pbinom(k - 1, n, mu, lower.tail = FALSE), stats::pbinom(k, n, mu, lower.tail = FALSE))
     },
-    poisson = sortear(stats::ppois(y - 1, mu), stats::ppois(y, mu)),
+    poisson = sortear(stats::ppois(y - 1, mu), stats::ppois(y, mu),
+                      stats::ppois(y - 1, mu, lower.tail = FALSE), stats::ppois(y, mu, lower.tail = FALSE)),
     negbin = {
-      p <- aj$theta / (mu + aj$theta)
-      sortear(ifelse(y > 0, stats::pbeta(p, aj$theta, pmax(y, 1)), 0),
-              stats::pbeta(p, aj$theta, y + 1))
+      th <- aj$theta
+      p <- th / (mu + th)
+      sortear(ifelse(y > 0, stats::pbeta(p, th, pmax(y, 1)), 0), stats::pbeta(p, th, y + 1),
+              ifelse(y > 0, stats::pbeta(p, th, pmax(y, 1), lower.tail = FALSE), 1),
+              stats::pbeta(p, th, y + 1, lower.tail = FALSE))
     },
     Gamma = {
       w <- aj$prior.weights
       disp <- sum(w * ((y - mu) / mu)^2) / aj$df.residual
-      stats::qnorm(stats::pgamma(w * y / mu / disp, w / disp, log.p = TRUE), log.p = TRUE)
+      q <- w * y / mu / disp
+      continua(stats::pgamma(q, w / disp, log.p = TRUE), stats::pgamma(q, w / disp, lower.tail = FALSE, log.p = TRUE))
     },
     gaussian = (y - mu) / sqrt(sum(aj$weights * aj$residuals^2) / aj$df.residual),
     rep(NA_real_, length(y)))

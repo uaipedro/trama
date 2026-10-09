@@ -42,7 +42,8 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo de todas as coleç
 | `datas` | porta de entrada de uma tabela de datas, uma por linha (series/intervencao) | — |
 | `fracao` | fração das linhas, 0–1 (data/sample) | — |
 | `reposicao` | sortear com reposição (data/sample) | — |
-| `reamostras` | quantidade de reamostragens ou permutações de Monte Carlo (models/bootstrap, models/permutation) | `replicas` (experiments) |
+| `reamostras` | quantidade de reamostragens, permutações ou simulações de Monte Carlo (models/bootstrap, models/permutation, models/shapiro_residuals) | `replicas` (experiments) |
+| `sorteios` | quantas realizações de uma quantidade randomizada se resumem pela mediana (models/shapiro_residuals: resíduo quantílico) | — |
 | `positiva` | a classe positiva de ROC/sensibilidade; vazio = o segundo nível | — |
 | `termo` | linha do quadro da ANOVA que será testada (models/permutation) | — |
 | `caminho` | pasta, arquivo ou banco local que fornece tabelas para consulta SQL (sql/source) | — |

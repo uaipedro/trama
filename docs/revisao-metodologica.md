@@ -493,3 +493,29 @@ nas quasi não há distribuição, e a coluna sai `NA`. O nó passa a `stochasti
 com a semente do card. Oráculo: `statmod::qresid` com a mesma semente e o
 mesmo RNG, nas seis famílias, tolerância 1e-10 (`test-resumir.R`). As colunas
 que já existiam não mudam.
+
+## Normalidade dos resíduos quantílicos do GLM, p mediano calibrado (09/10/2026)
+
+`models/shapiro_residuals` (versão 2) deixa de recusar o GLM. Tomar o p mediano
+do Shapiro-Wilk em vários sorteios do resíduo quantílico e ler contra 0,05 não
+controla o tipo I: os p são dependentes e a mediana se concentra no meio.
+Medido (2000 conjuntos sob o modelo certo, 5%): Poisson n = 30, 5,2% com um
+sorteio, 1,7% com a mediana de 11; Poisson n = 200, 1,3%; binomial 0/1 n = 50,
+0%. Por isso o p mediano observado é a estatística, e o p-valor é de Monte
+Carlo (Davison & Hinkley 1997, cap. 4): respostas simuladas do ajuste
+(`stats::simulate`), reajustadas com a mesma matriz de modelo (theta
+reestimado na binomial negativa), p = (1 + #{simulado <= observado}) / (B + 1).
+
+Tipo I medido do teste calibrado (11 sorteios, 99 reamostras, 1000 conjuntos,
+IC 95% exato de Clopper-Pearson): Poisson n = 30, 5,5% [4,2; 7,1]; binomial
+0/1 n = 50, 4,6% [3,4; 6,1]; binomial negativa n = 40, 4,5% [3,3; 6,0]. Os
+três contêm 5%.
+
+Não há pacote de referência para a calibração; o oráculo é por partes
+(`test-testes.R`): o p mediano observado refeito com `statmod::qresid` +
+`stats::shapiro.test` na mesma semente (1e-12), o p na grade (k + 1)/(B + 1),
+e o teste acusa a Poisson nos dados sobredispersos do `MASS::quine` e não acusa
+a binomial negativa. Junto, o resíduo quantílico passa a ser finito na cauda de
+cima, onde o `statmod::qresid` dá `Inf` (u arredonda para 1): a conta vai pela
+complementar. Igual ao statmod onde ele é finito e abaixo de 7 em módulo
+(1e-8); acima disso o statmod já perdeu dígitos.

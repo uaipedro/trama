@@ -4,14 +4,28 @@
 \alias{tr_models_shapiro_residuals}
 \title{Shapiro-Wilk nos resíduos do modelo.}
 \usage{
-tr_models_shapiro_residuals(modelo)
+tr_models_shapiro_residuals(
+  modelo,
+  sorteios = 11L,
+  reamostras = 199L,
+  .seed = 1L
+)
 }
 \arguments{
 \item{modelo}{objeto `tr_models_fit`.}
+
+\item{sorteios}{GLM: quantos sorteios do resíduo quantílico; o p mediano
+deles é a estatística.}
+
+\item{reamostras}{GLM: quantas respostas simuladas do ajuste calibram o
+p mediano.}
+
+\item{.seed}{semente do nó (só o GLM sorteia).}
 }
 \value{
 objeto `tr_models_test`.
 }
 \description{
-Shapiro-Wilk nos resíduos do modelo.
+No GLM o teste vai para os resíduos quantílicos randomizados, com o p mediano
+de `sorteios` realizações calibrado por Monte Carlo (`reamostras`).
 }

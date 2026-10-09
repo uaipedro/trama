@@ -203,3 +203,22 @@ test_that("resíduo quantílico: semente reprodutível, quasi sem distribuição
   m <- tr_models_lm(ex("mtcars"), formula = "mpg ~ wt")
   expect_false("residuo_quantilico" %in% names(tr_models_residuals(m)))
 })
+
+test_that("resíduo quantílico é finito na cauda de cima, onde o statmod dá Inf", {
+  d <- as.data.frame(MASS::quine)
+  g <- tr_models_glm(d, formula = "Days ~ Eth + Sex + Age + Lrn", familia = "poisson")
+  r <- tr_models_residuals(g, .seed = 1L)$residuo_quantilico
+  expect_true(all(is.finite(r)))
+  RNGkind("Mersenne-Twister", "Inversion", "Rejection"); set.seed(1L)
+  ref <- unname(statmod::qresid(g$ajuste))
+  expect_true(any(!is.finite(ref)))
+  # Onde a acumulada vira 1 nas duas pontas, o `runif(min = 1, max = 1)` do
+  # statmod devolve 1 sem consumir sorteio, e a sequência dele desalinha dali
+  # em diante; aqui cada observação consome um. Compara até o primeiro Inf.
+  # Acima de ~7 o `1 - u` do statmod já perdeu dígitos (u a 1e-12 de 1), e o
+  # da cauda superior é o mais preciso; a comparação fica abaixo disso.
+  ate <- seq_len(which(!is.finite(ref))[1] - 1L)
+  ate <- ate[abs(ref[ate]) < 7]
+  expect_equal(r[ate], ref[ate], tolerance = 1e-8)
+  expect_true(all(r[is.infinite(ref)] > 5))
+})

@@ -22,7 +22,14 @@
         P("De **3 a 5000** resíduos, e não muito arredondados (muitos empates distorcem o W).",
           se_falhar = "Acima de 5000, leia o Q-Q do `models/plot_diagnostics`: com esse n qualquer desvio mínimo rejeita.")),
       referencias = list(shapiro_wilk,
-        I("stats", "shapiro.test", "Aplicado aos resíduos do ajuste: erro (b) na parcela subdividida, resíduos condicionais no misto."))),
+        I("stats", "shapiro.test", "Aplicado aos resíduos do ajuste: erro (b) na parcela subdividida, resíduos condicionais no misto, resíduos quantílicos randomizados no GLM."),
+        R(autores = c("Dunn, P. K.", "Smyth, G. K."), ano = 1996,
+          titulo = "Randomized quantile residuals",
+          fonte = "Journal of Computational and Graphical Statistics, 5(3), 236-244",
+          doi = "10.1080/10618600.1996.10474708"),
+        R(autores = c("Davison, A. C.", "Hinkley, D. V."), ano = 1997,
+          titulo = "Bootstrap Methods and Their Application",
+          fonte = "Cambridge University Press", papel = "livro-texto"))),
 
     "models/levene" = list(
       pressupostos = list(

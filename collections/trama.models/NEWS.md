@@ -1,3 +1,8 @@
+# trama.models 0.6.9
+
+* `models/shapiro_residuals` (versão 2): no GLM, em vez de recusar, testa os resíduos quantílicos randomizados. A estatística é o p mediano do Shapiro-Wilk em **Sorteios** realizações (param `sorteios`, padrão 11), e o p-valor sai de um teste de Monte Carlo com **Reamostras** respostas simuladas do ajuste (`reamostras`, padrão 199): o p mediano cru, lido contra 0,05, rejeitava 0 a 2% sob o modelo certo. Famílias quasi seguem recusadas.
+* Resíduo quantílico finito na cauda de cima (complementar com `lower.tail = FALSE`), onde o `statmod::qresid` dá `Inf`. Onde o statmod é finito, o valor não muda.
+
 # trama.models 0.6.8
 
 * `models/residuals` (versão 2): no GLM sai também `residuo_quantilico`, o resíduo quantílico normalizado randomizado de Dunn & Smyth (1996), N(0, 1) sob o modelo certo mesmo com resposta 0/1 ou contagens baixas. Binomial, Poisson, binomial negativa, gama e gaussiana; `NA` nas quasi. O sorteio usa a semente do card. Validado contra `statmod::qresid` (tolerância 1e-10).
