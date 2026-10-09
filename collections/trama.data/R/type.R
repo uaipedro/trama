@@ -44,8 +44,17 @@ data_table_type <- function() {
     restore = function(path) readRDS(path),
     summary = function(x) list(linhas = nrow(x), colunas = ncol(x),
                                nomes = paste(names(x), collapse = ", ")),
-    preview = function(x, ctx) .tr_data_table_preview(x)
+    preview = function(x, ctx) .tr_data_table_preview(x),
+    report = tr_data_report_table
   )
+}
+
+# O teste é do núcleo (`tr_test_type`); daqui sai só o que ele mostra no
+# relatório exportado, no lugar do `print` cru da lista.
+data_test_type <- function() {
+  ty <- trama::tr_test_type("data/test")
+  ty$report <- tr_data_report_test
+  ty
 }
 
 # Teto do que o card recebe: colunas além de `max_col` não viajam (o card mostra

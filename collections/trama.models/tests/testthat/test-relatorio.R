@@ -1,0 +1,30 @@
+test_that("o quadro da ANOVA vai ao relatório como tabela com cabeçalho de livro", {
+  d <- tr_models_example("milho_dbc")
+  a <- tr_models_anova_dbc(dados = d, resposta = "producao", tratamento = "hibrido", bloco = "bloco")
+  r <- tr_models_report_effects(tr_models_anova_table(a))
+  expect_s3_class(r, "knit_asis")
+  expect_match(r, "| FV | GL | SQ | QM | Fc | Pr > F |", fixed = TRUE)
+  expect_match(r, "| hibrido | 4 |", fixed = TRUE)
+  expect_match(r, "*CV = ", fixed = TRUE)
+  f <- tr_models_report_fit(a)
+  expect_match(f, "`producao ~ bloco + hibrido`", fixed = TRUE)
+  expect_match(f, "Quadro da ANOVA", fixed = TRUE)
+  e <- tr_models_report_emm(tr_models_emmeans(a, especs = "hibrido"))
+  expect_match(e, "| hibrido | Média | EP | GL | LI | LS | Grupo |", fixed = TRUE)
+})
+
+test_that("coeficientes saem sem as colunas que não se aplicam", {
+  m <- tr_models_lm(dados = mtcars, formula = "mpg ~ wt")
+  r <- tr_models_report_fit(m)
+  expect_match(r, "Pr > \\|t\\|", fixed = TRUE)
+  expect_no_match(r, "gvif", fixed = TRUE)
+})
+
+test_that("os tipos declaram o report", {
+  reg <- trama::tr_registry()
+  trama::tr_use("trama.data", registry = reg); trama::tr_use("trama.view", registry = reg)
+  trama::tr_use("trama.models", registry = reg)
+  expect_identical(trama::tr_get_type("models/fit", reg)$report, tr_models_report_fit)
+  expect_identical(trama::tr_get_type("models/effects", reg)$report, tr_models_report_effects)
+  expect_identical(trama::tr_get_type("models/emm", reg)$report, tr_models_report_emm)
+})

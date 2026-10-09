@@ -1,3 +1,7 @@
+# trama.models 0.6.7
+
+* Relatório Quarto exportado: `models/fit`, `models/effects` e `models/emm` ganham `report`. O quadro da ANOVA, dos coeficientes e das comparações sai como tabela com cabeçalho de livro (FV, GL, Pr > F), rodapé (CV, média, n) e fonte; o modelo, com fórmula, medidas de ajuste, teste global e o quadro de efeitos; as médias, com as letras. Pede `trama.data (>= 0.4.4)`.
+
 # trama.models 0.6.6
 
 * Delineamentos (DIC, DBC, DQL, fatorial) ajustados com `lm` em vez de `aov`; o quadro sai do `anova()` do `lm`, com os mesmos números.

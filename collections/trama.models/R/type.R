@@ -130,7 +130,8 @@ models_fit_type <- function() {
       .tr_models_exigir_metodos(x)
       tr_models_unserialize(x)
     },
-    preview = function(x, ctx) tr_models_card(x, ctx)
+    preview = function(x, ctx) tr_models_card(x, ctx),
+    report = tr_models_report_fit
   )
 }
 
@@ -294,7 +295,8 @@ models_effects_type <- function() {
         list(titulo = x$titulo, linhas = .tr_models_linhas_sig(x),
              rodape = if (length(x$rodape)) as.list(x$rodape) else NULL,
              nota = x$nota, fonte = x$fonte, quadro = .tr_models_quadro_json(x))))
-    }
+    },
+    report = tr_models_report_effects
   )
 }
 
@@ -375,7 +377,8 @@ models_emm_type <- function() {
                                nota = x$nota),
     # O card é o GRÁFICO das médias com as letras: é a figura que vai para o
     # artigo, e a pergunta "quem difere de quem" se lê nela sem abrir nada.
-    preview = function(x, ctx) trama.view::tr_view_render(tr_models_plot_means(x), ctx)
+    preview = function(x, ctx) trama.view::tr_view_render(tr_models_plot_means(x), ctx),
+    report = tr_models_report_emm
   )
 }
 
