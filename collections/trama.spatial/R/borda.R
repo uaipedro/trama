@@ -41,6 +41,10 @@ tr_spatial_convex_hull <- function(coords) {
   .tr_spatial_borda(sf::st_coordinates(h)[, 1:2, drop = FALSE])
 }
 
+# Valores do param `borda` do nó `spatial/coordinates`. O casco convexo é a
+# opção que não precisa de arquivo.
+.TR_SPATIAL_BORDA_MODOS <- c("nenhuma", "casco convexo dos pontos")
+
 .TR_SPATIAL_CAMPOS_BORDA <- c("poligono", "crs", "area", "n_vertices",
                               "n_aneis_descartados", "fonte", "rotulo", "nota")
 

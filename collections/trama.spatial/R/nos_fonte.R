@@ -1,13 +1,16 @@
 # Nós da aba Fonte e Preparar: de onde vem o objeto espacial.
 
-# O nó não expõe `borda`: o registro exige que todo argumento da função tenha
-# param ou porta, e a borda de uma tabela qualquer não tem de onde vir. A
-# função pública continua aceitando `borda` (é como os exemplos a trazem).
+# A borda entra por PORTA (`spatial/boundary`, opcional) e, quando não há porta
+# ligada, pelo param `borda_modo`, que oferece o casco convexo dos pontos. Na
+# 0.1.0 o nó não expunha borda nenhuma, e para dado próprio a grade da krigagem
+# era o retângulo da extensão, sem recorte.
 .tr_spatial_coordinates_no <- function(dados, x, y, variavel, covariaveis = "",
-                                       crs = "", unidade = "", nome = "") {
+                                       crs = "", unidade = "", nome = "",
+                                       borda = NULL, borda_modo = "nenhuma") {
   tr_spatial_coordinates(dados, x = x, y = y, variavel = variavel,
                          covariaveis = covariaveis, crs = crs,
-                         unidade = unidade, nome = nome)
+                         unidade = unidade, nome = nome, borda = borda,
+                         borda_modo = borda_modo)
 }
 
 .tr_spatial_nos_fonte <- function() {
@@ -50,7 +53,9 @@ sua.
     trama::tr_node("spatial/coordinates", fn = .tr_spatial_coordinates_no, label = "Declarar coordenadas",
       category = "espacial_preparar", icon = trama::tr_icon("map-pin"),
       description = "Transforma uma tabela em objeto espacial: diz quais colunas são as coordenadas, a variável, o CRS e a unidade.",
-      inputs = list(dados = "data/table"), outputs = list(out = "spatial/points"),
+      inputs = list(dados = "data/table",
+                    borda = trama::tr_port("spatial/boundary", required = FALSE)),
+      outputs = list(out = "spatial/points"),
       params = list(
         x = trama::tr_param_col("", label = "Coordenada X", role = "numerica", example = "leste"),
         y = trama::tr_param_col("", label = "Coordenada Y", role = "numerica", example = "norte"),
@@ -59,7 +64,9 @@ sua.
                                           example = "soja_kg_ha"),
         crs = trama::tr_param_text("", label = "CRS (EPSG)"),
         unidade = trama::tr_param_text("", label = "Unidade da distância"),
-        nome = trama::tr_param_text("", label = "Nome")),
+        nome = trama::tr_param_text("", label = "Nome"),
+        borda_modo = trama::tr_param_enum("nenhuma", .TR_SPATIAL_BORDA_MODOS,
+                                          label = "Borda")),
       pressupostos = .tr_spatial_press_coords(),
       referencias = list(.tr_spatial_refs()$cressie, .tr_spatial_refs()$diggle,
                          .tr_spatial_refs()$oliver),
@@ -73,9 +80,23 @@ são recusadas: o variograma mede distância em linha reta, e um grau de
 longitude não é uma distância fixa — vale cerca de 111 km no equador e menos
 conforme a latitude sobe.
 
-Neste bloco o objeto sai **sem borda**: a borda só vem dos conjuntos de exemplo
-desta versão (`spatial/example`). A função R `tr_spatial_coordinates()` aceita
-uma borda diretamente, no argumento `borda`.
+A **borda** da área de estudo entra por aqui, e vale a pena: ela recorta a grade
+da krigagem, desenha o contorno no gráfico exploratório e dispara a guarda que
+pega borda em escala, projeção ou lugar errado. Sem borda, a grade é o retângulo
+da extensão dos pontos, e o mapa prediz fora da área de estudo com cara de
+resultado válido.
+
+Dois caminhos: ligar um bloco `spatial/boundary` na porta **Borda**, que lê o
+contorno de um arquivo vetorial; ou, sem arquivo nenhum, pôr o param **Borda** em
+*casco convexo dos pontos*, que usa o menor polígono convexo que contém a amostra.
+Borda ligada na porta vence o param.
+
+Quando as projeções diferem, a borda **é reprojetada** para a dos pontos, e a nota
+do objeto diz de qual para qual. Borda em grau com pontos em metro é reprojetada,
+não recusada: a malha do IBGE vem em grau, e a recusa de grau vale para os
+pontos, cuja distância o variograma mede, não para o recorte. O que o bloco
+recusa é borda **sem** projeção declarada quando os pontos têm uma: aí não há
+como saber em que plano a borda está.
 ]---", r"---[
 - **Coordenada X**, **Coordenada Y** — colunas numéricas, em CRS projetado.
 - **Variável** — a variável regionalizada. Linha sem valor nela sai do cálculo,
@@ -85,6 +106,8 @@ uma borda diretamente, no argumento `borda`.
   Vazio, trata como plano arbitrário.
 - **Unidade da distância** — só rotula eixos e alcance (por exemplo, `m`).
 - **Nome** — título do objeto nos cartões e gráficos adiante.
+- **Borda** — o que fazer quando nenhuma borda é ligada na porta: `nenhuma`, ou
+  `casco convexo dos pontos`. Pontos colineares não formam casco, e o bloco diz.
 ]---", r"---[
 Um objeto espacial (`spatial/points`).
 ]---", r"---[
@@ -93,7 +116,8 @@ tr_flow(reg) |>
   tr_add("pontos", "spatial/coordinates", x = "leste", y = "norte",
          variavel = "milho_kg_ha", crs = "31982", unidade = "m", from = "tab")
 ]---", r"---[
-`spatial/example` para um conjunto pronto.
+`spatial/example` para um conjunto pronto; `spatial/read_points` para ler os
+pontos de um arquivo vetorial; `spatial/boundary` para a borda.
 ]---"))
   )
 }

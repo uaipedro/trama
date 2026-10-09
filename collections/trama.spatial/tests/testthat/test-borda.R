@@ -151,6 +151,60 @@ test_that("o adaptador para data/table dá uma linha por vértice", {
   expect_equal(t$x, unname(b$poligono[, 1]))
 })
 
+# ---- a borda chegando ao objeto espacial ---------------------------------------
+#
+# Antes desta versão o nó `spatial/coordinates` não expunha borda nenhuma, e
+# para dado próprio a grade da krigagem era o retângulo da extensão.
+
+sem_coords <- function(p) {
+  tr_spatial_coordinates(p$dados, x = p$coord_cols[[1]], y = p$coord_cols[[2]],
+                         variavel = p$variavel, crs = "31984")
+}
+
+test_that("borda_modo casco convexo recorta a grade, e sem borda não recorta", {
+  p0 <- tr_spatial_example("milho_se")
+  com <- tr_spatial_coordinates(p0$dados, x = p0$coord_cols[[1]],
+                                y = p0$coord_cols[[2]], variavel = p0$variavel,
+                                crs = "31984",
+                                borda_modo = "casco convexo dos pontos")
+  expect_false(is.null(com$borda))
+  expect_equal(com$borda[1, ], com$borda[nrow(com$borda), ])
+  g_sem <- tr_spatial_grid(sem_coords(p0), resolucao = 40L)
+  g_com <- tr_spatial_grid(com, resolucao = 40L)
+  expect_lt(nrow(g_com), nrow(g_sem))
+})
+
+test_that("a porta de borda vence o param quando as duas vêm", {
+  p0 <- tr_spatial_example("milho_se")
+  b <- tr_spatial_boundary_obj(p0$borda, p0$crs, "exemplo", "Sergipe", "")
+  p <- tr_spatial_coordinates(p0$dados, x = p0$coord_cols[[1]],
+                              y = p0$coord_cols[[2]], variavel = p0$variavel,
+                              crs = "31984", borda = b,
+                              borda_modo = "casco convexo dos pontos")
+  expect_equal(nrow(p$borda), nrow(p0$borda))   # é a do arquivo, não o casco
+})
+
+test_that("borda por objeto em outro CRS entra reprojetada, e a nota diz", {
+  p0 <- tr_spatial_example("milho_se")
+  g <- sf::st_transform(sf::st_sfc(sf::st_polygon(list(p0$borda)), crs = p0$crs), 4674)
+  b <- tr_spatial_boundary_obj(.tr_spatial_borda(sf::st_coordinates(g)[, 1:2]),
+                               sf::st_crs(4674), "malha", "Sergipe", "")
+  p <- tr_spatial_coordinates(p0$dados, x = p0$coord_cols[[1]],
+                              y = p0$coord_cols[[2]], variavel = p0$variavel,
+                              crs = "31984", borda = b)
+  expect_gt(max(abs(p$borda)), 1e5)             # voltou para metro
+  expect_match(p$nota, "reprojetada")
+})
+
+test_that("borda_modo desconhecido é recusado", {
+  p0 <- tr_spatial_example("milho_se")
+  expect_error(
+    tr_spatial_coordinates(p0$dados, x = p0$coord_cols[[1]], y = p0$coord_cols[[2]],
+                           variavel = p0$variavel, crs = "31984",
+                           borda_modo = "envoltoria alfa"),
+    class = "tr_spatial_error_bad_option")
+})
+
 test_that("a coleção registra o tipo spatial/boundary e o adaptador para tabela", {
   co <- trama_collection()
   ids <- vapply(co$types, function(x) x$id, "")

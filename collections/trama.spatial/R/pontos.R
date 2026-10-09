@@ -67,11 +67,19 @@
 #' @param crs código EPSG, ou vazio para plano arbitrário.
 #' @param unidade unidade da distância; só rotula eixo e alcance.
 #' @param nome topo do card.
-#' @param borda matriz ou data.frame de duas colunas com o polígono, ou `NULL`.
+#' @param borda a borda da área de estudo: um objeto `spatial/boundary`, uma
+#'   matriz ou data.frame de duas colunas com o polígono, ou `NULL`.
+#' @param borda_modo o que fazer quando nenhuma borda é ligada: `nenhuma`, ou
+#'   `casco convexo dos pontos`. Borda ligada VENCE este param.
 #' @return um objeto espacial (`spatial/points`).
 #' @export
 tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
-                                   crs = "", unidade = "", nome = "", borda = NULL) {
+                                   crs = "", unidade = "", nome = "", borda = NULL,
+                                   borda_modo = "nenhuma") {
+  if (!borda_modo %in% .TR_SPATIAL_BORDA_MODOS) {
+    .tr_spatial_abort("tr_spatial_error_bad_option", sprintf(
+      "Borda: escolha um de %s.", paste(.TR_SPATIAL_BORDA_MODOS, collapse = ", ")))
+  }
   dados <- as.data.frame(dados)
   cx <- .tr_spatial_col1(dados, x, "Coordenada X")
   cy <- .tr_spatial_col1(dados, y, "Coordenada Y")
@@ -120,7 +128,21 @@ tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
     notas <- c(notas, sprintf(
       "%d ponto(s) coincidente(s): a variação entre eles entra no efeito pepita.", dup))
   }
-  borda <- .tr_spatial_borda(borda)
+  # A borda pode vir de três lugares, nesta ordem de precedência: um objeto
+  # `spatial/boundary` ligado na porta, uma matriz passada direto (é como os
+  # exemplos a trazem), ou o casco convexo dos próprios pontos.
+  if (inherits(borda, "tr_spatial_boundary")) {
+    b <- .tr_spatial_borda_crs(borda, obj_crs)
+    if (!is.null(attr(b, "nota"))) notas <- c(notas, attr(b, "nota"))
+    attr(b, "nota") <- NULL
+    borda <- b
+  } else if (is.null(borda) && identical(borda_modo, "casco convexo dos pontos")) {
+    borda <- tr_spatial_convex_hull(coords)
+    notas <- c(notas, paste("Borda: casco convexo dos pontos amostrais.",
+                            "Fora dele toda predição é extrapolação."))
+  } else {
+    borda <- .tr_spatial_borda(borda)
+  }
   .tr_spatial_borda_contem(borda, coords)
   structure(list(
     dados = tibble::as_tibble(dados), coords = coords, coord_cols = c(cx, cy),
