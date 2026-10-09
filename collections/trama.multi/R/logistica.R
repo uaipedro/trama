@@ -170,7 +170,16 @@ tr_multi_logistic <- function(dados, resposta = "", preditores = "", corte = 0.5
                            character())
   m$metodo <- metodo
   m$separacao <- .tr_multi_separados(.tr_multi_logit_prever(m, gr$X)$prob, gr$g)
+  attr(m, "trama_ferramentas") <- .tr_multi_logit_ferramenta(tipo, metodo)
   m
+}
+
+#' A ferramenta de fora que ajustou a logística: `glm` (binária), `nnet::multinom`
+#' (três ou mais grupos) ou nenhuma, no Firth, que é código do próprio trama.
+#' @noRd
+.tr_multi_logit_ferramenta <- function(tipo, metodo) {
+  if (identical(metodo, "firth")) return(character())
+  if (identical(tipo, "binária")) "stats::glm" else "nnet::multinom"
 }
 
 .TR_MULTI_METODOS_LOGIT <- c("ml", "firth")

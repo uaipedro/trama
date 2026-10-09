@@ -208,7 +208,10 @@ multi_cluster_type <- function() {
 #' @export
 tr_multi_distance <- function(dados, cols = "", metodo = "euclidiana padronizada", rotulo = "") {
   metodo <- .tr_multi_enum(metodo, .TR_MULTI_DISTANCIAS, "metodo")
-  .tr_multi_calcula_dist(dados, cols, metodo, rotulo, "multi/distance")
+  d <- .tr_multi_calcula_dist(dados, cols, metodo, rotulo, "multi/distance")
+  # Só a Gower sai do `cluster`; as outras são o `stats::dist` (e a `cov`, base).
+  attr(d, "trama_ferramentas") <- if (identical(metodo, "gower")) "cluster::daisy" else "stats::dist"
+  d
 }
 
 #' O mapa de calor da matriz, ordenado pelo UPGMA.

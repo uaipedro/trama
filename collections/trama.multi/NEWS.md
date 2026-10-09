@@ -1,5 +1,6 @@
 # trama.multi 0.3.8
 
+* Relatório Quarto: `distance` (`cluster::daisy` só na Gower), `discriminant` (`MASS::lda` ou `MASS::qda`), `logistic` (`stats::glm` ou `nnet::multinom`) e os jackknife registram no resultado a ferramenta que rodou (atributo `trama_ferramentas`).
 * Relatório Quarto exportado: `multi/pca` (resumo, autovalores e cargas), `multi/fa` (resumo e cargas de padrão), `multi/dist` (resumo e, até 12 indivíduos, a matriz) e `multi/cluster` (resumo e os membros de cada grupo) ganham `report` — tabelas em Markdown no lugar do `print` cru da lista. Pede `trama.data (>= 0.4.4)`.
 
 # trama.multi 0.3.7
