@@ -12,6 +12,11 @@ related: [spatial/kriging]
 
 ## O que o bloco faz
 
+Quando a superfície vem de um indicador (`spatial/indicator`), o predito **é
+probabilidade**, e o mapa diz isso: a legenda traz "Probabilidade de ..." com o
+corte, em vez do nome da variável. Sem esse cuidado o mapa apresentaria
+probabilidade com a cara de rendimento ou de teor.
+
 Desenha a superfície da krigagem. **O mapa do erro-padrão é o par honesto do
 mapa do predito**: o predito é liso e convincente em qualquer lugar, e só o
 erro-padrão mostra onde ele vale pouco, longe dos pontos e perto das bordas.

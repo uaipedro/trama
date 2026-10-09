@@ -245,7 +245,26 @@ exemplos <- list(
          tr_add("variograma", "spatial/variogram", from = "pontos") |>
          tr_add("ajuste", "spatial/variogram_fit", from = "variograma") |>
          tr_add("krigagem", "spatial/kriging", from = c("pontos", "ajuste")) |>
-         tr_add("mapa", "spatial/map", mostrar = "predito", from = "krigagem"))
+         tr_add("mapa", "spatial/map", mostrar = "predito", from = "krigagem")),
+  # Diagnosticar antes de modelar, e medir depois: as quatro direcoes mostram se
+  # ha anisotropia, a razao e o angulo entram no ajuste, a validacao cruzada
+  # julga o modelo, e a krigagem universal trata a tendencia de larga escala que
+  # o variograma do milho_pr tem.
+  list(pkg = "trama.spatial", nome = "Anisotropia, validacao cruzada e krigagem universal",
+       descricao = "Variograma em quatro direcoes com faixa de referencia sob isotropia, ajuste com anisotropia geometrica, validacao cruzada do modelo e krigagem universal com tendencia de 1a ordem.",
+       flow = tr_flow(reg) |>
+         tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+         tr_add("aniso", "spatial/anisotropy", direcoes = "0,45,90,135",
+                envelope = TRUE, n_sim = 19L, semente = 42, from = "pontos") |>
+         tr_add("variograma", "spatial/variogram", tendencia = "1a ordem",
+                from = "pontos") |>
+         tr_add("ajuste", "spatial/variogram_fit", familia = "esferico",
+                razao = 2, angulo = 45, from = "variograma") |>
+         tr_add("validacao", "spatial/validation", metodo = "leave-one-out",
+                from = c("pontos", "ajuste")) |>
+         tr_add("krigagem", "spatial/kriging", tipo = "universal",
+                tendencia = "1a ordem", from = c("pontos", "ajuste")) |>
+         tr_add("mapa_erro", "spatial/map", mostrar = "erro-padrao", from = "krigagem"))
 )
 
 raiz <- if (dir.exists("collections")) "." else stop("Rode na raiz do repositório.")

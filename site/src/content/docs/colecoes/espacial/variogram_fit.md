@@ -50,6 +50,17 @@ validação cruzada.
   pepita inicial 0.
 - **Kappa** — só para Matérn: 0,5 reproduz o exponencial, valores altos
   aproximam o gaussiano.
+- **Razão de anisotropia** — maior eixo dividido pelo menor. 1 é isotrópico, e
+  não muda nada em relação ao comportamento anterior. Razão menor que 1 é
+  recusada: para pôr o eixo maior na outra direção, gire o ângulo 90 graus.
+- **Ângulo do eixo maior** — graus, horário a partir do Norte, de 0 a 180.
+  Aponta a direção de maior continuidade, a de alcance mais longo.
+
+Os dois números de anisotropia **não são estimados aqui**: você os lê no card do
+bloco `spatial/anisotropy` e os digita. O motor de ajuste não usa a direção dos
+pares — ele preserva a anisotropia que recebe em vez de ajustá-la —, e as três
+maneiras de estimá-la que testamos devolvem razão perto de 3 até para campos
+isotrópicos.
 
 ## Valor
 

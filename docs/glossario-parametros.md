@@ -81,6 +81,22 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo de todas as coleç
 | `isolinhas` | desenhar curvas de nível sobre a superfície (bool, spatial/map) | — |
 | `pontos` | como param, desenhar as observações sobre o gráfico (bool: view/boxplot, view/violin, series/plot, spatial/map). Como porta de entrada, a das localizações medidas, tipo `spatial/points` (spatial/explore, spatial/variogram, spatial/kriging) | — |
 
+| `caminho` | arquivo ou pasta de entrada (sql/source, spatial/read_points, spatial/boundary) | — |
+| `camada` | camada dentro de um arquivo com mais de uma (spatial/read_points, spatial/boundary) | — |
+| `crs_saida` | EPSG de destino da reprojeção na leitura | — |
+| `nomes_coords` | nomes das duas colunas de coordenada criadas na leitura de vetor | — |
+| `borda` | porta e param da borda da área de estudo (spatial/coordinates); o param escolhe `nenhuma` ou `casco convexo dos pontos` | — |
+| `direcoes` | direções do variograma direcional, em graus, separadas por vírgula (spatial/anisotropy) | — |
+| `envelope` | desenhar a faixa de referência obtida por simulação (bool) | — |
+| `n_sim` | número de simulações de Monte Carlo de uma faixa ou envelope | — |
+| `semente` | semente do sorteio, para o resultado não mudar a cada execução | — |
+| `razao` | razão de anisotropia geométrica, maior eixo sobre menor (≥ 1) | — |
+| `angulo` | ângulo, em graus, horário a partir do Norte; no variogram_fit aponta o eixo maior | — |
+| `corte` | valor que separa duas classes numa transformação (spatial/indicator) | — |
+| `sentido` | lado do corte: `<=` ou `>` (spatial/indicator) | — |
+| `dobras` | número de grupos da validação cruzada em k dobras | — |
+| `grade` | porta de uma tabela que passa a ser a grade de predição (spatial/kriging) | — |
+
 ## Homônimos permitidos
 
 Nomes que coincidem com um proibido mas têm outro sentido: `coluna` do quadrado latino (models/anova_dql) e da tabela de contingência (models/chisq, models/fisher_exact); `nivel` como categoria da variável (sampling/proportion).

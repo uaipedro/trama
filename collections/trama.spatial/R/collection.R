@@ -13,7 +13,7 @@
 #' @export
 trama_collection <- function() {
   trama::tr_collection(
-    id = "spatial", version = "0.1.0", label = "Geoestatística",
+    id = "spatial", version = "0.2.0", label = "Geoestatística",
     js = "trama/index.js", css = "trama/spatial.css",
     types = list(spatial_points_type(), spatial_boundary_type(),
                   spatial_variogram_type(), spatial_anisotropy_type(),

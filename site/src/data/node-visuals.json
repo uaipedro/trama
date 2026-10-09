@@ -14017,6 +14017,140 @@
     ],
     "icon": "split"
   },
+  "spatial/anisotropy": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Anisotropia",
+    "category": "espacial_variograma",
+    "categoryLabel": "Variograma",
+    "categoryOrder": 63,
+    "inputColor": "#0e7490",
+    "outputColor": "#7c3aed",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "pontos",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#7c3aed",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "direcoes",
+        "kind": "text",
+        "label": "Direções",
+        "default": "0,45,90,135"
+      },
+      {
+        "name": "estimador",
+        "kind": "enum",
+        "label": "Estimador",
+        "default": "classico",
+        "choices": ["classico", "robusto"]
+      },
+      {
+        "name": "dist_max",
+        "kind": "number",
+        "label": "Distância máxima",
+        "default": null
+      },
+      {
+        "name": "n_classes",
+        "kind": "integer",
+        "label": "Classes",
+        "default": 10
+      },
+      {
+        "name": "tolerancia",
+        "kind": "number",
+        "label": "Tolerância angular",
+        "default": 22.5
+      },
+      {
+        "name": "tendencia",
+        "kind": "enum",
+        "label": "Tendência",
+        "default": "constante",
+        "choices": ["constante", "1a ordem", "2a ordem", "covariavel"]
+      },
+      {
+        "name": "pares_min",
+        "kind": "integer",
+        "label": "Mínimo de pares",
+        "default": 30
+      },
+      {
+        "name": "envelope",
+        "kind": "boolean",
+        "label": "Faixa de referência",
+        "default": false
+      },
+      {
+        "name": "n_sim",
+        "kind": "integer",
+        "label": "Simulações",
+        "default": 19
+      },
+      {
+        "name": "semente",
+        "kind": "number",
+        "label": "Semente",
+        "default": null
+      }
+    ],
+    "icon": "compass"
+  },
+  "spatial/boundary": {
+    "accent": "#976523",
+    "hasInput": false,
+    "hasOutput": true,
+    "label": "Ler borda de arquivo",
+    "category": "espacial_preparar",
+    "categoryLabel": "Preparar",
+    "categoryOrder": 61,
+    "outputColor": "#166534",
+    "role": "preparacao",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#166534",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "caminho",
+        "kind": "text",
+        "label": "Arquivo",
+        "default": ""
+      },
+      {
+        "name": "camada",
+        "kind": "text",
+        "label": "Camada",
+        "default": ""
+      },
+      {
+        "name": "crs_saida",
+        "kind": "text",
+        "label": "Reprojetar para (EPSG)",
+        "default": ""
+      }
+    ],
+    "icon": "shapes"
+  },
   "spatial/coordinates": {
     "accent": "#976523",
     "hasInput": true,
@@ -14033,6 +14167,12 @@
         "name": "dados",
         "color": "#38bdf8",
         "required": true,
+        "multiple": false
+      },
+      {
+        "name": "borda",
+        "color": "#166534",
+        "required": false,
         "multiple": false
       }
     ],
@@ -14090,6 +14230,13 @@
         "kind": "text",
         "label": "Nome",
         "default": ""
+      },
+      {
+        "name": "borda_modo",
+        "kind": "enum",
+        "label": "Borda",
+        "default": "nenhuma",
+        "choices": ["nenhuma", "casco convexo dos pontos"]
       }
     ],
     "icon": "map-pin"
@@ -14203,6 +14350,50 @@
     ],
     "icon": "layout-grid"
   },
+  "spatial/indicator": {
+    "accent": "#976523",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Indicador",
+    "category": "espacial_preparar",
+    "categoryLabel": "Preparar",
+    "categoryOrder": 61,
+    "inputColor": "#0e7490",
+    "outputColor": "#0e7490",
+    "role": "preparacao",
+    "inputs": [
+      {
+        "name": "pontos",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "corte",
+        "kind": "number",
+        "label": "Corte",
+        "default": null
+      },
+      {
+        "name": "sentido",
+        "kind": "enum",
+        "label": "Sentido",
+        "default": "<=",
+        "choices": ["<=", ">"]
+      }
+    ],
+    "icon": "toggle-left"
+  },
   "spatial/kriging": {
     "accent": "#31765a",
     "hasInput": true,
@@ -14226,6 +14417,12 @@
         "color": "#8b5cf6",
         "required": true,
         "multiple": false
+      },
+      {
+        "name": "grade",
+        "color": "#38bdf8",
+        "required": false,
+        "multiple": false
       }
     ],
     "outputs": [
@@ -14242,13 +14439,20 @@
         "kind": "enum",
         "label": "Tipo",
         "default": "ordinaria",
-        "choices": ["ordinaria", "simples"]
+        "choices": ["ordinaria", "simples", "universal"]
       },
       {
         "name": "media",
         "kind": "number",
         "label": "Média conhecida",
         "default": null
+      },
+      {
+        "name": "tendencia",
+        "kind": "enum",
+        "label": "Tendência",
+        "default": "1a ordem",
+        "choices": ["1a ordem", "2a ordem", "covariavel"]
       },
       {
         "name": "resolucao",
@@ -14361,6 +14565,121 @@
       }
     ],
     "icon": "map"
+  },
+  "spatial/read_points": {
+    "accent": "#275d8c",
+    "hasInput": false,
+    "hasOutput": true,
+    "label": "Ler pontos de arquivo",
+    "category": "espacial_fonte",
+    "categoryLabel": "Fonte",
+    "categoryOrder": 60,
+    "outputColor": "#38bdf8",
+    "role": "origem",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "caminho",
+        "kind": "text",
+        "label": "Arquivo",
+        "default": ""
+      },
+      {
+        "name": "camada",
+        "kind": "text",
+        "label": "Camada",
+        "default": ""
+      },
+      {
+        "name": "crs_saida",
+        "kind": "text",
+        "label": "Reprojetar para (EPSG)",
+        "default": ""
+      },
+      {
+        "name": "nomes_coords",
+        "kind": "text",
+        "label": "Nomes das coordenadas",
+        "default": "x,y"
+      }
+    ],
+    "icon": "file-down"
+  },
+  "spatial/validation": {
+    "accent": "#31765a",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Validação cruzada",
+    "category": "espacial_predizer",
+    "categoryLabel": "Predizer",
+    "categoryOrder": 64,
+    "inputColor": "#0e7490",
+    "outputColor": "#b45309",
+    "role": "ajuste",
+    "inputs": [
+      {
+        "name": "pontos",
+        "color": "#0e7490",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "modelo",
+        "color": "#8b5cf6",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#b45309",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "metodo",
+        "kind": "enum",
+        "label": "Método",
+        "default": "leave-one-out",
+        "choices": ["leave-one-out", "k dobras"]
+      },
+      {
+        "name": "dobras",
+        "kind": "integer",
+        "label": "Dobras",
+        "default": 10
+      },
+      {
+        "name": "semente",
+        "kind": "number",
+        "label": "Semente",
+        "default": null
+      },
+      {
+        "name": "vizinhos_max",
+        "kind": "number",
+        "label": "Vizinhos",
+        "default": null
+      },
+      {
+        "name": "dist_max",
+        "kind": "number",
+        "label": "Raio",
+        "default": null
+      }
+    ],
+    "icon": "check-check"
   },
   "spatial/variogram": {
     "accent": "#31765a",
@@ -14508,6 +14827,18 @@
         "kind": "number",
         "label": "Kappa (Matérn)",
         "default": 0.5
+      },
+      {
+        "name": "razao",
+        "kind": "number",
+        "label": "Razão de anisotropia",
+        "default": 1
+      },
+      {
+        "name": "angulo",
+        "kind": "number",
+        "label": "Ângulo do eixo maior",
+        "default": 0
       }
     ],
     "icon": "spline"

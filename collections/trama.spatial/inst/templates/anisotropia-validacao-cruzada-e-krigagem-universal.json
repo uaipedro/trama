@@ -1,12 +1,12 @@
 {
   "trama": "template",
   "versao": 1,
-  "nome": "Krigagem com mapa do predito e do erro-padrão",
-  "descricao": "Produtividade de milho no Paraná: variograma, ajuste, krigagem ordinária e os mapas do predito e do erro-padrão lado a lado.",
+  "nome": "Anisotropia, validacao cruzada e krigagem universal",
+  "descricao": "Variograma em quatro direcoes com faixa de referencia sob isotropia, ajuste com anisotropia geometrica, validacao cruzada do modelo e krigagem universal com tendencia de 1a ordem.",
   "colecoes": ["trama.spatial"],
   "doc": {
     "format": 1,
-    "rev": 13,
+    "rev": 15,
     "collections": {
       "spatial": "0.2.0"
     },
@@ -20,42 +20,56 @@
         },
         "seed": 259502235
       },
-      "explorar": {
-        "type": "spatial/explore",
+      "aniso": {
+        "type": "spatial/anisotropy",
         "type_version": 1,
-        "label": "Explorar",
-        "params": {},
-        "seed": 85413771
+        "label": "Anisotropia",
+        "params": {
+          "direcoes": "0,45,90,135",
+          "envelope": true,
+          "n_sim": 19,
+          "semente": 42
+        },
+        "seed": 32185314
       },
       "variograma": {
         "type": "spatial/variogram",
         "type_version": 1,
         "label": "Variograma",
-        "params": {},
+        "params": {
+          "tendencia": "1a ordem"
+        },
         "seed": 247942073
       },
       "ajuste": {
         "type": "spatial/variogram_fit",
         "type_version": 1,
         "label": "Ajustar modelo",
-        "params": {},
+        "params": {
+          "familia": "esferico",
+          "razao": 2,
+          "angulo": 45
+        },
         "seed": 140023745
+      },
+      "validacao": {
+        "type": "spatial/validation",
+        "type_version": 1,
+        "label": "Validação cruzada",
+        "params": {
+          "metodo": "leave-one-out"
+        },
+        "seed": 150155349
       },
       "krigagem": {
         "type": "spatial/kriging",
         "type_version": 1,
         "label": "Krigagem",
-        "params": {},
-        "seed": 264400552
-      },
-      "mapa_predito": {
-        "type": "spatial/map",
-        "type_version": 1,
-        "label": "Mapa da superfície",
         "params": {
-          "mostrar": "predito"
+          "tipo": "universal",
+          "tendencia": "1a ordem"
         },
-        "seed": 171831031
+        "seed": 264400552
       },
       "mapa_erro": {
         "type": "spatial/map",
@@ -74,7 +88,7 @@
           "port": "out"
         },
         "to": {
-          "node": "explorar",
+          "node": "aniso",
           "port": "pontos"
         },
         "index": 1
@@ -103,23 +117,45 @@
       },
       {
         "from": {
+          "node": "pontos",
+          "port": "out"
+        },
+        "to": {
+          "node": "validacao",
+          "port": "pontos"
+        },
+        "index": 1
+      },
+      {
+        "from": {
           "node": "ajuste",
           "port": "out"
         },
         "to": {
-          "node": "krigagem",
+          "node": "validacao",
           "port": "modelo"
         },
         "index": 1
       },
       {
         "from": {
-          "node": "krigagem",
+          "node": "pontos",
           "port": "out"
         },
         "to": {
-          "node": "mapa_predito",
-          "port": "superficie"
+          "node": "krigagem",
+          "port": "pontos"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ajuste",
+          "port": "out"
+        },
+        "to": {
+          "node": "krigagem",
+          "port": "modelo"
         },
         "index": 1
       },
@@ -138,12 +174,12 @@
     "ui": {
       "positions": {
         "pontos": [0, 0],
-        "explorar": [360, 0],
-        "variograma": [360, 538],
-        "ajuste": [720, 538],
-        "krigagem": [1080, 538],
-        "mapa_predito": [1440, 538],
-        "mapa_erro": [1440, 1136]
+        "aniso": [360, 0],
+        "variograma": [360, 628],
+        "ajuste": [720, 628],
+        "validacao": [1080, 0],
+        "krigagem": [1080, 628],
+        "mapa_erro": [1440, 628]
       },
       "sizes": {},
       "views": {},

@@ -34,3 +34,11 @@ test_that("o catálogo sai inteiro com data e view carregadas", {
   ids <- vapply(cat$nodes, function(x) x$id, "")
   expect_true(all(c("spatial/example", "spatial/coordinates") %in% ids))
 })
+
+test_that("a versão da coleção é a mesma no DESCRIPTION e no tr_collection", {
+  # Na main de 09/10/2026 as três divergiam: DESCRIPTION 0.1.1, tr_collection
+  # 0.1.0 e release.json 0.1.0. Este teste prende duas delas; a terceira é um
+  # manifesto de release, fora do pacote.
+  d <- read.dcf(system.file("DESCRIPTION", package = "trama.spatial"))[1, "Version"]
+  expect_equal(trama_collection()$version, unname(d))
+})

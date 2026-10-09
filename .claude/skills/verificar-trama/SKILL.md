@@ -21,7 +21,7 @@ Os pacotes rodam em paralelo (um Rscript cada, até núcleos − 1; `--jobs N` m
 
 ## Grafo (lido dos DESCRIPTION)
 
-`trama` ← `trama.data` ← `trama.view` ← {`models`, `series`, `sampling`} ; `models` ← {`experiments`, `ml`, `multi`}.
+`trama` ← `trama.data` ← `trama.view` ← {`models`, `series`, `sampling`, `spatial`} ; `models` ← {`experiments`, `ml`, `multi`}. (`sql` depende de `data`.)
 Mexer em `trama.data` roda quase tudo; em `trama.series`, só ela.
 
 ## Gotchas

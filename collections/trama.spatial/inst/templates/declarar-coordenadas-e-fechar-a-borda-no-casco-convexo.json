@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 12,
     "collections": {
-      "spatial": "0.1.0"
+      "spatial": "0.2.0"
     },
     "nodes": {
       "tabela": {
