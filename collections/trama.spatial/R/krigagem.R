@@ -14,16 +14,82 @@
 # A grade nasce aqui e nao num bloco proprio: ela e consequencia da borda e de
 # um parametro de resolucao, nao uma decisao analitica autonoma.
 
-# Valores do param `tipo`. A universal e a de indicadora entram como valores
-# novos desta lista, sem bloco novo.
-.TR_SPATIAL_TIPOS_KRIG <- c("ordinaria", "simples")
+# Valores do param `tipo`.
+#
+# A INDICADORA nao entra aqui: ela precisa do variograma DO INDICADOR, e sai
+# pelo bloco `spatial/indicator`, antes do variograma. O comentario original
+# previa um valor de `tipo` para ela, e estava errado -- com um valor de tipo o
+# bloco receberia um modelo ajustado a variavel continua e krigaria indicador
+# com ele, em silencio.
+.TR_SPATIAL_TIPOS_KRIG <- c("ordinaria", "simples", "universal")
+
+# Tendencias que a universal aceita. `constante` nao e uma delas: universal com
+# tendencia constante E a ordinaria, e oferecer as duas como se fossem
+# diferentes confundiria em vez de ajudar.
+.TR_SPATIAL_TENDENCIAS_KRIG <- c("1a ordem", "2a ordem", "covariavel")
+
+#' Colunas da tendencia polinomial, CENTRADAS E PADRONIZADAS.
+#'
+#' A geometria segue crua: so a base da tendencia e centrada. Em UTM cru a 2a
+#' ordem e mal condicionada nos DOIS pacotes -- medido em 2026-10-09: o
+#' `geoR::krige.conv` fica computacionalmente singular (condicao reciproca
+#' 7,3e-17) e o `gstat` difere 3,7e-4 do centrado. A krigagem com tendencia e
+#' invariante a reparametrizacao linear da base, entao a versao centrada e a
+#' mesma conta, melhor condicionada.
+#'
+#' O centro e a escala sao SEMPRE os do conjunto de ajuste: se cada ponta
+#' centrasse pela propria media, a base mudaria entre ajuste e predicao e a
+#' predicao sairia errada sem erro nenhum.
+#'
+#' @param coords matriz n x 2 dos pontos de ajuste.
+#' @param alvo matriz onde avaliar; `NULL` usa `coords`.
+#' @param tendencia `1a ordem` ou `2a ordem`.
+#' @noRd
+.tr_spatial_tendencia_colunas <- function(coords, alvo = NULL,
+                                          tendencia = "1a ordem") {
+  co <- as.matrix(coords)
+  centro <- colMeans(co)
+  escala <- apply(co, 2, stats::sd)
+  if (any(!is.finite(escala)) || any(escala <= 0)) {
+    .tr_spatial_abort("tr_spatial_error_bad_coords",
+      "Uma das coordenadas nao varia: nao ha como ajustar tendencia nela.")
+  }
+  m <- as.matrix(alvo %||% co)
+  x <- (m[, 1] - centro[[1]]) / escala[[1]]
+  y <- (m[, 2] - centro[[2]]) / escala[[2]]
+  d <- data.frame(.tx = x, .ty = y)
+  if (identical(tendencia, "2a ordem")) {
+    d$.tx2 <- x^2; d$.ty2 <- y^2; d$.txy <- x * y
+  }
+  d
+}
+
+#' A formula do `gstat` para a krigagem, conforme tipo e tendencia.
+#' @noRd
+.tr_spatial_krig_formula <- function(tipo, tendencia, covariaveis) {
+  if (!identical(tipo, "universal")) return(stats::as.formula(".z_ ~ 1"))
+  rhs <- switch(tendencia,
+    "1a ordem" = ".tx + .ty",
+    "2a ordem" = ".tx + .ty + I(.tx^2) + I(.ty^2) + I(.tx * .ty)",
+    "covariavel" = paste(sprintf("`%s`", covariaveis), collapse = " + "))
+  stats::as.formula(paste(".z_ ~", rhs))
+}
 
 #' Valida as opcoes da krigagem. Roda ANTES da grade e do motor.
 #' @noRd
-.tr_spatial_krig_opcoes <- function(tipo, media, vizinhos_max, dist_max) {
+.tr_spatial_krig_opcoes <- function(tipo, media, vizinhos_max, dist_max,
+                                    tendencia = "constante") {
   if (!is.character(tipo) || length(tipo) != 1L || !tipo %in% .TR_SPATIAL_TIPOS_KRIG) {
     .tr_spatial_abort("tr_spatial_error_bad_option", sprintf(
       "Tipo: escolha um de %s.", paste(.TR_SPATIAL_TIPOS_KRIG, collapse = ", ")))
+  }
+  if (identical(tipo, "universal") &&
+      (!is.character(tendencia) || length(tendencia) != 1L ||
+       !tendencia %in% .TR_SPATIAL_TENDENCIAS_KRIG)) {
+    .tr_spatial_abort("tr_spatial_error_bad_option", sprintf(paste(
+      "Tendencia: a krigagem universal precisa de uma destas: %s.",
+      "Com tendencia constante, a krigagem universal E a ordinaria -- escolha",
+      "o tipo 'ordinaria'."), paste(.TR_SPATIAL_TENDENCIAS_KRIG, collapse = ", ")))
   }
   # O gstat ACEITA a simples sem beta e resolve com media zero, em silencio.
   if (identical(tipo, "simples") &&
@@ -139,23 +205,62 @@ tr_spatial_grid <- function(pontos, resolucao = 60L) {
 #' pela posição quando não.
 #' @noRd
 tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
-                                  media = NA, vizinhos_max = NA, dist_max = NA) {
+                                  media = NA, vizinhos_max = NA, dist_max = NA,
+                                  tendencia = "constante") {
   .tr_spatial_pontos_conferir(pontos)
   .tr_spatial_modelo_conferir(modelo)
-  .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max)
+  .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max, tendencia)
   cx <- pontos$coord_cols[[1]]; cy <- pontos$coord_cols[[2]]
-  novos <- as.data.frame(novos)
-  if (all(c(cx, cy) %in% names(novos))) {
-    novos <- novos[, c(cx, cy), drop = FALSE]
+  novos_todo <- as.data.frame(novos)
+  if (all(c(cx, cy) %in% names(novos_todo))) {
+    novos <- novos_todo[, c(cx, cy), drop = FALSE]
   } else {
-    novos <- novos[, 1:2, drop = FALSE]
+    novos <- novos_todo[, 1:2, drop = FALSE]
     names(novos) <- c(cx, cy)
   }
   # Nomes internos: a coluna da variavel pode ter nome nao sintatico.
   d <- data.frame(.z_ = pontos$dados[[pontos$variavel]],
                   .x_ = pontos$coords[, 1], .y_ = pontos$coords[, 2])
   nd <- data.frame(.x_ = novos[[1]], .y_ = novos[[2]])
-  args <- list(formula = .z_ ~ 1, locations = ~ .x_ + .y_, data = d, newdata = nd,
+  if (identical(tipo, "universal")) {
+    if (identical(tendencia, "covariavel")) {
+      cov <- pontos$covariaveis
+      if (!length(cov)) {
+        .tr_spatial_abort("tr_spatial_error_blank_param", paste(
+          "Tendencia por covariavel, mas o objeto espacial nao declara nenhuma.",
+          "Volte ao bloco Coordenadas e preencha 'Covariaveis'."))
+      }
+      faltam <- setdiff(cov, names(novos_todo))
+      if (length(faltam)) {
+        .tr_spatial_abort("tr_spatial_error_missing_drift", sprintf(paste(
+          "A deriva externa precisa da covariavel conhecida em TODA celula onde",
+          "se prediz, e falta %s na grade. Ligue na porta 'grade' uma tabela com",
+          "as colunas %s e %s, ou use tendencia de 1a ou 2a ordem, que so precisa",
+          "das coordenadas."), paste(faltam, collapse = ", "),
+          paste(pontos$coord_cols, collapse = " e "),
+          paste(cov, collapse = " e ")))
+      }
+      ruins <- vapply(cov, function(cc) sum(!is.finite(novos_todo[[cc]])), 0L)
+      if (any(ruins > 0L)) {
+        .tr_spatial_abort("tr_spatial_error_missing_drift", sprintf(paste(
+          "A covariavel %s tem %d celula(s) sem valor na grade. A deriva externa",
+          "nao prediz onde a covariavel falta: recorte a grade, ou preencha-a."),
+          paste(names(ruins)[ruins > 0L], collapse = ", "), sum(ruins)))
+      }
+      for (cc in cov) {
+        d[[cc]] <- pontos$dados[[cc]]
+        nd[[cc]] <- novos_todo[[cc]]
+      }
+    } else {
+      d <- cbind(d, .tr_spatial_tendencia_colunas(pontos$coords,
+                                                  tendencia = tendencia))
+      nd <- cbind(nd, .tr_spatial_tendencia_colunas(
+        pontos$coords, alvo = as.matrix(novos), tendencia = tendencia))
+    }
+  }
+  args <- list(formula = .tr_spatial_krig_formula(tipo, tendencia,
+                                                  pontos$covariaveis),
+               locations = ~ .x_ + .y_, data = d, newdata = nd,
                model = .tr_spatial_vgm_model(modelo), debug.level = 0)
   if (identical(tipo, "simples")) args$beta <- as.numeric(media)
   if (!is.na(vizinhos_max)) args$nmax <- as.integer(vizinhos_max)
@@ -277,15 +382,20 @@ tr_spatial_kriging_em <- function(pontos, modelo, novos, tipo = "ordinaria",
 #' @return uma superfície predita (`spatial/surface`).
 #' @export
 tr_spatial_kriging <- function(pontos = NULL, modelo, tipo = "ordinaria", media = NA,
-                               resolucao = 60L, vizinhos_max = NA, dist_max = NA) {
+                               resolucao = 60L, vizinhos_max = NA, dist_max = NA,
+                               tendencia = "constante") {
   .tr_spatial_modelo_conferir(modelo)
   pontos <- .tr_spatial_krig_pontos(pontos, modelo)
-  .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max)
+  .tr_spatial_krig_opcoes(tipo, media, vizinhos_max, dist_max, tendencia)
   g <- tr_spatial_grid(pontos, resolucao)
-  grade <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media, vizinhos_max, dist_max)
+  grade <- tr_spatial_kriging_em(pontos, modelo, g, tipo, media, vizinhos_max,
+                                 dist_max, tendencia)
   viz <- .tr_spatial_viz_texto(vizinhos_max, dist_max)
-  nota <- paste(c(modelo$nota, sprintf("Grade de %d células (resolução %d).",
-                                       nrow(grade), as.integer(resolucao))), collapse = " ")
+  nota <- paste(c(modelo$nota,
+                  if (identical(tipo, "universal"))
+                    sprintf("Krigagem universal, tendencia de %s.", tendencia),
+                  sprintf("Grade de %d células (resolução %d).",
+                          nrow(grade), as.integer(resolucao))), collapse = " ")
   nota <- trimws(nota)
   sem <- sum(is.na(grade$predito))
   if (sem > 0L) {

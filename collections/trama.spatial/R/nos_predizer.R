@@ -12,6 +12,9 @@
       params = list(
         tipo = E("ordinaria", .TR_SPATIAL_TIPOS_KRIG, label = "Tipo"),
         media = trama::tr_when(N(NA, label = "Média conhecida"), tipo = "simples"),
+        tendencia = trama::tr_when(
+          E("1a ordem", .TR_SPATIAL_TENDENCIAS_KRIG, label = "Tendência"),
+          tipo = "universal"),
         resolucao = I(60L, min = 5, max = 500, label = "Resolução"),
         vizinhos_max = N(NA, min = 1, label = "Vizinhos"),
         dist_max = N(NA, min = 0, label = "Raio")),
@@ -31,10 +34,28 @@ A entrada **pontos** é opcional: o modelo já carrega os pontos com que foi
 ajustado, e a krigagem usa esses. Conecte-a só se quiser ver o encadeamento
 explícito; se os pontos conectados não forem os mesmos dados do modelo, a
 krigagem para com erro em vez de interpolar outro conjunto.
+A **krigagem universal** entra pelo param Tipo. Ela não supõe média constante:
+estima, junto com a predição, uma tendência de larga escala — um plano (1ª
+ordem), uma superfície quadrática (2ª ordem) ou uma covariável conhecida em toda
+célula (deriva externa). Use-a quando o variograma só estabiliza depois de
+remover tendência: a tendência que você removeu ali e a que escolhe aqui são **a
+mesma hipótese**, e as duas devem combinar. Variograma com tendência de 1ª ordem
+e krigagem ordinária é incoerente — o modelo descreve o resíduo e a krigagem
+prediz o total.
+
+A tendência polinomial é ajustada em coordenada **centrada e padronizada**. Isso
+não muda a conta (a krigagem com tendência é invariante a reparametrização
+linear da base) e evita o mal condicionamento que coordenada UTM crua produz no
+termo quadrático — medimos 3,7e-4 de diferença na 2ª ordem, e o `geoR` chega a
+ficar singular.
 ]---", r"---[
 - **Tipo** — ordinária estima a média a partir dos dados e é o padrão.
   Simples supõe a média da população conhecida e pede que você a informe; é a
   escolha certa só quando a média vem de fora dos dados.
+- **Tendência** — só na universal: `1a ordem` (plano), `2a ordem` (superfície
+  quadrática) ou `covariavel` (deriva externa, que exige a grade com a
+  covariável, pela porta Grade). Tendência constante não aparece aqui porque
+  universal com tendência constante é a própria ordinária.
 - **Média conhecida** — só na simples. Usar a média amostral aqui não é
   krigagem simples: é fingir que se conhece o que se estimou.
 - **Resolução** — pontos no lado maior da grade. A grade cobre os pontos e a

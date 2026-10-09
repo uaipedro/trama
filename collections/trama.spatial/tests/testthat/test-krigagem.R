@@ -358,7 +358,11 @@ test_that("o nó registra, declara as portas certas e roda no motor", {
   expect_true(nd$inputs$modelo$required)
   expect_equal(nd$version, 1L)
   nomes <- names(nd$params)
-  expect_equal(nomes, c("tipo", "media", "resolucao", "vizinhos_max", "dist_max"))
+  # `tendencia` entrou na 0.2.0, com a krigagem universal. A ordem é a da
+  # declaração do nó, e o teste a fixa de propósito: param que troca de posição
+  # muda o card.
+  expect_equal(nomes, c("tipo", "media", "tendencia", "resolucao",
+                        "vizinhos_max", "dist_max"))
   fl <- trama::tr_flow(reg) |>
     trama::tr_add("p", "spatial/example", dataset = "milho_se") |>
     trama::tr_add("v", "spatial/variogram", from = "p") |>
