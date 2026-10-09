@@ -333,3 +333,63 @@ registerRenderer("spatial/anisotropy", {
     { id: "tabela", label: "tabela", component: TabelaNucleo },
   ],
 });
+
+// ---- spatial/validation ------------------------------------------------------
+//
+// Observado contra predito, com a reta 1:1. É o gráfico que mostra o que as
+// métricas resumem: viés (nuvem deslocada da reta), encolhimento (nuvem mais
+// achatada que a reta) e pontos isolados que o modelo não acompanha.
+
+function GraficoValid({ pontos }) {
+  const vs = pontos.flatMap((p) => [p.obs, p.pred]).filter((v) => Number.isFinite(v));
+  if (!vs.length) return null;
+  const lo = Math.min(...vs), hi = Math.max(...vs);
+  const faixa = hi - lo || 1;
+  const X = (v) => MG + ((v - lo) / faixa) * (VW - 2 * MG);
+  const Y = (v) => VH - MG - ((v - lo) / faixa) * (VH - 2 * MG);
+  return h("svg", {
+    className: "tr-sp-svg tr-sp-valid", viewBox: `0 0 ${VW} ${VH}`,
+    preserveAspectRatio: "xMidYMid meet", role: "img",
+    "aria-label": "observado contra predito",
+  }, [
+    h("line", { key: "d", className: "tr-sp-11", x1: X(lo), y1: Y(lo), x2: X(hi), y2: Y(hi), vectorEffect: "non-scaling-stroke" }),
+    ...pontos.map((p, i) => h("circle", {
+      key: i, className: "tr-sp-pt", cx: X(p.obs), cy: Y(p.pred), r: 2.2,
+      style: { fillOpacity: 0.55 }, vectorEffect: "non-scaling-stroke",
+    }, h("title", null, `observado ${num(p.obs)} · predito ${num(p.pred)} · z ${num(p.z)}`))),
+  ]);
+}
+
+function Validacao({ artifact }) {
+  const d = artifact.data || {};
+  const pontos = (d.pontos || []).filter((p) => p.obs != null && p.pred != null);
+  if (!pontos.length) return h("div", { className: "tr-empty" }, "sem pontos");
+  // O MSDR ganha destaque porque é o único que julga o mapa de erro-padrão.
+  const msdrOk = d.msdr >= 0.7 && d.msdr <= 1.3;
+  return h("div", { className: "tr-sp" }, [
+    h("div", { key: "t", className: "tr-sp-topo" }, [
+      h("span", { key: "v", className: "tr-sp-var", title: d.variavel }, d.variavel),
+      h("span", { key: "n", className: "tr-sp-n" }, `${d.n} pontos`),
+    ]),
+    h(GraficoValid, { key: "g", pontos }),
+    h("div", { key: "m", className: "tr-sp-met" }, [
+      h("span", { key: "1" }, `RMSE ${num(d.rmse)}`),
+      h("span", { key: "2", className: msdrOk ? "tr-sp-ok" : "tr-sp-aviso" },
+        `MSDR ${num(d.msdr)}`),
+      h("span", { key: "3" }, `r ${num(d.correlacao)}`),
+      h("span", { key: "4" }, `ME ${num(d.me)}`),
+    ]),
+    h("div", { key: "e", className: "tr-sp-pontas" }, [
+      h("span", { key: "a" }, "observado →"),
+      h("span", { key: "b" }, d.metodo),
+    ]),
+    d.nota ? h("div", { key: "no", className: "tr-sp-nota", title: d.nota }, d.nota) : null,
+  ]);
+}
+
+registerRenderer("spatial/validation", {
+  views: [
+    { id: "obs-pred", label: "obs × pred", component: Validacao },
+    { id: "tabela", label: "tabela", component: TabelaNucleo },
+  ],
+});

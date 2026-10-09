@@ -32,6 +32,16 @@
       "Krigagem simples supõe a média da população CONHECIDA, e ela não foi informada.",
       "Preencha 'Média', ou use a krigagem ordinária, que a estima a partir dos dados."))
   }
+  .tr_spatial_krig_vizinhanca(vizinhos_max, dist_max)
+  invisible(tipo)
+}
+
+#' Valida a vizinhança (`vizinhos_max`, `dist_max`).
+#'
+#' Extraída de `.tr_spatial_krig_opcoes()` porque a validação cruzada usa a
+#' mesma vizinhança sem ter `tipo` nem `media`.
+#' @noRd
+.tr_spatial_krig_vizinhanca <- function(vizinhos_max, dist_max) {
   # NA puro e logico; o campo vazio do card chega assim.
   vazio <- function(x) length(x) == 1L && is.na(x)
   positivo <- function(x, inteiro) {
@@ -46,7 +56,7 @@
     .tr_spatial_abort("tr_spatial_error_bad_option",
       "Raio: use um número positivo, ou deixe vazio para krigar com todos.")
   }
-  invisible(tipo)
+  invisible(NULL)
 }
 
 #' Grade de predição: retângulo que cobre os pontos e a borda, recortado na borda.

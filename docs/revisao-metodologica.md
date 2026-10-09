@@ -474,3 +474,90 @@ o quadro dos estratos (oráculo: `test-ajustar.R`, F e QM dos dois erros contra
 `summary(aov(... + Error()))` nos dados `aveia`, tolerância 1e-10). Médias e
 comparações seguem no `lmer` equivalente. Nenhum `stats::aov` resta no código
 das coleções.
+
+## `trama.spatial` 0.2.0: anisotropia, faixa de referência e validação cruzada (09/10/2026)
+
+Sobre `gstat` 2.1.6, `geoR` 1.9.6 e `sf` 1.0.22. Convenção de classes, a mesma
+do levantamento de 06/10: `boundaries` sem o zero no `gstat`, `breaks` com o
+zero no `geoR`.
+
+**`spatial/anisotropy`** (versão 1). Variograma em N direções num objeto só.
+Oráculo: `geoR::variog4`, comparado **direção por direção, por rótulo**, nas
+mesmas classes. Tolerância 1e-8; concordância medida 5,6e-16 em gamma, com os
+pares idênticos nas quatro direções. Também confere no estimador robusto e com
+tendência de 1ª ordem removida. Teste:
+`collections/trama.spatial/tests/testthat/test-anisotropia-geor.R`.
+
+- **Achado: o conjunto padrão de direções não distingue a convenção refletida.**
+  `{0, 45, 90, 135}` é invariante sob α → 90 − α (0 vira 90, 45 e 135 viram si
+  mesmos), então comparar o CONJUNTO de curvas passaria com a conversão errada.
+  Medido: conjuntos simétricos invariantes, assimétricos não. Por isso a
+  comparação é por rótulo de direção, e um dos testes usa `{0, 30, 60, 120}`,
+  que é assimétrico.
+
+- **Achado: razão e ângulo de anisotropia não são estimáveis de forma confiável
+  aqui, e o bloco não os estima.** Três implementações testadas:
+  1. ajuste do alcance direção por direção com patamar livre — o otimizador
+     fugiu: alcance 31.393 num campo de alcance verdadeiro 150, razão estimada
+     116,7 contra verdade 3,0, e apontou a direção errada;
+  2. busca em grade sobre (ângulo, razão) comparando `SSErr` do
+     `gstat::fit.variogram` — num variograma **sem ruído, gerado do próprio
+     modelo**, devolveu 90/5,5 em vez de 60/3. Causa: `fit.variogram` **não usa
+     `dir.hor`**, trata as curvas como nuvem só, e o critério não mede
+     anisotropia. É também por isso que ele preserva `ang1`/`anis1` em vez de
+     ajustá-los;
+  3. regra descritiva (distância onde γ cruza 95% da variância amostral, por
+     interpolação linear) — em cinco campos anisotrópicos de razão 3 deu 3,02 /
+     3,11 / 2,64 / 3,06 / 1,25; em cinco campos **isotrópicos** deu 1,49 / 1,70
+     / 1,92 / 2,25 / 3,01. As distribuições se sobrepõem por inteiro.
+
+  Logo os dois números são informados pelo usuário no
+  `spatial/variogram_fit`, e o card da anisotropia mostra curvas, não
+  estimativa.
+
+- **Faixa de referência (envelope).** Simulação incondicional do modelo
+  **isotrópico** ajustado ao variograma omnidirecional, nas mesmas posições
+  (`gstat::krige(..., nsim =, dummy = TRUE, beta = 0)`). A nula é "isotrópico
+  com esta estrutura", não "sem dependência espacial" — reembaralhar valores
+  entre posições responderia a pergunta errada. **Poder medido** (12 repetições,
+  n = 200, 19 simulações): a fração do observado dentro da faixa deu média 0,952
+  sob isotropia (mínimo 0,850) e 0,838 sob anisotropia de razão 3 (mínimo
+  0,575) — distribuições que **se sobrepõem**. Portanto a faixa é referência
+  visual e o card não exibe fração agregada; o que separa é o padrão por
+  direção. Custo medido: 1,6 s com 389 pontos, 0,34 s com 68.
+  O teste da faixa usa simulador injetado e oráculo de quantil à mão, para não
+  depender do otimizador que ajusta a nula.
+
+- **Achado: o ajuste da nula precisa das classes padrão, não das do bloco.** O
+  `spatial/anisotropy` usa 10 classes por padrão porque os pares se dividem
+  entre direções; com 10 classes o ajuste isotrópico do menor conjunto
+  (`milho_se`) não converge (`no_convergence` com mínimo 1 par, `bad_fit` com
+  30), e com as 15 classes padrão do `spatial/variogram` converge nos três
+  conjuntos. A nula é ajustada com o padrão do variograma.
+
+**`spatial/variogram_fit`**, anisotropia geométrica (params `razao` e `angulo`).
+Passados ao `gstat::vgm` como `anis = c(angulo, 1/razao)`. Oráculo
+**determinístico**, sem otimizador: `gstat::variogramLine(dir = )`, que é
+aritmética do modelo. Medido: modelo exponencial de alcance 300 com
+`anis = c(60, 1/3)` tem alcance prático (95% do patamar) de 899 na direção 60 e
+de 300 na direção 150 — razão 3,00, a declarada, e o ângulo aponta o eixo maior.
+Conferido também que `anis = c(0, 1)` é **no-op exato** (diferença 0,000e+00 em
+três direções), o que é o fundamento de `razao = 1` preservar o resultado de
+documento gravado pela 0.1.x, sem bump de versão de nó nem migração.
+Teste: `test-ajuste-aniso.R`.
+
+**`spatial/validation`** (versão 1). Validação cruzada sobre
+`gstat::krige.cv`; `nfold = n` é leave-one-out. Oráculo: `geoR::xvalid`, com o
+**modelo forçado** dentro de um objeto de `geoR::variofit` (um `variomodel`
+montado à mão falha: o `xvalid` usa `fix.pars` internamente). Tolerância 1e-6;
+concordância medida com `meuse` 1,07e-14 no predito e 4,7e-16 na variância, com
+ME, RMSE e MSDR iguais em 10 casas decimais. Confere também no Matérn de kappa
+1,5. Sinal do resíduo conferido: `observado − predito` nos dois pacotes.
+Teste: `test-validacao-geor.R`.
+
+- MSDR = média de (resíduo / erro-padrão)². É a única das quatro medidas que
+  julga o **mapa de erro-padrão**, que é metade do que a krigagem entrega.
+- **Não asserido por teste:** que o erro de k dobras seja maior que o de
+  leave-one-out. A expectativa teórica vale em média, não num conjunto: medido
+  em `milho_se`, RMSE 1155,6 em leave-one-out contra 1134,7 em 3 dobras. O teste
+  afirma apenas que os dois diferem e que as contagens de dobra conferem.

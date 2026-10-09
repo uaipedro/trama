@@ -74,4 +74,18 @@ tr_spatial_report_model <- function(x) {
 
 #' @rdname tr_spatial_report_points
 #' @export
+tr_spatial_report_validation <- function(x) {
+  res <- list(metodo = x$metodo, dobras = x$dobras, n = nrow(x$tabela),
+              me = x$metricas$me, rmse = x$metricas$rmse,
+              msdr = x$metricas$msdr, correlacao = x$metricas$correlacao)
+  .tr_spatial_md(
+    trama.data::tr_data_md_summary(res, sprintf("Validação cruzada de %s",
+                                                x$pontos$variavel)),
+    "",
+    "O MSDR é a média de (resíduo / erro-padrão)²: perto de 1 o erro-padrão do mapa está calibrado.",
+    if (nzchar(x$nota %||% "")) c("", sprintf("*%s*", x$nota)))
+}
+
+#' @rdname tr_spatial_report_points
+#' @export
 tr_spatial_report_surface <- function(x) tr_spatial_map(x)

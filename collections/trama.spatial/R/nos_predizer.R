@@ -101,6 +101,66 @@ tr_flow(reg) |>
 ]---", r"---[
 `spatial/kriging`, que produz a superfície.
 ]---"), "
-", trama.view::tr_view_help_appearance()))
+", trama.view::tr_view_help_appearance())),
+
+    trama::tr_node("spatial/validation", fn = tr_spatial_validation,
+      label = "Validação cruzada", category = "espacial_predizer",
+      icon = trama::tr_icon("check-check"),
+      description = "Mede o modelo predizendo cada ponto sem ele mesmo: erro médio, RMSE, MSDR e correlação entre observado e predito.",
+      inputs = list(pontos = "spatial/points", modelo = "spatial/model"),
+      outputs = list(out = "spatial/validation"),
+      params = list(
+        metodo = E("leave-one-out", .TR_SPATIAL_METODOS_VALID, label = "Método"),
+        dobras = trama::tr_when(I(10L, min = 2, label = "Dobras"),
+                                metodo = "k dobras"),
+        semente = trama::tr_when(N(NA, label = "Semente"), metodo = "k dobras"),
+        vizinhos_max = N(NA, min = 1, label = "Vizinhos"),
+        dist_max = N(NA, min = 0, label = "Raio")),
+      pressupostos = .tr_spatial_press_ajuste(),
+      referencias = list(.tr_spatial_refs()$isaaks, .tr_spatial_refs()$cressie),
+      help = .tr_spatial_ajuda(r"---[
+Um modelo de variograma que descreve bem o variograma empírico ainda pode
+krigar mal. A validação cruzada mede isso: tira um ponto de cada vez, prediz o
+lugar dele com os outros, e compara com o valor observado.
+
+As quatro medidas, e o que cada uma pega:
+
+- **Erro médio (ME)** — perto de zero é o que se espera; longe de zero indica
+  viés sistemático, o mapa inteiro deslocado para cima ou para baixo.
+- **RMSE** — o tamanho típico do erro, na unidade da variável. Serve para
+  comparar modelos no MESMO conjunto de pontos.
+- **MSDR** — a média de (resíduo dividido pelo erro-padrão) ao quadrado. É a
+  única que olha o **mapa de erro-padrão**: perto de 1 ele está calibrado; muito
+  acima de 1 o mapa é otimista, promete precisão que não tem; muito abaixo é
+  pessimista. Como a krigagem entrega sempre dois mapas, essa é a medida que
+  diz se o segundo presta.
+- **Correlação** entre observado e predito — quanto da variação o modelo
+  acompanha.
+
+**Leave-one-out** deixa um ponto de fora por vez: usa o máximo da informação e
+é determinístico. **K dobras** deixa um grupo de fora por vez, treinando com
+menos pontos; o erro sai maior, e mais perto do que se espera de uma predição
+em lugar de verdade não amostrado. A partição em dobras é sorteada, então fixe
+a **semente** para o card não mudar a cada execução.
+]---", r"---[
+- **Método** — `leave-one-out` ou `k dobras`.
+- **Dobras** — quantos grupos, no método de dobras. De 2 até o número de
+  pontos; acima disso o bloco recusa e diz o máximo.
+- **Semente** — fixa o sorteio das dobras.
+- **Vizinhos**, **Raio** — a mesma vizinhança da krigagem. Validar com a
+  vizinhança que você vai usar no mapa é o que torna a medida comparável.
+]---", r"---[
+Uma validação (`spatial/validation`): uma linha por ponto, com observado,
+predito, variância, resíduo e o resíduo padronizado, mais as quatro métricas.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+  tr_add("v", "spatial/variogram", from = "pontos") |>
+  tr_add("m", "spatial/variogram_fit", from = "v") |>
+  tr_add("valid", "spatial/validation", from = c("pontos", "m"))
+]---", r"---[
+`spatial/kriging` para o mapa; `spatial/variogram_fit` para o modelo que esta
+validação julga.
+]---"))
   )
 }
