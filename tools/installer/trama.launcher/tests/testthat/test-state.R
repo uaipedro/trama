@@ -137,3 +137,16 @@ test_that("tl_status cai para o nome sem prefixo trama. quando não há manifest
   linha <- st$colecoes[st$colecoes$nome == "trama.sem.descricao", ]
   expect_equal(linha$titulo, "sem.descricao")
 })
+
+test_that("galeria_pasta vem vazia e sobrevive a um rollback", {
+  local_home()
+  expect_equal(tl_state_read()$galeria_pasta, "")
+
+  tl_state_write(list(
+    atual = "2026.10", anteriores = "2026.09", colecoes = character(0),
+    recentes = character(0), galeria_pasta = "figuras"
+  ))
+  tl_rollback()
+
+  expect_equal(tl_state_read()$galeria_pasta, "figuras")
+})

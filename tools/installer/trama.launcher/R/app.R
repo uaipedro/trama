@@ -13,6 +13,11 @@ NULL
 #' @noRd
 .tl_projeto_padrao <- function() file.path(path.expand("~"), "Trama", "meu-fluxo")
 
+#' Pasta da galeria que vale quando nem o projeto nem a preferência do
+#' launcher definem outra (o mesmo padrão do trama).
+#' @noRd
+.tl_galeria_padrao <- "gallery"
+
 #' UI da tela de início: `htmlTemplate` de `inst/www/launcher.html`, que traz
 #' `{{ headContent() }}` no `<head>` para as dependências do Shiny (preciso
 #' mesmo sem widgets padrão: é o que dá `Shiny.setInputValue`,
@@ -302,6 +307,31 @@ tl_server <- function(input, output, session) {
     session$sendCustomMessage("tl-projetos", .tl_projetos_payload(projetos()))
   })
 
+  # Preferência "pasta da galeria em projetos novos" (estado do launcher):
+  # a tela de projetos pré-preenche o campo com o valor guardado.
+  shiny::observe({
+    session$sendCustomMessage("tl-galeria-padrao", list(pasta = tl_state_read()$galeria_pasta))
+  })
+
+  shiny::observeEvent(input$tl_galeria_padrao, {
+    s <- tl_state_read()
+    s$galeria_pasta <- tryCatch(
+      .tl_galeria_limpa(input$tl_galeria_padrao$pasta),
+      error = function(e) {
+        shiny::showNotification(conditionMessage(e), type = "error")
+        return(NULL)
+      }
+    )
+    if (is.null(s$galeria_pasta)) return(invisible(NULL))
+    tl_state_write(s)
+    session$sendCustomMessage("tl-galeria-padrao", list(pasta = s$galeria_pasta))
+    shiny::showNotification(
+      if (nzchar(s$galeria_pasta)) "Pasta padrão da galeria salva."
+      else "Pasta padrão da galeria removida: projetos novos usam gallery.",
+      type = "message"
+    )
+  })
+
   shiny::observeEvent(input$tl_atualizar, {
     m <- manifesto()
     if (is.null(m)) return(invisible(NULL))
@@ -399,7 +429,7 @@ tl_server <- function(input, output, session) {
     rodar_acao("Criando projeto…", function(progresso) {
       instalar_faltando(faltando, progresso)
       progresso("Criando projeto…")
-      tl_project_new(nome, colecoes = colecoes)
+      tl_project_new(nome, colecoes = colecoes, galeria_pasta = tl_state_read()$galeria_pasta)
       shiny::showNotification(sprintf("Projeto '%s' criado.", nome), type = "message")
     })
     atualizar_projetos()
@@ -437,6 +467,31 @@ tl_server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$tl_abrir_pasta_btn, tentar_abrir_projeto(input$tl_abrir_pasta))
+
+  # Galeria de um projeto existente: o diálogo mostra a pasta gravada no
+  # `trama.json` (ou vazio, que quer dizer o padrão `gallery`).
+  shiny::observeEvent(input$tl_galeria_projeto, {
+    caminho <- input$tl_galeria_projeto
+    session$sendCustomMessage("tl-galeria-projeto", list(
+      caminho = caminho, nome = basename(caminho),
+      pasta = tl_project_galeria(caminho), padrao = .tl_galeria_padrao
+    ))
+  })
+
+  shiny::observeEvent(input$tl_salvar_galeria_projeto, {
+    info <- input$tl_salvar_galeria_projeto
+    caminho <- info$caminho
+    aberto <- tl_project_aberto(caminho)
+    rodar_acao("Salvando galeria…", function(progresso) {
+      tl_project_set_galeria(caminho, info$pasta)
+      shiny::showNotification(
+        if (aberto) "Galeria atualizada. Reabra o projeto para a nova pasta valer."
+        else "Galeria atualizada.",
+        type = "message"
+      )
+    })
+    atualizar_projetos()
+  })
 
   shiny::observeEvent(input$tl_reparar, {
     m <- manifesto()

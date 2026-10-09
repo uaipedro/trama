@@ -267,6 +267,7 @@
       '<div class="tl-projeto-acoes">' +
       '<button type="button" class="tl-btn tl-btn-sm" data-abrir-caminho="' + esc(p.caminho) + '">Abrir</button>' +
       '<button type="button" class="tl-btn tl-btn-sm" data-colecoes-caminho="' + esc(p.caminho) + '" data-colecoes-nome="' + esc(p.nome) + '">Coleções</button>' +
+      '<button type="button" class="tl-btn tl-btn-sm" data-galeria-caminho="' + esc(p.caminho) + '" data-galeria-nome="' + esc(p.nome) + '">Galeria</button>' +
       "</div>" +
       "</div>"
     );
@@ -413,6 +414,47 @@
     fecharModal(document.getElementById("tl-modal-colecoes-projeto"));
   }
 
+  // --- galeria: pasta de imagens (padrão para projetos novos e por projeto) --
+  var galeriaProjetoAtual = null;
+
+  function receberGaleriaPadrao(msg) {
+    var campo = document.getElementById("tl-galeria-padrao");
+    if (campo) campo.value = (msg && msg.pasta) || "";
+  }
+
+  function salvarGaleriaPadrao() {
+    var campo = document.getElementById("tl-galeria-padrao");
+    if (!campo || !window.Shiny) return;
+    Shiny.setInputValue("tl_galeria_padrao", { pasta: campo.value, t: Date.now() }, { priority: "event" });
+  }
+
+  function pedirGaleriaProjeto(caminho, nome) {
+    galeriaProjetoAtual = { caminho: caminho, nome: nome };
+    Shiny.setInputValue("tl_galeria_projeto", caminho, { priority: "event" });
+  }
+
+  function receberGaleriaProjeto(msg) {
+    if (!galeriaProjetoAtual || galeriaProjetoAtual.caminho !== msg.caminho) return;
+    document.getElementById("tl-modal-galeria-titulo").textContent = "Galeria de " + msg.nome;
+    document.getElementById("tl-modal-galeria-sub").textContent =
+      "Pasta onde as imagens das análises deste projeto são salvas. Vazio usa " + (msg.padrao || "gallery") + ".";
+    var campo = document.getElementById("tl-modal-galeria-pasta");
+    campo.value = msg.pasta || "";
+    campo.placeholder = msg.padrao || "gallery";
+    abrirModal("tl-modal-galeria-projeto", campo);
+  }
+
+  function confirmarGaleriaProjeto() {
+    if (!galeriaProjetoAtual) return;
+    var campo = document.getElementById("tl-modal-galeria-pasta");
+    Shiny.setInputValue(
+      "tl_salvar_galeria_projeto",
+      { caminho: galeriaProjetoAtual.caminho, pasta: campo ? campo.value : "" },
+      { priority: "event" }
+    );
+    fecharModal(document.getElementById("tl-modal-galeria-projeto"));
+  }
+
   // --- projeto pede coleção que falta na lib ------------------------------
   function receberProjetoFaltando(msg) {
     var texto =
@@ -511,6 +553,8 @@
     Shiny.addCustomMessageHandler("tl-projetos", renderProjetos);
     Shiny.addCustomMessageHandler("tl-colecoes-projeto", receberColecoesProjeto);
     Shiny.addCustomMessageHandler("tl-projeto-faltando", receberProjetoFaltando);
+    Shiny.addCustomMessageHandler("tl-galeria-padrao", receberGaleriaPadrao);
+    Shiny.addCustomMessageHandler("tl-galeria-projeto", receberGaleriaProjeto);
     Shiny.addCustomMessageHandler("tl-log", receberLog);
     Shiny.addCustomMessageHandler("tl-console", receberConsole);
     Shiny.addCustomMessageHandler("tl-editor-caiu", editorCaiu);
@@ -573,6 +617,19 @@
         Shiny.setInputValue("tl_abrir_projeto", abrirBtn.dataset.abrirCaminho, { priority: "event" });
         return;
       }
+      var galeriaBtn = e.target.closest("[data-galeria-caminho]");
+      if (galeriaBtn) {
+        pedirGaleriaProjeto(galeriaBtn.dataset.galeriaCaminho, galeriaBtn.dataset.galeriaNome);
+        return;
+      }
+      if (e.target.id === "tl-btn-galeria-padrao") {
+        salvarGaleriaPadrao();
+        return;
+      }
+      if (e.target.id === "tl-modal-galeria-salvar") {
+        confirmarGaleriaProjeto();
+        return;
+      }
       var colecoesBtn = e.target.closest("[data-colecoes-caminho]");
       if (colecoesBtn) {
         pedirColecoesProjeto(colecoesBtn.dataset.colecoesCaminho, colecoesBtn.dataset.colecoesNome);
@@ -632,6 +689,18 @@
     if (modalNomeCampo) {
       modalNomeCampo.addEventListener("keydown", function (e) {
         if (e.key === "Enter") confirmarNovoProjeto();
+      });
+    }
+    var galeriaModalCampo = document.getElementById("tl-modal-galeria-pasta");
+    if (galeriaModalCampo) {
+      galeriaModalCampo.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") confirmarGaleriaProjeto();
+      });
+    }
+    var galeriaPadraoCampo = document.getElementById("tl-galeria-padrao");
+    if (galeriaPadraoCampo) {
+      galeriaPadraoCampo.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") salvarGaleriaPadrao();
       });
     }
     var pasta = document.getElementById("tl-pasta");

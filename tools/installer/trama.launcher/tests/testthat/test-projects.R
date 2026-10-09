@@ -266,3 +266,89 @@ test_that("tl_project_restart não faz nada se o projeto não estava aberto", {
   )
   expect_equal(chamadas, 0)
 })
+
+ler_trama_json <- function(caminho) {
+  jsonlite::fromJSON(file.path(caminho, "trama.json"), simplifyVector = FALSE)
+}
+
+test_that("tl_project_new com preferência de galeria grava galeria.pasta", {
+  local_home_e_projetos()
+  caminho <- tl_project_new("com-galeria", galeria_pasta = "figuras")
+
+  cfg <- ler_trama_json(caminho)
+  expect_type(cfg$galeria$pasta, "character")
+  expect_equal(cfg$galeria$pasta, "figuras")
+  expect_equal(tl_project_galeria(caminho), "figuras")
+  expect_equal(unlist(cfg$collections), c("trama.data", "trama.view"))
+})
+
+test_that("tl_project_new sem preferência não grava a chave galeria", {
+  local_home_e_projetos()
+  sem <- tl_project_new("sem-galeria")
+  vazia <- tl_project_new("galeria-em-branco", galeria_pasta = "   ")
+
+  expect_null(ler_trama_json(sem)$galeria)
+  expect_null(ler_trama_json(vazia)$galeria)
+  expect_equal(tl_project_galeria(sem), "")
+})
+
+test_that("trocar a pasta da galeria preserva as outras chaves do trama.json", {
+  local_home_e_projetos()
+  caminho <- tl_project_new("trocar-galeria")
+  writeLines(
+    jsonlite::toJSON(list(
+      collections = list("trama.data", "trama.view"),
+      settings = list(tema = "escuro"),
+      galeria = list(pasta = "gallery", imagens = TRUE, formato = "png", dpi = 300)
+    ), auto_unbox = TRUE, pretty = TRUE),
+    file.path(caminho, "trama.json")
+  )
+
+  tl_project_set_galeria(caminho, "  ../figuras/pesquisa  ")
+
+  cfg <- ler_trama_json(caminho)
+  expect_equal(cfg$galeria$pasta, "../figuras/pesquisa")
+  expect_equal(cfg$galeria$imagens, TRUE)
+  expect_equal(cfg$galeria$formato, "png")
+  expect_equal(cfg$galeria$dpi, 300)
+  # Escalar continua escalar (não vira array ao reescrever o arquivo).
+  expect_type(cfg$settings$tema, "character")
+  expect_equal(cfg$settings$tema, "escuro")
+  expect_type(cfg$collections, "list")
+  expect_equal(unlist(cfg$collections), c("trama.data", "trama.view"))
+})
+
+test_that("tl_project_set_collections não mexe na galeria", {
+  local_home_e_projetos()
+  caminho <- tl_project_new("colecoes-e-galeria", galeria_pasta = "figuras")
+
+  tl_project_set_collections(caminho, c("trama.data", "trama.ml"))
+
+  cfg <- ler_trama_json(caminho)
+  expect_equal(cfg$galeria$pasta, "figuras")
+  expect_equal(unlist(cfg$collections), c("trama.data", "trama.ml"))
+})
+
+test_that("pasta vazia tira só a chave pasta; sem mais nada, tira o bloco galeria", {
+  local_home_e_projetos()
+  caminho <- tl_project_new("limpar-galeria", galeria_pasta = "figuras")
+  tl_project_set_galeria(caminho, "")
+  expect_null(ler_trama_json(caminho)$galeria)
+  expect_equal(tl_project_galeria(caminho), "")
+
+  writeLines(
+    jsonlite::toJSON(list(collections = list("trama.data"), galeria = list(pasta = "x", dpi = 150)),
+                     auto_unbox = TRUE, pretty = TRUE),
+    file.path(caminho, "trama.json")
+  )
+  tl_project_set_galeria(caminho, "")
+  cfg <- ler_trama_json(caminho)
+  expect_equal(cfg$galeria$dpi, 150)
+  expect_null(cfg$galeria$pasta)
+})
+
+test_that("tl_project_set_galeria recusa quebra de linha na pasta", {
+  local_home_e_projetos()
+  caminho <- tl_project_new("quebra-galeria")
+  expect_error(tl_project_set_galeria(caminho, "a\nb"), regexp = "quebra de linha")
+})

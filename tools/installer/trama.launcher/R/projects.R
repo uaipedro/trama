@@ -142,13 +142,15 @@ tl_projects <- function(s = tl_state_read()) {
 
 #' Cria um projeto novo: valida o nome, cria a pasta dentro de
 #' `tl_projects_dir()` e grava `trama.json` com as coleções pedidas
-#' (núcleo `trama.data`/`trama.view` por padrão, mas desligável).
+#' (núcleo `trama.data`/`trama.view` por padrão, mas desligável). Se
+#' `galeria_pasta` não for vazia, grava também `galeria.pasta` (a preferência
+#' do launcher para projetos novos); vazia = não escreve a chave `galeria`.
 #'
-#' `auto_unbox = FALSE` de propósito: uma coleção só tem que sair como array
+#' Coleções vão como lista (`as.list()`), para sair sempre como array
 #' `["trama.data"]` no JSON, nunca como a string nua `"trama.data"` — mesmo
 #' motivo documentado em `R/project.R` (`tr_project_new()`, no pacote raiz).
 #' @noRd
-tl_project_new <- function(nome, colecoes = c("trama.data", "trama.view")) {
+tl_project_new <- function(nome, colecoes = c("trama.data", "trama.view"), galeria_pasta = "") {
   if (.tl_projeto_nome_invalido(nome)) {
     stop(sprintf("'%s' não é um nome de projeto válido.", nome), call. = FALSE)
   }
@@ -161,7 +163,10 @@ tl_project_new <- function(nome, colecoes = c("trama.data", "trama.view")) {
   }
 
   dir.create(caminho, recursive = TRUE)
-  .tl_trama_json_escrever(caminho, list(collections = as.character(colecoes)))
+  cfg <- list(collections = as.list(as.character(colecoes)))
+  galeria_pasta <- .tl_galeria_limpa(galeria_pasta)
+  if (nzchar(galeria_pasta)) cfg$galeria <- list(pasta = galeria_pasta)
+  .tl_trama_json_escrever(caminho, cfg)
   caminho
 }
 
@@ -178,13 +183,17 @@ tl_project_new <- function(nome, colecoes = c("trama.data", "trama.view")) {
   jsonlite::fromJSON(arquivo, simplifyVector = FALSE)
 }
 
-#' Grava `cfg` (lista) em `trama.json` dentro de `caminho`, com
-#' `collections` sempre como array (`auto_unbox = FALSE`) mesmo com um só
-#' elemento — ver nota de `tl_project_new()`.
+#' Grava `cfg` (lista) em `trama.json` dentro de `caminho`.
+#'
+#' `auto_unbox = TRUE`: escalar lido do arquivo (ex.: `"pasta": "gallery"`,
+#' `"tema": "escuro"`) volta como escalar, não como array de um elemento —
+#' senão reescrever o arquivo para trocar uma chave corromperia as outras.
+#' Por isso as listas que têm de ser array (`collections`) vão como `list()`,
+#' não como vetor atômico (ver `tl_project_new()`).
 #' @noRd
 .tl_trama_json_escrever <- function(caminho, cfg) {
   writeLines(
-    jsonlite::toJSON(cfg, auto_unbox = FALSE, pretty = TRUE, null = "null"),
+    jsonlite::toJSON(cfg, auto_unbox = TRUE, pretty = TRUE, null = "null"),
     .tl_trama_json(caminho)
   )
   invisible(caminho)
@@ -204,9 +213,48 @@ tl_project_collections <- function(caminho) {
 #' @noRd
 tl_project_set_collections <- function(caminho, colecoes) {
   cfg <- .tl_trama_json_ler(caminho)
-  cfg$collections <- as.character(colecoes)
+  cfg$collections <- as.list(as.character(colecoes))
   .tl_trama_json_escrever(caminho, cfg)
   invisible(caminho)
+}
+
+#' Pasta da galeria (`galeria.pasta`) que o `trama.json` de `caminho` define,
+#' ou `""` se o projeto não define (aí vale o padrão `gallery`, do próprio
+#' trama).
+#' @noRd
+tl_project_galeria <- function(caminho) {
+  cfg <- .tl_trama_json_ler(caminho)
+  if (!is.list(cfg$galeria)) return("")
+  pasta <- cfg$galeria$pasta
+  if (!is.character(pasta) || length(pasta) != 1) return("")
+  pasta
+}
+
+#' Grava `galeria.pasta` no `trama.json` de `caminho`, preservando as demais
+#' chaves de `galeria` (`imagens`, `formato`, `dpi`) e do manifesto. `pasta`
+#' vazia remove só a chave `pasta` (volta ao padrão `gallery`); se `galeria`
+#' ficar sem nenhuma chave, remove o bloco inteiro.
+#' @noRd
+tl_project_set_galeria <- function(caminho, pasta) {
+  pasta <- .tl_galeria_limpa(pasta)
+  cfg <- .tl_trama_json_ler(caminho)
+  galeria <- if (is.list(cfg$galeria)) cfg$galeria else list()
+  galeria$pasta <- if (nzchar(pasta)) pasta else NULL
+  cfg$galeria <- if (length(galeria)) galeria else NULL
+  .tl_trama_json_escrever(caminho, cfg)
+  invisible(caminho)
+}
+
+#' Limpa a pasta digitada na UI: sem espaço nas pontas, `NULL`/`NA` viram `""`
+#' e quebra de linha é recusada (vai para o JSON e para o caminho do disco).
+#' @noRd
+.tl_galeria_limpa <- function(pasta) {
+  if (is.null(pasta) || !length(pasta) || is.na(pasta[[1]])) return("")
+  pasta <- trimws(as.character(pasta[[1]]))
+  if (grepl("[\r\n]", pasta)) {
+    stop("A pasta da galeria não pode ter quebra de linha.", call. = FALSE)
+  }
+  pasta
 }
 
 #' Coleções que o projeto pede e que NÃO estão instaladas em `lib` (pasta
