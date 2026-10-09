@@ -2315,8 +2315,9 @@ function App() {
   // B: bifurca o card selecionado. Ele e tudo a jusante são copiados e
   // pendurados nas mesmas entradas; os params da cópia da origem abrem logo,
   // porque mudar aquela decisão é a razão de bifurcar.
-  const bifurcar = () => {
-    const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
+  const bifurcar = (id = null) => {
+    const sel = id ? nodesRef.current.filter((n) => n.id === id && n.type === "ndNode")
+      : nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
     const d = docRef.current;
     if (sel.length !== 1 || !d) return;
     const positions = {}, sizes = {};
@@ -2508,7 +2509,8 @@ function App() {
     const marca = local !== undefined ? local : docRef.current?.ui?.galeria?.[nodeId];
     const renderer = stateRef.current[nodeId]?.handle?.preview?.renderer;
     const op = opAlternarGaleria({ node: nodeId, marca, renderer,
-                                   imagensPadrao: temasRef.current.galeria?.imagens ?? true });
+                                   imagensPadrao: temasRef.current.galeria?.imagens ?? true,
+                                   visual: !!n.data.spec?.galeria });
     galeriaRef.current[nodeId] = op.valor;
     bumpTick();
     pushOp(op);
@@ -2684,7 +2686,8 @@ function App() {
                       naGaleria: naGaleria(
                         n.id in galeriaRef.current ? galeriaRef.current[n.id] : doc?.ui?.galeria?.[n.id],
                         stateRef.current[n.id]?.handle?.preview?.renderer,
-                        temas.galeria?.imagens ?? true),
+                        temas.galeria?.imagens ?? true,
+                        !!n.data.spec?.galeria),
                       onGaleria,
                       ramo: ramoDoCard(n.id),
                       gemeoDestaque: destaqueGemeos.has(n.id),
@@ -4526,7 +4529,7 @@ function App() {
     "shift+p": abrirParams,
     "shift+r": restaurarAlvos,
     "p": abrirVista,
-    "b": bifurcar,
+    "b": () => bifurcar(),
     "g": () => setRolo((r) => !r),
     "shift+g": () => {
       const sel = nodesRef.current.filter((n) => n.selected && n.type === "ndNode");
@@ -4751,7 +4754,19 @@ function App() {
     // tecla Delete faz com a mesma seleção, e o menu não pode apagar menos.
     const ligacoes = alvo.length > 1 ? edges.filter((e) => e.selected).map((e) => e.id) : [];
     // Template de UM bloco não é template: os dois itens só com seleção.
+    // Um card só: as ações dele — bifurcar, galeria e, numa cópia de ramo,
+    // ligar/desligar o espelhamento. Os mesmos verbos de B e Shift+G.
+    const umCard = alvo.length === 1 && !frame.has(alvo[0]) ? alvo[0] : null;
+    const noCard = umCard && decorated.find((n) => n.id === umCard);
+    const copiaRamo = umCard && ramoDaCopia(docRef.current?.ui?.ramos, umCard);
+    const fecharE = (fn) => () => { setMenu(null); fn(); };
     return [
+      umCard ? h("button", { key: "bif", title: "copia este card e tudo o que vem depois dele, sobre as mesmas entradas (B)",
+                             onClick: fecharE(() => bifurcar(umCard)) }, "Bifurcar a trama a partir daqui") : null,
+      copiaRamo ? h("button", { key: "esp", onClick: fecharE(() => onLigarRamo(umCard)) },
+        copiaRamo.desligado ? `Religar ao ramo ${copiaRamo.letra} (espelhar params)` : "Desligar do espelhamento") : null,
+      noCard ? h("button", { key: "gal", title: "Shift+G", onClick: fecharE(() => onGaleria(umCard)) },
+        noCard.data.naGaleria ? "Tirar da galeria" : "Pôr na galeria") : null,
       alvo.length > 1 ? h("button", { key: "tpl", onClick: () => abrirSalvarTemplate(alvo) }, "Salvar como template…") : null,
       alvo.length > 1 ? h("button", { key: "tplc", onClick: () => copiarTemplate(alvo) }, "Copiar como template") : null,
       h("button", { key: "du", onClick: () => { duplicar(alvo); setMenu(null); } },

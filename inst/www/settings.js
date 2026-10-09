@@ -286,9 +286,9 @@ export function SettingsPanel({ temas, padrao, marca, sugestoes, galeria = GALER
                                   galeria: { ...rascRef.current.galeria, [k]: v } }, true);
   const galeriaCampos = h("div", { key: "gal", className: "tr-settings-editor" }, [
     h("h4", { key: "t" }, "Galeria (G)"),
-    h(Campo, { key: "i", rotulo: "gráficos entram sozinhos" },
+    h(Campo, { key: "i", rotulo: "blocos de gráfico entram sozinhos" },
       h(Toggle, { value: rascunho.galeria.imagens,
-                  title: "todo card cujo preview é imagem vai para a galeria, salvo se desmarcado",
+                  title: "os blocos de visualização (pontos, barras, boxplot…) entram sozinhos; os demais, só marcados com ☆",
                   onChange: (v) => gal("imagens", v) })),
     h(Campo, { key: "p", rotulo: "pasta (relativa ao projeto)" },
       h("input", { key: rascunho.galeria.pasta, type: "text", className: "tr-settings-input",

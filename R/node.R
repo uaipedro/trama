@@ -58,6 +58,11 @@ tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
 #' `function(params) params` por versão de DESTINO, nomeada pelo número —
 #' `list(`3` = function(p) { p$confianca <- p$nivel; p$nivel <- NULL; p })`.
 #' Ver [tr_doc_migrate()].
+#'
+#' `galeria = TRUE` diz que o bloco é de visualização: o gráfico dele entra
+#' sozinho na galeria do projeto (com `galeria.imagens` ligado em
+#' `trama.json`). Os demais blocos, mesmo com preview de imagem, só entram
+#' marcados pelo usuário.
 #' @export
 tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     help = NULL, category = NULL, inputs = list(), outputs = list(),
@@ -65,7 +70,7 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
                     volatile = FALSE, stochastic = FALSE, icon = NULL,
                     init = NULL, step = NULL, role = NULL,
                     pressupostos = list(), referencias = list(),
-                    migracoes = list()) {
+                    migracoes = list(), galeria = FALSE) {
   .tr_check_id(id, "id de nó")
   if (!is.null(role)) .tr_check_role(role, sprintf("Nó '%s'", id))
 
@@ -256,7 +261,7 @@ tr_node <- function(id, fn, version = 1L, label = NULL, description,
     volatile = isTRUE(volatile), stochastic = stochastic, icon = icon,
     init = init, step = step, online = online, role = role,
     pressupostos = pressupostos, referencias = referencias,
-    migracoes = migracoes
+    migracoes = migracoes, galeria = isTRUE(galeria)
   ), class = "tr_node")
 }
 

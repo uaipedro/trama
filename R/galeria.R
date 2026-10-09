@@ -156,7 +156,7 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
   itens <- list()
   for (id in .tr_galeria_ordem(doc)) {
     h <- handles[[id]]
-    if (!.tr_galeria_na_galeria(doc, id, h, g$imagens)) next
+    if (!.tr_galeria_na_galeria(doc, id, h, g$imagens, registry)) next
     ok <- !is.null(h) && is.null(h$error)
     rotulo <- doc$nodes[[id]]$label %||% doc$nodes[[id]]$type
     if (!is.character(rotulo) || !nzchar(rotulo)) rotulo <- doc$nodes[[id]]$type
@@ -228,10 +228,13 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
 
 #' Membro da galeria: a marca do usuário vence; sem marca, a regra do projeto.
 #' @noRd
-.tr_galeria_na_galeria <- function(doc, id, h, imagens) {
+.tr_galeria_na_galeria <- function(doc, id, h, imagens, registry) {
   v <- doc$ui$galeria[[id]]
   if (!is.null(v)) return(isTRUE(v))
-  isTRUE(imagens) && .tr_galeria_eh_imagem(h)
+  # Sem marca, só bloco de visualização (`tr_node(galeria = TRUE)`): o card
+  # de diagnóstico de um modelo também é imagem, mas encheria o rolo.
+  spec <- tryCatch(tr_get_node(doc$nodes[[id]]$type, registry), error = function(e) NULL)
+  isTRUE(imagens) && isTRUE(spec$galeria) && .tr_galeria_eh_imagem(h)
 }
 
 #' Ordem do fluxo: topológica pelas arestas, empate pela posição x.

@@ -6,18 +6,20 @@
 // (`tr_galeria` no nó: TRUE/FALSE) vence. Sem marca, vale o padrão: o card
 // entra se `imagensPadrao` (a opção da coleção/projeto) e o renderer for
 // a imagem.
-export function naGaleria(marca, renderer, imagensPadrao) {
+// `visual`: o bloco declara `galeria = TRUE` no catálogo (blocos de
+// visualização). Só eles entram sem marca; o resto é opt-in.
+export function naGaleria(marca, renderer, imagensPadrao, visual = true) {
   if (marca === true || marca === false) return marca;
-  return !!imagensPadrao && renderer === "trama/image";
+  return !!imagensPadrao && !!visual && renderer === "trama/image";
 }
 
 // Op de alternar o botão "galeria" de um card. O cliente pede o oposto do
 // que vê (ou `quer`, quando o botão é explícito). Se o pedido coincide com o
 // padrão, a op manda `valor: null`: a marca some e o card volta a seguir a
 // regra. Caso contrário, grava true/false.
-export function opAlternarGaleria({ node, marca, renderer, imagensPadrao, quer }) {
-  const padrao = naGaleria(undefined, renderer, imagensPadrao);
-  const desejado = typeof quer === "boolean" ? quer : !naGaleria(marca, renderer, imagensPadrao);
+export function opAlternarGaleria({ node, marca, renderer, imagensPadrao, visual = true, quer }) {
+  const padrao = naGaleria(undefined, renderer, imagensPadrao, visual);
+  const desejado = typeof quer === "boolean" ? quer : !naGaleria(marca, renderer, imagensPadrao, visual);
   return { op: "set_galeria", node, valor: desejado === padrao ? null : desejado };
 }
 

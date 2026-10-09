@@ -113,6 +113,7 @@ tr_catalog <- function(registry = .tr_default_registry) {
     nodes = unname(lapply(registry$nodes, function(n) .tr_json_drop_empty(list(
       id = n$id, label = n$label, category = n$category, role = n$role, version = n$version,
       description = n$description, help = n$help, stochastic = n$stochastic,
+      galeria = if (isTRUE(n$galeria)) TRUE else NULL,
       online = if (isTRUE(n$online)) TRUE else NULL,
       icon = if (is.null(n$icon)) NULL else unclass(n$icon),
       inputs  = unname(Map(port_json, names(n$inputs),  n$inputs)),

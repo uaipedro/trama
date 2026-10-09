@@ -23,14 +23,17 @@ galeria_setup <- function() {
     nodes = list(
       tr_node("g/const", fn = function(v) list(v = v, falha = FALSE),
               description = "Imagem de teste.", outputs = list(out = "g/img"),
+              params = list(v = tr_param_num(1)), galeria = TRUE),
+      tr_node("g/diag", fn = function(v) list(v = v, falha = FALSE),
+              description = "Imagem de bloco que não é de visualização.", outputs = list(out = "g/img"),
               params = list(v = tr_param_num(1))),
       tr_node("g/fragil", fn = function(v) list(v = v, falha = TRUE),
               description = "Imagem que não exporta.", outputs = list(out = "g/img"),
-              params = list(v = tr_param_num(1))),
+              params = list(v = tr_param_num(1)), galeria = TRUE),
       tr_node("g/tabela", fn = function(n) list(n = n), description = "Tabela de teste.",
               outputs = list(out = "g/tab"), params = list(n = tr_param_num(1))),
       tr_node("g/puro", fn = function(x) x, description = "Passa a imagem adiante.",
-              inputs = list(x = "g/img"), outputs = list(out = "g/img"))
+              inputs = list(x = "g/img"), outputs = list(out = "g/img"), galeria = TRUE)
     )
   ), registry = reg)
   list(reg = reg, log = log)
@@ -255,4 +258,16 @@ test_that("pasta da galeria não sai do projeto nem cai na raiz", {
     expect_error(.tr_settings(list(galeria = list(pasta = ruim))), class = "tr_error_bad_theme")
   expect_equal(.tr_settings(list(galeria = list(pasta = "figuras/finais")))$galeria$pasta, "figuras/finais")
   expect_equal(.tr_settings(list(galeria = list(pasta = "/tmp/fig")))$galeria$pasta, "/tmp/fig")
+})
+
+test_that("imagem de bloco que não é de visualização só entra marcada", {
+  root <- withr::local_tempdir(); store <- tmp_store(); s <- galeria_setup()
+  ajuste <- .tr_settings(list())
+  m <- galeria_doc(s$reg, store, list(
+    list(type = "g/diag", id = "d", label = "Diagnóstico", key = "kd", tipo = "g/img", value = list(v = 1))))
+  expect_length(tr_galeria_sincronizar(root, store, s$reg, m$doc, ajuste, m$handles), 0)
+  m$doc <- tr_doc_apply(m$doc, list(op = "set_galeria", node = "d", valor = TRUE), s$reg)
+  it <- tr_galeria_sincronizar(root, store, s$reg, m$doc, ajuste, m$handles)
+  expect_equal(it[[1]]$tipo, "imagem")
+  expect_true(it[[1]]$pronto)
 })

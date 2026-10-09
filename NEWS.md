@@ -1,3 +1,8 @@
+# trama 0.5.15
+
+* Galeria: sem marca, só entram sozinhos os blocos de visualização, que declaram `tr_node(galeria = TRUE)`. Gráfico de outro bloco (diagnóstico de modelo, coeficientes…) entra só marcado com ☆ ou Shift+G. Antes, todo preview de imagem entrava, e o rolo enchia.
+* Menu do card (botão direito): "Bifurcar a trama a partir daqui", "Pôr / tirar da galeria" e, numa cópia de ramo, "Desligar do espelhamento" / "Religar ao ramo".
+
 # trama 0.5.14
 
 * Galeria: G abre um rolo com as imagens da análise, e clicar numa miniatura abre o lightbox, com setas, "ir ao card" e "tirar da galeria". Gráficos entram sozinhos; qualquer outro card entra pela estrela ☆ do preview (ou Shift+G). Cada card tem um arquivo na pasta da galeria (`gallery/` por padrão), sempre a versão atual e com nome estável, regravado só quando o resultado muda. Gráficos são re-renderizados em qualidade de publicação (PNG a 300 dpi por padrão), e tabelas são fotografadas pelo editor. Pasta, formato, dpi e "gráficos entram sozinhos" ficam em `trama.json` (chave `galeria`), editáveis nas Configurações e pelo launcher. Op `set_galeria` (cosmética), `tr_project_set_galeria()`, `tr_galeria_sincronizar()`. O `preview` de um tipo recebe `ctx$qualidade` (dpi, formato) quando a galeria pede a versão de publicação.

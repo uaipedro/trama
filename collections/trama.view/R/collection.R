@@ -47,7 +47,7 @@ trama_collection <- function() {
   G <- "view/plot"
   P <- trama::tr_param
   PAINEL <- .tr_view_painel_param()
-  .tr_view_aplicar_ajuda_curta(trama::tr_collection(
+  .tr_view_marcar_galeria(.tr_view_aplicar_ajuda_curta(trama::tr_collection(
     id = "view", version = "0.2.0", label = "Gráficos",
     transitions = trama::tr_transitions_read(system.file("trama/transicoes.json", package = "trama.view")),
     types = list(view_plot_type()),
@@ -671,5 +671,18 @@ evolução; `data/filter` para reduzir o número de barras;
         value = function(v) list(barra = "IC",
                                  confianca = as.numeric(sub(",", ".", sub("^IC ([0-9.,]+)%$", "\\1", v))) / 100)))
     ))
-  ))
+  )))
+}
+
+# Gráficos desta coleção entram sozinhos na galeria do trama
+# (`tr_node(galeria = TRUE)`). Camadas ficam de fora: numa cadeia
+# pontos -> reta -> anotação, cada elo é o mesmo gráfico, e o rolo teria três
+# cópias dele. `view/save` não desenha nada novo.
+.tr_view_marcar_galeria <- function(colecao) {
+  colecao$nodes <- lapply(colecao$nodes, function(no) {
+    plot <- any(vapply(no$outputs, function(p) identical(p$type, "view/plot"), logical(1)))
+    if (plot && !identical(no$category, "camadas") && !identical(no$id, "view/save")) no$galeria <- TRUE
+    no
+  })
+  colecao
 }

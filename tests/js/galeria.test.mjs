@@ -74,3 +74,11 @@ test("URL com versão para cache-busting", () => {
 test("dica da faixa vazia", () => {
   assert.equal(DICA_GALERIA_VAZIA, "Marque um card com ☆ para trazê-lo à galeria");
 });
+
+test("só bloco de visualização entra sem marca; os demais são opt-in", async () => {
+  const { naGaleria, opAlternarGaleria } = await import("../../inst/www/galeria.js");
+  assert.equal(naGaleria(undefined, "trama/image", true, false), false);
+  assert.equal(naGaleria(undefined, "trama/image", true, true), true);
+  assert.deepEqual(opAlternarGaleria({ node: "d", renderer: "trama/image", imagensPadrao: true, visual: false }),
+                   { op: "set_galeria", node: "d", valor: true });
+});

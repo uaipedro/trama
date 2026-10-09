@@ -25,7 +25,8 @@ tr_node(
   role = NULL,
   pressupostos = list(),
   referencias = list(),
-  migracoes = list()
+  migracoes = list(),
+  galeria = FALSE
 )
 }
 \description{
@@ -69,4 +70,9 @@ catálogo publica para a ajuda do editor e o site mostrarem igual.
 \code{function(params) params} por versão de DESTINO, nomeada pelo número —
 \verb{list(}3\verb{ = function(p) \{ p$confianca <- p$nivel; p$nivel <- NULL; p \})}.
 Ver \code{\link[=tr_doc_migrate]{tr_doc_migrate()}}.
+
+\code{galeria = TRUE} diz que o bloco é de visualização: o gráfico dele entra
+sozinho na galeria do projeto (com \code{galeria.imagens} ligado em
+\code{trama.json}). Os demais blocos, mesmo com preview de imagem, só entram
+marcados pelo usuário.
 }
