@@ -1,3 +1,7 @@
+# trama.series 0.9.1
+
+* Relatório Quarto: `regression`, `arima`, `forecast`, `baseline`, `granger`, `phillips_perron`, `ndiffs` e `vecm` registram no resultado a ferramenta que rodou (atributo `trama_ferramentas`). `moving_average` e `interpolate` declaram `forecast::ma` e `forecast::na.interp`: série que sai é dado, e atributo nela vazaria para quem faz conta com ela.
+
 # trama.series 0.9.0
 
 * Séries multivariadas. Tipo novo `series/mts` (várias séries no mesmo

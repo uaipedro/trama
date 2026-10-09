@@ -421,6 +421,9 @@ tr_flow(reg) |>
       trama::tr_node("series/moving_average", fn = tr_series_moving_average, label = "Média móvel",
         category = "serie_operar", icon = icone("spline"),
         description = "Suaviza a série com a média de k períodos vizinhos.",
+        # Série que sai é dado, e atributo em dado vaza para quem faz conta com
+        # ela: a ferramenta fica declarada no bloco, não no resultado.
+        referencias = list(trama::tr_ref(papel = "implementacao", pacote = "forecast", funcao = "ma")),
         inputs = list(serie = S), outputs = list(out = S),
         params = list(ordem = I(12L, min = 2L, max = 1000L, label = "Ordem (k)"),
                       centrada = B(TRUE, label = "Centrada")),
@@ -500,6 +503,7 @@ tr_flow(reg) |>
       trama::tr_node("series/interpolate", fn = tr_series_interpolate, label = "Interpolar faltantes",
         category = "serie_operar", icon = icone("pipette"),
         description = "Preenche os faltantes pela tendência e pela sazonalidade da série.",
+        referencias = list(trama::tr_ref(papel = "implementacao", pacote = "forecast", funcao = "na.interp")),
         inputs = list(serie = S), outputs = list(out = S),
         help = .tr_series_ajuda(r"---[
 Estima os valores faltantes a partir da própria série: numa série sem

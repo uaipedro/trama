@@ -164,9 +164,10 @@ tr_series_vecm <- function(series, posto = 1L, defasagens = 2L, deterministico =
     "series/vecm")
   rls <- .tr_series_ajustar(urca::cajorls(ca, r = r), "series/vecm")
   vec <- .tr_series_ajustar(vars::vec2var(ca, r = r), "series/vecm")
-  .tr_series_var(vec, series, "VECM",
-                 vecm = list(rls = rls, posto = r, ca = ca),
-                 nota = sprintf("posto r = %d informado; confira com series/johansen", r))
+  out <- .tr_series_var(vec, series, "VECM",
+                        vecm = list(rls = rls, posto = r, ca = ca),
+                        nota = sprintf("posto r = %d informado; confira com series/johansen", r))
+  .tr_series_ferramentas(out, c("urca::ca.jo", "urca::cajorls", "vars::vec2var"))
 }
 
 .tr_series_nos_mv_cointegracao <- function() {

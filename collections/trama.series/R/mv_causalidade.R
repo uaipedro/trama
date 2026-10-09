@@ -49,11 +49,12 @@ tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
                     r$p_total, r$p_lags, dmax, r$gl)
     fonte <- "Toda e Yamamoto (1995)"
   }
-  .tr_series_teste("Granger", h0, estat, rotulo, p_valor = p, gl = r$gl,
+  res <- .tr_series_teste("Granger", h0, estat, rotulo, p_valor = p, gl = r$gl,
     sentido = "maior",
     conclusao_sim = sprintf("%s Granger-causa %s: ajuda a prever, além do próprio passado", txt_causa, txt_resto),
     conclusao_nao = sprintf("não há precedência preditiva de %s sobre %s", txt_causa, txt_resto),
     nota = nota, fonte = fonte)
+  .tr_series_ferramentas(res, if (metodo == "wald") "vars::causality" else c("vars::VAR", "forecast::ndiffs"))
 }
 
 #' Os nomes da causa: separados por vírgula, todos colunas da série múltipla.

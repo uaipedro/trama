@@ -202,7 +202,7 @@ tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
     nota <- paste0(nota, "; série curta: com menos de 25 observações o teste rejeita ",
                    "acima do nível nominal (medido: até 10% a 5% com 12)")
   }
-  .tr_series_teste(
+  res <- .tr_series_teste(
     "Phillips-Perron", "a série tem raiz unitária", estat, "Z(t)",
     p_valor = p,
     sentido = "menor",
@@ -210,6 +210,7 @@ tr_series_phillips_perron <- function(serie, deterministico = "tendência") {
     conclusao_nao = "não há evidência contra a raiz unitária",
     nota = nota,
     fonte = "Phillips & Perron (1988)")
+  .tr_series_ferramentas(res, if (det == "tendência") "stats::PP.test" else "urca::punitroot")
 }
 
 #' Z(t) de Phillips-Perron com só constante.
@@ -535,13 +536,14 @@ tr_series_ndiffs <- function(serie, teste = "kpss") {
   .tr_series_minimo(serie, 12L, "series/ndiffs", "o teste")
   f <- stats::frequency(serie)
   tem_ciclo <- f > 1 && length(serie) >= 2 * f
-  tibble::tibble(
+  out <- tibble::tibble(
     tipo = c("simples", "sazonal"),
     diferencas = c(forecast::ndiffs(serie, test = teste),
                    if (tem_ciclo) forecast::nsdiffs(serie) else NA_integer_),
     teste = c(teste, "força sazonal (seas)"),
     nota = c("", if (tem_ciclo) "" else "a série não tem ciclo (frequência 1) ou tem menos de dois")
   )
+  .tr_series_ferramentas(out, c("forecast::ndiffs", if (tem_ciclo) "forecast::nsdiffs"))
 }
 
 #' Mann-Kendall: a série tem tendência?

@@ -49,23 +49,26 @@ tr_series_arima <- function(serie, automatico = TRUE, p = 1L, d = 1L, q = 1L,
                  allowdrift = isTRUE(constante), allowmean = isTRUE(constante))
     if (!is.null(X)) args$xreg <- X
     fit <- .tr_series_ajustar(do.call(forecast::auto.arima, args), "series/arima")
-    if (!length(interv)) return(fit)
+    if (!length(interv)) return(.tr_series_ferramentas(fit, "forecast::auto.arima"))
     if (!any(vapply(interv, function(s) s$tipo == "inovacional" || s$dinamica == "gradual", NA))) {
       fit$tr_intervencoes <- list(lista = interv, gradual = NULL)
-      return(fit)
+      return(.tr_series_ferramentas(fit, "forecast::auto.arima"))
     }
     a <- fit$arma
     cf <- names(stats::coef(fit))
-    return(.tr_series_arima_interv(serie, interv, a[c(1, 6, 2)], a[c(3, 7, 4)],
-                                   any(c("intercept", "drift") %in% cf)))
+    return(.tr_series_ferramentas(
+      .tr_series_arima_interv(serie, interv, a[c(1, 6, 2)], a[c(3, 7, 4)],
+                              any(c("intercept", "drift") %in% cf)),
+      c("forecast::auto.arima", "forecast::Arima")))
   }
   ordem <- c(.tr_series_int(p, "p", 0, 5), .tr_series_int(d, "d", 0, 2), .tr_series_int(q, "q", 0, 5))
   sazo <- c(.tr_series_int(P, "P", 0, 2), .tr_series_int(D, "D", 0, 1), .tr_series_int(Q, "Q", 0, 2))
   if (sum(sazo) > 0L) .tr_series_sazonal(serie, "series/arima (parte sazonal P, D, Q)", ciclos = 1L)
-  if (length(interv)) return(.tr_series_arima_interv(serie, interv, ordem, sazo, constante))
-  .tr_series_ajustar(
+  if (length(interv)) return(.tr_series_ferramentas(
+    .tr_series_arima_interv(serie, interv, ordem, sazo, constante), "forecast::Arima"))
+  .tr_series_ferramentas(.tr_series_ajustar(
     forecast::Arima(serie, order = ordem, seasonal = sazo, include.constant = isTRUE(constante)),
-    "series/arima")
+    "series/arima"), "forecast::Arima")
 }
 
 #' Suavização exponencial em espaço de estados (ETS).
@@ -141,7 +144,7 @@ tr_series_forecast <- function(modelo = NULL, horizonte = 12L, intervalo = "norm
   }
   if (!is.null(var)) {
     if (intervalo != "normal") .tr_series_option("intervalo", intervalo, "normal (VAR e VECM)")
-    return(.tr_series_var_prever(var, h))
+    return(.tr_series_ferramentas(.tr_series_var_prever(var, h), "vars::predict"))
   }
   if (!is.null(ajuste)) {
     if (intervalo != "normal") {
@@ -202,11 +205,16 @@ tr_series_baseline <- function(serie, metodo = "ingênuo sazonal", horizonte = 1
   if (metodo == "ingênuo sazonal") .tr_series_sazonal(serie, "series/baseline (ingênuo sazonal)", ciclos = 1L)
   .tr_series_minimo(serie, 2L, "series/baseline", "uma previsão de referência")
   lv <- c(80, 95)
-  .tr_series_ajustar(switch(metodo,
+  out <- .tr_series_ajustar(switch(metodo,
     "média" = forecast::meanf(serie, h = h, level = lv),
     "ingênuo" = forecast::naive(serie, h = h, level = lv),
     "ingênuo sazonal" = forecast::snaive(serie, h = h, level = lv),
     deriva = forecast::rwf(serie, h = h, drift = TRUE, level = lv)), "series/baseline")
+  .tr_series_ferramentas(out, switch(metodo,
+    "média" = "forecast::meanf",
+    "ingênuo" = "forecast::naive",
+    "ingênuo sazonal" = "forecast::snaive",
+    deriva = "forecast::rwf"))
 }
 
 #' Os resíduos do ajuste, como série — para testar e para ver.
