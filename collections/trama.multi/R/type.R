@@ -58,8 +58,7 @@ multi_pca_type <- function() {
     summary = function(x) .tr_multi_pca_resumo(x),
     # O card de uma PCA é a VARIÂNCIA EXPLICADA: é o que decide quantos
     # componentes olhar, e é a primeira pergunta antes de qualquer biplot.
-    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_scree(x), ctx),
-    report = tr_multi_report_pca
+    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_scree(x), ctx)
   )
 }
 
@@ -104,8 +103,7 @@ multi_fa_type <- function() {
     restore = function(path) readRDS(path),
     summary = function(x) .tr_multi_fa_resumo(x),
     # O card é o MAPA DAS CARGAS: é nele que se lê que fator é qual.
-    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_plot_loadings(x), ctx),
-    report = tr_multi_report_fa
+    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_plot_loadings(x), ctx)
   )
 }
 

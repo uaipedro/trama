@@ -14,8 +14,8 @@ tr_models_predict(
 }
 \arguments{
 \item{modelo}{Um `models/fit`. Não a parcela subdividida — o ajuste dela é
-um `lm` com `bloco:parcela` fixo, cujo `predict()` só vale para as
-parcelas já vistas; o card diz para usar o misto equivalente.}
+uma LISTA de modelos (`aovlist`, um por estrato de erro), sem um único
+`predict()` que valha; o card diz para usar o misto equivalente.}
 
 \item{dados}{A tabela nova, ou `NULL`: sem ela, prevê as linhas do ajuste,
 pela `validacao`.}
