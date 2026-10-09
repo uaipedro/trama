@@ -32,7 +32,8 @@
 #' @noRd
 .tr_sampling_nulo <- function(x) if (length(x) != 1L || is.na(x)) NULL else x
 
-.tr_sampling_rds_type <- function(id, label, color, classe, conferir, preview, summary = NULL) {
+.tr_sampling_rds_type <- function(id, label, color, classe, conferir, preview, summary = NULL,
+                                  report = NULL) {
   trama::tr_type(
     id, version = 1L, label = label, color = color, ext = "rds",
     # Card é gráfico: segue o tema padrão do projeto (trama >= 0.5.9).
@@ -43,7 +44,8 @@
     },
     restore = function(path) readRDS(path),
     summary = summary,
-    preview = preview
+    preview = preview,
+    report = report
   )
 }
 
@@ -74,7 +76,8 @@
 sampling_plan_type <- function() {
   .tr_sampling_rds_type("sampling/plan", "Plano amostral", "#6366f1", "tr_sampling_plan",
                         .tr_sampling_plano_conferir,
-                        function(x, ctx) trama::tr_preview("sampling/plan", data = .tr_sampling_plano_preview(x)))
+                        function(x, ctx) trama::tr_preview("sampling/plan", data = .tr_sampling_plano_preview(x)),
+                        report = tr_sampling_report_plan)
 }
 
 #' Plano -> tabela: a alocação por estrato, ou uma linha.
@@ -108,7 +111,8 @@ sampling_plan_type <- function() {
 sampling_sample_type <- function() {
   .tr_sampling_rds_type("sampling/sample", "Amostra", .TR_SAMPLING_COR, "tr_sampling_sample",
                         .tr_sampling_amostra_conferir,
-                        function(x, ctx) trama::tr_preview("sampling/sample", data = .tr_sampling_amostra_preview(x)))
+                        function(x, ctx) trama::tr_preview("sampling/sample", data = .tr_sampling_amostra_preview(x)),
+                        report = tr_sampling_report_sample)
 }
 
 # ---- sampling/estimate ---------------------------------------------------------
@@ -139,7 +143,8 @@ sampling_sample_type <- function() {
 sampling_estimate_type <- function() {
   .tr_sampling_rds_type("sampling/estimate", "Estimativa", "#0e7490", "tr_sampling_estimate",
                         .tr_sampling_estimativa_conferir,
-                        function(x, ctx) trama::tr_preview("sampling/estimate", data = .tr_sampling_estimativa_preview(x)))
+                        function(x, ctx) trama::tr_preview("sampling/estimate", data = .tr_sampling_estimativa_preview(x)),
+                        report = tr_sampling_report_estimate)
 }
 
 #' Estimativa -> tabela: com a quantidade, a variável e o desenho na frente,
@@ -164,7 +169,8 @@ sampling_simulation_type <- function() {
                         # O card é o HISTOGRAMA com a verdade: a pergunta "o
                         # desenho acerta?" se lê nele sem abrir nada.
                         function(x, ctx) trama.view::tr_view_render(.tr_sampling_plot_uma(x), ctx),
-                        summary = function(x) as.list(x$resumo))
+                        summary = function(x) as.list(x$resumo),
+                        report = tr_sampling_report_simulation)
 }
 
 .tr_sampling_adapters <- function() {
