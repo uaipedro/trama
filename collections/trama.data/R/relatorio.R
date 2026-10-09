@@ -142,3 +142,26 @@ tr_data_report_test <- function(x) {
     if (nzchar(x$nota %||% "")) c("", sprintf("*%s.*", sub("\\.$", "", x$nota))),
     if (nzchar(x$fonte %||% "")) c("", sprintf("Fonte: %s.", x$fonte))))
 }
+
+#' Um resumo (lista nomeada) no relatório exportado.
+#'
+#' Cada campo vira uma linha "medida | valor"; `NULL` e `NA` saem. É o que um
+#' tipo que já declara `summary` (o que a aba resumo do card mostra) usa para
+#' abrir o seu `report`.
+#'
+#' @param x lista nomeada de valores de comprimento 1.
+#' @param titulo título em negrito acima da tabela (`NULL`, nenhum).
+#' @return vetor de linhas de Markdown (para compor com outras partes em
+#'   `tr_data_report()`).
+#' @export
+tr_data_md_summary <- function(x, titulo = NULL) {
+  x <- Filter(function(v) length(v) == 1L && !is.na(v), x)
+  val <- vapply(x, function(v) {
+    if (is.logical(v)) if (v) "sim" else "não"
+    else if (is.numeric(v)) tr_data_fmt_num(v)
+    else as.character(v)
+  }, "")
+  df <- data.frame(medida = gsub("_", " ", names(x)), valor = unname(val), stringsAsFactors = FALSE)
+  c(if (!is.null(titulo)) c(sprintf("**%s**", titulo), ""),
+    tr_data_md_table(df, c(medida = "Medida", valor = "Valor")))
+}

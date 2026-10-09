@@ -22,7 +22,10 @@ tr_models_glm(
 \item{formula}{fórmula digitada, `"y ~ x1 + x2"`; quando preenchida, vence.}
 
 \item{familia}{`"gaussiana"`, `"binomial"`, `"poisson"`, `"gama"`,
-`"quasipoisson"` ou `"quasibinomial"`, cada uma com a ligação canônica (log na gama).}
+`"quasipoisson"`, `"quasibinomial"` ou `"binomial negativa"`, cada uma com
+a ligação canônica (log na gama e na binomial negativa). A binomial
+negativa é ajustada pelo `MASS::glm.nb`, com o theta (V(mu) = mu + mu²/theta)
+estimado por máxima verossimilhança.}
 }
 \value{
 objeto `tr_models_fit`.

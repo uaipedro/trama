@@ -33,8 +33,10 @@ interação. Um `lm` com um erro só testaria o fator da parcela contra o erro
 errado — com gl a mais e p-valor pequeno demais, que é o engano clássico.
 }
 \details{
-Guarda três ajustes: o `aov` com `Error()` (o quadro), um `lm` com
-`bloco:parcela` fixo (os resíduos do erro b, para os pressupostos) e o
-`lmer` com `(1 | bloco:parcela)`, que dá os mesmos F no balanceado e é o
-que o `emmeans` sabe usar — sobre o `aovlist` ele devolve erro padrão NaN.
+Ajusta um `lm` com `bloco:parcela` fixo: o quadro sequencial dele tem os
+dois erros (`bloco:parcela` é o erro a; o resíduo, o erro b), e o bloco e o
+fator da parcela são testados contra o erro a — o mesmo quadro do
+`aov(... + Error(bloco/parcela))`, sem o `aovlist`. Guarda também o `lmer`
+com `(1 | bloco:parcela)`, que dá os mesmos F no balanceado e é o que o
+`emmeans` usa nas médias e comparações.
 }

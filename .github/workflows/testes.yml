@@ -66,7 +66,11 @@ jobs:
           }))
           pkgs <- setdiff(unique(pkgs[nzchar(pkgs)]), c("R", base))
           pkgs <- pkgs[!grepl("^trama", pkgs)]
-          falta <- setdiff(pkgs, rownames(installed.packages()))
+          # Presente no cache mas que não carrega (binário de outro R, lib de
+          # sistema como GDAL ausente) conta como faltando: foi o `sf` que
+          # derrubou trama.spatial com "The package sf is required".
+          carrega <- function(p) isTRUE(suppressWarnings(requireNamespace(p, quietly = TRUE)))
+          falta <- pkgs[!vapply(pkgs, carrega, logical(1))]
           cat("Instalando:", falta, "\n")
           if (length(falta)) pak::pak(falta, upgrade = FALSE)
 

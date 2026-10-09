@@ -55,7 +55,8 @@ multi_dist_type <- function() {
     },
     # O card é o MAPA DE CALOR, ordenado pelo UPGMA para os grupos aparecerem
     # como blocos escuros na diagonal — é a primeira leitura da diversidade.
-    preview = function(x, ctx) trama.view::tr_view_render(.tr_multi_mapa_distancia(x), ctx)
+    preview = function(x, ctx) trama.view::tr_view_render(.tr_multi_mapa_distancia(x), ctx),
+    report = tr_multi_report_dist
   )
 }
 
@@ -95,7 +96,8 @@ multi_cluster_type <- function() {
     },
     # O card do hierárquico é o DENDROGRAMA com o corte; o do k-means, que não
     # tem árvore, os grupos no plano das duas primeiras componentes.
-    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_plot_dendrogram(x), ctx)
+    preview = function(x, ctx) trama.view::tr_view_render(tr_multi_plot_dendrogram(x), ctx),
+    report = tr_multi_report_cluster
   )
 }
 
