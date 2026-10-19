@@ -503,6 +503,18 @@ tr_server <- function(project, flow = "main",
 
     shiny::observeEvent(input$tr_rerun, { run_now(rv_doc()) })
 
+    # Ação de card (`tr_type(acoes = )`, acao.R). Responde num canal próprio,
+    # `tr_acao`, que o `pedirAcao()` do runtime.js escuta pelo `id` do pedido.
+    shiny::observeEvent(input$tr_acao, {
+      req <- input$tr_acao
+      id <- as.character(req$id %||% "")[1]
+      responder <- function(res) {
+        if (!session$isClosed()) session$sendCustomMessage("tr_acao", c(list(id = id), res))
+      }
+      tryCatch(.tr_acao_rodar(req, rv_project(), rv_doc(), rv_flow(), responder, .tr_acao_servir),
+               error = function(e) responder(list(erro = conditionMessage(e))))
+    })
+
     # Código é gerado no servidor porque só o registro conhece as funções R e
     # os adaptadores por trás de cada nó. O navegador continua responsável
     # apenas pelo download, como já faz para o JSON do flow.

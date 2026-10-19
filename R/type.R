@@ -33,14 +33,27 @@
 #' padrão redesenha o card) e vale como `"padrão"` enquanto o preview roda —
 #' sem isto o card de uma série ficava no tema embutido, escuro, num projeto
 #' todo claro.
+#' `acoes` são as AÇÕES DE CARD do tipo: `list(nome = function(valor, ctx))`,
+#' chamadas pelo editor sobre um resultado já gravado (`pedirAcao()` do
+#' runtime.js), fora da execução do fluxo. É onde mora o que um nó puro não
+#' pode fazer — abrir uma prévia, publicar. `ctx` traz `doc`, `flow`, `raiz`
+#' (do projeto), `store`, `registry`, `chave`, `servir(dir, nome)` (serve uma
+#' pasta pelo próprio editor e devolve a URL relativa) e `responder(lista)`.
+#' A ação devolve a lista da resposta, ou `NULL` quando vai responder depois
+#' pelo `ctx$responder()` (trabalho em segundo plano, com `later`).
 #' @param tema O preview é um gráfico que segue o tema padrão do projeto.
 #' @param report_always Mostrar no relatório mesmo a saída consumida.
+#' @param acoes Ações de card, `list(nome = function(valor, ctx))`.
 #' @export
 tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
                     store = NULL, restore = NULL, ext = "rds",
                     preview = NULL, summary = NULL, report = NULL, tema = FALSE,
-                    report_always = FALSE) {
+                    report_always = FALSE, acoes = list()) {
   .tr_check_id(id, "id de tipo")
+  if (length(acoes) && (is.null(names(acoes)) || !all(nzchar(names(acoes))) ||
+                        !all(vapply(acoes, is.function, logical(1))))) {
+    rlang::abort(sprintf("'acoes' de '%s' tem de ser lista nomeada de funções.", id), class = "tr_error_bad_type")
+  }
   if (!is.null(report) && !is.function(report)) {
     rlang::abort(sprintf("'report' de '%s' não é função.", id), class = "tr_error_bad_type")
   }
@@ -57,7 +70,7 @@ tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
     id = id, version = as.integer(version), label = label %||% id, color = color,
     store = store, restore = restore, ext = ext,
     preview = preview, summary = summary, report = report, tema = isTRUE(tema),
-    report_always = isTRUE(report_always)
+    report_always = isTRUE(report_always), acoes = acoes
   ), class = "tr_type")
 }
 
