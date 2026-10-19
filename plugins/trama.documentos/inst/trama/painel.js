@@ -31,7 +31,7 @@ const semChave = (o, k) => { const r = { ...o }; delete r[k]; return r; };
 
 export function reduzir(s, a) {
   switch (a.tipo) {
-    case "abrir": return { ...s, aberto: true };
+    case "abrir": return { ...s, aberto: true, aviso: null, erro: null };
     case "fechar": return { ...s, aberto: false, confirmar: null };
     case "aba": return { ...s, aba: a.aba };
     case "lista": {

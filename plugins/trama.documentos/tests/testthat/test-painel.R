@@ -112,6 +112,16 @@ test_that("abrir no programa do sistema: documento, pasta e arquivo exportado", 
   expect_match(c$ultima("guia")$passos[[1]]$link, "quarto.org")
 })
 
+test_that("sem Quarto, a lista avisa (o painel mostra o guia)", {
+  proj <- local_projeto()
+  withr::local_envvar(QUARTO_PATH = file.path(tempdir(), "nao-existe", "quarto"))
+  c <- controlador_de_teste(proj)
+  c$receber(list(acao = "listar"))
+  expect_false(c$ultima("lista")$quarto)
+  c$receber(list(acao = "visualizar", documento = "documentos/x/x.qmd"))
+  expect_identical(c$ultima()$tipo, "erro")
+})
+
 test_that("aba Modelos: ações modelos_* vão para o ponto da fase 3", {
   proj <- local_projeto()
   c <- controlador_de_teste(proj)

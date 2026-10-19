@@ -4,8 +4,19 @@ Plugin do trama (não é coleção: não tem blocos). Transforma uma análise nu
 **documento vivo**: um `.qmd` do projeto em que o texto é da pessoa e as
 regiões gerenciadas são do trama. Desenho em `docs/visao-documentos.md`.
 
-Fase 1 (#22): o motor, usável pelo R. O painel no editor, o "inserir no
-documento" do card e a prévia pelo editor são a fase 2 (#23).
+## No editor
+
+- **Documentos**, na barra: os documentos do projeto com o estado de cada
+  região; novo documento a partir de modelo + perfil; Atualizar, Visualizar
+  (HTML numa aba nova, servido pelo editor), Exportar (PDF, Word, HTML);
+  abrir o `.qmd` no editor de texto do sistema e a pasta; resolver regiões
+  editadas à mão, órfãs ou copiadas. Sem Quarto, mostra o guia de instalação.
+- **Inserir no documento…**, no menu de um card (botão direito): escolhe o
+  documento, a saída, as linhas e se o CSV leva a tabela inteira; um modelo
+  com dados de treino pede o aceite ali mesmo.
+- Aba **Modelos**: ponto onde entra a galeria de modelos (fase 3, #24):
+  `inst/trama/modelos-ui.js` desenha; as ações `modelos_*` chegam a
+  `R/painel-modelos.R`.
 
 ## O documento
 
@@ -41,7 +52,9 @@ Regras de dono:
   remover ou trazer uma região editada que tem cercas `:::` dentro pede
   `confirmar = TRUE`;
 - classes e atributos que a pessoa põe no cabeçalho ficam; os atributos `trama-*` (`trama-linhas`, `trama-formato`,
-  `trama-largura`, `trama-altura`) são opções que ela pode mudar.
+  `trama-largura`, `trama-altura`) são opções que ela pode mudar;
+- o `dados.csv` de uma tabela leva só as linhas mostradas; a tabela inteira
+  só com `trama-tabela="completa"`.
 
 Modelo que carrega linhas do treino (SVM, floresta de regressão) só entra com
 aceite explícito, que fica no cabeçalho (`trama-dados-treino="aceito"`).

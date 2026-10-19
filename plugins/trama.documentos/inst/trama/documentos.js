@@ -155,7 +155,8 @@ function Regioes({ s, doc, despachar }) {
 }
 
 function Confirmar({ c }) {
-  const texto = c.como === "remover" ? "Apagar esta região do texto?" : "Trocar o que está no texto pela versão do trama?";
+  const texto = c.como === "remover" ? `Apagar a região #trama-${c.regiao} do texto?`
+    : `Trocar o que está no texto em #trama-${c.regiao} pela versão do trama?`;
   const ir = (forte) => enviar("resolver", { documento: c.documento, regiao: c.regiao, como: c.como, confirmar: forte });
   return h("div", { className: "tr-doc-confirmar" }, [
     h("p", { key: "p" }, c.forte ? "A região tem cercas ::: dentro: confira acima as linhas que sairiam." : texto),
@@ -256,8 +257,14 @@ function PainelDocumentos() {
   React.useEffect(() => {
     if (!s.aberto) return;
     enviar("listar");
-    if (s.selecionado) enviar("estado", { documento: s.selecionado });
+    if (s.selecionado && s.regioes[s.selecionado]) enviar("estado", { documento: s.selecionado });
   }, [s.aberto]);
+
+  // Documento aberto sem as regiões lidas (acabou de ser criado, ou veio
+  // selecionado por ser o único): pede o estado.
+  React.useEffect(() => {
+    if (s.aberto && s.selecionado && !s.regioes[s.selecionado]) enviar("estado", { documento: s.selecionado });
+  }, [s.aberto, s.selecionado]);
 
   const n = pendencias(s.documentos);
   const abas = [["documentos", "Documentos"], ["modelos", "Modelos"]];

@@ -71,6 +71,12 @@ test("ocupado some ao terminar ou falhar; atualizado resume", () => {
   assert.equal(s.erro, "falhou");
 });
 
+test("reabrir o painel limpa o aviso e o erro da vez anterior", () => {
+  const s = passo(INICIAL, { tipo: "erro", mensagem: "x" }, { tipo: "fechar" }, { tipo: "abrir" });
+  assert.equal(s.erro, null);
+  assert.equal(s.aviso, null);
+});
+
 test("resumo, pendências, nome e resoluções", () => {
   assert.equal(resumo({ atualizada: 2, conflito: 1 }), "3 regiões · 1 editada à mão");
   assert.equal(resumo({}), "sem regiões ainda");
