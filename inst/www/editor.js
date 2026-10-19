@@ -15,7 +15,7 @@ import {
   useReactFlow, ReactFlowProvider,
   BaseEdge, getSmoothStepPath, getBezierPath, useInternalNode, EdgeLabelRenderer, NodeResizer,
 } from "@xyflow/react";
-import { h, getRenderer, getViews, Segmented, setThemes } from "trama";
+import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
@@ -5110,6 +5110,8 @@ function App() {
                                        setPainelFrames(false); setPainelTemplates((v) => !v); } }),
       h(BotaoIcone, { key: "bases", icone: "bases", rotulo: "Bases públicas", on: painelBases,
                       onClick: () => { setPainelBases(true); setPreviewsBase((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => v.preview))); sendInput("tr_datasets_list", { seq: ++seqCounter }); } }),
+      // Itens de extensões (ver `registerToolbarItem` no runtime).
+      ...getToolbarItems().map(({ id, Componente }) => h(Componente, { key: `ext-${id}` })),
       h(BotaoIcone, { key: "aj", icone: "ajuda", rotulo: "Ajuda e atalhos", dica: dica("ajuda"),
                       on: painelAtalhos || !!helpFor, onClick: ajuda }),
       h(BotaoIcone, { key: "more", icone: "mais", rotulo: "Mais ações", on: menuAcoes,

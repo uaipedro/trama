@@ -1,3 +1,7 @@
+# trama 0.5.17
+
+* Extensões do editor: pacote de apoio `trama.*` com `Config/trama/extension: true` e uma função `trama_extension()` (JS, CSS e server) entra no editor sem ser coleção e sem constar no `trama.json`. `tr_extensions()` acha as instaladas, `tr_ui(extensions =)` e `tr_server(extensions =)` as ligam e `options(trama.extensions = character())` desliga. No `runtime.js`, `registerToolbarItem(id, Componente)` põe um item na barra de ferramentas. O primeiro uso é o menu GitHub do `trama.github`.
+
 # trama 0.5.16
 
 * Relatório Quarto: gráfico no tema "padrão" sai num tema claro quando o padrão do projeto é escuro (o primeiro claro do projeto, ou o `claro` embutido). Tema escolhido no card e script `.R` não mudam.

@@ -63,6 +63,18 @@ export function registerWidget(kind, component) { widgets[kind] = component; }
 export function getRenderer(id) { return renderers[id]; }
 export function getWidget(kind) { return widgets[kind]; }
 
+// Item da barra de ferramentas trazido por uma extensão (pacote de apoio, ver
+// `tr_extensions()`; o menu GitHub do `trama.github` é o caso). `Componente` é
+// um componente React sem props, desenhado na barra antes de "Ajuda", na
+// ordem de registro. Ele cuida do próprio estado e do próprio popover e fala
+// com o R pelo canal dele (`Shiny.setInputValue`), não pelo `tr_op`.
+const toolbarItems = [];
+export function registerToolbarItem(id, Componente) {
+  const i = toolbarItems.findIndex((x) => x.id === id);
+  if (i >= 0) toolbarItems[i] = { id, Componente }; else toolbarItems.push({ id, Componente });
+}
+export function getToolbarItems() { return toolbarItems.slice(); }
+
 // A vista `resumo` é do NÚCLEO, não de uma coleção: `tr_type(summary=)` já grava
 // `handle$summary` (R/store.R:140) e ele já viaja pro card. Todo tipo que declare
 // um `summary` ganha a segunda vista de graça, e a coleção que quiser um resumo
@@ -727,5 +739,6 @@ registerWidget("theme", (spec, value, onChange) => {
 // Namespace global também, pra coleção que preferir `<script>` simples a ESM.
 if (typeof window !== "undefined") {
   window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget,
+               registerToolbarItem, getToolbarItems,
                Segmented, Toggle, NumberField, Regua, Estrelas, setThemes, getThemes, React };
 }

@@ -9,7 +9,8 @@ tr_server(
   flow = "main",
   executor = tr_executor_sequential(),
   autosave = TRUE,
-  ctx_extra = NULL
+  ctx_extra = NULL,
+  extensions = list()
 )
 }
 \description{
