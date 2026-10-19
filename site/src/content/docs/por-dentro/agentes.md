@@ -52,6 +52,7 @@ trama-agente link ajuste coef              # porta omitida = primeira compatíve
 trama-agente result coef --wait 30         # status, resumo, preview; gráfico como PNG
 trama-agente rm coef
 trama-agente undo
+trama-agente accept                        # aceita a versão nova dos blocos em version_drift
 ```
 
 O catálogo inteiro passa de 50 KB. Para achar um bloco, prefira `--busca`: é
@@ -89,7 +90,7 @@ nomeando o campo.
 
 ### Editar e ver o efeito
 
-Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`) aceita
+Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`, `accept`) aceita
 `--wait N`: espera até N segundos o fluxo parar de rodar e devolve, em
 `efeito`, o status do que a edição tocou e de tudo abaixo. Um passo só em vez
 de editar e depois consultar cada bloco:
@@ -162,6 +163,14 @@ segundos o bloco sair de `queued`/`running`.
 
 `state` devolve `rev`, `nodes` (id, tipo, rótulo, params, status),
 `edges` (`"de:porta -> para:porta"`) e `problems` (validação do documento).
+
+Um bloco que subiu de versão depois que o fluxo foi salvo aparece em
+`problems` como `version_drift` (`from`, `to`, `aceitavel`): o resultado dele
+pode ter mudado. Se a subida renomeou param, a migração roda sozinha ao abrir
+e o aviso nem aparece. Senão, confira o resultado e rode `accept [no]...` (sem
+nós, todos). Aceitar só grava a versão nova no fluxo; não muda param nem
+resultado, e `undo` volta o aviso. No editor é o "aceitar" do aviso no canto;
+no MCP, a tool `aceitar_versao`; em R, `tr_doc_accept_version()`.
 
 ## Limites
 

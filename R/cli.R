@@ -16,6 +16,7 @@
 #' trama-agente apply <arquivo.json>        # lista de ops como um passo de undo
 #' trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 #' trama-agente undo
+#' trama-agente accept [no]...              # aceita a versão nova (version_drift)
 #' trama-agente explain <tipo>              # sem editor: o bloco inteiro
 #' trama-agente validate <arquivo.json>     # sem editor: lê, migra e valida
 #' ```
@@ -24,7 +25,7 @@
 #' coleções instaladas (ou `--colecoes a,b`). `catalog` só faz isso quando
 #' não acha editor ou com `--offline`.
 #'
-#' Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`) aceita
+#' Toda edição (`add`, `link`, `set`, `rm`, `op`, `apply`, `undo`, `accept`) aceita
 #' `--wait N`: espera até N segundos o fluxo parar de rodar e devolve, em
 #' `efeito`, o status dos nós tocados e de tudo abaixo deles. Nó `blocked`
 #' traz `causa`, os ancestrais que falharam.
@@ -61,6 +62,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   "apply <arquivo.json>                    lista de ops como um passo de desfazer",
   "result <no> [--wait segundos]           status, resumo, preview, PNG",
   "undo                                    desfaz a última edição (sua ou do humano)",
+  "accept [no]...                          aceita a versão nova dos blocos em version_drift (sem no: todos)",
   "--- sem editor aberto ---",
   "catalog ... [--offline]                 sem editor (ou com --offline), lê das coleções instaladas",
   "explain <tipo>                          bloco inteiro: params, portas, ajuda, referências",
@@ -202,7 +204,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
        collections = .tr_registry_packages(reg), problems = problemas)
 }
 
-.tr_cli_edicoes <- c("add", "link", "set", "rm", "op", "apply", "undo")
+.tr_cli_edicoes <- c("add", "link", "set", "rm", "op", "apply", "undo", "accept")
 
 .tr_cli_despachar <- function(a, cx, p, precisa) {
   switch(a$cmd,
@@ -234,6 +236,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
     result = { precisa(1, "trama result <no> [--wait segundos]")
       .tr_cli_result(cx, p[[1]], as.numeric(a$opt$wait %||% 0)) },
     undo = .tr_cli_http(cx, "POST", "/undo", list()),
+    accept = .tr_cli_http(cx, "POST", "/cmd", list(cmd = "accept", nodes = if (length(p)) as.list(p))),
     rlang::abort(paste0("Comando desconhecido: '", a$cmd, "'. Veja 'trama-agente help'.")))
 }
 

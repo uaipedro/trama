@@ -275,7 +275,11 @@ tr_doc_validate <- function(doc, registry = .tr_default_registry) {
     if (is.null(registry$nodes[[n$type]])) { add("unknown_node_type", node = id, type = n$type); next }
     spec <- registry$nodes[[n$type]]
     if (!identical(as.integer(n$type_version %||% spec$version), spec$version)) {
-      add("version_drift", node = id, type = n$type, from = n$type_version, to = spec$version)
+      # `aceitavel`: dá para dizer "vi" (`tr_doc_accept_version()`). Não dá
+      # quando o documento é mais novo que a coleção ou a migração falhou.
+      de <- as.integer(n$type_version)
+      add("version_drift", node = id, type = n$type, from = n$type_version, to = spec$version,
+          aceitavel = !is.na(de) && de < spec$version && !.tr_migracao_pendente(spec, de))
     }
     for (p in setdiff(names(n$params), names(spec$params))) add("unknown_param", node = id, param = p)
     for (p in names(n$params)) {

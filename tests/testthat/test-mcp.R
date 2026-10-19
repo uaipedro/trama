@@ -48,7 +48,7 @@ test_that("tools/list traz schema de objeto, obrigatórios existentes e anotaç�
   tools <- r$result$tools
   nomes <- vapply(tools, `[[`, "", "name")
   expect_setequal(nomes, c("abrir", "estado", "catalogo", "explicar", "adicionar", "ajustar",
-                           "ligar", "remover", "resultado", "desfazer", "validar"))
+                           "ligar", "remover", "resultado", "desfazer", "aceitar_versao", "validar"))
   for (t in tools) {
     expect_equal(t$inputSchema$type, "object")
     expect_true(all(unlist(t$inputSchema$required) %in% names(t$inputSchema$properties)), info = t$name)
