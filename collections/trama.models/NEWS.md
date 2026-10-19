@@ -1,3 +1,9 @@
+# trama.models 0.6.10
+
+* `tr_models_strip(x)` no contrato de `models/fit`: o modelo sem os dados de treino, para publicar. Responde a `tr_models_info()` e prevê o ponto com `tr_models_predict_raw()`; intervalo é recusado. Métodos para `lm` e `glm` (inclui binomial negativa); classe sem método recusa com `tr_models_error_no_method`, sem default. Modelo que não existe sem parte do treino sai com a marca `dados_treino` (texto do que sobra).
+* `tr_models_web(x)` no contrato (opcional, default `NULL`): o modelo descrito para prever no navegador (WebR) — motor reduzido, pacotes com as versões do treino, entradas com faixa por `pretty()`, saída e o código R de `prever`. Métodos para `lm` e `glm`; `tr_models_web_entradas()` para as irmãs.
+* `tr_models_strip_stats(aj)`: reduz um `lm`/`glm` do stats ao que o `predict()` lê com `newdata`, para as coleções irmãs.
+
 # trama.models 0.6.9
 
 * `models/shapiro_residuals` (versão 2): no GLM, em vez de recusar, testa os resíduos quantílicos randomizados. A estatística é o p mediano do Shapiro-Wilk em **Sorteios** realizações (param `sorteios`, padrão 11), e o p-valor sai de um teste de Monte Carlo com **Reamostras** respostas simuladas do ajuste (`reamostras`, padrão 199): o p mediano cru, lido contra 0,05, rejeitava 0 a 2% sob o modelo certo. Famílias quasi seguem recusadas.

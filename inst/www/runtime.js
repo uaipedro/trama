@@ -55,9 +55,38 @@ export function registerRenderer(id, def) { renderers[id] = normalizeRenderer(id
 // Widget: `(spec, value, onChange, ctx) => elemento`. Chamado como função, não
 // como componente: quem precisa de estado devolve `h(SeuComponente, ...)`.
 // `ctx` do kind `cols` é o das colunas (abaixo); o de qualquer outro kind é
-// `{ id, valores, entradas }` — o nó, os valores dos params e o handle que
-// chega em cada porta de entrada (`entradas[porta]`, vazio sem ligação).
+// `{ id, valores, entradas, fontes }` — o nó, os valores dos params, o handle
+// que chega em cada porta de entrada (`entradas[porta]`, vazio sem ligação) e,
+// por porta, a lista das origens ligadas (`fontes[porta] = [{ no, saida,
+// rotulo, tipo, handle }]`) — numa porta múltipla, `entradas` só guarda uma.
 export function registerWidget(kind, component) { widgets[kind] = component; }
+
+// Ação de card (`tr_type(acoes = )` no R): pede ao servidor a ação `acao`
+// sobre o resultado do `handle` (chave e tipo) e devolve uma Promise com a
+// resposta da ação, ou rejeita com o erro. Canal próprio (`tr_acao`), ligado
+// no primeiro pedido, para o editor não precisar saber de ação nenhuma.
+const acoesPendentes = new Map();
+let acaoSeq = 0;
+let acaoLigada = false;
+export function pedirAcao(handle, acao, extra = null) {
+  return new Promise((resolve, reject) => {
+    const S = typeof window !== "undefined" ? window.Shiny : null;
+    if (!S || !S.setInputValue || !handle?.key) { reject(new Error("sem servidor ou sem resultado")); return; }
+    if (!acaoLigada) {
+      S.addCustomMessageHandler("tr_acao", (m) => {
+        const p = acoesPendentes.get(m.id);
+        if (!p) return;
+        acoesPendentes.delete(m.id);
+        if (m.erro) p.reject(new Error(m.erro)); else p.resolve(m);
+      });
+      acaoLigada = true;
+    }
+    const id = `a${++acaoSeq}-${Date.now()}`;
+    acoesPendentes.set(id, { resolve, reject });
+    S.setInputValue("tr_acao", { id, chave: handle.key, tipo: handle.type, acao, extra },
+                    { priority: "event" });
+  });
+}
 // Devolve a forma NORMALIZADA (`{views:[...]}`), nunca a função crua: o editor
 // não pode ver as duas formas.
 export function getRenderer(id) { return renderers[id]; }
@@ -738,7 +767,7 @@ registerWidget("theme", (spec, value, onChange) => {
 
 // Namespace global também, pra coleção que preferir `<script>` simples a ESM.
 if (typeof window !== "undefined") {
-  window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget,
+  window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget, pedirAcao,
                registerToolbarItem, getToolbarItems,
                Segmented, Toggle, NumberField, Regua, Estrelas, setThemes, getThemes, React };
 }

@@ -33,7 +33,9 @@
     ref <- unit$inputs[[pn]]
     if (is.null(ref)) next   # porta opcional solta: o `fn` cai no próprio default
     v <- if (isTRUE(spec$inputs[[pn]]$multiple)) {
-      lapply(ref, function(r) .tr_load_ref(r, registry, store))
+      vs <- lapply(ref, function(r) .tr_load_ref(r, registry, store))
+      if (isTRUE(spec$inputs[[pn]]$named)) names(vs) <- .tr_port_nomes(ref)
+      vs
     } else {
       .tr_load_ref(ref, registry, store)
     }

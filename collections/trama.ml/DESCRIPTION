@@ -1,6 +1,6 @@
 Package: trama.ml
 Title: Interpretable and Classical Machine Learning for trama
-Version: 0.5.8
+Version: 0.5.9
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -23,7 +23,7 @@ Imports:
     trama (>= 0.5.10),
     trama.data (>= 0.4.0),
     trama.view,
-    trama.models,
+    trama.models (>= 0.6.10),
     tibble,
     rlang,
     cli (>= 3.6.0),

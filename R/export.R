@@ -74,7 +74,10 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
         }
         expr
       }, "")
-      rhs <- if (isTRUE(spec$inputs[[pn]]$multiple)) {
+      rhs <- if (isTRUE(spec$inputs[[pn]]$named)) {
+        nomes <- .tr_port_nomes(lapply(edges, function(e) list(node = e$from$node, port = e$from$port)))
+        sprintf("list(%s)", paste(sprintf("`%s` = %s", nomes, value), collapse = ", "))
+      } else if (isTRUE(spec$inputs[[pn]]$multiple)) {
         sprintf("list(%s)", paste(value, collapse = ", "))
       } else value[[1]]
       args <- c(args, sprintf("%s = %s", .tr_export_name(pn), rhs))

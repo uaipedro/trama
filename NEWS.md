@@ -1,3 +1,9 @@
+# trama 0.5.18
+
+* `tr_port(named = TRUE)`: numa porta múltipla, a lista chega ao `fn` nomeada pelo id do nó de origem (`nó.saída` quando o mesmo nó liga duas saídas), e os ids entram na chave de cache. Fora de região de fluxo.
+* Ações de card: `tr_type(acoes = list(nome = function(valor, ctx)))`. O editor pede a ação sobre o resultado gravado (`pedirAcao(handle, nome)` no runtime.js, canal `tr_acao`), fora da execução do fluxo; `ctx` traz o documento, o projeto, o store, `servir(dir, nome)` (serve uma pasta pelo próprio editor) e `responder()` para resposta em segundo plano. É o que o `trama.publicar` usa para a prévia.
+* O `ctx` dos widgets de param ganha `fontes`: por porta, todas as origens ligadas (nó, saída, rótulo, tipo, handle), na ordem do `index`.
+
 # trama 0.5.17
 
 * Extensões do editor: pacote de apoio `trama.*` com `Config/trama/extension: true` e uma função `trama_extension()` (JS, CSS e server) entra no editor sem ser coleção e sem constar no `trama.json`. `tr_extensions()` acha as instaladas, `tr_ui(extensions =)` e `tr_server(extensions =)` as ligam e `options(trama.extensions = character())` desliga. No `runtime.js`, `registerToolbarItem(id, Componente)` põe um item na barra de ferramentas. O primeiro uso é o menu GitHub do `trama.github`.

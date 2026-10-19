@@ -114,7 +114,7 @@ function ctxColunas(id, spec, params, p, c) {
 // propósito: o núcleo não lê nada disso, só entrega. É o que deixa um widget
 // de coleção (o editor SQL, por exemplo) saber o que está ligado no bloco.
 function ctxWidget(id, params, c) {
-  return { id, valores: params, entradas: c?.handlesEntrada || {} };
+  return { id, valores: params, entradas: c?.handlesEntrada || {}, fontes: c?.fontesEntrada || {} };
 }
 
 // Rodapé de parâmetros do card aberto. A faixa ("▸ Parâmetros") dobra e
@@ -149,6 +149,7 @@ export function ParamsRodape({ id, spec, params, onParam, dobrado, onDobrar, onT
 // precisa para os params `cols`. Objeto novo por render é inofensivo aqui:
 // vai como prop de componente, não para dentro de `data` do React Flow.
 export const colunasDoNo = (d) => ({ entradas: d.entradas, handlesEntrada: d.handlesEntrada,
+                                     fontesEntrada: d.fontesEntrada,
                                      sugeridos: d.sugeridos, motivos: d.motivos,
                                      sugestoes: d.sugestoes, onSugerir: d.onSugerir });
 

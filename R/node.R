@@ -7,12 +7,35 @@
 #' `stream = TRUE` marca porta de fluxo: o dado chega ponto a ponto. Ao
 #' contrário de `multiple`, não guarda nada por aresta — logo não toca no
 #' schema do documento.
+#'
+#' `named = TRUE` (só com `multiple`) entrega a lista ao `fn` nomeada pelo id
+#' do nó de origem de cada aresta (`"<nó>.<saída>"` quando o mesmo nó liga
+#' duas saídas). Serve a quem precisa citar a entrada por um nome estável —
+#' o layout do `publicar` cita os componentes pelo nó, não pela ordem das
+#' arestas. Os ids entram na chave de cache da porta: trocar a origem por
+#' outro nó de mesmo resultado não serve o resultado antigo. Dentro de região
+#' de fluxo a lista chega sem nomes.
+#' @param named Nomear a lista da porta múltipla pelos nós de origem.
 #' @export
-tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE) {
+tr_port <- function(type, required = TRUE, multiple = FALSE, stream = FALSE, named = FALSE) {
   .tr_check_id(type, "tipo de porta")
+  if (isTRUE(named) && !isTRUE(multiple)) {
+    rlang::abort("tr_port(): 'named' só vale com 'multiple = TRUE'.", class = "tr_error_bad_port")
+  }
   structure(list(type = type, required = isTRUE(required), multiple = isTRUE(multiple),
-                 stream = isTRUE(stream)),
+                 stream = isTRUE(stream), named = isTRUE(named)),
             class = "tr_port")
+}
+
+#' Nomes das entradas de uma porta `named`: o nó de origem, e `nó.saída`
+#' quando o mesmo nó chega por mais de uma saída.
+#' @noRd
+.tr_port_nomes <- function(refs) {
+  nos <- vapply(refs, function(r) as.character(r$node), "")
+  saidas <- vapply(refs, function(r) as.character(r$port %||% ""), "")
+  rep <- nos %in% nos[duplicated(nos)]
+  nos[rep] <- paste(nos[rep], saidas[rep], sep = ".")
+  make.unique(nos)
 }
 
 .tr_as_port <- function(x) if (inherits(x, "tr_port")) x else tr_port(x)

@@ -48,6 +48,7 @@ import { criarFilaOps } from "./fila-ops.js";
 import { nomeDaSaida, rotuloDaEntrada } from "./saidas.js";
 import { reusarNos } from "./reuso.js";
 import { Markdown } from "./markdown.js";
+import { fontesPorPorta } from "./fontes.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -2251,6 +2252,17 @@ function App() {
     }
     return out;
   }, [edges, tick]);
+  // Todas as origens de cada porta, por nó: `entradas` e `handlesEntrada`
+  // guardam UMA por porta, e um widget de porta múltipla (o layout do
+  // `publicar`) precisa ver todas, pelo id do nó. Vai no `ctx` como `fontes`.
+  // A chave de rótulos (e não `nodes`) nas dependências: arrastar um card
+  // troca `nodes` a cada quadro, e `fontes` nova a cada quadro redesenharia
+  // todo card com entrada.
+  const rotulosNos = nodes.map((n) => `${n.id}\u0001${n.data?.label ?? ""}\u0001${n.data?.nodeType ?? ""}`).join("\u0002");
+  const fontesEntrada = useMemo(() => fontesPorPorta(edges, nodes, (id, porta) => {
+    const st = stateRef.current[id];
+    return st ? (st.handles ? st.handles[porta] : st.handle) : null;
+  }), [edges, rotulosNos, tick]);
   // Ops de sugestão para a entrada `porta` de `alvo`, recém-ligada a
   // `origem`/`saida`. É o ÚNICO gatilho automático de sugestão: ligar (ou
   // religar) uma entrada. Re-execução a montante com o mesmo schema não passa
@@ -2711,6 +2723,7 @@ function App() {
                       // documento, como `paramsRef` vai por cima dos params.
                       entradas: entradas[n.id] || null,
                       handlesEntrada: handlesEntrada[n.id] || null,
+                      fontesEntrada: fontesEntrada[n.id] || null,
                       sugeridos: sugeridosDe(n.id, n.data.sugeridos),
                       motivos: motivosRef.current[n.id] || null,
                       sugestoes: temas.sugestoes, onSugerir } };
@@ -2719,7 +2732,7 @@ function App() {
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onSaida, onReseed, tick, temas, abrirProximo,
      doc, onGaleria, onLigarRamo, destaqueGemeos,
-     entradas, handlesEntrada, onSugerir,
+     entradas, handlesEntrada, fontesEntrada, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);

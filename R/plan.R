@@ -346,7 +346,9 @@ tr_plan <- function(doc, targets = NULL, registry = .tr_default_registry, store 
       g <- resolve_group(es, port)
       upstream <- c(upstream, vapply(g$refs, function(r) r$node, ""))
       inputs[[pn]] <- if (isTRUE(port$multiple)) g$refs else g$refs[[1]]
-      input_keys[[pn]] <- g$keys
+      # Porta `named`: o nome que o `fn` vê é o nó de origem, então ele entra
+      # na chave junto com a chave do valor.
+      input_keys[[pn]] <- if (isTRUE(port$named)) paste0(.tr_port_nomes(g$refs), "=", g$keys) else g$keys
       adapter_prints[[pn]] <- g$prints
     }
 

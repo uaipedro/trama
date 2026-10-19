@@ -18,7 +18,7 @@ if (!exists("registry", inherits = FALSE)) {
     pkgload::load_all(".", quiet = TRUE)
     colecoes <- c("trama.data", "trama.view", "trama.models", "trama.multi",
                   "trama.sampling", "trama.series", "trama.ml", "trama.experiments", "trama.sql",
-                  "trama.spatial")
+                  "trama.spatial", "trama.publicar")
     for (package in colecoes) {
       pkgload::load_all(file.path("collections", package), quiet = TRUE,
                         export_all = FALSE, helpers = FALSE)

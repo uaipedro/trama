@@ -1,3 +1,8 @@
+# trama.ml 0.5.9
+
+* `tr_models_web()` para os modelos da ml (FIGS devolve `NULL`): o `prever` refaz em R puro a troca de nomes e as regras de classe da ml; o XGBoost viaja em UBJ.
+* `tr_models_strip()` para os modelos da ml: linear, CART, floresta, SVM e XGBoost, sem `dados` nem as impressões das linhas do treino. A SVM leva os vetores de suporte (linhas do treino escalonadas) e a floresta de regressão guarda a resposta em folhas de uma linha; os dois casos estão medidos em `test-reduzir.R`. FIGS recusa com `tr_models_error_no_method` até o figsr ter binário WebR. A SVM e a floresta de regressão saem com a marca `dados_treino` do contrato, que o `trama.publicar` usa para recusá-las sem consentimento. Pede `trama.models (>= 0.6.10)`.
+
 # trama.ml 0.5.8
 
 * Relatório Quarto: `tune` e `nested_cv` registram no resultado o motor que ajustou as tentativas (atributo `trama_ferramentas`).

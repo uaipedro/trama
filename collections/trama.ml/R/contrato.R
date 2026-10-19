@@ -245,3 +245,179 @@ tr_models_unserialize.tr_ml_fit <- function(x) {
   }
   x
 }
+
+# ---- reduzido para publicação ------------------------------------------------------
+
+#' O modelo sem os dados de treino: `tr_models_strip()` do contrato.
+#'
+#' Saem `dados`, as impressões digitais das linhas (`treino_impressoes`, que
+#' deixariam conferir se uma linha conhecida estava no treino) e a `origem`; o
+#' motor é reduzido ao que o `predict()` dele lê. Fica a recusa de prever o
+#' teste de outra divisão só enquanto o modelo não é reduzido: sem as
+#' impressões, a conferência de vazamento não tem com o que comparar.
+#'
+#' O que cada motor ainda guarda do treino, medido em `test-reduzir.R`:
+#' - CART: nada linha a linha; as folhas guardam a média (ou a contagem por
+#'   classe) das linhas que caíram nelas, e os cortes são pontos médios.
+#' - Floresta: na regressão, a folha guarda a média das linhas sorteadas para
+#'   ela; uma folha com uma só linha distinta guarda o valor da resposta dela.
+#' - SVM: os vetores de suporte SÃO linhas do treino (escalonadas): a previsão
+#'   é uma soma sobre eles, e não há como tirá-los sem trocar o modelo.
+#' - XGBoost: só as árvores; os cortes vêm dos quantis do histograma.
+#' FIGS fica de fora: o `figsr` não tem binário WebR, e o método entra junto
+#' com esse suporte.
+#' @export
+tr_models_strip.tr_ml_fit <- function(x) {
+  if (isTRUE(x$reduzido)) return(x)
+  if (identical(x$modelo, "figs")) {
+    .tr_ml_abort("tr_models_error_no_method",
+                 "O FIGS ainda n\u{E3}o se publica: o pacote figsr n\u{E3}o tem bin\u{E1}rio para o navegador (WebR), e o modelo reduzido entra junto com esse suporte.")
+  }
+  aj <- tr_models_unserialize.tr_ml_fit(x)$ajuste
+  x$ajuste <- switch(x$modelo,
+    linear = trama.models::tr_models_strip_stats(aj),
+    cart = .tr_ml_strip_rpart(aj),
+    forest = .tr_ml_strip_ranger(aj),
+    svm = .tr_ml_strip_svm(aj),
+    xgboost = .tr_ml_strip_xgboost(aj))
+  x$.booster_raw <- NULL
+  x["dados"] <- list(NULL)
+  x["treino_impressoes"] <- list(NULL)
+  x["origem"] <- list(NULL)
+  x["dados_treino"] <- list(.tr_ml_dados_treino_embutidos(x))
+  x$reduzido <- TRUE
+  x
+}
+
+#' A marca do contrato (`dados_treino`): o que o modelo reduzido ainda leva do
+#' treino, linha a linha, medido em `test-reduzir.R`; `NULL` quando nada.
+#' @noRd
+.tr_ml_dados_treino_embutidos <- function(x) {
+  if (identical(x$modelo, "svm")) {
+    return(sprintf(paste("A SVM guarda os %d vetores de suporte, que s\u{E3}o linhas do treino (escalonadas):",
+                         "a previs\u{E3}o \u{E9} uma soma sobre eles."), as.integer(x$ajuste$tot.nSV)))
+  }
+  if (identical(x$modelo, "forest") && identical(x$tarefa, "regressao")) {
+    return(paste("Na floresta de regress\u{E3}o, folha com uma s\u{F3} linha sorteada guarda a resposta",
+                 "dessa linha do treino."))
+  }
+  NULL
+}
+
+#' `predict.rpart()` com `newdata` lê `terms`, `frame`, `splits`, `csplit`,
+#' `method`, `functions` e os atributos `xlevels`/`ylevels`. Saem `y` (a
+#' resposta, linha a linha), `where` (a folha de cada linha), `call`, e `x` ou
+#' `model` quando o ajuste os guardou.
+#' @noRd
+.tr_ml_strip_rpart <- function(aj) {
+  for (campo in c("y", "where", "call", "x", "model")) aj[[campo]] <- NULL
+  tt <- aj$terms
+  attr(tt, ".Environment") <- globalenv()
+  aj$terms <- tt
+  aj
+}
+
+#' `predict.ranger()` lê `forest`, `treetype`, `num.trees` e os nomes. Saem as
+#' previsões fora da bolsa de cada linha do treino (`predictions`), a chamada,
+#' as contagens de sorteio (`inbag.counts`) e as estatísticas por nó que o
+#' `node.stats = TRUE` guarda para o desenho da árvore (`num.samples.nodes`,
+#' `node.predictions`, `split.stats`) — o `ml/tree_plot` não lê reduzido.
+#' @noRd
+.tr_ml_strip_ranger <- function(aj) {
+  for (campo in c("predictions", "call", "inbag.counts")) aj[[campo]] <- NULL
+  for (campo in c("num.samples.nodes", "node.predictions", "split.stats")) aj$forest[[campo]] <- NULL
+  aj
+}
+
+#' `predict.svm()` lê os vetores de suporte, os coeficientes, `rho`, a escala
+#' e, com probabilidade, `probA`/`probB`. Saem as previsões e resíduos do
+#' treino (`fitted`, `residuals`, `decision.values`), os índices das linhas que
+#' viraram vetor de suporte (`index`), `na.action` e a chamada.
+#' @noRd
+.tr_ml_strip_svm <- function(aj) {
+  for (campo in c("fitted", "residuals", "decision.values", "index", "na.action", "call")) aj[[campo]] <- NULL
+  aj
+}
+
+#' O booster não guarda dado; saem os atributos R que o `xgb.train()` pendura
+#' (a chamada e os parâmetros, que viajam em `extras$parametros`).
+#' @noRd
+.tr_ml_strip_xgboost <- function(aj) {
+  attr(aj, "call") <- NULL
+  attr(aj, "params") <- NULL
+  aj
+}
+
+# ---- bloco web -------------------------------------------------------------------
+
+#' O modelo da ml descrito para prever no navegador (`tr_models_web()`).
+#'
+#' O `prever` refaz, só com R base e o pacote do motor, o que
+#' `.tr_ml_novos_dados()` e `.tr_ml_prever()` fazem aqui: escolhe as colunas
+#' na ordem do treino, troca os nomes pelos internos (`x1`, `x2`...) e chama o
+#' `predict()` do motor, com as mesmas regras de classe (maior probabilidade,
+#' empate na ordem dos níveis; corte na logística). O XGBoost viaja como UBJ
+#' cru e é lido com `xgb.load.raw()` no navegador. FIGS não tem binário WebR:
+#' `NULL`, sem preditor na página (e o `tr_models_strip()` já recusa).
+#' @export
+tr_models_web.tr_ml_fit <- function(x) {
+  if (isTRUE(x$reduzido)) {
+    .tr_ml_abort("tr_models_error_not_applicable",
+                 "tr_models_web() pede o modelo completo: as faixas das entradas saem do treino.")
+  }
+  if (identical(x$modelo, "figs")) return(NULL)
+  r <- trama.models::tr_models_strip(x)
+  cls <- x$tarefa == "classificacao"
+  niv <- x$niveis
+  motor <- if (x$modelo == "xgboost") xgboost::xgb.save.raw(r$ajuste, raw_format = "ubj") else r$ajuste
+  dq <- function(v) paste0("c(", paste(vapply(v, deparse, ""), collapse = ", "), ")")
+  cols_prob <- if (cls) trama.models::tr_models_clean_name(niv)
+  cabeca <- paste0("function(motor, novos) {\n",
+                   "  x <- as.data.frame(novos)[", dq(x$preditores), "]\n",
+                   "  names(x) <- ", dq(x$internos), "\n")
+  # Fecho comum da classificação: matriz `prob` com colunas nos níveis.
+  fecho_cls <- paste0(
+    "  niv <- ", dq(niv), "\n",
+    "  prob <- as.matrix(prob)\n",
+    "  if (is.null(colnames(prob)) || !all(niv %in% colnames(prob))) colnames(prob) <- niv\n",
+    "  prob <- prob[, niv, drop = FALSE]\n",
+    "  out <- data.frame(previsto = niv[max.col(prob, ties.method = \"first\")])\n",
+    "  for (k in seq_along(niv)) out[[paste0(\"prob_\", ", dq(cols_prob), "[k])]] <- as.numeric(prob[, k])\n",
+    "  out\n}")
+  corpo <- switch(x$modelo,
+    linear = if (!cls) "  data.frame(previsto = as.numeric(predict(motor, x)))\n}" else
+      paste0("  p <- as.numeric(predict(motor, x, type = \"response\"))\n",
+             "  prob <- cbind(1 - p, p)\n",
+             "  niv <- ", dq(niv), "\n",
+             "  out <- data.frame(previsto = niv[1L + (p >= ", format(x$extras$parametros$corte %||% 0.5, digits = 17), ")])\n",
+             "  for (k in 1:2) out[[paste0(\"prob_\", ", dq(cols_prob), "[k])]] <- prob[, k]\n",
+             "  out\n}"),
+    cart = if (!cls) "  data.frame(previsto = as.numeric(predict(motor, x)))\n}" else
+      paste0("  prob <- predict(motor, x, type = \"prob\")\n", fecho_cls),
+    forest = paste0("  loadNamespace(\"ranger\")\n",
+                    "  z <- predict(motor, data = x)$predictions\n",
+                    if (!cls) "  data.frame(previsto = as.numeric(z))\n}" else paste0("  prob <- z\n", fecho_cls)),
+    svm = paste0("  loadNamespace(\"e1071\")\n",
+                 if (!cls) "  data.frame(previsto = as.numeric(predict(motor, x)))\n}" else
+                   paste0("  prob <- attr(predict(motor, x, probability = TRUE), \"probabilities\")\n", fecho_cls)),
+    xgboost = paste0("  b <- xgboost::xgb.load.raw(motor)\n",
+                     "  z <- predict(b, data.matrix(x))\n",
+                     if (!cls) "  data.frame(previsto = as.numeric(z))\n}" else if (length(niv) == 2L)
+                       paste0("  z <- as.numeric(z)\n  prob <- cbind(1 - z, z)\n", fecho_cls) else
+                       paste0("  prob <- if (is.matrix(z)) z else matrix(as.numeric(z), nrow = nrow(x), ncol = ",
+                              length(niv), ", byrow = TRUE)\n", fecho_cls)))
+  motor_pkg <- x$extras$engine
+  list(motor = motor,
+       pacotes = .tr_ml_versoes_web(unique(c("stats", motor_pkg))),
+       entradas = trama.models::tr_models_web_entradas(x$dados, x$preditores),
+       saida = list(tarefa = x$tarefa, resposta = x$resposta %||% x$alvo, niveis = niv,
+                    colunas = c("previsto", if (cls) paste0("prob_", cols_prob))),
+       preprocessamento = paste0("As colunas ", paste(x$preditores, collapse = ", "),
+                                 " entram nessa ordem, renomeadas para ", paste(x$internos, collapse = ", "),
+                                 " (os nomes internos do ajuste); num\u{E9}ricas, sem valores ausentes."),
+       prever = paste0(cabeca, corpo))
+}
+
+.tr_ml_versoes_web <- function(pacotes) {
+  stats::setNames(lapply(pacotes, function(p) as.character(utils::packageVersion(p))), pacotes)
+}

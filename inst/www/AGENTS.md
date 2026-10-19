@@ -27,6 +27,7 @@ de nó, de dado ou categoria.
 | `teste.js` | Regras do card de teste de hipótese. | não | `teste.test.mjs` |
 | `temas.js` / `settings.js` | Regras de temas / painel de configurações. | não / sim | `temas.test.mjs` |
 | `galeria.js` / `galeria-ui.js` | Galeria (G): regra de pertencimento, op de marca, navegação / rolo e lightbox. | não / sim | `galeria.test.mjs` |
+| `fontes.js` | Todas as origens de cada porta (o `ctx.fontes` dos widgets), com o nome da porta `named`. | não | `fontes.test.mjs` |
 | `fork.js` | Bifurcar (B): planeja o ramo, gêmeos, espelhamento de params, diferenças, selo. | não | `fork.test.mjs` |
 
 Testes em `tests/js/*.test.mjs`, rodados por `Rscript tools/check.R` (ou

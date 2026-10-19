@@ -519,3 +519,50 @@ a binomial negativa. Junto, o resíduo quantílico passa a ser finito na cauda d
 cima, onde o `statmod::qresid` dá `Inf` (u arredonda para 1): a conta vai pela
 complementar. Igual ao statmod onde ele é finito e abaixo de 7 em módulo
 (1e-8); acima disso o statmod já perdeu dígitos.
+
+## Modelo reduzido para publicação, `tr_models_strip()` (19/10/2026)
+
+Genérico novo no contrato de `models/fit` (#12): o que sobra do modelo para
+prever, sem os dados de treino — o que o `trama.publicar` grava no pacote. Não
+muda resultado de bloco nenhum; nenhuma `version` de nó sobe. Sem default:
+classe sem método recusa com `tr_models_error_no_method` (misto, GLS, parcela
+subdividida, não linear, dose-resposta, FIGS e as classes da `multi` ficam de
+fora por ora).
+
+O `lm`/`glm` reduzido (`tr_models_strip_stats()`) guarda coeficientes, posto,
+`qr` só com pivotagem e posto, `terms` com o ambiente trocado pelo global,
+`xlevels`, `contrasts` e a família (e o theta da binomial negativa). Saem os
+campos com uma posição por linha, a matriz `qr$qr` (que é a própria matriz de
+delineamento), o `R`, a tabela e a chamada. O ambiente do `terms` vira o
+global: nos ajustes do trama ele já é, mas um `lm` feito dentro de uma função
+guarda o quadro dela, tabela inclusive (testado). Prevê só o ponto: intervalo e
+`se.fit` pedem os resíduos, e o reduzido recusa com classe. Posto deficiente é
+recusado (o `predict.lm()` recente procura o espaço nulo em `qr.R()`).
+
+Oráculo da previsão: `stats::predict()` do ajuste original (lm com `poly()` e
+fator, Poisson, binomial de classificação, binomial negativa), tolerância
+1e-12, também depois do RDS; nos motores da `ml`, o modelo original pela mesma
+`tr_models_predict_raw()`, tolerância zero (`test-reduzir.R` das duas
+coleções). Vazamento medido com dados contínuos (rnorm/runif), varrendo todo
+número do objeto em listas, atributos, chamadas e ambientes capturados:
+
+- `lm`, `glm`, linear e CART da `ml`: nenhum valor do treino; nenhum vetor com
+  uma posição por linha. No CART as folhas guardam médias ou contagens e os
+  cortes são pontos médios.
+- Floresta (`ranger`), regressão: a resposta reaparece em `split.values` dos
+  nós terminais — folha com uma só linha distinta sorteada guarda a resposta
+  dela (40 de 120 valores no teste). É o modelo, não um campo a mais.
+- SVM (`e1071`): os vetores de suporte são linhas do treino escalonadas (103
+  de 120 na regressão do teste); desfeita a escala, cada um é uma linha. A
+  previsão é uma soma sobre eles: não há como tirá-los. Fora deles, nada.
+- XGBoost: a resposta não aparece; valores de preditores aparecem só como
+  cortes das árvores (quantis do histograma, em float32).
+
+Os dois casos acima saem do reduzido com a marca `dados_treino` (texto do que
+sobra), e o `trama.publicar` recusa o modelo marcado por padrão: só publica
+com o param "Aceito publicar dados de treino embutidos" ligado, e então
+registra `trama:contemDadosTreino` no RO-Crate (decisão do Pedro, 19/10).
+
+Limite: a varredura confere igualdade exata (float32 no XGBoost); um valor
+transformado (escalonado, arredondado) só é pego onde o teste desfaz a
+transformação, como nos vetores de suporte.
