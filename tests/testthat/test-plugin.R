@@ -67,3 +67,20 @@ test_that("ctx$recarregar() relê do disco o projeto aberto e manda o documento"
     expect_true(isTRUE(d$ui$marca_do_teste))
   })
 })
+
+test_that("coleção instalada: exporta trama_collection e não é plugin (#18)", {
+  dir_col <- withr::local_tempdir(); dir_plug <- withr::local_tempdir(); dir_out <- withr::local_tempdir()
+  writeLines(c("export(trama_collection)", "export(tr_x)"), file.path(dir_col, "NAMESPACE"))
+  writeLines("export(trama_collection)", file.path(dir_plug, "NAMESPACE"))
+  writeLines("export(tl_run)", file.path(dir_out, "NAMESPACE"))
+  local_mocked_bindings(.tr_plugin_flag = function(p) p == "trama.plug", .package = "trama")
+  expect_true(.tr_e_colecao("trama.col", caminho = dir_col))
+  expect_false(.tr_e_colecao("trama.plug", caminho = dir_plug))
+  expect_false(.tr_e_colecao("trama.launcher", caminho = dir_out))
+  expect_false(.tr_e_colecao("trama.sumiu", caminho = character()))
+})
+
+test_that("a lista de coleções ignora o que não é trama.* e o que não é coleção", {
+  local_mocked_bindings(.tr_e_colecao = function(pkg, ...) pkg == "trama.col", .package = "trama")
+  expect_identical(.tr_colecoes_instaladas(c("dplyr", "trama.plug", "trama.col", "trama.col")), "trama.col")
+})

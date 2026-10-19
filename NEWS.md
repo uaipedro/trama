@@ -1,3 +1,7 @@
+# trama 0.5.22
+
+* Projeto novo pelo MCP (e o registro do `trama-agente` sem `--colecoes`) lista só coleções de verdade: pacote `trama.*` que exporta `trama_collection()` e não é plugin. Antes entrava todo `trama.*` instalado, inclusive o plugin `trama.github` e o launcher, e o editor caía ao abrir (#18).
+
 # trama 0.5.21
 
 * Plugins: o `ctx` do server ganha `recarregar()`, que relê do disco o projeto aberto (fluxo, temas, execução) como ao abri-lo; serve a quem muda arquivos do projeto por fora, como restaurar uma versão no `trama.github`. No `runtime.js`, `editorAction("irAoBloco", id)` deixa um plugin levar a tela a um bloco (`setEditorActions` é do editor).

@@ -345,7 +345,7 @@ names(.tr_mcp_tools) <- vapply(.tr_mcp_tools, `[[`, "", "name")
     "if (.Platform$OS.type == 'unix') later::later(vigiar, 2)",
     sprintf("raiz <- %s", deparse(ctx$projeto)),
     "cols <- if (file.exists(file.path(raiz, 'trama.json'))) character() else",
-    "  sort(grep('^trama[.]', rownames(utils::installed.packages()), value = TRUE))",
+    "  trama:::.tr_colecoes_instaladas()",
     sprintf("shiny::runApp(tr_app(tr_project(raiz, collections = cols), port = %dL), launch.browser = TRUE)", porta),
     sep = "\n")
   script <- tempfile("trama-mcp-", fileext = ".R")

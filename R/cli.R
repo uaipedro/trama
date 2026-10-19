@@ -157,8 +157,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
 #' @noRd
 .tr_cli_registro <- function(colecoes = NULL) {
   pkgs <- if (length(colecoes)) trimws(strsplit(colecoes, ",", fixed = TRUE)[[1]]) else {
-    nomes <- union(loadedNamespaces(), rownames(utils::installed.packages()))
-    sort(unique(grep("^trama[.]", nomes, value = TRUE)))
+    .tr_colecoes_instaladas(union(loadedNamespaces(), rownames(utils::installed.packages())))
   }
   reg <- tr_registry()
   for (p in pkgs) {

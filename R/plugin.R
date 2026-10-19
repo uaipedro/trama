@@ -39,6 +39,23 @@ tr_plugins <- function(pacotes = getOption("trama.plugins")) {
   plugs
 }
 
+#' Coleções `trama.*` entre `nomes`: exportam `trama_collection()` e não são
+#' plugin. Só o prefixo não basta: plugins (`trama.github`) e o launcher
+#' também são `trama.*`, e listá-los como coleção derruba o editor (#18).
+#' @noRd
+.tr_colecoes_instaladas <- function(nomes = rownames(utils::installed.packages())) {
+  nomes <- sort(unique(grep("^trama[.]", nomes, value = TRUE)))
+  nomes[vapply(nomes, .tr_e_colecao, logical(1))]
+}
+
+# Lê o NAMESPACE do disco em vez de carregar o pacote: listar não deve
+# custar o load de cada coleção.
+.tr_e_colecao <- function(pkg, caminho = find.package(pkg, quiet = TRUE)) {
+  if (.tr_plugin_flag(pkg) || length(caminho) != 1L) return(FALSE)
+  ns <- file.path(caminho, "NAMESPACE")
+  file.exists(ns) && any(grepl("trama_collection", readLines(ns, warn = FALSE), fixed = TRUE))
+}
+
 .tr_plugin_candidatos <- function() {
   nomes <- unique(c(loadedNamespaces(), .packages(all.available = TRUE)))
   nomes <- sort(grep("^trama[.]", nomes, value = TRUE))
