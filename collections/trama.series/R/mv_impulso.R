@@ -6,16 +6,16 @@
 # só se escolhem as séries, se põe a semente e se desenha.
 
 .tr_series_nos_mv_impulso <- function() {
-  VAR <- "series/var"; G <- "view/plot"
+  VAR <- "series/var"; G <- "view/plot"; TB <- "data/table"
   I <- trama::tr_param_int; B <- trama::tr_param_bool; P <- trama::tr_param
   icone <- function(n) trama::tr_icon(n)
   list(
-    trama::tr_node("series/irf", fn = tr_series_irf, label = "Impulso-resposta",
+    trama::tr_node("series/irf", fn = tr_series_irf_bloco, label = "Impulso-resposta", version = 2L,
       pressupostos = .tr_series_doc("series/irf")$pressupostos,
       referencias = .tr_series_doc("series/irf")$referencias,
       category = "serie_ver", icon = icone("waves-horizontal"),
       description = "Como cada série responde, ao longo do tempo, a um choque numa das outras.",
-      inputs = list(modelo = VAR), outputs = list(out = G),
+      inputs = list(modelo = VAR), outputs = list(out = G, tabela = TB),
       params = .tr_series_props(
         impulso = P("text", "", label = "Impulso", example = "prod"),
         respostas = P("text", "", label = "Respostas", example = "e, U"),
@@ -53,6 +53,11 @@ O VECM entra pela mesma forma (`vec2var`), e as respostas são as do nível.
 A semente é a do nó: a mesma entrada dá as mesmas bandas.
 ]---", r"---[
 Um gráfico (`view/plot`). No console, um ggplot comum, somável.
+
+E os mesmos pontos em tabela (`data/table`, saída `tabela`): uma linha por
+impulso, resposta e horizonte (0 é o período do choque), com `valor` e a banda
+em `li` e `ls` (vazias sem reamostras). É a saída para citar as respostas ou
+gravá-las, sem ler no gráfico.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
@@ -65,12 +70,12 @@ tr_flow(reg) |>
 para o ajuste; `series/join` para montar as séries.
 ]---", grafico = TRUE)),
 
-    trama::tr_node("series/fevd", fn = tr_series_fevd, label = "Decomposição da variância",
+    trama::tr_node("series/fevd", fn = tr_series_fevd_bloco, label = "Decomposição da variância", version = 2L,
       pressupostos = .tr_series_doc("series/fevd")$pressupostos,
       referencias = .tr_series_doc("series/fevd")$referencias,
       category = "serie_ver", icon = icone("chart-column-stacked"),
       description = "Quanto da variância do erro de previsão de cada série vem de cada choque, por horizonte.",
-      inputs = list(modelo = VAR), outputs = list(out = G),
+      inputs = list(modelo = VAR), outputs = list(out = G, tabela = TB),
       params = .tr_series_props(
         horizonte = I(10L, min = 1L, max = 100L, label = "Horizonte"),
         .aspecto = "4:3"),
@@ -89,6 +94,10 @@ depois das anteriores.
 - **Horizonte** — até onde prever o erro (1 a 100 períodos).
 ]---", r"---[
 Um gráfico (`view/plot`). No console, um ggplot comum, somável.
+
+E as frações em tabela (`data/table`, saída `tabela`): uma linha por série,
+horizonte e choque, com a `fracao` da variância (as frações de uma série num
+horizonte somam 1).
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
@@ -214,8 +223,32 @@ tr_series_irf <- function(modelo, impulso = "", respostas = "", horizonte = 10L,
                           acumulada = FALSE, reamostras = 100L, confianca = 0.95, .seed = NULL,
                           aspecto = "16:9", tema = "padrão", titulo = "", rotulo_x = "", rotulo_y = "",
                           legenda = "direita") {
+  tr_series_irf_bloco(modelo, impulso, respostas, horizonte, ortogonal, acumulada, reamostras,
+                    confianca, .seed, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)$out
+}
+
+#' O nó `series/irf`: o gráfico e a tabela do MESMO `vars::irf` (um bootstrap só).
+#'
+#' No console, `tr_series_irf()` devolve só o gráfico; esta devolve a lista
+#' `out` (gráfico) e `tabela` (data/table), as duas saídas do bloco.
+#' @export
+tr_series_irf_bloco <- function(modelo, impulso = "", respostas = "", horizonte = 10L, ortogonal = TRUE,
+                              acumulada = FALSE, reamostras = 100L, confianca = 0.95, .seed = NULL,
+                              aspecto = "16:9", tema = "padrão", titulo = "", rotulo_x = "", rotulo_y = "",
+                              legenda = "direita") {
   d <- .tr_series_irf_dados(modelo, impulso, respostas, horizonte, ortogonal, acumulada,
                             reamostras, confianca, .seed)
+  tabela <- d[c("impulso", "resposta", "horizonte", "valor", "li", "ls")]
+  tabela$horizonte <- as.integer(tabela$horizonte)
+  list(out = .tr_series_irf_grafico(d, ortogonal, acumulada, reamostras, confianca,
+                                    aspecto, tema, titulo, rotulo_x, rotulo_y, legenda),
+       tabela = tabela)
+}
+
+#' O gráfico da IRF, a partir dos pontos já calculados.
+#' @noRd
+.tr_series_irf_grafico <- function(d, ortogonal, acumulada, reamostras, confianca,
+                                   aspecto, tema, titulo, rotulo_x, rotulo_y, legenda) {
   reps <- .tr_series_int(reamostras, "reamostras", min = 0, max = 5000)
   conf <- .tr_series_confianca(confianca)
   banda <- reps > 0L
@@ -272,7 +305,26 @@ tr_series_irf <- function(modelo, impulso = "", respostas = "", horizonte = 10L,
 #' @export
 tr_series_fevd <- function(modelo, horizonte = 10L, aspecto = "4:3", tema = "padrão",
                            titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  tr_series_fevd_bloco(modelo, horizonte, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)$out
+}
+
+#' O nó `series/fevd`: o gráfico e a tabela das mesmas frações.
+#'
+#' No console, `tr_series_fevd()` devolve só o gráfico; esta devolve a lista
+#' `out` (gráfico) e `tabela` (data/table), as duas saídas do bloco.
+#' @export
+tr_series_fevd_bloco <- function(modelo, horizonte = 10L, aspecto = "4:3", tema = "padrão",
+                               titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
   d <- .tr_series_fevd_dados(modelo, horizonte)
+  tabela <- tibble::tibble(serie = as.character(d$serie), horizonte = as.integer(as.character(d$horizonte)),
+                           choque = as.character(d$choque), fracao = d$fracao)
+  list(out = .tr_series_fevd_grafico(d, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda),
+       tabela = tabela)
+}
+
+#' O gráfico da FEVD, a partir das frações já calculadas.
+#' @noRd
+.tr_series_fevd_grafico <- function(d, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda) {
   choques <- levels(d$choque)
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["horizonte"]], y = .data[["fracao"]],
                                        fill = .data[["choque"]])) +

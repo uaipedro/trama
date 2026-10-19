@@ -13,12 +13,12 @@
   I <- trama::tr_param_int; E <- trama::tr_param_enum; B <- trama::tr_param_bool
   icone <- function(n) trama::tr_icon(n)
   list(
-    trama::tr_node("series/ccf", fn = tr_series_ccf, label = "Correlação cruzada (CCF)",
+    trama::tr_node("series/ccf", fn = tr_series_ccf_bloco, label = "Correlação cruzada (CCF)", version = 2L,
       pressupostos = .tr_series_doc("series/ccf")$pressupostos,
       referencias = .tr_series_doc("series/ccf")$referencias,
       category = "serie_ver", icon = icone("chart-column"),
       description = "A correlação entre duas séries em cada defasagem, negativa e positiva, com a banda do ruído branco.",
-      inputs = list(x = S, y = S), outputs = list(out = G),
+      inputs = list(x = S, y = S), outputs = list(out = G, tabela = TB),
       params = .tr_series_props(defasagens = I(0L, min = 0L, max = 500L, label = "Defasagens", vazio = 0L, example = "0 = automático")),
       help = .tr_series_ajuda(r"---[
 A correlação cruzada: para cada defasagem k, a correlação entre x no tempo
@@ -57,6 +57,11 @@ defasagem diz alguma coisa sobre quem antecede quem.
 ]---", r"---[
 Um gráfico (`view/plot`) com uma barra por defasagem, das negativas às
 positivas. As barras FORA da banda saem coloridas.
+
+E a mesma conta em tabela (`data/table`, saída `tabela`): uma linha por
+defasagem, com `defasagem`, `r` (a correlação cruzada), `banda` (±1,96/√n) e
+`fora` (verdadeiro quando |r| passa da banda). É a saída para citar os valores
+ou gravá-los, sem ler no gráfico.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
@@ -200,8 +205,7 @@ mesma conta); `series/join` para montar a série múltipla;
 
 #' O gráfico: barras por defasagem, negativas à esquerda, com a banda.
 #' @noRd
-.tr_series_ccf_grafico <- function(x, y, defasagens) {
-  d <- .tr_series_ccf_tabela(x, y, defasagens)
+.tr_series_ccf_grafico <- function(d) {
   banda <- attr(d, "banda")
   f <- attr(d, "frequencia")
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[["defasagem"]], y = .data[["r"]])) +
@@ -224,8 +228,22 @@ mesma conta); `series/join` para montar a série múltipla;
 #' @export
 tr_series_ccf <- function(x, y, defasagens = 0L, aspecto = "16:9", tema = "padrão",
                           titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
-  trama.view::tr_view_finish(.tr_series_ccf_grafico(x, y, defasagens),
-                             aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
+  tr_series_ccf_bloco(x, y, defasagens, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)$out
+}
+
+#' O nó `series/ccf`: o gráfico e a tabela da mesma conta.
+#'
+#' No console, `tr_series_ccf()` devolve só o gráfico; esta devolve a lista
+#' `out` (gráfico) e `tabela` (data/table), as duas saídas do bloco.
+#' @export
+tr_series_ccf_bloco <- function(x, y, defasagens = 0L, aspecto = "16:9", tema = "padrão",
+                              titulo = "", rotulo_x = "", rotulo_y = "", legenda = "direita") {
+  d <- .tr_series_ccf_tabela(x, y, defasagens)
+  out <- trama.view::tr_view_finish(.tr_series_ccf_grafico(d), aspecto, tema, titulo,
+                                    rotulo_x, rotulo_y, legenda)
+  tabela <- tibble::tibble(defasagem = as.integer(d$defasagem), r = d$r,
+                           banda = attr(d, "banda"), fora = d$fora)
+  list(out = out, tabela = tabela)
 }
 
 # ---- series/var_select -------------------------------------------------------

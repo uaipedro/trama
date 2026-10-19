@@ -129,3 +129,23 @@ test_that("var_select reproduz a tabela publicada em Pfaff (2008, JSS 27(4), p. 
   expect_match(tab$escolhida[tab$defasagem == 2L], "HQ")
   expect_match(tab$escolhida[tab$defasagem == 1L], "SC")
 })
+
+test_that("series/ccf entrega a tabela por defasagem, igual ao stats::ccf a 1e-12 (#20)", {
+  reg <- series_registry()
+  fl <- trama::tr_flow(reg) |>
+    trama::tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+    trama::tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+    trama::tr_add("dd", "series/diff", from = "dax") |>
+    trama::tr_add("dc", "series/diff", from = "cac") |>
+    trama::tr_add("cc", "series/ccf", defasagens = 5L, from = c(x = "dd", y = "dc"))
+  s <- trama::tr_store(tempfile())
+  tab <- trama::tr_value(trama::tr_flow_doc(fl), "cc", registry = fl$registry, store = s, port = "tabela")
+  expect_identical(names(tab), c("defasagem", "r", "banda", "fora"))
+  x <- diff(EuStockMarkets[, "DAX"]); y <- diff(EuStockMarkets[, "CAC"])
+  ref <- stats::ccf(x, y, lag.max = 5L, plot = FALSE, na.action = stats::na.fail)
+  expect_lt(max(abs(tab$r - as.numeric(ref$acf))), 1e-12)
+  expect_identical(tab$defasagem, -5:5)
+  expect_equal(tab$banda[[1]], stats::qnorm(.975) / sqrt(length(x)), tolerance = 1e-12)
+  expect_identical(tab$fora, abs(tab$r) > tab$banda)
+  expect_s3_class(tr_series_ccf(x, y, defasagens = 5L), "ggplot")
+})

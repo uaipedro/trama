@@ -191,3 +191,57 @@ test_that("IRF com dummies sazonais (VAR construído por series/var): bandas igu
   confere_irf(d, ref, "li", todos(ref))
   confere_irf(d, ref, "ls", todos(ref))
 })
+
+# ---- saída `tabela` (#20) ----------------------------------------------------
+# A tabela sai do MESMO cálculo do gráfico (um `vars::irf` só, um bootstrap
+# só); oráculo: o `vars` direto, 1e-10, como acima. Rodada pelo registro, com a
+# porta `tabela`, que é o que o card entrega.
+
+valor_no <- function(tipo, porta, ..., semente = NULL) {
+  reg <- series_registry()
+  fl <- trama::tr_flow(reg) |>
+    trama::tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+    trama::tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+    trama::tr_add("j", "series/join", nomes = "dax, cac", from = c("dax", "cac")) |>
+    trama::tr_add("v", "series/var", defasagens = 2L, from = "j") |>
+    trama::tr_add("no", tipo, ..., from = "v", seed = semente)
+  s <- trama::tr_store(tempfile())
+  list(valor = trama::tr_value(trama::tr_flow_doc(fl), "no", registry = fl$registry, store = s, port = porta),
+       modelo = trama::tr_value(trama::tr_flow_doc(fl), "v", registry = fl$registry, store = s))
+}
+
+test_that("series/irf entrega a tabela dos pontos e da banda, igual ao vars a 1e-10", {
+  r <- valor_no("series/irf", "tabela", horizonte = 6L, reamostras = 20L, confianca = 0.9, semente = 3L)
+  tab <- r$valor
+  expect_s3_class(tab, "tbl_df")
+  expect_identical(names(tab), c("impulso", "resposta", "horizonte", "valor", "li", "ls"))
+  expect_identical(tab$horizonte[1:7], 0:6)
+  expect_equal(nrow(tab), 2L * 2L * 7L)
+  ref <- vars::irf(.tr_series_ajuste_congelado(r$modelo), n.ahead = 6, ortho = TRUE, boot = TRUE,
+                   runs = 20, ci = 0.9, seed = 3L)
+  confere_irf(tab, ref, "valor", todos(ref))
+  confere_irf(tab, ref, "li", todos(ref))
+  confere_irf(tab, ref, "ls", todos(ref))
+  g <- valor_no("series/irf", "out", horizonte = 6L, reamostras = 0L)$valor
+  expect_s3_class(g, "ggplot")
+})
+
+test_that("series/fevd entrega a tabela das frações, igual ao vars a 1e-10", {
+  r <- valor_no("series/fevd", "tabela", horizonte = 5L)
+  tab <- r$valor
+  expect_identical(names(tab), c("serie", "horizonte", "choque", "fracao"))
+  expect_type(tab$horizonte, "integer")
+  ref <- vars::fevd(r$modelo$ajuste, n.ahead = 5)
+  for (s in names(ref)) {
+    mat <- matrix(tab$fracao[tab$serie == s], nrow = 5L)
+    expect_lt(max(abs(mat - unname(ref[[s]]))), tol, label = s)
+  }
+  soma <- tapply(tab$fracao, paste(tab$serie, tab$horizonte), sum)
+  expect_lt(max(abs(soma - 1)), tol)
+})
+
+test_that("as funções de console seguem devolvendo o ggplot", {
+  m <- canada_modelo()
+  expect_s3_class(tr_series_irf(m, reamostras = 0L), "ggplot")
+  expect_s3_class(tr_series_fevd(m, horizonte = 4L), "ggplot")
+})
