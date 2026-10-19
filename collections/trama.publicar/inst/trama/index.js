@@ -5,6 +5,50 @@
 import React from "react";
 import { h, registerWidget, registerRenderer, pedirAcao } from "trama";
 import { ler, gravar, mover, tirar, por, trocar, diferencas, rotuloDoBloco, automatico } from "./layout.js";
+import { linhas as linhasDoEnvio, links as linksDoEnvio, terminou } from "./envio.js";
+
+// Envio ao GitHub: "publicar" manda o pacote e cria a tag; depois o card pede
+// "acompanhar" a cada 5 s até a página estar no ar ou o workflow falhar.
+function Envio({ handle, bloqueado }) {
+  const [st, setSt] = React.useState({ fase: "pronto" });
+  const timer = React.useRef(null);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  const acompanhar = (repo) => {
+    pedirAcao(handle, "acompanhar", { repo }).then((e) => {
+      setSt({ fase: "envio", estado: e });
+      if (!terminou(e)) timer.current = setTimeout(() => acompanhar(repo), 5000);
+    }).catch((err) => setSt((s) => ({ ...s, aviso: err.message })));
+  };
+  const publicar = (confirmado) => (ev) => {
+    ev.stopPropagation();
+    setSt({ fase: "enviando" });
+    pedirAcao(handle, "publicar", confirmado ? { confirmado: true } : null).then((r) => {
+      if (r.bloqueios) { setSt({ fase: "bloqueado", itens: r.bloqueios }); return; }
+      if (r.confirmar) { setSt({ fase: "confirmar", texto: r.confirmar }); return; }
+      setSt({ fase: "envio", estado: r });
+      if (!terminou(r)) timer.current = setTimeout(() => acompanhar(r.repo), 5000);
+    }).catch((err) => setSt({ fase: "erro", texto: err.message }));
+  };
+  const e = st.estado;
+  return h("div", { className: "tr-pub-envio" }, [
+    h("div", { key: "b", className: "tr-pub-acao" }, [
+      h("button", { key: "p", type: "button", className: "nodrag", disabled: bloqueado || st.fase === "enviando" || (st.fase === "envio" && !terminou(e)),
+                    title: bloqueado ? "corrija os erros acima antes de publicar" : "envia o pacote ao GitHub: release e página no Pages",
+                    onClick: publicar(false) }, st.fase === "enviando" ? "Enviando\u2026" : "Publicar no GitHub"),
+      st.fase === "confirmar" ? h("button", { key: "c", type: "button", className: "nodrag", onClick: publicar(true) }, "Confirmar") : null,
+    ]),
+    st.fase === "confirmar" ? h("p", { key: "t", className: "tr-pub-avisos" }, st.texto) : null,
+    st.fase === "bloqueado" ? h("ul", { key: "bl", className: "tr-pub-erros" }, st.itens.map((x, i) => h("li", { key: i }, x))) : null,
+    st.fase === "erro" ? h("pre", { key: "er", className: "tr-pub-erros" }, st.texto) : null,
+    st.fase === "envio" ? h("div", { key: "e", className: "tr-pub-etapas" }, [
+      h("strong", { key: "r" }, `${e.repo} \u00b7 ${e.tag}`),
+      h("ol", { key: "l" }, linhasDoEnvio(e).map((l) => h("li", { key: l.id, className: `tr-pub-${l.situacao}` }, l.rotulo))),
+      h("p", { key: "d", className: e.etapa === "falhou" ? "tr-pub-erros" : "tr-pub-dim" }, e.detalhe),
+      h("p", { key: "k" }, linksDoEnvio(e).map((l, i) => h("a", { key: i, href: l.url, target: "_blank", rel: "noopener" }, l.rotulo))),
+      st.aviso ? h("p", { key: "a", className: "tr-pub-avisos" }, st.aviso) : null,
+    ]) : null,
+  ]);
+}
 
 const tamanho = (b) => (b >= 1024 ** 2 ? `${(b / 1024 ** 2).toFixed(1)} MB` : b >= 1024 ? `${(b / 1024).toFixed(0)} KB` : `${b} B`);
 
@@ -55,6 +99,7 @@ function Conferencia({ artifact, handle }) {
       estado.fase === "guia" ? h("p", { key: "g", className: "tr-pub-avisos" }, estado.texto) : null,
       estado.fase === "ok" && estado.pasta ? h("p", { key: "p", className: "tr-pub-dim" }, estado.pasta) : null,
     ]),
+    h(Envio, { key: "envio", handle, bloqueado: (d.erros || []).length > 0 }),
   ]);
 }
 

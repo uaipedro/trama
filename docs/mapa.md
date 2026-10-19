@@ -55,7 +55,7 @@ Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `
 | `trama.spatial` | Geoestatística: variável regionalizada, variograma, krigagem. |
 | `trama.sql` | Consulta SQL local (DuckDB) devolvendo tabelas. |
 | `trama.python` | Prova de conceito: modelos scikit-learn via Python. |
-| `trama.publicar` | Publicação: o nó `publicar/publish` monta o pacote RO-Crate do fluxo e a página (Quarto + quarto-live/WebR); prévia local pela ação Visualizar. Adaptadores `data/table`, `view/plot`, `models/fit` → `publicar/item`. |
+| `trama.publicar` | Publicação: o nó `publicar/publish` monta o pacote RO-Crate do fluxo e a página (Quarto + quarto-live/WebR); prévia local pela ação Visualizar. Adaptadores `data/table`, `view/plot`, `models/fit` → `publicar/item`. Ação Publicar no GitHub (repositório, Pages, workflow em `inst/github/`) pelo `trama.github`. |
 
 Dentro de uma coleção: `R/collection.R` registra tudo; os `tr_node` ficam em `R/nos_*.R`, `R/nodes.R` ou no próprio `collection.R`, conforme a coleção; os demais arquivos têm a lógica pura; `R/docs*.R` guarda a documentação; `inst/templates/` tem os templates gerados.
 

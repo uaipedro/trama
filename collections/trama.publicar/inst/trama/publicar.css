@@ -19,3 +19,11 @@
   color:var(--tr-fg);border:1px solid var(--tr-line);border-radius:3px;font-size:11px}
 .tr-pub-add{display:flex;flex-wrap:wrap;gap:3px}
 .tr-param:has(> .tr-pub-layout){grid-template-columns:1fr;gap:2px}
+.tr-pub-envio{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--tr-line);padding-top:6px}
+.tr-pub-etapas ol{margin:2px 0 0 18px;padding:0}
+.tr-pub-feita{color:var(--tr-fg)}
+.tr-pub-feita::marker{content:"\2713  "}
+.tr-pub-atual{font-weight:600}
+.tr-pub-pendente{color:var(--tr-dim)}
+.tr-pub-falhou{color:var(--tr-err);font-weight:600}
+.tr-pub-etapas a{margin-right:10px}

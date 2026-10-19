@@ -21,6 +21,8 @@ app_github_falso <- function() {
     L$n <- 0L
     L$blobs <- list(); L$arvores <- list(); L$commits <- list(); L$refs <- list()
     L$tag_objs <- list(); L$repos <- list()
+    L$pages <- list(); L$ambientes <- list(); L$politicas <- list(); L$runs <- list(); L$jobs <- list()
+    L$releases <- list(); L$pages_recusa <- FALSE
     L$conferencias <- 0L; L$blobs_criados <- 0L
     L$falhar_blob <- NA_integer_; L$corrida <- FALSE
     L$tokens <- TOKEN_FALSO
@@ -55,7 +57,8 @@ app_github_falso <- function() {
     res$send_json(list(refs = L$refs, blobs_criados = L$blobs_criados, commits = names(L$commits),
                        arvores = lapply(L$arvores, function(a) a), blobs = L$blobs,
                        repos = names(L$repos), mensagens = lapply(L$commits, `[[`, "message"),
-                       tag_objs = L$tag_objs),
+                       tag_objs = L$tag_objs, pages = L$pages, ambientes = L$ambientes,
+                       politicas = L$politicas, releases = L$releases),
                   auto_unbox = TRUE)
   })
 
@@ -122,7 +125,8 @@ app_github_falso <- function() {
                   auto_unbox = TRUE)
   }
   app$get("/repos/:o/:r/git/ref/heads/:x", ler_ref("heads"))
-  app$get("/repos/:o/:r/git/ref/tags/:x", ler_ref("tags"))
+  # Tag tem ponto ("v1.0.0"), que o `:x` do webfakes não casa: expressão regular.
+  app$get(webfakes::new_regexp("^/repos/(?<o>[^/]+)/(?<r>[^/]+)/git/ref/tags/(?<x>.+)$"), ler_ref("tags"))
   app$get("/repos/:o/:r/git/commits/:sha", function(req, res) {
     if (!autorizado(req, res)) return()
     c <- req$app$locals$commits[[req$params$sha]]
@@ -178,6 +182,64 @@ app_github_falso <- function() {
     if (!is.null(L$refs[[k]])) return(erro(res, 422, "Reference already exists"))
     L$refs[[k]] <- req$json$sha
     res$set_status(201)$send_json(list(ref = req$json$ref, object = list(sha = req$json$sha)), auto_unbox = TRUE)
+  })
+
+  # Publicação: tags, releases, Pages, ambientes e Actions --------------------
+  app$get("/repos/:o/:r/tags", function(req, res) {
+    if (!autorizado(req, res)) return()
+    L <- req$app$locals
+    pre <- paste0(chave(req), "@tags/")
+    nomes <- sub(pre, "", grep(pre, names(L$refs), fixed = TRUE, value = TRUE), fixed = TRUE)
+    res$send_json(lapply(rev(nomes), function(n) list(name = n)), auto_unbox = TRUE)
+  })
+  # Rota por expressão regular: o `:x` do webfakes não casa nome com ponto
+  # ("v0.1.0"), e a rota inteira deixaria de existir.
+  app$get(webfakes::new_regexp("^/repos/(?<o>[^/]+)/(?<r>[^/]+)/releases/tags/(?<x>.+)$"), function(req, res) {
+    if (!autorizado(req, res)) return()
+    r <- req$app$locals$releases[[paste0(chave(req), "@", req$params$x)]]
+    if (is.null(r)) return(erro(res, 404, "Not Found"))
+    res$send_json(r, auto_unbox = TRUE)
+  })
+  app$get("/repos/:o/:r/pages", function(req, res) {
+    if (!autorizado(req, res)) return()
+    p <- req$app$locals$pages[[chave(req)]]
+    if (is.null(p)) return(erro(res, 404, "Not Found"))
+    res$send_json(p, auto_unbox = TRUE)
+  })
+  pages_gravar <- function(criar) function(req, res) {
+    if (!autorizado(req, res)) return()
+    L <- req$app$locals
+    k <- chave(req)
+    if (criar && !is.null(L$pages[[k]])) return(erro(res, 409, "GitHub Pages is already enabled."))
+    if (isTRUE(L$pages_recusa)) return(erro(res, 422, "Your current plan does not support GitHub Pages for this repository."))
+    L$pages[[k]] <- list(html_url = sprintf("https://%s.github.io/%s/", req$params$o, req$params$r),
+                         build_type = req$json$build_type, status = "built")
+    if (criar) res$set_status(201)$send_json(L$pages[[k]], auto_unbox = TRUE) else res$set_status(204)$send("")
+  }
+  app$post("/repos/:o/:r/pages", pages_gravar(TRUE))
+  app$put("/repos/:o/:r/pages", pages_gravar(FALSE))
+  app$put("/repos/:o/:r/environments/:e", function(req, res) {
+    if (!autorizado(req, res)) return()
+    L <- req$app$locals
+    L$ambientes[[paste0(chave(req), "@", req$params$e)]] <- req$json
+    res$send_json(list(name = req$params$e), auto_unbox = TRUE)
+  })
+  app$post("/repos/:o/:r/environments/:e/deployment-branch-policies", function(req, res) {
+    if (!autorizado(req, res)) return()
+    L <- req$app$locals
+    k <- paste0(chave(req), "@", req$params$e, "@", req$json$type, ":", req$json$name)
+    if (!is.null(L$politicas[[k]])) return(erro(res, 422, "Name already exists"))
+    L$politicas[[k]] <- req$json
+    res$send_json(req$json, auto_unbox = TRUE)
+  })
+  app$get("/repos/:o/:r/actions/runs", function(req, res) {
+    if (!autorizado(req, res)) return()
+    runs <- Filter(function(x) identical(x$head_sha, req$query$head_sha), req$app$locals$runs)
+    res$send_json(list(total_count = length(runs), workflow_runs = unname(runs)), auto_unbox = TRUE)
+  })
+  app$get("/repos/:o/:r/actions/runs/:id/jobs", function(req, res) {
+    if (!autorizado(req, res)) return()
+    res$send_json(list(jobs = req$app$locals$jobs[[req$params$id]] %||% list()), auto_unbox = TRUE)
   })
   app
 }

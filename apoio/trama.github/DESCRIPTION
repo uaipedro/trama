@@ -1,6 +1,6 @@
 Package: trama.github
 Title: GitHub Connection for trama
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Connects trama to GitHub without git or a terminal: account
     guide, login by the OAuth device flow, reuse of existing credentials,
