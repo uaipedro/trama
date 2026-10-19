@@ -8,14 +8,21 @@
 # caminho relativo a ela, e a chave depende disso.
 
 #' Projeto a partir de um `tr_project`, de uma pasta ou do caminho do documento.
+#'
+#' Com o documento, os settings são os dele: o tema "padrão" vira o tema
+#' claro do `_brand.yml` (ver `R/tema.R`). O `tr_project` é lista, então a
+#' troca não vaza para quem passou o projeto.
 #' @noRd
 .td_projeto <- function(projeto = NULL, documento = NULL) {
-  if (inherits(projeto, "tr_project")) return(projeto)
-  raiz <- projeto %||% .td_raiz_de(documento)
-  if (!file.exists(file.path(raiz, "trama.json"))) {
-    .td_erro(sprintf("'%s' n\u{E3}o \u{E9} um projeto trama (falta o trama.json).", raiz), "tr_documento_erro_projeto")
+  if (!inherits(projeto, "tr_project")) {
+    raiz <- projeto %||% .td_raiz_de(documento)
+    if (!file.exists(file.path(raiz, "trama.json"))) {
+      .td_erro(sprintf("'%s' n\u{E3}o \u{E9} um projeto trama (falta o trama.json).", raiz), "tr_documento_erro_projeto")
+    }
+    projeto <- trama::tr_project(raiz, create = FALSE)
   }
-  trama::tr_project(raiz, create = FALSE)
+  if (!is.null(documento)) projeto$settings <- .td_settings_documento(projeto$settings, dirname(documento))
+  projeto
 }
 
 #' Raiz do projeto de um documento: a primeira pasta acima com `trama.json`.

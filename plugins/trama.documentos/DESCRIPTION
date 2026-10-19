@@ -1,6 +1,6 @@
 Package: trama.documentos
 Title: Living Documents for trama Analyses
-Version: 0.1.0
+Version: 0.3.0
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Turns a trama analysis into a finished document: a Quarto file
     of the project where the text belongs to the author and managed regions
@@ -8,24 +8,33 @@ Description: Turns a trama analysis into a finished document: a Quarto file
     document (tables, figures, sanitized models, tests) and referenced by
     regions that are refreshed when the analysis changes, without ever
     touching the author's text. Documents start from Quarto extension
-    templates and author profiles, and render locally to HTML, PDF (Typst)
-    and Word. It is a trama plugin, not a block collection: it has no nodes.
+    templates (a gallery to create, edit, duplicate, import and export them,
+    with built-in academic ABNT, consulting report, article, slides and
+    dashboard templates) and author profiles, and render locally to HTML,
+    PDF (Typst), Word, revealjs slides and dashboards. Charts follow a light
+    theme derived from the template's brand. It is a trama plugin, not a
+    block collection: it has no nodes. When installed, the trama editor
+    shows a Documents panel (with a template gallery) and an 'insert into
+    document' item in the card menu.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.5.22),
+    trama (>= 0.5.23),
     digest,
     ggplot2,
     httpuv,
     jsonlite,
+    later,
     processx,
     ragg,
     rlang,
+    shiny,
     stats,
     tools,
     utils,
-    yaml
+    yaml,
+    zip
 Suggests:
     testthat (>= 3.0.0),
     withr,
@@ -35,5 +44,6 @@ Suggests:
     trama.view,
     trama.models
 Config/testthat/edition: 3
+Config/trama/plugin: true
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0

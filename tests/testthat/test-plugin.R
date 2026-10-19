@@ -68,6 +68,21 @@ test_that("ctx$recarregar() relê do disco o projeto aberto e manda o documento"
   })
 })
 
+test_that("ctx dá o documento na tela, o fluxo e serve pastas (#23)", {
+  root <- withr::local_tempdir("proj")
+  tr_project_new(root, character())
+  p <- tr_project_at(root, tr_registry())
+  ctx_visto <- NULL
+  plugs <- list(trama.a = list(server = function(input, output, session, ctx) ctx_visto <<- ctx))
+  shiny::testServer(tr_server(p, autosave = FALSE, plugins = plugs), {
+    expect_identical(ctx_visto$fluxo(), "main")
+    expect_s3_class(ctx_visto$doc(), "tr_doc")
+    pasta <- withr::local_tempdir()
+    expect_identical(ctx_visto$servir(pasta, "doc-1"), "trama-acao-doc-1/")
+    expect_error(ctx_visto$servir(pasta, "../x"), class = "tr_error_bad_action")
+  })
+})
+
 test_that("coleção instalada: exporta trama_collection e não é plugin (#18)", {
   dir_col <- withr::local_tempdir(); dir_plug <- withr::local_tempdir(); dir_out <- withr::local_tempdir()
   writeLines(c("export(trama_collection)", "export(tr_x)"), file.path(dir_col, "NAMESPACE"))

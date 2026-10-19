@@ -1,3 +1,7 @@
+# trama 0.5.23
+
+* Plugins: `registerCardMenuItem(id, def)` no `runtime.js` acrescenta itens ao menu de contexto de um card (o plugin recebe `{id, tipo, rotulo, saidas, estado}` do card, de `inst/www/menu-card.js`); o `ctx` do server ganha `doc()`, `fluxo()` e `servir(pasta, nome)`. É o gancho do "Inserir no documento" do `trama.documentos` (#23).
+
 # trama 0.5.22
 
 * Projeto novo pelo MCP (e o registro do `trama-agente` sem `--colecoes`) lista só coleções de verdade: pacote `trama.*` que exporta `trama_collection()` e não é plugin. Antes entrava todo `trama.*` instalado, inclusive o plugin `trama.github` e o launcher, e o editor caía ao abrir (#18).

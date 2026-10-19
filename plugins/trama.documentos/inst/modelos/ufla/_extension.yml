@@ -1,0 +1,34 @@
+title: UFLA (ABNT)
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    common:
+      lang: pt-BR
+      number-sections: true
+      fig-cap-location: top
+      tbl-cap-location: top
+      # Travessão, como na NBR 14724 ("Tabela 1 – Título"). Um "." aqui o
+      # Quarto lê como caminho dentro da extensão.
+      crossref:
+        title-delim: "–"
+      csl: abnt.csl
+      link-bibliography: false
+      filters:
+        - abnt.lua
+      capa: true
+    typst:
+      papersize: a4
+      citeproc: true
+      template-partials:
+        - typst-template.typ
+        - typst-show.typ
+    docx:
+      reference-doc: referencia.docx
+      number-sections: false
+    html:
+      toc: true
+      toc-title: Sumário
+      css: estilo.css
+      embed-resources: false

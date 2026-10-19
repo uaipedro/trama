@@ -1,0 +1,14 @@
+meta:
+  name: trama — Dashboard
+color:
+  palette:
+    petroleo: "#0f766e"
+    grafite: "#1f2937"
+    nevoa: "#f6f7f9"
+  primary: petroleo
+  foreground: grafite
+  background: "#ffffff"
+  light: nevoa
+typography:
+  base:
+    family: Inter

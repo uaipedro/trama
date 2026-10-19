@@ -17,6 +17,13 @@
 #'   sessão do editor. `ctx$project()` devolve o projeto aberto e
 #'   `ctx$recarregar()` relê do disco o projeto aberto (fluxo, temas,
 #'   execução), como ao abri-lo; o histórico de desfazer recomeça.
+#'   `ctx$doc()` e `ctx$fluxo()` dão o documento na tela e o nome do fluxo;
+#'   `ctx$servir(pasta, nome)` serve uma pasta pelo próprio editor e devolve
+#'   a URL relativa (`trama-acao-<nome>/`), como nas ações de card.
+#'
+#' No navegador, além de `registerToolbarItem`, o plugin pode acrescentar
+#' itens ao menu de contexto de um card com `registerCardMenuItem` (ver
+#' `inst/www/menu-card.js`).
 #'
 #' Plugin que falha ao carregar é pulada com aviso: o editor sobe sem ela.
 #'

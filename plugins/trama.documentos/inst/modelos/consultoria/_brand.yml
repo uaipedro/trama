@@ -1,0 +1,19 @@
+meta:
+  name: Yucca Data Science (exemplo de identidade)
+color:
+  palette:
+    azul-yucca: "#003366"
+    gelo: "#E6EFF6"
+    grafite: "#1f2937"
+  primary: azul-yucca
+  secondary: gelo
+  foreground: grafite
+  background: "#ffffff"
+typography:
+  base:
+    family: Inter
+  headings:
+    family: Inter
+    color: azul-yucca
+logo:
+  medium: logo.svg

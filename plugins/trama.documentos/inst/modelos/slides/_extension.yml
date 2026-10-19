@@ -1,0 +1,18 @@
+title: Slides
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    common:
+      lang: pt-BR
+      fig-align: center
+    revealjs:
+      slide-number: true
+      transition: none
+      progress: true
+      center: false
+      width: 1280
+      height: 720
+      css: estilo.css
+      embed-resources: false

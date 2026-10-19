@@ -32,6 +32,8 @@ bloco de código é recusada.}
 
 \item{opcoes}{Lista de opções da região, gravadas no cabeçalho como
 \verb{trama-<opção>} (a pessoa pode mudá-las ali): \code{linhas} (tabela),
+\code{tabela = "completa"} (o \code{dados.csv} leva a tabela inteira, e não só as
+linhas mostradas),
 \code{formato} (\code{"png"} ou \code{"svg"}), \code{largura} e \code{altura} (figura, polegadas).}
 
 \item{aceitar_dados_treino}{\code{TRUE} aceita pôr no documento um modelo que

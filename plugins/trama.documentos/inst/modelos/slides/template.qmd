@@ -1,0 +1,22 @@
+---
+title: "Título da apresentação"
+subtitle: "Uma frase com a mensagem central"
+---
+
+## A pergunta
+
+- O que se quer saber, em uma frase.
+- De onde vêm os dados.
+
+## O que fizemos
+
+- Como a análise foi feita, em três itens no máximo.
+
+## O que os dados mostram
+
+Cada `##` é um slide. Os resultados que você insere do trama entram como blocos `::: {#trama-… .trama}` no fim: mova cada um para o slide certo, embaixo de um título que diga a conclusão.
+
+## Conclusão
+
+- A resposta à pergunta.
+- O próximo passo.

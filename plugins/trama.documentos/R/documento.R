@@ -24,6 +24,8 @@
 #'   bloco de código é recusada.
 #' @param opcoes Lista de opções da região, gravadas no cabeçalho como
 #'   `trama-<opção>` (a pessoa pode mudá-las ali): `linhas` (tabela),
+#'   `tabela = "completa"` (o `dados.csv` leva a tabela inteira, e não só as
+#'   linhas mostradas),
 #'   `formato` (`"png"` ou `"svg"`), `largura` e `altura` (figura, polegadas).
 #' @param aceitar_dados_treino `TRUE` aceita pôr no documento um modelo que
 #'   carrega linhas do treino (SVM, floresta de regressão…). O aceite fica
