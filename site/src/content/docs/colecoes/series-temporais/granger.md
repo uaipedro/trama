@@ -28,6 +28,11 @@ Escolha o método pelo tipo de série:
   o VAR com defasagens extras (a maior ordem de integração) e testa só as
   primeiras p. É o método seguro quando não se sabe se as séries são
   estacionárias.
+- **Instantânea**: outra pergunta. Não olha o passado: testa se os CHOQUES da
+  causa e os das demais séries se correlacionam no mesmo período, pelas
+  covariâncias dos resíduos do VAR. É simétrica (X com Y é o mesmo teste que Y
+  com X) e não tem direção; rejeitar diz que um choque numa série vem junto com
+  um choque na outra, o que também faz a IRF ortogonal depender da ordem.
 
 O VECM não entra aqui: o bloco recebe o VAR em nível (series/var).
 
@@ -35,13 +40,14 @@ O VECM não entra aqui: o bloco recebe o VAR em nível (series/var).
 
 - **Causa** — uma ou mais séries, separadas por vírgula. A hipótese testada é
   que elas não Granger-causam as DEMAIS séries do VAR, em conjunto.
-- **Método** — Wald (séries estacionárias) ou Toda-Yamamoto (nível, integradas
-  ou cointegradas).
+- **Método** — Wald (séries estacionárias), Toda-Yamamoto (nível, integradas
+  ou cointegradas) ou instantânea (correlação contemporânea dos choques).
 
 ## Valor
 
 Um teste (`data/test`) com H0 "causa não Granger-causa resto", a estatística
-(F para Wald, qui-quadrado para Toda-Yamamoto) e o p-valor.
+(F para Wald, qui-quadrado para Toda-Yamamoto) e o p-valor. Na instantânea, a
+H0 é "não há causalidade instantânea entre causa e resto", com qui-quadrado.
 
 ## Exemplos
 

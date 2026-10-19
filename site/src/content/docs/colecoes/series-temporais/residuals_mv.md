@@ -19,6 +19,13 @@ múltipla, uma coluna por série, no calendário das observações que têm res�
 Para olhar um resíduo com os blocos univariados (ACF, ADF, normalidade da
 série) passe a saída por `series/pick`.
 
+### Covariância e correlação dos resíduos
+Ligue a saída na Matriz de correlação da coleção multivariada
+(multi/correlation_matrix): a série vira tabela pelo caminho, e a coluna
+`tempo` fica de fora quando as variáveis estão em branco. A covariância de lá
+divide por n − 1; a Σ_u do `summary` do `vars` divide por T − Kp − 1, os graus
+de liberdade de cada equação. A correlação é a mesma nas duas contas.
+
 ## Parâmetros
 
 Este bloco não tem parâmetros.

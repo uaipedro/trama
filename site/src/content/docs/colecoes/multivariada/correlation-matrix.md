@@ -17,10 +17,12 @@ Use **Matriz de correlação** para obter valores exatos de associações ou com
 
 ## Configuração
 
-- **Variáveis** — colunas numéricas; em branco, todas menos Grupo.
+- **Variáveis** — colunas numéricas; em branco, todas menos Grupo e a coluna de índice (o `tempo` de uma série, quando a tabela vem da coleção de séries).
 - **Matriz** — `correlação` (padrão) ou `covariância`.
 - **Método** — `pearson`, `spearman` ou `kendall`.
 - **Grupo** — coluna opcional para calcular matrizes por nível; covariância requer Pearson.
+
+A covariância usa divisor n − 1. Ligada aos resíduos de um VAR, ela difere da Σ_u do `vars`, que divide por T − Kp − 1; a correlação é a mesma nas duas contas.
 
 ## Exemplo
 

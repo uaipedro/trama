@@ -31,6 +31,10 @@ depois das anteriores.
 
 Um gráfico (`view/plot`). No console, um ggplot comum, somável.
 
+E as frações em tabela (`data/table`, saída `tabela`): uma linha por série,
+horizonte e choque, com a `fracao` da variância (as frações de uma série num
+horizonte somam 1).
+
 ## Exemplos
 
 ```r
