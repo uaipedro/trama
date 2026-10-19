@@ -1,3 +1,7 @@
+# trama.series 0.9.4
+
+* `series/from_table_mts`: `valores` aceita também o texto com vírgula ("ibv, sp") que o campo de colunas do editor grava, além da lista (#32).
+
 # trama.series 0.9.3
 
 * Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
