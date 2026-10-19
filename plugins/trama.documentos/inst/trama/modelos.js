@@ -129,28 +129,56 @@ export function reduzirModelos(s, a) {
       return s.modeloDuplicar ? { ...s, modeloDuplicar: { ...s.modeloDuplicar, enviando: true }, erro: null } : s;
 
     case "modelo_importar_abrir": return { ...s, modeloImportar: { enviando: false }, modeloDuplicar: null, modeloForm: null };
-    case "modelo_importar_enviando":
-      return s.modeloImportar ? { ...s, modeloImportar: { ...s.modeloImportar, enviando: true, arquivo: a.arquivo }, erro: null } : s;
+    // `dados` ({nome, conteudo}) fica guardado: se o nome já existe, a pessoa
+    // escolhe substituir ou outro nome sem escolher o arquivo de novo.
+    case "modelo_importar_enviando": {
+      const i = s.modeloImportar;
+      if (!i) return s;
+      return { ...s, erro: null, modeloImportar: { ...i, enviando: true, conflito: false,
+                                                    dados: a.dados || i.dados, arquivo: a.dados?.nome || i.arquivo } };
+    }
+    case "modelo_importar_nome": return s.modeloImportar ? { ...s, modeloImportar: { ...s.modeloImportar, nome: a.valor } } : s;
 
     case "modelo_remover_pedir": return { ...s, modeloConfirmar: { nome: a.nome, voltar: !!a.voltar } };
+    case "modelo_remover_enviando": return s.modeloConfirmar ? { ...s, modeloConfirmar: { ...s.modeloConfirmar, enviando: true } } : s;
     case "modelo_remover_cancelar": return { ...s, modeloConfirmar: null };
 
     case "modelo_salvo":
       return { ...s, modeloForm: null, modeloDuplicar: null, modeloImportar: null, modeloConfirmar: null,
-               modeloAberto: a.nome || s.modeloAberto, aviso: a.mensagem || "Modelo salvo." };
+               modeloAberto: a.nome ?? null, aviso: a.mensagem || "Modelo salvo." };
     case "modelo_exportado": return { ...s, aviso: `Exportado: ${(a.arquivo || "").split(/[\\/]/).pop()}`, exportadoModelo: a.arquivo };
     default: return s;
   }
 }
 
 // Erro de uma ação de modelos: destrava o formulário que estava enviando.
-export function erroModelos(s) {
+export function erroModelos(s, a = {}) {
+  const conflito = a.acao === "modelos_importar" && a.classe === "tr_documento_erro_modelo_existe";
   return {
     ...s,
     modeloForm: s.modeloForm ? { ...s.modeloForm, enviando: false } : s.modeloForm,
     modeloDuplicar: s.modeloDuplicar ? { ...s.modeloDuplicar, enviando: false } : s.modeloDuplicar,
-    modeloImportar: s.modeloImportar ? { ...s.modeloImportar, enviando: false } : s.modeloImportar,
+    modeloImportar: s.modeloImportar ? { ...s.modeloImportar, enviando: false, conflito } : s.modeloImportar,
+    modeloConfirmar: s.modeloConfirmar ? { ...s.modeloConfirmar, enviando: false } : s.modeloConfirmar,
   };
+}
+
+// Pedido de importar: o arquivo e, depois de um conflito, substituir ou o
+// nome novo. `null` enquanto falta algo.
+export function pedidoImportar(i, como) {
+  if (!i?.dados || i.enviando) return null;
+  if (como === "substituir") return { arquivo: i.dados, substituir: true };
+  if (como === "nome") return nomeModeloValido(i.nome) ? { arquivo: i.dados, nome: i.nome } : null;
+  return { arquivo: i.dados };
+}
+
+// Formatos que o formulário mostra: os cinco da galeria e os que o modelo
+// já tem (pdf, beamer de uma extensão importada), que seguem editáveis.
+export function formatosDoFormulario(f) {
+  const nossos = FORMATOS.map(([k]) => k);
+  const outros = [...(f?.original?.formatos || []), ...(f?.original?.formatos_desligados || [])]
+    .filter((k) => !nossos.includes(k));
+  return [...FORMATOS, ...[...new Set(outros)].map((k) => [k, k])];
 }
 
 // Rótulo curto da origem.

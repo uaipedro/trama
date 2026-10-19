@@ -95,10 +95,16 @@ test_that("exportar e importar pelo painel (o zip sobe em base64)", {
   # O nome vem da pasta dentro do zip: a cópia do usuário por cima do embutido.
   expect_identical(c$ultima("modelo_salvo")$nome, "consultoria")
   expect_true(tr_documento_modelo("consultoria")$sobre_embutido)
+  expect_match(c$ultima("modelo_salvo")$mensagem, "por cima do embutido")
   c$receber(list(acao = "modelos_importar", arquivo = base64(copia)))
-  expect_match(c$ultima("erro")$mensagem, "substituir")
+  e <- c$ultima("erro")
+  expect_identical(e$classe, "tr_documento_erro_modelo_existe")
+  expect_identical(e$acao, "modelos_importar")
   c$receber(list(acao = "modelos_importar", arquivo = base64(copia), substituir = TRUE))
   expect_identical(c$ultima("modelo_salvo")$nome, "consultoria")
+  c$receber(list(acao = "modelos_importar", arquivo = base64(copia), nome = "consultoria-2"))
+  expect_identical(c$ultima("modelo_salvo")$nome, "consultoria-2")
+  expect_identical(tr_documento_modelo("consultoria-2")$origem, "usuario")
 
   c$receber(list(acao = "modelos_abrir", nome = "consultoria"))
   expect_identical(basename(abertos[[2]]), "consultoria")

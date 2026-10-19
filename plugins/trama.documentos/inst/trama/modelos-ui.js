@@ -11,8 +11,8 @@
 // Só desenha: a lógica com ramo mora em `modelos.js`, testada.
 
 import { h } from "trama";
-import { FORMATOS, CORES, FONTES, nomeModeloValido, pedidoEditar, pedidoDuplicar, origemDe, formatosLegiveis }
-  from "./modelos.js";
+import { CORES, FONTES, nomeModeloValido, pedidoEditar, pedidoDuplicar, pedidoImportar, formatosDoFormulario,
+         origemDe, formatosLegiveis } from "./modelos.js";
 
 const Botao = ({ primario, perigo, children, ...p }) => h("button", {
   type: "button", className: "tr-doc-btn" + (primario ? " tr-doc-primario" : "") + (perigo ? " tr-doc-perigo" : ""), ...p,
@@ -58,15 +58,27 @@ function Duplicar({ s, enviar, despachar }) {
 
 function Importar({ s, enviar, despachar }) {
   const i = s.modeloImportar;
-  const escolher = (e) => lerArquivo(e.target.files?.[0], (arquivo) => {
-    despachar({ tipo: "modelo_importar_enviando", arquivo: arquivo.nome });
-    enviar("modelos_importar", { arquivo });
-  });
+  const ir = (como, dados) => {
+    const p = pedidoImportar(dados ? { ...i, dados } : i, como);
+    if (!p) return;
+    despachar({ tipo: "modelo_importar_enviando", dados: p.arquivo });
+    enviar("modelos_importar", p);
+  };
+  const escolher = (e) => lerArquivo(e.target.files?.[0], (dados) => ir(null, dados));
   return h("div", { className: "tr-doc-caixa" }, [
     h("div", { key: "t", className: "tr-doc-titulo" }, "Importar modelo"),
     h("p", { key: "p", className: "tr-doc-dim tr-doc-nota" },
       "Um .zip exportado do trama ou uma extensão Quarto (a pasta _extensions/ com o template.qmd). O modelo é conferido antes de entrar."),
     i.enviando ? h("div", { key: "o", className: "tr-doc-ocupado" }, `Importando ${i.arquivo || ""}…`)
+      : i.conflito ? h("div", { key: "c", className: "tr-doc-confirmar" }, [
+          h("p", { key: "p" }, `Você já tem um modelo com o nome de “${i.arquivo}”.`),
+          h("div", { key: "s", className: "tr-doc-linha" }, [
+            h(Botao, { key: "s", perigo: true, onClick: () => ir("substituir") }, "Substituir o meu")]),
+          h(Campo, { key: "n", rotulo: "…ou importar com outro nome" },
+            h("div", { className: "tr-doc-linha" }, [
+              h("input", { key: "i", type: "text", value: i.nome || "", placeholder: "outro-nome",
+                           onChange: (e) => despachar({ tipo: "modelo_importar_nome", valor: e.target.value }) }),
+              h(Botao, { key: "b", disabled: !pedidoImportar(i, "nome"), onClick: () => ir("nome") }, "Importar")]))])
       : h("input", { key: "f", type: "file", accept: ".zip,application/zip", onChange: escolher }),
     h(Botao, { key: "x", onClick: () => despachar({ tipo: "modelo_cancelar" }) }, "Cancelar"),
   ]);
@@ -88,7 +100,7 @@ function Editar({ s, enviar, despachar }) {
       h("input", { type: "text", value: f.descricao, placeholder: "Para que serve", onChange: (e) => set("descricao", e.target.value) })),
     h("fieldset", { key: "fm", className: "tr-doc-grupo" }, [
       h("legend", { key: "l", className: "tr-doc-dim" }, "Formatos"),
-      h("div", { key: "c", className: "tr-doc-linha" }, FORMATOS.map(([k, rotulo]) =>
+      h("div", { key: "c", className: "tr-doc-linha" }, formatosDoFormulario(f).map(([k, rotulo]) =>
         h("label", { key: k, className: "tr-doc-check" }, [
           h("input", { key: "i", type: "checkbox", checked: f.formatos.includes(k),
                        onChange: () => despachar({ tipo: "modelo_formato", formato: k }) }),
@@ -154,7 +166,10 @@ function Modelo({ s, m, enviar, despachar }) {
         h("p", { key: "p" }, conf.voltar ? `Desfazer suas mudanças em “${m.titulo}” e voltar ao embutido?`
           : `Apagar o modelo “${m.titulo}”? Documentos já criados com ele não mudam.`),
         h("div", { key: "b", className: "tr-doc-linha" }, [
-          h(Botao, { key: "s", perigo: true, onClick: () => enviar("modelos_remover", { nome: m.nome }) }, conf.voltar ? "Voltar" : "Apagar"),
+          h(Botao, { key: "s", perigo: true, disabled: !!conf.enviando, onClick: () => {
+            despachar({ tipo: "modelo_remover_enviando" });
+            enviar("modelos_remover", { nome: m.nome });
+          } }, conf.voltar ? "Voltar" : "Apagar"),
           h(Botao, { key: "n", onClick: () => despachar({ tipo: "modelo_remover_cancelar" }) }, "Cancelar")])]) : null,
       h("div", { key: "a", className: "tr-doc-linha" }, [
         h(Botao, { key: "e", primario: true, onClick: () => enviar("modelos_detalhe", { nome: m.nome }) }, "Editar"),

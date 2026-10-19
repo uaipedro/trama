@@ -62,8 +62,16 @@
     modelos_importar = {
       z <- .td_arquivo_do_navegador(m$arquivo, tmp)
       if (!grepl("\\.zip$", z, ignore.case = TRUE)) .td_erro("Escolha um arquivo .zip.", "tr_documento_erro_modelo")
-      i <- tr_documento_modelo_importar(z, substituir = isTRUE(m$substituir))
-      salvo(i$nome, sprintf("Modelo '%s' importado.", i$titulo))
+      i <- tryCatch(tr_documento_modelo_importar(z, nome = .td_texto1(m$nome), substituir = isTRUE(m$substituir)),
+                    tr_documento_erro_modelo_existe = function(e) e)
+      # Nome que já existe: o painel oferece substituir ou outro nome.
+      if (inherits(i, "error")) {
+        return(invisible(enviar(list(tipo = "erro", acao = m$acao, classe = "tr_documento_erro_modelo_existe",
+                                     mensagem = "J\u{E1} existe um modelo seu com esse nome."))))
+      }
+      salvo(i$nome, if (isTRUE(i$sobre_embutido)) {
+        sprintf("Modelo '%s' importado por cima do embutido de mesmo nome (\u{201C}Voltar ao embutido\u{201D} desfaz).", i$titulo)
+      } else sprintf("Modelo '%s' importado.", i$titulo))
     },
     modelos_abrir = {
       caminho <- if (identical(.td_texto1(m$alvo), "exportados")) .td_dir_usuario("exportados") else {

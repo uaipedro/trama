@@ -116,7 +116,7 @@ export function reduzir(s, a) {
     case "guia": return { ...s, guia: a.passos || [] };
     case "fechar_guia": return { ...s, guia: null };
     case "erro": {
-      if ((a.acao || "").startsWith("modelos_")) return { ...erroModelos(s), aviso: null, erro: a.mensagem };
+      if ((a.acao || "").startsWith("modelos_")) return { ...erroModelos(s, a), aviso: null, erro: a.mensagem };
       const base = { ...s, ocupado: a.documento ? semChave(s.ocupado, a.documento) : s.ocupado, aviso: null };
       // Modelo com dados de treino: o painel pede o aceite em vez de só mostrar o erro.
       if (a.acao === "inserir" && s.inserir && a.classe === "tr_documento_erro_dados_treino") {

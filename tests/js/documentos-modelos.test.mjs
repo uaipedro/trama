@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { reduzirModelos, formularioDe, pedidoEditar, pedidoDuplicar, nomeModeloValido, nomeDe, origemDe,
-         formatosLegiveis } from "../../plugins/trama.documentos/inst/trama/modelos.js";
+import { reduzirModelos, formularioDe, pedidoEditar, pedidoDuplicar, pedidoImportar, formatosDoFormulario,
+         nomeModeloValido, nomeDe, origemDe, formatosLegiveis } from "../../plugins/trama.documentos/inst/trama/modelos.js";
 import { INICIAL, reduzir, formatosExportar } from "../../plugins/trama.documentos/inst/trama/painel.js";
 
 const ufla = { nome: "ufla", titulo: "UFLA (ABNT)", origem: "embutido", sobre_embutido: false,
@@ -112,4 +112,38 @@ test("exportar: os formatos do documento, e os três de sempre sem a lista", () 
   assert.deepEqual(formatosExportar({ formatos: ["html", "pdf", "docx"] }).map(([k]) => k), ["pdf", "docx", "html"]);
   assert.deepEqual(formatosExportar({ formatos: ["revealjs"] }), [["revealjs", "Slides"]]);
   assert.deepEqual(formatosExportar({}).map(([k]) => k), ["pdf", "docx", "html"]);
+});
+
+test("importar: nome que já existe vira escolha entre substituir e outro nome, sem escolher o arquivo de novo", () => {
+  const dados = { nome: "meu.zip", conteudo: "data:application/zip;base64,UEsDBA==" };
+  let s = passo(INICIAL, { tipo: "modelo_importar_abrir" });
+  assert.deepEqual(pedidoImportar({ ...s.modeloImportar, dados }), { arquivo: dados });
+  s = passo(s, { tipo: "modelo_importar_enviando", dados });
+  assert.equal(pedidoImportar(s.modeloImportar), null);  // enviando
+  s = passo(s, { tipo: "erro", acao: "modelos_importar", classe: "tr_documento_erro_modelo_existe", mensagem: "Já existe" });
+  assert.equal(s.modeloImportar.conflito, true);
+  assert.equal(s.modeloImportar.arquivo, "meu.zip");
+  assert.deepEqual(pedidoImportar(s.modeloImportar, "substituir"), { arquivo: dados, substituir: true });
+  assert.equal(pedidoImportar(s.modeloImportar, "nome"), null);
+  s = passo(s, { tipo: "modelo_importar_nome", valor: "meu-2" });
+  assert.deepEqual(pedidoImportar(s.modeloImportar, "nome"), { arquivo: dados, nome: "meu-2" });
+  // Outro erro (zip inválido) não é conflito.
+  const outro = passo(s, { tipo: "modelo_importar_enviando" },
+                      { tipo: "erro", acao: "modelos_importar", classe: "tr_documento_erro_modelo", mensagem: "x" });
+  assert.equal(outro.modeloImportar.conflito, false);
+});
+
+test("formatos que o modelo já tem e a galeria não configura aparecem no formulário", () => {
+  const f = formularioDe({ ...ufla, formatos: ["pdf", "html"], formatos_desligados: ["beamer"] });
+  assert.deepEqual(formatosDoFormulario(f).map(([k]) => k), ["html", "typst", "docx", "revealjs", "dashboard", "pdf", "beamer"]);
+  assert.equal(formatosDoFormulario(formularioDe(ufla)).length, 5);
+});
+
+test("apagar: um envio só; depois de apagar, nada fica aberto", () => {
+  let s = passo(INICIAL, { tipo: "modelo_abrir", nome: "meu" }, { tipo: "modelo_remover_pedir", nome: "meu" },
+                { tipo: "modelo_remover_enviando" });
+  assert.equal(s.modeloConfirmar.enviando, true);
+  s = passo(s, { tipo: "modelo_salvo", nome: null, mensagem: "Modelo 'meu' removido." });
+  assert.equal(s.modeloAberto, null);
+  assert.equal(s.modeloConfirmar, null);
 });
