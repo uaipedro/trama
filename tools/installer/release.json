@@ -6,7 +6,7 @@
     "https://uaipedro.r-universe.dev"
   ],
   "core": {
-    "trama": "0.5.22",
+    "trama": "0.5.23",
     "trama.data": "0.4.6",
     "trama.view": "0.2.9",
     "trama.launcher": "0.2.2",
