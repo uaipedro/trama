@@ -1,0 +1,26 @@
+title: Básico
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    common:
+      lang: pt-BR
+      number-sections: true
+      fig-cap-location: bottom
+      tbl-cap-location: top
+      fig-align: center
+    html:
+      toc: true
+      toc-title: Sumário
+      css: estilo.css
+      embed-resources: false
+    typst:
+      papersize: a4
+      fontsize: 11pt
+      margin:
+        x: 2.5cm
+        y: 2.5cm
+      toc: false
+    docx:
+      toc: false
