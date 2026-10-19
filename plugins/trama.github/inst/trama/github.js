@@ -1,7 +1,7 @@
-// Menu GitHub da barra do editor (pacote de apoio `trama.github`).
+// Menu GitHub da barra do editor (plugin `trama.github`).
 //
 // Só desenha: o estado é o redutor de `estado.js`, e quem fala com o GitHub é
-// o R (`R/extensao.R`). Canal próprio: `input$trama_github` ({acao}) para
+// o R (`R/plugin.R`). Canal próprio: `input$trama_github` ({acao}) para
 // cima, mensagem `trama_github` ({tipo, ...}) para baixo.
 
 import React from "react";

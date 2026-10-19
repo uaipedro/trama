@@ -10,7 +10,7 @@ tr_server(
   executor = tr_executor_sequential(),
   autosave = TRUE,
   ctx_extra = NULL,
-  extensions = list()
+  plugins = list()
 )
 }
 \description{

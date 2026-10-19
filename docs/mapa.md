@@ -11,7 +11,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `inst/schema/` | JSON Schema do documento (`document-v1.json`) e do template (`template-v1.json`). |
 | `tests/testthat/` | Testes do núcleo. `tests/js/` testa os módulos puros do editor com `node --test 'tests/js/*.test.mjs'` (com glob: passar o diretório faz o Node tratá-lo como arquivo e falhar). |
 | `collections/trama.*` | Coleções de blocos; cada uma é um pacote R com testes próprios. Anatomia e checklist de bloco novo: `collections/AGENTS.md` e skill `novo-bloco`. |
-| `apoio/trama.*` | Pacotes de apoio: sem blocos, não são coleção nem entram no `trama.json`. Os que declaram `Config/trama/extension: true` aparecem no editor como extensão (`R/extension.R`). Hoje: `trama.github`. |
+| `plugins/trama.*` | Plugins: sem blocos, não são coleção nem entram no `trama.json`. Os que declaram `Config/trama/plugin: true` entram no editor (`R/plugin.R`). Hoje: `trama.github`. |
 | `site/` | Site de documentação (Astro). Publicado pelo `.github/workflows/docs.yml`. |
 | `tools/check.R` | Roteador de testes (ver skill `verificar-trama`). |
 | `tools/templates/gerar.R` | Gera os templates JSON das coleções (descobre as coleções; sem exemplo, pula). |
@@ -33,7 +33,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `document.R`, `document-io.R`, `migrate.R` | Documento `.trama`, leitura/gravação e migrações. |
 | `project.R`, `store.R`, `run.R`, `runs.R`, `session.R` | Projeto, cache de resultados e histórico de execuções. |
 | `app.R` | App Shiny que serve o editor. |
-| `extension.R` | Extensões do editor: acha pacotes de apoio instalados (`tr_extensions()`) e liga JS, CSS e server deles. Sem rede, sem nome de pacote. |
+| `plugin.R` | Plugins do editor: acha os plugins instalados (`tr_plugins()`) e liga JS, CSS e server deles. Sem rede, sem nome de pacote. |
 | `control.R`, `cli.R` | Canal de controle para agentes (HTTP local + token) e o CLI `trama-agente` (`inst/bin/`); `catalog`, `explain` e `validate` rodam sem editor. |
 | `template.R`, `theme.R`, `export.R` | Templates, temas de gráfico, exportação. |
 | `docs-bloco.R`, `test-card.R` | Documentação por bloco e `tr_test` para coleções. |
@@ -59,13 +59,13 @@ Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `
 
 Dentro de uma coleção: `R/collection.R` registra tudo; os `tr_node` ficam em `R/nos_*.R`, `R/nodes.R` ou no próprio `collection.R`, conforme a coleção; os demais arquivos têm a lógica pura; `R/docs*.R` guarda a documentação; `inst/templates/` tem os templates gerados.
 
-## Pacotes de apoio
+## Plugins
 
 | Pacote | O que faz |
 | --- | --- |
 | `trama.github` | Conexão com o GitHub: guia de conta, login pelo device flow, credencial no chaveiro, API interna (usuário, repositório, commit atômico, tag) e o menu GitHub do editor. Base de `trama.publicar` e do versionamento do projeto. Visão: `docs/visao-publicar-e-github.md`. Testes contra GitHub falso (`webfakes`). |
 
-Rodam pelo `tools/check.R` como as coleções (`apoio/X/**` → testes de X), sem carregar o núcleo. JS com ramo segue a regra do editor: módulo puro com teste em `tests/js/`.
+Rodam pelo `tools/check.R` como as coleções (`plugins/X/**` → testes de X), sem carregar o núcleo. JS com ramo segue a regra do editor: módulo puro com teste em `tests/js/`.
 
 ## Documentos: o que vale
 

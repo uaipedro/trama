@@ -32,11 +32,11 @@ O mesmo GitHub serve, antes de qualquer publicação, para **versionar o projeto
 
 | Camada | Onde mora | O que faz |
 |---|---|---|
-| Conexão GitHub | pacote de apoio `trama.github` | guia de criação de conta, login, token, criar repositório, commit pela API |
+| Conexão GitHub | plugin `trama.github` | guia de criação de conta, login, token, criar repositório, commit pela API |
 | Versionar o projeto | `trama.github`, no menu do editor | "salvar versão", histórico e restaurar, num repositório **privado** |
 | Publicar | coleção `trama.publicar` | nó `publicar`, pacote RO-Crate, página, prévia e envio para um repositório **próprio** da publicação |
 
-`trama.github` é pacote de apoio, não coleção: não tem nós. O editor mostra o menu GitHub quando ele está instalado, e ele entra na instalação padrão. O núcleo continua sem dependências de rede (`httr2`, `keyring`, `gitcreds` ficam no `trama.github`). `trama.publicar` depende de `trama.github`; o inverso nunca.
+`trama.github` é plugin, não coleção: não tem nós. O editor mostra o menu GitHub quando ele está instalado, e ele entra na instalação padrão. O núcleo continua sem dependências de rede (`httr2`, `keyring`, `gitcreds` ficam no `trama.github`). `trama.publicar` depende de `trama.github`; o inverso nunca.
 
 Repositório do projeto e repositório da publicação são separados de propósito. O primeiro é o caderno de trabalho; o segundo é o material limpo. O rascunho nunca vaza junto com a publicação.
 
@@ -218,7 +218,7 @@ O card acompanha: enviado → Actions rodando → release criada → página no 
 | Dados de entrada | Só entram se ligados; o resto vai como descrição + hash |
 | Repositório | Um por publicação; projeto em repositório privado separado |
 | Envio | Commit e tag pela API + GitHub Actions |
-| Onde mora a conexão | Pacote de apoio `trama.github` |
+| Onde mora a conexão | Plugin `trama.github` |
 | Versionar dados do projeto | Fora por padrão, opcionais por arquivo |
 | Prévia | Local, idêntica ao que sai, antes de liberar o envio |
 

@@ -1,12 +1,12 @@
 Package: trama.github
 Title: GitHub Connection for trama
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Connects trama to GitHub without git or a terminal: account
     guide, login by the OAuth device flow, reuse of existing credentials,
     token kept in the system keyring, and an internal API to create
     repositories and make atomic commits and tags through the Git data API.
-    It is a support package, not a block collection: it has no nodes. When
+    It is a trama plugin, not a block collection: it has no nodes. When
     installed, the trama editor shows a GitHub menu.
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -24,6 +24,6 @@ Suggests:
     webfakes,
     withr
 Config/testthat/edition: 3
-Config/trama/extension: true
+Config/trama/plugin: true
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0

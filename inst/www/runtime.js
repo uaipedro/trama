@@ -92,8 +92,8 @@ export function pedirAcao(handle, acao, extra = null) {
 export function getRenderer(id) { return renderers[id]; }
 export function getWidget(kind) { return widgets[kind]; }
 
-// Item da barra de ferramentas trazido por uma extensão (pacote de apoio, ver
-// `tr_extensions()`; o menu GitHub do `trama.github` é o caso). `Componente` é
+// Item da barra de ferramentas trazido por um plugin (ver `tr_plugins()`; o
+// menu GitHub do `trama.github` é o caso). `Componente` é
 // um componente React sem props, desenhado na barra antes de "Ajuda", na
 // ordem de registro. Ele cuida do próprio estado e do próprio popover e fala
 // com o R pelo canal dele (`Shiny.setInputValue`), não pelo `tr_op`.

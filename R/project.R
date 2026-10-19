@@ -345,7 +345,7 @@ print.tr_project <- function(x, ...) {
 
 .TR_CFG_DO_NUCLEO <- c("collections", "temas", "tema_padrao", "marca", "sugestoes", "galeria")
 
-#' Chave própria de uma coleção ou pacote de apoio no `trama.json`
+#' Chave própria de uma coleção ou plugin no `trama.json`
 #'
 #' O `trama.json` é a configuração do PROJETO: fica com ele e não vai no
 #' fluxo nem no que se publica. Uma coleção guarda ali o que é do projeto e

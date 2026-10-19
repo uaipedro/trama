@@ -14,7 +14,7 @@
 #' @export
 tr_server <- function(project, flow = "main",
                       executor = tr_executor_sequential(), autosave = TRUE,
-                      ctx_extra = NULL, extensions = list()) {
+                      ctx_extra = NULL, plugins = list()) {
   force(project); force(executor)
 
   .tr_warn_ctx_extra(ctx_extra)
@@ -26,7 +26,7 @@ tr_server <- function(project, flow = "main",
     rv_project <- shiny::reactiveVal(project)
     rv_flow    <- shiny::reactiveVal(flow)
     rv_doc     <- shiny::reactiveVal(tr_project_flow(project, flow))
-    .tr_extension_servers(extensions, input, output, session,
+    .tr_plugin_servers(plugins, input, output, session,
                           list(project = function() shiny::isolate(rv_project())))
     run_seq  <- shiny::reactiveVal(0L)
     # O log de undo é do SERVIDOR, e começa em `base_doc` (fixado no

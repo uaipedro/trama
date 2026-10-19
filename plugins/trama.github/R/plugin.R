@@ -1,13 +1,13 @@
 #' Menu GitHub no editor
 #'
-#' Contrato de extensão do trama (ver `trama::tr_extensions()`): o editor
+#' Contrato de plugin do trama (ver `trama::tr_plugins()`): o editor
 #' carrega `inst/trama/github.js` e liga o server abaixo a cada sessão. O canal
 #' é próprio: o JS manda `input$trama_github` (`{acao}`) e o R responde com a
 #' mensagem `trama_github` (`{tipo, ...}`).
 #'
 #' @return Lista com `js`, `css` e `server`.
 #' @export
-trama_extension <- function() {
+trama_plugin <- function() {
   list(js = "trama/github.js", css = "trama/github.css", server = .gh_servidor)
 }
 
