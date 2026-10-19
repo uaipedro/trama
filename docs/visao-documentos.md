@@ -141,3 +141,6 @@ Depois: editor de texto simples no próprio trama, compartilhar modelos pelo Git
 | Modelos | Extensões Quarto no nível do usuário, criar/editar/duplicar |
 | Autoria | Perfis no nível do usuário |
 | `trama.publicar` | Converge para dentro do `trama.documentos`, em fases, já |
+| Tabela de dados em `_trama/` | Só as linhas mostradas na região; a tabela completa é opção explícita na região (mesma lógica do aceite de dados de treino) |
+| `_trama/` no versionamento do projeto | Fora por padrão: é derivado e se refaz com "atualizar" |
+| Tema dos gráficos no documento | Tema claro do modelo (`_brand.yml`), não o tema do editor (fase 3) |
