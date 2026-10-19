@@ -43,6 +43,10 @@ test_that("conferência: região desatualizada, dados de treino sem aceite e doc
   # O fluxo muda: a região fica para trás e a publicação espera o "atualizar".
   salvar_fluxo(x$proj, no("tab", n = 5L), no("mod", "tst/modelo"))
   expect_match(tr_documento_publicacao(x$qmd, x$proj)$erros, "#trama-tab está desatualizada", all = FALSE)
+  # Antes de publicar (que atualiza), é só aviso.
+  antes <- tr_documento_publicacao(x$qmd, x$proj, desatualizada = "aviso")
+  expect_identical(antes$erros, character())
+  expect_match(antes$avisos, "publicar atualiza", all = FALSE)
   tr_documento_atualizar(x$qmd, x$proj)
   # Modelo que carrega linhas do treino: aceito para o documento, mas
   # publicar pede o aceite próprio, no YAML.

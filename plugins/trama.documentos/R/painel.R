@@ -128,7 +128,7 @@
     # Publicar no GitHub (#25): conferir o que sai, publicar e acompanhar.
     publicar_conferir = function(m) {
       d <- doc(m)
-      pub <- tr_documento_publicacao(d, projeto())
+      pub <- tr_documento_publicacao(d, projeto(), desatualizada = "aviso")
       e <- .td_envio_ler(raiz(), m$documento)
       enviar(c(list(tipo = "publicacao", documento = m$documento), .td_publicacao_json(pub, raiz(), m$documento),
                list(envio = e)))

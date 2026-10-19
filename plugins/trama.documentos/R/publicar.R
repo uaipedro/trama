@@ -32,10 +32,14 @@
 #' 100 MB e documento sem formato HTML (a página do GitHub Pages).
 #'
 #' @inheritParams tr_documento_inserir
+#' @param desatualizada Região desatualizada é `"erro"` (o padrão: o pacote
+#'   não sai) ou `"aviso"` (a conferência antes de [tr_documento_publicar()],
+#'   que atualiza o documento antes de montar).
 #' @return Objeto `tr_documento_publicacao`: lista com `documento`,
 #'   `metadados`, `regioes`, `avisos` e `erros`.
 #' @export
-tr_documento_publicacao <- function(documento, projeto = NULL) {
+tr_documento_publicacao <- function(documento, projeto = NULL, desatualizada = c("erro", "aviso")) {
+  desatualizada <- match.arg(desatualizada)
   projeto <- .td_projeto(projeto, documento)
   d <- .td_ler(documento)
   y <- .td_yaml(d$linhas)
@@ -54,8 +58,11 @@ tr_documento_publicacao <- function(documento, projeto = NULL) {
     est <- e$estado[[i]]
     if (est == "duplicada") next
     rot <- sprintf("#trama-%s", chave)
-    if (est == "desatualizada") {
+    if (est == "desatualizada" && desatualizada == "erro") {
       erros <- c(erros, sprintf("%s est\u{E1} desatualizada: atualize o documento antes de publicar.", rot))
+    }
+    if (est == "desatualizada" && desatualizada == "aviso") {
+      avisos <- c(avisos, sprintf("%s est\u{E1} desatualizada: publicar atualiza o documento antes.", rot))
     }
     if (est == "conflito") avisos <- c(avisos, sprintf("%s foi editada \u{E0} m\u{E3}o: sai como est\u{E1} no texto.", rot))
     if (est == "orfa") avisos <- c(avisos, sprintf("%s \u{E9} de um bloco que saiu do fluxo: sai como est\u{E1}.", rot))

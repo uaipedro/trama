@@ -4,13 +4,21 @@
 \alias{tr_documento_publicacao}
 \title{O que sairia na publicação de um documento}
 \usage{
-tr_documento_publicacao(documento, projeto = NULL)
+tr_documento_publicacao(
+  documento,
+  projeto = NULL,
+  desatualizada = c("erro", "aviso")
+)
 }
 \arguments{
 \item{documento}{Caminho do \code{.qmd}.}
 
 \item{projeto}{Um \code{trama::tr_project()} ou a pasta dele; \code{NULL} acha a
 primeira pasta com \code{trama.json} acima do documento.}
+
+\item{desatualizada}{Região desatualizada é \code{"erro"} (o padrão: o pacote
+não sai) ou \code{"aviso"} (a conferência antes de \code{\link[=tr_documento_publicar]{tr_documento_publicar()}},
+que atualiza o documento antes de montar).}
 }
 \value{
 Objeto \code{tr_documento_publicacao}: lista com \code{documento},
