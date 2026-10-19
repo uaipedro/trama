@@ -5,7 +5,7 @@ import { fontesPorPorta, nomesDasFontes } from "../../inst/www/fontes.js";
 const nodes = [
   { id: "a", data: { label: "Tabela", nodeType: "data/read" } },
   { id: "b", data: { spec: { label: "Gráfico" }, nodeType: "view/scatter" } },
-  { id: "p", data: { nodeType: "publicar/publish" } },
+  { id: "p", data: { nodeType: "tst/juntar" } },
 ];
 
 test("lista todas as origens de uma porta múltipla, na ordem do index", () => {

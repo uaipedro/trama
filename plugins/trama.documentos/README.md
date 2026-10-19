@@ -14,6 +14,11 @@ regiões gerenciadas são do trama. Desenho em `docs/visao-documentos.md`.
 - **Inserir no documento…**, no menu de um card (botão direito): escolhe o
   documento, a saída, as linhas e se o CSV leva a tabela inteira; um modelo
   com dados de treino pede o aceite ali mesmo.
+- **Publicar no GitHub…**, em cada documento: confere o que sai (título,
+  autores, licença, próxima versão, avisos e bloqueios), envia e acompanha
+  as etapas (pacote enviado, Actions, release, página no ar) com os links.
+- Projeto com o bloco **Publicar** do antigo `trama.publicar`: ao abrir, o
+  bloco vira um documento Página web e o painel avisa (ver "Migração").
 - Aba **Modelos**: a galeria (fase 3, #24) — ver, duplicar, editar (título,
   descrição, formatos, cores, fontes, logo, capa, CSL, perfil sugerido),
   importar e exportar zip, remover ou voltar ao embutido.
@@ -76,6 +81,77 @@ tr_documento_renderizar(doc, "pdf")       # pdf é via Typst
 tr_documento_previa(doc)                  # HTML servido em 127.0.0.1
 ```
 
+## Destinos: Página web e Publicar no GitHub
+
+O modelo **Página web** traz a extensão [quarto-live](https://github.com/r-wasm/quarto-live)
+v0.2.0 fixada (`inst/modelos/pagina/ORIGEM.md`): num documento dele, a região
+de um modelo ganha um preditor — um controle por entrada e uma célula WebR que
+lê o motor da mesma origem (`_trama/<id>/motor.rds`), chama `prever` e mostra o
+resultado, com as versões do treino × as do navegador. O esqueleto cita
+versão, licenças e citação por `{{< var >}}`: no documento, `_variables.yml`
+diz "rascunho"; no pacote publicado, os valores da versão.
+
+**Publicar no GitHub** vale para qualquer documento com formato HTML. Os
+metadados vêm do YAML: `title`, `author` (com `orcid`, conferido pelo dígito
+verificador), `description`, `keywords`, e em `trama: publicar:` a `licenca`
+(CC-BY-4.0, CC0-1.0, CC-BY-SA-4.0, CC-BY-NC-4.0), a `licenca-codigo` (MIT,
+Apache-2.0, GPL-3.0-only), a `versao` (tipo da próxima: `menor`, `correção`,
+`maior`), `privado`, `aceitar-dados-treino` e `incluir-dados` (arquivos de
+dados que a pessoa deixou na pasta do documento; sem ele, bloqueiam). Os
+outros arquivos da pasta vão junto e aparecem na conferência; um repositório
+já usado por outro documento, ou o repositório privado do projeto, é recusado.
+
+```r
+tr_documento_publicacao(doc)              # o que sai, avisos e bloqueios (não toca no GitHub)
+tr_documento_pacote(doc, "pacote")        # a pasta RO-Crate, para conferir
+tr_documento_publicar(doc)                # atualiza, monta, commit atômico + tag vX.Y.Z
+tr_documento_acompanhar(doc)              # enviado, actions, release, no_ar ou falhou
+tr_documento_publicacoes(".")             # o registro do projeto
+```
+
+O pacote é um [RO-Crate 1.1](https://w3id.org/ro/crate/1.1): o documento
+como `index.qmd` com a pasta dele (modelo em `_extensions/`, `_trama/` só com
+o que o texto usa), `flow.json`, `fluxo.svg`, `dados-entrada.json` (descrição
+e sha256 do que não vai), `ambiente.json`, `README.md`, `CITATION.cff`,
+`LICENSE` e o `ro-crate-metadata.json`, que descreve cada arquivo com tamanho
+e sha256 (modelos com o vocabulário [FAIR4ML](https://w3id.org/fair4ml)). Um
+repositório por documento, público por padrão; o envio é um commit atômico
+(a árvore passa a ser exatamente o pacote + o workflow) e a tag `vX.Y.Z`. O
+workflow (`inst/github/`, versões fixadas) confere checksums e RO-Crate,
+renderiza com o Quarto, cria a release com o pacote zipado e publica no
+Pages em `/vX.Y.Z/` (imutável) e `/ultimo/`, acumulados na branch `paginas`.
+
+O endereço de cada publicação fica no `trama.json` do projeto (chave
+`publicacoes`, pelo caminho do documento): nunca vai no documento nem no
+pacote, e o repositório privado do projeto (versionar, do `trama.github`)
+nunca é citado. O GitHub Actions instala só knitr e rmarkdown: bloco R da
+pessoa que use outro pacote falha lá (a conferência avisa).
+
+### Dados de treino
+
+Os modelos vão reduzidos (`trama.models::tr_models_strip()`): só o que prevê.
+Quando o reduzido ainda carrega linhas do treino (vetores de suporte de uma
+SVM, folhas de uma floresta de regressão), a região só entra com aceite, e a
+publicação pede outro, explícito, no documento (`aceitar-dados-treino: true`
+em `trama: publicar:`). Aceito, o arquivo leva no RO-Crate
+`trama:contemDadosTreino` e `trama:dadosTreinoEmbutidos` (o que ele carrega):
+termos deste pacote, porque nem schema.org nem FAIR4ML têm um para isso.
+
+### Migração do `trama.publicar`
+
+O `trama.publicar` saiu (#25). Ao abrir no editor um projeto com o nó
+`publicar/publish`, `tr_documento_migrar_publicar()` cria um documento
+Página web por nó: os params viram o YAML (título, resumo, palavras-chave,
+autores com ORCID, licenças, tipo de versão, privado, aceite de dados de
+treino), e o layout vira o corpo — cabeçalho do modelo, textos, uma região
+por item ligado (na ordem), o diagrama do fluxo. Item que não entra vira uma
+nota no texto; item ligado que o layout não citava (ia só no pacote) entra no
+fim, em "Material adicional". Se algo falha no meio, a migração do fluxo é
+desfeita (cópia em `.trama/migracao/`); nó já migrado que volte ao fluxo sai
+de novo, sem outro documento. A publicação já feita passa a ser do documento: a próxima sai
+no mesmo repositório, na versão seguinte. O nó e as arestas dele saem do
+fluxo, e a coleção sai do `trama.json`.
+
 ## Estender
 
 O que uma região mostra vem do genérico `tr_documento_componente(x, ctx)`, pela
@@ -97,6 +173,7 @@ Ficam em `tools::R_user_dir("trama", "data")`: `perfis.yml` e
 | Artigo | `artigo` | pdf, html, docx (resumo, palavras-chave, ABNT) | |
 | Slides | `slides` | revealjs (16:9) | |
 | Dashboard | `painel` | dashboard (cada região vira um cartão) | |
+| Página web | `pagina` | html com R no navegador (WebR): cada modelo vira preditor | |
 
 Um modelo é uma pasta:
 

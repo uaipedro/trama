@@ -3,8 +3,9 @@
 //
 // Ações vêm de dois lados: mensagens do R (`tipo` = lista, estado, criado,
 // atualizado, inserido, resolvido, ocupado, previa, exportado, aberto, guia,
-// modelos, erro) e gestos do painel (abrir, fechar, aba, selecionar, novo_*,
-// inserir_*, …). Ações de modelos (`tipo` começando com "modelo") são do
+// modelos, migrado, publicacao, publicar_confirmar, publicar_bloqueado, envio,
+// erro) e gestos do painel (abrir, fechar, aba, selecionar, novo_*,
+// inserir_*, publicar_*, …). Ações de modelos (`tipo` começando com "modelo") são do
 // redutor de `modelos.js`.
 
 import { reduzirModelos, erroModelos } from "./modelos.js";
@@ -14,6 +15,7 @@ export const INICIAL = Object.freeze({
   documentos: [], modelos: [], perfis: [], perfilPadrao: null, quarto: true,
   selecionado: null, regioes: {}, ocupado: {}, erro: null, aviso: null,
   novo: null, inserir: null, guia: null, exportados: {}, confirmar: null,
+  publicar: null, envios: {},
   modeloAberto: null, modeloForm: null, modeloDuplicar: null, modeloImportar: null, modeloConfirmar: null,
 });
 
@@ -28,7 +30,7 @@ export const ESTADOS = Object.freeze({
 });
 
 const OCUPADO = { atualizar: "Atualizando…", previa: "Gerando a prévia…", html: "Exportando HTML…",
-                  pdf: "Exportando PDF…", docx: "Exportando Word…", revealjs: "Exportando os slides…",
+                  publicar: "Enviando ao GitHub…", pdf: "Exportando PDF…", docx: "Exportando Word…", revealjs: "Exportando os slides…",
                   dashboard: "Exportando o dashboard…" };
 
 // Formatos de exportação, na ordem do menu, com o rótulo.
@@ -49,6 +51,9 @@ const semChave = (o, k) => { const r = { ...o }; delete r[k]; return r; };
 export function reduzir(s, a) {
   switch (a.tipo) {
     case "abrir": return { ...s, aberto: true, aviso: null, erro: null };
+    // Pedido de fora (o menu GitHub, na seção Publicações): abre neste documento.
+    case "abrir_documento":
+      return { ...s, aberto: true, aba: "documentos", selecionado: a.documento || s.selecionado, aviso: null, erro: null };
     case "fechar": return { ...s, aberto: false, confirmar: null };
     // O aviso e o erro são da aba em que aconteceram.
     case "aba": return { ...s, aba: a.aba, aviso: null, erro: null };
@@ -116,6 +121,47 @@ export function reduzir(s, a) {
                exportados: { ...s.exportados, [a.documento]: { formato: a.formato, arquivo: a.arquivo } },
                aviso: `Exportado: ${nomeSaida(a.arquivo)}` };
     case "aberto": return s;
+
+    // Migração do trama.publicar (retirado): o painel abre com o aviso.
+    case "migrado": {
+      const docs = a.documentos || [];
+      const nomes = docs.map((d) => d.documento.split("/").pop()).join(", ");
+      return { ...s, aberto: true, aba: "documentos", erro: null,
+               selecionado: docs.length === 1 ? docs[0].documento : s.selecionado,
+               aviso: `O bloco Publicar saiu do trama e virou ${docs.length === 1 ? "o documento" : "os documentos"} ` +
+                      `${nomes} (modelo Página web), com os mesmos itens e o mesmo endereço de publicação.` };
+    }
+
+    // Publicar no GitHub: conferir, (confirmar), enviar, acompanhar.
+    case "publicar_abrir":
+      return { ...s, publicar: { documento: a.documento, carregando: true, enviando: false }, erro: null, aviso: null };
+    case "publicacao": {
+      const envios = a.envio ? { ...s.envios, [a.documento]: a.envio } : s.envios;
+      if (!s.publicar || s.publicar.documento !== a.documento) return { ...s, envios };
+      return { ...s, envios, publicar: { documento: a.documento, carregando: false, enviando: false, confirmar: null,
+                                         conferencia: a, repo: a.repo || "" } };
+    }
+    case "publicar_campo": return s.publicar ? { ...s, publicar: { ...s.publicar, [a.campo]: a.valor } } : s;
+    case "publicar_enviando": return s.publicar ? { ...s, publicar: { ...s.publicar, enviando: true, confirmar: null }, erro: null } : s;
+    case "publicar_cancelar": return { ...s, publicar: null };
+    case "publicar_confirmar":
+      return { ...s, ocupado: semChave(s.ocupado, a.documento),
+               publicar: s.publicar ? { ...s.publicar, enviando: false, confirmar: a.texto, repo: a.repo || s.publicar.repo } : s.publicar };
+    case "publicar_bloqueado": {
+      const base = { ...s, ocupado: semChave(s.ocupado, a.documento) };
+      if (!s.publicar) return { ...base, erro: (a.erros || []).join(" ") };
+      const conf = { ...(s.publicar.conferencia || {}), erros: a.erros || [] };
+      return { ...base, publicar: { ...s.publicar, enviando: false, conferencia: conf } };
+    }
+    case "envio": {
+      const e = a.estado || {};
+      const novo = !s.envios[a.documento] || s.envios[a.documento].tag !== e.tag;
+      return { ...s, ocupado: semChave(s.ocupado, a.documento), envios: { ...s.envios, [a.documento]: e },
+               // Só a resposta ao envio fecha a caixa: o acompanhamento de um
+               // envio anterior também manda `envio`, e não pode fechá-la.
+               publicar: s.publicar?.documento === a.documento && s.publicar.enviando ? null : s.publicar,
+               aviso: novo && e.etapa === "enviado" ? `Versão ${e.tag} enviada a ${e.repo}.` : s.aviso };
+    }
     case "guia": return { ...s, guia: a.passos || [] };
     case "fechar_guia": return { ...s, guia: null };
     case "erro": {
@@ -128,7 +174,8 @@ export function reduzir(s, a) {
       if (a.acao === "resolver" && a.classe === "tr_documento_erro_confirmar") {
         return { ...base, erro: a.mensagem, confirmar: s.confirmar ? { ...s.confirmar, forte: true } : null };
       }
-      return { ...base, inserir: s.inserir ? { ...s.inserir, enviando: false } : null, erro: a.mensagem };
+      return { ...base, inserir: s.inserir ? { ...s.inserir, enviando: false } : null,
+               publicar: s.publicar ? { ...s.publicar, enviando: false, carregando: false } : null, erro: a.mensagem };
     }
     default: return (a.tipo || "").startsWith("modelo") ? reduzirModelos(s, a) : s;
   }
@@ -177,4 +224,12 @@ export function resolucoes(estado) {
   if (estado === "orfa") return [{ como: "manter", rotulo: "Manter como texto" }, { como: "remover", rotulo: "Remover" }];
   if (estado === "duplicada") return [{ como: "remover", rotulo: "Remover a cópia" }];
   return [];
+}
+
+// O que mandar ao R para publicar; `null` enquanto falta algo ou há bloqueio.
+export function pedidoPublicar(p, confirmado = false) {
+  if (!p || p.carregando || p.enviando || !p.conferencia) return null;
+  if ((p.conferencia.erros || []).length) return null;
+  const repo = (p.repo || "").trim();
+  return { documento: p.documento, repositorio: repo || null, confirmado: !!confirmado };
 }

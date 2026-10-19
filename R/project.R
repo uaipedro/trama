@@ -27,7 +27,18 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
   # Pula o que uma coleção anterior já trouxe como dependência: com
   # `Config/trama/requires` a ordem do trama.json deixou de importar, e listar
   # `trama.data` depois de `trama.series` não pode virar "já carregada".
-  for (cl in cols) if (!cl %in% .tr_registry_packages(registry)) tr_use(cl, registry = registry)
+  for (cl in cols) {
+    if (cl %in% .tr_registry_packages(registry)) next
+    # Coleção que saiu da instalação (retirada, ou só não instalada aqui):
+    # o projeto abre assim mesmo, e os blocos dela aparecem como
+    # desconhecidos. Sem isso, nada que migra um projeto velho chega a rodar.
+    # Só a que não está instalada: instalada e quebrada continua dando erro.
+    if (!.tr_instalado(cl)) {
+      message(.tr_msg_colecao_ausente(cl))
+      next
+    }
+    tr_use(cl, registry = registry)
+  }
 
   .tr_project_obj(root, registry, cols, settings)
 }
@@ -196,6 +207,11 @@ tr_project_at <- function(root, registry) {
 
   disponiveis <- .tr_registry_packages(registry)
   faltando <- setdiff(cols, disponiveis)
+  # Não instalada (retirada): abre, como em `tr_project()`. Instalada e fora
+  # deste editor: precisa subir o trama com ela.
+  ausentes <- faltando[!vapply(faltando, .tr_instalado, logical(1))]
+  for (cl in ausentes) message(.tr_msg_colecao_ausente(cl))
+  faltando <- setdiff(faltando, ausentes)
   if (length(faltando)) {
     rlang::abort(sprintf(
       "Este editor não tem a(s) coleção(ões) %s, que o projeto pede. Suba o trama com ela(s) para abrir '%s'.",
@@ -210,6 +226,12 @@ tr_project_at <- function(root, registry) {
   .tr_project_dirs(root)
 
   .tr_project_obj(root, registry, cols, settings)
+}
+
+.tr_instalado <- function(pkg) nzchar(system.file(package = pkg))
+
+.tr_msg_colecao_ausente <- function(cl) {
+  sprintf("trama: a cole\u00e7\u00e3o %s do trama.json n\u00e3o est\u00e1 instalada; os blocos dela ficam indispon\u00edveis.", cl)
 }
 
 #' Cria um projeto novo: as pastas e o manifesto.
@@ -349,8 +371,8 @@ print.tr_project <- function(x, ...) {
 #'
 #' O `trama.json` é a configuração do PROJETO: fica com ele e não vai no
 #' fluxo nem no que se publica. Uma coleção guarda ali o que é do projeto e
-#' não do documento — o `trama.publicar` guarda em `publicacoes` qual
-#' repositório cada nó publica. As chaves do núcleo (`collections`, `temas`,
+#' não do fluxo — o `trama.documentos` guarda em `publicacoes` em que
+#' repositório cada documento é publicado. As chaves do núcleo (`collections`, `temas`,
 #' `tema_padrao`, `marca`, `sugestoes`, `galeria`) têm verbo próprio e são
 #' recusadas aqui. A gravação é atômica e mexe só na chave pedida.
 #' @param root Pasta do projeto (com `trama.json`).

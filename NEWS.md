@@ -1,3 +1,7 @@
+# trama 0.5.25
+
+* `tr_project()` e `tr_project_at()` abrem o projeto mesmo quando uma coleção do `trama.json` não está instalada: avisam e seguem, e os blocos dela aparecem como desconhecidos. Antes o projeto não abria, e nada que migra um projeto velho chegava a rodar — é o caso do `trama.publicar`, retirado: o `trama.documentos` migra o nó `publicar/publish` para um documento ao abrir o projeto (#25). Coleção instalada e quebrada continua dando erro, e `tr_project_at()` continua recusando coleção instalada que o editor não carregou.
+
 # trama 0.5.24
 
 * Aceitar versão nova (#32): bloco que subiu de versão sem renomear param não tem migração, e o fluxo guardava a `type_version` velha, com `version_drift` a cada abertura. A op `accept_version` (`nodes`) grava a versão da spec, só se for menor e sem migração pendente; não recomputa e entra no desfazer. Em R, `tr_doc_accept_version(doc, nodes = NULL)`; no agente, `trama-agente accept [no]...` e a tool `aceitar_versao` do MCP. O `version_drift` de `tr_doc_validate()` ganha `aceitavel`. No editor, o aviso sai do banner genérico: fica abaixo da barra, lista os blocos (o nome leva ao card), com "aceitar" por bloco e "aceitar todos", e só some por aceite.

@@ -1,3 +1,7 @@
+# trama.github 0.2.1
+
+* A seção **Publicações** do painel lê as publicações dos documentos (`trama.documentos::tr_documento_publicacoes()`), no lugar do registro do `trama.publicar`, que foi retirado (#25). "Ir ao bloco" vira "Abrir o documento", que abre o painel Documentos nele.
+
 # trama.github 0.1.2
 
 * Agora é um **plugin** do trama: a pasta passa a `plugins/trama.github`, o campo do DESCRIPTION a `Config/trama/plugin: true` e a função do contrato a `trama_plugin()` (era `trama_extension()`), pedida pelo `trama::tr_plugins()`. Instalação pelo r-universe com o subdiretório `plugins/trama.github`.

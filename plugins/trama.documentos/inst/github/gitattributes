@@ -1,0 +1,3 @@
+# Gerado pelo trama.documentos: o zip da release (git archive) leva só o pacote.
+.github export-ignore
+.gitattributes export-ignore

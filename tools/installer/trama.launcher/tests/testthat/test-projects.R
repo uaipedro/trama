@@ -119,6 +119,19 @@ test_that("tl_project_missing_collections aponta o que o projeto pede e não est
   expect_equal(tl_project_missing_collections(caminho, lib), character(0))
 })
 
+test_that("coleção retirada no manifesto não conta como faltando", {
+  local_home_e_projetos()
+  lib <- withr::local_tempdir()
+  dir.create(file.path(lib, "trama.data"))
+  caminho <- tl_project_new("velho", colecoes = c("trama.data", "trama.publicar"))
+  expect_equal(tl_project_missing_collections(caminho, lib), "trama.publicar")
+  ret <- tl_retired_collections(list(retired = list("trama.publicar")))
+  expect_equal(ret, "trama.publicar")
+  expect_equal(tl_project_missing_collections(caminho, lib, retiradas = ret), character(0))
+  expect_equal(tl_retired_collections(NULL), character(0))
+  expect_equal(tl_retired_collections(list()), character(0))
+})
+
 test_that("tl_project_open adiciona aos recentes e chama o motor de subir o editor", {
   local_home_e_projetos()
   caminho <- tl_project_new("estudo-2")

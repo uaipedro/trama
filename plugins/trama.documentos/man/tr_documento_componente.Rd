@@ -12,8 +12,10 @@ tr_documento_componente(x, ctx)
 \item{ctx}{Lista com \code{no}, \code{porta}, \code{chave} (pasta em \verb{_trama/}), \code{titulo}
 (o rótulo do card, ou o do bloco), \code{tipo} (o \code{tr_type} da porta, ou
 \code{NULL}), \code{opcoes} (atributos \verb{trama-*} da região: \code{linhas}, \code{formato},
-\code{largura}, \code{altura}) e \code{arquivo(nome)}, que dá o caminho de um arquivo da
-parte relativo ao documento.}
+\code{largura}, \code{altura}), \code{web} (\code{TRUE} quando o documento roda R no
+navegador, como o modelo Página web: um modelo vira preditor) e
+\code{arquivo(nome)}, que dá o caminho de um arquivo da parte relativo ao
+documento.}
 }
 \value{
 Um \code{\link[=tr_documento_parte]{tr_documento_parte()}}.

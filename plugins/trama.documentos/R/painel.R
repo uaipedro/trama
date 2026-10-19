@@ -16,6 +16,40 @@
                                         mensagem = conditionMessage(e), classe = class(e)[[1]])))
   }
   listar <- function() enviar(c(list(tipo = "lista"), .td_lista_painel(projeto())))
+  # Migração do `trama.publicar` (retirado): na primeira lista da sessão,
+  # o nó `publicar/publish` vira documento; o editor relê o fluxo e o painel
+  # abre com o aviso.
+  migrados <- character()
+  migrar <- function() {
+    if (raiz() %in% migrados) return(invisible())
+    migrados <<- c(migrados, raiz())
+    r <- tr_documento_migrar_publicar(raiz())
+    if (!nrow(r)) return(invisible())
+    if (is.function(ctx$recarregar)) ctx$recarregar()
+    enviar(list(tipo = "migrado", documentos = .td_linhas_json(r)))
+  }
+  # Acompanhamento do envio ao GitHub: um passo a cada 5 segundos até a
+  # página entrar no ar ou o workflow falhar (no máximo ~15 minutos). Cada
+  # documento tem uma geração: envio novo (ou conferir de novo) recomeça, e o
+  # laço velho para. Erro de rede passageiro tenta de novo; três seguidos param.
+  geracoes <- list()
+  acompanhar <- function(rel, novo = TRUE, g = NULL, passos = 0L, falhas = 0L) {
+    if (novo) {
+      g <- (geracoes[[rel]] %||% 0L) + 1L
+      geracoes[[rel]] <<- g
+    }
+    if (!identical(geracoes[[rel]], g)) return(invisible())
+    e <- tryCatch(tr_documento_acompanhar(file.path(raiz(), rel), raiz()), error = function(e) e)
+    if (inherits(e, "error")) {
+      if (falhas >= 2L) return(falhar("acompanhar", rel)(e))
+      return(agendar(function() acompanhar(rel, FALSE, g, passos + 1L, falhas + 1L), 5))
+    }
+    if (is.null(e)) return(invisible())
+    enviar(list(tipo = "envio", documento = rel, estado = e))
+    if (e$etapa %in% c("no_ar", "falhou")) return(listar())
+    if (passos >= 180L) return(invisible())
+    agendar(function() acompanhar(rel, FALSE, g, passos + 1L, 0L), 5)
+  }
   estado <- function(m) {
     d <- doc(m)
     e <- tr_documento_estado(d, projeto())
@@ -29,7 +63,13 @@
                      falhou = falhar("render", m$documento))
   }
   acoes <- list(
-    listar = function(m) listar(),
+    listar = function(m) {
+      tryCatch(migrar(), error = function(e) {
+        enviar(list(tipo = "erro", acao = "migrar", mensagem = paste(
+          "A migra\u{E7}\u{E3}o do bloco Publicar para documento falhou:", conditionMessage(e))))
+      })
+      listar()
+    },
     estado = estado,
     criar = function(m) {
       perfil <- if (identical(m$perfil, "") || isFALSE(m$perfil)) FALSE else m$perfil
@@ -86,7 +126,31 @@
       .td_abrir_externo(alvo)
       enviar(list(tipo = "aberto", documento = m$documento))
     },
-    guia_quarto = function(m) enviar(list(tipo = "guia", passos = .td_guia_quarto()))
+    guia_quarto = function(m) enviar(list(tipo = "guia", passos = .td_guia_quarto())),
+    # Publicar no GitHub (#25): conferir o que sai, publicar e acompanhar.
+    publicar_conferir = function(m) {
+      d <- doc(m)
+      pub <- tr_documento_publicacao(d, projeto(), desatualizada = "aviso")
+      e <- .td_envio_ler(raiz(), m$documento)
+      enviar(c(list(tipo = "publicacao", documento = m$documento), .td_publicacao_json(pub, raiz(), m$documento),
+               list(envio = e)))
+      if (!is.null(e) && !e$etapa %in% c("no_ar", "falhou")) acompanhar(m$documento)
+    },
+    publicar = function(m) {
+      d <- doc(m)
+      enviar(list(tipo = "ocupado", documento = m$documento, tarefa = "publicar"))
+      repo <- .td_texto1(m$repositorio)
+      r <- tr_documento_publicar(d, projeto(), repositorio = if (is.null(repo) || !nzchar(trimws(repo))) NULL else trimws(repo),
+                                 confirmado = isTRUE(m$confirmado))
+      if (!is.null(r$bloqueios)) {
+        return(enviar(list(tipo = "publicar_bloqueado", documento = m$documento, erros = r$bloqueios)))
+      }
+      if (!is.null(r$confirmar)) {
+        return(enviar(list(tipo = "publicar_confirmar", documento = m$documento, texto = r$confirmar, repo = r$repo)))
+      }
+      enviar(list(tipo = "envio", documento = m$documento, estado = r))
+      agendar(function() acompanhar(m$documento), 5)
+    }
   )
   function(m) {
     acao <- .td_texto1(m$acao) %||% ""
@@ -99,6 +163,21 @@
     tryCatch(f(m), error = falhar(acao, m$documento))
     invisible()
   }
+}
+
+#' A conferência da publicação para o painel: metadados, regiões, avisos,
+#' bloqueios, o repositório (o do registro ou o sugerido pelo título) e a
+#' última publicação.
+#' @noRd
+.td_publicacao_json <- function(pub, raiz, rel) {
+  m <- pub$metadados
+  reg <- .td_registro(raiz)[[rel]]
+  list(titulo = m$titulo, autores = lapply(m$autores, function(a) a$nome), licenca = m$licenca,
+       licenca_codigo = m$licenca_codigo, tipo_versao = m$tipo_versao, privado = isTRUE(m$privado),
+       regioes = lapply(pub$regioes, function(r) list(chave = r$chave, titulo = r$titulo, tipo = r$tipo, bytes = r$bytes)),
+       avisos = as.list(pub$avisos), erros = as.list(pub$erros),
+       repo = reg$repo %||% .td_slug(m$titulo), registrado = !is.null(reg$repo),
+       ultima = if (!is.null(reg$versao)) list(versao = reg$versao, pagina = reg$pagina, ultimo = reg$ultimo, data = reg$data))
 }
 
 #' O que o painel mostra ao abrir: documentos (com o resumo do estado),

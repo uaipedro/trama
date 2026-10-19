@@ -1,16 +1,17 @@
 {
-  "trama": "0.1.14",
+  "trama": "0.1.15",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": [
     "https://uaipedro.r-universe.dev"
   ],
   "core": {
-    "trama": "0.5.24",
+    "trama": "0.5.25",
     "trama.data": "0.4.7",
     "trama.view": "0.2.9",
-    "trama.launcher": "0.2.2",
-    "trama.github": "0.2.0"
+    "trama.launcher": "0.2.3",
+    "trama.github": "0.2.1",
+    "trama.documentos": "0.4.0"
   },
   "collections": {
     "trama.experiments": {
@@ -62,13 +63,9 @@
       "requires": [
         "trama.data"
       ]
-    },
-    "trama.publicar": {
-      "version": "0.2.0",
-      "title": "Publicar",
-      "requires": [
-        "trama.models"
-      ]
     }
-  }
+  },
+  "retired": [
+    "trama.publicar"
+  ]
 }

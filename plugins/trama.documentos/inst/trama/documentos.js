@@ -8,7 +8,8 @@
 import React from "react";
 import { h, registerToolbarItem, registerCardMenuItem, editorAction } from "trama";
 import { INICIAL, ESTADOS, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes,
-         textoOcupado, formatosExportar, nomeSaida } from "./painel.js";
+         textoOcupado, formatosExportar, nomeSaida, pedidoPublicar } from "./painel.js";
+import { linhas as etapasEnvio, links as linksEnvio } from "./envio.js";
 import { AbaModelos } from "./modelos-ui.js";
 
 // Shiny: `addCustomMessageHandler` existe assim que shiny.js carrega, mas
@@ -30,6 +31,12 @@ registerCardMenuItem("documentos-inserir", {
   titulo: "Põe o resultado deste bloco num documento do projeto (relatório, artigo…)",
   quando: (card) => (card.saidas || []).length > 0,
   acao: (card) => ouvintes.forEach((f) => f({ tipo: "inserir_card", card })),
+});
+
+// Outro plugin (o menu GitHub) pede para abrir um documento: evento do
+// navegador, sem um plugin importar o outro.
+window.addEventListener("trama:documentos", (e) => {
+  if (e.detail?.acao === "abrir") ouvintes.forEach((f) => f({ tipo: "abrir_documento", documento: e.detail.documento }));
 });
 
 const abrirLink = (url) => window.open(url, "_blank", "noopener");
@@ -167,6 +174,66 @@ function Confirmar({ c }) {
   ]);
 }
 
+// Publicar no GitHub: o que sai (título, versão, regiões, avisos), o
+// repositório, e o envio. Bloqueio desliga o botão; o R pede confirmação
+// antes de criar repositório privado ou de sobrescrever um repositório alheio.
+function Publicar({ s, despachar }) {
+  const p = s.publicar;
+  const c = p.conferencia;
+  const pedido = pedidoPublicar(p);
+  const ir = (confirmado) => {
+    const ped = pedidoPublicar(p, confirmado);
+    if (!ped) return;
+    despachar({ tipo: "publicar_enviando" });
+    enviar("publicar", ped);
+  };
+  const fechar = () => despachar({ tipo: "publicar_cancelar" });
+  if (p.carregando || !c) {
+    return h("div", { className: "tr-doc-caixa" }, [
+      h("div", { key: "t", className: "tr-doc-titulo" }, "Publicar no GitHub"),
+      h("p", { key: "c", className: "tr-doc-dim" }, "Conferindo o documento…")]);
+  }
+  const lista = (itens, classe) => (itens || []).length
+    ? h("ul", { className: classe }, itens.map((x, i) => h("li", { key: i }, x))) : null;
+  return h("div", { className: "tr-doc-caixa tr-doc-publicar" }, [
+    h("div", { key: "t", className: "tr-doc-titulo" }, "Publicar no GitHub"),
+    h("p", { key: "o", className: "tr-doc-dim" },
+      `“${c.titulo || "sem título"}” · ${(c.autores || []).join("; ") || "sem autor"} · licença ${c.licenca}` +
+      ` · próxima versão: ${c.tipo_versao}` + (c.ultima ? ` (última: ${c.ultima.versao})` : "")),
+    h("p", { key: "r", className: "tr-doc-dim" },
+      `${(c.regioes || []).length} ${(c.regioes || []).length === 1 ? "resultado" : "resultados"} do trama, o fluxo e o ` +
+      "ambiente vão num pacote RO-Crate; o GitHub Actions renderiza a página e cria a release."),
+    h(Campo, { key: "p", rotulo: c.registrado ? "Repositório (o desta publicação)" : "Repositório (novo, público)" },
+      h("input", { type: "text", value: p.repo, disabled: p.enviando,
+                   onChange: (e) => despachar({ tipo: "publicar_campo", campo: "repo", valor: e.target.value }) })),
+    lista(c.erros, "tr-doc-erro tr-doc-lista-msg"),
+    lista(c.avisos, "tr-doc-avisos tr-doc-lista-msg"),
+    p.confirmar ? h("div", { key: "c", className: "tr-doc-confirmar", role: "alertdialog" }, [
+      h("p", { key: "t" }, p.confirmar),
+      h("div", { key: "b", className: "tr-doc-linha" }, [
+        h(Botao, { key: "s", primario: true, onClick: () => ir(true) }, "Sim, publicar"),
+        h(Botao, { key: "n", onClick: fechar }, "Cancelar")])]) : null,
+    p.confirmar ? null : h("div", { key: "b", className: "tr-doc-linha" }, [
+      h(Botao, { key: "i", primario: true, disabled: !pedido, onClick: () => ir(false),
+                 title: (c.erros || []).length ? "Resolva o que está em vermelho" : "Atualiza, monta o pacote e envia" },
+        p.enviando ? "Enviando…" : "Publicar"),
+      h(Botao, { key: "x", onClick: fechar }, "Cancelar")]),
+  ]);
+}
+
+// Onde está o último envio do documento: etapas e links.
+function Envio({ e }) {
+  return h("div", { className: "tr-doc-envio" }, [
+    h("div", { key: "t", className: "tr-doc-linha" }, [
+      h("strong", { key: "v" }, `GitHub · ${e.tag}`),
+      h("span", { key: "d", className: "tr-doc-dim tr-doc-cresce" }, e.detalhe || "")]),
+    h("ol", { key: "l", className: "tr-doc-etapas" }, etapasEnvio(e).map((l) =>
+      h("li", { key: l.id, className: `tr-doc-etapa-${l.situacao}` }, l.rotulo))),
+    h("div", { key: "a", className: "tr-doc-linha tr-doc-acoes" }, linksEnvio(e).map((l) =>
+      h(Link, { key: l.rotulo, onClick: () => abrirLink(l.url) }, `${l.rotulo} ↗`))),
+  ]);
+}
+
 function Documento({ s, doc, despachar }) {
   const aberto = s.selecionado === doc.caminho;
   const ocupado = s.ocupado[doc.caminho];
@@ -199,7 +266,12 @@ function Documento({ s, doc, despachar }) {
       h("div", { key: "l", className: "tr-doc-linha tr-doc-acoes" }, [
         h(Link, { key: "e", title: "Abre o .qmd no seu editor de texto (RStudio, Positron, VS Code…)",
                   onClick: () => abrir("documento") }, "Abrir no editor de texto"),
-        h(Link, { key: "p", onClick: () => abrir("pasta") }, "Abrir a pasta")]),
+        h(Link, { key: "p", onClick: () => abrir("pasta") }, "Abrir a pasta"),
+        h(Link, { key: "g", title: "Pacote reprodutível, release e página no GitHub Pages",
+                  onClick: () => { despachar({ tipo: "publicar_abrir", documento: doc.caminho });
+                                   enviar("publicar_conferir", { documento: doc.caminho }); } }, "Publicar no GitHub…")]),
+      s.publicar?.documento === doc.caminho ? h(Publicar, { key: "pub", s, despachar }) : null,
+      s.envios[doc.caminho] ? h(Envio, { key: "env", e: s.envios[doc.caminho] }) : null,
       h(Regioes, { key: "r", s, doc, despachar }),
     ]) : null,
   ]);

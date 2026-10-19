@@ -46,7 +46,9 @@ tr_documento_modelos <- function() {
 #' O modelo para criar documento: tem de ser válido.
 #' @noRd
 .td_modelo <- function(nome) {
-  d <- .td_modelo_dir(nome)
+  # `I(<pasta>)`: uma pasta de modelo dada direto (a migração usa o embutido
+  # Página web mesmo que o usuário tenha uma cópia com o mesmo nome).
+  d <- if (inherits(nome, "AsIs") && dir.exists(nome)) as.character(nome) else .td_modelo_dir(nome)
   m <- .td_modelo_ler(d)
   if (length(m$problemas)) {
     .td_erro(paste(c(sprintf("O modelo '%s' tem problemas; conserte (ou remova) e tente de novo:", nome),
@@ -98,12 +100,18 @@ tr_documento_criar <- function(nome, projeto = ".", modelo = "basico", perfil = 
   y <- .td_preencher(.td_yaml_listas(esqueleto), p) %||% list()
   f <- .td_fim_yaml(esqueleto)
   corpo <- if (f < length(esqueleto)) esqueleto[(f + 1L):length(esqueleto)] else character()
+  # `{{modelo}}` no corpo é o nome do modelo (caminho da extensão copiada):
+  # um modelo duplicado com outro nome continua achando os próprios arquivos.
+  corpo <- gsub("{{modelo}}", m$nome, corpo, fixed = TRUE)
   y$title <- titulo %||% y$title %||% nome
   autor <- .td_autor_yaml(p)
   if (!is.null(autor)) y$author <- autor
   y$date <- y$date %||% "today"
   y$format <- stats::setNames(rep(list("default"), length(m$formatos)), paste0(m$nome, "-", m$formatos))
-  y$trama <- Filter(Negate(is.null), list(fluxo = fluxo, modelo = m$nome, perfil = p$perfil))
+  # `trama: publicar:` do esqueleto (licenças e tipo de versão da página web)
+  # fica: é do documento, e a pessoa muda ali.
+  y$trama <- Filter(Negate(is.null), list(fluxo = fluxo, modelo = m$nome, perfil = p$perfil,
+                                          publicar = if (is.list(y$trama)) y$trama$publicar))
   ordem <- c("title", "subtitle", "author", "date", setdiff(names(y), c("title", "subtitle", "author", "date", "format", "trama")),
              "format", "trama")
   y <- y[intersect(ordem, names(y))]
@@ -119,6 +127,11 @@ tr_documento_criar <- function(nome, projeto = ".", modelo = "basico", perfil = 
   }
   writeLines(c("project:", "  output-dir: _saida"), file.path(pasta, "_quarto.yml"))
   writeLines(c("/.quarto/", "/_saida/"), file.path(pasta, ".gitignore"))
+  # Esqueleto com `{{< var ... >}}` (versão, licença, citação da página web):
+  # os valores de rascunho; a publicação grava os de verdade no pacote.
+  if (any(grepl("{{< var ", corpo, fixed = TRUE))) {
+    .td_yaml_gravar(.td_variaveis(y, versao = "rascunho"), file.path(pasta, "_variables.yml"))
+  }
   qmd <- file.path(pasta, paste0(nome, ".qmd"))
   writeLines(enc2utf8(c("---", .td_yaml_texto(y), "---", corpo)),
              qmd, useBytes = TRUE)

@@ -523,7 +523,7 @@ complementar. Igual ao statmod onde ele é finito e abaixo de 7 em módulo
 ## Modelo reduzido para publicação, `tr_models_strip()` (19/10/2026)
 
 Genérico novo no contrato de `models/fit` (#12): o que sobra do modelo para
-prever, sem os dados de treino — o que o `trama.publicar` grava no pacote. Não
+prever, sem os dados de treino — o que a publicação grava no pacote (hoje o `trama.documentos`, #25; nasceu no `trama.publicar`). Não
 muda resultado de bloco nenhum; nenhuma `version` de nó sobe. Sem default:
 classe sem método recusa com `tr_models_error_no_method` (misto, GLS, parcela
 subdividida, não linear, dose-resposta, FIGS e as classes da `multi` ficam de
@@ -559,9 +559,11 @@ número do objeto em listas, atributos, chamadas e ambientes capturados:
   cortes das árvores (quantis do histograma, em float32).
 
 Os dois casos acima saem do reduzido com a marca `dados_treino` (texto do que
-sobra), e o `trama.publicar` recusa o modelo marcado por padrão: só publica
-com o param "Aceito publicar dados de treino embutidos" ligado, e então
-registra `trama:contemDadosTreino` no RO-Crate (decisão do Pedro, 19/10).
+sobra), e a publicação recusa o modelo marcado por padrão: só publica com o
+aceite explícito (no `trama.publicar`, o param "Aceito publicar dados de
+treino embutidos"; no `trama.documentos`, `aceitar-dados-treino: true` em
+`trama: publicar:` do documento, além do aceite da região), e então registra
+`trama:contemDadosTreino` no RO-Crate (decisão do Pedro, 19/10).
 
 Limite: a varredura confere igualdade exata (float32 no XGBoost); um valor
 transformado (escalonado, arredondado) só é pego onde o teste desfaz a

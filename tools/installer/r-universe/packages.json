@@ -64,8 +64,8 @@
     "subdir": "plugins/trama.github"
   },
   {
-    "package": "trama.publicar",
+    "package": "trama.documentos",
     "url": "https://github.com/uaipedro/trama",
-    "subdir": "collections/trama.publicar"
+    "subdir": "plugins/trama.documentos"
   }
 ]

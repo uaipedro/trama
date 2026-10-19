@@ -1,4 +1,4 @@
-# API interna que a publicação (trama.publicar) e o versionamento do projeto
+# API interna que a publicação (trama.documentos) e o versionamento do projeto
 # usam. Tudo pela API REST: não precisa de git instalado.
 
 #' Usuário conectado

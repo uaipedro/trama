@@ -1,5 +1,6 @@
 # Painel GitHub (#15): as seções Projeto (repositório privado do projeto) e
-# Publicações (repositórios públicos de cada nó `publicar`). As ações chegam
+# Publicações (repositórios públicos de cada documento publicado pelo
+# `trama.documentos`). As ações chegam
 # por `input$trama_github` como as da conta (`R/plugin.R`); aqui ficam as que
 # precisam do projeto aberto.
 
@@ -70,11 +71,12 @@
          bloqueado = d$bloqueado[i], aviso = if (is.na(d$aviso[i])) NULL else d$aviso[i])))
 }
 
-# Seção Publicações: o registro é do trama.publicar (opcional; o trama.github
-# nunca depende dele). Versões e a última execução do Actions são lidas da API
-# na hora; falha num repositório não esconde os outros.
+# Seção Publicações: o registro é do trama.documentos, por documento
+# (opcional; o trama.github nunca depende dele, é ele que depende deste).
+# Versões e a última execução do Actions são lidas da API na hora; falha num
+# repositório não esconde os outros.
 .gh_publicacoes <- function(root) {
-  ler <- .gh_publicar_leitor()
+  ler <- .gh_publicacoes_leitor()
   if (is.null(ler)) return(list(disponivel = FALSE, itens = list()))
   df <- ler(root)
   itens <- lapply(seq_len(nrow(df)), function(i) {
@@ -85,12 +87,13 @@
       list(versoes = as.list(tags),
            execucao = if (length(runs)) runs[[1]][c("nome", "estado", "conclusao", "url")])
     }, tr_github_erro = function(e) list(erro = conditionMessage(e)))
-    c(p, list(release = if (!is.null(p$tag)) sprintf("%s/releases/tag/%s", p$url, p$tag)), extra)
+    c(p, list(nome = basename(dirname(p$documento %||% "")),
+              release = if (!is.null(p$tag)) sprintf("%s/releases/tag/%s", p$url, p$tag)), extra)
   })
   list(disponivel = TRUE, itens = itens)
 }
 
-.gh_publicar_leitor <- function() {
-  if (!requireNamespace("trama.publicar", quietly = TRUE)) return(NULL)
-  tryCatch(getExportedValue("trama.publicar", "tr_publicar_publicacoes"), error = function(e) NULL)
+.gh_publicacoes_leitor <- function() {
+  if (!requireNamespace("trama.documentos", quietly = TRUE)) return(NULL)
+  tryCatch(getExportedValue("trama.documentos", "tr_documento_publicacoes"), error = function(e) NULL)
 }

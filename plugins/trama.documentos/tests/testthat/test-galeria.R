@@ -16,7 +16,7 @@ test_that("os embutidos estão na galeria, válidos, com os formatos de cada um"
   local_usuario()
   m <- tr_documento_modelos()
   esperado <- c(basico = "html, typst, docx", ufla = "typst, docx, html", consultoria = "typst, html, docx",
-                artigo = "typst, html, docx", slides = "revealjs", painel = "dashboard")
+                artigo = "typst, html, docx", slides = "revealjs", painel = "dashboard", pagina = "html")
   expect_setequal(m$nome, names(esperado))
   expect_identical(stats::setNames(m$formatos, m$nome)[names(esperado)], esperado)
   expect_true(all(m$valido))

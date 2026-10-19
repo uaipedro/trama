@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { INICIAL, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes, textoOcupado,
+import { INICIAL, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes, textoOcupado, pedidoPublicar,
          nomeSaida }
   from "../../plugins/trama.documentos/inst/trama/painel.js";
 
@@ -99,4 +99,66 @@ test("confirmar: o R pede, o painel mostra a confirmação forte", () => {
   s = passo(s, { tipo: "erro", acao: "resolver", classe: "tr_documento_erro_confirmar", mensagem: "apagaria" });
   assert.equal(s.confirmar.forte, true);
   assert.equal(passo(s, { tipo: "resolvido", regiao: "tab" }).confirmar, null);
+});
+
+test("migração do bloco Publicar: o painel abre com o aviso e o documento novo escolhido", () => {
+  const s = passo(INICIAL, lista, { tipo: "migrado", documentos: [{ fluxo: "main", no: "pub",
+    documento: "documentos/consumo/consumo.qmd", regioes: 2 }] });
+  assert.equal(s.aberto, true);
+  assert.equal(s.selecionado, "documentos/consumo/consumo.qmd");
+  assert.match(s.aviso, /bloco Publicar saiu do trama e virou o documento consumo\.qmd/);
+});
+
+test("publicar: conferir, bloqueio desliga, confirmar e enviar", () => {
+  const doc = "documentos/rel/rel.qmd";
+  const conf = { tipo: "publicacao", documento: doc, titulo: "T", autores: ["Ana"], licenca: "CC-BY-4.0",
+                 tipo_versao: "menor", regioes: [{ chave: "tab" }], avisos: [], erros: [], repo: "t", registrado: false };
+  let s = passo(INICIAL, lista, { tipo: "publicar_abrir", documento: doc });
+  assert.equal(s.publicar.carregando, true);
+  assert.equal(pedidoPublicar(s.publicar), null);
+  s = passo(s, conf);
+  assert.deepEqual(pedidoPublicar(s.publicar), { documento: doc, repositorio: "t", confirmado: false });
+  s = passo(s, { tipo: "publicar_campo", campo: "repo", valor: "  " });
+  assert.equal(pedidoPublicar(s.publicar).repositorio, null);
+  // Conferência de outro documento não troca a caixa aberta.
+  assert.equal(passo(s, { ...conf, documento: "documentos/x/x.qmd", repo: "x" }).publicar.repo, "  ");
+  // Bloqueio: o botão desliga.
+  const b = passo(s, { tipo: "publicar_enviando" }, { tipo: "publicar_bloqueado", documento: doc, erros: ["Falta o título."] });
+  assert.equal(b.publicar.enviando, false);
+  assert.equal(pedidoPublicar(b.publicar), null);
+  // Confirmação: a pergunta aparece e o pedido segue confirmado.
+  s = passo(s, { tipo: "publicar_enviando" }, { tipo: "ocupado", documento: doc, tarefa: "publicar" },
+            { tipo: "publicar_confirmar", documento: doc, texto: "Criar privado?", repo: "p/t" });
+  assert.equal(s.publicar.confirmar, "Criar privado?");
+  assert.equal(s.ocupado[doc], undefined);
+  assert.equal(pedidoPublicar(s.publicar, true).confirmado, true);
+  // "Sim, publicar" e a resposta: a caixa fecha e o envio fica no documento.
+  s = passo(s, { tipo: "publicar_enviando" },
+            { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "enviado" } });
+  assert.equal(s.publicar, null);
+  assert.equal(s.envios[doc].tag, "v0.1.0");
+  assert.match(s.aviso, /v0\.1\.0 enviada a p\/t/);
+  s = passo(s, { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "actions" } });
+  assert.equal(s.envios[doc].etapa, "actions");
+  // Erro do R no envio destrava a caixa.
+  s = passo(s, { tipo: "publicar_abrir", documento: doc }, conf, { tipo: "publicar_enviando" },
+            { tipo: "erro", acao: "publicar", documento: doc, mensagem: "GitHub fora" });
+  assert.equal(s.publicar.enviando, false);
+  assert.equal(s.erro, "GitHub fora");
+});
+
+test("o menu GitHub abre o painel num documento", () => {
+  const s = passo(INICIAL, lista, { tipo: "abrir_documento", documento: "documentos/rel/rel.qmd" });
+  assert.equal(s.aberto, true);
+  assert.equal(s.aba, "documentos");
+  assert.equal(s.selecionado, "documentos/rel/rel.qmd");
+});
+
+test("acompanhamento de um envio anterior não fecha a caixa de publicar", () => {
+  const doc = "documentos/rel/rel.qmd";
+  let s = passo(INICIAL, lista, { tipo: "publicar_abrir", documento: doc },
+                { tipo: "publicacao", documento: doc, erros: [], avisos: [], repo: "t" },
+                { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "actions" } });
+  assert.notEqual(s.publicar, null);
+  assert.equal(s.envios[doc].etapa, "actions");
 });
