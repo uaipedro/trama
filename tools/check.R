@@ -11,7 +11,7 @@
 #
 # Regras:
 #   collections/X/**          -> X e toda coleção que depende de X (transitivo)
-#   plugins/X/**              -> X e as coleções que dependem dele (trama.publicar)
+#   plugins/X/**              -> X e as coleções que dependem dele (o trama.documentos depende do trama.github)
 #   R/foo.R                   -> núcleo e coleções que usam algo de foo.R (--amplo: todas)
 #   inst/ (exceto www), DESCRIPTION, NAMESPACE -> núcleo e todas as coleções
 #   inst/www/**, tests/js/**  -> testes node
@@ -30,7 +30,7 @@ setwd(raiz)
 colecoes <- basename(list.dirs("collections", recursive = FALSE))
 # Plugins (`plugins/`): não são coleção nem têm blocos, mas carregam como
 # uma: núcleo primeiro (o trama.github usa a configuração do projeto), e quem
-# depende de um plugin (trama.publicar) o carrega da fonte, não do instalado.
+# depende de um plugin (trama.documentos) o carrega da fonte, não do instalado.
 plugins <- if (dir.exists("plugins")) basename(list.dirs("plugins", recursive = FALSE)) else character()
 pacotes <- c(colecoes, plugins)
 pasta <- function(p) if (p %in% plugins) file.path("plugins", p) else file.path("collections", p)
