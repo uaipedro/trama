@@ -8,7 +8,7 @@
 import React from "react";
 import { h, registerToolbarItem, registerCardMenuItem, editorAction } from "trama";
 import { INICIAL, ESTADOS, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes,
-         textoOcupado, formatosExportar } from "./painel.js";
+         textoOcupado, formatosExportar, nomeSaida } from "./painel.js";
 import { AbaModelos } from "./modelos-ui.js";
 
 // Shiny: `addCustomMessageHandler` existe assim que shiny.js carrega, mas
@@ -193,7 +193,7 @@ function Documento({ s, doc, despachar }) {
           // Os formatos do modelo do documento (fase 3).
           ...formatosExportar(doc).map(([k, rotulo]) => h("option", { key: k, value: k }, rotulo))])]),
       exp ? h("div", { key: "x", className: "tr-doc-linha tr-doc-acoes" }, [
-        h("span", { key: "t", className: "tr-doc-dim tr-doc-cresce" }, exp.arquivo.split("/").pop()),
+        h("span", { key: "t", className: "tr-doc-dim tr-doc-cresce" }, nomeSaida(exp.arquivo)),
         h(Link, { key: "a", onClick: () => abrir("saida", { arquivo: exp.arquivo }) }, "Abrir arquivo"),
         h(Link, { key: "p", onClick: () => abrir("pasta") }, "Pasta")]) : null,
       h("div", { key: "l", className: "tr-doc-linha tr-doc-acoes" }, [

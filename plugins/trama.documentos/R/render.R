@@ -4,9 +4,15 @@
 # (`_quarto.yml` com `output-dir: _saida`): a saída não se mistura ao texto.
 # PDF é Typst (sem TeX). A prévia é servida por HTTP local, e não aberta como
 # arquivo, porque página com WebR (fase 4) não carrega de `file://`.
+#
+# Slides e dashboard também saem em HTML com o nome do documento; cada um
+# ganha subpasta própria em `_saida/` (`slides/`, `painel/`). Não basta
+# trocar o nome do arquivo (`--output`): os formatos dividiriam a pasta
+# `<doc>_files/`, e o render de um apaga as bibliotecas do outro.
 
 .TD_FORMATOS <- c(html = "html", pdf = "typst", docx = "docx", revealjs = "revealjs", dashboard = "dashboard")
 .TD_EXTENSAO <- c(html = "html", pdf = "pdf", docx = "docx", revealjs = "html", dashboard = "html")
+.TD_SUBPASTA <- c(revealjs = "slides", dashboard = "painel")
 
 .td_quarto <- function() {
   q <- Sys.getenv("QUARTO_PATH", Sys.which("quarto"))
@@ -25,7 +31,8 @@
 #'   (slides) ou `"dashboard"`. Os que o documento declara:
 #'   [tr_documento_formatos()].
 #' @param tempo Segundos até desistir.
-#' @return O caminho do arquivo gerado, em `_saida/`.
+#' @return O caminho do arquivo gerado, em `_saida/` (slides em
+#'   `_saida/slides/`, dashboard em `_saida/painel/`).
 #' @export
 tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx", "revealjs", "dashboard"), tempo = 300) {
   formato <- match.arg(formato)
@@ -48,9 +55,24 @@ tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx"
   documento <- normalizePath(documento, mustWork = TRUE)
   pasta <- dirname(documento)
   alvo <- .td_formato_quarto(.td_ler(documento)$linhas, formato)
-  list(quarto = quarto, args = c("render", basename(documento), "--to", alvo), pasta = pasta, formato = formato,
-       saida = file.path(pasta, "_saida", paste0(tools::file_path_sans_ext(basename(documento)), ".",
-                                                 .TD_EXTENSAO[[formato]])))
+  args <- c("render", basename(documento), "--to", alvo)
+  saida <- file.path(pasta, "_saida")
+  sub <- .TD_SUBPASTA[formato]
+  if (!is.na(sub)) {
+    args <- c(args, "--output-dir", file.path("_saida", sub))
+    saida <- file.path(saida, sub)
+  }
+  list(quarto = quarto, args = args, pasta = pasta, formato = formato,
+       saida = file.path(saida, paste0(tools::file_path_sans_ext(basename(documento)), ".", .TD_EXTENSAO[[formato]])))
+}
+
+#' O endereço da saída dentro de `_saida/` (`rel.html`, `slides/rel.html`):
+#' a prévia serve `_saida/` inteira e aponta para ele.
+#' @noRd
+.td_saida_relativa <- function(saida) {
+  partes <- strsplit(saida, "[/\\\\]")[[1]]
+  i <- max(which(partes == "_saida"))
+  paste(partes[-seq_len(i)], collapse = "/")
 }
 
 #' Deu certo? Devolve o arquivo gerado, ou erro com o fim do log.
@@ -139,7 +161,7 @@ tr_documento_formatos <- function(documento) {
 #' @export
 tr_documento_previa <- function(documento, abrir = interactive(), tempo = 300) {
   html <- tr_documento_renderizar(documento, .td_formato_previa(documento), tempo = tempo)
-  pasta <- dirname(html)
+  pasta <- file.path(dirname(normalizePath(documento)), "_saida")
   chave <- normalizePath(pasta)
   srv <- .td_previas[[chave]]
   if (is.null(srv)) {
@@ -150,7 +172,7 @@ tr_documento_previa <- function(documento, abrir = interactive(), tempo = 300) {
     srv <- list(servidor = s, porta = porta)
     assign(chave, srv, envir = .td_previas)
   }
-  url <- sprintf("http://127.0.0.1:%d/%s", srv$porta, basename(html))
+  url <- sprintf("http://127.0.0.1:%d/%s", srv$porta, .td_saida_relativa(html))
   if (isTRUE(abrir)) utils::browseURL(url)
   structure(list(url = url, pasta = chave, documento = normalizePath(documento)), class = "tr_documento_previa")
 }
