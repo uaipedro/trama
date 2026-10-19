@@ -21,9 +21,9 @@
     e <- tr_documento_estado(d, projeto())
     enviar(list(tipo = "estado", documento = m$documento, regioes = .td_linhas_json(e)))
   }
-  renderizar <- function(m, formato, depois) {
+  renderizar <- function(m, formato, depois, tarefa = formato) {
     d <- doc(m)
-    enviar(list(tipo = "ocupado", documento = m$documento, tarefa = if (formato == "html") "previa" else formato))
+    enviar(list(tipo = "ocupado", documento = m$documento, tarefa = tarefa))
     .td_render_fundo(d, formato, agendar,
                      pronto = function(saida) tryCatch(depois(saida), error = falhar("render", m$documento)),
                      falhou = falhar("render", m$documento))
@@ -61,13 +61,15 @@
       estado(m)
       listar()
     },
-    visualizar = function(m) renderizar(m, "html", function(saida) {
+    # Slides e dashboard também são HTML: a prévia usa o primeiro que o
+    # documento tem.
+    visualizar = function(m) renderizar(m, .td_formato_previa(doc(m)), tarefa = "previa", function(saida) {
       nome <- paste0("documento-", gsub("[^A-Za-z0-9_-]", "-", basename(dirname(dirname(saida)))))
       url <- ctx$servir(dirname(saida), nome)
       enviar(list(tipo = "previa", documento = m$documento, url = paste0(url, basename(saida))))
     }),
     exportar = function(m) {
-      formato <- match.arg(.td_texto1(m$formato) %||% "", c("html", "pdf", "docx"))
+      formato <- match.arg(.td_texto1(m$formato) %||% "", c("html", "pdf", "docx", "revealjs", "dashboard"))
       renderizar(m, formato, function(saida) {
         enviar(list(tipo = "exportado", documento = m$documento, formato = formato, arquivo = rel(saida)))
       })
@@ -102,17 +104,16 @@
 #' @noRd
 .td_lista_painel <- function(projeto) {
   docs <- tr_documento_listar(projeto)
-  m <- tr_documento_modelos()
   p <- tr_documento_perfis()
   list(
     documentos = lapply(seq_len(nrow(docs)), function(i) {
       e <- tryCatch(tr_documento_estado(docs$caminho[i], projeto), error = function(e) e)
       list(nome = docs$nome[i], caminho = .td_relativo(projeto$root, docs$caminho[i]),
            modelo = if (is.na(docs$modelo[i])) NULL else docs$modelo[i],
+           formatos = as.list(tryCatch(tr_documento_formatos(docs$caminho[i]), error = function(e) character())),
            resumo = if (inherits(e, "error")) list(erro = conditionMessage(e)) else as.list(table(e$estado)))
     }),
-    modelos = lapply(seq_len(nrow(m)), function(i) list(nome = m$nome[i], titulo = m$titulo[i],
-                                                         formatos = m$formatos[i], origem = m$origem[i])),
+    modelos = .td_modelos_json(),
     perfis = lapply(names(p$perfis), function(k) list(perfil = k, nome = p$perfis[[k]]$nome %||% k)),
     perfil_padrao = p$padrao,
     quarto = nzchar(.td_quarto()))

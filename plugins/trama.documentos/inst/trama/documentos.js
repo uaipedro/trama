@@ -8,7 +8,7 @@
 import React from "react";
 import { h, registerToolbarItem, registerCardMenuItem, editorAction } from "trama";
 import { INICIAL, ESTADOS, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes,
-         textoOcupado } from "./painel.js";
+         textoOcupado, formatosExportar } from "./painel.js";
 import { AbaModelos } from "./modelos-ui.js";
 
 // Shiny: `addCustomMessageHandler` existe assim que shiny.js carrega, mas
@@ -80,7 +80,8 @@ function Novo({ s, despachar }) {
       h("input", { type: "text", value: n.titulo, placeholder: "Relatório da análise", onChange: campo("titulo") })),
     h(Campo, { key: "m", rotulo: "Modelo" },
       h("select", { value: n.modelo, onChange: campo("modelo") },
-        s.modelos.map((m) => h("option", { key: m.nome, value: m.nome }, `${m.titulo} (${m.formatos})`)))),
+        s.modelos.map((m) => h("option", { key: m.nome, value: m.nome, disabled: m.valido === false },
+          `${m.titulo} (${m.formatos})${m.valido === false ? " — com problema" : ""}`)))),
     h(Campo, { key: "p", rotulo: "Autor" },
       h("select", { value: n.perfil, onChange: campo("perfil") }, [
         ...s.perfis.map((p) => h("option", { key: p.perfil, value: p.perfil }, `${p.nome} (${p.perfil})`)),
@@ -189,9 +190,8 @@ function Documento({ s, doc, despachar }) {
         h("select", { key: "e", className: "tr-doc-exportar", value: "", disabled: !!ocupado, "aria-label": "Exportar",
                       onChange: (e) => { if (e.target.value) render("exportar", { formato: e.target.value }); } }, [
           h("option", { key: "", value: "" }, "Exportar…"),
-          h("option", { key: "pdf", value: "pdf" }, "PDF"),
-          h("option", { key: "docx", value: "docx" }, "Word"),
-          h("option", { key: "html", value: "html" }, "HTML")])]),
+          // Os formatos do modelo do documento (fase 3).
+          ...formatosExportar(doc).map(([k, rotulo]) => h("option", { key: k, value: k }, rotulo))])]),
       exp ? h("div", { key: "x", className: "tr-doc-linha tr-doc-acoes" }, [
         h("span", { key: "t", className: "tr-doc-dim tr-doc-cresce" }, exp.arquivo.split("/").pop()),
         h(Link, { key: "a", onClick: () => abrir("saida", { arquivo: exp.arquivo }) }, "Abrir arquivo"),

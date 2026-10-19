@@ -4,13 +4,17 @@
 // Ações vêm de dois lados: mensagens do R (`tipo` = lista, estado, criado,
 // atualizado, inserido, resolvido, ocupado, previa, exportado, aberto, guia,
 // modelos, erro) e gestos do painel (abrir, fechar, aba, selecionar, novo_*,
-// inserir_*, …).
+// inserir_*, …). Ações de modelos (`tipo` começando com "modelo") são do
+// redutor de `modelos.js`.
+
+import { reduzirModelos, erroModelos } from "./modelos.js";
 
 export const INICIAL = Object.freeze({
   aberto: false, aba: "documentos", fase: "carregando",
   documentos: [], modelos: [], perfis: [], perfilPadrao: null, quarto: true,
   selecionado: null, regioes: {}, ocupado: {}, erro: null, aviso: null,
   novo: null, inserir: null, guia: null, exportados: {}, confirmar: null,
+  modeloAberto: null, modeloForm: null, modeloDuplicar: null, modeloImportar: null, modeloConfirmar: null,
 });
 
 // Rótulo e tom de cada estado de região (o motor: `tr_documento_estado()`).
@@ -24,7 +28,17 @@ export const ESTADOS = Object.freeze({
 });
 
 const OCUPADO = { atualizar: "Atualizando…", previa: "Gerando a prévia…", html: "Exportando HTML…",
-                  pdf: "Exportando PDF…", docx: "Exportando Word…" };
+                  pdf: "Exportando PDF…", docx: "Exportando Word…", revealjs: "Exportando os slides…",
+                  dashboard: "Exportando o dashboard…" };
+
+// Formatos de exportação, na ordem do menu, com o rótulo.
+export const EXPORTAR = Object.freeze([["pdf", "PDF"], ["docx", "Word"], ["html", "HTML"],
+                                       ["revealjs", "Slides"], ["dashboard", "Dashboard"]]);
+// Os do documento (o R manda `formatos`); sem a lista, os três de sempre.
+export const formatosExportar = (doc) => {
+  const f = doc?.formatos;
+  return EXPORTAR.filter(([k]) => (Array.isArray(f) && f.length ? f : ["pdf", "docx", "html"]).includes(k));
+};
 export const textoOcupado = (t) => OCUPADO[t] || "Trabalhando…";
 
 const semChave = (o, k) => { const r = { ...o }; delete r[k]; return r; };
@@ -33,7 +47,8 @@ export function reduzir(s, a) {
   switch (a.tipo) {
     case "abrir": return { ...s, aberto: true, aviso: null, erro: null };
     case "fechar": return { ...s, aberto: false, confirmar: null };
-    case "aba": return { ...s, aba: a.aba };
+    // O aviso e o erro são da aba em que aconteceram.
+    case "aba": return { ...s, aba: a.aba, aviso: null, erro: null };
     case "lista": {
       const docs = a.documentos || [];
       const aindaExiste = docs.some((d) => d.caminho === s.selecionado);
@@ -41,16 +56,25 @@ export function reduzir(s, a) {
                perfilPadrao: a.perfil_padrao ?? null, quarto: a.quarto !== false,
                selecionado: aindaExiste ? s.selecionado : (docs.length === 1 ? docs[0].caminho : null) };
     }
-    case "modelos": return { ...s, modelos: a.modelos || [] };
     case "selecionar":
       return { ...s, selecionado: s.selecionado === a.documento ? null : a.documento, erro: null, aviso: null };
     case "estado": return { ...s, regioes: { ...s.regioes, [a.documento]: a.regioes || [] } };
     case "ocupado": return { ...s, ocupado: { ...s.ocupado, [a.documento]: a.tarefa }, erro: null, aviso: null };
 
     case "novo_abrir":
-      return { ...s, novo: { nome: "", titulo: "", modelo: s.modelos[0]?.nome || "basico",
+      return { ...s, novo: { nome: "", titulo: "",
+                             modelo: s.modelos.some((m) => m.nome === "basico") ? "basico" : (s.modelos[0]?.nome || "basico"),
                              perfil: s.perfilPadrao || "" }, erro: null };
-    case "novo_campo": return s.novo ? { ...s, novo: { ...s.novo, [a.campo]: a.valor } } : s;
+    case "novo_campo": {
+      if (!s.novo) return s;
+      const novo = { ...s.novo, [a.campo]: a.valor };
+      // O modelo sugere um perfil (fase 3): vale se a pessoa tem esse perfil.
+      if (a.campo === "modelo") {
+        const sug = s.modelos.find((m) => m.nome === a.valor)?.perfil;
+        if (sug && s.perfis.some((p) => p.perfil === sug)) novo.perfil = sug;
+      }
+      return { ...s, novo };
+    }
     case "novo_cancelar": return { ...s, novo: null };
     case "criado": {
       const ins = s.inserir && !s.inserir.documento ? { ...s.inserir, documento: a.documento } : s.inserir;
@@ -92,6 +116,7 @@ export function reduzir(s, a) {
     case "guia": return { ...s, guia: a.passos || [] };
     case "fechar_guia": return { ...s, guia: null };
     case "erro": {
+      if ((a.acao || "").startsWith("modelos_")) return { ...erroModelos(s), aviso: null, erro: a.mensagem };
       const base = { ...s, ocupado: a.documento ? semChave(s.ocupado, a.documento) : s.ocupado, aviso: null };
       // Modelo com dados de treino: o painel pede o aceite em vez de só mostrar o erro.
       if (a.acao === "inserir" && s.inserir && a.classe === "tr_documento_erro_dados_treino") {
@@ -102,7 +127,7 @@ export function reduzir(s, a) {
       }
       return { ...base, inserir: s.inserir ? { ...s.inserir, enviando: false } : null, erro: a.mensagem };
     }
-    default: return s;
+    default: return (a.tipo || "").startsWith("modelo") ? reduzirModelos(s, a) : s;
   }
 }
 
