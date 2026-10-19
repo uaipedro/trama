@@ -83,6 +83,16 @@ tr_models_clean_name <- function(x) {
 #'   e o que devolve do que leu. Default: identidade (o objeto vai inteiro no
 #'   RDS); existe para quem guarda ponteiro externo (xgboost).
 #' - `tr_models_as_table(x)`: o adaptador `models/fit` → `data/table`.
+#' - `tr_models_strip(x)`: o que sobra do modelo para PREVER, sem os dados de
+#'   treino — o que se publica. Devolve um objeto da mesma classe, com
+#'   `reduzido = TRUE`, que ainda responde a `tr_models_info()` e a
+#'   `tr_models_predict_raw()` (o ponto previsto; intervalo não sobrevive) e a
+#'   nada mais garantido. Não basta apagar `dados`: o ajuste do motor guarda a
+#'   matriz de treino em outros campos (no `lm`, `qr$qr` é a própria matriz de
+#'   delineamento) e a fórmula carrega o ambiente onde foi criada. Sem default:
+#'   classe sem método não se publica (`tr_models_error_no_method`). Toda classe
+#'   que implementa leva dois testes: a previsão igual antes e depois, e nenhum
+#'   valor do treino no objeto reduzido (ou a exceção medida e declarada).
 #'
 #' @param x um modelo (`inherits(x, "tr_models_fit")`).
 #' @name tr_models_contract
@@ -135,6 +145,10 @@ tr_models_unserialize <- function(x) UseMethod("tr_models_unserialize")
 #' @rdname tr_models_contract
 #' @export
 tr_models_as_table <- function(x) UseMethod("tr_models_as_table")
+
+#' @rdname tr_models_contract
+#' @export
+tr_models_strip <- function(x) UseMethod("tr_models_strip")
 
 #' Verossimilhança e aninhamento para `models/compare` e `models/select`
 #'
@@ -223,6 +237,12 @@ tr_models_importance.tr_models_fit <- function(x) .tr_models_porteiro("tr_models
 tr_models_card.tr_models_fit <- function(x, ctx) .tr_models_porteiro("tr_models_card", x, ctx)
 #' @export
 tr_models_as_table.tr_models_fit <- function(x) .tr_models_porteiro("tr_models_as_table", x)
+#' @export
+tr_models_strip.tr_models_fit <- function(x) .tr_models_porteiro("tr_models_strip", x)
+# Reduzir é o genérico que NÃO tem default de verdade: um "devolve o objeto"
+# publicaria os dados de treino em silêncio, que é justamente o que ele evita.
+#' @export
+tr_models_strip.default <- function(x) .tr_models_sem_metodo("tr_models_strip", x)
 
 # Serializar é o único com default de verdade: o objeto R inteiro no RDS é o
 # que sempre se fez, e só quem guarda ponteiro externo precisa de outra coisa.
@@ -296,7 +316,7 @@ tr_models_unserialize.default <- function(x) x
        # As preditoras pelo NOME da variável — `all.vars()` do lado direito pega
        # `x` dentro de `poly(x, 2)` sem confundir a função com a coluna (e, no
        # misto, o fator de agrupamento de `(1 | bloco)`, que `novos` precisa ter).
-       preditores = all.vars(f[[3]]), niveis = NULL, n = nrow(x$dados), rotulo = x$rotulo,
+       preditores = all.vars(f[[3]]), niveis = NULL, n = x$n %||% nrow(x$dados), rotulo = x$rotulo,
        familia = if (x$classe %in% c("glm", "glmer")) stats::family(x$ajuste)$family else "gaussian")
 }
 
@@ -310,6 +330,8 @@ tr_models_unserialize.default <- function(x) x
 #' SEGUNDO — a mesma convenção da logística da `multi`.
 #' @noRd
 .tr_models_glm_niveis <- function(x) {
+  # Reduzido (`tr_models_strip`): sem `dados`, os níveis foram guardados antes.
+  if (isTRUE(x$reduzido)) return(x$niveis_resposta)
   if (!x$classe %in% c("glm", "glmer") || stats::family(x$ajuste)$family != "binomial") return(NULL)
   lhs <- stats::as.formula(x$formula)[[2]]
   if (!is.name(lhs)) return(NULL)
@@ -622,6 +644,12 @@ tr_models_resid.tr_models_lmer <- function(x) {
 #' `predict()` do ajuste em `novos`, com o intervalo quando pedido.
 #' @noRd
 .tr_models_predict_ajuste <- function(x, novos, intervalo = "nenhum", confianca = 0.95, ...) {
+  if (isTRUE(x$reduzido) && !identical(intervalo, "nenhum")) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("%s foi reduzido para publicação (sem os dados de treino) e prevê só o ponto: ",
+                            "o intervalo pede os resíduos, que ficaram de fora. Use intervalo = \"nenhum\"."),
+                     x$rotulo)
+  }
   args <- list(object = x$ajuste, newdata = novos)
   # GLM: sem isto, o default de `predict.glm()` é a escala da LIGAÇÃO (log,
   # logit), e o card mostraria log-odds ou log-contagem como "previsto" sem

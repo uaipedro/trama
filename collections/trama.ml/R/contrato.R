@@ -245,3 +245,89 @@ tr_models_unserialize.tr_ml_fit <- function(x) {
   }
   x
 }
+
+# ---- reduzido para publicação ------------------------------------------------------
+
+#' O modelo sem os dados de treino: `tr_models_strip()` do contrato.
+#'
+#' Saem `dados`, as impressões digitais das linhas (`treino_impressoes`, que
+#' deixariam conferir se uma linha conhecida estava no treino) e a `origem`; o
+#' motor é reduzido ao que o `predict()` dele lê. Fica a recusa de prever o
+#' teste de outra divisão só enquanto o modelo não é reduzido: sem as
+#' impressões, a conferência de vazamento não tem com o que comparar.
+#'
+#' O que cada motor ainda guarda do treino, medido em `test-reduzir.R`:
+#' - CART: nada linha a linha; as folhas guardam a média (ou a contagem por
+#'   classe) das linhas que caíram nelas, e os cortes são pontos médios.
+#' - Floresta: na regressão, a folha guarda a média das linhas sorteadas para
+#'   ela; uma folha com uma só linha distinta guarda o valor da resposta dela.
+#' - SVM: os vetores de suporte SÃO linhas do treino (escalonadas): a previsão
+#'   é uma soma sobre eles, e não há como tirá-los sem trocar o modelo.
+#' - XGBoost: só as árvores; os cortes vêm dos quantis do histograma.
+#' FIGS fica de fora: o `figsr` não tem binário WebR, e o método entra junto
+#' com esse suporte.
+#' @export
+tr_models_strip.tr_ml_fit <- function(x) {
+  if (isTRUE(x$reduzido)) return(x)
+  if (identical(x$modelo, "figs")) {
+    .tr_ml_abort("tr_models_error_no_method",
+                 "O FIGS ainda n\u{E3}o se publica: o pacote figsr n\u{E3}o tem bin\u{E1}rio para o navegador (WebR), e o modelo reduzido entra junto com esse suporte.")
+  }
+  aj <- tr_models_unserialize.tr_ml_fit(x)$ajuste
+  x$ajuste <- switch(x$modelo,
+    linear = trama.models::tr_models_strip_stats(aj),
+    cart = .tr_ml_strip_rpart(aj),
+    forest = .tr_ml_strip_ranger(aj),
+    svm = .tr_ml_strip_svm(aj),
+    xgboost = .tr_ml_strip_xgboost(aj))
+  x$.booster_raw <- NULL
+  x["dados"] <- list(NULL)
+  x["treino_impressoes"] <- list(NULL)
+  x["origem"] <- list(NULL)
+  x$reduzido <- TRUE
+  x
+}
+
+#' `predict.rpart()` com `newdata` lê `terms`, `frame`, `splits`, `csplit`,
+#' `method`, `functions` e os atributos `xlevels`/`ylevels`. Saem `y` (a
+#' resposta, linha a linha), `where` (a folha de cada linha), `call`, e `x` ou
+#' `model` quando o ajuste os guardou.
+#' @noRd
+.tr_ml_strip_rpart <- function(aj) {
+  for (campo in c("y", "where", "call", "x", "model")) aj[[campo]] <- NULL
+  tt <- aj$terms
+  attr(tt, ".Environment") <- globalenv()
+  aj$terms <- tt
+  aj
+}
+
+#' `predict.ranger()` lê `forest`, `treetype`, `num.trees` e os nomes. Saem as
+#' previsões fora da bolsa de cada linha do treino (`predictions`), a chamada,
+#' as contagens de sorteio (`inbag.counts`) e as estatísticas por nó que o
+#' `node.stats = TRUE` guarda para o desenho da árvore (`num.samples.nodes`,
+#' `node.predictions`, `split.stats`) — o `ml/tree_plot` não lê reduzido.
+#' @noRd
+.tr_ml_strip_ranger <- function(aj) {
+  for (campo in c("predictions", "call", "inbag.counts")) aj[[campo]] <- NULL
+  for (campo in c("num.samples.nodes", "node.predictions", "split.stats")) aj$forest[[campo]] <- NULL
+  aj
+}
+
+#' `predict.svm()` lê os vetores de suporte, os coeficientes, `rho`, a escala
+#' e, com probabilidade, `probA`/`probB`. Saem as previsões e resíduos do
+#' treino (`fitted`, `residuals`, `decision.values`), os índices das linhas que
+#' viraram vetor de suporte (`index`), `na.action` e a chamada.
+#' @noRd
+.tr_ml_strip_svm <- function(aj) {
+  for (campo in c("fitted", "residuals", "decision.values", "index", "na.action", "call")) aj[[campo]] <- NULL
+  aj
+}
+
+#' O booster não guarda dado; saem os atributos R que o `xgb.train()` pendura
+#' (a chamada e os parâmetros, que viajam em `extras$parametros`).
+#' @noRd
+.tr_ml_strip_xgboost <- function(aj) {
+  attr(aj, "call") <- NULL
+  attr(aj, "params") <- NULL
+  aj
+}
