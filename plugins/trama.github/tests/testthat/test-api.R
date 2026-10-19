@@ -82,7 +82,7 @@ test_that("arquivo acima de 100 MB é recusado antes de sair", {
   local_github_falso()
   f <- withr::local_tempfile()
   writeBin(raw(1), f)
-  local_mocked_bindings(.LIMITE_ARQUIVO = 0)
+  local_mocked_bindings(.LIMITE_ARQUIVO = 0, .package = "trama.github")
   expect_error(tr_github_commit("pesquisadora/projeto", "v1", arquivos = c("grande.bin" = f)),
                class = "tr_github_erro_arquivo_grande")
 })

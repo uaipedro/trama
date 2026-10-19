@@ -327,3 +327,17 @@ local_github_falso <- function(token = TOKEN_FALSO, env = parent.frame()) {
 }
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+falso_repo <- function(repo) {
+  req <- httr2::request(paste0(falso_url(), "/repos/", repo))
+  httr2::resp_body_json(httr2::req_perform(httr2::req_auth_bearer_token(req, TOKEN_FALSO)))
+}
+
+# Arquivos (caminho -> sha) da ponta da branch padrão de um repositório.
+falso_arvore_de <- function(repo, branch = "main") {
+  e <- falso_estado()
+  com <- e$refs[[paste0(repo, "@heads/", branch)]]
+  req <- httr2::request(sprintf("%s/repos/%s/git/commits/%s", falso_url(), repo, com))
+  arv <- httr2::resp_body_json(httr2::req_perform(httr2::req_auth_bearer_token(req, TOKEN_FALSO)))$tree$sha
+  e$arvores[[arv]]
+}
