@@ -56,8 +56,8 @@ tr_publicar_pagina <- function(material, tem_fluxo = TRUE, data = Sys.Date()) {
 
 .tr_publicar_cabecalho <- function(material, data, live) {
   m <- material$metadados
+  # A descrição já sai sob o título (o `description` do YAML).
   linhas <- c(
-    if (nzchar(m$descricao)) m$descricao,
     sprintf("**Vers\u{E3}o** %s \u{B7} **Licen\u{E7}a** [%s](%s) (conte\u{FA}do), [%s](%s) (c\u{F3}digo) \u{B7} [pacote completo](ro-crate-metadata.json)",
             m$versao, m$licenca, .tr_publicar_licenca_url(m$licenca), m$licenca_codigo,
             .tr_publicar_licenca_url(m$licenca_codigo)),
@@ -140,6 +140,11 @@ tr_publicar_pagina <- function(material, tem_fluxo = TRUE, data = Sys.Date()) {
       logico = sprintf("viewof %s = Inputs.toggle({value: false, label: %s})", v, .tr_publicar_js(e$nome)))
   }, "")
   local <- paste0(.tr_publicar_pasta(id), "-motor.rds")
+  # Endereço ABSOLUTO, montado no navegador: o `download.file()` do WebR roda
+  # num worker, onde um caminho relativo não tem base e dá "Invalid URL".
+  var_url <- .tr_publicar_ojs(id, "motor_url")
+  url_js <- sprintf("%s = new URL(%s, document.baseURI).href", var_url,
+                    .tr_publicar_js(file.path(pasta, "motor.rds")))
   novos <- paste(sprintf("`%s` = %s", vapply(web$entradas, function(e) e$nome, ""), vars), collapse = ", ")
   resposta <- web$saida$resposta %||% "resposta"
   mostrar <- if (identical(web$saida$tarefa, "classificacao")) {
@@ -147,17 +152,16 @@ tr_publicar_pagina <- function(material, tem_fluxo = TRUE, data = Sys.Date()) {
       "p <- unlist(r[1, -1, drop = TRUE])",
       "print(data.frame(classe = sub(\"^prob_\", \"\", names(p)), probabilidade = round(p, 3)), row.names = FALSE)")
   } else {
-    sprintf("cat(sprintf(\"%s previsto: %%s\\n\", format(r$previsto[[1]], digits = 4)))", resposta)
+    sprintf("cat(sprintf(\"%s previsto: %%s\\n\", format(r$previsto[[1]], digits = 6)))", resposta)
   }
-  celula <- c("```{webr}", "#| edit: false", "#| echo: false", "#| input:", sprintf("#|   - %s", vars),
-              sprintf("if (!file.exists(\"%s\")) download.file(\"%s\", \"%s\")", local,
-                      file.path(pasta, "motor.rds"), local),
+  celula <- c("```{webr}", "#| edit: false", "#| echo: false", "#| input:", sprintf("#|   - %s", c(vars, var_url)),
+              sprintf("if (!file.exists(\"%s\")) download.file(%s, \"%s\")", local, var_url, local),
               sprintf("motor <- readRDS(\"%s\")", local),
               paste0("prever <- ", web$prever),
               sprintf("novos <- data.frame(%s, check.names = FALSE)", novos),
               "r <- prever(motor, novos)",
               mostrar, "```")
-  paste(c("```{ojs}", "//| echo: false", controles, "```", "", celula, "",
+  paste(c("```{ojs}", "//| echo: false", controles, url_js, "```", "", celula, "",
           sprintf("*Pr\u{E9}-processamento:* %s", web$preprocessamento %||% "")), collapse = "\n")
 }
 
