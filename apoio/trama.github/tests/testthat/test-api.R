@@ -113,3 +113,9 @@ test_that("credencial recusada vira erro em português", {
   local_github_falso(token = "token-errado")
   expect_error(tr_github_usuario(), "expirou ou foi revogada", class = "tr_github_erro_credencial")
 })
+
+test_that("sem rede vira erro em português, sem travar", {
+  local_github_falso()
+  withr::local_options(trama.github.api_url = "http://127.0.0.1:1")
+  expect_error(tr_github_usuario(), "Sem conexão", class = "tr_github_erro_rede")
+})

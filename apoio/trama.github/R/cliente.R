@@ -33,7 +33,14 @@ tr_github_url <- function() {
                             `X-GitHub-Api-Version` = "2022-11-28")
   req <- httr2::req_user_agent(req, "trama.github (https://github.com/uaipedro/trama)")
   if (!is.null(token)) req <- httr2::req_auth_bearer_token(req, token)
-  httr2::req_error(req, is_error = function(resp) FALSE)
+  httr2::req_error(.gh_paciencia(req), is_error = function(resp) FALSE)
+}
+
+# O editor espera a resposta no mesmo processo do R: rede parada não pode
+# travar a tela. Desiste se não conectar em 10 s ou se a transferência ficar
+# 30 s sem andar. Sem teto de tempo total, que cortaria envio grande.
+.gh_paciencia <- function(req) {
+  httr2::req_options(req, connecttimeout = 10, low_speed_limit = 1, low_speed_time = 30)
 }
 
 # Faz a chamada e devolve o JSON como lista (sem simplificar: blobs, árvores e
@@ -44,7 +51,7 @@ tr_github_url <- function() {
   if (!is.null(corpo)) req <- httr2::req_body_json(req, corpo, auto_unbox = TRUE, null = "null")
   resp <- .gh_executar(req)
   if (httr2::resp_status(resp) >= 400) .gh_erro_http(resp)
-  if (httr2::resp_status(resp) == 204 || !length(httr2::resp_body_raw(resp))) return(invisible(NULL))
+  if (!httr2::resp_has_body(resp)) return(invisible(NULL))
   httr2::resp_body_json(resp, simplifyVector = FALSE)
 }
 

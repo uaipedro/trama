@@ -85,7 +85,7 @@ tr_github_entrar <- function(abrir = interactive(), salvar = TRUE) {
   req <- httr2::req_headers(req, Accept = "application/json")
   req <- httr2::req_user_agent(req, "trama.github (https://github.com/uaipedro/trama)")
   req <- do.call(httr2::req_body_form, c(list(req), campos))
-  req <- httr2::req_error(req, is_error = function(resp) FALSE)
+  req <- httr2::req_error(.gh_paciencia(req), is_error = function(resp) FALSE)
   resp <- .gh_executar(req)
   if (httr2::resp_status(resp) >= 400) .gh_erro_http(resp)
   httr2::resp_body_json(resp, simplifyVector = FALSE)
