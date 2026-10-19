@@ -428,7 +428,9 @@ tr_documento_listar <- function(projeto = ".") {
 #' dele): um modelo inserido ali vira preditor.
 #' @noRd
 .td_web <- function(linhas, pasta_doc) {
-  fmts <- as.character(names(.td_yaml(linhas)$format))
+  f <- .td_yaml(linhas)$format
+  # `format: live-html` (texto) ou `format: {pagina-html: ...}` (mapa).
+  fmts <- if (is.character(f)) f else as.character(names(f))
   ext <- unique(sub("-[^-]+$", "", fmts[grepl("-", fmts)]))
   any(file.exists(file.path(pasta_doc, "_extensions", ext, "live.lua"))) ||
     any(startsWith(fmts, "live-"))

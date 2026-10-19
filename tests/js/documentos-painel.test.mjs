@@ -132,8 +132,9 @@ test("publicar: conferir, bloqueio desliga, confirmar e enviar", () => {
   assert.equal(s.publicar.confirmar, "Criar privado?");
   assert.equal(s.ocupado[doc], undefined);
   assert.equal(pedidoPublicar(s.publicar, true).confirmado, true);
-  // Enviado: a caixa fecha e o envio fica no documento.
-  s = passo(s, { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "enviado" } });
+  // "Sim, publicar" e a resposta: a caixa fecha e o envio fica no documento.
+  s = passo(s, { tipo: "publicar_enviando" },
+            { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "enviado" } });
   assert.equal(s.publicar, null);
   assert.equal(s.envios[doc].tag, "v0.1.0");
   assert.match(s.aviso, /v0\.1\.0 enviada a p\/t/);
@@ -151,4 +152,13 @@ test("o menu GitHub abre o painel num documento", () => {
   assert.equal(s.aberto, true);
   assert.equal(s.aba, "documentos");
   assert.equal(s.selecionado, "documentos/rel/rel.qmd");
+});
+
+test("acompanhamento de um envio anterior não fecha a caixa de publicar", () => {
+  const doc = "documentos/rel/rel.qmd";
+  let s = passo(INICIAL, lista, { tipo: "publicar_abrir", documento: doc },
+                { tipo: "publicacao", documento: doc, erros: [], avisos: [], repo: "t" },
+                { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "actions" } });
+  assert.notEqual(s.publicar, null);
+  assert.equal(s.envios[doc].etapa, "actions");
 });

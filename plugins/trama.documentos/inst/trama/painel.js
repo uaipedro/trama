@@ -157,7 +157,9 @@ export function reduzir(s, a) {
       const e = a.estado || {};
       const novo = !s.envios[a.documento] || s.envios[a.documento].tag !== e.tag;
       return { ...s, ocupado: semChave(s.ocupado, a.documento), envios: { ...s.envios, [a.documento]: e },
-               publicar: s.publicar?.documento === a.documento ? null : s.publicar,
+               // Só a resposta ao envio fecha a caixa: o acompanhamento de um
+               // envio anterior também manda `envio`, e não pode fechá-la.
+               publicar: s.publicar?.documento === a.documento && s.publicar.enviando ? null : s.publicar,
                aviso: novo && e.etapa === "enviado" ? `Versão ${e.tag} enviada a ${e.repo}.` : s.aviso };
     }
     case "guia": return { ...s, guia: a.passos || [] };

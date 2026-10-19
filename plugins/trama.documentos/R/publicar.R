@@ -24,12 +24,16 @@
 #' `CC-BY-4.0`), `licenca-codigo` (padrão `MIT`), `versao` (tipo da próxima:
 #' `menor`, `correção` ou `maior`), `privado` (repositório da publicação
 #' privado; Pages privado exige plano pago) e `aceitar-dados-treino` (publicar
-#' modelos que carregam linhas do treino, que de outro modo são recusados).
+#' modelos que carregam linhas do treino, que de outro modo são recusados) e
+#' `incluir-dados` (arquivos de dados que estejam na pasta do documento).
 #'
 #' Bloqueiam: falta de título ou de autor, ORCID que não confere, licença
 #' desconhecida, região desatualizada (atualize antes), região sem a pasta
 #' materializada, modelo com dados de treino sem o aceite, arquivo acima de
-#' 100 MB e documento sem formato HTML (a página do GitHub Pages).
+#' 100 MB, documento sem formato HTML ou com mais de um (a página do GitHub
+#' Pages), arquivo de dados na pasta do documento sem `incluir-dados` e
+#' arquivo da pasta com o nome de um que o pacote gera. Os outros arquivos da
+#' pasta, que vão junto, saem nos avisos.
 #'
 #' @inheritParams tr_documento_inserir
 #' @param desatualizada Região desatualizada é `"erro"` (o padrão: o pacote
@@ -47,9 +51,19 @@ tr_documento_publicacao <- function(documento, projeto = NULL, desatualizada = c
   pasta_doc <- dirname(normalizePath(documento))
   avisos <- character()
   erros <- m$erros
-  if (!length(intersect(tr_documento_formatos(documento), c("html", "revealjs", "dashboard")))) {
+  html <- intersect(tr_documento_formatos(documento), c("html", "revealjs", "dashboard"))
+  if (!length(html)) {
     erros <- c(erros, "O documento n\u{E3}o tem formato HTML: a p\u{E1}gina do GitHub Pages precisa de um.")
   }
+  # No GitHub Actions todos os formatos saem na mesma pasta: dois HTML
+  # disputariam o mesmo index.html.
+  if (length(html) > 1L) {
+    erros <- c(erros, sprintf(paste0("O documento tem mais de um formato HTML (%s): a p\u{E1}gina publicada ",
+                                     "seria s\u{F3} um deles. Deixe um no YAML."), paste(html, collapse = ", ")))
+  }
+  extra <- .td_pub_extras(documento, d$linhas, m$incluir_dados)
+  avisos <- c(avisos, extra$avisos)
+  erros <- c(erros, extra$erros)
   e <- tr_documento_estado(documento, projeto)
   regs <- .td_regioes(d$linhas)
   regioes <- list()
@@ -123,6 +137,47 @@ print.tr_documento_publicacao <- function(x, ...) {
   invisible(x)
 }
 
+# ---- a pasta do documento ----------------------------------------------------------
+
+# O que o pacote gera e sobrescreveria (`fluxo.svg` é refeito de propósito).
+.TD_GERADOS <- c("index.qmd", "index.html", "README.md", "LICENSE", "CITATION.cff", "flow.json",
+                 "dados-entrada.json", "ambiente.json", "ro-crate-metadata.json")
+# Extensões de arquivo de dados: na pasta do documento, só vão com aceite.
+.TD_EXT_DADOS <- c("csv", "tsv", "txt", "xls", "xlsx", "ods", "rds", "rda", "rdata", "sav", "dta", "sas7bdat",
+                   "parquet", "feather", "arrow", "sqlite", "db", "duckdb", "json", "xml", "dbf", "shp", "gpkg")
+
+#' O que vai no pacote sem ser o documento, o modelo ou o `_trama/`: a
+#' conferência mostra. Dado na pasta só vai com `incluir-dados: true`; nome
+#' que o pacote gera e arquivo acima de 100 MB bloqueiam.
+#' @noRd
+.td_pub_extras <- function(documento, linhas, incluir_dados = FALSE) {
+  pasta <- dirname(normalizePath(documento))
+  todos <- .td_pacote_arquivos(normalizePath(documento), linhas)
+  tam <- file.info(file.path(pasta, todos))$size
+  erros <- character()
+  grandes <- todos[!is.na(tam) & tam > 100 * 1024^2]
+  if (length(grandes)) {
+    erros <- c(erros, sprintf("Arquivo acima de 100 MB, que o GitHub recusa: %s.", paste(grandes, collapse = ", ")))
+  }
+  proprios <- todos == basename(documento) | grepl(paste0("^(_extensions|", .TD_PASTA, ")/"), todos) |
+    todos %in% c("_brand.yml", "fluxo.svg")
+  extras <- todos[!proprios]
+  if (!length(extras)) return(list(avisos = character(), erros = erros))
+  avisos <- sprintf("Vai junto, da pasta do documento: %s.", paste(extras, collapse = ", "))
+  colide <- extras[extras %in% .TD_GERADOS]
+  if (length(colide)) {
+    erros <- c(erros, sprintf("A pasta do documento tem %s, que o pacote gera: renomeie ou tire da pasta.",
+                              paste(colide, collapse = ", ")))
+  }
+  dados <- extras[tolower(tools::file_ext(extras)) %in% .TD_EXT_DADOS]
+  if (length(dados) && !isTRUE(incluir_dados)) {
+    erros <- c(erros, sprintf(paste0("A pasta do documento tem arquivos de dados (%s), que iriam p\u{FA}blicos: ",
+                                     "tire-os da pasta, ou ponha 'incluir-dados: true' em 'trama: publicar:'."),
+                              paste(dados, collapse = ", ")))
+  }
+  list(avisos = avisos, erros = erros)
+}
+
 # ---- metadados do YAML -------------------------------------------------------------
 
 #' Metadados da publicação a partir do YAML do documento, com os erros.
@@ -158,6 +213,7 @@ print.tr_documento_publicacao <- function(x, ...) {
   list(titulo = titulo, descricao = descricao, palavras_chave = chaves[nzchar(chaves)], autores = autores,
        licenca = licenca, licenca_codigo = licenca_codigo, tipo_versao = tipo_versao,
        privado = logico(pub$privado), aceitar_dados_treino = logico(pub[["aceitar-dados-treino"]]),
+       incluir_dados = logico(pub[["incluir-dados"]]),
        erros = erros)
 }
 

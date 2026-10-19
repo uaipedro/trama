@@ -93,3 +93,54 @@ test_that("nome de documento já usado ganha sufixo", {
   r <- tr_documento_migrar_publicar(proj)
   expect_identical(r$documento, "documentos/consumo-e-peso-2/consumo-e-peso-2.qmd")
 })
+
+test_that("falha no meio desfaz: o fluxo volta com o nó, o documento sai, o registro não muda", {
+  proj <- local_projeto()
+  caminho <- fluxo_com_publicar(proj)
+  registrar_antigo(proj)
+  antes <- readLines(caminho)
+  local_mocked_bindings(.td_variaveis = function(...) stop("disco cheio"), .package = "trama.documentos")
+  expect_error(tr_documento_migrar_publicar(proj), "foi desfeita", class = "tr_documento_erro_migrar")
+  expect_identical(readLines(caminho), antes)
+  expect_false(dir.exists(file.path(proj$root, "documentos", "consumo-e-peso")))
+  expect_false(is.null(trama::tr_project_config(proj$root, "publicacoes")$pub))
+  expect_length(Sys.glob(file.path(proj$root, ".trama", "migracao", "main-*.json")), 1L)
+})
+
+test_that("o bloco que volta ao fluxo (autosave de outra aba) sai de novo, sem outro documento", {
+  proj <- local_projeto()
+  caminho <- fluxo_com_publicar(proj)
+  r <- tr_documento_migrar_publicar(proj)
+  fluxo_com_publicar(proj)  # o nó volta
+  r2 <- tr_documento_migrar_publicar(proj)
+  expect_identical(r2$documento, r$documento)
+  expect_match(r2$avisos, "Já migrado")
+  expect_identical(nrow(tr_documento_listar(proj)), 1L)
+  expect_false("pub" %in% names(trama::tr_doc_read(caminho)$nodes))
+})
+
+test_that("mesmo nó por duas saídas: os dois itens entram, com os nomes do publicar", {
+  proj <- local_projeto()
+  salvar_fluxo(proj, no("duas", "tst/duas"))
+  caminho <- file.path(proj$root, "flows", "main.json")
+  doc <- trama::tr_doc_read(caminho)
+  doc$nodes$pub <- list(type = "publicar/publish", params = list(titulo = "Duas", autores = "Ana Lima",
+    layout = '[{"tipo":"item","id":"duas.b"},{"tipo":"item","id":"duas.a"}]'))
+  doc$edges <- list(list(from = list(node = "duas", port = "a"), to = list(node = "pub", port = "itens")),
+                    list(from = list(node = "duas", port = "b"), to = list(node = "pub", port = "itens")))
+  trama::tr_doc_write(doc, caminho)
+  r <- tr_documento_migrar_publicar(proj)
+  qmd <- file.path(proj$root, r$documento)
+  expect_identical(vapply(trama.documentos:::.td_regioes(linhas(qmd)), `[[`, "", "chave"), c("duas--b", "duas"))
+})
+
+test_that("item que o layout não cita entra no fim, com aviso", {
+  proj <- local_projeto()
+  fluxo_com_publicar(proj, layout = '[{"tipo":"item","id":"txt"}]')
+  r <- tr_documento_migrar_publicar(proj)
+  expect_match(r$avisos, "tab ia só no pacote")
+  qmd <- file.path(proj$root, r$documento)
+  l <- linhas(qmd)
+  expect_true(which(l == "## Material adicional") < regiao(qmd, "tab")$inicio)
+  expect_identical(vapply(trama.documentos:::.td_regioes(l), `[[`, "", "chave"), c("txt", "tab"))
+})

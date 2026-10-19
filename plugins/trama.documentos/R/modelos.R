@@ -46,7 +46,9 @@ tr_documento_modelos <- function() {
 #' O modelo para criar documento: tem de ser válido.
 #' @noRd
 .td_modelo <- function(nome) {
-  d <- .td_modelo_dir(nome)
+  # `I(<pasta>)`: uma pasta de modelo dada direto (a migração usa o embutido
+  # Página web mesmo que o usuário tenha uma cópia com o mesmo nome).
+  d <- if (inherits(nome, "AsIs") && dir.exists(nome)) as.character(nome) else .td_modelo_dir(nome)
   m <- .td_modelo_ler(d)
   if (length(m$problemas)) {
     .td_erro(paste(c(sprintf("O modelo '%s' tem problemas; conserte (ou remova) e tente de novo:", nome),

@@ -19,34 +19,36 @@
   # Migração do `trama.publicar` (retirado): na primeira lista da sessão,
   # o nó `publicar/publish` vira documento; o editor relê o fluxo e o painel
   # abre com o aviso.
-  migrou <- FALSE
+  migrados <- character()
   migrar <- function() {
-    if (migrou) return(invisible())
-    migrou <<- TRUE
+    if (raiz() %in% migrados) return(invisible())
+    migrados <<- c(migrados, raiz())
     r <- tr_documento_migrar_publicar(raiz())
     if (!nrow(r)) return(invisible())
     if (is.function(ctx$recarregar)) ctx$recarregar()
     enviar(list(tipo = "migrado", documentos = .td_linhas_json(r)))
   }
-  # Acompanhamento do envio ao GitHub: um passo a cada `seg` segundos até a
-  # página entrar no ar ou o workflow falhar (no máximo ~15 minutos).
-  acompanhando <- character()
-  acompanhar <- function(rel, passos = 0L) {
-    if (passos == 0L && rel %in% acompanhando) return(invisible())
-    acompanhando <<- union(acompanhando, rel)
+  # Acompanhamento do envio ao GitHub: um passo a cada 5 segundos até a
+  # página entrar no ar ou o workflow falhar (no máximo ~15 minutos). Cada
+  # documento tem uma geração: envio novo (ou conferir de novo) recomeça, e o
+  # laço velho para. Erro de rede passageiro tenta de novo; três seguidos param.
+  geracoes <- list()
+  acompanhar <- function(rel, novo = TRUE, g = NULL, passos = 0L, falhas = 0L) {
+    if (novo) {
+      g <- (geracoes[[rel]] %||% 0L) + 1L
+      geracoes[[rel]] <<- g
+    }
+    if (!identical(geracoes[[rel]], g)) return(invisible())
     e <- tryCatch(tr_documento_acompanhar(file.path(raiz(), rel), raiz()), error = function(e) e)
     if (inherits(e, "error")) {
-      acompanhando <<- setdiff(acompanhando, rel)
-      return(falhar("acompanhar", rel)(e))
+      if (falhas >= 2L) return(falhar("acompanhar", rel)(e))
+      return(agendar(function() acompanhar(rel, FALSE, g, passos + 1L, falhas + 1L), 5))
     }
-    if (is.null(e)) { acompanhando <<- setdiff(acompanhando, rel); return(invisible()) }
+    if (is.null(e)) return(invisible())
     enviar(list(tipo = "envio", documento = rel, estado = e))
-    if (e$etapa %in% c("no_ar", "falhou") || passos >= 180L) {
-      acompanhando <<- setdiff(acompanhando, rel)
-      if (e$etapa %in% c("no_ar", "falhou")) listar()
-      return(invisible())
-    }
-    agendar(function() acompanhar(rel, passos + 1L), 5)
+    if (e$etapa %in% c("no_ar", "falhou")) return(listar())
+    if (passos >= 180L) return(invisible())
+    agendar(function() acompanhar(rel, FALSE, g, passos + 1L, 0L), 5)
   }
   estado <- function(m) {
     d <- doc(m)

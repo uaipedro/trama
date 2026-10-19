@@ -32,8 +32,9 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
     # Coleção que saiu da instalação (retirada, ou só não instalada aqui):
     # o projeto abre assim mesmo, e os blocos dela aparecem como
     # desconhecidos. Sem isso, nada que migra um projeto velho chega a rodar.
-    if (!requireNamespace(cl, quietly = TRUE)) {
-      message(sprintf("trama: a cole\u00e7\u00e3o %s do trama.json n\u00e3o est\u00e1 instalada; os blocos dela ficam indispon\u00edveis.", cl))
+    # Só a que não está instalada: instalada e quebrada continua dando erro.
+    if (!.tr_instalado(cl)) {
+      message(.tr_msg_colecao_ausente(cl))
       next
     }
     tr_use(cl, registry = registry)
@@ -206,6 +207,11 @@ tr_project_at <- function(root, registry) {
 
   disponiveis <- .tr_registry_packages(registry)
   faltando <- setdiff(cols, disponiveis)
+  # Não instalada (retirada): abre, como em `tr_project()`. Instalada e fora
+  # deste editor: precisa subir o trama com ela.
+  ausentes <- faltando[!vapply(faltando, .tr_instalado, logical(1))]
+  for (cl in ausentes) message(.tr_msg_colecao_ausente(cl))
+  faltando <- setdiff(faltando, ausentes)
   if (length(faltando)) {
     rlang::abort(sprintf(
       "Este editor não tem a(s) coleção(ões) %s, que o projeto pede. Suba o trama com ela(s) para abrir '%s'.",
@@ -220,6 +226,12 @@ tr_project_at <- function(root, registry) {
   .tr_project_dirs(root)
 
   .tr_project_obj(root, registry, cols, settings)
+}
+
+.tr_instalado <- function(pkg) nzchar(system.file(package = pkg))
+
+.tr_msg_colecao_ausente <- function(cl) {
+  sprintf("trama: a cole\u00e7\u00e3o %s do trama.json n\u00e3o est\u00e1 instalada; os blocos dela ficam indispon\u00edveis.", cl)
 }
 
 #' Cria um projeto novo: as pastas e o manifesto.

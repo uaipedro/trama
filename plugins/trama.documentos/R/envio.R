@@ -107,6 +107,21 @@ tr_documento_publicar <- function(documento, projeto = NULL, repositorio = NULL,
   dono <- if (length(partes) == 2L) partes[[1]] else usuario
   nome <- .td_slug(partes[[length(partes)]])
   repo <- paste0(dono, "/", nome)
+  # Um repositório por documento, e nunca o repositório privado do projeto:
+  # o envio troca a árvore inteira.
+  reg <- .td_registro(raiz)
+  outros <- Filter(function(p) identical(tolower(p$repo %||% ""), tolower(repo)), reg[names(reg) != rel])
+  if (length(outros)) {
+    return(list(bloqueios = list(sprintf(paste0("O reposit\u{F3}rio %s j\u{E1} \u{E9} o da publica\u{E7}\u{E3}o de %s. ",
+                                                "Escolha outro nome de reposit\u{F3}rio para este documento."),
+                                         repo, paste(names(outros), collapse = ", ")))))
+  }
+  privado_projeto <- tryCatch(trama.github::tr_github_versionar_config(raiz)$repo, error = function(e) NULL)
+  if (identical(tolower(privado_projeto %||% ""), tolower(repo))) {
+    return(list(bloqueios = list(sprintf(paste0("%s \u{E9} o reposit\u{F3}rio privado das vers\u{F5}es deste projeto: ",
+                                                "a publica\u{E7}\u{E3}o vai para um reposit\u{F3}rio pr\u{F3}prio. ",
+                                                "Escolha outro nome."), repo))))
+  }
   info <- trama.github::tr_github_repo(repo, token)
   if (is.null(info)) {
     if (isTRUE(m$privado) && !isTRUE(confirmado)) {

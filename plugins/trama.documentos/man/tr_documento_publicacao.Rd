@@ -36,10 +36,14 @@ conferido pelo dígito verificador), \code{description} (ou \code{abstract}) e
 \code{CC-BY-4.0}), \code{licenca-codigo} (padrão \code{MIT}), \code{versao} (tipo da próxima:
 \code{menor}, \code{correção} ou \code{maior}), \code{privado} (repositório da publicação
 privado; Pages privado exige plano pago) e \code{aceitar-dados-treino} (publicar
-modelos que carregam linhas do treino, que de outro modo são recusados).
+modelos que carregam linhas do treino, que de outro modo são recusados) e
+\code{incluir-dados} (arquivos de dados que estejam na pasta do documento).
 
 Bloqueiam: falta de título ou de autor, ORCID que não confere, licença
 desconhecida, região desatualizada (atualize antes), região sem a pasta
 materializada, modelo com dados de treino sem o aceite, arquivo acima de
-100 MB e documento sem formato HTML (a página do GitHub Pages).
+100 MB, documento sem formato HTML ou com mais de um (a página do GitHub
+Pages), arquivo de dados na pasta do documento sem \code{incluir-dados} e
+arquivo da pasta com o nome de um que o pacote gera. Os outros arquivos da
+pasta, que vão junto, saem nos avisos.
 }

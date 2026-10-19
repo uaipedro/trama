@@ -96,7 +96,10 @@ metadados vêm do YAML: `title`, `author` (com `orcid`, conferido pelo dígito
 verificador), `description`, `keywords`, e em `trama: publicar:` a `licenca`
 (CC-BY-4.0, CC0-1.0, CC-BY-SA-4.0, CC-BY-NC-4.0), a `licenca-codigo` (MIT,
 Apache-2.0, GPL-3.0-only), a `versao` (tipo da próxima: `menor`, `correção`,
-`maior`), `privado` e `aceitar-dados-treino`.
+`maior`), `privado`, `aceitar-dados-treino` e `incluir-dados` (arquivos de
+dados que a pessoa deixou na pasta do documento; sem ele, bloqueiam). Os
+outros arquivos da pasta vão junto e aparecem na conferência; um repositório
+já usado por outro documento, ou o repositório privado do projeto, é recusado.
 
 ```r
 tr_documento_publicacao(doc)              # o que sai, avisos e bloqueios (não toca no GitHub)
@@ -142,7 +145,10 @@ Página web por nó: os params viram o YAML (título, resumo, palavras-chave,
 autores com ORCID, licenças, tipo de versão, privado, aceite de dados de
 treino), e o layout vira o corpo — cabeçalho do modelo, textos, uma região
 por item ligado (na ordem), o diagrama do fluxo. Item que não entra vira uma
-nota no texto. A publicação já feita passa a ser do documento: a próxima sai
+nota no texto; item ligado que o layout não citava (ia só no pacote) entra no
+fim, em "Material adicional". Se algo falha no meio, a migração do fluxo é
+desfeita (cópia em `.trama/migracao/`); nó já migrado que volte ao fluxo sai
+de novo, sem outro documento. A publicação já feita passa a ser do documento: a próxima sai
 no mesmo repositório, na versão seguinte. O nó e as arestas dele saem do
 fluxo, e a coleção sai do `trama.json`.
 
