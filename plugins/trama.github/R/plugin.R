@@ -14,7 +14,8 @@ trama_plugin <- function() {
 .gh_servidor <- function(input, output, session, ctx) {
   receber <- .gh_controlador(
     enviar = function(m) session$sendCustomMessage("trama_github", m),
-    agendar = function(f, seg) later::later(function() if (!session$isClosed()) f(), max(seg, 1)))
+    agendar = function(f, seg) later::later(function() if (!session$isClosed()) f(), max(seg, 1)),
+    ctx = ctx)
   shiny::observeEvent(input$trama_github, receber(input$trama_github))
 }
 
@@ -22,8 +23,9 @@ trama_plugin <- function() {
 # chama `f` mais tarde sem travar o R (no editor, `later`). A conferência do
 # device flow vai se reagendando até dar certo, expirar ou ser cancelada; a
 # `geracao` invalida conferências de um login cancelado ou recomeçado.
-.gh_controlador <- function(enviar, agendar) {
+.gh_controlador <- function(enviar, agendar, ctx = NULL) {
   geracao <- 0L
+  painel <- if (!is.null(ctx)) .gh_painel(enviar, ctx)
   mandar_estado <- function() enviar(c(list(tipo = "estado"), .gh_estado()))
   falhar <- function(msg) {
     geracao <<- geracao + 1L
@@ -64,7 +66,14 @@ trama_plugin <- function() {
       entrar = entrar(),
       cancelar = { geracao <<- geracao + 1L; mandar_estado() },
       sair = { tr_github_sair(); mandar_estado() },
-      guia = enviar(list(tipo = "guia", passos = tr_github_guia_conta())))
+      guia = enviar(list(tipo = "guia", passos = tr_github_guia_conta())),
+      # Seções Projeto e Publicações (`R/painel.R`).
+      projeto = painel$projeto(),
+      criar_repo = painel$criar_repo(m),
+      salvar = painel$salvar(m),
+      marcar = painel$marcar(m),
+      restaurar = painel$restaurar(m),
+      publicacoes = painel$publicacoes())
     invisible()
   }
 }

@@ -230,6 +230,7 @@ app_github_falso <- function() {
   app$get("/repos/:o/:r/tags", function(req, res) {
     if (!autorizado(req, res)) return()
     L <- req$app$locals
+    if (is.null(L$repos[[chave(req)]])) return(erro(res, 404, "Not Found"))
     pre <- paste0(chave(req), "@tags/")
     nomes <- sub(pre, "", grep(pre, names(L$refs), fixed = TRUE, value = TRUE), fixed = TRUE)
     res$send_json(lapply(rev(nomes), function(n) list(name = n)), auto_unbox = TRUE)
