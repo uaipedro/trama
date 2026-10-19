@@ -23,7 +23,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.5.24),
+    trama (>= 0.5.25),
+    trama.data (>= 0.4.7),
     trama.github (>= 0.2.0),
     curl,
     digest,
@@ -45,7 +46,6 @@ Suggests:
     withr,
     svglite,
     png,
-    trama.data,
     trama.view,
     trama.models
 Config/testthat/edition: 3

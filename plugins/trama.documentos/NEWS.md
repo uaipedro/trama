@@ -5,7 +5,8 @@
 * **Publicar no GitHub** a partir de um documento: `tr_documento_publicacao()` (conferência: metadados do YAML, regiões em dia, dados de treino com aceite em `trama: publicar:`, formato HTML), `tr_documento_pacote()` (RO-Crate com o documento como `index.qmd`, `_trama/`, fluxo, ambiente, dados de entrada, README, CITATION.cff, LICENSE), `tr_documento_publicar()` (commit atômico e tag pela API do `trama.github`; workflow com release e Pages em `/vX.Y.Z/` e `/ultimo/`) e `tr_documento_acompanhar()`. Registro por documento no `trama.json` (`tr_documento_publicacoes()`). No painel, "Publicar no GitHub…" em cada documento, com o acompanhamento.
 * Migração: `tr_documento_migrar_publicar()` transforma o nó `publicar/publish` num documento Página web (YAML dos params, corpo do layout, uma região por item) e move o registro de publicações do nó para o documento; o painel roda na primeira lista da sessão, relê o projeto e avisa.
 * O manifesto de cada região guarda os metadados RO-Crate da parte.
-* Depende do `trama.github` (>= 0.2.0) e do núcleo 0.5.24 (projeto abre sem a coleção retirada).
+* Tabela sem `report` no tipo: os números saem pela `trama.data::tr_data_fmt_num()` (#32), que não arredonda a parte inteira (11887,03 é "11.887", não "11.890"); a `trama.data` (>= 0.4.7) passa a ser dependência.
+* Depende do `trama.github` (>= 0.2.0), da `trama.data` (>= 0.4.7) e do núcleo 0.5.25 (projeto abre sem a coleção retirada).
 * Para quem publica: o `trama.documentos` entra no r-universe (`packages.json`, subdir `plugins/trama.documentos`) e no manifesto do launcher; o `trama.publicar` sai dos dois.
 
 # trama.documentos 0.3.0

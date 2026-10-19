@@ -132,21 +132,14 @@ tr_documento_componente.data.frame <- function(x, ctx) {
   rawConnectionValue(con)
 }
 
-#' Tabela pipe para quando o tipo não tem `report`: as mesmas regras do
-#' relatório da `trama.data` (4 significativos, vírgula decimal).
+#' Tabela pipe para quando o tipo não tem `report`: os números como no
+#' relatório da `trama.data` (`tr_data_fmt_num()`: 4 significativos, vírgula
+#' decimal, sem arredondar a parte inteira; #32).
 #' @noRd
 .td_md_tabela <- function(df) {
   df <- as.data.frame(df, stringsAsFactors = FALSE)
-  num <- function(v) {
-    inteiro <- !is.na(v) & is.finite(v) & v == round(v) & abs(v) < 1e15
-    out <- formatC(signif(v, 4L), format = "fg", digits = 4L, big.mark = ".", decimal.mark = ",")
-    out[inteiro] <- formatC(v[inteiro], format = "d", big.mark = ".", decimal.mark = ",")
-    minusculo <- !is.na(v) & v != 0 & abs(v) < 1e-4
-    out[minusculo] <- formatC(v[minusculo], format = "e", digits = 2L, decimal.mark = ",")
-    ifelse(is.na(v), "", trimws(out))
-  }
   cel <- lapply(df, function(v) {
-    out <- if (is.numeric(v)) num(v) else ifelse(is.na(v), "", as.character(v))
+    out <- if (is.numeric(v)) trama.data::tr_data_fmt_num(v) else ifelse(is.na(v), "", as.character(v))
     gsub("|", "\\|", out, fixed = TRUE)
   })
   alinha <- vapply(df, function(v) if (is.numeric(v)) "---:" else ":---", "")

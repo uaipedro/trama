@@ -42,6 +42,12 @@ test_that("tabela sem report no tipo: o formato de reserva é o mesmo", {
   expect_identical(md[3:6], c("| a | b |", "|---:|:---|", "| 1,235 | x\\|y |", "|  | z |"))
 })
 
+test_that("tabela sem report: parte inteira nunca é arredondada (#32)", {
+  p <- tr_documento_componente(data.frame(v = c(11887.03, 1234.567, 98765.4)), ctx_de("t"))
+  md <- texto(p$arquivos$tabela.md)
+  expect_identical(md[5:7], c("| 11.887 |", "| 1.235 |", "| 98.765 |"))
+})
+
 test_that("gráfico: PNG em qualidade de publicação, sem o objeto ggplot (que leva a tabela)", {
   g <- ggplot2::ggplot(datasets::mtcars, ggplot2::aes(wt, mpg)) + ggplot2::geom_point()
   p <- tr_documento_componente(g, ctx_de("fig", titulo = "Peso e consumo [kg]"))
