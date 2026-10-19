@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { linhas, links, terminou } from "../../collections/trama.publicar/inst/trama/envio.js";
+import { linhas, links, terminou } from "../../plugins/trama.documentos/inst/trama/envio.js";
 
 const base = { repo: "p/pub", tag: "v0.1.0", url: "https://github.com/p/pub", pagina: "https://p.github.io/pub/v0.1.0/",
                ultimo: "https://p.github.io/pub/ultimo/", release: "https://github.com/p/pub/releases/tag/v0.1.0" };

@@ -2,12 +2,13 @@
 # responde com mensagens; `agendar` chama na hora (render em segundo plano
 # vira espera curta).
 
-controlador_de_teste <- function(proj, servir = function(dir, nome) paste0("trama-acao-", nome, "/")) {
+controlador_de_teste <- function(proj, servir = function(dir, nome) paste0("trama-acao-", nome, "/"),
+                                 agendar = function(f, seg) { Sys.sleep(seg); f() }, recarregar = NULL) {
   msgs <- list()
   ctl <- trama.documentos:::.td_controlador(
     enviar = function(m) msgs[[length(msgs) + 1L]] <<- m,
-    agendar = function(f, seg) { Sys.sleep(seg); f() },
-    ctx = list(project = function() proj, servir = servir))
+    agendar = agendar,
+    ctx = list(project = function() proj, servir = servir, recarregar = recarregar))
   list(receber = ctl, msgs = function() msgs, tipos = function() vapply(msgs, `[[`, "", "tipo"),
        ultima = function(tipo = NULL) {
          m <- if (is.null(tipo)) msgs else Filter(function(x) identical(x$tipo, tipo), msgs)
@@ -162,4 +163,69 @@ test_that("visualizar e exportar em segundo plano, servindo a prévia pelo edito
   c$receber(list(acao = "exportar", documento = doc, formato = "html"))
   expect_identical(c$ultima()$tipo, "erro")
   expect_identical(c$ultima()$classe, "tr_documento_erro_render")
+})
+
+test_that("a primeira lista da sessão migra o bloco Publicar, recarrega o editor e avisa; a segunda, não", {
+  proj <- local_projeto()
+  fluxo_com_publicar(proj)
+  recargas <- 0L
+  c <- controlador_de_teste(proj, recarregar = function() recargas <<- recargas + 1L)
+  c$receber(list(acao = "listar"))
+  m <- c$ultima("migrado")
+  expect_identical(m$documentos[[1]]$documento, "documentos/consumo-e-peso/consumo-e-peso.qmd")
+  expect_identical(recargas, 1L)
+  expect_identical(c$ultima("lista")$documentos[[1]]$nome, "consumo-e-peso")
+  c$receber(list(acao = "listar"))
+  expect_identical(sum(c$tipos() == "migrado"), 1L)
+  expect_identical(recargas, 1L)
+})
+
+test_that("publicar pelo painel: conferir, confirmar, enviar e acompanhar até a página no ar", {
+  gh <- github_memoria()
+  x <- doc_publicavel()
+  tarefas <- list()
+  c <- controlador_de_teste(x$proj, agendar = function(f, seg) tarefas[[length(tarefas) + 1L]] <<- f)
+  doc <- "documentos/consumo/consumo.qmd"
+  c$receber(list(acao = "publicar_conferir", documento = doc))
+  p <- c$ultima("publicacao")
+  expect_identical(p$titulo, "Consumo e peso")
+  expect_identical(p$repo, "consumo-e-peso")
+  expect_false(p$registrado)
+  expect_length(p$erros, 0L)
+  expect_null(p$envio)
+  # Privado pede confirmação antes de tocar no GitHub.
+  mudar_yaml(x$qmd, function(y) { y$trama$publicar$privado <- TRUE; y })
+  c$receber(list(acao = "publicar", documento = doc, repositorio = ""))
+  expect_match(c$ultima("publicar_confirmar")$texto, "plano pago")
+  expect_length(gh$chamadas, 0L)
+  c$receber(list(acao = "publicar", documento = doc, repositorio = "", confirmado = TRUE))
+  e <- c$ultima("envio")
+  expect_identical(e$estado$tag, "v0.1.0")
+  expect_length(tarefas, 1L)
+  # O acompanhamento agendado lê o GitHub e se reagenda até terminar.
+  gh$runs <- list(list(id = 1, nome = "publicar", estado = "in_progress", conclusao = NA, url = "https://run/1"))
+  tarefas[[1]]()
+  expect_identical(c$ultima("envio")$estado$etapa, "actions")
+  expect_length(tarefas, 2L)
+  gh$runs[[1]]$estado <- "completed"; gh$runs[[1]]$conclusao <- "success"
+  local_mocked_bindings(.td_pagina_no_ar = function(url) TRUE)
+  tarefas[[2]]()
+  expect_identical(c$ultima("envio")$estado$etapa, "no_ar")
+  expect_length(tarefas, 2L)
+  # Reabrir mostra a publicação registrada e o último envio.
+  c$receber(list(acao = "publicar_conferir", documento = doc))
+  p <- c$ultima("publicacao")
+  expect_true(p$registrado)
+  expect_identical(p$ultima$versao, "0.1.0")
+  expect_identical(p$envio$etapa, "no_ar")
+})
+
+test_that("bloqueio ao publicar volta como lista, sem tocar no GitHub", {
+  gh <- github_memoria()
+  x <- doc_publicavel()
+  mudar_yaml(x$qmd, function(y) { y$author <- NULL; y })
+  c <- controlador_de_teste(x$proj)
+  c$receber(list(acao = "publicar", documento = "documentos/consumo/consumo.qmd"))
+  expect_match(unlist(c$ultima("publicar_bloqueado")$erros), "autor", all = FALSE)
+  expect_length(gh$chamadas, 0L)
 })

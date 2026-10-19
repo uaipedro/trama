@@ -1,37 +1,6 @@
 # Migração do trama.publicar (#25): o nó publicar/publish vira um documento
 # Página web; o registro de publicações passa do nó para o documento.
 
-# Um fluxo antigo, como o trama.publicar gravava: o nó publicar com os
-# params e os itens ligados por arestas (a coleção não está instalada; o
-# fluxo é escrito à mão).
-fluxo_com_publicar <- function(proj, layout = "", extra = list(), itens = c("tab", "txt")) {
-  salvar_fluxo(proj, no("tab", n = 3L), no("txt", "tst/texto", valor = "b"), no("ruim", "tst/falha"))
-  caminho <- file.path(proj$root, "flows", "main.json")
-  doc <- trama::tr_doc_read(caminho)
-  doc$nodes$pub <- list(type = "publicar/publish", type_version = 1L, label = "Publicar",
-    params = utils::modifyList(list(
-      titulo = "Consumo e peso", descricao = "Material de teste.", palavras_chave = "carros, consumo",
-      autores = "Josiah Carberry (0000-0002-1825-0097); Ana Lima", licenca = "CC0-1.0", licenca_codigo = "MIT",
-      repositorio = "", versao = "correção", layout = layout, aceitar_dados_treino = FALSE, privado = FALSE),
-      extra))
-  doc$edges <- c(doc$edges, lapply(itens, function(i) list(from = list(node = i, port = "out"),
-                                                           to = list(node = "pub", port = "itens"))))
-  doc$ui$positions <- list(tab = c(0, 0), txt = c(0, 100), ruim = c(0, 200), pub = c(300, 0))
-  doc$collections$publicar <- "0.2.0"
-  trama::tr_doc_write(doc, caminho)
-  cfg <- jsonlite::fromJSON(file.path(proj$root, "trama.json"), simplifyVector = FALSE)
-  cfg$collections <- I(c(unlist(cfg$collections), "trama.publicar"))
-  writeLines(jsonlite::toJSON(cfg, auto_unbox = TRUE, pretty = TRUE), file.path(proj$root, "trama.json"))
-  caminho
-}
-
-registrar_antigo <- function(proj) {
-  trama::tr_project_config_set(proj$root, "publicacoes", list(pub = list(
-    repo = "pesquisadora/consumo-e-peso", url = "https://github.com/pesquisadora/consumo-e-peso",
-    pagina = "https://pesquisadora.github.io/consumo-e-peso/", ultimo = "https://pesquisadora.github.io/consumo-e-peso/ultimo/",
-    versao = "0.1.0", tag = "v0.1.0", data = "2026-10-19")))
-}
-
 test_that("o nó vira um documento Página web: metadados no YAML, itens como regiões, na ordem", {
   proj <- local_projeto()
   caminho <- fluxo_com_publicar(proj)

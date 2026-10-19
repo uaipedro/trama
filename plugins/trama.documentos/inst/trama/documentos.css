@@ -73,3 +73,18 @@
 .tr-doc-fontes .tr-doc-campo{flex:1;min-width:100px}
 .tr-doc-fontes .tr-doc-campo input{width:100%;box-sizing:border-box}
 .tr-doc-modelo-form input[type=file]{font-size:11px;color:var(--tr-dim);max-width:100%}
+
+/* Publicar no GitHub (#25). */
+.tr-doc-lista-msg { margin: 6px 0; padding-left: 18px; }
+.tr-doc-lista-msg li { margin: 2px 0; }
+.tr-doc-envio { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--tr-line); }
+.tr-doc-etapas { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0; padding: 0; list-style: none; font-size: 12px; }
+.tr-doc-etapas li::before { content: "○ "; }
+.tr-doc-etapa-feita { color: var(--tr-ok,#15803d); }
+.tr-doc-etapa-feita::before { content: "● " !important; }
+.tr-doc-etapa-atual { font-weight: 600; }
+.tr-doc-etapa-atual::before { content: "◐ " !important; }
+.tr-doc-etapa-falhou { color: var(--tr-err,#b91c1c); }
+.tr-doc-etapa-falhou::before { content: "✕ " !important; }
+.tr-doc-etapa-pendente { opacity: .55; }
+.tr-doc-avisos { color: var(--tr-warn,#b45309); font-size: 12px; }
