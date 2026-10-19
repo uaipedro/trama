@@ -82,7 +82,7 @@ test_that("arquivo acima de 100 MB é recusado antes de sair", {
   local_github_falso()
   f <- withr::local_tempfile()
   writeBin(raw(1), f)
-  local_mocked_bindings(.LIMITE_ARQUIVO = 0)
+  local_mocked_bindings(.LIMITE_ARQUIVO = 0, .package = "trama.github")
   expect_error(tr_github_commit("pesquisadora/projeto", "v1", arquivos = c("grande.bin" = f)),
                class = "tr_github_erro_arquivo_grande")
 })
@@ -118,4 +118,20 @@ test_that("sem rede vira erro em português, sem travar", {
   local_github_falso()
   withr::local_options(trama.github.api_url = "http://127.0.0.1:1")
   expect_error(tr_github_usuario(), "Sem conexão", class = "tr_github_erro_rede")
+})
+
+test_that("pular_iguais não reenvia o que o repositório já tem", {
+  local_github_falso()
+  tr_github_criar_repo("projeto")
+  tr_github_commit("pesquisadora/projeto", "v1", conteudos = list("a.txt" = "a", "b.txt" = "b"))
+  antes <- falso_estado()$blobs_criados
+  c2 <- tr_github_commit("pesquisadora/projeto", "v2", conteudos = list("a.txt" = "a", "b.txt" = "b2"),
+                         manter_outros = FALSE, pular_iguais = TRUE)
+  expect_true(c2$mudou)
+  expect_equal(falso_estado()$blobs_criados - antes, 1L)  # só o b.txt novo
+})
+
+test_that("sha de blob confere com o do git", {
+  # `printf 'a' | git hash-object --stdin`
+  expect_equal(.gh_sha_blob(charToRaw("a")), "2e65efe2a145dda7ee51d1741299f848e5bf752e")
 })

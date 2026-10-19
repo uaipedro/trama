@@ -15,7 +15,7 @@ import {
   useReactFlow, ReactFlowProvider,
   BaseEdge, getSmoothStepPath, getBezierPath, useInternalNode, EdgeLabelRenderer, NodeResizer,
 } from "@xyflow/react";
-import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems } from "trama";
+import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems, setEditorActions } from "trama";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
@@ -4100,6 +4100,8 @@ function App() {
                      { zoom: Math.min(1, Math.max(0.5, z)), duration: 350 });
     }, 60);
   };
+  // Ações que um plugin pode pedir (`editorAction` no runtime).
+  useEffect(() => { setEditorActions({ irAoBloco }); });
   const andar = (tecla) => {
     // Overlay aberto (painéis, "+", menu): as setas são dele, não do canvas.
     if (prox || paramsDe || vista || menu || helpFor || painelFrames || painelConfig

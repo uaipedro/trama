@@ -14,7 +14,9 @@
 #'   depois das coleções e antes do editor. O JS é módulo e importa de
 #'   `"trama"` (por exemplo `registerToolbarItem`);
 #' - `server`: `function(input, output, session, ctx)`, chamada uma vez por
-#'   sessão do editor. `ctx$project()` devolve o projeto aberto.
+#'   sessão do editor. `ctx$project()` devolve o projeto aberto e
+#'   `ctx$recarregar()` relê do disco o projeto aberto (fluxo, temas,
+#'   execução), como ao abri-lo; o histórico de desfazer recomeça.
 #'
 #' Plugin que falha ao carregar é pulada com aviso: o editor sobe sem ela.
 #'

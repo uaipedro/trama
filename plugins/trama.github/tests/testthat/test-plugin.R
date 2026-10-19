@@ -72,7 +72,7 @@ test_that("sem Client ID, entrar responde com erro que orienta", {
   local_github_falso(token = NULL)
   withr::local_options(trama.github.client_id = NULL)
   withr::local_envvar(TRAMA_GITHUB_CLIENT_ID = "")
-  local_mocked_bindings(.CLIENT_ID_TRAMA = "")
+  local_mocked_bindings(.CLIENT_ID_TRAMA = "", .package = "trama.github")
   c <- controlador_de_teste()
   c$receber(list(acao = "estado"))
   expect_false(c$ultima()$login_disponivel)

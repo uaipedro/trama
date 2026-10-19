@@ -12,6 +12,7 @@ tr_github_commit(
   apagar = character(),
   branch = NULL,
   manter_outros = TRUE,
+  pular_iguais = FALSE,
   token = NULL
 )
 }
@@ -30,6 +31,10 @@ tr_github_commit(
 
 \item{manter_outros}{\code{TRUE} (padrão) mantém os arquivos que já estão no
 repositório; \code{FALSE} faz a árvore ter exatamente os arquivos enviados.}
+
+\item{pular_iguais}{Não reenviar arquivo que o repositório já tem igual
+(compara o sha de blob do git, calculado aqui). Custa uma leitura da
+árvore e poupa o envio de tudo o que não mudou.}
 
 \item{token}{Token do GitHub; o padrão é o que \code{\link[=tr_github_token]{tr_github_token()}} achar.}
 }

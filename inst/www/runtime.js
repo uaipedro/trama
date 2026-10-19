@@ -104,6 +104,18 @@ export function registerToolbarItem(id, Componente) {
 }
 export function getToolbarItems() { return toolbarItems.slice(); }
 
+// Ações do editor que um plugin pode pedir, como levar a tela a um bloco
+// (`editorAction("irAoBloco", id)`). O editor registra as dele a cada render;
+// ação que não existe (ou editor ainda montando) devolve `false`.
+let acoesEditor = {};
+export function setEditorActions(acoes) { acoesEditor = acoes || {}; }
+export function editorAction(nome, ...args) {
+  const f = acoesEditor[nome];
+  if (typeof f !== "function") return false;
+  f(...args);
+  return true;
+}
+
 // A vista `resumo` é do NÚCLEO, não de uma coleção: `tr_type(summary=)` já grava
 // `handle$summary` (R/store.R:140) e ele já viaja pro card. Todo tipo que declare
 // um `summary` ganha a segunda vista de graça, e a coleção que quiser um resumo
@@ -768,6 +780,6 @@ registerWidget("theme", (spec, value, onChange) => {
 // Namespace global também, pra coleção que preferir `<script>` simples a ESM.
 if (typeof window !== "undefined") {
   window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget, pedirAcao,
-               registerToolbarItem, getToolbarItems,
+               registerToolbarItem, getToolbarItems, setEditorActions, editorAction,
                Segmented, Toggle, NumberField, Regua, Estrelas, setThemes, getThemes, React };
 }

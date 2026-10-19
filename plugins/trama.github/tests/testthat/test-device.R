@@ -35,7 +35,7 @@ test_that("Client ID errado ou ausente vira erro claro", {
   expect_error(tr_github_device_iniciar(), "não é de um app válido", class = "tr_github_erro_login")
   withr::local_options(trama.github.client_id = NULL)
   withr::local_envvar(TRAMA_GITHUB_CLIENT_ID = "")
-  local_mocked_bindings(.CLIENT_ID_TRAMA = "")
+  local_mocked_bindings(.CLIENT_ID_TRAMA = "", .package = "trama.github")
   expect_error(tr_github_client_id(), class = "tr_github_erro_client_id")
   expect_equal(tr_github_client_id(obrigatorio = FALSE), "")
   withr::local_envvar(TRAMA_GITHUB_CLIENT_ID = "do-ambiente")

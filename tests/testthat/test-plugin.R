@@ -47,3 +47,23 @@ test_that("o server de cada plugin recebe o projeto; erro num não derruba a ses
   }), "trama.b")
   expect_equal(normalizePath(visto), normalizePath(root))
 })
+
+test_that("ctx$recarregar() relê do disco o projeto aberto e manda o documento", {
+  root <- withr::local_tempdir("proj")
+  tr_project_new(root, character())
+  p <- tr_project_at(root, tr_registry())
+  ctx_visto <- NULL
+  plugs <- list(trama.a = list(server = function(input, output, session, ctx) ctx_visto <<- ctx))
+  shiny::testServer(tr_server(p, autosave = FALSE, plugins = plugs), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    doc <- tr_project_flow(p, "main")
+    doc$ui <- list(marca_do_teste = TRUE)
+    tr_project_save(p, doc, "main")
+    ctx_visto$recarregar()
+    tipos <- vapply(msgs, function(m) m$type, "")
+    expect_true(all(c("project", "document") %in% tipos))
+    d <- msgs[[which(tipos == "document")[1]]]$doc
+    expect_true(isTRUE(d$ui$marca_do_teste))
+  })
+})

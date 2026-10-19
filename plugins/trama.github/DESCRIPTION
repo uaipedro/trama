@@ -1,6 +1,6 @@
 Package: trama.github
 Title: GitHub Connection for trama
-Version: 0.1.2
+Version: 0.2.0
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Connects trama to GitHub without git or a terminal: account
     guide, login by the OAuth device flow, reuse of existing credentials,
@@ -12,12 +12,15 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
+    trama (>= 0.5.21),
     gitcreds,
     httr2 (>= 1.0.0),
     jsonlite,
     keyring,
     later,
+    openssl,
     shiny,
+    stats,
     utils
 Suggests:
     testthat (>= 3.0.0),

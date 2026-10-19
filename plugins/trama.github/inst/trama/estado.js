@@ -29,7 +29,9 @@ export function reduzir(s, a) {
     case "copiado": return s.fase === "aguardando" ? { ...s, copiado: true } : s;
     // Erro de login volta para "desconectado"; erro com alguém conectado
     // (não deveria acontecer, mas a mensagem não pode sumir) mantém a conexão.
+    // Erro das seções do painel (`contexto`) é de `painel.js`, não da conta.
     case "erro":
+      if (a.contexto === "projeto" || a.contexto === "publicacoes") return s;
       return { ...s, fase: s.fase === "conectado" ? "conectado" : "desconectado",
                erro: a.mensagem || "Algo deu errado.", codigo: null, link: null };
     case "guia": return { ...s, guia: Array.isArray(a.passos) ? a.passos : [] };
