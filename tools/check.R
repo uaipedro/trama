@@ -11,7 +11,7 @@
 #
 # Regras:
 #   collections/X/**          -> X e toda coleção que depende de X (transitivo)
-#   plugins/X/**              -> X (plugin: não carrega o núcleo)
+#   plugins/X/**              -> X e as coleções que dependem dele (trama.publicar)
 #   R/foo.R                   -> núcleo e coleções que usam algo de foo.R (--amplo: todas)
 #   inst/ (exceto www), DESCRIPTION, NAMESPACE -> núcleo e todas as coleções
 #   inst/www/**, tests/js/**  -> testes node
@@ -28,19 +28,22 @@ raiz <- normalizePath(file.path(dirname(sub("--file=", "", grep("--file=", comma
 setwd(raiz)
 
 colecoes <- basename(list.dirs("collections", recursive = FALSE))
-# Plugins (`plugins/`): não são coleção, não têm blocos e não dependem do
-# núcleo; cada um testa sozinho.
+# Plugins (`plugins/`): não são coleção nem têm blocos, mas carregam como
+# uma: núcleo primeiro (o trama.github usa a configuração do projeto), e quem
+# depende de um plugin (trama.publicar) o carrega da fonte, não do instalado.
 plugins <- if (dir.exists("plugins")) basename(list.dirs("plugins", recursive = FALSE)) else character()
+pacotes <- c(colecoes, plugins)
+pasta <- function(p) if (p %in% plugins) file.path("plugins", p) else file.path("collections", p)
 
-# Grafo: dependências de cada coleção entre os pacotes trama*.
-deps <- lapply(setNames(colecoes, colecoes), function(c) {
-  d <- read.dcf(file.path("collections", c, "DESCRIPTION"))
+# Grafo: dependências de cada coleção e plugin entre os pacotes trama*.
+deps <- lapply(setNames(pacotes, pacotes), function(c) {
+  d <- read.dcf(file.path(pasta(c), "DESCRIPTION"))
   # `Config/trama/requires` é dependência de coleção que não está nos campos
   # do R (trama.sql precisa de trama.data): sem ele, a coleção não carregava a
   # outra e o teste só passava onde ela estava instalada.
   campos <- intersect(c("Depends", "Imports", "Suggests", "LinkingTo", "Config/trama/requires"), colnames(d))
   nomes <- trimws(sub("\\(.*", "", unlist(strsplit(paste(d[, campos], collapse = ","), ","))))
-  intersect(nomes, colecoes)
+  intersect(nomes, pacotes)
 })
 
 dependentes <- function(alvos) {
@@ -78,16 +81,16 @@ usuarios_nucleo <- local({
     }
     inv <- list()
     for (n in names(usa)) for (g in intersect(unique(usa[[n]]), names(defs))) inv[[g]] <- c(inv[[g]], n)
-    toks <- lapply(setNames(colecoes, colecoes), function(c) unique(unlist(lapply(
-      list.files(file.path("collections", c), pattern = "\\.R$", recursive = TRUE, full.names = TRUE), tokens))))
+    toks <- lapply(setNames(pacotes, pacotes), function(c) unique(unlist(lapply(
+      list.files(pasta(c), pattern = "\\.R$", recursive = TRUE, full.names = TRUE), tokens))))
     list(defs = defs, inv = inv, toks = toks)
   }
   function(f) {
-    if (!file.exists(f)) return(colecoes)
+    if (!file.exists(f)) return(pacotes)
     if (is.null(cache)) cache <<- tryCatch(monta(), error = function(e) FALSE)
-    if (isFALSE(cache)) return(colecoes)
+    if (isFALSE(cache)) return(pacotes)
     fila <- vis <- names(cache$defs)[cache$defs == f]
-    if (!length(vis)) return(colecoes)
+    if (!length(vis)) return(pacotes)
     while (length(fila)) {
       nv <- setdiff(cache$inv[[fila[1]]], vis); fila <- c(fila[-1], nv); vis <- c(vis, nv)
     }
@@ -122,7 +125,7 @@ if (flag("--tudo")) {
 } else if (length(explicitos)) {
   for (p in explicitos) marca(p)
   if (!rapido) for (p in dependentes(setdiff(explicitos, "trama"))) marca(p)
-  if ("trama" %in% explicitos && !rapido) for (p in colecoes) marca(p)
+  if ("trama" %in% explicitos && !rapido) for (p in pacotes) marca(p)
 } else {
   mudados <- arquivos_mudados()
   mudados <- mudados[!grepl("(^|/)_problems/|testthat-problems\\.rds$|Rplots\\.pdf$", mudados)]
@@ -164,6 +167,7 @@ if (flag("--tudo")) {
       tem_par <- !is.null(pareado) &&
         file.exists(file.path("plugins", a, "tests/testthat", paste0("test-", pareado, ".R")))
       marca(a, if (rapido && tem_par) pareado)
+      if (!rapido && partes[3] != "tests") for (d in setdiff(dependentes(a), a)) marca(d)
       if (partes[3] == "inst" && grepl("\\.js$", partes[length(partes)])) plano$js <- TRUE
     } else if (partes[1] %in% c("R", "inst", "DESCRIPTION", "NAMESPACE") &&
                !identical(partes[1:2], c("inst", "www"))) {
@@ -171,7 +175,7 @@ if (flag("--tudo")) {
       tem_par <- !is.null(pareado) && file.exists(file.path("tests/testthat", paste0("test-", pareado, ".R")))
       marca("trama", if (rapido && tem_par) pareado)
       if (!rapido) {
-        alcance <- if (partes[1] == "R" && !flag("--amplo")) usuarios_nucleo(f) else colecoes
+        alcance <- if (partes[1] == "R" && !flag("--amplo")) usuarios_nucleo(f) else pacotes
         for (c in dependentes(alcance)) marca(c)
       }
     } else if (partes[1] == "tests" && identical(partes[2], "testthat")) {
@@ -186,7 +190,7 @@ if (flag("--tudo")) {
 }
 
 # Núcleo primeiro, depois coleções na ordem de dependência.
-ordem <- c("trama", unique(unlist(lapply(colecoes, ordem_carga))), plugins)
+ordem <- c("trama", unique(unlist(lapply(pacotes, ordem_carga))))
 alvos <- intersect(ordem, names(plano$pacotes))
 
 cat("Plano de testes\n")
@@ -232,16 +236,15 @@ dir.create(logs, showWarnings = FALSE)
 job <- function(nome, cmd, argumentos) list(nome = nome, cmd = cmd, args = argumentos)
 fila <- list()
 for (p in alvos) {
-  plugin <- p %in% plugins
-  dir_pkg <- if (p == "trama") "." else if (plugin) file.path("plugins", p) else file.path("collections", p)
-  cargas <- if (p == "trama" || plugin) character() else ordem_carga(p)
+  dir_pkg <- if (p == "trama") "." else pasta(p)
+  cargas <- if (p == "trama") character() else ordem_carga(p)
   filtro <- plano$pacotes[[p]]
   codigo <- paste0(
     # Testes do núcleo usam internas (`.tr_*`) sem `:::`; os das coleções não
     # podem vê-las, senão passariam dependendo do que não é API.
-    if (plugin) sprintf("suppressMessages(pkgload::load_all('%s', quiet = TRUE));", dir_pkg)
-    else sprintf("suppressMessages(pkgload::load_all('.', quiet = TRUE, export_all = %s));", p == "trama"),
-    paste0(sprintf("suppressMessages(pkgload::load_all('collections/%s', quiet = TRUE));", cargas), collapse = ""),
+    sprintf("suppressMessages(pkgload::load_all('.', quiet = TRUE, export_all = %s));", p == "trama"),
+    paste0(vapply(cargas, function(x) sprintf("suppressMessages(pkgload::load_all('%s', quiet = TRUE));", pasta(x)), ""),
+           collapse = ""),
     sprintf("r <- testthat::test_dir('%s/tests/testthat', filter = %s, stop_on_failure = FALSE, reporter = 'summary', load_package = 'none');",
             dir_pkg, if (is.null(filtro)) "NULL" else deparse(paste0("^(", paste(filtro, collapse = "|"), ")$"))),
     "d <- as.data.frame(r);",

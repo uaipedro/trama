@@ -31,8 +31,10 @@ com
 depois das coleções e antes do editor. O JS é módulo e importa de
 \code{"trama"} (por exemplo \code{registerToolbarItem});
 \item \code{server}: \verb{function(input, output, session, ctx)}, chamada uma vez por
-sessão do editor. \code{ctx$project()} devolve o projeto aberto.
+sessão do editor. \code{ctx$project()} devolve o projeto aberto e
+\code{ctx$recarregar()} relê do disco o projeto aberto (fluxo, temas,
+execução), como ao abri-lo; o histórico de desfazer recomeça.
 }
 
-Plugin que falha ao carregar é pulado com aviso: o editor sobe sem ele.
+Plugin que falha ao carregar é pulada com aviso: o editor sobe sem ela.
 }

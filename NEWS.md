@@ -1,3 +1,7 @@
+# trama 0.5.21
+
+* Plugins: o `ctx` do server ganha `recarregar()`, que relê do disco o projeto aberto (fluxo, temas, execução) como ao abri-lo; serve a quem muda arquivos do projeto por fora, como restaurar uma versão no `trama.github`. No `runtime.js`, `editorAction("irAoBloco", id)` deixa um plugin levar a tela a um bloco (`setEditorActions` é do editor).
+
 # trama 0.5.20
 
 * Extensões do editor viram **plugins**: `tr_extensions()` passa a `tr_plugins()` (e `R/plugin.R`), o campo do DESCRIPTION a `Config/trama/plugin: true`, a função do contrato a `trama_plugin()`, a opção a `options(trama.plugins = )` e o argumento `extensions` de `tr_ui()`/`tr_server()` a `plugins`. A pasta dos plugins no repositório é `plugins/` (era `apoio/`). Sem alias: a API entrou na 0.5.17 e não está no CRAN.

@@ -26,8 +26,12 @@ tr_server <- function(project, flow = "main",
     rv_project <- shiny::reactiveVal(project)
     rv_flow    <- shiny::reactiveVal(flow)
     rv_doc     <- shiny::reactiveVal(tr_project_flow(project, flow))
+    # `recarregar` relê o projeto aberto do disco (um plugin que restaurou
+    # arquivos, por exemplo). `abrir` é definida mais abaixo: a busca do nome
+    # é na hora da chamada.
     .tr_plugin_servers(plugins, input, output, session,
-                          list(project = function() shiny::isolate(rv_project())))
+                          list(project = function() shiny::isolate(rv_project()),
+                               recarregar = function() abrir(shiny::isolate(rv_project())$root, forcar = TRUE)))
     run_seq  <- shiny::reactiveVal(0L)
     # O log de undo é do SERVIDOR, e começa em `base_doc` (fixado no
     # tr_ready). Já foi do cliente, montado com os ecos: com o executor
@@ -233,13 +237,15 @@ tr_server <- function(project, flow = "main",
     # 5. volta para o flow padrão. Trocar de FLUXO é outro gesto, fora do escopo
     #    de trocar de projeto — e o projeto que entra pode nem ter o flow em que
     #    você estava, o que daria um documento vazio sem explicação.
-    abrir <- function(path) {
+    abrir <- function(path, forcar = FALSE) {
       padrao <- "main"
       # Reabrir o projeto JÁ aberto rodava o GC sobre ele mesmo, zerava o log e
       # refazia o run: o documento sobrevivia (autosave), mas o Ctrl+Z evaporava
       # sem nenhum sinal. Só reconfirma onde o editor está. A comparação é entre
       # caminhos NORMALIZADOS porque o do cliente pode não estar.
-      if (is.character(path) && length(path) == 1L && !is.na(path) &&
+      # `forcar` é para quando o disco mudou por fora (restaurar uma versão):
+      # aí reler é justamente o que se quer, e o Ctrl+Z anterior não vale mais.
+      if (!forcar && is.character(path) && length(path) == 1L && !is.na(path) &&
           identical(normalizePath(path, mustWork = FALSE), rv_project()$root)) {
         send("project", list(root = rv_project()$root, flow = rv_flow(), origem = origem()))
         return(invisible())
