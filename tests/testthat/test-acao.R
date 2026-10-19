@@ -51,3 +51,20 @@ test_that("acoes mal declaradas são recusadas no tr_type", {
 test_that("servir recusa nome que não serve de prefixo de URL", {
   expect_error(.tr_acao_servir(tempdir(), "../x"), class = "tr_error_bad_action")
 })
+
+test_that("ctx$no() acha o nó dono da chave pelo plano", {
+  col <- tr_collection(id = "t", types = list(tr_type("t/num", acoes = list(qual = function(v, ctx) list(no = ctx$no())))),
+                       nodes = list(tr_node("t/k", fn = function(v) v, description = "Devolve o número escolhido.",
+                                            outputs = list(out = "t/num"), params = list(v = tr_param_num(1)))))
+  reg <- tr_registry(); tr_use(col, registry = reg)
+  raiz <- withr::local_tempdir()
+  s <- tr_store(file.path(raiz, ".trama", "store"))
+  f <- tr_flow(reg) |> tr_add("a", "t/k", v = 1) |> tr_add("b", "t/k", v = 2)
+  doc <- tr_flow_doc(f)
+  tr_run(doc, registry = reg, store = s)
+  pl <- tr_plan(doc, registry = reg, store = s)
+  res <- NULL
+  .tr_acao_rodar(list(tipo = "t/num", chave = pl$units$b$outputs$out, acao = "qual"),
+                 list(registry = reg, store = s, root = raiz), doc, "main", function(r) res <<- r, function(d, n) "")
+  expect_identical(res$no, "b")
+})

@@ -38,6 +38,7 @@ tr_errors <- function() {
     tr_error_bad_text = "texto i18n que não é string única nem lista nomeada por idioma de strings únicas",
     tr_error_bad_theme = "configuração do trama.json inválida: tema com campo desconhecido, valor fora do vocabulário ou nome reservado, tema_padrao inexistente, marca que não é booleana",
     tr_error_bad_type = "tr_type() mal declarado (store sem restore, etc.)",
+    tr_error_bad_config_key = "chave do trama.json inválida ou do núcleo, pedida por tr_project_config_set()",
     tr_error_bad_port = "tr_port() mal declarado ('named' sem 'multiple')",
     tr_error_bad_action = "ação de card pedida com tipo, chave ou nome que não existem",
     tr_error_cancelled = "unidade cancelada pelo coordenador (handoff, ou stop_mirai no pool)",

@@ -3,7 +3,8 @@
 * Publicar no GitHub (#14): botão "Publicar no GitHub" no card (ação `publicar`). Confere os bloqueios (erros do material, login), acha ou cria o repositório da publicação (nome do param `repositorio` ou do título; público por padrão, param `privado` com confirmação porque Pages privado exige plano pago; repositório existente sem versão do trama também pede confirmação), liga o Pages em modo Actions, deixa as tags `v*` publicarem no ambiente `github-pages`, monta o pacote com a próxima versão a partir da última tag, faz um commit atômico (a árvore vira exatamente o pacote + o workflow) e cria a tag `vX.Y.Z`. Tag existente é recusada com a próxima versão sugerida.
 * O workflow gerado (`.github/workflows/publicar.yml`, versões fixadas: checkout v7.0.1, Quarto 1.7.32, R 4.6.0, actions do Pages v6/v5/v5.0.1) confere sha256 e RO-Crate (`conferir.py`), renderiza a página, cria a release com o pacote zipado (`git archive`, sem `.github`) e publica no Pages acumulando as versões na branch `paginas`: `/vX.Y.Z/` imutável, `/ultimo/` a mais nova, a raiz leva para `/ultimo/`. O modelo é servido pelo Pages, na mesma origem da página.
 * O card acompanha (ação `acompanhar`, a cada 5 s): pacote enviado, Actions rodando, release criada, página no ar, com os links; na falha, a etapa que falhou e o link do log. O estado fica em `.trama/publicar/envios/`.
-* Pede `trama.github (>= 0.1.1)`.
+* Publicações do projeto: ao enviar, o nó grava no `trama.json` (chave `publicacoes`, pelo id do nó) o repositório, a página, a última versão e a data; `tr_publicar_publicacoes()` lê. É configuração do projeto: não vai no fluxo nem no pacote. Sem `repositorio` no param, o nó reusa o repositório registrado (trocar o título não abre outro).
+* Pede `trama.github (>= 0.1.1)` e `trama (>= 0.5.19)`.
 
 # trama.publicar 0.1.0
 

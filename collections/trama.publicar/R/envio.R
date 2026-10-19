@@ -61,6 +61,43 @@
   jsonlite::fromJSON(p, simplifyVector = FALSE)
 }
 
+# ---- as publicações do projeto ---------------------------------------------------
+
+#' Publicações do projeto
+#'
+#' Qual repositório cada nó `publicar` usa, a página, a última versão
+#' enviada e quando. Mora no `trama.json` (chave `publicacoes`, por id do nó):
+#' é configuração do PROJETO, não vai no fluxo compartilhável nem no pacote
+#' publicado. Estado do Actions e versões ao vivo se leem do GitHub
+#' (`trama.github`); isto é só o endereço de cada publicação.
+#' @param root Pasta do projeto.
+#' @return data.frame com `no`, `repo`, `url`, `pagina` (base do Pages),
+#'   `ultimo`, `versao`, `tag` e `data`; zero linhas sem publicação.
+#' @export
+tr_publicar_publicacoes <- function(root = ".") {
+  pubs <- trama::tr_project_config(root, "publicacoes") %||% list()
+  cols <- c("repo", "url", "pagina", "ultimo", "versao", "tag", "data")
+  if (!length(pubs)) {
+    return(as.data.frame(stats::setNames(rep(list(character()), length(cols) + 1L), c("no", cols))))
+  }
+  linhas <- lapply(names(pubs), function(no) {
+    p <- pubs[[no]]
+    as.data.frame(c(list(no = no), stats::setNames(lapply(cols, function(k) as.character(p[[k]] %||% NA_character_)), cols)))
+  })
+  do.call(rbind, linhas)
+}
+
+#' Grava (ou atualiza) a publicação de um nó no `trama.json`.
+#' @noRd
+.tr_publicar_registrar <- function(raiz, no, estado, base_pages) {
+  if (is.null(no) || !file.exists(file.path(raiz, "trama.json"))) return(invisible(NULL))
+  pubs <- trama::tr_project_config(raiz, "publicacoes") %||% list()
+  pubs[[no]] <- list(repo = estado$repo, url = estado$url, pagina = base_pages, ultimo = estado$ultimo,
+                     versao = estado$versao, tag = estado$tag, data = format(Sys.Date(), "%Y-%m-%d"))
+  trama::tr_project_config_set(raiz, "publicacoes", pubs)
+  invisible(pubs[[no]])
+}
+
 #' A ação "publicar".
 #'
 #' Pede confirmação (devolve `confirmar`) antes de criar um repositório
@@ -78,7 +115,11 @@
   confirmado <- isTRUE(ctx$extra$confirmado)
   m <- valor$metadados
   usuario <- trama.github::tr_github_usuario(token)$login
-  alvo <- if (nzchar(m$repositorio)) m$repositorio else .tr_publicar_slug(m$titulo)
+  # O repositório: o do param; senão o que este nó já usou (registrado no
+  # projeto: trocar o título não abre outro repositório); senão o do título.
+  no <- tryCatch(ctx$no(), error = function(e) NULL)
+  registrado <- if (!is.null(no)) (trama::tr_project_config(ctx$raiz, "publicacoes") %||% list())[[no]]$repo
+  alvo <- if (nzchar(m$repositorio)) m$repositorio else registrado %||% .tr_publicar_slug(m$titulo)
   partes <- strsplit(alvo, "/", fixed = TRUE)[[1]]
   dono <- if (length(partes) == 2L) partes[[1]] else usuario
   nome <- .tr_publicar_slug(partes[[length(partes)]])
@@ -128,11 +169,13 @@
                            tag, paste0("v", .tr_publicar_proxima(m$tipo_versao %||% "menor", versao))),
                    class = "tr_publicar_error_tag")
     })
-  .tr_publicar_estado_gravar(ctx$raiz, list(
+  estado <- .tr_publicar_estado_gravar(ctx$raiz, list(
     repo = repo, url = info$url, versao = versao, tag = tag, sha = commit$sha,
     commit = commit$url, release = t$url, pagina = pagina, ultimo = paste0(base_pages, "ultimo/"),
     etapa = "enviado", detalhe = "Pacote enviado; esperando o GitHub Actions.",
     enviado_em = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")))
+  .tr_publicar_registrar(ctx$raiz, no, estado, base_pages)
+  estado
 }
 
 #' A página já responde? (o Pages leva um tempo depois do deploy).

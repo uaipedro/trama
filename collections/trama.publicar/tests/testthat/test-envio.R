@@ -46,10 +46,11 @@ github_memoria <- function(env = parent.frame(), token = "tk", repos = list(), t
   gh
 }
 
-ctx_envio <- function(raiz, extra = NULL) {
+ctx_envio <- function(raiz, extra = NULL, no = "pub") {
   ex <- doc_exemplo()
+  if (!file.exists(file.path(raiz, "trama.json"))) trama::tr_project(raiz)
   list(doc = ex$doc, raiz = raiz, store = trama::tr_store(file.path(raiz, ".trama", "store")),
-       registry = ex$reg, settings = NULL, chave = "k", extra = extra)
+       registry = ex$reg, settings = NULL, chave = "k", extra = extra, no = function() no)
 }
 
 test_that("bloqueios saem antes de tocar no GitHub", {
@@ -209,4 +210,37 @@ test_that("paginas.sh acumula as versões na branch paginas e não reescreve uma
   r3 <- publicar("v0.1.0")
   expect_identical(r3$status, 1L)
   expect_match(r3$stderr, "já está publicada")
+})
+
+test_that("a publicação do nó fica no trama.json do projeto, e só lá", {
+  gh <- github_memoria()
+  raiz <- withr::local_tempdir()
+  expect_identical(nrow(tr_publicar_publicacoes(trama::tr_project(raiz)$root)), 0L)
+  e <- .tr_publicar_publicar(material_exemplo(), ctx_envio(raiz))
+  p <- tr_publicar_publicacoes(raiz)
+  expect_identical(p$no, "pub")
+  expect_identical(p$repo, "pesquisadora/consumo-e-peso")
+  expect_identical(p$pagina, "https://pesquisadora.github.io/consumo-e-peso/")
+  expect_identical(p$versao, "0.1.0")
+  expect_identical(p$data, format(Sys.Date(), "%Y-%m-%d"))
+  # Nada do registro (nem o trama.json) vai no pacote público.
+  cm <- gh$commits[[1]]
+  expect_false("trama.json" %in% c(names(cm$arquivos), names(cm$conteudos)))
+  txt <- vapply(cm$arquivos, function(f) paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "\n"), "")
+  expect_false(any(grepl("publicacoes", txt[grepl("\\.(json|md|cff|qmd)$", names(txt))], fixed = TRUE)))
+})
+
+test_that("trocar o título não abre outro repositório: o nó reusa o registrado", {
+  gh <- github_memoria()
+  raiz <- withr::local_tempdir()
+  e1 <- .tr_publicar_publicar(material_exemplo(), ctx_envio(raiz))
+  m <- material_exemplo(); m$metadados$titulo <- "Outro t\u00edtulo"
+  e2 <- .tr_publicar_publicar(m, ctx_envio(raiz))
+  expect_identical(e2$repo, e1$repo)
+  expect_identical(e2$tag, "v0.2.0")
+  expect_identical(tr_publicar_publicacoes(raiz)$versao, "0.2.0")
+  # Outro nó, outro registro.
+  m3 <- material_exemplo(); m3$metadados$titulo <- "Segunda publica\u00e7\u00e3o"
+  .tr_publicar_publicar(m3, ctx_envio(raiz, no = "pub2"))
+  expect_setequal(tr_publicar_publicacoes(raiz)$no, c("pub", "pub2"))
 })
