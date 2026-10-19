@@ -1,3 +1,7 @@
+# trama.models 0.6.11
+
+* `models/jarque_bera` (novo), ao lado do `models/shapiro`: Jarque-Bera numa coluna, com n, assimetria e curtose em excesso na nota. Conferido contra `tseries::jarque.bera.test` e `moments::jarque.test`, 1e-12.
+
 # trama.models 0.6.10
 
 * `tr_models_strip(x)` no contrato de `models/fit`: o modelo sem os dados de treino, para publicar. Responde a `tr_models_info()` e prevê o ponto com `tr_models_predict_raw()`; intervalo é recusado. Métodos para `lm` e `glm` (inclui binomial negativa); classe sem método recusa com `tr_models_error_no_method`, sem default. Modelo que não existe sem parte do treino sai com a marca `dados_treino` (texto do que sobra).

@@ -1,3 +1,12 @@
+# trama.series 0.9.2
+
+* `series/irf`, `series/fevd` e `series/ccf` (versão 2) ganham a saída `tabela` (`data/table`), do mesmo cálculo do gráfico. O fn dos nós é `tr_series_irf_bloco()`, `tr_series_fevd_bloco()` e `tr_series_ccf_bloco()`; `tr_series_irf()`, `tr_series_fevd()` e `tr_series_ccf()` seguem devolvendo o ggplot.
+* `series/granger` (versão 2): `metodo = "instantanea"`, a causalidade instantânea de Lütkepohl (2005, seção 3.6.3) pelo `$Instant` de `vars::causality()`.
+* `series/fevd`: o gráfico não some mais com as barras cujo topo passa de 1 pelo arredondamento.
+* `series/engle_granger` (versão 2): o coeficiente sai com o nome da série, e não `x[, regs, drop = FALSE]`.
+* `series/normality_mv`: ajuda, nota e pressuposto avisam que o Jarque-Bera multivariado depende da ordem das séries (Cholesky). O número não muda.
+* Os adaptadores de série para `data/table` marcam a coluna `tempo` como índice (atributo `trama_indice`): os blocos que tomam "todas as numéricas" em branco a deixam de fora.
+
 # trama.series 0.9.1
 
 * Relatório Quarto: `regression`, `arima`, `forecast`, `baseline`, `granger`, `phillips_perron`, `ndiffs` e `vecm` registram no resultado a ferramenta que rodou (atributo `trama_ferramentas`). `moving_average` e `interpolate` declaram `forecast::ma` e `forecast::na.interp`: série que sai é dado, e atributo nela vazaria para quem faz conta com ela.

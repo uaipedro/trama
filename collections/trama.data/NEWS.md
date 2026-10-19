@@ -1,3 +1,10 @@
+# trama.data 0.4.5
+
+* `data/describe` (novo): uma linha por coluna numérica com n, faltantes, média, desvio-padrão (divisor n − 1), mediana, mínimo, máximo, assimetria g1 e curtose em excesso g2 (momentos com divisor n, Joanes e Gill 1998). Em branco, deixa de fora a coluna de índice declarada no atributo `trama_indice` (o `tempo` de uma série). Conferido contra `moments`, 1e-12.
+* `data/bind_rows` (versão 2) ganha **Coluna de origem** (`origem`): uma coluna nova, na frente, com o id do nó de onde veio cada linha; em branco, nada muda. A porta `tabelas` passa a `named`. Pede `trama (>= 0.5.18)`.
+* `data/write_csv`, `data/write_rds` e `data/write_parquet` criam a pasta de destino que falta, com as intermediárias; se não der para criá-la, o nó para com o caminho.
+* Classe nova `tr_data_error_not_numeric`.
+
 # trama.data 0.4.4
 
 * Relatório Quarto exportado: `data/table` e `data/test` ganham `report`. A tabela sai em Markdown (até 20 linhas, sem colunas vazias, de pé quando é uma linha só e larga); o teste sai como linha de quadro com estatística, gl, p-valor e decisão, seguida da conclusão, da nota e da fonte — no lugar do `print` cru da lista. Novos `tr_data_report()`, `tr_data_md_table()`, `tr_data_fmt_num()`, `tr_data_fmt_p()`, `tr_data_md_summary()`, base dos `report` das outras coleções.
