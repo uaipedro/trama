@@ -57,5 +57,10 @@
     "package": "trama.launcher",
     "url": "https://github.com/uaipedro/trama",
     "subdir": "tools/installer/trama.launcher"
+  },
+  {
+    "package": "trama.github",
+    "url": "https://github.com/uaipedro/trama",
+    "subdir": "apoio/trama.github"
   }
 ]
