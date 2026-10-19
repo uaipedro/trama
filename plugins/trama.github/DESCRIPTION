@@ -17,7 +17,9 @@ Imports:
     jsonlite,
     keyring,
     later,
+    openssl,
     shiny,
+    stats,
     utils
 Suggests:
     testthat (>= 3.0.0),

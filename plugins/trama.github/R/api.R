@@ -74,13 +74,16 @@ tr_github_repo <- function(repo, token = NULL) {
 #' @param branch Branch; `NULL` usa a padrão do repositório.
 #' @param manter_outros `TRUE` (padrão) mantém os arquivos que já estão no
 #'   repositório; `FALSE` faz a árvore ter exatamente os arquivos enviados.
+#' @param pular_iguais Não reenviar arquivo que o repositório já tem igual
+#'   (compara o sha de blob do git, calculado aqui). Custa uma leitura da
+#'   árvore e poupa o envio de tudo o que não mudou.
 #' @inheritParams tr_github_usuario
 #' @return Lista com `sha`, `url` e `mudou` (`FALSE` quando a árvore ficou
 #'   igual e nenhum commit foi criado).
 #' @export
 tr_github_commit <- function(repo, mensagem, arquivos = character(), conteudos = list(),
                              apagar = character(), branch = NULL, manter_outros = TRUE,
-                             token = NULL) {
+                             pular_iguais = FALSE, token = NULL) {
   token <- .gh_token_ou_erro(token)
   if (length(arquivos) && is.null(names(arquivos))) stop("`arquivos` precisa de nomes (caminho no repositório).")
   if (length(conteudos) && is.null(names(conteudos))) stop("`conteudos` precisa de nomes (caminho no repositório).")
@@ -100,10 +103,14 @@ tr_github_commit <- function(repo, mensagem, arquivos = character(), conteudos =
 
   conteudo <- c(lapply(arquivos, function(f) readBin(f, "raw", file.size(f))),
                 lapply(conteudos, function(x) if (is.raw(x)) x else charToRaw(enc2utf8(paste(x, collapse = "\n")))))
+  remotos <- if (pular_iguais) unlist(.gh_arvore(repo, arvore_pai, token)) else character()
   entradas <- Map(function(caminho, bytes) {
-    blob <- .gh_chamar(paste0(base, "/blobs"), "POST",
-                       list(content = jsonlite::base64_enc(bytes), encoding = "base64"), token)
-    list(path = caminho, mode = "100644", type = "blob", sha = blob$sha)
+    sha <- if (length(remotos)) .gh_sha_blob(bytes)
+    if (is.null(sha) || !sha %in% remotos) {
+      sha <- .gh_chamar(paste0(base, "/blobs"), "POST",
+                        list(content = jsonlite::base64_enc(bytes), encoding = "base64"), token)$sha
+    }
+    list(path = caminho, mode = "100644", type = "blob", sha = sha)
   }, names(conteudo), conteudo)
   # `sha: null` com `base_tree` remove o caminho da árvore.
   remocoes <- lapply(apagar, function(p) list(path = p, mode = "100644", type = "blob", sha = NULL))
@@ -127,6 +134,23 @@ tr_github_commit <- function(repo, mensagem, arquivos = character(), conteudos =
 }
 
 .LIMITE_ARQUIVO <- 100 * 1024^2
+
+# sha de blob do git: sha1 de "blob <tamanho>\0" seguido do conteúdo. É o
+# endereço que o GitHub dá ao mesmo conteúdo, então dá para saber sem enviar.
+.gh_sha_blob <- function(bytes) {
+  paste(as.character(openssl::sha1(c(charToRaw(paste0("blob ", length(bytes))), as.raw(0L), bytes))))
+}
+
+# Arquivos de uma árvore (recursiva): lista nomeada caminho -> sha do blob.
+.gh_arvore <- function(repo, arvore, token) {
+  r <- .gh_chamar(sprintf("/repos/%s/git/trees/%s?recursive=1", repo, arvore), token = token)
+  if (isTRUE(r$truncated)) {
+    .gh_parar("tr_github_erro_arvore_grande",
+              "O repositório tem arquivos demais para o trama ler de uma vez.")
+  }
+  blobs <- Filter(function(e) identical(e$type, "blob"), r$tree %||% list())
+  stats::setNames(lapply(blobs, function(e) e$sha), vapply(blobs, function(e) e$path, ""))
+}
 
 .gh_url_commit <- function(repo, sha) sprintf("%s/%s/commit/%s", tr_github_url(), repo, sha)
 

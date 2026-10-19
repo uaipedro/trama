@@ -93,7 +93,8 @@ tr_github_ambiente_tags <- function(repo, ambiente = "github-pages", padrao = "v
 #' `tr_github_execucoes()` lista as execuções de um commit (o da tag);
 #' `tr_github_falha()` diz em que job e etapa uma execução falhou.
 #'
-#' @param sha Commit (`head_sha`) cujas execuções se quer.
+#' @param sha Commit (`head_sha`) cujas execuções se quer; `NULL` traz as
+#'   mais recentes do repositório, a última primeiro.
 #' @param id Id da execução.
 #' @inheritParams tr_github_commit
 #' @return `tr_github_execucoes()`: lista de execuções, cada uma com `id`,
@@ -101,8 +102,9 @@ tr_github_ambiente_tags <- function(repo, ambiente = "github-pages", padrao = "v
 #'   (`success`, `failure`... ou `NA` enquanto roda) e `url`.
 #'   `tr_github_falha()`: lista com `job`, `etapa` e `url` (do log), ou `NULL`.
 #' @export
-tr_github_execucoes <- function(repo, sha, token = NULL) {
-  r <- .gh_chamar(sprintf("/repos/%s/actions/runs?head_sha=%s&per_page=20", repo, sha),
+tr_github_execucoes <- function(repo, sha = NULL, token = NULL) {
+  filtro <- if (is.null(sha)) "" else paste0("head_sha=", sha, "&")
+  r <- .gh_chamar(sprintf("/repos/%s/actions/runs?%sper_page=20", repo, filtro),
                   token = .gh_token_ou_erro(token))
   lapply(r$workflow_runs %||% list(), function(x) {
     list(id = x$id, nome = x$name %||% "", estado = x$status %||% NA_character_,

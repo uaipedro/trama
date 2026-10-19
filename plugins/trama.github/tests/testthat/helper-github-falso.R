@@ -23,7 +23,7 @@ app_github_falso <- function() {
     L$tag_objs <- list(); L$repos <- list()
     L$pages <- list(); L$ambientes <- list(); L$politicas <- list(); L$runs <- list(); L$jobs <- list()
     L$releases <- list(); L$pages_recusa <- FALSE
-    L$conferencias <- 0L; L$blobs_criados <- 0L
+    L$conferencias <- 0L; L$blobs_criados <- 0L; L$blobs_lidos <- 0L; L$falhar_leitura <- NA_integer_
     L$falhar_blob <- NA_integer_; L$corrida <- FALSE
     L$tokens <- TOKEN_FALSO
   }
@@ -32,6 +32,12 @@ app_github_falso <- function() {
   # sha falso: contador, 40 dígitos hex. Árvore igual reaproveita o sha, como
   # no git (endereçado por conteúdo).
   app$locals$novo_sha <- function(L) { L$n <- L$n + 1L; sprintf("%040d", L$n) }
+  # Blob tem o sha de verdade do git (o cliente compara com o que calcula
+  # para não reenviar arquivo igual); árvore e commit usam o contador.
+  app$locals$sha_blob <- function(b64) {
+    b <- jsonlite::base64_dec(b64)
+    paste(as.character(openssl::sha1(c(charToRaw(paste0("blob ", length(b))), as.raw(0L), b))))
+  }
 
   erro <- function(res, status, msg, errors = NULL) {
     corpo <- list(message = msg)
@@ -100,9 +106,12 @@ app_github_falso <- function() {
                             message = "name already exists on this account"))))
     }
     # auto_init: um commit inicial com README.
-    blob <- L$novo_sha(L); L$blobs[[blob]] <- jsonlite::base64_enc(charToRaw(paste("#", nome)))
+    leia <- jsonlite::base64_enc(charToRaw(paste("#", nome)))
+    blob <- L$sha_blob(leia); L$blobs[[blob]] <- leia
     arv <- L$novo_sha(L); L$arvores[[arv]] <- list(README.md = blob)
-    com <- L$novo_sha(L); L$commits[[com]] <- list(tree = arv, parents = list(), message = "Initial commit")
+    com <- L$novo_sha(L)
+    L$commits[[com]] <- list(tree = arv, parents = list(), message = "Initial commit",
+                             date = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     L$refs[[paste0(full, "@heads/main")]] <- com
     L$repos[[full]] <- list(full_name = full, html_url = paste0("https://github.com/", full),
                             private = isTRUE(req$json$private), default_branch = "main",
@@ -133,13 +142,45 @@ app_github_falso <- function() {
     if (is.null(c)) return(erro(res, 404, "Not Found"))
     res$send_json(list(sha = req$params$sha, tree = list(sha = c$tree), message = c$message), auto_unbox = TRUE)
   })
+  app$get("/repos/:o/:r/git/trees/:sha", function(req, res) {
+    if (!autorizado(req, res)) return()
+    a <- req$app$locals$arvores[[req$params$sha]]
+    if (is.null(a)) return(erro(res, 404, "Not Found"))
+    itens <- lapply(names(a), function(p) list(path = p, mode = "100644", type = "blob", sha = a[[p]]))
+    res$send_json(list(sha = req$params$sha, tree = itens, truncated = FALSE), auto_unbox = TRUE)
+  })
+  app$get("/repos/:o/:r/git/blobs/:sha", function(req, res) {
+    if (!autorizado(req, res)) return()
+    L <- req$app$locals
+    L$blobs_lidos <- (L$blobs_lidos %||% 0L) + 1L
+    if (identical(L$blobs_lidos, as.integer(L$falhar_leitura))) return(erro(res, 502, "Server Error"))
+    b <- L$blobs[[req$params$sha]]
+    if (is.null(b)) return(erro(res, 404, "Not Found"))
+    res$send_json(list(sha = req$params$sha, content = b, encoding = "base64"), auto_unbox = TRUE)
+  })
+  # Histórico: da ponta da branch para trás, pelo primeiro pai.
+  app$get("/repos/:o/:r/commits", function(req, res) {
+    if (!autorizado(req, res)) return()
+    L <- req$app$locals
+    c <- L$refs[[paste0(chave(req), "@heads/", req$query$sha %||% "main")]]
+    n <- as.integer(req$query$per_page %||% 30)
+    out <- list()
+    while (!is.null(c) && length(out) < n) {
+      x <- L$commits[[c]]
+      out[[length(out) + 1L]] <- list(sha = c, html_url = paste0("https://github.com/", chave(req), "/commit/", c),
+                                      commit = list(message = x$message,
+                                                    author = list(name = "Pesquisadora Teste", date = x$date)))
+      c <- if (length(x$parents)) x$parents[[1]] else NULL
+    }
+    res$send_json(out, auto_unbox = TRUE)
+  })
   app$post("/repos/:o/:r/git/blobs", function(req, res) {
     if (!autorizado(req, res)) return()
     L <- req$app$locals
     L$blobs_criados <- L$blobs_criados + 1L
     if (identical(L$blobs_criados, as.integer(L$falhar_blob))) return(erro(res, 502, "Server Error"))
-    igual <- Filter(function(s) identical(L$blobs[[s]], req$json$content), names(L$blobs))
-    sha <- if (length(igual)) igual[[1]] else { s <- L$novo_sha(L); L$blobs[[s]] <- req$json$content; s }
+    sha <- L$sha_blob(req$json$content)
+    L$blobs[[sha]] <- req$json$content
     res$set_status(201)$send_json(list(sha = sha), auto_unbox = TRUE)
   })
   app$post("/repos/:o/:r/git/trees", function(req, res) {
@@ -156,7 +197,8 @@ app_github_falso <- function() {
     if (!autorizado(req, res)) return()
     L <- req$app$locals
     sha <- L$novo_sha(L)
-    L$commits[[sha]] <- list(tree = req$json$tree, parents = req$json$parents, message = req$json$message)
+    L$commits[[sha]] <- list(tree = req$json$tree, parents = req$json$parents, message = req$json$message,
+                             date = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     res$set_status(201)$send_json(list(sha = sha), auto_unbox = TRUE)
   })
   app$patch("/repos/:o/:r/git/refs/heads/:x", function(req, res) {
@@ -234,7 +276,9 @@ app_github_falso <- function() {
   })
   app$get("/repos/:o/:r/actions/runs", function(req, res) {
     if (!autorizado(req, res)) return()
-    runs <- Filter(function(x) identical(x$head_sha, req$query$head_sha), req$app$locals$runs)
+    runs <- req$app$locals$runs
+    runs <- if (is.null(req$query$head_sha)) rev(runs)
+            else Filter(function(x) identical(x$head_sha, req$query$head_sha), runs)
     res$send_json(list(total_count = length(runs), workflow_runs = unname(runs)), auto_unbox = TRUE)
   })
   app$get("/repos/:o/:r/actions/runs/:id/jobs", function(req, res) {
