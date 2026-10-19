@@ -63,7 +63,7 @@ Dentro de uma coleção: `R/collection.R` registra tudo; os `tr_node` ficam em `
 
 | Pacote | O que faz |
 | --- | --- |
-| `trama.github` | Conexão com o GitHub: guia de conta, login pelo device flow, credencial no chaveiro, API interna (usuário, repositório, commit atômico, tag) e o menu GitHub do editor. Base de `trama.publicar` e do versionamento do projeto. Visão: `docs/visao-publicar-e-github.md`. Testes contra GitHub falso (`webfakes`). |
+| `trama.github` | Conexão com o GitHub: guia de conta, login pelo device flow, credencial no chaveiro, API interna (usuário, repositório, commit atômico, tag, Pages, Actions), versionar o projeto num repositório privado (salvar versão, histórico, restaurar; chave `versionar` no `trama.json`) e o painel GitHub do editor (conta, Projeto, Publicações). Base de `trama.publicar`, que é dependência opcional dele, nunca o contrário. Visão: `docs/visao-publicar-e-github.md`. Testes contra GitHub falso (`webfakes`). |
 
 Rodam pelo `tools/check.R` como as coleções (`plugins/X/**` → testes de X), sem carregar o núcleo. JS com ramo segue a regra do editor: módulo puro com teste em `tests/js/`.
 
