@@ -331,3 +331,77 @@ tr_models_strip.tr_ml_fit <- function(x) {
   attr(aj, "params") <- NULL
   aj
 }
+
+# ---- bloco web -------------------------------------------------------------------
+
+#' O modelo da ml descrito para prever no navegador (`tr_models_web()`).
+#'
+#' O `prever` refaz, só com R base e o pacote do motor, o que
+#' `.tr_ml_novos_dados()` e `.tr_ml_prever()` fazem aqui: escolhe as colunas
+#' na ordem do treino, troca os nomes pelos internos (`x1`, `x2`...) e chama o
+#' `predict()` do motor, com as mesmas regras de classe (maior probabilidade,
+#' empate na ordem dos níveis; corte na logística). O XGBoost viaja como UBJ
+#' cru e é lido com `xgb.load.raw()` no navegador. FIGS não tem binário WebR:
+#' `NULL`, sem preditor na página (e o `tr_models_strip()` já recusa).
+#' @export
+tr_models_web.tr_ml_fit <- function(x) {
+  if (isTRUE(x$reduzido)) {
+    .tr_ml_abort("tr_models_error_not_applicable",
+                 "tr_models_web() pede o modelo completo: as faixas das entradas saem do treino.")
+  }
+  if (identical(x$modelo, "figs")) return(NULL)
+  r <- trama.models::tr_models_strip(x)
+  cls <- x$tarefa == "classificacao"
+  niv <- x$niveis
+  motor <- if (x$modelo == "xgboost") xgboost::xgb.save.raw(r$ajuste, raw_format = "ubj") else r$ajuste
+  dq <- function(v) paste0("c(", paste(vapply(v, deparse, ""), collapse = ", "), ")")
+  cols_prob <- if (cls) trama.models::tr_models_clean_name(niv)
+  cabeca <- paste0("function(motor, novos) {\n",
+                   "  x <- as.data.frame(novos)[", dq(x$preditores), "]\n",
+                   "  names(x) <- ", dq(x$internos), "\n")
+  # Fecho comum da classificação: matriz `prob` com colunas nos níveis.
+  fecho_cls <- paste0(
+    "  niv <- ", dq(niv), "\n",
+    "  prob <- as.matrix(prob)\n",
+    "  if (is.null(colnames(prob)) || !all(niv %in% colnames(prob))) colnames(prob) <- niv\n",
+    "  prob <- prob[, niv, drop = FALSE]\n",
+    "  out <- data.frame(previsto = niv[max.col(prob, ties.method = \"first\")])\n",
+    "  for (k in seq_along(niv)) out[[paste0(\"prob_\", ", dq(cols_prob), "[k])]] <- as.numeric(prob[, k])\n",
+    "  out\n}")
+  corpo <- switch(x$modelo,
+    linear = if (!cls) "  data.frame(previsto = as.numeric(predict(motor, x)))\n}" else
+      paste0("  p <- as.numeric(predict(motor, x, type = \"response\"))\n",
+             "  prob <- cbind(1 - p, p)\n",
+             "  niv <- ", dq(niv), "\n",
+             "  out <- data.frame(previsto = niv[1L + (p >= ", format(x$extras$parametros$corte %||% 0.5, digits = 17), ")])\n",
+             "  for (k in 1:2) out[[paste0(\"prob_\", ", dq(cols_prob), "[k])]] <- prob[, k]\n",
+             "  out\n}"),
+    cart = if (!cls) "  data.frame(previsto = as.numeric(predict(motor, x)))\n}" else
+      paste0("  prob <- predict(motor, x, type = \"prob\")\n", fecho_cls),
+    forest = paste0("  loadNamespace(\"ranger\")\n",
+                    "  z <- predict(motor, data = x)$predictions\n",
+                    if (!cls) "  data.frame(previsto = as.numeric(z))\n}" else paste0("  prob <- z\n", fecho_cls)),
+    svm = paste0("  loadNamespace(\"e1071\")\n",
+                 if (!cls) "  data.frame(previsto = as.numeric(predict(motor, x)))\n}" else
+                   paste0("  prob <- attr(predict(motor, x, probability = TRUE), \"probabilities\")\n", fecho_cls)),
+    xgboost = paste0("  b <- xgboost::xgb.load.raw(motor)\n",
+                     "  z <- predict(b, data.matrix(x))\n",
+                     if (!cls) "  data.frame(previsto = as.numeric(z))\n}" else if (length(niv) == 2L)
+                       paste0("  z <- as.numeric(z)\n  prob <- cbind(1 - z, z)\n", fecho_cls) else
+                       paste0("  prob <- if (is.matrix(z)) z else matrix(as.numeric(z), nrow = nrow(x), ncol = ",
+                              length(niv), ", byrow = TRUE)\n", fecho_cls)))
+  motor_pkg <- x$extras$engine
+  list(motor = motor,
+       pacotes = .tr_ml_versoes_web(unique(c("stats", motor_pkg))),
+       entradas = trama.models::tr_models_web_entradas(x$dados, x$preditores),
+       saida = list(tarefa = x$tarefa, resposta = x$resposta %||% x$alvo, niveis = niv,
+                    colunas = c("previsto", if (cls) paste0("prob_", cols_prob))),
+       preprocessamento = paste0("As colunas ", paste(x$preditores, collapse = ", "),
+                                 " entram nessa ordem, renomeadas para ", paste(x$internos, collapse = ", "),
+                                 " (os nomes internos do ajuste); numéricas, sem valores ausentes."),
+       prever = paste0(cabeca, corpo))
+}
+
+.tr_ml_versoes_web <- function(pacotes) {
+  stats::setNames(lapply(pacotes, function(p) as.character(utils::packageVersion(p))), pacotes)
+}

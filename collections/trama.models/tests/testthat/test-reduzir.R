@@ -3,17 +3,6 @@
 # ajuste original, que é a referência do próprio R; tolerância 1e-12 (o mesmo
 # produto matricial, só sem os campos que ele não lê).
 
-dados_reduzir <- function(n = 80) {
-  withr::with_seed(20261019, {
-    d <- data.frame(x1 = rnorm(n, 10, 2), x2 = runif(n, 0, 5),
-                    trat = factor(sample(c("a", "b", "c"), n, replace = TRUE)))
-    d$y <- 1 + 0.4 * d$x1 - 0.7 * d$x2 + c(a = 0, b = 1, c = -1)[as.character(d$trat)] + rnorm(n, 0, 0.5)
-    d$cont <- rpois(n, exp(0.2 + 0.1 * d$x2))
-    d$classe <- factor(ifelse(d$y + rnorm(n) > stats::median(d$y), "sim", "nao"), levels = c("nao", "sim"))
-    d
-  })
-}
-novos_reduzir <- data.frame(x1 = c(8.5, 10, 12.25), x2 = c(0.5, 2.5, 4.75), trat = c("a", "b", "c"))
 
 test_that("lm reduzido prevê igual ao predict() do ajuste original, sem dado de treino", {
   d <- dados_reduzir()
@@ -44,14 +33,17 @@ test_that("lm reduzido prevê igual ao predict() do ajuste original, sem dado de
 })
 
 test_that("o ambiente da fórmula não leva a tabela junto", {
-  # Sem zerar o ambiente do `terms`, o RDS do reduzido carrega o quadro da
-  # função que ajustou — com `dados` dentro. O teste olha os bytes.
+  # Um `lm` ajustado dentro de uma função guarda no `terms` o quadro dela,
+  # com a tabela. Nos ajustes do trama o ambiente já é o global; o reduzido
+  # garante isso para qualquer `lm`/`glm` que chegue.
   d <- dados_reduzir()
-  m <- tr_models_lm(d, formula = "y ~ x1 + x2")
-  expect_gt(length(vazados(attr(m$ajuste$terms, ".Environment"), d$x1)), 0L)
-  r <- tr_models_strip(m)
-  bytes_r <- length(serialize(r, NULL))
-  expect_lt(bytes_r, length(serialize(d, NULL)))
+  ajustar <- function(dd) stats::lm(y ~ x1 + x2, data = dd)
+  aj <- ajustar(d)
+  expect_gt(length(vazados(attr(aj$terms, ".Environment"), d$x1)), 0L)
+  r <- tr_models_strip_stats(aj)
+  expect_identical(attr(r$terms, ".Environment"), globalenv())
+  expect_length(vazados(r, c(d$x1, d$x2, d$y)), 0L)
+  expect_lt(length(serialize(r, NULL)), length(serialize(d, NULL)))
 })
 
 test_that("glm Poisson reduzido prevê igual na escala da resposta", {

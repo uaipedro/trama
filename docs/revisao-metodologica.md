@@ -533,9 +533,9 @@ O `lm`/`glm` reduzido (`tr_models_strip_stats()`) guarda coeficientes, posto,
 `qr` só com pivotagem e posto, `terms` com o ambiente trocado pelo global,
 `xlevels`, `contrasts` e a família (e o theta da binomial negativa). Saem os
 campos com uma posição por linha, a matriz `qr$qr` (que é a própria matriz de
-delineamento), o `R`, a tabela e a chamada. Achado no caminho: o `terms` do
-ajuste carregava o quadro da função que ajustou, com a tabela inteira dentro,
-e iria no RDS mesmo sem os outros campos. Prevê só o ponto: intervalo e
+delineamento), o `R`, a tabela e a chamada. O ambiente do `terms` vira o
+global: nos ajustes do trama ele já é, mas um `lm` feito dentro de uma função
+guarda o quadro dela, tabela inclusive (testado). Prevê só o ponto: intervalo e
 `se.fit` pedem os resíduos, e o reduzido recusa com classe. Posto deficiente é
 recusado (o `predict.lm()` recente procura o espaço nulo em `qr.R()`).
 

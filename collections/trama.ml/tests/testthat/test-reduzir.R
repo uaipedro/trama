@@ -11,16 +11,6 @@
 # - SVM: os vetores de suporte são linhas do treino, e nada além deles;
 # - XGBoost: a resposta não aparece; preditores só como corte de árvore.
 
-dados_ml_reduzir <- function(n = 120) {
-  withr::with_seed(20261019, {
-    d <- data.frame(x1 = rnorm(n, 10, 2), x2 = runif(n, 0, 5), x3 = rnorm(n))
-    d$y <- 2 + 0.5 * d$x1 - d$x2 + rnorm(n)
-    d$cl <- factor(ifelse(d$y + rnorm(n) > stats::median(d$y), "alto", "baixo"))
-    d$c3 <- cut(d$y, 3, labels = c("p", "m", "g"))
-    d
-  })
-}
-novos_ml <- data.frame(x1 = c(8.5, 10, 12.25), x2 = c(0.5, 2.5, 4.75), x3 = c(-1, 0, 0.75))
 
 ajustar_e_reduzir <- function(modelo, resposta) {
   d <- dados_ml_reduzir()

@@ -55,3 +55,16 @@ comprimentos_do_objeto <- function(obj) {
   andar(obj)
   out
 }
+
+# Dados contínuos dos testes de reduzir e web (rnorm/runif).
+dados_reduzir <- function(n = 80) {
+  withr::with_seed(20261019, {
+    d <- data.frame(x1 = rnorm(n, 10, 2), x2 = runif(n, 0, 5),
+                    trat = factor(sample(c("a", "b", "c"), n, replace = TRUE)))
+    d$y <- 1 + 0.4 * d$x1 - 0.7 * d$x2 + c(a = 0, b = 1, c = -1)[as.character(d$trat)] + rnorm(n, 0, 0.5)
+    d$cont <- rpois(n, exp(0.2 + 0.1 * d$x2))
+    d$classe <- factor(ifelse(d$y + rnorm(n) > stats::median(d$y), "sim", "nao"), levels = c("nao", "sim"))
+    d
+  })
+}
+novos_reduzir <- data.frame(x1 = c(8.5, 10, 12.25), x2 = c(0.5, 2.5, 4.75), trat = c("a", "b", "c"))
