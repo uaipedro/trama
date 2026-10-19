@@ -90,15 +90,12 @@ tr_data_errors <- function() {
 #' que vai num `warning()` e não sobe ao card. É o erro de quem renomeou um
 #' arquivo ou moveu o projeto, e ele chega cego. Seguir o critério aqui seria
 #' inércia: onde ele perde a razão de ser, ele não se aplica.
-#'
-#' `pasta = TRUE` é o lado da gravação: `saveRDS` num diretório inexistente dá
-#' exatamente a mesma mensagem cega.
+#' (O lado da gravação, a pasta de destino, é `.tr_data_pasta_destino()`.)
 #' @noRd
-.tr_data_arquivo <- function(path, param, pasta = FALSE) {
+.tr_data_arquivo <- function(path, param) {
   if (!file.exists(path)) {
     rlang::abort(
-      sprintf("Param '%s': %s não existe: %s.", param,
-              if (pasta) "a pasta de destino" else "o arquivo", path),
+      sprintf("Param '%s': o arquivo não existe: %s.", param, path),
       class = "tr_data_error_missing_file")
   }
   path

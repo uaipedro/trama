@@ -1531,7 +1531,8 @@ Repassar é de propósito: um gravador que cortasse o fluxo obrigaria a duplicar
 o nó anterior só para continuar a análise depois de gravar.
 
 O arquivo é reescrito por inteiro a cada gravação, sem perguntar. Caminho
-relativo é resolvido a partir da pasta do projeto.
+relativo é resolvido a partir da pasta do projeto, e a pasta de destino é
+criada se não existir, com as intermediárias.
 
 O nó grava em TODA execução do fluxo, mesmo que nada tenha mudado. Isso é
 deliberado: um gravador cujo arquivo foi apagado não fez o trabalho dele, e sem
@@ -1598,9 +1599,8 @@ cadeia.
 Caminho em branco é nó desligado: não grava nada, não reclama, e a tabela
 continua passando.
 
-A pasta de destino precisa existir; se não existir, o nó para dizendo qual é.
-Cru, o R falharia com \"não é possível abrir a conexão\", sem dizer o caminho —
-que é justamente o que se precisa saber.
+A pasta de destino é criada se não existir, com as intermediárias. Se não der
+para criá-la, o nó para dizendo qual é.
 
 ## Parâmetros
 
@@ -1654,6 +1654,8 @@ isso apagar o arquivo e recalcular não o recriava. A consequência é que o que
 estiver ligado DEPOIS de um gravador recalcula sempre, porque a saída dele muda
 de chave a cada passada. Na prática, o gravador costuma ser a última caixa da
 cadeia.
+
+A pasta de destino é criada se não existir, com as intermediárias.
 
 Caminho em branco é nó desligado: não grava nada, não reclama, e a tabela
 continua passando — nem o pacote `arrow` é exigido nesse caso, porque não há
