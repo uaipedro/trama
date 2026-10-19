@@ -16,8 +16,10 @@
 .tr-gh-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 10px;
   border:1px solid var(--tr-line);border-radius:8px;background:none;color:var(--tr-fg);font:inherit;cursor:pointer}
 .tr-gh-btn:hover{background:var(--tr-hover)}
-.tr-gh-primario{background:var(--tr-accent);border-color:var(--tr-accent);color:var(--tr-accent-fg,#fff);font-weight:600}
-.tr-gh-primario:hover{background:var(--tr-accent);filter:brightness(1.08)}
+/* `.tr-toolbar button` pinta todo botão da barra com --tr-fg: os seletores
+   abaixo levam `.tr-gh` para ganhar dele. */
+.tr-gh .tr-gh-primario{background:var(--tr-accent);border-color:var(--tr-accent);color:var(--tr-accent-fg,#fff);font-weight:600}
+.tr-gh .tr-gh-primario:hover{background:var(--tr-accent);filter:brightness(1.08)}
 .tr-gh-codigo{padding:10px;border-radius:8px;background:var(--tr-field);text-align:center;
   font:700 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:var(--tr-fg);user-select:all}
 .tr-gh-espera{margin:0;color:var(--tr-dim);font-size:11px}
@@ -28,5 +30,5 @@
 .tr-gh-passos{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
 .tr-gh-passos strong{color:var(--tr-fg)}
 .tr-gh-passos p{margin:2px 0 0;color:var(--tr-dim);line-height:1.4}
-.tr-gh-link{margin-top:4px;padding:0;border:0;background:none;color:var(--tr-accent);font:inherit;cursor:pointer}
+.tr-gh .tr-gh-link{margin-top:4px;padding:0;border:0;background:none;color:var(--tr-accent);font:inherit;cursor:pointer}
 .tr-gh-link:hover{text-decoration:underline}
