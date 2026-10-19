@@ -278,7 +278,10 @@ tr_series_fevd <- function(modelo, horizonte = 10L, aspecto = "4:3", tema = "pad
                                        fill = .data[["choque"]])) +
     ggplot2::geom_col(position = "stack", width = .8) +
     ggplot2::facet_wrap(ggplot2::vars(.data[["serie"]]), ncol = min(2L, length(choques))) +
-    ggplot2::scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+    # Zoom, não limite de escala: `limits` censura a barra empilhada cujo topo
+    # passa de 1 pelo arredondamento (1 + 2e-16) e a barra some inteira.
+    ggplot2::scale_y_continuous(expand = c(0, 0)) +
+    ggplot2::coord_cartesian(ylim = c(0, 1)) +
     ggplot2::labs(x = "horizonte", y = "fração da variância", fill = "choque",
                   subtitle = "decomposição de Cholesky, ordem das séries")
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)

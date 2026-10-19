@@ -150,6 +150,19 @@ test_that("os gráficos montam, com a banda só quando há reamostras", {
   expect_no_error(ggplot2::ggplot_build(pf))
 })
 
+test_that("FEVD desenha todas as barras, mesmo as que somam 1 + 2e-16", {
+  # Com `scale_y_continuous(limits = c(0, 1))`, 6 das 160 barras do Canada
+  # sumiam: o topo da pilha passava de 1 pelo arredondamento e era censurado.
+  m <- canada_modelo()
+  p <- tr_series_fevd(m, horizonte = 10L)
+  ld <- ggplot2::layer_data(p, 1)
+  expect_equal(nrow(ld), 4L * 4L * 10L)
+  expect_false(anyNA(ld$ymax))
+  expect_true(1 %in% ld$x)
+  topo <- tapply(ld$ymax, paste(ld$PANEL, ld$x), max)
+  expect_lt(max(abs(topo - 1)), 1e-10)
+})
+
 test_that("nomes de série desconhecidos e params inválidos são recusados", {
   m <- canada_modelo()
   expect_error(tr_series_irf(m, impulso = "xyz"), class = "tr_series_error_bad_option")
