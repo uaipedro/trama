@@ -27,24 +27,66 @@
 #' @export
 tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx"), tempo = 300) {
   formato <- match.arg(formato)
+  r <- .td_render_preparar(documento, formato)
+  out <- processx::run(r$quarto, r$args, wd = r$pasta, error_on_status = FALSE, timeout = tempo,
+                       stderr_to_stdout = TRUE)
+  if (isTRUE(out$timeout)) .td_erro(sprintf("O Quarto n\u{E3}o terminou em %d segundos.", tempo), "tr_documento_erro_render")
+  .td_render_conferir(r, out$status, out$stdout)
+}
+
+#' O que o render precisa: Quarto, argumentos, pasta e o arquivo que sai.
+#' Separado para o painel do editor rodar o mesmo render em segundo plano.
+#' @noRd
+.td_render_preparar <- function(documento, formato) {
   quarto <- .td_quarto()
   if (!nzchar(quarto)) {
     .td_erro(paste("O Quarto n\u{E3}o est\u{E1} instalado (ou fora do PATH). Instale pela p\u{E1}gina",
                    "https://quarto.org/docs/get-started/ e tente de novo."), "tr_documento_erro_quarto")
   }
   documento <- normalizePath(documento, mustWork = TRUE)
-  alvo <- .td_formato_quarto(.td_ler(documento)$linhas, formato)
   pasta <- dirname(documento)
-  r <- processx::run(quarto, c("render", basename(documento), "--to", alvo), wd = pasta,
-                     error_on_status = FALSE, timeout = tempo, stderr_to_stdout = TRUE)
-  saida <- file.path(pasta, "_saida", paste0(tools::file_path_sans_ext(basename(documento)), ".", .TD_EXTENSAO[[formato]]))
-  if (isTRUE(r$timeout)) .td_erro(sprintf("O Quarto n\u{E3}o terminou em %d segundos.", tempo), "tr_documento_erro_render")
-  if (!identical(r$status, 0L) || !file.exists(saida)) {
-    log <- utils::tail(strsplit(r$stdout, "\n", fixed = TRUE)[[1]], 25L)
-    .td_erro(paste(c(sprintf("O Quarto falhou ao renderizar em %s:", formato), log), collapse = "\n"),
+  alvo <- .td_formato_quarto(.td_ler(documento)$linhas, formato)
+  list(quarto = quarto, args = c("render", basename(documento), "--to", alvo), pasta = pasta, formato = formato,
+       saida = file.path(pasta, "_saida", paste0(tools::file_path_sans_ext(basename(documento)), ".",
+                                                 .TD_EXTENSAO[[formato]])))
+}
+
+#' Deu certo? Devolve o arquivo gerado, ou erro com o fim do log.
+#' @noRd
+.td_render_conferir <- function(r, status, log) {
+  if (!identical(as.integer(status), 0L) || !file.exists(r$saida)) {
+    fim <- utils::tail(strsplit(log %||% "", "\n", fixed = TRUE)[[1]], 25L)
+    .td_erro(paste(c(sprintf("O Quarto falhou ao renderizar em %s:", r$formato), fim), collapse = "\n"),
              "tr_documento_erro_render")
   }
-  saida
+  r$saida
+}
+
+#' Render em segundo plano: começa o processo e confere com `agendar` até
+#' acabar; `pronto(saida)` ou `falhou(condição)` no fim. Não trava o editor.
+#' @noRd
+.td_render_fundo <- function(documento, formato, agendar, pronto, falhou, tempo = 300) {
+  r <- tryCatch(.td_render_preparar(documento, formato), tr_documento_erro = function(e) e)
+  if (inherits(r, "error")) return(falhou(r))
+  log <- tempfile("render-", fileext = ".log")
+  p <- processx::process$new(r$quarto, r$args, wd = r$pasta, stdout = log, stderr = "2>&1", cleanup = TRUE)
+  inicio <- Sys.time()
+  conferir <- function() {
+    if (p$is_alive()) {
+      if (difftime(Sys.time(), inicio, units = "secs") > tempo) {
+        p$kill()
+        return(falhou(rlang::catch_cnd(.td_erro(sprintf("O Quarto n\u{E3}o terminou em %d segundos.", tempo),
+                                                "tr_documento_erro_render"))))
+      }
+      return(agendar(conferir, 0.5))
+    }
+    txt <- if (file.exists(log)) paste(readLines(log, warn = FALSE), collapse = "\n") else ""
+    unlink(log)
+    res <- tryCatch(.td_render_conferir(r, p$get_exit_status(), txt), tr_documento_erro = function(e) e)
+    if (inherits(res, "error")) falhou(res) else pronto(res)
+  }
+  agendar(conferir, 0.5)
+  invisible(p)
 }
 
 #' O nome do formato no Quarto: o do modelo, se o YAML o declara.
