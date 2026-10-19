@@ -13,6 +13,9 @@ contributes:
       csl: abnt.csl
       link-citations: true
     typst:
+      # Citações pelo Pandoc: com o CSL da extensão, o Typst recebe o caminho
+      # escapado ("\_extensions/...") e não acha o arquivo.
+      citeproc: true
       papersize: a4
       fontsize: 10.5pt
       margin:
