@@ -114,6 +114,14 @@ tr_documento_formatos <- function(documento) {
   names(.TD_FORMATOS)[.TD_FORMATOS %in% base]
 }
 
+#' O formato da prévia: o primeiro HTML do documento (página, slides ou
+#' dashboard); sem nenhum, o HTML puro do Quarto.
+#' @noRd
+.td_formato_previa <- function(documento) {
+  fmts <- intersect(tr_documento_formatos(documento), c("html", "revealjs", "dashboard"))
+  if (length(fmts)) fmts[[1]] else "html"
+}
+
 .td_previas <- new.env(parent = emptyenv())
 
 #' Prévia do documento no navegador
@@ -130,8 +138,7 @@ tr_documento_formatos <- function(documento) {
 #'   `documento`.
 #' @export
 tr_documento_previa <- function(documento, abrir = interactive(), tempo = 300) {
-  fmts <- intersect(tr_documento_formatos(documento), c("html", "revealjs", "dashboard"))
-  html <- tr_documento_renderizar(documento, if (length(fmts)) fmts[[1]] else "html", tempo = tempo)
+  html <- tr_documento_renderizar(documento, .td_formato_previa(documento), tempo = tempo)
   pasta <- dirname(html)
   chave <- normalizePath(pasta)
   srv <- .td_previas[[chave]]
