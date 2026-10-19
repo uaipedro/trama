@@ -10,7 +10,7 @@ de nó, de dado ou categoria.
 
 | Arquivo | Papel | React? | Teste |
 | --- | --- | --- | --- |
-| `runtime.js` | Contrato público: `registerRenderer`, `registerWidget`, `h`, `Segmented`, `Toggle`, `NumberField`, `Regua`, `Estrelas`, temas. | sim | indireto |
+| `runtime.js` | Contrato público: `registerRenderer`, `registerWidget`, `registerToolbarItem` (item de barra de extensão), `h`, `Segmented`, `Toggle`, `NumberField`, `Regua`, `Estrelas`, temas. | sim | indireto |
 | `editor.js` | Canvas, cards, sessão (~4,6 mil linhas). Não carrega sob `node --test`. | sim | à mão |
 | `params.js` | Regras dos widgets de param. | não | `params.test.mjs` |
 | `colunas.js` | Sugestão de colunas. | não | `colunas.test.mjs` |
@@ -40,5 +40,7 @@ Testes em `tests/js/*.test.mjs`, rodados por `Rscript tools/check.R` (ou
 - Lógica com ramo vai para um módulo puro (sem React, sem `"trama"`) com teste
   em `tests/js/`; `editor.js` e módulos React só desenham.
 - Nada de domínio aqui: cards específicos de uma coleção vivem em
-  `collections/<x>/inst/trama/` (ex. `trama.sql/inst/trama/index.js`).
+  `collections/<x>/inst/trama/` (ex. `trama.sql/inst/trama/index.js`); menus
+  de pacote de apoio, em `apoio/<x>/inst/trama/`, registrados por
+  `registerToolbarItem` (ex. `trama.github/inst/trama/github.js`).
 - Mudança de interface: abra o editor (`tr_app()`) e teste o fluxo à mão.
