@@ -20,6 +20,7 @@ import ReactDOM from "react-dom";
 import { layoutEnum, textoNumero, validarNumero } from "./params.js";
 import { anotado, opcoes, sugerir, sumidas, alternativa } from "./colunas.js";
 import { MARCAS, NIVEIS, posicao, estrelas, faixa, venceu, num, numP, eixoEfeito } from "./teste.js";
+import { itensDoCard, registrarItem } from "./menu-card.js";
 
 export const h = React.createElement;
 
@@ -103,6 +104,17 @@ export function registerToolbarItem(id, Componente) {
   if (i >= 0) toolbarItems[i] = { id, Componente }; else toolbarItems.push({ id, Componente });
 }
 export function getToolbarItems() { return toolbarItems.slice(); }
+
+// Item do menu de contexto de um card trazido por um plugin ("Inserir no
+// documento", do `trama.documentos`, é o caso). `def`:
+//   { rotulo: texto | (card) => texto, acao: (card) => void,
+//     quando?: (card) => bool, titulo?: texto }
+// O `card` é `{ id, tipo, rotulo, saidas: [{ porta, tipo }], estado }`
+// (`menu-card.js`); a ação fala com o R pelo canal do plugin. Os itens
+// aparecem no menu de UM card, depois dos do editor, na ordem de registro.
+const itensCard = [];
+export function registerCardMenuItem(id, def) { registrarItem(itensCard, id, def); }
+export function getCardMenuItems(card) { return itensDoCard(itensCard, card); }
 
 // Ações do editor que um plugin pode pedir, como levar a tela a um bloco
 // (`editorAction("irAoBloco", id)`). O editor registra as dele a cada render;

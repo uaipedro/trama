@@ -31,6 +31,9 @@ tr_server <- function(project, flow = "main",
     # é na hora da chamada.
     .tr_plugin_servers(plugins, input, output, session,
                           list(project = function() shiny::isolate(rv_project()),
+                               doc = function() shiny::isolate(rv_doc()),
+                               fluxo = function() shiny::isolate(rv_flow()),
+                               servir = .tr_acao_servir,
                                recarregar = function() abrir(shiny::isolate(rv_project())$root, forcar = TRUE)))
     run_seq  <- shiny::reactiveVal(0L)
     # O log de undo é do SERVIDOR, e começa em `base_doc` (fixado no

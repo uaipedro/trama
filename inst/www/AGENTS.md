@@ -10,7 +10,7 @@ de nó, de dado ou categoria.
 
 | Arquivo | Papel | React? | Teste |
 | --- | --- | --- | --- |
-| `runtime.js` | Contrato público: `registerRenderer`, `registerWidget`, `registerToolbarItem` (item de barra de plugin), `h`, `Segmented`, `Toggle`, `NumberField`, `Regua`, `Estrelas`, temas. | sim | indireto |
+| `runtime.js` | Contrato público: `registerRenderer`, `registerWidget`, `registerToolbarItem` (item de barra de plugin), `registerCardMenuItem` (item de plugin no menu do card), `h`, `Segmented`, `Toggle`, `NumberField`, `Regua`, `Estrelas`, temas. | sim | indireto |
 | `editor.js` | Canvas, cards, sessão (~4,6 mil linhas). Não carrega sob `node --test`. | sim | à mão |
 | `params.js` | Regras dos widgets de param. | não | `params.test.mjs` |
 | `colunas.js` | Sugestão de colunas. | não | `colunas.test.mjs` |
@@ -28,6 +28,7 @@ de nó, de dado ou categoria.
 | `temas.js` / `settings.js` | Regras de temas / painel de configurações. | não / sim | `temas.test.mjs` |
 | `galeria.js` / `galeria-ui.js` | Galeria (G): regra de pertencimento, op de marca, navegação / rolo e lightbox. | não / sim | `galeria.test.mjs` |
 | `fontes.js` | Todas as origens de cada porta (o `ctx.fontes` dos widgets), com o nome da porta `named`. | não | `fontes.test.mjs` |
+| `menu-card.js` | Itens de plugin no menu de contexto do card (`registerCardMenuItem`): o que o plugin vê do card e quais itens valem. | não | `menu-card.test.mjs` |
 | `fork.js` | Bifurcar (B): planeja o ramo, gêmeos, espelhamento de params, diferenças, selo. | não | `fork.test.mjs` |
 
 Testes em `tests/js/*.test.mjs`, rodados por `Rscript tools/check.R` (ou

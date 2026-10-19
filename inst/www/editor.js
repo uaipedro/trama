@@ -15,7 +15,9 @@ import {
   useReactFlow, ReactFlowProvider,
   BaseEdge, getSmoothStepPath, getBezierPath, useInternalNode, EdgeLabelRenderer, NodeResizer,
 } from "@xyflow/react";
-import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems, setEditorActions } from "trama";
+import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems, setEditorActions,
+         getCardMenuItems } from "trama";
+import { infoDoCard } from "./menu-card.js";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
@@ -4792,6 +4794,9 @@ function App() {
         restaurarTamanhos(cards);
         setMenu(null);
       } }, cards.length > 1 ? `Restaurar tamanho (${cards.length})` : "Restaurar tamanho") : null,
+      // Itens de plugin (`registerCardMenuItem`), só no menu de um card.
+      ...(noCard ? getCardMenuItems(infoDoCard(noCard)).map((it) =>
+        h("button", { key: `plugin-${it.id}`, title: it.titulo || undefined, onClick: fecharE(it.acao) }, it.rotulo)) : []),
     ];
   }
 
