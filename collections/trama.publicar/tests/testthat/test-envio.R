@@ -230,6 +230,21 @@ test_that("a publicação do nó fica no trama.json do projeto, e só lá", {
   expect_false(any(grepl("publicacoes", txt[grepl("\\.(json|md|cff|qmd)$", names(txt))], fixed = TRUE)))
 })
 
+test_that("o repositório privado do projeto (versionar, #15) nunca é citado no pacote público", {
+  gh <- github_memoria()
+  raiz <- withr::local_tempdir()
+  trama::tr_project(raiz)
+  trama::tr_project_config_set(raiz, "versionar", list(repo = "pesquisadora/rascunho-secreto",
+                                                       url = "https://github.com/pesquisadora/rascunho-secreto",
+                                                       branch = "main", dados = list()))
+  .tr_publicar_publicar(material_exemplo(), ctx_envio(raiz))
+  cm <- gh$commits[[1]]
+  expect_false(identical(cm$repo, "pesquisadora/rascunho-secreto"))
+  txt <- c(vapply(cm$arquivos, function(f) paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "\n"), ""),
+           vapply(cm$conteudos, function(x) if (is.raw(x)) "" else paste(x, collapse = "\n"), ""))
+  expect_false(any(grepl("rascunho-secreto", txt, fixed = TRUE, useBytes = TRUE)))
+})
+
 test_that("trocar o título não abre outro repositório: o nó reusa o registrado", {
   gh <- github_memoria()
   raiz <- withr::local_tempdir()
