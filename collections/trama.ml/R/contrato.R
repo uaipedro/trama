@@ -398,7 +398,7 @@ tr_models_web.tr_ml_fit <- function(x) {
                     colunas = c("previsto", if (cls) paste0("prob_", cols_prob))),
        preprocessamento = paste0("As colunas ", paste(x$preditores, collapse = ", "),
                                  " entram nessa ordem, renomeadas para ", paste(x$internos, collapse = ", "),
-                                 " (os nomes internos do ajuste); numéricas, sem valores ausentes."),
+                                 " (os nomes internos do ajuste); num\u{E9}ricas, sem valores ausentes."),
        prever = paste0(cabeca, corpo))
 }
 

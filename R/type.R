@@ -37,7 +37,7 @@
 #' chamadas pelo editor sobre um resultado já gravado (`pedirAcao()` do
 #' runtime.js), fora da execução do fluxo. É onde mora o que um nó puro não
 #' pode fazer — abrir uma prévia, publicar. `ctx` traz `doc`, `flow`, `raiz`
-#' (do projeto), `store`, `registry`, `chave`, `servir(dir, nome)` (serve uma
+#' (do projeto), `store`, `registry`, `settings`, `chave`, `servir(dir, nome)` (serve uma
 #' pasta pelo próprio editor e devolve a URL relativa) e `responder(lista)`.
 #' A ação devolve a lista da resposta, ou `NULL` quando vai responder depois
 #' pelo `ctx$responder()` (trabalho em segundo plano, com `later`).

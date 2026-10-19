@@ -80,6 +80,13 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo de todas as coleç
 | `vista` | qual das vistas de um painel exploratório desenhar, enum (spatial/explore: `completo`, `mapa`, `x`, `y`, `histograma`). Não é `painel` de view/*, que é a coluna que divide o gráfico em painéis | — |
 | `mostrar` | qual grandeza o gráfico desenha, enum (spatial/map: `predito` ou `erro-padrao`) | — |
 | `isolinhas` | desenhar curvas de nível sobre a superfície (bool, spatial/map) | — |
+| `titulo`, `descricao`, `palavras_chave` | metadados da publicação: título, resumo e palavras separadas por vírgula (publicar/publish) | — |
+| `autores` | autores de uma publicação, `Nome (ORCID)` separados por `;` (publicar/publish) | — |
+| `licenca`, `licenca_codigo` | licença SPDX do conteúdo e do código publicados (publicar/publish) | — |
+| `repositorio` | nome ou endereço do repositório da publicação (publicar/publish) | — |
+| `versao` | tipo da próxima versão publicada: `menor`, `correção`, `maior` (publicar/publish) | — |
+| `layout` | blocos da página publicada, em JSON, citando os itens pelo nó de origem (publicar/publish) | — |
+| `itens` | porta múltipla do que se publica, tipo `publicar/item` (publicar/publish) | — |
 | `pontos` | como param, desenhar as observações sobre o gráfico (bool: view/boxplot, view/violin, series/plot, spatial/map). Como porta de entrada, a das localizações medidas, tipo `spatial/points` (spatial/explore, spatial/variogram, spatial/kriging) | — |
 
 ## Homônimos permitidos

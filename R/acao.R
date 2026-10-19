@@ -24,7 +24,7 @@
   if (is.null(h) || !identical(h$type, tipo)) recusa("O resultado não está mais no store: rode o fluxo de novo.")
   valor <- tr_store_get(proj$store, chave, ty)
   ctx <- list(doc = doc, flow = flow, raiz = proj$root, store = proj$store, registry = proj$registry,
-              chave = chave, servir = servir, responder = responder, extra = req$extra)
+              settings = proj$settings, chave = chave, servir = servir, responder = responder, extra = req$extra)
   res <- fn(valor, ctx)
   if (!is.null(res)) responder(res)
   invisible()
