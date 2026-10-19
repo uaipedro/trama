@@ -104,12 +104,18 @@ tr_documento_componente.data.frame <- function(x, ctx) {
   # report vem depois dela, e a legenda tem de encostar na tabela.
   tabela <- c(sprintf(": %s {#tbl-%s}", .td_legenda(ctx$titulo), .td_id_ref(ctx$chave)), "", .td_aparar(md))
   colunas <- lapply(names(x), function(nm) list(nome = nm, classe = class(x[[nm]])[[1]]))
+  # O CSV leva só as linhas mostradas: inserir um nó de dados brutos não pode
+  # pôr a tabela inteira (de um cliente, às vezes) ao lado do documento, que
+  # se publica. A tabela inteira é escolha explícita: `trama-tabela="completa"`.
+  completa <- identical(ctx$opcoes$tabela, "completa")
   tr_documento_parte(
     "tabela", titulo = ctx$titulo,
-    arquivos = list(dados.csv = .td_csv(x), tabela.md = tabela),
+    arquivos = list(dados.csv = .td_csv(if (completa) x else utils::head(x, max_linhas)), tabela.md = tabela),
     corpo = sprintf("{{< include %s >}}", ctx$arquivo("tabela.md")),
     metadados = list(tipo_schema = "Dataset",
-                     descricao = sprintf("Tabela com %d linhas e %d colunas.", nrow(x), ncol(x)),
+                     descricao = if (completa || nrow(x) <= max_linhas) {
+                       sprintf("Tabela com %d linhas e %d colunas.", nrow(x), ncol(x))
+                     } else sprintf("Primeiras %d de %d linhas (%d colunas).", max_linhas, nrow(x), ncol(x)),
                      propriedades = list(variableMeasured = lapply(colunas, function(cl) {
                        list("@type" = "PropertyValue", name = cl$nome, description = cl$classe)
                      }))))
