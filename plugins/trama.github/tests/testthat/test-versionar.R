@@ -77,7 +77,8 @@ test_that("criar repositório privado, salvar versões e ler o histórico", {
   expect_equal(falso_estado()$blobs_criados - antes, 2L)
 
   h <- tr_github_versoes(raiz)
-  expect_equal(h$mensagem[1:2], c("Dados de vendas", "Primeira versão"))
+  # O "Initial commit" do GitHub (só README) não é versão do projeto.
+  expect_equal(h$mensagem, c("Dados de vendas", "Primeira versão"))
   expect_equal(h$sha[1], v2$sha)
   expect_s3_class(h$data, "POSIXct")
 })
@@ -122,4 +123,14 @@ test_that("queda no meio do download não muda nenhum arquivo", {
   expect_equal(readLines(file.path(raiz, "analise.R")), "x <- 2")
   expect_equal(readLines(file.path(raiz, "flows", "main.json")), '{"nodes": [1]}')
   expect_false(dir.exists(file.path(raiz, ".trama", "restauracao")))
+})
+
+test_that("versão sem trama.json não é restaurada", {
+  local_github_falso()
+  raiz <- projeto_de_teste()
+  tr_github_versionar_criar(raiz, "meu-projeto")
+  tr_github_salvar_versao(raiz, "v1")
+  inicial <- falso_estado()$commits[[1]]
+  expect_error(tr_github_restaurar(raiz, inicial), class = "tr_github_erro_versao_invalida")
+  expect_true(file.exists(file.path(raiz, "analise.R")))
 })

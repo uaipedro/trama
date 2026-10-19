@@ -168,6 +168,7 @@ app_github_falso <- function() {
     while (!is.null(c) && length(out) < n) {
       x <- L$commits[[c]]
       out[[length(out) + 1L]] <- list(sha = c, html_url = paste0("https://github.com/", chave(req), "/commit/", c),
+                                      parents = lapply(x$parents, function(p) list(sha = p)),
                                       commit = list(message = x$message,
                                                     author = list(name = "Pesquisadora Teste", date = x$date)))
       c <- if (length(x$parents)) x$parents[[1]] else NULL

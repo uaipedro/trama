@@ -183,6 +183,9 @@ tr_github_salvar_versao <- function(root = ".", mensagem, token = NULL) {
 #' @inheritParams tr_github_versionar_arquivos
 #' @param n Quantas, das mais recentes.
 #' @inheritParams tr_github_usuario
+#' O primeiro commit do repositório, que o GitHub cria só com um README, não
+#' é versão do projeto e não aparece.
+#'
 #' @return Data frame com `sha`, `mensagem` (primeira linha), `data`
 #'   (POSIXct, UTC), `autor` e `url`, a mais recente primeiro.
 #' @export
@@ -190,6 +193,7 @@ tr_github_versoes <- function(root = ".", n = 30, token = NULL) {
   cfg <- .gh_versionar_repo(root)
   r <- .gh_chamar(sprintf("/repos/%s/commits?sha=%s&per_page=%d", cfg$repo, cfg$branch %||% "main", as.integer(n)),
                   token = .gh_token_ou_erro(token))
+  r <- Filter(function(x) length(x$parents) > 0, r)
   if (!length(r)) {
     return(data.frame(sha = character(), mensagem = character(), data = as.POSIXct(character(), tz = "UTC"),
                       autor = character(), url = character(), stringsAsFactors = FALSE))
@@ -230,6 +234,10 @@ tr_github_restaurar <- function(root = ".", sha, token = NULL) {
   # Caminho vindo de fora não escreve fora do projeto nem em `.trama/`.
   ruins <- grepl("(^|/)\\.\\.(/|$)", caminhos) | grepl("^/|^[A-Za-z]:", caminhos) | .gh_casa(caminhos, .NUNCA)
   remotos <- remotos[!ruins]
+  if (!"trama.json" %in% names(remotos)) {
+    .gh_parar("tr_github_erro_versao_invalida",
+              "Essa versão não tem o trama.json: não é uma versão do projeto e não pode ser restaurada.")
+  }
 
   # 1. Baixa o que difere do disco. Nenhum arquivo muda até aqui.
   locais <- file.path(raiz, names(remotos))
