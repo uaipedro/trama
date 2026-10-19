@@ -111,10 +111,11 @@ tr_documento_modelo_duplicar <- function(modelo, nome, titulo = NULL) {
   .td_nome_modelo(nome)
   origem <- .td_modelo_dir(modelo)
   destino <- .td_dir_usuario("modelos", nome)
-  if (dir.exists(destino)) {
-    .td_erro(sprintf("J\u{E1} existe o modelo do usu\u{E1}rio '%s' (%s).", nome, destino), "tr_documento_erro_modelo")
+  if (file.exists(file.path(destino, "_extension.yml"))) {
+    .td_erro(sprintf("J\u{E1} existe o modelo do usu\u{E1}rio '%s' (%s).", nome, destino),
+             c("tr_documento_erro_modelo_existe", "tr_documento_erro_modelo"))
   }
-  .td_copiar_pasta(origem, destino)
+  .td_instalar_pasta(origem, destino)
   ext <- .td_ext_ler(destino)
   ext$title <- titulo %||% if (identical(nome, basename(origem))) ext$title else
     sprintf("%s (c\u{F3}pia)", ext$title %||% basename(origem))
@@ -132,7 +133,10 @@ tr_documento_modelo_editar <- function(nome, titulo = NULL, descricao = NULL, fo
   if (!is.null(formatos)) {
     formatos <- unique(as.character(formatos))
     if (!length(formatos)) ruim("O modelo precisa de pelo menos um formato.")
-    fora <- setdiff(formatos, .TD_FORMATOS_MODELO)
+    # Formato que o modelo já tem (pdf, beamer de uma extensão importada) fica;
+    # novo, só os que a galeria sabe configurar.
+    atuais <- tryCatch(.td_modelo_ler(.td_modelo_dir(nome)), error = function(e) list())
+    fora <- setdiff(formatos, c(.TD_FORMATOS_MODELO, atuais$formatos, names(atuais$meta$formatos_desligados)))
     if (length(fora)) ruim(sprintf("Formato '%s' desconhecido: use %s.", fora[[1]], paste(.TD_FORMATOS_MODELO, collapse = ", ")))
   }
   cores <- .td_conferir_nomeados(cores, names(.TD_CORES), "cores", function(v) {
@@ -148,6 +152,7 @@ tr_documento_modelo_editar <- function(nome, titulo = NULL, descricao = NULL, fo
   if (!is.null(capa) && !(is.logical(capa) && length(capa) == 1L && !is.na(capa))) ruim("'capa' \u{E9} TRUE ou FALSE.")
   if (!is.null(csl) && !isFALSE(csl)) {
     if (!is.character(csl) || length(csl) != 1L || !file.exists(csl)) ruim(sprintf("CSL '%s' n\u{E3}o existe.", csl))
+    if (!identical(tolower(tools::file_ext(csl)), "csl")) ruim("O estilo de cita\u{E7}\u{E3}o \u{E9} um arquivo .csl.")
     if (!any(grepl("<style", readLines(csl, n = 20L, warn = FALSE), fixed = TRUE))) {
       ruim(sprintf("'%s' n\u{E3}o parece um estilo CSL (falta <style>).", basename(csl)))
     }
@@ -172,11 +177,11 @@ tr_documento_modelo_editar <- function(nome, titulo = NULL, descricao = NULL, fo
     fmts <- ext$contributes$formats %||% list()
     desl <- meta$formatos_desligados %||% list()
     for (f in setdiff(setdiff(names(fmts), "common"), formatos)) {
-      desl[f] <- list(fmts[[f]] %||% list())
+      desl[f] <- list(.td_mapa(fmts[[f]]))
       fmts[[f]] <- NULL
     }
     for (f in setdiff(formatos, names(fmts))) {
-      fmts[f] <- list(desl[[f]] %||% .td_formato_padrao(f))
+      fmts[f] <- list(.td_mapa(desl[[f]] %||% .td_formato_padrao(f)))
       desl[[f]] <- NULL
     }
     # Ordem pedida, `common` na frente.
@@ -187,27 +192,42 @@ tr_documento_modelo_editar <- function(nome, titulo = NULL, descricao = NULL, fo
   if (!is.null(capa)) comum$capa <- capa
   if (!is.null(csl)) {
     if (isFALSE(csl)) comum$csl <- NULL else {
-      file.copy(csl, file.path(d, basename(csl)), overwrite = TRUE)
+      .td_copiar_arquivo(csl, file.path(d, basename(csl)))
       comum$csl <- basename(csl)
-      # Citações do PDF pelo Pandoc: com o CSL da extensão, o Typst recebe o
-      # caminho escapado ("\_extensions/...") e não acha o arquivo.
-      if (!is.null(ext$contributes$formats$typst)) ext$contributes$formats$typst$citeproc <- TRUE
     }
   }
-  if (length(comum)) ext$contributes$formats$common <- comum
+  ext$contributes$formats$common <- if (length(comum)) comum
+  # Citações do PDF pelo Pandoc: com o CSL da extensão, o Typst recebe o
+  # caminho escapado ("\_extensions/...") e não acha o arquivo. Vale também
+  # quando o PDF é ligado depois do CSL.
+  if (!is.null(comum$csl) && !is.null(ext$contributes$formats$typst)) {
+    ext$contributes$formats$typst <- .td_mapa(ext$contributes$formats$typst)
+    ext$contributes$formats$typst$citeproc <- TRUE
+  }
   if (length(cores)) {
     brand$color <- brand$color %||% list()
-    for (k in names(cores)) brand$color[[.TD_CORES[[k]]]] <- cores[[k]]
+    if (!is.list(brand$color)) brand$color <- list()
+    for (k in names(cores)) {
+      chave <- .TD_CORES[[k]]
+      atual <- brand$color[[chave]]
+      # A cor era um nome da paleta (`primary: azul-yucca`): muda a paleta, e
+      # tudo que usava esse nome (cor dos títulos, por exemplo) acompanha.
+      if (is.character(atual) && length(atual) == 1L && is.list(brand$color$palette) && !is.null(brand$color$palette[[atual]])) {
+        brand$color$palette[[atual]] <- cores[[k]]
+      } else {
+        brand$color[[chave]] <- cores[[k]]
+      }
+    }
   }
   if (length(fontes)) {
-    brand$typography <- brand$typography %||% list()
+    if (!is.list(brand$typography)) brand$typography <- list()
     for (k in names(fontes)) brand$typography[[.TD_FONTES[[k]]]] <- list(family = fontes[[k]])
   }
   if (!is.null(logo)) {
     velho <- .td_brand_logo(brand)
     if (isFALSE(logo)) brand$logo <- NULL else {
       arq <- paste0("logo.", tolower(tools::file_ext(logo)))
-      file.copy(logo, file.path(d, arq), overwrite = TRUE)
+      .td_copiar_arquivo(logo, file.path(d, arq))
       brand$logo <- list(medium = arq)
     }
     if (!is.null(velho) && !identical(velho, .td_brand_logo(brand)) && grepl("^logo\\.", velho)) {
@@ -268,13 +288,18 @@ tr_documento_modelo_exportar <- function(nome, arquivo = NULL) {
 tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALSE) {
   ruim <- function(msg) .td_erro(msg, "tr_documento_erro_modelo")
   if (!is.character(arquivo) || length(arquivo) != 1L || !file.exists(arquivo)) ruim(sprintf("N\u{E3}o h\u{E1} o arquivo '%s'.", arquivo))
-  lista <- tryCatch(utils::unzip(arquivo, list = TRUE)$Name, error = function(e) NULL, warning = function(w) NULL)
+  lista <- tryCatch(utils::unzip(arquivo, list = TRUE), error = function(e) NULL, warning = function(w) NULL)
   if (is.null(lista)) ruim(sprintf("'%s' n\u{E3}o \u{E9} um zip.", basename(arquivo)))
-  if (any(grepl("^(/|[A-Za-z]:)|(^|/)\\.\\.(/|$)|\\\\", lista))) ruim("O zip tem caminhos que saem da pasta: recusado.")
+  if (any(grepl("^(/|[A-Za-z]:)|(^|/)\\.\\.(/|$)|\\\\", lista$Name))) ruim("O zip tem caminhos que saem da pasta: recusado.")
+  if (sum(as.numeric(lista$Length)) > .TD_MAX_ZIP) ruim("O zip descompactado passa de 100 MB: grande demais para um modelo.")
   tmp <- tempfile("modelo-importar-")
   dir.create(tmp)
   on.exit(unlink(tmp, recursive = TRUE))
-  utils::unzip(arquivo, exdir = tmp)
+  # O unzip interno do R não recria links simbólicos (o Info-ZIP do sistema
+  # recria, e um link para ~/.ssh iria parar no documento publicado). E,
+  # mesmo assim, link que aparecer é recusado.
+  utils::unzip(arquivo, exdir = tmp, unzip = "internal")
+  if (length(.td_links(tmp))) ruim("O zip tem links simb\u{F3}licos: recusado.")
   exts <- list.files(tmp, pattern = "^_extension\\.ya?ml$", recursive = TRUE, all.files = TRUE)
   # Até `<repo>-main/_extensions/<org>/<nome>/_extension.yml`, o zip que o
   # GitHub baixa de uma extensão publicada.
@@ -303,11 +328,11 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
   probs <- .td_modelo_problemas(raiz)
   if (length(probs)) ruim(paste(c(sprintf("O modelo '%s' tem problemas e n\u{E3}o foi importado:", nome), paste("-", probs)), collapse = "\n"))
   destino <- .td_dir_usuario("modelos", nome)
-  if (dir.exists(destino)) {
-    if (!isTRUE(substituir)) ruim(sprintf("J\u{E1} existe o modelo '%s'. Use substituir = TRUE ou outro nome.", nome))
-    unlink(destino, recursive = TRUE)
+  if (file.exists(file.path(destino, "_extension.yml")) && !isTRUE(substituir)) {
+    .td_erro(sprintf("J\u{E1} existe o modelo '%s'. Use substituir = TRUE ou outro nome.", nome),
+             c("tr_documento_erro_modelo_existe", "tr_documento_erro_modelo"))
   }
-  .td_copiar_pasta(raiz, destino)
+  .td_instalar_pasta(raiz, destino)
   invisible(tr_documento_modelo(nome))
 }
 
@@ -364,13 +389,16 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
   # Antes do tryCatch: se `d` é uma chamada que erra (modelo que não existe),
   # o erro sobe em vez de ser engolido como "YAML ilegível".
   force(d)
+  problemas <- tryCatch(.td_modelo_problemas(d), error = function(e) {
+    sprintf("o modelo n\u{E3}o p\u{F4}de ser lido (%s)", conditionMessage(e))
+  })
   ext <- tryCatch(.td_ext_ler(d), error = function(e) list())
   meta <- tryCatch(.td_meta_ler(d), error = function(e) list())
   formatos <- setdiff(names(ext$contributes$formats), "common")
   list(nome = basename(d), dir = d, titulo = as.character(ext$title %||% basename(d))[[1]],
        descricao = if (is.character(meta$descricao)) meta$descricao[[1]] else NA_character_,
        perfil = if (is.character(meta$perfil)) meta$perfil[[1]],
-       formatos = formatos %||% character(), ext = ext, meta = meta, problemas = .td_modelo_problemas(d))
+       formatos = formatos %||% character(), ext = ext, meta = meta, problemas = problemas)
 }
 
 #' O que impede o modelo de gerar documento, em frases para quem vai
@@ -390,13 +418,20 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
       p <- c(p, "o _extension.yml n\u{E3}o declara formatos (contributes: formats:)")
     } else {
       for (f in names(fmts)) {
+        # `html: default` o Quarto aceita.
+        if (identical(fmts[[f]], "default")) next
         if (!is.null(fmts[[f]]) && !is.list(fmts[[f]])) {
           p <- c(p, sprintf("o formato '%s' do _extension.yml n\u{E3}o \u{E9} uma lista de op\u{E7}\u{F5}es", f))
           next
         }
         for (op in intersect(names(fmts[[f]]), .TD_OPCOES_ARQUIVO)) {
-          for (a in unlist(fmts[[f]][[op]])) {
-            if (!is.character(a) || grepl("^(https?:|\\$|~)", a)) next
+          v <- fmts[[f]][[op]]
+          if (!is.list(v) || !is.null(names(v))) v <- list(v)
+          for (a in v) {
+            # `{path: x.lua, at: pre}` aponta o arquivo em `path`; `{text: ...}` não é arquivo.
+            if (is.list(a)) a <- a$path
+            if (!is.character(a) || length(a) != 1L || grepl("^(https?:|\\$|~)", a)) next
+            if (op == "filters" && a %in% c("quarto", "citeproc")) next
             # Temas de nome (`theme: cosmo`) não são arquivo.
             if (op == "theme" && !grepl("\\.(s?css)$", a)) next
             if (!file.exists(file.path(d, a))) p <- c(p, sprintf("'%s' (%s, formato %s) n\u{E3}o est\u{E1} na pasta do modelo", a, op, f))
@@ -407,8 +442,10 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
   }
   if (file.exists(file.path(d, "_brand.yml"))) {
     brand <- ler("_brand.yml")$ok
-    if (!is.null(brand)) {
-      pal <- names(brand$color$palette)
+    if (!is.null(brand) && !is.list(brand)) p <- c(p, "o _brand.yml n\u{E3}o \u{E9} um mapa (chave: valor)")
+    if (is.list(brand) && !is.null(brand$color) && !is.list(brand$color)) p <- c(p, "'color' do _brand.yml n\u{E3}o \u{E9} um mapa")
+    if (is.list(brand) && is.list(brand$color)) {
+      pal <- if (is.list(brand$color$palette)) names(brand$color$palette)
       for (k in setdiff(names(brand$color), "palette")) {
         v <- brand$color[[k]]
         if (!is.character(v) || length(v) != 1L || !(grepl("^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", v) || v %in% pal || grepl("^[a-z]+$", v))) {
@@ -437,21 +474,27 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
   p
 }
 
+#' YAML lido com lista que continua lista: o `read_yaml` simplifica
+#' `filters: [abnt.lua]` para um texto, que regravado vira escalar, e o
+#' Quarto quebra (`"abnt.lua".flatMap`).
+#' @noRd
+.td_yaml_ler <- function(arquivo) yaml::read_yaml(arquivo, handlers = list(seq = function(x) as.list(x)))
+
 .td_ext_ler <- function(d) {
-  ext <- yaml::read_yaml(file.path(d, "_extension.yml"))
+  ext <- .td_yaml_ler(file.path(d, "_extension.yml"))
   if (!is.list(ext)) ext <- list()
   ext
 }
 
 .td_meta_ler <- function(d) {
   f <- file.path(d, .TD_META_MODELO)
-  m <- if (file.exists(f)) yaml::read_yaml(f) else list()
+  m <- if (file.exists(f)) .td_yaml_ler(f) else list()
   if (is.list(m)) m else list()
 }
 
 .td_brand_ler <- function(d) {
   f <- file.path(d, "_brand.yml")
-  b <- if (file.exists(f)) tryCatch(yaml::read_yaml(f), error = function(e) list()) else list()
+  b <- if (file.exists(f)) tryCatch(.td_yaml_ler(f), error = function(e) list()) else list()
   if (is.list(b)) b else list()
 }
 
@@ -459,23 +502,30 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
 #' ou a primeira de `images`).
 #' @noRd
 .td_brand_logo <- function(brand) {
-  l <- brand$logo
+  l <- if (is.list(brand)) brand$logo
   if (is.null(l)) return(NULL)
+  caminho <- function(x) {
+    if (is.list(x)) x <- x$path
+    if (is.character(x) && length(x) == 1L) x
+  }
   if (is.character(l)) return(l[[1]])
+  if (!is.list(l)) return(NULL)
+  imagens <- if (is.list(l$images)) l$images else list()
   for (k in c("medium", "large", "small")) {
     v <- l[[k]]
     if (is.list(v)) v <- v$light %||% v$path
-    if (is.character(v)) return(l$images[[v]] %||% v)
+    if (is.character(v) && length(v) == 1L) return(caminho(imagens[[v]]) %||% v)
   }
-  if (length(l$images)) return(unlist(l$images)[[1]])
+  for (im in imagens) if (!is.null(caminho(im))) return(caminho(im))
   NULL
 }
 
 #' Cor do `_brand.yml` já resolvida (nome da paleta vira o `#rrggbb`).
 #' @noRd
 .td_brand_cor <- function(brand, chave) {
+  if (!is.list(brand) || !is.list(brand$color)) return(NULL)
   v <- brand$color[[chave]]
-  pal <- brand$color$palette %||% list()
+  pal <- if (is.list(brand$color$palette)) brand$color$palette else list()
   for (i in 1:3) if (is.character(v) && length(v) == 1L && !is.null(pal[[v]])) v <- pal[[v]]
   if (!is.character(v) || length(v) != 1L) return(NULL)
   if (grepl("^#[0-9A-Fa-f]{3}$", v)) v <- paste0("#", paste(rep(strsplit(substring(v, 2), "")[[1]], each = 2), collapse = ""))
@@ -488,6 +538,7 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
 }
 
 .td_brand_fontes <- function(brand) {
+  if (!is.list(brand) || !is.list(brand$typography)) return(list())
   Filter(Negate(is.null), lapply(.TD_FONTES, function(k) {
     v <- brand$typography[[k]]
     if (is.list(v)) v <- v$family
@@ -496,6 +547,59 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
 }
 
 # ---- escrita -------------------------------------------------------------------------
+
+.TD_MAX_ZIP <- 100 * 1024^2
+
+#' Links simbólicos dentro da pasta (caminhos relativos), achados nível a
+#' nível sem entrar em pasta que é link.
+#' @noRd
+.td_links <- function(pasta) {
+  achados <- character()
+  fila <- ""
+  while (length(fila)) {
+    rel <- fila[[1]]
+    fila <- fila[-1]
+    for (n in list.files(file.path(pasta, rel), all.files = TRUE, no.. = TRUE)) {
+      r <- if (nzchar(rel)) file.path(rel, n) else n
+      if (nzchar(Sys.readlink(file.path(pasta, r)))) {
+        achados <- c(achados, r)
+      } else if (dir.exists(file.path(pasta, r))) {
+        fila <- c(fila, r)
+      }
+    }
+  }
+  achados
+}
+
+#' Instala uma pasta de modelo: copia ao lado e troca com renomeação, para
+#' cópia interrompida não deixar pasta pela metade.
+#' @noRd
+.td_instalar_pasta <- function(de, destino) {
+  dir.create(dirname(destino), recursive = TRUE, showWarnings = FALSE)
+  nova <- tempfile(paste0(".", basename(destino), "-"), tmpdir = dirname(destino))
+  .td_copiar_pasta(de, nova)
+  if (dir.exists(destino)) unlink(destino, recursive = TRUE)
+  if (!file.rename(nova, destino)) {
+    unlink(nova, recursive = TRUE)
+    .td_erro(sprintf("N\u{E3}o foi poss\u{ED}vel gravar o modelo em '%s'.", destino), "tr_documento_erro_modelo")
+  }
+  invisible(destino)
+}
+
+#' Copia um arquivo, sem errar se é o mesmo arquivo.
+#' @noRd
+.td_copiar_arquivo <- function(de, para) {
+  if (file.exists(para) && identical(normalizePath(de), normalizePath(para))) return(invisible(para))
+  if (!file.copy(de, para, overwrite = TRUE)) .td_erro(sprintf("N\u{E3}o foi poss\u{ED}vel copiar '%s'.", de), "tr_documento_erro_modelo")
+  invisible(para)
+}
+
+#' Mapa YAML: lista vazia ou `default` vira `{}` (e não `[]`).
+#' @noRd
+.td_mapa <- function(x) {
+  if (is.null(x) || identical(x, "default") || !length(x)) return(structure(list(), names = character()))
+  x
+}
 
 #' YAML que o Quarto lê igual: lógico sai `true`/`false` (o `yes`/`no` do
 #' pacote yaml é texto para o Quarto).
@@ -510,9 +614,13 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
   invisible(arquivo)
 }
 
+#' Copia a pasta sem seguir link simbólico (link fica de fora).
+#' @noRd
 .td_copiar_pasta <- function(de, para) {
   dir.create(para, recursive = TRUE, showWarnings = FALSE)
-  for (a in list.files(de, all.files = TRUE, no.. = TRUE, recursive = TRUE)) {
+  links <- .td_links(de)
+  for (a in setdiff(list.files(de, all.files = TRUE, no.. = TRUE, recursive = TRUE), links)) {
+    if (any(startsWith(a, paste0(links, "/")))) next
     dir.create(dirname(file.path(para, a)), recursive = TRUE, showWarnings = FALSE)
     file.copy(file.path(de, a), file.path(para, a), overwrite = TRUE)
   }

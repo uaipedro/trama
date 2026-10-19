@@ -23,7 +23,10 @@
 #' @noRd
 .td_settings_documento <- function(settings, pasta_doc) {
   if (is.null(settings)) return(settings)
-  settings$temas[[.TD_TEMA_NOME]] <- .td_tema_documento(.td_brand_ler(pasta_doc))
+  # `_brand.yml` fora do formato (editado à mão) não pode parar o documento:
+  # vale o tema claro de sempre.
+  settings$temas[[.TD_TEMA_NOME]] <- tryCatch(.td_tema_documento(.td_brand_ler(pasta_doc)),
+                                              error = function(e) .td_tema_documento(list()))
   settings$tema_padrao <- .TD_TEMA_NOME
   settings
 }

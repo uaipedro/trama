@@ -307,3 +307,113 @@ test_that("os formatos do documento, nos nomes do render", {
   expect_identical(tr_documento_formatos(pa), "dashboard")
   expect_identical(trama.documentos:::.td_formato_quarto(linhas(pa), "dashboard"), "painel-dashboard")
 })
+
+# ---- achados da revisão independente ---------------------------------------------------
+
+test_that("editar não transforma lista de um item em escalar (filters: [abnt.lua])", {
+  local_usuario()
+  tr_documento_modelo_editar("ufla", titulo = "UFLA editado")
+  ext <- yaml::read_yaml(dir_usuario("ufla", "_extension.yml"), handlers = list(seq = function(x) as.list(x)))
+  expect_true(is.list(ext$contributes$formats$common$filters))
+  expect_true(is.list(ext$contributes$formats$typst$`template-partials`))
+  expect_true(any(grepl("^\\s+- abnt.lua$", linhas(dir_usuario("ufla", "_extension.yml")))))
+  tr_documento_modelo_editar("painel", titulo = "Painel editado")
+  expect_true(any(grepl("^\\s+- cartoes.lua$", linhas(dir_usuario("painel", "_extension.yml")))))
+  # E o esqueleto: lista do template continua lista no documento.
+  proj <- local_projeto()
+  m <- modelo_minimo(dir_usuario("lista"), css = FALSE)
+  writeLines(c("---", "title: X", "filters:", "  - x.lua", "---"), file.path(m, "template.qmd"))
+  qmd <- tr_documento_criar("doc", proj, modelo = "lista", perfil = FALSE)
+  expect_true("  - x.lua" %in% linhas(qmd))
+})
+
+test_that("zip com link simbólico não traz o arquivo de fora", {
+  local_usuario()
+  skip_on_os("windows")
+  skip_if(!nzchar(Sys.which("zip")), "sem o programa zip")
+  base <- withr::local_tempdir()
+  segredo <- file.path(withr::local_tempdir(), "segredo.txt")
+  writeLines("CHAVE-SECRETA", segredo)
+  m <- modelo_minimo(file.path(base, "mal"))
+  file.symlink(segredo, file.path(m, "logo.png"))
+  z <- file.path(withr::local_tempdir(), "mal.zip")
+  withr::with_dir(base, system2("zip", c("-q", "-r", "--symlinks", z, "mal")))
+  r <- tryCatch(tr_documento_modelo_importar(z), error = function(e) e)
+  dentro <- dir_usuario("mal")
+  if (!inherits(r, "error")) {
+    expect_identical(Sys.readlink(file.path(dentro, "logo.png")), "")
+    expect_false(any(grepl("CHAVE-SECRETA", readLines(file.path(dentro, "logo.png"), warn = FALSE))))
+  } else {
+    expect_false(dir.exists(dentro))
+  }
+})
+
+test_that("_brand.yml fora do formato: o documento segue, a galeria mostra o problema", {
+  proj <- local_projeto()
+  salvar_fluxo(proj, no("padrao", "tst/tema"))
+  qmd <- tr_documento_criar("rel", proj, modelo = "consultoria", perfil = FALSE)
+  writeLines(c("color: \"#003366\"", "typography: Inter"), file.path(dirname(qmd), "_brand.yml"))
+  expect_silent(tr_documento_inserir(qmd, "padrao", proj))
+  expect_identical(unname(estado_de(qmd, proj)), "atualizada")
+  m <- modelo_minimo(dir_usuario("marca-torta"), css = FALSE)
+  writeLines(c("color: \"#003366\"", "logo: [1, 2]"), file.path(m, "_brand.yml"))
+  g <- tr_documento_modelos()
+  expect_false(g$valido[g$nome == "marca-torta"])
+  expect_match(g$problema[g$nome == "marca-torta"], "color")
+  expect_true(all(g$valido[g$nome != "marca-torta"]))
+})
+
+test_that("logo em images com {path, alt} e extensões publicadas comuns são válidos", {
+  local_usuario()
+  m <- modelo_minimo(dir_usuario("publicada"), css = FALSE)
+  writeLines("x", file.path(m, "x.lua"))
+  writeLines("<svg/>", file.path(m, "marca.svg"))
+  writeLines(c("title: Publicada", "contributes:", "  formats:", "    html: default",
+               "    pdf:", "      filters:", "        - quarto", "        - path: x.lua", "          at: pre",
+               "      include-in-header:", "        text: '\\usepackage{x}'"), file.path(m, "_extension.yml"))
+  writeLines(c("logo:", "  images:", "    principal:", "      path: marca.svg", "      alt: Marca", "  medium: principal"),
+             file.path(m, "_brand.yml"))
+  d <- tr_documento_modelo("publicada")
+  expect_true(d$valido)
+  expect_identical(basename(d$logo), "marca.svg")
+  # Formato que a galeria não configura (pdf) fica e pode seguir ligado.
+  e <- tr_documento_modelo_editar("publicada", formatos = c("pdf", "typst"))
+  expect_identical(e$formatos, c("pdf", "typst"))
+  expect_error(tr_documento_modelo_editar("publicada", formatos = "beamer"), "beamer", class = "tr_documento_erro_modelo")
+})
+
+test_that("CSL: citeproc ao ligar o PDF depois; tirar o CSL único; só .csl", {
+  local_usuario()
+  tr_documento_modelo_criar("so-html", formatos = "html")
+  csl <- system.file("modelos/ufla/abnt.csl", package = "trama.documentos")
+  tr_documento_modelo_editar("so-html", csl = csl)
+  tr_documento_modelo_editar("so-html", formatos = c("html", "typst"))
+  ext <- yaml::read_yaml(dir_usuario("so-html", "_extension.yml"))
+  expect_true(ext$contributes$formats$typst$citeproc)
+  m <- modelo_minimo(dir_usuario("so-csl"), css = FALSE)
+  file.copy(csl, m)
+  writeLines(c("title: X", "contributes:", "  formats:", "    common:", "      csl: abnt.csl", "    html: {}"),
+             file.path(m, "_extension.yml"))
+  expect_null(tr_documento_modelo_editar("so-csl", csl = FALSE)$csl)
+  outro <- withr::local_tempfile(fileext = ".xml")
+  file.copy(csl, outro, overwrite = TRUE)
+  expect_error(tr_documento_modelo_editar("so-csl", csl = outro), ".csl", class = "tr_documento_erro_modelo")
+  # Desligar formato sem configuração não grava `[]`.
+  tr_documento_modelo_editar("so-csl", formatos = "typst")
+  tr_documento_modelo_editar("so-csl", formatos = c("typst", "html"))
+  expect_false(any(grepl("\\[\\]", linhas(dir_usuario("so-csl", "_extension.yml")))))
+})
+
+test_that("cor da paleta muda na paleta; logo copiado sobre ele mesmo; nome que já existe tem classe própria", {
+  local_usuario()
+  e <- tr_documento_modelo_editar("consultoria", cores = c(primaria = "#2f6b3a"))
+  b <- yaml::read_yaml(dir_usuario("consultoria", "_brand.yml"))
+  expect_identical(b$color$primary, "azul-yucca")
+  expect_identical(b$color$palette$`azul-yucca`, "#2f6b3a")
+  expect_identical(e$cores$primaria, "#2f6b3a")
+  expect_silent(tr_documento_modelo_editar("consultoria", logo = e$logo))
+  expect_true(file.size(e$logo) > 0)
+  z <- tr_documento_modelo_exportar("consultoria", file.path(withr::local_tempdir(), "c.zip"))
+  expect_error(tr_documento_modelo_importar(z), class = "tr_documento_erro_modelo_existe")
+  expect_error(tr_documento_modelo_duplicar("basico", "consultoria"), class = "tr_documento_erro_modelo_existe")
+})
