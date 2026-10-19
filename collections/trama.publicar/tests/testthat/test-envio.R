@@ -1,6 +1,6 @@
 # O envio ao GitHub (#14): ações "publicar" e "acompanhar", com um GitHub em
 # memória no lugar das funções do trama.github (a API delas tem os próprios
-# testes contra o GitHub falso, em apoio/trama.github). O conferir.py e o
+# testes contra o GitHub falso, em plugins/trama.github). O conferir.py e o
 # paginas.sh do workflow rodam de verdade, contra um repositório git local.
 
 github_memoria <- function(env = parent.frame(), token = "tk", repos = list(), tags = list()) {

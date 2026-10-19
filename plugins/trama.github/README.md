@@ -1,6 +1,6 @@
 # trama.github
 
-Pacote de apoio do trama (não é coleção: não tem blocos). Leva ao GitHub quem
+Plugin do trama (não é coleção: não tem blocos). Leva ao GitHub quem
 nunca usou git, sem terminal: guia de criação de conta, login pelo device flow,
 credencial no chaveiro do sistema e uma API interna para criar repositórios e
 gravar commits e tags pela API de dados do Git. Desenho em

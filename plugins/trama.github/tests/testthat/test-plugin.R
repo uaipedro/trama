@@ -7,12 +7,12 @@ controlador_de_teste <- function() {
   list(receber = ctl, msgs = function() msgs, ultima = function() msgs[[length(msgs)]])
 }
 
-test_that("contrato de extensão: JS e CSS existem no pacote, server é função", {
-  e <- trama_extension()
+test_that("contrato de plugin: JS e CSS existem no pacote, server é função", {
+  e <- trama_plugin()
   expect_true(file.exists(system.file(e$js, package = "trama.github")))
   expect_true(file.exists(system.file(e$css, package = "trama.github")))
   expect_true(is.function(e$server))
-  expect_true(isTRUE(as.logical(utils::packageDescription("trama.github", fields = "Config/trama/extension"))))
+  expect_true(isTRUE(as.logical(utils::packageDescription("trama.github", fields = "Config/trama/plugin"))))
 })
 
 test_that("estado: desconectado sem credencial, conectado com ela", {

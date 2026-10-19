@@ -1,7 +1,7 @@
-// Estado do menu GitHub do pacote de apoio `trama.github` (estado.js).
+// Estado do menu GitHub do plugin `trama.github` (estado.js).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { INICIAL, reduzir, rotuloFonte, podeSair, indicador, dica } from "../../apoio/trama.github/inst/trama/estado.js";
+import { INICIAL, reduzir, rotuloFonte, podeSair, indicador, dica } from "../../plugins/trama.github/inst/trama/estado.js";
 
 const passos = (s, ...as) => as.reduce(reduzir, s);
 const pesquisadora = { login: "pesquisadora", nome: "Pesquisadora" };
