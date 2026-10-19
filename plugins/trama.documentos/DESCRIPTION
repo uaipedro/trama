@@ -1,6 +1,6 @@
 Package: trama.documentos
 Title: Living Documents for trama Analyses
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Turns a trama analysis into a finished document: a Quarto file
     of the project where the text belongs to the author and managed regions

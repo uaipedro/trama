@@ -1,4 +1,4 @@
-# trama.documentos 0.2.0
+# trama.documentos 0.3.0
 
 * Plugin do editor (#23): `Config/trama/plugin: true` e `trama_plugin()`. Painel Documentos na barra (lista com estado, novo a partir de modelo + perfil, Atualizar, Visualizar em segundo plano servido pelo editor, Exportar PDF/Word/HTML, abrir no editor de texto e a pasta, resolver regiões, guia do Quarto) e "Inserir no documento…" no menu do card. Aba Modelos com a galeria (fase 3).
 * O `dados.csv` de uma tabela leva só as linhas mostradas; a tabela inteira é opção explícita (`trama-tabela="completa"`).
