@@ -1,0 +1,4 @@
+/* Modelo Básico do trama: leitura confortável, tabelas enxutas. */
+main.content { max-width: 52rem; }
+table { font-variant-numeric: tabular-nums; }
+.trama { margin: 1.5rem 0; }
