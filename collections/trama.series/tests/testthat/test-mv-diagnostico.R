@@ -68,6 +68,23 @@ test_that("defasagens = 0 usa h = min(16, T/5), e a regra recusa h sem graus de 
                class = "tr_series_error_bad_option")
 })
 
+test_that("Jarque-Bera multivariado depende da ordem das séries (Cholesky), e a nota diz isso", {
+  # É da teoria, não do bloco: o vars padroniza os resíduos pela Cholesky da
+  # covariância (ajuda de vars::normality.test). Cada ordem bate com o vars
+  # a 1e-10; as duas ordens dão estatísticas diferentes.
+  ordem2 <- Canada[, c("U", "rw", "prod", "e")]
+  var_inv <- .tr_series_var(vars::VAR(ordem2, p = 2, type = "const"), ordem2, "VAR")
+  a <- tr_series_normality_mv(var2)
+  b <- tr_series_normality_mv(var_inv)
+  ref_b <- vars::normality.test(var_inv$ajuste, multivariate.only = TRUE)$jb.mul$JB
+  expect_equal(b$estatistica, as.numeric(ref_b$statistic), tolerance = 1e-10)
+  expect_gt(abs(a$estatistica - b$estatistica), 1e-3)
+  expect_match(a$nota, "depende da ordem", fixed = TRUE)
+  expect_match(a$nota, "e, prod, rw, U", fixed = TRUE)
+  ajuda <- series_registry()$nodes[["series/normality_mv"]]$help
+  expect_match(ajuda, "DEPENDE DA ORDEM", fixed = TRUE)
+})
+
 test_that("Jarque-Bera multivariado = vars, com assimetria e curtose separadas", {
   r <- tr_series_normality_mv(var2)
   jb <- vars::normality.test(var2$ajuste, multivariate.only = TRUE)$jb.mul
