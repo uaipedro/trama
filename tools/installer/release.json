@@ -1,57 +1,58 @@
 {
-  "trama": "0.1.13",
+  "trama": "0.1.14",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": [
     "https://uaipedro.r-universe.dev"
   ],
   "core": {
-    "trama": "0.5.15",
-    "trama.data": "0.4.3",
+    "trama": "0.5.22",
+    "trama.data": "0.4.4",
     "trama.view": "0.2.8",
-    "trama.launcher": "0.2.2"
+    "trama.launcher": "0.2.2",
+    "trama.github": "0.2.0"
   },
   "collections": {
     "trama.experiments": {
-      "version": "0.2.7",
+      "version": "0.2.8",
       "title": "Experimentos",
       "requires": [
         "trama.models"
       ]
     },
     "trama.ml": {
-      "version": "0.5.7",
+      "version": "0.5.9",
       "title": "Aprendizado de máquina",
       "requires": [
         "trama.models"
       ]
     },
     "trama.models": {
-      "version": "0.6.6",
+      "version": "0.6.10",
       "title": "Modelos estatísticos",
       "requires": []
     },
     "trama.multi": {
-      "version": "0.3.7",
+      "version": "0.3.8",
       "title": "Análise multivariada",
       "requires": [
         "trama.models"
       ]
     },
     "trama.sampling": {
-      "version": "0.3.7",
+      "version": "0.3.8",
       "title": "Amostragem",
       "requires": []
     },
     "trama.series": {
-      "version": "0.9.0",
+      "version": "0.9.1",
       "title": "Séries temporais",
       "requires": [
         "trama.models"
       ]
     },
     "trama.spatial": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "title": "Geoestatística",
       "requires": []
     },
@@ -60,6 +61,13 @@
       "title": "Consultas SQL",
       "requires": [
         "trama.data"
+      ]
+    },
+    "trama.publicar": {
+      "version": "0.2.0",
+      "title": "Publicar",
+      "requires": [
+        "trama.models"
       ]
     }
   }
