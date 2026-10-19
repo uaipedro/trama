@@ -316,7 +316,7 @@ tr_models_unserialize.default <- function(x) x
        # As preditoras pelo NOME da variável — `all.vars()` do lado direito pega
        # `x` dentro de `poly(x, 2)` sem confundir a função com a coluna (e, no
        # misto, o fator de agrupamento de `(1 | bloco)`, que `novos` precisa ter).
-       preditores = all.vars(f[[3]]), niveis = NULL, n = x$n %||% nrow(x$dados), rotulo = x$rotulo,
+       preditores = all.vars(f[[3]]), niveis = NULL, n = x[["n"]] %||% nrow(x$dados), rotulo = x$rotulo,
        familia = if (x$classe %in% c("glm", "glmer")) stats::family(x$ajuste)$family else "gaussian")
 }
 
@@ -331,6 +331,7 @@ tr_models_unserialize.default <- function(x) x
 #' @noRd
 .tr_models_glm_niveis <- function(x) {
   # Reduzido (`tr_models_strip`): sem `dados`, os níveis foram guardados antes.
+  # (`[[` e não `$` nos campos novos: `$` casa prefixo, e `x$n` acharia `nota`.)
   if (isTRUE(x$reduzido)) return(x$niveis_resposta)
   if (!x$classe %in% c("glm", "glmer") || stats::family(x$ajuste)$family != "binomial") return(NULL)
   lhs <- stats::as.formula(x$formula)[[2]]
