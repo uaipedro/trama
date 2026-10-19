@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  anotado, opcoes, sugerir, sumidas, alternativa, opsDeSugestao,
+  anotado, opcoes, sugerir, sumidas, alternativa, opsDeSugestao, colsTexto, colsValor,
 } from "../../inst/www/colunas.js";
 
 const col = (nome, papel, n_distintos = 10) => ({ nome, papel, classe: "", n_distintos, tem_na: false });
@@ -112,4 +112,35 @@ test("sumidas acusa o nome simples sumido mesmo ao lado de seletor ou de nome co
   assert.deepEqual(sumidas([p], { cols: "Preço (R$), zz" }, com), [{ name: "cols", faltam: ["zz"] }]);
   const dois = { colunas: [col("a:b", "numerica")], truncado: false };
   assert.deepEqual(sumidas([p], { cols: "a:b" }, dois), []);
+});
+
+// #32: fluxo salvo com `valores: ["ibv", "sp"]` saía do editor com "ibv,sp"
+// e o bloco recusava. O campo mostra texto, mas grava na forma do documento.
+test("colsTexto mostra lista como texto separado por vírgula", () => {
+  assert.equal(colsTexto(["ibv", "sp"]), "ibv, sp");
+  assert.equal(colsTexto([]), "");
+  assert.equal(colsTexto("a, b"), "a, b");
+  assert.equal(colsTexto(""), "");
+  assert.equal(colsTexto(null), "");
+  assert.equal(colsTexto(undefined), "");
+});
+test("colsValor devolve na forma do valor atual", () => {
+  // lista continua lista, aparada e sem item vazio
+  assert.deepEqual(colsValor("ibv, sp", ["ibv", "sp"], []), ["ibv", "sp"]);
+  assert.deepEqual(colsValor(" ibv ,sp, x, ", ["ibv"], ""), ["ibv", "sp", "x"]);
+  assert.deepEqual(colsValor("", ["ibv", "sp"], []), []);
+  // texto continua texto, como o usuário digitou
+  assert.equal(colsValor("a,b", "a", ""), "a,b");
+  // vazio segue o padrão da spec
+  assert.deepEqual(colsValor("ibv, sp", undefined, []), ["ibv", "sp"]);
+  assert.deepEqual(colsValor("ibv, sp", "", []), ["ibv", "sp"]);
+  assert.equal(colsValor("ibv, sp", undefined, ""), "ibv, sp");
+  assert.equal(colsValor("ibv, sp", null, undefined), "ibv, sp");
+});
+test("o que o campo mostra volta igual ao documento (#32)", () => {
+  // O campo só grava se o texto mudou; e se gravar o mesmo texto, a forma e
+  // o conteúdo voltam iguais.
+  for (const [atual, padrao] of [[["ibv", "sp"], []], [["a"], ""], ["ibv, sp", ""], ["a", "a"]]) {
+    assert.deepEqual(colsValor(colsTexto(atual), atual, padrao), atual);
+  }
 });

@@ -18,7 +18,7 @@ import ReactDOM from "react-dom";
 // (a dependência do núcleo usa `all_files = TRUE`). E nenhuma coleção precisa
 // dele pelo nome: as regras chegam a elas através destes widgets.
 import { layoutEnum, textoNumero, validarNumero } from "./params.js";
-import { anotado, opcoes, sugerir, sumidas, alternativa } from "./colunas.js";
+import { anotado, opcoes, sugerir, sumidas, alternativa, colsTexto, colsValor } from "./colunas.js";
 import { MARCAS, NIVEIS, posicao, estrelas, faixa, venceu, num, numP, eixoEfeito } from "./teste.js";
 import { itensDoCard, registrarItem } from "./menu-card.js";
 
@@ -615,21 +615,25 @@ registerWidget("text", (spec, value, onChange) => {
 // Qualquer escolha daqui sai por `onChange` — `set_param` sem origem —, o que
 // desmarca o "sugerido": escolha à mão nunca é pisada por sugestão.
 const colsVazio = (v) => v === "" || v === null || v === undefined;
-function colsTexto(spec, atual, onChange) {
+// O campo mostra `colsTexto(atual)` e grava na forma do valor atual (lista
+// continua lista: `colsValor`, colunas.js). Comparar com o TEXTO mostrado, e
+// não com o valor, é o que impede um blur sem edição de regravar o param (#32).
+function colsCampo(spec, atual, onChange) {
+  const texto = colsTexto(atual);
   return h("textarea", {
     // `key` no valor pelo mesmo motivo do widget `text`: o eco de fora (undo,
     // sugestão, "usar Y") precisa reaparecer num campo não controlado.
-    key: "v" + String(atual), className: "nodrag tr-expr", rows: 2, spellCheck: false,
-    defaultValue: atual,
+    key: "v" + texto, className: "nodrag tr-expr", rows: 2, spellCheck: false,
+    defaultValue: texto,
     placeholder: spec.example ?? "col1, col2",
     title: spec.example ? `ex.: ${spec.example}` : undefined,
-    onBlur: (e) => { if (e.target.value !== atual) onChange(e.target.value); },
+    onBlur: (e) => { if (e.target.value !== texto) onChange(colsValor(e.target.value, atual, spec.default)); },
   });
 }
 registerWidget("cols", (spec, value, onChange, ctx) => {
   const atual = value ?? spec.default ?? "";
   const schema = ctx?.colunas;
-  if (!schema) return colsTexto(spec, atual, onChange);
+  if (!schema) return colsCampo(spec, atual, onChange);
   const lista = opcoes(spec, schema);
   const serve = lista.filter((o) => o.serve), outras = lista.filter((o) => !o.serve);
   const falta = sumidas([spec], { [spec.name]: atual }, schema)[0];
@@ -672,14 +676,14 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
     const somar = (e, nome) => {
       e.preventDefault();
       const ta = e.currentTarget.closest(".tr-cols")?.querySelector("textarea");
-      const agora = (ta ? ta.value : String(atual)).trim();
+      const agora = (ta ? ta.value : colsTexto(atual)).trim();
       const novo = agora ? `${agora.replace(/,\s*$/, "")}, ${nome}` : nome;
       if (ta) ta.value = novo;
       // O `key` do textarea é o valor: o eco o remonta e o foco se perde.
       // Devolve o foco (cursor no fim) ao textarea NOVO, achado pelo bloco.
       const bloco = e.currentTarget.closest(".tr-cols");
       const focado = ta && document.activeElement === ta;
-      onChange(novo);
+      onChange(colsValor(novo, atual, spec.default));
       if (focado && bloco) {
         let n = 0;
         const refoca = () => {
@@ -691,7 +695,7 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
       }
     };
     campo = h("div", { key: "t", className: "tr-cols-multi" }, [
-      colsTexto(spec, atual, onChange),
+      colsCampo(spec, atual, onChange),
       h("div", { key: "c", className: "tr-cols-chips" }, [...serve, ...outras].map((o) =>
         h("button", { key: o.nome, type: "button", tabIndex: -1,
                       className: "nodrag tr-cols-chip" + (o.serve ? "" : " tr-cols-chip-fora"),
@@ -703,8 +707,8 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
   if (falta) {
     const alt = alternativa(spec, falta.faltam[0], schema);
     const troca = () => {
-      const nomes = String(atual).split(",").map((x) => x.trim()).filter(Boolean);
-      onChange(nomes.map((n) => (n === falta.faltam[0] ? alt : n)).join(", "));
+      const nomes = colsTexto(atual).split(",").map((x) => x.trim()).filter(Boolean);
+      onChange(colsValor(nomes.map((n) => (n === falta.faltam[0] ? alt : n)).join(", "), atual, spec.default));
     };
     aviso = h("div", { key: "a", className: "tr-field-err" }, [
       `${falta.faltam.join(", ")} não existe na entrada`,
