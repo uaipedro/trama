@@ -40,6 +40,9 @@ export const formatosExportar = (doc) => {
   return EXPORTAR.filter(([k]) => (Array.isArray(f) && f.length ? f : ["pdf", "docx", "html"]).includes(k));
 };
 export const textoOcupado = (t) => OCUPADO[t] || "Trabalhando…";
+// O arquivo exportado como o painel mostra: o caminho dentro de `_saida/`
+// (slides e dashboard moram em subpastas, com o mesmo nome do HTML).
+export const nomeSaida = (arquivo) => (arquivo || "").split("/_saida/").pop();
 
 const semChave = (o, k) => { const r = { ...o }; delete r[k]; return r; };
 
@@ -111,7 +114,7 @@ export function reduzir(s, a) {
     case "exportado":
       return { ...s, ocupado: semChave(s.ocupado, a.documento),
                exportados: { ...s.exportados, [a.documento]: { formato: a.formato, arquivo: a.arquivo } },
-               aviso: `Exportado: ${a.arquivo.split("/").pop()}` };
+               aviso: `Exportado: ${nomeSaida(a.arquivo)}` };
     case "aberto": return s;
     case "guia": return { ...s, guia: a.passos || [] };
     case "fechar_guia": return { ...s, guia: null };

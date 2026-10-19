@@ -62,11 +62,13 @@
       listar()
     },
     # Slides e dashboard também são HTML: a prévia usa o primeiro que o
-    # documento tem.
+    # documento tem. Serve `_saida/` inteira: slides e dashboard ficam em
+    # subpastas dela.
     visualizar = function(m) renderizar(m, .td_formato_previa(doc(m)), tarefa = "previa", function(saida) {
-      nome <- paste0("documento-", gsub("[^A-Za-z0-9_-]", "-", basename(dirname(dirname(saida)))))
-      url <- ctx$servir(dirname(saida), nome)
-      enviar(list(tipo = "previa", documento = m$documento, url = paste0(url, basename(saida))))
+      d <- doc(m)
+      nome <- paste0("documento-", gsub("[^A-Za-z0-9_-]", "-", basename(dirname(d))))
+      url <- ctx$servir(file.path(dirname(d), "_saida"), nome)
+      enviar(list(tipo = "previa", documento = m$documento, url = paste0(url, .td_saida_relativa(saida))))
     }),
     exportar = function(m) {
       formato <- match.arg(.td_texto1(m$formato) %||% "", c("html", "pdf", "docx", "revealjs", "dashboard"))
@@ -132,11 +134,13 @@
   p
 }
 
-#' Arquivo exportado (em `documentos/<nome>/_saida/`), vindo do navegador.
+#' Arquivo exportado (em `documentos/<nome>/_saida/`, ou na subpasta dos
+#' slides ou do dashboard), vindo do navegador.
 #' @noRd
 .td_doc_saida <- function(raiz, rel) {
   rel <- .td_texto1(rel) %||% ""
-  if (!grepl("^documentos/[^/.][^/]*/_saida/[^/.][^/]*\\.(html|pdf|docx)$", rel) || !file.exists(file.path(raiz, rel))) {
+  padrao <- sprintf("^documentos/[^/.][^/]*/_saida/((%s)/)?[^/.][^/]*\\.(html|pdf|docx)$", paste(.TD_SUBPASTA, collapse = "|"))
+  if (!grepl(padrao, rel) || !file.exists(file.path(raiz, rel))) {
     .td_erro(sprintf("Arquivo inv\u{E1}lido: '%s'.", rel), "tr_documento_erro_painel")
   }
   file.path(raiz, rel)

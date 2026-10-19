@@ -20,7 +20,8 @@ tr_documento_renderizar(
 \item{tempo}{Segundos até desistir.}
 }
 \value{
-O caminho do arquivo gerado, em \verb{_saida/}.
+O caminho do arquivo gerado, em \verb{_saida/} (slides em
+\verb{_saida/slides/}, dashboard em \verb{_saida/painel/}).
 }
 \description{
 Usa o formato do modelo que o YAML do documento declara

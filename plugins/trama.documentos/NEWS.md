@@ -6,6 +6,7 @@
 * Perfis vinculados a modelos: o modelo sugere um perfil (`perfil` em `trama-modelo.yml`), usado quando existe; o esqueleto pede campos do perfil com `"{{perfil.<campo>}}"` e o ano com `"{{ano}}"`.
 * Gráficos do documento num tema claro derivado do `_brand.yml` do documento, no lugar do tema "padrão" do projeto (card com tema escolhido à mão fica com o dele). O tema entra na chave do store: regiões de gráfico de documentos da 0.1.0 aparecem desatualizadas uma vez.
 * `tr_documento_renderizar()` ganha `"revealjs"` e `"dashboard"`; `tr_documento_formatos()` diz os formatos do documento; a prévia usa o primeiro formato HTML do documento.
+* Slides e dashboard saem em subpastas de `_saida/` (`slides/<doc>.html`, `painel/<doc>.html`): exportar um não apaga mais o HTML do documento, nem as bibliotecas dele em `<doc>_files/` (#29).
 * `_brand.yml` do documento aponta o logo para a cópia da extensão; YAML gravado com `true`/`false` (o Quarto lê `yes` como texto).
 
 # trama.documentos 0.2.0

@@ -28,7 +28,7 @@ projeto/documentos/<nome>/
   _trama/<no>/          resultados materializados (do trama; não edite)
   _extensions/<modelo>/ cópia do modelo (extensão Quarto)
   _brand.yml, _quarto.yml, .gitignore
-  _saida/               o que o render gera
+  _saida/               o que o render gera (slides em slides/, dashboard em painel/)
 ```
 
 Uma região:

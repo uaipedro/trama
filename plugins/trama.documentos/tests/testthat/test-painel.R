@@ -108,6 +108,16 @@ test_that("abrir no programa do sistema: documento, pasta e arquivo exportado", 
   expect_identical(normalizePath(abertos), normalizePath(c(qmd, dirname(qmd))))
   c$receber(list(acao = "abrir", documento = doc, alvo = "saida", arquivo = "documentos/rel/_saida/../../../x.pdf"))
   expect_identical(c$ultima()$classe, "tr_documento_erro_painel")
+  # Slides e dashboard moram em subpastas de `_saida/`; outra subpasta, não.
+  for (sub in c("slides", "outra")) {
+    dir.create(file.path(dirname(qmd), "_saida", sub), recursive = TRUE)
+    file.create(file.path(dirname(qmd), "_saida", sub, "rel.html"))
+  }
+  c$receber(list(acao = "abrir", documento = doc, alvo = "saida", arquivo = "documentos/rel/_saida/slides/rel.html"))
+  expect_identical(c$ultima()$tipo, "aberto")
+  expect_identical(normalizePath(utils::tail(abertos, 1L)), normalizePath(file.path(dirname(qmd), "_saida", "slides", "rel.html")))
+  c$receber(list(acao = "abrir", documento = doc, alvo = "saida", arquivo = "documentos/rel/_saida/outra/rel.html"))
+  expect_identical(c$ultima()$classe, "tr_documento_erro_painel")
   c$receber(list(acao = "guia_quarto"))
   expect_match(c$ultima("guia")$passos[[1]]$link, "quarto.org")
 })

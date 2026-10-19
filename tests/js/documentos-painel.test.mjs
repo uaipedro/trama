@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { INICIAL, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes, textoOcupado }
+import { INICIAL, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes, textoOcupado,
+         nomeSaida }
   from "../../plugins/trama.documentos/inst/trama/painel.js";
 
 const lista = { tipo: "lista", quarto: true, perfil_padrao: "ufla",
@@ -63,6 +64,11 @@ test("ocupado some ao terminar ou falhar; atualizado resume", () => {
   s = passo(s, { tipo: "exportado", documento: d, formato: "pdf", arquivo: "documentos/rel/_saida/rel.pdf" });
   assert.equal(s.ocupado[d], undefined);
   assert.equal(s.exportados[d].arquivo, "documentos/rel/_saida/rel.pdf");
+  assert.equal(s.aviso, "Exportado: rel.pdf");
+  // Slides e dashboard ficam em subpastas: o nome mostrado diz qual é qual.
+  s = passo(s, { tipo: "exportado", documento: d, formato: "revealjs", arquivo: "documentos/rel/_saida/slides/rel.html" });
+  assert.equal(s.aviso, "Exportado: slides/rel.html");
+  assert.equal(nomeSaida("documentos/rel/_saida/painel/rel.html"), "painel/rel.html");
   s = passo(s, { tipo: "ocupado", documento: d, tarefa: "atualizar" },
               { tipo: "atualizado", documento: d, resultado: [{ estado: "atualizada" }, { estado: "conflito" }, { estado: "igual" }] });
   assert.equal(s.aviso, "1 região atualizada. 1 precisa de você.");
