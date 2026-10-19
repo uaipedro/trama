@@ -1,3 +1,7 @@
+# trama.view 0.2.9
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.view 0.2.8
 
 * Pede `trama (>= 0.5.15)`: a marca `galeria = TRUE` dos blocos é API dessa versão.

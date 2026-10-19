@@ -1,3 +1,7 @@
+# trama.spatial 0.1.2
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.spatial 0.1.1
 
 * Relatório Quarto: o ajuste do variograma registra `gstat::fit.variogram` e a krigagem, `gstat::krige` (atributo `trama_ferramentas`), no lugar do `gstat::variogram` declarado para a coleção.

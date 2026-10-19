@@ -1,3 +1,7 @@
+# trama.series 0.9.3
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.series 0.9.2
 
 * `series/irf`, `series/fevd` e `series/ccf` (versão 2) ganham a saída `tabela` (`data/table`), do mesmo cálculo do gráfico. O fn dos nós é `tr_series_irf_bloco()`, `tr_series_fevd_bloco()` e `tr_series_ccf_bloco()`; `tr_series_irf()`, `tr_series_fevd()` e `tr_series_ccf()` seguem devolvendo o ggplot.

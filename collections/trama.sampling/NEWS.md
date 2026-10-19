@@ -1,3 +1,7 @@
+# trama.sampling 0.3.9
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.sampling 0.3.8
 
 * Relatório Quarto exportado: `sampling/plan` (tamanho e alocação), `sampling/sample` (desenho e primeiras linhas), `sampling/estimate` (estimativa, EP, intervalo, CV e deff) e `sampling/simulation` (resumo das réplicas) ganham `report` — tabelas em Markdown no lugar do `print` cru da lista. Pede `trama.data (>= 0.4.4)`.

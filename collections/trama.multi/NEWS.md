@@ -1,3 +1,7 @@
+# trama.multi 0.3.10
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.multi 0.3.9
 
 * `multi/correlation_matrix` (versão 2) e os demais blocos que tomam "todas as numéricas" com `cols` em branco deixam de fora a coluna de índice declarada no atributo `trama_indice` (o `tempo` de uma série, que entrava na correlação dos resíduos do VAR). Citada pelo nome, entra. A ajuda explica o divisor n − 1 da covariância contra o T − Kp − 1 da Σ_u do `vars`.

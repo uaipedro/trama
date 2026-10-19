@@ -1,3 +1,7 @@
+# trama.models 0.6.12
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.models 0.6.11
 
 * `models/jarque_bera` (novo), ao lado do `models/shapiro`: Jarque-Bera numa coluna, com n, assimetria e curtose em excesso na nota. Conferido contra `tseries::jarque.bera.test` e `moments::jarque.test`, 1e-12.

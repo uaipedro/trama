@@ -1,3 +1,7 @@
+# trama.ml 0.5.10
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.ml 0.5.9
 
 * `tr_models_web()` para os modelos da ml (FIGS devolve `NULL`): o `prever` refaz em R puro a troca de nomes e as regras de classe da ml; o XGBoost viaja em UBJ.

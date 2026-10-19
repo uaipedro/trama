@@ -1,3 +1,7 @@
+# trama.data 0.4.6
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.data 0.4.5
 
 * `data/describe` (novo): uma linha por coluna numérica com n, faltantes, média, desvio-padrão (divisor n − 1), mediana, mínimo, máximo, assimetria g1 e curtose em excesso g2 (momentos com divisor n, Joanes e Gill 1998). Em branco, deixa de fora a coluna de índice declarada no atributo `trama_indice` (o `tempo` de uma série). Conferido contra `moments`, 1e-12.
