@@ -1381,12 +1381,15 @@ a lado; `data/get_dupes` para conferir a chave antes de juntar."),
       # Junta LADO a lado (duas portas), empilha UMA embaixo da outra (uma porta
       # variádica): a diferença entre as duas está na forma da entrada, e é ela
       # que o usuário reconhece na tela ao arrastar a terceira aresta.
-      trama::tr_node("data/bind_rows", fn = tr_bind_rows, label = "Empilhar tabelas",
+      trama::tr_node("data/bind_rows", fn = tr_bind_rows, label = "Empilhar tabelas", version = 2L,
         category = "aggregate",
         description = "Empilha várias tabelas uma embaixo da outra, casando as colunas pelo nome.",
         icon = trama::tr_icon("layers"),
-        inputs = list(tabelas = trama::tr_port(T, multiple = TRUE)),
+        # `named`: o fn recebe a lista nomeada pelos nós de origem, que é o que a
+        # coluna de `origem` escreve.
+        inputs = list(tabelas = trama::tr_port(T, multiple = TRUE, named = TRUE)),
         outputs = list(out = T),
+        params = list(origem = P("text", "", label = "Coluna de origem", example = "teste")),
         help = "## Descrição
 
 Empilha várias tabelas uma EMBAIXO da outra, casando as colunas pelo nome. É o
@@ -1411,9 +1414,22 @@ texto, calada, e a soma lá adiante deixaria de funcionar longe daqui.
 Com nenhuma tabela ligada, o nó nem chega a rodar: a porta é obrigatória e o
 fluxo aponta a entrada solta. Com uma só, o resultado é essa tabela.
 
+**Coluna de origem** diz de onde veio cada linha. Com um nome preenchido (por
+exemplo `teste`), sai uma coluna nova, na frente, com o id do nó de onde a
+linha veio — é o que separa as linhas de três testes ADF empilhados, que de
+outro modo saem iguais na forma e não dizem de qual série são. Dê aos nós de
+origem ids que se leiam (`adf_ibov`, `adf_sp500`). Se uma tabela já tem coluna
+com esse nome, o nó para dizendo isso. Em branco, nenhuma coluna é criada.
+
+## Parâmetros
+
+- **Coluna de origem** — nome da coluna que recebe o id do nó de origem de cada
+  linha. Em branco, sem coluna.
+
 ## Valor
 
-Uma tabela com a soma das linhas das entradas, e com a união das colunas delas.
+Uma tabela com a soma das linhas das entradas, e com a união das colunas delas
+(e a coluna de origem na frente, quando pedida).
 
 ## Exemplos
 

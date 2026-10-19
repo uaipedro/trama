@@ -269,3 +269,37 @@ test_that("tr_flow_code roda de volta com params que colidem com a DSL", {
   expect_equal(d2$nodes$ren$params$from, "mpg")
   expect_equal(d2$nodes$j$params$type, "left")
 })
+
+# ---- coluna de origem (#20) ----------------------------------------------
+# Três testes empilhados saem com a mesma forma e não diziam de qual série
+# era cada linha. `origem` escreve o id do nó de origem (porta `named`).
+
+test_that("origem em branco não muda o resultado; preenchida põe o id do nó na frente", {
+  reg <- data_registry(); s <- trama::tr_store(tempfile())
+  base <- trama::tr_flow(reg) |>
+    trama::tr_add("carros", "data/example", dataset = "mtcars") |>
+    trama::tr_add("flores", "data/example", dataset = "iris")
+  sem <- trama::tr_value(base |> trama::tr_add("junta", "data/bind_rows", from = c("carros", "flores")),
+                         "junta", reg, s)
+  console <- tr_bind_rows(list(tr_example("mtcars"), tr_example("iris")))
+  expect_identical(sem, console)
+  com <- trama::tr_value(base |> trama::tr_add("junta", "data/bind_rows", origem = "fonte",
+                                               from = c("carros", "flores")), "junta", reg, s)
+  expect_identical(names(com), c("fonte", names(sem)))
+  expect_identical(com$fonte, rep(c("carros", "flores"), c(32L, 150L)))
+  expect_identical(as.data.frame(com[-1]), as.data.frame(sem))
+})
+
+test_that("no console, a origem é o nome da lista ou a posição", {
+  d <- df_exemplo()
+  expect_identical(unique(tr_bind_rows(list(jan = d, fev = d), origem = "mes")$mes), c("jan", "fev"))
+  expect_identical(unique(tr_bind_rows(list(d, d), origem = "mes")$mes), c("1", "2"))
+  expect_identical(tr_bind_rows(list(d, d), origem = "  "), tr_bind_rows(list(d, d)))
+})
+
+test_that("origem com nome de coluna já existente é erro classificado", {
+  d <- df_exemplo()
+  e <- tryCatch(tr_bind_rows(list(a = d, b = d), origem = "valor"), error = identity)
+  expect_s3_class(e, "tr_data_error_name_collision")
+  expect_match(conditionMessage(e), "valor", fixed = TRUE)
+})
