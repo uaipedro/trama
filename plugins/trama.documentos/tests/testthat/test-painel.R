@@ -208,7 +208,7 @@ test_that("publicar pelo painel: conferir, confirmar, enviar e acompanhar até a
   expect_identical(c$ultima("envio")$estado$etapa, "actions")
   expect_length(tarefas, 2L)
   gh$runs[[1]]$estado <- "completed"; gh$runs[[1]]$conclusao <- "success"
-  local_mocked_bindings(.td_pagina_no_ar = function(url) TRUE)
+  local_mocked_bindings(.td_pagina_no_ar = function(url) TRUE, .package = "trama.documentos")
   tarefas[[2]]()
   expect_identical(c$ultima("envio")$estado$etapa, "no_ar")
   expect_length(tarefas, 2L)

@@ -114,7 +114,7 @@ test_that("cada modelo embutido renderiza nos formatos dele", {
   tr_documento_perfil_salvar("aluno-ufla", "Ana Souza", instituicao = "UFLA", curso = "Estatística",
                              orientador = "Prof. Beltrano")
   casos <- list(ufla = c("pdf", "docx"), consultoria = c("pdf", "html"), artigo = "pdf",
-                slides = "revealjs", painel = "dashboard")
+                slides = "revealjs", painel = "dashboard", pagina = "html")
   for (m in names(casos)) {
     qmd <- tr_documento_criar(m, proj, modelo = m)
     tr_documento_inserir(qmd, "tab", proj)

@@ -274,7 +274,7 @@ test_that("repositório privado novo e repositório alheio pedem confirmação",
 
 test_that("tag que já existe é recusada com a próxima versão sugerida", {
   gh <- github_memoria()
-  local_mocked_bindings(.td_ultima_versao = function(tags) "0.0.0")
+  local_mocked_bindings(.td_ultima_versao = function(tags) "0.0.0", .package = "trama.documentos")
   x <- doc_publicavel()
   tr_documento_publicar(x$qmd, x$proj)
   expect_error(tr_documento_publicar(x$qmd, x$proj), "v0.2.0", class = "tr_documento_erro_publicar")
@@ -291,11 +291,11 @@ test_that("acompanhar: Actions rodando, release, página no ar, e falha com etap
   expect_identical(a()$etapa, "actions")
   gh$runs[[1]]$estado <- "completed"; gh$runs[[1]]$conclusao <- "success"
   gh$releases[["v0.1.0"]] <- list(tag = "v0.1.0", url = "https://rel")
-  local_mocked_bindings(.td_pagina_no_ar = function(url) FALSE)
+  local_mocked_bindings(.td_pagina_no_ar = function(url) FALSE, .package = "trama.documentos")
   r <- a()
   expect_identical(r$etapa, "release")
   expect_identical(r$release, "https://rel")
-  local_mocked_bindings(.td_pagina_no_ar = function(url) TRUE)
+  local_mocked_bindings(.td_pagina_no_ar = function(url) TRUE, .package = "trama.documentos")
   expect_identical(a()$etapa, "no_ar")
   expect_identical(a()$etapa, "no_ar")  # terminado não consulta mais o GitHub
 
