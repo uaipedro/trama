@@ -277,14 +277,31 @@ series_forecast_type <- function() {
                  li_95 = nivel(x$lower, 95), ls_95 = nivel(x$upper, 95))
 }
 
+#' Marca a coluna `tempo` como ÍNDICE da tabela, e não medida.
+#'
+#' Fora das frequências 1, 4 e 12 o `tempo` é número decimal, e quem toma
+#' "todas as numéricas" quando a lista de colunas fica em branco (a matriz de
+#' correlação da trama.multi, o data/describe) o contava como variável: a
+#' correlação dos resíduos do VAR saía com uma linha `tempo`. O atributo
+#' `trama_indice` (nomes das colunas de índice) é a convenção entre coleções,
+#' como o `trama_ferramentas`; coluna citada pelo nome continua valendo.
+#' @noRd
+.tr_series_indice <- function(fn) {
+  function(x) {
+    tab <- fn(x)
+    attr(tab, "trama_indice") <- "tempo"
+    tab
+  }
+}
+
 .tr_series_adapters <- function() {
   list(
-    trama::tr_adapter("series/ts", "data/table", .tr_series_tabela),
-    trama::tr_adapter("series/decomposition", "data/table", .tr_series_decomp_tabela),
-    trama::tr_adapter("series/forecast", "data/table", .tr_series_forecast_tabela),
+    trama::tr_adapter("series/ts", "data/table", .tr_series_indice(.tr_series_tabela)),
+    trama::tr_adapter("series/decomposition", "data/table", .tr_series_indice(.tr_series_decomp_tabela)),
+    trama::tr_adapter("series/forecast", "data/table", .tr_series_indice(.tr_series_forecast_tabela)),
     # Série múltipla: `tempo` e uma coluna por série (a forma larga, que o
     # `series/from_table_mts` lê de volta).
-    trama::tr_adapter("series/mts", "data/table", .tr_series_mts_tabela),
+    trama::tr_adapter("series/mts", "data/table", .tr_series_indice(.tr_series_mts_tabela)),
     # O ajuste de uma série carrega os componentes: é por este adaptador que o
     # `series/component` e o `series/plot_decomposition` os leem. Um
     # `models/fit` que não veio de série é recusado com classe.

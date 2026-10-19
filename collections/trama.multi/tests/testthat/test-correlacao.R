@@ -61,3 +61,18 @@ test_that("no motor: a matriz sai como data/table e segue para a data", {
   expect_equal(nrow(out), 6L)
   expect_equal(out$variavel[[1]], "alcool")
 })
+
+test_that("em branco, a coluna de índice declarada (trama_indice) não entra; citada, entra", {
+  # É o `tempo` que o adaptador de série põe na tabela (numérico fora das
+  # frequências 1, 4 e 12): a correlação dos resíduos de um VAR saía com ele.
+  d <- tr_multi_example("USArrests")[-1]
+  d <- cbind(tempo = seq(2000, by = 1 / 52, length.out = nrow(d)), d)
+  comum <- tr_multi_correlation_matrix(d)
+  expect_true("tempo" %in% comum$variavel)          # tabela comum: nada muda
+  attr(d, "trama_indice") <- "tempo"
+  r <- tr_multi_correlation_matrix(d)
+  expect_equal(r$variavel, c("Murder", "Assault", "UrbanPop", "Rape"))
+  expect_equal(unname(as.matrix(r[-1])), unname(stats::cor(as.matrix(d[-1]))))
+  citado <- tr_multi_correlation_matrix(d, cols = "tempo, Murder")
+  expect_equal(citado$variavel, c("tempo", "Murder"))
+})
