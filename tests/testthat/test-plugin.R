@@ -1,6 +1,6 @@
 test_that("candidatas: só pacotes trama.* que se declaram plugin", {
   expect_false(.tr_plugin_flag("trama"))
-  local_mocked_bindings(.tr_plugin_flag = function(p) TRUE)
+  local_mocked_bindings(.tr_plugin_flag = function(p) TRUE, .package = "trama")
   expect_true(all(grepl("^trama[.]", .tr_plugin_candidatos())))
 })
 
@@ -8,7 +8,7 @@ test_that("plugin que falha ao carregar é pulado com aviso; os outros ficam", {
   local_mocked_bindings(.tr_plugin_carregar = function(p) {
     if (p == "trama.ruim") stop("quebrou")
     list(js = "x.js", package = p, version = "1.0.0")
-  })
+  }, .package = "trama")
   expect_message(plugs <- tr_plugins(c("trama.boa", "trama.ruim")), "trama.ruim")
   expect_named(plugs, "trama.boa")
 })
