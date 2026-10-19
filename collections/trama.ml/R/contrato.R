@@ -284,8 +284,24 @@ tr_models_strip.tr_ml_fit <- function(x) {
   x["dados"] <- list(NULL)
   x["treino_impressoes"] <- list(NULL)
   x["origem"] <- list(NULL)
+  x["dados_treino"] <- list(.tr_ml_dados_treino_embutidos(x))
   x$reduzido <- TRUE
   x
+}
+
+#' A marca do contrato (`dados_treino`): o que o modelo reduzido ainda leva do
+#' treino, linha a linha, medido em `test-reduzir.R`; `NULL` quando nada.
+#' @noRd
+.tr_ml_dados_treino_embutidos <- function(x) {
+  if (identical(x$modelo, "svm")) {
+    return(sprintf(paste("A SVM guarda os %d vetores de suporte, que s\u{E3}o linhas do treino (escalonadas):",
+                         "a previs\u{E3}o \u{E9} uma soma sobre eles."), as.integer(x$ajuste$tot.nSV)))
+  }
+  if (identical(x$modelo, "forest") && identical(x$tarefa, "regressao")) {
+    return(paste("Na floresta de regress\u{E3}o, folha com uma s\u{F3} linha sorteada guarda a resposta",
+                 "dessa linha do treino."))
+  }
+  NULL
 }
 
 #' `predict.rpart()` com `newdata` lê `terms`, `frame`, `splits`, `csplit`,

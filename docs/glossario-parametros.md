@@ -85,6 +85,7 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo de todas as coleç
 | `licenca`, `licenca_codigo` | licença SPDX do conteúdo e do código publicados (publicar/publish) | — |
 | `repositorio` | nome ou endereço do repositório da publicação (publicar/publish) | — |
 | `versao` | tipo da próxima versão publicada: `menor`, `correção`, `maior` (publicar/publish) | — |
+| `aceitar_dados_treino` | consentimento explícito para publicar modelo que carrega linhas do treino (bool, desligado; publicar/publish) | — |
 | `layout` | blocos da página publicada, em JSON, citando os itens pelo nó de origem (publicar/publish) | — |
 | `itens` | porta múltipla do que se publica, tipo `publicar/item` (publicar/publish) | — |
 | `pontos` | como param, desenhar as observações sobre o gráfico (bool: view/boxplot, view/violin, series/plot, spatial/map). Como porta de entrada, a das localizações medidas, tipo `spatial/points` (spatial/explore, spatial/variogram, spatial/kriging) | — |

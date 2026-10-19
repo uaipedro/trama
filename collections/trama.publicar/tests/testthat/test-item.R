@@ -47,11 +47,13 @@ test_that("o contrato do item recusa caminho fora da pasta e componente desconhe
   expect_identical(rawToChar(it$arquivos[["nota.md"]]), "# oi")
 })
 
-test_that("SVM e floresta de regressão levam aviso do que guardam do treino", {
+test_that("SVM e floresta de regressão saem do adaptador com a marca de dados de treino", {
   skip_if_not_installed("trama.ml")
   skip_if_not_installed("e1071")
   d <- data.frame(x1 = stats::rnorm(40), x2 = stats::rnorm(40)); d$y <- d$x1 + stats::rnorm(40)
   m <- trama.ml::tr_ml_fit(d, resposta = "y", preditores = "x1, x2", modelo = "svm")
   it <- .tr_publicar_de_modelo(m)
-  expect_match(it$avisos, "vetores de suporte")
+  expect_match(it$dados_treino, "vetores de suporte")
+  expect_null(it$erro)  # quem recusa é o publicar, que conhece o consentimento
+  expect_null(.tr_publicar_de_modelo(trama.models::tr_models_lm(d, formula = "y ~ x1"))$dados_treino)
 })

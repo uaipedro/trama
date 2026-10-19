@@ -116,11 +116,15 @@ tr_publicar_layout <- function(layout, ids = character(), com_componente = ids) 
 #' @param itens Lista nomeada (pelo nó de origem) de `tr_publicar_item`.
 #' @param titulo,descricao,palavras_chave,autores,licenca,licenca_codigo,repositorio,versao,layout
 #'   Os params do nó.
+#' @param aceitar_dados_treino Publicar mesmo os itens marcados com
+#'   `dados_treino` (modelo que carrega linhas do treino). Desligado, eles são
+#'   recusados.
 #' @return Objeto `tr_publicar_material`.
 #' @export
 tr_publicar_material <- function(itens = list(), titulo = "", descricao = "", palavras_chave = "",
                                  autores = "", licenca = "CC-BY-4.0", licenca_codigo = "MIT",
-                                 repositorio = "", versao = "menor", layout = "") {
+                                 repositorio = "", versao = "menor", layout = "",
+                                 aceitar_dados_treino = FALSE) {
   if (length(itens) && is.null(names(itens))) names(itens) <- paste0("item", seq_along(itens))
   for (nm in names(itens)) if (!inherits(itens[[nm]], "tr_publicar_item")) {
     rlang::abort(sprintf("A entrada '%s' n\u{E3}o \u{E9} um publicar/item.", nm), class = "tr_publicar_error_bad_item")
@@ -135,6 +139,19 @@ tr_publicar_material <- function(itens = list(), titulo = "", descricao = "", pa
   if (!licenca %in% .TR_PUBLICAR_LICENCAS) erros <- c(erros, sprintf("Licen\u{E7}a desconhecida: %s.", licenca))
   if (!licenca_codigo %in% .TR_PUBLICAR_LICENCAS_CODIGO) {
     erros <- c(erros, sprintf("Licen\u{E7}a de c\u{F3}digo desconhecida: %s.", licenca_codigo))
+  }
+  # Item que carrega linhas do treino: recusado sem o consentimento do param;
+  # com ele, segue com aviso (e a marca vai para o RO-Crate na montagem).
+  for (nm in names(itens)) {
+    dt <- itens[[nm]]$dados_treino
+    if (is.null(dt) || !is.null(itens[[nm]]$erro)) next
+    if (isTRUE(aceitar_dados_treino)) {
+      itens[[nm]]$avisos <- c(itens[[nm]]$avisos, paste("Publicado com dados de treino embutidos:", dt))
+    } else {
+      itens[[nm]]$erro <- paste0("O modelo carrega linhas do treino: ", dt, " Publicar o modelo publica essas ",
+                                 "linhas. Para publicar assim, ligue 'Aceito publicar dados de treino ",
+                                 "embutidos' no Publicar.")
+    }
   }
   for (nm in names(itens)) {
     it <- itens[[nm]]
@@ -153,7 +170,8 @@ tr_publicar_material <- function(itens = list(), titulo = "", descricao = "", pa
                      palavras_chave = trimws(strsplit(palavras_chave %||% "", ",", fixed = TRUE)[[1]]) |>
                        (\(k) k[nzchar(k)])(),
                      autores = aut, licenca = licenca, licenca_codigo = licenca_codigo,
-                     repositorio = trimws(repositorio), versao = .tr_publicar_proxima(versao)),
+                     repositorio = trimws(repositorio), versao = .tr_publicar_proxima(versao),
+                     aceitar_dados_treino = isTRUE(aceitar_dados_treino)),
     layout = lay$blocos, itens = ok, ambiente = .tr_publicar_ambiente(ok),
     avisos = c(avisos, lay$avisos), erros = erros,
     recusados = names(itens)[!names(itens) %in% names(ok)]),

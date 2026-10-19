@@ -38,14 +38,16 @@ trama_collection <- function() {
       licenca_codigo = trama::tr_param_enum("MIT", .TR_PUBLICAR_LICENCAS_CODIGO, "Licen\u{E7}a do c\u{F3}digo"),
       repositorio = trama::tr_param_text("", "Reposit\u{F3}rio"),
       versao = trama::tr_param_enum("menor", .TR_PUBLICAR_VERSOES, "Pr\u{F3}xima vers\u{E3}o"),
-      layout = trama::tr_param("publicar_layout", "", "Layout da p\u{E1}gina")),
+      layout = trama::tr_param("publicar_layout", "", "Layout da p\u{E1}gina"),
+      aceitar_dados_treino = trama::tr_param_bool(FALSE, "Aceito publicar dados de treino embutidos")),
     help = .tr_publicar_modelo_texto("ajuda.md"))
 }
 
 .tr_publicar_fn <- function(itens = list(), titulo = "", descricao = "", palavras_chave = "", autores = "",
                             licenca = "CC-BY-4.0", licenca_codigo = "MIT", repositorio = "",
-                            versao = "menor", layout = "") {
+                            versao = "menor", layout = "", aceitar_dados_treino = FALSE) {
   tr_publicar_material(itens, titulo = titulo, descricao = descricao, palavras_chave = palavras_chave,
                        autores = autores, licenca = licenca, licenca_codigo = licenca_codigo,
-                       repositorio = repositorio, versao = versao, layout = layout)
+                       repositorio = repositorio, versao = versao, layout = layout,
+                       aceitar_dados_treino = aceitar_dados_treino)
 }

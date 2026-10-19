@@ -551,14 +551,17 @@ número do objeto em listas, atributos, chamadas e ambientes capturados:
   cortes são pontos médios.
 - Floresta (`ranger`), regressão: a resposta reaparece em `split.values` dos
   nós terminais — folha com uma só linha distinta sorteada guarda a resposta
-  dela (40 de 120 valores no teste). É o modelo, não um campo a mais; o
-  pacote avisa.
+  dela (40 de 120 valores no teste). É o modelo, não um campo a mais.
 - SVM (`e1071`): os vetores de suporte são linhas do treino escalonadas (103
   de 120 na regressão do teste); desfeita a escala, cada um é uma linha. A
   previsão é uma soma sobre eles: não há como tirá-los. Fora deles, nada.
-  O pacote avisa quantas linhas vão junto.
 - XGBoost: a resposta não aparece; valores de preditores aparecem só como
   cortes das árvores (quantis do histograma, em float32).
+
+Os dois casos acima saem do reduzido com a marca `dados_treino` (texto do que
+sobra), e o `trama.publicar` recusa o modelo marcado por padrão: só publica
+com o param "Aceito publicar dados de treino embutidos" ligado, e então
+registra `trama:contemDadosTreino` no RO-Crate (decisão do Pedro, 19/10).
 
 Limite: a varredura confere igualdade exata (float32 no XGBoost); um valor
 transformado (escalonado, arredondado) só é pego onde o teste desfaz a

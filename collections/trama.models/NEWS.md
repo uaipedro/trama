@@ -1,6 +1,6 @@
 # trama.models 0.6.10
 
-* `tr_models_strip(x)` no contrato de `models/fit`: o modelo sem os dados de treino, para publicar. Responde a `tr_models_info()` e prevê o ponto com `tr_models_predict_raw()`; intervalo é recusado. Métodos para `lm` e `glm` (inclui binomial negativa); classe sem método recusa com `tr_models_error_no_method`, sem default.
+* `tr_models_strip(x)` no contrato de `models/fit`: o modelo sem os dados de treino, para publicar. Responde a `tr_models_info()` e prevê o ponto com `tr_models_predict_raw()`; intervalo é recusado. Métodos para `lm` e `glm` (inclui binomial negativa); classe sem método recusa com `tr_models_error_no_method`, sem default. Modelo que não existe sem parte do treino sai com a marca `dados_treino` (texto do que sobra).
 * `tr_models_web(x)` no contrato (opcional, default `NULL`): o modelo descrito para prever no navegador (WebR) — motor reduzido, pacotes com as versões do treino, entradas com faixa por `pretty()`, saída e o código R de `prever`. Métodos para `lm` e `glm`; `tr_models_web_entradas()` para as irmãs.
 * `tr_models_strip_stats(aj)`: reduz um `lm`/`glm` do stats ao que o `predict()` lê com `newdata`, para as coleções irmãs.
 

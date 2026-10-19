@@ -82,3 +82,26 @@ test_that("montar de novo na mesma pasta dá os mesmos bytes (determinístico)",
   h2 <- vapply(file.path(dir, b$arquivos), digest::digest, "", file = TRUE)
   expect_identical(h1, h2)
 })
+
+test_that("modelo aceito com dados de treino leva a marca no RO-Crate e no README", {
+  marcado <- tr_publicar_item("modelo", "SVM", arquivos = list(modelo.rds = as.raw(1:3), motor.rds = as.raw(4:6)),
+                              metadados = list(tipo_schema = "fair4ml:MLModel"),
+                              dados_treino = "A SVM guarda os 7 vetores de suporte.")
+  m <- tr_publicar_material(list(svm = marcado), titulo = "T", autores = "Ana Lima", aceitar_dados_treino = TRUE)
+  dir <- tempfile()
+  tr_publicar_montar(m, dir, data = as.Date("2026-10-19"))
+  rc <- jsonlite::fromJSON(file.path(dir, "ro-crate-metadata.json"), simplifyVector = FALSE)
+  expect_identical(rc[["@context"]][[2]]$trama, .TR_PUBLICAR_VOCABULARIO)
+  ids <- vapply(rc[["@graph"]], function(e) e[["@id"]], "")
+  for (a in c("itens/svm/modelo.rds", "itens/svm/motor.rds")) {
+    e <- rc[["@graph"]][[match(a, ids)]]
+    expect_true(e[["trama:contemDadosTreino"]], label = a)
+    expect_match(e[["trama:dadosTreinoEmbutidos"]], "vetores de suporte")
+  }
+  expect_match(paste(readLines(file.path(dir, "README.md"), encoding = "UTF-8"), collapse = "\n"),
+               "Contém dados de treino", fixed = TRUE)
+  # Sem marca, sem o termo.
+  dir2 <- tempfile()
+  tr_publicar_montar(material_exemplo(), dir2, data = as.Date("2026-10-19"))
+  expect_false(grepl("contemDadosTreino", paste(readLines(file.path(dir2, "ro-crate-metadata.json")), collapse = "")))
+})

@@ -57,3 +57,36 @@ test_that("pelo motor: a porta nomeia os itens pelo nó e o fio converte tabela 
   expect_identical(v$itens$mod$tipo, "modelo")
   expect_identical(v$itens$tab$tipo, "tabela")
 })
+
+test_that("item com dados de treino é recusado por padrão e aceito com o param", {
+  marcado <- tr_publicar_item("modelo", "SVM", arquivos = list(modelo.rds = as.raw(1:3)),
+                              dados_treino = "A SVM guarda os 7 vetores de suporte.")
+  recusa <- tr_publicar_material(list(m = marcado), titulo = "T", autores = "Ana Lima")
+  expect_length(recusa$itens, 0L)
+  expect_identical(recusa$recusados, "m")
+  expect_match(recusa$erros, "carrega linhas do treino", all = FALSE)
+  expect_match(recusa$erros, "Aceito publicar dados de treino embutidos", all = FALSE)
+  aceito <- tr_publicar_material(list(m = marcado), titulo = "T", autores = "Ana Lima",
+                                 aceitar_dados_treino = TRUE)
+  expect_identical(names(aceito$itens), "m")
+  expect_length(aceito$erros, 0L)
+  expect_match(aceito$avisos, "dados de treino embutidos", all = FALSE)
+  expect_true(aceito$metadados$aceitar_dados_treino)
+})
+
+test_that("pelo motor: SVM recusada sem o param e publicada com ele", {
+  skip_if_not_installed("trama.ml")
+  skip_if_not_installed("e1071")
+  reg <- publicar_registry()
+  trama::tr_use("trama.ml", registry = reg)
+  f <- trama::tr_flow(reg) |>
+    trama::tr_add("tab", "tst/tabela", n = 32L) |>
+    trama::tr_add("svm", "ml/svm", resposta = "mpg", preditores = "wt, hp", from = "tab") |>
+    trama::tr_add("pub", "publicar/publish", titulo = "T", autores = "Ana Lima", from = "svm")
+  s <- trama::tr_store(tempfile())
+  v <- trama::tr_value(trama::tr_flow_doc(f), "pub", registry = reg, store = s)
+  expect_identical(v$recusados, "svm")
+  f2 <- trama::tr_set(f, "pub", aceitar_dados_treino = TRUE)
+  v2 <- trama::tr_value(trama::tr_flow_doc(f2), "pub", registry = reg, store = s)
+  expect_identical(names(v2$itens), "svm")
+})

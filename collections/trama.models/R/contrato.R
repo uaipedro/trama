@@ -90,7 +90,11 @@ tr_models_clean_name <- function(x) {
 #'   nada mais garantido. Não basta apagar `dados`: o ajuste do motor guarda a
 #'   matriz de treino em outros campos (no `lm`, `qr$qr` é a própria matriz de
 #'   delineamento) e a fórmula carrega o ambiente onde foi criada. Sem default:
-#'   classe sem método não se publica (`tr_models_error_no_method`). Toda classe
+#'   classe sem método não se publica (`tr_models_error_no_method`). Quando o
+#'   modelo não existe sem parte do treino (vetores de suporte, folha de uma
+#'   linha), o reduzido leva a MARCA `dados_treino`: texto que diz o que sobra
+#'   (sem marca, `NULL`, nada sobra). Quem publica recusa por padrão o modelo
+#'   marcado e só o aceita com consentimento explícito. Toda classe
 #'   que implementa leva dois testes: a previsão igual antes e depois, e nenhum
 #'   valor do treino no objeto reduzido (ou a exceção medida e declarada).
 #'

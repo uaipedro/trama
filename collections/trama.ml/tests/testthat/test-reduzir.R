@@ -57,6 +57,7 @@ for (resp in c("y", "cl", "c3")) {
     expect_gt(length(vazados(z$m, c(z$d$x1, z$d$x2, z$d$x3))), 0L)
     expect_length(vazados(z$r, c(z$d$x1, z$d$x2, z$d$x3, z$d$y)), 0L)
     expect_null(z$r$ajuste$y); expect_null(z$r$ajuste$where)
+    expect_null(z$r$dados_treino)
   })
 }
 
@@ -81,6 +82,9 @@ test_that("floresta reduzida: previsão idêntica; a resposta só sobra como val
   vaz <- vazados(z$r, z$d$y)
   expect_gt(length(vaz), 0L)
   expect_true(all(vaz %in% folhas))
+  # A marca do contrato: a regressão leva a resposta em folha; a classificação não.
+  expect_match(z$r$dados_treino, "folha")
+  expect_null(ajustar_e_reduzir("forest", "cl")$r$dados_treino)
 })
 
 test_that("SVM reduzida: previsão idêntica; sobram só os vetores de suporte, que são linhas do treino", {
@@ -97,6 +101,7 @@ test_that("SVM reduzida: previsão idêntica; sobram só os vetores de suporte, 
     linhas <- apply(round(sv, 8), 1, function(l) any(apply(treino, 1, function(q) all(q == l))))
     expect_true(all(linhas))
     expect_equal(nrow(sv), aj$tot.nSV)
+    expect_match(z$r$dados_treino, sprintf("%d vetores de suporte", aj$tot.nSV), fixed = TRUE)
     # E nada fora deles: sem a matriz SV, nenhum valor (cru) do treino.
     aj$SV <- NULL
     expect_length(vazados(aj, c(z$d$x1, z$d$x2, z$d$x3, z$d$y)), 0L)

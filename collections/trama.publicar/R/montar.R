@@ -5,6 +5,10 @@
 # GitHub — o que se vê na prévia é o que sai.
 
 .TR_PUBLICAR_QUARTO_LIVE <- "0.2.0"
+# Termos próprios do pacote (a marca de dados de treino), num namespace do
+# repositório: não há termo schema.org nem FAIR4ML para "o modelo contém
+# linhas do treino".
+.TR_PUBLICAR_VOCABULARIO <- "https://github.com/uaipedro/trama/blob/main/collections/trama.publicar/README.md#"
 .TR_PUBLICAR_ESQUEMA_FLUXO <- "https://github.com/uaipedro/trama/blob/main/inst/schema/document-v1.json"
 
 #' Monta a pasta do pacote RO-Crate
@@ -129,6 +133,11 @@ tr_publicar_montar <- function(material, dir, doc = NULL, rotulos = list(), dado
       if (identical(md$tipo_schema, "fair4ml:MLModel") && identical(d$arquivo, "modelo.rds")) {
         e[["@type"]] <- list("File", "fair4ml:MLModel")
         e <- c(e, Filter(Negate(is.null), md$propriedades %||% list()))
+      }
+      # A marca: o arquivo leva linhas do treino (só chega aqui com o aceite).
+      if (!is.null(d$item$dados_treino) && d$arquivo %in% c("modelo.rds", "motor.rds")) {
+        e[["trama:contemDadosTreino"]] <- TRUE
+        e[["trama:dadosTreinoEmbutidos"]] <- d$item$dados_treino
       } else if (!is.null(md$tipo_schema) && !identical(md$tipo_schema, "fair4ml:MLModel") &&
                  !identical(md$tipo_schema, "Dataset")) {
         e[["@type"]] <- list("File", md$tipo_schema)
@@ -175,7 +184,8 @@ tr_publicar_montar <- function(material, dir, doc = NULL, rotulos = list(), dado
     if (tem_ext) list(list("@id" = "_extensions/", "@type" = "Dataset",
                            name = paste0("Extens\u{E3}o quarto-live ", .TR_PUBLICAR_QUARTO_LIVE, " (r-wasm/quarto-live, MIT)"),
                            url = "https://github.com/r-wasm/quarto-live")))
-  list("@context" = list("https://w3id.org/ro/crate/1.1/context", list(fair4ml = "https://w3id.org/fair4ml#")),
+  list("@context" = list("https://w3id.org/ro/crate/1.1/context",
+                         list(fair4ml = "https://w3id.org/fair4ml#", trama = .TR_PUBLICAR_VOCABULARIO)),
        "@graph" = grafo)
 }
 
@@ -206,8 +216,9 @@ tr_publicar_montar <- function(material, dir, doc = NULL, rotulos = list(), dado
   } else "Nenhum: tudo o que o fluxo l\u{EA} est\u{E1} no pacote."
   itens <- paste(vapply(names(material$itens), function(id) {
     it <- material$itens[[id]]
-    sprintf("- `itens/%s/` \u{2014} %s (%s): %s", .tr_publicar_pasta(id), it$titulo, it$tipo,
-            paste(names(it$arquivos), collapse = ", "))
+    sprintf("- `itens/%s/` \u{2014} %s (%s): %s%s", .tr_publicar_pasta(id), it$titulo, it$tipo,
+            paste(names(it$arquivos), collapse = ", "),
+            if (is.null(it$dados_treino)) "" else paste0(". **Cont\u{E9}m dados de treino:** ", it$dados_treino))
   }, ""), collapse = "\n")
   .tr_publicar_preencher(modelo, list(
     titulo = m$titulo, descricao = m$descricao, autores = .tr_publicar_autores_txt(m$autores),

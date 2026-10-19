@@ -26,12 +26,16 @@
 #'   `"tabela"` (`arquivo` CSV e `previa`, um data.frame curto), `"figura"`
 #'   (`arquivo` de imagem), `"preditor"` (`web`, o bloco de
 #'   `trama.models::tr_models_web()`) ou `"markdown"` (`texto`).
+#' @param dados_treino `NULL`, ou texto dizendo que linhas do treino o item
+#'   carrega (a marca de `trama.models::tr_models_strip()`). Item marcado é
+#'   recusado, a menos que o `publicar` tenha `aceitar_dados_treino` ligado;
+#'   aceito, vai com aviso e com a marca no `ro-crate-metadata.json`.
 #' @param avisos Textos que vão para a conferência (não bloqueiam).
 #' @param erro Texto: o item não entra (e, na fase de envio, bloqueia o botão).
 #' @return Objeto de classe `tr_publicar_item`.
 #' @export
 tr_publicar_item <- function(tipo, titulo = "", arquivos = list(), metadados = list(),
-                             componente = NULL, avisos = character(), erro = NULL) {
+                             componente = NULL, dados_treino = NULL, avisos = character(), erro = NULL) {
   ruim <- function(msg) rlang::abort(msg, class = "tr_publicar_error_bad_item")
   if (!is.character(tipo) || length(tipo) != 1L || !nzchar(tipo)) ruim("Item sem 'tipo'.")
   if (length(arquivos) && (is.null(names(arquivos)) || !all(nzchar(names(arquivos))))) {
@@ -45,7 +49,7 @@ tr_publicar_item <- function(tipo, titulo = "", arquivos = list(), metadados = l
     }
   }
   structure(list(tipo = tipo, titulo = as.character(titulo), arquivos = arquivos,
-                 metadados = metadados, componente = componente,
+                 metadados = metadados, componente = componente, dados_treino = dados_treino,
                  avisos = as.character(avisos), erro = erro),
             class = "tr_publicar_item")
 }
@@ -116,7 +120,7 @@ tr_publicar_item <- function(tipo, titulo = "", arquivos = list(), metadados = l
     reduzido <- trama.models::tr_models_strip(x)
     web <- trama.models::tr_models_web(x)
     arquivos <- list(modelo.rds = .tr_publicar_rds(trama.models::tr_models_serialize(reduzido)))
-    avisos <- .tr_publicar_avisos_modelo(x)
+    avisos <- character()
     componente <- NULL
     if (is.null(web)) {
       avisos <- c(avisos, "Sem bloco web: o modelo vai no pacote, mas a p\u{E1}gina n\u{E3}o tem preditor.")
@@ -143,26 +147,9 @@ tr_publicar_item <- function(tipo, titulo = "", arquivos = list(), metadados = l
           "fair4ml:usageInstructions" = paste(
             "Em R: readRDS('modelo.rds') com trama.models carregado e trama.models::tr_models_predict(modelo, novos).",
             "Sem o trama: readRDS('motor.rds') e a fun\u{E7}\u{E3}o 'prever' de web.json."),
-          "fair4ml:modelRisksBiasLimitations" = if (length(avisos)) paste(avisos, collapse = " ") else NULL)),
-      componente = componente, avisos = avisos)
+          "fair4ml:modelRisksBiasLimitations" = reduzido$dados_treino)),
+      componente = componente, dados_treino = reduzido$dados_treino, avisos = avisos)
   }, error = function(e) .tr_publicar_item_erro("modelo", titulo, e))
-}
-
-#' O que o modelo reduzido ainda leva do treino, por motor (medido em
-#' `test-reduzir.R` da `trama.ml`).
-#' @noRd
-.tr_publicar_avisos_modelo <- function(x) {
-  motor <- x$modelo %||% ""
-  if (identical(motor, "svm")) {
-    n <- tryCatch(x$ajuste$tot.nSV, error = function(e) NA)
-    return(sprintf(paste0("A SVM guarda os vetores de suporte, que s\u{E3}o %s linhas do treino ",
-                          "(escalonadas): publicar o modelo publica essas linhas."), n))
-  }
-  if (identical(motor, "forest") && identical(x$tarefa, "regressao")) {
-    return(paste0("Na floresta de regress\u{E3}o, folha com uma s\u{F3} linha sorteada guarda a resposta ",
-                  "dessa linha do treino."))
-  }
-  character()
 }
 
 .tr_publicar_rds <- function(x) {
