@@ -1,0 +1,10 @@
+meta:
+  name: trama — UFLA (ABNT), cores de exemplo
+color:
+  palette:
+    azul: "#1f4e79"
+    verde: "#2f6b3a"
+  primary: azul
+  secondary: verde
+  foreground: "#1f2937"
+  background: "#ffffff"

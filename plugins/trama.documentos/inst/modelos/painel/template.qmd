@@ -1,0 +1,15 @@
+---
+title: "Painel"
+---
+
+## Sobre
+
+::: {.card title="Sobre este painel"}
+Para quem é, de onde vêm os dados e quando foram atualizados.
+:::
+
+## Resultados
+
+::: {.card title="Como montar"}
+Cada `##` é uma linha de cartões. Os resultados que você insere do trama entram como blocos `::: {#trama-… .trama}` aqui no fim, e cada bloco vira um cartão. Mova-os para a linha que quiser.
+:::

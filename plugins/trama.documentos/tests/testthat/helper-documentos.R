@@ -24,7 +24,12 @@ colecao_falsa <- function() {
                    outputs = list(out = "tst/modelo"), params = list(n = trama::tr_param_int(1L))),
     trama::tr_node("tst/modelo", fn = function(n) structure(list(n = n), class = "tst_modelo"),
                    label = "Modelo com treino", description = "Carrega dados de treino.",
-                   outputs = list(out = "tst/modelo"), params = list(n = trama::tr_param_int(1L)))))
+                   outputs = list(out = "tst/modelo"), params = list(n = trama::tr_param_int(1L))),
+    # O tema que o plano resolveu para o nó, como tabela (testa o tema do documento sem ggplot).
+    trama::tr_node("tst/tema", fn = function(tema) data.frame(nome = tema$nome, fundo = tema$fundo, texto = tema$texto,
+                                                              cor1 = tema$paleta[[1]], cor2 = tema$paleta[[2]]),
+                   label = "Tema", description = "O tema resolvido.",
+                   outputs = list(out = "tst/tabela"), params = list(tema = trama::tr_param_theme()))))
 }
 
 # Um "modelo" que carrega linhas do treino, como uma SVM.

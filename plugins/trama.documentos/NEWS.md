@@ -1,8 +1,14 @@
 # trama.documentos 0.2.0
 
-* Plugin do editor (#23): `Config/trama/plugin: true` e `trama_plugin()`. Painel Documentos na barra (lista com estado, novo a partir de modelo + perfil, Atualizar, Visualizar em segundo plano servido pelo editor, Exportar PDF/Word/HTML, abrir no editor de texto e a pasta, resolver regiões, guia do Quarto) e "Inserir no documento…" no menu do card. Aba Modelos como ponto da fase 3.
+* Plugin do editor (#23): `Config/trama/plugin: true` e `trama_plugin()`. Painel Documentos na barra (lista com estado, novo a partir de modelo + perfil, Atualizar, Visualizar em segundo plano servido pelo editor, Exportar PDF/Word/HTML, abrir no editor de texto e a pasta, resolver regiões, guia do Quarto) e "Inserir no documento…" no menu do card. Aba Modelos com a galeria (fase 3).
 * O `dados.csv` de uma tabela leva só as linhas mostradas; a tabela inteira é opção explícita (`trama-tabela="completa"`).
 * Requer trama 0.5.23 (item de plugin no menu do card; `ctx$servir`).
+* Modelos (#24). Galeria: `tr_documento_modelo()` (detalhe), `tr_documento_modelo_criar()`, `_editar()` (título, descrição, formatos, cores, fontes, logo, capa, CSL, perfil sugerido), `_duplicar()`, `_remover()`, `_exportar()` e `_importar()` (zip, inclusive o formato das extensões Quarto publicadas). Editar um embutido cria a cópia do usuário de mesmo nome; remover a cópia volta ao embutido. Modelo inválido aparece na galeria com o problema (`valido`, `problema`) e criar documento com ele dá erro claro.
+* Embutidos novos: **UFLA (ABNT)** (Typst + `abnt.csl` + `referencia.docx` + filtro, adaptados do modelo ABNT em Quarto do kit `pedro-e-pedro`; origem e licenças em `inst/modelos/ufla/ORIGEM.md` e `inst/COPYRIGHTS`), **Consultoria** (capa na cor da marca; identidade de exemplo da Yucca Data Science, com logo genérico), **Artigo**, **Slides** (revealjs) e **Dashboard** (`painel`).
+* Perfis vinculados a modelos: o modelo sugere um perfil (`perfil` em `trama-modelo.yml`), usado quando existe; o esqueleto pede campos do perfil com `"{{perfil.<campo>}}"` e o ano com `"{{ano}}"`.
+* Gráficos do documento num tema claro derivado do `_brand.yml` do documento, no lugar do tema "padrão" do projeto (card com tema escolhido à mão fica com o dele). O tema entra na chave do store: regiões de gráfico de documentos da 0.1.0 aparecem desatualizadas uma vez.
+* `tr_documento_renderizar()` ganha `"revealjs"` e `"dashboard"`; `tr_documento_formatos()` diz os formatos do documento; a prévia usa o primeiro formato HTML do documento.
+* `_brand.yml` do documento aponta o logo para a cópia da extensão; YAML gravado com `true`/`false` (o Quarto lê `yes` como texto).
 
 # trama.documentos 0.1.0
 

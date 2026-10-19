@@ -8,8 +8,17 @@ tr_documento_modelos()
 }
 \value{
 data.frame com \code{nome}, \code{titulo}, \code{formatos} (separados por
-vírgula), \code{origem} (\code{"embutido"} ou \code{"usuario"}) e \code{caminho}.
+vírgula), \code{origem} (\code{"embutido"} ou \code{"usuario"}), \code{caminho},
+\code{descricao}, \code{perfil} (o perfil de autor que o modelo sugere, ou \code{NA}),
+\code{sobre_embutido}, \code{valido} e \code{problema} (os problemas, separados por
+\code{"; "}, ou \code{NA}).
 }
 \description{
-Modelos de documento disponíveis
+A galeria: os embutidos e os do usuário (que têm precedência sobre o
+embutido de mesmo nome). Modelo inválido aparece, com \code{valido = FALSE} e o
+\code{problema}, em vez de sumir ou quebrar a lista.
+}
+\seealso{
+\code{\link[=tr_documento_modelo]{tr_documento_modelo()}} para um modelo em detalhe e
+\code{\link[=tr_documento_modelo_criar]{tr_documento_modelo_criar()}} para criar, editar, duplicar e remover.
 }

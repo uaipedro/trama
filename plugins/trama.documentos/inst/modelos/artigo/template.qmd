@@ -1,0 +1,33 @@
+---
+title: "Título do artigo"
+abstract: >-
+  Resumo em um parágrafo: objetivo, material e métodos, principais resultados
+  e conclusão.
+keywords:
+  - palavra-chave
+  - outra palavra-chave
+---
+
+## Introdução
+
+O problema, o que já se sabe e o objetivo do estudo. Para citar, declare
+`bibliography: referencias.bib` no cabeçalho e use `[@chave]`.
+
+## Material e métodos
+
+Dados, delineamento e análises.
+
+## Resultados
+
+Os resultados que você insere do trama entram como blocos `::: {#trama-… .trama}`. Cite-os no texto (`@fig-…`, `@tbl-…`), escreva em volta e mova-os para onde quiser: o texto é seu, e o trama só atualiza o que está dentro desses blocos.
+
+## Discussão
+
+O que os resultados significam e como se comparam à literatura.
+
+## Conclusões
+
+## Referências {.unnumbered}
+
+::: {#refs}
+:::

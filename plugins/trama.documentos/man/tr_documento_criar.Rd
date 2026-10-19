@@ -21,8 +21,8 @@ arquivo \code{.qmd}.}
 
 \item{modelo}{Nome do modelo (\code{\link[=tr_documento_modelos]{tr_documento_modelos()}}).}
 
-\item{perfil}{Nome do perfil de autor; \code{NULL}, o padrão (se houver);
-\code{FALSE}, sem autor.}
+\item{perfil}{Nome do perfil de autor; \code{NULL}, o que o modelo sugere
+(se o perfil existe) ou o padrão (se houver); \code{FALSE}, sem autor.}
 
 \item{titulo}{Título; \code{NULL} usa o nome.}
 
@@ -37,4 +37,10 @@ do perfil, data, formatos do modelo e o fluxo de origem, mais o esqueleto
 do modelo), a cópia da extensão em \verb{_extensions/<modelo>/}, o \verb{_brand.yml}
 e um \verb{_quarto.yml} que manda a saída do render para \verb{_saida/}. É o único
 momento em que o trama escreve fora das regiões.
+}
+\details{
+O YAML do esqueleto pode pedir campos do perfil: um valor
+\code{"{{perfil.orientador}}"} vira o orientador do perfil (e some, se o perfil
+não tem), e \code{"{{ano}}"} vira o ano corrente. É assim que o modelo UFLA
+preenche orientador e curso.
 }

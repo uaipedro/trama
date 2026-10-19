@@ -8,10 +8,14 @@ Description: Turns a trama analysis into a finished document: a Quarto file
     document (tables, figures, sanitized models, tests) and referenced by
     regions that are refreshed when the analysis changes, without ever
     touching the author's text. Documents start from Quarto extension
-    templates and author profiles, and render locally to HTML, PDF (Typst)
-    and Word. It is a trama plugin, not a block collection: it has no nodes.
-    When installed, the trama editor shows a Documents panel and an
-    'insert into document' item in the card menu.
+    templates (a gallery to create, edit, duplicate, import and export them,
+    with built-in academic ABNT, consulting report, article, slides and
+    dashboard templates) and author profiles, and render locally to HTML,
+    PDF (Typst), Word, revealjs slides and dashboards. Charts follow a light
+    theme derived from the template's brand. It is a trama plugin, not a
+    block collection: it has no nodes. When installed, the trama editor
+    shows a Documents panel (with a template gallery) and an 'insert into
+    document' item in the card menu.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
@@ -29,7 +33,8 @@ Imports:
     stats,
     tools,
     utils,
-    yaml
+    yaml,
+    zip
 Suggests:
     testthat (>= 3.0.0),
     withr,

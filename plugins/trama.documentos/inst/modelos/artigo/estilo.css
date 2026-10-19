@@ -1,0 +1,4 @@
+/* Modelo Artigo do trama: coluna de leitura estreita, tabelas enxutas. */
+main.content { max-width: 46rem; }
+table { font-variant-numeric: tabular-nums; }
+.trama { margin: 1.5rem 0; }

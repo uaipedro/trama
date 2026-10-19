@@ -5,8 +5,8 @@
 # PDF é Typst (sem TeX). A prévia é servida por HTTP local, e não aberta como
 # arquivo, porque página com WebR (fase 4) não carrega de `file://`.
 
-.TD_FORMATOS <- c(html = "html", pdf = "typst", docx = "docx")
-.TD_EXTENSAO <- c(html = "html", pdf = "pdf", docx = "docx")
+.TD_FORMATOS <- c(html = "html", pdf = "typst", docx = "docx", revealjs = "revealjs", dashboard = "dashboard")
+.TD_EXTENSAO <- c(html = "html", pdf = "pdf", docx = "docx", revealjs = "html", dashboard = "html")
 
 .td_quarto <- function() {
   q <- Sys.getenv("QUARTO_PATH", Sys.which("quarto"))
@@ -21,11 +21,13 @@
 #' [tr_documento_atualizar()] antes, se quiser os resultados de agora).
 #'
 #' @inheritParams tr_documento_inserir
-#' @param formato `"html"`, `"pdf"` (via Typst) ou `"docx"`.
+#' @param formato `"html"`, `"pdf"` (via Typst), `"docx"`, `"revealjs"`
+#'   (slides) ou `"dashboard"`. Os que o documento declara:
+#'   [tr_documento_formatos()].
 #' @param tempo Segundos até desistir.
 #' @return O caminho do arquivo gerado, em `_saida/`.
 #' @export
-tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx"), tempo = 300) {
+tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx", "revealjs", "dashboard"), tempo = 300) {
   formato <- match.arg(formato)
   r <- .td_render_preparar(documento, formato)
   out <- processx::run(r$quarto, r$args, wd = r$pasta, error_on_status = FALSE, timeout = tempo,
@@ -98,11 +100,26 @@ tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx"
   if (length(achado)) achado[[1]] else base
 }
 
+#' Formatos de saída do documento
+#'
+#' Os formatos que o YAML do documento declara (vindos do modelo), nos nomes
+#' de [tr_documento_renderizar()].
+#'
+#' @inheritParams tr_documento_inserir
+#' @return Vetor de texto, como `c("html", "pdf", "docx")`.
+#' @export
+tr_documento_formatos <- function(documento) {
+  declarados <- as.character(names(.td_yaml(.td_ler(documento)$linhas)$format))
+  base <- sub("^.*-", "", declarados)
+  names(.TD_FORMATOS)[.TD_FORMATOS %in% base]
+}
+
 .td_previas <- new.env(parent = emptyenv())
 
 #' Prévia do documento no navegador
 #'
-#' Renderiza em HTML e serve `_saida/` num servidor local
+#' Renderiza em HTML (ou nos slides ou no dashboard, se o documento não tem
+#' HTML) e serve `_saida/` num servidor local
 #' (`http://127.0.0.1:<porta>/`). O servidor fica de pé até
 #' `tr_documento_previa_parar()` ou o fim da sessão do R; uma nova prévia do
 #' mesmo documento reaproveita o servidor.
@@ -113,7 +130,8 @@ tr_documento_renderizar <- function(documento, formato = c("html", "pdf", "docx"
 #'   `documento`.
 #' @export
 tr_documento_previa <- function(documento, abrir = interactive(), tempo = 300) {
-  html <- tr_documento_renderizar(documento, "html", tempo = tempo)
+  fmts <- intersect(tr_documento_formatos(documento), c("html", "revealjs", "dashboard"))
+  html <- tr_documento_renderizar(documento, if (length(fmts)) fmts[[1]] else "html", tempo = tempo)
   pasta <- dirname(html)
   chave <- normalizePath(pasta)
   srv <- .td_previas[[chave]]

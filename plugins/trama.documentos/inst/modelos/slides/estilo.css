@@ -1,0 +1,4 @@
+/* Modelo Slides do trama: figuras e tabelas cabem no slide. */
+.reveal .trama img { max-height: 520px; width: auto; }
+.reveal .trama table { font-size: 0.6em; }
+.reveal h2 { color: var(--r-link-color, #0f766e); }

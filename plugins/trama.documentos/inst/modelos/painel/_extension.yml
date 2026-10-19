@@ -1,0 +1,14 @@
+title: Dashboard
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    dashboard:
+      lang: pt-BR
+      filters:
+        - cartoes.lua
+      orientation: rows
+      scrolling: true
+      css: estilo.css
+      embed-resources: false
