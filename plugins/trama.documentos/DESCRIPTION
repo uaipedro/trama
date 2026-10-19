@@ -1,0 +1,39 @@
+Package: trama.documentos
+Title: Living Documents for trama Analyses
+Version: 0.1.0
+Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
+Description: Turns a trama analysis into a finished document: a Quarto file
+    of the project where the text belongs to the author and managed regions
+    belong to trama. Results of flow nodes are materialized next to the
+    document (tables, figures, sanitized models, tests) and referenced by
+    regions that are refreshed when the analysis changes, without ever
+    touching the author's text. Documents start from Quarto extension
+    templates and author profiles, and render locally to HTML, PDF (Typst)
+    and Word. It is a trama plugin, not a block collection: it has no nodes.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1)
+Imports:
+    trama (>= 0.5.22),
+    digest,
+    ggplot2,
+    httpuv,
+    jsonlite,
+    processx,
+    ragg,
+    rlang,
+    stats,
+    tools,
+    utils,
+    yaml
+Suggests:
+    testthat (>= 3.0.0),
+    withr,
+    svglite,
+    png,
+    trama.data,
+    trama.view,
+    trama.models
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.0.0
