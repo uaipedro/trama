@@ -1,0 +1,29 @@
+title: Artigo
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    common:
+      lang: pt-BR
+      number-sections: true
+      fig-cap-location: bottom
+      tbl-cap-location: top
+      fig-align: center
+      csl: abnt.csl
+      link-citations: true
+    typst:
+      papersize: a4
+      fontsize: 10.5pt
+      margin:
+        x: 2.2cm
+        y: 2.5cm
+      section-numbering: "1.1"
+    html:
+      toc: true
+      toc-title: Sumário
+      css: estilo.css
+      embed-resources: false
+      citations-hover: true
+    docx:
+      toc: false

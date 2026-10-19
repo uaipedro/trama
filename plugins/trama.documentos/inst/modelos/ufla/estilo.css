@@ -1,0 +1,5 @@
+/* Modelo UFLA (ABNT) do trama, na prévia em HTML. */
+main.content { max-width: 50rem; }
+table { font-variant-numeric: tabular-nums; }
+.trama { margin: 1.5rem 0; }
+.fonte, .fonte-tabela { font-size: 0.85em; }

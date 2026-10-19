@@ -1,0 +1,25 @@
+---
+title: "Relatório de análise"
+subtitle: "O que os dados dizem sobre a pergunta do cliente"
+cliente: "Nome do cliente"
+---
+
+## Resumo executivo {.unnumbered}
+
+Em poucas linhas, para quem decide: a pergunta, a resposta e o que fazer com ela.
+
+## Contexto e objetivo
+
+Qual é a pergunta do cliente, de onde vêm os dados e o que ficou fora.
+
+## Metodologia
+
+Como a análise foi feita, em linguagem direta. Os detalhes técnicos podem ir para um apêndice.
+
+## Resultados
+
+Os resultados que você insere do trama entram como blocos `::: {#trama-… .trama}`. Escreva em volta deles e mova-os para onde quiser: o texto é seu, e o trama só atualiza o que está dentro desses blocos.
+
+## Recomendações
+
+O que o cliente deve fazer, em ordem de prioridade, e com que grau de confiança.
