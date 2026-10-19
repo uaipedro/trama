@@ -29,8 +29,11 @@ print.tr_data_report <- function(x, ...) {
 
 #' Números e p-valores como se escrevem no relatório.
 #'
-#' `tr_data_fmt_num`: 4 significativos, vírgula decimal. `tr_data_fmt_p`: três
-#' casas, e "< 0,001" abaixo de 0,001. `NA` vira texto vazio.
+#' `tr_data_fmt_num`: 4 significativos, vírgula decimal, sem nunca arredondar a
+#' parte inteira: os significativos valem para as casas decimais, e número com
+#' mais algarismos inteiros que `digitos` sai arredondado à unidade (11887,03
+#' é "11.887", não "11.890"; #32). `tr_data_fmt_p`: três casas, e "< 0,001"
+#' abaixo de 0,001. `NA` vira texto vazio.
 #'
 #' @param v,p vetor numérico.
 #' @param digitos algarismos significativos.
@@ -41,6 +44,10 @@ tr_data_fmt_num <- function(v, digitos = 4L) {
   out <- formatC(signif(v, digitos), format = "fg", digits = digitos, big.mark = ".",
                  decimal.mark = ",")
   out[inteiro] <- formatC(v[inteiro], format = "d", big.mark = ".", decimal.mark = ",")
+  # Mais algarismos inteiros que significativos: `signif` comeria a parte
+  # inteira (11887 -> 11890), um número que não existe na tabela.
+  grande <- !inteiro & !is.na(v) & is.finite(v) & abs(v) >= 10^digitos - 0.5 & abs(v) < 1e15
+  out[grande] <- formatC(round(v[grande]), format = "d", big.mark = ".", decimal.mark = ",")
   # Muito perto de zero, o "fg" desenrolaria vinte zeros: notação científica.
   minusculo <- !is.na(v) & v != 0 & abs(v) < 1e-4
   out[minusculo] <- formatC(v[minusculo], format = "e", digits = 2L, decimal.mark = ",")

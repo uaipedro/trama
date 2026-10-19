@@ -62,6 +62,12 @@ test_that("a prévia traz dimensões, colunas e primeiras linhas", {
   expect_equal(pv$linhas[[1]][[5]], "setosa")
 })
 
+test_that("a prévia não arredonda a parte inteira (#32)", {
+  x <- data.frame(v = c(11887.02558, -123456.7, 968.94, 0.000123456, NA))
+  pv <- .tr_dataset_preview(x)
+  expect_equal(vapply(pv$linhas, function(l) l[[1]], 0), c(11887, -123457, 968.9, 0.0001235, NA))
+})
+
 test_that("transporte: lista, prévia e CSV pelo canal de eventos", {
   root <- withr::local_tempdir("proj")
   tr_project_new(root, character())
