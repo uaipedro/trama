@@ -55,7 +55,9 @@ Suggests:
     PRROC,
     Skillings.Mack,
     coin,
-    statmod
+    statmod,
+    tseries,
+    moments
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view
 Remotes:
