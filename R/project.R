@@ -340,3 +340,53 @@ print.tr_project <- function(x, ...) {
   # o bastante para manter mesmo sem um CI Windows rodando este teste.
   sort(gsub("\\\\", "/", arquivos))
 }
+
+# ---- chaves do trama.json que não são do núcleo -------------------------------------
+
+.TR_CFG_DO_NUCLEO <- c("collections", "temas", "tema_padrao", "marca", "sugestoes", "galeria")
+
+#' Chave própria de uma coleção ou pacote de apoio no `trama.json`
+#'
+#' O `trama.json` é a configuração do PROJETO: fica com ele e não vai no
+#' fluxo nem no que se publica. Uma coleção guarda ali o que é do projeto e
+#' não do documento — o `trama.publicar` guarda em `publicacoes` qual
+#' repositório cada nó publica. As chaves do núcleo (`collections`, `temas`,
+#' `tema_padrao`, `marca`, `sugestoes`, `galeria`) têm verbo próprio e são
+#' recusadas aqui. A gravação é atômica e mexe só na chave pedida.
+#' @param root Pasta do projeto (com `trama.json`).
+#' @param chave Nome da chave: minúsculas, dígitos e `_`.
+#' @param valor Qualquer coisa que vire JSON; `NULL` apaga a chave.
+#' @return `tr_project_config()`: o valor (lista, sem simplificar) ou `NULL`.
+#'   `tr_project_config_set()`: o valor gravado, invisível.
+#' @export
+tr_project_config <- function(root, chave) {
+  .tr_cfg_chave(chave)
+  .tr_cfg_ler(file.path(normalizePath(root, mustWork = TRUE), "trama.json"))[[chave]]
+}
+
+#' @rdname tr_project_config
+#' @export
+tr_project_config_set <- function(root, chave, valor) {
+  .tr_check_project(root)
+  .tr_cfg_chave(chave)
+  raiz <- normalizePath(root, mustWork = TRUE)
+  .tr_cfg_rewrite(file.path(raiz, "trama.json"), sprintf("a chave '%s'", chave),
+                  function(cfg) {
+                    # `cfg[[chave]] <- NULL` apaga; `cfg[chave] <- list(NULL)` gravaria `{}`.
+                    if (is.null(valor)) cfg[[chave]] <- NULL else cfg[chave] <- list(valor)
+                    cfg
+                  })
+  invisible(valor)
+}
+
+.tr_cfg_chave <- function(chave) {
+  if (!is.character(chave) || length(chave) != 1L || !grepl("^[a-z][a-z0-9_]*$", chave)) {
+    rlang::abort("Chave do trama.json: minúsculas, dígitos e '_', começando por letra.",
+                 class = "tr_error_bad_config_key")
+  }
+  if (chave %in% .TR_CFG_DO_NUCLEO) {
+    rlang::abort(sprintf("'%s' é chave do núcleo no trama.json e tem verbo próprio.", chave),
+                 class = "tr_error_bad_config_key")
+  }
+  invisible(chave)
+}

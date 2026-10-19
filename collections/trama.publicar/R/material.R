@@ -116,6 +116,8 @@ tr_publicar_layout <- function(layout, ids = character(), com_componente = ids) 
 #' @param itens Lista nomeada (pelo nó de origem) de `tr_publicar_item`.
 #' @param titulo,descricao,palavras_chave,autores,licenca,licenca_codigo,repositorio,versao,layout
 #'   Os params do nó.
+#' @param privado Repositório da publicação privado (o padrão é público; Pages
+#'   privado exige plano pago do GitHub).
 #' @param aceitar_dados_treino Publicar mesmo os itens marcados com
 #'   `dados_treino` (modelo que carrega linhas do treino). Desligado, eles são
 #'   recusados.
@@ -124,7 +126,7 @@ tr_publicar_layout <- function(layout, ids = character(), com_componente = ids) 
 tr_publicar_material <- function(itens = list(), titulo = "", descricao = "", palavras_chave = "",
                                  autores = "", licenca = "CC-BY-4.0", licenca_codigo = "MIT",
                                  repositorio = "", versao = "menor", layout = "",
-                                 aceitar_dados_treino = FALSE) {
+                                 aceitar_dados_treino = FALSE, privado = FALSE) {
   if (length(itens) && is.null(names(itens))) names(itens) <- paste0("item", seq_along(itens))
   for (nm in names(itens)) if (!inherits(itens[[nm]], "tr_publicar_item")) {
     rlang::abort(sprintf("A entrada '%s' n\u{E3}o \u{E9} um publicar/item.", nm), class = "tr_publicar_error_bad_item")
@@ -171,6 +173,7 @@ tr_publicar_material <- function(itens = list(), titulo = "", descricao = "", pa
                        (\(k) k[nzchar(k)])(),
                      autores = aut, licenca = licenca, licenca_codigo = licenca_codigo,
                      repositorio = trimws(repositorio), versao = .tr_publicar_proxima(versao),
+                     tipo_versao = versao, privado = isTRUE(privado),
                      aceitar_dados_treino = isTRUE(aceitar_dados_treino)),
     layout = lay$blocos, itens = ok, ambiente = .tr_publicar_ambiente(ok),
     avisos = c(avisos, lay$avisos), erros = erros,

@@ -23,11 +23,25 @@
   h <- tr_store_handle(proj$store, chave)
   if (is.null(h) || !identical(h$type, tipo)) recusa("O resultado não está mais no store: rode o fluxo de novo.")
   valor <- tr_store_get(proj$store, chave, ty)
+  # O nó cujo resultado é este, achado pelo plano só quando a ação pede (a
+  # chave é do conteúdo; o nó é o que o projeto usa para guardar o que é dele).
+  no <- function() .tr_acao_no(doc, proj, chave)
   ctx <- list(doc = doc, flow = flow, raiz = proj$root, store = proj$store, registry = proj$registry,
-              settings = proj$settings, chave = chave, servir = servir, responder = responder, extra = req$extra)
+              settings = proj$settings, chave = chave, no = no, servir = servir, responder = responder, extra = req$extra)
   res <- fn(valor, ctx)
   if (!is.null(res)) responder(res)
   invisible()
+}
+
+#' O id do nó que produziu a chave, pelo plano do documento atual (na raiz do
+#' projeto, como o editor: quem lê arquivo resolve o caminho relativo a ela).
+#' @noRd
+.tr_acao_no <- function(doc, proj, chave) {
+  antes <- setwd(proj$root)
+  on.exit(setwd(antes))
+  plano <- tr_plan(doc, registry = proj$registry, store = proj$store, settings = proj$settings)
+  for (u in plano$units) if (chave %in% unlist(u$outputs)) return(u$node)
+  NULL
 }
 
 #' Serve uma pasta pelo servidor do editor: `trama-acao-<nome>/`.

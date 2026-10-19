@@ -1,6 +1,6 @@
 Package: trama.publicar
 Title: Publish trama Flows as Reproducible Research Packages
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Packages a trama flow, the results linked to it and its models
     (without training data) as an RO-Crate, with a Quarto page where models
@@ -9,9 +9,13 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.5.18),
+    trama (>= 0.5.19),
     trama.view,
     trama.models (>= 0.6.10),
+    trama.github (>= 0.1.1),
+    curl,
+    stats,
+    utils,
     jsonlite,
     rlang,
     digest,

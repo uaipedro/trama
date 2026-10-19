@@ -246,3 +246,18 @@ test_that("pasta inexistente é a mesma recusa de tr_project_at()", {
   err <- tryCatch(.tr_dir_listing(file.path(tempfile(), "nada")), error = identity)
   expect_equal(class(err)[[1]], "tr_error_bad_root")
 })
+
+test_that("chave própria no trama.json: grava, lê, apaga, e recusa as do núcleo", {
+  raiz <- withr::local_tempdir()
+  tr_project(raiz)
+  expect_null(tr_project_config(raiz, "publicacoes"))
+  tr_project_config_set(raiz, "publicacoes", list(n1 = list(repo = "a/b", versao = "0.1.0")))
+  expect_identical(tr_project_config(raiz, "publicacoes")$n1$repo, "a/b")
+  # O resto do manifesto continua como estava.
+  expect_length(unlist(jsonlite::fromJSON(file.path(raiz, "trama.json"))$collections), 0L)
+  tr_project_config_set(raiz, "publicacoes", NULL)
+  expect_null(tr_project_config(raiz, "publicacoes"))
+  expect_error(tr_project_config_set(raiz, "temas", list()), class = "tr_error_bad_config_key")
+  expect_error(tr_project_config_set(raiz, "Ruim-Nome", 1), class = "tr_error_bad_config_key")
+  expect_error(tr_project_config_set(withr::local_tempdir(), "x", 1), class = "tr_error_not_project")
+})

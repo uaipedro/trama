@@ -1,3 +1,8 @@
+# trama 0.5.19
+
+* `tr_project_config(root, chave)` e `tr_project_config_set(root, chave, valor)`: chave própria de uma coleção ou pacote de apoio no `trama.json` (configuração do projeto, que não vai no fluxo nem no que se publica). As chaves do núcleo são recusadas; a gravação é atômica e mexe só na chave pedida. O `trama.publicar` guarda ali as publicações do projeto.
+* Ação de card: o `ctx` ganha `no()`, o id do nó dono do resultado (pelo plano).
+
 # trama 0.5.18
 
 * `tr_port(named = TRUE)`: numa porta múltipla, a lista chega ao `fn` nomeada pelo id do nó de origem (`nó.saída` quando o mesmo nó liga duas saídas), e os ids entram na chave de cache. Fora de região de fluxo.
