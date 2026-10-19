@@ -1,0 +1,32 @@
+/* Menu GitHub (trama.github). Usa os tokens do editor (--tr-*) para seguir
+   o tema; o popover herda `.tr-toolbar-pop` e se ancora à direita da barra,
+   como o menu "⋯". */
+.tr-gh-pop{right:0;width:300px;gap:8px;padding:12px;font-size:12px}
+.tr-gh .tr-tb-btn .tr-ic{width:18px;height:18px}
+.tr-gh-luz{position:absolute;right:5px;bottom:5px;width:7px;height:7px;border-radius:50%;
+  box-shadow:0 0 0 2px var(--tr-panel)}
+.tr-gh-luz-ok{background:var(--tr-ok)}
+.tr-gh-luz-erro{background:var(--tr-err)}
+.tr-gh-titulo{font-size:13px;font-weight:700;color:var(--tr-fg)}
+.tr-gh-texto{margin:0;color:var(--tr-fg);line-height:1.45}
+.tr-gh-dim{color:var(--tr-dim)}
+.tr-gh-nota{margin:0;font-size:11px;line-height:1.4}
+.tr-gh-aviso{margin:0;padding:7px 9px;border-radius:7px;background:var(--tr-field);color:var(--tr-dim);line-height:1.4}
+.tr-gh-erro{padding:7px 9px;border-radius:7px;background:var(--tr-err-bg);color:var(--tr-err-fg);line-height:1.4}
+.tr-gh-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 10px;
+  border:1px solid var(--tr-line);border-radius:8px;background:none;color:var(--tr-fg);font:inherit;cursor:pointer}
+.tr-gh-btn:hover{background:var(--tr-hover)}
+.tr-gh-primario{background:var(--tr-accent);border-color:var(--tr-accent);color:var(--tr-accent-fg,#fff);font-weight:600}
+.tr-gh-primario:hover{background:var(--tr-accent);filter:brightness(1.08)}
+.tr-gh-codigo{padding:10px;border-radius:8px;background:var(--tr-field);text-align:center;
+  font:700 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:var(--tr-fg);user-select:all}
+.tr-gh-espera{margin:0;color:var(--tr-dim);font-size:11px}
+.tr-gh-usuario{display:flex;align-items:center;gap:10px}
+.tr-gh-avatar{width:36px;height:36px;border-radius:50%;flex:none}
+.tr-gh-nome{font-weight:700;color:var(--tr-fg)}
+.tr-gh-guia{display:flex;flex-direction:column;gap:8px;max-height:min(70vh,520px);overflow:auto}
+.tr-gh-passos{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.tr-gh-passos strong{color:var(--tr-fg)}
+.tr-gh-passos p{margin:2px 0 0;color:var(--tr-dim);line-height:1.4}
+.tr-gh-link{margin-top:4px;padding:0;border:0;background:none;color:var(--tr-accent);font:inherit;cursor:pointer}
+.tr-gh-link:hover{text-decoration:underline}
