@@ -63,3 +63,29 @@ test_that("Quarto que falha: erro com o log", {
   cat("\n{{< include _trama/nao-existe/x.md >}}\n", file = qmd, append = TRUE)
   expect_error(tr_documento_renderizar(qmd, "html"), class = "tr_documento_erro_render")
 })
+
+test_that("cada modelo embutido renderiza nos formatos dele", {
+  skip_sem_quarto()
+  skip_if_not(identical(Sys.getenv("TRAMA_RENDER_TODOS"), "1"), "TRAMA_RENDER_TODOS=1 para renderizar os modelos")
+  proj <- local_projeto()
+  salvar_fluxo(proj, no("tab", n = 4L))
+  tr_documento_perfil_salvar("aluno-ufla", "Ana Souza", instituicao = "UFLA", curso = "Estatística",
+                             orientador = "Prof. Beltrano")
+  casos <- list(ufla = c("pdf", "docx"), consultoria = c("pdf", "html"), artigo = "pdf",
+                slides = "revealjs", painel = "dashboard")
+  for (m in names(casos)) {
+    qmd <- tr_documento_criar(m, proj, modelo = m)
+    tr_documento_inserir(qmd, "tab", proj)
+    for (f in casos[[m]]) {
+      saida <- tr_documento_renderizar(qmd, f)
+      expect_true(file.exists(saida), label = paste(m, f))
+      if (f == "pdf") expect_identical(readBin(saida, "raw", 4L), charToRaw("%PDF"))
+      if (f == "docx") expect_identical(readBin(saida, "raw", 2L), charToRaw("PK"))
+      if (f %in% c("html", "revealjs", "dashboard")) {
+        h <- paste(readLines(saida, warn = FALSE), collapse = "\n")
+        expect_match(h, 'lang="pt-BR"', fixed = TRUE, label = paste(m, f))
+        expect_match(h, "Tabela&nbsp;1", fixed = TRUE, label = paste(m, f))
+      }
+    }
+  }
+})
