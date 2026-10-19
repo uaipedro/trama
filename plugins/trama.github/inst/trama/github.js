@@ -5,7 +5,7 @@
 // cima, mensagem `trama_github` ({tipo, ...}) para baixo.
 
 import React from "react";
-import { h, registerToolbarItem, editorAction } from "trama";
+import { h, registerToolbarItem } from "trama";
 import { INICIAL, reduzir, rotuloFonte, podeSair, indicador, dica } from "./estado.js";
 import { PAINEL_INICIAL, reduzirPainel, podeSalvar, nomeRepo, tamanho, resumoArquivos,
          dataCurta, situacaoExecucao } from "./painel.js";
@@ -254,15 +254,15 @@ function SecaoProjeto({ pr, login, despachar }) {
 function SecaoPublicacoes({ pb, despachar }) {
   const cab = h(Cabecalho, { key: "cab", titulo: "Publicações", selo: "públicas" });
   const corpo = pb.fase !== "pronto" ? h("p", { key: "c", className: "tr-gh-dim" }, "Lendo as publicações…")
-    : !pb.disponivel ? h("p", { key: "c", className: "tr-gh-dim" }, "Para publicar resultados, instale a coleção trama.publicar.")
+    : !pb.disponivel ? h("p", { key: "c", className: "tr-gh-dim" }, "Para publicar documentos, instale o plugin trama.documentos.")
     : !pb.itens.length ? h("p", { key: "c", className: "tr-gh-dim" },
-        "Nenhuma publicação neste projeto ainda. Ligue um bloco Publicar ao que quer mostrar.")
+        "Nenhuma publicação neste projeto ainda. Publique um documento pelo painel Documentos.")
     : h("ul", { key: "l", className: "tr-gh-lista" }, pb.itens.map((p) => {
         const sit = situacaoExecucao(p.execucao);
         const n = (p.versoes || []).length;
-        return h("li", { key: p.no, className: "tr-gh-pub" }, [
+        return h("li", { key: p.documento, className: "tr-gh-pub" }, [
           h("div", { key: "t", className: "tr-gh-linha" }, [
-            h("span", { key: "n", className: "tr-gh-cresce tr-gh-repo" }, (p.repo || "").split("/").pop()),
+            h("span", { key: "n", className: "tr-gh-cresce tr-gh-repo", title: p.repo }, p.nome || (p.repo || "").split("/").pop()),
             sit ? h("span", { key: "s", className: `tr-gh-chip tr-gh-chip-${sit.tom}` }, sit.rotulo) : null,
           ]),
           h("div", { key: "d", className: "tr-gh-dim" },
@@ -275,8 +275,12 @@ function SecaoPublicacoes({ pb, despachar }) {
             p.url ? h("button", { key: "g", type: "button", className: "tr-gh-link", onClick: () => abrirLink(p.url) }, "Repositório ↗") : null,
             sit?.tom === "erro" && p.execucao?.url
               ? h("button", { key: "x", type: "button", className: "tr-gh-link", onClick: () => abrirLink(p.execucao.url) }, "Ver o erro ↗") : null,
-            h("button", { key: "b", type: "button", className: "tr-gh-link", title: "Publicar uma versão nova pelo bloco",
-                          onClick: () => { if (editorAction("irAoBloco", p.no)) despachar({ tipo: "fechar" }); } }, "Ir ao bloco"),
+            // O painel Documentos é de outro plugin: um evento do navegador,
+            // sem um depender do outro.
+            h("button", { key: "b", type: "button", className: "tr-gh-link", title: "Publicar uma versão nova pelo documento",
+                          onClick: () => { window.dispatchEvent(new CustomEvent("trama:documentos",
+                                             { detail: { acao: "abrir", documento: p.documento } }));
+                                           despachar({ tipo: "fechar" }); } }, "Abrir o documento"),
           ]),
         ]);
       }));

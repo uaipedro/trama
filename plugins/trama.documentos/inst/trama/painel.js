@@ -51,6 +51,9 @@ const semChave = (o, k) => { const r = { ...o }; delete r[k]; return r; };
 export function reduzir(s, a) {
   switch (a.tipo) {
     case "abrir": return { ...s, aberto: true, aviso: null, erro: null };
+    // Pedido de fora (o menu GitHub, na seção Publicações): abre neste documento.
+    case "abrir_documento":
+      return { ...s, aberto: true, aba: "documentos", selecionado: a.documento || s.selecionado, aviso: null, erro: null };
     case "fechar": return { ...s, aberto: false, confirmar: null };
     // O aviso e o erro são da aba em que aconteceram.
     case "aba": return { ...s, aba: a.aba, aviso: null, erro: null };

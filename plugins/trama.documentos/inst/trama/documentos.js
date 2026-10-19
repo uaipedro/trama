@@ -33,6 +33,12 @@ registerCardMenuItem("documentos-inserir", {
   acao: (card) => ouvintes.forEach((f) => f({ tipo: "inserir_card", card })),
 });
 
+// Outro plugin (o menu GitHub) pede para abrir um documento: evento do
+// navegador, sem um plugin importar o outro.
+window.addEventListener("trama:documentos", (e) => {
+  if (e.detail?.acao === "abrir") ouvintes.forEach((f) => f({ tipo: "abrir_documento", documento: e.detail.documento }));
+});
+
 const abrirLink = (url) => window.open(url, "_blank", "noopener");
 
 // Ícone de documento (traço, `currentColor`, como os da barra).

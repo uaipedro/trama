@@ -145,3 +145,10 @@ test("publicar: conferir, bloqueio desliga, confirmar e enviar", () => {
   assert.equal(s.publicar.enviando, false);
   assert.equal(s.erro, "GitHub fora");
 });
+
+test("o menu GitHub abre o painel num documento", () => {
+  const s = passo(INICIAL, lista, { tipo: "abrir_documento", documento: "documentos/rel/rel.qmd" });
+  assert.equal(s.aberto, true);
+  assert.equal(s.aba, "documentos");
+  assert.equal(s.selecionado, "documentos/rel/rel.qmd");
+});

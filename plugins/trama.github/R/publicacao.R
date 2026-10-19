@@ -1,4 +1,4 @@
-# O que a publicação (trama.publicar, #14) pede além de repositório, commit e
+# O que a publicação (trama.documentos, #25) pede além de repositório, commit e
 # tag: as versões já publicadas, a release de uma tag, o GitHub Pages em modo
 # Actions, a regra do ambiente que deixa a tag publicar, e o acompanhamento do
 # workflow que a tag dispara.

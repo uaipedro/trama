@@ -12,9 +12,10 @@ conta e duas seções:
 - **Projeto (privado):** guarda versões do projeto num repositório privado
   (camada 2 da visão, #15). "Salvar versão" com uma frase, histórico,
   restaurar uma versão e escolher que arquivos de dados entram.
-- **Publicações (públicas):** os repositórios que os nós `publicar` do projeto
-  criaram (lidos do `trama.publicar`, se instalado), com versões, links da
-  página e da release, a situação do último workflow do Actions e "ir ao bloco".
+- **Publicações (públicas):** os repositórios em que os documentos do projeto
+  foram publicados (lidos do `trama.documentos`, se instalado), com versões,
+  links da página e da release, a situação do último workflow do Actions e
+  "abrir o documento" no painel Documentos.
 
 ## Versionar o projeto
 

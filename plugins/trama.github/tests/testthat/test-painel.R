@@ -82,9 +82,9 @@ test_that("restaurar escreve, recarrega o editor e devolve a pasta da cópia", {
   expect_equal(readLines(file.path(raiz, "analise.R")), "x <- 1")
 })
 
-test_that("publicações: sem trama.publicar, a seção diz que não está disponível", {
+test_that("publicações: sem trama.documentos, a seção diz que não está disponível", {
   local_github_falso()
-  local_mocked_bindings(.gh_publicar_leitor = function() NULL, .package = "trama.github")
+  local_mocked_bindings(.gh_publicacoes_leitor = function() NULL, .package = "trama.github")
   p <- painel_de_teste(projeto_simples())
   p$receber(list(acao = "publicacoes"))
   expect_false(p$ultima()$disponivel)
@@ -98,18 +98,19 @@ test_that("publicações: registro do projeto + versões e Actions lidos na hora
   falso_post("/_falso/config", list(runs = list(list(id = 7, name = "publicar", status = "completed",
                                                      conclusion = "success", head_sha = c1$sha,
                                                      html_url = "https://github.com/pesquisadora/pub/actions/runs/7"))))
-  registro <- data.frame(no = c("n1", "n2"), repo = c("pesquisadora/pub", "pesquisadora/sumiu"),
+  registro <- data.frame(documento = c("documentos/a/a.qmd", "documentos/b/b.qmd"), repo = c("pesquisadora/pub", "pesquisadora/sumiu"),
                          url = c("https://github.com/pesquisadora/pub", "https://github.com/pesquisadora/sumiu"),
                          pagina = "https://pesquisadora.github.io/pub/", ultimo = NA, versao = "1.0.0",
                          tag = "v1.0.0", data = "2026-10-19", stringsAsFactors = FALSE)
-  local_mocked_bindings(.gh_publicar_leitor = function() function(root) registro, .package = "trama.github")
+  local_mocked_bindings(.gh_publicacoes_leitor = function() function(root) registro, .package = "trama.github")
   p <- painel_de_teste(projeto_simples())
   p$receber(list(acao = "publicacoes"))
   m <- p$ultima()
   expect_true(m$disponivel)
   expect_length(m$itens, 2)
   a <- m$itens[[1]]
-  expect_equal(a$no, "n1")
+  expect_equal(a$documento, "documentos/a/a.qmd")
+  expect_equal(a$nome, "a")
   expect_equal(unlist(a$versoes), "v1.0.0")
   expect_equal(a$execucao$conclusao, "success")
   expect_equal(a$release, "https://github.com/pesquisadora/pub/releases/tag/v1.0.0")
