@@ -1,8 +1,8 @@
-# Client ID do OAuth App "trama" no GitHub. PONTO ÚNICO: quando o app for
-# registrado, o valor entra aqui. Client ID é público (vai no código de todo
+# Client ID do OAuth App "trama" no GitHub (registrado em 19/10/2026). PONTO
+# ÚNICO do valor oficial. Client ID é público (vai no código de todo
 # app que usa device flow, como o do `gh`); o client secret NUNCA entra no
 # pacote, e o device flow não precisa dele.
-.CLIENT_ID_TRAMA <- ""
+.CLIENT_ID_TRAMA <- "Ov23liz9McxZtjHScPFQ"
 
 #' Client ID do OAuth App usado no login
 #'

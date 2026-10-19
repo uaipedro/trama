@@ -31,8 +31,9 @@ o que o trama guardou.
 
 O login pelo navegador usa o OAuth App "trama". O Client ID vem de
 `options(trama.github.client_id = ...)`, da variável `TRAMA_GITHUB_CLIENT_ID`
-ou da constante `.CLIENT_ID_TRAMA` em `R/client-id.R` (ponto único para fixar
-o valor do app oficial). Não há client secret.
+ou da constante `.CLIENT_ID_TRAMA` em `R/client-id.R`, que guarda o Client ID
+do app oficial. As duas primeiras servem para apontar para outro app. Não há
+client secret.
 
 ## Testes
 
