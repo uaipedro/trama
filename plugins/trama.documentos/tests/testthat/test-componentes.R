@@ -104,7 +104,7 @@ test_that("o contrato da parte recusa caminho e o nome do manifesto", {
   expect_error(tr_documento_parte("x", arquivos = list("a/b.txt" = "a")), class = "tr_documento_erro_parte")
   expect_error(tr_documento_parte("x", arquivos = list("a")), class = "tr_documento_erro_parte")
   expect_error(tr_documento_parte("x", arquivos = list(trama.json = "{}")), class = "tr_documento_erro_parte")
-  expect_identical(rawToChar(tr_documento_parte("x", arquivos = list(n.md = c("a", "b")))$arquivos$n.md), "a\nb")
+  expect_identical(rawToChar(tr_documento_parte("x", arquivos = list(n.md = c("a", "b")))$arquivos$n.md), "a\nb\n")
 })
 
 test_that("de ponta a ponta com as coleções reais: gráfico e modelo no documento", {

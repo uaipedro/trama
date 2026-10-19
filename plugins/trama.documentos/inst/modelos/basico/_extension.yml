@@ -6,6 +6,7 @@ contributes:
   formats:
     common:
       lang: pt-BR
+      date-format: long
       number-sections: true
       fig-cap-location: bottom
       tbl-cap-location: top

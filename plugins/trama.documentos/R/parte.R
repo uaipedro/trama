@@ -38,7 +38,8 @@ tr_documento_parte <- function(tipo, titulo = "", arquivos = list(), corpo = cha
   }
   if (any(grepl("/|\\\\|^\\.\\.?$", names(arquivos)))) ruim("Nome de arquivo da parte com caminho: s\u{F3} o nome.")
   if ("trama.json" %in% names(arquivos)) ruim("'trama.json' \u{E9} o manifesto do motor; escolha outro nome.")
-  arquivos <- lapply(arquivos, function(a) if (is.raw(a)) a else charToRaw(enc2utf8(paste(a, collapse = "\n"))))
+  # Texto termina em quebra de linha, como todo arquivo de texto.
+  arquivos <- lapply(arquivos, function(a) if (is.raw(a)) a else charToRaw(enc2utf8(paste0(paste(a, collapse = "\n"), "\n"))))
   structure(list(tipo = tipo, titulo = as.character(titulo), arquivos = arquivos,
                  corpo = as.character(corpo), metadados = metadados, dados_treino = dados_treino,
                  avisos = as.character(avisos), erro = erro),
