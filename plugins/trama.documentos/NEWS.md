@@ -1,4 +1,4 @@
-# trama.documentos 0.2.0
+# trama.documentos 0.3.0
 
 * Modelos (#24). Galeria: `tr_documento_modelo()` (detalhe), `tr_documento_modelo_criar()`, `_editar()` (título, descrição, formatos, cores, fontes, logo, capa, CSL, perfil sugerido), `_duplicar()`, `_remover()`, `_exportar()` e `_importar()` (zip, inclusive o formato das extensões Quarto publicadas). Editar um embutido cria a cópia do usuário de mesmo nome; remover a cópia volta ao embutido. Modelo inválido aparece na galeria com o problema (`valido`, `problema`) e criar documento com ele dá erro claro.
 * Embutidos novos: **UFLA (ABNT)** (Typst + `abnt.csl` + `referencia.docx` + filtro, adaptados do modelo ABNT em Quarto do kit `pedro-e-pedro`; origem e licenças em `inst/modelos/ufla/ORIGEM.md` e `inst/COPYRIGHTS`), **Consultoria** (capa na cor da marca; identidade de exemplo da Yucca Data Science, com logo genérico), **Artigo**, **Slides** (revealjs) e **Dashboard** (`painel`).
