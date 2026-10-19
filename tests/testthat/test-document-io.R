@@ -306,3 +306,28 @@ test_that("set_saida recusa porta que não é saída do nó", {
   expect_error(tr_doc_apply(d, list(op = "set_saida", node = "a", port = "nada", nome = "X"), m$reg),
                class = "tr_error_bad_op")
 })
+
+test_that("param de lista sobrevive a abrir, salvar e rodar (#32)", {
+  # O editor regravava `["ibv","sp"]` como "ibv,sp" e o bloco, que exige
+  # lista, recusava. No núcleo a lista tem que voltar lista em cada passo: op
+  # vinda do JSON (lista crua), documento gravado e reaberto, e o `fn`.
+  reg <- tr_registry()
+  tr_use(tr_collection(
+    id = "l", version = "1.0.0", label = "Lista",
+    types = list(tr_type("l/v", label = "Vetor")),
+    nodes = list(tr_node("l/fonte", outputs = list(out = "l/v"), description = "Lista.",
+                         params = list(valores = tr_param_col(character(), multi = TRUE)),
+                         fn = function(valores) {
+                           stopifnot(is.character(valores), length(valores) == 2L)
+                           valores
+                         }))), registry = reg)
+  op <- jsonlite::fromJSON('{"op":"add_node","type":"l/fonte","id":"f","params":{"valores":["ibv","sp"]}}',
+                           simplifyVector = FALSE)
+  doc <- tr_doc_apply(tr_doc(), op, reg)
+  txt <- tr_doc_json(doc)
+  expect_match(as.character(txt), '"valores": \\[\\s*"ibv",\\s*"sp"\\s*\\]')
+  back <- tr_doc_parse(txt)
+  expect_identical(back$nodes$f$params$valores, c("ibv", "sp"))
+  expect_identical(tr_doc_parse(tr_doc_json(back))$nodes$f$params$valores, c("ibv", "sp"))
+  expect_identical(tr_value(back, "f", registry = reg, store = tmp_store()), c("ibv", "sp"))
+})

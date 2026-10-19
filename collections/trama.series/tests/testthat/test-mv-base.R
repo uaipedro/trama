@@ -37,6 +37,16 @@ test_that("tabela -> séries -> tabela volta igual", {
   expect_error(tr_series_from_table_mts(tab, valores = "e"), class = "tr_series_error_blank_param")
 })
 
+test_that("valores aceita o texto com vírgula que o editor grava (#32)", {
+  tab <- .tr_series_mts_tabela(canada())
+  lista <- tr_series_from_table_mts(tab, valores = c("e", "prod"), tempo = "tempo", frequencia = 4L)
+  for (v in list("e,prod", "e, prod", " e ,prod, ", list("e", "prod"))) {
+    m <- tr_series_from_table_mts(tab, valores = v, tempo = "tempo", frequencia = 4L)
+    expect_identical(m, lista)
+  }
+  expect_error(tr_series_from_table_mts(tab, valores = "e, "), class = "tr_series_error_blank_param")
+})
+
 test_that("o tipo series/mts recusa série univariada e nomes repetidos", {
   expect_error(.tr_series_guard_mts(datasets::Nile), class = "tr_series_error_not_multivariate")
   x <- canada()[, 1:2]; colnames(x) <- c("a", "a")

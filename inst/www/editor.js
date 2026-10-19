@@ -51,6 +51,7 @@ import { nomeDaSaida, rotuloDaEntrada } from "./saidas.js";
 import { reusarNos } from "./reuso.js";
 import { Markdown } from "./markdown.js";
 import { fontesPorPorta } from "./fontes.js";
+import { derivas as derivasDe, aceitos, pendentes, opAceitar, versoes, titulo as tituloDeriva } from "./deriva.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -1883,6 +1884,11 @@ function App() {
   const [dragType, setDragType] = useState(null);
   const [dragFrom, setDragFrom] = useState(null);
   const [banner, setBanner] = useState(null);
+  // Blocos em `version_drift` (deriva.js): aviso próprio, com "aceitar", e
+  // não o banner genérico — que some ao clicar e é sobrescrito pelo próximo
+  // aviso. Só sai daqui por aceite (ou pelo nó sair do fluxo), nunca sozinho.
+  const [derivas, setDerivas] = useState([]);
+  const [derivasAbertas, setDerivasAbertas] = useState(false);
   const [helpFor, setHelpFor] = useState(null);
   const [vista, setVista] = useState(null); // id do card aberto em tela cheia (P)
   // Galeria: itens que o servidor sincronizou (mensagem `galeria`), o rolo
@@ -2871,8 +2877,12 @@ function App() {
             op: "move", node: x.id, x: x.position.x, y: x.position.y }));
           if (mv.length) enviarOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv });
         }
-        if (m.problems?.length) {
-          setBanner(m.problems.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
+        // `problems` só vem quando o servidor revalida (abrir, desfazer,
+        // refazer); o eco de op estrutural não traz, e o aviso fica como está.
+        if (m.problems) {
+          setDerivas(derivasDe(m.problems));
+          const outros = m.problems.filter((p) => p.kind !== "version_drift");
+          if (outros.length) setBanner(outros.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
         }
         return;
       }
@@ -2880,6 +2890,7 @@ function App() {
       if ((m.type === "op_applied" || m.type === "op_rejected") && m.seq === organizandoSeq.current) fimOrganizar();
       if (m.type === "op_applied") {
         filaOpsRef.current.aplicada(m.seq, m.rev);
+        if (aceitos(m.op).length) setDerivas((l) => pendentes(l, m.op));
         // Rede de segurança do espelho de `ops.js`: o servidor diz se a op
         // recomputa. Não recomputando, nenhuma run vai tirar os cards do "na
         // fila" que `pushOp` pintou — volta ao repouso aqui.
@@ -4102,6 +4113,41 @@ function App() {
                      { zoom: Math.min(1, Math.max(0.5, z)), duration: 350 });
     }, 60);
   };
+  // Aviso de versão nova (#32). Recolhido, é uma linha com "aceitar todos";
+  // aberto, lista cada bloco com o próprio "aceitar" e o nome leva ao card.
+  // Aceitar é a op `accept_version`: cosmética (não recomputa) e desfeita
+  // pelo Ctrl+Z como qualquer edição — o desfazer revalida e o aviso volta.
+  const avisoDeriva = () => {
+    const ids = new Set(nodes.map((n) => n.id));
+    const lista = pendentes(derivas, null, (id) => ids.has(id));
+    if (!lista.length) return null;
+    const rotulo = (id) => nodes.find((n) => n.id === id)?.data?.label || id;
+    const aceitar = (l) => { const op = opAceitar(l); if (op) pushOp(op); };
+    const todos = opAceitar(lista);
+    return h("div", { key: "dv", className: "tr-deriva", role: "status" }, [
+      h("div", { key: "t", className: "tr-deriva-topo" }, [
+        h("span", { key: "m", className: "tr-deriva-msg" }, tituloDeriva(lista)),
+        h("button", { key: "v", type: "button", className: "tr-deriva-btn",
+                      onClick: () => setDerivasAbertas((x) => !x) },
+          derivasAbertas ? "esconder lista" : "ver blocos"),
+        todos ? h("button", { key: "a", type: "button", className: "tr-deriva-btn tr-deriva-aceitar",
+                              title: "Grava a versão nova em todos; Ctrl+Z desfaz.",
+                              onClick: () => aceitar(lista) },
+          lista.length === 1 ? "aceitar" : "aceitar todos") : null,
+      ]),
+      derivasAbertas ? h("ul", { key: "l", className: "tr-deriva-lista" }, lista.map((d) =>
+        h("li", { key: d.node }, [
+          h("button", { key: "n", type: "button", className: "tr-deriva-no", title: "Ir ao bloco",
+                        onClick: () => irAoBloco(d.node) }, rotulo(d.node)),
+          h("span", { key: "v", className: "tr-deriva-ver" }, ` ${d.type} ${versoes(d)}`),
+          d.aceitavel
+            ? h("button", { key: "a", type: "button", className: "tr-deriva-btn",
+                            onClick: () => aceitar([d]) }, "aceitar")
+            : h("span", { key: "x", className: "tr-deriva-ver" },
+                " — salvo numa versão mais nova que a instalada: atualize a coleção"),
+        ]))) : null,
+    ]);
+  };
   // Ações que um plugin pode pedir (`editorAction` no runtime).
   useEffect(() => { setEditorActions({ irAoBloco }); });
   const andar = (tecla) => {
@@ -5193,6 +5239,7 @@ function App() {
       onCriar: criarPrancheta, onFechar: fecharPrancheta }) : null,
     banner ? h("div", { key: "bn", className: "tr-banner", onClick: () => setBanner(null) },
       banner) : null,
+    avisoDeriva(),
     abrindo ? h(ProjectDialog, { key: "pd", listagem, atual: projeto?.root, enviando, arquivoInicial: arquivoSolto,
       onBrowse: (p) => sendInput("tr_browse", { seq: ++seqCounter, path: p }),
       onOpen: (p) => { setEnviando("abrir");

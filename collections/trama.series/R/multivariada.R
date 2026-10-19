@@ -249,9 +249,14 @@ tr_series_pick <- function(series, variavel = "") {
 #' Reaproveita o `series/from_table` coluna a coluna, para que as regras de
 #' calendário (tempo repetido, buraco, início) sejam as mesmas, ditas com as
 #' mesmas mensagens.
+#'
+#' `valores` vem nas duas formas de todo campo de colunas: lista
+#' (`c("ibv", "sp")`, a do MCP e do R) ou texto separado por vírgula
+#' (`"ibv, sp"`, a que o campo do editor escreve). Recusar o texto quebrava o
+#' fluxo aberto no editor (#32).
 #' @export
 tr_series_from_table_mts <- function(dados, valores = character(), tempo = "", frequencia = 12L, inicio = "") {
-  valores <- as.character(unlist(valores %||% character()))
+  valores <- trimws(unlist(strsplit(as.character(unlist(valores %||% character())), ",", fixed = TRUE)))
   valores <- valores[nzchar(valores)]
   if (length(valores) < 2L) {
     .tr_series_abort("tr_series_error_blank_param",

@@ -122,6 +122,29 @@ test_that("cmd add --from vira UM batch: nó, posição sem sobrepor e ligação
   })
 })
 
+test_that("cmd accept aceita a versão nova dos blocos em deriva (#32)", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p, autosave = FALSE), {
+    session$sendCustomMessage <- function(type, message) NULL
+    session$setInputs(tr_ready = 1)
+    expect_error(tr_control_cmd(list(cmd = "accept")), "Nenhum bloco")
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "a"))
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "b"))
+    # Fluxo salvo com a v0 do bloco: deriva, sem migração.
+    doc <- rv_doc(); doc$nodes$a$type_version <- 0L; doc$nodes$b$type_version <- 0L; rv_doc(doc)
+    kinds <- function() vapply(tr_control_state()$problems, function(x) x$kind, "")
+    expect_equal(sum(kinds() == "version_drift"), 2L)
+    r <- tr_control_cmd(list(cmd = "accept", nodes = list("a")))
+    expect_true(r$ok)
+    expect_equal(r$op$op, "accept_version")
+    expect_equal(sum(kinds() == "version_drift"), 1L)
+    r <- tr_control_cmd(list(cmd = "accept"))
+    expect_true(r$ok)
+    expect_false("version_drift" %in% kinds())
+  })
+})
+
 test_that("op aplicada continua confirmada depois de trabalho lento", {
   limpar_ctl()
   p <- projeto_ctl()

@@ -16,6 +16,19 @@ const serve = (spec, c) => papelDe(spec) === "qualquer" || c.papel === papelDe(s
 const vazio = (v) => v === "" || v === null || v === undefined;
 const nomes = (v) => (vazio(v) ? [] : String(v).split(",").map((s) => s.trim()).filter(Boolean));
 
+// O campo de colunas é texto ("a, b"), mas o valor no documento pode ser
+// lista (`["a", "b"]`, a forma do MCP, do R e de `tr_param_col(character())`)
+// ou texto. `colsTexto` é o que o campo mostra; `colsValor` é o que ele grava,
+// na MESMA forma do valor atual (ou do padrão, se o param está vazio). Antes,
+// o campo gravava `String(lista)` — "a,b" — em qualquer blur, porque o texto
+// nunca era `===` à lista: o fluxo aberto no editor saía com a lista virada
+// texto, e o bloco que só aceitava lista quebrava (#32).
+export const colsTexto = (v) => (Array.isArray(v) ? v.join(", ") : vazio(v) ? "" : String(v));
+export function colsValor(texto, atual, padrao) {
+  const forma = vazio(atual) ? padrao : atual;
+  return Array.isArray(forma) ? nomes(texto) : texto;
+}
+
 export function opcoes(spec, schema) {
   if (!schema) return [];
   return (schema.colunas || []).map((c) => ({ nome: c.nome, papel: c.papel, serve: serve(spec, c) }));

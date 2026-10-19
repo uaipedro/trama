@@ -77,6 +77,53 @@ test_that("sem caminho de migração, a deriva continua reportada como antes", {
   kinds <- vapply(tr_doc_validate(doc, reg), function(p) p$kind, "")
   expect_true("version_drift" %in% kinds)
   expect_identical(tr_doc_migrate(doc, reg)$nodes$a$type_version, 1L)
+  # O aviso diz se dá para aceitar: não dá quando o documento é mais novo.
+  deriva <- function(d) Filter(function(p) p$kind == "version_drift", tr_doc_validate(d, reg))[[1]]
+  expect_true(deriva(doc)$aceitavel)
+  expect_false(deriva(doc_velho(5L, '{"valor":2}', tipo = "m/fixo"))$aceitavel)
+})
+
+test_that("aceitar a versão nova tira a deriva, sem mudar params (#32)", {
+  reg <- migra_registry()
+  doc <- doc_velho(1L, '{"valor":2}', tipo = "m/fixo")
+  aceito <- tr_doc_accept_version(doc, registry = reg)
+  expect_identical(aceito$nodes$a$type_version, 2L)
+  expect_equal(aceito$nodes$a$params, doc$nodes$a$params)
+  expect_identical(aceito$rev, doc$rev + 1L)
+  expect_false("version_drift" %in% vapply(tr_doc_validate(aceito, reg), function(p) p$kind, ""))
+  # Gravado e reaberto, continua aceito; sem nada a aceitar, o documento é o mesmo.
+  volta <- tr_doc_parse(tr_doc_json(aceito))
+  expect_identical(volta$nodes$a$type_version, 2L)
+  expect_identical(tr_doc_accept_version(volta, registry = reg), volta)
+  # Não é semântica: aceitar não recomputa (a chave já usa a versão da spec).
+  expect_false(tr_op_semantic(list(op = "accept_version", nodes = "a")))
+})
+
+test_that("aceitar recusa nó atual, mais novo que a spec ou com migração pendente (#32)", {
+  reg <- migra_registry()
+  op <- function(...) list(op = "accept_version", nodes = c(...))
+  atual <- doc_velho(2L, '{"valor":2}', tipo = "m/fixo")
+  expect_error(tr_doc_apply(atual, op("a"), reg), "já está na versão 2", class = "tr_error_bad_op")
+  novo <- doc_velho(5L, '{"valor":2}', tipo = "m/fixo")
+  expect_error(tr_doc_apply(novo, op("a"), reg), "mais nova que a instalada", class = "tr_error_bad_op")
+  pendente <- doc_velho(1L)
+  expect_error(tr_doc_apply(pendente, op("a"), reg), "migração pendente", class = "tr_error_bad_op")
+  expect_identical(tr_doc_accept_version(pendente, registry = reg), pendente)
+  expect_error(tr_doc_apply(atual, op("zz"), reg), class = "tr_error_unknown_node")
+  expect_error(tr_doc_apply(atual, list(op = "accept_version"), reg), class = "tr_error_bad_op")
+})
+
+test_that("aceitar entra no desfazer como as outras edições (#32)", {
+  reg <- migra_registry()
+  base <- doc_velho(1L, '{"valor":2}', tipo = "m/fixo")
+  res <- .tr_apply(base, list(op = "accept_version", nodes = list("a")), reg)
+  expect_identical(res$op$nodes, "a")
+  expect_identical(res$doc$nodes$a$type_version, 2L)
+  # O undo do editor é replay do log sobre a base: sem a op, a deriva volta.
+  des <- .tr_historia_passo(base, list(res$op), list(), "desfazer", res$doc$rev, reg)
+  expect_identical(des$doc$nodes$a$type_version, 1L)
+  ref <- .tr_historia_passo(base, des$log, des$refeito, "refazer", des$doc$rev, reg)
+  expect_identical(ref$doc$nodes$a$type_version, 2L)
 })
 
 test_that("migração que não devolve lista nomeada vira erro com o id do nó", {

@@ -71,6 +71,57 @@ NULL
   params
 }
 
+#' Há função de migração no intervalo `(de, versão da spec]`?
+#' @noRd
+.tr_migracao_pendente <- function(spec, de) {
+  de <- as.integer(de %||% spec$version)
+  if (is.na(de) || de >= spec$version) return(FALSE)
+  any(as.character(seq.int(de + 1L, spec$version)) %in% names(spec$migracoes %||% list()))
+}
+
+#' Ids dos nós em `version_drift` que dá para aceitar: gravados numa versão
+#' MENOR que a da spec e sem migração no meio. Com migração, quem leva o nó à
+#' versão nova é `tr_doc_migrate()`, sozinho, ao abrir.
+#' @noRd
+.tr_derivas_aceitaveis <- function(doc, registry) {
+  ids <- names(doc$nodes)
+  ok <- vapply(ids, function(id) {
+    n <- doc$nodes[[id]]
+    spec <- registry$nodes[[n$type %||% ""]]
+    if (is.null(spec) || is.null(n$type_version)) return(FALSE)
+    de <- as.integer(n$type_version)
+    !is.na(de) && de < spec$version && !.tr_migracao_pendente(spec, de)
+  }, logical(1))
+  ids[ok]
+}
+
+#' Aceita a versão nova de blocos que subiram de versão.
+#'
+#' Um bloco sobe de `version` quando o resultado ou o padrão pode ter mudado
+#' (regra do repositório). Se a subida não renomeou param, não há migração a
+#' rodar, e o documento fica com a `type_version` velha: `tr_doc_validate()`
+#' acusa `version_drift` a cada abertura, de propósito — é o aviso de que o
+#' número pode não ser o de quando o fluxo foi salvo. Aceitar é dizer "vi":
+#' grava `type_version` = versão da spec e o aviso some. Não muda param nem
+#' resultado (a chave de cache já usa a versão da spec).
+#'
+#' Só aceita nó gravado numa versão menor e sem migração pendente; a migração
+#' continua automática ao abrir (`tr_doc_migrate()`). No editor é a op
+#' `accept_version` (`nodes`: ids), que entra no desfazer como as outras.
+#'
+#' @param doc documento (`tr_doc`).
+#' @param nodes ids dos nós; `NULL` aceita todos os que estão em deriva e
+#'   podem ser aceitos.
+#' @param registry registro de blocos.
+#' @return o documento, com a revisão avançada se algo mudou.
+#' @export
+tr_doc_accept_version <- function(doc, nodes = NULL, registry = .tr_default_registry) {
+  doc <- .tr_as_doc(doc)
+  if (is.null(nodes)) nodes <- .tr_derivas_aceitaveis(doc, registry)
+  if (!length(nodes)) return(doc)
+  tr_doc_apply(doc, list(op = "accept_version", nodes = nodes), registry)
+}
+
 #' Segunda metade de `tr_doc_migrate()`: params por versão do nó.
 #'
 #' Devolve o documento com cada nó migrável na versão da spec e o registro do

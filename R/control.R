@@ -221,7 +221,7 @@ tr_control_undo <- function() {
   .tr_control_na_sessao(s, function() { s$desfazer(); list(ok = TRUE, rev = s$doc()$rev) })
 }
 
-#' Açúcar do CLI: `add`, `link`, `set`, `rm`. Monta as ops com a mesma DSL de
+#' Açúcar do CLI: `add`, `link`, `set`, `rm`, `accept`. Monta as ops com a mesma DSL de
 #' `tr_add()`/`tr_link()` (porta omitida = primeira compatível) sobre o
 #' documento atual, e manda tudo como UM batch — um Ctrl+Z desfaz o gesto.
 #' @noRd
@@ -234,11 +234,22 @@ tr_control_cmd <- function(m) {
       link = tr_link(fl, m$from, m$to),
       set  = do.call(tr_set, c(list(fl, m$node), m$params)),
       rm   = .tr_flow_apply(fl, list(op = "remove_node", node = m$node)),
+      accept = .tr_control_accept(fl, m$nodes),
       rlang::abort(sprintf("Comando desconhecido: '%s'.", m$cmd %||% "")))
     fl$ops
   })
   op <- if (length(ops) == 1L) ops[[1]] else list(op = "batch", ops = ops)
   tr_control_op(op)
+}
+
+#' `accept` sem nós aceita todos os que estão em `version_drift` e podem ser
+#' aceitos (`tr_doc_accept_version()`); nenhum é recusa, não op vazia.
+#' @noRd
+.tr_control_accept <- function(fl, nodes) {
+  nodes <- as.character(unlist(nodes))
+  if (!length(nodes)) nodes <- .tr_derivas_aceitaveis(fl$doc, fl$registry)
+  if (!length(nodes)) rlang::abort("Nenhum bloco com versão nova para aceitar.")
+  .tr_flow_apply(fl, list(op = "accept_version", nodes = nodes))
 }
 
 .tr_control_add <- function(fl, m) {
