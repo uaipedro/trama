@@ -26,7 +26,8 @@
 tr_documento_modelos <- function() {
   dirs <- c(list.dirs(.td_dir_usuario("modelos"), recursive = FALSE),
             list.dirs(system.file("modelos", package = "trama.documentos"), recursive = FALSE))
-  dirs <- dirs[file.exists(file.path(dirs, "_extension.yml"))]
+  # Pasta oculta é cópia em andamento (`.td_instalar_pasta()`).
+  dirs <- dirs[file.exists(file.path(dirs, "_extension.yml")) & !startsWith(basename(dirs), ".")]
   dirs <- dirs[!duplicated(basename(dirs))]
   q <- .td_quadro(lapply(dirs, function(d) {
     m <- .td_modelo_ler(d)
@@ -94,7 +95,7 @@ tr_documento_criar <- function(nome, projeto = ".", modelo = "basico", perfil = 
   p <- if (isFALSE(perfil)) NULL else tr_documento_perfil(perfil %||% .td_perfil_sugerido(m))
 
   esqueleto <- .td_ler(file.path(m$dir, "template.qmd"))$linhas
-  y <- .td_preencher(.td_yaml(esqueleto), p) %||% list()
+  y <- .td_preencher(.td_yaml_listas(esqueleto), p) %||% list()
   f <- .td_fim_yaml(esqueleto)
   corpo <- if (f < length(esqueleto)) esqueleto[(f + 1L):length(esqueleto)] else character()
   y$title <- titulo %||% y$title %||% nome
@@ -122,6 +123,17 @@ tr_documento_criar <- function(nome, projeto = ".", modelo = "basico", perfil = 
   writeLines(enc2utf8(c("---", .td_yaml_texto(y), "---", corpo)),
              qmd, useBytes = TRUE)
   qmd
+}
+
+#' YAML do esqueleto com lista que continua lista (`filters: [x.lua]` não
+#' pode virar `filters: x.lua`; ver `.td_yaml_ler()`).
+#' @noRd
+.td_yaml_listas <- function(linhas) {
+  f <- .td_fim_yaml(linhas)
+  if (f < 2L) return(list())
+  tryCatch(yaml::yaml.load(paste(.td_sem_cr(linhas[2:(f - 1L)]), collapse = "\n"),
+                           handlers = list(seq = function(x) as.list(x))) %||% list(),
+           error = function(e) list())
 }
 
 #' O perfil que o modelo sugere, se ele existe; senão, o padrão (`NULL`).
