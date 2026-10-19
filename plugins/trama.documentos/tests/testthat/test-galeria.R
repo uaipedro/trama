@@ -98,6 +98,7 @@ test_that("editar: título, descrição, cores, fontes, logo, capa, CSL e perfil
   # YAML que o Quarto lê: `true`, não o `yes` do pacote yaml.
   ext <- linhas(dir_usuario("meu", "_extension.yml"))
   expect_true(any(grepl("^\\s+capa: true$", ext)))
+  expect_true(yaml::read_yaml(dir_usuario("meu", "_extension.yml"))$contributes$formats$typst$citeproc)
   expect_false(any(grepl("\\byes\\b", ext)))
   # Tirar: logo, CSL e perfil.
   e2 <- tr_documento_modelo_editar("meu", logo = FALSE, csl = FALSE, perfil = FALSE, descricao = "")

@@ -189,6 +189,9 @@ tr_documento_modelo_editar <- function(nome, titulo = NULL, descricao = NULL, fo
     if (isFALSE(csl)) comum$csl <- NULL else {
       file.copy(csl, file.path(d, basename(csl)), overwrite = TRUE)
       comum$csl <- basename(csl)
+      # Citações do PDF pelo Pandoc: com o CSL da extensão, o Typst recebe o
+      # caminho escapado ("\_extensions/...") e não acha o arquivo.
+      if (!is.null(ext$contributes$formats$typst)) ext$contributes$formats$typst$citeproc <- TRUE
     }
   }
   if (length(comum)) ext$contributes$formats$common <- comum
