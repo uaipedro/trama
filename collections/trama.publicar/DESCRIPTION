@@ -9,7 +9,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.5.17),
+    trama (>= 0.5.18),
     trama.view,
     trama.models (>= 0.6.10),
     jsonlite,
