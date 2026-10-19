@@ -61,7 +61,7 @@ tr_documento_inserir <- function(documento, no, projeto = NULL, porta = NULL, ap
              if (length(opcoes)) stats::setNames(lapply(opcoes, as.character), paste0("trama-", names(opcoes))))
   if (is.null(pares)) pares <- list()
   pasta_doc <- dirname(normalizePath(documento))
-  g <- .td_gerar(projeto, doc, chave, no, s, pares, aceitar_dados_treino)
+  g <- .td_gerar(projeto, doc, chave, no, s, pares, aceitar_dados_treino, web = .td_web(d$linhas, pasta_doc))
   if (!is.null(g$erro)) .td_erro(g$erro, g$classe)
 
   apos <- .td_posicao(d$linhas, regs, apos)
@@ -137,6 +137,7 @@ tr_documento_atualizar <- function(documento, projeto = NULL, regioes = NULL, fo
   chaves <- .td_chaves(projeto, doc)
   pasta_doc <- dirname(normalizePath(documento))
   cr <- .td_crlf(d$linhas)
+  web <- .td_web(d$linhas, pasta_doc)
   linhas_res <- list()
   trocas <- list()
   res <- function(r, estado, msg = "") {
@@ -157,7 +158,7 @@ tr_documento_atualizar <- function(documento, projeto = NULL, regioes = NULL, fo
     }
     if (est == "atualizada" && !forcar) { res(r, "igual"); next }
     s <- .td_saida(projeto, doc, r$no, r$porta)
-    g <- .td_gerar(projeto, doc, r$chave, r$no, s, .td_sem_hash(r$pares), FALSE)
+    g <- .td_gerar(projeto, doc, r$chave, r$no, s, .td_sem_hash(r$pares), FALSE, web = web)
     if (!is.null(g$erro)) { res(r, "erro", g$erro); next }
     nova <- .td_regiao_de(r, g$parte$corpo, g$pares, cr)
     ok <- tryCatch(.td_conferir_bloco(nova, r$chave), tr_documento_erro = function(e) conditionMessage(e))
@@ -243,7 +244,8 @@ tr_documento_resolver <- function(documento, regiao, acao = c("manter", "trazer"
         .td_erro(sprintf("A regi\u{E3}o '%s' \u{E9} \u{F3}rf\u{E3}: n\u{E3}o h\u{E1} vers\u{E3}o do trama para trazer.", regiao),
                  "tr_documento_erro_regiao")
       }
-      g <- .td_gerar(projeto, doc, r$chave, r$no, s, .td_sem_hash(r$pares), FALSE)
+      g <- .td_gerar(projeto, doc, r$chave, r$no, s, .td_sem_hash(r$pares), FALSE,
+                     web = .td_web(d$linhas, pasta_doc))
       if (!is.null(g$erro)) .td_erro(g$erro, g$classe)
       nova <- .td_regiao_de(r, g$parte$corpo, g$pares, .td_crlf(d$linhas))
       .td_conferir_bloco(nova, r$chave)
@@ -317,7 +319,7 @@ tr_documento_listar <- function(projeto = ".") {
 #' Valor -> parte, com as regras que valem para todo documento: parte com
 #' erro não entra; modelo com dados de treino só com aceite.
 #' @noRd
-.td_gerar <- function(projeto, doc, chave, no, s, pares, aceitar_dados_treino) {
+.td_gerar <- function(projeto, doc, chave, no, s, pares, aceitar_dados_treino, web = FALSE) {
   falha <- function(msg, classe = "tr_documento_erro_parte") list(erro = msg, classe = classe)
   valor <- tryCatch(.td_valor(projeto, doc, no, s$porta), error = function(e) e)
   if (inherits(valor, "error")) {
@@ -325,7 +327,7 @@ tr_documento_listar <- function(projeto = ".") {
                  "tr_documento_erro_valor"))
   }
   ctx <- list(no = no, porta = s$porta, chave = chave, titulo = s$titulo, tipo = s$tipo,
-              opcoes = .td_opcoes(pares),
+              opcoes = .td_opcoes(pares), web = isTRUE(web),
               arquivo = function(nome) paste(.TD_PASTA, chave, nome, sep = "/"))
   parte <- tryCatch(tr_documento_componente(valor, ctx),
                     error = function(e) tr_documento_parte("erro", s$titulo, erro = conditionMessage(e)))
@@ -368,7 +370,7 @@ tr_documento_listar <- function(projeto = ".") {
 .td_manifesto_novo <- function(no, s, g, chaves) {
   list(no = no, porta = s$porta, tipo = g$parte$tipo, titulo = g$parte$titulo, hash = g$hash,
        chave_store = chaves[[no]][[s$porta]], opcoes = .td_opcoes_txt(g$pares),
-       dados_treino = g$parte$dados_treino,
+       dados_treino = g$parte$dados_treino, metadados = g$parte$metadados,
        versao = as.character(utils::packageVersion("trama.documentos")),
        gerado_em = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"))
 }
@@ -419,6 +421,17 @@ tr_documento_listar <- function(projeto = ".") {
   if (f < 2L) return(list())
   tryCatch(yaml::yaml.load(paste(.td_sem_cr(linhas[2:(f - 1L)]), collapse = "\n")) %||% list(),
            error = function(e) list())
+}
+
+#' O documento roda R no navegador? É o caso quando a extensão de um dos
+#' formatos dele traz o filtro do quarto-live (o modelo Página web, ou cópia
+#' dele): um modelo inserido ali vira preditor.
+#' @noRd
+.td_web <- function(linhas, pasta_doc) {
+  fmts <- as.character(names(.td_yaml(linhas)$format))
+  ext <- unique(sub("-[^-]+$", "", fmts[grepl("-", fmts)]))
+  any(file.exists(file.path(pasta_doc, "_extensions", ext, "live.lua"))) ||
+    any(startsWith(fmts, "live-"))
 }
 
 .td_fluxo_do <- function(linhas) {

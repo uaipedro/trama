@@ -63,6 +63,6 @@
 .td_manifesto_atualizar <- function(pasta_doc, chave, novo) {
   f <- file.path(.td_pasta_regiao(pasta_doc, chave), "trama.json")
   m <- .td_manifesto(pasta_doc, chave)
-  for (k in c("chave_store", "opcoes", "titulo")) m[k] <- list(novo[[k]])
+  for (k in c("chave_store", "opcoes", "titulo", "metadados")) m[k] <- list(novo[[k]])
   writeLines(jsonlite::toJSON(m, auto_unbox = TRUE, pretty = TRUE, null = "null"), f, useBytes = TRUE)
 }

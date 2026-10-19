@@ -62,8 +62,10 @@ tr_documento_parte <- function(tipo, titulo = "", arquivos = list(), corpo = cha
 #' @param ctx Lista com `no`, `porta`, `chave` (pasta em `_trama/`), `titulo`
 #'   (o rótulo do card, ou o do bloco), `tipo` (o `tr_type` da porta, ou
 #'   `NULL`), `opcoes` (atributos `trama-*` da região: `linhas`, `formato`,
-#'   `largura`, `altura`) e `arquivo(nome)`, que dá o caminho de um arquivo da
-#'   parte relativo ao documento.
+#'   `largura`, `altura`), `web` (`TRUE` quando o documento roda R no
+#'   navegador, como o modelo Página web: um modelo vira preditor) e
+#'   `arquivo(nome)`, que dá o caminho de um arquivo da parte relativo ao
+#'   documento.
 #' @return Um [tr_documento_parte()].
 #' @export
 tr_documento_componente <- function(x, ctx) UseMethod("tr_documento_componente")
@@ -225,9 +227,16 @@ tr_documento_componente.tr_models_fit <- function(x, ctx) {
     arquivos$modelo.md <- c(sprintf("**%s.** %s", .td_legenda(ctx$titulo), descricao),
                             if (!is.null(reduzido$dados_treino)) c("", sprintf("*%s*", reduzido$dados_treino)))
     tarefa <- info$tarefa %||% "regressao"
+    corpo <- sprintf("{{< include %s >}}", ctx$arquivo("modelo.md"))
+    # Página web (documento com o quarto-live): o modelo vira preditor que
+    # roda no navegador, lendo o motor da pasta da região.
+    if (isTRUE(ctx$web) && !is.null(web)) {
+      arquivos$preditor.qmd <- .td_preditor(ctx$chave, ctx$arquivo("motor.rds"), web[setdiff(names(web), "motor")])
+      corpo <- c(corpo, "", sprintf("{{< include %s >}}", ctx$arquivo("preditor.qmd")))
+    }
     tr_documento_parte(
       "modelo", titulo = ctx$titulo, arquivos = arquivos,
-      corpo = sprintf("{{< include %s >}}", ctx$arquivo("modelo.md")),
+      corpo = corpo,
       metadados = list(
         tipo_schema = "fair4ml:MLModel", descricao = descricao,
         propriedades = list(
