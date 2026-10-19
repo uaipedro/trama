@@ -25,7 +25,8 @@ tr_data_errors <- function() {
             "recusa guardá-lo"),
     tr_data_error_download = "link do data/read não pôde ser baixado (rede, 404, resposta vazia)",
     tr_data_error_missing_file =
-      "caminho de .rds aponta pra arquivo (leitura) ou pasta (gravação) que não existe",
+      "arquivo de leitura que não existe, ou pasta de gravação que não dá para criar",
+    tr_data_error_not_numeric = "o nó pede coluna numérica e a citada (ou a tabela inteira) não tem",
     tr_data_error_stream_columns =
       paste("passo do fluxo que não é tabela, ou com colunas diferentes do primeiro:",
             "empilhar preencheria faltante em silêncio")

@@ -306,6 +306,63 @@ tr_flow(reg) |>
 `data/get_dupes` para ver as linhas repetidas; `data/convert` para a coluna que
 o resumo mostrou como texto e devia ser número."),
 
+      trama::tr_node("data/describe", fn = tr_describe, label = "Descritivas", category = "inspect",
+        referencias = list(
+          trama::tr_ref(autores = c("Joanes, D. N.", "Gill, C. A."), ano = 1998,
+                        titulo = "Comparing measures of sample skewness and kurtosis",
+                        fonte = "Journal of the Royal Statistical Society, Series D (The Statistician), 47(1), 183-189",
+                        doi = "10.2307/2988433", papel = "teoria"),
+          trama::tr_ref(papel = "implementacao", pacote = "moments", funcao = "skewness",
+                        nota = "Oráculo dos testes: moments::skewness (g1) e moments::kurtosis - 3 (g2), divisor n.")),
+        description = "Uma linha por coluna numérica: n, média, desvio, mediana, extremos, assimetria e curtose.",
+        icon = trama::tr_icon("sigma"),
+        inputs = list(dados = T), outputs = list(out = T),
+        params = list(cols = trama::tr_param_col("", label = "Colunas", role = "numerica", multi = TRUE,
+                                                 suggest = FALSE, example = "Sepal.Length, Petal.Length")),
+        help = "## Descrição
+
+As descritivas de cada coluna numérica, uma linha por coluna: `coluna`, `n`
+(valores presentes), `faltantes`, `media`, `dp`, `mediana`, `minimo`, `maximo`,
+`assimetria` e `curtose_excesso`. Faltantes ficam de fora de cada conta e são
+contados à parte.
+
+Duas convenções mudam o número, e por isso ficam escritas aqui:
+
+- `dp` é o desvio-padrão amostral, com divisor n − 1 (o `sd()` do R).
+- `assimetria` e `curtose_excesso` são os coeficientes de momento g1 e g2
+  (Joanes e Gill, 1998), com divisor n: g1 = m3 / m2^(3/2) e
+  g2 = m4 / m2² − 3. A curtose é em EXCESSO: zero na normal, positiva com
+  caudas mais pesadas. São os momentos do teste de Jarque-Bera.
+
+Coluna constante sai com `assimetria` e `curtose_excesso` em branco: não há
+forma a medir (a conta seria 0/0).
+
+Em branco, **Colunas** pega todas as numéricas da tabela, menos a de índice: o
+`tempo` de uma série que chegou pelo adaptador da coleção de séries não é uma
+medida. Coluna citada que não é numérica para o nó com o nome dela.
+
+## Parâmetros
+
+- **Colunas** — colunas numéricas, separadas por vírgula. Em branco, todas.
+
+## Valor
+
+Uma tabela com dez colunas e uma linha por coluna descrita.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"flor\", \"data/example\", dataset = \"iris\") |>
+  tr_add(\"desc\", \"data/describe\", from = \"flor\")
+```
+
+## Veja também
+
+`data/summary` para tipo, faltantes e forma de toda coluna; `data/group_summarise`
+para descritivas por grupo; `models/jarque_bera` para testar a normalidade pela
+assimetria e pela curtose."),
+
       # `get_dupes` MOSTRA as repetidas; `distinct` REMOVE. Fases diferentes do
       # trabalho, e por isso categorias diferentes: ver antes de apagar.
       trama::tr_node("data/get_dupes", fn = tr_get_dupes, label = "Duplicadas",
