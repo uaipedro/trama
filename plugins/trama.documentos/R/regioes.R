@@ -38,15 +38,24 @@
   txt
 }
 
-#' Grava de forma atômica, e só se o arquivo não mudou desde a leitura: a
-#' pessoa pode ter salvo no editor de texto enquanto o trama calculava.
+#' O arquivo ainda é o que foi lido? Conferido também antes de materializar,
+#' para a pasta `_trama/` não andar na frente de um documento que não será
+#' gravado.
 #' @noRd
-.td_gravar <- function(caminho, doc) {
+.td_intacto <- function(caminho, doc) {
   agora <- readBin(caminho, "raw", file.info(caminho)$size)
   if (!identical(agora, doc$bruto)) {
     .td_erro(paste0("O documento mudou no disco durante a opera\u{E7}\u{E3}o (salvo no editor de texto?). ",
                     "Nada foi gravado; tente de novo."), "tr_documento_erro_concorrente")
   }
+  invisible(TRUE)
+}
+
+#' Grava de forma atômica, e só se o arquivo não mudou desde a leitura: a
+#' pessoa pode ter salvo no editor de texto enquanto o trama calculava.
+#' @noRd
+.td_gravar <- function(caminho, doc) {
+  .td_intacto(caminho, doc)
   tmp <- tempfile(tmpdir = dirname(caminho), fileext = ".tmp")
   con <- file(tmp, "wb")
   writeBin(charToRaw(enc2utf8(.td_texto(doc))), con)
@@ -61,10 +70,11 @@
 .td_sem_cr <- function(x) sub("\r$", "", x)
 
 # Cerca de div do Pandoc: `:::` (3 ou mais) e atributos em chaves ou uma
-# palavra (`::: callout-note`); fecha com só os dois-pontos.
-.TD_DIV_ABRE <- "^\\s*(:{3,})\\s*(\\{.*\\}|[^\\s:{]\\S*)\\s*:*\\s*$"
+# palavra (`::: callout-note`); fecha com só os dois-pontos. Cerca de código
+# com qualquer recuo: dentro de item de lista ela vem com 4 ou mais espaços.
+.TD_DIV_ABRE <- "^(\\s*)(:{3,})\\s*(\\{.*\\}|[^\\s:{]\\S*)\\s*:*\\s*$"
 .TD_DIV_FECHA <- "^\\s*:{3,}\\s*$"
-.TD_CODIGO <- "^ {0,3}(`{3,}|~{3,})"
+.TD_CODIGO <- "^\\s*(`{3,}|~{3,})"
 
 #' Atributos de uma cerca `{#id .classe chave="valor"}`, na ordem do texto.
 #' @noRd
@@ -79,39 +89,42 @@
     else {
       k <- sub("=.*$", "", t)
       v <- sub("^[^=]*=", "", t)
-      pares[[k]] <- gsub("^[\"']|[\"']$", "", v)
+      pares[[k]] <- if (grepl("^([\"']).*\\1$", v)) substr(v, 2L, nchar(v) - 1L) else v
     }
   }
   list(id = id, classes = classes, pares = pares)
 }
 
-#' Regiões do trama nas linhas do documento, na ordem do texto.
-#'
-#' Ignora o YAML do topo e o que está dentro de bloco de código; acompanha a
-#' profundidade das divs da pessoa, para que uma região possa morar dentro de
-#' um callout e um callout gerado pelo trama possa morar dentro da região.
-#' Região sem fechamento ou dentro de outra é erro: com a cerca quebrada não
-#' há como saber onde termina o que é do trama, e nada é escrito.
-#' @return Lista de regiões: `inicio`, `fim` (linhas das cercas), `id`,
-#'   `chave`, `no`, `porta`, `hash`, `pares` (atributos `chave=valor`),
-#'   `cerca` (os dois-pontos de abertura) e `conteudo`.
+#' Última linha do YAML do topo (0 sem YAML). O YAML abre com `---` na
+#' primeira linha e fecha com `---` ou `...` na coluna 0: um `...` recuado
+#' dentro de um `abstract: |` não fecha.
 #' @noRd
-.td_regioes <- function(linhas) {
+.td_fim_yaml <- function(linhas) {
+  l <- .td_sem_cr(linhas)
+  if (!length(l) || !grepl("^---\\s*$", l[[1]])) return(0L)
+  f <- which(grepl("^(---|\\.\\.\\.)\\s*$", l[-1]))
+  if (length(f)) f[[1]] + 1L else 0L
+}
+
+#' Uma passada pelo documento: o YAML, as linhas de código, as regiões e o que
+#' ficou aberto no fim. Tudo que precisa saber onde se está no texto usa isto.
+#' @noRd
+.td_varrer <- function(linhas) {
   l <- .td_sem_cr(linhas)
   n <- length(l)
-  i <- 1L
-  if (n && identical(trimws(l[[1]]), "---")) {
-    fim_yaml <- which(trimws(l[-1]) %in% c("---", "..."))
-    i <- if (length(fim_yaml)) fim_yaml[[1]] + 2L else n + 1L
-  }
+  yaml <- .td_fim_yaml(linhas)
+  em_codigo <- rep(FALSE, n)      # a linha é de bloco de código (cercas incluídas)
+  codigo_depois <- rep(FALSE, n)  # depois da linha, ainda se está num bloco de código
   pilha <- list()   # cada item: NULL (div da pessoa) ou índice da região aberta
   regioes <- list()
   codigo <- NULL
-  while (i <= n) {
+  for (i in seq_len(n)[seq_len(n) > yaml]) {
     x <- l[[i]]
     if (!is.null(codigo)) {
-      if (grepl(sprintf("^ {0,3}%s{%d,}\\s*$", if (codigo$char == "`") "`" else "~", codigo$tam), x)) codigo <- NULL
+      em_codigo[[i]] <- TRUE
+      if (grepl(sprintf("^\\s*%s{%d,}\\s*$", if (codigo$char == "`") "`" else "~", codigo$tam), x)) codigo <- NULL
     } else if (grepl(.TD_CODIGO, x)) {
+      em_codigo[[i]] <- TRUE
       cerca <- sub(paste0(.TD_CODIGO, ".*$"), "\\1", x)
       codigo <- list(char = substr(cerca, 1L, 1L), tam = nchar(cerca))
     } else if (grepl(.TD_DIV_FECHA, x)) {
@@ -121,7 +134,7 @@
         if (!is.null(topo)) regioes[[topo]]$fim <- i
       }
     } else if (grepl(.TD_DIV_ABRE, x, perl = TRUE)) {
-      at <- sub(.TD_DIV_ABRE, "\\2", x, perl = TRUE)
+      at <- sub(.TD_DIV_ABRE, "\\3", x, perl = TRUE)
       a <- if (startsWith(at, "{")) .td_atributos(at) else list(id = NULL, classes = at, pares = list())
       eh_regiao <- "trama" %in% a$classes && !is.null(a$id) && startsWith(a$id, "trama-")
       if (eh_regiao) {
@@ -136,14 +149,34 @@
           inicio = i, fim = NA_integer_, id = a$id, chave = chave,
           no = if (is.null(porta)) chave else sub(paste0("--", porta, "$"), "", chave),
           porta = porta, hash = a$pares[["trama-hash"]] %||% "",
-          pares = a$pares, cerca = sub(.TD_DIV_ABRE, "\\1", x, perl = TRUE))
+          pares = a$pares, classes = setdiff(a$classes, "trama"),
+          recuo = sub(.TD_DIV_ABRE, "\\1", x, perl = TRUE),
+          cerca = sub(.TD_DIV_ABRE, "\\2", x, perl = TRUE))
         pilha[[length(pilha) + 1L]] <- length(regioes)
       } else {
         pilha[length(pilha) + 1L] <- list(NULL)
       }
     }
-    i <- i + 1L
+    codigo_depois[[i]] <- !is.null(codigo)
   }
+  list(yaml = yaml, em_codigo = em_codigo, codigo_depois = codigo_depois, regioes = regioes, divs_abertas = length(pilha),
+       codigo_aberto = !is.null(codigo))
+}
+
+#' Regiões do trama nas linhas do documento, na ordem do texto.
+#'
+#' Ignora o YAML do topo e o que está dentro de bloco de código; acompanha a
+#' profundidade das divs da pessoa, para que uma região possa morar dentro de
+#' um callout e um callout gerado pelo trama possa morar dentro da região.
+#' Região sem fechamento ou dentro de outra é erro: com a cerca quebrada não
+#' há como saber onde termina o que é do trama, e nada é escrito.
+#' @return Lista de regiões: `inicio`, `fim` (linhas das cercas), `id`,
+#'   `chave`, `no`, `porta`, `hash`, `pares` (atributos `chave=valor`),
+#'   `classes` (as da pessoa, além de `.trama`), `recuo` e `cerca` (o que
+#'   vem antes e os dois-pontos da abertura) e `conteudo`.
+#' @noRd
+.td_regioes <- function(linhas) {
+  regioes <- .td_varrer(linhas)$regioes
   for (r in regioes) {
     if (is.na(r$fim)) {
       .td_erro(sprintf("A regi\u{E3}o '%s' (linha %d) n\u{E3}o tem a linha ':::' que a fecha. Nada foi escrito.",
@@ -167,25 +200,70 @@
   substr(digest::digest(paste(l, collapse = "\n"), algo = "sha256", serialize = FALSE), 1L, 16L)
 }
 
-#' A região foi editada à mão? (o conteúdo não bate com o hash que o trama gravou)
+#' A região foi editada à mão? (o conteúdo não bate com o hash que o trama
+#' gravou). O hash é do conteúdo sem o recuo da abertura: levar a região para
+#' dentro de um item de lista é mover, não editar.
 #' @noRd
-.td_editada <- function(r) !identical(.td_hash_conteudo(r$conteudo), r$hash)
+.td_editada <- function(r) !identical(.td_hash_conteudo(.td_desrecuar(r$conteudo, r$recuo)), r$hash)
 
-#' Linhas de uma região: cabeçalho com id, classe, hash e os demais atributos
-#' na ordem em que vieram (as opções que a pessoa pôs ficam), corpo e fecho.
+.td_desrecuar <- function(l, recuo) {
+  if (!nzchar(recuo %||% "")) return(l)
+  ifelse(startsWith(l, recuo), substring(l, nchar(recuo) + 1L), l)
+}
+
+#' Valor de atributo entre aspas. Aspas duplas no valor vão entre simples;
+#' quebra de linha ou os dois tipos de aspas não cabem num cabeçalho.
 #' @noRd
-.td_regiao_linhas <- function(chave, corpo, pares = list(), cerca = ":::", cr = FALSE) {
+.td_valor_attr <- function(k, v) {
+  v <- as.character(v)
+  if (length(v) != 1L || is.na(v) || grepl("[\r\n]", v) || (grepl('"', v) && grepl("'", v))) {
+    .td_erro(sprintf("O valor do atributo '%s' n\u{E3}o cabe no cabe\u{E7}alho da regi\u{E3}o.", k),
+             "tr_documento_erro_opcoes")
+  }
+  if (grepl('"', v)) sprintf("%s='%s'", k, v) else sprintf('%s="%s"', k, v)
+}
+
+#' Linhas de uma região: cabeçalho com id, classe, hash, as classes e os
+#' atributos que a pessoa pôs (na ordem em que vieram), corpo e fecho, todos
+#' com o recuo da abertura (a região pode morar num item de lista).
+#' @noRd
+.td_regiao_linhas <- function(chave, corpo, pares = list(), cerca = ":::", cr = FALSE,
+                              classes = character(), recuo = "") {
   pares[["trama-hash"]] <- NULL
-  outros <- vapply(names(pares), function(k) sprintf('%s="%s"', k, pares[[k]]), "")
-  cab <- paste(c(sprintf("#trama-%s", chave), ".trama", sprintf('trama-hash="%s"', .td_hash_conteudo(corpo)),
-                 outros), collapse = " ")
-  out <- c(sprintf("%s {%s}", cerca, cab), corpo, cerca)
+  hash <- .td_hash_conteudo(corpo)
+  corpo <- ifelse(nzchar(corpo), paste0(recuo, corpo), corpo)
+  outros <- vapply(names(pares), function(k) .td_valor_attr(k, pares[[k]]), "")
+  cab <- paste(c(sprintf("#trama-%s", chave), ".trama", if (length(classes)) paste0(".", classes),
+                 sprintf('trama-hash="%s"', hash), outros), collapse = " ")
+  out <- c(sprintf("%s%s {%s}", recuo, cerca, cab), corpo, paste0(recuo, cerca))
   if (cr) paste0(out, "\r") else out
+}
+
+#' A região de novo, a partir da que está no texto (mesmo cabeçalho da pessoa).
+#' @noRd
+.td_regiao_de <- function(r, corpo, pares, cr) {
+  .td_regiao_linhas(r$chave, corpo, pares, cerca = r$cerca, cr = cr, classes = r$classes, recuo = r$recuo)
+}
+
+#' Um bloco gerado é exatamente uma região bem formada, da chave certa: um
+#' corpo com `:::` ou cerca de código aberta engoliria o texto que vem depois.
+#' @noRd
+.td_conferir_bloco <- function(bloco, chave) {
+  v <- tryCatch(.td_varrer(bloco), tr_documento_erro = function(e) NULL)
+  ok <- !is.null(v) && length(v$regioes) == 1L && identical(v$regioes[[1]]$chave, chave) &&
+    identical(v$regioes[[1]]$inicio, 1L) && identical(v$regioes[[1]]$fim, length(bloco)) &&
+    v$divs_abertas == 0L && !v$codigo_aberto
+  if (!ok) {
+    .td_erro(sprintf(paste0("O conte\u{FA}do gerado para '%s' n\u{E3}o forma uma regi\u{E3}o fechada ",
+                            "(cerca ':::' ou de c\u{F3}digo no corpo?). Nada foi gravado."), chave),
+             "tr_documento_erro_parte")
+  }
+  invisible(TRUE)
 }
 
 #' O documento usa CRLF? (as linhas novas seguem o arquivo)
 #' @noRd
-.td_crlf <- function(linhas) length(linhas) > 0L && mean(endsWith(linhas, "\r")) > 0.5
+.td_crlf <- function(linhas) length(linhas) > 0L && mean(endsWith(linhas, "\r")) >= 0.5
 
 #' As linhas de fora das regiões, com cada região trocada por um marcador:
 #' é o que a regra de dono exige que não mude numa atualização.
@@ -229,35 +307,13 @@
 #' corpo, depois do YAML), nunca dentro do YAML, de região ou de código.
 #' @noRd
 .td_pode_inserir <- function(linhas, apos) {
-  l <- .td_sem_cr(linhas)
-  n <- length(l)
+  n <- length(linhas)
   if (!is.numeric(apos) || length(apos) != 1L || is.na(apos) || apos < 0 || apos > n) return(FALSE)
+  v <- .td_varrer(linhas)
   # O YAML do topo é da criação; ninguém insere lá dentro.
-  if (n && identical(trimws(l[[1]]), "---")) {
-    fim_yaml <- which(trimws(l[-1]) %in% c("---", "..."))
-    if (length(fim_yaml) && apos < fim_yaml[[1]] + 1L) return(FALSE)
-  }
-  for (r in .td_regioes(linhas)) if (apos >= r$inicio && apos < r$fim) return(FALSE)
-  codigo <- NULL
-  for (i in seq_len(apos)) {
-    x <- l[[i]]
-    if (!is.null(codigo)) {
-      if (grepl(sprintf("^ {0,3}%s{%d,}\\s*$", if (codigo$char == "`") "`" else "~", codigo$tam), x)) codigo <- NULL
-    } else if (grepl(.TD_CODIGO, x)) {
-      cerca <- sub(paste0(.TD_CODIGO, ".*$"), "\\1", x)
-      codigo <- list(char = substr(cerca, 1L, 1L), tam = nchar(cerca))
-    }
-  }
-  is.null(codigo)
-}
-
-#' Primeira linha depois do YAML (0 sem YAML): o "início" do texto.
-#' @noRd
-.td_fim_yaml <- function(linhas) {
-  l <- .td_sem_cr(linhas)
-  if (!length(l) || !identical(trimws(l[[1]]), "---")) return(0L)
-  f <- which(trimws(l[-1]) %in% c("---", "..."))
-  if (length(f)) f[[1]] + 1L else 0L
+  if (v$yaml > 0L && apos < v$yaml) return(FALSE)
+  for (r in v$regioes) if (!is.na(r$fim) && apos >= r$inicio && apos < r$fim) return(FALSE)
+  apos == 0L || !v$codigo_depois[[apos]]
 }
 
 #' Insere `bloco` depois da linha `apos`, com linha em branco em volta só

@@ -8,7 +8,8 @@ tr_documento_resolver(
   documento,
   regiao,
   acao = c("manter", "trazer", "remover"),
-  projeto = NULL
+  projeto = NULL,
+  confirmar = FALSE
 )
 }
 \arguments{
@@ -20,21 +21,27 @@ tr_documento_resolver(
 
 \item{projeto}{Um \code{trama::tr_project()} ou a pasta dele; \code{NULL} acha a
 primeira pasta com \code{trama.json} acima do documento.}
+
+\item{confirmar}{Ver acima.}
 }
 \value{
-Invisível: a chave da região.
+Invisível: lista com \code{regiao} e \code{removidas}, as linhas que saíram
+do texto.
 }
 \description{
 \itemize{
 \item \code{manter}: a versão que está no texto passa a ser da pessoa: as cercas
 da região saem e o conteúdo fica como texto comum, que o trama não toca
-mais;
+mais. A pasta \verb{_trama/<chave>/} é congelada como
+\verb{_trama/<chave>--mantida/} (e o texto passa a citá-la), para que um
+novo "inserir" do mesmo nó não mude o que a pessoa ficou;
 \item \code{trazer}: descarta a edição e põe a versão do trama de agora (não vale
 para órfã);
 \item \code{remover}: apaga a região do texto.
 }
 }
 \details{
-Os arquivos em \verb{_trama/} ficam (o texto mantido pode citá-los); quem
-limpa é \code{\link[=tr_documento_limpar]{tr_documento_limpar()}}.
+Região em conflito com cercas \code{:::} dentro (a pessoa pôs um callout, por
+exemplo) pode ter o fim diferente do que a pessoa imagina: \code{trazer} e
+\code{remover} apagariam essas linhas, e só seguem com \code{confirmar = TRUE}.
 }

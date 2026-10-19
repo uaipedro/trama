@@ -10,9 +10,10 @@
 #' Hash do resultado materializado: corpo da região e arquivos, em ordem.
 #' @noRd
 .td_hash_parte <- function(parte) {
-  arqs <- parte$arquivos[order(names(parte$arquivos))]
+  arqs <- parte$arquivos
+  nomes <- sort(as.character(names(arqs)))
   partes <- c(paste(parte$corpo, collapse = "\n"),
-              vapply(names(arqs), function(n) {
+              vapply(nomes, function(n) {
                 paste0(n, ":", digest::digest(arqs[[n]], algo = "sha256", serialize = FALSE))
               }, ""))
   digest::digest(paste(partes, collapse = "\n"), algo = "sha256", serialize = FALSE)
@@ -26,8 +27,8 @@
   tryCatch(jsonlite::fromJSON(f, simplifyVector = FALSE), error = function(e) NULL)
 }
 
-#' Grava a pasta inteira de uma vez: monta ao lado e troca, para o render
-#' nunca ver metade de uma atualização.
+#' Grava a pasta inteira: monta ao lado e troca com duas renomeações (entre
+#' elas a pasta some por um instante, mas nunca fica pela metade).
 #' @noRd
 .td_materializar <- function(pasta_doc, chave, parte, manifesto) {
   base <- file.path(pasta_doc, .TD_PASTA)
@@ -42,7 +43,10 @@
   velha <- NULL
   if (dir.exists(destino)) {
     velha <- tempfile(paste0(".", chave, "-velha-"), tmpdir = base)
-    file.rename(destino, velha)
+    if (!file.rename(destino, velha)) {
+      unlink(nova, recursive = TRUE)
+      .td_erro(sprintf("N\u{E3}o foi poss\u{ED}vel substituir '%s'.", destino), "tr_documento_erro_caminho")
+    }
   }
   if (!file.rename(nova, destino)) {
     if (!is.null(velha)) file.rename(velha, destino)
@@ -53,11 +57,12 @@
   invisible(destino)
 }
 
-#' Só a chave do store no manifesto (o resultado não mudou).
+#' O resultado não mudou: só o manifesto (chave do store, opções, rótulo),
+#' guardando o hash e a data da materialização que está na pasta.
 #' @noRd
-.td_manifesto_chave <- function(pasta_doc, chave, chave_store) {
+.td_manifesto_atualizar <- function(pasta_doc, chave, novo) {
   f <- file.path(.td_pasta_regiao(pasta_doc, chave), "trama.json")
   m <- .td_manifesto(pasta_doc, chave)
-  m$chave_store <- chave_store
+  for (k in c("chave_store", "opcoes", "titulo")) m[k] <- list(novo[[k]])
   writeLines(jsonlite::toJSON(m, auto_unbox = TRUE, pretty = TRUE, null = "null"), f, useBytes = TRUE)
 }

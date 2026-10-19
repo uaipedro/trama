@@ -34,9 +34,14 @@ Regras de dono:
   `tr_documento_resolver()` mantém a versão da pessoa, traz a do trama ou
   remove;
 - bloco que saiu do fluxo deixa a região **órfã**, até a pessoa decidir;
-- a pessoa move e apaga regiões à vontade; a ordem é a do texto;
-- os atributos `trama-*` do cabeçalho (`trama-linhas`, `trama-formato`,
-  `trama-largura`, `trama-altura`) são opções que a pessoa pode mudar.
+- a pessoa move e apaga regiões à vontade (inclusive para dentro de um callout
+  ou item de lista, com recuo); a ordem é a do texto; uma cópia à mão de uma
+  região é `duplicada` e não é tocada;
+- "manter" a versão da pessoa congela a pasta em `_trama/<no>--mantida/`;
+  remover ou trazer uma região editada que tem cercas `:::` dentro pede
+  `confirmar = TRUE`;
+- classes e atributos que a pessoa põe no cabeçalho ficam; os atributos `trama-*` (`trama-linhas`, `trama-formato`,
+  `trama-largura`, `trama-altura`) são opções que ela pode mudar.
 
 Modelo que carrega linhas do treino (SVM, floresta de regressão) só entra com
 aceite explícito, que fica no cabeçalho (`trama-dados-treino="aceito"`).

@@ -14,5 +14,6 @@ Invisível: as pastas apagadas.
 }
 \description{
 Uma pasta fica se há região com a chave dela ou se o texto ainda cita o
-caminho (região mantida como texto da pessoa).
+caminho (região mantida como texto da pessoa), em qualquer \code{.qmd} da
+pasta do documento.
 }

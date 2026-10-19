@@ -146,9 +146,9 @@ test_that("resolver: manter vira texto da pessoa, trazer descarta a edição, re
   expect_false(any(grepl("trama-c|_trama/c/", linhas(qmd))))
   expect_error(tr_documento_resolver(qmd, "zzz", "manter"), class = "tr_documento_erro_regiao")
 
-  # Limpar: `c` não é usada; `a` virou texto, mas o texto não cita a pasta,
-  # então também sai; `b` fica.
-  expect_setequal(tr_documento_limpar(qmd), c("a", "c"))
+  # Limpar: `c` não é usada; `a` virou texto (a pasta foi congelada como
+  # `a--mantida`), mas o texto não cita a pasta, então também sai; `b` fica.
+  expect_setequal(tr_documento_limpar(qmd), c("a--mantida", "c"))
   expect_identical(list.files(file.path(dirname(qmd), "_trama")), "b")
 })
 

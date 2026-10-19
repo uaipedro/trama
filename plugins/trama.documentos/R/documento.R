@@ -64,12 +64,14 @@ tr_documento_inserir <- function(documento, no, projeto = NULL, porta = NULL, ap
 
   apos <- .td_posicao(d$linhas, regs, apos)
   bloco <- .td_regiao_linhas(chave, g$parte$corpo, g$pares, cr = .td_crlf(d$linhas))
+  .td_conferir_bloco(bloco, chave)
   novas <- .td_inserir_linhas(d$linhas, bloco, apos)
   # Dono: tirando as linhas novas, o documento é o mesmo de antes.
   n_novas <- length(novas) - length(d$linhas)
   if (!identical(novas[-(apos + seq_len(n_novas))], d$linhas)) {
     .td_erro("Erro interno: inserir mudaria texto existente. Nada foi gravado.", "tr_documento_erro_interno")
   }
+  .td_intacto(documento, d)
   .td_materializar(pasta_doc, chave, g$parte, .td_manifesto_novo(no, s, g, .td_chaves(projeto, doc)))
   d$linhas <- novas
   .td_gravar(documento, d)
@@ -86,7 +88,9 @@ tr_documento_inserir <- function(documento, no, projeto = NULL, porta = NULL, ap
 #'   (atualizar confirma pelo resultado e só reescreve se ele mudou);
 #' - `conflito`: o conteúdo foi editado à mão; atualizar não toca nela;
 #' - `orfa`: o nó (ou a porta) saiu do fluxo; a região fica até a pessoa decidir;
-#' - `indisponivel`: o nó está no fluxo, mas a coleção dele não carregou.
+#' - `indisponivel`: o nó está no fluxo, mas a coleção dele não carregou;
+#' - `duplicada`: outra região com a mesma chave veio antes no texto (cópia
+#'   à mão); só a primeira é do trama, e esta não é tocada.
 #'
 #' @inheritParams tr_documento_inserir
 #' @return data.frame com `regiao`, `no`, `porta`, `estado` e `linha`, na
@@ -99,9 +103,12 @@ tr_documento_estado <- function(documento, projeto = NULL) {
   doc <- trama::tr_project_flow(projeto, .td_fluxo_do(d$linhas))
   chaves <- .td_chaves(projeto, doc)
   pasta_doc <- dirname(normalizePath(documento))
-  .td_quadro(lapply(regs, function(r) {
+  dup <- duplicated(vapply(regs, `[[`, "", "chave"))
+  .td_quadro(lapply(seq_along(regs), function(i) {
+    r <- regs[[i]]
     list(regiao = r$chave, no = r$no, porta = r$porta %||% NA_character_,
-         estado = .td_estado_regiao(r, projeto, doc, chaves, pasta_doc), linha = r$inicio)
+         estado = if (dup[[i]]) "duplicada" else .td_estado_regiao(r, projeto, doc, chaves, pasta_doc),
+         linha = r$inicio)
   }), c("regiao", "no", "porta", "estado", "linha"))
 }
 
@@ -133,8 +140,12 @@ tr_documento_atualizar <- function(documento, projeto = NULL, regioes = NULL, fo
   res <- function(r, estado, msg = "") {
     linhas_res[[length(linhas_res) + 1L]] <<- list(regiao = r$chave, estado = estado, mensagem = msg)
   }
+  pastas <- list()
+  vistas <- character()
   for (r in regs) {
     if (!is.null(regioes) && !r$chave %in% regioes) next
+    if (r$chave %in% vistas) { res(r, "duplicada", "C\u{F3}pia de uma regi\u{E3}o que j\u{E1} apareceu antes no texto."); next }
+    vistas <- c(vistas, r$chave)
     est <- .td_estado_regiao(r, projeto, doc, chaves, pasta_doc)
     if (est == "conflito") { res(r, est, "Editada \u{E0} m\u{E3}o: use tr_documento_resolver()."); next }
     if (est == "orfa") { res(r, est, sprintf("O n\u{F3} '%s' n\u{E3}o est\u{E1} mais no fluxo.", r$no)); next }
@@ -146,19 +157,22 @@ tr_documento_atualizar <- function(documento, projeto = NULL, regioes = NULL, fo
     s <- .td_saida(projeto, doc, r$no, r$porta)
     g <- .td_gerar(projeto, doc, r$chave, r$no, s, .td_sem_hash(r$pares), FALSE)
     if (!is.null(g$erro)) { res(r, "erro", g$erro); next }
+    nova <- .td_regiao_de(r, g$parte$corpo, g$pares, cr)
+    ok <- tryCatch(.td_conferir_bloco(nova, r$chave), tr_documento_erro = function(e) conditionMessage(e))
+    if (!isTRUE(ok)) { res(r, "erro", ok); next }
     m <- .td_manifesto(pasta_doc, r$chave)
     mesmo <- identical(m$hash, g$hash)
-    if (mesmo) {
-      .td_manifesto_chave(pasta_doc, r$chave, chaves[[r$no]][[s$porta]])
-    } else {
-      .td_materializar(pasta_doc, r$chave, g$parte, .td_manifesto_novo(r$no, s, g, chaves))
-    }
-    corpo_mudou <- !identical(.td_hash_conteudo(g$parte$corpo), r$hash) || !identical(g$pares, .td_sem_hash(r$pares))
-    if (corpo_mudou) {
-      trocas[[length(trocas) + 1L]] <- list(regiao = r, linhas = .td_regiao_linhas(
-        r$chave, g$parte$corpo, g$pares, cerca = r$cerca, cr = cr))
-    }
+    pastas[[length(pastas) + 1L]] <- list(chave = r$chave, mesmo = mesmo, parte = g$parte,
+                                          manifesto = .td_manifesto_novo(r$no, s, g, chaves))
+    corpo_mudou <- !identical(.td_sem_cr(nova), .td_sem_cr(d$linhas[r$inicio:r$fim]))
+    if (corpo_mudou) trocas[[length(trocas) + 1L]] <- list(regiao = r, linhas = nova)
     res(r, if (mesmo && !corpo_mudou) "igual" else "atualizada", paste(g$parte$avisos, collapse = " "))
+  }
+  # Só escreve depois de calcular tudo, e com o arquivo ainda como foi lido.
+  if (length(pastas)) .td_intacto(documento, d)
+  for (p in pastas) {
+    if (p$mesmo) .td_manifesto_atualizar(pasta_doc, p$chave, p$manifesto)
+    else .td_materializar(pasta_doc, p$chave, p$parte, p$manifesto)
   }
   if (length(trocas)) {
     novas <- .td_trocar(d$linhas, trocas)
@@ -173,20 +187,26 @@ tr_documento_atualizar <- function(documento, projeto = NULL, regioes = NULL, fo
 #'
 #' - `manter`: a versão que está no texto passa a ser da pessoa: as cercas
 #'   da região saem e o conteúdo fica como texto comum, que o trama não toca
-#'   mais;
+#'   mais. A pasta `_trama/<chave>/` é congelada como
+#'   `_trama/<chave>--mantida/` (e o texto passa a citá-la), para que um
+#'   novo "inserir" do mesmo nó não mude o que a pessoa ficou;
 #' - `trazer`: descarta a edição e põe a versão do trama de agora (não vale
 #'   para órfã);
 #' - `remover`: apaga a região do texto.
 #'
-#' Os arquivos em `_trama/` ficam (o texto mantido pode citá-los); quem
-#' limpa é [tr_documento_limpar()].
+#' Região em conflito com cercas `:::` dentro (a pessoa pôs um callout, por
+#' exemplo) pode ter o fim diferente do que a pessoa imagina: `trazer` e
+#' `remover` apagariam essas linhas, e só seguem com `confirmar = TRUE`.
 #'
 #' @inheritParams tr_documento_inserir
 #' @param regiao Chave da região (`"lm"` para `#trama-lm`).
 #' @param acao `"manter"`, `"trazer"` ou `"remover"`.
-#' @return Invisível: a chave da região.
+#' @param confirmar Ver acima.
+#' @return Invisível: lista com `regiao` e `removidas`, as linhas que saíram
+#'   do texto.
 #' @export
-tr_documento_resolver <- function(documento, regiao, acao = c("manter", "trazer", "remover"), projeto = NULL) {
+tr_documento_resolver <- function(documento, regiao, acao = c("manter", "trazer", "remover"), projeto = NULL,
+                                  confirmar = FALSE) {
   acao <- match.arg(acao)
   d <- .td_ler(documento)
   regs <- .td_regioes(d$linhas)
@@ -195,8 +215,23 @@ tr_documento_resolver <- function(documento, regiao, acao = c("manter", "trazer"
     .td_erro(sprintf("O documento n\u{E3}o tem a regi\u{E3}o '%s'.", regiao), "tr_documento_erro_regiao")
   }
   r <- regs[[i[[1]]]]
+  pasta_doc <- dirname(normalizePath(documento))
+  cercas <- grepl(.TD_DIV_ABRE, .td_sem_cr(r$conteudo), perl = TRUE)
+  if (acao != "manter" && .td_editada(r) && any(cercas) && !isTRUE(confirmar)) {
+    .td_erro(paste0(sprintf("A regi\u{E3}o '%s' foi editada e tem cercas ':::' dentro; '%s' apagaria as linhas %d a %d:\n",
+                            regiao, acao, r$inicio, r$fim),
+                    paste(.td_sem_cr(d$linhas[r$inicio:r$fim]), collapse = "\n"),
+                    "\nConfira e repita com confirmar = TRUE."), "tr_documento_erro_confirmar")
+  }
+  congelar <- NULL
   linhas <- switch(acao,
-    manter = r$conteudo,
+    manter = {
+      origem <- .td_pasta_regiao(pasta_doc, r$chave)
+      if (dir.exists(origem)) {
+        congelar <- .td_nome_livre(pasta_doc, paste0(r$chave, "--mantida"))
+        gsub(paste0(.TD_PASTA, "/", r$chave, "/"), paste0(.TD_PASTA, "/", congelar, "/"), r$conteudo, fixed = TRUE)
+      } else r$conteudo
+    },
     remover = NULL,
     trazer = {
       projeto <- .td_projeto(projeto, documento)
@@ -208,27 +243,47 @@ tr_documento_resolver <- function(documento, regiao, acao = c("manter", "trazer"
       }
       g <- .td_gerar(projeto, doc, r$chave, r$no, s, .td_sem_hash(r$pares), FALSE)
       if (!is.null(g$erro)) .td_erro(g$erro, g$classe)
-      .td_materializar(dirname(normalizePath(documento)), r$chave, g$parte,
-                       .td_manifesto_novo(r$no, s, g, .td_chaves(projeto, doc)))
-      .td_regiao_linhas(r$chave, g$parte$corpo, g$pares, cerca = r$cerca, cr = .td_crlf(d$linhas))
+      nova <- .td_regiao_de(r, g$parte$corpo, g$pares, .td_crlf(d$linhas))
+      .td_conferir_bloco(nova, r$chave)
+      .td_intacto(documento, d)
+      .td_materializar(pasta_doc, r$chave, g$parte, .td_manifesto_novo(r$no, s, g, .td_chaves(projeto, doc)))
+      nova
     })
+  removidas <- d$linhas[r$inicio:r$fim]
+  .td_intacto(documento, d)
+  if (!is.null(congelar)) file.rename(.td_pasta_regiao(pasta_doc, r$chave), .td_pasta_regiao(pasta_doc, congelar))
   d$linhas <- .td_trocar(d$linhas, list(list(regiao = r, linhas = linhas)))
   .td_gravar(documento, d)
-  invisible(regiao)
+  invisible(list(regiao = regiao, removidas = .td_sem_cr(removidas)))
+}
+
+#' Nome de pasta em `_trama/` que ainda não existe (`x`, `x-2`, `x-3`…).
+#' @noRd
+.td_nome_livre <- function(pasta_doc, base) {
+  nome <- base
+  k <- 1L
+  while (dir.exists(.td_pasta_regiao(pasta_doc, nome))) {
+    k <- k + 1L
+    nome <- paste0(base, "-", k)
+  }
+  nome
 }
 
 #' Apaga de `_trama/` o que nenhuma região usa
 #'
 #' Uma pasta fica se há região com a chave dela ou se o texto ainda cita o
-#' caminho (região mantida como texto da pessoa).
+#' caminho (região mantida como texto da pessoa), em qualquer `.qmd` da
+#' pasta do documento.
 #'
 #' @inheritParams tr_documento_inserir
 #' @return Invisível: as pastas apagadas.
 #' @export
 tr_documento_limpar <- function(documento) {
-  d <- .td_ler(documento)
-  usadas <- vapply(.td_regioes(d$linhas), `[[`, "", "chave")
-  texto <- paste(d$linhas, collapse = "\n")
+  # `_trama/` é da pasta: todo .qmd dela conta, não só este.
+  qmds <- unique(c(normalizePath(documento), Sys.glob(file.path(dirname(normalizePath(documento)), "*.qmd"))))
+  ls <- lapply(qmds, function(q) .td_ler(q)$linhas)
+  usadas <- unlist(lapply(ls, function(l) vapply(.td_regioes(l), `[[`, "", "chave")))
+  texto <- paste(unlist(ls), collapse = "\n")
   base <- file.path(dirname(normalizePath(documento)), .TD_PASTA)
   pastas <- if (dir.exists(base)) list.dirs(base, full.names = FALSE, recursive = FALSE) else character()
   fora <- pastas[!pastas %in% usadas & !vapply(pastas, function(p) {
@@ -300,8 +355,9 @@ tr_documento_listar <- function(projeto = ".") {
   if (is.null(s)) return("orfa")
   m <- .td_manifesto(pasta_doc, r$chave)
   agora <- chaves[[r$no]][[s$porta]]
+  # O rótulo do card não entra na chave do store, mas entra na legenda.
   if (is.null(m) || is.null(agora) || !identical(m$chave_store, agora) ||
-      !identical(m$opcoes, .td_opcoes_txt(.td_sem_hash(r$pares)))) {
+      !identical(m$opcoes, .td_opcoes_txt(.td_sem_hash(r$pares))) || !identical(m$titulo, s$titulo)) {
     return("desatualizada")
   }
   "atualizada"

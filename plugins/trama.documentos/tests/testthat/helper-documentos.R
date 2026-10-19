@@ -19,6 +19,9 @@ colecao_falsa <- function() {
     trama::tr_node("tst/falha", fn = function(n) stop("quebrou de propósito"),
                    label = "Falha", description = "Sempre falha.",
                    outputs = list(out = "tst/tabela"), params = list(n = trama::tr_param_int(1L))),
+    trama::tr_node("tst/quebrado", fn = function(n) structure(list(n = n), class = "tst_quebrado"),
+                   label = "Quebrado", description = "Corpo com cerca solta.",
+                   outputs = list(out = "tst/modelo"), params = list(n = trama::tr_param_int(1L))),
     trama::tr_node("tst/modelo", fn = function(n) structure(list(n = n), class = "tst_modelo"),
                    label = "Modelo com treino", description = "Carrega dados de treino.",
                    outputs = list(out = "tst/modelo"), params = list(n = trama::tr_param_int(1L)))))
@@ -29,6 +32,11 @@ registerS3method("tr_documento_componente", "tst_modelo", function(x, ctx) {
   tr_documento_parte("modelo", ctx$titulo, arquivos = list(m.md = sprintf("n = %d", x$n)),
                      corpo = sprintf("{{< include %s >}}", ctx$arquivo("m.md")),
                      dados_treino = "Leva as 10 linhas de treino (vetores de suporte).")
+}, envir = asNamespace("trama.documentos"))
+
+# Um método de coleção descuidado: o corpo fecha a região antes da hora.
+registerS3method("tr_documento_componente", "tst_quebrado", function(x, ctx) {
+  tr_documento_parte("texto", ctx$titulo, corpo = c("antes", ":::", "depois"))
 }, envir = asNamespace("trama.documentos"))
 
 local_usuario <- function(env = parent.frame()) {

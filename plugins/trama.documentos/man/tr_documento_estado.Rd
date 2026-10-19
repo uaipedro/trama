@@ -27,6 +27,8 @@ gravou e a chave do store de agora com a da última materialização.
 (atualizar confirma pelo resultado e só reescreve se ele mudou);
 \item \code{conflito}: o conteúdo foi editado à mão; atualizar não toca nela;
 \item \code{orfa}: o nó (ou a porta) saiu do fluxo; a região fica até a pessoa decidir;
-\item \code{indisponivel}: o nó está no fluxo, mas a coleção dele não carregou.
+\item \code{indisponivel}: o nó está no fluxo, mas a coleção dele não carregou;
+\item \code{duplicada}: outra região com a mesma chave veio antes no texto (cópia
+à mão); só a primeira é do trama, e esta não é tocada.
 }
 }
