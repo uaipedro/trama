@@ -1389,7 +1389,7 @@ a lado; `data/get_dupes` para conferir a chave antes de juntar."),
         # coluna de `origem` escreve.
         inputs = list(tabelas = trama::tr_port(T, multiple = TRUE, named = TRUE)),
         outputs = list(out = T),
-        params = list(origem = P("text", "", label = "Coluna de origem", example = "teste")),
+        params = list(origem = P("text", "", label = "Coluna de origem", example = "serie")),
         help = "## Descrição
 
 Empilha várias tabelas uma EMBAIXO da outra, casando as colunas pelo nome. É o
@@ -1415,11 +1415,13 @@ Com nenhuma tabela ligada, o nó nem chega a rodar: a porta é obrigatória e o
 fluxo aponta a entrada solta. Com uma só, o resultado é essa tabela.
 
 **Coluna de origem** diz de onde veio cada linha. Com um nome preenchido (por
-exemplo `teste`), sai uma coluna nova, na frente, com o id do nó de onde a
+exemplo `serie`), sai uma coluna nova, na frente, com o id do nó de onde a
 linha veio — é o que separa as linhas de três testes ADF empilhados, que de
 outro modo saem iguais na forma e não dizem de qual série são. Dê aos nós de
 origem ids que se leiam (`adf_ibov`, `adf_sp500`). Se uma tabela já tem coluna
-com esse nome, o nó para dizendo isso. Em branco, nenhuma coluna é criada.
+com esse nome, o nó para dizendo isso: a tabela de um teste já tem `teste` (o
+nome do teste), por isso o exemplo é `serie`. Em branco, nenhuma coluna é
+criada.
 
 ## Parâmetros
 
