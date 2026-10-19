@@ -8,6 +8,11 @@
 #   1e-8. O oráculo monta as defasagens a partir de Y, ajusta `lm` por equação,
 #   monta a covariância cruzada explicitamente (Sigma ⊗ (X'X)^-1, com Sigma =
 #   R'R / (n - k)) e a matriz de restrição R à mão. Não usa nada de `vars`.
+# - Instantânea: `vars::causality()$Instant` a 1e-10, e um recálculo à mão a
+#   1e-8: Sigma_u = U'U / (T - Kp - 1); a covariância assintótica de
+#   sqrt(T) (s_ij, s_kl) no caso gaussiano é s_ik s_jl + s_il s_jk (Isserlis),
+#   o mesmo que 2 D+ (Sigma ⊗ Sigma) D+' de Lütkepohl (2005, seção 3.6.3),
+#   montado sem a matriz de duplicação.
 # - `aod::wald.test` NÃO foi usado: o pacote não está instalado nesta máquina.
 
 canada <- local({
@@ -100,6 +105,48 @@ test_that("Toda-Yamamoto bate com o cálculo à mão no Canada (1e-8)", {
 })
 
 
+# Causalidade instantânea à mão: Wald nas covariâncias dos resíduos entre causa e resto.
+oraculo_instantanea <- function(aj, causa) {
+  U <- stats::residuals(aj)
+  T <- nrow(U)
+  S <- crossprod(U) / (T - ncol(aj$datamat) + aj$K)  # T - (Kp + 1): regressores do VAR
+  resto <- setdiff(colnames(U), causa)
+  pares <- expand.grid(i = resto, j = causa, stringsAsFactors = FALSE)
+  s <- mapply(function(i, j) S[i, j], pares$i, pares$j)
+  V <- outer(seq_len(nrow(pares)), seq_len(nrow(pares)), Vectorize(function(a, b) {
+    i <- pares$i[a]; j <- pares$j[a]; k <- pares$i[b]; l <- pares$j[b]
+    S[i, k] * S[j, l] + S[i, l] * S[j, k]
+  }))
+  W <- T * drop(t(s) %*% solve(V) %*% s)
+  list(W = W, gl = length(s), p = stats::pchisq(W, length(s), lower.tail = FALSE))
+}
+
+test_that("Instantânea: qui-quadrado e p-valor = vars::causality()$Instant (1e-10) e à mão (1e-8)", {
+  aj <- ajuste_canada()
+  for (causa in list("e", c("e", "prod"), "U")) {
+    ref <- vars::causality(aj$ajuste, cause = causa)$Instant
+    out <- tr_series_granger(aj, causa = paste(causa, collapse = ", "), metodo = "instantanea")
+    info <- paste(causa, collapse = ",")
+    expect_equal(out$estatistica, unname(ref$statistic[[1]]), tolerance = 1e-10, info = info)
+    expect_equal(out$p_valor, unname(ref$p.value[[1]]), tolerance = 1e-10, info = info)
+    mao <- oraculo_instantanea(aj$ajuste, causa)
+    expect_equal(out$estatistica, mao$W, tolerance = 1e-8, info = info)
+    expect_equal(as.numeric(out$gl), mao$gl, info = info)
+    expect_equal(out$p_valor, mao$p, tolerance = 1e-8, info = info)
+  }
+  out <- tr_series_granger(aj, causa = "e", metodo = "instantanea")
+  expect_s3_class(out, "tr_series_test")
+  expect_equal(out$h0, "não há causalidade instantânea entre e e prod e rw e U")
+  expect_equal(out$rotulo_estat, "qui-quadrado")
+})
+
+test_that("Instantânea é simétrica: com duas séries, X com Y = Y com X", {
+  aj <- tr_series_var(canada[, c("e", "U")], defasagens = 2L, deterministico = "constante")
+  a <- tr_series_granger(aj, causa = "e", metodo = "instantanea")
+  b <- tr_series_granger(aj, causa = "U", metodo = "instantanea")
+  expect_equal(a$estatistica, b$estatistica, tolerance = 1e-10)
+})
+
 test_that("causa inexistente, causa com todas as séries e VECM são recusados com classe", {
   aj <- ajuste_canada()
   expect_error(tr_series_granger(aj, causa = "xx"), class = "tr_series_error_bad_option")
@@ -111,4 +158,5 @@ test_that("causa inexistente, causa com todas as séries e VECM são recusados c
                                    spec = "longrun"), r = 1)
   fake <- .tr_series_var(v2v, canada, "VECM", vecm = list(posto = 1L))
   expect_error(tr_series_granger(fake, causa = "e"), class = "tr_series_error_vecm_granger")
+  expect_error(tr_series_granger(fake, causa = "e", metodo = "instantanea"), class = "tr_series_error_vecm_granger")
 })
