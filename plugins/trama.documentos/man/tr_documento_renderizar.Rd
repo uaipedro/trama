@@ -6,14 +6,16 @@
 \usage{
 tr_documento_renderizar(
   documento,
-  formato = c("html", "pdf", "docx"),
+  formato = c("html", "pdf", "docx", "revealjs", "dashboard"),
   tempo = 300
 )
 }
 \arguments{
 \item{documento}{Caminho do \code{.qmd}.}
 
-\item{formato}{\code{"html"}, \code{"pdf"} (via Typst) ou \code{"docx"}.}
+\item{formato}{\code{"html"}, \code{"pdf"} (via Typst), \code{"docx"}, \code{"revealjs"}
+(slides) ou \code{"dashboard"}. Os que o documento declara:
+\code{\link[=tr_documento_formatos]{tr_documento_formatos()}}.}
 
 \item{tempo}{Segundos até desistir.}
 }

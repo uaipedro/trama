@@ -11,33 +11,47 @@
 
 #' Modelos de documento disponíveis
 #'
+#' A galeria: os embutidos e os do usuário (que têm precedência sobre o
+#' embutido de mesmo nome). Modelo inválido aparece, com `valido = FALSE` e o
+#' `problema`, em vez de sumir ou quebrar a lista.
+#'
 #' @return data.frame com `nome`, `titulo`, `formatos` (separados por
-#'   vírgula), `origem` (`"embutido"` ou `"usuario"`) e `caminho`.
+#'   vírgula), `origem` (`"embutido"` ou `"usuario"`), `caminho`,
+#'   `descricao`, `perfil` (o perfil de autor que o modelo sugere, ou `NA`),
+#'   `sobre_embutido`, `valido` e `problema` (os problemas, separados por
+#'   `"; "`, ou `NA`).
+#' @seealso [tr_documento_modelo()] para um modelo em detalhe e
+#'   [tr_documento_modelo_criar()] para criar, editar, duplicar e remover.
 #' @export
 tr_documento_modelos <- function() {
   dirs <- c(list.dirs(.td_dir_usuario("modelos"), recursive = FALSE),
             list.dirs(system.file("modelos", package = "trama.documentos"), recursive = FALSE))
   dirs <- dirs[file.exists(file.path(dirs, "_extension.yml"))]
   dirs <- dirs[!duplicated(basename(dirs))]
-  .td_quadro(lapply(dirs, function(d) {
+  q <- .td_quadro(lapply(dirs, function(d) {
     m <- .td_modelo_ler(d)
     list(nome = m$nome, titulo = m$titulo, formatos = paste(m$formatos, collapse = ", "),
-         origem = if (startsWith(d, .td_dir_usuario())) "usuario" else "embutido", caminho = d)
-  }), c("nome", "titulo", "formatos", "origem", "caminho"))
-}
-
-.td_modelo <- function(nome) {
-  for (d in c(.td_dir_usuario("modelos", nome), system.file("modelos", nome, package = "trama.documentos"))) {
-    if (nzchar(d) && file.exists(file.path(d, "_extension.yml"))) return(.td_modelo_ler(d))
+         origem = .td_origem(d), caminho = d, descricao = m$descricao, perfil = m$perfil %||% NA_character_,
+         sobre_embutido = .td_sobre_embutido(d), valido = !length(m$problemas),
+         problema = if (length(m$problemas)) paste(m$problemas, collapse = "; ") else NA_character_)
+  }), c("nome", "titulo", "formatos", "origem", "caminho", "descricao", "perfil", "sobre_embutido", "valido", "problema"))
+  if (!nrow(q)) {
+    q$sobre_embutido <- logical()
+    q$valido <- logical()
   }
-  .td_erro(sprintf("N\u{E3}o h\u{E1} modelo '%s'. Modelos: %s.", nome, paste(tr_documento_modelos()$nome, collapse = ", ")),
-           "tr_documento_erro_modelo")
+  q
 }
 
-.td_modelo_ler <- function(d) {
-  ext <- yaml::read_yaml(file.path(d, "_extension.yml"))
-  list(nome = basename(d), dir = d, titulo = ext$title %||% basename(d),
-       formatos = setdiff(names(ext$contributes$formats), "common"))
+#' O modelo para criar documento: tem de ser válido.
+#' @noRd
+.td_modelo <- function(nome) {
+  d <- .td_modelo_dir(nome)
+  m <- .td_modelo_ler(d)
+  if (length(m$problemas)) {
+    .td_erro(paste(c(sprintf("O modelo '%s' tem problemas; conserte (ou remova) e tente de novo:", nome),
+                     paste("-", m$problemas)), collapse = "\n"), "tr_documento_erro_modelo")
+  }
+  m
 }
 
 #' Cria um documento a partir de um modelo e de um perfil
@@ -48,12 +62,17 @@ tr_documento_modelos <- function() {
 #' e um `_quarto.yml` que manda a saída do render para `_saida/`. É o único
 #' momento em que o trama escreve fora das regiões.
 #'
+#' O YAML do esqueleto pode pedir campos do perfil: um valor
+#' `"{{perfil.orientador}}"` vira o orientador do perfil (e some, se o perfil
+#' não tem), e `"{{ano}}"` vira o ano corrente. É assim que o modelo UFLA
+#' preenche orientador e curso.
+#'
 #' @param nome Nome do documento (letras, dígitos, `-`, `_`): pasta e
 #'   arquivo `.qmd`.
 #' @param projeto Pasta do projeto (ou um `trama::tr_project()`).
 #' @param modelo Nome do modelo ([tr_documento_modelos()]).
-#' @param perfil Nome do perfil de autor; `NULL`, o padrão (se houver);
-#'   `FALSE`, sem autor.
+#' @param perfil Nome do perfil de autor; `NULL`, o que o modelo sugere
+#'   (se o perfil existe) ou o padrão (se houver); `FALSE`, sem autor.
 #' @param titulo Título; `NULL` usa o nome.
 #' @param fluxo Fluxo do projeto de onde vêm as regiões.
 #' @return O caminho do `.qmd`.
@@ -72,10 +91,10 @@ tr_documento_criar <- function(nome, projeto = ".", modelo = "basico", perfil = 
     .td_erro(sprintf("J\u{E1} existe o documento '%s' (%s).", nome, pasta), "tr_documento_erro_nome")
   }
   m <- .td_modelo(modelo)
-  p <- if (isFALSE(perfil)) NULL else tr_documento_perfil(perfil)
+  p <- if (isFALSE(perfil)) NULL else tr_documento_perfil(perfil %||% .td_perfil_sugerido(m))
 
   esqueleto <- .td_ler(file.path(m$dir, "template.qmd"))$linhas
-  y <- .td_yaml(esqueleto)
+  y <- .td_preencher(.td_yaml(esqueleto), p) %||% list()
   f <- .td_fim_yaml(esqueleto)
   corpo <- if (f < length(esqueleto)) esqueleto[(f + 1L):length(esqueleto)] else character()
   y$title <- titulo %||% y$title %||% nome
@@ -89,16 +108,78 @@ tr_documento_criar <- function(nome, projeto = ".", modelo = "basico", perfil = 
   y <- y[intersect(ordem, names(y))]
 
   dir.create(file.path(pasta, "_extensions", m$nome), recursive = TRUE, showWarnings = FALSE)
-  arqs <- setdiff(list.files(m$dir, all.files = TRUE, no.. = TRUE, recursive = TRUE), c("template.qmd", "_brand.yml"))
+  arqs <- setdiff(list.files(m$dir, all.files = TRUE, no.. = TRUE, recursive = TRUE), c("template.qmd", "_brand.yml", .TD_META_MODELO))
   for (a in arqs) {
     dir.create(dirname(file.path(pasta, "_extensions", m$nome, a)), recursive = TRUE, showWarnings = FALSE)
     file.copy(file.path(m$dir, a), file.path(pasta, "_extensions", m$nome, a))
   }
-  if (file.exists(file.path(m$dir, "_brand.yml"))) file.copy(file.path(m$dir, "_brand.yml"), file.path(pasta, "_brand.yml"))
+  if (file.exists(file.path(m$dir, "_brand.yml"))) {
+    .td_yaml_gravar(.td_brand_documento(.td_brand_ler(m$dir), m$nome), file.path(pasta, "_brand.yml"))
+  }
   writeLines(c("project:", "  output-dir: _saida"), file.path(pasta, "_quarto.yml"))
   writeLines(c("/.quarto/", "/_saida/"), file.path(pasta, ".gitignore"))
   qmd <- file.path(pasta, paste0(nome, ".qmd"))
-  writeLines(enc2utf8(c("---", sub("\n$", "", yaml::as.yaml(y, indent.mapping.sequence = TRUE)), "---", corpo)),
+  writeLines(enc2utf8(c("---", .td_yaml_texto(y), "---", corpo)),
              qmd, useBytes = TRUE)
   qmd
+}
+
+#' O perfil que o modelo sugere, se ele existe; senão, o padrão (`NULL`).
+#' @noRd
+.td_perfil_sugerido <- function(m) {
+  if (!is.null(m$perfil) && m$perfil %in% names(tr_documento_perfis()$perfis)) m$perfil
+}
+
+#' Troca `"{{perfil.<campo>}}"` e `"{{ano}}"` no YAML do esqueleto. Campo que
+#' o perfil não tem tira o item (numa lista, o elemento).
+#' @noRd
+.td_preencher <- function(x, p) {
+  if (is.character(x) && length(x) == 1L) {
+    k <- regmatches(x, regexec("^\\{\\{\\s*(perfil\\.[a-z_]+|ano)\\s*\\}\\}$", x))[[1]]
+    if (!length(k)) return(x)
+    if (k[[2]] == "ano") return(format(Sys.Date(), "%Y"))
+    v <- p[[sub("^perfil\\.", "", k[[2]])]]
+    return(if (is.character(v) && length(v) == 1L && nzchar(v)) v)
+  }
+  # Lista de textos no YAML (`instituicao: [UFLA, "{{perfil.curso}}"]`)
+  # chega como vetor.
+  if (is.character(x) && length(x) > 1L) {
+    y <- unlist(lapply(x, .td_preencher, p = p))
+    return(if (length(y)) y)
+  }
+  if (!is.list(x)) return(x)
+  nomeada <- !is.null(names(x))
+  y <- lapply(x, .td_preencher, p = p)
+  vazio <- vapply(y, is.null, TRUE) & !vapply(x, is.null, TRUE)
+  y <- y[!vazio]
+  if (!nomeada) y <- unname(y)
+  if (!length(y) && length(x)) NULL else y
+}
+
+#' O `_brand.yml` do documento: caminhos de arquivo (logo, fontes) passam a
+#' apontar para a cópia da extensão em `_extensions/<modelo>/`.
+#' @noRd
+.td_brand_documento <- function(brand, modelo) {
+  prefixo <- function(v) {
+    if (is.character(v) && length(v) == 1L && grepl("\\.[A-Za-z0-9]+$", v) && !grepl("^(https?:|/)", v)) {
+      paste0("_extensions/", modelo, "/", v)
+    } else v
+  }
+  l <- brand$logo
+  if (is.character(l)) brand$logo <- prefixo(l)
+  if (is.list(l)) {
+    if (length(l$images)) brand$logo$images <- lapply(l$images, function(v) if (is.list(v)) lapply(v, prefixo) else prefixo(v))
+    for (k in intersect(c("small", "medium", "large"), names(l))) {
+      v <- l[[k]]
+      if (is.character(v) && is.null(l$images[[v]])) brand$logo[[k]] <- prefixo(v)
+      if (is.list(v)) brand$logo[[k]] <- lapply(v, function(w) if (is.null(l$images[[w]])) prefixo(w) else w)
+    }
+  }
+  if (length(brand$typography$fonts)) {
+    brand$typography$fonts <- lapply(brand$typography$fonts, function(f) {
+      if (is.list(f$files)) f$files <- lapply(f$files, function(x) if (is.list(x)) { x$path <- prefixo(x$path); x } else prefixo(x))
+      f
+    })
+  }
+  brand
 }

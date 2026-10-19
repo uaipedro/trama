@@ -24,7 +24,8 @@ Objeto \code{tr_documento_previa}: lista com \code{url}, \code{pasta} e
 \code{documento}.
 }
 \description{
-Renderiza em HTML e serve \verb{_saida/} num servidor local
+Renderiza em HTML (ou nos slides ou no dashboard, se o documento não tem
+HTML) e serve \verb{_saida/} num servidor local
 (\verb{http://127.0.0.1:<porta>/}). O servidor fica de pé até
 \code{tr_documento_previa_parar()} ou o fim da sessão do R; uma nova prévia do
 mesmo documento reaproveita o servidor.
