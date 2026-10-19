@@ -144,3 +144,10 @@ Depois: editor de texto simples no próprio trama, compartilhar modelos pelo Git
 | Tabela de dados em `_trama/` | Só as linhas mostradas na região; a tabela completa é opção explícita na região (mesma lógica do aceite de dados de treino) |
 | `_trama/` no versionamento do projeto | Fora por padrão: é derivado e se refaz com "atualizar" |
 | Tema dos gráficos no documento | Tema claro do modelo (`_brand.yml`), não o tema do editor (fase 3) |
+| Como o tema claro chega ao gráfico (fase 3) | O "padrão" do projeto é trocado, nos settings do documento, por um tema derivado do `_brand.yml` do documento (fundo claro, paleta abrindo com as cores da marca que se leem no branco), como `tr_export_code()` faz no Quarto exportado. Card com tema escolhido à mão fica com o dele. O tema entra na chave do store: mudar as cores do `_brand.yml` deixa as regiões de gráfico desatualizadas |
+| O que o trama guarda no modelo e o Quarto não lê | `trama-modelo.yml` ao lado do `_extension.yml`: descrição, perfil sugerido, configuração dos formatos desligados. Não vai para o documento |
+| Editar um embutido | Cria a cópia do usuário com o mesmo nome, que tem precedência; remover a cópia volta ao embutido. Embutido não se remove |
+| Perfil no esqueleto | Valores `"{{perfil.<campo>}}"` e `"{{ano}}"` no YAML do `template.qmd`; campo que o perfil não tem some. Perfil sugerido pelo modelo vale se existe; senão, o padrão |
+| Nome do modelo Dashboard | `painel`: `dashboard-dashboard` o Quarto não resolve como formato de extensão; nomes de formato do Quarto são proibidos como nome de modelo |
+| UFLA (ABNT) | NBR 14724 (margens 3/3/2/2 cm, Arial 12, 1,5), a partir do kit ABNT (UFSCar) do `pedro-e-pedro`. O manual de normalização da Biblioteca da UFLA não foi conferido: pendência |
+| Consultoria | Cores da Yucca (`#003366`, `#E6EFF6`, da extensão `yucca-pdf`) e logo genérico; o logo real da Yucca não vai para o repositório público |
