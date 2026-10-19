@@ -19,7 +19,7 @@ Para persistir uma tabela mantendo classes e atributos próprios do R.
 
 ## Configuração
 
-**Arquivo** (`path`) define o destino do arquivo `.rds`.
+**Arquivo** (`path`) define o destino do arquivo `.rds`. A pasta de destino é criada se não existir.
 
 ## Exemplo
 

@@ -136,3 +136,16 @@ test_that("série chamada sd... não liga as sazonais no bootstrap do IRF", {
   v <- tr_series_var(e, defasagens = 2L)
   expect_null(as.list(.tr_series_ajuste_congelado(v)$call)$season)
 })
+
+test_that("os adaptadores de série para tabela marcam `tempo` como índice (trama_indice)", {
+  # Quem toma "todas as numéricas" em branco (multi/correlation_matrix,
+  # data/describe) deixa o índice de fora; ver .tr_series_indice.
+  ad <- Filter(function(a) a$to == "data/table", .tr_series_adapters())
+  de <- vapply(ad, function(a) a$from, "")
+  expect_setequal(de, c("series/ts", "series/decomposition", "series/forecast", "series/mts"))
+  j <- stats::ts(cbind(a = rnorm(30), b = rnorm(30)), frequency = 52, start = 2000)
+  tab <- ad[[match("series/mts", de)]]$fn(j)
+  expect_identical(attr(tab, "trama_indice"), "tempo")
+  expect_identical(names(tab), c("tempo", "a", "b"))
+  expect_identical(attr(ad[[match("series/ts", de)]]$fn(datasets::Nile), "trama_indice"), "tempo")
+})

@@ -1,3 +1,7 @@
+# trama.multi 0.3.9
+
+* `multi/correlation_matrix` (versão 2) e os demais blocos que tomam "todas as numéricas" com `cols` em branco deixam de fora a coluna de índice declarada no atributo `trama_indice` (o `tempo` de uma série, que entrava na correlação dos resíduos do VAR). Citada pelo nome, entra. A ajuda explica o divisor n − 1 da covariância contra o T − Kp − 1 da Σ_u do `vars`.
+
 # trama.multi 0.3.8
 
 * Relatório Quarto: `distance` (`cluster::daisy` só na Gower), `discriminant` (`MASS::lda` ou `MASS::qda`), `logistic` (`stats::glm` ou `nnet::multinom`) e os jackknife registram no resultado a ferramenta que rodou (atributo `trama_ferramentas`).

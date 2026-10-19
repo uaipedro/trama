@@ -367,12 +367,29 @@ test_that("read_rds com arquivo inexistente aborta com o caminho e classificado"
   expect_match(conditionMessage(e), basename(p), fixed = TRUE)
 })
 
-test_that("write_rds em diretório inexistente aborta com o caminho e classificado", {
-  p <- file.path(tempdir(), "pasta_que_nao_existe_xyz", "saida.rds")
-  expect_error(tr_write_rds(df_exemplo(), p), class = "tr_data_error_missing_file")
+test_that("os três gravadores criam a pasta de destino que falta, com as intermediárias", {
+  base <- file.path(tempdir(), "pasta_que_nao_existe_xyz")
+  on.exit(unlink(base, recursive = TRUE), add = TRUE)
+  d <- df_exemplo()
+  expect_equal(tr_write_rds(d, file.path(base, "a", "b", "saida.rds")), d)
+  expect_equal(tr_read_rds(file.path(base, "a", "b", "saida.rds")), d)
+  tr_write_csv(d, file.path(base, "c", "saida.csv"))
+  expect_true(file.exists(file.path(base, "c", "saida.csv")))
+  skip_if_not_installed("arrow")
+  tr_write_parquet(d, file.path(base, "p", "q", "saida.parquet"))
+  expect_true(file.exists(file.path(base, "p", "q", "saida.parquet")))
+})
+
+test_that("pasta de destino que não dá para criar aborta com o caminho e classificado", {
+  # Um ARQUIVO no lugar da pasta: dir.create falha em qualquer sistema.
+  arq <- tempfile("sou_arquivo_")
+  writeLines("x", arq)
+  on.exit(unlink(arq), add = TRUE)
+  p <- file.path(arq, "saida.rds")
   e <- tryCatch(tr_write_rds(df_exemplo(), p), error = identity)
   expect_equal(class(e)[[1]], "tr_data_error_missing_file")
-  expect_match(conditionMessage(e), "pasta_que_nao_existe_xyz", fixed = TRUE)
+  expect_match(conditionMessage(e), basename(arq), fixed = TRUE)
+  expect_error(tr_write_csv(df_exemplo(), file.path(arq, "s.csv")), class = "tr_data_error_missing_file")
 })
 
 # `path = ""` é "desligado" por decisão explícita, e vem ANTES de qualquer

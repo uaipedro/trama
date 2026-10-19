@@ -148,7 +148,7 @@ tr_multi_correlation_matrix <- function(dados, cols = "", matriz = "correlação
 
 .tr_multi_nos_correlacao <- function() {
   list(
-    trama::tr_node("multi/correlation_matrix", fn = tr_multi_correlation_matrix,
+    trama::tr_node("multi/correlation_matrix", fn = tr_multi_correlation_matrix, version = 2L,
       label = "Matriz de correlação",
       category = "multi_diagnostico", icon = trama::tr_icon("table-2"),
       description = "Matriz de correlação ou de covariância como tabela, geral ou por grupo.",
@@ -173,7 +173,14 @@ variáveis, uma tabela de números não se varre com o olho.
   análise fatorial.
 - **covariância** — na unidade das variáveis (o produto delas). É a matriz da
   PCA não padronizada, e é por ela que uma variável de escala grande domina.
-  A diagonal é a variância de cada uma.
+  A diagonal é a variância de cada uma, com divisor n − 1 (o `cov()` do R).
+
+A covariância dos RESÍDUOS de um VAR (o bloco de resíduos múltiplos da coleção
+de séries ligado aqui) sai
+com divisor n − 1, e não com o da Σ_u que o `vars` imprime no `summary`, que
+divide por T − Kp − 1 (os graus de liberdade de cada equação). A diferença é
+só esse fator; a correlação é a mesma nas duas contas. Lá, a coluna `tempo`
+da série é índice e não entra quando as variáveis ficam em branco.
 
 ### Método
 
@@ -208,7 +215,7 @@ linhas têm, em vez de calcular cada casa com um número diferente de
 observações. Ligue um `data/drop_na` antes.
 ]---", r"---[
 - **Variáveis** — colunas numéricas, separadas por vírgula. Em branco, todas as
-  numéricas (menos a do grupo).
+  numéricas (menos a do grupo e a de índice, como o `tempo` de uma série).
 - **Matriz** — `correlação` ou `covariância`.
 - **Método** — `pearson`, `spearman` ou `kendall`.
 - **Grupo** — coluna que separa os grupos. Em branco, uma matriz só.

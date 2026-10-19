@@ -19,7 +19,7 @@ Para armazenar ou compartilhar tabelas grandes em um formato colunar; requer `ar
 
 ## Configuração
 
-**Arquivo** (`path`) define o destino do arquivo `.parquet`; gravar Parquet requer o pacote opcional `arrow`.
+**Arquivo** (`path`) define o destino do arquivo `.parquet`; gravar Parquet requer o pacote opcional `arrow`. A pasta de destino é criada se não existir.
 
 ## Exemplo
 

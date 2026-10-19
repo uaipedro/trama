@@ -7,6 +7,7 @@ A coleção `trama.data` lê, inspeciona, transforma, reorganiza e grava tabelas
 | Objetivo | Nó | Resultado |
 |---|---|---|
 | Conhecer colunas, tipos e faltantes | `data/summary` | Uma linha por coluna |
+| Descrever colunas numéricas (média, dp, assimetria, curtose) | `data/describe` | Uma linha por coluna numérica |
 | Localizar repetidas | `data/get_dupes` | Linhas e sua contagem |
 | Remover repetidas | `data/distinct` | Uma ocorrência por combinação |
 | Criar medida por linha | `data/mutate` | Tabela com nova coluna |

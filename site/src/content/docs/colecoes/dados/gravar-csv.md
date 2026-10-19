@@ -19,7 +19,7 @@ Para entregar dados em formato aberto que planilhas e outras ferramentas possam 
 
 ## Configuração
 
-**Arquivo** (`path`) define o destino. O arquivo é separado por vírgulas.
+**Arquivo** (`path`) define o destino. O arquivo é separado por vírgulas. A pasta de destino é criada se não existir.
 
 ## Exemplo
 

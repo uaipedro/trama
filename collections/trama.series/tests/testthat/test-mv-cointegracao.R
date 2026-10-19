@@ -15,6 +15,20 @@ test_that("Engle-Granger: estatística igual ao ur.df dos resíduos (Canada, 1e-
   expect_equal(out$extra$observacoes, length(res))
 })
 
+test_that("Engle-Granger: coeficientes com o nome da série e iguais ao lm (1 e 2 regressoras, 1e-10)", {
+  # Antes, o cbind nomeava a coluna pela expressão (`x[, regs, drop = FALSE]`).
+  data(Canada, package = "vars")
+  d <- as.data.frame(Canada)
+  um <- tr_series_engle_granger(Canada[, c("e", "prod")], resposta = "e")$extra$coeficientes
+  expect_identical(um$termo, c("constante", "prod"))
+  expect_equal(um$estimativa, unname(stats::coef(stats::lm(e ~ prod, data = d))), tolerance = 1e-10)
+  dois <- tr_series_engle_granger(Canada[, c("e", "prod", "U")], resposta = "e",
+                                  deterministico = "tendência")$extra$coeficientes
+  expect_identical(dois$termo, c("constante", "tendencia", "prod", "U"))
+  d$t <- seq_len(nrow(d))
+  expect_equal(dois$estimativa, unname(stats::coef(stats::lm(e ~ t + prod + U, data = d))), tolerance = 1e-10)
+})
+
 test_that("Engle-Granger: p-valor de N = 1 igual ao punitroot (1e-10)", {
   # O punitroot é a superfície de UMA série (niv = 1). É o teste do plumbing:
   # a função interna que o bloco usa, no caso em que o urca a expõe.

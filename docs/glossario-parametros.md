@@ -55,6 +55,7 @@ A trava é `tests/testthat/test-glossario.R`: lê o catálogo de todas as coleç
 | `posto` | número de relações de cointegração do VECM (series/vecm) | — |
 | `impulso` | série que recebe o choque numa função de impulso-resposta (series/irf); `respostas` são as que o sentem | — |
 | `nomes` | nomes das séries ligadas a uma porta variádica, na ordem dos fios (series/join) | — |
+| `origem` | nome da coluna nova que recebe, em cada linha, o id do nó de origem dela; em branco, sem coluna (data/bind_rows) | — |
 | `valores` | colunas numéricas, uma por série, de uma série múltipla (series/from_table_mts); o plural de `valor` | — |
 | `x`, `y` | colunas numéricas postas uma contra a outra: os eixos de um gráfico (view/*), o par correlacionado (models/cor_test) e, em spatial/coordinates, as coordenadas projetadas de cada ponto | — |
 | `covariaveis` | covariáveis opcionais, vários nomes: as observadas do delineamento (experiments/design) ou as colunas da tabela que `tendencia = covariavel` usa como tendência externa (spatial/coordinates) | — |

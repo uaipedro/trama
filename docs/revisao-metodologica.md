@@ -566,3 +566,66 @@ registra `trama:contemDadosTreino` no RO-Crate (decisão do Pedro, 19/10).
 Limite: a varredura confere igualdade exata (float32 no XGBoost); um valor
 transformado (escalonado, arredondado) só é pego onde o teste desfaz a
 transformação, como nos vetores de suporte.
+
+## VAR do Morettin: lacunas do #20 (19/10/2026)
+
+Achados ao montar a análise VAR de Ibovespa × S&P 500 pelo MCP (#20, grupos A e
+B da triagem). Nenhuma página de livro foi conferida nesta rodada: os oráculos
+são pacotes de referência chamados direto, com tolerância declarada no teste.
+
+- **`series/fevd`** (versão 2) — o gráfico censurava a barra cujo topo da pilha
+  saía 1 + 2e-16 (`scale_y_continuous(limits = c(0, 1))`): 6 das 160 barras do
+  `vars::Canada`. Agora é `coord_cartesian`; o teste confere 160 barras, topo
+  de cada pilha igual a 1 a 1e-10. As frações não mudaram (iguais a
+  `vars::fevd` a 1e-10). A versão sobe pela saída nova (abaixo).
+- **`series/engle_granger`** (versão 2) — o coeficiente da regressora saía com
+  o nome da expressão (`x[, regs, drop = FALSE]`), com uma regressora e, com os
+  nomes no `cbind`, também com duas. Nomes postos à mão; estimativas iguais a
+  `stats::lm` a 1e-10 com 1 e 2 regressoras (com tendência).
+- **`series/normality_mv`** — o Jarque-Bera multivariado do `vars` padroniza os
+  resíduos centrados pela Cholesky da covariância (`vars:::.jb.multi`), e a
+  ajuda de `vars::normality.test` avisa que o resultado depende da ordem das
+  variáveis. É da construção do teste (Lütkepohl 2005, doi:10.1007/978-3-540-27752-1;
+  seção não conferida), não do bloco. Ajuda, nota do teste e pressuposto dizem
+  isso; o teste documenta a dependência (cada ordem igual ao `vars` a 1e-10, as
+  duas ordens com estatísticas diferentes). Resultado numérico não muda;
+  versão não sobe.
+- **`series/granger`** (versão 2) — `metodo = "instantanea"`: Wald qui-quadrado
+  sobre as covariâncias de Σ_u entre causa e resto, o `$Instant` de
+  `vars::causality()` (Lütkepohl 2005, seção 3.6.3; a seção foi conferida pela
+  documentação do `statsmodels`, que cita 3.6.3 e 7.6.4 para o mesmo teste, não
+  no livro). Σ_u com divisor T − Kp − 1, como no `vars`. Oráculos: `vars` a
+  1e-10 e recálculo à mão a 1e-8, com a covariância assintótica gaussiana de
+  √T (s_ij, s_kl) = s_ik s_jl + s_il s_jk (Isserlis), sem a matriz de
+  duplicação; simetria conferida com duas séries. VECM segue recusado.
+  Pressuposto novo: a variância assintótica é a do caso gaussiano.
+- **`multi/correlation_matrix`** (versão 2) — com `cols` em branco, o `tempo`
+  que o adaptador de série põe na tabela (numérico fora das frequências 1, 4 e
+  12) entrava como variável na correlação dos resíduos do VAR. Os adaptadores
+  `series/* → data/table` marcam o índice no atributo `trama_indice`, e o
+  branco o deixa de fora (todos os blocos da `trama.multi` que tomam "todas as
+  numéricas", e o `data/describe`); citado pelo nome, entra; tabela sem o
+  atributo não muda. Só o `correlation_matrix` subiu de versão: nos outros
+  blocos da `multi` a mudança só alcança tabela vinda de série. Documentado: a
+  covariância usa divisor n − 1, a Σ_u do `vars` T − Kp − 1; a correlação é a
+  mesma.
+- **`series/irf`, `series/fevd`, `series/ccf`** (versão 2) — saída `tabela`
+  (`data/table`) ao lado do gráfico, do mesmo cálculo (um `vars::irf`, um
+  bootstrap). Oráculos pelo registro, porta `tabela`: `vars::irf` com a mesma
+  semente (pontos e banda) e `vars::fevd` a 1e-10; `stats::ccf` a 1e-12, com a
+  banda ±1,96/√n.
+- **`data/describe`** (novo) — n, faltantes, média, dp (divisor n − 1),
+  mediana, extremos, assimetria g1 = m3/m2^(3/2) e curtose em EXCESSO
+  g2 = m4/m2² − 3, momentos com divisor n (Joanes & Gill 1998, *The
+  Statistician* 47(1):183-189, doi:10.2307/2988433; DOI conferido no índice
+  bibliográfico do JRSS-D, artigo não lido). Oráculos: `moments::skewness` e
+  `moments::kurtosis` − 3 e o cálculo à mão, 1e-12.
+- **`models/jarque_bera`** (novo) — JB = n/6 (g1² + g2²/4), qui-quadrado com 2
+  gl (Jarque & Bera 1987, doi:10.2307/1403192). Oráculos:
+  `tseries::jarque.bera.test` e `moments::jarque.test`, 1e-12 na estatística e
+  1e-12 absoluto no p-valor (os dois fazem `1 − pchisq()`, que perde dígitos
+  relativos com p pequeno; o bloco usa a cauda superior). Aviso na nota para
+  n < 50; o limiar é convenção do bloco, não da literatura.
+- **`data/bind_rows`** (versão 2) — param `origem`: coluna com o id do nó de
+  origem de cada linha (porta `named`), para os testes empilhados de várias
+  séries. Em branco, resultado idêntico ao de antes (teste).

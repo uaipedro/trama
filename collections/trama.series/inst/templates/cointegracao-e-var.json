@@ -109,7 +109,7 @@
       },
       "granger": {
         "type": "series/granger",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Causalidade de Granger",
         "params": {
           "causa": "dax"
@@ -118,7 +118,7 @@
       },
       "impulso": {
         "type": "series/irf",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Impulso-resposta",
         "params": {
           "horizonte": 10
@@ -304,7 +304,7 @@
         "var": [1440, 866],
         "granger": [1800, 866],
         "impulso": [1800, 1344],
-        "residuos": [1800, 2062]
+        "residuos": [1800, 2080]
       },
       "sizes": {},
       "views": {},
@@ -314,7 +314,9 @@
       "soltos": {},
       "notes": {},
       "ocultos": {},
-      "grupos": {}
+      "grupos": {},
+      "galeria": {},
+      "ramos": {}
     }
   }
 }

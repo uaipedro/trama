@@ -21,6 +21,8 @@ Quando arquivos ou recortes de períodos diferentes têm as mesmas variáveis e 
 
 A porta **Tabelas** aceita ligações múltiplas. Conecte uma ou mais tabelas; a ordem das conexões determina a ordem dos registros empilhados.
 
+**Coluna de origem** (`origem`) — com um nome preenchido, por exemplo `serie`, cada linha ganha nessa coluna o id do nó de onde veio. É o que separa testes de várias séries empilhados (dê aos nós ids legíveis, como `adf_ibov`). A tabela de um teste já tem a coluna `teste`; escolha outro nome. Em branco, nenhuma coluna é criada.
+
 ## Exemplo
 
 ```r

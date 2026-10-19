@@ -265,6 +265,19 @@
         P("A coluna é **uma população só**: com grupos ou tratamentos misturados, a coluna crua não é o que um modelo supõe normal.",
           se_falhar = "Para os pressupostos de ANOVA ou regressão, use o `models/shapiro_residuals`.")),
       referencias = list(shapiro_wilk,
-        I("stats", "shapiro.test")))
+        I("stats", "shapiro.test"))),
+
+    "models/jarque_bera" = list(
+      pressupostos = list(
+        indep(),
+        P("Amostra GRANDE: a qui-quadrado com 2 graus de liberdade é a distribuição assintótica da estatística, e com n pequeno o nível real do teste foge do nominal.",
+          se_falhar = "Com poucas dezenas de valores, use o `models/shapiro`."),
+        P("A coluna é **uma população só**: com grupos ou tratamentos misturados, a coluna crua não é o que um modelo supõe normal.",
+          se_falhar = "Para os pressupostos de ANOVA ou regressão, use o `models/shapiro_residuals`.")),
+      referencias = list(
+        R(autores = c("Jarque, C. M.", "Bera, A. K."), ano = 1987,
+          titulo = "A Test for Normality of Observations and Regression Residuals",
+          fonte = "International Statistical Review, 55(2), 163-172", doi = "10.2307/1403192"),
+        I("tseries", "jarque.bera.test", "Oráculo dos testes, com moments::jarque.test: mesma estatística, momentos com divisor n.")))
   )
 }

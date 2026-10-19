@@ -615,6 +615,45 @@ tr_flow(reg) |>
   tr_add("sw", "models/shapiro", variavel = "weight", from = "plantas")
 ]---", r"---[
 `models/shapiro_residuals`; `view/histogram`.
+]---", teste = TRUE)),
+
+    trama::tr_node("models/jarque_bera",
+      pressupostos = .tr_models_doc("models/jarque_bera")$pressupostos,
+      referencias = .tr_models_doc("models/jarque_bera")$referencias,
+      fn = tr_models_jarque_bera, label = "Jarque-Bera",
+      category = "modelo_testes", icon = trama::tr_icon("chart-area"),
+      description = "Jarque-Bera: a assimetria e a curtose de uma coluna são as da normal?",
+      inputs = list(dados = T), outputs = list(out = TE),
+      params = list(variavel = trama::tr_param_col("", label = "Variável", role = "numerica", example = "weight")),
+      help = .tr_models_ajuda(r"---[
+Testa se os valores de UMA coluna vêm de uma distribuição normal, olhando dois
+números: a assimetria (zero na normal) e a curtose em excesso (zero na normal).
+A estatística soma os dois desvios, JB = n/6 (g1² + g2²/4), e segue uma
+qui-quadrado com 2 graus de liberdade quando n é grande.
+
+g1 e g2 são os coeficientes de momento com divisor n, os mesmos do
+`data/describe`. A nota do card traz os dois: a rejeição costuma vir de um só,
+e é ele que diz COMO a coluna foge da normal (cauda pesada é curtose; uma cauda
+mais longa que a outra é assimetria).
+
+A distribuição qui-quadrado é assintótica. Com amostra pequena o teste erra o
+nível, e o `models/shapiro` é o teste a usar; o Jarque-Bera é o de séries
+longas e de resíduos de modelos econométricos, onde n passa das centenas.
+
+Como no Shapiro-Wilk, para o pressuposto de uma ANOVA ou regressão o que
+precisa ser normal são os resíduos, não a coluna crua.
+]---", r"---[
+- **Variável** — coluna numérica.
+]---", r"---[
+Um teste (`data/test`): JB, p-valor com 2 graus de liberdade, e na nota o n, a
+assimetria e a curtose em excesso.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carros", "models/example", dataset = "mtcars") |>
+  tr_add("jb", "models/jarque_bera", variavel = "mpg", from = "carros")
+]---", r"---[
+`models/shapiro`, o teste de normalidade para amostra pequena; `data/describe`
+para a assimetria e a curtose de várias colunas; `view/qq`.
 ]---", teste = TRUE))
   )
 }

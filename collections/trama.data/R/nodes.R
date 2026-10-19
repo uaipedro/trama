@@ -588,10 +588,28 @@ tr_slice_head <- function(dados, n = 10L, by = "") {
 #' caso normal — só paga a regravação; sink no meio da cadeia envenena o cache
 #' do resto dela. Ainda assim é a escolha: sink que não grava o arquivo que
 #' promete é silêncio produzindo resultado errado, e isso é pior.
+#' A pasta do arquivo de destino: criada se faltar, com as intermediárias.
+#'
+#' `saida/2026/vendas.csv` num projeto novo é o caso comum, e parar dizendo
+#' "a pasta não existe" só obrigava a criar a pasta à mão. Se não der para
+#' criar (permissão, ou um ARQUIVO com o nome da pasta), o nó para dizendo o
+#' caminho: cru, o R falharia com "não é possível abrir a conexão".
+#' @noRd
+.tr_data_pasta_destino <- function(path) {
+  pasta <- dirname(path)
+  if (!dir.exists(pasta)) dir.create(pasta, recursive = TRUE, showWarnings = FALSE)
+  if (!dir.exists(pasta)) {
+    rlang::abort(sprintf("Param 'path': n\u00e3o deu para criar a pasta de destino: %s.", pasta),
+                 class = "tr_data_error_missing_file")
+  }
+  invisible(pasta)
+}
+
 #' @export
 tr_write_csv <- function(dados, path, .ctx = NULL) {
   if (.tr_data_sink_desligado(path)) return(dados)
   if (!is.null(.ctx)) path <- .ctx$path(path)
+  .tr_data_pasta_destino(path)
   readr::write_csv(dados, path)
   dados
 }
@@ -600,8 +618,7 @@ tr_write_csv <- function(dados, path, .ctx = NULL) {
 tr_write_rds <- function(dados, path, .ctx = NULL) {
   if (.tr_data_sink_desligado(path)) return(dados)
   if (!is.null(.ctx)) path <- .ctx$path(path)
-  # Mesma razão do leitor: `saveRDS` erra cego, sem o caminho na mensagem.
-  .tr_data_arquivo(dirname(path), "path", pasta = TRUE)
+  .tr_data_pasta_destino(path)
   saveRDS(dados, path)
   dados
 }
@@ -615,6 +632,7 @@ tr_write_parquet <- function(dados, path, .ctx = NULL) {
   if (.tr_data_sink_desligado(path)) return(dados)
   if (!is.null(.ctx)) path <- .ctx$path(path)
   .tr_data_need("arrow", "data/write_parquet")
+  .tr_data_pasta_destino(path)
   arrow::write_parquet(dados, path)
   dados
 }
@@ -936,8 +954,26 @@ tr_pivot_wider <- function(dados, names_from, values_from, values_fill = "") {
 #' Coluna que só existe em parte das tabelas vira NA nas outras; coluna com
 #' tipos incompatíveis entre tabelas faz o vctrs recusar o cast, e a falha sobe
 #' crua (sem classe da coleção).
+#'
+#' `origem` nomeia uma coluna nova, na frente, com DE ONDE veio cada linha: o
+#' nome de cada tabela na lista. No grafo a porta é `named`, e o nome é o id do
+#' nó de origem (`nó.saída` se o mesmo nó chega por duas saídas); no console é
+#' o nome que se der à lista. Lista sem nomes (dentro de região de fluxo, ou
+#' sem nomes no console) leva a posição: 1, 2, 3. Em branco, nenhuma coluna, e
+#' o resultado é o de antes do param existir.
 #' @export
-tr_bind_rows <- function(tabelas) dplyr::bind_rows(tabelas)
+tr_bind_rows <- function(tabelas, origem = "") {
+  col <- trimws(paste(as.character(origem), collapse = ""))
+  if (!nzchar(col)) return(dplyr::bind_rows(tabelas))
+  ja <- unique(unlist(lapply(tabelas, names)))
+  if (col %in% ja) {
+    rlang::abort(sprintf(paste0("Param 'origem': a coluna '%s' j\u00e1 existe numa das tabelas. ",
+                                "D\u00ea outro nome para a coluna de origem."), col),
+                 class = "tr_data_error_name_collision")
+  }
+  if (is.null(names(tabelas)) || !all(nzchar(names(tabelas)))) names(tabelas) <- seq_along(tabelas)
+  dplyr::bind_rows(tabelas, .id = col)
+}
 
 #' Descarta as linhas com faltante nas colunas escolhidas.
 #'
