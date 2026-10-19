@@ -1,0 +1,11 @@
+Conteúdo (tabelas, figuras, textos e modelos): {{licenca}}
+{{licenca_url}}
+
+Código (flow.json e o código R em _trama/*/web.json e _trama/*/preditor.qmd): {{licenca_codigo}}
+{{licenca_codigo_url}}
+
+Em _extensions/ está o modelo do documento, com as licenças dele; o modelo Página web traz o quarto-live (https://github.com/r-wasm/quarto-live), sob a licença MIT dos seus autores.
+
+----
+
+{{texto_codigo}}
