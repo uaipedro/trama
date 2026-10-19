@@ -1,5 +1,7 @@
 # Visão de design — `trama.publicar` e `trama.github`
 
+> **Atualização (2026-10-19):** página, layout, componentes e o nó `publicar/publish` convergem para o plugin `trama.documentos` — ver `docs/visao-documentos.md`. As partes de GitHub (conta, versionar, release, Pages) continuam valendo.
+
 ## Para que serve este documento
 
 Registrar o desenho, conversado em 2026-10-19, de como um fluxo do trama sai do computador de quem o fez: versionado no GitHub e publicado como pacote reprodutível, com uma página onde o visitante vê os resultados e usa os modelos no próprio navegador.
