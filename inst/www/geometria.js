@@ -54,6 +54,26 @@ export function rectOf(n) {
   return { x: n.position.x, y: n.position.y, w, h: hh };
 }
 
+// Medidas dos cards para o servidor (`tr_medidas`, R/transport.R). O layout
+// que o agente pede (frame, nota, Organizar por etapas, em R/layout.R) roda
+// no R, sem DOM, e a altura de um card só o navegador sabe. Inteiras, e só
+// card já medido: o resto o R estima pela régua de `rectOf`.
+export function medidasCards(nodes) {
+  const out = {};
+  nodes.forEach((n) => {
+    if (n.type !== "ndNode") return;
+    const w = n.measured?.width, hh = n.measured?.height;
+    if (w > 0 && hh > 0) out[n.id] = [Math.round(w), Math.round(hh)];
+  });
+  return out;
+}
+// O React Flow remede a cada render: só vale mandar de novo o que mudou.
+export function mesmasMedidas(a, b) {
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length &&
+    ka.every((k) => b[k] && a[k][0] === b[k][0] && a[k][1] === b[k][1]);
+}
+
 export const inside = (a, b) =>
   a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h;
 

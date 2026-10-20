@@ -23,7 +23,8 @@ import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
          MARCA } from "./frames.js";
 import { NotaNode, NotaDraw } from "./notas.js";
-import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas } from "./geometria.js";
+import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas,
+         medidasCards, mesmasMedidas } from "./geometria.js";
 import { empilhar, alinhar, alinharA, distribuir, grupoDe, gruposDe, expandirGrupos } from "./alinhar.js";
 import { SettingsPanel, TEMAS_APP, GALERIA_PADRAO } from "./settings.js";
 import { naGaleria, opAlternarGaleria } from "./galeria.js";
@@ -2176,6 +2177,20 @@ function App() {
     if (n.measured?.width === width && n.measured?.height === height) return n;
     return { ...n, measured: { width, height } };
   }), []);
+
+  // As mesmas medidas vão para o servidor, que arruma frames e notas quando
+  // quem pede é o agente (R/layout.R). Meio segundo depois da última mudança,
+  // e só se algo mudou.
+  const medidasEnviadas = useRef({});
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const m = medidasCards(comMedidas(nodesRef.current));
+      if (mesmasMedidas(m, medidasEnviadas.current)) return;
+      medidasEnviadas.current = m;
+      sendInput("tr_medidas", m);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [nodes, comMedidas]);
 
   const bumpTick = useCallback(() => {
     if (tickPending.current) return;
