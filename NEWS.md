@@ -1,3 +1,9 @@
+# trama 0.5.27
+
+* Narrativa pelo agente (#19): o MCP e o `trama-agente` organizam o fluxo com os frames, notas e grupos do editor, sempre como ops comuns e um passo de desfazer por gesto. Tools novas `frame` (criar com título e blocos, editar título/cor/ordem/tamanho, pôr, tirar, remover), `nota` (Markdown abrindo um frame ou presa a um bloco, que anda junto), `posicionar` (como o arrasto: frame leva o conteúdo, grupo anda junto), `organizar` (layout por etapas: um frame por coluna na ordem, ramo principal em cima, diagnósticos e gráficos embaixo, irmãos empilhados) e `guia`; `adicionar` ganha `frame`. No CLI: `frame`, `note`, `move`, `layout`, `guide` e `add --frame`. O `state` traz a posição dos nós, os frames com o que têm dentro e as notas. Cálculo em `R/layout.R`, sem DOM: o editor manda as medidas dos cards (`tr_medidas`), e frame que cresce abre espaço em vez de engolir o vizinho.
+* Orientações de narrativa servidas pelo próprio servidor: resumo nas `instructions` do MCP, inteiras na tool `guia` e em `trama-agente guide` (perguntas, um frame numerado por etapa, nota de abertura e notas nos resultados-chave com o número vindo do bloco, conclusão, depois `organizar`).
+* Renomear o rótulo de um bloco pelo agente (#33): tool `renomear` e `trama-agente rename <no> <rótulo>`.
+
 # trama 0.5.26
 
 * `tr_sem_acento(x)` (nova, exportada): tira o acento com um mapa explícito do português e do Latin-1 e descarta o resto que não é ASCII. Substitui `iconv(x, to = "ASCII//TRANSLIT")`, cuja transliteração muda de sistema para sistema: no macOS o slug de "Ação & Reação!" saía "ac-ao-reac-ao", o de "Soma Básica" saía "soma-b-asica" e a busca do "+" não achava "Regressão" por "regressao". Os slugs de template, galeria e exportação e a busca aproximada passam por ela; coleções e plugins também.

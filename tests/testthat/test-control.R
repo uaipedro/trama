@@ -240,3 +240,61 @@ test_that("--wait: tocados pela op e tudo abaixo deles", {
   expect_equal(ids(.tr_cli_abaixo(st, NULL)), c("d", "m", "c", "g", "z"))
   expect_equal(ids(.tr_cli_abaixo(list(nodes = st$nodes, edges = list()), "z")), "z")
 })
+
+test_that("frame, nota, renomear e organizar pelo canal: ops comuns, um desfazer por gesto (#19, #33)", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p, autosave = FALSE), {
+    session$sendCustomMessage <- function(type, message) NULL
+    session$setInputs(tr_ready = 1)
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "a"))
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "b"))
+    tr_control_cmd(list(cmd = "add", type = "t/add", id = "s", from = list("a", "b")))
+
+    r <- tr_control_cmd(list(cmd = "frame", acao = "add", title = "1. Dados", nodes = list("a", "b")))
+    expect_true(r$ok)
+    fid <- r$id
+    expect_equal(rv_doc()$ui$frames[[fid]]$title, "1. Dados")
+
+    # Bloco novo direto na etapa; medida do editor entra no cálculo.
+    session$setInputs(tr_medidas = list(a = list(240, 300)))
+    r <- tr_control_cmd(list(cmd = "add", type = "t/const", id = "c", frame = fid))
+    expect_true(r$ok)
+    st <- tr_control_state()
+    f <- Filter(function(x) x$id == fid, st$frames)[[1]]
+    expect_setequal(unlist(f$nodes), c("a", "b", "c"))
+    expect_length(st$nodes[[1]]$position, 2L)
+
+    r <- tr_control_cmd(list(cmd = "note", acao = "add", text = "## Dados", frame = fid))
+    expect_true(r$ok)
+    nid <- r$id
+    expect_equal(tr_control_state()$notes[[1]]$frame, fid)
+
+    log0 <- length(session$env$log)
+    rot0 <- rv_doc()$nodes$s$label
+    expect_true(tr_control_cmd(list(cmd = "rename", node = "s", label = "Soma das fontes"))$ok)
+    expect_equal(rv_doc()$nodes$s$label, "Soma das fontes")
+    tr_control_undo()
+    expect_equal(rv_doc()$nodes$s$label, rot0)
+    expect_length(session$env$log, log0)
+
+    antes <- rv_doc()$ui$positions
+    r <- tr_control_cmd(list(cmd = "layout"))
+    expect_true(r$ok)
+    expect_equal(r$op$op, "batch")
+    expect_length(session$env$log, log0 + 1L)
+    # De novo: nada a mudar, e nenhum passo vazio na pilha.
+    r <- tr_control_cmd(list(cmd = "layout"))
+    expect_equal(r$message, "Nada a mudar.")
+    expect_length(session$env$log, log0 + 1L)
+    tr_control_undo()
+    expect_equal(rv_doc()$ui$positions, antes)
+
+    r <- tr_control_cmd(list(cmd = "move", items = list(list(id = fid, dx = 100, dy = 0))))
+    expect_true(r$ok)
+    expect_error(tr_control_cmd(list(cmd = "frame", acao = "put", frame = "nada", nodes = list("a"))),
+                 "Frame desconhecido")
+    expect_true(tr_control_cmd(list(cmd = "note", acao = "rm", note = nid))$ok)
+    expect_length(rv_doc()$ui$notes, 0L)
+  })
+})

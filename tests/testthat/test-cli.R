@@ -74,3 +74,33 @@ test_that("validate sem arquivo vira recusa JSON pelo tr_cli", {
   expect_false(r$json$ok)
   expect_match(r$json$message, "encontrado")
 })
+
+test_that("guide sai sem editor, com o guia de narrativa (#19)", {
+  out <- utils::capture.output(res <- tr_cli("guide"))
+  expect_true(res$ok)
+  expect_true(any(grepl("frame", res$guia)))
+  expect_true(jsonlite::validate(paste(out, collapse = "\n")))
+})
+
+test_that("move, frame e note: argumentos viram o comando do canal", {
+  it <- .tr_cli_itens(c("a=1,2", "b"), list(dx = "3"))
+  expect_equal(it, list(list(id = "a", x = 1, y = 2), list(id = "b", dx = 3, dy = 0)))
+  expect_error(.tr_cli_itens("a=1", list()), "id=x,y")
+  expect_error(.tr_cli_itens("a", list()), "--dx")
+  expect_error(.tr_cli_itens("a", list(dx = "muito")), "n\u00famero")
+
+  precisa <- function(n, uso) NULL
+  f <- .tr_cli_frame(c("add", "1. Dados", "a", "b"), list(id = "f1", color = "verde"), precisa)
+  expect_equal(f, list(cmd = "frame", acao = "add", title = "1. Dados", id = "f1", color = "verde",
+                       nodes = list("a", "b")))
+  f <- .tr_cli_frame(c("set", "f1"), list(order = "2", title = "Outro"), precisa)
+  expect_equal(f[c("acao", "frame", "title", "order")], list(acao = "set", frame = "f1", title = "Outro", order = 2))
+
+  md <- withr::local_tempfile(lines = c("## Etapa", "", "o que se testa"), fileext = ".md")
+  n <- .tr_cli_nota(c("add"), list(file = md, node = "adf"), precisa)
+  expect_equal(n$text, "## Etapa\n\no que se testa")
+  expect_equal(n$node, "adf")
+  n <- .tr_cli_nota(c("add", "texto", "solto"), list(x = "10", y = "20"), precisa)
+  expect_equal(n[c("text", "x", "y")], list(text = "texto solto", x = 10, y = 20))
+  expect_error(.tr_cli_nota("add", list(), precisa), "markdown")
+})

@@ -111,9 +111,72 @@ trama-agente set ajuste 'preditores=["wt","xyz"]' --wait 30
 Sem `--wait`, a edição volta assim que aplicada e o resultado chega depois.
 Depois de `rm` e `undo` o efeito lista o fluxo inteiro.
 
+### Contar a análise: frames, notas e layout
+
+Um fluxo de dezenas de blocos numa linha só não se lê. O agente organiza a
+tela como uma narrativa (perguntas, etapas, conclusão) com os mesmos frames,
+notas e grupos do editor; nada novo entra no documento. `guide` imprime as
+orientações, que valem tanto para o CLI quanto para o MCP:
+
+1. Escreva as perguntas e as etapas antes de montar. Uma etapa é um frame com
+   título numerado.
+2. Monte cada etapa dentro do seu frame (`add ... --frame F`, ou
+   `frame put F` para blocos que já existem).
+3. Abra cada frame com uma nota Markdown: o que se testa ali e por quê.
+4. Prenda uma nota aos resultados-chave, com o número lido em `result`, nunca
+   escrito de memória.
+5. Dê rótulos que se leem sozinhos (`rename`): o rótulo vira legenda no
+   documento.
+6. Feche com um frame de conclusão só com nota.
+7. Depois de montar, `layout`; ajuste à mão com `move` e `frame set --order`.
+
+```bash
+trama-agente frame add "1. Dados e descritivas" dados niveis ibv sp --id etapa1 --color azul
+trama-agente frame add "2. Estacionariedade" --id etapa2 --color verde
+trama-agente add series/adf --id adf_ibv --from ibv --frame etapa2
+trama-agente note add --frame etapa2 --file abre-etapa2.md
+trama-agente note add "ADF no log do IBV: -2,10 > -3,45; não rejeita a raiz unitária." --node adf_ibv
+trama-agente rename adf_ibv "ADF do log do Ibovespa"
+trama-agente frame add "3. Conclusão" --id conclusao --color verde
+trama-agente note add --frame conclusao --file conclusao.md --w 520
+trama-agente layout
+trama-agente move etapa2 --dx 0 --dy 200   # o frame leva o que tem dentro
+```
+
+- **Frame** (`frame add|set|rm|put|take`): frame novo nasce à direita de
+  tudo, com proporção `livre`, e já traz os blocos pedidos, arrumados dentro
+  dele; a resposta traz o `id`. Pertencer a um frame é estar dentro dele,
+  como no editor: o frame se rearruma e cresce para caber, e o que estava à
+  direita ou abaixo anda para abrir espaço. `frame set --order N` muda a
+  posição dele na sequência; `frame rm` tira o frame e deixa os blocos.
+- **Nota** (`note add|set|rm`): Markdown, com a altura calculada pelo texto
+  (`--w`, `--h` para mudar; `--file` lê de um arquivo). Com `--frame`, abre a
+  etapa, à esquerda dos blocos. Com `--node`, fica logo abaixo do bloco e
+  entra num grupo com ele: anda junto no editor e no layout. Sem nenhum dos
+  dois, fica solta à direita de tudo (ou em `--x --y`). Cores: `azul`,
+  `verde`, `amarelo`, `laranja`, `rosa`, `roxo`, `cinza`; nota também aceita
+  `nenhuma`, o padrão.
+- **Posição** (`move`): `move dados=0,0 ajuste=400,0` põe o canto de cima à
+  esquerda onde se pede; `move ids... --dx N --dy N` desloca. Como o arrasto:
+  frame leva tudo o que contém, bloco leva o preview solto, e quem está num
+  grupo leva o grupo.
+- **Layout por etapas** (`layout`): cada frame vira uma coluna, na ordem dos
+  frames, da esquerda para a direita. Dentro dele, o ramo principal (o que
+  leva o fluxo para a etapa seguinte) fica em cima e os gráficos, testes e
+  tabelas laterais embaixo; irmãos se empilham, as entradas da etapa seguem a
+  ordem dos pais na etapa anterior e cada corrente sai reta. A nota de
+  abertura fica à esquerda; notas presas, sob o bloco. Blocos fora de frame
+  vão para uma faixa abaixo. Arrumar de novo o que já está arrumado não muda
+  nada (`"Nada a mudar."`).
+
+Cada um desses comandos é um passo de desfazer. As alturas dos cards vêm do
+editor, que mede cada card na tela; um gráfico que chega depois e estica o
+card não o tira da etapa: o próximo `layout` aumenta o frame.
+
 ### Sem editor aberto
 
-Três comandos não precisam do editor: leem as coleções instaladas (ou as de
+`guide` (as orientações acima) roda sem editor e sem coleção. Outros três
+comandos também dispensam o editor: leem as coleções instaladas (ou as de
 `--colecoes trama.data,trama.models`). Com `TRAMA_DEV`, as coleções vêm de
 `collections/` do repositório.
 
@@ -121,6 +184,7 @@ Três comandos não precisam do editor: leem as coleções instaladas (ou as de
 trama-agente catalog --offline --busca anova   # catalog cai aqui sozinho quando não há editor
 trama-agente explain models/lm                 # bloco inteiro: params, portas, ajuda, referências
 trama-agente validate fluxo.json               # lê, migra e valida um fluxo ou template
+trama-agente guide                             # como contar a análise (frames, notas, layout)
 ```
 
 `validate` aceita o `.json` de um fluxo (`flows/*.json`) ou um template.
@@ -161,8 +225,11 @@ colunas, tipos); `preview.data` é o que o card desenha; `preview.files.png`,
 quando existe, é o caminho absoluto da imagem. `result --wait N` espera até N
 segundos o bloco sair de `queued`/`running`.
 
-`state` devolve `rev`, `nodes` (id, tipo, rótulo, params, status),
-`edges` (`"de:porta -> para:porta"`) e `problems` (validação do documento).
+`state` devolve `rev`, `nodes` (id, tipo, rótulo, params, status,
+`position`), `edges` (`"de:porta -> para:porta"`), `frames` (na ordem, com
+`title`, `rect` `[x, y, w, h]`, os `nodes` e `notes` de dentro), `notes`
+(texto, `rect`, o `frame` onde está e o `node` a que está presa) e `problems`
+(validação do documento).
 
 Um bloco que subiu de versão depois que o fluxo foi salvo aparece em
 `problems` como `version_drift` (`from`, `to`, `aceitavel`): o resultado dele

@@ -35,6 +35,8 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `app.R` | App Shiny que serve o editor. |
 | `plugin.R` | Plugins do editor: acha os plugins instalados (`tr_plugins()`) e liga JS, CSS e server deles. Sem rede, sem nome de pacote. |
 | `control.R`, `cli.R` | Canal de controle para agentes (HTTP local + token) e o CLI `trama-agente` (`inst/bin/`); `catalog`, `explain` e `validate` rodam sem editor. |
+| `mcp.R` | Servidor MCP (`tr_mcp()`): os comandos do CLI como tools. |
+| `layout.R`, `guia.R` | Narrativa do agente: frames, notas, posição e o layout por etapas como ops comuns do documento (com as medidas que o editor manda); as orientações servidas pelo MCP e por `trama-agente guide`. |
 | `template.R`, `theme.R`, `export.R` | Templates, temas de gráfico, exportação. |
 | `docs-bloco.R`, `test-card.R` | Documentação por bloco e `tr_test` para coleções. |
 

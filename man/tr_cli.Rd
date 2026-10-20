@@ -29,6 +29,15 @@ trama-agente op '<json>'                 # op crua (ver schema do documento)
 trama-agente apply <arquivo.json>        # lista de ops como um passo de undo
 trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 trama-agente undo
+trama-agente accept [no]...              # aceita a versão nova (version_drift)
+trama-agente rename <no> <rótulo>
+trama-agente move <id>=<x>,<y>...        # ou: move <id>... --dx N --dy N
+trama-agente frame add "<título>" [no]... [--id F] [--color C] [--aspect A]
+trama-agente frame set|rm|put|take <frame> ...
+trama-agente note add "<markdown>" [--frame F | --node N] [--id X] [--file nota.md]
+trama-agente note set|rm <nota> ...
+trama-agente layout                      # auto-layout por etapas (frames)
+trama-agente guide                       # sem editor: como contar a análise
 trama-agente explain <tipo>              # sem editor: o bloco inteiro
 trama-agente validate <arquivo.json>     # sem editor: lê, migra e valida
 }\if{html}{\out{</div>}}
@@ -37,7 +46,7 @@ trama-agente validate <arquivo.json>     # sem editor: lê, migra e valida
 coleções instaladas (ou \verb{--colecoes a,b}). \code{catalog} só faz isso quando
 não acha editor ou com \code{--offline}.
 
-Toda edição (\code{add}, \code{link}, \code{set}, \code{rm}, \code{op}, \code{apply}, \code{undo}) aceita
+Toda edição (\code{add}, \code{link}, \code{set}, \code{rm}, \code{op}, \code{apply}, \code{undo}, \code{accept}) aceita
 \verb{--wait N}: espera até N segundos o fluxo parar de rodar e devolve, em
 \code{efeito}, o status dos nós tocados e de tudo abaixo deles. Nó \code{blocked}
 traz \code{causa}, os ancestrais que falharam.

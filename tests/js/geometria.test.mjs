@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { containedFrames, donos, envolver, unidades, crescerExterno, abrirEspaco, FRAME_PAD, gradeDeFrames, validarPrancheta,
          PRANCHETA_PADRAO, FRAME_HEAD, FRAME_COLORS, inside, marcaDaAgua, containedCards, containedNotes,
-         rectOf, notasComFrame } from "../../inst/www/geometria.js";
+         rectOf, notasComFrame, medidasCards, mesmasMedidas } from "../../inst/www/geometria.js";
 
 const frame = (id, x, y, w, hh) => ({ id, type: "trFrame", position: { x, y }, width: w, height: hh, data: {} });
 const card = (id, x, y) => ({ id, type: "ndNode", position: { x, y }, measured: { width: 240, height: 190 }, data: {} });
@@ -286,4 +286,16 @@ test("NOTA_TAMANHO espelha .tr_note_tamanho do R", async () => {
   const doR = Object.fromEntries([...m[1].matchAll(/(\w+) = c\((\d+), (\d+)\)/g)]
     .map((x) => [x[1], { w: +x[2], h: +x[3] }]));
   assert.deepEqual(doR, NOTA_TAMANHO);
+});
+
+test("medidasCards: só card medido, inteiro; mesmasMedidas compara chave e valor", () => {
+  const ns = [card("a", 0, 0), { ...card("b", 0, 0), measured: { width: 300.4, height: 410.6 } },
+              { id: "c", type: "ndNode", position: { x: 0, y: 0 }, data: {} },
+              frame("F", 0, 0, 500, 500), nota("n", 0, 0, 100, 50)];
+  const m = medidasCards(ns);
+  assert.deepEqual(m, { a: [240, 190], b: [300, 411] });
+  assert.ok(mesmasMedidas(m, { b: [300, 411], a: [240, 190] }));
+  assert.ok(!mesmasMedidas(m, { a: [240, 190] }));
+  assert.ok(!mesmasMedidas(m, { a: [240, 190], b: [300, 412] }));
+  assert.ok(!mesmasMedidas(m, { a: [240, 190], c: [1, 1] }));
 });

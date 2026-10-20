@@ -17,6 +17,14 @@
 #' trama-agente result <no> [--wait 30]     # status, resumo, preview, PNG
 #' trama-agente undo
 #' trama-agente accept [no]...              # aceita a versão nova (version_drift)
+#' trama-agente rename <no> <rótulo>
+#' trama-agente move <id>=<x>,<y>...        # ou: move <id>... --dx N --dy N
+#' trama-agente frame add "<título>" [no]... [--id F] [--color C] [--aspect A]
+#' trama-agente frame set|rm|put|take <frame> ...
+#' trama-agente note add "<markdown>" [--frame F | --node N] [--id X] [--file nota.md]
+#' trama-agente note set|rm <nota> ...
+#' trama-agente layout                      # auto-layout por etapas (frames)
+#' trama-agente guide                       # sem editor: como contar a análise
 #' trama-agente explain <tipo>              # sem editor: o bloco inteiro
 #' trama-agente validate <arquivo.json>     # sem editor: lê, migra e valida
 #' ```
@@ -63,7 +71,22 @@ tr_cli <- function(args = commandArgs(TRUE)) {
   "result <no> [--wait segundos]           status, resumo, preview, PNG",
   "undo                                    desfaz a última edição (sua ou do humano)",
   "accept [no]...                          aceita a versão nova dos blocos em version_drift (sem no: todos)",
+  "--- narrativa: frames, notas, posição (veja 'guide') ---",
+  "add ... --frame F                       o bloco novo já entra no frame F",
+  "rename <no> <rótulo>                    muda o rótulo do card (legenda no documento)",
+  "move <id>=<x>,<y>...                    posição absoluta de blocos, frames ou notas",
+  "move <id>... --dx N --dy N              desloca; frame leva o que tem dentro, grupo anda junto",
+  "frame add \"<título>\" [no]... [--id F] [--color C] [--aspect livre]   frame novo à direita, com os blocos dentro",
+  "frame set <frame> [--title T] [--color C] [--aspect A] [--order N] [--w N --h N]",
+  "frame put|take <frame> <no>...          põe ou tira blocos (o frame se rearruma)",
+  "frame rm <frame>                        tira o frame; os blocos ficam",
+  "note add \"<markdown>\" [--frame F | --node N] [--id X] [--color C] [--w N] [--h N] [--file nota.md]",
+  "note set <nota> [--text T | --file nota.md] [--color C] [--w N] [--h N] [--x N --y N]",
+  "note rm <nota>",
+  "layout                                  auto-layout por etapas: um frame por coluna, diagnósticos abaixo",
+  "cores: azul verde amarelo laranja rosa roxo cinza (nota também: nenhuma)",
   "--- sem editor aberto ---",
+  "guide                                   como contar a análise como narrativa (frames, notas, layout)",
   "catalog ... [--offline]                 sem editor (ou com --offline), lê das coleções instaladas",
   "explain <tipo>                          bloco inteiro: params, portas, ajuda, referências",
   "validate <arquivo.json>                 lê, migra e valida um fluxo ou template",
@@ -135,11 +158,12 @@ tr_cli <- function(args = commandArgs(TRUE)) {
 
 # Comandos que não precisam do editor. `catalog` só cai aqui sem editor
 # aberto ou com `--offline`; `validate` e `explain` sempre.
-.tr_cli_offline <- c("validate", "explain")
+.tr_cli_offline <- c("validate", "explain", "guide")
 
 .tr_cli_sem_editor <- function(a, p, precisa, registro = NULL) {
   reg <- function() registro %||% .tr_cli_registro(a$opt$colecoes)
   switch(a$cmd,
+    guide = list(ok = TRUE, guia = .tr_guia_narrativa),
     catalog = c(.tr_catalogo_enxuto(tr_catalog(reg()), tipo = if (length(p)) p[[1]],
                                     busca = a$opt$busca),
                 offline = TRUE),
@@ -214,7 +238,7 @@ tr_cli <- function(args = commandArgs(TRUE)) {
     add = {
       precisa(1, "trama add <tipo> [--id X] [--from no] [param=valor]...")
       .tr_cli_http(cx, "POST", "/cmd", list(
-        cmd = "add", type = p[[1]], id = a$opt$id, label = a$opt$label,
+        cmd = "add", type = p[[1]], id = a$opt$id, label = a$opt$label, frame = a$opt$frame,
         from = if (length(a$opt$from)) as.list(a$opt$from),
         params = .tr_cli_params(p[-1])))
     },
@@ -236,8 +260,79 @@ tr_cli <- function(args = commandArgs(TRUE)) {
     result = { precisa(1, "trama result <no> [--wait segundos]")
       .tr_cli_result(cx, p[[1]], as.numeric(a$opt$wait %||% 0)) },
     undo = .tr_cli_http(cx, "POST", "/undo", list()),
+    rename = { precisa(2, "trama rename <no> <r\u00f3tulo>")
+      .tr_cli_http(cx, "POST", "/cmd", list(cmd = "rename", node = p[[1]], label = paste(p[-1], collapse = " "))) },
+    move = { precisa(1, "trama move <id>=<x>,<y>... | move <id>... --dx N --dy N")
+      .tr_cli_http(cx, "POST", "/cmd", list(cmd = "move", items = .tr_cli_itens(p, a$opt))) },
+    frame = .tr_cli_http(cx, "POST", "/cmd", .tr_cli_frame(p, a$opt, precisa)),
+    note = .tr_cli_http(cx, "POST", "/cmd", .tr_cli_nota(p, a$opt, precisa)),
+    layout = .tr_cli_http(cx, "POST", "/cmd", list(cmd = "layout")),
     accept = .tr_cli_http(cx, "POST", "/cmd", list(cmd = "accept", nodes = if (length(p)) as.list(p))),
     rlang::abort(paste0("Comando desconhecido: '", a$cmd, "'. Veja 'trama-agente help'.")))
+}
+
+#' `id=x,y` vira posição absoluta; `id` sozinho anda `--dx`/`--dy`.
+#' @noRd
+.tr_cli_itens <- function(p, opt) {
+  lapply(p, function(x) {
+    if (grepl("=", x, fixed = TRUE)) {
+      xy <- suppressWarnings(as.numeric(strsplit(sub("^[^=]*=", "", x), ",", fixed = TRUE)[[1]]))
+      if (length(xy) != 2L || anyNA(xy)) rlang::abort(sprintf("Esperava id=x,y, veio: %s.", x))
+      list(id = sub("=.*$", "", x), x = xy[[1]], y = xy[[2]])
+    } else {
+      if (is.null(opt$dx) && is.null(opt$dy)) {
+        rlang::abort(sprintf("'%s' sem posi\u00e7\u00e3o: use %s=x,y ou --dx/--dy.", x, x))
+      }
+      list(id = x, dx = .tr_cli_num(opt$dx %||% 0, "dx"), dy = .tr_cli_num(opt$dy %||% 0, "dy"))
+    }
+  })
+}
+
+.tr_cli_num <- function(v, nome) {
+  if (is.null(v)) return(NULL)
+  n <- suppressWarnings(as.numeric(v))
+  if (length(n) != 1L || is.na(n)) rlang::abort(sprintf("--%s espera um n\u00famero, veio: %s.", nome, v))
+  n
+}
+
+.tr_cli_texto <- function(opt, texto = NULL) {
+  if (!is.null(opt$file)) {
+    if (!file.exists(opt$file)) rlang::abort(sprintf("Arquivo n\u00e3o encontrado: '%s'.", opt$file))
+    return(paste(readLines(opt$file, warn = FALSE, encoding = "UTF-8"), collapse = "\n"))
+  }
+  texto
+}
+
+.tr_cli_frame <- function(p, opt, precisa) {
+  precisa(1, "trama frame add|set|rm|put|take ...")
+  acao <- p[[1]]
+  num <- function(k) .tr_cli_num(opt[[k]], k)
+  if (acao == "add") {
+    precisa(2, "trama frame add \"<t\u00edtulo>\" [no]... [--id F] [--color C] [--aspect A]")
+    return(Filter(Negate(is.null), list(cmd = "frame", acao = "add", title = p[[2]], id = opt$id,
+                                        color = opt$color, aspect = opt$aspect, nodes = as.list(p[-(1:2)]))))
+  }
+  precisa(2, sprintf("trama frame %s <frame> ...", acao))
+  Filter(Negate(is.null), list(cmd = "frame", acao = acao, frame = p[[2]], nodes = as.list(p[-(1:2)]),
+                               title = opt$title, color = opt$color, aspect = opt$aspect,
+                               order = num("order"), w = num("w"), h = num("h")))
+}
+
+.tr_cli_nota <- function(p, opt, precisa) {
+  precisa(1, "trama note add|set|rm ...")
+  acao <- p[[1]]
+  num <- function(k) .tr_cli_num(opt[[k]], k)
+  comuns <- list(color = opt$color, w = num("w"), h = num("h"), x = num("x"), y = num("y"),
+                 escala = opt$escala, fundo = opt$fundo)
+  if (acao == "add") {
+    texto <- .tr_cli_texto(opt, if (length(p) >= 2L) paste(p[-1], collapse = " "))
+    if (is.null(texto)) rlang::abort("Uso: trama note add \"<markdown>\" [--frame F | --node N] (ou --file nota.md)")
+    return(Filter(Negate(is.null), c(list(cmd = "note", acao = "add", text = texto, id = opt$id,
+                                           frame = opt$frame, node = opt$node), comuns)))
+  }
+  precisa(2, sprintf("trama note %s <nota> ...", acao))
+  Filter(Negate(is.null), c(list(cmd = "note", acao = acao, note = p[[2]],
+                                 text = .tr_cli_texto(opt, opt$text)), comuns))
 }
 
 #' Nós que a op mexeu diretamente. `remove_node` e `undo` não deixam nó para

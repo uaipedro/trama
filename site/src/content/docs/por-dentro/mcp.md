@@ -104,17 +104,33 @@ comprimento da sépala no iris."* Ele vai:
 | `estado` | Nós, params, status e ligações do fluxo na tela. |
 | `catalogo` | Busca blocos por palavras (até 12, o melhor primeiro). |
 | `explicar` | Um bloco inteiro: params, portas, ajuda, referências. |
-| `adicionar` | Põe um bloco, opcionalmente ligado a outros (`de`), e roda. |
+| `adicionar` | Põe um bloco, opcionalmente ligado a outros (`de`) e dentro de um `frame`, e roda. |
 | `ajustar` | Muda params de um nó. |
 | `ligar` | Liga uma saída a uma entrada. |
 | `remover` | Tira um nó. |
 | `resultado` | O que o nó produziu; gráficos como imagem. |
 | `desfazer` | Desfaz a última edição, do assistente ou sua. |
+| `aceitar_versao` | Aceita a versão nova de blocos em `version_drift`. |
+| `renomear` | Muda o rótulo do card (a legenda no documento). |
+| `frame` | Etapas: `criar` (com título e blocos), `editar` (título, cor, ordem, tamanho), `por`, `tirar`, `remover`. |
+| `nota` | Nota Markdown: `criar` abrindo um `frame` ou presa a um `bloco`, `editar`, `remover`. |
+| `posicionar` | Move blocos, frames e notas como o arrasto (frame leva o conteúdo, grupo anda junto). |
+| `organizar` | Layout por etapas: um frame por coluna, ramo principal em cima, diagnósticos embaixo. |
+| `guia` | Como contar a análise no canvas: perguntas, etapas, notas, conclusão. |
 | `validar` | Confere um `.json` de fluxo do disco, sem editor. |
 
 Toda edição espera o fluxo rodar (até 30 s, ajustável em `espera`) e devolve
 `efeito`: o status do que mudou e de tudo abaixo. Um bloco `failed` traz a
 mensagem; um `blocked` traz `causa`, os blocos acima que falharam.
+
+## Narrativa
+
+O servidor diz ao assistente, ao conectar, para contar a análise como
+narrativa, e a tool `guia` traz as orientações inteiras: um frame por etapa
+com título numerado, uma nota no começo de cada frame (o que se testa e por
+quê), uma nota presa a cada resultado-chave com o número lido em `resultado`,
+um frame de conclusão e, depois de montar, `organizar`. Detalhes de cada
+ferramenta em [Agentes](/trama/por-dentro/agentes/#contar-a-análise-frames-notas-e-layout).
 
 ## Como funciona
 
