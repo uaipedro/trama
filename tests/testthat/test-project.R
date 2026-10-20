@@ -251,6 +251,16 @@ test_that("na raiz do sistema de arquivos não há para onde subir", {
   expect_equal(.tr_dir_listing(tempdir())$parent, dirname(normalizePath(tempdir())))
 })
 
+# No Windows `normalizePath()` devolve "D:\\" e `dirname()` devolve "D:/": a raiz
+# tem de ser reconhecida mesmo com as barras trocadas.
+test_that("raiz do disco no Windows também não tem pai", {
+  expect_null(.tr_dir_pai("D:\\", pai = "D:/"))
+  expect_null(.tr_dir_pai("\\\\srv\\pasta", pai = "//srv/pasta"))
+  expect_equal(.tr_dir_pai("D:\\Users", pai = "D:/"), "D:/")
+  expect_equal(.tr_dir_pai("C:\\Users\\pedro", pai = "C:/Users"), "C:/Users")
+  expect_null(.tr_dir_pai("/"))
+})
+
 test_that("pasta inexistente é a mesma recusa de tr_project_at()", {
   err <- tryCatch(.tr_dir_listing(file.path(tempfile(), "nada")), error = identity)
   expect_equal(class(err)[[1]], "tr_error_bad_root")

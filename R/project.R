@@ -330,14 +330,26 @@ print.tr_project <- function(x, ...) {
   # que o gerenciador de arquivos dele usa — no C puro "Zeta" viria antes de
   # "alfa" e "área" iria parar depois de "azul".
   dirs <- sort(dirs[nzchar(dirs) & !startsWith(dirs, ".")])
-  pai <- dirname(path)
 
   list(
     path = path,
-    parent = if (identical(pai, path)) NULL else pai,
+    parent = .tr_dir_pai(path),
     project = .tr_eh_projeto(path),
     entries = lapply(dirs, function(d) list(nome = d, projeto = .tr_eh_projeto(file.path(path, d))))
   )
+}
+
+#' A pasta de cima, ou `NULL` na raiz do disco.
+#'
+#' `path` vem de `normalizePath()`, que no Windows usa barra invertida ("D:\\"),
+#' e `dirname()` devolve barra normal ("D:/"): comparados crus, a raiz nunca
+#' seria igual ao próprio pai e o ".." recarregaria a mesma pasta. Compara os
+#' dois com a mesma barra e sem a do fim. `pai` é argumento só para o teste
+#' simular o Windows fora dele.
+#' @noRd
+.tr_dir_pai <- function(path, pai = dirname(path)) {
+  igual <- function(x) sub("/+$", "", gsub("\\\\", "/", x))
+  if (identical(igual(pai), igual(path))) NULL else pai
 }
 
 # As imagens que o bloco de imagem oferece para escolher, quando a nota ainda
