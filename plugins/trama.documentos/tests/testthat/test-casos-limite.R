@@ -140,3 +140,14 @@ test_that("limpar conta as regiões de todos os .qmd da pasta", {
   expect_identical(tr_documento_limpar(qmd), character())
   expect_setequal(list.files(file.path(dirname(qmd), "_trama")), c("a", "b"))
 })
+
+# O iconv com ASCII//TRANSLIT dependia do sistema (no macOS "Ação" virava
+# "ac-ao"); os slugs passam por trama::tr_sem_acento().
+test_that("slugs de repositório e de modelo tiram o acento igual em qualquer sistema", {
+  expect_equal(.td_slug("Ação & Reação!"), "acao-reacao")
+  expect_equal(.td_slug("Regressão linear da produção"), "regressao-linear-da-producao")
+  expect_equal(.td_slug("!!!"), "publicacao")
+  expect_equal(.td_nome_limpo("Relatório Técnico"), "relatorio-tecnico")
+  expect_equal(.td_nome_limpo("ºª"), "oa")
+  expect_equal(.td_nome_limpo("☕"), "modelo")
+})

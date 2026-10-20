@@ -1,3 +1,7 @@
+# trama.documentos 0.4.1
+
+* O nome sugerido do repositório de publicação e o nome de modelo tiram o acento por `trama::tr_sem_acento()`, o mesmo em qualquer sistema; o `iconv` com `TRANSLIT` dava outro resultado no macOS ("ac-ao" no lugar de "acao"). Pede `trama (>= 0.5.26)`.
+
 # trama.documentos 0.4.0
 
 * Convergência do `trama.publicar` (#25), que foi retirado: o motor de documentos passa a ter os destinos de publicação.

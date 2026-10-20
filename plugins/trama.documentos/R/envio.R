@@ -15,7 +15,7 @@
 #' Nome de repositório a partir de um texto: minúsculas, sem acento, hífens.
 #' @noRd
 .td_slug <- function(x) {
-  x <- iconv(tolower(x), "UTF-8", "ASCII//TRANSLIT", sub = "")
+  x <- tolower(trama::tr_sem_acento(x))
   x <- gsub("[^a-z0-9]+", "-", x)
   x <- gsub("^-+|-+$", "", x)
   substr(if (nzchar(x)) x else "publicacao", 1L, 60L)

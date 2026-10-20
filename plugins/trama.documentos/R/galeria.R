@@ -377,7 +377,7 @@ tr_documento_modelo_importar <- function(arquivo, nome = NULL, substituir = FALS
 }
 
 .td_nome_limpo <- function(x) {
-  x <- tolower(iconv(x, to = "ASCII//TRANSLIT", sub = ""))
+  x <- tolower(trama::tr_sem_acento(x))
   x <- gsub("^-+|-+$", "", gsub("[^a-z0-9]+", "-", x))
   if (nzchar(x)) x else "modelo"
 }
