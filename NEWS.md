@@ -1,3 +1,9 @@
+# trama 0.5.26
+
+* `tr_sem_acento(x)` (nova, exportada): tira o acento com um mapa explícito do português e do Latin-1 e descarta o resto que não é ASCII. Substitui `iconv(x, to = "ASCII//TRANSLIT")`, cuja transliteração muda de sistema para sistema: no macOS o slug de "Ação & Reação!" saía "ac-ao-reac-ao", o de "Soma Básica" saía "soma-b-asica" e a busca do "+" não achava "Regressão" por "regressao". Os slugs de template, galeria e exportação e a busca aproximada passam por ela; coleções e plugins também.
+* Diálogo de pastas no Windows: na raiz do disco (`D:\`) não aparece mais um ".." que recarregava a mesma pasta. `normalizePath()` devolve barra invertida e `dirname()` barra normal, e a comparação crua nunca casava.
+* Testes: `test-pool.R` pula quando a fonte do pacote não está disponível (dentro do `R CMD check`), em vez de falhar no daemon.
+
 # trama 0.5.25
 
 * `tr_project()` e `tr_project_at()` abrem o projeto mesmo quando uma coleção do `trama.json` não está instalada: avisam e seguem, e os blocos dela aparecem como desconhecidos. Antes o projeto não abria, e nada que migra um projeto velho chegava a rodar — é o caso do `trama.publicar`, retirado: o `trama.documentos` migra o nó `publicar/publish` para um documento ao abrir o projeto (#25). Coleção instalada e quebrada continua dando erro, e `tr_project_at()` continua recusando coleção instalada que o editor não carregou.

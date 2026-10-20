@@ -359,7 +359,7 @@ tr_export_code <- function(doc, registry = .tr_default_registry,
 # "Correlograma (ACF)" -> "correlograma_acf". Até quatro palavras: nome de
 # variável é para ler no código, e o rótulo inteiro já vai no título da seção.
 .tr_export_slug <- function(x, fallback) {
-  s <- iconv(x %||% "", to = "ASCII//TRANSLIT", sub = "")
+  s <- tr_sem_acento(x %||% "")
   if (is.na(s)) s <- ""
   s <- tolower(gsub("[^A-Za-z0-9]+", " ", s))
   w <- strsplit(trimws(s), " +")[[1]]

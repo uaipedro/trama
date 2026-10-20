@@ -407,7 +407,7 @@ tr_galeria_captura <- function(root, store, registry, doc, settings = NULL, hand
 #' Slug ASCII: sem acento, minúsculo, separado por hífen. Vazio cai no fallback.
 #' @noRd
 .tr_galeria_slug <- function(x, fallback) {
-  s <- suppressWarnings(iconv(as.character(x)[[1]], to = "ASCII//TRANSLIT"))
+  s <- tr_sem_acento(as.character(x)[[1]])
   if (is.na(s)) s <- ""
   s <- tolower(gsub("[^A-Za-z0-9]+", "-", s))
   s <- gsub("^-+|-+$", "", s)

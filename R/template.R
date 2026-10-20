@@ -208,7 +208,7 @@ tr_template_dir <- function(escopo = c("biblioteca", "projeto"), root = ".") {
 .tr_slug <- function(x) {
   # Nome vindo de JSON pode ser vazio ou vetor; `if` abaixo exige escalar.
   if (length(x) != 1) x <- if (length(x)) as.character(x[[1]]) else ""
-  s <- tolower(iconv(x, to = "ASCII//TRANSLIT", sub = ""))
+  s <- tolower(tr_sem_acento(x))
   s <- gsub("[^a-z0-9]+", "-", s); s <- gsub("^-|-$", "", s)
   if (is.na(s) || !nzchar(s)) "template" else s
 }

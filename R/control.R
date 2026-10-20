@@ -345,7 +345,7 @@ tr_control_result <- function(node) {
 #' ("anv" acha "ANOVA"); uma palavra que não casa zera o bloco.
 #' @noRd
 .tr_busca_ponto <- function(termo, texto) {
-  norm <- function(x) tolower(iconv(x, to = "ASCII//TRANSLIT", sub = ""))
+  norm <- function(x) tolower(tr_sem_acento(x))
   qs <- strsplit(trimws(norm(termo)), "\\s+")[[1]]
   qs <- qs[nzchar(qs)]
   if (!length(qs)) return(0)
