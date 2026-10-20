@@ -151,15 +151,18 @@ tr_control_state <- function() {
       n <- doc$nodes[[id]]; st <- s$estado[[id]]
       # Nomeada mesmo vazia: sem nomes, `list()` vira `[]` no JSON, não `{}`.
       params <- if (length(n$params)) n$params else stats::setNames(list(), character())
+      p <- doc$ui$positions[[id]]
       list(id = id, type = n$type, label = n$label, params = params,
-           status = st$status %||% "idle", message = st$message)
+           status = st$status %||% "idle", message = st$message,
+           position = if (length(p) >= 2L) round(as.numeric(unlist(p))[1:2]))
     })
     nos <- .tr_control_com_causa(nos, doc$edges)
     arestas <- lapply(doc$edges, function(e) {
       paste0(e$from$node, ":", e$from$port, " -> ", e$to$node, ":", e$to$port)
     })
-    list(ok = TRUE, root = s$raiz(), flow = s$fluxo(), rev = doc$rev,
-         nodes = nos, edges = arestas, problems = tr_doc_validate(doc, reg))
+    res <- list(ok = TRUE, root = s$raiz(), flow = s$fluxo(), rev = doc$rev,
+                nodes = nos, edges = arestas)
+    c(res, .tr_lay_resumo(doc, .tr_control_medidas(s)), list(problems = tr_doc_validate(doc, reg)))
   })
 }
 
@@ -224,23 +227,48 @@ tr_control_undo <- function() {
 #' Açúcar do CLI: `add`, `link`, `set`, `rm`, `accept`. Monta as ops com a mesma DSL de
 #' `tr_add()`/`tr_link()` (porta omitida = primeira compatível) sobre o
 #' documento atual, e manda tudo como UM batch — um Ctrl+Z desfaz o gesto.
+#' Os de apresentação (`move`, `frame`, `note`, `rename`, `layout`) montam as
+#' ops em `R/layout.R`, com as medidas que o editor mandou.
 #' @noRd
 tr_control_cmd <- function(m) {
   s <- .tr_control_sessao()
   ops <- .tr_control_na_sessao(s, function() {
     fl <- tr_flow(s$registry(), s$doc()); fl$ops <- list()
+    medidas <- .tr_control_medidas(s)
     fl <- switch(m$cmd %||% "",
-      add  = .tr_control_add(fl, m),
+      add  = {
+        fl <- .tr_control_add(fl, m)
+        if (is.null(m$frame)) fl else {
+          novo <- Filter(function(o) identical(o$op, "add_node"), fl$ops)[[1]]$id
+          .tr_lay_cmd_rearrumar(fl, .tr_lay_frame_existe(fl, m$frame), medidas, incluir = novo)
+        }
+      },
       link = tr_link(fl, m$from, m$to),
       set  = do.call(tr_set, c(list(fl, m$node), m$params)),
       rm   = .tr_flow_apply(fl, list(op = "remove_node", node = m$node)),
       accept = .tr_control_accept(fl, m$nodes),
+      rename = .tr_flow_apply(fl, list(op = "rename", node = m$node, label = m$label)),
+      move = .tr_lay_cmd_mover(fl, m$items, medidas),
+      frame = .tr_lay_cmd_frame(fl, m, medidas),
+      note = .tr_lay_cmd_nota(fl, m, medidas),
+      layout = .tr_lay_cmd_organizar(fl, medidas),
       rlang::abort(sprintf("Comando desconhecido: '%s'.", m$cmd %||% "")))
     fl$ops
   })
+  # Arrumar o que já está arrumado não é recusa, e não deixa passo vazio na
+  # pilha de desfazer.
+  if (!length(ops)) {
+    return(list(ok = TRUE, rev = shiny::isolate(s$doc()$rev), op = NULL, message = "Nada a mudar."))
+  }
   op <- if (length(ops) == 1L) ops[[1]] else list(op = "batch", ops = ops)
-  tr_control_op(op)
+  res <- tr_control_op(op)
+  # Frame e nota novos: o id materializado, para o agente já usar.
+  novos <- Filter(function(o) o$op %in% c("add_frame", "add_note"), if (identical(op$op, "batch")) op$ops else list(op))
+  if (isTRUE(res$ok) && length(novos)) res$id <- novos[[1]]$id
+  res
 }
+
+.tr_control_medidas <- function(s) if (is.function(s$medidas)) s$medidas() else list()
 
 #' `accept` sem nós aceita todos os que estão em `version_drift` e podem ser
 #' aceitos (`tr_doc_accept_version()`); nenhum é recusa, não op vazia.

@@ -316,8 +316,18 @@ tr_server <- function(project, flow = "main",
         session = session, raiz = function() rv_project()$root, fluxo = rv_flow,
         doc = rv_doc, registry = function() rv_project()$registry,
         store = function() rv_project()$store, aplicar = aplicar,
-        desfazer = desfazer, estado = estado))
+        desfazer = desfazer, estado = estado, medidas = function() medidas))
     }, once = TRUE)
+
+    # Tamanho de cada card como o navegador o desenhou (`medidasCards`, em
+    # geometria.js). Não entra no documento: é o que o layout do servidor
+    # (`R/layout.R`, pelo canal de controle) precisa para pôr cards dentro de
+    # frames sem estourar a borda, e só o DOM sabe a altura de um card.
+    medidas <- list()
+    shiny::observeEvent(input$tr_medidas, {
+      m <- input$tr_medidas
+      if (is.list(m)) medidas <<- m
+    })
 
     # O corpo de `tr_op` virou função porque inserir template também é uma op
     # comum: undo, `rev`, eco e re-execução têm de ser os mesmos de qualquer
