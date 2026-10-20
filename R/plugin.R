@@ -23,7 +23,10 @@
 #'
 #' No navegador, além de `registerToolbarItem`, o plugin pode acrescentar
 #' itens ao menu de contexto de um card com `registerCardMenuItem` (ver
-#' `inst/www/menu-card.js`).
+#' `inst/www/menu-card.js`) e pôr um selo no cabeçalho de um card, por id de
+#' nó, com `registerCardBadge` + `refreshCardBadges` (`inst/www/selo-card.js`).
+#' `editorAction("irAoBloco", id)` leva a tela a um card e
+#' `editorAction("cards", cb)` entrega os cards do fluxo na tela.
 #'
 #' Plugin que falha ao carregar é pulada com aviso: o editor sobe sem ela.
 #'

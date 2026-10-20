@@ -1,3 +1,8 @@
+# trama 0.5.27
+
+* Plugins podem pôr um selo no cabeçalho de um card, por id de nó: `registerCardBadge(id, { selo: (card) => ({ icone, titulo, acao }) | null })` e `refreshCardBadges()` quando o que o plugin sabe muda (`inst/www/selo-card.js`). O núcleo desenha o selo (ícone do conjunto, discreto, fora do modo mini) e não sabe o que ele significa; o "está num documento" do `trama.documentos` é o primeiro uso (#37).
+* `editorAction("cards", cb)` entrega a um plugin os cards do fluxo na tela, cada um como no menu do card; `infoDoCard()` passa a levar o ícone do bloco (`icone`).
+
 # trama 0.5.26
 
 * `tr_sem_acento(x)` (nova, exportada): tira o acento com um mapa explícito do português e do Latin-1 e descarta o resto que não é ASCII. Substitui `iconv(x, to = "ASCII//TRANSLIT")`, cuja transliteração muda de sistema para sistema: no macOS o slug de "Ação & Reação!" saía "ac-ao-reac-ao", o de "Soma Básica" saía "soma-b-asica" e a busca do "+" não achava "Regressão" por "regressao". Os slugs de template, galeria e exportação e a busca aproximada passam por ela; coleções e plugins também.
