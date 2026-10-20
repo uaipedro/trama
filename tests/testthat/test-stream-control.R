@@ -432,7 +432,7 @@ test_that("`tr_stream_cmd` chama o motor e NÃO toca no documento", {
     session$setInputs(tr_ready = 1)
 
     rev_antes <- rv_doc()$rev
-    log_antes <- length(session$env$log)
+    log_antes <- length(session$env$aberto$log)
     # A chave viva: o diretório da região existe enquanto ela roda, e é ele que
     # faz o comando de chave morta ser no-op.
     dir.create(file.path(proj$store$root, "stream", "k-viva"), recursive = TRUE)
@@ -444,7 +444,7 @@ test_that("`tr_stream_cmd` chama o motor e NÃO toca no documento", {
                               simplifyVector = FALSE)
     expect_equal(ctl$state, "paused")
     expect_equal(rv_doc()$rev, rev_antes)
-    expect_equal(length(session$env$log), log_antes)
+    expect_equal(length(session$env$aberto$log), log_antes)
     # Nem documento nem op de volta: o comando não é conteúdo do grafo.
     expect_false(any(vapply(msgs, function(m) m$type, "") %in% c("document", "op_applied")))
 

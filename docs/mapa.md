@@ -31,7 +31,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `flow.R`, `plan.R`, `executor.R`, `scheduler.R`, `worker.R` | Fluxo em R, plano de execução e execução. |
 | `stream-*.R`, `transport.R` | Regiões de fluxo (streaming) e transporte. |
 | `document.R`, `document-io.R`, `migrate.R` | Documento `.trama`, leitura/gravação e migrações. |
-| `project.R`, `store.R`, `run.R`, `runs.R`, `session.R` | Projeto, cache de resultados e histórico de execuções. |
+| `project.R`, `store.R`, `run.R`, `runs.R`, `session.R` | Projeto, cache de resultados e histórico de execuções; `session.R` tem o protocolo de op, o desfazer e o documento aberto, um por projeto e fluxo, compartilhado entre as abas. |
 | `app.R` | App Shiny que serve o editor. |
 | `plugin.R` | Plugins do editor: acha os plugins instalados (`tr_plugins()`) e liga JS, CSS e server deles. Sem rede, sem nome de pacote. |
 | `control.R`, `cli.R` | Canal de controle para agentes (HTTP local + token) e o CLI `trama-agente` (`inst/bin/`); `catalog`, `explain` e `validate` rodam sem editor. |

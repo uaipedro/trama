@@ -1,3 +1,7 @@
+# trama 0.5.29
+
+* Duas abas no mesmo editor deixam de perder edições uma da outra. Cada aba guardava o próprio documento: a edição de uma não chegava à outra, e o autosave da outra regravava o documento velho por cima. Com o agente era pior: o canal de controle fala com a última aba aberta, e quando ela fechava (um print com Chrome headless, por exemplo) a edição seguinte caía na aba antiga e apagava do disco o que tinha sido feito na nova. Agora o documento e o histórico de desfazer são um por projeto e fluxo no processo (`.tr_abertos`, em `R/session.R`): a mudança de uma aba vai para as outras na hora, que redesenham e rodam de novo, e o Ctrl+Z de qualquer aba desfaz a última op, venha de onde vier. Restaurar o projeto do disco com outra aba aberta relê para todas.
+
 # trama 0.5.28
 
 * Plugins podem pôr um selo no cabeçalho de um card, por id de nó: `registerCardBadge(id, { selo: (card) => ({ icone, titulo, acao }) | null })` e `refreshCardBadges()` quando o que o plugin sabe muda (`inst/www/selo-card.js`). O núcleo desenha o selo (ícone do conjunto, discreto, fora do modo mini) e não sabe o que ele significa; o "está num documento" do `trama.documentos` é o primeiro uso (#37).

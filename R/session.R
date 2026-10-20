@@ -107,3 +107,74 @@ tr_replay <- function(ops, registry = .tr_default_registry, doc = tr_doc()) {
   }
   list(doc = .tr_undo_doc(base, log, current_rev, registry), log = log, refeito = refeito)
 }
+
+# Documento aberto ----------------------------------------------------------
+
+#' Um documento por projeto e fluxo no PROCESSO, e não um por aba.
+#'
+#' Cada aba do editor é uma sessão Shiny. Quando cada uma guardava o próprio
+#' documento, duas abas no mesmo fluxo divergiam: a edição de uma não chegava
+#' à outra, e o autosave da outra regravava o documento velho por cima. O
+#' canal de controle piorava isso: ele fala com a última aba aberta, e quando
+#' ela fechava a edição seguinte do agente caía na aba antiga, com o documento
+#' antigo — um print com Chrome headless apagou assim 7 frames do disco.
+#'
+#' As abas agora compartilham o documento E o histórico de desfazer (`base`,
+#' `log`, `refeito`): um fluxo, uma história, e o Ctrl+Z de qualquer aba
+#' desfaz a última op, venha de onde vier. Quem muda o documento passa por
+#' `.tr_aberto_publicar()`, que entrega o novo às outras abas. A entrada nasce
+#' do disco quando a primeira aba entra e some quando a última sai: a próxima
+#' lê o disco de novo, e o que foi mudado por fora com o editor fechado vale.
+#' @noRd
+.tr_abertos <- new.env(parent = emptyenv())
+
+.tr_aberto_chave <- function(raiz, fluxo) {
+  paste0(normalizePath(raiz, mustWork = FALSE), "\n", fluxo)
+}
+
+#' Entra no documento aberto de `fluxo` em `projeto`, criando-o do disco se
+#' nenhuma aba o tem. `receber(doc, semantico)` é como esta aba fica sabendo
+#' das mudanças feitas pelas outras.
+#' @noRd
+.tr_aberto_entrar <- function(projeto, fluxo, token, receber) {
+  chave <- .tr_aberto_chave(projeto$root, fluxo)
+  a <- .tr_abertos[[chave]]
+  if (is.null(a)) {
+    a <- new.env(parent = emptyenv())
+    a$chave <- chave
+    a$membros <- list()
+    .tr_aberto_recomecar(a, tr_project_flow(projeto, fluxo))
+    assign(chave, a, envir = .tr_abertos)
+  }
+  a$membros[[token]] <- receber
+  a
+}
+
+#' Documento novo e história vazia: reaplicar o log antigo sobre um documento
+#' relido do disco é o que `.tr_undo_doc()` existe para impedir.
+#' @noRd
+.tr_aberto_recomecar <- function(a, doc) {
+  a$doc <- doc; a$base <- doc; a$log <- list(); a$refeito <- list()
+  invisible(a)
+}
+
+.tr_aberto_sair <- function(a, token) {
+  a$membros[[token]] <- NULL
+  if (!length(a$membros) && identical(.tr_abertos[[a$chave]], a)) {
+    rm(list = a$chave, envir = .tr_abertos)
+  }
+  invisible()
+}
+
+#' Troca o documento e avisa as outras abas. Uma aba que falha ao receber não
+#' pode impedir a edição de quem publicou: o documento já mudou, e é ele que o
+#' autosave grava.
+#' @noRd
+.tr_aberto_publicar <- function(a, doc, token, semantico = TRUE) {
+  a$doc <- doc
+  for (t in setdiff(names(a$membros), token)) {
+    tryCatch(a$membros[[t]](doc, semantico),
+             error = function(e) message("trama: aba não recebeu o documento: ", conditionMessage(e)))
+  }
+  invisible(doc)
+}

@@ -241,8 +241,9 @@ no MCP, a tool `aceitar_versao`; em R, `tr_doc_accept_version()`.
 
 ## Limites
 
-- Fala com a aba aberta mais recentemente. Outras abas continuam funcionando,
-  mas não recebem as edições do agente até recarregar.
+- Fala com a aba aberta mais recentemente. As abas do mesmo projeto e fluxo
+  compartilham o documento e o desfazer: a edição do agente aparece em todas, e
+  fechar uma aba não perde nada.
 - Com execução sequencial, o editor não responde enquanto calcula um bloco
   pesado. O CLI aguarda a resposta definitiva sem limite de 60 s; uma operação
   só retorna depois que o editor confirma se foi aplicada ou recusada. Não repita

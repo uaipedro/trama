@@ -27,7 +27,7 @@ test_that("abrir troca o projeto, manda project + document e zera o undo", {
     msgs <- list()
     session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
     tipos <- function() vapply(msgs, function(m) m$type, "")
-    log_len <- function() length(session$env$log)
+    log_len <- function() length(session$env$aberto$log)
 
     session$setInputs(tr_ready = 1)
     # Uma op aplicada para o log ter o que perder.
@@ -203,7 +203,7 @@ test_that("reabrir o projeto já aberto preserva o log de undo", {
   shiny::testServer(tr_server(p1, autosave = FALSE), {
     msgs <- list()
     session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
-    log_len <- function() length(session$env$log)
+    log_len <- function() length(session$env$aberto$log)
 
     session$setInputs(tr_ready = 1)
     session$setInputs(tr_op = op_frame(1, rv_doc()$rev))

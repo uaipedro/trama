@@ -25,7 +25,16 @@ tr_server <- function(project, flow = "main",
     # página, que só `tr_ui()` monta, uma vez. Ver `tr_project_at()`.
     rv_project <- shiny::reactiveVal(project)
     rv_flow    <- shiny::reactiveVal(flow)
-    rv_doc     <- shiny::reactiveVal(tr_project_flow(project, flow))
+    # O documento não é desta aba: é do projeto e fluxo, compartilhado com as
+    # outras abas abertas no mesmo processo, com o histórico de desfazer junto
+    # (ver `.tr_abertos`, em `R/session.R`). `rv_doc(doc)` publica para elas.
+    pronto <- FALSE
+    aberto <- .tr_aberto_entrar(project, flow, session$token,
+                                function(doc, semantico) receber(doc, semantico))
+    rv_doc <- function(doc, semantico = TRUE) {
+      if (missing(doc)) return(aberto$doc)
+      .tr_aberto_publicar(aberto, doc, session$token, semantico)
+    }
     # `recarregar` relê o projeto aberto do disco (um plugin que restaurou
     # arquivos, por exemplo). `abrir` é definida mais abaixo: a busca do nome
     # é na hora da chamada.
@@ -36,15 +45,13 @@ tr_server <- function(project, flow = "main",
                                servir = .tr_acao_servir,
                                recarregar = function() abrir(shiny::isolate(rv_project())$root, forcar = TRUE)))
     run_seq  <- shiny::reactiveVal(0L)
-    # O log de undo é do SERVIDOR, e começa em `base_doc` (fixado no
-    # tr_ready). Já foi do cliente, montado com os ecos: com o executor
-    # sequencial o R bloqueia computando, as ops ficam em voo, e um Ctrl+Z
-    # nesse intervalo tirava do log do cliente uma op que não era a última —
-    # o servidor desfazia o passo errado e os dois logs divergiam. Aqui o log
-    # só cresce com op APLICADA, na ordem em que foi aplicada, por construção.
-    base_doc <- NULL
-    log      <- list()
-    refeito  <- list()  # ops desfeitas, topo primeiro; ver `.tr_historia_passo()`
+    # O log de undo é do SERVIDOR, e começa em `aberto$base`. Já foi do
+    # cliente, montado com os ecos: com o executor sequencial o R bloqueia
+    # computando, as ops ficam em voo, e um Ctrl+Z nesse intervalo tirava do
+    # log do cliente uma op que não era a última — o servidor desfazia o passo
+    # errado e os dois logs divergiam. Aqui o log só cresce com op APLICADA, na
+    # ordem em que foi aplicada, por construção. `aberto$refeito` guarda as ops
+    # desfeitas, topo primeiro; ver `.tr_historia_passo()`.
 
     send <- function(type, payload = list()) {
       session$sendCustomMessage("tr_event", c(list(type = type), payload))
@@ -235,8 +242,9 @@ tr_server <- function(project, flow = "main",
     #    arquivo e as imagens do documento passam a dar 404 em silêncio (imagem
     #    quebrada, sem erro). Aceitável porque trama é local-first e de um
     #    usuário só;
-    # 4. zera `base_doc` e `log`: reaplicar o log de um projeto sobre o documento
-    #    de outro é o que `.tr_undo_doc()` existe para impedir;
+    # 4. troca de documento aberto, e com ele de história: reaplicar o log de um
+    #    projeto sobre o documento de outro é o que `.tr_undo_doc()` existe para
+    #    impedir;
     # 5. volta para o flow padrão. Trocar de FLUXO é outro gesto, fora do escopo
     #    de trocar de projeto — e o projeto que entra pode nem ter o flow em que
     #    você estava, o que daria um documento vazio sem explicação.
@@ -275,11 +283,17 @@ tr_server <- function(project, flow = "main",
       rv_project(novo)
       rv_flow(padrao)
 
-      doc <- tr_project_flow(novo, padrao)
-      base_doc <<- doc
-      log      <<- list()
-      refeito  <<- list()
-      rv_doc(doc)
+      # Projeto aberto em outra aba: entra no documento dela, com a história
+      # junto. Reler à força (`forcar`) com outra aba no mesmo fluxo relê para
+      # todas — senão a outra regravaria o documento de antes da restauração.
+      .tr_aberto_sair(aberto, session$token)
+      aberto <<- .tr_aberto_entrar(novo, padrao, session$token,
+                                   function(doc, semantico) receber(doc, semantico))
+      if (forcar && length(aberto$membros) > 1L) {
+        .tr_aberto_recomecar(aberto, tr_project_flow(novo, padrao))
+        rv_doc(aberto$doc)
+      }
+      doc <- aberto$doc
       # Fluxo antigo abre migrado (`tr_project_flow()`); regravar já deixa o
       # disco no formato novo, sem esperar a primeira edição.
       if (autosave && isTRUE(attr(doc, "migrated"))) save_now(doc)
@@ -301,11 +315,11 @@ tr_server <- function(project, flow = "main",
       enviar_temas()
       send("project", list(root = rv_project()$root, flow = rv_flow(), origem = origem()))
       doc <- rv_doc()
-      # O log de undo nasce AQUI: é este o documento sobre o qual as ops se
-      # empilham, e é sobre ele que o undo reaplica o log.
-      base_doc <<- doc
-      log      <<- list()
-      refeito  <<- list()
+      # Sem história ainda, o log de undo nasce AQUI: é este o documento sobre
+      # o qual as ops se empilham, e é sobre ele que o undo reaplica o log. Com
+      # história (outra aba já editou este fluxo), ela continua valendo.
+      if (!length(aberto$log) && !length(aberto$refeito)) aberto$base <- doc
+      pronto <<- TRUE
       # Mesmo motivo de `abrir()`: o fluxo inicial também pode ter vindo migrado.
       if (autosave && isTRUE(attr(doc, "migrated"))) save_now(doc)
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
@@ -329,6 +343,22 @@ tr_server <- function(project, flow = "main",
       if (is.list(m)) medidas <<- m
     })
 
+    # Outra aba mudou o documento (gesto, agente, desfazer): esta mostra o novo
+    # e, se a mudança foi semântica, roda de novo, para os previews e o
+    # `result` do canal de controle não ficarem no documento de antes. Não
+    # grava: quem publicou já gravou. Antes do ready não há tela para receber.
+    receber <- function(doc, semantico) {
+      if (!pronto || session$isClosed()) return(invisible())
+      shiny::withReactiveDomain(session, shiny::isolate({
+        send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
+                              problems = tr_doc_validate(doc, rv_project()$registry)))
+        if (isTRUE(semantico)) {
+          for (k in ls(estado)) estado[[k]]$status <- "queued"
+          run_now(doc)
+        }
+      }))
+    }
+
     # O corpo de `tr_op` virou função porque inserir template também é uma op
     # comum: undo, `rev`, eco e re-execução têm de ser os mesmos de qualquer
     # gesto, e duplicar este caminho deixaria os dois divergirem.
@@ -346,11 +376,11 @@ tr_server <- function(project, flow = "main",
                                                        simplifyVector = FALSE)))
         return(invisible(res))
       }
-      rv_doc(res$doc)
+      rv_doc(res$doc, semantico = isTRUE(res$semantic))
       # A op NORMALIZADA (id/seed materializados) é a que entra no log: é o que
       # faz o replay reconstruir o mesmo documento, e não um nó de id novo.
-      log[[length(log) + 1L]] <<- res$op
-      refeito <<- list()
+      aberto$log[[length(aberto$log) + 1L]] <- res$op
+      aberto$refeito <- list()
       send("op_applied", list(seq = res$seq, rev = res$rev, op = res$op,
                               semantic = res$semantic, autor = env$autor))
 
@@ -571,13 +601,13 @@ tr_server <- function(project, flow = "main",
                error = avisar())
     })
 
-    # Undo e redo por REPLAY do log sobre o `base_doc` desta sessão, e não
+    # Undo e redo por REPLAY do log sobre a base do documento aberto, e não
     # sobre o vazio — ver `.tr_undo_doc()` e `.tr_historia_passo()`. O valor
     # do input não carrega nada (é só um carimbo que muda); quem sabe o que
-    # desfazer é o log daqui. Sem base (antes do ready) ou sem passo, ignora.
+    # desfazer é o log do fluxo, o mesmo para todas as abas. Sem passo, ignora.
     historia <- function(direcao) {
       erro <- NULL
-      r <- tryCatch(.tr_historia_passo(base_doc, log, refeito, direcao,
+      r <- tryCatch(.tr_historia_passo(aberto$base, aberto$log, aberto$refeito, direcao,
                                        rv_doc()$rev, rv_project()$registry),
                     error = function(e) { erro <<- conditionMessage(e); NULL })
       # Replay que falha NÃO mexe no log: o documento continua o de antes, e
@@ -588,8 +618,8 @@ tr_server <- function(project, flow = "main",
         return(invisible())
       }
       if (is.null(r)) return(invisible())
-      log <<- r$log
-      refeito <<- r$refeito
+      aberto$log <- r$log
+      aberto$refeito <- r$refeito
       doc <- r$doc
       rv_doc(doc)
       send("document", list(doc = jsonlite::fromJSON(tr_doc_json(doc), simplifyVector = FALSE),
@@ -735,6 +765,7 @@ tr_server <- function(project, flow = "main",
 
     session$onSessionEnded(function() {
       .tr_control_remover(session$token)
+      .tr_aberto_sair(aberto, session$token)
       if (!is.null(exec$sched) && !exec$sched$finished()) exec$sched$handoff(character())
       if (!is.null(exec$logger)) exec$logger$close()
       # `isolate` porque este callback roda fora de contexto reativo: ler o
