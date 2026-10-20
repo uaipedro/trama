@@ -12,7 +12,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.5.21),
+    trama (>= 0.5.26),
     gitcreds,
     httr2 (>= 1.0.0),
     jsonlite,

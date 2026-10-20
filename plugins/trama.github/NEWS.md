@@ -1,6 +1,7 @@
 # trama.github 0.2.2
 
 * Restaurar uma versão no Windows: o painel mostra a pasta da cópia relativa ao projeto (".trama/restauracao/..."), e não o caminho inteiro. A raiz entrava como expressão regular, e com barra invertida (e parêntese no nome) não casava; agora a comparação é literal.
+* O nome sugerido do repositório tira o acento por `trama::tr_sem_acento()`, o mesmo em qualquer sistema (o `iconv` com `TRANSLIT` dependia do macOS/Linux). Pede `trama (>= 0.5.26)`.
 
 # trama.github 0.2.1
 

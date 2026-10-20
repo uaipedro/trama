@@ -136,7 +136,7 @@ tr_github_versionar_criar <- function(root = ".", nome = NULL, token = NULL) {
 #' @export
 tr_github_versionar_nome <- function(root = ".") {
   n <- basename(normalizePath(root, mustWork = TRUE))
-  n <- iconv(n, "UTF-8", "ASCII//TRANSLIT", sub = "")
+  n <- trama::tr_sem_acento(n)
   n <- gsub("[^a-z0-9._-]+", "-", tolower(n))
   n <- gsub("^-+|-+$", "", n)
   if (!nzchar(n)) "projeto-trama" else n
