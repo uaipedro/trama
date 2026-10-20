@@ -48,7 +48,8 @@ test_that("tools/list traz schema de objeto, obrigatórios existentes e anotaç�
   tools <- r$result$tools
   nomes <- vapply(tools, `[[`, "", "name")
   expect_setequal(nomes, c("abrir", "estado", "catalogo", "explicar", "adicionar", "ajustar",
-                           "ligar", "remover", "resultado", "desfazer", "aceitar_versao", "validar"))
+                           "ligar", "remover", "resultado", "desfazer", "aceitar_versao", "validar",
+                           "renomear", "posicionar", "frame", "nota", "organizar", "guia"))
   for (t in tools) {
     expect_equal(t$inputSchema$type, "object")
     expect_true(all(unlist(t$inputSchema$required) %in% names(t$inputSchema$properties)), info = t$name)
@@ -128,4 +129,51 @@ test_that("resultado com PNG na prévia devolve imagem", {
   expect_false(r$isError)
   expect_equal(r$content[[2]]$type, "image")
   expect_equal(r$content[[2]]$mimeType, "image/png")
+})
+
+test_that("guia responde sem editor e as instruções apontam para ele (#19)", {
+  r <- chamar("guia")
+  expect_false(r$isError)
+  g <- texto(r)
+  expect_true(any(grepl("frame", unlist(g$guia))))
+  expect_true(any(grepl("conclus", unlist(g$guia))))
+  expect_match(g$mcp, "posicionar")
+  init <- mcp(list(jsonrpc = "2.0", id = 1L, method = "initialize", params = list()))
+  expect_match(init$result$instructions, "guia")
+  expect_match(init$result$instructions, "organizar")
+})
+
+test_that("tools de narrativa viram os mesmos comandos do CLI (#19, #33)", {
+  t <- .tr_mcp_tools
+  a <- t$posicionar$cmd(list(itens = list(list(id = "a", x = 10, y = -20)), ids = list("b"), dx = 5))
+  expect_equal(a$cmd, "move")
+  itens <- .tr_cli_itens(a$pos, a$opt)
+  expect_equal(itens[[1]], list(id = "a", x = 10, y = -20))
+  expect_equal(itens[[2]], list(id = "b", dx = 5, dy = 0))
+
+  f <- t$frame$cmd(list(acao = "criar", titulo = "1. Dados", cor = "verde", blocos = list("a", "b")))
+  m <- .tr_cli_frame(f$pos, f$opt, function(...) NULL)
+  expect_equal(m[c("cmd", "acao", "title", "color")], list(cmd = "frame", acao = "add", title = "1. Dados", color = "verde"))
+  expect_equal(m$nodes, list("a", "b"))
+  f <- t$frame$cmd(list(acao = "editar", frame = "f1", titulo = "2. Outro", ordem = 2))
+  m <- .tr_cli_frame(f$pos, f$opt, function(...) NULL)
+  expect_equal(m[c("acao", "frame", "title", "order")], list(acao = "set", frame = "f1", title = "2. Outro", order = 2))
+
+  n <- t$nota$cmd(list(acao = "criar", texto = "## Etapa\nlinha", bloco = "adf", largura = 400))
+  m <- .tr_cli_nota(n$pos, n$opt, function(...) NULL)
+  expect_equal(m[c("acao", "text", "node", "w")], list(acao = "add", text = "## Etapa\nlinha", node = "adf", w = 400))
+
+  r <- t$renomear$cmd(list(no = "adf", rotulo = "ADF do log"))
+  expect_equal(r, list(cmd = "rename", pos = c("adf", "ADF do log"), opt = list()))
+  expect_equal(t$organizar$cmd(list())$cmd, "layout")
+  expect_equal(t$adicionar$cmd(list(tipo = "t/const", frame = "f1"))$opt$frame, "f1")
+})
+
+test_that("frame e nota sem o argumento da ação recusam antes de abrir editor", {
+  r <- chamar("frame", list(acao = "criar"))
+  expect_true(r$isError)
+  expect_match(texto(r)$message, "titulo")
+  r <- chamar("nota", list(acao = "editar", texto = "x"))
+  expect_true(r$isError)
+  expect_match(texto(r)$message, "nota")
 })
