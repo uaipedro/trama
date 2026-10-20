@@ -1,3 +1,9 @@
+# trama.series 0.9.5
+
+* Documentação: o `%` de "80 e 95%" no título de `tr_series_forecast()` e `tr_series_plot_forecast()` passa a `\%`; sem o escape, o Rd era inválido e o `R CMD check` quebrava.
+* `series/join`: nomes com acento ("produção") viram "producao" em qualquer sistema, por `trama::tr_sem_acento()`; no macOS o `iconv` com `TRANSLIT` dava "produc_ao". Pede `trama (>= 0.5.26)`.
+* Pede `trama.data (>= 0.4.5)`: os testes usam a coluna `origem` do `data/bind_rows`, que entrou nessa versão. Com o `trama.data` 0.4.4 o teste de `data/bind_rows origem` falhava com "Param desconhecido".
+
 # trama.series 0.9.4
 
 * `series/from_table_mts`: `valores` aceita também o texto com vírgula ("ibv, sp") que o campo de colunas do editor grava, além da lista (#32).

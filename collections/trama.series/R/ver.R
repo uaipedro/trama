@@ -266,7 +266,7 @@ tr_series_plot_decomposition <- function(decomposicao, aspecto = "4:3", tema = "
   trama.view::tr_view_finish(p, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
 }
 
-#' O histórico e a previsão, com os leques de 80 e 95%.
+#' O histórico e a previsão, com os leques de 80 e 95\%.
 #'
 #' `historico` corta o passado mostrado, e só ele: com 40 anos de série
 #' mensal e 12 meses previstos, o leque vira um risco na ponta direita. Não

@@ -2,7 +2,7 @@
 % Please edit documentation in R/modelar.R
 \name{tr_series_forecast}
 \alias{tr_series_forecast}
-\title{Previsão de um modelo ajustado, com intervalos de 80 e 95%.}
+\title{Previsão de um modelo ajustado, com intervalos de 80 e 95\%.}
 \usage{
 tr_series_forecast(
   modelo = NULL,

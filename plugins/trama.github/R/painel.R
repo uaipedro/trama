@@ -37,7 +37,7 @@
       # autosave gravaria por cima da versão restaurada.
       if (is.function(ctx$recarregar)) ctx$recarregar()
       enviar(list(tipo = "restaurado", escritos = length(r$escritos), removidos = length(r$removidos),
-                  copia = if (is.na(r$copia)) NULL else sub(paste0("^", raiz(), "/?"), "", r$copia)))
+                  copia = if (is.na(r$copia)) NULL else .gh_relativo(r$copia, raiz())))
       projeto()
     }, error = erro("projeto")),
     publicacoes = function() {
@@ -47,6 +47,17 @@
 }
 
 .gh_texto <- function(x) if (is.null(x)) NULL else as.character(x)[1]
+
+# `caminho` relativo a `raiz`, com "/". Comparação literal: a raiz como regex
+# quebrava no Windows, onde ela vem com barra invertida ("C:\\Users\\...") e
+# `r$copia` mistura as duas barras; no macOS a pasta temporária ainda tem dois
+# nomes (/var e /private/var), por isso os dois passam por `normalizePath()`.
+# Fora da raiz, volta o caminho inteiro.
+.gh_relativo <- function(caminho, raiz) {
+  barra <- function(x) gsub("\\\\", "/", normalizePath(x, winslash = "/", mustWork = FALSE))
+  c <- barra(caminho); r <- sub("/+$", "", barra(raiz))
+  if (startsWith(c, paste0(r, "/"))) substring(c, nchar(r) + 2L) else c
+}
 
 # Estado da seção Projeto. Arquivos são locais; as versões vêm da API.
 .gh_projeto <- function(root) {

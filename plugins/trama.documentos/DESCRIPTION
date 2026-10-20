@@ -1,6 +1,6 @@
 Package: trama.documentos
 Title: Living Documents for trama Analyses
-Version: 0.4.0
+Version: 0.4.1
 Authors@R: person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com", role = c("aut", "cre"))
 Description: Turns a trama analysis into a finished document: a Quarto file
     of the project where the text belongs to the author and managed regions
@@ -23,7 +23,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1)
 Imports:
-    trama (>= 0.5.25),
+    trama (>= 0.5.26),
     trama.data (>= 0.4.7),
     trama.github (>= 0.2.0),
     curl,

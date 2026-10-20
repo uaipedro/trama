@@ -82,6 +82,18 @@ test_that("restaurar escreve, recarrega o editor e devolve a pasta da cópia", {
   expect_equal(readLines(file.path(raiz, "analise.R")), "x <- 1")
 })
 
+# No Windows a raiz vem com barra invertida e a cópia mistura as duas; como
+# regex, a raiz não casava e o painel mostrava o caminho inteiro.
+test_that("caminho da cópia sai relativo à raiz com qualquer barra", {
+  raiz <- "C:\\Users\\runner\\Temp\\Projeto (Painel)"
+  copia <- paste0(raiz, "/.trama/restauracao/20261020-005958")
+  expect_equal(.gh_relativo(copia, raiz), ".trama/restauracao/20261020-005958")
+  expect_equal(.gh_relativo(copia, paste0(raiz, "\\")), ".trama/restauracao/20261020-005958")
+  expect_equal(.gh_relativo("/p/.trama/x", "/p"), ".trama/x")
+  expect_equal(.gh_relativo("/outra/.trama/x", "/p"), "/outra/.trama/x")
+  expect_equal(.gh_relativo("/p2/x", "/p"), "/p2/x")
+})
+
 test_that("publicações: sem trama.documentos, a seção diz que não está disponível", {
   local_github_falso()
   local_mocked_bindings(.gh_publicacoes_leitor = function() NULL, .package = "trama.github")

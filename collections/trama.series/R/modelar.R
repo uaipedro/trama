@@ -122,7 +122,7 @@ tr_series_holt_winters <- function(serie, tendencia = TRUE, sazonalidade = TRUE,
     "series/holt_winters")
 }
 
-#' Previsão de um modelo ajustado, com intervalos de 80 e 95%.
+#' Previsão de um modelo ajustado, com intervalos de 80 e 95\%.
 #'
 #' Os níveis são fixos: são os que todo gráfico de previsão mostra, e os que o
 #' adaptador para tabela nomeia (`li_80`, `ls_95`). Um param de nível

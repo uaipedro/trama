@@ -1,3 +1,8 @@
+# trama.models 0.6.13
+
+* Pede `trama.data (>= 0.4.5)`: a ajuda de `models/jarque_bera` e `models/shapiro` aponta para `data/describe`, que entrou nessa versão. Com o `trama.data` 0.4.4 a referência cruzada ficava órfã e o teste do catálogo falhava.
+* Documentação: o `%` do param `k` de `tr_models_waller_duncan()` passa a `\%`; sem o escape, o Rd era inválido (sem `\value` nem `\description`) e o `R CMD check` avisava.
+
 # trama.models 0.6.12
 
 * Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).

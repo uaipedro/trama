@@ -216,7 +216,7 @@ tr_series_join <- function(series, nomes = "") {
     }, character(1))
   }
   # Nomes que o `vars`/`urca` aceitam: sem acento, espaço vira `_`.
-  limpo <- iconv(nm, to = "ASCII//TRANSLIT", sub = "")
+  limpo <- trama::tr_sem_acento(nm)
   limpo <- gsub("[^A-Za-z0-9._]+", "_", limpo)
   limpo <- make.names(limpo, unique = TRUE)
   renomeadas <- nm != limpo
