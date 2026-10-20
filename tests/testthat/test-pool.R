@@ -2,13 +2,24 @@
 # Até aqui estava validado só por leitura. Este arquivo roda daemons de
 # verdade, com o núcleo e a coleção carregados por pkgload dentro deles.
 
+# Os daemons carregam o núcleo pela FONTE, com pkgload. Dentro do `R CMD check`
+# "../.." é o `trama.Rcheck`, sem DESCRIPTION: o load_all falha no daemon e o
+# teste quebra por ambiente, não por defeito. Sem a fonte, pula.
+fonte_nucleo <- function() {
+  skip_if_not_installed("mirai"); skip_if_not_installed("pkgload")
+  core <- normalizePath("../..", mustWork = FALSE)
+  skip_if_not(file.exists(file.path(core, "DESCRIPTION")), "fonte do núcleo ausente (R CMD check)")
+  core
+}
+
 skip_pool <- function() {
-  skip_if_not_installed("mirai"); skip_if_not_installed("dplyr"); skip_if_not_installed("readr")
+  fonte_nucleo()
+  skip_if_not_installed("dplyr"); skip_if_not_installed("readr")
   skip_if_not(dir.exists("../../collections/trama.data"), "coleção trama.data ausente")
 }
 
 pool_setup <- function() {
-  core <- normalizePath("../.."); coll <- normalizePath("../../collections/trama.data")
+  core <- fonte_nucleo(); coll <- normalizePath("../../collections/trama.data")
   bquote({
     pkgload::load_all(.(core), quiet = TRUE, attach = FALSE)
     pkgload::load_all(.(coll), quiet = TRUE, attach = FALSE, export_all = FALSE)
@@ -37,7 +48,7 @@ test_that("pool roda o ETL nos daemons e o resultado bate com o sequencial", {
 
 test_that("handoff cancela unidade em voo no pool e o progresso chega como evento", {
   skip_pool()
-  core <- normalizePath("../.."); slowp <- normalizePath("fixtures/trama.slow")
+  core <- fonte_nucleo(); slowp <- normalizePath("fixtures/trama.slow")
   reg <- tr_registry()
   pkgload::load_all(slowp, quiet = TRUE, attach = FALSE); tr_use("trama.slow", registry = reg)
   ex <- tr_executor_pool(1L, registry = reg, setup = bquote({
@@ -70,9 +81,7 @@ test_that("`ctx_extra` atravessa a fronteira de processo: a cadência de checkpo
   # cadência 2 e a morte no ponto 7, o que sobra é o passo 6; com o default (100)
   # e dez pontos, nada é gravado. A asserção distingue "o valor atravessou" de
   # "checkpoint existe".
-  skip_if_not_installed("mirai")
-  skip_if_not_installed("pkgload")
-  core <- normalizePath("../.."); slowp <- normalizePath("fixtures/trama.slow")
+  core <- fonte_nucleo(); slowp <- normalizePath("fixtures/trama.slow")
   reg <- tr_registry()
   pkgload::load_all(slowp, quiet = TRUE, attach = FALSE); tr_use("trama.slow", registry = reg)
   ex <- tr_executor_pool(1L, registry = reg, setup = bquote({
