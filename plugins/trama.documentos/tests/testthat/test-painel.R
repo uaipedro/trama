@@ -49,6 +49,11 @@ test_that("listar, criar, inserir, estado e atualizar pelo painel", {
   expect_identical(cab[["trama-linhas"]], "2")
   expect_identical(cab[["trama-tabela"]], "completa")
   expect_identical(c$ultima("lista")$documentos[[1]]$resumo, list(atualizada = 1L))
+  # Os selos dos cards (#37): o fluxo do documento e o nó de cada região.
+  expect_identical(c$ultima("lista")$documentos[[1]]$fluxo, "main")
+  expect_identical(c$ultima("lista")$documentos[[1]]$regioes,
+                   list(list(regiao = "tab", no = "tab", estado = "atualizada")))
+  expect_identical(c$ultima("lista")$fluxo, "main")
 
   salvar_fluxo(proj, no("tab", n = 5L))
   c$receber(list(acao = "listar"))
@@ -228,4 +233,16 @@ test_that("bloqueio ao publicar volta como lista, sem tocar no GitHub", {
   c$receber(list(acao = "publicar", documento = "documentos/consumo/consumo.qmd"))
   expect_match(unlist(c$ultima("publicar_bloqueado")$erros), "autor", all = FALSE)
   expect_length(gh$chamadas, 0L)
+})
+
+test_that("a lista diz o fluxo na tela (ctx$fluxo), para os selos dos cards", {
+  proj <- local_projeto()
+  salvar_fluxo(proj, no("tab"))
+  msgs <- list()
+  ctl <- trama.documentos:::.td_controlador(
+    enviar = function(m) msgs[[length(msgs) + 1L]] <<- m, agendar = function(f, seg) f(),
+    ctx = list(project = function() proj, fluxo = function() "simulacao"))
+  ctl(list(acao = "listar"))
+  expect_identical(msgs[[length(msgs)]]$fluxo, "simulacao")
+  expect_length(msgs[[length(msgs)]]$documentos, 0L)
 })

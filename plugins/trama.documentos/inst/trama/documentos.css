@@ -1,15 +1,45 @@
-/* Painel Documentos (trama.documentos). Tokens do editor (--tr-*) para seguir
-   o tema; o popover herda `.tr-toolbar-pop`, como o menu GitHub. */
-.tr-doc-pop{right:0;width:400px;max-width:calc(100vw - 32px);max-height:calc(100vh - 90px);overflow:auto;
-  gap:8px;padding:12px;font-size:12px}
+/* Janela Documentos (trama.documentos). Tokens do editor (--tr-*) para seguir
+   o tema; a caixa é a `.tr-dialog.tr-bases` do editor (janela de Bases
+   públicas), e aqui fica só o que é dos documentos. */
 .tr-doc .tr-tb-btn{position:relative}
 .tr-doc .tr-tb-btn .tr-ic{width:18px;height:18px}
 .tr-doc-luz{position:absolute;right:5px;bottom:5px;width:7px;height:7px;border-radius:50%;background:var(--tr-warn,#f59e0b);
   box-shadow:0 0 0 2px var(--tr-panel)}
-.tr-doc-abas{display:flex;gap:4px;border-bottom:1px solid var(--tr-line);margin:-2px 0 4px}
-.tr-doc .tr-doc-tab{padding:6px 10px;border:0;border-bottom:2px solid transparent;background:none;color:var(--tr-dim);
-  font:inherit;font-weight:600;cursor:pointer}
-.tr-doc .tr-doc-tab.tr-doc-on{color:var(--tr-fg);border-bottom-color:var(--tr-accent)}
+/* #37: a janela. */
+.tr-doc-janela{font-size:12.5px}
+.tr-doc-janela .tr-bases-top>.tr-ic{width:20px;height:20px;flex:none;color:var(--tr-dim)}
+.tr-doc-faixa{display:flex;flex-direction:column;gap:6px;padding:0 14px}
+.tr-doc-faixa:not(:empty){padding:10px 14px}
+.tr-doc-faixa:not(:empty)+.tr-bases-corpo{border-top:1px solid var(--tr-line)}
+.tr-doc-janela .tr-bases-lista.tr-doc-coluna{padding:0;display:flex;flex-direction:column}
+.tr-doc-meio{display:flex;flex-direction:column;gap:8px;padding:12px;flex:1}
+.tr-doc-meio-cab{display:flex;align-items:center;gap:8px}
+.tr-doc-rolo{display:flex;flex-direction:column;gap:2px}
+.tr-doc-busca{flex:none}
+.tr-doc-regioes{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
+.tr-doc-janela .tr-doc-regiao{cursor:default}
+.tr-doc-ic-bloco{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;color:var(--tr-dim)}
+.tr-doc-ic-vazio{display:inline-block;width:8px;height:8px;margin:0 3px;border-radius:50%;background:var(--tr-line)}
+.tr-doc-h3{display:flex;align-items:center;gap:8px}
+.tr-doc-inserir{display:flex;flex-direction:column;gap:10px;flex:1}
+.tr-doc-secao{display:flex;flex-direction:column;gap:8px;margin-top:4px;padding-top:12px;border-top:1px solid var(--tr-line)}
+.tr-doc-vai-t{margin:0;font-weight:600;color:var(--tr-fg)}
+.tr-doc-vai-l{margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
+.tr-doc-vai-l code{margin-left:6px;font-size:11px;color:var(--tr-dim)}
+.tr-doc-modelos-area{grid-column:2 / 4;overflow:auto;padding:14px 16px}
+.tr-doc-modelos-area .tr-doc-aba{max-width:720px}
+.tr-doc-guia-corpo{flex:1;overflow:auto;padding:16px}
+.tr-doc-nome-nav{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-doc-janela .tr-bases-filtro small.tr-doc-atencao{color:var(--tr-warn,#d97706)}
+.tr-doc-janela .tr-doc-novo{color:var(--tr-accent)}
+.tr-doc-janela .tr-doc-novo.tr-on{color:var(--tr-accent-fg)}
+/* Em tela estreita os filtros de Bases somem; aqui eles são os documentos. */
+@media (max-width:760px){
+  .tr-doc-janela .tr-bases-corpo{grid-template-rows:auto auto 1fr;overflow:auto}
+  .tr-doc-janela .tr-bases-filtros{display:flex;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--tr-line)}
+  .tr-doc-modelos-area{grid-column:auto}
+}
 .tr-doc-aba{display:flex;flex-direction:column;gap:8px}
 .tr-doc-titulo{font-size:13px;font-weight:700;color:var(--tr-fg)}
 .tr-doc-dim{color:var(--tr-dim)}
@@ -24,8 +54,6 @@
 .tr-doc .tr-doc-cab:hover{background:var(--tr-hover)}
 .tr-doc-nome{font-weight:700;color:var(--tr-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-doc-corpo{display:flex;flex-direction:column;gap:8px;padding:0 10px 10px}
-.tr-doc-regioes{gap:0}
-.tr-doc-regiao{padding:5px 0;border-top:1px solid var(--tr-line)}
 .tr-doc-chip{padding:1px 7px;border-radius:999px;font-size:10px;font-weight:600;background:var(--tr-field);color:var(--tr-dim);
   white-space:nowrap}
 .tr-doc-chip-ok{color:var(--tr-ok)}

@@ -4,8 +4,8 @@
 // Ações vêm de dois lados: mensagens do R (`tipo` = lista, estado, criado,
 // atualizado, inserido, resolvido, ocupado, previa, exportado, aberto, guia,
 // modelos, migrado, publicacao, publicar_confirmar, publicar_bloqueado, envio,
-// erro) e gestos do painel (abrir, fechar, aba, selecionar, novo_*,
-// inserir_*, publicar_*, …). Ações de modelos (`tipo` começando com "modelo") são do
+// erro) e gestos do painel (abrir, fechar, aba, selecionar, abrir_regiao,
+// novo_*, adicionar_*, inserir_*, publicar_*, …). Ações de modelos (`tipo` começando com "modelo") são do
 // redutor de `modelos.js`.
 
 import { reduzirModelos, erroModelos } from "./modelos.js";
@@ -13,8 +13,8 @@ import { reduzirModelos, erroModelos } from "./modelos.js";
 export const INICIAL = Object.freeze({
   aberto: false, aba: "documentos", fase: "carregando",
   documentos: [], modelos: [], perfis: [], perfilPadrao: null, quarto: true,
-  selecionado: null, regioes: {}, ocupado: {}, erro: null, aviso: null,
-  novo: null, inserir: null, guia: null, exportados: {}, confirmar: null,
+  selecionado: null, regioes: {}, ocupado: {}, erro: null, aviso: null, fluxo: "main", foco: null,
+  novo: null, adicionar: null, inserir: null, guia: null, exportados: {}, confirmar: null,
   publicar: null, envios: {},
   modeloAberto: null, modeloForm: null, modeloDuplicar: null, modeloImportar: null, modeloConfirmar: null,
 });
@@ -54,7 +54,11 @@ export function reduzir(s, a) {
     // Pedido de fora (o menu GitHub, na seção Publicações): abre neste documento.
     case "abrir_documento":
       return { ...s, aberto: true, aba: "documentos", selecionado: a.documento || s.selecionado, aviso: null, erro: null };
-    case "fechar": return { ...s, aberto: false, confirmar: null };
+    case "fechar": return { ...s, aberto: false, confirmar: null, foco: null };
+    // O selo de um card: abre o painel no documento, com a região em foco.
+    case "abrir_regiao":
+      return { ...s, aberto: true, aba: "documentos", selecionado: a.documento, foco: a.regiao || null,
+               adicionar: null, inserir: null, novo: null, aviso: null, erro: null };
     // O aviso e o erro são da aba em que aconteceram.
     case "aba": return { ...s, aba: a.aba, aviso: null, erro: null };
     case "lista": {
@@ -62,15 +66,20 @@ export function reduzir(s, a) {
       const aindaExiste = docs.some((d) => d.caminho === s.selecionado);
       return { ...s, fase: "pronto", documentos: docs, modelos: a.modelos || [], perfis: a.perfis || [],
                perfilPadrao: a.perfil_padrao ?? null, quarto: a.quarto !== false,
-               selecionado: aindaExiste ? s.selecionado : (docs.length === 1 ? docs[0].caminho : null) };
+               fluxo: typeof a.fluxo === "string" && a.fluxo ? a.fluxo : "main",
+               // A janela mostra sempre um documento: sem escolha, o primeiro.
+               selecionado: aindaExiste ? s.selecionado : (docs[0]?.caminho ?? null) };
     }
+    // Na janela, o documento escolhido fica escolhido; um inserir em curso
+    // passa a mirar nele.
     case "selecionar":
-      return { ...s, selecionado: s.selecionado === a.documento ? null : a.documento, erro: null, aviso: null };
+      return { ...s, selecionado: a.documento, foco: null, erro: null, aviso: null, novo: null,
+               inserir: s.inserir ? { ...s.inserir, documento: a.documento, pedirAceite: false, aceitar: false } : null };
     case "estado": return { ...s, regioes: { ...s.regioes, [a.documento]: a.regioes || [] } };
     case "ocupado": return { ...s, ocupado: { ...s.ocupado, [a.documento]: a.tarefa }, erro: null, aviso: null };
 
     case "novo_abrir":
-      return { ...s, novo: { nome: "", titulo: "",
+      return { ...s, adicionar: null, novo: { nome: "", titulo: "",
                              modelo: s.modelos.some((m) => m.nome === "basico") ? "basico" : (s.modelos[0]?.nome || "basico"),
                              perfil: s.perfilPadrao || "" }, erro: null };
     case "novo_campo": {
@@ -89,11 +98,21 @@ export function reduzir(s, a) {
       return { ...s, novo: null, selecionado: a.documento, inserir: ins, aviso: "Documento criado." };
     }
 
-    // "Inserir no documento…" do menu do card abre o painel já neste modo.
+    // "+ Adicionar bloco": a lista dos cards do fluxo (o editor dá) no meio
+    // da janela; escolher um abre o inserir dele à direita.
+    case "adicionar_abrir":
+      return { ...s, adicionar: { busca: "", cards: a.cards || [] }, inserir: null, novo: null, confirmar: null,
+               erro: null, aviso: null };
+    case "adicionar_busca": return s.adicionar ? { ...s, adicionar: { ...s.adicionar, busca: a.busca || "" } } : s;
+    case "adicionar_fechar": return { ...s, adicionar: null, inserir: null };
+
+    // "Inserir no documento…" do menu do card abre o painel já neste modo
+    // (e a lista de "+ Adicionar bloco" também, com o documento da janela).
     case "inserir_card": {
       const c = a.card;
-      const doc = s.selecionado || (s.documentos.length === 1 ? s.documentos[0].caminho : null);
-      return { ...s, aberto: true, aba: "documentos", erro: null, aviso: null, confirmar: null,
+      const doc = a.documento || s.selecionado || (s.documentos.length === 1 ? s.documentos[0].caminho : null);
+      return { ...s, aberto: true, aba: "documentos", erro: null, aviso: null, confirmar: null, novo: null,
+               selecionado: doc || s.selecionado, foco: null,
                inserir: { card: c, documento: doc, porta: c.saidas?.[0]?.porta || null,
                           linhas: "", completa: false, aceitar: false, pedirAceite: false, enviando: false } };
     }
@@ -101,7 +120,7 @@ export function reduzir(s, a) {
     case "inserir_enviando": return s.inserir ? { ...s, inserir: { ...s.inserir, enviando: true }, erro: null } : s;
     case "inserir_cancelar": return { ...s, inserir: null };
     case "inserido":
-      return { ...s, inserir: null, selecionado: a.documento,
+      return { ...s, inserir: null, selecionado: a.documento, foco: a.regiao,
                aviso: `Inserido como #trama-${a.regiao}.` + (a.avisos?.length ? " " + a.avisos.join(" ") : "") };
 
     case "atualizado": {
@@ -233,3 +252,47 @@ export function pedidoPublicar(p, confirmado = false) {
   const repo = (p.repo || "").trim();
   return { documento: p.documento, repositorio: repo || null, confirmado: !!confirmado };
 }
+
+// Busca sem caixa e sem acento ("regressao" acha "Regressão").
+const dobrar = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// Cards que o documento pode receber (os que têm saída), filtrados pela busca
+// no rótulo, no tipo e no id. Ordem: a do fluxo.
+export function filtrarCards(cards, busca) {
+  const termos = dobrar(busca).split(/\s+/).filter(Boolean);
+  return (cards || []).filter((c) => (c.saidas || []).length > 0).filter((c) => {
+    const alvo = dobrar(`${c.rotulo} ${c.tipo} ${c.id}`);
+    return termos.every((t) => alvo.includes(t));
+  });
+}
+
+// As regiões do documento que mostram este card (cópias à mão não contam).
+export const regioesDoCard = (regioes, id) =>
+  (regioes || []).filter((r) => r.no === id && r.estado !== "duplicada");
+
+// Selos dos cards: id do nó -> [{documento, nome, regiao}], só dos documentos
+// do fluxo na tela (o mesmo id em outro fluxo é outro bloco).
+export function indiceSelos(documentos, fluxo = "main") {
+  const idx = new Map();
+  for (const d of documentos || []) {
+    if ((d.fluxo || "main") !== fluxo) continue;
+    for (const r of d.regioes || []) {
+      if (!r.no || r.estado === "duplicada") continue;
+      if (!idx.has(r.no)) idx.set(r.no, []);
+      idx.get(r.no).push({ documento: d.caminho, nome: d.nome, regiao: r.regiao });
+    }
+  }
+  return idx;
+}
+
+// O tooltip do selo.
+export function tituloSelo(lista) {
+  const nomes = [...new Set((lista || []).map((x) => x.nome))];
+  if (!nomes.length) return "";
+  const qual = nomes.length === 1 ? `no documento ${nomes[0]}` : `nos documentos ${nomes.join(", ")}`;
+  return `Está ${qual} (clique para ver no painel)`;
+}
+
+// O que vai na publicação, numa linha.
+export const vaiSair = (n) =>
+  `Vai sair: ${n} ${n === 1 ? "região" : "regiões"} + o fluxo, os dados ligados e o ambiente`;

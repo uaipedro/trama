@@ -15,7 +15,9 @@
     enviar(Filter(Negate(is.null), list(tipo = "erro", acao = acao, documento = documento,
                                         mensagem = conditionMessage(e), classe = class(e)[[1]])))
   }
-  listar <- function() enviar(c(list(tipo = "lista"), .td_lista_painel(projeto())))
+  # O fluxo na tela: os selos dos cards só valem para documentos dele.
+  fluxo_tela <- function() if (is.function(ctx$fluxo)) .td_texto1(ctx$fluxo())
+  listar <- function() enviar(c(list(tipo = "lista"), .td_lista_painel(projeto(), fluxo_tela())))
   # Migração do `trama.publicar` (retirado): na primeira lista da sessão,
   # o nó `publicar/publish` vira documento; o editor relê o fluxo e o painel
   # abre com o aviso.
@@ -180,20 +182,25 @@
        ultima = if (!is.null(reg$versao)) list(versao = reg$versao, pagina = reg$pagina, ultimo = reg$ultimo, data = reg$data))
 }
 
-#' O que o painel mostra ao abrir: documentos (com o resumo do estado),
+#' O que o painel mostra ao abrir: documentos (com o resumo do estado, o
+#' fluxo e os nós das regiões, para os selos dos cards), o fluxo na tela,
 #' modelos, perfis e se há Quarto.
 #' @noRd
-.td_lista_painel <- function(projeto) {
+.td_lista_painel <- function(projeto, fluxo = NULL) {
   docs <- tr_documento_listar(projeto)
   p <- tr_documento_perfis()
   list(
     documentos = lapply(seq_len(nrow(docs)), function(i) {
       e <- tryCatch(tr_documento_estado(docs$caminho[i], projeto), error = function(e) e)
+      erro <- inherits(e, "error")
       list(nome = docs$nome[i], caminho = .td_relativo(projeto$root, docs$caminho[i]),
            modelo = if (is.na(docs$modelo[i])) NULL else docs$modelo[i],
+           fluxo = tryCatch(.td_fluxo_do(.td_ler(docs$caminho[i])$linhas), error = function(e) "main"),
            formatos = as.list(tryCatch(tr_documento_formatos(docs$caminho[i]), error = function(e) character())),
-           resumo = if (inherits(e, "error")) list(erro = conditionMessage(e)) else as.list(table(e$estado)))
+           resumo = if (erro) list(erro = conditionMessage(e)) else as.list(table(e$estado)),
+           regioes = if (erro) list() else .td_linhas_json(e[, c("regiao", "no", "estado"), drop = FALSE]))
     }),
+    fluxo = fluxo %||% "main",
     modelos = .td_modelos_json(),
     perfis = lapply(names(p$perfis), function(k) list(perfil = k, nome = p$perfis[[k]]$nome %||% k)),
     perfil_padrao = p$padrao,
