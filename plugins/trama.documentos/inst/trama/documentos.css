@@ -31,7 +31,8 @@
 .tr-doc-modelos-area .tr-doc-aba{max-width:720px}
 .tr-doc-guia-corpo{flex:1;overflow:auto;padding:16px}
 .tr-doc-nome-nav{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tr-doc-janela .tr-bases-filtro small.tr-doc-atencao{color:var(--tr-warn,#d97706)}
+.tr-doc-janela .tr-bases-filtro .tr-doc-atencao{color:var(--tr-warn,#d97706)}
+.tr-doc-janela .tr-bases-filtro.tr-on .tr-doc-atencao{color:inherit}
 .tr-doc-janela .tr-doc-novo{color:var(--tr-accent)}
 .tr-doc-janela .tr-doc-novo.tr-on{color:var(--tr-accent-fg)}
 /* Em tela estreita os filtros de Bases somem; aqui eles são os documentos. */

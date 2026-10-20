@@ -321,6 +321,7 @@ function Envio({ e }) {
 // dela, as regiões do documento.
 function VaiSair({ s, doc, porId }) {
   const conf = s.publicar?.documento === doc.caminho ? s.publicar.conferencia : null;
+  if (!conf && !s.regioes[doc.caminho]) return null;
   const itens = conf ? (conf.regioes || []).map((r) => ({ chave: r.chave, nome: r.titulo || `#trama-${r.chave}` }))
     : (s.regioes[doc.caminho] || []).filter((r) => r.estado !== "duplicada")
         .map((r) => ({ chave: r.regiao, nome: nomeRegiao(r, porId) }));
@@ -415,11 +416,13 @@ function Navegacao({ s, despachar }) {
     ...s.documentos.map((d) => {
       const total = d.resumo && !d.resumo.erro ? Object.values(d.resumo).reduce((a, b) => a + b, 0) : 0;
       const atencao = pendencias([d]);
-      return h("button", { key: d.caminho, type: "button", title: resumo(d.resumo),
-                           className: "tr-bases-filtro" + (!modelos && d.caminho === s.selecionado ? " tr-on" : ""),
+      return h("button", { key: d.caminho, type: "button", title: `${d.nome}: ${resumo(d.resumo)}`,
+                           className: "tr-bases-filtro" + (!modelos && !s.novo && d.caminho === s.selecionado ? " tr-on" : ""),
                            onClick: () => escolher(d) }, [
         h("span", { key: "a", className: "tr-doc-nome-nav" }, d.nome),
-        h("small", { key: "b", className: atencao ? "tr-doc-atencao" : "" }, atencao ? `${total} · ${atencao}!` : total)]);
+        h("small", { key: "b" }, [
+          atencao ? h("span", { key: "l", className: "tr-doc-atencao", "aria-label": `${atencao} pedem atenção` }, "● ") : null,
+          total])]);
     }),
     h("button", { key: "nv", type: "button", className: "tr-bases-filtro tr-doc-novo" + (s.novo ? " tr-on" : ""),
                   onClick: () => { if (modelos) despachar({ tipo: "aba", aba: "documentos" }); despachar({ tipo: "novo_abrir" }); } },
