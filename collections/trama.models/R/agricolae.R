@@ -104,7 +104,7 @@ tr_models_duncan <- function(modelo, tratamento = "", confianca = 0.95) {
 
 #' Teste de Waller-Duncan (razão K).
 #' @inheritParams tr_models_duncan
-#' @param k razão de custos dos erros tipo I e II: 100 (~5%), 500 (~1%), 50 (~10%).
+#' @param k razão de custos dos erros tipo I e II: 100 (~5\%), 500 (~1\%), 50 (~10\%).
 #' @return objeto `tr_models_emm`.
 #' @export
 tr_models_waller_duncan <- function(modelo, tratamento = "", k = 100L) {

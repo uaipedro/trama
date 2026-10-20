@@ -11,7 +11,7 @@ tr_models_waller_duncan(modelo, tratamento = "", k = 100L)
 
 \item{tratamento}{fator (ou até 3, para as combinações).}
 
-\item{k}{razão de custos dos erros tipo I e II: 100 (~5%), 500 (~1%), 50 (~10%).}
+\item{k}{razão de custos dos erros tipo I e II: 100 (~5\%), 500 (~1\%), 50 (~10\%).}
 }
 \value{
 objeto `tr_models_emm`.
