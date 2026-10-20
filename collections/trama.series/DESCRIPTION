@@ -23,7 +23,7 @@ Depends:
     R (>= 4.1)
 Imports:
     trama (>= 0.5.26),
-    trama.data,
+    trama.data (>= 0.4.5),
     trama.view,
     trama.models (>= 0.6.3),
     forecast (>= 8.0),
