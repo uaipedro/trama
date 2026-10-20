@@ -153,20 +153,24 @@ NULL
 #' tabelas de diagnóstico); sem nada saindo da etapa, faixa única. Numa coluna
 #' as peças se empilham pela média da altura dos pais (o que reduz
 #' cruzamentos) e, no empate, pela ordem de antes; cada uma tenta ficar na
-#' altura do primeiro pai, para uma corrente sair reta. Notas da etapa abrem a
-#' etapa numa coluna própria à esquerda.
+#' altura do primeiro pai, para uma corrente sair reta. Quem não tem pai na
+#' etapa (as entradas dela) segue a altura dos pais na etapa anterior: os
+#' testes da etapa 2 saem na ordem das séries da etapa 1. Notas da etapa abrem
+#' a etapa numa coluna própria à esquerda.
 #' @param pecas id -> `list(w, h)`.
 #' @param de,para Ligações dentro da etapa.
 #' @param principal Ids do ramo principal.
 #' @param ordem0 id -> chave da ordem de antes.
 #' @param intro Lista nomeada nota -> c(w, h), na ordem.
+#' @param fora id -> altura dos pais de fora da etapa (`NA` sem pai de fora).
 #' @return `list(pos = id -> c(x, y), intro = nota -> c(x, y), w, h)`, relativo
 #'   ao canto do conteúdo.
 #' @noRd
 .tr_lay_etapa <- function(pecas, de = character(), para = character(), principal = character(),
-                          ordem0 = NULL, intro = list()) {
+                          ordem0 = NULL, intro = list(), fora = NULL) {
   ids <- names(pecas) %||% character()
   ordem0 <- ordem0 %||% stats::setNames(seq_along(ids), ids)
+  fora <- fora %||% stats::setNames(rep(NA_real_, length(ids)), ids)
   pais <- lapply(stats::setNames(nm = ids), function(id) unique(de[para == id]))
   # Caminho mais longo: Kahn sobre as ligações de dentro (o fluxo é DAG).
   rank <- stats::setNames(rep(0L, length(ids)), ids)
@@ -207,7 +211,7 @@ NULL
         ps <- pais[[n]][!is.na(y[pais[[n]]])]
         if (length(ps)) mean(y[ps] + h[ps] / 2) else NA_real_
       }, 0)
-      aqui <- aqui[order(is.na(bary), bary, ordem0[aqui], aqui)]
+      aqui <- aqui[order(is.na(bary), bary, is.na(fora[aqui]), fora[aqui], ordem0[aqui], aqui)]
       cur <- topo
       for (n in aqui) {
         ps <- pais[[n]][!is.na(y[pais[[n]]])]
@@ -261,13 +265,21 @@ NULL
 #' Peças, ligações e ramo principal de um conjunto de cards, e o resultado
 #' da etapa já com o deslocamento de cada parte (card, solto, notas presas).
 #' @noRd
-.tr_lay_montar <- function(doc, rects, cards, intro_notas, anexos, ordem0) {
+.tr_lay_montar <- function(doc, rects, cards, intro_notas, anexos, ordem0, ys = NULL) {
   ar <- .tr_lay_arestas(doc)
   pecas <- lapply(stats::setNames(nm = cards), .tr_lay_peca, doc = doc, rects = rects, anexos = anexos)
   dentro <- ar$de %in% cards & ar$para %in% cards
   intro <- lapply(stats::setNames(nm = intro_notas), function(n) rects$notes[[n]][3:4])
+  # Altura dos pais de fora: a nova, se já foram arrumados (`ys`), senão a de agora.
+  ys <- ys %||% list()
+  y_de <- function(p) (ys[[p]] %||% rects$cards[[p]])[[2]]
+  fora <- vapply(cards, function(id) {
+    ps <- unique(ar$de[ar$para == id & !(ar$de %in% cards)])
+    v <- vapply(ps, y_de, 0)
+    if (length(v) && any(!is.na(v))) mean(v, na.rm = TRUE) else NA_real_
+  }, 0)
   et <- .tr_lay_etapa(pecas, ar$de[dentro], ar$para[dentro],
-                      .tr_lay_principal(cards, ar$de, ar$para), ordem0[cards], intro)
+                      .tr_lay_principal(cards, ar$de, ar$para), ordem0[cards], intro, fora)
   et$pecas <- pecas
   et
 }
@@ -330,7 +342,7 @@ NULL
     if (!length(cards) && !length(notas)) {
       wh <- fr[3:4]
     } else {
-      et <- .tr_lay_montar(doc, rects, cards, notas, anexos, ordem0)
+      et <- .tr_lay_montar(doc, rects, cards, notas, anexos, ordem0, novo$cards)
       wh <- .tr_lay_frame_wh(et$w, et$h, doc$ui$frames[[f]]$aspect)
       novo <- .tr_lay_colocar(novo, et, x + .tr_lay$pad, oy + .tr_lay$head + .tr_lay$pad)
     }
@@ -342,7 +354,7 @@ NULL
   notas <- setdiff(names(rects$notes), c(names(donos$nota), presos))
   if (length(soltos) || length(notas)) {
     notas <- notas[order(vapply(notas, function(n) rects$notes[[n]][[2]], 0))]
-    et <- .tr_lay_montar(doc, rects, soltos, notas, anexos, ordem0)
+    et <- .tr_lay_montar(doc, rects, soltos, notas, anexos, ordem0, novo$cards)
     novo <- .tr_lay_colocar(novo, et, ox, if (length(donos$etapas)) base else oy)
   }
   # Externos do menor para o maior: o de fora já vê o de dentro refeito.
@@ -541,21 +553,22 @@ NULL
 
 # Notas ----------------------------------------------------------------------
 
-#' Altura que um markdown pede numa largura, na escala "nota": ~7,5 px por
-#' caractere, linhas de 20 px, título maior, mais o respiro do corpo. Só a
+#' Altura que um markdown pede numa largura, na escala "nota": ~6,3 px por
+#' caractere (medido no editor), linhas de 20 px, título maior, mais o
+#' respiro do corpo. Só a
 #' nascença: quem quiser outra altura passa `h`.
 #' @noRd
 .tr_lay_nota_h <- function(texto, w = .tr_lay$nota_w) {
   linhas <- strsplit(texto %||% "", "\n", fixed = TRUE)[[1]]
   if (!length(linhas)) linhas <- ""
-  cabe <- max(10, floor((w - 28) / 7.5))
+  cabe <- max(10, floor((w - 28) / 6.3))
   h <- sum(vapply(linhas, function(l) {
     if (!nzchar(trimws(l))) return(10)
     titulo <- grepl("^#{1,6}\\s", l)
     n <- max(1, ceiling(nchar(l) / (if (titulo) cabe * 0.75 else cabe)))
     n * (if (titulo) 28 else 20)
   }, 0))
-  max(80, ceiling(h + 36))
+  max(80, ceiling(h + 28))
 }
 
 #' Ponto livre à direita de tudo o que existe, alinhado pelo topo dos frames

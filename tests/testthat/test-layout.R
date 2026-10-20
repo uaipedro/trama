@@ -66,6 +66,18 @@ test_that("organizar: etapas lado a lado na ordem, principal em cima, lateral em
   expect_gt(u[[1]], t[[1]] + t[[3]])
 })
 
+test_that("entradas de uma etapa seguem a ordem dos pais na etapa anterior", {
+  fl <- fluxo_lay()
+  fl <- tr_add(fl, "p", "t/show", from = "b", position = c(9000, -500))
+  fl <- tr_add(fl, "q", "t/show", from = "a", position = c(9000, 500))
+  fl <- .tr_lay_cmd_frame(fl, list(acao = "add", id = "f1", title = "1", nodes = list("a", "b")))
+  fl <- .tr_lay_cmd_frame(fl, list(acao = "add", id = "f2", title = "2", nodes = list("p", "q")))
+  d <- .tr_lay_cmd_organizar(fl)$doc
+  expect_lt(rect_card(d, "a")[[2]], rect_card(d, "b")[[2]])
+  # p estava acima de q, mas o pai de q (a) vem antes do pai de p (b).
+  expect_lt(rect_card(d, "q")[[2]], rect_card(d, "p")[[2]])
+})
+
 test_that("organizar é determinístico e idempotente", {
   um <- .tr_lay_cmd_organizar(etapas())
   dois <- .tr_lay_cmd_organizar(etapas())
@@ -220,5 +232,5 @@ test_that("resumo para o state: frames na ordem com blocos e notas", {
 test_that("altura da nota sai do texto", {
   expect_gte(.tr_lay_nota_h(""), 80)
   expect_gt(.tr_lay_nota_h(paste(rep("palavra", 200), collapse = " ")), .tr_lay_nota_h("curta"))
-  expect_gt(.tr_lay_nota_h("# Título\nlinha"), .tr_lay_nota_h("linha"))
+  expect_gt(.tr_lay_nota_h("# Título\nlinha\nlinha"), .tr_lay_nota_h("linha\nlinha"))
 })
