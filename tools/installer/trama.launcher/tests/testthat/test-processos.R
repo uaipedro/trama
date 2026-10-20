@@ -10,7 +10,13 @@ local_home <- function(env = parent.frame()) {
   home
 }
 
+# A chave do registro é o caminho normalizado, como o launcher grava ao abrir
+# (`tl_project_open()`): no Windows "/p/caiu" vira "D:\p\caiu", e a chave
+# crua não seria achada por `tl_project_pid()`.
+k <- function(caminho) normalizePath(caminho, mustWork = FALSE)
+
 registrar <- function(caminho, pid = TRUE) {
+  caminho <- k(caminho)
   assign(caminho, 9999L, envir = .tl_processos_projeto)
   pid_file <- .tl_pid_file(caminho)
   dir.create(dirname(pid_file), recursive = TRUE, showWarnings = FALSE)
@@ -52,15 +58,15 @@ test_that("editor que responde e depois some: crash só se o processo morreu com
   expect_equal(tl_projects_verificar(aberto, function(pid) TRUE), character(0))
 
   # /p/fechou terminou normal: apagou o PID.
-  unlink(.tl_pid_file("/p/fechou"))
+  unlink(.tl_pid_file(k("/p/fechou")))
   aberto <- function(p) FALSE
   # Ainda vivo sem responder (encerrando): espera, não é crash.
   expect_equal(tl_projects_verificar(aberto, function(pid) TRUE), character(0))
-  expect_setequal(ls(.tl_processos_projeto), "/p/caiu")
+  expect_setequal(ls(.tl_processos_projeto), k("/p/caiu"))
   # Processo morto e PID sobrando: crash.
-  expect_equal(tl_projects_verificar(aberto, function(pid) FALSE), "/p/caiu")
+  expect_equal(tl_projects_verificar(aberto, function(pid) FALSE), k("/p/caiu"))
   expect_length(ls(.tl_processos_projeto), 0)
-  expect_false(file.exists(.tl_pid_file("/p/caiu")))
+  expect_false(file.exists(.tl_pid_file(k("/p/caiu"))))
 })
 
 test_that("editor que nunca respondeu: subindo enquanto vive, crash quando morre", {
@@ -68,25 +74,25 @@ test_that("editor que nunca respondeu: subindo enquanto vive, crash quando morre
   registrar("/p/subindo"); registrar("/p/sem-pid", pid = FALSE)
   aberto <- function(p) FALSE
   expect_equal(tl_projects_verificar(aberto, function(pid) TRUE), character(0))
-  expect_setequal(ls(.tl_processos_projeto), c("/p/subindo", "/p/sem-pid"))
-  expect_equal(tl_projects_verificar(aberto, function(pid) FALSE), "/p/subindo")
+  expect_setequal(ls(.tl_processos_projeto), c(k("/p/subindo"), k("/p/sem-pid")))
+  expect_equal(tl_projects_verificar(aberto, function(pid) FALSE), k("/p/subindo"))
 })
 
 test_that("reiniciar esquece o 'já respondeu' do editor anterior", {
   local_home()
   registrar("/p/a")
   tl_projects_verificar(function(p) TRUE, function(pid) TRUE)
-  expect_true(exists("/p/a", envir = .tl_vistos))
-  .tl_esquecer_projeto("/p/a")
-  expect_false(exists("/p/a", envir = .tl_vistos))
+  expect_true(exists(k("/p/a"), envir = .tl_vistos))
+  .tl_esquecer_projeto(k("/p/a"))
+  expect_false(exists(k("/p/a"), envir = .tl_vistos))
 })
 
 test_that("só editor que encerra sozinho segura o launcher", {
   local_home()
   registrar("/p/velho"); registrar("/p/novo")
-  assign("/p/novo", TRUE, envir = .tl_encerra_sozinho)
+  assign(k("/p/novo"), TRUE, envir = .tl_encerra_sozinho)
   expect_true(.tl_algum_editor(function(p) TRUE))
-  expect_false(.tl_algum_editor(function(p) p == "/p/velho"))
+  expect_false(.tl_algum_editor(function(p) p == k("/p/velho")))
   expect_false(.tl_trama_encerra_sozinho(withr::local_tempdir()))
 })
 
@@ -105,7 +111,7 @@ test_that("tl_projects_encerrar mata cada editor e limpa o registro", {
   tl_projects_encerrar(matar = function(pid) mortos <<- c(mortos, pid))
   expect_equal(mortos, c(123L, 123L))
   expect_length(ls(.tl_processos_projeto), 0)
-  expect_false(file.exists(.tl_pid_file("/p/a")))
+  expect_false(file.exists(.tl_pid_file(k("/p/a"))))
 })
 
 test_that("launcher encerra sozinho só sem janela e sem editor", {
