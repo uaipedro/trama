@@ -1,3 +1,7 @@
+# trama.data 0.4.8
+
+* Testes: o caso `system("touch ...")` dos seletores monta o caminho com barra normal; no Windows a barra invertida do `tempfile()` não parseava e o teste caía em outro erro. O código não muda.
+
 # trama.data 0.4.7
 
 * `tr_data_fmt_num()` (tabela do relatório e do documento) não arredonda mais a parte inteira: número com mais algarismos inteiros que significativos sai arredondado à unidade, 11887,03 é "11.887" e não "11.890" (#32). O resto não muda.
