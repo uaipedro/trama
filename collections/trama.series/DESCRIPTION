@@ -22,7 +22,7 @@ Encoding: UTF-8
 Depends:
     R (>= 4.1)
 Imports:
-    trama (>= 0.5.10),
+    trama (>= 0.5.26),
     trama.data,
     trama.view,
     trama.models (>= 0.6.3),
