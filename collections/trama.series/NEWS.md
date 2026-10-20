@@ -1,3 +1,7 @@
+# trama.series 0.9.5
+
+* Documentação: o `%` de "80 e 95%" no título de `tr_series_forecast()` e `tr_series_plot_forecast()` passa a `\%`; sem o escape, o Rd era inválido e o `R CMD check` quebrava.
+
 # trama.series 0.9.4
 
 * `series/from_table_mts`: `valores` aceita também o texto com vírgula ("ibv, sp") que o campo de colunas do editor grava, além da lista (#32).

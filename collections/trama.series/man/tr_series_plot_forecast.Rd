@@ -2,7 +2,7 @@
 % Please edit documentation in R/ver.R
 \name{tr_series_plot_forecast}
 \alias{tr_series_plot_forecast}
-\title{O histórico e a previsão, com os leques de 80 e 95%.}
+\title{O histórico e a previsão, com os leques de 80 e 95\%.}
 \usage{
 tr_series_plot_forecast(
   previsao,
