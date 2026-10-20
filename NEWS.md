@@ -1,3 +1,8 @@
+# trama 0.5.28
+
+* Plugins podem pôr um selo no cabeçalho de um card, por id de nó: `registerCardBadge(id, { selo: (card) => ({ icone, titulo, acao }) | null })` e `refreshCardBadges()` quando o que o plugin sabe muda (`inst/www/selo-card.js`). O núcleo desenha o selo (ícone do conjunto, discreto, fora do modo mini) e não sabe o que ele significa; o "está num documento" do `trama.documentos` é o primeiro uso (#37).
+* `editorAction("cards", cb)` entrega a um plugin os cards do fluxo na tela, cada um como no menu do card; `infoDoCard()` passa a levar o ícone do bloco (`icone`).
+
 # trama 0.5.27
 
 * Narrativa pelo agente (#19): o MCP e o `trama-agente` organizam o fluxo com os frames, notas e grupos do editor, sempre como ops comuns e um passo de desfazer por gesto. Tools novas `frame` (criar com título e blocos, editar título/cor/ordem/tamanho, pôr, tirar, remover), `nota` (Markdown abrindo um frame ou presa a um bloco, que anda junto), `posicionar` (como o arrasto: frame leva o conteúdo, grupo anda junto), `organizar` (layout por etapas: um frame por coluna na ordem, ramo principal em cima, diagnósticos e gráficos embaixo, irmãos empilhados) e `guia`; `adicionar` ganha `frame`. No CLI: `frame`, `note`, `move`, `layout`, `guide` e `add --frame`. O `state` traz a posição dos nós, os frames com o que têm dentro e as notas. Cálculo em `R/layout.R`, sem DOM: o editor manda as medidas dos cards (`tr_medidas`), e frame que cresce abre espaço em vez de engolir o vizinho.

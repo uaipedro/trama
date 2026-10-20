@@ -7,9 +7,14 @@ const no = { id: "fig", data: { nodeType: "view/scatter", label: "", state: "don
 
 test("infoDoCard: id, tipo, rótulo (do card ou do bloco) e saídas", () => {
   assert.deepEqual(infoDoCard(no), { id: "fig", tipo: "view/scatter", rotulo: "Dispersão",
-    saidas: [{ porta: "out", tipo: "view/plot" }], estado: "done" });
+    saidas: [{ porta: "out", tipo: "view/plot" }], estado: "done", icone: null });
   assert.equal(infoDoCard({ ...no, data: { ...no.data, label: "Peso" } }).rotulo, "Peso");
   assert.deepEqual(infoDoCard({ id: "x" }).saidas, []);
+});
+
+test("infoDoCard leva o ícone do bloco", () => {
+  const icone = { kind: "set", value: "chart-scatter" };
+  assert.deepEqual(infoDoCard({ ...no, data: { ...no.data, spec: { ...no.data.spec, icon: icone } } }).icone, icone);
 });
 
 test("itensDoCard filtra por `quando`, resolve o rótulo e liga a ação ao card", () => {

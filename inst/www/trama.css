@@ -1538,6 +1538,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-galeria-dock { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 20;
   pointer-events: auto; }
 .tr-galeria-selo { color: var(--tr-accent); font-size: 12px; line-height: 1; }
+/* Selo de plugin no cabeçalho (`registerCardBadge`): discreto, herda a tinta da faixa. */
+.tr-selo-plugin{display:inline-flex;align-items:center;background:none;border:0;padding:0 1px;
+                color:inherit;opacity:.72;cursor:pointer;line-height:1}
+.tr-selo-plugin:hover{opacity:1}
+.tr-selo-plugin:disabled{cursor:default}
 .tr-pv-acoes .tr-galeria-marca-on { color: var(--tr-accent); }
 button.tr-selo-ramo { border: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; }
 .tr-selo-ramo.tr-selo-desligado { background: transparent; color: var(--tr-dim);

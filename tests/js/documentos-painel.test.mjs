@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { INICIAL, reduzir, resumo, pendencias, pedidoInserir, ehTabela, nomeValido, resolucoes, textoOcupado, pedidoPublicar,
-         nomeSaida }
+         nomeSaida, filtrarCards, regioesDoCard, indiceSelos, tituloSelo, vaiSair }
   from "../../plugins/trama.documentos/inst/trama/painel.js";
 
 const lista = { tipo: "lista", quarto: true, perfil_padrao: "ufla",
@@ -161,4 +161,84 @@ test("acompanhamento de um envio anterior não fecha a caixa de publicar", () =>
                 { tipo: "envio", documento: doc, estado: { repo: "p/t", tag: "v0.1.0", etapa: "actions" } });
   assert.notEqual(s.publicar, null);
   assert.equal(s.envios[doc].etapa, "actions");
+});
+
+// #37: a janela grande, "+ Adicionar bloco" e o selo dos cards.
+
+const dois = { ...lista, fluxo: "main", documentos: [
+  { nome: "rel", caminho: "documentos/rel/rel.qmd", fluxo: "main", resumo: { atualizada: 2 },
+    regioes: [{ regiao: "tab", no: "tab", estado: "atualizada" }, { regiao: "fig", no: "fig", estado: "desatualizada" }] },
+  { nome: "art", caminho: "documentos/art/art.qmd", fluxo: "main", resumo: { atualizada: 1, duplicada: 1 },
+    regioes: [{ regiao: "tab", no: "tab", estado: "atualizada" }, { regiao: "tab", no: "tab", estado: "duplicada" }] },
+  { nome: "outro", caminho: "documentos/outro/outro.qmd", fluxo: "simulacao", resumo: { atualizada: 1 },
+    regioes: [{ regiao: "fig", no: "fig", estado: "atualizada" }] }] };
+
+test("janela: sem escolha vale o primeiro documento; escolher não desmarca, e o inserir segue a escolha", () => {
+  let s = passo(INICIAL, dois);
+  assert.equal(s.selecionado, "documentos/rel/rel.qmd");
+  assert.equal(s.fluxo, "main");
+  s = passo(s, { tipo: "selecionar", documento: "documentos/art/art.qmd" }, { tipo: "selecionar", documento: "documentos/art/art.qmd" });
+  assert.equal(s.selecionado, "documentos/art/art.qmd");
+  s = passo(s, { tipo: "inserir_card", card }, { tipo: "selecionar", documento: "documentos/rel/rel.qmd" });
+  assert.equal(s.inserir.documento, "documentos/rel/rel.qmd");
+  assert.equal(passo(INICIAL, { ...dois, fluxo: {} }).fluxo, "main");
+});
+
+test("adicionar bloco: abre a lista, busca, escolhe (inserir no documento da janela) e continua aberta", () => {
+  const cards = [card, { id: "fig", rotulo: "Dispersão", tipo: "view/scatter", saidas: [{ porta: "out", tipo: "view/plot" }] }];
+  let s = passo(INICIAL, dois, { tipo: "abrir" }, { tipo: "adicionar_abrir", cards });
+  assert.equal(s.adicionar.cards.length, 2);
+  s = passo(s, { tipo: "adicionar_busca", busca: "disp" }, { tipo: "inserir_card", card: cards[1], documento: "documentos/art/art.qmd" });
+  assert.equal(s.inserir.documento, "documentos/art/art.qmd");
+  assert.equal(s.selecionado, "documentos/art/art.qmd");
+  assert.equal(s.adicionar.busca, "disp");
+  s = passo(s, { tipo: "inserido", documento: "documentos/art/art.qmd", regiao: "fig", avisos: [] });
+  assert.equal(s.inserir, null);
+  assert.equal(s.foco, "fig");
+  assert.notEqual(s.adicionar, null);
+  s = passo(s, { tipo: "adicionar_fechar" });
+  assert.equal(s.adicionar, null);
+  assert.equal(passo(s, { tipo: "adicionar_abrir", cards }, { tipo: "novo_abrir" }).adicionar, null);
+});
+
+test("filtrarCards: só blocos com saída; busca sem acento no rótulo, tipo e id", () => {
+  const cards = [{ id: "lm1", rotulo: "Regressão", tipo: "models/lm", saidas: [{ porta: "out" }] },
+                 { id: "csv", rotulo: "Ler CSV", tipo: "data/csv", saidas: [{ porta: "out" }] },
+                 { id: "nota", rotulo: "Nota", tipo: "ui/nota", saidas: [] }];
+  assert.deepEqual(filtrarCards(cards, "").map((c) => c.id), ["lm1", "csv"]);
+  assert.deepEqual(filtrarCards(cards, "regressao").map((c) => c.id), ["lm1"]);
+  assert.deepEqual(filtrarCards(cards, "DATA csv").map((c) => c.id), ["csv"]);
+  assert.deepEqual(filtrarCards(cards, "lm1").map((c) => c.id), ["lm1"]);
+  assert.deepEqual(filtrarCards(null, "x"), []);
+});
+
+test("selos: por nó, só documentos do fluxo na tela, sem cópias; tooltip e região de destino", () => {
+  const idx = indiceSelos(dois.documentos, "main");
+  assert.deepEqual(idx.get("tab"), [{ documento: "documentos/rel/rel.qmd", nome: "rel", regiao: "tab" },
+                                    { documento: "documentos/art/art.qmd", nome: "art", regiao: "tab" }]);
+  assert.deepEqual(idx.get("fig"), [{ documento: "documentos/rel/rel.qmd", nome: "rel", regiao: "fig" }]);
+  assert.deepEqual(indiceSelos(dois.documentos, "simulacao").get("fig")[0].nome, "outro");
+  assert.equal(indiceSelos(dois.documentos, "simulacao").has("tab"), false);
+  assert.equal(indiceSelos([{ caminho: "d", nome: "d" }]).size, 0);
+  assert.match(tituloSelo(idx.get("fig")), /no documento rel/);
+  assert.match(tituloSelo(idx.get("tab")), /nos documentos rel, art/);
+  assert.equal(tituloSelo([]), "");
+  assert.equal(regioesDoCard(dois.documentos[1].regioes, "tab").length, 1);
+});
+
+test("o selo abre a janela no documento, com a região em foco", () => {
+  let s = passo(INICIAL, dois, { tipo: "adicionar_abrir", cards: [] },
+                { tipo: "abrir_regiao", documento: "documentos/art/art.qmd", regiao: "tab" });
+  assert.equal(s.aberto, true);
+  assert.equal(s.aba, "documentos");
+  assert.equal(s.selecionado, "documentos/art/art.qmd");
+  assert.equal(s.foco, "tab");
+  assert.equal(s.adicionar, null);
+  assert.equal(passo(s, { tipo: "fechar" }).foco, null);
+  assert.equal(passo(s, { tipo: "selecionar", documento: "documentos/rel/rel.qmd" }).foco, null);
+});
+
+test("vai sair", () => {
+  assert.equal(vaiSair(3), "Vai sair: 3 regiões + o fluxo, os dados ligados e o ambiente");
+  assert.equal(vaiSair(1), "Vai sair: 1 região + o fluxo, os dados ligados e o ambiente");
 });

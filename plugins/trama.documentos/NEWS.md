@@ -1,3 +1,12 @@
+# trama.documentos 0.5.0
+
+* Painel Documentos vira uma janela grande, no formato da de Bases públicas do editor (#37): à esquerda os documentos do projeto, "+ Novo documento" e a galeria de modelos; no meio as regiões do documento escolhido, na ordem do texto, com o rótulo e o ícone do card, o estado e as ações (ir ao card, resolver conflito, órfã e cópia); à direita as ações do documento (Atualizar, Visualizar, Exportar, abrir no editor de texto e a pasta) e a publicação no GitHub, com "Vai sair: N regiões + o fluxo, os dados ligados e o ambiente" e a lista.
+* **+ Adicionar bloco**: lista os blocos do fluxo na tela (ícone, rótulo, tipo; busca sem acento), marca os que já estão no documento e abre o inserir do escolhido à direita, o mesmo do menu do card. O modo Código continua desligado até a fase de reprodutibilidade.
+* Selo nos cards: todo bloco com região num documento do fluxo na tela ganha um ícone no cabeçalho, com os documentos no tooltip; o clique abre a janela no documento, com a região em foco. Segue a lista do painel (inserir, resolver, atualizar, abrir a janela).
+* A mensagem `lista` leva, por documento, o fluxo e as regiões (`regiao`, `no`, `estado`), e o fluxo na tela (`ctx$fluxo()`).
+* "Inserir no documento…" no menu do card continua, agora abrindo a janela.
+* Pede `trama (>= 0.5.27)` (selo de card e `editorAction("cards")`).
+
 # trama.documentos 0.4.1
 
 * O nome sugerido do repositório de publicação e o nome de modelo tiram o acento por `trama::tr_sem_acento()`, o mesmo em qualquer sistema; o `iconv` com `TRANSLIT` dava outro resultado no macOS ("ac-ao" no lugar de "acao"). Pede `trama (>= 0.5.26)`.

@@ -16,7 +16,7 @@ import {
   BaseEdge, getSmoothStepPath, getBezierPath, useInternalNode, EdgeLabelRenderer, NodeResizer,
 } from "@xyflow/react";
 import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems, setEditorActions,
-         getCardMenuItems } from "trama";
+         getCardMenuItems, useCardBadges } from "trama";
 import { infoDoCard } from "./menu-card.js";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
@@ -658,6 +658,7 @@ function NdNode({ id, data, selected }) {
   // Oculto conta como mini aqui: sem faixa não há o que medir, e o preview
   // que reaparece é medido de novo em vez de herdar a marca de "já visto".
   useAutoTamanho(pvRef, id, data, semPreview);
+  const selos = useCardBadges(infoDoCard({ id, data }));
   return h("div", { className: cls, style: {
     "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined,
     // O mini pinta só o bloco do ícone com a cor da categoria; o resto é a
@@ -718,6 +719,11 @@ function NdNode({ id, data, selected }) {
       data.naGaleria && !mini
         ? h("span", { key: "gal", className: "tr-galeria-selo", title: "na galeria (G abre o rolo)" }, "★")
         : null,
+      // Selos de plugin (`registerCardBadge`): o desenho é daqui.
+      ...(mini ? [] : selos.map((s) => h("button", { key: `selo-${s.id}`, type: "button", title: s.titulo,
+          className: "tr-selo-plugin nodrag", disabled: !s.acao,
+          onClick: (e) => { e.stopPropagation(); s.acao?.(); } },
+        h(Icon, { icon: { kind: "set", value: s.icone }, className: "tr-node-icon" })))),
       // Absoluta, por cima da borda de baixo do cabeçalho: uma barra que
       // entrasse no fluxo mudaria a altura do card quando a execução começa,
       // e altura em função do que chegou é o laço que trama.css evita. Sem
@@ -4164,7 +4170,8 @@ function App() {
     ]);
   };
   // Ações que um plugin pode pedir (`editorAction` no runtime).
-  useEffect(() => { setEditorActions({ irAoBloco }); });
+  const cards = (cb) => cb(nodesRef.current.filter((n) => n.type === "ndNode").map(infoDoCard));
+  useEffect(() => { setEditorActions({ irAoBloco, cards }); });
   const andar = (tecla) => {
     // Overlay aberto (painéis, "+", menu): as setas são dele, não do canvas.
     if (prox || paramsDe || vista || menu || helpFor || painelFrames || painelConfig

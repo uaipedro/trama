@@ -21,6 +21,7 @@ import { layoutEnum, textoNumero, validarNumero } from "./params.js";
 import { anotado, opcoes, sugerir, sumidas, alternativa, colsTexto, colsValor } from "./colunas.js";
 import { MARCAS, NIVEIS, posicao, estrelas, faixa, venceu, num, numP, eixoEfeito } from "./teste.js";
 import { itensDoCard, registrarItem } from "./menu-card.js";
+import { selosDoCard } from "./selo-card.js";
 
 export const h = React.createElement;
 
@@ -116,9 +117,28 @@ const itensCard = [];
 export function registerCardMenuItem(id, def) { registrarItem(itensCard, id, def); }
 export function getCardMenuItems(card) { return itensDoCard(itensCard, card); }
 
+// Selo no cabeçalho de um card trazido por um plugin ("está num documento",
+// do `trama.documentos`, é o caso). `def`:
+//   { selo: (card) => ({ icone, titulo?, acao? }) | null }
+// `icone` é um nome do conjunto do editor (lucide); o núcleo desenha. O
+// plugin chama `refreshCardBadges()` quando o que ele sabe muda, e os cards
+// pedem os selos de novo (`selo-card.js`).
+const selosCard = [];
+let versaoSelos = 0;
+const ouvintesSelos = new Set();
+const assinarSelos = (f) => { ouvintesSelos.add(f); return () => ouvintesSelos.delete(f); };
+export function refreshCardBadges() { versaoSelos += 1; ouvintesSelos.forEach((f) => f()); }
+export function registerCardBadge(id, def) { registrarItem(selosCard, id, def); refreshCardBadges(); }
+export function useCardBadges(card) {
+  React.useSyncExternalStore(assinarSelos, () => versaoSelos);
+  return selosDoCard(selosCard, card);
+}
+
 // Ações do editor que um plugin pode pedir, como levar a tela a um bloco
-// (`editorAction("irAoBloco", id)`). O editor registra as dele a cada render;
-// ação que não existe (ou editor ainda montando) devolve `false`.
+// (`editorAction("irAoBloco", id)`) ou ler os cards do fluxo na tela
+// (`editorAction("cards", (lista) => ...)`, cada um como `infoDoCard`). O
+// editor registra as dele a cada render; ação que não existe (ou editor ainda
+// montando) devolve `false`.
 let acoesEditor = {};
 export function setEditorActions(acoes) { acoesEditor = acoes || {}; }
 export function editorAction(nome, ...args) {
@@ -797,5 +817,6 @@ registerWidget("theme", (spec, value, onChange) => {
 if (typeof window !== "undefined") {
   window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget, pedirAcao,
                registerToolbarItem, getToolbarItems, setEditorActions, editorAction,
+               registerCardBadge, refreshCardBadges,
                Segmented, Toggle, NumberField, Regua, Estrelas, setThemes, getThemes, React };
 }

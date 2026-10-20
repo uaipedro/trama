@@ -2,8 +2,8 @@
 //
 // Puro (sem React, sem "trama"): o registro mora no `runtime.js`
 // (`registerCardMenuItem`), o editor só desenha o que `itensDoCard` devolve.
-// O card chega como `infoDoCard(no)`: o plugin vê o id, o tipo, o rótulo e
-// as saídas, nunca o objeto interno do editor.
+// O card chega como `infoDoCard(no)`: o plugin vê o id, o tipo, o rótulo,
+// as saídas e o ícone, nunca o objeto interno do editor.
 
 // O que um plugin sabe de um card.
 export function infoDoCard(no) {
@@ -15,6 +15,8 @@ export function infoDoCard(no) {
     rotulo: d.label || spec.label || no?.id,
     saidas: (spec.outputs || []).map((p) => ({ porta: p.name, tipo: p.type })),
     estado: d.state || null,
+    // O ícone do bloco como o catálogo dá (`{ kind, value }`), para listas de plugin.
+    icone: spec.icon || null,
   };
 }
 
