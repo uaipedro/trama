@@ -1,0 +1,158 @@
+---
+// Funcionalidades: o que o trama faz, um benefício por acordeão. Os
+// acordeões são <details>/<summary> e funcionam sem JS; o script só abre o
+// item quando o endereço chega com a âncora dele (#documentos, por exemplo).
+// A cobertura de oráculos é contada de docs/cobertura-oraculos.md a cada
+// build, como em rigor.astro, para o número nunca ficar atrás do arquivo.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import Base from "../layouts/Base.astro";
+
+const linhasCob = readFileSync(join(process.cwd(), "..", "docs", "cobertura-oraculos.md"), "utf8")
+  .split("\n").filter((l) => l.startsWith("| `"));
+const cob = { total: linhasCob.length, oraculo: linhasCob.filter((l) => l.includes("| com oráculo |")).length };
+const gh = "https://github.com/uaipedro/trama/tree/main/plugins";
+---
+
+<Base title="Funcionalidades" description="O que o trama faz, do dado ao relatório: cada passo à vista, execução incremental, fluxo que vira código R, rigor documentado, documento vivo, publicação reprodutível e assistente de IA no editor.">
+  <div class="doc-shell" data-pagefind-body>
+    <header class="collection-hero">
+      <div>
+        <p class="eyebrow">Funcionalidades</p>
+        <h1>Do dado ao relatório</h1>
+        <p class="lede">Análise estatística visual, rigorosa e reprodutível. Cada item abaixo diz o que o trama faz, mostra um exemplo e aponta onde ler os detalhes.</p>
+      </div>
+    </header>
+
+    <div class="func-lista">
+      <details class="func" id="passos">
+        <summary>
+          <span class="func__num" aria-hidden="true">01</span>
+          <span class="func__titulo">Você vê cada passo da análise</span>
+          <span class="func__resumo">Cada bloco mostra o próprio resultado: tabela, gráfico ou veredito do teste.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>O fluxo é desenhado como blocos ligados por fios, e cada card mostra o que o bloco produziu: a tabela depois do filtro, o gráfico, o modelo ajustado, o teste com a conclusão. Os resultados intermediários ficam na tela, ao lado dos finais, e um erro aparece no card onde ocorreu, com os blocos abaixo dele marcados como bloqueados.</p>
+          <h3>Exemplo</h3>
+          <p>Numa análise de um VAR, o card <strong>Defasagens do VAR</strong> mostra os critérios de cada defasagem, o card <strong>VAR</strong> mostra os coeficientes de cada equação e o card <strong>Causalidade de Granger</strong> mostra o veredito. Os três ficam lado a lado no canvas, e nada se perde rolando o console.</p>
+          <p class="func__links"><a href="/trama/comece/primeiro-fluxo/">Primeiro fluxo →</a> <a href="/trama/colecoes/">Coleções →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="incremental">
+        <summary>
+          <span class="func__num" aria-hidden="true">02</span>
+          <span class="func__titulo">Mudou um parâmetro, só o necessário recalcula</span>
+          <span class="func__resumo">O trama sabe o que depende do quê.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>Cada bloco tem uma chave calculada a partir dele e das suas entradas. Ao mudar um parâmetro, o núcleo recalcula esse bloco e os que dependem dele; os demais vêm do armazenamento, sem rodar de novo. O cálculo acontece fora do processo da interface, e o editor atualiza só os cards que mudaram.</p>
+          <h3>Exemplo</h3>
+          <p>Trocar o número de defasagens do VAR refaz o ajuste e os diagnósticos dos resíduos, que dependem dele. A leitura dos dados e os gráficos das séries, que vêm antes do ajuste, continuam como estavam.</p>
+          <p class="func__links"><a href="/trama/por-dentro/#como-um-fluxo-roda">Como um fluxo roda →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="codigo">
+        <summary>
+          <span class="func__num" aria-hidden="true">03</span>
+          <span class="func__titulo">O desenho é código R de verdade</span>
+          <span class="func__resumo">O fluxo vira um script R ou um documento Quarto a qualquer momento.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>Um fluxo é um documento: blocos, parâmetros e ligações. O editor desenha esse documento, e o núcleo o executa chamando as funções R das coleções. O mesmo fluxo pode ser escrito em R com <code>tr_flow()</code>, <code>tr_add()</code> e <code>tr_link()</code>: quem não programa monta no canvas, quem programa lê, revisa e reaproveita o código.</p>
+          <p><strong>Exportar</strong> gera código R independente do trama. No script, cada card vira uma variável com o nome do card, e os parâmetros passados são os mesmos que o editor usou. Ele roda em qualquer R que tenha os pacotes das coleções instalados.</p>
+          <h3>Exemplo</h3>
+          <p>Uma análise com leitura do CSV, ajuste da ANOVA e comparação de médias exportada em Quarto vira um <code>.qmd</code> com um chunk por card. Os frames viram seções, as notas viram texto no lugar em que estão, e as saídas que o fluxo produziu para leitura, como o quadro da ANOVA e as médias, aparecem no documento.</p>
+          <p class="func__links"><a href="/trama/por-dentro/#como-um-fluxo-roda">Fluxo, documento e DSL em R →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="rigor">
+        <summary>
+          <span class="func__num" aria-hidden="true">04</span>
+          <span class="func__titulo">Rigor estatístico de série</span>
+          <span class="func__resumo">Cada teste diz o que supõe e de onde vem a conta.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>A ajuda de cada bloco estatístico lista os pressupostos do método, aponta o bloco que verifica cada um (“Verificar”) e diz o que fazer quando ele não se sustenta (“Se falhar”). As referências são conferidas na fonte e classificadas pelo papel: teoria, livro-texto, implementação ou complementar.</p>
+          <p>Blocos novos e correções passam por um teste que compara a conta com um resultado publicado, um exemplo resolvido de livro ou a saída de um pacote R de referência, com tolerância declarada. No levantamento atual, {cob.oraculo} dos {cob.total} blocos estatísticos têm esse teste; a lista completa é pública.</p>
+          <p>Quando uma correção muda o resultado de um bloco, a versão dele sobe. Ao abrir um fluxo salvo com a versão anterior, o editor avisa e só retira o aviso depois que alguém confere e aceita a versão nova.</p>
+          <h3>Exemplo</h3>
+          <p>O teste de normalidade multivariada dos resíduos de um VAR padroniza os resíduos pela decomposição de Cholesky, e a estatística muda com a ordem das séries. O resultado do próprio card informa isso e lista a ordem usada; a ajuda recomenda refazer com outra ordem quando a conclusão estiver perto do limite.</p>
+          <p class="func__links"><a href="/trama/rigor/">Etapas de validação →</a> <a href="/trama/referencias/">Referências →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="documentos">
+        <summary>
+          <span class="func__num" aria-hidden="true">05</span>
+          <span class="func__titulo">Do fluxo ao relatório pronto</span>
+          <span class="func__resumo">Você escreve o texto; tabelas e figuras se atualizam quando a análise muda.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>O plugin <code>trama.documentos</code> cria, no projeto, um documento Quarto a partir de um modelo, com a autoria preenchida por um perfil. Pelo menu de um card, <strong>Inserir no documento…</strong> acrescenta o resultado daquele bloco como uma região do trama. O texto em volta é escrito por você, no editor de texto que preferir.</p>
+          <p>Quando a análise muda, <strong>Atualizar</strong> refaz só as regiões cujo resultado mudou. O trama não escreve fora das regiões dele, e uma região editada à mão não é sobrescrita: o painel Documentos pergunta qual versão manter.</p>
+          <p>Modelos embutidos: Básico, UFLA (ABNT), Consultoria, Artigo, Slides, Dashboard e Página web. Conforme o modelo, o documento sai em HTML, PDF, Word, slides ou dashboard, renderizado pelo Quarto. Os modelos podem ser duplicados e editados (cores, fontes, logo, capa, estilo de citação).</p>
+          <h3>Exemplo</h3>
+          <p>Um trabalho no modelo UFLA sai em PDF com capa, folha de rosto e sumário, conforme a NBR 14724. Se uma variável do modelo de regressão muda, <strong>Atualizar</strong> refaz a tabela de coeficientes e o gráfico de resíduos inseridos no texto; os parágrafos que comentam os resultados ficam como estavam, à espera da sua revisão.</p>
+          <p class="func__links"><a href={`${gh}/trama.documentos#readme`}>trama.documentos no GitHub →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="publicar">
+        <summary>
+          <span class="func__num" aria-hidden="true">06</span>
+          <span class="func__titulo">Versionado, publicado e reprodutível</span>
+          <span class="func__resumo">Projeto no GitHub sem saber git; a análise publicada vira um pacote que outra pessoa reabre.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>O plugin <code>trama.github</code> põe um painel GitHub no editor. O login é feito pelo navegador, e a credencial fica no chaveiro do sistema. <strong>Salvar versão</strong> grava o projeto num repositório privado com uma frase de descrição; o histórico permite restaurar uma versão anterior. Fluxos e código entram sempre; arquivos de dados entram só quando você os marca.</p>
+          <p><strong>Publicar no GitHub</strong>, em um documento com saída HTML, monta um pacote <a href="https://w3id.org/ro/crate/1.1">RO-Crate</a> com o documento, o fluxo, as versões do R e dos pacotes, a citação, a licença e o checksum de cada arquivo, com metadados para reuso (FAIR). Para reproduzir, outra pessoa instala as coleções listadas, traz os dados de entrada com o mesmo checksum e abre o fluxo no trama. Cada publicação ganha uma versão com tag, uma release com o pacote e uma página no GitHub Pages; o endereço de cada versão não muda depois de publicado.</p>
+          <h3>Exemplo</h3>
+          <p>No modelo Página web, cada modelo ajustado inserido no documento vira um preditor: quem abre a página preenche as entradas e recebe a previsão calculada no próprio navegador, com o R rodando por WebR. Antes de enviar, a conferência mostra título, autores, licença, a próxima versão e o que impede a publicação, como um arquivo de dados não declarado.</p>
+          <p class="func__links"><a href={`${gh}/trama.github#readme`}>trama.github →</a> <a href={`${gh}/trama.documentos#destinos-página-web-e-publicar-no-github`}>Publicar no GitHub →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="assistente">
+        <summary>
+          <span class="func__num" aria-hidden="true">07</span>
+          <span class="func__titulo">Um assistente de IA que trabalha à vista</span>
+          <span class="func__resumo">O assistente monta o fluxo na sua tela, e cada passo pode ser desfeito.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>Com o servidor MCP do trama, um assistente como Claude ou Codex adiciona blocos, ajusta parâmetros e lê resultados no editor que está na sua tela. Cada bloco aparece e roda na hora; os números vêm do R, e <code>Ctrl+Z</code> desfaz qualquer passo, do assistente ou seu.</p>
+          <p>O assistente também organiza a análise em etapas: um frame por etapa, uma nota que diz o que cada etapa testa, notas presas aos resultados principais e um frame de conclusão. A análise fica no fluxo, e não escondida numa conversa: dá para conferir, mudar e exportar como qualquer outro fluxo.</p>
+          <h3>Exemplo</h3>
+          <p>Com um pedido como “compare a produtividade entre os tratamentos”, o assistente busca os blocos no catálogo, monta leitura, ANOVA, verificação dos pressupostos e comparação de médias, lê o resultado de cada card e escreve as notas com os números lidos. Ao final, organiza os frames em colunas, da leitura à conclusão.</p>
+          <p class="func__links"><a href="/trama/por-dentro/mcp/">Assistente (MCP) →</a> <a href="/trama/por-dentro/agentes/">Agentes →</a></p>
+        </div>
+      </details>
+
+      <details class="func" id="instalar">
+        <summary>
+          <span class="func__num" aria-hidden="true">08</span>
+          <span class="func__titulo">Instala com um clique</span>
+          <span class="func__resumo">Windows e Linux, sem precisar saber R.</span>
+        </summary>
+        <div class="prose func__corpo">
+          <p>No Windows, o instalador baixa o R oficial e cria o atalho <strong>Trama</strong> no menu Iniciar, sem exigir nada instalado antes. No Linux, um único comando baixa um R portátil e instala o trama, sem privilégio de administrador. O atalho abre uma tela local com as versões instaladas, as coleções disponíveis e o botão para abrir o editor.</p>
+          <p>Quem já usa R instala o núcleo e as coleções com <code>pak</code>.</p>
+          <p class="func__links"><a href="/trama/por-dentro/instalacao/">Instalação →</a></p>
+        </div>
+      </details>
+    </div>
+  </div>
+  <script is:inline>
+    {
+      // Endereço com âncora de um item: abre o acordeão dele.
+      const abrir = () => {
+        const alvo = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        if (alvo instanceof HTMLDetailsElement) alvo.open = true;
+      };
+      abrir();
+      window.addEventListener("hashchange", abrir);
+    }
+  </script>
+</Base>

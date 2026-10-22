@@ -274,6 +274,25 @@ html[data-js="true"][data-facilitador="off"] .facilitador { display: none; }
 .rigor-registro summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; color: var(--blue-dark); }
 .rigor-registro h3 { font-size: 1.35rem; }
 
+/* Funcionalidades: acordeões em <details>, na linha do catálogo (filetes,
+   título em display, resumo em tinta suave). Sem JS, abrem e fecham igual. */
+.func-lista { margin-bottom: var(--space-2xl); }
+.func { border-bottom: 1px solid var(--line); scroll-margin-top: 5rem; }
+.func summary { display: grid; grid-template-columns: 3rem minmax(0, 1fr) 2rem; gap: .2rem var(--space-md); align-items: center; padding: var(--space-lg) 0; cursor: pointer; list-style: none; }
+.func summary::-webkit-details-marker { display: none; }
+.func summary::after { content: ""; grid-column: 3; grid-row: 1 / span 2; justify-self: end; width: .62rem; height: .62rem; margin-right: .3rem; border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft); transform: translateY(-25%) rotate(45deg); transition: transform 180ms var(--ease-out); }
+.func[open] summary::after { transform: translateY(25%) rotate(-135deg); }
+.func summary:hover .func__titulo, .func summary:hover::after { color: var(--blue-dark); border-color: var(--blue-dark); }
+.func__num { grid-row: 1 / span 2; align-self: start; padding-top: .3rem; color: var(--ink-soft); font-family: var(--font-code); font-size: .75rem; }
+.func__titulo { font-family: var(--font-display); font-size: clamp(1.3rem, 2.2vw, 1.6rem); font-weight: 600; letter-spacing: -.035em; line-height: 1.15; }
+.func__resumo { grid-column: 2; color: var(--ink-soft); }
+.func__corpo { padding: 0 0 var(--space-2xl) calc(3rem + var(--space-md)); }
+.func__corpo > :first-child { margin-top: 0; }
+.func__corpo h3 { font-size: 1.15rem; letter-spacing: -.02em; }
+.func__links { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); margin-top: var(--space-lg); }
+.func__links a { font-weight: 700; color: var(--blue-dark); }
+@media (max-width: 760px) { .func summary { grid-template-columns: minmax(0, 1fr) 1.5rem; } .func__num { display: none; } .func__titulo, .func__resumo { grid-column: 1; } .func summary::after { grid-column: 2; } .func__corpo { padding-left: 0; } }
+
 /* Glossário (src/pages/glossario.astro e caixas de rehype-glossario.ts) */
 .prose.glossario { max-width: 72ch; }
 .prose.glossario h2 { scroll-margin-top: 6rem; margin-top: var(--space-2xl); }
