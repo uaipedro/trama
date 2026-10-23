@@ -28,12 +28,36 @@ tr_spatial_report_points <- function(x) {
 
 #' @rdname tr_spatial_report_points
 #' @export
+tr_spatial_report_boundary <- function(x) {
+  res <- list(fonte = x$fonte, area = x$area, vertices = x$n_vertices,
+              aneis_descartados = x$n_aneis_descartados,
+              projecao = if (inherits(x$crs, "crs")) x$crs$input else NA_character_)
+  .tr_spatial_md(trama.data::tr_data_md_summary(res, x$rotulo))
+}
+
+#' @rdname tr_spatial_report_points
+#' @export
 tr_spatial_report_variogram <- function(x) {
   t <- as.data.frame(x$tabela)[intersect(c("u", "gamma", "np"), names(x$tabela))]
   .tr_spatial_md(
     sprintf("**Variograma de %s** (%s%s)", x$variavel, x$estimador,
             if (!is.null(x$tendencia) && nzchar(x$tendencia)) sprintf(", tendência: %s", x$tendencia) else ""),
     "", trama.data::tr_data_md_table(t, c(u = "Distância", gamma = "γ(h)", np = "Pares")),
+    if (nzchar(x$nota %||% "")) c("", sprintf("*%s*", x$nota)))
+}
+
+#' @rdname tr_spatial_report_points
+#' @export
+tr_spatial_report_anisotropy <- function(x) {
+  t <- as.data.frame(x$tabela)[, c("direcao", "u", "gamma", "np")]
+  .tr_spatial_md(
+    sprintf("**Variogramas direcionais de %s** (%s, direções %s, tolerância %g graus)",
+            x$variavel, x$estimador, paste(x$direcoes, collapse = ", "),
+            x$tolerancia),
+    "",
+    "A leitura é visual: alcances diferentes por direção sugerem anisotropia. O bloco não faz teste de hipótese.",
+    "", trama.data::tr_data_md_table(t, c(direcao = "Direção", u = "Distância",
+                                          gamma = "γ(h)", np = "Pares")),
     if (nzchar(x$nota %||% "")) c("", sprintf("*%s*", x$nota)))
 }
 
@@ -46,6 +70,20 @@ tr_spatial_report_model <- function(x) {
               grau_de_dependencia = x$grau_dependencia, sqr = x$sqr)
   .tr_spatial_md(trama.data::tr_data_md_summary(res, "Modelo de variograma"),
                  if (nzchar(x$nota %||% "")) c("", sprintf("*%s*", x$nota)))
+}
+
+#' @rdname tr_spatial_report_points
+#' @export
+tr_spatial_report_validation <- function(x) {
+  res <- list(metodo = x$metodo, dobras = x$dobras, n = nrow(x$tabela),
+              me = x$metricas$me, rmse = x$metricas$rmse,
+              msdr = x$metricas$msdr, correlacao = x$metricas$correlacao)
+  .tr_spatial_md(
+    trama.data::tr_data_md_summary(res, sprintf("Validação cruzada de %s",
+                                                x$pontos$variavel)),
+    "",
+    "O MSDR é a média de (resíduo / erro-padrão)²: perto de 1 o erro-padrão do mapa está calibrado.",
+    if (nzchar(x$nota %||% "")) c("", sprintf("*%s*", x$nota)))
 }
 
 #' @rdname tr_spatial_report_points

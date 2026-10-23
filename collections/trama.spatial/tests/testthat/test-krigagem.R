@@ -353,12 +353,18 @@ test_that("o tipo spatial/surface recusa o que não é superfície e guarda a su
 test_that("o nó registra, declara as portas certas e roda no motor", {
   reg <- spatial_registry()
   nd <- Filter(function(n) n$id == "spatial/kriging", trama_collection()$nodes)[[1]]
-  expect_equal(names(nd$inputs), c("pontos", "modelo"))
+  # `grade` entrou na 0.2.0: tabela ligada passa a ser a grade de predição, e é
+  # o único caminho da deriva externa.
+  expect_equal(names(nd$inputs), c("pontos", "modelo", "grade"))
   expect_false(nd$inputs$pontos$required)
   expect_true(nd$inputs$modelo$required)
-  expect_equal(nd$version, 1L)
+  expect_equal(nd$version, 2L)
   nomes <- names(nd$params)
-  expect_equal(nomes, c("tipo", "media", "resolucao", "vizinhos_max", "dist_max"))
+  # `tendencia` entrou na 0.2.0, com a krigagem universal. A ordem é a da
+  # declaração do nó, e o teste a fixa de propósito: param que troca de posição
+  # muda o card.
+  expect_equal(nomes, c("tipo", "media", "tendencia", "resolucao",
+                        "vizinhos_max", "dist_max"))
   fl <- trama::tr_flow(reg) |>
     trama::tr_add("p", "spatial/example", dataset = "milho_se") |>
     trama::tr_add("v", "spatial/variogram", from = "p") |>

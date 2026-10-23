@@ -99,6 +99,10 @@ spatial_variogram_type <- function() {
 
 # ---- spatial/model -------------------------------------------------------------
 
+# `razao` e `angulo` (anisotropia geométrica, 0.2.0) NÃO entram na lista de
+# campos obrigatórios de propósito: exigi-los recusaria modelo gravado pela
+# 0.1.x e modelo montado à mão nos oráculos da krigagem, que é objeto legítimo.
+# Quem os consome usa `%||%` com 1 e 0, que é exatamente o caso isotrópico.
 .TR_SPATIAL_CAMPOS_MODELO <- c("familia", "pepita", "contribuicao", "alcance",
                                "alcance_pratico", "patamar", "kappa", "metodo", "sqr",
                                "grau_dependencia", "variograma", "nota")
@@ -154,6 +158,9 @@ spatial_surface_type <- function() {
 
 .tr_spatial_adapters <- function() {
   list(trama::tr_adapter("spatial/points", "data/table", .tr_spatial_pontos_tabela),
+       trama::tr_adapter("spatial/boundary", "data/table", .tr_spatial_borda_tabela),
+       trama::tr_adapter("spatial/anisotropy", "data/table", .tr_spatial_aniso_tabela),
+       trama::tr_adapter("spatial/validation", "data/table", .tr_spatial_valid_tabela),
        trama::tr_adapter("spatial/variogram", "data/table", .tr_spatial_vario_tabela),
        trama::tr_adapter("spatial/model", "data/table", .tr_spatial_modelo_tabela),
        trama::tr_adapter("spatial/surface", "data/table", .tr_spatial_superficie_tabela))

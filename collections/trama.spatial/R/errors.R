@@ -29,9 +29,23 @@ tr_spatial_errors <- function() {
     tr_spatial_error_empty_surface =
       "nenhuma célula da superfície recebeu predição: a vizinhança exclui todos os pontos",
     tr_spatial_error_bad_border = "a borda não é um polígono fechado utilizável",
+    tr_spatial_error_file_not_found = "o arquivo vetorial informado não existe",
+    tr_spatial_error_unreadable = "o GDAL não conseguiu abrir o arquivo vetorial",
+    tr_spatial_error_wrong_geometry =
+      "o arquivo tem geometria de outro tipo que a do bloco (pontos onde se espera polígonos, ou o contrário)",
+    tr_spatial_error_many_layers = "o arquivo tem mais de uma camada e nenhuma foi escolhida",
+    tr_spatial_error_no_layer = "a camada pedida não existe no arquivo, ou o zip não tem shapefile dentro",
+    tr_spatial_error_name_clash = "o nome da coluna de coordenada já existe entre os atributos do arquivo",
+    tr_spatial_error_crs_mismatch =
+      "a borda não declara projeção e os pontos declaram: não há como saber em que plano a borda está",
     tr_spatial_error_negative_variance =
       "a variância de krigagem saiu negativa: o modelo não é definido positivo",
     tr_spatial_error_not_points = "o nó produziu objeto que não é de pontos, e o tipo spatial/points o recusa",
+    tr_spatial_error_not_a_boundary = "o nó produziu objeto que não é borda, e o tipo spatial/boundary o recusa",
+    tr_spatial_error_not_anisotropy = "o nó produziu objeto que não é de anisotropia, e o tipo spatial/anisotropy o recusa",
+    tr_spatial_error_missing_drift =
+      "krigagem com deriva externa sem a covariável conhecida em toda célula da grade",
+    tr_spatial_error_not_validation = "o nó produziu objeto que não é de validação cruzada, e o tipo spatial/validation o recusa",
     tr_spatial_error_not_a_variogram =
       "o nó produziu objeto que não é variograma, e o tipo spatial/variogram o recusa",
     tr_spatial_error_not_a_model =

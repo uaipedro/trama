@@ -1,0 +1,158 @@
+{
+  "trama": "template",
+  "versao": 1,
+  "nome": "Declarar coordenadas e fechar a borda no casco convexo",
+  "descricao": "Uma tabela de pontos vira objeto espacial: coordenadas, projeção, unidade e a borda pelo casco convexo da amostra, que recorta a grade da krigagem sem precisar de arquivo de contorno.",
+  "colecoes": ["trama.spatial"],
+  "doc": {
+    "format": 1,
+    "rev": 12,
+    "collections": {
+      "spatial": "0.2.0"
+    },
+    "nodes": {
+      "tabela": {
+        "type": "spatial/example",
+        "type_version": 1,
+        "label": "Exemplo espacial",
+        "params": {
+          "dataset": "milho_pr"
+        },
+        "seed": 89086696
+      },
+      "pontos": {
+        "type": "spatial/coordinates",
+        "type_version": 2,
+        "label": "Declarar coordenadas",
+        "params": {
+          "x": "leste",
+          "y": "norte",
+          "variavel": "milho_kg_ha",
+          "crs": "31982",
+          "unidade": "m",
+          "borda_modo": "casco convexo dos pontos"
+        },
+        "seed": 259502235
+      },
+      "variograma": {
+        "type": "spatial/variogram",
+        "type_version": 1,
+        "label": "Variograma",
+        "params": {},
+        "seed": 247942073
+      },
+      "ajuste": {
+        "type": "spatial/variogram_fit",
+        "type_version": 1,
+        "label": "Ajustar modelo",
+        "params": {},
+        "seed": 140023745
+      },
+      "krigagem": {
+        "type": "spatial/kriging",
+        "type_version": 2,
+        "label": "Krigagem",
+        "params": {},
+        "seed": 264400552
+      },
+      "mapa": {
+        "type": "spatial/map",
+        "type_version": 1,
+        "label": "Mapa da superfície",
+        "params": {
+          "mostrar": "predito"
+        },
+        "seed": 13021669
+      }
+    },
+    "edges": [
+      {
+        "from": {
+          "node": "tabela",
+          "port": "out"
+        },
+        "to": {
+          "node": "pontos",
+          "port": "dados"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "pontos",
+          "port": "out"
+        },
+        "to": {
+          "node": "variograma",
+          "port": "pontos"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "variograma",
+          "port": "out"
+        },
+        "to": {
+          "node": "ajuste",
+          "port": "variograma"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "pontos",
+          "port": "out"
+        },
+        "to": {
+          "node": "krigagem",
+          "port": "pontos"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "ajuste",
+          "port": "out"
+        },
+        "to": {
+          "node": "krigagem",
+          "port": "modelo"
+        },
+        "index": 1
+      },
+      {
+        "from": {
+          "node": "krigagem",
+          "port": "out"
+        },
+        "to": {
+          "node": "mapa",
+          "port": "superficie"
+        },
+        "index": 1
+      }
+    ],
+    "ui": {
+      "positions": {
+        "tabela": [0, 0],
+        "pontos": [360, 0],
+        "variograma": [720, 0],
+        "ajuste": [1080, 0],
+        "krigagem": [1440, 0],
+        "mapa": [1800, 0]
+      },
+      "sizes": {},
+      "views": {},
+      "frames": {},
+      "modes": {},
+      "saidas": {},
+      "soltos": {},
+      "notes": {},
+      "ocultos": {},
+      "grupos": {},
+      "galeria": {},
+      "ramos": {}
+    }
+  }
+}

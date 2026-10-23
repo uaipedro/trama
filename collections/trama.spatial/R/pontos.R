@@ -67,11 +67,19 @@
 #' @param crs código EPSG, ou vazio para plano arbitrário.
 #' @param unidade unidade da distância; só rotula eixo e alcance.
 #' @param nome topo do card.
-#' @param borda matriz ou data.frame de duas colunas com o polígono, ou `NULL`.
+#' @param borda a borda da área de estudo: um objeto `spatial/boundary`, uma
+#'   matriz ou data.frame de duas colunas com o polígono, ou `NULL`.
+#' @param borda_modo o que fazer quando nenhuma borda é ligada: `nenhuma`, ou
+#'   `casco convexo dos pontos`. Borda ligada VENCE este param.
 #' @return um objeto espacial (`spatial/points`).
 #' @export
 tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
-                                   crs = "", unidade = "", nome = "", borda = NULL) {
+                                   crs = "", unidade = "", nome = "", borda = NULL,
+                                   borda_modo = "nenhuma") {
+  if (!borda_modo %in% .TR_SPATIAL_BORDA_MODOS) {
+    .tr_spatial_abort("tr_spatial_error_bad_option", sprintf(
+      "Borda: escolha um de %s.", paste(.TR_SPATIAL_BORDA_MODOS, collapse = ", ")))
+  }
   dados <- as.data.frame(dados)
   cx <- .tr_spatial_col1(dados, x, "Coordenada X")
   cy <- .tr_spatial_col1(dados, y, "Coordenada Y")
@@ -120,7 +128,50 @@ tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
     notas <- c(notas, sprintf(
       "%d ponto(s) coincidente(s): a variação entre eles entra no efeito pepita.", dup))
   }
-  borda <- .tr_spatial_borda(borda)
+  # Covariável com faltante: o `gstat` usa `na.fail`, e quem chegasse ao
+  # variograma com tendência por covariável — ou ao KED — morreria com
+  # "valores em falta em objeto", sem classe nossa e sem dizer qual coluna.
+  # A guarda espelha a da grade do KED, que é exemplar.
+  for (cc in cov) {
+    ruins <- sum(!is.finite(dados[[cc]]))
+    if (ruins > 0L) {
+      .tr_spatial_abort("tr_spatial_error_bad_coords", sprintf(paste(
+        "A covariável '%s' tem %d valor(es) faltante(s) ou infinito(s).",
+        "Tendência por covariável e deriva externa não funcionam com buraco:",
+        "preencha a coluna, ou tire-a de 'Covariáveis'."), cc, ruins))
+    }
+  }
+  # A borda pode vir de três lugares, nesta ordem de precedência: um objeto
+  # `spatial/boundary` ligado na porta, uma matriz passada direto (é como os
+  # exemplos a trazem), ou o casco convexo dos próprios pontos.
+  if (inherits(borda, "tr_spatial_boundary")) {
+    b <- .tr_spatial_borda_crs(borda, obj_crs)
+    if (!is.null(attr(b, "nota"))) notas <- c(notas, attr(b, "nota"))
+    attr(b, "nota") <- NULL
+    borda <- b
+  } else if (is.null(borda) && identical(borda_modo, "casco convexo dos pontos")) {
+    borda <- tr_spatial_convex_hull(coords)
+    notas <- c(notas, paste("Borda: casco convexo dos pontos amostrais.",
+                            "Fora dele toda predição é extrapolação."))
+  } else {
+    borda <- .tr_spatial_borda(borda)
+  }
+  # COORDENADA QUE PARECE GRAU, COM CRS VAZIO. `.tr_spatial_crs()` recusa CRS
+  # geográfico DECLARADO, mas campo vazio virava "plano arbitrário" e o
+  # variograma media distância em grau sem uma palavra — o modo de falha que o
+  # cabeçalho de `R/errors.R` chama de "o que sai verde". O leitor de vetor
+  # criou o caminho de um clique para isso (GeoJSON é lon/lat por
+  # especificação), então a nota mora aqui.
+  #
+  # É NOTA e não erro de propósito: coordenada de um ensaio de 100 m em metro
+  # também cabe em [-180, 180], e recusá-la quebraria um caso legítimo. O que
+  # distingue grau de metro não está nos números.
+  if (!inherits(obj_crs, "crs") && .tr_spatial_parece_grau(coords)) {
+    notas <- c(notas, paste(
+      "As coordenadas parecem estar em grau (cabem em ±180 e ±90) e nenhum CRS",
+      "foi declarado. Se forem grau, a distância do variograma NÃO é métrica:",
+      "declare o CRS projetado da região, ou reprojete na leitura do arquivo."))
+  }
   .tr_spatial_borda_contem(borda, coords)
   structure(list(
     dados = tibble::as_tibble(dados), coords = coords, coord_cols = c(cx, cy),
@@ -160,6 +211,15 @@ tr_spatial_coordinates <- function(dados, x, y, variavel, covariaveis = "",
       sum(fora), length(fora), .TR_SPATIAL_FOLGA_BORDA))
   }
   invisible(NULL)
+}
+
+#' As coordenadas cabem na faixa de latitude e longitude?
+#'
+#' Não prova que são grau — um ensaio de 100 m em metro também cabe. Serve só
+#' para a nota, que diz "parecem" e manda declarar o CRS.
+#' @noRd
+.tr_spatial_parece_grau <- function(coords) {
+  all(abs(coords[, 1]) <= 180) && all(abs(coords[, 2]) <= 90)
 }
 
 #' Normaliza a borda numa matriz n×2 fechada, ou NULL.

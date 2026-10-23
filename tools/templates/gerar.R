@@ -225,6 +225,51 @@ exemplos <- list(
          # O predito é liso em qualquer lugar; só o erro-padrão mostra onde ele
          # vale pouco. Os dois mapas ficam lado a lado, de propósito.
          tr_add("mapa_predito", "spatial/map", mostrar = "predito", from = "krigagem") |>
+         tr_add("mapa_erro", "spatial/map", mostrar = "erro-padrao", from = "krigagem")),
+  # Declarar o objeto espacial a partir de uma TABELA, que é o caminho de quem
+  # traz dado próprio, e fechar a borda pelo casco convexo dos pontos — a opção
+  # que não precisa de arquivo. O adaptador `spatial/points` -> `data/table`
+  # entra na aresta e o motor o insere sozinho, sem caixa na tela.
+  #
+  # O fluxo NÃO lê arquivo: nenhum template do repositório lê, e um caminho
+  # literal num JSON quebraria na execução de quem abrisse o exemplo. A leitura
+  # de vetor se demonstra na ajuda de `spatial/read_points` e de
+  # `spatial/boundary`, com caminho de exemplo.
+  list(pkg = "trama.spatial", nome = "Declarar coordenadas e fechar a borda no casco convexo",
+       descricao = "Uma tabela de pontos vira objeto espacial: coordenadas, projeção, unidade e a borda pelo casco convexo da amostra, que recorta a grade da krigagem sem precisar de arquivo de contorno.",
+       flow = tr_flow(reg) |>
+         tr_add("tabela", "spatial/example", dataset = "milho_pr") |>
+         tr_add("pontos", "spatial/coordinates", x = "leste", y = "norte",
+                variavel = "milho_kg_ha", crs = "31982", unidade = "m",
+                borda_modo = "casco convexo dos pontos", from = "tabela") |>
+         tr_add("variograma", "spatial/variogram", from = "pontos") |>
+         tr_add("ajuste", "spatial/variogram_fit", from = "variograma") |>
+         tr_add("krigagem", "spatial/kriging", from = c("pontos", "ajuste")) |>
+         tr_add("mapa", "spatial/map", mostrar = "predito", from = "krigagem")),
+  # Diagnosticar antes de modelar, e medir depois: as quatro direcoes mostram se
+  # ha anisotropia, a razao e o angulo entram no ajuste, a validacao cruzada
+  # julga o modelo, e a krigagem universal trata a tendencia de larga escala que
+  # o variograma do milho_pr tem.
+  list(pkg = "trama.spatial", nome = "Anisotropia, validacao cruzada e krigagem universal",
+       descricao = "Variograma em quatro direcoes com faixa de referencia sob isotropia, ajuste com anisotropia geometrica, validacao cruzada do modelo e krigagem universal com tendencia de 1a ordem.",
+       flow = tr_flow(reg) |>
+         tr_add("pontos", "spatial/example", dataset = "milho_pr") |>
+         # `tendencia` TAMBEM aqui, e nao so no variograma: no milho_pr, que a
+         # ajuda descreve como "o caso que pede a remocao de tendencia", curvas
+         # direcionais sem remover tendencia sao dominadas por ela, e tendencia
+         # linear imita anisotropia perfeitamente. Diagnosticar numa hipotese e
+         # ajustar noutra foi achado da revisao de 2026-10-09.
+         tr_add("aniso", "spatial/anisotropy", direcoes = "0,45,90,135",
+                tendencia = "1a ordem", envelope = TRUE, n_sim = 19L,
+                semente = 42, from = "pontos") |>
+         tr_add("variograma", "spatial/variogram", tendencia = "1a ordem",
+                from = "pontos") |>
+         tr_add("ajuste", "spatial/variogram_fit", familia = "esferico",
+                razao = 2, angulo = 45, from = "variograma") |>
+         tr_add("validacao", "spatial/validation", metodo = "leave-one-out",
+                from = c("pontos", "ajuste")) |>
+         tr_add("krigagem", "spatial/kriging", tipo = "universal",
+                tendencia = "1a ordem", from = c("pontos", "ajuste")) |>
          tr_add("mapa_erro", "spatial/map", mostrar = "erro-padrao", from = "krigagem"))
 )
 

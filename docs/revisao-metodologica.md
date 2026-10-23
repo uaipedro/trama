@@ -475,6 +475,176 @@ o quadro dos estratos (oráculo: `test-ajustar.R`, F e QM dos dois erros contra
 comparações seguem no `lmer` equivalente. Nenhum `stats::aov` resta no código
 das coleções.
 
+## `trama.spatial` 0.2.0: anisotropia, faixa de referência e validação cruzada (09/10/2026)
+
+Sobre `gstat` 2.1.6, `geoR` 1.9.6 e `sf` 1.0.22. Convenção de classes, a mesma
+do levantamento de 06/10: `boundaries` sem o zero no `gstat`, `breaks` com o
+zero no `geoR`.
+
+**`spatial/anisotropy`** (versão 1). Variograma em N direções num objeto só.
+Oráculo: `geoR::variog4`, comparado **direção por direção, por rótulo**, nas
+mesmas classes. Tolerância 1e-8; concordância medida 5,6e-16 em gamma, com os
+pares idênticos nas quatro direções. Também confere no estimador robusto e com
+tendência de 1ª ordem removida. Teste:
+`collections/trama.spatial/tests/testthat/test-anisotropia-geor.R`.
+
+- **Achado: o conjunto padrão de direções não distingue a convenção refletida.**
+  `{0, 45, 90, 135}` é invariante sob α → 90 − α (0 vira 90, 45 e 135 viram si
+  mesmos), então comparar o CONJUNTO de curvas passaria com a conversão errada.
+  Medido: conjuntos simétricos invariantes, assimétricos não. Por isso a
+  comparação é por rótulo de direção, e um dos testes usa `{0, 30, 60, 120}`,
+  que é assimétrico.
+
+- **Achado: razão e ângulo de anisotropia não são estimáveis de forma confiável
+  aqui, e o bloco não os estima.** Três implementações testadas:
+  1. ajuste do alcance direção por direção com patamar livre — o otimizador
+     fugiu: alcance 31.393 num campo de alcance verdadeiro 150, razão estimada
+     116,7 contra verdade 3,0, e apontou a direção errada;
+  2. busca em grade sobre (ângulo, razão) comparando `SSErr` do
+     `gstat::fit.variogram` — num variograma **sem ruído, gerado do próprio
+     modelo**, devolveu 90/5,5 em vez de 60/3. Causa: `fit.variogram` **não usa
+     `dir.hor`**, trata as curvas como nuvem só, e o critério não mede
+     anisotropia. É também por isso que ele preserva `ang1`/`anis1` em vez de
+     ajustá-los;
+  3. regra descritiva (distância onde γ cruza 95% da variância amostral, por
+     interpolação linear) — em cinco campos anisotrópicos de razão 3 deu 3,02 /
+     3,11 / 2,64 / 3,06 / 1,25; em cinco campos **isotrópicos** deu 1,49 / 1,70
+     / 1,92 / 2,25 / 3,01. As distribuições se sobrepõem por inteiro.
+
+  Logo os dois números são informados pelo usuário no
+  `spatial/variogram_fit`, e o card da anisotropia mostra curvas, não
+  estimativa.
+
+- **Faixa de referência (envelope).** Simulação incondicional do modelo
+  **isotrópico** ajustado ao variograma omnidirecional, nas mesmas posições
+  (`gstat::krige(..., nsim =, dummy = TRUE, beta = 0)`). A nula é "isotrópico
+  com esta estrutura", não "sem dependência espacial" — reembaralhar valores
+  entre posições responderia a pergunta errada. **Poder medido** (12 repetições,
+  n = 200, 19 simulações): a fração do observado dentro da faixa deu média 0,952
+  sob isotropia (mínimo 0,850) e 0,838 sob anisotropia de razão 3 (mínimo
+  0,575) — distribuições que **se sobrepõem**. Portanto a faixa é referência
+  visual e o card não exibe fração agregada; o que separa é o padrão por
+  direção. Custo medido: 1,6 s com 389 pontos, 0,34 s com 68.
+  O teste da faixa usa simulador injetado e oráculo de quantil à mão, para não
+  depender do otimizador que ajusta a nula.
+
+- **Achado: o ajuste da nula precisa das classes padrão, não das do bloco.** O
+  `spatial/anisotropy` usa 10 classes por padrão porque os pares se dividem
+  entre direções; com 10 classes o ajuste isotrópico do menor conjunto
+  (`milho_se`) não converge (`no_convergence` com mínimo 1 par, `bad_fit` com
+  30), e com as 15 classes padrão do `spatial/variogram` converge nos três
+  conjuntos. A nula é ajustada com o padrão do variograma.
+
+**`spatial/variogram_fit`**, anisotropia geométrica (params `razao` e `angulo`).
+Passados ao `gstat::vgm` como `anis = c(angulo, 1/razao)`. Oráculo
+**determinístico**, sem otimizador: `gstat::variogramLine(dir = )`, que é
+aritmética do modelo. Medido: modelo exponencial de alcance 300 com
+`anis = c(60, 1/3)` tem alcance prático (95% do patamar) de 899 na direção 60 e
+de 300 na direção 150 — razão 3,00, a declarada, e o ângulo aponta o eixo maior.
+Conferido também que `anis = c(0, 1)` é **no-op exato** (diferença 0,000e+00 em
+três direções), o que é o fundamento de `razao = 1` preservar o resultado de
+documento gravado pela 0.1.x, sem bump de versão de nó nem migração.
+Teste: `test-ajuste-aniso.R`.
+
+**`spatial/validation`** (versão 1). Validação cruzada sobre
+`gstat::krige.cv`; `nfold = n` é leave-one-out. Oráculo: `geoR::xvalid`, com o
+**modelo forçado** dentro de um objeto de `geoR::variofit` (um `variomodel`
+montado à mão falha: o `xvalid` usa `fix.pars` internamente). Tolerância 1e-6;
+concordância medida com `meuse` 1,07e-14 no predito e 4,7e-16 na variância, com
+ME, RMSE e MSDR iguais em 10 casas decimais. Confere também no Matérn de kappa
+1,5. Sinal do resíduo conferido: `observado − predito` nos dois pacotes.
+Teste: `test-validacao-geor.R`.
+
+- MSDR = média de (resíduo / erro-padrão)². É a única das quatro medidas que
+  julga o **mapa de erro-padrão**, que é metade do que a krigagem entrega.
+- **Não asserido por teste:** que o erro de k dobras seja maior que o de
+  leave-one-out. A expectativa teórica vale em média, não num conjunto: medido
+  em `milho_se`, RMSE 1155,6 em leave-one-out contra 1134,7 em 3 dobras. O teste
+  afirma apenas que os dois diferem e que as contagens de dobra conferem.
+
+### Krigagem universal, deriva externa e indicadora (09/10/2026)
+
+Completa a seção acima: estes três caminhos entraram na mesma versão e faltavam
+aqui — apontado pela revisão independente da branch.
+
+**`spatial/kriging`, `tipo = "universal"`** (versão 2 do nó). Tendência de 1ª
+ordem (plano), 2ª ordem (superfície quadrática) ou por covariável. Oráculo:
+`geoR::krige.conv` com `trend.d`/`trend.l`, **com a tendência dada como colunas
+centradas e padronizadas nos dois pacotes**. Tolerância 1e-6; concordância
+medida com `meuse` 3,7e-14 na 1ª ordem e 5,3e-14 na 2ª. Teste:
+`collections/trama.spatial/tests/testthat/test-universal-geor.R`.
+
+- **A centragem não é cosmética.** Em UTM cru o `geoR::krige.conv` com
+  `trend = "1st"`/`"2nd"` fica computacionalmente singular (condição recíproca
+  7,3e-17, medido). No `gstat` a versão crua funciona mas difere da centrada; a
+  diferença **relativa**, medida no `milho_pr` em 09/10, é 5,7e-14 na 1ª ordem e
+  3,6e-10 na 2ª — ou seja, o mal condicionamento castiga o termo quadrático
+  quatro ordens de grandeza mais. (O 3,7e-4 citado no desenho é do `meuse`,
+  cuja escala de coordenada é outra.) A krigagem com tendência é invariante a
+  reparametrização linear da base, então a versão centrada é a mesma conta,
+  melhor condicionada, e é a que o bloco usa. O teste assere a **relação** entre
+  as duas ordens, não só o valor.
+- O centro e a escala são sempre os do conjunto de ajuste, nas duas pontas: se
+  cada ponta centrasse pela própria média, a base da tendência mudaria entre
+  ajuste e predição e a predição sairia errada sem erro nenhum. Há teste.
+
+**Deriva externa (KED)**, `tendencia = "covariavel"`. Oráculo:
+`geoR::krige.conv` com `trend.d = ~cov` e `trend.l = ~cov`; concordância medida
+8,9e-16 no predito e 3,3e-16 na variância, tolerância 1e-6. Teste:
+`test-ked-geor.R`.
+
+- A covariável tem de ser conhecida em **toda célula** onde se prediz. O bloco
+  exige a grade na porta e recusa quando a covariável falta ou tem célula vazia,
+  em vez de preencher: interpolar a covariável por dentro deixaria o erro-padrão
+  do mapa subestimado sem avisar, porque o erro dessa interpolação não entra na
+  variância de krigagem. A mesma guarda passou a valer para os **pontos** depois
+  da revisão — covariável com faltante era aceita em silêncio e morria mais
+  tarde com mensagem crua do `model.frame`.
+
+**Débito do PR 1 fechado.** `tendencia = "covariavel"` no `spatial/variogram`
+estava exercitado e sem oráculo. Agora: `geoR::variog(trend = ~cov)`, tolerância
+1e-8, concordância medida 5,6e-16.
+
+**Krigagem indicadora.** A transformação (`spatial/indicator`) é conferida contra
+`as.numeric(z <= corte)` nos dois sentidos e no empate exato; a krigagem do
+indicador é a ordinária de uma variável 0/1, cujo oráculo é o de
+`test-krigagem-oraculo.R`, e a concordância medida com `geoR::krige.conv` sobre
+o indicador foi 6,9e-16. O predito é **recortado em [0,1]**: a krigagem é
+interpolador linear e sai do intervalo de verdade — medido, até 14 de 144
+células, com mínimo −0,105 e máximo 1,058 —, e a contagem do recorte vai na
+nota, porque recorte silencioso esconderia modelo ruim para a pergunta.
+
+### Achado: par empatado num limite de classe (09/10/2026)
+
+`gstat` e `geoR` **discordam** quando a distância de um par cai exatamente num
+limite de classe: o `gstat` inclui o limite superior, o `geoR` empurra o par
+para a classe seguinte. Medido com `meuse`, corte 1500 e 10 classes: `max|dnp|`
+= 1 e `max|dgamma|` = 2,96e-4 com tendência por covariável, e **4,43e-4 com
+tendência de 1ª ordem — que já estava testada a 1e-8**. Com um corte que não cai
+em nenhuma distância observada: `max|dnp|` = 0 e `max|dgamma|` = 5,6e-16.
+
+Nos três conjuntos do PR 1 o corte padrão não calha de empatar, e é por isso que
+aquela suíte está verde — sorte, não desenho. Os oráculos acrescentados na 0.2.0
+escolhem o corte de propósito e **asserem a premissa** no próprio teste
+(`sum(d %in% lim) == 0`): `test-ked-geor.R` para a covariável e
+`test-anisotropia-geor.R` para as quatro curvas direcionais, via o helper
+`corte_sem_empate()`. Os testes do PR 1 não foram alterados; o achado fica
+registrado aqui.
+
+### Achado: a nula do envelope tem de remover a mesma tendência (09/10/2026)
+
+Apontado pela revisão independente. O envelope do `spatial/anisotropy` comparava
+o observado **com** tendência removida contra campos simulados **sem** remoção
+nenhuma. Medido pelo revisor em 40 campos esféricos estacionários (n = 68, 10
+classes): gamma médio 0,9337 sem remover contra 0,8953 removendo 1ª ordem (razão
+0,959), e 1,2435 contra 1,1539 nas três classes mais longas (razão 0,928). A
+faixa ficava ~4% alta no geral e ~7% nas classes longas — exatamente as que
+separam anisotropia —, e o efeito era na direção ruim: as curvas observadas
+afundavam para dentro da faixa e o bloco deixava de mostrar as escapadas que são
+o único sinal útil. Corrigido: a simulação usa a mesma fórmula de tendência do
+observado. Teste com campos de tendência pura injetados, em que o resíduo tem de
+ser zero.
+
 `models/permutation` declarava `coin::oneway_test; independence_test` como
 implementação, mas o `coin` só serve de oráculo nos testes: o bloco calcula o
 F com `stats::anova` a cada permutação. A referência de implementação saiu (o

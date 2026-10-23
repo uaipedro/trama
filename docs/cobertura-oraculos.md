@@ -12,7 +12,13 @@ mesma conta. "Parcial" quer dizer que o oráculo cobre só parte da saída.
 O levantamento foi feito por leitura automática dos testes e conferido por
 amostragem. Ao corrigir uma linha ou acrescentar um oráculo, atualize esta tabela.
 
-Resumo: 59 com oráculo, 18 parciais, 44 sem oráculo (121 blocos).
+Resumo: 64 com oráculo, 19 parciais, 44 sem oráculo (127 blocos).
+
+Atualizado em 09/10/2026 com a `trama.spatial`, que faltava inteira: os seis
+blocos estatísticos dela entraram. Os de fonte e preparação
+(`spatial/example`, `spatial/coordinates`, `spatial/read_points`,
+`spatial/boundary`) e os de leitura (`spatial/explore`, `spatial/map`) ficam
+fora, como os de `data/*` e `view/*`.
 
 | Bloco | Situação | Evidência (caminhos relativos a `collections/`) |
 |---|---|---|
@@ -137,3 +143,9 @@ Resumo: 59 com oráculo, 18 parciais, 44 sem oráculo (121 blocos).
 | `series/pettitt` | com oráculo | trama.series/tests/testthat/test-testar.R:1049 K e p vs trend::pettitt.test |
 | `series/runs` | com oráculo | trama.series/tests/testthat/test-testar.R:930 estatistica e p vs randtests::runs.test |
 | `series/zivot_andrews` | com oráculo | trama.series/tests/testthat/test-testar.R:374 estatistica e indice da quebra vs urca::ur.za |
+| `spatial/anisotropy` | com oráculo | trama.spatial/tests/testthat/test-anisotropia-geor.R:33 gamma e pares vs geoR::variog4 por rotulo de direcao, 1e-8 (medido 5,6e-16); robusto e tendencia tambem. A FAIXA do envelope nao tem oraculo externo: testada por quantil a mao com simulador injetado |
+| `spatial/indicator` | com oráculo | trama.spatial/tests/testthat/test-indicador.R:10 transformacao vs as.numeric(z <= corte) nos dois sentidos e no empate; a krigagem do indicador e a ordinaria, cujo oraculo e test-krigagem-oraculo.R |
+| `spatial/kriging` | com oráculo | trama.spatial/tests/testthat/test-krigagem-oraculo.R:241 sistema resolvido a mao (Isaaks cap. 12, 1e-8) e geoR::krige.conv (1e-6); universal 1a/2a ordem e deriva externa vs geoR::krige.conv com trend.d/trend.l em test-universal-geor.R:52 e test-ked-geor.R:25 (1e-6) |
+| `spatial/validation` | com oráculo | trama.spatial/tests/testthat/test-validacao-geor.R:41 predito, variancia e as quatro metricas vs geoR::xvalid com o modelo forcado, 1e-6 (medido 1,07e-14) |
+| `spatial/variogram` | com oráculo | trama.spatial/tests/testthat/test-variograma-geor.R:30 gamma e pares vs geoR::variog nas mesmas classes, 1e-8 (medido ~1e-14): classico, robusto, direcional a 30 e 60 graus, tendencia de 1a e 2a ordem e por covariavel (esta em test-ked-geor.R:112) |
+| `spatial/variogram_fit` | parcial | trama.spatial/tests/testthat/test-ajuste-oraculo.R alcance pratico vs raiz numerica de gama = 0,95 do patamar (2e-3) e Matern vs gstat::variogramLine (1e-6); contra geoR::variofit a concordancia e so de ORDEM DE GRANDEZA (0,35), porque os criterios minimizados sao proximos e nao identicos. A anisotropia geometrica tem oraculo determinístico: variogramLine com dir, razao 3,00 exata (test-ajuste-aniso.R:30) |

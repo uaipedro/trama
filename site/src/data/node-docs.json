@@ -19842,6 +19842,309 @@
       ]
     }
   },
+  "spatial/anisotropy": {
+    "pressupostos": [
+      {
+        "texto": "**Hipótese intrínseca**: a esperança da diferença entre dois pontos é zero e a variância dessa diferença depende só do vetor que os separa, não de onde estão.",
+        "verificar": ["spatial/explore"],
+        "se_falhar": "Remova a tendência de larga escala no parâmetro 'Tendência removida' deste bloco."
+      },
+      {
+        "texto": "**Isotropia**, quando o variograma é omnidirecional: a dependência é a mesma em todas as direções.",
+        "verificar": ["spatial/variogram"],
+        "se_falhar": "Calcule o variograma em direções diferentes e compare o alcance de cada uma."
+      },
+      {
+        "texto": "A **escala da amostragem** alcança a escala da dependência: há pares a distâncias curtas o bastante para enxergar a estrutura.",
+        "se_falhar": "Variograma plano desde a primeira classe pode ser malha grossa demais, não ausência de estrutura."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Isaaks, E. H.", "Srivastava, R. M."],
+        "ano": 1989,
+        "titulo": "An Introduction to Applied Geostatistics",
+        "fonte": "New York: Oxford University Press"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Oliver, M. A.", "Webster, R."],
+        "ano": 2015,
+        "titulo": "Basic Steps in Geostatistics: The Variogram and Kriging",
+        "fonte": "Cham: Springer (SpringerBriefs in Agriculture)"
+      }
+    ],
+    "raiox": {
+      "funcao": "trama.spatial::.tr_spatial_anisotropy_no",
+      "arquivo": "collections/trama.spatial/R/nos_variograma.R",
+      "linha": 6,
+      "chamadas": [
+        {
+          "pacote": "stats",
+          "funcao": "as.formula",
+          "codigo": "stats::as.formula(sprintf(\"%s ~ %s\", z, rhs))",
+          "arquivo": "collections/trama.spatial/R/variograma.R",
+          "linha": 38,
+          "dentro": ".tr_spatial_formula",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "sd",
+          "codigo": "stats::sd(d[[col]])",
+          "arquivo": "collections/trama.spatial/R/variograma.R",
+          "linha": 60,
+          "dentro": ".tr_spatial_dados_tendencia",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "as.formula",
+          "codigo": "stats::as.formula(\"~ .x_ + .y_\")",
+          "arquivo": "collections/trama.spatial/R/variograma.R",
+          "linha": 62,
+          "dentro": ".tr_spatial_dados_tendencia",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "variogram",
+          "codigo": "gstat::variogram(dt$formula, locations = dt$locations, data = dt$dados, alpha = dirs, tol.hor = as.numeric(tolerancia), boundaries = lim[-1], cressie = ident...",
+          "arquivo": "collections/trama.spatial/R/anisotropia.R",
+          "linha": 133,
+          "dentro": "tr_spatial_anisotropy",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "vgm",
+          "codigo": "gstat::vgm(psill = c, model = unname(.TR_SPATIAL_VGM[[familia]]), range = a, nugget = p, kappa = kappa)",
+          "arquivo": "collections/trama.spatial/R/ajuste.R",
+          "linha": 87,
+          "dentro": ".tr_spatial_ajustar_um",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "fit.variogram",
+          "codigo": "gstat::fit.variogram(vg, mod, fit.method = unname(.TR_SPATIAL_METODOS[[metodo]]), fit.sills = if (fixa) c(FALSE, TRUE) else TRUE, warn.if.neg = FALSE)",
+          "arquivo": "collections/trama.spatial/R/ajuste.R",
+          "linha": 90,
+          "dentro": ".tr_spatial_ajustar_um",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "uniroot",
+          "codigo": "stats::uniroot(function(h) corr(h) - 0.05, interval = c(1e-09 * alcance, 100 * alcance), tol = 1e-12 * alcance)",
+          "arquivo": "collections/trama.spatial/R/ajuste.R",
+          "linha": 62,
+          "dentro": ".tr_spatial_alcance_pratico",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "vgm",
+          "codigo": "gstat::vgm(psill = contrib, model = unname(.TR_SPATIAL_VGM[[familia]]), range = alcance, nugget = pepita, kappa = kappa)",
+          "arquivo": "collections/trama.spatial/R/ajuste.R",
+          "linha": 75,
+          "dentro": ".tr_spatial_criterio",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "variogramLine",
+          "codigo": "gstat::variogramLine(m, dist_vector = t$u)",
+          "arquivo": "collections/trama.spatial/R/ajuste.R",
+          "linha": 77,
+          "dentro": ".tr_spatial_criterio",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "as.formula",
+          "codigo": "stats::as.formula(paste(\".zsim ~\", paste(deparse(dt$formula[[3]]), collapse = \" \")))",
+          "arquivo": "collections/trama.spatial/R/anisotropia.R",
+          "linha": 198,
+          "dentro": "tr_spatial_anisotropy",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "variogram",
+          "codigo": "gstat::variogram(f_sim, locations = dt$locations, data = ds, alpha = dirs, tol.hor = as.numeric(tolerancia), boundaries = lim[-1], cressie = identical(estima...",
+          "arquivo": "collections/trama.spatial/R/anisotropia.R",
+          "linha": 200,
+          "dentro": "tr_spatial_anisotropy",
+          "principal": false
+        }
+      ]
+    }
+  },
+  "spatial/boundary": {
+    "pressupostos": [],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      }
+    ],
+    "raiox": {
+      "funcao": "trama.spatial::tr_spatial_boundary",
+      "arquivo": "collections/trama.spatial/R/vetor.R",
+      "linha": 165,
+      "chamadas": [
+        {
+          "pacote": "sf",
+          "funcao": "st_read",
+          "codigo": "sf::st_read(r$dsn, layer = camada, quiet = TRUE)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 73,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_read",
+          "codigo": "sf::st_read(r$dsn, quiet = TRUE)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 75,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_geometry_type",
+          "codigo": "sf::st_geometry_type(g)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 86,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_cast",
+          "codigo": "sf::st_cast(g, \"POINT\", warn = FALSE)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 98,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_transform",
+          "codigo": "sf::st_transform(g, .tr_spatial_crs_alvo(crs_saida))",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 168,
+          "dentro": "tr_spatial_boundary",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(if (grepl(\"^[0-9]+$\", txt)) as.integer(txt) else txt)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 111,
+          "dentro": ".tr_spatial_crs_alvo",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_union",
+          "codigo": "sf::st_union(sf::st_geometry(g))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 119,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_geometry",
+          "codigo": "sf::st_geometry(g)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 119,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_cast",
+          "codigo": "sf::st_cast(un, \"POLYGON\", warn = FALSE)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 120,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_area",
+          "codigo": "sf::st_area(sf::st_sfc(sf::st_polygon(p[1])))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 127,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_sfc",
+          "codigo": "sf::st_sfc(sf::st_polygon(p[1]))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 127,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_polygon",
+          "codigo": "sf::st_polygon(p[1])",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 127,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_area",
+          "codigo": "sf::st_area(sf::st_sfc(sf::st_polygon(list(unname(pol)))))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 64,
+          "dentro": "tr_spatial_boundary_obj",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_sfc",
+          "codigo": "sf::st_sfc(sf::st_polygon(list(unname(pol))))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 64,
+          "dentro": "tr_spatial_boundary_obj",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_polygon",
+          "codigo": "sf::st_polygon(list(unname(pol)))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 64,
+          "dentro": "tr_spatial_boundary_obj",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(g)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 135,
+          "dentro": ".tr_spatial_boundary_de_sf",
+          "principal": false
+        }
+      ]
+    }
+  },
   "spatial/coordinates": {
     "pressupostos": [
       {
@@ -19879,7 +20182,7 @@
     "raiox": {
       "funcao": "trama.spatial::.tr_spatial_coordinates_no",
       "arquivo": "collections/trama.spatial/R/nos_fonte.R",
-      "linha": 6,
+      "linha": 7,
       "chamadas": [
         {
           "pacote": "sf",
@@ -19901,10 +20204,109 @@
         },
         {
           "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(borda$crs)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 168,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_transform",
+          "codigo": "sf::st_transform(sf::st_sfc(sf::st_polygon(list(unname(borda$poligono))), crs = borda$crs), crs_pontos)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 169,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_sfc",
+          "codigo": "sf::st_sfc(sf::st_polygon(list(unname(borda$poligono))), crs = borda$crs)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 169,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_polygon",
+          "codigo": "sf::st_polygon(list(unname(borda$poligono)))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 169,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_coordinates",
+          "codigo": "sf::st_coordinates(g)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 172,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(borda$crs)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 173,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_convex_hull",
+          "codigo": "sf::st_convex_hull(sf::st_union(sf::st_as_sf(d, coords = names(d))))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 35,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_union",
+          "codigo": "sf::st_union(sf::st_as_sf(d, coords = names(d)))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 35,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_as_sf",
+          "codigo": "sf::st_as_sf(d, coords = names(d))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 35,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_geometry",
+          "codigo": "sf::st_geometry(h)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 36,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_coordinates",
+          "codigo": "sf::st_coordinates(h)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 41,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
           "funcao": "st_buffer",
           "codigo": "sf::st_buffer(sf::st_sfc(sf::st_polygon(list(borda))), .TR_SPATIAL_FOLGA_BORDA)",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 148,
+          "linha": 199,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -19913,7 +20315,7 @@
           "funcao": "st_sfc",
           "codigo": "sf::st_sfc(sf::st_polygon(list(borda)))",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 148,
+          "linha": 199,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -19922,7 +20324,7 @@
           "funcao": "st_polygon",
           "codigo": "sf::st_polygon(list(borda))",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 148,
+          "linha": 199,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -19931,7 +20333,7 @@
           "funcao": "st_as_sf",
           "codigo": "sf::st_as_sf(as.data.frame(coords), coords = 1:2)",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 149,
+          "linha": 200,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -19940,7 +20342,7 @@
           "funcao": "st_intersects",
           "codigo": "sf::st_intersects(pts, zona)",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 150,
+          "linha": 201,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         }
@@ -19999,10 +20401,109 @@
         },
         {
           "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(borda$crs)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 168,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_transform",
+          "codigo": "sf::st_transform(sf::st_sfc(sf::st_polygon(list(unname(borda$poligono))), crs = borda$crs), crs_pontos)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 169,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_sfc",
+          "codigo": "sf::st_sfc(sf::st_polygon(list(unname(borda$poligono))), crs = borda$crs)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 169,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_polygon",
+          "codigo": "sf::st_polygon(list(unname(borda$poligono)))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 169,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_coordinates",
+          "codigo": "sf::st_coordinates(g)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 172,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(borda$crs)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 173,
+          "dentro": ".tr_spatial_borda_crs",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_convex_hull",
+          "codigo": "sf::st_convex_hull(sf::st_union(sf::st_as_sf(d, coords = names(d))))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 35,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_union",
+          "codigo": "sf::st_union(sf::st_as_sf(d, coords = names(d)))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 35,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_as_sf",
+          "codigo": "sf::st_as_sf(d, coords = names(d))",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 35,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_geometry",
+          "codigo": "sf::st_geometry(h)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 36,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_coordinates",
+          "codigo": "sf::st_coordinates(h)",
+          "arquivo": "collections/trama.spatial/R/borda.R",
+          "linha": 41,
+          "dentro": "tr_spatial_convex_hull",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
           "funcao": "st_buffer",
           "codigo": "sf::st_buffer(sf::st_sfc(sf::st_polygon(list(borda))), .TR_SPATIAL_FOLGA_BORDA)",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 148,
+          "linha": 199,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -20011,7 +20512,7 @@
           "funcao": "st_sfc",
           "codigo": "sf::st_sfc(sf::st_polygon(list(borda)))",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 148,
+          "linha": 199,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -20020,7 +20521,7 @@
           "funcao": "st_polygon",
           "codigo": "sf::st_polygon(list(borda))",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 148,
+          "linha": 199,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -20029,7 +20530,7 @@
           "funcao": "st_as_sf",
           "codigo": "sf::st_as_sf(as.data.frame(coords), coords = 1:2)",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 149,
+          "linha": 200,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         },
@@ -20038,11 +20539,45 @@
           "funcao": "st_intersects",
           "codigo": "sf::st_intersects(pts, zona)",
           "arquivo": "collections/trama.spatial/R/pontos.R",
-          "linha": 150,
+          "linha": 201,
           "dentro": ".tr_spatial_borda_contem",
           "principal": false
         }
       ]
+    }
+  },
+  "spatial/indicator": {
+    "pressupostos": [
+      {
+        "texto": "As coordenadas estão **projetadas** e na mesma unidade nos dois eixos: a distância entre dois pontos é a euclidiana.",
+        "se_falhar": "Projete para um CRS métrico (o UTM da zona) antes e declare o código EPSG aqui."
+      },
+      {
+        "texto": "O **suporte amostral** é constante: todas as observações medem o mesmo volume ou área.",
+        "se_falhar": "Suporte diferente muda a variância e o patamar; agregue ao suporte comum antes de comparar."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Isaaks, E. H.", "Srivastava, R. M."],
+        "ano": 1989,
+        "titulo": "An Introduction to Applied Geostatistics",
+        "fonte": "New York: Oxford University Press"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      }
+    ],
+    "raiox": {
+      "funcao": "trama.spatial::tr_spatial_indicator",
+      "arquivo": "collections/trama.spatial/R/indicador.R",
+      "linha": 21,
+      "chamadas": []
     }
   },
   "spatial/kriging": {
@@ -20096,14 +20631,14 @@
     "raiox": {
       "funcao": "trama.spatial::tr_spatial_kriging",
       "arquivo": "collections/trama.spatial/R/krigagem.R",
-      "linha": 269,
+      "linha": 425,
       "chamadas": [
         {
           "pacote": "sf",
           "funcao": "st_sfc",
           "codigo": "sf::st_sfc(sf::st_polygon(list(pontos$borda)))",
           "arquivo": "collections/trama.spatial/R/krigagem.R",
-          "linha": 80,
+          "linha": 191,
           "dentro": "tr_spatial_grid",
           "principal": false
         },
@@ -20112,7 +20647,7 @@
           "funcao": "st_polygon",
           "codigo": "sf::st_polygon(list(pontos$borda))",
           "arquivo": "collections/trama.spatial/R/krigagem.R",
-          "linha": 80,
+          "linha": 191,
           "dentro": "tr_spatial_grid",
           "principal": false
         },
@@ -20121,7 +20656,7 @@
           "funcao": "st_as_sf",
           "codigo": "sf::st_as_sf(g, coords = pontos$coord_cols)",
           "arquivo": "collections/trama.spatial/R/krigagem.R",
-          "linha": 81,
+          "linha": 192,
           "dentro": "tr_spatial_grid",
           "principal": false
         },
@@ -20130,8 +20665,26 @@
           "funcao": "st_intersects",
           "codigo": "sf::st_intersects(pts, pol)",
           "arquivo": "collections/trama.spatial/R/krigagem.R",
-          "linha": 82,
+          "linha": 193,
           "dentro": "tr_spatial_grid",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "as.formula",
+          "codigo": "stats::as.formula(\".z_ ~ 1\")",
+          "arquivo": "collections/trama.spatial/R/krigagem.R",
+          "linha": 70,
+          "dentro": ".tr_spatial_krig_formula",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "as.formula",
+          "codigo": "stats::as.formula(paste(\".z_ ~\", rhs))",
+          "arquivo": "collections/trama.spatial/R/krigagem.R",
+          "linha": 75,
+          "dentro": ".tr_spatial_krig_formula",
           "principal": false
         },
         {
@@ -20139,7 +20692,7 @@
           "funcao": "vgm",
           "codigo": "gstat::vgm(psill = x$contribuicao, model = unname(.TR_SPATIAL_VGM[[x$familia]]), range = x$alcance, nugget = x$pepita, kappa = if (is.na(x$kappa)) 0.5 else x...",
           "arquivo": "collections/trama.spatial/R/ajuste.R",
-          "linha": 251,
+          "linha": 283,
           "dentro": ".tr_spatial_vgm_model",
           "principal": false
         },
@@ -20148,7 +20701,7 @@
           "funcao": "dist",
           "codigo": "stats::dist(co)",
           "arquivo": "collections/trama.spatial/R/krigagem.R",
-          "linha": 121,
+          "linha": 232,
           "dentro": ".tr_spatial_dist_vizinho",
           "principal": false
         },
@@ -20157,8 +20710,181 @@
           "funcao": "median",
           "codigo": "stats::median(apply(d, 1L, min))",
           "arquivo": "collections/trama.spatial/R/krigagem.R",
-          "linha": 123,
+          "linha": 234,
           "dentro": ".tr_spatial_dist_vizinho",
+          "principal": false
+        }
+      ]
+    }
+  },
+  "spatial/read_points": {
+    "pressupostos": [
+      {
+        "texto": "As coordenadas estão **projetadas** e na mesma unidade nos dois eixos: a distância entre dois pontos é a euclidiana.",
+        "se_falhar": "Projete para um CRS métrico (o UTM da zona) antes e declare o código EPSG aqui."
+      },
+      {
+        "texto": "O **suporte amostral** é constante: todas as observações medem o mesmo volume ou área.",
+        "se_falhar": "Suporte diferente muda a variância e o patamar; agregue ao suporte comum antes de comparar."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      }
+    ],
+    "raiox": {
+      "funcao": "trama.spatial::tr_spatial_read_points",
+      "arquivo": "collections/trama.spatial/R/vetor.R",
+      "linha": 132,
+      "chamadas": [
+        {
+          "pacote": "sf",
+          "funcao": "st_read",
+          "codigo": "sf::st_read(r$dsn, layer = camada, quiet = TRUE)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 73,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_read",
+          "codigo": "sf::st_read(r$dsn, quiet = TRUE)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 75,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_geometry_type",
+          "codigo": "sf::st_geometry_type(g)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 86,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_cast",
+          "codigo": "sf::st_cast(g, \"POINT\", warn = FALSE)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 98,
+          "dentro": ".tr_spatial_ler_vetor",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_transform",
+          "codigo": "sf::st_transform(g, .tr_spatial_crs_alvo(crs_saida))",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 142,
+          "dentro": "tr_spatial_read_points",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_crs",
+          "codigo": "sf::st_crs(if (grepl(\"^[0-9]+$\", txt)) as.integer(txt) else txt)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 111,
+          "dentro": ".tr_spatial_crs_alvo",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_drop_geometry",
+          "codigo": "sf::st_drop_geometry(g)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 144,
+          "dentro": "tr_spatial_read_points",
+          "principal": false
+        },
+        {
+          "pacote": "sf",
+          "funcao": "st_coordinates",
+          "codigo": "sf::st_coordinates(g)",
+          "arquivo": "collections/trama.spatial/R/vetor.R",
+          "linha": 151,
+          "dentro": "tr_spatial_read_points",
+          "principal": false
+        }
+      ]
+    }
+  },
+  "spatial/validation": {
+    "pressupostos": [
+      {
+        "texto": "O modelo ajustado é **definido positivo**: as quatro famílias oferecidas são, com pepita e contribuição não negativas e alcance positivo.",
+        "verificar": ["spatial/variogram_fit"],
+        "se_falhar": "Ajuste que devolve parâmetro negativo é recusado por este bloco: troque a família ou os valores iniciais."
+      },
+      {
+        "texto": "As classes de distância **curtas** estão bem estimadas: a krigagem usa sobretudo a vizinhança próxima.",
+        "verificar": ["spatial/variogram"],
+        "se_falhar": "Aumente o número de classes ou baixe a distância máxima para detalhar a origem."
+      }
+    ],
+    "referencias": [
+      {
+        "papel": "livro-texto",
+        "autores": ["Isaaks, E. H.", "Srivastava, R. M."],
+        "ano": 1989,
+        "titulo": "An Introduction to Applied Geostatistics",
+        "fonte": "New York: Oxford University Press"
+      },
+      {
+        "papel": "livro-texto",
+        "autores": ["Cressie, N."],
+        "ano": 1993,
+        "titulo": "Statistics for Spatial Data",
+        "fonte": "Rev. ed. New York: Wiley"
+      }
+    ],
+    "raiox": {
+      "funcao": "trama.spatial::tr_spatial_validation",
+      "arquivo": "collections/trama.spatial/R/validacao.R",
+      "linha": 50,
+      "chamadas": [
+        {
+          "pacote": "sf",
+          "funcao": "st_as_sf",
+          "codigo": "sf::st_as_sf(as.data.frame(pontos$dados), coords = pontos$coord_cols, crs = if (inherits(pontos$crs, \"crs\")) pontos$crs else NA, remove = FALSE)",
+          "arquivo": "collections/trama.spatial/R/validacao.R",
+          "linha": 78,
+          "dentro": "tr_spatial_validation",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "as.formula",
+          "codigo": "stats::as.formula(\".z ~ 1\")",
+          "arquivo": "collections/trama.spatial/R/validacao.R",
+          "linha": 82,
+          "dentro": "tr_spatial_validation",
+          "principal": false
+        },
+        {
+          "pacote": "gstat",
+          "funcao": "vgm",
+          "codigo": "gstat::vgm(psill = x$contribuicao, model = unname(.TR_SPATIAL_VGM[[x$familia]]), range = x$alcance, nugget = x$pepita, kappa = if (is.na(x$kappa)) 0.5 else x...",
+          "arquivo": "collections/trama.spatial/R/ajuste.R",
+          "linha": 283,
+          "dentro": ".tr_spatial_vgm_model",
+          "principal": false
+        },
+        {
+          "pacote": "stats",
+          "funcao": "cor",
+          "codigo": "stats::cor(observado, predito)",
+          "arquivo": "collections/trama.spatial/R/validacao.R",
+          "linha": 27,
+          "dentro": ".tr_spatial_metricas",
           "principal": false
         }
       ]
@@ -20220,7 +20946,7 @@
     "raiox": {
       "funcao": "trama.spatial::tr_spatial_variogram",
       "arquivo": "collections/trama.spatial/R/variograma.R",
-      "linha": 62,
+      "linha": 86,
       "chamadas": [
         {
           "pacote": "stats",
@@ -20236,8 +20962,8 @@
           "funcao": "sd",
           "codigo": "stats::sd(d[[col]])",
           "arquivo": "collections/trama.spatial/R/variograma.R",
-          "linha": 97,
-          "dentro": "tr_spatial_variogram",
+          "linha": 60,
+          "dentro": ".tr_spatial_dados_tendencia",
           "principal": false
         },
         {
@@ -20245,8 +20971,8 @@
           "funcao": "as.formula",
           "codigo": "stats::as.formula(\"~ .x_ + .y_\")",
           "arquivo": "collections/trama.spatial/R/variograma.R",
-          "linha": 99,
-          "dentro": "tr_spatial_variogram",
+          "linha": 62,
+          "dentro": ".tr_spatial_dados_tendencia",
           "principal": false
         }
       ]

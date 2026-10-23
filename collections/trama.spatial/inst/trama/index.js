@@ -240,3 +240,156 @@ registerRenderer("spatial/variogram", {
     { id: "tabela", label: "tabela", component: TabelaNucleo },
   ],
 });
+
+// ---- spatial/anisotropy ------------------------------------------------------
+//
+// Uma curva por direção, no MESMO par de eixos: é a comparação entre elas que
+// diz se há anisotropia, e curvas em cards separados não se comparam.
+// A faixa do envelope, quando existe, é desenhada por direção — a §6.4 do
+// desenho mediu que a fração agregada "quanto ficou dentro" não separa
+// isotropia de anisotropia, e é o padrão por direção que separa.
+
+const AN_CORES = ["#7c3aed", "#0e7490", "#b45309", "#166534", "#be123c", "#1d4ed8"];
+
+function GraficoAniso({ curvas }) {
+  const todas = curvas.flatMap((c) => c.classes);
+  if (!todas.length) return null;
+  const u1 = Math.max(...todas.map((c) => c.u)) || 1;
+  const faixas = curvas.flatMap((c) => c.faixa || []);
+  const g1 = Math.max(
+    ...todas.map((c) => c.gamma),
+    ...faixas.map((f) => f.superior || 0)) || 1;
+  const X = (u) => MG + (u / u1) * (VW - 2 * MG);
+  const Y = (g) => VH - MG - (g / (g1 * 1.05)) * (VH - 2 * MG);
+  const area = (fx) => {
+    const sup = fx.map((f) => `${X(f.u)} ${Y(f.superior)}`);
+    const inf = fx.slice().reverse().map((f) => `${X(f.u)} ${Y(f.inferior)}`);
+    return "M" + sup.join("L") + "L" + inf.join("L") + "Z";
+  };
+  return h("svg", {
+    className: "tr-sp-svg tr-sp-aniso", viewBox: `0 0 ${VW} ${VH}`,
+    preserveAspectRatio: "xMidYMid meet", role: "img",
+    "aria-label": "variogramas direcionais",
+  }, [
+    h("line", { key: "x", className: "tr-sp-eixo", x1: MG, x2: VW - MG, y1: VH - MG, y2: VH - MG, vectorEffect: "non-scaling-stroke" }),
+    h("line", { key: "y", className: "tr-sp-eixo", x1: MG, x2: MG, y1: MG, y2: VH - MG, vectorEffect: "non-scaling-stroke" }),
+    ...curvas.map((c, i) => {
+      const cor = AN_CORES[i % AN_CORES.length];
+      const fx = (c.faixa || []).filter((f) => f.inferior != null && f.superior != null);
+      return fx.length >= 2
+        ? h("path", { key: `f${i}`, className: "tr-sp-faixa", d: area(fx), style: { fill: cor, fillOpacity: 0.12 } })
+        : null;
+    }),
+    ...curvas.map((c, i) => {
+      const cor = AN_CORES[i % AN_CORES.length];
+      const d = "M" + c.classes.map((p) => `${X(p.u)} ${Y(p.gamma)}`).join("L");
+      return h("path", {
+        key: `l${i}`, className: "tr-sp-liga", d,
+        style: { stroke: cor }, vectorEffect: "non-scaling-stroke",
+      }, h("title", null, `${num(c.direcao, 0)}°`));
+    }),
+    ...curvas.flatMap((c, i) => {
+      const cor = AN_CORES[i % AN_CORES.length];
+      return c.classes.map((p, j) => h("circle", {
+        key: `p${i}-${j}`, className: "tr-sp-pt", cx: X(p.u), cy: Y(p.gamma), r: 2.2,
+        style: { fill: cor, fillOpacity: 0.85 }, vectorEffect: "non-scaling-stroke",
+      }, h("title", null, `${num(c.direcao, 0)}° · distância ${num(p.u)} · γ ${num(p.gamma)} · ${num(p.np)} pares`)));
+    }),
+  ]);
+}
+
+function Anisotropia({ artifact }) {
+  const d = artifact.data || {};
+  const curvas = (d.curvas || []).filter((c) => (c.classes || []).length);
+  if (!curvas.length) return h("div", { className: "tr-empty" }, "sem direções");
+  const temFaixa = curvas.some((c) => (c.faixa || []).length);
+  const u1 = Math.max(...curvas.flatMap((c) => c.classes).map((c) => c.u));
+  return h("div", { className: "tr-sp" }, [
+    h("div", { key: "t", className: "tr-sp-topo" }, [
+      h("span", { key: "v", className: "tr-sp-var", title: d.variavel }, d.variavel),
+      h("span", { key: "n", className: "tr-sp-n" }, `${curvas.length} direções`),
+    ]),
+    h(GraficoAniso, { key: "g", curvas }),
+    h("div", { key: "leg", className: "tr-sp-leg" }, curvas.map((c, i) =>
+      h("span", { key: i, className: "tr-sp-leg-i" }, [
+        h("i", { key: "s", style: { background: AN_CORES[i % AN_CORES.length] } }),
+        `${num(c.direcao, 0)}°`,
+      ]))),
+    h("div", { key: "e", className: "tr-sp-pontas" }, [
+      h("span", { key: "a" }, "distância 0"),
+      h("span", { key: "b" }, `até ${num(u1)}${d.unidade ? ` ${d.unidade}` : ""}`),
+    ]),
+    h("div", { key: "r", className: "tr-sp-rot" },
+      temFaixa
+        ? `faixa: ${d.n_sim} simulações sob isotropia — referência visual, não teste`
+        : `tolerância ${num(d.tolerancia, 1)}° · estimador ${d.estimador}`),
+    d.nota ? h("div", { key: "no", className: "tr-sp-nota", title: d.nota }, d.nota) : null,
+  ]);
+}
+
+registerRenderer("spatial/anisotropy", {
+  views: [
+    { id: "direcoes", label: "direções", component: Anisotropia },
+    { id: "tabela", label: "tabela", component: TabelaNucleo },
+  ],
+});
+
+// ---- spatial/validation ------------------------------------------------------
+//
+// Observado contra predito, com a reta 1:1. É o gráfico que mostra o que as
+// métricas resumem: viés (nuvem deslocada da reta), encolhimento (nuvem mais
+// achatada que a reta) e pontos isolados que o modelo não acompanha.
+
+function GraficoValid({ pontos }) {
+  const vs = pontos.flatMap((p) => [p.obs, p.pred]).filter((v) => Number.isFinite(v));
+  if (!vs.length) return null;
+  const lo = Math.min(...vs), hi = Math.max(...vs);
+  const faixa = hi - lo || 1;
+  const X = (v) => MG + ((v - lo) / faixa) * (VW - 2 * MG);
+  const Y = (v) => VH - MG - ((v - lo) / faixa) * (VH - 2 * MG);
+  return h("svg", {
+    className: "tr-sp-svg tr-sp-valid", viewBox: `0 0 ${VW} ${VH}`,
+    preserveAspectRatio: "xMidYMid meet", role: "img",
+    "aria-label": "observado contra predito",
+  }, [
+    h("line", { key: "d", className: "tr-sp-11", x1: X(lo), y1: Y(lo), x2: X(hi), y2: Y(hi), vectorEffect: "non-scaling-stroke" }),
+    ...pontos.map((p, i) => h("circle", {
+      key: i, className: "tr-sp-pt", cx: X(p.obs), cy: Y(p.pred), r: 2.2,
+      style: { fillOpacity: 0.55 }, vectorEffect: "non-scaling-stroke",
+    }, h("title", null, `observado ${num(p.obs)} · predito ${num(p.pred)} · z ${num(p.z)}`))),
+  ]);
+}
+
+function Validacao({ artifact }) {
+  const d = artifact.data || {};
+  const pontos = (d.pontos || []).filter((p) => p.obs != null && p.pred != null);
+  if (!pontos.length) return h("div", { className: "tr-empty" }, "sem pontos");
+  // O MSDR ganha destaque porque é o único que julga o mapa de erro-padrão.
+  const msdrOk = d.msdr >= 0.7 && d.msdr <= 1.3;
+  return h("div", { className: "tr-sp" }, [
+    h("div", { key: "t", className: "tr-sp-topo" }, [
+      h("span", { key: "v", className: "tr-sp-var", title: d.variavel }, d.variavel),
+      h("span", { key: "n", className: "tr-sp-n" }, `${d.n} pontos`),
+    ]),
+    h(GraficoValid, { key: "g", pontos }),
+    h("div", { key: "m", className: "tr-sp-met" }, [
+      h("span", { key: "1" }, `RMSE ${num(d.rmse)}`),
+      h("span", { key: "2", className: msdrOk ? "tr-sp-ok" : "tr-sp-aviso" },
+        `MSDR ${num(d.msdr)}`),
+      h("span", { key: "3" }, `r ${num(d.correlacao)}`),
+      h("span", { key: "4" }, `ME ${num(d.me)}`),
+    ]),
+    h("div", { key: "e", className: "tr-sp-pontas" }, [
+      h("span", { key: "a" }, "observado →"),
+      h("span", { key: "b" }, d.metodo),
+    ]),
+    d.nota ? h("div", { key: "no", className: "tr-sp-nota", title: d.nota }, d.nota) : null,
+  ]);
+}
+
+registerRenderer("spatial/validation", {
+  views: [
+    { id: "obs-pred", label: "obs × pred", component: Validacao },
+    { id: "tabela", label: "tabela", component: TabelaNucleo },
+  ],
+});

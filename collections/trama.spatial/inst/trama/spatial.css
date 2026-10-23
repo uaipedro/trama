@@ -43,3 +43,17 @@
 /* No 132px padrão só cabe o essencial: nome, desenho, legenda. O resto aparece
    quando o card é esticado. */
 @container (max-height: 175px){.tr-sp-rot,.tr-sp-pontas,.tr-sp-nota{display:none}}
+
+/* Legenda de direções do card de anisotropia: as cores são a única coisa que
+   liga curva a rumo, então a legenda não some quando o card encolhe. */
+.tr-sp-leg{display:flex;flex-wrap:wrap;gap:.35rem .6rem;font-size:.72rem;opacity:.85}
+.tr-sp-leg-i{display:inline-flex;align-items:center;gap:.25rem}
+.tr-sp-leg-i i{width:.6rem;height:.18rem;border-radius:1px;display:inline-block}
+.tr-sp-faixa{stroke:none}
+
+/* Métricas da validação: o MSDR muda de cor porque é o único que julga o mapa
+   de erro-padrão, e fora de [0,7; 1,3] ele é um aviso, não um número neutro. */
+.tr-sp-met{display:flex;flex-wrap:wrap;gap:.3rem .7rem;font-size:.72rem;font-variant-numeric:tabular-nums}
+.tr-sp-ok{color:var(--tr-ok,#166534)}
+.tr-sp-aviso{color:var(--tr-aviso,#b45309);font-weight:600}
+.tr-sp-11{stroke:currentColor;stroke-dasharray:3 3;opacity:.45}

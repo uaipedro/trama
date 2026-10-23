@@ -8,7 +8,7 @@
     "format": 1,
     "rev": 13,
     "collections": {
-      "spatial": "0.1.0"
+      "spatial": "0.2.0"
     },
     "nodes": {
       "pontos": {
@@ -43,7 +43,7 @@
       },
       "krigagem": {
         "type": "spatial/kriging",
-        "type_version": 1,
+        "type_version": 2,
         "label": "Krigagem",
         "params": {},
         "seed": 264400552
