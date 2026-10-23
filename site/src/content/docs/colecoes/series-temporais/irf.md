@@ -45,6 +45,11 @@ A semente é a do nó: a mesma entrada dá as mesmas bandas.
 
 Um gráfico (`view/plot`). No console, um ggplot comum, somável.
 
+E os mesmos pontos em tabela (`data/table`, saída `tabela`): uma linha por
+impulso, resposta e horizonte (0 é o período do choque), com `valor` e a banda
+em `li` e `ls` (vazias sem reamostras). É a saída para citar as respostas ou
+gravá-las, sem ler no gráfico.
+
 ## Exemplos
 
 ```r

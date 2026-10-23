@@ -40,11 +40,17 @@
 #' numérica é ERRO, e não descarte — quem digitou `Species` entre as medidas
 #' quer saber que ela não entrou. `excluir` tira colunas que o nó já usa para
 #' outra coisa (o grupo da discriminante), para o branco não as engolir.
+#'
+#' O branco também deixa de fora as colunas de ÍNDICE que a tabela declara no
+#' atributo `trama_indice`: o `tempo` que o adaptador de série põe, numérico
+#' fora das frequências 1, 4 e 12, entrava como variável na correlação dos
+#' resíduos de um VAR. Citado pelo nome, ele entra.
 #' @noRd
 .tr_multi_variaveis <- function(dados, cols, param = "cols", minimo = 2L, excluir = character()) {
   nomes <- .tr_multi_split(cols)
   if (!length(nomes)) {
-    nomes <- setdiff(names(dados)[vapply(dados, is.numeric, TRUE)], excluir)
+    indice <- as.character(attr(dados, "trama_indice", exact = TRUE))
+    nomes <- setdiff(names(dados)[vapply(dados, is.numeric, TRUE)], c(excluir, indice))
   } else {
     faltam <- setdiff(nomes, names(dados))
     if (length(faltam)) {

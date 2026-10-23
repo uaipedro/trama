@@ -1,0 +1,3 @@
+/* Modelo Dashboard do trama: figuras ocupam o cartão sem distorcer. */
+.trama img { max-width: 100%; height: auto; }
+.trama table { font-variant-numeric: tabular-nums; font-size: 0.9em; }

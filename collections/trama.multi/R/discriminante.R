@@ -199,7 +199,15 @@ tr_multi_discriminant <- function(dados, resposta = "", preditores = "", metodo 
     .tr_multi_cov_grupos(gr$X, gr$g, no)
   }
   ajuste <- .tr_multi_lda_ajuste(gr$X, gr$g, metodo, .tr_multi_prior_vetor(gr$g, priors), no)
-  .tr_multi_lda_obj(ajuste, metodo, gr$grupo, gr$preditores, tibble::as_tibble(dados), priors)
+  out <- .tr_multi_lda_obj(ajuste, metodo, gr$grupo, gr$preditores, tibble::as_tibble(dados), priors)
+  attr(out, "trama_ferramentas") <- .tr_multi_lda_ferramenta(metodo)
+  out
+}
+
+#' A função da MASS que ajustou: `lda` na linear, `qda` na quadrática.
+#' @noRd
+.tr_multi_lda_ferramenta <- function(metodo) {
+  if (identical(metodo, "linear")) "MASS::lda" else "MASS::qda"
 }
 
 #' Autovalores W^-1 B: a análise canônica dos grupos.

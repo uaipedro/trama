@@ -1,0 +1,42 @@
+---
+title: "Título do trabalho"
+instituicao:
+  - Universidade Federal de Lavras
+  - "{{perfil.curso}}"
+orientador: "{{perfil.orientador}}"
+natureza: >-
+  Trabalho apresentado à disciplina Nome da Disciplina, da Universidade
+  Federal de Lavras, como requisito parcial para aprovação.
+local: Lavras
+ano: "{{ano}}"
+folha-rosto: true
+sumario: true
+lista-tabelas: false
+lista-figuras: false
+---
+
+# INTRODUÇÃO
+
+Apresente o tema, o objetivo do trabalho e de onde vêm os dados. Para citar,
+declare `bibliography: referencias.bib` no cabeçalho e use `[@chave]`.
+
+# MATERIAL E MÉTODOS
+
+Descreva o delineamento e as análises. Os resultados que você insere do trama
+entram como blocos `::: {#trama-… .trama}`: escreva em volta deles e mova-os
+para onde quiser. O texto é seu; o trama só atualiza o que está dentro desses
+blocos.
+
+# RESULTADOS E DISCUSSÃO
+
+Comente aqui as tabelas e figuras. Fonte embaixo de uma figura:
+`::: {.fonte}` / `Fonte: do autor (2026).` / `:::`.
+
+# CONCLUSÃO
+
+Retome o objetivo e apresente as conclusões.
+
+# REFERÊNCIAS {.unnumbered}
+
+::: {#refs}
+:::

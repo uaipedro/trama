@@ -1,6 +1,6 @@
 Package: trama.models
 Title: Statistical Models Collection for trama
-Version: 0.6.7
+Version: 0.6.13
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -26,8 +26,8 @@ Encoding: UTF-8
 Depends:
     R (>= 4.1)
 Imports:
-    trama (>= 0.5.10),
-    trama.data (>= 0.4.4),
+    trama (>= 0.5.16),
+    trama.data (>= 0.4.5),
     trama.view,
     boot,
     car,
@@ -54,10 +54,14 @@ Suggests:
     yardstick,
     PRROC,
     Skillings.Mack,
-    coin
+    coin,
+    statmod,
+    tseries,
+    moments
 Config/testthat/edition: 3
 Config/trama/requires: trama.data, trama.view
 Remotes:
     uaipedro/trama,
     trama.data=github::uaipedro/trama/collections/trama.data,
     trama.view=github::uaipedro/trama/collections/trama.view
+Config/roxygen2/version: 8.0.0

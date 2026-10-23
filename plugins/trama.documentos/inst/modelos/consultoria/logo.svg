@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <!-- Marca genérica de exemplo do modelo Consultoria do trama: troque pelo seu logo
+       (tr_documento_modelo_editar("consultoria", logo = "meu-logo.svg")). -->
+  <rect width="96" height="96" rx="18" fill="#003366"/>
+  <rect x="20" y="52" width="12" height="24" rx="2" fill="#E6EFF6"/>
+  <rect x="42" y="36" width="12" height="40" rx="2" fill="#E6EFF6"/>
+  <rect x="64" y="22" width="12" height="54" rx="2" fill="#E6EFF6"/>
+</svg>

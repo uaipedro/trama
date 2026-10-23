@@ -644,3 +644,160 @@ afundavam para dentro da faixa e o bloco deixava de mostrar as escapadas que sã
 o único sinal útil. Corrigido: a simulação usa a mesma fórmula de tendência do
 observado. Teste com campos de tendência pura injetados, em que o resíduo tem de
 ser zero.
+
+`models/permutation` declarava `coin::oneway_test; independence_test` como
+implementação, mas o `coin` só serve de oráculo nos testes: o bloco calcula o
+F com `stats::anova` a cada permutação. A referência de implementação saiu (o
+artigo do `coin` fica como referência do método); o relatório exportado, que
+agora cita as ferramentas que rodaram, deixaria de creditar um pacote que não
+roda. Nenhum resultado muda.
+
+## Resíduo quantílico randomizado no GLM (09/10/2026)
+
+`models/residuals` (versão 2) ganha `residuo_quantilico` no GLM: o resíduo
+quantílico normalizado randomizado de Dunn & Smyth (1996, JCGS 5(3), 236-244,
+doi 10.1080/10618600.1996.10474708, conferido no Crossref). Nas famílias
+discretas (binomial 0/1 e agrupada, Poisson, binomial negativa) sorteia `u`
+uniforme no salto da acumulada; gama e gaussiana são contínuas e não sorteiam;
+nas quasi não há distribuição, e a coluna sai `NA`. O nó passa a `stochastic`,
+com a semente do card. Oráculo: `statmod::qresid` com a mesma semente e o
+mesmo RNG, nas seis famílias, tolerância 1e-10 (`test-resumir.R`). As colunas
+que já existiam não mudam.
+
+## Normalidade dos resíduos quantílicos do GLM, p mediano calibrado (09/10/2026)
+
+`models/shapiro_residuals` (versão 2) deixa de recusar o GLM. Tomar o p mediano
+do Shapiro-Wilk em vários sorteios do resíduo quantílico e ler contra 0,05 não
+controla o tipo I: os p são dependentes e a mediana se concentra no meio.
+Medido (2000 conjuntos sob o modelo certo, 5%): Poisson n = 30, 5,2% com um
+sorteio, 1,7% com a mediana de 11; Poisson n = 200, 1,3%; binomial 0/1 n = 50,
+0%. Por isso o p mediano observado é a estatística, e o p-valor é de Monte
+Carlo (Davison & Hinkley 1997, cap. 4): respostas simuladas do ajuste
+(`stats::simulate`), reajustadas com a mesma matriz de modelo (theta
+reestimado na binomial negativa), p = (1 + #{simulado <= observado}) / (B + 1).
+
+Tipo I medido do teste calibrado (11 sorteios, 99 reamostras, 1000 conjuntos,
+IC 95% exato de Clopper-Pearson): Poisson n = 30, 5,5% [4,2; 7,1]; binomial
+0/1 n = 50, 4,6% [3,4; 6,1]; binomial negativa n = 40, 4,5% [3,3; 6,0]. Os
+três contêm 5%.
+
+Não há pacote de referência para a calibração; o oráculo é por partes
+(`test-testes.R`): o p mediano observado refeito com `statmod::qresid` +
+`stats::shapiro.test` na mesma semente (1e-12), o p na grade (k + 1)/(B + 1),
+e o teste acusa a Poisson nos dados sobredispersos do `MASS::quine` e não acusa
+a binomial negativa. Junto, o resíduo quantílico passa a ser finito na cauda de
+cima, onde o `statmod::qresid` dá `Inf` (u arredonda para 1): a conta vai pela
+complementar. Igual ao statmod onde ele é finito e abaixo de 7 em módulo
+(1e-8); acima disso o statmod já perdeu dígitos.
+
+## Modelo reduzido para publicação, `tr_models_strip()` (19/10/2026)
+
+Genérico novo no contrato de `models/fit` (#12): o que sobra do modelo para
+prever, sem os dados de treino — o que a publicação grava no pacote (hoje o `trama.documentos`, #25; nasceu no `trama.publicar`). Não
+muda resultado de bloco nenhum; nenhuma `version` de nó sobe. Sem default:
+classe sem método recusa com `tr_models_error_no_method` (misto, GLS, parcela
+subdividida, não linear, dose-resposta, FIGS e as classes da `multi` ficam de
+fora por ora).
+
+O `lm`/`glm` reduzido (`tr_models_strip_stats()`) guarda coeficientes, posto,
+`qr` só com pivotagem e posto, `terms` com o ambiente trocado pelo global,
+`xlevels`, `contrasts` e a família (e o theta da binomial negativa). Saem os
+campos com uma posição por linha, a matriz `qr$qr` (que é a própria matriz de
+delineamento), o `R`, a tabela e a chamada. O ambiente do `terms` vira o
+global: nos ajustes do trama ele já é, mas um `lm` feito dentro de uma função
+guarda o quadro dela, tabela inclusive (testado). Prevê só o ponto: intervalo e
+`se.fit` pedem os resíduos, e o reduzido recusa com classe. Posto deficiente é
+recusado (o `predict.lm()` recente procura o espaço nulo em `qr.R()`).
+
+Oráculo da previsão: `stats::predict()` do ajuste original (lm com `poly()` e
+fator, Poisson, binomial de classificação, binomial negativa), tolerância
+1e-12, também depois do RDS; nos motores da `ml`, o modelo original pela mesma
+`tr_models_predict_raw()`, tolerância zero (`test-reduzir.R` das duas
+coleções). Vazamento medido com dados contínuos (rnorm/runif), varrendo todo
+número do objeto em listas, atributos, chamadas e ambientes capturados:
+
+- `lm`, `glm`, linear e CART da `ml`: nenhum valor do treino; nenhum vetor com
+  uma posição por linha. No CART as folhas guardam médias ou contagens e os
+  cortes são pontos médios.
+- Floresta (`ranger`), regressão: a resposta reaparece em `split.values` dos
+  nós terminais — folha com uma só linha distinta sorteada guarda a resposta
+  dela (40 de 120 valores no teste). É o modelo, não um campo a mais.
+- SVM (`e1071`): os vetores de suporte são linhas do treino escalonadas (103
+  de 120 na regressão do teste); desfeita a escala, cada um é uma linha. A
+  previsão é uma soma sobre eles: não há como tirá-los. Fora deles, nada.
+- XGBoost: a resposta não aparece; valores de preditores aparecem só como
+  cortes das árvores (quantis do histograma, em float32).
+
+Os dois casos acima saem do reduzido com a marca `dados_treino` (texto do que
+sobra), e a publicação recusa o modelo marcado por padrão: só publica com o
+aceite explícito (no `trama.publicar`, o param "Aceito publicar dados de
+treino embutidos"; no `trama.documentos`, `aceitar-dados-treino: true` em
+`trama: publicar:` do documento, além do aceite da região), e então registra
+`trama:contemDadosTreino` no RO-Crate (decisão do Pedro, 19/10).
+
+Limite: a varredura confere igualdade exata (float32 no XGBoost); um valor
+transformado (escalonado, arredondado) só é pego onde o teste desfaz a
+transformação, como nos vetores de suporte.
+
+## VAR do Morettin: lacunas do #20 (19/10/2026)
+
+Achados ao montar a análise VAR de Ibovespa × S&P 500 pelo MCP (#20, grupos A e
+B da triagem). Nenhuma página de livro foi conferida nesta rodada: os oráculos
+são pacotes de referência chamados direto, com tolerância declarada no teste.
+
+- **`series/fevd`** (versão 2) — o gráfico censurava a barra cujo topo da pilha
+  saía 1 + 2e-16 (`scale_y_continuous(limits = c(0, 1))`): 6 das 160 barras do
+  `vars::Canada`. Agora é `coord_cartesian`; o teste confere 160 barras, topo
+  de cada pilha igual a 1 a 1e-10. As frações não mudaram (iguais a
+  `vars::fevd` a 1e-10). A versão sobe pela saída nova (abaixo).
+- **`series/engle_granger`** (versão 2) — o coeficiente da regressora saía com
+  o nome da expressão (`x[, regs, drop = FALSE]`), com uma regressora e, com os
+  nomes no `cbind`, também com duas. Nomes postos à mão; estimativas iguais a
+  `stats::lm` a 1e-10 com 1 e 2 regressoras (com tendência).
+- **`series/normality_mv`** — o Jarque-Bera multivariado do `vars` padroniza os
+  resíduos centrados pela Cholesky da covariância (`vars:::.jb.multi`), e a
+  ajuda de `vars::normality.test` avisa que o resultado depende da ordem das
+  variáveis. É da construção do teste (Lütkepohl 2005, doi:10.1007/978-3-540-27752-1;
+  seção não conferida), não do bloco. Ajuda, nota do teste e pressuposto dizem
+  isso; o teste documenta a dependência (cada ordem igual ao `vars` a 1e-10, as
+  duas ordens com estatísticas diferentes). Resultado numérico não muda;
+  versão não sobe.
+- **`series/granger`** (versão 2) — `metodo = "instantanea"`: Wald qui-quadrado
+  sobre as covariâncias de Σ_u entre causa e resto, o `$Instant` de
+  `vars::causality()` (Lütkepohl 2005, seção 3.6.3; a seção foi conferida pela
+  documentação do `statsmodels`, que cita 3.6.3 e 7.6.4 para o mesmo teste, não
+  no livro). Σ_u com divisor T − Kp − 1, como no `vars`. Oráculos: `vars` a
+  1e-10 e recálculo à mão a 1e-8, com a covariância assintótica gaussiana de
+  √T (s_ij, s_kl) = s_ik s_jl + s_il s_jk (Isserlis), sem a matriz de
+  duplicação; simetria conferida com duas séries. VECM segue recusado.
+  Pressuposto novo: a variância assintótica é a do caso gaussiano.
+- **`multi/correlation_matrix`** (versão 2) — com `cols` em branco, o `tempo`
+  que o adaptador de série põe na tabela (numérico fora das frequências 1, 4 e
+  12) entrava como variável na correlação dos resíduos do VAR. Os adaptadores
+  `series/* → data/table` marcam o índice no atributo `trama_indice`, e o
+  branco o deixa de fora (todos os blocos da `trama.multi` que tomam "todas as
+  numéricas", e o `data/describe`); citado pelo nome, entra; tabela sem o
+  atributo não muda. Só o `correlation_matrix` subiu de versão: nos outros
+  blocos da `multi` a mudança só alcança tabela vinda de série. Documentado: a
+  covariância usa divisor n − 1, a Σ_u do `vars` T − Kp − 1; a correlação é a
+  mesma.
+- **`series/irf`, `series/fevd`, `series/ccf`** (versão 2) — saída `tabela`
+  (`data/table`) ao lado do gráfico, do mesmo cálculo (um `vars::irf`, um
+  bootstrap). Oráculos pelo registro, porta `tabela`: `vars::irf` com a mesma
+  semente (pontos e banda) e `vars::fevd` a 1e-10; `stats::ccf` a 1e-12, com a
+  banda ±1,96/√n.
+- **`data/describe`** (novo) — n, faltantes, média, dp (divisor n − 1),
+  mediana, extremos, assimetria g1 = m3/m2^(3/2) e curtose em EXCESSO
+  g2 = m4/m2² − 3, momentos com divisor n (Joanes & Gill 1998, *The
+  Statistician* 47(1):183-189, doi:10.2307/2988433; DOI conferido no índice
+  bibliográfico do JRSS-D, artigo não lido). Oráculos: `moments::skewness` e
+  `moments::kurtosis` − 3 e o cálculo à mão, 1e-12.
+- **`models/jarque_bera`** (novo) — JB = n/6 (g1² + g2²/4), qui-quadrado com 2
+  gl (Jarque & Bera 1987, doi:10.2307/1403192). Oráculos:
+  `tseries::jarque.bera.test` e `moments::jarque.test`, 1e-12 na estatística e
+  1e-12 absoluto no p-valor (os dois fazem `1 − pchisq()`, que perde dígitos
+  relativos com p pequeno; o bloco usa a cauda superior). Aviso na nota para
+  n < 50; o limiar é convenção do bloco, não da literatura.
+- **`data/bind_rows`** (versão 2) — param `origem`: coluna com o id do nó de
+  origem de cada linha (porta `named`), para os testes empilhados de várias
+  séries. Em branco, resultado idêntico ao de antes (teste).

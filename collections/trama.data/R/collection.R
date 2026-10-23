@@ -306,6 +306,63 @@ tr_flow(reg) |>
 `data/get_dupes` para ver as linhas repetidas; `data/convert` para a coluna que
 o resumo mostrou como texto e devia ser número."),
 
+      trama::tr_node("data/describe", fn = tr_describe, label = "Descritivas", category = "inspect",
+        referencias = list(
+          trama::tr_ref(autores = c("Joanes, D. N.", "Gill, C. A."), ano = 1998,
+                        titulo = "Comparing measures of sample skewness and kurtosis",
+                        fonte = "Journal of the Royal Statistical Society, Series D (The Statistician), 47(1), 183-189",
+                        doi = "10.2307/2988433", papel = "teoria"),
+          trama::tr_ref(papel = "implementacao", pacote = "moments", funcao = "skewness",
+                        nota = "Oráculo dos testes: moments::skewness (g1) e moments::kurtosis - 3 (g2), divisor n.")),
+        description = "Uma linha por coluna numérica: n, média, desvio, mediana, extremos, assimetria e curtose.",
+        icon = trama::tr_icon("sigma"),
+        inputs = list(dados = T), outputs = list(out = T),
+        params = list(cols = trama::tr_param_col("", label = "Colunas", role = "numerica", multi = TRUE,
+                                                 suggest = FALSE, example = "Sepal.Length, Petal.Length")),
+        help = "## Descrição
+
+As descritivas de cada coluna numérica, uma linha por coluna: `coluna`, `n`
+(valores presentes), `faltantes`, `media`, `dp`, `mediana`, `minimo`, `maximo`,
+`assimetria` e `curtose_excesso`. Faltantes ficam de fora de cada conta e são
+contados à parte.
+
+Duas convenções mudam o número, e por isso ficam escritas aqui:
+
+- `dp` é o desvio-padrão amostral, com divisor n − 1 (o `sd()` do R).
+- `assimetria` e `curtose_excesso` são os coeficientes de momento g1 e g2
+  (Joanes e Gill, 1998), com divisor n: g1 = m3 / m2^(3/2) e
+  g2 = m4 / m2² − 3. A curtose é em EXCESSO: zero na normal, positiva com
+  caudas mais pesadas. São os momentos do teste de Jarque-Bera.
+
+Coluna constante sai com `assimetria` e `curtose_excesso` em branco: não há
+forma a medir (a conta seria 0/0).
+
+Em branco, **Colunas** pega todas as numéricas da tabela, menos a de índice: o
+`tempo` de uma série que chegou pelo adaptador da coleção de séries não é uma
+medida. Coluna citada que não é numérica para o nó com o nome dela.
+
+## Parâmetros
+
+- **Colunas** — colunas numéricas, separadas por vírgula. Em branco, todas.
+
+## Valor
+
+Uma tabela com dez colunas e uma linha por coluna descrita.
+
+## Exemplos
+
+```r
+tr_flow(reg) |>
+  tr_add(\"flor\", \"data/example\", dataset = \"iris\") |>
+  tr_add(\"desc\", \"data/describe\", from = \"flor\")
+```
+
+## Veja também
+
+`data/summary` para tipo, faltantes e forma de toda coluna; `data/group_summarise`
+para descritivas por grupo; `models/jarque_bera` para testar a normalidade pela
+assimetria e pela curtose."),
+
       # `get_dupes` MOSTRA as repetidas; `distinct` REMOVE. Fases diferentes do
       # trabalho, e por isso categorias diferentes: ver antes de apagar.
       trama::tr_node("data/get_dupes", fn = tr_get_dupes, label = "Duplicadas",
@@ -1324,12 +1381,15 @@ a lado; `data/get_dupes` para conferir a chave antes de juntar."),
       # Junta LADO a lado (duas portas), empilha UMA embaixo da outra (uma porta
       # variádica): a diferença entre as duas está na forma da entrada, e é ela
       # que o usuário reconhece na tela ao arrastar a terceira aresta.
-      trama::tr_node("data/bind_rows", fn = tr_bind_rows, label = "Empilhar tabelas",
+      trama::tr_node("data/bind_rows", fn = tr_bind_rows, label = "Empilhar tabelas", version = 2L,
         category = "aggregate",
         description = "Empilha várias tabelas uma embaixo da outra, casando as colunas pelo nome.",
         icon = trama::tr_icon("layers"),
-        inputs = list(tabelas = trama::tr_port(T, multiple = TRUE)),
+        # `named`: o fn recebe a lista nomeada pelos nós de origem, que é o que a
+        # coluna de `origem` escreve.
+        inputs = list(tabelas = trama::tr_port(T, multiple = TRUE, named = TRUE)),
         outputs = list(out = T),
+        params = list(origem = P("text", "", label = "Coluna de origem", example = "serie")),
         help = "## Descrição
 
 Empilha várias tabelas uma EMBAIXO da outra, casando as colunas pelo nome. É o
@@ -1354,9 +1414,24 @@ texto, calada, e a soma lá adiante deixaria de funcionar longe daqui.
 Com nenhuma tabela ligada, o nó nem chega a rodar: a porta é obrigatória e o
 fluxo aponta a entrada solta. Com uma só, o resultado é essa tabela.
 
+**Coluna de origem** diz de onde veio cada linha. Com um nome preenchido (por
+exemplo `serie`), sai uma coluna nova, na frente, com o id do nó de onde a
+linha veio — é o que separa as linhas de três testes ADF empilhados, que de
+outro modo saem iguais na forma e não dizem de qual série são. Dê aos nós de
+origem ids que se leiam (`adf_ibov`, `adf_sp500`). Se uma tabela já tem coluna
+com esse nome, o nó para dizendo isso: a tabela de um teste já tem `teste` (o
+nome do teste), por isso o exemplo é `serie`. Em branco, nenhuma coluna é
+criada.
+
+## Parâmetros
+
+- **Coluna de origem** — nome da coluna que recebe o id do nó de origem de cada
+  linha. Em branco, sem coluna.
+
 ## Valor
 
-Uma tabela com a soma das linhas das entradas, e com a união das colunas delas.
+Uma tabela com a soma das linhas das entradas, e com a união das colunas delas
+(e a coluna de origem na frente, quando pedida).
 
 ## Exemplos
 
@@ -1531,7 +1606,8 @@ Repassar é de propósito: um gravador que cortasse o fluxo obrigaria a duplicar
 o nó anterior só para continuar a análise depois de gravar.
 
 O arquivo é reescrito por inteiro a cada gravação, sem perguntar. Caminho
-relativo é resolvido a partir da pasta do projeto.
+relativo é resolvido a partir da pasta do projeto, e a pasta de destino é
+criada se não existir, com as intermediárias.
 
 O nó grava em TODA execução do fluxo, mesmo que nada tenha mudado. Isso é
 deliberado: um gravador cujo arquivo foi apagado não fez o trabalho dele, e sem
@@ -1598,9 +1674,8 @@ cadeia.
 Caminho em branco é nó desligado: não grava nada, não reclama, e a tabela
 continua passando.
 
-A pasta de destino precisa existir; se não existir, o nó para dizendo qual é.
-Cru, o R falharia com \"não é possível abrir a conexão\", sem dizer o caminho —
-que é justamente o que se precisa saber.
+A pasta de destino é criada se não existir, com as intermediárias. Se não der
+para criá-la, o nó para dizendo qual é.
 
 ## Parâmetros
 
@@ -1654,6 +1729,8 @@ isso apagar o arquivo e recalcular não o recriava. A consequência é que o que
 estiver ligado DEPOIS de um gravador recalcula sempre, porque a saída dele muda
 de chave a cada passada. Na prática, o gravador costuma ser a última caixa da
 cadeia.
+
+A pasta de destino é criada se não existir, com as intermediárias.
 
 Caminho em branco é nó desligado: não grava nada, não reclama, e a tabela
 continua passando — nem o pacote `arrow` é exigido nesse caso, porque não há

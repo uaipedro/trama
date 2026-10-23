@@ -1,0 +1,32 @@
+title: Consultoria
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    common:
+      lang: pt-BR
+      date-format: long
+      number-sections: true
+      fig-cap-location: bottom
+      tbl-cap-location: top
+      fig-align: center
+      capa: true
+    typst:
+      papersize: a4
+      fontsize: 10.5pt
+      logo:
+        location: right-top
+        width: 1.1cm
+        padding: 0.8cm 2.5cm
+      template-partials:
+        - typst-template.typ
+        - typst-show.typ
+    html:
+      toc: true
+      toc-title: Sumário
+      css: estilo.css
+      embed-resources: false
+    docx:
+      toc: false
+      reference-doc: referencia.docx

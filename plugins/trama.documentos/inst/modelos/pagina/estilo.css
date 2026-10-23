@@ -1,0 +1,5 @@
+/* Modelo Página web do trama: uma coluna, preditores que rodam no navegador. */
+main.content { max-width: 52rem; }
+table { font-variant-numeric: tabular-nums; }
+.trama { margin: 1.5rem 0; }
+.trama .cell-output pre { background: transparent; }

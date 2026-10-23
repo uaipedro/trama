@@ -105,8 +105,15 @@ tr_models_linear_hypothesis <- function(modelo, hipoteses = "", fator = "") {
     .tr_models_abort("tr_models_error_bad_option", "'%s': rótulo repetido: %s.", no,
                      paste(unique(nomes[duplicated(nomes)]), collapse = ", "))
   }
-  if (.tr_models_preenchido(fator)) .tr_models_hip_medias(modelo, linhas, nomes, fator, no)
-  else .tr_models_hip_coef(modelo, linhas, nomes, no)
+  # A ferramenta do teste no ramo que roda: nas médias, o contraste do emmeans;
+  # nos coeficientes, o do car (ou do lmerTest, no lmer). Acessórios que só
+  # montam a matriz ou leem o ajuste (makeHypothesis, fixef) não se citam.
+  ferramentas <- if (.tr_models_preenchido(fator)) "emmeans::contrast"
+    else if (modelo$classe == "lmer") "lmerTest::contest" else "car::linearHypothesis"
+  out <- if (.tr_models_preenchido(fator)) .tr_models_hip_medias(modelo, linhas, nomes, fator, no)
+         else .tr_models_hip_coef(modelo, linhas, nomes, no)
+  attr(out, "trama_ferramentas") <- ferramentas
+  out
 }
 
 #' O rótulo curto da H0 conjunta, para o card.

@@ -1,0 +1,15 @@
+trama.documentos: MIT (ver LICENSE), com as exceções abaixo.
+
+inst/modelos/ufla/abnt.csl, inst/modelos/artigo/abnt.csl
+  Estilo CSL "Associação Brasileira de Normas Técnicas (Português - Brasil)",
+  do repositório oficial de estilos CSL (Citation Style Language), sem
+  mudanças. Autores e colaboradores listados no arquivo. Licença Creative
+  Commons Attribution-ShareAlike 3.0
+  (http://creativecommons.org/licenses/by-sa/3.0/).
+
+inst/modelos/ufla/referencia.docx, inst/modelos/consultoria/referencia.docx
+  Derivados do reference.docx padrão do Pandoc (Copyright John MacFarlane,
+  GPL-2 ou superior): estilos ABNT acrescentados (UFLA) e cor dos títulos
+  trocada (Consultoria).
+
+Origem detalhada do modelo UFLA: inst/modelos/ufla/ORIGEM.md.

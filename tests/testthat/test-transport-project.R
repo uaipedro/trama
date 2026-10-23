@@ -27,7 +27,7 @@ test_that("abrir troca o projeto, manda project + document e zera o undo", {
     msgs <- list()
     session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
     tipos <- function() vapply(msgs, function(m) m$type, "")
-    log_len <- function() length(session$env$log)
+    log_len <- function() length(session$env$aberto$log)
 
     session$setInputs(tr_ready = 1)
     # Uma op aplicada para o log ter o que perder.
@@ -47,9 +47,12 @@ test_that("abrir troca o projeto, manda project + document e zera o undo", {
 })
 
 test_that("abrir com coleção faltando NÃO muda nada, e avisa nomeando-a", {
+  # Instalada, mas fora deste editor: precisa subir o trama com ela. (Coleção
+  # que nem está instalada, como uma retirada, abre: test-project.R.)
+  skip_if_not_installed("trama.data")
   p1 <- projeto_falso()
   outro <- withr::local_tempdir("q")
-  tr_project_new(file.path(outro, "t"), "trama.terrain")
+  tr_project_new(file.path(outro, "t"), "trama.data")
 
   shiny::testServer(tr_server(p1, autosave = FALSE), {
     msgs <- list()
@@ -63,7 +66,7 @@ test_that("abrir com coleção faltando NÃO muda nada, e avisa nomeando-a", {
     expect_equal(normalizePath(rv_project()$root), normalizePath(p1$root))
     avisos <- Filter(function(m) identical(m$type, "warning"), msgs)
     expect_length(avisos, 1L)
-    expect_match(avisos[[1]]$message, "trama.terrain", fixed = TRUE)
+    expect_match(avisos[[1]]$message, "trama.data", fixed = TRUE)
   })
 })
 
@@ -200,7 +203,7 @@ test_that("reabrir o projeto já aberto preserva o log de undo", {
   shiny::testServer(tr_server(p1, autosave = FALSE), {
     msgs <- list()
     session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
-    log_len <- function() length(session$env$log)
+    log_len <- function() length(session$env$aberto$log)
 
     session$setInputs(tr_ready = 1)
     session$setInputs(tr_op = op_frame(1, rv_doc()$rev))

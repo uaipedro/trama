@@ -10,10 +10,11 @@ de nó, de dado ou categoria.
 
 | Arquivo | Papel | React? | Teste |
 | --- | --- | --- | --- |
-| `runtime.js` | Contrato público: `registerRenderer`, `registerWidget`, `h`, `Segmented`, `Toggle`, `NumberField`, `Regua`, `Estrelas`, temas. | sim | indireto |
+| `runtime.js` | Contrato público: `registerRenderer`, `registerWidget`, `registerToolbarItem` (item de barra de plugin), `registerCardMenuItem` (item de plugin no menu do card), `h`, `Segmented`, `Toggle`, `NumberField`, `Regua`, `Estrelas`, temas. | sim | indireto |
 | `editor.js` | Canvas, cards, sessão (~4,6 mil linhas). Não carrega sob `node --test`. | sim | à mão |
 | `params.js` | Regras dos widgets de param. | não | `params.test.mjs` |
-| `colunas.js` | Sugestão de colunas. | não | `colunas.test.mjs` |
+| `colunas.js` | Sugestão de colunas; texto do campo de colunas <-> valor (lista continua lista). | não | `colunas.test.mjs` |
+| `deriva.js` | Aviso de versão nova (`version_drift`) e a op `accept_version`. | não | `deriva.test.mjs` |
 | `modos.js` / `modos-ui.js` | Modos do card e atalhos / peças React deles. | não / sim | `modos.test.mjs` |
 | `geometria.js` / `frames.js` | Geometria dos frames / frames na tela. | não / sim | `geometria.test.mjs` |
 | `notas.js` | Notas (markdown, imagem) no canvas. | sim | — |
@@ -27,6 +28,8 @@ de nó, de dado ou categoria.
 | `teste.js` | Regras do card de teste de hipótese. | não | `teste.test.mjs` |
 | `temas.js` / `settings.js` | Regras de temas / painel de configurações. | não / sim | `temas.test.mjs` |
 | `galeria.js` / `galeria-ui.js` | Galeria (G): regra de pertencimento, op de marca, navegação / rolo e lightbox. | não / sim | `galeria.test.mjs` |
+| `fontes.js` | Todas as origens de cada porta (o `ctx.fontes` dos widgets), com o nome da porta `named`. | não | `fontes.test.mjs` |
+| `menu-card.js` | Itens de plugin no menu de contexto do card (`registerCardMenuItem`): o que o plugin vê do card e quais itens valem. | não | `menu-card.test.mjs` |
 | `fork.js` | Bifurcar (B): planeja o ramo, gêmeos, espelhamento de params, diferenças, selo. | não | `fork.test.mjs` |
 
 Testes em `tests/js/*.test.mjs`, rodados por `Rscript tools/check.R` (ou
@@ -40,5 +43,7 @@ Testes em `tests/js/*.test.mjs`, rodados por `Rscript tools/check.R` (ou
 - Lógica com ramo vai para um módulo puro (sem React, sem `"trama"`) com teste
   em `tests/js/`; `editor.js` e módulos React só desenham.
 - Nada de domínio aqui: cards específicos de uma coleção vivem em
-  `collections/<x>/inst/trama/` (ex. `trama.sql/inst/trama/index.js`).
+  `collections/<x>/inst/trama/` (ex. `trama.sql/inst/trama/index.js`); menus
+  de plugin, em `plugins/<x>/inst/trama/`, registrados por
+  `registerToolbarItem` (ex. `trama.github/inst/trama/github.js`).
 - Mudança de interface: abra o editor (`tr_app()`) e teste o fluxo à mão.

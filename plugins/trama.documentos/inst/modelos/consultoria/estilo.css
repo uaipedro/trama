@@ -1,0 +1,6 @@
+/* Modelo Consultoria do trama: leitura de relatório, cor da marca nos títulos. */
+main.content { max-width: 52rem; }
+h1, h2, h3 { color: var(--bs-primary, #003366); }
+table { font-variant-numeric: tabular-nums; }
+.trama { margin: 1.5rem 0; }
+.callout { border-left-color: var(--bs-primary, #003366); }

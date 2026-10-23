@@ -269,45 +269,92 @@ test_that("o Quarto tem um chunk por card, seções dos frames, notas e as saíd
   expect_match(q, "sessionInfo()", fixed = TRUE)
 })
 
-test_that("referência com texto não-ASCII sem marca de encoding não derruba o Quarto", {
-  # Strings de coleção instalada podem chegar com Encoding "unknown"; a
-  # ordenação radix recusava ("Character encoding must be UTF-8, Latin-1 or
-  # bytes") e o export em Quarto falhava inteiro.
-  titulo <- "An\u00e1lise de vari\u00e2ncia"
-  Encoding(titulo) <- "unknown"
-  ref <- tr_ref(autores = "Banzatto, D. A.", ano = 2006, titulo = titulo, fonte = "Funep")
-  outra <- tr_ref(autores = "Box, G. E. P.", ano = 1964, titulo = "Transformations")
-  reg <- tr_registry()
-  tr_use(tr_collection("u", types = list(tr_type("u/num")), nodes = list(
-    tr_node("u/a", fn = function() 1, label = "A", description = "A.",
-            outputs = list(out = "u/num"), referencias = list(ref, outra))
-  )), registry = reg)
-  q <- tr_export_code(tr_flow(reg) |> tr_add("a", "u/a") |> tr_flow_doc(), reg, format = "quarto")
-  expect_match(q, "Banzatto, D. A. (2006). An\u00e1lise de vari\u00e2ncia.", fixed = TRUE)
-})
+# Roda o chunk "software" de um Quarto exportado num ambiente com as
+# variáveis dos blocos e devolve o que ele imprimiria.
+rodar_software <- function(q, vars = list()) {
+  chunk <- sub("(?s)^.*#\\| results: asis\n(.*?)\n```.*$", "\\1", q, perl = TRUE)
+  env <- list2env(vars, envir = new.env(parent = globalenv()))
+  capture.output(eval(parse(text = chunk), envir = env))
+}
 
-test_that("o Quarto exportado lista as referências dos blocos usados, sem repetir", {
-  ref <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
-                titulo = "An analysis of transformations", fonte = "JRSS B 26(2)",
-                doi = "10.1111/j.2517-6161.1964.tb00553.x")
-  impl <- tr_ref(papel = "implementacao", pacote = "stats", funcao = "lm")
+registro_software <- function() {
+  teoria <- tr_ref(autores = c("Box, G. E. P.", "Cox, D. R."), ano = 1964,
+                   titulo = "An analysis of transformations", fonte = "JRSS B 26(2)")
+  livro <- tr_ref(papel = "livro-texto", autores = "Banzatto, D. A.", ano = 2006,
+                  titulo = "Experimenta\u00e7\u00e3o agr\u00edcola")
+  impl <- function(p, f) tr_ref(papel = "implementacao", pacote = p, funcao = f)
   reg <- tr_registry()
   tr_use(tr_collection("r", types = list(tr_type("r/num")), nodes = list(
-    tr_node("r/a", fn = function() 1, label = "Bloco A", description = "A.",
-            outputs = list(out = "r/num"), referencias = list(ref, impl)),
+    tr_node("r/a", fn = function() 1, label = "Bloco A", description = "A.", outputs = list(out = "r/num"),
+            referencias = list(teoria, livro, impl("stats", "lm"))),
     tr_node("r/b", fn = function(x) x, label = "Bloco B", description = "B.",
-            inputs = list(x = "r/num"), outputs = list(out = "r/num"), referencias = list(ref))
+            inputs = list(x = "r/num"), outputs = list(out = "r/num"),
+            referencias = list(impl("car", "Anova"), impl("nlme", "anova.gls"))),
+    tr_node("r/c", fn = function(x) x, label = "Bloco \u00c7", description = "C.",
+            inputs = list(x = "r/num"), outputs = list(out = "r/num"))
   )), registry = reg)
-  doc <- tr_flow(reg) |> tr_add("a", "r/a") |> tr_add("b", "r/b", from = "a") |> tr_flow_doc()
+  reg
+}
 
+test_that("o Quarto cita as ferramentas usadas, e não o método nem o livro-texto", {
+  reg <- registro_software()
+  doc <- tr_flow(reg) |> tr_add("a", "r/a") |> tr_add("b", "r/b", from = "a") |>
+    tr_add("c", "r/c", from = "b") |> tr_flow_doc()
   q <- tr_export_code(doc, reg, format = "quarto")
-  expect_match(q, "## Referências dos métodos", fixed = TRUE)
-  expect_match(q, "Box, G. E. P.; Cox, D. R. (1964). An analysis of transformations.", fixed = TRUE)
-  expect_match(q, "<https://doi.org/10.1111/j.2517-6161.1964.tb00553.x> *(Bloco A, Bloco B)*", fixed = TRUE)
-  expect_match(q, "Pacote R `stats`, função `lm()`", fixed = TRUE)
-  expect_equal(lengths(regmatches(q, gregexpr("An analysis of transformations", q))), 1L)
-  # Fluxo sem referências não ganha seção vazia.
-  expect_no_match(tr_export_code(tr_flow(test_registry()) |> tr_add("o", "t/const", value = 2) |>
-                                   tr_flow_doc(), test_registry(), format = "quarto"),
-                  "Referências dos métodos")
+  expect_match(q, "## Software", fixed = TRUE)
+  expect_no_match(q, "Box, G. E. P.", fixed = TRUE)
+  expect_no_match(q, "Banzatto", fixed = TRUE)
+
+  # Sem registro no resultado, vale o declarado; `stats` some (é o R).
+  out <- rodar_software(q, list(bloco_a = 1, bloco_b = 1, bloco_c = 1))
+  expect_true("| Bloco B | `car::Anova()`, `nlme::anova.gls()` |" %in% out)
+  expect_false(any(grepl("Bloco A", out)))
+  expect_true(any(grepl("R Core Team", out)))
+  expect_true(any(grepl("Fox", out)))
+
+  # O resultado diz o que rodou: só isso entra, inclusive num bloco que nada
+  # declara (e rótulo não-ASCII sem marca de encoding não derruba nada).
+  b <- structure(1, trama_ferramentas = "car::Anova")
+  c_ <- structure(list(out = structure(1, trama_ferramentas = c("stats::lm", "MASS::glm.nb"))))
+  out <- rodar_software(q, list(bloco_a = 1, bloco_b = b, bloco_c = c_))
+  expect_true("| Bloco B | `car::Anova()` |" %in% out)
+  expect_true("| Bloco \u00c7 | `MASS::glm.nb()` |" %in% out)
+  expect_false(any(grepl("Pinheiro", out)))
+})
+
+test_that("no Quarto, o tema padrão escuro vira claro; o escolhido à mão fica", {
+  reg <- tr_registry()
+  tr_use(tr_collection("g", types = list(tr_type("g/num")), nodes = list(
+    tr_node("g/graf", fn = function(tema = "padrão") tema$nome, label = "Gráfico", description = "G.",
+            outputs = list(out = "g/num"), params = list(tema = tr_param_theme()))
+  )), registry = reg)
+  f <- tr_flow(reg) |> tr_add("a", "g/graf") |> tr_add("b", "g/graf", tema = "escuro")
+  q <- tr_export_code(tr_flow_doc(f), reg, format = "quarto")
+  expect_match(q, "tema_claro <- list(nome = \"claro\"", fixed = TRUE)
+  expect_match(q, "tema_escuro <- list(nome = \"escuro\"", fixed = TRUE)
+  # O script .R segue o projeto: escuro.
+  r <- tr_export_code(tr_flow_doc(f), reg, format = "r")
+  expect_no_match(r, "tema_claro", fixed = TRUE)
+  # Projeto já claro: nada muda.
+  s <- .tr_settings(list(tema_padrao = "clássico"))
+  expect_identical(.tr_export_settings_relatorio(s)$tema_padrao, "clássico")
+})
+
+test_that("report_always mostra a saída consumida, menos no meio de uma cadeia do mesmo tipo", {
+  reg <- tr_registry()
+  tr_use(tr_collection("k", types = list(
+    tr_type("k/num"),
+    tr_type("k/plano", report = function(x) paste("plano", x), report_always = TRUE)
+  ), nodes = list(
+    tr_node("k/criar", fn = function() 1, label = "Criar", description = "C.", outputs = list(out = "k/plano")),
+    tr_node("k/refinar", fn = function(p) p + 1, label = "Refinar", description = "R.",
+            inputs = list(p = "k/plano"), outputs = list(out = "k/plano")),
+    tr_node("k/usar", fn = function(p) p * 10, label = "Usar", description = "U.",
+            inputs = list(p = "k/plano"), outputs = list(out = "k/num"))
+  )), registry = reg)
+  f <- tr_flow(reg) |> tr_add("a", "k/criar") |> tr_add("b", "k/refinar", from = "a") |>
+    tr_add("c", "k/usar", from = "b")
+  q <- tr_export_code(tr_flow_doc(f), reg, format = "quarto")
+  expect_match(q, "(refinar)", fixed = TRUE)
+  expect_no_match(q, "(criar)", fixed = TRUE)
 })

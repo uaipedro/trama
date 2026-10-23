@@ -127,7 +127,7 @@ test_that("tr_undo desfaz a última op aplicada, pelo log do servidor", {
     # `testServer` avalia este bloco numa CÓPIA do ambiente do servidor: o que
     # é reativo (`rv_doc`) é referência e acompanha, mas `log` é reatribuído
     # com `<<-` no ambiente original, e só `session$env` enxerga isso.
-    log_len <- function() length(session$env$log)
+    log_len <- function() length(session$env$aberto$log)
 
     session$setInputs(tr_ready = 1)
     rev0 <- rv_doc()$rev
@@ -223,7 +223,7 @@ test_that("tr_template_insert cola como um batch e recusa arquivo fora da lista"
     session$setInputs(tr_template_insert = list(seq = 2, conteudo = txt, x = 400, y = 50))
     expect_length(rv_doc()$nodes, 6L)
     expect_length(rv_doc()$edges, 3L)
-    expect_equal(length(session$env$log), 2L)
+    expect_equal(length(session$env$aberto$log), 2L)
 
     msgs <- list()
     session$setInputs(tr_template_insert = list(seq = 3, arquivo = fora))

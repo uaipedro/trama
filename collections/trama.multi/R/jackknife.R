@@ -365,12 +365,14 @@ tr_multi_jackknife_discriminant <- function(modelo, estatistica = "correlação 
     stats::setNames(if (estatistica == "autovalores") f$autovalor else f$correlacao_canonica, f$funcao)
   }
   # Só os preditores saem dos pseudovalores: o grupo fica ao lado da influência.
-  .tr_multi_jackknife(modelo$dados, modelo$preditores, modelo,
+  tab <- .tr_multi_jackknife(modelo$dados, modelo$preditores, modelo,
                       function(d) tr_multi_discriminant(d, resposta = modelo$grupo,
                                                         preditores = .tr_multi_cols_de(modelo$preditores),
                                                         metodo = modelo$metodo, priors = modelo$priors),
                       extrair, no, tabela, confianca,
                       grupos = .tr_multi_jk_grupos(modelo$dados, grupo, no, proibida = modelo$grupo))
+  attr(tab, "trama_ferramentas") <- .tr_multi_lda_ferramenta(modelo$metodo)
+  tab
 }
 
 #' Jackknife da regressão logística.
@@ -407,6 +409,8 @@ tr_multi_jackknife_logistic <- function(modelo, estatistica = "coeficientes", ta
     cf <- .tr_multi_logit_coefs(modelo)
     tab$erro_padrao_wald <- unname(stats::setNames(cf$erro_padrao, rotulos(cf))[tab$estatistica])
   }
+  attr(tab, "trama_ferramentas") <- .tr_multi_logit_ferramenta(
+    modelo$tipo, if (is.null(modelo$metodo)) "ml" else modelo$metodo)
   tab
 }
 

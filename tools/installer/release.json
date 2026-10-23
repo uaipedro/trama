@@ -1,50 +1,52 @@
 {
-  "trama": "0.1.13",
+  "trama": "0.1.16",
   "r": "4.5.1",
   "cran_snapshot": "2026-09-20",
   "repos": [
     "https://uaipedro.r-universe.dev"
   ],
   "core": {
-    "trama": "0.5.15",
-    "trama.data": "0.4.3",
-    "trama.view": "0.2.8",
-    "trama.launcher": "0.2.2"
+    "trama": "0.5.29",
+    "trama.data": "0.4.8",
+    "trama.view": "0.2.9",
+    "trama.launcher": "0.2.4",
+    "trama.github": "0.2.2",
+    "trama.documentos": "0.5.0"
   },
   "collections": {
     "trama.experiments": {
-      "version": "0.2.7",
+      "version": "0.2.8",
       "title": "Experimentos",
       "requires": [
         "trama.models"
       ]
     },
     "trama.ml": {
-      "version": "0.5.7",
+      "version": "0.5.10",
       "title": "Aprendizado de máquina",
       "requires": [
         "trama.models"
       ]
     },
     "trama.models": {
-      "version": "0.6.6",
+      "version": "0.6.13",
       "title": "Modelos estatísticos",
       "requires": []
     },
     "trama.multi": {
-      "version": "0.3.7",
+      "version": "0.3.10",
       "title": "Análise multivariada",
       "requires": [
         "trama.models"
       ]
     },
     "trama.sampling": {
-      "version": "0.3.7",
+      "version": "0.3.9",
       "title": "Amostragem",
       "requires": []
     },
     "trama.series": {
-      "version": "0.9.0",
+      "version": "0.9.5",
       "title": "Séries temporais",
       "requires": [
         "trama.models"
@@ -62,5 +64,8 @@
         "trama.data"
       ]
     }
-  }
+  },
+  "retired": [
+    "trama.publicar"
+  ]
 }

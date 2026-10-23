@@ -34,13 +34,107 @@
   list(g = g, fatores = fatores)
 }
 
+#' O p mediano do Shapiro-Wilk em `sorteios` realizações do resíduo quantílico.
+#' @noRd
+.tr_models_qresid_p_mediano <- function(aj, sorteios) {
+  stats::median(vapply(seq_len(sorteios), function(i) stats::shapiro.test(.tr_models_qresid(aj))$p.value, 0))
+}
+
+#' Reajusta o GLM com a resposta trocada por `ys`, mesma matriz de modelo,
+#' pesos e offset. Na binomial negativa o theta é reestimado, como no original.
+#' @noRd
+.tr_models_glm_reajustar <- function(aj, ys) {
+  X <- stats::model.matrix(aj)
+  off <- stats::model.offset(stats::model.frame(aj))
+  if (is.null(off)) off <- rep(0, nrow(X))
+  w <- aj$prior.weights
+  if (is.matrix(ys)) { w <- rowSums(ys); ys <- ys[, 1] / w }
+  if (is.factor(ys)) ys <- as.integer(ys) - 1L
+  d <- list(ys = as.numeric(ys), X = X, w = w, off = off)
+  if (.tr_models_familia_glm(aj) == "negbin") {
+    MASS::glm.nb(ys ~ X - 1 + offset(off), data = d, weights = w)
+  } else {
+    stats::glm(ys ~ X - 1 + offset(off), family = stats::family(aj), data = d, weights = w)
+  }
+}
+
+#' Shapiro-Wilk nos resíduos quantílicos de um GLM, calibrado por simulação.
+#'
+#' O p mediano de vários sorteios do resíduo quantílico (Dunn & Smyth 1996)
+#' não pode ser lido contra 0,05: os p dos sorteios são dependentes, e a
+#' mediana deles se concentra perto do meio. Medido com 2000 conjuntos sob o
+#' modelo certo, rejeitava 1 a 2% numa Poisson e 0% numa binomial 0/1 a 5%.
+#' Por isso o p mediano observado é a ESTATÍSTICA, e o p-valor sai de um teste
+#' de Monte Carlo (Davison & Hinkley 1997, cap. 4): `reamostras` respostas
+#' simuladas do próprio ajuste, cada uma reajustada e com o seu p mediano;
+#' p = (1 + #{p mediano simulado <= observado}) / (reamostras + 1).
+#' @noRd
+.tr_models_shapiro_qresid <- function(modelo, no, sorteios, reamostras, semente) {
+  aj <- modelo$ajuste
+  familia <- .tr_models_familia_glm(aj)
+  if (startsWith(familia, "quasi")) {
+    .tr_models_abort("tr_models_error_not_applicable",
+                     paste0("'%s' não se aplica a %s: uma família quasi não tem distribuição, e sem ela ",
+                            "não há resíduo quantílico. Olhe o 'models/plot_diagnostics'."), no, modelo$rotulo)
+  }
+  n <- length(aj$y)
+  if (n < 3L || n > 5000L) {
+    .tr_models_abort("tr_models_error_too_few_rows",
+                     "'%s': o Shapiro-Wilk aceita de 3 a 5000 resíduos, e há %d.", no, n)
+  }
+  sorteios <- as.integer(sorteios); reamostras <- as.integer(reamostras)
+  conta <- .tr_models_com_semente(semente, {
+    obs <- .tr_models_qresid_p_mediano(aj, sorteios)
+    ys <- stats::simulate(aj, nsim = reamostras)
+    sim <- vapply(seq_len(reamostras), function(b) {
+      r <- tryCatch(suppressWarnings(.tr_models_glm_reajustar(aj, ys[[b]])), error = function(e) NULL)
+      if (is.null(r)) NA_real_ else .tr_models_qresid_p_mediano(r, sorteios)
+    }, 0)
+    list(obs = obs, sim = sim)
+  })
+  validas <- conta$sim[!is.na(conta$sim)]
+  if (length(validas) < 19L) {
+    .tr_models_abort("tr_models_error_fit",
+                     "'%s': só %d das %d simulações reajustaram; o p de Monte Carlo não sai.",
+                     no, length(validas), reamostras)
+  }
+  p <- (1 + sum(validas <= conta$obs)) / (length(validas) + 1)
+  falhas <- reamostras - length(validas)
+  t <- .tr_models_teste(
+    "Shapiro-Wilk (resíduos quantílicos)", "os resíduos quantílicos têm distribuição normal",
+    conta$obs, "p mediano", p,
+    conclusao_sim = "resíduos quantílicos não normais: o modelo não descreve a distribuição da resposta",
+    conclusao_nao = "não há evidência contra o modelo",
+    nota = .tr_models_nota(
+      sprintf("%d resíduos quantílicos randomizados de %s", n, modelo$rotulo),
+      sprintf("estatística: p mediano do Shapiro-Wilk em %d sorteios", sorteios),
+      sprintf("p-valor: Monte Carlo com %d respostas simuladas do ajuste", length(validas)),
+      if (falhas) sprintf("%d simulações não reajustaram e ficaram de fora", falhas) else ""),
+    fonte = "Dunn & Smyth (1996); Shapiro & Wilk (1965)")
+  attr(t, "trama_ferramentas") <- c("stats::shapiro.test", "stats::simulate",
+                                    if (familia == "negbin") "MASS::glm.nb")
+  t
+}
+
 #' Shapiro-Wilk nos resíduos do modelo.
+#'
+#' No GLM o teste vai para os resíduos quantílicos randomizados, com o p mediano
+#' de `sorteios` realizações calibrado por Monte Carlo (`reamostras`).
 #' @param modelo objeto `tr_models_fit`.
+#' @param sorteios GLM: quantos sorteios do resíduo quantílico; o p mediano
+#'   deles é a estatística.
+#' @param reamostras GLM: quantas respostas simuladas do ajuste calibram o
+#'   p mediano.
+#' @param .seed semente do nó (só o GLM sorteia).
 #' @return objeto `tr_models_test`.
 #' @export
-tr_models_shapiro_residuals <- function(modelo) {
+tr_models_shapiro_residuals <- function(modelo, sorteios = 11L, reamostras = 199L, .seed = 1L) {
   .tr_models_fit_conferir(modelo)
   no <- "models/shapiro_residuals"
+  if (identical(modelo$classe, "glm")) {
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    return(.tr_models_shapiro_qresid(modelo, no, sorteios, reamostras, semente))
+  }
   r <- .tr_models_residuos(modelo, no)
   n <- length(r$residuo)
   if (n < 3L || n > 5000L) {

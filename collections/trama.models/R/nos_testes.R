@@ -16,8 +16,12 @@ tr_flow(reg) |>
       referencias = .tr_models_doc("models/shapiro_residuals")$referencias,
       fn = tr_models_shapiro_residuals, label = "Normalidade dos resíduos",
       category = "modelo_pressupostos", icon = trama::tr_icon("chart-area"),
-      description = "Shapiro-Wilk nos resíduos do modelo: os erros são normais?",
+      version = 2L, stochastic = TRUE,
+      description = "Shapiro-Wilk nos resíduos do modelo: os erros são normais? No GLM, nos resíduos quantílicos randomizados, com o p mediano calibrado por simulação.",
       inputs = list(modelo = Fm), outputs = list(out = TE),
+      params = list(
+        sorteios = trama::tr_param_int(11L, min = 1L, max = 1001L, label = "Sorteios (GLM)"),
+        reamostras = trama::tr_param_int(199L, min = 19L, max = 9999L, label = "Reamostras (GLM)")),
       help = .tr_models_ajuda(r"---[
 Testa se os RESÍDUOS do modelo têm distribuição normal (Shapiro-Wilk).
 
@@ -27,7 +31,21 @@ errado. Por isso o teste é nos resíduos — para a coluna crua, `models/shapir
 
 - Parcela subdividida: resíduos do erro (b).
 - Misto: resíduos condicionais.
-- GLM: o bloco recusa. Normalidade não é pressuposto de um GLM.
+- GLM: o teste vai para os resíduos quantílicos randomizados (Dunn & Smyth
+  1996), que saem N(0, 1) quando a família e a média do modelo estão certas.
+  Aqui o teste confere o MODELO (família, ligação, preditores), e não uma
+  normalidade da resposta, que o GLM não supõe. Famílias quasi: recusa, porque
+  não têm distribuição.
+
+No GLM o resíduo é sorteado, e um sorteio só pode cair num p de sorte. O bloco
+faz **Sorteios** realizações e toma o **p mediano** do Shapiro-Wilk como
+estatística. Esse p mediano não pode ser lido contra 0,05: os sorteios são
+dependentes, e a mediana fica perto do meio (sob o modelo certo, rejeitaria
+1 a 2% das vezes numa Poisson, nunca numa binomial 0/1). Por isso o p-valor
+sai de um teste de Monte Carlo: o bloco simula **Reamostras** respostas a
+partir do próprio ajuste, reajusta cada uma, calcula o p mediano dela e conta
+quantas ficaram tão baixas quanto a observada. Com isso o teste rejeita 5%
+das vezes quando o modelo está certo. Os dois params não valem fora do GLM.
 
 Com muitas observações o teste rejeita desvios pequenos que não afetam a ANOVA;
 com poucas, não rejeita nada. Leia junto do Q-Q em `models/plot_diagnostics`.
@@ -597,6 +615,45 @@ tr_flow(reg) |>
   tr_add("sw", "models/shapiro", variavel = "weight", from = "plantas")
 ]---", r"---[
 `models/shapiro_residuals`; `view/histogram`.
+]---", teste = TRUE)),
+
+    trama::tr_node("models/jarque_bera",
+      pressupostos = .tr_models_doc("models/jarque_bera")$pressupostos,
+      referencias = .tr_models_doc("models/jarque_bera")$referencias,
+      fn = tr_models_jarque_bera, label = "Jarque-Bera",
+      category = "modelo_testes", icon = trama::tr_icon("chart-area"),
+      description = "Jarque-Bera: a assimetria e a curtose de uma coluna são as da normal?",
+      inputs = list(dados = T), outputs = list(out = TE),
+      params = list(variavel = trama::tr_param_col("", label = "Variável", role = "numerica", example = "weight")),
+      help = .tr_models_ajuda(r"---[
+Testa se os valores de UMA coluna vêm de uma distribuição normal, olhando dois
+números: a assimetria (zero na normal) e a curtose em excesso (zero na normal).
+A estatística soma os dois desvios, JB = n/6 (g1² + g2²/4), e segue uma
+qui-quadrado com 2 graus de liberdade quando n é grande.
+
+g1 e g2 são os coeficientes de momento com divisor n, os mesmos do
+`data/describe`. A nota do card traz os dois: a rejeição costuma vir de um só,
+e é ele que diz COMO a coluna foge da normal (cauda pesada é curtose; uma cauda
+mais longa que a outra é assimetria).
+
+A distribuição qui-quadrado é assintótica. Com amostra pequena o teste erra o
+nível, e o `models/shapiro` é o teste a usar; o Jarque-Bera é o de séries
+longas e de resíduos de modelos econométricos, onde n passa das centenas.
+
+Como no Shapiro-Wilk, para o pressuposto de uma ANOVA ou regressão o que
+precisa ser normal são os resíduos, não a coluna crua.
+]---", r"---[
+- **Variável** — coluna numérica.
+]---", r"---[
+Um teste (`data/test`): JB, p-valor com 2 graus de liberdade, e na nota o n, a
+assimetria e a curtose em excesso.
+]---", r"---[
+tr_flow(reg) |>
+  tr_add("carros", "models/example", dataset = "mtcars") |>
+  tr_add("jb", "models/jarque_bera", variavel = "mpg", from = "carros")
+]---", r"---[
+`models/shapiro`, o teste de normalidade para amostra pequena; `data/describe`
+para a assimetria e a curtose de várias colunas; `view/qq`.
 ]---", teste = TRUE))
   )
 }

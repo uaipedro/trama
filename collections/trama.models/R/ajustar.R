@@ -137,8 +137,10 @@ tr_models_glm <- function(dados, resposta = "", preditores = "", formula = "", f
   rotulo <- if (familia == "binomial negativa") {
     sprintf("GLM · binomial negativa (theta = %s)", .tr_models_fmt(ajuste$theta, 4L))
   } else sprintf("GLM · %s", familia)
-  .tr_models_fit_obj(ajuste, "glm", rotulo, f, p$dados, resp,
-                     descartadas = p$descartadas)
+  out <- .tr_models_fit_obj(ajuste, "glm", rotulo, f, p$dados, resp,
+                            descartadas = p$descartadas)
+  attr(out, "trama_ferramentas") <- if (familia == "binomial negativa") "MASS::glm.nb" else "stats::glm"
+  out
 }
 
 #' A fórmula de um misto: a digitada (com termo aleatório) ou a do atalho.
@@ -499,7 +501,9 @@ tr_models_anova_split_plot <- function(dados, resposta = "", parcela = "", subpa
   .tr_models_gl_residuo(ajuste, no)
   aux <- .tr_models_ajustar(.tr_models_capturar(
     lmerTest::lmer(fm(sprintf("%s ~ %s + %s * %s + (1 | %s:%s)", R, K, A, B, K, A)), data = p$dados)), no)
-  .tr_models_fit_obj(ajuste, "split", "ANOVA · parcela subdividida", f, p$dados, resp,
-                     delineamento = "split_plot", tratamentos = c(a, b), bloco = blc,
-                     aux_lm = ajuste, aux_misto = .tr_models_embutir_dados(aux$valor, p$dados), descartadas = p$descartadas)
+  out <- .tr_models_fit_obj(ajuste, "split", "ANOVA · parcela subdividida", f, p$dados, resp,
+                            delineamento = "split_plot", tratamentos = c(a, b), bloco = blc,
+                            aux_lm = ajuste, aux_misto = .tr_models_embutir_dados(aux$valor, p$dados), descartadas = p$descartadas)
+  attr(out, "trama_ferramentas") <- c("stats::lm", "lmerTest::lmer")
+  out
 }

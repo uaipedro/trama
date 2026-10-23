@@ -35,7 +35,7 @@ tr_doc <- function() {
                           "set_preview_oculto", "set_galeria",
                           "add_ramo", "remove_ramo", "ligar_ramo",
                           "add_note", "update_note", "remove_note",
-                          "add_grupo", "remove_grupo")
+                          "add_grupo", "remove_grupo", "accept_version")
 
 #' Uma op é SEMÂNTICA se não for puramente de apresentação — só ops semânticas disparam re-execução. Um `batch` é semântico se qualquer op dentro dele for.
 #' @export
@@ -153,6 +153,7 @@ tr_op_semantic <- function(op) {
     add_note = .tr_op_add_note, update_note = .tr_op_update_note,
     remove_note = .tr_op_remove_note,
     add_grupo = .tr_op_add_grupo, remove_grupo = .tr_op_remove_grupo,
+    accept_version = .tr_op_accept_version,
     connect = .tr_op_connect, disconnect = .tr_op_disconnect,
     batch = .tr_op_batch,
     rlang::abort(sprintf("Op desconhecida: '%s'.", name),
@@ -324,6 +325,43 @@ tr_doc_apply <- function(doc, op, registry = .tr_default_registry) {
   sug <- intersect(as.character(unlist(n$sugeridos)), names(n$params))
   n$sugeridos <- if (length(sug)) sug else NULL
   n
+}
+
+#' `accept_version`: grava a versão da spec em nós que subiram de versão sem
+#' migração (`tr_doc_accept_version()`, R/migrate.R). Fica entre as ops de
+#' apresentação: `type_version` não entra na chave de cache, então aceitar não
+#' recomputa nada. Recusa, em vez de ignorar, nó já atual, mais novo que a spec
+#' ou com migração pendente: aceitar às cegas esconderia exatamente o caso em
+#' que o aviso importa.
+#' @noRd
+.tr_op_accept_version <- function(doc, op, registry) {
+  .tr_require(op, "nodes")
+  ids <- unlist(op$nodes)
+  if (!is.character(ids) || !length(ids) || anyNA(ids)) {
+    rlang::abort("'nodes' deve ser uma lista de ids de nó.", class = "tr_error_bad_op")
+  }
+  ids <- unique(ids)
+  for (id in ids) {
+    n <- .tr_node_or_abort(doc, id)
+    spec <- tr_get_node(n$type, registry)
+    de <- as.integer(n$type_version %||% spec$version)
+    if (is.na(de) || de == spec$version) {
+      rlang::abort(sprintf("Nó '%s' já está na versão %d de '%s'.", id, spec$version, n$type),
+                   class = "tr_error_bad_op")
+    }
+    if (de > spec$version) {
+      rlang::abort(sprintf(paste("Nó '%s' foi salvo na versão %d de '%s', mais nova que a instalada (%d):",
+                                 "atualize a coleção em vez de aceitar."), id, de, n$type, spec$version),
+                   class = "tr_error_bad_op")
+    }
+    if (.tr_migracao_pendente(spec, de)) {
+      rlang::abort(sprintf("Nó '%s' tem migração pendente de v%d para v%d; ela roda ao abrir o fluxo.",
+                           id, de, spec$version), class = "tr_error_bad_op")
+    }
+    doc$nodes[[id]]$type_version <- spec$version
+  }
+  op$nodes <- ids
+  list(doc = doc, op = op)
 }
 
 .tr_op_set_seed <- function(doc, op, registry) {

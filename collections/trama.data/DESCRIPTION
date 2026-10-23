@@ -1,6 +1,6 @@
 Package: trama.data
 Title: Data Wrangling Collection for trama
-Version: 0.4.4
+Version: 0.4.8
 Authors@R: c(
     person("Pedro", "Mambelli Fernandes", , "pedromambelli@gmail.com",
            role = c("aut", "cre"),
@@ -14,7 +14,7 @@ Description: Nodes for loading, reshaping and summarising tabular data in a
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-    trama (>= 0.5.10),
+    trama (>= 0.5.18),
     janitor,
     dplyr (>= 1.1.0),
     readr,
@@ -28,6 +28,7 @@ Imports:
 Suggests:
     testthat (>= 3.0.0),
     arrow,
+    moments,
     readxl
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3

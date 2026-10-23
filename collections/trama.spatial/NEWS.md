@@ -78,8 +78,13 @@ patamar, em que menor é mais forte); `ID_COL` casa demais no JS; a detecção d
 coordenada em grau só funciona com CRS declarado; a guarda de contenção na borda
 é cega abaixo de ~2000 unidades de coordenada.
 
+# trama.spatial 0.1.2
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
 # trama.spatial 0.1.1
 
+* Relatório Quarto: o ajuste do variograma registra `gstat::fit.variogram` e a krigagem, `gstat::krige` (atributo `trama_ferramentas`), no lugar do `gstat::variogram` declarado para a coleção.
 * Relatório Quarto exportado: `spatial/points` (resumo e quartis), `spatial/variogram` (tabela por classe), `spatial/model` (parâmetros) e `spatial/surface` (o mapa do predito) ganham `report` — tabelas em Markdown no lugar do `print` cru da lista. Pede `trama.data (>= 0.4.4)`.
 
 # trama.spatial 0.1.0

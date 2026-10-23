@@ -70,7 +70,15 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "origem",
+        "kind": "text",
+        "label": "Coluna de origem",
+        "default": "",
+        "example": "serie"
+      }
+    ],
     "icon": "layers"
   },
   "data/clean_names": {
@@ -161,6 +169,44 @@
       }
     ],
     "icon": "arrow-right-left"
+  },
+  "data/describe": {
+    "accent": "#75539b",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Descritivas",
+    "category": "inspect",
+    "categoryLabel": "Conhecer",
+    "categoryOrder": 2,
+    "inputColor": "#38bdf8",
+    "outputColor": "#38bdf8",
+    "role": "inspecao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "cols",
+        "kind": "cols",
+        "label": "Colunas",
+        "default": "",
+        "example": "Sepal.Length, Petal.Length"
+      }
+    ],
+    "icon": "sigma"
   },
   "data/distinct": {
     "accent": "#976523",
@@ -5147,6 +5193,44 @@
     ],
     "icon": "microscope"
   },
+  "models/jarque_bera": {
+    "accent": "#8b3a62",
+    "hasInput": true,
+    "hasOutput": true,
+    "label": "Jarque-Bera",
+    "category": "modelo_testes",
+    "categoryLabel": "Testes",
+    "categoryOrder": 21,
+    "inputColor": "#38bdf8",
+    "outputColor": "#ef4444",
+    "role": "avaliacao",
+    "inputs": [
+      {
+        "name": "dados",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "color": "#ef4444",
+        "required": true,
+        "multiple": false
+      }
+    ],
+    "params": [
+      {
+        "name": "variavel",
+        "kind": "cols",
+        "label": "Variável",
+        "default": "",
+        "example": "weight"
+      }
+    ],
+    "icon": "chart-area"
+  },
   "models/kruskal": {
     "accent": "#8b3a62",
     "hasInput": true,
@@ -6777,7 +6861,20 @@
         "multiple": false
       }
     ],
-    "params": [],
+    "params": [
+      {
+        "name": "sorteios",
+        "kind": "integer",
+        "label": "Sorteios (GLM)",
+        "default": 11
+      },
+      {
+        "name": "reamostras",
+        "kind": "integer",
+        "label": "Reamostras (GLM)",
+        "default": 199
+      }
+    ],
     "icon": "chart-area"
   },
   "models/t_test": {
@@ -11114,6 +11211,12 @@
         "color": "#f472b6",
         "required": true,
         "multiple": false
+      },
+      {
+        "name": "tabela",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
       }
     ],
     "params": [
@@ -11721,6 +11824,12 @@
         "color": "#f472b6",
         "required": true,
         "multiple": false
+      },
+      {
+        "name": "tabela",
+        "color": "#38bdf8",
+        "required": true,
+        "multiple": false
       }
     ],
     "params": [
@@ -11991,7 +12100,7 @@
         "kind": "enum",
         "label": "Método",
         "default": "wald",
-        "choices": ["wald", "toda_yamamoto"]
+        "choices": ["wald", "toda_yamamoto", "instantanea"]
       }
     ],
     "icon": "arrow-right-left"
@@ -12164,6 +12273,12 @@
       {
         "name": "out",
         "color": "#f472b6",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "name": "tabela",
+        "color": "#38bdf8",
         "required": true,
         "multiple": false
       }

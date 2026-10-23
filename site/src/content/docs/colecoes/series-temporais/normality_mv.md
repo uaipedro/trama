@@ -24,6 +24,14 @@ pela curtose, e a assimetria pode estar em ordem.
 Rejeitar não invalida a estimação por mínimos quadrados, mas invalida os
 intervalos e testes baseados na normalidade (em amostra pequena, sobretudo).
 
+### O resultado DEPENDE DA ORDEM das séries
+Antes de medir assimetria e curtose, os resíduos são padronizados pela
+decomposição de Cholesky da covariância deles, e essa padronização muda com a
+ordem das séries no modelo. Trocar a ordem no `series/join` dá outra
+estatística e outro p-valor, com os mesmos resíduos. É assim no teste (a ajuda
+do `vars` avisa o mesmo), não um defeito do bloco. Se a conclusão estiver
+perto do limite, refaça com outra ordem antes de concluir.
+
 ## Parâmetros
 
 Este bloco não tem parâmetros.

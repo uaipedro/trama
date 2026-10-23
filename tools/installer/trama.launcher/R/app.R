@@ -392,9 +392,10 @@ tl_server <- function(input, output, session) {
       shiny::showNotification("Pasta não encontrada.", type = "error")
       return(invisible(NULL))
     }
-    faltando <- tl_project_missing_collections(caminho, tl_lib_dir(tl_state_read()$atual))
+    m <- manifesto()
+    faltando <- tl_project_missing_collections(caminho, tl_lib_dir(tl_state_read()$atual),
+                                               retiradas = tl_retired_collections(m))
     if (length(faltando)) {
-      m <- manifesto()
       disponiveis <- if (is.null(m)) character(0) else names(m$collections)
       session$sendCustomMessage("tl-projeto-faltando", list(
         caminho = caminho, nome = basename(caminho),
@@ -413,7 +414,8 @@ tl_server <- function(input, output, session) {
 
   shiny::observeEvent(input$tl_instalar_e_abrir_projeto, {
     caminho <- input$tl_instalar_e_abrir_projeto
-    faltando <- tl_project_missing_collections(caminho, tl_lib_dir(tl_state_read()$atual))
+    faltando <- tl_project_missing_collections(caminho, tl_lib_dir(tl_state_read()$atual),
+                                               retiradas = tl_retired_collections(manifesto()))
     rodar_acao("Instalando…", function(progresso) {
       instalar_faltando(faltando, progresso)
       progresso("Abrindo…")

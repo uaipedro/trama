@@ -41,11 +41,12 @@ tr_app <- function(project = tr_project("."), flow = "main",
     if (ok) shiny::onStop(tr_control_stop)
   }
 
-  server <- tr_server(project, flow, executor)
+  plugins <- tr_plugins()
+  server <- tr_server(project, flow, executor, plugins = plugins)
   if (isTRUE(getOption("trama.encerrar_ao_fechar", FALSE))) {
     server <- .tr_encerrar_ao_fechar(server)
   }
-  do.call(shiny::shinyApp, c(list(ui = tr_ui(project), server = server), dots))
+  do.call(shiny::shinyApp, c(list(ui = tr_ui(project, plugins), server = server), dots))
 }
 
 #' Embrulha o server para o processo encerrar quando a última janela fecha.
@@ -97,8 +98,10 @@ tr_port_free <- function(port, tentativas = 20L) {
 }
 
 #' Monta a UI Shiny do editor: importmap, dependências e o `<div>` onde o React monta.
+#' @param plugins Plugins do editor (ver [tr_plugins()]); `tr_app()`
+#'   passa as instaladas.
 #' @export
-tr_ui <- function(project) {
+tr_ui <- function(project, plugins = list()) {
   # Previews com arquivo (imagem, etc.) são servidos direto do store — o
   # handle carrega caminho RELATIVO, e é aqui que ele vira URL.
   shiny::addResourcePath("trama-store", project$store$root)
@@ -133,6 +136,9 @@ tr_ui <- function(project) {
   for (id in names(project$registry$collections)) {
     deps <- c(deps, tr_dependency_collection(project$registry, id))
   }
+  # Plugins depois das coleções: o JS deles registra no runtime como o de
+  # coleção, e o editor (o último) já encontra tudo registrado.
+  deps <- c(deps, .tr_plugin_deps(plugins))
 
   htmltools::tagList(
     htmltools::tags$head(
@@ -264,7 +270,12 @@ tr_dependency_core <- function(ver = as.character(utils::packageVersion("trama")
 #' própria — o mesmo silêncio de antes pro js: coleção de globalenv (sem
 #' pacote) ou instalada sem o `inst/` não derruba o app.
 tr_dependency_collection <- function(registry, id) {
-  info <- registry$collections[[id]]
+  .tr_dependency_assets(registry$collections[[id]], id)
+}
+
+# `info` tem `package`, `version`, `js` e `css` (caminhos dentro de `inst/`):
+# o registro de uma coleção ou a lista de um plugin (`tr_plugins()`).
+.tr_dependency_assets <- function(info, id) {
   if (is.null(info$package)) return(list())
   assets <- Filter(Negate(is.null), list(js = info$js, css = info$css))
   dirs <- vapply(assets, function(p) system.file(dirname(p), package = info$package), "")

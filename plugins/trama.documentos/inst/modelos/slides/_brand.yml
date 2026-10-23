@@ -1,0 +1,16 @@
+meta:
+  name: trama — Slides
+color:
+  palette:
+    petroleo: "#0f766e"
+    grafite: "#1f2937"
+  primary: petroleo
+  foreground: grafite
+  background: "#ffffff"
+typography:
+  base:
+    family: Inter
+    size: 26px
+  headings:
+    family: Inter
+    weight: 700

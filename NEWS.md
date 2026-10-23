@@ -1,3 +1,71 @@
+# trama 0.5.29
+
+* Duas abas no mesmo editor deixam de perder edições uma da outra. Cada aba guardava o próprio documento: a edição de uma não chegava à outra, e o autosave da outra regravava o documento velho por cima. Com o agente era pior: o canal de controle fala com a última aba aberta, e quando ela fechava (um print com Chrome headless, por exemplo) a edição seguinte caía na aba antiga e apagava do disco o que tinha sido feito na nova. Agora o documento e o histórico de desfazer são um por projeto e fluxo no processo (`.tr_abertos`, em `R/session.R`): a mudança de uma aba vai para as outras na hora, que redesenham e rodam de novo, e o Ctrl+Z de qualquer aba desfaz a última op, venha de onde vier. Restaurar o projeto do disco com outra aba aberta relê para todas.
+
+# trama 0.5.28
+
+* Plugins podem pôr um selo no cabeçalho de um card, por id de nó: `registerCardBadge(id, { selo: (card) => ({ icone, titulo, acao }) | null })` e `refreshCardBadges()` quando o que o plugin sabe muda (`inst/www/selo-card.js`). O núcleo desenha o selo (ícone do conjunto, discreto, fora do modo mini) e não sabe o que ele significa; o "está num documento" do `trama.documentos` é o primeiro uso (#37).
+* `editorAction("cards", cb)` entrega a um plugin os cards do fluxo na tela, cada um como no menu do card; `infoDoCard()` passa a levar o ícone do bloco (`icone`).
+
+# trama 0.5.27
+
+* Narrativa pelo agente (#19): o MCP e o `trama-agente` organizam o fluxo com os frames, notas e grupos do editor, sempre como ops comuns e um passo de desfazer por gesto. Tools novas `frame` (criar com título e blocos, editar título/cor/ordem/tamanho, pôr, tirar, remover), `nota` (Markdown abrindo um frame ou presa a um bloco, que anda junto), `posicionar` (como o arrasto: frame leva o conteúdo, grupo anda junto), `organizar` (layout por etapas: um frame por coluna na ordem, ramo principal em cima, diagnósticos e gráficos embaixo, irmãos empilhados) e `guia`; `adicionar` ganha `frame`. No CLI: `frame`, `note`, `move`, `layout`, `guide` e `add --frame`. O `state` traz a posição dos nós, os frames com o que têm dentro e as notas. Cálculo em `R/layout.R`, sem DOM: o editor manda as medidas dos cards (`tr_medidas`), e frame que cresce abre espaço em vez de engolir o vizinho.
+* Orientações de narrativa servidas pelo próprio servidor: resumo nas `instructions` do MCP, inteiras na tool `guia` e em `trama-agente guide` (perguntas, um frame numerado por etapa, nota de abertura e notas nos resultados-chave com o número vindo do bloco, conclusão, depois `organizar`).
+* Renomear o rótulo de um bloco pelo agente (#33): tool `renomear` e `trama-agente rename <no> <rótulo>`.
+
+# trama 0.5.26
+
+* `tr_sem_acento(x)` (nova, exportada): tira o acento com um mapa explícito do português e do Latin-1 e descarta o resto que não é ASCII. Substitui `iconv(x, to = "ASCII//TRANSLIT")`, cuja transliteração muda de sistema para sistema: no macOS o slug de "Ação & Reação!" saía "ac-ao-reac-ao", o de "Soma Básica" saía "soma-b-asica" e a busca do "+" não achava "Regressão" por "regressao". Os slugs de template, galeria e exportação e a busca aproximada passam por ela; coleções e plugins também.
+* Diálogo de pastas no Windows: na raiz do disco (`D:\`) não aparece mais um ".." que recarregava a mesma pasta. `normalizePath()` devolve barra invertida e `dirname()` barra normal, e a comparação crua nunca casava.
+* Testes: `test-pool.R` pula quando a fonte do pacote não está disponível (dentro do `R CMD check`), em vez de falhar no daemon.
+
+# trama 0.5.25
+
+* `tr_project()` e `tr_project_at()` abrem o projeto mesmo quando uma coleção do `trama.json` não está instalada: avisam e seguem, e os blocos dela aparecem como desconhecidos. Antes o projeto não abria, e nada que migra um projeto velho chegava a rodar — é o caso do `trama.publicar`, retirado: o `trama.documentos` migra o nó `publicar/publish` para um documento ao abrir o projeto (#25). Coleção instalada e quebrada continua dando erro, e `tr_project_at()` continua recusando coleção instalada que o editor não carregou.
+
+# trama 0.5.24
+
+* Aceitar versão nova (#32): bloco que subiu de versão sem renomear param não tem migração, e o fluxo guardava a `type_version` velha, com `version_drift` a cada abertura. A op `accept_version` (`nodes`) grava a versão da spec, só se for menor e sem migração pendente; não recomputa e entra no desfazer. Em R, `tr_doc_accept_version(doc, nodes = NULL)`; no agente, `trama-agente accept [no]...` e a tool `aceitar_versao` do MCP. O `version_drift` de `tr_doc_validate()` ganha `aceitavel`. No editor, o aviso sai do banner genérico: fica abaixo da barra, lista os blocos (o nome leva ao card), com "aceitar" por bloco e "aceitar todos", e só some por aceite.
+* Campo de colunas (#32): mostra lista como "a, b" e grava na forma do valor atual, então lista continua lista; sair do campo sem editar não manda op. Antes gravava `String(lista)` ("ibv,sp") em qualquer blur, e o fluxo aberto no editor saía com o param trocado.
+* Prévia de bases: 4 significativos sem arredondar a parte inteira (11887 não vira 11890).
+
+# trama 0.5.23
+
+* Plugins: `registerCardMenuItem(id, def)` no `runtime.js` acrescenta itens ao menu de contexto de um card (o plugin recebe `{id, tipo, rotulo, saidas, estado}` do card, de `inst/www/menu-card.js`); o `ctx` do server ganha `doc()`, `fluxo()` e `servir(pasta, nome)`. É o gancho do "Inserir no documento" do `trama.documentos` (#23).
+
+# trama 0.5.22
+
+* Projeto novo pelo MCP (e o registro do `trama-agente` sem `--colecoes`) lista só coleções de verdade: pacote `trama.*` que exporta `trama_collection()` e não é plugin. Antes entrava todo `trama.*` instalado, inclusive o plugin `trama.github` e o launcher, e o editor caía ao abrir (#18).
+
+# trama 0.5.21
+
+* Plugins: o `ctx` do server ganha `recarregar()`, que relê do disco o projeto aberto (fluxo, temas, execução) como ao abri-lo; serve a quem muda arquivos do projeto por fora, como restaurar uma versão no `trama.github`. No `runtime.js`, `editorAction("irAoBloco", id)` deixa um plugin levar a tela a um bloco (`setEditorActions` é do editor).
+
+# trama 0.5.20
+
+* Extensões do editor viram **plugins**: `tr_extensions()` passa a `tr_plugins()` (e `R/plugin.R`), o campo do DESCRIPTION a `Config/trama/plugin: true`, a função do contrato a `trama_plugin()`, a opção a `options(trama.plugins = )` e o argumento `extensions` de `tr_ui()`/`tr_server()` a `plugins`. A pasta dos plugins no repositório é `plugins/` (era `apoio/`). Sem alias: a API entrou na 0.5.17 e não está no CRAN.
+
+# trama 0.5.19
+
+* `tr_project_config(root, chave)` e `tr_project_config_set(root, chave, valor)`: chave própria de uma coleção ou plugin no `trama.json` (configuração do projeto, que não vai no fluxo nem no que se publica). As chaves do núcleo são recusadas; a gravação é atômica e mexe só na chave pedida. O `trama.publicar` guarda ali as publicações do projeto.
+* Ação de card: o `ctx` ganha `no()`, o id do nó dono do resultado (pelo plano).
+
+# trama 0.5.18
+
+* `tr_port(named = TRUE)`: numa porta múltipla, a lista chega ao `fn` nomeada pelo id do nó de origem (`nó.saída` quando o mesmo nó liga duas saídas), e os ids entram na chave de cache. Fora de região de fluxo.
+* Ações de card: `tr_type(acoes = list(nome = function(valor, ctx)))`. O editor pede a ação sobre o resultado gravado (`pedirAcao(handle, nome)` no runtime.js, canal `tr_acao`), fora da execução do fluxo; `ctx` traz o documento, o projeto, o store, `servir(dir, nome)` (serve uma pasta pelo próprio editor) e `responder()` para resposta em segundo plano. É o que o `trama.publicar` usa para a prévia.
+* O `ctx` dos widgets de param ganha `fontes`: por porta, todas as origens ligadas (nó, saída, rótulo, tipo, handle), na ordem do `index`.
+
+# trama 0.5.17
+
+* Extensões do editor: pacote de apoio `trama.*` com `Config/trama/extension: true` e uma função `trama_extension()` (JS, CSS e server) entra no editor sem ser coleção e sem constar no `trama.json`. `tr_extensions()` acha as instaladas, `tr_ui(extensions =)` e `tr_server(extensions =)` as ligam e `options(trama.extensions = character())` desliga. No `runtime.js`, `registerToolbarItem(id, Componente)` põe um item na barra de ferramentas. O primeiro uso é o menu GitHub do `trama.github`.
+
+# trama 0.5.16
+
+* Relatório Quarto: gráfico no tema "padrão" sai num tema claro quando o padrão do projeto é escuro (o primeiro claro do projeto, ou o `claro` embutido). Tema escolhido no card e script `.R` não mudam.
+* `tr_type(report_always = TRUE)`: a saída aparece no relatório mesmo consumida por um fio, salvo quando quem consome devolve o mesmo tipo (numa cadeia, só o último elo aparece).
+* Relatório Quarto: "Referências dos métodos" vira "Software". O documento cita as ferramentas, não o método nem o livro-texto: uma tabela bloco → `pacote::função()` (das `tr_ref` de implementação) e um chunk que cita o R e cada pacote com `citation()` na hora de renderizar. O que cada bloco usou vem do resultado (atributo `trama_ferramentas`, posto pela coleção no ramo que rodou) ou, sem ele, do que o bloco declara; a tabela só mostra ferramentas de fora da base do R e do trama. As referências de teoria, livro-texto e complementares continuam na ajuda do bloco.
+
 # trama 0.5.15
 
 * Galeria: sem marca, só entram sozinhos os blocos de visualização, que declaram `tr_node(galeria = TRUE)`. Gráfico de outro bloco (diagnóstico de modelo, coeficientes…) entra só marcado com ☆ ou Shift+G. Antes, todo preview de imagem entrava, e o rolo enchia.

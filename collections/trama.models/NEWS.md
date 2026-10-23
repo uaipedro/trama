@@ -1,5 +1,35 @@
+# trama.models 0.6.13
+
+* Pede `trama.data (>= 0.4.5)`: a ajuda de `models/jarque_bera` e `models/shapiro` aponta para `data/describe`, que entrou nessa versão. Com o `trama.data` 0.4.4 a referência cruzada ficava órfã e o teste do catálogo falhava.
+* Documentação: o `%` do param `k` de `tr_models_waller_duncan()` passa a `\%`; sem o escape, o Rd era inválido (sem `\value` nem `\description`) e o `R CMD check` avisava.
+
+# trama.models 0.6.12
+
+* Templates regenerados com o formato atual do documento (campos `galeria` e `ramos` da interface).
+
+# trama.models 0.6.11
+
+* `models/jarque_bera` (novo), ao lado do `models/shapiro`: Jarque-Bera numa coluna, com n, assimetria e curtose em excesso na nota. Conferido contra `tseries::jarque.bera.test` e `moments::jarque.test`, 1e-12.
+
+# trama.models 0.6.10
+
+* `tr_models_strip(x)` no contrato de `models/fit`: o modelo sem os dados de treino, para publicar. Responde a `tr_models_info()` e prevê o ponto com `tr_models_predict_raw()`; intervalo é recusado. Métodos para `lm` e `glm` (inclui binomial negativa); classe sem método recusa com `tr_models_error_no_method`, sem default. Modelo que não existe sem parte do treino sai com a marca `dados_treino` (texto do que sobra).
+* `tr_models_web(x)` no contrato (opcional, default `NULL`): o modelo descrito para prever no navegador (WebR) — motor reduzido, pacotes com as versões do treino, entradas com faixa por `pretty()`, saída e o código R de `prever`. Métodos para `lm` e `glm`; `tr_models_web_entradas()` para as irmãs.
+* `tr_models_strip_stats(aj)`: reduz um `lm`/`glm` do stats ao que o `predict()` lê com `newdata`, para as coleções irmãs.
+
+# trama.models 0.6.9
+
+* `models/shapiro_residuals` (versão 2): no GLM, em vez de recusar, testa os resíduos quantílicos randomizados. A estatística é o p mediano do Shapiro-Wilk em **Sorteios** realizações (param `sorteios`, padrão 11), e o p-valor sai de um teste de Monte Carlo com **Reamostras** respostas simuladas do ajuste (`reamostras`, padrão 199): o p mediano cru, lido contra 0,05, rejeitava 0 a 2% sob o modelo certo. Famílias quasi seguem recusadas.
+* Resíduo quantílico finito na cauda de cima (complementar com `lower.tail = FALSE`), onde o `statmod::qresid` dá `Inf`. Onde o statmod é finito, o valor não muda.
+
+# trama.models 0.6.8
+
+* `models/residuals` (versão 2): no GLM sai também `residuo_quantilico`, o resíduo quantílico normalizado randomizado de Dunn & Smyth (1996), N(0, 1) sob o modelo certo mesmo com resposta 0/1 ou contagens baixas. Binomial, Poisson, binomial negativa, gama e gaussiana; `NA` nas quasi. O sorteio usa a semente do card. Validado contra `statmod::qresid` (tolerância 1e-10).
+
 # trama.models 0.6.7
 
+* Relatório Quarto: os blocos cuja ferramenta depende da corrida registram no resultado a que rodou (atributo `trama_ferramentas`): `anova_table` (`stats::anova`, `car::Anova` ou `nlme::anova.gls`), `glm` (`MASS::glm.nb` só na binomial negativa), `linear_hypothesis`, `permutation`, `coefficients` (VIF do `car`, intervalos do `nlme`), `select`, `bootstrap`, `anova_split_plot` e `example`. A referência de implementação do `coin` saiu do `permutation`: ele é só oráculo dos testes.
+* `models/emm` aparece no relatório mesmo consumido (`report_always`). Pede `trama (>= 0.5.16)`.
 * Relatório Quarto exportado: `models/fit`, `models/effects` e `models/emm` ganham `report`. O quadro da ANOVA, dos coeficientes e das comparações sai como tabela com cabeçalho de livro (FV, GL, Pr > F), rodapé (CV, média, n) e fonte; o modelo, com fórmula, medidas de ajuste, teste global e o quadro de efeitos; as médias, com as letras. Pede `trama.data (>= 0.4.4)`.
 
 # trama.models 0.6.6

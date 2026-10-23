@@ -136,7 +136,10 @@ tr_models_bootstrap <- function(modelo, quantidade = "coeficientes", especs = ""
                   subtitle = sprintf("B = %d; linha cheia = estimativa, tracejadas = IC percentil %g%%", nrow(obj$t), 100 * confianca))
   out <- trama.view::tr_view_finish(out, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
   distribuicao$quantidade <- as.character(distribuicao$quantidade)
-  list(out = out, tabela = tabela, distribuicao = distribuicao)
+  structure(list(out = out, tabela = tabela, distribuicao = distribuicao),
+            trama_ferramentas = c("boot::boot", "boot::boot.ci",
+                                  if (quantidade != "coeficientes") "emmeans::emmeans",
+                                  if (descartadas > 0L) "boot::empinf"))
 }
 
 #' Valores a menos de 1e-9 (relativo) da estimativa viram a estimativa.

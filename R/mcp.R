@@ -114,7 +114,11 @@ tr_mcp <- function(projeto = ".", entrada = file("stdin"), saida = stdout()) {
   "'ajustar' para mudar params; 'resultado' para ler o que o bloco produziu (gr\u00e1ficos v\u00eam como imagem).",
   "Toda edi\u00e7\u00e3o devolve 'efeito': o status do que mudou e de tudo abaixo; n\u00f3 'blocked' traz 'causa'.",
   "Comece por um bloco de dados (busque 'exemplo' ou 'ler'). Os n\u00fameros v\u00eam do R: n\u00e3o calcule nem invente resultado,",
-  "leia com 'resultado'. Se faltar uma cole\u00e7\u00e3o, diga \u00e0 pessoa o comando de instala\u00e7\u00e3o; n\u00e3o instale sozinho.")
+  "leia com 'resultado'. Se faltar uma cole\u00e7\u00e3o, diga \u00e0 pessoa o comando de instala\u00e7\u00e3o; n\u00e3o instale sozinho.",
+  "Conte a an\u00e1lise como narrativa (leia 'guia' antes de montar): um 'frame' por etapa, com t\u00edtulo numerado;",
+  "'adicionar' com 'frame' p\u00f5e o bloco na etapa; uma 'nota' Markdown abre cada frame (o que se testa e por qu\u00ea)",
+  "e outra fica presa aos resultados-chave (o n\u00famero vem de 'resultado'); r\u00f3tulos claros com 'renomear';",
+  "um frame de conclus\u00e3o no fim; depois 'organizar' (etapas da esquerda para a direita, diagn\u00f3sticos abaixo) e ajustes com 'posicionar'.")
 
 # Tools -------------------------------------------------------------------
 
@@ -170,10 +174,11 @@ tr_mcp <- function(projeto = ".", entrada = file("stdin"), saida = stdout()) {
          de = list(type = "array", items = list(type = "string"),
                    description = "N\u00f3s de origem, 'no' ou 'no:porta', na ordem das entradas."),
          rotulo = .tr_mcp_str("R\u00f3tulo mostrado no card (opcional)."),
+         frame = .tr_mcp_str("Frame (etapa) onde o bloco entra (opcional): o frame se rearruma para caber."),
          params = .tr_mcp_params_schema, espera = .tr_mcp_espera_schema), "tipo"),
        annotations = .tr_mcp_editar, editor = TRUE,
        cmd = function(x) list(cmd = "add", pos = c(x$tipo, .tr_mcp_kv(x$params)),
-                              opt = Filter(Negate(is.null), list(id = x$id, label = x$rotulo,
+                              opt = Filter(Negate(is.null), list(id = x$id, label = x$rotulo, frame = x$frame,
                                                                  from = as.character(unlist(x$de)),
                                                                  wait = x$espera %||% 30)))),
   list(name = "ajustar", title = "Ajustar params",
@@ -205,6 +210,101 @@ tr_mcp <- function(projeto = ".", entrada = file("stdin"), saida = stdout()) {
        inputSchema = .tr_mcp_obj(), annotations = utils::modifyList(.tr_mcp_editar, list(destructiveHint = TRUE)),
        editor = TRUE,
        cmd = function(x) list(cmd = "undo", pos = character(), opt = list(wait = 30))),
+  list(name = "aceitar_versao", title = "Aceitar vers\u00e3o nova",
+       description = paste("Bloco que subiu de vers\u00e3o desde que o fluxo foi salvo aparece em 'estado' como problema 'version_drift':",
+                           "o resultado pode ter mudado. Depois de conferir, aceitar grava a vers\u00e3o nova e o aviso some.",
+                           "N\u00e3o muda params nem resultado; 'desfazer' volta o aviso."),
+       inputSchema = .tr_mcp_obj(list(nos = list(type = "array", items = list(type = "string"),
+                                                 description = "Ids dos n\u00f3s; vazio aceita todos em version_drift."))),
+       annotations = .tr_mcp_editar, editor = TRUE,
+       cmd = function(x) list(cmd = "accept", pos = as.character(unlist(x$nos)), opt = list(wait = 0))),
+  list(name = "renomear", title = "Renomear bloco",
+       description = "Muda o r\u00f3tulo mostrado no card (e usado como legenda no documento). N\u00e3o muda o id nem o resultado.",
+       inputSchema = .tr_mcp_obj(list(no = .tr_mcp_str("Id do n\u00f3."), rotulo = .tr_mcp_str("R\u00f3tulo novo.")),
+                                 c("no", "rotulo")),
+       annotations = .tr_mcp_editar, editor = TRUE,
+       cmd = function(x) list(cmd = "rename", pos = c(x$no, x$rotulo), opt = list())),
+  list(name = "posicionar", title = "Posicionar",
+       description = paste("Move blocos, frames ou notas como o arrasto do editor: frame leva o que tem dentro,",
+                           "quem est\u00e1 num grupo leva o grupo (nota presa vai junto). Posi\u00e7\u00e3o absoluta com 'itens',",
+                           "ou desloca 'ids' por 'dx'/'dy'. Coordenadas do canvas: x para a direita, y para baixo; 'estado' traz as atuais."),
+       inputSchema = .tr_mcp_obj(list(
+         itens = list(type = "array", description = "Posi\u00e7\u00f5es absolutas, canto de cima \u00e0 esquerda.",
+                      items = list(type = "object", additionalProperties = FALSE, required = list("id", "x", "y"),
+                                   properties = list(id = .tr_mcp_str("Id do bloco, frame ou nota."),
+                                                     x = list(type = "number"), y = list(type = "number")))),
+         ids = list(type = "array", items = list(type = "string"), description = "Itens que andam juntos por dx/dy."),
+         dx = list(type = "number", description = "Deslocamento horizontal."),
+         dy = list(type = "number", description = "Deslocamento vertical."))),
+       annotations = .tr_mcp_editar, editor = TRUE,
+       cmd = function(x) {
+         pos <- c(vapply(x$itens %||% list(), function(i) sprintf("%s=%s,%s", i$id, i$x, i$y), ""),
+                  as.character(unlist(x$ids)))
+         list(cmd = "move", pos = pos, opt = Filter(Negate(is.null), list(dx = x$dx, dy = x$dy)))
+       }),
+  list(name = "frame", title = "Frame (etapa)",
+       description = paste("Frames s\u00e3o as etapas da narrativa. 'criar': frame novo \u00e0 direita de tudo, com t\u00edtulo e,",
+                           "se vierem 'blocos', j\u00e1 com eles dentro, arrumados; devolve o id. 'editar': t\u00edtulo, cor, propor\u00e7\u00e3o,",
+                           "ordem (posi\u00e7\u00e3o na narrativa) ou tamanho. 'por'/'tirar': blocos entram ou saem (o frame se rearruma).",
+                           "'remover': tira o frame; os blocos ficam. Pertencer a um frame \u00e9 estar inteiro dentro dele."),
+       inputSchema = .tr_mcp_obj(list(
+         acao = list(type = "string", enum = list("criar", "editar", "remover", "por", "tirar")),
+         frame = .tr_mcp_str("Id do frame (menos em 'criar')."),
+         id = .tr_mcp_str("Id curto para o frame novo (opcional, s\u00f3 em 'criar'), ex.: 'etapa1'."),
+         titulo = .tr_mcp_str("T\u00edtulo, numerado: '1. Dados e descritivas'."),
+         cor = list(type = "string", enum = list("azul", "verde", "amarelo", "laranja", "rosa", "roxo", "cinza")),
+         proporcao = list(type = "string", enum = list("livre", "16:9", "4:3", "1:1", "A4"),
+                          description = "Padr\u00e3o 'livre': o frame tem o tamanho do conte\u00fado."),
+         ordem = list(type = "integer", minimum = 1, description = "Posi\u00e7\u00e3o do frame na sequ\u00eancia (1 = primeiro)."),
+         largura = list(type = "number"), altura = list(type = "number"),
+         blocos = list(type = "array", items = list(type = "string"), description = "Blocos para 'criar', 'por' ou 'tirar'.")),
+         "acao"),
+       annotations = .tr_mcp_editar, editor = TRUE,
+       cmd = function(x) {
+         acao <- c(criar = "add", editar = "set", remover = "rm", por = "put", tirar = "take")[[x$acao]]
+         alvo <- if (acao == "add") x$titulo %||% rlang::abort("Falta 'titulo' para criar o frame.") else
+           x$frame %||% rlang::abort("Falta 'frame'.")
+         list(cmd = "frame", pos = c(acao, alvo, as.character(unlist(x$blocos))),
+              opt = Filter(Negate(is.null), list(id = x$id, color = x$cor, aspect = x$proporcao,
+                                                 title = if (acao != "add") x$titulo, order = x$ordem,
+                                                 w = x$largura, h = x$altura)))
+       }),
+  list(name = "nota", title = "Nota Markdown",
+       description = paste("Nota de texto em Markdown no canvas, sem execu\u00e7\u00e3o. 'criar' com 'frame': abre a etapa",
+                           "(o frame se rearruma para ela caber); com 'bloco': fica presa logo abaixo do bloco e anda com ele;",
+                           "sem nenhum: solta, \u00e0 direita de tudo (ou em x, y). A altura sai do texto. 'editar' muda texto,",
+                           "cor ou tamanho; 'remover' apaga. Devolve o id da nota criada."),
+       inputSchema = .tr_mcp_obj(list(
+         acao = list(type = "string", enum = list("criar", "editar", "remover")),
+         nota = .tr_mcp_str("Id da nota (menos em 'criar')."),
+         id = .tr_mcp_str("Id curto para a nota nova (opcional)."),
+         texto = .tr_mcp_str("Markdown: t\u00edtulos (#), listas, **negrito**, `c\u00f3digo`, tabelas simples."),
+         frame = .tr_mcp_str("Frame onde a nota abre a etapa."),
+         bloco = .tr_mcp_str("Bloco ao qual a nota fica presa."),
+         cor = list(type = "string", enum = list("nenhuma", "azul", "verde", "amarelo", "laranja", "rosa", "roxo", "cinza")),
+         largura = list(type = "number", description = "Padr\u00e3o 320."), altura = list(type = "number"),
+         x = list(type = "number"), y = list(type = "number")), "acao"),
+       annotations = .tr_mcp_editar, editor = TRUE,
+       cmd = function(x) {
+         acao <- c(criar = "add", editar = "set", remover = "rm")[[x$acao]]
+         alvo <- if (acao == "add") x$texto %||% rlang::abort("Falta 'texto' para criar a nota.") else
+           x$nota %||% rlang::abort("Falta 'nota'.")
+         list(cmd = "note", pos = c(acao, alvo),
+              opt = Filter(Negate(is.null), list(id = x$id, text = if (acao != "add") x$texto,
+                                                 frame = x$frame, node = x$bloco, color = x$cor,
+                                                 w = x$largura, h = x$altura, x = x$x, y = x$y)))
+       }),
+  list(name = "organizar", title = "Organizar por etapas",
+       description = paste("Auto-layout por etapas: cada frame vira uma coluna, na ordem dos frames, da esquerda para a direita;",
+                           "dentro dele o ramo principal fica em cima e diagn\u00f3sticos, gr\u00e1ficos e tabelas embaixo, irm\u00e3os empilhados;",
+                           "a nota de abertura fica \u00e0 esquerda e notas presas ficam sob o bloco. Blocos fora de frame v\u00e3o para uma faixa abaixo.",
+                           "Chame depois de montar; ajuste com 'posicionar'. Um 'desfazer' volta tudo."),
+       inputSchema = .tr_mcp_obj(), annotations = .tr_mcp_editar, editor = TRUE,
+       cmd = function(x) list(cmd = "layout", pos = character(), opt = list())),
+  list(name = "guia", title = "Guia de narrativa",
+       description = "Como contar a an\u00e1lise no canvas: perguntas, etapas em frames, notas, conclus\u00e3o, layout. Leia antes de montar um fluxo.",
+       inputSchema = .tr_mcp_obj(), annotations = .tr_mcp_ler, editor = FALSE,
+       cmd = function(x) list(cmd = "guide", pos = character(), opt = list())),
   list(name = "validar", title = "Validar arquivo de fluxo",
        description = "L\u00ea, migra e valida um fluxo ou template .json do disco, sem editor. Lista os problemas.",
        inputSchema = .tr_mcp_obj(list(arquivo = .tr_mcp_str("Caminho do .json, relativo \u00e0 pasta do projeto ou absoluto.")), "arquivo"),
@@ -247,6 +347,10 @@ names(.tr_mcp_tools) <- vapply(.tr_mcp_tools, `[[`, "", "name")
     }
   }, error = function(e) list(ok = FALSE, message = conditionMessage(e))))
   if (length(impresso)) cat(impresso, sep = "\n", file = stderr())
+  if (nome == "guia" && isTRUE(saida$ok)) {
+    saida$mcp <- paste("Nas tools: frame -> 'frame' (criar, por...), note -> 'nota', move -> 'posicionar',",
+                       "rename -> 'renomear', layout -> 'organizar', result -> 'resultado', add --frame -> 'adicionar' com 'frame'.")
+  }
   if (nome == "abrir" && isTRUE(saida$ok)) {
     saida <- list(ok = TRUE, url = ctx$url, nodes = length(saida$nodes),
                   message = "Editor aberto. A pessoa v\u00ea cada edi\u00e7\u00e3o na tela.")
@@ -345,7 +449,7 @@ names(.tr_mcp_tools) <- vapply(.tr_mcp_tools, `[[`, "", "name")
     "if (.Platform$OS.type == 'unix') later::later(vigiar, 2)",
     sprintf("raiz <- %s", deparse(ctx$projeto)),
     "cols <- if (file.exists(file.path(raiz, 'trama.json'))) character() else",
-    "  sort(grep('^trama[.]', rownames(utils::installed.packages()), value = TRUE))",
+    "  trama:::.tr_colecoes_instaladas()",
     sprintf("shiny::runApp(tr_app(tr_project(raiz, collections = cols), port = %dL), launch.browser = TRUE)", porta),
     sep = "\n")
   script <- tempfile("trama-mcp-", fileext = ".R")

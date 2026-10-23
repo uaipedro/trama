@@ -97,7 +97,12 @@ tr_dataset_load <- function(id, registry = .tr_default_registry) {
 .tr_dataset_preview <- function(x, linhas = 8L) {
   x <- as.data.frame(x)
   cab <- utils::head(x, linhas)
-  cab[] <- lapply(cab, function(v) if (is.numeric(v)) signif(v, 4) else as.character(v))
+  # 4 significativos, mas sem comer a parte inteira: `signif(11887, 4)` daria
+  # 11890, um número que não está na tabela (#32).
+  cab[] <- lapply(cab, function(v) {
+    if (!is.numeric(v)) return(as.character(v))
+    ifelse(!is.na(v) & abs(v) >= 1e4, round(v), signif(v, 4))
+  })
   list(n = nrow(x), p = ncol(x),
        colunas = unname(Map(function(nm, v) list(nome = nm, classe = class(v)[1L]), names(x), x)),
        linhas = unname(lapply(seq_len(nrow(cab)), function(i) unname(as.list(cab[i, , drop = FALSE])))))

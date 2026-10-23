@@ -1,0 +1,15 @@
+---
+title: "Relatório"
+---
+
+## Introdução
+
+Escreva aqui o objetivo da análise e de onde vêm os dados.
+
+## Métodos
+
+Descreva como a análise foi feita.
+
+## Resultados
+
+Os resultados que você insere do trama entram como blocos `::: {#trama-… .trama}`. Escreva em volta deles e mova-os para onde quiser: o texto é seu, e o trama só atualiza o que está dentro desses blocos.

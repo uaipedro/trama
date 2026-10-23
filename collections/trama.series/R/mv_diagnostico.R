@@ -22,6 +22,13 @@ múltipla, uma coluna por série, no calendário das observações que têm res�
 
 Para olhar um resíduo com os blocos univariados (ACF, ADF, normalidade da
 série) passe a saída por `series/pick`.
+
+### Covariância e correlação dos resíduos
+Ligue a saída na Matriz de correlação da coleção multivariada
+(multi/correlation_matrix): a série vira tabela pelo caminho, e a coluna
+`tempo` fica de fora quando as variáveis estão em branco. A covariância de lá
+divide por n − 1; a Σ_u do `summary` do `vars` divide por T − Kp − 1, os graus
+de liberdade de cada equação. A correlação é a mesma nas duas contas.
 ]---", r"---[
 Este bloco não tem parâmetros.
 ]---", r"---[
@@ -108,6 +115,14 @@ pela curtose, e a assimetria pode estar em ordem.
 
 Rejeitar não invalida a estimação por mínimos quadrados, mas invalida os
 intervalos e testes baseados na normalidade (em amostra pequena, sobretudo).
+
+### O resultado DEPENDE DA ORDEM das séries
+Antes de medir assimetria e curtose, os resíduos são padronizados pela
+decomposição de Cholesky da covariância deles, e essa padronização muda com a
+ordem das séries no modelo. Trocar a ordem no `series/join` dá outra
+estatística e outro p-valor, com os mesmos resíduos. É assim no teste (a ajuda
+do `vars` avisa o mesmo), não um defeito do bloco. Se a conclusão estiver
+perto do limite, refaça com outra ordem antes de concluir.
 ]---", r"---[
 Este bloco não tem parâmetros.
 ]---", r"---[
@@ -187,8 +202,11 @@ os resíduos.
       pressupostos = list(
         P("Os resíduos são independentes e identicamente distribuídos; a normalidade é conjunta, não equação a equação.",
           verificar = "series/portmanteau_mv",
-          se_falhar = "autocorrelação invalida o teste: aumente as defasagens do VAR")),
-      referencias = list(jb, lutkepohl, .tr_series_impl("vars", "normality.test"))),
+          se_falhar = "autocorrelação invalida o teste: aumente as defasagens do VAR"),
+        P("A padronização dos resíduos é de Cholesky, e a estatística muda com a ordem das séries no modelo.",
+          se_falhar = "reordene as séries no series/join e refaça; se a conclusão mudar, diga isso no relatório")),
+      referencias = list(jb, lutkepohl, .tr_series_impl("vars", "normality.test",
+        nota = "Resíduos centrados padronizados pela Cholesky da covariância (vars:::.jb.multi); a ajuda do vars avisa que o resultado depende da ordem das variáveis."))),
     "series/arch_mv" = list(
       pressupostos = list(
         P("A média dos resíduos é nula e o teste é lido em conjunto com a autocorrelação deles.",
@@ -247,7 +265,8 @@ tr_series_normality_mv <- function(modelo) {
     gl = as.numeric(jb$parameter),
     conclusao_sim = "resíduos não normais: confira assimetria e curtose no extra",
     conclusao_nao = "não há evidência contra a normalidade multivariada",
-    nota = sprintf("assimetria p = %.4g; curtose p = %.4g", as.numeric(sk$p.value), as.numeric(ku$p.value)),
+    nota = sprintf("assimetria p = %.4g; curtose p = %.4g; padronizado por Cholesky, o resultado depende da ordem das séries (%s)",
+                   as.numeric(sk$p.value), as.numeric(ku$p.value), paste(colnames(modelo$serie), collapse = ", ")),
     fonte = "Jarque & Bera (1987)",
     extra = list(assimetria = parte(sk), curtose = parte(ku)))
 }

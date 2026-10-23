@@ -38,14 +38,23 @@ test_that("o registry é o MESMO objeto, não uma cópia recarregada", {
   expect_true(identical(p$registry, reg))
 })
 
-test_that("manifesto pedindo coleção ausente é recusado, nomeando-a", {
-  raiz <- escrever_manifesto(file.path(tempfile(), "p"), c("trama.data", "trama.terrain"))
+test_that("manifesto pedindo coleção instalada que o editor não tem é recusado, nomeando-a", {
+  skip_if_not_installed("trama.view")
+  raiz <- escrever_manifesto(file.path(tempfile(), "p"), c("trama.data", "trama.view"))
   err <- tryCatch(tr_project_at(raiz, reg_com("trama.data")), error = identity)
 
   expect_equal(class(err)[[1]], "tr_error_missing_collection")
-  expect_match(conditionMessage(err), "trama.terrain", fixed = TRUE)
+  expect_match(conditionMessage(err), "trama.view", fixed = TRUE)
   # E NÃO nomeia a que está presente: a mensagem tem que apontar o que falta.
   expect_false(grepl("trama.data", conditionMessage(err), fixed = TRUE))
+})
+
+test_that("coleção que não está instalada (retirada) não impede abrir: avisa e segue (#25)", {
+  raiz <- escrever_manifesto(file.path(tempfile(), "p"), c("trama.data", "trama.naoexiste"))
+  expect_message(p <- tr_project_at(raiz, reg_com("trama.data")), "trama.naoexiste")
+  expect_identical(p$root, normalizePath(raiz))
+  expect_message(p2 <- tr_project(raiz, create = FALSE), "n\u00e3o est\u00e1 instalada")
+  expect_true("trama.data" %in% p2$collections)
 })
 
 test_that("pasta inexistente é recusada antes de qualquer leitura", {
@@ -242,7 +251,32 @@ test_that("na raiz do sistema de arquivos não há para onde subir", {
   expect_equal(.tr_dir_listing(tempdir())$parent, dirname(normalizePath(tempdir())))
 })
 
+# No Windows `normalizePath()` devolve "D:\\" e `dirname()` devolve "D:/": a raiz
+# tem de ser reconhecida mesmo com as barras trocadas.
+test_that("raiz do disco no Windows também não tem pai", {
+  expect_null(.tr_dir_pai("D:\\", pai = "D:/"))
+  expect_null(.tr_dir_pai("\\\\srv\\pasta", pai = "//srv/pasta"))
+  expect_equal(.tr_dir_pai("D:\\Users", pai = "D:/"), "D:/")
+  expect_equal(.tr_dir_pai("C:\\Users\\pedro", pai = "C:/Users"), "C:/Users")
+  expect_null(.tr_dir_pai("/"))
+})
+
 test_that("pasta inexistente é a mesma recusa de tr_project_at()", {
   err <- tryCatch(.tr_dir_listing(file.path(tempfile(), "nada")), error = identity)
   expect_equal(class(err)[[1]], "tr_error_bad_root")
+})
+
+test_that("chave própria no trama.json: grava, lê, apaga, e recusa as do núcleo", {
+  raiz <- withr::local_tempdir()
+  tr_project(raiz)
+  expect_null(tr_project_config(raiz, "publicacoes"))
+  tr_project_config_set(raiz, "publicacoes", list(n1 = list(repo = "a/b", versao = "0.1.0")))
+  expect_identical(tr_project_config(raiz, "publicacoes")$n1$repo, "a/b")
+  # O resto do manifesto continua como estava.
+  expect_length(unlist(jsonlite::fromJSON(file.path(raiz, "trama.json"))$collections), 0L)
+  tr_project_config_set(raiz, "publicacoes", NULL)
+  expect_null(tr_project_config(raiz, "publicacoes"))
+  expect_error(tr_project_config_set(raiz, "temas", list()), class = "tr_error_bad_config_key")
+  expect_error(tr_project_config_set(raiz, "Ruim-Nome", 1), class = "tr_error_bad_config_key")
+  expect_error(tr_project_config_set(withr::local_tempdir(), "x", 1), class = "tr_error_not_project")
 })

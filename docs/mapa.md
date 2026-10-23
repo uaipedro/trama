@@ -11,6 +11,7 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `inst/schema/` | JSON Schema do documento (`document-v1.json`) e do template (`template-v1.json`). |
 | `tests/testthat/` | Testes do núcleo. `tests/js/` testa os módulos puros do editor com `node --test 'tests/js/*.test.mjs'` (com glob: passar o diretório faz o Node tratá-lo como arquivo e falhar). |
 | `collections/trama.*` | Coleções de blocos; cada uma é um pacote R com testes próprios. Anatomia e checklist de bloco novo: `collections/AGENTS.md` e skill `novo-bloco`. |
+| `plugins/trama.*` | Plugins: sem blocos, não são coleção nem entram no `trama.json`. Os que declaram `Config/trama/plugin: true` entram no editor (`R/plugin.R`). Hoje: `trama.github` e `trama.documentos`. |
 | `site/` | Site de documentação (Astro). Publicado pelo `.github/workflows/docs.yml`. |
 | `tools/check.R` | Roteador de testes (ver skill `verificar-trama`). |
 | `tools/templates/gerar.R` | Gera os templates JSON das coleções (descobre as coleções; sem exemplo, pula). |
@@ -30,15 +31,18 @@ Onde cada coisa vive e qual documento vale. Para as regras, `AGENTS.md`.
 | `flow.R`, `plan.R`, `executor.R`, `scheduler.R`, `worker.R` | Fluxo em R, plano de execução e execução. |
 | `stream-*.R`, `transport.R` | Regiões de fluxo (streaming) e transporte. |
 | `document.R`, `document-io.R`, `migrate.R` | Documento `.trama`, leitura/gravação e migrações. |
-| `project.R`, `store.R`, `run.R`, `runs.R`, `session.R` | Projeto, cache de resultados e histórico de execuções. |
+| `project.R`, `store.R`, `run.R`, `runs.R`, `session.R` | Projeto, cache de resultados e histórico de execuções; `session.R` tem o protocolo de op, o desfazer e o documento aberto, um por projeto e fluxo, compartilhado entre as abas. |
 | `app.R` | App Shiny que serve o editor. |
+| `plugin.R` | Plugins do editor: acha os plugins instalados (`tr_plugins()`) e liga JS, CSS e server deles. Sem rede, sem nome de pacote. |
 | `control.R`, `cli.R` | Canal de controle para agentes (HTTP local + token) e o CLI `trama-agente` (`inst/bin/`); `catalog`, `explain` e `validate` rodam sem editor. |
+| `mcp.R` | Servidor MCP (`tr_mcp()`): os comandos do CLI como tools. |
+| `layout.R`, `guia.R` | Narrativa do agente: frames, notas, posição e o layout por etapas como ops comuns do documento (com as medidas que o editor manda); as orientações servidas pelo MCP e por `trama-agente guide`. |
 | `template.R`, `theme.R`, `export.R` | Templates, temas de gráfico, exportação. |
 | `docs-bloco.R`, `test-card.R` | Documentação por bloco e `tr_test` para coleções. |
 
 ## Coleções
 
-Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `sampling`, `spatial`}; `models` ← {`experiments`, `ml`, `multi`}.
+Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `sampling`, `spatial`}; `models` ← {`experiments`, `ml`, `multi`, `publicar`}.
 
 | Coleção | Domínio |
 | --- | --- |
@@ -55,6 +59,15 @@ Grafo de dependências: `trama` ← `data` ← `view` ← {`models`, `series`, `
 | `trama.python` | Prova de conceito: modelos scikit-learn via Python. |
 
 Dentro de uma coleção: `R/collection.R` registra tudo; os `tr_node` ficam em `R/nos_*.R`, `R/nodes.R` ou no próprio `collection.R`, conforme a coleção; os demais arquivos têm a lógica pura; `R/docs*.R` guarda a documentação; `inst/templates/` tem os templates gerados.
+
+## Plugins
+
+| Pacote | O que faz |
+| --- | --- |
+| `trama.github` | Conexão com o GitHub: guia de conta, login pelo device flow, credencial no chaveiro, API interna (usuário, repositório, commit atômico, tag, Pages, Actions), versionar o projeto num repositório privado (salvar versão, histórico, restaurar; chave `versionar` no `trama.json`) e o painel GitHub do editor (conta, Projeto, Publicações). Base da publicação do `trama.documentos`, que depende dele; a seção Publicações lê o registro do `trama.documentos` se ele estiver instalado, nunca o contrário. Visão: `docs/visao-publicar-e-github.md`. Testes contra GitHub falso (`webfakes`). |
+| `trama.documentos` | Documento vivo. Painel Documentos na barra e "Inserir no documento…" no menu do card (#23; `inst/trama/documentos.js`, redutor `painel.js`, controlador `R/painel.R`; aba Modelos com a galeria em `modelos-ui.js`, redutor `modelos.js`, controlador `R/painel-modelos.R`). Motor (#22): `.qmd` em `documentos/<nome>/` com regiões gerenciadas `::: {#trama-<no> .trama trama-hash=…}`; materialização em `_trama/<no>/` pelo genérico S3 `tr_documento_componente()` (tabela, gráfico, modelo sanitizado, teste; portado do `trama.publicar`); criar, inserir, estado, atualizar e resolver com as regras de dono (`R/regioes.R`); perfis e modelos (extensões Quarto) em `tools::R_user_dir("trama", "data")`. Modelos (#24): galeria (`R/galeria.R`: criar, editar, duplicar, importar/exportar zip, validação) e embutidos Básico, UFLA (ABNT), Consultoria, Artigo, Slides, Dashboard (`painel`) em `inst/modelos/`; tema claro dos gráficos a partir do `_brand.yml` (`R/tema.R`); render local (html, pdf via Typst, docx, revealjs, dashboard) e prévia. Destinos (#25, convergência do `trama.publicar`, retirado): modelo Página web (`inst/modelos/pagina/`, quarto-live fixado; preditor WebR de modelo em `R/pagina.R`), publicar no GitHub (`R/publicar.R` conferência e registro por documento no `trama.json`, `R/pacote.R` RO-Crate, `R/envio.R` commit, tag e acompanhamento, workflow em `inst/github/`), e a migração do nó `publicar/publish` para documento ao abrir o projeto (`R/migrar.R`). Valor do nó pelo núcleo (`tr_project_flow`, `tr_value`, `tr_plan`). Visão: `docs/visao-documentos.md`. |
+
+Rodam pelo `tools/check.R` como as coleções (`plugins/X/**` → testes de X), sem carregar o núcleo. JS com ramo segue a regra do editor: módulo puro com teste em `tests/js/`.
 
 ## Documentos: o que vale
 

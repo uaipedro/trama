@@ -1,0 +1,9 @@
+meta:
+  name: trama — Básico
+color:
+  palette:
+    petroleo: "#0f766e"
+    grafite: "#1f2937"
+  primary: petroleo
+  foreground: grafite
+  background: "#ffffff"

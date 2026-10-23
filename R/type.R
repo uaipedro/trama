@@ -19,6 +19,12 @@
 #' sobre a saída (`tr_series_plot(x)` para uma série). Sem ele, o relatório
 #' imprime o objeto. Função e não preview porque o relatório roda sem o Trama.
 #'
+#' `report_always = TRUE` mostra a saída no relatório mesmo quando um fio a
+#' consome — as médias ajustadas que alimentam as comparações, o plano do
+#' experimento que alimenta a análise. Só não mostra quando quem consome
+#' devolve o MESMO tipo: numa cadeia que refina o objeto (o plano passando por
+#' cada efeito), aparece só o último elo, e não uma cópia por passo.
+#'
 #' Sem `store`/`restore`, cai em RDS — suficiente pra tipo que é objeto R
 #' comum (data.frame, lista, escalar).
 #'
@@ -27,12 +33,28 @@
 #' padrão redesenha o card) e vale como `"padrão"` enquanto o preview roda —
 #' sem isto o card de uma série ficava no tema embutido, escuro, num projeto
 #' todo claro.
+#' `acoes` são as AÇÕES DE CARD do tipo: `list(nome = function(valor, ctx))`,
+#' chamadas pelo editor sobre um resultado já gravado (`pedirAcao()` do
+#' runtime.js), fora da execução do fluxo. É onde mora o que um nó puro não
+#' pode fazer — abrir uma prévia, publicar. `ctx` traz `doc`, `flow`, `raiz`
+#' (do projeto), `store`, `registry`, `settings`, `chave`, `no()` (o id do nó
+#' dono do resultado, pelo plano), `servir(dir, nome)` (serve uma
+#' pasta pelo próprio editor e devolve a URL relativa) e `responder(lista)`.
+#' A ação devolve a lista da resposta, ou `NULL` quando vai responder depois
+#' pelo `ctx$responder()` (trabalho em segundo plano, com `later`).
 #' @param tema O preview é um gráfico que segue o tema padrão do projeto.
+#' @param report_always Mostrar no relatório mesmo a saída consumida.
+#' @param acoes Ações de card, `list(nome = function(valor, ctx))`.
 #' @export
 tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
                     store = NULL, restore = NULL, ext = "rds",
-                    preview = NULL, summary = NULL, report = NULL, tema = FALSE) {
+                    preview = NULL, summary = NULL, report = NULL, tema = FALSE,
+                    report_always = FALSE, acoes = list()) {
   .tr_check_id(id, "id de tipo")
+  if (length(acoes) && (is.null(names(acoes)) || !all(nzchar(names(acoes))) ||
+                        !all(vapply(acoes, is.function, logical(1))))) {
+    rlang::abort(sprintf("'acoes' de '%s' tem de ser lista nomeada de funções.", id), class = "tr_error_bad_type")
+  }
   if (!is.null(report) && !is.function(report)) {
     rlang::abort(sprintf("'report' de '%s' não é função.", id), class = "tr_error_bad_type")
   }
@@ -48,7 +70,8 @@ tr_type <- function(id, version = 1L, label = NULL, color = "#64748b",
   structure(list(
     id = id, version = as.integer(version), label = label %||% id, color = color,
     store = store, restore = restore, ext = ext,
-    preview = preview, summary = summary, report = report, tema = isTRUE(tema)
+    preview = preview, summary = summary, report = report, tema = isTRUE(tema),
+    report_always = isTRUE(report_always), acoes = acoes
   ), class = "tr_type")
 }
 

@@ -472,7 +472,9 @@ tr_flow(reg) |>
 
     trama::tr_node("models/residuals", fn = tr_models_residuals, label = "Resíduos",
       category = "modelo_resumir", icon = trama::tr_icon("chart-scatter"),
-      description = "A tabela do ajuste com os valores ajustados, os resíduos e os resíduos padronizados.",
+      version = 2L, stochastic = TRUE,
+      referencias = .tr_models_doc("models/residuals")$referencias,
+      description = "A tabela do ajuste com os valores ajustados, os resíduos, os padronizados e, no GLM, os quantílicos randomizados.",
       inputs = list(modelo = Fm), outputs = list(out = T),
       help = .tr_models_ajuda(r"---[
 Devolve as linhas usadas no ajuste com três colunas à direita:
@@ -482,6 +484,15 @@ Devolve as linhas usadas no ajuste com três colunas à direita:
 - `residuo_padronizado` — o resíduo dividido pelo seu erro padrão.
   Padronizado acima de 3 em módulo é observação para conferir no caderno de
   campo.
+- `residuo_quantilico` — só no GLM: o resíduo quantílico normalizado
+  randomizado de Dunn & Smyth (1996). É a acumulada do modelo em cada
+  observação levada à normal; na binomial, na Poisson e na binomial negativa,
+  com um sorteio uniforme dentro do salto da acumulada. Com o modelo certo sai
+  N(0, 1) exato, inclusive com resposta 0/1 ou contagens baixas, onde o
+  resíduo de desvio fica em faixas e engana no Q-Q. É o que se leva a um
+  `view/points` contra o ajustado ou a um Q-Q. O sorteio usa a semente do
+  card: troque a semente e um padrão que some era do sorteio. Nas famílias
+  quasi não há distribuição para inverter, e a coluna sai vazia (`NA`).
 
 Se a tabela já tem uma coluna com um desses nomes, a nova ganha o sufixo
 `_modelo`, em vez de sobrescrever.

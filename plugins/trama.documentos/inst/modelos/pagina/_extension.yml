@@ -1,0 +1,17 @@
+title: Página web
+author: trama
+version: 0.1.0
+quarto-required: ">=1.6.0"
+contributes:
+  formats:
+    html:
+      lang: pt-BR
+      ojs-engine: true
+      filters:
+        - live.lua
+      toc: false
+      css: estilo.css
+      embed-resources: false
+      fig-cap-location: bottom
+      tbl-cap-location: top
+      fig-align: center

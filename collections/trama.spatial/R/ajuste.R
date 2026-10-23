@@ -251,7 +251,7 @@ tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
       razao, angulo))
   }
   if (nzchar(variograma$nota)) notas <- c(notas, variograma$nota)
-  structure(list(
+  modelo <- structure(list(
     familia = familia, pepita = pepita, contribuicao = contrib, alcance = alc,
     alcance_pratico = pratico, razao = as.numeric(razao),
     angulo = as.numeric(angulo),
@@ -262,6 +262,9 @@ tr_spatial_variogram_fit <- function(variograma, familia = "esferico",
     grau_dependencia = pepita / (pepita + contrib),
     variograma = variograma, nota = paste(notas, collapse = " ")),
     class = "tr_spatial_model")
+  # O ajuste é do gstat (vgm e fit.variogram); o critério das partidas usa o
+  # variogramLine para a curva do modelo.
+  .tr_spatial_ferramentas(modelo, "gstat::fit.variogram")
 }
 
 #' O objeto `vgm` que a krigagem consome.

@@ -18,8 +18,10 @@ import ReactDOM from "react-dom";
 // (a dependência do núcleo usa `all_files = TRUE`). E nenhuma coleção precisa
 // dele pelo nome: as regras chegam a elas através destes widgets.
 import { layoutEnum, textoNumero, validarNumero } from "./params.js";
-import { anotado, opcoes, sugerir, sumidas, alternativa } from "./colunas.js";
+import { anotado, opcoes, sugerir, sumidas, alternativa, colsTexto, colsValor } from "./colunas.js";
 import { MARCAS, NIVEIS, posicao, estrelas, faixa, venceu, num, numP, eixoEfeito } from "./teste.js";
+import { itensDoCard, registrarItem } from "./menu-card.js";
+import { selosDoCard } from "./selo-card.js";
 
 export const h = React.createElement;
 
@@ -55,13 +57,96 @@ export function registerRenderer(id, def) { renderers[id] = normalizeRenderer(id
 // Widget: `(spec, value, onChange, ctx) => elemento`. Chamado como função, não
 // como componente: quem precisa de estado devolve `h(SeuComponente, ...)`.
 // `ctx` do kind `cols` é o das colunas (abaixo); o de qualquer outro kind é
-// `{ id, valores, entradas }` — o nó, os valores dos params e o handle que
-// chega em cada porta de entrada (`entradas[porta]`, vazio sem ligação).
+// `{ id, valores, entradas, fontes }` — o nó, os valores dos params, o handle
+// que chega em cada porta de entrada (`entradas[porta]`, vazio sem ligação) e,
+// por porta, a lista das origens ligadas (`fontes[porta] = [{ no, saida,
+// rotulo, tipo, handle }]`) — numa porta múltipla, `entradas` só guarda uma.
 export function registerWidget(kind, component) { widgets[kind] = component; }
+
+// Ação de card (`tr_type(acoes = )` no R): pede ao servidor a ação `acao`
+// sobre o resultado do `handle` (chave e tipo) e devolve uma Promise com a
+// resposta da ação, ou rejeita com o erro. Canal próprio (`tr_acao`), ligado
+// no primeiro pedido, para o editor não precisar saber de ação nenhuma.
+const acoesPendentes = new Map();
+let acaoSeq = 0;
+let acaoLigada = false;
+export function pedirAcao(handle, acao, extra = null) {
+  return new Promise((resolve, reject) => {
+    const S = typeof window !== "undefined" ? window.Shiny : null;
+    if (!S || !S.setInputValue || !handle?.key) { reject(new Error("sem servidor ou sem resultado")); return; }
+    if (!acaoLigada) {
+      S.addCustomMessageHandler("tr_acao", (m) => {
+        const p = acoesPendentes.get(m.id);
+        if (!p) return;
+        acoesPendentes.delete(m.id);
+        if (m.erro) p.reject(new Error(m.erro)); else p.resolve(m);
+      });
+      acaoLigada = true;
+    }
+    const id = `a${++acaoSeq}-${Date.now()}`;
+    acoesPendentes.set(id, { resolve, reject });
+    S.setInputValue("tr_acao", { id, chave: handle.key, tipo: handle.type, acao, extra },
+                    { priority: "event" });
+  });
+}
 // Devolve a forma NORMALIZADA (`{views:[...]}`), nunca a função crua: o editor
 // não pode ver as duas formas.
 export function getRenderer(id) { return renderers[id]; }
 export function getWidget(kind) { return widgets[kind]; }
+
+// Item da barra de ferramentas trazido por um plugin (ver `tr_plugins()`; o
+// menu GitHub do `trama.github` é o caso). `Componente` é
+// um componente React sem props, desenhado na barra antes de "Ajuda", na
+// ordem de registro. Ele cuida do próprio estado e do próprio popover e fala
+// com o R pelo canal dele (`Shiny.setInputValue`), não pelo `tr_op`.
+const toolbarItems = [];
+export function registerToolbarItem(id, Componente) {
+  const i = toolbarItems.findIndex((x) => x.id === id);
+  if (i >= 0) toolbarItems[i] = { id, Componente }; else toolbarItems.push({ id, Componente });
+}
+export function getToolbarItems() { return toolbarItems.slice(); }
+
+// Item do menu de contexto de um card trazido por um plugin ("Inserir no
+// documento", do `trama.documentos`, é o caso). `def`:
+//   { rotulo: texto | (card) => texto, acao: (card) => void,
+//     quando?: (card) => bool, titulo?: texto }
+// O `card` é `{ id, tipo, rotulo, saidas: [{ porta, tipo }], estado }`
+// (`menu-card.js`); a ação fala com o R pelo canal do plugin. Os itens
+// aparecem no menu de UM card, depois dos do editor, na ordem de registro.
+const itensCard = [];
+export function registerCardMenuItem(id, def) { registrarItem(itensCard, id, def); }
+export function getCardMenuItems(card) { return itensDoCard(itensCard, card); }
+
+// Selo no cabeçalho de um card trazido por um plugin ("está num documento",
+// do `trama.documentos`, é o caso). `def`:
+//   { selo: (card) => ({ icone, titulo?, acao? }) | null }
+// `icone` é um nome do conjunto do editor (lucide); o núcleo desenha. O
+// plugin chama `refreshCardBadges()` quando o que ele sabe muda, e os cards
+// pedem os selos de novo (`selo-card.js`).
+const selosCard = [];
+let versaoSelos = 0;
+const ouvintesSelos = new Set();
+const assinarSelos = (f) => { ouvintesSelos.add(f); return () => ouvintesSelos.delete(f); };
+export function refreshCardBadges() { versaoSelos += 1; ouvintesSelos.forEach((f) => f()); }
+export function registerCardBadge(id, def) { registrarItem(selosCard, id, def); refreshCardBadges(); }
+export function useCardBadges(card) {
+  React.useSyncExternalStore(assinarSelos, () => versaoSelos);
+  return selosDoCard(selosCard, card);
+}
+
+// Ações do editor que um plugin pode pedir, como levar a tela a um bloco
+// (`editorAction("irAoBloco", id)`) ou ler os cards do fluxo na tela
+// (`editorAction("cards", (lista) => ...)`, cada um como `infoDoCard`). O
+// editor registra as dele a cada render; ação que não existe (ou editor ainda
+// montando) devolve `false`.
+let acoesEditor = {};
+export function setEditorActions(acoes) { acoesEditor = acoes || {}; }
+export function editorAction(nome, ...args) {
+  const f = acoesEditor[nome];
+  if (typeof f !== "function") return false;
+  f(...args);
+  return true;
+}
 
 // A vista `resumo` é do NÚCLEO, não de uma coleção: `tr_type(summary=)` já grava
 // `handle$summary` (R/store.R:140) e ele já viaja pro card. Todo tipo que declare
@@ -550,21 +635,25 @@ registerWidget("text", (spec, value, onChange) => {
 // Qualquer escolha daqui sai por `onChange` — `set_param` sem origem —, o que
 // desmarca o "sugerido": escolha à mão nunca é pisada por sugestão.
 const colsVazio = (v) => v === "" || v === null || v === undefined;
-function colsTexto(spec, atual, onChange) {
+// O campo mostra `colsTexto(atual)` e grava na forma do valor atual (lista
+// continua lista: `colsValor`, colunas.js). Comparar com o TEXTO mostrado, e
+// não com o valor, é o que impede um blur sem edição de regravar o param (#32).
+function colsCampo(spec, atual, onChange) {
+  const texto = colsTexto(atual);
   return h("textarea", {
     // `key` no valor pelo mesmo motivo do widget `text`: o eco de fora (undo,
     // sugestão, "usar Y") precisa reaparecer num campo não controlado.
-    key: "v" + String(atual), className: "nodrag tr-expr", rows: 2, spellCheck: false,
-    defaultValue: atual,
+    key: "v" + texto, className: "nodrag tr-expr", rows: 2, spellCheck: false,
+    defaultValue: texto,
     placeholder: spec.example ?? "col1, col2",
     title: spec.example ? `ex.: ${spec.example}` : undefined,
-    onBlur: (e) => { if (e.target.value !== atual) onChange(e.target.value); },
+    onBlur: (e) => { if (e.target.value !== texto) onChange(colsValor(e.target.value, atual, spec.default)); },
   });
 }
 registerWidget("cols", (spec, value, onChange, ctx) => {
   const atual = value ?? spec.default ?? "";
   const schema = ctx?.colunas;
-  if (!schema) return colsTexto(spec, atual, onChange);
+  if (!schema) return colsCampo(spec, atual, onChange);
   const lista = opcoes(spec, schema);
   const serve = lista.filter((o) => o.serve), outras = lista.filter((o) => !o.serve);
   const falta = sumidas([spec], { [spec.name]: atual }, schema)[0];
@@ -607,14 +696,14 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
     const somar = (e, nome) => {
       e.preventDefault();
       const ta = e.currentTarget.closest(".tr-cols")?.querySelector("textarea");
-      const agora = (ta ? ta.value : String(atual)).trim();
+      const agora = (ta ? ta.value : colsTexto(atual)).trim();
       const novo = agora ? `${agora.replace(/,\s*$/, "")}, ${nome}` : nome;
       if (ta) ta.value = novo;
       // O `key` do textarea é o valor: o eco o remonta e o foco se perde.
       // Devolve o foco (cursor no fim) ao textarea NOVO, achado pelo bloco.
       const bloco = e.currentTarget.closest(".tr-cols");
       const focado = ta && document.activeElement === ta;
-      onChange(novo);
+      onChange(colsValor(novo, atual, spec.default));
       if (focado && bloco) {
         let n = 0;
         const refoca = () => {
@@ -626,7 +715,7 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
       }
     };
     campo = h("div", { key: "t", className: "tr-cols-multi" }, [
-      colsTexto(spec, atual, onChange),
+      colsCampo(spec, atual, onChange),
       h("div", { key: "c", className: "tr-cols-chips" }, [...serve, ...outras].map((o) =>
         h("button", { key: o.nome, type: "button", tabIndex: -1,
                       className: "nodrag tr-cols-chip" + (o.serve ? "" : " tr-cols-chip-fora"),
@@ -638,8 +727,8 @@ registerWidget("cols", (spec, value, onChange, ctx) => {
   if (falta) {
     const alt = alternativa(spec, falta.faltam[0], schema);
     const troca = () => {
-      const nomes = String(atual).split(",").map((x) => x.trim()).filter(Boolean);
-      onChange(nomes.map((n) => (n === falta.faltam[0] ? alt : n)).join(", "));
+      const nomes = colsTexto(atual).split(",").map((x) => x.trim()).filter(Boolean);
+      onChange(colsValor(nomes.map((n) => (n === falta.faltam[0] ? alt : n)).join(", "), atual, spec.default));
     };
     aviso = h("div", { key: "a", className: "tr-field-err" }, [
       `${falta.faltam.join(", ")} não existe na entrada`,
@@ -726,6 +815,8 @@ registerWidget("theme", (spec, value, onChange) => {
 
 // Namespace global também, pra coleção que preferir `<script>` simples a ESM.
 if (typeof window !== "undefined") {
-  window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget,
+  window.tr = { h, registerRenderer, registerWidget, getRenderer, getViews, getWidget, pedirAcao,
+               registerToolbarItem, getToolbarItems, setEditorActions, editorAction,
+               registerCardBadge, refreshCardBadges,
                Segmented, Toggle, NumberField, Regua, Estrelas, setThemes, getThemes, React };
 }

@@ -15,13 +15,16 @@ import {
   useReactFlow, ReactFlowProvider,
   BaseEdge, getSmoothStepPath, getBezierPath, useInternalNode, EdgeLabelRenderer, NodeResizer,
 } from "@xyflow/react";
-import { h, getRenderer, getViews, Segmented, setThemes } from "trama";
+import { h, getRenderer, getViews, Segmented, setThemes, getToolbarItems, setEditorActions,
+         getCardMenuItems, useCardBadges } from "trama";
+import { infoDoCard } from "./menu-card.js";
 import { FrameNode, FrameDraw, ASPECTS, FRAME_COLORS, ratioOf, rectOf, inside,
          containedCards, containedFrames, containedNotes, fitAspect, FramePanel, exportFramePng,
          dagrePos, organizar, PranchetaPopover, gradeDeFrames, PRANCHETA_PADRAO,
          MARCA } from "./frames.js";
 import { NotaNode, NotaDraw } from "./notas.js";
-import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas } from "./geometria.js";
+import { pisoNota, containedCards as contidosCards, containedFrames as contidosFrames, containedNotes as contidosNotas,
+         medidasCards, mesmasMedidas } from "./geometria.js";
 import { empilhar, alinhar, alinharA, distribuir, grupoDe, gruposDe, expandirGrupos } from "./alinhar.js";
 import { SettingsPanel, TEMAS_APP, GALERIA_PADRAO } from "./settings.js";
 import { naGaleria, opAlternarGaleria } from "./galeria.js";
@@ -48,6 +51,8 @@ import { criarFilaOps } from "./fila-ops.js";
 import { nomeDaSaida, rotuloDaEntrada } from "./saidas.js";
 import { reusarNos } from "./reuso.js";
 import { Markdown } from "./markdown.js";
+import { fontesPorPorta } from "./fontes.js";
+import { derivas as derivasDe, aceitos, pendentes, opAceitar, versoes, titulo as tituloDeriva } from "./deriva.js";
 
 const NODE_W = 240, NODE_H = 190;
 
@@ -653,6 +658,7 @@ function NdNode({ id, data, selected }) {
   // Oculto conta como mini aqui: sem faixa não há o que medir, e o preview
   // que reaparece é medido de novo em vez de herdar a marca de "já visto".
   useAutoTamanho(pvRef, id, data, semPreview);
+  const selos = useCardBadges(infoDoCard({ id, data }));
   return h("div", { className: cls, style: {
     "--tr-w": w ? `${w}px` : undefined, "--tr-h": hgt ? `${hgt}px` : undefined,
     // O mini pinta só o bloco do ícone com a cor da categoria; o resto é a
@@ -713,6 +719,11 @@ function NdNode({ id, data, selected }) {
       data.naGaleria && !mini
         ? h("span", { key: "gal", className: "tr-galeria-selo", title: "na galeria (G abre o rolo)" }, "★")
         : null,
+      // Selos de plugin (`registerCardBadge`): o desenho é daqui.
+      ...(mini ? [] : selos.map((s) => h("button", { key: `selo-${s.id}`, type: "button", title: s.titulo,
+          className: "tr-selo-plugin nodrag", disabled: !s.acao,
+          onClick: (e) => { e.stopPropagation(); s.acao?.(); } },
+        h(Icon, { icon: { kind: "set", value: s.icone }, className: "tr-node-icon" })))),
       // Absoluta, por cima da borda de baixo do cabeçalho: uma barra que
       // entrasse no fluxo mudaria a altura do card quando a execução começa,
       // e altura em função do que chegou é o laço que trama.css evita. Sem
@@ -1880,6 +1891,11 @@ function App() {
   const [dragType, setDragType] = useState(null);
   const [dragFrom, setDragFrom] = useState(null);
   const [banner, setBanner] = useState(null);
+  // Blocos em `version_drift` (deriva.js): aviso próprio, com "aceitar", e
+  // não o banner genérico — que some ao clicar e é sobrescrito pelo próximo
+  // aviso. Só sai daqui por aceite (ou pelo nó sair do fluxo), nunca sozinho.
+  const [derivas, setDerivas] = useState([]);
+  const [derivasAbertas, setDerivasAbertas] = useState(false);
   const [helpFor, setHelpFor] = useState(null);
   const [vista, setVista] = useState(null); // id do card aberto em tela cheia (P)
   // Galeria: itens que o servidor sincronizou (mensagem `galeria`), o rolo
@@ -2168,6 +2184,20 @@ function App() {
     return { ...n, measured: { width, height } };
   }), []);
 
+  // As mesmas medidas vão para o servidor, que arruma frames e notas quando
+  // quem pede é o agente (R/layout.R). Meio segundo depois da última mudança,
+  // e só se algo mudou.
+  const medidasEnviadas = useRef({});
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const m = medidasCards(comMedidas(nodesRef.current));
+      if (mesmasMedidas(m, medidasEnviadas.current)) return;
+      medidasEnviadas.current = m;
+      sendInput("tr_medidas", m);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [nodes, comMedidas]);
+
   const bumpTick = useCallback(() => {
     if (tickPending.current) return;
     tickPending.current = true;
@@ -2251,6 +2281,17 @@ function App() {
     }
     return out;
   }, [edges, tick]);
+  // Todas as origens de cada porta, por nó: `entradas` e `handlesEntrada`
+  // guardam UMA por porta, e um widget de porta múltipla (o layout do
+  // `publicar`) precisa ver todas, pelo id do nó. Vai no `ctx` como `fontes`.
+  // A chave de rótulos (e não `nodes`) nas dependências: arrastar um card
+  // troca `nodes` a cada quadro, e `fontes` nova a cada quadro redesenharia
+  // todo card com entrada.
+  const rotulosNos = nodes.map((n) => `${n.id}\u0001${n.data?.label ?? ""}\u0001${n.data?.nodeType ?? ""}`).join("\u0002");
+  const fontesEntrada = useMemo(() => fontesPorPorta(edges, nodes, (id, porta) => {
+    const st = stateRef.current[id];
+    return st ? (st.handles ? st.handles[porta] : st.handle) : null;
+  }), [edges, rotulosNos, tick]);
   // Ops de sugestão para a entrada `porta` de `alvo`, recém-ligada a
   // `origem`/`saida`. É o ÚNICO gatilho automático de sugestão: ligar (ou
   // religar) uma entrada. Re-execução a montante com o mesmo schema não passa
@@ -2711,6 +2752,7 @@ function App() {
                       // documento, como `paramsRef` vai por cima dos params.
                       entradas: entradas[n.id] || null,
                       handlesEntrada: handlesEntrada[n.id] || null,
+                      fontesEntrada: fontesEntrada[n.id] || null,
                       sugeridos: sugeridosDe(n.id, n.data.sugeridos),
                       motivos: motivosRef.current[n.id] || null,
                       sugestoes: temas.sugestoes, onSugerir } };
@@ -2719,7 +2761,7 @@ function App() {
     // raro o bastante pra não realimentar o laço de remedição.
     [nodes, typeColors, categories, onParam, onView, onResize, onModo, onSaida, onReseed, tick, temas, abrirProximo,
      doc, onGaleria, onLigarRamo, destaqueGemeos,
-     entradas, handlesEntrada, onSugerir,
+     entradas, handlesEntrada, fontesEntrada, onSugerir,
      dobras, onDobrar, onTodos, onSoltar, onPrender, onOcultar, onVista, onSoltoRect, onAutoTamanho,
      editFrame, onFrameRect, onFrameEdit, onFrameEditStart, onFrameEditEnd, onStreamCmd, regiaoFonte,
      editNota, resolverSrc, imagens, onNotaRect, onNotaEdit, onNotaEditStart, onNotaEditEnd]);
@@ -2856,8 +2898,12 @@ function App() {
             op: "move", node: x.id, x: x.position.x, y: x.position.y }));
           if (mv.length) enviarOp(mv.length === 1 ? mv[0] : { op: "batch", ops: mv });
         }
-        if (m.problems?.length) {
-          setBanner(m.problems.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
+        // `problems` só vem quando o servidor revalida (abrir, desfazer,
+        // refazer); o eco de op estrutural não traz, e o aviso fica como está.
+        if (m.problems) {
+          setDerivas(derivasDe(m.problems));
+          const outros = m.problems.filter((p) => p.kind !== "version_drift");
+          if (outros.length) setBanner(outros.map((p) => `${p.kind}${p.node ? ` (${p.node})` : ""}`).join(" · "));
         }
         return;
       }
@@ -2865,6 +2911,7 @@ function App() {
       if ((m.type === "op_applied" || m.type === "op_rejected") && m.seq === organizandoSeq.current) fimOrganizar();
       if (m.type === "op_applied") {
         filaOpsRef.current.aplicada(m.seq, m.rev);
+        if (aceitos(m.op).length) setDerivas((l) => pendentes(l, m.op));
         // Rede de segurança do espelho de `ops.js`: o servidor diz se a op
         // recomputa. Não recomputando, nenhuma run vai tirar os cards do "na
         // fila" que `pushOp` pintou — volta ao repouso aqui.
@@ -4087,6 +4134,44 @@ function App() {
                      { zoom: Math.min(1, Math.max(0.5, z)), duration: 350 });
     }, 60);
   };
+  // Aviso de versão nova (#32). Recolhido, é uma linha com "aceitar todos";
+  // aberto, lista cada bloco com o próprio "aceitar" e o nome leva ao card.
+  // Aceitar é a op `accept_version`: cosmética (não recomputa) e desfeita
+  // pelo Ctrl+Z como qualquer edição — o desfazer revalida e o aviso volta.
+  const avisoDeriva = () => {
+    const ids = new Set(nodes.map((n) => n.id));
+    const lista = pendentes(derivas, null, (id) => ids.has(id));
+    if (!lista.length) return null;
+    const rotulo = (id) => nodes.find((n) => n.id === id)?.data?.label || id;
+    const aceitar = (l) => { const op = opAceitar(l); if (op) pushOp(op); };
+    const todos = opAceitar(lista);
+    return h("div", { key: "dv", className: "tr-deriva", role: "status" }, [
+      h("div", { key: "t", className: "tr-deriva-topo" }, [
+        h("span", { key: "m", className: "tr-deriva-msg" }, tituloDeriva(lista)),
+        h("button", { key: "v", type: "button", className: "tr-deriva-btn",
+                      onClick: () => setDerivasAbertas((x) => !x) },
+          derivasAbertas ? "esconder lista" : "ver blocos"),
+        todos ? h("button", { key: "a", type: "button", className: "tr-deriva-btn tr-deriva-aceitar",
+                              title: "Grava a versão nova em todos; Ctrl+Z desfaz.",
+                              onClick: () => aceitar(lista) },
+          lista.length === 1 ? "aceitar" : "aceitar todos") : null,
+      ]),
+      derivasAbertas ? h("ul", { key: "l", className: "tr-deriva-lista" }, lista.map((d) =>
+        h("li", { key: d.node }, [
+          h("button", { key: "n", type: "button", className: "tr-deriva-no", title: "Ir ao bloco",
+                        onClick: () => irAoBloco(d.node) }, rotulo(d.node)),
+          h("span", { key: "v", className: "tr-deriva-ver" }, ` ${d.type} ${versoes(d)}`),
+          d.aceitavel
+            ? h("button", { key: "a", type: "button", className: "tr-deriva-btn",
+                            onClick: () => aceitar([d]) }, "aceitar")
+            : h("span", { key: "x", className: "tr-deriva-ver" },
+                " — salvo numa versão mais nova que a instalada: atualize a coleção"),
+        ]))) : null,
+    ]);
+  };
+  // Ações que um plugin pode pedir (`editorAction` no runtime).
+  const cards = (cb) => cb(nodesRef.current.filter((n) => n.type === "ndNode").map(infoDoCard));
+  useEffect(() => { setEditorActions({ irAoBloco, cards }); });
   const andar = (tecla) => {
     // Overlay aberto (painéis, "+", menu): as setas são dele, não do canvas.
     if (prox || paramsDe || vista || menu || helpFor || painelFrames || painelConfig
@@ -4777,6 +4862,9 @@ function App() {
         restaurarTamanhos(cards);
         setMenu(null);
       } }, cards.length > 1 ? `Restaurar tamanho (${cards.length})` : "Restaurar tamanho") : null,
+      // Itens de plugin (`registerCardMenuItem`), só no menu de um card.
+      ...(noCard ? getCardMenuItems(infoDoCard(noCard)).map((it) =>
+        h("button", { key: `plugin-${it.id}`, title: it.titulo || undefined, onClick: fecharE(it.acao) }, it.rotulo)) : []),
     ];
   }
 
@@ -5110,6 +5198,8 @@ function App() {
                                        setPainelFrames(false); setPainelTemplates((v) => !v); } }),
       h(BotaoIcone, { key: "bases", icone: "bases", rotulo: "Bases públicas", on: painelBases,
                       onClick: () => { setPainelBases(true); setPreviewsBase((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => v.preview))); sendInput("tr_datasets_list", { seq: ++seqCounter }); } }),
+      // Itens de plugins (ver `registerToolbarItem` no runtime).
+      ...getToolbarItems().map(({ id, Componente }) => h(Componente, { key: `plugin-${id}` })),
       h(BotaoIcone, { key: "aj", icone: "ajuda", rotulo: "Ajuda e atalhos", dica: dica("ajuda"),
                       on: painelAtalhos || !!helpFor, onClick: ajuda }),
       h(BotaoIcone, { key: "more", icone: "mais", rotulo: "Mais ações", on: menuAcoes,
@@ -5171,6 +5261,7 @@ function App() {
       onCriar: criarPrancheta, onFechar: fecharPrancheta }) : null,
     banner ? h("div", { key: "bn", className: "tr-banner", onClick: () => setBanner(null) },
       banner) : null,
+    avisoDeriva(),
     abrindo ? h(ProjectDialog, { key: "pd", listagem, atual: projeto?.root, enviando, arquivoInicial: arquivoSolto,
       onBrowse: (p) => sendInput("tr_browse", { seq: ++seqCounter, path: p }),
       onOpen: (p) => { setEnviando("abrir");

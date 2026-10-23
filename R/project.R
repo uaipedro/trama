@@ -27,7 +27,18 @@ tr_project <- function(root = ".", collections = character(), create = TRUE) {
   # Pula o que uma coleção anterior já trouxe como dependência: com
   # `Config/trama/requires` a ordem do trama.json deixou de importar, e listar
   # `trama.data` depois de `trama.series` não pode virar "já carregada".
-  for (cl in cols) if (!cl %in% .tr_registry_packages(registry)) tr_use(cl, registry = registry)
+  for (cl in cols) {
+    if (cl %in% .tr_registry_packages(registry)) next
+    # Coleção que saiu da instalação (retirada, ou só não instalada aqui):
+    # o projeto abre assim mesmo, e os blocos dela aparecem como
+    # desconhecidos. Sem isso, nada que migra um projeto velho chega a rodar.
+    # Só a que não está instalada: instalada e quebrada continua dando erro.
+    if (!.tr_instalado(cl)) {
+      message(.tr_msg_colecao_ausente(cl))
+      next
+    }
+    tr_use(cl, registry = registry)
+  }
 
   .tr_project_obj(root, registry, cols, settings)
 }
@@ -196,6 +207,11 @@ tr_project_at <- function(root, registry) {
 
   disponiveis <- .tr_registry_packages(registry)
   faltando <- setdiff(cols, disponiveis)
+  # Não instalada (retirada): abre, como em `tr_project()`. Instalada e fora
+  # deste editor: precisa subir o trama com ela.
+  ausentes <- faltando[!vapply(faltando, .tr_instalado, logical(1))]
+  for (cl in ausentes) message(.tr_msg_colecao_ausente(cl))
+  faltando <- setdiff(faltando, ausentes)
   if (length(faltando)) {
     rlang::abort(sprintf(
       "Este editor não tem a(s) coleção(ões) %s, que o projeto pede. Suba o trama com ela(s) para abrir '%s'.",
@@ -210,6 +226,12 @@ tr_project_at <- function(root, registry) {
   .tr_project_dirs(root)
 
   .tr_project_obj(root, registry, cols, settings)
+}
+
+.tr_instalado <- function(pkg) nzchar(system.file(package = pkg))
+
+.tr_msg_colecao_ausente <- function(cl) {
+  sprintf("trama: a cole\u00e7\u00e3o %s do trama.json n\u00e3o est\u00e1 instalada; os blocos dela ficam indispon\u00edveis.", cl)
 }
 
 #' Cria um projeto novo: as pastas e o manifesto.
@@ -308,14 +330,26 @@ print.tr_project <- function(x, ...) {
   # que o gerenciador de arquivos dele usa — no C puro "Zeta" viria antes de
   # "alfa" e "área" iria parar depois de "azul".
   dirs <- sort(dirs[nzchar(dirs) & !startsWith(dirs, ".")])
-  pai <- dirname(path)
 
   list(
     path = path,
-    parent = if (identical(pai, path)) NULL else pai,
+    parent = .tr_dir_pai(path),
     project = .tr_eh_projeto(path),
     entries = lapply(dirs, function(d) list(nome = d, projeto = .tr_eh_projeto(file.path(path, d))))
   )
+}
+
+#' A pasta de cima, ou `NULL` na raiz do disco.
+#'
+#' `path` vem de `normalizePath()`, que no Windows usa barra invertida ("D:\\"),
+#' e `dirname()` devolve barra normal ("D:/"): comparados crus, a raiz nunca
+#' seria igual ao próprio pai e o ".." recarregaria a mesma pasta. Compara os
+#' dois com a mesma barra e sem a do fim. `pai` é argumento só para o teste
+#' simular o Windows fora dele.
+#' @noRd
+.tr_dir_pai <- function(path, pai = dirname(path)) {
+  igual <- function(x) sub("/+$", "", gsub("\\\\", "/", x))
+  if (identical(igual(pai), igual(path))) NULL else pai
 }
 
 # As imagens que o bloco de imagem oferece para escolher, quando a nota ainda
@@ -339,4 +373,54 @@ print.tr_project <- function(x, ...) {
   # (Linux); em Windows ele devolveria '\\', por isso a normalização — barato
   # o bastante para manter mesmo sem um CI Windows rodando este teste.
   sort(gsub("\\\\", "/", arquivos))
+}
+
+# ---- chaves do trama.json que não são do núcleo -------------------------------------
+
+.TR_CFG_DO_NUCLEO <- c("collections", "temas", "tema_padrao", "marca", "sugestoes", "galeria")
+
+#' Chave própria de uma coleção ou plugin no `trama.json`
+#'
+#' O `trama.json` é a configuração do PROJETO: fica com ele e não vai no
+#' fluxo nem no que se publica. Uma coleção guarda ali o que é do projeto e
+#' não do fluxo — o `trama.documentos` guarda em `publicacoes` em que
+#' repositório cada documento é publicado. As chaves do núcleo (`collections`, `temas`,
+#' `tema_padrao`, `marca`, `sugestoes`, `galeria`) têm verbo próprio e são
+#' recusadas aqui. A gravação é atômica e mexe só na chave pedida.
+#' @param root Pasta do projeto (com `trama.json`).
+#' @param chave Nome da chave: minúsculas, dígitos e `_`.
+#' @param valor Qualquer coisa que vire JSON; `NULL` apaga a chave.
+#' @return `tr_project_config()`: o valor (lista, sem simplificar) ou `NULL`.
+#'   `tr_project_config_set()`: o valor gravado, invisível.
+#' @export
+tr_project_config <- function(root, chave) {
+  .tr_cfg_chave(chave)
+  .tr_cfg_ler(file.path(normalizePath(root, mustWork = TRUE), "trama.json"))[[chave]]
+}
+
+#' @rdname tr_project_config
+#' @export
+tr_project_config_set <- function(root, chave, valor) {
+  .tr_check_project(root)
+  .tr_cfg_chave(chave)
+  raiz <- normalizePath(root, mustWork = TRUE)
+  .tr_cfg_rewrite(file.path(raiz, "trama.json"), sprintf("a chave '%s'", chave),
+                  function(cfg) {
+                    # `cfg[[chave]] <- NULL` apaga; `cfg[chave] <- list(NULL)` gravaria `{}`.
+                    if (is.null(valor)) cfg[[chave]] <- NULL else cfg[chave] <- list(valor)
+                    cfg
+                  })
+  invisible(valor)
+}
+
+.tr_cfg_chave <- function(chave) {
+  if (!is.character(chave) || length(chave) != 1L || !grepl("^[a-z][a-z0-9_]*$", chave)) {
+    rlang::abort("Chave do trama.json: minúsculas, dígitos e '_', começando por letra.",
+                 class = "tr_error_bad_config_key")
+  }
+  if (chave %in% .TR_CFG_DO_NUCLEO) {
+    rlang::abort(sprintf("'%s' é chave do núcleo no trama.json e tem verbo próprio.", chave),
+                 class = "tr_error_bad_config_key")
+  }
+  invisible(chave)
 }

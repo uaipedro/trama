@@ -155,8 +155,9 @@ tr_series_regression <- function(serie, formula = "valor ~ t + periodo", contras
     regressor = if (!is.null(regressor)) regressor, aviso = a$aviso,
     tendencia = comp$tendencia, sazonal = comp$sazonal, resto = comp$resto,
     efeito_regressor = comp$regressor)
-  trama.models::tr_models_as_fit(a$fit, if (erro == "arma") "gls" else "lm", rotulo, f, a$dados,
-                                 "valor", nota = a$aviso %||% "", extra = list(serie_reg = info))
+  ajuste <- trama.models::tr_models_as_fit(a$fit, if (erro == "arma") "gls" else "lm", rotulo, f, a$dados,
+                                           "valor", nota = a$aviso %||% "", extra = list(serie_reg = info))
+  .tr_series_ferramentas(ajuste, if (erro == "arma") c("nlme::gls", "nlme::corARMA") else "stats::lm")
 }
 
 #' A fórmula digitada, conferida: resposta `valor`, e só os nomes que o bloco
@@ -363,7 +364,7 @@ tr_series_as_decomposition <- function(x) {
                       include.mean = any(tira), method = "ML"), "series/forecast")
     fc <- forecast::forecast(arima, xreg = Xn[, !tira, drop = FALSE], level = c(80, 95))
     fc$method <- sprintf("Regressão da série com erro ARMA(%d, %d)", o[["ar"]], o[["ma"]])
-    return(fc)
+    return(.tr_series_ferramentas(fc, c("forecast::Arima", "forecast::forecast")))
   }
   # O `predict.lm` usa o contraste guardado no ajuste; o do fator novo só
   # geraria o aviso de "contrastes descartados".
@@ -375,7 +376,7 @@ tr_series_as_decomposition <- function(x) {
     colnames(m) <- c("80%", "95%")
     stats::ts(m, start = inicio, frequency = fr)
   }
-  structure(list(
+  prev <- structure(list(
     method = "Regressão da série", model = NULL, level = c(80, 95),
     mean = como_ts(p80[, "fit"]),
     lower = lim(p80[, "lwr"], p95[, "lwr"]), upper = lim(p80[, "upr"], p95[, "upr"]),
@@ -385,6 +386,7 @@ tr_series_as_decomposition <- function(x) {
     fitted = serie - r$resto,
     residuals = r$resto),
     class = "forecast")
+  .tr_series_ferramentas(prev, "stats::predict")
 }
 
 # ---- Componentes com inferência --------------------------------------------

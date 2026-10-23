@@ -1,0 +1,39 @@
+---
+title: "Página"
+description: ""
+keywords: []
+engine: knitr
+resources:
+  - _trama/
+trama:
+  publicar:
+    licenca: CC-BY-4.0
+    licenca-codigo: MIT
+    versao: menor
+---
+
+{{< include _extensions/{{modelo}}/_knitr.qmd >}}
+
+**Versão** {{< var versao >}} · **Licença** {{< var licenca >}} (conteúdo), {{< var licenca-codigo >}} (código) · [pacote completo](ro-crate-metadata.json)
+
+::: {.callout-note}
+## Carregando o R no seu navegador
+
+Os preditores desta página rodam em R dentro do navegador (WebR). A primeira visita baixa o R e os pacotes e leva cerca de um minuto; as seguintes usam o cache. Nenhum dado digitado sai do seu computador.
+:::
+
+::: {.callout-tip collapse="true"}
+## Como citar
+
+{{< var citacao >}}
+:::
+
+::: {.callout-tip collapse="true"}
+## Como reproduzir
+
+Baixe o pacote, instale o trama e as coleções de `ambiente.json`, traga os dados de `dados-entrada.json` (mesmo sha256) e abra `flow.json` no editor. O `README.md` traz o passo a passo.
+:::
+
+## Resultados
+
+Os resultados que você insere do trama entram como blocos `::: {#trama-… .trama}`; um modelo vira um preditor que roda no navegador. Escreva em volta deles e mova-os para onde quiser: o texto é seu, e o trama só atualiza o que está dentro desses blocos.

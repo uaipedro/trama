@@ -4,7 +4,11 @@
 \alias{tr_ui}
 \title{Monta a UI Shiny do editor: importmap, dependências e o \verb{<div>} onde o React monta.}
 \usage{
-tr_ui(project)
+tr_ui(project, plugins = list())
+}
+\arguments{
+\item{plugins}{Plugins do editor (ver \code{\link[=tr_plugins]{tr_plugins()}}); \code{tr_app()}
+passa as instaladas.}
 }
 \description{
 Monta a UI Shiny do editor: importmap, dependências e o \verb{<div>} onde o React monta.

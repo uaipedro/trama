@@ -68,7 +68,10 @@ tr_models_permutation <- function(modelo, termo = "", grupo = "", reamostras = 9
     ggplot2::geom_vline(xintercept = obs$F, color = "#B34D4D", linewidth = 1) +
     ggplot2::labs(x = "F sob permutação", y = "Contagem", title = paste("Permutação ·", obs$nome))
   grafico <- trama.view::tr_view_finish(grafico, aspecto, tema, titulo, rotulo_x, rotulo_y, legenda)
-  list(out = grafico, tabela = tabela, distribuicao = distribuicao)
+  # Só base: o F observado sai do `stats::anova`; a permutação é deste pacote
+  # (decomposição QR), sem `coin`.
+  structure(list(out = grafico, tabela = tabela, distribuicao = distribuicao),
+            trama_ferramentas = "stats::anova")
 }
 
 .tr_models_nos_permutation <- function() {

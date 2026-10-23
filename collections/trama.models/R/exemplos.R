@@ -79,7 +79,10 @@
 #' @export
 tr_models_example <- function(dataset = "PlantGrowth") {
   dataset <- .tr_models_enum(dataset, .TR_MODELS_EXEMPLOS, "dataset")
-  switch(dataset,
+  # Os que vêm de um pacote fora da base (o resto é `datasets`, da base do R).
+  ferramenta <- switch(dataset, aveia = "MASS::oats", sleepstudy = "lme4::sleepstudy",
+                       cbpp = "lme4::cbpp", grouseticks = "lme4::grouseticks", character())
+  out <- switch(dataset,
     PlantGrowth = tibble::as_tibble(datasets::PlantGrowth),
     milho_dbc = .tr_models_milho(),
     racao_dql = .tr_models_racao(),
@@ -100,4 +103,6 @@ tr_models_example <- function(dataset = "PlantGrowth") {
     cbpp = { d <- lme4::cbpp; tibble::tibble(rebanho = d$herd, periodo = d$period, casos = d$incidence,
                                              sadios = d$size - d$incidence, tamanho = d$size) },
     grouseticks = tibble::as_tibble(lme4::grouseticks))
+  if (length(ferramenta)) attr(out, "trama_ferramentas") <- ferramenta
+  out
 }

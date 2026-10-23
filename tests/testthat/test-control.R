@@ -63,7 +63,7 @@ test_that("op do agente passa pelo aplicar da sessão: rev, log, eco com autor",
     expect_true(r$ok)
     expect_equal(r$rev, rev0 + 1L)
     expect_false(is.null(rv_doc()$nodes$a))
-    expect_length(session$env$log, 1L)
+    expect_length(session$env$aberto$log, 1L)
 
     eco <- Filter(function(m) identical(m$type, "op_applied"), msgs)
     expect_equal(eco[[1]]$autor, "agente")
@@ -90,11 +90,11 @@ test_that("cmd add --from vira UM batch: nó, posição sem sobrepor e ligação
     session$setInputs(tr_ready = 1)
     tr_control_cmd(list(cmd = "add", type = "t/const", id = "a", params = list(value = 2)))
     tr_control_cmd(list(cmd = "add", type = "t/const", id = "b"))
-    log0 <- length(session$env$log)
+    log0 <- length(session$env$aberto$log)
     r <- tr_control_cmd(list(cmd = "add", type = "t/add", id = "s", from = list("a", "b")))
     expect_true(r$ok)
     expect_equal(r$op$op, "batch")
-    expect_length(session$env$log, log0 + 1L)   # um Ctrl+Z desfaz o gesto inteiro
+    expect_length(session$env$aberto$log, log0 + 1L)   # um Ctrl+Z desfaz o gesto inteiro
     para <- vapply(Filter(function(e) e$to$node == "s", rv_doc()$edges), function(e) e$to$port, "")
     expect_setequal(para, c("a", "b"))
 
@@ -119,6 +119,29 @@ test_that("cmd add --from vira UM batch: nó, posição sem sobrepor e ligação
     expect_equal(rv_doc()$nodes$a$params$value, 5)
 
     expect_error(tr_control_cmd(list(cmd = "link", from = "a", to = "nao_existe")), "nao_existe")
+  })
+})
+
+test_that("cmd accept aceita a versão nova dos blocos em deriva (#32)", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p, autosave = FALSE), {
+    session$sendCustomMessage <- function(type, message) NULL
+    session$setInputs(tr_ready = 1)
+    expect_error(tr_control_cmd(list(cmd = "accept")), "Nenhum bloco")
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "a"))
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "b"))
+    # Fluxo salvo com a v0 do bloco: deriva, sem migração.
+    doc <- rv_doc(); doc$nodes$a$type_version <- 0L; doc$nodes$b$type_version <- 0L; rv_doc(doc)
+    kinds <- function() vapply(tr_control_state()$problems, function(x) x$kind, "")
+    expect_equal(sum(kinds() == "version_drift"), 2L)
+    r <- tr_control_cmd(list(cmd = "accept", nodes = list("a")))
+    expect_true(r$ok)
+    expect_equal(r$op$op, "accept_version")
+    expect_equal(sum(kinds() == "version_drift"), 1L)
+    r <- tr_control_cmd(list(cmd = "accept"))
+    expect_true(r$ok)
+    expect_false("version_drift" %in% kinds())
   })
 })
 
@@ -216,4 +239,130 @@ test_that("--wait: tocados pela op e tudo abaixo deles", {
   expect_equal(ids(.tr_cli_abaixo(st, "d")), c("d", "m", "c", "g"))
   expect_equal(ids(.tr_cli_abaixo(st, NULL)), c("d", "m", "c", "g", "z"))
   expect_equal(ids(.tr_cli_abaixo(list(nodes = st$nodes, edges = list()), "z")), "z")
+})
+
+test_that("frame, nota, renomear e organizar pelo canal: ops comuns, um desfazer por gesto (#19, #33)", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p, autosave = FALSE), {
+    session$sendCustomMessage <- function(type, message) NULL
+    session$setInputs(tr_ready = 1)
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "a"))
+    tr_control_cmd(list(cmd = "add", type = "t/const", id = "b"))
+    tr_control_cmd(list(cmd = "add", type = "t/add", id = "s", from = list("a", "b")))
+
+    r <- tr_control_cmd(list(cmd = "frame", acao = "add", title = "1. Dados", nodes = list("a", "b")))
+    expect_true(r$ok)
+    fid <- r$id
+    expect_equal(rv_doc()$ui$frames[[fid]]$title, "1. Dados")
+
+    # Bloco novo direto na etapa; medida do editor entra no cálculo.
+    session$setInputs(tr_medidas = list(a = list(240, 300)))
+    r <- tr_control_cmd(list(cmd = "add", type = "t/const", id = "c", frame = fid))
+    expect_true(r$ok)
+    st <- tr_control_state()
+    f <- Filter(function(x) x$id == fid, st$frames)[[1]]
+    expect_setequal(unlist(f$nodes), c("a", "b", "c"))
+    expect_length(st$nodes[[1]]$position, 2L)
+
+    r <- tr_control_cmd(list(cmd = "note", acao = "add", text = "## Dados", frame = fid))
+    expect_true(r$ok)
+    nid <- r$id
+    expect_equal(tr_control_state()$notes[[1]]$frame, fid)
+
+    log0 <- length(session$env$aberto$log)
+    rot0 <- rv_doc()$nodes$s$label
+    expect_true(tr_control_cmd(list(cmd = "rename", node = "s", label = "Soma das fontes"))$ok)
+    expect_equal(rv_doc()$nodes$s$label, "Soma das fontes")
+    tr_control_undo()
+    expect_equal(rv_doc()$nodes$s$label, rot0)
+    expect_length(session$env$aberto$log, log0)
+
+    antes <- rv_doc()$ui$positions
+    r <- tr_control_cmd(list(cmd = "layout"))
+    expect_true(r$ok)
+    expect_equal(r$op$op, "batch")
+    expect_length(session$env$aberto$log, log0 + 1L)
+    # De novo: nada a mudar, e nenhum passo vazio na pilha.
+    r <- tr_control_cmd(list(cmd = "layout"))
+    expect_equal(r$message, "Nada a mudar.")
+    expect_length(session$env$aberto$log, log0 + 1L)
+    tr_control_undo()
+    expect_equal(rv_doc()$ui$positions, antes)
+
+    r <- tr_control_cmd(list(cmd = "move", items = list(list(id = fid, dx = 100, dy = 0))))
+    expect_true(r$ok)
+    expect_error(tr_control_cmd(list(cmd = "frame", acao = "put", frame = "nada", nodes = list("a"))),
+                 "Frame desconhecido")
+    expect_true(tr_control_cmd(list(cmd = "note", acao = "rm", note = nid))$ok)
+    expect_length(rv_doc()$ui$notes, 0L)
+  })
+})
+
+# Segunda aba do mesmo editor. `testServer()` não aninha; a sessão falsa roda
+# o servidor à mão, no próprio domínio, e fecha com `$close()`.
+aba_nova <- function(server) {
+  s <- shiny::MockShinySession$new()
+  s$sendCustomMessage <- function(type, message) NULL
+  shiny::isolate(shiny::withReactiveDomain(s, server(input = s$input, output = s$output, session = s)))
+  s$setInputs(tr_ready = 1)
+  s
+}
+
+test_that("duas abas no mesmo fluxo: a que fecha não leva as edições do agente", {
+  # O caso real: um print com Chrome headless abriu uma segunda aba, o canal
+  # passou a falar com ela, e quando ela caiu a edição seguinte foi para a aba
+  # antiga, com o documento antigo. O autosave dela apagou 7 frames do disco.
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+    velha <- session$token
+
+    nova <- aba_nova(tr_server(p))
+    expect_identical(.tr_control_sessao()$session$token, nova$token)
+    expect_true(tr_control_cmd(list(cmd = "frame", acao = "add", title = "1. Dados"))$ok)
+    expect_true(tr_control_op(list(op = "add_node", id = "a", type = "t/const"))$ok)
+    nova$close()
+
+    # A nova fechou: o canal volta para a velha, que já tem o documento atual.
+    expect_identical(.tr_control_sessao()$session$token, velha)
+    expect_length(rv_doc()$ui$frames, 1L)
+    docs <- Filter(function(m) identical(m$type, "document"), msgs)
+    expect_true("a" %in% names(docs[[length(docs)]]$doc$nodes))
+
+    expect_true(tr_control_op(list(op = "add_node", id = "b", type = "t/const"))$ok)
+    disco <- tr_project_flow(p, "main")
+    expect_setequal(names(disco$nodes), c("a", "b"))
+    expect_length(disco$ui$frames, 1L)
+
+    # Um fluxo, uma história: o Ctrl+Z da aba velha desfaz a op da nova.
+    tr_control_undo(); tr_control_undo()
+    expect_length(rv_doc()$nodes, 0L)
+    expect_length(rv_doc()$ui$frames, 1L)
+  })
+})
+
+test_that("edição numa aba chega à outra aberta, e o autosave dela não a desfaz", {
+  limpar_ctl()
+  p <- projeto_ctl()
+  shiny::testServer(tr_server(p), {
+    msgs <- list()
+    session$sendCustomMessage <- function(type, message) msgs[[length(msgs) + 1L]] <<- message
+    session$setInputs(tr_ready = 1)
+    nova <- aba_nova(tr_server(p))
+    nova$setInputs(tr_op = list(seq = 1, base_rev = rv_doc()$rev,
+                                op = list(op = "add_node", id = "a", type = "t/const")))
+    expect_false(is.null(rv_doc()$nodes$a))
+    expect_true(any(vapply(msgs, function(m) identical(m$type, "document") &&
+                                    "a" %in% names(m$doc$nodes), TRUE)))
+    session$setInputs(tr_op = list(seq = 2, base_rev = rv_doc()$rev,
+                                   op = list(op = "add_node", id = "b", type = "t/const")))
+    expect_setequal(names(tr_project_flow(p, "main")$nodes), c("a", "b"))
+    nova$close()
+  })
+  # A última aba saiu: o documento do processo vai embora, e a próxima lê o disco.
+  expect_length(ls(.tr_abertos), 0L)
 })

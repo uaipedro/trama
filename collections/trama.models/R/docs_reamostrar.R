@@ -12,6 +12,5 @@
       R(autores = c("Phipson, B.", "Smyth, G. K."), ano = 2010,
         titulo = "Permutation P-values Should Never Be Zero: Calculating Exact P-values When Permutations Are Randomly Drawn",
         fonte = "Statistical Applications in Genetics and Molecular Biology, 9(1), Article 39", doi = "10.2202/1544-6115.1585"),
-      I("coin", "oneway_test; independence_test", "Oráculo de teste: distribuição Monte Carlo approximate; o bloco usa a estatística F observada e reajuste em cada permutação."),
       I("stats", "anova.lm; lm", "Quadro tipo I para o F observado e reajuste da resposta permutada."))))
 }

@@ -14,15 +14,20 @@
 #' extras existem para que o teste tenha distribuição qui-quadrado mesmo com
 #' raiz unitária ou cointegração; `d_max` é a maior ordem de integração entre
 #' as séries (ADF a 5%, `forecast::ndiffs`).
+#'
+#' `metodo = "instantanea"` (Lütkepohl, 2005, seção 3.6.3): Wald qui-quadrado
+#' sobre as covariâncias dos resíduos entre a causa e o resto, como o
+#' `$Instant` de `vars::causality()`. É simétrico: não tem direção.
 #' @export
 tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
   .tr_series_guard_var(ajuste, "series/granger")
-  metodo <- .tr_series_enum(metodo, c("wald", "toda_yamamoto"), "metodo")
+  metodo <- .tr_series_enum(metodo, c("wald", "toda_yamamoto", "instantanea"), "metodo")
   if (identical(ajuste$tipo, "VECM") || inherits(ajuste$ajuste, "vec2var")) {
     .tr_series_abort("tr_series_error_vecm_granger",
                      paste0("'series/granger' recebe um VAR em nível (series/var). Para um VECM, ",
                             "o teste de Granger não tem a forma usual aqui: use series/var ",
-                            "sobre as séries diferenciadas, ou o método toda_yamamoto com um VAR em nível."))
+                            "sobre as séries diferenciadas, ou o método toda_yamamoto com um VAR em nível. ",
+                            "A causalidade instantânea também pede o VAR em nível."))
   }
   serie <- ajuste$serie
   .tr_series_obrigatorio(causa, "causa")
@@ -31,6 +36,7 @@ tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
   txt_causa <- paste(causas, collapse = " e ")
   txt_resto <- paste(resto, collapse = " e ")
   h0 <- sprintf("%s não Granger-causa %s", txt_causa, txt_resto)
+  if (metodo == "instantanea") return(.tr_series_granger_instantanea(ajuste, causas, txt_causa, txt_resto))
   if (metodo == "wald") {
     r <- .tr_series_granger_wald(ajuste, causas)
     estat <- r$estatistica
@@ -49,11 +55,12 @@ tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
                     r$p_total, r$p_lags, dmax, r$gl)
     fonte <- "Toda e Yamamoto (1995)"
   }
-  .tr_series_teste("Granger", h0, estat, rotulo, p_valor = p, gl = r$gl,
+  res <- .tr_series_teste("Granger", h0, estat, rotulo, p_valor = p, gl = r$gl,
     sentido = "maior",
     conclusao_sim = sprintf("%s Granger-causa %s: ajuda a prever, além do próprio passado", txt_causa, txt_resto),
     conclusao_nao = sprintf("não há precedência preditiva de %s sobre %s", txt_causa, txt_resto),
     nota = nota, fonte = fonte)
+  .tr_series_ferramentas(res, if (metodo == "wald") "vars::causality" else c("vars::VAR", "forecast::ndiffs"))
 }
 
 #' Os nomes da causa: separados por vírgula, todos colunas da série múltipla.
@@ -76,6 +83,30 @@ tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
   g <- vars::causality(ajuste$ajuste, cause = causas)$Granger
   list(estatistica = unname(g$statistic[[1]]), gl = unname(g$parameter),
        p_valor = unname(g$p.value[[1]]))
+}
+
+#' Causalidade instantânea: o `$Instant` de `vars::causality()`.
+#'
+#' Wald sobre os elementos de Sigma_u (estimada com T - Kp - 1 no divisor, a
+#' do `vars`) que ligam a causa ao resto; qui-quadrado com um grau de
+#' liberdade por covariância testada. A variância assintótica usada é a do
+#' caso gaussiano, 2 D+ (Sigma ⊗ Sigma) D+'.
+#' @noRd
+.tr_series_granger_instantanea <- function(ajuste, causas, txt_causa, txt_resto) {
+  g <- vars::causality(ajuste$ajuste, cause = causas)$Instant
+  gl <- unname(g$parameter[[1]])
+  res <- .tr_series_teste("Causalidade instantânea",
+    sprintf("não há causalidade instantânea entre %s e %s", txt_causa, txt_resto),
+    unname(g$statistic[[1]]), "qui-quadrado", p_valor = unname(g$p.value[[1]]), gl = gl,
+    sentido = "maior",
+    conclusao_sim = sprintf("há causalidade instantânea entre %s e %s: os choques se correlacionam no mesmo período",
+                            txt_causa, txt_resto),
+    conclusao_nao = sprintf("não há evidência de correlação contemporânea entre os choques de %s e de %s",
+                            txt_causa, txt_resto),
+    nota = sprintf(paste0("Wald sobre as covariâncias dos resíduos entre %s e %s; qui-quadrado com %g gl; ",
+                          "simétrico, sem direção"), txt_causa, txt_resto, gl),
+    fonte = "Lütkepohl (2005, seção 3.6.3); Pfaff (2008), vars::causality")
+  .tr_series_ferramentas(res, "vars::causality")
 }
 
 #' Toda-Yamamoto: VAR(p + dmax) em nível; Wald qui-quadrado nas p primeiras
@@ -139,7 +170,7 @@ tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
   E <- trama::tr_param_enum; P <- trama::tr_param
   icone <- function(n) trama::tr_icon(n)
   list(
-    trama::tr_node("series/granger", fn = tr_series_granger, label = "Causalidade de Granger",
+    trama::tr_node("series/granger", fn = tr_series_granger, label = "Causalidade de Granger", version = 2L,
       pressupostos = .tr_series_doc("series/granger")$pressupostos,
       referencias = .tr_series_doc("series/granger")$referencias,
       category = "serie_mv_testes", icon = icone("arrow-right-left"),
@@ -147,7 +178,7 @@ tr_series_granger <- function(ajuste, causa = "", metodo = "wald") {
       inputs = list(ajuste = VAR), outputs = list(out = TE),
       params = list(
         causa = P("text", "", label = "Causa", example = "renda"),
-        metodo = E("wald", c("wald", "toda_yamamoto"), label = "Método")),
+        metodo = E("wald", c("wald", "toda_yamamoto", "instantanea"), label = "Método")),
       help = .tr_series_ajuda(r"---[
 Testa se a série (ou as séries) da CAUSA ajuda a prever as demais do VAR,
 além do que as próprias demais já dizem sobre si. A hipótese nula é que a
@@ -165,16 +196,22 @@ Escolha o método pelo tipo de série:
   o VAR com defasagens extras (a maior ordem de integração) e testa só as
   primeiras p. É o método seguro quando não se sabe se as séries são
   estacionárias.
+- **Instantânea**: outra pergunta. Não olha o passado: testa se os CHOQUES da
+  causa e os das demais séries se correlacionam no mesmo período, pelas
+  covariâncias dos resíduos do VAR. É simétrica (X com Y é o mesmo teste que Y
+  com X) e não tem direção; rejeitar diz que um choque numa série vem junto com
+  um choque na outra, o que também faz a IRF ortogonal depender da ordem.
 
 O VECM não entra aqui: o bloco recebe o VAR em nível (series/var).
 ]---", r"---[
 - **Causa** — uma ou mais séries, separadas por vírgula. A hipótese testada é
   que elas não Granger-causam as DEMAIS séries do VAR, em conjunto.
-- **Método** — Wald (séries estacionárias) ou Toda-Yamamoto (nível, integradas
-  ou cointegradas).
+- **Método** — Wald (séries estacionárias), Toda-Yamamoto (nível, integradas
+  ou cointegradas) ou instantânea (correlação contemporânea dos choques).
 ]---", r"---[
 Um teste (`data/test`) com H0 "causa não Granger-causa resto", a estatística
-(F para Wald, qui-quadrado para Toda-Yamamoto) e o p-valor.
+(F para Wald, qui-quadrado para Toda-Yamamoto) e o p-valor. Na instantânea, a
+H0 é "não há causalidade instantânea entre causa e resto", com qui-quadrado.
 ]---", r"---[
 tr_flow(reg) |>
   tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
@@ -210,7 +247,10 @@ tr_flow(reg) |>
           se_falhar = "use metodo = toda_yamamoto, que serve a séries em nível e integradas"),
         P("Os resíduos do VAR são ruído branco: a precedência só se lê se a dinâmica está bem capturada.",
           verificar = "series/portmanteau_mv",
-          se_falhar = "aumente as defasagens (series/var_select)")),
+          se_falhar = "aumente as defasagens (series/var_select)"),
+        P("Pelo método instantânea, os resíduos são aproximadamente normais: a variância assintótica das covariâncias usada no Wald é a do caso gaussiano.",
+          verificar = "series/normality_mv",
+          se_falhar = "leia o p-valor com cautela; caudas pesadas tornam o teste liberal")),
       referencias = list(granger, toda, lutkepohl, .tr_series_impl("vars", "causality"))
     )
   )

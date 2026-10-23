@@ -54,12 +54,14 @@ jobs:
           # coleções vêm no passo seguinte, lidas dos DESCRIPTION delas.
           extra-packages: any::pkgload, any::testthat, any::withr
 
-      - name: Dependências das coleções (Imports, Depends, Suggests)
+      - name: Dependências das coleções e plugins (Imports, Depends, Suggests)
         shell: Rscript {0}
         run: |
           base <- rownames(installed.packages(priority = "base"))
           campos <- c("Depends", "Imports", "Suggests", "LinkingTo")
-          pkgs <- unlist(lapply(Sys.glob("collections/*/DESCRIPTION"), function(d) {
+          # Plugins também: sem eles o trama.documentos caiu por falta de yaml e zip.
+          descs <- Sys.glob(c("collections/*/DESCRIPTION", "plugins/*/DESCRIPTION"))
+          pkgs <- unlist(lapply(descs, function(d) {
             x <- read.dcf(d, fields = campos)
             x <- unlist(strsplit(x[!is.na(x)], ","))
             trimws(sub("\\(.*", "", x))

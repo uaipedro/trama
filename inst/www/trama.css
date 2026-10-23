@@ -959,6 +959,24 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
    banner atrás do overlay seria a mensagem mais importante da tela sendo a
    única invisível. Não há menu de contexto com o diálogo aberto. */
 .tr-app-dialog .tr-banner{z-index:61}
+/* Aviso de versão nova (#32): abaixo da barra, no canto, para não brigar com o
+   banner de erro (embaixo). Painel e não vermelho: não é falha, é "confira". */
+.tr-deriva{position:absolute;top:62px;left:12px;z-index:5;max-width:min(560px,calc(100% - 284px));
+  box-sizing:border-box;padding:7px 10px;background:var(--tr-panel);border:1px solid var(--tr-line);
+  border-left:3px solid var(--tr-accent);border-radius:8px;box-shadow:0 6px 22px var(--tr-shadow);
+  font-size:11.5px;color:var(--tr-fg)}
+.tr-deriva-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tr-deriva-msg{flex:1 1 220px;min-width:0}
+.tr-deriva-btn{font:inherit;font-size:11px;padding:2px 8px;border:1px solid var(--tr-line);border-radius:5px;
+  background:var(--tr-field);color:var(--tr-fg);cursor:pointer;white-space:nowrap}
+.tr-deriva-btn:hover{background:var(--tr-hover)}
+.tr-deriva-aceitar{border-color:var(--tr-accent);color:var(--tr-accent)}
+.tr-deriva-lista{list-style:none;margin:7px 0 0;padding:6px 0 0;border-top:1px solid var(--tr-line);
+  max-height:40vh;overflow:auto}
+.tr-deriva-lista li{display:flex;align-items:baseline;gap:6px;padding:2px 0}
+.tr-deriva-no{font:inherit;padding:0;border:0;background:none;color:var(--tr-fg);cursor:pointer;
+  text-decoration:underline dotted;text-underline-offset:2px}
+.tr-deriva-ver{flex:1;min-width:0;color:var(--tr-dim)}
 .tr-boot-error{margin:24px;padding:14px;background:var(--tr-err-bg);border:1px solid var(--tr-err);
   color:var(--tr-err-fg);border-radius:8px;white-space:pre-wrap;font-size:12px}
 .react-flow__minimap{background:var(--tr-panel);border:1px solid var(--tr-line);border-radius:8px}
@@ -1520,6 +1538,11 @@ body{margin:0;background:var(--tr-bg);color:var(--tr-fg);
 .tr-galeria-dock { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 20;
   pointer-events: auto; }
 .tr-galeria-selo { color: var(--tr-accent); font-size: 12px; line-height: 1; }
+/* Selo de plugin no cabeçalho (`registerCardBadge`): discreto, herda a tinta da faixa. */
+.tr-selo-plugin{display:inline-flex;align-items:center;background:none;border:0;padding:0 1px;
+                color:inherit;opacity:.72;cursor:pointer;line-height:1}
+.tr-selo-plugin:hover{opacity:1}
+.tr-selo-plugin:disabled{cursor:default}
 .tr-pv-acoes .tr-galeria-marca-on { color: var(--tr-accent); }
 button.tr-selo-ramo { border: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; }
 .tr-selo-ramo.tr-selo-desligado { background: transparent; color: var(--tr-dim);

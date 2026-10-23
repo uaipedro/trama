@@ -1757,3 +1757,19 @@ test_that("t_sig continua opção, com teto l12 automático e o aviso abaixo de 
   expect_match(t$nota, "rejeita bem acima do nível nominal", fixed = TRUE)
   expect_error(tr_series_zivot_andrews(x, defasagens = -2L), class = "tr_series_error_bad_option")
 })
+
+test_that("testes de várias séries empilhados dizem de qual série é cada linha (data/bind_rows origem, #20)", {
+  reg <- series_registry()
+  fl <- trama::tr_flow(reg) |>
+    trama::tr_add("dax", "series/example", dataset = "EuStockMarkets$DAX") |>
+    trama::tr_add("cac", "series/example", dataset = "EuStockMarkets$CAC") |>
+    trama::tr_add("adf_dax", "series/adf", from = "dax") |>
+    trama::tr_add("adf_cac", "series/adf", from = "cac") |>
+    trama::tr_add("q", "data/bind_rows", origem = "serie", from = c("adf_dax", "adf_cac"))
+  s <- trama::tr_store(tempfile())
+  q <- trama::tr_value(trama::tr_flow_doc(fl), "q", registry = fl$registry, store = s)
+  expect_identical(q$serie, c("adf_dax", "adf_cac"))
+  expect_identical(names(q)[1:2], c("serie", "teste"))
+  um <- trama::tr_value(trama::tr_flow_doc(fl), "adf_dax", registry = fl$registry, store = s)
+  expect_equal(q$estatistica[[1]], um$estatistica, tolerance = 1e-12)
+})

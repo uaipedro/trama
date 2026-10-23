@@ -118,5 +118,9 @@ tr_models_select <- function(modelos, criterio = "AICc") {
   out$peso_acumulado <- cumsum(ifelse(is.na(out$peso), 0, out$peso))
   # exp(delta / 2), e não peso_melhor / peso: o peso dá underflow com delta > ~1490.
   out$razao_evidencia <- exp(out$delta / 2)
-  tibble::as_tibble(out)
+  # O misto sem log-verossimilhança própria é reajustado por ML (`lme4::refitML`).
+  refit <- any(vapply(modelos, function(m) m$classe == "lmer" && is.null(tr_models_loglik(m)), logical(1)))
+  out <- tibble::as_tibble(out)
+  attr(out, "trama_ferramentas") <- c("stats::logLik", if (refit) "lme4::refitML")
+  out
 }

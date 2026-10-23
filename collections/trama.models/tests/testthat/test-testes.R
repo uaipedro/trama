@@ -23,7 +23,7 @@ test_that("Breusch-Pagan de Koenker bate com a conta à mão", {
 })
 
 test_that("pressuposto que não se aplica vira card vermelho explicando", {
-  g <- tr_models_glm(ex("InsectSprays"), "count", "spray")
+  g <- tr_models_glm(ex("InsectSprays"), "count", "spray", familia = "quasipoisson")
   err <- tryCatch(tr_models_shapiro_residuals(g), condition = identity)
   expect_s3_class(err, "tr_models_error_not_applicable")
   expect_match(conditionMessage(err), "GLM", fixed = TRUE)
@@ -367,4 +367,37 @@ test_that("qui-quadrado reporta V de Cramér e os resíduos padronizados", {
     expect_equal(q$efeito$valor, effectsize::cramers_v(table(mt$cyl, mt$gear), adjust = FALSE, ci = NULL)[[1]],
                  tolerance = 1e-9)
   }
+})
+
+# Shapiro-Wilk nos resíduos quantílicos do GLM. Não há pacote que faça a
+# calibração; o oráculo é por partes: o p mediano observado é refeito à mão com
+# `statmod::qresid` + `stats::shapiro.test` na mesma semente (1e-12), e o
+# p-valor só pode cair na grade (k + 1) / (B + 1) do teste de Monte Carlo. O
+# tipo I (5%) foi medido fora da suíte: ver docs/revisao-metodologica.md.
+test_that("GLM: estatística é o p mediano dos sorteios e o p é de Monte Carlo", {
+  skip_if_not_installed("statmod")
+  g <- tr_models_glm(ex("InsectSprays"), "count", "spray", familia = "poisson")
+  t <- tr_models_shapiro_residuals(g, sorteios = 5L, reamostras = 39L, .seed = 8L)
+  RNGkind("Mersenne-Twister", "Inversion", "Rejection"); set.seed(8L)
+  esperado <- stats::median(replicate(5, stats::shapiro.test(statmod::qresid(g$ajuste))$p.value))
+  expect_equal(t$estatistica, esperado, tolerance = 1e-12)
+  expect_true(any(abs(t$p_valor - (1:40) / 40) < 1e-12))
+  expect_identical(tr_models_shapiro_residuals(g, 5L, 39L, .seed = 8L)$p_valor, t$p_valor)
+  expect_match(t$nota, "Monte Carlo", fixed = TRUE)
+})
+
+test_that("GLM: acusa a Poisson em dados sobredispersos, não acusa a binomial negativa", {
+  d <- as.data.frame(MASS::quine)
+  pois <- tr_models_glm(d, formula = "Days ~ Eth + Sex + Age + Lrn", familia = "poisson")
+  nb <- tr_models_glm(d, formula = "Days ~ Eth + Sex + Age + Lrn", familia = "binomial negativa")
+  expect_lt(tr_models_shapiro_residuals(pois, 5L, 49L)$p_valor, 0.05)
+  expect_gt(tr_models_shapiro_residuals(nb, 5L, 49L)$p_valor, 0.05)
+})
+
+test_that("GLM binomial agrupada e 0/1 reajustam nas simulações", {
+  agr <- data.frame(s = c(3, 7, 9, 12, 15), f = c(17, 13, 11, 8, 5), dose = 1:5)
+  b <- tr_models_glm(agr, formula = "cbind(s, f) ~ dose", familia = "binomial")
+  expect_false(grepl("não reajustaram", tr_models_shapiro_residuals(b, 3L, 19L)$nota))
+  m <- tr_models_glm(ex("mtcars"), "am", "wt", familia = "binomial")
+  expect_true(is.finite(tr_models_shapiro_residuals(m, 3L, 19L)$p_valor))
 })

@@ -560,3 +560,40 @@ tr_models_shapiro <- function(dados, variavel = "") {
                            "para os pressupostos de um modelo, teste os resíduos em 'models/shapiro_residuals'"),
     fonte = "Shapiro & Wilk (1965)")
 }
+
+#' Jarque-Bera numa coluna: assimetria e curtose são as da normal?
+#'
+#' JB = n/6 (g1^2 + g2^2/4), com g1 = m3/m2^(3/2) e g2 = m4/m2^2 - 3 pelos
+#' momentos com divisor n (Jarque & Bera, 1987); qui-quadrado com 2 gl. É a
+#' conta de `tseries::jarque.bera.test` e de `moments::jarque.test`.
+#' @param dados tabela.
+#' @param variavel coluna numérica testada.
+#' @return objeto `tr_models_test`.
+#' @export
+tr_models_jarque_bera <- function(dados, variavel = "") {
+  no <- "models/jarque_bera"
+  x <- .tr_models_numerica(dados, .tr_models_col(dados, variavel, "variavel"), "variavel")
+  td <- .tr_models_teste_dados(dados, x, no)
+  v <- as.numeric(td$d[[x]])
+  n <- length(v)
+  d <- v - mean(v)
+  m2 <- mean(d^2)
+  if (m2 == 0) {
+    .tr_models_abort("tr_models_error_fit",
+                     "'%s': a coluna %s \u00e9 constante, e sem varia\u00e7\u00e3o n\u00e3o h\u00e1 assimetria nem curtose.",
+                     no, x)
+  }
+  g1 <- mean(d^3) / m2^1.5
+  g2 <- mean(d^4) / m2^2 - 3
+  jb <- n / 6 * (g1^2 + g2^2 / 4)
+  .tr_models_teste(
+    "Jarque-Bera", sprintf("%s tem distribui\u00e7\u00e3o normal", x), jb, "JB",
+    stats::pchisq(jb, df = 2, lower.tail = FALSE), gl = "2",
+    conclusao_sim = sprintf("%s n\u00e3o \u00e9 normal: confira assimetria e curtose na nota", x),
+    conclusao_nao = "n\u00e3o h\u00e1 evid\u00eancia contra a normalidade",
+    nota = .tr_models_nota(sprintf("n = %d; assimetria g1 = %.4g; curtose em excesso g2 = %.4g", n, g1, g2),
+                           td$nota,
+                           if (n < 50L) "qui-quadrado assint\u00f3tico: com n pequeno, prefira o 'models/shapiro'" else ""),
+    fonte = "Jarque & Bera (1987)",
+    extra = list(n = n, assimetria = g1, curtose_excesso = g2))
+}

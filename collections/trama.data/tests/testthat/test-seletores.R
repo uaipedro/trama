@@ -26,7 +26,9 @@ test_that("a lista de nomes de sempre não muda, inclusive nome com parêntese",
 })
 
 test_that("fora da lista fechada é recusado antes de avaliar", {
-  boom <- tempfile(); on.exit(unlink(boom))
+  # Barra normal: no Windows o tempfile() vem com barra invertida, que dentro
+  # do texto vira escape inválido, não parseia e cai em outro erro.
+  boom <- normalizePath(tempfile(), winslash = "/", mustWork = FALSE); on.exit(unlink(boom))
   for (txt in c(sprintf("system(\"touch %s\")", boom), "paste(\"a\")", "starts_with(paste(\"v\"))",
                 "where(function(x) TRUE)", "where(is.numeric, 1)", "(function() 1)()", "c(regiao[1])",
                 "base::starts_with(\"v\")", "starts_with(\"v\", foo = 1)", "starts_with()")) {

@@ -1,0 +1,14 @@
+meta:
+  name: trama — Artigo
+color:
+  palette:
+    tinta: "#1a1a1a"
+    vinho: "#7b2d26"
+  primary: vinho
+  foreground: tinta
+  background: "#ffffff"
+typography:
+  base:
+    family: Libertinus Serif
+  headings:
+    family: Libertinus Serif

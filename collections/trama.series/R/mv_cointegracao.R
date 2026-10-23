@@ -47,8 +47,11 @@ tr_series_engle_granger <- function(series, resposta = "", deterministico = "con
   x <- as.matrix(series)
   n <- nrow(x)
   regs <- setdiff(colnames(x), y_nome)
-  Z <- if (det == "tendência") cbind(constante = 1, tendencia = seq_len(n), x[, regs, drop = FALSE])
-       else cbind(constante = 1, x[, regs, drop = FALSE])
+  Z <- if (det == "tendência") cbind(1, seq_len(n), x[, regs, drop = FALSE])
+       else cbind(1, x[, regs, drop = FALSE])
+  # Nomes postos à mão: com uma só regressora, o cbind nomeia a coluna pela
+  # expressão (`x[, regs, drop = FALSE]`), não pela série.
+  colnames(Z) <- c("constante", if (det == "tendência") "tendencia", regs)
   fit <- stats::lm.fit(Z, x[, y_nome])
   res <- unname(fit$residuals)
   m <- length(res)
@@ -164,9 +167,10 @@ tr_series_vecm <- function(series, posto = 1L, defasagens = 2L, deterministico =
     "series/vecm")
   rls <- .tr_series_ajustar(urca::cajorls(ca, r = r), "series/vecm")
   vec <- .tr_series_ajustar(vars::vec2var(ca, r = r), "series/vecm")
-  .tr_series_var(vec, series, "VECM",
-                 vecm = list(rls = rls, posto = r, ca = ca),
-                 nota = sprintf("posto r = %d informado; confira com series/johansen", r))
+  out <- .tr_series_var(vec, series, "VECM",
+                        vecm = list(rls = rls, posto = r, ca = ca),
+                        nota = sprintf("posto r = %d informado; confira com series/johansen", r))
+  .tr_series_ferramentas(out, c("urca::ca.jo", "urca::cajorls", "vars::vec2var"))
 }
 
 .tr_series_nos_mv_cointegracao <- function() {
@@ -174,7 +178,7 @@ tr_series_vecm <- function(series, posto = 1L, defasagens = 2L, deterministico =
   I <- trama::tr_param_int; E <- trama::tr_param_enum; B <- trama::tr_param_bool; P <- trama::tr_param
   icone <- function(n) trama::tr_icon(n)
   list(
-    trama::tr_node("series/engle_granger", fn = tr_series_engle_granger, label = "Engle-Granger",
+    trama::tr_node("series/engle_granger", fn = tr_series_engle_granger, label = "Engle-Granger", version = 2L,
       pressupostos = .tr_series_doc("series/engle_granger")$pressupostos,
       referencias = .tr_series_doc("series/engle_granger")$referencias,
       category = "serie_mv_testes", icon = icone("test-tube"),

@@ -187,6 +187,22 @@
 
 .tr_models_pct <- function(x) paste0(formatC(x, format = "f", digits = 1, decimal.mark = ","), "%")
 
+#' Ferramentas que o quadro roda, no ramo que de fato corre: vão no atributo
+#' `trama_ferramentas` do resultado, e o relatório cita essas (não a declaração).
+#' @noRd
+.tr_models_ferramentas_quadro <- function(fit, tipo) {
+  III <- tipo == "III"
+  switch(fit$classe,
+    lm = if (tipo == "I") "stats::anova" else "car::Anova",
+    glm = c(if (III && inherits(fit$ajuste, "negbin")) "MASS::glm.nb",
+            if (tipo == "I") "stats::anova" else "car::Anova"),
+    lmer = "stats::anova",
+    gls = c(if (III) "nlme::gls", "nlme::anova.gls"),
+    glmer = c(if (III) "lme4::glmer", "car::Anova"),
+    split = "stats::anova",
+    character())
+}
+
 #' Quadro da ANOVA.
 #' @param modelo objeto `tr_models_fit`.
 #' @param tipo_sq `"I"` (sequencial), `"II"` ou `"III"`.
@@ -264,12 +280,14 @@ tr_models_anova_table <- function(modelo, tipo_sq = "I") {
   if (!is.null(cv$cv_a)) rodape[["CV (a)"]] <- .tr_models_pct(cv$cv_a)
   rodape[["média"]] <- .tr_models_fmt(cv$media, 4L)
   rodape[["n"]] <- as.character(nrow(modelo$dados))
-  .tr_models_efeitos(
+  out <- .tr_models_efeitos(
     tibble::as_tibble(tab), sprintf("Quadro da ANOVA · SQ tipo %s", tipo), coluna_estat = coluna,
     rodape = rodape,
     nota = .tr_models_nota(nota, .tr_models_nota_fit(modelo)),
     fonte = switch(tipo, I = "Fisher (1925)", II = "Langsrud (2003); Fox & Weisberg (2019)",
                    III = "Yates (1934); Fox & Weisberg (2019)"))
+  attr(out, "trama_ferramentas") <- .tr_models_ferramentas_quadro(modelo, tipo)
+  out
 }
 
 #' Tipo III com covariável numérica em interação com fator.
@@ -388,6 +406,16 @@ tr_models_coefficients <- function(modelo, exponenciar = FALSE, escala = "unidad
       res$tabela <- tibble::as_tibble(tab)
     }
   }
+  # Ferramentas do ramo que correu: o VIF do `car` (lm sem interação) e os
+  # intervalos do `nlme` no gls. Ler o ajuste misto (`lme4::getME`) não se cita.
+  # `terms` só no lm: ajuste de outra coleção (o Firth da `multi`) não tem.
+  vif <- identical(modelo$classe, "lm") && {
+    tt <- stats::terms(modelo$ajuste)
+    length(attr(tt, "term.labels")) >= 2L && all(attr(tt, "order") == 1L)
+  }
+  attr(res, "trama_ferramentas") <- c(
+    if (vif) "car::vif",
+    if (identical(modelo$classe, "gls")) "nlme::intervals")
   res
 }
 
@@ -575,11 +603,12 @@ tr_models_random_effects <- function(modelo) {
   # No GLM misto não há variância residual na mesma escala: sem proporção.
   soma_ok <- e_var & (v$grp == "Residual" | v$var1 == "(Intercept)") & modelo$classe != "glmer"
   total <- sum(v$vcov[soma_ok])
-  tibble::tibble(
+  out <- tibble::tibble(
     grupo = ifelse(v$grp == "Residual", "resíduo", v$grp), componente = comp,
     variancia = ifelse(e_var, v$vcov, NA_real_), desvio_padrao = ifelse(e_var, v$sdcor, NA_real_),
     correlacao = ifelse(e_var, NA_real_, v$sdcor),
     proporcao = ifelse(soma_ok, v$vcov / total, NA_real_))
+  out
 }
 
 #' Os resíduos que os pressupostos testam.
@@ -622,14 +651,81 @@ tr_models_random_effects <- function(modelo) {
        ajuste = aj)
 }
 
+#' Resíduos quantílicos normalizados randomizados de um GLM.
+#'
+#' Dunn & Smyth (1996): \eqn{r_i = \Phi^{-1}(u_i)}, com \eqn{u_i} a função de
+#' distribuição acumulada do modelo em \eqn{y_i}. Na resposta discreta
+#' (binomial, Poisson, binomial negativa) a acumulada salta em \eqn{y_i}, e
+#' \eqn{u_i} é sorteado uniforme entre \eqn{F(y_i^-)} e \eqn{F(y_i)}: é isso
+#' que tira as faixas que o resíduo de desvio tem com contagens baixas. Com o
+#' modelo certo, saem N(0, 1) exatos, qualquer que seja a família. Mesma conta
+#' do `statmod::qresid`, na mesma ordem de sorteio (um `runif` do tamanho de
+#' n), mas finito na cauda de cima, onde o statmod dá Inf. Nas famílias quasi não há distribuição para inverter: `NA`.
+#' @noRd
+.tr_models_qresid <- function(aj) {
+  familia <- .tr_models_familia_glm(aj)
+  y <- unname(aj$y)
+  mu <- as.numeric(stats::fitted(aj))
+  # `u = a + (b - a) U` é o `runif(min = a, max = b)` do statmod, sorteio por
+  # sorteio. Na cauda de cima `u` arredonda para 1 e `qnorm` dá Inf; ali a conta
+  # vai pela complementar `1 - u = (1 - b) + (b - a)(1 - U)`, com as caudas
+  # superiores calculadas direto (`lower.tail = FALSE`). Mesmo valor onde o
+  # statmod é finito; finito onde ele não é.
+  sortear <- function(a, b, a_sup, b_sup) {
+    U <- stats::runif(length(y))
+    u <- a + (b - a) * U
+    ifelse(u < 0.5, stats::qnorm(u), stats::qnorm(b_sup + (a_sup - b_sup) * (1 - U), lower.tail = FALSE))
+  }
+  continua <- function(lp_inf, lp_sup) {
+    ifelse(lp_inf < log(0.5), stats::qnorm(lp_inf, log.p = TRUE),
+           stats::qnorm(lp_sup, lower.tail = FALSE, log.p = TRUE))
+  }
+  switch(familia,
+    binomial = {
+      n <- aj$prior.weights
+      k <- round(n * y)
+      sortear(stats::pbinom(k - 1, n, mu), stats::pbinom(k, n, mu),
+              stats::pbinom(k - 1, n, mu, lower.tail = FALSE), stats::pbinom(k, n, mu, lower.tail = FALSE))
+    },
+    poisson = sortear(stats::ppois(y - 1, mu), stats::ppois(y, mu),
+                      stats::ppois(y - 1, mu, lower.tail = FALSE), stats::ppois(y, mu, lower.tail = FALSE)),
+    negbin = {
+      th <- aj$theta
+      p <- th / (mu + th)
+      sortear(ifelse(y > 0, stats::pbeta(p, th, pmax(y, 1)), 0), stats::pbeta(p, th, y + 1),
+              ifelse(y > 0, stats::pbeta(p, th, pmax(y, 1), lower.tail = FALSE), 1),
+              stats::pbeta(p, th, y + 1, lower.tail = FALSE))
+    },
+    Gamma = {
+      w <- aj$prior.weights
+      disp <- sum(w * ((y - mu) / mu)^2) / aj$df.residual
+      q <- w * y / mu / disp
+      continua(stats::pgamma(q, w / disp, log.p = TRUE), stats::pgamma(q, w / disp, lower.tail = FALSE, log.p = TRUE))
+    },
+    gaussian = (y - mu) / sqrt(sum(aj$weights * aj$residuals^2) / aj$df.residual),
+    rep(NA_real_, length(y)))
+}
+
 #' Resíduos ao lado da tabela.
+#'
+#' No GLM sai também `residuo_quantilico`, o resíduo quantílico normalizado
+#' randomizado (Dunn & Smyth 1996): N(0, 1) sob o modelo certo, inclusive com
+#' contagens baixas ou resposta 0/1, onde o de desvio fica em faixas. O sorteio
+#' usa a semente do nó.
 #' @param modelo objeto `tr_models_fit`.
+#' @param .seed semente do nó (só o resíduo quantílico do GLM sorteia).
 #' @return a tabela usada no ajuste com `ajustado`, `residuo` e
-#'   `residuo_padronizado` à direita.
+#'   `residuo_padronizado` à direita; no GLM, também `residuo_quantilico`.
 #' @export
-tr_models_residuals <- function(modelo) {
+tr_models_residuals <- function(modelo, .seed = 1L) {
   .tr_models_modelo_conferir(modelo)
-  tr_models_resid(modelo)
+  d <- tr_models_resid(modelo)
+  if (identical(modelo$classe, "glm")) {
+    nome <- if ("residuo_quantilico" %in% names(modelo$dados)) "residuo_quantilico_modelo" else "residuo_quantilico"
+    semente <- if (is.null(.seed) || !length(.seed) || is.na(.seed[[1]])) 1L else as.integer(.seed[[1]])
+    d[[nome]] <- as.numeric(.tr_models_com_semente(semente, .tr_models_qresid(modelo$ajuste)))
+  }
+  d
 }
 
 #' Diagnóstico gráfico dos resíduos: quatro painéis.

@@ -260,10 +260,12 @@ tl_project_set_galeria <- function(caminho, pasta) {
 #' Coleções que o projeto pede e que NÃO estão instaladas em `lib` (pasta
 #' do pacote não existe ali). Usado ao abrir um projeto para oferecer
 #' "Instalar e abrir" em vez de deixar `trama::tr_project()` recusar lá na
-#' frente com um erro cru.
+#' frente com um erro cru. Coleção retirada da instalação (`retired` do
+#' manifesto, como o `trama.publicar`) não conta: o projeto abre sem ela, e
+#' quem a substituiu migra o projeto ao abrir.
 #' @noRd
-tl_project_missing_collections <- function(caminho, lib) {
-  pedidas <- tl_project_collections(caminho)
+tl_project_missing_collections <- function(caminho, lib, retiradas = character()) {
+  pedidas <- setdiff(tl_project_collections(caminho), retiradas)
   pedidas[!vapply(pedidas, function(p) dir.exists(file.path(lib, p)), logical(1))]
 }
 
@@ -417,3 +419,7 @@ tl_project_restart <- function(caminho, lib = tl_lib_dir(tl_state_read()$atual),
   Sys.sleep(0.2)
   tl_project_open(caminho, lib = lib, abrir_janela = abrir_janela, executar = executar)
 }
+
+#' Coleções que saíram da instalação, do manifesto da release (`retired`).
+#' @noRd
+tl_retired_collections <- function(m) if (is.null(m)) character(0) else as.character(unlist(m$retired))

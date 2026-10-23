@@ -53,6 +53,11 @@ defasagem diz alguma coisa sobre quem antecede quem.
 Um gráfico (`view/plot`) com uma barra por defasagem, das negativas às
 positivas. As barras FORA da banda saem coloridas.
 
+E a mesma conta em tabela (`data/table`, saída `tabela`): uma linha por
+defasagem, com `defasagem`, `r` (a correlação cruzada), `banda` (±1,96/√n) e
+`fora` (verdadeiro quando |r| passa da banda). É a saída para citar os valores
+ou gravá-los, sem ler no gráfico.
+
 ## Exemplos
 
 ```r
