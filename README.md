@@ -1,6 +1,6 @@
 # trama
 
-![Identidade visual do trama: R em blocos, diagramas que rodam](tools/video/out/ab_full.png)
+![O trama: blocos de R ligados num fluxo, cada um mostrando o próprio resultado](site/public/montagens/fluxo-amplo.jpg)
 
 O `trama` é um pacote R para construir e executar fluxos de análise em um editor visual interativo. Cada bloco exibe o próprio resultado, e só os blocos afetados por uma alteração são recalculados.
 
